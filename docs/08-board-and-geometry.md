@@ -77,29 +77,15 @@ The rulebook:
 > - AU (Range 2): 5×5 area
 > - AU (Range 3): 7×7 area **EXCEPT the twelve corner panels**
 
-For Range 1 and 2, it is plain Chebyshev. For Range ≥ 3, the corners are clipped by 1.
+For Range 1 and 2, it is plain Chebyshev. For Range ≥ 3, **only the outermost ring is clipped**.
 
-**"The twelve corner panels"** of a 7×7 is the decisive clue. A 7×7 ring has 4 corners; twelve
-panels means the 3-panel L at each corner: the `(±3,±3)` cell plus `(±3,±2)` and `(±2,±3)`.
-4 corners × 3 = 12. ✓
+Write `d = max(|di|,|dj|)` (the Chebyshev distance) and `s = min(|di|,|dj|)` (how far off the
+axis the panel sits). The rule, confirmed by the game's author (Ch. 41 Q7):
 
-So the rule is: a panel is in range iff
+> A panel is in range iff `d ≤ R`, **excluding** panels where `d = R` **and** `s ≥ 2`.
 
-```
-chebyshev ≤ R   AND   (chebyshev + min(|di|,|dj|)) ≤ ... 
-```
-
-Let us derive it properly. Write `d = max(|di|,|dj|)` and `s = min(|di|,|dj|)`. The clipped
-cells at R=3 are those with `d = 3` and `s ≥ 2`. Equivalently `d + s ≥ 5`, i.e. `d + s > R + 1`.
-
-Check against R=3:
-- `(3,0)`: d+s = 3 ≤ 4 → in ✓
-- `(3,1)`: 4 ≤ 4 → in ✓
-- `(3,2)`: 5 > 4 → **out** ✓
-- `(3,3)`: 6 > 4 → **out** ✓
-- `(2,2)`: 4 ≤ 4 → in ✓
-
-That gives exactly 12 excluded cells. ✓
+Only the ring at exactly the maximum distance loses its corners; everything inside the ring is
+untouched.
 
 **DECISION.** The range predicate is:
 
@@ -109,36 +95,35 @@ function inAttackRange(from: GridOffset, to: GridOffset, R: number): boolean {
   const d = Math.max(di, dj), s = Math.min(di, dj);
   if (d > R) return false;
   if (R < 3) return true;                 // pure Chebyshev for R = 1, 2
-  return d + s <= R + 1;                  // diagonal reduction
+  return !(d === R && s >= 2);            // clip the outer ring's corners only
 }
 ```
 
-### Verification against the source's R=4 and R=5 figures
+### Verification
 
-The rulebook includes diagrams for Range 4 and Range 5 (images we cannot read). Our formula
-predicts:
+The excluded set at distance `R` is the ring cells with `s ≥ 2`:
 
-**R = 4** (9×9 minus clipped): excluded are cells with `d = 4, s ≥ 2` and `d = 3, s = 3`.
-- `d=4`: s ∈ {2,3,4} excluded → per quadrant 3 cells on each of two arms… counting the full
-  ring: cells with d=4 and s≥2 number 4 corners × 3 per arm-pair × ... precisely, the excluded
-  set is `{(4,2),(4,3),(4,4),(3,3)}` and their symmetries.
-- Total excluded: `(4,2)`→8 (sign and swap), `(4,3)`→8, `(4,4)`→4, `(3,3)`→4 = **24 panels**.
-- Range 4 area = 81 − 24 = **57 panels**.
+- `|di| = R` rows: `s = |dj|`, excluded for `|dj| ∈ {2 … R}` → `2(R−1)` per row × 2 rows.
+- `|dj| = R` columns (with `|di| < R`): `s = |di|`, excluded for `|di| ∈ {2 … R−1}` →
+  `2(R−2)` per column × 2 columns.
 
-**R = 5**: excluded `{(5,2),(5,3),(5,4),(5,5),(4,3),(4,4)}`
-= 8 + 8 + 8 + 4 + 8 + 4 = **40**; area = 121 − 40 = **81 panels**.
+Total excluded = `4(R−1) + 4(R−2) = 8R − 12`.
 
-This produces an octagonal footprint that grows smoothly, which is the visual shape the
-rulebook's diagrams show. **RISK.** We cannot read the source images. The formula is derived
-from the one case stated in words (R=3, twelve corners) and is self-consistent. Flagged in
-Ch. 41 for verification against the diagrams; the implementation reads the shape from a
-lookup table for R ≤ 8 so a correction is a data edit.
+| R | Bounding square | Excluded | **Panels in range** |
+|---|---|---|---|
+| 1 | 9 | 0 | **9** |
+| 2 | 25 | 0 | **25** |
+| 3 | 49 | 12 | **37** |
+| 4 | 81 | 20 | **61** |
+| 5 | 121 | 28 | **93** |
+| 6 | 169 | 36 | **133** |
 
-An alternative reading — "diagonal range reduced by 1" meaning the diagonal *arm* is 1 shorter,
-i.e. exclude only `d = R, s = R` — gives only 4 excluded panels at R=3, contradicting "twelve
-corner panels". Rejected.
+R=3's 12 matches the rulebook's *"twelve corner panels"* ✓, and R=4's 20, R=5's 28 and R=6's 36
+match the counts supplied by the game's author ✓.
 
-### The range shape, drawn (R = 3)
+### The range shape, drawn
+
+**R = 3** — 37 panels:
 
 ```
       . . X X X . .          X = in range
@@ -149,7 +134,30 @@ corner panels". Rejected.
       . X X X X X .
       . . X X X . .
 ```
-37 panels (49 − 12). ✓
+
+**R = 4** — 61 panels. Note rows `±1` reach the full width, because at `(1, 4)` the off-axis
+offset `s = 1` is below the clip threshold:
+
+```
+      . . . X X X . . .
+      . X X X X X X X .
+      . X X X X X X X .
+      X X X X X X X X X
+      X X X X @ X X X X
+      X X X X X X X X X
+      . X X X X X X X .
+      . X X X X X X X .
+      . . . X X X . . .
+```
+
+**Superseded reading.** An earlier draft of this chapter derived `d + s ≤ R + 1`, which also
+produces 12 exclusions at R=3 but 24 at R=4 — it additionally clipped `(3,3)`, one ring inside
+the maximum. The author's counts rule that out. The two readings agree at R ≤ 3 and diverge
+from R = 4 upward, so any content authored against the old formula at Range 3 or below is
+unaffected. See the [changelog](../CHANGELOG.md) entry for `0.2.0`.
+
+**Implementation note.** The shape is memoized per `(R, boundsHash)` and, for `R ≤ 8`, read from
+a precomputed lookup table so a future correction remains a data edit.
 
 ---
 
@@ -528,7 +536,7 @@ Geometry is the easiest subsystem to test exhaustively and the most damaging to 
 
 - `inAttackRange` is verified against a **hand-authored fixture** of the R=1..5 panel sets,
   transcribed from the rulebook's stated cases and our derivation, including the exact count
-  assertions (R=3 → 37 panels, R=4 → 57, R=5 → 81).
+  assertions (R=1 → 9, R=2 → 25, R=3 → 37, R=4 → 61, R=5 → 93, R=6 → 133).
 - `chebyshev`/`manhattan` are property-tested for symmetry, identity, and triangle inequality.
 - `orthogonalAdjacentRect` is tested for all four directions × odd and even dimensions
   (§9.3 covers the even-width alignment question).

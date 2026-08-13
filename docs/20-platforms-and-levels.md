@@ -364,18 +364,50 @@ before a player enters and finds their entire kit disabled.
 
 ## 20.7 Cross-level targeting rules
 
-The three platforms have *different* rules, so this is a per-platform table, not a global one.
+Cross-level rules are **per-platform data, decided case by case**. The game's author confirmed
+this explicitly (Ch. 41 Q37):
 
-| Rule | HGoB | Golden Hind | Storm Border |
-|---|---|---|---|
-| Ground units may target units aboard | **No** | **No** | No (different dimension) |
-| Ground units may target the platform | Yes, **ranged only** | Yes, **ranged only** | n/a |
-| Aboard units may target ground units | Yes, **ranged only** | Yes, **ranged only** | No |
-| Aboard units may target units directly below | **No** | **No** | n/a |
-| AoE catching the platform | not specified | ship full, passengers 50%, Masters 0 | n/a |
+> *"Protection rules go on a case-by-case basis: some fortresses/vehicles soak up all the damage
+> for the people inside them, some absorb a part and some absorb none, and others do not even
+> let you target the units inside them unless from the exterior (requiring you to be inside)."*
 
-"Ranged only" means `range.panels ≥ 2`. The unspecified HGoB AoE case defaults to the Golden
-Hind's rule, flagged in Ch. 41.
+So there is no global rule to derive — there is a **protection model** with four axes, and each
+platform picks a point in it.
+
+```ts
+interface CrossLevelRules {
+  // Can occupants be targeted at all from outside?
+  occupantTargeting: "forbidden" | "rangedOnly" | "free";
+  // Must the attacker board to reach occupants?
+  requiresBoarding: boolean;
+  // How much of an AoE reaches occupants?
+  aoePassengerFactor: number;          // 0 = fully soaked, 0.5 = half, 1 = none soaked
+  aoeMastersImmune: boolean;
+  // Can occupants shoot out, and how?
+  outboundTargeting: "forbidden" | "rangedOnly" | "free";
+  forbidDirectlyBelow: boolean;
+}
+```
+
+The reference platforms, and the new ones from the expanded roster:
+
+| Platform | Occupants targetable from outside | AoE to passengers | Outbound | Below |
+|---|---|---|---|---|
+| **Hanging Gardens** | forbidden | 0.5 | ranged only | forbidden |
+| **Golden Hind** | forbidden | 0.5 (Masters 0) | ranged only | forbidden |
+| **Storm Border** | forbidden (different dimension) | n/a | forbidden | n/a |
+| **Quetzalcoatlus** | forbidden | 1.0 to the mount, 0.5 to Quetz, 0 to her Master | free | n/a |
+| **Ramesseum Tentyris** | free (it is a zone, not a level) | 1.0, then −50% from Divine Protection | free | n/a |
+
+Quetzalcoatlus is the first platform in the set where the *mount itself* takes full AoE damage
+while its riders are partially shielded — a third point in the model that the Golden Hind's
+rule alone would not have surfaced.
+
+Ramesseum Tentyris is the first "platform" that is not a level at all: it is a ground-level
+**bounded field** with fortress semantics. Chapter 43 covers that family separately, because
+their rules are about *entry, exit and suppression* rather than about elevation.
+
+"Ranged only" means `range.panels ≥ 2`.
 
 ```ts
 function crossLevelLegal(attacker, target, board): LegalityResult {
@@ -488,7 +520,7 @@ sequential prompts per target per turn is not acceptable UX.
 |---|---|
 | D20.1 | Each active platform gets its own v14 Scene Level. |
 | D20.2 | Platforms are an Actor subtype with `acceptsEffects: false` and `canReact: false`, not flagged tokens. |
-| D20.3 | Cross-level targeting rules are per-platform data, not a global rule. |
+| D20.3 | Cross-level rules are per-platform data on a four-axis protection model; the author confirmed protection is decided case by case, including a "must board to target occupants" mode. |
 | D20.4 | Passenger movement is `forced: true`, exempt from budget and movement triggers. |
 | D20.5 | The Storm Border is a platform with `footprint: null` and a `relocateOnExit` spec. |
 | D20.6 | HGoB activation is a new **channelled** ability kind, interruptible and restartable. |

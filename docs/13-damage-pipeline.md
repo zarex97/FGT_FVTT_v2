@@ -93,7 +93,7 @@ Sixteen stages. The numbering is stable and referenced from effect definitions
 | 11 | **Resistance** | Magic Resistance on the MAG portion; strength resistance |
 | 12 | **Flat reductions** | Dmg Cut, Battle Continuation, Territory Creation defence, Home Base |
 | 13 | **Luck: Reduced Damage** | −Damage Modifier roll if the DU's Luck Check succeeded |
-| 14 | **Block** | −Block roll (doubled vs NP, +Strengthen Block) |
+| 14 | **Block** | ×(1 − blockPercent); 25% base, same value vs NP |
 | 15 | **Total-damage modifiers** | Effects that explicitly say "Total Damage": Underpower, Cover, CS Halve NP, PC AoE tails, Mad Enhancement NP reduction |
 | 16 | **Absorption and clamp** | Shield, Invuln, Endure, Def Crk addition, floor at 0, integer floor |
 
@@ -159,22 +159,40 @@ Examples: `4x damage plus 100` (Heracles's *Nine Lives*), `3.5x damage` (Penthes
 
 ### Stage 3 — Crit
 
-Base crit multiplier: **the `Attack+` roll**. The rulebook expresses Attack+ and Attack− as
-named *rolls* (from the Dice Roll Instructions we do not have), not as a multiplier. So the
-crit multiplier is a **table-driven roll**, not a constant.
+**Both `Attack+` and `Attack−` are `5d10`** (Ch. 41 Q1). The `+` and `−` in the names are the
+operators: a crit **adds** the roll, a non-crit **subtracts** it.
 
-**DECISION.** Model `Attack+`/`Attack−` as entries in the dice registry (Appendix C) with a
-default of `Attack− = ×1.0` and `Attack+ = ×1.5` pending the actual roll tables, both
-overridable per-world by a setting. This is a real gap in our source material and it is flagged
-prominently in Ch. 41 — the exact Attack+/Attack− formulas are the single most important
-missing datum.
+```
+crit:     total += roll("attack+")     // 5d10, mean 27.5
+non-crit: total -= roll("attack-")     // 5d10, mean 27.5, floored at 0
+```
 
-`Crit DmUp` and `Crit DmDwn` modify this stage. `Over Crit` adds `(critChance − 100)%` when the
-chance exceeded 100.
+This is confirmed by the Beginner difficulty rule — *"To play without damage modifiers, just use
+Base Attack for damage calculation instead of Attack+/Attack−"* — which only makes sense if both
+are adjustments **to** Base Attack rather than multipliers of it. It also matches the
+`Damage Modifier` roll being `5d10`, the same die pool used for the ZON penalty and the Luck
+Check damage adjustments.
 
-Beginner difficulty removes damage modifiers entirely: *"To play without damage modifiers, just
-use Base Attack for damage calculation instead of Attack+/Attack−."* So the whole stage is
-skipped at that difficulty.
+**DECISION.** Crit *damage* effects are not part of this stage. `Crit DmUp`, `Crit DmDwn`,
+`Crit ResUp`, `Crit ResDwn` and `Over Crit` are percentage modifiers that join the **stage 4
+bucket**, gated on the `attack:crit` roll option:
+
+```yaml
+- key: DamageModifier
+  direction: dealt
+  value: "@magnitude"
+  predicate: ["attack:crit"]
+```
+
+Rationale: with a flat ±5d10 swing, a crit is worth about 55 points of expected damage. On a
+2,000-damage Noble Phantasm that is negligible, which would make the game's many `Crit DmUp
++100%` effects meaningless if they only scaled the roll. Treating them as ordinary percentage
+modifiers conditioned on having critted makes them scale with the attack, which is plainly the
+intent. Recorded as **Q39** in Ch. 41 for confirmation.
+
+`Over Crit` adds `(critChance − 100)%` to the same bucket when the chance exceeded 100.
+
+Beginner difficulty skips this stage entirely.
 
 ### Stage 4 — The combined percent bucket
 
@@ -221,7 +239,7 @@ mag *= factor; phys *= factor;
 | Home Base ±10%/+20% | Environmental | 8 / 12 |
 | Territory Creation | Dice-rolled flat | 8 / 12 |
 | Magic Resistance % | Component-scoped, applies after everything | 11 |
-| Block | An explicit subtraction from Total | 14 |
+| Block | A reaction, not an effect; applied as its own multiplicative step | 14 |
 | Underpower | Explicitly "Total Damage … reduced by 50%" | 15 |
 | Cover's +100% | Explicitly "Total Damage the Servant takes … increased by 100%" | 15 |
 | CS: Halve Noble Phantasm | Explicitly "Total Damage taken … reduced by 50%" | 15 |
@@ -372,10 +390,21 @@ Flat subtraction. No NP exclusion stated, unlike stage 10.
 ### Stage 14 — Block
 
 ```
-blockValue = roll("block") × (isNP ? 2 : 1) + blockUp
-           + (strengthenBlockSucceeded ? roll("block") : 0)
-total -= blockValue
+blockPercent = 25                              // base, per Ch. 41 Q1
+             + Σ blockUp                       // percentage points
+             + (strengthenBlockSucceeded ? 25 : 0)
+total *= (1 − min(blockPercent, 100) / 100)
 ```
+
+**Block is a flat percentage reduction, not a roll, and it is the same against Noble Phantasms
+as against anything else.** This replaces the rulebook's dice-based Block and its NP doubling.
+
+Consequences of the change, all of which are improvements:
+- Block no longer needs a roll, so it is one fewer round trip in the reaction ladder.
+- Block scales with the attack rather than being a fixed subtraction, so it stays relevant
+  against large Noble Phantasms without the doubling rule.
+- `Luck Check: Strengthen Block` — *"use the Block roll again and further reduce damage"* —
+  becomes a second 25 percentage points, i.e. 50% total.
 
 Bypassed by `Pierce` and (chance-based) by `Break`. If `Break` fires, the attack deals its
 extra damage instead.
@@ -448,13 +477,13 @@ her Master's ZON, on open ground, at night, neither has the [Dark] attribute.
 **Heracles:** Mad Enhancement B permanently active (−40% taken), Battle Continuation A
 (−2d10+20), no Def Up. Attacked from the front. Chooses to do nothing.
 
-**Rolls supplied:** crit = Attack− (×1.0), Battle Continuation = 2d10 → 11, so −31.
+**Rolls supplied:** crit = Attack− (`5d10` → 22), Battle Continuation = `2d10` → 11, so −31.
 
 ```
 Stage 0   No preconditions.
 Stage 1   phys = 160, mag = 0
 Stage 2   × 1.0, + 0                                        → 160
-Stage 3   Attack− → × 1.0                                   → 160
+Stage 3   Attack−  − 5d10 (22)                              → 138
 Stage 4   BUCKET
             Penthesilea:
               Mad Enhancement EX  +100%  (STR portion)
@@ -463,22 +492,27 @@ Stage 4   BUCKET
             Heracles:
               Mad Enhancement B    −40%
             bucket = 100 + 100 + 30 − 40 = +190
-            factor = 2.90                                   → 464
+            factor = 2.90                                   → 400.2
 Stage 5   Mad Enhancement's MAG halving: no MAG portion, no-op
-Stage 6   no band                                           → 464
-Stage 7   + Divinity B (40)                                 → 504
-Stage 8   night, neither is [Dark]; not in a home base      → 504
-Stage 9   in ZON                                            → 504
-Stage 10  no Luck Check                                     → 504
-Stage 11  no MAG portion                                    → 504
-Stage 12  − Battle Continuation A (2d10+20 = 31)            → 473
-Stage 13  no Luck Check                                     → 473
-Stage 14  no Block                                          → 473
-Stage 15  no Total Damage modifiers                         → 473
-Stage 16  injury snapshot: 473 > 100 → TRUE
-          floor                                             → 473
+Stage 6   no band                                           → 400.2
+Stage 7   + Divinity B (40)                                 → 440.2
+Stage 8   night, neither is [Dark]; not in a home base      → 440.2
+Stage 9   in ZON                                            → 440.2
+Stage 10  no Luck Check                                     → 440.2
+Stage 11  no MAG portion                                    → 440.2
+Stage 12  − Battle Continuation A (2d10+20 = 31)            → 409.2
+Stage 13  no Luck Check                                     → 409.2
+Stage 14  no Block (Heracles did nothing)                   → 409.2
+Stage 15  no Total Damage modifiers                         → 409.2
+Stage 16  injury snapshot: 409 > 100 → TRUE
+          floor                                             → 409
 
-RESULT   473 physical damage, Injury Roll required.
+RESULT   409 physical damage, Injury Roll required.
+
+Had Penthesilea critted instead (Attack+ 5d10 → 22), stage 3 would give 182, and the same
+chain would land at 537 — a 128-point swing, amplified from the raw 44-point roll difference by
+the ×2.90 bucket. This is why the ±5d10 sits at stage 3 and not later: it is multiplied by
+everything downstream, which is what makes a flat roll behave like a meaningful crit.
 ```
 
 Note how much of the number comes from the bucket: base 160 becomes 464 at stage 4 alone. This
@@ -497,8 +531,8 @@ within Range for 4x damage plus 100"*. Divinity A (+50). *Flash of the Sun God* 
 **Target:** an enemy Servant with `Magic Resistance B` (negates MAG rank ≤ B, else −40%),
 standing in its own home base with an ally who has `Territory Creation B` on the field. Blocks.
 
-**Rolls:** crit = Attack+ (×1.5), Territory Creation B defence = 3d10+15 → 32,
-Block = 14, doubled for NP → 28.
+**Rolls:** crit = Attack+ (`5d10` → 31), Territory Creation B defence = `3d10+15` → 32,
+Block = flat 25%.
 
 ```
 Stage 0   No preconditions.
@@ -506,49 +540,43 @@ Stage 1   phys = 125, mag = 175                              total 300
 Stage 2   × 4 + 100 → 1300
             split proportionally: mag = 1300 × (175/300) = 758.3
                                   phys = 1300 × (125/300) = 541.7
-Stage 3   Attack+ × 1.5            → mag 1137.5   phys 812.5
+Stage 3   Attack+  + 5d10 (31), distributed proportionally
+            → mag 776.4   phys 554.6                          total 1331
 Stage 4   BUCKET (NP, so NP magnitudes apply)
             Karna: Atk Up (NP value)     +30%
                    NP DmUp               +20%
-            Target: none
-            bucket = +50 → factor 1.50   → mag 1706.3  phys 1218.8
+            Target: Home Base            −10%   ← a percentage on damage TAKEN
+            bucket = +40 → factor 1.40   → mag 1086.9  phys 776.5
 Stage 5   none
 Stage 6   none
-Stage 7   + Divinity A (50), proportional  → mag 1735.4  phys 1239.6
+Stage 7   + Divinity A (50), proportional  → mag 1116.1  phys 797.3
 Stage 8   Day, neither [Dark]; Karna not in a home base     (no change)
 Stage 9   in ZON                                            (no change)
 Stage 10  Luck Check: Increased Damage is BLOCKED for NP     (no change)
 Stage 11  Magic Resistance B vs NP rank A+
             compare(B, A+) = B(300) vs A+(401) → -1, NOT negated
-            → mag × 0.60 = 1041.2            phys 1239.6
+            → mag × 0.60 = 669.7             phys 797.3
 Stage 12  − Territory Creation B (32), proportional
-            total 2280.8 → 2248.8            mag 1026.6  phys 1222.2
-          Home Base damage reduction is stage 15? No — "All damage taken by a Unit in its
-          Home Base is reduced by 10% including NP" is a percentage on damage taken,
-          so it joins the BUCKET at stage 4 as a Def Up-equivalent.
-          ↑ correction applied: bucket at stage 4 was +50 − 10 = +40, factor 1.40.
-Stage 13  no Luck Check
-Stage 14  − Block 28 (doubled for NP)
-Stage 15  no Total Damage modifiers
-Stage 16  floor
+            total 1467.0 → 1435.0            mag 655.1   phys 779.9
+Stage 13  no Luck Check                                     → 1435.0
+Stage 14  Block: × 0.75                      mag 491.3   phys 584.9
+Stage 15  no Total Damage modifiers                         → 1076.2
+Stage 16  floor                                             → 1076
+
+RESULT   1,076 damage (491 magical + 585 physical), plus Burn 3◈ and Def Dwn (B) 1◈.
 ```
 
-The correction mid-trace is deliberate — it is exactly the mistake a first implementation
-makes. Home Base's −10% is a *percentage on damage taken*, so it belongs in the bucket at
-stage 4, not among the flat reductions. Re-running with the correct bucket:
+Two things in that trace are worth calling out, because both are mistakes a first implementation
+makes:
 
-```
-Stage 4   bucket = 30 + 20 − 10 = +40, factor 1.40
-            mag = 758.3 × 1.5 × 1.40 = 1592.4
-            phys = 541.7 × 1.5 × 1.40 = 1137.5
-Stage 7   + 50 proportional            mag 1621.6  phys 1158.3
-Stage 11  mag × 0.60                   mag  972.9  phys 1158.3
-Stage 12  − 32 proportional            total 2131.2 → 2099.2
-Stage 14  − 28                                     → 2071.2
-Stage 16  floor                                    → 2071
+**Home Base's −10% belongs in the stage 4 bucket, not among the flat reductions at stage 12.**
+It is phrased as a percentage on damage *taken*, which is the `Def Up` shape. Putting it at
+stage 12 would apply it to a much larger number and over-reduce.
 
-RESULT   2,071 damage (958 magical + 1,113 physical), plus Burn 3◈ and Def Dwn (B) 1◈.
-```
+**Block is now multiplicative at stage 14, so its value scales with the attack.** Under the old
+dice-based Block this attack lost 28 points; under the flat 25% it loses 359. That is a large
+balance shift in the defender's favour against big Noble Phantasms, and it is precisely why the
+rule was changed.
 
 Then the same computation runs for every other unit in the 7×7 area, with different resistance
 profiles, in one batch.

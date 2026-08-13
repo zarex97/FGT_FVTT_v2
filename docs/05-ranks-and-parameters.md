@@ -300,13 +300,16 @@ Base by END rank:  A 1500   B 1250   C 1000   D 750   E 500
 
 Procedure:
 1. Take base from END grade.
-2. Flip a coin, roll `Health(S)`; add on Heads, subtract on Tails.
-3. `+100` per `+` step, `−100` per `-` step.
+2. `+100` per `+` step, `−100` per `-` step.
 
-Note the ordering: the step adjustment is applied *after* the roll, and the roll is on the
-base value. Also note the table has no `EX` row. Kingprotea has `END: EX` and a stated
-`Base Health: 2000`, so the table is extended: `EX 2000`, inferred from her sheet. Recorded in
-Ch. 41.
+**There is no variance roll.** The rulebook describes a `Health(S)` coin-flip roll, but the
+game's author has confirmed that `Health(S)` is not used (Ch. 41 Q1), so Servant Max Health is
+fully deterministic from END. Only Masters roll for Health.
+
+The table has no `EX` row. Kingprotea has `END: EX` and a stated `Base Health: 2000`, so the
+table is extended: `EX 2000`, inferred from her sheet. Asterios has `END: A++` and a stated
+`Base Health: 1500` — bare `A`, with the `++` not applied — which is the same pattern as
+Castor's, and confirms the rule below.
 
 Also note that several reference sheets state `Base Health` directly (Castor `END: A++`,
 `Base Health: 1500` — matching bare `A`, with the `++` presumably folded into the +200 that
