@@ -309,7 +309,12 @@ Heracles is `Chaotic Mad` — not Good, so unrestricted.
 
 ## 19.6 Terrain
 
-The rulebook defines **no terrain types**. There are no walls, no difficult terrain, no
+> **SUPERSEDED.** This section is replaced by **[Chapter 42 — Terrain](42-terrain.md)**. The
+> *Terrain Effects* document supplies 21 terrain types with full mechanics and a directional
+> overlap-resolution matrix. What follows is retained only as the record of what we knew from
+> the rulebook alone.
+
+The rulebook alone defines **no terrain types**. There are no walls, no difficult terrain, no
 elevation on the base board.
 
 But three Servants reference named area types that do not otherwise exist:
