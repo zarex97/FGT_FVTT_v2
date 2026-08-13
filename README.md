@@ -6,6 +6,10 @@ tactical wargame originally played in Tabletop Simulator, with **full rules auto
 This repository currently contains the **design documentation** for that system. The
 implementation follows.
 
+**Current documentation version: `0.2.0`.** See [`CHANGELOG.md`](CHANGELOG.md) for what changed
+and why — including two corrections in `0.2.0` that invalidate anything built against `0.1.0`'s
+Range geometry or Block rule.
+
 ---
 
 ## Start here
@@ -18,6 +22,7 @@ implementation follows.
 | Understand how combat/damage actually resolve | [Part II — Resolution Systems](docs/00-index.md#part-ii--resolution-systems) |
 | Understand the Foundry code architecture | [Part III — Foundry Architecture](docs/00-index.md#part-iii--foundry-architecture) |
 | See how a specific Servant gets automated | [Part IV — Case Studies](docs/00-index.md#part-iv--case-studies-and-reference) |
+| Know what changed since the last version | [`CHANGELOG.md`](CHANGELOG.md) |
 | Just see the whole table of contents | [`docs/00-index.md`](docs/00-index.md) |
 
 ---
@@ -31,8 +36,10 @@ attacks. A **Round** is one turn per player plus the GM's turn; the symbol **◈
 multiples and fractions of it. Combat is an interactive negotiation between two players —
 attack, evade, luck-check contest, counter-check, counter-attack — not a single roll.
 Damage runs through a long, strictly-ordered pipeline of multiplicative and flat modifiers.
-Roughly 120 named status effects interact with each other by explicit priority rules.
-Automating this means building a **rules engine**, not a character sheet.
+Over 150 named status effects interact with each other by explicit priority rules, on a board
+whose panels carry terrain, whose airspace carries platforms, and into which Noble Phantasms
+carve enclosed **bounded fields** with their own membership and escape rules. Automating this
+means building a **rules engine**, not a character sheet.
 
 ---
 
@@ -56,6 +63,11 @@ Automating this means building a **rules engine**, not a character sheet.
 6. **The GM is an authority, not a bottleneck.** A socket proxy lets players drive their own
    units against actors they do not own, without handing out permissions.
    See [Chapter 26](docs/26-authority-and-sockets.md).
+7. **The board is not flat, and areas are not one thing.** A panel has terrain; the space
+   above it has platforms and levels; and Noble Phantasms carve out enclosed *bounded fields*
+   with their own membership, permeability and escape rules. These are three separate models
+   on purpose. See [Chapters 20](docs/20-platforms-and-levels.md),
+   [42](docs/42-terrain.md) and [43](docs/43-bounded-fields.md).
 
 ---
 
@@ -74,6 +86,7 @@ Automating this means building a **rules engine**, not a character sheet.
 ```
 FGT_FVTT_v2/
 ├── docs/                  ← design documentation (this deliverable)
+├── CHANGELOG.md           ← every change to docs, and later to code
 ├── system.json            ← manifest
 ├── module/
 │   ├── fgt.mjs            ← entry point
@@ -96,10 +109,14 @@ FGT_FVTT_v2/
 
 | Phase | State |
 |---|---|
-| Design documentation | **In progress** — see `docs/` |
+| Design documentation | **`0.2.0`** — 44 chapters + 5 appendices, see `docs/` |
 | System skeleton | Not started |
 | Rules engine | Not started |
-| Content (12 reference Servants) | Specified in Part IV, not yet authored |
+| Content (29 reference Servants) | Specified in Part IV and Appendix D, not yet authored |
+
+Open design questions are tracked in
+[`docs/41-open-questions.md`](docs/41-open-questions.md): **Q1–Q38 answered** by the game's
+author, **Q39–Q48 open**.
 
 ## Sources
 
@@ -110,9 +127,17 @@ The design is derived from these primary documents:
 - *Status Effects / Keywords / Attributes / Other*
 - *Important — ◈ notation* (rounds and turns)
 - *General Notes*
-- 12 reference character sheets (Van Gogh, Mannanán mac Lir, Kingprotea, Dioscuri,
-  Semiramis, Scáthach, Karna, Kiritsugu, Francis Drake, Penthesilea, Nemo, Heracles)
+- *Terrain Effects* — the 21 terrain types and their overlap rules (added in `0.2.0`)
+- *41-open-questions.md, annotated* — the author's answers to Q1–Q38 (added in `0.2.0`)
+- **29 reference character sheets:**
+  - The original twelve: Van Gogh, Mannanán mac Lir, Kingprotea, the Dioscuri, Semiramis,
+    Scáthach, Karna, Kiritsugu, Francis Drake, Penthesilea, Nemo, Heracles.
+  - Added in `0.2.0`: Nursery Rhyme, Hassan of Serenity, Jack the Ripper, Yan Qing,
+    Katō Danzō, Hundred-Faced Hassan, Medea, Achilles, Ozymandias, Medusa, Pale Rider,
+    Anastasia & Viy, Quetzalcoatl, EMIYA, Proto Gil, Asterios, Raikou.
 
 Where the source documents are ambiguous or self-contradictory, the resolution is recorded
 explicitly in [`docs/41-open-questions.md`](docs/41-open-questions.md) rather than silently
-decided.
+decided. Where a resolution later turned out to be **wrong**, the correction is recorded in
+[`CHANGELOG.md`](CHANGELOG.md) alongside the superseded reading — see the Range formula in
+`0.2.0`, which fit every piece of evidence available and was still incorrect.

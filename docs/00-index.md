@@ -81,17 +81,22 @@ sufficient to implement the system without further reference to the original doc
 | 38 | [Testing Strategy](38-testing-strategy.md) | Unit-testing a rules engine, golden-file combat tests, property tests for geometry |
 | 39 | [Migration and Versioning](39-migration-and-versioning.md) | Schema versioning, data migration, rule-version pinning for in-progress games |
 | 40 | [Roadmap](40-roadmap.md) | Milestones, sequencing, what "done" means per phase |
-| 41 | [Open Questions](41-open-questions.md) | Every ambiguity found in the source, with a recommended resolution |
+| 41 | [Open Questions](41-open-questions.md) | Q1–Q38 answered by the game's author; Q39–Q48 still open |
+| 42 | [Terrain](42-terrain.md) | The 21 terrain types, the directional overlap matrix, and day/night as a per-panel property |
+| 43 | [Bounded Fields](43-bounded-fields.md) | The third area family: enclosed NP zones with their own membership, permeability and escape rules |
+| 44 | [Case Studies: The Expanded Roster](44-case-expanded-roster.md) | Everything the 17 added Servants demanded, grouped by mechanism |
 
 ## Appendices
 
 | # | Appendix | What it covers |
 |---|---|---|
-| A | [Effect Catalogue](A-effect-catalogue.md) | All ~120 effects with formal semantics, stacking, and implementation notes |
+| A | [Effect Catalogue](A-effect-catalogue.md) | All 152 effects with formal semantics, stacking, and implementation notes |
 | B | [Rank Tables](B-rank-tables.md) | Every rank-indexed table in the game, in one place |
 | C | [Dice Roll Registry](C-dice-registry.md) | Every named roll, its formula, and its modifiers |
-| D | [Servant Data Sheets](D-servant-data-sheets.md) | The 12 reference Servants as fully-specified system data |
+| D | [Servant Data Sheets](D-servant-data-sheets.md) | The 29 reference Servants as fully-specified system data |
 | E | [Event Reference](E-event-reference.md) | Every hook and engine event, with payload shapes and ordering guarantees |
+
+Changes to any of the above are tracked in the [changelog](../CHANGELOG.md).
 
 ---
 
@@ -101,10 +106,17 @@ sufficient to implement the system without further reference to the original doc
 02 → 07 → 12 → 13 → 14 → 27 → 30
 
 **"I'm implementing targeting."**
-08 → 09 → 28 → Appendix D (to see the real shapes in use)
+08 → 09 → 28 → 42 → 43 → Appendix D (to see the real shapes in use)
 
 **"I'm authoring content."**
 05 → 10 → 11 → 15 → 24 → 37 → Appendix A → Appendix D
 
 **"I'm reviewing the architecture."**
 01 → 03 → 21 → 22 → 24 → 26 → 40
+
+**"I'm implementing areas."**
+08 → 09 → 19 → 20 (platforms and levels) → 42 (terrain) → 43 (bounded fields).
+These are three *distinct* area families and Chapter 43 §43.1 explains why they are not unified.
+
+**"I want to know what changed and why."**
+[CHANGELOG](../CHANGELOG.md) → 41 (Open Questions) → 44

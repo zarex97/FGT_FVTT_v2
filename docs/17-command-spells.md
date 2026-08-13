@@ -379,7 +379,7 @@ it in chat" fallback.
 | D17.4 | Each command declares an explicit `overridesValidation` whitelist; empty by default. |
 | D17.5 | `Teleport Servant` mutates the Combat Phase's target list — the only post-declaration retarget. |
 | D17.6 | Offers time out (default 45 s) into "declined", logged, with a GM override. |
-| D17.7 | `Kill Yourself` does not bypass revival effects (Ch. 41). |
+| D17.7 | `Kill Yourself` **bypasses revival effects** — Guts, Battle Continuation and God Hand do not fire (Ch. 41 Q35, answered in `0.2.0`; §17.6). Superseded the `0.1.0` reading, which had revival apply. |
 | D17.8 | `Kill Humans`'s permanent consequence is authored content (two statuses + an event listener), not engine code. |
 | D17.9 | Spend logs show the counterfactual damage, because the pipeline already produced it. |
 

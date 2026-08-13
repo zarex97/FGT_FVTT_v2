@@ -1,373 +1,324 @@
 # 41 — Open Questions
 
 Every place where the source documents are silent, ambiguous, or self-contradictory, with the
-reading we implemented and why. **Nothing here blocks development** — each has a shipped
-default — but each is a decision the game's author should confirm.
+resolution and where it is implemented.
 
-Questions are ordered by impact. Q1 and Q2 should be asked before implementation starts.
-
----
-
-## Priority 1 — Ask before writing code
-
-### Q1. What are the `Attack+`, `Attack−`, and `Block` roll formulas?
-
-**Source:** The rulebook references a companion *Dice Roll Instructions* document we do not
-have. It names the rolls (`Attack+`, `Attack−`, `Block`, `Evade`, `Evade−`, `Luck Check`,
-`Luck Check−`, `Injury`, `Health(S)`, `Health(M)`, `Agility(M)`, `Luck`) but gives formulas for
-only a few.
-
-**Impact:** `Attack+`/`Attack−` sit at damage pipeline stage 3 and scale every damage number in
-the game. `Block` at stage 14 is the primary damage-reduction mechanic. Without them, no balance
-claim can be made about anything.
-
-**Our placeholders:** `Attack+` = ×1.5, `Attack−` = ×1.0, `Block` = 5d10, `Evade` = 1d20,
-`Evade−` = 1d20+4, `Luck Check−` = 1d20+4, `Injury` = 1d4, `Health(S)` = 2d100,
-`Health(M)` = 1d100, `Agility(M)` = 2d6, `Luck(M)` = 1d10. Confidence: low on all of them.
-
-**Mitigation:** every roll is a registry entry with a per-world override (Ch. 14 §14.4), so
-supplying the real values is a settings change, not a code change. A world using any placeholder
-shows a persistent banner.
+**Status as of `0.2.0`:** questions **Q1–Q38 have been answered by the game's author**. They are
+retained below in condensed form as the record of what was decided and why, because several
+resolutions changed the design. **Q39–Q48 are new**, raised by the answers themselves and by the
+expanded roster and terrain documents.
 
 ---
 
-### Q2. Are damage percentages additive or multiplicative?
+## Part 1 — Answered (Q1–Q38)
 
-**Source, in favour of additive:**
-> *"100% Def Up does not always mean no damage is taken. For example, if the AU has 30% Atk Up
-> and uses a Normal Attack on a Unit who has 100% Def Up, then the damage calculation would be
-> (100+30−100)%, so it would deal 30% damage only, not 0."*
+### Q1. The dice formulas — **ANSWERED**
 
-That is unambiguous for the `Atk Up` / `Def Up` pair. But it is the *only* worked example, and
-the reference set stacks many percentages at once.
+All named rolls are supplied. Full table in [Appendix C](C-dice-registry.md).
 
-**The stakes.** Penthesilea with Mad Enhancement EX (+100%), `Atk Up (GreekMale)` (+100%), and
-`Atk Up (STR)` (+30%), against Heracles's Mad Enhancement B (−40%):
-- Additive: `1 + (100+100+30−40)/100 = ×2.90`
-- Multiplicative: `2.00 × 2.00 × 1.30 × 0.60 = ×3.12`
+| Roll | Answer |
+|---|---|
+| `Attack+` | `5d10`, **added** to damage |
+| `Attack−` | `5d10`, **subtracted** from damage |
+| `Block` | **Not a roll — a flat 25% reduction, the same value against NP** |
+| `Evade` / `Evade−` | `1d20` / `1d20+4` |
+| `Luck Check` / `Luck Check−` | `1d20` / `1d20` — **identical** |
+| `Injury` | `1d4` |
+| Master Base Health | **250** |
+| `Agility(M)` / `Luck(M)` | `4+1d8` / `8+1d12` |
+| `Health(S)` | **Not used** — Servant Max Health has no variance roll |
 
-Close here, but the divergence grows fast: add Presence Concealment's +100% and additive gives
-×3.90 while multiplicative gives ×6.24.
+Three of these changed the design materially: Block became a percentage (Ch. 13 §13.3 stage 14),
+crit became a flat ±5d10 with crit-damage percentages moving to the stage-4 bucket
+(Ch. 13 §13.3 stage 3), and Servant health became fully deterministic (Ch. 05 §5.6).
 
-**Our reading:** additive for everything in stage 4, per the one worked example. Effects whose
-text says **"Total Damage"** are multiplicative at stage 15.
+### Q2. Additive or multiplicative damage percentages — **ANSWERED: additive**
 
-**What we would need to change:** stage 4 only. It is isolated by design.
+Confirmed. Stage 4 is one additive bucket; effects whose text says **"Total Damage"** are
+multiplicative at stage 15. Ch. 13 §13.4.
 
----
+### Q3. `½◈` at 3 turns per round — **ANSWERED: yes, 2**
 
-## Priority 2 — Affects many numbers
+The published override table is correct and the `floor` rule is the fallback. Ch. 07 §7.2.
 
-### Q3. Is `½◈` at 3 turns per round really 2?
+### Q4. Does `Burn` reduce both STR and MAG — **ANSWERED: both, −30 each**
 
-**Source table:** `3 Turns per Round (⅓ = 1 Turn, ⅔ = 2 Turns, ½ = 2 Turns)`
+### Q5. Which budget pool an Active Skill consumes — **ANSWERED: a move slot**
 
-`floor(0.5 × 3) = 1`, not 2. Every other cell in the published table matches `floor`. The 8- and
-15-turn rows give `½ = 4` and `½ = 7`, both of which are `floor`.
+No prerequisite; the "must have Moved or Attacked" clause is a garbled restatement of the budget
+rule. Ch. 18 §18.3.
 
-**Our reading:** a deliberate exception (a half-round of 1 turn out of 3 would be shorter than a
-third of a round). Implemented as a published override table consulted before the `floor` rule
-(Ch. 07 §7.2), so a correction is a one-line data edit.
+### Q6. Mental debuff classification — **ANSWERED**
 
----
+> *"Mental debuffs are their own category: non-volatile and additionally flagged mental."*
 
-### Q4. Does `Burn` reduce both STR and MAG base attack?
+So `nvDebuff Immune` **does** block them, and `Men.Debuff Immune` targets them specifically.
+Ch. 10 §10.2.
 
-**Source:** *"Burn reduces the affected Unit's Base Attack (STR & MAG?) by 30."*
+### Q7. The Range shape at R ≥ 4 — **ANSWERED, and our formula was wrong**
 
-The question mark is in the original.
+The rule is: exclude panels where `d = R` **and** `s ≥ 2`. **Only the outermost ring is
+clipped.** Excluded = `8R − 12`.
 
-**Our reading:** both, `−30` each. A setting exposes STR-only.
+| R | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| Panels in range | 9 | 25 | 37 | **61** | **93** | **133** |
 
----
+Our earlier derivation (`d + s ≤ R + 1`) also gave 12 exclusions at R=3 but additionally clipped
+one ring inward from R=4 up, producing 57 and 81 instead of 61 and 93. Corrected in Ch. 08 §8.2
+and Ch. 28 §28.3. Content authored at Range ≤ 3 is unaffected.
 
-### Q5. Which budget pool does an Active Skill consume?
+### Q8. MOV derivation — **ANSWERED: authored per-Servant, not derived**
 
-**Source:** *"Only a Unit that has Moved or Attacked during its Turn may use its Active Skills;
-similarly, a Unit that has used an Active Skill counts towards the number of Units who Move or
-Attack during that Turn."*
+### Q9. `NP Seal` vs `Kavacha and Kundala` — **ANSWERED: it survives**
 
-The first clause reads as a *prerequisite* (you must have already moved or attacked), which would
-prevent opening a turn with a buff — strange. The second clause reads as a *budget* rule.
+### Q10. God Hand's attack identity — **ANSWERED: the ability identity**
 
-**Our reading:** the second clause is operative; the first is a garbled restatement. An Active
-Skill consumes a **move** slot from the appropriate pool, and there is no prerequisite.
+### Q11. Dioscuri linked death — **ANSWERED, with an important clarification**
 
-**Alternatives documented** (Ch. 18 §18.3): consume an *attack* slot (very restrictive given how
-skill-dense the reference Servants are), or let the player choose the pool.
+Linked death ignores the *survivor's* revival — but it triggers only on **true defeat**:
 
----
+> *"Imagine Pollux's HP is reduced to 0; her Guts will revive her, so in the moment she is
+> initially reduced to 0 it shouldn't link-kill Castor, as she is not truly dead."*
 
-### Q6. Are Mental debuffs volatile or non-volatile?
+So the trigger is `unitDefeated` (after the revival chain), not `healthReachedZero`. Ch. 34 §34.4.
 
-**Source:** The status document gives four headings — Non-volatile, Mental, Volatile, Other —
-without saying whether Mental is a subset of either.
+### Q12. Dioscuri combined NP modifiers — **ANSWERED: yes, they double-count**
 
-**Impact:** `nvDebuff Immune` and `vDebuff Immune`. Kingprotea has 60% + 60% `nvDebuff` resistance
-from *Self-Suggestion*; whether that protects her from `Charm` depends on this.
+### Q13. "Strongest" Noble Phantasm — **ANSWERED**
 
-**Our reading:** Mental debuffs are **non-volatile** and additionally flagged `mental`. Rationale:
-they apply no damage over time, and Self-Suggestion reads naturally as mental protection.
+Ranked by expected damage against a neutral defender, **and the ranking is stored as part of the
+character's data** rather than recomputed. Ch. 33 §33.4.
 
----
+### Q14. Van Gogh's cooldown example — **ANSWERED: the formula is authoritative**
 
-### Q7. What is the exact Range shape at R = 4 and R = 5?
+### Q15. Fragarach Tokens vs Counters — **ANSWERED: the same thing; Tokens is canonical**
 
-**Source:** States R=3 is a 7×7 *"EXCEPT the twelve corner panels"*, and includes diagrams for
-R=4 and R=5 that we cannot read (they are images).
+### Q16. Battle Continuation's NP doubling — **ANSWERED: the per-Servant sheet wins**
 
-**Our derivation:** a panel is in range iff `d ≤ R` and, for `R ≥ 3`, `d + s ≤ R + 1`
-(where `d = max(|di|,|dj|)`, `s = min(|di|,|dj|)`). This produces exactly 12 excluded panels at
-R=3 ✓, 24 at R=4 (57 panels total), and 40 at R=5 (81 panels total).
+### Q17–Q19, Q21–Q23, Q25–Q28, Q30, Q31, Q33, Q34, Q36, Q38 — **confirmed as implemented**
 
-**Confirmation needed:** the panel counts for the R=4 and R=5 diagrams. Implemented as a lookup
-table for R ≤ 8 so a correction is a data edit (Ch. 08 §8.2).
+No changes. Our readings stand.
 
----
+### Q20. ZON base values — **ANSWERED: our reading is correct**
 
-### Q8. How is MOV derived from the AGI rank?
+The `+2` clause is the *reason* for Assassin's 4 and Caster's 5, not an addition on top.
 
-**Source:** *"MOV: The number of panels a Unit can Move in one Turn. Reliant on AGI Rank."* No
-table is given.
+### Q24. Do NPs crit — **ANSWERED: yes, at the base 50%**
 
-**The reference data contradicts a pure function:** `AGI: C` gives MOV 5 for Van Gogh and MOV 4
-for Penthesilea. `AGI: A` gives 7 for Scáthach, Karna and Kingprotea, but 6 for Heracles.
+Crit-chance modifiers do not apply **unless stated otherwise** — the "unless stated" is new and
+means a per-ability override is legal.
 
-**Our reading:** MOV is authored per-Servant, not derived. The AGI relationship is a design
-guideline, not a rule.
+### Q29. Charm and faction — **confirmed: a charmed unit may attack its own allies**
 
----
+### Q32. Turn order with more than two factions — **ANSWERED, and it changed the design**
 
-## Priority 3 — Affects specific content
+- Every faction rolls `1d100`.
+- **Ties are re-rolled for the contested positions only.**
+- The GM is always last.
+- **This is re-done every Round.**
 
-### Q9. Does `NP Seal` negate `Kavacha and Kundala`?
+The earlier design fixed the order at setup. Turn order is now round-scoped, and `Delay` does not
+carry across rounds. Ch. 19 §19.8, Ch. 25 §25.3.
 
-**Source:** *"This effect is negated if Karna is affected by NP Seal?"* — question mark in the
-original.
+### Q35. `CS: Kill Yourself` and revival — **ANSWERED: it bypasses revival**
 
-The general rule says `NP Seal` *"does not affect Passive NP unless stated"*, and a question mark
-is not a statement.
+Changed from our reading. Ch. 17 §17.6.
 
-**Our reading:** Kavacha and Kundala survives NP Seal.
+### Q37. Platform AoE protection — **ANSWERED: case by case**
 
----
+> *"Some fortresses/vehicles soak up all the damage for the people inside them, some absorb a
+> part and some absorb none, and others do not even let you target the units inside them unless
+> from the exterior (requiring you to be inside)."*
 
-### Q10. What identifies an "Attack" for God Hand's recording?
-
-**Source:** *"Whenever an Attack reduces Heracles' Health to 0 for the first time, record that
-Attack. These recorded Attacks can no longer defeat Heracles."*
-
-**Our reading:** the **ability identity** — so Karna's *Brahmastra Kundala* becomes non-lethal
-but *Vasavi Shakti* still gets a chance. Normal attacks record as `normal:<attackerId>`.
-
-**Alternative:** the attacking *unit*, which would make one kill permanently defang an entire
-Servant. Very strong.
+So there is no global rule — there is a four-axis protection model and each platform picks a
+point in it, including a "must board to target occupants" mode we had not anticipated.
+Ch. 20 §20.7.
 
 ---
 
-### Q11. Does Dioscuri linked death ignore revival?
+## Part 2 — New questions (Q39–Q48)
 
-**Source:** *"If either one is defeated, the other one is also defeated as well regardless of
-remaining Health."*
+### Q39. Do crit-damage percentages scale the whole attack, or only the `Attack+` roll?
 
-**The problem case:** Castor dies, linked death kills Pollux, Pollux's Guts revives her — leaving
-her alive with a dead partner, which the binding forbids.
+**Why it matters.** `Attack+` adds a flat `5d10` (mean 27.5). If `Crit DmUp +100%` doubles only
+that roll, it is worth 27 points — negligible against a 2,000-damage Noble Phantasm, and the
+game contains a great many `Crit DmUp` effects at magnitudes from 25% to 100%.
 
-**Our reading:** linked death applies `Death` semantics (ignores revival). *"Regardless of
-remaining Health"* reads as absolute, and the alternative produces an illegal board state.
+**Our reading.** Crit-damage percentages are ordinary stage-4 bucket modifiers gated on
+`attack:crit`, so they scale the whole attack. `Crit DmUp +100%` on a crit therefore roughly
+doubles the damage.
 
----
+**Alternative.** They multiply only the `Attack+` roll, making crits a small consistent bonus and
+crit-damage effects nearly worthless. We think this is clearly not intended, but it is our
+inference.
 
-### Q12. Do the Dioscuri's combined NP modifiers double-count?
-
-**Source:** *"The effects of all Skills, buffs and debuffs on both Castor and Pollux are combined
-when calculating damage for this NP."*
-
-If both twins carry `Atk Up 15%` from the same `Guardians of Navigation` cast, does the NP get
-+30%?
-
-**Our reading:** yes. "Combined" is plain, deduplication would need cross-instance identity
-tracking, and it is what makes the joint NP worth its cost.
+**Where.** Ch. 13 §13.3 stage 3.
 
 ---
 
-### Q13. What is a Servant's "strongest" Noble Phantasm?
+### Q40. Is `Luck Check−` being identical to `Luck Check` intended?
 
-**Source (Mannanán's Fragarach):** *"If the NP was the enemy Unit's strongest NP (or its only
-damage-dealing NP), the NP is cancelled and the user is inflicted with Instakill."*
+`Evade−` carries a `+4` penalty; `Luck Check−` carries none. So contesting a luckier opponent is
+free, and two buffs/debuffs become inert:
 
-Ambiguous for conditional NPs (Karna's *Brahmastra* is 4× or 2× depending on the target) and for
-non-damaging NPs.
+- `Luck Boost` — *"always Rolls with (normal) Luck Check instead of Luck Check−"* — does nothing.
+- `Luck Loss` — the inverse — does nothing.
 
-**Our reading:** rank damaging NPs by expected damage against a synthetic neutral defender,
-taking the best branch of any conditional. Non-damaging NPs are excluded (the ability already
-says it cannot be used against them).
+Both appear in content. We have implemented the table selection anyway (it costs nothing and
+keeps the code symmetric with Evade) and marked the two effects **inert** in the catalogue rather
+than removing them.
 
----
+**If a penalty was intended**, `1d20+4` mirroring `Evade−` would restore both effects and make
+Luck a matchup as well as a budget.
 
-### Q14. Van Gogh's cooldown-reduction example
-
-**Source:** *"Reduce Gogh's NP Cooldown by X Turns, where X = ⅓◈ × the stage of the Curse debuff
-(e.g. Gogh has Stage 7 Curse, so NP Cooldown is reduced by 2◈+⅓◈ Turns)."*
-
-At 3 turns/round: `⅓◈ = 1`, so `1 × 7 = 7` turns, and `2◈+⅓◈ = 7`. ✓ Consistent.
-At 8 turns/round: `⅓◈ = 2`, so `2 × 7 = 14`, but `2◈+⅓◈ = 18`. ✗ Inconsistent.
-
-**Our reading:** the formula `⅓◈ × stage` is authoritative; the parenthetical is an illustration
-at 3 turns/round only.
+**Where.** Ch. 14 §14.4, Appendix A §A.3.
 
 ---
 
-### Q15. `Fragarach Tokens` or `Fragarach Counters`?
+### Q41. What is a "Dead panel"?
 
-**Source:** Mannanán's sheet uses both names for what appears to be one resource
-(*"Fragarach Tokens: 5/5"*, *"+5% for each Fragarach Counter"*, *"Remove all Fragarach
-Counters"*).
+The `Dead Zone` terrain says *"All panels within a Dead Zone are Dead panels (see 'Mori
+Nagayoshi')"*. We do not have that Servant's sheet.
 
-**Our reading:** one resource, canonically `fragarachTokens`, with `Counters` as a display alias.
+We implement the stated effect (units standing on one deal −20% damage including NP) and leave
+the concept otherwise undefined. If Dead panels have properties beyond that — persistence,
+creation conditions, interactions — they are unimplemented.
 
----
-
-### Q16. Battle Continuation's NP reduction — doubled total or doubled dice?
-
-**Source (generic skill):** *"For Noble Phantasm damage received, the **Total value of the roll**
-is doubled."* → `2 × (2d10 + 20)`
-**Source (Heracles's sheet):** *"if NP, the **number of dice rolled** is doubled."* → `4d10 + 20`
-
-Different numbers (expectation 62 vs 42).
-
-**Our reading:** the per-Servant sheet wins where it conflicts with the generic skill. So
-Heracles uses `4d10+20`. General principle: a Servant's own text overrides the class-skill
-template.
+**Where.** Ch. 42 §42.2.
 
 ---
 
-## Priority 4 — Edge cases and definitions
+### Q42. What is `Style Change`?
 
-### Q17. Is defeat at `health ≤ 0` or `health < 0`?
+The `Magnetic` terrain's `Immobilize` clause is *"not affected by Debuff Immune effects or
+effects that modify debuff resist **EXCEPT Style Change**"*. `Style Change` is not defined in any
+document we have.
 
-Source says *"defeated when this drops below 0"* but effects say *"reduced to 0"*. We use `≤ 0`;
-otherwise `Instakill` would not kill.
+We implement the immunity bypass as absolute and leave a named exception hook
+(`bypassExceptions: ["styleChange"]`) that currently matches nothing.
 
-### Q18. Base Health for `END: EX`?
+**Where.** Ch. 42 §42.2.
 
-The table stops at Rank A (1500). Kingprotea has `END: EX` and a stated Base Health of 2000. We
-extend the table with `EX: 2000`.
+---
 
-### Q19. Max Luck's `-` step value?
+### Q43. Is day/night evaluated at the attacker's panel or the defender's?
 
-Source: *"For every - in Rank, decrease the Servant's Max Luck by."* — value missing. We use 1,
-mirroring the `+` clause.
+Now that `Sunlight`, `Darkness` and `Indoors` make the phase a **per-panel** property, an attack
+can cross a boundary — a `Dark` unit standing in a Sunlight pocket attacking a target outside it.
 
-### Q20. ZON base values for Assassin and Caster
+The rule has two clauses: damage *received* by `Dark` units is increased, and damage *dealt* by
+`Dark` units is reduced.
 
-Source gives defaults (Assassin 4, Caster 5) *and* a "+2 for Casters and Assassins" clause that
-does not stack with Independent Action. We read the +2 as *the reason for* those defaults
-(bases 2 and 3), not an addition on top. The alternative reading gives Assassin 6 and Caster 7.
+**Our reading.** Evaluate each clause at the panel of the unit it describes: the damage-taken
+clause at the defender's panel, the damage-dealt clause at the attacker's panel.
 
-### Q21. Multi-class Servants
+**Alternative.** Evaluate both at the defender's panel (the point of impact), or both at the
+attacker's.
 
-Semiramis is *"both a 'Caster' and 'Assassin' Class Servant"*. Which class's ZON default and NP
-round gate apply? We take the most favourable of each (Caster's ZON, Assassin's round-4 gate).
+**Where.** Ch. 42 §42.2.
 
-### Q22. "Steps 1 and 4 of Combat are repeated" for Counters
+---
 
-Almost certainly a typo for "Steps 1 **to** 4" — a counter that skips the reaction ladder and the
-damage step is nonsense, and `Instant Counter` explicitly describes skipping to Step 3 as its
-*special* property. We run the full process.
+### Q44. Is the Noble Phantasm tag scale ordered as we assume?
 
-### Q23. Master counter-redirect when the Servant is out of range
+Several field vulnerabilities require comparisons — *"an `[Anti-World]` or higher NP"*, *"two
+`[Anti-Fortress]` or higher NPs"*. That needs an ordering.
 
-The redirect is written as absolute protection. We let it succeed regardless of range.
+**Our construction:**
 
-### Q24. Do Noble Phantasms crit?
+```
+Anti-Unit  <  Anti-Army  <  Anti-Fortress  <  Anti-Country  <  Anti-World
+```
 
-The rules describe NP damage using the same `Attack+`/`Attack−` coin flip, but every crit-chance
-effect says *"does not affect NP"*. We read this as: NPs crit on the base 50%, but crit-chance
-modifiers do not apply.
+with `Anti-Divine`, `Anti-Beast`, `Barrier`, `Fortress`, `Labyrinth`, `Counter`, `Bounded Field`
+and `Anti-Unit (Self)` as unordered qualifiers that do not participate. An NP with several tags
+compares by its highest scale tag. `[???]` never satisfies a threshold and prompts the GM.
 
-### Q25. Does a revived unit perform an Injury Roll?
+This is conventional usage, not a stated rule. Getting it wrong changes which Noble Phantasms can
+break Ramesseum Tentyris and Doomsday Come.
 
-Step 4 requires the DU to have "survived". Revival is a post-defeat event. We say no.
+**Where.** Ch. 43 §43.8.
 
-### Q26. Does the ZON penalty apply to Free Servants?
+---
 
-No Master means no ZON, so the rule cannot apply. We exempt them.
+### Q45. Does Nursery Rhyme's rewind restore position?
 
-### Q27. Even-dimension shape centring
+*The Queen's Glass Game* returns *"the Stats, Parameters, Buffs, Debuffs, Cooldowns, and other
+existing effects"* of affected units to an earlier state. Position is not listed.
 
-No even-dimensioned self-anchored shape exists in the reference set. We bias toward negative
-offsets (the caster occupies the lower-right of the four central panels) and show it in the
-preview.
+**Our reading.** Position and facing are **not** restored — units are not teleported back. Turn
+budget and contract state are likewise excluded.
 
-### Q28. Golden Wild Hunt's rectangle placement
+**If position should be restored**, the rewind becomes far stronger (it undoes an entire approach)
+and the history buffer must record positions, which it currently does not.
 
-*"Hits a 7×3 or 3×7 panel area in the direction the Golden Hind is facing."* Centred on the ship,
-or projected forward from the bow? We project forward.
+**Where.** Ch. 43 §43.11.
 
-### Q29. Charm and faction
+---
 
-Charm changes control but not faction. Can a charmed unit attack its own allies? We say yes —
-otherwise Charm is nearly useless.
+### Q46. Hassan's bracketed alternatives
 
-### Q30. Do Confused units consume the controller's budget?
+The Hundred-Faced Hassan sheet contains two unresolved options in brackets:
 
-Unstated. We say yes: they act on their player's turn and nothing exempts them.
+- *"a maximum of ten **(twenty?)** Hundred-Faced Hassans on the field"*
+- *"one counts as 0.5 **(0.25?)** of a Unit"*
 
-### Q31. Home base residency after a debuff cure
+We default to **ten** and **0.5**, both exposed as ruleset settings. Note the two interact: at
+twenty deployed and 0.25 weight, a full Hassan board would consume the same budget as five
+ordinary Servants, which against the standard 4-move/2-attack budget is already over cap.
 
-Does the 3-round counter reset after firing? We reset it to 0.
+**Where.** Ch. 44 §44.1.
 
-### Q32. Turn order with more than two factions
+---
 
-The rulebook only describes two. We have all factions roll `1d20`; highest picks their slot
-first; the GM is always last.
+### Q47. Secret Poison — hide the damage, or only its cause?
 
-### Q33. Knockback cascade ordering and tie-breaking
+Serenity's `Zabaniya` can inflict **Secret Poison**, *"where the debuff and total Poison Damage
+taken is only revealed after Presence Concealment is deactivated"*.
 
-Unspecified for Kingprotea's `Huge Scale`. We use breadth-first from her centre, nearest first,
-pushing directly away, with ties broken toward the larger open space, and a cycle guard that
-stops the innermost unit and applies collision damage.
+Read literally, the victim's Health should not visibly drop until disclosure — which means the
+displayed Health is wrong, and a unit could be walking around already dead.
 
-### Q34. Kingprotea's growth when displacement cannot resolve
+**Our reading.** Apply the damage to real Health immediately, but hide the *cause*: the victim
+sees an unattributed loss. State integrity wins over the strength of the secret.
 
-Unspecified. We defer the growth (the stock is still gained, the size step is retried at the next
-opportunity).
+**Alternative.** Genuinely defer the damage, accumulating it and applying the total on disclosure.
+That is implementable but means a unit's true and displayed state diverge, which every other part
+of the design works to prevent.
 
-### Q35. Does `CS: Kill Yourself` bypass revival?
+**Where.** Ch. 44 §44.4.
 
-Unstated. We say no — `Death` is explicitly the effect that ignores revival, and this is not it.
+---
 
-### Q36. Dioscuri leash broken by forced movement
+### Q48. Does Rule Breaker override absolute Independent Action?
 
-Unspecified. We allow it, require restoration on their next turn, and disable the joint NP while
-broken.
+Medea's Rule Breaker seizes a Servant's contract with no adjacency requirement and no roll. Four
+Servants in the roster have `Independent Action` at `A+` or `EX`, described as *"cannot be
+contracted by enemy Casters and Masters"* — Proto Gil, Anastasia, Kiritsugu, Serenity.
 
-### Q37. HGoB and AoE damage to passengers
+**Our reading.** No. The absolute immunity holds. Rule Breaker's damage and buff-stripping still
+land; the contract seizure does not.
 
-The Golden Hind specifies full damage to the ship, 50% to passengers, and immunity for Masters
-aboard. The HGoB says nothing. We apply the Golden Hind's rule.
+**Alternative.** Rule Breaker is a Noble Phantasm that explicitly *cuts* contracts and might be
+intended to override everything.
 
-### Q38. Combat Process step count
-
-The rulebook says *"from Step 1 to Step 4"* in one place and then describes steps 5 and 6. We
-treat the process as steps 1–6 with facing and counter included.
+**Where.** Ch. 44 §44.5.
 
 ---
 
 ## How to use this chapter
 
-For the game's author: Q1 through Q8 are worth an hour of your time and would remove most of the
-uncertainty in this design. Q9 onward are individually small and can be resolved as they come up
-in play.
+**For the game's author.** Q39 and Q40 are the two worth answering soon — both change how a whole
+class of effects behaves. Q43 through Q48 are individually small and can be settled in play.
 
-For implementers: every question here has a shipped default and a note on where it is
-implemented. If a resolution arrives, the change is localized — that is deliberate, and it is why
-each entry names the chapter and mechanism involved.
+**For implementers.** Every question has a shipped default and a named location. Resolutions
+remain localized by design.
 
-For reviewers: this chapter is the honest accounting of what we do **not** know. A design
-document that claimed no ambiguities against source material of this complexity would be
-concealing them.
+**For reviewers.** Answered questions are kept rather than deleted, so the record shows what was
+decided and which of our readings turned out to be wrong. Q7 is the instructive one: a formula
+that fit every piece of evidence we had was still incorrect, which is the argument for asking
+rather than deriving.
 
 ---
 
