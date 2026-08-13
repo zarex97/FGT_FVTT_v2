@@ -56,7 +56,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | `AGL Up` | B | D | mag | Agility Check rolls −X (easier). |
 | `AGL Dwn` | D | — | mag | Agility Check rolls +X (harder). |
 | `Agility Boost` | B | D | nr | Always uses the favourable Agility table. |
-| `Luck Boost` | B | — | nr | Always uses the favourable Luck table. |
+| `Luck Boost` | B | — | nr | Always uses the favourable Luck table. **Inert as of `0.2.0`** — `luckCheck−` is identical to `luckCheck` (Ch. 41 Q40). Implemented and shipped so it becomes live the moment the formulas diverge. |
 | `LUC Up` | B | — | mag | Luck Check rolls −X. |
 | `TEC Up` / `Focus` | B | O | mag | Enemies evading this unit's attacks roll +X. |
 
@@ -149,7 +149,7 @@ whole attack.
 | `No Heal` | D | nv | — | nr | — | Health cannot be restored. |
 | `MOV Down` | D | nv | — | mag | — | MOV −X. **Cannot reduce MOV below 1.** |
 | `AGL Dwn` / `LUC Dwn` | D | nv | — | mag | — | Check rolls +X. |
-| `Agility Loss` / `Luck Loss` | D | nv | — | nr | — | Always uses the unfavourable table. |
+| `Agility Loss` / `Luck Loss` | D | nv | — | nr | — | Always uses the unfavourable table. `Luck Loss` is **inert as of `0.2.0`** — see `Luck Boost` (§A.3). |
 | `TEC Dwn` / `Distracted` | D | nv | O | mag | — | Enemies evading this unit's attacks roll −X. |
 
 ## A.10 Debuffs — non-volatile capability
@@ -262,7 +262,95 @@ Never removable by `Cure` or `Dispel`; never counted by "remove N buffs"; never 
 
 ---
 
-## A.17 Keywords
+## A.17 Effects added in `0.2.0`
+
+The expanded roster (Ch. 44) and the terrain system (Ch. 42) introduced the following. They are
+listed separately from A.1–A.16 so that the original catalogue stays traceable to its sources,
+but they are ordinary catalogue entries in every other respect and are counted in §A.20.
+
+### A.17.1 New buffs
+
+| Effect | Pol | Val | Stack | Stage | Semantics | Source |
+|---|---|---|---|---|---|---|
+| `Off.Debuff ResUp` | B | D | mag | — | Chance of being inflicted by **Offensive** debuffs −X%. Completes the valence-scoped family alongside `Off.Debuff Immune`. | Asterios |
+| `Def.Debuff ResUp` | B | D | mag | — | Same, for Defensive debuffs. Added for symmetry; no content uses it yet. | — |
+| `Men.Debuff ResUp` | B | D | mag | — | Same, for Mental debuffs. | Jack, Achilles |
+| `Bleed Atk` | B | O | cnt | — | Normal Attacks have an X% chance of inflicting `Bleed`. An **on-attack rider** rather than a modifier. | Asterios |
+| `Macabre` | B | O | nr | — | Normal Attack **crits** inflict an additional **stage** of `Poison`. The first effect whose subject is another effect's stage counter. | Serenity |
+| `Raikou` | B | O | cnt | — | Count-limited (3): Normal Attacks deal +40 Lightning, 40% `Shock`, and reduce NP cooldown by ⅓◈. | Raikou |
+| `Enigma` | B | O | nr | — | When the bearer's ally performs a **STR-component** Normal Attack, the DU gains `Def Dwn (MAG)`. Gated on which base attack the attack used. | Nursery Rhyme |
+| `Espionage` | B | — | nr | — | Raises the bearer's own `Presence Concealment` rank. A `RankShift` delivered as a buff. | Yan Qing |
+| `Sol` | B | — | nr | — | The 5×5 around the bearer counts as **Day** regardless of the Round's phase (Ch. 42 §42.3). | Quetzalcoatl |
+| `Charity`-style named `Atk Up` variants | B | O | mag | 4 | `Atk Up (Trace)`, `Atk Up (MS)`, `Atk Up (Demonic)`, `Atk Up (Charisma)` — all `atkUp` family members with predicates. | several |
+| `Crit Up (Viy)` | B | O | mag | — | Crit chance +X% **scoped to attacks that use BA(MAG)**, with a separate NP magnitude. The first component-scoped crit buff. | Anastasia |
+| `Crit Up (Hawkeye)` / `Crit DmUp (Hawkeye)` | B | O | mag | 3 | Crit chance / crit damage +X% **at Range 3 or higher**. Range-predicated. | EMIYA |
+
+### A.17.2 New statuses
+
+Statuses are neither buffs nor debuffs: never removable by `Cure` or `Dispel`, never counted by
+"remove N buffs", never blocked by `No Buff` or `Debuff Immune`.
+
+| Status | Source | Semantics |
+|---|---|---|
+| `Soaked` | Anastasia | (1) Ice damage carries an **additive** +25% `Freeze` chance. (2) Fire damage taken −50% Total, then `Soaked` is consumed. (3) Removed from every affected unit at the end of a **Day Round**. Explicitly neither buff nor debuff and Unremovable. |
+| `Secret Poison` | Serenity | `Poison`, applied and ticking normally, whose **cause** is hidden from the victim's controller until Presence Concealment deactivates. Damage lands immediately; only the attribution is deferred (Ch. 44 §44.4, **Q47**). |
+| `Nameless Forest Token` | Nursery Rhyme | A **counter**, not a duration. Each token: Max Health −50, both Base Attacks −20, Max Luck −1. Lost Health and Luck are **not** restored on removal. At ≥3 tokens the bearer rolls `1d12` at its own turn end and is **defeated** on a roll ≤ the token count, unless inside its Home Base. |
+| `GotN` | Pale Rider | Stores an **unapplied effect bundle**. Discharges — applying `Atk Up`, `Regen` and `Dmg Cut` — when the bearer enters `Doomsday Come`, then removes itself. |
+| `AC` (Activated Circuits) | EMIYA | NP-cooldown economy. Mutually exclusive with `BC`. **Cascading removal**: dies when `Atk Up (Trace)` is removed. |
+| `BC` (Blazing Circuits) | EMIYA | Damage economy. Mutually exclusive with `AC`. Same cascading removal. |
+| `heelWounded` | Achilles | **Permanent and incurable.** Suppresses `Andreias Amarantos` outright and re-parameterizes `Dromeus Komētēs` and `Runner Comet` (MOV −1, Evade +1, buff magnitudes → 10%). The only effect in the corpus that rewrites its bearer's other abilities and cannot be undone. |
+| `Utnapishtim` mark | Proto Gil | A **panel** marker, not a unit effect. Anchors `Enki`'s detonation 7◈ later; survives the caster leaving, but not the caster dying. |
+| `Bloodmark` | Medusa | A panel marker placed as a turn action. Four of them at the corners of a 5×5/7×7/9×9 complete `Blood Fort Andromeda`. Visible only within 3 panels; destroyable **only by Masters**. |
+| `Disguise` | Yan Qing | A per-viewer **presentation override** — name, image and disposition colour only. No state change (Ch. 44 §44.4). |
+| `Fake Defeat` | Katō Danzō | The GM-mediated shadow state (Ch. 44 §44.1). Carries `requiresGmComfort: true` and a per-world disable. |
+| Active `Independent Action` (A+/EX) | class skill | Absolute: Sustainability does not apply **and** the bearer cannot be contracted by enemy Masters or Casters at all — not "requires N rolls". Not overridden by Rule Breaker (**Q48**). |
+| `Levitating` | Proto Gil | An **attribute**, granted by an ability and **negated by `NP Seal`**. Move through obstacles; Evade −3; exempt from ground-anchored effects such as `Enki`. |
+
+### A.17.3 New resources
+
+| Resource | Source | Semantics |
+|---|---|---|
+| `Aria` | EMIYA | `0/6`. +1 at the end of every Combat Phase he was in; blocked by `Silence`; spent **entirely** to activate Unlimited Blade Works. A per-Servant `Resource` (Ch. 06 §6.2), not a counter. |
+| `Hassans` | Hundred-Faced Hassan | `100/100`, tracked on the **Master's** sheet. Deployment draws from it; defeat decrements it; the NP costs `4d6`. The Servant is defeated at zero. |
+| `HGoB Construction` | Semiramis | (Existing.) Listed here because `Hassans` and `Aria` establish the pattern it was the sole instance of. |
+
+### A.17.4 New elements
+
+Damage elements referenced by content, beyond the `fire` and `water` the original twelve used:
+
+| Element | Introduced by | Interactions |
+|---|---|---|
+| `ice` | Nursery, Anastasia, Raikou | Carries `Freeze`; amplified by `Soaked` |
+| `wind` | Nursery, Medea, Danzō, Quetzalcoatl, Raikou | Carries `Sap` / `Bleed` |
+| `lightning` | Scáthach, Quetzalcoatl, Raikou | Carries `Shock`; Raikou is immune |
+| `light` | Ozymandias | ×2 vs `Dark`; banishes `Spirit` summons |
+| `nature` | terrain (Ch. 42) | Forest and Meadow |
+| `water` | (existing) | Carries `Slow`, `Drowning` |
+| `fire` | (existing) | Carries `Burn`; removes `Freeze`; consumes `Soaked` |
+
+Elements are tags on a damage instance, not a resistance chart. There is no element wheel in
+F/GT; every interaction is stated per-effect, which is why this table lists *interactions* rather
+than a matrix.
+
+---
+
+## A.18 Effect visibility
+
+Added in `0.2.0` for Serenity's Secret Poison and Jack's Information Erasure.
+
+| Field | Values | Meaning |
+|---|---|---|
+| `visibility` | `public` (default), `ownerOnly`, `gmOnly` | Who sees the effect on the token and in the tooltip |
+| `deferredUntil` | an event id, or `null` | Hide the effect **and its attribution in the log** until the event fires; then disclose retroactively |
+| `attributionHidden` | `true` / `false` | Apply the mechanical result immediately but show the *cause* as unattributed |
+
+**Secret Poison uses `attributionHidden`, not deferred damage.** Health drops on schedule; the
+log entry says *"−80 (source hidden)"*. This preserves state integrity at the cost of a weaker
+secret, which is the correct trade (Ch. 44 §44.4, **D44.10**).
+
+---
+
+## A.19 Keywords
 
 | Keyword | Meaning |
 |---|---|
@@ -283,24 +371,39 @@ Never removable by `Cure` or `Dispel`; never counted by "remove N buffs"; never 
 | `Break` | See A.1. |
 | `Reaction` | Any action in response to an enemy action. |
 | `Transfer` | Remove from one unit and apply to another, **preserving the remaining duration**. |
+| `Instinct` | A **category asserted at the bottom of a character sheet**, not a property of the ability. Five named skills count as Instinct for the purpose of Jack's Mist exemptions. Modelled as `categorizedAs: [instinct]` in the content pack. |
+| `Normal Human` | A unit class below Master. Several fields kill them outright on contact (The Mist, Blood Fort Andromeda, Ramesseum Tentyris). |
+| `Weapon-type` NP | An NP classification EMIYA can copy. Unordered qualifier; disjoint from `Divine Construct`. |
+| `Divine Construct` | An NP classification that **cannot** be copied, with a per-NP `copyableException` (black Arondight). |
+| `Broken Phantasm` | A modifier applied to a *copied* NP's use: Range +1 (or AoE +1 each direction), Total Damage +100%, all applied effect magnitudes **doubled**, and the copy can never be created again. |
+| `Thrown weapon` | An NP sub-classification. Rho Aias cannot be broken by one. |
+| `Heel Attack` | A declared sub-attack resolved **after** a failed Evade, with its own hit table. See `weakPoint`, Ch. 44 §44.2. |
 
 ---
 
-## A.18 Counts
+## A.20 Counts
 
-| Category | Count |
-|---|---|
-| Buffs | 48 |
-| Debuffs — non-volatile | 32 |
-| Debuffs — mental | 5 |
-| Debuffs — volatile | 30 |
-| Debuffs — terminal | 4 |
-| Statuses | 7 |
-| **Total named effects** | **126** |
-| Keywords | 18 |
-| Families | 15 |
+| Category | `0.1.0` | `0.2.0` | Total |
+|---|---|---|---|
+| Buffs | 48 | +12 | **60** |
+| Debuffs — non-volatile | 32 | — | 32 |
+| Debuffs — mental | 5 | — | 5 |
+| Debuffs — volatile | 30 | — | 30 |
+| Debuffs — terminal | 4 | — | 4 |
+| Statuses | 7 | +12 | **19** |
+| Resources | (1) | +2 | **3** |
+| **Total named effects** | **126** | **+26** | **152** |
+| Keywords | 18 | +8 | **26** |
+| Families | 15 | +3 | **18** |
+| Elements | 2 in content | +5 | **7** |
 
 Each becomes one YAML file under `packs/_source/effects/` (Ch. 37 §37.1).
+
+**Note that no new debuffs were needed.** Twenty-six additions across seventeen Servants and a
+twenty-one-type terrain system, and every one of them is a buff, a status or a resource — the
+debuff vocabulary catalogued from the source documents in `0.1.0` turned out to be complete.
+That is a useful signal about where the game's authors did their systematisation, and about
+which half of Appendix A is likely to keep growing.
 
 ---
 

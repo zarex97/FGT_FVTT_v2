@@ -21,8 +21,19 @@ rule elements.
 
 \* `EX` is not in the source table; inferred from Kingprotea's sheet (Ch. 41 Q18).
 
-Procedure: take the grade value, flip a coin, roll `Health(S)`, add on Heads and subtract on
-Tails, then apply ±100 per step.
+Procedure: take the grade value and apply ±100 per step. **There is no variance roll** —
+`Health(S)` is unused (Ch. 41 Q1, revised `0.2.0`), so two Servants of the same END rank and
+steps have identical Max Health.
+
+Confirmed by the expanded roster at every grade the table covers: Asterios `A++` → 1500 (the
+`++` is on his *parameter display*, not a health step); Achilles `A` → 1500; Raikou and
+Quetzalcoatl `B` → 1250; Ozymandias, Jack and EMIYA `C` → 1000; Serenity, Yan Qing, Danzō,
+Hundred-Faced Hassan, Medea and Medusa `D` → 750; Nursery Rhyme and Anastasia `E` → 500.
+Seventeen sheets, no exceptions.
+
+### `masterBaseHealth` — not rank-indexed
+
+**250**, ± the `healthM` roll (Appendix C §C.2). Against Servant base health of 500–2000.
 
 ### `baseAgilityByAgi` — scaled, perStep ±1
 
@@ -97,7 +108,55 @@ extended by each `+`. Otherwise a percentage reduction:
 Also protects against Instakill and Death **unless** the source deals STR damage or is otherwise
 unaffected by Magic Resistance. Never protects against Erase.
 
+**Variant — `mode: dice`.** Proto Gil's armour-derived Magic Resistance `C (E)` does not use the
+percentage table at all: *"All MAG damage received is reduced by `3d20`; if NP, the number of
+dice rolled is doubled."* It **never negates**. Structurally this is Battle Continuation's shape
+wearing Magic Resistance's name, and it is why `Resistance` carries a `mode` field
+(Ch. 44 §44.2). No table; the formula is authored on the ability.
+
+**Elevated ranks.** Two sheets print `displayRank (baseRank)` — Kiritsugu's `LUC: EX (E)` and
+Proto Gil's `MR: C (E)`. The display value is authoritative for every lookup; the base value is
+recorded because some effects care about the intrinsic parameter (Ch. 05 §5.7).
+
+### Divinity — scaled, perStep ±5
+
+Flat damage added to everything the bearer deals, **including NP**.
+
+| EX | A | B | C | D | E |
+|---|---|---|---|---|---|
+| 60 | 50 | 40 | 30 | 20 | 10 |
+
+Verification: Van Gogh `B+` → 40 + 5 = 45 ✓. Karna, Nemo, Heracles `A` → 50 ✓.
+Mannanán, Penthesilea, Ozymandias, Proto Gil `B` → 40 ✓. Semiramis, Achilles, Raikou `C` → 30 ✓.
+Medusa **`E−`** → 10 − 5 = 5 ✓ — the first sub-E rank in the corpus, and it reproduces from the
+table without a special case, which is the strongest evidence yet that ranks below E are ordinary
+points on the scale rather than a floor (Ch. 05 §5.3).
+
+### Divine Core — **exactly twice Divinity**
+
+`Goddess's Divine Core` and `Twin God's Divine Core` carry `countsAs: divinity` and, at every
+observed rank, deal **double** the Divinity value:
+
+| Rank | Divinity | Divine Core | Bearer |
+|---|---|---|---|
+| EX | 60 | **120** | Quetzalcoatl ✓ |
+| A | 50 | **100** | Kingprotea ✓ |
+| B | 40 | **80** | Castor, Pollux ✓ |
+
+Three sheets, three grades, one rule. Implemented as `divinityTable × 2` rather than as a second
+table, so a future correction to Divinity propagates.
+
 ### Independent Action
+
+**Passive 1 — Sustainability** — scaled, perStep 0:
+
+| EX, A+ | A | B | C | D | E |
+|---|---|---|---|---|---|
+| **N/A** | 8◈ | 7◈ | 6◈ | 5◈ | 4◈ |
+
+`N/A` means the Sustainability clock does not exist for that unit — not that it is very large.
+Verification: Kiritsugu and Serenity `A` → 8◈ ✓; Kingprotea and EMIYA `B` → 7◈ ✓; Medusa `C` →
+6◈ ✓; Proto Gil `A+` and Anastasia `EX` → N/A ✓.
 
 **Passive 2 — ZON bonus** — banded:
 
@@ -110,6 +169,9 @@ unaffected by Magic Resistance. Never protects against Erase.
 | EX, A+ | A | B | C and below |
 |---|---|---|---|
 | Cannot be contracted | 4 | 3 | 2 |
+
+The top band is **absolute**, not "very many rolls". Rule Breaker's `bypassesContractRoll` does
+not defeat it (Ch. 44 §44.5, **Q48**).
 
 ### Riding — Active MOV bonus and cooldown
 
@@ -175,6 +237,14 @@ Stacking: `highestOnly` by rank.
 **Duration when activated:** 2◈ at all ranks.
 
 Verification: Kiritsugu `A+` → 10 − 5 = 5% ✓ (his sheet says 5%). Semiramis `C+` → 40 − 5 = 35% ✓.
+From the expanded roster: Serenity, Jack and Hundred-Faced Hassan `A+` → 5% ✓; Danzō `A` →
+10% ✓; Danzō's `Dongyū` grant at `C+` → 35% ✓; Yan Qing `C` → 40% ✓, raised to `A` → 10% by
+`Espionage` ✓, and his no-Fog-of-War `Doppelganger` fallback at `B+` → 20 − 5 = 15% ✓.
+
+**Eight independent confirmations across seven Servants.** The one deviation is textual, not
+numeric: Hundred-Faced Hassan's sheet adds a ninth clause — `Skill Seal` deactivates PC
+immediately — which no other bearer has. Presence Concealment is therefore a **parameterized
+template with per-Servant clause overrides**, not one shared effect document.
 
 ### Mad Enhancement
 
@@ -206,8 +276,19 @@ Verification against sheets:
 - Castor `B-`: 40−5 = 35% taken (sheet: 35% ✓); 60−5 = 55% dealt (sheet: 55% ✓).
 - Penthesilea `EX`: 75% taken (sheet: 75% ✓); 100% dealt (sheet: 100% ✓); drain 30 (sheet: 30 ✓).
 - Heracles `B`: 40% / 60% / 20 (sheet: 40% / 60% / 20 ✓).
+- **Asterios `B`** (`0.2.0`): 40% taken / 20% NP / 60% dealt / drain 20 ✓.
+- **Raikou `EX`** (`0.2.0`): 75% taken / 30% NP / 100% dealt / drain 30 ✓.
 
-All four sheets reproduce from the tables. Strong confirmation that the model is right.
+**Six sheets reproduce from the tables, from two independently-supplied rosters.** Asterios and
+Raikou were written months after Heracles and Penthesilea and match them to the point; that is
+the strongest validation any table in this appendix has received.
+
+**One rank-level exception.** Raikou's `EX` Mad Enhancement adds a clause no other bearer has:
+it is **constantly active and cannot be deactivated while her Master is within 2 panels**, with
+a Command-Spell override lasting 1◈ that lapses back if the condition still holds. Like
+Heracles's `cannotDeactivate`, this is a per-Servant flag on the mode, not a table value —
+modes carry their activation policy separately from their magnitudes for exactly this reason
+(Ch. 15 §15.6).
 
 ### Battle Continuation
 
@@ -230,6 +311,13 @@ is doubled"* (but see Ch. 41 Q16 for Heracles's variant).
 | E | 1d20 | 2◈ |
 
 Additional condition: Health must have exceeded 50% of max at least once since the last use.
+
+Verification: Heracles `A` → 2d10+20, 5d20, 3◈ ✓. **Achilles `A`** (`0.2.0`) → 2d10+20, 5d20,
+3◈ ✓ — and his sheet, like Heracles's, spells the NP clause as *"the number of dice rolled is
+doubled"* rather than the common table's *"the Total value of the roll is doubled"*. Two of two
+sheets print the dice form. Ch. 41 Q16 resolved this as **the per-Servant sheet wins**; the
+second instance suggests the dice form may in fact be the norm and the table's wording the
+outlier, but we continue to read it off the sheet rather than change the default.
 
 ---
 
@@ -293,6 +381,58 @@ explicit override rather than a pure ordinal scale.
 
 Exactly `B` and exactly `A`. A `Rank EX` MAG receives **no** bonus. This is the case the
 validator's `gte`-warning exists for (Ch. 05 §5.3).
+
+### `andreiasAmarantosByAttackerDivinity` — threshold, **defaulting to immunity**
+
+Achilles's damage reduction, keyed on the **attacker's** Divinity rank.
+
+| Attacker's Divinity | Damage taken |
+|---|---|
+| C and above | 100% (normal) |
+| D | 75% |
+| E | 50% |
+| **None** | **0** |
+
+The "none" row is the default, not an edge case — and against the expanded roster eleven of
+seventeen Servants fall into it. This is the only defensive table in the game whose *absent*
+case is the strongest one, which is why it is a threshold table with an explicit `default`
+rather than a scale with an implied zero.
+
+### `enkiduByDivinity` — scaled, two outputs
+
+Proto Gil's Enkidu, keyed on the **defender's** Divinity rank.
+
+| Rank | Damage bonus | `Stun` chance bonus |
+|---|---|---|
+| EX | +150% | +100% |
+| A | +100% | +50% |
+| B | +80% | +40% |
+| C | +60% | +30% |
+| D | +40% | +20% |
+| E | +20% | +10% |
+
+Two overrides, both stated on the sheet:
+- A unit with the `Divine` **attribute** but no `Divinity` **skill** is treated as Rank A.
+- Against a `Divine` unit, `Debuff Immune` cannot prevent the Stun — but `Debuff Resist`
+  still reduces its chance.
+
+The second is worth dwelling on: it separates **immunity** from **resistance** in a way nothing
+else in the corpus does. The effect application pipeline (Ch. 11 §11.4) checks them at different
+points, so the override is a single `bypassesImmunity: true` flag rather than a special case.
+
+### `xiuhcoatlNpTagEscalation` and the NP tag scale
+
+The ordered scale established in Ch. 43 §43.8 (decision D43.2):
+
+`Anti-Unit` < `Anti-Army` < `Anti-Fortress` < `Anti-Country` < `Anti-World`
+
+Unordered qualifiers that sit outside it: `Anti-Unit (Self)`, `Anti-Divine`, `Anti-Beast`,
+`Barrier`, `Fortress`, `Labyrinth`, `weaponType`, `divineConstruct`, `thrownWeapon`.
+
+Consumers: Ozymandias's Complex ends when hit by two `[Anti-Fortress]`-or-higher NPs in one
+Round; Pale Rider's Doomsday Come ends to any `[Anti-World]`-or-higher; Achilles's Akhilleus
+Kosmos negates an incoming AoE NP of **Rank** A or above (rank, not tag — they are different
+axes and this is the one ability that keys on the former). Recorded as **Q44**.
 
 ### `masterEssenceNPShift` — by Master rank
 
@@ -385,9 +525,17 @@ export const TABLES = {
 };
 ```
 
-Every table is unit-tested against the sheet values that use it (Ch. 38 §38.3). The Mad
-Enhancement verifications in §B.3 are four such tests, and they pass — which is the best
-available evidence that the rank model matches the game's author's intent.
+Every table is unit-tested against the sheet values that use it (Ch. 38 §38.3).
+
+**As of `0.2.0` the verification set spans two independently-authored rosters.** Six Mad
+Enhancement sheets, eight Presence Concealment sheets, seven Divinity sheets across five grades
+including a sub-E, three Divine Cores, six Independent Action sheets, two Battle Continuations,
+seventeen base-health derivations — and every one reproduces from the table. The one place a
+table needed extending rather than confirming was Magic Resistance, which gained a `dice` mode
+for a single Servant.
+
+That is the outcome the rank model was designed for: adding 17 Servants required **zero** table
+value changes and **one** new table kind.
 
 ---
 
