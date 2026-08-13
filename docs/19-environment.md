@@ -365,12 +365,32 @@ message.
 > *"To determine the Turn order, both Players/Factions roll a die. The Player/Faction with the
 > higher number can choose whether to go first or to go second."*
 
-For >2 factions the rulebook does not generalize. **DECISION.** All factions roll `1d20`;
-highest chooses their slot; next highest chooses from the remaining slots; and so on. The GM
-always takes the final slot. Ch. 41.
+**The generalized rule** (Ch. 41 Q32, answered):
 
-The resulting order becomes the `baseOrder` consumed by the Delay system (Ch. 07 §7.8) and is
-fixed for the game.
+- Every faction rolls `1d100`. Highest goes first, and so on down.
+- **Ties are re-rolled for the contested positions only.** If two factions tie for second, the
+  tie-break roll assigns one to second and the other to third; the rest of the order is
+  untouched.
+- **The GM always takes the final slot.**
+- **The order is re-rolled at the start of every Round.**
+
+That last clause is a significant departure from the earlier draft, which fixed the order at
+setup. Consequences:
+
+| Affected | Change |
+|---|---|
+| `Combat.system.baseOrder` | Recomputed at each round start, not stored once |
+| `Delay` | Still shifts a player within the *current* round's order; the shift does not persist, because next round is re-rolled from scratch |
+| Planning | A player cannot rely on acting after a specific opponent next round |
+| `globalTurn` arithmetic | **Unaffected** — the number of turns per round is constant, so every duration and cooldown calculation is untouched (Ch. 07 §7.8) |
+
+The `globalTurn` design pays off again here: re-rolling *who* acts at each tick changes nothing
+about *how many* ticks exist, so no duration math is disturbed.
+
+**Implementation.** `rollTurnOrder()` runs in the round-start scheduler sequence (Ch. 07 §7.7,
+step 9a), writes the new `baseOrder`, and clears expired `Delay` entries. The result is
+broadcast and shown in the turn HUD with the rolled values, so nobody has to take the ordering
+on trust.
 
 ---
 

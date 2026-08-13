@@ -115,7 +115,31 @@ number that happens to reproduce the correct sort. Belt and braces.
 
 ## 25.3 Turn order
 
-Established at setup (Ch. 19 §19.8), stored as `system.baseOrder`, and mutated only by `Delay`.
+**Re-rolled at the start of every Round** (Ch. 19 §19.8): every faction rolls `1d100`, highest
+first, ties re-rolled for the contested positions only, GM always last. The result is written to
+`system.baseOrder` for that round and then mutated only by `Delay` within it.
+
+```js
+async function rollTurnOrder(combat) {
+  const factions = combat.system.factions.map(f => f.id);
+  const rolls = new Map();
+  for (const f of factions) rolls.set(f, await roll("turnOrder"));   // 1d100
+
+  // Sort descending, then resolve ties for the contested positions only.
+  let ordered = [...factions].sort((a, b) => rolls.get(b) - rolls.get(a));
+  ordered = await resolveTies(ordered, rolls);
+
+  await combat.update({
+    "system.baseOrder": [...ordered, gmCombatantId(combat)],
+    "system.delays": {},                       // Delay does not carry across rounds
+    "system.takenThisRound": [],
+    "system.lastOrderRolls": Object.fromEntries(rolls),   // shown in the HUD
+  });
+}
+```
+
+`resolveTies` re-rolls only the members of each tied group and orders them among the positions
+that group occupies, leaving every other faction's slot alone.
 
 ```js
 export function computeTurnOrder(baseOrder, delays, takenThisRound, gmId) {
@@ -205,7 +229,10 @@ export class Scheduler {
   }
 
   static async endRound(combat)   { /* the 8-step sequence from Ch. 07 §7.7 */ }
-  static async beginRound(combat) { /* the 5-step sequence from Ch. 07 §7.7 */ }
+  static async beginRound(combat) {
+    await rollTurnOrder(combat);                // §25.3 — every round, not just at setup
+    /* then the 5-step sequence from Ch. 07 §7.7 */
+  }
 }
 ```
 
@@ -370,7 +397,7 @@ silently drifts.
 |---|---|
 | D25.1 | Combatants are players (v14 typed `Combatant` with `system.userId`); the GM occupies the final slot. |
 | D25.2 | Initiative is suppressed but `combatant.initiative` is set to a sort-correct number for module compatibility. |
-| D25.3 | Turn order is derived from `baseOrder` + `delays` + `takenThisRound`, never stored. |
+| D25.3 | `baseOrder` is re-rolled (1d100 per faction, GM last) at every round start; the live order is derived from it plus `delays` and `takenThisRound`. `Delay` does not carry across rounds. |
 | D25.4 | The scheduler runs on the active GM client only; turn advancement is **blocked** if no GM is connected. |
 | D25.5 | Scheduler steps are idempotent and keyed by `(globalTurn, stepName)` so a mid-sequence disconnect recovers automatically. |
 | D25.6 | Control is derived (`controllerOf`), so Charm transfers a unit into the charmer's turn without changing ownership or faction. |

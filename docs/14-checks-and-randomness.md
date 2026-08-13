@@ -200,26 +200,47 @@ interface DiceEntry {
 | `penthesileaGoddess` | `1d4`, ×10% | Penthesilea |
 | `shockAction` | `1d6`, fail on 3–4 | Status effects |
 
-### Unknown formulas — **placeholders**
+### Formulas supplied by the game's author (Ch. 41 Q1)
 
-| Roll | Placeholder | Rationale for the placeholder | Confidence |
-|---|---|---|---|
-| `attack+` | `×1.5` | Crit multiplier; needs to be meaningfully above Attack− | **Low** |
-| `attack-` | `×1.0` | Baseline | **Low** |
-| `evade` | `1d20` | Compared against Agility, which peaks around 24 | Medium |
-| `evade-` | `1d20+4` | The unfavourable variant; +4 is a guess | **Low** |
-| `luckCheck-` | `1d20+4` | Symmetric with `evade-` | **Low** |
-| `block` | `5d10` | Damage-scale reduction; matches Damage Modifier's scale | **Low** |
-| `injury` | `1d4` | Reduces Agility, which is 10–24; must be small | Medium |
-| `healthS` | `2d100` | Servant Max Health variance around a 500–2000 base | **Low** |
-| `healthM` | `1d100` | Master Max Health variance | **Low** |
-| `agilityM` | `2d6` | Master Max Agility | **Low** |
-| `luckM` | `1d10` | Master Max Luck | **Low** |
+All previously-unknown rolls have been resolved. **There are no placeholders left.**
 
-**RISK — high.** `attack+`/`attack-` and `block` are the highest-impact unknowns in the entire
-system. They sit at pipeline stages 3 and 14 and scale every damage number. The system is
-built so they are a settings change, not a code change, but no balance claim can be made until
-they are supplied. This is the first question to put to the game's author (Ch. 41, Q1).
+| Roll | Formula | Note |
+|---|---|---|
+| `attack+` | `5d10`, **added** to damage | Pipeline stage 3 |
+| `attack-` | `5d10`, **subtracted** from damage | Pipeline stage 3 |
+| `evade` | `1d20` | |
+| `evade-` | `1d20+4` | |
+| `luckCheck` | `1d20` | |
+| `luckCheck-` | `1d20` | **Identical to `luckCheck`** — see below |
+| `injury` | `1d4` | |
+| `agilityM` | `4+1d8` | Master Max Agility |
+| `luckM` | `8+1d12` | Master Max Luck |
+| `healthM` | Master **Base Health = 250**, then ± the coin-flip roll | |
+| `healthS` | **Not used** — Servant Max Health has no variance roll | |
+| `block` | **Not a roll** — a flat 25% reduction | Pipeline stage 14 |
+
+Three of these change the game's shape and deserve emphasis.
+
+**`Block` is no longer a roll.** It is a flat 25% damage reduction, the same value against
+Noble Phantasms as against anything else. See Ch. 13 §13.3 stage 14.
+
+**`Luck Check−` is identical to `Luck Check`.** Both are `1d20`. So the unfavourable variant
+carries **no penalty**, and the favourable/unfavourable distinction collapses for Luck Checks —
+unlike Evade, where `Evade−` is a real `+4`.
+
+This has a large knock-on effect: the `Luck Boost` buff and the `Luck Loss` debuff (which force
+the favourable and unfavourable tables respectively) become **inert**, and the whole
+current-Luck comparison in `luckCheck()` becomes cosmetic.
+
+**DECISION.** Implement the comparison and the table selection anyway — they cost nothing, they
+keep the code symmetric with Evade, and if a penalty is ever introduced it is a one-line data
+change. `Luck Boost` and `Luck Loss` are marked **inert** in the effect catalogue with a note,
+rather than removed, because they appear in content. Recorded as **Q40** in Ch. 41 in case the
+identical formulas were an oversight.
+
+**Servants have no Max Health roll.** `Health(S)` is not used, so a Servant's Max Health is
+exactly `baseHealthByEnd[grade] ± 100 per rank step` — fully deterministic. Only Masters roll
+for Health, and their base is a flat 250 regardless of anything.
 
 ### Registry behaviour
 
@@ -421,23 +442,26 @@ The pre-game procedures are a distinct batch, run once per unit at summon:
 
 ```
 SERVANT
-  maxHealth  = endTable[END.grade]
-             ± roll("healthS")                    (coin flip for sign)
+  maxHealth  = endTable[END.grade]                 NO ROLL — Health(S) is not used
              ± 100 per END step
   maxAgility = agiTable[AGI.grade]
-             + (coinFlip ? 2 : 1)                 (or 1d4 for EX)
+             + (coinFlip ? 2 : 1)                  (or 1d4 for EX)
              ± 1 per AGI step
   maxLuck    = lucTable[LUC.grade] + 1d4
              ± 1 per LUC step
-  baseAttack ± 10 per GRANTED parameter step      (not innate steps — Ch. 05 §5.6)
+  baseAttack ± 10 per GRANTED parameter step       (not innate steps — Ch. 05 §5.6)
 
 MASTER
-  maxHealth  = baseHealth ± roll("healthM")       (coin flip for sign)
-  maxAgility = roll("agilityM")
-  maxLuck    = roll("luckM")
+  maxHealth  = 250 ± roll("healthM")               (coin flip for sign)
+  maxAgility = 4 + 1d8
+  maxLuck    = 8 + 1d12
   baseAttackMag = rank ∈ {A,B} ? 125 : 100
   commandSpells = 3
 ```
+
+Master Base Health is a flat **250** regardless of rank or essence, before the coin-flip roll.
+That is between one sixth and one eighth of a Servant's, which is the numerical statement of how
+fragile Masters are — and the reason Overpower, ZON, and Master protection exist.
 
 Exposed as a one-click **Summon** operation on the actor sheet, which rolls everything, shows
 the results for confirmation, and writes them. Re-rollable by the GM before the game starts,

@@ -252,13 +252,19 @@ So Dodge fires on Evades but not on, say, the Cover shove check or the HGoB knoc
 
 ```ts
 function blockReduction(du, ctx): number {
-  let r = roll("block");
-  if (ctx.isNP) r *= 2;                              // "double the value of the Block roll"
-  r += sumOf(du, "blockUp");
-  if (luckCheck(du, "strengthenBlock").success) r += roll("block");
-  return r;
+  // Block is a flat percentage, NOT a roll (Ch. 41 Q1, revised 0.2.0).
+  let pct = BLOCK_BASE_PERCENT;                      // 25
+  pct += sumOf(du, "blockUp");                       // Block Up adds percentage points
+  if (luckCheck(du, "strengthenBlock").success)
+    pct += BLOCK_BASE_PERCENT;                       // "use the Block value again"
+  return pct;                                        // applied at pipeline stage 14
 }
 ```
+
+**Block is 25%, and it is *not* doubled against Noble Phantasms.** The earlier draft had Block
+as a dice roll doubled against NP; the game's author replaced it with a flat percentage that is
+the same value for NP. The rulebook's *"When Blocking Noble Phantasms, double the value of the
+Block roll"* is therefore superseded.
 
 - *"A Unit with Invuln cannot use the Block action."*
 - *"Pierce … ignore the effects of Invuln on an enemy Unit and the Block action."*

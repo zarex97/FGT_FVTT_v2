@@ -283,11 +283,13 @@ It costs 1 spell for a High Rank Master and 2 for a Low Rank Master (or 1 for al
 rankless game).
 
 Its interactions:
-- Van Gogh is immune (*Sunflower's Curse*).
-- It bypasses Guts? The source does not say. **DECISION.** It does not — Guts and other revival
-  effects trigger normally, because nothing states otherwise and `Death` (which does ignore
-  revival) is explicitly distinguished from ordinary defeat. Ch. 41.
+- Van Gogh is immune (*Sunflower's Curse*) — the only Command Spell immunity in the game.
+- **It bypasses revival** (Ch. 41 Q35, answered). Guts, Battle Continuation, God Hand, and
+  Holder Mode do not trigger. It is `Death`-semantics, not ordinary defeat — which is what makes
+  it a reliable answer to a Charmed or contract-stolen Servant rather than a gamble.
 - The resulting death **does** count toward the Grail counter.
+- On a Dioscuri twin it therefore kills both, since the ordered twin is truly defeated
+  (Ch. 34 §34.4).
 
 ---
 

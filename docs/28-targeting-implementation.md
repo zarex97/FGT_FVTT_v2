@@ -130,7 +130,7 @@ export function attackRangePanels(origin, R, bounds) {
       const d = Math.max(Math.abs(di), Math.abs(dj));
       const s = Math.min(Math.abs(di), Math.abs(dj));
       if (d > R) continue;
-      if (R >= 3 && d + s > R + 1) continue;
+      if (R >= 3 && d === R && s >= 2) continue;     // clip the outer ring only
       const p = { i: origin.i + di, j: origin.j + dj };
       if (inBounds(p, bounds)) out.push(p);
     }
@@ -421,8 +421,8 @@ Geometry is exhaustively testable and the tests are cheap:
 
 - **Fixture tests** for every entry in the Ch. 09 §9.8 catalogue: given a board, a caster, and a
   placement, assert the exact panel set and unit list.
-- **Count assertions** for the range shape: R=1 → 9 panels, R=2 → 25, R=3 → 37, R=4 → 57,
-  R=5 → 81.
+- **Count assertions** for the range shape: R=1 → 9 panels, R=2 → 25, R=3 → 37, R=4 → 61,
+  R=5 → 93, R=6 → 133. (Excluded = `8R − 12` for R ≥ 3.)
 - **Property tests**: `resolve()` is deterministic; every returned panel is in bounds; no unit
   appears twice; every unit's footprint intersects the panel set.
 - **Regression fixtures** for each of the 24 reference declarations, so a change to shape

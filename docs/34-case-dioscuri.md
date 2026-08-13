@@ -83,31 +83,46 @@ absurdities (a knockback that pulls a unit *toward* the attacker).
 *"If either one is defeated, the other one is also defeated as well regardless of remaining
 Health."*
 
-This runs **after** the revival chain, not instead of it:
+The trigger is **true death**, and the effect **ignores the survivor's revival**. Both halves
+were confirmed by the game's author (Ch. 41 Q11):
 
 ```
 Castor's health reaches 0
-  └─▶ resolve Castor's revival chain (Ch. 31 §31.2)
-       ├─ revived → nothing further happens; Pollux is fine
-       └─ not revived → Castor is defeated
-            └─▶ linked death: Pollux is defeated
-                 └─▶ resolve POLLUX's revival chain
-                      ├─ revived → ⚠ see below
-                      └─ not revived → Pollux defeated
+  └─▶ resolve Castor's OWN revival chain (Ch. 31 §31.2)
+       ├─ revived → NOTHING happens to Pollux. He was never truly dead.
+       └─ not revived → Castor is truly defeated
+            └─▶ linked death fires on Pollux, with Death semantics
+                 └─▶ Pollux's revival chain is SKIPPED. She is defeated.
 ```
 
-The awkward case: Pollux has a Guts buff and Castor does not. Castor dies, linked death kills
-Pollux, Pollux's Guts revives her — and now she is alive with a dead partner, which the binding
-forbids.
+Two distinct rulings, and getting either backwards breaks the pair:
 
-**DECISION.** Linked death **ignores revival** — it is `Death`-like, not damage-like:
+**The trigger is final defeat, not reaching zero health.** The author's clarification:
 
-> `Death`: *"If Death is successfully inflicted on a Unit, the DU is defeated. Ignores buffs and
-> abilities that revive the Unit after being defeated."*
+> *"imagine Pollux's HP is reduced to 0, her Guts will revive her, so in the moment she is
+> initially reduced to 0 it shouldn't link-kill Castor, as she is not truly dead."*
 
-So linked death applies the `Death` semantics to the survivor. Rationale: the binding says
-*"regardless of remaining Health"*, which reads as an absolute. And the alternative produces an
-illegal board state. Recorded in Ch. 41.
+So a twin with Guts, Battle Continuation, or any other revival absorbs the hit for **both** of
+them. That makes revival effects disproportionately valuable on the Dioscuri and is a real
+tactical consideration.
+
+**The effect ignores revival.** The survivor does not get their own chain — otherwise a
+one-sided revival would leave one twin alive with a dead partner, which the binding forbids.
+`Death` is the precedent: *"the DU is defeated. Ignores buffs and abilities that revive the Unit
+after being defeated."*
+
+```yaml
+- key: OnEvent
+  event: unitDefeated                  # fires AFTER the revival chain resolves to death
+  scope: linkedGroup
+  then:
+    - { key: Defeat, target: linkedPartners, mode: ignoresRevival, cause: linkedDeath }
+```
+
+Subscribing to `unitDefeated` rather than `healthReachedZero` is what implements the first
+ruling; `mode: ignoresRevival` implements the second. The event ordering guarantee in
+Appendix E §E.9 point 4 — `healthReachedZero` fires before the revival chain, `unitDefeated`
+after it — is what makes this a one-line distinction rather than a special case.
 
 ```yaml
 - key: OnEvent
