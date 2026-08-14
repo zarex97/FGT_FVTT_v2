@@ -112,19 +112,19 @@ FGT_FVTT_v2/
 | Design documentation | **`0.2.1`** — 44 chapters + 5 appendices, see `docs/` |
 | System skeleton | **`system.json`, tooling, CI config** — done |
 | L1 domain (pure) | **Done** — ranks, ◈ ticks, geometry, rank tables |
-| L2 rules (pure) | **Damage pipeline, targeting, checks, predicates** — done |
-| L3 engine (orchestration) | Not started |
+| L2 rules (pure) | **Damage pipeline, targeting, checks, predicates, snapshots** — done |
+| L3 engine (orchestration) | **Intents, effect applier, combat process, scheduler, write adapter** — done |
 | Foundry layer (data models, documents, sheets) | Not started |
 | Content (29 reference Servants) | Specified in Part IV and Appendix D, not yet authored |
 
-**179 tests passing**, covering everything built so far. They pin behaviour to the
+**266 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
 ```
 npm install
-npm test          # 179 unit + golden tests, no Foundry required
+npm test          # 266 unit + golden tests, no Foundry required
 npm run lint      # includes the layer-boundary rule
 ```
 
