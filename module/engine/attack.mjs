@@ -14,7 +14,7 @@
 
 import { computeDamage } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { unitSnapshot, boardSnapshot } from "./board.mjs";
+import { unitSnapshot, boardSnapshot, unitFrom } from "./board.mjs";
 import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
 import { Rank } from "../domain/rank.mjs";
 import * as process from "./combat-process.mjs";
@@ -41,7 +41,10 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   if (!attacker) throw new Error(`FGT | Unknown attacker ${attackerId}`);
 
   const board = boardSnapshot();
-  const self = unitSnapshot(attacker);
+  // From the board, not projected alone: ZON is pairwise, so only the board
+  // knows whether this Servant is inside its Master's zone -- and that is what
+  // `limits.requiresZon` on every Noble Phantasm turns on.
+  const self = unitFrom(board, attacker);
   const ability = abilityId ? attacker.items.get(abilityId) : null;
 
   // The budget is checked before the targeting is resolved, so a player who
@@ -264,8 +267,11 @@ async function rollLuck(state) {
 async function applyDamage(state, message) {
   const attackerDoc = game.actors.get(state.attackerId);
   const defenderDoc = game.actors.get(state.defenderId);
-  const attacker = unitSnapshot(attackerDoc);
-  const defender = unitSnapshot(defenderDoc);
+  const board = boardSnapshot();
+  // Stage 9 subtracts 5d10 when the attacker is outside its Master's ZON, which
+  // only the board can answer.
+  const attacker = unitFrom(board, attackerDoc);
+  const defender = unitFrom(board, defenderDoc);
   const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
 
   // The crit coin flip, then every roll the pipeline will consume — rolled
@@ -275,7 +281,7 @@ async function applyDamage(state, message) {
   const attackRoll = await new Roll("5d10").evaluate();
 
   const ctx = {
-    attacker, defender, board: boardSnapshot(),
+    attacker, defender, board,
     attack: {
       kind: state.attack?.kind ?? "normal",
       abilityId: state.attack?.abilityId ?? null,

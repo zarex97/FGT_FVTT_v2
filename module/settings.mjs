@@ -48,6 +48,13 @@ export function registerSettings() {
   game.settings.register("fgt", "autoDeclineLuckBelow", {
     scope: "client", config: true, name: "FGT.Settings.AutoDeclineLuckBelow", type: Number, default: 0,
   });
+  // Per-client: one player wanting a clean board should not take the ZON ring
+  // away from everybody else.
+  game.settings.register("fgt", "showOverlays", {
+    scope: "client", config: true, name: "FGT.Settings.ShowOverlays",
+    hint: "FGT.Settings.ShowOverlaysHint", type: Boolean, default: true,
+    onChange: () => canvas?.fgtOverlays?.refresh(),
+  });
 }
 
 /**
