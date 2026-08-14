@@ -32,6 +32,36 @@ coincide by accident; the headings say which is which.
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **Nothing on a Servant sheet could be used.** Three separate faults, each of which alone was
+  enough to make the system untestable:
+  - **There was no Normal Attack button.** `resolveAttack` had always accepted `abilityId: null`;
+    nothing in the UI ever called it. The sheet now has one.
+  - **Every ability was treated as an attack.** The targeting default handed a single-enemy spec
+    to anything with no declaration of its own, so clicking a class skill — Mad Enhancement,
+    Divinity — opened an enemy targeting session and then reported no legal targets.
+    `classifyAbility` now separates the four kinds: an attack opens targeting, a **mode** toggles,
+    an active skill resolves against its own spec, and a **passive is not a button at all**.
+  - **The DataModel was silently discarding the fields that distinguish them.** `isMode`,
+    `active`, `cannotDeactivate`, `slug`, `isAttackSkill` and `isSpell` were authored in YAML and
+    compiled into the packs, but the schema never declared them, so Foundry dropped every one on
+    load. A mode was indistinguishable from an attack, `system.active` was permanently
+    `undefined`, and `hasSkill(actor, "riding")` could only ever match on the display name.
+- **A Unit with no faction is neutral to everyone**, which is correct — but the sheet had no
+  faction field, so a freshly imported Servant could never be given one and nothing on the board
+  could target anything. The sheet now has a Faction input with an inline explanation, and
+  "No legal targets" now names this cause when it is the cause.
+- **`snapshot.range` projected the `{panels, targets}` schema object** where every consumer
+  compares it against a distance. Comparing a number to an object is silently `false`, so any
+  range check that fell back to the caster's own Range failed rather than erroring.
+- **Riding's Active MOV Up applied at all times.** With `system.active` undefined, the collector's
+  `?? true` fallback treated every mode as switched on.
+
+---
+
 ## [0.2.0] — 2026-08-14
 
 **Making the content actually run.** `0.1.0` shipped a rules engine and a compendium of content

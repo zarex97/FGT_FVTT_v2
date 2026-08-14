@@ -6,6 +6,17 @@
     <div class="fgt-sheet__identity">
       <input type="text" name="name" value="{{document.name}}" placeholder="{{localize 'FGT.Sheet.Name'}}">
       {{#if system.trueName}}<p class="fgt-sheet__truename">{{system.trueName}}</p>{{/if}}
+      {{!-- Targeting resolves relations from this. A Unit with no faction is
+            "neutral" to everyone, which is why an unset faction makes every
+            attack report that it has no legal targets. --}}
+      <label class="fgt-sheet__faction">
+        <span>{{localize "FGT.Sheet.Faction"}}</span>
+        <input type="text" name="system.factionId" value="{{system.factionId}}"
+               placeholder="{{localize 'FGT.Sheet.FactionPlaceholder'}}">
+      </label>
+      {{#unless hasFaction}}
+        <p class="fgt-sheet__hint">{{localize "FGT.Sheet.NoFactionHint"}}</p>
+      {{/unless}}
     </div>
   </header>
 
@@ -41,13 +52,31 @@
     </section>
   {{/if}}
 
+  <section class="fgt-sheet__actions">
+    <button type="button" class="fgt-sheet__attack" data-action="normalAttack">
+      {{localize "FGT.Sheet.NormalAttack"}}
+    </button>
+  </section>
+
   <section class="fgt-sheet__abilities">
     <h3>{{localize "FGT.Sheet.Abilities"}}</h3>
     <ul class="fgt-list">
       {{#each abilities as |ability|}}
-        <li class="fgt-list__row" data-item-id="{{ability.id}}">
-          <button type="button" class="fgt-list__name" data-action="useAbility">{{ability.name}}</button>
-          {{#if ability.system.rank}}<span class="fgt-list__rank">{{ability.system.rank}}</span>{{/if}}
+        <li class="fgt-list__row fgt-list__row--{{ability.use.kind}}{{#if ability.active}} fgt-list__row--on{{/if}}" data-item-id="{{ability.id}}">
+          {{#if ability.use.clickable}}
+            <button type="button" class="fgt-list__name" data-action="{{ability.use.action}}"
+                    {{disabled ability.locked}}
+                    data-tooltip="{{localize (concat 'FGT.Use.' ability.use.kind)}}">
+              {{ability.name}}
+            </button>
+          {{else}}
+            {{!-- A passive is not a control. It is always on and has nothing to press. --}}
+            <span class="fgt-list__name fgt-list__name--passive">{{ability.name}}</span>
+          {{/if}}
+          {{#if ability.use.toggles}}
+            <span class="fgt-list__state">{{localize (concat "FGT.Mode." (ifThen ability.active "on" "off"))}}</span>
+          {{/if}}
+          {{#if ability.rank}}<span class="fgt-list__rank">{{ability.rank}}</span>{{/if}}
           <button type="button" class="fgt-list__edit" data-action="editAbility" data-tooltip="{{localize 'FGT.Sheet.Edit'}}">✎</button>
         </li>
       {{else}}
@@ -60,8 +89,8 @@
       <ul class="fgt-list">
         {{#each noblePhantasms as |np|}}
           <li class="fgt-list__row fgt-list__row--np" data-item-id="{{np.id}}">
-            <button type="button" class="fgt-list__name" data-action="useAbility">{{np.name}}</button>
-            {{#if np.system.rank}}<span class="fgt-list__rank">{{np.system.rank}}</span>{{/if}}
+            <button type="button" class="fgt-list__name" data-action="{{np.use.action}}">{{np.name}}</button>
+            {{#if np.rank}}<span class="fgt-list__rank">{{np.rank}}</span>{{/if}}
             <button type="button" class="fgt-list__edit" data-action="editAbility" data-tooltip="{{localize 'FGT.Sheet.Edit'}}">✎</button>
           </li>
         {{/each}}
