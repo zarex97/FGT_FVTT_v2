@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "allowJs": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
+  },
+  "include": ["module/**/*.mjs", "tools/**/*.mjs"],
+  "exclude": ["node_modules"]
+}
