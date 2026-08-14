@@ -56,35 +56,6 @@ coincide by accident; the headings say which is which.
 - **`placement.chosenIds` narrows any chooser**, so unchecking a unit in that window actually
   spares it. It can only remove: the dialog runs on the player's client, so a crafted id naming
   an ally must not make that ally a target.
-
-### Fixed
-
-- **The turn state was never reset**, so a unit had no movement left for the rest of the match
-  after one move. `clearTurnState` early-returned on the acting faction being `undefined`, which
-  it always was in a match with no combatants.
-- **The Round counter advanced on every turn.** Foundry's `nextTurn`, finding no turns to
-  advance through, fell straight into `nextRound`.
-- **The HUD showed the ◈ tick where the position in the Round belonged**, so a two-faction match
-  announced "Turn 2 of 3". They are different numbers and are now shown as such.
-- **A player assigned to a faction was not recognised as controlling it**: `controlsFaction`
-  checked actor ownership only and ignored the roster's `userId`, which is where the GM had just
-  assigned them.
-- **Moving on another faction's turn now says so**, naming whose turn it is, instead of the drag
-  silently reverting.
-- **The budget is no longer written under the key `null`** on the GM's turn.
-
-### Corrected
-
-- **D28.9 is revised, not reversed.** The superseded reading was that transient targeting never
-  creates a document. Aiming still does not — that half stands, and it is what keeps the preview
-  frame-rate cheap — but a committed placement now creates a grid-shape Region. The two
-  objections that were about lifecycle rather than geometry are answered by *when* it exists:
-  nothing is ever read back from it, so the raciness that killed the prototype's approach cannot
-  recur, and one document per commit is not one per pointer move. See §28.14 for D28.10–D28.13.
-
-
-### Added
-
 - **Exclusion reasons in the targeting resolver.** `ResolvedTargets.excluded` records, for every
   unit an area caught and a filter then dropped, the reason it was dropped — captured where the
   decision is made rather than reconstructed afterwards. The preview HUD renders them as
@@ -117,9 +88,56 @@ coincide by accident; the headings say which is which.
 - **The targeting controls are announced** when the canvas is taken over.
 - **`test/unit/zon.test.mjs`** and **`test/unit/targeting-boundary.test.mjs`** — 35 tests
   covering the ZON derivation, both of its consumers, and every exclusion reason.
+- **`tools/check-templates.mjs`** — static checks over `templates/`, wired into CI and
+  `npm run check:templates`. Template defects are invisible to ESLint and to every other test,
+  and surface as a stack trace inside Foundry at render time; two have already shipped. It
+  catches both: a helper Foundry v14 does not register (`array`, `upper`), and a bare context
+  name passed to a helper that throws on `undefined` from inside an `{{#each}}` — tracking block
+  params so `{{#each xs as |x|}}{{selectOptions x.choices}}{{/each}}` is correctly left alone.
+- **A GM-managed faction roster.** Settings → F/GT → **Manage Factions**: create a faction, name
+  and colour it, assign a player to it, and tick which other factions it is allied with. Unit
+  sheets now pick from that list with a `<select>` instead of accepting free text — two units
+  whose faction strings differed by a typo were enemies, silently, with nothing on screen to
+  explain it.
+  - Ids are **generated from the name and never change**, so renaming a faction does not orphan
+    its units.
+  - Alliances are stored per faction but **normalized to be symmetric and reflexive** on read: a
+    roster where red allies blue but blue does not ally red is a half-finished edit, and the safe
+    reading of one is where nobody is surprised by an attack from an ally.
+  - Deleting a faction says how many units it will leave unaligned before it does it.
+
+---
+
+## [0.2.1] — 2026-08-14
+- **[Chapter 45 — Implementation Status and Completion Plan](docs/45-implementation-status.md)**
+  — an audit of all 44 specification chapters against the code, and a phased plan to finish it.
+  It distinguishes **missing** from **stubbed** from **collected but unread**, because the last
+  two resolve silently and look like they worked. Findings worth naming here:
+  - The Combat Process runs three of its six steps; the **Injury Roll**, the **Counter** and the
+    **AoE fan-out** are stubs — an area attack on seven units currently damages one of them.
+  - `scheduler.fireEvent` reads `handler.intents`, which the `OnEvent` executor never writes, so
+    every event handler contributes a log line and nothing else. Battle Continuation's revive is
+    inert.
+  - **`Aura` applies to the wrong unit**: it writes a modifier carrying `radius` and `relations`
+    into its own owner's bag, and the pipeline ignores both fields.
+  - **ZON is checked in two places and computed in none** — `outsideZon` and `zonDistance` are
+    projected from actor fields no code writes.
 
 ### Fixed
 
+- **The turn state was never reset**, so a unit had no movement left for the rest of the match
+  after one move. `clearTurnState` early-returned on the acting faction being `undefined`, which
+  it always was in a match with no combatants.
+- **The Round counter advanced on every turn.** Foundry's `nextTurn`, finding no turns to
+  advance through, fell straight into `nextRound`.
+- **The HUD showed the ◈ tick where the position in the Round belonged**, so a two-faction match
+  announced "Turn 2 of 3". They are different numbers and are now shown as such.
+- **A player assigned to a faction was not recognised as controlling it**: `controlsFaction`
+  checked actor ownership only and ignored the roster's `userId`, which is where the GM had just
+  assigned them.
+- **Moving on another faction's turn now says so**, naming whose turn it is, instead of the drag
+  silently reverting.
+- **The budget is no longer written under the key `null`** on the GM's turn.
 - **Board bounds were pinned to the `boardSize` setting**, so on a scene larger than the setting
   every unit past the last row was clipped out of every shape and became untargetable, silently.
   The scene's own dimensions answer when it has them; the setting is the fallback.
@@ -150,33 +168,6 @@ coincide by accident; the headings say which is which.
   `{{#each factions}}`, where a bare name resolves against the **item** rather than the template
   context — so the helper received `undefined` and threw. Fixed with `@root.players`, and the
   class of defect is now caught statically.
-
-### Added
-
-- **`tools/check-templates.mjs`** — static checks over `templates/`, wired into CI and
-  `npm run check:templates`. Template defects are invisible to ESLint and to every other test,
-  and surface as a stack trace inside Foundry at render time; two have already shipped. It
-  catches both: a helper Foundry v14 does not register (`array`, `upper`), and a bare context
-  name passed to a helper that throws on `undefined` from inside an `{{#each}}` — tracking block
-  params so `{{#each xs as |x|}}{{selectOptions x.choices}}{{/each}}` is correctly left alone.
-- **A GM-managed faction roster.** Settings → F/GT → **Manage Factions**: create a faction, name
-  and colour it, assign a player to it, and tick which other factions it is allied with. Unit
-  sheets now pick from that list with a `<select>` instead of accepting free text — two units
-  whose faction strings differed by a typo were enemies, silently, with nothing on screen to
-  explain it.
-  - Ids are **generated from the name and never change**, so renaming a faction does not orphan
-    its units.
-  - Alliances are stored per faction but **normalized to be symmetric and reflexive** on read: a
-    roster where red allies blue but blue does not ally red is a half-finished edit, and the safe
-    reading of one is where nobody is surprised by an attack from an ally.
-  - Deleting a faction says how many units it will leave unaligned before it does it.
-
----
-
-## [0.2.1] — 2026-08-14
-
-### Fixed
-
 - **Nothing on a Servant sheet could be used.** Three separate faults, each of which alone was
   enough to make the system untestable:
   - **There was no Normal Attack button.** `resolveAttack` had always accepted `abilityId: null`;
@@ -201,21 +192,14 @@ coincide by accident; the headings say which is which.
 - **Riding's Active MOV Up applied at all times.** With `system.active` undefined, the collector's
   `?? true` fallback treated every mode as switched on.
 
-### Added
+### Corrected
 
-- **[Chapter 45 — Implementation Status and Completion Plan](docs/45-implementation-status.md)**
-  — an audit of all 44 specification chapters against the code, and a phased plan to finish it.
-  It distinguishes **missing** from **stubbed** from **collected but unread**, because the last
-  two resolve silently and look like they worked. Findings worth naming here:
-  - The Combat Process runs three of its six steps; the **Injury Roll**, the **Counter** and the
-    **AoE fan-out** are stubs — an area attack on seven units currently damages one of them.
-  - `scheduler.fireEvent` reads `handler.intents`, which the `OnEvent` executor never writes, so
-    every event handler contributes a log line and nothing else. Battle Continuation's revive is
-    inert.
-  - **`Aura` applies to the wrong unit**: it writes a modifier carrying `radius` and `relations`
-    into its own owner's bag, and the pipeline ignores both fields.
-  - **ZON is checked in two places and computed in none** — `outsideZon` and `zonDistance` are
-    projected from actor fields no code writes.
+- **D28.9 is revised, not reversed.** The superseded reading was that transient targeting never
+  creates a document. Aiming still does not — that half stands, and it is what keeps the preview
+  frame-rate cheap — but a committed placement now creates a grid-shape Region. The two
+  objections that were about lifecycle rather than geometry are answered by *when* it exists:
+  nothing is ever read back from it, so the raciness that killed the prototype's approach cannot
+  recur, and one document per commit is not one per pointer move. See §28.14 for D28.10–D28.13.
 
 ### Changed
 
