@@ -4,8 +4,8 @@ A ground-up Foundry VTT **system** implementing *F/GT: Fate Grail Tactics*, a gr
 tactical wargame originally played in Tabletop Simulator, with **full rules automation**.
 
 This repository contains the **design documentation** and the **system implementation**. The
-rules engine is complete and tested, and attacks resolve end to end through the interface; the
-canvas targeting preview and the turn HUD are the next phase.
+rules engine is complete and tested, and a match is playable end to end through the interface:
+targeting, the reaction ladder, damage, effects, movement, the turn budget and Delay.
 
 **Current documentation version: `0.2.1`.** See [`CHANGELOG.md`](CHANGELOG.md) for what changed
 and why — including corrections in `0.2.0` and `0.2.1` that invalidate anything built against an
@@ -100,7 +100,7 @@ FGT_FVTT_v2/
 │   └── apps/              ← ApplicationV2 sheets and chat cards
 ├── packs/_source/         ← content as YAML; the packs themselves are build artefacts
 ├── tools/                 ← pack build, content validator, release stamping
-├── test/                  ← 324 unit and golden tests, no Foundry required
+├── test/                  ← 555 unit and golden tests, no Foundry required
 ├── templates/  styles/  lang/
 ```
 
@@ -125,17 +125,26 @@ which is what makes the entire rules engine testable in plain Node.
 | GM proxy socket | **Typed operations, request/response, timeouts, authorization** — done |
 | Chat cards and the damage explainer | **Done** — the card is the audit record |
 | Attack flow | **Sheet → target → reaction ladder → damage → card** — wired |
-| Canvas targeting preview | Not started |
-| Turn HUD, budgets, Delay | Not started |
+| Canvas targeting preview | **Four modes, exclusion reasons, speculative damage** — done |
+| Turn HUD, budgets, Delay | **Done** — pools, compulsions, the End Turn gate, Delay |
+| ZON and the board overlays | **Done** — derived, enforced, and drawn |
+| Undo | Not started |
 
-**492 tests passing**, covering everything built so far. They pin behaviour to the
+**555 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
+One kind of test was missing for a long time and is worth naming, because its absence cost more
+than any other: **nothing exercised the projection from Foundry's documents into the snapshot.**
+Every test built its snapshots by hand, with `{i, j}` panels and explicit factions — which is the
+right way to test the rules, and meant that five separate bugs in that projection sat behind a
+fully green suite while a normal attack between two adjacent Servants could not find a target.
+`test/unit/snapshot.test.mjs` drives it from simulated `TokenDocument`s instead.
+
 ```
 npm install
-npm test                  # 492 unit + golden tests, no Foundry required
+npm test                  # 555 unit + golden tests, no Foundry required
 npm run lint              # includes the layer-boundary rule
 npm run validate:content  # every YAML parses, every ref resolves, every id exists
 npm run build             # compile packs and styles
@@ -183,8 +192,13 @@ In Foundry: **Configuration and Setup → Game Systems → Install System**, pas
 > move budget is spent when it lands. Riding's two segments share one MOV allowance and the
 > second only opens once the unit has attacked.
 >
-> Not yet built: undo, and the persistent zone overlays (ZON rings, threat ranges). Everything is
-> also reachable from the console via `fgt.api`.
+> Nothing is dropped from a target list in silence. Every unit an area catches and a rule then
+> excludes carries the reason it was excluded — *"an ally, same faction as Heracles"*, *"a Master
+> protected by an adjacent Servant"*, *"concealed"* — and the preview shows it. Selecting a
+> Servant draws its Master's ZON ring, red when the Servant is standing outside it and about to
+> lose 5d10 for it.
+>
+> Not yet built: undo. Everything is also reachable from the console via `fgt.api`.
 
 ## Releasing
 
