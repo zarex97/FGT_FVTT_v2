@@ -260,7 +260,18 @@
   }
 
   &__faction { font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
-  &__clock { font-size: 0.75rem; opacity: 0.75; }
+
+  &__clock {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+
+  // The ◈ tick, which is a different number from the turn position and must not
+  // read as part of it.
+  &__tick { font-variant-numeric: tabular-nums; opacity: 0.8; }
 
   &__pools { display: flex; flex-direction: column; gap: 0.2rem; }
 

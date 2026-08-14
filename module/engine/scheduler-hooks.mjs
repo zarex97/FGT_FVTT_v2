@@ -15,6 +15,7 @@ import * as scheduler from "./scheduler.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { currentBoard } from "./board.mjs";
+import { factionOfCombatant } from "./turn-order.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 
@@ -164,7 +165,7 @@ function boardFor(combat) {
 function factionOf(combat, turnRef) {
   const id = turnRef?.combatantId ?? turnRef?.id;
   const combatant = id ? combat.combatants.get(id) : combat.combatant;
-  return combatant?.system?.factionId ?? combatant?.id ?? null;
+  return factionOfCombatant(combatant);
 }
 
 /**

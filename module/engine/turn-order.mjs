@@ -38,6 +38,28 @@ export function resolveTurnOrder(entries, { gmId = null } = {}) {
 }
 
 /**
+ * The faction a combatant stands for, or `null` when it stands for none.
+ *
+ * Three call sites derived this themselves and all three got it subtly wrong on
+ * an empty match: `combatant?.system?.factionId ?? combatant?.id` is `undefined`
+ * when there is no combatant at all, and `undefined` then read as "No Faction"
+ * in the HUD, skipped the turn-state reset entirely, and filed the budget under
+ * a key of `null`. One definition, and it distinguishes the three cases that
+ * matter: no combatant, the GM's slot, and a real faction.
+ *
+ * The GM's slot returns `null` on purpose — it takes a turn but owns no units
+ * and has no budget, so there is genuinely nothing to reset when it comes up.
+ *
+ * @param {object|null|undefined} combatant
+ * @returns {string|null}
+ */
+export function factionOfCombatant(combatant) {
+  if (!combatant) return null;
+  if (combatant.system?.isGM) return null;
+  return combatant.system?.factionId ?? combatant.id ?? null;
+}
+
+/**
  * The order actually played, after Delay.
  *
  * `Delay+X` moves a faction **X positions later among the factions that have not

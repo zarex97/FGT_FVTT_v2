@@ -30,6 +30,7 @@ import { Movement } from "./engine/movement-hooks.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
+import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 
 Hooks.once("init", () => {
   console.log("FGT | Initialising Fate/Grail Tactics");
@@ -69,6 +70,8 @@ Hooks.once("init", () => {
   // Must happen at init: the canvas reads CONFIG.Canvas.layers when it is built.
   registerTargetingLayer();
   registerOverlayLayer();
+  // Turns belong to factions, and only this tracker can create one.
+  registerCombatTracker();
 
   // Mandatory, and it requires "socket": true in the manifest plus a world
   // restart. Without it the server never registers the namespace and every
