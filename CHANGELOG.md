@@ -32,7 +32,7 @@ coincide by accident; the headings say which is which.
 
 ---
 
-## [0.2.0 - — 2026-08-14]
+## [0.2.0] — 2026-08-14
 
 **Making the content actually run.** `0.1.0` shipped a rules engine and a compendium of content
 that the engine collected and then ignored. Every entry here closes one of those gaps.
