@@ -206,6 +206,26 @@ export function resolveTargets(spec, caster, board, placement = {}) {
       throw new RangeError(`FGT | Unknown chooser "${chooser}".`);
   }
 
+  // 9b. THE ATTACKER'S OWN NARROWING.
+  //
+  // `chosenIds` is how the confirmation dialog says "these, of the ones you
+  // offered me". It applies whatever the chooser is, because an attacker may
+  // always hit *fewer* targets than the rules permit — sparing a Charmed ally
+  // standing with the enemy is a decision the rules have no opinion about. It
+  // can only ever remove: a unit the filters excluded cannot be added back by
+  // sending its id, which is what makes this safe to accept from a client.
+  if (placement.chosenIds && chooser !== "chosen") {
+    const wanted = new Set(placement.chosenIds);
+    const kept = chosen.filter((t) => wanted.has(t.unitId));
+    for (const t of chosen) {
+      if (!wanted.has(t.unitId)) {
+        const unit = (board.units ?? []).find((u) => u.id === t.unitId);
+        drop(unit ?? { id: t.unitId }, "not selected by the attacker");
+      }
+    }
+    chosen = kept;
+  }
+
   // 10. LIMITS
   if (limits.maxTargets !== undefined && chosen.length > limits.maxTargets) {
     chosen = chosen.slice(0, limits.maxTargets);

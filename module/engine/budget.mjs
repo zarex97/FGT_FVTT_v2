@@ -77,6 +77,10 @@ export async function spend({ combat, unit, action }) {
  * @returns {Promise<void>}
  */
 export async function reset(combat, factionId) {
+  // The GM's turn has no faction and no budget. Writing one anyway filed a
+  // fresh pool under the literal key "null", which then shadowed nothing and
+  // grew a junk entry on the flag every Round.
+  if (!factionId) return;
   await write(combat, factionId, emptyBudget(maxima()));
   Hooks.callAll("fgtBudgetChanged", combat, factionId, budgetFor(combat, factionId));
 }

@@ -405,7 +405,7 @@ HUD.
 | Foundry feature | Why not |
 |---|---|
 | `MeasuredTemplate` | Removed in v14 in favour of grid shapes |
-| Scene `Region` for transient targeting | Documents are heavyweight, racy to query, and require GM permission to delete. Regions are used for *persistent* zones only. |
+| Scene `Region` for the *aiming loop* | Still true: a document per pointer-move is heavyweight, and a player cannot create one without the proxy. Aiming stays on the PIXI layer. **Superseded in part** — see §28.14: once a placement is committed, the area *is* drawn as a Region. |
 | `game.user.targets` | Foundry's target set is a single flat set with no shape, band, or relation information. We maintain our own resolution and mirror into `user.targets` only for module compatibility. |
 | Third-party targeting modules | The prototype's *Mass Edit* dependency is eliminated. `relationships.requires` stays empty. |
 
@@ -446,7 +446,54 @@ The last one guards against a Foundry behaviour change breaking us silently.
 | D28.6 | Legality failures render inline with human-readable reasons and inline command-spell overrides. |
 | D28.7 | Grail-endangering placements require a second explicit confirmation. |
 | D28.8 | `game.user.targets` is mirrored for compatibility but never read by F/GT code. |
-| D28.9 | Persistent zones use Regions; transient targeting never creates a document. |
+| D28.9 | Persistent zones use Regions. Transient targeting creates no document **while aiming**; a committed placement does, and discards it. Revised — see §28.14. |
+
+---
+
+## 28.14 Revision — grid-shape Regions for the committed area
+
+`v14` added **`GridShapeData`**: a shape that is *"any arbitrary set of grid
+squares, as defined by their grid offset"*. That is precisely what
+`resolveTargets` already returns, which removes the geometric objection behind
+D28.9 — a Region can now be a faithful drawing of the resolution rather than a
+polygon approximation of it.
+
+The other two objections were about lifecycle, not geometry, and they are
+answered by *when* the document exists:
+
+- **Racy to query** — nothing is read back. The prototype's bug was spawning a
+  region and then asking it who was inside; here the units are already known,
+  decided synchronously in L2 before the region exists. `RegionDocument#tokens`
+  is never touched.
+- **Heavyweight** — one document per *committed placement*, not per pointer
+  move. Aiming stays on the PIXI layer, which is what makes it frame-rate cheap.
+- **GM permission** — creation and deletion are proxied, with an authorizer that
+  admits only transient, grid-shaped regions, so the operation cannot author
+  permanent scenery or delete a bounded field.
+
+Anything that survives a disconnect is swept at `ready`, which is what keeps
+"documents leak" from being true of this design rather than merely unlikely.
+
+### The confirmation step
+
+Placing the area opens the review window (§28.6's layout, as a dialog): every
+unit that will be hit, with its damage range, and **every unit the area caught
+that the rules excluded, with the reason**. Three outcomes — confirm, re-aim,
+cancel — and re-aim must be its own value, because an empty confirmation is
+legal for an ability whose effect is not target-dependent and cancelling is
+legal too, so folding re-aim into either would spend the attack or throw it
+away.
+
+Unchecking a unit narrows the attack. `placement.chosenIds` is honoured whatever
+the chooser is, and can only ever *remove*: the dialog runs on the player's
+client, so a crafted id naming an ally must not make that ally a target.
+
+| # | Decision |
+|---|---|
+| D28.10 | The committed area is a grid-shape Region, created through the proxy, discarded in a `finally`, and swept at `ready`. |
+| D28.11 | Aiming never creates a document; only a committed placement does. |
+| D28.12 | The confirmation lists exclusions with reasons, and its three outcomes are distinct values. |
+| D28.13 | `chosenIds` narrows and never widens. |
 
 ---
 

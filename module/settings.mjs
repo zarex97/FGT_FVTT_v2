@@ -62,6 +62,12 @@ export function registerSettings() {
   game.settings.register("fgt", "autoDeclineLuckBelow", {
     scope: "client", config: true, name: "FGT.Settings.AutoDeclineLuckBelow", type: Number, default: 0,
   });
+  // Per-client for the same reason the review dialog is: a table that wants to
+  // confirm every attack and one that does not can both be right.
+  game.settings.register("fgt", "targetingReview", {
+    scope: "client", config: true, name: "FGT.Settings.TargetingReview",
+    hint: "FGT.Settings.TargetingReviewHint", type: Boolean, default: true,
+  });
   // Per-client: one player wanting a clean board should not take the ZON ring
   // away from everybody else.
   game.settings.register("fgt", "showOverlays", {

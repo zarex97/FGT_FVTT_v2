@@ -1,5 +1,35 @@
 import { describe, it, expect } from "vitest";
-import { resolveTurnOrder, breakTie, computeTurnOrder } from "../../module/engine/turn-order.mjs";
+import {
+  resolveTurnOrder, breakTie, computeTurnOrder, factionOfCombatant,
+} from "../../module/engine/turn-order.mjs";
+
+describe("factionOfCombatant", () => {
+  it("is the combatant's faction", () => {
+    expect(factionOfCombatant({ id: "c1", system: { factionId: "red" } })).toBe("red");
+  });
+
+  it("is null for a match with no combatant at all", () => {
+    // The case behind "No Faction" in the HUD, the skipped turn-state reset and
+    // the budget filed under `null`: an empty combat has no `combatant`, and
+    // `undefined` is not the same answer as "nobody".
+    expect(factionOfCombatant(undefined)).toBe(null);
+    expect(factionOfCombatant(null)).toBe(null);
+  });
+
+  it("is null for the GM's slot, which owns no units", () => {
+    expect(factionOfCombatant({ id: "gm", system: { isGM: true, factionId: null } })).toBe(null);
+  });
+
+  it("ignores a factionId on the GM's slot rather than acting on it", () => {
+    expect(factionOfCombatant({ id: "gm", system: { isGM: true, factionId: "red" } })).toBe(null);
+  });
+
+  it("falls back to the combatant id when no faction is set", () => {
+    // A token-shaped combatant made by Foundry's own "toggle combat state".
+    // It still gets a turn; it just is not a faction.
+    expect(factionOfCombatant({ id: "c1", system: {} })).toBe("c1");
+  });
+});
 
 describe("resolveTurnOrder", () => {
   it("orders factions by roll, highest first", () => {
