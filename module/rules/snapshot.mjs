@@ -88,6 +88,10 @@ export function snapshotUnit(actor, { token = null, panel = null } = {}) {
     effectInstances: effectInstances(actor),
     modifiers: contributions.modifiers,
     abilities: collectAbilities(actor),
+    // Riding decides whether this unit may move again after attacking, and
+    // three separate places were each deciding it for themselves — two of them
+    // by reaching for `game.actors` from a layer that may not. One projection.
+    hasRiding: hasSkill(actor, "riding"),
     eventHandlers: contributions.eventHandlers,
     immunities: contributions.immunities,
     grantedAbilities: contributions.grantedAbilities,
@@ -336,6 +340,22 @@ function collectAbilities(actor) {
       regen: i.system?.cooldown?.regen ?? 0,
       categorizedAsNP: Boolean(i.system?.categorizedAsNP),
     }));
+}
+
+/**
+ * Does this actor own a named class skill?
+ *
+ * Matched on the slug first and the name second, because content authored
+ * before slugs existed identifies its skills only by name.
+ *
+ * @param {object} actor
+ * @param {string} slug
+ * @returns {boolean}
+ */
+function hasSkill(actor, slug) {
+  return [...(actor.items ?? [])].some(
+    (i) => i.system?.slug === slug || i.name?.toLowerCase?.() === slug,
+  );
 }
 
 /**

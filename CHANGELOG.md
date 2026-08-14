@@ -53,6 +53,8 @@ coincide by accident; the headings say which is which.
   from `isaacsHBPF2e`, whose three outcomes (confirm, re-aim, cancel) have to stay distinct
   values because an empty confirmation and a cancellation are both legal and mean opposite
   things.
+- **`hasRiding` is projected onto the unit snapshot.** Three places each decided it for
+  themselves, two of them by reaching into `game.actors` from a layer that may not.
 - **`placement.chosenIds` narrows any chooser**, so unchecking a unit in that window actually
   spares it. It can only remove: the dialog runs on the player's client, so a crafted id naming
   an ally must not make that ally a target.
@@ -108,23 +110,15 @@ coincide by accident; the headings say which is which.
 
 ---
 
-## [0.2.1] — 2026-08-14
-- **[Chapter 45 — Implementation Status and Completion Plan](docs/45-implementation-status.md)**
-  — an audit of all 44 specification chapters against the code, and a phased plan to finish it.
-  It distinguishes **missing** from **stubbed** from **collected but unread**, because the last
-  two resolve silently and look like they worked. Findings worth naming here:
-  - The Combat Process runs three of its six steps; the **Injury Roll**, the **Counter** and the
-    **AoE fan-out** are stubs — an area attack on seven units currently damages one of them.
-  - `scheduler.fireEvent` reads `handler.intents`, which the `OnEvent` executor never writes, so
-    every event handler contributes a log line and nothing else. Battle Continuation's revive is
-    inert.
-  - **`Aura` applies to the wrong unit**: it writes a modifier carrying `radius` and `relations`
-    into its own owner's bag, and the pipeline ignores both fields.
-  - **ZON is checked in two places and computed in none** — `outsideZon` and `zonDistance` are
-    projected from actor fields no code writes.
-
 ### Fixed
 
+- **Every data preparation of a Combat threw**, which took `turns` with it and left the tracker
+  showing nothing at all. `setupTurns` sorts with
+  `this.combatants.contents.sort(this._sortCombatants)` — the method is passed **unbound**, so
+  `Array#sort` calls it with no receiver and `this` is `undefined`. Core's own comparator never
+  notices because it only touches `a` and `b`; ours read `this.system.turnOrder`. The order now
+  comes from the combatants' parent. This is also why no factions appeared in the tracker, and
+  why the turn state was still never being cleared.
 - **The turn state was never reset**, so a unit had no movement left for the rest of the match
   after one move. `clearTurnState` early-returned on the acting faction being `undefined`, which
   it always was in a match with no combatants.
@@ -168,6 +162,28 @@ coincide by accident; the headings say which is which.
   `{{#each factions}}`, where a bare name resolves against the **item** rather than the template
   context — so the helper received `undefined` and threw. Fixed with `@root.players`, and the
   class of defect is now caught statically.
+
+### Corrected
+
+- **Movement is limited by MOV, not by a count of moves.** The superseded reading was *one Move
+  per Turn*, with Riding granting a second — so every drag after the first was refused with
+  "This Unit has already Moved this Turn", or, with Riding, "Riding's second Move requires an
+  Attack between the two segments". The rule is that a Unit may Move as many times as it likes
+  until the total reaches its MOV; what fixes it in place is **Attacking**, and Riding is the one
+  exception, its two phases sharing the single allowance. `segmentCheck` now has exactly three
+  refusals — Riding Attack is terminal, the allowance is spent, or it has Attacked without Riding
+  — and the drag count gates nothing. See Ch. 18 §18.4.
+- **D28.9 is revised, not reversed.** The superseded reading was that transient targeting never
+  creates a document. Aiming still does not — that half stands, and it is what keeps the preview
+  frame-rate cheap — but a committed placement now creates a grid-shape Region. The two
+  objections that were about lifecycle rather than geometry are answered by *when* it exists:
+  nothing is ever read back from it, so the raciness that killed the prototype's approach cannot
+  recur, and one document per commit is not one per pointer move. See §28.14 for D28.10–D28.13.
+
+## [0.2.1] — 2026-08-14
+
+### Fixed
+
 - **Nothing on a Servant sheet could be used.** Three separate faults, each of which alone was
   enough to make the system untestable:
   - **There was no Normal Attack button.** `resolveAttack` had always accepted `abilityId: null`;
@@ -192,14 +208,21 @@ coincide by accident; the headings say which is which.
 - **Riding's Active MOV Up applied at all times.** With `system.active` undefined, the collector's
   `?? true` fallback treated every mode as switched on.
 
-### Corrected
+### Added
 
-- **D28.9 is revised, not reversed.** The superseded reading was that transient targeting never
-  creates a document. Aiming still does not — that half stands, and it is what keeps the preview
-  frame-rate cheap — but a committed placement now creates a grid-shape Region. The two
-  objections that were about lifecycle rather than geometry are answered by *when* it exists:
-  nothing is ever read back from it, so the raciness that killed the prototype's approach cannot
-  recur, and one document per commit is not one per pointer move. See §28.14 for D28.10–D28.13.
+- **[Chapter 45 — Implementation Status and Completion Plan](docs/45-implementation-status.md)**
+  — an audit of all 44 specification chapters against the code, and a phased plan to finish it.
+  It distinguishes **missing** from **stubbed** from **collected but unread**, because the last
+  two resolve silently and look like they worked. Findings worth naming here:
+  - The Combat Process runs three of its six steps; the **Injury Roll**, the **Counter** and the
+    **AoE fan-out** are stubs — an area attack on seven units currently damages one of them.
+  - `scheduler.fireEvent` reads `handler.intents`, which the `OnEvent` executor never writes, so
+    every event handler contributes a log line and nothing else. Battle Continuation's revive is
+    inert.
+  - **`Aura` applies to the wrong unit**: it writes a modifier carrying `radius` and `relations`
+    into its own owner's bag, and the pipeline ignores both fields.
+  - **ZON is checked in two places and computed in none** — `outsideZon` and `zonDistance` are
+    projected from actor fields no code writes.
 
 ### Changed
 
