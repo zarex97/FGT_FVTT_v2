@@ -166,8 +166,11 @@ export function worldIO() {
     async markTurn(unitId, patch) {
       const actor = resolve(unitId);
       if (!actor) return;
+      // Stamped here rather than by each caller, so no writer can forget it and
+      // leave a turn state that never expires.
+      const stamped = { tick: game.combat?.system?.globalTurn ?? 0, ...patch };
       const update = {};
-      for (const [key, value] of Object.entries(patch)) update[`system.turnState.${key}`] = value;
+      for (const [key, value] of Object.entries(stamped)) update[`system.turnState.${key}`] = value;
       await actor.update(update);
     },
 

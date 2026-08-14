@@ -171,6 +171,21 @@ Properties, all property-tested (Ch. 38):
 
 ## 25.4 The scheduler
 
+> **Turn state expires; it is not cleared.** Every write to a Unit's `turnState`
+> is stamped with the ◈ tick it happened on, and a state whose stamp is not the
+> current tick reads as blank. The scheduler still writes a fresh state at each
+> boundary, but only so the stored data matches what the rules see — **nothing
+> depends on that write landing**.
+>
+> This is deliberate and load-bearing. The clearing write is the single most
+> failure-prone step in the whole turn cycle: it needs a hook to fire, on the
+> right client, for the right faction, against a Combat whose data preparation
+> did not throw. When it did not land, a Unit was left with no movement for the
+> rest of the match and no message said why — the failure was silent, permanent
+> and indistinguishable from a rules refusal. Deciding staleness on *read*
+> cannot fail in that direction: the worst a missing stamp does is forget
+> something a Unit had already done, which self-corrects on the next write.
+
 Runs on the **active GM client only** — the same election used by the socket proxy
 (`game.users.activeGM.isSelf`), so exactly one client fires each effect.
 
