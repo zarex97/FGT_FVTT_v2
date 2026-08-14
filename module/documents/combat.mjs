@@ -11,7 +11,7 @@
  * round boundary by accident.
  */
 
-import { resolveTurnOrder } from "../engine/turn-order.mjs";
+import { resolveTurnOrder, computeTurnOrder } from "../engine/turn-order.mjs";
 
 export class FGTCombat extends Combat {
   /** The monotonic turn index absolute expiries are measured against. */
@@ -70,8 +70,77 @@ export class FGTCombat extends Combat {
       contested = next.stillContested;
     }
 
-    await this.update({ "system.turnOrder": order });
+    // Delay does not carry across Rounds, and neither does who has acted.
+    await this.update({
+      "system.baseOrder": order,
+      "system.turnOrder": computeTurnOrder(order, {}, [], this.gmFactionId),
+      "system.delays": {},
+      "system.takenThisRound": [],
+    });
     return order;
+  }
+
+  /**
+   * Declare `Delay+X` for a faction.
+   *
+   * Delay is a declaration about the *coming* turns, so it is recomputed
+   * against the order rather than written into it: the stored `baseOrder` never
+   * changes within a Round, and `turnOrder` is derived from it every time. That
+   * is what keeps a delay from compounding each time anything re-renders.
+   *
+   * A faction that has already acted this Round keeps the entry for the next
+   * Round instead of having it applied now (Ch. 25 §25.3).
+   *
+   * @param {string} factionId
+   * @param {number} positions how many places later to go
+   * @returns {Promise<string[]>} the new effective order
+   */
+  async delayFaction(factionId, positions) {
+    const by = Math.max(0, Math.round(positions));
+    const delays = { ...(this.system?.delays ?? {}), [factionId]: by };
+    if (by === 0) delete delays[factionId];
+
+    const order = computeTurnOrder(
+      this.system?.baseOrder ?? [],
+      delays,
+      this.system?.takenThisRound ?? [],
+      this.gmFactionId,
+    );
+    await this.update({ "system.delays": delays, "system.turnOrder": order });
+    Hooks.callAll("fgtTurnOrderChanged", this, order);
+    return order;
+  }
+
+  /**
+   * Record that a faction has taken its turn, and re-derive the order.
+   *
+   * Called by the scheduler at each turn boundary. Marking is what freezes a
+   * faction's position: a Delay declared after acting can no longer move it.
+   *
+   * @param {string|null} factionId
+   * @returns {Promise<void>}
+   */
+  async markTurnTaken(factionId) {
+    if (!factionId) return;
+    const taken = new Set(this.system?.takenThisRound ?? []);
+    if (taken.has(factionId)) return;
+    taken.add(factionId);
+
+    await this.update({
+      "system.takenThisRound": [...taken],
+      "system.turnOrder": computeTurnOrder(
+        this.system?.baseOrder ?? [], this.system?.delays ?? {}, taken, this.gmFactionId,
+      ),
+    });
+  }
+
+  /**
+   * The GM's combatant id, which is always last in the order.
+   * @returns {string|null}
+   */
+  get gmFactionId() {
+    const gm = this.combatants.find((c) => c.system?.isGM || c.name === "GM");
+    return gm ? (gm.system?.factionId ?? gm.id) : null;
   }
 
   /** @inheritdoc */

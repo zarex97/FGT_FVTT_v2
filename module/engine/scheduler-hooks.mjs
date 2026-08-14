@@ -52,6 +52,12 @@ async function onTurnChange(combat, prior, current) {
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
 
+  // The faction that just finished is frozen in the order: a Delay declared
+  // from here on applies to the next Round, not to a turn already taken.
+  if (typeof combat.markTurnTaken === "function") {
+    await combat.markTurnTaken(ctx.activeFactionId);
+  }
+
   // The global turn advances between the two halves, so an effect expiring
   // "this turn" is gone before the next unit acts.
   const nextTick = tick + 1;
