@@ -25,6 +25,9 @@ sustainability: "2◈"
 
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
+  # Permanent and undeactivatable for Heracles specifically -- which is what
+  # makes Bravery's suppression clause interesting (Ch. 31).
+  - { ref: class-mad-enhancement, rank: B, active: true, cannotDeactivate: true }
   - { ref: divinity, rank: A }
   - { ref: class-battle-continuation, rank: A }
   - { ref: heracles-nine-lives }

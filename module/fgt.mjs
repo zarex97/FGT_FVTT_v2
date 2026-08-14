@@ -18,10 +18,13 @@ import { computeDamage } from "./rules/damage/pipeline.mjs";
 import { resolveTargets } from "./rules/targeting/resolve.mjs";
 import { test as evaluatePredicate } from "./rules/predicate.mjs";
 import { snapshotUnit, snapshotBoard } from "./rules/snapshot.mjs";
+import { EffectRegistry } from "./rules/registry.mjs";
+import { collectContributions } from "./rules/elements.mjs";
 import { explainDamage } from "./rules/explain.mjs";
 import * as intents from "./engine/intents.mjs";
 import * as combatProcess from "./engine/combat-process.mjs";
 import * as scheduler from "./engine/scheduler.mjs";
+import { Scheduler } from "./engine/scheduler-hooks.mjs";
 
 Hooks.once("init", () => {
   console.log("FGT | Initialising Fate/Grail Tactics");
@@ -69,13 +72,27 @@ Hooks.once("init", () => {
   CONFIG.Item.compendiumIndexFields.push("system.rank", "system.isNP");
 });
 
-Hooks.once("setup", () => {
+Hooks.once("setup", async () => {
   // Packs are not readable during `init`; `setup` runs after they are indexed
   // and before the canvas draws, which is exactly the window we need.
-  console.log("FGT | Setup complete");
+  const pack = game.packs.get("fgt.effects");
+  const documents = pack ? await pack.getDocuments() : [];
+  const count = EffectRegistry.load(documents);
+  console.log(`FGT | Loaded ${count} effect definitions`);
+
+  if (game.settings.get("fgt", "devMode")) {
+    const report = EffectRegistry.validate();
+    for (const w of report.warnings) console.warn(`FGT | ${w}`);
+    if (report.errors.length) {
+      for (const e of report.errors) console.error(`FGT | ${e}`);
+      ui.notifications.error(`FGT: ${report.errors.length} content errors — see console.`);
+    }
+  }
 });
 
 Hooks.once("ready", () => {
+  // GM client only; a no-op everywhere else.
+  Scheduler.attach();
   fgt.api = buildPublicAPI();
   console.log(`FGT | Ready — ${game.system.version}`);
 });
@@ -97,6 +114,8 @@ function buildPublicAPI() {
     explainDamage,
     // Engine (L3)
     intents, combatProcess, scheduler,
+    effects: EffectRegistry,
+    collectContributions,
     socket: FGTSocket,
   };
 }

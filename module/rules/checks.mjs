@@ -52,6 +52,55 @@ export function tableFor(own, opposing, forcing = {}) {
 }
 
 /**
+ * @typedef {object} CheckPlan
+ * @property {Array<{source: string, value: number}>} modifiers
+ * @property {"favourable"|"unfavourable"|null} forceTable
+ * @property {object|null} autoSucceed the winning `AutoSucceed` entry, if any
+ * @property {object[]} adjustable `RollAdjustment` grants the player may spend
+ */
+
+/**
+ * Fold a unit's collected `checkModifiers` and `autoSucceeds` into the
+ * arguments a check takes.
+ *
+ * This is the bridge that makes a `TableOverride` on a compendium document
+ * actually change a die roll. Without it the contributions are collected into
+ * the snapshot and read by nobody, which is the failure mode this codebase is
+ * most exposed to.
+ *
+ * `check: "any"` entries apply to every check — `RollAdjustment` from a Master
+ * Essence is written that way.
+ *
+ * @param {object} unit a `UnitSnapshot`
+ * @param {string} check `"evade"`, `"luck"`, `"injury"`, …
+ * @param {object} [opts]
+ * @param {"outgoing"|"incoming"} [opts.direction] whose check this is
+ * @returns {CheckPlan}
+ */
+export function checkPlan(unit, check, { direction = "outgoing" } = {}) {
+  const relevant = (unit?.checkModifiers ?? []).filter(
+    (m) => m.check === check || m.check === "any",
+  );
+
+  const modifiers = relevant
+    .filter((m) => typeof m.value === "number" && m.value !== 0)
+    .filter((m) => (m.direction ?? "outgoing") === direction)
+    .map((m) => ({ source: m.source, value: m.value }));
+
+  // Debuffs win ties, as everywhere else in the effect engine: one source
+  // forcing the unfavourable table beats any number forcing the favourable one.
+  const forcing = relevant.map((m) => m.forceTable).filter(Boolean);
+  const forceTable = forcing.includes("unfavourable")
+    ? "unfavourable"
+    : (forcing[0] ?? null);
+
+  const autoSucceed = (unit?.autoSucceeds ?? []).find((a) => a.check === check) ?? null;
+  const adjustable = relevant.filter((m) => m.playerAdjustable);
+
+  return { modifiers, forceTable, autoSucceed, adjustable };
+}
+
+/**
  * Resolve a check: success is rolling **at or under** the target stat.
  *
  * Positive modifiers make the check *harder*, matching the source's phrasing
@@ -91,11 +140,21 @@ export function resolveCheck({ roll, target, table, modifiers = [] }) {
  * @see docs/14-checks-and-randomness.md §14.5
  */
 export function evade({ roll, agility, hasDodge = false, attackHasAim = false,
-  forceUnfavourable = false, modifiers = [] }) {
+  forceUnfavourable = false, modifiers = [], autoSucceed = null, attackProperties = [] }) {
   if (hasDodge && !attackHasAim) {
     return {
       success: true, roll, total: 0, target: agility,
       table: "favourable", modifiers: [{ source: "Dodge", value: 0 }], automatic: true,
+    };
+  }
+  // A granted `AutoSucceed` behaves like Dodge, with its own list of attack
+  // properties that beat it — `beatenBy: [aim]` reproduces Dodge exactly, which
+  // is why Dodge above is the same rule written twice, once for the effect and
+  // once for the rule element.
+  if (autoSucceed && !(autoSucceed.beatenBy ?? []).some((p) => attackProperties.includes(p))) {
+    return {
+      success: true, roll, total: 0, target: agility, table: "favourable",
+      modifiers: [{ source: autoSucceed.source ?? "auto-succeed", value: 0 }], automatic: true,
     };
   }
   return resolveCheck({

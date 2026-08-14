@@ -20,7 +20,9 @@ phases:
   - kind: damage
   - kind: applyEffects
     rules:
+      # Def Dwn, not a negative Def Up: different families, and buff removal
+      # must not be able to strip it.
       - key: OnEvent
         event: damageDealt
-        effect: { id: defUp, magnitude: -30 }
+        effect: { id: defDwn, magnitude: 30 }
         duration: "1◈"

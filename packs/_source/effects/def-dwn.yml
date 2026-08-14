@@ -1,0 +1,20 @@
+# Appendix A §A.9
+# "Damage taken +X%. Family defDwn."
+#
+# A distinct effect, NOT a negative Def Up: the two belong to different families
+# and content that removes "one Def Up" must not strip a Def Dwn.
+schema: 1
+id: defDwn
+name: "Def Dwn"
+description: "All damage taken is increased by X%; a reduced magnitude applies to Noble Phantasms."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: "@magnitude"
+    npValue: "@npMagnitude"

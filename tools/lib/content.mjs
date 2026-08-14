@@ -46,6 +46,9 @@ export const RULE_ELEMENT_KEYS = new Set([
 
 /** Effect classification vocabularies, from Appendix A. */
 const POLARITIES = new Set(["buff", "debuff", "status"]);
+
+/** The two check tables, from docs/15-checks.md. Not rank tables. */
+const CHECK_TABLES = new Set(["favourable", "unfavourable"]);
 const VOLATILITIES = new Set(["nonVolatile", "volatile", "mental", "terminal", "none"]);
 const STACKING = new Set([
   "magnitudeStacks", "noneNoRefresh", "noneRefresh", "noneExtend", "stage", "count", "highestOnly",
@@ -241,8 +244,22 @@ function validateDocument(doc, path, library, problems, warnings) {
     if (el.key === "Script" && !el.script) {
       problems.push(`${path}: ${where} is a Script element with no "script" id`);
     }
+    // `table:` always names a rank table from Appendix B. The one element that
+    // needs a *check* table says `forceTable:` instead -- the field names are
+    // kept distinct so a typo in either is caught rather than silently read as
+    // the other kind.
     if (el.table && !(el.table in TABLES)) {
-      problems.push(`${path}: ${where} references unknown table "${el.table}"`);
+      const hint = CHECK_TABLES.has(el.table) ? ` — did you mean forceTable: ${el.table}?` : "";
+      problems.push(`${path}: ${where} references unknown table "${el.table}"${hint}`);
+    }
+    if (el.forceTable !== undefined) {
+      if (el.key !== "TableOverride") {
+        problems.push(`${path}: ${where} sets "forceTable" but only TableOverride uses it`);
+      } else if (!CHECK_TABLES.has(el.forceTable)) {
+        problems.push(`${path}: ${where} forces unknown check table "${el.forceTable}"`);
+      }
+    } else if (el.key === "TableOverride") {
+      problems.push(`${path}: ${where} is a TableOverride with no "forceTable"`);
     }
     for (const option of referencedOptions(el.predicate)) {
       if (!looksLikeRollOption(option)) {

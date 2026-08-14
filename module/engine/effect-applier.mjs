@@ -188,6 +188,16 @@ export function applyBatch({ defs, target, source, ctx, params = {} }) {
 function findImmunity(def, target, held) {
   if (held.includes(`immune:${def.id}`)) return `${def.id} Immune`;
 
+  // Immunities granted by a rule element rather than carried as an effect --
+  // a class skill that reads "immune to Charm" produces an entry here, and it
+  // has to gate at exactly the same point as the `Charm Immune` status does.
+  const granted = target.immunities ?? [];
+  if (granted.includes(def.id)) return `${def.id} Immune`;
+  if (def.polarity === "debuff" && granted.includes("debuff")) return "Debuff Immune";
+  if (def.polarity === "debuff" && def.volatility && granted.includes(`debuff:${def.volatility}`)) {
+    return `${def.volatility} Debuff Immune`;
+  }
+
   if (def.polarity === "buff") return held.includes("noBuff") ? "No Buff" : null;
   if (def.polarity !== "debuff") return null;
 

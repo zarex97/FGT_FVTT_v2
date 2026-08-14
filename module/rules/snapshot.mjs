@@ -15,6 +15,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { collectContributions } from "./elements.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -35,6 +36,7 @@ import { Rank } from "../domain/rank.mjs";
 export function snapshotUnit(actor, { token = null } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
+  const contributions = contributionsOf(actor);
 
   return {
     id: actor.id,
@@ -69,16 +71,27 @@ export function snapshotUnit(actor, { token = null } = {}) {
 
     parameters: parseParameters(sys.parameters),
     baseAttack: { str: sys.baseAttack?.str ?? 0, mag: sys.baseAttack?.mag ?? 0 },
-    attributes: [...(sys.attributes ?? [])],
+    // Abilities can grant attributes -- Divinity grants `divine`, which is what
+    // Karna's Vasavi Shakti and Scathach's God Slayer key on.
+    attributes: [...new Set([...(sys.attributes ?? []), ...contributions.attributes])],
     alignment: sys.alignment ?? null,
 
     effects: activeEffectIds(actor),
     effectInstances: effectInstances(actor),
-    modifiers: collectModifiers(actor),
+    modifiers: contributions.modifiers,
     abilities: collectAbilities(actor),
-    eventHandlers: collectEventHandlers(actor),
+    eventHandlers: contributions.eventHandlers,
+    immunities: contributions.immunities,
+    grantedAbilities: contributions.grantedAbilities,
+    autoSucceeds: contributions.autoSucceeds,
+    checkModifiers: contributions.checkModifiers,
+    damageNegation: contributions.damageNegation,
+    // Informational. `FGTActor#prepareDerivedData` has ALREADY folded these
+    // into `mov`, `range`, `agility` and friends above -- this list is here so
+    // a sheet can explain the number, not so a consumer can apply it again.
+    statDeltas: contributions.statDeltas,
 
-    magicResistance: magicResistanceOf(actor),
+    magicResistance: contributions.magicResistance ?? magicResistanceOf(actor),
     zon: sys.zon ?? null,
     zonDistance: sys.zonDistance ?? null,
     outsideZon: Boolean(sys.outsideZon),
@@ -166,27 +179,49 @@ function effectInstances(actor) {
 }
 
 /**
- * Flatten every rule element that contributes to damage into the modifier list
- * the pipeline consumes. Predicates are carried through unevaluated, because
- * whether a `Dmg Up` applies depends on the attack, which is not known yet.
+ * Run every rule element the actor owns and collect what it contributes.
+ *
+ * This is where a `{key: "FlatDamage", table: "divinity"}` on a compendium
+ * document becomes `+50` in the damage pipeline. Before this existed the
+ * content loaded and did nothing.
+ *
+ * Predicates that depend on the *attack* cannot be evaluated here — the attack
+ * is not known yet — so they are carried through on the modifier and evaluated
+ * inside the pipeline. Predicates that depend only on the unit's own state are
+ * evaluated now.
+ *
  * @param {object} actor
- * @returns {object[]}
+ * @returns {object}
  */
-function collectModifiers(actor) {
-  /** @type {object[]} */
-  const out = [];
-  for (const el of actor.system?.ruleElements ?? []) {
-    if (!el.key || el.suppressed) continue;
-    out.push({
-      key: el.modifierKey ?? el.key,
-      value: el.value ?? 0,
-      npValue: el.npValue,
-      component: el.component ?? null,
-      predicate: el.predicate ?? null,
-      source: el.source ?? el.label ?? "unknown",
+export function contributionsOf(actor) {
+  const abilities = [...(actor.items ?? [])].map((item) => ({
+    id: item.id,
+    name: item.name,
+    rank: item.system?.rank ?? null,
+    active: item.system?.active ?? true,
+    rules: item.system?.rules ?? [],
+    passiveRules: item.system?.passiveRules ?? [],
+    activeRules: item.system?.activeRules ?? [],
+  }));
+
+  // Effects on the actor carry rule elements too, and they are active by
+  // definition -- an effect that is present is in force.
+  for (const effect of actor.effects ?? []) {
+    if (effect.disabled || effect.isSuppressed) continue;
+    const def = effect.system?.def ?? null;
+    if (!def?.rules?.length) continue;
+    abilities.push({
+      id: effect.id, name: effect.name, rank: null, active: true,
+      rules: def.rules.map((r) => ({
+        ...r,
+        // "@magnitude" on an effect definition resolves against the instance.
+        value: r.value === "@magnitude" ? (effect.system?.magnitude ?? 0) : r.value,
+        npValue: r.npValue === "@npMagnitude" ? (effect.system?.npMagnitude ?? undefined) : r.npValue,
+      })),
     });
   }
-  return out;
+
+  return collectContributions(abilities, { options: new Set(), refs: { self: actor } });
 }
 
 /**
@@ -205,16 +240,6 @@ function collectAbilities(actor) {
       regen: i.system?.cooldown?.regen ?? 0,
       categorizedAsNP: Boolean(i.system?.categorizedAsNP),
     }));
-}
-
-/**
- * @param {object} actor
- * @returns {object[]}
- */
-function collectEventHandlers(actor) {
-  return (actor.system?.ruleElements ?? [])
-    .filter((el) => el.key === "OnEvent" && !el.suppressed)
-    .map((el) => ({ event: el.event, intents: el.intents ?? [], source: el.source ?? el.label }));
 }
 
 /**

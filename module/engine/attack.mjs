@@ -15,13 +15,15 @@
 import { computeDamage } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { snapshotUnit, snapshotBoard } from "../rules/snapshot.mjs";
-import { evade as evadeCheck, luckCheck, chance } from "../rules/checks.mjs";
+import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
 import { Rank } from "../domain/rank.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
+import { applyEffect } from "./effect-applier.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -126,7 +128,12 @@ async function runAutomaticStep(state, message) {
   switch (state.state) {
     case "damage": {
       const result = await applyDamage(state, message);
+      // Riders declared in the ability's phases land only if the damage did.
+      // "Deals 4x damage plus 100. Then inflicts Def Dwn" -- the "then" is
+      // conditional on the attack connecting.
+      const applied = await applyAbilityEffects(state, result);
       await message.setFlag("fgt", "damage", result.total);
+      await message.setFlag("fgt", "effects", applied.map((a) => a.summary));
       return process.advance(state, "done", { total: result.total });
     }
     case "noDamage":
@@ -159,6 +166,14 @@ async function rollEvade(state) {
   const defender = snapshotUnit(game.actors.get(state.defenderId));
   const roll = await new Roll("1d20").evaluate();
 
+  // Everything the defender's own abilities have to say about Evade -- Mad
+  // Enhancement's forced table, an Agility check penalty, a granted
+  // auto-evasion -- arrives through the plan rather than being named here.
+  const plan = checkPlan(defender, "evade");
+  const attackProperties = [];
+  if (state.attack?.aim) attackProperties.push("aim");
+  if (state.attack?.kind === "np") attackProperties.push("np");
+
   return {
     ...evadeCheck({
       roll: roll.total,
@@ -166,8 +181,10 @@ async function rollEvade(state) {
       hasDodge: (defender.effects ?? []).includes("dodge"),
       attackHasAim: Boolean(state.attack?.aim),
       forceUnfavourable:
-        (defender.effects ?? []).includes("madEnhancement") || defender.agility < attacker.agility,
-      modifiers: evadeModifiers(state, attacker, defender),
+        plan.forceTable === "unfavourable" || defender.agility < attacker.agility,
+      autoSucceed: plan.autoSucceed,
+      attackProperties,
+      modifiers: [...evadeModifiers(state, attacker, defender), ...plan.modifiers],
     }),
     formula: roll.formula,
   };
@@ -203,12 +220,14 @@ async function rollLuck(state) {
   const opponent = snapshotUnit(game.actors.get(opponentId));
   const roll = await new Roll("1d20").evaluate();
 
+  const plan = checkPlan(unit, "luck");
   const outcome = luckCheck({
     roll: roll.total,
     luck: unit.luck,
     opposingLuck: opponent.luck,
-    hasBoost: (unit.effects ?? []).includes("luckBoost"),
-    hasLoss: (unit.effects ?? []).includes("luckLoss"),
+    hasBoost: (unit.effects ?? []).includes("luckBoost") || plan.forceTable === "favourable",
+    hasLoss: (unit.effects ?? []).includes("luckLoss") || plan.forceTable === "unfavourable",
+    modifiers: plan.modifiers,
   });
 
   // A Luck Check costs 1 Luck whether or not it succeeds.
@@ -252,7 +271,10 @@ async function applyDamage(state, message) {
     crit: { isCrit, chanceUsed: 0 },
     reaction: { kind: state.reaction ?? "none" },
     luckChecks: {},
-    rolls: { [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total },
+    rolls: {
+      [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
+      negation: await rollNegation(defender, state.attack?.kind === "np"),
+    },
     options: rollOptions(attacker, defender, state),
   };
 
@@ -273,6 +295,106 @@ async function applyDamage(state, message) {
   });
 
   return result;
+}
+
+/**
+ * Roll every dice-mode `DamageNegation` the defender carries.
+ *
+ * Battle Continuation is the archetype: `2d10+15` at rank B, and against a
+ * Noble Phantasm *the number of dice is doubled* rather than the total — a
+ * distinction that matters by about seven points on average, and one the
+ * per-Servant sheets are explicit about (Ch. 41 Q16).
+ *
+ * @param {object} defender the defender's snapshot
+ * @param {boolean} isNP
+ * @returns {Promise<Array<{source: string, value: number, formula: string}>>}
+ */
+async function rollNegation(defender, isNP) {
+  const out = [];
+  for (const n of defender.damageNegation ?? []) {
+    if (n.mode !== "dice" || !n.formula) continue;
+    const formula = isNP && n.npDiceDoubled ? doubleDice(n.formula) : n.formula;
+    const roll = await new Roll(formula).evaluate();
+    out.push({ source: n.source, value: roll.total + (n.bonus ?? 0), formula });
+  }
+  return out;
+}
+
+/**
+ * Double the dice count of every term in a formula, leaving flat bonuses alone.
+ * `2d10+15` becomes `4d10+15`.
+ * @param {string} formula
+ * @returns {string}
+ */
+function doubleDice(formula) {
+  return String(formula).replace(/(\d+)d(\d+)/gi, (_, n, faces) => `${Number(n) * 2}d${faces}`);
+}
+
+/**
+ * Apply the effect riders an ability declares in its `phases`.
+ *
+ * Every application goes through the seven-step pipeline in
+ * `effect-applier.mjs`, so immunity, exclusivity, the chance roll and stacking
+ * are all honoured -- and every step's outcome is recorded, so the card can say
+ * "Burn resisted (rolled 78 vs 65%)" rather than silently doing nothing.
+ *
+ * @param {object} state
+ * @param {object} damageResult
+ * @returns {Promise<Array<{summary: object, result: object}>>}
+ */
+async function applyAbilityEffects(state, damageResult) {
+  const attackerDoc = game.actors.get(state.attackerId);
+  const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
+  const defenderDoc = game.actors.get(state.defenderId);
+  if (!ability || !defenderDoc) return [];
+
+  // Nothing rides on an attack that dealt nothing. Invuln explicitly does NOT
+  // prevent rider debuffs, but it also does not zero the damage to zero via
+  // this path -- negation is what matters here.
+  if (damageResult.flags?.negatedBy) return [];
+
+  const defender = snapshotUnit(defenderDoc);
+  const applied = [];
+
+  for (const phase of ability.system?.phases ?? []) {
+    if (phase.kind !== "applyEffects") continue;
+    for (const rule of phase.rules ?? []) {
+      const spec = rule.effect;
+      if (!spec?.id) continue;
+
+      const def = EffectRegistry.get(spec.id);
+      if (!def) {
+        // Loud, because a missing definition means the ability silently does
+        // less than its text says.
+        console.warn(`FGT | ${ability.name} applies unknown effect "${spec.id}"`);
+        ui.notifications?.warn(`FGT | Unknown effect "${spec.id}" on ${ability.name}`);
+        continue;
+      }
+
+      const roll = await new Roll("1d100").evaluate();
+      const outcome = applyEffect({
+        def,
+        target: defender,
+        magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
+        duration: rule.duration ?? spec.duration ?? def.defaultDuration,
+        source: { unitId: state.attackerId, abilityId: ability.id },
+        ctx: {
+          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          currentTick: game.combat?.system?.globalTurn ?? 0,
+          roll: roll.total,
+          inflictBonus: 0,
+          resist: 0,
+        },
+      });
+
+      if (outcome.intents.length > 0) await applyBatch(outcome.intents, "abilityEffect");
+      applied.push({
+        summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason },
+        result: outcome,
+      });
+    }
+  }
+  return applied;
 }
 
 /**

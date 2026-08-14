@@ -32,6 +32,55 @@ coincide by accident; the headings say which is which.
 
 ---
 
+## [Unreleased]
+
+**Making the content actually run.** `0.1.0` shipped a rules engine and a compendium of content
+that the engine collected and then ignored. Every entry here closes one of those gaps.
+
+### Added
+
+- **`module/rules/elements.mjs`** — the rule-element executor table. Thirty keys, each turning a
+  data declaration on a compendium document into a contribution the engine consumes. Elements
+  with no executor are surfaced in `contributions.unhandled` rather than dropped, because a rule
+  element that silently does nothing is the single worst failure mode in a data-driven system.
+- **`module/rules/registry.mjs`** — `EffectRegistry`, loaded from the `fgt.effects` pack at
+  `setup`, so an ability's `applyEffects` phase can resolve `{id: defDwn}` to a real definition.
+- **`module/rules/derived.mjs`** — `applyStatDeltas`, folding collected `StatDelta`, `MaxDelta`,
+  `MovDelta`, `RangeDelta` and `RankShift` contributions into the actor's derived data. Mad
+  Enhancement's `MOV +2, Range +1` now shows on the sheet and reaches the movement planner, not
+  only a damage calculation.
+- **`checkPlan(unit, check)`** — the bridge from `CheckModifier`, `TableOverride`, `AutoSucceed`
+  and `RollAdjustment` contributions to the arguments an Evade or Luck Check actually takes.
+  Mad Enhancement clause 6 is no longer a hard-coded effect id in the attack orchestrator.
+- **`module/engine/turn-order.mjs`**, **`module/documents/combat.mjs`** — `FGTCombat` with the
+  global turn counter, ◈-aware `turnsPerRound`, and tie-breaking rerolls.
+- **`module/engine/scheduler-hooks.mjs`** — the scheduler bound to `combatTurnChange` and
+  `combatRound`, guarded so only the active GM writes.
+- **Content**: `Mad Enhancement` (all seven clauses), the `Def Dwn` effect family.
+
+### Fixed
+
+- **Rule elements were collected and never executed.** `snapshot.mjs` now runs
+  `collectContributions` over every owned item and unsuppressed effect, so Divinity A produces
+  its `+50` at stage 7 instead of nothing at all.
+- **Stage 12 ignored dice-mode `DamageNegation`.** The defender's negation formulas are rolled
+  by the orchestrator and consumed by the pipeline; Battle Continuation's doubled *dice* against
+  a Noble Phantasm (not doubled *total*, per the per-Servant sheets) is honoured.
+- **The immunity gate read only carried statuses.** An immunity granted by a rule element now
+  blocks at exactly the same point as the equivalent status effect.
+- **`heracles-nine-lives`** applied `Def Up` at magnitude −30. Def Dwn is a distinct family with
+  its own stacking rule; the ability now applies `Def Dwn 30`.
+
+### Corrected
+
+- **`TableOverride` used `table:` for a check table.** Every other rule element uses `table:` to
+  name a **rank table** from Appendix B, so the two collided and the validator rejected valid
+  content with an unreadable message. `TableOverride` now takes **`forceTable:`**, the validator
+  enforces the split in both directions, and a check-table name in the `table:` field produces a
+  message that names the fix. Superseded reading: `- key: TableOverride, table: unfavourable`.
+
+---
+
 ## [0.1.0] — 2026-08-14
 
 **The first installable release.** Everything below `Documentation 0.2.1` describes the
