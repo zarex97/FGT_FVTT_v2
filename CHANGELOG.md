@@ -24,6 +24,81 @@ Chapter numbers refer to files in [`docs/`](docs/00-index.md).
 
 ---
 
+## [0.2.1] — 2026-08-14
+
+Two more answers from the game's author, both of which **correct readings `0.2.0` had reasoned
+its way into**. Q39 has the largest numerical consequence of any correction so far; Q40 reverses
+a conclusion `0.2.0` stated at length.
+
+### Corrected
+
+- **Crit-damage percentages scale the `Attack+` roll, and only that roll.** `0.2.0` placed
+  `Crit DmUp`, `Crit DmDwn`, `Crit ResUp`, `Crit ResDwn` and `Over Crit` in the **stage-4
+  bucket**, gated on `attack:crit`, so they multiplied the whole attack. They do not. They
+  multiply the `5d10` at **stage 3**:
+
+  ```
+  crit:      total += 5d10 × max(0, 1 + critPct/100)
+  non-crit:  total -= 5d10                              // never scaled
+  ```
+
+  `Crit DmUp +100%` is therefore worth about **27 points at stage 3** (which downstream
+  multipliers then amplify), not a doubling of the finished number. On a Karna `4×` NP with
+  `+40%` crit damage and a roll of 31, `0.2.0` produced 743 where the correct figure is 543.
+
+  The author supplied the pre-`0.2.0` reference calculation to settle it, ending: *"35 was the
+  5d10 of the crit damage; if this was duplicated the damage increase would be felt."*
+
+  **If you implemented `predicate: ["attack:crit"]` `DamageModifier` rule elements for crit
+  damage, delete them.**
+
+  *Where:* Ch. 13 §13.2 (stage list) and §13.3 stage 3, which carries the superseded reading
+  and a side-by-side numeric comparison. *Answered by:* Q39.
+
+  **Our reasoning for the wrong answer, recorded.** We argued that a 27-point mean roll was too
+  small for the game's many `Crit DmUp +100%` effects to be meaningful, so they *must* scale the
+  attack. That inference was backwards: crits are a small consistent bonus, and crit-damage
+  effects are a small bonus on a small bonus. Wanting a mechanic to matter is not evidence about
+  what it does. This is the second time in three releases that a confident derivation lost to a
+  direct answer — the first being the Range formula in `0.2.0`.
+
+- **`Luck Check−` is `1d20+4`, not `1d20`.** The identical formulas in the `0.2.0` source were a
+  **typo**. Everything `0.2.0` concluded from that identity is reversed:
+
+  | `0.2.0` said | `0.2.1` |
+  |---|---|
+  | `Luck Boost` and `Luck Loss` are **inert** | Both are **live**, each worth a flat 4 |
+  | The Luck comparison in `luckCheck()` is **cosmetic** | It is **load-bearing** |
+  | Luck is a *budget*, not a *matchup* | Luck is **both** |
+
+  Luck Checks are now exactly symmetric with Evade: `1d20` favourable, `1d20+4` unfavourable.
+  High-Luck Servants — Drake (`EX`), Semiramis, Quetzalcoatl, Ozymandias (`A+`) — impose the
+  penalty on every contest and never pay it, which makes them stronger in the reaction ladder
+  than `0.2.0` assessed.
+
+  *Where:* Ch. 14 §14.4, Appendix A §A.3 and §A.9, Appendix C §C.1 and §C.5.
+  *Answered by:* Q40.
+
+### Changed
+
+- **Ability-stated conditional multipliers apply at stage 2**, inside the bracket, before the
+  flat bonus — not in the stage-4 bucket. An ability that says *"deals 100% extra damage to
+  units with `[Sky]`"* multiplies at stage 2; a **buff** that says *"damage dealt is increased
+  by X%"* joins the bucket at stage 4. The dividing line is where the text lives — on the
+  ability, or on an effect. Ch. 13 §13.3 stage 2.
+
+### Open
+
+- **Q49** — the reference calculation supplied with the Q39 answer reads
+  `[(200+35) × 4 × 2 + 100] × (100+100+20−30)%`, and the second `+100` has no stated source once
+  the `× 2` is accounted for as the `[Sky]` clause. We implement the clause as multiplying once,
+  at stage 2, and have asked whether the bucket term is a separate bonus. Nothing in the engine
+  changes either way, so this ships rather than blocks.
+
+Q41–Q48 remain open, unchanged.
+
+---
+
 ## [0.2.0] — 2026-08-13
 
 The game's author returned an annotated copy of Chapter 41 answering **Q1–Q38**, supplied the
@@ -306,5 +381,6 @@ registry), D (twelve Servant data sheets), E (event reference).
 
 ---
 
+[0.2.1]: https://github.com/zarex97/FGT_FVTT_v2/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/zarex97/FGT_FVTT_v2/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.1.0

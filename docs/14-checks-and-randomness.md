@@ -211,7 +211,7 @@ All previously-unknown rolls have been resolved. **There are no placeholders lef
 | `evade` | `1d20` | |
 | `evade-` | `1d20+4` | |
 | `luckCheck` | `1d20` | |
-| `luckCheck-` | `1d20` | **Identical to `luckCheck`** — see below |
+| `luckCheck-` | `1d20+4` | Corrected in `0.2.1` — the earlier `1d20` was a typo (Q40) |
 | `injury` | `1d4` | |
 | `agilityM` | `4+1d8` | Master Max Agility |
 | `luckM` | `8+1d12` | Master Max Luck |
@@ -224,19 +224,25 @@ Three of these change the game's shape and deserve emphasis.
 **`Block` is no longer a roll.** It is a flat 25% damage reduction, the same value against
 Noble Phantasms as against anything else. See Ch. 13 §13.3 stage 14.
 
-**`Luck Check−` is identical to `Luck Check`.** Both are `1d20`. So the unfavourable variant
-carries **no penalty**, and the favourable/unfavourable distinction collapses for Luck Checks —
-unlike Evade, where `Evade−` is a real `+4`.
+**`Luck Check−` is `1d20+4`**, exactly parallel to `Evade−`. The `0.2.0` documentation printed
+it as `1d20`, identical to `luckCheck`, and reasoned at length about the consequences of that
+identity. **It was a typo in the source, corrected by the author in `0.2.1` (Q40).** The
+favourable/unfavourable distinction is real and symmetric with Evade:
 
-This has a large knock-on effect: the `Luck Boost` buff and the `Luck Loss` debuff (which force
-the favourable and unfavourable tables respectively) become **inert**, and the whole
-current-Luck comparison in `luckCheck()` becomes cosmetic.
+| | Favourable | Unfavourable |
+|---|---|---|
+| Evade | `1d20` | `1d20+4` |
+| Luck Check | `1d20` | `1d20+4` |
 
-**DECISION.** Implement the comparison and the table selection anyway — they cost nothing, they
-keep the code symmetric with Evade, and if a penalty is ever introduced it is a one-line data
-change. `Luck Boost` and `Luck Loss` are marked **inert** in the effect catalogue with a note,
-rather than removed, because they appear in content. Recorded as **Q40** in Ch. 41 in case the
-identical formulas were an oversight.
+Consequences of the correction, all of which restore behaviour `0.2.0` had written off:
+
+- **`Luck Boost` and `Luck Loss` are live effects**, not inert ones. Forcing the favourable
+  table is worth a flat 4 on every Luck Check the bearer makes.
+- **The current-Luck comparison in `luckCheck()` is load-bearing.** Contesting a luckier
+  opponent costs 4, which on a `1d20` against a Luck of 12 is a 20-percentage-point swing.
+- **High-Luck Servants are a matchup, not just a budget.** Drake (`LUC EX`), Semiramis,
+  Quetzalcoatl and Ozymandias (`A+`) impose the penalty on everyone who contests them, and
+  never pay it themselves.
 
 **Servants have no Max Health roll.** `Health(S)` is not used, so a Servant's Max Health is
 exactly `baseHealthByEnd[grade] ± 100 per rank step` — fully deterministic. Only Masters roll
