@@ -188,12 +188,41 @@ In Foundry: **Configuration and Setup → Game Systems → Install System**, pas
 
 ## Releasing
 
-Releases are cut by CI. Tag a commit and push the tag:
+Releases are cut by CI, from **the commit the tag points at**. That is the whole trap: the
+workflow re-reads the repository at the tagged commit, so anything it needs must be committed
+*before* tagging. Fixing a file afterwards changes nothing, and the retry fails identically.
+
+So the order is: prepare, check, commit, tag.
 
 ```
-git tag v0.1.0
-git push origin v0.1.0
+# 1. Rename the CHANGELOG's "## [Unreleased]" heading to "## [0.2.0] — <date>"
+#    and add the matching link definition at the end of the file.
+# 2. Stamp the manifest.
+npm run release:stamp -- 0.2.0 zarex97/FGT_FVTT_v2
+
+# 3. Confirm the release is taggable — this is what CI will check.
+npm run check:release -- 0.2.0
+
+# 4. Commit, THEN tag.
+git commit -am "Release 0.2.0"
+git push
+git tag v0.2.0
+git push origin v0.2.0
 ```
+
+`check:release` verifies the three things that can only be fixed with a commit: the changelog
+has a section for this version, that section is not empty, and it has a link definition. The
+workflow extracts the release notes as its **first** step for the same reason — failing in
+twenty seconds beats failing after a full lint-and-test cycle.
+
+If a tag has already been pushed at a bad commit, move it rather than bumping the version:
+
+```
+git tag -d v0.2.0 && git push origin :refs/tags/v0.2.0   # delete, local and remote
+git tag v0.2.0 && git push origin v0.2.0                 # re-tag the fixed commit
+```
+
+Delete any hollow release GitHub left behind first, or the re-run will update it in place.
 
 [`.github/workflows/release.yml`](.github/workflows/release.yml) then lints, validates the
 content, runs the tests, builds the packs and styles, stamps the version and the **versioned**
