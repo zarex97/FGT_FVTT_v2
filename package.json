@@ -16,6 +16,7 @@
     "lint": "eslint module tools test",
     "typecheck": "tsc -p jsconfig.json",
     "validate:content": "node tools/validate-content.mjs",
+    "check:templates": "node tools/check-templates.mjs",
     "build:packs": "node tools/build-packs.mjs",
     "build:styles": "sass styles/src/fgt.scss styles/fgt.css --no-source-map",
     "watch:styles": "sass --watch styles/src/fgt.scss styles/fgt.css",

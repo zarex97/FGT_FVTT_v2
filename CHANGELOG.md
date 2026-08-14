@@ -47,8 +47,19 @@ coincide by accident; the headings say which is which.
   was an island. There is now one board builder, `engine/board.mjs#currentBoard`, and it fills in
   the alliance graph from the roster.
 
+- **The faction editor crashed on open.** `{{selectOptions players …}}` sat inside
+  `{{#each factions}}`, where a bare name resolves against the **item** rather than the template
+  context — so the helper received `undefined` and threw. Fixed with `@root.players`, and the
+  class of defect is now caught statically.
+
 ### Added
 
+- **`tools/check-templates.mjs`** — static checks over `templates/`, wired into CI and
+  `npm run check:templates`. Template defects are invisible to ESLint and to every other test,
+  and surface as a stack trace inside Foundry at render time; two have already shipped. It
+  catches both: a helper Foundry v14 does not register (`array`, `upper`), and a bare context
+  name passed to a helper that throws on `undefined` from inside an `{{#each}}` — tracking block
+  params so `{{#each xs as |x|}}{{selectOptions x.choices}}{{/each}}` is correctly left alone.
 - **A GM-managed faction roster.** Settings → F/GT → **Manage Factions**: create a faction, name
   and colour it, assign a player to it, and tick which other factions it is allied with. Unit
   sheets now pick from that list with a `<select>` instead of accepting free text — two units

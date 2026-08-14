@@ -28,7 +28,10 @@
           <span>{{localize "FGT.Factions.Player"}}</span>
           <select name="factions.{{faction.id}}.userId">
             <option value="">{{localize "FGT.Factions.Unassigned"}}</option>
-            {{selectOptions players selected=faction.userId valueAttr="id" labelAttr="name"}}
+            {{!-- @root, because a bare name inside {{#each}} resolves against
+                  the ITEM, not the template context, and selectOptions throws
+                  on undefined rather than rendering nothing. --}}
+            {{selectOptions @root.players selected=faction.userId valueAttr="id" labelAttr="name"}}
           </select>
         </label>
       </div>
@@ -38,7 +41,9 @@
           <span class="fgt-factions__allies-label">{{localize "FGT.Factions.Allies"}}</span>
           {{#each faction.others as |other|}}
             <label class="fgt-factions__ally">
-              <input type="checkbox" name="factions.{{../faction.id}}.allies.{{other.id}}"
+              {{!-- `faction` is a block param, so it stays in scope inside this
+                    nested each; `../faction` would be a context lookup. --}}
+              <input type="checkbox" name="factions.{{faction.id}}.allies.{{other.id}}"
                      {{checked other.allied}}>
               <span>{{other.name}}</span>
             </label>
