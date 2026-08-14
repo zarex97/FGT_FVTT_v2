@@ -126,6 +126,34 @@ describe("step 1 — the immunity gate", () => {
     expect(applyEffect({ def: buff, target: target({ effects: ["noBuff"] }), source: {}, ctx }).reason)
       .toBe("No Buff");
   });
+
+  // Immunities granted by a rule element rather than carried as a status. A
+  // class skill reading "immune to Charm" has to gate here, or the content
+  // loads and does nothing.
+  it("blocks on an immunity granted by a rule element", () => {
+    const charm = def({ id: "charm", volatility: "mental" });
+    const r = applyEffect({ def: charm, target: target({ immunities: ["charm"] }), source: {}, ctx });
+    expect(r.outcome).toBe("blocked");
+    expect(r.reason).toBe("charm Immune");
+  });
+
+  it("blocks every debuff on a granted blanket debuff immunity", () => {
+    expect(applyEffect({ def: def(), target: target({ immunities: ["debuff"] }), source: {}, ctx }).reason)
+      .toBe("Debuff Immune");
+  });
+
+  it("respects a granted classification-scoped immunity", () => {
+    const target_ = target({ immunities: ["debuff:mental"] });
+    expect(applyEffect({ def: def({ volatility: "mental" }), target: target_, source: {}, ctx }).outcome)
+      .toBe("blocked");
+    expect(applyEffect({ def: def({ volatility: "volatile" }), target: target_, source: {}, ctx }).outcome)
+      .toBe("applied");
+  });
+
+  it("does not let a granted immunity block an unrelated effect", () => {
+    expect(applyEffect({ def: def({ id: "burn" }), target: target({ immunities: ["charm"] }), source: {}, ctx }).outcome)
+      .toBe("applied");
+  });
 });
 
 describe("step 2 — exclusivity", () => {

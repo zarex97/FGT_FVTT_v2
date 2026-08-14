@@ -1,0 +1,42 @@
+# docs/B-rank-tables.md §B.3 — verified against six sheets across two rosters.
+#
+# A MODE, not a passive: it is activated and deactivated, and while active it is
+# "neither a buff nor a debuff, and Unremovable" — so buff removal cannot strip
+# it and No Buff cannot prevent it.
+schema: 1
+id: class-mad-enhancement
+name: "Mad Enhancement"
+source: class
+parameterized: [rank]
+rank: "@rank"
+isMode: true
+description: |
+  (Active) While Active-
+  1. This Servant's Master loses Health at the end of every Turn it Acts.
+  2. All damage taken is reduced; a smaller reduction applies to NP.
+  3. All damage dealt is increased including NP; halved for Base Attack (MAG).
+  4. MOV +2, Range +1, the Master's ZON +2.
+  5. Sustainability is reduced by 2◈ if its Master is defeated while Active.
+  6. This Servant can only Evade with Evade−.
+  7. The effects are neither a buff nor a debuff, and are Unremovable.
+activeRules:
+  # The STR share goes into the stage-4 bucket; the MAG differential is applied
+  # at stage 5, because one bucket cannot hold two magnitudes for one modifier.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    table: madEnhancementOffence
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    table: madEnhancementDefence
+  - key: MovDelta
+    value: 2
+    isBuff: false
+  - key: RangeDelta
+    value: 1
+    isBuff: false
+  # Clause 6: the unfavourable Evade table, always.
+  - key: TableOverride
+    check: evade
+    forceTable: unfavourable

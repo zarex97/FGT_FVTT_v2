@@ -70,6 +70,34 @@ describe("domain validation", () => {
     expect(errorsFor([file(ok({ rules: [{ key: "FlatDamage", table: "divinity" }] }))])).toEqual([]);
   });
 
+  // `table:` names a rank table everywhere; TableOverride needs a CHECK table,
+  // so it uses `forceTable:`. The two were briefly the same field, and the
+  // collision produced a validation error nobody could read.
+  it("keeps the rank-table and check-table fields apart", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "TableOverride", check: "evade", forceTable: "unfavourable" }] }))]))
+      .toEqual([]);
+  });
+
+  it("points at forceTable when a check table lands in the table field", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "TableOverride", check: "evade", table: "unfavourable" }] }))])[0])
+      .toMatch(/did you mean forceTable: unfavourable\?/);
+  });
+
+  it("catches an unknown check table", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "TableOverride", check: "evade", forceTable: "favorable" }] }))])[0])
+      .toMatch(/unknown check table "favorable"/);
+  });
+
+  it("catches a TableOverride with nothing to force", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "TableOverride", check: "evade" }] }))])[0])
+      .toMatch(/TableOverride with no "forceTable"/);
+  });
+
+  it("rejects forceTable on any other element", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "FlatDamage", forceTable: "unfavourable" }] }))])[0])
+      .toMatch(/only TableOverride uses it/);
+  });
+
   it("catches unknown effect classification values", () => {
     expect(errorsFor([file(ok({ polarity: "bufff" }))])[0]).toMatch(/unknown polarity/);
     expect(errorsFor([file(ok({ polarity: "buff", stacking: "stacks" }))])[0]).toMatch(/unknown stacking/);

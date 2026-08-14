@@ -472,6 +472,16 @@ function stage12FlatReductions(s) {
     flat += bc;
     s.contribute("battleContinuation", -bc, "Battle Continuation");
   }
+
+  // Dice-mode `DamageNegation` elements the defender carries. The caller rolls
+  // them -- the pipeline stays pure -- and passes the results keyed by source,
+  // so a defender with two such skills gets both.
+  for (const n of s.ctx.rolls?.negation ?? []) {
+    const value = typeof n === "number" ? n : (n.value ?? 0);
+    if (!value) continue;
+    flat += value;
+    s.contribute("damageNegation", -value, typeof n === "number" ? "damage negation" : n.source);
+  }
   const tcDef = s.ctx.rolls?.territoryCreationDef ?? 0;
   if (tcDef) {
     flat += tcDef;

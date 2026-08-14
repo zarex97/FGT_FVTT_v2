@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  evade, luckCheck, tableFor, resolveCheck, chance, applicationChance,
+  evade, luckCheck, tableFor, resolveCheck, chance, applicationChance, checkPlan,
   UNFAVOURABLE_PENALTY,
 } from "../../module/rules/checks.mjs";
 
@@ -130,5 +130,88 @@ describe("applicationChance", () => {
     const r = applicationChance({ base: 50, resist: 20, immune: true, bypassesImmunity: true });
     expect(r.blocked).toBe(false);
     expect(r.percent).toBe(30);
+  });
+});
+
+describe("checkPlan — the bridge from rule elements to a die roll", () => {
+  /** A snapshot carrying what `collectContributions` produces. */
+  const unit = {
+    checkModifiers: [
+      { check: "evade", forceTable: "unfavourable", source: "Mad Enhancement" },
+      { check: "evade", value: 2, direction: "outgoing", source: "Heavy Armour" },
+      { check: "evade", value: 5, direction: "incoming", source: "somebody else's problem" },
+      { check: "luck", value: -1, source: "Fortune" },
+      { check: "any", playerAdjustable: true, max: 3, source: "Master Essence" },
+    ],
+    autoSucceeds: [{ check: "evade", beatenBy: ["aim"], source: "Clairvoyance" }],
+  };
+
+  it("selects only the modifiers for the named check and direction", () => {
+    expect(checkPlan(unit, "evade").modifiers).toEqual([
+      { source: "Heavy Armour", value: 2 },
+    ]);
+  });
+
+  it("includes check: any entries", () => {
+    expect(checkPlan(unit, "evade").adjustable.map((m) => m.source)).toEqual(["Master Essence"]);
+  });
+
+  it("carries the forced table through", () => {
+    expect(checkPlan(unit, "evade").forceTable).toBe("unfavourable");
+    expect(checkPlan(unit, "luck").forceTable).toBeNull();
+  });
+
+  it("lets the unfavourable table win when both are forced", () => {
+    const both = {
+      checkModifiers: [
+        { check: "evade", forceTable: "favourable", source: "Agi Boost" },
+        { check: "evade", forceTable: "unfavourable", source: "Mad Enhancement" },
+      ],
+    };
+    expect(checkPlan(both, "evade").forceTable).toBe("unfavourable");
+  });
+
+  it("finds the auto-succeed entry", () => {
+    expect(checkPlan(unit, "evade").autoSucceed.source).toBe("Clairvoyance");
+    expect(checkPlan(unit, "luck").autoSucceed).toBeNull();
+  });
+
+  it("returns an empty plan for a unit with no contributions", () => {
+    const plan = checkPlan({}, "evade");
+    expect(plan).toEqual({ modifiers: [], forceTable: null, autoSucceed: null, adjustable: [] });
+  });
+
+  it("survives a null unit", () => {
+    expect(checkPlan(null, "evade").modifiers).toEqual([]);
+  });
+});
+
+describe("a granted AutoSucceed behaves like Dodge", () => {
+  const granted = { beatenBy: ["aim"], source: "Clairvoyance" };
+
+  it("succeeds without rolling", () => {
+    const r = evade({ roll: 20, agility: 3, autoSucceed: granted });
+    expect(r.success).toBe(true);
+    expect(r.automatic).toBe(true);
+    expect(r.modifiers[0].source).toBe("Clairvoyance");
+  });
+
+  it("is beaten by the property it names", () => {
+    const r = evade({ roll: 20, agility: 3, autoSucceed: granted, attackProperties: ["aim"] });
+    expect(r.success).toBe(false);
+    expect(r.automatic).toBe(false);
+  });
+
+  it("is not beaten by an unrelated property", () => {
+    const r = evade({ roll: 20, agility: 3, autoSucceed: granted, attackProperties: ["np"] });
+    expect(r.success).toBe(true);
+  });
+
+  it("still loses to a forced unfavourable table only by rolling", () => {
+    // The auto-succeed short-circuits before the table is consulted, which is
+    // the point: Mad Enhancement makes the ROLL worse, it does not remove an
+    // automatic evasion.
+    const r = evade({ roll: 20, agility: 3, autoSucceed: granted, forceUnfavourable: true });
+    expect(r.success).toBe(true);
   });
 });

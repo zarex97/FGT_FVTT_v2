@@ -543,3 +543,47 @@ describe("the breakdown", () => {
     expect(s4.contributors).toContainEqual({ source: "atkUp", value: 30, note: "Howl of the War God" });
   });
 });
+
+describe("stage 12 consumes the defender's rolled DamageNegation", () => {
+  const ctx = baseCtx({
+    attacker: unit({ baseAttack: { str: 200, mag: 0 } }),
+    base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+    rolls: { attackMinus: 0 },
+  });
+
+  it("subtracts one rolled negation", () => {
+    const r = computeDamage({ ...ctx, rolls: { attackMinus: 0, negation: [{ source: "Battle Continuation", value: 35 }] } });
+    expect(r.total).toBe(165);
+  });
+
+  it("subtracts every entry, so two skills both count", () => {
+    const r = computeDamage({
+      ...ctx,
+      rolls: { attackMinus: 0, negation: [{ source: "Battle Continuation", value: 35 }, { source: "Guardian Knight", value: 15 }] },
+    });
+    expect(r.total).toBe(150);
+  });
+
+  it("names the source in the breakdown, so the card can explain it", () => {
+    const r = computeDamage({ ...ctx, rolls: { attackMinus: 0, negation: [{ source: "Battle Continuation", value: 35 }] } });
+    const stage = r.breakdown.find((s) => s.index === 12);
+    expect(JSON.stringify(stage)).toContain("Battle Continuation");
+  });
+
+  it("stacks with the legacy battleContinuation key rather than replacing it", () => {
+    const r = computeDamage({
+      ...ctx,
+      rolls: { attackMinus: 0, battleContinuation: 20, negation: [{ source: "Guardian Knight", value: 15 }] },
+    });
+    expect(r.total).toBe(165);
+  });
+
+  it("accepts a bare number", () => {
+    const r = computeDamage({ ...ctx, rolls: { attackMinus: 0, negation: [35] } });
+    expect(r.total).toBe(165);
+  });
+
+  it("does nothing when the defender has none", () => {
+    expect(computeDamage(ctx).total).toBe(200);
+  });
+});
