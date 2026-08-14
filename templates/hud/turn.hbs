@@ -2,7 +2,8 @@
   <header class="fgt-hud__header">
     <span class="fgt-hud__faction">{{factionName}}</span>
     <span class="fgt-hud__clock">
-      {{localize "FGT.HUD.TurnOfRound" turn=turn turnsPerRound=turnsPerRound round=round}}
+      {{localize "FGT.HUD.TurnOfRound" turn=turn turnsThisRound=turnsThisRound round=round}}
+      <span class="fgt-hud__tick" data-tooltip="{{localize 'FGT.HUD.TickHint'}}">{{tick}}◈</span>
     </span>
   </header>
 

@@ -72,6 +72,12 @@ export class PlayerCombatantData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       factionId: new fields.StringField({ required: false, nullable: true, initial: null }),
+
+      // The GM's slot, which is always last in the order (Ch. 25 §25.3). A flag
+      // rather than a reserved faction id, because the GM is not a faction: it
+      // owns no units and has no budget, it simply gets a turn.
+      isGM: new fields.BooleanField({ initial: false }),
+
       budget: new fields.SchemaField({
         servantMoves: new fields.NumberField({ integer: true, initial: 4, min: 0 }),
         masterMoves: new fields.NumberField({ integer: true, initial: 3, min: 0 }),
