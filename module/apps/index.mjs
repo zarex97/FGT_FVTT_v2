@@ -195,18 +195,17 @@ function describe(item) {
  * @returns {Promise<object|null>}
  */
 async function pickPlacement(actor, ability) {
-  const [{ pickTarget }, { targetSpecForAttack }, { snapshotUnit }, { currentBoard }, preview] =
+  const [{ pickTarget }, { targetSpecForAttack }, { currentBoard, unitSnapshot }, preview] =
     await Promise.all([
       import("./canvas/targeting-layer.mjs"),
       import("../engine/attack.mjs"),
-      import("../rules/snapshot.mjs"),
       import("../engine/board.mjs"),
       import("../rules/preview.mjs"),
     ]);
 
   if (!canvas?.ready || !canvas.fgtTargeting) return legacyPlacement();
 
-  const caster = snapshotUnit(actor);
+  const caster = unitSnapshot(actor);
   const board = currentBoard();
 
   const spec = targetSpecForAttack(actor, ability);

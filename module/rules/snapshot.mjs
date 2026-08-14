@@ -33,10 +33,11 @@ import { collectContributions } from "./elements.mjs";
  * @param {object} [opts.token] the placed token, for position and facing
  * @returns {UnitSnapshot}
  */
-export function snapshotUnit(actor, { token = null } = {}) {
+export function snapshotUnit(actor, { token = null, panel = null } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
   const contributions = contributionsOf(actor);
+  const footprint = gridFootprint(doc, panel);
 
   return {
     id: actor.id,
@@ -46,9 +47,11 @@ export function snapshotUnit(actor, { token = null } = {}) {
     factionId: sys.factionId ?? null,
     faction: sys.factionId ?? null,
 
-    panel: doc ? { i: doc.y ?? 0, j: doc.x ?? 0 } : { i: 0, j: 0 },
-    panels: sys.panels ?? null,
-    level: doc?.elevation ?? 0,
+    // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and
+    // reading them as offsets made two adjacent tokens a hundred panels apart.
+    panel: footprint[0],
+    panels: footprint.length > 1 ? footprint : (sys.panels ?? null),
+    level: footprint[0].k ?? doc?.elevation ?? 0,
     platformId: sys.platformId ?? null,
     facing: sys.facing ?? "n",
 
@@ -126,7 +129,9 @@ export function snapshotUnit(actor, { token = null } = {}) {
  * @returns {object}
  */
 export function snapshotBoard({ scene, actors, settings = {} }) {
-  const units = actors.map((a) => snapshotUnit(a.actor ?? a, { token: a.token }));
+  // A caller that has a canvas resolves each unit's panel first and passes the
+  // finished snapshot; anything else is projected here.
+  const units = actors.map((a) => a.snapshot ?? snapshotUnit(a.actor ?? a, { token: a.token }));
   const size = settings.boardSize ?? 13;
   return {
     bounds: { iMin: 0, jMin: 0, iMax: size - 1, jMax: size - 1 },
@@ -146,6 +151,31 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+/**
+ * The grid spaces a token occupies, as `{i, j}` offsets.
+ *
+ * A token's `x`/`y` are **pixels**. Converting them needs the scene's grid,
+ * which this layer may not touch — so the caller passes `panel`, or the token
+ * document converts for itself through `getOccupiedGridSpaceOffsets`, which
+ * also handles a multi-panel unit's whole footprint.
+ *
+ * @param {object|null} doc a `TokenDocument`
+ * @param {object|null} explicit a panel the caller already resolved
+ * @returns {Array<{i: number, j: number, k?: number}>} never empty
+ */
+function gridFootprint(doc, explicit) {
+  if (explicit) return [explicit];
+
+  if (typeof doc?.getOccupiedGridSpaceOffsets === "function") {
+    const offsets = doc.getOccupiedGridSpaceOffsets();
+    if (offsets?.length) return offsets.map((o) => ({ i: o.i, j: o.j, k: o.k }));
+  }
+
+  // No token, or a gridless scene. `{0, 0}` is wrong for anything on a board,
+  // which is why every caller that has a canvas resolves the panel first.
+  return [{ i: 0, j: 0 }];
+}
 
 /**
  * @param {object} raw

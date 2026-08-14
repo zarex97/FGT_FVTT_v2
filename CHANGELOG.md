@@ -47,6 +47,15 @@ coincide by accident; the headings say which is which.
   was an island. There is now one board builder, `engine/board.mjs#currentBoard`, and it fills in
   the alliance graph from the roster.
 
+- **Every attack reported its target out of range.** Two position bugs compounding:
+  - **`snapshot.panel` read a token's `x`/`y` as grid offsets. They are pixels.** Two tokens
+    standing next to each other were projected a hundred panels apart, so nothing was ever in
+    range of anything. Positions now come from `getOccupiedGridSpaceOffsets`, which also gives a
+    multi-panel unit its whole footprint.
+  - **Most callers passed no token at all.** `snapshotUnit` is layer 2 and cannot look one up —
+    the canvas is a global — so `snapshotUnit(attacker)` placed the attacker at `{0, 0}` while
+    the defender stood wherever it actually was. `engine/board.mjs#unitSnapshot` resolves the
+    token and the panel first, and every call site in the engine and the interface now uses it.
 - **The faction editor crashed on open.** `{{selectOptions players …}}` sat inside
   `{{#each factions}}`, where a bare name resolves against the **item** rather than the template
   context — so the helper received `undefined` and threw. Fixed with `@root.players`, and the
