@@ -60,6 +60,22 @@ coincide by accident; the headings say which is which.
 - **Riding's Active MOV Up applied at all times.** With `system.active` undefined, the collector's
   `?? true` fallback treated every mode as switched on.
 
+### Added
+
+- **[Chapter 45 — Implementation Status and Completion Plan](docs/45-implementation-status.md)**
+  — an audit of all 44 specification chapters against the code, and a phased plan to finish it.
+  It distinguishes **missing** from **stubbed** from **collected but unread**, because the last
+  two resolve silently and look like they worked. Findings worth naming here:
+  - The Combat Process runs three of its six steps; the **Injury Roll**, the **Counter** and the
+    **AoE fan-out** are stubs — an area attack on seven units currently damages one of them.
+  - `scheduler.fireEvent` reads `handler.intents`, which the `OnEvent` executor never writes, so
+    every event handler contributes a log line and nothing else. Battle Continuation's revive is
+    inert.
+  - **`Aura` applies to the wrong unit**: it writes a modifier carrying `radius` and `relations`
+    into its own owner's bag, and the pipeline ignores both fields.
+  - **ZON is checked in two places and computed in none** — `outsideZon` and `zonDistance` are
+    projected from actor fields no code writes.
+
 ### Changed
 
 - **The changelog no longer gates a release.** `tools/release-notes.mjs` used to exit non-zero
