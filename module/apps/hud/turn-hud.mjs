@@ -13,7 +13,7 @@
  */
 
 import * as budget from "../../engine/budget.mjs";
-import { movementRemaining } from "../../rules/budget.mjs";
+import { remainingMovement, effectiveMov, segmentCheck } from "../../rules/movement.mjs";
 import { snapshotUnit } from "../../rules/snapshot.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -82,8 +82,11 @@ export class TurnHUD extends HandlebarsApplicationMixin(ApplicationV2) {
         name: u.name,
         moved: Boolean(u.turnState?.moved),
         attacked: Boolean(u.turnState?.attacked),
-        movementLeft: movementRemaining(u),
-        mov: u.mov,
+        movementLeft: remainingMovement(u),
+        mov: effectiveMov(u),
+        // Why the move button is unavailable, when it is -- Riding's second
+        // segment waiting on an attack is the case a player cannot guess.
+        moveBlocked: segmentCheck(u, hasRiding(u)),
       })),
       unmet: verdict.unmet,
       canEndTurn: verdict.ok,
@@ -121,6 +124,16 @@ export class TurnHUD extends HandlebarsApplicationMixin(ApplicationV2) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Does this unit have Riding, and so a second movement segment?
+ * @param {object} unit a snapshot
+ * @returns {boolean}
+ */
+function hasRiding(unit) {
+  const actor = game.actors.get(unit.id);
+  return Boolean(actor?.items.some((i) => i.system?.slug === "riding" || i.name === "Riding"));
+}
 
 /**
  * @param {object} combat

@@ -128,14 +128,14 @@ which is what makes the entire rules engine testable in plain Node.
 | Canvas targeting preview | Not started |
 | Turn HUD, budgets, Delay | Not started |
 
-**462 tests passing**, covering everything built so far. They pin behaviour to the
+**492 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
 ```
 npm install
-npm test                  # 462 unit + golden tests, no Foundry required
+npm test                  # 492 unit + golden tests, no Foundry required
 npm run lint              # includes the layer-boundary rule
 npm run validate:content  # every YAML parses, every ref resolves, every id exists
 npm run build             # compile packs and styles
@@ -178,9 +178,13 @@ In Foundry: **Configuration and Setup → Game Systems → Install System**, pas
 > range each would take — computed by running the real pipeline at its minimum and maximum
 > rolls, so the preview cannot disagree with the result.
 >
-> Not yet built: the movement planner (moves are made by dragging tokens, so the move budget is
-> not yet spent automatically) and undo. Everything is also reachable from the console via
-> `fgt.api`.
+> Dragging a token is validated against the seven movement clauses before it commits — orthogonal
+> only, never through an enemy, never into a guarded Master's ring, never past MOV — and the
+> move budget is spent when it lands. Riding's two segments share one MOV allowance and the
+> second only opens once the unit has attacked.
+>
+> Not yet built: undo, and the persistent zone overlays (ZON rings, threat ranges). Everything is
+> also reachable from the console via `fgt.api`.
 
 ## Releasing
 

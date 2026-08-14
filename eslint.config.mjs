@@ -80,7 +80,10 @@ export default [
   },
   {
     // Build tools and the bootstrap log progress; that is their job.
-    files: ["tools/**/*.mjs", "module/fgt.mjs", "module/engine/scheduler-hooks.mjs"],
+    files: [
+      "tools/**/*.mjs", "module/fgt.mjs",
+      "module/engine/scheduler-hooks.mjs", "module/engine/movement-hooks.mjs",
+    ],
     rules: { "no-console": "off" },
   },
   { ignores: ["node_modules/**", "packs/**", "styles/fgt.css", "coverage/**", ".build/**"] },
