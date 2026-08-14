@@ -7,43 +7,92 @@
     "minimum": "14",
     "verified": "14.364"
   },
-
-  "authors": [{ "name": "zarex" }],
-
-  "esmodules": ["module/fgt.mjs"],
-  "styles": ["styles/fgt.css"],
-  "socket": true,
-
-  "languages": [
-    { "lang": "en", "name": "English", "path": "lang/en.json" }
+  "authors": [
+    {
+      "name": "zarex"
+    }
   ],
-
-  "grid": { "type": 1, "distance": 1, "units": "panels", "diagonals": 6 },
-
+  "esmodules": [
+    "module/fgt.mjs"
+  ],
+  "styles": [
+    "styles/fgt.css"
+  ],
+  "socket": true,
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "grid": {
+    "type": 1,
+    "distance": 1,
+    "units": "panels",
+    "diagonals": 6
+  },
   "primaryTokenAttribute": "health",
   "secondaryTokenAttribute": "agility",
-
   "documentTypes": {
     "Actor": {
-      "servant": { "htmlFields": ["biography", "notes"] },
-      "master": { "htmlFields": ["biography", "notes"] },
+      "servant": {
+        "htmlFields": [
+          "biography",
+          "notes"
+        ]
+      },
+      "master": {
+        "htmlFields": [
+          "biography",
+          "notes"
+        ]
+      },
       "civilian": {},
       "summon": {},
-      "platform": { "htmlFields": ["description"] },
+      "platform": {
+        "htmlFields": [
+          "description"
+        ]
+      },
       "structure": {}
     },
     "Item": {
-      "ability": { "htmlFields": ["description"] },
-      "noblePhantasm": { "htmlFields": ["description"] },
-      "commandSpell": { "htmlFields": ["description"] },
-      "masterEssence": { "htmlFields": ["description"] },
-      "equipment": { "htmlFields": ["description"] }
+      "ability": {
+        "htmlFields": [
+          "description"
+        ]
+      },
+      "noblePhantasm": {
+        "htmlFields": [
+          "description"
+        ]
+      },
+      "commandSpell": {
+        "htmlFields": [
+          "description"
+        ]
+      },
+      "masterEssence": {
+        "htmlFields": [
+          "description"
+        ]
+      },
+      "equipment": {
+        "htmlFields": [
+          "description"
+        ]
+      }
     },
     "ActiveEffect": {
       "fgtEffect": {}
     },
-    "Combat": { "match": {} },
-    "Combatant": { "player": {} },
+    "Combat": {
+      "match": {}
+    },
+    "Combatant": {
+      "player": {}
+    },
     "RegionBehavior": {
       "homeBase": {},
       "npField": {},
@@ -51,22 +100,58 @@
       "platform": {}
     }
   },
-
   "packs": [
-    { "name": "effects", "label": "F/GT Effects", "type": "Item", "system": "fgt" },
-    { "name": "class-skills", "label": "F/GT Class Skills", "type": "Item", "system": "fgt" },
-    { "name": "master-essences", "label": "F/GT Master Essences", "type": "Item", "system": "fgt" },
-    { "name": "command-spells", "label": "F/GT Command Spells", "type": "Item", "system": "fgt" },
-    { "name": "servants", "label": "F/GT Servants", "type": "Actor", "system": "fgt" },
-    { "name": "masters", "label": "F/GT Masters", "type": "Actor", "system": "fgt" },
-    { "name": "rules", "label": "F/GT Rules Reference", "type": "JournalEntry", "system": "fgt" }
+    {
+      "name": "effects",
+      "label": "F/GT Effects",
+      "type": "Item",
+      "system": "fgt"
+    },
+    {
+      "name": "class-skills",
+      "label": "F/GT Class Skills",
+      "type": "Item",
+      "system": "fgt"
+    },
+    {
+      "name": "master-essences",
+      "label": "F/GT Master Essences",
+      "type": "Item",
+      "system": "fgt"
+    },
+    {
+      "name": "command-spells",
+      "label": "F/GT Command Spells",
+      "type": "Item",
+      "system": "fgt"
+    },
+    {
+      "name": "servants",
+      "label": "F/GT Servants",
+      "type": "Actor",
+      "system": "fgt"
+    },
+    {
+      "name": "masters",
+      "label": "F/GT Masters",
+      "type": "Actor",
+      "system": "fgt"
+    },
+    {
+      "name": "rules",
+      "label": "F/GT Rules Reference",
+      "type": "JournalEntry",
+      "system": "fgt"
+    }
   ],
-
-  "relationships": { "requires": [], "recommends": [] },
-
+  "relationships": {
+    "requires": [],
+    "recommends": []
+  },
   "url": "https://github.com/zarex97/FGT_FVTT_v2",
   "manifest": "https://github.com/zarex97/FGT_FVTT_v2/releases/latest/download/system.json",
   "download": "https://github.com/zarex97/FGT_FVTT_v2/releases/latest/download/fgt.zip",
+  "license": "LICENSE",
   "readme": "README.md",
   "changelog": "CHANGELOG.md",
   "bugs": "https://github.com/zarex97/FGT_FVTT_v2/issues"

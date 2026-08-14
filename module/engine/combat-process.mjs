@@ -1,0 +1,251 @@
+/**
+ * @file The Combat Process as an explicit state machine.
+ * @see docs/12-combat-process.md
+ *
+ * Layer 3 (orchestration), but **pure**: `advance()` is a reducer over a
+ * serializable state. It never writes and never awaits — the caller drives it,
+ * prompts the humans, and feeds the answers back.
+ *
+ * That shape is not incidental. The reaction ladder spans up to five prompts
+ * across two clients, so the state has to survive being serialized into a chat
+ * message flag between rungs (Ch. 27). A reducer over plain data is the only
+ * version of this that can be resumed after a reconnect.
+ *
+ * The ladder is symmetric and two rungs deep on each side, terminating in 2.3:
+ *
+ *   evade succeeds → 2.1 AU lucky hit → 2.2 DU contest → 2.3
+ *   evade fails    → 2.4 DU lucky evasion → 2.5 AU contest → 2.3
+ */
+
+/** Every state the process can occupy. */
+export const STATES = Object.freeze([
+  "declare", "react", "evadeRoll",
+  "s21_luckyHit", "s22_duContest", "s23_acceptOrEscape",
+  "s24_luckyEvasion", "s25_auContest",
+  "damage", "noDamage", "injury", "facing", "counter", "done",
+]);
+
+/**
+ * The transition table, transcribed from Ch. 12 §12.3.
+ *
+ * Every Luck Check rung carries a `declined` edge, because Luck is a finite
+ * resource spent 1 per check whether or not it succeeds, and a player may
+ * rationally refuse. Declining is **not** the same as failing on the attacker's
+ * rungs — see the note below the table.
+ */
+export const TRANSITIONS = Object.freeze({
+  "react:nothing": "damage",
+  "react:block": "damage", // Block reduces damage at stage 14; it does not avoid it
+  "react:evade": "evadeRoll",
+
+  "evadeRoll:success": "s21_luckyHit",
+  "evadeRoll:fail": "s24_luckyEvasion",
+
+  "s21_luckyHit:fail": "noDamage",
+  "s21_luckyHit:success": "s22_duContest",
+  "s21_luckyHit:declined": "noDamage",
+
+  "s22_duContest:success": "noDamage",
+  "s22_duContest:fail": "s23_acceptOrEscape",
+  "s22_duContest:declined": "s23_acceptOrEscape",
+
+  "s24_luckyEvasion:success": "s25_auContest",
+  "s24_luckyEvasion:fail": "s23_acceptOrEscape",
+  "s24_luckyEvasion:declined": "s23_acceptOrEscape",
+
+  "s25_auContest:success": "s23_acceptOrEscape",
+  "s25_auContest:fail": "noDamage",
+  "s25_auContest:declined": "noDamage",
+
+  "s23_acceptOrEscape:accept": "damage",
+  "s23_acceptOrEscape:cs": "noDamage",
+
+  "damage:done": "injury",
+  "injury:done": "facing",
+  "noDamage:done": "facing",
+  "facing:done": "counter",
+  "counter:done": "done",
+  "declare:done": "react",
+});
+
+/** Which side answers each prompting state, and what it costs. */
+export const PROMPTS = Object.freeze({
+  react: { side: "defender", kind: "reaction", options: ["nothing", "block", "evade"] },
+  s21_luckyHit: { side: "attacker", kind: "luckCheck", check: "luckyHit", cost: 1 },
+  s22_duContest: { side: "defender", kind: "luckCheck", check: "counterContest", cost: 1 },
+  s23_acceptOrEscape: { side: "defender", kind: "acceptOrEscape", options: ["accept", "cs"] },
+  s24_luckyEvasion: { side: "defender", kind: "luckCheck", check: "luckyEvasion", cost: 1 },
+  s25_auContest: { side: "attacker", kind: "luckCheck", check: "counterContest", cost: 1 },
+});
+
+/**
+ * @typedef {object} ProcessState
+ * @property {string} state
+ * @property {string} attackerId
+ * @property {string} defenderId
+ * @property {object} attack
+ * @property {string|null} reaction what the defender chose at step 2
+ * @property {boolean} evaded
+ * @property {Array<{state: string, event: string, detail?: object}>} history
+ * @property {boolean} isAoE
+ */
+
+/**
+ * Start a Combat Process.
+ * @param {object} args
+ * @returns {ProcessState}
+ */
+export function begin({ attackerId, defenderId, attack, isAoE = false }) {
+  return {
+    state: "declare",
+    attackerId,
+    defenderId,
+    attack,
+    reaction: null,
+    evaded: false,
+    isAoE,
+    history: [],
+  };
+}
+
+/**
+ * Advance the machine by one event.
+ *
+ * @param {ProcessState} s
+ * @param {string} event e.g. `"evade"`, `"success"`, `"declined"`, `"done"`
+ * @param {object} [detail] recorded in the history for the audit trail
+ * @returns {ProcessState} a new state; `s` is not mutated
+ * @throws {RangeError} on an illegal transition — a bug, not a player action
+ */
+export function advance(s, event, detail = undefined) {
+  const key = `${s.state}:${event}`;
+  const next = TRANSITIONS[key];
+  if (!next) {
+    throw new RangeError(
+      `FGT | Illegal Combat Process transition "${key}". ` +
+        `Legal events from "${s.state}": ${legalEvents(s.state).join(", ") || "(none)"}.`,
+    );
+  }
+
+  const out = {
+    ...s,
+    state: next,
+    history: [...s.history, { state: s.state, event, ...(detail ? { detail } : {}) }],
+  };
+  if (s.state === "react") out.reaction = event;
+  if (s.state === "evadeRoll") out.evaded = event === "success";
+  return out;
+}
+
+/**
+ * Which events are legal from a state.
+ * @param {string} state
+ * @returns {string[]}
+ */
+export function legalEvents(state) {
+  return Object.keys(TRANSITIONS)
+    .filter((k) => k.startsWith(`${state}:`))
+    .map((k) => k.slice(state.length + 1));
+}
+
+/**
+ * Who, if anyone, must answer right now.
+ * @param {ProcessState} s
+ * @returns {{side: string, kind: string, unitId: string}|null}
+ */
+export function pendingPrompt(s) {
+  const p = PROMPTS[s.state];
+  if (!p) return null;
+  return { ...p, unitId: p.side === "attacker" ? s.attackerId : s.defenderId };
+}
+
+/**
+ * Did the attack connect?
+ *
+ * Read from the *history*, not from the final state, because by the time the
+ * process reaches `facing` both the hit and the miss paths have converged.
+ *
+ * @param {ProcessState} s
+ * @returns {boolean}
+ */
+export function didHit(s) {
+  return s.state === "damage" || s.history.some((h) => h.state === "damage");
+}
+
+/** @param {ProcessState} s @returns {boolean} */
+export function isComplete(s) {
+  return s.state === "done";
+}
+
+/**
+ * Can the defender counter-attack?
+ *
+ * > *"If the DU evaded OR survived, and the AU is within the DU's range."*
+ *
+ * `Accel` on the attacker forbids any reaction, which includes the counter.
+ *
+ * @param {ProcessState} s
+ * @param {object} args
+ * @param {boolean} args.defenderAlive
+ * @param {boolean} args.attackerInRange
+ * @param {boolean} [args.attackerHasAccel]
+ * @param {boolean} [args.defenderCanAct]
+ * @returns {boolean}
+ */
+export function canCounter(s, { defenderAlive, attackerInRange, attackerHasAccel = false, defenderCanAct = true }) {
+  if (attackerHasAccel) return false;
+  if (!defenderCanAct) return false;
+  if (!attackerInRange) return false;
+  return s.evaded || defenderAlive;
+}
+
+/**
+ * Whether step 5 applies. AoE attacks do not turn the defender.
+ * @param {ProcessState} s
+ * @returns {boolean}
+ */
+export function shouldUpdateFacing(s) {
+  return !s.isAoE;
+}
+
+/**
+ * Would the ladder collapse to a single prompt?
+ *
+ * Five sequential prompts across two clients is a lot of latency for one
+ * attack. When the defender has no Luck to spend, no Command Spells, and no
+ * automatic evasion, every rung past step 2 has exactly one possible outcome —
+ * so the whole ladder can be resolved in one round trip.
+ *
+ * @param {object} defender
+ * @returns {boolean}
+ * @see docs/12-combat-process.md §12.3, the RISK note
+ */
+export function laddersCollapse(defender) {
+  return (
+    (defender.luck?.value ?? 0) < 1 &&
+    (defender.commandSpells ?? 0) < 1 &&
+    !(defender.effects ?? []).includes("dodge") &&
+    !(defender.effects ?? []).includes("invuln")
+  );
+}
+
+/**
+ * Serialize for storage in a chat-message flag between rungs.
+ * @param {ProcessState} s
+ * @returns {string}
+ */
+export function serialize(s) {
+  return JSON.stringify(s);
+}
+
+/**
+ * @param {string} json
+ * @returns {ProcessState}
+ */
+export function deserialize(json) {
+  const s = JSON.parse(json);
+  if (!STATES.includes(s.state)) {
+    throw new RangeError(`FGT | Cannot resume Combat Process: unknown state "${s.state}".`);
+  }
+  return s;
+}
