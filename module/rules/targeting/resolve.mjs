@@ -12,7 +12,6 @@
  */
 
 import * as geo from "../../domain/geometry.mjs";
-import { NEUTRAL_FACTION } from "../../domain/enums.mjs";
 import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 
@@ -245,14 +244,6 @@ export function resolveTargets(spec, caster, board, placement = {}) {
         ? "No legal targets in the selected area."
         : `No legal targets: ${notable[0].name} is ${notable[0].reason}` +
           (notable.length > 1 ? ` (and ${notable.length - 1} more excluded).` : "."),
-    );
-  }
-
-  // Unaffiliated units are playable but not configured, and this is the only
-  // place a player is looking when it matters.
-  if (!caster.faction) {
-    warnings.push(
-      `${caster.name ?? "The attacker"} has no Faction set; unaffiliated units treat everyone as an enemy.`,
     );
   }
 
@@ -491,39 +482,16 @@ function resolveIncludeSelf(sel, spec) {
 }
 
 /**
- * The relation of `unit` to `caster`, exactly as D4.10 defines it.
- *
- * > ```
- * > if (a.id === b.id)                    return "self";
- * > if (b.factionId === NEUTRAL_FACTION)  return "neutral";
- * > if (a.factionId === b.factionId)      return "ally";
- * > return "enemy";
- * > ```
- *
- * The `null` faction is **not** the neutral faction. Conflating them made every
- * unit whose `factionId` had never been set neutral to everything, so a freshly
- * placed pair of Servants had no relation to each other and no ability could
- * name a legal target. Neutrality is a faction a unit is *in*
- * ({@link NEUTRAL_FACTION}, and Civilians by kind); `null` is *unaffiliated* —
- * nobody has assigned this unit yet — and falls through to `enemy`, so an
- * unconfigured board is playable and the omission shows up as a warning rather
- * than as an empty target list.
- *
- * `board.alliances` extends this: factions may be allied for a match without
- * being the same faction.
- *
  * @param {object} caster
  * @param {object} unit
  * @param {object} board
- * @returns {"self"|"ally"|"enemy"|"neutral"}
- * @see docs/04-units.md §4.10
+ * @returns {string}
  */
-export function relationOf(caster, unit, board) {
+function relationOf(caster, unit, board) {
   if (unit.id === caster.id) return "self";
-  if (unit.kind === "civilian" || unit.faction === NEUTRAL_FACTION) return "neutral";
-  if (caster.faction && unit.faction && caster.faction === unit.faction) return "ally";
-  if (board.alliances?.[caster.faction]?.includes(unit.faction)) return "ally";
-  return "enemy";
+  if (unit.kind === "civilian" || unit.faction === null) return "neutral";
+  const allied = board.alliances?.[caster.faction]?.includes(unit.faction) ?? unit.faction === caster.faction;
+  return allied ? "ally" : "enemy";
 }
 
 /**
@@ -547,6 +515,9 @@ function relationReason(relation, caster, unit, wanted) {
   if (relation === "ally") return `an ally by alliance; this ability targets ${wants}`;
   if (relation === "neutral" && unit.kind === "civilian") {
     return `a Civilian, and Civilians are neutral; this ability targets ${wants}`;
+  }
+  if (relation === "neutral" && !unit.faction) {
+    return `neutral because it has no Faction — assign one in the faction roster`;
   }
   if (relation === "neutral") return `neutral; this ability targets ${wants}`;
   return `${relation}; this ability targets ${wants}`;

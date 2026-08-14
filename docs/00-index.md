@@ -85,6 +85,8 @@ sufficient to implement the system without further reference to the original doc
 | 42 | [Terrain](42-terrain.md) | The 21 terrain types, the directional overlap matrix, and day/night as a per-panel property |
 | 43 | [Bounded Fields](43-bounded-fields.md) | The third area family: enclosed NP zones with their own membership, permeability and escape rules |
 | 44 | [Case Studies: The Expanded Roster](44-case-expanded-roster.md) | Everything the 17 added Servants demanded, grouped by mechanism |
+| 45 | [Implementation Status and Completion Plan](45-implementation-status.md) | What is built, what is stubbed, what is missing, and the order to finish it in |
+| 45 | [Case Studies: The Expanded Roster](44-implementation-status.md) | Everything the 17 added Servants demanded, grouped by mechanism |
 
 ## Appendices
 

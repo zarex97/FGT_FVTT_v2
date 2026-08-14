@@ -104,7 +104,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       case "targetUnit": return this.#unitPicker(options, hud, board);
       default:
         if (options[0]?.legal) return options[0].placement;
-        reportNothingLegal(options);
+        reportNothingLegal(options, board);
         return null;
     }
   }
@@ -205,7 +205,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   async #unitPicker(options, hud, board) {
     const selectable = options.filter((o) => o.legal);
     if (selectable.length === 0) {
-      reportNothingLegal(options);
+      reportNothingLegal(options, board);
       return null;
     }
     let focused = 0;
@@ -367,15 +367,29 @@ function announce(label, mode) {
 /**
  * Explain a targeting session that had nothing to offer.
  *
- * The resolver already produced a human-readable reason for every placement it
- * refused; the failure mode worth avoiding is throwing all of them away and
- * saying "no legal targets", which is what sends a player to the console. The
- * distinct reasons are shown, capped, because five placements usually fail for
- * one reason and repeating it five times is not more informative.
+ * Three answers, most specific first.
+ *
+ * The faction check comes first because it is the one cause that is not about
+ * this ability at all: relations resolve from `factionId`, a Unit with none is
+ * neutral to everyone, and a freshly imported world has none — so the honest
+ * answer is "go make a faction", not anything about range or geometry.
+ *
+ * Otherwise the resolver has already produced a human-readable reason for every
+ * placement it refused, and the failure worth avoiding is throwing all of them
+ * away and saying "no legal targets", which is what sends a player to the
+ * console. The distinct reasons are shown, capped: five placements usually fail
+ * for one reason, and repeating it five times is not more informative.
  *
  * @param {object[]} options the resolved placements, legal and not
+ * @param {object} board
  */
-function reportNothingLegal(options) {
+function reportNothingLegal(options, board) {
+  const others = (board?.units ?? []).filter((u) => u.kind !== "platform" && u.kind !== "structure");
+  if (others.length > 0 && others.every((u) => !u.factionId)) {
+    ui.notifications.warn(game.i18n.localize("FGT.Targeting.NoFactions"), { permanent: true });
+    return;
+  }
+
   const reasons = [...new Set(options.flatMap((o) => o.reasons ?? []))];
   if (reasons.length === 0) {
     ui.notifications.warn(game.i18n.localize("FGT.Targeting.NoTargets"));

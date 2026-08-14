@@ -452,7 +452,17 @@ function itemSystem(doc) {
     description: doc.description ?? "",
     source: doc.source ?? null,
     rank: doc.rank ?? null,
+    // The slug defaults to the content id, so `hasSkill(actor, "riding")`
+    // matches `class-riding` without every file having to repeat itself.
+    slug: doc.slug ?? String(doc.id ?? "").replace(/^class-/, ""),
     isNP: Boolean(doc.isNP),
+    isMode: Boolean(doc.isMode),
+    isAttackSkill: Boolean(doc.isAttackSkill),
+    isSpell: Boolean(doc.isSpell),
+    // A Servant's roster entry may switch a mode on at import -- Heracles's Mad
+    // Enhancement is on and cannot be turned off.
+    active: Boolean(doc.active),
+    cannotDeactivate: Boolean(doc.cannotDeactivate),
     categorizedAsNP: Boolean(doc.categorizedAsNP),
     npTags: doc.npTags ?? [],
     cooldown: { max: doc.cooldown ?? null, remaining: 0, regen: 0 },

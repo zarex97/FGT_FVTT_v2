@@ -14,7 +14,7 @@
 import * as scheduler from "./scheduler.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
-import { boardSnapshot } from "./board.mjs";
+import { currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 
@@ -153,12 +153,7 @@ function isScheduler() {
  * @returns {object}
  */
 function boardFor(combat) {
-  return boardSnapshot({
-    round: combat.round ?? 1,
-    tick: combat.system?.globalTurn ?? 0,
-    phase: combat.system?.phase ?? "day",
-    seed: combat.system?.globalTurn ?? 0,
-  });
+  return currentBoard({ round: combat.round ?? 1, tick: combat.system?.globalTurn ?? 0 });
 }
 
 /**

@@ -14,8 +14,9 @@
 
 import { computeDamage } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { unitSnapshot, boardSnapshot, unitFrom } from "./board.mjs";
+import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
 import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
+import { classifyAbility, targetSpecFor as specForAbility } from "../rules/ability-use.mjs";
 import { Rank } from "../domain/rank.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
@@ -73,7 +74,11 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // explicitly.
   if (combat?.started) {
     await budget.spend({ combat, unit: self, action: actionKind });
-    await applyBatch([I.markTurn(attackerId, { attacked: true, acted: true })], "attack:declared");
+    const isAttack = actionKind !== "skill";
+    await applyBatch(
+      [I.markTurn(attackerId, isAttack ? { attacked: true, acted: true } : { usedActiveSkill: true, acted: true })],
+      "attack:declared",
+    );
   }
 
   // One Combat Process per target. AoE fans out (Ch. 12 §12.10) and each
@@ -454,6 +459,11 @@ async function applyBatch(intents, source) {
   });
 }
 
+/** @returns {object} */
+function boardSnapshot() {
+  return currentBoard({ region: game.settings.get("fgt", "region") || null });
+}
+
 /**
  * A normal attack targets one unit inside the attack-Range shape; an ability
  * declares its own targeting.
@@ -462,12 +472,7 @@ async function applyBatch(intents, source) {
  * @returns {object}
  */
 function targetSpecFor(attacker, ability) {
-  if (ability?.system?.targeting) return ability.system.targeting;
-  return {
-    anchor: { kind: "targetUnit", range: attacker.system.range?.panels ?? 1 },
-    shape: { kind: "unit" },
-    selection: { relations: ["enemy"], chooser: "all", count: 1 },
-  };
+  return specForAbility(ability, attacker.system.range?.panels ?? 1);
 }
 
 /**
@@ -519,10 +524,12 @@ function rollOptions(attacker, defender, state) {
  * @returns {string}
  */
 function abilityKind(ability) {
-  if (ability.type === "noblePhantasm") return "np";
+  if (ability.type === "noblePhantasm" || ability.system?.isNP) return "np";
   if (ability.system?.isAttackSkill) return "attackSkill";
   if (ability.system?.isSpell) return "damageSpell";
-  return "normal";
+  // A skill that is not an attack still resolves through this flow when it has
+  // phases to run; the budget maps it to a move slot, not an attack slot.
+  return classifyAbility(ability).isAttack ? "normal" : "skill";
 }
 
 /**
@@ -536,7 +543,10 @@ function abilityKind(ability) {
  * @returns {string}
  */
 function budgetActionFor(kind) {
-  return { np: "np", damageSpell: "spell", attackSkill: "attack", normal: "attack" }[kind] ?? "attack";
+  // A non-attack skill draws from the MOVE pool (D18.2), so it must not fall
+  // through to the attack default -- that would cost the Servant its attack.
+  return { np: "np", damageSpell: "spell", attackSkill: "attack", normal: "attack", skill: "skill" }[kind]
+    ?? "attack";
 }
 
 /** Re-exported so a macro can roll a raw chance without importing the rules layer. */
