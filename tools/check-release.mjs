@@ -22,6 +22,8 @@ if (!version) {
 
 /** @type {string[]} */
 const problems = [];
+/** @type {string[]} */
+const notes = [];
 
 if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(version)) {
   problems.push(`"${version}" is not a semver version. Pass it without the leading "v".`);
@@ -29,34 +31,23 @@ if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(version)) {
 
 /* ── The changelog section the release notes are cut from ─────────────────── */
 
-const changelog = await readFile("CHANGELOG.md", "utf8");
+// Advisory only. `tools/release-notes.mjs` falls back to the Unreleased section
+// and then to the commit log, so a missing heading costs a tidier set of notes
+// and nothing else. It is not worth blocking a release over prose.
+
+const changelog = await readFile("CHANGELOG.md", "utf8").catch(() => "");
 const lines = changelog.split("\n");
 const heading = lines.findIndex((l) => l.startsWith(`## [${version}]`));
 
 if (heading === -1) {
   const unreleased = lines.some((l) => l.startsWith("## [Unreleased]"));
-  problems.push(
-    `CHANGELOG.md has no "## [${version}]" section.` +
-    (unreleased
-      ? ` There is an "## [Unreleased]" section — rename it to "## [${version}] — <date>".`
-      : " Add one before tagging."),
+  notes.push(
+    unreleased
+      ? `CHANGELOG.md has no "## [${version}]" section; the notes will use "## [Unreleased]".`
+      : `CHANGELOG.md has no "## [${version}]" section; the notes will come from the commit log.`,
   );
-} else {
-  // An empty section produces empty release notes, which the workflow will
-  // happily publish. Better to catch it here than to ship a blank release.
-  let end = lines.length;
-  for (let k = heading + 1; k < lines.length; k++) {
-    if (lines[k].startsWith("## ")) { end = k; break; }
-  }
-  const body = lines.slice(heading + 1, end).join("\n").replace(/^\s*---\s*$/gm, "").trim();
-  if (body.length === 0) problems.push(`The "## [${version}]" section is empty.`);
-
-  if (!changelog.includes(`\n[${version}]: `)) {
-    problems.push(
-      `CHANGELOG.md has no link definition for ${version}. ` +
-      `Add "[${version}]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v${version}" at the end.`,
-    );
-  }
+} else if (!changelog.includes(`\n[${version}]: `)) {
+  notes.push(`CHANGELOG.md has no link definition for ${version}.`);
 }
 
 /* ── The manifest ─────────────────────────────────────────────────────────── */
@@ -74,10 +65,12 @@ if (manifest.version !== version) {
 
 /* ── Report ───────────────────────────────────────────────────────────────── */
 
+for (const n of notes) console.warn(`note     ${n}`);
+
 if (problems.length > 0) {
   for (const p of problems) console.error(`error    ${p}`);
   console.error(`\nFGT | ${problems.length} problem(s) — fix and COMMIT before tagging v${version}.`);
   process.exit(1);
 }
 
-console.log(`FGT | Ready to tag v${version}.`);
+console.log(`FGT | Ready to tag v${version}.${notes.length ? ` (${notes.length} note(s) above.)` : ""}`);

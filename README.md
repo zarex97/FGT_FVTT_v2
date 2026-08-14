@@ -188,38 +188,27 @@ In Foundry: **Configuration and Setup → Game Systems → Install System**, pas
 
 ## Releasing
 
-Releases are cut by CI, from **the commit the tag points at**. That is the whole trap: the
-workflow re-reads the repository at the tagged commit, so anything it needs must be committed
-*before* tagging. Fixing a file afterwards changes nothing, and the retry fails identically.
-
-So the order is: prepare, check, commit, tag.
+Releases are cut by CI, from **the commit the tag points at** — the workflow re-reads the
+repository at that commit, so anything it needs must be committed *before* tagging.
 
 ```
-# 1. Rename the CHANGELOG's "## [Unreleased]" heading to "## [0.2.0] — <date>"
-#    and add the matching link definition at the end of the file.
-# 2. Stamp the manifest.
-npm run release:stamp -- 0.2.0 zarex97/FGT_FVTT_v2
-
-# 3. Confirm the release is taggable — this is what CI will check.
-npm run check:release -- 0.2.0
-
-# 4. Commit, THEN tag.
-git commit -am "Release 0.2.0"
-git push
-git tag v0.2.0
-git push origin v0.2.0
+npm run check:release -- 0.2.1     # optional preflight
+npm run release:stamp -- 0.2.1 zarex97/FGT_FVTT_v2
+git commit -am "Release 0.2.1" && git push
+git tag v0.2.1 && git push origin v0.2.1
 ```
 
-`check:release` verifies the three things that can only be fixed with a commit: the changelog
-has a section for this version, that section is not empty, and it has a link definition. The
-workflow extracts the release notes as its **first** step for the same reason — failing in
-twenty seconds beats failing after a full lint-and-test cycle.
+The release notes are best-effort and **never block the build**: `tools/release-notes.mjs` uses
+this version's changelog section if there is one, otherwise the `## [Unreleased]` section,
+otherwise the commit subjects since the previous tag. A missing heading costs tidier notes and
+nothing else. Lint, content validation and the test suite *do* gate the release — the workflow
+runs all three itself rather than trusting that CI passed on the same commit.
 
 If a tag has already been pushed at a bad commit, move it rather than bumping the version:
 
 ```
-git tag -d v0.2.0 && git push origin :refs/tags/v0.2.0   # delete, local and remote
-git tag v0.2.0 && git push origin v0.2.0                 # re-tag the fixed commit
+git tag -d v0.2.1 && git push origin :refs/tags/v0.2.1   # delete, local and remote
+git tag v0.2.1 && git push origin v0.2.1                 # re-tag the fixed commit
 ```
 
 Delete any hollow release GitHub left behind first, or the re-run will update it in place.

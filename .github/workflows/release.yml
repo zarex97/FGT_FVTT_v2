@@ -37,15 +37,8 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Releasing $VERSION"
 
-      # FIRST, because it is the one failure a tag cannot recover from: the
-      # workflow reads the changelog at the TAGGED COMMIT, so editing the file
-      # afterwards changes nothing and the retry fails identically. Failing here
-      # costs twenty seconds instead of a full lint-and-test cycle.
-      - name: Extract the release notes
-        run: node tools/release-notes.mjs "${{ steps.version.outputs.version }}" RELEASE_NOTES.md
-
       # A broken build must never reach a release, so the full check suite runs
-      # after it rather than trusting that CI already passed on this commit.
+      # first rather than trusting that CI already passed on this commit.
       - name: Lint, validate and test
         run: |
           npm run lint
@@ -62,6 +55,13 @@ jobs:
 
       - name: Verify the manifest still resolves after stamping
         run: node tools/check-manifest.mjs
+
+      # Best notes available: this version's changelog section, else the
+      # Unreleased one, else the commit log. It cannot fail the build — a
+      # missing heading is a documentation chore, not a broken release, and the
+      # workflow reads the file at the tagged commit where it cannot be fixed.
+      - name: Write the release notes
+        run: node tools/release-notes.mjs "${{ steps.version.outputs.version }}" RELEASE_NOTES.md
 
       - name: Assemble the package
         run: |

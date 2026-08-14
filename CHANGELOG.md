@@ -32,7 +32,7 @@ coincide by accident; the headings say which is which.
 
 ---
 
-## [Unreleased]
+## [0.2.1] — 2026-08-14
 
 ### Fixed
 
@@ -59,6 +59,15 @@ coincide by accident; the headings say which is which.
   range check that fell back to the caster's own Range failed rather than erroring.
 - **Riding's Active MOV Up applied at all times.** With `system.active` undefined, the collector's
   `?? true` fallback treated every mode as switched on.
+
+### Changed
+
+- **The changelog no longer gates a release.** `tools/release-notes.mjs` used to exit non-zero
+  when it found no `## [x.y.z]` section, which made a heading a release blocker: the workflow
+  reads the file at the tagged commit, a tag cannot be edited, so the fix required deleting and
+  re-pushing the tag. It now falls back to the `## [Unreleased]` section, then to the commit
+  subjects since the previous tag, then to a one-line placeholder — and never fails. The build
+  still fails on lint, content and test failures; it no longer fails on prose.
 
 ---
 
@@ -603,5 +612,6 @@ registry), D (twelve Servant data sheets), E (event reference).
 
 ---
 
+[0.2.1]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.1
 [0.2.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.0
 [0.1.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.1.0
