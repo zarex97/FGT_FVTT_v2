@@ -1,0 +1,85 @@
+<div class="fgt-card">
+  <header class="fgt-card__header">
+    <span class="fgt-card__attacker">{{attackerName}}</span>
+    <span class="fgt-card__arrow">⚔</span>
+    <span class="fgt-card__defender">{{defenderName}}</span>
+    <span class="fgt-card__ability">
+      {{abilityName}}{{#if abilityRank}} ({{abilityRank}}){{/if}}
+    </span>
+  </header>
+
+  {{#if result}}
+    <section class="fgt-card__result">
+      <div class="fgt-card__total">{{result.summary.total}}</div>
+      {{#if result.summary.hasSplit}}
+        <div class="fgt-card__split">
+          {{result.summary.magical}} magical · {{result.summary.physical}} physical
+        </div>
+      {{/if}}
+      {{#if result.summary.negatedBy}}
+        <div class="fgt-card__negated">Negated by {{result.summary.negatedBy}}</div>
+      {{/if}}
+      {{#if result.summary.injury}}
+        <div class="fgt-card__flag">Injury Roll required</div>
+      {{/if}}
+      {{#if result.summary.shieldAbsorbed}}
+        <div class="fgt-card__flag">Shield absorbed {{result.summary.shieldAbsorbed}}</div>
+      {{/if}}
+    </section>
+
+    <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-breakdown">
+      Damage breakdown
+    </button>
+    <table class="fgt-breakdown" id="fgt-breakdown" hidden>
+      {{#each result.rows as |row|}}
+        <tr class="fgt-breakdown__row{{#if row.inert}} fgt-breakdown__row--inert{{/if}}">
+          <td class="fgt-breakdown__index">{{row.index}}</td>
+          <td class="fgt-breakdown__label">
+            {{row.label}}
+            {{#each row.contributors as |c|}}
+              <div class="fgt-breakdown__contributor">
+                <span>{{c.source}}</span>
+                {{#if c.note}}<span class="fgt-breakdown__note">{{c.note}}</span>{{/if}}
+                <span class="fgt-breakdown__value">{{c.value}}</span>
+              </div>
+            {{/each}}
+            {{#each row.notes as |n|}}
+              <div class="fgt-breakdown__blocked">✕ {{n.text}}</div>
+            {{/each}}
+          </td>
+          <td class="fgt-breakdown__delta">{{row.delta}}</td>
+          <td class="fgt-breakdown__running">{{row.running}}</td>
+        </tr>
+      {{/each}}
+    </table>
+  {{/if}}
+
+  {{#if prompt}}
+    <section class="fgt-card__prompt{{#unless prompt.isMine}} fgt-card__prompt--other{{/unless}}">
+      <p class="fgt-card__prompt-label">{{prompt.label}}</p>
+      {{#if prompt.isMine}}
+        <div class="fgt-card__buttons">
+          {{#each prompt.options as |option|}}
+            <button type="button" data-fgt-event="{{option.event}}" {{#if option.disabled}}disabled{{/if}}>
+              {{option.label}}
+              {{#if option.hint}}<small>{{option.hint}}</small>{{/if}}
+            </button>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="fgt-card__waiting">Waiting for the other player…</p>
+      {{/if}}
+    </section>
+  {{/if}}
+
+  {{#if history.length}}
+    <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-ladder">
+      Ladder ({{history.length}})
+    </button>
+    <ol class="fgt-ladder" id="fgt-ladder" hidden>
+      {{#each history as |h|}}
+        <li><span class="fgt-ladder__state">{{h.state}}</span> → {{h.event}}</li>
+      {{/each}}
+    </ol>
+  {{/if}}
+</div>

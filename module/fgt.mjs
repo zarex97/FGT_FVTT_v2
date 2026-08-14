@@ -8,6 +8,8 @@ import { registerSettings } from "./settings.mjs";
 import * as data from "./data/index.mjs";
 import * as documents from "./documents/index.mjs";
 import { registerSheets } from "./apps/index.mjs";
+import { activateChatListeners } from "./apps/chat/cards.mjs";
+import { FGTSocket } from "./net/socket.mjs";
 
 import { Rank } from "./domain/rank.mjs";
 import { parseTick, resolveTicks } from "./domain/tick.mjs";
@@ -16,6 +18,7 @@ import { computeDamage } from "./rules/damage/pipeline.mjs";
 import { resolveTargets } from "./rules/targeting/resolve.mjs";
 import { test as evaluatePredicate } from "./rules/predicate.mjs";
 import { snapshotUnit, snapshotBoard } from "./rules/snapshot.mjs";
+import { explainDamage } from "./rules/explain.mjs";
 import * as intents from "./engine/intents.mjs";
 import * as combatProcess from "./engine/combat-process.mjs";
 import * as scheduler from "./engine/scheduler.mjs";
@@ -55,6 +58,12 @@ Hooks.once("init", () => {
   registerSheets();
   registerSettings();
 
+  // Mandatory, and it requires "socket": true in the manifest plus a world
+  // restart. Without it the server never registers the namespace and every
+  // emit silently does nothing.
+  FGTSocket.initialize();
+  activateChatListeners();
+
   // Let compendium browsers filter without loading every document.
   CONFIG.Actor.compendiumIndexFields.push("system.servantClasses", "system.region");
   CONFIG.Item.compendiumIndexFields.push("system.rank", "system.isNP");
@@ -85,7 +94,9 @@ function buildPublicAPI() {
     Rank, parseTick, resolveTicks, geometry,
     // Rules (L2) — pure, no writes
     computeDamage, resolveTargets, evaluatePredicate, snapshotUnit, snapshotBoard,
+    explainDamage,
     // Engine (L3)
     intents, combatProcess, scheduler,
+    socket: FGTSocket,
   };
 }

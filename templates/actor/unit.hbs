@@ -46,8 +46,9 @@
     <ul class="fgt-list">
       {{#each abilities as |ability|}}
         <li class="fgt-list__row" data-item-id="{{ability.id}}">
-          <span class="fgt-list__name">{{ability.name}}</span>
+          <button type="button" class="fgt-list__name" data-action="useAbility">{{ability.name}}</button>
           {{#if ability.system.rank}}<span class="fgt-list__rank">{{ability.system.rank}}</span>{{/if}}
+          <button type="button" class="fgt-list__edit" data-action="editAbility" data-tooltip="{{localize 'FGT.Sheet.Edit'}}">✎</button>
         </li>
       {{else}}
         <li class="fgt-list__empty">{{localize "FGT.Sheet.NoAbilities"}}</li>
@@ -59,8 +60,9 @@
       <ul class="fgt-list">
         {{#each noblePhantasms as |np|}}
           <li class="fgt-list__row fgt-list__row--np" data-item-id="{{np.id}}">
-            <span class="fgt-list__name">{{np.name}}</span>
+            <button type="button" class="fgt-list__name" data-action="useAbility">{{np.name}}</button>
             {{#if np.system.rank}}<span class="fgt-list__rank">{{np.system.rank}}</span>{{/if}}
+            <button type="button" class="fgt-list__edit" data-action="editAbility" data-tooltip="{{localize 'FGT.Sheet.Edit'}}">✎</button>
           </li>
         {{/each}}
       </ul>
