@@ -1,0 +1,134 @@
+import { describe, it, expect } from "vitest";
+import {
+  evade, luckCheck, tableFor, resolveCheck, chance, applicationChance,
+  UNFAVOURABLE_PENALTY,
+} from "../../module/rules/checks.mjs";
+
+describe("the favourable/unfavourable split is symmetric between Evade and Luck", () => {
+  it("penalises the unfavourable table by 4 in both cases — the Q40 correction", () => {
+    expect(UNFAVOURABLE_PENALTY).toBe(4);
+    expect(resolveCheck({ roll: 12, target: 14, table: "unfavourable" }).total).toBe(16);
+    expect(luckCheck({ roll: 12, luck: 14, opposingLuck: 20 }).total).toBe(16);
+    expect(evade({ roll: 12, agility: 14, forceUnfavourable: true }).total).toBe(16);
+  });
+
+  it("makes contesting a luckier opponent actually cost something", () => {
+    // 0.2.0 had luckCheck- identical to luckCheck, which made this free.
+    const vsLuckier = luckCheck({ roll: 12, luck: 14, opposingLuck: 20 });
+    const vsWorse = luckCheck({ roll: 12, luck: 14, opposingLuck: 8 });
+    expect(vsLuckier.success).toBe(false);
+    expect(vsWorse.success).toBe(true);
+  });
+});
+
+describe("tableFor", () => {
+  it("picks favourable when your stat meets or beats the opponent's", () => {
+    expect(tableFor(14, 14)).toBe("favourable");
+    expect(tableFor(15, 14)).toBe("favourable");
+    expect(tableFor(13, 14)).toBe("unfavourable");
+  });
+
+  it("uses favourable for an uncontested check", () => {
+    expect(tableFor(10, null)).toBe("favourable");
+  });
+
+  it("honours Luck Boost and Luck Loss, which are live effects again", () => {
+    expect(tableFor(5, 20, { boost: true })).toBe("favourable");
+    expect(tableFor(20, 5, { loss: true })).toBe("unfavourable");
+  });
+
+  it("lets the debuff win when a unit somehow has both", () => {
+    expect(tableFor(20, 5, { boost: true, loss: true })).toBe("unfavourable");
+  });
+});
+
+describe("success is rolling at or under the target", () => {
+  it("treats an exact match as a success", () => {
+    expect(resolveCheck({ roll: 14, target: 14, table: "favourable" }).success).toBe(true);
+    expect(resolveCheck({ roll: 15, target: 14, table: "favourable" }).success).toBe(false);
+  });
+
+  it("treats positive modifiers as making the check harder", () => {
+    const r = evade({
+      roll: 10, agility: 14,
+      modifiers: [{ source: "attack is an NP", value: 3 }, { source: "from behind", value: 2 }],
+    });
+    expect(r.total).toBe(15);
+    expect(r.success).toBe(false);
+  });
+
+  it("records every modifier for the audit trail", () => {
+    const r = luckCheck({
+      roll: 5, luck: 12, opposingLuck: 20,
+      modifiers: [{ source: "LUC Dwn", value: 2 }],
+    });
+    expect(r.modifiers).toEqual([
+      { source: "unfavourable table", value: 4 },
+      { source: "LUC Dwn", value: 2 },
+    ]);
+    expect(r.total).toBe(11);
+  });
+});
+
+describe("Dodge and Aim", () => {
+  it("Dodge succeeds without rolling", () => {
+    const r = evade({ roll: 20, agility: 1, hasDodge: true });
+    expect(r.success).toBe(true);
+    expect(r.automatic).toBe(true);
+  });
+
+  it("Aim beats Dodge and forces the roll", () => {
+    const r = evade({ roll: 20, agility: 1, hasDodge: true, attackHasAim: true });
+    expect(r.success).toBe(false);
+    expect(r.automatic).toBe(false);
+  });
+});
+
+describe("Mad Enhancement clause 6", () => {
+  it("forces Evade− regardless of the stat comparison", () => {
+    expect(evade({ roll: 12, agility: 14 }).success).toBe(true);
+    expect(evade({ roll: 12, agility: 14, forceUnfavourable: true }).success).toBe(false);
+  });
+});
+
+describe("chance", () => {
+  it("is strictly under the percentage, so 0% never fires and 100% always does", () => {
+    expect(chance(1, 0)).toBe(false);
+    expect(chance(100, 100)).toBe(true);
+    expect(chance(1, 100)).toBe(true);
+  });
+
+  it("gives exactly N successes in 100 for an N% chance", () => {
+    for (const pct of [1, 25, 50, 99]) {
+      const hits = Array.from({ length: 100 }, (_, k) => chance(k + 1, pct)).filter(Boolean).length;
+      expect(hits, `${pct}%`).toBe(pct);
+    }
+  });
+
+  it("clamps a stated chance above 100 rather than needing a special case", () => {
+    // Proto Gil's Enki states a 500% Drowning chance.
+    expect(chance(100, 500)).toBe(true);
+    expect(chance(1, 500)).toBe(true);
+  });
+});
+
+describe("applicationChance", () => {
+  it("subtracts resistance from the stated chance", () => {
+    expect(applicationChance({ base: 50, resist: 20 }).percent).toBe(30);
+    expect(applicationChance({ base: 50, inflictBonus: 10, resist: 20 }).percent).toBe(40);
+  });
+
+  it("blocks entirely on immunity", () => {
+    const r = applicationChance({ base: 50, immune: true });
+    expect(r.blocked).toBe(true);
+    expect(r.percent).toBe(0);
+  });
+
+  it("separates immunity from resistance, as Enkidu requires", () => {
+    // Enkidu bypasses Debuff Immune against Divine units, but Debuff Resist
+    // still reduces the chance.
+    const r = applicationChance({ base: 50, resist: 20, immune: true, bypassesImmunity: true });
+    expect(r.blocked).toBe(false);
+    expect(r.percent).toBe(30);
+  });
+});
