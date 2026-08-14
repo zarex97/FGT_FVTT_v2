@@ -54,6 +54,25 @@ function onPreMove(document, movement) {
   if (!actor) return true;
 
   const unit = unitSnapshot(actor, document);
+
+  // A unit may only move on its own faction's turn. The GM is exempt: placing
+  // and correcting the board is not taking a turn, and a system that fights the
+  // GM during setup is a system they switch off.
+  //
+  // Said out loud, with the current faction named. "Nothing happens when I drag
+  // the token" is the least debuggable failure this hook can produce, and it is
+  // the one it produced most.
+  if (!game.user.isGM) {
+    const acting = combat.actingFactionId ?? null;
+    if (unit.factionId && acting && unit.factionId !== acting) {
+      ui.notifications.warn(game.i18n.format("FGT.Movement.NotYourTurn", {
+        name: actor.name,
+        faction: combat.combatant?.name ?? acting,
+      }));
+      return false;
+    }
+  }
+
   const board = boardSnapshot(combat);
   const hasRiding = hasSkill(actor, "riding");
 

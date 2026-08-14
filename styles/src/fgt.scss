@@ -260,7 +260,18 @@
   }
 
   &__faction { font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
-  &__clock { font-size: 0.75rem; opacity: 0.75; }
+
+  &__clock {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+
+  // The ◈ tick, which is a different number from the turn position and must not
+  // read as part of it.
+  &__tick { font-variant-numeric: tabular-nums; opacity: 0.8; }
 
   &__pools { display: flex; flex-direction: column; gap: 0.2rem; }
 
@@ -592,4 +603,57 @@
   }
 
   &__footer { display: flex; justify-content: flex-start; }
+}
+
+// ── The targeting confirmation ──────────────────────────────────────────────
+// Two lists in one window: what will be hit, and what was in the area and will
+// not be. The second is the reason the window exists, so it is legible rather
+// than tucked away — but dimmed, because it is context and not a choice.
+
+.fgt-review {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+
+  &__meta { margin: 0; font-size: 0.75rem; opacity: 0.7; }
+
+  &__head {
+    margin: 0.25rem 0 0;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--color-border-light-tertiary, #7a7971);
+    border-radius: 4px;
+
+    &--out { opacity: 0.7; }
+  }
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.2rem 0.4rem;
+    border-bottom: 1px solid rgb(128 128 128 / 20%);
+
+    &:last-child { border-bottom: none; }
+
+    label { display: flex; align-items: center; gap: 0.35rem; flex: 1 1 auto; cursor: pointer; }
+
+    // Never colour alone: an excluded row is struck through as well as dimmed.
+    &--out .fgt-review__name { text-decoration: line-through; }
+  }
+
+  &__name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__damage { font-variant-numeric: tabular-nums; font-weight: 600; }
+  &__band { font-size: 0.7rem; opacity: 0.65; }
+  &__why { flex: 1 1 100%; padding-left: 0.9rem; font-size: 0.75rem; font-style: italic; opacity: 0.85; }
+  &__warning { margin: 0; font-size: 0.78rem; }
 }

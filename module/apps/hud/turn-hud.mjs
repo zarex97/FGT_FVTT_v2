@@ -14,7 +14,7 @@
 
 import * as budget from "../../engine/budget.mjs";
 import { remainingMovement, effectiveMov, segmentCheck } from "../../rules/movement.mjs";
-import { unitSnapshot } from "../../engine/board.mjs";
+import { unitSnapshot, factionOfUser, faction as factionById } from "../../engine/board.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -75,8 +75,16 @@ export class TurnHUD extends HandlebarsApplicationMixin(ApplicationV2) {
 
     return {
       factionName: factionLabel(combat, factionId),
+      factionColor: factionById(factionId)?.color ?? null,
       round: combat?.round ?? 1,
-      turn: (combat?.system?.globalTurn ?? 0) % turnsPerRound() + 1,
+      // Which faction's turn this is within the Round -- NOT the ◈ tick. The
+      // two were the same field, so a two-faction match on Round 1 announced
+      // "Turn 2 of 3" using the monotonic tick and the ◈ constant.
+      turn: combat?.turnPosition?.position ?? 0,
+      turnsThisRound: combat?.turnPosition?.total ?? 0,
+      // The ◈ tick, shown separately because every duration in the game is
+      // quoted in it and a player reading "Burn 3◈" needs to see it somewhere.
+      tick: combat?.system?.globalTurn ?? 0,
       turnsPerRound: turnsPerRound(),
       rows: budget.rows(combat, factionId),
       units: units.map((u) => ({
@@ -176,8 +184,7 @@ function hasRiding(unit) {
  * @returns {string|null}
  */
 function actingFaction(combat) {
-  const c = combat?.combatant;
-  return c?.system?.factionId ?? c?.id ?? null;
+  return combat?.actingFactionId ?? null;
 }
 
 /**
@@ -205,7 +212,14 @@ function factionUnits(factionId) {
  * @returns {boolean}
  */
 function controlsFaction(factionId) {
+  if (!factionId) return false;
   if (game.user.isGM) return true;
+  // The roster is where the GM assigned the player to the faction, so it is the
+  // answer. Owning a unit of that faction still counts -- a player handed a
+  // single Servant without a roster entry can still take its turn -- but it is
+  // the fallback, not the test: checking only ownership meant a player properly
+  // assigned to a faction was not recognised as controlling it.
+  if (factionOfUser(game.user.id)?.id === factionId) return true;
   return game.actors.some(
     (a) => a.system?.factionId === factionId && a.testUserPermission(game.user, "OWNER"),
   );
