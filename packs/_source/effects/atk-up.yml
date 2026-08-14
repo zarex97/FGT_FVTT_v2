@@ -1,0 +1,17 @@
+# Appendix A §A.1
+# "Damage dealt +X%. Reduced magnitude for NP."
+schema: 1
+id: atkUp
+name: "Atk Up"
+description: "All damage dealt is increased by X%; a reduced magnitude applies to Noble Phantasms."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@npMagnitude"

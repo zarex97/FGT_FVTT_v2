@@ -1,0 +1,14 @@
+# Appendix A §A.10
+schema: 1
+id: npSeal
+name: "NP Seal"
+description: "Cannot use Noble Phantasms. Does not affect passive NPs unless stated, and does not stop NPs that fire on a timer."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: Suppress
+    scope: abilities
+    predicate: ["self:ability:isNP"]

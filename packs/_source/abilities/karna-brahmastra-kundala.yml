@@ -1,0 +1,33 @@
+# Karna, docs/13-damage-pipeline.md §13.6 -- this is worked example 2.
+schema: 1
+id: karna-brahmastra-kundala
+name: "Brahmastra Kundala"
+isNP: true
+rank: "A+"
+npTags: [antiArmy]
+cooldown: "7◈+⅓◈"
+description: |
+  Base Attack (STR) and Base Attack (MAG) combined is used. Hits a 7x7 panel area within
+  Range for 4x damage plus 100. Karna is not affected by this NP if he is within the NP area.
+targeting:
+  anchor: { kind: withinRange, range: 5, metric: chebyshev }
+  shape: { kind: rect, w: 7, h: 7 }
+  # Note 11 plus the sheet's explicit clause: the caster is excluded.
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage:
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 1 }
+  multiplier: 4
+  flatBonus: 100
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: burn }
+        duration: "3◈"

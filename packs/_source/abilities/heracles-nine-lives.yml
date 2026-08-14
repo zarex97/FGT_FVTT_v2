@@ -1,0 +1,26 @@
+# Heracles, docs/31-case-heracles.md
+schema: 1
+id: heracles-nine-lives
+name: "Nine Lives"
+isNP: true
+rank: "A+"
+npTags: [antiUnit]
+cooldown: "7◈"
+description: "Base Attack (STR) is used. Deals 4x damage plus 100. Then inflicts Def Dwn for 1◈ Turns, all damage taken is increased by 30%."
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  base: { sources: [{ unit: self, component: str, factor: 1 }] }
+  multiplier: 4
+  flatBonus: 100
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: defUp, magnitude: -30 }
+        duration: "1◈"

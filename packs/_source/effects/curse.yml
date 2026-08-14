@@ -1,0 +1,13 @@
+# Appendix A §A.12
+# "Stage N deals 25 x N Curse damage at the end of the turn, every 1/3 fixed.
+#  Reapplication adds a stage."
+schema: 1
+id: curse
+name: "Curse"
+description: "Deals 25 x stage Curse damage at the end of the affected unit's turn."
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: stage
+baseChance: 100
+periodic: { when: turnEnd, formula: "25 * @stage", bypassModifiers: true }

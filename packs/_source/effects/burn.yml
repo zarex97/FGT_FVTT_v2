@@ -1,0 +1,20 @@
+# Appendix A §A.12
+# "Lasts 2 fixed by default. BA(STR & MAG) -30. 50 Burn damage at the end of every Round."
+schema: 1
+id: burn
+name: "Burn"
+description: "Reduces both Base Attacks by 30 and deals 50 Burn damage at the end of every Round."
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+defaultDuration: "2◈"
+periodic: { when: roundEnd, formula: "50", bypassModifiers: true }
+rules:
+  - key: StatDelta
+    stat: baseAttack.str
+    value: -30
+  - key: StatDelta
+    stat: baseAttack.mag
+    value: -30

@@ -1,0 +1,38 @@
+# packs/_source/servants/heracles.yml
+# Full conversion: docs/31-case-heracles.md · data sheet: docs/D-servant-data-sheets.md §D.13
+schema: 1
+id: heracles
+name: Heracles
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Heracles
+servantClasses: [berserker]
+alignment: { order: chaotic, morality: mad }
+region: [greece]
+attributes: [male, servant, earth, humanoid, divine]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+# END A -> 1500 from baseHealthByEnd; stated here so the validator can
+# cross-check the table against the sheet.
+parameters: { str: "A+", end: A, agi: A, mag: B, luc: A }
+baseHealth: 1500
+mov: 6
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 160, mag: 175 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: divinity, rank: A }
+  - { ref: class-battle-continuation, rank: A }
+  - { ref: heracles-nine-lives }
+
+notes: |
+  Mad Enhancement B is PERMANENT and cannot be deactivated (cannotDeactivate), which is what
+  makes Bravery's suppression clause interesting: an ability disabled by its owner's own
+  other ability.
+
+  Four revival mechanisms with an explicit priority chain -- God Hand, Battle Continuation,
+  Indomitable's Guts, and Quetzalcoatl-style external Guts -- resolved in Ch. 31.
