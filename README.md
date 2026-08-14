@@ -4,7 +4,8 @@ A ground-up Foundry VTT **system** implementing *F/GT: Fate Grail Tactics*, a gr
 tactical wargame originally played in Tabletop Simulator, with **full rules automation**.
 
 This repository contains the **design documentation** and the **system implementation**. The
-rules engine is complete and tested; the UI that drives it is the next phase.
+rules engine is complete and tested, and attacks resolve end to end through the interface; the
+canvas targeting preview and the turn HUD are the next phase.
 
 **Current documentation version: `0.2.1`.** See [`CHANGELOG.md`](CHANGELOG.md) for what changed
 and why — including corrections in `0.2.0` and `0.2.1` that invalidate anything built against an
@@ -85,7 +86,6 @@ means building a **rules engine**, not a character sheet.
 
 ```
 FGT_FVTT_v2/
-FGT_FVTT_v2/
 ├── docs/                  ← the design specification, 44 chapters + 5 appendices
 ├── CHANGELOG.md           ← every change to docs and code, with superseded readings
 ├── system.json            ← manifest
@@ -96,10 +96,11 @@ FGT_FVTT_v2/
 │   ├── engine/            ← L3: intents, effect applier, combat process, scheduler
 │   ├── data/              ← TypeDataModel schemas
 │   ├── documents/         ← Document subclasses
-│   └── apps/              ← ApplicationV2 sheets
+│   ├── net/               ← the GM proxy socket and its typed operations
+│   └── apps/              ← ApplicationV2 sheets and chat cards
 ├── packs/_source/         ← content as YAML; the packs themselves are build artefacts
 ├── tools/                 ← pack build, content validator, release stamping
-├── test/                  ← 300 unit and golden tests, no Foundry required
+├── test/                  ← 324 unit and golden tests, no Foundry required
 ├── templates/  styles/  lang/
 ```
 
