@@ -26,6 +26,7 @@ import * as combatProcess from "./engine/combat-process.mjs";
 import * as scheduler from "./engine/scheduler.mjs";
 import { Scheduler } from "./engine/scheduler-hooks.mjs";
 import * as budget from "./engine/budget.mjs";
+import { Movement } from "./engine/movement-hooks.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 
@@ -99,6 +100,8 @@ Hooks.once("setup", async () => {
 Hooks.once("ready", () => {
   // GM client only; a no-op everywhere else.
   Scheduler.attach();
+  // Every client validates its own movement; the write is proxied as usual.
+  Movement.attach();
   // Everyone sees the budget; only the acting faction can spend it.
   TurnHUD.attach();
   fgt.api = buildPublicAPI();

@@ -29,7 +29,9 @@
             <span class="fgt-hud__badge{{#if unit.moved}} fgt-hud__badge--done{{/if}}">M</span>
             <span class="fgt-hud__badge{{#if unit.attacked}} fgt-hud__badge--done{{/if}}">A</span>
           </span>
-          <span class="fgt-hud__unit-mov">{{unit.movementLeft}} / {{unit.mov}}</span>
+          <span class="fgt-hud__unit-mov" title="{{unit.moveBlocked}}">
+            {{unit.movementLeft}} / {{unit.mov}}
+          </span>
         </div>
       {{/each}}
     </section>

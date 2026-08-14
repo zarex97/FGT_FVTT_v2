@@ -87,6 +87,16 @@ that the engine collected and then ignored. Every entry here closes one of those
 - Clicking an ability on a sheet now opens the targeting session instead of reading
   `game.user.targets`, which carries no shape, band or relation information. Foundry's target set
   remains the fallback when no canvas is available.
+- **`module/rules/movement.mjs`** — the seven legality clauses, reachability over the Manhattan
+  diamond (*"Units are not allowed to Move diagonally"*), and Riding's two segments. Clause 3
+  says **through**, not *onto*: an allied panel is passable but not stoppable, and an enemy
+  panel is neither, so passability and stoppability are separate predicates. `Slow` halves MOV
+  rounding down rather than doubling step cost, per its text.
+- **`module/engine/movement-hooks.mjs`** — `preMoveToken` rejects an illegal drag before
+  anything is written, and `moveToken` records what it cost and spends the pool slot. The veto
+  lives on the hook rather than on a movement cost function because a cost function can be
+  bypassed by a direct `update()`. Forced movement — knockback, Gather — is displacement and is
+  exempt from both.
 - Declaring an attack now spends the budget and marks the unit, and the start of each faction's
   turn resets both. A non-damaging Noble Phantasm costs the Servant's attack, as the source
   states explicitly.
