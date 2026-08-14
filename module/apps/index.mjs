@@ -8,6 +8,7 @@
  */
 
 import { classifyAbility } from "../rules/ability-use.mjs";
+import * as board from "../engine/board.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2, ItemSheetV2 } = foundry.applications.sheets;
@@ -130,6 +131,10 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // opens an enemy targeting session for all three.
       abilities: this.document.items.filter((i) => i.type === "ability").map(describe),
       noblePhantasms: this.document.items.filter((i) => i.type === "noblePhantasm").map(describe),
+      // The roster is a GM-managed list, not free text: a typo'd faction makes
+      // two units enemies with nothing on screen to explain why.
+      factionChoices: board.choices(),
+      hasFactions: Object.keys(board.choices()).length > 0,
       hasFaction: Boolean(this.document.system.factionId),
       isEditable: this.isEditable,
     };
@@ -190,22 +195,19 @@ function describe(item) {
  * @returns {Promise<object|null>}
  */
 async function pickPlacement(actor, ability) {
-  const [{ pickTarget }, { targetSpecForAttack }, { snapshotUnit, snapshotBoard }, preview] =
+  const [{ pickTarget }, { targetSpecForAttack }, { snapshotUnit }, { currentBoard }, preview] =
     await Promise.all([
       import("./canvas/targeting-layer.mjs"),
       import("../engine/attack.mjs"),
       import("../rules/snapshot.mjs"),
+      import("../engine/board.mjs"),
       import("../rules/preview.mjs"),
     ]);
 
   if (!canvas?.ready || !canvas.fgtTargeting) return legacyPlacement();
 
   const caster = snapshotUnit(actor);
-  const board = snapshotBoard({
-    scene: canvas.scene,
-    actors: canvas.tokens.placeables.map((t) => ({ actor: t.actor, token: t.document })),
-    settings: { boardSize: game.settings.get("fgt", "boardSize") },
-  });
+  const board = currentBoard();
 
   const spec = targetSpecForAttack(actor, ability);
   const isNP = ability?.type === "noblePhantasm";

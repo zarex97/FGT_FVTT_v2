@@ -456,3 +456,74 @@
 
   .fgt-list__row--on & { opacity: 1; }
 }
+
+// ── Faction roster ──────────────────────────────────────────────────────────
+
+.fgt-factions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.5rem;
+
+  &__intro { margin: 0; font-size: 0.8rem; line-height: 1.4; opacity: 0.85; }
+  &__empty { margin: 0; font-style: italic; opacity: 0.7; }
+
+  &__row {
+    border: 1px solid var(--color-border-light-tertiary, #7a7971);
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem 0.6rem;
+
+    legend {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      padding: 0 0.3rem;
+    }
+  }
+
+  &__swatch {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 2px;
+    border: 1px solid rgb(0 0 0 / 35%);
+  }
+
+  &__id { font-size: 0.7rem; opacity: 0.55; }
+
+  &__fields {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 0.5rem;
+    align-items: end;
+
+    label { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.75rem; }
+  }
+
+  &__allies {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  &__allies-label { opacity: 0.75; }
+
+  &__ally {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    white-space: nowrap;
+  }
+
+  &__delete {
+    margin-top: 0.5rem;
+    width: auto;
+    font-size: 0.75rem;
+  }
+
+  &__footer { display: flex; justify-content: flex-start; }
+}
