@@ -110,9 +110,27 @@ FGT_FVTT_v2/
 | Phase | State |
 |---|---|
 | Design documentation | **`0.2.1`** — 44 chapters + 5 appendices, see `docs/` |
-| System skeleton | Not started |
-| Rules engine | Not started |
+| System skeleton | **`system.json`, tooling, CI config** — done |
+| L1 domain (pure) | **Done** — ranks, ◈ ticks, geometry, rank tables |
+| L2 rules (pure) | **Damage pipeline, targeting, checks, predicates** — done |
+| L3 engine (orchestration) | Not started |
+| Foundry layer (data models, documents, sheets) | Not started |
 | Content (29 reference Servants) | Specified in Part IV and Appendix D, not yet authored |
+
+**179 tests passing**, covering everything built so far. They pin behaviour to the
+*documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
+character for character, all six Mad Enhancement sheets are checked against the rank table, and
+both worked examples from Chapter 13 are golden fixtures.
+
+```
+npm install
+npm test          # 179 unit + golden tests, no Foundry required
+npm run lint      # includes the layer-boundary rule
+```
+
+The `domain/` → `rules/` → `engine/` → `apps/` dependency direction is enforced by ESLint, and
+`module/domain` and `module/rules` are forbidden from touching Foundry globals at all. That is
+what makes the whole rules engine testable in plain Node.
 
 Open design questions are tracked in
 [`docs/41-open-questions.md`](docs/41-open-questions.md): **Q1–Q40 answered** by the game's
