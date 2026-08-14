@@ -27,8 +27,9 @@ Chapter numbers refer to files in [`docs/`](docs/00-index.md).
 ## [0.2.1] — 2026-08-14
 
 Two more answers from the game's author, both of which **correct readings `0.2.0` had reasoned
-its way into**. Q39 has the largest numerical consequence of any correction so far; Q40 reverses
-a conclusion `0.2.0` stated at length.
+its way into** — plus a third correction found while implementing the pipeline against the
+reference calculation supplied with the Q39 answer. Together they have the largest numerical
+consequence of any release so far.
 
 ### Corrected
 
@@ -62,6 +63,35 @@ a conclusion `0.2.0` stated at length.
   what it does. This is the second time in three releases that a confident derivation lost to a
   direct answer — the first being the Range formula in `0.2.0`.
 
+- **The `5d10` applies to Base Attack, before the ability multiplier.** Found while
+  implementing the pipeline against the reference calculation the author supplied with the Q39
+  answer. `0.2.0` ran the multiplier at stage 2 and added the roll at stage 3; the formula
+  brackets it the other way:
+
+  ```
+  [(Base Attack ± 5d10) × (Skill/Spell/NP multiplier) ± … ] × …
+  ```
+
+  Only that placement reproduces the author's stated total. Their worked case is
+  `[(200+35) × 4 × 2 + 100] = 1980`; our order gave 1,735.
+
+  **Stages 2 and 3 have swapped.** Stage 2 is now *Crit*, stage 3 is *Ability multiplier*.
+  Crit-damage effects therefore act at **stage 2** in Appendix A, not stage 3.
+
+  Consequences compound with the Q39 fix, because the roll is now multiplied by the ability's
+  multiplier as well:
+
+  | | `0.2.0` | `0.2.1` |
+  |---|---|---|
+  | Worked example 2 (Karna's *Brahmastra Kundala*) | 1,076 | **1,151** |
+  | Worked example 1 on a crit (Penthesilea) | 537 | **536** |
+  | Karna `4×` NP, `+40%` crit damage, roll 31 | 743 | **673** |
+
+  Worked example 1's headline figure of **409 is unchanged**, because its multiplier is 1.
+
+  *Where:* Ch. 13 §13.2 (stage list), §13.3 stages 2 and 3, and both worked examples in §13.5
+  and §13.6, fully retraced. Appendix A §A.1–A.2 and §A.9 stage column.
+
 - **`Luck Check−` is `1d20+4`, not `1d20`.** The identical formulas in the `0.2.0` source were a
   **typo**. Everything `0.2.0` concluded from that identity is reversed:
 
@@ -81,11 +111,11 @@ a conclusion `0.2.0` stated at length.
 
 ### Changed
 
-- **Ability-stated conditional multipliers apply at stage 2**, inside the bracket, before the
+- **Ability-stated conditional multipliers apply at stage 3**, inside the bracket, before the
   flat bonus — not in the stage-4 bucket. An ability that says *"deals 100% extra damage to
-  units with `[Sky]`"* multiplies at stage 2; a **buff** that says *"damage dealt is increased
+  units with `[Sky]`"* multiplies at stage 3; a **buff** that says *"damage dealt is increased
   by X%"* joins the bucket at stage 4. The dividing line is where the text lives — on the
-  ability, or on an effect. Ch. 13 §13.3 stage 2.
+  ability, or on an effect. Ch. 13 §13.3 stage 3.
 
 ### Open
 

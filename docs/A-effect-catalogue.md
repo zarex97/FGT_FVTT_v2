@@ -10,6 +10,7 @@ and its implementation note. This is the authoritative reference the compendium 
 - **Stack** — `mag` magnitudeStacks, `nnr` noneNoRefresh, `nr` noneRefresh, `st` stage,
   `cnt` count, `hi` highestOnly, `ext` noneExtend.
 - **Stage** — damage pipeline stage (Ch. 13 §13.2) where it acts, if applicable.
+  Crit-damage effects act at **stage 2**, on the `5d10` roll only — not on the attack.
 
 ---
 
@@ -22,8 +23,8 @@ and its implementation note. This is the authoritative reference the compendium 
 | `Dmg Boost` | B | O | mag | 7 | Damage dealt +X **flat**. Affects NP only if stated. |
 | `NP DmUp` | B | O | mag | 4 | NP damage +X%. Also affects abilities *categorized as NP*. Not passive NPs. |
 | `Overcharge` | B | O | mag | — | Magnitude of all **non-damage** NP effects increased. Explicitly excludes direct damage. |
-| `Crit DmUp` | B | O | mag | 3 | Crit damage +X%. Not NP unless stated. |
-| `Over Crit` | B | O | nr | 3 | While crit chance > 100%, crit damage +（chance − 100)%. |
+| `Crit DmUp` | B | O | mag | 2 | Crit damage +X%. Not NP unless stated. |
+| `Over Crit` | B | O | nr | 2 | While crit chance > 100%, crit damage +（chance − 100)%. |
 | `Ignore Def` | B | O | nr | 4 | Attacks ignore `Def Up` on the DU. **Does not ignore `Dmg Cut`.** |
 | `Break` | B | O | nr | 14 | Chance to ignore Block; extra damage if the attack was Blocked. Default chance 100% if unstated. |
 
@@ -34,7 +35,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | `Def Up` | B | D | mag | 4 | Damage taken −X%. Reduced magnitude vs NP. Family: `defUp`. Sums additively with attacker `Atk Up` (Ch. 13 §13.4). |
 | `Ward` | B | D | mag | 4 | Damage from a matching category −X%, **including NP**. Predicated. |
 | `Dmg Cut` | B | D | mag | 12 | Damage taken −X **flat**, including NP. Not bypassed by `Pierce`. |
-| `Crit ResUp` | B | D | mag | 3 | Crit damage taken −X%. Not NP. |
+| `Crit ResUp` | B | D | mag | 2 | Crit damage taken −X%. Not NP. |
 | `Crit Guard` | B | D | mag | — | AU's crit chance −X% when attacking this unit. Not NP unless stated. |
 | `Shield (X)` | B | D | nr | 16 | Separate pool absorbing damage; excess passes through. **A Master with Shield cannot be Overpowered.** |
 | `Invuln` | B | D | nr | 16 | No damage. Vs NP: 50% reduction instead. "Reduce Health to 0" becomes "halve current Health". Cannot Block. `Pierce` ignores it. Does **not** prevent rider debuffs. Masters with it cannot be Overpowered. |
@@ -139,9 +140,9 @@ whole attack.
 | `Def Crk` | D | nv | D | mag | 16 | Damage taken +X **flat**, including NP. Categorized as `defDwn`. **Its addition does not count toward the Injury Roll threshold.** |
 | `Dmg Loss` | D | nv | O | mag | 7 | Damage dealt −X flat. **Not** categorized as `atkDwn`. |
 | `Crit Dwn` | D | nv | O | mag | — | Crit chance −X%. |
-| `Crit DmDwn` | D | nv | O | mag | 3 | Crit damage −X%. |
+| `Crit DmDwn` | D | nv | O | mag | 2 | Crit damage −X%. |
 | `No Crit` | D | nv | O | nr | — | Cannot crit. Not NP unless stated. |
-| `Crit ResDwn` | D | nv | D | mag | 3 | Crit damage taken +X%. Not NP. |
+| `Crit ResDwn` | D | nv | D | mag | 2 | Crit damage taken +X%. Not NP. |
 | `NP DmDwn` | D | nv | O | mag | 4 | NP damage −X%. |
 | `Bal Dwn (X%)` | D | nv | D | mag | — | Attacks against this unit have crit chance +X%. Not NP. |
 | `Max HpDwn` | D | nv | D | mag | — | Max Health −X. Health is **not** restored when it ends. |
@@ -283,7 +284,7 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Sol` | B | — | nr | — | The 5×5 around the bearer counts as **Day** regardless of the Round's phase (Ch. 42 §42.3). | Quetzalcoatl |
 | `Charity`-style named `Atk Up` variants | B | O | mag | 4 | `Atk Up (Trace)`, `Atk Up (MS)`, `Atk Up (Demonic)`, `Atk Up (Charisma)` — all `atkUp` family members with predicates. | several |
 | `Crit Up (Viy)` | B | O | mag | — | Crit chance +X% **scoped to attacks that use BA(MAG)**, with a separate NP magnitude. The first component-scoped crit buff. | Anastasia |
-| `Crit Up (Hawkeye)` / `Crit DmUp (Hawkeye)` | B | O | mag | 3 | Crit chance / crit damage +X% **at Range 3 or higher**. Range-predicated. | EMIYA |
+| `Crit Up (Hawkeye)` / `Crit DmUp (Hawkeye)` | B | O | mag | — / 2 | Crit chance / crit damage +X% **at Range 3 or higher**. Range-predicated. | EMIYA |
 
 ### A.17.2 New statuses
 
