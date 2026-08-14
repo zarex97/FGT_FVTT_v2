@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
+import { resolveTargets, legalPlacements, validate } from "../../module/rules/targeting/resolve.mjs";
 import { expand, orthogonalAdjacentRect } from "../../module/rules/targeting/shapes.mjs";
 import { squareBounds, key } from "../../module/domain/geometry.mjs";
 
@@ -418,5 +418,100 @@ describe("cross-level rules are per-platform, not global", () => {
       isMelee: true,
     };
     expect(resolveTargets(spec, caster, board).units.map((u) => u.unitId)).toEqual(["flyer"]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+
+describe("validate — the same rules the resolver already knows", () => {
+  const spec = {
+    anchor: { kind: "withinRange", range: 3 },
+    shape: { kind: "point" },
+    selection: { relations: ["enemy"] },
+  };
+  const board = boardWith([unit("foe", 6, 8)]);
+
+  it("passes a legal placement", () => {
+    const v = validate(spec, caster, board, { panel: at(6, 8) });
+    expect(v.ok).toBe(true);
+    expect(v.reasons).toEqual([]);
+  });
+
+  it("fails an out-of-range one, saying by how much", () => {
+    const v = validate(spec, caster, board, { panel: at(6, 12) });
+    expect(v.ok).toBe(false);
+    expect(v.reasons[0]).toMatch(/6 panels away; Range is 3/);
+  });
+
+  it("carries the resolution through, so the caller need not resolve twice", () => {
+    expect(validate(spec, caster, board, { panel: at(6, 8) }).resolved.units[0].unitId).toBe("foe");
+  });
+});
+
+describe("legalPlacements — one function, four targeting modes", () => {
+  const board = boardWith([unit("foe", 6, 8), unit("ally", 6, 5, { faction: "a" })]);
+
+  it("returns exactly four options for the direction picker, always", () => {
+    const spec = {
+      anchor: { kind: "selfEdgeAdjacent" },
+      shape: { kind: "orientedRect", short: 3, long: 3 },
+      selection: { relations: ["enemy"] },
+    };
+    const options = legalPlacements(spec, caster, board);
+    expect(options.length).toBe(4);
+    expect(options.map((o) => o.placement.direction)).toEqual(["n", "e", "s", "w"]);
+  });
+
+  it("resolves each direction to its own panel set", () => {
+    const spec = {
+      anchor: { kind: "selfEdgeAdjacent" },
+      shape: { kind: "orientedRect", short: 3, long: 3 },
+      selection: { relations: ["enemy"] },
+    };
+    const options = legalPlacements(spec, caster, board);
+    const east = options.find((o) => o.placement.direction === "e");
+    expect(east.resolved.panels.every((p) => p.j > 6)).toBe(true);
+    expect(east.resolved.units.map((u) => u.unitId)).toEqual(["foe"]);
+  });
+
+  it("returns illegal placements too, so the picker can explain them", () => {
+    const spec = {
+      anchor: { kind: "withinRange", range: 1 },
+      shape: { kind: "point" },
+      selection: { relations: ["enemy"] },
+    };
+    const options = legalPlacements(spec, caster, board);
+    expect(options.some((o) => !o.legal)).toBe(true);
+    expect(options.find((o) => !o.legal).reasons.length).toBeGreaterThan(0);
+  });
+
+  it("stays inside the board bounds", () => {
+    const corner = { ...caster, panel: at(0, 0) };
+    const spec = { anchor: { kind: "withinRange", range: 2 }, shape: { kind: "point" }, selection: {} };
+    const options = legalPlacements(spec, corner, board);
+    expect(options.every((o) => o.placement.panel.i >= 0 && o.placement.panel.j >= 0)).toBe(true);
+  });
+
+  it("lists every unit for the unit picker, and marks the unreachable ones", () => {
+    const far = boardWith([unit("near", 6, 8), unit("far", 0, 0)]);
+    const spec = {
+      anchor: { kind: "targetUnit", range: 3 },
+      shape: { kind: "point" },
+      selection: { relations: ["enemy"] },
+    };
+    const options = legalPlacements(spec, caster, far);
+    expect(options.length).toBe(2);
+    expect(options.find((o) => o.placement.unitId === "near").legal).toBe(true);
+    expect(options.find((o) => o.placement.unitId === "far").legal).toBe(false);
+  });
+
+  it("returns a single automatic placement for an anchor with no choice", () => {
+    const spec = { anchor: { kind: "self" }, shape: { kind: "point" }, selection: { relations: ["self"] } };
+    expect(legalPlacements(spec, caster, board).length).toBe(1);
+  });
+
+  it("honours the cap, so free placement on a huge board stays bounded", () => {
+    const spec = { anchor: { kind: "withinRange", range: 6 }, shape: { kind: "point" }, selection: {} };
+    expect(legalPlacements(spec, caster, board, { max: 10 }).length).toBe(10);
   });
 });

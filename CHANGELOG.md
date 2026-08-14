@@ -72,6 +72,21 @@ that the engine collected and then ignored. Every entry here closes one of those
 - **`markTurn` intent** and the `turnState` fields it writes — `movedPanels`, `moveSegments`,
   `usedActiveSkill`, `mayMoveAgain`, `usedRidingAttack` — so Riding's two-segment move and
   Riding Attack's terminality are representable.
+- **`legalPlacements` / `validate`** in the targeting resolver — one pure function behind all
+  four targeting modes. Illegal placements are returned rather than filtered, because a player
+  needs to see that a direction exists and why it cannot be chosen (D28.6).
+- **`module/rules/preview.mjs`** — speculative damage. Two runs of the **real** pipeline, one
+  with every die at the end that minimises damage and one at the end that maximises it, giving
+  an exact range rather than an estimate. The bounds are not symmetric: `attackMinus` subtracts,
+  so its maximum is the low end.
+- **`TargetingLayer` and the preview panel** — the canvas interaction from Ch. 28. Mode A draws
+  all four directions simultaneously, tinted by legality, and one click chooses; Mode B dims the
+  reachable panels and previews on pointer-move; Mode C cycles legal units with Tab. Arrow keys,
+  Enter, Escape and right-click all work. The layer draws and never decides — every panel it
+  fills came from `legalPlacements`.
+- Clicking an ability on a sheet now opens the targeting session instead of reading
+  `game.user.targets`, which carries no shape, band or relation information. Foundry's target set
+  remains the fallback when no canvas is available.
 - Declaring an attack now spends the budget and marks the unit, and the start of each faction's
   turn resets both. A non-damaging Noble Phantasm costs the Servant's attack, as the source
   states explicitly.

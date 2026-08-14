@@ -46,6 +46,9 @@ export default [
         Roll: "readonly", Dialog: "readonly", console: "readonly",
         globalThis: "readonly", structuredClone: "readonly",
         setTimeout: "readonly", clearTimeout: "readonly",
+        // Browser and PIXI, for the canvas layer and the floating preview. Only
+        // L4 may touch these; the L1/L2 block below takes them away again.
+        window: "readonly", document: "readonly", PIXI: "readonly",
         // Node, for tools/ and test/
         process: "readonly", Buffer: "readonly", URL: "readonly",
       },
@@ -67,7 +70,8 @@ export default [
     rules: {
       "no-restricted-globals": [
         "error",
-        ...["game", "ui", "canvas", "CONFIG", "CONST", "Hooks", "foundry", "fgt"].map((name) => ({
+        ...["game", "ui", "canvas", "CONFIG", "CONST", "Hooks", "foundry", "fgt",
+          "window", "document", "PIXI"].map((name) => ({
           name,
           message: `module/domain and module/rules must stay pure — no Foundry globals. Pass "${name}" data in through a snapshot instead. See docs/03-domain-overview.md §3.6.`,
         })),

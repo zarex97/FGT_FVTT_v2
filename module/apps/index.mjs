@@ -37,18 +37,19 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    */
   static async #onUseAbility(_event, target) {
     const abilityId = target.closest("[data-item-id]")?.dataset.itemId ?? null;
-    const targets = Array.from(game.user.targets);
-    if (targets.length === 0) {
-      ui.notifications.warn(game.i18n.localize("FGT.Attack.NoTarget"));
-      return;
-    }
+    const ability = abilityId ? this.document.items.get(abilityId) : null;
+
+    const placement = await pickPlacement(this.document, ability);
+    // `null` is a cancellation, which is the most common outcome of opening a
+    // targeting session and is not an error.
+    if (!placement) return;
 
     const { FGTSocket } = await import("../net/socket.mjs");
     try {
       await FGTSocket.request("resolveAttack", {
         attackerId: this.document.id,
         abilityId,
-        placement: { unitId: targets[0].actor?.id, panel: { i: targets[0].document.y, j: targets[0].document.x } },
+        placement,
       });
     } catch (err) {
       ui.notifications.error(err.message);
@@ -100,6 +101,98 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     const context = await super._prepareContext(options);
     return { ...context, system: this.document.system, isEditable: this.isEditable };
   }
+}
+
+/**
+ * Run the canvas targeting session for an ability and return its placement.
+ *
+ * The preview resolves the **same spec** the resolution will, and computes its
+ * damage range with the **same pipeline** — the two are one implementation, so
+ * the number the player is shown before committing cannot disagree with the
+ * number they get.
+ *
+ * Falls back to Foundry's own target set when the canvas is unavailable (a
+ * macro, a scene with no tokens), so nothing becomes unusable without it.
+ *
+ * @param {object} actor an `FGTActor`
+ * @param {object|null} ability
+ * @returns {Promise<object|null>}
+ */
+async function pickPlacement(actor, ability) {
+  const [{ pickTarget }, { targetSpecForAttack }, { snapshotUnit, snapshotBoard }, preview] =
+    await Promise.all([
+      import("./canvas/targeting-layer.mjs"),
+      import("../engine/attack.mjs"),
+      import("../rules/snapshot.mjs"),
+      import("../rules/preview.mjs"),
+    ]);
+
+  if (!canvas?.ready || !canvas.fgtTargeting) return legacyPlacement();
+
+  const caster = snapshotUnit(actor);
+  const board = snapshotBoard({
+    scene: canvas.scene,
+    actors: canvas.tokens.placeables.map((t) => ({ actor: t.actor, token: t.document })),
+    settings: { boardSize: game.settings.get("fgt", "boardSize") },
+  });
+
+  const spec = targetSpecForAttack(actor, ability);
+  const isNP = ability?.type === "noblePhantasm";
+
+  return pickTarget({
+    spec, caster, board,
+    preview: {
+      label: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
+      damageFor: (unitId) => {
+        const defender = board.units.find((u) => u.id === unitId);
+        if (!defender) return null;
+        return preview.damageRange(
+          previewContext({ caster, defender, ability, board, isNP }),
+          { negation: preview.negationBounds(defender, isNP) },
+        );
+      },
+    },
+  });
+}
+
+/**
+ * The damage context the preview runs, without any rolls.
+ * @param {object} args
+ * @returns {object}
+ */
+function previewContext({ caster, defender, ability, board, isNP }) {
+  return {
+    attacker: caster, defender, board,
+    attack: {
+      kind: isNP ? "np" : "normal",
+      abilityId: ability?.id ?? null,
+      categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
+      element: ability?.system?.element ?? null,
+    },
+    base: { sources: [{ unit: "self", component: caster.normalAttack?.component ?? "str", factor: 1 }] },
+    multiplier: ability?.system?.damage?.multiplier ?? 1,
+    flatBonus: ability?.system?.damage?.flatBonus ?? 0,
+    conditionalMultipliers: ability?.system?.damage?.conditionalMultipliers ?? [],
+    crit: { isCrit: false, chanceUsed: 0 },
+    reaction: { kind: "none" },
+    luckChecks: {},
+    options: new Set(),
+  };
+}
+
+/**
+ * Foundry's own target set, as a placement. Used only when the canvas layer is
+ * not available.
+ * @returns {object|null}
+ */
+function legacyPlacement() {
+  const targets = Array.from(game.user.targets);
+  if (targets.length === 0) {
+    ui.notifications.warn(game.i18n.localize("FGT.Attack.NoTarget"));
+    return null;
+  }
+  const token = targets[0];
+  return { unitId: token.actor?.id, panel: { i: token.document.y, j: token.document.x } };
 }
 
 export function registerSheets() {

@@ -482,6 +482,21 @@ function targetSpecFor(attacker, ability) {
 }
 
 /**
+ * The targeting spec for an attack, exported so the canvas preview resolves the
+ * same declaration the resolution will.
+ *
+ * Two implementations of "what does this ability target" is the fastest route
+ * to a preview that lies, so there is one.
+ *
+ * @param {object} attacker an `FGTActor`
+ * @param {object|null} ability
+ * @returns {object}
+ */
+export function targetSpecForAttack(attacker, ability) {
+  return targetSpecFor(attacker, ability);
+}
+
+/**
  * @param {object} attacker
  * @param {object|null} ability
  * @returns {object}

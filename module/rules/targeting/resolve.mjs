@@ -285,6 +285,118 @@ function resolveAnchor(spec, caster, board, placement, errors) {
   }
 }
 
+/**
+ * Validate a chosen placement.
+ *
+ * A thin projection of `resolveTargets` — the resolver already produces
+ * human-readable failures, and a second implementation of the same rules would
+ * be a second implementation to keep in sync. The canvas layer calls this on
+ * every pointer move, which is affordable because the resolver is pure and does
+ * no allocation beyond the panel set.
+ *
+ * @param {object} spec
+ * @param {object} caster
+ * @param {object} board
+ * @param {object} placement
+ * @returns {{ok: boolean, reasons: string[], warnings: string[], resolved: ResolvedTargets}}
+ */
+export function validate(spec, caster, board, placement = {}) {
+  const resolved = resolveTargets(spec, caster, board, placement);
+  return {
+    ok: resolved.errors.length === 0,
+    reasons: resolved.errors,
+    warnings: resolved.warnings,
+    resolved,
+  };
+}
+
+/**
+ * Enumerate the placements a player could choose, each already resolved.
+ *
+ * This is what drives every one of the four targeting modes: the direction
+ * picker draws one ghost per returned entry, free placement dims the panels
+ * whose entries are illegal, and the unit picker lists them. One function, four
+ * interactions, and the canvas never computes a rule.
+ *
+ * Illegal placements are **returned, not filtered** — a player needs to see
+ * that a direction exists and why it cannot be chosen (D28.6). The caller
+ * decides what to do with `legal: false`.
+ *
+ * @param {object} spec
+ * @param {object} caster
+ * @param {object} board
+ * @param {object} [opts]
+ * @param {number} [opts.max] cap on returned entries, for the free-placement grid
+ * @returns {Array<{placement: object, legal: boolean, reasons: string[], resolved: ResolvedTargets}>}
+ */
+export function legalPlacements(spec, caster, board, { max = 400 } = {}) {
+  const candidates = candidatePlacements(spec, caster, board, max);
+  return candidates.map((placement) => {
+    const v = validate(spec, caster, board, placement);
+    return { placement, legal: v.ok, reasons: v.reasons, resolved: v.resolved };
+  });
+}
+
+/**
+ * The raw placement candidates for an anchor kind, before validation.
+ *
+ * @param {object} spec
+ * @param {object} caster
+ * @param {object} board
+ * @param {number} max
+ * @returns {object[]}
+ */
+function candidatePlacements(spec, caster, board, max) {
+  const anchor = spec.anchor ?? { kind: "self" };
+  const range = anchor.range ?? caster.range ?? 1;
+
+  switch (anchor.kind) {
+    // Mode A. Four directions, always all four, so the player sees the choice
+    // rather than discovering it.
+    case "selfEdgeAdjacent":
+      return ["n", "e", "s", "w"].map((direction) => ({ direction }));
+
+    // Mode B. Every panel the anchor could legally sit on, plus the panels just
+    // outside it -- the overlay needs to draw the boundary, not only its inside.
+    case "withinRange": {
+      const out = [];
+      const { i, j } = caster.panel;
+      const reach = range + 1;
+      for (let di = -reach; di <= reach && out.length < max; di++) {
+        for (let dj = -reach; dj <= reach && out.length < max; dj++) {
+          const panel = { i: i + di, j: j + dj };
+          if (!inBounds(panel, board)) continue;
+          out.push({ panel });
+        }
+      }
+      return out;
+    }
+
+    // Mode C. Every unit on the board; the relation and range filters inside
+    // the resolver decide which are legal.
+    case "targetUnit":
+      return (board.units ?? [])
+        .filter((u) => u.id !== caster.id || spec.selection?.includeSelf)
+        .slice(0, max)
+        .map((u) => ({ unitId: u.id }));
+
+    // Everything else resolves without a choice.
+    default:
+      return [{}];
+  }
+}
+
+/**
+ * @param {GridOffset} panel
+ * @param {object} board
+ * @returns {boolean}
+ */
+function inBounds(panel, board) {
+  const b = board.bounds;
+  if (!b) return true;
+  return panel.i >= b.iMin && panel.i <= b.iMax && panel.j >= b.jMin && panel.j <= b.jMax;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Helpers                                                                    */
 /* -------------------------------------------------------------------------- */

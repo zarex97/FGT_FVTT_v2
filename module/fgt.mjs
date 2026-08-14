@@ -27,6 +27,7 @@ import * as scheduler from "./engine/scheduler.mjs";
 import { Scheduler } from "./engine/scheduler-hooks.mjs";
 import * as budget from "./engine/budget.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
+import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 
 Hooks.once("init", () => {
   console.log("FGT | Initialising Fate/Grail Tactics");
@@ -62,6 +63,9 @@ Hooks.once("init", () => {
 
   registerSheets();
   registerSettings();
+
+  // Must happen at init: the canvas reads CONFIG.Canvas.layers when it is built.
+  registerTargetingLayer();
 
   // Mandatory, and it requires "socket": true in the manifest plus a world
   // restart. Without it the server never registers the namespace and every
@@ -118,6 +122,7 @@ function buildPublicAPI() {
     explainDamage,
     // Engine (L3)
     intents, combatProcess, scheduler, budget,
+    pickTarget,
     effects: EffectRegistry,
     collectContributions,
     socket: FGTSocket,

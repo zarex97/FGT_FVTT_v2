@@ -96,5 +96,11 @@
   "FGT.HUD.TurnOfRound": "Turn {turn} of {turnsPerRound} — Round {round}",
   "FGT.HUD.EndTurn": "End Turn",
   "FGT.HUD.Blocked": "{count} unmet compulsion(s)",
-  "FGT.HUD.NoFaction": "No faction"
+  "FGT.HUD.NoFaction": "No faction",
+  "FGT.Targeting.ChoosePanel": "Choose a panel — right-click or Escape to cancel.",
+  "FGT.Targeting.NoTargets": "No legal targets for this ability.",
+  "FGT.Targeting.Targets": "target(s)",
+  "FGT.Targeting.Panels": "panel(s)",
+  "FGT.Targeting.Legal": "✓ Legal — click to confirm",
+  "FGT.Targeting.Illegal": "✕ Illegal"
 }
