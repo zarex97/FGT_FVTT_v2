@@ -81,8 +81,8 @@ Sixteen stages. The numbering is stable and referenced from effect definitions
 |---|---|---|
 | 0 | **Precondition** | Substitution / Anti-Purge / element-to-heal conversion; early exits |
 | 1 | **Base** | Select BA(STR)/BA(MAG) and their factors; produce `mag` and `phys` |
-| 2 | **Ability multiplier** | `× multiplier`, `+ flatBonus` |
-| 3 | **Crit** | `+ 5d10 × (1 + crit-damage %)` if Attack+; `− 5d10` unscaled if Attack− |
+| 2 | **Crit** | `± 5d10`, applied to Base Attack; the `+` branch scaled by crit-damage % |
+| 3 | **Ability multiplier** | `× multiplier × conditionalMultipliers`, `+ flatBonus` |
 | 4 | **Combined percent** | ΣAtk Up − ΣDef Up, applied once (see §13.4) |
 | 5 | **Component amplification** | STR-only / MAG-only percentage modifiers |
 | 6 | **Band** | Distance-band multiplier for banded AoE |
@@ -97,7 +97,8 @@ Sixteen stages. The numbering is stable and referenced from effect definitions
 | 15 | **Total-damage modifiers** | Effects that explicitly say "Total Damage": Underpower, Cover, CS Halve NP, PC AoE tails, Mad Enhancement NP reduction |
 | 16 | **Absorption and clamp** | Shield, Invuln, Endure, Def Crk addition, floor at 0, integer floor |
 
-Stages 0 and 16 are bookends. Stages 1–3 build the raw number, 4–10 are attacker-favouring,
+Stages 0 and 16 are bookends. Stages 1–3 build the bracketed term of the author's formula
+(`[(Base Attack ± 5d10) × multiplier + flat]`), 4–10 are attacker-favouring,
 11–14 are defender-favouring, 15–16 are the final adjustments.
 
 ---
@@ -143,10 +144,84 @@ Component selection follows Chapter 06 §6.7: fixed, combined, or range-banded.
 `Silence` intervenes here: it strips the MAG component from normal attacks, and for a
 MAG-only attacker reduces range to 1 and forces BA(STR).
 
-### Stage 2 — Ability multiplier and flat bonus
+### Stage 2 — Crit
+
+**Both `Attack+` and `Attack−` are `5d10`** (Ch. 41 Q1). The `+` and `−` in the names are the
+operators: a crit **adds** the roll, a non-crit **subtracts** it.
+
+**The roll applies to Base Attack, before the ability multiplier.** The author's reference
+calculation brackets it explicitly:
 
 ```
-total = (mag + phys) × multiplier + flatBonus
+[(Base Attack ± 5d10) × (Skill/Spell/NP multiplier) ± … ] × …
+```
+
+with the worked case `[(200+35) × 4 × 2 + 100] × 190% = 3762`. Only that placement reproduces
+the stated 1,980 inside the bracket; applying the roll *after* the multiplier gives 1,735.
+
+```
+crit:     total = (base + roll("attack+") × critFactor)
+non-crit: total = (base − roll("attack-"))            // floored at 0
+```
+
+This also matches the Beginner difficulty rule — *"To play without damage modifiers, just use
+Base Attack for damage calculation instead of Attack+/Attack−"* — which only makes sense if both
+are adjustments **to Base Attack** rather than to the finished number. And it matches the
+`Damage Modifier` roll being `5d10`, the same pool used for the ZON penalty and the Luck Check
+damage adjustments.
+
+**Crit *damage* percentages scale the roll, and only the roll** (Ch. 41 **Q39**, answered in
+`0.2.1`):
+
+```ts
+if (ctx.isCrit) {
+  const critPct = sumOf(au, "critDmUp")   - sumOf(au, "critDmDwn")
+                - sumOf(du, "critResUp")  + sumOf(du, "critResDwn")
+                + overCritBonus(au, ctx);            // (critChance − 100) when > 100
+  total += ctx.rolls["attack+"] * Math.max(0, 1 + critPct / 100);
+} else {
+  total -= ctx.rolls["attack-"];                     // never scaled
+}
+```
+
+Three things follow, and all three are worth stating because `0.2.0` had them wrong:
+
+**The `Attack−` subtraction is never scaled.** Crit-damage effects govern *crit damage*, and a
+non-crit has none. Only the `+` branch reads the multiplier.
+
+**Crit-damage effects are far weaker than `0.2.0` assumed.** `Crit DmUp +100%` turns a mean
+27.5-point roll into 55 — a 27.5-point gain *before* the multiplier, which then scales it. It
+does not double the attack.
+
+**`Crit ResUp` can drive the factor to zero but not below.** The `max(0, …)` clamp is what stops
+a defensive buff from turning a crit into a penalty.
+
+> **Superseded reading.** `0.2.0` placed the roll at stage 3, *after* the ability multiplier,
+> and put the crit percentages in the **stage-4 bucket** gated on `attack:crit`. Both were
+> wrong, and they compounded. If you implemented `predicate: ["attack:crit"]` `DamageModifier`
+> rule elements for crit damage, delete them.
+
+`Over Crit` adds `(critChance − 100)%` to the same stage-2 factor when the chance exceeded 100,
+not to the bucket.
+
+Beginner difficulty skips this stage entirely.
+
+**Worked micro-example.** Karna, BA(STR) 125, *Uncrowned Arms Mastership* toggled to crit damage
+`+40%`, crits with a `5d10` of 31 on a `4×` NP.
+
+| | `0.2.1` (correct) | `0.2.0` (wrong) |
+|---|---|---|
+| Stage 2 — crit | `125 + 31 × 1.40 = 168.4` | `125 × 4 = 500` (multiplier first) |
+| Stage 3 — multiplier | `168.4 × 4 = 673.6` | `500 + 31 = 531` (roll after) |
+| Stage 4 — bucket | `+0` → `673.6` | `+40` → `743.4` |
+
+**673 against 743** — a 70-point divergence on a single small attack, growing with the
+multiplier. This is the correction with the largest numerical consequence so far.
+
+### Stage 3 — Ability multiplier, conditional multipliers, and the flat bonus
+
+```
+total = (mag + phys) × multiplier × Π(conditionalMultipliers) + flatBonus
 mag  = total × (mag / (mag + phys))
 phys = total × (phys / (mag + phys))
 ```
@@ -157,94 +232,19 @@ The flat bonus is distributed proportionally so that later component-scoped modi
 Examples: `4x damage plus 100` (Heracles's *Nine Lives*), `3.5x damage` (Penthesilea's
 *Outrage Amazon*), `2.5x` (Fragarach Counter), `5x` (Karna's *Vasavi Shakti*).
 
-**Conditional multipliers stated in the ability's own description also land here**, before the
-flat bonus — not in the stage-4 bucket. The author's reference calculation makes this explicit:
+**Conditional multipliers stated in the ability's own description also land here**, inside the
+bracket. The `× 2` in the author's `[(200+35) × 4 × 2 + 100]` is the NP's own *"deals 100% extra
+damage on Units with the [Sky] Attribute"* clause.
 
-> `[(200+35) * 4 * 2 + 100] * (…)%` — where `× 2` is the NP's own *"deals 100% extra damage on
-> Units with the [Sky] Attribute"* clause.
-
-So an ability that says *"deals X% extra damage to units matching P"* multiplies at stage 2,
+So an ability that says *"deals X% extra damage to units matching P"* multiplies at stage 3,
 while a **buff** that says *"damage dealt is increased by X%"* joins the bucket at stage 4. The
 distinction is where the text lives — on the ability, or on an effect — and the content
 validator checks it.
 
-```
-total = (mag + phys) × multiplier × Π(conditionalMultipliers) + flatBonus
-```
-
 **Q49** records one unresolved detail in that reference calculation: its outer percentage bucket
 reads `(100 + 100 + 20 − 30)%`, and the second `+100` has no stated source once the `× 2` is
 accounted for as the `[Sky]` clause. We implement it as written above — the clause multiplies
-once, at stage 2 — and have asked whether the bucket term is a second, separate bonus.
-
-### Stage 3 — Crit
-
-**Both `Attack+` and `Attack−` are `5d10`** (Ch. 41 Q1). The `+` and `−` in the names are the
-operators: a crit **adds** the roll, a non-crit **subtracts** it.
-
-```
-crit:     total += roll("attack+")     // 5d10, mean 27.5
-non-crit: total -= roll("attack-")     // 5d10, mean 27.5, floored at 0
-```
-
-This is confirmed by the Beginner difficulty rule — *"To play without damage modifiers, just use
-Base Attack for damage calculation instead of Attack+/Attack−"* — which only makes sense if both
-are adjustments **to** Base Attack rather than multipliers of it. It also matches the
-`Damage Modifier` roll being `5d10`, the same die pool used for the ZON penalty and the Luck
-Check damage adjustments.
-
-**Crit *damage* percentages scale the roll, and only the roll** (Ch. 41 **Q39**, answered in
-`0.2.1`). `Crit DmUp`, `Crit DmDwn`, `Crit ResUp`, `Crit ResDwn` and `Over Crit` multiply the
-`5d10`, not the attack:
-
-```ts
-// Stage 3
-if (ctx.isCrit) {
-  const critPct = sumOf(au, "critDmUp")   - sumOf(au, "critDmDwn")
-                - sumOf(du, "critResUp")  + sumOf(du, "critResDwn")
-                + overCritBonus(au, ctx);            // (critChance − 100) when > 100
-  const roll = ctx.rolls["attack+"];                 // 5d10
-  total += roll * Math.max(0, 1 + critPct / 100);
-} else {
-  total -= ctx.rolls["attack-"];                     // 5d10, unscaled — not crit damage
-}
-```
-
-Three things follow, and all three are worth stating because `0.2.0` had this wrong:
-
-**The `Attack−` subtraction is never scaled.** Crit-damage effects govern *crit damage*, and a
-non-crit has none. Only the `+` branch reads the multiplier.
-
-**Crit-damage effects are far weaker than `0.2.0` assumed.** `Crit DmUp +100%` turns a mean
-27.5-point roll into 55 — a 27.5-point gain at stage 3, which the downstream bucket then
-amplifies. It does not double the attack.
-
-**`Crit ResUp` on the defender can drive the factor to zero but not below.** A crit with
-`Crit ResUp 100%` still adds nothing rather than subtracting; the `max(0, …)` clamp is what
-prevents a defensive buff from converting a crit into a penalty.
-
-> **Superseded reading.** `0.2.0` §13.3 placed these percentages in the **stage-4 bucket**,
-> gated on the `attack:crit` roll option, reasoning that a flat ±5d10 swing was too small for
-> the game's many `Crit DmUp +100%` effects to be meaningful otherwise. The reasoning was
-> plausible and the conclusion was wrong. If you implemented `predicate: ["attack:crit"]`
-> `DamageModifier` rule elements for crit damage, delete them.
-
-`Over Crit` adds `(critChance − 100)%` to the same stage-3 factor when the chance exceeded 100,
-not to the bucket.
-
-Beginner difficulty skips this stage entirely.
-
-**Worked micro-example.** Karna, BA(STR) 125, *Uncrowned Arms Mastership* toggled to crit
-damage `+40%`, crits with a `5d10` of 31 on a `4×` NP.
-
-| | `0.2.1` (correct) | `0.2.0` (wrong) |
-|---|---|---|
-| Stage 2 | `125 × 4 = 500` | `500` |
-| Stage 3 | `500 + 31 × 1.40 = 543.4` | `500 + 31 = 531` |
-| Stage 4 | bucket `+0` → `543.4` | bucket `+40` → `743.4` |
-
-A 200-point divergence on a single small attack, and it grows with the multiplier. This is the
-correction with the largest numerical consequence in `0.2.1`.
+once, at stage 3 — and have asked whether the bucket term is a second, separate bonus.
 
 ### Stage 4 — The combined percent bucket
 
@@ -534,8 +534,8 @@ her Master's ZON, on open ground, at night, neither has the [Dark] attribute.
 ```
 Stage 0   No preconditions.
 Stage 1   phys = 160, mag = 0
-Stage 2   × 1.0, + 0                                        → 160
-Stage 3   Attack−  − 5d10 (22)                              → 138
+Stage 2   Attack−  − 5d10 (22)                              → 138
+Stage 3   × 1.0, + 0                                        → 138
 Stage 4   BUCKET
             Penthesilea:
               Mad Enhancement EX  +100%  (STR portion)
@@ -561,9 +561,9 @@ Stage 16  injury snapshot: 409 > 100 → TRUE
 
 RESULT   409 physical damage, Injury Roll required.
 
-Had Penthesilea critted instead (Attack+ 5d10 → 22), stage 3 would give 182, and the same
-chain would land at 537 — a 128-point swing, amplified from the raw 44-point roll difference by
-the ×2.90 bucket. This is why the ±5d10 sits at stage 3 and not later: it is multiplied by
+Had Penthesilea critted instead (Attack+ 5d10 → 22), stage 2 would give 182, and the same
+chain would land at 536 — a 127-point swing, amplified from the raw 44-point roll difference by
+the ×2.90 bucket. This is why the ±5d10 sits at stage 2 and not later: it is multiplied by
 everything downstream, which is what makes a flat roll behave like a meaningful crit.
 ```
 
@@ -589,33 +589,33 @@ Block = flat 25%.
 ```
 Stage 0   No preconditions.
 Stage 1   phys = 125, mag = 175                              total 300
-Stage 2   × 4 + 100 → 1300
-            split proportionally: mag = 1300 × (175/300) = 758.3
-                                  phys = 1300 × (125/300) = 541.7
-Stage 3   Attack+  + 5d10 (31), distributed proportionally
-            → mag 776.4   phys 554.6                          total 1331
+Stage 2   Attack+  + 5d10 (31), distributed proportionally
+            → mag 193.1   phys 137.9                         total 331
+Stage 3   × 4 + 100 → 1424
+            split proportionally: mag = 1424 × (175/300) = 830.7
+                                  phys = 1424 × (125/300) = 593.3
 Stage 4   BUCKET (NP, so NP magnitudes apply)
             Karna: Atk Up (NP value)     +30%
                    NP DmUp               +20%
             Target: Home Base            −10%   ← a percentage on damage TAKEN
-            bucket = +40 → factor 1.40   → mag 1086.9  phys 776.5
+            bucket = +40 → factor 1.40   → mag 1162.9  phys 830.7
 Stage 5   none
 Stage 6   none
-Stage 7   + Divinity A (50), proportional  → mag 1116.1  phys 797.3
+Stage 7   + Divinity A (50), proportional  → mag 1192.1  phys 851.5
 Stage 8   Day, neither [Dark]; Karna not in a home base     (no change)
 Stage 9   in ZON                                            (no change)
 Stage 10  Luck Check: Increased Damage is BLOCKED for NP     (no change)
 Stage 11  Magic Resistance B vs NP rank A+
             compare(B, A+) = B(300) vs A+(401) → -1, NOT negated
-            → mag × 0.60 = 669.7             phys 797.3
+            → mag × 0.60 = 715.3             phys 851.5
 Stage 12  − Territory Creation B (32), proportional
-            total 1467.0 → 1435.0            mag 655.1   phys 779.9
-Stage 13  no Luck Check                                     → 1435.0
-Stage 14  Block: × 0.75                      mag 491.3   phys 584.9
-Stage 15  no Total Damage modifiers                         → 1076.2
-Stage 16  floor                                             → 1076
+            total 1566.8 → 1534.8            mag 700.7   phys 834.1
+Stage 13  no Luck Check                                     → 1534.8
+Stage 14  Block: × 0.75                      mag 525.5   phys 625.6
+Stage 15  no Total Damage modifiers                         → 1151.1
+Stage 16  floor                                             → 1151
 
-RESULT   1,076 damage (491 magical + 585 physical), plus Burn 3◈ and Def Dwn (B) 1◈.
+RESULT   1,151 damage (525 magical + 626 physical), plus Burn 3◈ and Def Dwn (B) 1◈.
 ```
 
 Two things in that trace are worth calling out, because both are mistakes a first implementation
@@ -626,9 +626,14 @@ It is phrased as a percentage on damage *taken*, which is the `Def Up` shape. Pu
 stage 12 would apply it to a much larger number and over-reduce.
 
 **Block is now multiplicative at stage 14, so its value scales with the attack.** Under the old
-dice-based Block this attack lost 28 points; under the flat 25% it loses 359. That is a large
+dice-based Block this attack lost 28 points; under the flat 25% it loses 384. That is a large
 balance shift in the defender's favour against big Noble Phantasms, and it is precisely why the
 rule was changed.
+
+**The crit roll is inside the bracket, so it is multiplied by 4.** A `5d10` of 31 contributes
+124 to the pre-bucket total, not 31. `0.2.0` applied it after the multiplier and produced 1,076
+for this same attack; the corrected figure is 1,151. That 75-point gap is entirely the roll's
+placement.
 
 Then the same computation runs for every other unit in the 7×7 area, with different resistance
 profiles, in one batch.

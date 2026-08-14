@@ -167,16 +167,25 @@ with the worked case:
 
 So `Crit DmUp +100%` turns the `35` into `70`. It does not scale the 1,980.
 
-**What changed.** `Crit DmUp`, `Crit DmDwn`, `Crit ResUp`, `Crit ResDwn` and `Over Crit` moved
-**out of the stage-4 bucket** and became a multiplier on the stage-3 roll. `Attack−` is never
-scaled by them. See Ch. 13 §13.3 stage 3 for the superseded reading and a numeric comparison.
+**What changed.** Two things, and they compound:
+
+1. `Crit DmUp`, `Crit DmDwn`, `Crit ResUp`, `Crit ResDwn` and `Over Crit` moved **out of the
+   stage-4 bucket** and became a multiplier on the roll. `Attack−` is never scaled by them.
+2. **The roll itself moved earlier.** The formula brackets it as
+   `[(Base Attack ± 5d10) × multiplier …]`, so it applies to Base Attack *before* the ability
+   multiplier. `0.2.0` applied it after. Stages 2 and 3 swapped as a result: stage 2 is now
+   *Crit*, stage 3 is *Ability multiplier*.
+
+Only that placement reproduces the author's stated total of 3,762 — our order gave 3,297. See
+Ch. 13 §13.3 stages 2 and 3 for the superseded reading and a numeric comparison.
 
 **Our reasoning for the wrong answer, recorded.** We argued that a 27-point mean roll was too
 small for the game's many `Crit DmUp +100%` effects to be meaningful. That is true, and it is
 simply how the game is balanced: crits are a small consistent bonus, and crit-damage effects are
 a small bonus on a small bonus. Wanting a mechanic to matter is not evidence about what it does.
 
-**Where.** Ch. 13 §13.2 (stage list), §13.3 stages 2 and 3.
+**Where.** Ch. 13 §13.2 (stage list), §13.3 stages 2 and 3, both worked examples in §13.5 and
+§13.6, and the stage column in Appendix A.
 
 ---
 
@@ -336,7 +345,7 @@ percentage sources: the NP's `+100%` against `[Sky]`, `NP DmUp +20%`, and Magic 
 `−30%`. Accounting for the inner `× 2` as the `[Sky]` clause leaves the outer `+100` with no
 stated source; accounting for it as the outer term leaves the `× 2` unexplained.
 
-**Our reading.** The `× 2` is the `[Sky]` clause, applied at pipeline stage 2 as an
+**Our reading.** The `× 2` is the `[Sky]` clause, applied at pipeline stage 3 as an
 ability-stated conditional multiplier, and the outer bucket is `(100 + 20 − 30)% = 90%`. We
 implement that, because it follows the formula's own structure — description-level modifiers
 live inside the bracket, effect-level ones outside — and because double-counting a single stated
@@ -347,7 +356,7 @@ term), it is a one-line content change: the ability declares both a `conditional
 a `Dmg Up` rule element. Nothing in the engine needs to change either way, which is why this
 ships rather than blocks.
 
-**Where.** Ch. 13 §13.3 stage 2.
+**Where.** Ch. 13 §13.3 stage 3.
 
 ---
 
