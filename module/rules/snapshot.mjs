@@ -60,7 +60,11 @@ export function snapshotUnit(actor, { token = null } = {}) {
     agility: sys.agility?.value ?? 0,
     luck: sys.luck?.value ?? 0,
     mov: sys.mov ?? 0,
-    range: sys.range ?? 1,
+    // The NUMBER of panels, not the `{panels, targets}` schema object. Every
+    // consumer compares it against a distance, and comparing a distance to an
+    // object is silently false rather than an error.
+    range: sys.range?.panels ?? (typeof sys.range === "number" ? sys.range : 1),
+    maxTargets: sys.range?.targets ?? 1,
     shield: sys.shield ?? 0,
 
     // `null` means the Sustainability clock does not exist for this unit
@@ -208,7 +212,10 @@ export function contributionsOf(actor) {
     id: item.id,
     name: item.name,
     rank: item.system?.rank ?? null,
-    active: item.system?.active ?? true,
+    // A mode's activeRules apply only while it is switched on. This defaulted
+    // to `true` while `active` was a field the DataModel silently dropped,
+    // which quietly applied every mode's active clauses at all times.
+    active: Boolean(item.system?.active),
     rules: item.system?.rules ?? [],
     passiveRules: item.system?.passiveRules ?? [],
     activeRules: item.system?.activeRules ?? [],

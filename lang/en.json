@@ -102,5 +102,17 @@
   "FGT.Targeting.Targets": "target(s)",
   "FGT.Targeting.Panels": "panel(s)",
   "FGT.Targeting.Legal": "✓ Legal — click to confirm",
-  "FGT.Targeting.Illegal": "✕ Illegal"
+  "FGT.Targeting.Illegal": "✕ Illegal",
+  "FGT.Sheet.NormalAttack": "Normal Attack",
+  "FGT.Sheet.Faction": "Faction",
+  "FGT.Sheet.FactionPlaceholder": "e.g. red",
+  "FGT.Sheet.NoFactionHint": "No faction set — this Unit is neutral to everyone, so nothing can target it and it can target nothing. Give every Unit on the board a faction id; matching ids are allies.",
+  "FGT.Ability.CannotDeactivate": "{name} cannot be switched off.",
+  "FGT.Mode.on": "ON",
+  "FGT.Mode.off": "OFF",
+  "FGT.Use.attack": "Attack — opens targeting",
+  "FGT.Use.mode": "Mode — click to toggle",
+  "FGT.Use.active": "Active skill",
+  "FGT.Use.passive": "Passive — always in effect",
+  "FGT.Targeting.NoFactions": "No legal targets: no Unit on this scene has a faction set, so every Unit is neutral to every other. Set a Faction on each Unit's sheet (matching ids are allies)."
 }

@@ -183,7 +183,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   async #unitPicker(options, hud, board) {
     const selectable = options.filter((o) => o.legal);
     if (selectable.length === 0) {
-      ui.notifications.warn(game.i18n.localize("FGT.Targeting.NoTargets"));
+      ui.notifications.warn(noTargetsReason(options, board));
       return null;
     }
     let focused = 0;
@@ -313,6 +313,30 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     this.#session = null;
     this.#graphics?.clear();
   }
+}
+
+/**
+ * Why are there no legal targets?
+ *
+ * "No legal targets" is true but useless, and it is the message a brand new
+ * world always gets: relations are resolved from `factionId`, a Unit with none
+ * is neutral to everyone, and a fresh import has none. Saying *that* turns a
+ * dead end into a two-minute fix.
+ *
+ * @param {object[]} options every placement, legal or not
+ * @param {object} board
+ * @returns {string}
+ */
+function noTargetsReason(options, board) {
+  const others = (board.units ?? []).filter((u) => u.kind !== "platform" && u.kind !== "structure");
+  if (others.length > 0 && others.every((u) => !u.factionId)) {
+    return game.i18n.localize("FGT.Targeting.NoFactions");
+  }
+  // Otherwise the resolver already said something specific; show the first.
+  const stated = options.find((o) => o.reasons.length > 0);
+  return stated
+    ? `${game.i18n.localize("FGT.Targeting.NoTargets")} ${stated.reasons[0]}`
+    : game.i18n.localize("FGT.Targeting.NoTargets");
 }
 
 /**
