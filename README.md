@@ -128,14 +128,14 @@ which is what makes the entire rules engine testable in plain Node.
 | Canvas targeting preview | Not started |
 | Turn HUD, budgets, Delay | Not started |
 
-**436 tests passing**, covering everything built so far. They pin behaviour to the
+**462 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
 ```
 npm install
-npm test                  # 436 unit + golden tests, no Foundry required
+npm test                  # 462 unit + golden tests, no Foundry required
 npm run lint              # includes the layer-boundary rule
 npm run validate:content  # every YAML parses, every ref resolves, every id exists
 npm run build             # compile packs and styles
@@ -172,9 +172,15 @@ In Foundry: **Configuration and Setup → Game Systems → Install System**, pas
 > seven-step effect pipeline, and rule elements on class skills reach the damage pipeline, the
 > checks and the actor's derived data.
 >
-> Not yet built: the canvas targeting preview (targets come from Foundry's own targeting), the
-> movement planner (moves are made by dragging tokens, so the move budget is not yet spent
-> automatically), and undo. Everything is also reachable from the console via `fgt.api`.
+> Clicking an ability opens the canvas targeting preview rather than reading Foundry's target
+> set: an area ability shows all four legal directions at once, a ranged one dims the panels
+> outside its Range, and a floating panel lists every unit that would be hit with the damage
+> range each would take — computed by running the real pipeline at its minimum and maximum
+> rolls, so the preview cannot disagree with the result.
+>
+> Not yet built: the movement planner (moves are made by dragging tokens, so the move budget is
+> not yet spent automatically) and undo. Everything is also reachable from the console via
+> `fgt.api`.
 
 ## Releasing
 
