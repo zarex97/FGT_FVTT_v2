@@ -14,7 +14,7 @@
 
 import { computeDamage } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { snapshotUnit, snapshotBoard } from "../rules/snapshot.mjs";
+import { unitSnapshot, boardSnapshot } from "./board.mjs";
 import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
 import { Rank } from "../domain/rank.mjs";
 import * as process from "./combat-process.mjs";
@@ -41,7 +41,7 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   if (!attacker) throw new Error(`FGT | Unknown attacker ${attackerId}`);
 
   const board = boardSnapshot();
-  const self = snapshotUnit(attacker);
+  const self = unitSnapshot(attacker);
   const ability = abilityId ? attacker.items.get(abilityId) : null;
 
   // The budget is checked before the targeting is resolved, so a player who
@@ -94,7 +94,7 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // exactly one possible outcome at every rung past step 2, so the whole ladder
   // collapses into a single prompt (Ch. 12 §12.3).
   const defender = game.actors.get(advanced.defenderId);
-  const collapse = defender ? process.laddersCollapse(snapshotUnit(defender)) : true;
+  const collapse = defender ? process.laddersCollapse(unitSnapshot(defender)) : true;
 
   await message.setFlag("fgt", "process", process.serialize(advanced));
   await message.setFlag("fgt", "collapse", collapse);
@@ -182,8 +182,8 @@ async function runAutomaticStep(state, message) {
  * @returns {Promise<object>}
  */
 async function rollEvade(state) {
-  const attacker = snapshotUnit(game.actors.get(state.attackerId));
-  const defender = snapshotUnit(game.actors.get(state.defenderId));
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  const defender = unitSnapshot(game.actors.get(state.defenderId));
   const roll = await new Roll("1d20").evaluate();
 
   // Everything the defender's own abilities have to say about Evade -- Mad
@@ -235,9 +235,9 @@ function evadeModifiers(state, attacker, defender) {
  */
 async function rollLuck(state) {
   const prompt = process.pendingPrompt(state);
-  const unit = snapshotUnit(game.actors.get(prompt.unitId));
+  const unit = unitSnapshot(game.actors.get(prompt.unitId));
   const opponentId = prompt.side === "attacker" ? state.defenderId : state.attackerId;
-  const opponent = snapshotUnit(game.actors.get(opponentId));
+  const opponent = unitSnapshot(game.actors.get(opponentId));
   const roll = await new Roll("1d20").evaluate();
 
   const plan = checkPlan(unit, "luck");
@@ -264,8 +264,8 @@ async function rollLuck(state) {
 async function applyDamage(state, message) {
   const attackerDoc = game.actors.get(state.attackerId);
   const defenderDoc = game.actors.get(state.defenderId);
-  const attacker = snapshotUnit(attackerDoc);
-  const defender = snapshotUnit(defenderDoc);
+  const attacker = unitSnapshot(attackerDoc);
+  const defender = unitSnapshot(defenderDoc);
   const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
 
   // The crit coin flip, then every roll the pipeline will consume — rolled
@@ -373,7 +373,7 @@ async function applyAbilityEffects(state, damageResult) {
   // this path -- negation is what matters here.
   if (damageResult.flags?.negatedBy) return [];
 
-  const defender = snapshotUnit(defenderDoc);
+  const defender = unitSnapshot(defenderDoc);
   const applied = [];
 
   for (const phase of ability.system?.phases ?? []) {
@@ -421,8 +421,8 @@ async function applyAbilityEffects(state, damageResult) {
  * @param {object} state
  */
 async function applyFacing(state) {
-  const attacker = snapshotUnit(game.actors.get(state.attackerId));
-  const defender = snapshotUnit(game.actors.get(state.defenderId));
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  const defender = unitSnapshot(game.actors.get(state.defenderId));
   const di = attacker.panel.i - defender.panel.i;
   const dj = attacker.panel.j - defender.panel.j;
   const facing = Math.abs(di) >= Math.abs(dj)
@@ -445,23 +445,6 @@ async function applyBatch(intents, source) {
     canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
     isGM: game.user.isGM,
     source,
-  });
-}
-
-/** @returns {object} */
-function boardSnapshot() {
-  return snapshotBoard({
-    scene: canvas?.scene,
-    actors: (canvas?.tokens?.placeables ?? []).map((t) => ({ actor: t.actor, token: t.document })),
-    settings: {
-      boardSize: game.settings.get("fgt", "boardSize"),
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-      round: game.combat?.round ?? 1,
-      tick: game.combat?.system?.globalTurn ?? 0,
-      phase: game.combat?.system?.phase ?? "day",
-      region: game.settings.get("fgt", "region") || null,
-      seed: game.combat?.system?.globalTurn ?? 0,
-    },
   });
 }
 

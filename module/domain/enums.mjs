@@ -21,6 +21,16 @@ export const SERVANT_CLASSES = Object.freeze([
   "ruler", "avenger", "alterEgo", "foreigner", "moonCancer", "pretender", "beast",
 ]);
 
+/**
+ * The faction id that means "belongs to nobody".
+ *
+ * A reserved id rather than `null`, because `null` is also what an *unconfigured*
+ * unit has, and the two must not be the same thing: a Civilian is neutral by
+ * design, whereas a Servant with no faction is a mistake that should be
+ * visible. @see docs/04-units.md §4.10
+ */
+export const NEUTRAL_FACTION = "neutral";
+
 /** Unit kinds. Maps 1:1 to Actor subtypes. @see docs/04-units.md §4.1 */
 export const UNIT_KINDS = Object.freeze([
   "servant", "master", "civilian", "summon", "platform", "structure",

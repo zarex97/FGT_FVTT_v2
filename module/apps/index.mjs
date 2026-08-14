@@ -119,22 +119,27 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
  * @returns {Promise<object|null>}
  */
 async function pickPlacement(actor, ability) {
-  const [{ pickTarget }, { targetSpecForAttack }, { snapshotUnit, snapshotBoard }, preview] =
+  const [{ pickTarget }, { targetSpecForAttack }, { unitSnapshot, boardSnapshot }, preview] =
     await Promise.all([
       import("./canvas/targeting-layer.mjs"),
       import("../engine/attack.mjs"),
-      import("../rules/snapshot.mjs"),
+      import("../engine/board.mjs"),
       import("../rules/preview.mjs"),
     ]);
 
   if (!canvas?.ready || !canvas.fgtTargeting) return legacyPlacement();
 
-  const caster = snapshotUnit(actor);
-  const board = snapshotBoard({
-    scene: canvas.scene,
-    actors: canvas.tokens.placeables.map((t) => ({ actor: t.actor, token: t.document })),
-    settings: { boardSize: game.settings.get("fgt", "boardSize") },
-  });
+  // The caster is snapshotted **with its token**: the preview and the
+  // resolution must agree, and a caster with no panel reaches nothing.
+  const caster = unitSnapshot(actor);
+  const board = boardSnapshot();
+
+  if (!caster.onBoard) {
+    ui.notifications.warn(
+      game.i18n.format("FGT.Targeting.CasterNotPlaced", { name: actor.name }),
+    );
+    return null;
+  }
 
   const spec = targetSpecForAttack(actor, ability);
   const isNP = ability?.type === "noblePhantasm";
@@ -192,7 +197,11 @@ function legacyPlacement() {
     return null;
   }
   const token = targets[0];
-  return { unitId: token.actor?.id, panel: { i: token.document.y, j: token.document.x } };
+  // A panel is a grid offset, and a TokenDocument's x/y are pixels. Passing the
+  // pixels through as `{i: y, j: x}` put the anchor hundreds of panels off the
+  // board, where it was silently clipped away by the bounds check.
+  const panel = canvas.grid.getOffset({ x: token.document.x, y: token.document.y });
+  return { unitId: token.actor?.id, panel: { i: panel.i, j: panel.j } };
 }
 
 export function registerSheets() {

@@ -15,6 +15,7 @@
 import * as budget from "../../engine/budget.mjs";
 import { remainingMovement, effectiveMov, segmentCheck } from "../../rules/movement.mjs";
 import { snapshotUnit } from "../../rules/snapshot.mjs";
+import { activeGrid } from "../../engine/board.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -160,7 +161,7 @@ function factionLabel(combat, factionId) {
 function factionUnits(factionId) {
   if (!factionId) return [];
   return (canvas?.tokens?.placeables ?? [])
-    .map((t) => (t.actor ? snapshotUnit(t.actor, { token: t.document }) : null))
+    .map((t) => (t.actor ? snapshotUnit(t.actor, { token: t.document, grid: activeGrid() }) : null))
     .filter((u) => u && u.factionId === factionId);
 }
 

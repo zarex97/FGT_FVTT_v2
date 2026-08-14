@@ -47,6 +47,7 @@
     input { width: 6ch; text-align: center; }
   }
 
+  &__faction,
   &__resources,
   &__parameters {
     display: flex;
@@ -64,6 +65,16 @@
     border-radius: 4px;
     white-space: pre-wrap;
   }
+}
+
+.fgt-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 auto;
+
+  span { font-size: 0.75rem; letter-spacing: 0.04em; opacity: 0.75; }
+  input { flex: 1 1 auto; }
 }
 
 .fgt-resource {
@@ -389,6 +400,31 @@
   &__name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   &__band { font-size: 0.7rem; opacity: 0.65; }
   &__damage { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  // Who the area caught and the rules dropped. Dimmed and struck through, so it
+  // reads as "considered and rejected" rather than as a second target list —
+  // and the reason is always on the row, never only in a tooltip.
+  &__excluded {
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgb(255 255 255 / 15%);
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+
+  &__excluded-head {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+  }
+
+  &__target--excluded {
+    display: block;
+
+    .fgt-preview__name { text-decoration: line-through; }
+  }
+
+  &__why { display: block; padding-left: 0.9rem; font-style: italic; opacity: 0.85; }
 
   &__warning { padding-top: 0.25rem; font-size: 0.75rem; }
   &__reason { padding-top: 0.25rem; font-size: 0.75rem; opacity: 0.9; }
