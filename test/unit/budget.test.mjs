@@ -105,11 +105,18 @@ describe("per-unit limits sit on top of the pools", () => {
       .toBe(false);
   });
 
-  it("refuses a second move unless Riding permits it", () => {
-    const moved = { turnState: { moved: true } };
-    expect(canConsume(emptyBudget(), servant("a", moved), "move").ok).toBe(false);
-    expect(canConsume(emptyBudget(), servant("a", { turnState: { moved: true, mayMoveAgain: true } }), "move").ok)
-      .toBe(true);
+  it("allows repeated moves before the attack, and refuses one after it", () => {
+    // MOV is the limit on how far, and `segmentCheck` measures it; the budget's
+    // only say is that Attacking fixes the Unit in place unless it has Riding.
+    const moved = { turnState: { moved: true, moveSegments: 3 } };
+    expect(canConsume(emptyBudget(), servant("a", moved), "move").ok).toBe(true);
+
+    const attacked = servant("a", { turnState: { moved: true, attacked: true } });
+    expect(canConsume(emptyBudget(), attacked, "move").ok).toBe(false);
+    expect(canConsume(emptyBudget(), attacked, "move").reason).toMatch(/attacked and cannot move/);
+
+    const rider = servant("a", { hasRiding: true, turnState: { moved: true, attacked: true } });
+    expect(canConsume(emptyBudget(), rider, "move").ok).toBe(true);
   });
 
   it("makes Riding Attack terminal for that unit's turn", () => {

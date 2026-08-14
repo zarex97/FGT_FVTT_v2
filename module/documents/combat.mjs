@@ -105,11 +105,19 @@ export class FGTCombat extends Combat {
    * @inheritdoc
    */
   _sortCombatants(a, b) {
-    const order = this.system?.turnOrder ?? [];
-    const ia = order.indexOf(a.system?.factionId ?? a.id);
-    const ib = order.indexOf(b.system?.factionId ?? b.id);
+    // `this` is NOT the Combat here. `setupTurns` sorts with
+    // `this.combatants.contents.sort(this._sortCombatants)` — the method is
+    // passed unbound, so `Array#sort` invokes it with no receiver and `this` is
+    // `undefined`. Core's own implementation never notices because it only ever
+    // touches `a` and `b`; reading `this.system` threw on every data
+    // preparation, which took `turns` with it and left the tracker empty.
+    //
+    // The combatants know their Combat, so the order comes from the parent.
+    const order = (a?.parent ?? b?.parent)?.system?.turnOrder ?? [];
+    const ia = order.indexOf(a?.system?.factionId ?? a?.id);
+    const ib = order.indexOf(b?.system?.factionId ?? b?.id);
     if (ia !== ib) return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib);
-    return (a.name ?? "").localeCompare(b.name ?? "");
+    return (a?.name ?? "").localeCompare(b?.name ?? "");
   }
 
   /**

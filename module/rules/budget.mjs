@@ -152,8 +152,12 @@ export function canConsume(budget, unit, action) {
   if (isAttack && state.attacked) {
     return { ok: false, reason: "this unit has already attacked this turn", pool: null, free: false };
   }
-  if (action === "move" && state.moved && !state.mayMoveAgain) {
-    return { ok: false, reason: "this unit has already moved this turn", pool: null, free: false };
+  // A Unit may Move as many times as its MOV allows, until it Attacks — the
+  // allowance is a distance, and `segmentCheck` is what measures it. The only
+  // thing the budget refuses is Moving *after* the Attack, which Riding alone
+  // permits. (The superseded rule was one Move per Turn.)
+  if (action === "move" && state.attacked && !unit?.hasRiding) {
+    return { ok: false, reason: "this unit has attacked and cannot move again", pool: null, free: false };
   }
   // Riding Attack is terminal: *"neither can it Move a second time after using
   // a Riding Attack"*.

@@ -26,8 +26,10 @@ const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
  * @property {Map<string, number>} reachable panel key → steps, stoppable panels only
  * @property {Map<string, number>} passable panel key → steps, including pass-through
  * @property {number} budget panels still available this turn
- * @property {number} segments how many segments have been used
- * @property {number} maxSegments 1 normally, 2 with Riding
+ * @property {number} segments how many separate drags have been made — MOV, not
+ *   this number, is what limits movement before the Attack
+ * @property {number} maxSegments movement *phases*: 1, or 2 with Riding, which
+ *   is one before the Attack and one after it
  */
 
 /**
@@ -151,16 +153,26 @@ export function validatePath(path, unit, board, { hasRiding = false } = {}) {
  * @param {boolean} hasRiding
  * @returns {string|null} the refusal, or `null` when it may move
  */
-export function segmentCheck(unit, hasRiding) {
+export function segmentCheck(unit, hasRiding = unit?.hasRiding ?? false) {
   const state = unit?.turnState ?? {};
   if (state.usedRidingAttack) return "Riding Attack ends this Unit's Turn; it cannot Move again.";
-  if (!state.moved) return null;
 
-  if (!hasRiding) return "This Unit has already Moved this Turn.";
-  // Riding grants the second segment only around an attack: "able to Move twice
-  // in one turn IF it Attacks in that turn (before and after the Attack)".
-  if (!state.attacked) return "Riding's second Move requires an Attack between the two segments.";
-  if ((state.moveSegments ?? 0) >= 2) return "This Unit has used both of Riding's Move segments.";
+  // MOV is the only limit before the Attack. A Unit may Move as many times as
+  // it likes, in as many separate drags as it likes, until the total reaches
+  // its MOV — the allowance is a distance, not a number of moves.
+  //
+  // The superseded reading was one Move per Turn, which made every second drag
+  // illegal and left "This Unit has already Moved this Turn" on the screen for
+  // the rest of the match.
+  if (remainingMovement(unit) <= 0) {
+    return `This Unit has spent all ${effectiveMov(unit)} panels of its MOV this Turn.`;
+  }
+
+  // Attacking is what fixes a Unit in place: *"once you Attack you hold that
+  // position"*. Riding is the exception, and its two segments — before the
+  // Attack and after it — share the one MOV allowance already checked above.
+  if (!state.attacked) return null;
+  if (!hasRiding) return "This Unit has Attacked; it cannot Move again this Turn.";
   return null;
 }
 
