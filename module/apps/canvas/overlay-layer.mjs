@@ -18,7 +18,7 @@
 
 import * as geo from "../../domain/geometry.mjs";
 import { zonStatus, masterOf } from "../../rules/zon.mjs";
-import { unitSnapshot, boardSnapshot } from "../../engine/board.mjs";
+import { unitSnapshot, currentBoard } from "../../engine/board.mjs";
 
 /** In ZON. */
 const OK = 0x44cc88;
@@ -80,7 +80,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
     this.#graphics.clear();
     if (!game.settings.get("fgt", "showOverlays")) return;
 
-    const board = boardSnapshot();
+    const board = currentBoard();
 
     for (const token of canvas.tokens?.controlled ?? []) {
       this.#drawZon(token, board);

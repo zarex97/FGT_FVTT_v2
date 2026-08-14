@@ -16,8 +16,7 @@
  */
 
 import { validatePath, remainingMovement, segmentCheck } from "../rules/movement.mjs";
-import { snapshotUnit } from "../rules/snapshot.mjs";
-import { unitSnapshot, boardSnapshot, activeGrid } from "./board.mjs";
+import { unitSnapshot, currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
@@ -54,8 +53,8 @@ function onPreMove(document, movement) {
   const actor = document.actor;
   if (!actor) return true;
 
-  const unit = snapshotUnit(actor, { token: document, grid: activeGrid() });
-  const board = boardFor(combat);
+  const unit = unitSnapshot(actor, document);
+  const board = boardSnapshot(combat);
   const hasRiding = hasSkill(actor, "riding");
 
   const path = pathOf(movement);
@@ -92,7 +91,7 @@ async function onMove(document, movement) {
   const actor = document.actor;
   if (!actor) return;
 
-  const unit = snapshotUnit(actor, { token: document, grid: activeGrid() });
+  const unit = unitSnapshot(actor, document);
   const spent = panelsMoved(movement);
   if (spent === 0) return;
 
@@ -151,11 +150,8 @@ function hasSkill(actor, slug) {
  * @param {object} combat
  * @returns {object}
  */
-function boardFor(combat) {
-  return boardSnapshot({
-    round: combat?.round ?? 1,
-    tick: combat?.system?.globalTurn ?? 0,
-  });
+function boardSnapshot(combat) {
+  return currentBoard({ round: combat?.round ?? 1, tick: combat?.system?.globalTurn ?? 0 });
 }
 
 /**

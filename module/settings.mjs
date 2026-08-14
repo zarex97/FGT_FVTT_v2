@@ -8,6 +8,8 @@
  * durations.
  */
 
+import { registerFactionMenu } from "./apps/faction-config.mjs";
+
 const RULE_SETTINGS = ["turnsPerRound", "difficulty", "activeSkillBudget", "boardSize"];
 
 export function registerSettings() {
@@ -38,6 +40,18 @@ export function registerSettings() {
   s("activeSkillBudget", { name: "FGT.Settings.ActiveSkillBudget", type: String, default: "move" });
   s("interruptTimeout", { name: "FGT.Settings.InterruptTimeout", type: Number, default: 45 });
   s("devMode", { name: "FGT.Settings.DevMode", type: Boolean, default: false });
+
+  // The faction roster. Edited through the menu below rather than a text box,
+  // because the ids in it are what every actor stores.
+  game.settings.register("fgt", "factions", {
+    scope: "world", config: false, type: Array, default: [],
+    // Re-render anything showing a faction: the sheets' selects and the
+    // roster editor itself. ApplicationV2 instances are not in `ui.windows`.
+    onChange: () => {
+      for (const app of foundry.applications.instances.values()) app.render?.({ force: false });
+    },
+  });
+  registerFactionMenu();
 
   s("diceFormulas", { config: false, type: Object, default: {} });
   s("schemaVersion", { config: false, type: String, default: "" });

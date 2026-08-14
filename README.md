@@ -4,8 +4,8 @@ A ground-up Foundry VTT **system** implementing *F/GT: Fate Grail Tactics*, a gr
 tactical wargame originally played in Tabletop Simulator, with **full rules automation**.
 
 This repository contains the **design documentation** and the **system implementation**. The
-rules engine is complete and tested, and a match is playable end to end through the interface:
-targeting, the reaction ladder, damage, effects, movement, the turn budget and Delay.
+rules engine is complete and tested, and attacks resolve end to end through the interface; the
+canvas targeting preview and the turn HUD are the next phase.
 
 **Current documentation version: `0.2.1`.** See [`CHANGELOG.md`](CHANGELOG.md) for what changed
 and why — including corrections in `0.2.0` and `0.2.1` that invalidate anything built against an
@@ -24,6 +24,7 @@ earlier version's Range geometry, Block rule, or crit-damage placement.
 | Understand the Foundry code architecture | [Part III — Foundry Architecture](docs/00-index.md#part-iii--foundry-architecture) |
 | See how a specific Servant gets automated | [Part IV — Case Studies](docs/00-index.md#part-iv--case-studies-and-reference) |
 | Know what changed since the last version | [`CHANGELOG.md`](CHANGELOG.md) |
+| See exactly what is built and what is not | [`docs/45-implementation-status.md`](docs/45-implementation-status.md) |
 | Just see the whole table of contents | [`docs/00-index.md`](docs/00-index.md) |
 
 ---
@@ -97,10 +98,10 @@ FGT_FVTT_v2/
 │   ├── data/              ← TypeDataModel schemas
 │   ├── documents/         ← Document subclasses
 │   ├── net/               ← the GM proxy socket and its typed operations
-│   └── apps/              ← ApplicationV2 sheets and chat cards
+│   └── apps/              ← sheets, chat cards, the turn HUD, the targeting canvas layer
 ├── packs/_source/         ← content as YAML; the packs themselves are build artefacts
 ├── tools/                 ← pack build, content validator, release stamping
-├── test/                  ← 555 unit and golden tests, no Foundry required
+├── test/                  ← 604 unit and golden tests, no Foundry required
 ├── templates/  styles/  lang/
 ```
 
@@ -125,26 +126,22 @@ which is what makes the entire rules engine testable in plain Node.
 | GM proxy socket | **Typed operations, request/response, timeouts, authorization** — done |
 | Chat cards and the damage explainer | **Done** — the card is the audit record |
 | Attack flow | **Sheet → target → reaction ladder → damage → card** — wired |
-| Canvas targeting preview | **Four modes, exclusion reasons, speculative damage** — done |
-| Turn HUD, budgets, Delay | **Done** — pools, compulsions, the End Turn gate, Delay |
+| Canvas targeting preview | **Done** — four modes, speculative damage range |
+| Turn HUD and action budgets | **Done** — pools, per-unit state, the compulsion gate |
+| Delay | **Done** — declared through the proxy, derived from the rolled order |
 | ZON and the board overlays | **Done** — derived, enforced, and drawn |
-| Undo | Not started |
+| Movement legality and the move budget | **Done** — the seven clauses, Riding's two segments |
+| Combat Process steps 4 and 6, AoE fan-out | **Stubbed** — see [Ch. 45](docs/45-implementation-status.md) |
+| Command Spells, auras, environment, platforms | Not started — see [Ch. 45](docs/45-implementation-status.md) |
 
-**555 tests passing**, covering everything built so far. They pin behaviour to the
+**604 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
-One kind of test was missing for a long time and is worth naming, because its absence cost more
-than any other: **nothing exercised the projection from Foundry's documents into the snapshot.**
-Every test built its snapshots by hand, with `{i, j}` panels and explicit factions — which is the
-right way to test the rules, and meant that five separate bugs in that projection sat behind a
-fully green suite while a normal attack between two adjacent Servants could not find a target.
-`test/unit/snapshot.test.mjs` drives it from simulated `TokenDocument`s instead.
-
 ```
 npm install
-npm test                  # 555 unit + golden tests, no Foundry required
+npm test                  # 604 unit + golden tests, no Foundry required
 npm run lint              # includes the layer-boundary rule
 npm run validate:content  # every YAML parses, every ref resolves, every id exists
 npm run build             # compile packs and styles
@@ -192,22 +189,35 @@ In Foundry: **Configuration and Setup → Game Systems → Install System**, pas
 > move budget is spent when it lands. Riding's two segments share one MOV allowance and the
 > second only opens once the unit has attacked.
 >
-> Nothing is dropped from a target list in silence. Every unit an area catches and a rule then
-> excludes carries the reason it was excluded — *"an ally, same faction as Heracles"*, *"a Master
-> protected by an adjacent Servant"*, *"concealed"* — and the preview shows it. Selecting a
-> Servant draws its Master's ZON ring, red when the Servant is standing outside it and about to
-> lose 5d10 for it.
->
-> Not yet built: undo. Everything is also reachable from the console via `fgt.api`.
+> Not yet built: undo, and the persistent zone overlays (ZON rings, threat ranges). Everything is
+> also reachable from the console via `fgt.api`.
 
 ## Releasing
 
-Releases are cut by CI. Tag a commit and push the tag:
+Releases are cut by CI, from **the commit the tag points at** — the workflow re-reads the
+repository at that commit, so anything it needs must be committed *before* tagging.
 
 ```
-git tag v0.1.0
-git push origin v0.1.0
+npm run check:release -- 0.2.1     # optional preflight
+npm run release:stamp -- 0.2.1 zarex97/FGT_FVTT_v2
+git commit -am "Release 0.2.1" && git push
+git tag v0.2.1 && git push origin v0.2.1
 ```
+
+The release notes are best-effort and **never block the build**: `tools/release-notes.mjs` uses
+this version's changelog section if there is one, otherwise the `## [Unreleased]` section,
+otherwise the commit subjects since the previous tag. A missing heading costs tidier notes and
+nothing else. Lint, content validation and the test suite *do* gate the release — the workflow
+runs all three itself rather than trusting that CI passed on the same commit.
+
+If a tag has already been pushed at a bad commit, move it rather than bumping the version:
+
+```
+git tag -d v0.2.1 && git push origin :refs/tags/v0.2.1   # delete, local and remote
+git tag v0.2.1 && git push origin v0.2.1                 # re-tag the fixed commit
+```
+
+Delete any hollow release GitHub left behind first, or the re-run will update it in place.
 
 [`.github/workflows/release.yml`](.github/workflows/release.yml) then lints, validates the
 content, runs the tests, builds the packs and styles, stamps the version and the **versioned**

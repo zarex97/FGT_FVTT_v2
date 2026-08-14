@@ -43,6 +43,7 @@ jobs:
         run: |
           npm run lint
           npm run validate:content
+          npm run check:templates
           npm test
 
       - name: Build packs and styles
@@ -56,9 +57,11 @@ jobs:
       - name: Verify the manifest still resolves after stamping
         run: node tools/check-manifest.mjs
 
-      # The whole changelog is several hundred lines and spans two version
-      # lines; the release notes get only this version's section.
-      - name: Extract the release notes
+      # Best notes available: this version's changelog section, else the
+      # Unreleased one, else the commit log. It cannot fail the build — a
+      # missing heading is a documentation chore, not a broken release, and the
+      # workflow reads the file at the tagged commit where it cannot be fixed.
+      - name: Write the release notes
         run: node tools/release-notes.mjs "${{ steps.version.outputs.version }}" RELEASE_NOTES.md
 
       - name: Assemble the package

@@ -7,6 +7,9 @@
  * targeting preview and the reaction prompts are a later phase.
  */
 
+import { classifyAbility } from "../rules/ability-use.mjs";
+import * as board from "../engine/board.mjs";
+
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2, ItemSheetV2 } = foundry.applications.sheets;
 const { DocumentSheetConfig } = foundry.applications.apps;
@@ -18,7 +21,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     window: { resizable: true },
     form: { submitOnChange: true },
     actions: {
+      normalAttack: FGTActorSheet.#onNormalAttack,
       useAbility: FGTActorSheet.#onUseAbility,
+      toggleMode: FGTActorSheet.#onToggleMode,
       editAbility: FGTActorSheet.#onEditAbility,
     },
   };
@@ -35,11 +40,55 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * @param {PointerEvent} _event
    * @param {HTMLElement} target
    */
+  static async #onNormalAttack(_event, _target) {
+    return FGTActorSheet.#declare(this.document, null);
+  }
+
+  /**
+   * Toggle a mode on or off.
+   *
+   * A mode is not an attack and needs no target: Mad Enhancement is switched
+   * on and stays on. Toggling it re-runs derived data, so its MOV, Range and
+   * damage contributions appear and disappear with the switch.
+   *
+   * @this {FGTActorSheet}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onToggleMode(_event, target) {
+    const id = target.closest("[data-item-id]")?.dataset.itemId;
+    const item = this.document.items.get(id);
+    if (!item) return;
+
+    if (item.system.active && item.system.cannotDeactivate) {
+      ui.notifications.warn(game.i18n.format("FGT.Ability.CannotDeactivate", { name: item.name }));
+      return;
+    }
+    await item.update({ "system.active": !item.system.active });
+  }
+
+  /**
+   * @this {FGTActorSheet}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
   static async #onUseAbility(_event, target) {
     const abilityId = target.closest("[data-item-id]")?.dataset.itemId ?? null;
     const ability = abilityId ? this.document.items.get(abilityId) : null;
+    return FGTActorSheet.#declare(this.document, ability);
+  }
 
-    const placement = await pickPlacement(this.document, ability);
+  /**
+   * Target and declare. Shared by the normal attack and every ability that is
+   * used rather than toggled.
+   *
+   * @param {object} actor
+   * @param {object|null} ability `null` for a normal attack
+   * @returns {Promise<void>}
+   */
+  static async #declare(actor, ability) {
+
+    const placement = await pickPlacement(actor, ability);
     // `null` is a cancellation, which is the most common outcome of opening a
     // targeting session and is not an error.
     if (!placement) return;
@@ -47,8 +96,8 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const { FGTSocket } = await import("../net/socket.mjs");
     try {
       await FGTSocket.request("resolveAttack", {
-        attackerId: this.document.id,
-        abilityId,
+        attackerId: actor.id,
+        abilityId: ability?.id ?? null,
         placement,
       });
     } catch (err) {
@@ -77,8 +126,16 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ...context,
       system: this.document.system,
       fields: this.document.system.schema.fields,
-      abilities: this.document.items.filter((i) => i.type === "ability"),
-      noblePhantasms: this.document.items.filter((i) => i.type === "noblePhantasm"),
+      // Classified, so the template renders a toggle for a mode, a button for
+      // an attack, and plain text for a passive -- rather than one button that
+      // opens an enemy targeting session for all three.
+      abilities: this.document.items.filter((i) => i.type === "ability").map(describe),
+      noblePhantasms: this.document.items.filter((i) => i.type === "noblePhantasm").map(describe),
+      // The roster is a GM-managed list, not free text: a typo'd faction makes
+      // two units enemies with nothing on screen to explain why.
+      factionChoices: board.choices(),
+      hasFactions: Object.keys(board.choices()).length > 0,
+      hasFaction: Boolean(this.document.system.factionId),
       isEditable: this.isEditable,
     };
   }
@@ -104,6 +161,25 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 }
 
 /**
+ * Present one ability to the sheet.
+ * @param {object} item
+ * @returns {object}
+ */
+function describe(item) {
+  const use = classifyAbility(item);
+  return {
+    id: item.id,
+    name: item.name,
+    rank: item.system.rank,
+    use,
+    // A mode that is on reads as on; `cannotDeactivate` explains a disabled
+    // toggle rather than leaving the player clicking a dead control.
+    active: Boolean(item.system.active),
+    locked: Boolean(item.system.active && item.system.cannotDeactivate),
+  };
+}
+
+/**
  * Run the canvas targeting session for an ability and return its placement.
  *
  * The preview resolves the **same spec** the resolution will, and computes its
@@ -119,7 +195,7 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
  * @returns {Promise<object|null>}
  */
 async function pickPlacement(actor, ability) {
-  const [{ pickTarget }, { targetSpecForAttack }, { unitSnapshot, boardSnapshot }, preview] =
+  const [{ pickTarget }, { targetSpecForAttack }, { currentBoard, unitSnapshot }, preview] =
     await Promise.all([
       import("./canvas/targeting-layer.mjs"),
       import("../engine/attack.mjs"),
@@ -129,17 +205,8 @@ async function pickPlacement(actor, ability) {
 
   if (!canvas?.ready || !canvas.fgtTargeting) return legacyPlacement();
 
-  // The caster is snapshotted **with its token**: the preview and the
-  // resolution must agree, and a caster with no panel reaches nothing.
   const caster = unitSnapshot(actor);
-  const board = boardSnapshot();
-
-  if (!caster.onBoard) {
-    ui.notifications.warn(
-      game.i18n.format("FGT.Targeting.CasterNotPlaced", { name: actor.name }),
-    );
-    return null;
-  }
+  const board = currentBoard();
 
   const spec = targetSpecForAttack(actor, ability);
   const isNP = ability?.type === "noblePhantasm";
@@ -197,11 +264,7 @@ function legacyPlacement() {
     return null;
   }
   const token = targets[0];
-  // A panel is a grid offset, and a TokenDocument's x/y are pixels. Passing the
-  // pixels through as `{i: y, j: x}` put the anchor hundreds of panels off the
-  // board, where it was silently clipped away by the bounds check.
-  const panel = canvas.grid.getOffset({ x: token.document.x, y: token.document.y });
-  return { unitId: token.actor?.id, panel: { i: panel.i, j: panel.j } };
+  return { unitId: token.actor?.id, panel: { i: token.document.y, j: token.document.x } };
 }
 
 export function registerSheets() {

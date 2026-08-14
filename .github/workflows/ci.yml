@@ -25,6 +25,11 @@ jobs:
       - name: Validate content
         run: npm run validate:content
 
+      # Template defects are invisible to ESLint and surface as a stack trace
+      # inside Foundry at render time -- the slowest feedback loop we have.
+      - name: Check templates
+        run: npm run check:templates
+
       - name: Unit and golden tests
         run: npm test
 

@@ -34,74 +34,148 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
-**The attack that could not find a target.** Two Servants placed side by side, a normal attack
-declared, and the answer was *"No legal targets for this ability. No legal targets in the
-selected area."* Five independent defects, each sufficient on its own, and none of them visible
-to the 492 tests — because every one of those tests hands the rules layer a snapshot it built by
-hand, and all five lived in the projection *from* Foundry's documents into that snapshot.
-
-### Fixed
-
-- **A `TokenDocument`'s `x`/`y` are pixels, not grid offsets.** `snapshotUnit` read them as
-  `{i: doc.y, j: doc.x}`, so a unit standing on panel `(6,6)` was projected to panel `(600,600)`
-  — off every board, where the bounds check silently deleted it from every shape. `panelOf`
-  converts through the grid, which the token's own scene supplies when the caller does not.
-- **The caster was projected without its token** at both call sites, and `actor.token` is only
-  populated for *unlinked* token actors — so every ordinary linked Servant attacked from
-  nowhere. `module/engine/board.mjs` is now the single place that projects the live scene, and
-  every call site goes through it. An unplaced unit reports `panel: null` and the resolver says
-  so, instead of measuring from the corner of the map.
-- **`system.range` is a `{panels, targets}` SchemaField** and was passed through whole, so
-  `caster.range` was an object compared against integers in the anchor check.
-- **Board bounds were pinned to the `boardSize` setting**, so on a scene larger than the setting
-  every unit past the last row was clipped out of every shape and became untargetable. The scene
-  answers when it can; the setting is the fallback.
-- **The turn HUD, the movement hooks and the scheduler** all built their board snapshots
-  independently and are now routed through the same helper.
-
-### Corrected
-
-- **`relation()` treated a null faction as *neutral*.** The superseded reading was
-  `if (unit.kind === "civilian" || unit.faction === null) return "neutral"`, which made two units
-  nobody had assigned a faction to neutral *to each other* — so no ability could name either as
-  an enemy, and a freshly placed board was unplayable in silence. D4.10 specifies something
-  different, and it is now implemented as written: `neutral` is a faction a unit is **in**
-  (`NEUTRAL_FACTION`, and Civilians by kind), while `null` means *unaffiliated* and falls through
-  to `enemy`. Token disposition stands in for an unset faction — except `HOSTILE`, which is
-  Foundry's default for every new token and therefore carries no signal.
-
 ### Added
 
-- **Exclusion reasons.** `ResolvedTargets.excluded` records, for every unit an area caught and a
-  filter then dropped, the reason it was dropped — captured where the decision is made rather
-  than reconstructed afterwards. The preview HUD renders them as struck-through rows, which is
-  the layout §28.6 has specified since it was written; the "no legal targets" error names the
-  first exclusion instead of stating only that there were none; and a targeting session with
-  nothing to offer reports the resolver's reasons rather than discarding them. Adapted from the
-  area-targeting flow in `isaacsHBPF2e`, whose review dialog lists every rejected token with its
-  reason *"so a target going missing is never a mystery the caster has to debug mid-turn"*.
-- **A Faction field on the unit sheet.** `factionId` is what every targeting filter compares and
-  it had no UI at all.
-- **`game.user.targets` mirroring** (D28.8) — written after a resolution, never read.
-- **The controls are announced** when the canvas is taken over for targeting.
+- **Exclusion reasons in the targeting resolver.** `ResolvedTargets.excluded` records, for every
+  unit an area caught and a filter then dropped, the reason it was dropped — captured where the
+  decision is made rather than reconstructed afterwards. The preview HUD renders them as
+  struck-through rows, which is the layout §28.6 has specified since it was written; the
+  "no legal targets" error names the first exclusion instead of stating only that there were
+  none; and a session with nothing to offer lists the resolver's distinct reasons rather than
+  discarding them, after the roster check that already told a factionless world what to do.
+  Adapted from the area-targeting flow in `isaacsHBPF2e`, whose review dialog lists every
+  rejected token with its reason *"so a target going missing is never a mystery the caster has
+  to debug mid-turn"*.
 - **Delay** (§25.3). The field existed on the combatant schema and nothing read it.
   `computeTurnOrder` derives the played order from the rolled one rather than mutating it, so a
   delay cannot compound; it reorders only the factions that have not yet acted; and delays apply
-  in declaration order, so two factions each delaying one place past each other end up where they
-  began. Declared through the GM proxy, with the order shown in the HUD.
+  in declaration order, so two factions each delaying one place past each other end up where
+  they began. Declared through the GM proxy, with the resulting order shown in the HUD.
 - **ZON** (§6.9, §16.3). `unit.outsideZon` had two consumers — pipeline stage 9's 5d10 reduction
   and the `requiresZon` limit gating every Noble Phantasm — and no producer, so both rules had
   always been inert. `rules/zon.mjs` derives it; because the zone belongs to the Master–Servant
   *pair*, `snapshotBoard` annotates once every unit exists and the attack flow takes its
-  combatants from the board rather than re-projecting them. Both reference-set exceptions are
-  modelled: Semiramis's exemption, and the Dioscuri's `any`-across-twins test. Content declares
-  its own bonuses through a new `ZonBonus` rule element.
+  combatants from the board through `unitFrom` rather than re-projecting them. The class split
+  follows §6.9's reading, with a max-not-sum bonus channel shared with Independent Action, from
+  a config table rather than arithmetic because that reading is flagged for an authorial ruling.
+  Both reference-set exceptions are modelled: Semiramis's exemption and the Dioscuri's
+  `any`-across-twins test. Content declares its own bonuses through a new `ZonBonus` element.
 - **The persistent overlay layer** (§28.9): the ZON ring around a selected Servant's Master, red
-  when the Servant is outside it; an enemy's threat range on hover; and a Master's protection
-  radius, drawn only while a Servant is actually standing in it.
-- **`test/unit/snapshot.test.mjs`** and **`test/unit/zon.test.mjs`** — 63 tests, of which the
-  first set drives the projection from simulated `TokenDocument`s and pushes the result through
-  the real resolver. That gap is why five bugs sat behind a green suite.
+  when the Servant is outside it; an enemy's threat range on hover, in the clipped-corner
+  octagon their attack will actually use; and a Master's protection radius, drawn only while a
+  Servant is standing in it, because the rule is conditional.
+- **`game.user.targets` mirroring** (D28.8) — written after a resolution, never read.
+- **The targeting controls are announced** when the canvas is taken over.
+- **`test/unit/zon.test.mjs`** and **`test/unit/targeting-boundary.test.mjs`** — 35 tests
+  covering the ZON derivation, both of its consumers, and every exclusion reason.
+
+### Fixed
+
+- **Board bounds were pinned to the `boardSize` setting**, so on a scene larger than the setting
+  every unit past the last row was clipped out of every shape and became untargetable, silently.
+  The scene's own dimensions answer when it has them; the setting is the fallback.
+- **The preview attacked with the wrong stat.** `normalAttack.component` was missing from the
+  unit snapshot, so a MAG attacker was previewed as a STR one.
+
+- **No edit on either sheet was ever saved.** Both templates had a `<form>` as their root
+  element. ApplicationV2 renders a document sheet's frame **as** the form (`tag: "form"`), and a
+  part's HTML is parsed detached — so the inner `<form>` really was created, every input's form
+  owner was the inner form, and `FormDataExtended(outerForm)` collected nothing. The change event
+  bubbled, the submit ran, and it submitted an empty object. Both roots are now `<div>`.
+  This is why typing a faction did nothing; it is also why typing a Health value did nothing.
+- **`alliances` was never passed to any board snapshot.** Four call sites each built their own
+  snapshot and not one of them included it, so `relationOf` saw an empty map and every faction
+  was an island. There is now one board builder, `engine/board.mjs#currentBoard`, and it fills in
+  the alliance graph from the roster.
+
+- **Every attack reported its target out of range.** Two position bugs compounding:
+  - **`snapshot.panel` read a token's `x`/`y` as grid offsets. They are pixels.** Two tokens
+    standing next to each other were projected a hundred panels apart, so nothing was ever in
+    range of anything. Positions now come from `getOccupiedGridSpaceOffsets`, which also gives a
+    multi-panel unit its whole footprint.
+  - **Most callers passed no token at all.** `snapshotUnit` is layer 2 and cannot look one up —
+    the canvas is a global — so `snapshotUnit(attacker)` placed the attacker at `{0, 0}` while
+    the defender stood wherever it actually was. `engine/board.mjs#unitSnapshot` resolves the
+    token and the panel first, and every call site in the engine and the interface now uses it.
+- **The faction editor crashed on open.** `{{selectOptions players …}}` sat inside
+  `{{#each factions}}`, where a bare name resolves against the **item** rather than the template
+  context — so the helper received `undefined` and threw. Fixed with `@root.players`, and the
+  class of defect is now caught statically.
+
+### Added
+
+- **`tools/check-templates.mjs`** — static checks over `templates/`, wired into CI and
+  `npm run check:templates`. Template defects are invisible to ESLint and to every other test,
+  and surface as a stack trace inside Foundry at render time; two have already shipped. It
+  catches both: a helper Foundry v14 does not register (`array`, `upper`), and a bare context
+  name passed to a helper that throws on `undefined` from inside an `{{#each}}` — tracking block
+  params so `{{#each xs as |x|}}{{selectOptions x.choices}}{{/each}}` is correctly left alone.
+- **A GM-managed faction roster.** Settings → F/GT → **Manage Factions**: create a faction, name
+  and colour it, assign a player to it, and tick which other factions it is allied with. Unit
+  sheets now pick from that list with a `<select>` instead of accepting free text — two units
+  whose faction strings differed by a typo were enemies, silently, with nothing on screen to
+  explain it.
+  - Ids are **generated from the name and never change**, so renaming a faction does not orphan
+    its units.
+  - Alliances are stored per faction but **normalized to be symmetric and reflexive** on read: a
+    roster where red allies blue but blue does not ally red is a half-finished edit, and the safe
+    reading of one is where nobody is surprised by an attack from an ally.
+  - Deleting a faction says how many units it will leave unaligned before it does it.
+
+---
+
+## [0.2.1] — 2026-08-14
+
+### Fixed
+
+- **Nothing on a Servant sheet could be used.** Three separate faults, each of which alone was
+  enough to make the system untestable:
+  - **There was no Normal Attack button.** `resolveAttack` had always accepted `abilityId: null`;
+    nothing in the UI ever called it. The sheet now has one.
+  - **Every ability was treated as an attack.** The targeting default handed a single-enemy spec
+    to anything with no declaration of its own, so clicking a class skill — Mad Enhancement,
+    Divinity — opened an enemy targeting session and then reported no legal targets.
+    `classifyAbility` now separates the four kinds: an attack opens targeting, a **mode** toggles,
+    an active skill resolves against its own spec, and a **passive is not a button at all**.
+  - **The DataModel was silently discarding the fields that distinguish them.** `isMode`,
+    `active`, `cannotDeactivate`, `slug`, `isAttackSkill` and `isSpell` were authored in YAML and
+    compiled into the packs, but the schema never declared them, so Foundry dropped every one on
+    load. A mode was indistinguishable from an attack, `system.active` was permanently
+    `undefined`, and `hasSkill(actor, "riding")` could only ever match on the display name.
+- **A Unit with no faction is neutral to everyone**, which is correct — but the sheet had no
+  faction field, so a freshly imported Servant could never be given one and nothing on the board
+  could target anything. The sheet now has a Faction input with an inline explanation, and
+  "No legal targets" now names this cause when it is the cause.
+- **`snapshot.range` projected the `{panels, targets}` schema object** where every consumer
+  compares it against a distance. Comparing a number to an object is silently `false`, so any
+  range check that fell back to the caster's own Range failed rather than erroring.
+- **Riding's Active MOV Up applied at all times.** With `system.active` undefined, the collector's
+  `?? true` fallback treated every mode as switched on.
+
+### Added
+
+- **[Chapter 45 — Implementation Status and Completion Plan](docs/45-implementation-status.md)**
+  — an audit of all 44 specification chapters against the code, and a phased plan to finish it.
+  It distinguishes **missing** from **stubbed** from **collected but unread**, because the last
+  two resolve silently and look like they worked. Findings worth naming here:
+  - The Combat Process runs three of its six steps; the **Injury Roll**, the **Counter** and the
+    **AoE fan-out** are stubs — an area attack on seven units currently damages one of them.
+  - `scheduler.fireEvent` reads `handler.intents`, which the `OnEvent` executor never writes, so
+    every event handler contributes a log line and nothing else. Battle Continuation's revive is
+    inert.
+  - **`Aura` applies to the wrong unit**: it writes a modifier carrying `radius` and `relations`
+    into its own owner's bag, and the pipeline ignores both fields.
+  - **ZON is checked in two places and computed in none** — `outsideZon` and `zonDistance` are
+    projected from actor fields no code writes.
+
+### Changed
+
+- **The changelog no longer gates a release.** `tools/release-notes.mjs` used to exit non-zero
+  when it found no `## [x.y.z]` section, which made a heading a release blocker: the workflow
+  reads the file at the tagged commit, a tag cannot be edited, so the fix required deleting and
+  re-pushing the tag. It now falls back to the `## [Unreleased]` section, then to the commit
+  subjects since the previous tag, then to a one-line placeholder — and never fails. The build
+  still fails on lint, content and test failures; it no longer fails on prose.
 
 ---
 
@@ -646,4 +720,6 @@ registry), D (twelve Servant data sheets), E (event reference).
 
 ---
 
+[0.2.1]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.1
+[0.2.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.0
 [0.1.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.1.0

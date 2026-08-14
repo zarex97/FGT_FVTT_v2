@@ -15,6 +15,24 @@ function abilityCommon() {
     source: new fields.StringField({ required: false, nullable: true, initial: null }),
     rank: new RankField(),
 
+    // A stable machine name, independent of the display name. `hasSkill(actor,
+    // "riding")` matched on the localized name before this existed, which meant
+    // renaming a skill silently disabled the rule that keyed on it.
+    slug: new fields.StringField({ required: false, blank: true }),
+
+    // How the ability is used. A DataModel drops fields it does not declare, so
+    // every one of these was authored in YAML, compiled into the pack, and then
+    // discarded on load -- which is why a mode was indistinguishable from an
+    // attack and `system.active` was always undefined.
+    isMode: new fields.BooleanField({ initial: false }),
+    isAttackSkill: new fields.BooleanField({ initial: false }),
+    isSpell: new fields.BooleanField({ initial: false }),
+
+    /** A mode's current state. Meaningless unless `isMode`. */
+    active: new fields.BooleanField({ initial: false }),
+    /** Heracles cannot switch Mad Enhancement off. */
+    cannotDeactivate: new fields.BooleanField({ initial: false }),
+
     cooldown: new fields.SchemaField({
       max: new TickField(),
       remaining: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
