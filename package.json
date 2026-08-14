@@ -1,8 +1,9 @@
 {
   "name": "fgt-fvtt",
   "version": "0.0.1",
-  "description": "Fate/Grail Tactics — a Foundry VTT v14 system with full rules automation",
+  "description": "Fate/Grail Tactics \u2014 a Foundry VTT v14 system with full rules automation",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=20"
