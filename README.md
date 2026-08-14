@@ -24,6 +24,7 @@ earlier version's Range geometry, Block rule, or crit-damage placement.
 | Understand the Foundry code architecture | [Part III — Foundry Architecture](docs/00-index.md#part-iii--foundry-architecture) |
 | See how a specific Servant gets automated | [Part IV — Case Studies](docs/00-index.md#part-iv--case-studies-and-reference) |
 | Know what changed since the last version | [`CHANGELOG.md`](CHANGELOG.md) |
+| See exactly what is built and what is not | [`docs/45-implementation-status.md`](docs/45-implementation-status.md) |
 | Just see the whole table of contents | [`docs/00-index.md`](docs/00-index.md) |
 
 ---
@@ -97,7 +98,7 @@ FGT_FVTT_v2/
 │   ├── data/              ← TypeDataModel schemas
 │   ├── documents/         ← Document subclasses
 │   ├── net/               ← the GM proxy socket and its typed operations
-│   └── apps/              ← ApplicationV2 sheets and chat cards
+│   └── apps/              ← sheets, chat cards, the turn HUD, the targeting canvas layer
 ├── packs/_source/         ← content as YAML; the packs themselves are build artefacts
 ├── tools/                 ← pack build, content validator, release stamping
 ├── test/                  ← 324 unit and golden tests, no Foundry required
@@ -125,17 +126,20 @@ which is what makes the entire rules engine testable in plain Node.
 | GM proxy socket | **Typed operations, request/response, timeouts, authorization** — done |
 | Chat cards and the damage explainer | **Done** — the card is the audit record |
 | Attack flow | **Sheet → target → reaction ladder → damage → card** — wired |
-| Canvas targeting preview | Not started |
-| Turn HUD, budgets, Delay | Not started |
+| Canvas targeting preview | **Done** — four modes, speculative damage range |
+| Turn HUD and action budgets | **Done** — pools, per-unit state, the compulsion gate |
+| Movement legality and the move budget | **Done** — the seven clauses, Riding's two segments |
+| Combat Process steps 4 and 6, AoE fan-out | **Stubbed** — see [Ch. 45](docs/45-implementation-status.md) |
+| Command Spells, auras, environment, platforms | Not started — see [Ch. 45](docs/45-implementation-status.md) |
 
-**492 tests passing**, covering everything built so far. They pin behaviour to the
+**505 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
 ```
 npm install
-npm test                  # 492 unit + golden tests, no Foundry required
+npm test                  # 505 unit + golden tests, no Foundry required
 npm run lint              # includes the layer-boundary rule
 npm run validate:content  # every YAML parses, every ref resolves, every id exists
 npm run build             # compile packs and styles
