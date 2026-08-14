@@ -1,7 +1,7 @@
 {
   "name": "fgt-fvtt",
   "version": "0.0.1",
-  "description": "Fate/Grail Tactics \u2014 a Foundry VTT v14 system with full rules automation",
+  "description": "Fate/Grail Tactics — a Foundry VTT v14 system with full rules automation",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -20,6 +20,7 @@
     "build:styles": "sass styles/src/fgt.scss styles/fgt.css --no-source-map",
     "watch:styles": "sass --watch styles/src/fgt.scss styles/fgt.css",
     "check:manifest": "node tools/check-manifest.mjs",
+    "check:release": "node tools/check-release.mjs",
     "release:stamp": "node tools/release.mjs",
     "build": "npm run build:packs && npm run build:styles"
   },
