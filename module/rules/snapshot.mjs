@@ -32,13 +32,16 @@ import { annotateZon } from "./zon.mjs";
  * @param {object} actor an `FGTActor`
  * @param {object} [opts]
  * @param {object} [opts.token] the placed token, for position and facing
+ * @param {number|null} [opts.tick] the current ◈ tick. Turn state stamped with
+ *   an earlier one is stale and projects blank — see {@link turnStateAt}.
  * @returns {UnitSnapshot}
  */
-export function snapshotUnit(actor, { token = null, panel = null } = {}) {
+export function snapshotUnit(actor, { token = null, panel = null, tick = null } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
   const contributions = contributionsOf(actor);
   const footprint = gridFootprint(doc, panel);
+  const turnState = turnStateAt(sys.turnState, tick);
 
   return {
     id: actor.id,
@@ -129,17 +132,45 @@ export function snapshotUnit(actor, { token = null, panel = null } = {}) {
     zones: [...(sys.zones ?? [])],
     concealed: Boolean(sys.concealed),
     canAct: sys.canAct !== false,
-    acted: Boolean(sys.turnState?.acted),
-    turnState: {
-      acted: Boolean(sys.turnState?.acted),
-      moved: Boolean(sys.turnState?.moved),
-      attacked: Boolean(sys.turnState?.attacked),
-      movedPanels: sys.turnState?.movedPanels ?? 0,
-      moveSegments: sys.turnState?.moveSegments ?? 0,
-      usedActiveSkill: Boolean(sys.turnState?.usedActiveSkill),
-      mayMoveAgain: Boolean(sys.turnState?.mayMoveAgain),
-      usedRidingAttack: Boolean(sys.turnState?.usedRidingAttack),
-    },
+    acted: turnState.acted,
+    turnState,
+  };
+}
+
+/**
+ * A unit's turn state, or a blank one when it belongs to an earlier tick.
+ *
+ * The turn state is per-turn by definition, so state written during tick 4 says
+ * nothing about tick 5. Deciding that on **read** is what makes the reset
+ * reliable: the previous design cleared it by writing a blank state at each
+ * turn boundary, and a boundary hook that did not fire left a Unit permanently
+ * out of movement with nothing to explain it. A stale stamp cannot fail in that
+ * direction — the worst it does is forget something a Unit had already done.
+ *
+ * `tick: null` on the caller's side means "do not apply the rule" — used when
+ * no combat is running and there are no ticks to be stale against.
+ *
+ * @param {object} raw `system.turnState`
+ * @param {number|null} tick the current ◈ tick
+ * @returns {object} the projected turn state
+ */
+export function turnStateAt(raw, tick) {
+  const blank = {
+    tick, acted: false, moved: false, attacked: false, movedPanels: 0,
+    moveSegments: 0, usedActiveSkill: false, mayMoveAgain: false, usedRidingAttack: false,
+  };
+  if (tick !== null && (raw?.tick ?? null) !== tick) return blank;
+
+  return {
+    tick: raw?.tick ?? null,
+    acted: Boolean(raw?.acted),
+    moved: Boolean(raw?.moved),
+    attacked: Boolean(raw?.attacked),
+    movedPanels: raw?.movedPanels ?? 0,
+    moveSegments: raw?.moveSegments ?? 0,
+    usedActiveSkill: Boolean(raw?.usedActiveSkill),
+    mayMoveAgain: Boolean(raw?.mayMoveAgain),
+    usedRidingAttack: Boolean(raw?.usedRidingAttack),
   };
 }
 
@@ -155,7 +186,8 @@ export function snapshotUnit(actor, { token = null, panel = null } = {}) {
 export function snapshotBoard({ scene, actors, settings = {} }) {
   // A caller that has a canvas resolves each unit's panel first and passes the
   // finished snapshot; anything else is projected here.
-  const units = actors.map((a) => a.snapshot ?? snapshotUnit(a.actor ?? a, { token: a.token }));
+  const units = actors.map((a) => a.snapshot
+    ?? snapshotUnit(a.actor ?? a, { token: a.token, tick: settings.tickForTurnState ?? null }));
   const board = {
     bounds: boundsFor(scene, settings),
     units,
