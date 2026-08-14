@@ -167,25 +167,40 @@ describe("validatePath", () => {
   });
 });
 
-describe("Riding's two segments", () => {
-  it("refuses a second move without Riding", () => {
-    expect(segmentCheck(mover({ turnState: { moved: true } }), false))
-      .toMatch(/already Moved this Turn/);
-  });
-
-  it("refuses Riding's second move before the attack", () => {
-    expect(segmentCheck(mover({ turnState: { moved: true, attacked: false } }), true))
-      .toMatch(/requires an Attack between/);
-  });
-
-  it("allows Riding's second move after the attack", () => {
-    expect(segmentCheck(mover({ turnState: { moved: true, attacked: true, moveSegments: 1 } }), true))
+describe("moving repeatedly, and what stops it", () => {
+  it("allows a second move before the attack — MOV is the only limit", () => {
+    // The rule is a *distance*, not a count: a Unit may Move as many times as
+    // its MOV allows. The superseded reading was one Move per Turn, which left
+    // "This Unit has already Moved this Turn" on screen for the rest of the
+    // match.
+    expect(segmentCheck(mover({ mov: 6, turnState: { moved: true, movedPanels: 2 } }), false))
       .toBeNull();
   });
 
-  it("refuses a third segment", () => {
-    expect(segmentCheck(mover({ turnState: { moved: true, attacked: true, moveSegments: 2 } }), true))
-      .toMatch(/both of Riding's Move segments/);
+  it("allows a third and fourth move while the allowance lasts", () => {
+    const walker = mover({ mov: 6, turnState: { moved: true, movedPanels: 5, moveSegments: 4 } });
+    expect(segmentCheck(walker, false)).toBeNull();
+  });
+
+  it("refuses a move once the whole MOV has been spent", () => {
+    expect(segmentCheck(mover({ mov: 4, turnState: { moved: true, movedPanels: 4 } }), false))
+      .toMatch(/spent all 4 panels/);
+  });
+
+  it("fixes a Unit in place once it has Attacked", () => {
+    expect(segmentCheck(mover({ mov: 6, turnState: { attacked: true, movedPanels: 1 } }), false))
+      .toMatch(/has Attacked; it cannot Move again/);
+  });
+
+  it("lets Riding move after the attack", () => {
+    expect(segmentCheck(mover({ mov: 6, turnState: { attacked: true, movedPanels: 1 } }), true))
+      .toBeNull();
+  });
+
+  it("reads Riding off the snapshot when it is not passed", () => {
+    const rider = mover({ mov: 6, hasRiding: true, turnState: { attacked: true, movedPanels: 1 } });
+    expect(segmentCheck(rider)).toBeNull();
+    expect(segmentCheck({ ...rider, hasRiding: false })).toMatch(/cannot Move again/);
   });
 
   it("makes Riding Attack terminal", () => {
@@ -193,7 +208,7 @@ describe("Riding's two segments", () => {
       .toMatch(/ends this Unit's Turn/);
   });
 
-  it("caps both segments against one MOV allowance", () => {
+  it("caps Riding's move after the attack against the same MOV allowance", () => {
     // MOV 6, 4 already walked before the attack: 2 left, not another 6.
     const rider = mover({ mov: 6, turnState: { moved: true, attacked: true, movedPanels: 4, moveSegments: 1 } });
     expect(remainingMovement(rider)).toBe(2);

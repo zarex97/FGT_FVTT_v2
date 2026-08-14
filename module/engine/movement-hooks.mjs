@@ -74,10 +74,9 @@ function onPreMove(document, movement) {
   }
 
   const board = boardSnapshot(combat);
-  const hasRiding = hasSkill(actor, "riding");
 
   const path = pathOf(movement);
-  const verdict = validatePath(path, unit, board, { hasRiding });
+  const verdict = validatePath(path, unit, board, { hasRiding: unit.hasRiding });
   if (!verdict.ok) {
     ui.notifications.warn(`FGT | ${verdict.reasons[0]}`);
     return false;
@@ -123,7 +122,7 @@ async function onMove(document, movement) {
       moveSegments: (state.moveSegments ?? 0) + 1,
       // Riding's second segment opens once the unit has attacked; recomputing
       // it here keeps the flag honest whichever order the turn happened in.
-      mayMoveAgain: hasSkill(actor, "riding") && Boolean(state.attacked),
+      mayMoveAgain: unit.hasRiding && Boolean(state.attacked),
     })],
     { io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "movement" },
   );
@@ -157,15 +156,6 @@ function panelsMoved(movement) {
 }
 
 /**
- * @param {object} actor
- * @param {string} slug
- * @returns {boolean}
- */
-function hasSkill(actor, slug) {
-  return actor.items.some((i) => i.system?.slug === slug || i.name?.toLowerCase() === slug);
-}
-
-/**
  * @param {object} combat
  * @returns {object}
  */
@@ -182,8 +172,5 @@ function boardSnapshot(combat) {
  */
 export function movementAllowance(actor) {
   const unit = unitSnapshot(actor);
-  return {
-    panels: remainingMovement(unit),
-    blocked: segmentCheck(unit, hasSkill(actor, "riding")),
-  };
+  return { panels: remainingMovement(unit), blocked: segmentCheck(unit) };
 }
