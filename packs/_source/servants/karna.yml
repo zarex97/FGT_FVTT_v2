@@ -1,0 +1,34 @@
+# packs/_source/servants/karna.yml
+# Discussed: docs/36-case-remaining.md §36.1 · data sheet: docs/D-servant-data-sheets.md §D.8
+#
+# Karna is the practical benchmark for SC-6 ("author a Servant in under an hour"):
+# 13 abilities and 4 Noble Phantasms, the most of the original twelve.
+schema: 1
+id: karna
+name: Karna
+type: servant
+
+trueName: Karna
+servantClasses: [lancer]
+alignment: { order: lawful, morality: good }
+region: [india]
+attributes: [male, servant, sky, humanoid, divine]
+
+parameters: { str: B, end: C, agi: A, mag: B, luc: D }
+baseHealth: 1000
+mov: 7
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 125, mag: 175 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: class-magic-resistance, rank: C }
+  - { ref: class-riding, rank: A, cooldown: "3◈-⅓◈" }
+  - { ref: divinity, rank: A }
+  - { ref: karna-brahmastra-kundala }
+
+notes: |
+  Range 2 with BA(STR) 125 and BA(MAG) 175 -- but his NPs use BA(STR), so his Noble
+  Phantasms are weaker in raw numbers than his normal attacks. An unusual profile the
+  damage pipeline handles without comment.

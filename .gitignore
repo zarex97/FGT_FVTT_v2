@@ -6,3 +6,4 @@ styles/fgt.css
 styles/fgt.css.map
 *.log
 .DS_Store
+.build/

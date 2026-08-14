@@ -1,0 +1,72 @@
+name: release
+
+# Tag a commit `v0.1.0` and push it; this builds the packs and styles, stamps
+# the version into system.json, and publishes a GitHub release with the two
+# files Foundry needs: system.json (the manifest URL) and fgt.zip (the download).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the leading v (e.g. 0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+
+      - name: Resolve the version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION"
+
+      # A broken build must never reach a release, so the full check suite runs
+      # first rather than trusting that CI already passed on this commit.
+      - name: Lint, validate and test
+        run: |
+          npm run lint
+          npm run validate:content
+          npm test
+
+      - name: Build packs and styles
+        run: |
+          npm run build:packs
+          npm run build:styles
+
+      - name: Stamp the version and release URLs into system.json
+        run: node tools/release.mjs "${{ steps.version.outputs.version }}" "${{ github.repository }}"
+
+      - name: Assemble the package
+        run: |
+          mkdir -p dist/fgt
+          cp -r system.json module packs templates styles lang LICENSE README.md CHANGELOG.md dist/fgt/
+          rm -rf dist/fgt/packs/_source dist/fgt/styles/src
+          cd dist/fgt && zip -r ../fgt.zip . -x '*.DS_Store'
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "F/GT ${{ steps.version.outputs.version }}"
+          tag_name: ${{ github.ref_name }}
+          body_path: CHANGELOG.md
+          files: |
+            system.json
+            dist/fgt.zip
+          fail_on_unmatched_files: true

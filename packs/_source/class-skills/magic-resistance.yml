@@ -1,0 +1,28 @@
+# docs/B-rank-tables.md §B.3
+# Authored once, instantiated eleven times across the reference set at seven ranks.
+schema: 1
+id: class-magic-resistance
+name: "Magic Resistance"
+source: class
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive 1) MAG damage from a MAG Rank of up to @rank is negated, otherwise MAG damage
+  taken is reduced by the table value. Also affects NP.
+  (Passive 2) Chance of being inflicted by debuffs is reduced.
+
+  Also affects Instakill and Death UNLESS the source deals STR damage or is otherwise
+  unaffected by Magic Resistance. Erase is completely unaffected.
+passiveRules:
+  # The negated rank is the skill's own rank, extended by each +, which is why
+  # Magic Resistance A+ negates up to A+ and not up to A.
+  - key: Resistance
+    component: mag
+    mode: rankComparison
+    negatesUpToRank: "@rank"
+    table: magicResistancePercent
+    includesNP: true
+  - key: CheckModifier
+    check: debuffApplication
+    direction: incoming
+    table: magicResistanceDebuffResist

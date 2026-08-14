@@ -1,0 +1,18 @@
+# Appendix A §A.2
+# Sums additively with the attacker's Atk Up in the stage-4 bucket:
+# "(100+30-100)%, so it would deal 30% damage only, not 0."
+schema: 1
+id: defUp
+name: "Def Up"
+description: "All damage taken is reduced by X%; a reduced magnitude applies to Noble Phantasms."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: "@magnitude"
+    npValue: "@npMagnitude"

@@ -1,0 +1,16 @@
+# docs/B-rank-tables.md §B.3 — scaled, +/-5 per step.
+# Verified at B+ (45), A (50), B (40), C (30) and E- (5).
+schema: 1
+id: divinity
+name: "Divinity"
+source: passive
+parameterized: [rank]
+rank: "@rank"
+description: "All damage dealt is increased by the table value, including NP."
+passiveRules:
+  - key: FlatDamage
+    table: divinity
+    includesNP: true
+  - key: StatDelta
+    stat: attributes
+    add: [divine]

@@ -1,0 +1,105 @@
+// F/GT — Fate/Grail Tactics
+// Compiled to styles/fgt.css. See docs/29-user-interface.md.
+
+.fgt-sheet {
+  --fgt-gap: 0.5rem;
+  --fgt-border: 1px solid var(--color-border-light-tertiary, #7a7971);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--fgt-gap);
+  padding: var(--fgt-gap);
+
+  &__header {
+    display: flex;
+    gap: var(--fgt-gap);
+    align-items: flex-start;
+  }
+
+  &__portrait,
+  &__icon {
+    flex: 0 0 auto;
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border: var(--fgt-border);
+    border-radius: 4px;
+  }
+
+  &__icon { width: 64px; height: 64px; }
+
+  &__identity {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    input[type="text"] { font-size: 1.25rem; font-weight: 600; }
+  }
+
+  &__truename { margin: 0; font-style: italic; opacity: 0.75; }
+
+  &__meta {
+    display: flex;
+    gap: var(--fgt-gap);
+
+    label { display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; }
+    input { width: 6ch; text-align: center; }
+  }
+
+  &__resources,
+  &__parameters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--fgt-gap);
+    padding: var(--fgt-gap);
+    border: var(--fgt-border);
+    border-radius: 4px;
+  }
+
+  &__description,
+  &__notes {
+    padding: var(--fgt-gap);
+    border: var(--fgt-border);
+    border-radius: 4px;
+    white-space: pre-wrap;
+  }
+}
+
+.fgt-resource {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  input { width: 5ch; text-align: center; }
+  &__sep { opacity: 0.6; }
+}
+
+.fgt-parameter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  span { font-size: 0.7rem; letter-spacing: 0.05em; opacity: 0.75; }
+  input { width: 4ch; text-align: center; }
+}
+
+.fgt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-bottom: var(--fgt-border);
+
+    &--np { font-weight: 600; }
+    &:last-child { border-bottom: none; }
+  }
+
+  &__rank { font-variant-numeric: tabular-nums; opacity: 0.8; }
+  &__empty { padding: 0.25rem 0.5rem; opacity: 0.6; font-style: italic; }
+}

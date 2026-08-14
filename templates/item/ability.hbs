@@ -1,0 +1,29 @@
+<form class="fgt-sheet fgt-sheet--item">
+  <header class="fgt-sheet__header">
+    <img class="fgt-sheet__icon" src="{{document.img}}" alt="{{document.name}}" data-edit="img">
+    <div class="fgt-sheet__identity">
+      <input type="text" name="name" value="{{document.name}}">
+      <div class="fgt-sheet__meta">
+        <label>{{localize "FGT.Sheet.Rank"}}
+          <input type="text" name="system.rank" value="{{system.rank}}" placeholder="—">
+        </label>
+        <label>{{localize "FGT.Sheet.Cooldown"}}
+          <input type="text" name="system.cooldown.max" value="{{system.cooldown.max}}" placeholder="—">
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <section class="fgt-sheet__description">{{{system.description}}}</section>
+
+  {{#if system.rules.length}}
+    <section class="fgt-sheet__rules">
+      <h3>{{localize "FGT.Sheet.RuleElements"}}</h3>
+      <ul class="fgt-list">
+        {{#each system.rules as |rule|}}
+          <li class="fgt-list__row"><code>{{rule.key}}</code></li>
+        {{/each}}
+      </ul>
+    </section>
+  {{/if}}
+</form>

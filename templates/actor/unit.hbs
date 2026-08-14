@@ -1,0 +1,73 @@
+{{!-- Only helpers Foundry v14 actually registers are used here: localize and
+      concat. `array` and `upper` do not exist and would throw at render. --}}
+<form class="fgt-sheet">
+  <header class="fgt-sheet__header">
+    <img class="fgt-sheet__portrait" src="{{document.img}}" alt="{{document.name}}" data-edit="img">
+    <div class="fgt-sheet__identity">
+      <input type="text" name="name" value="{{document.name}}" placeholder="{{localize 'FGT.Sheet.Name'}}">
+      {{#if system.trueName}}<p class="fgt-sheet__truename">{{system.trueName}}</p>{{/if}}
+    </div>
+  </header>
+
+  <section class="fgt-sheet__resources">
+    <label class="fgt-resource">
+      <span>{{localize "FGT.Resource.health"}}</span>
+      <input type="number" name="system.health.value" value="{{system.health.value}}">
+      <span class="fgt-resource__sep">/</span>
+      <input type="number" name="system.health.max" value="{{system.health.max}}">
+    </label>
+    <label class="fgt-resource">
+      <span>{{localize "FGT.Resource.agility"}}</span>
+      <input type="number" name="system.agility.value" value="{{system.agility.value}}">
+      <span class="fgt-resource__sep">/</span>
+      <input type="number" name="system.agility.max" value="{{system.agility.max}}">
+    </label>
+    <label class="fgt-resource">
+      <span>{{localize "FGT.Resource.luck"}}</span>
+      <input type="number" name="system.luck.value" value="{{system.luck.value}}">
+      <span class="fgt-resource__sep">/</span>
+      <input type="number" name="system.luck.max" value="{{system.luck.max}}">
+    </label>
+  </section>
+
+  {{#if system.parameters}}
+    <section class="fgt-sheet__parameters">
+      {{#each system.parameters as |rank key|}}
+        <label class="fgt-parameter">
+          <span>{{localize (concat "FGT.Param." key)}}</span>
+          <input type="text" name="system.parameters.{{key}}" value="{{rank}}" placeholder="—">
+        </label>
+      {{/each}}
+    </section>
+  {{/if}}
+
+  <section class="fgt-sheet__abilities">
+    <h3>{{localize "FGT.Sheet.Abilities"}}</h3>
+    <ul class="fgt-list">
+      {{#each abilities as |ability|}}
+        <li class="fgt-list__row" data-item-id="{{ability.id}}">
+          <span class="fgt-list__name">{{ability.name}}</span>
+          {{#if ability.system.rank}}<span class="fgt-list__rank">{{ability.system.rank}}</span>{{/if}}
+        </li>
+      {{else}}
+        <li class="fgt-list__empty">{{localize "FGT.Sheet.NoAbilities"}}</li>
+      {{/each}}
+    </ul>
+
+    {{#if noblePhantasms.length}}
+      <h3>{{localize "FGT.Sheet.NoblePhantasms"}}</h3>
+      <ul class="fgt-list">
+        {{#each noblePhantasms as |np|}}
+          <li class="fgt-list__row fgt-list__row--np" data-item-id="{{np.id}}">
+            <span class="fgt-list__name">{{np.name}}</span>
+            {{#if np.system.rank}}<span class="fgt-list__rank">{{np.system.rank}}</span>{{/if}}
+          </li>
+        {{/each}}
+      </ul>
+    {{/if}}
+  </section>
+
+  {{#if system.notes}}
+    <section class="fgt-sheet__notes">{{{system.notes}}}</section>
+  {{/if}}
+</form>

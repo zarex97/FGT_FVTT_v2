@@ -1,0 +1,26 @@
+# docs/B-rank-tables.md §B.3.
+# Heracles's and Achilles's sheets both print "the number of dice rolled is doubled"
+# rather than the common skill's "the Total value of the roll is doubled". The
+# per-Servant sheet wins (Ch. 41 Q16); npDiceDoubled carries that.
+schema: 1
+id: class-battle-continuation
+name: "Battle Continuation"
+source: class
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive 1) All damage received is reduced by the table roll; if NP, the number of dice
+  rolled is doubled.
+  (Passive 2) When this Unit is defeated, it is automatically revived. Requires the Unit's
+  Health to have exceeded half its maximum at least once since the last activation.
+passiveRules:
+  - key: DamageNegation
+    mode: dice
+    table: battleContinuationReduction
+    npDiceDoubled: true
+  - key: OnEvent
+    event: unitDefeated
+    revive:
+      table: battleContinuationRevive
+      cooldownTable: battleContinuationCooldown
+      requiresHealthAbove: 0.5

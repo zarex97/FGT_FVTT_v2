@@ -18,11 +18,16 @@
     "validate:content": "node tools/validate-content.mjs",
     "build:packs": "node tools/build-packs.mjs",
     "build:styles": "sass styles/src/fgt.scss styles/fgt.css --no-source-map",
-    "watch:styles": "sass --watch styles/src/fgt.scss styles/fgt.css"
+    "watch:styles": "sass --watch styles/src/fgt.scss styles/fgt.css",
+    "check:manifest": "node tools/check-manifest.mjs",
+    "release:stamp": "node tools/release.mjs",
+    "build": "npm run build:packs && npm run build:styles"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@foundryvtt/foundryvtt-cli": "^3.0.4",
     "eslint": "^9.15.0",
+    "sass": "^1.102.0",
     "vitest": "^2.1.0",
     "yaml": "^2.6.0"
   }

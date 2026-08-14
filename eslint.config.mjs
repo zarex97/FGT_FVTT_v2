@@ -42,6 +42,7 @@ export default [
         CONST: "readonly", Hooks: "readonly", foundry: "readonly", fgt: "writable",
         Actor: "readonly", Item: "readonly", ActiveEffect: "readonly",
         Combat: "readonly", Combatant: "readonly", ChatMessage: "readonly",
+        TokenDocument: "readonly", Scene: "readonly", JournalEntry: "readonly",
         Roll: "readonly", Dialog: "readonly", console: "readonly",
         globalThis: "readonly", structuredClone: "readonly",
         setTimeout: "readonly", clearTimeout: "readonly",
@@ -73,7 +74,12 @@ export default [
       ],
     },
   },
-  { ignores: ["node_modules/**", "packs/**", "styles/fgt.css", "coverage/**"] },
+  {
+    // Build tools and the bootstrap log progress; that is their job.
+    files: ["tools/**/*.mjs", "module/fgt.mjs"],
+    rules: { "no-console": "off" },
+  },
+  { ignores: ["node_modules/**", "packs/**", "styles/fgt.css", "coverage/**", ".build/**"] },
 ];
 
 export { zones };

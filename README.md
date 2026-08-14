@@ -3,8 +3,8 @@
 A ground-up Foundry VTT **system** implementing *F/GT: Fate Grail Tactics*, a grid-based
 tactical wargame originally played in Tabletop Simulator, with **full rules automation**.
 
-This repository currently contains the **design documentation** for that system. The
-implementation follows.
+This repository contains the **design documentation** and the **system implementation**. The
+rules engine is complete and tested; the UI that drives it is the next phase.
 
 **Current documentation version: `0.2.1`.** See [`CHANGELOG.md`](CHANGELOG.md) for what changed
 and why — including corrections in `0.2.0` and `0.2.1` that invalidate anything built against an
@@ -81,27 +81,31 @@ means building a **rules engine**, not a character sheet.
 
 ---
 
-## Repository layout (planned)
+## Repository layout
 
 ```
 FGT_FVTT_v2/
-├── docs/                  ← design documentation (this deliverable)
-├── CHANGELOG.md           ← every change to docs, and later to code
+FGT_FVTT_v2/
+├── docs/                  ← the design specification, 44 chapters + 5 appendices
+├── CHANGELOG.md           ← every change to docs and code, with superseded readings
 ├── system.json            ← manifest
 ├── module/
-│   ├── fgt.mjs            ← entry point
-│   ├── data/              ← DataModel schemas (actor/item/combat subtypes)
+│   ├── fgt.mjs            ← entry point: the init/setup/ready sequence
+│   ├── domain/            ← L1, pure: ranks, ◈ ticks, geometry, rank tables
+│   ├── rules/             ← L2, pure: damage pipeline, targeting, checks, predicates
+│   ├── engine/            ← L3: intents, effect applier, combat process, scheduler
+│   ├── data/              ← TypeDataModel schemas
 │   ├── documents/         ← Document subclasses
-│   ├── rules/             ← the rule-element engine
-│   ├── engine/            ← combat process, damage pipeline, checks, scheduler
-│   ├── targeting/         ← geometry resolution
-│   ├── apps/              ← ApplicationV2 sheets and dialogs
-│   └── helpers/
-├── packs/                 ← compendium content (Servants, Masters, effects)
-├── templates/
-├── styles/
-└── lang/
+│   └── apps/              ← ApplicationV2 sheets
+├── packs/_source/         ← content as YAML; the packs themselves are build artefacts
+├── tools/                 ← pack build, content validator, release stamping
+├── test/                  ← 300 unit and golden tests, no Foundry required
+├── templates/  styles/  lang/
 ```
+
+The `domain → rules → engine → apps` dependency direction is enforced by ESLint, and
+`module/domain` and `module/rules` are forbidden from referencing Foundry globals at all —
+which is what makes the entire rules engine testable in plain Node.
 
 ---
 
@@ -114,18 +118,22 @@ FGT_FVTT_v2/
 | L1 domain (pure) | **Done** — ranks, ◈ ticks, geometry, rank tables |
 | L2 rules (pure) | **Damage pipeline, targeting, checks, predicates, snapshots** — done |
 | L3 engine (orchestration) | **Intents, effect applier, combat process, scheduler, write adapter** — done |
-| Foundry layer (data models, documents, sheets) | Not started |
-| Content (29 reference Servants) | Specified in Part IV and Appendix D, not yet authored |
+| Foundry layer | **Manifest, data models, documents, bootstrap, basic sheets** — loads in v14 |
+| Content pipeline | **YAML source, validator, pack build** — done |
+| Content (29 reference Servants) | **2 authored** (Heracles, Karna) + 6 effects + 4 class skills |
+| UI (tactical HUD, targeting preview, reaction prompts) | Not started |
 
-**266 tests passing**, covering everything built so far. They pin behaviour to the
+**300 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
 ```
 npm install
-npm test          # 266 unit + golden tests, no Foundry required
-npm run lint      # includes the layer-boundary rule
+npm test                  # 300 unit + golden tests, no Foundry required
+npm run lint              # includes the layer-boundary rule
+npm run validate:content  # every YAML parses, every ref resolves, every id exists
+npm run build             # compile packs and styles
 ```
 
 The `domain/` → `rules/` → `engine/` → `apps/` dependency direction is enforced by ESLint, and
@@ -135,6 +143,67 @@ what makes the whole rules engine testable in plain Node.
 Open design questions are tracked in
 [`docs/41-open-questions.md`](docs/41-open-questions.md): **Q1–Q40 answered** by the game's
 author, **Q41–Q49 open**.
+
+## Installing
+
+The system is not yet published to Foundry's package registry. Install it from a release's
+manifest URL:
+
+```
+https://github.com/zarex97/FGT_FVTT_v2/releases/latest/download/system.json
+```
+
+In Foundry: **Configuration and Setup → Game Systems → Install System**, paste that URL into the
+*Manifest URL* field, and click Install.
+
+> **What works today.** The system loads, registers its documents, settings and sheets, and
+> ships two Servants in the `F/GT Servants` compendium. The rules engine — damage, targeting,
+> checks, effects, the combat ladder, the scheduler — is complete and tested, but it is **not
+> yet wired to the UI**, so there are no attack buttons. Everything is reachable from the
+> console via `fgt.api`.
+
+## Releasing
+
+Releases are cut by CI. Tag a commit and push the tag:
+
+```
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+[`.github/workflows/release.yml`](.github/workflows/release.yml) then lints, validates the
+content, runs the tests, builds the packs and styles, stamps the version and the **versioned**
+manifest/download URLs into `system.json`, assembles `fgt.zip`, and publishes a GitHub release
+with both files attached.
+
+The manifest and download URLs point at the specific release rather than at `latest`, so an
+installed world updates to exactly the build it was told to.
+
+A broken build cannot reach a release: the workflow runs the full check suite itself rather than
+trusting that CI passed on the same commit.
+
+## Authoring content
+
+The source of truth is YAML under `packs/_source/`, compiled to LevelDB packs at build time. The
+packs are build artefacts and are gitignored — LevelDB directories are binary, unmergeable and
+undiffable, which is unacceptable for content that will be reviewed.
+
+```
+packs/_source/
+├── effects/        buff, debuff and status definitions
+├── class-skills/   parameterized templates, instantiated by `ref:`
+├── abilities/      per-Servant abilities and Noble Phantasms
+└── servants/       the Servant sheets themselves
+```
+
+`ref:` indirection is the point: Magic Resistance is authored once and instantiated at seven
+different ranks, so fixing it fixes every Servant that has it.
+
+Run `npm run validate:content` after any edit. It catches unknown effect ids, unparseable ranks
+and durations, unregistered rule-element keys, refs that do not resolve, and one-sided mutual
+exclusions — the failure modes that otherwise sit in a compendium silently doing nothing.
+
+---
 
 ## Sources
 

@@ -1,0 +1,15 @@
+# Appendix A §A.3
+# "Automatic successful Evade for the duration/count. Cannot use the Evade action. Aim ignores it."
+schema: 1
+id: dodge
+name: "Dodge"
+description: "Automatically evades the next attack. Cannot be used together with the Evade action; Aim ignores it."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: count
+baseChance: 100
+rules:
+  - key: AutoSucceed
+    check: evade
+    beatenBy: [aim]
