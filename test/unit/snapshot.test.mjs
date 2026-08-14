@@ -8,7 +8,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { snapshotUnit, snapshotBoard } from "../../module/rules/snapshot.mjs";
+import { snapshotUnit, snapshotBoard, turnStateAt } from "../../module/rules/snapshot.mjs";
+import { remainingMovement, segmentCheck } from "../../module/rules/movement.mjs";
 
 /** A minimal actor. */
 function actor(over = {}) {
@@ -115,5 +116,67 @@ describe("range projection", () => {
 
   it("defaults to 1 when unset", () => {
     expect(snapshotUnit(actor({ system: {} })).range).toBe(1);
+  });
+});
+
+describe("turn state expires by tick, not by being cleared", () => {
+  const spent = {
+    tick: 4, acted: true, moved: true, attacked: true,
+    movedPanels: 7, moveSegments: 3, usedRidingAttack: true,
+  };
+
+  it("keeps the state while the tick it was written on is current", () => {
+    const unit = snapshotUnit(actor({ system: { turnState: spent } }), { tick: 4 });
+    expect(unit.turnState.movedPanels).toBe(7);
+    expect(unit.turnState.attacked).toBe(true);
+  });
+
+  it("reads blank once the turn has moved on", () => {
+    // The bug this replaces: the state was cleared by *writing* a blank one at
+    // each turn boundary, so one hook that did not fire left a Unit with
+    // "0 remain of MOV 7" for the rest of the match. Staleness is decided on
+    // read now, so no write has to succeed for the turn to end.
+    const unit = snapshotUnit(actor({ system: { turnState: spent } }), { tick: 5 });
+    expect(unit.turnState.movedPanels).toBe(0);
+    expect(unit.turnState.attacked).toBe(false);
+    expect(unit.turnState.usedRidingAttack).toBe(false);
+    expect(unit.acted).toBe(false);
+  });
+
+  it("treats state written before the stamp existed as stale", () => {
+    const legacy = { acted: true, moved: true, movedPanels: 7 };
+    expect(snapshotUnit(actor({ system: { turnState: legacy } }), { tick: 0 }).turnState.movedPanels)
+      .toBe(0);
+  });
+
+  it("leaves the state alone out of combat, where there are no ticks", () => {
+    // `tick: null` means the rule does not apply: a GM arranging the board
+    // between matches should not have a Unit's state silently forgotten.
+    const unit = snapshotUnit(actor({ system: { turnState: spent } }), { tick: null });
+    expect(unit.turnState.movedPanels).toBe(7);
+  });
+
+  it("expires every field together, so nothing survives its turn", () => {
+    const unit = snapshotUnit(actor({ system: { turnState: spent } }), { tick: 99 });
+    expect(unit.turnState).toMatchObject({
+      acted: false, moved: false, attacked: false, movedPanels: 0,
+      moveSegments: 0, usedActiveSkill: false, mayMoveAgain: false, usedRidingAttack: false,
+    });
+  });
+});
+
+describe("turnStateAt is what movement reads", () => {
+  it("restores the full MOV allowance on the next tick", () => {
+    const walked = { tick: 2, moved: true, movedPanels: 7 };
+    const stale = turnStateAt(walked, 3);
+    expect(remainingMovement({ mov: 7, turnState: stale })).toBe(7);
+    expect(segmentCheck({ mov: 7, turnState: stale })).toBeNull();
+  });
+
+  it("still refuses while the same tick is current", () => {
+    const walked = { tick: 2, moved: true, movedPanels: 7 };
+    const fresh = turnStateAt(walked, 2);
+    expect(remainingMovement({ mov: 7, turnState: fresh })).toBe(0);
+    expect(segmentCheck({ mov: 7, turnState: fresh })).toMatch(/spent all 7 panels/);
   });
 });

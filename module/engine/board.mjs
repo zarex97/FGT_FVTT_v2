@@ -82,7 +82,21 @@ export function factionOfUser(userId = game.user.id) {
 export function unitSnapshot(actor, token = null) {
   if (!actor) return null;
   const doc = token ?? activeToken(actor);
-  return snapshotUnit(actor, { token: doc, panel: panelOf(doc) });
+  return snapshotUnit(actor, { token: doc, panel: panelOf(doc), tick: currentTick() });
+}
+
+/**
+ * The ◈ tick a turn state must carry to still be in force.
+ *
+ * `null` out of combat: with no turns there is nothing for state to be stale
+ * against, and a GM arranging the board should not have it silently forgotten.
+ *
+ * @returns {number|null}
+ */
+export function currentTick() {
+  const combat = game.combats?.active ?? null;
+  if (!combat?.started) return null;
+  return combat.system?.globalTurn ?? 0;
 }
 
 /**
@@ -158,6 +172,7 @@ export function currentBoard(overrides = {}) {
       boardSize: setting("boardSize", 13),
       turnsPerRound: setting("turnsPerRound", 3),
       alliances: alliancesOf(factions()),
+      tickForTurnState: currentTick(),
       round: combat?.round ?? 1,
       tick: combat?.system?.globalTurn ?? 0,
       phase: combat?.system?.phase ?? "day",

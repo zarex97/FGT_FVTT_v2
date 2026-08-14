@@ -70,6 +70,19 @@ export function combatantCommon() {
     // running total rather than a per-segment count, because Riding's two moves
     // share one MOV allowance (Ch. 18 §18.4).
     turnState: new fields.SchemaField({
+      // The ◈ tick this state was written during.
+      //
+      // Turn state used to be cleared by *writing* a blank one at each turn
+      // boundary, which meant a single hook that did not fire — for any reason,
+      // on any client — left a Unit with no movement left for the rest of the
+      // match, and nothing on screen said why. Stamping the tick makes the
+      // reset a property of *reading*: state from an earlier tick is stale by
+      // definition, so it cannot fail to expire. The write still happens, to
+      // keep the stored data tidy, but nothing depends on it any more.
+      //
+      // `null` means "written before this field existed", which is stale
+      // against every tick — the safe direction.
+      tick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       acted: new fields.BooleanField({ initial: false }),
       moved: new fields.BooleanField({ initial: false }),
       attacked: new fields.BooleanField({ initial: false }),
