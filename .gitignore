@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+packs/*/
+!packs/_source/
+styles/fgt.css
+styles/fgt.css.map
+*.log
+.DS_Store
