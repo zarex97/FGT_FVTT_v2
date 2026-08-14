@@ -32,6 +32,79 @@ coincide by accident; the headings say which is which.
 
 ---
 
+## [Unreleased]
+
+**The attack that could not find a target.** Two Servants placed side by side, a normal attack
+declared, and the answer was *"No legal targets for this ability. No legal targets in the
+selected area."* Five independent defects, each sufficient on its own, and none of them visible
+to the 492 tests — because every one of those tests hands the rules layer a snapshot it built by
+hand, and all five lived in the projection *from* Foundry's documents into that snapshot.
+
+### Fixed
+
+- **A `TokenDocument`'s `x`/`y` are pixels, not grid offsets.** `snapshotUnit` read them as
+  `{i: doc.y, j: doc.x}`, so a unit standing on panel `(6,6)` was projected to panel `(600,600)`
+  — off every board, where the bounds check silently deleted it from every shape. `panelOf`
+  converts through the grid, which the token's own scene supplies when the caller does not.
+- **The caster was projected without its token** at both call sites, and `actor.token` is only
+  populated for *unlinked* token actors — so every ordinary linked Servant attacked from
+  nowhere. `module/engine/board.mjs` is now the single place that projects the live scene, and
+  every call site goes through it. An unplaced unit reports `panel: null` and the resolver says
+  so, instead of measuring from the corner of the map.
+- **`system.range` is a `{panels, targets}` SchemaField** and was passed through whole, so
+  `caster.range` was an object compared against integers in the anchor check.
+- **Board bounds were pinned to the `boardSize` setting**, so on a scene larger than the setting
+  every unit past the last row was clipped out of every shape and became untargetable. The scene
+  answers when it can; the setting is the fallback.
+- **The turn HUD, the movement hooks and the scheduler** all built their board snapshots
+  independently and are now routed through the same helper.
+
+### Corrected
+
+- **`relation()` treated a null faction as *neutral*.** The superseded reading was
+  `if (unit.kind === "civilian" || unit.faction === null) return "neutral"`, which made two units
+  nobody had assigned a faction to neutral *to each other* — so no ability could name either as
+  an enemy, and a freshly placed board was unplayable in silence. D4.10 specifies something
+  different, and it is now implemented as written: `neutral` is a faction a unit is **in**
+  (`NEUTRAL_FACTION`, and Civilians by kind), while `null` means *unaffiliated* and falls through
+  to `enemy`. Token disposition stands in for an unset faction — except `HOSTILE`, which is
+  Foundry's default for every new token and therefore carries no signal.
+
+### Added
+
+- **Exclusion reasons.** `ResolvedTargets.excluded` records, for every unit an area caught and a
+  filter then dropped, the reason it was dropped — captured where the decision is made rather
+  than reconstructed afterwards. The preview HUD renders them as struck-through rows, which is
+  the layout §28.6 has specified since it was written; the "no legal targets" error names the
+  first exclusion instead of stating only that there were none; and a targeting session with
+  nothing to offer reports the resolver's reasons rather than discarding them. Adapted from the
+  area-targeting flow in `isaacsHBPF2e`, whose review dialog lists every rejected token with its
+  reason *"so a target going missing is never a mystery the caster has to debug mid-turn"*.
+- **A Faction field on the unit sheet.** `factionId` is what every targeting filter compares and
+  it had no UI at all.
+- **`game.user.targets` mirroring** (D28.8) — written after a resolution, never read.
+- **The controls are announced** when the canvas is taken over for targeting.
+- **Delay** (§25.3). The field existed on the combatant schema and nothing read it.
+  `computeTurnOrder` derives the played order from the rolled one rather than mutating it, so a
+  delay cannot compound; it reorders only the factions that have not yet acted; and delays apply
+  in declaration order, so two factions each delaying one place past each other end up where they
+  began. Declared through the GM proxy, with the order shown in the HUD.
+- **ZON** (§6.9, §16.3). `unit.outsideZon` had two consumers — pipeline stage 9's 5d10 reduction
+  and the `requiresZon` limit gating every Noble Phantasm — and no producer, so both rules had
+  always been inert. `rules/zon.mjs` derives it; because the zone belongs to the Master–Servant
+  *pair*, `snapshotBoard` annotates once every unit exists and the attack flow takes its
+  combatants from the board rather than re-projecting them. Both reference-set exceptions are
+  modelled: Semiramis's exemption, and the Dioscuri's `any`-across-twins test. Content declares
+  its own bonuses through a new `ZonBonus` rule element.
+- **The persistent overlay layer** (§28.9): the ZON ring around a selected Servant's Master, red
+  when the Servant is outside it; an enemy's threat range on hover; and a Master's protection
+  radius, drawn only while a Servant is actually standing in it.
+- **`test/unit/snapshot.test.mjs`** and **`test/unit/zon.test.mjs`** — 63 tests, of which the
+  first set drives the projection from simulated `TokenDocument`s and pushes the result through
+  the real resolver. That gap is why five bugs sat behind a green suite.
+
+---
+
 ## [0.2.0] — 2026-08-14
 
 **Making the content actually run.** `0.1.0` shipped a rules engine and a compendium of content
