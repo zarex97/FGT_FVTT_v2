@@ -49,6 +49,7 @@ export default [
         // Browser and PIXI, for the canvas layer and the floating preview. Only
         // L4 may touch these; the L1/L2 block below takes them away again.
         window: "readonly", document: "readonly", PIXI: "readonly",
+        PointerEvent: "readonly",
         // Node, for tools/ and test/
         process: "readonly", Buffer: "readonly", URL: "readonly",
       },
@@ -83,6 +84,7 @@ export default [
     files: [
       "tools/**/*.mjs", "module/fgt.mjs",
       "module/engine/scheduler-hooks.mjs", "module/engine/movement-hooks.mjs",
+      "module/apps/canvas/target-region.mjs",
     ],
     rules: { "no-console": "off" },
   },

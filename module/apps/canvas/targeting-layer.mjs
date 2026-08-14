@@ -24,6 +24,9 @@
 
 import { legalPlacements, validate } from "../../rules/targeting/resolve.mjs";
 import { TargetingHUD } from "./targeting-hud.mjs";
+import { showArea, discardArea } from "./target-region.mjs";
+import { reviewTargets, REAIM } from "./target-review.mjs";
+import { faction as factionById } from "../../engine/board.mjs";
 
 const LEGAL = 0x4488ff;
 const ILLEGAL = 0xff4444;
@@ -74,21 +77,76 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     const hud = new TargetingHUD({ label: preview.label, damageFor: preview.damageFor });
 
     const mode = spec.anchor?.kind ?? "self";
+    const label = preview.label ?? game.i18n.localize("FGT.Chat.NormalAttack");
     // Say what the controls are before taking over the canvas. A player who is
     // not told that Tab cycles and Escape cancels reasonably concludes the
     // system has hung.
-    announce(preview.label, mode);
+    announce(label, mode);
+
+    // Every area ever put on the board this session, not only the one that
+    // survived: a player who re-aims three times has drawn three, and all three
+    // are discarded together.
+    const placed = [];
 
     try {
-      const placement = await this.#run(mode, { spec, caster, board, options, hud });
-      // The resolution is the truth about who is being attacked; Foundry's own
-      // target set is told about it so the rest of the world agrees (D28.8).
-      if (placement) mirrorTargets(validate(spec, caster, board, placement).resolved.units);
-      return placement;
+      // Aim, look at who it caught, and go back to aiming if that was not what
+      // was meant. Re-placing is how the area is moved, so there is no second
+      // set of controls and nothing is left on the board while the dialog is up.
+      for (;;) {
+        const placement = await this.#run(mode, { spec, caster, board, options, hud });
+        if (!placement) return null;
+
+        const resolved = validate(spec, caster, board, placement).resolved;
+
+        // The area goes on the scene as a real grid-shape Region once a
+        // placement is committed -- not on every pointer move, which is what
+        // made documents the wrong tool for the aiming itself.
+        const regionId = await showArea(resolved.panels, {
+          name: label,
+          color: factionColor(caster),
+        });
+        if (regionId) placed.push(regionId);
+
+        const chosen = await this.#confirm({ resolved, label, preview, mode });
+        if (chosen === REAIM) continue;
+        if (chosen === null) return null;
+
+        // The resolution is the truth about who is being attacked; Foundry's own
+        // target set is told about it so the rest of the world agrees (D28.8).
+        mirrorTargets(resolved.units.filter((u) => chosen.includes(u.unitId)));
+        return { ...placement, chosenIds: chosen };
+      }
     } finally {
+      // Runs before the attack resolves, so the area is gone by the time the
+      // chat card exists.
+      await Promise.all(placed.map(discardArea));
       this.#cancel();
       hud.close();
     }
+  }
+
+  /**
+   * The confirmation step, or a straight pass when it is switched off.
+   *
+   * A per-client setting: one player wanting to confirm every attack should not
+   * impose a dialog on a table that does not.
+   *
+   * @param {object} args
+   * @returns {Promise<string[]|symbol|null>}
+   */
+  async #confirm({ resolved, label, preview, mode }) {
+    if (!game.settings.get("fgt", "targetingReview")) {
+      return resolved.units.map((u) => u.unitId);
+    }
+    return reviewTargets({
+      resolved,
+      label,
+      damageFor: preview.damageFor ?? null,
+      // An anchor that resolves without a choice has nowhere else to be put, so
+      // offering a button that visibly does nothing is worse than not offering
+      // one.
+      canReaim: mode === "selfEdgeAdjacent" || mode === "withinRange" || mode === "targetUnit",
+    });
   }
 
   /**
@@ -402,6 +460,15 @@ function reportNothingLegal(options, board) {
       (more > 0 ? ` (+${more} more)` : ""),
     { permanent: reasons.length > 1 },
   );
+}
+
+/**
+ * The caster's faction colour, so the area on the board says whose it is.
+ * @param {object} caster
+ * @returns {string}
+ */
+function factionColor(caster) {
+  return factionById(caster?.factionId)?.color ?? "#4488ff";
 }
 
 /**

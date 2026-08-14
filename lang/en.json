@@ -156,5 +156,13 @@
   "FGT.Combat.NoFactionsInCombat": "This combat has no factions in it, so no turn can be taken. Right-click the combat in the tracker and choose \"Add Every Faction\".",
   "FGT.Combat.PopulateTitle": "Add the factions?",
   "FGT.Combat.PopulateBody": "Turns in F/GT belong to factions, not to tokens. Add all {count} ({names}) and the GM's slot to this combat now?",
-  "FGT.Movement.NotYourTurn": "You cannot move {name} now — it is {faction}'s turn."
+  "FGT.Movement.NotYourTurn": "You cannot move {name} now — it is {faction}'s turn.",
+  "FGT.Settings.TargetingReview": "Confirm targets before attacking",
+  "FGT.Settings.TargetingReviewHint": "After aiming, show the list of units the area caught — and the ones the rules excluded, with the reason — so you can adjust or re-aim before the attack is declared.",
+  "FGT.Targeting.Confirm": "Attack",
+  "FGT.Targeting.Reaim": "Re-aim",
+  "FGT.Targeting.Cancel": "Cancel",
+  "FGT.Targeting.NothingInArea": "Nothing is in the area.",
+  "FGT.Targeting.AimAgain": "Aim again?",
+  "FGT.Targeting.NothingCaught": "{name}: nothing in the area."
 }

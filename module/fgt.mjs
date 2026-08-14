@@ -31,6 +31,7 @@ import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
+import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 
 Hooks.once("init", () => {
   console.log("FGT | Initialising Fate/Grail Tactics");
@@ -112,6 +113,9 @@ Hooks.once("ready", () => {
   // ZON rings, threat ranges and Master protection, drawn from selection and
   // hover. Context, never a control.
   attachOverlays();
+  // A targeting area is discarded in a `finally`, so the only way one survives
+  // is a client that stopped existing mid-decision. Sweep them once, here.
+  sweepTransientRegions();
   fgt.api = buildPublicAPI();
   console.log(`FGT | Ready — ${game.system.version}`);
 });
