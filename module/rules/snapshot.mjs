@@ -99,6 +99,16 @@ export function snapshotUnit(actor, { token = null } = {}) {
     concealed: Boolean(sys.concealed),
     canAct: sys.canAct !== false,
     acted: Boolean(sys.turnState?.acted),
+    turnState: {
+      acted: Boolean(sys.turnState?.acted),
+      moved: Boolean(sys.turnState?.moved),
+      attacked: Boolean(sys.turnState?.attacked),
+      movedPanels: sys.turnState?.movedPanels ?? 0,
+      moveSegments: sys.turnState?.moveSegments ?? 0,
+      usedActiveSkill: Boolean(sys.turnState?.usedActiveSkill),
+      mayMoveAgain: Boolean(sys.turnState?.mayMoveAgain),
+      usedRidingAttack: Boolean(sys.turnState?.usedRidingAttack),
+    },
   };
 }
 

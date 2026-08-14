@@ -24,6 +24,7 @@ import { worldIO } from "./io.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
+import * as budget from "./budget.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -43,6 +44,16 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   const self = snapshotUnit(attacker);
   const ability = abilityId ? attacker.items.get(abilityId) : null;
 
+  // The budget is checked before the targeting is resolved, so a player who
+  // has no attacks left is told that rather than being told their target is
+  // out of range. Refusals are cheap; a half-resolved attack is not.
+  const combat = game.combats.active;
+  const actionKind = budgetActionFor(ability ? abilityKind(ability) : "normal");
+  if (combat?.started) {
+    const verdict = budget.affordable(combat, self, actionKind);
+    if (!verdict.ok) throw new Error(`FGT | Cannot attack: ${verdict.reason}`);
+  }
+
   const spec = targetSpecFor(attacker, ability);
   const targets = resolveTargets(spec, self, board, placement);
 
@@ -51,6 +62,15 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   }
   if (targets.needsChoice) {
     return { needsChoice: true, candidates: targets.candidates };
+  }
+
+  // Declaring the attack is what spends the budget, not landing it: a Noble
+  // Phantasm that misses still consumed the Servant's attack for the turn, and
+  // *"non-damaging NPs count as the Unit's Attack for that Turn"* says so
+  // explicitly.
+  if (combat?.started) {
+    await budget.spend({ combat, unit: self, action: actionKind });
+    await applyBatch([I.markTurn(attackerId, { attacked: true, acted: true })], "attack:declared");
   }
 
   // One Combat Process per target. AoE fans out (Ch. 12 §12.10) and each
@@ -499,6 +519,20 @@ function abilityKind(ability) {
   if (ability.system?.isAttackSkill) return "attackSkill";
   if (ability.system?.isSpell) return "damageSpell";
   return "normal";
+}
+
+/**
+ * Map an ability kind onto the action the budget and the prevention table know.
+ *
+ * The distinction that matters is `damageSpell` → `spell`: `Seal` spares Spells
+ * and `Silence` hits only them, so collapsing the two would make both effects
+ * wrong in opposite directions.
+ *
+ * @param {string} kind
+ * @returns {string}
+ */
+function budgetActionFor(kind) {
+  return { np: "np", damageSpell: "spell", attackSkill: "attack", normal: "attack" }[kind] ?? "attack";
 }
 
 /** Re-exported so a macro can roll a raw chance without importing the rules layer. */

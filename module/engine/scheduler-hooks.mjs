@@ -15,6 +15,8 @@ import * as scheduler from "./scheduler.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { snapshotBoard } from "../rules/snapshot.mjs";
+import * as budget from "./budget.mjs";
+import * as I from "./intents.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -55,9 +57,16 @@ async function onTurnChange(combat, prior, current) {
   const nextTick = tick + 1;
   await combat.update({ "system.globalTurn": nextTick });
 
+  // The incoming faction starts its turn with full pools and every unit's
+  // turn state cleared. Both happen before `beginTurn` fires, so a start-of-turn
+  // effect that forces an action sees a budget it can actually spend.
+  const incoming = factionOf(combat, current);
+  await budget.reset(combat, incoming);
+  await clearTurnState(combat, incoming);
+
   await run(
     scheduler.beginTurn(boardFor(combat), {
-      ...ctx, tick: nextTick, activeFactionId: factionOf(combat, current),
+      ...ctx, tick: nextTick, activeFactionId: incoming,
     }),
     "scheduler:beginTurn",
   );
@@ -102,6 +111,28 @@ function onCombatEnd(combat) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Clear every unit of one faction's turn state.
+ *
+ * Riding's `mayMoveAgain` is cleared too: the second segment is granted by
+ * attacking during the turn, so it must not survive into the next one.
+ *
+ * @param {object} combat
+ * @param {string|null} factionId
+ * @returns {Promise<void>}
+ */
+async function clearTurnState(combat, factionId) {
+  if (!factionId) return;
+  const fresh = {
+    acted: false, moved: false, attacked: false, movedPanels: 0, moveSegments: 0,
+    usedActiveSkill: false, mayMoveAgain: false, usedRidingAttack: false,
+  };
+  const intents = game.actors
+    .filter((a) => (a.system?.factionId ?? null) === factionId)
+    .map((a) => I.markTurn(a.id, fresh));
+  await run(intents, "scheduler:clearTurnState");
+}
 
 /**
  * Exactly one client runs the sequences.

@@ -128,14 +128,14 @@ which is what makes the entire rules engine testable in plain Node.
 | Canvas targeting preview | Not started |
 | Turn HUD, budgets, Delay | Not started |
 
-**324 tests passing**, covering everything built so far. They pin behaviour to the
+**436 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
 ```
 npm install
-npm test                  # 324 unit + golden tests, no Foundry required
+npm test                  # 436 unit + golden tests, no Foundry required
 npm run lint              # includes the layer-boundary rule
 npm run validate:content  # every YAML parses, every ref resolves, every id exists
 npm run build             # compile packs and styles
@@ -166,9 +166,15 @@ In Foundry: **Configuration and Setup → Game Systems → Install System**, pas
 > do nothing, Block or Evade; the Luck Check ladder runs across both clients; damage runs the
 > 16-stage pipeline and the card shows the full stage-by-stage breakdown.
 >
+> The turn HUD shows the four budget pools, which units have moved and attacked, how much
+> movement each has left, and — the reason it exists — any unmet compulsion, with End Turn
+> disabled until it is resolved. Abilities apply their effect riders automatically through the
+> seven-step effect pipeline, and rule elements on class skills reach the damage pipeline, the
+> checks and the actor's derived data.
+>
 > Not yet built: the canvas targeting preview (targets come from Foundry's own targeting), the
-> turn HUD and action budgets, and automatic effect application from ability phases. Everything
-> is also reachable from the console via `fgt.api`.
+> movement planner (moves are made by dragging tokens, so the move budget is not yet spent
+> automatically), and undo. Everything is also reachable from the console via `fgt.api`.
 
 ## Releasing
 

@@ -57,6 +57,24 @@ that the engine collected and then ignored. Every entry here closes one of those
 - **`module/engine/scheduler-hooks.mjs`** — the scheduler bound to `combatTurnChange` and
   `combatRound`, guarded so only the active GM writes.
 - **Content**: `Mad Enhancement` (all seven clauses), the `Def Dwn` effect family.
+- **`module/rules/budget.mjs`** — the turn budget: four independent pools, the per-unit
+  once-each limits, the prevention table, and the compulsion check. The unit-counting rule
+  (D18.3) is implemented as stated: a Servant that moves and then uses an Active Skill has
+  consumed **one** `servantMove`, and an Active Skill draws from the move pool (D18.2).
+- **`module/engine/budget.mjs`** — the budget stored per faction on a Combat flag, spent through
+  the GM proxy, with a `setBudget` operation whose authorizer refuses any write to a faction the
+  caller does not control **or** whose turn it is not.
+- **`TurnHUD`** — the panel from §18.9: pool pips, a per-unit move/attack/movement-left row, and
+  the compulsion warnings, with **End Turn disabled while any compulsion is unmet** and the
+  reason shown inline. Compulsions are turn-scoped constraints that can only be violated in
+  retrospect, so they are displayed from the moment they apply rather than raised as an error
+  after the fact.
+- **`markTurn` intent** and the `turnState` fields it writes — `movedPanels`, `moveSegments`,
+  `usedActiveSkill`, `mayMoveAgain`, `usedRidingAttack` — so Riding's two-segment move and
+  Riding Attack's terminality are representable.
+- Declaring an attack now spends the budget and marks the unit, and the start of each faction's
+  turn resets both. A non-damaging Noble Phantasm costs the Servant's attack, as the source
+  states explicitly.
 
 ### Fixed
 
