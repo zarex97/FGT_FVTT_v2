@@ -8,7 +8,7 @@
  * island. That is one builder now.
  */
 
-import { snapshotBoard } from "../rules/snapshot.mjs";
+import { snapshotBoard, snapshotUnit } from "../rules/snapshot.mjs";
 import { normalizeFactions, alliancesOf, factionChoices, factionForUser } from "../rules/factions.mjs";
 
 /** The world setting the roster lives in. */
@@ -64,6 +64,59 @@ export function factionOfUser(userId = game.user.id) {
 }
 
 /**
+ * Snapshot one actor, **with its position resolved**.
+ *
+ * `snapshotUnit` cannot find a token on its own: it is layer 2 and the canvas
+ * is a global. Called with a bare actor it therefore places the unit at
+ * `{0, 0}` — which is what made every attack report its target out of range,
+ * because the attacker was at the origin and the defender was wherever it
+ * actually stood.
+ *
+ * Every caller in the engine and the interface should use this rather than
+ * `snapshotUnit` directly.
+ *
+ * @param {object} actor an `FGTActor`
+ * @param {object} [token] the placed token, when the caller already has one
+ * @returns {object} a `UnitSnapshot`
+ */
+export function unitSnapshot(actor, token = null) {
+  if (!actor) return null;
+  const doc = token ?? activeToken(actor);
+  return snapshotUnit(actor, { token: doc, panel: panelOf(doc) });
+}
+
+/**
+ * The token this actor is standing on, if it is on the current scene.
+ *
+ * @param {object} actor
+ * @returns {object|null} a `TokenDocument`
+ */
+function activeToken(actor) {
+  if (actor.token) return actor.token;
+  const placed = actor.getActiveTokens?.(false, true) ?? [];
+  if (placed.length > 0) return placed[0];
+  return (canvas?.tokens?.placeables ?? []).find((t) => t.actor?.id === actor.id)?.document ?? null;
+}
+
+/**
+ * A token's top-left grid offset, converted from its pixel position.
+ *
+ * `getOccupiedGridSpaceOffsets` is preferred and handles multi-panel tokens, so
+ * this is only the fallback for a scene where it returns nothing.
+ *
+ * @param {object|null} doc
+ * @returns {object|null}
+ */
+function panelOf(doc) {
+  if (!doc || !canvas?.grid) return null;
+  if (typeof doc.getOccupiedGridSpaceOffsets === "function") {
+    if (doc.getOccupiedGridSpaceOffsets()?.length) return null; // the snapshot will use it
+  }
+  const offset = canvas.grid.getOffset({ x: doc.x, y: doc.y });
+  return { i: offset.i, j: offset.j };
+}
+
+/**
  * Snapshot the board as it currently stands.
  *
  * @param {object} [overrides] extra `settings` for the snapshot
@@ -73,7 +126,12 @@ export function currentBoard(overrides = {}) {
   const combat = game.combats?.active ?? null;
   return snapshotBoard({
     scene: canvas?.scene,
-    actors: (canvas?.tokens?.placeables ?? []).map((t) => ({ actor: t.actor, token: t.document })),
+    // Pre-resolved, so the board's units carry real panels rather than the
+    // origin. `snapshotBoard` cannot do this itself for the same reason
+    // `snapshotUnit` cannot.
+    actors: (canvas?.tokens?.placeables ?? [])
+      .filter((t) => t.actor)
+      .map((t) => ({ actor: t.actor, token: t.document, snapshot: unitSnapshot(t.actor, t.document) })),
     settings: {
       boardSize: setting("boardSize", 13),
       turnsPerRound: setting("turnsPerRound", 3),
