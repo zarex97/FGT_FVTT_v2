@@ -56,7 +56,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | `AGL Up` | B | D | mag | Agility Check rolls −X (easier). |
 | `AGL Dwn` | D | — | mag | Agility Check rolls +X (harder). |
 | `Agility Boost` | B | D | nr | Always uses the favourable Agility table. |
-| `Luck Boost` | B | — | nr | Always uses the favourable Luck table. **Inert as of `0.2.0`** — `luckCheck−` is identical to `luckCheck` (Ch. 41 Q40). Implemented and shipped so it becomes live the moment the formulas diverge. |
+| `Luck Boost` | B | — | nr | Always uses the favourable Luck table (`1d20` rather than `1d20+4`), regardless of whose Luck is higher. Worth a flat 4 on every Luck Check. |
 | `LUC Up` | B | — | mag | Luck Check rolls −X. |
 | `TEC Up` / `Focus` | B | O | mag | Enemies evading this unit's attacks roll +X. |
 
@@ -149,7 +149,7 @@ whole attack.
 | `No Heal` | D | nv | — | nr | — | Health cannot be restored. |
 | `MOV Down` | D | nv | — | mag | — | MOV −X. **Cannot reduce MOV below 1.** |
 | `AGL Dwn` / `LUC Dwn` | D | nv | — | mag | — | Check rolls +X. |
-| `Agility Loss` / `Luck Loss` | D | nv | — | nr | — | Always uses the unfavourable table. `Luck Loss` is **inert as of `0.2.0`** — see `Luck Boost` (§A.3). |
+| `Agility Loss` / `Luck Loss` | D | nv | — | nr | — | Always uses the unfavourable table (`1d20+4`), regardless of whose stat is higher. |
 | `TEC Dwn` / `Distracted` | D | nv | O | mag | — | Enemies evading this unit's attacks roll −X. |
 
 ## A.10 Debuffs — non-volatile capability

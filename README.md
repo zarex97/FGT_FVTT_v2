@@ -6,9 +6,9 @@ tactical wargame originally played in Tabletop Simulator, with **full rules auto
 This repository currently contains the **design documentation** for that system. The
 implementation follows.
 
-**Current documentation version: `0.2.0`.** See [`CHANGELOG.md`](CHANGELOG.md) for what changed
-and why — including two corrections in `0.2.0` that invalidate anything built against `0.1.0`'s
-Range geometry or Block rule.
+**Current documentation version: `0.2.1`.** See [`CHANGELOG.md`](CHANGELOG.md) for what changed
+and why — including corrections in `0.2.0` and `0.2.1` that invalidate anything built against an
+earlier version's Range geometry, Block rule, or crit-damage placement.
 
 ---
 
@@ -109,14 +109,14 @@ FGT_FVTT_v2/
 
 | Phase | State |
 |---|---|
-| Design documentation | **`0.2.0`** — 44 chapters + 5 appendices, see `docs/` |
+| Design documentation | **`0.2.1`** — 44 chapters + 5 appendices, see `docs/` |
 | System skeleton | Not started |
 | Rules engine | Not started |
 | Content (29 reference Servants) | Specified in Part IV and Appendix D, not yet authored |
 
 Open design questions are tracked in
-[`docs/41-open-questions.md`](docs/41-open-questions.md): **Q1–Q38 answered** by the game's
-author, **Q39–Q48 open**.
+[`docs/41-open-questions.md`](docs/41-open-questions.md): **Q1–Q40 answered** by the game's
+author, **Q41–Q49 open**.
 
 ## Sources
 

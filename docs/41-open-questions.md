@@ -3,10 +3,10 @@
 Every place where the source documents are silent, ambiguous, or self-contradictory, with the
 resolution and where it is implemented.
 
-**Status as of `0.2.0`:** questions **Q1–Q38 have been answered by the game's author**. They are
+**Status as of `0.2.1`:** questions **Q1–Q40 have been answered by the game's author**. They are
 retained below in condensed form as the record of what was decided and why, because several
-resolutions changed the design. **Q39–Q48 are new**, raised by the answers themselves and by the
-expanded roster and terrain documents.
+resolutions changed the design. **Q41–Q49 are open** — Q41–Q48 raised by the expanded roster and
+terrain documents, Q49 raised by the reference calculation supplied with the Q39 answer.
 
 ---
 
@@ -22,15 +22,16 @@ All named rolls are supplied. Full table in [Appendix C](C-dice-registry.md).
 | `Attack−` | `5d10`, **subtracted** from damage |
 | `Block` | **Not a roll — a flat 25% reduction, the same value against NP** |
 | `Evade` / `Evade−` | `1d20` / `1d20+4` |
-| `Luck Check` / `Luck Check−` | `1d20` / `1d20` — **identical** |
+| `Luck Check` / `Luck Check−` | `1d20` / `1d20+4` (corrected in `0.2.1` — see Q40) |
 | `Injury` | `1d4` |
 | Master Base Health | **250** |
 | `Agility(M)` / `Luck(M)` | `4+1d8` / `8+1d12` |
 | `Health(S)` | **Not used** — Servant Max Health has no variance roll |
 
 Three of these changed the design materially: Block became a percentage (Ch. 13 §13.3 stage 14),
-crit became a flat ±5d10 with crit-damage percentages moving to the stage-4 bucket
-(Ch. 13 §13.3 stage 3), and Servant health became fully deterministic (Ch. 05 §5.6).
+crit became a flat ±5d10 (Ch. 13 §13.3 stage 3), and Servant health became fully deterministic
+(Ch. 05 §5.6). The `Luck Check−` row above was printed as `1d20` in `0.2.0`; that was a typo in
+the source, corrected under Q40.
 
 ### Q2. Additive or multiplicative damage percentages — **ANSWERED: additive**
 
@@ -137,44 +138,65 @@ Ch. 20 §20.7.
 
 ---
 
-## Part 2 — New questions (Q39–Q48)
+## Part 2 — Answered in `0.2.1` (Q39–Q40)
 
 ### Q39. Do crit-damage percentages scale the whole attack, or only the `Attack+` roll?
 
-**Why it matters.** `Attack+` adds a flat `5d10` (mean 27.5). If `Crit DmUp +100%` doubles only
-that roll, it is worth 27 points — negligible against a 2,000-damage Noble Phantasm, and the
-game contains a great many `Crit DmUp` effects at magnitudes from 25% to 100%.
+**ANSWERED: only the `Attack+` roll.** Our reading was wrong.
 
-**Our reading.** Crit-damage percentages are ordinary stage-4 bucket modifiers gated on
-`attack:crit`, so they scale the whole attack. `Crit DmUp +100%` on a crit therefore roughly
-doubles the damage.
+> *"Crit damage effects affect only the part of crit damage."*
 
-**Alternative.** They multiply only the `Attack+` roll, making crits a small consistent bonus and
-crit-damage effects nearly worthless. We think this is clearly not intended, but it is our
-inference.
+The author supplied the pre-`0.2.0` reference calculation to make the placement unambiguous:
 
-**Where.** Ch. 13 §13.3 stage 3.
+```
+[(Base Attack ± 5d10) × (Skill/Spell/NP multiplier)
+   ± (non-multiplier % modifiers in the description)
+   ± (non-multiplier increase/reduction for a + or − Rank NP)]
+ × (total of any non-Skill/Spell/NP multipliers)
+ − (Block) ± (Luck Check values) ± (other non-multiplier modifiers)
+```
+
+with the worked case:
+
+> Caster BA(MAG) 200 uses a Rank A+ NP, `4x damage plus 100`, on an Archer with the `[Sky]`
+> attribute. Crit. NP deals +100% to `[Sky]`. Caster has `NP DmUp +20%`. Archer has Magic
+> Resistance C (−30%).
+> `[(200+35) × 4 × 2 + 100] × (100+100+20−30)% = 1980 × 190% = 3762`
+> *"35 was the 5d10 of the crit damage; if this was duplicated the damage increase would be
+> felt."*
+
+So `Crit DmUp +100%` turns the `35` into `70`. It does not scale the 1,980.
+
+**What changed.** `Crit DmUp`, `Crit DmDwn`, `Crit ResUp`, `Crit ResDwn` and `Over Crit` moved
+**out of the stage-4 bucket** and became a multiplier on the stage-3 roll. `Attack−` is never
+scaled by them. See Ch. 13 §13.3 stage 3 for the superseded reading and a numeric comparison.
+
+**Our reasoning for the wrong answer, recorded.** We argued that a 27-point mean roll was too
+small for the game's many `Crit DmUp +100%` effects to be meaningful. That is true, and it is
+simply how the game is balanced: crits are a small consistent bonus, and crit-damage effects are
+a small bonus on a small bonus. Wanting a mechanic to matter is not evidence about what it does.
+
+**Where.** Ch. 13 §13.2 (stage list), §13.3 stages 2 and 3.
 
 ---
 
 ### Q40. Is `Luck Check−` being identical to `Luck Check` intended?
 
-`Evade−` carries a `+4` penalty; `Luck Check−` carries none. So contesting a luckier opponent is
-free, and two buffs/debuffs become inert:
+**ANSWERED: no — it was a typo. `Luck Check−` is `1d20+4`.**
 
-- `Luck Boost` — *"always Rolls with (normal) Luck Check instead of Luck Check−"* — does nothing.
-- `Luck Loss` — the inverse — does nothing.
+Exactly parallel to `Evade−`. Everything `0.2.0` wrote off as inert is live:
 
-Both appear in content. We have implemented the table selection anyway (it costs nothing and
-keeps the code symmetric with Evade) and marked the two effects **inert** in the catalogue rather
-than removing them.
+- `Luck Boost` and `Luck Loss` are ordinary working effects, each worth a flat 4.
+- The current-Luck comparison in `luckCheck()` is load-bearing, not cosmetic.
+- High-Luck Servants — Drake (`EX`), Semiramis, Quetzalcoatl, Ozymandias (`A+`) — impose the
+  penalty on every contest and never pay it.
 
-**If a penalty was intended**, `1d20+4` mirroring `Evade−` would restore both effects and make
-Luck a matchup as well as a budget.
-
-**Where.** Ch. 14 §14.4, Appendix A §A.3.
+**Where.** Ch. 14 §14.4, Appendix A §A.3, Appendix C §C.1.
 
 ---
+
+## Part 3 — Open (Q41–Q49)
+
 
 ### Q41. What is a "Dead panel"?
 
@@ -307,10 +329,33 @@ intended to override everything.
 
 ---
 
+### Q49. In the Q39 reference calculation, is the `[Sky]` bonus counted twice?
+
+The supplied worked case is `[(200+35) × 4 × 2 + 100] × (100+100+20−30)%`. The setup names three
+percentage sources: the NP's `+100%` against `[Sky]`, `NP DmUp +20%`, and Magic Resistance
+`−30%`. Accounting for the inner `× 2` as the `[Sky]` clause leaves the outer `+100` with no
+stated source; accounting for it as the outer term leaves the `× 2` unexplained.
+
+**Our reading.** The `× 2` is the `[Sky]` clause, applied at pipeline stage 2 as an
+ability-stated conditional multiplier, and the outer bucket is `(100 + 20 − 30)% = 90%`. We
+implement that, because it follows the formula's own structure — description-level modifiers
+live inside the bracket, effect-level ones outside — and because double-counting a single stated
+bonus would be surprising.
+
+**If instead the bonus genuinely applies twice** (once as a multiplier and once as a bucket
+term), it is a one-line content change: the ability declares both a `conditionalMultiplier` and
+a `Dmg Up` rule element. Nothing in the engine needs to change either way, which is why this
+ships rather than blocks.
+
+**Where.** Ch. 13 §13.3 stage 2.
+
+---
+
 ## How to use this chapter
 
-**For the game's author.** Q39 and Q40 are the two worth answering soon — both change how a whole
-class of effects behaves. Q43 through Q48 are individually small and can be settled in play.
+**For the game's author.** Q49 is the one worth answering soon — it is a two-line arithmetic
+clarification that decides whether one term is being counted twice. Q41 through Q48 are
+individually small and can be settled in play.
 
 **For implementers.** Every question has a shipped default and a named location. Resolutions
 remain localized by design.

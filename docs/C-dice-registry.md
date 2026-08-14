@@ -19,7 +19,7 @@ worked example or a sheet).
 | `evade` | `1d20` | **stated** | Combat step 2; compared against current Agility |
 | `evade-` | `1d20+4` | **stated** | Combat step 2, unfavourable table |
 | `luckCheck` | `1d20` | **stated** | All eight named Luck Checks |
-| `luckCheck-` | `1d20` | **stated** | Identical to `luckCheck` — the variant carries no penalty |
+| `luckCheck-` | `1d20+4` | **stated** | The unfavourable Luck table; symmetric with `evade-` |
 | `injury` | `1d4` | **stated** | Combat step 4; reduces Agility |
 | `damageModifier` | `5d10` | **stated** | ZON penalty (stage 9); Luck Check: Increased/Reduced Damage (stages 10, 13) |
 | `coinFlip` | `1d2` | **stated** | Crit determination, Overpower, Underpower, Presence Concealment AoE, setup rolls, day/night start |
@@ -36,9 +36,10 @@ Three consequences worth restating:
 25`, and it is the same against Noble Phantasms. The entry is retained above only so that a
 lookup of `"block"` fails loudly rather than silently returning a stale formula.
 
-**`luckCheck-` is identical to `luckCheck`.** The favourable/unfavourable distinction therefore
-has no mechanical effect for Luck Checks, which makes `Luck Boost` and `Luck Loss` inert. See
-Ch. 14 §14.4 and Ch. 41 Q40.
+**`luckCheck-` is `1d20+4`, not `1d20`.** The `0.2.0` registry printed the two as identical;
+that was a typo in the source, corrected by the author (Q40). `Luck Boost` and `Luck Loss` are
+therefore **live**, and contesting a luckier opponent carries a real 4-point penalty. See
+Ch. 14 §14.4.
 
 ### Evade roll modifiers
 
@@ -172,12 +173,13 @@ behind (+2) by a concealed attacker (+4) is +9, which turns a 20-Agility Servant
 roughly 50%. Agility attrition through Injury Rolls then compounds it. The system is designed so
 that evasion is reliable against ordinary attacks and unreliable against prepared ones.
 
-**Luck Checks are pure stat, with no positional or matchup component.** Because `luckCheck−` is
-identical to `luckCheck`, there is no penalty for contesting a luckier opponent. A Luck 20
-Servant (Drake, Kiritsugu, Semiramis, Quetzalcoatl) succeeds 95% of the time on every check
-regardless of who they are contesting, until the per-check −1 grinds them down. That makes Luck
-a *budget* far more than a *matchup*, and it makes high-Luck Servants disproportionately strong
-in the reaction ladder.
+**Luck is both a budget and a matchup.** `luckCheck−` is `1d20+4`, so contesting a luckier
+opponent costs a flat 4 — the same shape as `evade−`. A Luck 20 Servant (Drake, Kiritsugu,
+Semiramis, Quetzalcoatl) succeeds 100% of the time on its own checks *and* forces everyone who
+contests it onto the +4 table, where a Luck 12 opponent drops from 60% to 40%. The per-check −1
+Luck cost is the only thing that grinds them down. High-Luck Servants are therefore
+disproportionately strong in the reaction ladder in two independent ways, which is worth knowing
+before balancing anything against them.
 
 **Masters die fast.** 250 base health ± a roll, against Servant base attacks of 50–250 before
 multipliers. Two clean Servant hits, or one Overpower coin flip. Every Master-protection rule in
