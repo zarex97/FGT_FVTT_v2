@@ -45,7 +45,8 @@ function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [],
-    attributes: [], magicResistance: null, damageNegation: [], unhandled: [],
+    attributes: [], magicResistance: null, damageNegation: [], zonBonuses: [],
+    unhandled: [],
   };
 }
 
@@ -284,6 +285,23 @@ export const EXECUTORS = Object.freeze({
 
   RangeDelta(el, { rank, source, out, ctx }) {
     out.statDeltas.push({ stat: "range.panels", value: scalar(resolveValue(el, rank, ctx)), source });
+  },
+
+  /**
+   * Widen the Servant's Master's ZON.
+   *
+   * `stacks` is the load-bearing field. Independent Action and the Caster and
+   * Assassin class bonus are *"the same effect"* and take the highest rather
+   * than the sum (§6.9); Mad Enhancement's +2 and a high-rank Master's +1 are
+   * not, and add. Declaring which one an element is belongs on the element,
+   * because only the content knows.
+   */
+  ZonBonus(el, { rank, source, out, ctx }) {
+    out.zonBonuses.push({
+      value: scalar(resolveValue(el, rank, ctx)),
+      stacks: el.stacks === true,
+      source,
+    });
   },
 
   RankShift(el, { source, out }) {

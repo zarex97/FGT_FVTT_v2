@@ -17,6 +17,7 @@
 import { Rank } from "../domain/rank.mjs";
 import { NEUTRAL_FACTION } from "../domain/enums.mjs";
 import { collectContributions } from "./elements.mjs";
+import { annotateZon } from "./zon.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -114,6 +115,17 @@ export function snapshotUnit(actor, { token = null, grid = null } = {}) {
     statDeltas: contributions.statDeltas,
 
     magicResistance: contributions.magicResistance ?? magicResistanceOf(actor),
+
+    // ZON belongs to the Master–Servant pair, so a per-unit projection cannot
+    // finish it: `snapshotBoard` runs `annotateZon` once the other units exist
+    // and overwrites the three fields below. A unit snapshotted alone reports
+    // "inside", which is the safe answer — the penalty applies to a Servant
+    // provably outside its Master's zone, not to one we could not measure.
+    servantClasses: [...(sys.servantClasses ?? [])],
+    masterId: sys.masterId ?? null,
+    zonBonuses: contributions.zonBonuses ?? [],
+    zonExempt: Boolean(sys.zonExempt),
+    zonPartnerIds: [...(sys.zonPartnerIds ?? [])],
     zon: sys.zon ?? null,
     zonDistance: sys.zonDistance ?? null,
     outsideZon: Boolean(sys.outsideZon),
@@ -262,7 +274,7 @@ function boundsFor(scene, settings) {
 export function snapshotBoard({ scene, actors, settings = {}, grid = null }) {
   const g = grid ?? scene?.grid ?? null;
   const units = actors.map((a) => snapshotUnit(a.actor ?? a, { token: a.token, grid: g }));
-  return {
+  const board = {
     bounds: boundsFor(scene, settings),
     units,
     zones: scene?.zones ?? {},
@@ -277,6 +289,13 @@ export function snapshotBoard({ scene, actors, settings = {}, grid = null }) {
     // Seeded so a replayed combat picks the same random targets.
     seed: settings.seed ?? 0,
   };
+
+  // ZON is a pairwise property, so it can only be settled once every unit is
+  // projected. Done here, once per board, because the damage pipeline, the
+  // targeting resolver and the canvas overlay all ask the same question.
+  annotateZon(units, board, settings.zon ?? {});
+
+  return board;
 }
 
 /* -------------------------------------------------------------------------- */

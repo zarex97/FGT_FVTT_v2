@@ -51,6 +51,8 @@
   "FGT.Settings.InterruptTimeout": "Command Spell offer timeout (seconds)",
   "FGT.Settings.DevMode": "Developer mode",
   "FGT.Settings.ShowDamagePreview": "Show speculative damage in the targeting preview",
+  "FGT.Settings.ShowOverlays": "Show board overlays",
+  "FGT.Settings.ShowOverlaysHint": "Draw the ZON ring around a selected Servant's Master, an enemy's attack range when you hover it, and a Master's protection radius while a Servant is guarding it.",
   "FGT.Settings.AutoDeclineLuckBelow": "Auto-decline Luck Checks below this success chance (%)",
   "FGT.Settings.LockedDuringMatch": "\"{key}\" cannot be changed while a match is in progress: it would invalidate every stored effect duration on the board.",
   "FGT.Difficulty.Beginner": "Beginner",
