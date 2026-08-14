@@ -171,6 +171,30 @@ budget.
 
 ---
 
+### Correction — Moving is limited by MOV, not by a count
+
+> *"You can Move multiple times, as much as your MOV allows you. But once you
+> Attack you hold that position — unless you use Riding's double Move."*
+
+The superseded reading was **one Move per Turn**, with Riding granting a second.
+That is wrong in the common case: a Unit may split its MOV across as many
+separate moves as it likes, in any order, and the allowance is a *distance*.
+
+What fixes a Unit in place is **Attacking**. After the Attack it may not Move
+again, and Riding is the sole exception — its two *phases*, before the Attack
+and after it, share the one MOV allowance. Riding Attack remains terminal.
+
+So there are exactly three refusals, and `segmentCheck` returns them in this
+order:
+
+| Condition | Refusal |
+|---|---|
+| `usedRidingAttack` | Riding Attack ends this Unit's Turn. |
+| `movedPanels >= MOV` | The whole allowance is spent. |
+| `attacked` and no Riding | It has Attacked; it holds that position. |
+
+A drag count (`moveSegments`) is still recorded, but it gates nothing.
+
 ## 18.5 Forced actions
 
 Several effects **compel** a unit to act, spending budget the player did not choose to spend.
