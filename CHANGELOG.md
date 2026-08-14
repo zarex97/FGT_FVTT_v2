@@ -36,6 +36,55 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **A combat tracker that can create the combatants F/GT needs.** A combatant here is a
+  **faction**, not a token, and nothing could make one — so a match ran with zero turns and four
+  separate symptoms followed. `FGTCombatTracker` adds "Add Faction" and "Add Every Faction",
+  creating a combat offers to populate it, and starting an empty one is refused with the fix
+  named. The affordance is borrowed from the Universal Tabletop System's
+  `CombatTracker#addPlayer`, which solves the same problem for the same reason. The GM gets a
+  slot of its own, flagged rather than given a reserved faction id, because it takes a turn but
+  owns no units and has no budget.
+- **Grid-shape Regions for the committed targeting area, and a confirmation step** (§28.14).
+  `GridShapeData` is *"any arbitrary set of grid squares, defined by their grid offset"*, which
+  is exactly what `resolveTargets` returns. Aiming stays on the PIXI layer; a *committed*
+  placement is drawn as a real Region, proxied so a player can do it, discarded in a `finally`,
+  and swept at `ready`. The review window then lists every unit that will be hit with its damage
+  range, and every unit the area caught that the rules excluded, with the reason — the pattern
+  from `isaacsHBPF2e`, whose three outcomes (confirm, re-aim, cancel) have to stay distinct
+  values because an empty confirmation and a cancellation are both legal and mean opposite
+  things.
+- **`placement.chosenIds` narrows any chooser**, so unchecking a unit in that window actually
+  spares it. It can only remove: the dialog runs on the player's client, so a crafted id naming
+  an ally must not make that ally a target.
+
+### Fixed
+
+- **The turn state was never reset**, so a unit had no movement left for the rest of the match
+  after one move. `clearTurnState` early-returned on the acting faction being `undefined`, which
+  it always was in a match with no combatants.
+- **The Round counter advanced on every turn.** Foundry's `nextTurn`, finding no turns to
+  advance through, fell straight into `nextRound`.
+- **The HUD showed the ◈ tick where the position in the Round belonged**, so a two-faction match
+  announced "Turn 2 of 3". They are different numbers and are now shown as such.
+- **A player assigned to a faction was not recognised as controlling it**: `controlsFaction`
+  checked actor ownership only and ignored the roster's `userId`, which is where the GM had just
+  assigned them.
+- **Moving on another faction's turn now says so**, naming whose turn it is, instead of the drag
+  silently reverting.
+- **The budget is no longer written under the key `null`** on the GM's turn.
+
+### Corrected
+
+- **D28.9 is revised, not reversed.** The superseded reading was that transient targeting never
+  creates a document. Aiming still does not — that half stands, and it is what keeps the preview
+  frame-rate cheap — but a committed placement now creates a grid-shape Region. The two
+  objections that were about lifecycle rather than geometry are answered by *when* it exists:
+  nothing is ever read back from it, so the raciness that killed the prototype's approach cannot
+  recur, and one document per commit is not one per pointer move. See §28.14 for D28.10–D28.13.
+
+
+### Added
+
 - **Exclusion reasons in the targeting resolver.** `ResolvedTargets.excluded` records, for every
   unit an area caught and a filter then dropped, the reason it was dropped — captured where the
   decision is made rather than reconstructed afterwards. The preview HUD renders them as

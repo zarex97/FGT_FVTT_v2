@@ -190,6 +190,61 @@ export const OPERATIONS = Object.freeze({
   },
 
   /**
+   * Draw the targeted area on the scene as a grid-shape Region.
+   *
+   * Proxied because players cannot create scene documents. The authorizer is
+   * deliberately narrow in *what* rather than in *who*: any player may draw an
+   * area — targeting is not a privileged act — but only a region that is
+   * transient and grid-shaped, so this operation cannot be used to author
+   * permanent scenery or a polygon that outlives the decision it illustrates.
+   */
+  createTargetRegion: {
+    authorize: (payload, userId) => {
+      if (!game.users.get(userId)) return { allowed: false, reason: "Unknown user." };
+      const data = payload.data ?? {};
+      if (!data.flags?.fgt?.transientTarget) {
+        return { allowed: false, reason: "Only transient targeting regions may be created this way." };
+      }
+      const shapes = data.shapes ?? [];
+      if (shapes.length === 0 || shapes.some((s) => s.type !== "grid")) {
+        return { allowed: false, reason: "A targeting region must be grid-shaped." };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const scene = game.scenes.get(payload.sceneId);
+      if (!scene) return { regionId: null };
+      const [region] = await scene.createEmbeddedDocuments("Region", [payload.data]);
+      return { regionId: region?.id ?? null };
+    },
+  },
+
+  /**
+   * Remove a targeting area.
+   *
+   * Refuses anything that is not one of ours, so a stray id cannot be used to
+   * delete a real Region — a home base, a bounded field — through the proxy.
+   */
+  deleteTargetRegion: {
+    authorize: (payload, userId) => {
+      if (!game.users.get(userId)) return { allowed: false, reason: "Unknown user." };
+      const region = game.scenes.get(payload.sceneId)?.regions?.get(payload.regionId);
+      if (!region) return { allowed: true, reason: null }; // already gone
+      if (!region.getFlag("fgt", "transientTarget")) {
+        return { allowed: false, reason: "That is not a targeting region." };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const scene = game.scenes.get(payload.sceneId);
+      if (scene?.regions?.get(payload.regionId)) {
+        await scene.deleteEmbeddedDocuments("Region", [payload.regionId]);
+      }
+      return { ok: true };
+    },
+  },
+
+  /**
    * The Discover roll, which must happen on the GM client because the mere
    * *existence* of the roll leaks that a concealed unit is nearby (§26.5).
    */

@@ -115,6 +115,52 @@ describe("exclusion reasons", () => {
   });
 });
 
+describe("the attacker's own narrowing, from the confirmation dialog", () => {
+  const board = () => {
+    const me = unit("me", "Heracles", at(6, 6), { faction: "red", factionId: "red" });
+    const a = unit("a", "Foe A", at(6, 7), { faction: "blue", factionId: "blue" });
+    const b = unit("b", "Foe B", at(6, 5), { faction: "blue", factionId: "blue" });
+    return { me, a, b, board: boardWith([me, a, b]) };
+  };
+
+  it("attacks only the units the player left checked", () => {
+    const { me, board: bd } = board();
+    const r = resolveTargets(AREA, me, bd, { chosenIds: ["a"] });
+    expect(r.units.map((u) => u.unitId)).toEqual(["a"]);
+  });
+
+  it("records the deselected unit with a reason rather than dropping it silently", () => {
+    const { me, board: bd } = board();
+    const r = resolveTargets(AREA, me, bd, { chosenIds: ["a"] });
+    expect(others(r).find((e) => e.unitId === "b").reason).toBe("not selected by the attacker");
+  });
+
+  it("can only ever remove — an excluded unit cannot be added back by id", () => {
+    // The dialog runs on the player's client, so its output is untrusted: a
+    // crafted `chosenIds` naming an ally must not make that ally a target.
+    const { me, board: bd } = board();
+    const ally = unit("ally", "Karna", at(7, 6), { faction: "red", factionId: "red" });
+    const withAlly = boardWith([...bd.units, ally]);
+    const r = resolveTargets(AREA, me, withAlly, { chosenIds: ["a", "b", "ally"] });
+    expect(r.units.map((u) => u.unitId).sort()).toEqual(["a", "b"]);
+  });
+
+  it("leaves the explicit `chosen` chooser to handle its own ids", () => {
+    const { me, board: bd } = board();
+    const spec = { ...AREA, selection: { ...AREA.selection, chooser: "chosen", count: 1 } };
+    const r = resolveTargets(spec, me, bd, { chosenIds: ["a"] });
+    expect(r.units.map((u) => u.unitId)).toEqual(["a"]);
+    expect(r.errors).toEqual([]);
+  });
+
+  it("is inert when the player checked everything", () => {
+    const { me, board: bd } = board();
+    const r = resolveTargets(AREA, me, bd, { chosenIds: ["a", "b"] });
+    expect(r.units.map((u) => u.unitId).sort()).toEqual(["a", "b"]);
+    expect(others(r)).toEqual([]);
+  });
+});
+
 describe("an unplaced caster is said to be unplaced", () => {
   it("refuses rather than measuring every distance from the corner of the map", () => {
     const me = { ...unit("me", "Heracles", at(0, 0)), panel: null };
