@@ -574,3 +574,4 @@ registry), D (twelve Servant data sheets), E (event reference).
 ---
 
 [0.1.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.1.0
+[0.2.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.0
