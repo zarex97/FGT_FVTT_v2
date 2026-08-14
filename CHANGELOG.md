@@ -1,11 +1,10 @@
 # Changelog
 
-All notable changes to the F/GT Foundry VTT system — **documentation now, code later** — are
+All notable changes to the F/GT Foundry VTT system — its specification and its code — are
 recorded here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html), interpreted for a design document
-as follows:
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html), interpreted as follows:
 
 | Bump | Means |
 |---|---|
@@ -22,9 +21,80 @@ Two categories deserve their own headings and get them:
 
 Chapter numbers refer to files in [`docs/`](docs/00-index.md).
 
+### Two version lines
+
+Before any code existed, this file tracked the **specification**: `0.1.0`, `0.2.0` and `0.2.1`
+below are documentation versions, and they are labelled as such.
+
+From **`0.1.0` onward** the numbered releases are **system releases** — the version in
+`system.json` and the tag Foundry installs from. The two lines are separate and the numbers
+coincide by accident; the headings say which is which.
+
 ---
 
-## [0.2.1] — 2026-08-14
+## [0.1.0] — 2026-08-14
+
+**The first installable release.** Everything below `Documentation 0.2.1` describes the
+specification this was built from; this entry describes the system itself.
+
+### Added
+
+**The rules engine, complete and tested.** Four layers with a strict dependency direction,
+enforced by ESLint rather than convention:
+
+- **L1 domain** (pure, no Foundry): the `Rank` value object with grade-major ordinals, the ◈
+  operator with the published fraction table as data, the three distance metrics with the
+  corrected `8R − 12` attack-range shape, and Appendix B's rank tables.
+- **L2 rules** (pure, consumes snapshots): the 16-stage damage pipeline over a pre-rolled dice
+  map, the eleven-step targeting resolver, Agility and Luck Checks, the data-grammar predicate
+  evaluator, the document→snapshot projection, and the damage explainer.
+- **L3 engine**: intents as the decide/write boundary, the seven-step effect applier, the
+  Combat Process as a resumable reducer, the turn and round scheduler, and the write adapter.
+- **Foundry layer**: the v14 manifest, `TypeDataModel` schemas for every actor and item
+  subtype, document subclasses, ApplicationV2 sheets, and the bootstrap.
+
+**The GM proxy socket.** Typed operations with request/response and timeouts, so a failed
+application surfaces as a rejected promise rather than a silent no-op. Authorization refuses a
+batch in which even one intent targets a unit the caller does not own.
+
+**A working attack flow.** Open a Servant sheet, target a token, click an ability: the attack
+resolves through the real Combat Process, the defender is prompted on the chat card, the Luck
+Check ladder runs across both clients, and the card expands into the full stage-by-stage damage
+breakdown. Process state lives on a message flag, so the ladder survives a reconnect and a match
+can be replayed from its log.
+
+**The content pipeline.** YAML under `packs/_source/` compiled to LevelDB packs, with a
+validator that catches unknown effect ids, unparseable ranks and durations, unregistered
+rule-element keys, refs that do not resolve, and one-sided mutual exclusions.
+
+**Content:** 6 effects, 4 class-skill templates, and Heracles and Karna with their Noble
+Phantasms.
+
+**324 tests**, none of which require Foundry. They pin behaviour to the *documentation*: the
+R = 4 attack-range diagram is asserted character for character, all six Mad Enhancement sheets
+are checked against the rank table, and both worked examples from Chapter 13 are golden
+fixtures.
+
+### Known limitations
+
+This release is honest about being early:
+
+- **No canvas targeting preview.** Targets come from Foundry's own targeting (select a token,
+  press `T`). The declarative targeting engine is complete and tested; only its preview layer
+  is missing.
+- **No turn HUD, action budgets or Delay.** The scheduler exists and is tested; nothing drives
+  it from the interface yet.
+- **Abilities do not yet apply their effect phases automatically.** Damage resolves; riders
+  declared in an ability's `phases` do not.
+- **Two Servants of twenty-nine.** The remaining twenty-seven are fully specified in Appendix D
+  and not yet authored as YAML.
+- **Not yet exercised in a live world.** Every Foundry API used here was verified against the
+  v14.364 sources, and the manifest check confirms every declared path resolves — but this is
+  the first build to be installed, and the interface layer has had no runtime testing.
+
+---
+
+## Documentation `0.2.1` — 2026-08-14
 
 Two more answers from the game's author, both of which **correct readings `0.2.0` had reasoned
 its way into** — plus a third correction found while implementing the pipeline against the
@@ -129,7 +199,7 @@ Q41–Q48 remain open, unchanged.
 
 ---
 
-## [0.2.0] — 2026-08-13
+## Documentation `0.2.0` — 2026-08-13
 
 The game's author returned an annotated copy of Chapter 41 answering **Q1–Q38**, supplied the
 **Terrain Effects** document, and supplied **seventeen additional Servant sheets**. This release
@@ -354,7 +424,7 @@ Hundred-Faced Hassan's bracketed alternatives (Q46); how much of Secret Poison s
 
 ---
 
-## [0.1.0] — 2026-08-12
+## Documentation `0.1.0` — 2026-08-12
 
 Initial design specification. Forty-one chapters and five appendices, written from the F/GT
 rulebook, the Common Skills and Status Effects documents, the ◈-notation note, the General
@@ -411,6 +481,4 @@ registry), D (twelve Servant data sheets), E (event reference).
 
 ---
 
-[0.2.1]: https://github.com/zarex97/FGT_FVTT_v2/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/zarex97/FGT_FVTT_v2/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.1.0

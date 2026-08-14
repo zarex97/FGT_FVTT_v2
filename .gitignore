@@ -7,3 +7,5 @@ styles/fgt.css.map
 *.log
 .DS_Store
 .build/
+RELEASE_NOTES.md
+dist/

@@ -53,6 +53,14 @@ jobs:
       - name: Stamp the version and release URLs into system.json
         run: node tools/release.mjs "${{ steps.version.outputs.version }}" "${{ github.repository }}"
 
+      - name: Verify the manifest still resolves after stamping
+        run: node tools/check-manifest.mjs
+
+      # The whole changelog is several hundred lines and spans two version
+      # lines; the release notes get only this version's section.
+      - name: Extract the release notes
+        run: node tools/release-notes.mjs "${{ steps.version.outputs.version }}" RELEASE_NOTES.md
+
       - name: Assemble the package
         run: |
           mkdir -p dist/fgt
@@ -65,7 +73,7 @@ jobs:
         with:
           name: "F/GT ${{ steps.version.outputs.version }}"
           tag_name: ${{ github.ref_name }}
-          body_path: CHANGELOG.md
+          body_path: RELEASE_NOTES.md
           files: |
             system.json
             dist/fgt.zip
