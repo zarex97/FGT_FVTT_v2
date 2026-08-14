@@ -14,7 +14,8 @@
 
 import { computeDamage } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { snapshotUnit, snapshotBoard } from "../rules/snapshot.mjs";
+import { snapshotUnit } from "../rules/snapshot.mjs";
+import { currentBoard } from "./board.mjs";
 import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
 import { classifyAbility, targetSpecFor as specForAbility } from "../rules/ability-use.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -455,19 +456,7 @@ async function applyBatch(intents, source) {
 
 /** @returns {object} */
 function boardSnapshot() {
-  return snapshotBoard({
-    scene: canvas?.scene,
-    actors: (canvas?.tokens?.placeables ?? []).map((t) => ({ actor: t.actor, token: t.document })),
-    settings: {
-      boardSize: game.settings.get("fgt", "boardSize"),
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-      round: game.combat?.round ?? 1,
-      tick: game.combat?.system?.globalTurn ?? 0,
-      phase: game.combat?.system?.phase ?? "day",
-      region: game.settings.get("fgt", "region") || null,
-      seed: game.combat?.system?.globalTurn ?? 0,
-    },
-  });
+  return currentBoard({ region: game.settings.get("fgt", "region") || null });
 }
 
 /**

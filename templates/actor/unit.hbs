@@ -1,6 +1,13 @@
-{{!-- Only helpers Foundry v14 actually registers are used here: localize and
-      concat. `array` and `upper` do not exist and would throw at render. --}}
-<form class="fgt-sheet">
+{{!-- Only helpers Foundry v14 actually registers are used here: localize,
+      concat, ifThen, disabled and selectOptions. `array` and `upper` do not
+      exist and would throw at render.
+
+      NOT a <form>. ApplicationV2 renders the sheet's frame AS the form element
+      (`tag: "form"`), and a part's HTML is parsed detached, so a <form> here
+      really does become a nested one. Every input would then have the INNER
+      form as its owner, `FormDataExtended(outerForm)` would collect nothing,
+      and no edit on this sheet would ever save. --}}
+<div class="fgt-sheet">
   <header class="fgt-sheet__header">
     <img class="fgt-sheet__portrait" src="{{document.img}}" alt="{{document.name}}" data-edit="img">
     <div class="fgt-sheet__identity">
@@ -11,11 +18,19 @@
             attack report that it has no legal targets. --}}
       <label class="fgt-sheet__faction">
         <span>{{localize "FGT.Sheet.Faction"}}</span>
-        <input type="text" name="system.factionId" value="{{system.factionId}}"
-               placeholder="{{localize 'FGT.Sheet.FactionPlaceholder'}}">
+        <select name="system.factionId">
+          <option value="">{{localize "FGT.Sheet.NoFaction"}}</option>
+          {{selectOptions factionChoices selected=system.factionId}}
+        </select>
       </label>
       {{#unless hasFaction}}
-        <p class="fgt-sheet__hint">{{localize "FGT.Sheet.NoFactionHint"}}</p>
+        <p class="fgt-sheet__hint">
+          {{#if hasFactions}}
+            {{localize "FGT.Sheet.NoFactionHint"}}
+          {{else}}
+            {{localize "FGT.Sheet.NoFactionsAtAll"}}
+          {{/if}}
+        </p>
       {{/unless}}
     </div>
   </header>
@@ -101,4 +116,4 @@
   {{#if system.notes}}
     <section class="fgt-sheet__notes">{{{system.notes}}}</section>
   {{/if}}
-</form>
+</div>

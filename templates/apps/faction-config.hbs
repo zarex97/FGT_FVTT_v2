@@ -1,0 +1,58 @@
+<div class="fgt-factions">
+  <p class="fgt-factions__intro">{{localize "FGT.Factions.Intro"}}</p>
+
+  {{#if isEmpty}}
+    <p class="fgt-factions__empty">{{localize "FGT.Factions.Empty"}}</p>
+  {{/if}}
+
+  {{#each factions as |faction|}}
+    <fieldset class="fgt-factions__row" data-faction-id="{{faction.id}}">
+      <legend>
+        <span class="fgt-factions__swatch" style="background: {{faction.color}}"></span>
+        {{faction.name}}
+        <code class="fgt-factions__id">{{faction.id}}</code>
+      </legend>
+
+      <div class="fgt-factions__fields">
+        <label>
+          <span>{{localize "FGT.Factions.Name"}}</span>
+          <input type="text" name="factions.{{faction.id}}.name" value="{{faction.name}}">
+        </label>
+
+        <label>
+          <span>{{localize "FGT.Factions.Color"}}</span>
+          <input type="color" name="factions.{{faction.id}}.color" value="{{faction.color}}">
+        </label>
+
+        <label>
+          <span>{{localize "FGT.Factions.Player"}}</span>
+          <select name="factions.{{faction.id}}.userId">
+            <option value="">{{localize "FGT.Factions.Unassigned"}}</option>
+            {{selectOptions players selected=faction.userId valueAttr="id" labelAttr="name"}}
+          </select>
+        </label>
+      </div>
+
+      {{#if faction.others.length}}
+        <div class="fgt-factions__allies">
+          <span class="fgt-factions__allies-label">{{localize "FGT.Factions.Allies"}}</span>
+          {{#each faction.others as |other|}}
+            <label class="fgt-factions__ally">
+              <input type="checkbox" name="factions.{{../faction.id}}.allies.{{other.id}}"
+                     {{checked other.allied}}>
+              <span>{{other.name}}</span>
+            </label>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      <button type="button" class="fgt-factions__delete" data-action="deleteFaction">
+        {{localize "FGT.Factions.Delete"}}
+      </button>
+    </fieldset>
+  {{/each}}
+
+  <footer class="fgt-factions__footer">
+    <button type="button" data-action="addFaction">{{localize "FGT.Factions.Add"}}</button>
+  </footer>
+</div>

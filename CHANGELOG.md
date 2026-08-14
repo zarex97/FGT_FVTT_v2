@@ -32,6 +32,37 @@ coincide by accident; the headings say which is which.
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **No edit on either sheet was ever saved.** Both templates had a `<form>` as their root
+  element. ApplicationV2 renders a document sheet's frame **as** the form (`tag: "form"`), and a
+  part's HTML is parsed detached — so the inner `<form>` really was created, every input's form
+  owner was the inner form, and `FormDataExtended(outerForm)` collected nothing. The change event
+  bubbled, the submit ran, and it submitted an empty object. Both roots are now `<div>`.
+  This is why typing a faction did nothing; it is also why typing a Health value did nothing.
+- **`alliances` was never passed to any board snapshot.** Four call sites each built their own
+  snapshot and not one of them included it, so `relationOf` saw an empty map and every faction
+  was an island. There is now one board builder, `engine/board.mjs#currentBoard`, and it fills in
+  the alliance graph from the roster.
+
+### Added
+
+- **A GM-managed faction roster.** Settings → F/GT → **Manage Factions**: create a faction, name
+  and colour it, assign a player to it, and tick which other factions it is allied with. Unit
+  sheets now pick from that list with a `<select>` instead of accepting free text — two units
+  whose faction strings differed by a typo were enemies, silently, with nothing on screen to
+  explain it.
+  - Ids are **generated from the name and never change**, so renaming a faction does not orphan
+    its units.
+  - Alliances are stored per faction but **normalized to be symmetric and reflexive** on read: a
+    roster where red allies blue but blue does not ally red is a half-finished edit, and the safe
+    reading of one is where nobody is surprised by an attack from an ally.
+  - Deleting a faction says how many units it will leave unaligned before it does it.
+
+---
+
 ## [0.2.1] — 2026-08-14
 
 ### Fixed
