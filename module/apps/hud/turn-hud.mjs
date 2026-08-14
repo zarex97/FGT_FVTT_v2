@@ -27,6 +27,7 @@ export class TurnHUD extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       endTurn: TurnHUD.#onEndTurn,
       panTo: TurnHUD.#onPanTo,
+      delay: TurnHUD.#onDelay,
     },
   };
 
@@ -57,6 +58,7 @@ export class TurnHUD extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.on("combatStart", refresh);
     Hooks.on("deleteCombat", () => TurnHUD.#instance.close());
     Hooks.on("fgtBudgetChanged", refresh);
+    Hooks.on("fgtTurnOrderChanged", refresh);
     Hooks.on("createActiveEffect", refresh);
     Hooks.on("deleteActiveEffect", refresh);
 
@@ -91,6 +93,15 @@ export class TurnHUD extends HandlebarsApplicationMixin(ApplicationV2) {
       unmet: verdict.unmet,
       canEndTurn: verdict.ok,
       isMyTurn: controlsFaction(factionId),
+
+      // Turn order, with the delay each faction has declared. Shown to
+      // everybody: Delay is a public declaration, and a player deciding whether
+      // to delay needs to see who they would end up behind.
+      order: turnOrderRows(combat),
+      delay: combat?.system?.delays?.[factionId] ?? 0,
+      // Delaying past the last pending faction does nothing, so the choices
+      // stop there rather than offering a number with no effect.
+      delayChoices: delayChoices(combat, factionId),
     };
   }
 
@@ -109,6 +120,31 @@ export class TurnHUD extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
     await combat.nextTurn();
+  }
+
+  /**
+   * Declare `Delay+X`.
+   *
+   * Proxied through the GM like every other write to the Combat document: no
+   * player owns it, and the authorizer checks the faction is theirs.
+   *
+   * @this {TurnHUD}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onDelay(_event, target) {
+    const combat = game.combats.active;
+    const factionId = actingFaction(combat);
+    const positions = Number(
+      target.closest(".fgt-hud__delay")?.querySelector("select")?.value ?? 0,
+    );
+
+    const { FGTSocket } = await import("../../net/socket.mjs");
+    try {
+      await FGTSocket.request("delayTurn", { combatId: combat.id, factionId, positions });
+    } catch (err) {
+      ui.notifications.error(err.message);
+    }
   }
 
   /**
@@ -180,4 +216,47 @@ function controlsFaction(factionId) {
  */
 function turnsPerRound() {
   return game.settings.get("fgt", "turnsPerRound") || 3;
+}
+
+/**
+ * The effective turn order, as rows the template can render.
+ *
+ * `system.turnOrder` is already the order after Delay — the document derives it
+ * rather than mutating the roll — so this only labels it.
+ *
+ * @param {object} combat
+ * @returns {Array<{id: string, name: string, acted: boolean, active: boolean, delay: number}>}
+ */
+function turnOrderRows(combat) {
+  const order = combat?.system?.turnOrder ?? [];
+  const taken = new Set(combat?.system?.takenThisRound ?? []);
+  const delays = combat?.system?.delays ?? {};
+  const active = actingFaction(combat);
+
+  return order.map((id) => ({
+    id,
+    name: factionLabel(combat, id),
+    acted: taken.has(id),
+    active: id === active,
+    delay: delays[id] ?? 0,
+  }));
+}
+
+/**
+ * How far this faction could usefully delay.
+ *
+ * Delaying past the last faction still to act does nothing — `computeTurnOrder`
+ * clamps it — so offering `+5` when only two factions remain would be offering a
+ * choice with no consequence.
+ *
+ * @param {object} combat
+ * @param {string|null} factionId
+ * @returns {number[]}
+ */
+function delayChoices(combat, factionId) {
+  const taken = new Set(combat?.system?.takenThisRound ?? []);
+  const pending = (combat?.system?.baseOrder ?? []).filter((id) => !taken.has(id));
+  const max = Math.max(0, pending.length - 1);
+  if (!factionId || max === 0) return [];
+  return Array.from({ length: max + 1 }, (_, n) => n);
 }

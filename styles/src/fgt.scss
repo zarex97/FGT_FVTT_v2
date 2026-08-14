@@ -322,6 +322,47 @@
     &--done { opacity: 1; }
   }
 
+  // The order after Delay, which is public information: a player weighing a
+  // delay has to be able to see who they would end up behind.
+  &__order {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding-top: 0.35rem;
+    border-top: var(--fgt-hud-border);
+    font-size: 0.72rem;
+  }
+
+  &__slot {
+    display: flex;
+    gap: 0.2rem;
+    align-items: baseline;
+    padding: 0.05rem 0.3rem;
+    border: 1px solid currentcolor;
+    border-radius: 2px;
+    opacity: 0.6;
+
+    // Never colour alone: the active slot is also the bold one, and a faction
+    // that has acted is struck through.
+    &--active { opacity: 1; font-weight: 700; }
+    &--acted { opacity: 0.35; text-decoration: line-through; }
+  }
+
+  &__slot-delay { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  &__delay {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: var(--fgt-hud-border);
+    font-size: 0.78rem;
+
+    label { display: flex; align-items: center; gap: 0.3rem; }
+    select { width: 4.5rem; }
+    button { flex: 0 0 auto; cursor: pointer; }
+  }
+
   &__warnings {
     display: flex;
     flex-direction: column;
@@ -389,6 +430,31 @@
   &__name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   &__band { font-size: 0.7rem; opacity: 0.65; }
   &__damage { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  // Who the area caught and the rules dropped. Dimmed and struck through, so it
+  // reads as "considered and rejected" rather than as a second target list —
+  // and the reason is always on the row, never only in a tooltip.
+  &__excluded {
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgb(255 255 255 / 15%);
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+
+  &__excluded-head {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+  }
+
+  &__target--excluded {
+    display: block;
+
+    .fgt-preview__name { text-decoration: line-through; }
+  }
+
+  &__why { display: block; padding-left: 0.9rem; font-style: italic; opacity: 0.85; }
 
   &__warning { padding-top: 0.25rem; font-size: 0.75rem; }
   &__reason { padding-top: 0.25rem; font-size: 0.75rem; opacity: 0.9; }

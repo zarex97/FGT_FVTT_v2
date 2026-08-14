@@ -74,16 +74,38 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     const hud = new TargetingHUD({ label: preview.label, damageFor: preview.damageFor });
 
     const mode = spec.anchor?.kind ?? "self";
+    // Say what the controls are before taking over the canvas. A player who is
+    // not told that Tab cycles and Escape cancels reasonably concludes the
+    // system has hung.
+    announce(preview.label, mode);
+
     try {
-      switch (mode) {
-        case "selfEdgeAdjacent": return await this.#directionPicker(options, hud);
-        case "withinRange": return await this.#freePlacement(spec, caster, board, options, hud);
-        case "targetUnit": return await this.#unitPicker(options, hud, board);
-        default: return options[0]?.legal ? options[0].placement : null;
-      }
+      const placement = await this.#run(mode, { spec, caster, board, options, hud });
+      // The resolution is the truth about who is being attacked; Foundry's own
+      // target set is told about it so the rest of the world agrees (D28.8).
+      if (placement) mirrorTargets(validate(spec, caster, board, placement).resolved.units);
+      return placement;
     } finally {
       this.#cancel();
       hud.close();
+    }
+  }
+
+  /**
+   * Dispatch to the interaction this anchor calls for.
+   * @param {string} mode
+   * @param {object} args
+   * @returns {Promise<object|null>}
+   */
+  async #run(mode, { spec, caster, board, options, hud }) {
+    switch (mode) {
+      case "selfEdgeAdjacent": return this.#directionPicker(options, hud);
+      case "withinRange": return this.#freePlacement(spec, caster, board, options, hud);
+      case "targetUnit": return this.#unitPicker(options, hud, board);
+      default:
+        if (options[0]?.legal) return options[0].placement;
+        reportNothingLegal(options, board);
+        return null;
     }
   }
 
@@ -183,7 +205,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   async #unitPicker(options, hud, board) {
     const selectable = options.filter((o) => o.legal);
     if (selectable.length === 0) {
-      ui.notifications.warn(noTargetsReason(options, board));
+      reportNothingLegal(options, board);
       return null;
     }
     let focused = 0;
@@ -315,28 +337,90 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Telling the player what happened                                           */
+/* -------------------------------------------------------------------------- */
+
+/** @type {Readonly<Record<string, string>>} */
+const MODE_HINTS = Object.freeze({
+  selfEdgeAdjacent: "FGT.Targeting.ModeDirection",
+  withinRange: "FGT.Targeting.ModePanel",
+  targetUnit: "FGT.Targeting.ModeUnit",
+});
+
 /**
- * Why are there no legal targets?
- *
- * "No legal targets" is true but useless, and it is the message a brand new
- * world always gets: relations are resolved from `factionId`, a Unit with none
- * is neutral to everyone, and a fresh import has none. Saying *that* turns a
- * dead end into a two-minute fix.
- *
- * @param {object[]} options every placement, legal or not
- * @param {object} board
- * @returns {string}
+ * Announce the session and its controls.
+ * @param {string} label
+ * @param {string} mode
  */
-function noTargetsReason(options, board) {
-  const others = (board.units ?? []).filter((u) => u.kind !== "platform" && u.kind !== "structure");
+function announce(label, mode) {
+  const key = MODE_HINTS[mode];
+  if (!key) return; // Mode D asks nothing; there is nothing to explain.
+  ui.notifications.info(
+    game.i18n.format("FGT.Targeting.AimHint", {
+      name: label ?? "",
+      mode: game.i18n.localize(key),
+    }),
+  );
+}
+
+/**
+ * Explain a targeting session that had nothing to offer.
+ *
+ * Three answers, most specific first.
+ *
+ * The faction check comes first because it is the one cause that is not about
+ * this ability at all: relations resolve from `factionId`, a Unit with none is
+ * neutral to everyone, and a freshly imported world has none — so the honest
+ * answer is "go make a faction", not anything about range or geometry.
+ *
+ * Otherwise the resolver has already produced a human-readable reason for every
+ * placement it refused, and the failure worth avoiding is throwing all of them
+ * away and saying "no legal targets", which is what sends a player to the
+ * console. The distinct reasons are shown, capped: five placements usually fail
+ * for one reason, and repeating it five times is not more informative.
+ *
+ * @param {object[]} options the resolved placements, legal and not
+ * @param {object} board
+ */
+function reportNothingLegal(options, board) {
+  const others = (board?.units ?? []).filter((u) => u.kind !== "platform" && u.kind !== "structure");
   if (others.length > 0 && others.every((u) => !u.factionId)) {
-    return game.i18n.localize("FGT.Targeting.NoFactions");
+    ui.notifications.warn(game.i18n.localize("FGT.Targeting.NoFactions"), { permanent: true });
+    return;
   }
-  // Otherwise the resolver already said something specific; show the first.
-  const stated = options.find((o) => o.reasons.length > 0);
-  return stated
-    ? `${game.i18n.localize("FGT.Targeting.NoTargets")} ${stated.reasons[0]}`
-    : game.i18n.localize("FGT.Targeting.NoTargets");
+
+  const reasons = [...new Set(options.flatMap((o) => o.reasons ?? []))];
+  if (reasons.length === 0) {
+    ui.notifications.warn(game.i18n.localize("FGT.Targeting.NoTargets"));
+    return;
+  }
+  const shown = reasons.slice(0, 3);
+  const more = reasons.length - shown.length;
+  ui.notifications.warn(
+    `${game.i18n.localize("FGT.Targeting.NoTargets")} ${shown.join(" ")}` +
+      (more > 0 ? ` (+${more} more)` : ""),
+    { permanent: reasons.length > 1 },
+  );
+}
+
+/**
+ * Mirror a resolution into Foundry's own target set (D28.8).
+ *
+ * Written, never read: `game.user.targets` is a flat set with no shape, band or
+ * relation information, so no F/GT rule may consult it — but modules, macros and
+ * other players' target indicators all do, and leaving it stale after an attack
+ * makes the board lie about who was hit.
+ *
+ * @param {object[]} units the resolved `TargetedUnit`s
+ */
+export function mirrorTargets(units) {
+  const ids = [];
+  for (const target of units ?? []) {
+    const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === target.unitId);
+    if (token) ids.push(token.id);
+  }
+  canvas.tokens?.setTargets?.(ids);
 }
 
 /**

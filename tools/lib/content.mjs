@@ -28,6 +28,7 @@ export const SCHEMA_VERSION = 1;
 export const RULE_ELEMENT_KEYS = new Set([
   // Group 1 — stat and derived-value modifiers
   "StatDelta", "RankShift", "MaxDelta", "MovDelta", "RangeDelta", "SizeStep",
+  "ZonBonus",
   // Group 2 — damage contributors
   "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward",
   "CritModifier", "BlockModifier", "AttackerPropertyTier",

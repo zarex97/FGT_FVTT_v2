@@ -117,6 +117,28 @@ function panelOf(doc) {
 }
 
 /**
+ * One unit **as the board sees it**.
+ *
+ * Not the same thing as `unitSnapshot(actor)`: `snapshotBoard` runs
+ * `annotateZon` across its units once they all exist, because ZON is a property
+ * of the Master-Servant *pair* and a unit projected alone cannot know it.
+ * Taking the attacker from the board rather than re-projecting it is what lets
+ * pipeline stage 9 and the Noble Phantasm legality check see the same answer
+ * the ZON ring is drawing.
+ *
+ * Falls back to a standalone projection for an actor with no token, so a
+ * console call still works.
+ *
+ * @param {object} board a board snapshot
+ * @param {object} actor an `FGTActor`
+ * @returns {object|null} the unit snapshot
+ */
+export function unitFrom(board, actor) {
+  if (!actor) return null;
+  return board?.units?.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+}
+
+/**
  * Snapshot the board as it currently stands.
  *
  * @param {object} [overrides] extra `settings` for the snapshot

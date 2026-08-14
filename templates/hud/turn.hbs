@@ -37,6 +37,19 @@
     </section>
   {{/if}}
 
+  {{#if order.length}}
+    {{!-- Delay is a public declaration, so the order is public too: a player
+          weighing a delay needs to see who they would end up behind. --}}
+    <section class="fgt-hud__order">
+      {{#each order as |slot|}}
+        <div class="fgt-hud__slot{{#if slot.active}} fgt-hud__slot--active{{/if}}{{#if slot.acted}} fgt-hud__slot--acted{{/if}}">
+          <span class="fgt-hud__slot-name">{{slot.name}}</span>
+          {{#if slot.delay}}<span class="fgt-hud__slot-delay">+{{slot.delay}}</span>{{/if}}
+        </div>
+      {{/each}}
+    </section>
+  {{/if}}
+
   {{#if unmet.length}}
     <section class="fgt-hud__warnings">
       {{#each unmet as |warning|}}
@@ -49,6 +62,22 @@
   {{/if}}
 
   {{#if isMyTurn}}
+    {{#if delayChoices.length}}
+      <section class="fgt-hud__delay">
+        <label>
+          <span>{{localize "FGT.HUD.Delay"}}</span>
+          <select name="delay">
+            {{#each delayChoices as |n|}}
+              <option value="{{n}}" {{#if (eq n ../delay)}}selected{{/if}}>+{{n}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <button type="button" data-action="delay" data-tooltip="{{localize 'FGT.HUD.DelayHint'}}">
+          {{localize "FGT.HUD.DelayApply"}}
+        </button>
+      </section>
+    {{/if}}
+
     <footer class="fgt-hud__footer">
       <button type="button" data-action="endTurn" {{disabled (not canEndTurn)}}>
         {{localize "FGT.HUD.EndTurn"}}

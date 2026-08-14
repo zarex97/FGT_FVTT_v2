@@ -16,6 +16,7 @@
 
 import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
+import { annotateZon } from "./zon.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -99,6 +100,25 @@ export function snapshotUnit(actor, { token = null, panel = null } = {}) {
     statDeltas: contributions.statDeltas,
 
     magicResistance: contributions.magicResistance ?? magicResistanceOf(actor),
+
+    // Which component a normal attack draws on. The preview reads this to build
+    // the same base spec the real attack will; without it a MAG attacker was
+    // previewed as a STR one.
+    normalAttack: {
+      mode: sys.normalAttack?.mode ?? "fixed",
+      component: sys.normalAttack?.component ?? "str",
+    },
+
+    // ZON belongs to the Master-Servant pair, so a per-unit projection cannot
+    // finish it: `snapshotBoard` runs `annotateZon` once the other units exist
+    // and overwrites the three fields below. A unit snapshotted alone reports
+    // "inside", which is the safe answer -- the penalty applies to a Servant
+    // provably outside its Master's zone, not to one we could not measure.
+    servantClasses: [...(sys.servantClasses ?? [])],
+    masterId: sys.masterId ?? null,
+    zonBonuses: contributions.zonBonuses ?? [],
+    zonExempt: Boolean(sys.zonExempt),
+    zonPartnerIds: [...(sys.zonPartnerIds ?? [])],
     zon: sys.zon ?? null,
     zonDistance: sys.zonDistance ?? null,
     outsideZon: Boolean(sys.outsideZon),
@@ -132,9 +152,8 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // A caller that has a canvas resolves each unit's panel first and passes the
   // finished snapshot; anything else is projected here.
   const units = actors.map((a) => a.snapshot ?? snapshotUnit(a.actor ?? a, { token: a.token }));
-  const size = settings.boardSize ?? 13;
-  return {
-    bounds: { iMin: 0, jMin: 0, iMax: size - 1, jMax: size - 1 },
+  const board = {
+    bounds: boundsFor(scene, settings),
     units,
     zones: scene?.zones ?? {},
     alliances: settings.alliances ?? {},
@@ -148,6 +167,36 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     // Seeded so a replayed combat picks the same random targets.
     seed: settings.seed ?? 0,
   };
+
+  // ZON is a pairwise property, so it can only be settled once every unit is
+  // projected. Done here, once per board, because the damage pipeline, the
+  // targeting resolver and the canvas overlay all ask the same question.
+  annotateZon(units, board, settings.zon ?? {});
+
+  return board;
+}
+
+/**
+ * The board's panel bounds.
+ *
+ * The rules say 13x13 or 25x25 and the setting says which, but the *scene* is
+ * what the tokens are standing on: a 20x20 scene with `boardSize` left at 13
+ * clips every panel past row 12 out of every shape, so a unit placed in the
+ * lower half of the map becomes untargetable with no error anywhere. The scene
+ * wins when it can answer, and the setting is the fallback.
+ *
+ * @param {object|null} scene
+ * @param {object} settings
+ * @returns {import("../domain/geometry.mjs").Bounds}
+ */
+function boundsFor(scene, settings) {
+  const rows = scene?.dimensions?.rows ?? null;
+  const columns = scene?.dimensions?.columns ?? null;
+  if (Number.isFinite(rows) && Number.isFinite(columns) && rows > 0 && columns > 0) {
+    return { iMin: 0, jMin: 0, iMax: Math.round(rows) - 1, jMax: Math.round(columns) - 1 };
+  }
+  const size = settings.boardSize ?? 13;
+  return { iMin: 0, jMin: 0, iMax: size - 1, jMax: size - 1 };
 }
 
 /* -------------------------------------------------------------------------- */
