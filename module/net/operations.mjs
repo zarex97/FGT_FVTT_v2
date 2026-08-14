@@ -158,6 +158,38 @@ export const OPERATIONS = Object.freeze({
   },
 
   /**
+   * Declare `Delay+X` for a faction.
+   *
+   * Proxied for the same reason the budget is: turn order lives on the Combat
+   * document, which no player owns. The authorizer is the same shape — a player
+   * may delay **their own** faction, and only while it has not yet acted this
+   * Round, because a delay from a faction that has already taken its turn is a
+   * declaration about the next Round and the document decides that, not the
+   * caller.
+   */
+  delayTurn: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      if (!user) return { allowed: false, reason: "Unknown user." };
+      if (user.isGM) return { allowed: true, reason: null };
+
+      const combat = game.combats.get(payload.combatId);
+      if (!combat) return { allowed: false, reason: "Unknown combat." };
+
+      const owns = game.actors.some(
+        (a) => a.system?.factionId === payload.factionId && a.testUserPermission(user, "OWNER"),
+      );
+      if (!owns) return { allowed: false, reason: `${user.name} does not control that faction.` };
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const combat = game.combats.get(payload.combatId);
+      const order = await combat.delayFaction(payload.factionId, payload.positions ?? 0);
+      return { ok: true, order };
+    },
+  },
+
+  /**
    * The Discover roll, which must happen on the GM client because the mere
    * *existence* of the roll leaks that a concealed unit is nearby (§26.5).
    */

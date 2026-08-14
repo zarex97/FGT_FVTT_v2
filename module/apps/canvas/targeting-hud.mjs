@@ -53,6 +53,12 @@ export class TargetingHUD {
     const targets = option.resolved?.units ?? [];
     const rows = targets.map((t) => this.#row(t)).join("");
 
+    // Everything the area caught and then dropped, with the reason it was
+    // dropped. A unit standing inside the highlight and not in the target list
+    // is the single most confusing thing a targeting preview can show, and the
+    // player has no way to work out why on their own (§28.6).
+    const excluded = (option.resolved?.excluded ?? []).map((e) => this.#excludedRow(e)).join("");
+
     // Warnings are shown for a LEGAL placement too — `grailAtRisk` is legal and
     // catastrophic, which is exactly the case a preview exists to surface.
     const warnings = (option.resolved?.warnings ?? [])
@@ -67,6 +73,9 @@ export class TargetingHUD {
         ${option.resolved?.panels?.length ?? 0} ${game.i18n.localize("FGT.Targeting.Panels")}
       </div>
       ${rows ? `<div class="fgt-preview__targets">${rows}</div>` : ""}
+      ${excluded ? `<div class="fgt-preview__excluded">
+        <div class="fgt-preview__excluded-head">${game.i18n.localize("FGT.Targeting.Excluded")}</div>
+        ${excluded}</div>` : ""}
       ${warnings}
       ${reasons}
       <div class="fgt-preview__verdict fgt-preview__verdict--${option.legal ? "ok" : "no"}">
@@ -96,6 +105,18 @@ export class TargetingHUD {
     const band = target.band ? `<span class="fgt-preview__band">band ${target.band}</span>` : "";
     return `<div class="fgt-preview__target">
       <span class="fgt-preview__name">${name}</span>${band}${damage}
+    </div>`;
+  }
+
+  /**
+   * One unit the area caught and the rules dropped.
+   * @param {object} entry an `ExcludedUnit`
+   * @returns {string}
+   */
+  #excludedRow(entry) {
+    return `<div class="fgt-preview__target fgt-preview__target--excluded">
+      <span class="fgt-preview__name">✕ ${escape(entry.name)}</span>
+      <span class="fgt-preview__why">${escape(entry.reason)}</span>
     </div>`;
   }
 

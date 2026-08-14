@@ -34,7 +34,48 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Added
+
+- **Exclusion reasons in the targeting resolver.** `ResolvedTargets.excluded` records, for every
+  unit an area caught and a filter then dropped, the reason it was dropped — captured where the
+  decision is made rather than reconstructed afterwards. The preview HUD renders them as
+  struck-through rows, which is the layout §28.6 has specified since it was written; the
+  "no legal targets" error names the first exclusion instead of stating only that there were
+  none; and a session with nothing to offer lists the resolver's distinct reasons rather than
+  discarding them, after the roster check that already told a factionless world what to do.
+  Adapted from the area-targeting flow in `isaacsHBPF2e`, whose review dialog lists every
+  rejected token with its reason *"so a target going missing is never a mystery the caster has
+  to debug mid-turn"*.
+- **Delay** (§25.3). The field existed on the combatant schema and nothing read it.
+  `computeTurnOrder` derives the played order from the rolled one rather than mutating it, so a
+  delay cannot compound; it reorders only the factions that have not yet acted; and delays apply
+  in declaration order, so two factions each delaying one place past each other end up where
+  they began. Declared through the GM proxy, with the resulting order shown in the HUD.
+- **ZON** (§6.9, §16.3). `unit.outsideZon` had two consumers — pipeline stage 9's 5d10 reduction
+  and the `requiresZon` limit gating every Noble Phantasm — and no producer, so both rules had
+  always been inert. `rules/zon.mjs` derives it; because the zone belongs to the Master–Servant
+  *pair*, `snapshotBoard` annotates once every unit exists and the attack flow takes its
+  combatants from the board through `unitFrom` rather than re-projecting them. The class split
+  follows §6.9's reading, with a max-not-sum bonus channel shared with Independent Action, from
+  a config table rather than arithmetic because that reading is flagged for an authorial ruling.
+  Both reference-set exceptions are modelled: Semiramis's exemption and the Dioscuri's
+  `any`-across-twins test. Content declares its own bonuses through a new `ZonBonus` element.
+- **The persistent overlay layer** (§28.9): the ZON ring around a selected Servant's Master, red
+  when the Servant is outside it; an enemy's threat range on hover, in the clipped-corner
+  octagon their attack will actually use; and a Master's protection radius, drawn only while a
+  Servant is standing in it, because the rule is conditional.
+- **`game.user.targets` mirroring** (D28.8) — written after a resolution, never read.
+- **The targeting controls are announced** when the canvas is taken over.
+- **`test/unit/zon.test.mjs`** and **`test/unit/targeting-boundary.test.mjs`** — 35 tests
+  covering the ZON derivation, both of its consumers, and every exclusion reason.
+
 ### Fixed
+
+- **Board bounds were pinned to the `boardSize` setting**, so on a scene larger than the setting
+  every unit past the last row was clipped out of every shape and became untargetable, silently.
+  The scene's own dimensions answer when it has them; the setting is the fallback.
+- **The preview attacked with the wrong stat.** `normalAttack.component` was missing from the
+  unit snapshot, so a MAG attacker was previewed as a STR one.
 
 - **No edit on either sheet was ever saved.** Both templates had a `<form>` as their root
   element. ApplicationV2 renders a document sheet's frame **as** the form (`tag: "form"`), and a

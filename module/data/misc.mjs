@@ -41,8 +41,26 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // Monotonic across the whole match, so absolute expiries never collide.
       globalTurn: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       phase: new fields.StringField({ initial: "day", choices: ["day", "night", "none"] }),
-      // Re-rolled EVERY round, not once at setup (Ch. 41 Q32).
+
+      // Re-rolled EVERY round, not once at setup (Ch. 41 Q32). Two lists, not
+      // one: `baseOrder` is what the dice said and `turnOrder` is what is
+      // actually played after Delay. Collapsing them would make Delay
+      // cumulative -- each recomputation would delay from the already-delayed
+      // position -- and a faction could be pushed to the back of the round by
+      // one declaration (Ch. 25 §25.3).
+      baseOrder: new fields.ArrayField(new fields.StringField()),
       turnOrder: new fields.ArrayField(new fields.StringField()),
+
+      // Faction id → positions delayed. Cleared at the start of each Round;
+      // an individual entry is dropped at the end of the round it took effect
+      // in (Ch. 07 §7.8).
+      delays: new fields.ObjectField({ required: true, initial: () => ({}) }),
+
+      // Which factions have already taken their turn this Round. Delay may not
+      // reorder them, and a faction that delays after acting has its Delay
+      // applied next Round instead.
+      takenThisRound: new fields.ArrayField(new fields.StringField()),
+
       region: new fields.StringField({ required: false, nullable: true, initial: null }),
       grailCounter: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     };

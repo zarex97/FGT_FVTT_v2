@@ -34,6 +34,12 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       }),
       masterId: new fields.DocumentIdField({ required: false, nullable: true, initial: null }),
 
+      // ZON exceptions, both from the reference set (Ch. 16 §16.3). Semiramis
+      // aboard the Hanging Gardens is exempt outright; the Dioscuri satisfy ZON
+      // if *either* twin is inside, so the test is `any` across the partners.
+      zonExempt: new fields.BooleanField({ initial: false }),
+      zonPartnerIds: new fields.SetField(new fields.DocumentIdField()),
+
       classSkills: new fields.SchemaField({
         magicResistance: new fields.SchemaField({
           rank: new RankField(),
