@@ -12,6 +12,7 @@
  */
 
 import * as geo from "../../domain/geometry.mjs";
+import { NEUTRAL_FACTION } from "../../domain/enums.mjs";
 import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 
@@ -29,6 +30,13 @@ import { test as testPredicate } from "../predicate.mjs";
  */
 
 /**
+ * @typedef {object} ExcludedUnit
+ * @property {string} unitId
+ * @property {string} name
+ * @property {string} reason why this unit, though in the area, is not a target
+ */
+
+/**
  * @typedef {object} ResolvedTargets
  * @property {TargetedUnit[]} units
  * @property {GridOffset[]} panels
@@ -37,6 +45,7 @@ import { test as testPredicate } from "../predicate.mjs";
  * @property {string[]} errors placement is illegal while this is non-empty
  * @property {boolean} needsChoice the player must pick from `candidates`
  * @property {TargetedUnit[]} candidates
+ * @property {ExcludedUnit[]} excluded in the area, filtered out, and why
  */
 
 /**
@@ -53,6 +62,31 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   const warnings = [];
   /** @type {string[]} */
   const errors = [];
+  /** @type {ExcludedUnit[]} */
+  const excluded = [];
+
+  /**
+   * Record why a unit standing in the area is not a target.
+   *
+   * Always returns `false`, so a filter predicate reads
+   * `keepIt || drop(u, why)` and the reason is captured at the point the
+   * decision is made rather than reconstructed afterwards.
+   * @param {object} u
+   * @param {string} reason
+   * @returns {false}
+   */
+  const drop = (u, reason) => {
+    excluded.push({ unitId: u.id, name: u.name ?? u.id, reason });
+    return false;
+  };
+
+  // 0. The caster has to be somewhere. An unplaced caster used to measure every
+  //    distance from {0,0}, so every range check failed and the only symptom
+  //    was an empty target list.
+  if (!caster.panel) {
+    errors.push(`${caster.name ?? "The attacker"} is not placed on the board.`);
+    return { units: [], panels: [], anchor: {}, warnings, errors, needsChoice: false, candidates: [], excluded };
+  }
 
   // 1. ANCHOR
   const anchor = resolveAnchor(spec.anchor, caster, board, placement, errors);
@@ -80,15 +114,17 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   const relations = new Set(sel.relations ?? ["enemy"]);
   const includeSelf = resolveIncludeSelf(sel, spec);
   survivors = survivors.filter((u) => {
-    if (u.id === caster.id) return includeSelf;
-    return relations.has(relationOf(caster, u, board));
+    if (u.id === caster.id) return includeSelf || drop(u, "the attacker itself");
+    const relation = relationOf(caster, u, board);
+    return relations.has(relation) || drop(u, relationReason(relation, caster, u, relations));
   });
 
   // 5. KIND FILTER — platforms and structures are excluded unless asked for.
   const kinds = sel.kinds ?? null;
   survivors = survivors.filter((u) => {
-    if (kinds) return kinds.includes(u.kind);
-    return u.kind !== "platform" && u.kind !== "structure";
+    if (kinds) return kinds.includes(u.kind) || drop(u, `a ${u.kind}; this ability targets ${kinds.join(" or ")}`);
+    if (u.kind === "platform" || u.kind === "structure") return drop(u, `a ${u.kind}`);
+    return true;
   });
   if (limits.forbidCivilians === "ifGoodAligned" && caster.alignment?.moral === "good") {
     const civilians = survivors.filter((u) => u.kind === "civilian");
@@ -106,7 +142,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
       testPredicate(sel.attributes, {
         options: optionsForUnit(u),
         refs: { self: caster, target: u, board },
-      }),
+      }) || drop(u, "excluded by this ability's target predicate"),
     );
   }
 
@@ -116,7 +152,9 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   const isChosen = chooser === "chosen" || (sel.count !== undefined && sel.count !== "unlimited");
   if (sel.excludeConcealed !== false && isChosen) {
     const before = survivors.length;
-    survivors = survivors.filter((u) => !u.concealed || u.id === caster.id);
+    survivors = survivors.filter(
+      (u) => !u.concealed || u.id === caster.id || drop(u, "concealed — it cannot be targeted directly"),
+    );
     if (survivors.length < before) warnings.push("Concealed units cannot be targeted directly.");
   }
 
@@ -124,11 +162,13 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //    targeted through it, unless the attacker bypasses protection.
   if (!limits.bypassMasterProtection && !caster.bypassesMasterProtection) {
     const before = survivors.length;
-    survivors = survivors.filter((u) => !isProtectedMaster(u, caster, board));
+    survivors = survivors.filter(
+      (u) => !isProtectedMaster(u, caster, board) || drop(u, "a Master protected by an adjacent Servant"),
+    );
     if (survivors.length < before) warnings.push("Protected Masters were excluded.");
   }
   if (board.crossLevel) {
-    survivors = survivors.filter((u) => crossLevelAllows(caster, u, spec, board, warnings));
+    survivors = survivors.filter((u) => crossLevelAllows(caster, u, spec, board, warnings, drop));
   }
 
   // 9. CHOOSER
@@ -191,10 +231,32 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   if (chosen.length === 0 && !needsChoice && errors.length === 0) {
     // A warning for zone placement, an error for an attack: an ability whose
     // effect is not target-dependent is legal with nothing in the area.
-    (spec.targetsRequired === false ? warnings : errors).push("No legal targets in the selected area.");
+    //
+    // "Nothing in the area" and "things in the area, all of them filtered out"
+    // are different failures and used to read identically. When units were
+    // excluded, the message names the first one and why, because that is the
+    // sentence that ends the debugging session.
+    //
+    // The caster excluding itself is not a diagnosis — it is what almost every
+    // AoE does — so it is listed for the preview but never drives this message.
+    const notable = excluded.filter((e) => e.unitId !== caster.id);
+    (spec.targetsRequired === false ? warnings : errors).push(
+      notable.length === 0
+        ? "No legal targets in the selected area."
+        : `No legal targets: ${notable[0].name} is ${notable[0].reason}` +
+          (notable.length > 1 ? ` (and ${notable.length - 1} more excluded).` : "."),
+    );
   }
 
-  return { units: chosen, panels, anchor, warnings, errors, needsChoice, candidates };
+  // Unaffiliated units are playable but not configured, and this is the only
+  // place a player is looking when it matters.
+  if (!caster.faction) {
+    warnings.push(
+      `${caster.name ?? "The attacker"} has no Faction set; unaffiliated units treat everyone as an enemy.`,
+    );
+  }
+
+  return { units: chosen, panels, anchor, warnings, errors, needsChoice, candidates, excluded };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -248,6 +310,10 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       const unit = (board.units ?? []).find((u) => u.id === placement.unitId);
       if (!unit) {
         errors.push("Choose a target.");
+        return { ...base, panel: casterPanel };
+      }
+      if (!unit.panel) {
+        errors.push(`${unit.name ?? "That unit"} is not placed on the board.`);
         return { ...base, panel: casterPanel };
       }
       const r = spec.range ?? caster.range ?? 1;
@@ -425,16 +491,65 @@ function resolveIncludeSelf(sel, spec) {
 }
 
 /**
+ * The relation of `unit` to `caster`, exactly as D4.10 defines it.
+ *
+ * > ```
+ * > if (a.id === b.id)                    return "self";
+ * > if (b.factionId === NEUTRAL_FACTION)  return "neutral";
+ * > if (a.factionId === b.factionId)      return "ally";
+ * > return "enemy";
+ * > ```
+ *
+ * The `null` faction is **not** the neutral faction. Conflating them made every
+ * unit whose `factionId` had never been set neutral to everything, so a freshly
+ * placed pair of Servants had no relation to each other and no ability could
+ * name a legal target. Neutrality is a faction a unit is *in*
+ * ({@link NEUTRAL_FACTION}, and Civilians by kind); `null` is *unaffiliated* —
+ * nobody has assigned this unit yet — and falls through to `enemy`, so an
+ * unconfigured board is playable and the omission shows up as a warning rather
+ * than as an empty target list.
+ *
+ * `board.alliances` extends this: factions may be allied for a match without
+ * being the same faction.
+ *
  * @param {object} caster
  * @param {object} unit
  * @param {object} board
+ * @returns {"self"|"ally"|"enemy"|"neutral"}
+ * @see docs/04-units.md §4.10
+ */
+export function relationOf(caster, unit, board) {
+  if (unit.id === caster.id) return "self";
+  if (unit.kind === "civilian" || unit.faction === NEUTRAL_FACTION) return "neutral";
+  if (caster.faction && unit.faction && caster.faction === unit.faction) return "ally";
+  if (board.alliances?.[caster.faction]?.includes(unit.faction)) return "ally";
+  return "enemy";
+}
+
+/**
+ * Why a unit's relation excluded it, in words a player can act on.
+ *
+ * The unassigned-faction case names the fix, because it is the one exclusion
+ * caused by configuration rather than by the rules — and the one a player has
+ * no way to deduce from the board.
+ *
+ * @param {string} relation
+ * @param {object} caster
+ * @param {object} unit
+ * @param {Set<string>} wanted
  * @returns {string}
  */
-function relationOf(caster, unit, board) {
-  if (unit.id === caster.id) return "self";
-  if (unit.kind === "civilian" || unit.faction === null) return "neutral";
-  const allied = board.alliances?.[caster.faction]?.includes(unit.faction) ?? unit.faction === caster.faction;
-  return allied ? "ally" : "enemy";
+function relationReason(relation, caster, unit, wanted) {
+  const wants = [...wanted].join(" or ");
+  if (relation === "ally" && caster.faction && caster.faction === unit.faction) {
+    return `an ally — same faction as ${caster.name ?? "the attacker"} (${caster.faction}); this ability targets ${wants}`;
+  }
+  if (relation === "ally") return `an ally by alliance; this ability targets ${wants}`;
+  if (relation === "neutral" && unit.kind === "civilian") {
+    return `a Civilian, and Civilians are neutral; this ability targets ${wants}`;
+  }
+  if (relation === "neutral") return `neutral; this ability targets ${wants}`;
+  return `${relation}; this ability targets ${wants}`;
 }
 
 /**
@@ -453,6 +568,7 @@ function isProtectedMaster(unit, caster, board) {
       u.kind === "servant" &&
       u.faction === unit.faction &&
       u.canAct !== false &&
+      u.panel &&
       geo.chebyshev(u.panel, unit.panel) <= 1,
   );
 }
@@ -467,17 +583,17 @@ function isProtectedMaster(unit, caster, board) {
  * @param {string[]} warnings
  * @returns {boolean}
  */
-function crossLevelAllows(caster, unit, spec, board, warnings) {
+function crossLevelAllows(caster, unit, spec, board, warnings, drop) {
   if ((unit.level ?? 0) === (caster.level ?? 0)) return true;
   const rules = board.crossLevel?.[unit.platformId] ?? board.crossLevel?.default;
   if (!rules) return true;
   if (rules.requiresRanged && (spec.isMelee ?? false)) {
     warnings.push(`Units aboard ${unit.platformId ?? "a platform"} can only be attacked with ranged Attacks.`);
-    return false;
+    return drop(unit, `on another level; ${unit.platformId ?? "that platform"} can only be attacked at range`);
   }
   if (rules.untargetable) {
     warnings.push(`${unit.name ?? "A unit"} cannot be targeted while aboard ${unit.platformId}.`);
-    return false;
+    return drop(unit, `aboard ${unit.platformId}, which cannot be targeted`);
   }
   return true;
 }

@@ -74,16 +74,38 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     const hud = new TargetingHUD({ label: preview.label, damageFor: preview.damageFor });
 
     const mode = spec.anchor?.kind ?? "self";
+    // Say what the controls are before taking over the canvas. A player who is
+    // not told that Tab cycles and Escape cancels reasonably concludes the
+    // system has hung.
+    announce(preview.label, mode);
+
     try {
-      switch (mode) {
-        case "selfEdgeAdjacent": return await this.#directionPicker(options, hud);
-        case "withinRange": return await this.#freePlacement(spec, caster, board, options, hud);
-        case "targetUnit": return await this.#unitPicker(options, hud, board);
-        default: return options[0]?.legal ? options[0].placement : null;
-      }
+      const placement = await this.#run(mode, { spec, caster, board, options, hud });
+      // The resolution is the truth about who is being attacked; Foundry's own
+      // target set is told about it so the rest of the world agrees (D28.8).
+      if (placement) mirrorTargets(validate(spec, caster, board, placement).resolved.units);
+      return placement;
     } finally {
       this.#cancel();
       hud.close();
+    }
+  }
+
+  /**
+   * Dispatch to the interaction this anchor calls for.
+   * @param {string} mode
+   * @param {object} args
+   * @returns {Promise<object|null>}
+   */
+  async #run(mode, { spec, caster, board, options, hud }) {
+    switch (mode) {
+      case "selfEdgeAdjacent": return this.#directionPicker(options, hud);
+      case "withinRange": return this.#freePlacement(spec, caster, board, options, hud);
+      case "targetUnit": return this.#unitPicker(options, hud, board);
+      default:
+        if (options[0]?.legal) return options[0].placement;
+        reportNothingLegal(options);
+        return null;
     }
   }
 
@@ -183,7 +205,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   async #unitPicker(options, hud, board) {
     const selectable = options.filter((o) => o.legal);
     if (selectable.length === 0) {
-      ui.notifications.warn(game.i18n.localize("FGT.Targeting.NoTargets"));
+      reportNothingLegal(options);
       return null;
     }
     let focused = 0;
@@ -313,6 +335,78 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     this.#session = null;
     this.#graphics?.clear();
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Telling the player what happened                                           */
+/* -------------------------------------------------------------------------- */
+
+/** @type {Readonly<Record<string, string>>} */
+const MODE_HINTS = Object.freeze({
+  selfEdgeAdjacent: "FGT.Targeting.ModeDirection",
+  withinRange: "FGT.Targeting.ModePanel",
+  targetUnit: "FGT.Targeting.ModeUnit",
+});
+
+/**
+ * Announce the session and its controls.
+ * @param {string} label
+ * @param {string} mode
+ */
+function announce(label, mode) {
+  const key = MODE_HINTS[mode];
+  if (!key) return; // Mode D asks nothing; there is nothing to explain.
+  ui.notifications.info(
+    game.i18n.format("FGT.Targeting.AimHint", {
+      name: label ?? "",
+      mode: game.i18n.localize(key),
+    }),
+  );
+}
+
+/**
+ * Explain a targeting session that had nothing to offer.
+ *
+ * The resolver already produced a human-readable reason for every placement it
+ * refused; the failure mode worth avoiding is throwing all of them away and
+ * saying "no legal targets", which is what sends a player to the console. The
+ * distinct reasons are shown, capped, because five placements usually fail for
+ * one reason and repeating it five times is not more informative.
+ *
+ * @param {object[]} options the resolved placements, legal and not
+ */
+function reportNothingLegal(options) {
+  const reasons = [...new Set(options.flatMap((o) => o.reasons ?? []))];
+  if (reasons.length === 0) {
+    ui.notifications.warn(game.i18n.localize("FGT.Targeting.NoTargets"));
+    return;
+  }
+  const shown = reasons.slice(0, 3);
+  const more = reasons.length - shown.length;
+  ui.notifications.warn(
+    `${game.i18n.localize("FGT.Targeting.NoTargets")} ${shown.join(" ")}` +
+      (more > 0 ? ` (+${more} more)` : ""),
+    { permanent: reasons.length > 1 },
+  );
+}
+
+/**
+ * Mirror a resolution into Foundry's own target set (D28.8).
+ *
+ * Written, never read: `game.user.targets` is a flat set with no shape, band or
+ * relation information, so no F/GT rule may consult it — but modules, macros and
+ * other players' target indicators all do, and leaving it stale after an attack
+ * makes the board lie about who was hit.
+ *
+ * @param {object[]} units the resolved `TargetedUnit`s
+ */
+export function mirrorTargets(units) {
+  const ids = [];
+  for (const target of units ?? []) {
+    const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === target.unitId);
+    if (token) ids.push(token.id);
+  }
+  canvas.tokens?.setTargets?.(ids);
 }
 
 /**

@@ -65,6 +65,9 @@
   "FGT.Param.mag": "MAG",
   "FGT.Param.luc": "LUC",
   "FGT.Sheet.Edit": "Edit",
+  "FGT.Sheet.Faction": "Faction",
+  "FGT.Sheet.FactionNone": "unaffiliated",
+  "FGT.Sheet.FactionHint": "Units sharing a Faction id are allies; different ids are enemies. Leave it blank and the unit is unaffiliated — an enemy to everyone. Use \"neutral\" for a unit nobody may target as an enemy.",
   "FGT.Chat.NormalAttack": "Normal Attack",
   "FGT.Attack.NoTarget": "Target a unit first (select it and press T, or right-click → Target).",
   "FGT.Prompt.reaction": "Choose a reaction",
@@ -102,5 +105,12 @@
   "FGT.Targeting.Targets": "target(s)",
   "FGT.Targeting.Panels": "panel(s)",
   "FGT.Targeting.Legal": "✓ Legal — click to confirm",
-  "FGT.Targeting.Illegal": "✕ Illegal"
+  "FGT.Targeting.Illegal": "✕ Illegal",
+  "FGT.Targeting.Excluded": "Not targeted",
+  "FGT.Targeting.CasterNotPlaced": "{name} has no token on this scene, so it has nothing to attack from.",
+  "FGT.Targeting.NothingInReach": "Nothing is in reach of this ability.",
+  "FGT.Targeting.AimHint": "{name}: {mode}. Right-click or Escape to cancel.",
+  "FGT.Targeting.ModeDirection": "choose a direction — hover or use the arrow keys, click or Enter to confirm",
+  "FGT.Targeting.ModePanel": "choose a panel inside the highlighted area",
+  "FGT.Targeting.ModeUnit": "choose a target — Tab cycles, click or Enter to confirm"
 }

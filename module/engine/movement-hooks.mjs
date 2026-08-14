@@ -16,7 +16,8 @@
  */
 
 import { validatePath, remainingMovement, segmentCheck } from "../rules/movement.mjs";
-import { snapshotUnit, snapshotBoard } from "../rules/snapshot.mjs";
+import { snapshotUnit } from "../rules/snapshot.mjs";
+import { unitSnapshot, boardSnapshot, activeGrid } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
@@ -53,8 +54,8 @@ function onPreMove(document, movement) {
   const actor = document.actor;
   if (!actor) return true;
 
-  const unit = snapshotUnit(actor, { token: document });
-  const board = boardSnapshot(combat);
+  const unit = snapshotUnit(actor, { token: document, grid: activeGrid() });
+  const board = boardFor(combat);
   const hasRiding = hasSkill(actor, "riding");
 
   const path = pathOf(movement);
@@ -91,7 +92,7 @@ async function onMove(document, movement) {
   const actor = document.actor;
   if (!actor) return;
 
-  const unit = snapshotUnit(actor, { token: document });
+  const unit = snapshotUnit(actor, { token: document, grid: activeGrid() });
   const spent = panelsMoved(movement);
   if (spent === 0) return;
 
@@ -150,15 +151,10 @@ function hasSkill(actor, slug) {
  * @param {object} combat
  * @returns {object}
  */
-function boardSnapshot(combat) {
-  return snapshotBoard({
-    scene: canvas?.scene,
-    actors: (canvas?.tokens?.placeables ?? []).map((t) => ({ actor: t.actor, token: t.document })),
-    settings: {
-      boardSize: game.settings.get("fgt", "boardSize"),
-      round: combat?.round ?? 1,
-      tick: combat?.system?.globalTurn ?? 0,
-    },
+function boardFor(combat) {
+  return boardSnapshot({
+    round: combat?.round ?? 1,
+    tick: combat?.system?.globalTurn ?? 0,
   });
 }
 
@@ -170,7 +166,7 @@ function boardSnapshot(combat) {
  * @returns {{panels: number, blocked: string|null}}
  */
 export function movementAllowance(actor) {
-  const unit = snapshotUnit(actor);
+  const unit = unitSnapshot(actor);
   return {
     panels: remainingMovement(unit),
     blocked: segmentCheck(unit, hasSkill(actor, "riding")),

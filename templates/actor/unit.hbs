@@ -9,6 +9,19 @@
     </div>
   </header>
 
+  {{!-- Faction is what every targeting filter compares (D4.10), so it belongs
+        on the sheet rather than only in the data model. A unit with none is
+        unaffiliated and treats everyone as an enemy; the hint says so, because
+        the alternative is discovering it when an attack finds no targets. --}}
+  <section class="fgt-sheet__faction">
+    <label class="fgt-field">
+      <span>{{localize "FGT.Sheet.Faction"}}</span>
+      <input type="text" name="system.factionId" value="{{system.factionId}}"
+             placeholder="{{localize 'FGT.Sheet.FactionNone'}}"
+             data-tooltip="{{localize 'FGT.Sheet.FactionHint'}}">
+    </label>
+  </section>
+
   <section class="fgt-sheet__resources">
     <label class="fgt-resource">
       <span>{{localize "FGT.Resource.health"}}</span>
