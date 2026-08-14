@@ -1,0 +1,61 @@
+<div class="fgt-hud">
+  <header class="fgt-hud__header">
+    <span class="fgt-hud__faction">{{factionName}}</span>
+    <span class="fgt-hud__clock">
+      {{localize "FGT.HUD.TurnOfRound" turn=turn turnsPerRound=turnsPerRound round=round}}
+    </span>
+  </header>
+
+  <section class="fgt-hud__pools">
+    {{#each rows as |row|}}
+      <div class="fgt-hud__pool">
+        <span class="fgt-hud__pool-label">{{row.label}}</span>
+        <span class="fgt-hud__pips">
+          {{#each row.pips as |spent|}}
+            <span class="fgt-hud__pip{{#if spent}} fgt-hud__pip--spent{{/if}}"></span>
+          {{/each}}
+        </span>
+        <span class="fgt-hud__pool-count">{{row.used}} / {{row.max}}</span>
+      </div>
+    {{/each}}
+  </section>
+
+  {{#if units.length}}
+    <section class="fgt-hud__units">
+      {{#each units as |unit|}}
+        <div class="fgt-hud__unit" data-action="panTo" data-unit-id="{{unit.id}}">
+          <span class="fgt-hud__unit-name">{{unit.name}}</span>
+          <span class="fgt-hud__unit-state">
+            <span class="fgt-hud__badge{{#if unit.moved}} fgt-hud__badge--done{{/if}}">M</span>
+            <span class="fgt-hud__badge{{#if unit.attacked}} fgt-hud__badge--done{{/if}}">A</span>
+          </span>
+          <span class="fgt-hud__unit-mov">{{unit.movementLeft}} / {{unit.mov}}</span>
+        </div>
+      {{/each}}
+    </section>
+  {{/if}}
+
+  {{#if unmet.length}}
+    <section class="fgt-hud__warnings">
+      {{#each unmet as |warning|}}
+        <div class="fgt-hud__warning">
+          <span class="fgt-hud__warning-icon">⚠</span>
+          <span class="fgt-hud__warning-text">{{warning.message}}</span>
+        </div>
+      {{/each}}
+    </section>
+  {{/if}}
+
+  {{#if isMyTurn}}
+    <footer class="fgt-hud__footer">
+      <button type="button" data-action="endTurn" {{disabled (not canEndTurn)}}>
+        {{localize "FGT.HUD.EndTurn"}}
+      </button>
+      {{#unless canEndTurn}}
+        <span class="fgt-hud__blocked">
+          {{localize "FGT.HUD.Blocked" count=unmet.length}}
+        </span>
+      {{/unless}}
+    </footer>
+  {{/if}}
+</div>

@@ -20,6 +20,7 @@ function fakeIo() {
     setFacing: rec("setFacing"),
     spendCommandSpells: rec("spendCommandSpells"),
     defeat: rec("defeat"),
+    markTurn: rec("markTurn"),
     log: rec("log"),
     proxy: rec("proxy"),
     prompt: rec("prompt"),
@@ -125,5 +126,31 @@ describe("applyIntents", () => {
     const io = fakeIo();
     await applyIntents([I.setFacing("a", "n"), I.setFacing("a", "e")], { io, canWrite: ownsA });
     expect(io.calls.find(([n]) => n === "setFacing")[2]).toBe("e");
+  });
+});
+
+describe("markTurn — what the budget reads back", () => {
+  it("routes to the io adapter", async () => {
+    const io = fakeIo();
+    await applyIntents([I.markTurn("a", { attacked: true })], { io, canWrite: ownsA, isGM: true });
+    expect(io.calls).toEqual([["markTurn", "a", { attacked: true }]]);
+  });
+
+  it("collapses several patches for one unit into a single write", async () => {
+    const io = fakeIo();
+    await applyIntents(
+      [I.markTurn("a", { moved: true }), I.markTurn("a", { movedPanels: 3 })],
+      { io, canWrite: ownsA, isGM: true },
+    );
+    expect(io.calls).toEqual([["markTurn", "a", { moved: true, movedPanels: 3 }]]);
+  });
+
+  it("is written before anything that reads it", () => {
+    const ordered = I.order([I.damage("a", 10), I.markTurn("a", { attacked: true })]);
+    expect(ordered.map((i) => i.t)).toEqual(["markTurn", "damage"]);
+  });
+
+  it("rejects a patch that is not an object", () => {
+    expect(I.validate([I.markTurn("a", null)])[0]).toMatch(/patch must be a turnState object/);
   });
 });

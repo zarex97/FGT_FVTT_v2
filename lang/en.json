@@ -91,5 +91,10 @@
   "FGT.Ladder.noDamage": "No damage",
   "FGT.Ladder.injury": "Injury Roll",
   "FGT.Ladder.facing": "Facing",
-  "FGT.Ladder.counter": "Counter"
+  "FGT.Ladder.counter": "Counter",
+  "FGT.HUD.Title": "Turn",
+  "FGT.HUD.TurnOfRound": "Turn {turn} of {turnsPerRound} — Round {round}",
+  "FGT.HUD.EndTurn": "End Turn",
+  "FGT.HUD.Blocked": "{count} unmet compulsion(s)",
+  "FGT.HUD.NoFaction": "No faction"
 }

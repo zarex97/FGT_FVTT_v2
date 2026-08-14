@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "resource", "cooldown", "spendCS", "prompt", "log",
+  "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
 ]);
 
 /**
@@ -42,6 +42,8 @@ const ORDER = Object.freeze({
   statDelta: 2,
   resource: 2,
   cooldown: 2,
+  // After the action it records, before anything reads it back.
+  markTurn: 2,
   heal: 3,
   damage: 4,
   applyEffect: 5,
@@ -99,6 +101,13 @@ export const spendCS = (masterId, count, command) =>
 
 export const prompt = (userId, spec) =>
   ({ t: "prompt", userId, prompt: spec });
+
+/**
+ * Record what a unit has done this turn. `patch` is a partial `turnState`.
+ * @see docs/18-action-economy.md §18.4
+ */
+export const markTurn = (unitId, patch) =>
+  ({ t: "markTurn", unitId, patch });
 
 export const log = (entry) =>
   ({ t: "log", entry });
@@ -177,6 +186,9 @@ export function validate(intents) {
     }
     if (intent.t === "move" && !Array.isArray(intent.path)) {
       problems.push(`${where}: path must be an array of panels`);
+    }
+    if (intent.t === "markTurn" && (!intent.patch || typeof intent.patch !== "object")) {
+      problems.push(`${where}: patch must be a turnState object`);
     }
     if (intent.t === "cooldown" && !["set", "reduce"].includes(intent.mode)) {
       problems.push(`${where}: mode must be "set" or "reduce"`);

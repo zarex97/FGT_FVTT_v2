@@ -154,6 +154,24 @@ export function worldIO() {
     },
 
     /**
+     * Record what a unit has done this turn.
+     *
+     * The budget reads this back, so it has to be written before anything
+     * consults it — hence its rank alongside the other stat writes rather than
+     * after the damage it accompanies.
+     *
+     * @param {string} unitId
+     * @param {object} patch a partial `turnState`
+     */
+    async markTurn(unitId, patch) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      const update = {};
+      for (const [key, value] of Object.entries(patch)) update[`system.turnState.${key}`] = value;
+      await actor.update(update);
+    },
+
+    /**
      * Defeat is a status marker plus a log entry, never a deletion. Revival
      * effects, Battle Continuation and the Grail counter all need the unit to
      * still exist.

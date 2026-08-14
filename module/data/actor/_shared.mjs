@@ -66,10 +66,20 @@ export function combatantCommon() {
     // null = the Sustainability clock does not exist for this unit
     // (Independent Action A+/EX). Not "a very large number".
     sustainability: new TickField(),
+    // Reset at the start of the owning faction's turn. `movedPanels` is a
+    // running total rather than a per-segment count, because Riding's two moves
+    // share one MOV allowance (Ch. 18 §18.4).
     turnState: new fields.SchemaField({
       acted: new fields.BooleanField({ initial: false }),
       moved: new fields.BooleanField({ initial: false }),
       attacked: new fields.BooleanField({ initial: false }),
+      movedPanels: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+      moveSegments: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+      usedActiveSkill: new fields.BooleanField({ initial: false }),
+      // Riding grants a second segment, but only around an attack.
+      mayMoveAgain: new fields.BooleanField({ initial: false }),
+      // Riding Attack is terminal for that unit's turn.
+      usedRidingAttack: new fields.BooleanField({ initial: false }),
     }),
   };
 }

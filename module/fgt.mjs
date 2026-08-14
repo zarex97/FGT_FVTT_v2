@@ -25,6 +25,8 @@ import * as intents from "./engine/intents.mjs";
 import * as combatProcess from "./engine/combat-process.mjs";
 import * as scheduler from "./engine/scheduler.mjs";
 import { Scheduler } from "./engine/scheduler-hooks.mjs";
+import * as budget from "./engine/budget.mjs";
+import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 
 Hooks.once("init", () => {
   console.log("FGT | Initialising Fate/Grail Tactics");
@@ -93,6 +95,8 @@ Hooks.once("setup", async () => {
 Hooks.once("ready", () => {
   // GM client only; a no-op everywhere else.
   Scheduler.attach();
+  // Everyone sees the budget; only the acting faction can spend it.
+  TurnHUD.attach();
   fgt.api = buildPublicAPI();
   console.log(`FGT | Ready — ${game.system.version}`);
 });
@@ -113,7 +117,7 @@ function buildPublicAPI() {
     computeDamage, resolveTargets, evaluatePredicate, snapshotUnit, snapshotBoard,
     explainDamage,
     // Engine (L3)
-    intents, combatProcess, scheduler,
+    intents, combatProcess, scheduler, budget,
     effects: EffectRegistry,
     collectContributions,
     socket: FGTSocket,

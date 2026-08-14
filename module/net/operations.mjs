@@ -117,6 +117,47 @@ export const OPERATIONS = Object.freeze({
   },
 
   /**
+   * Write a faction's turn budget onto the Combat document.
+   *
+   * A player owns their Servants; nobody but the GM owns Combat. So spending
+   * budget is a proxied write like any other — but the authorizer is narrow:
+   * a player may only write the budget for **their own faction**, and only for
+   * the faction whose turn it currently is. Without the second half, a player
+   * could quietly refill their pools on somebody else's turn.
+   */
+  setBudget: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      if (!user) return { allowed: false, reason: "Unknown user." };
+      if (user.isGM) return { allowed: true, reason: null };
+
+      const combat = game.combats.get(payload.combatId);
+      if (!combat) return { allowed: false, reason: "Unknown combat." };
+
+      const existing = combat.getFlag("fgt", "budgets") ?? {};
+      const changed = Object.keys(payload.budgets ?? {})
+        .filter((id) => JSON.stringify(existing[id]) !== JSON.stringify(payload.budgets[id]));
+
+      const acting = combat.combatant?.system?.factionId ?? combat.combatant?.id ?? null;
+      for (const factionId of changed) {
+        if (factionId !== acting) {
+          return { allowed: false, reason: "That is not the faction whose turn it is." };
+        }
+        const owns = game.actors.some(
+          (a) => a.system?.factionId === factionId && a.testUserPermission(user, "OWNER"),
+        );
+        if (!owns) return { allowed: false, reason: `${user.name} does not control that faction.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const combat = game.combats.get(payload.combatId);
+      await combat.setFlag("fgt", "budgets", payload.budgets);
+      return { ok: true };
+    },
+  },
+
+  /**
    * The Discover roll, which must happen on the GM client because the mere
    * *existence* of the roll leaks that a concealed unit is nearby (§26.5).
    */

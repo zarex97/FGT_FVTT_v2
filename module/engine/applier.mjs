@@ -132,6 +132,9 @@ async function writeGroup(group, io) {
     case "spendCS":
       await io.spendCommandSpells(unitId, sum(intents, "count"), intents[0].command);
       break;
+    case "markTurn":
+      await io.markTurn(unitId, Object.assign({}, ...intents.map((i) => i.patch)));
+      break;
     case "defeat":
       await io.defeat(unitId, intents[0].cause);
       break;
