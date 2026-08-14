@@ -108,10 +108,16 @@ coincide by accident; the headings say which is which.
     reading of one is where nobody is surprised by an attack from an ally.
   - Deleting a faction says how many units it will leave unaligned before it does it.
 
----
-
 ### Fixed
 
+- **The turn state now expires by tick rather than by being cleared.** It was reset by *writing*
+  a blank state at each turn boundary, so a single boundary hook that did not fire — for any
+  reason, on any client — left a Unit reporting "0 remain of MOV 7" for the rest of the match,
+  with nothing on screen to explain it. Each write is stamped with the ◈ tick it happened on, and
+  a state from an earlier tick projects blank: the reset is a property of *reading*, so no write
+  has to succeed for a turn to end. The boundary write is kept, but only to keep the stored data
+  tidy — nothing depends on it. State with no stamp at all, written before the field existed,
+  counts as stale, which also un-sticks any Unit already caught by the old bug.
 - **Every data preparation of a Combat threw**, which took `turns` with it and left the tracker
   showing nothing at all. `setupTurns` sorts with
   `this.combatants.contents.sort(this._sortCombatants)` — the method is passed **unbound**, so
@@ -179,6 +185,8 @@ coincide by accident; the headings say which is which.
   objections that were about lifecycle rather than geometry are answered by *when* it exists:
   nothing is ever read back from it, so the raciness that killed the prototype's approach cannot
   recur, and one document per commit is not one per pointer move. See §28.14 for D28.10–D28.13.
+
+---
 
 ## [0.2.1] — 2026-08-14
 
