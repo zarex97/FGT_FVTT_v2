@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 806 tests, and 41 content files.
+domain are all implemented and carry 824 tests, and 47 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -32,9 +32,9 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    Damage resolves, the **Injury Roll** is live (A3), the **AoE fan-out** is real (A2) and the
    **Counter** is offered and resolved (A4). What remains in Ch. 12 is **§12.11 interrupts**,
    which is Command Spells and therefore B1.
-2. **Command Spells are spendable, but cannot interrupt.** The catalogue, the spend flow and the
-   offer filtering are done (B1); the interrupt protocol (Ch. 17 §17.4) is not, so the six
-   commands that rewrite an in-flight resolution log themselves rather than applying.
+2. ~~**Command Spells do not exist as a flow.**~~ — **done (B1)**. Catalogue, spend flow, offer
+   filtering and the interrupt protocol; the six commands that rewrite an in-flight resolution
+   mutate the Combat Process, and it resumes from wherever they left it.
 3. ~~**Events do not fire into anything.**~~ — **done (A1)**, see the Unreleased changelog.
    `OnEvent` now normalizes to `{events, actions}` at collection time, `fireEvent` dispatches
    those actions through an action table, and `resolveDefeat` gives `unitDefeated` the reader it
@@ -94,7 +94,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 09 | Targeting | **Done** | Eleven-step resolver, four anchors interactive, `legalPlacements`. |
 | 10 | Effect taxonomy | **Done** | Classification vocabularies enforced by the content validator. |
 | 11 | Effect engine | **Partly** | Application, stacking, suppression, expiry, periodics and **auras (§11.6, A5)** done. **Transfer (§11.8) missing. Visibility (§11.10) collected-only.** |
-| 12 | Combat Process | **Mostly** | All six steps run (Phase A). **Interrupts (§12.11) missing — they are Command Spells, so B1.** |
+| 12 | Combat Process | **Done** | All six steps run (Phase A), and interrupts (§12.11) land through B1's Command Spell protocol. |
 
 ### Part II — resolution systems
 
@@ -104,7 +104,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 14 | Checks and randomness | **Mostly** | Evade, Luck, chance rolls, `checkPlan` done. **The roll log (§14.8) and setup rolls (§14.9) missing.** |
 | 15 | Abilities | **Mostly** | Classification, phases and **costs/requirements (§15.4, B4)** done — Master Health, Sustainability, cooldown, round and ZON gates. **The remaining requirement kinds, granted/copied abilities (§15.7) and items (§15.8) missing.** |
 | 16 | Relationships | **Partly** | Master protection is enforced by movement. **ZON is derived and both consumers fire**, including the Semiramis exemption and the Dioscuri's `any`-across-twins test. **Contracting, Overpower/Underpower, Sustainability drain and the multi-Servant tax are missing.** |
-| 17 | Command Spells | **Partly** | Catalogue (16 commands), spend flow, cost variants and offer filtering done (B1). **The interrupt protocol (§17.4) — suspend/resume, the non-blocking offer and its timeout — is missing, and with it the six commands that rewrite an in-flight resolution.** |
+| 17 | Command Spells | **Done** | Catalogue (16), spend flow, cost variants, offer filtering and the interrupt protocol with its timeout (B1). **The §28.8 preview-time "spend to override" affordance is the remainder.** |
 | 18 | Action economy | **Mostly** | Budget, per-unit limits, prevention, compulsions done. **Undo (§18.7) and Confuse's random selector (§18.5) missing.** |
 | 19 | Environment | **Partly** | Day/Night, Home Base E1–E4 and the Grail's rules done (C2). **Region, Random Events, Civilians, the board setup sequence and E5 are absent, and the Grail has no runtime state owner.** |
 | 20 | Platforms and levels | **Missing** | `PlatformData` exists; no linkage, no cross-level rules, no lifecycle. |
@@ -129,7 +129,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 806 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 824 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Partly** | Catalogue, panel model, MOV/Evade/damage modifiers and the annotation pass done (C1). **The periodic clauses and the `Region` behaviour that would populate areas from a scene are missing.** |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
@@ -363,7 +363,7 @@ from what the pipeline receives.
 
 ### Phase B — the missing player-facing systems
 
-**B1. Command Spells.** *(large)* — **catalogue and spend flow DONE; the interrupt OFFER is not.**
+**B1. Command Spells.** *(large)* — **DONE, including the interrupt protocol.**
 
 *Test gate met on two of three clauses:* `test/unit/command-spells.test.mjs`, 22 tests — a spend
 is refused when the Master lacks the charges, and the audit log records who spent what, on whom,
@@ -392,18 +392,41 @@ Kill would have compiled, loaded, appeared in the pack and been unusable by anyb
 
 Effect kinds, honestly:
 
-| Applied | Logged by name, not applied |
+| Applied to the world | Applied to the Process |
 |---|---|
-| `statChange` (Half/Full Heal), `defeat` (Kill Yourself), `cureDebuffs`, `cooldownDelta` (Reduce/Full/All), `survive` (Survive Kill) | `modifyDamage` (Damage Block/Up, Halve NP, NP Max), `teleport` (Teleport Servant, Escape), `overrideValidation` (Force NP, Kill Humans) |
+| `statChange` (Half/Full Heal), `defeat` (Kill Yourself), `cureDebuffs`, `cooldownDelta`, `teleport` | `modifyDamage`, `escape`, `retarget`, `survive`, `overrideValidation` |
 
-The right-hand column needs the **interrupt protocol** rather than more effect code: those
-commands change a resolution that is already in flight, which means suspend/serialize/resume
-around a Combat Process, a non-blocking offer with §17.4's 45-second timeout, and a
-"spend to override" affordance in the targeting preview (§28.8). The window logic and
-`offerCommands` are in place and tested; what is missing is the UI that asks and the Process
-plumbing that suspends. An unapplied effect **logs itself by name** rather than resolving
-silently, because a Command Spell that quietly does nothing is the worst outcome for the most
-expensive resource in the game.
+The right-hand column is applied too now. It needed the **interrupt protocol** rather than more
+effect code, because those commands change a resolution already in flight — a property of the
+state machine, not of the command.
+
+`applyInterrupt` is a **GM-side mutation** (§27.9): it changes a Process another client is
+participating in, which is why the GM arbitrates the ladder even though individual rungs are
+answered by their owners. `test/unit/interrupts.test.mjs`, 18 tests.
+
+- **Escape** sends the Process to `noDamage`.
+- **Damage Block / Damage Up / Halve NP / NP Max** accumulate a damage factor applied to the
+  finished total, because each is phrased against "Total Damage". The factors compose
+  **multiplicatively** — Halve NP then NP Max must return to x1 in either order, and summing the
+  deltas would give +50% both ways round.
+- **Teleport Servant** replaces the defender and restarts the ladder at `react`, with
+  `forbiddenReactions: [evade, block]` for the reactions the new defender never had a chance to
+  declare. It refuses to move anyone without a destination the player chose.
+- **Survive Kill** is recorded on the Process and honoured at the moment of defeat, not when
+  declared — where it would heal a unit that was never going to die. It outranks the revive
+  handlers: three Command Spells beat a skill.
+- **Force NP** records an override consulted **per reason**, so it bypasses cooldown and
+  uses-exhausted and still cannot bypass the Round gate, as §17.2 requires.
+
+The offer is rendered on the attack card to whichever Masters could actually spend, computed per
+viewer. Non-prompting rungs are held open by `awaitInterrupt` for the §17.4 timeout
+(`commandSpellTimeout`, 45s, 0 disables) and **only when somebody could actually use a command
+there** — a blanket 45-second pause on every rung of every attack would be unplayable. A window
+that closes unused says so in the log.
+
+Still absent: the "spend to override" affordance inside the **targeting preview** (§28.8), a
+preview-time offer rather than a resolution-time one, and the Grail-destruction confirmation that
+shares its shape (§19.4).
 
 *(There is no B2. The labels drifted at some point — A5 was filed under Phase B, and the gap
 was left behind. A5 is back in Phase A above; the B numbers are kept as they are so that
@@ -617,8 +640,7 @@ A1 ✔ A2 ✔ A3 ✔ A4 ✔ A5 ✔    PHASE A COMPLETE. Order run: A1, A3, A5, A
                          a missing feature
 B4 ✔ → B3 ✔              costs after auras, because a cost may read an aura-modified value;
                          B3's grants are done, its COPY half (Scathach) is not
-B1 ~                   Command Spells: catalogue and spend flow done; the interrupt protocol
-                       is what remains, and it is the harder half
+B1 ✔                   Command Spells: catalogue, spend flow and the interrupt protocol
 C1 ~ → C2 ~            terrain then environment. C1's standing modifiers are done, its periodic
                        clauses need the scheduler; C2 has Day/Night, Home Base and the Grail,
                        and still wants Region and Random Events

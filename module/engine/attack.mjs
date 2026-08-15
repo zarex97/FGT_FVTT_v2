@@ -72,7 +72,11 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     master,
     round: combat?.round ?? 1,
   });
-  if (!usage.ok) throw new Error(`FGT | Cannot use this ability: ${usageRefusal(usage)}`);
+  // CS: Force Noble Phantasm bypasses the cooldown and uses-exhausted gates.
+  // It explicitly cannot bypass the Round gate, so `overrides` is consulted per
+  // reason rather than as a blanket "skip validation".
+  const overridden = (placement?.overrides ?? []).includes(usage.reason);
+  if (!usage.ok && !overridden) throw new Error(`FGT | Cannot use this ability: ${usageRefusal(usage)}`);
 
   const spec = targetSpecFor(attacker, ability);
   const targets = resolveTargets(spec, self, board, placement);
@@ -178,8 +182,16 @@ export async function advanceAttack({ messageId, event }) {
     state = process.advance(state, event);
   }
 
-  // Drive through every state that needs no human input.
+  // Drive through every state that needs no human input — pausing at any rung
+  // where somebody could interrupt with a Command Spell.
   while (!process.isComplete(state) && !process.pendingPrompt(state)) {
+    const interrupted = await awaitInterrupt(message, state);
+    if (interrupted) {
+      // Somebody spent. Re-read: the interrupt may have moved the Process to a
+      // different rung entirely (§17.4, "RESUME, possibly at a different state").
+      state = process.deserialize(message.getFlag("fgt", "process"));
+      continue;
+    }
     state = await runAutomaticStep(state, message);
   }
 
@@ -384,6 +396,54 @@ function costIntents(cost) {
 }
 
 /**
+ * Hold a non-prompting rung open long enough for a Command Spell.
+ *
+ * §17.4: *"An offer that blocks resolution indefinitely is unacceptable in a
+ * game with seven players."* So the wait is bounded by a setting (45s by
+ * default, 0 to disable) and ends the moment somebody spends.
+ *
+ * It costs nothing in the common case: if no Master at the table could
+ * actually use a command here, this returns immediately without waiting. That
+ * matters, because most rungs of most attacks have no offer at all and a
+ * blanket 45-second pause on each would be unplayable.
+ *
+ * Only the GM waits. The spend arrives over the socket and mutates the Process
+ * from that side, which is what `interruptProcess` does.
+ *
+ * @param {object} message
+ * @param {object} state
+ * @returns {Promise<boolean>} whether an interrupt landed
+ */
+async function awaitInterrupt(message, state) {
+  if (!game.user.isGM) return false;
+  if (!process.interruptible(state)) return false;
+
+  const seconds = game.settings.get("fgt", "commandSpellTimeout") ?? 45;
+  if (seconds <= 0) return false;
+
+  const { offerCommands } = await import("./command-spells.mjs");
+  const window = process.windowFor(state);
+  const anyOffer = game.actors.some((a) =>
+    a.type === "master" && offerCommands({ masterId: a.id, window, context: { state: state.state, attack: state.attack } }).length > 0);
+  if (!anyOffer) return false;
+
+  const before = process.serialize(state);
+  const deadline = Date.now() + seconds * 1000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 500));
+    if (message.getFlag("fgt", "process") !== before) return true;
+  }
+
+  // Timed out. Said out loud rather than silently continuing: a player who was
+  // disconnected should see that they missed the opportunity.
+  await applyBatch(
+    [I.log({ kind: "commandSpellWindowClosed", messageId: message.id, atState: state.state })],
+    "commandSpell:timeout",
+  );
+  return false;
+}
+
+/**
  * Whether the defender of `state` may counter its attacker (§12.8).
  *
  * Every clause `canCounter` takes is derived here from the board, so the pure
@@ -502,9 +562,20 @@ async function applyInjury(state, message) {
  * @param {number} damage
  * @returns {Promise<object[]>} intents: a revive, or a defeat, or neither
  */
-async function resolveDefeatOf(defender, damage) {
+async function resolveDefeatOf(defender, damage, state = {}) {
   const remaining = (defender.health?.value ?? 0) - damage;
   if (remaining > 0) return [];
+
+  // CS: Survive Kill, declared earlier in this Process. "The Servant survives
+  // with 5% of its Health" — so it is never defeated, and the revive handlers
+  // below are not consulted at all. Three Command Spells outrank a skill.
+  if (state.survive) {
+    const restored = Math.max(1, Math.floor((defender.health?.max ?? 0) * state.survive));
+    return [
+      I.statDelta(defender.id, "health.value", -remaining + restored, true),
+      I.log({ kind: "surviveKill", unitId: defender.id, restored }),
+    ];
+  }
 
   const combat = game.combat;
   const ctx = {
@@ -567,6 +638,20 @@ async function applyDamage(state, message) {
 
   const result = computeDamage(ctx);
 
+  // Command Spell interrupts that changed the number rather than avoiding the
+  // attack: Damage Block, Damage Up, Halve Noble Phantasm, NP Max. Applied to
+  // the finished total, after every pipeline stage, because each is phrased
+  // against "Total Damage" (Ch. 17 §17.2).
+  const csFactor = process.damageFactorOf(state);
+  if (csFactor !== 1) {
+    const before = result.total;
+    result.total = Math.max(0, Math.round(result.total * csFactor));
+    result.breakdown = [
+      ...(result.breakdown ?? []),
+      { stage: "commandSpell", label: `Command Spell x${csFactor}`, from: before, to: result.total },
+    ];
+  }
+
   await applyBatch(
     [
       I.damage(state.defenderId, result.total, result.breakdown),
@@ -577,7 +662,7 @@ async function applyDamage(state, message) {
       // entirely as an `OnEvent: unitDefeated`, could never trigger. The revive
       // is decided *here*, before the defeat is written, because a unit that
       // comes back was never defeated.
-      ...(result.flags.defeatedOutright ? [] : await resolveDefeatOf(defender, result.total)),
+      ...(result.flags.defeatedOutright ? [] : await resolveDefeatOf(defender, result.total, state)),
     ],
     "attack",
   );

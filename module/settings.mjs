@@ -20,6 +20,15 @@ export function registerSettings() {
     type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 2, initial: 3 }),
     default: 3, requiresReload: false, onChange: () => guardRuleChange("turnsPerRound"),
   });
+  // §17.4: "An offer that blocks resolution indefinitely is unacceptable in a
+  // game with seven players." After this many seconds the ladder continues as
+  // if the offer were declined, with a chat note -- a disconnected player sees
+  // that they missed an opportunity rather than silently losing it.
+  s("commandSpellTimeout", {
+    name: "FGT.Settings.CommandSpellTimeout", hint: "FGT.Settings.CommandSpellTimeoutHint",
+    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, initial: 45 }),
+    default: 45, requiresReload: false,
+  });
   s("boardSize", {
     name: "FGT.Settings.BoardSize", type: Number, default: 13,
     choices: { 13: "13 × 13", 25: "25 × 25" },

@@ -8,7 +8,8 @@
  */
 
 import { explainDamage } from "../../rules/explain.mjs";
-import { pendingPrompt, didHit, isComplete, PROMPTS } from "../../engine/combat-process.mjs";
+import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
+import { offerCommands } from "../../engine/command-spells.mjs";
 
 /**
  * Create the card for a newly declared attack.
@@ -86,8 +87,46 @@ async function cardContext({ state, attacker, ability, targets, result = null })
       detail: h.detail ?? null,
     })),
 
+    // Command Spells offerable right now, to the Masters who could spend them.
+    // Computed per viewer, because "which commands can I use" is a different
+    // question for every player at the table.
+    commandSpells: offerableCommands(state),
+
     result: result ? explainDamage(result) : null,
   };
+}
+
+/**
+ * The Command Spells this viewer could spend on this Process right now.
+ *
+ * Offered only at an interruptible rung, and only what `availableCommands`
+ * says is actually usable — §17.6 requires an unusable command's option to
+ * never appear, and the same argument covers cost.
+ *
+ * @param {object} state
+ * @returns {Array<{id: string, name: string, cost: number, masterId: string}>}
+ */
+function offerableCommands(state) {
+  const window = windowFor(state);
+  if (!window) return [];
+
+  /** @type {Array<{id: string, name: string, cost: number, masterId: string}>} */
+  const out = [];
+  for (const master of game.actors.filter((a) => a.type === "master" && a.isOwner)) {
+    for (const command of offerCommands({ masterId: master.id, window, context: attackContext(state) })) {
+      out.push({ id: command.id, name: command.name, cost: command.cost, masterId: master.id });
+    }
+  }
+  return out;
+}
+
+/**
+ * The slice of the Process a command's requirements need to see.
+ * @param {object} state
+ * @returns {object}
+ */
+function attackContext(state) {
+  return { state: state.state, attack: state.attack ?? null };
 }
 
 /**
@@ -146,6 +185,30 @@ export function activateChatListeners() {
         const { advanceAttack } = await import("../../engine/attack.mjs");
         try {
           await advanceAttack({ messageId: message.id, event: button.dataset.fgtEvent });
+        } catch (err) {
+          button.disabled = false;
+          ui.notifications.error(err.message);
+          throw err;
+        }
+      });
+    }
+    // Command Spell interrupts. Routed through the socket to the GM, because a
+    // spend changes a Process other clients are participating in (Ch. 27 §27.9).
+    for (const button of html.querySelectorAll("[data-fgt-cs]")) {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        button.disabled = true;
+        const { FGTSocket } = await import("../../net/socket.mjs");
+        try {
+          const result = await FGTSocket.request("spendCommandSpell", {
+            masterId: button.dataset.fgtMaster,
+            commandId: button.dataset.fgtCs,
+            messageId: message.id,
+          });
+          if (!result?.ok) {
+            button.disabled = false;
+            ui.notifications.warn(`FGT | Command Spell refused: ${result?.reason ?? "unknown"}`);
+          }
         } catch (err) {
           button.disabled = false;
           ui.notifications.error(err.message);
