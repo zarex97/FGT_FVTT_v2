@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 710 tests.
+domain are all implemented and carry 720 tests.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -127,7 +127,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 710 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 720 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Missing** | The snapshot has a `terrain` field; nothing writes or reads it. |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
@@ -180,7 +180,7 @@ Thirty executors exist. Their output lands in eleven buckets, of which **four ha
 | `attributes` | targeting relations, pipeline predicates | **Live** |
 | `magicResistance` | stage 11 | **Live** |
 | `eventHandlers` | `scheduler.fireEvent` | **Live** — as of A1; see below |
-| `grantedAbilities` | — | **Collected only** |
+| `grantedAbilities` | `rules/granted.mjs` → movement, budget | **Live** — as of B3 |
 | `suppressions` | — | **Collected only** |
 
 Two more that are subtler than "collected only", because they *look* wired:
@@ -347,10 +347,31 @@ the charges; the audit card shows who spent what and when.
 was left behind. A5 is back in Phase A above; the B numbers are kept as they are so that
 references to B3 and B4 elsewhere still resolve.)*
 
-**B3. Granted and copied abilities.** *(medium)*
-`grantedAbilities` becomes real items on the actor, or virtual entries on the sheet.
-*Test gate:* Riding's `doubleMove`, `ridingAttack` and `passengerSeat` appear on a Servant with
-Riding and disappear when it is removed.
+**B3. Granted and copied abilities.** *(medium)* — **grants DONE, copies open.**
+*Test gate met:* `test/unit/granted.test.mjs`, 10 tests — Riding contributes its three passives,
+a Servant without Riding has none, and the double move is granted or refused **by reading the
+grant**.
+
+The plan's framing ("real items on the actor, or virtual entries on the sheet") turned out to be
+the wrong question for the Riding case, and the reason is worth recording. `doubleMove`,
+`ridingAttack` and `passengerSeat` **have no content anywhere** — they are not ability documents
+waiting to be granted, they are *capabilities* the engine asks about. And the double move already
+worked, through a completely separate `hasSkill(actor, "riding")` name-match.
+
+So the defect was not "the grant does nothing". It was **two mechanisms for one rule, one of them
+inert**: a Servant granted the double move by a Master Essence, by Semiramis's *Double Summon*,
+or by one of Scáthach's copies would not have got it, and every future granted capability would
+have needed its own bespoke check somewhere in the engine. `rules/granted.mjs` makes the grant
+the input, and `planMovement` and `canConsume` now read it. The old `hasRiding` flag stays as a
+fallback so a world whose Riding item predates the rule element does not silently lose its second
+move.
+
+`passengerSeat` is granted and **nothing reads it**, which is honest rather than hidden: it needs
+platforms (Ch. 20 / C3).
+
+Still open — the **copy** half of §15.7: Scáthach's *Wisdom of Dún Scáith*, the `copyable` field
+with its four refusal reasons, and the GM-facing selection dialog. That is a real feature, not a
+wiring gap, and it is the part §15.7 spends its length on.
 
 **B4. Ability costs and requirements.** *(medium)* — **DONE.**
 `rules/costs.mjs` answers "can this be used, and what does it cost" in one call, and
@@ -430,7 +451,8 @@ invalidates existing worlds. Not before.
 A1 ✔ A2 ✔ A3 ✔ A4 ✔ A5 ✔    PHASE A COMPLETE. Order run: A1, A3, A5, A2, A4 -- A5 pulled
                          forward because a wrong number outranks a silent stub, which outranks
                          a missing feature
-B4 ✔ → B3                costs after auras, because a cost may read an aura-modified value
+B4 ✔ → B3 ✔              costs after auras, because a cost may read an aura-modified value;
+                         B3's grants are done, its COPY half (Scathach) is not
 B1                     Command Spells; large, and depends on the interrupt protocol
 C1 → C2                terrain then environment; environment reads terrain
 D1 (continuous)        author Servants alongside, not after — they are the real test suite

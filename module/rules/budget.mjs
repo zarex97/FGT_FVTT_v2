@@ -1,3 +1,5 @@
+import { hasGranted, GRANTS } from "./granted.mjs";
+
 /**
  * @file The turn budget: four pools, per-unit limits, prevention and compulsion.
  * @see docs/18-action-economy.md
@@ -156,7 +158,7 @@ export function canConsume(budget, unit, action) {
   // allowance is a distance, and `segmentCheck` is what measures it. The only
   // thing the budget refuses is Moving *after* the Attack, which Riding alone
   // permits. (The superseded rule was one Move per Turn.)
-  if (action === "move" && state.attacked && !unit?.hasRiding) {
+  if (action === "move" && state.attacked && !hasGranted(unit, GRANTS.doubleMove) && !unit?.hasRiding) {
     return { ok: false, reason: "this unit has attacked and cannot move again", pool: null, free: false };
   }
   // Riding Attack is terminal: *"neither can it Move a second time after using

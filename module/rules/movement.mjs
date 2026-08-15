@@ -13,6 +13,7 @@
  */
 
 import * as geo from "../domain/geometry.mjs";
+import { hasGranted, GRANTS } from "./granted.mjs";
 
 /** Effects that let a unit ignore occupancy and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
@@ -38,10 +39,14 @@ const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
  * @param {object} unit the mover's snapshot
  * @param {object} board the board snapshot
  * @param {object} [opts]
- * @param {boolean} [opts.hasRiding] grants the second segment
+ * @param {boolean} [opts.hasRiding] legacy override; the `doubleMove` grant is preferred
  * @returns {MovementPlan}
  */
-export function planMovement(unit, board, { hasRiding = false } = {}) {
+export function planMovement(unit, board, { hasRiding = undefined } = {}) {
+  // The grant is the source of truth. The `hasRiding` override is kept for
+  // callers that already computed it, but a unit that carries the capability
+  // needs no help from its caller to be believed.
+  const canDoubleMove = hasGranted(unit, GRANTS.doubleMove) || hasRiding === true;
   const budget = remainingMovement(unit);
   const bounds = board.bounds ?? null;
 
@@ -62,7 +67,7 @@ export function planMovement(unit, board, { hasRiding = false } = {}) {
     passable,
     budget,
     segments: unit.turnState?.moveSegments ?? 0,
-    maxSegments: hasRiding ? 2 : 1,
+    maxSegments: canDoubleMove ? 2 : 1,
   };
 }
 
