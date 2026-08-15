@@ -23,13 +23,13 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 663 tests.
+domain are all implemented and carry 672 tests.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
 
-1. **The Combat Process runs four of its six steps.** Damage resolves, and the **Injury Roll**
-   is live as of A3. The **Counter** and the **AoE fan-out** are still stubs.
+1. **The Combat Process runs five of its six steps.** Damage resolves, the **Injury Roll** is
+   live (A3) and the **AoE fan-out** is real (A2). Only the **Counter** is still a stub.
 2. **Command Spells do not exist as a flow.** The intent, the schema and the resource all exist;
    nothing spends them, and the interrupt protocol (Ch. 17 §17.4) is unimplemented.
 3. ~~**Events do not fire into anything.**~~ — **done (A1)**, see the Unreleased changelog.
@@ -90,7 +90,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 09 | Targeting | **Done** | Eleven-step resolver, four anchors interactive, `legalPlacements`. |
 | 10 | Effect taxonomy | **Done** | Classification vocabularies enforced by the content validator. |
 | 11 | Effect engine | **Partly** | Application, stacking, suppression, expiry, periodics and **auras (§11.6, A5)** done. **Transfer (§11.8) missing. Visibility (§11.10) collected-only.** |
-| 12 | Combat Process | **Partly** | See §45.3 — two of six steps are stubs (Counter, AoE fan-out). |
+| 12 | Combat Process | **Mostly** | See §45.3 — only the Counter is still a stub. |
 
 ### Part II — resolution systems
 
@@ -125,7 +125,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 663 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 672 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Missing** | The snapshot has a `terrain` field; nothing writes or reads it. |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
@@ -147,12 +147,19 @@ three.
 | 4 — Injury Roll | §12.6 | `rules/injury.mjs`, `attack.mjs` `applyInjury` | **Done (A3)** — `injuryCheck` reads `flags.exceededInjuryThreshold`, 1d4 off Agility |
 | 5 — Facing | §12.7 | `applyFacing` | **Done** |
 | 6 — Counter | §12.8 | `attack.mjs` `case "counter"` | **Stub** — `case "counter": return process.advance(state, "done")` |
-| AoE fan-out | §12.10 | `resolveAttack` | **Stub** — `defenderId: targets.units[0]` resolves the **first target only**; the rest are counted for the `isAoE` flag and then discarded |
+| AoE fan-out | §12.10 | `process.beginFanOut`, `resolveAttack` | **Done (A2)** — one Process, one card and one ladder per defender, sharing a `groupId` |
 | Interrupts | §12.11 | — | **Missing** |
 
-The AoE case deserves emphasis: a Noble Phantasm that hits seven units currently damages one of
-them. Nothing reports this — the card shows a correct calculation against a correct target, and
-the other six are silently dropped.
+The AoE case deserved the emphasis it got: a Noble Phantasm that hit seven units damaged one of
+them, and nothing reported it — the card showed a correct calculation against a correct target
+and the other six were silently dropped. The comment above the code even said *"One Combat
+Process per target"*, which is what made it so easy to read past.
+
+As of A2 that is what it does. Each defender gets its own Process, its own card and its own
+ladder, and they share a `groupId` so the fan-out is still recoverable as one attack — needed
+because the attacker's budget is spent once for the group (it always was: `budget.spend` runs
+before the fan-out, unchanged) and because counters resolve across the whole group *"sequentially
+in turn order"* rather than per-card.
 
 ---
 
@@ -254,11 +261,24 @@ second is that `◈` is a *Round*: `battleContinuationCooldown`'s `3◈` is nine
 `cooldownRemaining` at three turns to the Round, not three. The first test written asserted `3`
 and was wrong.
 
-**A2. The AoE fan-out.** *(medium)*
-`resolveAttack` creates one Combat Process **per target**, each with its own reaction ladder and
-its own card, sharing one damage roll where the rules say so (§12.10).
-*Test gate:* a 5×5 NP over four defenders produces four processes; each defender may react
-independently; the attacker's budget is spent once.
+**A2. The AoE fan-out.** *(medium)* — **DONE.**
+`process.beginFanOut` builds one Process per target and `resolveAttack` gives each its own card
+and ladder.
+*Test gate met:* `test/unit/aoe.test.mjs`, 9 tests — four defenders produce four processes with
+their own defenders in target order; states are values, so advancing one leaves the others
+untouched, which is what "reacts independently" means here; and the budget is spent once because
+`budget.spend` runs before the fan-out begins and is not part of it.
+
+Three things worth recording. A **single** caught unit is deliberately *not* an AoE resolution —
+facing still applies and a card claiming a fan-out over one defender would be a lie. A resolution
+that caught **nobody** keeps its single null-defender Process, because a ground-placed
+non-damaging NP is a real resolution with no defenders. And the `groupId` exists for A4: counters
+resolve across the group in turn order, which per-card state cannot express.
+
+Not yet done from §12.10's sketch: the **batched** damage pass. Damage is still computed and
+applied per Process rather than as one synchronous pure batch across all defenders. That is a
+performance shape, not a correctness one — each defender's number is right — so it is left for
+when 12-defender NPs actually exist to measure.
 
 **A3. The Injury Roll.** *(small)* — **DONE.**
 `rules/injury.mjs` decides, `attack.mjs` `applyInjury` rolls the `1d4` and takes it off Agility.
@@ -360,7 +380,7 @@ invalidates existing worlds. Not before.
 ## 45.6 Suggested order, with reasoning
 
 ```
-A1 ✔ → A3 ✔ → A5 ✔ → A2 → A4  correctness repairs first; a stub that resolves silently outranks
+A1 ✔ → A3 ✔ → A5 ✔ → A2 ✔ → A4 correctness repairs first; a stub that resolves silently outranks
                          a missing feature, and a WRONG number outranks both -- which is why A5
                          was pulled forward ahead of A2 and A4
 B4 → B3                  costs after auras, because a cost may read an aura-modified value

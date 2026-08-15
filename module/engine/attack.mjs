@@ -83,33 +83,50 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     );
   }
 
-  // One Combat Process per target. AoE fans out (Ch. 12 §12.10) and each
-  // defender reacts independently.
-  const state = process.begin({
-    attackerId,
-    defenderId: targets.units[0]?.unitId ?? null,
-    attack: { abilityId, kind: ability ? abilityKind(ability) : "normal" },
-    isAoE: targets.units.length > 1,
-  });
+  // One Combat Process per target — which is what the comment here has always
+  // said, and what the code did not do. It took `targets.units[0]` and dropped
+  // the rest, so a Noble Phantasm over seven units damaged one of them.
+  const attackSpec = { abilityId, kind: ability ? abilityKind(ability) : "normal" };
+  const targetIds = targets.units.map((t) => t.unitId);
 
-  const advanced = process.advance(state, "done");
-  const message = await renderAttackCard({
-    state: advanced,
-    attacker,
-    ability,
-    targets: targets.units,
-  });
+  // A resolution that caught no units is still a resolution — a ground-placed
+  // non-damaging NP has a shape and no defenders — so it keeps its single
+  // null-defender process rather than becoming an empty fan-out.
+  const states = targetIds.length > 0
+    ? process.beginFanOut({ attackerId, targetIds, attack: attackSpec })
+    : [process.begin({ attackerId, defenderId: null, attack: attackSpec })];
 
-  // A defender with no Luck, no Command Spells and no automatic evasion has
-  // exactly one possible outcome at every rung past step 2, so the whole ladder
-  // collapses into a single prompt (Ch. 12 §12.3).
-  const defender = game.actors.get(advanced.defenderId);
-  const collapse = defender ? process.laddersCollapse(unitSnapshot(defender)) : true;
+  /** @type {Array<{messageId: string, state: object}>} */
+  const processes = [];
+  for (const state of states) {
+    const advanced = process.advance(state, "done");
+    const target = targets.units.find((t) => t.unitId === advanced.defenderId);
+    const message = await renderAttackCard({
+      state: advanced,
+      attacker,
+      ability,
+      targets: target ? [target] : [],
+    });
 
-  await message.setFlag("fgt", "process", process.serialize(advanced));
-  await message.setFlag("fgt", "collapse", collapse);
+    // A defender with no Luck, no Command Spells and no automatic evasion has
+    // exactly one possible outcome at every rung past step 2, so the whole
+    // ladder collapses into a single prompt (Ch. 12 §12.3). Asked per defender,
+    // because one of four may collapse while the others do not.
+    const defenderDoc = game.actors.get(advanced.defenderId);
+    const collapse = defenderDoc ? process.laddersCollapse(unitSnapshot(defenderDoc)) : true;
 
-  return { messageId: message.id, state: advanced };
+    await message.setFlag("fgt", "process", process.serialize(advanced));
+    await message.setFlag("fgt", "collapse", collapse);
+    processes.push({ messageId: message.id, state: advanced });
+  }
+
+  return {
+    groupId: states[0].groupId,
+    processes,
+    // The first process, for callers that predate the fan-out.
+    messageId: processes[0].messageId,
+    state: processes[0].state,
+  };
 }
 
 /**

@@ -95,7 +95,7 @@ export const PROMPTS = Object.freeze({
  * @param {object} args
  * @returns {ProcessState}
  */
-export function begin({ attackerId, defenderId, attack, isAoE = false }) {
+export function begin({ attackerId, defenderId, attack, isAoE = false, groupId = null }) {
   return {
     state: "declare",
     attackerId,
@@ -104,8 +104,46 @@ export function begin({ attackerId, defenderId, attack, isAoE = false }) {
     reaction: null,
     evaded: false,
     isAoE,
+    groupId,
     history: [],
   };
+}
+
+/**
+ * One Combat Process per defender an attack caught (§12.10).
+ *
+ * `resolveAttack` used to take `targets.units[0]` and drop the rest, keeping
+ * them only long enough to set the `isAoE` flag — so a Noble Phantasm over
+ * seven units damaged one of them, and nothing anywhere said so. The card
+ * showed a correct calculation against a correct target and the other six
+ * silently disappeared.
+ *
+ * Each defender gets its own ladder because each reacts independently: they
+ * are prompted in parallel, evade separately, and may be contested separately.
+ * The states are plain values, so one advancing cannot disturb another.
+ *
+ * `groupId` is what remembers they were one attack. Two things need it: the
+ * attacker's budget is spent once for the group rather than once per defender,
+ * and the counter step resolves across the whole fan-out *"sequentially in turn
+ * order"* rather than per-card.
+ *
+ * A single caught unit is **not** an AoE resolution — facing still applies, and
+ * a card that claimed a fan-out over one defender would be a lie.
+ *
+ * @param {object} args
+ * @param {string} args.attackerId
+ * @param {string[]} args.targetIds defenders, in target order
+ * @param {object} args.attack
+ * @param {string} [args.groupId] supplied only to make a fan-out reproducible
+ * @returns {ProcessState[]}
+ */
+export function beginFanOut({ attackerId, targetIds, attack, groupId = null }) {
+  const ids = targetIds ?? [];
+  if (ids.length === 0) return [];
+
+  const group = groupId ?? `fan.${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
+  return ids.map((defenderId) =>
+    begin({ attackerId, defenderId, attack, isAoE: ids.length > 1, groupId: group }));
 }
 
 /**
