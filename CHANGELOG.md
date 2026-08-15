@@ -127,6 +127,33 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **An aura reached its own bearer and stopped there** (Ch. 45 A5). `Aura` wrote its modifier
+  into the owner's `modifiers` bag carrying `radius` and `relations` fields that the damage
+  pipeline does not read, so the contribution applied **to the bearer, at any distance,
+  regardless of relation** and to nobody else. A live wrong answer rather than an inert one,
+  which is why it was pulled ahead of A2 and A4 in the plan.
+
+  Worth stating precisely, because the audit in Ch. 45 had it half wrong: **reaching the bearer
+  was correct.** In F/GT "every allied unit" includes the unit itself unless the text says
+  otherwise, which is why `relations` defaults to `["ally", "self"]`. The auras that exclude
+  their bearer — Penthesilea's *Charisma* ("other allies"), Kiritsugu's *Affection of the Holy
+  Grail* ("everyone except himself") — say so, and drop `"self"`. The bug was the aura stopping
+  at the bearer, not starting there.
+
+  `Aura` now fills its own `auras` bucket and `rules/auras.mjs` expands it: radius by
+  nearest-panel distance, relation filtering, and `highestOnly` resolved across every source that
+  reached the recipient — which is the whole reason auras resolve at evaluation time instead of
+  being applied as effects (*"only the highest-rank Territory Creation takes effect"* is a
+  comparison you cannot make from an applied instance). `snapshotBoard` runs the pass once every
+  unit is projected, in the same place and for the same reason as `annotateZon`, and collects for
+  all units against the untouched board so an aura cannot feed an aura.
+
+  Writing into `modifiers` is what made the defect look plausible: the value landed in a bag the
+  pipeline reads, so it appeared wired, and the two fields riding along were silently dropped.
+  The bound modifier no longer carries `radius` or `relations` at all.
+
+  Still simpler than §23.9 asks for: the pass is a linear scan, not the spatially-bucketed
+  `AuraIndex`. Correct, and 28 units is not a performance problem yet.
 - **Combat Process step 4, the Injury Roll, did nothing** (Ch. 45 A3). `attack.mjs` advanced
   straight through `case "injury"` with `"done"`, and the damage pipeline's
   `flags.exceededInjuryThreshold` — computed correctly, at the right point, for the right

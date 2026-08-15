@@ -17,6 +17,7 @@
 import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { annotateZon } from "./zon.mjs";
+import { annotateAuras } from "./auras.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -85,6 +86,11 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null } 
     // Abilities can grant attributes -- Divinity grants `divine`, which is what
     // Karna's Vasavi Shakti and Scathach's God Slayer key on.
     attributes: [...new Set([...(sys.attributes ?? []), ...contributions.attributes])],
+    // The unit's OWN auras, unexpanded. `snapshotBoard` runs `annotateAuras`
+    // once every unit exists and appends what each unit actually stands in to
+    // its `modifiers`. A unit snapshotted alone receives only its own auras --
+    // correct, because an ally aura includes its bearer.
+    auras: contributions.auras ?? [],
     alignment: sys.alignment ?? null,
 
     effects: activeEffectIds(actor),
@@ -208,6 +214,13 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // projected. Done here, once per board, because the damage pipeline, the
   // targeting resolver and the canvas overlay all ask the same question.
   annotateZon(units, board, settings.zon ?? {});
+
+  // Auras are the same shape of problem as ZON and get the same answer: a
+  // property of the board, settled once every unit is projected. Doing it here
+  // rather than per-unit is what stops the cycle in Ch. 23 §23.3 -- every unit
+  // is expanded against the same untouched board, so an aura cannot feed an
+  // aura and the result does not depend on visit order.
+  annotateAuras(units, board);
 
   return board;
 }
