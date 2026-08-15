@@ -245,7 +245,12 @@ export function unmetCompulsions(units) {
 
   for (const unit of mine) {
     const held = unit.effects ?? [];
-    const compelled = held.find((id) => ["berserk", "decoy:target", "hatred"].includes(id));
+    // Two sources. A held effect (Berserk, Decoy) and a POSITIONAL compulsion
+    // annotated onto the unit by `rules/compulsion.mjs` -- which is what
+    // Penthesilea's Hatred of Achilles is, and what this loop could never see
+    // before, because nothing ever applied a `hatred` effect.
+    const compelled = held.find((id) => ["berserk", "decoy:target", "hatred"].includes(id))
+      ?? (unit.compulsions ?? [])[0]?.id;
     if (!compelled) continue;
     if (unit.turnState?.attacked) continue;
     // A unit that could not have attacked is not in breach.

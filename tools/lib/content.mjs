@@ -41,7 +41,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Group 3 — check contributors
   "CheckModifier", "AutoSucceed", "TableOverride", "RollAdjustment",
   // Group 4 — targeting contributors
-  "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint",
+  "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion",
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse",
   // Group 6 — suppression and meta

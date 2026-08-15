@@ -20,6 +20,8 @@ import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { annotateTerrain } from "./terrain.mjs";
 import { phase, darkModifiers, homeBaseModifiers } from "./environment.mjs";
+import { annotateCompulsions } from "./compulsion.mjs";
+import { rollOptionsFor } from "./options.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -88,6 +90,9 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null } 
     // Abilities can grant attributes -- Divinity grants `divine`, which is what
     // Karna's Vasavi Shakti and Scathach's God Slayer key on.
     attributes: [...new Set([...(sys.attributes ?? []), ...contributions.attributes])],
+    // Where the unit is from. Predicates name it -- "damage dealt to Male Units
+    // from the Greece region" -- and nothing carried it before.
+    region: [...(sys.region ?? [])],
     // The unit's OWN auras, unexpanded. `snapshotBoard` runs `annotateAuras`
     // once every unit exists and appends what each unit actually stands in to
     // its `modifiers`. A unit snapshotted alone receives only its own auras --
@@ -95,6 +100,8 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null } 
     auras: contributions.auras ?? [],
     // Read by `effect-applier` when it computes an incoming effect's chance.
     applicationChances: contributions.applicationChances ?? [],
+    // Expanded by `annotateCompulsions` once the board exists.
+    compulsionRules: contributions.compulsions ?? [],
     alignment: sys.alignment ?? null,
 
     effects: activeEffectIds(actor),
@@ -233,6 +240,8 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // the same reason terrain and auras do: a unit projected alone cannot know
   // which Round it is or whose ground it is standing on.
   annotateEnvironment(units, board);
+  // Positional, like auras: it holds while somebody is standing nearby.
+  annotateCompulsions(units, board);
   annotateAuras(units, board);
 
   return board;
@@ -364,6 +373,7 @@ function effectInstances(actor) {
  * @returns {object}
  */
 export function contributionsOf(actor) {
+  const sys = actor.system ?? {};
   const abilities = [...(actor.items ?? [])].map((item) => ({
     id: item.id,
     name: item.name,
@@ -394,7 +404,24 @@ export function contributionsOf(actor) {
     });
   }
 
-  return collectContributions(abilities, { options: new Set(), refs: { self: actor } });
+  // Self-options, so an element can be gated on its own owner's state. It used
+  // to be an EMPTY set, which made every `self:` predicate unsatisfiable --
+  // Penthesilea's Charisma is "negated when Mad Enhancement is activated", and
+  // that clause could never have fired.
+  const options = rollOptionsFor({
+    attacker: {
+      kind: actor.type,
+      attributes: sys.attributes ?? [],
+      effects: [...(actor.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
+      region: sys.region ?? [],
+      abilities: [...(actor.items ?? [])].map((i) => ({
+        id: i.id, slug: i.system?.slug ?? i.id, active: Boolean(i.system?.active),
+      })),
+    },
+    defender: null,
+  });
+
+  return collectContributions(abilities, { options, refs: { self: actor } });
 }
 
 /**
@@ -412,6 +439,12 @@ function collectAbilities(actor) {
       cooldownRemaining: i.system?.cooldown?.remaining ?? 0,
       regen: i.system?.cooldown?.regen ?? 0,
       categorizedAsNP: Boolean(i.system?.categorizedAsNP),
+      // Both needed by `rules/options.mjs`: `slug` is what a predicate names,
+      // and `active` is what separates "has Mad Enhancement" from "has Mad
+      // Enhancement switched on" -- two different questions, and content asks
+      // both.
+      slug: i.system?.slug ?? i.id,
+      active: Boolean(i.system?.active),
     }));
 }
 

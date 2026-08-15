@@ -1,0 +1,33 @@
+# Penthesilea, char_orig_sheets/Copia de Penthesilea.md
+schema: 1
+id: penthesilea-goddess-of-war
+name: "Goddess of War: War God's Military Sash"
+isNP: true
+rank: A
+npTags: [antiUnit]
+description: |
+  (Passive) Active only while Mad Enhancement is DEACTIVATED. Grants Penthesilea-
+  1. Normal Attack damage dealt +(1d4 x 10)%.
+  2. Damage received −(1d4 x 10)%; if NP, the magnitude is halved.
+  3. Evade rolls reduced by 1d4.
+  4. Divinity Rank raised from B to A.
+passiveRules:
+  # Every clause carries the same gate: "only active when Mad Enhancement is
+  # deactivated". `skillActive` is what distinguishes having Mad Enhancement
+  # from having it switched on -- and Penthesilea always has it.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    roll: { key: goddessOfWarAtk, formula: "1d4", multiplier: 10 }
+    predicate: ["not:self:skillActive:madEnhancement", "attack:kind:normal"]
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    # "if NP, the magnitude of the effect is halved" -- so the same die, scored
+    # at half rate against a Noble Phantasm.
+    roll: { key: goddessOfWarDef, formula: "1d4", multiplier: 10, npMultiplier: 5 }
+    predicate: ["not:self:skillActive:madEnhancement"]
+  - key: CheckModifier
+    check: evade
+    roll: { key: goddessOfWarEvade, formula: "1d4", multiplier: -1 }
+    predicate: ["not:self:skillActive:madEnhancement"]

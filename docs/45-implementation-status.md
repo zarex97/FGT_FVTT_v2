@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 824 tests, and 47 content files.
+domain are all implemented and carry 852 tests, and 50 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -129,11 +129,11 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 824 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 852 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Partly** | Catalogue, panel model, MOV/Evade/damage modifiers and the annotation pass done (C1). **The periodic clauses and the `Region` behaviour that would populate areas from a scene are missing.** |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
-| — | Content | **4 of 29 Servants** | Heracles, Karna, **Asterios**, **Penthesilea** (D1). 14 effects of ~152. 5 class skills. 16 of 16 Command Spells (B1). |
+| — | Content | **4 of 29 Servants** | Heracles, Karna, Asterios, **Penthesilea — fully authored** (D1). 14 effects of ~152. 5 class skills. 16 of 16 Command Spells. |
 
 ---
 
@@ -198,7 +198,10 @@ Two more that are subtler than "collected only", because they *look* wired:
   silently dropped. The bound modifier no longer carries `radius` or `relations` at all —
   addressing is answered before the pipeline ever sees it.
 - **The four targeting executors** — `TargetingModifier`, `ForceTarget`, `Decoy`, `WeakPoint` —
-  write keys that nothing in the targeting resolver reads.
+  write keys that nothing in the targeting resolver reads. **Partly repaired (D1):** the new
+  `Compulsion` element covers the forced-target case (Berserk's nearest-enemy rule, Decoy's pull,
+  Penthesilea's *Hatred of Achilles*) and step 4b of `resolveTargets` narrows a compelled unit's
+  candidates to what it is compelled to attack. The other three keys still have no reader.
 
 ### The layer rule was documented, computed and unenforced
 
@@ -578,7 +581,22 @@ than a boolean: *"all damage dealt by **other** allied Units within a 2 panel ar
 own Charisma. Ch. 11 §11.6 cites exactly this case; A5 implements it, and this is the first
 content to exercise it.
 
-Four of her features are unauthored, each for a reason worth recording:
+**She is now fully authored**, and the four gaps below were closed by building what she needed
+rather than by working around her. That is the argument for D1 running continuously, made
+concrete: none of these four would have been designed up front, and all four are general.
+
+| Built for | What it is |
+|---|---|
+| *Hatred of Achilles* | **`Compulsion`** (`rules/compulsion.mjs`) — positional, like an aura, because it lifts the instant the Greek Male leaves. **The targeting resolver reads it**, which is the reader §45.4 recorded as missing for the whole targeting-executor family. |
+| *Charisma*, *Howl of the War God* | **`skill:`, `skillActive:` and `region:` roll options** (`rules/options.mjs`). `tables.mjs` had predicated on `target:skill:divinity` since the tables were transcribed and **nothing ever emitted a `skill:` option**. |
+| *Charisma*'s suppression | **Self-options in `contributionsOf`**, which passed an **empty set** — so every `self:` predicate in the system was unsatisfiable. |
+| *Goddess of War* | **Rolled modifiers** — a magnitude rolled per damage event rather than fixed before the attack. Found a second bug on the way: a modifier with no numeric magnitude produced `NaN`, which survived every stage and clamped the final total to **zero**, so one malformed element silently deleted an attack. |
+
+One clause remains: Goddess of War's *"Divinity Rank is increased from B to A"*. `RankShift`
+moves a **parameter**; this moves another ability's rank, which is a different operation and one
+no other Servant in the reference set needs yet. Her Divinity is authored at B.
+
+The original four findings read:
 
 - **Hatred of Achilles** is a compulsion, and §45.4 already records that the four targeting
   executors write keys **the resolver does not read** — so authoring it would produce a
@@ -645,7 +663,8 @@ C1 ~ → C2 ~            terrain then environment. C1's standing modifiers are d
                        clauses need the scheduler; C2 has Day/Night, Home Base and the Grail,
                        and still wants Region and Random Events
 D1 ~ (continuous)      author Servants alongside, not after — they are the real test suite.
-                       Asterios and Penthesilea done; Asterios alone found four gaps
+                       Asterios and Penthesilea done. Between them they found eight engine
+                       gaps and closed them; none would have been designed up front
 C3 → C4                platforms and bounded fields; the most self-contained, the least urgent
 D2 → D3 → D4
 ```

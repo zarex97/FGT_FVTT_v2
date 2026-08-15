@@ -14,6 +14,7 @@
 import * as geo from "../../domain/geometry.mjs";
 import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
+import { compelledTargetsOf } from "../compulsion.mjs";
 
 /**
  * @typedef {import("../../domain/geometry.mjs").GridOffset} GridOffset
@@ -117,6 +118,19 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     const relation = relationOf(caster, u, board);
     return relations.has(relation) || drop(u, relationReason(relation, caster, u, relations));
   });
+
+  // 4b. COMPULSION — a compelled unit "will ignore all orders/Player commands".
+  //
+  // Narrowing here rather than erroring is the point: the compulsion does not
+  // make the attack illegal, it makes the CHOICE illegal. Offering a free pick
+  // of target and then refusing it would be offering something the rules have
+  // already taken away. §45.4 recorded that the targeting executors wrote keys
+  // nothing read; this is the reader.
+  const compelled = compelledTargetsOf(caster);
+  if (compelled.length > 0) {
+    survivors = survivors.filter((u) =>
+      compelled.includes(u.id) || drop(u, "the attacker is compelled to attack another unit"));
+  }
 
   // 5. KIND FILTER — platforms and structures are excluded unless asked for.
   const kinds = sel.kinds ?? null;

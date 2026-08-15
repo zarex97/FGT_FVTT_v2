@@ -264,7 +264,7 @@ function stage4CombinedPercent(s) {
   let bucket = 0;
 
   for (const m of activeMods(s, s.ctx.attacker, ATTACKER_BUCKET_KEYS)) {
-    const v = magnitudeOf(m, isNP);
+    const v = magnitudeOf(m, isNP, s.ctx);
     // Asymmetric (component-scoped) modifiers contribute their *shared* part
     // here; the differential goes to stage 5.
     const shared = m.component ? 0 : v;
@@ -278,7 +278,7 @@ function stage4CombinedPercent(s) {
       s.contribute("defUp", 0, `${m.source} (ignored by Ignore Def)`);
       continue;
     }
-    const v = magnitudeOf(m, isNP);
+    const v = magnitudeOf(m, isNP, s.ctx);
     const signed = DEFENDER_POSITIVE_KEYS.has(m.key) ? v : -v;
     bucket += signed;
     s.contribute(m.key, signed, m.source);
@@ -308,7 +308,7 @@ function stage5ComponentAmplification(s) {
 
   for (const m of activeMods(s, s.ctx.attacker, ATTACKER_BUCKET_KEYS)) {
     if (!m.component) continue;
-    const v = magnitudeOf(m, isNP) * (NEGATIVE_KEYS.has(m.key) ? -1 : 1);
+    const v = magnitudeOf(m, isNP, s.ctx) * (NEGATIVE_KEYS.has(m.key) ? -1 : 1);
     if (m.component === "str") strPct += v;
     else magPct += v;
     s.contribute(m.key, v, `${m.source} (${m.component.toUpperCase()} only)`);
@@ -341,8 +341,9 @@ function stage7FlatAttackBonuses(s) {
   s.begin(7);
   let flat = 0;
   for (const m of activeMods(s, s.ctx.attacker, FLAT_ATTACK_KEYS)) {
-    flat += m.value;
-    s.contribute(m.key, m.value, m.source);
+    const value = magnitudeOf(m, s.isNP, s.ctx);
+    flat += value;
+    s.contribute(m.key, value, m.source);
   }
   if (flat !== 0) s.addProportional(flat);
   s.end(7);
@@ -463,8 +464,8 @@ function stage12FlatReductions(s) {
 
   for (const m of activeMods(s, s.ctx.defender, FLAT_REDUCTION_KEYS)) {
     // Dmg Cut is explicitly NOT bypassed by Pierce, unlike Invuln and Block.
-    flat += magnitudeOf(m, s.isNP);
-    s.contribute(m.key, -magnitudeOf(m, s.isNP), m.source);
+    flat += magnitudeOf(m, s.isNP, s.ctx);
+    s.contribute(m.key, -magnitudeOf(m, s.isNP, s.ctx), m.source);
   }
 
   const bc = s.ctx.rolls?.battleContinuation ?? 0;
@@ -675,7 +676,7 @@ function activeMods(s, unit, keys) {
  * @returns {number}
  */
 function sumMods(s, unit, key) {
-  return activeMods(s, unit, new Set([key])).reduce((acc, m) => acc + magnitudeOf(m, s.isNP), 0);
+  return activeMods(s, unit, new Set([key])).reduce((acc, m) => acc + magnitudeOf(m, s.isNP, s.ctx), 0);
 }
 
 /**
@@ -684,8 +685,25 @@ function sumMods(s, unit, key) {
  * @param {boolean} isNP
  * @returns {number}
  */
-function magnitudeOf(m, isNP) {
-  return isNP && m.npValue !== undefined ? m.npValue : m.value;
+function magnitudeOf(m, isNP, ctx = null) {
+  // A modifier whose magnitude is ROLLED per damage event — Penthesilea's
+  // Goddess of War, "roll a four-sided die, damage dealt is increased by
+  // (Number rolled x 10)%". The pipeline stays pure: the caller rolls and the
+  // total arrives in `ctx.rolls`, exactly as the crit and negation rolls do.
+  if (m.roll) {
+    const rolled = ctx?.rolls?.[m.roll.key];
+    // Nobody rolled it, so it did not happen. Distinct from rolling a zero,
+    // and emphatically distinct from NaN.
+    if (typeof rolled !== "number") return 0;
+    const per = isNP && m.roll.npMultiplier !== undefined ? m.roll.npMultiplier : (m.roll.multiplier ?? 1);
+    return rolled * per;
+  }
+
+  const raw = isNP && m.npValue !== undefined ? m.npValue : m.value;
+  // Never propagate a non-number. A modifier with no magnitude used to poison
+  // the whole calculation: the NaN survived every stage and clamped the final
+  // total to zero, so one malformed element silently deleted an attack.
+  return Number.isFinite(raw) ? raw : 0;
 }
 
 /**

@@ -49,6 +49,33 @@ coincide by accident; the headings say which is which.
   Charisma's own suppression clause (Heracles's Bravery problem — an ability disabled by its
   owner's other ability), and *Howl of the War God* (a target-attribute predicate no content has
   exercised yet).
+- **Penthesilea is fully authored**, and four engine additions came with her (Ch. 45 D1). None
+  would have been designed up front; all four are general. This is the argument for authoring
+  content continuously rather than last, made concrete.
+
+  - **`Compulsion`** (`rules/compulsion.mjs`), for *Hatred of Achilles*. Positional like an aura,
+    because it lifts the instant the Greek Male leaves — an applied effect would need a
+    position-watcher writing on every move. Two halves that had never met: `unmetCompulsions`
+    read a `hatred` effect **nothing applied**, and §45.4 records that the targeting executors
+    write keys **nothing reads**. `resolveTargets` now narrows a compelled unit's candidates,
+    because the compulsion does not make the attack illegal — it makes the *choice* illegal.
+  - **`skill:`, `skillActive:` and `region:` roll options** (`rules/options.mjs`). `tables.mjs`
+    has predicated on `target:skill:divinity` since the tables were transcribed and **nothing
+    ever emitted a `skill:` option**, so the Divinity-versus-Divinity clause could not fire in
+    either direction. Option-building moved out of the attack flow into the rules layer, where it
+    can be tested without Foundry — which is the only reason the gap lasted this long.
+  - **Self-options in `contributionsOf`**, which passed an **empty set**. Every `self:` predicate
+    in the system was unsatisfiable, so *Charisma*'s "negated when Mad Enhancement is activated"
+    could never have fired.
+  - **Rolled modifiers**, for *Goddess of War*: a magnitude rolled per damage event rather than
+    fixed before the attack, with the dice kept on the caller like every other roll here. This
+    turned up a separate bug — a modifier with no numeric magnitude produced `NaN`, which
+    survived every pipeline stage and clamped the final total to **zero**. One malformed element
+    silently deleted an attack.
+
+  One clause is left: Goddess of War's *"Divinity Rank is increased from B to A"*. `RankShift`
+  moves a parameter; this moves another ability's rank, a different operation no other Servant
+  needs yet. Her Divinity is authored at B.
 - **Command Spells can interrupt a resolution in flight** (Ch. 45 B1, completed). Six of the
   sixteen commands shipped logging their own names, because changing an in-flight resolution
   needs the ladder to be interruptible — a property of the state machine, not of the command.
