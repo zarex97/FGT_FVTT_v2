@@ -36,6 +36,12 @@ import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 Hooks.once("init", () => {
   console.log("FGT | Initialising Fate/Grail Tactics");
 
+  // Every hook call, logged. F/GT is driven almost entirely by hooks — the
+  // scheduler, movement, budget and turn order all hang off them — so when a
+  // rule does not fire, the first question is always whether its hook was
+  // reached at all, and this is what answers it.
+  CONFIG.debug.hooks = true;
+
   globalThis.fgt = { FGT, api: {} };
   CONFIG.FGT = FGT;
 

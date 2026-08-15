@@ -88,6 +88,15 @@ export default [
     ],
     rules: { "no-console": "off" },
   },
+  {
+    // `tools/smoke-world.mjs` talks to Chrome over the DevTools Protocol, which
+    // means HTTP and a WebSocket. Both are Node globals now (WebSocket since 22,
+    // which is what CI runs), so they need no import — but they are granted here
+    // rather than in the shared list, because nothing under module/ should be
+    // reaching for a raw socket.
+    files: ["tools/**/*.mjs"],
+    languageOptions: { globals: { fetch: "readonly", WebSocket: "readonly" } },
+  },
   { ignores: ["node_modules/**", "packs/**", "styles/fgt.css", "coverage/**", ".build/**"] },
 ];
 
