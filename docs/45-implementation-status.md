@@ -23,13 +23,15 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 672 tests.
+domain are all implemented and carry 693 tests.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
 
-1. **The Combat Process runs five of its six steps.** Damage resolves, the **Injury Roll** is
-   live (A3) and the **AoE fan-out** is real (A2). Only the **Counter** is still a stub.
+1. ~~**The Combat Process runs three of its six steps.**~~ — **all six run** as of Phase A.
+   Damage resolves, the **Injury Roll** is live (A3), the **AoE fan-out** is real (A2) and the
+   **Counter** is offered and resolved (A4). What remains in Ch. 12 is **§12.11 interrupts**,
+   which is Command Spells and therefore B1.
 2. **Command Spells do not exist as a flow.** The intent, the schema and the resource all exist;
    nothing spends them, and the interrupt protocol (Ch. 17 §17.4) is unimplemented.
 3. ~~**Events do not fire into anything.**~~ — **done (A1)**, see the Unreleased changelog.
@@ -90,7 +92,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 09 | Targeting | **Done** | Eleven-step resolver, four anchors interactive, `legalPlacements`. |
 | 10 | Effect taxonomy | **Done** | Classification vocabularies enforced by the content validator. |
 | 11 | Effect engine | **Partly** | Application, stacking, suppression, expiry, periodics and **auras (§11.6, A5)** done. **Transfer (§11.8) missing. Visibility (§11.10) collected-only.** |
-| 12 | Combat Process | **Mostly** | See §45.3 — only the Counter is still a stub. |
+| 12 | Combat Process | **Mostly** | All six steps run (Phase A). **Interrupts (§12.11) missing — they are Command Spells, so B1.** |
 
 ### Part II — resolution systems
 
@@ -125,7 +127,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 672 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 693 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Missing** | The snapshot has a `terrain` field; nothing writes or reads it. |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
@@ -146,7 +148,7 @@ three.
 | 3 — Damage | §12.5 | `applyDamage` | **Done** — full 16-stage pipeline |
 | 4 — Injury Roll | §12.6 | `rules/injury.mjs`, `attack.mjs` `applyInjury` | **Done (A3)** — `injuryCheck` reads `flags.exceededInjuryThreshold`, 1d4 off Agility |
 | 5 — Facing | §12.7 | `applyFacing` | **Done** |
-| 6 — Counter | §12.8 | `attack.mjs` `case "counter"` | **Stub** — `case "counter": return process.advance(state, "done")` |
+| 6 — Counter | §12.8 | `process.canCounter`/`beginCounter`, `attack.mjs` | **Done (A4)** — offered when eligible, resolved as a full nested Process |
 | AoE fan-out | §12.10 | `process.beginFanOut`, `resolveAttack` | **Done (A2)** — one Process, one card and one ladder per defender, sharing a `groupId` |
 | Interrupts | §12.11 | — | **Missing** |
 
@@ -292,11 +294,30 @@ check honours, but no rung of the reaction ladder offers it yet, so nothing sets
 is D3 work. Multi-hit attacks should perform *one* roll on the total; today one Combat Process
 means one roll, which is right until A2 makes multi-hit real.
 
-**A4. The Counter.** *(medium)*
-Implement step 6: the counter sub-process from §27.10, which is a nested attack with the
-attacker and defender swapped, no counter-of-a-counter, and no budget cost.
-*Test gate:* a successful counter-check produces a second damage resolution in the opposite
-direction, and that resolution cannot itself be countered.
+**A4. The Counter.** *(medium)* — **DONE.**
+`beginCounter` builds the nested Process with the roles swapped, and `attack.mjs` decides
+eligibility, offers the choice on the card, and runs it.
+*Test gate met:* `test/unit/counter.test.mjs`, 21 tests — `beginCounter` swaps attacker and
+defender and marks `isCounter`; `canCounter` refuses a marked process, which is the property that
+actually stops the recursion; and the counter runs a full ladder from `declare` with its own
+history rather than inheriting the original's.
+
+`canCounter` already existed and **was never called** — step 6 advanced past it unconditionally.
+It was also missing four clauses of §12.8, all now present and all derived from the board by the
+caller rather than taken on faith: Berserk, Fragarach (Mannanán trades the normal counter for an
+automatic one), Presence Concealment against a slower defender, and the no-counter-of-a-counter
+rule itself.
+
+The rung is **conditionally prompting**, which is new: `pendingPrompt` returns a counter prompt
+only when the orchestrator has recorded `counterAvailable`, so an ineligible defender is never
+stopped to be asked a question with one answer. `promptOptions` needed a `counter` branch of its
+own — without it the card fell through to the Luck Check branch and would have rendered a
+"Contest" button emitting an event this rung has no transition for.
+
+Not done: `sleepRemovedThisPhase` from §12.8's sketch. It is Process-scoped state that nothing
+tracks, and adding the clause against a field nobody writes is the defect Phase A spent its time
+removing. Counters also do not yet resolve *"sequentially in turn order"* across an AoE group —
+each card offers independently. The `groupId` A2 added is what that will hang off.
 
 **A5. Auras.** *(medium)* — **DONE.** *(Taken out of order, ahead of A2 and A4: this was the
 only defect in Phase A producing a wrong number rather than no number, and this chapter's own
@@ -380,9 +401,9 @@ invalidates existing worlds. Not before.
 ## 45.6 Suggested order, with reasoning
 
 ```
-A1 ✔ → A3 ✔ → A5 ✔ → A2 ✔ → A4 correctness repairs first; a stub that resolves silently outranks
-                         a missing feature, and a WRONG number outranks both -- which is why A5
-                         was pulled forward ahead of A2 and A4
+A1 ✔ A2 ✔ A3 ✔ A4 ✔ A5 ✔    PHASE A COMPLETE. Order run: A1, A3, A5, A2, A4 -- A5 pulled
+                         forward because a wrong number outranks a silent stub, which outranks
+                         a missing feature
 B4 → B3                  costs after auras, because a cost may read an aura-modified value
 B1                     Command Spells; large, and depends on the interrupt protocol
 C1 → C2                terrain then environment; environment reads terrain
