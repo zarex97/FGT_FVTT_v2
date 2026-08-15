@@ -1,0 +1,27 @@
+# Penthesilea, char_orig_sheets/Copia de Penthesilea.md
+schema: 1
+id: penthesilea-outrage-amazon
+name: "Outrage Amazon: A Hero to Die on My Rage"
+isNP: true
+rank: B
+npTags: [antiUnit]
+cooldown: "6◈"
+description: |
+  Only usable when Mad Enhancement is activated. Base Attack (STR) is used. Deals 3.5x damage
+  and inflicts Def Dwn for 1◈ Turns, all damage received is increased by 30%.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  base: { sources: [{ unit: self, component: str, factor: 1 }] }
+  multiplier: 3.5
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: defDwn, magnitude: 30 }
+        duration: "1◈"

@@ -133,7 +133,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Partly** | Catalogue, panel model, MOV/Evade/damage modifiers and the annotation pass done (C1). **The periodic clauses and the `Region` behaviour that would populate areas from a scene are missing.** |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
-| — | Content | **3 of 29 Servants** | Heracles, Karna, **Asterios (D1)**. 12 effects of ~152. 5 class skills. 16 of 16 Command Spells (B1). |
+| — | Content | **4 of 29 Servants** | Heracles, Karna, **Asterios**, **Penthesilea** (D1). 14 effects of ~152. 5 class skills. 16 of 16 Command Spells (B1). |
 
 ---
 
@@ -546,7 +546,31 @@ ranged is not.
 
 ### Phase D — content and polish
 
-**D1. The remaining 26 Servants** — **STARTED.** `packs/_source/servants/asterios.yml`, converted
+**D1. The remaining 25 Servants** — **STARTED.** Two authored: **Asterios** and
+**Penthesilea**.
+
+Penthesilea's *Charisma* is the archetypal aura, and the reason `relations` is a list rather
+than a boolean: *"all damage dealt by **other** allied Units within a 2 panel area"* means allies
+**without** self, so `self` drops from the default `[ally, self]` and she gains nothing from her
+own Charisma. Ch. 11 §11.6 cites exactly this case; A5 implements it, and this is the first
+content to exercise it.
+
+Four of her features are unauthored, each for a reason worth recording:
+
+- **Hatred of Achilles** is a compulsion, and §45.4 already records that the four targeting
+  executors write keys **the resolver does not read** — so authoring it would produce a
+  compulsion that compels nothing. Its Command Spell counterpart *is* authored (B1) and would
+  have had nothing to negate.
+- **Goddess of War** rolls `1d4` per damage event, which the pipeline has no expression for, and
+  raises her own Divinity rank, which `RankShift` cannot reach.
+- **Charisma's own suppression clause** is Heracles's Bravery problem again: an ability disabled
+  by its owner's other ability. `Suppress` exists; a predicate naming another ability's active
+  state does not.
+- **Howl of the War God** needs a target-attribute predicate no content has exercised yet.
+
+---
+
+**Asterios** was the first. `packs/_source/servants/asterios.yml`, converted
 from `char_orig_sheets/Copia de Asterios.md`, with three new abilities and four new effects.
 
 It found four gaps in one Servant, which is the argument for running this phase continuously
@@ -599,7 +623,7 @@ C1 ~ → C2 ~            terrain then environment. C1's standing modifiers are d
                        clauses need the scheduler; C2 has Day/Night, Home Base and the Grail,
                        and still wants Region and Random Events
 D1 ~ (continuous)      author Servants alongside, not after — they are the real test suite.
-                       Asterios done; he found four gaps on his own
+                       Asterios and Penthesilea done; Asterios alone found four gaps
 C3 → C4                platforms and bounded fields; the most self-contained, the least urgent
 D2 → D3 → D4
 ```

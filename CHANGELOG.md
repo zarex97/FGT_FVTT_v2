@@ -36,6 +36,19 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Penthesilea**, the second Servant of the D1 pass, with two new effects (`debuffImmune`,
+  `npRegen`). Her *Charisma* is the archetypal aura and the first content to exercise A5's
+  relation filtering: *"all damage dealt by **other** allied Units within a 2 panel area"* means
+  allies **without** self, so `self` drops from the default `[ally, self]` and she gains nothing
+  from her own Charisma. Ch. 11 §11.6 cites this exact case.
+
+  Four of her features are deliberately unauthored, each named in Ch. 45 rather than stubbed:
+  *Hatred of Achilles* (the targeting executors write keys the resolver does not read, so the
+  compulsion would compel nothing — and its Command Spell counterpart from B1 would have had
+  nothing to negate), *Goddess of War* (per-damage-event `1d4` rolls and a rank-raising passive),
+  Charisma's own suppression clause (Heracles's Bravery problem — an ability disabled by its
+  owner's other ability), and *Howl of the War God* (a target-attribute predicate no content has
+  exercised yet).
 - **The environment** (Ch. 45 C2) — the Day/Night cycle, the Home Base and the Holy Grail.
   `snapshotBoard` runs `annotateEnvironment` beside terrain and auras, for the same reason: these
   are facts about the *field*, and a unit projected alone cannot know which Round it is or whose
