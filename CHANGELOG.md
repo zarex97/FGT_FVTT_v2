@@ -36,6 +36,33 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Terrain does something** (Ch. 45 C1). The snapshot has carried a `terrain` field since it was
+  written and nothing ever populated or read it.
+
+  `rules/terrain.mjs` holds the §42.2 catalogue and `snapshotBoard` runs `annotateTerrain` beside
+  `annotateAuras` — which is the chapter's own observation, that terrain is *"mechanically a
+  positional aura whose source is a region rather than a unit"*. It is also why terrain cannot be
+  dispelled, cured or resisted, and why leaving ends it instantly with no removal step: a unit
+  never carried it in the first place.
+
+  MOV, Evade, Agility Check, attack range, healing and the damage modifiers are all live, with
+  the attribute gates a third of the catalogue turns on (`Swimsuit!`, `Santa`, `Levitating`,
+  `Dark (Outsider)`). Overlapping areas **sum**: two MOV −1 areas cost two panels, because they
+  are two pieces of difficult ground rather than one status applied twice. `effectiveMov` applies
+  terrain after Slow and additively — Slow halves what the unit has, a Forest costs a panel of
+  what is left; halving after would make difficult ground twice as expensive to a Slowed unit,
+  which no rule says.
+
+  **Absent rather than half-present:** every periodic and event-driven clause — Burning's
+  inescapable `Burn`, Poison Swamp's stage roll, the Forest→Burning coin flip, Lava's and
+  Frozen's and Magnetic's on-entry consequences, Eldritch's Horrors, Meadow reverting after a
+  Damage Step, Underworld's `Near-Death`. Those need the scheduler and the movement hooks rather
+  than the catalogue table, and a half-entry would look implemented. Eight of the nineteen types
+  are registered with no standing effects at all, which the catalogue states rather than omits.
+
+  Also not done: the `Region` behaviour that would populate areas from a scene (§42.1, §22.10).
+  The rules read `board.terrain.areas`, so this is live for any caller that supplies areas and
+  dormant in a real world until that behaviour exists.
 - **Command Spells can be spent** (Ch. 45 B1). The schema, the `spendCS` intent, the applier case
   and `io.spendCommandSpells` all existed and were reachable end to end. What was missing was the
   middle: nothing decided *which* command a Master may use, *when*, or *what it does* — so nothing

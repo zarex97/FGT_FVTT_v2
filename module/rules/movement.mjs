@@ -99,6 +99,11 @@ export function effectiveMov(unit) {
   const held = unit?.effects ?? [];
   let mov = unit?.mov ?? 0;
   if (held.includes("slow")) mov = Math.floor(mov / 2);
+  // Terrain last, and additively: Slow halves what the unit HAS, while a Forest
+  // costs a panel of whatever is left. Halving after the terrain penalty would
+  // make difficult ground twice as expensive to a Slowed unit, which no rule
+  // says.
+  mov += unit?.terrainEffects?.movDelta ?? 0;
   return Math.max(0, mov);
 }
 
