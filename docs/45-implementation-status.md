@@ -38,7 +38,12 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
 4. **Auras apply to the wrong unit.** `Aura` writes a modifier carrying `radius` and `relations`
    into its *owner's* modifier bag, and the pipeline reads the modifier while ignoring both
    fields — so an aura buffs its own owner at unlimited range instead of the units around it.
-5. **ZON is checked but never computed** — see §45.5 B4. The rule is implemented twice and fed
+5. ~~**ZON is checked but never computed**~~ — **done**, see the Unreleased changelog.
+   `rules/zon.mjs` derives it, `snapshotBoard` annotates it once every unit exists (it is a
+   property of the Master–Servant *pair*), and the attack flow reads its combatants from the
+   annotated board. Both consumers now fire. The rest of B4 — Health costs, cooldown gates, the
+   NP round gate — is still open. The original finding read:
+   The rule is implemented twice and fed
    by an input no code writes.
 6. **Six of the eight environment subsystems are missing**: Home Base, Day/Night, Region, the
    Grail, Random Events, and Terrain as a live rule (the snapshot carries a `terrain` field that
@@ -74,7 +79,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 13 | Damage pipeline | **Done** | 16 stages, both worked examples are golden fixtures. |
 | 14 | Checks and randomness | **Mostly** | Evade, Luck, chance rolls, `checkPlan` done. **The roll log (§14.8) and setup rolls (§14.9) missing.** |
 | 15 | Abilities | **Partly** | Classification, phases (`damage`, `applyEffects`) done. **Costs and requirements (§15.4), granted/copied abilities (§15.7), items (§15.8) missing.** |
-| 16 | Relationships | **Barely** | Master protection is enforced by movement. **ZON is *read* in two places but never *computed*** (see B4). **Contracting, Overpower/Underpower, Sustainability drain, the multi-Servant tax and the Dioscuri are missing.** |
+| 16 | Relationships | **Partly** | Master protection is enforced by movement. **ZON is derived and both consumers fire**, including the Semiramis exemption and the Dioscuri's `any`-across-twins test. **Contracting, Overpower/Underpower, Sustainability drain and the multi-Servant tax are missing.** |
 | 17 | Command Spells | **Missing** | Schema and `spendCS` intent exist; no flow, no interrupt protocol, no catalogue content. |
 | 18 | Action economy | **Mostly** | Budget, per-unit limits, prevention, compulsions done. **Undo (§18.7) and Confuse's random selector (§18.5) missing.** |
 | 19 | Environment | **Missing** | Home Base, Day/Night, Region, Grail, Random Events all absent. |
@@ -232,17 +237,18 @@ does not feed itself.
 Riding and disappear when it is removed.
 
 **B4. Ability costs and requirements.** *(medium)*
-§15.4 — Health costs, cooldown gates, the NP round gate, and **the ZON input**.
+§15.4 — Health costs, cooldown gates and the NP round gate. **The ZON input is done** and its
+test gate is met; what follows is kept because the shape of the defect is worth remembering.
 
-The ZON case is the instructive one: the *check* is fully implemented in two places —
+The ZON case was the instructive one: the *check* was fully implemented in two places —
 `resolve.mjs` refuses an NP when `caster.outsideZon`, and the damage pipeline applies the stage-9
-ZON penalty on the same flag — but **nothing ever computes `outsideZon` or `zonDistance`**. Both
-are projected straight from actor fields that no code writes, so both read `false`/`null`
-forever. Two correct implementations of a rule, fed by an input that does not exist.
+ZON penalty on the same flag — but **nothing ever computed `outsideZon` or `zonDistance`**. Both
+were projected straight from actor fields that no code wrote, so both read `false`/`null`
+forever. Two correct implementations of a rule, fed by an input that did not exist.
 
-*Test gate:* `outsideZon` is derived from the Servant's distance to its contracted Master against
-the Master's ZON; Nine Lives is refused outside it with the distance in the message; the stage-9
-penalty applies when and only when the Servant is outside.
+That is the failure mode to keep looking for: not a rule that is wrong, but a rule that is right
+and inert. `fireEvent` (A1) is the same shape, and so was every defect found while play-testing —
+a projection that produced a value nothing could act on.
 
 ### Phase C — the world
 
