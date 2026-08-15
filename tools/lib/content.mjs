@@ -25,6 +25,12 @@ export const SCHEMA_VERSION = 1;
  * would otherwise sit in a compendium doing nothing.
  * @see docs/24-rules-engine.md §24.3
  */
+// NOTE: this list and `EXECUTORS` in `module/rules/elements.mjs` are two hand-
+// maintained copies of the same vocabulary, and nothing kept them in step.
+// Either direction is a defect: a key here with no executor makes content
+// validate and then do nothing, and a key with an executor but not here makes
+// legitimate content fail the build. `test/unit/elements.test.mjs` now holds
+// the two against each other in both directions.
 export const RULE_ELEMENT_KEYS = new Set([
   // Group 1 — stat and derived-value modifiers
   "StatDelta", "RankShift", "MaxDelta", "MovDelta", "RangeDelta", "SizeStep",
@@ -39,7 +45,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse",
   // Group 6 — suppression and meta
-  "Suppress", "Immunity", "ImmunityDowngrade", "ReplaceAbility", "Disguise",
+  "Suppress", "Immunity", "ImmunityDowngrade", "ApplicationChance", "ReplaceAbility", "Disguise",
   "EffectVisibility", "SustainabilityGain", "RelationshipProxy",
   // Group 7 — the escape hatch
   "Script",

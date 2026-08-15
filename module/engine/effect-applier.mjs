@@ -76,7 +76,11 @@ export function applyEffect({ def, target, magnitude = 0, duration = null, sourc
   const chanceSpec = applicationChance({
     base: def.baseChance ?? 100,
     inflictBonus: ctx.inflictBonus ?? 0,
-    resist: ctx.resist ?? 0,
+    // The target's own resistance, from its `ApplicationChance` contributions.
+    // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
+    // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
+    // the target here closes the loop without every caller having to know.
+    resist: ctx.resist ?? resistanceOf(target, def),
     immune: false,
     bypassesImmunity: Boolean(def.bypassesImmunity),
   });
@@ -304,4 +308,26 @@ function resolveStacking(def, existing, magnitude) {
  */
 function blocked(reason, trace) {
   return { outcome: "blocked", reason, intents: [], trace };
+}
+
+/**
+ * How much this target resists having `def` applied to it.
+ *
+ * Sums the `ApplicationChance` contributions that point inwards and match the
+ * effect — by name if the contribution names one, otherwise by valence, which
+ * is what "Off.Debuff ResUp" selects on.
+ *
+ * @param {object} target the target's unit snapshot
+ * @param {object} def the effect definition
+ * @returns {number} percentage points of resistance
+ */
+function resistanceOf(target, def) {
+  let total = 0;
+  for (const c of target?.applicationChances ?? []) {
+    if (c.direction !== "incoming") continue;
+    if (c.effectId && c.effectId !== def.id) continue;
+    if (c.valence && c.valence !== def.valence) continue;
+    total += c.value ?? 0;
+  }
+  return total;
 }

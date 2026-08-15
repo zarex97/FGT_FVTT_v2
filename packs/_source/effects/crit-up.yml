@@ -1,0 +1,14 @@
+# Appendix A §A.2
+schema: 1
+id: critUp
+name: "Crit Up"
+description: "Crit Chance is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: CheckModifier
+    check: crit
+    value: "@magnitude"

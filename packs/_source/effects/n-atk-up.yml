@@ -1,0 +1,20 @@
+# Appendix A §A.2
+#
+# A Normal-Attack-only Atk Up. Distinct from `atkUp` because the sheets that
+# grant it are explicit that skills and Noble Phantasms are untouched, and a
+# blanket Atk Up would quietly buff both.
+schema: 1
+id: nAtkUp
+name: "N.Atk Up"
+description: "Normal Attack damage dealt is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["self:attack:normal"]

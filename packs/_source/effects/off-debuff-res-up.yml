@@ -1,0 +1,22 @@
+# Appendix A §A.2
+#
+# Resistance to being INFLICTED, not to the damage a debuff deals: it lowers
+# the application chance and does nothing once an effect has landed.
+#
+# The magnitude is stored POSITIVE and subtracted by `applicationChance`, which
+# takes `resist` as a positive quantity. Storing it negative and adding would
+# read the same on the sheet and invert on the second reader.
+schema: 1
+id: offDebuffResUp
+name: "Off.Debuff ResUp"
+description: "Chance of being inflicted by Offensive Debuffs is reduced by X%."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: ApplicationChance
+    direction: incoming
+    valence: offensive
+    value: "@magnitude"

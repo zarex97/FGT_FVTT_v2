@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 766 tests.
+domain are all implemented and carry 766 tests, and 41 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -132,7 +132,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Partly** | Catalogue, panel model, MOV/Evade/damage modifiers and the annotation pass done (C1). **The periodic clauses and the `Region` behaviour that would populate areas from a scene are missing.** |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
-| — | Content | **2 of 29 Servants** | Heracles, Karna. 7 effects of ~152. 5 class skills. **16 of 16 Command Spells (B1).** |
+| — | Content | **3 of 29 Servants** | Heracles, Karna, **Asterios (D1)**. 12 effects of ~152. 5 class skills. 16 of 16 Command Spells (B1). |
 
 ---
 
@@ -494,8 +494,34 @@ ranged is not.
 
 ### Phase D — content and polish
 
-**D1. The remaining 27 Servants**, in the order of the case-study chapters (31–36, 44), each with
-its own regression fixture. This is the phase that finds engine gaps, so it should not be last.
+**D1. The remaining 26 Servants** — **STARTED.** `packs/_source/servants/asterios.yml`, converted
+from `char_orig_sheets/Copia de Asterios.md`, with three new abilities and four new effects.
+
+It found four gaps in one Servant, which is the argument for running this phase continuously
+rather than last:
+
+1. **`ApplicationChance` had no executor.** It is named in Ch. 24 Group 6 and accepted by the
+   content validator, and nothing implemented it — so `Off.Debuff ResUp` compiled and did
+   nothing. Worse, `effect-applier` read `ctx.resist` and **no caller ever supplied it**, so the
+   whole resistance path was dead at both ends. The executor now fills an `applicationChances`
+   bucket, the snapshot carries it, and `applyEffect` reads it off the target.
+2. **Four effects did not exist**: `critUp`, `nAtkUp`, `bleedAtk`, `offDebuffResUp` — and
+   `bleed`, which `scheduler.PERIODICS` has always known how to tick without there being any
+   definition to inflict. All five are authored.
+3. **The rule-element vocabulary is maintained twice** — `RULE_ELEMENT_KEYS` in
+   `tools/lib/content.mjs` and `EXECUTORS` in `module/rules/elements.mjs`. The paired tests in
+   `elements.test.mjs` caught the drift the moment the new executor was added, which is exactly
+   what they are for.
+4. **Mad Enhancement has no lockout field.** Asterios' cannot be deactivated until 2◈ after it
+   was activated, and vice versa; the class-skill template has nowhere to say so. Heracles never
+   surfaced this because his simply cannot be deactivated at all.
+
+`Chaos Labyrinthos` is **deliberately not authored**. It is a 9×9 bounded field with membership,
+an escape check whose chance climbs 5% per failure, per-unit escape history, allies led out by
+someone who has escaped before, and a hard rule that units inside and outside cannot affect one
+another — which is Ch. 43 almost in its entirety, and therefore C4. A stub applying its Atk Dwn
+and Def Dwn without the containment would be worse than nothing: it would look like the
+Labyrinth worked.
 
 **D2. The remaining ~145 effects** from Appendix A.
 
@@ -519,7 +545,8 @@ B1 ~                   Command Spells: catalogue and spend flow done; the interr
                        is what remains, and it is the harder half
 C1 ~ → C2              terrain then environment; environment reads terrain. C1's standing
                        modifiers are done; its periodic clauses need the scheduler
-D1 (continuous)        author Servants alongside, not after — they are the real test suite
+D1 ~ (continuous)      author Servants alongside, not after — they are the real test suite.
+                       Asterios done; he found four gaps on his own
 C3 → C4                platforms and bounded fields; the most self-contained, the least urgent
 D2 → D3 → D4
 ```

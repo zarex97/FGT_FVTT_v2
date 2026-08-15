@@ -34,6 +34,7 @@ import { test as testPredicate } from "./predicate.mjs";
  * @property {string[]} grantedAbilities
  * @property {object[]} autoSucceeds     checks that succeed without rolling
  * @property {object[]} auras            aura contributions, expanded by rules/auras.mjs
+ * @property {object[]} applicationChances  shifts to how likely an effect is to land
  * @property {object[]} eventHandlers
  * @property {string[]} attributes       attributes granted by an ability
  * @property {object|null} magicResistance
@@ -47,7 +48,7 @@ function empty() {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [],
     attributes: [], magicResistance: null, damageNegation: [], zonBonuses: [],
-    auras: [], unhandled: [],
+    auras: [], applicationChances: [], unhandled: [],
   };
 }
 
@@ -479,6 +480,24 @@ export const EXECUTORS = Object.freeze({
       value: scalar(resolveValue(el, rank, ctx)),
       component: el.component ?? null,
       stacking: el.stacking ?? "highestOnly", source,
+    });
+  },
+
+  /**
+   * Debuff ChUp/ResUp, Item Construction, Magic Resistance's clause 2.
+   *
+   * A shift to how likely an effect is to **land**, not to what it does once
+   * it has. `direction: "incoming"` resists what is applied to this unit;
+   * `"outgoing"` improves what this unit inflicts. `valence` narrows it to
+   * offensive or defensive effects, which is what "Off.Debuff ResUp" means.
+   */
+  ApplicationChance(el, { rank, source, out, ctx }) {
+    out.applicationChances.push({
+      direction: el.direction ?? "incoming",
+      valence: el.valence ?? null,
+      effectId: el.effect ?? null,
+      value: scalar(resolveValue(el, rank, ctx)),
+      source,
     });
   },
 

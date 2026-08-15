@@ -92,6 +92,8 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null } 
     // its `modifiers`. A unit snapshotted alone receives only its own auras --
     // correct, because an ally aura includes its bearer.
     auras: contributions.auras ?? [],
+    // Read by `effect-applier` when it computes an incoming effect's chance.
+    applicationChances: contributions.applicationChances ?? [],
     alignment: sys.alignment ?? null,
 
     effects: activeEffectIds(actor),
