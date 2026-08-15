@@ -36,6 +36,23 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **A smoke check that actually loads a world** — `npm run check:smoke -- --world=<id>`
+  ([`tools/smoke-world.mjs`](tools/smoke-world.mjs)). Every other gate here runs without Foundry,
+  which is right for L1 and L2 and leaves exactly one thing uncovered: whether the system still
+  boots. `0.2.10` proved what that costs. Lint passed, 629 tests passed, the content validator
+  passed, and every world rendered a black page, because nothing in the repository had ever
+  loaded one. This drives a real browser at a real Foundry over the DevTools Protocol, launches
+  the world, joins it, and waits for `game.ready`; an uncaught exception fails the run and is
+  printed with its stack. Verified against the `0.2.10` defect itself — restored the broken
+  schema, and the check exits 1 naming the throw.
+
+  It needs a running Foundry and a Chrome started with `--remote-debugging-port`, so it is not in
+  CI — GitHub's runners have neither. It is a local gate, to run before tagging, next to
+  `npm run check:release`.
+- **`CONFIG.debug.hooks` is on.** F/GT is driven almost entirely by hooks — the scheduler,
+  movement, budget and turn order all hang off them — so when a rule does not fire, the first
+  question is whether its hook was reached at all. This is what answers it. Verbose by design;
+  the console is where this system is debugged.
 - **A combat tracker that can create the combatants F/GT needs.** A combatant here is a
   **faction**, not a token, and nothing could make one — so a match ran with zero turns and four
   separate symptoms followed. `FGTCombatTracker` adds "Add Faction" and "Add Every Faction",
@@ -121,10 +138,20 @@ coincide by accident; the headings say which is which.
 - **A targeting Region's offsets are `{i, j}` objects, not `[i, j]` pairs.** `GridShapeData`
   rejected the pairs with *"i: may not be undefined"* the moment a placement was confirmed. Pinned
   by `test/unit/target-region.test.mjs`, because the failure only surfaces inside Foundry.
-- **`EffectData` declares `changes`.** Core requires every ActiveEffect subtype to carry it and
-  warns at `setupGame` when one does not. F/GT drives effects through rule elements rather than
+- **`EffectData` declares `changes`, by inheriting core's own field.** Core requires every
+  ActiveEffect subtype to carry it. F/GT drives effects through rule elements rather than
   Foundry's change system, but the field being unused is not the same as it being absent — core
   UI and modules both read it.
+
+  The first attempt at this hand-rolled the field with a v13-style numeric `mode`, and that
+  **black-screened every world on `0.2.10`**. The two failure modes are not symmetric: when
+  `changes` is *missing* core patches it in and logs, but when it is *present and misshapen*
+  `#verifyActiveEffectModels` throws — `Class EffectData must define a string type in its
+  EffectChangeData schema` — and it throws inside `Game.setupGame`, where nothing catches it, so
+  the world never renders at all. In v14 a change carries string `type` and `phase`
+  (`CONST.ACTIVE_EFFECT_CHANGE_TYPES`), not a numeric `mode`. `EffectData` now extends
+  `foundry.data.ActiveEffectTypeDataModel` and spreads `super.defineSchema()`, so the one shape
+  that cannot drift out of sync with core's contract is core's own.
 - **The turn state now expires by tick rather than by being cleared.** It was reset by *writing*
   a blank state at each turn boundary, so a single boundary hook that did not fire — for any
   reason, on any client — left a Unit reporting "0 remain of MOV 7" for the rest of the match,

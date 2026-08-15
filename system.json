@@ -2,7 +2,7 @@
   "id": "fgt",
   "title": "Fate/Grail Tactics",
   "description": "A grid-based tactical wargame of Masters, Servants and Noble Phantasms, with full rules automation.",
-  "version": "0.2.1",
+  "version": "0.2.11",
   "compatibility": {
     "minimum": "14",
     "verified": "14.364"
@@ -149,8 +149,8 @@
     "recommends": []
   },
   "url": "https://github.com/zarex97/FGT_FVTT_v2",
-  "manifest": "https://github.com/zarex97/FGT_FVTT_v2/releases/download/v0.2.1/system.json",
-  "download": "https://github.com/zarex97/FGT_FVTT_v2/releases/download/v0.2.1/fgt.zip",
+  "manifest": "https://github.com/zarex97/FGT_FVTT_v2/releases/download/v0.2.11/system.json",
+  "download": "https://github.com/zarex97/FGT_FVTT_v2/releases/download/v0.2.11/fgt.zip",
   "license": "LICENSE",
   "readme": "README.md",
   "changelog": "CHANGELOG.md",

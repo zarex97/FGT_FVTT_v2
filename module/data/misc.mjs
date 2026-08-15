@@ -10,26 +10,26 @@ const fields = foundry.data.fields;
  * `system.defId` referencing the registry; declaring 152 subtypes would bloat
  * the manifest and gain nothing (Ch. 21 §21.1).
  */
-export class EffectData extends foundry.abstract.TypeDataModel {
+export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
   static defineSchema() {
     return {
-      // Core requires every ActiveEffect subtype to carry `changes`, and warns
-      // at `setupGame` when one does not. F/GT does not use Foundry's own
-      // change system — a rule element on the effect *definition* is what
-      // modifies a unit (Ch. 24), because a change can only write a document
-      // field and the rules need predicates, ordering and an audit trail. But
-      // "we do not use it" is not the same as "it may be absent": modules and
-      // core UI both read `effect.changes`, so the field exists, defaults empty,
-      // and is honoured by core for anyone who does put something in it.
-      changes: new fields.ArrayField(new fields.SchemaField({
-        key: new fields.StringField({ required: true, blank: true }),
-        value: new fields.StringField({ required: true, blank: true }),
-        mode: new fields.NumberField({
-          integer: true, initial: CONST.ACTIVE_EFFECT_MODES.ADD,
-          choices: Object.values(CONST.ACTIVE_EFFECT_MODES),
-        }),
-        priority: new fields.NumberField({ required: false, nullable: true, initial: null }),
-      })),
+      // `changes` comes from core's own base model, not from a hand-rolled copy.
+      //
+      // Core hard-verifies the shape of this field at `setupGame`
+      // (`#verifyActiveEffectModels`): the element schema must carry a numeric
+      // `priority` and STRING `type` and `phase`. A v13-style numeric `mode`
+      // throws, and because the throw happens inside `Game.setupGame` nothing
+      // catches it — the world never renders, which on screen is just a black
+      // page. Absent the field entirely core patches it in and logs; present
+      // but wrong is fatal. So inherit it: the one shape that cannot drift out
+      // of sync with the contract is core's own.
+      //
+      // F/GT does not use Foundry's change system — a rule element on the
+      // effect *definition* is what modifies a unit (Ch. 24), because a change
+      // can only write a document field and the rules need predicates,
+      // ordering and an audit trail. The field exists, defaults empty, and is
+      // honoured by core for anyone who does put something in it.
+      ...super.defineSchema(),
 
       defId: new fields.StringField({ required: true, blank: false }),
       magnitude: new fields.NumberField({ required: true, initial: 0 }),

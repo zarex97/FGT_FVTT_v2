@@ -21,6 +21,7 @@
     "build:styles": "sass styles/src/fgt.scss styles/fgt.css --no-source-map",
     "watch:styles": "sass --watch styles/src/fgt.scss styles/fgt.css",
     "check:manifest": "node tools/check-manifest.mjs",
+    "check:smoke": "node tools/smoke-world.mjs",
     "check:release": "node tools/check-release.mjs",
     "release:stamp": "node tools/release.mjs",
     "build": "npm run build:packs && npm run build:styles"
