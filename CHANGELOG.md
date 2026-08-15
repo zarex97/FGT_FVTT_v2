@@ -49,6 +49,27 @@ coincide by accident; the headings say which is which.
   Charisma's own suppression clause (Heracles's Bravery problem — an ability disabled by its
   owner's other ability), and *Howl of the War God* (a target-attribute predicate no content has
   exercised yet).
+- **Command Spells can interrupt a resolution in flight** (Ch. 45 B1, completed). Six of the
+  sixteen commands shipped logging their own names, because changing an in-flight resolution
+  needs the ladder to be interruptible — a property of the state machine, not of the command.
+
+  `applyInterrupt` is a GM-side mutation (§27.9): it changes a Process another client is
+  participating in. Escape sends it to `noDamage`; Damage Block, Damage Up, Halve NP and NP Max
+  accumulate a damage factor applied to the finished total; Teleport Servant replaces the
+  defender and restarts the ladder with the reactions it never had a chance to declare
+  forbidden; Survive Kill is honoured at the moment of defeat rather than when declared; and
+  Force NP records an override consulted **per reason**, so it bypasses cooldown and still cannot
+  bypass the Round gate.
+
+  The damage factors compose **multiplicatively**. Halve NP followed by NP Max must come back to
+  ×1 in either order, and summing the deltas would give +50% both ways round — a test worth
+  having precisely because both commands sit in the same catalogue.
+
+  The offer is rendered on the attack card to whichever Masters could actually spend, per viewer.
+  Non-prompting rungs are held open for the §17.4 timeout (`commandSpellTimeout`, 45s, 0 to
+  disable) **only when somebody could actually use a command there** — a blanket pause on every
+  rung would be unplayable. A window that closes unused says so, so a disconnected player sees
+  the opportunity they missed rather than silently losing it.
 - **The environment** (Ch. 45 C2) — the Day/Night cycle, the Home Base and the Holy Grail.
   `snapshotBoard` runs `annotateEnvironment` beside terrain and auras, for the same reason: these
   are facts about the *field*, and a unit projected alone cannot know which Round it is or whose

@@ -72,6 +72,22 @@
     </section>
   {{/if}}
 
+  {{!-- Command Spells interrupt an in-flight resolution (Ch. 17 17.4). Only
+        shown when this viewer owns a Master that can actually spend one. --}}
+  {{#if commandSpells.length}}
+    <section class="fgt-card__prompt fgt-card__prompt--cs">
+      <p class="fgt-card__prompt-label">{{localize "FGT.Prompt.commandSpell"}}</p>
+      <div class="fgt-card__buttons">
+        {{#each commandSpells as |cs|}}
+          <button type="button" data-fgt-cs="{{cs.id}}" data-fgt-master="{{cs.masterId}}">
+            {{cs.name}}
+            <small>{{cs.cost}} CS</small>
+          </button>
+        {{/each}}
+      </div>
+    </section>
+  {{/if}}
+
   {{#if history.length}}
     <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-ladder">
       Ladder ({{history.length}})

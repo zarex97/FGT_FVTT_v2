@@ -354,3 +354,121 @@ export function deserialize(json) {
   }
   return s;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Interrupts (Ch. 17 §17.4, Ch. 27 §27.9)                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Which Command Spell window a Process state opens.
+ *
+ * Only these states are interruptible: *"Command Spells can be used at any time
+ * at all, even if it were to interrupt an ongoing process"* is about **timing**,
+ * not about being able to rewrite a resolution that has already finished.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+export const INTERRUPT_WINDOWS = Object.freeze({
+  declare: "beforeAttack",
+  react: "react",
+  s23_acceptOrEscape: "s23_acceptOrEscape",
+  damage: "damage",
+  injury: "beforeDamage",
+});
+
+/**
+ * The window this Process is currently offering, or `null`.
+ * @param {ProcessState} s
+ * @returns {string|null}
+ */
+export function windowFor(s) {
+  return INTERRUPT_WINDOWS[s?.state] ?? null;
+}
+
+/**
+ * Can this Process be interrupted right now?
+ * @param {ProcessState} s
+ * @returns {boolean}
+ */
+export function interruptible(s) {
+  return windowFor(s) !== null;
+}
+
+/**
+ * The accumulated Command Spell damage factor.
+ *
+ * **Multiplicative**, and that is not a stylistic choice: Halve Noble Phantasm
+ * (×0.5) followed by Noble Phantasm Max (×2) must come back to ×1 in either
+ * order. Summing the deltas would give −50% +100% = +50%, which is wrong both
+ * ways round.
+ *
+ * @param {ProcessState} s
+ * @returns {number}
+ */
+export function damageFactorOf(s) {
+  return (s?.damageFactors ?? []).reduce((a, b) => a * b, 1);
+}
+
+/**
+ * Apply a Command Spell's effect to a Process already in flight.
+ *
+ * A **GM-side mutation** (§27.9): it changes a Process another client is
+ * participating in, which is why the GM arbitrates the ladder even though the
+ * individual rungs are answered by their owners.
+ *
+ * Every interrupt is recorded on the state, applied or not. A Command Spell is
+ * the most expensive thing a Master can spend and the most likely to be argued
+ * about afterwards, so "it did nothing and said nothing" is the one outcome
+ * that must be impossible.
+ *
+ * @param {ProcessState} s
+ * @param {object} interrupt `{kind, ...}` from `rules/command-spells.effectsOf`
+ * @returns {ProcessState} a new state; `s` is not mutated
+ */
+export function applyInterrupt(s, interrupt) {
+  // A finished Process has nothing left to rewrite.
+  if (!interruptible(s)) return s;
+
+  const record = {
+    kind: interrupt.kind,
+    command: interrupt.command ?? null,
+    masterId: interrupt.masterId ?? null,
+    atState: s.state,
+    applied: true,
+  };
+  const base = { ...s, interrupts: [...(s.interrupts ?? []), record] };
+
+  switch (interrupt.kind) {
+    case "escape":
+      // The pair leaves; the attack resolves against nobody.
+      return { ...base, state: "noDamage" };
+
+    case "modifyDamage":
+      return { ...base, damageFactors: [...(s.damageFactors ?? []), interrupt.factor ?? 1] };
+
+    case "retarget":
+      // A new defender who has not reacted yet — and who cannot use the
+      // reactions it never had the chance to declare (§27.9).
+      return {
+        ...base,
+        defenderId: interrupt.newTargetId,
+        state: "react",
+        reaction: null,
+        evaded: false,
+        forbiddenReactions: ["evade", "block"],
+      };
+
+    case "survive":
+      // Decided at defeat, not here. Recorded so `resolveDefeat` can honour it.
+      return { ...base, survive: interrupt.fractionOfMax ?? 0.05 };
+
+    case "overrideValidation":
+      return { ...base, overrides: [...(s.overrides ?? []), interrupt.reason] };
+
+    default:
+      // Recorded as NOT applied, so an effect this machine does not understand
+      // is visible in the state it failed to change. Replaces the optimistic
+      // record rather than appending beside it — one interrupt, one entry.
+      return { ...s, interrupts: [...(s.interrupts ?? []), { ...record, applied: false }] };
+  }
+}

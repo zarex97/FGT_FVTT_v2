@@ -16,6 +16,7 @@ import { currentBoard, unitFrom } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
+import * as process from "./combat-process.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /**
@@ -46,13 +47,21 @@ export function offerCommands({ masterId, window, context = {} }) {
  * before paying would let a failed write leave a free command.
  *
  * @param {object} args
+ * When a `messageId` is supplied the command is an **interrupt**: the effects
+ * that change an in-flight resolution are applied to that Combat Process
+ * instead of to the world, and the ladder resumes from wherever they left it.
+ * That is a GM-side mutation by design (§27.9) — it changes a Process another
+ * client is participating in.
+ *
+ * @param {object} args
  * @param {string} args.masterId
  * @param {string} args.commandId
  * @param {string} [args.window]
+ * @param {string} [args.messageId] the Combat Process being interrupted
  * @param {object} [args.context]
  * @returns {Promise<{ok: boolean, reason?: string, cost?: number}>}
  */
-export async function spendCommandSpell({ masterId, commandId, window, context = {} }) {
+export async function spendCommandSpell({ masterId, commandId, window, messageId, context = {} }) {
   const command = CommandSpellRegistry.get(commandId);
   if (!command) return { ok: false, reason: "unknownCommand" };
 
@@ -63,6 +72,7 @@ export async function spendCommandSpell({ masterId, commandId, window, context =
   if (!verdict.ok) return verdict;
 
   const cost = costOf(command, ctx.master, ctx.settings);
+  const effects = effectsOf(command, ctx);
   const intents = [
     I.spendCS(masterId, cost, command.id),
     // §17.8: the audit trail says who spent what, on whom, and when — a
@@ -78,10 +88,15 @@ export async function spendCommandSpell({ masterId, commandId, window, context =
       window: window ?? null,
       tick: game.combat?.system?.globalTurn ?? 0,
     }),
-    ...effectIntents(effectsOf(command, ctx), ctx),
+    ...effectIntents(effects, ctx),
   ];
 
   await applyIntents(intents, worldIO(), { reason: `commandSpell:${command.id}` });
+
+  // Interrupts land on the Process, not on the world. `effectIntents` above
+  // already skipped them, so nothing is applied twice.
+  if (messageId) await interruptProcess(messageId, command, effects, masterId);
+
   return { ok: true, cost };
 }
 
@@ -180,12 +195,31 @@ function effectIntents(effects, ctx) {
         break;
       }
 
+      // Interrupts change a Combat Process rather than the world, so they are
+      // deliberately not intents -- `interruptProcess` applies them. Survive
+      // Kill is in this group for a sharper reason: it is decided at the
+      // moment of defeat, inside the Process that is about to kill the
+      // Servant, not here, where it would heal a unit that was never going
+      // to die.
+      case "modifyDamage":
+      case "escape":
+      case "retarget":
       case "survive":
-        // Survive Kill: come back at 5% of maximum rather than being defeated.
-        out.push(I.statDelta(
-          e.unitId, "health.value",
-          Math.max(1, Math.floor((unit?.health?.max ?? 0) * (e.fractionOfMax ?? 0.05))), true,
-        ));
+      case "overrideValidation":
+        break;
+
+      case "teleport":
+        // A destination the caller chose. Without one this does nothing and
+        // says so, rather than guessing a panel on the player's behalf — a
+        // Command Spell that moves you somewhere you did not pick is worse
+        // than one that reports it could not.
+        if (!ctx.destination) {
+          out.push(I.log({ kind: "commandNeedsDestination", effect: e.kind, unitId: e.unitId }));
+          break;
+        }
+        for (const id of e.target === "pair" ? [ctx.master?.id, ctx.servant?.id] : [e.unitId]) {
+          if (id) out.push(I.move(id, [ctx.destination], true));
+        }
         break;
 
       default:
@@ -232,4 +266,33 @@ function ticksFrom(delta, ctx) {
   if (typeof delta === "number") return Math.abs(delta);
   const parsed = parseTick(String(delta).replace(/^-/, ""));
   return Math.abs(resolveTicks(parsed, { turnsPerRound: ctx.board?.turnsPerRound ?? 3 }));
+}
+
+/**
+ * Apply a command's interrupt effects to a Combat Process in flight.
+ *
+ * @param {string} messageId
+ * @param {object} command
+ * @param {object[]} effects
+ * @param {string} masterId
+ * @returns {Promise<void>}
+ */
+async function interruptProcess(messageId, command, effects, masterId) {
+  const message = game.messages.get(messageId);
+  if (!message) return;
+
+  let state = process.deserialize(message.getFlag("fgt", "process"));
+  if (!process.interruptible(state)) return;
+
+  for (const e of effects) {
+    state = process.applyInterrupt(state, { ...e, command: command.id, masterId });
+  }
+
+  await message.setFlag("fgt", "process", process.serialize(state));
+  // Resume: the ladder continues from wherever the interrupt left it, which
+  // may be a different rung than the one it was suspended at (§17.4).
+  const { advanceAttack } = await import("./attack.mjs");
+  if (!process.pendingPrompt(state) && !process.isComplete(state)) {
+    await advanceAttack({ messageId, event: "done" });
+  }
 }
