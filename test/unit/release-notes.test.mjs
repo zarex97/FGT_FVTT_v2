@@ -64,11 +64,17 @@ describe("the changelog's structure", () => {
     expect(changelog).toContain("## [Unreleased]");
   });
 
-  it("keeps that section empty, so it is never published as-is", () => {
-    // A placeholder line here would be used verbatim as the release notes for
-    // any version lacking its own section — worse than the commit-log fallback.
-    const body = changelog.split("## [Unreleased]")[1].split("\n## [")[0];
-    expect(body.replace(/-{3,}/g, "").trim()).toBe("");
+  it("never leaves a bare placeholder in that section", () => {
+    // Accumulating real entries here between releases is correct — that is
+    // what shipped 0.2.2 through 0.2.11, via the `[Unreleased]` fallback. What
+    // must never appear is a placeholder like "Nothing yet.", because
+    // `release-notes.mjs` would publish it verbatim as the release notes for
+    // any version lacking its own section. Empty is fine; prose alone is not.
+    const body = changelog.split("## [Unreleased]")[1].split("\n## [")[0]
+      .replace(/-{3,}/g, "").trim();
+
+    if (body === "") return;
+    expect(body, "Unreleased has prose but no entries").toMatch(/^(###\s|-\s)/m);
   });
 
   it("gives every released version a link definition", () => {
