@@ -1,0 +1,30 @@
+# Penthesilea, char_orig_sheets/Copia de Penthesilea.md
+schema: 1
+id: penthesilea-hatred-of-achilles
+name: "Hatred of Achilles"
+description: |
+  At any time, if there is a Greek Male Unit (regardless of enemy or ally) within a 4 panel area
+  around Penthesilea, her Mad Enhancement is immediately activated regardless of Cooldown or any
+  other factors, and cannot be deactivated until no such Unit remains within 4 panels.
+
+  During your Turn, Penthesilea ignores all orders/Player commands; she will constantly Move
+  towards and Attack that Unit. This counts towards the number of Units that Move and/or Attack.
+
+  Can be disabled for 1◈ Turns by spending one Command Spell — which does NOT deactivate Mad
+  Enhancement.
+passiveRules:
+  # Positional, so it lifts the moment the Greek Male leaves — which is why it
+  # is a Compulsion rather than an applied effect. An effect would need a
+  # position-watcher writing on every move.
+  - key: Compulsion
+    id: hatred
+    within: 4
+    # "regardless of enemy or ally". This is what makes the skill a liability
+    # rather than a targeting aid: an allied Achilles compels her just as hard.
+    relations: [ally, enemy]
+    # Evaluated against the OTHER unit once the board exists, which is why it is
+    # `targetPredicate` and not `predicate` — the latter gates the element
+    # itself, at collection time, where the other unit is not in scope.
+    targetPredicate: ["target:attribute:male", "target:region:greece"]
+    forcesTarget: true
+    forcesSkill: madEnhancement

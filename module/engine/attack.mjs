@@ -30,6 +30,7 @@ import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { canUseAbility } from "../rules/costs.mjs";
+import { rollOptionsFor } from "../rules/options.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -632,6 +633,10 @@ async function applyDamage(state, message) {
     rolls: {
       [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
       negation: await rollNegation(defender, state.attack?.kind === "np"),
+      // Modifiers whose magnitude is rolled per damage event. Rolled here,
+      // once, for both sides, so the pipeline stays pure and a replay of the
+      // same rolls reproduces the same number.
+      ...(await rollModifierDice([attacker, defender])),
     },
     options: rollOptions(attacker, defender, state),
   };
@@ -673,6 +678,29 @@ async function applyDamage(state, message) {
   });
 
   return result;
+}
+
+/**
+ * Roll every rolled modifier the given units carry.
+ *
+ * Keyed by the modifier's own roll key, so two units carrying the same effect
+ * roll separately only if the content gives them separate keys — which is the
+ * right default: Goddess of War is hers, and a second copy on somebody else is
+ * a different die.
+ *
+ * @param {object[]} units
+ * @returns {Promise<Record<string, number>>}
+ */
+async function rollModifierDice(units) {
+  /** @type {Record<string, number>} */
+  const out = {};
+  for (const unit of units) {
+    for (const m of unit?.modifiers ?? []) {
+      if (!m.roll?.formula || out[m.roll.key] !== undefined) continue;
+      out[m.roll.key] = (await new Roll(m.roll.formula).evaluate()).total;
+    }
+  }
+  return out;
 }
 
 /**
@@ -856,14 +884,14 @@ function baseSpecFor(attacker, ability) {
  * @returns {Set<string>}
  */
 function rollOptions(attacker, defender, state) {
-  const options = new Set([`self:type:${attacker.kind}`, `target:type:${defender.kind}`]);
-  for (const a of attacker.attributes ?? []) options.add(`self:attribute:${a}`);
-  for (const a of defender.attributes ?? []) options.add(`target:attribute:${a}`);
-  for (const e of attacker.effects ?? []) options.add(`self:effect:${e}`);
-  for (const e of defender.effects ?? []) options.add(`target:effect:${e}`);
-  options.add(`attack:kind:${state.attack?.kind ?? "normal"}`);
-  if (state.isAoE) options.add("attack:isAoE");
-  return options;
+  // Built in the rules layer, where it can be tested without Foundry. It used
+  // to be built here, which is why two whole clause families -- `skill:` and
+  // `region:` -- went years without ever being emitted.
+  return rollOptionsFor({
+    attacker,
+    defender,
+    attack: { kind: state.attack?.kind ?? "normal", isAoE: state.isAoE },
+  });
 }
 
 /**

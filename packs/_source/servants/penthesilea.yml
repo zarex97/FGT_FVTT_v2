@@ -25,8 +25,11 @@ sustainability: "2◈"
 abilities:
   - { ref: class-mad-enhancement, rank: EX }
   - { ref: divinity, rank: B }
+  - { ref: penthesilea-hatred-of-achilles }
   - { ref: penthesilea-charisma }
   - { ref: penthesilea-golden-rule-beauty }
+  - { ref: penthesilea-howl-of-the-war-god }
+  - { ref: penthesilea-goddess-of-war }
   - { ref: penthesilea-outrage-amazon }
 
 notes: |
@@ -35,24 +38,22 @@ notes: |
   self, so `self` is dropped from the default `[ally, self]` and she gains nothing from her own
   Charisma. Ch. 11 §11.6 cites exactly this case; A5 now implements it.
 
-  NOT YET AUTHORED, each for a named reason:
+  She is now fully authored. Four engine additions were needed, each driven by one of her
+  clauses rather than invented up front:
 
-  - **Hatred of Achilles.** A compulsion: within 4 panels of any Greek Male Unit she force-
-    activates Mad Enhancement and must move toward and attack that unit, ignoring player orders.
-    The `ForceTarget` executor exists but §45.4 records that the four targeting executors write
-    keys **the targeting resolver does not read**, so authoring it would produce a compulsion
-    that compels nothing. It also needs the Mad Enhancement lockout that Asterios already
-    surfaced as missing. Its Command Spell counterpart *is* authored (Ch. 17 §17.2 reference-set
-    additions) and would have nothing to negate.
-  - **Goddess of War (NP, passive).** Four clauses, three of which roll `1d4` per damage event
-    and one of which raises her own Divinity rank from B to A. Per-event dice inside the pipeline
-    have no expression today, and a rank-raising passive needs `RankShift` to reach a class skill
-    rather than a parameter.
-  - **Charisma's suppression clause** — "negated and cannot be used when Mad Enhancement is
-    activated" — is the same shape as Heracles's Bravery (Ch. 31): an ability disabled by its
-    owner's own other ability. `Suppress` exists; what is missing is a predicate that can name
-    another ability's active state.
+  - **`Compulsion`** (`rules/compulsion.mjs`), for *Hatred of Achilles*. Positional like an aura,
+    because it lifts the instant the Greek Male leaves. The targeting resolver reads it and
+    narrows her legal targets -- which is the reader §45.4 recorded as missing for the whole
+    targeting-executor family.
+  - **`skill:`, `skillActive:` and `region:` roll options.** `tables.mjs` had predicated on
+    `target:skill:divinity` since the tables were transcribed and nothing ever emitted a `skill:`
+    option. `skillActive` is what lets *Charisma* be "negated when Mad Enhancement is activated",
+    and `region:` is what lets *Howl of the War God* name a Greek Male.
+  - **Self-options in `contributionsOf`**, which passed an EMPTY set, so every `self:` predicate
+    was unsatisfiable.
+  - **Rolled modifiers**, for *Goddess of War*: a magnitude rolled per damage event rather than
+    fixed before the attack. The dice stay with the caller, like every other roll here.
 
-  Howl of the War God is also unauthored: its second clause is a damage bonus conditioned on the
-  TARGET being a Male unit from the Greece region, which the predicate vocabulary can express but
-  no content has exercised, and it is better introduced with a test than smuggled in here.
+  One clause remains: Goddess of War's *"Divinity Rank is increased from B to A"*. `RankShift`
+  moves a **parameter**, and this moves another ability's rank -- a different operation, and one
+  no other Servant in the reference set needs yet. Her Divinity is authored at B.

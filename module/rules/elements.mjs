@@ -35,6 +35,7 @@ import { test as testPredicate } from "./predicate.mjs";
  * @property {object[]} autoSucceeds     checks that succeed without rolling
  * @property {object[]} auras            aura contributions, expanded by rules/auras.mjs
  * @property {object[]} applicationChances  shifts to how likely an effect is to land
+ * @property {object[]} compulsions       forced targets, expanded by rules/compulsion.mjs
  * @property {object[]} eventHandlers
  * @property {string[]} attributes       attributes granted by an ability
  * @property {object|null} magicResistance
@@ -48,7 +49,7 @@ function empty() {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [],
     attributes: [], magicResistance: null, damageNegation: [], zonBonuses: [],
-    auras: [], applicationChances: [], unhandled: [],
+    auras: [], applicationChances: [], compulsions: [], unhandled: [],
   };
 }
 
@@ -260,6 +261,11 @@ export const EXECUTORS = Object.freeze({
     const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.modifiers.push({
       key: el.modifierKey ?? (el.direction === "taken" ? "defUp" : "atkUp"),
+      // A magnitude rolled per damage event rather than fixed before the
+      // attack -- Penthesilea's Goddess of War. The pipeline reads the total
+      // out of `ctx.rolls`, so the dice stay with the caller like every other
+      // roll in the system.
+      ...(el.roll ? { roll: { ...el.roll } } : {}),
       value: scalar(v),
       ...(np !== null && np !== undefined ? { npValue: scalar(np) } : {}),
       component: el.component ?? null,
@@ -491,6 +497,32 @@ export const EXECUTORS = Object.freeze({
    * `"outgoing"` improves what this unit inflicts. `valence` narrows it to
    * offensive or defensive effects, which is what "Off.Debuff ResUp" means.
    */
+  /**
+   * Being forced to act against a particular unit — Berserk's nearest-enemy
+   * rule, Decoy's pull, Penthesilea's *Hatred of Achilles*.
+   *
+   * Positional, so it goes into its own bucket and `rules/compulsion.mjs`
+   * expands it against the board: it holds while somebody is standing nearby
+   * and lifts the moment they are not, which no stored effect could track
+   * without a write on every move.
+   */
+  Compulsion(el, { source, out }) {
+    out.compulsions.push({
+      id: el.id ?? "compulsion",
+      within: el.within ?? 1,
+      relations: el.relations ?? ["ally", "enemy"],
+      // `targetPredicate`, not `predicate`. `predicate` gates whether the
+      // ELEMENT applies at all and is evaluated here, against this unit; a
+      // compulsion's test is about the OTHER unit and cannot be answered until
+      // the board exists. Authoring it as `predicate` made the element vanish
+      // at collection time, silently.
+      targetPredicate: el.targetPredicate ?? null,
+      forcesTarget: el.forcesTarget !== false,
+      forcesSkill: el.forcesSkill ?? null,
+      source,
+    });
+  },
+
   ApplicationChance(el, { rank, source, out, ctx }) {
     out.applicationChances.push({
       direction: el.direction ?? "incoming",

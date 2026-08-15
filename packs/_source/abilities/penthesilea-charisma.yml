@@ -13,12 +13,19 @@ passiveRules:
   # boolean: "other allied Units" means allies WITHOUT self, so `self` is
   # dropped from the default `[ally, self]`. Penthesilea gains nothing from her
   # own Charisma.
+  #
+  # The predicate is the suppression clause: "Effects are negated and cannot be
+  # used when Mad Enhancement is activated." An ability disabled by its owner's
+  # OTHER ability -- Heracles's Bravery has the same shape (Ch. 31) -- which
+  # needs `skillActive`, because merely HAVING Mad Enhancement is not the same
+  # as having it switched on.
   - key: Aura
     modifierKey: flatDamage
     radius: 2
     relations: [ally]
     value: 20
     stacking: highestOnly
+    predicate: ["not:self:skillActive:madEnhancement"]
 activeRules:
   - key: Aura
     modifierKey: atkUp
@@ -27,3 +34,4 @@ activeRules:
     value: 20
     npValue: 10
     stacking: highestOnly
+    predicate: ["not:self:skillActive:madEnhancement"]
