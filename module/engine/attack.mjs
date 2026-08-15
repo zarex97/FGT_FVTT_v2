@@ -29,6 +29,7 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
+import { canUseAbility } from "../rules/costs.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -61,6 +62,18 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     if (!verdict.ok) throw new Error(`FGT | Cannot attack: ${verdict.reason}`);
   }
 
+  // Costs are **validated** at declaration and **paid** at confirmation
+  // (§15.4): cancelling during targeting must cost nothing, and no rule
+  // requires otherwise. So this refuses early, and the payment is below.
+  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  const usage = canUseAbility({
+    ability: abilityUsageSpec(ability),
+    unit: self,
+    master,
+    round: combat?.round ?? 1,
+  });
+  if (!usage.ok) throw new Error(`FGT | Cannot use this ability: ${usageRefusal(usage)}`);
+
   const spec = targetSpecFor(attacker, ability);
   const targets = resolveTargets(spec, self, board, placement);
 
@@ -83,6 +96,9 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
       "attack:declared",
     );
   }
+
+  // Confirmation: targeting is settled and legal, so the cost is now paid.
+  if (usage.cost) await applyBatch(costIntents(usage.cost), "attack:cost");
 
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
@@ -299,6 +315,72 @@ async function rollLuck(state) {
   // A Luck Check costs 1 Luck whether or not it succeeds.
   await applyBatch([I.statDelta(prompt.unitId, "luck.value", -1)], "luckCheck");
   return { ...outcome, formula: roll.formula };
+}
+
+/**
+ * The ability as the cost rules want to see it.
+ *
+ * `requiresRound` is read from `targeting.limits`, the same untyped authored
+ * object `requiresZon` already lives in — so a round gate is something content
+ * can write today, rather than a schema field waiting to be invented.
+ *
+ * @param {object|null} ability an ability item
+ * @returns {object|null}
+ */
+function abilityUsageSpec(ability) {
+  if (!ability) return null;
+  const sys = ability.system ?? {};
+  return {
+    id: ability.id,
+    rank: sys.rank ?? null,
+    isNP: Boolean(sys.isNP),
+    cooldown: { remaining: sys.cooldown?.remaining ?? 0 },
+    requiresRound: sys.targeting?.limits?.requiresRound ?? null,
+  };
+}
+
+/**
+ * Turn a refusal into something a player can act on.
+ * @param {object} usage
+ * @returns {string}
+ */
+function usageRefusal(usage) {
+  const d = usage.detail ?? {};
+  switch (usage.reason) {
+    case "cooldown": return `it is on cooldown for another ${d.remaining} turn(s).`;
+    case "round": return `it cannot be used before Round ${d.requiresRound} (this is Round ${d.round}).`;
+    case "zon": return "the Servant is outside its Master's ZON.";
+    case "masterHealth":
+      // The strict comparison is the surprising half, so it is spelled out.
+      return `its Master needs MORE than ${usage.cost.amount} Health to pay for it.`;
+    case "selfHealth": return `it needs more than ${usage.cost.amount} Health to pay for it.`;
+    case "sustainability": return `it needs more than ${usage.cost.amount}◈ of Sustainability.`;
+    default: return usage.reason ?? "unknown reason.";
+  }
+}
+
+/**
+ * Pay a cost.
+ *
+ * `statDelta`, never `damage`: this is Health *loss* rather than damage, so it
+ * must not trigger damage-keyed effects like `Dmged NP Regen` or an Injury Roll
+ * (Ch. 06). Getting that wrong would make every Noble Phantasm feed its own
+ * Master's triggers.
+ *
+ * @param {object} cost
+ * @returns {object[]} intents
+ */
+function costIntents(cost) {
+  const note = I.log({ kind: "cost", cost: cost.kind, amount: cost.amount, unitId: cost.unitId });
+  switch (cost.kind) {
+    case "masterHealth":
+    case "selfHealth":
+      return [I.statDelta(cost.unitId, "health.value", -cost.amount), note];
+    case "sustainability":
+      return [I.resource(cost.unitId, "sustainability", -cost.amount), note];
+    default:
+      return [note];
+  }
 }
 
 /**
