@@ -18,6 +18,7 @@ import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
+import { annotateTerrain } from "./terrain.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -220,6 +221,11 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // rather than per-unit is what stops the cycle in Ch. 23 §23.3 -- every unit
   // is expanded against the same untouched board, so an aura cannot feed an
   // aura and the result does not depend on visit order.
+  // Terrain, for the same reason and in the same place: it is positional, so
+  // it can only be settled once every unit has a panel. Before auras, because
+  // an aura's own modifiers should sit after the ground the unit stands on in
+  // the explainer's reading order.
+  annotateTerrain(units, board);
   annotateAuras(units, board);
 
   return board;

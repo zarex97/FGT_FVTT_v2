@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 742 tests.
+domain are all implemented and carry 766 tests.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -68,9 +68,9 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    NP round gate — is still open. The original finding read:
    The rule is implemented twice and fed
    by an input no code writes.
-6. **Six of the eight environment subsystems are missing**: Home Base, Day/Night, Region, the
-   Grail, Random Events, and Terrain as a live rule (the snapshot carries a `terrain` field that
-   nothing populates).
+6. **Five of the eight environment subsystems are missing**: Home Base, Day/Night, Region, the
+   Grail and Random Events. Terrain is now a live rule for its standing modifiers (C1); what it
+   still lacks is a `Region` behaviour to populate areas from a scene.
 7. **Platforms, levels and bounded fields are modelled in the schema and nowhere else.**
 8. **Only 2 of 29 reference Servants are authored.**
 
@@ -128,9 +128,9 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 742 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 766 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
-| 42 | Terrain | **Missing** | The snapshot has a `terrain` field; nothing writes or reads it. |
+| 42 | Terrain | **Partly** | Catalogue, panel model, MOV/Evade/damage modifiers and the annotation pass done (C1). **The periodic clauses and the `Region` behaviour that would populate areas from a scene are missing.** |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
 | — | Content | **2 of 29 Servants** | Heracles, Karna. 7 effects of ~152. 5 class skills. **16 of 16 Command Spells (B1).** |
 
@@ -452,9 +452,34 @@ a projection that produced a value nothing could act on.
 
 ### Phase C — the world
 
-**C1. Terrain.** *(medium)* Ch. 42 — the panel model, the movement cost hook, and the damage
-modifiers. The snapshot field already exists; populate it from the scene.
-*Test gate:* each terrain type's documented effect on movement and damage, as a table test.
+**C1. Terrain.** *(medium)* — **standing modifiers DONE; the periodic clauses are not.**
+*Test gate met:* `test/unit/terrain.test.mjs`, 24 tests, including the table test the gate asks
+for — MOV and Evade for every type that changes them, with the attribute gates (`Swimsuit!`,
+`Santa`, `Levitating`) that a third of the catalogue turns on.
+
+`rules/terrain.mjs` holds the catalogue and `snapshotBoard` runs `annotateTerrain` beside
+`annotateAuras`. That placement is the chapter's own observation: terrain is *"mechanically a
+positional aura whose source is a region rather than a unit"*, so it is the A5 pass with a
+different source. It is also why terrain cannot be dispelled, cured or resisted, and why leaving
+ends it instantly — a unit never carried it.
+
+`effectiveMov` applies the terrain delta **after** Slow and additively: Slow halves what the unit
+has, while a Forest costs a panel of whatever is left. Halving after the terrain penalty would
+make difficult ground twice as expensive to a Slowed unit, which no rule says.
+
+**Absent rather than half-present**, and this is deliberate: every *periodic and event-driven*
+clause. Burning's inescapable `Burn`, Poison Swamp's end-of-turn stage roll, the Forest→Burning
+coin flip, Lava's and Frozen's and Magnetic's on-entry consequences, Eldritch's Horrors, Meadow
+reverting after a Damage Step, Underworld's `Near-Death`. Those need the scheduler and the
+movement hooks, not the catalogue table, and a half-entry in the table would look implemented.
+Six of the nineteen types are therefore registered with **no** standing effects at all
+(Poison Swamp, Thunderstorm, Dead Zone, Magnetic, Underworld, Universe, Halloween, Labyrinth) —
+which the catalogue says out loud rather than omitting them.
+
+Also not done: terrain as **`Region` documents** with a `fgt.terrain` behaviour (§42.1, §22.10).
+The rules read `board.terrain.areas`; nothing yet populates it from the scene, so this is live
+for any caller that supplies areas and dormant in a real world until the region behaviour
+exists.
 
 **C2. Environment.** *(large)* Ch. 19 — Home Base, Day/Night, Region, the Grail, Random Events.
 *Test gate:* the day/night cycle advances on the documented schedule and its effects apply and
@@ -492,7 +517,8 @@ B4 ✔ → B3 ✔              costs after auras, because a cost may read an aur
                          B3's grants are done, its COPY half (Scathach) is not
 B1 ~                   Command Spells: catalogue and spend flow done; the interrupt protocol
                        is what remains, and it is the harder half
-C1 → C2                terrain then environment; environment reads terrain
+C1 ~ → C2              terrain then environment; environment reads terrain. C1's standing
+                       modifiers are done; its periodic clauses need the scheduler
 D1 (continuous)        author Servants alongside, not after — they are the real test suite
 C3 → C4                platforms and bounded fields; the most self-contained, the least urgent
 D2 → D3 → D4
