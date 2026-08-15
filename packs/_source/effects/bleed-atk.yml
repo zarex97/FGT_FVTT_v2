@@ -1,0 +1,20 @@
+# Appendix A §A.2
+#
+# An on-hit rider rather than a damage modifier: the magnitude is a CHANCE to
+# inflict, not an amount, which is why it carries an ApplicationChance rather
+# than a DamageModifier.
+schema: 1
+id: bleedAtk
+name: "Bleed Atk"
+description: "Normal Attacks have an X% chance of inflicting Bleed for 1◈ Turns."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: damageDealt
+    predicate: ["self:attack:normal"]
+    effect: { id: bleed, chance: "@magnitude" }
+    duration: "1◈"

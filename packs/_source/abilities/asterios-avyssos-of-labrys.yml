@@ -1,0 +1,25 @@
+# Asterios, char_orig_sheets/Copia de Asterios.md
+schema: 1
+id: asterios-avyssos-of-labrys
+name: "Avyssos of Labrys"
+rank: C
+cooldown: "3◈"
+description: |
+  (Active) Applies Crit Up (+60% Crit Chance), N.Atk Up (+40% Normal Attack damage) and
+  Bleed Atk (Normal Attacks have a 10% chance of inflicting Bleed for 1◈ Turns), each for
+  1◈ Turns.
+phases:
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: critUp, magnitude: 60 }
+        duration: "1◈"
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: nAtkUp, magnitude: 40 }
+        duration: "1◈"
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: bleedAtk, magnitude: 10 }
+        duration: "1◈"

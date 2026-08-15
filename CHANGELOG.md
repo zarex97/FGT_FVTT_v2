@@ -36,6 +36,30 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Asterios**, the first Servant of the D1 pass, converted from the original tabletop sheet in
+  `char_orig_sheets/`. Three abilities and five new effects (`critUp`, `nAtkUp`, `bleedAtk`,
+  `offDebuffResUp`, `bleed`) come with him.
+
+  One Servant found four gaps, which is the argument for authoring content continuously rather
+  than last:
+
+  - **`ApplicationChance` had no executor.** Named in Ch. 24 Group 6, accepted by the content
+    validator, implemented nowhere — so `Off.Debuff ResUp` compiled and did nothing. And
+    `effect-applier` read `ctx.resist` that **no caller ever supplied**, so the resistance path
+    was dead at both ends. Now: an `applicationChances` bucket, carried on the snapshot, read off
+    the target by `applyEffect`.
+  - **`bleed` had no definition**, despite `scheduler.PERIODICS` having always known how to tick
+    it. Nothing could inflict it.
+  - **The rule-element vocabulary is maintained twice**, in the validator and the executor. The
+    paired tests in `elements.test.mjs` caught the drift the moment the new executor landed.
+  - **Mad Enhancement has no lockout field.** Asterios' cannot be deactivated until 2◈ after
+    activation and vice versa; Heracles never surfaced this because his cannot be deactivated at
+    all.
+
+  His Noble Phantasm is **deliberately absent**: `Chaos Labyrinthos` is a bounded field with
+  membership, a climbing escape check, per-unit escape history and hard containment — Ch. 43
+  almost entire, which is C4. A stub applying its debuffs without the containment would look
+  like the Labyrinth worked.
 - **Terrain does something** (Ch. 45 C1). The snapshot has carried a `terrain` field since it was
   written and nothing ever populated or read it.
 

@@ -1,0 +1,48 @@
+# packs/_source/servants/asterios.yml
+# Conversion source: char_orig_sheets/Copia de Asterios.md
+schema: 1
+id: asterios
+name: Asterios
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Asterios, Minotauros, Bull of King Minos"
+servantClasses: [berserker]
+alignment: { order: chaotic, morality: evil }
+region: [greece, europe]
+attributes: [male, servant, earth, giant, humanoid, demonicBeast, animalistic, antiHero]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+# END A++ -> 1500 on the sheet. Stated here so the validator can cross-check
+# the rank table against what the sheet actually says.
+parameters: { str: "A++", end: "A++", agi: C, mag: D, luc: E }
+baseHealth: 1500
+mov: 4
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 170, mag: 125 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # NOT `cannotDeactivate`, unlike Heracles: Asterios' Mad Enhancement can be
+  # switched off, but only 2◈ after it was switched on, and vice versa.
+  - { ref: class-mad-enhancement, rank: B }
+  - { ref: asterios-monstrous-strength }
+  - { ref: asterios-natural-monster }
+  - { ref: asterios-avyssos-of-labrys }
+
+notes: |
+  Authored from the original tabletop sheet as the first of the D1 pass.
+
+  NOT YET AUTHORED — `Chaos Labyrinthos: Eternally Unchanging Labyrinth` (Rank EX, non-damaging).
+  It is a 9x9 bounded field (11x11 in Greece) with membership, an escape check whose chance
+  rises 5% per failure, per-unit escape history, leading allied units out, and a hard rule that
+  units inside and outside cannot affect one another. That is Ch. 43 Bounded Fields almost in
+  its entirety, which is C4 and unimplemented — so the NP is deliberately absent rather than
+  half-present. Adding a stub that applied the Atk Dwn and Def Dwn without the containment
+  would be worse than nothing: it would look like the Labyrinth worked.
+
+  Mad Enhancement's two-way 2◈ lockout (cannot deactivate until 2◈ after activating, and cannot
+  reactivate until 2◈ after deactivating) is not modelled either; the class-skill template has
+  no lockout field. Found by this conversion, recorded in Ch. 45 D1.

@@ -1,0 +1,22 @@
+# Asterios, char_orig_sheets/Copia de Asterios.md
+schema: 1
+id: asterios-natural-monster
+name: "Natural Monster"
+rank: "A++"
+cooldown: "4◈-⅔◈"
+description: |
+  (Passive) The source of Asterios' inhuman STR and END.
+  (Active) Applies Off.Debuff ResUp for 1◈ Turns (chance of being inflicted by Offensive
+  Debuffs reduced by 100%) and Def Up for 1◈ Turns (all damage taken reduced by 40%;
+  if NP, 20%).
+phases:
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: offDebuffResUp, magnitude: 100 }
+        duration: "1◈"
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: defUp, magnitude: 40, npMagnitude: 20 }
+        duration: "1◈"

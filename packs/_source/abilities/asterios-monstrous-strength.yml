@@ -1,0 +1,19 @@
+# Asterios, char_orig_sheets/Copia de Asterios.md
+schema: 1
+id: asterios-monstrous-strength
+name: "Monstrous Strength"
+rank: A
+cooldown: "3◈"
+description: |
+  (Active) Used at the start of a Damage Step when performing an Attack. STR Damage dealt by
+  that Attack is increased by 100%; if NP, 50%.
+isAttackSkill: false
+activeRules:
+  # A component-scoped modifier: it lifts the STR share only, which is exactly
+  # what stage 5 of the pipeline exists to express. The NP value is separate
+  # rather than a blanket halving, because the sheet states both numbers.
+  - key: DamageModifier
+    modifierKey: atkUp
+    component: str
+    value: 100
+    npValue: 50

@@ -1,0 +1,15 @@
+# Appendix A §A.12 — periodic damage
+#
+# Already in `scheduler.PERIODICS` (50 at the end of any turn the unit Acts);
+# this is the definition the applier needs so something can inflict it.
+schema: 1
+id: bleed
+name: "Bleed"
+description: "Takes 50 Fixed damage at the end of its Turn and at the end of any Turn it Acts."
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+periodic: { when: turnEnd, amount: 50, actedOnly: true }
+rules: []
