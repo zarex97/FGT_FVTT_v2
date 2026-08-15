@@ -475,8 +475,9 @@ describe("endTurn ordering", () => {
   });
 
   it("fires acted-unit handlers for EVERY faction, not just the active one", () => {
-    const mine = { id: "mine", factionId: "a", acted: false, eventHandlers: [{ event: "actedTurnEnd", intents: [I.damage("mine", 50)] }] };
-    const theirs = { id: "theirs", factionId: "b", acted: true, eventHandlers: [{ event: "actedTurnEnd", intents: [I.damage("theirs", 50)] }] };
+    const sap = () => [{ events: ["actedTurnEnd"], actions: [{ kind: "Damage", amount: 50 }] }];
+    const mine = { id: "mine", factionId: "a", acted: false, eventHandlers: sap() };
+    const theirs = { id: "theirs", factionId: "b", acted: true, eventHandlers: sap() };
     const out = endTurn(board([mine, theirs]), sctx);
     const hit = out.filter((i) => i.t === "damage").map((i) => i.unitId);
     expect(hit).toContain("theirs");

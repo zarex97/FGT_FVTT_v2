@@ -127,6 +127,32 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Every event handler in the game did nothing** (Ch. 45 A1). `OnEvent` stored the element as
+  authored and `scheduler.fireEvent` dispatched `handler.intents` — a field no executor and no
+  content ever wrote. So a handler contributed one log line and stopped. Battle Continuation, the
+  most-cited event in the reference set, has always been authored as `OnEvent: unitDefeated` and
+  has never once revived anybody.
+
+  `OnEvent` now normalizes to `{events, actions, automatic, abilityId, source}` at collection
+  time, with every rank-dependent table already resolved — rank is in scope there and nowhere
+  downstream, so a `4d20` that is not settled then can never be settled. `fireEvent` dispatches
+  the actions through Ch. 24 §24.5's action vocabulary (`Damage`, `Heal`, `StatDelta`,
+  `ApplyEffect`, `RemoveEffect`, `ResourceDelta`, `CooldownDelta`, `Message`, and `Revive` from
+  the `revive:` shorthand). `events` is always a list, so Fragarach's two-event subscription is
+  the ordinary case rather than a special one. **An unknown action logs itself by name** rather
+  than resolving silently, which is the failure mode this whole repair is about.
+
+  Finding it turned up a second, larger hole: **nothing emitted a defeat when Health reached
+  zero.** `unitDefeated` had no reader *and no raiser* — the question "is this unit dead" was
+  answered without ever asking the one rule that exists to answer it differently. `resolveDefeat`
+  is that raiser, called from `applyDamage`, and a unit that revives is never defeated in the
+  first place rather than defeated and then healed. The revive is gated on the skill's own
+  cooldown, which reuses the clock `advanceCooldowns` already turns and shows the window on the
+  sheet where a player can see it.
+
+  Still open, and named rather than quietly dropped: Battle Continuation's `requiresHealthAbove`
+  clause needs a health-peak history that nothing records. Gating on a field no code writes is
+  precisely the defect just repaired, so it waits for the history.
 - **Writes went to a different actor than reads.** Every rule reads its units from
   `canvas.tokens.placeables` via `t.actor`, which for an *unlinked* token is a synthetic actor
   backed by the token's own `ActorDelta` — a different document from `game.actors.get(id)`, which

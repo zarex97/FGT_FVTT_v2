@@ -16,6 +16,7 @@
  */
 
 import { INFINITE } from "../domain/enums.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import * as I from "./intents.mjs";
 
 /**
@@ -154,12 +155,177 @@ export function fireEvent(event, units, ctx) {
   const out = [];
   for (const u of units) {
     for (const handler of u.eventHandlers ?? []) {
-      if (handler.event !== event) continue;
-      out.push(...(handler.intents ?? []));
+      if (!listensFor(handler, event)) continue;
+      for (const action of handler.actions ?? []) {
+        out.push(...dispatch(action, u, handler, ctx));
+      }
       out.push(I.log({ kind: "event", event, unitId: u.id, source: handler.source, tick: ctx.tick }));
     }
   }
   return out;
+}
+
+/**
+ * `Script` handlers still carry a bare `event`, and so does any handler built
+ * before normalization — accept both rather than silently listening to nothing.
+ *
+ * @param {object} handler
+ * @param {string} event
+ * @returns {boolean}
+ */
+function listensFor(handler, event) {
+  return handler.events ? handler.events.includes(event) : handler.event === event;
+}
+
+/**
+ * Turn one normalized action into intents.
+ *
+ * The vocabulary is Ch. 24 §24.5's action list, which is deliberately smaller
+ * than the rule-element list: an element describes a standing contribution, an
+ * action describes a thing that happens once, at a moment, to a unit.
+ *
+ * An unknown action produces a log entry naming it rather than nothing. That is
+ * the whole lesson of this defect — a handler that cannot act must *say so*,
+ * because a silent no-op is indistinguishable from a rule that does not exist.
+ *
+ * @param {object} action
+ * @param {object} unit
+ * @param {object} handler
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+export function dispatch(action, unit, handler, ctx) {
+  const run = ACTIONS[action.kind];
+  if (!run) {
+    return [I.log({ kind: "unhandledAction", action: action.kind, unitId: unit.id, source: handler.source })];
+  }
+  return run(action, unit, handler, ctx);
+}
+
+/**
+ * Resolve a rolled amount for an action.
+ *
+ * These sequences are pure — the caller rolls and passes the totals in through
+ * `ctx.rolls`, keyed by table id. A missing roll yields `null` rather than 0, so
+ * "nobody rolled this" is distinguishable from "it rolled nothing".
+ *
+ * @param {object} action
+ * @param {SchedulerContext} ctx
+ * @returns {number|null}
+ */
+function rolled(action, ctx) {
+  if (!action.roll) return typeof action.amount === "number" ? action.amount : null;
+  const total = ctx.rolls?.[action.roll.key];
+  return typeof total === "number" ? total + (action.roll.bonus ?? 0) : null;
+}
+
+/** @type {Readonly<Record<string, (a: object, u: object, h: object, c: object) => Intent[]>>} */
+const ACTIONS = Object.freeze({
+  Damage: (a, u) => [I.damage(u.id, a.amount ?? 0, null, { event: true, defId: a.defId ?? null })],
+
+  Heal: (a, u, h, c) => {
+    const amount = rolled(a, c);
+    return amount === null ? [] : [I.heal(u.id, amount, h.source)];
+  },
+
+  StatDelta: (a, u) => [I.statDelta(u.id, a.stat, a.delta ?? 0)],
+
+  ResourceDelta: (a, u) => [I.resource(u.id, a.resource, a.delta ?? 0)],
+
+  CooldownDelta: (a, u, h) =>
+    [I.cooldown(u.id, a.ability ?? h.abilityId, Math.abs(a.delta ?? 0), a.delta < 0 ? "reduce" : "set")],
+
+  ApplyEffect: (a, u, h) => [I.applyEffect(u.id, a.effect, h.abilityId)],
+
+  RemoveEffect: (a, u) => [I.removeEffect(u.id, a.effect ?? a.defId, "event")],
+
+  Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
+
+  /**
+   * Battle Continuation and God Hand: come back instead of being defeated.
+   *
+   * The gate is the skill's **own cooldown**, read off the unit's ability list
+   * and set by this action. That reuses the clock `advanceCooldowns` already
+   * turns rather than inventing a second one — and it means the window is
+   * visible on the sheet, where a player can see why the revive did not happen.
+   */
+  Revive: (a, u, h, c) => {
+    if (onCooldown(u, h.abilityId)) return [];
+    const amount = rolled(a, c);
+    if (amount === null || amount <= 0) return [];
+
+    // "3◈" is three *Rounds*; `cooldownRemaining` counts turns. `resolveTicks`
+    // is what knows the difference, and it needs `turnsPerRound` from the ctx.
+    const ticks = resolveTicks(parseTick(a.cooldown), c);
+    return [
+      I.heal(u.id, amount, h.source),
+      ...(h.abilityId && ticks > 0 ? [I.cooldown(u.id, h.abilityId, ticks, "set")] : []),
+      I.log({ kind: "revive", unitId: u.id, source: h.source, amount, tick: c.tick }),
+    ];
+  },
+});
+
+/**
+ * @param {object} unit
+ * @param {string|null} abilityId
+ * @returns {boolean}
+ */
+function onCooldown(unit, abilityId) {
+  if (!abilityId) return false;
+  const ability = (unit.abilities ?? []).find((a) => a.id === abilityId);
+  return (ability?.cooldownRemaining ?? 0) > 0;
+}
+
+/**
+ * The rolls a unit's handlers for `event` will need, before the event fires.
+ *
+ * The other half of the "caller rolls" contract. `fireEvent` is pure and reads
+ * totals out of `ctx.rolls`; without this, a caller has no way to discover that
+ * `unitDefeated` on this unit needs a `4d20` — it would have to know the
+ * content, which is exactly the coupling the rule elements exist to avoid.
+ *
+ * @param {object} unit
+ * @param {string} event
+ * @returns {Array<{key: string, formula: string|null, bonus: number}>}
+ */
+export function pendingRolls(unit, event) {
+  /** @type {Array<{key: string, formula: string|null, bonus: number}>} */
+  const out = [];
+  for (const handler of unit.eventHandlers ?? []) {
+    if (!listensFor(handler, event)) continue;
+    for (const action of handler.actions ?? []) {
+      if (action.roll?.formula) out.push({ ...action.roll });
+    }
+  }
+  return out;
+}
+
+/**
+ * Decide what happens to a unit that has run out of Health.
+ *
+ * This is the reader `unitDefeated` never had. The event was authored on
+ * Battle Continuation from the beginning and nothing ever fired it, so the
+ * question "is this unit dead" was answered without ever asking the one rule
+ * that exists to answer it differently.
+ *
+ * A revive is any handler that heals: if the unit is going to have Health
+ * again, it is not defeated, and the defeat intent is never emitted. Order
+ * matters less than it looks — `intents.order` puts the heal before the
+ * defeat anyway — but *not emitting* the defeat is what keeps the unit on the
+ * board, rather than defeating it and healing the corpse.
+ *
+ * @param {object} unit a unit snapshot
+ * @param {SchedulerContext} ctx
+ * @param {string} [cause]
+ * @returns {Intent[]}
+ */
+export function resolveDefeat(unit, ctx, cause = "damage") {
+  if ((unit.health?.value ?? 0) > 0) return [];
+
+  const intents = fireEvent("unitDefeated", [unit], ctx);
+  const revived = intents.some((i) => i.t === "heal" && i.amount > 0);
+
+  return revived ? intents : [...intents, I.defeat(unit.id, cause)];
 }
 
 /**

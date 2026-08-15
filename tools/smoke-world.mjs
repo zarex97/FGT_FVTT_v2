@@ -168,7 +168,11 @@ const PROBE = `(() => {
   };
   if ( path === "/join" ) {
     const form = document.querySelector("#join-game-form");
-    if ( !form ) return {phase: "join", loading: true};
+    // No form on a finished page means Foundry served "There is currently no
+    // active game session" -- it does NOT redirect to /setup, so the caller has
+    // to go there itself.
+    if ( !form ) return {phase: "join", loading: document.readyState !== "complete",
+      noSession: document.readyState === "complete"};
     return {phase: "join", users: Array.from(form.querySelectorAll("select[name=userid] option"))
       .filter(o => o.value)
       .map(o => ({id: o.value, name: o.textContent.trim(), disabled: o.disabled}))};
@@ -187,7 +191,7 @@ const PROBE = `(() => {
 const t0 = Date.now();
 let tab;
 /** Guards the one-shot actions, so a slow page is not clicked at twice. */
-const done = { launched: false, joined: false };
+const done = { toSetup: false, launched: false, joined: false };
 
 /** @param {string} why */
 function fail(why) {
@@ -224,7 +228,11 @@ try {
     const { result } = await tab.send("Runtime.evaluate", { expression: PROBE, returnByValue: true });
     state = result.value ?? { phase: "?" };
 
-    if (state.phase === "setup" && !done.launched) {
+    if (state.phase === "join" && state.noSession && !done.toSetup) {
+      // Cold server: nothing is running, so go and start it.
+      done.toSetup = true;
+      await tab.send("Page.navigate", { url: `${origin}/setup` });
+    } else if (state.phase === "setup" && !done.launched) {
       if (!state.found) {
         fail(`Foundry has no world with id "${args.world}". It knows: ${state.worlds?.join(", ") || "(none listed)"}`);
         break;
