@@ -223,7 +223,21 @@ export function worldIO() {
  * @returns {object|null}
  */
 function resolve(unitId) {
-  return game.actors?.get(unitId) ?? canvas?.tokens?.get(unitId)?.actor ?? null;
+  // The **token's** actor first, and the world actor only as a fallback.
+  //
+  // Every rule in the system reads its units from `canvas.tokens.placeables`
+  // via `t.actor`. For an *unlinked* token that is a synthetic actor backed by
+  // the token's own ActorDelta, and it is not the same document as
+  // `game.actors.get(id)` — so preferring the world actor here meant the engine
+  // read one actor and wrote to another. Damage was computed, applied, and
+  // landed somewhere the board never looks at, which is indistinguishable on
+  // screen from damage that was never applied at all.
+  //
+  // For a linked token the two are the same document, so this changes nothing
+  // in the common case and fixes the unlinked one.
+  const fromToken = canvas?.tokens?.get(unitId)?.actor
+    ?? canvas?.tokens?.placeables?.find((t) => t.actor?.id === unitId)?.actor;
+  return fromToken ?? game.actors?.get(unitId) ?? null;
 }
 
 /**

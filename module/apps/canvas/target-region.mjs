@@ -33,9 +33,10 @@ const TRANSIENT_FLAG = "transientTarget";
 /**
  * The `shapes` payload for a set of panels.
  *
- * Offsets are `[i, j]` pairs — row first, matching `GridOffset` and the rest of
- * this codebase. One function builds it so that a correction to the encoding is
- * a correction in one place.
+ * Offsets are `{i, j}` **objects**, which is what `GridShapeData` validates
+ * against — a `[i, j]` pair is rejected with *"i: may not be undefined"*. Handy,
+ * because that is already the shape a `GridOffset` has everywhere else here, so
+ * the panels go through unchanged.
  *
  * @param {Array<{i: number, j: number}>} panels
  * @returns {object[]}
@@ -43,7 +44,7 @@ const TRANSIENT_FLAG = "transientTarget";
 export function gridShape(panels) {
   return [{
     type: "grid",
-    offsets: panels.map((p) => [p.i, p.j]),
+    offsets: panels.map((p) => ({ i: p.i, j: p.j })),
     // Null anchors the shape at the first offset, which is already an absolute
     // board position — the resolver works in absolute panels, not in deltas.
     origin: null,
