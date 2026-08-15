@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 643 tests.
+domain are all implemented and carry 663 tests.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -45,9 +45,19 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    the gate against a field no code writes would recreate the exact defect this step repaired,
    so the gate waits for the history. The cooldown gate, which is the rule that actually stops a
    revive loop, is implemented and tested.
-4. **Auras apply to the wrong unit.** `Aura` writes a modifier carrying `radius` and `relations`
-   into its *owner's* modifier bag, and the pipeline reads the modifier while ignoring both
-   fields — so an aura buffs its own owner at unlimited range instead of the units around it.
+4. ~~**Auras apply to the wrong unit.**~~ — **done (A5)**, see the Unreleased changelog.
+   `rules/auras.mjs` expands each aura onto the units in range that match its relation list, and
+   `snapshotBoard` runs the pass once every unit exists. The original finding read: `Aura` writes
+   a modifier carrying `radius` and `relations` into its *owner's* modifier bag, and the pipeline
+   reads the modifier while ignoring both fields — so an aura buffs its own owner at unlimited
+   range instead of the units around it.
+
+   **That finding was half wrong, and the half matters.** Reaching the owner is *correct*: in
+   F/GT "every allied unit" includes the unit itself unless the text says otherwise, which is why
+   `relations` defaults to `["ally", "self"]`. The auras that exclude their bearer — Penthesilea's
+   *Charisma* ("other allies"), Kiritsugu's *Affection of the Holy Grail* ("everyone except
+   himself") — say so explicitly, and drop `"self"`. The defect was never self-inclusion; it was
+   that the aura reached the owner **and stopped**, at unlimited range, regardless of relation.
 5. ~~**ZON is checked but never computed**~~ — **done**, see the Unreleased changelog.
    `rules/zon.mjs` derives it, `snapshotBoard` annotates it once every unit exists (it is a
    property of the Master–Servant *pair*), and the attack flow reads its combatants from the
@@ -79,7 +89,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 08 | Board and geometry | **Mostly** | Metrics, reachability, movement legality done. **Line of sight and cover (§8.6), fog of war and Detect (§8.7) missing.** |
 | 09 | Targeting | **Done** | Eleven-step resolver, four anchors interactive, `legalPlacements`. |
 | 10 | Effect taxonomy | **Done** | Classification vocabularies enforced by the content validator. |
-| 11 | Effect engine | **Partly** | Application, stacking, suppression, expiry, periodics done. **Auras (§11.6) apply to the wrong unit — see §45.4. Transfer (§11.8) missing. Visibility (§11.10) collected-only.** |
+| 11 | Effect engine | **Partly** | Application, stacking, suppression, expiry, periodics and **auras (§11.6, A5)** done. **Transfer (§11.8) missing. Visibility (§11.10) collected-only.** |
 | 12 | Combat Process | **Partly** | See §45.3 — two of six steps are stubs (Counter, AoE fan-out). |
 
 ### Part II — resolution systems
@@ -101,7 +111,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 |---|---|---|---|
 | 21 | System skeleton | **Done** | Bootstrap, settings, public API, CI, release workflow. |
 | 22 | Data models | **Mostly** | All schemas present. **Region behaviour schemas (§22.10) missing.** |
-| 23 | Documents and derived data | **Mostly** | Preparation order and derived stats done. **The aura pass (§23.3) and cache invalidation (§23.9) missing.** |
+| 23 | Documents and derived data | **Mostly** | Preparation order, derived stats and **the aura pass (§23.3)** done. **Cache invalidation and the spatial `AuraIndex` (§23.9) missing — the pass is a linear scan today, correct but unbucketed.** |
 | 24 | Rules engine | **Mostly** | 30 executors, predicates, explainability, validation. **Priority and ordering (§24.6) not implemented — elements apply in collection order.** |
 | 25 | Turn system | **Mostly** | `FGTCombat`, turn order, scheduler, HUD done. **Charm/control transfer (§25.7) and reconnection (§25.10) missing.** |
 | 26 | Authority and sockets | **Mostly** | Typed operations, authorization, hidden rolls. **Closed-information play (§26.6) and per-viewer cards (§26.7) missing.** |
@@ -115,7 +125,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 643 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 663 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Missing** | The snapshot has a `terrain` field; nothing writes or reads it. |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
@@ -166,10 +176,16 @@ Thirty executors exist. Their output lands in eleven buckets, of which **four ha
 
 Two more that are subtler than "collected only", because they *look* wired:
 
-- **`Aura` writes into `modifiers`**, carrying `radius` and `relations` fields that the damage
-  pipeline does not read. So an aura contributes its modifier **to its own owner, at any
-  distance, regardless of relation** — the opposite of an aura. This is a live wrong answer, not
-  an inert one, and it is the most urgent single defect in this chapter.
+- ~~**`Aura` writes into `modifiers`**~~ — **repaired (A5).** It wrote into the owner's
+  `modifiers` bag carrying `radius` and `relations` fields the damage pipeline does not read, so
+  the contribution reached its own owner at any distance regardless of relation. It was a live
+  wrong answer rather than an inert one, which is why it was the most urgent defect here.
+
+  `Aura` now fills its own `auras` bucket, and `rules/auras.mjs` expands it. Writing into
+  `modifiers` is what made the defect look plausible in the first place: the value landed in a
+  bag the pipeline reads, so it appeared wired, and the two fields riding along with it were
+  silently dropped. The bound modifier no longer carries `radius` or `relations` at all —
+  addressing is answered before the pipeline ever sees it.
 - **The four targeting executors** — `TargetingModifier`, `ForceTarget`, `Decoy`, `WeakPoint` —
   write keys that nothing in the targeting resolver reads.
 
@@ -262,6 +278,22 @@ attacker and defender swapped, no counter-of-a-counter, and no budget cost.
 *Test gate:* a successful counter-check produces a second damage resolution in the opposite
 direction, and that resolution cannot itself be countered.
 
+**A5. Auras.** *(medium)* — **DONE.** *(Taken out of order, ahead of A2 and A4: this was the
+only defect in Phase A producing a wrong number rather than no number, and this chapter's own
+ranking puts a wrong answer above a silent stub.)*
+
+`rules/auras.mjs` expands each aura onto the units in range whose relation matches, and
+`snapshotBoard` runs the pass once every unit is projected — the same place and for the same
+reason as `annotateZon`. Collecting for all units against the untouched board before writing any
+of it back is what stops an aura feeding an aura, and makes the result independent of visit
+order.
+
+*Test gate met:* `test/unit/auras.test.mjs`, 13 tests — reach and non-reach by radius, self
+included by default and excluded when the relation list says so, ally/enemy filtering,
+nearest-panel distance for multi-panel sources, `highestOnly` resolved across all sources against
+one that stacks, provenance recorded for the explainer, and `radius`/`relations` proven absent
+from what the pipeline receives.
+
 ### Phase B — the missing player-facing systems
 
 **B1. Command Spells.** *(large)*
@@ -270,13 +302,9 @@ inline "spend to override" affordances the targeting preview already has a slot 
 *Test gate:* each command in the catalogue resolves; a spend is refused when the Master lacks
 the charges; the audit card shows who spent what and when.
 
-**A5. Auras.** *(medium)*
-The derived-data aura pass from §23.3: after every unit is prepared, expand `Aura` contributions
-onto the units in range, then re-prepare. The two-pass structure is what stops an aura that
-grants an aura from looping.
-*Test gate:* an aura buff appears on units entering range and disappears on leaving; two
-overlapping auras of the same effect stack per the effect's own stacking rule; a unit's own aura
-does not feed itself.
+*(There is no B2. The labels drifted at some point — A5 was filed under Phase B, and the gap
+was left behind. A5 is back in Phase A above; the B numbers are kept as they are so that
+references to B3 and B4 elsewhere still resolve.)*
 
 **B3. Granted and copied abilities.** *(medium)*
 `grantedAbilities` becomes real items on the actor, or virtual entries on the sheet.
@@ -332,8 +360,9 @@ invalidates existing worlds. Not before.
 ## 45.6 Suggested order, with reasoning
 
 ```
-A1 ✔ → A3 ✔ → A2 → A4 → A5 correctness repairs first; a stub that resolves silently outranks a
-                         missing feature, and A5 (auras) is producing a wrong number today
+A1 ✔ → A3 ✔ → A5 ✔ → A2 → A4  correctness repairs first; a stub that resolves silently outranks
+                         a missing feature, and a WRONG number outranks both -- which is why A5
+                         was pulled forward ahead of A2 and A4
 B4 → B3                  costs after auras, because a cost may read an aura-modified value
 B1                     Command Spells; large, and depends on the interrupt protocol
 C1 → C2                terrain then environment; environment reads terrain

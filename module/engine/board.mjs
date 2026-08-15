@@ -133,12 +133,19 @@ function panelOf(doc) {
 /**
  * One unit **as the board sees it**.
  *
- * Not the same thing as `unitSnapshot(actor)`: `snapshotBoard` runs
- * `annotateZon` across its units once they all exist, because ZON is a property
- * of the Master-Servant *pair* and a unit projected alone cannot know it.
- * Taking the attacker from the board rather than re-projecting it is what lets
- * pipeline stage 9 and the Noble Phantasm legality check see the same answer
- * the ZON ring is drawing.
+ * Not the same thing as `unitSnapshot(actor)`. `snapshotBoard` runs two passes
+ * across its units once they all exist, and both answer questions a unit
+ * projected alone cannot:
+ *
+ *   - `annotateZon`, because ZON is a property of the Master-Servant *pair*.
+ *     Taking the attacker from the board is what lets pipeline stage 9 and the
+ *     Noble Phantasm legality check see the same answer the ZON ring draws.
+ *   - `annotateAuras`, because an aura is a property of who is standing near
+ *     whom. A unit re-projected here would carry only its own auras and none of
+ *     the ones it is standing in, which is the defect Ch. 45 A5 repaired.
+ *
+ * So: re-projecting a unit that the board already has is not a shortcut, it is
+ * a wrong answer.
  *
  * Falls back to a standalone projection for an actor with no token, so a
  * console call still works.

@@ -33,6 +33,7 @@ import { test as testPredicate } from "./predicate.mjs";
  * @property {object[]} suppressions     what is switched off
  * @property {string[]} grantedAbilities
  * @property {object[]} autoSucceeds     checks that succeed without rolling
+ * @property {object[]} auras            aura contributions, expanded by rules/auras.mjs
  * @property {object[]} eventHandlers
  * @property {string[]} attributes       attributes granted by an ability
  * @property {object|null} magicResistance
@@ -46,7 +47,7 @@ function empty() {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [],
     attributes: [], magicResistance: null, damageNegation: [], zonBonuses: [],
-    unhandled: [],
+    auras: [], unhandled: [],
   };
 }
 
@@ -461,11 +462,22 @@ export const EXECUTORS = Object.freeze({
     out.eventHandlers.push(normalizeHandler(el, { rank, source, ability, ctx }));
   },
 
+  /**
+   * An aura goes into its **own** bucket, not into `modifiers`.
+   *
+   * Writing it into the owner's modifiers is what made the original defect look
+   * plausible: the contribution was in a bag the pipeline reads, so it appeared
+   * wired, and the `radius`/`relations` fields riding along with it were simply
+   * ignored. The aura pass (`rules/auras.mjs`) is what expands this onto the
+   * units that should have it — including the owner, when the relation list
+   * says so, which by default it does.
+   */
   Aura(el, { rank, source, out, ctx }) {
-    out.modifiers.push({
+    out.auras.push({
       key: el.modifierKey ?? "aura", radius: el.radius ?? 2,
       relations: el.relations ?? ["ally", "self"],
       value: scalar(resolveValue(el, rank, ctx)),
+      component: el.component ?? null,
       stacking: el.stacking ?? "highestOnly", source,
     });
   },
