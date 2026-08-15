@@ -127,6 +127,24 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Granted capabilities were granted to nothing** (Ch. 45 B3). `GrantedAbility` collected
+  ability ids into `grantedAbilities` and no code read the bucket. Riding's double move did
+  work — but through a completely separate `hasSkill(actor, "riding")` name-match.
+
+  So the defect was not "the grant does nothing"; it was **two mechanisms for one rule, one of
+  them inert**. A Servant granted the double move by a Master Essence, by Semiramis's *Double
+  Summon*, or by one of Scáthach's copies would not have got it, and every future granted
+  capability would have needed its own bespoke check somewhere in the engine.
+
+  `rules/granted.mjs` makes the grant the input, and `planMovement` and `canConsume` read it.
+  The old `hasRiding` flag stays as a fallback, so a world whose Riding item predates the rule
+  element does not silently lose its second move.
+
+  Worth recording for anyone reading Ch. 45's plan: `doubleMove`, `ridingAttack` and
+  `passengerSeat` **have no content anywhere**. They are not ability documents waiting to be
+  granted — they are capabilities the engine asks about, which is why "make them real items on
+  the actor" was the wrong shape for this half. `passengerSeat` is granted and nothing reads it
+  yet; it needs platforms (Ch. 20).
 - **Using a Noble Phantasm cost its Master nothing** (Ch. 45 B4). `npCostByRank` and
   `freeServantNPSustainabilityCost` had been in `domain/tables.mjs` since the tables were
   transcribed, with **nothing reading either of them**. The same shape as ZON and `fireEvent`:
