@@ -1,0 +1,22 @@
+# docs/17-command-spells.md §17.2 — cost 1
+#
+# The catalogue is explicitly OPEN: "if you can think of any other use for
+# Command Spells, feel free to mention it and use it if the GM/majority of
+# players approve." So this is the reference set, not a closed enum.
+# "Cannot be used during a Damage Step if the damage would defeat the Servant."
+# 1 for a High Rank Master, 2 for a Low Rank one. `cost` is the fallback for
+# anything that reads the flat field.
+schema: 1
+id: cs-escape
+name: "Escape"
+type: commandSpell
+cost: 1
+description: Instantly moves Master and Servant to any spot within the Home Base.
+requirements:
+  - { kind: servantWithin, panels: 2 }
+  - { kind: notInZone, zone: homeBase }
+timing: { window: anyTime }
+effect:
+  - kind: teleport
+    target: pair
+    anchor: homeBase

@@ -1,0 +1,15 @@
+# docs/17-command-spells.md §17.2 — cost 2 and cost 3
+# The round gate is explicitly NOT overridable, so it is absent from this list.
+schema: 1
+id: cs-halve-noble-phantasm
+name: "Halve Noble Phantasm"
+type: commandSpell
+cost: 2
+description: −50% Total Damage from an enemy Noble Phantasm.
+requirements:
+  - { kind: servantInZon }
+timing: { window: beforeDamage }
+effect:
+  - kind: modifyDamage
+    factor: 0.5
+    side: defender

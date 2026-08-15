@@ -1,0 +1,20 @@
+# docs/17-command-spells.md §17.2 — cost 2 and cost 3
+# The round gate is explicitly NOT overridable, so it is absent from this list.
+schema: 1
+id: cs-survive-kill
+name: "Survive Kill"
+type: commandSpell
+cost: 3
+description: The Servant survives with 5% of its Health.
+requirements:
+  - { kind: servantInZon }
+  # "No other method of revival available" — Battle Continuation and God Hand
+  # are checked first, because this is the most expensive command in the game
+  # and spending it on a Servant who would have revived anyway is a waste the
+  # rules explicitly guard against.
+  - { kind: noOtherRevival }
+timing: { window: onDefeat }
+effect:
+  - kind: survive
+    target: contractedServant
+    fractionOfMax: 0.05

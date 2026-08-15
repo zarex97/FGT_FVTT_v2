@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 720 tests.
+domain are all implemented and carry 742 tests.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -32,8 +32,9 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    Damage resolves, the **Injury Roll** is live (A3), the **AoE fan-out** is real (A2) and the
    **Counter** is offered and resolved (A4). What remains in Ch. 12 is **§12.11 interrupts**,
    which is Command Spells and therefore B1.
-2. **Command Spells do not exist as a flow.** The intent, the schema and the resource all exist;
-   nothing spends them, and the interrupt protocol (Ch. 17 §17.4) is unimplemented.
+2. **Command Spells are spendable, but cannot interrupt.** The catalogue, the spend flow and the
+   offer filtering are done (B1); the interrupt protocol (Ch. 17 §17.4) is not, so the six
+   commands that rewrite an in-flight resolution log themselves rather than applying.
 3. ~~**Events do not fire into anything.**~~ — **done (A1)**, see the Unreleased changelog.
    `OnEvent` now normalizes to `{events, actions}` at collection time, `fireEvent` dispatches
    those actions through an action table, and `resolveDefeat` gives `unitDefeated` the reader it
@@ -102,7 +103,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 14 | Checks and randomness | **Mostly** | Evade, Luck, chance rolls, `checkPlan` done. **The roll log (§14.8) and setup rolls (§14.9) missing.** |
 | 15 | Abilities | **Mostly** | Classification, phases and **costs/requirements (§15.4, B4)** done — Master Health, Sustainability, cooldown, round and ZON gates. **The remaining requirement kinds, granted/copied abilities (§15.7) and items (§15.8) missing.** |
 | 16 | Relationships | **Partly** | Master protection is enforced by movement. **ZON is derived and both consumers fire**, including the Semiramis exemption and the Dioscuri's `any`-across-twins test. **Contracting, Overpower/Underpower, Sustainability drain and the multi-Servant tax are missing.** |
-| 17 | Command Spells | **Missing** | Schema and `spendCS` intent exist; no flow, no interrupt protocol, no catalogue content. |
+| 17 | Command Spells | **Partly** | Catalogue (16 commands), spend flow, cost variants and offer filtering done (B1). **The interrupt protocol (§17.4) — suspend/resume, the non-blocking offer and its timeout — is missing, and with it the six commands that rewrite an in-flight resolution.** |
 | 18 | Action economy | **Mostly** | Budget, per-unit limits, prevention, compulsions done. **Undo (§18.7) and Confuse's random selector (§18.5) missing.** |
 | 19 | Environment | **Missing** | Home Base, Day/Night, Region, Grail, Random Events all absent. |
 | 20 | Platforms and levels | **Missing** | `PlatformData` exists; no linkage, no cross-level rules, no lifecycle. |
@@ -127,11 +128,11 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 720 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 742 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Missing** | The snapshot has a `terrain` field; nothing writes or reads it. |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
-| — | Content | **2 of 29 Servants** | Heracles, Karna. 7 effects of ~152. 5 class skills. |
+| — | Content | **2 of 29 Servants** | Heracles, Karna. 7 effects of ~152. 5 class skills. **16 of 16 Command Spells (B1).** |
 
 ---
 
@@ -337,11 +338,47 @@ from what the pipeline receives.
 
 ### Phase B — the missing player-facing systems
 
-**B1. Command Spells.** *(large)*
-The catalogue as content, the spend flow, and the interrupt protocol (§17.4) — including the
-inline "spend to override" affordances the targeting preview already has a slot for (§28.8).
-*Test gate:* each command in the catalogue resolves; a spend is refused when the Master lacks
-the charges; the audit card shows who spent what and when.
+**B1. Command Spells.** *(large)* — **catalogue and spend flow DONE; the interrupt OFFER is not.**
+
+*Test gate met on two of three clauses:* `test/unit/command-spells.test.mjs`, 22 tests — a spend
+is refused when the Master lacks the charges, and the audit log records who spent what, on whom,
+at which window and on which tick (§17.8). The third clause, "each command in the catalogue
+resolves", is **partly** met: see the effect table below.
+
+- **The catalogue is content.** All 16 commands from §17.2 are authored in
+  `packs/_source/command-spells/` and compile into the `command-spells` pack. `CommandSpellData`
+  and the content compiler now carry `requirements`, `timing`, `blockedWhen`, `effect`,
+  `costByMasterRank` and `permanentConsequence` — without which the catalogue built into items
+  that knew their name and cost and nothing about when they could be used or what they did.
+- **The spend flow works end to end.** `rules/command-spells.mjs` decides, `engine/command-spells.mjs`
+  pays and writes, and a `spendCommandSpell` socket operation authorizes it to the Master's owner.
+  Order is validate → pay → apply, because paying first burns a charge on a refusal.
+- **Cost varies correctly.** Kill Yourself is 1 for a High Rank Master, 2 for a Low Rank one, and
+  1 for everyone when the whole table is Rankless.
+- **Unusable commands are never offered.** §17.6 requires Van Gogh's immunity to be checked at
+  offer time "so the option never appears"; the same argument covers cost and every other
+  requirement, so `availableCommands` returns only what can actually be spent.
+
+**A test caught a real defect while this was being written**, and it is the reason the guard
+exists: the authored catalogue used two requirement kinds (`notInZone`, `noOtherRevival`) that
+`meets()` did not implement. Unknown kinds refuse — the safe direction — so **Escape and Survive
+Kill would have compiled, loaded, appeared in the pack and been unusable by anybody, silently.**
+`REQUIREMENT_KINDS` is now exported and a test holds the shipped catalogue against it.
+
+Effect kinds, honestly:
+
+| Applied | Logged by name, not applied |
+|---|---|
+| `statChange` (Half/Full Heal), `defeat` (Kill Yourself), `cureDebuffs`, `cooldownDelta` (Reduce/Full/All), `survive` (Survive Kill) | `modifyDamage` (Damage Block/Up, Halve NP, NP Max), `teleport` (Teleport Servant, Escape), `overrideValidation` (Force NP, Kill Humans) |
+
+The right-hand column needs the **interrupt protocol** rather than more effect code: those
+commands change a resolution that is already in flight, which means suspend/serialize/resume
+around a Combat Process, a non-blocking offer with §17.4's 45-second timeout, and a
+"spend to override" affordance in the targeting preview (§28.8). The window logic and
+`offerCommands` are in place and tested; what is missing is the UI that asks and the Process
+plumbing that suspends. An unapplied effect **logs itself by name** rather than resolving
+silently, because a Command Spell that quietly does nothing is the worst outcome for the most
+expensive resource in the game.
 
 *(There is no B2. The labels drifted at some point — A5 was filed under Phase B, and the gap
 was left behind. A5 is back in Phase A above; the B numbers are kept as they are so that
@@ -453,7 +490,8 @@ A1 ✔ A2 ✔ A3 ✔ A4 ✔ A5 ✔    PHASE A COMPLETE. Order run: A1, A3, A5, A
                          a missing feature
 B4 ✔ → B3 ✔              costs after auras, because a cost may read an aura-modified value;
                          B3's grants are done, its COPY half (Scathach) is not
-B1                     Command Spells; large, and depends on the interrupt protocol
+B1 ~                   Command Spells: catalogue and spend flow done; the interrupt protocol
+                       is what remains, and it is the harder half
 C1 → C2                terrain then environment; environment reads terrain
 D1 (continuous)        author Servants alongside, not after — they are the real test suite
 C3 → C4                platforms and bounded fields; the most self-contained, the least urgent

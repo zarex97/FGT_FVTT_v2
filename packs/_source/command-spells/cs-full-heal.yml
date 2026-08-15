@@ -1,0 +1,19 @@
+# docs/17-command-spells.md §17.2 — cost 2 and cost 3
+# The round gate is explicitly NOT overridable, so it is absent from this list.
+schema: 1
+id: cs-full-heal
+name: "Full Heal"
+type: commandSpell
+cost: 2
+description: Restores Health and Agility to maximum.
+requirements:
+  - { kind: servantInZon }
+blockedWhen:
+  - { state: damage, condition: damageWouldDefeatServant }
+timing: { window: anyTime }
+effect:
+  - kind: statChange
+    target: contractedServant
+    changes:
+      - { stat: health, deltaPercentOfMax: 100, clamp: true }
+      - { stat: agility, deltaPercentOfMax: 100, clamp: true }

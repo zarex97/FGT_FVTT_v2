@@ -36,6 +36,37 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Command Spells can be spent** (Ch. 45 B1). The schema, the `spendCS` intent, the applier case
+  and `io.spendCommandSpells` all existed and were reachable end to end. What was missing was the
+  middle: nothing decided *which* command a Master may use, *when*, or *what it does* — so nothing
+  ever constructed the intent and no Command Spell was ever spent by anybody.
+
+  All 16 commands of §17.2 are now authored in `packs/_source/command-spells/` and compile into
+  the `command-spells` pack. `CommandSpellData` and the content compiler carry `requirements`,
+  `timing`, `blockedWhen`, `effect`, `costByMasterRank` and `permanentConsequence` — without
+  which the catalogue built into items that knew their name and cost and nothing about when they
+  could be used or what they did.
+
+  `rules/command-spells.mjs` decides and `engine/command-spells.mjs` pays and writes, in that
+  order: validate → pay → apply, because paying first burns a charge on a refusal. A
+  `spendCommandSpell` socket operation authorizes it to the Master's owner. Kill Yourself costs 1
+  for a High Rank Master, 2 for a Low Rank one, and 1 for everybody when the whole table is
+  Rankless. Unusable commands are **never offered** — §17.6 requires Van Gogh's immunity to be
+  checked at offer time "so the option never appears", and the same argument covers cost.
+
+  **A test caught a real defect while this was being written.** The authored catalogue used two
+  requirement kinds (`notInZone`, `noOtherRevival`) that the rules did not implement. Unknown
+  kinds refuse, which is the safe direction — and it means Escape and Survive Kill would have
+  compiled, loaded, appeared in the pack and been **unusable by anybody, silently**. Exactly this
+  project's recurring defect. `REQUIREMENT_KINDS` is now exported and a test holds the shipped
+  catalogue against it.
+
+  Applied today: `statChange`, `defeat`, `cureDebuffs`, `cooldownDelta`, `survive`. Not yet:
+  `modifyDamage`, `teleport` and `overrideValidation` — the six commands that rewrite a
+  resolution already in flight. Those need the **interrupt protocol** (§17.4) rather than more
+  effect code: suspend/resume around a Combat Process, a non-blocking offer with its 45-second
+  timeout, and the "spend to override" affordance in the targeting preview. An unapplied effect
+  **logs itself by name** rather than resolving silently.
 - **A smoke check that actually loads a world** — `npm run check:smoke -- --world=<id>`
   ([`tools/smoke-world.mjs`](tools/smoke-world.mjs)). Every other gate here runs without Foundry,
   which is right for L1 and L2 and leaves exactly one thing uncovered: whether the system still
