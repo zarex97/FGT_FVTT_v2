@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 693 tests.
+domain are all implemented and carry 710 tests.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -100,7 +100,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 |---|---|---|---|
 | 13 | Damage pipeline | **Done** | 16 stages, both worked examples are golden fixtures. |
 | 14 | Checks and randomness | **Mostly** | Evade, Luck, chance rolls, `checkPlan` done. **The roll log (§14.8) and setup rolls (§14.9) missing.** |
-| 15 | Abilities | **Partly** | Classification, phases (`damage`, `applyEffects`) done. **Costs and requirements (§15.4), granted/copied abilities (§15.7), items (§15.8) missing.** |
+| 15 | Abilities | **Mostly** | Classification, phases and **costs/requirements (§15.4, B4)** done — Master Health, Sustainability, cooldown, round and ZON gates. **The remaining requirement kinds, granted/copied abilities (§15.7) and items (§15.8) missing.** |
 | 16 | Relationships | **Partly** | Master protection is enforced by movement. **ZON is derived and both consumers fire**, including the Semiramis exemption and the Dioscuri's `any`-across-twins test. **Contracting, Overpower/Underpower, Sustainability drain and the multi-Servant tax are missing.** |
 | 17 | Command Spells | **Missing** | Schema and `spendCS` intent exist; no flow, no interrupt protocol, no catalogue content. |
 | 18 | Action economy | **Mostly** | Budget, per-unit limits, prevention, compulsions done. **Undo (§18.7) and Confuse's random selector (§18.5) missing.** |
@@ -127,7 +127,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 693 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 710 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Missing** | The snapshot has a `terrain` field; nothing writes or reads it. |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
@@ -352,9 +352,35 @@ references to B3 and B4 elsewhere still resolve.)*
 *Test gate:* Riding's `doubleMove`, `ridingAttack` and `passengerSeat` appear on a Servant with
 Riding and disappear when it is removed.
 
-**B4. Ability costs and requirements.** *(medium)*
-§15.4 — Health costs, cooldown gates and the NP round gate. **The ZON input is done** and its
-test gate is met; what follows is kept because the shape of the defect is worth remembering.
+**B4. Ability costs and requirements.** *(medium)* — **DONE.**
+`rules/costs.mjs` answers "can this be used, and what does it cost" in one call, and
+`resolveAttack` validates at declaration and pays at confirmation — §15.4's own decision, so that
+cancelling during targeting costs nothing.
+*Test gate met:* `test/unit/costs.test.mjs`, 17 tests — the Master Health cost by both columns
+and by rank step, the rankless-Master case, Free Servants paying Sustainability instead, Free
+Servants with no clock paying double in their own Health, the cooldown gate, the NP round gate,
+the ZON gate, and the strict-comparison boundary.
+
+`npCostByRank` and `freeServantNPSustainabilityCost` had been sitting in `domain/tables.mjs`
+since the tables were transcribed with **nothing reading either of them**: using a Noble Phantasm
+cost its Master nothing at all. The same shape as ZON and `fireEvent` — data that loads
+correctly and is never asked a question.
+
+Two details worth keeping. The Health comparison is **strict** — *"cannot use its NP if its
+Master's Health is equal to or less than the amount that would be lost"* — so a Master at exactly
+50 cannot pay a 50-cost NP, and the refusal message says "MORE than 50" because that is the half
+people get wrong. And the cost is paid with `statDelta`, never `damage`: it is Health *loss*, not
+damage, so it must not trigger `Dmged NP Regen` or an Injury Roll. Paying it as damage would make
+every Noble Phantasm feed its own Master's triggers.
+
+`requiresRound` is authored in `targeting.limits`, the same untyped object `requiresZon` already
+lives in — a gate content can write today rather than a schema field waiting to be invented.
+
+Not done from §15.4's type list: `hasSkill`, `inZone`/`notInZone`, `modeActive`,
+`counterpartAdjacent`, `targetHasEffect` and the `predicate` escape hatch, plus Karna's
+`supersedes` override. The three the plan named are in.
+
+What follows is kept because the shape of the defect is worth remembering.
 
 The ZON case was the instructive one: the *check* was fully implemented in two places —
 `resolve.mjs` refuses an NP when `caster.outsideZon`, and the damage pipeline applies the stage-9
@@ -404,7 +430,7 @@ invalidates existing worlds. Not before.
 A1 ✔ A2 ✔ A3 ✔ A4 ✔ A5 ✔    PHASE A COMPLETE. Order run: A1, A3, A5, A2, A4 -- A5 pulled
                          forward because a wrong number outranks a silent stub, which outranks
                          a missing feature
-B4 → B3                  costs after auras, because a cost may read an aura-modified value
+B4 ✔ → B3                costs after auras, because a cost may read an aura-modified value
 B1                     Command Spells; large, and depends on the interrupt protocol
 C1 → C2                terrain then environment; environment reads terrain
 D1 (continuous)        author Servants alongside, not after — they are the real test suite

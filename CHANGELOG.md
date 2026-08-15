@@ -127,6 +127,30 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Using a Noble Phantasm cost its Master nothing** (Ch. 45 B4). `npCostByRank` and
+  `freeServantNPSustainabilityCost` had been in `domain/tables.mjs` since the tables were
+  transcribed, with **nothing reading either of them**. The same shape as ZON and `fireEvent`:
+  data that loads correctly and is never asked a question.
+
+  `rules/costs.mjs` answers "can this be used, and what does it cost" in one call — Master Health
+  by rank column and rank step, Sustainability for a Free Servant, double self-Health for a Free
+  Servant with no clock at all, the cooldown gate, the Noble Phantasm round gate and the ZON
+  gate. `resolveAttack` **validates at declaration and pays at confirmation**, which is §15.4's
+  own decision and means cancelling during targeting costs nothing.
+
+  Two details worth stating. The Health comparison is **strict** — *"cannot use its NP if its
+  Master's Health is equal to or less than the amount that would be lost"* — so a Master at
+  exactly 50 cannot pay a 50-cost NP, and the refusal says "MORE than 50" because that is the
+  half people misread. And the cost is paid with `statDelta`, never `damage`: it is Health *loss*,
+  not damage, so it must not trigger `Dmged NP Regen` or an Injury Roll. Paying it as damage
+  would make every Noble Phantasm feed its own Master's triggers.
+
+  `requiresRound` is authored in `targeting.limits`, the same untyped object `requiresZon`
+  already lives in — a gate content can write today rather than a schema field waiting to exist.
+
+  Not done, and listed rather than implied: §15.4's other requirement kinds (`hasSkill`,
+  `inZone`, `modeActive`, `counterpartAdjacent`, `targetHasEffect`, `predicate`) and Karna's
+  `supersedes` override.
 - **Combat Process step 6, the Counter, did nothing** (Ch. 45 A4) — and with it, **Phase A of
   Ch. 45 is complete**: all six steps of the Combat Process now run.
 
