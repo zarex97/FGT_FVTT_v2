@@ -65,6 +65,11 @@ export const TRANSITIONS = Object.freeze({
   "noDamage:done": "facing",
   "facing:done": "counter",
   "counter:done": "done",
+  // The counter is a choice, so it has a taken branch and a declined one. Both
+  // finish the process: "Counters cannot be Countered again", so there is
+  // nothing after this rung either way.
+  "counter:counter": "done",
+  "counter:declined": "done",
   "declare:done": "react",
 });
 
@@ -76,6 +81,7 @@ export const PROMPTS = Object.freeze({
   s23_acceptOrEscape: { side: "defender", kind: "acceptOrEscape", options: ["accept", "cs"] },
   s24_luckyEvasion: { side: "defender", kind: "luckCheck", check: "luckyEvasion", cost: 1 },
   s25_auContest: { side: "attacker", kind: "luckCheck", check: "counterContest", cost: 1 },
+  counter: { side: "defender", kind: "counter", options: ["counter", "declined"] },
 });
 
 /**
@@ -95,7 +101,7 @@ export const PROMPTS = Object.freeze({
  * @param {object} args
  * @returns {ProcessState}
  */
-export function begin({ attackerId, defenderId, attack, isAoE = false, groupId = null }) {
+export function begin({ attackerId, defenderId, attack, isAoE = false, groupId = null, isCounter = false }) {
   return {
     state: "declare",
     attackerId,
@@ -105,6 +111,9 @@ export function begin({ attackerId, defenderId, attack, isAoE = false, groupId =
     evaded: false,
     isAoE,
     groupId,
+    // "Counters cannot be Countered again" — carried on the state because the
+    // check happens inside a process that has no other way to know what it is.
+    isCounter,
     history: [],
   };
 }
@@ -194,6 +203,11 @@ export function legalEvents(state) {
 export function pendingPrompt(s) {
   const p = PROMPTS[s.state];
   if (!p) return null;
+  // The counter rung is the one prompt that is conditional. Offering it to a
+  // defender who cannot counter would stop the ladder to ask a question with
+  // one answer, so eligibility is decided first (by the orchestrator, which can
+  // see positions and ranges) and recorded on the state.
+  if (s.state === "counter" && !s.counterAvailable) return null;
   return { ...p, unitId: p.side === "attacker" ? s.attackerId : s.defenderId };
 }
 
@@ -230,11 +244,64 @@ export function isComplete(s) {
  * @param {boolean} [args.defenderCanAct]
  * @returns {boolean}
  */
-export function canCounter(s, { defenderAlive, attackerInRange, attackerHasAccel = false, defenderCanAct = true }) {
+export function canCounter(s, {
+  defenderAlive, attackerInRange, attackerHasAccel = false, defenderCanAct = true,
+  defenderHasBerserk = false, defenderHasFragarach = false, attackerConcealedAndFaster = false,
+}) {
+  // "Counters cannot be Countered again." First, because without it two
+  // Servants in range of each other counter one another until something gives
+  // out — and it is the one clause that is a safety property rather than a
+  // rules detail.
+  if (s.isCounter) return false;
+
   if (attackerHasAccel) return false;
   if (!defenderCanAct) return false;
   if (!attackerInRange) return false;
+
+  // Berserk fixes the unit's target selection, so it cannot choose to counter.
+  if (defenderHasBerserk) return false;
+  // Mannanán trades the normal counter for an automatic Fragarach counter
+  // (Ch. 24 §24.8): "cannot perform a normal Counter".
+  if (defenderHasFragarach) return false;
+  // Presence Concealment: a defender slower than a concealed attacker never
+  // located it to counter.
+  if (attackerConcealedAndFaster) return false;
+
   return s.evaded || defenderAlive;
+}
+
+/**
+ * The counter sub-process: the same attack, the other way round (§12.8).
+ *
+ * > *"the DU may use the 'Counter' Action and declare an Attack on the AU.
+ * > Steps 1 and 4 of Combat are repeated, but with the roles reversed."*
+ *
+ * A **fresh** process, not a mutation of the original: the counter runs the
+ * full ladder (Ch. 41's ruling on the "Steps 1 and 4" typo — a counter that
+ * cannot be evaded and deals no damage is nonsense, and Instant Counter's
+ * "skip straight to Step 3" is only special if the normal one does not skip),
+ * so it needs its own history and its own state.
+ *
+ * `isCounter` is what makes it un-counterable, and `canCounter` refuses on it
+ * first. It also carries no budget cost — the counter is a reaction, and
+ * `resolveAttack`'s budget spend is not on this path at all.
+ *
+ * Never an AoE resolution: a counter is one unit hitting one unit, so the
+ * defender of a counter does turn to face it.
+ *
+ * @param {ProcessState} s the process being countered
+ * @param {object} [attack] what to counter with; a normal attack by default
+ * @returns {ProcessState}
+ */
+export function beginCounter(s, attack = { abilityId: null, kind: "normal" }) {
+  return begin({
+    attackerId: s.defenderId,
+    defenderId: s.attackerId,
+    attack,
+    isAoE: false,
+    groupId: s.groupId,
+    isCounter: true,
+  });
 }
 
 /**

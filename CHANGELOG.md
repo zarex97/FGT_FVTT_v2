@@ -127,6 +127,33 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Combat Process step 6, the Counter, did nothing** (Ch. 45 A4) — and with it, **Phase A of
+  Ch. 45 is complete**: all six steps of the Combat Process now run.
+
+  `case "counter": return process.advance(state, "done")`. The rung was reached and advanced
+  past, unconditionally. `canCounter` existed and **was never called from anywhere**, which is
+  the more interesting half: the rule was written, exported and tested, and no code path
+  consulted it.
+
+  It was also missing four clauses of §12.8. All are present now and all are derived from the
+  board by the caller rather than assumed: Berserk, Fragarach (Mannanán trades the normal
+  counter for an automatic one), Presence Concealment against a slower defender, and
+  *"Counters cannot be Countered again"* — the last being a safety property rather than a rules
+  detail, since without it two Servants in range of each other counter until something gives out.
+
+  `beginCounter` builds the nested Process with the roles swapped, `isCounter` set and no budget
+  cost, running the **full** ladder rather than a bare damage roll (Ch. 41's ruling that the
+  source's *"Steps 1 and 4 are repeated"* is a typo for "1 **to** 4").
+
+  The rung is **conditionally prompting**, which is new for this machine: `pendingPrompt` offers
+  the counter only when the orchestrator has recorded that one is available, so an ineligible
+  defender is never stopped to answer a question with one answer. `promptOptions` needed a
+  `counter` branch of its own — without it the card fell through to the Luck Check branch and
+  rendered a "Contest" button emitting an event this rung has no transition for.
+
+  Named rather than skipped: `sleepRemovedThisPhase` is Process-scoped state nothing tracks, so
+  that clause waits. And counters do not yet resolve *"sequentially in turn order"* across an
+  AoE group — each card offers independently. The `groupId` from A2 is what that will hang off.
 - **An area attack damaged one unit** (Ch. 45 A2). `resolveAttack` took `targets.units[0]` and
   discarded the rest, keeping them only long enough to set an `isAoE` flag. A Noble Phantasm
   over seven units resolved against one of them and nothing anywhere said so — the card showed

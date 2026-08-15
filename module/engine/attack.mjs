@@ -18,6 +18,7 @@ import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
 import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
 import { classifyAbility, targetSpecFor as specForAbility } from "../rules/ability-use.mjs";
 import { Rank } from "../domain/rank.mjs";
+import { inAttackRange } from "../domain/geometry.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
@@ -151,6 +152,12 @@ export async function advanceAttack({ messageId, event }) {
   } else if (state.state.startsWith("s2") && event === "contest") {
     const outcome = await rollLuck(state);
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
+  } else if (state.state === "counter" && event === "counter") {
+    // Declaring the counter starts a second Process in the opposite direction
+    // and finishes this one. The new Process drives itself from here through
+    // the same machinery, and cannot be countered in turn.
+    const counter = await runCounter(state);
+    state = process.advance(state, "counter", { counterMessageId: counter?.messageId ?? null });
   } else {
     state = process.advance(state, event);
   }
@@ -193,8 +200,18 @@ async function runAutomaticStep(state, message) {
         await applyFacing(state);
       }
       return process.advance(state, "done");
-    case "counter":
-      return process.advance(state, "done");
+    case "counter": {
+      // Step 6 used to `advance(state, "done")` unconditionally — the rung was
+      // reached and never asked anybody anything. Deciding eligibility here is
+      // what turns it into a real offer: an eligible defender stops the ladder
+      // and is asked, an ineligible one drives straight through as before.
+      if (state.counterAvailable !== undefined) return process.advance(state, "done");
+
+      const available = counterAvailable(state);
+      await message.setFlag("fgt", "counter", { available });
+      const marked = { ...state, counterAvailable: available };
+      return available ? marked : process.advance(marked, "done");
+    }
     default:
       return process.advance(state, "done");
   }
@@ -282,6 +299,72 @@ async function rollLuck(state) {
   // A Luck Check costs 1 Luck whether or not it succeeds.
   await applyBatch([I.statDelta(prompt.unitId, "luck.value", -1)], "luckCheck");
   return { ...outcome, formula: roll.formula };
+}
+
+/**
+ * Whether the defender of `state` may counter its attacker (§12.8).
+ *
+ * Every clause `canCounter` takes is derived here from the board, so the pure
+ * check never has to guess and never reads a field nobody writes.
+ *
+ * @param {object} state
+ * @returns {boolean}
+ */
+function counterAvailable(state) {
+  const board = boardSnapshot();
+  const attackerDoc = game.actors.get(state.attackerId);
+  const defenderDoc = game.actors.get(state.defenderId);
+  if (!attackerDoc || !defenderDoc) return false;
+
+  const attacker = unitFrom(board, attackerDoc);
+  const defender = unitFrom(board, defenderDoc);
+  if (!attacker?.panel || !defender?.panel) return false;
+
+  const held = defender.effects ?? [];
+  return process.canCounter(state, {
+    defenderAlive: (defenderDoc.system?.health?.value ?? 0) > 0,
+    // The DU's range, not the AU's: the counter is the DU attacking.
+    attackerInRange: inAttackRange(defender.panel, attacker.panel, defender.range ?? 1),
+    attackerHasAccel: (attacker.effects ?? []).includes("accel"),
+    defenderCanAct: defender.canAct !== false,
+    defenderHasBerserk: held.includes("berserk"),
+    defenderHasFragarach: held.includes("fragarach"),
+    attackerConcealedAndFaster:
+      Boolean(attacker.concealed) && (attacker.agility ?? 0) > (defender.agility ?? 0),
+  });
+}
+
+/**
+ * Run the counter as its own Combat Process, roles reversed (§12.8, §27.10).
+ *
+ * A full Process, not a bare damage roll: Ch. 41 rules that the source's
+ * *"Steps 1 and 4 are repeated"* is a typo for "1 **to** 4", because a counter
+ * that cannot be evaded and deals no damage is nonsense and Instant Counter's
+ * *"skip straight to Step 3"* is only a special property if the normal counter
+ * does not skip.
+ *
+ * No budget is spent — a counter is a reaction, and `budget.spend` lives in
+ * `resolveAttack`, which this path does not go through.
+ *
+ * @param {object} state the process being countered
+ * @returns {Promise<{messageId: string, state: object}|null>}
+ */
+async function runCounter(state) {
+  const counterer = game.actors.get(state.defenderId);
+  const target = game.actors.get(state.attackerId);
+  if (!counterer || !target) return null;
+
+  const counter = process.advance(process.beginCounter(state), "done");
+  const message = await renderAttackCard({
+    state: counter,
+    attacker: counterer,
+    ability: null,
+    targets: [{ unitId: state.attackerId }],
+  });
+
+  await message.setFlag("fgt", "process", process.serialize(counter));
+  await message.setFlag("fgt", "collapse", process.laddersCollapse(unitSnapshot(target)));
+  return { messageId: message.id, state: counter };
 }
 
 /**

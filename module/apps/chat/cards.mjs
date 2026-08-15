@@ -109,6 +109,16 @@ function promptOptions(prompt) {
       { event: "cs", label: game.i18n.localize("FGT.Reaction.CommandSpell"), hint: null },
     ];
   }
+  // The counter is a free choice — it costs no budget, only the risk of
+  // standing in range. Named explicitly rather than left to fall through to
+  // the Luck Check branch below, which would have offered a "Contest" button
+  // that emits an event this rung has no transition for.
+  if (prompt.kind === "counter") {
+    return [
+      { event: "counter", label: game.i18n.localize("FGT.Reaction.Counter"), hint: game.i18n.localize("FGT.Reaction.CounterHint") },
+      { event: "declined", label: game.i18n.localize("FGT.Reaction.Decline"), hint: null },
+    ];
+  }
   // Every Luck Check rung is optional, because Luck is spent whether or not
   // the check succeeds. The cost is shown on the button.
   const unit = game.actors.get(prompt.unitId);
