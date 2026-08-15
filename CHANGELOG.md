@@ -110,6 +110,21 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Writes went to a different actor than reads.** Every rule reads its units from
+  `canvas.tokens.placeables` via `t.actor`, which for an *unlinked* token is a synthetic actor
+  backed by the token's own `ActorDelta` — a different document from `game.actors.get(id)`, which
+  is what the write adapter resolved first. Damage was computed, applied, and landed somewhere
+  the board never looks at, which on screen is indistinguishable from damage that was never
+  applied. The adapter now prefers the token's actor and falls back to the world actor, so reads
+  and writes address the same document; for a linked token they are the same document already and
+  nothing changes.
+- **A targeting Region's offsets are `{i, j}` objects, not `[i, j]` pairs.** `GridShapeData`
+  rejected the pairs with *"i: may not be undefined"* the moment a placement was confirmed. Pinned
+  by `test/unit/target-region.test.mjs`, because the failure only surfaces inside Foundry.
+- **`EffectData` declares `changes`.** Core requires every ActiveEffect subtype to carry it and
+  warns at `setupGame` when one does not. F/GT drives effects through rule elements rather than
+  Foundry's change system, but the field being unused is not the same as it being absent — core
+  UI and modules both read it.
 - **The turn state now expires by tick rather than by being cleared.** It was reset by *writing*
   a blank state at each turn boundary, so a single boundary hook that did not fire — for any
   reason, on any client — left a Unit reporting "0 remain of MOV 7" for the rest of the match,
