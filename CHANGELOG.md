@@ -127,6 +127,29 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **An area attack damaged one unit** (Ch. 45 A2). `resolveAttack` took `targets.units[0]` and
+  discarded the rest, keeping them only long enough to set an `isAoE` flag. A Noble Phantasm
+  over seven units resolved against one of them and nothing anywhere said so — the card showed
+  a correct calculation against a correct target and the other six vanished. The comment above
+  the code read *"One Combat Process per target"*, which is exactly what it did not do.
+
+  `process.beginFanOut` now builds one Process per defender, and each gets its own card and its
+  own reaction ladder, because each defender reacts independently: prompted in parallel, evading
+  separately, contested separately. Process states are plain values, so one advancing cannot
+  disturb another.
+
+  They share a `groupId`, which is what remembers they were one attack — the attacker's budget
+  is spent once for the group (it always was; `budget.spend` runs before the fan-out), and
+  counters will resolve across the group *"sequentially in turn order"* rather than per-card.
+
+  Two deliberate edges: a **single** caught unit is not an AoE resolution, so facing still
+  applies and no card claims a fan-out over one defender; and a resolution that caught **nobody**
+  keeps its single null-defender Process, because a ground-placed non-damaging NP is a real
+  resolution with no defenders.
+
+  Not done: §12.10's *batched* damage pass. Damage is computed and applied per Process rather
+  than as one pure batch across all defenders. Each defender's number is right, so this is a
+  performance shape rather than a correctness one.
 - **An aura reached its own bearer and stopped there** (Ch. 45 A5). `Aura` wrote its modifier
   into the owner's `modifiers` bag carrying `radius` and `relations` fields that the damage
   pipeline does not read, so the contribution applied **to the bearer, at any distance,
