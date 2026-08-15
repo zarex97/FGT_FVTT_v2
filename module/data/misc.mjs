@@ -13,6 +13,24 @@ const fields = foundry.data.fields;
 export class EffectData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
+      // Core requires every ActiveEffect subtype to carry `changes`, and warns
+      // at `setupGame` when one does not. F/GT does not use Foundry's own
+      // change system — a rule element on the effect *definition* is what
+      // modifies a unit (Ch. 24), because a change can only write a document
+      // field and the rules need predicates, ordering and an audit trail. But
+      // "we do not use it" is not the same as "it may be absent": modules and
+      // core UI both read `effect.changes`, so the field exists, defaults empty,
+      // and is honoured by core for anyone who does put something in it.
+      changes: new fields.ArrayField(new fields.SchemaField({
+        key: new fields.StringField({ required: true, blank: true }),
+        value: new fields.StringField({ required: true, blank: true }),
+        mode: new fields.NumberField({
+          integer: true, initial: CONST.ACTIVE_EFFECT_MODES.ADD,
+          choices: Object.values(CONST.ACTIVE_EFFECT_MODES),
+        }),
+        priority: new fields.NumberField({ required: false, nullable: true, initial: null }),
+      })),
+
       defId: new fields.StringField({ required: true, blank: false }),
       magnitude: new fields.NumberField({ required: true, initial: 0 }),
       stage: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
