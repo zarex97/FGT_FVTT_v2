@@ -34,6 +34,10 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+---
+
+## [0.2.12] — 2026-08-15
+
 ### Added
 
 - **Asterios**, the first Servant of the D1 pass, converted from the original tabletop sheet in
@@ -118,94 +122,6 @@ coincide by accident; the headings say which is which.
   effect code: suspend/resume around a Combat Process, a non-blocking offer with its 45-second
   timeout, and the "spend to override" affordance in the targeting preview. An unapplied effect
   **logs itself by name** rather than resolving silently.
-- **A smoke check that actually loads a world** — `npm run check:smoke -- --world=<id>`
-  ([`tools/smoke-world.mjs`](tools/smoke-world.mjs)). Every other gate here runs without Foundry,
-  which is right for L1 and L2 and leaves exactly one thing uncovered: whether the system still
-  boots. `0.2.10` proved what that costs. Lint passed, 629 tests passed, the content validator
-  passed, and every world rendered a black page, because nothing in the repository had ever
-  loaded one. This drives a real browser at a real Foundry over the DevTools Protocol, launches
-  the world, joins it, and waits for `game.ready`; an uncaught exception fails the run and is
-  printed with its stack. Verified against the `0.2.10` defect itself — restored the broken
-  schema, and the check exits 1 naming the throw.
-
-  It needs a running Foundry and a Chrome started with `--remote-debugging-port`, so it is not in
-  CI — GitHub's runners have neither. It is a local gate, to run before tagging, next to
-  `npm run check:release`.
-- **`CONFIG.debug.hooks` is on.** F/GT is driven almost entirely by hooks — the scheduler,
-  movement, budget and turn order all hang off them — so when a rule does not fire, the first
-  question is whether its hook was reached at all. This is what answers it. Verbose by design;
-  the console is where this system is debugged.
-- **A combat tracker that can create the combatants F/GT needs.** A combatant here is a
-  **faction**, not a token, and nothing could make one — so a match ran with zero turns and four
-  separate symptoms followed. `FGTCombatTracker` adds "Add Faction" and "Add Every Faction",
-  creating a combat offers to populate it, and starting an empty one is refused with the fix
-  named. The affordance is borrowed from the Universal Tabletop System's
-  `CombatTracker#addPlayer`, which solves the same problem for the same reason. The GM gets a
-  slot of its own, flagged rather than given a reserved faction id, because it takes a turn but
-  owns no units and has no budget.
-- **Grid-shape Regions for the committed targeting area, and a confirmation step** (§28.14).
-  `GridShapeData` is *"any arbitrary set of grid squares, defined by their grid offset"*, which
-  is exactly what `resolveTargets` returns. Aiming stays on the PIXI layer; a *committed*
-  placement is drawn as a real Region, proxied so a player can do it, discarded in a `finally`,
-  and swept at `ready`. The review window then lists every unit that will be hit with its damage
-  range, and every unit the area caught that the rules excluded, with the reason — the pattern
-  from `isaacsHBPF2e`, whose three outcomes (confirm, re-aim, cancel) have to stay distinct
-  values because an empty confirmation and a cancellation are both legal and mean opposite
-  things.
-- **`hasRiding` is projected onto the unit snapshot.** Three places each decided it for
-  themselves, two of them by reaching into `game.actors` from a layer that may not.
-- **`placement.chosenIds` narrows any chooser**, so unchecking a unit in that window actually
-  spares it. It can only remove: the dialog runs on the player's client, so a crafted id naming
-  an ally must not make that ally a target.
-- **Exclusion reasons in the targeting resolver.** `ResolvedTargets.excluded` records, for every
-  unit an area caught and a filter then dropped, the reason it was dropped — captured where the
-  decision is made rather than reconstructed afterwards. The preview HUD renders them as
-  struck-through rows, which is the layout §28.6 has specified since it was written; the
-  "no legal targets" error names the first exclusion instead of stating only that there were
-  none; and a session with nothing to offer lists the resolver's distinct reasons rather than
-  discarding them, after the roster check that already told a factionless world what to do.
-  Adapted from the area-targeting flow in `isaacsHBPF2e`, whose review dialog lists every
-  rejected token with its reason *"so a target going missing is never a mystery the caster has
-  to debug mid-turn"*.
-- **Delay** (§25.3). The field existed on the combatant schema and nothing read it.
-  `computeTurnOrder` derives the played order from the rolled one rather than mutating it, so a
-  delay cannot compound; it reorders only the factions that have not yet acted; and delays apply
-  in declaration order, so two factions each delaying one place past each other end up where
-  they began. Declared through the GM proxy, with the resulting order shown in the HUD.
-- **ZON** (§6.9, §16.3). `unit.outsideZon` had two consumers — pipeline stage 9's 5d10 reduction
-  and the `requiresZon` limit gating every Noble Phantasm — and no producer, so both rules had
-  always been inert. `rules/zon.mjs` derives it; because the zone belongs to the Master–Servant
-  *pair*, `snapshotBoard` annotates once every unit exists and the attack flow takes its
-  combatants from the board through `unitFrom` rather than re-projecting them. The class split
-  follows §6.9's reading, with a max-not-sum bonus channel shared with Independent Action, from
-  a config table rather than arithmetic because that reading is flagged for an authorial ruling.
-  Both reference-set exceptions are modelled: Semiramis's exemption and the Dioscuri's
-  `any`-across-twins test. Content declares its own bonuses through a new `ZonBonus` element.
-- **The persistent overlay layer** (§28.9): the ZON ring around a selected Servant's Master, red
-  when the Servant is outside it; an enemy's threat range on hover, in the clipped-corner
-  octagon their attack will actually use; and a Master's protection radius, drawn only while a
-  Servant is standing in it, because the rule is conditional.
-- **`game.user.targets` mirroring** (D28.8) — written after a resolution, never read.
-- **The targeting controls are announced** when the canvas is taken over.
-- **`test/unit/zon.test.mjs`** and **`test/unit/targeting-boundary.test.mjs`** — 35 tests
-  covering the ZON derivation, both of its consumers, and every exclusion reason.
-- **`tools/check-templates.mjs`** — static checks over `templates/`, wired into CI and
-  `npm run check:templates`. Template defects are invisible to ESLint and to every other test,
-  and surface as a stack trace inside Foundry at render time; two have already shipped. It
-  catches both: a helper Foundry v14 does not register (`array`, `upper`), and a bare context
-  name passed to a helper that throws on `undefined` from inside an `{{#each}}` — tracking block
-  params so `{{#each xs as |x|}}{{selectOptions x.choices}}{{/each}}` is correctly left alone.
-- **A GM-managed faction roster.** Settings → F/GT → **Manage Factions**: create a faction, name
-  and colour it, assign a player to it, and tick which other factions it is allied with. Unit
-  sheets now pick from that list with a `<select>` instead of accepting free text — two units
-  whose faction strings differed by a typo were enemies, silently, with nothing on screen to
-  explain it.
-  - Ids are **generated from the name and never change**, so renaming a faction does not orphan
-    its units.
-  - Alliances are stored per faction but **normalized to be symmetric and reflexive** on read: a
-    roster where red allies blue but blue does not ally red is a half-finished edit, and the safe
-    reading of one is where nobody is surprised by an attack from an ally.
-  - Deleting a faction says how many units it will leave unaligned before it does it.
 
 ### Fixed
 
@@ -372,17 +288,33 @@ coincide by accident; the headings say which is which.
   Still open, and named rather than quietly dropped: Battle Continuation's `requiresHealthAbove`
   clause needs a health-peak history that nothing records. Gating on a field no code writes is
   precisely the defect just repaired, so it waits for the history.
-- **Writes went to a different actor than reads.** Every rule reads its units from
-  `canvas.tokens.placeables` via `t.actor`, which for an *unlinked* token is a synthetic actor
-  backed by the token's own `ActorDelta` — a different document from `game.actors.get(id)`, which
-  is what the write adapter resolved first. Damage was computed, applied, and landed somewhere
-  the board never looks at, which on screen is indistinguishable from damage that was never
-  applied. The adapter now prefers the token's actor and falls back to the world actor, so reads
-  and writes address the same document; for a linked token they are the same document already and
-  nothing changes.
-- **A targeting Region's offsets are `{i, j}` objects, not `[i, j]` pairs.** `GridShapeData`
-  rejected the pairs with *"i: may not be undefined"* the moment a placement was confirmed. Pinned
-  by `test/unit/target-region.test.mjs`, because the failure only surfaces inside Foundry.
+
+---
+
+## [0.2.11] — 2026-08-15
+
+### Added
+
+- **A smoke check that actually loads a world** — `npm run check:smoke -- --world=<id>`
+  ([`tools/smoke-world.mjs`](tools/smoke-world.mjs)). Every other gate here runs without Foundry,
+  which is right for L1 and L2 and leaves exactly one thing uncovered: whether the system still
+  boots. `0.2.10` proved what that costs. Lint passed, 629 tests passed, the content validator
+  passed, and every world rendered a black page, because nothing in the repository had ever
+  loaded one. This drives a real browser at a real Foundry over the DevTools Protocol, launches
+  the world, joins it, and waits for `game.ready`; an uncaught exception fails the run and is
+  printed with its stack. Verified against the `0.2.10` defect itself — restored the broken
+  schema, and the check exits 1 naming the throw.
+
+  It needs a running Foundry and a Chrome started with `--remote-debugging-port`, so it is not in
+  CI — GitHub's runners have neither. It is a local gate, to run before tagging, next to
+  `npm run check:release`.
+- **`CONFIG.debug.hooks` is on.** F/GT is driven almost entirely by hooks — the scheduler,
+  movement, budget and turn order all hang off them — so when a rule does not fire, the first
+  question is whether its hook was reached at all. This is what answers it. Verbose by design;
+  the console is where this system is debugged.
+
+### Fixed
+
 - **`EffectData` declares `changes`, by inheriting core's own field.** Core requires every
   ActiveEffect subtype to carry it. F/GT drives effects through rule elements rather than
   Foundry's change system, but the field being unused is not the same as it being absent — core
@@ -397,6 +329,31 @@ coincide by accident; the headings say which is which.
   (`CONST.ACTIVE_EFFECT_CHANGE_TYPES`), not a numeric `mode`. `EffectData` now extends
   `foundry.data.ActiveEffectTypeDataModel` and spreads `super.defineSchema()`, so the one shape
   that cannot drift out of sync with core's contract is core's own.
+
+---
+
+## [0.2.10] — 2026-08-15
+
+### Fixed
+
+- **Writes went to a different actor than reads.** Every rule reads its units from
+  `canvas.tokens.placeables` via `t.actor`, which for an *unlinked* token is a synthetic actor
+  backed by the token's own `ActorDelta` — a different document from `game.actors.get(id)`, which
+  is what the write adapter resolved first. Damage was computed, applied, and landed somewhere
+  the board never looks at, which on screen is indistinguishable from damage that was never
+  applied. The adapter now prefers the token's actor and falls back to the world actor, so reads
+  and writes address the same document; for a linked token they are the same document already and
+  nothing changes.
+- **A targeting Region's offsets are `{i, j}` objects, not `[i, j]` pairs.** `GridShapeData`
+  rejected the pairs with *"i: may not be undefined"* the moment a placement was confirmed. Pinned
+  by `test/unit/target-region.test.mjs`, because the failure only surfaces inside Foundry.
+
+---
+
+## [0.2.9] — 2026-08-14
+
+### Fixed
+
 - **The turn state now expires by tick rather than by being cleared.** It was reset by *writing*
   a blank state at each turn boundary, so a single boundary hook that did not fire — for any
   reason, on any client — left a Unit reporting "0 remain of MOV 7" for the rest of the match,
@@ -405,6 +362,18 @@ coincide by accident; the headings say which is which.
   has to succeed for a turn to end. The boundary write is kept, but only to keep the stored data
   tidy — nothing depends on it. State with no stamp at all, written before the field existed,
   counts as stale, which also un-sticks any Unit already caught by the old bug.
+
+---
+
+## [0.2.8] — 2026-08-14
+
+### Added
+
+- **`hasRiding` is projected onto the unit snapshot.** Three places each decided it for
+  themselves, two of them by reaching into `game.actors` from a layer that may not.
+
+### Fixed
+
 - **Every data preparation of a Combat threw**, which took `turns` with it and left the tracker
   showing nothing at all. `setupTurns` sorts with
   `this.combatants.contents.sort(this._sortCombatants)` — the method is passed **unbound**, so
@@ -412,6 +381,79 @@ coincide by accident; the headings say which is which.
   notices because it only touches `a` and `b`; ours read `this.system.turnOrder`. The order now
   comes from the combatants' parent. This is also why no factions appeared in the tracker, and
   why the turn state was still never being cleared.
+
+### Corrected
+
+- **Movement is limited by MOV, not by a count of moves.** The superseded reading was *one Move
+  per Turn*, with Riding granting a second — so every drag after the first was refused with
+  "This Unit has already Moved this Turn", or, with Riding, "Riding's second Move requires an
+  Attack between the two segments". The rule is that a Unit may Move as many times as it likes
+  until the total reaches its MOV; what fixes it in place is **Attacking**, and Riding is the one
+  exception, its two phases sharing the single allowance. `segmentCheck` now has exactly three
+  refusals — Riding Attack is terminal, the allowance is spent, or it has Attacked without Riding
+  — and the drag count gates nothing. See Ch. 18 §18.4.
+
+---
+
+## [0.2.7] — 2026-08-14
+
+### Added
+
+- **A combat tracker that can create the combatants F/GT needs.** A combatant here is a
+  **faction**, not a token, and nothing could make one — so a match ran with zero turns and four
+  separate symptoms followed. `FGTCombatTracker` adds "Add Faction" and "Add Every Faction",
+  creating a combat offers to populate it, and starting an empty one is refused with the fix
+  named. The affordance is borrowed from the Universal Tabletop System's
+  `CombatTracker#addPlayer`, which solves the same problem for the same reason. The GM gets a
+  slot of its own, flagged rather than given a reserved faction id, because it takes a turn but
+  owns no units and has no budget.
+- **Grid-shape Regions for the committed targeting area, and a confirmation step** (§28.14).
+  `GridShapeData` is *"any arbitrary set of grid squares, defined by their grid offset"*, which
+  is exactly what `resolveTargets` returns. Aiming stays on the PIXI layer; a *committed*
+  placement is drawn as a real Region, proxied so a player can do it, discarded in a `finally`,
+  and swept at `ready`. The review window then lists every unit that will be hit with its damage
+  range, and every unit the area caught that the rules excluded, with the reason — the pattern
+  from `isaacsHBPF2e`, whose three outcomes (confirm, re-aim, cancel) have to stay distinct
+  values because an empty confirmation and a cancellation are both legal and mean opposite
+  things.
+- **`placement.chosenIds` narrows any chooser**, so unchecking a unit in that window actually
+  spares it. It can only remove: the dialog runs on the player's client, so a crafted id naming
+  an ally must not make that ally a target.
+- **Exclusion reasons in the targeting resolver.** `ResolvedTargets.excluded` records, for every
+  unit an area caught and a filter then dropped, the reason it was dropped — captured where the
+  decision is made rather than reconstructed afterwards. The preview HUD renders them as
+  struck-through rows, which is the layout §28.6 has specified since it was written; the
+  "no legal targets" error names the first exclusion instead of stating only that there were
+  none; and a session with nothing to offer lists the resolver's distinct reasons rather than
+  discarding them, after the roster check that already told a factionless world what to do.
+  Adapted from the area-targeting flow in `isaacsHBPF2e`, whose review dialog lists every
+  rejected token with its reason *"so a target going missing is never a mystery the caster has
+  to debug mid-turn"*.
+- **Delay** (§25.3). The field existed on the combatant schema and nothing read it.
+  `computeTurnOrder` derives the played order from the rolled one rather than mutating it, so a
+  delay cannot compound; it reorders only the factions that have not yet acted; and delays apply
+  in declaration order, so two factions each delaying one place past each other end up where
+  they began. Declared through the GM proxy, with the resulting order shown in the HUD.
+- **ZON** (§6.9, §16.3). `unit.outsideZon` had two consumers — pipeline stage 9's 5d10 reduction
+  and the `requiresZon` limit gating every Noble Phantasm — and no producer, so both rules had
+  always been inert. `rules/zon.mjs` derives it; because the zone belongs to the Master–Servant
+  *pair*, `snapshotBoard` annotates once every unit exists and the attack flow takes its
+  combatants from the board through `unitFrom` rather than re-projecting them. The class split
+  follows §6.9's reading, with a max-not-sum bonus channel shared with Independent Action, from
+  a config table rather than arithmetic because that reading is flagged for an authorial ruling.
+  Both reference-set exceptions are modelled: Semiramis's exemption and the Dioscuri's
+  `any`-across-twins test. Content declares its own bonuses through a new `ZonBonus` element.
+- **The persistent overlay layer** (§28.9): the ZON ring around a selected Servant's Master, red
+  when the Servant is outside it; an enemy's threat range on hover, in the clipped-corner
+  octagon their attack will actually use; and a Master's protection radius, drawn only while a
+  Servant is standing in it, because the rule is conditional.
+- **`game.user.targets` mirroring** (D28.8) — written after a resolution, never read.
+- **The targeting controls are announced** when the canvas is taken over.
+- **`test/unit/zon.test.mjs`** and **`test/unit/targeting-boundary.test.mjs`** — 35 tests
+  covering the ZON derivation, both of its consumers, and every exclusion reason.
+
+### Fixed
+
 - **The turn state was never reset**, so a unit had no movement left for the rest of the match
   after one move. `clearTurnState` early-returned on the acting faction being `undefined`, which
   it always was in a match with no combatants.
@@ -431,16 +473,22 @@ coincide by accident; the headings say which is which.
 - **The preview attacked with the wrong stat.** `normalAttack.component` was missing from the
   unit snapshot, so a MAG attacker was previewed as a STR one.
 
-- **No edit on either sheet was ever saved.** Both templates had a `<form>` as their root
-  element. ApplicationV2 renders a document sheet's frame **as** the form (`tag: "form"`), and a
-  part's HTML is parsed detached — so the inner `<form>` really was created, every input's form
-  owner was the inner form, and `FormDataExtended(outerForm)` collected nothing. The change event
-  bubbled, the submit ran, and it submitted an empty object. Both roots are now `<div>`.
-  This is why typing a faction did nothing; it is also why typing a Health value did nothing.
-- **`alliances` was never passed to any board snapshot.** Four call sites each built their own
-  snapshot and not one of them included it, so `relationOf` saw an empty map and every faction
-  was an island. There is now one board builder, `engine/board.mjs#currentBoard`, and it fills in
-  the alliance graph from the roster.
+### Corrected
+
+- **D28.9 is revised, not reversed.** The superseded reading was that transient targeting never
+  creates a document. Aiming still does not — that half stands, and it is what keeps the preview
+  frame-rate cheap — but a committed placement now creates a grid-shape Region. The two
+  objections that were about lifecycle rather than geometry are answered by *when* it exists:
+  nothing is ever read back from it, so the raciness that killed the prototype's approach cannot
+  recur, and one document per commit is not one per pointer move. See §28.14 for D28.10–D28.13.
+
+---
+
+---
+
+## [0.2.6] — 2026-08-14
+
+### Fixed
 
 - **Every attack reported its target out of range.** Two position bugs compounding:
   - **`snapshot.panel` read a token's `x`/`y` as grid offsets. They are pixels.** Two tokens
@@ -451,27 +499,57 @@ coincide by accident; the headings say which is which.
     the canvas is a global — so `snapshotUnit(attacker)` placed the attacker at `{0, 0}` while
     the defender stood wherever it actually was. `engine/board.mjs#unitSnapshot` resolves the
     token and the panel first, and every call site in the engine and the interface now uses it.
+
+---
+
+## [0.2.4] — 2026-08-14
+
+### Added
+
+- **`tools/check-templates.mjs`** — static checks over `templates/`, wired into CI and
+  `npm run check:templates`. Template defects are invisible to ESLint and to every other test,
+  and surface as a stack trace inside Foundry at render time; two have already shipped. It
+  catches both: a helper Foundry v14 does not register (`array`, `upper`), and a bare context
+  name passed to a helper that throws on `undefined` from inside an `{{#each}}` — tracking block
+  params so `{{#each xs as |x|}}{{selectOptions x.choices}}{{/each}}` is correctly left alone.
+
+### Fixed
+
 - **The faction editor crashed on open.** `{{selectOptions players …}}` sat inside
   `{{#each factions}}`, where a bare name resolves against the **item** rather than the template
   context — so the helper received `undefined` and threw. Fixed with `@root.players`, and the
   class of defect is now caught statically.
 
-### Corrected
+---
 
-- **Movement is limited by MOV, not by a count of moves.** The superseded reading was *one Move
-  per Turn*, with Riding granting a second — so every drag after the first was refused with
-  "This Unit has already Moved this Turn", or, with Riding, "Riding's second Move requires an
-  Attack between the two segments". The rule is that a Unit may Move as many times as it likes
-  until the total reaches its MOV; what fixes it in place is **Attacking**, and Riding is the one
-  exception, its two phases sharing the single allowance. `segmentCheck` now has exactly three
-  refusals — Riding Attack is terminal, the allowance is spent, or it has Attacked without Riding
-  — and the drag count gates nothing. See Ch. 18 §18.4.
-- **D28.9 is revised, not reversed.** The superseded reading was that transient targeting never
-  creates a document. Aiming still does not — that half stands, and it is what keeps the preview
-  frame-rate cheap — but a committed placement now creates a grid-shape Region. The two
-  objections that were about lifecycle rather than geometry are answered by *when* it exists:
-  nothing is ever read back from it, so the raciness that killed the prototype's approach cannot
-  recur, and one document per commit is not one per pointer move. See §28.14 for D28.10–D28.13.
+## [0.2.3] — 2026-08-14
+
+### Added
+
+- **A GM-managed faction roster.** Settings → F/GT → **Manage Factions**: create a faction, name
+  and colour it, assign a player to it, and tick which other factions it is allied with. Unit
+  sheets now pick from that list with a `<select>` instead of accepting free text — two units
+  whose faction strings differed by a typo were enemies, silently, with nothing on screen to
+  explain it.
+  - Ids are **generated from the name and never change**, so renaming a faction does not orphan
+    its units.
+  - Alliances are stored per faction but **normalized to be symmetric and reflexive** on read: a
+    roster where red allies blue but blue does not ally red is a half-finished edit, and the safe
+    reading of one is where nobody is surprised by an attack from an ally.
+  - Deleting a faction says how many units it will leave unaligned before it does it.
+
+### Fixed
+
+- **No edit on either sheet was ever saved.** Both templates had a `<form>` as their root
+  element. ApplicationV2 renders a document sheet's frame **as** the form (`tag: "form"`), and a
+  part's HTML is parsed detached — so the inner `<form>` really was created, every input's form
+  owner was the inner form, and `FormDataExtended(outerForm)` collected nothing. The change event
+  bubbled, the submit ran, and it submitted an empty object. Both roots are now `<div>`.
+  This is why typing a faction did nothing; it is also why typing a Health value did nothing.
+- **`alliances` was never passed to any board snapshot.** Four call sites each built their own
+  snapshot and not one of them included it, so `relationOf` saw an empty map and every faction
+  was an island. There is now one board builder, `engine/board.mjs#currentBoard`, and it fills in
+  the alliance graph from the roster.
 
 ---
 
@@ -1071,6 +1149,15 @@ registry), D (twelve Servant data sheets), E (event reference).
 
 ---
 
+[0.2.12]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.12
+[0.2.11]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.11
+[0.2.10]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.10
+[0.2.9]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.9
+[0.2.8]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.8
+[0.2.7]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.7
+[0.2.6]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.6
+[0.2.4]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.4
+[0.2.3]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.3
 [0.2.1]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.1
 [0.2.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.2.0
 [0.1.0]: https://github.com/zarex97/FGT_FVTT_v2/releases/tag/v0.1.0
