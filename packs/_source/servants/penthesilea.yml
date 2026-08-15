@@ -1,0 +1,58 @@
+# packs/_source/servants/penthesilea.yml
+# Conversion source: char_orig_sheets/Copia de Penthesilea.md
+schema: 1
+id: penthesilea
+name: Penthesilea
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Penthesilea
+servantClasses: [berserker]
+alignment: { order: lawful, morality: good }
+region: [greece]
+attributes: [female, servant, earth, king, humanoid]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: "A+", end: "B+", agi: C, mag: A, luc: D }
+baseHealth: 1250
+mov: 4
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 160, mag: 200 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: class-mad-enhancement, rank: EX }
+  - { ref: divinity, rank: B }
+  - { ref: penthesilea-charisma }
+  - { ref: penthesilea-golden-rule-beauty }
+  - { ref: penthesilea-outrage-amazon }
+
+notes: |
+  Second Servant of the D1 pass. Her Charisma is the archetypal aura and the reason `relations`
+  is a list: "all damage dealt by OTHER allied Units within a 2 panel area" means allies WITHOUT
+  self, so `self` is dropped from the default `[ally, self]` and she gains nothing from her own
+  Charisma. Ch. 11 §11.6 cites exactly this case; A5 now implements it.
+
+  NOT YET AUTHORED, each for a named reason:
+
+  - **Hatred of Achilles.** A compulsion: within 4 panels of any Greek Male Unit she force-
+    activates Mad Enhancement and must move toward and attack that unit, ignoring player orders.
+    The `ForceTarget` executor exists but §45.4 records that the four targeting executors write
+    keys **the targeting resolver does not read**, so authoring it would produce a compulsion
+    that compels nothing. It also needs the Mad Enhancement lockout that Asterios already
+    surfaced as missing. Its Command Spell counterpart *is* authored (Ch. 17 §17.2 reference-set
+    additions) and would have nothing to negate.
+  - **Goddess of War (NP, passive).** Four clauses, three of which roll `1d4` per damage event
+    and one of which raises her own Divinity rank from B to A. Per-event dice inside the pipeline
+    have no expression today, and a rank-raising passive needs `RankShift` to reach a class skill
+    rather than a parameter.
+  - **Charisma's suppression clause** — "negated and cannot be used when Mad Enhancement is
+    activated" — is the same shape as Heracles's Bravery (Ch. 31): an ability disabled by its
+    owner's own other ability. `Suppress` exists; what is missing is a predicate that can name
+    another ability's active state.
+
+  Howl of the War God is also unauthored: its second clause is a damage bonus conditioned on the
+  TARGET being a Male unit from the Greece region, which the predicate vocabulary can express but
+  no content has exercised, and it is better introduced with a test than smuggled in here.

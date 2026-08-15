@@ -1,0 +1,20 @@
+# Penthesilea, char_orig_sheets/Copia de Penthesilea.md
+schema: 1
+id: penthesilea-golden-rule-beauty
+name: "Golden Rule (Beauty)"
+rank: A
+cooldown: "4◈"
+description: |
+  (Active) Applies Debuff Immune for 1◈ Turns (not Instakill, Death or Erase) and NP Regen for
+  1◈ Turns (NP Cooldown reduced by 1 Turn at the end of every Turn).
+phases:
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: debuffImmune }
+        duration: "1◈"
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: npRegen, magnitude: 1 }
+        duration: "1◈"

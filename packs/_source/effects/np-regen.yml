@@ -1,0 +1,18 @@
+# Appendix A §A.2
+#
+# Feeds `scheduler.cooldownRate`, which already reads `ability.regen` and adds
+# it to the per-turn rate. NP Lag halves that rate and NP Lock stops it, so the
+# three interact through one number rather than three special cases.
+schema: 1
+id: npRegen
+name: "NP Regen"
+description: "Noble Phantasm Cooldown is reduced by an extra X per Turn."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: StatDelta
+    stat: npRegen
+    value: "@magnitude"

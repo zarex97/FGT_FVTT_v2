@@ -1,0 +1,17 @@
+# Appendix A §A.2
+schema: 1
+id: debuffImmune
+name: "Debuff Immune"
+description: "Cannot be inflicted with debuffs. Does not affect Instakill, Death or Erase."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # The exclusions are named on the element rather than assumed: the three
+  # terminal effects go through a different gate, and an immunity that silently
+  # covered them would make a Servant unkillable.
+  - key: Immunity
+    scope: debuffs
+    except: [instakill, death, erase]

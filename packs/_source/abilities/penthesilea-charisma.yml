@@ -1,0 +1,29 @@
+# Penthesilea, char_orig_sheets/Copia de Penthesilea.md
+schema: 1
+id: penthesilea-charisma
+name: "Charisma"
+rank: B
+cooldown: "4◈"
+description: |
+  Effects are negated and cannot be used while Mad Enhancement is active.
+  (Passive) All damage dealt by OTHER allied Units within 2 panels is increased by 20 including NP.
+  (Active) Applies Atk Up (Charisma) for 1◈ Turns: allied damage within 2 panels +20%; if NP, 10%.
+passiveRules:
+  # The archetypal aura, and the reason `relations` is a list rather than a
+  # boolean: "other allied Units" means allies WITHOUT self, so `self` is
+  # dropped from the default `[ally, self]`. Penthesilea gains nothing from her
+  # own Charisma.
+  - key: Aura
+    modifierKey: flatDamage
+    radius: 2
+    relations: [ally]
+    value: 20
+    stacking: highestOnly
+activeRules:
+  - key: Aura
+    modifierKey: atkUp
+    radius: 2
+    relations: [ally, self]
+    value: 20
+    npValue: 10
+    stacking: highestOnly
