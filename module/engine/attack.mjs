@@ -26,6 +26,7 @@ import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
+import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -264,6 +265,34 @@ async function rollLuck(state) {
 }
 
 /**
+ * Roll for, and then resolve, a defender's defeat.
+ *
+ * `resolveDefeat` is pure and takes its dice through `ctx.rolls`, so the dice
+ * are rolled here — and only the ones the defender's own handlers ask for, via
+ * `pendingRolls`. A defender with no revive rolls nothing.
+ *
+ * @param {object} defender the defender's snapshot, taken *before* the damage
+ * @param {number} damage
+ * @returns {Promise<object[]>} intents: a revive, or a defeat, or neither
+ */
+async function resolveDefeatOf(defender, damage) {
+  const remaining = (defender.health?.value ?? 0) - damage;
+  if (remaining > 0) return [];
+
+  const combat = game.combat;
+  const ctx = {
+    tick: combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound") || 3,
+    rolls: {},
+  };
+  for (const spec of pendingRolls(defender, "unitDefeated")) {
+    ctx.rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
+  }
+
+  return resolveDefeat({ ...defender, health: { ...defender.health, value: remaining } }, ctx);
+}
+
+/**
  * Build the damage context, run the pure pipeline, and apply the result.
  * @param {object} state
  * @param {object} message
@@ -316,6 +345,12 @@ async function applyDamage(state, message) {
       I.damage(state.defenderId, result.total, result.breakdown),
       ...(result.flags.defeatedOutright ? [I.defeat(state.defenderId, "petrify")] : []),
       I.log({ kind: "damage", attackerId: state.attackerId, defenderId: state.defenderId, total: result.total }),
+      // Damage that empties a Health bar is where `unitDefeated` fires, and
+      // until now nothing fired it — so Battle Continuation, which is authored
+      // entirely as an `OnEvent: unitDefeated`, could never trigger. The revive
+      // is decided *here*, before the defeat is written, because a unit that
+      // comes back was never defeated.
+      ...(result.flags.defeatedOutright ? [] : await resolveDefeatOf(defender, result.total)),
     ],
     "attack",
   );

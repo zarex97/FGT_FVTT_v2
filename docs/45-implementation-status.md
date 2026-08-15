@@ -1,6 +1,6 @@
 # 45 — Implementation Status and Completion Plan
 
-**As of `0.2.1`.** This chapter audits the 44 specification chapters against the ~10,500 lines
+**As of `0.2.11`.** This chapter audits the 44 specification chapters against the ~10,500 lines
 of code in `module/`, names what is missing, and lays out a step-by-step plan to finish it.
 
 It is written to be **acted on**, so it is blunt about three distinctions that a status table
@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 505 tests.
+domain are all implemented and carry 643 tests.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -32,9 +32,19 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    the **Counter** and the **AoE fan-out** are stubs.
 2. **Command Spells do not exist as a flow.** The intent, the schema and the resource all exist;
    nothing spends them, and the interrupt protocol (Ch. 17 §17.4) is unimplemented.
-3. **Events do not fire into anything.** `OnEvent` elements are collected, and `fireEvent` reads
-   a field (`handler.intents`) that the executor never writes — so Battle Continuation's revive,
-   the single most-cited event in the reference set, is inert.
+3. ~~**Events do not fire into anything.**~~ — **done (A1)**, see the Unreleased changelog.
+   `OnEvent` now normalizes to `{events, actions}` at collection time, `fireEvent` dispatches
+   those actions through an action table, and `resolveDefeat` gives `unitDefeated` the reader it
+   never had. Battle Continuation revives. The original finding read: `OnEvent` elements are
+   collected, and `fireEvent` reads a field (`handler.intents`) that the executor never writes —
+   so Battle Continuation's revive, the single most-cited event in the reference set, is inert.
+
+   One clause of that skill is still open and is **named rather than silently dropped**:
+   `requiresHealthAbove: 0.5` — *"requires its Health to have exceeded half its maximum at least
+   once since the last activation"* — needs a health-peak history that nothing records. Adding
+   the gate against a field no code writes would recreate the exact defect this step repaired,
+   so the gate waits for the history. The cooldown gate, which is the rule that actually stops a
+   revive loop, is implemented and tested.
 4. **Auras apply to the wrong unit.** `Aura` writes a modifier carrying `radius` and `relations`
    into its *owner's* modifier bag, and the pipeline reads the modifier while ignoring both
    fields — so an aura buffs its own owner at unlimited range instead of the units around it.
@@ -105,7 +115,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 505 unit and golden tests. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 643 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Missing** | The snapshot has a `terrain` field; nothing writes or reads it. |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
@@ -149,7 +159,7 @@ Thirty executors exist. Their output lands in eleven buckets, of which **four ha
 | `damageNegation` | `attack.mjs`, stage 12 | **Live** |
 | `attributes` | targeting relations, pipeline predicates | **Live** |
 | `magicResistance` | stage 11 | **Live** |
-| `eventHandlers` | `scheduler.fireEvent` | **Broken** — see below |
+| `eventHandlers` | `scheduler.fireEvent` | **Live** — as of A1; see below |
 | `grantedAbilities` | — | **Collected only** |
 | `suppressions` | — | **Collected only** |
 
@@ -162,9 +172,9 @@ Two more that are subtler than "collected only", because they *look* wired:
 - **The four targeting executors** — `TargetingModifier`, `ForceTarget`, `Decoy`, `WeakPoint` —
   write keys that nothing in the targeting resolver reads.
 
-### The `fireEvent` defect
+### The `fireEvent` defect — **repaired (A1)**
 
-`scheduler.fireEvent` collects `handler.intents`:
+`scheduler.fireEvent` used to collect `handler.intents`:
 
 ```js
 for (const handler of u.eventHandlers ?? []) {
@@ -174,10 +184,32 @@ for (const handler of u.eventHandlers ?? []) {
 }
 ```
 
-The `OnEvent` executor stores the element's own shape — `{event, revive: {table, …}}` — and never
-an `intents` array. So every event handler in the game contributes **a log line and nothing
-else**. Battle Continuation's revive, the Sustainability drain, and every `onUnitDefeated` clause
-are all inert.
+The `OnEvent` executor stored the element's own shape — `{event, revive: {table, …}}` — and never
+an `intents` array. So every event handler in the game contributed **a log line and nothing
+else**.
+
+Three changes close it:
+
+1. **`normalizeHandler` (L2).** `OnEvent` now produces `{events, actions, automatic, abilityId,
+   source}`. `events` is always a list, so Fragarach's two-event subscription is the ordinary
+   case rather than a special one. Every rank-dependent lookup is resolved *here*, because rank
+   is in scope at collection time and nowhere downstream — a `4d20` that is not settled now can
+   never be settled.
+2. **An action table in `fireEvent` (L3).** Ch. 24 §24.5's action vocabulary — `Damage`, `Heal`,
+   `StatDelta`, `ApplyEffect`, `RemoveEffect`, `ResourceDelta`, `CooldownDelta`, `Message`, plus
+   `Revive` from the `revive:` shorthand. An **unknown action logs itself by name** instead of
+   doing nothing quietly, which is the specific failure this whole chapter is about.
+3. **`resolveDefeat` (L3), the reader `unitDefeated` never had.** Nothing in the system emitted
+   a defeat when Health reached zero, so the event that Battle Continuation is written against
+   was never raised by anybody. `applyDamage` now calls it, and a unit that revives is never
+   defeated in the first place rather than being defeated and then healed.
+
+Still inert, and now on the list rather than buried: **the Sustainability drain** (Ch. 16) has no
+`OnEvent` authored against it at all, so it is a content gap rather than an engine one.
+
+Dice keep the "caller rolls" contract the rest of layer 3 uses: `fireEvent` is pure and reads
+totals from `ctx.rolls`, and `pendingRolls(unit, event)` tells the impure caller which formulas
+to roll first — so the attack flow does not have to know what Battle Continuation is.
 
 ---
 
@@ -191,12 +223,19 @@ Each step names its **test gate** — what must pass before it is considered don
 
 ### Phase A — finish what is already half-built
 
-**A1. Fix `fireEvent` and make events real.** *(small)*
-Change the `OnEvent` executor to store a normalized handler, and `fireEvent` to dispatch it
-through a small handler table (`revive`, `damage`, `applyEffect`, `sustainabilityLoss`).
-*Test gate:* a unit with Battle Continuation B at 0 Health produces a revive intent with the
-rolled value from `battleContinuationRevive`, and the cooldown from `battleContinuationCooldown`
-prevents a second revive within the window.
+**A1. Fix `fireEvent` and make events real.** *(small)* — **DONE.**
+The `OnEvent` executor stores a normalized handler and `fireEvent` dispatches it through an
+action table. *Test gate met:* `test/unit/events.test.mjs` — a unit with Battle Continuation B at
+0 Health produces a revive for the rolled `battleContinuationRevive` value (plus the per-step
+bonus at B+), sets `battleContinuationCooldown` on the skill itself, and is defeated rather than
+revived while that cooldown is running. 13 tests.
+
+Two things came out of the work that were not in the plan. The first is that **nothing emitted a
+defeat when Health hit zero** — the event had no raiser, not just no reader — so `resolveDefeat`
+had to be written and called from `applyDamage` before the revive could be reached at all. The
+second is that `◈` is a *Round*: `battleContinuationCooldown`'s `3◈` is nine turns of
+`cooldownRemaining` at three turns to the Round, not three. The first test written asserted `3`
+and was wrong.
 
 **A2. The AoE fan-out.** *(medium)*
 `resolveAttack` creates one Combat Process **per target**, each with its own reaction ladder and
@@ -285,7 +324,7 @@ invalidates existing worlds. Not before.
 ## 45.6 Suggested order, with reasoning
 
 ```
-A1 → A3 → A2 → A4 → A5   correctness repairs first; a stub that resolves silently outranks a
+A1 ✔ → A3 → A2 → A4 → A5 correctness repairs first; a stub that resolves silently outranks a
                          missing feature, and A5 (auras) is producing a wrong number today
 B4 → B3                  costs after auras, because a cost may read an aura-modified value
 B1                     Command Spells; large, and depends on the interrupt protocol

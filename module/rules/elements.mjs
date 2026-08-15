@@ -150,6 +150,98 @@ function scalar(v, index = 0) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Event handlers                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Normalize an `OnEvent` element into the shape `scheduler.fireEvent` dispatches.
+ *
+ * This exists because the previous version stored the element *as authored* and
+ * `fireEvent` read a field (`handler.intents`) that no content and no executor
+ * ever wrote. Every event handler in the game therefore produced a log line and
+ * nothing else — Battle Continuation's revive included. A normalized handler is
+ * the fix: one shape, built here, with every rank-dependent lookup already
+ * resolved, because **rank is only in scope at collection time** and the
+ * scheduler has no way to recover it.
+ *
+ * @param {object} el
+ * @param {{rank: Rank|null, source: string, ability?: object, ctx?: object}} env
+ * @returns {{events: string[], actions: object[], automatic: boolean,
+ *            abilityId: string|null, source: string}}
+ */
+export function normalizeHandler(el, { rank, source, ability, ctx }) {
+  return {
+    // Always an array. Mannanán's Fragarach subscribes to two events at once
+    // (Ch. 24 §24.8), and a single-event handler is just the one-element case.
+    events: Array.isArray(el.event) ? [...el.event] : [el.event],
+    actions: normalizeActions(el, rank, ctx),
+    // `automatic` marks a handler Addle can suppress (Ch. 11 §11.4).
+    automatic: el.automatic ?? false,
+    abilityId: ability?.id ?? null,
+    source,
+  };
+}
+
+/**
+ * The `then` list, plus the shorthands that stand in for a common `then`.
+ *
+ * `revive:` is authored as its own key rather than as a `then` action because
+ * it carries a cooldown table alongside its roll, and reading
+ * `revive: {table, cooldownTable}` is plainer than the three-action expansion.
+ * It desugars to one action here so the dispatcher only ever sees actions.
+ *
+ * @param {object} el
+ * @param {Rank|null} rank
+ * @param {object} [ctx]
+ * @returns {object[]}
+ */
+function normalizeActions(el, rank, ctx) {
+  const actions = (el.then ?? []).map((a) => normalizeAction(a, rank, ctx));
+  if (el.revive) actions.push(normalizeAction({ key: "Revive", ...el.revive }, rank, ctx));
+  return actions;
+}
+
+/**
+ * One action, with its tables resolved against the owning ability's rank.
+ *
+ * @param {object} a
+ * @param {Rank|null} rank
+ * @param {object} [ctx]
+ * @returns {object}
+ */
+function normalizeAction(a, rank, ctx) {
+  const { key, ...rest } = a;
+  /** @type {Record<string, unknown>} */
+  const out = { kind: key, ...rest };
+
+  // `table:` names a roll the caller must make; resolving it here turns a rank
+  // into the formula and the per-step bonus that go with it.
+  if (a.table) out.roll = rollSpec(a.table, rank);
+  if (a.cooldownTable) out.cooldown = lookup(a.cooldownTable, rank);
+  if (a.amount !== undefined) out.amount = resolveValue(a, rank, ctx, "amount");
+  return out;
+}
+
+/**
+ * A dice table resolved to `{key, formula, bonus}`.
+ *
+ * `key` is the table id, and it is what the caller keys its pre-rolled value
+ * on: these functions are pure, so the roll happens outside and arrives through
+ * `ctx.rolls` (the same contract `turn-order.mjs` uses).
+ *
+ * @param {string} table
+ * @param {Rank|null} rank
+ * @returns {{key: string, formula: string|null, bonus: number}}
+ */
+function rollSpec(table, rank) {
+  const v = lookup(table, rank);
+  if (v && typeof v === "object" && "formula" in v) {
+    return { key: table, formula: v.formula, bonus: v.bonus ?? 0 };
+  }
+  return { key: table, formula: typeof v === "string" ? v : null, bonus: 0 };
+}
+
+/* -------------------------------------------------------------------------- */
 /*  The catalogue                                                             */
 /* -------------------------------------------------------------------------- */
 
@@ -365,11 +457,8 @@ export const EXECUTORS = Object.freeze({
 
   /* ── Group 5 — events and grants ──────────────────────────────────────── */
 
-  OnEvent(el, { source, out }) {
-    out.eventHandlers.push({
-      event: el.event, intents: el.intents ?? [], revive: el.revive ?? null,
-      effect: el.effect ?? null, duration: el.duration ?? null, source,
-    });
+  OnEvent(el, { rank, source, ability, out, ctx }) {
+    out.eventHandlers.push(normalizeHandler(el, { rank, source, ability, ctx }));
   },
 
   Aura(el, { rank, source, out, ctx }) {

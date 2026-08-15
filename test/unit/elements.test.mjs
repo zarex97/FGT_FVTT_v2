@@ -168,15 +168,26 @@ describe("other executors", () => {
     expect(out.autoSucceeds[0]).toMatchObject({ check: "evade", beatenBy: ["aim"] });
   });
 
-  it("OnEvent carries its revival spec through", () => {
+  it("OnEvent desugars its revival spec into a dispatchable action", () => {
     const out = collectContributions([
       ability({
         name: "Battle Continuation", rank: "A",
         passiveRules: [{ key: "OnEvent", event: "unitDefeated", revive: { table: "battleContinuationRevive" } }],
       }),
     ]);
-    expect(out.eventHandlers[0]).toMatchObject({ event: "unitDefeated" });
-    expect(out.eventHandlers[0].revive.table).toBe("battleContinuationRevive");
+    // The handler must arrive at the scheduler already resolved: rank is in
+    // scope here and nowhere downstream, so `5d20` is settled now or never.
+    expect(out.eventHandlers[0]).toMatchObject({
+      events: ["unitDefeated"],
+      actions: [{ kind: "Revive", roll: { key: "battleContinuationRevive", formula: "5d20", bonus: 0 } }],
+    });
+  });
+
+  it("OnEvent normalizes a single event into the one-element list", () => {
+    const out = collectContributions([
+      ability({ passiveRules: [{ key: "OnEvent", event: "turnEnd", then: [] }] }),
+    ]);
+    expect(out.eventHandlers[0].events).toEqual(["turnEnd"]);
   });
 
   it("DamageNegation splits a formula table into formula plus bonus", () => {
