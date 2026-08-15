@@ -17,6 +17,7 @@
 
 import { INFINITE } from "../domain/enums.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { endOfRoundHomeBase } from "../rules/environment.mjs";
 import * as I from "./intents.mjs";
 
 /**
@@ -109,6 +110,10 @@ export function endRound(board, ctx) {
   intents.push(...tickPeriodics(units, "roundEnd", ctx));
   intents.push(...fireEvent("roundEnd", units, ctx));
   intents.push(...expireEffects(units, ctx, "roundEnd"));
+  // Home Base regeneration and the three-Round debuff cure (Ch. 19 §19.1 E1,
+  // E2). The rules layer returns descriptors; turning them into intents is this
+  // layer's job, the same division the `OnEvent` action table uses.
+  intents.push(...homeBaseIntents(endOfRoundHomeBase(units, board)));
   intents.push(I.log({ kind: "roundEnd", round: ctx.round }));
   return intents;
 }
@@ -485,4 +490,24 @@ export function checkRemovals(units, ctx) {
  */
 function resetTurnState(unit) {
   return I.log({ kind: "resetTurnState", unitId: unit.id });
+}
+
+/**
+ * Turn Home Base descriptors into intents.
+ *
+ * @param {object[]} descriptors
+ * @returns {Intent[]}
+ */
+function homeBaseIntents(descriptors) {
+  /** @type {Intent[]} */
+  const out = [];
+  for (const d of descriptors) {
+    switch (d.kind) {
+      case "heal": out.push(I.heal(d.unitId, d.amount, d.source)); break;
+      case "statDelta": out.push(I.statDelta(d.unitId, d.stat, d.delta)); break;
+      case "removeEffect": out.push(I.removeEffect(d.unitId, d.effectId, d.reason)); break;
+      default: out.push(I.log({ kind: "unappliedHomeBaseEffect", effect: d.kind, unitId: d.unitId })); break;
+    }
+  }
+  return out;
 }

@@ -19,6 +19,7 @@ import { collectContributions } from "./elements.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { annotateTerrain } from "./terrain.mjs";
+import { phase, darkModifiers, homeBaseModifiers } from "./environment.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -228,9 +229,28 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // an aura's own modifiers should sit after the ground the unit stands on in
   // the explainer's reading order.
   annotateTerrain(units, board);
+  // Day/Night and Home Base are facts about the FIELD, so they settle here for
+  // the same reason terrain and auras do: a unit projected alone cannot know
+  // which Round it is or whose ground it is standing on.
+  annotateEnvironment(units, board);
   annotateAuras(units, board);
 
   return board;
+}
+
+/**
+ * Give every unit what the Round and the ground it stands on do to it.
+ *
+ * @param {object[]} units
+ * @param {object} board
+ * @returns {void}
+ */
+function annotateEnvironment(units, board) {
+  board.phase = phase(board.round ?? 1, board.startedAtDay !== false);
+  for (const u of units) {
+    const mods = [...darkModifiers(u, board.phase), ...homeBaseModifiers(u, board)];
+    if (mods.length > 0) u.modifiers = [...(u.modifiers ?? []), ...mods];
+  }
 }
 
 /**

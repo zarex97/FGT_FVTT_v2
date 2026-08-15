@@ -4,14 +4,20 @@ import js from "@eslint/js";
  * The layer boundary is the rule that matters here.
  *
  * docs/01-vision-and-goals.md §1.7 defines four layers with a strict dependency
- * direction: domain → rules → engine → apps. A violation is a lint failure
+ * direction: domain → rules → engine → apps. A violation is a build failure
  * rather than a code review comment, because the whole value of the boundary is
  * that L1 and L2 stay testable without Foundry.
+ *
+ * `ALLOWED` is exported and enforced by `tools/check-layers.mjs`, which runs as
+ * part of `npm run lint`. It is not enforced by ESLint itself: that needs
+ * `eslint-plugin-import`, and for one rule a twenty-line script beats a
+ * dependency. The `zones` table below is kept in the shape that plugin wants,
+ * so adopting it later is a one-line change.
  */
-const LAYERS = ["domain", "rules", "engine", "data", "documents", "apps", "canvas", "net", "regions"];
+export const LAYERS = ["domain", "rules", "engine", "data", "documents", "apps", "canvas", "net", "regions"];
 
 /** Which layers each layer may import from. `util` is universal. */
-const ALLOWED = {
+export const ALLOWED = {
   domain: [],
   rules: ["domain"],
   engine: ["domain", "rules", "data", "documents", "net"],

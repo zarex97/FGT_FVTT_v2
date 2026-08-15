@@ -34,6 +34,50 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Added
+
+- **The environment** (Ch. 45 C2) — the Day/Night cycle, the Home Base and the Holy Grail.
+  `snapshotBoard` runs `annotateEnvironment` beside terrain and auras, for the same reason: these
+  are facts about the *field*, and a unit projected alone cannot know which Round it is or whose
+  ground it is standing on. `endRound` maps the Home Base descriptors into intents.
+
+  The phase is a **pure function of the round number** — one coin flip at the start, so nothing
+  drifts and a reconnect cannot lose it. The `Dark` rule carries no `npValue`, because both its
+  clauses are "including NP" and an `npValue` would silently halve them. E1's exclusion is
+  narrower than it reads: only combat *within* the base disqualifies, so a unit that sortied out,
+  fought and came home still regenerates. And the Grail's two distances differ — a claimant must
+  be adjacent, a blocker need only be in the 2-panel Area — which makes two adjacent rivals a
+  standoff, as intended.
+
+  Not done: Region, Random Events, Civilians, the board setup sequence and E5. The Grail's rules
+  are complete but **have no runtime owner** — nothing holds a `GrailState` yet.
+
+- **`tools/check-layers.mjs`**, and the finding behind it. `eslint.config.mjs` has computed a
+  `zones` table since the project started; its header calls the layer boundary *"the rule that
+  matters here"* and says a violation *"is a lint failure rather than a code review comment"*. It
+  was neither — `zones` was exported and **nothing consumed it**, because enforcing it needs
+  `eslint-plugin-import`, which is not a dependency. So the project's central architectural rule
+  was documented, computed and unchecked.
+
+  It surfaced the honest way: `rules/environment.mjs` imported `engine/intents.mjs` and lint
+  passed. The checker now enforces `ALLOWED` as part of `npm run lint`, and found three
+  pre-existing violations, recorded as named exceptions with the reason each exists rather than
+  waved through by widening the table. A stale exception fails too, so the list shrinks as the
+  debt is paid.
+
+### Changed
+
+- **The changelog is split into per-version sections.** Everything from `0.2.2` onward had
+  accumulated under `[Unreleased]`. Attribution is by first appearance in a tagged changelog, so
+  it survives entries having been reordered and rewritten between releases; all 44 entries
+  attributed, 389 content lines preserved.
+
+  `[Unreleased]` is deliberately **empty**: `release-notes.mjs` skips an empty section and falls
+  through to the commit log, whereas a placeholder line would be published verbatim as the
+  release notes for any version lacking its own section.
+  `test/unit/release-notes.test.mjs` pins the whole fallback chain — notes are produced and the
+  exit code is 0 for a version with no section, and no version ever yields an empty file.
+
 ---
 
 ## [0.2.12] — 2026-08-15
