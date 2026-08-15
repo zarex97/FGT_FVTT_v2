@@ -28,8 +28,8 @@ domain are all implemented and carry 643 tests.
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
 
-1. **The Combat Process runs three of its six steps.** Damage resolves; the **Injury Roll**,
-   the **Counter** and the **AoE fan-out** are stubs.
+1. **The Combat Process runs four of its six steps.** Damage resolves, and the **Injury Roll**
+   is live as of A3. The **Counter** and the **AoE fan-out** are still stubs.
 2. **Command Spells do not exist as a flow.** The intent, the schema and the resource all exist;
    nothing spends them, and the interrupt protocol (Ch. 17 §17.4) is unimplemented.
 3. ~~**Events do not fire into anything.**~~ — **done (A1)**, see the Unreleased changelog.
@@ -80,7 +80,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 09 | Targeting | **Done** | Eleven-step resolver, four anchors interactive, `legalPlacements`. |
 | 10 | Effect taxonomy | **Done** | Classification vocabularies enforced by the content validator. |
 | 11 | Effect engine | **Partly** | Application, stacking, suppression, expiry, periodics done. **Auras (§11.6) apply to the wrong unit — see §45.4. Transfer (§11.8) missing. Visibility (§11.10) collected-only.** |
-| 12 | Combat Process | **Partly** | See §45.3 — three of six steps are stubs. |
+| 12 | Combat Process | **Partly** | See §45.3 — two of six steps are stubs (Counter, AoE fan-out). |
 
 ### Part II — resolution systems
 
@@ -126,14 +126,15 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 ## 45.3 The Combat Process, step by step
 
 This is the single most important gap, because it is the part that *looks* finished. The state
-machine has all six steps and drives through them; three of them do nothing.
+machine has all six steps and drives through them; **two** of them still do nothing, down from
+three.
 
 | Step | Spec | Code | Status |
 |---|---|---|---|
 | 1 — Declaration | §12.2 | `resolveAttack` | **Done** |
 | 2 — Reaction ladder | §12.4 | `advanceAttack`, `combat-process.mjs` | **Done** — five rungs, Luck contests, collapsing |
 | 3 — Damage | §12.5 | `applyDamage` | **Done** — full 16-stage pipeline |
-| 4 — Injury Roll | §12.6 | `attack.mjs` `case "injury"` | **Stub** — advances with `"done"`; the pipeline sets `flags.exceededInjuryThreshold` and nobody reads it |
+| 4 — Injury Roll | §12.6 | `rules/injury.mjs`, `attack.mjs` `applyInjury` | **Done (A3)** — `injuryCheck` reads `flags.exceededInjuryThreshold`, 1d4 off Agility |
 | 5 — Facing | §12.7 | `applyFacing` | **Done** |
 | 6 — Counter | §12.8 | `attack.mjs` `case "counter"` | **Stub** — `case "counter": return process.advance(state, "done")` |
 | AoE fan-out | §12.10 | `resolveAttack` | **Stub** — `defenderId: targets.units[0]` resolves the **first target only**; the rest are counted for the `isAoE` flag and then discarded |
@@ -243,10 +244,17 @@ its own card, sharing one damage roll where the rules say so (§12.10).
 *Test gate:* a 5×5 NP over four defenders produces four processes; each defender may react
 independently; the attacker's budget is spent once.
 
-**A3. The Injury Roll.** *(small)*
-Implement step 4 against §12.6 — read `flags.exceededInjuryThreshold`, roll, apply the result.
-*Test gate:* damage over 100 triggers the roll; damage over 100 that is *only* over because of
-Def Crk does not (the pipeline already snapshots this before stage 16's Def Crk addition).
+**A3. The Injury Roll.** *(small)* — **DONE.**
+`rules/injury.mjs` decides, `attack.mjs` `applyInjury` rolls the `1d4` and takes it off Agility.
+*Test gate met:* `test/unit/injury.test.mjs` — damage over 100 triggers the roll, and damage over
+100 that is *only* over because of Def Crk does not, because the check reads the pipeline's
+pre-stage-16 flag rather than comparing the total to 100 itself. Also covers survival, zero
+damage, Light Wound, and the Golden Hind NP-only override. 7 tests.
+
+Two clauses of §12.6 are **named rather than quietly skipped**. `Light Wound` is a parameter the
+check honours, but no rung of the reaction ladder offers it yet, so nothing sets it — that rung
+is D3 work. Multi-hit attacks should perform *one* roll on the total; today one Combat Process
+means one roll, which is right until A2 makes multi-hit real.
 
 **A4. The Counter.** *(medium)*
 Implement step 6: the counter sub-process from §27.10, which is a nested attack with the
@@ -324,7 +332,7 @@ invalidates existing worlds. Not before.
 ## 45.6 Suggested order, with reasoning
 
 ```
-A1 ✔ → A3 → A2 → A4 → A5 correctness repairs first; a stub that resolves silently outranks a
+A1 ✔ → A3 ✔ → A2 → A4 → A5 correctness repairs first; a stub that resolves silently outranks a
                          missing feature, and A5 (auras) is producing a wrong number today
 B4 → B3                  costs after auras, because a cost may read an aura-modified value
 B1                     Command Spells; large, and depends on the interrupt protocol

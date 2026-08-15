@@ -127,6 +127,24 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Combat Process step 4, the Injury Roll, did nothing** (Ch. 45 A3). `attack.mjs` advanced
+  straight through `case "injury"` with `"done"`, and the damage pipeline's
+  `flags.exceededInjuryThreshold` — computed correctly, at the right point, for the right
+  reason — had no reader anywhere in the system. A surviving unit hit for 250 lost no Agility.
+
+  `rules/injury.mjs` decides and `applyInjury` rolls the `1d4`. The decision reads the
+  pipeline's flag rather than comparing the total to 100 itself, which matters more than it
+  looks: `Def Crk`'s bonus damage *"does not count towards the amount required for an Injury
+  Roll"*, and stage 16 adds it **after** the threshold snapshot — so a fresh `damage > 100`
+  would have fired on hits the rules exclude. Survival, zero damage, `Light Wound` and the
+  Golden Hind *"only performs Injury Roll when damaged by NP"* override are all covered.
+
+  That override is carried as a granted **attribute** rather than a new schema field, because
+  the `attributes` bucket is already read by targeting and the pipeline — this adds a reader to
+  a live input instead of introducing another one nothing writes.
+
+  Named, not skipped: no rung of the reaction ladder offers `Light Wound` yet, so the parameter
+  that honours it is always false today.
 - **Every event handler in the game did nothing** (Ch. 45 A1). `OnEvent` stored the element as
   authored and `scheduler.fireEvent` dispatched `handler.intents` — a field no executor and no
   content ever wrote. So a handler contributed one log line and stopped. Battle Continuation, the
