@@ -27,6 +27,7 @@ import { applyEffect } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
+import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -165,8 +166,10 @@ async function runAutomaticStep(state, message) {
       await message.setFlag("fgt", "effects", applied.map((a) => a.summary));
       return process.advance(state, "done", { total: result.total });
     }
-    case "noDamage":
     case "injury":
+      await applyInjury(state, message);
+      return process.advance(state, "done");
+    case "noDamage":
     case "facing":
       // Facing: the defender turns to face the attacker, but not for AoE.
       if (state.state === "facing" && process.shouldUpdateFacing(state)) {
@@ -262,6 +265,48 @@ async function rollLuck(state) {
   // A Luck Check costs 1 Luck whether or not it succeeds.
   await applyBatch([I.statDelta(prompt.unitId, "luck.value", -1)], "luckCheck");
   return { ...outcome, formula: roll.formula };
+}
+
+/**
+ * Combat Process step 4 — the Injury Roll (§12.6).
+ *
+ * Reached after the damage has already been written, so the defender's Health
+ * on the document is the post-damage value the rule wants.
+ *
+ * @param {object} state
+ * @param {object} message
+ * @returns {Promise<void>}
+ */
+async function applyInjury(state, message) {
+  const result = message.getFlag("fgt", "result");
+  const defenderDoc = game.actors.get(state.defenderId);
+  if (!result || !defenderDoc) return;
+
+  const verdict = injuryCheck({
+    exceededThreshold: Boolean(result.flags?.exceededInjuryThreshold),
+    damage: result.total,
+    healthAfter: defenderDoc.system?.health?.value ?? 0,
+    defender: unitFrom(boardSnapshot(), defenderDoc),
+    isNP: state.attack?.kind === "np",
+    // NOTE: no rung of the reaction ladder offers `Light Wound` yet (Ch. 45
+    // D3), so this is always false today. It is read rather than hard-coded so
+    // that adding the rung is the only change needed — but it is a gap, and it
+    // is recorded as one rather than left to look implemented.
+    lightWound: Boolean(state.luckChecks?.lightWound),
+  });
+
+  await message.setFlag("fgt", "injury", verdict);
+  if (!verdict.roll) return;
+
+  const roll = await new Roll("1d4").evaluate();
+  await applyBatch(
+    [
+      I.statDelta(state.defenderId, INJURY_STAT, -roll.total),
+      I.log({ kind: "injury", unitId: state.defenderId, amount: roll.total, tick: game.combat?.system?.globalTurn ?? 0 }),
+    ],
+    "injury",
+  );
+  await message.setFlag("fgt", "injury", { ...verdict, amount: roll.total });
 }
 
 /**
