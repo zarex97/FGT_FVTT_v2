@@ -1,0 +1,16 @@
+# docs/17-command-spells.md §17.2 — cost 2 and cost 3
+# The round gate is explicitly NOT overridable, so it is absent from this list.
+schema: 1
+id: cs-full-cooldown
+name: "Full Cooldown"
+type: commandSpell
+cost: 2
+description: Fully reduces one Skill's Cooldown.
+requirements:
+  - { kind: servantInZon }
+timing: { window: ownTurn }
+effect:
+  - kind: cooldownDelta
+    target: contractedServant
+    scope: oneSkill
+    mode: clear

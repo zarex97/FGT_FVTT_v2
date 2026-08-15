@@ -82,6 +82,30 @@ export const OPERATIONS = Object.freeze({
    * snapshot is authoritative and the extra round trip is invisible next to
    * human decision time in the reaction ladder (§26.4, Model B).
    */
+  /**
+   * Spend a Command Spell. Executed on the GM client for the same reason
+   * `resolveAttack` is: a Command Spell can interrupt somebody else's
+   * resolution, so it must be applied where the authoritative state lives.
+   */
+  spendCommandSpell: {
+    authorize: (payload, userId) => {
+      const master = game.actors.get(payload.masterId);
+      const user = game.users.get(userId);
+      if (!master || !user) return { allowed: false, reason: "Unknown Master." };
+      // Only the Master's owner may spend its Command Spells -- they are that
+      // player's most consequential resource, and "any time at all, even if it
+      // were to interrupt an ongoing process" makes misuse expensive.
+      if (!user.isGM && !master.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not control ${master.name}.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const { spendCommandSpell } = await import("../engine/command-spells.mjs");
+      return spendCommandSpell(payload);
+    },
+  },
+
   resolveAttack: {
     authorize: (payload, userId) => {
       const attacker = game.actors.get(payload.attackerId);

@@ -101,9 +101,27 @@ export class CommandSpellData extends foundry.abstract.TypeDataModel {
       contentId: new fields.StringField({ required: false, blank: true }),
       description: new fields.HTMLField({ required: false, blank: true }),
       cost: new fields.NumberField({ required: true, integer: true, initial: 1, min: 1 }),
+      /**
+       * Kill Yourself costs 1 for a High Rank Master and 2 for a Low Rank one,
+       * so cost is not always a scalar. `cost` above stays as the fallback for
+       * anything reading the flat field.
+       */
+      costByMasterRank: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       requiresRank: new fields.StringField({ required: false, nullable: true, initial: null }),
       isInterrupt: new fields.BooleanField({ initial: true }),
       overridesValidation: new fields.ArrayField(new fields.StringField()),
+
+      // Authored data, kept untyped for the same reason rule elements are: the
+      // content validator checks the shape at build time, and a rigid schema
+      // here would reject a command added by a module — and this catalogue is
+      // explicitly open ("feel free to mention it and use it if the GM or
+      // majority of players approve").
+      requirements: new fields.ArrayField(new fields.ObjectField()),
+      timing: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      blockedWhen: new fields.ArrayField(new fields.ObjectField()),
+      effect: new fields.ArrayField(new fields.ObjectField()),
+      permanentConsequence: new fields.ArrayField(new fields.ObjectField()),
+
       rules: new fields.ArrayField(new fields.ObjectField()),
     };
   }

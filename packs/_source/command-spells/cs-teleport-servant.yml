@@ -1,0 +1,26 @@
+# docs/17-command-spells.md §17.2 — cost 1
+#
+# The catalogue is explicitly OPEN: "if you can think of any other use for
+# Command Spells, feel free to mention it and use it if the GM/majority of
+# players approve." So this is the reference set, not a closed enum.
+# "Cannot be used during a Damage Step if the damage would defeat the Servant."
+# 1 for a High Rank Master, 2 for a Low Rank one. `cost` is the fallback for
+# anything that reads the flat field.
+schema: 1
+id: cs-teleport-servant
+name: "Teleport Servant"
+type: commandSpell
+cost: 1
+description: |
+  Instantly moves the Servant to any panel within 2 panels of the Master. Usable anywhere on
+  the field. If used during Combat, the Combat situation is revised.
+requirements:
+  # "Servant not already within 2 panels of the Master" — the command exists to
+  # close a gap, so it is refused when there is no gap.
+  - { kind: servantNotWithin, panels: 2 }
+timing: { window: anyTime }
+effect:
+  - kind: teleport
+    target: contractedServant
+    anchor: master
+    withinPanels: 2

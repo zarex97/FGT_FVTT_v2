@@ -19,6 +19,7 @@ import { resolveTargets } from "./rules/targeting/resolve.mjs";
 import { test as evaluatePredicate } from "./rules/predicate.mjs";
 import { snapshotUnit, snapshotBoard } from "./rules/snapshot.mjs";
 import { EffectRegistry } from "./rules/registry.mjs";
+import { CommandSpellRegistry } from "./rules/cs-registry.mjs";
 import { collectContributions } from "./rules/elements.mjs";
 import { explainDamage } from "./rules/explain.mjs";
 import * as intents from "./engine/intents.mjs";
@@ -99,6 +100,12 @@ Hooks.once("setup", async () => {
   const count = EffectRegistry.load(documents);
   console.log(`FGT | Loaded ${count} effect definitions`);
 
+  // The Command Spell catalogue. Its own pack, because it is content a GM may
+  // extend -- the rulebook says so explicitly.
+  const csPack = game.packs.get("fgt.command-spells");
+  const csDocs = csPack ? await csPack.getDocuments() : [];
+  console.log(`FGT | Loaded ${CommandSpellRegistry.load(csDocs)} Command Spells`);
+
   if (game.settings.get("fgt", "devMode")) {
     const report = EffectRegistry.validate();
     for (const w of report.warnings) console.warn(`FGT | ${w}`);
@@ -145,6 +152,7 @@ function buildPublicAPI() {
     intents, combatProcess, scheduler, budget,
     pickTarget,
     effects: EffectRegistry,
+    commandSpells: CommandSpellRegistry,
     collectContributions,
     socket: FGTSocket,
   };

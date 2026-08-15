@@ -1,0 +1,26 @@
+# docs/17-command-spells.md §17.2 — cost 1
+#
+# The catalogue is explicitly OPEN: "if you can think of any other use for
+# Command Spells, feel free to mention it and use it if the GM/majority of
+# players approve." So this is the reference set, not a closed enum.
+# "Cannot be used during a Damage Step if the damage would defeat the Servant."
+# 1 for a High Rank Master, 2 for a Low Rank one. `cost` is the fallback for
+# anything that reads the flat field.
+schema: 1
+id: cs-half-heal
+name: "Half Heal"
+type: commandSpell
+cost: 1
+description: Restores Health and Agility by 50% of maximum.
+requirements:
+  - { kind: servantInZon }
+
+blockedWhen:
+  - { state: damage, condition: damageWouldDefeatServant }
+timing: { window: anyTime }
+effect:
+  - kind: statChange
+    target: contractedServant
+    changes:
+      - { stat: health, deltaPercentOfMax: 50, clamp: true }
+      - { stat: agility, deltaPercentOfMax: 50, clamp: true }

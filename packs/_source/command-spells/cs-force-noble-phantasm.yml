@@ -1,0 +1,24 @@
+# docs/17-command-spells.md §17.2 — cost 2 and cost 3
+# The round gate is explicitly NOT overridable, so it is absent from this list.
+schema: 1
+id: cs-force-noble-phantasm
+name: "Force Noble Phantasm"
+type: commandSpell
+cost: 2
+description: |
+  Forces Noble Phantasm use when it would be unusable (uses exhausted, on cooldown). The NP's
+  Cooldown is then set to fully un-cooled-down.
+
+  Cannot bypass the Round gate.
+requirements:
+  - { kind: servantInZon }
+timing: { window: beforeAttack }
+
+overridesValidation: [cooldown, usesExhausted]
+effect:
+  - kind: overrideValidation
+    reason: cooldown
+  - kind: cooldownDelta
+    target: contractedServant
+    scope: theNP
+    mode: clear

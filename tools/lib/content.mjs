@@ -471,6 +471,17 @@ function itemSystem(doc) {
     rules: doc.rules ?? [],
     passiveRules: doc.passiveRules ?? [],
     activeRules: doc.activeRules ?? [],
+    // Command Spell fields. Absent from every other document type, and cheap
+    // to carry: without them the catalogue compiles into items that know their
+    // name and cost and nothing about when they may be used or what they do.
+    cost: doc.cost ?? undefined,
+    costByMasterRank: doc.costByMasterRank ?? null,
+    requirements: doc.requirements ?? [],
+    timing: doc.timing ?? null,
+    blockedWhen: doc.blockedWhen ?? [],
+    effect: doc.effect ?? [],
+    permanentConsequence: doc.permanentConsequence ?? [],
+    overridesValidation: doc.overridesValidation ?? [],
     parameterized: doc.parameterized ?? [],
     // Effect-definition fields, present only on effect documents.
     polarity: doc.polarity ?? null,
