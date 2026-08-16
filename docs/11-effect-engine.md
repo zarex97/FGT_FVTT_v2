@@ -1,5 +1,15 @@
 # 11 — The Effect Engine
 
+> **Transfer and visibility (Ch. 45).** `transferEffect` moves an instance and **keeps its
+> absolute expiry** — because durations are stored as absolute ticks, a transfer is a move rather
+> than a re-application, which is what "duration maintained" means. The one adjustment is
+> `pausedTicks`, rebased when one of the two has been Stopped. An Unremovable effect is never
+> transferable, because a transfer removes before it applies.
+>
+> `visibilityOf` defaults by polarity, with one asymmetry worth stating: a **debuff is also
+> visible to whoever inflicted it**. They applied it and already know what they applied, so
+> telling them is not a leak.
+
 > **Implemented (Ch. 45 A5, D1).** Auras (§11.6) are real: `module/rules/auras.mjs` expands each
 > onto the units in range whose relation matches, and `snapshotBoard` runs the pass once every
 > unit is projected. **Self-inclusion is correct** — "every allied unit" includes the unit itself

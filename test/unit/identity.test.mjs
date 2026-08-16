@@ -11,6 +11,7 @@
 import { describe, it, expect } from "vitest";
 import {
   publicNameOf, isIdentityRevealed, detectRangeOf, discoverChance, discoverAttempts,
+  DETECT_BY_CLASS,
 } from "../../module/rules/identity.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -80,23 +81,67 @@ describe("isIdentityRevealed", () => {
 /* ── §8.7 Detect ──────────────────────────────────────────────────────────── */
 
 describe("detectRangeOf", () => {
-  it("is the unit's own attack range", () => {
-    expect(detectRangeOf(servant({ range: 5 }))).toBe(5);
+  const of = (container, over = {}, board = null) =>
+    detectRangeOf(servant({ classContainer: container, ...over }), board);
+
+  it.each([
+    ["saber", 2], ["lancer", 2], ["rider", 2], ["berserker", 2],
+    ["archer", 4], ["assassin", 4],
+  ])("gives %s %d panels", (container, expected) => {
+    expect(of(container)).toBe(expected);
   });
 
-  it("never drops below two panels", () => {
-    // "(minimum 2 panels)".
-    expect(detectRangeOf(servant({ range: 1 }))).toBe(2);
+  it("gives a Master one panel", () => {
+    expect(detectRangeOf({ kind: "master", effects: [] })).toBe(1);
   });
 
-  it("uses an explicit Detect where the sheet states one", () => {
-    // The Golden Hind has "Detect: 4 panels" regardless of its range.
-    expect(detectRangeOf(servant({ range: 5, detect: 4 }))).toBe(4);
+  it("is not derived from attack range", () => {
+    // An Archer sees four panels whether or not it can shoot that far, and the
+    // reverse: a long-ranged Saber still sees two.
+    expect(of("archer", { range: 1 })).toBe(4);
+    expect(of("saber", { range: 9 })).toBe(2);
   });
 
-  it("is reduced by Deafen, and still floors at two", () => {
-    expect(detectRangeOf(servant({ range: 5, effects: ["deafen"] }))).toBe(4);
-    expect(detectRangeOf(servant({ range: 2, effects: ["deafen"] }))).toBe(2);
+  it("gives a Caster five panels inside its own Home Base", () => {
+    const board = { zones: { b: { faction: "f", panels: [{ i: 0, j: 0 }] } } };
+    expect(of("caster", { faction: "f", panel: { i: 0, j: 0 } }, board)).toBe(5);
+  });
+
+  it("gives a Caster three panels outside it", () => {
+    const board = { zones: { b: { faction: "f", panels: [{ i: 9, j: 9 }] } } };
+    expect(of("caster", { faction: "f", panel: { i: 0, j: 0 } }, board)).toBe(3);
+  });
+
+  it("does not give a Caster the bonus in somebody else's base", () => {
+    const board = { zones: { b: { faction: "other", panels: [{ i: 0, j: 0 }] } } };
+    expect(of("caster", { faction: "f", panel: { i: 0, j: 0 } }, board)).toBe(3);
+  });
+
+  it("lets an explicit sheet value win, for anything with no container", () => {
+    // The Golden Hind states "Detect: 4" and is a platform.
+    expect(detectRangeOf({ kind: "platform", detect: 4, effects: [] })).toBe(4);
+  });
+
+  it("is reduced by Deafen", () => {
+    expect(of("archer", { effects: ["deafen"] })).toBe(3);
+  });
+
+  it("never lets Deafen blind a Master completely", () => {
+    // A Master sees one panel, which is below the old blanket floor of two —
+    // so the floor is 1, not 2, and Deafen cannot take it to zero.
+    expect(detectRangeOf({ kind: "master", effects: ["deafen"] })).toBe(1);
+  });
+
+  it("falls back for a container the table does not list", () => {
+    expect(of("shielder")).toBe(2);
+  });
+
+  it("covers every class the table names", () => {
+    // A container added to the table without a test would otherwise go unchecked.
+    for (const container of Object.keys(DETECT_BY_CLASS)) {
+      const value = detectRangeOf({ kind: container === "master" ? "master" : "servant", classContainer: container, effects: [] });
+      expect(value, container).toBeGreaterThan(0);
+    }
   });
 });
 

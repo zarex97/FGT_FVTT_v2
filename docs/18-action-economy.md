@@ -1,5 +1,14 @@
 # 18 — Action Economy
 
+> **Confuse and Undo (Ch. 45).** `confusedAction` selects from the caller's rolls and **logs
+> every one** — this is the only place the system makes a tactical decision for a player, and an
+> unexplained one is indistinguishable from a bug. It may pick allies, which is the point.
+>
+> `canUndo`'s boundary is **information disclosure**, exactly as §18.7 sets it: once an opponent
+> has learned something, undoing would extract that information for free. An action kind the
+> function does not recognise is **refused**, not allowed — the safe direction is never rewinding
+> something whose consequences are unknown.
+
 > **Implemented (Ch. 45 D1, C3).** Compulsions (§18.5) are live in both halves.
 > `unmetCompulsions` had read a `hatred` effect **nothing ever applied**; positional compulsions
 > are now annotated onto units by `module/rules/compulsion.mjs` and the budget reads them

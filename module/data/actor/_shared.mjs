@@ -52,6 +52,11 @@ export function unitCommon() {
       choices: ["n", "ne", "e", "se", "s", "sw", "w", "nw"],
     }),
 
+    // Set when a Servant's Master dies: "it remains in whatever state it was in
+    // before its Master died until contracted to another Master" (§16.6). A
+    // Berserker whose Mad Enhancement was on cannot switch it off while Free.
+    modesLocked: new fields.BooleanField({ initial: false }),
+
     biography: new fields.HTMLField({ required: false, blank: true }),
     notes: new fields.HTMLField({ required: false, blank: true }),
   };
