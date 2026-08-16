@@ -52,6 +52,26 @@ and rule elements are collected from the regions a unit currently occupies durin
 (Ch. 23 §23.3) — terrain is, mechanically, a positional aura whose source is a region rather
 than a unit.
 
+> **Implemented.** `module/rules/terrain.mjs` holds the catalogue and the three kinds of clause;
+> `TerrainBehavior` in `module/data/regions.mjs` is the Region schema; `engine/board.mjs`
+> projects a scene's Regions into `board.terrain.areas`; `snapshotBoard` runs `annotateTerrain`
+> beside `annotateAuras`; `engine/scheduler.mjs` maps the periodic clauses into intents.
+>
+> The clauses split three ways, and keeping them apart is what lets the standing table stay a
+> pure lookup:
+>
+> | Kind | Function | When |
+> |---|---|---|
+> | **Standing** | `terrainEffects` | While the unit occupies the panel |
+> | **Periodic** | `terrainPeriodics` | At a turn or round boundary |
+> | **On entry** | `terrainOnEntry` | The moment a unit steps on |
+> | **Conversion** | `terrainConversions` | When an attack changes the ground itself |
+>
+> Chance-based clauses keep the "caller rolls" contract: the rules are pure and read a total out
+> of `ctx.rolls`, keyed `terrain:<type>:<outcome>`. A clause whose roll is **missing logs itself
+> by name** rather than firing or vanishing — "the swamp did not add a stage" and "the swamp was
+> never asked" are different facts.
+
 ---
 
 ## 42.2 The catalogue

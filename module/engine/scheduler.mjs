@@ -18,6 +18,7 @@
 import { INFINITE } from "../domain/enums.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { endOfRoundHomeBase } from "../rules/environment.mjs";
+import { terrainPeriodics } from "../rules/terrain.mjs";
 import * as I from "./intents.mjs";
 
 /**
@@ -62,7 +63,12 @@ export function endTurn(board, ctx) {
   // 5. Expiry — after the final tick, so an effect ending now still ticks.
   intents.push(...expireEffects(units, ctx));
 
-  // 6. Sustainability and removal checks.
+  // 6. Terrain's own boundary clauses -- Burning's inescapable Burn, Poison
+  //    Swamp's stage roll. After the periodics above, because a terrain that
+  //    inflicts Poison should not also tick it in the same breath.
+  intents.push(...terrainIntents(terrainPeriodics(units, board, "turnEnd"), ctx));
+
+  // 7. Sustainability and removal checks.
   intents.push(...checkRemovals(units, ctx));
 
   return intents;
@@ -87,6 +93,8 @@ export function beginTurn(board, ctx) {
   // These fire for EVERY unit, because a unit under Shock rolls at the start of
   // its own turn regardless of whose turn it is in the global order.
   intents.push(...fireEvent("turnStart", units, ctx));
+  // Eldritch's coin flip is a turn-START clause.
+  intents.push(...terrainIntents(terrainPeriodics(units, board, "turnStart"), ctx));
 
   return intents;
 }
@@ -114,6 +122,7 @@ export function endRound(board, ctx) {
   // E2). The rules layer returns descriptors; turning them into intents is this
   // layer's job, the same division the `OnEvent` action table uses.
   intents.push(...homeBaseIntents(endOfRoundHomeBase(units, board)));
+  intents.push(...terrainIntents(terrainPeriodics(units, board, "roundEnd"), ctx));
   intents.push(I.log({ kind: "roundEnd", round: ctx.round }));
   return intents;
 }
@@ -509,5 +518,68 @@ function homeBaseIntents(descriptors) {
       default: out.push(I.log({ kind: "unappliedHomeBaseEffect", effect: d.kind, unitId: d.unitId })); break;
     }
   }
+  return out;
+}
+
+/**
+ * Turn terrain descriptors into intents.
+ *
+ * `chance` clauses need a die. The sequences here are pure, so the caller rolls
+ * and the total arrives in `ctx.rolls`, keyed by terrain and outcome. A clause
+ * whose roll is missing **logs itself by name** rather than firing or silently
+ * vanishing — the difference between "the swamp did not add a stage" and "the
+ * swamp was never asked" is exactly what this codebase keeps losing.
+ *
+ * @param {object[]} descriptors
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+function terrainIntents(descriptors, ctx) {
+  /** @type {Intent[]} */
+  const out = [];
+
+  for (const d of descriptors) {
+    switch (d.kind) {
+      case "damage":
+        out.push(I.damage(d.unitId, d.amount, null, {
+          terrain: d.terrain, element: d.element ?? null,
+          // "Fixed" damage ignores everything that modifies damage.
+          bypassModifiers: Boolean(d.fixed),
+        }));
+        break;
+
+      case "applyEffect":
+        out.push(I.applyEffect(d.unitId, {
+          defId: d.effectId,
+          magnitude: d.magnitude ?? 0,
+          // A terrain-sourced effect with `duration: null` never expires while
+          // the unit stays inside; leaving is what ends it, and leaving is not
+          // a removal step.
+          expiry: null,
+          unremovable: Boolean(d.unremovable),
+          sourceTerrain: d.terrain,
+        }, null));
+        break;
+
+      case "chance": {
+        const key = `terrain:${d.terrain}:${d.then}`;
+        const roll = ctx.rolls?.[key];
+        if (typeof roll !== "number") {
+          out.push(I.log({ kind: "terrainRollMissing", terrain: d.terrain, outcome: d.then, unitId: d.unitId, needs: key }));
+          break;
+        }
+        if (roll > d.percent) break;
+        out.push(d.then === "poisonStage"
+          ? I.log({ kind: "poisonStage", unitId: d.unitId, terrain: d.terrain })
+          : I.applyEffect(d.unitId, { defId: d.then, expiry: null, sourceTerrain: d.terrain }, null));
+        break;
+      }
+
+      default:
+        out.push(I.log({ kind: "unappliedTerrainClause", clause: d.kind, unitId: d.unitId, terrain: d.terrain }));
+        break;
+    }
+  }
+
   return out;
 }

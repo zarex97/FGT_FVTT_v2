@@ -642,6 +642,13 @@ a subtype now.
 
 ## 22.10 Region behaviour schemas
 
+> **Implemented** in `module/data/regions.mjs` and registered in `fgt.mjs` as
+> `CONFIG.RegionBehavior.dataModels`. All four types — `terrain`, `homeBase`, `npField`,
+> `platform` — have been declared in `system.json` since the manifest was written and **none of
+> them had a data model**, so an `fgt.terrain` behaviour added to a Region carried no type, no
+> duration and no meaning. `npField` and `platform` are declared with their schemas but their
+> rules are still Ch. 43 and Ch. 20 work.
+
 ```js
 export class HomeBaseBehavior extends foundry.data.regionBehaviors.RegionBehaviorType {
   static defineSchema() {
