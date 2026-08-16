@@ -27,6 +27,9 @@ import * as combatProcess from "./engine/combat-process.mjs";
 import * as scheduler from "./engine/scheduler.mjs";
 import { Scheduler } from "./engine/scheduler-hooks.mjs";
 import * as budget from "./engine/budget.mjs";
+import * as summon from "./engine/summon.mjs";
+import * as items from "./engine/items.mjs";
+import * as copy from "./engine/copy.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
@@ -160,6 +163,10 @@ function buildPublicAPI() {
     // Engine (L3)
     intents, combatProcess, scheduler, budget,
     pickTarget,
+    // Summoning and setup rolls (Ch. 37 §37.6), and items (Ch. 15 §15.8).
+    // Exposed because both are GM workflows a macro drives -- a summon dialog
+    // is content, not engine.
+    summon, items, copy,
     effects: EffectRegistry,
     commandSpells: CommandSpellRegistry,
     collectContributions,

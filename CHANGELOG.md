@@ -36,6 +36,28 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **The roll log (§14.8)**, `module/rules/roll-log.mjs`. Every Evade and Luck Check files a
+  record carrying its formula, the raw die, each modifier with its source and stage, and the
+  total; records accumulate on the Combat Process state and render on the attack card, filtered
+  per viewer so a hidden roll stays hidden. A GM re-roll **keeps the original** and links to it,
+  because a replacement that erased its predecessor would let a re-roll pass unnoticed.
+- **Setup rolls and the summon operation (§14.9, §37.6)**, `module/rules/setup-rolls.mjs` and
+  `module/engine/summon.mjs`. `summonPlan` returns an ordered, inspectable sequence — rolls
+  first, then Master grants, then the war Region's, ending in a re-rollable confirmation. A
+  Servant's Max Health takes **no roll**; a Master's is a coin-flipped `2d100` over a flat 250.
+  Granted parameter steps are stored separately (`system.grantedSteps`) and move Base Attack by
+  ±10 each, for STR and MAG only.
+- **Items (§15.8)**, `module/rules/items.mjs` and `module/engine/items.mjs`, with two new
+  intents (`itemQuantity`, `itemGrant`) and their writers. `transferable` defaults to **false**,
+  and a consumed item is spent **before** its effect runs so a consumable that kills its bearer
+  is still gone.
+- **The remaining §15.4 requirement kinds** — all twelve, with `REQUIREMENT_KINDS` exported so
+  content can be held against it. An unrecognised kind refuses.
+- **Copied abilities (§15.7)**, `module/rules/copy.mjs` and `module/engine/copy.mjs`. Copies are
+  by reference (`copiedFrom`, no phases of their own), take the copier's rank and cooldown, and
+  are read through `effectivePhases` — the single reader, so no phase consumer can forget.
+
+
 - **Penthesilea**, the second Servant of the D1 pass, with two new effects (`debuffImmune`,
   `npRegen`). Her *Charisma* is the archetypal aura and the first content to exercise A5's
   relation filtering: *"all damage dealt by **other** allied Units within a 2 panel area"* means
@@ -125,6 +147,24 @@ coincide by accident; the headings say which is which.
   pre-existing violations, recorded as named exceptions with the reason each exists rather than
   waved through by widening the table. A stale exception fails too, so the list shrinks as the
   debt is paid.
+
+### Fixed
+
+- **Spending a Command Spell threw, and so did every platform write.** Four call sites passed
+  `applyIntents` its io adapter *positionally* with a third `{ reason }` argument no signature
+  accepts, so `canWrite` came out `undefined` and the first non-log intent died on
+  `canWrite is not a function`. B1's whole spend flow and C3's board, fall and destruction
+  writes were dead on arrival. Fixed by a single `applyWorldIntents` helper plus
+  `test/unit/applier-callsites.test.mjs`, which reads the source — a unit test cannot catch this,
+  because the broken calls only run inside a live world.
+- **`canUseAbility` ignored an ability's `requirements`.** The list was implemented and consulted
+  by nothing, so an ability could carry a requirement that never refused anything. It is now
+  checked after the cooldown, round and ZON gates, which stay first because those are the
+  refusals a player can act on.
+- **The multi-Servant tax charged every Master at turn end**, not the one whose faction had just
+  acted — seven players billed for one player's turn.
+- **`ctx.grandOrder` was read by the scheduler and populated by nothing**, so the Grand Order
+  exemption never applied on that path.
 
 ### Changed
 

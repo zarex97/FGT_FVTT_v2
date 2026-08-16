@@ -21,9 +21,17 @@ where something is a stub the exact line is named.
 
 ## 45.1 Executive summary
 
-The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
-checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 1098 tests, and 55 content files.
+The **pure rules core is complete**: the damage pipeline, targeting resolution, checks and the
+roll log, movement legality, the effect application pipeline, the turn budget, ability costs and
+all twelve requirement kinds, items, copied abilities, setup rolls and the rank/tick domain are
+all implemented and carry 1204 tests, and 55 content files.
+
+The last pure-rules gaps closed together: `rules/roll-log.mjs` (§14.8), `rules/setup-rolls.mjs`
+(§14.9, §37.6), `rules/items.mjs` (§15.4's full kind list and §15.8) and `rules/copy.mjs`
+(§15.7). Each was wired to a reader in the same pass — the log to the Process state and the chat
+card, the setup rolls to `engine/summon.mjs`, the requirement kinds to `canUseAbility`, the items
+to two new intents, the copies to `effectivePhases` — because this project's dominant defect is a
+rule that is right and inert, and a pure module with no caller is exactly that.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -103,8 +111,8 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 13 | Damage pipeline | **Done** | 16 stages, both worked examples are golden fixtures. |
-| 14 | Checks and randomness | **Mostly** | Evade, Luck, chance rolls, `checkPlan` done. **The roll log (§14.8) and setup rolls (§14.9) missing.** |
-| 15 | Abilities | **Mostly** | Classification, phases and **costs/requirements (§15.4, B4)** done — Master Health, Sustainability, cooldown, round and ZON gates. **The remaining requirement kinds, granted/copied abilities (§15.7) and items (§15.8) missing.** |
+| 14 | Checks and randomness | **Done** | Evade, Luck, chance rolls, `checkPlan`, **the roll log (§14.8)** — records on the Process state, per-viewer filtering, GM re-rolls that keep the original — and **setup rolls (§14.9)**, where a Servant's Health takes no roll and a Master's is a coin-flipped `2d100` over a flat 250. |
+| 15 | Abilities | **Mostly** | Classification, phases, **costs and all twelve requirement kinds (§15.4)** — and `canUseAbility` now *consults* them, which it did not. **Copied abilities (§15.7)** are `rules/copy.mjs` + `engine/copy.mjs`: `copyable` as per-ability data, copies by reference so a content fix propagates, and `effectivePhases` as the single reader. **Items (§15.8)** transfer and consume through their own intents. **Karna's `supersedes` override and the GM copy dialog (Ch. 36) are the remainder.** |
 | 16 | Relationships | **Mostly** | Master protection, ZON, **Overpower/Underpower (§16.5)**, **Sustainability on a Master's death (§16.6)** — where `null` is not zero — and **the multi-Servant tax (§16.7)**, flat and as a loss rather than damage, with its at-25-Health prohibition. **Contracting (§16.2) — the draft flow — is the remainder.** |
 | 17 | Command Spells | **Done** | Catalogue (16), spend flow, cost variants, offer filtering and the interrupt protocol with its timeout (B1). **The §28.8 preview-time "spend to override" affordance is the remainder.** |
 | 18 | Action economy | **Done** | Budget, per-unit limits, prevention, compulsions, **Confuse's random selector (§18.5)** — fully logged, and it may pick allies — and **Undo (§18.7)**, whose boundary is information disclosure: an unrecognised action is refused rather than rewound. |
@@ -130,8 +138,8 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
-| 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 1098 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
+| 38 | Testing strategy | **Mostly** | 1204 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |

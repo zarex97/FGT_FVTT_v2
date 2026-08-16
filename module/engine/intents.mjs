@@ -23,6 +23,7 @@
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
+  "itemQuantity", "itemGrant",
 ]);
 
 /**
@@ -42,6 +43,10 @@ const ORDER = Object.freeze({
   statDelta: 2,
   resource: 2,
   cooldown: 2,
+  // An item is spent before whatever it does, so a consumable that kills its
+  // bearer is still gone. Same rank as the other bookkeeping writes.
+  itemQuantity: 2,
+  itemGrant: 2,
   // After the action it records, before anything reads it back.
   markTurn: 2,
   heal: 3,
@@ -108,6 +113,24 @@ export const prompt = (userId, spec) =>
  */
 export const markTurn = (unitId, patch) =>
   ({ t: "markTurn", unitId, patch });
+
+/**
+ * Change how many of an item a unit has.
+ * @param {string} unitId @param {string} itemId @param {number} delta
+ * @returns {Intent}
+ */
+export const itemQuantity = (unitId, itemId, delta) =>
+  ({ t: "itemQuantity", unitId, itemId, delta });
+
+/**
+ * Put an item on a unit that may not have one yet — the receiving half of a
+ * transfer, which cannot be a `itemQuantity` because there may be nothing to
+ * adjust.
+ * @param {string} unitId @param {string} contentId @param {number} delta
+ * @returns {Intent}
+ */
+export const itemGrant = (unitId, contentId, delta = 1) =>
+  ({ t: "itemGrant", unitId, contentId, delta });
 
 export const log = (entry) =>
   ({ t: "log", entry });
@@ -205,6 +228,8 @@ const NUMERIC_FIELDS = Object.freeze({
   resource: ["delta"],
   cooldown: ["ticks"],
   spendCS: ["count"],
+  itemQuantity: ["delta"],
+  itemGrant: ["delta"],
 });
 
 /**

@@ -89,6 +89,31 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
 }
 
 /**
+ * Apply a batch against the live world.
+ *
+ * The `{ io, canWrite, isGM }` triple was written out by hand at every call
+ * site, and four of them got it wrong — passing `worldIO()` positionally, so
+ * `canWrite` came out `undefined` and the first write threw. One helper, so
+ * there is one place to get it right.
+ *
+ * @param {Intent[]} intents
+ * @param {string} source for the audit trail
+ * @returns {Promise<{applied: number, proxied: number, prompted: number}>}
+ */
+export async function applyWorldIntents(intents, source) {
+  // Imported lazily to keep applier → io → socket → operations → applier from
+  // being a static cycle; `net/operations.mjs` breaks the same loop the same
+  // way.
+  const { worldIO } = await import("./io.mjs");
+  return applyIntents(intents, {
+    io: worldIO(),
+    canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
+    isGM: game.user.isGM,
+    source,
+  });
+}
+
+/**
  * Perform one batched group of same-type, same-unit writes.
  *
  * Grouping matters: every `applyEffect` on one actor becomes a single
@@ -137,6 +162,12 @@ async function writeGroup(group, io) {
       break;
     case "defeat":
       await io.defeat(unitId, intents[0].cause);
+      break;
+    case "itemQuantity":
+      for (const i of intents) await io.adjustItemQuantity(unitId, i.itemId, i.delta);
+      break;
+    case "itemGrant":
+      for (const i of intents) await io.grantItem(unitId, i.contentId, i.delta);
       break;
     case "log":
       await io.log(intents.map((i) => i.entry));

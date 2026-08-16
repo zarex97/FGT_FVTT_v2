@@ -266,3 +266,32 @@ describe("compileDocument", () => {
     expect(() => compileDocument(ok(), "sketches", library)).toThrow(/No pack mapping/);
   });
 });
+
+describe("copyable (§15.7)", () => {
+  it("accepts an ability that says nothing, because copyable defaults to allowed", () => {
+    expect(errorsFor([file(ok())])).toEqual([]);
+  });
+
+  it("accepts a documented refusal", () => {
+    expect(errorsFor([file(ok({ copyable: { allowed: false, reason: "physical" } }))])).toEqual([]);
+  });
+
+  it("catches a refusal with no reason", () => {
+    // "cannot be copied" with no reason is a rule nobody can check against
+    // §15.7's exclusion list.
+    expect(errorsFor([file(ok({ copyable: { allowed: false } }))])[0])
+      .toMatch(/copyable\.allowed is false/);
+  });
+
+  it("catches a reason outside the documented set", () => {
+    expect(errorsFor([file(ok({ copyable: { allowed: false, reason: "because" } }))])[0])
+      .toMatch(/expected one of/);
+  });
+
+  it("catches a copy that also carries its own phases", () => {
+    // With both, which one runs depends on the reader — and the two readers
+    // would disagree.
+    expect(errorsFor([file(ok({ copiedFrom: "manaBurst", phases: [{ kind: "damage" }] }))])[0])
+      .toMatch(/a copy carries no phases of its own/);
+  });
+});

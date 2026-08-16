@@ -10,13 +10,34 @@
 > cost is paid with `statDelta`, never `damage`, so it cannot trigger `Dmged NP Regen` or an
 > Injury Roll.
 >
-> Granted abilities (§15.7) are read via `module/rules/granted.mjs`. The **copy** half —
-> Scathach's *Wisdom of Dun Scaith*, the `copyable` field and the GM selection dialog — is not
-> built.
+> Granted abilities (§15.7) are read via `module/rules/granted.mjs`, which now also carries the
+> `grantedAbility` constructor — one shape for all four grant mechanisms this section names, so a
+> grant from any of them expires and displays the same way. The **copy** half is
+> `module/rules/copy.mjs`: `canCopy` (with the exclusion list as per-ability `copyable` data
+> rather than a name list in code), `copyCandidates`, `copyAbility` and `effectivePhases`. A copy
+> carries `copiedFrom` and **no phases of its own**, so a later content fix to the source reaches
+> every copy; `effectivePhases` is what every phase reader goes through, because a reader that
+> read `.phases` directly would make the copy load correctly and do nothing.
 >
-> Not built from §15.4's type list: `hasSkill`, `inZone`/`notInZone`, `modeActive`,
-> `counterpartAdjacent`, `targetHasEffect`, the `predicate` escape hatch, and Karna's
-> `supersedes` override.
+> Rank and cooldown on a copy are the **copier's** (`A+`, `4◈−⅓◈`), not the source's. The engine
+> half is `module/engine/copy.mjs` (`offerCopies`, `grantCopies`), which re-checks `canCopy` at
+> pick time — the offer and the pick are separated by a human. The GM dialog (Ch. 36) is still to
+> come.
+>
+> **All twelve of §15.4's requirement kinds** are implemented in `module/rules/items.mjs`
+> (`REQUIREMENT_KINDS`, `meetsRequirement`, `meetsRequirements`), and **`canUseAbility` consults
+> them** — they were the long tail after the cooldown, round and ZON gates, which are checked
+> first because those are the refusals a player can act on. An unrecognised kind **refuses**.
+>
+> Items (§15.8) are `canTransferItem`, `transferItem` and `consumeItem` in the same module, with
+> `module/engine/items.mjs` (`giveItem`, `useItem`) writing through the new `itemQuantity` and
+> `itemGrant` intents. `transferable` **defaults to false** — "Items cannot be traded/given/passed
+> to other Units unless stated" — and a consumed item's quantity drops **before** its effect runs,
+> so a consumable that kills its bearer is still spent. The once-per-turn allowance is counted on
+> the giver's `turnState.itemTransfers`, not on the item, which would otherwise carry a spent
+> allowance to its new owner.
+>
+> Still missing from §15.4: Karna's `supersedes` override.
 
 Skills, Spells, Attack Skills, Noble Phantasms, Magic Crests, and Class Skills. This chapter
 specifies the ability model: the type taxonomy, the phase structure, costs and gates, and the

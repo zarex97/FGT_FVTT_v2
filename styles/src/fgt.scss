@@ -216,6 +216,23 @@
   &__state { font-weight: 600; }
 }
 
+.fgt-rolls {
+  font-size: 0.75rem;
+  opacity: 0.85;
+
+  &__entry {
+    margin-bottom: 0.4rem;
+
+    // A re-rolled record is kept beside its replacement (P6), so the two have
+    // to be tellable apart at a glance.
+    &--reroll { border-left: 2px solid var(--fgt-accent, #b07); padding-left: 0.4rem; }
+  }
+
+  &__purpose { font-weight: 600; }
+  &__line { font-family: var(--font-mono, monospace); white-space: pre; }
+  &__reason { font-style: italic; opacity: 0.75; }
+}
+
 .fgt-list__edit {
   background: none;
   border: none;

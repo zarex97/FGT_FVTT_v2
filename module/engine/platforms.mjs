@@ -10,8 +10,7 @@ import {
 } from "../rules/platforms.mjs";
 import { currentBoard } from "./board.mjs";
 import * as I from "./intents.mjs";
-import { applyIntents } from "./applier.mjs";
-import { worldIO } from "./io.mjs";
+import { applyWorldIntents } from "./applier.mjs";
 
 /**
  * Attempt to board a platform.
@@ -60,7 +59,7 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
     }
   }
 
-  await applyIntents(intents, worldIO(), { reason: "platform:board" });
+  await applyWorldIntents(intents, "platform:board");
   return { ok, roll, target };
 }
 
@@ -81,7 +80,7 @@ export async function knockOff({ unitId, platformId, passedAgility, servantRescu
   if (!unit || !platform) return;
 
   const descriptors = fallOff(unit, platform, { passedAgility, servantRescued });
-  await applyIntents(await toIntents(descriptors), worldIO(), { reason: "platform:fall" });
+  await applyWorldIntents(await toIntents(descriptors), "platform:fall");
 }
 
 /**
@@ -102,7 +101,7 @@ export async function destroyPlatform({ platformId, saves = {} }) {
   if (!platform) return;
 
   const descriptors = destructionSequence(platform, board, { saves });
-  await applyIntents(await toIntents(descriptors), worldIO(), { reason: "platform:destroyed" });
+  await applyWorldIntents(await toIntents(descriptors), "platform:destroyed");
   Hooks.callAll("fgtPlatformDestroyed", platform);
 }
 

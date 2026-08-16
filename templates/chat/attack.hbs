@@ -88,6 +88,21 @@
     </section>
   {{/if}}
 
+  {{#if rolls.length}}
+    <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-rolls">
+      Rolls ({{rolls.length}})
+    </button>
+    <div class="fgt-rolls" id="fgt-rolls" hidden>
+      {{#each rolls as |r|}}
+        <div class="fgt-rolls__entry {{#if r.rerolledFrom}}fgt-rolls__entry--reroll{{/if}}">
+          <div class="fgt-rolls__purpose">{{r.purpose}}</div>
+          {{#each r.lines as |line|}}<div class="fgt-rolls__line">{{line}}</div>{{/each}}
+          {{#if r.rerolledFrom}}<div class="fgt-rolls__reason">re-rolled: {{r.reason}}</div>{{/if}}
+        </div>
+      {{/each}}
+    </div>
+  {{/if}}
+
   {{#if history.length}}
     <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-ladder">
       Ladder ({{history.length}})
