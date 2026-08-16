@@ -70,6 +70,7 @@ export const PACKS = Object.freeze({
   abilities: { pack: "class-skills", documentType: "Item", itemType: "ability" },
   servants: { pack: "servants", documentType: "Actor", actorType: "servant" },
   masters: { pack: "masters", documentType: "Actor", actorType: "master" },
+  platforms: { pack: "servants", documentType: "Actor", actorType: "platform" },
 });
 
 /* -------------------------------------------------------------------------- */
@@ -431,6 +432,14 @@ export function compileDocument(doc, dir, library) {
  */
 function actorSystem(doc) {
   return {
+    // Platform fields (Ch. 20). Absent from every other actor type and cheap
+    // to carry; without them a platform compiles into an actor that knows its
+    // Health and nothing about who it shields or how it moves.
+    footprint: doc.footprint ?? undefined,
+    capacity: doc.capacity ?? null,
+    ownerId: doc.ownerId ?? null,
+    level: doc.level ?? undefined,
+    crossLevel: doc.crossLevel ?? undefined,
     contentId: doc.id,
     trueName: doc.trueName ?? doc.name,
     servantClasses: doc.servantClasses ?? [],

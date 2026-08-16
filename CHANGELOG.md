@@ -169,6 +169,26 @@ coincide by accident; the headings say which is which.
   membership, a climbing escape check, per-unit escape history and hard containment — Ch. 43
   almost entire, which is C4. A stub applying its debuffs without the containment would look
   like the Labyrinth worked.
+- **Platforms and levels** (Ch. 45 C3). The model, the movement linkage, the cross-level
+  protection rules, boarding, falling, destruction, and the three reference platforms — the
+  Hanging Gardens, the Golden Hind and the Storm Border.
+
+  The defect this closed is the familiar one: `resolveTargets` has had a `crossLevelAllows` step
+  since it was written, keyed on `board.crossLevel[unit.platformId]`, and **nothing ever supplied
+  that map or set `platformId`**. The rule was implemented, called on every resolution, and
+  permanently inert.
+
+  Decisions worth keeping. Passenger membership is a **consequence of the level**, not a stored
+  manifest — one Scene Level per platform means nothing else occupies it, so there is no list to
+  fall out of step with the board. Protection has **two axes**: shooting *in* is the target
+  platform's rule, shooting *out* is the attacker's, and a fortress nobody can shoot into may
+  still let its occupants shoot out. The platform **itself** is always targetable, because a
+  vehicle nobody can shoot at is not a vehicle. And a platform spends **no budget**, checked
+  before every other gate: it is equipment its owner operates, not a combatant taking a slot.
+
+  Not built, and logged by name rather than skipped: the Scene Level operations themselves —
+  creating a level on activation, deleting it on destruction, scattering passengers to the
+  ground, reversing the owner's effects. Those need a level API rather than more rules.
 - **The environment is finished** (Ch. 45 C2). Region, Civilians, victory conditions, the setup
   gates and E5 join the Day/Night cycle, the Home Base and the Grail.
 

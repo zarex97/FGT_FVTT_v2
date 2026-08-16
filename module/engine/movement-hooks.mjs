@@ -21,6 +21,7 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
+import { movePlatform } from "../rules/platforms.mjs";
 
 export const Movement = {
   /** Register the hooks. */
@@ -109,6 +110,11 @@ async function onMove(document, movement) {
   const actor = document.actor;
   if (!actor) return;
 
+  // A platform carries everyone aboard it (§20.8). Done before the mover's own
+  // bookkeeping, so a passenger is already where it belongs by the time
+  // anything reads the board.
+  if (actor.type === "platform") await carryPassengers(actor, document, movement);
+
   const unit = unitSnapshot(actor, document);
   const spent = panelsMoved(movement);
   if (spent === 0) return;
@@ -173,4 +179,50 @@ function boardSnapshot(combat) {
 export function movementAllowance(actor) {
   const unit = unitSnapshot(actor);
   return { panels: remainingMovement(unit), blocked: segmentCheck(unit) };
+}
+
+/**
+ * Move a platform's passengers with it.
+ *
+ * `forced: true`, which is what keeps the carry off their own movement budget
+ * and away from movement-triggered effects (Ch. 08 §8.3): a passenger has not
+ * moved, it has been carried, and every rule watching movement cares about the
+ * difference. The `fgtForced` option is what makes this hook ignore the moves
+ * it is itself making, so a platform cannot recurse into its own passengers.
+ *
+ * @param {object} actor the platform
+ * @param {object} document its token
+ * @param {object} movement
+ * @returns {Promise<void>}
+ */
+async function carryPassengers(actor, document, movement) {
+  const board = currentBoard();
+  const platform = board.units.find((u) => u.id === actor.id);
+  if (!platform) return;
+
+  const origin = movement?.origin ?? null;
+  const delta = origin && canvas?.grid
+    ? offsetDelta(canvas.grid.getOffset(origin), { i: platform.panel.i, j: platform.panel.j })
+    : null;
+  if (!delta || (delta.i === 0 && delta.j === 0)) return;
+
+  for (const descriptor of movePlatform(platform, delta, board)) {
+    if (descriptor.unitId === platform.id) continue;
+    const token = canvas.tokens.placeables.find((t) => t.actor?.id === descriptor.unitId)?.document;
+    if (!token) continue;
+    const point = canvas.grid.getCenterPoint({ i: descriptor.to.i, j: descriptor.to.j });
+    await token.update({ x: point.x - canvas.grid.sizeX / 2, y: point.y - canvas.grid.sizeY / 2 },
+      { fgtForced: true });
+  }
+
+  void document;
+}
+
+/**
+ * @param {{i: number, j: number}} from
+ * @param {{i: number, j: number}} to
+ * @returns {{i: number, j: number}}
+ */
+function offsetDelta(from, to) {
+  return { i: to.i - from.i, j: to.j - from.j };
 }

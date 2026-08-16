@@ -148,6 +148,14 @@ export function canConsume(budget, unit, action) {
     return { ok: false, reason: `prevented by ${prevention.by}`, pool: null, free: false };
   }
 
+  // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn ... does
+  // not count towards number of Units who Move or Act in a Turn" (§20.10). A
+  // platform is not a combatant taking a slot; it is equipment its owner
+  // operates, so it spends nothing and is refused nothing.
+  if (unit?.kind === "platform") {
+    return { ok: true, reason: null, pool: null, free: true };
+  }
+
   const state = unit?.turnState ?? {};
   const isAttack = ["attack", "np", "spell", "ridingAttack"].includes(action);
 

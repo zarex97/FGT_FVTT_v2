@@ -1,0 +1,24 @@
+# docs/20-platforms-and-levels.md §20.4
+schema: 1
+id: platform-hanging-gardens
+name: "Hanging Gardens of Babylon"
+type: platform
+description: |
+  Semiramis' fortress. Built by a channelled Construction counter, activated from her Home Base,
+  and rebuildable after destruction.
+attributes: [large, structure]
+baseHealth: 3000
+mov: 3
+range: { panels: 5, targets: 1 }
+baseAttack: { str: 0, mag: 200 }
+footprint: { w: 5, h: 5 }
+capacity: null
+level: 1
+# "Occupants cannot be targeted from outside at all; you must board."
+crossLevel:
+  occupantTargeting: forbidden
+  requiresBoarding: true
+  aoePassengerFactor: 0.5
+  aoeMastersImmune: false
+  outboundTargeting: rangedOnly
+  forbidDirectlyBelow: true

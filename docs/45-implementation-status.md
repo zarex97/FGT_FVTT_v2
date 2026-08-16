@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 901 tests, and 50 content files.
+domain are all implemented and carry 935 tests, and 53 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -71,7 +71,9 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
 6. ~~**Six of the eight environment subsystems are missing**~~ — **done (C1, C2)**. Home Base,
    Day/Night, Region, the Grail and Terrain are all live, with the Grail owned by `MatchData`
    and terrain areas read from the scene's Regions. Random Events stay GM-driven by design.
-7. **Platforms, levels and bounded fields are modelled in the schema and nowhere else.**
+7. **Bounded fields are modelled in the schema and nowhere else.** Platforms and levels landed
+   in C3; what they still lack is the Scene Level operations (create, delete, scatter), which
+   are logged by name rather than performed.
 8. **Only 2 of 29 reference Servants are authored.**
 
 The system is at the point where **one player can attack another player and the damage is
@@ -106,7 +108,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 17 | Command Spells | **Done** | Catalogue (16), spend flow, cost variants, offer filtering and the interrupt protocol with its timeout (B1). **The §28.8 preview-time "spend to override" affordance is the remainder.** |
 | 18 | Action economy | **Mostly** | Budget, per-unit limits, prevention, compulsions done. **Undo (§18.7) and Confuse's random selector (§18.5) missing.** |
 | 19 | Environment | **Done** | Day/Night, Home Base E1–E5, the Grail with its runtime owner, Region and its adjacency graph, Civilians, victory conditions and the setup gates (C2). **The Random Event table stays GM-driven by design.** |
-| 20 | Platforms and levels | **Missing** | `PlatformData` exists; no linkage, no cross-level rules, no lifecycle. |
+| 20 | Platforms and levels | **Mostly** | Model, movement linkage, cross-level protection, boarding, falling, destruction and the three reference platforms (C3). **The Scene Level operations themselves — create, delete, scatter — are logged rather than performed.** |
 
 ### Part III — Foundry architecture
 
@@ -128,11 +130,11 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 901 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 935 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
-| — | Content | **4 of 29 Servants** | Heracles, Karna, Asterios, **Penthesilea — fully authored** (D1). 14 effects of ~152. 5 class skills. 16 of 16 Command Spells. |
+| — | Content | **4 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea (D1). 14 effects of ~152. 5 class skills. 16 of 16 Command Spells. **3 of 3 reference platforms (C3).** |
 
 ---
 
@@ -602,10 +604,39 @@ Genuinely not automated, and correctly so: the **Random Event table** itself. §
 system provides tooling, not automation"* — the one event the rulebook specifies (Civilians) is
 implemented; the rest is a `RollTable` for the GM.
 
-**C3. Platforms and levels.** *(large)* Ch. 20 — the three reference platforms, movement linkage,
-cross-level targeting.
-*Test gate:* a unit on a platform moves with it; cross-level melee is refused and cross-level
-ranged is not.
+**C3. Platforms and levels.** *(large)* — **DONE.**
+*Test gate met:* `test/unit/platforms.test.mjs`, 34 tests — a platform carries its passengers
+preserving relative position and marks the carry `forced`, and cross-level melee is refused where
+ranged is allowed.
+
+`rules/platforms.mjs` holds the model, `engine/platforms.mjs` performs boarding, knock-offs and
+destruction, `snapshotBoard` runs `annotatePlatforms`, and the three reference platforms —
+Hanging Gardens, Golden Hind, Storm Border — are authored in `packs/_source/platforms/`.
+
+**The defect this closed is the familiar one.** `resolveTargets` has had a `crossLevelAllows`
+step since it was written, keyed on `board.crossLevel[unit.platformId]`, and **nothing ever
+supplied that map or set `platformId`**. The rule was implemented, called on every resolution,
+and permanently inert — the same shape as `MatchData.grailCounter` and `ctx.resist` before it.
+
+Decisions worth keeping:
+
+- **Passenger membership is a consequence of the level**, not a stored manifest. One Scene Level
+  per platform (D20.1) means nothing else occupies it, so there is no list to fall out of step.
+- **Protection has two axes, not one.** Shooting *in* is the target platform's rule; shooting
+  *out* is the attacker's. A fortress nobody can shoot into may still let its occupants shoot
+  out — the Storm Border seals both, the Hanging Gardens only one.
+- **The platform itself is always targetable.** The protection is for its occupants, and a
+  vehicle nobody can shoot at is not a vehicle.
+- **A platform spends no budget**, checked before every other gate: it is equipment its owner
+  operates, not a combatant taking a slot.
+- The carried moves are flagged `fgtForced`, which also stops the movement hook recursing into
+  the moves it is itself making.
+
+Not built, and each needs a **Scene Level operation** rather than more rules: creating a level on
+activation, deleting it on destruction, scattering passengers to the ground, and reversing the
+owner's effects. Those steps of §20.9 are **logged by name** rather than silently skipped, and
+`PlatformBehavior` (Ch. 22 §22.10) is the schema they will hang off. The per-platform *content* —
+HGoB Construction, Golden Wild Hunt, Zero Sail — belongs with its Servants in D1.
 
 **C4. Bounded fields.** *(large)* Ch. 43 — membership, permeability, escape.
 
@@ -702,7 +733,7 @@ C1 ✔ → C2 ✔            terrain then environment; environment reads terrain
 D1 ~ (continuous)      author Servants alongside, not after — they are the real test suite.
                        Asterios and Penthesilea done. Between them they found eight engine
                        gaps and closed them; none would have been designed up front
-C3 → C4                platforms and bounded fields; the most self-contained, the least urgent
+C3 ✔ → C4              platforms and bounded fields; C3 done, C4 (Ch. 43) is what remains
 D2 → D3 → D4
 ```
 
