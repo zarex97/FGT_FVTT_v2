@@ -29,6 +29,12 @@ export function registerSettings() {
     type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, initial: 45 }),
     default: 45, requiresReload: false,
   });
+  // A Grand Order war switches off two rules that assume rival Masters: the
+  // multi-Servant tax (§16.7) and Hatred of Achilles against allies (Ch. 44).
+  s("grandOrder", {
+    name: "FGT.Settings.GrandOrder", hint: "FGT.Settings.GrandOrderHint",
+    type: Boolean, default: false, requiresReload: false,
+  });
   s("boardSize", {
     name: "FGT.Settings.BoardSize", type: Number, default: 13,
     choices: { 13: "13 × 13", 25: "25 × 25" },

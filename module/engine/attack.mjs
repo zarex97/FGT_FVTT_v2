@@ -32,6 +32,7 @@ import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { canUseAbility } from "../rules/costs.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
+import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -79,6 +80,16 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // reason rather than as a blanket "skip validation".
   const overridden = (placement?.overrides ?? []).includes(usage.reason);
   if (!usage.ok && !overridden) throw new Error(`FGT | Cannot use this ability: ${usageRefusal(usage)}`);
+
+  // §16.7: at 25 Health or less a Master cannot order more than one of its
+  // Servants to Act. Enforced here, where it composes with the ordinary budget.
+  if (master && combat?.started) {
+    const siblings = board.units.filter((u) => u.masterId === master.id && u.id !== self.id);
+    const allowed = mayOrderAnotherServant(master, siblings, { grandOrder: game.settings.get("fgt", "grandOrder") });
+    if (!allowed.ok) {
+      throw new Error("FGT | This Master is at 25 Health or less and cannot order a second Servant to Act.");
+    }
+  }
 
   // "During the first Round, neither Player/Faction is allowed to Attack"
   // (§19.7 step 12). A hard gate at declaration, so the refusal names the rule
@@ -686,6 +697,31 @@ async function applyDamage(state, message) {
 
   const result = computeDamage(ctx);
 
+  // §16.5. Overpower can end the Master outright before damage matters;
+  // Underpower halves a Master's own Total Damage. Both are Master-Servant
+  // asymmetries and neither fires between two units of the same kind.
+  const overpower = resolveOverpower({
+    attacker, defender, roll: (await new Roll("1d100").evaluate()).total,
+    luckCheckPassed: Boolean(state.luckChecks?.overpower),
+  });
+  const underpower = resolveUnderpower({
+    attacker, defender, roll: (await new Roll("1d100").evaluate()).total,
+  });
+  if (underpower.underpowered) {
+    const before = result.total;
+    result.total = Math.max(0, Math.round(result.total * underpower.factor));
+    result.breakdown = [
+      ...(result.breakdown ?? []),
+      { stage: "underpower", label: "Underpowered (x0.5)", from: before, to: result.total },
+    ];
+  }
+  // The Luck Check that prevents the Overpower also saves the Master from
+  // lethal damage -- one success buys both (§16.5).
+  if (overpower.survivesLethal && result.total >= (defender.health?.value ?? 0)) {
+    result.total = Math.max(0, (defender.health?.value ?? 1) - 1);
+    result.breakdown = [...(result.breakdown ?? []), { stage: "luckCheck", label: "Survives at 1 Health" }];
+  }
+
   // Command Spell interrupts that changed the number rather than avoiding the
   // attack: Damage Block, Damage Up, Halve Noble Phantasm, NP Max. Applied to
   // the finished total, after every pipeline stage, because each is phrased
@@ -710,7 +746,9 @@ async function applyDamage(state, message) {
       // entirely as an `OnEvent: unitDefeated`, could never trigger. The revive
       // is decided *here*, before the defeat is written, because a unit that
       // comes back was never defeated.
-      ...(result.flags.defeatedOutright ? [] : await resolveDefeatOf(defender, result.total, state)),
+      ...(overpower.defeated ? [I.defeat(state.defenderId, "overpowered")] : []),
+      ...(result.flags.defeatedOutright || overpower.defeated
+        ? [] : await resolveDefeatOf(defender, result.total, state)),
     ],
     "attack",
   );

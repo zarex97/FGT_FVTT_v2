@@ -19,6 +19,9 @@ import { INFINITE } from "../domain/enums.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { endOfRoundHomeBase } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
+import { multiServantTax } from "../rules/relationships.mjs";
+import { transferEffect, transferableFrom } from "../rules/effect-flow.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 import * as I from "./intents.mjs";
 
 /**
@@ -68,7 +71,12 @@ export function endTurn(board, ctx) {
   //    inflicts Poison should not also tick it in the same breath.
   intents.push(...terrainIntents(terrainPeriodics(units, board, "turnEnd"), ctx));
 
-  // 7. Sustainability and removal checks.
+  // 7. The multi-Servant tax (§16.7). Flat 25 Health per Master whose Servants
+  //    acted more than once this Turn, and a LOSS rather than damage, so
+  //    nothing reduces it.
+  intents.push(...multiServantIntents(units, ctx));
+
+  // 8. Sustainability and removal checks.
   intents.push(...checkRemovals(units, ctx));
 
   return intents;
@@ -254,6 +262,25 @@ const ACTIONS = Object.freeze({
   RemoveEffect: (a, u) => [I.removeEffect(u.id, a.effect ?? a.defId, "event")],
 
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
+
+  /**
+   * Move effects from other units onto this one, keeping their durations.
+   *
+   * Van Gogh's *Shadow of Longing* is the reference case, and it transfers
+   * DEBUFFS -- the keyword's own wording is about buffs, which is exactly the
+   * trap: the selector is what decides, not the name.
+   */
+  Transfer: (a, u, h, c) => {
+    const from = (c.board?.units ?? []).filter((other) =>
+      other.id !== u.id
+      && chebyshevish(other.panel, u.panel) <= (a.radius ?? 0));
+
+    return transferableFrom(from, { defId: a.effect ?? null, polarity: a.polarity ?? null })
+      .flatMap(({ unit: source, instance }) => transferEffect(instance, source, u))
+      .map((d) => (d.kind === "removeEffect"
+        ? I.removeEffect(d.unitId, d.effectId, d.reason)
+        : I.applyEffect(d.unitId, d.effect, h.abilityId)));
+  },
 
   /**
    * Battle Continuation and God Hand: come back instead of being defeated.
@@ -582,4 +609,40 @@ function terrainIntents(descriptors, ctx) {
   }
 
   return out;
+}
+
+/**
+ * The multi-Servant tax, for every Master on the board.
+ *
+ * @param {object[]} units
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+function multiServantIntents(units, ctx) {
+  /** @type {Intent[]} */
+  const out = [];
+  for (const master of units.filter((u) => u.kind === "master")) {
+    const servants = units.filter((u) => u.masterId === master.id);
+    for (const d of multiServantTax(master, servants, { grandOrder: ctx.grandOrder })) {
+      // `statDelta`, not `damage`: a loss bypasses every reduction effect.
+      out.push(I.statDelta(d.unitId, d.stat, d.delta));
+      out.push(I.log({ kind: "multiServantTax", unitId: d.unitId, amount: -d.delta }));
+    }
+  }
+  return out;
+}
+
+/**
+ * Chebyshev distance that tolerates a missing panel.
+ *
+ * A transfer radius is measured on the board, and a unit projected without a
+ * position must not silently count as adjacent to everything.
+ *
+ * @param {object|null} a
+ * @param {object|null} b
+ * @returns {number}
+ */
+function chebyshevish(a, b) {
+  if (!a || !b) return Infinity;
+  return chebyshev(a, b);
 }

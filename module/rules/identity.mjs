@@ -16,8 +16,33 @@
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 
-/** The minimum Detect radius: *"(minimum 2 panels)"*. */
-const MIN_DETECT = 2;
+/**
+ * Detect, and therefore vision range, **by class container**.
+ *
+ * Supersedes the earlier reading that Detect was attack range with a floor of
+ * two. It is not derived from range at all — an Archer sees four panels whether
+ * or not it can shoot that far, and a Master sees one, which is *below* the old
+ * floor. Reading it off range gave a Caster the same sight as a Saber.
+ *
+ * @type {Readonly<Record<string, number|{inHomeBase: number, outside: number}>>}
+ */
+export const DETECT_BY_CLASS = Object.freeze({
+  master: 1,
+  saber: 2,
+  lancer: 2,
+  archer: 4,
+  rider: 2,
+  // The only conditional entry: a Caster sees furthest from its own ground.
+  caster: { inHomeBase: 5, outside: 3 },
+  assassin: 4,
+  berserker: 2,
+});
+
+/** Anything with no class container listed. */
+const DEFAULT_DETECT = 2;
+
+/** Detect can be reduced, but a unit always perceives at least its neighbours. */
+const MIN_DETECT = 1;
 
 /* -------------------------------------------------------------------------- */
 /*  Identity                                                                  */
@@ -81,22 +106,49 @@ function titleCase(raw) {
 /**
  * How far this unit can Discover a concealed one.
  *
- * *"…Moves into an enemy Unit's Range (Detect)"* with a floor of 2 — so it
- * defaults to attack range and is overridable, because the Golden Hind states
- * `Detect: 4` regardless of its range.
+ * Class container first, then an explicit sheet value, then Deafen. The Caster
+ * entry is conditional on standing in its own Home Base, which is the only
+ * position-dependent sight line in the game and the reason this takes a board.
  *
- * The floor applies **after** every modifier: Deafen cannot take a unit below
- * two panels, so a melee unit under Deafen is exactly as perceptive as one
- * without it. That is the rule as written, and worth noting because it makes
- * Deafen useless against short-ranged units rather than merely weak.
+ * The Golden Hind states `Detect: 4` outright, so an explicit value wins over
+ * the table — a platform has no class container to look up.
  *
  * @param {object} unit
+ * @param {object} [board] needed only for a Caster's Home Base check
  * @returns {number}
  */
-export function detectRangeOf(unit) {
-  const base = unit?.detect ?? unit?.range ?? 0;
+export function detectRangeOf(unit, board = null) {
+  const base = unit?.detect ?? detectForClass(unit, board);
   const deafened = (unit?.effects ?? []).includes("deafen") ? 1 : 0;
   return Math.max(MIN_DETECT, base - deafened);
+}
+
+/**
+ * The table value for a unit's container.
+ *
+ * @param {object} unit
+ * @param {object|null} board
+ * @returns {number}
+ */
+function detectForClass(unit, board) {
+  const container = unit?.kind === "master" ? "master" : unit?.classContainer;
+  const entry = DETECT_BY_CLASS[container];
+  if (entry === undefined) return DEFAULT_DETECT;
+  if (typeof entry === "number") return entry;
+  return inOwnHomeBase(unit, board) ? entry.inHomeBase : entry.outside;
+}
+
+/**
+ * @param {object} unit
+ * @param {object|null} board
+ * @returns {boolean}
+ */
+function inOwnHomeBase(unit, board) {
+  for (const zone of Object.values(board?.zones ?? {})) {
+    if (zone.faction !== unit?.faction) continue;
+    if ((zone.panels ?? []).some((p) => p.i === unit.panel?.i && p.j === unit.panel?.j)) return true;
+  }
+  return false;
 }
 
 /**
@@ -149,7 +201,7 @@ export function discoverAttempts(concealedUnit, board) {
   for (const watcher of board?.units ?? []) {
     if (watcher.id === concealedUnit.id) continue;
     if (!isEnemy(watcher, concealedUnit, board)) continue;
-    if (chebyshev(watcher.panel ?? {}, concealedUnit.panel ?? {}) > detectRangeOf(watcher)) continue;
+    if (chebyshev(watcher.panel ?? {}, concealedUnit.panel ?? {}) > detectRangeOf(watcher, board)) continue;
 
     out.push({
       watcherId: watcher.id,

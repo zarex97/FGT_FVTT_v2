@@ -1,5 +1,19 @@
 # 16 — Relationships
 
+> **§16.5–16.7 implemented (Ch. 45).** Overpower and Underpower are direction-scoped and return
+> `applies: false` rather than a zero chance when the pair is wrong — "the rule does not apply"
+> and "it cannot happen" are different facts and the interface shows them differently. Invuln and
+> Shield make a Master un-Overpowerable outright; the Luck Check covers **both** the flip and the
+> lethal damage that would follow, in one success.
+>
+> On a Master's death, `null` Sustainability is **not** zero: one has no clock and stays
+> indefinitely, the other disappears immediately. Mad Enhancement's state is locked at that
+> moment, which locks in its own penalty.
+>
+> The multi-Servant tax is **flat** — two Servants acting costs 25 and five costs 25 — and is a
+> *loss*, so nothing reduces it. Both it and its at-25-Health prohibition are switched off in a
+> Grand Order war by the `grandOrder` setting.
+
 > **Implementation note (Ch. 45).** ZON is derived and both its consumers fire — pipeline stage 9
 > and the Noble Phantasm legality gate. The Noble Phantasm **cost** of §16.5 is live too
 > (Ch. 45 B4): Master Health by rank column for a contracted Servant, Sustainability for a Free

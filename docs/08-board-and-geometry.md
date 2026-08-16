@@ -1,9 +1,18 @@
 # 08 — Board and Geometry
 
-> **Implemented (Ch. 45).** Detect (§8.7) is live in `module/rules/identity.mjs`: the radius
-> defaults to attack range with a **floor of 2** applied after every modifier — so Deafen cannot
-> take a unit below two panels, which makes it useless against short-ranged units rather than
-> merely weak. The Discover chance comes from the **concealed** unit's Presence Concealment rank,
+> **Implemented (Ch. 45).** Detect (§8.7) is live in `module/rules/identity.mjs`.
+>
+> **Detect is per class container, not derived from attack range** — which supersedes the
+> `max(2, range.panels)` reading in this section. An Archer sees 4 panels whether or not it can
+> shoot that far, and a Master sees **1**, which is below the old floor:
+>
+> | Master | Saber | Lancer | Archer | Rider | Caster | Assassin | Berserker |
+> |---|---|---|---|---|---|---|---|
+> | 1 | 2 | 2 | 4 | 2 | 5 in Home Base, 3 outside | 4 | 2 |
+>
+> The Caster entry is the only position-dependent sight line in the game. An explicit sheet value
+> still wins, for the Golden Hind's stated `Detect: 4` — a platform has no container to look up.
+> Deafen subtracts 1, floored at 1 rather than 2. The Discover chance comes from the **concealed** unit's Presence Concealment rank,
 > and every attempt is marked `gmOnly` and `silentUnlessSucceeded`, so the socket layer cannot
 > broadcast the *attempt* and leak the presence it is checking for.
 >

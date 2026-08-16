@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 1018 tests, and 55 content files.
+domain are all implemented and carry 1098 tests, and 55 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -95,7 +95,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 08 | Board and geometry | **Done** | Metrics, reachability, movement legality, and **Detect (§8.7)** — range with its 2-panel floor, the Discover chance from the concealed unit's Presence Concealment rank, and attempts marked GM-only and silent so the socket layer cannot leak them. **§8.6 was never a gap:** the chapter's own DECISION is *not* to implement line of sight, because F/GT has no such rule. Fog of war is Foundry's. |
 | 09 | Targeting | **Done** | Eleven-step resolver, four anchors interactive, `legalPlacements`. |
 | 10 | Effect taxonomy | **Done** | Classification vocabularies enforced by the content validator. |
-| 11 | Effect engine | **Partly** | Application, stacking, suppression, expiry, periodics and **auras (§11.6, A5)** done. **Transfer (§11.8) missing. Visibility (§11.10) collected-only.** |
+| 11 | Effect engine | **Done** | Application, stacking, suppression, expiry, periodics, auras (§11.6), **Transfer (§11.8)** — a move that keeps the absolute expiry, rebased when one side has been Stopped — and **visibility (§11.10)**, where a debuff is also visible to whoever inflicted it. |
 | 12 | Combat Process | **Done** | All six steps run (Phase A), and interrupts (§12.11) land through B1's Command Spell protocol. |
 
 ### Part II — resolution systems
@@ -105,9 +105,9 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 13 | Damage pipeline | **Done** | 16 stages, both worked examples are golden fixtures. |
 | 14 | Checks and randomness | **Mostly** | Evade, Luck, chance rolls, `checkPlan` done. **The roll log (§14.8) and setup rolls (§14.9) missing.** |
 | 15 | Abilities | **Mostly** | Classification, phases and **costs/requirements (§15.4, B4)** done — Master Health, Sustainability, cooldown, round and ZON gates. **The remaining requirement kinds, granted/copied abilities (§15.7) and items (§15.8) missing.** |
-| 16 | Relationships | **Partly** | Master protection is enforced by movement. **ZON is derived and both consumers fire**, including the Semiramis exemption and the Dioscuri's `any`-across-twins test. **Contracting, Overpower/Underpower, Sustainability drain and the multi-Servant tax are missing.** |
+| 16 | Relationships | **Mostly** | Master protection, ZON, **Overpower/Underpower (§16.5)**, **Sustainability on a Master's death (§16.6)** — where `null` is not zero — and **the multi-Servant tax (§16.7)**, flat and as a loss rather than damage, with its at-25-Health prohibition. **Contracting (§16.2) — the draft flow — is the remainder.** |
 | 17 | Command Spells | **Done** | Catalogue (16), spend flow, cost variants, offer filtering and the interrupt protocol with its timeout (B1). **The §28.8 preview-time "spend to override" affordance is the remainder.** |
-| 18 | Action economy | **Mostly** | Budget, per-unit limits, prevention, compulsions done. **Undo (§18.7) and Confuse's random selector (§18.5) missing.** |
+| 18 | Action economy | **Done** | Budget, per-unit limits, prevention, compulsions, **Confuse's random selector (§18.5)** — fully logged, and it may pick allies — and **Undo (§18.7)**, whose boundary is information disclosure: an unrecognised action is refused rather than rewound. |
 | 19 | Environment | **Done** | Day/Night, Home Base E1–E5, the Grail with its runtime owner, Region and its adjacency graph, Civilians, victory conditions and the setup gates (C2). **The Random Event table stays GM-driven by design.** |
 | 20 | Platforms and levels | **Mostly** | Model, movement linkage, cross-level protection, boarding, falling, destruction and the three reference platforms (C3). **The Scene Level operations themselves — create, delete, scatter — are logged rather than performed.** |
 
@@ -131,7 +131,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 1018 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1098 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |

@@ -12,6 +12,7 @@
 
 import { FGTSocket } from "../net/socket.mjs";
 import { registerDefeat } from "../rules/environment.mjs";
+import { onMasterDefeated } from "../rules/relationships.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -184,6 +185,7 @@ export function worldIO() {
      */
     async defeat(unitId, cause) {
       await countTowardsGrail(unitId, cause);
+      await freeContractedServants(unitId);
       const actor = resolve(unitId);
       if (!actor) return;
       await actor.update({ "system.defeated": true, "system.defeatCause": cause });
@@ -287,5 +289,36 @@ async function countTowardsGrail(unitId, cause) {
   });
   if (next.materialized && !combat.system?.grailMaterialized) {
     Hooks.callAll("fgtGrailMaterialized", next);
+  }
+}
+
+/**
+ * A Master's death frees its Servants (§16.6).
+ *
+ * `null` Sustainability is not zero: one has no clock and stays indefinitely,
+ * the other disappears immediately. And an active Mad Enhancement locks in
+ * whatever state it was in, which locks in its own penalty.
+ *
+ * @param {string} unitId
+ * @returns {Promise<void>}
+ */
+async function freeContractedServants(unitId) {
+  const master = game.actors.get(unitId);
+  if (master?.type !== "master" || !game.user.isGM) return;
+
+  for (const actor of game.actors.filter((a) => a.system?.masterId === unitId)) {
+    const snapshot = {
+      id: actor.id, kind: actor.type,
+      sustainability: actor.system?.sustainability ?? null,
+      modes: [...(actor.items ?? [])].filter((i) => i.system?.active).map((i) => i.system?.slug),
+    };
+    for (const d of onMasterDefeated(snapshot)) {
+      if (d.kind === "setContract") await actor.update({ "system.contract": d.contract, "system.masterId": null });
+      else if (d.kind === "defeat") await actor.update({ "system.defeated": true, "system.defeatCause": d.cause });
+      else if (d.kind === "resource") {
+        const current = actor.system?.[d.key] ?? 0;
+        if (current !== null) await actor.update({ [`system.${d.key}`]: Math.max(0, current + d.delta) });
+      } else if (d.kind === "lockModes") await actor.update({ "system.modesLocked": true });
+    }
   }
 }

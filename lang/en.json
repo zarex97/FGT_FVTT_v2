@@ -75,6 +75,8 @@
   "FGT.Prompt.acceptOrEscape": "Accept the hit, or spend a Command Spell?",
   "FGT.Prompt.counter": "Counter-attack?",
   "FGT.Prompt.commandSpell": "Interrupt with a Command Spell?",
+  "FGT.Settings.GrandOrder": "Grand Order Holy Grail War",
+  "FGT.Settings.GrandOrderHint": "Switches off the rules that assume rival Masters: the multi-Servant tax, and forced-attack compulsions against allied units.",
   "FGT.Victory.grailObtained": "The Holy Grail has been obtained!",
   "FGT.Victory.elimination": "Every rival has fallen.",
   "FGT.Victory.noWinner": "The Holy Grail was destroyed. There are no winners.",

@@ -180,6 +180,31 @@ coincide by accident; the headings say which is which.
   membership, a climbing escape check, per-unit escape history and hard containment — Ch. 43
   almost entire, which is C4. A stub applying its debuffs without the containment would look
   like the Labyrinth worked.
+- **Detect is per class container**, not derived from attack range. Master 1, Saber/Lancer/Rider/
+  Berserker 2, Archer/Assassin 4, Caster 5 inside its own Home Base and 3 outside — the only
+  position-dependent sight line in the game. This supersedes Ch. 08 §8.7's `max(2, range)`
+  reading, which gave a Caster the same sight as a Saber and could not express a Master at all:
+  1 is *below* the old floor.
+
+- **Overpower, Underpower, Sustainability and the multi-Servant tax** (Ch. 16 §16.5–16.7).
+  Overpower and Underpower are direction-scoped and report `applies: false` rather than a zero
+  chance when the pair is wrong — "the rule does not apply" and "it cannot happen" are different
+  facts. The Luck Check that prevents an Overpower **also** saves the Master from the lethal
+  damage that would follow; one success buys both.
+
+  On a Master's death, `null` Sustainability is **not** zero: one has no clock and stays
+  indefinitely, the other disappears immediately. The multi-Servant tax is **flat** — two
+  Servants acting costs 25 and five costs 25 — and is a *loss*, so nothing reduces it. A new
+  `grandOrder` setting switches it and its at-25-Health prohibition off.
+
+- **Transfer, effect visibility, Confuse's selector and Undo.** `transferEffect` **moves** an
+  instance and keeps its absolute expiry, rebasing only when one side has been Stopped — a
+  re-application would restart the clock, which is what "duration maintained" forbids. A debuff
+  is visible to whoever **inflicted** it as well as its bearer: they applied it and already know.
+  Confuse logs every roll, because it is the only place the system decides for a player. And
+  `canUndo`'s boundary is information disclosure — an action kind it does not recognise is
+  **refused**, never rewound.
+
 - **Servant identity, and Detect.** A Servant is publicly its **class**, not its name:
   "Berserker", or "Berserker of Yellow" once it belongs to a named faction, and its true name
   only once `identityRevealed` is set — which is what gives closed-information play something to
