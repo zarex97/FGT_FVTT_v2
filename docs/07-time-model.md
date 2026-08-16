@@ -1,5 +1,13 @@
 # 07 — The Time Model
 
+> **Implemented (Ch. 45).** Delay (§7.8) resolves in `computeTurnOrder`, which applies delays in
+> **declaration** order rather than turn order — two factions each delaying past the other end up
+> where they started, which is what happens at the table.
+>
+> One clause was genuinely missing: a Delay declared against a faction that had **already acted**
+> is meant to apply next round, and because `system.delays` is cleared at round start it was
+> being discarded instead. `carryDelaysForward` keeps exactly those.
+
 The ◈ operator is the single most distinctive thing about F/GT's rules, and the subsystem the
 prototype lacked entirely. Get this wrong and every duration, every cooldown, and every
 periodic effect in the game is wrong. This chapter specifies it completely.

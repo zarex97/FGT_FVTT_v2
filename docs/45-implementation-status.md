@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 978 tests, and 55 content files.
+domain are all implemented and carry 1018 tests, and 55 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -88,11 +88,11 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
-| 04 | Units | **Done** | Six actor types, schemas, multi-panel footprints read by targeting. |
+| 04 | Units | **Done** | Six actor types, schemas, multi-panel footprints read by targeting, and the identity fields — `classContainer`, `concealedIdentity`, `identityRevealed`, `detect`, `defaultImage`. A Servant is publicly its class until revealed. |
 | 05 | Ranks and parameters | **Done** | Grade-major ordinals, step arithmetic, `RankField`. |
 | 06 | Stats and resources | **Done** | Including derived stat deltas as of `0.2.0`. |
-| 07 | Time model (◈) | **Mostly** | `parseTick`/`resolveTicks`/overrides done; **Delay (§7.8) missing**. |
-| 08 | Board and geometry | **Mostly** | Metrics, reachability, movement legality done. **Line of sight and cover (§8.6), fog of war and Detect (§8.7) missing.** |
+| 07 | Time model (◈) | **Done** | `parseTick`/`resolveTicks`/overrides, and **Delay (§7.8)** — which was already implemented in `computeTurnOrder` when this row was written. The one clause that genuinely was not: a Delay declared against a faction that had already acted was **discarded** rather than deferred to the next round. `carryDelaysForward` fixes it. |
+| 08 | Board and geometry | **Done** | Metrics, reachability, movement legality, and **Detect (§8.7)** — range with its 2-panel floor, the Discover chance from the concealed unit's Presence Concealment rank, and attempts marked GM-only and silent so the socket layer cannot leak them. **§8.6 was never a gap:** the chapter's own DECISION is *not* to implement line of sight, because F/GT has no such rule. Fog of war is Foundry's. |
 | 09 | Targeting | **Done** | Eleven-step resolver, four anchors interactive, `legalPlacements`. |
 | 10 | Effect taxonomy | **Done** | Classification vocabularies enforced by the content validator. |
 | 11 | Effect engine | **Partly** | Application, stacking, suppression, expiry, periodics and **auras (§11.6, A5)** done. **Transfer (§11.8) missing. Visibility (§11.10) collected-only.** |
@@ -118,10 +118,10 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 21 | System skeleton | **Done** | Bootstrap, settings, public API, CI, release workflow. |
 | 22 | Data models | **Done** | All schemas present, including the four **Region behaviour** schemas (§22.10) that `system.json` had always declared without a model behind them. |
 | 23 | Documents and derived data | **Mostly** | Preparation order, derived stats and **the aura pass (§23.3)** done. **Cache invalidation and the spatial `AuraIndex` (§23.9) missing — the pass is a linear scan today, correct but unbucketed.** |
-| 24 | Rules engine | **Mostly** | 30 executors, predicates, explainability, validation. **Priority and ordering (§24.6) not implemented — elements apply in collection order.** |
+| 24 | Rules engine | **Mostly** | 33 executors, predicates, explainability, validation, and **priority bands (§24.6)** — collection order is document load order, so two clients could compute two different numbers from one board; bands fix the what and the source id fixes the tie. **The `@intentional` marker and its validator warning are not implemented.** |
 | 25 | Turn system | **Mostly** | `FGTCombat`, turn order, scheduler, HUD done. **Charm/control transfer (§25.7) and reconnection (§25.10) missing.** |
 | 26 | Authority and sockets | **Mostly** | Typed operations, authorization, hidden rolls. **Closed-information play (§26.6) and per-viewer cards (§26.7) missing.** |
-| 27 | Reaction protocol | **Mostly** | Message-chain state, prompts, collapsing, resumption done. **Timeouts (§27.5) and interrupt injection (§27.9) missing.** |
+| 27 | Reaction protocol | **Done** | Message-chain state, prompts, collapsing, resumption, **interrupt injection (§27.9)** and the counter sub-process (§27.10) — all landed with B1 and A4, and this row was stale. **Timeouts (§27.5)** exist for the Command Spell offer; a per-rung reaction timeout does not. |
 | 28 | Targeting implementation | **Mostly** | Canvas layer, four modes, preview, speculative damage done. **Zone overlays (§28.9) missing.** |
 | 29 | User interface | **Partly** | Unit sheet, ability sheet, turn HUD, chat cards done. **Master sheet (§29.3), token HUD (§29.5) and the ability editor (§29.6) missing.** |
 | 30 | Chat and audit | **Mostly** | Cards and the damage explainer done. **The game log (§30.8), export/replay (§30.9) and GM overrides (§30.10) missing.** |
@@ -131,7 +131,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 978 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1018 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |

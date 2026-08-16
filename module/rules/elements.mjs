@@ -23,6 +23,7 @@
 import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { test as testPredicate } from "./predicate.mjs";
+import { orderElements } from "./ordering.mjs";
 
 /**
  * @typedef {object} Contributions
@@ -78,7 +79,11 @@ export function collectContributions(abilities, ctx = {}) {
       ...(ability.active ? (ability.activeRules ?? []) : []),
     ];
 
-    for (const el of elements) {
+    // Ordered before execution (Ch. 24 §24.6). Collection order is document
+    // load order, which differs between clients -- so two players could compute
+    // two different numbers from the same board. Bands fix the what; the source
+    // id fixes the tie.
+    for (const el of orderElements(elements)) {
       if (!el?.key) continue;
       if (el.suppressed) continue;
       // A predicate that fails means the element does not contribute at all —

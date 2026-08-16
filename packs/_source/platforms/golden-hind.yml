@@ -11,6 +11,8 @@ baseHealth: 2500
 mov: 6
 range: { panels: 5, targets: 1 }
 baseAttack: { str: 0, mag: 200 }
+# Stated on the sheet, and independent of its range (Ch. 20 §20.5).
+detect: 4
 footprint: { w: 4, h: 3 }
 capacity: 9
 level: 2

@@ -1,5 +1,17 @@
 # 04 — Units
 
+> **Identity fields (Ch. 45).** A Servant carries `classContainer` — the class it was summoned
+> into — alongside `servantClasses`, the set it qualifies for. Publicly it is that container:
+> "Berserker", or **"Berserker of Yellow"** once it belongs to a named faction, and its
+> `trueName` only once `identityRevealed` is set. `concealedIdentity` overrides the derived name
+> for a Servant publicly known as something else. `publicNameOf` in `module/rules/identity.mjs`
+> is the one place that decides, and it always shows the true name to the unit's own owner —
+> the concealment is from opponents, not from the player running it.
+>
+> Every unit also carries `detect` (vision range and Detect are the same number, Ch. 08 §8.7)
+> and `defaultImage`, a portrait shipped with the system so an imported Servant is not a grey
+> silhouette.
+
 > **Implemented (Ch. 45 C2, C3).** The Civilian rules of §4.6 are live: a Servant attacking a
 > Civilian kills it with **no damage calculation and no reaction ladder** — `resolveAttack`
 > resolves it before a Combat Process is ever built, because a ladder whose every rung has one

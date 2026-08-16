@@ -8,6 +8,9 @@ type: servant
 # ─── Identity ──────────────────────────────────────────────────────────
 trueName: Penthesilea
 servantClasses: [berserker]
+# The container it is summoned into, and the name opponents see until its
+# true name is revealed (Ch. 04 §4.2).
+classContainer: berserker
 alignment: { order: lawful, morality: good }
 region: [greece]
 attributes: [female, servant, earth, king, humanoid]

@@ -129,3 +129,29 @@ export function breakTie(order, rerolls) {
 
   return { order: next, stillContested: contested };
 }
+
+/**
+ * The delays that must survive into the next round.
+ *
+ * §7.8: *"If they have already taken it, the shift applies next round."*
+ * `computeTurnOrder` correctly refuses to move a faction that has acted, and
+ * `system.delays` is cleared at round start — so without this a Delay declared
+ * against an already-acted faction was not deferred, it was **discarded**. The
+ * one case the rule spells out was the one that did nothing.
+ *
+ * A delay on a faction that had *not* acted is spent: `computeTurnOrder` moved
+ * it this round, and it must not move again.
+ *
+ * @param {Record<string, number>} delays
+ * @param {Iterable<string>} takenThisRound
+ * @returns {Record<string, number>}
+ */
+export function carryDelaysForward(delays, takenThisRound) {
+  const taken = new Set(takenThisRound ?? []);
+  /** @type {Record<string, number>} */
+  const out = {};
+  for (const [id, by] of Object.entries(delays ?? {})) {
+    if (by > 0 && taken.has(id)) out[id] = by;
+  }
+  return out;
+}

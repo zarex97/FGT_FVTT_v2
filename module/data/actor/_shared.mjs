@@ -29,6 +29,19 @@ export function unitCommon() {
       targets: new fields.NumberField({ required: true, integer: true, initial: 1, min: 1 }),
     }),
 
+    // Vision range and Detect are the same number (Ch. 08 §8.7): the radius at
+    // which this unit may Discover a Presence-Concealed one. `null` derives it
+    // from attack range with a floor of 2 -- the Golden Hind is the case that
+    // needs the override, stating "Detect: 4" regardless of its range.
+    detect: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true, min: 0 }),
+
+    // A portrait shipped with the system, so a Servant imported from a
+    // compendium is not a grey silhouette. Separate from the document's own
+    // `img`, which a GM may overwrite freely without losing the default.
+    defaultImage: new fields.FilePathField({
+      required: false, nullable: true, initial: null, categories: ["IMAGE"],
+    }),
+
     // Attributes are an OPEN tag set by design (Ch. 04 §4.5): the expanded
     // roster added Fairytale, Wraith, Liangshan, Gorgon and Demonic Beast
     // without a schema change, which is the payoff.

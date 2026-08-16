@@ -17,7 +17,24 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       ...unitCommon(),
       ...combatantCommon(),
       trueName: new fields.StringField({ required: false, blank: true }),
+
+      // Every class this Servant qualifies for -- Semiramis is Assassin AND
+      // Caster -- kept as a set because content and rules both ask "is it a X".
       servantClasses: new fields.SetField(new fields.StringField({ blank: false })),
+
+      // The ONE it is summoned into, and the one it is publicly known by. A
+      // Servant is not "Heracles" to its opponents, it is "Berserker" -- or
+      // "Berserker of Yellow" once it belongs to a named faction (Ch. 04 §4.2).
+      classContainer: new fields.StringField({ required: false, blank: true }),
+
+      // An override for that public name, for a Servant known as something
+      // other than its container. Derived when blank, so the common case needs
+      // no authoring.
+      concealedIdentity: new fields.StringField({ required: false, blank: true }),
+
+      // The true name is hidden until this is set, which is what gives
+      // closed-information play (Ch. 26 §26.6) something to conceal.
+      identityRevealed: new fields.BooleanField({ initial: false }),
       alignment: new fields.SchemaField({
         order: new fields.StringField({ required: false, blank: true }),
         // Open, not an enum: Anastasia's sheet reads "Chaotic Summer".
