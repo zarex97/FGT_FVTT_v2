@@ -8,6 +8,7 @@
  */
 
 import { explainDamage } from "../../rules/explain.mjs";
+import { visibleTo, renderBreakdown } from "../../rules/roll-log.mjs";
 import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
 import { offerCommands } from "../../engine/command-spells.mjs";
 
@@ -93,6 +94,13 @@ async function cardContext({ state, attacker, ability, targets, result = null })
     commandSpells: offerableCommands(state),
 
     result: result ? explainDamage(result) : null,
+
+    // The roll log (§14.8), filtered per viewer -- a hidden Discover roll on a
+    // card everyone can read would give away the Assassin's panel.
+    rolls: visibleTo(state.rolls ?? [], {
+      isGM: game.user.isGM,
+      ownedActorIds: game.actors.filter((a) => a.isOwner).map((a) => a.id),
+    }).map((r) => ({ ...r, lines: renderBreakdown(r) })),
   };
 }
 

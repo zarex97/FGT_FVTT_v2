@@ -11,6 +11,23 @@
 > (`footprint`, `capacity`, `ownerId`, `level`, `crossLevel`). Without them the catalogue compiled
 > into documents that knew their name and cost and nothing about when they could be used.
 >
+> The summon operation (§37.6) is `module/engine/summon.mjs` over `module/rules/setup-rolls.mjs`.
+> `summonPlan` returns an ordered, inspectable list of steps rather than performing them: the
+> rolls come **first**, then Master grants, then the war Region's grant, and the sequence always
+> ends with a re-rollable `confirm` that locks at match start. A Region step applied before the
+> roll would be rolled against the wrong table row, and the two grant sources stack as **separate
+> steps** so the dialog can show where each came from.
+>
+> Base Attack moves ±10 per **granted** parameter step, and only for STR and MAG — §37.6's own
+> worked example says so outright ("BA adjustment: none (AGI does not affect BA)"). Granted steps
+> are stored separately on the sheet (`system.grantedSteps`), because a sheet showing "B" where
+> the Servant was written "C" and granted one step is a sheet nobody can check. A granted END step
+> moves the Servant **up the Health table**, not up by one, since the table is not linear.
+>
+> The compiler also carries §15.7's `copyable`/`copiedFrom` and §15.8's item fields (`quantity`,
+> `transferable`, `transferRange`, `transfersPerTurn`, `consumeEffect`), and the validator refuses
+> a `copyable.allowed: false` with no documented reason, or a copy that carries phases of its own.
+>
 > **Source files are single-document YAML.** A multi-document file fails the load; one document
 > per file.
 

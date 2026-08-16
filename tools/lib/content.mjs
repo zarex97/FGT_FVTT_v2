@@ -54,6 +54,9 @@ export const RULE_ELEMENT_KEYS = new Set([
 /** Effect classification vocabularies, from Appendix A. */
 const POLARITIES = new Set(["buff", "debuff", "status"]);
 
+/** Why an ability may refuse to be copied (§15.7). */
+const COPY_REASONS = new Set(["physical", "unique", "classSkill", "rankEX"]);
+
 /** The two check tables, from docs/15-checks.md. Not rank tables. */
 const CHECK_TABLES = new Set(["favourable", "unfavourable"]);
 const VOLATILITIES = new Set(["nonVolatile", "volatile", "mental", "terminal", "none"]);
@@ -287,6 +290,23 @@ function validateDocument(doc, path, library, problems, warnings) {
     }
   }
 
+  // §15.7: an ability that refuses to be copied has to say WHY, from the
+  // documented set. "cannot be copied" with no reason is a rule nobody can
+  // check against the exclusion list.
+  if (doc.copyable && doc.copyable.allowed === false) {
+    if (!COPY_REASONS.has(doc.copyable.reason)) {
+      problems.push(
+        `${path}: copyable.allowed is false with reason "${doc.copyable.reason}" — `
+        + `expected one of ${[...COPY_REASONS].join(", ")}`,
+      );
+    }
+  }
+  if (doc.copiedFrom && (doc.phases ?? []).length > 0) {
+    // A copy carries a reference OR phases, never both: with both, which one
+    // runs depends on the reader, and the two readers would disagree.
+    problems.push(`${path}: has both copiedFrom and phases — a copy carries no phases of its own`);
+  }
+
   // Cross-references
   for (const field of ["blocks", "blockedBy"]) {
     for (const id of doc[field] ?? []) {
@@ -491,7 +511,18 @@ function itemSystem(doc) {
     targeting: doc.targeting ?? null,
     // The bounded field a Noble Phantasm creates (Ch. 43).
     field: doc.field ?? null,
+    // Item fields (Ch. 15 §15.8). `requirements` is carried below,
+    // shared with the Command Spell block.
+    quantity: doc.quantity ?? undefined,
+    transferable: Boolean(doc.transferable),
+    transferRange: doc.transferRange ?? undefined,
+    transfersPerTurn: doc.transfersPerTurn ?? null,
+    consumeEffect: doc.consumeEffect ?? [],
     phases: doc.phases ?? [],
+    // §15.7. `copyable` defaults to allowed, so an author only writes it to
+    // say NO -- and the validator below checks the reason when they do.
+    copyable: doc.copyable ?? undefined,
+    copiedFrom: doc.copiedFrom ?? null,
     rules: doc.rules ?? [],
     passiveRules: doc.passiveRules ?? [],
     activeRules: doc.activeRules ?? [],

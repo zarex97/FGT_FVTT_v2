@@ -49,6 +49,24 @@ function abilityCommon() {
     passiveRules: new fields.ArrayField(new fields.ObjectField()),
     activeRules: new fields.ArrayField(new fields.ObjectField()),
     parameterized: new fields.ArrayField(new fields.StringField()),
+
+    // Whether Scáthach may copy this (§15.7). Authored per ability because
+    // "Skills a Servant is physically born with" is a judgement the author
+    // makes and the engine cannot infer -- there is no field on Natural Body
+    // that distinguishes it from any other passive.
+    copyable: new fields.SchemaField({
+      allowed: new fields.BooleanField({ initial: true }),
+      reason: new fields.StringField({
+        required: false, nullable: true, initial: null, blank: false,
+        choices: ["physical", "unique", "classSkill", "rankEX"],
+      }),
+    }),
+    // Set on a COPY: the content id of what it copies. A copy carries no phases
+    // of its own, so a later fix to the source reaches every copy of it.
+    copiedFrom: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // The grant that produced it, and the set every copy from one grant shares.
+    grantedBy: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    exclusionSet: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
   };
 }
 
@@ -151,6 +169,17 @@ export class EquipmentData extends foundry.abstract.TypeDataModel {
       contentId: new fields.StringField({ required: false, blank: true }),
       description: new fields.HTMLField({ required: false, blank: true }),
       equipped: new fields.BooleanField({ initial: false }),
+
+      // "Items are an ability with a quantity" (§15.8), and the default is that
+      // they CANNOT be passed: "Items cannot be traded/given/passed to other
+      // Units unless stated." Only [Semiramis' Poison] states otherwise, so a
+      // permissive default would be wrong for everything except the exception.
+      quantity: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),
+      transferable: new fields.BooleanField({ initial: false }),
+      transferRange: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),
+      transfersPerTurn: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      consumeEffect: new fields.ArrayField(new fields.ObjectField()),
+
       rules: new fields.ArrayField(new fields.ObjectField()),
     };
   }

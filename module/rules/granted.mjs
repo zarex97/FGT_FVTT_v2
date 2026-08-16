@@ -45,3 +45,30 @@ export const GRANTS = Object.freeze({
 export function hasGranted(unit, id) {
   return (unit?.grantedAbilities ?? []).includes(id);
 }
+
+/**
+ * A granted ability, as a descriptor.
+ *
+ * §15.7 makes the point that Scáthach's copies, Semiramis's *Double Summon*,
+ * a Master Essence's rule elements and `[Semiramis' Poison]` are all **one**
+ * operation: temporarily add an ability to a unit, from an external source,
+ * with its own lifetime. One shape, so a grant from any of the four expires,
+ * displays and suppresses the same way.
+ *
+ * @param {object} args
+ * @returns {object}
+ */
+export function grantedAbility({
+  name, rank = null, cooldown = null, phases = null, copiedFrom = null,
+  unitId = null, grantedBy = null, exclusionSet = null, duration = null,
+}) {
+  const out = {
+    granted: true,
+    name, rank, cooldown, unitId, grantedBy, exclusionSet, duration,
+  };
+  // A copy carries `copiedFrom` and NO phases: the executor resolves the
+  // reference, so a content fix to the source reaches every copy of it.
+  if (copiedFrom) out.copiedFrom = copiedFrom;
+  else if (phases) out.phases = phases;
+  return out;
+}

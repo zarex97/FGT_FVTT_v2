@@ -17,6 +17,8 @@
  *   evade fails    → 2.4 DU lucky evasion → 2.5 AU contest → 2.3
  */
 
+import { append as appendRoll } from "../rules/roll-log.mjs";
+
 /** Every state the process can occupy. */
 export const STATES = Object.freeze([
   "declare", "react", "evadeRoll",
@@ -115,6 +117,10 @@ export function begin({ attackerId, defenderId, attack, isAoE = false, groupId =
     // check happens inside a process that has no other way to know what it is.
     isCounter,
     history: [],
+    // Every roll this Process made (§14.8). On the state rather than beside it
+    // because the state is what crosses the socket and what the card is built
+    // from -- a log kept anywhere else would not survive either trip.
+    rolls: [],
   };
 }
 
@@ -179,6 +185,9 @@ export function advance(s, event, detail = undefined) {
     state: next,
     history: [...s.history, { state: s.state, event, ...(detail ? { detail } : {}) }],
   };
+  // A detail carrying a roll record files it. Done here rather than at each
+  // roll site so no check can produce a number the log never hears about.
+  if (detail?.rollRecord) out.rolls = appendRoll(s.rolls ?? [], detail.rollRecord);
   if (s.state === "react") out.reaction = event;
   if (s.state === "evadeRoll") out.evaded = event === "success";
   return out;

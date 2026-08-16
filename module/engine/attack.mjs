@@ -16,6 +16,8 @@ import { computeDamage } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
 import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
+import * as rollLog from "../rules/roll-log.mjs";
+import { effectivePhases } from "../rules/copy.mjs";
 import { classifyAbility, targetSpecFor as specForAbility } from "../rules/ability-use.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { inAttackRange } from "../domain/geometry.mjs";
@@ -74,6 +76,11 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     unit: self,
     master,
     round: combat?.round ?? 1,
+    // The rest of §15.4's requirement kinds need more than the unit: a
+    // counterpart check reads the board, and a target-effect check reads the
+    // target. Passing neither made those two kinds silently unsatisfiable.
+    board,
+    target: placement?.targetId ? unitFrom(board, game.actors.get(placement.targetId)) : null,
   });
   // CS: Force Noble Phantasm bypasses the cooldown and uses-exhausted gates.
   // It explicitly cannot bypass the Round gate, so `overrides` is consulted per
@@ -307,8 +314,7 @@ async function rollEvade(state) {
   if (state.attack?.aim) attackProperties.push("aim");
   if (state.attack?.kind === "np") attackProperties.push("np");
 
-  return {
-    ...evadeCheck({
+  const outcome = evadeCheck({
       roll: roll.total,
       agility: defender.agility,
       hasDodge: (defender.effects ?? []).includes("dodge"),
@@ -318,8 +324,21 @@ async function rollEvade(state) {
       autoSucceed: plan.autoSucceed,
       attackProperties,
       modifiers: [...evadeModifiers(state, attacker, defender), ...plan.modifiers],
-    }),
+  });
+
+  return {
+    ...outcome,
     formula: roll.formula,
+    // §14.8: every roll files a record, so a failed Evade can be read back as
+    // "the die was low" or "the wrong table was used" instead of one number.
+    rollRecord: rollLog.fromCheck(outcome, {
+      id: `${state.attackerId}:${state.defenderId}:evade:${game.combat?.system?.globalTurn ?? 0}`,
+      globalTurn: game.combat?.system?.globalTurn ?? 0,
+      entryId: "evade-",
+      formula: roll.formula,
+      purpose: `${defender.name} evades ${attacker.name}`,
+      actorId: state.defenderId,
+    }),
   };
 }
 
@@ -365,7 +384,18 @@ async function rollLuck(state) {
 
   // A Luck Check costs 1 Luck whether or not it succeeds.
   await applyBatch([I.statDelta(prompt.unitId, "luck.value", -1)], "luckCheck");
-  return { ...outcome, formula: roll.formula };
+  return {
+    ...outcome,
+    formula: roll.formula,
+    rollRecord: rollLog.fromCheck(outcome, {
+      id: `${prompt.unitId}:luck:${game.combat?.system?.globalTurn ?? 0}:${state.history.length}`,
+      globalTurn: game.combat?.system?.globalTurn ?? 0,
+      entryId: "luck",
+      formula: roll.formula,
+      purpose: `${unit.name} contests ${opponent.name}`,
+      actorId: prompt.unitId,
+    }),
+  };
 }
 
 /**
@@ -403,6 +433,8 @@ function abilityUsageSpec(ability) {
     isNP: Boolean(sys.isNP),
     cooldown: { remaining: sys.cooldown?.remaining ?? 0 },
     requiresRound: sys.targeting?.limits?.requiresRound ?? null,
+    // The rest of §15.4's list, authored beside the targeting limits.
+    requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
   };
 }
 
@@ -843,7 +875,9 @@ async function applyAbilityEffects(state, damageResult) {
   const defender = unitSnapshot(defenderDoc);
   const applied = [];
 
-  for (const phase of ability.system?.phases ?? []) {
+  // Through `effectivePhases`, because a copy (§15.7) has none of its own --
+  // reading `.phases` directly makes Scáthach's copies load and do nothing.
+  for (const phase of effectivePhases(ability.system ?? {}, resolveAbilitySource)) {
     if (phase.kind !== "applyEffects") continue;
     for (const rule of phase.rules ?? []) {
       const spec = rule.effect;
@@ -1007,3 +1041,23 @@ function budgetActionFor(kind) {
 
 /** Re-exported so a macro can roll a raw chance without importing the rules layer. */
 export { chance };
+
+/**
+ * A copied ability's source, by content id.
+ *
+ * Searched across every actor on the board rather than in the packs: a copy
+ * points at the *instance* on the field, and the field is where a rank shift or
+ * a suppression applied to that instance is visible.
+ *
+ * @param {string} contentId
+ * @returns {object|null}
+ */
+function resolveAbilitySource(contentId) {
+  for (const actor of game.actors ?? []) {
+    const found = actor.items?.find(
+      (i) => i.system?.contentId === contentId || i.id === contentId,
+    );
+    if (found) return found;
+  }
+  return null;
+}

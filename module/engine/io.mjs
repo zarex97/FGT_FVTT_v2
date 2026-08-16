@@ -194,6 +194,60 @@ export function worldIO() {
     },
 
     /**
+     * Spend or restock an item a unit already carries.
+     *
+     * An item that hits zero is **deleted**, not left at zero. A spent
+     * consumable that stays on the sheet reads as still usable, and the
+     * quantity gate then refuses it with no visible reason — exactly the
+     * "right and inert" failure this system keeps producing.
+     *
+     * @param {string} unitId
+     * @param {string} itemId
+     * @param {number} delta
+     */
+    async adjustItemQuantity(unitId, itemId, delta) {
+      const actor = resolve(unitId);
+      const item = actor?.items?.get(itemId)
+        ?? actor?.items?.find((i) => i.system?.contentId === itemId);
+      if (!item) return;
+
+      const next = (item.system?.quantity ?? 0) + delta;
+      if (next <= 0) await item.delete();
+      else await item.update({ "system.quantity": next });
+    },
+
+    /**
+     * Put an item on a unit that may not carry one yet.
+     *
+     * Stacks onto an existing pile where there is one, because two documents
+     * for the same item would each carry their own `transfersThisTurn` and let
+     * a unit pass twice per turn.
+     *
+     * @param {string} unitId
+     * @param {string} contentId
+     * @param {number} delta
+     */
+    async grantItem(unitId, contentId, delta = 1) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+
+      const held = actor.items.find((i) => i.system?.contentId === contentId);
+      if (held) {
+        await held.update({ "system.quantity": (held.system?.quantity ?? 0) + delta });
+        return;
+      }
+
+      const source = await fromContent(contentId);
+      if (!source) {
+        console.warn(`FGT | Cannot grant unknown item "${contentId}".`);
+        return;
+      }
+      const data = source.toObject();
+      data.system.quantity = delta;
+      await actor.createEmbeddedDocuments("Item", [data]);
+    },
+
+    /**
      * @param {object[]} entries
      */
     async log(entries) {
@@ -220,6 +274,25 @@ export function worldIO() {
       return FGTSocket.request("prompt", { userId, spec });
     },
   };
+}
+
+/**
+ * Find a content document by its `contentId`, across the item packs.
+ *
+ * Searched by index rather than by loading every pack: the index already
+ * carries `system.contentId`, and granting one item should not pull several
+ * hundred documents into memory.
+ *
+ * @param {string} contentId
+ * @returns {Promise<object|null>}
+ */
+async function fromContent(contentId) {
+  for (const pack of game.packs.filter((p) => p.metadata.type === "Item")) {
+    const index = await pack.getIndex({ fields: ["system.contentId"] });
+    const entry = index.find((e) => e.system?.contentId === contentId) ?? index.get(contentId);
+    if (entry) return pack.getDocument(entry._id);
+  }
+  return null;
 }
 
 /**

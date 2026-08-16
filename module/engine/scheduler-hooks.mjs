@@ -96,6 +96,9 @@ async function onRoundChange(combat, updateData, options) {
     round: combat.round ?? 1,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     activeFactionId: null,
+    // Switches off the multi-Servant tax (§16.7). Read here rather than in the
+    // rules layer, which has no settings.
+    grandOrder: setting("grandOrder", false),
   };
 
   const board = boardFor(combat);
@@ -216,4 +219,18 @@ async function advanceGrail(combat, board) {
       + (victory.faction ? `<p>${game.i18n.format("FGT.Victory.faction", { faction: victory.faction })}</p>` : ""),
   });
   Hooks.callAll("fgtVictory", victory);
+}
+
+/**
+ * A world setting, tolerating a world where it was never registered.
+ * @param {string} key
+ * @param {unknown} fallback
+ * @returns {unknown}
+ */
+function setting(key, fallback) {
+  try {
+    return game.settings.get("fgt", key) ?? fallback;
+  } catch {
+    return fallback;
+  }
 }

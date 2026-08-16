@@ -14,8 +14,7 @@ import { availableCommands, canSpend, effectsOf, costOf } from "../rules/command
 import { CommandSpellRegistry } from "../rules/cs-registry.mjs";
 import { currentBoard, unitFrom } from "./board.mjs";
 import * as I from "./intents.mjs";
-import { applyIntents } from "./applier.mjs";
-import { worldIO } from "./io.mjs";
+import { applyWorldIntents } from "./applier.mjs";
 import * as process from "./combat-process.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
@@ -91,7 +90,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
     ...effectIntents(effects, ctx),
   ];
 
-  await applyIntents(intents, worldIO(), { reason: `commandSpell:${command.id}` });
+  await applyWorldIntents(intents, `commandSpell:${command.id}`);
 
   // Interrupts land on the Process, not on the world. `effectIntents` above
   // already skipped them, so nothing is applied twice.

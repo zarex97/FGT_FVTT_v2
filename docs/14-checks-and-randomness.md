@@ -1,5 +1,21 @@
 # 14 — Checks and Randomness
 
+> **Implemented (Ch. 45, pure rules).** The roll log (§14.8) is `module/rules/roll-log.mjs`:
+> `record`, `append`, `reroll`, `chainOf`, `visibleTo` and `renderBreakdown`, plus `fromCheck`
+> which turns a check outcome into a record. Records accumulate on the **Combat Process state**
+> (`combat-process.mjs` files any `detail.rollRecord` in `advance`), so they survive the socket
+> round trip and reach the chat card, which renders them per viewer.
+>
+> Two decisions worth keeping: a **zero-delta** modifier prints without a sign, because entries
+> like "Mad Enhancement B: Evade- forced" changed which table was used rather than the number;
+> and a re-roll **keeps the original** and links to it via `rerolledFrom`, so a GM re-roll cannot
+> pass unnoticed. A duplicate id is dropped rather than appended — an interrupt that replays part
+> of a resolution would otherwise double every roll it re-ran.
+>
+> Setup rolls (§14.9) are `module/rules/setup-rolls.mjs`, rolled by `module/engine/summon.mjs`.
+> The asymmetry the code encodes: a **Servant's Max Health takes no roll** ("Health(S) is not
+> used"), while a Master rolls `2d100` with a **coin-flipped sign** over a flat base of 250.
+
 Every random element in F/GT, in one place: the check types, the named roll registry, the
 modifier rules, and how randomness is generated, logged, and made auditable across clients.
 

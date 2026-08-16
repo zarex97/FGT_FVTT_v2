@@ -621,7 +621,13 @@ function terrainIntents(descriptors, ctx) {
 function multiServantIntents(units, ctx) {
   /** @type {Intent[]} */
   const out = [];
-  for (const master of units.filter((u) => u.kind === "master")) {
+  // The tax is charged "at the end of ITS Turn" -- the Master whose faction
+  // just acted, not every Master on the board. Charging all of them would bill
+  // seven players for one player's turn.
+  const acting = units.filter(
+    (u) => u.kind === "master" && (ctx.activeFactionId === null || u.factionId === ctx.activeFactionId),
+  );
+  for (const master of acting) {
     const servants = units.filter((u) => u.masterId === master.id);
     for (const d of multiServantTax(master, servants, { grandOrder: ctx.grandOrder })) {
       // `statDelta`, not `damage`: a loss bypasses every reduction effect.

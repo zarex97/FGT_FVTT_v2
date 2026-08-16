@@ -77,6 +77,17 @@ export function combatantCommon() {
       str: new fields.NumberField({ required: true, integer: true, initial: 0 }),
       mag: new fields.NumberField({ required: true, integer: true, initial: 0 }),
     }),
+    // Parameter steps this Unit was GRANTED, as opposed to the ones it was
+    // written with (Ch. 05 §5.6). Kept separately because only granted steps
+    // move Base Attack, and because a sheet that shows "B" where the Servant
+    // was written "C" and granted one step is a sheet nobody can check.
+    grantedSteps: new fields.SchemaField({
+      str: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+      end: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+      agi: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+      mag: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+      luc: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+    }),
     normalAttack: new fields.SchemaField({
       mode: new fields.StringField({ initial: "fixed", choices: ["fixed", "combined", "rangeBanded"] }),
       component: new fields.StringField({ initial: "str", choices: ["str", "mag"] }),
@@ -111,6 +122,10 @@ export function combatantCommon() {
       mayMoveAgain: new fields.BooleanField({ initial: false }),
       // Riding Attack is terminal for that unit's turn.
       usedRidingAttack: new fields.BooleanField({ initial: false }),
+      // How many items this Unit has passed this turn (Ch. 15 §15.8). A count
+      // rather than a flag, because `transfersPerTurn` is per item and one of
+      // them may allow more than one.
+      itemTransfers: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     }),
   };
 }

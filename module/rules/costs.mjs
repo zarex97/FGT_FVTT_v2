@@ -16,6 +16,7 @@
 
 import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
+import { meetsRequirements } from "./items.mjs";
 
 /** Master ranks that pay the cheaper column. Masters come in four ranks (Ch. 04). */
 const HIGH_RANK_MASTER = Object.freeze(["A", "B"]);
@@ -75,7 +76,7 @@ export function npCost({ ability, unit, master }) {
  * @param {number} [args.round]
  * @returns {{ok: boolean, reason?: string, detail?: object, cost: object|null}}
  */
-export function canUseAbility({ ability, unit, master = null, round = 1 }) {
+export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx }) {
   const cost = npCost({ ability, unit, master });
 
   // Cooldown first: it is the most common refusal and the easiest to
@@ -94,6 +95,14 @@ export function canUseAbility({ ability, unit, master = null, round = 1 }) {
   if (ability?.isNP && unit?.outsideZon) {
     return { ok: false, reason: "zon", cost };
   }
+
+  // Everything else §15.4 lists. Checked after the gates above because those
+  // three are the common refusals and this is the long tail.
+  const met = meetsRequirements(ability?.requirements ?? [], {
+    unit, master, target: ctx.target ?? null, board: ctx.board ?? null,
+    round, testPredicate: ctx.testPredicate,
+  });
+  if (!met.ok) return { ok: false, reason: met.reason, cost };
 
   const unpayable = cannotPay(cost, unit, master);
   if (unpayable) return { ok: false, reason: unpayable, cost };

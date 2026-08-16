@@ -109,6 +109,28 @@ describe("canUseAbility", () => {
     }))).toMatchObject({ ok: false, reason: "sustainability" });
   });
 
+  it("consults the rest of §15.4's requirement list", () => {
+    // The list was implemented in `rules/items.mjs` and consulted by nothing:
+    // an ability could carry a requirement that never refused anything.
+    expect(canUseAbility(ok({
+      ability: np({ requirements: [{ kind: "hasSkill", abilityId: "doubleSummonCaster" }] }),
+    }))).toMatchObject({ ok: false, reason: "hasSkill" });
+  });
+
+  it("allows one whose requirements are met", () => {
+    expect(canUseAbility(ok({
+      ability: np({ requirements: [{ kind: "roundAtLeast", round: 3 }] }),
+    }))).toMatchObject({ ok: true });
+  });
+
+  it("checks the cheap gates before the requirement list", () => {
+    // A cooldown is the answer a player can act on; a failed requirement two
+    // rounds from now is not.
+    expect(canUseAbility(ok({
+      ability: np({ cooldown: { remaining: 1 }, requirements: [{ kind: "hasSkill", abilityId: "x" }] }),
+    }))).toMatchObject({ reason: "cooldown" });
+  });
+
   it("names the first failing gate rather than resolving them all", () => {
     // A refusal a player can act on names one thing to fix.
     const verdict = canUseAbility(ok({
