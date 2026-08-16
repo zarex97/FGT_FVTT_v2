@@ -18,6 +18,7 @@ import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
+import { grailContest, checkVictory } from "../rules/environment.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -97,7 +98,14 @@ async function onRoundChange(combat, updateData, options) {
     activeFactionId: null,
   };
 
-  await run(scheduler.endRound(boardFor(combat), ctx), "scheduler:endRound");
+  const board = boardFor(combat);
+  await run(scheduler.endRound(board, ctx), "scheduler:endRound");
+
+  // The Grail's contest and the victory check, both evaluated at round end
+  // (§19.4). Written back to the match, which is the runtime owner the Grail
+  // never had -- `grailCounter` sat on `MatchData` from the start with nothing
+  // incrementing or reading it.
+  await advanceGrail(combat, board);
 
   // Turn order is re-rolled every Round (Ch. 41 Q32), before the new Round's
   // start-of-round effects fire.
@@ -180,4 +188,32 @@ async function run(intents, source) {
     isGM: true,
     source,
   });
+}
+
+/**
+ * Advance the Grail contest, then ask whether the war is over.
+ *
+ * Both belong at round end and in that order: a faction that completes its
+ * full Round adjacent to the Grail wins on the same boundary that credits it.
+ *
+ * @param {object} combat
+ * @param {object} board
+ * @returns {Promise<void>}
+ */
+async function advanceGrail(combat, board) {
+  if (!game.user.isGM) return;
+
+  const result = grailContest(board.grail ?? {}, board.units ?? []);
+  if (JSON.stringify(result.contest) !== JSON.stringify(board.grail?.contest ?? {})) {
+    await combat.update({ "system.grailContest": result.contest });
+  }
+
+  const victory = checkVictory({ ...board, grail: { ...board.grail, contest: result.contest } });
+  if (!victory) return;
+
+  await ChatMessage.create({
+    content: `<h2>${game.i18n.localize(`FGT.Victory.${victory.outcome}`)}</h2>`
+      + (victory.faction ? `<p>${game.i18n.format("FGT.Victory.faction", { faction: victory.faction })}</p>` : ""),
+  });
+  Hooks.callAll("fgtVictory", victory);
 }

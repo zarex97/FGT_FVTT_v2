@@ -1,5 +1,11 @@
 # 25 — The Turn System
 
+> **Note (Ch. 45 C2).** `MatchData` now also carries the war's Region, the difficulty, and the
+> Holy Grail's full runtime state (threshold, count, materialization, position, contest,
+> destruction). The Grail is a property of the *match*, so the Combat document is its owner —
+> `grailCounter` had lived there since the schema was written with nothing incrementing it.
+> See Ch. 19 §19.4.
+
 Turns belong to **players**, not tokens. This chapter specifies the player-based `Combat`
 document, turn order and its mutation by `Delay`, the scheduler that fires time-based effects,
 and the reconciliation between F/GT's model and Foundry's assumptions.

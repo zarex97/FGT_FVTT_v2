@@ -6,6 +6,19 @@ destroyed, and the GM can inject events at will. This chapter specifies all of i
 
 ---
 
+> **Implemented (Ch. 45 C2).** `module/rules/environment.mjs` holds the rules; `snapshotBoard`
+> runs `annotateEnvironment` and `annotateRegionBonus` beside terrain and auras; `scheduler`
+> maps the Home Base descriptors and advances the Grail at round end; `MatchData` is the Grail's
+> runtime owner.
+>
+> Two things this chapter specified that had **no runtime owner at all** until then:
+> `MatchData.grailCounter` existed from the beginning with nothing incrementing or reading it,
+> so the Grail could never materialize; and `MatchData.region` existed with nothing granting the
+> parameter step it implies.
+>
+> Still GM-driven rather than automated, as §19.5 intends: the Random Event table itself. The
+> one event the rulebook specifies — Civilians — **is** implemented.
+
 ## 19.1 Home Base
 
 Each Faction owns an area at its end of the field. Five distinct effects, each with its own
@@ -286,6 +299,11 @@ Three mechanics:
 3. **Lunatic invariant.** The board maintains ≥2 Civilians, checked at round start and topped up
    by spawning at random unoccupied non-home-base panels.
 
+> **Implemented:** `civilianKill`, `mayAttackCivilian` and `civiliansNeeded`. A Civilian never
+> enters a Combat Process — `resolveAttack` resolves the kill before one is built, because a
+> ladder whose every rung has one outcome is not a ladder. The Good-alignment refusal names the
+> `Kill Humans` Command Spell as its override, and B1's `overrideValidation` is what carries it.
+
 And the alignment restriction:
 
 > *"Servants with the 'Good' Alignment will not kill Civilians. They will not use an AoE Noble
@@ -358,6 +376,12 @@ is the natural home for future content.
 Steps 1–5 and 9–12 are automated. Steps 6–8 are the draft, deferred to a later milestone
 (Ch. 01 §1.4 non-goal 2), with a manual path in v1: the GM assigns Servants and essences
 directly.
+
+> **Implemented:** step 4's region choice (`MatchData.region`, granting the parameter step via
+> `annotateRegionBonus`), step 5's day/night flip (`phase`, a pure function of the round number),
+> and step 12's attack gate (`attacksPermitted`, refused at declaration with the rule named
+> rather than surfacing as an unexplained targeting error). Difficulty is on `MatchData` and
+> drives the Lunatic Civilian invariant.
 
 Step 12's restriction — *"During the first Round, neither Player/Faction is allowed to Attack"* —
 is a hard gate on all attack declarations, enforced by the ability validator with a clear
