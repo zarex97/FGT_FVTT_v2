@@ -155,6 +155,12 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null } 
     ownerId: sys.ownerId ?? null,
     crossLevel: sys.crossLevel ?? null,
     concealed: Boolean(sys.concealed),
+    // Identity and Detect (Ch. 04 §4.2, Ch. 08 §8.7).
+    trueName: sys.trueName ?? null,
+    classContainer: sys.classContainer ?? [...(sys.servantClasses ?? [])][0] ?? null,
+    concealedIdentity: sys.concealedIdentity || null,
+    identityRevealed: Boolean(sys.identityRevealed),
+    detect: sys.detect ?? null,
     canAct: sys.canAct !== false,
     acted: turnState.acted,
     turnState,

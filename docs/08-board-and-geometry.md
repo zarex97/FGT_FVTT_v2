@@ -1,5 +1,15 @@
 # 08 — Board and Geometry
 
+> **Implemented (Ch. 45).** Detect (§8.7) is live in `module/rules/identity.mjs`: the radius
+> defaults to attack range with a **floor of 2** applied after every modifier — so Deafen cannot
+> take a unit below two panels, which makes it useless against short-ranged units rather than
+> merely weak. The Discover chance comes from the **concealed** unit's Presence Concealment rank,
+> and every attempt is marked `gmOnly` and `silentUnlessSucceeded`, so the socket layer cannot
+> broadcast the *attempt* and leak the presence it is checking for.
+>
+> §8.6 needs no implementation and never did: the DECISION there is that F/GT has no
+> line-of-sight rule. Ch. 45 listed it as missing for a while, which was wrong.
+
 > **Implementation note (Ch. 45 C1, C3).** Two things now change effective MOV beyond §8.3's
 > list. **Terrain** contributes a delta, applied *after* Slow and additively: Slow halves what the
 > unit has, a Forest costs a panel of what is left, and halving after the terrain penalty would

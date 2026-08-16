@@ -11,7 +11,7 @@
  * round boundary by accident.
  */
 
-import { resolveTurnOrder, computeTurnOrder, factionOfCombatant } from "../engine/turn-order.mjs";
+import { resolveTurnOrder, computeTurnOrder, factionOfCombatant, carryDelaysForward } from "../engine/turn-order.mjs";
 import { factions as rosterFactions, faction as factionById } from "../engine/board.mjs";
 
 export class FGTCombat extends Combat {
@@ -161,7 +161,10 @@ export class FGTCombat extends Combat {
     await this.update({
       "system.baseOrder": order,
       "system.turnOrder": computeTurnOrder(order, {}, [], this.gmFactionId),
-      "system.delays": {},
+      // Delays are cleared at round start -- except those declared against a
+      // faction that had already acted, which 7.8 says apply NEXT round. Those
+      // were being discarded rather than deferred.
+      "system.delays": carryDelaysForward(this.system?.delays ?? {}, this.system?.takenThisRound ?? []),
       "system.takenThisRound": [],
     });
     return order;

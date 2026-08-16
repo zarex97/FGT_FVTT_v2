@@ -443,6 +443,13 @@ function actorSystem(doc) {
     contentId: doc.id,
     trueName: doc.trueName ?? doc.name,
     servantClasses: doc.servantClasses ?? [],
+    // The container defaults to the first declared class, so a single-class
+    // Servant needs no extra authoring.
+    classContainer: doc.classContainer ?? (doc.servantClasses ?? [])[0] ?? "",
+    concealedIdentity: doc.concealedIdentity ?? "",
+    identityRevealed: Boolean(doc.identityRevealed),
+    detect: doc.detect ?? null,
+    defaultImage: doc.defaultImage ?? null,
     alignment: doc.alignment ?? null,
     region: doc.region ?? [],
     attributes: doc.attributes ?? [],

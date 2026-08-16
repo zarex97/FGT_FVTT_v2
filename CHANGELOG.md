@@ -180,6 +180,32 @@ coincide by accident; the headings say which is which.
   membership, a climbing escape check, per-unit escape history and hard containment — Ch. 43
   almost entire, which is C4. A stub applying its debuffs without the containment would look
   like the Labyrinth worked.
+- **Servant identity, and Detect.** A Servant is publicly its **class**, not its name:
+  "Berserker", or "Berserker of Yellow" once it belongs to a named faction, and its true name
+  only once `identityRevealed` is set — which is what gives closed-information play something to
+  conceal. New sheet fields: `classContainer` (the class it was summoned into, alongside the
+  `servantClasses` set it qualifies for), `concealedIdentity` for a Servant publicly known as
+  something else, `identityRevealed`, `detect`, and `defaultImage`.
+
+  `publicNameOf` always shows the true name to the unit's own owner — the concealment is from
+  opponents, not from the player running it.
+
+  **Detect** (Ch. 08 §8.7) is the same number as vision range. It defaults to attack range with a
+  floor of 2 applied *after* every modifier, so Deafen cannot take a unit below two panels —
+  which makes it useless against short-ranged units rather than merely weak. Every Discover
+  attempt is marked GM-only and silent, because broadcasting the *attempt* leaks the presence it
+  is checking for.
+
+- **Rule elements apply in priority bands** (Ch. 24 §24.6). They previously applied in collection
+  order, which is document **load** order — so two clients could compute two different numbers
+  from the same board. Bands fix the what; a stable sort on source id fixes the tie. An unknown
+  key lands in the additive band rather than sorting to either end, so a new element cannot gain
+  the power to run before or after everything simply by not being listed.
+
+- **A Delay against a faction that had already acted was discarded** (Ch. 07 §7.8). It is meant
+  to apply *next* round, and because `system.delays` is cleared at round start it was being
+  dropped instead. The one clause the rule spells out was the one that did nothing.
+
 - **Bounded fields** (Ch. 45 C4) — **Phase C is complete.** Ten fields across nine Servants are
   points in one six-axis model rather than ten special cases, which is Ch. 43's own argument for
   having a model: geometry, membership, isolation, interior rules, duration/extension and
