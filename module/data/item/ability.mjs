@@ -84,6 +84,12 @@ export class NoblePhantasmData extends foundry.abstract.TypeDataModel {
       ...abilityCommon(),
       isNP: new fields.BooleanField({ initial: true }),
       categorizedAsNP: new fields.BooleanField({ initial: false }),
+      /**
+       * A bounded field this Noble Phantasm creates (Ch. 43). Untyped for the
+       * same reason rule elements are: ten fields are points in one six-axis
+       * model, and a rigid schema would reject the eleventh.
+       */
+      field: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // Ordered scale plus unordered qualifiers (Ch. 43 §43.8). Stored as
       // authored; comparison uses the highest scale tag present.
       npTags: new fields.ArrayField(new fields.StringField()),

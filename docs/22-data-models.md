@@ -640,6 +640,11 @@ a subtype now.
 
 ---
 
+> **Note (Ch. 45 C4).** `NPFieldBehavior` carries the whole six-axis bounded-field model from
+> Ch. 43 — `geometry`, `membership`, `isolation`, `interior`, `extension`, `vulnerabilities`,
+> plus `npTags` and a `state` object holding the per-unit escape history the veteran rule needs.
+> `NoblePhantasmData` gains a `field` object for the Noble Phantasm that creates one.
+
 > **Note (Ch. 45 C3).** `PlatformData` now carries the full four-axis cross-level protection
 > model from Ch. 20 §20.7 (`occupantTargeting`, `requiresBoarding`, `aoePassengerFactor`,
 > `aoeMastersImmune`, `outboundTargeting`, `forbidDirectlyBelow`), plus `ownerId` and its own

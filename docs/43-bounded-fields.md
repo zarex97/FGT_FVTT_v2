@@ -1,5 +1,33 @@
 # 43 — Bounded Fields
 
+> **Implemented (Ch. 45 C4).** `module/rules/bounded-fields.mjs` is the six-axis model, one
+> module rather than ten special cases — which is this chapter's own argument.
+> `NPFieldBehavior` (Ch. 22 §22.10) carries the axes on a Region; `engine/board.mjs` projects
+> them; `snapshotBoard` runs `annotateFields`; and `resolveTargets` enforces isolation at step 4c.
+>
+> | Axis | Function |
+> |---|---|
+> | 1 Geometry | `panelsOf`, `contains` — `fixedArea` and `followsUnit` computed, the drawn kinds stored |
+> | 2 Membership | `membershipVerdict`, `escapeAttempt` |
+> | 3 Isolation | `isolationBlocks` |
+> | 4 Interior | `interiorModifiers` |
+> | 5 Duration | `extensionFor` |
+> | 6 Vulnerability | `vulnerabilityTriggered`, on the `NP_TAG_SCALE` ordering |
+>
+> Details worth keeping. `rollRequired` is **not** a refusal — it refuses the *free* move and the
+> caller offers `escapeAttempt`; conflating the two turns a Labyrinth into a wall. Blocking
+> **Command Spells** is its own axis rather than an inference from isolation, because the duel
+> field is the only thing in the game that does it. And `???` never satisfies a tag threshold, so
+> the check surfaces a prompt instead of silently deciding either way.
+>
+> **Chaos Labyrinthos is authored** (`packs/_source/abilities/asterios-chaos-labyrinthos.yml`) as
+> the reference point in the model, including §43.4's escape ladder and its veteran clause.
+>
+> Not built: the **paint-style canvas tool** `freeform` needs (The Mist, targeting mode E), the
+> two-phase `markDefined` construction (Blood Fort Andromeda's Bloodmarks), and the scheduled
+> detonation of §43.9. The state history of §43.11 exists only as `state.escapeHistory` — enough
+> for the veteran rule, not the general log.
+
 The expanded roster added nine abilities that create a **persistent area with its own rules of
 entry, exit, and suppression**. They are not platforms (Ch. 20 — those are about elevation) and
 not terrain (Ch. 42 — that is about panel properties). They are a third family, and they are the

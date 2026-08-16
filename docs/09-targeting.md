@@ -1,5 +1,9 @@
 # 09 — Targeting
 
+> **Note (Ch. 45 C4).** A bounded-field **isolation** filter joins the resolver at step 4c. Full
+> isolation partitions the board into two independent combats: a player whose units straddle the
+> boundary still takes one turn and acts with both groups, but the groups cannot reach each other.
+
 > **Note (Ch. 45 C3).** The cross-level filter is live. It reads `board.crossLevel`, which
 > `snapshotBoard` now builds from the platforms actually on the board — the step existed and was
 > called from the beginning, with nothing ever supplying that map. See Ch. 20 §20.7.

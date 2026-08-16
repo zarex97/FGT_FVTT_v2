@@ -204,6 +204,10 @@ export function currentBoard(overrides = {}) {
         contest: combat?.system?.grailContest ?? {},
       },
       zones: homeBaseZonesOf(scene),
+      // Bounded fields (Ch. 43). Regions again, for the same reasons terrain
+      // uses them: native membership, native enter/exit, and an area that may
+      // be any shape at all.
+      fields: boundedFieldsOf(scene),
       ...overrides,
     },
   });
@@ -300,4 +304,43 @@ function panelsOfRegion(region) {
     }
   }
   return panels;
+}
+
+/**
+ * Bounded fields from the scene's Regions.
+ *
+ * The behaviour carries the six axes; the Region carries the panels. A field
+ * whose geometry is `freeform` or `markDefined` was drawn by a player or fixed
+ * by its marks, so its panels come from the Region rather than a shape spec.
+ *
+ * @param {object|null} scene
+ * @returns {object[]}
+ */
+function boundedFieldsOf(scene) {
+  /** @type {object[]} */
+  const out = [];
+  for (const region of scene?.regions ?? []) {
+    for (const behavior of region.behaviors ?? []) {
+      if (behavior.type !== "npField" || behavior.disabled) continue;
+      const sys = behavior.system ?? {};
+      out.push({
+        id: sys.fieldId,
+        ownerId: sys.ownerUnitId ?? null,
+        ownerMasterId: sys.ownerMasterId ?? null,
+        ownerFaction: sys.ownerFaction ?? null,
+        npTags: sys.npTags ?? [],
+        geometry: sys.geometry ?? null,
+        membership: sys.membership ?? null,
+        isolation: sys.isolation ?? null,
+        interior: sys.interior ?? [],
+        extension: sys.extension ?? null,
+        vulnerabilities: sys.vulnerabilities ?? [],
+        duration: sys.duration ?? null,
+        state: sys.state ?? { escapeHistory: {} },
+        panels: panelsOfRegion(region),
+        regionId: region.id,
+      });
+    }
+  }
+  return out;
 }

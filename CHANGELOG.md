@@ -128,6 +128,17 @@ coincide by accident; the headings say which is which.
 
 ### Changed
 
+- **The specification chapters are back in step with the code.** Ch. 45 had been kept current all
+  along; the other 44 had not, and a specification the code has overtaken is worse than none —
+  the next implementer builds to the stale text. Twenty chapters now carry implementation notes
+  naming the modules, what is live, and **what is not**.
+
+  The substantive one is Ch. 24, which gains three vocabulary additions in their proper group
+  tables rather than a footnote: `Compulsion`, the `ApplicationChance` executor, and `roll:` on
+  `DamageModifier`. It also records that `Appendix B` has predicated on `target:skill:divinity`
+  since the tables were transcribed with **nothing ever emitting a `skill:` option**.
+
+
 - **The changelog is split into per-version sections.** Everything from `0.2.2` onward had
   accumulated under `[Unreleased]`. Attribution is by first appearance in a tagged changelog, so
   it survives entries having been reordered and rewritten between releases; all 44 entries
@@ -169,6 +180,28 @@ coincide by accident; the headings say which is which.
   membership, a climbing escape check, per-unit escape history and hard containment — Ch. 43
   almost entire, which is C4. A stub applying its debuffs without the containment would look
   like the Labyrinth worked.
+- **Bounded fields** (Ch. 45 C4) — **Phase C is complete.** Ten fields across nine Servants are
+  points in one six-axis model rather than ten special cases, which is Ch. 43's own argument for
+  having a model: geometry, membership, isolation, interior rules, duration/extension and
+  vulnerability. `NPFieldBehavior` carries the axes on a Region, `snapshotBoard` runs
+  `annotateFields`, and `resolveTargets` enforces isolation.
+
+  Decisions worth keeping. **`rollRequired` is not a refusal** — it refuses the *free* move and
+  the caller offers the escape roll; conflating the two would turn a Labyrinth into a wall.
+  **Blocking Command Spells is its own axis**, not an inference from isolation, because the duel
+  field is the only thing in the game that stops one and deriving it would have given every
+  isolating field a power only that one has. **`???` never satisfies a tag threshold**, so the
+  check surfaces a prompt rather than silently deciding. And NP tags are an **ordered scale plus
+  unordered qualifiers**, listed separately rather than inferred.
+
+  **Asterios is now fully authored.** *Chaos Labyrinthos* was the clause C4 had been blocking,
+  and it lands as the reference point in the model — including §43.4's escape ladder and the
+  veteran clause that lets an escapee lead adjacent allies out, which is what makes a Labyrinth a
+  puzzle rather than a soft lock.
+
+  Not built: the paint-style canvas tool `freeform` needs (The Mist), the two-phase `markDefined`
+  construction (Blood Fort Andromeda), and §43.9's scheduled detonation.
+
 - **Platforms and levels** (Ch. 45 C3). The model, the movement linkage, the cross-level
   protection rules, boarding, falling, destruction, and the three reference platforms — the
   Hanging Gardens, the Golden Hind and the Storm Border.

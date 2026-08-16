@@ -53,14 +53,37 @@ export class HomeBaseBehavior extends Base {
   }
 }
 
-/** A bounded field (Ch. 43). Declared so content can place one; rules pending C4. */
+/**
+ * A bounded field (Ch. 43).
+ *
+ * Ten fields across nine Servants are points in one six-axis model, so the
+ * behaviour carries the axes rather than a per-field flag: geometry, membership,
+ * isolation, interior rules, duration/extension and vulnerability. Anything a
+ * field does is a value here, and nothing in the schema is named after a Servant.
+ */
 export class NPFieldBehavior extends Base {
   static defineSchema() {
     return {
       fieldId: new fields.StringField({ required: true, blank: false }),
       ownerUnitId: new fields.StringField({ required: false, nullable: true, initial: null }),
-      permeable: new fields.BooleanField({ initial: true }),
+      ownerMasterId: new fields.StringField({ required: false, nullable: true, initial: null }),
+      ownerFaction: new fields.StringField({ required: false, nullable: true, initial: null }),
+      npTags: new fields.ArrayField(new fields.StringField()),
+
+      // Authored data, untyped for the same reason rule elements are: the
+      // content validator checks the shape at build time, and a rigid schema
+      // would reject a field shape a module introduces.
+      geometry: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      membership: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      isolation: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      interior: new fields.ArrayField(new fields.ObjectField()),
+      extension: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      vulnerabilities: new fields.ArrayField(new fields.ObjectField()),
+      onEnd: new fields.ArrayField(new fields.ObjectField()),
+
       duration: new fields.StringField({ required: false, nullable: true, initial: null }),
+      /** Per-unit escape history, which the veteran rule needs (§43.11). */
+      state: new fields.ObjectField({ required: true, initial: () => ({ escapeHistory: {} }) }),
     };
   }
 }

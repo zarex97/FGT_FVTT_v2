@@ -482,6 +482,8 @@ function itemSystem(doc) {
     npTags: doc.npTags ?? [],
     cooldown: { max: doc.cooldown ?? null, remaining: 0, regen: 0 },
     targeting: doc.targeting ?? null,
+    // The bounded field a Noble Phantasm creates (Ch. 43).
+    field: doc.field ?? null,
     phases: doc.phases ?? [],
     rules: doc.rules ?? [],
     passiveRules: doc.passiveRules ?? [],

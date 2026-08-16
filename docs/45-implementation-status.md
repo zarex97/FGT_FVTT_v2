@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 935 tests, and 53 content files.
+domain are all implemented and carry 978 tests, and 55 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -71,9 +71,10 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
 6. ~~**Six of the eight environment subsystems are missing**~~ — **done (C1, C2)**. Home Base,
    Day/Night, Region, the Grail and Terrain are all live, with the Grail owned by `MatchData`
    and terrain areas read from the scene's Regions. Random Events stay GM-driven by design.
-7. **Bounded fields are modelled in the schema and nowhere else.** Platforms and levels landed
-   in C3; what they still lack is the Scene Level operations (create, delete, scatter), which
-   are logged by name rather than performed.
+7. ~~**Platforms, levels and bounded fields are modelled in the schema and nowhere else.**~~ —
+   **done (C3, C4)**. Platforms still lack the Scene Level operations (create, delete, scatter),
+   which are logged by name rather than performed; bounded fields still lack the paint tool
+   `freeform` needs and the two-phase `markDefined` construction.
 8. **Only 2 of 29 reference Servants are authored.**
 
 The system is at the point where **one player can attack another player and the damage is
@@ -130,11 +131,11 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 935 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 978 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
-| 43 | Bounded fields | **Missing** | Named in the enums only. |
-| — | Content | **4 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea (D1). 14 effects of ~152. 5 class skills. 16 of 16 Command Spells. **3 of 3 reference platforms (C3).** |
+| 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
+| — | Content | **4 of 29 Servants** | Heracles, Karna, **Asterios and Penthesilea both fully authored** (D1). 15 effects of ~152. 5 class skills. 16 of 16 Command Spells. 3 of 3 reference platforms (C3). |
 
 ---
 
@@ -638,7 +639,37 @@ owner's effects. Those steps of §20.9 are **logged by name** rather than silent
 `PlatformBehavior` (Ch. 22 §22.10) is the schema they will hang off. The per-platform *content* —
 HGoB Construction, Golden Wild Hunt, Zero Sail — belongs with its Servants in D1.
 
-**C4. Bounded fields.** *(large)* Ch. 43 — membership, permeability, escape.
+**C4. Bounded fields.** *(large)* — **DONE.**
+*Test gate met:* `test/unit/bounded-fields.test.mjs`, 43 tests across all six axes, including the
+Labyrinth escape ladder and its veteran clause.
+
+`module/rules/bounded-fields.mjs` is the model — **one module rather than ten special cases**,
+which is Ch. 43's own argument for having a model at all. `NPFieldBehavior` carries the axes on a
+Region, `engine/board.mjs` projects them, `snapshotBoard` runs `annotateFields`, and
+`resolveTargets` enforces isolation at step 4c.
+
+Decisions worth keeping:
+
+- **`rollRequired` is not a refusal.** It refuses the *free* move and the caller offers
+  `escapeAttempt`. Conflating the two would turn a Labyrinth into a wall — the escape ladder is
+  the mechanic, not an exception to it.
+- **Blocking Command Spells is its own axis**, not an inference from isolation. The duel field is
+  the only thing in the game that stops one, and deriving it from "fully isolated" would have
+  given every isolating field a power only that one has.
+- **`???` never satisfies a tag threshold.** The check surfaces a prompt for the GM rather than
+  silently deciding either way.
+- **NP tags are an ordered scale plus unordered qualifiers**, listed separately rather than
+  inferred, so a new tag is a deliberate decision about which kind it is.
+
+**Chaos Labyrinthos is authored** as the reference point in the model — which also finishes
+Asterios, whose Noble Phantasm C4 had been blocking.
+
+Not built, and each is a distinct piece of work rather than a gap in the model: the **paint-style
+canvas tool** `freeform` needs (The Mist — targeting mode E, the first interaction outside Ch. 09
+§9.9's four modes), the two-phase `markDefined` construction (Blood Fort Andromeda's Bloodmarks,
+visible only within 3 panels and destructible only by Masters), and §43.9's scheduled detonation.
+§43.11's state history exists only as `state.escapeHistory` — enough for the veteran rule, not
+the general log.
 
 ### Phase D — content and polish
 
@@ -701,7 +732,9 @@ rather than last:
    what they are for.
 4. **Mad Enhancement has no lockout field.** Asterios' cannot be deactivated until 2◈ after it
    was activated, and vice versa; the class-skill template has nowhere to say so. Heracles never
-   surfaced this because his simply cannot be deactivated at all.
+   surfaced this because his simply cannot be deactivated at all. **Still open**, and it is a
+   property of the *skill* rather than of either Servant — Penthesilea's Mad Enhancement EX
+   carries the same clause. It is the only unauthored clause left on either of them.
 
 `Chaos Labyrinthos` is **deliberately not authored**. It is a 9×9 bounded field with membership,
 an escape check whose chance climbs 5% per failure, per-unit escape history, allies led out by
@@ -733,7 +766,7 @@ C1 ✔ → C2 ✔            terrain then environment; environment reads terrain
 D1 ~ (continuous)      author Servants alongside, not after — they are the real test suite.
                        Asterios and Penthesilea done. Between them they found eight engine
                        gaps and closed them; none would have been designed up front
-C3 ✔ → C4              platforms and bounded fields; C3 done, C4 (Ch. 43) is what remains
+C3 ✔ → C4 ✔            platforms and bounded fields. PHASE C COMPLETE.
 D2 → D3 → D4
 ```
 
