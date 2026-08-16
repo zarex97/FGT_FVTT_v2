@@ -240,3 +240,191 @@ export function annotateTerrain(units, board) {
     }
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Periodic and event-driven clauses                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The boundary clauses of each terrain type.
+ *
+ * Separate from `TERRAIN.effects` because these are **events**, not standing
+ * modifiers: they happen at a moment and are gone. Keeping them apart is what
+ * lets `terrainEffects` stay a pure lookup.
+ *
+ * @type {Readonly<Record<string, object[]>>}
+ */
+const PERIODICS = Object.freeze({
+  burning: [
+    // "All units are inflicted with Burn at the end of every Turn. While
+    // inside, this Burn does not expire and cannot be removed."
+    {
+      when: "turnEnd", kind: "applyEffect", effectId: "burn",
+      duration: null, unremovable: true,
+      // "Units with ANY resistance to Burn or Fire damage are not inflicted."
+      unlessAnyEffect: ["flamHeal", "fireResist", "burnImmune"],
+    },
+    // "25 Fixed Fire damage at the end of the unit's turn and at the end of any
+    // turn it Acts."
+    {
+      when: "turnEnd", kind: "damage", amount: 25, element: "fire", fixed: true,
+      unlessAnyEffect: ["flamHeal", "fireResist", "burnImmune"],
+    },
+  ],
+
+  poisonSwamp: [
+    { when: "turnEnd", kind: "applyEffect", effectId: "poison", unlessEffect: "poison" },
+    // "then has a 50% chance of an additional Poison stage" — only for a unit
+    // that was already Poisoned when the turn ended.
+    { when: "turnEnd", kind: "chance", percent: 50, then: "poisonStage", requiresEffect: "poison" },
+  ],
+
+  eldritch: [
+    // "At the start of every turn, every unit inside flips a coin; on Tails,
+    // Stun for that turn. (Explicitly equivalent to Terror 50%.)"
+    { when: "turnStart", kind: "chance", percent: 50, then: "stun" },
+  ],
+});
+
+/** On-entry clauses, fired when a unit steps onto a panel. */
+const ON_ENTRY = Object.freeze({
+  lava: [
+    { kind: "damage", amount: 20, element: "fire", fixed: true },
+    { kind: "chance", percent: 50, then: "burn", duration: "2◈" },
+  ],
+  frozen: [
+    { kind: "check", check: "agility", onFail: "cannotAct" },
+  ],
+  magnetic: [
+    // "25% chance of Immobilize for 1◈ — 100% for units with the Mechanical
+    // attribute. NOT affected by Debuff Immune or any debuff-resist modifier,
+    // except Style Change." The bypass is the interesting half: without it the
+    // clause would be quietly cancelled by the very units it is aimed at.
+    { kind: "chance", percent: 25, percentIfAttribute: { mechanical: 100 },
+      then: "immobilize", duration: "1◈", bypassesResistance: true },
+  ],
+});
+
+/**
+ * Everything the terrain does to these units at this boundary.
+ *
+ * Returns **descriptors**, not intents: this is layer 2. `scheduler` maps them,
+ * the same division the `OnEvent` action table and the Home Base use.
+ *
+ * @param {object[]} units
+ * @param {object} board
+ * @param {"turnStart"|"turnEnd"|"roundEnd"} when
+ * @returns {object[]}
+ */
+export function terrainPeriodics(units, board, when) {
+  /** @type {object[]} */
+  const out = [];
+
+  for (const unit of units ?? []) {
+    const held = unit.effects ?? [];
+    for (const type of terrainAt(unit.panel ?? { i: -1, j: -1 }, board)) {
+      for (const clause of PERIODICS[type] ?? []) {
+        if (clause.when !== when) continue;
+        if (clause.unlessEffect && held.includes(clause.unlessEffect)) continue;
+        if (clause.requiresEffect && !held.includes(clause.requiresEffect)) continue;
+        if ((clause.unlessAnyEffect ?? []).some((e) => held.includes(e))) continue;
+
+        const { when: _when, unlessEffect, requiresEffect, unlessAnyEffect, ...rest } = clause;
+        void _when; void unlessEffect; void requiresEffect; void unlessAnyEffect;
+        out.push({ ...rest, unitId: unit.id, terrain: type });
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
+ * What happens the moment a unit steps onto a panel.
+ *
+ * @param {object} unit
+ * @param {{i: number, j: number}} panel the panel being entered
+ * @param {object} board
+ * @returns {object[]}
+ */
+export function terrainOnEntry(unit, panel, board) {
+  /** @type {object[]} */
+  const out = [];
+  const held = unit?.attributes ?? [];
+
+  for (const type of terrainAt(panel, board)) {
+    for (const clause of ON_ENTRY[type] ?? []) {
+      const { percentIfAttribute, ...rest } = clause;
+      // An attribute can raise the chance to certainty — Magnetic against a
+      // Mechanical unit is not a roll at all.
+      const override = Object.entries(percentIfAttribute ?? {})
+        .find(([attribute]) => held.includes(attribute));
+      out.push({
+        ...rest,
+        ...(override ? { percent: override[1] } : {}),
+        unitId: unit.id,
+        terrain: type,
+      });
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Terrain that changes because of an attack that just landed.
+ *
+ * Two clauses, and they are opposites: Fire **creates** Burning out of a
+ * Forest permanently, and **consumes** a Meadow at the end of the Damage Step.
+ *
+ * @param {object} args
+ * @param {object} args.defender
+ * @param {object} args.board
+ * @param {string|null} args.element
+ * @param {"heads"|"tails"} [args.coin] the caller flips
+ * @param {Array<{i: number, j: number}>} [args.areaPanels] the attack's area
+ * @returns {object[]}
+ */
+export function terrainConversions({ defender, board, element, coin, areaPanels = null }) {
+  if (element !== "fire") return [];
+
+  /** @type {object[]} */
+  const out = [];
+  const here = terrainAt(defender?.panel ?? { i: -1, j: -1 }, board);
+
+  // "When an attack dealing Fire damage hits a unit in a Forest, flip a coin.
+  // On Tails the 3x3 around the DU becomes Burning for 2 turns -- and does not
+  // revert to Forest afterwards. If the attack's area is larger than 3x3, the
+  // whole attack area converts."
+  if (here.includes("forest") && coin === "tails") {
+    const three = squareAround(defender.panel, 1);
+    out.push({
+      kind: "convertTerrain", from: "forest", to: "burning",
+      panels: areaPanels && areaPanels.length > three.length ? areaPanels : three,
+      duration: "2◈", reverts: false,
+    });
+  }
+
+  // "Fire damage taken by a unit standing on a Meadow panel +100% -- and then
+  // the panel reverts to normal at the end of the Damage Step."
+  if (here.includes("meadow")) {
+    out.push({ kind: "removeTerrain", type: "meadow", panels: [defender.panel] });
+  }
+
+  return out;
+}
+
+/**
+ * The (2r+1)² block centred on a panel.
+ * @param {{i: number, j: number}} centre
+ * @param {number} r
+ * @returns {Array<{i: number, j: number}>}
+ */
+function squareAround(centre, r) {
+  /** @type {Array<{i: number, j: number}>} */
+  const out = [];
+  for (let di = -r; di <= r; di++) {
+    for (let dj = -r; dj <= r; dj++) out.push({ i: centre.i + di, j: centre.j + dj });
+  }
+  return out;
+}

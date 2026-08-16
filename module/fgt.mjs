@@ -59,6 +59,15 @@ Hooks.once("init", () => {
   CONFIG.ActiveEffect.dataModels = { fgtEffect: data.EffectData };
   CONFIG.Combat.dataModels = { match: data.MatchData };
   CONFIG.Combatant.dataModels = { player: data.PlayerCombatantData };
+  // Declared in system.json since the manifest was written, with no data model
+  // behind any of them -- so an `fgt.terrain` behaviour on a Region carried no
+  // type, no duration and no meaning (Ch. 22 §22.10).
+  CONFIG.RegionBehavior.dataModels = {
+    terrain: data.TerrainBehavior,
+    homeBase: data.HomeBaseBehavior,
+    npField: data.NPFieldBehavior,
+    platform: data.PlatformBehavior,
+  };
 
   // ── Document classes ─────────────────────────────────────────────────────
   CONFIG.Actor.documentClass = documents.FGTActor;

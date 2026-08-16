@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 852 tests, and 50 content files.
+domain are all implemented and carry 874 tests, and 50 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -114,7 +114,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 21 | System skeleton | **Done** | Bootstrap, settings, public API, CI, release workflow. |
-| 22 | Data models | **Mostly** | All schemas present. **Region behaviour schemas (§22.10) missing.** |
+| 22 | Data models | **Done** | All schemas present, including the four **Region behaviour** schemas (§22.10) that `system.json` had always declared without a model behind them. |
 | 23 | Documents and derived data | **Mostly** | Preparation order, derived stats and **the aura pass (§23.3)** done. **Cache invalidation and the spatial `AuraIndex` (§23.9) missing — the pass is a linear scan today, correct but unbucketed.** |
 | 24 | Rules engine | **Mostly** | 30 executors, predicates, explainability, validation. **Priority and ordering (§24.6) not implemented — elements apply in collection order.** |
 | 25 | Turn system | **Mostly** | `FGTCombat`, turn order, scheduler, HUD done. **Charm/control transfer (§25.7) and reconnection (§25.10) missing.** |
@@ -129,9 +129,9 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 852 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 874 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
-| 42 | Terrain | **Partly** | Catalogue, panel model, MOV/Evade/damage modifiers and the annotation pass done (C1). **The periodic clauses and the `Region` behaviour that would populate areas from a scene are missing.** |
+| 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
 | — | Content | **4 of 29 Servants** | Heracles, Karna, Asterios, **Penthesilea — fully authored** (D1). 14 effects of ~152. 5 class skills. 16 of 16 Command Spells. |
 
@@ -503,7 +503,7 @@ a projection that produced a value nothing could act on.
 
 ### Phase C — the world
 
-**C1. Terrain.** *(medium)* — **standing modifiers DONE; the periodic clauses are not.**
+**C1. Terrain.** *(medium)* — **DONE.**
 *Test gate met:* `test/unit/terrain.test.mjs`, 24 tests, including the table test the gate asks
 for — MOV and Evade for every type that changes them, with the attribute gates (`Swimsuit!`,
 `Santa`, `Levitating`) that a third of the catalogue turns on.
@@ -518,19 +518,35 @@ ends it instantly — a unit never carried it.
 has, while a Forest costs a panel of whatever is left. Halving after the terrain penalty would
 make difficult ground twice as expensive to a Slowed unit, which no rule says.
 
-**Absent rather than half-present**, and this is deliberate: every *periodic and event-driven*
-clause. Burning's inescapable `Burn`, Poison Swamp's end-of-turn stage roll, the Forest→Burning
-coin flip, Lava's and Frozen's and Magnetic's on-entry consequences, Eldritch's Horrors, Meadow
-reverting after a Damage Step, Underworld's `Near-Death`. Those need the scheduler and the
-movement hooks, not the catalogue table, and a half-entry in the table would look implemented.
-Six of the nineteen types are therefore registered with **no** standing effects at all
-(Poison Swamp, Thunderstorm, Dead Zone, Magnetic, Underworld, Universe, Halloween, Labyrinth) —
-which the catalogue says out loud rather than omitting them.
+The periodic and event-driven clauses are in too, as three more functions — kept apart from the
+standing table so it can stay a pure lookup:
 
-Also not done: terrain as **`Region` documents** with a `fgt.terrain` behaviour (§42.1, §22.10).
-The rules read `board.terrain.areas`; nothing yet populates it from the scene, so this is live
-for any caller that supplies areas and dormant in a real world until the region behaviour
-exists.
+| Kind | Function | When |
+|---|---|---|
+| Standing | `terrainEffects` | While the unit occupies the panel |
+| Periodic | `terrainPeriodics` | At a turn or round boundary |
+| On entry | `terrainOnEntry` | The moment a unit steps on |
+| Conversion | `terrainConversions` | When an attack changes the ground itself |
+
+Burning's inescapable `Burn` (and its Fire/Burn-resistance exemption), Poison Swamp's
+poison-then-stage-roll, Eldritch's turn-start coin flip, Lava's entry damage, Frozen's Agility
+Check, Magnetic's immobilization — including the clause that it **bypasses debuff resistance**,
+without which it would be quietly cancelled by the units it is aimed at — the Forest→Burning
+conversion with its "larger than 3×3" rule, and Meadow consuming itself after a Damage Step.
+
+Chance clauses keep the "caller rolls" contract, keyed `terrain:<type>:<outcome>`. A clause whose
+roll is **missing logs itself by name**: "the swamp did not add a stage" and "the swamp was never
+asked" are different facts, and this chapter exists because the codebase kept losing that
+distinction.
+
+**`Region` behaviours are real** (§22.10). All four types were declared in `system.json` from the
+beginning with **no data model behind any of them**, so an `fgt.terrain` behaviour on a Region
+carried no type and no duration. `module/data/regions.mjs` supplies them, and `engine/board.mjs`
+projects a scene's Regions into `board.terrain.areas` and its home-base zones — keyed by region
+id rather than faction, because Semiramis's Hanging Gardens *"counts as a second Home Base"*.
+
+Still empty by design: eight of nineteen types carry no *standing* effects, because their clauses
+are entirely periodic or on-entry. The catalogue lists them rather than omitting them.
 
 **C2. Environment.** *(large)* — **Day/Night, Home Base and the Grail DONE; Region and Random
 Events are not.**
@@ -659,9 +675,8 @@ A1 ✔ A2 ✔ A3 ✔ A4 ✔ A5 ✔    PHASE A COMPLETE. Order run: A1, A3, A5, A
 B4 ✔ → B3 ✔              costs after auras, because a cost may read an aura-modified value;
                          B3's grants are done, its COPY half (Scathach) is not
 B1 ✔                   Command Spells: catalogue, spend flow and the interrupt protocol
-C1 ~ → C2 ~            terrain then environment. C1's standing modifiers are done, its periodic
-                       clauses need the scheduler; C2 has Day/Night, Home Base and the Grail,
-                       and still wants Region and Random Events
+C1 ✔ → C2 ~            terrain then environment. C1 is complete; C2 has Day/Night, Home Base
+                       and the Grail, and still wants Region and Random Events
 D1 ~ (continuous)      author Servants alongside, not after — they are the real test suite.
                        Asterios and Penthesilea done. Between them they found eight engine
                        gaps and closed them; none would have been designed up front

@@ -5,3 +5,6 @@ export {
   AbilityData, NoblePhantasmData, CommandSpellData, MasterEssenceData, EquipmentData,
 } from "./item/ability.mjs";
 export { EffectData, MatchData, PlayerCombatantData } from "./misc.mjs";
+export {
+  TerrainBehavior, HomeBaseBehavior, NPFieldBehavior, PlatformBehavior,
+} from "./regions.mjs";

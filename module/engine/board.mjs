@@ -167,6 +167,7 @@ export function unitFrom(board, actor) {
  */
 export function currentBoard(overrides = {}) {
   const combat = game.combats?.active ?? null;
+  const scene = canvas?.scene ?? null;
   return snapshotBoard({
     scene: canvas?.scene,
     // Pre-resolved, so the board's units carry real panels rather than the
@@ -186,6 +187,11 @@ export function currentBoard(overrides = {}) {
       // Seeded on the turn index so a replayed resolution picks the same
       // random targets as the original.
       seed: combat?.system?.globalTurn ?? 0,
+      // Terrain areas and home bases, read off the scene's Regions. Until this
+      // existed the rules read `board.terrain.areas` and nothing ever filled
+      // it, so terrain was correct and permanently empty.
+      terrain: { areas: terrainAreasOf(scene) },
+      zones: homeBaseZonesOf(scene),
       ...overrides,
     },
   });
@@ -202,4 +208,84 @@ function setting(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+/**
+ * Terrain areas from the scene's Regions.
+ *
+ * A Region is the right carrier: membership is native, the enter/exit events
+ * are native, and a terrain area *"may be non-contiguous"* — which a Region
+ * already is.
+ *
+ * @param {object|null} scene
+ * @returns {Array<{id: string, type: string, panels: object[]}>}
+ */
+function terrainAreasOf(scene) {
+  /** @type {Array<{id: string, type: string, panels: object[]}>} */
+  const areas = [];
+  for (const region of scene?.regions ?? []) {
+    for (const behavior of region.behaviors ?? []) {
+      if (behavior.type !== "terrain" || behavior.disabled) continue;
+      const panels = panelsOfRegion(region);
+      for (const type of behavior.system?.types ?? []) {
+        areas.push({ id: `${region.id}:${type}`, type, panels, regionId: region.id });
+      }
+    }
+  }
+  return areas;
+}
+
+/**
+ * Home-base zones from the scene's Regions.
+ *
+ * Keyed by region id rather than by faction, because a faction may own more
+ * than one: Semiramis's Hanging Gardens *"counts as a second Home Base"*.
+ *
+ * @param {object|null} scene
+ * @returns {Record<string, {faction: string, panels: object[], secondary: boolean}>}
+ */
+function homeBaseZonesOf(scene) {
+  /** @type {Record<string, object>} */
+  const zones = {};
+  for (const region of scene?.regions ?? []) {
+    for (const behavior of region.behaviors ?? []) {
+      if (behavior.type !== "homeBase" || behavior.disabled) continue;
+      zones[region.id] = {
+        faction: behavior.system?.factionId ?? null,
+        panels: panelsOfRegion(region),
+        secondary: Boolean(behavior.system?.isSecondary),
+      };
+    }
+  }
+  return zones;
+}
+
+/**
+ * Every grid offset a Region covers.
+ *
+ * @param {object} region
+ * @returns {Array<{i: number, j: number}>}
+ */
+function panelsOfRegion(region) {
+  const grid = canvas?.grid;
+  if (!grid) return [];
+  // Foundry can answer this directly for a Region; the manual sweep below is
+  // the fallback for a shape it cannot enumerate.
+  if (typeof region.getOccupiedGridSpaceOffsets === "function") {
+    const offsets = region.getOccupiedGridSpaceOffsets();
+    if (offsets?.length) return offsets.map((o) => ({ i: o.i, j: o.j }));
+  }
+  const bounds = region.bounds;
+  if (!bounds) return [];
+  /** @type {Array<{i: number, j: number}>} */
+  const panels = [];
+  const topLeft = grid.getOffset({ x: bounds.x, y: bounds.y });
+  const bottomRight = grid.getOffset({ x: bounds.right, y: bounds.bottom });
+  for (let i = topLeft.i; i <= bottomRight.i; i++) {
+    for (let j = topLeft.j; j <= bottomRight.j; j++) {
+      const centre = grid.getCenterPoint({ i, j });
+      if (region.testPoint?.(centre) !== false) panels.push({ i, j });
+    }
+  }
+  return panels;
 }
