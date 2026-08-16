@@ -1,5 +1,16 @@
 # 01 — Vision and Goals
 
+> **Implementation note (Ch. 45).** §1.7's layer rule is now **enforced** by
+> `tools/check-layers.mjs`, which runs inside `npm run lint`. It was previously computed as a
+> `zones` table in `eslint.config.mjs` and consumed by nothing, because enforcing it needs
+> `eslint-plugin-import`, which is not a dependency — so the project's central architectural rule
+> was documented, computed and unchecked. It surfaced when a new rules-layer module imported from
+> the engine and lint passed.
+>
+> Three pre-existing violations are recorded as named exceptions in that script rather than
+> waved through by widening the table. A stale exception fails the check too, so the list shrinks
+> as the debt is paid.
+
 ## 1.1 What we are building
 
 A Foundry VTT **system** (not a module) that runs *Fate/Grail Tactics* end to end, with the

@@ -1,5 +1,17 @@
 # 11 — The Effect Engine
 
+> **Implemented (Ch. 45 A5, D1).** Auras (§11.6) are real: `module/rules/auras.mjs` expands each
+> onto the units in range whose relation matches, and `snapshotBoard` runs the pass once every
+> unit is projected. **Self-inclusion is correct** — "every allied unit" includes the unit itself
+> unless the text says otherwise, which is why `relations` defaults to `["ally", "self"]`; the
+> auras that exclude their bearer say so and drop `"self"`.
+>
+> The application-chance path (§11.2 step 3) is also live: `ApplicationChance` contributions now
+> reach `applyEffect` through the target's snapshot. It previously read a `ctx.resist` that no
+> caller supplied.
+>
+> Still open: Transfer (§11.8), and Visibility (§11.10) is collected-only.
+
 Chapter 10 classified effects. This chapter specifies the runtime: how an effect instance is
 represented, how it is applied, stacked, suppressed, ticked, expired, and removed.
 

@@ -1,5 +1,16 @@
 # 04 — Units
 
+> **Implemented (Ch. 45 C2, C3).** The Civilian rules of §4.6 are live: a Servant attacking a
+> Civilian kills it with **no damage calculation and no reaction ladder** — `resolveAttack`
+> resolves it before a Combat Process is ever built, because a ladder whose every rung has one
+> outcome is not a ladder. The killer takes +100 Health and +1 Agility, and the Good-morality
+> refusal names the `Kill Humans` Command Spell as its override.
+>
+> Platforms are live as of C3: their own Scene Level, passenger linkage on movement, and a
+> per-platform cross-level protection model. They spend no budget.
+>
+> Structures remain schema-only.
+
 Everything on the board that can be targeted, damaged, moved, or that occupies a panel is a
 **Unit**. This chapter specifies the hierarchy, what varies between kinds, and the identity,
 faction, attribute, and disposition systems.

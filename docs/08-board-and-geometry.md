@@ -1,5 +1,14 @@
 # 08 — Board and Geometry
 
+> **Implementation note (Ch. 45 C1, C3).** Two things now change effective MOV beyond §8.3's
+> list. **Terrain** contributes a delta, applied *after* Slow and additively: Slow halves what the
+> unit has, a Forest costs a panel of what is left, and halving after the terrain penalty would
+> make difficult ground twice as expensive to a Slowed unit — which no rule says. **Platform
+> carriage** moves a passenger with `forced: true`, so it costs no budget and triggers no
+> movement-keyed effect: a passenger has not moved, it has been carried.
+>
+> Line of sight and cover (§8.6) and fog/Detect (§8.7) remain unimplemented.
+
 Everything spatial. Distance metrics (there are three, used in different places), the
 Range shape with its diagonal-reduction rule, movement legality, occupancy, zones, and
 knockback. Chapter 09 builds the targeting type system on top of this.

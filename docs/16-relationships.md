@@ -1,5 +1,14 @@
 # 16 — Relationships
 
+> **Implementation note (Ch. 45).** ZON is derived and both its consumers fire — pipeline stage 9
+> and the Noble Phantasm legality gate. The Noble Phantasm **cost** of §16.5 is live too
+> (Ch. 45 B4): Master Health by rank column for a contracted Servant, Sustainability for a Free
+> one, and double self-Health for a Free Servant with no clock at all.
+>
+> Still open: Contracting, Overpower/Underpower, the Sustainability **drain**, and the
+> multi-Servant tax. The drain is a content gap rather than an engine one — nothing authors an
+> `OnEvent` against it.
+
 The Master–Servant bond is the game's central tension: Servants are strong and Masters are
 fragile, but a Servant far from its Master is weakened and a Servant without a Master is on a
 timer. This chapter specifies contracts, ZON, Sustainability, Cover, Overpower/Underpower, and

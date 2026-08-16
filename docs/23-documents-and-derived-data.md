@@ -1,5 +1,20 @@
 # 23 — Documents and Derived Data
 
+> **Implemented (Ch. 45 A5, D1).** The aura pass (§23.3) exists, as `annotateAuras` inside
+> `snapshotBoard`. It is a **linear scan**, not the spatially-bucketed `AuraIndex` this chapter
+> specifies — correct, and 28 units is not yet a performance problem. Collecting for all units
+> against the untouched board before writing any of it back is what stops an aura feeding an
+> aura, which is the property §23.3's two-pass structure is for.
+>
+> Four more passes now sit beside it and settle the same class of question — facts about the
+> board that a unit projected alone cannot know: `annotateTerrain`, `annotateEnvironment`,
+> `annotateCompulsions` and `annotatePlatforms`.
+>
+> One repair: `contributionsOf` passed an **empty roll-option set**, so every `self:` predicate
+> was unsatisfiable. It now builds the owner's own options.
+>
+> Still open: cache invalidation (§23.9).
+
 The document subclasses, the derived-data pipeline and its ordering, the snapshot cache, and
 the CRUD hooks that keep the world consistent.
 

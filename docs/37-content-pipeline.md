@@ -1,5 +1,19 @@
 # 37 — Content Pipeline
 
+> **Implementation notes (Ch. 45).** Two source directories were added since this chapter was
+> written — `packs/_source/command-spells/` (16 commands, compiling to the `command-spells` pack)
+> and `packs/_source/platforms/` (3 reference platforms, compiling into the `servants` pack as
+> actors of subtype `platform`).
+>
+> The compiler carries more fields with them. `itemSystem` now passes Command Spell fields
+> (`cost`, `costByMasterRank`, `requirements`, `timing`, `blockedWhen`, `effect`,
+> `permanentConsequence`, `overridesValidation`) and `actorSystem` passes platform fields
+> (`footprint`, `capacity`, `ownerId`, `level`, `crossLevel`). Without them the catalogue compiled
+> into documents that knew their name and cost and nothing about when they could be used.
+>
+> **Source files are single-document YAML.** A multi-document file fails the load; one document
+> per file.
+
 The system's long-term cost is not building the engine; it is adding Servant #47. This chapter
 specifies the authoring format, the build, validation, and the tooling that keeps that cost low.
 

@@ -1,5 +1,18 @@
 # 12 — The Combat Process
 
+> **Implemented (Ch. 45 Phase A).** All six steps run. The Injury Roll (§12.6) reads the
+> pipeline's `exceededInjuryThreshold` rather than re-comparing the total to 100, because Def
+> Crk's bonus is added *after* the threshold snapshot. The AoE fan-out (§12.10) builds one
+> Process per defender, sharing a `groupId`. The Counter (§12.8) is offered when eligible and
+> resolved as a full nested Process, marked `isCounter` so it cannot be countered in turn.
+>
+> Interrupts (§12.11) land through Ch. 17's Command Spell protocol: `applyInterrupt` mutates the
+> Process and the ladder resumes from wherever it left it.
+>
+> Still absent from §12.10's sketch: the **batched** damage pass. Damage is computed per Process
+> rather than as one synchronous pure batch across all defenders — a performance shape, not a
+> correctness one.
+
 The Combat Process is the heart of the game and the most intricate piece of rules machinery in
 it. This chapter transcribes the rulebook's steps into an explicit state machine, resolves the
 ambiguities in the contest ladder, and specifies who decides what at each node.

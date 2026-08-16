@@ -1,5 +1,16 @@
 # Appendix A — Effect Catalogue
 
+> **Authored so far (Ch. 45).** 14 of roughly 152 effect definitions exist as content in
+> `packs/_source/effects/`: `atkUp`, `bleed`, `bleedAtk`, `burn`, `critUp`, `curse`, `debuffImmune`, `defDwn`, `defUp`, `dodge`, `nAtkUp`, `npRegen`, `npSeal`, `offDebuffResUp`.
+>
+> An effect an ability references but which is **not** in that directory fails the content
+> build — `validate-content.mjs` refuses an unknown effect id, which is how the five added
+> during the Asterios and Penthesilea conversions were found. A missing definition cannot
+> therefore reach a compendium and silently do nothing.
+>
+> `bleed` is worth a note: `scheduler.PERIODICS` has always known how to *tick* it, and there
+> was no definition able to *inflict* it until D1.
+
 Every named effect in F/GT, with its classification (Ch. 10), its mechanism, its stacking rule,
 and its implementation note. This is the authoritative reference the compendium is built from.
 

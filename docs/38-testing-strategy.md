@@ -1,5 +1,21 @@
 # 38 — Testing Strategy
 
+> **Implementation notes (Ch. 45).** The suite is 935 unit and golden tests. Two gates were added
+> that this chapter did not anticipate:
+>
+> - **`npm run check:smoke`** (`tools/smoke-world.mjs`) drives a real browser at a real Foundry
+>   over the DevTools Protocol, launches a world, joins it and waits for `game.ready`. It exists
+>   because `0.2.10` shipped a schema defect that black-screened every world while lint, 629
+>   tests and the content validator all passed — **nothing in the repository had ever loaded a
+>   world**. It needs a running Foundry and a debug-port Chrome, so it is a local pre-tag gate
+>   rather than a CI step.
+> - **`tools/check-layers.mjs`**, inside `npm run lint`. The layer rule of Ch. 01 §1.7 was
+>   documented, computed as an ESLint `zones` table, and **enforced by nothing**.
+>
+> The line this chapter draws — L1 and L2 tested without Foundry — is what made both gaps
+> possible and is still right. The lesson is that the *uncovered* layer needs its own gate, not
+> that the line should move.
+
 A rules engine this size cannot be verified by playing it. This chapter specifies what is
 tested, how, and — importantly — what is deliberately not.
 

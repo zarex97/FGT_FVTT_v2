@@ -1,5 +1,18 @@
 # 18 — Action Economy
 
+> **Implemented (Ch. 45 D1, C3).** Compulsions (§18.5) are live in both halves.
+> `unmetCompulsions` had read a `hatred` effect **nothing ever applied**; positional compulsions
+> are now annotated onto units by `module/rules/compulsion.mjs` and the budget reads them
+> alongside the held-effect forms.
+>
+> Platforms spend **no budget at all** (Ch. 20 §20.10), checked before every other gate: a
+> platform is equipment its owner operates, not a combatant taking a slot.
+>
+> Riding's double move reads the **grant** rather than a name-match on the skill, so anything
+> that grants `doubleMove` confers it.
+>
+> Still open: Undo (§18.7) and Confuse's random selector.
+
 A player commands up to 14 units but may only act with a handful each turn. The budget is the
 game's core constraint and the thing that makes it chess-like rather than a brawl. This
 chapter specifies the budget, what consumes it, and the forced-action effects that spend it

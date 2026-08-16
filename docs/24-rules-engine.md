@@ -1,5 +1,28 @@
 # 24 — The Rules Engine
 
+> **Implementation notes (Ch. 45).** Three additions to the vocabulary since this chapter was
+> written, each driven by content that could not otherwise be authored:
+>
+> | Addition | For |
+> |---|---|
+> | **`Compulsion`** (Group 4) | Penthesilea's *Hatred of Achilles* — a positional forced target |
+> | **`ApplicationChance` executor** (Group 6) | *Off.Debuff ResUp*; the key existed, the executor did not |
+> | **`roll:` on `DamageModifier`** | *Goddess of War* — a magnitude rolled per damage event rather than fixed before the attack |
+>
+> The **roll option vocabulary** also grew: `skill:`, `skillActive:` and `region:`. `Appendix B`
+> has predicated on `target:skill:divinity` since the tables were transcribed and **nothing ever
+> emitted a `skill:` option**, so that clause could not fire in either direction. Options are now
+> built in `module/rules/options.mjs`, in the rules layer, where they can be tested without
+> Foundry — which is the only reason the gap lasted as long as it did.
+>
+> One more: `contributionsOf` passed an **empty option set**, so every `self:` predicate in the
+> system was unsatisfiable.
+>
+> **This chapter's key list is maintained twice** — here in prose, and as `RULE_ELEMENT_KEYS` in
+> `tools/lib/content.mjs` against `EXECUTORS` in `module/rules/elements.mjs`. The two code lists
+> are held against each other by `test/unit/elements.test.mjs` in both directions; a key in one
+> and not the other is a defect either way round.
+
 The rule element system: how declarative data becomes behaviour. This is the mechanism that
 makes principle P2 (*declarative first, imperative as escape hatch*) real, and it is the single
 biggest determinant of how expensive Servant #47 will be to author.
@@ -133,6 +156,22 @@ predicate: [...]
 | `TargetingRestriction` | Decoy's constraint, Berserk's nearest-enemy rule |
 | `TargetabilityModifier` | Presence Concealment's untargetability, Master protection |
 | `ForceTarget` | Karna's *Fated Rivals*, Penthesilea's *Hatred of Achilles* |
+| `Compulsion` | The positional form of the above: forced targets while somebody is standing nearby |
+
+> **Status.** `Compulsion` is **implemented** (`module/rules/compulsion.mjs`) and the targeting
+> resolver reads it at step 4b, narrowing a compelled unit's candidates rather than erroring —
+> the compulsion does not make the attack illegal, it makes the *choice* illegal.
+>
+> The other four keys in this group are still **collected with no reader**: `TargetingModifier`,
+> `ForceTarget`, `Decoy` and `TargetabilityModifier` write keys `resolveTargets` does not
+> consult. `Compulsion` exists because Penthesilea needed the positional case and `ForceTarget`
+> could not express "while a Greek Male is within 4 panels" — an applied effect would need a
+> position-watcher writing on every move.
+>
+> A compulsion's test names the **other** unit, so it is authored as `targetPredicate`, not
+> `predicate`. `predicate` gates whether the element applies at all and is evaluated at
+> collection time against its owner, where no other unit is in scope — writing it there makes the
+> element vanish silently.
 
 ### Group 5 — Event handlers (`OnEvent`)
 
@@ -146,6 +185,19 @@ One element, many uses. It is the most powerful and most-used element after `Dam
   then:
     - { key: StatDelta, stat: agility, delta: -1 }
 ```
+
+> **Status.** Implemented. `OnEvent` normalizes at **collection time** into
+> `{events, actions, automatic, abilityId, source}` — `events` always a list, and every
+> rank-dependent table already resolved, because rank is in scope there and nowhere downstream.
+> `scheduler.fireEvent` dispatches the actions. An action the dispatcher does not understand
+> **logs itself by name** rather than resolving silently.
+>
+> A `revive:` shorthand desugars into a `Revive` action; it is authored separately because it
+> carries a cooldown table alongside its roll.
+>
+> Dice keep the "caller rolls" contract: `fireEvent` is pure and reads totals from `ctx.rolls`,
+> and `pendingRolls(unit, event)` tells the impure caller which formulas to roll first — so the
+> attack flow does not have to know what Battle Continuation is.
 
 Supported events: every hook in Appendix E. The `then` array is a list of **actions**, which are
 a different (smaller) vocabulary from rule elements:
@@ -172,6 +224,14 @@ a different (smaller) vocabulary from rule elements:
 | `Suppress` | Petrify, Pigify, Toad, Addle (Ch. 11 §11.4) |
 | `Immunity` | Debuff Immune and its variants, named-effect immunity |
 | `ApplicationChance` | Debuff ChUp/ResUp, Item Construction, Magic Resistance's clause 2 |
+
+> **Status.** `ApplicationChance` is **implemented** as of the Penthesilea conversion. It had
+> been named in this table and accepted by the content validator since the tables were
+> transcribed, with **no executor** — and `effect-applier` read a `ctx.resist` that **no caller
+> ever supplied**, so the resistance path was dead at both ends. Contributions now fill an
+> `applicationChances` bucket, the snapshot carries it, and `applyEffect` reads it off the target.
+>
+> `Suppress`, `StackingOverride` and `ImmunityDowngrade` remain collected-only.
 | `StackingOverride` | Rare per-content stacking changes |
 | `Aura` | Wraps another element with a radius and relation filter |
 

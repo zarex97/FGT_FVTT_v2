@@ -1,5 +1,20 @@
 # 21 — System Skeleton
 
+> **Implementation notes (Ch. 45).** Two registries load at `setup`: `EffectRegistry` and
+> `CommandSpellRegistry`. `CONFIG.RegionBehavior.dataModels` registers the four Region behaviour
+> types, which `system.json` had declared from the beginning with no model behind any of them.
+>
+> Three gates were added to the tooling and are worth knowing about:
+>
+> | Tool | What it catches |
+> |---|---|
+> | `tools/check-layers.mjs` | Layer-boundary violations. Runs inside `npm run lint`. |
+> | `tools/smoke-world.mjs` | A world that does not come up. Local only — CI has no Foundry. |
+> | `test/unit/release-notes.test.mjs` | A changelog that could block a release. |
+>
+> `CONFIG.debug.hooks` is on: this system is driven almost entirely by hooks, so "did the hook
+> fire at all" is the first question in every rule bug.
+
 The manifest, the module layout, the bootstrap sequence, and the tooling. Everything here
 targets **Foundry VTT v14** and uses v14-native APIs throughout.
 
