@@ -31,18 +31,20 @@ abilities:
   - { ref: asterios-monstrous-strength }
   - { ref: asterios-natural-monster }
   - { ref: asterios-avyssos-of-labrys }
+  - { ref: asterios-chaos-labyrinthos }
 
 notes: |
   Authored from the original tabletop sheet as the first of the D1 pass.
 
-  NOT YET AUTHORED — `Chaos Labyrinthos: Eternally Unchanging Labyrinth` (Rank EX, non-damaging).
-  It is a 9x9 bounded field (11x11 in Greece) with membership, an escape check whose chance
-  rises 5% per failure, per-unit escape history, leading allied units out, and a hard rule that
-  units inside and outside cannot affect one another. That is Ch. 43 Bounded Fields almost in
-  its entirety, which is C4 and unimplemented — so the NP is deliberately absent rather than
-  half-present. Adding a stub that applied the Atk Dwn and Def Dwn without the containment
-  would be worse than nothing: it would look like the Labyrinth worked.
+  `Chaos Labyrinthos` is authored as of C4. It is a point in Ch. 43's six-axis bounded-field
+  model rather than a special case: `fixedArea` geometry with a Greece size override, free entry
+  and a roll to leave, total isolation both ways, MOV +4 for Asterios and −2 for enemies inside,
+  paid extension at 200 of his own Health, and an owner-defeat vulnerability. The escape ladder —
+  20% base, +5% per failure, border contact and remaining MOV required, and the veteran clause
+  that lets an escapee lead adjacent allies out — is the reference implementation of §43.4.
 
-  Mad Enhancement's two-way 2◈ lockout (cannot deactivate until 2◈ after activating, and cannot
-  reactivate until 2◈ after deactivating) is not modelled either; the class-skill template has
-  no lockout field. Found by this conversion, recorded in Ch. 45 D1.
+  ONE CLAUSE REMAINS: Mad Enhancement's two-way 2◈ lockout (it cannot be deactivated until 2◈
+  after activating, and cannot be reactivated until 2◈ after deactivating). The class-skill
+  template has no lockout field, and this is a property of the SKILL rather than of Asterios —
+  Penthesilea's Mad Enhancement EX carries the same clause. It is recorded in Ch. 45 rather than
+  faked here.

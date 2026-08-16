@@ -1,0 +1,75 @@
+# Asterios, char_orig_sheets/Copia de Asterios.md
+# The bounded field model is Ch. 43; this is a point in its six axes.
+schema: 1
+id: asterios-chaos-labyrinthos
+name: "Chaos Labyrinthos: Eternally Unchanging Labyrinth"
+isNP: true
+rank: EX
+npTags: [labyrinth, boundedField]
+cooldown: "8◈"
+description: |
+  (Non-damaging) Creates a 9x9 Labyrinth around Asterios; 11x11 if the Region is Greece.
+  Asterios gains MOV +4 inside. Enemies inside suffer Atk Dwn and Def Dwn on activation, have
+  their MOV reduced by 2 (minimum 2), and must roll to escape. Units outside and inside cannot
+  reach each other at all. Lasts 4 Rounds, extendable by 200 of Asterios' Health for 2 more.
+targeting:
+  anchor: { kind: selfCentred }
+  shape: { kind: square, size: 9 }
+  selection: { relations: [enemy, ally, self], chooser: all }
+  limits: { requiresZon: true }
+field:
+  # Axis 1 -- geometry. Anchored where it was cast; it does not follow Asterios.
+  geometry:
+    kind: fixedArea
+    shape: { kind: square, size: 9 }
+    regionSizeOverride: { greece: 11 }
+  # Axis 5 -- duration, with paid extension. An attrition engine: Asterios burns
+  # his own Health to keep the trap shut while the trapped burn theirs escaping.
+  duration: "4◈"
+  extension:
+    cost: { kind: health, amount: 200, payer: owner }
+    grants: "2◈"
+    repeatable: true
+    sideEffects:
+      - { kind: applyEffect, target: enemiesInside, effect: { id: atkDwn, magnitude: 20, npMagnitude: 10 }, duration: "1◈" }
+      - { kind: applyEffect, target: enemiesInside, effect: { id: defDwn, magnitude: 20 }, duration: "1◈" }
+  # Axis 2 -- membership. Free to enter, and the escape ladder to leave.
+  membership:
+    enemyEntry: free
+    enemyExit: rollRequired
+    allyEntry: free
+    allyExit: free
+    escape:
+      baseChance: 20
+      formula: "1d20"
+      onFailure: randomRelocate
+      chanceIncreasePerFailure: 5
+      requiresBorderContact: true
+      requiresRemainingMove: true
+      # The clause that makes this a puzzle rather than a soft lock: one unit
+      # escaping unlocks its team, so the play is to concentrate attempts.
+      veteranBonus: { baseChance: 100, noMovPenalty: true, leadsAdjacentAllies: true }
+  # Axis 3 -- isolation. Total, both directions.
+  isolation:
+    outsideCanTargetInside: false
+    insideCanTargetOutside: false
+    outsideCanApplyEffectsInside: false
+    visibilityAcrossBoundary: full
+  # Axis 4 -- interior rules.
+  interior:
+    - { key: MovDelta, value: 4, relations: [self] }
+    - { key: MovDelta, value: -2, minimum: 2, relations: [enemy] }
+  # Axis 6 -- vulnerability.
+  vulnerabilities:
+    - { kind: ownerDefeat, result: end }
+phases:
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: atkDwn, magnitude: 40, npMagnitude: 20 }
+        duration: "2◈"
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: defDwn, magnitude: 40 }
+        duration: "2◈"

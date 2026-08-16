@@ -1,5 +1,12 @@
 # 41 — Open Questions
 
+> **Note (Ch. 45 C4).** Q44's NP tag ordering is now **implemented as constructed**:
+> `NP_TAG_SCALE` in `module/rules/bounded-fields.mjs` orders Anti-Unit < Anti-Army <
+> Anti-Fortress < Anti-Country < Anti-World, with the qualifiers listed separately rather than
+> inferred — so a new tag is a deliberate decision about which kind it is. It remains our
+> construction from conventional usage, not a stated rule, and every field vulnerability that
+> compares scales depends on it.
+
 Every place where the source documents are silent, ambiguous, or self-contradictory, with the
 resolution and where it is implemented.
 

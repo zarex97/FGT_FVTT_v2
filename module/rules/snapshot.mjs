@@ -23,6 +23,7 @@ import { phase, darkModifiers, homeBaseModifiers, regionBonusFor } from "./envir
 import { annotateCompulsions } from "./compulsion.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, crossLevelRulesFor } from "./platforms.mjs";
+import { annotateFields } from "./bounded-fields.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -227,6 +228,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     // Overwritten by `annotatePlatforms` below when the board has any. The
     // targeting resolver has read this map since it was written and nothing
     // ever supplied one, so the whole cross-level rule was inert.
+    fields: settings.fields ?? [],
     crossLevel: settings.crossLevel ?? null,
     terrain: scene?.terrain ?? {},
     // Seeded so a replayed combat picks the same random targets.
@@ -259,6 +261,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // Which platform each unit is aboard, and the protection model the targeting
   // resolver enforces. Positional, so it settles here with the other passes.
   annotatePlatforms(units, board);
+  // Bounded fields, last of the positional passes: their interior rules sit
+  // after the ground and the auras in the explainer's reading order.
+  annotateFields(units, board);
   // Positional, like auras: it holds while somebody is standing nearby.
   annotateCompulsions(units, board);
   annotateAuras(units, board);

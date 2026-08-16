@@ -1,0 +1,20 @@
+# Appendix A §A.2
+#
+# The mirror of Atk Up, and a DIFFERENT FAMILY from a negative Atk Up: buff
+# removal strips the latter and cannot touch this. Keeping them apart is what
+# makes "inflicts Atk Dwn" and "removes Atk Up" two different plays.
+schema: 1
+id: atkDwn
+name: "Atk Dwn"
+description: "All damage dealt is reduced by X%; a reduced magnitude applies to Noble Phantasms."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkDwn
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@npMagnitude"

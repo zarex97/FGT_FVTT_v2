@@ -15,6 +15,7 @@ import * as geo from "../../domain/geometry.mjs";
 import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
+import { isolationBlocks } from "../bounded-fields.mjs";
 
 /**
  * @typedef {import("../../domain/geometry.mjs").GridOffset} GridOffset
@@ -130,6 +131,17 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   if (compelled.length > 0) {
     survivors = survivors.filter((u) =>
       compelled.includes(u.id) || drop(u, "the attacker is compelled to attack another unit"));
+  }
+
+  // 4c. BOUNDED FIELD ISOLATION (Ch. 43 §43.5). Full isolation partitions the
+  // board into two independent combats: a player whose units straddle the
+  // boundary still takes one turn and acts with both groups, but the groups
+  // cannot reach each other.
+  for (const field of board.fields ?? []) {
+    survivors = survivors.filter((u) => {
+      const verdict = isolationBlocks(field, caster, u, board);
+      return !verdict.blocked || drop(u, `separated by ${field.id}`);
+    });
   }
 
   // 5. KIND FILTER — platforms and structures are excluded unless asked for.
