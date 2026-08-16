@@ -22,6 +22,7 @@ import { annotateTerrain } from "./terrain.mjs";
 import { phase, darkModifiers, homeBaseModifiers, regionBonusFor } from "./environment.mjs";
 import { annotateCompulsions } from "./compulsion.mjs";
 import { rollOptionsFor } from "./options.mjs";
+import { platformsOn, crossLevelRulesFor } from "./platforms.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -147,6 +148,11 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null } 
     zonDistance: sys.zonDistance ?? null,
     outsideZon: Boolean(sys.outsideZon),
     zones: [...(sys.zones ?? [])],
+    // Platform fields; harmless on anything that is not one.
+    footprint: sys.footprint ?? null,
+    capacity: sys.capacity ?? null,
+    ownerId: sys.ownerId ?? null,
+    crossLevel: sys.crossLevel ?? null,
     concealed: Boolean(sys.concealed),
     canAct: sys.canAct !== false,
     acted: turnState.acted,
@@ -218,6 +224,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     warRegion: settings.warRegion ?? null,
     difficulty: settings.difficulty ?? "intermediate",
     grail: settings.grail ?? null,
+    // Overwritten by `annotatePlatforms` below when the board has any. The
+    // targeting resolver has read this map since it was written and nothing
+    // ever supplied one, so the whole cross-level rule was inert.
     crossLevel: settings.crossLevel ?? null,
     terrain: scene?.terrain ?? {},
     // Seeded so a replayed combat picks the same random targets.
@@ -247,11 +256,34 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // (§19.3). Applied here rather than at setup so that changing the region
   // mid-configuration does not need every sheet rewritten.
   annotateRegionBonus(units, board);
+  // Which platform each unit is aboard, and the protection model the targeting
+  // resolver enforces. Positional, so it settles here with the other passes.
+  annotatePlatforms(units, board);
   // Positional, like auras: it holds while somebody is standing nearby.
   annotateCompulsions(units, board);
   annotateAuras(units, board);
 
   return board;
+}
+
+/**
+ * Tell each unit which platform it is aboard, and give the board the
+ * cross-level map its targeting resolver has always read.
+ *
+ * @param {object[]} units
+ * @param {object} board
+ * @returns {void}
+ */
+function annotatePlatforms(units, board) {
+  const platforms = platformsOn(board);
+  if (platforms.length === 0) return;
+
+  for (const u of units) {
+    if (u.kind === "platform") continue;
+    const aboard = platforms.find((p) => (p.level ?? 0) === (u.level ?? 0));
+    if (aboard) u.platformId = aboard.id;
+  }
+  board.crossLevel = crossLevelRulesFor(board);
 }
 
 /**

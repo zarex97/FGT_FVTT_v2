@@ -39,11 +39,24 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
         h: new fields.NumberField({ integer: true, initial: 3, min: 1 }),
       }),
       capacity: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
-      // Cross-level rules are per-platform, not global (Ch. 20 §20.7).
+      /** The Servant that created it, whose effects are reversed on destruction. */
+      ownerId: new fields.StringField({ required: false, nullable: true, initial: null }),
+      /** Its own Scene Level (D20.1). Every active platform gets one. */
+      level: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),
+
+      // Cross-level rules are per-platform, not global (Ch. 20 §20.7): the
+      // author confirmed protection is decided case by case, so there is no
+      // global rule to derive -- only a four-axis model each platform picks a
+      // point in.
       crossLevel: new fields.SchemaField({
-        requiresRanged: new fields.BooleanField({ initial: false }),
-        untargetable: new fields.BooleanField({ initial: false }),
+        occupantTargeting: new fields.StringField({
+          initial: "free", choices: ["forbidden", "rangedOnly", "free"] }),
+        requiresBoarding: new fields.BooleanField({ initial: false }),
         aoePassengerFactor: new fields.NumberField({ initial: 1, min: 0 }),
+        aoeMastersImmune: new fields.BooleanField({ initial: false }),
+        outboundTargeting: new fields.StringField({
+          initial: "free", choices: ["forbidden", "rangedOnly", "free"] }),
+        forbidDirectlyBelow: new fields.BooleanField({ initial: false }),
       }),
     };
   }

@@ -1,0 +1,26 @@
+# docs/20-platforms-and-levels.md §20.5
+schema: 1
+id: platform-golden-hind
+name: "The Golden Hind"
+type: platform
+description: |
+  Francis Drake's ship. Activated directly as a Noble Phantasm, with an upkeep of 50 Master
+  Health per Round that REPLACES the normal Noble Phantasm cost rather than stacking with it.
+attributes: [large, mechanical]
+baseHealth: 2500
+mov: 6
+range: { panels: 5, targets: 1 }
+baseAttack: { str: 0, mag: 200 }
+footprint: { w: 4, h: 3 }
+capacity: 9
+level: 2
+# "Full damage to the ship, 50% to units aboard, Masters aboard take nothing."
+# Three target sets from one placement -- the only platform in the set where
+# the vehicle and its passengers take different fractions.
+crossLevel:
+  occupantTargeting: forbidden
+  requiresBoarding: true
+  aoePassengerFactor: 0.5
+  aoeMastersImmune: true
+  outboundTargeting: rangedOnly
+  forbidDirectlyBelow: true

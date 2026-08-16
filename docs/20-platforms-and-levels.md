@@ -26,6 +26,21 @@ does not distinguish "on" from "under".
 
 ---
 
+> **Implemented (Ch. 45 C3).** `module/rules/platforms.mjs` holds the model — membership,
+> movement linkage, the cross-level protection model, boarding, falling and the destruction
+> sequence. `module/engine/platforms.mjs` performs boarding, knock-offs and destruction.
+> `snapshotBoard` runs `annotatePlatforms`, and the three reference platforms are authored in
+> `packs/_source/platforms/`.
+>
+> The defect this closed is worth naming: `resolveTargets` has had a `crossLevelAllows` step
+> since it was written, keyed on `board.crossLevel[unit.platformId]`, and **nothing ever supplied
+> that map or set `platformId`**. The whole cross-level rule was implemented, called on every
+> resolution, and permanently inert.
+>
+> Not built, and each needs a Scene Level operation rather than more rules: creating a level on
+> activation, deleting it on destruction, scattering passengers to the ground, and reversing the
+> owner's effects. Those steps of §20.9 are **logged by name** rather than silently skipped.
+
 ## 20.2 Scene Levels
 
 v14 turns a Scene from a plane into a stack:
@@ -442,6 +457,10 @@ function movePlatform(p: Platform, delta: GridOffset): Intent[] {
 Passengers move with `forced: true` so it does not count against their own movement budget and
 does not trigger movement-based effects (Ch. 08 §8.3).
 
+> **Implemented** as `movePlatform` plus a `preMoveToken` hook. The carried moves are flagged
+> `fgtForced`, which is also what stops the hook recursing into the moves it is itself making —
+> a platform must not carry its own passengers a second time because it noticed them moving.
+
 Passengers may *also* move independently within the platform on their own turn, using their own
 MOV, constrained to the platform's footprint.
 
@@ -493,6 +512,10 @@ while Bašmu is summoned, it disappears."*
 ---
 
 ## 20.10 Platform attacks
+
+> **Implemented:** `canConsume` returns free for any unit of kind `platform`, before every other
+> gate. A platform is not a combatant taking a slot — it is equipment its owner operates — so it
+> spends nothing and is refused nothing.
 
 Platforms attack on their owner's turn without consuming budget:
 

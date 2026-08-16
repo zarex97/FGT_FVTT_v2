@@ -1,5 +1,9 @@
 # 09 — Targeting
 
+> **Note (Ch. 45 C3).** The cross-level filter is live. It reads `board.crossLevel`, which
+> `snapshotBoard` now builds from the platforms actually on the board — the step existed and was
+> called from the beginning, with nothing ever supplying that map. See Ch. 20 §20.7.
+
 Automated targeting is the requirement this system is judged on. Every ability in F/GT
 declares *where* it reaches in a small, closed vocabulary of shapes, and the engine must
 resolve, preview, validate, and apply that declaration without a human clicking individual

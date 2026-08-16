@@ -1,0 +1,26 @@
+# docs/20-platforms-and-levels.md §20.6
+schema: 1
+id: platform-storm-border
+name: "The Storm Border"
+type: platform
+description: |
+  Nemo's vessel, in Imaginary Numbers Space. It is a DIFFERENT DIMENSION rather than an
+  elevation, so nothing crosses in either direction while it is submerged.
+attributes: [large, mechanical]
+baseHealth: 3000
+mov: 8
+range: { panels: 6, targets: 1 }
+baseAttack: { str: 0, mag: 220 }
+# "footprint: null" in the model (D20.5): it is not on the board at all while
+# submerged. Carried here as its surfaced size, for the moment it relocates.
+footprint: { w: 5, h: 3 }
+capacity: null
+level: 3
+# Sealed both ways: a different dimension is not a high place.
+crossLevel:
+  occupantTargeting: forbidden
+  requiresBoarding: true
+  aoePassengerFactor: 0
+  aoeMastersImmune: true
+  outboundTargeting: forbidden
+  forbidDirectlyBelow: false

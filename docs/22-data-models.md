@@ -640,6 +640,12 @@ a subtype now.
 
 ---
 
+> **Note (Ch. 45 C3).** `PlatformData` now carries the full four-axis cross-level protection
+> model from Ch. 20 §20.7 (`occupantTargeting`, `requiresBoarding`, `aoePassengerFactor`,
+> `aoeMastersImmune`, `outboundTargeting`, `forbidDirectlyBelow`), plus `ownerId` and its own
+> `level`. The previous three-field version could not express the Golden Hind, whose Masters take
+> no area damage while its other passengers take half.
+
 ## 22.10 Region behaviour schemas
 
 > **Implemented** in `module/data/regions.mjs` and registered in `fgt.mjs` as
