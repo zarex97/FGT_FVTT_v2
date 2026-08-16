@@ -19,7 +19,7 @@ import { collectContributions } from "./elements.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { annotateTerrain } from "./terrain.mjs";
-import { phase, darkModifiers, homeBaseModifiers } from "./environment.mjs";
+import { phase, darkModifiers, homeBaseModifiers, regionBonusFor } from "./environment.mjs";
 import { annotateCompulsions } from "./compulsion.mjs";
 import { rollOptionsFor } from "./options.mjs";
 
@@ -215,6 +215,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     turnsPerRound: settings.turnsPerRound ?? 3,
     tick: settings.tick ?? 0,
     region: settings.region ?? null,
+    warRegion: settings.warRegion ?? null,
+    difficulty: settings.difficulty ?? "intermediate",
+    grail: settings.grail ?? null,
     crossLevel: settings.crossLevel ?? null,
     terrain: scene?.terrain ?? {},
     // Seeded so a replayed combat picks the same random targets.
@@ -240,11 +243,43 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // the same reason terrain and auras do: a unit projected alone cannot know
   // which Round it is or whose ground it is standing on.
   annotateEnvironment(units, board);
+  // The war's Region grants every Servant from it "+ to all Parameters"
+  // (§19.3). Applied here rather than at setup so that changing the region
+  // mid-configuration does not need every sheet rewritten.
+  annotateRegionBonus(units, board);
   // Positional, like auras: it holds while somebody is standing nearby.
   annotateCompulsions(units, board);
   annotateAuras(units, board);
 
   return board;
+}
+
+/**
+ * Apply the war Region's parameter step.
+ *
+ * A **rank shift**, not a numeric delta, so it flows through the same derived
+ * path Enkidu's reduction and Mad Enhancement's boost use — and so it moves
+ * Base Attack by 10 per step with it (Ch. 05 §5.6).
+ *
+ * @param {object[]} units
+ * @param {object} board
+ * @returns {void}
+ */
+function annotateRegionBonus(units, board) {
+  const warRegion = board.warRegion ?? null;
+  if (!warRegion) return;
+
+  for (const u of units) {
+    const steps = regionBonusFor(u, warRegion);
+    if (steps === 0) continue;
+    u.statDeltas = [
+      ...(u.statDeltas ?? []),
+      ...["str", "end", "agi", "mag", "luc"].map((p) => ({
+        stat: `parameters.${p}`, rankShift: steps, target: "self",
+        source: `Region: ${warRegion}`,
+      })),
+    ];
+  }
 }
 
 /**

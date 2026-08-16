@@ -11,6 +11,7 @@
  */
 
 import { FGTSocket } from "../net/socket.mjs";
+import { registerDefeat } from "../rules/environment.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -182,6 +183,7 @@ export function worldIO() {
      * @param {string} cause
      */
     async defeat(unitId, cause) {
+      await countTowardsGrail(unitId, cause);
       const actor = resolve(unitId);
       if (!actor) return;
       await actor.update({ "system.defeated": true, "system.defeatCause": cause });
@@ -248,4 +250,42 @@ function resolveToken(unitId) {
   const direct = canvas?.tokens?.get(unitId)?.document;
   if (direct) return direct;
   return canvas?.tokens?.placeables?.find((t) => t.actor?.id === unitId)?.document ?? null;
+}
+
+/**
+ * Count a removal towards the Grail's materialization.
+ *
+ * *"A disappeared Servant counts towards the number of Servants needed for the
+ * Grail to materialize (but not if inflicted with Erase)."* So the cause
+ * matters and only Servants count — and `grailCounter` had sat on `MatchData`
+ * since it was written with nothing ever incrementing it, which meant the
+ * Grail could never appear.
+ *
+ * @param {string} unitId
+ * @param {string} cause
+ * @returns {Promise<void>}
+ */
+async function countTowardsGrail(unitId, cause) {
+  const combat = game.combats?.active;
+  if (!combat || !game.user.isGM) return;
+
+  const actor = game.actors.get(unitId) ?? canvas?.tokens?.get(unitId)?.actor;
+  const next = registerDefeat(
+    {
+      threshold: combat.system?.grailThreshold ?? 9,
+      defeatedCount: combat.system?.grailCounter ?? 0,
+      materialized: Boolean(combat.system?.grailMaterialized),
+    },
+    { kind: actor?.type },
+    cause,
+  );
+  if (next.defeatedCount === (combat.system?.grailCounter ?? 0)) return;
+
+  await combat.update({
+    "system.grailCounter": next.defeatedCount,
+    "system.grailMaterialized": next.materialized,
+  });
+  if (next.materialized && !combat.system?.grailMaterialized) {
+    Hooks.callAll("fgtGrailMaterialized", next);
+  }
 }

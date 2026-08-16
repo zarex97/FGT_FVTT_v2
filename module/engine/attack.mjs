@@ -31,6 +31,7 @@ import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { canUseAbility } from "../rules/costs.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
+import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -79,6 +80,13 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   const overridden = (placement?.overrides ?? []).includes(usage.reason);
   if (!usage.ok && !overridden) throw new Error(`FGT | Cannot use this ability: ${usageRefusal(usage)}`);
 
+  // "During the first Round, neither Player/Faction is allowed to Attack"
+  // (§19.7 step 12). A hard gate at declaration, so the refusal names the rule
+  // instead of letting a player discover it as an unexplained targeting error.
+  if (combat?.started && !attacksPermitted(combat.round ?? 1) && actionKind !== "skill") {
+    throw new Error("FGT | No attacks are permitted during the first Round.");
+  }
+
   const spec = targetSpecFor(attacker, ability);
   const targets = resolveTargets(spec, self, board, placement);
 
@@ -104,6 +112,25 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
 
   // Confirmation: targeting is settled and legal, so the cost is now paid.
   if (usage.cost) await applyBatch(costIntents(usage.cost), "attack:cost");
+
+  // Civilians never enter a Combat Process: "the Civilian is instantly killed"
+  // -- no damage calculation, no reaction ladder, no Overpower (Ch. 04 §4.6).
+  // Resolved here, before any Process exists, because a Process that always
+  // ends the same way is a ladder with one rung.
+  const civilians = targets.units
+    .map((t) => board.units.find((u) => u.id === t.unitId))
+    .filter((u) => u?.kind === "civilian");
+  if (civilians.length > 0) {
+    const verdict = mayAttackCivilian(self, { overrides: placement?.overrides ?? [] });
+    if (!verdict.ok) {
+      throw new Error(
+        "FGT | A Good-aligned Servant will not kill Civilians. " +
+        "Spend a Command Spell (Kill Humans) to override.",
+      );
+    }
+    const descriptors = civilians.flatMap((c) => civilianKill(self, c));
+    await applyBatch(civilianIntents(descriptors), "civilianKill");
+  }
 
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
@@ -328,6 +355,22 @@ async function rollLuck(state) {
   // A Luck Check costs 1 Luck whether or not it succeeds.
   await applyBatch([I.statDelta(prompt.unitId, "luck.value", -1)], "luckCheck");
   return { ...outcome, formula: roll.formula };
+}
+
+/**
+ * Turn Civilian-kill descriptors into intents.
+ * @param {object[]} descriptors
+ * @returns {object[]}
+ */
+function civilianIntents(descriptors) {
+  return descriptors.map((d) => {
+    switch (d.kind) {
+      case "defeat": return I.defeat(d.unitId, d.cause);
+      case "heal": return I.heal(d.unitId, d.amount, d.source);
+      case "statDelta": return I.statDelta(d.unitId, d.stat, d.delta);
+      default: return I.log({ kind: "unappliedCivilianEffect", effect: d.kind, unitId: d.unitId });
+    }
+  });
 }
 
 /**

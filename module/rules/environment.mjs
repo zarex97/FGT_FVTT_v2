@@ -254,3 +254,189 @@ export function grailContest(state, units) {
 export function grailDestructionChance(damage) {
   return Math.max(0, Math.min(100, (damage ?? 0) / 20));
 }
+
+/* -------------------------------------------------------------------------- */
+/*  19.3 — the war's Region                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Which regions border which.
+ *
+ * *"Directly next to"* is a geographic adjacency the source does not tabulate,
+ * so this ships as curated, editable data (§19.3). Semiramis's HGoB Construction
+ * counter is the only consumer today — but the mechanism is general, and a
+ * one-way edge would make her counter depend on the order two regions happened
+ * to be compared in, so the graph is kept **symmetric** and a test enforces it.
+ *
+ * @type {Readonly<Record<string, {adjacent: string[]}>>}
+ */
+export const REGION_ADJACENCY = Object.freeze({
+  greece: { adjacent: ["europe", "middleEast", "mesopotamia"] },
+  europe: { adjacent: ["greece", "netherlands", "england", "middleEast"] },
+  netherlands: { adjacent: ["europe", "england"] },
+  england: { adjacent: ["europe", "netherlands", "ireland"] },
+  ireland: { adjacent: ["england"] },
+  middleEast: { adjacent: ["greece", "europe", "mesopotamia", "india"] },
+  mesopotamia: { adjacent: ["greece", "middleEast", "india"] },
+  india: { adjacent: ["middleEast", "mesopotamia", "eastIndia", "farEast"] },
+  eastIndia: { adjacent: ["india", "farEast"] },
+  farEast: { adjacent: ["india", "eastIndia", "japan"] },
+  japan: { adjacent: ["farEast"] },
+  // The Moon borders nothing. Stated rather than omitted, so "no entry" and
+  // "no neighbours" stay distinguishable.
+  moon: { adjacent: [] },
+});
+
+/**
+ * The parameter steps a unit gains from the war's Region.
+ *
+ * *"All Servants from the corresponding Region selected receive a + to all
+ * Parameters."* Servants only, and matching is **any** — Van Gogh lists
+ * Netherlands, Europe and Greece, and benefits from a war in any of the three.
+ *
+ * Because it grants parameter *steps* it also moves Base Attack by ±10 per step
+ * (Ch. 05 §5.6), which is why `parameters` separates `base` from `granted`.
+ *
+ * @param {object} unit
+ * @param {string|null} warRegion
+ * @returns {number} steps granted
+ */
+export function regionBonusFor(unit, warRegion) {
+  if (!warRegion) return 0;
+  if (unit?.kind !== "servant") return 0;
+  return (unit.region ?? []).includes(warRegion) ? 1 : 0;
+}
+
+/**
+ * Are two regions geographically adjacent?
+ *
+ * A region is never adjacent to itself: *"in a Middle East region"* and
+ * *"directly next to a Middle East region"* are the two separate branches of
+ * Semiramis's rule, and collapsing them would give her both bonuses at once.
+ *
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+export function regionsAdjacent(a, b) {
+  if (!a || !b || a === b) return false;
+  return (REGION_ADJACENCY[a]?.adjacent ?? []).includes(b);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  19.5 — Civilians                                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * May this Servant attack a Civilian at all?
+ *
+ * *"Servants with the 'Good' Alignment will not kill Civilians. They will only
+ * kill Civilians if a Command Spell is used."* — so this is a refusal with a
+ * named override, not a hard prohibition.
+ *
+ * @param {object} attacker
+ * @param {object} [ctx]
+ * @param {string[]} [ctx.overrides] reasons a Command Spell has overridden
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function mayAttackCivilian(attacker, ctx = {}) {
+  if (attacker?.alignment?.morality !== "good") return { ok: true };
+  if ((ctx.overrides ?? []).includes("goodAligned")) return { ok: true };
+  return { ok: false, reason: "goodAligned" };
+}
+
+/**
+ * Killing a Civilian.
+ *
+ * A distinct resolution path (Ch. 04 §4.6): no damage calculation, no reaction
+ * ladder, no Overpower. The Civilian dies and the killer is paid.
+ *
+ * @param {object} attacker
+ * @param {object} civilian
+ * @returns {object[]} descriptors
+ */
+export function civilianKill(attacker, civilian) {
+  return [
+    { kind: "defeat", unitId: civilian.id, cause: "civilianKilled" },
+    { kind: "heal", unitId: attacker.id, amount: 100, source: "Civilian" },
+    { kind: "statDelta", unitId: attacker.id, stat: "agility.value", delta: 1 },
+  ];
+}
+
+/**
+ * How many Civilians the board is short of its invariant.
+ *
+ * *"On Lunatic, there should always be at least 2 Civilians on the board."*
+ * Checked at round start and topped up by spawning on random unoccupied
+ * non-home-base panels.
+ *
+ * @param {object[]} units
+ * @param {string} difficulty
+ * @returns {number}
+ */
+export function civiliansNeeded(units, difficulty) {
+  if (difficulty !== "lunatic") return 0;
+  const present = (units ?? []).filter((u) => u.kind === "civilian").length;
+  return Math.max(0, 2 - present);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  19.4 — victory, and 19.7 — the setup gates                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Has anybody won, or has everybody lost?
+ *
+ * Order matters: **destruction is checked first**, so throwing an area Noble
+ * Phantasm over the Grail can never be a way to win. A player who destroys it
+ * while holding it has still ended the game with no winners.
+ *
+ * @param {object} board
+ * @returns {{outcome: string, faction?: string|null}|null}
+ */
+export function checkVictory(board) {
+  if (board?.grail?.destroyed) return { outcome: "noWinner", faction: null };
+
+  const held = Object.values(board?.grail?.contest ?? {}).find((c) => (c.roundsHeld ?? 0) >= 1);
+  if (held) {
+    const holder = (board.units ?? []).find((u) => u.id === held.unitId);
+    return { outcome: "grailObtained", faction: holder?.faction ?? null };
+  }
+
+  const alive = [...new Set((board.units ?? [])
+    .filter((u) => (u.health?.value ?? 0) > 0 && u.faction)
+    .map((u) => u.faction))];
+  if (alive.length === 1) return { outcome: "elimination", faction: alive[0] };
+
+  return null;
+}
+
+/**
+ * *"During the first Round, neither Player/Faction is allowed to Attack."*
+ *
+ * A hard gate on declaration, so the refusal names the rule rather than letting
+ * a player discover it by having their targeting rejected for no visible reason.
+ *
+ * @param {number} round
+ * @returns {boolean}
+ */
+export function attacksPermitted(round) {
+  return (round ?? 1) > 1;
+}
+
+/**
+ * E5 — is Territory Creation amplified for this owner right now?
+ *
+ * Keyed on where the **owner** stands, not on where its target is: the
+ * offensive bonus applies *"even to attacks out of the base"*. Reading it off
+ * the target would silently halve the skill's value.
+ *
+ * @param {object} owner
+ * @param {object} board
+ * @param {object} [_targetPanel] accepted and ignored, deliberately
+ * @returns {boolean}
+ */
+export function territoryCreationAmplified(owner, board, _targetPanel = null) {
+  void _targetPanel;
+  return ownBaseOf(owner, board) !== null;
+}

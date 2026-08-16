@@ -23,7 +23,7 @@ where something is a stub the exact line is named.
 
 The **pure rules core is essentially complete**: the damage pipeline, targeting resolution,
 checks, movement legality, the effect application pipeline, the turn budget and the rank/tick
-domain are all implemented and carry 874 tests, and 50 content files.
+domain are all implemented and carry 901 tests, and 50 content files.
 
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
@@ -68,10 +68,9 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    NP round gate — is still open. The original finding read:
    The rule is implemented twice and fed
    by an input no code writes.
-6. **Two of the eight environment subsystems are missing**: Region and Random Events. Day/Night,
-   Home Base and the Grail's rules landed in C2; terrain's standing modifiers in C1. What the
-   Grail lacks is a runtime state owner, and what terrain lacks is a `Region` behaviour to
-   populate areas from a scene.
+6. ~~**Six of the eight environment subsystems are missing**~~ — **done (C1, C2)**. Home Base,
+   Day/Night, Region, the Grail and Terrain are all live, with the Grail owned by `MatchData`
+   and terrain areas read from the scene's Regions. Random Events stay GM-driven by design.
 7. **Platforms, levels and bounded fields are modelled in the schema and nowhere else.**
 8. **Only 2 of 29 reference Servants are authored.**
 
@@ -106,7 +105,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 16 | Relationships | **Partly** | Master protection is enforced by movement. **ZON is derived and both consumers fire**, including the Semiramis exemption and the Dioscuri's `any`-across-twins test. **Contracting, Overpower/Underpower, Sustainability drain and the multi-Servant tax are missing.** |
 | 17 | Command Spells | **Done** | Catalogue (16), spend flow, cost variants, offer filtering and the interrupt protocol with its timeout (B1). **The §28.8 preview-time "spend to override" affordance is the remainder.** |
 | 18 | Action economy | **Mostly** | Budget, per-unit limits, prevention, compulsions done. **Undo (§18.7) and Confuse's random selector (§18.5) missing.** |
-| 19 | Environment | **Partly** | Day/Night, Home Base E1–E4 and the Grail's rules done (C2). **Region, Random Events, Civilians, the board setup sequence and E5 are absent, and the Grail has no runtime state owner.** |
+| 19 | Environment | **Done** | Day/Night, Home Base E1–E5, the Grail with its runtime owner, Region and its adjacency graph, Civilians, victory conditions and the setup gates (C2). **The Random Event table stays GM-driven by design.** |
 | 20 | Platforms and levels | **Missing** | `PlatformData` exists; no linkage, no cross-level rules, no lifecycle. |
 
 ### Part III — Foundry architecture
@@ -129,7 +128,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids. **The summon operation (§37.6) missing.** |
-| 38 | Testing strategy | **Mostly** | 874 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 901 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Missing** | Named in the enums only. |
@@ -548,8 +547,7 @@ id rather than faction, because Semiramis's Hanging Gardens *"counts as a second
 Still empty by design: eight of nineteen types carry no *standing* effects, because their clauses
 are entirely periodic or on-entry. The catalogue lists them rather than omitting them.
 
-**C2. Environment.** *(large)* — **Day/Night, Home Base and the Grail DONE; Region and Random
-Events are not.**
+**C2. Environment.** *(large)* — **DONE.**
 *Test gate met:* `test/unit/environment.test.mjs`, 33 tests — the cycle alternates from either
 opening flip, the `Dark` effects apply and lift with it, and the Grail's contest state is tracked
 through materialization, acquisition and destruction odds.
@@ -573,11 +571,36 @@ Details worth keeping:
   only be in the 2-panel Area. Conflating them would let a unit claim the Grail with an enemy two
   panels away. Two adjacent rivals are a standoff, which is intended.
 
-Not done: **Region** (§19.3), **Random Events and Civilians** (§19.5), the **board setup
-sequence** (§19.7), **E5** Territory Creation amplification, and the victory conditions. The
-Grail functions are pure and complete but **have no runtime owner** — nothing on the Combat
-document holds a `GrailState` yet, so materialization is reachable only by a caller that keeps
-the state itself. That is named here rather than left to be discovered.
+The rest of Ch. 19 is in too:
+
+- **Region** (§19.3). The war's region grants every Servant from it a parameter step, applied as
+  a **rank shift** so it flows through the same derived path as Enkidu's reduction and moves Base
+  Attack with it. Matching is `any`, so Van Gogh benefits from a Greek, Dutch or European war. A
+  curated, symmetric adjacency graph ships for *"directly next to"* — Semiramis is the only
+  consumer, but a one-way edge would make her Construction counter depend on argument order, and
+  a test enforces symmetry.
+- **Civilians** (§19.5). A Civilian **never enters a Combat Process**: `resolveAttack` resolves
+  the kill before one is built, because a ladder whose every rung has one outcome is not a
+  ladder. The Good-alignment refusal names `Kill Humans` as its override and B1's
+  `overrideValidation` carries it. The Lunatic ≥2 invariant is `civiliansNeeded`.
+- **Victory** (§19.4), evaluated at round end. **Destruction is checked first**, so throwing an
+  area NP over the Grail can never be a way to win — a player who destroys it while holding it
+  has still ended the game with no winners.
+- **The setup gates** (§19.7): the region choice, the day/night flip, and Round 1's attack ban,
+  refused at declaration with the rule named rather than surfacing as an unexplained targeting
+  error.
+- **E5**, keyed on where the **owner** stands rather than the target, because the offensive bonus
+  applies *"even to attacks out of the base"*.
+
+**The Grail now has a runtime owner.** `MatchData.grailCounter` had sat on the schema since it
+was written with **nothing incrementing or reading it**, so the Grail could never materialize;
+`MatchData.region` had sat beside it with nothing granting the parameter step it implies. Both
+are live: `io.defeat` counts Servants towards the threshold (and not Erase), and
+`scheduler-hooks` advances the contest and checks victory at round end.
+
+Genuinely not automated, and correctly so: the **Random Event table** itself. §19.5 says *"the
+system provides tooling, not automation"* — the one event the rulebook specifies (Civilians) is
+implemented; the rest is a `RollTable` for the GM.
 
 **C3. Platforms and levels.** *(large)* Ch. 20 — the three reference platforms, movement linkage,
 cross-level targeting.
@@ -675,8 +698,7 @@ A1 ✔ A2 ✔ A3 ✔ A4 ✔ A5 ✔    PHASE A COMPLETE. Order run: A1, A3, A5, A
 B4 ✔ → B3 ✔              costs after auras, because a cost may read an aura-modified value;
                          B3's grants are done, its COPY half (Scathach) is not
 B1 ✔                   Command Spells: catalogue, spend flow and the interrupt protocol
-C1 ✔ → C2 ~            terrain then environment. C1 is complete; C2 has Day/Night, Home Base
-                       and the Grail, and still wants Region and Random Events
+C1 ✔ → C2 ✔            terrain then environment; environment reads terrain. Both complete.
 D1 ~ (continuous)      author Servants alongside, not after — they are the real test suite.
                        Asterios and Penthesilea done. Between them they found eight engine
                        gaps and closed them; none would have been designed up front

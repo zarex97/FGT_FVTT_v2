@@ -79,8 +79,23 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // applied next Round instead.
       takenThisRound: new fields.ArrayField(new fields.StringField()),
 
+      // The war's Region (Ch. 19 §19.3). Grants every Servant from it a
+      // parameter step, which is why it lives on the match rather than on a
+      // setting: it is chosen once, at setup, and never changes mid-war.
       region: new fields.StringField({ required: false, nullable: true, initial: null }),
+      difficulty: new fields.StringField({ initial: "intermediate",
+        choices: ["beginner", "intermediate", "expert", "lunatic"] }),
+
+      // The Holy Grail (Ch. 19 §19.4). `grailCounter` counted defeated Servants
+      // and nothing ever incremented or read it; the rest of the state had
+      // nowhere to live at all, so materialization could not happen.
       grailCounter: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+      grailThreshold: new fields.NumberField({ required: true, integer: true, initial: 9, min: 1 }),
+      grailMaterialized: new fields.BooleanField({ initial: false }),
+      grailDestroyed: new fields.BooleanField({ initial: false }),
+      grailPosition: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      /** unitId → `{unitId, roundsHeld}`. */
+      grailContest: new fields.ObjectField({ required: true, initial: () => ({}) }),
     };
   }
 }

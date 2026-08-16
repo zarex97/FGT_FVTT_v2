@@ -169,8 +169,31 @@ coincide by accident; the headings say which is which.
   membership, a climbing escape check, per-unit escape history and hard containment — Ch. 43
   almost entire, which is C4. A stub applying its debuffs without the containment would look
   like the Labyrinth worked.
-- **Terrain does something** (Ch. 45 C1). The snapshot has carried a `terrain` field since it was
-  written and nothing ever populated or read it.
+- **The environment is finished** (Ch. 45 C2). Region, Civilians, victory conditions, the setup
+  gates and E5 join the Day/Night cycle, the Home Base and the Grail.
+
+  Two fields had sat on `MatchData` since the schema was written with **nothing incrementing or
+  reading either**: `grailCounter`, so the Grail could never materialize, and `region`, so the
+  parameter step it implies was never granted. Both are live — `io.defeat` counts Servants
+  towards the threshold (and not Erase), and `scheduler-hooks` advances the contest and checks
+  victory at round end.
+
+  Details worth keeping. The Region bonus is applied as a **rank shift**, so it flows through the
+  same derived path as Enkidu's reduction and moves Base Attack with it. A Civilian **never
+  enters a Combat Process** — the kill resolves before one is built, because a ladder whose every
+  rung has one outcome is not a ladder. Victory checks **destruction first**, so throwing an area
+  Noble Phantasm over the Grail can never be a way to win. E5 is keyed on where the *owner*
+  stands, not the target, because the bonus applies "even to attacks out of the base". And the
+  region adjacency graph is **symmetric by test**, because a one-way edge would make Semiramis's
+  Construction counter depend on which region was named first.
+
+  Still GM-driven, correctly: the Random Event table. §19.5 asks for "tooling, not automation",
+  and the one event the rulebook actually specifies — Civilians — is implemented.
+- **Terrain is finished** (Ch. 45 C1). The snapshot had carried a `terrain` field since it was
+  written and nothing ever populated or read it. Now: standing modifiers, periodic clauses,
+  on-entry consequences and attack-driven conversions, plus the `Region` behaviour schemas that
+  `system.json` had declared from the beginning **with no data model behind any of them** — so an
+  `fgt.terrain` behaviour on a Region carried no type, no duration and no meaning.
 
   `rules/terrain.mjs` holds the §42.2 catalogue and `snapshotBoard` runs `annotateTerrain` beside
   `annotateAuras` — which is the chapter's own observation, that terrain is *"mechanically a

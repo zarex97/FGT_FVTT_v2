@@ -191,6 +191,18 @@ export function currentBoard(overrides = {}) {
       // existed the rules read `board.terrain.areas` and nothing ever filled
       // it, so terrain was correct and permanently empty.
       terrain: { areas: terrainAreasOf(scene) },
+      // The war's Region and the Grail live on the match: chosen once at
+      // setup, and read by every Servant from that region thereafter.
+      warRegion: combat?.system?.region ?? null,
+      difficulty: combat?.system?.difficulty ?? "intermediate",
+      grail: {
+        threshold: combat?.system?.grailThreshold ?? 9,
+        defeatedCount: combat?.system?.grailCounter ?? 0,
+        materialized: Boolean(combat?.system?.grailMaterialized),
+        destroyed: Boolean(combat?.system?.grailDestroyed),
+        position: combat?.system?.grailPosition ?? null,
+        contest: combat?.system?.grailContest ?? {},
+      },
       zones: homeBaseZonesOf(scene),
       ...overrides,
     },
