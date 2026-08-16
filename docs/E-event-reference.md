@@ -1,5 +1,18 @@
 # Appendix E — Event Reference
 
+> **Implementation note (Ch. 45 A1).** `OnEvent` handlers are dispatched by
+> `scheduler.fireEvent`, which previously read a `handler.intents` array **nothing ever wrote** —
+> so every handler in the game contributed a log line and nothing else.
+>
+> The action vocabulary the `then` list dispatches into is now: `Damage`, `Heal`, `StatDelta`,
+> `ApplyEffect`, `RemoveEffect`, `ResourceDelta`, `CooldownDelta`, `Message`, and `Revive` (from
+> the `revive:` shorthand). An action the dispatcher does not understand **logs itself by name**
+> rather than resolving silently.
+>
+> `fgt.unitDefeated` deserves a note of its own: it had no reader **and no raiser** — nothing in
+> the system emitted a defeat when Health reached zero. `resolveDefeat` is that raiser, and a
+> unit that revives is never defeated rather than defeated and then healed.
+
 Every event the engine emits, its payload, its ordering guarantees, and which content subscribes
 to it. Content subscribes through the `OnEvent` rule element (Ch. 24 §24.3), never through
 `Hooks.on` directly.

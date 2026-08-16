@@ -1,5 +1,14 @@
 # 06 — Stats and Resources
 
+> **Implemented (Ch. 45 A3, C2).** The Injury Roll is live. The threshold test reads the damage
+> pipeline's pre-Def-Crk snapshot rather than comparing the final total to 100 — Def Crk's bonus
+> damage *"does not count towards the amount required"*, and stage 16 adds it after the snapshot,
+> so a fresh comparison would fire on hits the rules exclude.
+>
+> Agility is depleted by exactly three things, and all three now exist: the Injury Roll,
+> `Def Dwn (C)`, and Luck Checks. The Home Base restores 1 per Round (§19.1 E1) and a Civilian
+> kill grants 1.
+
 Parameters are ranks; **stats** are the numbers combat actually reads. This chapter specifies
 each stat's semantics, its modifier model, its clamping rules, and the general-purpose
 **resource** system that ability-specific pools (Fragarach Tokens, Proliferation stocks, HGoB

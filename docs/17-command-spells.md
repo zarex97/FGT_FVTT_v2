@@ -1,5 +1,20 @@
 # 17 — Command Spells
 
+> **Implemented (Ch. 45 B1).** All 16 commands of §17.2 are authored in
+> `packs/_source/command-spells/`; `rules/command-spells.mjs` decides and
+> `engine/command-spells.mjs` pays and applies, in the order validate → pay → apply.
+>
+> The interrupt protocol (§17.4) works: `applyInterrupt` is a GM-side mutation of the Combat
+> Process, and non-prompting rungs are held open by `awaitInterrupt` for the configured timeout
+> (`commandSpellTimeout`, 45s default, 0 disables) — **only when somebody could actually use a
+> command there**, because a blanket pause on every rung would be unplayable.
+>
+> Unusable commands are **never offered**, per §17.6: the immunity check, the cost check and
+> every requirement are applied at offer time so the option never appears.
+>
+> Not built: the §28.8 preview-time "spend to override" affordance, and the Grail-destruction
+> confirmation that shares its shape (§19.4).
+
 Command Spells are the only mechanism in F/GT that can pre-empt an in-flight process. That
 makes them architecturally significant out of proportion to their rules footprint: supporting
 them correctly forces the entire resolution engine to be suspendable and resumable.

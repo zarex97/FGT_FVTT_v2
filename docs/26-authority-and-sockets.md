@@ -1,5 +1,13 @@
 # 26 — Authority and Sockets
 
+> **Implementation note (Ch. 45 B1).** A `spendCommandSpell` typed operation joins the table,
+> authorized to the Master's **owner** rather than to any player: a Command Spell can interrupt a
+> resolution another client is participating in, so it is executed GM-side for the same reason
+> `resolveAttack` is (Model B, §26.4).
+>
+> That interrupt is the sharpest case this chapter's argument covers — the GM arbitrates the
+> ladder even though each individual rung is answered by its owner.
+
 Players must drive resolutions that write to actors they do not own — applying a debuff to an
 enemy, damaging a defender, moving a knocked-back unit. Foundry's permission model forbids it.
 This chapter specifies the GM proxy protocol that bridges the gap, and is honest about what it

@@ -1,5 +1,18 @@
 # 27 — The Reaction Protocol
 
+> **Implemented (Ch. 45 A4, B1).** Interrupt injection (§27.9) works: a Command Spell arriving
+> mid-ladder is validated and paid on the GM client, then `applyInterrupt` mutates the Process
+> and the ladder resumes — possibly at a different rung, which is the point. Escape jumps to
+> `noDamage`; Teleport Servant replaces the defender and restarts at `react` with
+> `forbiddenReactions: [evade, block]`, per this section.
+>
+> The counter sub-process (§27.10) is a fresh Process with the roles swapped, marked `isCounter`
+> so it cannot be countered in turn, and running the full ladder.
+>
+> Timeouts (§27.5) exist for the Command Spell offer specifically. The counter rung is
+> **conditionally prompting** — it asks only when the defender could actually counter, so an
+> ineligible one is never stopped to answer a question with one answer.
+
 The reaction ladder (Ch. 12) is an asynchronous, multi-party, resumable negotiation that can
 span five prompts across three clients, with a Command Spell interrupt possible from a fourth.
 This chapter specifies the wire protocol that drives it.

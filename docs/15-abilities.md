@@ -1,5 +1,23 @@
 # 15 — Abilities
 
+> **Implemented (Ch. 45 B3, B4).** Costs and requirements (§15.4) are live in
+> `module/rules/costs.mjs`: Master Health by rank column and rank step, Sustainability for a Free
+> Servant, double self-Health for one with no clock, the cooldown gate, the Noble Phantasm round
+> gate and the ZON gate. `resolveAttack` **validates at declaration and pays at confirmation**,
+> which is this section's own decision, so cancelling during targeting costs nothing.
+>
+> The Health comparison is **strict** — a Master at exactly 50 cannot pay a 50-cost NP — and the
+> cost is paid with `statDelta`, never `damage`, so it cannot trigger `Dmged NP Regen` or an
+> Injury Roll.
+>
+> Granted abilities (§15.7) are read via `module/rules/granted.mjs`. The **copy** half —
+> Scathach's *Wisdom of Dun Scaith*, the `copyable` field and the GM selection dialog — is not
+> built.
+>
+> Not built from §15.4's type list: `hasSkill`, `inZone`/`notInZone`, `modeActive`,
+> `counterpartAdjacent`, `targetHasEffect`, the `predicate` escape hatch, and Karna's
+> `supersedes` override.
+
 Skills, Spells, Attack Skills, Noble Phantasms, Magic Crests, and Class Skills. This chapter
 specifies the ability model: the type taxonomy, the phase structure, costs and gates, and the
 categorization rules that decide which effects apply to which abilities.

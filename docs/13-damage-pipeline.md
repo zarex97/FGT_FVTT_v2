@@ -1,5 +1,20 @@
 # 13 — The Damage Pipeline
 
+> **Implementation notes (Ch. 45).** Two additions and one repair since this chapter was written.
+>
+> - **Rolled modifiers.** A modifier may carry `roll: {key, formula, multiplier, npMultiplier}`
+>   instead of a fixed `value`, for magnitudes rolled *per damage event* — Penthesilea's *Goddess
+>   of War* is the reference case. The pipeline stays pure: the caller rolls and the total arrives
+>   in `ctx.rolls`, exactly as the crit and negation rolls do. Resolved in `magnitudeOf`, the one
+>   place a modifier's magnitude is read.
+> - **A Command Spell damage factor.** Damage Block, Damage Up, Halve NP and NP Max multiply the
+>   **finished total**, after every stage, because each is phrased against "Total Damage"
+>   (Ch. 17 §17.2). Factors compose multiplicatively, so Halve NP followed by NP Max returns to
+>   x1 in either order.
+> - **A `NaN` guard.** A modifier with no numeric magnitude used to produce `NaN`, which survived
+>   every stage and clamped the final total to **zero** — one malformed rule element silently
+>   deleted an attack. `magnitudeOf` never returns a non-number now.
+
 One attack can touch thirty modifiers from a dozen sources. The order they apply in changes the
 answer, sometimes by hundreds of points. This chapter specifies the pipeline as a fixed,
 numbered sequence of stages, states which modifiers belong to which stage, and works through
