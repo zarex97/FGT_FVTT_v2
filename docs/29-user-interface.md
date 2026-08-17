@@ -1,5 +1,25 @@
 # 29 — User Interface
 
+> **Implementation note (Ch. 45).** Three applications joined the sheets and the turn HUD: the
+> **summon dialog** (§37.6), the **Wisdom curation dialog** (§36.4) and a generic **choice dialog**
+> the second one asks a player through. All three are `ApplicationV2` with
+> `HandlebarsApplicationMixin`, as §29.1 requires.
+>
+> Two conventions they establish, both from this chapter's argument that the interface exists to
+> prevent mistakes rather than to look good. First: **a control that is unavailable is disabled
+> with its reason on screen**, never hidden — a summon re-roll button that vanished at match start
+> teaches a GM nothing, and one that is greyed out beside "the match has started, so the setup
+> rolls are locked" teaches them the rule. Second: **the arithmetic is shown, not the answer** —
+> "1000" tells a GM nothing about whether to re-roll and "18 + 2 (coin) + 2 granted = 22" tells
+> them everything, which is the same argument the damage explainer (Ch. 30) already won.
+>
+> `test/unit/i18n.test.mjs` now holds every literal `localize` key in the templates and modules
+> against `lang/en.json`. A missing key does not throw — Foundry renders the key itself, so a
+> button reads `FGT.Summon.Confirm` and the system looks broken in a way nothing else would catch.
+>
+> Still missing from this chapter: the Master sheet (§29.3), the token HUD (§29.5) and the ability
+> editor (§29.6).
+
 The UI's job in a game this mechanically dense is not to look good — it is to make the rules
 legible. Every screen in this chapter is justified by a specific class of mistake it prevents.
 

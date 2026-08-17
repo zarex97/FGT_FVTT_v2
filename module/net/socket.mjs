@@ -72,6 +72,47 @@ export class FGTSocket {
   }
 
   /**
+   * Ask **one named user** a question, and wait for their answer.
+   *
+   * `request` routes everything to the active GM, which is right for anything
+   * that writes -- but a prompt is the opposite case: the whole point is that a
+   * *particular* player answers it. `io.prompt` has emitted
+   * `request("prompt", ...)` since intents were written, and `OPERATIONS` has
+   * never had a `prompt` key, so every prevention Luck Check threw `UNKNOWN_OP`
+   * where a player should have been asked a question.
+   *
+   * The timeout is long by default: a human is reading it, and the failure mode
+   * of a short one is a decision made for a player who was still deciding.
+   *
+   * @param {string} userId
+   * @param {object} spec what to ask; the receiving client renders it
+   * @param {{timeout?: number}} [options]
+   * @returns {Promise<unknown>} the answer, or null if the user declined
+   */
+  static async ask(userId, spec, { timeout = 120_000 } = {}) {
+    const user = game.users.get(userId);
+    if (!user?.active) {
+      throw new FGTError("USER_OFFLINE", `${user?.name ?? userId} is not connected.`);
+    }
+
+    // Asking ourselves goes straight to the dialog: a client never receives its
+    // own broadcast, so a round trip here would hang forever.
+    if (user.isSelf) return this.#answer(spec);
+
+    const id = foundry.utils.randomID();
+    const promise = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.#pending.delete(id);
+        reject(new FGTError("TIMEOUT", `${user.name} did not answer within ${timeout}ms.`));
+      }, timeout);
+      this.#pending.set(id, { resolve, reject, timer });
+    });
+
+    game.socket.emit(this.NS, { kind: "ask", id, targetUserId: userId, spec, userId: game.user.id });
+    return promise;
+  }
+
+  /**
    * Broadcast a fire-and-forget event. Used for presentation only — never for
    * anything that changes state.
    * @param {string} event
@@ -91,6 +132,10 @@ export class FGTSocket {
         // Exactly one client handles each request.
         if (!game.users.activeGM?.isSelf) return;
         return this.#handleRequest(msg, senderId);
+      case "ask":
+        // Exactly one client answers, and it is not the sender.
+        if (msg.targetUserId !== game.user.id) return undefined;
+        return this.#handleAsk(msg);
       case "response":
         return this.#handleResponse(msg);
       case "event":
@@ -132,6 +177,39 @@ export class FGTSocket {
     if (!auth.allowed) throw new FGTError("FORBIDDEN", auth.reason ?? "Not permitted.");
 
     return operation.execute(payload, userId);
+  }
+
+  /**
+   * Render a question for this user and send the answer back.
+   *
+   * A thrown error is reported as a failed answer rather than swallowed: the
+   * asker is blocked on this, and a silent failure would hold them until the
+   * timeout with nothing on screen to explain it.
+   *
+   * @param {object} msg
+   */
+  static async #handleAsk(msg) {
+    let response;
+    try {
+      response = { kind: "response", id: msg.id, ok: true, result: await this.#answer(msg.spec) };
+    } catch (err) {
+      console.error("FGT | Prompt failed", err);
+      response = {
+        kind: "response", id: msg.id, ok: false,
+        error: { code: err.code ?? "ERROR", message: err.message },
+      };
+    }
+    game.socket.emit(this.NS, response);
+  }
+
+  /**
+   * Show a prompt and resolve to its answer.
+   * @param {object} spec
+   * @returns {Promise<unknown>}
+   */
+  static async #answer(spec) {
+    const { renderPrompt } = await import("../apps/prompt.mjs");
+    return renderPrompt(spec);
   }
 
   /**

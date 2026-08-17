@@ -30,12 +30,16 @@ import * as budget from "./engine/budget.mjs";
 import * as summon from "./engine/summon.mjs";
 import * as items from "./engine/items.mjs";
 import * as copy from "./engine/copy.mjs";
+import { SummonDialog } from "./apps/summon-dialog.mjs";
+import { CopyDialog } from "./apps/copy-dialog.mjs";
+import { ChoiceDialog } from "./apps/choice-dialog.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
+import { attachSummonEntries } from "./apps/summon-entry.mjs";
 
 Hooks.once("init", () => {
   console.log("FGT | Initialising Fate/Grail Tactics");
@@ -141,6 +145,10 @@ Hooks.once("ready", () => {
   // A targeting area is discarded in a `finally`, so the only way one survives
   // is a client that stopped existing mid-decision. Sweep them once, here.
   sweepTransientRegions();
+  // §37.6's summon, reachable from the sidebar and the compendium. GM only,
+  // and it intercepts a bare compendium drop -- which would otherwise produce a
+  // Servant with the template's numbers instead of its own rolled ones.
+  attachSummonEntries();
   fgt.api = buildPublicAPI();
   console.log(`FGT | Ready — ${game.system.version}`);
 });
@@ -167,6 +175,7 @@ function buildPublicAPI() {
     // Exposed because both are GM workflows a macro drives -- a summon dialog
     // is content, not engine.
     summon, items, copy,
+    dialogs: { SummonDialog, CopyDialog, ChoiceDialog },
     effects: EffectRegistry,
     commandSpells: CommandSpellRegistry,
     collectContributions,

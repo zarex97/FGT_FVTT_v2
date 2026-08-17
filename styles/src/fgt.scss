@@ -216,6 +216,107 @@
   &__state { font-weight: 600; }
 }
 
+.fgt-summon {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+
+  &__setup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+  &__field { display: flex; flex-direction: column; gap: 0.15rem;
+
+    label { font-size: 0.75rem; font-weight: 600; }
+  }
+
+  &__hint { font-size: 0.72rem; opacity: 0.75; margin: 0 0 0.3rem; }
+  &__grantrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; }
+  &__grant {
+    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+    font-size: 0.72rem; font-weight: 600;
+
+    input { width: 100%; text-align: center; }
+  }
+
+  &__header { display: flex; align-items: center; gap: 0.6rem;
+
+    h2 { margin: 0; }
+  }
+
+  // The rolls lock at match start; the reason is on screen rather than implied
+  // by a missing button.
+  &__locked {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    border-left: 3px solid var(--fgt-warn, #c80);
+    opacity: 0.9;
+  }
+
+  &__lines {
+    width: 100%;
+    border-collapse: collapse;
+
+    th { text-align: left; font-weight: 600; padding: 0.2rem 0.4rem 0.2rem 0; }
+    td { padding: 0.2rem 0.3rem; }
+  }
+  // The arithmetic, not just the answer: "1000" tells a GM nothing about
+  // whether to re-roll.
+  &__workings { font-size: 0.75rem; opacity: 0.8; font-family: var(--font-mono, monospace); }
+  &__value { font-weight: 700; text-align: right; }
+  &__note { font-style: italic; opacity: 0.7; margin-left: 0.4rem; }
+
+  &__steps {
+    margin: 0; padding-left: 1.2rem;
+    font-size: 0.75rem; opacity: 0.85;
+  }
+  &__steplabel { font-weight: 600; }
+  &__stepdetail { opacity: 0.8; margin-left: 0.3rem; }
+
+  &__confirm, &__roll { padding: 0.4rem; font-weight: 600; }
+}
+
+.fgt-copy, .fgt-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__hint { font-size: 0.78rem; opacity: 0.85; margin: 0; }
+  &__empty { font-size: 0.78rem; opacity: 0.7; font-style: italic; }
+  &__list { list-style: none; margin: 0; padding: 0; max-height: 22rem; overflow-y: auto; }
+  &__footer { display: flex; align-items: center; gap: 0.5rem; }
+  &__count { font-size: 0.75rem; opacity: 0.8; }
+}
+
+.fgt-copy {
+  &__row--offered { background: rgba(120, 200, 120, 0.12); }
+  &__toggle {
+    display: flex; flex-direction: column; align-items: flex-start;
+    width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  }
+  &__name { font-weight: 600; }
+  &__meta { font-size: 0.72rem; opacity: 0.75; }
+  &__preferred {
+    margin-left: 0.3rem; padding: 0 0.25rem;
+    border-radius: 2px; background: rgba(180, 140, 40, 0.25);
+  }
+}
+
+.fgt-choice {
+  &__counter { font-size: 0.75rem; font-weight: 600; margin: 0; }
+  &__option--picked { background: rgba(120, 200, 120, 0.15); }
+  &__toggle {
+    display: flex; flex-direction: column; align-items: flex-start;
+    width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  }
+  &__name { font-weight: 600; }
+  &__subtitle { font-size: 0.72rem; opacity: 0.75; }
+  &__detail { font-size: 0.72rem; opacity: 0.65; }
+}
+
+.fgt-sheet__setup {
+  align-self: flex-start;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+}
+
 .fgt-rolls {
   font-size: 0.75rem;
   opacity: 0.85;

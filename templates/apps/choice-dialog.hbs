@@ -1,0 +1,28 @@
+{{!-- Picking a fixed number of things from a curated list (§15.7, §36.4). --}}
+<div class="fgt-choice">
+  {{#if hint}}<p class="fgt-choice__hint">{{hint}}</p>{{/if}}
+
+  <p class="fgt-choice__counter">
+    {{#if complete}}
+      {{localize "FGT.Choice.Ready"}}
+    {{else}}
+      {{localize "FGT.Choice.Remaining" remaining=remaining}}
+    {{/if}}
+  </p>
+
+  <ul class="fgt-choice__list">
+    {{#each options as |o|}}
+      <li class="fgt-choice__option {{#if o.picked}}fgt-choice__option--picked{{/if}}" data-option-id="{{o.id}}">
+        <button type="button" data-action="toggle" class="fgt-choice__toggle">
+          <span class="fgt-choice__name">{{o.name}}</span>
+          {{#if o.subtitle}}<span class="fgt-choice__subtitle">{{o.subtitle}}</span>{{/if}}
+          {{#if o.detail}}<span class="fgt-choice__detail">{{o.detail}}</span>{{/if}}
+        </button>
+      </li>
+    {{/each}}
+  </ul>
+
+  <button type="button" data-action="confirm" class="fgt-choice__confirm" {{#unless complete}}disabled{{/unless}}>
+    {{localize "FGT.Choice.Confirm"}}
+  </button>
+</div>

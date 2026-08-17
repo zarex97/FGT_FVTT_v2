@@ -1,5 +1,27 @@
 # 36 — Case Study: The Remaining Seven
 
+> **Implemented (§36.4).** Scáthach's Wisdom setup flow is built, and it is built as **two**
+> dialogs because this section gives its two decisions to two different people: the GM curates
+> (`module/apps/copy-dialog.mjs`), then Scáthach's player picks
+> (`module/apps/choice-dialog.mjs`, reached over `FGTSocket.ask`). Collapsing them into one would
+> have been simpler and wrong — the curation is a GM judgement about what is thematic and the pick
+> is the player's.
+>
+> The rank band is a **toggle**, as this section says ("a soft filter with a toggle"), and the
+> dialog says so when the band hides everything rather than showing an empty list with no reason.
+> `canCopy` is re-checked when the player answers, because the offer and the pick are separated by
+> a human. The ability reaches its dialog through `opensDialog: copy` on its own document rather
+> than by a name match, so the next such ability needs content and not code.
+>
+> Asking a **named player** a question needed a socket primitive that did not exist:
+> `FGTSocket.ask`. `request` routes everything to the active GM, which is right for anything that
+> writes and exactly wrong for a prompt. Its absence had also left `io.prompt` emitting a
+> `"prompt"` operation that `OPERATIONS` never contained, so every prevention Luck Check threw
+> `UNKNOWN_OP` where a player should have been asked a question.
+>
+> Still to come from this section: `Primordial Rune`'s `kind: roll` phase with its table and
+> `duplicateBehaviour`, and `Gate of Skye`'s `alsoTriggers`.
+
 Karna, Kiritsugu, Francis Drake, Scáthach, Penthesilea, Nemo, and Kingprotea. Each is covered
 at the level of *what it demands of the architecture*, rather than repeating conversions whose
 patterns are now established.

@@ -55,7 +55,7 @@ export default [
         // Browser and PIXI, for the canvas layer and the floating preview. Only
         // L4 may touch these; the L1/L2 block below takes them away again.
         window: "readonly", document: "readonly", PIXI: "readonly",
-        PointerEvent: "readonly",
+        PointerEvent: "readonly", HTMLElement: "readonly", SubmitEvent: "readonly",
         // Node, for tools/ and test/
         process: "readonly", Buffer: "readonly", URL: "readonly",
       },

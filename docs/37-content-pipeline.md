@@ -24,6 +24,25 @@
 > the Servant was written "C" and granted one step is a sheet nobody can check. A granted END step
 > moves the Servant **up the Health table**, not up by one, since the table is not linear.
 >
+> **The dialog is built** (`module/apps/summon-dialog.mjs`), which is why the engine operation is
+> split into `prepareSummon` → `rerollSummonLine` → `commitSummon`: this section requires every
+> line to be shown before anything is written, and a one-shot summon has already created the actor
+> by the time there is something to show. Changing the Master or Region dropdown **does not
+> re-roll** — grants apply after the rolls, so nothing about them can change a die already thrown.
+> Re-roll buttons disable once `game.combat.started`, with the reason on screen rather than the
+> button simply missing. It is reached from a **Summon** button on the Actors sidebar and a
+> context entry in the Servant compendium; a bare compendium drop onto the canvas is **refused**,
+> because the actor it makes carries the template's numbers rather than this Servant's rolled ones
+> and nothing on the sheet would say so.
+>
+> **This section's worked example contradicts §14.9 and the code follows §14.9.** The tree below
+> rolls a Servant's Max Health (`1000 (END C) ± Health(S) → tails, 2d100 = 87 → 913`); §14.9's
+> procedure block says `maxHealth = endTable[END.grade]` with `NO ROLL — Health(S) is not used`.
+> An explicit "NO ROLL" in the normative procedure beats an illustrative walkthrough, so a Servant
+> summoned by this system has an **unrolled** 1000 there. Every other number in the tree is
+> reproduced exactly, and `test/unit/summon-grants.test.mjs` pins them. **If the walkthrough is the
+> intended rule, §14.9 is what needs correcting** — one line in `servantSetupPlan` follows.
+>
 > The compiler also carries §15.7's `copyable`/`copiedFrom` and §15.8's item fields (`quantity`,
 > `transferable`, `transferRange`, `transfersPerTurn`, `consumeEffect`), and the validator refuses
 > a `copyable.allowed: false` with no documented reason, or a copy that carries phases of its own.

@@ -25,6 +25,8 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       useAbility: FGTActorSheet.#onUseAbility,
       toggleMode: FGTActorSheet.#onToggleMode,
       editAbility: FGTActorSheet.#onEditAbility,
+      openDialog: FGTActorSheet.#onOpenDialog,
+      rollSetup: FGTActorSheet.#onRollSetup,
     },
   };
 
@@ -106,6 +108,50 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   /**
+   * An ability whose use is a setup decision rather than an action.
+   *
+   * Wisdom of Dún Scáith is the only one today. Routed through the ability's
+   * own `opensDialog` rather than matched by name, so the next one needs
+   * content and not code.
+   *
+   * @this {FGTActorSheet}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onOpenDialog(_event, target) {
+    const id = target.closest("[data-item-id]")?.dataset.itemId;
+    const item = this.document.items.get(id);
+    const kind = item?.system?.opensDialog;
+    if (!kind) return;
+
+    if (kind === "copy") {
+      const { CopyDialog } = await import("./copy-dialog.mjs");
+      CopyDialog.open({ copierId: this.document.id, grantedBy: item.system.contentId || item.id });
+    }
+  }
+
+  /**
+   * Roll a Master's setup lines (§14.9).
+   *
+   * On the sheet rather than in a dialog of its own: a Master has five lines
+   * and no choices to make, so a whole application for it would be ceremony.
+   *
+   * @this {FGTActorSheet}
+   */
+  static async #onRollSetup() {
+    const { rollMasterSetup } = await import("../engine/summon.mjs");
+    const result = await rollMasterSetup({ masterId: this.document.id });
+    if (!result.ok) {
+      ui.notifications.error(game.i18n.localize("FGT.Summon.SetupFailed"));
+      return;
+    }
+    ui.notifications.info(game.i18n.format("FGT.Summon.SetupDone", {
+      name: this.document.name,
+      health: result.lines.find((l) => l.id === "maxHealth")?.value ?? 0,
+    }));
+  }
+
+  /**
    * @this {FGTActorSheet}
    * @param {PointerEvent} _event
    * @param {HTMLElement} target
@@ -137,6 +183,10 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       hasFactions: Object.keys(board.choices()).length > 0,
       hasFaction: Boolean(this.document.system.factionId),
       isEditable: this.isEditable,
+      // §14.9's setup rolls, offered on a Master that has not had them yet.
+      // A GM may re-roll before the match starts; afterwards the rolls lock.
+      canRollSetup: this.document.type === "master" && game.user.isGM,
+      setupLocked: Boolean(game.combat?.started),
     };
   }
 }
