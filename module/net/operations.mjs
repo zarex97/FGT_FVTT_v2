@@ -272,6 +272,24 @@ export const OPERATIONS = Object.freeze({
    * The Discover roll, which must happen on the GM client because the mere
    * *existence* of the roll leaks that a concealed unit is nearby (§26.5).
    */
+  /**
+   * Ask a player a question, from wherever the resolution happens to be.
+   *
+   * The operation runs on the GM and *forwards* to the named user, because the
+   * asker is usually a rule resolving on the GM client and the answerer is a
+   * player. Without this, `io.prompt` emitted an operation that did not exist.
+   */
+  prompt: {
+    authorize: (_payload, userId) =>
+      (game.users.get(userId)?.isGM
+        ? { allowed: true, reason: null }
+        : { allowed: false, reason: "Only a GM may prompt another user." }),
+    execute: async (payload) => {
+      const { FGTSocket } = await import("./socket.mjs");
+      return FGTSocket.ask(payload.userId, payload.spec);
+    },
+  },
+
   discoverRoll: {
     authorize: () => ({ allowed: true, reason: null }),
     execute: async (payload) => {

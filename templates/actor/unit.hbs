@@ -35,6 +35,16 @@
     </div>
   </header>
 
+  {{#if canRollSetup}}
+    {{!-- §14.9's setup rolls. Disabled rather than hidden once the match has
+          started, so a GM who expected the button learns why it is gone. --}}
+    <button type="button" class="fgt-sheet__setup" data-action="rollSetup"
+            {{disabled setupLocked}}
+            data-tooltip="{{localize 'FGT.Summon.SetupHint'}}">
+      {{localize "FGT.Summon.RollSetup"}}
+    </button>
+  {{/if}}
+
   <section class="fgt-sheet__resources">
     <label class="fgt-resource">
       <span>{{localize "FGT.Resource.health"}}</span>

@@ -1,5 +1,17 @@
 # 26 — Authority and Sockets
 
+> **Implementation note (Ch. 45).** `FGTSocket.ask(userId, spec)` joins `request` and `broadcast`
+> as a third routing shape: a question for **one named user**, awaiting their answer. `request`
+> sends everything to the active GM, which is right for anything that writes and exactly wrong for
+> a prompt — the whole point of a prompt is that a *particular* player answers it. Its absence had
+> left `io.prompt` emitting a `"prompt"` operation that `OPERATIONS` never contained, so every
+> prevention Luck Check threw `UNKNOWN_OP` instead of asking anyone anything.
+>
+> The answering client renders through `module/apps/prompt.mjs`, a kind table rather than a dialog
+> class per question: the asker is a rule that knows what it needs answered, not what the answer
+> looks like, and a rule that imported a dialog would put layer 4 inside layer 2. A dismissed
+> window resolves to `null` — declining is an answer, and the caller decides what it means.
+>
 > **Implementation note (Ch. 45 B1).** A `spendCommandSpell` typed operation joins the table,
 > authorized to the Master's **owner** rather than to any player: a Command Spell can interrupt a
 > resolution another client is participating in, so it is executed GM-side for the same reason

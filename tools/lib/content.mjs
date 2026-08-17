@@ -54,6 +54,9 @@ export const RULE_ELEMENT_KEYS = new Set([
 /** Effect classification vocabularies, from Appendix A. */
 const POLARITIES = new Set(["buff", "debuff", "status"]);
 
+/** Setup dialogs an ability may open (§15.7, §36.4). */
+const DIALOGS = new Set(["copy"]);
+
 /** Why an ability may refuse to be copied (§15.7). */
 const COPY_REASONS = new Set(["physical", "unique", "classSkill", "rankEX"]);
 
@@ -301,6 +304,12 @@ function validateDocument(doc, path, library, problems, warnings) {
       );
     }
   }
+  if (doc.opensDialog && !DIALOGS.has(doc.opensDialog)) {
+    problems.push(
+      `${path}: opensDialog "${doc.opensDialog}" is not a dialog the system has — `
+      + `expected one of ${[...DIALOGS].join(", ")}`,
+    );
+  }
   if (doc.copiedFrom && (doc.phases ?? []).length > 0) {
     // A copy carries a reference OR phases, never both: with both, which one
     // runs depends on the reader, and the two readers would disagree.
@@ -523,6 +532,7 @@ function itemSystem(doc) {
     // say NO -- and the validator below checks the reason when they do.
     copyable: doc.copyable ?? undefined,
     copiedFrom: doc.copiedFrom ?? null,
+    opensDialog: doc.opensDialog ?? null,
     rules: doc.rules ?? [],
     passiveRules: doc.passiveRules ?? [],
     activeRules: doc.activeRules ?? [],

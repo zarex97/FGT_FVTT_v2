@@ -12,9 +12,24 @@
 > pass unnoticed. A duplicate id is dropped rather than appended — an interrupt that replays part
 > of a resolution would otherwise double every roll it re-ran.
 >
-> Setup rolls (§14.9) are `module/rules/setup-rolls.mjs`, rolled by `module/engine/summon.mjs`.
-> The asymmetry the code encodes: a **Servant's Max Health takes no roll** ("Health(S) is not
-> used"), while a Master rolls `2d100` with a **coin-flipped sign** over a flat base of 250.
+> Setup rolls (§14.9) are `module/rules/setup-rolls.mjs`, rolled by `module/engine/summon.mjs` and
+> shown by the summon dialog (`module/apps/summon-dialog.mjs`). The asymmetry the code encodes: a
+> **Servant's Max Health takes no roll** ("Health(S) is not used"), while a Master rolls `2d100`
+> with a **coin-flipped sign** over a flat base of 250. **§37.6's worked example disagrees** — it
+> rolls the Servant's Health — and the code follows this section, because "NO ROLL" here is an
+> instruction and that is an illustration. If the illustration is right, this line is the one to
+> change.
+>
+> The three **Master rank modes** this section ends on are live. `masterMode` had been a registered
+> setting that nothing read since the day settings were written, so every Master was ranked by
+> essence whatever the world was configured for: `coinFlip` now puts the flip on the Base Attack
+> line itself (the coin picks the value, because the rank exists there only to select it), and
+> `rankless` gives every Master 100. A Master's lines are rolled from a button on its own sheet —
+> five lines and no choices do not warrant an application.
+>
+> A resolved line reports both `rolled` (what the die showed) and `applied` (what it contributed,
+> sign included). A display that used the first for both renders a tails 2d100 of 87 as
+> "250 + 87 = 163".
 
 Every random element in F/GT, in one place: the check types, the named roll registry, the
 modifier rules, and how randomness is generated, logged, and made auditable across clients.

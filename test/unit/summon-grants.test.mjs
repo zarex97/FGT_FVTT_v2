@@ -1,0 +1,97 @@
+/**
+ * @file §37.6's worked summon, as a golden fixture.
+ * @see docs/37-content-pipeline.md §37.6, docs/14-checks-and-randomness.md §14.9
+ *
+ * The grant arithmetic is the part of the summon that has no Foundry in it, so
+ * it is pinned here rather than left to the dialog. Every number below is read
+ * off §37.6's Karna walkthrough.
+ *
+ * **One deliberate divergence, and it is a contradiction in the specification.**
+ * §37.6's example rolls a Servant's Max Health (`1000 ± Health(S) → 913`);
+ * §14.9's procedure block says `maxHealth = endTable[END.grade]  NO ROLL —
+ * Health(S) is not used`. The code follows §14.9: an explicit "NO ROLL"
+ * instruction in the normative procedure beats an illustrative walkthrough. The
+ * Health figures here are therefore the unrolled ones, and §37.6 now carries a
+ * note saying so.
+ */
+
+import { describe, it, expect } from "vitest";
+import { applyGrants, mergeGrants, sheetPatch } from "../../module/engine/summon.mjs";
+import { servantSetupPlan, resolveSetupPlan, summonPlan } from "../../module/rules/setup-rolls.mjs";
+
+/** Karna, as §37.6 has him. */
+const karna = {
+  parameters: { str: "B", end: "C", agi: "A", mag: "B", luc: "D" },
+  region: ["india"],
+  baseAttack: { str: 125, mag: 175 },
+};
+
+/** The plan resolved against §37.6's dice: AGI coin heads (2), LUC 1d4 = 3. */
+const resolved = () => resolveSetupPlan(servantSetupPlan(karna), { maxAgility: 2, maxLuck: 3 });
+
+const valueOf = (lines, id) => lines.find((l) => l.id === id).value;
+
+describe("§37.6 — summoning Karna into an Indian war", () => {
+  const steps = summonPlan({ sheet: karna, warRegion: "india", masterGrants: { agi: 1 } });
+  const granted = mergeGrants(steps);
+
+  it("stacks the Master's grant with the Region's rather than taking one", () => {
+    // Kaleidoscope gives +1 AGI; India gives +1 to everything. AGI ends at +2.
+    expect(granted).toMatchObject({ str: 1, end: 1, agi: 2, mag: 1, luc: 1 });
+  });
+
+  it("moves Max Agility by one per step, on top of the rolled coin", () => {
+    // 18 (AGI A) + 2 (coin) = 20, then +1 Master and +1 Region → 22.
+    expect(valueOf(resolved(), "maxAgility")).toBe(20);
+    expect(valueOf(applyGrants(resolved(), karna, granted), "maxAgility")).toBe(22);
+  });
+
+  it("moves Max Luck by one per step, on top of the 1d4", () => {
+    // 4 (LUC D) + 3 = 7, then +1 from India → 8.
+    expect(valueOf(applyGrants(resolved(), karna, granted), "maxLuck")).toBe(8);
+  });
+
+  it("moves Max Health UP THE TABLE for a granted END step, not by one", () => {
+    // C → C+ is +100, because the Health table is not linear. Adding 1 the way
+    // Agility does would give 1001.
+    const before = valueOf(resolved(), "maxHealth");
+
+    expect(valueOf(applyGrants(resolved(), karna, granted), "maxHealth")).toBe(before + 100);
+  });
+
+  it("adds 10 to each Base Attack component for its granted step", () => {
+    // "STR B → B+ ⇒ BA(STR) +10 → 135" and "MAG B → B+ ⇒ BA(MAG) +10 → 185".
+    const patch = sheetPatch(applyGrants(resolved(), karna, granted), karna, granted);
+
+    expect(patch.baseAttack).toEqual({ str: 135, mag: 185 });
+  });
+
+  it("leaves Base Attack alone for the AGI grant", () => {
+    // §37.6 says it outright: "BA adjustment: none (AGI does not affect BA)".
+    const agiOnly = mergeGrants(summonPlan({ sheet: karna, warRegion: null, masterGrants: { agi: 1 } }));
+    const patch = sheetPatch(applyGrants(resolved(), karna, agiOnly), karna, agiOnly);
+
+    expect(patch.baseAttack).toEqual({ str: 125, mag: 175 });
+  });
+
+  it("records the granted steps on the sheet, so a rank can be checked", () => {
+    // Without this the sheet shows a rank the Servant was not written with and
+    // nothing says why.
+    expect(sheetPatch(applyGrants(resolved(), karna, granted), karna, granted).grantedSteps)
+      .toEqual({ str: 1, end: 1, agi: 2, mag: 1, luc: 1 });
+  });
+
+  it("starts the Servant at full Health, Agility and Luck", () => {
+    const patch = sheetPatch(applyGrants(resolved(), karna, granted), karna, granted);
+
+    expect(patch.health.value).toBe(patch.health.max);
+    expect(patch.agility.value).toBe(patch.agility.max);
+  });
+
+  it("grants nothing for a war fought elsewhere", () => {
+    const elsewhere = mergeGrants(summonPlan({ sheet: karna, warRegion: "japan" }));
+
+    expect(elsewhere).toEqual({});
+    expect(valueOf(applyGrants(resolved(), karna, elsewhere), "maxAgility")).toBe(20);
+  });
+});

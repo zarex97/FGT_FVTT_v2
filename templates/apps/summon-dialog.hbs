@@ -1,0 +1,106 @@
+{{!-- The GM summon dialog (docs/37-content-pipeline.md §37.6). --}}
+<div class="fgt-summon">
+
+  <section class="fgt-summon__setup">
+    <div class="fgt-summon__field">
+      <label for="fgt-summon-servant">{{localize "FGT.Summon.Servant"}}</label>
+      <select id="fgt-summon-servant" name="contentId">
+        <option value="">{{localize "FGT.Summon.PickServant"}}</option>
+        {{#each catalogue as |s|}}
+          <option value="{{s.contentId}}" {{#if (eq s.contentId ../form.contentId)}}selected{{/if}}>
+            {{s.name}}
+          </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="fgt-summon__field">
+      <label for="fgt-summon-master">{{localize "FGT.Summon.Master"}}</label>
+      <select id="fgt-summon-master" name="masterId">
+        <option value="">{{localize "FGT.Summon.FreeServant"}}</option>
+        {{#each masters as |m|}}
+          <option value="{{m.id}}" {{#if (eq m.id ../form.masterId)}}selected{{/if}}>{{m.name}}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="fgt-summon__field">
+      <label for="fgt-summon-region">{{localize "FGT.Summon.Region"}}</label>
+      <select id="fgt-summon-region" name="region">
+        <option value="">{{localize "FGT.Summon.NoRegion"}}</option>
+        {{#each regions as |r|}}
+          <option value="{{r}}" {{#if (eq r ../form.region)}}selected{{/if}}>{{r}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </section>
+
+  <fieldset class="fgt-summon__grants">
+    <legend>{{localize "FGT.Summon.MasterGrants"}}</legend>
+    <p class="fgt-summon__hint">{{localize "FGT.Summon.GrantsHint"}}</p>
+    <div class="fgt-summon__grantrow">
+      {{#each grantRows as |g|}}
+        <label class="fgt-summon__grant">
+          <span>{{g.label}}</span>
+          <input type="number" name="grants.{{g.key}}" value="{{g.value}}" min="0" max="5" step="1">
+        </label>
+      {{/each}}
+    </div>
+  </fieldset>
+
+  {{#unless prepared}}
+    <button type="button" data-action="roll" class="fgt-summon__roll" {{#unless canRoll}}disabled{{/unless}}>
+      {{localize "FGT.Summon.Roll"}}
+    </button>
+  {{/unless}}
+
+  {{#if prepared}}
+    <section class="fgt-summon__result">
+      <header class="fgt-summon__header">
+        {{#if prepared.img}}<img src="{{prepared.img}}" alt="{{prepared.name}}" width="48" height="48">{{/if}}
+        <h2>{{prepared.name}}</h2>
+      </header>
+
+      {{#if locked}}
+        <p class="fgt-summon__locked">{{localize "FGT.Summon.Locked"}}</p>
+      {{/if}}
+
+      <table class="fgt-summon__lines">
+        <tbody>
+          {{#each prepared.lines as |line|}}
+            <tr data-line-id="{{line.id}}">
+              <th scope="row">{{line.label}}</th>
+              <td class="fgt-summon__workings">
+                {{line.workings}}
+                {{#if line.note}}<span class="fgt-summon__note">{{line.note}}</span>{{/if}}
+                {{#if line.unrolled}}<span class="fgt-summon__note">{{localize "FGT.Summon.Unrolled"}}</span>{{/if}}
+              </td>
+              <td class="fgt-summon__value">{{line.value}}</td>
+              <td>
+                {{#if line.rollable}}
+                  <button type="button" data-action="reroll" {{#if ../locked}}disabled{{/if}}
+                          data-tooltip="{{localize 'FGT.Summon.Reroll'}}">
+                    <i class="fa-solid fa-dice-d20"></i>
+                  </button>
+                {{/if}}
+              </td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+
+      <ol class="fgt-summon__steps">
+        {{#each prepared.steps as |step|}}
+          <li>
+            <span class="fgt-summon__steplabel">{{step.label}}</span>
+            {{#if step.detail}}<span class="fgt-summon__stepdetail">{{step.detail}}</span>{{/if}}
+          </li>
+        {{/each}}
+      </ol>
+
+      <button type="button" data-action="confirm" class="fgt-summon__confirm">
+        {{localize "FGT.Summon.Confirm"}}
+      </button>
+    </section>
+  {{/if}}
+</div>

@@ -1,0 +1,38 @@
+{{!-- Wisdom of Dún Scáith, GM stage (docs/36-case-remaining.md §36.4). --}}
+<div class="fgt-copy">
+  <p class="fgt-copy__hint">{{localize "FGT.Copy.Hint" name=copier count=slots}}</p>
+
+  <label class="fgt-copy__band">
+    <input type="checkbox" name="preferredOnly" {{#if preferredOnly}}checked{{/if}}>
+    {{localize "FGT.Copy.PreferredOnly"}}
+  </label>
+
+  {{#if isEmpty}}
+    <p class="fgt-copy__empty">{{localize "FGT.Copy.Nothing"}}</p>
+  {{/if}}
+  {{#if bandEmpty}}
+    <p class="fgt-copy__empty">{{localize "FGT.Copy.BandEmpty"}}</p>
+  {{/if}}
+
+  <ul class="fgt-copy__list">
+    {{#each candidates as |c|}}
+      <li class="fgt-copy__row {{#if c.offered}}fgt-copy__row--offered{{/if}}" data-ability-id="{{c.id}}">
+        <button type="button" data-action="toggleOffer" class="fgt-copy__toggle">
+          <span class="fgt-copy__name">{{c.name}}</span>
+          <span class="fgt-copy__meta">
+            {{c.rank}} · {{c.from}}
+            {{#if c.preferred}}<span class="fgt-copy__preferred">{{localize "FGT.Copy.Preferred"}}</span>{{/if}}
+          </span>
+        </button>
+      </li>
+    {{/each}}
+  </ul>
+
+  <footer class="fgt-copy__footer">
+    <button type="button" data-action="offerAll">{{localize "FGT.Copy.OfferAll"}}</button>
+    <span class="fgt-copy__count">{{localize "FGT.Copy.Offered" count=offeredCount}}</span>
+    <button type="button" data-action="send" {{#unless enough}}disabled{{/unless}}>
+      {{localize "FGT.Copy.Send"}}
+    </button>
+  </footer>
+</div>

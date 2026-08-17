@@ -61,6 +61,12 @@ function abilityCommon() {
         choices: ["physical", "unique", "classSkill", "rankEX"],
       }),
     }),
+    // A GM/player setup dialog this ability opens instead of targeting. The
+    // choices are a closed set, because an unknown value would render a button
+    // that opens nothing.
+    opensDialog: new fields.StringField({
+      required: false, nullable: true, initial: null, blank: false, choices: ["copy"],
+    }),
     // Set on a COPY: the content id of what it copies. A copy carries no phases
     // of its own, so a later fix to the source reaches every copy of it.
     copiedFrom: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),

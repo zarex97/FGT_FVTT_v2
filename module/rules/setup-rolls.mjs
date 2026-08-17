@@ -78,21 +78,53 @@ export function servantSetupPlan(sheet) {
  * @param {object} sheet
  * @returns {{lines: object[], kind: "master"}}
  */
-export function masterSetupPlan(sheet) {
-  const rank = Rank.parseOrNull(sheet?.rank ?? null);
-  const high = rank !== null && ["A", "B"].includes(rank.grade);
-
+export function masterSetupPlan(sheet, { mode = "essences" } = {}) {
   return {
     kind: "master",
+    mode,
     lines: [
       // The sign is coin-flipped, so the roll can go either way around 250.
       { id: "maxHealth", label: "Max Health", base: 250, roll: { formula: "2d100", signCoin: true } },
       { id: "maxAgility", label: "Max Agility", base: 4, roll: { formula: "1d8" } },
       { id: "maxLuck", label: "Max Luck", base: 8, roll: { formula: "1d12" } },
-      { id: "baseAttackMag", label: "Base Attack (MAG)", base: high ? 125 : 100, roll: null },
+      baseAttackLine(sheet, mode),
       { id: "commandSpells", label: "Command Spells", base: 3, roll: null },
     ],
   };
+}
+
+/**
+ * The Base Attack (MAG) line, which is where a Master's rank actually shows up.
+ *
+ * §14.9's three modes, which the `masterMode` setting selects:
+ *
+ * - `essences` — the rank comes from the Master Essence on the sheet.
+ * - `coinFlip` — *"you can still determine High Rank or Low Rank Masters by
+ *   Flipping a Coin for each Master; Heads=High Rank, Tails=Low Rank."* The
+ *   coin picks the **value**, because the rank exists here only to select it.
+ * - `rankless` — *"If not, all Masters have Base Attack (MAG)=100."*
+ *
+ * @param {object} sheet
+ * @param {string} mode
+ * @returns {object}
+ */
+function baseAttackLine(sheet, mode) {
+  const label = "Base Attack (MAG)";
+
+  if (mode === "rankless") {
+    return { id: "baseAttackMag", label, base: 100, roll: null, note: "no ranks in play" };
+  }
+  if (mode === "coinFlip") {
+    return {
+      id: "baseAttackMag", label, base: 0,
+      roll: { formula: "1d2", map: [125, 100] },
+      note: "heads = High Rank",
+    };
+  }
+
+  const rank = Rank.parseOrNull(sheet?.rank ?? null);
+  const high = rank !== null && ["A", "B"].includes(rank.grade);
+  return { id: "baseAttackMag", label, base: high ? 125 : 100, roll: null };
 }
 
 /**
@@ -113,7 +145,10 @@ export function resolveSetupPlan(plan, rolls, signs = {}) {
 
     const mapped = line.roll.map ? line.roll.map[raw - 1] ?? raw : raw;
     const signed = line.roll.signCoin && signs[line.id] ? -mapped : mapped;
-    return { ...line, rolled: mapped, value: line.base + signed };
+    // `rolled` is what the die showed after mapping; `applied` is what it
+    // contributed, sign included. A display that used `rolled` for both would
+    // render a tails 2d100 as "250 + 87 = 163".
+    return { ...line, rolled: mapped, applied: signed, value: line.base + signed };
   });
 }
 

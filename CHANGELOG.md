@@ -36,6 +36,35 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **The summon dialog (§37.6)**, `module/apps/summon-dialog.mjs`. Pick a Servant, a Master, the
+  war Region and the Master's parameter grants; roll; see every line with its arithmetic and a
+  per-line re-roll; then commit. Nothing is written until the last step, which is why the engine
+  operation is `prepareSummon` → `rerollSummonLine` → `commitSummon` rather than one call.
+  Changing a dropdown does **not** re-roll — grants apply after the rolls, so nothing about a
+  Master or a Region can change a die already thrown. Re-rolls lock once the match starts, as a
+  disabled button with its reason on screen. Reached from a **Summon** button on the Actors
+  sidebar and a context entry in the Servant compendium; a bare compendium drop onto the canvas is
+  refused and redirected here, because the actor it makes carries the template's numbers rather
+  than this Servant's rolled ones and nothing on the sheet would say so.
+- **The Wisdom of Dún Scáith setup flow (§36.4)**, as **two** dialogs, because the section gives
+  its two decisions to two different people: the GM curates what to offer
+  (`module/apps/copy-dialog.mjs`) and Scáthach's player picks two
+  (`module/apps/choice-dialog.mjs`). The rank band is a toggle rather than a filter, and
+  `canCopy` is re-checked when the player answers — the offer and the pick are separated by a
+  human. An ability reaches its dialog through `opensDialog` on its own document, so the next one
+  needs content and not code.
+- **`FGTSocket.ask(userId, spec)`** — a question routed to **one named user**, awaiting their
+  answer, alongside `request` (always the GM) and `broadcast` (nobody in particular). Answers are
+  rendered by `module/apps/prompt.mjs`, a kind table rather than a dialog class per question.
+- **A Master's setup rolls**, from a button on its own sheet: five lines and no choices do not
+  warrant an application of their own.
+- **`test/unit/i18n.test.mjs`** holds every literal `localize` key in the templates and modules
+  against `lang/en.json`, and **`test/unit/module-graph.test.mjs`** resolves every relative
+  import, every `PARTS` template and every `system.json` entry point. Neither defect throws
+  anywhere a test could see it: a missing key renders as the key, and a mistyped import path is a
+  black screen with one 404 in a console nobody has open — which is how `v0.2.10` shipped.
+
+
 - **The roll log (§14.8)**, `module/rules/roll-log.mjs`. Every Evade and Luck Check files a
   record carrying its formula, the raw die, each modifier with its source and stage, and the
   total; records accumulate on the Combat Process state and render on the attack card, filtered
@@ -150,6 +179,16 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **`io.prompt` emitted an operation that did not exist.** It has asked for `"prompt"` since
+  intents were written and `OPERATIONS` has never had that key, so every prevention Luck Check
+  threw `UNKNOWN_OP` where a player should have been asked a question. The operation exists now,
+  and forwards to the named user through `ask`.
+- **The `masterMode` setting was registered and read by nothing**, so every Master was ranked by
+  essence whatever the world was configured for. §14.9's other two modes work: `coinFlip` puts
+  the flip on the Base Attack line itself, and `rankless` gives every Master 100.
+- **A resolved setup line reported the die where it meant the contribution**, so a tails `2d100`
+  of 87 would have displayed as "250 + 87" for a result of 163. `rolled` and `applied` are now
+  separate.
 - **Spending a Command Spell threw, and so did every platform write.** Four call sites passed
   `applyIntents` its io adapter *positionally* with a third `{ reason }` argument no signature
   accepts, so `canWrite` came out `undefined` and the first non-log intent died on

@@ -77,6 +77,25 @@ describe("masterSetupPlan", () => {
     expect(lineOf(masterSetupPlan({ rank: "C" }), "baseAttackMag").base).toBe(100);
   });
 
+  it("flips a coin for the rank when essences are not in play", () => {
+    // "Heads=High Rank, Tails=Low Rank." The coin picks the VALUE, because the
+    // rank exists at this point only to select it.
+    expect(lineOf(masterSetupPlan({ rank: "A" }, { mode: "coinFlip" }), "baseAttackMag"))
+      .toMatchObject({ base: 0, roll: { formula: "1d2", map: [125, 100] } });
+  });
+
+  it("gives every Master 100 when ranks are not used at all", () => {
+    // "If not, all Masters have Base Attack (MAG)=100."
+    expect(lineOf(masterSetupPlan({ rank: "A" }, { mode: "rankless" }), "baseAttackMag"))
+      .toMatchObject({ base: 100, roll: null });
+  });
+
+  it("resolves a coin-flipped rank to one of the two values, not to a die face", () => {
+    const out = resolveSetupPlan(masterSetupPlan({}, { mode: "coinFlip" }), { baseAttackMag: 1 });
+
+    expect(out.find((l) => l.id === "baseAttackMag").value).toBe(125);
+  });
+
   it("starts every Master with three Command Spells", () => {
     expect(lineOf(masterSetupPlan({ rank: "A" }), "commandSpells")).toMatchObject({ base: 3, roll: null });
   });
@@ -108,6 +127,15 @@ describe("resolveSetupPlan", () => {
     const out = resolveSetupPlan(masterSetupPlan({ rank: "A" }), { maxHealth: 87 }, { maxHealth: false });
 
     expect(out.find((l) => l.id === "maxHealth").value).toBe(337);
+  });
+
+  it("reports what the roll CONTRIBUTED, sign included", () => {
+    // A display that used the unsigned die would render 250 − 87 = 163 as
+    // "250 + 87", which is the kind of thing a GM re-rolls over.
+    const out = resolveSetupPlan(masterSetupPlan({ rank: "A" }), { maxHealth: 87 }, { maxHealth: true });
+    const line = out.find((l) => l.id === "maxHealth");
+
+    expect(line).toMatchObject({ rolled: 87, applied: -87, value: 163 });
   });
 
   it("resolves an unrolled line to its base and says so", () => {

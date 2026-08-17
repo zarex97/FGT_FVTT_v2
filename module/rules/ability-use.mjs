@@ -40,6 +40,18 @@ export function classifyAbility(item) {
   const sys = item?.system ?? {};
   const isNP = item?.type === "noblePhantasm" || sys.isNP === true;
 
+  // An ability whose whole use is a setup decision: Wisdom of Dún Scáith picks
+  // two abilities to copy (§15.7), and there is nothing to target and nothing
+  // to roll. Checked FIRST, because such an ability may also carry phases --
+  // the copies it grants -- and would otherwise classify as active and open a
+  // targeting session for a question.
+  if (sys.opensDialog) {
+    return {
+      kind: "dialog", isAttack: false, clickable: true, toggles: false,
+      action: "openDialog", dialog: sys.opensDialog,
+    };
+  }
+
   // A mode is authored as one, and says so. It is neither an attack nor a
   // one-shot use: Mad Enhancement is switched on and stays on.
   if (sys.isMode === true) {

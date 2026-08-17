@@ -88,6 +88,10 @@ export function combatantCommon() {
       mag: new fields.NumberField({ required: true, integer: true, initial: 0 }),
       luc: new fields.NumberField({ required: true, integer: true, initial: 0 }),
     }),
+    // The ◈ this Unit's setup rolls were made on (§37.6). The rolls lock once
+    // the match starts, and this is what lets anyone check afterwards that they
+    // were made before it did.
+    summonedAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     normalAttack: new fields.SchemaField({
       mode: new fields.StringField({ initial: "fixed", choices: ["fixed", "combined", "rangeBanded"] }),
       component: new fields.StringField({ initial: "str", choices: ["str", "mag"] }),
