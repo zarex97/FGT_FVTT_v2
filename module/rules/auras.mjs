@@ -25,28 +25,56 @@
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
+import { candidatesAt } from "./aura-index.mjs";
 
 /**
  * Every aura contribution a unit receives, from every source on the board.
  *
+ * An optional `index` (§23.9) narrows which sources are worth asking about, by
+ * position. It changes **nothing** about the answer: the relation test and the
+ * stacking below are the same either way, and `test/unit/aura-index.test.mjs`
+ * holds the two paths against each other. The index is spatial and this
+ * function is semantic — one question, one implementation.
+ *
  * @param {object} unit the **recipient**
  * @param {object} board
+ * @param {object} [index] from `rules/aura-index.mjs`
  * @returns {object[]} modifiers, ready for the pipeline
  */
-export function collectAuras(unit, board) {
+export function collectAuras(unit, board, index = null) {
   /** @type {object[]} */
   const found = [];
 
-  for (const source of board.units ?? []) {
-    for (const a of source.auras ?? []) {
-      const relations = a.relations ?? ["ally", "self"];
-      if (!relations.includes(relationOf(source, unit, board))) continue;
-      if (distanceBetween(source, unit) > (a.radius ?? 0)) continue;
-      found.push(bind(a, source));
-    }
+  for (const { source, aura } of candidateAuras(unit, board, index)) {
+    const relations = aura.relations ?? ["ally", "self"];
+    if (!relations.includes(relationOf(source, unit, board))) continue;
+    if (distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
+    found.push(bind(aura, source));
   }
 
   return resolveStacking(found);
+}
+
+/**
+ * The (source, aura) pairs worth testing for this recipient.
+ *
+ * With an index, the bucket lookup; without one, every aura on the board. The
+ * distance test below runs either way — the index narrows the candidates and
+ * does not decide them, so a stale index can never *add* an aura that the
+ * geometry does not support.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @param {object|null} index
+ * @returns {Array<{source: object, aura: object}>}
+ */
+function candidateAuras(unit, board, index) {
+  if (index && unit?.panel) {
+    return candidatesAt(index, unit.panel).map((c) => ({ source: c.unit, aura: c.aura }));
+  }
+  return (board.units ?? []).flatMap(
+    (source) => (source.auras ?? []).map((aura) => ({ source, aura })),
+  );
 }
 
 /**

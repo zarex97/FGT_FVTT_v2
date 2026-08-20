@@ -9,6 +9,9 @@
 
 import { classifyAbility } from "../rules/ability-use.mjs";
 import * as board from "../engine/board.mjs";
+import { currentBoard } from "../engine/board.mjs";
+import { poolsOf, isUnbound } from "../rules/cs-namespacing.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2, ItemSheetV2 } = foundry.applications.sheets;
@@ -89,6 +92,21 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * @returns {Promise<void>}
    */
   static async #declare(actor, ability) {
+    return FGTActorSheet.declareAttack(actor, ability);
+  }
+
+  /**
+   * The declaration path, reachable from outside the sheet.
+   *
+   * The token HUD (§29.5) offers the same buttons, and a second implementation
+   * of "declare an attack" would be a second place for it to be wrong -- with
+   * the copy being the one nobody updates.
+   *
+   * @param {object} actor
+   * @param {object|null} ability
+   * @returns {Promise<void>}
+   */
+  static async declareAttack(actor, ability) {
 
     const placement = await pickPlacement(actor, ability);
     // `null` is a cancellation, which is the most common outcome of opening a
@@ -156,14 +174,40 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * @param {PointerEvent} _event
    * @param {HTMLElement} target
    */
-  static #onEditAbility(_event, target) {
+  static async #onEditAbility(_event, target) {
     const id = target.closest("[data-item-id]")?.dataset.itemId;
-    this.document.items.get(id)?.sheet?.render(true);
+    const item = this.document.items.get(id);
+    if (!item) return;
+
+    // §29.6's editor for a GM, the plain sheet for everyone else: the editor
+    // writes rule elements, and a player who reorders a phase has changed the
+    // ability for the whole table.
+    if (game.user.isGM) {
+      const { AbilityEditor } = await import("./ability-editor.mjs");
+      AbilityEditor.open(item);
+      return;
+    }
+    item.sheet?.render(true);
   }
 
   static PARTS = {
     body: { template: "systems/fgt/templates/actor/unit.hbs", scrollable: [""] },
   };
+
+  /**
+   * A Master gets an extra part (§29.3), because it has three things a Servant
+   * sheet does not: the per-Servant Command Spell tracker, its contracted
+   * Servants with their ZON status, and its Essence.
+   *
+   * @inheritdoc
+   */
+  _configureRenderParts(options) {
+    const parts = super._configureRenderParts(options);
+    if (this.document.type === "master") {
+      parts.master = { template: "systems/fgt/templates/actor/master.hbs" };
+    }
+    return parts;
+  }
 
   /** @inheritdoc */
   async _prepareContext(options) {
@@ -187,6 +231,10 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // A GM may re-roll before the match starts; afterwards the rolls lock.
       canRollSetup: this.document.type === "master" && game.user.isGM,
       setupLocked: Boolean(game.combat?.started),
+      // §29.3's three Master-only panels. Computed here rather than in the
+      // template because every one of them is derived -- the Unbound warning
+      // most of all, which no field on the sheet stores.
+      ...(this.document.type === "master" ? masterContext(this.document) : {}),
     };
   }
 }
@@ -208,6 +256,71 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     const context = await super._prepareContext(options);
     return { ...context, system: this.document.system, isEditable: this.isEditable };
   }
+}
+
+/**
+ * The Master-only half of the sheet (§29.3).
+ *
+ * Every figure here is derived. The Command Spell tracker shows `own` and the
+ * per-Servant grants apart because §16.9 makes them different resources, and
+ * the **Unbound** warning falls out of the total being zero rather than being
+ * stored -- a stored flag would need updating from spending, granting,
+ * inheriting and the Master dying, and the one that got missed would leave a
+ * Servant permanently Unbound with a full pool.
+ *
+ * @param {object} master an `FGTActor`
+ * @returns {object}
+ */
+function masterContext(master) {
+  const board = currentBoard();
+  const self = board.units.find((u) => u.id === master.id) ?? null;
+
+  return {
+    csPools: poolsOf(master.system).map((pool) => ({
+      ...pool,
+      name: game.actors.get(pool.servantId)?.name ?? pool.servantId,
+      // Pips, so "2 of 3" is legible at a glance rather than read as a number.
+      // Built here rather than in the template: Foundry registers no `range`
+      // helper, and a template that invents one throws at render time.
+      pips: "●".repeat(Math.min(pool.total, 9)) + "○".repeat(Math.max(0, 3 - pool.total)),
+    })),
+    contracted: [...(master.system.servantIds ?? [])].map((id) => describeServant(id, master, board, self)),
+    // "a warning that it is lost on death" -- the Essence is the one thing on
+    // this sheet whose loss is permanent.
+    essences: [...(master.system.essences ?? [])],
+    // §16.7: at 25 Health or less a Master cannot order more than one Servant
+    // to Act, and the tax has already been charged by the time anyone looks.
+    taxWarning: (master.system.health?.value ?? 0) <= 25,
+    multiServantTax: master.system.turnState?.servantsActed ?? 0,
+  };
+}
+
+/**
+ * One contracted Servant, as §29.3 shows it: distance, ZON, and what being
+ * outside costs.
+ *
+ * @param {string} id
+ * @param {object} master
+ * @param {object} board
+ * @param {object|null} self
+ * @returns {object}
+ */
+function describeServant(id, master, board, self) {
+  const actor = game.actors.get(id);
+  const unit = board.units.find((u) => u.id === id) ?? null;
+  const distance = unit?.panel && self?.panel ? chebyshev(unit.panel, self.panel) : null;
+
+  return {
+    id,
+    name: actor?.name ?? id,
+    distance,
+    inZon: unit ? !unit.outsideZon : null,
+    // Named rather than implied: a player who sees "outside ZON" and not what it
+    // costs has to remember the rule, and remembering it is the mistake.
+    penalty: unit?.outsideZon ? game.i18n.localize("FGT.Master.ZonPenalty") : null,
+    unbound: isUnbound(master.system, id),
+    health: actor?.system?.health ?? null,
+  };
 }
 
 /**

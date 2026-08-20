@@ -88,6 +88,21 @@
     </section>
   {{/if}}
 
+  {{#if countdown}}
+    {{!-- §27.5. The default on expiry is always the option that spends nothing,
+          so a disconnected player never loses Luck or a Command Spell. --}}
+    <div class="fgt-card__waiting {{#if countdown.expired}}fgt-card__waiting--expired{{/if}}">
+      {{#if countdown.expired}}
+        {{localize "FGT.Await.TimedOut"}}
+      {{else}}
+        {{localize "FGT.Await.Waiting" name=prompt.label time=countdown.label}}
+      {{/if}}
+      {{#if countdown.canDecideForThem}}
+        <button type="button" data-fgt-decide>{{localize "FGT.Await.DecideForThem"}}</button>
+      {{/if}}
+    </div>
+  {{/if}}
+
   {{#if rolls.length}}
     <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-rolls">
       Rolls ({{rolls.length}})

@@ -54,6 +54,10 @@ export function registerSettings() {
   });
   s("activeSkillBudget", { name: "FGT.Settings.ActiveSkillBudget", type: String, default: "move" });
   s("interruptTimeout", { name: "FGT.Settings.InterruptTimeout", type: Number, default: 45 });
+  // §27.5: reactions get longer than optional contests, because a reaction is
+  // the decision a player most needs to think about and the one whose default
+  // (take the hit) costs them the most.
+  s("reactionTimeout", { name: "FGT.Settings.ReactionTimeout", type: Number, default: 60 });
   s("devMode", { name: "FGT.Settings.DevMode", type: Boolean, default: false });
 
   // The faction roster. Edited through the menu below rather than a text box,

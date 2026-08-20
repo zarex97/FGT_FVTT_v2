@@ -13,6 +13,8 @@
 import { FGTSocket } from "../net/socket.mjs";
 import { registerDefeat } from "../rules/environment.mjs";
 import { onMasterDefeated } from "../rules/relationships.mjs";
+import { record } from "./game-log.mjs";
+import { spendPlan } from "../rules/cs-namespacing.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -148,11 +150,24 @@ export function worldIO() {
      * @param {string} unitId a Master
      * @param {number} count
      */
-    async spendCommandSpells(unitId, count) {
+    async spendCommandSpells(unitId, count, _command, servantId = null) {
       const actor = resolve(unitId);
       if (!actor) return;
-      const current = actor.system.commandSpells ?? 0;
-      await actor.update({ "system.commandSpells": Math.max(0, current - count) });
+
+      // §16.9: draw from the per-Servant pool first. They are the restricted
+      // ones, so keeping the flexible pool back is strictly better for the
+      // player -- and spending own spells while a namespaced pool sits full is
+      // a loss nobody would notice until the pool expired with the contract.
+      const plan = spendPlan(actor.system, servantId, count);
+      if (!plan.ok) return;
+
+      const update = { "system.commandSpells": Math.max(0, (actor.system.commandSpells ?? 0) - plan.fromOwn) };
+      if (plan.fromPerServant > 0 && servantId) {
+        const pools = { ...(actor.system.commandSpellsPerServant ?? {}) };
+        pools[servantId] = Math.max(0, (pools[servantId] ?? 0) - plan.fromPerServant);
+        update["system.commandSpellsPerServant"] = pools;
+      }
+      await actor.update(update);
     },
 
     /**
@@ -253,8 +268,21 @@ export function worldIO() {
     async log(entries) {
       const combat = game.combat;
       if (!combat) return;
+
+      // Two records, deliberately. The flag is the raw intent trail, keyed by
+      // whatever `kind` the producer used, and it is what the damage explainer
+      // and the process cards read back. `system.log` is §30.8's structured
+      // record: a closed vocabulary, sequence-numbered, bounded and exportable.
+      // Collapsing them would mean either constraining every producer to ten
+      // kinds or letting the exportable log accept anything.
       const existing = combat.getFlag("fgt", "log") ?? [];
       await combat.setFlag("fgt", "log", [...existing, ...entries]);
+
+      for (const e of entries) {
+        const classified = classifyLogEntry(e);
+        if (!classified) continue;
+        await record(classified, combat);
+      }
     },
 
     /**
@@ -394,4 +422,51 @@ async function freeContractedServants(unitId) {
       } else if (d.kind === "lockModes") await actor.update({ "system.modesLocked": true });
     }
   }
+}
+
+/**
+ * Which raw intent-log entries earn a place in the structured record.
+ *
+ * A deliberate narrowing. The intent trail carries two dozen kinds, most of
+ * them mechanism -- "terrainRollMissing", "commandSpellWindowClosed" -- and a
+ * record that kept all of them would be a transcript rather than a history.
+ * §30.8's ten kinds are the events a player or a maintainer goes looking for.
+ *
+ * An unmapped kind returns `null` and stays in the intent trail only. That is
+ * the safe direction: it is still recorded, just not promoted.
+ *
+ * @param {object} e
+ * @returns {object|null}
+ */
+function classifyLogEntry(e) {
+  const map = {
+    damage: "attack", counter: "attack", normal: "attack", injury: "attack",
+    cost: "ability", revive: "ability", event: "effect", poisonStage: "effect",
+    commandSpell: "commandSpell", multiServantTax: "commandSpell",
+    surviveKill: "defeat", disappear: "defeat",
+    boarding: "movement", platformStep: "movement",
+    roundStart: "scheduler", roundEnd: "scheduler", resetTurnState: "scheduler",
+  };
+  const kind = map[e?.kind];
+  if (!kind) return null;
+
+  return {
+    kind,
+    actorIds: [e.unitId, e.attackerId, e.defenderId, e.masterId, e.servantId].filter(Boolean),
+    summary: e.text ?? summaryOf(e),
+    detail: e,
+    rolls: e.rolls ?? [],
+    messageId: e.messageId ?? null,
+  };
+}
+
+/**
+ * A one-line summary for an entry that did not carry one.
+ * @param {object} e
+ * @returns {string}
+ */
+function summaryOf(e) {
+  const who = e.unitId ? game.actors.get(e.unitId)?.name ?? e.unitId : null;
+  const amount = e.amount !== undefined ? ` (${e.amount})` : "";
+  return who ? `${e.kind}: ${who}${amount}` : `${e.kind}${amount}`;
 }

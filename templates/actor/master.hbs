@@ -1,0 +1,69 @@
+{{!-- The Master-only panels (docs/29-user-interface.md §29.3). --}}
+<section class="fgt-master">
+
+  <h3>{{localize "FGT.Master.CommandSpells"}}</h3>
+  {{!-- §16.9's per-Servant namespacing, made visible. `own` works on any
+        contracted Servant; a grant works only on the one it names. --}}
+  <table class="fgt-master__cs">
+    <tbody>
+      {{#each csPools as |p|}}
+        <tr class="{{#if p.unbound}}fgt-master__cs--unbound{{/if}}">
+          <th scope="row">{{p.name}}</th>
+          <td class="fgt-master__pips">{{p.pips}}</td>
+          <td class="fgt-master__cscount">
+            {{p.total}}
+            {{#if p.granted}}
+              <span class="fgt-master__granted">{{localize "FGT.Master.Granted" n=p.granted}}</span>
+            {{/if}}
+          </td>
+          <td>
+            {{#if p.unbound}}
+              <strong class="fgt-master__unbound">{{localize "FGT.Master.Unbound"}}</strong>
+            {{/if}}
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <h3>{{localize "FGT.Master.Contracted"}}</h3>
+  {{#unless contracted.length}}
+    <p class="fgt-master__none">{{localize "FGT.Master.NoServants"}}</p>
+  {{/unless}}
+  <ul class="fgt-master__servants">
+    {{#each contracted as |s|}}
+      <li class="fgt-master__servant" data-actor-id="{{s.id}}">
+        <span class="fgt-master__name">{{s.name}}</span>
+        {{#if s.distance}}
+          <span class="fgt-master__distance">{{localize "FGT.Master.Panels" n=s.distance}}</span>
+        {{/if}}
+        {{#if s.inZon}}
+          <span class="fgt-master__zon fgt-master__zon--in">{{localize "FGT.Master.InZon"}}</span>
+        {{else}}
+          <span class="fgt-master__zon fgt-master__zon--out">{{localize "FGT.Master.OutsideZon"}}</span>
+          {{#if s.penalty}}<span class="fgt-master__penalty">{{s.penalty}}</span>{{/if}}
+        {{/if}}
+        {{#if s.unbound}}
+          <span class="fgt-master__unbound">{{localize "FGT.Master.Unbound"}}</span>
+        {{/if}}
+      </li>
+    {{/each}}
+  </ul>
+
+  {{#if taxWarning}}
+    {{!-- §16.7. Shown on the sheet because the cost is charged at turn end,
+          by which point the decision that caused it cannot be taken back. --}}
+    <p class="fgt-master__warning">{{localize "FGT.Master.TaxWarning"}}</p>
+  {{/if}}
+
+  <h3>{{localize "FGT.Master.Essence"}}</h3>
+  {{#unless essences.length}}
+    <p class="fgt-master__none">{{localize "FGT.Master.NoEssence"}}</p>
+  {{/unless}}
+  <ul class="fgt-master__essences">
+    {{#each essences as |e|}}<li>{{e}}</li>{{/each}}
+  </ul>
+  {{#if essences.length}}
+    <p class="fgt-master__warning">{{localize "FGT.Master.EssenceLost"}}</p>
+  {{/if}}
+</section>

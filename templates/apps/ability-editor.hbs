@@ -1,0 +1,103 @@
+{{!-- The ability editor (docs/29-user-interface.md §29.6). --}}
+<div class="fgt-editor">
+
+  <div class="fgt-editor__body">
+    <section class="fgt-editor__basics">
+      <label>
+        <span>{{localize "FGT.Editor.Rank"}}</span>
+        <input type="text" name="rank" value="{{draft.rank}}">
+      </label>
+      <label>
+        <span>{{localize "FGT.Editor.Duration"}}</span>
+        <input type="text" name="duration" value="{{draft.duration}}">
+        {{#if durationHint}}
+          {{!-- Tick arithmetic is what authors get wrong, and the notation
+                gives no hint, so the field explains itself as you type. --}}
+          <span class="fgt-editor__hint">{{durationHint}}</span>
+        {{/if}}
+      </label>
+    </section>
+
+    <details class="fgt-editor__advanced">
+      <summary>{{localize "FGT.Editor.Advanced"}}</summary>
+      <p class="fgt-editor__hint">{{localize "FGT.Editor.AdvancedHint"}}</p>
+      <label><input type="checkbox" name="isNP" {{checked advanced.isNP}}>
+        {{localize "FGT.Editor.IsNP"}}</label>
+      <label><input type="checkbox" name="categorizedAsNP" {{checked advanced.categorizedAsNP}}>
+        {{localize "FGT.Editor.CategorizedAsNP"}}</label>
+      <label><input type="checkbox" name="countsForNPSeal" {{checked advanced.countsForNPSeal}}>
+        {{localize "FGT.Editor.CountsForNPSeal"}}</label>
+    </details>
+
+    {{!-- The piece §29.6 says matters most: shapes as diagrams, not names. --}}
+    <section class="fgt-editor__targeting">
+      <h3>{{localize "FGT.Editor.Anchor"}}</h3>
+      <div class="fgt-editor__picker">
+        {{#each anchors as |a|}}
+          <button type="button" data-action="pickAnchor" data-anchor-id="{{a.id}}"
+                  class="fgt-editor__option {{#if a.selected}}fgt-editor__option--on{{/if}}"
+                  data-tooltip="{{localize a.hint}}">
+            <pre class="fgt-editor__schematic">{{#each a.schematic as |row|}}{{row}}
+{{/each}}</pre>
+            <span>{{localize a.label}}</span>
+          </button>
+        {{/each}}
+      </div>
+
+      <h3>{{localize "FGT.Editor.Shape"}}</h3>
+      <div class="fgt-editor__picker">
+        {{#each shapes as |s|}}
+          <button type="button" data-action="pickShape" data-shape-id="{{s.id}}"
+                  class="fgt-editor__option {{#if s.selected}}fgt-editor__option--on{{/if}}"
+                  data-tooltip="{{localize s.hint}}">
+            <pre class="fgt-editor__schematic">{{#each s.schematic as |row|}}{{row}}
+{{/each}}</pre>
+            <span>{{localize s.label}}</span>
+          </button>
+        {{/each}}
+      </div>
+    </section>
+
+    <section class="fgt-editor__phases">
+      <h3>{{localize "FGT.Editor.Phases"}}</h3>
+      <p class="fgt-editor__hint">{{localize "FGT.Editor.PhasesHint"}}</p>
+      <ol>
+        {{#each phases as |p|}}
+          <li data-index="{{p.index}}">
+            <input type="text" name="phases.{{p.index}}.kind" value="{{p.kind}}">
+            <button type="button" data-action="movePhase" data-direction="up"
+                    {{disabled p.isFirst}}>↑</button>
+            <button type="button" data-action="movePhase" data-direction="down"
+                    {{disabled p.isLast}}>↓</button>
+            <button type="button" data-action="removePhase">✕</button>
+          </li>
+        {{/each}}
+      </ol>
+      <button type="button" data-action="addPhase">{{localize "FGT.Editor.AddPhase"}}</button>
+    </section>
+  </div>
+
+  {{!-- Live validation, running the engine's own vocabularies. --}}
+  <section class="fgt-editor__validation">
+    {{#if valid}}
+      <p class="fgt-editor__ok">{{localize "FGT.Editor.NoProblems"}}</p>
+    {{else}}
+      <h4>{{localize "FGT.Editor.Problems"}}</h4>
+      <ul class="fgt-editor__problems">
+        {{#each problems as |p|}}<li>{{p}}</li>{{/each}}
+      </ul>
+    {{/if}}
+    {{#if warnings.length}}
+      <h4>{{localize "FGT.Editor.Warnings"}}</h4>
+      <ul class="fgt-editor__warnings">
+        {{#each warnings as |w|}}<li>{{w}}</li>{{/each}}
+      </ul>
+    {{/if}}
+  </section>
+
+  <footer class="fgt-editor__footer">
+    <button type="button" data-action="save" {{disabled (not valid)}}>
+      {{localize "FGT.Editor.Save"}}
+    </button>
+  </footer>
+</div>

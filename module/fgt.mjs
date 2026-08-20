@@ -30,9 +30,14 @@ import * as budget from "./engine/budget.mjs";
 import * as summon from "./engine/summon.mjs";
 import * as items from "./engine/items.mjs";
 import * as copy from "./engine/copy.mjs";
+import * as gameLog from "./engine/game-log.mjs";
+import * as control from "./rules/control.mjs";
+import * as cardVisibility from "./rules/card-visibility.mjs";
 import { SummonDialog } from "./apps/summon-dialog.mjs";
 import { CopyDialog } from "./apps/copy-dialog.mjs";
 import { ChoiceDialog } from "./apps/choice-dialog.mjs";
+import { LogViewer } from "./apps/log-viewer.mjs";
+import { AbilityEditor } from "./apps/ability-editor.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
@@ -40,6 +45,9 @@ import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-laye
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
+import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
+import { attachTokenHUD } from "./apps/hud/token-hud.mjs";
+import { attachAwaitTimeouts } from "./engine/await-timeout.mjs";
 
 Hooks.once("init", () => {
   console.log("FGT | Initialising Fate/Grail Tactics");
@@ -149,6 +157,15 @@ Hooks.once("ready", () => {
   // and it intercepts a bare compendium drop -- which would otherwise produce a
   // Servant with the template's numbers instead of its own rolled ones.
   attachSummonEntries();
+  // §23.9's invalidation table, driving the canvas aura index and the overlays,
+  // plus §25.10's round-boundary desync check.
+  attachInvalidation();
+  // §29.5: attack, move, the ability quick-bar, the facing dial and the budget
+  // dot, on the token itself.
+  attachTokenHUD();
+  // §27.5: a player who has closed their browser must not block the table, and
+  // the decision made for them must never spend anything.
+  attachAwaitTimeouts();
   fgt.api = buildPublicAPI();
   console.log(`FGT | Ready — ${game.system.version}`);
 });
@@ -175,7 +192,8 @@ function buildPublicAPI() {
     // Exposed because both are GM workflows a macro drives -- a summon dialog
     // is content, not engine.
     summon, items, copy,
-    dialogs: { SummonDialog, CopyDialog, ChoiceDialog },
+    gameLog, control, cardVisibility,
+    dialogs: { SummonDialog, CopyDialog, ChoiceDialog, LogViewer, AbilityEditor },
     effects: EffectRegistry,
     commandSpells: CommandSpellRegistry,
     collectContributions,

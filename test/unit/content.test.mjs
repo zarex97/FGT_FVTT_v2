@@ -295,3 +295,48 @@ describe("copyable (§15.7)", () => {
       .toMatch(/a copy carries no phases of its own/);
   });
 });
+
+describe("priority overrides (§24.6)", () => {
+  const withPriority = (over = {}) => ok({
+    rules: [{ key: "StatDelta", priority: 45, ...over }],
+  });
+
+  it("warns about a priority override, rather than failing the build", () => {
+    // "Content may override with an explicit priority, but doing so requires an
+    // @intentional marker and the validator warns." A warning, because it is
+    // legitimate -- fewer than five elements in the reference set need it --
+    // and an error would make a supported feature unusable.
+    const out = validateAll([file(withPriority({ "@intentional": "Suppress must see the clamp" }))]);
+
+    expect(out.problems).toEqual([]);
+    expect(out.warnings.join(" ")).toMatch(/priority/i);
+  });
+
+  it("ERRORS on a priority override with no @intentional marker", () => {
+    // An unmarked override is indistinguishable from a typo, and it silently
+    // reorders the element against every other one in its band.
+    expect(errorsFor([file(withPriority())])[0]).toMatch(/@intentional/);
+  });
+
+  it("errors on an @intentional marker that explains nothing", () => {
+    // The marker exists to make the author state WHY. `true` states nothing,
+    // and a reviewer reading it a year later learns nothing either.
+    expect(errorsFor([file(withPriority({ "@intentional": true }))])[0]).toMatch(/@intentional/);
+    expect(errorsFor([file(withPriority({ "@intentional": "" }))])[0]).toMatch(/@intentional/);
+  });
+
+  it("says nothing about an element with no priority", () => {
+    const out = validateAll([file(ok({ rules: [{ key: "StatDelta" }] }))]);
+
+    expect(out.problems).toEqual([]);
+    expect(out.warnings.filter((w) => /priority/i.test(w))).toEqual([]);
+  });
+
+  it("names the band the override lands in, so the warning is actionable", () => {
+    // "priority 45" means nothing; "45, between Aura consumers (35) and
+    // Multiplicative (40)" tells the author what they are stepping between.
+    const out = validateAll([file(withPriority({ "@intentional": "because" }))]);
+
+    expect(out.warnings.join(" ")).toMatch(/multiplicative|40/i);
+  });
+});

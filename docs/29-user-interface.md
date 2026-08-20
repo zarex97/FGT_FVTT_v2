@@ -143,6 +143,17 @@ will otherwise get wrong: `20 × 2^(3−1) = 80` is not obvious from "Stage 3".
 
 ---
 
+> **Implemented.** `templates/actor/master.hbs`, added as an extra sheet part for actors of type
+> `master`. Every figure on it is **derived**, the Unbound warning most of all: a stored flag would
+> need updating from spending, granting, inheriting and the Master dying, and the one that got
+> missed would leave a Servant permanently Unbound with a full pool.
+>
+> Building it required implementing Ch. 16 §16.9, which was specified and absent — `commandSpells`
+> was a flat number that could not say *which* Servant its spells reached. It is now
+> `module/rules/cs-namespacing.mjs`, with `commandSpellsPerServant` added **beside** the existing
+> count rather than replacing it: the migration runner (Ch. 39) does not exist yet, and retyping a
+> live field would break every world that already has one.
+
 ## 29.3 The Master sheet
 
 Smaller, with three things a Servant sheet does not have:
@@ -178,6 +189,17 @@ most-looked-at element in the interface.
 
 ---
 
+> **Implemented.** `module/apps/hud/token-hud.mjs`, extending Foundry's HUD rather than replacing
+> it. Every control is a **shortcut to something that already exists** — the attack flow is
+> `FGTActorSheet.declareAttack`, reused rather than reimplemented, because a second path into a
+> resolution is a second place for it to be wrong and the copy is the one nobody updates.
+>
+> The quick-bar filters to **ready** abilities: a button that refuses when pressed teaches nothing
+> a missing button does not teach faster. The facing dial does **not** end the turn, as this
+> section requires. The budget dot reads turn state as **stale-by-reading** — a state stamped with
+> an earlier tick is spent whatever it says — which is why a missed reset hook cannot leave a
+> Servant looking exhausted for the rest of the match.
+
 ## 29.5 The token HUD
 
 Extends Foundry's token HUD with F/GT-specific controls:
@@ -196,6 +218,24 @@ The budget indicator on the token itself (a small dot in a corner) means a playe
 to remember which of their seven Servants has already acted.
 
 ---
+
+> **Implemented.** `module/apps/ability-editor.mjs`, opened from the ability list for a GM and
+> falling back to the plain sheet for everyone else — the editor writes rule elements, and a player
+> who reorders a phase has changed the ability for the whole table.
+>
+> The **targeting picker** is built as this section demands: `module/rules/targeting/vocabulary.mjs`
+> pairs each internal id with a plain-language label and a small schematic, so a GM picks a diagram
+> and the internal name is written, never read. A drift test holds the picker's shape list against
+> `expand()`'s `switch` **in both directions** — a shape offered but not implemented authors an
+> ability that targets nothing, and one implemented but not offered is unreachable.
+>
+> One deviation, stated plainly. This section asks for validation "running the same checks as the
+> content build", and the editor **does not import the build's validator**: `tools/lib/content.mjs`
+> already imports from `module/`, so importing it back would invert the layer graph. Instead every
+> live check consults the authority the engine uses at runtime — `handledKeys()` for rule elements,
+> `EffectRegistry` for effect ids, `parseTick` for durations, the shape vocabulary for targeting.
+> Those are the checks that decide whether an ability *does anything*. **CI remains authoritative**
+> for the rest, and Save is refused while any of them fails.
 
 ## 29.6 The ability editor
 

@@ -16,6 +16,7 @@ import { Rank } from "../../module/domain/rank.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
 import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES } from "../../module/domain/tables.mjs";
+import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -257,6 +258,31 @@ function validateDocument(doc, path, library, problems, warnings) {
     }
     if (el.key === "Script" && !el.script) {
       problems.push(`${path}: ${where} is a Script element with no "script" id`);
+    }
+
+    // §24.6: content may override the priority band, but must say why.
+    //
+    // An override reorders the element against every other one in its band, and
+    // an unmarked one is indistinguishable from a typo. So the marker is
+    // REQUIRED and must be prose -- `@intentional: true` states nothing, and a
+    // reviewer reading it a year later learns nothing either. The override
+    // itself is only a warning, because it is a supported feature that fewer
+    // than five elements in the reference set need.
+    if (el.priority !== undefined) {
+      const marker = el["@intentional"];
+      if (typeof marker !== "string" || marker.trim() === "") {
+        problems.push(
+          `${path}: ${where} overrides priority (${el.priority}) without an "@intentional" `
+          + "marker explaining why (§24.6)",
+        );
+      } else if (!Number.isFinite(el.priority)) {
+        problems.push(`${path}: ${where} has a non-numeric priority (${el.priority})`);
+      } else {
+        warnings.push(
+          `${path}: ${where} overrides priority to ${el.priority} `
+          + `(${describeBand(el.priority)}) — "${marker}"`,
+        );
+      }
     }
     // `table:` always names a rank table from Appendix B. The one element that
     // needs a *check* table says `forceTable:` instead -- the field names are
@@ -583,4 +609,26 @@ function compileEmbeddedAbility(ability, ownerContentId, ownerDocumentId) {
     system: itemSystem(ability),
     _key: `!actors.items!${ownerDocumentId}.${id}`,
   };
+}
+
+/**
+ * Where a priority sits among the named bands.
+ *
+ * A warning that says "priority 45" tells an author nothing. One that says it
+ * lands between Multiplicative (40) and Application chance (50) tells them what
+ * they are stepping between, which is the decision they were actually making.
+ *
+ * @param {number} priority
+ * @returns {string}
+ */
+function describeBand(priority) {
+  const bands = Object.entries(PRIORITY_BANDS).sort((a, b) => a[1] - b[1]);
+
+  const exact = bands.find(([, v]) => v === priority);
+  if (exact) return `the ${exact[0]} band`;
+
+  const below = [...bands].reverse().find(([, v]) => v < priority);
+  const above = bands.find(([, v]) => v > priority);
+  if (below && above) return `between ${below[0]} (${below[1]}) and ${above[0]} (${above[1]})`;
+  return below ? `after ${below[0]} (${below[1]})` : `before ${above[0]} (${above[1]})`;
 }

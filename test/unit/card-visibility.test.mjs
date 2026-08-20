@@ -1,0 +1,120 @@
+/**
+ * @file Per-viewer chat card content.
+ * @see docs/26-authority-and-sockets.md §26.7
+ */
+
+import { describe, it, expect } from "vitest";
+import { cardFor, redactSources, VISIBILITY_MODES } from "../../module/rules/card-visibility.mjs";
+
+const result = () => ({
+  summary: "Karna attacks Heracles",
+  attackerId: "karna",
+  defenderIds: ["heracles"],
+  attackerControllers: ["u-karna"],
+  defenderControllers: ["u-heracles"],
+  total: 2071,
+  breakdown: [
+    { source: "Karna: Mana Burst (Flames)", side: "attacker", value: 300 },
+    { source: "Heracles: God Hand", side: "defender", value: -200 },
+    { source: "attacked from the left", side: "neutral", value: 50 },
+  ],
+  effects: ["burn", "atkDown"],
+  rolls: [
+    { id: "r1", visibility: "public", actorId: "heracles" },
+    { id: "r2", visibility: "gm", actorId: "karna" },
+  ],
+});
+
+const viewer = (over = {}) => ({ id: "u-bystander", isGM: false, ...over });
+
+describe("cardFor", () => {
+  it("shows the summary to everyone", () => {
+    // "a bystander sees 'Karna attacked Heracles'".
+    expect(cardFor(result(), viewer()).header).toBe("Karna attacks Heracles");
+  });
+
+  it("hides the damage total from a bystander", () => {
+    expect(cardFor(result(), viewer()).damage).toBe(null);
+  });
+
+  it("shows the damage to the attacker, the defender and the GM", () => {
+    expect(cardFor(result(), viewer({ id: "u-karna" })).damage).toBe(2071);
+    expect(cardFor(result(), viewer({ id: "u-heracles" })).damage).toBe(2071);
+    expect(cardFor(result(), viewer({ isGM: true })).damage).toBe(2071);
+  });
+
+  it("gives the GM the whole breakdown", () => {
+    expect(cardFor(result(), viewer({ isGM: true })).breakdown).toHaveLength(3);
+  });
+
+  it("redacts the DEFENDER's sources from the attacker", () => {
+    // The attacker learns what they contributed, not what the defender has.
+    // Learning "God Hand: −200" tells them a skill they were not told about.
+    const rows = cardFor(result(), viewer({ id: "u-karna" })).breakdown;
+
+    expect(rows.some((r) => r.source.includes("Mana Burst"))).toBe(true);
+    expect(rows.some((r) => r.source.includes("God Hand"))).toBe(false);
+  });
+
+  it("redacts the ATTACKER's sources from the defender", () => {
+    const rows = cardFor(result(), viewer({ id: "u-heracles" })).breakdown;
+
+    expect(rows.some((r) => r.source.includes("God Hand"))).toBe(true);
+    expect(rows.some((r) => r.source.includes("Mana Burst"))).toBe(false);
+  });
+
+  it("keeps neutral rows for both sides", () => {
+    // A facing bonus is a fact about the board, which both players can see.
+    for (const id of ["u-karna", "u-heracles"]) {
+      expect(cardFor(result(), viewer({ id })).breakdown.some((r) => r.source.includes("from the left")))
+        .toBe(true);
+    }
+  });
+
+  it("gives a bystander no breakdown at all", () => {
+    expect(cardFor(result(), viewer()).breakdown).toBe(null);
+  });
+
+  it("names the effects for the defender and counts them for everyone else", () => {
+    // "a player learns the effects applied to their OWN units" — a bystander
+    // learns only that something was applied.
+    expect(cardFor(result(), viewer({ id: "u-heracles" })).effects).toEqual(["burn", "atkDown"]);
+    expect(cardFor(result(), viewer()).effects).toBe(2);
+  });
+
+  it("filters the rolls by their own visibility", () => {
+    // A GM-only Discover roll on a card everyone can read gives away the
+    // Assassin's panel without anyone rolling anything.
+    expect(cardFor(result(), viewer({ id: "u-karna" })).rolls.map((r) => r.id)).toEqual(["r1"]);
+    expect(cardFor(result(), viewer({ isGM: true })).rolls).toHaveLength(2);
+  });
+
+  it("treats a viewer who is both attacker and defender as both", () => {
+    // A Servant charmed into attacking its own faction, or an AoE that catches
+    // the attacker. Neither redaction should apply.
+    const r = { ...result(), defenderControllers: ["u-karna"] };
+
+    expect(cardFor(r, viewer({ id: "u-karna" })).breakdown).toHaveLength(3);
+  });
+});
+
+describe("redactSources", () => {
+  it("drops rows belonging to one side", () => {
+    expect(redactSources([{ side: "attacker" }, { side: "defender" }], "attacker"))
+      .toEqual([{ side: "defender" }]);
+  });
+
+  it("keeps a row with no side, because unattributed is not secret", () => {
+    // A row nobody claimed is a board fact; dropping it would silently change
+    // the arithmetic the viewer can check.
+    expect(redactSources([{ source: "x" }], "attacker")).toHaveLength(1);
+  });
+});
+
+describe("VISIBILITY_MODES", () => {
+  it("offers the two §26.7 documents", () => {
+    // "one message with client-side filtering (fast, simple)" is the default,
+    // and "separate whispered messages (slower, actually secure)" is strict.
+    expect([...VISIBILITY_MODES].sort()).toEqual(["filtered", "strict"]);
+  });
+});

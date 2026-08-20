@@ -15,6 +15,26 @@
 >
 > Still open: cache invalidation (§23.9).
 
+> **Implemented (§23.9).** The **spatial `AuraIndex`** is `module/rules/aura-index.mjs`, built
+> inside `snapshotBoard` and consulted by `collectAuras`. It does **spatial narrowing and nothing
+> else**: whether an aura's `relations` cover a recipient stays in `collectAuras`, which already
+> decided it correctly, because a second relation implementation would be two answers to one
+> question. `test/unit/aura-index.test.mjs` holds the indexed and linear paths against each other
+> over a 24-unit board at mixed radii.
+>
+> The **invalidation table** is `module/rules/invalidation.mjs`, applied by
+> `module/engine/invalidation-hooks.mjs`. One honest correction to this chapter: the table names a
+> *snapshot cache*, and this system does not have one — `snapshotBoard` runs per resolution, from
+> the documents, every time. That is deliberate, and it is why most of the staleness §23.9
+> anticipates cannot occur here: you cannot serve a stale snapshot you never stored. What the
+> table actually drives is the **canvas aura index**, the **overlays**, and §25.10's round-boundary
+> checksum. It is still worth having for those three, because the alternative — a hand-maintained
+> hook list per consumer, which is what the overlays had — goes stale silently in both directions.
+>
+> The row this chapter singles out is implemented as stated: **anything that changes `canAct`
+> invalidates Master protection for Masters within 2 panels**, and `CAN_ACT_INVALIDATORS` carries
+> the same twelve effect ids listed below.
+
 The document subclasses, the derived-data pipeline and its ordering, the snapshot cache, and
 the CRUD hooks that keep the world consistent.
 

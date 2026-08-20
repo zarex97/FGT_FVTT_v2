@@ -9,6 +9,8 @@
 
 import { explainDamage } from "../../rules/explain.mjs";
 import { visibleTo, renderBreakdown } from "../../rules/roll-log.mjs";
+import { cardFor } from "../../rules/card-visibility.mjs";
+import { countdownFor } from "../../engine/await-timeout.mjs";
 import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
 import { offerCommands } from "../../engine/command-spells.mjs";
 
@@ -44,6 +46,10 @@ export async function updateAttackCard(message, state) {
       state, attacker, ability,
       targets: state.defenderId ? [{ unitId: state.defenderId }] : [],
       result: message.getFlag("fgt", "result") ?? null,
+      // The countdown needs the message it lives on -- the deadline is stored
+      // there rather than computed per client, so two clients cannot disagree
+      // by the drift between their clocks.
+      message,
     }),
   );
   await message.update({ content });
@@ -53,7 +59,7 @@ export async function updateAttackCard(message, state) {
  * @param {object} args
  * @returns {Promise<object>}
  */
-async function cardContext({ state, attacker, ability, targets, result = null }) {
+async function cardContext({ state, attacker, ability, targets, result = null, message = null }) {
   const prompt = pendingPrompt(state);
   const defender = game.actors.get(state.defenderId);
 
@@ -88,12 +94,33 @@ async function cardContext({ state, attacker, ability, targets, result = null })
       detail: h.detail ?? null,
     })),
 
+    // §27.5: the GM's "waiting for X (0:23)" indicator, and the button that
+    // decides for an absent player. Shown from the start rather than after the
+    // clock runs out -- a GM who can see the table knows somebody has left
+    // before the timer does.
+    countdown: message ? countdownFor(message) : null,
+
     // Command Spells offerable right now, to the Masters who could spend them.
     // Computed per viewer, because "which commands can I use" is a different
     // question for every player at the table.
     commandSpells: offerableCommands(state),
 
     result: result ? explainDamage(result) : null,
+
+    // §26.7: what THIS viewer may see. A bystander gets the header and a count
+    // of effects; the attacker gets their own contributing modifiers; the
+    // defender gets what was applied to them; the GM gets everything.
+    //
+    // This is the part of closed-information play worth building. §26.6 assesses
+    // shadow actors honestly and defers them -- Foundry cannot hide part of a
+    // document, and the workaround doubles the document count for a failure mode
+    // that leaks the wrong thing. The card covers most of the benefit at a
+    // fraction of the cost, which §26.6 says outright.
+    visibility: result
+      ? cardFor(visibilityInput(state, result), {
+        id: game.user.id, isGM: game.user.isGM,
+      })
+      : null,
 
     // The roll log (§14.8), filtered per viewer -- a hidden Discover roll on a
     // card everyone can read would give away the Assassin's panel.
@@ -224,6 +251,16 @@ export function activateChatListeners() {
         }
       });
     }
+    // §27.5's "decide for them". GM-only, and it applies the SAME default the
+    // timeout would -- so a GM who is tired of waiting cannot accidentally make
+    // a costlier choice than the clock would have.
+    for (const button of html.querySelectorAll("[data-fgt-decide]")) {
+      button.addEventListener("click", async () => {
+        const { applyExpiry } = await import("../../engine/await-timeout.mjs");
+        await applyExpiry(message);
+      });
+    }
+
     for (const toggle of html.querySelectorAll("[data-fgt-toggle]")) {
       toggle.addEventListener("click", () => {
         const target = html.querySelector(`#${toggle.dataset.fgtToggle}`);
@@ -234,3 +271,65 @@ export function activateChatListeners() {
 }
 
 export { PROMPTS };
+
+/**
+ * The shape `cardFor` wants, from a Process state and its damage result.
+ *
+ * Attribution by **side** is what makes the redaction work: a row nobody
+ * claimed is a fact about the board -- a facing bonus, terrain -- and stays
+ * visible to both, because dropping it would leave a breakdown whose numbers do
+ * not add up.
+ *
+ * @param {object} state
+ * @param {object} result
+ * @returns {object}
+ */
+function visibilityInput(state, result) {
+  const attacker = game.actors.get(state.attackerId);
+  const defender = game.actors.get(state.defenderId);
+
+  return {
+    summary: `${attacker?.name ?? "?"} → ${defender?.name ?? "?"}`,
+    attackerId: state.attackerId,
+    defenderIds: [state.defenderId],
+    attackerControllers: ownersOf(attacker),
+    defenderControllers: ownersOf(defender),
+    controllersByActor: {
+      [state.attackerId]: ownersOf(attacker),
+      [state.defenderId]: ownersOf(defender),
+    },
+    total: result.total ?? 0,
+    breakdown: (result.rows ?? result.contributions ?? []).map((row) => ({
+      source: row.source ?? row.label ?? "",
+      value: row.value ?? row.amount ?? 0,
+      side: sideOf(row, state),
+    })),
+    effects: (state.appliedEffects ?? []).map((e) => e.defId ?? e),
+    rolls: state.rolls ?? [],
+  };
+}
+
+/**
+ * Which side a breakdown row belongs to.
+ *
+ * Unattributed rows return `null` rather than guessing a side: guessing wrong
+ * either leaks a source or removes a number the viewer needs to check the sum,
+ * and `null` is the only answer that does neither.
+ *
+ * @param {object} row
+ * @param {object} state
+ * @returns {string|null}
+ */
+function sideOf(row, state) {
+  const owner = row.sourceUnitId ?? row.unitId ?? null;
+  if (!owner) return null;
+  if (owner === state.attackerId) return "attacker";
+  if (owner === state.defenderId) return "defender";
+  return null;
+}
+
+/** @param {object} actor @returns {string[]} */
+function ownersOf(actor) {
+  if (!actor) return [];
+  return game.users.filter((u) => !u.isGM && actor.testUserPermission(u, "OWNER")).map((u) => u.id);
+}

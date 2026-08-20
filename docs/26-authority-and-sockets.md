@@ -271,6 +271,16 @@ units (a zero-length batch), so the timing profile is uniform. Cheap and effecti
 
 ---
 
+> **Status: §26.6's own decision stands, and §26.7 is built.** The shadow-actor pattern is
+> **deliberately not implemented** — this section assesses it and defers it to Ch. 40, and that
+> assessment has not changed: Foundry cannot hide part of a document, the workaround doubles the
+> document count, and its failure mode leaks the wrong thing. Building it would compromise the v1
+> architecture for a mode most groups will not use. This row is a **decision**, not a gap.
+>
+> What *is* built is the half this section says covers most of the practical benefit at a fraction
+> of the cost: the card. `module/rules/card-visibility.mjs` implements §26.7, and it is wired into
+> `module/apps/chat/cards.mjs`.
+
 ## 26.6 Closed-information play
 
 The rulebook supports Closed Info games where enemy stats and abilities are hidden. This is the
@@ -321,6 +331,17 @@ mode — the card whispers different content to different users. That covers mos
 benefit at a fraction of the cost.
 
 ---
+
+> **Implemented.** `module/rules/card-visibility.mjs`. Redaction is **by side**, and a row with no
+> side is kept: an unattributed row is a fact about the board — a facing bonus, terrain — and
+> dropping it would leave a breakdown whose numbers do not add up, which is worse than revealing
+> it. A viewer who is both attacker and defender (an AoE that caught its caster, a charmed Servant
+> attacking its own faction) sees everything, because there is no side to hide it from.
+>
+> `VISIBILITY_MODES` names the two this section documents. The default is `filtered` — one
+> message, rendered differently per client — and the honest caveat is recorded in the module: a
+> filtered card still *ships* the full result to every client that can read the flags, so `strict`
+> is the one that is actually secure.
 
 ## 26.7 Chat card visibility
 

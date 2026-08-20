@@ -1,4 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import {
+  TARGET_SHAPES, TARGET_ANCHORS, SHAPE_IDS,
+} from "../../module/rules/targeting/vocabulary.mjs";
 import { resolveTargets, legalPlacements, validate } from "../../module/rules/targeting/resolve.mjs";
 import { expand, orthogonalAdjacentRect } from "../../module/rules/targeting/shapes.mjs";
 import { squareBounds, key } from "../../module/domain/geometry.mjs";
@@ -513,5 +517,51 @@ describe("legalPlacements — one function, four targeting modes", () => {
   it("honours the cap, so free placement on a huge board stays bounded", () => {
     const spec = { anchor: { kind: "withinRange", range: 6 }, shape: { kind: "point" }, selection: {} };
     expect(legalPlacements(spec, caster, board, { max: 10 }).length).toBe(10);
+  });
+});
+
+describe("the picker vocabulary against the resolver (§29.6)", () => {
+  it("offers only shapes `expand` can actually expand", () => {
+    // The same drift guard the rule elements carry, for the same reason: a
+    // shape offered in the editor that the resolver cannot expand produces an
+    // ability that authors cleanly, validates, and targets nothing.
+    const implemented = new Set(
+      readFileSync("module/rules/targeting/shapes.mjs", "utf8")
+        .match(/case "(\w+)":/g)
+        ?.map((m) => m.slice(6, -2)) ?? [],
+    );
+
+    for (const id of SHAPE_IDS) {
+      expect(implemented.has(id), `the picker offers "${id}" and expand() has no case for it`).toBe(true);
+    }
+  });
+
+  it("offers every shape `expand` implements, so none is unreachable", () => {
+    const implemented = new Set(
+      readFileSync("module/rules/targeting/shapes.mjs", "utf8")
+        .match(/case "(\w+)":/g)
+        ?.map((m) => m.slice(6, -2)) ?? [],
+    );
+
+    for (const id of implemented) {
+      expect(SHAPE_IDS, `expand() implements "${id}" and no GM can choose it`).toContain(id);
+    }
+  });
+
+  it("gives every entry a schematic the picker can draw", () => {
+    // §29.6: "they should see four little diagrams and click one". An entry
+    // with no diagram is one a GM has to know the internal name of.
+    for (const entry of [...TARGET_SHAPES, ...TARGET_ANCHORS]) {
+      expect(entry.schematic.length, entry.id).toBe(5);
+    }
+  });
+
+  it("gives every entry a label key that exists", () => {
+    const strings = JSON.parse(readFileSync("lang/en.json", "utf8"));
+
+    for (const entry of [...TARGET_SHAPES, ...TARGET_ANCHORS]) {
+      expect(strings, entry.id).toHaveProperty(entry.label);
+      expect(strings, entry.id).toHaveProperty(entry.hint);
+    }
   });
 });

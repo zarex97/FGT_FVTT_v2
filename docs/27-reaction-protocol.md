@@ -161,6 +161,19 @@ and a reconnecting GM rebuilds the collector by reading them.
 
 ---
 
+> **Implemented.** `module/rules/await-policy.mjs` holds the table and
+> `module/engine/await-timeout.mjs` runs the clock. This section's decision — *every timeout
+> default is the option that spends nothing* — is asserted as a **property over the whole table**
+> rather than reviewed row by row, because the tempting mistake ("they would probably have
+> countered") is individually reasonable every time.
+>
+> Three implementation notes. The timer runs on the **GM client only**: every client starting its
+> own would race, and the first to fire would answer a prompt the others were still counting on.
+> The deadline is stored **on the message** rather than computed per client, so the countdown a
+> player sees is the one the GM is acting on. And the GM's "decide for them" button applies the
+> **same** default the timeout would, so a GM tired of waiting cannot accidentally make a costlier
+> choice than the clock would have.
+
 ## 27.5 Timeouts and absence
 
 A player who has closed their browser must not block the table.

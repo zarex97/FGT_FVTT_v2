@@ -38,6 +38,9 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
   /** @type {PIXI.Graphics|null} */
   #graphics = null;
 
+  /** Text badges, destroyed on each refresh — `Graphics.clear()` misses them. */
+  #labels = [];
+
   /** The token currently hovered, if any. */
   #hovered = null;
 
@@ -78,6 +81,9 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
   refresh() {
     if (!this.#graphics || !canvas.ready) return;
     this.#graphics.clear();
+    // Text is not part of the Graphics buffer, so `clear()` does not remove it.
+    for (const label of this.#labels) label.destroy();
+    this.#labels = [];
     if (!game.settings.get("fgt", "showOverlays")) return;
 
     const board = currentBoard();
@@ -91,6 +97,86 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
       this.#drawThreat(this.#hovered, board);
       this.#drawProtection(this.#hovered, board);
     }
+
+    // §28.9's always-on context. These three are drawn without a selection,
+    // because they are facts about the board rather than about a unit -- and
+    // each is a rule a player would otherwise discover after committing.
+    this.#drawPlatforms(board);
+    this.#drawGrail(board);
+    for (const token of canvas.tokens?.controlled ?? []) this.#drawDecoyPull(token, board);
+  }
+
+  /* ── Always-on context (§28.9) ───────────────────────────────────── */
+
+  /**
+   * Every platform's footprint, with its level.
+   *
+   * The level badge is the load-bearing half: two platforms at different levels
+   * overlap on screen and do not interact, and nothing else on the canvas says
+   * so (Ch. 20).
+   *
+   * @param {object} board
+   */
+  #drawPlatforms(board) {
+    for (const platform of board.units.filter((u) => u.kind === "platform")) {
+      if (!platform.panel) continue;
+      const footprint = platform.footprint ?? { w: 1, h: 1 };
+
+      this.#graphics.lineStyle(2, 0x8899aa, 0.7);
+      this.#graphics.beginFill(0x8899aa, 0.05);
+      const origin = this.#panelToPoint(platform.panel);
+      const size = canvas.grid.size;
+      this.#graphics.drawRect(origin.x, origin.y, size * footprint.w, size * footprint.h);
+      this.#graphics.endFill();
+
+      this.#label(origin, `L${platform.level ?? 0}`, 0x8899aa);
+    }
+  }
+
+  /**
+   * The Grail's 2-panel area, once it has materialized.
+   *
+   * Drawn only when it exists: a ring around nothing would be a permanent
+   * reminder of a thing that has not happened. Its colour carries the contest
+   * state, because standing in it is only meaningful if you know whether it is
+   * being contested (Ch. 19 §19.4).
+   *
+   * @param {object} board
+   */
+  #drawGrail(board) {
+    const grail = board.grail ?? null;
+    if (!grail?.materialized || !grail.position) return;
+
+    const contested = (grail.contest?.claimants ?? []).length > 1;
+    this.#graphics.lineStyle(3, contested ? 0xcc4444 : 0xd4af37, 0.9);
+    this.#ring(grail.position, 2, contested ? 0xcc4444 : 0xd4af37, 0.08, board.bounds ?? null);
+  }
+
+  /**
+   * An arrow from a Decoy'd unit toward what is pulling it.
+   *
+   * The one overlay that answers "why can I not target what I want to": a Decoy
+   * constraint is invisible on the board and silently narrows the legal target
+   * set (Ch. 09).
+   *
+   * @param {object} token
+   * @param {object} board
+   */
+  #drawDecoyPull(token, board) {
+    const unit = board.units.find((u) => u.id === token.actor?.id);
+    const sourceId = unit?.decoy?.sourceUnitId ?? null;
+    if (!sourceId) return;
+
+    const source = board.units.find((u) => u.id === sourceId);
+    if (!source?.panel || !unit.panel) return;
+
+    const from = this.#panelToPoint(unit.panel);
+    const to = this.#panelToPoint(source.panel);
+    const half = canvas.grid.size / 2;
+
+    this.#graphics.lineStyle(3, 0xaa55cc, 0.8);
+    this.#graphics.moveTo(from.x + half, from.y + half);
+    this.#graphics.lineTo(to.x + half, to.y + half);
   }
 
   /* ── The ZON ring ───────────────────────────────────────────────────────── */
@@ -191,6 +277,32 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   /**
+   * A panel's top-left point on the canvas.
+   * @param {object} panel
+   * @returns {{x: number, y: number}}
+   */
+  #panelToPoint(panel) {
+    return canvas.grid.getTopLeftPoint({ i: panel.i, j: panel.j });
+  }
+
+  /**
+   * A short text badge.
+   *
+   * PIXI text objects are children of the layer rather than of the shared
+   * `Graphics`, so they are tracked and destroyed on each refresh -- a label
+   * left behind would drift over the canvas as a permanent artefact.
+   *
+   * @param {{x: number, y: number}} at
+   * @param {string} text
+   * @param {number} colour
+   */
+  #label(at, text, colour) {
+    const label = new PIXI.Text(text, { fontSize: 14, fill: colour, fontFamily: "Signika" });
+    label.position.set(at.x + 4, at.y + 4);
+    this.#labels.push(this.addChild(label));
+  }
+
+  /**
    * @param {object[]} panels
    * @param {number} colour
    * @param {number} alpha
@@ -217,19 +329,25 @@ export function registerOverlayLayer() {
 /**
  * Keep the overlays current.
  *
- * Every hook here is a thing that can change what an overlay should say: what
- * is selected, what is hovered, what has moved, and — because ZON depends on
- * the Master's position and the Servant's class — any actor update at all.
+ * Selection and hover are read directly, because they are pure UI and no rule
+ * cares about them. Everything else comes through `fgt.invalidate`, which
+ * `engine/invalidation-hooks.mjs` derives from §23.9's table — the hand-
+ * maintained hook list that used to live here went stale in both directions,
+ * refreshing on changes nothing drew and missing ones that mattered.
  */
 export function attachOverlays() {
   const refresh = () => canvas.fgtOverlays?.refresh();
 
   Hooks.on("controlToken", refresh);
   Hooks.on("hoverToken", (token, hovered) => canvas.fgtOverlays?.hover(hovered ? token : null));
-  Hooks.on("updateToken", refresh);
-  Hooks.on("deleteToken", refresh);
-  Hooks.on("createToken", refresh);
-  Hooks.on("updateActor", refresh);
-  Hooks.on("canvasReady", refresh);
   Hooks.on("fgtUnitMoved", refresh);
+
+  // Anything positional, anything that changes Master protection, or a wholesale
+  // rebuild. A cooldown tick is none of those and no longer redraws the canvas.
+  Hooks.on("fgt.invalidate", (targets) => {
+    if (targets.some((t) => DRAWN.has(t.split(":")[0]))) refresh();
+  });
 }
+
+/** The invalidation targets an overlay actually draws from. */
+const DRAWN = new Set(["all", "board", "auraIndex", "zon", "masterProtection", "decoy"]);

@@ -33,6 +33,16 @@ card, the setup rolls to `engine/summon.mjs`, the requirement kinds to `canUseAb
 to two new intents, the copies to `effectivePhases` — because this project's dominant defect is a
 rule that is right and inert, and a pure module with no caller is exactly that.
 
+**Part III — Foundry architecture — is complete.** All ten chapters (21–30) are implemented, with
+one deliberate exception recorded as a decision rather than a gap: §26.6's shadow-actor pattern
+for closed-information play stays deferred to Ch. 40, because that section assesses it and defers
+it itself. Its practical half — per-viewer chat cards (§26.7) — is built.
+
+Finishing it turned up three things that were specified and absent rather than merely unfinished:
+§16.9's per-Servant Command Spell pools (a flat count could not say which Servant a spell
+reached, so Unbound could not be derived at all), and two more registered-but-unread settings,
+`masterMode` and `interruptTimeout`.
+
 What is missing is almost entirely in **layer 3 and layer 4** — the orchestration that connects
 the rules to the game, and the interfaces that let a player reach them. Concretely:
 
@@ -125,21 +135,21 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 |---|---|---|---|
 | 21 | System skeleton | **Done** | Bootstrap, settings, public API, CI, release workflow. |
 | 22 | Data models | **Done** | All schemas present, including the four **Region behaviour** schemas (§22.10) that `system.json` had always declared without a model behind them. |
-| 23 | Documents and derived data | **Mostly** | Preparation order, derived stats and **the aura pass (§23.3)** done. **Cache invalidation and the spatial `AuraIndex` (§23.9) missing — the pass is a linear scan today, correct but unbucketed.** |
-| 24 | Rules engine | **Mostly** | 33 executors, predicates, explainability, validation, and **priority bands (§24.6)** — collection order is document load order, so two clients could compute two different numbers from one board; bands fix the what and the source id fixes the tie. **The `@intentional` marker and its validator warning are not implemented.** |
-| 25 | Turn system | **Mostly** | `FGTCombat`, turn order, scheduler, HUD done. **Charm/control transfer (§25.7) and reconnection (§25.10) missing.** |
-| 26 | Authority and sockets | **Mostly** | Typed operations, authorization, hidden rolls, and **`FGTSocket.ask`** — a question routed to one named user, which `request` could not express and whose absence made every `prompt` intent throw `UNKNOWN_OP`. **Closed-information play (§26.6) and per-viewer cards (§26.7) missing.** |
-| 27 | Reaction protocol | **Done** | Message-chain state, prompts, collapsing, resumption, **interrupt injection (§27.9)** and the counter sub-process (§27.10) — all landed with B1 and A4, and this row was stale. **Timeouts (§27.5)** exist for the Command Spell offer; a per-rung reaction timeout does not. |
-| 28 | Targeting implementation | **Mostly** | Canvas layer, four modes, preview, speculative damage done. **Zone overlays (§28.9) missing.** |
-| 29 | User interface | **Partly** | Unit sheet, ability sheet, turn HUD, chat cards, and the three GM-facing applications: **summon (§37.6), Wisdom curation (§36.4) and the player choice prompt**. Every literal `localize` key is now held against `lang/en.json`. **Master sheet (§29.3), token HUD (§29.5) and the ability editor (§29.6) missing.** |
-| 30 | Chat and audit | **Mostly** | Cards and the damage explainer done. **The game log (§30.8), export/replay (§30.9) and GM overrides (§30.10) missing.** |
+| 23 | Documents and derived data | **Done** | Preparation order, derived stats, the aura pass, the **spatial `AuraIndex`** (4×4 buckets, held against the linear scan by test) and **§23.9's invalidation table**, driving the canvas index, the overlays and the desync check. One honest correction recorded in the chapter: the table names a *snapshot cache* this system does not have, because `snapshotBoard` runs per resolution from the documents — you cannot serve a stale snapshot you never stored. |
+| 24 | Rules engine | **Done** | 33 executors, predicates, explainability, validation, priority bands, and **`@intentional` (§24.6)** — an unmarked `priority` override is a build **error**, a marked one warns and names the band it lands between, and the marker must be prose because `true` explains nothing to the reviewer reading it a year later. |
+| 25 | Turn system | **Done** | `FGTCombat`, turn order, scheduler, HUD, **charm/control transfer (§25.7)** — which follows the chain rather than stopping at one hop, with a cycle guard — and **§25.10's round-boundary desync detector**, hashing positions, health and effect ids and nothing else. |
+| 26 | Authority and sockets | **Done (§26.6 deferred by decision)** | Typed operations, authorization, hidden rolls, `FGTSocket.ask`, and **per-viewer cards (§26.7)** — redaction by side, with unattributed rows kept because dropping them leaves a breakdown that does not add up. **§26.6's shadow actors stay deferred to Ch. 40 — that is this chapter's own decision, not a gap**: Foundry cannot hide part of a document, and the workaround doubles the document count for a failure mode that leaks the wrong thing. |
+| 27 | Reaction protocol | **Done** | Message-chain state, prompts, collapsing, resumption, interrupt injection (§27.9), the counter sub-process (§27.10), and **per-rung timeouts (§27.5)** — GM-clocked, deadline stored on the message so no two clients disagree, and every default asserted to spend nothing as a property over the whole table. |
+| 28 | Targeting implementation | **Done** | Canvas layer, four modes, preview, speculative damage, and **all seven §28.9 overlays** — Decoy pull, platform footprints with level badges and the Grail contest ring joined ZON, threat and Master protection. They now redraw from `fgt.invalidate` rather than a hand-maintained hook list. |
+| 29 | User interface | **Done** | Unit sheet, ability sheet, turn HUD, chat cards, summon, Wisdom curation, the choice prompt, and the three that were missing: **Master sheet (§29.3)** — which required implementing §16.9's per-Servant spell pools first — **token HUD (§29.5)** and **the ability editor (§29.6)** with its illustrated targeting picker and live validation. |
+| 30 | Chat and audit | **Done** | Cards, the damage explainer, **the game log (§30.8)** with its bounded storage and journal overflow, **the export (§30.9)** carrying rolls so replay is exact rather than re-simulation, and **GM overrides (§30.10)** recorded beside what they changed with the reason enforced in the rules layer. |
 
 ### Part IV — reference
 
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation — **with the dialog that shows it**, reached from the Actors sidebar and the Servant compendium, and refusing a bare compendium drop that would produce a Servant with the template's numbers. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
-| 38 | Testing strategy | **Mostly** | 1226 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1362 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
