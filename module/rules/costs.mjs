@@ -169,3 +169,47 @@ function isHighRankMaster(master) {
 function isFree(unit) {
   return unit?.contract === "free" || unit?.contract === "unbound";
 }
+
+/**
+ * Resolve a set of pending costs against each other (§15.4).
+ *
+ * A `Cost` may carry `supersedes: string[]`, naming other costs it **replaces
+ * rather than stacks with**. Karna is the reference case: *"his Master's Health
+ * loss from him using the NP overwrites the 20 Health loss from when Karna
+ * would normally Act/Attack"* — charging both would bill 70 where the rules say
+ * 50. Ch. 20's Hanging Gardens upkeep uses the same mechanism in the other
+ * direction: the 50/round replaces the NP cost rather than adding to it.
+ *
+ * Supersession is resolved in **one pass over the original set**, not
+ * transitively. A cost that was itself superseded still suppresses what it
+ * names, which keeps the result independent of arrival order and makes a cycle
+ * of mutual supersession collapse to one survivor rather than to none — and
+ * "none" would make a Noble Phantasm free, which is the one outcome no reading
+ * of the rule supports.
+ *
+ * @param {object[]} costs each optionally with `id` and `supersedes`
+ * @returns {{charged: object[], superseded: Array<{id: string, by: string}>}}
+ */
+export function resolveCosts(costs) {
+  const all = (costs ?? []).filter(Boolean);
+
+  /** @type {Array<{id: string, by: string}>} */
+  const superseded = [];
+  const dropped = new Set();
+
+  for (const cost of all) {
+    for (const target of cost.supersedes ?? []) {
+      // Only against costs actually being charged: a `supersedes` naming
+      // something absent is content describing a case that did not arise.
+      if (!all.some((c) => c.id === target)) continue;
+      // A cycle would otherwise drop both. The first to be examined wins, and
+      // the survivor is deterministic because the input order is.
+      if (dropped.has(cost.id)) continue;
+      if (dropped.has(target)) continue;
+      dropped.add(target);
+      superseded.push({ id: target, by: cost.id });
+    }
+  }
+
+  return { charged: all.filter((c) => !dropped.has(c.id)), superseded };
+}

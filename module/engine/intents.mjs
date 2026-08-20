@@ -23,7 +23,7 @@
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
-  "itemQuantity", "itemGrant",
+  "itemQuantity", "itemGrant", "markContract", "grantCommandSpells",
 ]);
 
 /**
@@ -47,6 +47,10 @@ const ORDER = Object.freeze({
   // bearer is still gone. Same rank as the other bookkeeping writes.
   itemQuantity: 2,
   itemGrant: 2,
+  // A contract and its spells are bookkeeping, and they must land together:
+  // §16.2 requires no intermediate state between freeing and contracting.
+  markContract: 2,
+  grantCommandSpells: 2,
   // After the action it records, before anything reads it back.
   markTurn: 2,
   heal: 3,
@@ -131,6 +135,22 @@ export const itemQuantity = (unitId, itemId, delta) =>
  */
 export const itemGrant = (unitId, contentId, delta = 1) =>
   ({ t: "itemGrant", unitId, contentId, delta });
+
+/**
+ * Set a unit's contract state and its Master (§16.2).
+ * @param {string} unitId @param {string} contract @param {string|null} masterId
+ * @returns {Intent}
+ */
+export const markContract = (unitId, contract, masterId = null) =>
+  ({ t: "markContract", unitId, contract, masterId });
+
+/**
+ * Grant Command Spells namespaced to one Servant (§16.9).
+ * @param {string} masterId @param {string} servantId @param {number} count
+ * @returns {Intent}
+ */
+export const grantCommandSpells = (masterId, servantId, count) =>
+  ({ t: "grantCommandSpells", masterId, servantId, count });
 
 export const log = (entry) =>
   ({ t: "log", entry });
@@ -230,6 +250,7 @@ const NUMERIC_FIELDS = Object.freeze({
   spendCS: ["count"],
   itemQuantity: ["delta"],
   itemGrant: ["delta"],
+  grantCommandSpells: ["count"],
 });
 
 /**

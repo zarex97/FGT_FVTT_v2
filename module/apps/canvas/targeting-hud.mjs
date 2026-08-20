@@ -63,8 +63,29 @@ export class TargetingHUD {
     // catastrophic, which is exactly the case a preview exists to surface.
     const warnings = (option.resolved?.warnings ?? [])
       .map((w) => `<div class="fgt-preview__warning">⚠ ${escape(w)}</div>`).join("");
-    const reasons = (option.reasons ?? [])
-      .map((r) => `<div class="fgt-preview__reason">${escape(r)}</div>`).join("");
+    // §28.8: each refusal rendered with its own numbers and its own KIND. A
+    // refusal a Command Spell can lift carries the offer inline, because the
+    // moment a player learns they cannot do something is the moment to tell
+    // them what would let them.
+    const presented = option.presented ?? [];
+    const reasons = presented.length > 0
+      ? presented.map((p) => `
+          <div class="fgt-preview__reason fgt-preview__reason--${p.kind}">
+            ${escape(game.i18n.format(p.i18n, p.params))}
+            ${p.kind === "overridable"
+    ? `<span class="fgt-preview__override">${escape(game.i18n.localize("FGT.Legality.Override"))}</span>`
+    : ""}
+          </div>`).join("")
+      : (option.reasons ?? [])
+        .map((r) => `<div class="fgt-preview__reason">${escape(r)}</div>`).join("");
+
+    // A legal-but-catastrophic placement asks a second time. Distinct from a
+    // refusal: the player CAN do it, and the interface must not imply otherwise.
+    const confirm = option.needsConfirm
+      ? `<div class="fgt-preview__confirm">${escape(game.i18n.localize(
+        option.confirmed ? "FGT.Legality.ConfirmGrail" : "FGT.Targeting.ClickAgain",
+      ))}</div>`
+      : "";
 
     el.innerHTML = `
       <div class="fgt-preview__header">${escape(this.#label)}</div>
@@ -78,6 +99,7 @@ export class TargetingHUD {
         ${excluded}</div>` : ""}
       ${warnings}
       ${reasons}
+      ${confirm}
       <div class="fgt-preview__verdict fgt-preview__verdict--${option.legal ? "ok" : "no"}">
         ${game.i18n.localize(option.legal ? "FGT.Targeting.Legal" : "FGT.Targeting.Illegal")}
       </div>`;

@@ -173,6 +173,12 @@ async function writeGroup(group, io) {
     case "itemGrant":
       for (const i of intents) await io.grantItem(unitId, i.contentId, i.delta);
       break;
+    case "markContract":
+      await io.setContract(unitId, intents.at(-1).contract, intents.at(-1).masterId);
+      break;
+    case "grantCommandSpells":
+      for (const i of intents) await io.grantCommandSpells(i.masterId, i.servantId, i.count);
+      break;
     case "log":
       await io.log(intents.map((i) => i.entry));
       break;

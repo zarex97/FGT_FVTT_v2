@@ -23,6 +23,7 @@
  */
 
 import { legalPlacements, validate } from "../../rules/targeting/resolve.mjs";
+import { presentVerdict, needsHardConfirm } from "../../rules/legality.mjs";
 import { TargetingHUD } from "./targeting-hud.mjs";
 import { showArea, discardArea } from "./target-region.mjs";
 import { reviewTargets, REAIM } from "./target-review.mjs";
@@ -245,10 +246,31 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       onPointerMove: (panel) => {
         if (current?.placement.panel.i === panel.i && current?.placement.panel.j === panel.j) return;
         const v = validate(spec, caster, board, { panel });
-        current = { placement: { panel }, legal: v.ok, reasons: v.reasons, resolved: v.resolved };
+        // §28.8: the refusal is rendered WHILE the player is still choosing,
+        // with the numbers in it. "Anchor is 7 panels away; Range is 4" is a
+        // refusal they fix by moving the cursor; "illegal target" is one they
+        // fix by guessing.
+        const presented = presentVerdict(v.errors ?? (v.reasons ?? []).map((r) => ({ reason: r })));
+        current = {
+          placement: { panel }, legal: v.ok, reasons: v.reasons, resolved: v.resolved,
+          presented,
+          // A Grail in the area is LEGAL and catastrophic, so it takes a second
+          // deliberate click rather than being refused (§19.4).
+          needsConfirm: needsHardConfirm(presented),
+          confirmed: false,
+        };
         render();
       },
-      onConfirm: () => (current?.legal ? current.placement : null),
+      onConfirm: () => {
+        if (!current) return null;
+        if (current.needsConfirm && !current.confirmed) {
+          current.confirmed = true;
+          ui.notifications.warn(game.i18n.localize("FGT.Legality.ConfirmGrail"), { permanent: false });
+          render();
+          return null;
+        }
+        return current.legal ? current.placement : null;
+      },
     });
   }
 
@@ -448,7 +470,12 @@ function reportNothingLegal(options, board) {
     return;
   }
 
-  const reasons = [...new Set(options.flatMap((o) => o.reasons ?? []))];
+  // Presented through §28.8's table, so the message carries its numbers and its
+  // kind rather than being whatever string the resolver happened to build.
+  const presented = presentVerdict(
+    options.flatMap((o) => o.errors ?? (o.reasons ?? []).map((r) => ({ reason: r }))),
+  );
+  const reasons = [...new Set(presented.map((p) => game.i18n.format(p.i18n, p.params)))];
   if (reasons.length === 0) {
     ui.notifications.warn(game.i18n.localize("FGT.Targeting.NoTargets"));
     return;

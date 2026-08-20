@@ -1,0 +1,29 @@
+{{!-- Contracting a Servant (docs/16-relationships.md §16.2). --}}
+<div class="fgt-contract">
+  <p class="fgt-contract__hint">{{localize "FGT.Contract.Hint"}}</p>
+
+  {{#if isEmpty}}
+    <p class="fgt-contract__empty">{{localize "FGT.Contract.NoCandidates"}}</p>
+  {{/if}}
+
+  <ul class="fgt-contract__list">
+    {{#each candidates as |c|}}
+      <li class="fgt-contract__row {{#unless c.ok}}fgt-contract__row--refused{{/unless}}"
+          data-servant-id="{{c.id}}">
+        <span class="fgt-contract__name">{{c.name}}</span>
+        <span class="fgt-contract__state">{{c.contract}}</span>
+
+        {{#if c.ok}}
+          <span class="fgt-contract__terms">{{c.terms}}</span>
+          {{#if c.odds}}<span class="fgt-contract__odds">{{c.odds}}</span>{{/if}}
+          <button type="button" data-action="attempt">{{localize "FGT.Contract.Attempt"}}</button>
+        {{else}}
+          {{!-- Shown rather than omitted: "why can I not contract that one" has
+                four different answers, and hiding the row answers all four with
+                silence. The enemy-proximity rule is invisible on the board. --}}
+          <span class="fgt-contract__refusal">{{c.refusal}}</span>
+        {{/if}}
+      </li>
+    {{/each}}
+  </ul>
+</div>

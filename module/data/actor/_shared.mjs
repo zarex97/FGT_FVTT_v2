@@ -57,6 +57,11 @@ export function unitCommon() {
     // Berserker whose Mad Enhancement was on cannot switch it off while Free.
     modesLocked: new fields.BooleanField({ initial: false }),
 
+    // A summon that cannot outlive the platform that carries it (Ch. 20 §20.9
+    // step 7). Bašmu is the case: "Bašmu cannot leave the HGoB. If HGoB is
+    // removed from the field while Bašmu is summoned, it disappears."
+    boundToPlatformId: new fields.StringField({ required: false, nullable: true, initial: null }),
+
     biography: new fields.HTMLField({ required: false, blank: true }),
     notes: new fields.HTMLField({ required: false, blank: true }),
   };

@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { npCost, canUseAbility } from "../../module/rules/costs.mjs";
+import { npCost, canUseAbility, resolveCosts } from "../../module/rules/costs.mjs";
 
 const master = (over = {}) => ({ id: "m", rank: "A", health: { value: 500, max: 500 }, ...over });
 const servant = (over = {}) => ({ id: "s", kind: "servant", contract: "contracted", masterId: "m", ...over });
@@ -137,5 +137,60 @@ describe("canUseAbility", () => {
       ability: np({ cooldown: { remaining: 2 }, requiresRound: 9 }),
     }));
     expect(verdict.reason).toBe("cooldown");
+  });
+});
+
+describe("resolveCosts — supersession (§15.4)", () => {
+  const actCost = { kind: "masterHealth", amount: 20, unitId: "m", id: "servantActs" };
+  const npKarna = { kind: "masterHealth", amount: 50, unitId: "m", id: "npCost", supersedes: ["servantActs"] };
+
+  it("charges both when neither supersedes the other", () => {
+    expect(resolveCosts([actCost, { ...npKarna, supersedes: [] }]).charged).toHaveLength(2);
+  });
+
+  it("drops the cost that is superseded", () => {
+    // Karna: "his Master's Health loss from him using the NP OVERWRITES the 20
+    // Health loss from when Karna would normally Act/Attack." Overwrites, not
+    // stacks -- charging both would bill 70 where the rules say 50.
+    const out = resolveCosts([actCost, npKarna]);
+
+    expect(out.charged.map((c) => c.id)).toEqual(["npCost"]);
+  });
+
+  it("records what it dropped and why, so the card can explain the number", () => {
+    // A Master who paid 50 instead of 70 needs to see which rule did that;
+    // a silently smaller number reads as a bug.
+    expect(resolveCosts([actCost, npKarna]).superseded).toEqual([
+      { id: "servantActs", by: "npCost" },
+    ]);
+  });
+
+  it("does not care what order they arrive in", () => {
+    expect(resolveCosts([npKarna, actCost]).charged.map((c) => c.id)).toEqual(["npCost"]);
+  });
+
+  it("lets a platform upkeep supersede the NP cost the same way", () => {
+    // HGoB: "This effect overwrites the normal Master Health loss when a
+    // Servant uses its NP." Same mechanism, different content (Ch. 20).
+    const upkeep = { kind: "masterHealth", amount: 50, unitId: "m", id: "hgobUpkeep", supersedes: ["npCost"] };
+
+    expect(resolveCosts([npKarna, upkeep]).charged.map((c) => c.id)).toEqual(["hgobUpkeep"]);
+  });
+
+  it("survives a cycle of mutual supersession", () => {
+    // Nonsense content, but two costs that each cancel the other must not
+    // cancel BOTH -- that would make a Noble Phantasm free.
+    const a = { kind: "masterHealth", amount: 10, id: "a", supersedes: ["b"] };
+    const b = { kind: "masterHealth", amount: 20, id: "b", supersedes: ["a"] };
+
+    expect(resolveCosts([a, b]).charged).toHaveLength(1);
+  });
+
+  it("ignores a supersedes naming a cost that is not being charged", () => {
+    expect(resolveCosts([npKarna]).charged).toHaveLength(1);
+  });
+
+  it("handles an empty list", () => {
+    expect(resolveCosts([])).toMatchObject({ charged: [], superseded: [] });
   });
 });

@@ -30,6 +30,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       editAbility: FGTActorSheet.#onEditAbility,
       openDialog: FGTActorSheet.#onOpenDialog,
       rollSetup: FGTActorSheet.#onRollSetup,
+      contract: FGTActorSheet.#onContract,
     },
   };
 
@@ -170,6 +171,16 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   /**
+   * Open the contract dialog (§16.2).
+   *
+   * @this {FGTActorSheet}
+   */
+  static async #onContract() {
+    const { ContractDialog } = await import("./contract-dialog.mjs");
+    ContractDialog.open(this.document.id);
+  }
+
+  /**
    * @this {FGTActorSheet}
    * @param {PointerEvent} _event
    * @param {HTMLElement} target
@@ -229,6 +240,10 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isEditable: this.isEditable,
       // §14.9's setup rolls, offered on a Master that has not had them yet.
       // A GM may re-roll before the match starts; afterwards the rolls lock.
+      // Only a Master or a Caster may contract (§16.2), so only they get the
+      // button -- a control that always refuses is worse than none.
+      canContract: this.document.type === "master"
+        || (this.document.system?.servantClasses ?? []).includes("caster"),
       canRollSetup: this.document.type === "master" && game.user.isGM,
       setupLocked: Boolean(game.combat?.started),
       // §29.3's three Master-only panels. Computed here rather than in the

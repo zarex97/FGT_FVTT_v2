@@ -37,9 +37,29 @@ does not distinguish "on" from "under".
 > that map or set `platformId`**. The whole cross-level rule was implemented, called on every
 > resolution, and permanently inert.
 >
-> Not built, and each needs a Scene Level operation rather than more rules: creating a level on
-> activation, deleting it on destruction, scattering passengers to the ground, and reversing the
-> owner's effects. Those steps of §20.9 are **logged by name** rather than silently skipped.
+> **The Scene Level operations are now built** — `module/engine/scene-levels.mjs`: `createLevel`
+> on activation, `scatterToGround`, `destroyLevel`, `reverseOwnerEffects` and the `teardown` that
+> sequences them. `destroyPlatform` calls it, and `activatePlatform` creates the level before any
+> unit is placed aboard, because boarding is a movement operation *between levels* and there must
+> be a level to move onto.
+>
+> **One hard constraint from the v14 schema, checked against the Foundry source, and it makes
+> §20.9's step order load-bearing rather than merely tidy.** `TokenDocument#level` is a
+> `DocumentIdField` that is `required` and **non-nullable**, and deleting a `Level` does *not*
+> re-parent the tokens standing on it — `Level._onDeleteOperation` fixes the *view* and nothing
+> else. A level deleted while passengers are still assigned to it therefore leaves every one of
+> them pointing at an id that no longer resolves: a corruption that survives a reload and that
+> nothing on screen explains. Scatter (step 4) must complete **before** the delete (step 8), and
+> `destroyLevel` **refuses** rather than trusting the caller to have done it.
+>
+> Two smaller notes. `visibility.levels` is **one-way per level**, so creating a platform level
+> sets the reference on both sides — setting only the platform's leaves the board unable to see
+> what is hovering over it. And a token's `elevation` is written to match its level, because
+> `canvas.inferLevelFromElevation` reads it back and would otherwise infer a passenger straight
+> back down to the ground.
+>
+> The elevation band is stacked by level ordinal rather than chosen by content: two platforms that
+> picked the same band would have their tokens inferred onto each other.
 
 ## 20.2 Scene Levels
 
