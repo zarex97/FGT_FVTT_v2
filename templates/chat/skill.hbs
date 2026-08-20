@@ -1,0 +1,36 @@
+{{!-- An active Skill (docs/15-abilities.md §15.1). NOT a Combat Process card:
+      there is no defender, so there is no ladder and nothing to react to. --}}
+<div class="fgt-card fgt-card--skill">
+  <header class="fgt-card__header">
+    {{#if img}}<img src="{{img}}" alt="{{caster}}" width="36" height="36">{{/if}}
+    <div>
+      <div class="fgt-card__title">{{ability}}{{#if rank}} <span class="fgt-card__rank">{{rank}}</span>{{/if}}</div>
+      <div class="fgt-card__caster">{{caster}}</div>
+    </div>
+  </header>
+
+  {{#if targets.length}}
+    <div class="fgt-card__meta">
+      {{localize "FGT.Skill.On"}} {{#each targets as |t|}}{{t}} {{/each}}
+    </div>
+  {{/if}}
+
+  {{#if effects.length}}
+    <ul class="fgt-card__effects">
+      {{#each effects as |e|}}<li>{{e}}</li>{{/each}}
+    </ul>
+  {{else}}
+    {{#unless refused.length}}
+      <div class="fgt-card__none">{{localize "FGT.Skill.NoEffects"}}</div>
+    {{/unless}}
+  {{/if}}
+
+  {{!-- A refusal is shown rather than dropped: an effect the target resisted is
+        a fact the player needs, and a silently empty card reads as a skill that
+        did nothing at all. --}}
+  {{#if refused.length}}
+    <ul class="fgt-card__refused">
+      {{#each refused as |r|}}<li>{{r.name}} — {{r.reason}}</li>{{/each}}
+    </ul>
+  {{/if}}
+</div>

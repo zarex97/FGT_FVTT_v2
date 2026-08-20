@@ -83,6 +83,26 @@ The rulebook's own statements that define the relationships:
 > *"Some Skills may have both Passive and Active effects. When such a Skill is used, the Active
 > effect is activated for the duration as stated, and Cooldown only applies to the use of the
 > Active effect."*
+> **Implementation note.** A Skill that is not an Attack now has its **own resolution path**
+> (`module/engine/skill-use.mjs`) and does not enter a Combat Process. It used to: `resolveAttack`
+> was the only route into using an ability, so Asterios's *Avyssos of Labrys* — three buffs
+> applied to Asterios, touching nobody — opened a targeting session listing Asterios as a target,
+> priced him for damage, offered a button labelled "Attack", and then asked him to Evade.
+> `classifyAbility` had returned `isAttack: false` the whole time and nothing on the use path read
+> it.
+>
+> **"Deal damage" means directly.** `countsAsAttack` is true for an ability with a `damage` phase,
+> and false for one whose only effect is a debuff that costs the target Health over time — a skill
+> inflicting poison is not an Attack Skill, however much Health the poison eventually removes.
+> `countsAsAct` is the broader question and is true for any active skill, because a self-buff is
+> not an attack and is still what the Servant did with its turn. Both honour this section's
+> "unless stated" through the `countsAsAttack` / `countsAsAct` fields, which the chapter's own
+> worked example used and nothing had ever read.
+>
+> **A targeting session opens only when something is chosen.** Self-anchored is not sufficient on
+> its own — a 5×5 block projected from the caster still has four directions — so `needsTargeting`
+> asks whether the anchor, the selection or the shape leaves a decision.
+
 > *"Attack Skills are a subtype of (Active) Skill. Attack Skills deal damage, normally using
 > Base Attack (STR) unless stated. Attack Skills usually count as the Unit's Attack for the Turn
 > unless stated."*

@@ -216,6 +216,22 @@
   &__state { font-weight: 600; }
 }
 
+.fgt-card--skill {
+  .fgt-card__header { display: flex; gap: 0.5rem; align-items: center; }
+  .fgt-card__title { font-weight: 700; }
+  .fgt-card__rank { opacity: 0.7; font-weight: 400; }
+  .fgt-card__caster { font-size: 0.75rem; opacity: 0.8; }
+  .fgt-card__meta { font-size: 0.75rem; opacity: 0.8; margin-top: 0.2rem; }
+  .fgt-card__effects { margin: 0.3rem 0 0; padding-left: 1.2rem; font-size: 0.8rem; }
+  .fgt-card__none { font-size: 0.78rem; font-style: italic; opacity: 0.7; }
+  // A resisted effect is a fact the player needs; a silently empty card reads
+  // as a skill that did nothing at all.
+  .fgt-card__refused {
+    margin: 0.3rem 0 0; padding-left: 1.2rem;
+    font-size: 0.75rem; opacity: 0.75; font-style: italic;
+  }
+}
+
 .fgt-contract {
   display: flex; flex-direction: column; gap: 0.5rem;
 

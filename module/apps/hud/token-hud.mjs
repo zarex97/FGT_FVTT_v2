@@ -217,6 +217,11 @@ function button(key, icon, tooltipKey, onClick, tooltipText) {
  */
 async function declare(actor, ability) {
   const { FGTActorSheet } = await import("../index.mjs");
+  // Same split as the sheet: a Skill is not an Attack, and the quick-bar must
+  // not be the one place that still sends one into a Combat Process.
+  if (ability && !classifyAbility(ability).isAttack) {
+    return FGTActorSheet.useSkill(actor, ability);
+  }
   return FGTActorSheet.declareAttack(actor, ability);
 }
 
