@@ -496,9 +496,14 @@ export function contributionsOf(actor) {
   const options = rollOptionsFor({
     attacker: {
       kind: actor.type,
-      attributes: sys.attributes ?? [],
+      // Spread for the same reason the unit snapshot spreads them: these are
+      // SetFields, and every consumer downstream is entitled to an array.
+      // `rollOptionsFor` only iterates today, so this is consistency rather
+      // than a fix -- but the next reader who reaches for `.includes` should
+      // not have to check.
+      attributes: [...(sys.attributes ?? [])],
       effects: [...(actor.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
-      region: sys.region ?? [],
+      region: [...(sys.region ?? [])],
       abilities: [...(actor.items ?? [])].map((i) => ({
         id: i.id, slug: i.system?.slug ?? i.id, active: Boolean(i.system?.active),
       })),
