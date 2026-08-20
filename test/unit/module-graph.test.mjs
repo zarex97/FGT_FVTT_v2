@@ -38,6 +38,17 @@ function mjsUnder(dir) {
  */
 const UNBUILT_PACKS = new Set(["rules"]);
 
+/**
+ * Entry points `system.json` names that a build step generates, mapped to the
+ * source that produces each.
+ *
+ * These are gitignored: a fresh clone does not have them, and neither does CI
+ * at the point `npm test` runs. Checking the **source** is what a pre-build
+ * test can honestly assert -- a stylesheet pointed at a `.scss` nobody ships
+ * fails here, while a merely unbuilt one does not.
+ */
+const GENERATED = Object.freeze({ "styles/fgt.css": "styles/src/fgt.scss" });
+
 describe("the module graph", () => {
   const files = mjsUnder("module");
 
@@ -80,16 +91,39 @@ describe("the module graph", () => {
     expect(broken).toEqual([]);
   });
 
-  it("declares every entry point system.json names", () => {
-    // `esmodules` and `styles` are fetched by Foundry before anything of ours
-    // runs, so a stale path here is the earliest possible failure.
+  it("declares every entry point that the repository itself carries", () => {
+    // `esmodules`, `styles` and `languages` are fetched by Foundry before
+    // anything of ours runs, so a stale path is the earliest possible failure.
+    //
+    // Only the paths the repo CARRIES are checked here. A build artifact does
+    // not exist yet at test time -- both workflows run `npm test` before
+    // `build:styles`, deliberately, so a broken build never reaches a release
+    // -- and asserting it would test the pipeline's ordering rather than the
+    // manifest. `tools/check-manifest.mjs` makes the same assertion for real,
+    // after the build, which is the only point at which it means anything.
     const manifest = JSON.parse(readFileSync("system.json", "utf8"));
+    const declared = [
+      ...(manifest.esmodules ?? []),
+      ...(manifest.styles ?? []),
+      ...(manifest.languages ?? []).map((l) => l.path),
+    ];
 
-    for (const path of [...(manifest.esmodules ?? []), ...(manifest.styles ?? [])]) {
-      expect(existsSync(path), `system.json names a missing file: ${path}`).toBe(true);
+    for (const path of declared) {
+      const source = GENERATED[path] ?? path;
+      expect(existsSync(source), `system.json names ${path}, and ${source} does not exist`).toBe(true);
     }
-    for (const entry of manifest.languages ?? []) {
-      expect(existsSync(entry.path), `missing language file: ${entry.path}`).toBe(true);
+  });
+
+  it("builds every generated entry point from the source it claims", () => {
+    // The map above is only worth having if it cannot go stale, so it is held
+    // against the build script that actually produces each artifact. Renaming
+    // either side without the other now fails here rather than at release.
+    const scripts = JSON.parse(readFileSync("package.json", "utf8")).scripts ?? {};
+    const all = Object.values(scripts).join(" ");
+
+    for (const [artifact, source] of Object.entries(GENERATED)) {
+      expect(all, `no build script produces ${artifact}`).toContain(artifact);
+      expect(all, `no build script consumes ${source}`).toContain(source);
     }
   });
 
