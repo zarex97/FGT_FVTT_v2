@@ -37,7 +37,20 @@
 > the giver's `turnState.itemTransfers`, not on the item, which would otherwise carry a spent
 > allowance to its new owner.
 >
-> Still missing from §15.4: Karna's `supersedes` override.
+>
+> **`supersedes` is implemented.** `resolveCosts` in `module/rules/costs.mjs` resolves a set of
+> pending costs against each other before any of them is charged, and `resolveAttack` collects
+> them into one list precisely so it can: supersession is a *relation between costs*, and a cost
+> paid before its supersessor is known has already been paid wrongly. Karna's NP cost overwrites
+> the 20 Health his Master loses when he Acts; Ch. 20's Hanging Gardens upkeep overwrites the NP
+> cost in the other direction. Both are authored data — `additionalCosts` on an ability, `upkeep`
+> on a platform — rather than named in code.
+>
+> Two decisions worth keeping. Supersession is resolved in **one pass over the original set**, not
+> transitively, so the result cannot depend on arrival order. And a cycle of mutual supersession
+> collapses to **one** survivor rather than none — "none" would make a Noble Phantasm free, which
+> is the one outcome no reading of the rule supports. What was dropped and by what is logged, so a
+> Master who paid 50 where they expected 70 can see which rule did it.
 
 Skills, Spells, Attack Skills, Noble Phantasms, Magic Crests, and Class Skills. This chapter
 specifies the ability model: the type taxonomy, the phase structure, costs and gates, and the

@@ -491,6 +491,7 @@ function actorSystem(doc) {
     // to carry; without them a platform compiles into an actor that knows its
     // Health and nothing about who it shields or how it moves.
     footprint: doc.footprint ?? undefined,
+    upkeep: doc.upkeep ?? null,
     capacity: doc.capacity ?? null,
     ownerId: doc.ownerId ?? null,
     level: doc.level ?? undefined,
@@ -559,6 +560,8 @@ function itemSystem(doc) {
     copyable: doc.copyable ?? undefined,
     copiedFrom: doc.copiedFrom ?? null,
     opensDialog: doc.opensDialog ?? null,
+    // §15.4's supersession, as authored data.
+    additionalCosts: doc.additionalCosts ?? [],
     rules: doc.rules ?? [],
     passiveRules: doc.passiveRules ?? [],
     activeRules: doc.activeRules ?? [],

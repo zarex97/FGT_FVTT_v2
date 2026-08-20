@@ -31,7 +31,7 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
-import { canUseAbility } from "../rules/costs.mjs";
+import { canUseAbility, resolveCosts } from "../rules/costs.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
@@ -128,8 +128,24 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     );
   }
 
-  // Confirmation: targeting is settled and legal, so the cost is now paid.
-  if (usage.cost) await applyBatch(costIntents(usage.cost), "attack:cost");
+  // Confirmation: targeting is settled and legal, so the costs are now paid.
+  //
+  // Plural, and resolved against each other first (§15.4). A cost may declare
+  // that it `supersedes` another -- Karna's NP cost overwrites the 20 Health his
+  // Master loses when he Acts, and the Hanging Gardens upkeep overwrites the NP
+  // cost the other way -- and charging both would bill more than the rules say.
+  const pending = pendingCosts({ usage, ability, self, master, board });
+  const { charged, superseded } = resolveCosts(pending);
+
+  for (const cost of charged) await applyBatch(costIntents(cost), "attack:cost");
+  if (superseded.length > 0) {
+    // Logged, because a Master who paid 50 where they expected 70 needs to see
+    // which rule did that; a silently smaller number reads as a bug.
+    await applyBatch(
+      [I.log({ kind: "cost", event: "superseded", superseded, unitId: master?.id ?? self.id })],
+      "attack:cost",
+    );
+  }
 
   // Civilians never enter a Combat Process: "the Civilian is instantly killed"
   // -- no damage calculation, no reaction ladder, no Overpower (Ch. 04 §4.6).
@@ -436,6 +452,53 @@ function abilityUsageSpec(ability) {
     // The rest of §15.4's list, authored beside the targeting limits.
     requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
   };
+}
+
+/**
+ * Every cost this use would incur, before supersession.
+ *
+ * The Noble Phantasm cost is the one the rules layer computes; the rest are
+ * standing charges the ability or an active platform declares. They arrive here
+ * as a flat list precisely so `resolveCosts` can see all of them at once --
+ * supersession is a relation between costs, and a cost paid before its
+ * supersessor is known has already been paid wrongly.
+ *
+ * @param {object} args
+ * @returns {object[]}
+ */
+function pendingCosts({ usage, ability, self, master, board }) {
+  /** @type {object[]} */
+  const out = [];
+
+  if (usage.cost) out.push({ ...usage.cost, id: "npCost" });
+
+  // Standing per-use costs the ability declares, each with its own id so
+  // something else can name it in `supersedes`.
+  for (const extra of ability?.system?.additionalCosts ?? []) {
+    out.push({
+      kind: extra.kind ?? "masterHealth",
+      amount: extra.amount ?? 0,
+      unitId: extra.chargesMaster === false ? self.id : master?.id ?? null,
+      id: extra.id,
+      supersedes: extra.supersedes ?? [],
+    });
+  }
+
+  // A platform this Servant owns may replace the NP cost outright (Ch. 20).
+  const platform = (board.units ?? []).find(
+    (u) => u.kind === "platform" && u.ownerId === self.id && u.upkeep,
+  );
+  if (platform?.upkeep) {
+    out.push({
+      kind: "masterHealth",
+      amount: platform.upkeep.amount ?? 0,
+      unitId: master?.id ?? null,
+      id: `upkeep:${platform.id}`,
+      supersedes: platform.upkeep.supersedes ?? [],
+    });
+  }
+
+  return out;
 }
 
 /**

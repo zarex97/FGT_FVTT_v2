@@ -33,6 +33,16 @@ card, the setup rolls to `engine/summon.mjs`, the requirement kinds to `canUseAb
 to two new intents, the copies to `effectivePhases` — because this project's dominant defect is a
 rule that is right and inert, and a pure module with no caller is exactly that.
 
+**Parts II and III are complete.** All eight resolution-system chapters (13–20) and all ten
+Foundry-architecture chapters (21–30).
+
+Part II's four remaining items were §15.4's `supersedes`, §16.2's contracting, §28.8's
+preview-time override affordance, and Ch. 20's Scene Level operations. The last of those was
+checked against the Foundry v14 source rather than written from the chapter alone, which
+surfaced a constraint the chapter did not state: `TokenDocument#level` is required and
+non-nullable and Foundry does not re-parent tokens when a Level is deleted, so §20.9's
+scatter-before-delete ordering is enforced by the schema rather than merely recommended.
+
 **Part III — Foundry architecture — is complete.** All ten chapters (21–30) are implemented, with
 one deliberate exception recorded as a decision rather than a gap: §26.6's shadow-actor pattern
 for closed-information play stays deferred to Ch. 40, because that section assesses it and defers
@@ -122,12 +132,12 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 |---|---|---|---|
 | 13 | Damage pipeline | **Done** | 16 stages, both worked examples are golden fixtures. |
 | 14 | Checks and randomness | **Done** | Evade, Luck, chance rolls, `checkPlan`, **the roll log (§14.8)** — records on the Process state, per-viewer filtering, GM re-rolls that keep the original — and **setup rolls (§14.9)**, where a Servant's Health takes no roll and a Master's is a coin-flipped `2d100` over a flat 250. |
-| 15 | Abilities | **Mostly** | Classification, phases, **costs and all twelve requirement kinds (§15.4)** — and `canUseAbility` now *consults* them, which it did not. **Copied abilities (§15.7)** are `rules/copy.mjs` + `engine/copy.mjs`: `copyable` as per-ability data, copies by reference so a content fix propagates, and `effectivePhases` as the single reader. **Items (§15.8)** transfer and consume through their own intents. **The GM curation dialog and the player's pick are built (§36.4); Karna's `supersedes` override is the remainder.** |
-| 16 | Relationships | **Mostly** | Master protection, ZON, **Overpower/Underpower (§16.5)**, **Sustainability on a Master's death (§16.6)** — where `null` is not zero — and **the multi-Servant tax (§16.7)**, flat and as a loss rather than damage, with its at-25-Health prohibition. **Contracting (§16.2) — the draft flow — is the remainder.** |
-| 17 | Command Spells | **Done** | Catalogue (16), spend flow, cost variants, offer filtering and the interrupt protocol with its timeout (B1). **The §28.8 preview-time "spend to override" affordance is the remainder.** |
+| 15 | Abilities | **Done** | Classification, phases, **costs and all twelve requirement kinds (§15.4)** — and `canUseAbility` now *consults* them, which it did not. **Copied abilities (§15.7)** are `rules/copy.mjs` + `engine/copy.mjs`: `copyable` as per-ability data, copies by reference so a content fix propagates, and `effectivePhases` as the single reader. **Items (§15.8)** transfer and consume through their own intents. **The GM curation dialog and the player's pick are built (§36.4)**, and **`supersedes` (§15.4)** now resolves a whole set of pending costs against each other before any is charged — Karna's NP cost overwrites his Act cost, and the Hanging Gardens upkeep overwrites the NP cost the other way, both as authored data. |
+| 16 | Relationships | **Done** | Master protection, ZON, **Overpower/Underpower (§16.5)**, **Sustainability on a Master's death (§16.6)** — where `null` is not zero — and **the multi-Servant tax (§16.7)**, flat and as a loss rather than damage, with its at-25-Health prohibition. **Contracting (§16.2)** is built: the adjacency and enemy-clearance gates, the four-row roll table, Independent Action as a *prohibition* at EX/A+ rather than a difficulty, the three namespaced Command Spells, and conquest — which frees and contracts in one descriptor list so the Free state the rules describe is never observable on its own. |
+| 17 | Command Spells | **Done** | Catalogue (16), spend flow, cost variants, offer filtering, the interrupt protocol with its timeout, and **§28.8's preview-time "spend to override"** — rendered inline the moment a refusal appears, and only when the command is actually affordable, because an unusable option should never appear (§17.6). |
 | 18 | Action economy | **Done** | Budget, per-unit limits, prevention, compulsions, **Confuse's random selector (§18.5)** — fully logged, and it may pick allies — and **Undo (§18.7)**, whose boundary is information disclosure: an unrecognised action is refused rather than rewound. |
 | 19 | Environment | **Done** | Day/Night, Home Base E1–E5, the Grail with its runtime owner, Region and its adjacency graph, Civilians, victory conditions and the setup gates (C2). **The Random Event table stays GM-driven by design.** |
-| 20 | Platforms and levels | **Mostly** | Model, movement linkage, cross-level protection, boarding, falling, destruction and the three reference platforms (C3). **The Scene Level operations themselves — create, delete, scatter — are logged rather than performed.** |
+| 20 | Platforms and levels | **Done** | Model, movement linkage, cross-level protection, boarding, falling, destruction, the three reference platforms, and **the Scene Level operations** — create, scatter, delete, and the owner-effect reversal — sequenced in §20.9's order. That order is enforced rather than assumed: `TokenDocument#level` is required and non-nullable and Foundry does not re-parent on delete, so `destroyLevel` refuses while anyone is still aboard. |
 
 ### Part III — Foundry architecture
 
@@ -149,7 +159,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation — **with the dialog that shows it**, reached from the Actors sidebar and the Servant compendium, and refusing a bare compendium drop that would produce a Servant with the template's numbers. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
-| 38 | Testing strategy | **Mostly** | 1362 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1414 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |

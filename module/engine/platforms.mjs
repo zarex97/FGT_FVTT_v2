@@ -11,6 +11,7 @@ import {
 import { currentBoard } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
+import { createLevel, moveToLevel, teardown } from "./scene-levels.mjs";
 
 /**
  * Attempt to board a platform.
@@ -102,16 +103,54 @@ export async function destroyPlatform({ platformId, saves = {} }) {
 
   const descriptors = destructionSequence(platform, board, { saves });
   await applyWorldIntents(await toIntents(descriptors), "platform:destroyed");
+
+  // §20.9 steps 4-8, which used to be logged by name. Ordered by the schema
+  // rather than by preference: `TokenDocument#level` is required and
+  // non-nullable and Foundry does not re-parent on delete, so scatter must
+  // finish before the level goes.
+  const doc = game.actors.get(platformId);
+  if (doc) {
+    const out = await teardown(doc);
+    if (!out.ok) {
+      console.error(`FGT | Could not tear down ${doc.name}: ${out.reason}`, out.stranded);
+      ui.notifications?.error(game.i18n.format("FGT.Platform.TeardownFailed", { name: doc.name }));
+    }
+  }
+
   Hooks.callAll("fgtPlatformDestroyed", platform);
+}
+
+/**
+ * Bring a platform onto the board (§20.9, create).
+ *
+ * The Scene Level comes first: boarding is a movement operation between levels,
+ * so units cannot be placed aboard until there is a level to place them on.
+ *
+ * @param {object} args
+ * @param {string} args.platformId
+ * @param {string[]} [args.initialUnitIds]
+ * @returns {Promise<{ok: boolean, reason?: string}>}
+ */
+export async function activatePlatform({ platformId, initialUnitIds = [] }) {
+  const platform = game.actors.get(platformId);
+  if (!platform) return { ok: false, reason: "notFound" };
+
+  const level = await createLevel(platform);
+  if (!level) return { ok: false, reason: "noScene" };
+
+  if (initialUnitIds.length > 0) await moveToLevel(initialUnitIds, platform);
+
+  Hooks.callAll("fgtPlatformActivated", platform, level);
+  return { ok: true };
 }
 
 /**
  * Turn platform descriptors into intents.
  *
  * `scatter`, `removeLevel`, `removeOwnerEffects` and `dismissBoundSummons` are
- * **logged by name** rather than silently dropped: each needs a Scene Level
- * operation this build does not perform, and a platform that quietly fails to
- * come apart is worse than one that says it could not.
+ * still logged here, but they are no longer only logged: `teardown` in
+ * `engine/scene-levels.mjs` performs each of them after this batch applies. The
+ * log entry is the audit trail for a step that now actually happens.
  *
  * @param {object[]} descriptors
  * @returns {Promise<object[]>}

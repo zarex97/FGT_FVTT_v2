@@ -263,6 +263,55 @@ export function worldIO() {
     },
 
     /**
+     * Set a Servant's contract and its Master (§16.2).
+     *
+     * The Master's roster is updated in the same call. Keeping only the
+     * Servant's side would leave the Master sheet showing a Servant it does not
+     * have, and §16.9's pools are keyed off that roster.
+     *
+     * @param {string} unitId
+     * @param {string} contract
+     * @param {string|null} masterId
+     */
+    async setContract(unitId, contract, masterId) {
+      const servant = resolve(unitId);
+      if (!servant) return;
+
+      const previous = servant.system?.masterId ?? null;
+      await servant.update({ "system.contract": contract, "system.masterId": masterId });
+
+      if (previous && previous !== masterId) {
+        const old = resolve(previous);
+        if (old) {
+          await old.update({
+            "system.servantIds": [...(old.system.servantIds ?? [])].filter((id) => id !== unitId),
+          });
+        }
+      }
+      if (masterId) {
+        const master = resolve(masterId);
+        if (master && !(master.system.servantIds ?? []).includes(unitId)) {
+          await master.update({ "system.servantIds": [...(master.system.servantIds ?? []), unitId] });
+        }
+      }
+    },
+
+    /**
+     * Add Command Spells usable only on one Servant (§16.9).
+     * @param {string} masterId
+     * @param {string} servantId
+     * @param {number} count
+     */
+    async grantCommandSpells(masterId, servantId, count) {
+      const master = resolve(masterId);
+      if (!master || count <= 0) return;
+
+      const pools = { ...(master.system.commandSpellsPerServant ?? {}) };
+      pools[servantId] = (pools[servantId] ?? 0) + count;
+      await master.update({ "system.commandSpellsPerServant": pools });
+    },
+
+    /**
      * @param {object[]} entries
      */
     async log(entries) {

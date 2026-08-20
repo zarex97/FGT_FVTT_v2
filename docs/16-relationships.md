@@ -81,6 +81,27 @@ function contractState(servant, board): ContractState {
 
 ---
 
+> **Implemented.** `module/rules/contract.mjs`, `module/engine/contract.mjs` and
+> `module/apps/contract-dialog.mjs`.
+>
+> Two things in this section are easy to implement subtly wrong, and both are load-bearing.
+> **The enemy-proximity check is about the contractor**, not the target — and the Servant being
+> contracted is itself an enemy unit standing adjacent, so a naive reading of that check refuses
+> every enemy contract in the game. It is excluded explicitly. **Independent Action at EX or A+
+> is a prohibition, not a difficulty**: returning a large number of required rolls would make it
+> a rule that enough attempts can beat, and the text says such a Servant cannot be contracted by
+> enemies at all, so `rollsRequired` returns `Infinity` and the plan refuses with `immune`.
+>
+> Conquest frees and contracts in **one descriptor list**, as this section requires — emitting a
+> `contract: "free"` step first would let a watcher observe a Free Servant that by the rules was
+> never Free. A lone Servant killing a Master **logs** its declined claim rather than staying
+> silent, because the absence of a contract there is a rule and a player will otherwise assume
+> the system missed it.
+>
+> Every roll is kept even after one has failed: the arithmetic does not need them, but
+> "Kiritsugu resisted 4, 2, 6, 1" is a record a player can check, and stopping early would make
+> an Independent Action A indistinguishable from an ordinary Servant in the log.
+
 ## 16.2 Contracting
 
 To form a contract, the Master or Caster must be on a panel **next to** the target Servant

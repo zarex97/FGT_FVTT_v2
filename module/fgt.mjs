@@ -31,6 +31,9 @@ import * as summon from "./engine/summon.mjs";
 import * as items from "./engine/items.mjs";
 import * as copy from "./engine/copy.mjs";
 import * as gameLog from "./engine/game-log.mjs";
+import * as contract from "./engine/contract.mjs";
+import * as sceneLevels from "./engine/scene-levels.mjs";
+import * as legality from "./rules/legality.mjs";
 import * as control from "./rules/control.mjs";
 import * as cardVisibility from "./rules/card-visibility.mjs";
 import { SummonDialog } from "./apps/summon-dialog.mjs";
@@ -38,6 +41,7 @@ import { CopyDialog } from "./apps/copy-dialog.mjs";
 import { ChoiceDialog } from "./apps/choice-dialog.mjs";
 import { LogViewer } from "./apps/log-viewer.mjs";
 import { AbilityEditor } from "./apps/ability-editor.mjs";
+import { ContractDialog } from "./apps/contract-dialog.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
@@ -192,8 +196,8 @@ function buildPublicAPI() {
     // Exposed because both are GM workflows a macro drives -- a summon dialog
     // is content, not engine.
     summon, items, copy,
-    gameLog, control, cardVisibility,
-    dialogs: { SummonDialog, CopyDialog, ChoiceDialog, LogViewer, AbilityEditor },
+    gameLog, control, cardVisibility, contract, sceneLevels, legality,
+    dialogs: { SummonDialog, CopyDialog, ChoiceDialog, LogViewer, AbilityEditor, ContractDialog },
     effects: EffectRegistry,
     commandSpells: CommandSpellRegistry,
     collectContributions,

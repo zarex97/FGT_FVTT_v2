@@ -43,6 +43,19 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       ownerId: new fields.StringField({ required: false, nullable: true, initial: null }),
       /** Its own Scene Level (D20.1). Every active platform gets one. */
       level: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),
+      // The Foundry `Level` document's id, as opposed to `level` above, which is
+      // the ordinal the cross-level rules compare. Two different things with
+      // almost the same name, so: this one is what `scene.levels.get()` takes.
+      levelId: new fields.StringField({ required: false, nullable: true, initial: null }),
+
+      // A per-round charge on the owner's Master, which may REPLACE another
+      // cost rather than add to it (§15.4's `supersedes`). The Hanging Gardens
+      // is the case: "This effect overwrites the normal Master Health loss when
+      // a Servant uses its NP."
+      upkeep: new fields.SchemaField({
+        amount: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+        supersedes: new fields.ArrayField(new fields.StringField({ blank: false })),
+      }, { required: false, nullable: true, initial: null }),
 
       // Cross-level rules are per-platform, not global (Ch. 20 §20.7): the
       // author confirmed protection is decided case by case, so there is no

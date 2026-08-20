@@ -50,6 +50,12 @@ function abilityCommon() {
     activeRules: new fields.ArrayField(new fields.ObjectField()),
     parameterized: new fields.ArrayField(new fields.StringField()),
 
+    // Standing per-use costs beyond the Noble Phantasm cost (§15.4). Each
+    // carries an `id` so another cost can name it in `supersedes`, which is how
+    // Karna's NP cost overwrites the 20 Health his Master loses when he Acts
+    // rather than stacking with it.
+    additionalCosts: new fields.ArrayField(new fields.ObjectField()),
+
     // Whether Scáthach may copy this (§15.7). Authored per ability because
     // "Skills a Servant is physically born with" is a judgement the author
     // makes and the engine cannot infer -- there is no field on Natural Body

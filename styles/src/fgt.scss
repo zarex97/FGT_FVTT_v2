@@ -216,6 +216,45 @@
   &__state { font-weight: 600; }
 }
 
+.fgt-contract {
+  display: flex; flex-direction: column; gap: 0.5rem;
+
+  &__hint { font-size: 0.75rem; opacity: 0.8; margin: 0; }
+  &__empty { font-style: italic; opacity: 0.7; font-size: 0.8rem; }
+  &__list { list-style: none; margin: 0; padding: 0; }
+  &__row {
+    display: flex; gap: 0.5rem; align-items: baseline;
+    padding: 0.25rem 0.3rem;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+
+    // Refused rows stay visible: "why can I not contract that one" has four
+    // different answers, and hiding the row answers all four with silence.
+    &--refused { opacity: 0.65; }
+  }
+  &__name { font-weight: 600; flex: 1; }
+  &__state { font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; }
+  &__terms { font-size: 0.72rem; }
+  &__odds { font-size: 0.7rem; opacity: 0.75; }
+  &__refusal { font-size: 0.72rem; font-style: italic; opacity: 0.85; }
+}
+
+// §28.8's inline legality. The KIND is what the colour carries: a hard refusal
+// and one a Command Spell can lift are different decisions.
+.fgt-preview {
+  &__reason--overridable { border-left: 3px solid var(--fgt-accent, #b07); padding-left: 0.3rem; }
+  &__reason--confirm { border-left: 3px solid var(--fgt-warn, #c80); padding-left: 0.3rem; }
+  &__override {
+    display: inline-block; margin-left: 0.3rem;
+    font-size: 0.68rem; font-weight: 600;
+    color: var(--fgt-accent, #b07);
+  }
+  &__confirm {
+    margin-top: 0.2rem; padding: 0.2rem 0.3rem;
+    font-size: 0.72rem; font-weight: 700;
+    background: rgba(200, 136, 0, 0.15);
+  }
+}
+
 .fgt-log {
   display: flex;
   flex-direction: column;

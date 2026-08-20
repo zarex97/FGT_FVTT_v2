@@ -340,6 +340,22 @@ computation returns a redacted range.
 
 ---
 
+> **Implemented.** `module/rules/legality.mjs` holds the table; the targeting layer and its
+> preview HUD render it. Each refusal carries its **kind**, and the three are genuinely different
+> decisions: `hard` refuses, `overridable` refuses *and offers the Command Spell that would lift
+> it inline*, and `confirm` does not refuse at all — the placement is legal and catastrophic, so
+> the Grail takes a second deliberate click.
+>
+> `isBlocked` only treats an overridable refusal as lifted when the command is **actually
+> available**, because offering a spend button for a command the Master cannot afford is §17.6's
+> "an unusable option should never appear" failure exactly.
+>
+> Verdicts are ordered **hard first**: a player facing both a fixable refusal and an unfixable one
+> should read the unfixable one, since spending a Command Spell on the other still leaves them
+> unable to act. A test holds each message's `{placeholders}` against the `params` its table entry
+> declares — a message with a placeholder nobody supplies renders a blank, which reads as a bug in
+> the number rather than a missing field.
+
 ## 28.8 Legality rendering
 
 Validation failures render inline rather than as an error after the fact:

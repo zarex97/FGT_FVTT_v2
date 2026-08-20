@@ -35,6 +35,12 @@
     </div>
   </header>
 
+  {{#if canContract}}
+    <button type="button" class="fgt-sheet__setup" data-action="contract">
+      {{localize "FGT.Contract.Button"}}
+    </button>
+  {{/if}}
+
   {{#if canRollSetup}}
     {{!-- §14.9's setup rolls. Disabled rather than hidden once the match has
           started, so a GM who expected the button learns why it is gone. --}}

@@ -36,6 +36,28 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Part II of Ch. 45 is complete** — all eight resolution-system chapters (13–20).
+- **Cost supersession (§15.4).** `resolveCosts` resolves a whole set of pending costs against
+  each other *before any is charged*, because supersession is a relation between costs and one
+  paid before its supersessor is known has already been paid wrongly. Karna's NP cost overwrites
+  the 20 Health his Master loses when he Acts; the Hanging Gardens upkeep overwrites the NP cost
+  in the other direction. Both are authored data (`additionalCosts`, `upkeep`), not named in
+  code. A cycle collapses to one survivor rather than none — none would make a Noble Phantasm
+  free.
+- **Contracting (§16.2)**, with its dialog. The enemy-clearance check excludes the target, which
+  is itself an adjacent enemy — a naive reading refuses every enemy contract in the game.
+  Independent Action at EX or A+ returns `Infinity` rolls, because it is a prohibition rather
+  than a difficulty and a number is a rule enough attempts can beat. Conquest frees and contracts
+  in one descriptor list, so the Free state the rules describe is never observable.
+- **§28.8's legality rendering**, with three kinds that are genuinely different decisions:
+  `hard` refuses, `overridable` offers the Command Spell inline *only when it is affordable*,
+  and `confirm` does not refuse at all — the Grail placement is legal and catastrophic, so it
+  takes a second deliberate click.
+- **The Scene Level operations (§20.2, §20.9)** — create, scatter, delete, owner-effect reversal
+  and the teardown that sequences them. Previously logged by name; now performed.
+- Two new intents, `markContract` and `grantCommandSpells`, with their writers.
+
+
 - **Part III of Ch. 45 is complete** — all ten Foundry-architecture chapters (21–30).
 - **The spatial `AuraIndex` and §23.9's invalidation table.** The index does spatial narrowing and
   nothing else: relations stay in `collectAuras`, which already decided them correctly, because a
@@ -214,6 +236,15 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **`destroyLevel` refuses while passengers are still aboard.** Verified against the Foundry v14
+  source: `TokenDocument#level` is `required` and non-nullable, and `Level._onDeleteOperation`
+  fixes only the *view* — it does not re-parent tokens. A level deleted under its passengers
+  leaves every one of them pointing at an id that no longer resolves, which survives a reload
+  and which nothing on screen explains. §20.9's scatter-before-delete order is therefore enforced
+  by the schema, not merely recommended.
+- **`visibility.levels` is one-way per level**, so creating a platform level now sets the
+  reference on both sides. Setting only the platform's left the board unable to see what was
+  hovering over it.
 - **`masterMode` and `interruptTimeout` were registered settings that nothing read.** Both are
   live now: §14.9's three Master rank modes, and §27.5's configurable prompt deadlines.
 - **`io.prompt` emitted an operation that did not exist.** It has asked for `"prompt"` since
