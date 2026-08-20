@@ -110,3 +110,92 @@ export function targetSpecFor(item, range) {
     selection: { relations: ["self"], includeSelf: true, chooser: "all", count: 1 },
   };
 }
+
+/**
+ * Does using this ability require the player to choose anything?
+ *
+ * The failure this answers: Asterios's *Avyssos of Labrys* buffs **himself**,
+ * and it opened a targeting session that showed one target -- Asterios -- a
+ * damage range, and a button labelled "Attack". Every part of that was wrong,
+ * and the session itself was the root: a confirmation dialog for a decision
+ * with exactly one possible answer is a click that asks nothing.
+ *
+ * A choice exists when the anchor is somebody else, when the selection can
+ * reach a unit that is not the caster, or when the shape has an orientation to
+ * pick. Self-anchored is **not** sufficient on its own: a 5x5 block projected
+ * from the caster still has four directions, and which one is the player's.
+ *
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function needsTargeting(item) {
+  const sys = item?.system ?? {};
+  const use = classifyAbility(item);
+
+  // An attack always picks something, even a self-targeting one -- it opens a
+  // Combat Process against a defender.
+  if (use.isAttack) return true;
+  if (use.kind === "mode" || use.kind === "passive" || use.kind === "dialog") return false;
+
+  const spec = sys.targeting ?? null;
+  if (!spec) {
+    // No declaration: `targetSpecFor` gives a non-attack the self/self spec, so
+    // there is nothing to choose.
+    return false;
+  }
+
+  const anchor = spec.anchor?.kind ?? spec.anchor ?? "self";
+  if (anchor !== "self") return true;
+
+  // A shape with an orientation or an extent the player places.
+  const shape = spec.shape?.kind ?? spec.shape ?? "unit";
+  if (!["unit", "point"].includes(shape)) return true;
+
+  const relations = spec.selection?.relations ?? ["self"];
+  return relations.some((r) => r !== "self");
+}
+
+/**
+ * Does using this count as the Unit's **Attack** for the turn?
+ *
+ * *"Attack Skills deal damage ... Attack Skills usually count as the Unit's
+ * Attack for the Turn unless stated."* Two halves, and the code had neither.
+ *
+ * "Deal damage" means **directly**: a `damage` phase. A skill whose only effect
+ * is a debuff that costs the target Health over time -- poison, burn -- is not
+ * an Attack Skill, however much Health it eventually removes. That distinction
+ * is the whole difference between a Servant that has attacked this turn and one
+ * that has not.
+ *
+ * "Unless stated" is why content may override with `countsAsAttack`.
+ *
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function countsAsAttack(item) {
+  const sys = item?.system ?? {};
+  if (typeof sys.countsAsAttack === "boolean") return sys.countsAsAttack;
+
+  if (item?.type === "noblePhantasm" || sys.isNP) return true;
+  // Directly. An `applyEffects` phase carrying poison is not an attack.
+  return (sys.phases ?? []).some((p) => p.kind === "damage")
+    || sys.isAttackSkill === true
+    || sys.isSpell === true;
+}
+
+/**
+ * Does using this count as the Unit's **Act** for the turn?
+ *
+ * Broader than `countsAsAttack`: a self-buff is not an attack and is still the
+ * thing the Servant did with its turn.
+ *
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function countsAsAct(item) {
+  const sys = item?.system ?? {};
+  if (typeof sys.countsAsAct === "boolean") return sys.countsAsAct;
+
+  const use = classifyAbility(item);
+  return use.kind === "attack" || use.kind === "active";
+}

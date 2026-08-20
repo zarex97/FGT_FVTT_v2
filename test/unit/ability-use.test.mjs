@@ -4,7 +4,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { classifyAbility, targetSpecFor } from "../../module/rules/ability-use.mjs";
+import {
+  classifyAbility, targetSpecFor, needsTargeting, countsAsAttack, countsAsAct,
+} from "../../module/rules/ability-use.mjs";
 
 const ability = (system = {}, type = "ability") => ({ type, system });
 
@@ -88,5 +90,84 @@ describe("targetSpecFor", () => {
 
   it("targets the user for a mode", () => {
     expect(targetSpecFor(ability({ isMode: true }), 3).anchor.kind).toBe("self");
+  });
+});
+
+describe("needsTargeting", () => {
+  const selfSkill = { system: { phases: [{ kind: "applyEffects", rules: [] }] } };
+
+  it("is FALSE for a self-only skill", () => {
+    // Asterios's Avyssos of Labrys buffs himself. Opening a targeting session
+    // to confirm the only possible target is a click that answers nothing --
+    // and the one it shipped with offered an "Attack" button and a damage
+    // range for a skill that neither attacks nor deals damage.
+    expect(needsTargeting(selfSkill)).toBe(false);
+  });
+
+  it("is true for an ability that targets an enemy", () => {
+    expect(needsTargeting({ system: { isAttackSkill: true } })).toBe(true);
+  });
+
+  it("is true for a Noble Phantasm", () => {
+    expect(needsTargeting({ type: "noblePhantasm", system: {} })).toBe(true);
+  });
+
+  it("is true for a self-anchored skill that still picks a DIRECTION", () => {
+    // Anchored on the caster and still a choice: the 5x5 block projects one of
+    // four ways, and which one is the player's decision.
+    expect(needsTargeting({
+      system: { targeting: { anchor: { kind: "self" }, shape: { kind: "rect", w: 5, h: 5 } } },
+    })).toBe(true);
+  });
+
+  it("is true when the ability targets allies, because which ally is a choice", () => {
+    expect(needsTargeting({
+      system: {
+        phases: [{ kind: "applyEffects" }],
+        targeting: { anchor: { kind: "targetUnit" }, selection: { relations: ["ally"] } },
+      },
+    })).toBe(true);
+  });
+
+  it("is false for a declared self/self spec", () => {
+    expect(needsTargeting({
+      system: {
+        phases: [{ kind: "applyEffects" }],
+        targeting: {
+          anchor: { kind: "self" }, shape: { kind: "unit" },
+          selection: { relations: ["self"], count: 1 },
+        },
+      },
+    })).toBe(false);
+  });
+});
+
+describe("countsAsAttack / countsAsAct", () => {
+  it("treats a damaging skill as the Unit's Attack for the Turn", () => {
+    // "Attack Skills usually count as the Unit's Attack for the Turn unless
+    // stated."
+    expect(countsAsAttack({ system: { phases: [{ kind: "damage" }] } })).toBe(true);
+  });
+
+  it("does NOT treat a debuff that causes Health loss as an Attack", () => {
+    // The distinction the rules draw and the code did not: an Attack Skill
+    // deals damage DIRECTLY. A skill that inflicts poison is not one, however
+    // much Health the poison eventually costs.
+    expect(countsAsAttack({
+      system: { phases: [{ kind: "applyEffects", rules: [{ effect: { id: "poison" } }] }] },
+    })).toBe(false);
+  });
+
+  it("lets content say otherwise, because the rule says 'unless stated'", () => {
+    expect(countsAsAttack({ system: { phases: [{ kind: "damage" }], countsAsAttack: false } })).toBe(false);
+    expect(countsAsAttack({ system: { countsAsAttack: true } })).toBe(true);
+  });
+
+  it("counts an active skill as the Unit's Act even when it is not an Attack", () => {
+    expect(countsAsAct({ system: { phases: [{ kind: "applyEffects" }] } })).toBe(true);
+  });
+
+  it("does not count a passive as an Act", () => {
+    expect(countsAsAct({ system: {} })).toBe(false);
   });
 });

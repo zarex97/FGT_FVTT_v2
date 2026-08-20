@@ -236,6 +236,27 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **A Skill was resolved as an Attack.** Using Asterios's *Avyssos of Labrys* — three buffs
+  applied to Asterios, touching nobody — opened a targeting session listing Asterios as a target,
+  priced him at "120–165" damage, offered a button labelled **Attack**, and on confirmation
+  started a Combat Process that asked him to Evade or Block. *Natural Monster* did the same.
+
+  `resolveAttack` was the only route into using an ability. Every layer already had what was
+  needed to prevent this: `classifyAbility` returned `isAttack: false`, and `targetSpecFor`
+  returned a self/self spec. The sheet's click handler read neither — the signature defect of
+  this project, a rule that is right and inert.
+
+  A non-attacking Skill now has its own path (`module/engine/skill-use.mjs`): no Combat Process,
+  because there is no defender and a ladder whose every rung is skipped is not a ladder; a plain
+  card instead of a reaction card; the **skill** budget rather than an attack; and no targeting
+  session at all unless something is genuinely being chosen.
+
+  Two rules the code had never expressed, both from §15.1 and both now honoured. **"Attack Skills
+  deal damage" means *directly***: a skill whose only effect is a debuff that costs Health over
+  time is not an Attack Skill, however much Health the poison eventually removes. And **"unless
+  stated"** — `countsAsAttack` and `countsAsAct` appear in this chapter's own worked example and
+  nothing had ever read them.
+
 - **Every Servant sheet threw on open.** `canContract` called `.includes` on
   `system.servantClasses`, which is a `SetField` and therefore arrives as a `Set` — and a `Set`
   has `.has`, not `.includes`. The `?? []` beside it reads like a guard and defended against

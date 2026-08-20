@@ -382,5 +382,10 @@
   "FGT.Contract.Refusal.alreadyContracted": "Already contracted — only Unbound and Free Servants can be.",
   "FGT.Contract.Refusal.forbidden": "An ally cannot contract an Unbound Servant.",
   "FGT.Contract.Refusal.immune": "Independent Action at this rank cannot be contracted by enemies at all.",
-  "FGT.Targeting.ClickAgain": "Click again to confirm."
+  "FGT.Targeting.ClickAgain": "Click again to confirm.",
+  "FGT.Skill.On": "on",
+  "FGT.Skill.NoEffects": "No effects were applied.",
+  "FGT.Skill.Refused": "{name} cannot be used: {reason}.",
+  "FGT.Skill.UnknownEffect": "{name} applies an unknown effect \"{id}\" — it did nothing.",
+  "FGT.Skill.DamagePhase": "{name} deals damage but was used as a Skill. It should be marked as an Attack Skill."
 }

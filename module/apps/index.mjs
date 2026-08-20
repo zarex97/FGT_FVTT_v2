@@ -7,7 +7,7 @@
  * targeting preview and the reaction prompts are a later phase.
  */
 
-import { classifyAbility } from "../rules/ability-use.mjs";
+import { classifyAbility, needsTargeting } from "../rules/ability-use.mjs";
 import * as board from "../engine/board.mjs";
 import { currentBoard } from "../engine/board.mjs";
 import { poolsOf, isUnbound } from "../rules/cs-namespacing.mjs";
@@ -81,7 +81,44 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onUseAbility(_event, target) {
     const abilityId = target.closest("[data-item-id]")?.dataset.itemId ?? null;
     const ability = abilityId ? this.document.items.get(abilityId) : null;
+
+    // A Skill is not an Attack (§15.1), and until now both went down the same
+    // path: a self-buff opened a targeting session, priced its own caster for
+    // damage, offered an "Attack" button and started a Combat Process that
+    // asked the target to Evade. `classifyAbility` had said `isAttack: false`
+    // the whole time and nothing on this path read it.
+    if (ability && !classifyAbility(ability).isAttack) {
+      return FGTActorSheet.useSkill(this.document, ability);
+    }
     return FGTActorSheet.#declare(this.document, ability);
+  }
+
+  /**
+   * Use a non-attacking active Skill.
+   *
+   * The targeting session is opened **only when there is something to choose**.
+   * A confirmation dialog for a decision with one possible answer is a click
+   * that asks nothing, and the one this replaced asked it with the wrong verb.
+   *
+   * @param {object} actor
+   * @param {object} ability
+   * @returns {Promise<void>}
+   */
+  static async useSkill(actor, ability) {
+    let placement = {};
+
+    if (needsTargeting(ability)) {
+      placement = await pickPlacement(actor, ability);
+      if (!placement) return;
+    }
+
+    const { useSkill } = await import("../engine/skill-use.mjs");
+    const out = await useSkill({ actorId: actor.id, abilityId: ability.id, placement });
+    if (!out.ok) {
+      ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", {
+        name: ability.name, reason: out.reason,
+      }));
+    }
   }
 
   /**
