@@ -73,7 +73,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   const cost = costOf(command, ctx.master, ctx.settings);
   const effects = effectsOf(command, ctx);
   const intents = [
-    I.spendCS(masterId, cost, command.id),
+    I.spendCS(masterId, cost, command.id, ctx.servant?.id ?? null),
     // §17.8: the audit trail says who spent what, on whom, and when — a
     // Command Spell is the most consequential thing a Master can do and the
     // one most likely to be argued about afterwards.

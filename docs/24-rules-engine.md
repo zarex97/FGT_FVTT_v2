@@ -402,6 +402,12 @@ principle P4.
 
 ---
 
+> **Implemented.** `@intentional` is enforced by `tools/lib/content.mjs`: an element with an
+> explicit `priority` and no marker is a **build error**, and one with a marker is a **warning**
+> naming the band the override lands in. The marker must be **prose** — `@intentional: true`
+> states nothing, and a reviewer reading it a year later learns nothing either. The override
+> itself only warns, because it is a supported feature that fewer than five elements need.
+
 ## 24.6 Priority and ordering
 
 Elements apply in priority bands (Ch. 06 §6.11), with a stable secondary sort by source document

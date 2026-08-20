@@ -25,6 +25,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { availableFor } from "./cs-namespacing.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 
 /** The interruptible points (§17.4). `anyTime` commands are offered at all of them. */
@@ -71,7 +72,11 @@ export function costOf(command, master, settings = {}) {
  */
 export function canSpend(command, ctx) {
   const cost = costOf(command, ctx.master, ctx.settings);
-  if ((ctx.master?.commandSpells ?? 0) < cost) return { ok: false, reason: "cost", cost };
+  // §16.9: the pool is per RELATIONSHIP. A Master with three spells borrowed
+  // for Archer cannot spend them on Lancer, and the flat count could not say so.
+  if (availableFor(ctx.master, ctx.servant?.id ?? null) < cost) {
+    return { ok: false, reason: "cost", cost };
+  }
 
   for (const req of command.requirements ?? []) {
     if (!meets(req, ctx)) return { ok: false, reason: req.kind, cost };

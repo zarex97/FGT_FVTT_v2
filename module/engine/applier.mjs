@@ -155,7 +155,11 @@ async function writeGroup(group, io) {
       await io.setFacing(unitId, intents.at(-1).facing);
       break;
     case "spendCS":
-      await io.spendCommandSpells(unitId, sum(intents, "count"), intents[0].command);
+      // The Servant travels with the intent, because §16.9's pools are keyed by
+      // it -- without it the writer cannot tell which pool to draw from.
+      await io.spendCommandSpells(
+        unitId, sum(intents, "count"), intents[0].command, intents[0].servantId ?? null,
+      );
       break;
     case "markTurn":
       await io.markTurn(unitId, Object.assign({}, ...intents.map((i) => i.patch)));

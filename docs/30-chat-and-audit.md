@@ -192,6 +192,25 @@ In open-info mode (the default) everyone sees everything and the redaction layer
 
 ---
 
+> **Implemented.** `module/rules/game-log.mjs` (shape, filter, flush policy, export payload),
+> `module/engine/game-log.mjs` (storage) and `module/apps/log-viewer.mjs` (the viewer), with the
+> bounded log on `Combat.system.log` and the overflow on a GM-only JournalEntry exactly as
+> described.
+>
+> Three decisions worth recording. A **partial batch never flushes** — flushing the moment the cap
+> is passed would make every subsequent write a journal write, which is the cost the bound exists
+> to avoid. **Sequence numbers are stable**, because an override references the entry it modified
+> by `seq` and renumbering on append would silently repoint every override. And the structured log
+> is **narrower than the intent trail**: the trail carries two dozen kinds, most of them mechanism,
+> and `classifyLogEntry` promotes only the ones a player or a maintainer goes looking for. An
+> unmapped kind stays in the trail rather than being dropped.
+>
+> §30.9's export and §30.10's overrides are both live — the export button is in the viewer's
+> footer, and an override is recorded **beside** the entry it changed with the original struck
+> through. The reason field is enforced in the **rules layer**, which throws without one: an
+> unexplained override is indistinguishable from a bug in the record, so a log that permits one is
+> a log nobody can trust the rest of.
+
 ## 30.8 The game log
 
 Chat is ephemeral in practice — it scrolls, it gets cleared, and it interleaves with

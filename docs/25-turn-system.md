@@ -310,6 +310,17 @@ It updates on `updateCombat`, `updateCombatant`, and our own `fgt.budgetChanged`
 
 ---
 
+> **Implemented.** `module/rules/control.mjs`. One correction to the sketch below: resolution
+> **follows the chain** rather than stopping at the charmer's owner. If A charms B and B charms C,
+> then C answers to whoever holds B — which is A's controller — and stopping after one hop would
+> return B's *owner*, the player who at that moment controls nothing. A visited set guards the
+> cycle, because an unguarded one hangs the turn HUD rather than producing a wrong answer.
+>
+> A charm whose source has left the board falls back to the **GM**, not to the victim's owner:
+> handing control back to the player the charm just took it from would make a dead charmer's charm
+> a no-op. This section's RISK is unchanged — permissions are not altered, so charmed-unit actions
+> take the GM proxy, which is already the default path.
+
 ## 25.7 Charm and control transfer
 
 `Charm` switches control of a unit to the charmer for X turns (Ch. 18 §18.5). The turn system
@@ -390,6 +401,17 @@ has been applied would invalidate every stored expiry turn.
 prominently so nobody wastes a turn discovering it.
 
 ---
+
+> **Implemented.** The desync detector is `module/rules/desync.mjs` (the checksum) and
+> `module/engine/invalidation-hooks.mjs` (the round-boundary broadcast). It hashes exactly the
+> three things this section names — positions, health values, effect ids — sorted at both levels,
+> because units arrive in canvas-enumeration order and effects in creation order, and neither
+> difference is a desync. **Nothing else goes in**: every field added that can legitimately differ
+> between clients turns the detector into a false alarm, and a detector that cries wolf is turned
+> off.
+>
+> A **missing** broadcast counts as agreement rather than as drift — it is a client that connected
+> after the boundary, and refreshing on one would make every reconnect look like a desync.
 
 ## 25.10 Reconnection and desync
 

@@ -89,6 +89,15 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // The Holy Grail (Ch. 19 §19.4). `grailCounter` counted defeated Servants
       // and nothing ever incremented or read it; the rest of the state had
       // nowhere to live at all, so materialization could not happen.
+      // The structured game log (Ch. 30 §30.8). Chat is ephemeral in practice --
+      // it scrolls, it gets cleared, and it interleaves with out-of-character
+      // talk -- so the record that survives lives here. Bounded at 200 entries;
+      // older ones flush to a JournalEntry, which is what keeps this document
+      // from growing without limit (Ch. 22 §22.8's RISK).
+      log: new fields.ArrayField(new fields.ObjectField()),
+      // The journal holding everything already flushed off `log`.
+      logJournalId: new fields.StringField({ required: false, nullable: true, initial: null }),
+
       grailCounter: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       grailThreshold: new fields.NumberField({ required: true, integer: true, initial: 9, min: 1 }),
       grailMaterialized: new fields.BooleanField({ initial: false }),

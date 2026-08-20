@@ -36,6 +36,41 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Part III of Ch. 45 is complete** — all ten Foundry-architecture chapters (21–30).
+- **The spatial `AuraIndex` and §23.9's invalidation table.** The index does spatial narrowing and
+  nothing else: relations stay in `collectAuras`, which already decided them correctly, because a
+  second implementation would be two answers to one question. Held against the linear scan by a
+  24-unit, mixed-radius equivalence test. The table drives the canvas index, the overlays and the
+  desync check — and the chapter now records honestly that it names a *snapshot cache* this system
+  does not have, because snapshots are computed per resolution.
+- **`@intentional` (§24.6).** An unmarked `priority` override is now a build error; a marked one
+  warns and names the band it lands between. The marker must be prose.
+- **Charm and control transfer (§25.7)**, following the chain rather than one hop — if A charms B
+  and B charms C, C answers to whoever holds B — with a cycle guard, because an unguarded cycle
+  hangs the turn HUD.
+- **The round-boundary desync detector (§25.10)**, hashing positions, health and effect ids and
+  deliberately nothing else: any field that can legitimately differ between clients turns it into
+  a false alarm, and a detector that cries wolf is turned off.
+- **Per-viewer chat cards (§26.7)**, redacting by side. A row with no side is kept — unattributed
+  is a board fact, and dropping it leaves a breakdown whose numbers do not add up.
+- **Per-rung reaction timeouts (§27.5).** GM-clocked, with the deadline stored on the message so
+  no two clients disagree, and every default asserted to spend nothing as a property over the
+  whole table rather than reviewed row by row.
+- **The last three §28.9 overlays** — Decoy pull, platform footprints with level badges, and the
+  Grail contest ring. The overlays now redraw from `fgt.invalidate` instead of a hand-maintained
+  hook list that had gone stale in both directions.
+- **The Master sheet (§29.3), the token HUD (§29.5) and the ability editor (§29.6).** The editor's
+  targeting picker shows diagrams rather than internal names, and a drift test holds its shape
+  list against `expand()` in both directions.
+- **The game log (§30.8), export (§30.9) and GM overrides (§30.10)**, with a viewer that filters by
+  round, kind, actor and text. An override is recorded beside what it changed, with the original
+  struck through and the reason enforced in the rules layer.
+- **§16.9's per-Servant Command Spell pools**, which §29.3 needed and which were specified and
+  absent: a flat count could not say which Servant a spell reached, so Unbound could not be
+  derived. Added beside the existing field rather than replacing it — Ch. 39's migration runner
+  does not exist, and retyping a live field would break every world that has one.
+
+
 - **The summon dialog (§37.6)**, `module/apps/summon-dialog.mjs`. Pick a Servant, a Master, the
   war Region and the Master's parameter grants; roll; see every line with its arithmetic and a
   per-line re-roll; then commit. Nothing is written until the last step, which is why the engine
@@ -179,6 +214,8 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **`masterMode` and `interruptTimeout` were registered settings that nothing read.** Both are
+  live now: §14.9's three Master rank modes, and §27.5's configurable prompt deadlines.
 - **`io.prompt` emitted an operation that did not exist.** It has asked for `"prompt"` since
   intents were written and `OPERATIONS` has never had that key, so every prevention Luck Check
   threw `UNKNOWN_OP` where a player should have been asked a question. The operation exists now,

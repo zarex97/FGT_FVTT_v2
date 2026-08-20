@@ -46,6 +46,18 @@ function onRenderDirectory(_app, html) {
   button.innerHTML = `<i class="fa-solid fa-hand-sparkles"></i> ${game.i18n.localize("FGT.Summon.Button")}`;
   button.addEventListener("click", () => SummonDialog.open());
   header.append(button);
+
+  // The game log (§30.8) lives here too: it is a GM tool about the match, and
+  // the Actors sidebar is where the match's units already are.
+  const log = document.createElement("button");
+  log.type = "button";
+  log.dataset.fgtLog = "";
+  log.innerHTML = `<i class="fa-solid fa-scroll"></i> ${game.i18n.localize("FGT.Log.Button")}`;
+  log.addEventListener("click", async () => {
+    const { LogViewer } = await import("./log-viewer.mjs");
+    LogViewer.open();
+  });
+  header.append(log);
 }
 
 /**

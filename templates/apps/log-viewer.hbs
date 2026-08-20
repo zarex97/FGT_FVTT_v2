@@ -1,0 +1,100 @@
+{{!-- The game log (docs/30-chat-and-audit.md §30.8). --}}
+<div class="fgt-log">
+
+  <section class="fgt-log__filters">
+    <label>
+      <span>{{localize "FGT.Log.Round"}}</span>
+      <select name="round">
+        <option value="">{{localize "FGT.Log.AnyRound"}}</option>
+        {{#each rounds as |r|}}
+          <option value="{{r}}" {{#if (eq r ../filter.round)}}selected{{/if}}>{{r}}</option>
+        {{/each}}
+      </select>
+    </label>
+
+    <label>
+      <span>{{localize "FGT.Log.Kind"}}</span>
+      <select name="kind">
+        <option value="">{{localize "FGT.Log.AnyKind"}}</option>
+        {{#each kinds as |k|}}
+          <option value="{{k}}" {{#if (eq k ../filter.kind)}}selected{{/if}}>{{k}}</option>
+        {{/each}}
+      </select>
+    </label>
+
+    <label>
+      <span>{{localize "FGT.Log.Actor"}}</span>
+      <select name="actorId">
+        <option value="">{{localize "FGT.Log.AnyActor"}}</option>
+        {{#each actors as |a|}}
+          <option value="{{a.id}}" {{#if (eq a.id ../filter.actorId)}}selected{{/if}}>{{a.name}}</option>
+        {{/each}}
+      </select>
+    </label>
+
+    <label class="fgt-log__search">
+      <span>{{localize "FGT.Log.Search"}}</span>
+      <input type="search" name="search" value="{{filter.search}}">
+    </label>
+
+    <button type="button" data-action="clearFilters">{{localize "FGT.Log.Clear"}}</button>
+  </section>
+
+  <p class="fgt-log__summary">
+    {{localize "FGT.Log.Summary" total=summary.total first=summary.rounds.first last=summary.rounds.last}}
+    {{#if summary.overrides}}
+      <span class="fgt-log__overridecount">
+        {{localize "FGT.Log.OverrideCount" count=summary.overrides}}
+      </span>
+    {{/if}}
+  </p>
+
+  {{#if isEmpty}}
+    <p class="fgt-log__empty">{{localize "FGT.Log.Empty"}}</p>
+  {{/if}}
+  {{#if filteredToNothing}}
+    <p class="fgt-log__empty">{{localize "FGT.Log.NoMatches"}}</p>
+  {{/if}}
+
+  <ol class="fgt-log__list">
+    {{#each entries as |e|}}
+      <li class="fgt-log__entry fgt-log__entry--{{e.kind}}
+                 {{#if e.superseded}}fgt-log__entry--superseded{{/if}}
+                 {{#if e.isOverride}}fgt-log__entry--override{{/if}}"
+          data-seq="{{e.seq}}">
+
+        <span class="fgt-log__seq">#{{e.seq}}</span>
+        <span class="fgt-log__round">R{{e.round}}</span>
+        <span class="fgt-log__kind">{{e.kind}}</span>
+        <span class="fgt-log__text">{{e.summary}}</span>
+
+        {{#if e.isOverride}}
+          <div class="fgt-log__overridebody">
+            {{#if e.overridesSummary}}
+              <div class="fgt-log__overrides">{{localize "FGT.Log.Overrides"}} {{e.overridesSummary}}</div>
+            {{/if}}
+            <div class="fgt-log__reason">{{e.reason}}</div>
+          </div>
+        {{/if}}
+
+        {{#if e.actorNames.length}}
+          <span class="fgt-log__actors">{{#each e.actorNames as |n|}}{{n}} {{/each}}</span>
+        {{/if}}
+        {{#if e.rollCount}}
+          <span class="fgt-log__rolls">{{localize "FGT.Log.Rolls" count=e.rollCount}}</span>
+        {{/if}}
+
+        {{#if ../isGM}}
+          <button type="button" data-action="overrideEntry"
+                  data-tooltip="{{localize 'FGT.Log.OverrideTitle'}}">
+            <i class="fa-solid fa-gavel"></i>
+          </button>
+        {{/if}}
+      </li>
+    {{/each}}
+  </ol>
+
+  <footer class="fgt-log__footer">
+    <button type="button" data-action="exportLog">{{localize "FGT.Log.Export"}}</button>
+  </footer>
+</div>

@@ -363,6 +363,20 @@ even though the placement is legal (Ch. 19 §19.4).
 
 ---
 
+> **Implemented.** `module/apps/canvas/overlay-layer.mjs` draws all seven. ZON, threat range and
+> Master protection came earlier; **Decoy pull, platform footprints with their level badge, and
+> the Grail area with its contest state** landed with this pass, and Home Base is native Region
+> rendering as this section specifies.
+>
+> The platform **level badge** is the load-bearing half of that overlay: two platforms at
+> different levels overlap on screen and do not interact, and nothing else on the canvas says so.
+> The Decoy arrow is the one overlay that answers *"why can I not target what I want to"* — a
+> Decoy constraint is otherwise invisible and silently narrows the legal target set.
+>
+> The refresh trigger changed with them. The overlays used to carry a hand-maintained hook list,
+> which went stale in both directions; they now listen to `fgt.invalidate` and redraw only for the
+> targets they actually draw from (§23.9), so a cooldown tick no longer repaints the canvas.
+
 ## 28.9 Zone overlays
 
 A separate always-on canvas layer draws persistent context:

@@ -101,8 +101,8 @@ export const resource = (unitId, key, delta) =>
 export const cooldown = (unitId, abilityId, ticks, mode = "reduce") =>
   ({ t: "cooldown", unitId, abilityId, ticks, mode });
 
-export const spendCS = (masterId, count, command) =>
-  ({ t: "spendCS", masterId, count, command });
+export const spendCS = (masterId, count, command, servantId = null) =>
+  ({ t: "spendCS", masterId, count, command, servantId });
 
 export const prompt = (userId, spec) =>
   ({ t: "prompt", userId, prompt: spec });

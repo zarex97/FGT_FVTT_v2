@@ -469,6 +469,21 @@ walks through the Dioscuri in full.
 
 ---
 
+> **Implemented.** `module/rules/cs-namespacing.mjs`, and it was a real gap rather than a
+> refinement: `commandSpells` was a flat number, so nothing could say *which* Servant a Master's
+> spells reached and the Unbound state below could not be derived at all.
+>
+> `commandSpellsPerServant` is added **beside** the existing count rather than replacing it with a
+> `{own, perServant}` pair. The migration runner (Ch. 39) does not exist, and retyping a live field
+> would break every world that already has one.
+>
+> Spending draws from `perServant` **first**, as specified, and `io.spendCommandSpells` now takes
+> the Servant id so it knows which pool to write — the `spendCS` intent carries it. Unbound is
+> **derived** on every read: a stored flag would need updating from spending, granting, inheriting
+> and the Master dying, and the one that got missed would leave a Servant permanently Unbound with
+> a full pool. The split state this section calls genuinely interesting is visible on the Master
+> sheet (§29.3).
+
 ## 16.9 Command Spell namespacing
 
 Because contracts move, Command Spells must be tracked per-relationship, not per-Master:

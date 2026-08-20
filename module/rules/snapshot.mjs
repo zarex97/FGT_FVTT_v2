@@ -18,6 +18,7 @@ import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
+import { buildAuraIndex } from "./aura-index.mjs";
 import { annotateTerrain } from "./terrain.mjs";
 import { phase, darkModifiers, homeBaseModifiers, regionBonusFor } from "./environment.mjs";
 import { annotateCompulsions } from "./compulsion.mjs";
@@ -272,7 +273,13 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   annotateFields(units, board);
   // Positional, like auras: it holds while somebody is standing nearby.
   annotateCompulsions(units, board);
-  annotateAuras(units, board);
+  // Built here rather than cached across calls: `snapshotBoard` is where the
+  // board's positions are already in hand, and an index built anywhere else
+  // would need the invalidation table (§23.9) to keep it honest. The engine
+  // holds a longer-lived one for the canvas; this is the resolution path, and
+  // §23.3 requires that one to be synchronous and current.
+  board.auraIndex = buildAuraIndex(board);
+  annotateAuras(units, board, board.auraIndex);
 
   return board;
 }

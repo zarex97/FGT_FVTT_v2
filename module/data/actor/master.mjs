@@ -14,7 +14,13 @@ export class MasterData extends foundry.abstract.TypeDataModel {
       ...unitCommon(),
       rank: new fields.StringField({ required: false, blank: true }),
       // Three, spendable, and the only pre-emption mechanism in the game.
+      // The Master's OWN spells, usable on any contracted Servant (§16.9).
       commandSpells: new fields.NumberField({ required: true, integer: true, initial: 3, min: 0 }),
+      // Servant id → spells usable only on that Servant. Added beside the count
+      // rather than replacing it with a `{own, perServant}` pair, because the
+      // migration runner (Ch. 39) does not exist yet and retyping a live field
+      // would break every world that already has one.
+      commandSpellsPerServant: new fields.ObjectField({ required: true, initial: () => ({}) }),
       zon: new fields.NumberField({ required: true, integer: true, initial: 2, min: 0 }),
       essences: new fields.SetField(new fields.StringField({ blank: false })),
       servantIds: new fields.SetField(new fields.DocumentIdField()),
