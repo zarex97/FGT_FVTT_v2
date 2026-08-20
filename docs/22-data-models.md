@@ -1,5 +1,13 @@
 # 22 — Data Models
 
+> **A `SetField` is a `Set`, not an array.** It has `.has` and no `.includes`, and the layers that
+> read documents get the raw `Set` — only `snapshotUnit` converts, which is why the rules layer
+> can use `.includes` safely and the sheet cannot. A `?? []` fallback beside one reads like a
+> guard and defends against nothing, because these fields are required and therefore always
+> present. `test/unit/set-fields.test.mjs` enforces the spread in `module/apps`, `module/engine`,
+> `module/documents` and `module/data`; the pure layers are exempt because they never see a
+> document. Two shipped bugs of exactly this shape prompted it.
+
 Every `TypeDataModel` schema in the system. These are the contract between content, engine, and
 persistence — the most consequential code in the project to get right, because changing a schema
 later costs a migration (Ch. 39).

@@ -290,7 +290,8 @@ export function worldIO() {
       }
       if (masterId) {
         const master = resolve(masterId);
-        if (master && !(master.system.servantIds ?? []).includes(unitId)) {
+        // Spread: `servantIds` is a SetField and arrives as a `Set`.
+        if (master && ![...(master.system.servantIds ?? [])].includes(unitId)) {
           await master.update({ "system.servantIds": [...(master.system.servantIds ?? []), unitId] });
         }
       }

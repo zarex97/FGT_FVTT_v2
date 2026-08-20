@@ -242,8 +242,13 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // A GM may re-roll before the match starts; afterwards the rolls lock.
       // Only a Master or a Caster may contract (§16.2), so only they get the
       // button -- a control that always refuses is worse than none.
+      //
+      // Spread first: `servantClasses` is a SetField, so it arrives as a `Set`,
+      // which has `.has` and not `.includes`. The `?? []` reads like a guard and
+      // defends against nothing -- the field is required, so it is always
+      // present and always a Set.
       canContract: this.document.type === "master"
-        || (this.document.system?.servantClasses ?? []).includes("caster"),
+        || [...(this.document.system?.servantClasses ?? [])].includes("caster"),
       canRollSetup: this.document.type === "master" && game.user.isGM,
       setupLocked: Boolean(game.combat?.started),
       // §29.3's three Master-only panels. Computed here rather than in the

@@ -236,6 +236,20 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Every Servant sheet threw on open.** `canContract` called `.includes` on
+  `system.servantClasses`, which is a `SetField` and therefore arrives as a `Set` — and a `Set`
+  has `.has`, not `.includes`. The `?? []` beside it reads like a guard and defended against
+  nothing: the field is required, so it is always present and always a Set. Not a data or
+  migration problem; a brand-new Servant failed identically.
+
+  A guard test now pins the whole class: in the layers that read documents, a `SetField` must be
+  spread before `.includes`. It immediately found a **second** instance — `io.setContract`
+  testing `master.system.servantIds`, which would have thrown the first time anyone formed a
+  contract and which nothing had exercised. Two reasons no existing test caught either: the rules
+  layer works on snapshots, where `snapshotUnit` has always spread these into arrays, so the
+  pattern looks safe when read; and the document-touching layers have no unit tests because they
+  need a live world.
+
 - **`destroyLevel` refuses while passengers are still aboard.** Verified against the Foundry v14
   source: `TokenDocument#level` is `required` and non-nullable, and `Level._onDeleteOperation`
   fixes only the *view* — it does not re-parent tokens. A level deleted under its passengers
