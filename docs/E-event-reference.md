@@ -250,6 +250,36 @@ predicates** rather than one with a conditional magnitude, which keeps each payo
 `consumesUse` spends one charge of a count-limited effect each time the handler pays out — *Alpi*
 is *"for 1◈ Turns, **3 times**"*, and both limits apply: whichever ends first.
 
+### Whose action it is
+
+An action acts on its handler's bearer by default. `subject: master` resolves through the
+bearer's contract instead:
+
+```yaml
+- key: StatDelta
+  subject: master
+  stat: health.value
+  table: madEnhancementDrain
+  direction: down
+  floor: 30
+```
+
+Mad Enhancement's first clause is *"this Servant's **Master** loses Health at the end of every
+Turn it Acts"* — an effect on the bearer whose cost lands on somebody else — and every action
+acted on `u.id`, so a Master who could not be named could not be charged. A Free Servant returns
+no subject and the action does nothing, which is right: there is nobody to drain, and charging
+the Servant instead would be inventing a rule.
+
+`floor` limits **that deduction**, not the pool: *"its Master's Health cannot drop below 30 in
+this way"*, so ordinary damage may still take them under it.
+
+### Actions in one handler see each other
+
+The actions in one `then:` list are dispatched in order against a running view of what the
+earlier ones produced. Mad Enhancement drains its Master and then asks whether that Master is now
+at or below the floor; computing both against the same starting value made the forced
+deactivation lag a full Turn behind the drain that caused it.
+
 ### Action gates
 
 An action inside `then:` may carry its own roll and a gate on it:

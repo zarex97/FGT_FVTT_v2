@@ -4,27 +4,32 @@ id: penthesilea-howl-of-the-war-god
 name: "Howl of the War God"
 rank: "A+"
 cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+countsAsAttack: false
 description: |
-  (Active) 1. Allied Units within 2 panels gain Atk Up (STR) for 1◈ Turns: damage dealt which
-  uses Base Attack (STR) is increased by 30%; if NP, 20%.
-  2. Penthesilea gains Atk Up (GreekMale) for 1◈ Turns: damage dealt to Male Units from the
-  Greece region is increased by 100% including NP.
-activeRules:
-  # Clause 1 — an aura, because "allied Units within a 2 panel area" is the same
-  # positional question Charisma asks. Component-scoped to STR.
-  - key: Aura
-    modifierKey: atkUp
-    component: str
-    radius: 2
-    relations: [ally, self]
-    value: 30
-    npValue: 20
-    stacking: highestOnly
-  # Clause 2 — hers alone, and conditioned on WHO is being hit. The predicate
-  # is carried through to the pipeline and evaluated per attack, which is what
-  # `region:` and `attribute:` options are for.
-  - key: DamageModifier
-    modifierKey: atkUp
-    direction: dealt
-    value: 100
-    predicate: ["target:attribute:male", "target:region:greece"]
+  (Active) Used during your Turn.
+  1. Affects all allied Units within a 2 panel area. Applies Atk Up (STR) for 1◈ Turns: damage
+  dealt which uses Base Attack (STR) is increased by 30%; if NP, 20%.
+  2. Applied to herself. Applies Atk Up (GreekMale) for 1◈ Turns: damage dealt to Male Units
+  from the Greece region is increased by 100% including NP.
+  Cooldown 4◈-⅓◈ Turns.
+targeting:
+  # "All allied Units within a 2 panel area" -- everyone the circle catches, so
+  # `chooser: all` with no subset and therefore no question to ask.
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], chooser: all }
+phases:
+  # APPLIED to each ally, not projected as an aura: they keep it for 1◈ even
+  # after walking out of the radius, which is precisely what an aura would not
+  # do. Authoring it as an aura was the earlier reading and it is wrong.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUpStr, magnitude: 30, npMagnitude: 20, duration: "1◈" }
+  # "This effect is applied to herself" -- hers alone, and not to the allies
+  # clause 1 reached.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUpGreekMale, magnitude: 100, duration: "1◈" }

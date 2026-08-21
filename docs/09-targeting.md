@@ -114,6 +114,12 @@ This is F/GT's signature shape anchor and it deserves careful definition.
 The reading: a `w × h` block, flush against the caster on one of the four cardinal sides, and
 **centred on the caster's axis**. The caster is *not* inside it.
 
+**A compulsion narrows attacks only.** *"She will constantly Move towards and **Attack** said
+Unit"* restricts which enemy Penthesilea may hit and says nothing about who she may buff. The
+filter applied to every resolution, so *Howl of the War God* — "affects all allied Units within a
+2 panel area" — refused with "no legal targets" for as long as a Greek Male stood near her. A
+resolution that cannot reach an enemy is not an attack, which is the whole test.
+
 **Verified in play (Scáthach).** *Gate of Skye* was the first content to use it against a real
 board, and the four directions do catch four different sets from the same panel — which is what
 makes the direction the player's decision rather than a formality. The `chooser`/`choose`

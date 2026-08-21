@@ -1,0 +1,24 @@
+# Penthesilea's Howl of the War God, clause 1.
+#
+# APPLIED to each ally rather than projected as an aura, and the difference is
+# load-bearing: "Affects all allied Units within a 2 panel area of Penthesilea.
+# Applies Atk Up (STR) for 1◈ Turns" -- they keep it for the duration even if
+# they walk out of the radius, which is exactly what an aura would not do.
+schema: 1
+id: atkUpStr
+name: "Atk Up (STR)"
+description: "Damage dealt which uses Base Attack (STR) is increased by X%; a reduced magnitude applies to NP."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # Component-scoped: the pipeline applies it to the STR share only, so a
+  # combined attacker gets it on half its damage.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    component: str
+    value: "@magnitude"
+    npValue: "@npMagnitude"

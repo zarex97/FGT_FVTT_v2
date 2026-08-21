@@ -17,6 +17,8 @@ import { describe, it, expect } from "vitest";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { annotateCompulsions, compelledTargetsOf } from "../../module/rules/compulsion.mjs";
 import { unmetCompulsions } from "../../module/rules/budget.mjs";
+import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
+import { squareBounds } from "../../module/domain/geometry.mjs";
 
 const at = (i, j) => ({ i, j });
 
@@ -166,5 +168,46 @@ describe("the budget sees an annotated compulsion", () => {
     annotateCompulsions(board.units, board);
 
     expect(unmetCompulsions([p])).toEqual([]);
+  });
+});
+
+describe("a compulsion narrows attacks only", () => {
+  const board = {
+    // The real bounds shape; a hand-rolled `{rows, cols}` normalises every
+    // panel out of existence and the resolution comes back empty.
+    bounds: squareBounds(13),
+    alliances: { red: ["red"], blue: ["blue"] },
+    units: [
+      { id: "p", name: "Penthesilea", kind: "servant", faction: "red", panel: { i: 5, j: 5 },
+        compulsions: [{ id: "hatred", forcesTarget: true, targetIds: ["achilles"], within: 4 }] },
+      { id: "ally", name: "Ally", kind: "servant", faction: "red", panel: { i: 5, j: 6 } },
+      { id: "achilles", name: "Achilles", kind: "servant", faction: "blue", panel: { i: 6, j: 6 } },
+      { id: "other", name: "Other", kind: "servant", faction: "blue", panel: { i: 4, j: 4 } },
+    ],
+  };
+  const caster = board.units[0];
+
+  it("still forces the choice of enemy", () => {
+    const spec = {
+      anchor: { kind: "self" }, shape: { kind: "chebyshevRadius", r: 2 },
+      selection: { relations: ["enemy"], chooser: "all" },
+    };
+    expect(resolveTargets(spec, caster, board, {}).units.map((u) => u.unitId)).toEqual(["achilles"]);
+  });
+
+  it("leaves an ally-targeting ability alone", () => {
+    // "She will constantly Move towards and ATTACK said Unit" restricts which
+    // enemy she may hit and says nothing about who she may buff. Narrowing
+    // every resolution made Penthesilea's Howl of the War God refuse with "no
+    // legal targets" for as long as any Greek Male stood near her — which is
+    // exactly when a Berserker would want to use it.
+    const spec = {
+      anchor: { kind: "self" }, shape: { kind: "chebyshevRadius", r: 2 },
+      selection: { relations: ["ally", "self"], chooser: "all" },
+    };
+    const out = resolveTargets(spec, caster, board, {});
+
+    expect(out.units.map((u) => u.unitId).sort()).toEqual(["ally", "p"]);
+    expect(out.errors).toEqual([]);
   });
 });

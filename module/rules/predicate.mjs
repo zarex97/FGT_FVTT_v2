@@ -13,7 +13,12 @@
 
 import { Rank } from "../domain/rank.mjs";
 
+/** The prefix that negates a bare option string. */
+const NEGATION = "not:";
+
 /**
+ * A bare string is a set-membership test; prefix it with `not:` to negate.
+ *
  * @typedef {string
  *   | {not: Statement}
  *   | {and: Statement[]} | {or: Statement[]} | {nand: Statement[]} | {nor: Statement[]}
@@ -53,7 +58,23 @@ export function test(predicate, ctx) {
  * @returns {boolean}
  */
 export function testStatement(s, ctx) {
-  if (typeof s === "string") return ctx.options.has(s);
+  // A `not:` PREFIX negates the option that follows it. This notation is used
+  // by content and by `domain/tables.mjs`, and it was never implemented: the
+  // whole string was looked up as one option, which is never in the set, so
+  // every such clause was permanently **false**.
+  //
+  // It cost three rules. Penthesilea's *Charisma* is gated
+  // `not:self:skillActive:madEnhancement` in both its passive and its active
+  // form, so her signature aura contributed nothing; her Noble Phantasm's
+  // three passive clauses are gated the same way; and Karna's Vasavi Shakti
+  // divinity override predicates on `not:target:skill:divinity` and could
+  // never fire.
+  //
+  // The validator's own `looksLikeRollOption` accepts the prefixed form as
+  // well-formed, which is exactly why nobody noticed.
+  if (typeof s === "string") {
+    return s.startsWith(NEGATION) ? !ctx.options.has(s.slice(NEGATION.length)) : ctx.options.has(s);
+  }
   if (s === null || typeof s !== "object") {
     throw new TypeError(`FGT | Malformed predicate statement: ${JSON.stringify(s)}`);
   }
@@ -221,13 +242,19 @@ function pretty(v) {
 export function referencedOptions(predicate) {
   /** @type {Set<string>} */
   const out = new Set();
+  /** @param {string} o */
+  const bare = (o) => (o.startsWith(NEGATION) ? o.slice(NEGATION.length) : o);
   /** @param {Statement} s */
   const walk = (s) => {
-    if (typeof s === "string") return void out.add(s);
+    // The OPTION, not the negation of it. Both readers want the bare name: the
+    // validator is checking for typos, and the deferral pass in
+    // `rules/elements.mjs` is asking whose state the clause is about --
+    // `not:target:skill:divinity` is a question about the target either way.
+    if (typeof s === "string") return void out.add(bare(s));
     if (s === null || typeof s !== "object") return;
     if ("not" in s) return walk(s.not);
     for (const k of ["and", "or", "nand", "nor"]) if (k in s) return s[k].forEach(walk);
-    if ("anyOf" in s) return s.anyOf.forEach((o) => out.add(o));
+    if ("anyOf" in s) return s.anyOf.forEach((o) => out.add(bare(o)));
   };
   predicate?.forEach(walk);
   return out;

@@ -1,37 +1,53 @@
 # Penthesilea, char_orig_sheets/Copia de Penthesilea.md
+#
+# Two halves that exclude each other. The passive is a standing aura; the
+# active applies a NAMED buff whose behaviour is the same aura at a percentage,
+# and the passive checks for that buff by name.
 schema: 1
 id: penthesilea-charisma
 name: "Charisma"
 rank: B
 cooldown: "4◈"
+timing: { window: ownTurn }
+# It buffs; it deals no damage, so it is not an Attack Skill (§15.1).
+countsAsAttack: false
 description: |
   Effects are negated and cannot be used while Mad Enhancement is active.
-  (Passive) All damage dealt by OTHER allied Units within 2 panels is increased by 20 including NP.
-  (Active) Applies Atk Up (Charisma) for 1◈ Turns: allied damage within 2 panels +20%; if NP, 10%.
+  (Passive) All damage dealt by OTHER allied Units within 2 panels is increased by 20 including
+  NP. Negated while Penthesilea has Atk Up (Charisma) or is inflicted with Skill Seal.
+  (Active) Used during your Turn. Applies Atk Up (Charisma) to herself for 1◈ Turns: allied
+  damage within 2 panels +20%; if NP, 10%. Cooldown 4◈ Turns.
+requirements:
+  # "Effects are negated AND CANNOT BE USED when Mad Enhancement is activated."
+  # Two halves of one sentence and both are needed: this refuses the button,
+  # and the predicate on the passive below silences the standing aura.
+  #
+  # `modeInactive` rather than `hasSkill`, because she ALWAYS has Mad
+  # Enhancement -- the question is whether it is switched on.
+  - { kind: modeInactive, mode: madEnhancement }
+  - { kind: notHasEffect, effectId: skillSeal }
 passiveRules:
   # The archetypal aura, and the reason `relations` is a list rather than a
   # boolean: "other allied Units" means allies WITHOUT self, so `self` is
   # dropped from the default `[ally, self]`. Penthesilea gains nothing from her
   # own Charisma.
   #
-  # The predicate is the suppression clause: "Effects are negated and cannot be
-  # used when Mad Enhancement is activated." An ability disabled by its owner's
-  # OTHER ability -- Heracles's Bravery has the same shape (Ch. 31) -- which
-  # needs `skillActive`, because merely HAVING Mad Enhancement is not the same
-  # as having it switched on.
+  # Three negations, all from the sheet: "Effects are negated ... when Mad
+  # Enhancement is activated", and "this effect is negated if this Unit has Atk
+  # Up (Charisma) or is inflicted with Skill Seal". The second is what stops
+  # the flat +20 and the percentage stacking with each other.
   - key: Aura
     modifierKey: flatDamage
     radius: 2
     relations: [ally]
     value: 20
     stacking: highestOnly
-    predicate: ["not:self:skillActive:madEnhancement"]
-activeRules:
-  - key: Aura
-    modifierKey: atkUp
-    radius: 2
-    relations: [ally, self]
-    value: 20
-    npValue: 10
-    stacking: highestOnly
-    predicate: ["not:self:skillActive:madEnhancement"]
+    predicate:
+      - "not:self:skillActive:madEnhancement"
+      - "not:self:effect:atkUpCharisma"
+      - "not:self:effect:skillSeal"
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUpCharisma, magnitude: 20, npMagnitude: 10, duration: "1◈" }

@@ -113,12 +113,49 @@ describe("needsTargeting", () => {
     expect(needsTargeting({ type: "noblePhantasm", system: {} })).toBe(true);
   });
 
-  it("is true for a self-anchored skill that still picks a DIRECTION", () => {
-    // Anchored on the caster and still a choice: the 5x5 block projects one of
-    // four ways, and which one is the player's decision.
+  it("is true for a skill that still picks a DIRECTION", () => {
+    // The 5x5 block projects one of four ways and which one is the player's
+    // decision — but that is `selfEdgeAdjacent`, not `self`. A `self` anchor
+    // has no direction at all: the resolver CENTRES a rect on the caster, and
+    // only a directional anchor projects it outward.
     expect(needsTargeting({
-      system: { targeting: { anchor: { kind: "self" }, shape: { kind: "rect", w: 5, h: 5 } } },
+      system: {
+        targeting: { anchor: { kind: "selfEdgeAdjacent" }, shape: { kind: "rect", w: 5, h: 5 } },
+      },
     })).toBe(true);
+  });
+
+  it("is false for a centred area that catches everyone in it", () => {
+    // Penthesilea's Howl of the War God: "affects all allied Units within a
+    // 2 panel area of Penthesilea". Reaching somebody else is not by itself a
+    // choice — `chooser: all` with no subset means everyone the shape caught,
+    // and asking is a confirmation dialog with one possible answer.
+    expect(needsTargeting({
+      system: {
+        phases: [{ kind: "applyEffects" }],
+        targeting: {
+          anchor: { kind: "self" },
+          shape: { kind: "chebyshevRadius", r: 2 },
+          selection: { relations: ["ally", "self"], chooser: "all" },
+        },
+      },
+    })).toBe(false);
+  });
+
+  it("is true again as soon as the area names a subset", () => {
+    // A `count`, or an explicit `choose`, is what turns the area into a
+    // decision — Scáthach's Gate of Skye picks "targets of choice" from its 5x5.
+    for (const selection of [
+      { relations: ["enemy"], chooser: "all", count: 2 },
+      { relations: ["enemy"], chooser: "all", choose: true },
+    ]) {
+      expect(needsTargeting({
+        system: {
+          phases: [{ kind: "applyEffects" }],
+          targeting: { anchor: { kind: "self" }, shape: { kind: "chebyshevRadius", r: 2 }, selection },
+        },
+      })).toBe(true);
+    }
   });
 
   it("is true when the ability targets allies, because which ally is a choice", () => {
@@ -210,5 +247,25 @@ describe("isNegated", () => {
 
   it("is false for an ability nothing negates", () => {
     expect(isNegated({ system: {} }, ["silence"])).toBe(false);
+  });
+});
+
+describe("a passive Noble Phantasm", () => {
+  it("is not a button", () => {
+    // Penthesilea's Goddess of War: "(Passive) The effect of this Noble
+    // Phantasm is only active when Mad Enhancement is deactivated" — four
+    // standing clauses and nothing to use. Every NP classified as an attack,
+    // so clicking it opened a targeting session and offered to spend her
+    // Attack on an ability that has no active form at all.
+    const gow = { type: "noblePhantasm", system: { isNP: true, isPassive: true, passiveRules: [{}] } };
+
+    expect(classifyAbility(gow)).toMatchObject({ kind: "passive", isAttack: false, clickable: false });
+    expect(needsTargeting(gow)).toBe(false);
+    expect(countsAsAttack(gow)).toBe(false);
+  });
+
+  it("leaves an ordinary Noble Phantasm an attack", () => {
+    const outrage = { type: "noblePhantasm", system: { isNP: true, phases: [{ kind: "damage" }] } };
+    expect(classifyAbility(outrage)).toMatchObject({ kind: "attack", isAttack: true });
   });
 });

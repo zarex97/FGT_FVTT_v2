@@ -16,6 +16,7 @@ function fakeIo() {
     createEffects: rec("createEffects"),
     deleteEffects: rec("deleteEffects"),
     consumeUse: rec("consumeUse"),
+    setMode: rec("setMode"),
     setCooldown: rec("setCooldown"),
     move: rec("move"),
     setFacing: rec("setFacing"),

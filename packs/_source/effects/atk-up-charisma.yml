@@ -1,0 +1,29 @@
+# Penthesilea's Charisma, active clause.
+#
+# An `atkUp` family member (Appendix A: the named variants "all count as
+# atkUp"), and the effect her own PASSIVE checks for: "this effect is negated
+# if this Unit has Atk Up (Charisma)". Naming it is what lets the two halves of
+# one Skill exclude each other.
+#
+# The effect is applied to PENTHESILEA and its behaviour is an aura, which is
+# the sheet's own shape: "Applies Atk Up (Charisma) for 1◈ Turns to herself,
+# all damage dealt by allied Units within a 2 panel area OF HERSELF is
+# increased by 20%".
+schema: 1
+id: atkUpCharisma
+name: "Atk Up (Charisma)"
+description: "Allied Units within 2 panels deal X% more damage; a reduced magnitude applies to NP."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: Aura
+    modifierKey: atkUp
+    radius: 2
+    # Unlike the passive, this clause does NOT say "other": she benefits too.
+    relations: [ally, self]
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+    stacking: highestOnly

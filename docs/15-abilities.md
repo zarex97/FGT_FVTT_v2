@@ -403,6 +403,27 @@ better interaction than making the player remember to click the skill first.
 
 ---
 
+### Modes: when a switch may be flipped
+
+A mode is *switched* rather than used, and the toggle was a bare write — press the button, flip
+`system.active`, no questions asked. Every rule about **when** it may be switched therefore had
+nowhere to live, and there are three in the reference set:
+
+| Rule | Source | Field |
+|---|---|---|
+| Never | Heracles: *"cannot deactivate Mad Enhancement"* | `cannotDeactivate` |
+| Not yet | *"it can only be deactivated 2◈ Turns after it was activated, **and vice versa**"* | `toggleLock`, with `toggledAt` stamped on the way on |
+| Not while | Penthesilea: *"Mad Enhancement cannot be deactivated until there are no Greek Male Units within a 4 panel area"* | a `Compulsion` naming the skill |
+
+The third is the interesting one, because it forces the mode **on** as well as refusing to let it
+off — *"her Mad Enhancement is immediately activated regardless of Cooldown or any other
+factors"*. So `rules/modes.mjs` answers two questions: `canToggleMode` for the refusal, and
+`forcedModes` for the write.
+
+Note the asymmetry the source draws between a *player's* toggle and a *forced* one. Mad
+Enhancement's own first clause deactivates it when its Master runs low, and that is not subject to
+the 2◈ lockout; a player's click is.
+
 ## 15.4 Requirements and costs
 
 ```ts
@@ -419,6 +440,7 @@ type Requirement =
   | { kind: "masterHealthAbove"; amount: number }   // NP cost
   | { kind: "targetHasEffect"; effectId: string }
   | { kind: "notHasEffect"; effectId: string }     // the USER's own state
+  | { kind: "modeInactive"; mode: string }         // the mirror of modeActive
   | { kind: "abilityOffCooldown";                  // §7.6; see below
       abilityIds?: string[]; category?: string; exclusionSet?: string; excludeSelf?: boolean }
   | { kind: "predicate"; predicate: Predicate };   // escape hatch

@@ -340,8 +340,10 @@ async function runRollTable(phase, ability, actor, target, board) {
     }
 
     // "Your choice of any of the above effect(s)" -- resolved by asking, and
-    // the chosen rows then apply exactly as if they had been rolled.
-    const rows = entry.choose ? await chooseRows(table, ability) : [entry];
+    // the chosen row then applies exactly as if it had been rolled. ONE per
+    // die: both dice landing on 8 asks twice, which is where the plural comes
+    // from.
+    const rows = entry.choose ? await chooseRows(table, ability, roll) : [entry];
 
     for (const row of rows) {
       out.push(...await applyPhaseEffects({ effects: effectsOf(row) }, ability, actor, target));
@@ -353,31 +355,53 @@ async function runRollTable(phase, ability, actor, target, board) {
 }
 
 /**
- * The wildcard row's question.
+ * The wildcard row's question: **one row, for this die**.
  *
- * "any of the above **effect(s)**" -- plural, so the prompt allows more than
- * one. Defaulting to a single pick would quietly narrow the rule.
+ * The "(s)" in *"your choice of any of the above effect(s)"* is about the
+ * Skill, not about this die. Every other row on the table is one effect, and
+ * the wildcard is a row like any other -- it is the row you rolled, not a
+ * licence to take the table. What makes the plural true is that both dice can
+ * land on 8, and then it is asked twice.
+ *
+ * So the count is one per prompt and the loop in `runRollTable` supplies the
+ * rest. Two 8s ask twice and may pick the same row both times, which applies it
+ * twice -- exactly what two of any other number would do.
  *
  * @param {object} table
  * @param {object} ability
+ * @param {number} roll the die that landed on the wildcard, for the prompt
  * @returns {Promise<object[]>}
  */
-async function chooseRows(table, ability) {
+async function chooseRows(table, ability, roll) {
   const options = choicesIn(table);
   const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
 
   const picked = await ChoiceDialog.pick({
     title: ability.name,
-    hint: game.i18n.localize("FGT.RollTable.ChooseHint"),
-    count: options.length,
-    min: 1,
+    hint: game.i18n.format("FGT.RollTable.ChooseHint", { roll }),
+    count: 1,
     options: options.map((o) => ({
       id: String(o.roll),
-      name: `${o.roll}. ${(o.entry.effects ?? []).map((e) => e.id).join(", ")}`,
+      name: `${o.roll}. ${(o.entry.effects ?? []).map((e) => effectLabel(e)).join(", ")}`,
     })),
   });
 
   return (picked ?? []).map((id) => table[id]).filter(Boolean);
+}
+
+/**
+ * How one table entry's effect reads in the prompt.
+ *
+ * The registry's display name and the magnitude, because "5. npDmUp" asks the
+ * player to know the content ids and "5. NP DmUp 30%" does not.
+ *
+ * @param {object} spec
+ * @returns {string}
+ */
+function effectLabel(spec) {
+  const def = EffectRegistry.get(spec.id);
+  const name = def?.name ?? spec.id;
+  return spec.magnitude ? `${name} ${spec.magnitude}%` : name;
 }
 
 /**
@@ -491,7 +515,7 @@ function costIntents(cost) {
   // `statDelta`, never `damage` -- Health *loss* must not feed damage-keyed
   // triggers (Ch. 06). Same reason as the attack path.
   if (!cost?.unitId) return [];
-  const path = cost.kind === "sustainability" ? "sustainability" : "health.value";
+  const path = cost.kind === "sustainability" ? "sustainabilityRemaining" : "health.value";
   return [
     I.statDelta(cost.unitId, path, -cost.amount, false),
     I.log({ kind: "cost", cost: cost.kind, amount: cost.amount, unitId: cost.unitId }),

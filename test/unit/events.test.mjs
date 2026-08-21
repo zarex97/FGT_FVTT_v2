@@ -159,3 +159,55 @@ describe("pendingRolls", () => {
     expect(pendingRolls({ eventHandlers: bc("B") }, "turnEnd")).toEqual([]);
   });
 });
+
+describe("actions in one handler see each other", () => {
+  const master = { id: "m", kind: "master", health: 45 };
+  const servant = {
+    id: "s", kind: "servant", masterId: "m",
+    eventHandlers: [{
+      events: ["actedTurnEnd"],
+      source: "Mad Enhancement",
+      actions: [
+        { kind: "StatDelta", subject: "master", stat: "health.value", amount: 30, direction: "down", floor: 30 },
+        {
+          kind: "SetMode", ability: "madEnhancement", active: false,
+          whenValue: { subject: "master", stat: "health.value", lte: 30 },
+        },
+      ],
+    }],
+  };
+  const ctx = { tick: 0, turnsPerRound: 3, board: { units: [master, servant] }, rolls: {} };
+
+  it("deactivates in the same Turn the drain reaches the floor", () => {
+    // "Its Master loses 30 Health at the end of every Turn it Acts; when its
+    // Master's Health is 30 or less, ME is forcibly deactivated." Computing
+    // both against the same starting value made the deactivation lag a full
+    // Turn behind the drain that caused it.
+    const out = fireEvent("actedTurnEnd", [servant], ctx);
+
+    expect(out.find((i) => i.t === "statDelta")).toMatchObject({ unitId: "m", delta: -15 });
+    expect(out.find((i) => i.t === "setMode")).toMatchObject({ unitId: "s", active: false });
+  });
+
+  it("leaves the mode alone while the Master is still clear of the floor", () => {
+    const healthy = { ...ctx, board: { units: [{ ...master, health: 250 }, servant] } };
+    const out = fireEvent("actedTurnEnd", [servant], healthy);
+
+    expect(out.find((i) => i.t === "statDelta")).toMatchObject({ delta: -30 });
+    expect(out.some((i) => i.t === "setMode")).toBe(false);
+  });
+
+  it("takes nothing at all from a Master already at the floor", () => {
+    const spent = { ...ctx, board: { units: [{ ...master, health: 30 }, servant] } };
+    const out = fireEvent("actedTurnEnd", [servant], spent);
+
+    expect(out.some((i) => i.t === "statDelta")).toBe(false);
+    expect(out.some((i) => i.t === "setMode")).toBe(true);
+  });
+
+  it("does nothing for a Free Servant, which has no Master to charge", () => {
+    const free = { ...servant, masterId: null };
+    const out = fireEvent("actedTurnEnd", [free], { ...ctx, board: { units: [free] } });
+    expect(out.filter((i) => i.t !== "log")).toEqual([]);
+  });
+});

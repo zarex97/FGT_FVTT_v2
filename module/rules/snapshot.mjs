@@ -14,6 +14,7 @@
  * the effect engine bumps.
  */
 
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { annotateZon } from "./zon.mjs";
@@ -45,9 +46,10 @@ import { annotateFields } from "./bounded-fields.mjs";
  * @param {object} [opts.token] the placed token, for position and facing
  * @param {number|null} [opts.tick] the current ◈ tick. Turn state stamped with
  *   an earlier one is stale and projects blank — see {@link turnStateAt}.
+ * @param {number} [opts.turnsPerRound] for resolving ◈ expressions to turns.
  * @returns {UnitSnapshot}
  */
-export function snapshotUnit(actor, { token = null, panel = null, tick = null } = {}) {
+export function snapshotUnit(actor, { token = null, panel = null, tick = null, turnsPerRound = 3 } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
   const contributions = contributionsOf(actor);
@@ -87,7 +89,13 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null } 
 
     // `null` means the Sustainability clock does not exist for this unit
     // (Independent Action A+/EX), not that it is very large.
-    sustainability: sys.sustainability ?? null,
+    // A NUMBER of turns, or `null` for a Unit with no clock at all. The rules
+    // layer does arithmetic on this in four places and the document holds a ◈
+    // expression, so resolving it is the snapshot's job -- exactly as it is
+    // for `health`, and for the same reason.
+    sustainability: sustainabilityTurns(sys, turnsPerRound),
+    // The authored maximum, for the sheet.
+    sustainabilityMax: sys.sustainability ?? null,
     contract: sys.contract ?? "contracted",
     commandSpells: sys.commandSpells ?? 0,
 
@@ -234,7 +242,13 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // A caller that has a canvas resolves each unit's panel first and passes the
   // finished snapshot; anything else is projected here.
   const units = actors.map((a) => a.snapshot
-    ?? snapshotUnit(a.actor ?? a, { token: a.token, tick: settings.tickForTurnState ?? null }));
+    ?? snapshotUnit(a.actor ?? a, {
+      token: a.token,
+      tick: settings.tickForTurnState ?? null,
+      // Sustainability is authored as a ◈ expression and consumed as a number
+      // of turns, so the projection needs the world's ◈ to resolve it.
+      turnsPerRound: settings.turnsPerRound ?? 3,
+    }));
   const board = {
     bounds: boundsFor(scene, settings),
     units,
@@ -474,6 +488,36 @@ function effectInstances(actor) {
  * evaluated now.
  *
 /**
+ * What is left of a Unit's Sustainability, in turns.
+ *
+ * `null` means the clock does not exist at all — Independent Action A+/EX —
+ * and is emphatically not "a very large number" (Ch. 16 §16.6).
+ *
+ * The stored `sustainability` is the authored MAXIMUM as a ◈ expression;
+ * `sustainabilityRemaining` is what is left. A Servant summoned before the
+ * second field existed has `null` there and falls back to a full clock, which
+ * is the right answer for a Servant nobody has charged yet.
+ *
+ * @param {object} sys the actor's system data
+ * @param {number} turnsPerRound
+ * @returns {number|null}
+ */
+function sustainabilityTurns(sys, turnsPerRound) {
+  const authored = sys?.sustainability ?? null;
+  if (authored === null || authored === undefined) return null;
+
+  if (typeof sys.sustainabilityRemaining === "number") return sys.sustainabilityRemaining;
+
+  try {
+    return resolveTicks(parseTick(authored), { turnsPerRound });
+  } catch {
+    // A malformed expression must not take the whole board snapshot down; the
+    // content validator is where a bad tick is supposed to be loud.
+    return null;
+  }
+}
+
+/**
  * Substitute an instance reference, with an optional leading minus.
  *
  * `"-@magnitude"` is what an effect needs when its magnitude is authored
@@ -505,6 +549,11 @@ export function contributionsOf(actor) {
   const abilities = [...(actor.items ?? [])].map((item) => ({
     id: item.id,
     name: item.name,
+    // The stable machine name. Without it a cross-ability reference has only
+    // the Foundry document id to match on, which content cannot know --
+    // Goddess of War's "Divinity Rank is increased from B to A" names
+    // `divinity` and matched nothing.
+    slug: item.system?.slug ?? item.id,
     rank: item.system?.rank ?? null,
     // A mode's activeRules apply only while it is switched on. This defaulted
     // to `true` while `active` was a field the DataModel silently dropped,

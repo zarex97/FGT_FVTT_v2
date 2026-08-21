@@ -8,8 +8,9 @@
  */
 
 import { classifyAbility, needsTargeting } from "../rules/ability-use.mjs";
+import { canToggleMode } from "../rules/modes.mjs";
 import * as board from "../engine/board.mjs";
-import { currentBoard } from "../engine/board.mjs";
+import { currentBoard, unitSnapshot } from "../engine/board.mjs";
 import { poolsOf, isUnbound } from "../rules/cs-namespacing.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 
@@ -66,11 +67,29 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = this.document.items.get(id);
     if (!item) return;
 
-    if (item.system.active && item.system.cannotDeactivate) {
-      ui.notifications.warn(game.i18n.format("FGT.Ability.CannotDeactivate", { name: item.name }));
+    const active = !item.system.active;
+    const tick = game.combat?.system?.globalTurn ?? 0;
+
+    // Every rule about WHEN a mode may be switched, in one place
+    // (`rules/modes.mjs`). This was a bare write, so Heracles's clause was the
+    // only one that existed and the other two -- the 2◈ lockout and a
+    // compulsion holding the mode on -- had nowhere to live.
+    const verdict = canToggleMode(item, unitSnapshot(this.document), {
+      active, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    });
+    if (!verdict.ok) {
+      ui.notifications.warn(game.i18n.format(`FGT.Mode.${verdict.reason}`, {
+        name: item.name, ...(verdict.detail ?? {}),
+      }));
       return;
     }
-    await item.update({ "system.active": !item.system.active });
+
+    // Stamped on the way ON only: the lockout runs from the activation, and
+    // "vice versa" means the same clock is then consulted for switching off.
+    await item.update({
+      "system.active": active,
+      ...(active ? { "system.toggledAt": tick } : {}),
+    });
   }
 
   /**

@@ -7,12 +7,27 @@ schema: 1
 id: class-mad-enhancement
 name: "Mad Enhancement"
 source: class
+# The slug is stated rather than derived. The default strips `class-` and leaves
+# the KEBAB-CASE id (`mad-enhancement`), while every predicate, requirement and
+# compulsion in the game names it in camelCase -- so
+# `self:skillActive:madEnhancement` matched nothing, `modeActive: madEnhancement`
+# refused for ever, and Penthesilea's whole kit hinges on both.
+slug: madEnhancement
+kind: classSkill
+copyable: { allowed: false, reason: classSkill }
 parameterized: [rank]
 rank: "@rank"
 isMode: true
+# "When Mad Enhancement is Activated, it can only be deactivated 2◈ Turns after
+# it was activated AND VICE VERSA" -- one clock, both directions. The toggle was
+# a bare write until `rules/modes.mjs` existed, so this clause had nowhere to
+# live and the mode could be flipped every Turn for free.
+toggleLock: "2◈"
 description: |
   (Active) While Active-
-  1. This Servant's Master loses Health at the end of every Turn it Acts.
+  1. This Servant's Master loses Health at the end of every Turn it Acts; when the Master's
+     Health is at or below that amount, Mad Enhancement is forcibly deactivated, and until it
+     may be deactivated the Master's Health cannot drop below it in this way.
   2. All damage taken is reduced; a smaller reduction applies to NP.
   3. All damage dealt is increased including NP; halved for Base Attack (MAG).
   4. MOV +2, Range +1, the Master's ZON +2.
@@ -36,7 +51,50 @@ activeRules:
   - key: RangeDelta
     value: 1
     isBuff: false
+  # Clause 4's third part. `ZonBonus` is read by `rules/zon.mjs`, which takes
+  # the HIGHEST of the non-stacking bonuses -- which is why this one does not
+  # declare `stacks`: Mad Enhancement's +2 and a high-rank Master's +1 are not
+  # additive (§6.9).
+  - key: ZonBonus
+    value: 2
   # Clause 6: the unfavourable Evade table, always.
   - key: TableOverride
     check: evade
     forceTable: unfavourable
+
+  # Clause 1, as two actions, because it is two rules that share a trigger.
+  # `madEnhancementDrain` has been in `domain/tables.mjs` since the tables were
+  # transcribed with nothing reading it: 30 at EX, 5 at E.
+  #
+  # `subject: master` is the point. The effect is on the Servant and the cost
+  # lands on somebody else, and every scheduler action acted on its own bearer
+  # -- so a Master who could not be named could not be charged.
+  #
+  # `floor` limits THIS deduction rather than the pool: "its Master's Health
+  # cannot drop below 30 IN THIS WAY", so ordinary damage may still take them
+  # under it.
+  - key: OnEvent
+    event: actedTurnEnd
+    automatic: true
+    then:
+      - key: StatDelta
+        subject: master
+        stat: health.value
+        table: madEnhancementDrain
+        direction: down
+        floor: 30
+
+      # "When its Master's Health is 30 or less, ME is forcibly deactivated."
+      # Ordered after the drain, so it tests what the drain left. Note the
+      # asymmetry the source draws: this is forcible, and a player's own click
+      # is still refused by the 2◈ lockout above.
+      - key: SetMode
+        ability: madEnhancement
+        active: false
+        whenValue: { subject: master, stat: health.value, lte: 30 }
+
+  # Clause 5 is deliberately NOT here. "Sustainability is reduced by 2◈ if its
+  # Master is defeated while ME is Active" is a consequence of the Master
+  # dying, not of the mode ticking, and it already lives where §16.6 puts it --
+  # `onMasterDefeated`, alongside the contract change and the mode lock that
+  # happen in the same moment. Authoring it again here would charge it twice.

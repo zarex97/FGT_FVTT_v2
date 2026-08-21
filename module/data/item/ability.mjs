@@ -32,6 +32,12 @@ function abilityCommon() {
     active: new fields.BooleanField({ initial: false }),
     /** Heracles cannot switch Mad Enhancement off. */
     cannotDeactivate: new fields.BooleanField({ initial: false }),
+    // "It can only be deactivated 2◈ Turns after it was activated, AND VICE
+    // VERSA" -- one clock governing both directions, and `toggledAt` is the
+    // tick it last flipped on. The toggle was a bare write until this existed,
+    // so the clause had nowhere to live.
+    toggleLock: new TickField(),
+    toggledAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
     cooldown: new fields.SchemaField({
       max: new TickField(),
