@@ -159,11 +159,12 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation — **with the dialog that shows it**, reached from the Actors sidebar and the Servant compendium, and refusing a bare compendium drop that would produce a Servant with the template's numbers. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
-| 38 | Testing strategy | **Mostly** | 1495 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1589 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
-| — | Content | **5 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea and **Medea** — the first Caster, and the densest sheet yet at thirteen abilities. **All thirteen** resolve end to end in a live world -- verified individually, including Dragon Tooth Warriors (two nested rolls, 5×5 placement, count-scaled cooldown), Rule Breaker (cuts the Contract, strips the Master's Command Spells, grants three namespaced ones), Rain of Light (a 3×3 AoE that proved the targeting system), Atlas (base 100 reduced to 75 by `target MAG B+ -25`), and Argos and Trofa offered **at the reaction rung** because "used when Attacked" cannot be reached from a sheet button. 21 effects of ~152. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
+| — | Content | **6 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea, Medea and **Scáthach** — the first Lancer, and the Servant who needed the most engine that did not exist. **All eleven abilities** resolve end to end in a live world, verified individually: *Primordial Rune* (a 2d8 table chosen by relation, duplicates applying twice, and a wildcard row that asks), the three *Primordial Rune Spells* (a PRS Token waiving the cooldown, and the other two gated while the used one runs), *Wisdom of Dún Scáith* (which **had never been able to copy anything**), *Clairvoyance*, *God Slayer* with *Alpi*'s two branches, *Gáe Bolg Alternative*'s Instakill-or-damage fork, and *Gate of Skye*'s per-target Luck Check with `gateOfSkyeSaveModifier`. She is also the first **Resource** pool (§6.10) and the first content to fire §E's `damageStepEnd`. 36 effects of ~152, including Appendix A's **terminal tier**. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
+| — | Content (Medea) | — | **Medea**, the first Caster, and the densest sheet at thirteen abilities. **All thirteen** resolve end to end in a live world -- verified individually, including Dragon Tooth Warriors (two nested rolls, 5×5 placement, count-scaled cooldown), Rule Breaker (cuts the Contract, strips the Master's Command Spells, grants three namespaced ones), Rain of Light (a 3×3 AoE that proved the targeting system), Atlas (base 100 reduced to 75 by `target MAG B+ -25`), and Argos and Trofa offered **at the reaction rung** because "used when Attacked" cannot be reached from a sheet button. 21 effects of ~152. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
 
 ---
 
@@ -213,7 +214,15 @@ Thirty executors exist. Their output lands in eleven buckets, of which **four ha
 | `magicResistance` | stage 11 | **Live** |
 | `eventHandlers` | `scheduler.fireEvent` | **Live** — as of A1; see below |
 | `grantedAbilities` | `rules/granted.mjs` → movement, budget | **Live** — as of B3 |
+| `applicationChances` | `effect-applier`, both directions | **Live** |
 | `suppressions` | — | **Collected only** |
+
+**A third failure mode, subtler than either.** A bucket can be live and its *contents* still be
+unreachable. Collection runs per unit with only that unit's options in scope, and until Scáthach
+was authored a predicate naming `target:` or `attack:` was **tested there and answered false** —
+so the element never reached the bucket at all. Three shipped abilities were affected and none of
+them looked broken: Penthesilea's *Goddess of War*, `NP DmUp`, and Scáthach's *God Slayer*. Such
+predicates are now deferred onto the modifier for the pipeline to answer (Ch. 24 §24.4).
 
 Two more that are subtler than "collected only", because they *look* wired:
 
@@ -701,8 +710,48 @@ the general log.
 
 ### Phase D — content and polish
 
-**D1. The remaining 25 Servants** — **STARTED.** Two authored: **Asterios** and
-**Penthesilea**.
+**D1. The remaining 23 Servants** — **STARTED.** Six authored: Heracles, Karna, **Asterios**,
+**Penthesilea**, **Medea** and **Scáthach**.
+
+---
+
+**Scáthach** was the sixth, and the one that most vindicates running this phase continuously.
+Eleven abilities, and every one of them needed something the engine did not have — but the
+*interesting* result is the other direction. Authoring her found **eleven defects in already-
+shipped code**, nine of them in features that had been reported complete.
+
+| Found | What was actually wrong |
+|---|---|
+| `resolveDefeat` | Read `unit.health?.value` off a **snapshot**, whose `health` is a flat number. `undefined ?? 0` became "no Health left", so **every successful attack defeated its target**, at full Health, in every world. |
+| `system.defeated` | Written by `io.defeat` since it was written and declared on **no schema**, so the DataModel dropped it. That is what hid the line above: two silent defects cancelling out to look like working code. |
+| *Wisdom of Dún Scáith* | Could never copy **anything**. `copyCandidates` reads the board snapshot, whose ability entries carry no `phases`, so `canCopy` refused every candidate in the game as `notActive`. |
+| …and its cooldown | `"4◈−⅓◈"` with a **U+2212 MINUS SIGN**, which `parseTick` rejects, written to `cooldown.value` — a field the schema does not have. Every copy ever granted came back reusable every Turn. |
+| Deferred predicates | Collection tested `target:` and `attack:` clauses against a **self-only** option set and dropped the element for ever. Penthesilea's *Goddess of War* never fired on a Normal Attack; `NP DmUp` raised no Noble Phantasm's damage. |
+| Crit chance | A flat `1d2`, so **`Crit Up` had no reader at all** — §14.6 says the coin *is* a 50% chance that effects move. |
+| `npMagnitude` | Every "if NP, X%" clause in Appendix A. Referenced by the effect definitions as `@npMagnitude`, carried by no instance. |
+| `phase.target` | Authored on every ability since phases existed and read by nothing. Invisible until an ability's targeting and its self-phase differed — Primordial Rune's tokens went to the ally. |
+| `turnState.abilitiesUsed` | Absent from the snapshot projection, so every snapshot reader of the turn record saw `undefined`. |
+| Magic Resistance passive 2 | Authored as a `CheckModifier`, which lands in `checkModifiers`; the applier reads `applicationChances`. The commonest defensive class skill in the game reduced nobody's debuff chance. |
+| `uses` | Recorded on every count-stacked effect and **never decremented**, so Medea's Trofa — "1 times" — evaded every attack for the rest of the match. |
+
+What she needed built, all of it general:
+
+| Built for | What it is |
+|---|---|
+| PRS Tokens | **The `Resource` mechanism** (§6.10), designed when the tables were transcribed and never built because no authored Servant had a pool. `domain/resources.mjs`, a schema field, a clamping writer, and `cooldownWaiver` — one token buys a Rune Spell out of its cooldown entirely. |
+| *Primordial Rune* | **Table-driven abilities** (`rules/roll-table.mjs`): two tables chosen by relation, per-die resolution so *"a duplicate applies twice"* is the rule rather than a bug, and a wildcard row that opens a prompt. `ChoiceDialog` grew a `min`, because *"any of the above effect(s)"* is one **or more**. |
+| The Rune Spells | **`abilityOffCooldown`** with `excludeSelf`, matching by id, `category` or `exclusionSet` — the three ways her sheet groups abilities, all three present in one Servant. And **`oncePerTurn`**, which is not implied by a cooldown: a token skips Ár's clock entirely. |
+| *Gáe Bolg Alternative* | **Pre-damage phases** (`when: beforeDamage`) and **`damage.skipIf`**. *"If Instakill is not inflicted, this NP deals 3.5x damage"* cannot be a rider, because a rider fires after a damage step that should not have happened. |
+| Both Noble Phantasms | Appendix A's **terminal tier**. `Instakill` empties the Health pool and lets the ordinary defeat chain run, so Guts still answers; `Death` defeats outright, because damage would be caught by `Endure` and Endure has no business surviving Death. |
+| *Gate of Skye* | A **`check` phase**: a save rolled by the *defender*, its difficulty read from a rank table keyed on the defender's own MAG. `gateOfSkyeSaveModifier` had sat in `domain/tables.mjs` since the tables were transcribed with nothing reading it. |
+| *God Slayer* / *Alpi* | **§E's `damageStepEnd`**, fired for the first time, with a **`targetPredicate`** evaluated when the event fires — *"if the DU has the Undead or Divine Attribute"* is a question about somebody who does not exist at collection time. Plus `CooldownDelta` with `scope: np`, because she has two Noble Phantasms and the sheet names neither. |
+| `Shock`, `Slow` | **Multiplicative stat deltas** (`factor`, `floor`), a **roll gate** on an event action (*"roll d6; on 3 or 4 the unit cannot act"*), and **`onRemove`** clauses — Shock gives back *one* Agility where the maximum regains three, and the asymmetry is the whole clause. |
+| Magic Resistance | **Severity lists** and **`attackPredicate`** on a chance contribution, for *"also affects Instakill and Death **unless** … STR damage … Erase is completely unaffected"*. Her own Gáe Bolg Alternative is exactly the exemption: her A-rank Magic Resistance would not save a target from her own spear. |
+
+Fifteen effects were authored with her, including the four that complete Appendix A's crit and
+debuff-chance families in both directions, and the two terminal ones.
+
+---
 
 Penthesilea's *Charisma* is the archetypal aura, and the reason `relations` is a list rather
 than a boolean: *"all damage dealt by **other** allied Units within a 2 panel area"* means allies

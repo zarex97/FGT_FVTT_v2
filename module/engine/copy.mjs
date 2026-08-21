@@ -14,8 +14,15 @@
 import { canCopy, copyCandidates, copyAbility } from "../rules/copy.mjs";
 import { currentBoard, unitFrom } from "./board.mjs";
 
-/** Wisdom of Dún Scáith's own rank and cooldown, which every copy takes. */
-const DUN_SCAITH = Object.freeze({ rank: "A+", cooldown: "4◈−⅓◈", exclusionSet: "wisdomOfDunScaith" });
+/**
+ * Wisdom of Dún Scáith's own rank and cooldown, which every copy takes.
+ *
+ * The minus is an **ASCII hyphen**. It was a U+2212 MINUS SIGN, which
+ * `parseTick` does not accept -- so every copy this grant has ever made threw
+ * on its cooldown, was caught, and came back reading zero. A copied Skill was
+ * reusable every Turn forever.
+ */
+const DUN_SCAITH = Object.freeze({ rank: "A+", cooldown: "4◈-⅓◈", exclusionSet: "wisdomOfDunScaith" });
 
 /**
  * What this unit could copy right now.
@@ -68,10 +75,18 @@ export async function grantCopies({ copierId, picks, slots = 2, grantedBy = "wis
       type: "ability",
       system: {
         rank: copy.rank,
-        cooldown: { value: copy.cooldown },
+        // `max`, not `value`. The schema has no `value`, so the DataModel
+        // dropped it: on top of the unparseable expression above, the field
+        // the cooldown was written to did not exist.
+        cooldown: { max: copy.cooldown, remaining: 0, regen: 0 },
         copiedFrom: copy.copiedFrom,
         grantedBy: copy.grantedBy,
         exclusionSet: copy.exclusionSet,
+        // Every slot from one grant gates on the others (§15.7): "Cannot be
+        // used if Wisdom of Dún Scáith (Skill 2) or (Clairvoyance) is on
+        // Cooldown." Authored ON the copy, because the copy is what the player
+        // presses and `canUseAbility` reads its requirements.
+        requirements: [{ kind: "abilityOffCooldown", exclusionSet: copy.exclusionSet, excludeSelf: true }],
       },
     });
   }
@@ -96,8 +111,11 @@ function abilitySpec(item) {
     id: sys.contentId || item.id,
     name: item.name,
     rank: sys.rank,
-    kind: sys.kind,
-    isNP: Boolean(sys.isNP),
+    // `kind` and `passive` were read here against a schema that declared
+    // neither, so `canCopy`'s "excluding Class Skills" and "must have an
+    // Active effect" both saw `undefined` and let everything through.
+    kind: sys.kind ?? null,
+    isNP: item.type === "noblePhantasm" || Boolean(sys.isNP),
     passive: Boolean(sys.passive),
     phases: sys.phases ?? [],
     copyable: sys.copyable,

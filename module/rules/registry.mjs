@@ -46,6 +46,17 @@ export const EffectRegistry = {
         blocks: sys.blocks ?? [],
         blockedBy: sys.blockedBy ?? [],
         periodic: sys.periodic ?? null,
+        // Appendix A's terminal tier -- what Instakill and Death DO. Dropped
+        // here, the applier would create an "Instakill" badge and remove no
+        // Health at all.
+        terminal: sys.terminal ?? null,
+        // Charges a count-stacked effect starts with. `resolveStacking` has
+        // read `def.uses` since it was written, so dropping it here made every
+        // count-limited effect start at 1 regardless of what it declared.
+        uses: sys.uses ?? null,
+        // Actions that run when the effect goes away -- Shock's "current
+        // Agility +1 when max is restored", Coma's exit damage.
+        onRemove: sys.onRemove ?? [],
         rules: sys.rules ?? [],
         coveredByDebuffImmune: sys.coveredByDebuffImmune ?? false,
         bypassesImmunity: sys.bypassesImmunity ?? false,

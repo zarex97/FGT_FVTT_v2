@@ -4,6 +4,12 @@ id: asterios-natural-monster
 name: "Natural Monster"
 rank: "A++"
 cooldown: "4◈-⅔◈"
+# Scáthach cannot copy this (§15.7). Her sheet's exclusion list is about the
+# CATEGORY rather than the four names it happens to give: "Skills that a
+# Servant is physically born with (e.g. Natural Body) or are part of their
+# physical bodies (e.g. Mystic Eyes)". "The source of Asterios' inhuman STR and
+# END" is exactly that -- it is his body, not a technique.
+copyable: { allowed: false, reason: physical }
 description: |
   (Passive) The source of Asterios' inhuman STR and END.
   (Active) Applies Off.Debuff ResUp for 1◈ Turns (chance of being inflicted by Offensive

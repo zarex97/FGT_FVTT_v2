@@ -551,6 +551,8 @@ function actorSystem(doc) {
     baseAttack: doc.baseAttack ?? { str: 0, mag: 0 },
     normalAttack: doc.normalAttack ?? { mode: "fixed", component: "str" },
     sustainability: doc.sustainability ?? null,
+    // §6.10's pools, declared on the Servant that owns them.
+    resources: doc.resources ?? {},
     notes: doc.notes ?? "",
   };
 }
@@ -579,6 +581,8 @@ function itemSystem(doc) {
     categorizedAsNP: Boolean(doc.categorizedAsNP),
     npTags: doc.npTags ?? [],
     cooldown: compileCooldown(doc.cooldown),
+    // §6.10: a resource that buys this use out of its cooldown entirely.
+    cooldownWaiver: doc.cooldownWaiver ?? null,
     targeting: doc.targeting ?? null,
     // The bounded field a Noble Phantasm creates (Ch. 43).
     field: doc.field ?? null,
@@ -600,6 +604,25 @@ function itemSystem(doc) {
     // Medea: a Spell is a category High-Speed Divine Words resets wholesale,
     // and `sameTurnExclusive` is a pair that may not both fire in one Turn.
     category: doc.category ?? null,
+    // Read by `canCopy` -- "excluding Class Skills", "must have an Active
+    // effect" -- and never compiled, so every class skill and every passive in
+    // the game was copyable by Wisdom of Dún Scáith.
+    kind: doc.kind ?? null,
+    passive: Boolean(doc.passive),
+    // §15.3's "unless stated" overrides. Passed through as authored, including
+    // `undefined`, because `countsAsAttack` derives its answer when unstated.
+    countsAsAttack: doc.countsAsAttack ?? undefined,
+    countsAsAct: doc.countsAsAct ?? undefined,
+    oncePerTurn: Boolean(doc.oncePerTurn),
+    // §7.6. `engine/cooldown.mjs` has read this since it was written.
+    // Normalised to objects, so the schema can hold both forms: a bare id is
+    // the common case and `{exclusionSet}` / `{category}` names a group.
+    alsoTriggers: (doc.alsoTriggers ?? []).map((e) => (typeof e === "string" ? { ability: e } : e)),
+    // The mutual-exclusion set. Set on a COPY by the grant, and authorable on
+    // a Servant's own abilities -- Scáthach's Clairvoyance shares `dunScaith`
+    // with the two slots the grant fills.
+    exclusionSet: doc.exclusionSet ?? null,
+    grantedBy: doc.grantedBy ?? null,
     sameTurnExclusive: doc.sameTurnExclusive ?? [],
     negatedBy: doc.negatedBy ?? [],
     nonStacking: doc.nonStacking ?? null,
@@ -625,11 +648,18 @@ function itemSystem(doc) {
     // Appendix A's Instakill/Death ladder, which chance modifiers filter on.
     severity: doc.severity ?? "normal",
     preventsAction: Boolean(doc.preventsAction),
+    // Appendix A's terminal tier: what the effect DOES, rather than what the
+    // Unit then carries.
+    terminal: doc.terminal ?? null,
+    // Actions that run when the effect goes away.
+    onRemove: doc.onRemove ?? [],
     volatility: doc.volatility ?? null,
     valence: doc.valence ?? null,
     stacking: doc.stacking ?? null,
     baseChance: doc.baseChance ?? null,
     defaultMagnitude: doc.defaultMagnitude ?? null,
+    // Charges a count-stacked effect starts with.
+    uses: doc.uses ?? null,
     defaultDuration: doc.defaultDuration ?? null,
     unremovable: Boolean(doc.unremovable),
     blocks: doc.blocks ?? [],

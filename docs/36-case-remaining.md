@@ -13,6 +13,13 @@
 > a human. The ability reaches its dialog through `opensDialog: copy` on its own document rather
 > than by a name match, so the next such ability needs content and not code.
 >
+> **It offered nothing, in any world, until Scáthach was authored.** The two dialogs and the
+> socket primitive were built and correct; `copyCandidates` reads the **board snapshot**, whose
+> ability entries carried no `phases`, so `canCopy`'s *"must have an Active effect"* test refused
+> every candidate in the game as `notActive`. The list came up empty and the dialog said so
+> honestly, which is exactly why it read as "no eligible Servants on the field" rather than as a
+> bug. Ch. 15 §15.7 records the two further defects behind it.
+>
 > Asking a **named player** a question needed a socket primitive that did not exist:
 > `FGTSocket.ask`. `request` routes everything to the active GM, which is right for anything that
 > writes and exactly wrong for a prompt. Its absence had also left `io.prompt` emitting a

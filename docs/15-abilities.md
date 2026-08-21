@@ -218,6 +218,72 @@ Phases execute in declaration order. `"reuse"` chains a phase to the previous ph
 target set — the mechanism that makes `Brahmastra Kundala` apply Burn to exactly the units it
 damaged.
 
+**`target` is read.** It was authored on every ability from the beginning and the skill executor
+ignored it, looping every phase over every resolved target. That stayed invisible for as long as
+every `target: self` phase belonged to a *self-targeting* ability, where the two lists are
+identical. Scáthach's *Primordial Rune* is the first where they differ — *"Gain 2 PRS Tokens.
+Then, … on an allied Unit"* — and in a live world the tokens went to the ally.
+
+### `when`: phases that run before the damage
+
+A phase may declare `when: beforeDamage`. Unstated means after, which is what every phase written
+before this existed meant.
+
+Scáthach's *Gáe Bolg Alternative* is the case: *"has a 75% chance of inflicting Instakill. **If
+Instakill is not inflicted**, this NP deals 3.5x damage plus 100."* That cannot be a rider,
+because a rider fires after a damage step that should not have happened. The effects resolve
+first, and the ability's `damage.skipIf` names what cancels the damage:
+
+```yaml
+damage:
+  multiplier: 3.5
+  flatBonus: 100
+  skipIf: { effectApplied: instakill }
+phases:
+  - kind: applyEffects
+    when: beforeDamage
+    target: reuse
+    effects:
+      - { id: stun, duration: "1◈", chance: 500 }
+      - { id: instakill, chance: 75 }
+```
+
+Only an **applied** effect suppresses the damage. A resisted Instakill did not happen, and the
+Noble Phantasm falls back to its damage exactly as the sheet says. Note `chance` on the effect
+entries: the **ability's** stated chance, overriding the effect definition's own. 500% is not
+"guaranteed" but "guaranteed through four stacked resistances", which is what the number is for.
+
+### `check`: a phase the defender rolls
+
+```ts
+  | { kind: "check"; check: "luck"; modifierTable?: string; modifierRank?: Parameter;
+      onFail?: { effects: EffectApplication[] }; onSuccess?: { effects: EffectApplication[] } }
+```
+
+One ability in the reference set needs it, and every part of it is unusual. Scáthach's *Gate of
+Skye*: the check is rolled by the **target** rather than by the attacker, its difficulty is read
+from a rank table keyed on the *target's own* MAG, and failing it is worse than succeeding —
+success only means taking 4x damage.
+
+`gateOfSkyeSaveModifier` is an **equality** table, not a threshold: *"if their MAG is Rank B,
+reduce the value rolled by 2; if their MAG is Rank A, reduce it by 4"*, and a `MAG A+` or `MAG EX`
+target gets nothing at all. Do not "improve" it into a `gte`.
+
+### `rollTable`: an ability whose effect is decided by a die
+
+```ts
+  | { kind: "rollTable"; target: TargetSpec | "reuse"; count: number; faces: number;
+      tables?: { ally: Table; enemy: Table }; entries?: Table }
+```
+
+Scáthach's *Primordial Rune*, and it has three wrinkles worth naming. **Two tables chosen by
+relation** — the same Skill, two eight-row tables, and which one applies is a property of the
+target rather than of the use. **Duplicates apply twice**: *"if a duplicate number is rolled,
+apply the effect twice"*, so the dice resolve **per die** and collapsing them into a set — the
+obvious implementation — is precisely the bug that clause forbids. And a **wildcard row**,
+`{choose: true}`, which resolves to a question rather than to an effect; it offers the rows
+*above* it, never itself, and accepts one **or more**, because the sheet says "effect(s)".
+
 ### Example — Karna's *Flash of the Sun God*
 
 ```yaml
@@ -352,6 +418,9 @@ type Requirement =
   | { kind: "counterpartAdjacent" }            // Dioscuri NP
   | { kind: "masterHealthAbove"; amount: number }   // NP cost
   | { kind: "targetHasEffect"; effectId: string }
+  | { kind: "notHasEffect"; effectId: string }     // the USER's own state
+  | { kind: "abilityOffCooldown";                  // §7.6; see below
+      abilityIds?: string[]; category?: string; exclusionSet?: string; excludeSelf?: boolean }
   | { kind: "predicate"; predicate: Predicate };   // escape hatch
 
 type Cost =
@@ -378,6 +447,23 @@ type Cost =
 
 `±3` per rank step. Rankless Masters use the left column. Does not apply to Passive NPs unless
 stated.
+
+### Unrecognised kinds refuse
+
+`meetsRequirement` returns **false** for a kind it does not implement, which is the safe
+direction and the reason the vocabulary is guarded against the authored content
+(`test/unit/ability-requirements.test.mjs`). An ability whose gate nobody implements does not
+fail loudly — it becomes *permanently unusable*: it compiles, validates, loads into the pack,
+renders on the sheet, and refuses every time it is pressed. Medea's *High-Speed Divine Words* had
+been shipping a `notHasEffect` gate the vocabulary never had.
+
+### `oncePerTurn`
+
+A field on the ability rather than a requirement, because the question is about the ability
+*itself* and a requirement has no way to name its own declarer without repeating the id.
+
+It is **not** implied by a cooldown. Scáthach's *Ár* is the case: a PRS Token waives its `3◈`
+entirely (§7.6), so *"can only be used once per Turn"* is the only limit left on it.
 
 > *"The Servant cannot use its Noble Phantasm if its Master's Health is equal to or less than
 > the amount that would be lost."*
@@ -536,11 +622,43 @@ copyable:
 
 The copy operation creates a **granted ability** on Scáthach: a new ability document whose
 `phases` are copied by reference (`copiedFrom: <abilityUuid>`), with Scáthach's own rank
-(`A+`), cooldown (`4◈−⅓◈`), and mutual-exclusion set. Copying by reference rather than by value
+(`A+`), cooldown (`4◈-⅓◈`), and mutual-exclusion set. Copying by reference rather than by value
 means a later content fix to the source ability propagates.
 
 The setup UI is a GM-facing dialog: the GM selects which abilities to offer, Scáthach's player
 picks two. Ch. 36 walks through it.
+
+### It had never worked, in three separate ways
+
+Authoring Scáthach was the first time the grant was run against a real board, and it produced
+nothing at all. Three defects, each sufficient on its own:
+
+1. **`copyCandidates` reads the board snapshot**, whose ability entries carried no `phases` — so
+   `canCopy`'s *"must have an Active effect"* test saw an empty list and refused **every
+   candidate in the game** as `notActive`. The snapshot now carries `hasPhases`, a boolean rather
+   than the phase list: the question is one bit, and copying every Servant's phases into every
+   board snapshot to answer it is a great deal of data.
+2. **`kind` and `passive` were read against a schema that declared neither**, so *"excluding
+   Class Skills"* and the passive test both saw `undefined`. Had (1) been fixed alone, every
+   class skill and every passive on the field would have been offered.
+3. **The cooldown was `"4◈−⅓◈"` with a U+2212 MINUS SIGN**, which `parseTick` rejects, written
+   to `cooldown.value` — a field the schema does not have. Every copy the grant ever made came
+   back reading zero: reusable every Turn, for ever. The two characters are visually identical
+   in most fonts, which is why `test/unit/tick-literals.test.mjs` now checks every ◈ expression
+   written anywhere in the source.
+
+### The exclusion set is the rule
+
+*"Cannot be used if Wisdom of Dún Scáith (Skill 2) or (Clairvoyance) is on Cooldown"* — and the
+same sentence on each of the other two. Three abilities, one mutual gate, expressed as a shared
+`exclusionSet` plus an `abilityOffCooldown` requirement with `excludeSelf` (§7.6, §15.4).
+
+Two of the three are copies that do not exist until she is summoned, and the third —
+*Clairvoyance* — ships with fixed content. Both halves have to spell the set the same way, or the
+gate matches nothing: it was authored `dunScaith` against the grant's `wisdomOfDunScaith`, and
+both loaded, both validated, and the rule was simply absent. Same failure mode as a one-sided
+`sameTurnExclusive`. `test/unit/exclusion-sets.test.mjs` holds the authored sets against the ones
+the engine writes.
 
 Related mechanisms:
 - Semiramis's *Double Summon* grants the `Double Summon: Caster` skill for 1◈ via a buff.

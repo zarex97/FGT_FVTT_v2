@@ -90,6 +90,20 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
     return { ok: false, reason: "round", detail: { requiresRound, round }, cost };
   }
 
+  // "Can only be used once per Turn." A field on the ability rather than a
+  // requirement, because the question is about the ability ITSELF and a
+  // requirement has no way to name its own declarer without repeating the id.
+  //
+  // Not redundant with the cooldown gate above, and Scathach is why: a
+  // Primordial Rune Spell used while she holds a PRS Token does not enter
+  // Cooldown at all, so Ar's `3◈` never runs and this clause is the only thing
+  // standing between her and using it every Turn for free.
+  if (ability?.oncePerTurn && usedThisTurn(unit).some(
+    (id) => id === ability.id || id === ability.contentId,
+  )) {
+    return { ok: false, reason: "oncePerTurn", cost };
+  }
+
   // A Noble Phantasm needs its user inside its Master's ZON. The targeting
   // resolver has always refused this; asking here too means one call answers
   // the whole question rather than half of it.
@@ -102,6 +116,10 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
   const met = meetsRequirements(ability?.requirements ?? [], {
     unit, master, target: ctx.target ?? null, board: ctx.board ?? null,
     round, testPredicate: ctx.testPredicate,
+    // The declaring ability, so `abilityOffCooldown` can exclude it. Without
+    // this a Spell gates on its own cooldown, which the gate above already
+    // checked -- so the requirement would never say anything new.
+    ability,
   });
   if (!met.ok) return { ok: false, reason: met.reason, cost };
 
@@ -114,6 +132,20 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
 /* -------------------------------------------------------------------------- */
 /*  Internals                                                                 */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Which abilities this Unit has already used this Turn.
+ *
+ * Stale-by-tick like the rest of turn state, and the snapshot has already
+ * applied that rule -- `turnStateAt` blanks a list stamped with an earlier
+ * tick, so a missed reset cannot leave a Servant permanently unable to act.
+ *
+ * @param {object} unit
+ * @returns {string[]}
+ */
+function usedThisTurn(unit) {
+  return unit?.turnState?.abilitiesUsed ?? [];
+}
 
 /**
  * Why the cost cannot be met, or `null` when it can.

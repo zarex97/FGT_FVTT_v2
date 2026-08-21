@@ -1,0 +1,17 @@
+# Appendix A §A.10
+schema: 1
+id: debuffResDwn
+name: "Debuff ResDwn"
+description: "Chance of being inflicted by debuffs is increased by X%."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # Negative resistance. `applicationChance` subtracts `resist`, so a negative
+  # contribution raises the chance -- which is what "increased by X%" means
+  # from the victim's side.
+  - key: ApplicationChance
+    direction: incoming
+    value: "-@magnitude"

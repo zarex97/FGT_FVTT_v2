@@ -428,6 +428,20 @@ Note the variety: hard-capped pools, uncapped counters, pools that are really st
 a buff (GAO), and pools that are a *set of identifiers* rather than a number (Heracles's
 recorded attacks). The last one does not fit `Resource` at all.
 
+**BUILT (Scáthach).** Mechanism (1) is implemented: `module/domain/resources.mjs` for the pure
+arithmetic, a `resources` object on every Unit, and a writer that clamps to the pool's **own**
+declared maximum rather than to one the caller passes. The clamp is load-bearing rather than
+tidy — *"the maximum number of PRS Tokens Scáthach can have is 2"* and her *Primordial Rune*
+grants **two at a time**, so a second use while she still holds one must leave her at 2. Without
+it she reaches 4 and every Rune Spell after that is free.
+
+Spending is authored on the ability rather than in the engine. `cooldownWaiver: {resource, amount}`
+is the first spend in the reference set, and it returns the token and the skipped clock as **one
+answer** (`engine/cooldown.mjs`), because they are one decision: a caller that had to re-derive
+whether a token was spent could disagree with the cooldown it was handed.
+
+Mechanisms (2) and (3) are still open, and neither has content yet.
+
 **DECISION.** Two mechanisms, not one:
 1. `Resource` for numeric pools — the first six rows.
 2. **Effect stacks** for things that are really "N instances of a buff" (GAO) — modelled as N

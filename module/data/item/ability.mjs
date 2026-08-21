@@ -105,6 +105,45 @@ function abilityCommon() {
     // The grant that produced it, and the set every copy from one grant shares.
     grantedBy: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
     exclusionSet: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+
+    // What KIND of ability this is, and whether it is always on. Both are read
+    // by `canCopy` -- "excluding Class Skills", and "must have an Active
+    // effect" -- and neither was declared, so every class skill in the game
+    // was copyable by Wisdom of Dún Scáith and every passive was too.
+    kind: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    passive: new fields.BooleanField({ initial: false }),
+
+    // §15.3's "unless stated" overrides. NULLABLE rather than false-by-default:
+    // `countsAsAttack` derives its answer from the phases when unstated, and a
+    // boolean field would make "unstated" indistinguishable from "no".
+    countsAsAttack: new fields.BooleanField({ required: false, nullable: true, initial: null }),
+    countsAsAct: new fields.BooleanField({ required: false, nullable: true, initial: null }),
+
+    // "Can only be used once per Turn" — Scáthach's Ár. Distinct from a
+    // cooldown, and not implied by one: a PRS Token lets her skip Ár's
+    // cooldown entirely, leaving this as the only limit on it.
+    oncePerTurn: new fields.BooleanField({ initial: false }),
+
+    // Abilities this use ALSO puts on cooldown (§7.6). Scáthach's Gate of Skye
+    // is the reference case — "when this NP is used, Primordial Rune and Wisdom
+    // of Dún Scáith enter Cooldown" — and `engine/cooldown.mjs` has read this
+    // field since it was written, against a schema that dropped it.
+    // Objects, not strings. An entry may name one ability (`{ability: id}`) or
+    // a whole group (`{exclusionSet}` / `{category}`) -- Scáthach's Gate of
+    // Skye needs the second, because "Wisdom of Dún Scáith enters Cooldown"
+    // means her three Wisdom slots and not the grant, which has no clock. A
+    // StringField coerced the group entry to "[object Object]" and matched
+    // nothing. The compiler normalises an authored string into `{ability}`.
+    alsoTriggers: new fields.ArrayField(new fields.ObjectField()),
+
+    // Per-use requirements (§15.4). Authored at the top level as well as under
+    // `targeting.limits`, and the schema declared neither.
+    requirements: new fields.ArrayField(new fields.ObjectField()),
+
+    // A resource that buys this use out of its cooldown entirely (§6.10).
+    // Scáthach's Primordial Rune Spells: one PRS Token and the Spell "does not
+    // enter Cooldown". `{ resource: "prs", amount: 1 }`.
+    cooldownWaiver: new fields.ObjectField({ required: false, nullable: true, initial: null }),
   };
 }
 
@@ -136,7 +175,21 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // list before any effect could say so itself.
       preventsAction: new fields.BooleanField({ initial: false }),
       periodic: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // What a TERMINAL effect does when it lands. Appendix A's Instakill and
+      // Death are consequences rather than conditions, so they carry an action
+      // instead of rule elements: `{ kind: "reduceToZero" }` / `{ kind:
+      // "defeat" }`.
+      terminal: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // Actions that run when the effect is removed, in the same vocabulary as
+      // an `OnEvent` handler's `then:`. Appendix A has several -- Shock's
+      // "current Agility +1 when max is restored", Coma's exit damage.
+      onRemove: new fields.ArrayField(new fields.ObjectField()),
       defaultMagnitude: new fields.NumberField({ required: false, nullable: true, initial: null }),
+      // How many charges an instance starts with, for count-stacked effects.
+      // Read by `resolveStacking` since it was written, against a schema that
+      // did not declare it -- so `def.uses` was always undefined and every
+      // count-limited effect fell back to 1.
+      uses: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       defaultDuration: new TickField(),
       unremovable: new fields.BooleanField({ initial: false }),
       blocks: new fields.ArrayField(new fields.StringField()),

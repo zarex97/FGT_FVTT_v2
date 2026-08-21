@@ -7,7 +7,7 @@ import {
 } from "../../module/engine/combat-process.mjs";
 import {
   endTurn, beginTurn, beginRound, endRound, tickPeriodics, expireEffects,
-  advanceCooldowns, cooldownRate, checkRemovals,
+  advanceCooldowns, cooldownRate, checkRemovals, resolveDefeat,
 } from "../../module/engine/scheduler.mjs";
 
 /* ========================================================================== */
@@ -742,5 +742,66 @@ describe("per-effect chance modifiers (Medea's Atlas)", () => {
     });
 
     expect(out.outcome).toBe("applied");
+  });
+});
+
+describe("on-removal clauses", () => {
+  const shocked = {
+    id: "u", effectInstances: [{ id: "e1", defId: "shock", expiry: 4 }],
+    effects: ["shock"], abilities: [],
+  };
+
+  it("runs an expiring effect's own onRemove before removing it", () => {
+    // Appendix A's Shock: "on removal, current Agility +1 when max is
+    // restored" -- ONE point back, not the three the maximum regains. The
+    // asymmetry is the whole clause, and it had nowhere to live.
+    const intents = expireEffects([shocked], {
+      tick: 5,
+      turnsPerRound: 3,
+      effectDef: () => ({
+        id: "shock", name: "Shock",
+        onRemove: [{ key: "StatDelta", stat: "agility.value", delta: 1 }],
+      }),
+    });
+
+    expect(intents.map((i) => i.t)).toEqual(["statDelta", "removeEffect"]);
+    expect(intents[0]).toMatchObject({ stat: "agility.value", delta: 1 });
+  });
+
+  it("removes an effect with no onRemove exactly as before", () => {
+    const intents = expireEffects([shocked], { tick: 5, effectDef: () => ({ id: "shock" }) });
+    expect(intents.map((i) => i.t)).toEqual(["removeEffect"]);
+  });
+
+  it("does not need an effectDef supplier at all", () => {
+    // The scheduler stays usable without a compendium: an absent lookup means
+    // no on-removal clauses, not a crash.
+    expect(expireEffects([shocked], { tick: 5 }).map((i) => i.t)).toEqual(["removeEffect"]);
+  });
+});
+
+describe("resolveDefeat reads the snapshot's health shape", () => {
+  it("leaves a unit on full Health alone", () => {
+    // `snapshotUnit` flattens `health: {value, max}` to a NUMBER. This read
+    // `unit.health?.value`, got `undefined`, and the `?? 0` beside it turned
+    // that into "no Health left" -- so every successful attack defeated its
+    // target, at full Health, in every world.
+    expect(resolveDefeat({ id: "u", health: 3000, eventHandlers: [] }, { tick: 0 })).toEqual([]);
+  });
+
+  it("defeats a unit that is actually empty", () => {
+    expect(resolveDefeat({ id: "u", health: 0, eventHandlers: [] }, { tick: 0 }))
+      .toEqual([{ t: "defeat", unitId: "u", cause: "damage" }]);
+  });
+
+  it("still reads the document shape, for a caller that hands one over", () => {
+    expect(resolveDefeat({ id: "u", health: { value: 3000, max: 3000 }, eventHandlers: [] }, { tick: 0 }))
+      .toEqual([]);
+  });
+
+  it("treats an intrinsically undamageable unit as alive, not as empty", () => {
+    // `health: null` is Pale Rider, not a corpse.
+    expect(resolveDefeat({ id: "u", health: null, eventHandlers: [] }, { tick: 0 }))
+      .toEqual([{ t: "defeat", unitId: "u", cause: "damage" }]);
   });
 });

@@ -1,0 +1,37 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+#
+# The third Wisdom slot, and the only one with fixed content: the other two are
+# whatever she copied. It shares their `exclusionSet`, which is what makes the
+# three-way gate work -- "Cannot be used if Wisdom of Dún Scáith (Skill 1) or
+# (Skill 2) is on Cooldown."
+schema: 1
+id: scathach-wisdom-clairvoyance
+name: "Wisdom of Dún Scáith: Clairvoyance"
+rank: "A+"
+cooldown: "4◈-⅓◈"
+# The SAME set the two granted slots use (`engine/copy.mjs` writes it). Three
+# abilities, one mutual gate, and the same sentence on each of the three. A
+# second spelling would make Clairvoyance gate on nothing at all -- which is
+# what `dunScaith` did until `test/unit/exclusion-sets.test.mjs` caught it.
+exclusionSet: wisdomOfDunScaith
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Has an 80% chance of applying Crit DmUp for 1◈ Turns (Crit
+  Damage +50%), an 80% chance of applying Crit Up for 1◈ Turns (Crit Chance +50%), and applies
+  Dodge for 1◈ Turns. Cooldown 4◈-⅓◈ Turns. Cannot be used if Wisdom of Dún Scáith (Skill 1)
+  or (Skill 2) is on Cooldown.
+requirements:
+  - kind: abilityOffCooldown
+    exclusionSet: wisdomOfDunScaith
+    excludeSelf: true
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      # Two at 80% and one certain. The chance is the ABILITY's, overriding
+      # each effect's own 100 -- authoring it on the effect would make every
+      # Crit DmUp in the game an 80% proposition.
+      - { id: critDmUp, magnitude: 50, duration: "1◈", chance: 80 }
+      - { id: critUp, magnitude: 50, duration: "1◈", chance: 80 }
+      - { id: dodge, duration: "1◈" }

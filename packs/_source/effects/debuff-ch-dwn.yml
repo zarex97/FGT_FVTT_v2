@@ -1,0 +1,14 @@
+# Appendix A §A.10
+schema: 1
+id: debuffChDwn
+name: "Debuff ChDwn"
+description: "Chance of inflicting debuffs is reduced by X%."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: ApplicationChance
+    direction: outgoing
+    value: "-@magnitude"

@@ -1,0 +1,19 @@
+# Appendix A §A.9
+# The mirror of `critUp`, and a DISTINCT effect rather than a negative one:
+# they belong to different families, so a cleanse that strips one debuff must
+# not reach a Crit Up.
+schema: 1
+id: critDwn
+name: "Crit Dwn"
+description: "Crit Chance is reduced by X%."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # Negative, because `critChance` sums what it finds. Crit Up carries the
+  # positive magnitude on the same `check: crit` channel.
+  - key: CheckModifier
+    check: crit
+    value: "-@magnitude"

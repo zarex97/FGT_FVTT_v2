@@ -378,6 +378,16 @@ be 50%. Some effects increase and decrease the chance"* — so the implementatio
 `chance(critChance)` with a base of 50, and the UI shows a coin animation when the chance is
 exactly 50 for flavour.
 
+**BUILT (Scáthach).** `rules/checks.mjs :: critChance` is that function. It was a literal `1d2`
+until she was authored, which meant **`Crit Up` had no reader at all**: the effect applied, showed
+on the sheet, and every attack was still a coin. Her *Clairvoyance* grants 50% and her *Primordial
+Rune* 25%, and neither would have changed anything.
+
+Both sides contribute, and the direction matters. `Crit Up` and `Crit Dwn` are the attacker's;
+`Crit Guard` and `Bal Dwn` belong to the **defender** and are authored as *incoming* crit
+modifiers, so a defender cannot raise its own crit rate with them. `No Crit` beats `G.Crit`, as
+debuffs beat buffs everywhere else in the effect engine.
+
 Overpower and Underpower have the same treatment: base 50%, `−10` when the relevant buff is
 present.
 

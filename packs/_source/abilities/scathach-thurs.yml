@@ -1,0 +1,33 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+schema: 1
+id: scathach-thurs
+name: "Þurs"
+rank: null
+category: primordialRuneSpell
+isSpell: true
+element: lightning
+cooldown: "2◈"
+cooldownWaiver: { resource: prs, amount: 1 }
+timing: { window: ownTurn }
+description: |
+  Primordial Rune Spell. Damage Spell. Range 3. Deals 2x damage and inflicts Shock for
+  2◈ Turns. Lightning damage. Cooldown 2◈ Turns.
+requirements:
+  - { kind: abilityOffCooldown, category: primordialRuneSpell, excludeSelf: true }
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 2
+  # A Caster's Spell draws on Base Attack (MAG), which is also her normal
+  # attack -- stated here so the Magic Resistance exemption can read it off the
+  # attack rather than inferring it.
+  component: mag
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: shock, duration: "2◈" }

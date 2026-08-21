@@ -239,3 +239,39 @@ export function isNegated(item, effects) {
   if (negatedBy.length === 0) return false;
   return negatedBy.some((id) => (effects ?? []).includes(id));
 }
+
+/**
+ * The ability as `canUseAbility` wants to see it.
+ *
+ * **One implementation for both use paths.** `resolveAttack` and `useSkill`
+ * each built their own, and they disagreed: the attack one omitted the content
+ * id and neither carried `oncePerTurn`, so a gate authored on an ability was
+ * read by whichever path happened to run it and dropped by the other. That is
+ * the same defect `engine/cooldown.mjs` was written to end.
+ *
+ * `requirements` is read from `targeting.limits` first because that is where
+ * `requiresZon` and `requiresRound` already live — an ability may state them
+ * beside the targeting declaration or at the top level, and both ship.
+ *
+ * @param {object|null} ability an ability Item
+ * @returns {object|null}
+ */
+export function usageSpecFor(ability) {
+  if (!ability) return null;
+  const sys = ability.system ?? {};
+
+  return {
+    id: ability.id,
+    // What `sameTurnExclusive`, `abilityOffCooldown` and the turn record all
+    // name. An id-only spec cannot answer a gate written against content.
+    contentId: sys.contentId ?? null,
+    rank: sys.rank ?? null,
+    isNP: ability.type === "noblePhantasm" || Boolean(sys.isNP),
+    cooldown: sys.cooldown ?? { remaining: 0 },
+    // "Can only be used once per Turn" — Scáthach's Ár, whose 3◈ cooldown a
+    // PRS Token skips entirely, leaving this as the only limit on it.
+    oncePerTurn: Boolean(sys.oncePerTurn),
+    requiresRound: sys.targeting?.limits?.requiresRound ?? null,
+    requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
+  };
+}

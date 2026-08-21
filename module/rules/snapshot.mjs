@@ -114,6 +114,12 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null } 
     effectInstances: effectInstances(actor),
     modifiers: contributions.modifiers,
     abilities: collectAbilities(actor),
+    // §6.10's pools, so a gate or a cooldown waiver can ask what the Unit
+    // holds without reaching for the document. Copied one level deep, because
+    // this layer is pure and must not hand a live document's object to a rule.
+    resources: Object.fromEntries(
+      Object.entries(sys.resources ?? {}).map(([k, v]) => [k, { value: v?.value ?? 0, max: v?.max ?? null }]),
+    ),
     // Riding decides whether this unit may move again after attacking, and
     // three separate places were each deciding it for themselves — two of them
     // by reaching for `game.actors` from a layer that may not. One projection.
@@ -192,6 +198,11 @@ export function turnStateAt(raw, tick) {
   const blank = {
     tick, acted: false, moved: false, attacked: false, movedPanels: 0,
     moveSegments: 0, usedActiveSkill: false, mayMoveAgain: false, usedRidingAttack: false,
+    // WHICH abilities went. Absent from both branches until now, so every
+    // snapshot reader of the turn record saw `undefined`: `oncePerTurn` never
+    // refused anything, and `reactionAbilities` offered a Skill whose
+    // same-Turn partner had already been used.
+    itemTransfers: 0, abilitiesUsed: [],
   };
   if (tick !== null && (raw?.tick ?? null) !== tick) return blank;
 
@@ -205,6 +216,8 @@ export function turnStateAt(raw, tick) {
     usedActiveSkill: Boolean(raw?.usedActiveSkill),
     mayMoveAgain: Boolean(raw?.mayMoveAgain),
     usedRidingAttack: Boolean(raw?.usedRidingAttack),
+    itemTransfers: raw?.itemTransfers ?? 0,
+    abilitiesUsed: [...(raw?.abilitiesUsed ?? [])],
   };
 }
 
@@ -460,6 +473,30 @@ function effectInstances(actor) {
  * inside the pipeline. Predicates that depend only on the unit's own state are
  * evaluated now.
  *
+/**
+ * Substitute an instance reference, with an optional leading minus.
+ *
+ * `"-@magnitude"` is what an effect needs when its magnitude is authored
+ * positive -- as every magnitude on a sheet is -- and its reader sums rather
+ * than subtracts. `Crit Dwn` is the case: it shares the `check: crit` channel
+ * with `Crit Up`, so "reduced by 25%" has to arrive as `-25`.
+ *
+ * An exact-match substitution could not express that, and the alternative --
+ * authoring the magnitude negative on the effect -- would show "-25" wherever
+ * the sheet says 25.
+ *
+ * @param {unknown} raw
+ * @param {string} ref
+ * @param {number|undefined} value
+ * @returns {unknown}
+ */
+function instanceValue(raw, ref, value) {
+  if (raw === ref) return value ?? 0;
+  if (raw === `-${ref}`) return -(value ?? 0);
+  return raw;
+}
+
+/**
  * @param {object} actor
  * @returns {object}
  */
@@ -491,11 +528,16 @@ export function contributionsOf(actor) {
     if (!def?.rules?.length) continue;
     abilities.push({
       id: effect.id, name: effect.name, rank: null, active: true,
+      // The INSTANCE's remaining charges. A count-limited effect's rule
+      // elements have to know how many uses are left, or the consumer cannot
+      // tell a spent Trofa from a fresh one.
+      uses: effect.system?.uses ?? 0,
       rules: def.rules.map((r) => ({
         ...r,
-        // "@magnitude" on an effect definition resolves against the instance.
-        value: r.value === "@magnitude" ? (effect.system?.magnitude ?? 0) : r.value,
-        npValue: r.npValue === "@npMagnitude" ? (effect.system?.npMagnitude ?? undefined) : r.npValue,
+        // "@magnitude" on an effect definition resolves against the instance,
+        // and "-@magnitude" against its negation.
+        value: instanceValue(r.value, "@magnitude", effect.system?.magnitude ?? 0),
+        npValue: instanceValue(r.npValue, "@npMagnitude", effect.system?.npMagnitude),
       })),
     });
   }
@@ -540,12 +582,34 @@ function collectAbilities(actor) {
       cooldownRemaining: i.system?.cooldown?.remaining ?? 0,
       regen: i.system?.cooldown?.regen ?? 0,
       categorizedAsNP: Boolean(i.system?.categorizedAsNP),
+      // What a cross-ability gate matches on. Scathach's Gate of Skye "cannot
+      // be used if Primordial Rune, Wisdom of Dun Scaith and/or Gae Bolg
+      // Alternative are on Cooldown", and a gate that can only see `id` cannot
+      // name a content id, a whole category, or a copy's exclusion set --
+      // which is all three of the ways her sheet groups abilities.
+      contentId: i.system?.contentId ?? null,
+      category: i.system?.category ?? null,
+      exclusionSet: i.system?.exclusionSet ?? null,
       // Both needed by `rules/options.mjs`: `slug` is what a predicate names,
       // and `active` is what separates "has Mad Enhancement" from "has Mad
       // Enhancement switched on" -- two different questions, and content asks
       // both.
       slug: i.system?.slug ?? i.id,
       active: Boolean(i.system?.active),
+
+      // What `canCopy` asks about (§15.7). None of it was projected, so
+      // `copyCandidates` -- which reads the BOARD -- saw abilities with no
+      // phases and refused every one of them as `notActive`. Wisdom of Dún
+      // Scáith could not copy a single Skill in the game.
+      //
+      // `hasPhases` rather than the phases themselves: the question is "does it
+      // have an Active effect", and copying a Servant's whole phase list into
+      // every board snapshot to answer a boolean is a great deal of data for
+      // one bit.
+      kind: i.system?.kind ?? null,
+      passive: Boolean(i.system?.passive),
+      hasPhases: (i.system?.phases ?? []).length > 0,
+      copyable: i.system?.copyable ?? null,
     }));
 }
 

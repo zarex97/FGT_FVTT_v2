@@ -1,0 +1,45 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+#
+# The branching Noble Phantasm: "has a 75% chance of inflicting Instakill. IF
+# INSTAKILL IS NOT INFLICTED, this NP deals 3.5x damage plus 100." The branch
+# cannot be a rider, because a rider fires after a damage step that should not
+# have happened -- so both effects resolve BEFORE the damage, and a landed
+# Instakill suppresses it.
+schema: 1
+id: scathach-gae-bolg-alternative
+name: "Gáe Bolg Alternative: Soaring Spear of Piercing Death"
+rank: "B+"
+isNP: true
+npTags: [antiUnit]
+cooldown: "6◈+⅓◈"
+timing: { window: ownTurn }
+description: |
+  Base Attack (STR) is used. Range 4. Has a 500% chance of inflicting Stun for 1◈ Turns; then
+  has a 75% chance of inflicting Instakill. If Instakill is not inflicted, this NP deals
+  3.5x damage plus 100. Cooldown 6◈+⅓◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 4 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 3.5
+  flatBonus: 100
+  # Stated on the sheet, and unusual for a Servant whose Base Attack (MAG) is
+  # higher. It also decides the Magic Resistance question: a STR-damage source
+  # is exempt from Magic Resistance's Instakill clause, so the 75% below is not
+  # reduced by it.
+  component: str
+  # "If Instakill is not inflicted, this NP deals 3.5x damage plus 100." A
+  # SUCCESSFUL Instakill suppresses the damage; a resisted one lets it through.
+  skipIf: { effectApplied: instakill }
+phases:
+  - kind: applyEffects
+    # BEFORE the damage, because the damage depends on the outcome.
+    when: beforeDamage
+    target: reuse
+    effects:
+      # 500%, not "guaranteed". The difference is four stacked resistances: a
+      # target with 60% of debuff resistance still takes it, which is what the
+      # number is for.
+      - { id: stun, duration: "1◈", chance: 500 }
+      - { id: instakill, chance: 75 }

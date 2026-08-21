@@ -15,6 +15,7 @@ function fakeIo() {
     adjustResource: rec("adjustResource"),
     createEffects: rec("createEffects"),
     deleteEffects: rec("deleteEffects"),
+    consumeUse: rec("consumeUse"),
     setCooldown: rec("setCooldown"),
     move: rec("move"),
     setFacing: rec("setFacing"),
@@ -152,5 +153,28 @@ describe("markTurn — what the budget reads back", () => {
 
   it("rejects a patch that is not an object", () => {
     expect(I.validate([I.markTurn("a", null)])[0]).toMatch(/patch must be a turnState object/);
+  });
+});
+
+describe("consumeUse", () => {
+  it("reaches the writer with the effect and the count", () => {
+    // `uses` was stored on every count-stacked effect from the day the applier
+    // was written and nothing decremented it, so Medea's Trofa -- "1 times" --
+    // evaded every attack for the rest of the match.
+    const io = fakeIo();
+    return applyIntents([I.consumeUse("a", "autoEvade")], { io, canWrite: ownsA, isGM: true })
+      .then(() => {
+        expect(io.calls).toContainEqual(["consumeUse", "a", "autoEvade", 1]);
+      });
+  });
+
+  it("is ordered with removals, not with applications", () => {
+    // Spending the last use IS a removal. Applied after a create, it would
+    // decrement an effect that had just been replaced.
+    const plan = planApplication(
+      [I.applyEffect("a", { defId: "x" }), I.consumeUse("a", "autoEvade")],
+      { canWrite: ownsA, isGM: true },
+    );
+    expect(plan.local.map((i) => i.t)).toEqual(["consumeUse", "applyEffect"]);
   });
 });

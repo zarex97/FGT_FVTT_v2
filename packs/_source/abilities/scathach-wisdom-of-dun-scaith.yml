@@ -1,0 +1,23 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+#
+# The setup half of §15.7's hardest ability. It targets nothing and rolls
+# nothing: pressing it opens the GM's curation dialog, which offers the Skills
+# of every other Servant on the field and lets Scáthach's player take two.
+schema: 1
+id: scathach-wisdom-of-dun-scaith
+name: "Wisdom of Dún Scáith"
+rank: "A+"
+timing: { window: ownTurn }
+# Not a copy of a Skill; it is the grant that produces copies. It has no
+# cooldown of its own -- the two slots it fills carry `4◈-⅓◈` each -- but Gate
+# of Skye puts it on one, which is why `alsoTriggers` names it.
+opensDialog: copy
+copyable: { allowed: false, reason: unique }
+description: |
+  When Scáthach is Summoned, she is given a list of Skills (preferably Rank B to Rank A) that
+  must have an Active effect, of all other Servants on the field, excluding Class Skills. She
+  selects two of them and uses their effects as effects of this Skill.
+
+  Rank EX Skills cannot be copied. Neither can Skills a Servant is physically born with, Skills
+  that are part of their body, or Skills unique to one Servant — Natural Body, 'Mystic Eye'
+  Skills, 'Mana Burst' Skills, Kishu no Ma, Affections of the Holy Grail.

@@ -1,0 +1,22 @@
+# Scáthach's God Slayer, active clause 1.
+# Appendix A's `Dmg Up`: "damage dealt to units matching a category +X%,
+# INCLUDING NP (no reduced magnitude). Carries a predicate."
+schema: 1
+id: dmgUpGods
+name: "Dmg Up (Gods)"
+description: "Damage dealt to Units with the Undead or Divine Attribute is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # `dmgUp` rather than `atkUp`: the pipeline holds both in the attacker bucket,
+  # and the distinction is that `Dmg Up` takes no reduced magnitude against a
+  # Noble Phantasm. No `npValue`, for exactly that reason.
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"
+    predicate:
+      - { anyOf: ["target:attribute:undead", "target:attribute:divine"] }

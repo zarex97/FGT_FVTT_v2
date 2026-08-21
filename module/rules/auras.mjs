@@ -27,6 +27,7 @@
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { candidatesAt } from "./aura-index.mjs";
+import { relationOf } from "./relations.mjs";
 
 /**
  * Every aura contribution a unit receives, from every source on the board.
@@ -177,27 +178,6 @@ function distanceBetween(a, b) {
   let best = Infinity;
   for (const p of from) for (const q of to) best = Math.min(best, chebyshev(p, q));
   return best;
-}
-
-/**
- * How a source sees a recipient.
- *
- * Deliberately a copy of the targeting resolver's rule rather than an import:
- * importing across `rules/targeting` for three lines would couple the aura pass
- * to the eleven-step resolver's module graph, and the two answer the same
- * question for different reasons.
- *
- * @param {object} source
- * @param {object} unit
- * @param {object} board
- * @returns {"self"|"ally"|"enemy"|"neutral"}
- */
-function relationOf(source, unit, board) {
-  if (unit.id === source.id) return "self";
-  if (unit.kind === "civilian" || unit.faction === null) return "neutral";
-  const allied = board.alliances?.[source.faction]?.includes(unit.faction)
-    ?? unit.faction === source.faction;
-  return allied ? "ally" : "enemy";
 }
 
 /**

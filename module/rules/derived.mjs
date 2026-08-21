@@ -16,6 +16,7 @@
  *
  *   1. rank shifts on `parameters.*`
  *   2. numeric deltas, including `.max` deltas
+ *   2b. multiplicative factors and per-stat floors
  *   3. clamps
  *
  * A delta with a `duration` is still applied here. Duration governs when the
@@ -77,6 +78,32 @@ export function applyStatDeltas(system, statDeltas = []) {
       changes[currentPath] = numberAt(read(currentPath)) + d.value;
       trace.push({ path: currentPath, value: changes[currentPath], source: d.source });
     }
+  }
+
+  // ── 2b. Factors and floors ───────────────────────────────────────────────
+  //
+  // AFTER the additive pass, because Appendix A's multiplicative clauses act on
+  // the modified value: `Slow` is "MOV halved (round down)", and halving before
+  // a `MOV Down` landed would give a different -- and more generous -- number
+  // than halving after.
+  //
+  // `factor` rounds DOWN, which the source states for Slow and implies for
+  // Pigify's "BA → 10%". `floor` is `MOV Down`'s "cannot reduce MOV below 1":
+  // a floor rather than a clamp at zero, and a rule the additive pass cannot
+  // express because it belongs to the stat, not to the delta.
+  for (const d of statDeltas) {
+    if (typeof d.factor !== "number") continue;
+    const path = normalise(d.stat);
+    changes[path] = Math.floor(numberAt(read(path)) * d.factor);
+    trace.push({ path, value: changes[path], source: d.source });
+  }
+
+  for (const d of statDeltas) {
+    if (typeof d.floor !== "number") continue;
+    const path = normalise(d.stat);
+    if (numberAt(read(path)) >= d.floor) continue;
+    changes[path] = d.floor;
+    trace.push({ path, value: d.floor, source: d.source });
   }
 
   // ── 3. Clamps ────────────────────────────────────────────────────────────

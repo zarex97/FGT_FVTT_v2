@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   evade, luckCheck, tableFor, resolveCheck, chance, applicationChance, checkPlan,
-  UNFAVOURABLE_PENALTY,
+  UNFAVOURABLE_PENALTY, critChance,
 } from "../../module/rules/checks.mjs";
 
 describe("the favourable/unfavourable split is symmetric between Evade and Luck", () => {
@@ -213,5 +213,48 @@ describe("a granted AutoSucceed behaves like Dodge", () => {
     // automatic evasion.
     const r = evade({ roll: 20, agility: 3, autoSucceed: granted, forceUnfavourable: true });
     expect(r.success).toBe(true);
+  });
+});
+
+describe("critChance", () => {
+  const withMods = (mods) => ({ effects: [], checkModifiers: mods });
+
+  it("is 50% with nothing modifying it", () => {
+    // §14.6: the coin flip IS a 50% chance, and writing it as a `1d2` is what
+    // made every crit modifier in the game inert.
+    expect(critChance(withMods([])).percent).toBe(50);
+  });
+
+  it("adds the attacker's Crit Up", () => {
+    // Scáthach's Clairvoyance: "Crit Chance is increased by 50%."
+    expect(critChance(withMods([{ check: "crit", value: 50, source: "Crit Up" }])).percent).toBe(100);
+  });
+
+  it("subtracts the attacker's Crit Dwn", () => {
+    // Her Primordial Rune's enemy table, row 3.
+    expect(critChance(withMods([{ check: "crit", value: -25, source: "Crit Dwn" }])).percent).toBe(25);
+  });
+
+  it("reads the defender's contributions as incoming", () => {
+    // `Crit Guard` reduces the ATTACKER's crit chance. Authored incoming so a
+    // defender cannot accidentally raise its own crit rate with it.
+    const spec = critChance(
+      withMods([]),
+      withMods([{ check: "crit", direction: "incoming", value: -20, source: "Crit Guard" }]),
+    );
+    expect(spec.percent).toBe(30);
+  });
+
+  it("treats 100% or more as automatic", () => {
+    expect(critChance(withMods([{ check: "crit", value: 60, source: "x" }])).automatic).toBe(true);
+  });
+
+  it("lets No Crit beat G.Crit, as debuffs beat buffs everywhere else", () => {
+    const both = { effects: ["gCrit", "noCrit"], checkModifiers: [] };
+    expect(critChance(both)).toMatchObject({ percent: 0, blocked: true, automatic: false });
+  });
+
+  it("makes G.Crit certain on its own", () => {
+    expect(critChance({ effects: ["gCrit"], checkModifiers: [] }).automatic).toBe(true);
   });
 });

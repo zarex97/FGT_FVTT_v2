@@ -62,6 +62,29 @@ export function unitCommon() {
     // removed from the field while Bašmu is summoned, it disappears."
     boundToPlatformId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
+    // Whether this Unit has been defeated, and what did it.
+    //
+    // `io.defeat` has written `system.defeated` since it was written and **no
+    // schema declared it**, so the DataModel dropped it: every defeat in the
+    // game left a skull on the token, incremented the Grail counter, freed the
+    // contracted Servants -- and never marked the Unit. A defeated Servant was
+    // still a legal target, still took its turn, and still counted as alive to
+    // anything that asked.
+    //
+    // `defeatCause` matters separately: `Death` "ignores all revival effects",
+    // and a revival source has to be able to tell what killed the bearer.
+    defeated: new fields.BooleanField({ initial: false }),
+    defeatCause: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+
+    // Ability-specific pools (§6.10): `{ prs: { value: 0, max: 2 } }`.
+    //
+    // An ObjectField rather than a SchemaField because the pools are per-unit
+    // content -- Scáthach has PRS Tokens, Mannanán has Fragarach Tokens,
+    // Semiramis has Construction -- and a typed schema would have to name all
+    // eight before any of them could ship. §6.10's own decision was a general
+    // mechanism, and a general mechanism cannot enumerate its instances.
+    resources: new fields.ObjectField({ required: false, initial: () => ({}) }),
+
     biography: new fields.HTMLField({ required: false, blank: true }),
     notes: new fields.HTMLField({ required: false, blank: true }),
   };

@@ -1,0 +1,73 @@
+# packs/_source/servants/scathach.yml
+# Conversion source: char_orig_sheets/Copia de Scáthach.md
+schema: 1
+id: scathach
+name: Scáthach
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Scáthach
+servantClasses: [lancer]
+classContainer: lancer
+alignment: { order: neutral, morality: good }
+region: [ireland]
+attributes: [female, servant, star, humanoid]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: B, end: A, agi: A, mag: C, luc: D }
+baseHealth: 1500
+mov: 7
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 125, mag: 150 }
+# A Lancer attacks with STR. Her Base Attack (MAG) is higher and is used by
+# Gate of Skye and by the Rune Spells, each of which states so.
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# ─── Resources (§6.10) ─────────────────────────────────────────────────
+# PRS Tokens: max 2, +2 per Primordial Rune, 1 spent to waive a Rune Spell's
+# cooldown. The FIRST resource pool in the system -- §6.10 designed the general
+# mechanism and no Servant had needed it until now.
+resources:
+  prs: { value: 0, max: 2 }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: class-magic-resistance, rank: A }
+  - { ref: scathach-primordial-rune }
+  - { ref: scathach-primordial-rune-spells }
+  - { ref: scathach-ar }
+  - { ref: scathach-thurs }
+  - { ref: scathach-ur }
+  - { ref: scathach-wisdom-of-dun-scaith }
+  - { ref: scathach-wisdom-clairvoyance }
+  - { ref: scathach-god-slayer }
+  - { ref: scathach-gae-bolg-alternative }
+  - { ref: scathach-gate-of-skye }
+
+notes: |
+  The sixth Servant, the first Lancer, and the first to need three things the engine did not
+  have.
+
+  **PRS Tokens** are the first `Resource` pool (§6.10). The chapter designed the general
+  mechanism and counted eight in the reference set; none had been built, because no authored
+  Servant carried one. Hers is the smallest possible instance -- max 2, gained two at a time --
+  and the clamp is load-bearing: a second *Primordial Rune* while she still holds one leaves her
+  at 2, not 4, and every Rune Spell after that would otherwise be free.
+
+  **Wisdom of Dún Scáith** is the ability §15.7 calls the hardest in the set, and it is why the
+  copy machinery exists. Two of her three Wisdom slots are filled at summon by the GM's curation
+  dialog; the third, *Clairvoyance*, ships with fixed content and shares their `exclusionSet`,
+  which is what makes "cannot be used if either of the others is on Cooldown" a rule rather than
+  a note. Authoring her found that every copy the grant had ever made came back with **no
+  cooldown at all** -- an unparseable minus sign and a field name the schema did not have.
+
+  **Gate of Skye** is the only ability in the set whose targets roll a save. `gateOfSkyeSaveModifier`
+  had been sitting in `domain/tables.mjs` since the tables were transcribed with nothing reading
+  it. It is an equality table on purpose: a MAG A+ target gets no reduction at all, and
+  "improving" it into a threshold would be implementing a different rule.
+
+  Her two Noble Phantasms disagree about which Base Attack they use, which turned out to matter
+  beyond the damage: Magic Resistance covers Instakill and Death *"unless ... from an
+  Attack/Attack Skill/Spell/NP that deals STR damage"*, and Gáe Bolg Alternative is exactly
+  that. Her own A-rank Magic Resistance would not save a target from her own spear.

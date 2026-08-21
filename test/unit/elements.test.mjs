@@ -4,7 +4,7 @@
  * adding +50, and only this layer closes that gap.
  */
 import { describe, it, expect } from "vitest";
-import { collectContributions, resolveValue, EXECUTORS, handledKeys } from "../../module/rules/elements.mjs";
+import { collectContributions, resolveValue, EXECUTORS, handledKeys , deferredPredicate} from "../../module/rules/elements.mjs";
 import { EffectRegistry } from "../../module/rules/registry.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
@@ -17,7 +17,9 @@ describe("table-driven values resolve against the owning ability's rank", () => 
       ability({ name: "Divinity", rank: "A", passiveRules: [{ key: "FlatDamage", table: "divinity", includesNP: true }] }),
     ]);
     expect(out.modifiers).toEqual([
-      { key: "divinity", value: 50, component: null, source: "Divinity" },
+      // `predicate: null` means "collection answered it" -- as opposed to a
+      // deferred clause, which travels to the damage pipeline.
+      { key: "divinity", value: 50, component: null, predicate: null, source: "Divinity" },
     ]);
   });
 
@@ -106,14 +108,75 @@ describe("active versus passive rules", () => {
 });
 
 describe("predicates gate contribution entirely", () => {
-  it("omits the element rather than contributing zero", () => {
-    const el = { key: "FlatDamage", value: 100, predicate: ["target:attribute:divine"] };
+  it("omits the element rather than contributing zero, for a clause it can answer", () => {
+    // A `self:` clause is about the owner, and collection has the owner.
+    const el = { key: "FlatDamage", value: 100, predicate: ["self:effect:blessed"] };
     const withIt = collectContributions([ability({ passiveRules: [el] })], {
-      options: new Set(["target:attribute:divine"]),
+      options: new Set(["self:effect:blessed"]),
     });
     const without = collectContributions([ability({ passiveRules: [el] })], { options: new Set() });
+
     expect(withIt.modifiers.length).toBe(1);
     expect(without.modifiers.length).toBe(0);
+  });
+
+  it("DEFERS a clause about the target, rather than answering it as false", () => {
+    // Collection runs per unit with only that unit's options in scope: there is
+    // no target and no attack yet. Testing `target:attribute:divine` here
+    // answered "false" and dropped the element for ever -- which is why
+    // Scáthach's God Slayer added nothing against a Divine Unit, Penthesilea's
+    // Goddess of War never fired on a Normal Attack, and `NP DmUp` raised no
+    // Noble Phantasm's damage. Three shipped abilities, one line.
+    const el = { key: "FlatDamage", value: 100, predicate: ["target:attribute:divine"] };
+    const out = collectContributions([ability({ passiveRules: [el] })], { options: new Set() });
+
+    expect(out.modifiers).toHaveLength(1);
+    expect(out.modifiers[0].predicate).toEqual(["target:attribute:divine"]);
+  });
+
+  it("defers a clause about the attack too", () => {
+    const el = { key: "DamageModifier", modifierKey: "npDmUp", value: 30, predicate: ["attack:kind:np"] };
+    const out = collectContributions([ability({ passiveRules: [el] })], { options: new Set() });
+
+    expect(out.modifiers[0].predicate).toEqual(["attack:kind:np"]);
+  });
+
+  it("defers the WHOLE clause when any part of it is deferred", () => {
+    // A predicate is an implicit AND, so deferring all of it is equivalent to
+    // splitting it -- the pipeline has the owner's options too -- and splitting
+    // would need the two halves kept in step through every executor.
+    const el = {
+      key: "DamageModifier", value: 25,
+      predicate: ["self:effect:blessed", "target:attribute:divine"],
+    };
+    const out = collectContributions([ability({ passiveRules: [el] })], { options: new Set() });
+
+    expect(out.modifiers[0].predicate).toHaveLength(2);
+  });
+
+  it("marks a self-only clause as answered, so the pipeline does not re-test it", () => {
+    const el = { key: "DamageModifier", value: 25, predicate: ["self:effect:blessed"] };
+    const out = collectContributions([ability({ passiveRules: [el] })], {
+      options: new Set(["self:effect:blessed"]),
+    });
+
+    expect(out.modifiers[0].predicate).toBe(null);
+  });
+});
+
+describe("deferredPredicate", () => {
+  it("answers null for a clause collection can settle", () => {
+    expect(deferredPredicate(["self:attribute:female"])).toBe(null);
+    expect(deferredPredicate(null)).toBe(null);
+    expect(deferredPredicate([])).toBe(null);
+  });
+
+  it("looks inside operators, not only at bare strings", () => {
+    // God Slayer's own predicate is an `anyOf`, and a scan that only saw
+    // top-level strings would have called it answerable and dropped it.
+    expect(deferredPredicate([{ anyOf: ["target:attribute:undead", "target:attribute:divine"] }]))
+      .toBeTruthy();
+    expect(deferredPredicate([{ not: "attack:isAoE" }])).toBeTruthy();
   });
 });
 

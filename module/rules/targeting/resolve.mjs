@@ -16,6 +16,7 @@ import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
 import { isolationBlocks } from "../bounded-fields.mjs";
+import { relationOf } from "../relations.mjs";
 
 /**
  * @typedef {import("../../domain/geometry.mjs").GridOffset} GridOffset
@@ -525,19 +526,6 @@ function resolveIncludeSelf(sel, spec) {
   const relations = sel.relations ?? ["enemy"];
   if (spec.isDamagingAoE) return false; // Note 11
   return relations.includes("ally") || relations.includes("self");
-}
-
-/**
- * @param {object} caster
- * @param {object} unit
- * @param {object} board
- * @returns {string}
- */
-function relationOf(caster, unit, board) {
-  if (unit.id === caster.id) return "self";
-  if (unit.kind === "civilian" || unit.faction === null) return "neutral";
-  const allied = board.alliances?.[caster.faction]?.includes(unit.faction) ?? unit.faction === caster.faction;
-  return allied ? "ally" : "enemy";
 }
 
 /**

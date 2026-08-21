@@ -1,0 +1,55 @@
+# Scáthach's God Slayer, active clause 2.
+#
+# "Applies the 'Alpi' buff for 1◈ Turns, 3 times; NP Cooldown is reduced by ½◈
+# Turns at the end of the Damage Step when a successful Attack is performed; if
+# the DU has the 'Undead' or 'Divine' Attribute, it is reduced by 1◈ Turns
+# instead."
+#
+# The first content to use §E's `damageStepEnd`, which had been in the event
+# reference since it was written with nothing raising it.
+schema: 1
+id: alpi
+name: "Alpi"
+description: |
+  At the end of the Damage Step of a successful Attack, Noble Phantasm cooldown is reduced by
+  ½◈ Turns — or by 1◈ Turns if the Defending Unit has the Undead or Divine Attribute.
+  Three uses.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+# Count-limited: three payouts, not three turns. The duration is separate and
+# both apply -- it lasts 1◈ OR three attacks, whichever ends first.
+stacking: count
+uses: 3
+baseChance: 100
+defaultDuration: "1◈"
+rules:
+  # TWO handlers with opposite target predicates rather than one with a
+  # conditional magnitude. `targetPredicate` is evaluated when the event fires,
+  # where the Defending Unit exists; a collection-time `predicate` could not
+  # see them at all.
+  #
+  # `scope: np` because the sheet names no ability and Scáthach has two Noble
+  # Phantasms. Naming the owning ability would name the EFFECT, which is what
+  # carries the rule element.
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    consumesUse: true
+    targetPredicate:
+      - { nor: ["target:attribute:undead", "target:attribute:divine"] }
+    then:
+      - key: CooldownDelta
+        scope: np
+        ticks: "½◈"
+
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    consumesUse: true
+    targetPredicate:
+      - { anyOf: ["target:attribute:undead", "target:attribute:divine"] }
+    then:
+      - key: CooldownDelta
+        scope: np
+        ticks: "1◈"

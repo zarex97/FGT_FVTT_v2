@@ -22,7 +22,7 @@
 
 import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
-import { test as testPredicate } from "./predicate.mjs";
+import { test as testPredicate, referencedOptions } from "./predicate.mjs";
 import { orderElements } from "./ordering.mjs";
 
 /**
@@ -89,17 +89,56 @@ export function collectContributions(abilities, ctx = {}) {
       // A predicate that fails means the element does not contribute at all —
       // not that it contributes zero. The distinction matters for the
       // "Not applied" section of the explainer.
-      if (el.predicate && !testPredicate(el.predicate, predicateCtx)) continue;
+      //
+      // But only a predicate this pass can ANSWER. Collection happens with the
+      // owner's own options and nobody else's: there is no target and no
+      // attack yet. Testing `target:attribute:divine` here answered "false" and
+      // dropped the element for ever, which is why Scáthach's God Slayer added
+      // nothing against a Divine Unit, Penthesilea's Goddess of War never fired
+      // on a Normal Attack, and `NP DmUp` raised no Noble Phantasm's damage.
+      //
+      // A deferred predicate travels ON the modifier instead. The damage
+      // pipeline re-tests it with the full option set, which is what the
+      // comment on `contributionsOf` has always claimed happened.
+      const deferred = deferredPredicate(el.predicate);
+      if (el.predicate && !deferred && !testPredicate(el.predicate, predicateCtx)) continue;
 
       const execute = EXECUTORS[el.key];
       if (!execute) {
         out.unhandled.push({ key: el.key, source });
         continue;
       }
-      execute(el, { rank, source, ability, out, ctx });
+      execute(el, { rank, source, ability, out, ctx, deferred });
     }
   }
   return out;
+}
+
+/**
+ * The option prefixes that describe somebody other than the element's owner.
+ *
+ * Collection runs per unit, with only that unit's own options in scope. A
+ * predicate naming any of these cannot be answered yet and must travel to a
+ * reader that can answer it.
+ */
+const DEFERRED_PREFIXES = Object.freeze(["target:", "attack:"]);
+
+/**
+ * The predicate to carry through, or `null` if this pass can answer it.
+ *
+ * All-or-nothing rather than split. A predicate is an implicit AND, so
+ * deferring the whole clause is equivalent to splitting it -- the consumer has
+ * the owner's options too -- and splitting would need the two halves to stay in
+ * step through every executor.
+ *
+ * @param {unknown} predicate
+ * @returns {unknown|null}
+ */
+export function deferredPredicate(predicate) {
+  if (!predicate) return null;
+  const options = referencedOptions(predicate);
+  const later = [...options].some((o) => DEFERRED_PREFIXES.some((p) => o.startsWith(p)));
+  return later ? predicate : null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -186,6 +225,17 @@ export function normalizeHandler(el, { rank, source, ability, ctx }) {
     // `automatic` marks a handler Addle can suppress (Ch. 11 §11.4).
     automatic: el.automatic ?? false,
     abilityId: ability?.id ?? null,
+    // Evaluated when the event FIRES, against the options the event carries --
+    // as opposed to `predicate`, which gates the element at collection time
+    // where only the owner is in scope. Scáthach's Alpi needs the difference:
+    // *"if the DU has the 'Undead' or 'Divine' Attribute, it is reduced by 1◈
+    // instead"* is a question about somebody who does not exist yet when the
+    // contribution is collected. Same convention as `Compulsion`.
+    targetPredicate: el.targetPredicate ?? null,
+    // A charge spent each time the handler pays out, for a count-limited
+    // effect: Alpi is "for 1◈ Turns, **3 times**".
+    consumesUse: el.consumesUse ?? false,
+    defId: ability?.id ?? null,
     source,
   };
 }
@@ -261,7 +311,7 @@ export const EXECUTORS = Object.freeze({
   /* ── Group 2 — damage contributors ────────────────────────────────────── */
 
   /** A percentage into the stage-4 bucket. */
-  DamageModifier(el, { rank, source, out, ctx }) {
+  DamageModifier(el, { rank, source, out, ctx, deferred = null }) {
     const v = resolveValue(el, rank, ctx);
     const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.modifiers.push({
@@ -274,17 +324,20 @@ export const EXECUTORS = Object.freeze({
       value: scalar(v),
       ...(np !== null && np !== undefined ? { npValue: scalar(np) } : {}),
       component: el.component ?? null,
-      predicate: null, // already evaluated
+      // `null` when the collection pass answered it; the clause itself when it
+      // could not, for the pipeline to answer with the attack in scope.
+      predicate: deferred,
       source,
     });
   },
 
   /** A flat addition at stage 7. Divinity, Dmg Boost, Avenger's counter bonus. */
-  FlatDamage(el, { rank, source, out, ctx }) {
+  FlatDamage(el, { rank, source, out, ctx, deferred = null }) {
     out.modifiers.push({
       key: el.modifierKey ?? "divinity",
       value: scalar(resolveValue(el, rank, ctx)),
       component: el.component ?? null,
+      predicate: deferred,
       source,
     });
   },
@@ -324,32 +377,37 @@ export const EXECUTORS = Object.freeze({
   },
 
   /** A category-predicated reduction. Same bucket as Def Up. */
-  Ward(el, { rank, source, out, ctx }) {
+  Ward(el, { rank, source, out, ctx, deferred = null }) {
     out.modifiers.push({
       key: "ward", value: scalar(resolveValue(el, rank, ctx)),
-      component: el.component ?? null, source,
+      component: el.component ?? null, predicate: deferred, source,
     });
   },
 
   /** Crit chance or crit damage. Crit damage acts at stage 2, on the roll only. */
-  CritModifier(el, { rank, source, out, ctx }) {
+  CritModifier(el, { rank, source, out, ctx, deferred = null }) {
     out.modifiers.push({
       key: el.modifierKey ?? (el.aspect === "damage" ? "critDmUp" : "critUp"),
       value: scalar(resolveValue(el, rank, ctx)),
+      // Crit damage modifiers land in the same bag the pipeline filters, so a
+      // deferred clause reaches the same reader.
+      predicate: deferred,
       source,
     });
   },
 
   /** Block Up — percentage points onto the flat 25%. */
-  BlockModifier(el, { rank, source, out, ctx }) {
-    out.modifiers.push({ key: "blockUp", value: scalar(resolveValue(el, rank, ctx)), source });
+  BlockModifier(el, { rank, source, out, ctx, deferred = null }) {
+    out.modifiers.push({
+      key: "blockUp", value: scalar(resolveValue(el, rank, ctx)), predicate: deferred, source,
+    });
   },
 
   /** Achilles's Andreias Amarantos: a tier keyed on an attacker property. */
-  AttackerPropertyTier(el, { source, out }) {
+  AttackerPropertyTier(el, { source, out, deferred = null }) {
     out.modifiers.push({
       key: "attackerPropertyTier", table: el.table, property: el.property ?? "divinity",
-      value: 0, source,
+      value: 0, predicate: deferred, source,
     });
   },
 
@@ -364,6 +422,11 @@ export const EXECUTORS = Object.freeze({
     out.statDeltas.push({
       stat: el.stat,
       value: scalar(resolveValue(el, rank, ctx)),
+      ...(el.factor !== undefined ? { factor: el.factor } : {}),
+      ...(el.floor !== undefined ? { floor: el.floor } : {}),
+      // `Shock` is "Max **and current** Agility −3", and `Max HpUp` is the
+      // same shape in the other direction -- one delta that moves both.
+      ...(el.alsoCurrent ? { alsoCurrent: true } : {}),
       duration: el.duration ?? null,
       isBuff: el.isBuff !== false,
       source,
@@ -381,6 +444,11 @@ export const EXECUTORS = Object.freeze({
   MovDelta(el, { rank, source, out, ctx }) {
     out.statDeltas.push({
       stat: "mov", value: scalar(resolveValue(el, rank, ctx)),
+      // Appendix A's multiplicative MOV clauses: Slow halves it, Pigify sets
+      // it to 2. `floor` is "MOV Down cannot reduce MOV below 1", which is a
+      // property of the stat rather than of any one delta.
+      ...(el.factor !== undefined ? { factor: el.factor } : {}),
+      ...(el.floor !== undefined ? { floor: el.floor } : {}),
       duration: el.duration ?? null,
       // Riding's Active MOV Up is explicitly NOT a buff: unremovable, and not
       // prevented by an effect that blocks buffs.
@@ -431,9 +499,14 @@ export const EXECUTORS = Object.freeze({
     });
   },
 
-  AutoSucceed(el, { source, out }) {
+  AutoSucceed(el, { source, ability, out }) {
     out.autoSucceeds.push({
-      check: el.check, beatenBy: el.beatenBy ?? [], uses: el.uses ?? null, source,
+      check: el.check, beatenBy: el.beatenBy ?? [], source,
+      // Which effect this came from and how many charges it has, so the
+      // consumer can spend one. `uses` was recorded on the instance and never
+      // read back here, so a "1 times" automatic evasion fired for ever.
+      defId: ability?.id ?? null,
+      uses: el.uses ?? ability?.uses ?? null,
       // A **chance** to succeed automatically, rather than a certainty. Medea's
       // Troψa evades outright unless the attack is a Noble Phantasm, where the
       // sheet gives her a coin -- and a failed coin lets the Combat Process
@@ -460,8 +533,8 @@ export const EXECUTORS = Object.freeze({
 
   /* ── Group 4 — targeting ──────────────────────────────────────────────── */
 
-  TargetingModifier(el, { source, out }) {
-    out.modifiers.push({ key: "targeting", spec: el.spec ?? el, value: 0, source });
+  TargetingModifier(el, { source, out, deferred = null }) {
+    out.modifiers.push({ key: "targeting", spec: el.spec ?? el, value: 0, predicate: deferred, source });
   },
 
   ForceTarget(el, { source, out }) {
@@ -553,6 +626,11 @@ export const EXECUTORS = Object.freeze({
       // "unless stated". A contribution that names a severity applies only to
       // that tier, which is how Medea's Item Construction says 50 / 25 / 10.
       severity: el.severity ?? null,
+      // A condition on the incoming ATTACK rather than on the bearer, so it
+      // has to survive collection and be tested when the effect is applied.
+      // `predicate` is consumed at collection time by `collectContributions`;
+      // this is the deferred one, same convention as `Compulsion`.
+      predicate: el.attackPredicate ?? null,
       value: scalar(resolveValue(el, rank, ctx)),
       source,
     });

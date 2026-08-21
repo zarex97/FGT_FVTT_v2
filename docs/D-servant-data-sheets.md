@@ -251,6 +251,25 @@ rank equality predicates, subset targeting, NPs that cost other abilities' coold
 **not** protect against it (Ch. 10 §10.6). *Gate of Skye* inflicts Death with **BA(MAG)**, so it
 does. A deliberate and easily-missed asymmetry.
 
+**AUTHORED.** `packs/_source/servants/scathach.yml` plus eleven abilities and fifteen effects; all
+eleven verified individually in a live world. The mapping above survived contact almost intact,
+with three corrections worth recording:
+
+- *"PRS token spend skips cooldown"* is `cooldownWaiver` on **each Spell**, not a rule on the
+  passive. A gate has to be read by the ability it gates, and the passive is the sheet entry a
+  player reads rather than the mechanism.
+- *"Mutual exclusion of the three spells"* likewise: an `abilityOffCooldown` requirement with
+  `excludeSelf`, on each Spell. Without `excludeSelf` a Spell gates on its own cooldown, which
+  `canUseAbility` already checks — so the rule would say nothing.
+- `alsoTriggers` on *Gate of Skye* names *"Wisdom of Dún Scáith"*, and that is **not** an ability
+  with a clock. It is the grant — the button that opens the curation dialog. The clause means her
+  three Wisdom **slots**, so the entry names their `exclusionSet`. Naming the grant put nothing on
+  cooldown at all.
+
+`duplicateBehaviour: applyTwice` turned out not to be needed as a field: resolving the dice **per
+die** rather than as a set makes *"apply the effect twice"* the ordinary reading, and it is
+collapsing them that would take extra code.
+
 ---
 
 ## D.8 Karna

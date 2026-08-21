@@ -233,3 +233,58 @@ export function applicationChance({ base, inflictBonus = 0, resist = 0,
   }
   return { percent: base + inflictBonus - resist, blocked: false, reason: null };
 }
+
+/**
+ * The chance that an attack crits, as a percentage.
+ *
+ * §14.6: *"Since Flip a Coin is used when determining whether Attack+ or
+ * Attack− is used, the normal chance of getting a Crit would be 50%. Some
+ * effects increase and decrease the chance"* — so a **base of 50 adjusted by
+ * modifiers**, not a `1d2`.
+ *
+ * The `1d2` is what shipped, which meant `Crit Up` had no reader at all: the
+ * effect applied, showed on the sheet, and every attack was still a coin.
+ * Scáthach grants it twice — 25% from *Primordial Rune*, 50% from
+ * *Clairvoyance* — and neither would have changed anything.
+ *
+ * Both sides contribute. `Crit Up` and `Crit Dwn` are the attacker's; `Crit
+ * Guard` and `Bal Dwn` are the defender's, and they are authored as *incoming*
+ * crit modifiers so a defender cannot accidentally raise its own crit rate.
+ *
+ * @param {object} attacker
+ * @param {object} [defender]
+ * @param {object} [options]
+ * @param {number} [options.base]
+ * @returns {{percent: number, automatic: boolean, blocked: boolean, modifiers: object[]}}
+ */
+export function critChance(attacker, defender = null, { base = BASE_CRIT_CHANCE } = {}) {
+  const held = attacker?.effects ?? [];
+
+  const modifiers = [
+    ...critModifiers(attacker, "outgoing"),
+    ...critModifiers(defender, "incoming"),
+  ];
+  const percent = base + modifiers.reduce((a, m) => a + m.value, 0);
+
+  // `No Crit` beats `G.Crit`, as debuffs beat buffs everywhere else in the
+  // effect engine.
+  if (held.includes("noCrit")) return { percent: 0, automatic: false, blocked: true, modifiers };
+  if (held.includes("gCrit")) return { percent: 100, automatic: true, blocked: false, modifiers };
+
+  return { percent, automatic: percent >= 100, blocked: percent <= 0, modifiers };
+}
+
+/** The published base, which the coin flip encoded as a `1d2`. */
+export const BASE_CRIT_CHANCE = 50;
+
+/**
+ * @param {object|null} unit
+ * @param {"outgoing"|"incoming"} direction
+ * @returns {Array<{source: string, value: number}>}
+ */
+function critModifiers(unit, direction) {
+  return (unit?.checkModifiers ?? [])
+    .filter((m) => m.check === "crit" && (m.direction ?? "outgoing") === direction)
+    .filter((m) => typeof m.value === "number" && m.value !== 0)
+    .map((m) => ({ source: m.source, value: m.value }));
+}

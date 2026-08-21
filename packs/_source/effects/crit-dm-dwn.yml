@@ -1,0 +1,15 @@
+# Appendix A §A.9
+schema: 1
+id: critDmDwn
+name: "Crit DmDwn"
+description: "Crit Damage is reduced by X%."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critDmDwn
+    value: "@magnitude"

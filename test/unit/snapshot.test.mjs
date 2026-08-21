@@ -180,3 +180,23 @@ describe("turnStateAt is what movement reads", () => {
     expect(segmentCheck({ mov: 7, turnState: fresh })).toMatch(/spent all 7 panels/);
   });
 });
+
+describe("turnStateAt", () => {
+  it("projects which abilities went, which every same-Turn rule depends on", () => {
+    // Absent from the projection until Scáthach's `oncePerTurn` needed it, so
+    // every snapshot reader of the turn record saw `undefined`: the gate never
+    // refused, and `reactionAbilities` offered a Skill whose same-Turn partner
+    // had already been used.
+    const projected = turnStateAt({ tick: 7, abilitiesUsed: ["medea-keraino"], itemTransfers: 1 }, 7);
+    expect(projected.abilitiesUsed).toEqual(["medea-keraino"]);
+    expect(projected.itemTransfers).toBe(1);
+  });
+
+  it("blanks the list when the record is stale, rather than leaving it undefined", () => {
+    // The safe direction, and the reason turn state is stale-by-tick: a Servant
+    // must never be permanently unable to use half its Skills because one
+    // reset hook did not fire.
+    const stale = turnStateAt({ tick: 3, abilitiesUsed: ["medea-keraino"] }, 7);
+    expect(stale.abilitiesUsed).toEqual([]);
+  });
+});

@@ -22,6 +22,8 @@ import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { transferEffect, transferableFrom } from "../rules/effect-flow.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
+import { currentHealth } from "../domain/health.mjs";
+import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 
 /**
@@ -178,9 +180,19 @@ export function fireEvent(event, units, ctx) {
   for (const u of units) {
     for (const handler of u.eventHandlers ?? []) {
       if (!listensFor(handler, event)) continue;
+
+      // A condition on somebody OTHER than the owner, evaluated now because
+      // the event carries them. Scáthach's Alpi pays double against an Undead
+      // or Divine Defending Unit, and the Defending Unit does not exist when
+      // the contribution is collected.
+      if (handler.targetPredicate
+        && !testPredicate(handler.targetPredicate, { options: ctx.options ?? new Set() })) continue;
+
       for (const action of handler.actions ?? []) {
         out.push(...dispatch(action, u, handler, ctx));
       }
+      // A count-limited handler spends a charge each time it pays out.
+      if (handler.consumesUse && handler.defId) out.push(I.consumeUse(u.id, handler.defId));
       out.push(I.log({ kind: "event", event, unitId: u.id, source: handler.source, tick: ctx.tick }));
     }
   }
@@ -221,7 +233,36 @@ export function dispatch(action, unit, handler, ctx) {
   if (!run) {
     return [I.log({ kind: "unhandledAction", action: action.kind, unitId: unit.id, source: handler.source })];
   }
+  // A gate on the action's OWN roll, so an action can fire on some faces and
+  // not others. Shock is the case: *"at the start of every turn, roll d6; on 3
+  // or 4 the unit cannot act."* That is not a chance-to-apply -- the effect it
+  // applies has its own -- it is a face test on a die the handler rolled.
+  if (!rollGatePasses(action, ctx)) return [];
   return run(action, unit, handler, ctx);
+}
+
+/**
+ * Does the action's `when` gate let it through?
+ *
+ * `{ in: [3, 4] }` names faces; `{ gte, lte }` names a band. A gate with no
+ * roll to test against **refuses**, which is the safe direction: an action
+ * whose die never arrived has not rolled a 3.
+ *
+ * @param {object} action
+ * @param {SchedulerContext} ctx
+ * @returns {boolean}
+ */
+function rollGatePasses(action, ctx) {
+  const gate = action.when ?? null;
+  if (!gate) return true;
+
+  const total = ctx.rolls?.[action.roll?.key];
+  if (typeof total !== "number") return false;
+
+  if (gate.in) return gate.in.includes(total);
+  if (gate.gte !== undefined && total < gate.gte) return false;
+  if (gate.lte !== undefined && total > gate.lte) return false;
+  return true;
 }
 
 /**
@@ -254,10 +295,48 @@ const ACTIONS = Object.freeze({
 
   ResourceDelta: (a, u) => [I.resource(u.id, a.resource, a.delta ?? 0)],
 
-  CooldownDelta: (a, u, h) =>
-    [I.cooldown(u.id, a.ability ?? h.abilityId, Math.abs(a.delta ?? 0), a.delta < 0 ? "reduce" : "set")],
+  /**
+   * Turn a cooldown clock, by ability or across a whole scope.
+   *
+   * `scope: "np"` is what Scáthach's Alpi needs: *"NP Cooldown is reduced by
+   * ½◈ Turns"* names no ability, and she has two Noble Phantasms. Naming one
+   * would pick a winner the sheet does not pick; naming the owning ability
+   * would name the **effect**, because that is what carries the rule element.
+   *
+   * `ticks` is a ◈ expression resolved against the world's turns per Round;
+   * `delta` stays for a raw turn count.
+   */
+  CooldownDelta: (a, u, h, c) => {
+    const amount = a.ticks !== undefined
+      ? -resolveTicks(parseTick(a.ticks), c)
+      : (a.delta ?? 0);
 
-  ApplyEffect: (a, u, h) => [I.applyEffect(u.id, a.effect, h.abilityId)],
+    const ids = a.scope === "np"
+      ? (u.abilities ?? []).filter((x) => x.isNP || x.categorizedAsNP).map((x) => x.id)
+      : [a.ability ?? h.abilityId].filter(Boolean);
+
+    return ids.map((id) => I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"));
+  },
+
+  /**
+   * Apply an effect instance.
+   *
+   * The expiry is computed HERE rather than authored, because durations are
+   * stored as absolute ticks (Ch. 07 §7.5) and only the scheduler knows what
+   * tick it is. An authored `expiry` would be a turn count masquerading as an
+   * absolute one, and would expire immediately or never.
+   */
+  ApplyEffect: (a, u, h, c) => {
+    const ticks = a.duration ? resolveTicks(parseTick(a.duration), c) : null;
+    const effect = {
+      ...(a.effect ?? {}),
+      defId: a.effect?.defId ?? a.effect?.id ?? a.defId,
+      magnitude: a.effect?.magnitude ?? a.magnitude ?? 0,
+      expiry: ticks === null || ticks === INFINITE ? (a.effect?.expiry ?? null) : (c.tick ?? 0) + ticks,
+      sourceUnitId: u.id,
+    };
+    return [I.applyEffect(u.id, effect, h.abilityId)];
+  },
 
   RemoveEffect: (a, u) => [I.removeEffect(u.id, a.effect ?? a.defId, "event")],
 
@@ -361,7 +440,15 @@ export function pendingRolls(unit, event) {
  * @returns {Intent[]}
  */
 export function resolveDefeat(unit, ctx, cause = "damage") {
-  if ((unit.health?.value ?? 0) > 0) return [];
+  // Through `currentHealth`, because this is handed a SNAPSHOT and a snapshot
+  // flattens `health` to a number. `unit.health?.value` was `undefined`, the
+  // `?? 0` turned that into "no Health left", and every unit this was asked
+  // about was declared defeated -- on full Health, from any successful attack.
+  //
+  // It stayed invisible for as long as `system.defeated` was a field no schema
+  // declared, so the write was silently dropped. Two silent defects cancelling
+  // to look like working code.
+  if (currentHealth(unit) > 0) return [];
 
   const intents = fireEvent("unitDefeated", [unit], ctx);
   const revived = intents.some((i) => i.t === "heal" && i.amount > 0);
@@ -484,12 +571,40 @@ export function expireEffects(units, ctx, reason = "expired") {
     for (const e of u.effectInstances ?? []) {
       if (e.expiry === null || e.expiry === undefined || e.expiry === INFINITE) continue;
       if (e.expiry > ctx.tick) continue;
+
+      // Appendix A's "on removal" clauses, run BEFORE the removal so they see
+      // the effect that is going away. Shock is the case: *"on removal,
+      // current Agility +1 when max is restored"* -- one point back, not the
+      // three the maximum regains, and the asymmetry is the whole clause.
+      out.push(...onRemoveIntents(u, e, ctx));
+
       // Expiry is never blocked by Unremovable or by removal resistance —
       // those govern Cure and Dispel, not the clock.
       out.push(I.removeEffect(u.id, e.id ?? e.defId, reason));
     }
   }
   return out;
+}
+
+/**
+ * What an expiring effect does on its way out.
+ *
+ * The definition is resolved through the context rather than imported, so this
+ * module stays testable without loading a compendium — the same contract the
+ * rolls use.
+ *
+ * @param {object} unit
+ * @param {object} instance
+ * @param {SchedulerContext} ctx carries `effectDef(id)`
+ * @returns {Intent[]}
+ */
+function onRemoveIntents(unit, instance, ctx) {
+  const def = ctx.effectDef?.(instance.defId) ?? null;
+  const actions = def?.onRemove ?? [];
+  if (actions.length === 0) return [];
+
+  const handler = { source: def.name ?? instance.defId, abilityId: null, defId: instance.defId };
+  return actions.flatMap((a) => dispatch({ ...a, kind: a.kind ?? a.key }, unit, handler, ctx));
 }
 
 /**

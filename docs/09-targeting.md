@@ -114,6 +114,12 @@ This is F/GT's signature shape anchor and it deserves careful definition.
 The reading: a `w × h` block, flush against the caster on one of the four cardinal sides, and
 **centred on the caster's axis**. The caster is *not* inside it.
 
+**Verified in play (Scáthach).** *Gate of Skye* was the first content to use it against a real
+board, and the four directions do catch four different sets from the same panel — which is what
+makes the direction the player's decision rather than a formality. The `chooser`/`choose`
+combination matters too: *"all of Scáthach's targets **of choice** within a 5×5"* means the area
+catches everyone and she picks which of them the Noble Phantasm affects.
+
 For a 3×3 to the north of a caster at `(0,0)`:
 
 ```
