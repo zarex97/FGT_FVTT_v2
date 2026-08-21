@@ -1,0 +1,19 @@
+# Appendix A §A.1
+# "NP damage +X%. Also affects abilities *categorized as NP*. Not passive NPs."
+schema: 1
+id: npDmUp
+name: "NP DmUp"
+description: "Noble Phantasm damage dealt is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # `npDmUp` is one of the attacker bucket keys the damage pipeline reads by
+  # name; the predicate is what keeps it off ordinary attacks.
+  - key: DamageModifier
+    modifierKey: npDmUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["attack:kind:np"]

@@ -1,0 +1,23 @@
+# Appendix A §A.16 — the terminal tier.
+# "Health reduced to 0."
+#
+# Resistible by Magic Resistance when the source is MAG-based, and NOT by
+# `Debuff Immune` unless stated -- which is why the severity is its own tier
+# rather than an ordinary debuff.
+#
+# Inflicted by Scáthach's Gáe Bolg Alternative, at 75%.
+schema: 1
+id: instakill
+name: "Instakill"
+description: "The Unit's Health is reduced to 0."
+polarity: debuff
+volatility: terminal
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+severity: instakill
+# A CONSEQUENCE, not a condition: nothing is left behind for the Unit to carry.
+# Health loss rather than damage, so it feeds no damage-keyed trigger, and the
+# ordinary defeat machinery still runs -- Guts and God Hand get their say.
+terminal: { kind: reduceToZero }
+rules: []

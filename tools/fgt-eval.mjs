@@ -12,6 +12,7 @@
  * Usage:
  *   node tools/fgt-eval.mjs "game.actors.size"
  *   echo "await something()" | node tools/fgt-eval.mjs
+ *   echo "const a = game.actors.getName('X'); return a.name" | node tools/fgt-eval.mjs
  */
 
 const PORT = process.env.FGT_CDP_PORT ?? 9222;
@@ -20,7 +21,11 @@ const PORT = process.env.FGT_CDP_PORT ?? 9222;
 async function foundryTarget() {
   const res = await fetch(`http://127.0.0.1:${PORT}/json/list`);
   const targets = await res.json();
-  const page = targets.find((t) => t.type === "page" && String(t.url).includes(":30000"));
+  // The GAME page by preference. A `/setup` tab is also Foundry and is what
+  // answers between a shutdown and a relaunch, so it is accepted as a
+  // fallback rather than reported as "no Foundry page".
+  const foundry = targets.filter((t) => t.type === "page" && String(t.url).includes(":30000"));
+  const page = foundry.find((t) => String(t.url).includes("/game")) ?? foundry[0];
   if (!page) throw new Error("No Foundry page found. Is the world open in the debug Chrome?");
   return page.webSocketDebuggerUrl;
 }
@@ -38,7 +43,7 @@ async function evaluate(expression) {
 
   const result = await new Promise((resolve, reject) => {
     const id = 1;
-    const timer = setTimeout(() => reject(new Error("Timed out after 30s.")), 30_000);
+    const timer = setTimeout(() => reject(new Error("Timed out after 120s.")), 120_000);
 
     ws.addEventListener("message", (event) => {
       const msg = JSON.parse(event.data);
@@ -58,7 +63,14 @@ async function evaluate(expression) {
       params: {
         // Wrapped so `await` works and the result comes back as data rather
         // than as a RemoteObject handle we would have to walk.
-        expression: `(async () => { return JSON.stringify(${expression}); })()`,
+        //
+        // Input containing `return` is treated as a BODY rather than as an
+        // expression, so a multi-statement script can be piped in. Without it
+        // anything with a `;` in it became `JSON.stringify(a; b)`, which is a
+        // syntax error rather than a script.
+        expression: /(^|[\s{;])return[\s(]/.test(expression)
+          ? `(async () => { ${expression} })().then((v) => JSON.stringify(v ?? null))`
+          : `(async () => { return JSON.stringify(${expression}); })()`,
         awaitPromise: true,
         returnByValue: true,
         userGesture: true,

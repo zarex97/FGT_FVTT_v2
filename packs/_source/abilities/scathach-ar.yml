@@ -1,0 +1,41 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+schema: 1
+id: scathach-ar
+name: "Ár"
+rank: null
+category: primordialRuneSpell
+isSpell: true
+cooldown: "3◈"
+# One PRS Token buys this Spell out of its cooldown entirely (§6.10).
+cooldownWaiver: { resource: prs, amount: 1 }
+# "Can only be used once per Turn." NOT redundant with the 3◈ cooldown: a token
+# skips that cooldown, leaving this as the only limit on the Spell.
+oncePerTurn: true
+timing: { window: ownTurn }
+# A Spell that heals and buffs an ally deals no damage, so it is not an Attack
+# Skill and must not spend her Attack (§15.1).
+countsAsAttack: false
+description: |
+  Primordial Rune Spell. Range 2. Used during your Turn on an allied Unit within Range.
+  Restores 4 Agility, then applies Atk Up for ⅓◈ Turns: damage dealt is increased by 50%;
+  if NP, 30%. Cooldown 3◈ Turns. Can only be used once per Turn.
+requirements:
+  # "When one of Scáthach's Primordial Rune Spells is used, the OTHER TWO cannot
+  # be used until Cooldown has ended for the used Spell." `excludeSelf` is what
+  # makes this say something the cooldown gate has not already said.
+  - { kind: abilityOffCooldown, category: primordialRuneSpell, excludeSelf: true }
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [ally, self], chooser: all, count: 1 }
+phases:
+  # RESTORES, so it clamps to the maximum: a Servant cannot be pushed above the
+  # Agility it rolled at summon by a restoration.
+  - kind: resource
+    target: reuse
+    changes:
+      - { key: agility.value, delta: 4, clampToMax: true }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUp, magnitude: 50, npMagnitude: 30, duration: "⅓◈" }

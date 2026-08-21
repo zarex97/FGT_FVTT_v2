@@ -1,0 +1,38 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+#
+# Rank EX, so Wisdom of Dún Scáith cannot copy it -- `canCopy` refuses on the
+# rank without needing `copyable` to say so.
+schema: 1
+id: scathach-god-slayer
+name: "God Slayer"
+rank: EX
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Passive) All damage dealt to Units with the 'Undead' or 'Divine' Attribute is increased by
+  30%, including NP.
+
+  (Active) Used during your Turn. Applies Dmg Up (Gods) for 1◈ Turns — damage dealt to Units
+  with the 'Undead' or 'Divine' Attribute is further increased by 70% — and applies the 'Alpi'
+  buff for 1◈ Turns, 3 times.
+  Cooldown 4◈ Turns.
+passiveRules:
+  # "INCLUDING NP" with no reduced magnitude, which is what makes this `dmgUp`
+  # rather than `atkUp`: the pipeline gives `atkUp` a separate NP magnitude and
+  # `dmgUp` none.
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: 30
+    predicate:
+      - { anyOf: ["target:attribute:undead", "target:attribute:divine"] }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      # "FURTHER increased by 70%" -- a second contribution beside the passive's
+      # 30, not a replacement for it. Both are `dmgUp`, which stacks by
+      # magnitude, so the two sum to 100% while this is up.
+      - { id: dmgUpGods, magnitude: 70, duration: "1◈" }
+      - { id: alpi, duration: "1◈" }

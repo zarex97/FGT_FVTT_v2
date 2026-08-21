@@ -90,7 +90,7 @@ same turn, each *effect* fires **once**, keyed by `(effectId, globalTurn)`.
 | `fgt.damageComputed` | The pipeline returned, before application | `{defenderId, result}` |
 | `fgt.damageTaken` | Damage applied to a unit | `{unitId, amount, sourceId, packet}` |
 | `fgt.damageDealt` | Damage dealt by a unit | `{unitId, amount, targetId}` |
-| `fgt.damageStepEnd` | End of Step 3 | `{attackerId, defenderIds, results}` |
+| `fgt.damageStepEnd` | End of Step 3 | `{attackerId, defenderIds, results}` — **fired**, on the *attacker*, once damage has landed. The Defending Unit travels in the option set rather than in the unit list, so a handler can pay out differently against them without the defender's own handlers firing for somebody else's attack. Scáthach's `Alpi` is the first content to use it. |
 | `fgt.injuryRolled` | An Injury Roll resolved | `{unitId, roll, agilityAfter}` |
 | `fgt.facingChanged` | Step 5 | `{unitId, from, to, reason}` |
 | `fgt.counterOffered` | A counter opportunity was presented | `{defenderId, attackerId}` |
@@ -227,7 +227,9 @@ deterministic across clients despite subscription order varying.
 - key: OnEvent
   event: damageStepEnd                  # or a list: [damageStepEnd, effectApplied]
   predicate: ["self:wasSuccessfullyAttacked"]
+  targetPredicate: ["target:attribute:divine"]   # answered when the event FIRES
   automatic: true                       # suppressible by Addle
+  consumesUse: true                     # spend a charge each time it pays out
   priority: 50                          # optional
   once: false                           # optional: fire once then remove
   then:
@@ -236,6 +238,39 @@ deterministic across clients despite subscription order varying.
 
 The subscription lives on the rule element, so it is created when the effect or ability is
 present and torn down when it is removed. Content **cannot** leak listeners.
+
+`predicate` and `targetPredicate` are answered at **different moments**, and the distinction is
+the same one Ch. 24 §24.4 draws. `predicate` gates the element at *collection* time, where only
+the owner is in scope; `targetPredicate` is carried through and answered when the event fires,
+where the other unit exists. Scáthach's *Alpi* needs the second — *"if the DU has the 'Undead' or
+'Divine' Attribute, it is reduced by 1◈ instead"* is a question about somebody who does not exist
+when the contribution is collected. It is authored as **two handlers with opposite target
+predicates** rather than one with a conditional magnitude, which keeps each payout a flat fact.
+
+`consumesUse` spends one charge of a count-limited effect each time the handler pays out — *Alpi*
+is *"for 1◈ Turns, **3 times**"*, and both limits apply: whichever ends first.
+
+### Action gates
+
+An action inside `then:` may carry its own roll and a gate on it:
+
+```yaml
+- key: ApplyEffect
+  roll: { key: shockJolt, formula: "1d6" }
+  when: { in: [3, 4] }                  # or { gte, lte }
+  duration: "1 turns"
+  effect: { defId: stun }
+```
+
+`Shock` is the case: *"at the start of every turn, roll d6; on 3 or 4 the unit cannot act."* That
+is a **face test**, not an application chance — the Stun it applies has a chance of its own, and
+folding the two together would let `Debuff ResUp` shorten odds the sheet does not describe as a
+debuff roll. A gate whose die never arrived **refuses**, which is the safe direction: an action
+that was not rolled has not rolled a 3.
+
+`ApplyEffect` computes its own expiry from `duration`, because durations are stored as absolute
+ticks (Ch. 07 §7.5) and only the scheduler knows what tick it is. An authored `expiry` would be a
+turn count masquerading as an absolute one, and would expire either immediately or never.
 
 `automatic: true` marks it as an automatically-activating effect, which `Addle` negates
 (Ch. 11 §11.4). Every reactive content effect should set it; the validator warns when an

@@ -1,0 +1,25 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+#
+# A passive that exists to describe the other three abilities. Both of its
+# clauses are implemented ON those Spells rather than here -- `cooldownWaiver`
+# for the token, and an `abilityOffCooldown` requirement for the exclusion --
+# because a gate has to be read by the ability it gates.
+#
+# This document is the sheet entry a player reads. Keeping it as a passive with
+# no rules of its own would be dishonest if the clauses were nowhere; they are,
+# and the description says where.
+schema: 1
+id: scathach-primordial-rune-spells
+name: "Primordial Rune Spells"
+rank: null
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive 1) If Scáthach uses a Primordial Rune Spell while she has any PRS Tokens, remove one
+  PRS Token from herself, and the Primordial Rune Spell she used does not enter Cooldown. The
+  maximum number of PRS Tokens Scáthach can have is 2.
+
+  (Passive 2) When one of Scáthach's Primordial Rune Spells is used, the other two cannot be
+  used until Cooldown has ended for the used Spell.
+passiveRules: []

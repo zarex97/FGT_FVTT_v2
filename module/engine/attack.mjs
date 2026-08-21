@@ -15,13 +15,15 @@
 import { computeDamage } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
-import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
+import { evade as evadeCheck, luckCheck, chance, checkPlan, critChance } from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
-import { classifyAbility, targetSpecFor as specForAbility } from "../rules/ability-use.mjs";
+import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { Rank } from "../domain/rank.mjs";
+import { lookup } from "../domain/tables.mjs";
 import { inAttackRange } from "../domain/geometry.mjs";
+import { currentHealth } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
@@ -30,7 +32,7 @@ import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
-import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
+import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { canUseAbility, resolveCosts } from "../rules/costs.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
@@ -146,13 +148,17 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // Skill and every Noble Phantasm was infinitely reusable -- limited only by
   // the attack budget, which is a different rule.
   if (ability) {
-    const clocks = [...cooldownFor(ability, attackerId), ...alsoTriggered(ability, attacker)];
-    if (clocks.length > 0) {
-      await applyBatch(
-        clocks.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
-        "attack:cooldown",
-      );
-    }
+    const plan = cooldownFor(ability, attackerId, { unit: self });
+    const clocks = [...plan.cooldowns, ...alsoTriggered(ability, attacker)];
+    const intents = [
+      ...clocks.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
+      // A waived cooldown is PAID for -- Scáthach's PRS Token. Her damaging
+      // Rune Spells come through this path rather than `useSkill`, so the
+      // waiver has to be honoured in both places or it works for Ár and not
+      // for Þurs.
+      ...plan.spends.map((sp) => I.resource(sp.unitId, sp.key, sp.delta)),
+    ];
+    if (intents.length > 0) await applyBatch(intents, "attack:cooldown");
   }
   if (superseded.length > 0) {
     // Logged, because a Master who paid 50 where they expected 70 needs to see
@@ -185,7 +191,17 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
   // the rest, so a Noble Phantasm over seven units damaged one of them.
-  const attackSpec = { abilityId, kind: ability ? abilityKind(ability) : "normal" };
+  const attackSpec = {
+    abilityId,
+    kind: ability ? abilityKind(ability) : "normal",
+    // Which Base Attack this uses, and whether Magic Resistance sees it at all.
+    // Both are read by Magic Resistance's Instakill/Death ladder, which is
+    // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
+    // that is not affected by Magic Resistance"* -- a property of the attack,
+    // so it has to travel with the attack.
+    component: componentOf(attacker, ability),
+    ignoresMagicResistance: Boolean(ability?.system?.ignoresMagicResistance),
+  };
   const targetIds = targets.units.map((t) => t.unitId);
 
   // A resolution that caught no units is still a resolution — a ground-placed
@@ -267,6 +283,11 @@ export async function advanceAttack({ messageId, event }) {
     // a roll. Read AFTER the ability resolved, because that is what granted it.
     const auto = autoEvadeFrom(state, defender);
     if (auto.applies) {
+      // A count-limited automatic evasion is SPENT here. `uses` was recorded on
+      // every such effect and never decremented, so Medea's Trofa -- authored
+      // "1 times" -- evaded every attack for the rest of the match.
+      if (auto.consumes) await applyBatch([I.consumeUse(defender.id, auto.consumes)], "autoEvade");
+
       state = process.advance(state, "evade");
       state = process.advance(state, auto.success ? "success" : "fail", auto.outcome);
       await message.setFlag("fgt", "process", process.serialize(state));
@@ -325,13 +346,44 @@ export async function advanceAttack({ messageId, event }) {
 async function runAutomaticStep(state, message) {
   switch (state.state) {
     case "damage": {
-      const result = await applyDamage(state, message);
+      // Phases that resolve BEFORE the damage, because the damage depends on
+      // them. Scáthach's Gáe Bolg Alternative is the case: *"has a 75% chance
+      // of inflicting Instakill. **If Instakill is not inflicted**, this NP
+      // deals 3.5x damage plus 100."* The branch cannot be expressed as a
+      // rider, because a rider fires after a damage step that should not have
+      // happened.
+      const before = await applyAbilityEffects(state, { flags: {} }, { when: "beforeDamage" });
+      const skipped = damageSuppressedBy(state, before);
+
+      // A pre-damage phase can empty a Health bar without any damage being
+      // dealt: `Instakill` is "Health reduced to 0", and the damage step that
+      // would normally notice is the one it just suppressed. Without this the
+      // Servant sits at 0 Health, undefeated, and takes its next turn.
+      //
+      // Through the same defeat chain damage uses, so `Guts` and God Hand get
+      // their say -- which is the difference between Instakill and Death, and
+      // the reason the two are separate effects.
+      if (skipped) await resolveEmptiedDefender(state);
+
+      const result = skipped
+        ? { total: 0, flags: { suppressedBy: skipped }, breakdown: [] }
+        : await applyDamage(state, message);
+
       // Riders declared in the ability's phases land only if the damage did.
       // "Deals 4x damage plus 100. Then inflicts Def Dwn" -- the "then" is
       // conditional on the attack connecting.
-      const applied = await applyAbilityEffects(state, result);
+      const applied = skipped ? [] : await applyAbilityEffects(state, result);
+
+      // §E's `damageStepEnd`, fired for the first time. It has been in the
+      // event reference since the reference was written and nothing ever
+      // raised it, so a handler authored against it could not fire -- which
+      // stayed invisible only because no content used it. Scáthach's Alpi is
+      // the first: *"NP Cooldown is reduced by ½◈ Turns at the end of the
+      // Damage Step when a successful Attack is performed."*
+      if (!skipped && result.total > 0) await fireDamageStepEnd(state);
+
       await message.setFlag("fgt", "damage", result.total);
-      await message.setFlag("fgt", "effects", applied.map((a) => a.summary));
+      await message.setFlag("fgt", "effects", [...before, ...applied].map((a) => a.summary));
       return process.advance(state, "done", { total: result.total });
     }
     case "injury":
@@ -495,17 +547,7 @@ function civilianIntents(descriptors) {
  * @returns {object|null}
  */
 function abilityUsageSpec(ability) {
-  if (!ability) return null;
-  const sys = ability.system ?? {};
-  return {
-    id: ability.id,
-    rank: sys.rank ?? null,
-    isNP: Boolean(sys.isNP),
-    cooldown: { remaining: sys.cooldown?.remaining ?? 0 },
-    requiresRound: sys.targeting?.limits?.requiresRound ?? null,
-    // The rest of §15.4's list, authored beside the targeting limits.
-    requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
-  };
+  return usageSpecFor(ability);
 }
 
 /**
@@ -778,7 +820,11 @@ async function applyInjury(state, message) {
  * @returns {Promise<object[]>} intents: a revive, or a defeat, or neither
  */
 async function resolveDefeatOf(defender, damage, state = {}) {
-  const remaining = (defender.health?.value ?? 0) - damage;
+  // `defender` is a SNAPSHOT, whose `health` is a flat number. Reading
+  // `.value` off it gave `undefined`, the `?? 0` made every defender look
+  // empty, and the early return never fired -- so a 500-damage hit on a
+  // Servant at 3000 went through the whole defeat chain.
+  const remaining = currentHealth(defender) - damage;
   if (remaining > 0) return [];
 
   // CS: Survive Kill, declared earlier in this Process. "The Servant survives
@@ -802,7 +848,9 @@ async function resolveDefeatOf(defender, damage, state = {}) {
     ctx.rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
   }
 
-  return resolveDefeat({ ...defender, health: { ...defender.health, value: remaining } }, ctx);
+  // Rebuilt in the SNAPSHOT's shape -- a flat number -- because that is what
+  // `resolveDefeat` is given everywhere else and what `currentHealth` reads.
+  return resolveDefeat({ ...defender, health: remaining }, ctx);
 }
 
 /**
@@ -821,10 +869,18 @@ async function applyDamage(state, message) {
   const defender = unitFrom(board, defenderDoc);
   const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
 
-  // The crit coin flip, then every roll the pipeline will consume — rolled
-  // HERE so the pipeline itself stays pure and reproducible.
-  const critFlip = await new Roll("1d2").evaluate();
-  const isCrit = critFlip.total === 1;
+  // The crit roll, then every roll the pipeline will consume — rolled HERE so
+  // the pipeline itself stays pure and reproducible.
+  //
+  // A PERCENTAGE, not a `1d2`. §14.6: "the normal chance of getting a Crit
+  // would be 50%. Some effects increase and decrease the chance." The coin
+  // flip encoded the 50 and made every crit modifier in the game inert --
+  // `Crit Up` applied, showed on the sheet, and changed nothing.
+  const critSpec = critChance(attacker, defender);
+  const critRoll = await new Roll("1d100").evaluate();
+  const isCrit = critSpec.blocked
+    ? false
+    : (critSpec.automatic || critRoll.total <= critSpec.percent);
   const attackRoll = await new Roll("5d10").evaluate();
 
   const ctx = {
@@ -841,7 +897,7 @@ async function applyDamage(state, message) {
     multiplier: ability?.system?.damage?.multiplier ?? 1,
     flatBonus: ability?.system?.damage?.flatBonus ?? 0,
     conditionalMultipliers: ability?.system?.damage?.conditionalMultipliers ?? [],
-    crit: { isCrit, chanceUsed: 0 },
+    crit: { isCrit, chanceUsed: critSpec.percent },
     reaction: { kind: state.reaction ?? "none" },
     luckChecks: {},
     rolls: {
@@ -877,8 +933,8 @@ async function applyDamage(state, message) {
   }
   // The Luck Check that prevents the Overpower also saves the Master from
   // lethal damage -- one success buys both (§16.5).
-  if (overpower.survivesLethal && result.total >= (defender.health?.value ?? 0)) {
-    result.total = Math.max(0, (defender.health?.value ?? 1) - 1);
+  if (overpower.survivesLethal && result.total >= currentHealth(defender)) {
+    result.total = Math.max(0, currentHealth(defender, 1) - 1);
     result.breakdown = [...(result.breakdown ?? []), { stage: "luckCheck", label: "Survives at 1 Health" }];
   }
 
@@ -989,7 +1045,7 @@ function doubleDice(formula) {
  * @param {object} damageResult
  * @returns {Promise<Array<{summary: object, result: object}>>}
  */
-async function applyAbilityEffects(state, damageResult) {
+async function applyAbilityEffects(state, damageResult, { when = "afterDamage" } = {}) {
   const attackerDoc = game.actors.get(state.attackerId);
   const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
   const defenderDoc = game.actors.get(state.defenderId);
@@ -1006,6 +1062,9 @@ async function applyAbilityEffects(state, damageResult) {
   // Through `effectivePhases`, because a copy (§15.7) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
   for (const phase of effectivePhases(ability.system ?? {}, resolveAbilitySource)) {
+    // WHEN this phase runs relative to the damage. Unstated means after, which
+    // is what every phase written before this window existed meant.
+    if ((phase.when ?? "afterDamage") !== when) continue;
     // Medea's Rule Breaker: "removes all buffs from the DU", and then cuts the
     // Contract if the DU is a Servant that FAILED to Evade.
     if (phase.kind === "removeEffect") {
@@ -1014,6 +1073,14 @@ async function applyAbilityEffects(state, damageResult) {
     }
     if (phase.kind === "cutContract") {
       applied.push(...await cutContract(phase, state, defenderDoc));
+      continue;
+    }
+    // A CHECK the defender makes, which branches the Noble Phantasm. Scáthach's
+    // Gate of Skye: *"All targeted Units perform a Luck Check ... If the
+    // targeted Unit's Luck Check fails, it is inflicted with Death. If the
+    // Unit's Luck Check Succeeds, it receives 4x damage plus 100."*
+    if (phase.kind === "check") {
+      applied.push(...await runCheckPhase(phase, ability, state, defender));
       continue;
     }
     if (phase.kind !== "applyEffects" && phase.kind !== "applyEffect") continue;
@@ -1039,7 +1106,10 @@ async function applyAbilityEffects(state, damageResult) {
         def,
         target: defender,
         chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
+        // The ability's own stated chance, overriding the effect's default.
+        chance: spec.chance ?? rule.chance ?? null,
         magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
+        npMagnitude: spec.npMagnitude ?? rule.npMagnitude ?? null,
         duration: rule.duration ?? spec.duration ?? def.defaultDuration,
         source: { unitId: state.attackerId, abilityId: ability.id },
         ctx: {
@@ -1067,6 +1137,198 @@ async function applyAbilityEffects(state, damageResult) {
     }
   }
   return applied;
+}
+
+/**
+ * Defeat a defender left at zero Health by something other than damage.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function resolveEmptiedDefender(state) {
+  const doc = game.actors.get(state.defenderId);
+  if (!doc) return;
+
+  const defender = unitFrom(boardSnapshot(), doc);
+  if (currentHealth(defender) > 0) return;
+
+  // Zero damage: the Health is already gone. This asks "is it defeated", not
+  // "take this much more".
+  const intents = await resolveDefeatOf(defender, 0, state);
+  if (intents.length > 0) await applyBatch(intents, "terminal");
+}
+
+/**
+ * Raise `damageStepEnd` on the **attacker**.
+ *
+ * On the attacker, because the clause that needs it is about attacking: *"when
+ * a successful Attack is performed"*. The Defending Unit travels in the option
+ * set rather than in the unit list, so a handler can pay out differently
+ * against an Undead or Divine target — the second half of Alpi — without the
+ * defender's own handlers firing for somebody else's attack.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function fireDamageStepEnd(state) {
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  if (!defender) return;
+
+  const intents = fireEvent("damageStepEnd", [attacker], {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    options: rollOptionsFor({ attacker, defender, attack: state.attack }),
+    rolls: {},
+  });
+
+  if (intents.length > 0) await applyBatch(intents, "damageStepEnd");
+}
+
+/**
+ * A check the DEFENDER makes, and what failing it costs.
+ *
+ * Scáthach's Gate of Skye is the only one in the reference set, and every part
+ * of it is unusual. The check is rolled by the target rather than by the
+ * attacker; its difficulty is read from a rank table keyed on the target's own
+ * MAG; and failing it is worse than succeeding, because success only means
+ * taking 4x damage.
+ *
+ * `gateOfSkyeSaveModifier` is an **equality** table, not a threshold: *"if
+ * their MAG is Rank B, reduce the value rolled by 2; if their MAG is Rank A,
+ * reduce it by 4"*, and a `MAG A+` target gets nothing. It has sat in
+ * `domain/tables.mjs` since the tables were transcribed with nothing reading
+ * it.
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} state
+ * @param {object} defender the defender's snapshot
+ * @returns {Promise<object[]>}
+ */
+async function runCheckPhase(phase, ability, state, defender) {
+  const attackerDoc = game.actors.get(state.attackerId);
+  const attacker = unitSnapshot(attackerDoc);
+  const roll = await new Roll("1d20").evaluate();
+
+  // The table modifier, keyed on the SUBJECT's parameter rather than on the
+  // attacker's rank -- which is what makes it a save rather than a to-hit.
+  /** @type {Array<{source: string, value: number}>} */
+  const tableModifiers = [];
+  if (phase.modifierTable) {
+    const rank = Rank.parseOrNull(defender.parameters?.[phase.modifierRank ?? "mag"] ?? null);
+    const value = Number(lookup(phase.modifierTable, rank) ?? 0);
+    if (value !== 0) {
+      tableModifiers.push({ source: `${(phase.modifierRank ?? "mag").toUpperCase()} ${rank}`, value });
+    }
+  }
+
+  const plan = checkPlan(defender, phase.check ?? "luck");
+  const outcome = luckCheck({
+    roll: roll.total,
+    luck: defender.luck,
+    opposingLuck: attacker.luck,
+    hasBoost: (defender.effects ?? []).includes("luckBoost") || plan.forceTable === "favourable",
+    hasLoss: (defender.effects ?? []).includes("luckLoss") || plan.forceTable === "unfavourable",
+    modifiers: [...plan.modifiers, ...tableModifiers],
+  });
+
+  // A Luck Check costs 1 Luck whether or not it succeeds (Ch. 14).
+  await applyBatch([
+    I.statDelta(state.defenderId, "luck.value", -1),
+    I.log({
+      kind: "check", check: phase.check ?? "luck", unitId: state.defenderId,
+      roll: outcome.roll, total: outcome.total, target: outcome.target, success: outcome.success,
+      modifiers: outcome.modifiers,
+    }),
+  ], "np:check");
+
+  const branch = outcome.success ? phase.onSuccess : phase.onFail;
+  if (!branch?.effects?.length) return [];
+
+  return applyDeclaredEffects(branch.effects, ability, state, defender);
+}
+
+/**
+ * Apply a list of authored effect specs to the defender.
+ *
+ * Extracted so the check phase and the ordinary rider path build the same
+ * application with the same context — two constructions of `applyEffect`'s
+ * argument object is two places for `inflictBonus` or the option set to go
+ * missing, which is how outgoing contributions were inert once already.
+ *
+ * @param {object[]} specs
+ * @param {object} ability
+ * @param {object} state
+ * @param {object} defender
+ * @returns {Promise<object[]>}
+ */
+async function applyDeclaredEffects(specs, ability, state, defender) {
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  /** @type {object[]} */
+  const out = [];
+
+  for (const spec of specs) {
+    const def = EffectRegistry.get(spec.id);
+    if (!def) {
+      console.warn(`FGT | ${ability.name} applies unknown effect "${spec.id}"`);
+      continue;
+    }
+
+    const roll = await new Roll("1d100").evaluate();
+    const outcome = applyEffect({
+      def,
+      target: defender,
+      magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
+      npMagnitude: spec.npMagnitude ?? null,
+      duration: spec.duration ?? def.defaultDuration,
+      chanceModifiers: spec.chanceModifiers ?? [],
+      chance: spec.chance ?? null,
+      source: { unitId: state.attackerId, abilityId: ability.id },
+      ctx: {
+        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+        currentTick: game.combat?.system?.globalTurn ?? 0,
+        roll: roll.total,
+        inflictBonus: inflictBonusOf(attacker, def),
+        options: rollOptionsFor({ attacker, defender, attack: state.attack }),
+        resist: 0,
+      },
+    });
+
+    if (outcome.intents.length > 0) await applyBatch(outcome.intents, "npCheckEffect");
+    out.push({
+      summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason },
+      result: outcome,
+    });
+  }
+  return out;
+}
+
+/**
+ * Which effect, having landed before the damage, cancels it.
+ *
+ * `damage.skipIf.effectApplied` names it. Gáe Bolg Alternative: *"If Instakill
+ * is not inflicted, this NP deals 3.5x damage plus 100"* — so a **successful**
+ * Instakill is what suppresses the damage, and a failed one lets it through.
+ *
+ * Only `applied` counts. A `resisted` or `blocked` Instakill did not happen,
+ * and the Noble Phantasm falls back to its damage exactly as the sheet says.
+ *
+ * @param {object} state
+ * @param {object[]} before the results of the pre-damage phases
+ * @returns {string|null} the effect that suppressed it
+ */
+function damageSuppressedBy(state, before) {
+  const attackerDoc = game.actors.get(state.attackerId);
+  const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
+  const skipIf = ability?.system?.damage?.skipIf ?? null;
+  if (!skipIf?.effectApplied) return null;
+
+  const landed = before.some(
+    (a) => a.summary.id === skipIf.effectApplied && a.summary.outcome === "applied",
+  );
+  return landed ? skipIf.effectApplied : null;
 }
 
 /**
@@ -1164,6 +1426,23 @@ function rollOptions(attacker, defender, state) {
  * @param {object} ability
  * @returns {string}
  */
+/**
+ * Which Base Attack an attack draws on.
+ *
+ * The ability may state it — Medea's Rule Breaker is a Caster's Noble Phantasm
+ * that uses Base Attack (STR), and Scáthach's two Noble Phantasms use one each
+ * — otherwise the Unit's own normal attack decides.
+ *
+ * @param {object} attacker the actor document
+ * @param {object|null} ability
+ * @returns {"str"|"mag"}
+ */
+function componentOf(attacker, ability) {
+  const declared = ability?.system?.damage?.component
+    ?? ability?.system?.damage?.base?.sources?.[0]?.component;
+  return declared ?? attacker?.system?.normalAttack?.component ?? "str";
+}
+
 function abilityKind(ability) {
   if (ability.type === "noblePhantasm" || ability.system?.isNP) return "np";
   if (ability.system?.isAttackSkill) return "attackSkill";
@@ -1363,6 +1642,11 @@ function autoEvadeFrom(state, defender) {
   return {
     applies: true,
     success,
+    // Which effect this came from, so the caller can spend a charge of it.
+    // `AutoSucceed` records the count on the effect INSTANCE, and the plan
+    // carries the defId through -- without it the caller would have to guess
+    // which of the defender's effects had just fired.
+    consumes: auto.uses ? (auto.defId ?? null) : null,
     outcome: {
       success, automatic: true, roll: null, total: 0,
       table: null, modifiers: [{ source: auto.source ?? "automatic evasion", value: 0 }],

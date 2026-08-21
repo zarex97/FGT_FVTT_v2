@@ -1,0 +1,21 @@
+# Appendix A §A.2
+# "Chance of being inflicted with debuffs −X%."
+#
+# The unscoped member of the family `offDebuffResUp` already belongs to: it
+# carries no valence, so it covers every debuff rather than one class of them.
+schema: 1
+id: debuffResUp
+name: "Debuff ResUp"
+description: "Chance of being inflicted by debuffs is reduced by X%."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # POSITIVE, and subtracted by `applicationChance`, which takes `resist` as a
+  # positive quantity. Storing it negative and adding reads the same on the
+  # sheet and inverts on the second reader.
+  - key: ApplicationChance
+    direction: incoming
+    value: "@magnitude"

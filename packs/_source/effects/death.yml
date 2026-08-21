@@ -1,0 +1,18 @@
+# Appendix A §A.16 — the terminal tier.
+# "Unit is defeated. **Ignores all revival effects.**"
+#
+# Inflicted by Scáthach's Gate of Skye, on a failed Luck Check.
+schema: 1
+id: death
+name: "Death"
+description: "The Unit is defeated. Revival effects do not apply."
+polarity: debuff
+volatility: terminal
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+severity: death
+# `defeat`, not a very large amount of damage: damage would be caught by
+# `Endure`, and Endure has no business surviving Death.
+terminal: { kind: defeat }
+rules: []

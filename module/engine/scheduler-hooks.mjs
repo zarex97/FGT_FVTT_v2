@@ -19,6 +19,7 @@ import { factionOfCombatant } from "./turn-order.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { grailContest, checkVictory } from "../rules/environment.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -50,6 +51,10 @@ async function onTurnChange(combat, prior, current) {
     round: combat.round ?? 1,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     activeFactionId: factionOf(combat, prior),
+    // Injected rather than imported by the scheduler, so the scheduler stays
+    // testable without a compendium. It is what lets an expiring effect run
+    // its own "on removal" clause -- Shock's Agility restoration.
+    effectDef: (id) => EffectRegistry.get(id),
   };
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
@@ -96,6 +101,7 @@ async function onRoundChange(combat, updateData, options) {
     round: combat.round ?? 1,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     activeFactionId: null,
+    effectDef: (id) => EffectRegistry.get(id),
     // Switches off the multi-Servant tax (§16.7). Read here rather than in the
     // rules layer, which has no settings.
     grandOrder: setting("grandOrder", false),

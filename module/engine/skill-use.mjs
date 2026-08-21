@@ -24,6 +24,7 @@
 import { canUseAbility } from "../rules/costs.mjs";
 import {
   targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
+  usageSpecFor,
 } from "../rules/ability-use.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
@@ -33,6 +34,8 @@ import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitSnapshot } from "./board.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
+import { relationOf } from "../rules/relations.mjs";
+import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
@@ -101,7 +104,7 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
 
   await applyWorldIntents([
     ...(usage.cost ? costIntents(usage.cost) : []),
-    ...cooldownIntents(ability, actor, applied.summoned ?? 0),
+    ...cooldownIntents(ability, actor, applied.summoned ?? 0, self),
     I.markTurn(actorId, marks),
     I.log({
       kind: "ability", event: "skillUsed",
@@ -150,6 +153,18 @@ function resolveSkillTargets(ability, self, board, placement) {
 }
 
 /**
+ * The units one phase acts on.
+ *
+ * @param {object} phase
+ * @param {object[]} resolved what the targeting produced
+ * @param {object} actor the caster
+ * @returns {object[]}
+ */
+function phaseTargets(phase, resolved, actor) {
+  return (phase.target ?? "reuse") === "self" ? [{ unitId: actor.id }] : resolved;
+}
+
+/**
  * Is this spec addressed at the caster and nobody else?
  *
  * @param {object} spec
@@ -182,7 +197,16 @@ async function runPhases(ability, actor, targets, board) {
   let summoned = 0;
 
   for (const phase of effectivePhases(ability.system ?? {}, resolveSource)) {
-    for (const target of targets) {
+    // WHO this phase lands on. `target: self` names the caster and `reuse`
+    // names whatever the targeting resolved -- a distinction every ability in
+    // the reference set has authored since phases existed, and which nothing
+    // read: the loop ran every phase over every resolved target.
+    //
+    // It stayed invisible while every `target: self` phase belonged to a
+    // self-targeting ability, where the two lists are the same. Scáthach's
+    // Primordial Rune is the first where they differ -- "Gain 2 PRS Tokens.
+    // Then, ... on an allied Unit" -- and the tokens went to the ally.
+    for (const target of phaseTargets(phase, targets, actor)) {
       const doc = game.actors.get(target.unitId);
       if (!doc) continue;
       const snapshot = board.units.find((u) => u.id === target.unitId) ?? unitSnapshot(doc);
@@ -241,6 +265,10 @@ async function runPhases(ability, actor, targets, board) {
           );
           break;
 
+        case "rollTable":
+          applied.push(...await runRollTable(phase, ability, actor, snapshot, board));
+          break;
+
         case "summon": {
           // Only once per use, not once per target: the phase conjures from the
           // CASTER, and looping it over a target list would multiply the squad.
@@ -265,6 +293,110 @@ async function runPhases(ability, actor, targets, board) {
     }
   }
   return Object.assign(applied, { summoned });
+}
+
+/**
+ * Roll a table and apply what it lands on.
+ *
+ * Scáthach's *Primordial Rune*: two eight-sided dice, an allied table and an
+ * enemy one, a row that is a question rather than an effect, and *"if a
+ * duplicate number is rolled, apply the effect twice"*.
+ *
+ * The dice are rolled as **separate d8s** rather than as one `2d8`, because the
+ * duplicate clause needs the individual faces and a summed total cannot say
+ * whether the same row came up twice.
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} actor
+ * @param {object} target the target's snapshot
+ * @param {object} board
+ * @returns {Promise<object[]>}
+ */
+async function runRollTable(phase, ability, actor, target, board) {
+  const self = board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+  const table = tableFor(phase, relationOf(self, target, board));
+  if (!table) {
+    console.warn(`FGT | ${ability.name} has a rollTable phase with no table for this target.`);
+    return [];
+  }
+
+  const faces = phase.faces ?? 8;
+  const count = phase.count ?? 2;
+  /** @type {number[]} */
+  const results = [];
+  for (let k = 0; k < count; k++) {
+    results.push((await new Roll(`1d${faces}`).evaluate()).total);
+  }
+
+  /** @type {object[]} */
+  const out = [];
+  for (const { roll, entry } of entriesFor(table, results)) {
+    if (!entry) {
+      // A face with no row is a content error. Loud, because the alternative
+      // is a Skill that quietly does nothing on a 7.
+      console.error(`FGT | ${ability.name} rolled ${roll}, which its table has no row for.`);
+      continue;
+    }
+
+    // "Your choice of any of the above effect(s)" -- resolved by asking, and
+    // the chosen rows then apply exactly as if they had been rolled.
+    const rows = entry.choose ? await chooseRows(table, ability) : [entry];
+
+    for (const row of rows) {
+      out.push(...await applyPhaseEffects({ effects: effectsOf(row) }, ability, actor, target));
+    }
+  }
+
+  await postRollCard(actor, ability, target, results);
+  return out;
+}
+
+/**
+ * The wildcard row's question.
+ *
+ * "any of the above **effect(s)**" -- plural, so the prompt allows more than
+ * one. Defaulting to a single pick would quietly narrow the rule.
+ *
+ * @param {object} table
+ * @param {object} ability
+ * @returns {Promise<object[]>}
+ */
+async function chooseRows(table, ability) {
+  const options = choicesIn(table);
+  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+
+  const picked = await ChoiceDialog.pick({
+    title: ability.name,
+    hint: game.i18n.localize("FGT.RollTable.ChooseHint"),
+    count: options.length,
+    min: 1,
+    options: options.map((o) => ({
+      id: String(o.roll),
+      name: `${o.roll}. ${(o.entry.effects ?? []).map((e) => e.id).join(", ")}`,
+    })),
+  });
+
+  return (picked ?? []).map((id) => table[id]).filter(Boolean);
+}
+
+/**
+ * What the dice said, before the effects land.
+ *
+ * A separate card from the skill's own, because the roll is the interesting
+ * half: a player who sees only "Atk Up applied" cannot tell a 1 from a lucky 8.
+ *
+ * @param {object} actor
+ * @param {object} ability
+ * @param {object} target
+ * @param {number[]} results
+ */
+async function postRollCard(actor, ability, target, results) {
+  await ChatMessage.create({
+    content: `<p><strong>${ability.name}</strong> on ${target.name ?? "the target"}: `
+      + `rolled ${results.join(", ")}.</p>`,
+    speaker: ChatMessage.getSpeaker({ actor }),
+  });
 }
 
 /**
@@ -296,11 +428,18 @@ async function applyPhaseEffects(phase, ability, actor, target) {
       def,
       target,
       magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
+      // The "if NP" half of Appendix A's damage family. Referenced by every
+      // such effect definition as `@npMagnitude`, against an instance that
+      // never carried it.
+      npMagnitude: spec.npMagnitude ?? rule.npMagnitude ?? null,
       duration: rule.duration ?? spec.duration ?? def.defaultDuration,
       source: { unitId: actor.id, abilityId: ability.id },
       // Declared per effect by the ability (§15.2). Atlas's two reductions
       // stack, which is why this is a list rather than a number.
       chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
+      // The ability's own stated chance, overriding the effect's default.
+      // Scáthach's Clairvoyance applies two of its three buffs at 80%.
+      chance: spec.chance ?? rule.chance ?? null,
       ctx: {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
         currentTick: game.combat?.system?.globalTurn ?? 0,
@@ -326,14 +465,25 @@ async function applyPhaseEffects(phase, ability, actor, target) {
   return out;
 }
 
-/** @param {object} ability @param {object} actor @returns {object[]} */
-function cooldownIntents(ability, actor, summoned = 0) {
+/**
+ * @param {object} ability
+ * @param {object} actor
+ * @param {number} [summoned]
+ * @param {object|null} [unit] the user's snapshot, for a resource waiver
+ * @returns {object[]}
+ */
+function cooldownIntents(ability, actor, summoned = 0, unit = null) {
   // One implementation for both use paths (`engine/cooldown.mjs`). They used to
   // disagree: this one set a cooldown and `resolveAttack` did not.
+  const plan = cooldownFor(ability, actor.id, { count: summoned, unit });
+
   return [
-    ...cooldownFor(ability, actor.id, { count: summoned }),
-    ...alsoTriggered(ability, actor),
-  ].map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set"));
+    ...[...plan.cooldowns, ...alsoTriggered(ability, actor)]
+      .map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
+    // A waived cooldown is PAID for. Emitting the skipped clock without the
+    // token spent would make Scáthach's Rune Spells free for ever.
+    ...plan.spends.map((sp) => I.resource(sp.unitId, sp.key, sp.delta)),
+  ];
 }
 
 /** @param {object} cost @returns {object[]} */
@@ -350,15 +500,11 @@ function costIntents(cost) {
 
 /** @param {object} ability @returns {object} */
 function usageSpec(ability) {
-  const sys = ability.system ?? {};
-  return {
-    id: ability.id,
-    isNP: ability.type === "noblePhantasm" || Boolean(sys.isNP),
-    rank: sys.rank,
-    cooldown: sys.cooldown,
-    requiresRound: sys.targeting?.limits?.requiresRound ?? null,
-    requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
-  };
+  // One implementation, shared with `resolveAttack` (`rules/ability-use.mjs`).
+  // The two used to be separate and disagreed about which fields a gate could
+  // see, so a requirement authored on an ability was honoured on one use path
+  // and dropped on the other.
+  return usageSpecFor(ability);
 }
 
 /** @param {string} contentId @returns {object|null} */

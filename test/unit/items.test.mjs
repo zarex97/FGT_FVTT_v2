@@ -194,8 +194,116 @@ describe("meetsRequirement", () => {
       "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill", "resourceAtLeast",
       "healthBelow", "modeActive", "counterpartAdjacent", "masterHealthAbove",
       "targetHasEffect", "predicate",
+      // Beyond §15.4's own list, added by content that needed them.
+      // `notHasEffect` had been AUTHORED on Medea since she was written.
+      "notHasEffect", "abilityOffCooldown",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
+  });
+});
+
+describe("notHasEffect", () => {
+  it("passes when the user is clean, and refuses when it is not", () => {
+    expect(meetsRequirement({ kind: "notHasEffect", effectId: "silence" }, { unit: unit() })).toBe(true);
+    expect(meetsRequirement(
+      { kind: "notHasEffect", effectId: "silence" },
+      { unit: unit({ effects: ["silence"] }) },
+    )).toBe(false);
+  });
+
+  it("asks about the USER, not the target", () => {
+    // The distinction that makes it a different kind from `targetHasEffect`.
+    expect(meetsRequirement(
+      { kind: "notHasEffect", effectId: "silence" },
+      { unit: unit(), target: { effects: ["silence"] } },
+    )).toBe(true);
+  });
+});
+
+describe("abilityOffCooldown", () => {
+  const scathach = (over = []) => unit({
+    abilities: [
+      { id: "a1", contentId: "scathach-ar", category: "primordialRuneSpell", cooldownRemaining: 0 },
+      { id: "a2", contentId: "scathach-thurs", category: "primordialRuneSpell", cooldownRemaining: 0 },
+      { id: "a3", contentId: "scathach-ur", category: "primordialRuneSpell", cooldownRemaining: 0 },
+      ...over,
+    ],
+  });
+
+  it("passes while every named ability is off cooldown", () => {
+    expect(meetsRequirement(
+      { kind: "abilityOffCooldown", abilityIds: ["scathach-thurs"] },
+      { unit: scathach() },
+    )).toBe(true);
+  });
+
+  it("refuses while one of them is running", () => {
+    const unitWith = unit({
+      abilities: [{ id: "a2", contentId: "scathach-thurs", cooldownRemaining: 4 }],
+    });
+    expect(meetsRequirement(
+      { kind: "abilityOffCooldown", abilityIds: ["scathach-thurs"] },
+      { unit: unitWith },
+    )).toBe(false);
+  });
+
+  it("gates a whole category", () => {
+    const unitWith = unit({
+      abilities: [
+        { id: "a1", contentId: "scathach-ar", category: "primordialRuneSpell", cooldownRemaining: 0 },
+        { id: "a2", contentId: "scathach-thurs", category: "primordialRuneSpell", cooldownRemaining: 6 },
+      ],
+    });
+    expect(meetsRequirement(
+      { kind: "abilityOffCooldown", category: "primordialRuneSpell" },
+      { unit: unitWith },
+    )).toBe(false);
+  });
+
+  it("excludes the ability that declares it", () => {
+    // "the OTHER two cannot be used until Cooldown has ended for the used
+    // Spell". Without `excludeSelf` a Spell gates on its own cooldown, which
+    // `canUseAbility` already checks -- so the rule would say nothing.
+    const unitWith = unit({
+      abilities: [
+        { id: "a1", contentId: "scathach-ar", category: "primordialRuneSpell", cooldownRemaining: 9 },
+        { id: "a2", contentId: "scathach-thurs", category: "primordialRuneSpell", cooldownRemaining: 0 },
+      ],
+    });
+    // Ar is running, and Ar itself is not blocked BY Ar -- the other Spell in
+    // the category is clear, so Ar passes its own gate.
+    expect(meetsRequirement(
+      { kind: "abilityOffCooldown", category: "primordialRuneSpell", excludeSelf: true },
+      { unit: unitWith, ability: { id: "a1", contentId: "scathach-ar" } },
+    )).toBe(true);
+    // Thurs, though, is blocked: Ar is on cooldown and Ar is one of the others.
+    expect(meetsRequirement(
+      { kind: "abilityOffCooldown", category: "primordialRuneSpell", excludeSelf: true },
+      { unit: unitWith, ability: { id: "a2", contentId: "scathach-thurs" } },
+    )).toBe(false);
+  });
+
+  it("gates an exclusion set, which is how copies are grouped", () => {
+    const unitWith = unit({
+      abilities: [
+        { id: "c1", exclusionSet: "dunScaith", cooldownRemaining: 0 },
+        { id: "c2", exclusionSet: "dunScaith", cooldownRemaining: 11 },
+      ],
+    });
+    expect(meetsRequirement(
+      { kind: "abilityOffCooldown", exclusionSet: "dunScaith", excludeSelf: true },
+      { unit: unitWith, ability: { id: "c1" } },
+    )).toBe(false);
+  });
+
+  it("passes vacuously when nothing matches", () => {
+    // A Scathach who has copied nothing has no Wisdom slots to be blocked BY,
+    // and a gate that refused on an empty set would make Clairvoyance unusable
+    // until she copied something.
+    expect(meetsRequirement(
+      { kind: "abilityOffCooldown", exclusionSet: "dunScaith" },
+      { unit: unit() },
+    )).toBe(true);
   });
 });
 

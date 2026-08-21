@@ -13,6 +13,7 @@
 
 import { applicationChance } from "../rules/checks.mjs";
 import { test } from "../rules/predicate.mjs";
+import { currentHealth } from "../domain/health.mjs";
 import { resolveTicks, parseTick } from "../domain/tick.mjs";
 import { INFINITE } from "../domain/enums.mjs";
 import * as I from "./intents.mjs";
@@ -42,12 +43,19 @@ const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
  * @param {object} args.def the effect definition from the registry
  * @param {object} args.target the target's unit snapshot
  * @param {number} [args.magnitude]
+ * @param {number|null} [args.npMagnitude] the reduced magnitude against an NP
  * @param {string|number|null} [args.duration] a ◈ expression
  * @param {object} args.source `{unitId, abilityId}`
  * @param {object} args.ctx `{turnsPerRound, currentTick, roll, inflictBonus, resist}`
+ * @param {object[]} [args.chanceModifiers] per-effect modifiers the ability declares
+ * @param {number|null} [args.chance] the ability's own stated chance, which
+ *   overrides the effect definition's `baseChance`
  * @returns {ApplicationResult}
  */
-export function applyEffect({ def, target, magnitude = 0, duration = null, source, ctx, chanceModifiers = [] }) {
+export function applyEffect({
+  def, target, magnitude = 0, npMagnitude = null, duration = null, source, ctx,
+  chanceModifiers = [], chance = null,
+}) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
   const trace = [];
   const held = target.effects ?? [];
@@ -86,13 +94,19 @@ export function applyEffect({ def, target, magnitude = 0, duration = null, sourc
   const declared = matched.reduce((sum, m) => sum + (m.value ?? 0), 0);
 
   const chanceSpec = applicationChance({
-    base: (def.baseChance ?? 100) + declared,
+    // The ABILITY may state its own chance, overriding the effect's default.
+    // Scáthach's Gáe Bolg Alternative has both extremes on one Noble Phantasm:
+    // Stun at **500%**, which is not "guaranteed" but "guaranteed through four
+    // stacked resistances", and Instakill at 75%. Reading only `def.baseChance`
+    // made every stated chance in the game inert -- Stun's own 100 would have
+    // applied to both.
+    base: (chance ?? def.baseChance ?? 100) + declared,
     inflictBonus: ctx.inflictBonus ?? 0,
     // The target's own resistance, from its `ApplicationChance` contributions.
     // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
     // the target here closes the loop without every caller having to know.
-    resist: ctx.resist ?? resistanceOf(target, def),
+    resist: ctx.resist ?? resistanceOf(target, def, ctx.options),
     immune: false,
     bypassesImmunity: Boolean(def.bypassesImmunity),
   });
@@ -141,6 +155,10 @@ export function applyEffect({ def, target, magnitude = 0, duration = null, sourc
   const effect = {
     defId: def.id,
     magnitude: stack.magnitude,
+    // Carried separately, because it is a second magnitude and not a scaling
+    // of the first: Appendix A's pairs are 25/15 and 50/30, neither of which
+    // is a fixed ratio of the other.
+    npMagnitude: npMagnitude ?? def.defaultNpMagnitude ?? null,
     stage: stack.stage,
     uses: stack.uses,
     expiry,
@@ -152,6 +170,20 @@ export function applyEffect({ def, target, magnitude = 0, duration = null, sourc
   };
 
   // ── 7. EMIT ──────────────────────────────────────────────────────────────
+  //
+  // A TERMINAL effect is a consequence, not a condition. Appendix A's Instakill
+  // is "Health reduced to 0" and Death is "the Unit is defeated" -- neither is
+  // something a Unit then *carries*, and creating a document for one would
+  // leave an "Instakill" badge sitting on a corpse for the rest of the match
+  // while the Health it was supposed to remove stayed where it was.
+  //
+  // Scathach has both, one on each Noble Phantasm, which is why this had to
+  // exist before either of them could do anything.
+  if (def.terminal) {
+    trace.push({ step: "terminal", outcome: def.terminal.kind });
+    return { outcome: "applied", reason: null, intents: terminalIntents(def, target), trace };
+  }
+
   const intents = exclusion.replaces.map((id) => I.removeEffect(target.id, id, "replaced"));
 
   // The stacking ACTION has to reach the intents, and it did not: every branch
@@ -168,6 +200,40 @@ export function applyEffect({ def, target, magnitude = 0, duration = null, sourc
 
   intents.push(I.applyEffect(target.id, effect, source?.unitId ?? null));
   return { outcome: "applied", reason: null, intents, trace };
+}
+
+/**
+ * What a terminal effect actually does.
+ *
+ * The two differ in more than degree. **Instakill** empties the Health pool and
+ * lets the ordinary defeat machinery run, so `Guts` and Heracles's God Hand
+ * still get their say. **Death** defeats outright and *"ignores all revival
+ * effects"*, which is why it is a `defeat` intent rather than a very large
+ * amount of damage -- damage would be caught by `Endure`, and Endure has no
+ * business surviving Death.
+ *
+ * Neither is `damage`: Health *loss* must not feed damage-keyed triggers
+ * (Ch. 06), so an Instakill cannot pay out a `Dmged NP Regen`.
+ *
+ * @param {object} def
+ * @param {object} target
+ * @returns {Intent[]}
+ */
+function terminalIntents(def, target) {
+  switch (def.terminal.kind) {
+    case "reduceToZero":
+      return [
+        I.statDelta(target.id, "health.value", -currentHealth(target), false),
+        I.log({ kind: "terminal", effect: def.id, unitId: target.id }),
+      ];
+    case "defeat":
+      return [I.defeat(target.id, def.id)];
+    default:
+      // Loud rather than silent: an unrecognised terminal kind means the most
+      // consequential effect in the game did nothing at all.
+      console.error(`FGT | Effect "${def.id}" declares an unknown terminal kind "${def.terminal.kind}".`);
+      return [];
+  }
 }
 
 /**
@@ -357,8 +423,8 @@ function blocked(reason, trace) {
  * @param {object} def the effect definition
  * @returns {number} percentage points of resistance
  */
-function resistanceOf(target, def) {
-  return chanceContribution(target, def, "incoming");
+function resistanceOf(target, def, options = null) {
+  return chanceContribution(target, def, "incoming", options);
 }
 
 /**
@@ -374,8 +440,8 @@ function resistanceOf(target, def) {
  * @param {object} def
  * @returns {number} percentage points
  */
-export function inflictBonusOf(attacker, def) {
-  return chanceContribution(attacker, def, "outgoing");
+export function inflictBonusOf(attacker, def, options = null) {
+  return chanceContribution(attacker, def, "outgoing", options);
 }
 
 /**
@@ -391,7 +457,7 @@ export function inflictBonusOf(attacker, def) {
  * @param {string} direction
  * @returns {number}
  */
-function chanceContribution(unit, def, direction) {
+function chanceContribution(unit, def, direction, options = null) {
   const severity = def.severity ?? "normal";
   let total = 0;
 
@@ -399,8 +465,22 @@ function chanceContribution(unit, def, direction) {
     if ((c.direction ?? "incoming") !== direction) continue;
     if (c.effectId && c.effectId !== def.id) continue;
     if (c.valence && c.valence !== def.valence) continue;
-    // Named severity: this tier only. Unnamed: `normal` only.
-    if ((c.severity ?? "normal") !== severity) continue;
+
+    // Named severity: those tiers only. Unnamed: `normal` only. A LIST is
+    // accepted because Magic Resistance covers three of the four at one
+    // magnitude -- *"also affects Instakill and Death ... Erase is completely
+    // unaffected"* -- and writing it as three contributions would say the
+    // rank table is consulted three times.
+    const tiers = [c.severity ?? "normal"].flat();
+    if (!tiers.includes(severity)) continue;
+
+    // A condition on the ATTACK, evaluated now. Magic Resistance's ladder
+    // exempts *"an Attack/Attack Skill/Spell/NP that deals STR damage or that
+    // is not affected by Magic Resistance"*, which is a property of the
+    // incoming attack rather than of the bearer -- so it cannot be a
+    // collection-time predicate.
+    if (c.predicate && !test(c.predicate, { options: options ?? new Set() })) continue;
+
     total += c.value ?? 0;
   }
   return total;

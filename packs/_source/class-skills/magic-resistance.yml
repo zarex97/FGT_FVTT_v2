@@ -4,6 +4,9 @@ schema: 1
 id: class-magic-resistance
 name: "Magic Resistance"
 source: class
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
 parameterized: [rank]
 rank: "@rank"
 description: |
@@ -22,7 +25,35 @@ passiveRules:
     negatesUpToRank: "@rank"
     table: magicResistancePercent
     includesNP: true
-  - key: CheckModifier
-    check: debuffApplication
+
+  # Passive 2, as an `ApplicationChance` rather than a `CheckModifier`.
+  #
+  # It was a `CheckModifier` from the day it was written, which lands in
+  # `unit.checkModifiers` -- and the effect applier reads resistance off
+  # `unit.applicationChances`. So the single most common defensive Skill in the
+  # game reduced nobody's debuff chance by anything. Same defect shape as the
+  # ZON tables and `fireEvent`: right, collected, and never asked.
+  #
+  # ORDINARY debuffs. The severity ladder is a separate clause below, because
+  # the two carry different exemptions.
+  - key: ApplicationChance
     direction: incoming
+    severity: normal
     table: magicResistanceDebuffResist
+
+  # "Also affects Instakill and Death UNLESS the Instakill or Death debuffs are
+  # from an Attack/Attack Skill/Spell/NP that deals STR damage or that is not
+  # affected by Magic Resistance."
+  #
+  # Both tiers at one magnitude, and the exemption is a property of the INCOMING
+  # ATTACK rather than of the bearer -- which is why it is an `attackPredicate`,
+  # tested when the effect is applied, and not the collection-time `predicate`.
+  #
+  # Erase is absent deliberately: "Erase is completely unaffected."
+  - key: ApplicationChance
+    direction: incoming
+    severity: [instakill, death]
+    table: magicResistanceDebuffResist
+    attackPredicate:
+      - { not: "attack:component:str" }
+      - { not: "attack:ignoresMagicResistance" }

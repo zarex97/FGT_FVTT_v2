@@ -304,6 +304,34 @@ check:kind:evade
 check:vsNP
 ```
 
+### When a predicate can be answered
+
+Contributions are collected **per unit**, and at that moment only that unit's own options exist:
+there is no target and no attack yet. A predicate naming `target:` or `attack:` therefore cannot
+be answered at collection time, and testing it there answers **false** — which drops the element
+for ever rather than deferring it.
+
+That is what happened, for the whole life of the project. Penthesilea's *Goddess of War* is gated
+on `attack:kind:normal` and never fired on a Normal Attack; `NP DmUp` is gated on `attack:kind:np`
+and raised no Noble Phantasm's damage; Scáthach's *God Slayer* is gated on the target's Attributes
+and added nothing against a Divine Unit. Three shipped abilities, one line. The JSDoc on
+`contributionsOf` had claimed the deferral happened since it was written.
+
+A predicate is now classified at collection: one that names only the owner is **answered** and the
+modifier carries `predicate: null`; one that names anybody else is **deferred**, travelling on the
+modifier for the damage pipeline to answer with the full option set. Deferral is all-or-nothing —
+a predicate is an implicit AND, so deferring the whole clause is equivalent to splitting it (the
+pipeline has the owner's options too) and splitting would need the two halves kept in step through
+every executor.
+
+The rule of thumb for an author: **anything about somebody else is free**; the engine works out
+when to ask.
+
+Two options were added for Magic Resistance's terminal ladder, both properties of the incoming
+attack rather than of the bearer: `attack:component:str|mag`, and `attack:ignoresMagicResistance`.
+Neither was emitted before, so *"unless … from an Attack/Attack Skill/Spell/NP that deals STR
+damage or that is not affected by Magic Resistance"* could not be written at all.
+
 Options are built once per operation by `OptionBuilder` and passed to every predicate
 evaluation. Building them is O(effects + abilities + attributes) per unit, ~1 ms, and cached
 with the snapshot.

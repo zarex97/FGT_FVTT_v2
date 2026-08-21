@@ -33,6 +33,13 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
 
       defId: new fields.StringField({ required: true, blank: false }),
       magnitude: new fields.NumberField({ required: true, initial: 0 }),
+      // The reduced magnitude that applies against a Noble Phantasm. Appendix A
+      // gives one to most of the damage family -- "damage dealt is increased
+      // by 25%; **if NP, 15%**" -- and the effect definitions have referenced
+      // `@npMagnitude` since they were written, against an instance that never
+      // carried it. Every "if NP" clause in the game scored at the full
+      // magnitude or at nothing, depending on the reader.
+      npMagnitude: new fields.NumberField({ required: false, nullable: true, initial: null }),
       stage: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       uses: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
 

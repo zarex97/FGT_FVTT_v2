@@ -1,0 +1,19 @@
+# Appendix A §A.9
+schema: 1
+id: npDmDwn
+name: "NP DmDwn"
+description: "Noble Phantasm damage dealt is reduced by X%."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # The pipeline holds `npDmDwn` in its NEGATIVE key set, so the magnitude is
+  # authored positive and subtracted there -- writing it negative here would
+  # subtract it twice.
+  - key: DamageModifier
+    modifierKey: npDmDwn
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["attack:kind:np"]

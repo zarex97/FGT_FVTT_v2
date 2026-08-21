@@ -1,0 +1,50 @@
+# Appendix A §A.14
+# "Max AND current Agility −3. At the start of every turn, roll d6; on 3 or 4
+# the unit cannot act. On removal, current Agility +1 when max is restored."
+#
+# Inflicted by Scáthach's Þurs.
+schema: 1
+id: shock
+name: "Shock"
+description: |
+  Maximum and current Agility are reduced by 3. At the start of every Turn, roll a d6; on a
+  3 or a 4 the Unit cannot act. On removal, current Agility is restored by 1 alongside the
+  maximum.
+polarity: debuff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules:
+  # TWO deltas, not one flagged pair. "Max and current" is literally two
+  # numbers, and `alsoCurrent` exists for `Max HpUp`, whose restoration only
+  # runs upward -- borrowing it here would silently not apply the reduction.
+  - key: MaxDelta
+    stat: agility
+    value: -3
+  - key: StatDelta
+    stat: agility.value
+    value: -3
+
+  # The d6. A gate on the handler's own die rather than an application chance:
+  # the Stun it applies has a chance of its own, and folding the two together
+  # would let Debuff ResUp shorten the odds on a roll the sheet does not
+  # describe as a debuff roll.
+  - key: OnEvent
+    event: turnStart
+    automatic: true
+    then:
+      - key: ApplyEffect
+        roll: { key: shockJolt, formula: "1d6" }
+        when: { in: [3, 4] }
+        duration: "1 turns"
+        effect: { defId: stun }
+
+onRemove:
+  # "current Agility +1 when max is restored" -- one point back, not the three
+  # the maximum regains. The asymmetry is the source's, and it is why the
+  # clause exists at all.
+  - key: StatDelta
+    stat: agility.value
+    delta: 1

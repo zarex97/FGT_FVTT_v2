@@ -58,8 +58,19 @@ export function worldIO() {
     },
 
     /**
+     * Adjust a resource, honouring a ceiling the pool declares for itself.
+     *
+     * §6.10's pools carry their own `max` beside their `value`, and it is
+     * load-bearing rather than cosmetic: *"the maximum number of PRS Tokens
+     * Scáthach can have is 2"*, and her Primordial Rune grants **two** at a
+     * time. Without the clamp a second use puts her at four and every
+     * subsequent Rune Spell is free.
+     *
+     * The ceiling is read from the sibling `max` rather than passed in, so a
+     * caller cannot get it wrong and no caller has to know it exists.
+     *
      * @param {string} unitId
-     * @param {string} key
+     * @param {string} key a path under `system`, e.g. `resources.prs.value`
      * @param {number} delta
      */
     async adjustResource(unitId, key, delta) {
@@ -68,7 +79,12 @@ export function worldIO() {
       const path = `system.${key}`;
       const current = foundry.utils.getProperty(actor, path) ?? 0;
       if (current === null) return;
-      await actor.update({ [path]: Math.max(0, current + delta) });
+
+      const max = key.endsWith(".value")
+        ? foundry.utils.getProperty(actor, `system.${key.slice(0, -".value".length)}.max`)
+        : null;
+      const raw = Math.max(0, current + delta);
+      await actor.update({ [path]: typeof max === "number" ? Math.min(max, raw) : raw });
     },
 
     /**
@@ -86,7 +102,9 @@ export function worldIO() {
         img: e.img ?? "icons/svg/aura.svg",
         origin: e.sourceUnitId ? `Actor.${e.sourceUnitId}` : undefined,
         system: {
-          defId: e.defId, magnitude: e.magnitude ?? 0, stage: e.stage ?? 0,
+          defId: e.defId, magnitude: e.magnitude ?? 0,
+          npMagnitude: e.npMagnitude ?? null,
+          stage: e.stage ?? 0,
           uses: e.uses ?? 0, expiry: e.expiry ?? null,
           sourceUnitId: e.sourceUnitId ?? null, sourceAbilityId: e.sourceAbilityId ?? null,
           unremovable: Boolean(e.unremovable),
@@ -108,6 +126,30 @@ export function worldIO() {
         .map((e) => e.id);
       if (targets.length === 0) return;
       await actor.deleteEmbeddedDocuments("ActiveEffect", targets);
+    },
+
+    /**
+     * Spend one charge of a count-limited effect, removing it at zero.
+     *
+     * Removal at zero rather than at one is the boundary that matters: an
+     * effect with `uses: 1` fires once and is gone, which is what "1 times"
+     * means. Leaving it at zero would keep a spent Trofa on the sheet and,
+     * worse, keep `checkPlan` finding its `AutoSucceed`.
+     *
+     * @param {string} unitId
+     * @param {string} defId
+     * @param {number} [count]
+     */
+    async consumeUse(unitId, defId, count = 1) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+
+      const effect = actor.effects.find((e) => e.system?.defId === defId || e.id === defId);
+      if (!effect) return;
+
+      const left = (effect.system?.uses ?? 0) - count;
+      if (left > 0) await effect.update({ "system.uses": left });
+      else await actor.deleteEmbeddedDocuments("ActiveEffect", [effect.id]);
     },
 
     /**

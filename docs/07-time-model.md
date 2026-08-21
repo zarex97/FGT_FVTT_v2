@@ -403,14 +403,44 @@ The reference set has several abilities that lock each other:
 Two distinct mechanisms:
 
 ```yaml
-blockedBy:      [hetGeleHuisNP]        # cannot use while these are on cooldown
 alsoTriggers:   [manaBurstFlames]      # using this puts these on cooldown too
 sameTurnExclusive: [flashOfTheSunGod]  # cannot use both on the same turn
+
+# "Cannot be used while X is on cooldown" is a REQUIREMENT (§15.4), because it
+# is a gate on using this ability rather than a property of the other one:
+requirements:
+  - { kind: abilityOffCooldown, abilityIds: [scathach-primordial-rune] }
 ```
 
-All three are declarative fields on the ability, validated for symmetry by the content build
+All are declarative fields on the ability, validated for symmetry by the content build
 (if A declares `blockedBy: [B]`, the build warns if B does not declare `blockedBy: [A]` and
 the source implies mutual exclusion).
+
+**`abilityOffCooldown` matches three ways**, and Scáthach needs all three in one Servant:
+by `abilityIds` (Gate of Skye names three outright), by `category` (her Primordial Rune Spells
+share one), and by `exclusionSet` (the three Wisdom of Dún Scáith slots, two of which are copies
+that do not exist until she is summoned). `excludeSelf: true` is what makes the second and third
+say anything: *"the **other two** cannot be used until Cooldown has ended for the used Spell"*,
+and without it a Spell gates on its own cooldown, which `canUseAbility` has already checked.
+
+**`alsoTriggers` may name a group too.** Scáthach's *Gate of Skye* triggers *"Primordial Rune and
+Wisdom of Dún Scáith"*, and the second is not an ability with a clock — it is the grant, the
+button that opens the curation dialog. The clause means her three Wisdom **slots**, so the entry
+is `{exclusionSet: wisdomOfDunScaith}` rather than an id. Naming the grant put nothing on
+cooldown at all, which reads exactly like the clause not working.
+
+Note the asymmetry Gate of Skye draws attention to: it is **blocked by three** and **triggers
+two**. Those are different lists and neither implies the other.
+
+**A cooldown may be waived by a resource** (§6.10). `cooldownWaiver: {resource, amount}` spends
+from a pool instead of starting the clock — Scáthach's PRS Tokens, where *"the Primordial Rune
+Spell that she used does not enter Cooldown"*. The waiver is **automatic**, not offered: the
+sheet says *"if … while she has any"*, not *"she may"*. It applies only to the ability actually
+used; anything `alsoTriggers` drags along with it pays in full.
+
+That interacts with one more field. A waived cooldown leaves nothing limiting the ability, which
+is why `oncePerTurn` exists and is **not** redundant with a cooldown: Ár's `3◈` never runs while
+she holds a token, and *"can only be used once per Turn"* is then the only limit on it.
 
 ---
 

@@ -23,7 +23,7 @@
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
-  "itemQuantity", "itemGrant", "markContract", "grantCommandSpells",
+  "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
 ]);
 
 /**
@@ -40,6 +40,10 @@ export const INTENT_TYPES = Object.freeze([
 const ORDER = Object.freeze({
   log: 0,
   removeEffect: 1,
+  // Beside `removeEffect`, because spending the last use IS a removal: an
+  // effect that fires and then hangs around with `uses: 0` is an effect that
+  // never expires.
+  consumeUse: 1,
   statDelta: 2,
   resource: 2,
   cooldown: 2,
@@ -101,6 +105,22 @@ export const defeat = (unitId, cause) =>
 
 export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });
+
+/**
+ * Spend one charge of a count-limited effect.
+ *
+ * `uses` has been stored on every count-stacked effect since the applier was
+ * written and **nothing ever decremented it**, so Medea's Trofa — `1 times` —
+ * evaded every attack for the rest of the match, and Scáthach's Alpi would
+ * have paid out for ever rather than three times.
+ *
+ * @param {string} unitId
+ * @param {string} defId
+ * @param {number} [count]
+ * @returns {object}
+ */
+export const consumeUse = (unitId, defId, count = 1) =>
+  ({ t: "consumeUse", unitId, defId, count });
 
 export const cooldown = (unitId, abilityId, ticks, mode = "reduce") =>
   ({ t: "cooldown", unitId, abilityId, ticks, mode });
@@ -251,6 +271,7 @@ const NUMERIC_FIELDS = Object.freeze({
   itemQuantity: ["delta"],
   itemGrant: ["delta"],
   grantCommandSpells: ["count"],
+  consumeUse: ["count"],
 });
 
 /**

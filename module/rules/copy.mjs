@@ -48,7 +48,14 @@ export function canCopy(ability) {
 
   // "must have an Active effect": a passive has nothing to use as an effect of
   // this Skill.
-  if (ability?.passive || (ability?.phases ?? []).length === 0) {
+  //
+  // Two shapes reach here. A board snapshot carries `hasPhases`, because
+  // copying every Servant's phase list into every snapshot to answer one
+  // boolean is a great deal of data for one bit; an Item spec carries the
+  // phases themselves. Reading only the second is what made every candidate on
+  // the board look passive.
+  const active = ability?.hasPhases ?? (ability?.phases ?? []).length > 0;
+  if (ability?.passive || !active) {
     return { ok: false, reason: "notActive" };
   }
 
@@ -98,7 +105,7 @@ export function copyCandidates(board, copier, { prefer = [] } = {}) {
  * The granted ability a copy produces.
  *
  * Rank and cooldown are the **copier's**: Scáthach uses the copied effects *"as
- * effects of this Skill"*, so her A+ and her `4◈−⅓◈` govern. Taking the
+ * effects of this Skill"*, so her A+ and her `4◈-⅓◈` govern. Taking the
  * source's would let a copy outrank and outpace the original, which is the
  * opposite of what a copy is.
  *

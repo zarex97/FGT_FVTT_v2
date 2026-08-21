@@ -1,0 +1,19 @@
+# Appendix A §A.1
+# "Crit damage +X%. Not NP unless stated."
+schema: 1
+id: critDmUp
+name: "Crit DmUp"
+description: "Crit Damage is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # `critDmUp` is read by name in stage 2 of the damage pipeline, which is why
+  # this is a CritModifier rather than a DamageModifier: crit damage scales the
+  # Attack+ roll and never touches the Attack− branch.
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critDmUp
+    value: "@magnitude"

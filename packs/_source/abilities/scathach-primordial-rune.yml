@@ -1,0 +1,59 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+#
+# The 2d8 table Skill. Three things about it are unusual enough to have needed
+# engine work: two tables chosen by relation, "if a duplicate number is rolled,
+# apply the effect twice", and a row that is a question rather than an effect.
+schema: 1
+id: scathach-primordial-rune
+name: "Primordial Rune"
+rank: null
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Gain 2 PRS Tokens. Then, on an allied Unit within 2 panels or
+  on an enemy Unit within Range 2, roll two eight-sided dice and apply the corresponding effects
+  from the allied or enemy table. If a duplicate number is rolled, apply the effect twice.
+targeting:
+  # ONE anchor for both halves. The sheet reads as two options -- "on an allied
+  # Unit within a 2 panel area" and "on an enemy Unit, Range=2" -- but they are
+  # the same reach and the same single target; only the table differs.
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [ally, self, enemy], chooser: all, count: 1 }
+phases:
+  # The tokens FIRST, so a Rune Spell used later in the same Turn can spend one.
+  # `resources.prs.value` is clamped to the pool's own maximum by the writer:
+  # "the maximum number of PRS Tokens Scáthach can have is 2", and this grants
+  # two at a time.
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.prs.value, delta: 2 }
+
+  - kind: rollTable
+    target: reuse
+    count: 2
+    faces: 8
+    tables:
+      ally:
+        1: { effects: [{ id: atkUp, magnitude: 25, npMagnitude: 15, duration: "1◈" }] }
+        2: { effects: [{ id: defUp, magnitude: 25, npMagnitude: 15, duration: "1◈" }] }
+        3: { effects: [{ id: critUp, magnitude: 25, duration: "1◈" }] }
+        4: { effects: [{ id: critDmUp, magnitude: 25, duration: "1◈" }] }
+        5: { effects: [{ id: npDmUp, magnitude: 30, duration: "1◈" }] }
+        6: { effects: [{ id: debuffResUp, magnitude: 25, duration: "1◈" }] }
+        7: { effects: [{ id: debuffChUp, magnitude: 25, duration: "1◈" }] }
+        8: { choose: true }
+      enemy:
+        # Row 2 has NO reduced NP magnitude, and rows 1 and 5 do. That is the
+        # sheet's own asymmetry -- "Def Dwn ... all damage received is increased
+        # by 25%" states no NP figure where "Atk Dwn" states 15% -- so it is
+        # reproduced rather than tidied.
+        1: { effects: [{ id: atkDwn, magnitude: 25, npMagnitude: 15, duration: "1◈" }] }
+        2: { effects: [{ id: defDwn, magnitude: 25, duration: "1◈" }] }
+        3: { effects: [{ id: critDwn, magnitude: 25, duration: "1◈" }] }
+        4: { effects: [{ id: critDmDwn, magnitude: 25, duration: "1◈" }] }
+        5: { effects: [{ id: npDmDwn, magnitude: 30, duration: "1◈" }] }
+        6: { effects: [{ id: debuffResDwn, magnitude: 25, duration: "1◈" }] }
+        7: { effects: [{ id: debuffChDwn, magnitude: 25, duration: "1◈" }] }
+        8: { choose: true }

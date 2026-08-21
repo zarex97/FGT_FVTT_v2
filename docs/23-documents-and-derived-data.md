@@ -34,6 +34,20 @@
 > The row this chapter singles out is implemented as stated: **anything that changes `canAct`
 > invalidates Master protection for Masters within 2 panels**, and `CAN_ACT_INVALIDATORS` carries
 > the same twelve effect ids listed below.
+>
+> **The snapshot is a hand-written projection, and that is where this system's defects live.** A
+> field the documents hold and the projection omits does not fail — the consumer just sees
+> `undefined`, and a `?? 0` beside it turns that into a plausible-looking answer. Six such gaps
+> have now been found, all the same shape and all only visible in a live world:
+>
+> | Omitted | What it silently disabled |
+> |---|---|
+> | `turnState.abilitiesUsed` | Every snapshot reader of "what has this Unit used this Turn": `oncePerTurn` never refused, and the reaction rung offered a Skill whose same-Turn partner had gone. |
+> | ability `phases` / `kind` / `passive` / `copyable` | `copyCandidates` refused **every** candidate in the game as `notActive` — Wisdom of Dún Scáith could not copy anything (Ch. 15 §15.7). |
+> | ability `contentId` / `category` / `exclusionSet` | Any cross-ability gate: a requirement that names a content id, a category or an exclusion set had nothing to match. |
+> | `resources` | §6.10's pools, and with them any cooldown waiver. |
+> | effect-instance `uses` | Count-limited effects fired for ever. |
+> | `health`, in the other direction | Flattened to a **number** by design, and read as `.value` by the engine — so `resolveDefeat` saw `undefined ?? 0` and **defeated every target of every successful attack**. `test/unit/health-shape.test.mjs` now scans `module/engine` too, which is where it hid.
 
 The document subclasses, the derived-data pipeline and its ordering, the snapshot cache, and
 the CRUD hooks that keep the world consistent.

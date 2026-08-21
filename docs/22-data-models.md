@@ -96,6 +96,22 @@ write time. A malformed predicate is a content bug and should never reach runtim
 
 ## 22.2 Shared actor schema mixins
 
+> **A DataModel silently drops an update to a field it does not declare.** No error, no warning,
+> and the write returns successfully — so the only symptom is that the value never changes. This
+> chapter's schemas are therefore not documentation of what the code does; they are the *gate*
+> that decides whether the code does anything at all.
+>
+> It has cost this project six features. `system.active` made every mode indistinguishable from
+> an attack; `timing.window` left the reaction rung with nothing to offer; `alsoTriggers` made
+> §7.6's trigger clause inert; `uses` made every count-limited effect permanent; `kind` and
+> `passive` made every class skill copyable — and `defeated`, which `io.defeat` had written since
+> it was written, meant **no Unit in the game had ever actually been marked defeated**. The token
+> got its skull, the Grail counter incremented, the contracted Servants were freed, and the
+> Servant kept taking its turn.
+>
+> `test/unit/actor-fields.test.mjs` now holds every literal `system.` path the IO layer writes
+> against every field any DataModel declares.
+
 Rather than a god-schema with nullable fields, common groups are composed:
 
 ```js

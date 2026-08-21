@@ -1,0 +1,22 @@
+# Appendix A §A.14
+# "MOV halved (round down). Evade rolls +2."
+#
+# Inflicted by Scáthach's Úr.
+schema: 1
+id: slow
+name: "Slow"
+description: "MOV is halved, rounding down, and Evade rolls are increased by 2."
+polarity: debuff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules:
+  # MULTIPLICATIVE, and applied after the additive pass -- halving before a
+  # MOV Down landed would give a more generous number than halving after.
+  - key: MovDelta
+    factor: 0.5
+  - key: CheckModifier
+    check: evade
+    value: 2

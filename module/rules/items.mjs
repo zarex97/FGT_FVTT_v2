@@ -99,7 +99,8 @@ export function consumeItem(item, unit) {
 export const REQUIREMENT_KINDS = Object.freeze([
   "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill",
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
-  "masterHealthAbove", "targetHasEffect", "predicate",
+  "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
+  "predicate",
 ]);
 
 /**
@@ -167,6 +168,26 @@ export function meetsRequirement(req, ctx) {
     case "targetHasEffect":
       return (target?.effects ?? []).includes(req.effectId);
 
+    case "notHasEffect":
+      // The USER's own state, not the target's. Medea's High-Speed Divine
+      // Words "cannot be used while inflicted with Silence" -- authored since
+      // she was written, and refused every time it was pressed because the
+      // vocabulary had no such kind and an unknown kind refuses.
+      return !(unit?.effects ?? []).includes(req.effectId);
+
+    case "abilityOffCooldown": {
+      // A gate on OTHER abilities. Scathach's sheet groups them three
+      // different ways and all three appear in one Servant: Gate of Skye names
+      // three abilities outright, her Primordial Rune Spells gate on their
+      // shared `category`, and the three Wisdom of Dun Scaith slots gate on the
+      // `exclusionSet` every copy from one grant shares.
+      const matched = gatedAbilities(unit, req, ctx.ability);
+      // Vacuously true when nothing matched. A Scathach who has not yet copied
+      // anything has no Wisdom slots to be blocked BY, and a gate that refused
+      // on an empty set would make Clairvoyance unusable until she copied.
+      return matched.every((a) => (a.cooldownRemaining ?? 0) <= 0);
+    }
+
     case "predicate":
       // The escape hatch. Without an evaluator it refuses rather than passing:
       // a gate nobody can answer is not an open gate.
@@ -179,6 +200,33 @@ export function meetsRequirement(req, ctx) {
       // `REQUIREMENT_KINDS` is exported for content to be held against.
       return false;
   }
+}
+
+/**
+ * The abilities an `abilityOffCooldown` requirement is asking about.
+ *
+ * `excludeSelf` is what makes the Primordial Rune Spells work: *"when one of
+ * Scathach's Primordial Rune Spells are used, **the other two** cannot be used
+ * until Cooldown has ended for the used Spell."* Without it a Spell would gate
+ * on its own cooldown, which `canUseAbility` already checks -- and would
+ * therefore never say anything the first gate had not already said.
+ *
+ * @param {object} unit
+ * @param {object} req
+ * @param {object|null} self the ability declaring the requirement
+ * @returns {object[]}
+ */
+function gatedAbilities(unit, req, self = null) {
+  const named = new Set(req.abilityIds ?? []);
+  const selfIds = new Set([self?.id, self?.contentId].filter(Boolean));
+
+  return (unit?.abilities ?? []).filter((a) => {
+    if (req.excludeSelf && (selfIds.has(a.id) || selfIds.has(a.contentId))) return false;
+    if (named.size > 0) return named.has(a.contentId) || named.has(a.id);
+    if (req.category) return a.category === req.category;
+    if (req.exclusionSet) return a.exclusionSet === req.exclusionSet;
+    return false;
+  });
 }
 
 /**

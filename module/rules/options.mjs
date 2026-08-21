@@ -42,6 +42,15 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
   options.add(`attack:kind:${attack.kind ?? "normal"}`);
   if (attack.isAoE) options.add("attack:isAoE");
 
+  // WHICH Base Attack, and whether the attack is one Magic Resistance sees.
+  // Magic Resistance's Instakill/Death ladder turns on both: it covers those
+  // two tiers *"unless the Instakill or Death debuffs are from an Attack /
+  // Attack Skill / Spell / NP that deals STR damage or that is not affected by
+  // Magic Resistance"*. Neither was expressible before, so the exemption could
+  // not be written at all.
+  if (attack.component) options.add(`attack:component:${attack.component}`);
+  if (attack.ignoresMagicResistance) options.add("attack:ignoresMagicResistance");
+
   return options;
 }
 

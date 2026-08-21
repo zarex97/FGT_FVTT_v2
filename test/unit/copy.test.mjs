@@ -170,3 +170,40 @@ describe("effectivePhases", () => {
       .toEqual([{ kind: "heal" }]);
   });
 });
+
+describe("the board shape", () => {
+  it("accepts `hasPhases` in place of the phases themselves", () => {
+    // `copyCandidates` reads the BOARD snapshot, whose ability entries carry a
+    // boolean rather than a phase list. Reading only `phases` made every
+    // candidate on the board look passive, so Wisdom of Dún Scáith could not
+    // copy a single Skill in the game — in any world, ever.
+    expect(canCopy({ id: "a", rank: "B", hasPhases: true })).toMatchObject({ ok: true });
+    expect(canCopy({ id: "a", rank: "B", hasPhases: false })).toMatchObject({ ok: false, reason: "notActive" });
+  });
+
+  it("still refuses a class skill and a passive on the board shape", () => {
+    expect(canCopy({ id: "a", rank: "A", hasPhases: true, kind: "classSkill" }))
+      .toMatchObject({ reason: "classSkill" });
+    expect(canCopy({ id: "a", rank: "A", hasPhases: true, passive: true }))
+      .toMatchObject({ reason: "notActive" });
+  });
+
+  it("offers a board ability whose whole record is the projection", () => {
+    // The exact shape `collectAbilities` produces, so the projection and the
+    // rule are held against each other rather than against a fixture.
+    const board = {
+      units: [
+        { id: "s", name: "Scáthach", abilities: [] },
+        {
+          id: "m",
+          name: "Medea",
+          abilities: [{
+            id: "gf", name: "Golden Fleece", rank: null, isNP: false,
+            kind: null, passive: false, hasPhases: true, copyable: null,
+          }],
+        },
+      ],
+    };
+    expect(copyCandidates(board, { id: "s" }).map((c) => c.ability.name)).toEqual(["Golden Fleece"]);
+  });
+});

@@ -255,6 +255,24 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 | `Erase` | Almost nothing. | Removed from existence. **Does not count toward the Grail materialization counter.** |
 | `Sacrifice` | **Nothing** — no Resist or Immunity applies. | Health reduced to 0. |
 
+**Implementation.** A terminal effect is a **consequence, not a condition**: nothing is left
+behind for the Unit to carry, so the definition declares an action (`terminal: {kind}`) rather
+than rule elements, and the applier returns before any document is constructed (Ch. 11 §11.5).
+
+`Instakill` and `Death` differ in more than degree, and the difference is why they are separate
+effects rather than one with a magnitude. Instakill empties the pool and lets the ordinary defeat
+chain run, so `Guts` and God Hand still answer; Death defeats outright, because damage would be
+caught by `Endure`. Neither is damage, so neither feeds a damage-keyed trigger (Ch. 06).
+
+Magic Resistance's coverage of the tier is authored as a **severity list** with an
+`attackPredicate`, for *"also affects Instakill and Death **unless** the … source deals STR damage
+or is not affected by Magic Resistance. Erase is completely unaffected."* Erase is absent from the
+list rather than present at a reduced magnitude — that is what "completely unaffected" means.
+Scáthach's own *Gáe Bolg Alternative* is exactly the exemption: it uses Base Attack (STR), so her
+A-rank Magic Resistance would not save a target from her own spear.
+
+Authored so far: `Instakill`, `Death`. `Erase` and `Sacrifice` have no content yet.
+
 ---
 
 ## A.16 Statuses (neither buff nor debuff)
@@ -296,6 +314,8 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Charity`-style named `Atk Up` variants | B | O | mag | 4 | `Atk Up (Trace)`, `Atk Up (MS)`, `Atk Up (Demonic)`, `Atk Up (Charisma)` — all `atkUp` family members with predicates. | several |
 | `Crit Up (Viy)` | B | O | mag | — | Crit chance +X% **scoped to attacks that use BA(MAG)**, with a separate NP magnitude. The first component-scoped crit buff. | Anastasia |
 | `Crit Up (Hawkeye)` / `Crit DmUp (Hawkeye)` | B | O | mag | — / 2 | Crit chance / crit damage +X% **at Range 3 or higher**. Range-predicated. | EMIYA |
+| `Dmg Up (Gods)` | B | O | mag | 4 | Damage dealt to Units with the `Undead` or `Divine` Attribute +X%, **including NP** — `dmgUp`, not `atkUp`, precisely because it takes no reduced NP magnitude. | Scáthach |
+| `Alpi` | B | O | cnt | — | Count-limited (3): at the **end of the Damage Step** of a successful Attack, NP cooldown −½◈ — or −1◈ if the DU is `Undead` or `Divine`. The first content to use §E's `damageStepEnd`, and the first handler with a `targetPredicate`. | Scáthach |
 
 ### A.17.2 New statuses
 
@@ -397,19 +417,26 @@ secret, which is the correct trade (Ch. 44 §44.4, **D44.10**).
 
 | Category | `0.1.0` | `0.2.0` | Total |
 |---|---|---|---|
-| Buffs | 48 | +12 | **60** |
+| Buffs | 48 | +14 | **62** |
 | Debuffs — non-volatile | 32 | — | 32 |
 | Debuffs — mental | 5 | — | 5 |
 | Debuffs — volatile | 30 | — | 30 |
 | Debuffs — terminal | 4 | — | 4 |
 | Statuses | 7 | +12 | **19** |
 | Resources | (1) | +2 | **3** |
-| **Total named effects** | **126** | **+26** | **152** |
+| **Total named effects** | **126** | **+28** | **154** |
 | Keywords | 18 | +8 | **26** |
 | Families | 15 | +3 | **18** |
 | Elements | 2 in content | +5 | **7** |
 
 Each becomes one YAML file under `packs/_source/effects/` (Ch. 37 §37.1).
+
+**Authored so far: 34 of 154.** Scáthach brought fifteen at once, which is more than any other
+Servant and not a coincidence: her *Primordial Rune* is a sixteen-row table of ordinary buffs and
+debuffs, so she needed the crit and debuff-chance families completed in **both** directions —
+`Crit DmUp` / `Crit Dwn` / `Crit DmDwn`, `NP DmUp` / `NP DmDwn`, and all four of
+`Debuff ResUp` / `Debuff ChUp` / `Debuff ResDwn` / `Debuff ChDwn`. Plus `Shock`, `Slow`, the two
+terminal effects, and her own `Dmg Up (Gods)` and `Alpi`.
 
 **Note that no new debuffs were needed.** Twenty-six additions across seventeen Servants and a
 twenty-one-type terrain system, and every one of them is a buff, a status or a resource — the

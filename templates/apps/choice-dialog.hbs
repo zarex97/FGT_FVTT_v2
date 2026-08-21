@@ -4,7 +4,7 @@
 
   <p class="fgt-choice__counter">
     {{#if complete}}
-      {{localize "FGT.Choice.Ready"}}
+      {{#if range}}{{localize "FGT.Choice.ReadyUpTo" count=count}}{{else}}{{localize "FGT.Choice.Ready"}}{{/if}}
     {{else}}
       {{localize "FGT.Choice.Remaining" remaining=remaining}}
     {{/if}}

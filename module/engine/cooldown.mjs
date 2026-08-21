@@ -16,39 +16,59 @@
  */
 
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { canSpend, resourcePath } from "../domain/resources.mjs";
 
 /**
- * The cooldown intents using this ability produces.
+ * The cooldown a use produces, and what paying to avoid it costs.
+ *
+ * Two outputs rather than one, because a cooldown can be **waived**. Scáthach's
+ * Primordial Rune Spells are the case: *"If Scáthach uses a Primordial Rune
+ * Spell while she has any PRS Tokens, remove one PRS Token from herself, while
+ * the Primordial Rune Spell that she used does not enter Cooldown."* The token
+ * and the skipped clock are one decision, so they are one answer — returning
+ * only the clocks would leave the caller to re-derive whether a token was
+ * spent, and the two could then disagree.
+ *
+ * The waiver is **automatic, not offered**. The sheet says "if ... while she
+ * has any", not "she may"; a prompt would be inventing a choice.
  *
  * @param {object} ability the Item document
  * @param {string} actorId
  * @param {object} [ctx]
  * @param {number} [ctx.count] for a per-unit cooldown, what the use produced
- * @param {Array} [ctx.intents] the intent constructors (injected to keep this
- *   free of a circular import with `intents.mjs`)
- * @returns {Array<{abilityId: string, ticks: number}>} what to set
+ * @param {object} [ctx.unit] the user's snapshot, for a resource waiver
+ * @returns {{cooldowns: Array<{actorId: string, abilityId: string, ticks: number}>,
+ *            spends: Array<{unitId: string, key: string, delta: number}>}}
  */
-export function cooldownFor(ability, actorId, { count = 0 } = {}) {
+export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
   const cd = ability?.system?.cooldown ?? {};
+
+  const waiver = ability?.system?.cooldownWaiver ?? null;
+  if (waiver && unit && canSpend(unit, waiver.resource, waiver.amount ?? 1)) {
+    return {
+      cooldowns: [],
+      spends: [{ unitId: actorId, key: resourcePath(waiver.resource), delta: -(waiver.amount ?? 1) }],
+    };
+  }
 
   // A cooldown decided by the use itself: "(Number of Dragon Tooth Warriors x
   // ⅔◈)". Resolved first, because such an ability has no tick expression in
   // `max` and would otherwise fall through to "no cooldown at all".
   if (cd.perUnit) {
     const ticks = Math.ceil(fractionOfRound(cd.perUnit) * turnsPerRound() * count);
-    return ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [];
+    return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
   }
 
-  if (!cd.max) return [];
+  if (!cd.max) return { cooldowns: [], spends: [] };
 
   try {
     const ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: turnsPerRound() });
-    return ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [];
+    return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
   } catch (err) {
     // Loud: an unreadable cooldown means the ability is reusable immediately,
     // which looks like generosity rather than like a content error.
     console.warn(`FGT | ${ability.name} has an unreadable cooldown "${cd.max}": ${err.message}`);
-    return [];
+    return { cooldowns: [], spends: [] };
   }
 }
 
@@ -65,13 +85,48 @@ export function cooldownFor(ability, actorId, { count = 0 } = {}) {
  * @returns {Array<{actorId: string, abilityId: string, ticks: number}>}
  */
 export function alsoTriggered(ability, actor) {
-  const ids = ability?.system?.alsoTriggers ?? [];
-  if (ids.length === 0) return [];
+  const entries = ability?.system?.alsoTriggers ?? [];
+  if (entries.length === 0) return [];
 
-  return ids
-    .map((id) => actor.items.find((i) => i.system?.contentId === id || i.id === id))
-    .filter(Boolean)
-    .flatMap((item) => cooldownFor(item, actor.id));
+  return entries
+    .flatMap((entry) => triggeredBy(entry, actor))
+    // No `unit`, so no waiver: a PRS Token pays for the Spell Scáthach CHOSE to
+    // use, not for whatever that use happens to drag onto cooldown with it.
+    .flatMap((item) => cooldownFor(item, actor.id).cooldowns);
+}
+
+/**
+ * The abilities one `alsoTriggers` entry names.
+ *
+ * A **string** names one ability by content id. An **object** names a group,
+ * and Scáthach is why the second form exists: *"Wisdom of Dún Scáith enters
+ * Cooldown"* does not mean the grant — the grant has no clock, it is the button
+ * that opens the curation dialog. It means her three Wisdom slots, which are
+ * the things that have a `4◈-⅓◈` to run. Naming the grant put nothing on
+ * cooldown at all, which read as the clause simply not working.
+ *
+ * @param {string|object} entry
+ * @param {object} actor
+ * @returns {object[]} ability Items
+ */
+function triggeredBy(entry, actor) {
+  // A bare id, or the `{ability: id}` the compiler normalises it to.
+  const named = typeof entry === "string" ? entry : entry?.ability;
+  if (named) {
+    const item = actor.items.find((i) => i.system?.contentId === named || i.id === named);
+    return item ? [item] : [];
+  }
+
+  const items = [...actor.items].filter((i) =>
+    (entry.exclusionSet && i.system?.exclusionSet === entry.exclusionSet)
+    || (entry.category && i.system?.category === entry.category));
+
+  if (items.length === 0) {
+    // Loud: a group that matches nothing is either a typo or a Servant who has
+    // not been given her copies yet, and the two look identical from here.
+    console.warn(`FGT | ${actor.name}: alsoTriggers ${JSON.stringify(entry)} matched no abilities.`);
+  }
+  return items;
 }
 
 /* -------------------------------------------------------------------------- */

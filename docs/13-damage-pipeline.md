@@ -164,6 +164,12 @@ MAG-only attacker reduces range to 1 and forces BA(STR).
 **Both `Attack+` and `Attack−` are `5d10`** (Ch. 41 Q1). The `+` and `−` in the names are the
 operators: a crit **adds** the roll, a non-crit **subtracts** it.
 
+**Which branch is taken is a percentage roll, not a coin** (Ch. 14 §14.6). It was a literal `1d2`
+until Scáthach was authored, and the consequence was larger than it sounds: `Crit Up` and
+`Crit Dwn` had **no reader at all**, in either direction. The effects applied, showed on the
+sheet, and every attack was still an even coin. `critChance` now reads the attacker's outgoing
+crit modifiers and the defender's incoming ones, from a base of 50.
+
 **The roll applies to Base Attack, before the ability multiplier.** The author's reference
 calculation brackets it explicitly:
 

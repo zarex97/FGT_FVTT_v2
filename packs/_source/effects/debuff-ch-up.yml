@@ -1,0 +1,17 @@
+# Appendix A §A.2
+# "Chance of inflicting debuffs +X%. Does not affect Instakill/Death/Erase
+# unless stated" -- so the contribution names no severity and therefore covers
+# only `normal`, which is exactly that exclusion.
+schema: 1
+id: debuffChUp
+name: "Debuff ChUp"
+description: "Chance of inflicting debuffs is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: ApplicationChance
+    direction: outgoing
+    value: "@magnitude"

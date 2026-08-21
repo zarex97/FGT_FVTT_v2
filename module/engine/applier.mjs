@@ -145,6 +145,9 @@ async function writeGroup(group, io) {
     case "removeEffect":
       await io.deleteEffects(unitId, intents.map((i) => i.effectId), intents[0].reason);
       break;
+    case "consumeUse":
+      for (const i of intents) await io.consumeUse(unitId, i.defId, i.count);
+      break;
     case "cooldown":
       for (const i of intents) await io.setCooldown(unitId, i.abilityId, i.ticks, i.mode);
       break;

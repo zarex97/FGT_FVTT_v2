@@ -15,7 +15,7 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { currentHealth, maxHealth, isUndamageable } from "../../module/domain/health.mjs";
 
 /** @param {string} dir @returns {string[]} */
@@ -65,13 +65,27 @@ describe("maxHealth", () => {
   });
 });
 
-describe("the rules layer", () => {
-  it("never reads `.health.value` off a unit directly", () => {
+describe("the rules and engine layers", () => {
+  it("never read `.health.value` off a unit directly", () => {
+    // `module/engine` was outside this scan, and that is exactly where the
+    // defect went next. `resolveDefeat` read `unit.health?.value` off a
+    // SNAPSHOT, got `undefined`, and the `?? 0` beside it turned that into "no
+    // Health left" -- so **every successful attack defeated its target**, at
+    // full Health, in every world.
+    //
+    // It stayed invisible because `system.defeated` was a field no schema
+    // declared, so the write was dropped. Two silent defects cancelling out to
+    // look like working code.
     /** @type {string[]} */
     const bad = [];
 
-    for (const file of [...mjsUnder("module/rules"), ...mjsUnder("module/domain")]) {
+    for (const file of [...mjsUnder("module/rules"), ...mjsUnder("module/domain"), ...mjsUnder("module/engine")]) {
       if (file.endsWith("health.mjs")) continue;
+      // `io.mjs` IS the document boundary: it reads and writes a live
+      // `system.health`, which is the nested shape by definition. Exempting
+      // the whole file rather than the two lines, because that is the rule --
+      // everything in it is talking to a document.
+      if (file.endsWith(`engine${sep}io.mjs`)) continue;
       const src = readFileSync(file, "utf8");
 
       src.split("\n").forEach((line, index) => {

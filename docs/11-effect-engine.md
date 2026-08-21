@@ -38,6 +38,15 @@ exactly one definition. Lives in a compendium, loaded into a registry at world s
 duration, a source, and possibly a stage or use count. A unit may carry four `Atk Up` instances
 from four sources.
 
+The instance carries **two** magnitudes, because most of Appendix A's damage family has two:
+*"damage dealt is increased by 25%; **if NP, 15%**"*. They are not a fixed ratio of one another
+(25/15 and 50/30 both occur), so `npMagnitude` is its own field rather than a scaling. The effect
+definitions have referenced it as `@npMagnitude` since they were written, against an instance
+that did not carry it — so every "if NP" clause in the game scored at the full magnitude or at
+nothing, depending on which reader asked. An ability that states no NP figure leaves it `null`,
+which is distinct from zero: the Primordial Rune's enemy table gives `Atk Dwn` a 15% NP figure
+and `Def Dwn` none.
+
 ```ts
 interface EffectInstance {
   id: string;                       // ActiveEffect document id
@@ -45,6 +54,7 @@ interface EffectInstance {
   unitId: string;                   // bearer
 
   magnitude: Magnitude | null;      // {base, np?}
+  npMagnitude: number | null;       // the reduced magnitude against an NP
   stage: number;                    // Curse/Poison; 1 otherwise
   duration: Duration;               // Ch. 07 §7.4
   uses: number | null;
@@ -318,6 +328,50 @@ warning. No such pair exists in the current catalogue.
 Suppressed effects still **tick their duration**. The source does not say otherwise, and
 `Stop` — which explicitly freezes durations — is a separate mechanism, implying that ordinary
 suppression does not.
+
+### Uses are spent, not just recorded
+
+`uses` was written onto every count-stacked instance from the day the applier existed and
+**nothing ever decremented it**, so a count-limited effect never reached the "uses exhausted"
+edge above. Medea's *Trofa* — `1 times` — evaded every attack for the rest of the match.
+
+The `consumeUse` intent is the decrement, and it is ordered with **removals** rather than with
+applications: spending the last use *is* a removal, and an effect left sitting at `uses: 0` is an
+effect that never expires — worse, `checkPlan` keeps finding its `AutoSucceed`. Two things spend
+one today: the automatic-evasion rung, and an `OnEvent` handler marked `consumesUse` (Scáthach's
+*Alpi*, *"3 times"*).
+
+### Terminal effects are a consequence, not a condition
+
+Appendix A's terminal tier — `Instakill`, `Death`, `Erase`, `Sacrifice` — is the one family where
+the emit step produces **no document at all**. *"Health reduced to 0"* is not something a Unit
+then carries, and creating an instance for it would leave an "Instakill" badge on a corpse while
+the Health it was supposed to remove stayed where it was.
+
+The definition declares what it does instead:
+
+```yaml
+terminal: { kind: reduceToZero }   # Instakill
+terminal: { kind: defeat }         # Death
+```
+
+The two differ in more than degree. **Instakill** empties the pool with a `statDelta` and lets the
+ordinary defeat machinery run, so `Guts` and Heracles's God Hand still get their say. **Death**
+emits a `defeat` intent outright, because it *"ignores all revival effects"* — expressing it as a
+very large amount of damage would let `Endure` catch it, and Endure has no business surviving
+Death. Neither is `damage`: Health *loss* must not feed damage-keyed triggers (Ch. 06), so an
+Instakill cannot pay out a `Dmged NP Regen`.
+
+The chance roll still applies. Terminal is about the consequence, not about certainty: Scáthach's
+*Gate of Skye* inflicts Death only on a failed Luck Check, and her *Gáe Bolg Alternative* is 75%.
+
+### `onRemove`
+
+Several of Appendix A's effects have an "on removal" clause — Shock's *"current Agility +1 when
+max is restored"*, Coma's exit damage. They are authored on the definition in the same vocabulary
+an `OnEvent` handler's `then:` uses, and run **before** the removal, so they can still see the
+effect that is going away. Shock is the reason the clause is not simply "undo the reduction": it
+gives back **one** Agility where the maximum regains three, and the asymmetry is the whole point.
 
 ---
 

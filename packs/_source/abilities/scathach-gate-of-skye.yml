@@ -1,0 +1,77 @@
+# Scáthach, char_orig_sheets/Copia de Scáthach.md
+#
+# The Anti-Army Noble Phantasm, and the only ability in the reference set whose
+# targets roll a save. Every part of it is unusual: the check is made by the
+# DEFENDER, its difficulty is read from a rank table keyed on the defender's own
+# MAG, and failing it is worse than succeeding.
+schema: 1
+id: scathach-gate-of-skye
+name: "Gate of Skye: Gate to the Magical Realm Brimming with Death"
+rank: "A+"
+isNP: true
+npTags: [antiArmy]
+cooldown: "7◈+⅓◈"
+timing: { window: ownTurn }
+description: |
+  Affects all of Scáthach's targets of choice within a 5x5 panel area in any non-diagonal
+  direction next to her. All targeted Units perform a Luck Check; if their MAG is Rank B, the
+  value rolled is reduced by 2, and if their MAG is Rank A, by 4.
+
+  If the targeted Unit's Luck Check fails, it is inflicted with Death. If it succeeds, it
+  receives 4x damage plus 100, using Scáthach's Base Attack (MAG).
+
+  Masters can be targeted regardless of their distance from their Servant.
+
+  Cooldown 7◈+⅓◈ Turns. Cannot be used if Primordial Rune, Wisdom of Dún Scáith and/or
+  Gáe Bolg Alternative are on Cooldown; when this NP is used, Primordial Rune and Wisdom of
+  Dún Scáith enter Cooldown.
+requirements:
+  # "Cannot be used if Primordial Rune, Wisdom of Dún Scáith, and/or Gáe Bolg
+  # Alternative are on Cooldown." Note the asymmetry the time model draws
+  # attention to (§7.6): it is BLOCKED BY three and TRIGGERS two.
+  - kind: abilityOffCooldown
+    abilityIds:
+      - scathach-primordial-rune
+      - scathach-wisdom-of-dun-scaith
+      - scathach-gae-bolg-alternative
+# "When this NP is used, Primordial Rune and Wisdom of Dún Scáith enter
+# Cooldown" -- the two it triggers, which are not the three it is blocked by.
+#
+# The second entry is a GROUP, not an ability. "Wisdom of Dún Scáith" here means
+# her three Wisdom slots -- the things with a `4◈-⅓◈` to run -- and not the
+# grant itself, which is the button that opens the curation dialog and has no
+# clock at all. Naming the grant put nothing on cooldown.
+alsoTriggers:
+  - scathach-primordial-rune
+  - { exclusionSet: wisdomOfDunScaith }
+targeting:
+  # `selfEdgeAdjacent` is the resolver's name for exactly this: "a 5x5 area in
+  # any non-diagonal direction next to the caster". The player picks one of four
+  # ghost previews.
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: square, size: 5 }
+  # "Targets of CHOICE" -- the area catches everyone, and Scáthach picks which
+  # of them the Noble Phantasm affects.
+  selection: { relations: [enemy], chooser: all, choose: true }
+  limits:
+    # "Masters can be targeted regardless of their distance from their Servant.
+    # If a Servant fails to shove their targeted Master out of the NP area, the
+    # effect is applied to the Master (Servant unable to interfere)."
+    ignoresMasterProtection: true
+damage:
+  multiplier: 4
+  flatBonus: 100
+  component: mag
+  # No damage on a failed Check: that target took Death instead.
+  skipIf: { effectApplied: death }
+phases:
+  - kind: check
+    when: beforeDamage
+    check: luck
+    # An EQUALITY table, not a threshold: "if their MAG is Rank B, reduce by 2;
+    # if Rank A, reduce by 4" -- a MAG A+ or MAG EX target gets nothing.
+    modifierTable: gateOfSkyeSaveModifier
+    modifierRank: mag
+    onFail:
+      effects:
+        - { id: death }
