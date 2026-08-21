@@ -1,0 +1,23 @@
+schema: 1
+id: autoEvade
+name: "Automatic Evasion"
+description: "The next Attack is Evaded automatically; against a Noble Phantasm, with a 50% chance."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+# One use, not one turn: Medea's Trofa answers ONE attack. A duration would
+# leave it up for every attack in the window, which is a different ability.
+stacking: noneRefresh
+baseChance: 100
+uses: 1
+defaultDuration: "1 times"
+rules:
+  - key: AutoSucceed
+    check: evade
+    source: "Tροψα"
+    # Certain against anything ordinary; a coin against a Noble Phantasm, and a
+    # FAILED coin lets the Combat Process proceed as normal rather than
+    # refusing to have happened.
+    chance: 100
+    chanceWhen:
+      - { predicate: ["np"], chance: 50 }

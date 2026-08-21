@@ -171,7 +171,11 @@ export function beginFanOut({ attackerId, targetIds, attack, groupId = null }) {
  * @throws {RangeError} on an illegal transition — a bug, not a player action
  */
 export function advance(s, event, detail = undefined) {
-  const key = `${s.state}:${event}`;
+  // A reaction ability answers the same rung as Block and Evade, and resolves
+  // to the same next state as declining: using Trofa is not itself an Evade
+  // roll -- the ability's own AutoSucceed decides that a rung later.
+  const normalized = String(event).startsWith("ability:") ? "nothing" : event;
+  const key = `${s.state}:${normalized}`;
   const next = TRANSITIONS[key];
   if (!next) {
     throw new RangeError(
@@ -217,7 +221,17 @@ export function pendingPrompt(s) {
   // one answer, so eligibility is decided first (by the orchestrator, which can
   // see positions and ranges) and recorded on the state.
   if (s.state === "counter" && !s.counterAvailable) return null;
-  return { ...p, unitId: p.side === "attacker" ? s.attackerId : s.defenderId };
+
+  const unitId = p.side === "attacker" ? s.attackerId : s.defenderId;
+  // Reaction abilities are offered BESIDE Block and Evade (§15.3). Medea's
+  // Trofa is "used when Attacked" and there is no other moment it can be
+  // reached: by the time it matters its owner is inside somebody else's
+  // Process. The orchestrator records what is usable, because deciding it
+  // needs the documents and this file is pure.
+  const extra = s.reactionAbilities?.[unitId] ?? [];
+  const options = p.options ? [...p.options, ...extra.map((a2) => `ability:${a2.id}`)] : p.options;
+
+  return { ...p, options, unitId, abilities: extra };
 }
 
 /**

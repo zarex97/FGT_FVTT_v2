@@ -21,6 +21,8 @@
  * went unnoticed for as long as they did.
  */
 
+import { Rank } from "../domain/rank.mjs";
+
 /**
  * Every option describing this attacker, this defender and this attack.
  *
@@ -66,13 +68,58 @@ function add(options, side, unit) {
   // which is why it is emitted for `self` and `target` alike.
   if (unit.inHomeBase) options.add(`${side}:inHomeBase`);
 
+  // Rank COMPARISONS, emitted as one option per grade the unit clears.
+  //
+  // Medea's Atlas is "reduced by 25% on Units with a MAG Rank of B or higher",
+  // and an equality option (`rank:mag:A`) cannot express that -- a rule written
+  // for B would miss every A. Emitting the whole ladder below the unit's rank
+  // turns a comparison into a set membership, which is all a predicate can do.
+  for (const [parameter, raw] of Object.entries(unit.parameters ?? {})) {
+    for (const grade of gradesClearedBy(raw)) {
+      options.add(`${side}:rank:${parameter}:gte:${grade}`);
+    }
+  }
+
   for (const ability of unit.abilities ?? []) {
     const slug = ability.slug ?? ability.id;
     if (!slug) continue;
     options.add(`${side}:skill:${slug}`);
+    // The rank of a SKILL, for Atlas's second reduction -- and the two stack,
+    // so each has to be expressible on its own.
+    for (const grade of gradesClearedBy(ability.rank)) {
+      options.add(`${side}:skillRank:${slug}:gte:${grade}`);
+    }
     // Held and *switched on* are different questions. Penthesilea's Charisma is
     // "negated and cannot be used when Mad Enhancement is activated" — an
     // ability disabled by its owner's other ability, which needs the second.
     if (ability.active) options.add(`${side}:skillActive:${slug}`);
   }
 }
+
+/**
+ * Every grade a rank is at or above.
+ *
+ * `B+` clears `B`, which is the reading "Rank B or higher" needs -- a `+` step
+ * is above its grade, not beside it.
+ *
+ * @param {string|null} raw
+ * @returns {string[]}
+ */
+function gradesClearedBy(raw) {
+  let rank = null;
+  try {
+    // `parseOrNull` handles the *unranked marker* and rethrows on anything
+    // else, which is right at build time and wrong here: this pass runs over
+    // whatever a live document holds, and one malformed rank must not take the
+    // whole board snapshot down with it. The content validator is where a bad
+    // rank is supposed to be loud.
+    rank = Rank.parseOrNull(raw);
+  } catch {
+    return [];
+  }
+  if (!rank) return [];
+  return GRADE_LADDER.filter((grade) => Rank.gte(rank, Rank.of(grade)));
+}
+
+/** The grades a comparison may name, weakest first. */
+const GRADE_LADDER = Object.freeze(["E", "D", "C", "B", "A", "EX"]);

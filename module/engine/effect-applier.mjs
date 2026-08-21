@@ -12,6 +12,7 @@
  */
 
 import { applicationChance } from "../rules/checks.mjs";
+import { test } from "../rules/predicate.mjs";
 import { resolveTicks, parseTick } from "../domain/tick.mjs";
 import { INFINITE } from "../domain/enums.mjs";
 import * as I from "./intents.mjs";
@@ -46,7 +47,7 @@ const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
  * @param {object} args.ctx `{turnsPerRound, currentTick, roll, inflictBonus, resist}`
  * @returns {ApplicationResult}
  */
-export function applyEffect({ def, target, magnitude = 0, duration = null, source, ctx }) {
+export function applyEffect({ def, target, magnitude = 0, duration = null, source, ctx, chanceModifiers = [] }) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
   const trace = [];
   const held = target.effects ?? [];
@@ -73,8 +74,19 @@ export function applyEffect({ def, target, magnitude = 0, duration = null, sourc
   });
 
   // ── 3. CHANCE ROLL ───────────────────────────────────────────────────────
+  //
+  // Per-effect modifiers the ABILITY declares, as opposed to the standing
+  // contributions the units carry. Medea's Atlas is the reference case and the
+  // reason they are a list rather than one number: "reduced by 25% on Units
+  // with a MAG Rank of B or higher; reduced by 25% on Units with a Magic
+  // Resistance of Rank B or higher; **this reduction does stack**."
+  const matched = (chanceModifiers ?? []).filter(
+    (m) => !m.predicate || test(m.predicate, { options: ctx.options ?? new Set() }),
+  );
+  const declared = matched.reduce((sum, m) => sum + (m.value ?? 0), 0);
+
   const chanceSpec = applicationChance({
-    base: def.baseChance ?? 100,
+    base: (def.baseChance ?? 100) + declared,
     inflictBonus: ctx.inflictBonus ?? 0,
     // The target's own resistance, from its `ApplicationChance` contributions.
     // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
@@ -91,7 +103,10 @@ export function applyEffect({ def, target, magnitude = 0, duration = null, sourc
     step: "chance",
     outcome: succeeded ? "passed" : "resisted",
     // Logged even when automatic, so the audit trail never has a silent step.
-    detail: automatic ? `${chanceSpec.percent}% (automatic)` : `rolled ${roll} vs ${chanceSpec.percent}%`,
+    detail: automatic
+      ? `${chanceSpec.percent}% (automatic)`
+      : `rolled ${roll} vs ${chanceSpec.percent}%`
+        + (matched.length > 0 ? ` [${matched.map((m) => `${m.source} ${m.value}`).join(", ")}]` : ""),
   });
   if (!succeeded) {
     return { outcome: "resisted", reason: `rolled ${roll} vs ${chanceSpec.percent}%`, intents: [], trace };

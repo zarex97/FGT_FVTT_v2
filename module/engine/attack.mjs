@@ -34,6 +34,7 @@ import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { canUseAbility, resolveCosts } from "../rules/costs.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
+import { reactionAbilities, abilityFromOption } from "../rules/reactions.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 
@@ -197,7 +198,14 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   /** @type {Array<{messageId: string, state: object}>} */
   const processes = [];
   for (const state of states) {
-    const advanced = process.advance(state, "done");
+    // What this defender could answer with, beyond Block and Evade. Recorded on
+    // the state because `pendingPrompt` is pure and cannot read documents, and
+    // recorded ONCE at creation because the offer is decided by the moment the
+    // attack is declared (§15.3).
+    const withReactions = state.defenderId
+      ? { ...state, reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId) } }
+      : state;
+    const advanced = process.advance(withReactions, "done");
     const target = targets.units.find((t) => t.unitId === advanced.defenderId);
     const message = await renderAttackCard({
       state: advanced,
@@ -240,6 +248,32 @@ export async function advanceAttack({ messageId, event }) {
   if (!message) throw new Error(`FGT | Unknown attack message ${messageId}`);
 
   let state = process.deserialize(message.getFlag("fgt", "process"));
+
+  // A reaction ABILITY is used before the ladder moves on, and what it did then
+  // shapes the rungs below: Medea's Trofa applies an AutoSucceed on Evade, and
+  // Argos applies Def Up that the damage pipeline reads a moment later. So it
+  // resolves here rather than being recorded and applied afterwards.
+  const reactionAbilityId = abilityFromOption(event);
+  if (state.state === "react" && reactionAbilityId) {
+    const defender = game.actors.get(state.defenderId);
+    const used = defender?.items?.get(reactionAbilityId);
+    if (used) {
+      const { useSkill } = await import("./skill-use.mjs");
+      const out = await useSkill({ actorId: defender.id, abilityId: used.id });
+      if (!out.ok) ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", { name: used.name, reason: out.reason }));
+    }
+
+    // An auto-evade granted by what was just used takes the Evade rung without
+    // a roll. Read AFTER the ability resolved, because that is what granted it.
+    const auto = autoEvadeFrom(state, defender);
+    if (auto.applies) {
+      state = process.advance(state, "evade");
+      state = process.advance(state, auto.success ? "success" : "fail", auto.outcome);
+      await message.setFlag("fgt", "process", process.serialize(state));
+      await updateAttackCard(message, state);
+      return state;
+    }
+  }
 
   // A reaction choice resolves into a roll before the machine moves on.
   if (state.state === "react" && event === "evade") {
@@ -982,9 +1016,13 @@ async function applyAbilityEffects(state, damageResult) {
       applied.push(...await cutContract(phase, state, defenderDoc));
       continue;
     }
-    if (phase.kind !== "applyEffects") continue;
-    for (const rule of phase.rules ?? []) {
-      const spec = rule.effect;
+    if (phase.kind !== "applyEffects" && phase.kind !== "applyEffect") continue;
+    // Both authored shapes. §15.2's own is `effects: [{id, ...}]`; the earlier
+    // content wrapped each in an `OnEvent` rule element, and both still ship.
+    // Reading only `rules` silently dropped every rider on the newer shape --
+    // Medea's Aero dealt its damage and inflicted no Bleed.
+    for (const rule of phase.rules ?? phase.effects ?? []) {
+      const spec = rule.effect ?? rule;
       if (!spec?.id) continue;
 
       const def = EffectRegistry.get(spec.id);
@@ -1000,6 +1038,7 @@ async function applyAbilityEffects(state, damageResult) {
       const outcome = applyEffect({
         def,
         target: defender,
+        chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
         magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
         duration: rule.duration ?? spec.duration ?? def.defaultDuration,
         source: { unitId: state.attackerId, abilityId: ability.id },
@@ -1011,6 +1050,11 @@ async function applyAbilityEffects(state, damageResult) {
           // Hardcoded to 0 until Medea's Item Construction needed it, which
           // made every outgoing contribution in the game inert.
           inflictBonus: inflictBonusOf(unitSnapshot(game.actors.get(state.attackerId)), def),
+          options: rollOptionsFor({
+            attacker: unitSnapshot(game.actors.get(state.attackerId)),
+            defender,
+            attack: state.attack,
+          }),
           resist: 0,
         },
       });
@@ -1261,4 +1305,84 @@ async function cutContract(phase, state, defenderDoc) {
   ], "np:cutContract");
 
   return [{ summary: { id: "cutContract", name: "Rule Breaker", outcome: "applied", reason: null } }];
+}
+
+/**
+ * The reaction abilities a defender may answer with (§15.3).
+ *
+ * Reduced to what a card needs -- an id and a name -- rather than carrying the
+ * documents: the state is serialized into a chat flag and crosses the socket,
+ * and an Item document does not survive that trip.
+ *
+ * @param {string} defenderId
+ * @returns {Array<{id: string, name: string}>}
+ */
+function offeredReactions(defenderId) {
+  const actor = game.actors.get(defenderId);
+  if (!actor) return [];
+
+  return reactionAbilities({
+    items: actor.items,
+    effects: actor.effects.map((e) => e.system?.defId).filter(Boolean),
+    turnState: actor.system?.turnState ?? {},
+  }).map((a) => ({ id: a.id, name: a.name }));
+}
+
+/**
+ * An automatic Evade granted by an effect the defender is now carrying.
+ *
+ * Medea's Trofa: *"Automatically Evades the Attack. If the Attack was a Noble
+ * Phantasm, Medea has a 50% chance of automatically Evading it. If Failed, the
+ * Combat Process proceeds as normal."*
+ *
+ * The NP case is a **roll**, not a refusal, which is why `chance` exists at all
+ * — and a failed roll must leave the ladder able to continue, so it reports a
+ * failed Evade rather than declining to have happened.
+ *
+ * @param {object} state
+ * @param {object|null} defender
+ * @returns {{applies: boolean, success?: boolean, outcome?: object}}
+ */
+function autoEvadeFrom(state, defender) {
+  if (!defender) return { applies: false };
+
+  const plan = checkPlan(unitSnapshot(defender), "evade");
+  const auto = plan.autoSucceed;
+  if (!auto) return { applies: false };
+
+  const attackProperties = [];
+  if (state.attack?.aim) attackProperties.push("aim");
+  if (state.attack?.kind === "np") attackProperties.push("np");
+  if ((auto.beatenBy ?? []).some((p) => attackProperties.includes(p))) return { applies: false };
+
+  // A per-property chance: certain against anything ordinary, a coin against a
+  // Noble Phantasm.
+  const chance = chanceFor(auto, attackProperties);
+  const success = chance >= 100 || (Math.random() * 100) < chance;
+
+  return {
+    applies: true,
+    success,
+    outcome: {
+      success, automatic: true, roll: null, total: 0,
+      table: null, modifiers: [{ source: auto.source ?? "automatic evasion", value: 0 }],
+      chance,
+    },
+  };
+}
+
+/**
+ * The chance an automatic success actually fires, given the attack.
+ * @param {object} auto
+ * @param {string[]} attackProperties
+ * @returns {number}
+ */
+function chanceFor(auto, attackProperties) {
+  for (const entry of auto.chanceWhen ?? []) {
+    const wanted = [entry.predicate ?? []].flat();
+    if (wanted.some((p) => attackProperties.includes(String(p).replace("attack:kind:", "")))) {
+      return entry.chance ?? 100;
+    }
+  }
+  return auto.chance ?? 100;
 }

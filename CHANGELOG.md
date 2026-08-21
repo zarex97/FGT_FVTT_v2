@@ -36,6 +36,13 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Medea is finished** — all thirteen abilities resolve end to end in a live world. The last
+  four needed: **reaction-window abilities** offered at the react rung (`rules/reactions.mjs`),
+  **rank-comparison roll options** (`target:rank:mag:gte:B`, `self:skillRank:...:gte:B`), **per
+  effect `chanceModifiers`** that stack, **multi-element auras** resolved by group and rank rather
+  than by element value, and **`scope: field`** auras with a `requiresRecipient` condition — which
+  Territory Creation needs, because "allied Units who are in *their* Home Base" cannot be a
+  predicate evaluated against the source.
 - **Dragon Tooth Warriors and Rule Breaker.** The `summon` phase (two nested rolls, placement on
   free panels only, a cooldown scaled by the first roll) and the `cutContract` phase, which reads
   the ladder's outcome because a successful Evade keeps the Contract. Both verified in a live
@@ -259,6 +266,22 @@ coincide by accident; the headings say which is which.
   debt is paid.
 
 ### Fixed
+
+- **Every effect whose behaviour is expressed as rule elements did nothing.** `contributionsOf`
+  resolved the definition from `effect.system.def` — a field nothing has ever populated and which
+  is not on the schema — so the collection beneath it never ran. Medea's MOV Up granted no MOV
+  and her automatic evasion granted no evasion, and both looked perfectly applied on the sheet,
+  which is what let it survive. Resolved from the registry by `defId` now.
+- **Aura-delivered contributions went into `modifiers` regardless of their reader.** The effect
+  applier reads `applicationChances`, so Item Construction's six-element severity ladder was
+  collected on every snapshot and consulted by nobody.
+- **`timing.window` was only on the Command Spell schema**, so an ability authored "used when
+  Attacked" compiled with its window and the DataModel dropped it on load — leaving the reaction
+  rung with nothing to offer.
+- **The attack path read only `phases[].rules`**, silently dropping every rider authored in
+  §15.2's own `effects:` shape: Aero dealt its damage and inflicted no Bleed.
+- **`AutoSucceed` discarded `chance` and `chanceWhen`**, so a conditional automatic success was
+  unconditional — Trofa would have evaded a Noble Phantasm outright rather than on a coin.
 
 - **No Noble Phantasm has ever been payable, and no second Servant has ever been orderable.**
   A document stores `health: {value, max}`; `snapshotUnit` flattens it to a **number**. Six rules

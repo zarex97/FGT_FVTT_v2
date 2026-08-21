@@ -15,13 +15,10 @@ phases:
   # An AutoSucceed on the Evade rung rather than a damage negation: the sheet
   # says "Evades", and an Evade that succeeds skips the rungs below it. Reducing
   # the damage to zero instead would still let on-hit riders fire.
-  - kind: modifyAttack
-    modifiers:
-      - key: AutoSucceed
-        check: evade
-        # Certain against anything ordinary; a coin against a Noble Phantasm.
-        # `chance` is what makes the NP case a roll rather than a refusal.
-        chance: 100
-        chanceWhen:
-          - { predicate: ["attack:kind:np"], chance: 50 }
-        source: "Tροψα"
+  #
+  # Applied as an EFFECT because that is what `checkPlan` reads -- a
+  # `modifyAttack` phase would have been authored data nothing consulted.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: autoEvade, duration: "1 times" }

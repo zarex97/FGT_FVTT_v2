@@ -99,10 +99,26 @@ The rulebook's own statements that define the relationships:
 > "unless stated" through the `countsAsAttack` / `countsAsAct` fields, which the chapter's own
 > worked example used and nothing had ever read.
 >
+> **Abilities usable "when Attacked" are offered at the reaction rung**, beside Block and Evade
+> (`module/rules/reactions.mjs`). Medea's Argos and Trofa are the reference cases and there is no
+> other moment they can be reached: by the time either matters, its owner is standing inside
+> somebody else's Combat Process. Everything that would refuse the ability — cooldown, a
+> same-turn exclusion, a negating effect — is checked **before** it is offered, for §17.6's reason.
+>
+> `timing.window` lives on the ability schema now. It was only on Command Spells, so an ability
+> authored "used when Attacked" compiled with the window and the DataModel dropped it on load.
+>
 > **An `applyEffects` phase carries `effects:`, not `rules:`.** §15.2's own shape, and the
 > distinction matters to the validator: `phases[].rules` is walked as *rule elements* and each
 > entry must carry a `key`, while `effects` are effect applications. Both readers accept either
-> shape, so Asterios's earlier `rules: [{ key: OnEvent, effect: ... }]` still works.
+> shape, so Asterios's earlier `rules: [{ key: OnEvent, effect: ... }]` still works — though the
+> attack path read only `rules` for a while, and silently dropped every rider on the newer shape:
+> Aero dealt its damage and inflicted no Bleed.
+>
+> An effect entry may carry **`chanceModifiers`**, a list of predicated adjustments to how likely
+> it is to land. Medea's Atlas is the reference case and the reason it is a list: "reduced by 25%
+> on Units with a MAG Rank of B or higher; reduced by 25% on Units with a Magic Resistance of Rank
+> B or higher; **this reduction does stack**." 
 >
 > **A targeting session opens only when something is chosen.** Self-anchored is not sufficient on
 > its own — a 5×5 block projected from the caster still has four directions — so `needsTargeting`

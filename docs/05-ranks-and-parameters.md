@@ -87,6 +87,12 @@ comparison is safe and there is no allocation churn in hot loops.
 
 ---
 
+> **Implementation note.** Rank **comparisons** are emitted as roll options, one per grade a unit
+> clears: `target:rank:mag:gte:B`, `self:skillRank:magicResistance:gte:B`, and so on. A predicate
+> can only test set membership, so a comparison has to become one — an equality option
+> (`rank:mag:A`) would make a clause written for "B or higher" miss every A. A `+` step clears its
+> own grade, which is the reading "Rank B or higher" needs.
+
 ## 5.3 Ordinal comparison
 
 This is the operation that decides "is the defender's Magic Resistance rank ≥ the attack's

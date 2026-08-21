@@ -77,6 +77,17 @@ pass instead. `changes` stays empty except for a small number of purely-cosmetic
 
 ---
 
+> **Implementation note.** An effect's `rules:` are collected from the **registry**, resolved by
+> `defId`. `contributionsOf` read `effect.system.def` — a field nothing has ever populated and
+> which is not on the schema — so the collection never ran and **every effect whose behaviour is
+> expressed as rule elements did nothing at all**. Medea's MOV Up granted no MOV and her automatic
+> evasion granted no evasion; both looked perfectly applied on the sheet, which is what made it
+> survive.
+>
+> Aura-delivered contributions are likewise routed to the field their **reader** consults:
+> `ApplicationChance` lands in `applicationChances`, not in `modifiers`, or Item Construction
+> would be collected on every snapshot and read by nobody.
+
 ## 11.2 Application
 
 The full pipeline for applying one effect to one target:

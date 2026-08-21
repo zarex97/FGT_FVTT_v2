@@ -154,3 +154,146 @@ describe("annotateAuras", () => {
     expect(b.modifiers).toHaveLength(1);
   });
 });
+
+describe("a multi-element aura that does not stack (Item Construction)", () => {
+  const bearer = (id, rank, faction = "red") => ({
+    id, factionId: faction, faction, panel: { i: 5, j: 5 },
+    auras: [{
+      key: "aura", radius: 2, relations: ["ally", "self"],
+      stacking: "highestOnly", group: "itemConstruction", rank,
+      elements: [
+        { key: "ApplicationChance", direction: "outgoing", severity: "normal", value: 50 },
+        { key: "ApplicationChance", direction: "outgoing", severity: "instakill", value: 25 },
+        { key: "ApplicationChance", direction: "incoming", severity: "normal", value: 50 },
+      ],
+    }],
+  });
+
+  const ally = { id: "ally", factionId: "red", faction: "red", panel: { i: 5, j: 6 } };
+
+  it("delivers EVERY element of the aura, not just one", () => {
+    // The six-element severity ladder is the ability. Collapsing it to the
+    // highest-valued element -- which a per-key `highestOnly` would do -- keeps
+    // the 50% and silently drops Instakill and Death.
+    const board = { units: [bearer("medea", "A"), ally] };
+
+    expect(collectAuras(ally, board)).toHaveLength(3);
+  });
+
+  it("keeps only the HIGHEST-RANKED source when two overlap", () => {
+    // "If a Unit is affected by multiple instances of this Skill, only the
+    // Item Construction with the highest Rank takes effect."
+    const board = { units: [bearer("medea", "A"), bearer("other", "C"), ally] };
+    const got = collectAuras(ally, board);
+
+    expect(got).toHaveLength(3);
+    expect(got.every((m) => m.aura.sourceUnitId === "medea")).toBe(true);
+  });
+
+  it("does not drop a DIFFERENT group's aura", () => {
+    // Territory Creation and Item Construction each say "does not stack", and
+    // each means with itself.
+    const territory = {
+      id: "caster2", factionId: "red", faction: "red", panel: { i: 5, j: 4 },
+      auras: [{
+        key: "aura", radius: 2, relations: ["ally", "self"],
+        stacking: "highestOnly", group: "territoryCreation", rank: "A",
+        elements: [{ key: "DamageNegation", value: 20 }],
+      }],
+    };
+    const board = { units: [bearer("medea", "A"), territory, ally] };
+
+    expect(collectAuras(ally, board)).toHaveLength(4);
+  });
+
+  it("compares by RANK, not by the elements' values", () => {
+    // A C-rank Item Construction with a bigger number must still lose to an A.
+    const weakButLarge = bearer("other", "C");
+    weakButLarge.auras[0].elements = [{ key: "ApplicationChance", direction: "outgoing", value: 999 }];
+    const board = { units: [bearer("medea", "A"), weakButLarge, ally] };
+
+    expect(collectAuras(ally, board).every((m) => m.aura.sourceUnitId === "medea")).toBe(true);
+  });
+});
+
+describe("a field-wide aura conditioned on the RECIPIENT (Territory Creation)", () => {
+  const medea = {
+    id: "medea", factionId: "red", faction: "red", panel: { i: 0, j: 0 },
+    auras: [{
+      key: "aura", scope: "field", relations: ["ally", "self"],
+      group: "territoryCreation", rank: "A",
+      requiresRecipient: { inHomeBase: true },
+      elements: [{ key: "DamageNegation", value: 35 }],
+    }],
+  };
+
+  const far = (over = {}) => ({ id: "ally", factionId: "red", faction: "red", panel: { i: 30, j: 30 }, ...over });
+
+  it("reaches an ally anywhere on the board", () => {
+    // "While this Unit is on the field" -- not "within N panels". A radius
+    // would have made it an ordinary aura and quietly bounded it.
+    const board = { units: [medea, far({ inHomeBase: true })] };
+
+    expect(collectAuras(far({ inHomeBase: true }), board)).toHaveLength(1);
+  });
+
+  it("does NOT reach an ally outside its own Home Base", () => {
+    // The condition is on the RECIPIENT -- "allied Units who are in THEIR Home
+    // Base" -- which a predicate evaluated against the source cannot express.
+    const board = { units: [medea, far({ inHomeBase: false })] };
+
+    expect(collectAuras(far({ inHomeBase: false }), board)).toEqual([]);
+  });
+
+  it("still respects the relation", () => {
+    const enemy = far({ factionId: "blue", faction: "blue", inHomeBase: true });
+    const board = { units: [medea, enemy] };
+
+    expect(collectAuras(enemy, board)).toEqual([]);
+  });
+
+  it("reaches the bearer itself when it qualifies", () => {
+    // Clause 1 covers Medea's own damage dealt; clause 2 covers damage taken,
+    // and she is an allied Unit in her own Home Base like any other.
+    const self = { ...medea, inHomeBase: true };
+    const board = { units: [self] };
+
+    expect(collectAuras(self, board)).toHaveLength(1);
+  });
+});
+
+describe("aura-delivered contributions reach their readers", () => {
+  const medea = {
+    id: "medea", factionId: "red", faction: "red", panel: { i: 5, j: 5 },
+    auras: [{
+      key: "aura", radius: 2, relations: ["ally", "self"], group: "itemConstruction", rank: "A",
+      elements: [
+        { key: "ApplicationChance", direction: "outgoing", severity: "normal", value: 50 },
+        { key: "DamageNegation", value: 20 },
+      ],
+    }],
+  };
+
+  it("routes an ApplicationChance to `applicationChances`, not to `modifiers`", () => {
+    // The applier reads `target.applicationChances`; an aura that delivered its
+    // contribution into `modifiers` only would be collected on every snapshot
+    // and read by nobody -- which is what Item Construction did at first.
+    const units = [{ ...medea, modifiers: [], applicationChances: [] }];
+    annotateAuras(units, { units });
+
+    expect(units[0].applicationChances).toHaveLength(1);
+    expect(units[0].modifiers.map((m) => m.key)).toEqual(["DamageNegation"]);
+  });
+
+  it("keeps whatever the unit already carried", () => {
+    const units = [{
+      ...medea,
+      modifiers: [{ key: "FlatDamage", value: 5 }],
+      applicationChances: [{ direction: "incoming", value: 10 }],
+    }];
+    annotateAuras(units, { units });
+
+    expect(units[0].applicationChances).toHaveLength(2);
+    expect(units[0].modifiers).toHaveLength(2);
+  });
+});

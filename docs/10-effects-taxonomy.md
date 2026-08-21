@@ -527,6 +527,17 @@ lose the protection. This asymmetry must be encoded explicitly.
 
 ---
 
+> **Implementation note (§10.6).** `highestOnly` on an aura resolves by **group and rank**, not
+> by element value. Medea's Item Construction is one Skill carrying six modifiers — a severity
+> ladder in both directions — and comparing values would let a C-rank instance win one tier and
+> lose another, producing a blend of two Skills that never existed. The highest-ranked source in
+> a group keeps **all** of its elements and the others contribute none.
+>
+> An aura may also declare `scope: field` (unbounded — "while this Unit is on the field" is not a
+> distance) and `requiresRecipient`, a condition on the unit **receiving** it. Territory Creation
+> needs the second: "allied Units who are in *their* Home Base" cannot be a predicate, because
+> contributions are evaluated against their source.
+
 ## 10.7 Application chance
 
 Every effect application is a probability. The source's default:

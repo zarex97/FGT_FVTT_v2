@@ -72,6 +72,11 @@ function abilityCommon() {
     sameTurnExclusive: new fields.ArrayField(new fields.StringField({ blank: false })),
     // Effects that switch this ability off entirely while present.
     negatedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // WHEN it may be used. Only Command Spells had this field, so an ability
+    // authored "used when Attacked" -- Medea's Argos and Trofa -- compiled with
+    // the window and the DataModel dropped it on load, leaving the reaction
+    // rung with nothing to offer.
+    timing: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // "Only the highest Rank takes effect" (§10.6): a group and what to compare.
     nonStacking: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     damage: new fields.ObjectField({ required: false, nullable: true, initial: null }),
