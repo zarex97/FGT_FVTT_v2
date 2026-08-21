@@ -50,6 +50,7 @@ import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
+import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
 import { attachTokenHUD } from "./apps/hud/token-hud.mjs";
 import { attachAwaitTimeouts } from "./engine/await-timeout.mjs";
 
@@ -170,6 +171,16 @@ Hooks.once("ready", () => {
   // §23.9's invalidation table, driving the canvas aura index and the overlays,
   // plus §25.10's round-boundary desync check.
   attachInvalidation();
+  // Penthesilea's Hatred of Achilles: "at any time, if there is a Greek Male
+  // Unit within a 4 panel area, her Mad Enhancement is IMMEDIATELY ACTIVATED".
+  // Nobody presses anything, so something has to be watching -- and it rides
+  // the same invalidation the aura index does, because the question is
+  // positional and changes whenever anybody moves.
+  attachForcedModes();
+  // Once at load, for a world resumed mid-match with a Greek Male already
+  // standing beside her. A rule that only fires on a *change* would leave her
+  // calm until somebody happened to move.
+  reconcileForcedModes().catch((err) => console.error("FGT | Forced modes:", err));
   // §29.5: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   attachTokenHUD();
@@ -203,6 +214,9 @@ function buildPublicAPI() {
     // is content, not engine.
     summon, items, copy,
     gameLog, control, cardVisibility, contract, sceneLevels, legality,
+    // The forced half of a compulsion (Penthesilea). Exposed because a GM who
+    // has hand-placed tokens may want to reconcile without waiting for a move.
+    forcedModes: reconcileForcedModes,
     dialogs: { SummonDialog, CopyDialog, ChoiceDialog, LogViewer, AbilityEditor, ContractDialog },
     effects: EffectRegistry,
     commandSpells: CommandSpellRegistry,

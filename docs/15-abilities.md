@@ -420,6 +420,25 @@ off — *"her Mad Enhancement is immediately activated regardless of Cooldown or
 factors"*. So `rules/modes.mjs` answers two questions: `canToggleMode` for the refusal, and
 `forcedModes` for the write.
 
+**Nobody presses anything**, and *"at any time"* means the moment the condition becomes true — so
+something has to be watching. `engine/modes.mjs` rides the same invalidation the aura index does
+(§23.9 now carries a `compulsions` target), because the question is positional and its answer
+changes whenever anybody moves. It also runs once at world load, for a match resumed with a Greek
+Male already standing beside her: a rule that only fires on a *change* would leave her calm until
+somebody happened to move.
+
+Three properties worth stating, because each is a decision:
+
+- **It never switches a mode off.** The sheet says Mad Enhancement *"cannot be deactivated
+  until"* they are gone, which frees the player's hand rather than moving it for them. A
+  Berserker who has been driven mad does not simply calm down.
+- **It bypasses every gate**, including the 2◈ lockout — *"regardless of Cooldown or any other
+  factors"*. Note the asymmetry that produces: the compulsion may switch it on inside the lockout
+  window, and the player still cannot switch it off inside that window.
+- **It announces itself.** A mode that switches itself on with no explanation is
+  indistinguishable from a bug, and this one takes control of the Servant away from its player;
+  the card names the compulsion and the Units that triggered it.
+
 Note the asymmetry the source draws between a *player's* toggle and a *forced* one. Mad
 Enhancement's own first clause deactivates it when its Master runs low, and that is not subject to
 the 2◈ lockout; a player's click is.

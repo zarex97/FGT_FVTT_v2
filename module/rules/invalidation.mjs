@@ -28,6 +28,12 @@
 export const INVALIDATION_TARGETS = Object.freeze([
   "all", "board", "snapshot", "auraIndex", "zon", "masterProtection",
   "cooldowns", "effectActivity", "phase", "decoy",
+  // A compulsion's answer is POSITIONAL, so it changes when anybody moves --
+  // and Penthesilea's *Hatred of Achilles* does not merely refuse a toggle, it
+  // *forces one on*: "at any time, if there is a Greek Male Unit within a 4
+  // panel area, her Mad Enhancement is immediately activated." That is a
+  // write, and something has to notice the moment it becomes true.
+  "compulsions",
 ]);
 
 /**
@@ -96,7 +102,7 @@ export function invalidationsFor(event, ctx = {}) {
 
     case "tokenMoved":
       return [
-        "board", "auraIndex", "decoy",
+        "board", "auraIndex", "decoy", "compulsions",
         ...(ctx.actorId ? [`zon:${ctx.actorId}`] : []),
         // The partner's ZON too: ZON is a relationship, and moving one end of
         // it changes the other end's status without touching that actor.
@@ -107,10 +113,12 @@ export function invalidationsFor(event, ctx = {}) {
       return ["all"];
 
     case "turnAdvanced":
-      return ["board", "cooldowns", "effectActivity"];
+      // "At any time" -- a turn boundary is the cheap re-check that catches
+      // anything the movement hook missed.
+      return ["board", "cooldowns", "effectActivity", "compulsions"];
 
     case "roundAdvanced":
-      return ["board", "cooldowns", "effectActivity", "phase"];
+      return ["board", "cooldowns", "effectActivity", "phase", "compulsions"];
 
     case "settingChanged":
       // Locked mid-match anyway, so the cost of clearing everything is paid
