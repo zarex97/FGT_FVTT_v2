@@ -27,9 +27,17 @@
 > *snapshot cache*, and this system does not have one — `snapshotBoard` runs per resolution, from
 > the documents, every time. That is deliberate, and it is why most of the staleness §23.9
 > anticipates cannot occur here: you cannot serve a stale snapshot you never stored. What the
-> table actually drives is the **canvas aura index**, the **overlays**, and §25.10's round-boundary
-> checksum. It is still worth having for those three, because the alternative — a hand-maintained
-> hook list per consumer, which is what the overlays had — goes stale silently in both directions.
+> table actually drives is the **canvas aura index**, the **overlays**, §25.10's round-boundary
+> checksum, and — added with Penthesilea — **compulsion-forced modes**. It is still worth having
+> for those four, because the alternative — a hand-maintained hook list per consumer, which is
+> what the overlays had — goes stale silently in both directions.
+>
+> The fourth is the one that writes. A compulsion's answer is positional, so the moment it becomes
+> true is a moment somebody moved, and *Hatred of Achilles* does not merely refuse a toggle: *"her
+> Mad Enhancement is immediately activated regardless of Cooldown or any other factors."*
+> `tokenMoved`, `turnAdvanced` and `roundAdvanced` now carry a `compulsions` target; `actorField`
+> and `effectChanged` deliberately do **not**, because rebuilding the board on every burn tick is
+> the expensive mistake this table exists to avoid.
 >
 > The row this chapter singles out is implemented as stated: **anything that changes `canAct`
 > invalidates Master protection for Masters within 2 panels**, and `CAN_ACT_INVALIDATORS` carries

@@ -9,6 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { canToggleMode, compelledOn, forcedModes } from "../../module/rules/modes.mjs";
+import { invalidationsFor, INVALIDATION_TARGETS } from "../../module/rules/invalidation.mjs";
 
 const mode = (system = {}) => ({ id: "me", system: { isMode: true, slug: "madEnhancement", ...system } });
 const unit = (over = {}) => ({ id: "p", compulsions: [], ...over });
@@ -101,5 +102,30 @@ describe("forcedModes", () => {
 
   it("is empty when nothing compels", () => {
     expect(forcedModes(unit(), [mode()])).toEqual([]);
+  });
+});
+
+describe("the invalidation that drives it", () => {
+  it("names `compulsions` on everything that can move somebody", () => {
+    // A compulsion's answer is POSITIONAL, so the moment it becomes true is a
+    // moment somebody moved. `forcedModes` was built and tested and nothing
+    // called it, which is this project's signature defect — a rule that is
+    // right and inert.
+    expect(invalidationsFor("tokenMoved", {})).toContain("compulsions");
+    expect(invalidationsFor("turnAdvanced", {})).toContain("compulsions");
+    expect(invalidationsFor("roundAdvanced", {})).toContain("compulsions");
+    // Deleting a token clears everything, which covers the Greek Male dying.
+    expect(invalidationsFor("tokenDeleted", {})).toContain("all");
+  });
+
+  it("does not name it on a change that cannot move anybody", () => {
+    // Health ticks every burn; rebuilding the board on each one is the
+    // expensive mistake §23.9 warns about.
+    expect(invalidationsFor("actorField", { actorId: "p" })).not.toContain("compulsions");
+    expect(invalidationsFor("effectChanged", { actorId: "p" })).not.toContain("compulsions");
+  });
+
+  it("is a target the table admits, so a typo would clear nothing", () => {
+    expect(INVALIDATION_TARGETS).toContain("compulsions");
   });
 });
