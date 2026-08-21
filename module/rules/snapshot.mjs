@@ -18,6 +18,7 @@ import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
+import { EffectRegistry } from "./registry.mjs";
 import { buildAuraIndex } from "./aura-index.mjs";
 import { annotateTerrain } from "./terrain.mjs";
 import {
@@ -481,7 +482,12 @@ export function contributionsOf(actor) {
   // definition -- an effect that is present is in force.
   for (const effect of actor.effects ?? []) {
     if (effect.disabled || effect.isSuppressed) continue;
-    const def = effect.system?.def ?? null;
+    // Resolved from the REGISTRY. This read `effect.system.def` -- a field
+    // nothing has ever populated and which is not on the schema -- so the
+    // collection below never ran, and every effect whose behaviour is expressed
+    // as `rules:` did nothing at all. Medea's MOV Up granted no MOV and her
+    // automatic evasion granted no evasion; both looked applied on the sheet.
+    const def = EffectRegistry.get(effect.system?.defId) ?? null;
     if (!def?.rules?.length) continue;
     abilities.push({
       id: effect.id, name: effect.name, rank: null, active: true,

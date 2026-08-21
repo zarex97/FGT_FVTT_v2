@@ -432,7 +432,15 @@ export const EXECUTORS = Object.freeze({
   },
 
   AutoSucceed(el, { source, out }) {
-    out.autoSucceeds.push({ check: el.check, beatenBy: el.beatenBy ?? [], uses: el.uses ?? null, source });
+    out.autoSucceeds.push({
+      check: el.check, beatenBy: el.beatenBy ?? [], uses: el.uses ?? null, source,
+      // A **chance** to succeed automatically, rather than a certainty. Medea's
+      // Troψa evades outright unless the attack is a Noble Phantasm, where the
+      // sheet gives her a coin -- and a failed coin lets the Combat Process
+      // proceed as normal, which is why this is a roll and not a refusal.
+      chance: el.chance ?? 100,
+      chanceWhen: el.chanceWhen ?? [],
+    });
   },
 
   TableOverride(el, { source, out }) {
@@ -491,6 +499,14 @@ export const EXECUTORS = Object.freeze({
       value: scalar(resolveValue(el, rank, ctx)),
       component: el.component ?? null,
       stacking: el.stacking ?? "highestOnly", source,
+      // An aura may carry SEVERAL modifiers rather than being one. Medea's Item
+      // Construction is six -- a severity ladder in both directions -- and the
+      // group and rank are what "does not stack" compares across sources.
+      elements: el.elements ?? null,
+      group: el.group ?? null,
+      rank: el.rank ?? (rank ? String(rank) : null),
+      scope: el.scope ?? null,
+      requiresRecipient: el.requiresRecipient ?? null,
     });
   },
 

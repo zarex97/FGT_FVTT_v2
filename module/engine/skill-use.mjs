@@ -32,6 +32,7 @@ import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitSnapshot } from "./board.mjs";
+import { rollOptionsFor } from "../rules/options.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
@@ -297,6 +298,9 @@ async function applyPhaseEffects(phase, ability, actor, target) {
       magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
       duration: rule.duration ?? spec.duration ?? def.defaultDuration,
       source: { unitId: actor.id, abilityId: ability.id },
+      // Declared per effect by the ability (§15.2). Atlas's two reductions
+      // stack, which is why this is a list rather than a number.
+      chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
       ctx: {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
         currentTick: game.combat?.system?.globalTurn ?? 0,
@@ -305,6 +309,10 @@ async function applyPhaseEffects(phase, ability, actor, target) {
         // Hardcoded to 0 until Medea's Item Construction needed it, which
         // made every outgoing contribution in the game inert.
         inflictBonus: inflictBonusOf(unitSnapshot(actor), def),
+        // The predicates those modifiers test against. Without the option set
+        // every predicate is unsatisfiable, which is the shape of defect this
+        // codebase has produced more than once.
+        options: rollOptionsFor({ attacker: unitSnapshot(actor), defender: target }),
         resist: 0,
       },
     });

@@ -114,3 +114,70 @@ describe("rollOptionsFor", () => {
     expect(() => rollOptionsFor({ attacker: {}, defender: {}, attack: {} })).not.toThrow();
   });
 });
+
+describe("rank comparisons (Medea's Atlas)", () => {
+  const unit = (over = {}) => ({
+    kind: "servant", attributes: [], effects: [], abilities: [],
+    parameters: { str: "C", end: "C", agi: "C", mag: "A", luc: "C" },
+    ...over,
+  });
+
+  it("emits a gte option at and above each grade", () => {
+    // "reduced by 25% on Units with a MAG Rank of B or higher" -- a clause that
+    // needs a COMPARISON, not equality. `rank:mag:A` alone would make a rule
+    // written for B miss every A.
+    const o = rollOptionsFor({ attacker: null, defender: unit() });
+
+    expect(o).toContain("target:rank:mag:gte:B");
+    expect(o).toContain("target:rank:mag:gte:A");
+    expect(o).not.toContain("target:rank:mag:gte:EX");
+  });
+
+  it("does not emit one the unit falls short of", () => {
+    const o = rollOptionsFor({ attacker: null, defender: unit({
+      parameters: { str: "C", end: "C", agi: "C", mag: "D", luc: "C" },
+    }) });
+
+    expect(o).not.toContain("target:rank:mag:gte:B");
+    expect(o).toContain("target:rank:mag:gte:D");
+  });
+
+  it("counts a + step as clearing its own grade", () => {
+    // B+ is "B or higher", which is the reading the clause needs.
+    const o = rollOptionsFor({ attacker: null, defender: unit({
+      parameters: { str: "C", end: "C", agi: "C", mag: "B+", luc: "C" },
+    }) });
+
+    expect(o).toContain("target:rank:mag:gte:B");
+  });
+
+  it("emits a SKILL rank comparison too", () => {
+    // "reduced by 25% on Units with a Magic Resistance of Rank B or higher" --
+    // the rank of an ability rather than of a parameter, and the two reductions
+    // stack, so both must be expressible independently.
+    const o = rollOptionsFor({ attacker: null, defender: unit({
+      abilities: [{ slug: "magicResistance", rank: "A" }],
+    }) });
+
+    expect(o).toContain("target:skillRank:magicResistance:gte:B");
+    expect(o).toContain("target:skillRank:magicResistance:gte:A");
+  });
+
+  it("emits nothing for a skill the unit does not have", () => {
+    const o = rollOptionsFor({ attacker: null, defender: unit() });
+
+    expect([...o].some((x) => x.startsWith("target:skillRank:magicResistance"))).toBe(false);
+  });
+
+  it("emits them for the attacker side as well", () => {
+    const o = rollOptionsFor({ attacker: unit(), defender: null });
+
+    expect(o).toContain("self:rank:mag:gte:B");
+  });
+
+  it("says nothing about a rank that cannot be parsed", () => {
+    expect(() => rollOptionsFor({ attacker: null, defender: unit({
+      parameters: { str: "?", end: null, agi: "C", mag: "C", luc: "C" },
+    }) })).not.toThrow();
+  });
+});

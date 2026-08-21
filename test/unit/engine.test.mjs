@@ -674,3 +674,73 @@ describe("stacking actions actually reach the intents", () => {
     expect(out.intents[1].effect.stage).toBe(2);
   });
 });
+
+describe("per-effect chance modifiers (Medea's Atlas)", () => {
+  const stun = {
+    id: "stun", name: "Stun", polarity: "debuff", volatility: "volatile",
+    valence: "offensive", stacking: "noneRefresh", baseChance: 100, severity: "normal",
+  };
+  const target = { id: "t", effectInstances: [], effects: [] };
+  const base = { turnsPerRound: 3, currentTick: 0, inflictBonus: 0, resist: 0 };
+
+  it("lands at full chance with no modifier matching", () => {
+    const out = applyEffect({
+      def: stun, target, magnitude: 0, duration: "1◈", source: { unitId: "medea" },
+      ctx: { ...base, roll: 100, options: new Set() },
+    });
+
+    expect(out.outcome).toBe("applied");
+  });
+
+  it("reduces the chance when a predicate matches", () => {
+    // "reduced by 25% on Units with a MAG Rank of B or higher".
+    const out = applyEffect({
+      def: stun, target, magnitude: 0, duration: "1◈", source: { unitId: "medea" },
+      ctx: { ...base, roll: 80, options: new Set(["target:rank:mag:gte:B"]) },
+      chanceModifiers: [{ predicate: ["target:rank:mag:gte:B"], value: -25, source: "MAG B+" }],
+    });
+
+    expect(out.outcome).toBe("resisted");
+  });
+
+  it("STACKS two matching reductions, as the sheet says they do", () => {
+    // 100 - 25 - 25 = 50, so a roll of 60 fails where it would have landed
+    // against either reduction alone.
+    const mods = [
+      { predicate: ["target:rank:mag:gte:B"], value: -25, source: "MAG B+" },
+      { predicate: ["target:skillRank:magicResistance:gte:B"], value: -25, source: "MR B+" },
+    ];
+    const both = new Set(["target:rank:mag:gte:B", "target:skillRank:magicResistance:gte:B"]);
+
+    expect(applyEffect({
+      def: stun, target, magnitude: 0, duration: "1◈", source: { unitId: "medea" },
+      ctx: { ...base, roll: 60, options: both }, chanceModifiers: mods,
+    }).outcome).toBe("resisted");
+
+    expect(applyEffect({
+      def: stun, target, magnitude: 0, duration: "1◈", source: { unitId: "medea" },
+      ctx: { ...base, roll: 60, options: new Set(["target:rank:mag:gte:B"]) }, chanceModifiers: mods,
+    }).outcome).toBe("applied");
+  });
+
+  it("records each applied modifier in the trace, so the card can explain it", () => {
+    const out = applyEffect({
+      def: stun, target, magnitude: 0, duration: "1◈", source: { unitId: "medea" },
+      ctx: { ...base, roll: 1, options: new Set(["target:rank:mag:gte:B"]) },
+      chanceModifiers: [{ predicate: ["target:rank:mag:gte:B"], value: -25, source: "MAG B+" }],
+    });
+
+    const chance = out.trace.find((t) => t.step === "chance");
+    expect(chance.detail).toContain("75");
+  });
+
+  it("ignores a modifier whose predicate does not match", () => {
+    const out = applyEffect({
+      def: stun, target, magnitude: 0, duration: "1◈", source: { unitId: "medea" },
+      ctx: { ...base, roll: 90, options: new Set() },
+      chanceModifiers: [{ predicate: ["target:rank:mag:gte:B"], value: -25, source: "MAG B+" }],
+    });
+
+    expect(out.outcome).toBe("applied");
+  });
+});

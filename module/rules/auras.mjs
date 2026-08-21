@@ -25,6 +25,7 @@
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
+import { Rank } from "../domain/rank.mjs";
 import { candidatesAt } from "./aura-index.mjs";
 
 /**
@@ -48,8 +49,25 @@ export function collectAuras(unit, board, index = null) {
   for (const { source, aura } of candidateAuras(unit, board, index)) {
     const relations = aura.relations ?? ["ally", "self"];
     if (!relations.includes(relationOf(source, unit, board))) continue;
-    if (distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
-    found.push(bind(aura, source));
+
+    // `scope: "field"` is unbounded: Medea's Territory Creation applies "while
+    // this Unit is on the field", and giving it a radius would have made it an
+    // ordinary aura and quietly bounded a rule that is not.
+    if (aura.scope !== "field" && distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
+
+    // A condition on the RECIPIENT rather than on the source. Territory
+    // Creation reduces damage taken by "allied Units who are in THEIR Home
+    // Base", which a predicate evaluated against the source cannot say -- the
+    // contributions are collected on the bearer and delivered to somebody else.
+    if (!recipientQualifies(aura.requiresRecipient, unit)) continue;
+
+    // An aura may carry SEVERAL modifiers. Medea's Item Construction is six --
+    // three outgoing and three incoming, one per severity tier -- and they are
+    // the ability: collapsing them to one number keeps the 50% and silently
+    // drops Instakill and Death.
+    for (const element of aura.elements ?? [aura]) {
+      found.push(bind({ ...element, stacking: aura.stacking, group: aura.group, rank: aura.rank }, source));
+    }
   }
 
   return resolveStacking(found);
@@ -88,15 +106,36 @@ function candidateAuras(unit, board, index) {
  *
  * @param {object[]} units
  * @param {object} board
- * @returns {void} mutates `unit.modifiers`
+ * @param {object} [index] a spatial index (§23.9); an optimisation only
+ * @returns {void} mutates the recipient's contribution buckets
  */
-export function annotateAuras(units, board) {
-  const received = units.map((u) => collectAuras(u, board));
+export function annotateAuras(units, board, index = null) {
+  const received = units.map((u) => collectAuras(u, board, index));
   units.forEach((u, k) => {
     if (received[k].length === 0) return;
-    u.modifiers = [...(u.modifiers ?? []), ...received[k]];
+
+    // Routed to the field its READER consults. `ApplicationChance` is read off
+    // `unit.applicationChances` by the effect applier, so an aura that dropped
+    // it into `modifiers` alongside everything else would be collected on every
+    // snapshot and consulted by nobody — which is exactly what Medea's Item
+    // Construction did until this line existed.
+    for (const m of received[k]) {
+      const bucket = ROUTES[m.key] ?? "modifiers";
+      u[bucket] = [...(u[bucket] ?? []), m];
+    }
   });
 }
+
+/**
+ * Which snapshot field each contribution kind is read from.
+ *
+ * Only the kinds whose reader is somewhere other than `modifiers` need an
+ * entry; everything else takes the default.
+ */
+const ROUTES = Object.freeze({
+  ApplicationChance: "applicationChances",
+  Compulsion: "compulsions",
+});
 
 /* -------------------------------------------------------------------------- */
 /*  Internals                                                                 */
@@ -115,8 +154,9 @@ export function annotateAuras(units, board) {
  * @returns {object}
  */
 function bind(a, source) {
-  const { radius, relations, ...modifier } = a;
+  const { radius, relations, elements, ...modifier } = a;
   void relations;
+  void elements;
   return { ...modifier, aura: { sourceUnitId: source.id, radius } };
 }
 
@@ -174,10 +214,30 @@ function relationOf(source, unit, board) {
 function resolveStacking(found) {
   /** @type {Map<string, object>} */
   const highest = new Map();
+  /** @type {Map<string, object>} */
+  const bestSourceFor = new Map();
   /** @type {object[]} */
   const out = [];
 
+  // A GROUPED aura is resolved by rank across its whole group, and the winner
+  // keeps ALL of its elements. "Only the Item Construction with the highest
+  // Rank takes effect" is a statement about the Skill, not about each number
+  // inside it -- comparing element values would let a C-rank instance win one
+  // tier and lose another, producing a blend of two Skills that never existed.
   for (const m of found) {
+    if (!m.group) continue;
+    const prior = bestSourceFor.get(m.group);
+    if (!prior || outranks(m.rank, prior.rank)) {
+      bestSourceFor.set(m.group, { rank: m.rank, sourceUnitId: m.aura?.sourceUnitId });
+    }
+  }
+
+  for (const m of found) {
+    if (m.group) {
+      const winner = bestSourceFor.get(m.group);
+      if (winner && m.aura?.sourceUnitId === winner.sourceUnitId) out.push(m);
+      continue;
+    }
     if ((m.stacking ?? "highestOnly") !== "highestOnly") {
       out.push(m);
       continue;
@@ -187,4 +247,33 @@ function resolveStacking(found) {
   }
 
   return [...highest.values(), ...out];
+}
+
+/**
+ * Does `a` outrank `b`? An unranked instance never displaces a ranked one.
+ * @param {string|null} a
+ * @param {string|null} b
+ * @returns {boolean}
+ */
+function outranks(a, b) {
+  const left = Rank.parseOrNull(a ?? null);
+  const right = Rank.parseOrNull(b ?? null);
+  if (!left) return false;
+  if (!right) return true;
+  return Rank.compare(left, right) > 0;
+}
+
+/**
+ * Does the recipient meet the aura's own condition?
+ *
+ * @param {object|null} requires
+ * @param {object} unit the RECIPIENT
+ * @returns {boolean}
+ */
+function recipientQualifies(requires, unit) {
+  if (!requires) return true;
+  for (const [key, wanted] of Object.entries(requires)) {
+    if (Boolean(unit?.[key]) !== Boolean(wanted)) return false;
+  }
+  return true;
 }
