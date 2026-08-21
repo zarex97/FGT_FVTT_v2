@@ -59,6 +59,16 @@ describe("§37.6 — summoning Karna into an Indian war", () => {
     expect(valueOf(applyGrants(resolved(), karna, granted), "maxHealth")).toBe(before + 100);
   });
 
+  it("still moves Health by 100 when the sheet states its own baseHealth", () => {
+    // Medea states `baseHealth: 750`. Re-reading the table at the shifted rank
+    // returned the stated figure unchanged, so her Region grant did nothing to
+    // her Health -- and §14.9 says "± 100 per END step" outright.
+    const stated = { ...karna, baseHealth: 750 };
+    const lines = resolveSetupPlan(servantSetupPlan(stated), { maxAgility: 2, maxLuck: 3 });
+
+    expect(valueOf(applyGrants(lines, stated, { end: 1 }), "maxHealth")).toBe(850);
+  });
+
   it("adds 10 to each Base Attack component for its granted step", () => {
     // "STR B → B+ ⇒ BA(STR) +10 → 135" and "MAG B → B+ ⇒ BA(MAG) +10 → 185".
     const patch = sheetPatch(applyGrants(resolved(), karna, granted), karna, granted);

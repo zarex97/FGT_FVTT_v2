@@ -1,0 +1,31 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+#
+# Both clauses are ROLLED, which is why they are `roll:` DamageModifiers rather
+# than flat numbers: 5d20 is 5-100, and averaging it would make a Caster in her
+# own Home Base predictable in a way the sheet does not intend.
+schema: 1
+id: medea-territory-creation
+name: "Territory Creation"
+rank: A
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive 1) In its Home Base, all damage dealt by this Unit is increased by 5d20, including NP.
+  (Passive 2) While this Unit is on the field, damage taken by allied Units in their own Home
+  Base is further reduced by (3d10+20), including NP.
+nonStacking: { group: territoryCreation, by: rank }
+passiveRules:
+  # "including NP" is why there is no `attack:kind` predicate here: the default
+  # would have been to exempt Noble Phantasms.
+  - key: DamageModifier
+    stage: flat
+    predicate: ["self:inHomeBase"]
+    roll: { key: territoryCreationBonus, formula: "5d20" }
+  # A field-wide effect rather than an aura: "while this Unit is on the field",
+  # with the RECIPIENT's own Home Base as the condition, not proximity to Medea.
+  - key: DamageNegation
+    scope: field
+    relations: [ally, self]
+    predicate: ["target:inHomeBase"]
+    roll: { key: territoryCreationWard, formula: "3d10+20" }

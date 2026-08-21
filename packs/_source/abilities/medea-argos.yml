@@ -1,0 +1,19 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea-argos
+name: "Μαρδοξ (Argos)"
+rank: null
+category: spell
+cooldown: "4◈"
+# Two windows. `whenAttacked` is what makes it a reaction the Combat Process
+# must OFFER -- a Spell usable only on your own turn would never fire in
+# defence, which is the whole point of this one.
+timing: { window: [ownTurn, whenAttacked] }
+description: |
+  Spell. Used during your Turn or when Attacked. Applies Def Up for 1◈ Turns: all damage taken
+  is reduced by 50%; if NP, 30%.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: defUp, magnitude: 50, npMagnitude: 30, duration: "1◈" }

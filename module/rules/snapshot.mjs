@@ -20,7 +20,9 @@ import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { buildAuraIndex } from "./aura-index.mjs";
 import { annotateTerrain } from "./terrain.mjs";
-import { phase, darkModifiers, homeBaseModifiers, regionBonusFor } from "./environment.mjs";
+import {
+  phase, darkModifiers, homeBaseModifiers, regionBonusFor, inOwnHomeBase,
+} from "./environment.mjs";
 import { annotateCompulsions } from "./compulsion.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, crossLevelRulesFor } from "./platforms.mjs";
@@ -342,6 +344,9 @@ function annotateRegionBonus(units, board) {
 function annotateEnvironment(units, board) {
   board.phase = phase(board.round ?? 1, board.startedAtDay !== false);
   for (const u of units) {
+    // Recorded on the unit as well as folded into modifiers: Medea's Territory
+    // Creation predicates on it, and a predicate cannot read a modifier list.
+    u.inHomeBase = inOwnHomeBase(u, board);
     const mods = [...darkModifiers(u, board.phase), ...homeBaseModifiers(u, board)];
     if (mods.length > 0) u.modifiers = [...(u.modifiers ?? []), ...mods];
   }

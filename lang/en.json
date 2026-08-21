@@ -387,5 +387,7 @@
   "FGT.Skill.NoEffects": "No effects were applied.",
   "FGT.Skill.Refused": "{name} cannot be used: {reason}.",
   "FGT.Skill.UnknownEffect": "{name} applies an unknown effect \"{id}\" — it did nothing.",
-  "FGT.Skill.DamagePhase": "{name} deals damage but was used as a Skill. It should be marked as an Attack Skill."
+  "FGT.Skill.DamagePhase": "{name} deals damage but was used as a Skill. It should be marked as an Attack Skill.",
+  "FGT.Skill.Reason.negated": "it is negated by an effect on this Unit",
+  "FGT.Skill.Reason.sameTurnExclusive": "another Skill it excludes was already used this Turn"
 }

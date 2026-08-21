@@ -61,6 +61,11 @@ function add(options, side, unit) {
   // Region, so a clause can name where a unit is from.
   for (const r of unit.region ?? []) options.add(`${side}:region:${r}`);
 
+  // Standing in its OWN Home Base. Medea's Territory Creation predicates on it
+  // from both directions -- her own damage dealt, and an ally's damage taken --
+  // which is why it is emitted for `self` and `target` alike.
+  if (unit.inHomeBase) options.add(`${side}:inHomeBase`);
+
   for (const ability of unit.abilities ?? []) {
     const slug = ability.slug ?? ability.id;
     if (!slug) continue;

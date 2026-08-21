@@ -1,0 +1,27 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea-atlas
+name: "Ατλας (Atlas)"
+rank: null
+category: spell
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  Spell. Used during your Turn. Inflicts Stun on an enemy Unit within Range for 1◈ Turns.
+  The chance is reduced by 25% against a Unit with MAG Rank B or higher, and by 25% against a
+  Unit with Magic Resistance Rank B or higher. These reductions DO stack.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - id: stun
+        duration: "1◈"
+        # Two independent reductions that stack -- stated in the sheet, and the
+        # reason they are two entries rather than one branch.
+        chanceModifiers:
+          - { predicate: ["target:rank:mag:gte:B"], value: -25, source: "target MAG B+" }
+          - { predicate: ["target:skillRank:magicResistance:gte:B"], value: -25, source: "Magic Resistance B+" }

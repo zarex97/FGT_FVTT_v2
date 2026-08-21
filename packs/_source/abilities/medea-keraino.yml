@@ -1,0 +1,20 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea-keraino
+name: "Κεραινο (Keraino)"
+rank: null
+category: spell
+cooldown: "2◈"
+timing: { window: ownTurn }
+# The pair is mutually exclusive within a Turn, and the exclusion is declared on
+# BOTH sides -- one-sided exclusion is decided by whichever happens to be used
+# first, which is not a rule.
+sameTurnExclusive: [medea-trofa]
+description: |
+  Spell. Used during your Turn. Applies MOV Up for 1◈ Turns: MOV is increased by 3.
+  Cannot be used on the same Turn as Tροψα.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: movUp, magnitude: 3, duration: "1◈" }

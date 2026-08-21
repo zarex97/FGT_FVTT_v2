@@ -37,6 +37,9 @@ export const EffectRegistry = {
         valence: sys.valence ?? "neither",
         stacking: sys.stacking ?? "noneNoRefresh",
         baseChance: sys.baseChance ?? 100,
+        // Appendix A's Instakill/Death ladder, which chance modifiers filter on.
+        severity: sys.severity ?? "normal",
+        preventsAction: Boolean(sys.preventsAction),
         defaultMagnitude: sys.defaultMagnitude ?? 0,
         defaultDuration: sys.defaultDuration ?? null,
         unremovable: Boolean(sys.unremovable),

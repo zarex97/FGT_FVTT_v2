@@ -19,7 +19,6 @@
 import {
   servantSetupPlan, masterSetupPlan, resolveSetupPlan, summonPlan, baseAttackAdjustment,
 } from "../rules/setup-rolls.mjs";
-import { Rank } from "../domain/rank.mjs";
 
 /**
  * Roll one line of a plan.
@@ -89,7 +88,12 @@ export async function prepareSummon({ contentId, masterId = null, region = null,
   const source = await servantFromPacks(contentId);
   if (!source) return null;
 
-  const sheet = source.system;
+  // Normalized, not handed over raw. The pure layer's contract is that it
+  // takes a **snapshot**, and a live document's system is not one: its
+  // `SetField`s are `Set`s, and `region.includes(...)` threw the moment a
+  // Servant was summoned. Every rules function downstream is entitled to an
+  // array, so the conversion belongs here rather than in each of them.
+  const sheet = sheetSnapshot(source);
   const warRegion = region ?? (game.settings.get("fgt", "region") || null);
   const master = masterId ? game.actors.get(masterId) : null;
 
@@ -252,6 +256,9 @@ export async function servantCatalogue() {
 /*  Internals                                                                 */
 /* -------------------------------------------------------------------------- */
 
+/** §14.9: Max Health moves by this much per END step, in either direction. */
+const HEALTH_PER_END_STEP = 100;
+
 /** Where each setup line is stored. */
 const SETUP_PATHS = Object.freeze({
   maxHealth: "system.health.max",
@@ -328,12 +335,15 @@ export function applyGrants(lines, sheet, granted) {
  * @returns {number}
  */
 function healthAt(sheet, steps) {
-  const end = Rank.parseOrNull(sheet?.parameters?.end);
-  const shifted = end ? end.step(steps) : null;
-  return Number(
-    servantSetupPlan({ ...sheet, parameters: { ...sheet.parameters, end: shifted?.toString() } })
-      .lines.find((l) => l.id === "maxHealth").base,
-  );
+  // §14.9 states it literally: `baseHealthByEnd[grade] ± 100 per END step`.
+  //
+  // Re-reading the table at the shifted rank looks equivalent and is not, for a
+  // Servant whose sheet states its own `baseHealth`: `servantSetupPlan` prefers
+  // the stated figure, so the shifted lookup returned the SAME number and the
+  // granted step vanished. Medea is the first Servant to state one (750), and
+  // her Greece Region grant silently did nothing to her Health.
+  const base = Number(servantSetupPlan(sheet).lines.find((l) => l.id === "maxHealth").base);
+  return base + HEALTH_PER_END_STEP * steps;
 }
 
 /**
@@ -378,4 +388,18 @@ async function servantFromPacks(contentId) {
     if (entry) return pack.getDocument(entry._id);
   }
   return null;
+}
+
+/**
+ * A compendium Servant's system data as a plain snapshot.
+ *
+ * `toObject()` is what does the work: it converts every `SetField` to an array
+ * and every nested model to plain data, which is exactly the shape the rules
+ * layer documents itself as taking.
+ *
+ * @param {object} source the compendium Actor
+ * @returns {object}
+ */
+function sheetSnapshot(source) {
+  return source.toObject().system;
 }

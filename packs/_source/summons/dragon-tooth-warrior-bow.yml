@@ -1,0 +1,33 @@
+# Medea, char_orig_sheets/Copia de Medea.md -- conjured by Dragon Tooth Warriors.
+#
+# Summons rather than Servants: they have no parameters, no Master, and no
+# Sustainability clock of their own -- they last as long as Medea's Skill says.
+schema: 1
+id: dragon-tooth-warrior-bow
+name: "Dragon Tooth Warrior (Bow)"
+type: summon
+attributes: [summon, earth, humanoid]
+baseHealth: 50
+agility: 10
+luck: 5
+mov: 4
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 75, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+# Stated per type on the sheet rather than derived from range, which is why
+# `detect` is an explicit override (Ch. 08 §8.7).
+detect: 3
+# Neither clause is Medea-specific machinery: both are properties of the summon.
+exemptFromUnitLimit: true
+actsOncePerTurn: true
+# "Enemy Units cannot Attack Medea or her Master if any Dragon Tooth Warriors
+# are directly next to them" -- a protection projected onto its SUMMONER, which
+# is a Decoy-shaped rule rather than a Compulsion: it removes targets rather
+# than forcing one.
+passiveRules:
+  - key: TargetingModifier
+    mode: protectSummoner
+    radius: 1
+    protects: [summoner, summonerMaster]
+notes: |
+  Conjured in batches of 1d6 by Medea's Dragon Tooth Warriors, with 1d4 deciding each one's type.

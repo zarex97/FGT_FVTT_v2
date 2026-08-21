@@ -1,0 +1,27 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea-trofa
+name: "Tροψα (Trofa)"
+rank: null
+category: spell
+cooldown: "2◈"
+timing: { window: whenAttacked }
+sameTurnExclusive: [medea-keraino]
+description: |
+  Spell. Used when Attacked. Automatically Evades the Attack. If the Attack was a Noble Phantasm,
+  Medea has a 50% chance of automatically Evading it; if it fails, the Combat Process proceeds
+  as normal.
+phases:
+  # An AutoSucceed on the Evade rung rather than a damage negation: the sheet
+  # says "Evades", and an Evade that succeeds skips the rungs below it. Reducing
+  # the damage to zero instead would still let on-hit riders fire.
+  - kind: modifyAttack
+    modifiers:
+      - key: AutoSucceed
+        check: evade
+        # Certain against anything ordinary; a coin against a Noble Phantasm.
+        # `chance` is what makes the NP case a roll rather than a refusal.
+        chance: 100
+        chanceWhen:
+          - { predicate: ["attack:kind:np"], chance: 50 }
+        source: "Tροψα"

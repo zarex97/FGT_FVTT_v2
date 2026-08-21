@@ -1,0 +1,17 @@
+# Appendix A -- prevents action entirely. Listed in §23.9's CAN_ACT_INVALIDATORS
+# since that table was written; this is the definition that lets something
+# inflict it.
+schema: 1
+id: stun
+name: "Stun"
+description: "Cannot Move, Attack or use Skills."
+polarity: debuff
+volatility: volatile
+valence: offensive
+# A second Stun refreshes the clock rather than stacking: "cannot act" has no
+# magnitude to add to.
+stacking: noneRefresh
+baseChance: 100
+preventsAction: true
+severity: normal
+rules: []

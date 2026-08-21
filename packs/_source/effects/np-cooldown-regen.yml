@@ -1,0 +1,13 @@
+# Medea's Teachings of Circe. Distinct from `npRegen`, which restores Health:
+# this turns the NP's cooldown clock down by one at the end of every Turn.
+schema: 1
+id: npCooldownRegen
+name: "NP Cooldown Regen"
+description: "The Unit's Noble Phantasm cooldown is reduced by 1 Turn at the end of every Turn."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+periodic: { when: turnEnd, kind: npCooldown, amount: 1 }
+rules: []

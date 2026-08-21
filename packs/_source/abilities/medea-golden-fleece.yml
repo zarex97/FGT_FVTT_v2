@@ -1,0 +1,20 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea-golden-fleece
+name: "Golden Fleece"
+rank: null
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Recovers Health by Loving the Skin. Restores Medea's Health by 30% of its maximum
+  value, and restores 3 Agility.
+phases:
+  - kind: heal
+    target: self
+    # Of MAXIMUM, not of current -- 30% of a nearly-dead Medea's current Health
+    # would be a rounding error.
+    percentOfMax: 30
+  - kind: resource
+    target: self
+    changes:
+      - { key: agility.value, delta: 3, clampToMax: true }

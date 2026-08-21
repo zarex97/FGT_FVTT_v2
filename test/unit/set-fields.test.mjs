@@ -51,6 +51,18 @@ function setFieldNames() {
  */
 const DOCUMENT_LAYERS = ["module/apps", "module/engine", "module/documents", "module/data"];
 
+/**
+ * Pure-layer files that are nonetheless handed **document** data by some
+ * caller, so the array assumption does not hold for them either.
+ *
+ * `setup-rolls` is here because `summonServant` passes a compendium Servant's
+ * `system` straight in, and `region.includes(...)` threw on the first real
+ * summon. The engine now normalizes at that boundary — this list is the
+ * reminder that the exemption for `module/rules` is an assumption rather than
+ * a guarantee.
+ */
+const MIXED_LAYERS = ["module/rules/setup-rolls.mjs"];
+
 describe("SetField access", () => {
   const names = setFieldNames();
 
@@ -64,12 +76,18 @@ describe("SetField access", () => {
     /** @type {string[]} */
     const bad = [];
 
-    for (const dir of DOCUMENT_LAYERS) {
-      for (const file of mjsUnder(dir)) {
+    const files = [...DOCUMENT_LAYERS.flatMap(mjsUnder), ...MIXED_LAYERS];
+    {
+      for (const file of files) {
         const src = readFileSync(file, "utf8");
         const lines = src.split("\n");
 
         lines.forEach((line, index) => {
+          // Prose, not code. A comment describing the bug is not the bug, and
+          // this guard's own explanation would otherwise fail it.
+          const trimmed = line.trim();
+          if (trimmed.startsWith("//") || trimmed.startsWith("*")) return;
+
           for (const name of names) {
             // `.includes` reached through this field, on the same line.
             if (!new RegExp(`\\b${name}\\b[^\\n]*\\.includes\\(`).test(line)) continue;

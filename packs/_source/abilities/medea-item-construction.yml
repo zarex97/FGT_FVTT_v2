@@ -1,0 +1,36 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+#
+# The severity ladder is the interesting half. Appendix A is explicit that
+# `Debuff ChUp` "does not affect Instakill/Death/Erase unless stated" -- and
+# this Skill states otherwise, at a halved and re-halved magnitude. So the
+# three tiers are authored as three elements filtered by `severity`, rather
+# than as one number the applier scales by a rule it would have to know.
+schema: 1
+id: medea-item-construction
+name: "Item Construction"
+rank: A
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive) Affects all allied Units within a 2 panel area. The chance of inflicting debuffs is
+  increased by 50% (Instakill 25%, Death 10%); the chance of being inflicted by debuffs is
+  reduced by 50% (Instakill 25%, Death 10%).
+# Does not stack: only the highest Rank instance applies (§10.6 highestOnly).
+nonStacking: { group: itemConstruction, by: rank }
+passiveRules:
+  - key: Aura
+    radius: 2
+    relations: [ally, self]
+    stacking: highestOnly
+    group: itemConstruction
+    elements:
+      # Outgoing -- what this Unit inflicts.
+      - { key: ApplicationChance, direction: outgoing, valence: offensive, severity: normal, value: 50 }
+      - { key: ApplicationChance, direction: outgoing, severity: instakill, value: 25 }
+      - { key: ApplicationChance, direction: outgoing, severity: death, value: 10 }
+      # Incoming -- what this Unit resists. A resistance is a POSITIVE value in
+      # the incoming direction; the applier subtracts it.
+      - { key: ApplicationChance, direction: incoming, valence: offensive, severity: normal, value: 50 }
+      - { key: ApplicationChance, direction: incoming, severity: instakill, value: 25 }
+      - { key: ApplicationChance, direction: incoming, severity: death, value: 10 }

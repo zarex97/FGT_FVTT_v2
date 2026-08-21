@@ -1,0 +1,23 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea-high-speed-divine-words
+name: "High-Speed Divine Words"
+rank: A
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Completely reduce the cooldown of all of Medea's Spells.
+  Cannot be used, and its effects are negated, while inflicted with Silence.
+# Both halves of the Silence clause: it cannot be USED while silenced, and the
+# effect is negated -- the second matters because Silence can land between the
+# declaration and the resolution.
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+negatedBy: [silence]
+phases:
+  - kind: cooldown
+    target: self
+    # By CATEGORY. Naming each Spell would go stale the moment one is added,
+    # and Medea has seven of them.
+    changes:
+      - { category: spell, set: 0 }
