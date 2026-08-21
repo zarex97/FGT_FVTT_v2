@@ -64,6 +64,16 @@ const COPY_REASONS = new Set(["physical", "unique", "classSkill", "rankEX"]);
 /** The two check tables, from docs/15-checks.md. Not rank tables. */
 const CHECK_TABLES = new Set(["favourable", "unfavourable"]);
 const VOLATILITIES = new Set(["nonVolatile", "volatile", "mental", "terminal", "none"]);
+
+/**
+ * How severe an effect is, from Appendix A's own ladder.
+ *
+ * `Debuff ChUp` and `Debuff Immune` both say they "do not affect
+ * Instakill/Death/Erase unless stated", so severity is what a chance modifier
+ * filters on. Medea's Item Construction is the first content to state
+ * otherwise, at a halved and re-halved magnitude.
+ */
+const SEVERITIES = new Set(["normal", "instakill", "death", "erase"]);
 const STACKING = new Set([
   "magnitudeStacks", "noneNoRefresh", "noneRefresh", "noneExtend", "stage", "count", "highestOnly",
 ]);
@@ -78,6 +88,7 @@ export const PACKS = Object.freeze({
   servants: { pack: "servants", documentType: "Actor", actorType: "servant" },
   masters: { pack: "masters", documentType: "Actor", actorType: "master" },
   platforms: { pack: "servants", documentType: "Actor", actorType: "platform" },
+  summons: { pack: "servants", documentType: "Actor", actorType: "summon" },
 });
 
 /* -------------------------------------------------------------------------- */
@@ -317,6 +328,9 @@ function validateDocument(doc, path, library, problems, warnings) {
     if (doc.stacking && !STACKING.has(doc.stacking)) {
       problems.push(`${path}: unknown stacking rule "${doc.stacking}"`);
     }
+    if (doc.severity && !SEVERITIES.has(doc.severity)) {
+      problems.push(`${path}: unknown severity "${doc.severity}"`);
+    }
   }
 
   // §15.7: an ability that refuses to be copied has to say WHY, from the
@@ -397,7 +411,11 @@ function durationFields(doc) {
   /** @type {Array<[string, unknown]>} */
   const out = [];
   for (const field of ["duration", "cooldown", "sustainability", "defaultDuration"]) {
-    if (doc[field] !== undefined) out.push([field, doc[field]]);
+    // A COMPUTED cooldown is not a tick expression and must not be parsed as
+    // one. Medea's Dragon Tooth Warriors is the case: "(Number of Dragon Tooth
+    // Warriors x ⅔◈)", so the cost is not known until the Skill has
+    // resolved. Its parts are checked below instead.
+    if (doc[field] !== undefined && typeof doc[field] !== "object") out.push([field, doc[field]]);
   }
   for (const [index, a] of (doc.abilities ?? []).entries()) {
     for (const field of ["duration", "cooldown"]) {
@@ -464,11 +482,25 @@ export function compileDocument(doc, dir, library) {
     const abilities = (doc.abilities ?? [])
       .map((entry, index) => resolveRef(entry, library, [], `abilities[${index}]`))
       .filter(Boolean);
+    const type = doc.type ?? spec.actorType;
     return {
       ...base,
-      type: doc.type ?? spec.actorType,
+      type,
       system: actorSystem(doc),
       items: abilities.map((a) => compileEmbeddedAbility(a, doc.id, base._id)),
+      prototypeToken: {
+        // A Servant, Master or platform is ONE unit: its sheet and its token
+        // must be the same document, or a skill resolved from the board writes
+        // to a copy the sheet never shows. Foundry defaults this to false, and
+        // that default cost an afternoon of "the heal applied and the Health
+        // did not change".
+        //
+        // A summon is the opposite case and the reason this is per type rather
+        // than global: Medea conjures up to six Dragon Tooth Warriors from one
+        // statblock, and six linked tokens would share one pool of Health.
+        actorLink: !["summon", "civilian"].includes(type),
+        ...(doc.prototypeToken ?? {}),
+      },
       _key: `!actors!${base._id}`,
     };
   }
@@ -562,6 +594,14 @@ function itemSystem(doc) {
     opensDialog: doc.opensDialog ?? null,
     // §15.4's supersession, as authored data.
     additionalCosts: doc.additionalCosts ?? [],
+    // Medea: a Spell is a category High-Speed Divine Words resets wholesale,
+    // and `sameTurnExclusive` is a pair that may not both fire in one Turn.
+    category: doc.category ?? null,
+    sameTurnExclusive: doc.sameTurnExclusive ?? [],
+    negatedBy: doc.negatedBy ?? [],
+    nonStacking: doc.nonStacking ?? null,
+    damage: doc.damage ?? null,
+    element: doc.element ?? null,
     rules: doc.rules ?? [],
     passiveRules: doc.passiveRules ?? [],
     activeRules: doc.activeRules ?? [],
@@ -579,6 +619,9 @@ function itemSystem(doc) {
     parameterized: doc.parameterized ?? [],
     // Effect-definition fields, present only on effect documents.
     polarity: doc.polarity ?? null,
+    // Appendix A's Instakill/Death ladder, which chance modifiers filter on.
+    severity: doc.severity ?? "normal",
+    preventsAction: Boolean(doc.preventsAction),
     volatility: doc.volatility ?? null,
     valence: doc.valence ?? null,
     stacking: doc.stacking ?? null,

@@ -138,9 +138,30 @@ export function applyEffect({ def, target, magnitude = 0, duration = null, sourc
 
   // ── 7. EMIT ──────────────────────────────────────────────────────────────
   const intents = exclusion.replaces.map((id) => I.removeEffect(target.id, id, "replaced"));
+
+  // The stacking ACTION has to reach the intents, and it did not: every branch
+  // emitted a bare `applyEffect`, which always creates. So `refresh`, `extend`
+  // and `stage` each produced a SECOND document instead of replacing the first,
+  // and every effect using one of those rules -- Bleed, Burn, Stun, most of
+  // Appendix A -- silently duplicated on reapplication.
+  //
+  // `magnitudeStacks` is the one rule where a second instance is the point:
+  // "magnitudes sum at read time, and each keeps its own duration and source."
+  if (REPLACING_ACTIONS.has(stack.action)) {
+    intents.push(I.removeEffect(target.id, def.id, "refreshed"));
+  }
+
   intents.push(I.applyEffect(target.id, effect, source?.unitId ?? null));
   return { outcome: "applied", reason: null, intents, trace };
 }
+
+/**
+ * Stacking actions that REPLACE the instance already present.
+ *
+ * `create` adds beside what is there and `noop` never reaches the emit step, so
+ * these three are the ones that must clear the old document first.
+ */
+const REPLACING_ACTIONS = new Set(["refresh", "extend", "stage"]);
 
 /**
  * Apply a batch of buffs from one ability.
@@ -322,11 +343,49 @@ function blocked(reason, trace) {
  * @returns {number} percentage points of resistance
  */
 function resistanceOf(target, def) {
+  return chanceContribution(target, def, "incoming");
+}
+
+/**
+ * How much this attacker's own contributions IMPROVE what it inflicts.
+ *
+ * `inflictBonus` has been a parameter of `applyEffect` since effects were
+ * written, and **every caller passed 0** — so an outgoing `ApplicationChance`
+ * was collected on every snapshot and read by nothing. Medea's Item
+ * Construction is the first content that needs it, and it would have been
+ * silently inert.
+ *
+ * @param {object} attacker the attacker's unit snapshot
+ * @param {object} def
+ * @returns {number} percentage points
+ */
+export function inflictBonusOf(attacker, def) {
+  return chanceContribution(attacker, def, "outgoing");
+}
+
+/**
+ * The matching `ApplicationChance` contributions, in one direction.
+ *
+ * A contribution that names a **severity** applies only to that tier. Appendix
+ * A keeps Instakill, Death and Erase out of ordinary chance modifiers "unless
+ * stated", so an unnamed contribution covers `normal` alone — the safe reading,
+ * and the one that stops a generic Debuff ChUp quietly improving a Death roll.
+ *
+ * @param {object} unit
+ * @param {object} def
+ * @param {string} direction
+ * @returns {number}
+ */
+function chanceContribution(unit, def, direction) {
+  const severity = def.severity ?? "normal";
   let total = 0;
-  for (const c of target?.applicationChances ?? []) {
-    if (c.direction !== "incoming") continue;
+
+  for (const c of unit?.applicationChances ?? []) {
+    if ((c.direction ?? "incoming") !== direction) continue;
     if (c.effectId && c.effectId !== def.id) continue;
     if (c.valence && c.valence !== def.valence) continue;
+    // Named severity: this tier only. Unnamed: `normal` only.
+    if ((c.severity ?? "normal") !== severity) continue;
     total += c.value ?? 0;
   }
   return total;

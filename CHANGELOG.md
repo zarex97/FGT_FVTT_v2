@@ -36,6 +36,22 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Medea**, the fifth Servant and the first Caster — thirteen abilities, seven of them Spells.
+  Verified end to end in a live world: Golden Fleece (30% of maximum Health, +3 Agility),
+  Keraino, Argos, Teachings of Circe (cleanse by polarity, 10% heal, NP Cooldown Regen),
+  High-Speed Divine Words (resets all seven Spell cooldowns by **category**, not by name), and
+  Trofa correctly refused by `sameTurnExclusive` after Keraino.
+- **Engine features her sheet required**: effect `severity` (Appendix A's Instakill/Death ladder,
+  which chance modifiers filter on), the outgoing `inflictBonus` reader, `sameTurnExclusive`,
+  `negatedBy`, an ability `category`, cooldown changes by category, `removeEffect` by polarity
+  selector, `heal` by percent of maximum, `resource` with `clampToMax`, and the `self:inHomeBase`
+  roll option.
+- **`tools/fgt-eval.mjs`** — evaluate an expression inside the running Foundry tab over CDP.
+  The document-touching layers have no unit tests because they need a live world, and every bug
+  reported from the table so far has been in one of them.
+- Three effects (`movUp`, `stun`, `npCooldownRegen`) and three Dragon Tooth Warrior statblocks,
+  in a new `packs/_source/summons/` directory.
+
 - **Part II of Ch. 45 is complete** — all eight resolution-system chapters (13–20).
 - **Cost supersession (§15.4).** `resolveCosts` resolves a whole set of pending costs against
   each other *before any is charged*, because supersession is a relation between costs and one
@@ -235,6 +251,30 @@ coincide by accident; the headings say which is which.
   debt is paid.
 
 ### Fixed
+
+- **Every `noneRefresh` effect duplicated instead of refreshing.** `resolveStacking` decided
+  `refresh` / `extend` / `stage` and the emit step **ignored the action**, always emitting a bare
+  `applyEffect` — which always creates. So Bleed, Burn, Stun and most of Appendix A grew a second
+  document on every reapplication. Found in a live world when Medea's NP Cooldown Regen appeared
+  twice with the same expiry.
+- **A granted END step did nothing to a Servant who states its own `baseHealth`.** The step was
+  applied by re-reading the Health table at the shifted rank, which looks equivalent and is not:
+  `servantSetupPlan` prefers a stated figure, so the shifted lookup returned the same number.
+  §14.9 says "± 100 per END step" literally, and it now does. Medea is the first Servant to
+  state one, and her Greece Region grant silently missed her Health.
+- **Servant, Master and platform tokens are now LINKED by default.** Foundry defaults
+  `actorLink` to false, so a skill resolved from the board wrote to the token's copy while the
+  sheet showed the world actor — "the heal applied and the Health did not change". Summons stay
+  unlinked, which is the reason the default is per type rather than global: Medea conjures up to
+  six Dragon Tooth Warriors from one statblock, and six linked tokens would share one pool of
+  Health.
+- **`summonServant` handed a live document's `system` to the pure layer**, whose contract is that
+  it takes a snapshot. `region` is a `SetField`, so `region.includes(...)` threw on the first real
+  summon. The engine normalizes at that boundary now, and the SetField guard covers the one
+  pure-layer file that is knowingly handed document data.
+- **`inflictBonus` was a parameter every caller passed 0.** Outgoing `ApplicationChance`
+  contributions were collected on every snapshot and read by nothing; Medea's Item Construction
+  is the first content that needs them.
 
 - **A Skill was resolved as an Attack.** Using Asterios's *Avyssos of Labrys* — three buffs
   applied to Asterios, touching nobody — opened a targeting session listing Asterios as a target,

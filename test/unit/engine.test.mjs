@@ -612,3 +612,65 @@ describe("endRound", () => {
     expect(out.at(-1).entry.kind).toBe("roundEnd");
   });
 });
+
+describe("stacking actions actually reach the intents", () => {
+  const def = (over = {}) => ({
+    id: "npCooldownRegen", name: "NP Cooldown Regen", polarity: "buff",
+    volatility: "nonVolatile", valence: "defensive", stacking: "noneRefresh",
+    baseChance: 100, severity: "normal", ...over,
+  });
+
+  const target = (instances = []) => ({
+    id: "medea", effectInstances: instances, effects: instances.map((i) => i.defId),
+  });
+
+  const ctx = { turnsPerRound: 3, currentTick: 4, roll: 1, inflictBonus: 0, resist: 0 };
+
+  it("REPLACES rather than duplicates on a refresh", () => {
+    // Found in a live world: `resolveStacking` returned "refresh", the emit step
+    // ignored the action, and the applier created a SECOND document. Every
+    // `noneRefresh` effect in the game duplicated on reapplication -- Bleed,
+    // Burn, Stun, and Medea's NP Cooldown Regen, which is where it was noticed.
+    const out = applyEffect({
+      def: def(),
+      target: target([{ defId: "npCooldownRegen", magnitude: 0, expiry: 10 }]),
+      magnitude: 0, duration: "1◈", source: { unitId: "medea" }, ctx,
+    });
+
+    expect(out.outcome).toBe("applied");
+    expect(out.intents.map((i) => i.t)).toEqual(["removeEffect", "applyEffect"]);
+    expect(out.intents[0]).toMatchObject({ effectId: "npCooldownRegen", reason: "refreshed" });
+  });
+
+  it("creates without removing when nothing is there yet", () => {
+    const out = applyEffect({
+      def: def(), target: target([]),
+      magnitude: 0, duration: "1◈", source: { unitId: "medea" }, ctx,
+    });
+
+    expect(out.intents.map((i) => i.t)).toEqual(["applyEffect"]);
+  });
+
+  it("does NOT remove for magnitudeStacks, where a second instance is the point", () => {
+    // "A second instance, not a bigger one -- magnitudes sum at read time, and
+    // each keeps its own duration and source."
+    const out = applyEffect({
+      def: def({ id: "atkUp", stacking: "magnitudeStacks" }),
+      target: target([{ defId: "atkUp", magnitude: 20, expiry: 10 }]),
+      magnitude: 20, duration: "1◈", source: { unitId: "medea" }, ctx,
+    });
+
+    expect(out.intents.map((i) => i.t)).toEqual(["applyEffect"]);
+  });
+
+  it("replaces on a stage increase, so the ladder does not become two rungs", () => {
+    const out = applyEffect({
+      def: def({ id: "poison", stacking: "stage" }),
+      target: target([{ defId: "poison", magnitude: 0, stage: 1, expiry: 10 }]),
+      magnitude: 0, duration: "1◈", source: { unitId: "medea" }, ctx,
+    });
+
+    expect(out.intents.map((i) => i.t)).toEqual(["removeEffect", "applyEffect"]);
+    expect(out.intents[1].effect.stage).toBe(2);
+  });
+});

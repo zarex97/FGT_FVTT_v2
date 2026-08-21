@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   classifyAbility, targetSpecFor, needsTargeting, countsAsAttack, countsAsAct,
+  blockedThisTurn, isNegated,
 } from "../../module/rules/ability-use.mjs";
 
 const ability = (system = {}, type = "ability") => ({ type, system });
@@ -169,5 +170,45 @@ describe("countsAsAttack / countsAsAct", () => {
 
   it("does not count a passive as an Act", () => {
     expect(countsAsAct({ system: {} })).toBe(false);
+  });
+});
+
+describe("blockedThisTurn — sameTurnExclusive", () => {
+  const keraino = { id: "k", system: { sameTurnExclusive: ["medea-trofa"], contentId: "medea-keraino" } };
+
+  it("allows it when the partner has not been used", () => {
+    expect(blockedThisTurn(keraino, [])).toBe(null);
+  });
+
+  it("blocks it once the partner has been used this Turn", () => {
+    // Medea: "Cannot be used on the same Turn as Tρoψα."
+    expect(blockedThisTurn(keraino, ["medea-trofa"])).toBe("medea-trofa");
+  });
+
+  it("does not block on an unrelated ability", () => {
+    expect(blockedThisTurn(keraino, ["medea-aero"])).toBe(null);
+  });
+
+  it("matches on content id as well as document id", () => {
+    // Turn state records whatever the caller had; both are legitimate.
+    expect(blockedThisTurn(keraino, ["k"])).toBe(null);
+    expect(blockedThisTurn({ id: "x", system: { sameTurnExclusive: ["k"] } }, ["k"])).toBe("k");
+  });
+});
+
+describe("isNegated", () => {
+  it("is false with no negating effect present", () => {
+    expect(isNegated({ system: { negatedBy: ["silence"] } }, ["burn"])).toBe(false);
+  });
+
+  it("is true while the negating effect is on the Unit", () => {
+    // Medea: High-Speed Divine Words "cannot be used and its effects are
+    // negated while inflicted with Silence". The second half matters because
+    // Silence can land between declaration and resolution.
+    expect(isNegated({ system: { negatedBy: ["silence"] } }, ["silence"])).toBe(true);
+  });
+
+  it("is false for an ability nothing negates", () => {
+    expect(isNegated({ system: {} }, ["silence"])).toBe(false);
   });
 });

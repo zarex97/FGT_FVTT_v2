@@ -74,12 +74,27 @@ export function darkModifiers(unit, current) {
  * @param {object} board
  * @returns {object|null}
  */
-function ownBaseOf(unit, board) {
+export function ownBaseOf(unit, board) {
   for (const zone of Object.values(board?.zones ?? {})) {
     if (zone.faction !== unit?.faction) continue;
     if ((zone.panels ?? []).some((p) => chebyshev(p, unit.panel) === 0)) return zone;
   }
   return null;
+}
+
+/**
+ * Is this unit standing in its OWN Home Base?
+ *
+ * Its own, not any: Medea's Territory Creation reduces damage taken by allies
+ * "who are in **their** Home Base", so a unit sheltering in someone else's gets
+ * nothing. The distinction is invisible until two allied factions share a map.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+export function inOwnHomeBase(unit, board) {
+  return ownBaseOf(unit, board) !== null;
 }
 
 /**

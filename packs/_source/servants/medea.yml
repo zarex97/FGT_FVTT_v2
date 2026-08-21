@@ -1,0 +1,58 @@
+# packs/_source/servants/medea.yml
+# Conversion source: char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea
+name: Medea
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Medea
+servantClasses: [caster]
+classContainer: caster
+alignment: { order: neutral, morality: evil }
+region: [greece]
+attributes: [female, servant, earth, humanoid, antiHero]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: E, end: D, agi: C, mag: "A+", luc: B }
+baseHealth: 750
+mov: 4
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 50, mag: 210 }
+# A Caster attacks with MAG. Her Noble Phantasm is the exception and says so.
+normalAttack: { mode: fixed, component: mag }
+sustainability: "4◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: medea-item-construction }
+  - { ref: medea-territory-creation }
+  - { ref: medea-high-speed-divine-words }
+  - { ref: medea-golden-fleece }
+  - { ref: medea-teachings-of-circe }
+  - { ref: medea-aero }
+  - { ref: medea-argos }
+  - { ref: medea-keraino }
+  - { ref: medea-trofa }
+  - { ref: medea-atlas }
+  - { ref: medea-dragon-tooth-warriors }
+  - { ref: medea-rain-of-light }
+  - { ref: medea-rule-breaker }
+
+notes: |
+  The fifth Servant, and the densest sheet converted so far: thirteen abilities, seven of them
+  Spells, and a Noble Phantasm that rewrites the relationship graph.
+
+  She is also the first Caster, which matters more than it sounds. Her Detect is 5 panels in her
+  Home Base and 3 outside it (Ch. 08), her normal attack uses Base Attack (MAG), and she is a
+  legal *contractor* -- §16.2 lets a Caster contract a Servant, which nothing on the board could
+  do before her.
+
+  Rule Breaker is the first content to use the contract intents added for §16.2. It is also the
+  only ability in the reference set that takes Command Spells FROM a Master: the sheet is
+  explicit that the Servant's Contract and three Command Spells are given to Medea, which is
+  precisely `markContract` plus `grantCommandSpells` and is why those two land in one batch.
+
+  Its `evadeFailed` condition is the subtle half. A successful Evade keeps the contract, so the
+  clause cannot be a phase that runs unconditionally after damage -- it has to read the ladder's
+  outcome.

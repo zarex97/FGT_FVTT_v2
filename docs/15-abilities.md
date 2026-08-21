@@ -99,6 +99,11 @@ The rulebook's own statements that define the relationships:
 > "unless stated" through the `countsAsAttack` / `countsAsAct` fields, which the chapter's own
 > worked example used and nothing had ever read.
 >
+> **An `applyEffects` phase carries `effects:`, not `rules:`.** §15.2's own shape, and the
+> distinction matters to the validator: `phases[].rules` is walked as *rule elements* and each
+> entry must carry a `key`, while `effects` are effect applications. Both readers accept either
+> shape, so Asterios's earlier `rules: [{ key: OnEvent, effect: ... }]` still works.
+>
 > **A targeting session opens only when something is chosen.** Self-anchored is not sufficient on
 > its own — a 5×5 block projected from the caster still has four directions — so `needsTargeting`
 > asks whether the anchor, the selection or the shape leaves a decision.

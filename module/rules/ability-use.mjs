@@ -199,3 +199,43 @@ export function countsAsAct(item) {
   const use = classifyAbility(item);
   return use.kind === "attack" || use.kind === "active";
 }
+
+/**
+ * Which mutually-exclusive partner already went, if any.
+ *
+ * Medea's Keraino and Trofa may not both be used in one Turn, and the exclusion
+ * is declared on **both** sides. A one-sided declaration would be decided by
+ * whichever happened to be used first, which is not a rule.
+ *
+ * Matched against both the document id and the content id, because turn state
+ * records whatever the caller had and both are legitimate identifiers.
+ *
+ * @param {object} item
+ * @param {string[]} usedThisTurn ability ids already used
+ * @returns {string|null} the blocking ability, or null
+ */
+export function blockedThisTurn(item, usedThisTurn) {
+  const exclusive = item?.system?.sameTurnExclusive ?? [];
+  if (exclusive.length === 0) return null;
+
+  const used = new Set(usedThisTurn ?? []);
+  return exclusive.find((id) => used.has(id)) ?? null;
+}
+
+/**
+ * Is this ability switched off by an effect the Unit is carrying?
+ *
+ * Distinct from a requirement, and both halves are needed. Medea's High-Speed
+ * Divine Words "cannot be used **and its effects are negated** while inflicted
+ * with Silence": the requirement covers the first, and this covers the second —
+ * which matters because Silence can land between declaration and resolution.
+ *
+ * @param {object} item
+ * @param {string[]} effects the bearer's active effect ids
+ * @returns {boolean}
+ */
+export function isNegated(item, effects) {
+  const negatedBy = item?.system?.negatedBy ?? [];
+  if (negatedBy.length === 0) return false;
+  return negatedBy.some((id) => (effects ?? []).includes(id));
+}

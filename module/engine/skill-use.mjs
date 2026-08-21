@@ -22,10 +22,12 @@
  */
 
 import { canUseAbility } from "../rules/costs.mjs";
-import { targetSpecFor, countsAsAttack, countsAsAct } from "../rules/ability-use.mjs";
+import {
+  targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
+} from "../rules/ability-use.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { applyEffect } from "./effect-applier.mjs";
+import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { currentBoard, unitFrom, unitSnapshot } from "./board.mjs";
@@ -64,6 +66,16 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
   });
   if (!usage.ok) return { ok: false, reason: usage.reason };
 
+  // Negated outright by an effect the Unit is carrying. Medea's High-Speed
+  // Divine Words is "negated while inflicted with Silence", and that is a
+  // different question from a requirement -- Silence can land between the
+  // declaration and this moment.
+  if (isNegated(ability, self.effects ?? [])) return { ok: false, reason: "negated" };
+
+  // Its mutually-exclusive partner already went this Turn.
+  const blocker = blockedThisTurn(ability, usedThisTurn(actor));
+  if (blocker) return { ok: false, reason: "sameTurnExclusive", blocker };
+
   // A Skill spends the skill budget, not an attack (Ch. 18). `countsAsAttack`
   // is consulted rather than assumed: a damaging Attack Skill spends both.
   const asAttack = countsAsAttack(ability);
@@ -80,6 +92,9 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
   const marks = {
     ...(countsAsAct(ability) ? { acted: true } : {}),
     ...(asAttack ? { attacked: true } : { usedActiveSkill: true }),
+    // Recorded so a mutually-exclusive partner can see it went. Content ids,
+    // because that is what `sameTurnExclusive` names.
+    abilitiesUsed: [...usedThisTurn(actor), ability.system?.contentId || ability.id],
   };
 
   await applyWorldIntents([
@@ -117,15 +132,31 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
  */
 function resolveSkillTargets(ability, self, board, placement) {
   const spec = targetSpecFor(ability, self.range?.panels ?? 1);
-  const resolved = resolveTargets(spec, self, board, placement);
 
-  // A self-targeting spec that resolved to nothing still means the caster: the
-  // resolver drops a unit that fails a relation filter, and "self" against an
-  // empty board is a filter that cannot match anything else.
-  if (resolved.units.length === 0 && resolved.errors.length === 0) {
+  // A skill that targets only its caster resolves to the caster **without
+  // consulting geometry at all**. Running it through the targeting resolver
+  // made a self-buff depend on the Servant having a token placed on the current
+  // scene -- Golden Fleece refused with "no legal targets in the selected area"
+  // for a Medea standing in the actor directory, which is a sentence about a
+  // board that has nothing to do with restoring her own Health.
+  if (!needsTargeting(ability) && targetsSelfOnly(spec)) {
     return { units: [{ unitId: self.id }], errors: [] };
   }
+
+  const resolved = resolveTargets(spec, self, board, placement);
   return { units: resolved.units, errors: resolved.errors };
+}
+
+/**
+ * Is this spec addressed at the caster and nobody else?
+ *
+ * @param {object} spec
+ * @returns {boolean}
+ */
+function targetsSelfOnly(spec) {
+  const anchor = spec?.anchor?.kind ?? spec?.anchor ?? "self";
+  const relations = spec?.selection?.relations ?? ["self"];
+  return anchor === "self" && relations.every((r) => r === "self");
 }
 
 /**
@@ -157,6 +188,20 @@ async function runPhases(ability, actor, targets, board) {
           applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot));
           break;
 
+        case "heal": {
+          // Of MAXIMUM, not of current: 30% of a nearly-dead Medea's current
+          // Health is a rounding error, and the sheet says "of its maximum
+          // value" for exactly that reason.
+          const max = doc.system?.health?.max ?? 0;
+          const amount = phase.percentOfMax
+            ? Math.floor(max * (phase.percentOfMax / 100))
+            : (phase.amount ?? 0);
+          if (amount > 0) {
+            await applyWorldIntents([I.heal(target.unitId, amount, ability.id)], `skill:${ability.id}:heal`);
+          }
+          break;
+        }
+
         case "statChange":
           await applyWorldIntents(
             (phase.changes ?? []).map((c) => I.statDelta(target.unitId, `${c.stat}.value`, c.delta, c.clamp !== false)),
@@ -166,23 +211,27 @@ async function runPhases(ability, actor, targets, board) {
 
         case "resource":
           await applyWorldIntents(
-            (phase.changes ?? []).map((c) => I.resource(target.unitId, c.key, c.delta)),
+            (phase.changes ?? []).map((c) =>
+              // `clampToMax` is the difference between "restores 3 Agility" and
+              // "grants 3 Agility": Golden Fleece restores, so it cannot push a
+              // Servant above the maximum it rolled at summon.
+              (c.clampToMax
+                ? I.statDelta(target.unitId, c.key, c.delta, true)
+                : I.resource(target.unitId, c.key, c.delta))),
             `skill:${ability.id}:resource`,
           );
           break;
 
         case "cooldown":
           await applyWorldIntents(
-            (phase.changes ?? []).map((c) =>
-              I.cooldown(target.unitId, c.abilityId, Math.abs(c.delta ?? 0), (c.delta ?? 0) < 0 ? "reduce" : "set")),
+            cooldownChanges(phase, doc),
             `skill:${ability.id}:cooldown`,
           );
           break;
 
         case "removeEffect":
           await applyWorldIntents(
-            (phase.effects ?? [phase.effect]).filter(Boolean)
-              .map((e) => I.removeEffect(target.unitId, e.id ?? e, "skill")),
+            removals(phase, doc).map((id) => I.removeEffect(target.unitId, id, "skill")),
             `skill:${ability.id}:remove`,
           );
           break;
@@ -238,7 +287,10 @@ async function applyPhaseEffects(phase, ability, actor, target) {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
         currentTick: game.combat?.system?.globalTurn ?? 0,
         roll: roll.total,
-        inflictBonus: 0,
+        // The attacker's own outgoing `ApplicationChance` contributions.
+        // Hardcoded to 0 until Medea's Item Construction needed it, which
+        // made every outgoing contribution in the game inert.
+        inflictBonus: inflictBonusOf(unitSnapshot(actor), def),
         resist: 0,
       },
     });
@@ -254,7 +306,10 @@ async function applyPhaseEffects(phase, ability, actor, target) {
 
 /** @param {object} ability @param {object} actor @returns {object[]} */
 function cooldownIntents(ability, actor) {
-  const raw = ability.system?.cooldown?.value ?? ability.system?.cooldown ?? null;
+  // `max` is the authored tick expression; `remaining` is the running clock.
+  // Reading `.value` -- which does not exist on this schema -- silently produced
+  // no cooldown at all, so every Skill was reusable the moment it resolved.
+  const raw = ability.system?.cooldown?.max ?? null;
   if (!raw || typeof raw === "number") return [];
 
   try {
@@ -338,4 +393,81 @@ async function postCard(actor, ability, targets, applied) {
   );
 
   await ChatMessage.create({ content, speaker: ChatMessage.getSpeaker({ actor }) });
+}
+
+/**
+ * The cooldown intents a phase produces.
+ *
+ * A change may name **one ability** or a whole **category**. Medea's High-Speed
+ * Divine Words resets "all of Medea's Spells", and naming each of the seven
+ * would go stale the moment an eighth was written -- which is the same argument
+ * that made `category` a field rather than a list in the ability.
+ *
+ * @param {object} phase
+ * @param {object} doc the actor whose abilities are affected
+ * @returns {object[]}
+ */
+function cooldownChanges(phase, doc) {
+  /** @type {object[]} */
+  const out = [];
+
+  for (const change of phase.changes ?? []) {
+    const targets = change.category
+      ? doc.items.filter((i) => i.system?.category === change.category)
+      : [doc.items.get(change.abilityId)].filter(Boolean);
+
+    for (const item of targets) {
+      // `set: 0` is "completely reduce", which is a set rather than a subtract:
+      // a reduce of some large number would work by accident and read as a bug.
+      if (change.set !== undefined) out.push(I.cooldown(doc.id, item.id, change.set, "set"));
+      else out.push(I.cooldown(doc.id, item.id, Math.abs(change.delta ?? 0), (change.delta ?? 0) < 0 ? "reduce" : "set"));
+    }
+  }
+  return out;
+}
+
+/**
+ * Which effect ids a `removeEffect` phase strips.
+ *
+ * A `selector` matches by **polarity** rather than by name -- "remove all
+ * debuffs" has to cover debuffs authored after the Skill was written, and a
+ * name list would silently stop covering them.
+ *
+ * @param {object} phase
+ * @param {object} doc
+ * @returns {string[]}
+ */
+function removals(phase, doc) {
+  const named = (phase.effects ?? [phase.effect]).filter(Boolean).map((e) => e.id ?? e);
+  if (named.length > 0) return named;
+
+  const selector = phase.selector ?? null;
+  if (!selector) return [];
+
+  return doc.effects
+    .filter((e) => {
+      const def = EffectRegistry.get(e.system?.defId);
+      if (!def) return false;
+      if (selector.polarity && def.polarity !== selector.polarity) return false;
+      // An unremovable effect stays: Appendix A marks a few that no cleanse
+      // reaches, and a blanket "remove all debuffs" must not be the exception.
+      return !def.unremovable;
+    })
+    .map((e) => e.system.defId);
+}
+
+/**
+ * Which abilities this Unit has already used this Turn.
+ *
+ * Read as **stale-by-tick** like the rest of turn state: a list stamped with an
+ * earlier tick is spent whatever it says, so a missed reset cannot leave a
+ * Servant permanently unable to use half its Skills.
+ *
+ * @param {object} actor
+ * @returns {string[]}
+ */
+function usedThisTurn(actor) {
+  const state = actor.system?.turnState ?? {};
+  const now = game.combat?.system?.globalTurn ?? 0;
+  return state.tick === now ? [...(state.abilitiesUsed ?? [])] : [];
 }

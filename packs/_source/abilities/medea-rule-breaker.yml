@@ -1,0 +1,43 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+#
+# The contract theft is the point, and it is the first content to use the
+# contract intents (§16.2): cutting a Servant's Contract, stripping the
+# Master's Command Spells, and granting three namespaced ones to Medea.
+schema: 1
+id: medea-rule-breaker
+name: "σπάσιμο κανόνα (Rule Breaker): Destroyer of All Talismans"
+rank: "C+"
+isNP: true
+npType: antiUnit
+cooldown: "5◈+⅓◈"
+timing: { window: ownTurn }
+# Stated: "Uses Base Attack (STR)" -- unusual for a Caster, and the reason the
+# component is declared rather than derived from her class.
+description: |
+  Range 1. Uses Base Attack (STR). Deals 1x damage plus 100 and removes all buffs from the
+  Defending Unit. If the DU is a Servant and it Failed to Evade the NP, Rule Breaker cuts the
+  Servant's Contract with its Master and removes that Master's Command Spells; the Contract,
+  along with three Command Spells, is given to Medea.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 1
+  flatBonus: 100
+  component: str
+phases:
+  - kind: damage
+    target: reuse
+  - kind: removeEffect
+    target: reuse
+    # Every buff, by polarity -- the NP is named "Destroyer of All Talismans".
+    selector: { polarity: buff }
+  - kind: cutContract
+    target: reuse
+    # Only on a Servant, and only if the Evade FAILED. Both conditions are in
+    # the sheet and both matter: a successful Evade keeps the contract, and a
+    # Master or a summon has no contract to cut.
+    requires: { targetKind: servant, evadeFailed: true }
+    grantToCaster: { commandSpells: 3 }
+    stripMasterCommandSpells: true

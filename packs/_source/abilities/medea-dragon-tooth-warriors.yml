@@ -1,0 +1,38 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+#
+# The most structurally demanding thing on this sheet: two nested rolls decide
+# how many summons appear and what each one is, and the COOLDOWN depends on the
+# first roll's result -- so the cost is not known until after the Skill has
+# resolved.
+schema: 1
+id: medea-dragon-tooth-warriors
+name: "Dragon Tooth Warriors"
+rank: null
+category: spell
+timing: { window: ownTurn }
+# Not a fixed tick: "(Number of Dragon Tooth Warriors x ⅔◈)".
+cooldown: { perUnit: "⅔◈", countFrom: summonCount }
+description: |
+  Spell. Roll 1d6 for the number of Dragon Tooth Warriors conjured, placed within a 5x5 panel
+  area around Medea. Roll 1d4 for each to decide its type. They do not count towards the number
+  of Units that Move and/or Attack during your Turn, and each may Move/Attack only once per Turn.
+  Enemy Units cannot Attack Medea or her Master while any Dragon Tooth Warrior is directly next
+  to them.
+phases:
+  - kind: summon
+    spec:
+      countRoll: "1d6"
+      typeRoll: "1d4"
+      # Entry 4 is "your choice of the above", which is a PROMPT rather than a
+      # fourth statblock.
+      choiceOn: [4]
+      choiceFrom: [dragon-tooth-warrior-blade, dragon-tooth-warrior-bow, dragon-tooth-warrior-daggers]
+      types:
+        1: dragon-tooth-warrior-blade
+        2: dragon-tooth-warrior-bow
+        3: dragon-tooth-warrior-daggers
+      placement: { shape: square, size: 5, anchor: self }
+      # Both clauses from the sheet, as summon properties rather than as rules
+      # the engine would have to special-case for Medea.
+      exemptFromUnitLimit: true
+      actsOncePerTurn: true

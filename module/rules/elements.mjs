@@ -533,6 +533,10 @@ export const EXECUTORS = Object.freeze({
       direction: el.direction ?? "incoming",
       valence: el.valence ?? null,
       effectId: el.effect ?? null,
+      // Appendix A keeps Instakill/Death/Erase out of ordinary chance modifiers
+      // "unless stated". A contribution that names a severity applies only to
+      // that tier, which is how Medea's Item Construction says 50 / 25 / 10.
+      severity: el.severity ?? null,
       value: scalar(resolveValue(el, rank, ctx)),
       source,
     });

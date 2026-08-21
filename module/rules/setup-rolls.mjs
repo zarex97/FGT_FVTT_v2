@@ -198,7 +198,9 @@ export function summonPlan({ sheet, master = null, warRegion = null, masterGrant
 
   // The war Region grants +1 to ALL parameters of a matching Servant, and
   // matching is `any` across the Servant's region list.
-  if (warRegion && (sheet?.region ?? []).includes(warRegion)) {
+  // Spread: `region` is a SetField on the document, and the caller is entitled
+  // to hand this function either shape.
+  if (warRegion && [...(sheet?.region ?? [])].includes(warRegion)) {
     const all = { str: 1, end: 1, agi: 1, mag: 1, luc: 1 };
     steps.push({ kind: "grant", source: `region:${warRegion}`, steps: all,
       baseAttack: baseAttackAdjustment(all) });

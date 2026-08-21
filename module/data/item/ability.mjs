@@ -56,6 +56,21 @@ function abilityCommon() {
     // rather than stacking with it.
     additionalCosts: new fields.ArrayField(new fields.ObjectField()),
 
+    // A named group of abilities something can act on wholesale. Medea's
+    // High-Speed Divine Words resets "all of Medea's Spells", and naming each
+    // one would go stale the moment an eighth Spell was written.
+    category: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // Abilities that may not both be used in the same Turn. Declared on BOTH
+    // sides -- a one-sided exclusion is decided by whichever happens to be used
+    // first, which is not a rule.
+    sameTurnExclusive: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // Effects that switch this ability off entirely while present.
+    negatedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // "Only the highest Rank takes effect" (§10.6): a group and what to compare.
+    nonStacking: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    damage: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+
     // Whether Scáthach may copy this (§15.7). Authored per ability because
     // "Skills a Servant is physically born with" is a judgement the author
     // makes and the engine cannot infer -- there is no field on Natural Body
@@ -98,6 +113,18 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       valence: new fields.StringField({ required: false, nullable: true, initial: null }),
       stacking: new fields.StringField({ required: false, nullable: true, initial: null }),
       baseChance: new fields.NumberField({ required: false, nullable: true, initial: null }),
+      // Appendix A's Instakill/Death ladder. `Debuff ChUp` and `Debuff Immune`
+      // both "do not affect Instakill/Death/Erase unless stated", so this is
+      // what a chance modifier filters on -- and Medea's Item Construction is
+      // the first content to state otherwise.
+      severity: new fields.StringField({
+        required: false, initial: "normal", choices: ["normal", "instakill", "death", "erase"],
+      }),
+      // Whether bearing this effect stops the Unit acting. Read by §23.9's
+      // Master-protection invalidation, which had to guess from a hard-coded
+      // list before any effect could say so itself.
+      preventsAction: new fields.BooleanField({ initial: false }),
+      periodic: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       defaultMagnitude: new fields.NumberField({ required: false, nullable: true, initial: null }),
       defaultDuration: new TickField(),
       unremovable: new fields.BooleanField({ initial: false }),

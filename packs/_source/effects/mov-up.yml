@@ -1,0 +1,13 @@
+# Appendix A -- MOV modifier. Medea's Keraino is the first content to need it.
+schema: 1
+id: movUp
+name: "MOV Up"
+description: "MOV is increased by X."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: highestOnly
+baseChance: 100
+rules:
+  - key: MovDelta
+    value: "@magnitude"

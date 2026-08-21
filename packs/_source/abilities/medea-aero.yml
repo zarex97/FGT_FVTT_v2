@@ -1,0 +1,28 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea-aero
+name: "Αερο (Aero)"
+rank: null
+category: spell
+cooldown: "2◈"
+timing: { window: ownTurn }
+# A Damage Spell: it deals damage directly, so it IS an Attack Skill and counts
+# as the Unit's Attack (§15.1). Spells use Base Attack (MAG) unless stated.
+isSpell: true
+element: wind
+description: |
+  Damage Spell. Deals 2x damage and inflicts Bleed for 1◈ Turns. Wind damage.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 2
+  component: mag
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: bleed, duration: "1◈" }

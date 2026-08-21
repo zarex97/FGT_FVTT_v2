@@ -135,6 +135,9 @@ export function combatantCommon() {
       // rather than a flag, because `transfersPerTurn` is per item and one of
       // them may allow more than one.
       itemTransfers: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+      // Which abilities went this Turn, for `sameTurnExclusive` (Medea's
+      // Keraino and Trofa). Stale-by-tick like everything else here.
+      abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
     }),
   };
 }

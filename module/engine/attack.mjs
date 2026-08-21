@@ -26,7 +26,7 @@ import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
-import { applyEffect } from "./effect-applier.mjs";
+import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls } from "./scheduler.mjs";
@@ -966,7 +966,10 @@ async function applyAbilityEffects(state, damageResult) {
           turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
           currentTick: game.combat?.system?.globalTurn ?? 0,
           roll: roll.total,
-          inflictBonus: 0,
+          // The attacker's own outgoing `ApplicationChance` contributions.
+          // Hardcoded to 0 until Medea's Item Construction needed it, which
+          // made every outgoing contribution in the game inert.
+          inflictBonus: inflictBonusOf(unitSnapshot(game.actors.get(state.attackerId)), def),
           resist: 0,
         },
       });

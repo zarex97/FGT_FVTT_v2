@@ -1,0 +1,22 @@
+# Medea, char_orig_sheets/Copia de Medea.md
+schema: 1
+id: medea-rain-of-light
+name: "Rain of Light: Machia Hecatia Graea"
+rank: null
+category: spell
+cooldown: "3◈"
+timing: { window: ownTurn }
+isSpell: true
+description: |
+  Damage Spell. Range +1 for the Combat Process. Hits a 3x3 panel area within Range for 3x damage.
+targeting:
+  # Range 4: the Servant's 3, plus this Spell's own +1 "for the Combat Process".
+  anchor: { kind: point, range: 4 }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy], chooser: all }
+damage:
+  multiplier: 3
+  component: mag
+phases:
+  - kind: damage
+    target: reuse
