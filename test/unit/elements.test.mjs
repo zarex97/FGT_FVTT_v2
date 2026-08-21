@@ -388,3 +388,57 @@ describe("EffectRegistry", () => {
     expect(EffectRegistry.size).toBe(0);
   });
 });
+
+describe("a RankShift aimed at another ability", () => {
+  const divinity = (rank) => ability({
+    id: "div", name: "Divinity", slug: "divinity", rank,
+    passiveRules: [{ key: "FlatDamage", table: "divinity", includesNP: true }],
+  });
+  const goddessOfWar = (predicate) => ability({
+    id: "gow", name: "Goddess of War", rank: "A",
+    passiveRules: [{ key: "RankShift", ability: "divinity", to: "A", ...(predicate ? { predicate } : {}) }],
+  });
+
+  it("raises the table lookup the shifted ability performs", () => {
+    // "Penthesilea's Divinity Rank is increased from B to A" — the one clause
+    // of hers that had nowhere to live. Divinity B is +40 and A is +50, and
+    // the shift is what moves the lookup.
+    expect(collectContributions([divinity("B")]).modifiers[0].value).toBe(40);
+    expect(collectContributions([divinity("B"), goddessOfWar()]).modifiers[0].value).toBe(50);
+  });
+
+  it("names the destination rather than counting steps across a grade", () => {
+    // `B` to `A` is five positions on the dense ladder (`B+`, `B++`, `A--`,
+    // `A-`, `A`). Making an author count them is how the clause gets written
+    // wrong; `to: A` is what the sheet says.
+    const stepped = ability({
+      id: "s", name: "Stepped", passiveRules: [{ key: "RankShift", ability: "divinity", steps: 5 }],
+    });
+    expect(collectContributions([divinity("B"), stepped]).modifiers[0].value).toBe(50);
+  });
+
+  it("honours the shift's own predicate", () => {
+    // Goddess of War is "only active when Mad Enhancement is deactivated", so
+    // the rank goes back to B while she is raging.
+    const gated = [divinity("B"), goddessOfWar(["not:self:skillActive:madEnhancement"])];
+
+    expect(collectContributions(gated, { options: new Set() }).modifiers[0].value).toBe(50);
+    expect(collectContributions(gated, {
+      options: new Set(["self:skillActive:madEnhancement"]),
+    }).modifiers[0].value).toBe(40);
+  });
+
+  it("never lowers a rank", () => {
+    // Every such clause in the source is a grant. A Divinity already at A+
+    // does not drop to A because something offers it A.
+    expect(collectContributions([divinity("A+"), goddessOfWar()]).modifiers[0].value).toBe(55);
+  });
+
+  it("leaves a parameter RankShift alone", () => {
+    const out = collectContributions([ability({
+      passiveRules: [{ key: "RankShift", parameter: "str", steps: 1 }],
+    })]);
+    expect(out.statDeltas[0]).toMatchObject({ stat: "parameters.str", rankShift: 1 });
+    expect(out.abilityRankShifts).toEqual([]);
+  });
+});

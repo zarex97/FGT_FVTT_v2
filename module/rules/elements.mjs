@@ -29,6 +29,7 @@ import { orderElements } from "./ordering.mjs";
  * @typedef {object} Contributions
  * @property {object[]} modifiers        damage-pipeline modifiers
  * @property {object[]} statDeltas       derived-stat changes
+ * @property {object[]} abilityRankShifts  shifts to another ability's own rank
  * @property {object[]} checkModifiers   Agility/Luck/application check modifiers
  * @property {string[]} immunities       effect ids this unit cannot receive
  * @property {object[]} suppressions     what is switched off
@@ -50,6 +51,7 @@ function empty() {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [],
     attributes: [], magicResistance: null, damageNegation: [], zonBonuses: [],
+    abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], unhandled: [],
   };
 }
@@ -68,8 +70,10 @@ export function collectContributions(abilities, ctx = {}) {
   const out = empty();
   const predicateCtx = { options: ctx.options ?? new Set(), refs: ctx.refs ?? {} };
 
+  const shifts = abilityRankShifts(abilities, predicateCtx);
+
   for (const ability of abilities ?? []) {
-    const rank = ability.rank instanceof Rank ? ability.rank : Rank.parseOrNull(ability.rank);
+    const rank = shiftedRank(ability, shifts);
     const source = ability.name ?? ability.id ?? "unknown";
 
     // Passives always contribute; actives only while the ability is active.
@@ -139,6 +143,79 @@ export function deferredPredicate(predicate) {
   const options = referencedOptions(predicate);
   const later = [...options].some((o) => DEFERRED_PREFIXES.some((p) => o.startsWith(p)));
   return later ? predicate : null;
+}
+
+/**
+ * One ability's rank, with any shift aimed at it applied.
+ *
+ * Matched on `slug` first and `id` second, for the same reason `hasSkill` does:
+ * a display name can be renamed and a slug cannot.
+ *
+ * @param {object} ability
+ * @param {Map<string, number>} shifts
+ * @returns {Rank|null}
+ */
+function shiftedRank(ability, shifts) {
+  const rank = ability.rank instanceof Rank ? ability.rank : Rank.parseOrNull(ability.rank);
+  if (!rank || shifts.size === 0) return rank;
+
+  const shift = shifts.get(ability.slug) ?? shifts.get(ability.id) ?? null;
+  if (!shift) return rank;
+
+  // "Increased FROM B TO A" -- and only upward. A shift that would lower the
+  // rank is not applied, because every such clause in the source is a grant.
+  if (shift.to) {
+    const target = Rank.parseOrNull(shift.to);
+    return target && Rank.compare(target, rank) > 0 ? target : rank;
+  }
+  return shift.steps === 0 ? rank : rank.step(shift.steps);
+}
+
+/**
+ * The rank each ability contributes at, after any shift aimed at it.
+ *
+ * A **pre-pass**, run before the executors, because an ability's rank is an
+ * *input* to collection — `Divinity` looks its flat bonus up against the rank
+ * of the ability carrying it — and resolving it afterwards would be a cycle.
+ *
+ * Only shifts whose own predicate passes count, which is what keeps
+ * Penthesilea's clause honest: the shift is a Goddess of War effect, and
+ * Goddess of War is *"only active when Mad Enhancement is deactivated"*.
+ *
+ * Two forms, and the source uses the second. `steps` moves along the dense
+ * ladder (`B` → `B+`); `to` names the destination outright, which is what
+ * *"increased **from B to A**"* says and the only form that does not require
+ * the author to count `+`/`-` positions across a grade boundary.
+ *
+ * @param {object[]} abilities
+ * @param {object} predicateCtx
+ * @returns {Map<string, {steps: number, to: string|null}>} slug or id → shift
+ */
+export function abilityRankShifts(abilities, predicateCtx) {
+  /** @type {Map<string, {steps: number, to: string|null}>} */
+  const shifts = new Map();
+
+  for (const ability of abilities ?? []) {
+    const elements = [
+      ...(ability.rules ?? []),
+      ...(ability.passiveRules ?? []),
+      ...(ability.active ? (ability.activeRules ?? []) : []),
+    ];
+    for (const el of elements) {
+      if (el?.key !== "RankShift" || !el.ability) continue;
+      if (el.suppressed) continue;
+      if (el.predicate && !testPredicate(el.predicate, predicateCtx)) continue;
+
+      const prior = shifts.get(el.ability) ?? { steps: 0, to: null };
+      shifts.set(el.ability, {
+        steps: prior.steps + (el.to ? 0 : (el.steps ?? 1)),
+        // A named destination wins over accumulated steps: "to A" is an
+        // instruction about where to end up, not an adjustment.
+        to: el.to ?? prior.to,
+      });
+    }
+  }
+  return shifts;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -272,9 +349,24 @@ function normalizeAction(a, rank, ctx) {
   /** @type {Record<string, unknown>} */
   const out = { kind: key, ...rest };
 
-  // `table:` names a roll the caller must make; resolving it here turns a rank
-  // into the formula and the per-step bonus that go with it.
-  if (a.table) out.roll = rollSpec(a.table, rank);
+  // `table:` is resolved HERE, where the owning ability's rank is known --
+  // by the time an action is dispatched the rank is gone.
+  //
+  // A table yields either a dice formula or a NUMBER, and the two go to
+  // different places: a formula becomes a roll the caller must make, a number
+  // becomes the amount outright. Sending a numeric table through `rollSpec`
+  // produced `{formula: null}` and an action that did nothing, which is what
+  // `madEnhancementDrain` would have done -- it has been in `domain/tables.mjs`
+  // since the tables were transcribed with nothing reading it.
+  if (a.table) {
+    const value = lookup(a.table, rank);
+    if (typeof value === "number") {
+      out.amount = value;
+      out.table = undefined;
+    } else {
+      out.roll = rollSpec(a.table, rank);
+    }
+  }
   if (a.cooldownTable) out.cooldown = lookup(a.cooldownTable, rank);
   if (a.amount !== undefined) out.amount = resolveValue(a, rank, ctx, "amount");
   return out;
@@ -478,6 +570,17 @@ export const EXECUTORS = Object.freeze({
   },
 
   RankShift(el, { source, out }) {
+    // A shift aimed at an ABILITY's rank rather than at a parameter.
+    // Penthesilea's Goddess of War is the only one in the reference set:
+    // *"Penthesilea's Divinity Rank is increased from B to A"*, which raises
+    // the table lookup her Divinity performs. It is resolved in a pre-pass
+    // (`abilityRankShifts`) before any executor runs, because the shifted rank
+    // is an INPUT to the collection rather than an output of it.
+    if (el.ability) {
+      out.abilityRankShifts.push({ ability: el.ability, steps: el.steps ?? null, to: el.to ?? null, source });
+      return;
+    }
+
     out.statDeltas.push({
       stat: `parameters.${el.parameter}`, rankShift: el.steps ?? 1,
       target: el.target ?? null, source,

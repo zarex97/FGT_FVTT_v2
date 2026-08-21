@@ -380,6 +380,18 @@ Pollux (female), and Heracles are Greek; Castor and Heracles are male. So agains
 `Goddess of War` is frequently disabled. The UI must make the current state and its cause
 extremely visible.
 
+**AUTHORED, and re-reviewed.** `packs/_source/servants/penthesilea.yml` plus eight abilities and
+three named buffs; every clause verified in a live world in **both** Mad Enhancement states,
+which is the only way this Servant can be checked at all. The mapping above survived, and the
+design tension it predicts is exactly what the live test shows: with three Greek Males on the
+board she cannot switch Mad Enhancement off, so *Goddess of War* is silent, her Divinity drops
+from 50 back to 40, *Charisma* refuses with `modeInactive`, and *Outrage Amazon* becomes usable.
+
+Two clauses the table understates. `Mad Enhancement`'s drain is on the **Master**, not on her, and
+its floor limits *that deduction* rather than the pool — ordinary damage may still take the Master
+below 30. And `Howl of the War God` clause 1 **applies** its buff to each ally rather than
+projecting an aura: they keep it for 1◈ after leaving the radius.
+
 ---
 
 ## D.12 Nemo

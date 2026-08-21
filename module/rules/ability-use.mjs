@@ -58,6 +58,16 @@ export function classifyAbility(item) {
     return { kind: "mode", isAttack: false, clickable: true, toggles: true, action: "toggleMode" };
   }
 
+  // A PASSIVE Noble Phantasm is not a button. Penthesilea's Goddess of War is
+  // *"(Passive) The effect of this Noble Phantasm is only active when Mad
+  // Enhancement is deactivated"* -- four standing clauses and nothing to use.
+  // Checked before the attack test, which would otherwise catch every NP:
+  // clicking it opened a targeting session and offered to spend her Attack on
+  // an ability that has no active form at all.
+  if (isNP && sys.isPassive === true) {
+    return { kind: "passive", isAttack: false, clickable: false, toggles: false, action: "" };
+  }
+
   // An attack is anything that resolves damage, plus every Noble Phantasm --
   // including the non-damaging ones, which still cost the Servant's attack.
   const hasDamagePhase = (sys.phases ?? []).some((p) => p.kind === "damage");
@@ -147,12 +157,26 @@ export function needsTargeting(item) {
   const anchor = spec.anchor?.kind ?? spec.anchor ?? "self";
   if (anchor !== "self") return true;
 
-  // A shape with an orientation or an extent the player places.
+  // A shape with an ORIENTATION the player picks. A centred one has none:
+  // a `chebyshevRadius` around the caster covers the same panels however the
+  // question is asked, and Penthesilea's Howl of the War God -- "affects all
+  // allied Units within a 2 panel area of Penthesilea" -- opened a targeting
+  // session for a decision with exactly one possible answer.
+  //
+  // `rect` and `square` are listed because they take a direction from a
+  // DIRECTIONAL anchor; anchored at `self` they centre, and this branch has
+  // already established the anchor is `self`.
   const shape = spec.shape?.kind ?? spec.shape ?? "unit";
-  if (!["unit", "point"].includes(shape)) return true;
+  if (["line", "orientedRect", "path"].includes(shape)) return true;
 
-  const relations = spec.selection?.relations ?? ["self"];
-  return relations.some((r) => r !== "self");
+  const selection = spec.selection ?? {};
+  const relations = selection.relations ?? ["self"];
+  if (relations.every((r) => r === "self")) return false;
+
+  // Reaching somebody else is not by itself a choice. `chooser: all` with no
+  // subset means EVERYONE the shape caught; a `count` or an explicit `choose`
+  // is what makes it a decision.
+  return selection.choose === true || typeof selection.count === "number";
 }
 
 /**
@@ -176,6 +200,10 @@ export function countsAsAttack(item) {
   const sys = item?.system ?? {};
   if (typeof sys.countsAsAttack === "boolean") return sys.countsAsAttack;
 
+  // A PASSIVE Noble Phantasm is never used, so it never costs an Attack.
+  // Appendix A makes the same distinction for `NP Seal`, which is "not passive
+  // NPs unless stated".
+  if (sys.isPassive === true) return false;
   if (item?.type === "noblePhantasm" || sys.isNP) return true;
   // Directly. An `applyEffects` phase carrying poison is not an attack.
   return (sys.phases ?? []).some((p) => p.kind === "damage")

@@ -6,9 +6,17 @@ isNP: true
 rank: B
 npTags: [antiUnit]
 cooldown: "6◈"
+timing: { window: ownTurn }
 description: |
   Only usable when Mad Enhancement is activated. Base Attack (STR) is used. Deals 3.5x damage
   and inflicts Def Dwn for 1◈ Turns, all damage received is increased by 30%.
+  Cooldown 6◈ Turns.
+requirements:
+  # "Only usable when Mad Enhancement is activated." Stated on the sheet and
+  # absent from the authoring, so her Noble Phantasm was usable in either
+  # state -- and the whole shape of her kit is that the two halves exclude each
+  # other: Goddess of War while calm, Outrage Amazon while raging.
+  - { kind: modeActive, mode: madEnhancement }
 targeting:
   anchor: { kind: targetUnit, range: 2 }
   shape: { kind: unit }

@@ -128,7 +128,17 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   // of target and then refusing it would be offering something the rules have
   // already taken away. §45.4 recorded that the targeting executors wrote keys
   // nothing read; this is the reader.
-  const compelled = compelledTargetsOf(caster);
+  //
+  // Only an ATTACK is compelled. "She will constantly Move towards and ATTACK
+  // said Unit" restricts which enemy she may hit; it says nothing about who
+  // she may buff. Narrowing every resolution made Penthesilea's Howl of the
+  // War God -- "affects all allied Units within a 2 panel area" -- refuse with
+  // "no legal targets" for as long as any Greek Male stood near her, which is
+  // exactly when a Berserker would want to use it.
+  //
+  // A resolution that cannot reach an enemy is not an attack, which is the
+  // whole test: no new field, and no caller has to remember to pass one.
+  const compelled = relations.has("enemy") ? compelledTargetsOf(caster) : [];
   if (compelled.length > 0) {
     survivors = survivors.filter((u) =>
       compelled.includes(u.id) || drop(u, "the attacker is compelled to attack another unit"));

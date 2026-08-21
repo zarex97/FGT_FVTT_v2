@@ -188,8 +188,25 @@ export function fireEvent(event, units, ctx) {
       if (handler.targetPredicate
         && !testPredicate(handler.targetPredicate, { options: ctx.options ?? new Set() })) continue;
 
+      // Actions in one `then:` list see each other's effects. Mad Enhancement
+      // drains its Master and then asks whether that Master is now at or below
+      // the floor -- and computing both against the same starting value made
+      // the forced deactivation lag a full Turn behind the drain that caused
+      // it.
+      //
+      // A local overlay rather than a re-read, because this pass is pure: the
+      // intents have not been applied and will not be until the caller applies
+      // them.
+      /** @type {Map<string, number>} */
+      const pending = new Map();
       for (const action of handler.actions ?? []) {
-        out.push(...dispatch(action, u, handler, ctx));
+        const produced = dispatch(action, u, handler, { ...ctx, pending });
+        for (const i of produced) {
+          if (i.t === "statDelta" && i.stat === "health.value") {
+            pending.set(i.unitId, (pending.get(i.unitId) ?? 0) + i.delta);
+          }
+        }
+        out.push(...produced);
       }
       // A count-limited handler spends a charge each time it pays out.
       if (handler.consumesUse && handler.defId) out.push(I.consumeUse(u.id, handler.defId));
@@ -233,12 +250,84 @@ export function dispatch(action, unit, handler, ctx) {
   if (!run) {
     return [I.log({ kind: "unhandledAction", action: action.kind, unitId: unit.id, source: handler.source })];
   }
+
+  // WHOSE the action is. Mad Enhancement's first clause is *"this Servant's
+  // MASTER loses Health at the end of every Turn it Acts"* -- an effect on the
+  // bearer whose consequence lands on somebody else, and every action here
+  // acted on `u.id`. A Master who cannot be named cannot be charged, so the
+  // clause could not be written at all.
+  const subject = subjectOf(action, unit, ctx);
+  if (!subject) return [];
   // A gate on the action's OWN roll, so an action can fire on some faces and
   // not others. Shock is the case: *"at the start of every turn, roll d6; on 3
   // or 4 the unit cannot act."* That is not a chance-to-apply -- the effect it
   // applies has its own -- it is a face test on a die the handler rolled.
   if (!rollGatePasses(action, ctx)) return [];
-  return run(action, unit, handler, ctx);
+  if (!valueGatePasses(action, unit, ctx)) return [];
+  return run(action, subject, handler, ctx);
+}
+
+/**
+ * The unit an action acts on.
+ *
+ * `self` by default. `master` resolves through the bearer's `masterId` against
+ * the board, and returns **null** when there is no Master -- a Free Servant
+ * running Mad Enhancement has nobody to drain, and charging the Servant
+ * instead would be inventing a rule.
+ *
+ * @param {object} action
+ * @param {object} unit
+ * @param {SchedulerContext} ctx
+ * @returns {object|null}
+ */
+function subjectOf(action, unit, ctx) {
+  if ((action.subject ?? "self") !== "master") return unit;
+  if (!unit?.masterId) return null;
+  return (ctx.board?.units ?? []).find((u) => u.id === unit.masterId) ?? null;
+}
+
+/**
+ * A gate on a VALUE rather than on a die.
+ *
+ * Mad Enhancement again: *"when its Master's Health is 30 or less, ME is
+ * forcibly deactivated"*. The subject is resolved the same way the action's is,
+ * so one clause can drain the Master and the next can test what is left.
+ *
+ * @param {object} action
+ * @param {object} unit
+ * @param {SchedulerContext} ctx
+ * @returns {boolean}
+ */
+function valueGatePasses(action, unit, ctx) {
+  const gate = action.whenValue ?? null;
+  if (!gate) return true;
+
+  const subject = subjectOf({ subject: gate.subject }, unit, ctx);
+  if (!subject) return false;
+
+  const base = gate.stat === "health.value" ? currentHealth(subject) : readStat(subject, gate.stat);
+  if (typeof base !== "number") return false;
+
+  // Plus whatever earlier actions in this same handler have already taken.
+  const current = gate.stat === "health.value"
+    ? base + (ctx.pending?.get(subject.id) ?? 0)
+    : base;
+  if (gate.lte !== undefined && current > gate.lte) return false;
+  if (gate.gte !== undefined && current < gate.gte) return false;
+  return true;
+}
+
+/**
+ * A dotted stat path off a snapshot, which may hold a flat number or a pool.
+ * @param {object} unit
+ * @param {string} path
+ * @returns {number|null}
+ */
+function readStat(unit, path) {
+  const value = String(path).split(".").reduce((o, k) => (o === null || o === undefined ? o : o[k]), unit);
+  if (typeof value === "number") return value;
+  // `agility` on a snapshot is a pool; `agility.value` is the number.
+  return typeof value?.value === "number" ? value.value : null;
 }
 
 /**
@@ -291,7 +380,40 @@ const ACTIONS = Object.freeze({
     return amount === null ? [] : [I.heal(u.id, amount, h.source)];
   },
 
-  StatDelta: (a, u) => [I.statDelta(u.id, a.stat, a.delta ?? 0)],
+  /**
+   * Move a stat, optionally by a rank table and optionally down to a floor.
+   *
+   * `floor` is Mad Enhancement's *"its Master's Health cannot drop below 30 in
+   * this way"* -- a limit on THIS deduction rather than on the pool, so other
+   * damage may still take the Master below it.
+   */
+  StatDelta: (a, u) => {
+    // `amount` arrives from a rank table resolved at collection time and is
+    // always POSITIVE there, so `direction` says which way it moves. `delta`
+    // stays for a literal signed value.
+    const raw = a.amount !== undefined
+      ? (a.direction === "down" ? -Math.abs(a.amount) : Math.abs(a.amount))
+      : (a.delta ?? 0);
+    if (raw === 0) return [];
+
+    if (typeof a.floor !== "number") return [I.statDelta(u.id, a.stat, raw)];
+
+    const current = a.stat === "health.value" ? currentHealth(u) : readStat(u, a.stat);
+    if (typeof current !== "number") return [];
+    // Already at or below the floor: this deduction takes nothing at all.
+    const allowed = Math.max(0, current - a.floor);
+    const applied = raw < 0 ? -Math.min(allowed, Math.abs(raw)) : raw;
+    return applied === 0 ? [] : [I.statDelta(u.id, a.stat, applied)];
+  },
+
+  /**
+   * Switch a mode off (or on) from an event.
+   *
+   * *"When its Master's Health is 30 or less, Mad Enhancement is forcibly
+   * deactivated"* -- the one clause in the reference set where an effect turns
+   * an ability off rather than modifying it.
+   */
+  SetMode: (a, u, h) => [I.setMode(u.id, a.ability, a.active === true, h.source)],
 
   ResourceDelta: (a, u) => [I.resource(u.id, a.resource, a.delta ?? 0)],
 
@@ -626,7 +748,7 @@ export function checkRemovals(units, ctx) {
     if (u.contract !== "free" && u.contract !== "unbound") continue;
     if (u.sustainability === null || u.sustainability === undefined) continue;
 
-    out.push(I.resource(u.id, "sustainability", -1));
+    out.push(I.resource(u.id, "sustainabilityRemaining", -1));
     if (u.sustainability - 1 <= 0) {
       out.push(I.defeat(u.id, "sustainabilityExhausted"));
       out.push(I.log({ kind: "disappear", unitId: u.id, tick: ctx.tick }));

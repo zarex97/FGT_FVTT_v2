@@ -126,7 +126,23 @@ export function combatantCommon() {
     }),
     // null = the Sustainability clock does not exist for this unit
     // (Independent Action A+/EX). Not "a very large number".
+    //
+    // The AUTHORED maximum, as a ◈ expression -- "2◈" is what the sheet prints.
     sustainability: new TickField(),
+
+    // What is LEFT of it, in turns.
+    //
+    // Every consumer treated `sustainability` itself as a number: `cannotPay`
+    // compared `"2◈" > 5`, `checkRemovals` computed `"2◈" - 1`, and
+    // `onMasterDefeated` wrote `Math.max(0, NaN)`. A Free Servant could never
+    // pay for a Noble Phantasm, never ran out of time, and Mad Enhancement's
+    // "-2◈ if its Master is defeated" could not be charged.
+    //
+    // `null` means "not yet resolved"; the snapshot derives it from the
+    // expression, so a Servant summoned before this field existed still works.
+    sustainabilityRemaining: new fields.NumberField({
+      required: false, nullable: true, initial: null, integer: true, min: 0,
+    }),
     // Reset at the start of the owning faction's turn. `movedPanels` is a
     // running total rather than a per-segment count, because Riding's two moves
     // share one MOV allowance (Ch. 18 §18.4).

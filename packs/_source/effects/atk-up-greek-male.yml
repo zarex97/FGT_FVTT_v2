@@ -1,0 +1,23 @@
+# Penthesilea's Howl of the War God, clause 2 -- her grudge, in mechanical form.
+#
+# "All damage dealt to Male Units from the Greece region is increased by 100%
+# INCLUDING NP", so there is no reduced NP magnitude: `dmgUp` rather than
+# `atkUp` would also be defensible, but the sheet names it Atk Up and the
+# family matters for what removes it.
+schema: 1
+id: atkUpGreekMale
+name: "Atk Up (GreekMale)"
+description: "Damage dealt to Male Units from the Greece region is increased by X%, including NP."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # The predicate names somebody who does not exist when the contribution is
+  # collected, so it is deferred to the damage pipeline (Ch. 24 §24.4).
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["target:attribute:male", "target:region:greece"]

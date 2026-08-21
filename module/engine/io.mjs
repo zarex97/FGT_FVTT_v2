@@ -15,6 +15,7 @@ import { registerDefeat } from "../rules/environment.mjs";
 import { onMasterDefeated } from "../rules/relationships.mjs";
 import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
+import { snapshotUnit } from "../rules/snapshot.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -140,6 +141,32 @@ export function worldIO() {
      * @param {string} defId
      * @param {number} [count]
      */
+    /**
+     * Switch a mode on or off, stamping the toggle clock when it goes on.
+     *
+     * Matched on slug first and id second, the same way every other
+     * cross-ability reference in the system resolves: a display name can be
+     * renamed and a slug cannot.
+     *
+     * @param {string} unitId
+     * @param {string} abilityId
+     * @param {boolean} active
+     */
+    async setMode(unitId, abilityId, active) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+
+      const item = actor.items.find(
+        (i) => i.system?.slug === abilityId || i.system?.contentId === abilityId || i.id === abilityId,
+      );
+      if (!item || Boolean(item.system?.active) === active) return;
+
+      await item.update({
+        "system.active": active,
+        ...(active ? { "system.toggledAt": game.combat?.system?.globalTurn ?? 0 } : {}),
+      });
+    },
+
     async consumeUse(unitId, defId, count = 1) {
       const actor = resolve(unitId);
       if (!actor) return;
@@ -502,15 +529,25 @@ async function freeContractedServants(unitId) {
   for (const actor of game.actors.filter((a) => a.system?.masterId === unitId)) {
     const snapshot = {
       id: actor.id, kind: actor.type,
-      sustainability: actor.system?.sustainability ?? null,
+      // The RESOLVED clock. This handed `onMasterDefeated` the authored "2◈"
+      // and it did arithmetic on it, so a Free Servant never ran out and Mad
+      // Enhancement's -2◈ wrote NaN.
+      sustainability: snapshotUnit(actor, {
+        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      }).sustainability,
       modes: [...(actor.items ?? [])].filter((i) => i.system?.active).map((i) => i.system?.slug),
     };
     for (const d of onMasterDefeated(snapshot)) {
       if (d.kind === "setContract") await actor.update({ "system.contract": d.contract, "system.masterId": null });
       else if (d.kind === "defeat") await actor.update({ "system.defeated": true, "system.defeatCause": d.cause });
       else if (d.kind === "resource") {
-        const current = actor.system?.[d.key] ?? 0;
-        if (current !== null) await actor.update({ [`system.${d.key}`]: Math.max(0, current + d.delta) });
+        // Read through the snapshot, which resolves the ◈ expression to turns:
+        // the raw field is "2◈" and `Math.max(0, "2◈" + -2)` is NaN.
+        const current = d.key === "sustainability" ? snapshot.sustainability : (actor.system?.[d.key] ?? 0);
+        const path = d.key === "sustainability" ? "sustainabilityRemaining" : d.key;
+        if (typeof current === "number") {
+          await actor.update({ [`system.${path}`]: Math.max(0, current + d.delta) });
+        }
       } else if (d.kind === "lockModes") await actor.update({ "system.modesLocked": true });
     }
   }

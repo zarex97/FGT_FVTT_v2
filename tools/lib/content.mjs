@@ -574,10 +574,15 @@ function itemSystem(doc) {
     isMode: Boolean(doc.isMode),
     isAttackSkill: Boolean(doc.isAttackSkill),
     isSpell: Boolean(doc.isSpell),
+    // A Noble Phantasm with no active form -- Penthesilea's Goddess of War.
+    // Read by `classifyAbility`; without it every NP is a button.
+    isPassive: Boolean(doc.isPassive),
     // A Servant's roster entry may switch a mode on at import -- Heracles's Mad
     // Enhancement is on and cannot be turned off.
     active: Boolean(doc.active),
     cannotDeactivate: Boolean(doc.cannotDeactivate),
+    // §15.3's two-way toggle lockout.
+    toggleLock: doc.toggleLock ?? null,
     categorizedAsNP: Boolean(doc.categorizedAsNP),
     npTags: doc.npTags ?? [],
     cooldown: compileCooldown(doc.cooldown),

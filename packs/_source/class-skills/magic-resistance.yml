@@ -4,6 +4,12 @@ schema: 1
 id: class-magic-resistance
 name: "Magic Resistance"
 source: class
+# The slug is stated rather than derived. The default strips `class-` and leaves
+# the KEBAB-CASE id (`mad-enhancement`), while every predicate, requirement and
+# compulsion in the game names it in camelCase -- so `self:skillActive:madEnhancement`
+# matched nothing, `modeActive: madEnhancement` refused for ever, and Medea's Atlas
+# lost its `skillRank:magicResistance` reduction without saying so.
+slug: magicResistance
 kind: classSkill
 passive: true
 copyable: { allowed: false, reason: classSkill }

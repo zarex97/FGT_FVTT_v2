@@ -3,6 +3,10 @@ schema: 1
 id: penthesilea-goddess-of-war
 name: "Goddess of War: War God's Military Sash"
 isNP: true
+# A PASSIVE Noble Phantasm: four standing clauses and nothing to use. Without
+# this every NP classified as an attack, so clicking it opened a targeting
+# session and offered to spend her Attack on an ability with no active form.
+isPassive: true
 rank: A
 npTags: [antiUnit]
 description: |
@@ -30,4 +34,18 @@ passiveRules:
   - key: CheckModifier
     check: evade
     roll: { key: goddessOfWarEvade, formula: "1d4", multiplier: -1 }
+    predicate: ["not:self:skillActive:madEnhancement"]
+  # Clause 4: "Penthesilea's Divinity Rank is increased from B to A."
+  #
+  # A shift aimed at another ABILITY's rank rather than at a parameter, which
+  # is a different operation and the reason this clause had nowhere to live
+  # until now. `to:` names the destination, because B to A is five positions on
+  # the dense +/- ladder and making an author count them is how the clause gets
+  # written wrong.
+  #
+  # It carries the same gate as the other three, so her Divinity drops back to
+  # B while she is raging -- which is the trade Mad Enhancement is.
+  - key: RankShift
+    ability: divinity
+    to: A
     predicate: ["not:self:skillActive:madEnhancement"]

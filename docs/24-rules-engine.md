@@ -304,6 +304,27 @@ check:kind:evade
 check:vsNP
 ```
 
+### Negation
+
+A bare option string may be prefixed with `not:`:
+
+```yaml
+predicate: ["not:self:skillActive:madEnhancement", "attack:kind:normal"]
+```
+
+It is exactly equivalent to the object form `{not: "..."}` and is used because it reads as one
+clause rather than as a nested structure.
+
+**It was never implemented.** A string statement is a set-membership test, so
+`"not:self:skillActive:madEnhancement"` was looked up as one literal option — which is never in
+the set — and the clause answered **false for ever**. The content validator's own
+`looksLikeRollOption` accepts the prefixed form as well-formed, so nothing anywhere objected.
+
+Three rules were dead because of it: Penthesilea's *Charisma* in both its passive and its active
+form, all four clauses of her *Goddess of War*, and Karna's Vasavi Shakti divinity override in
+`domain/tables.mjs`. `referencedOptions` reports the **bare** option, so both readers that consult
+it — the typo check and the deferral pass below — see whose state the clause is about.
+
 ### When a predicate can be answered
 
 Contributions are collected **per unit**, and at that moment only that unit's own options exist:

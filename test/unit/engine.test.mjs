@@ -574,7 +574,11 @@ describe("Sustainability", () => {
   const free = (over = {}) => ({ id: "s", kind: "servant", contract: "free", sustainability: 3, ...over });
 
   it("decays for Free Servants", () => {
-    expect(checkRemovals([free()], sctx)[0]).toMatchObject({ t: "resource", key: "sustainability", delta: -1 });
+    // The NUMERIC clock. `system.sustainability` holds the authored ◈
+    // expression -- "2◈" -- and writing a delta to it appended to a string and
+    // produced NaN, so a Free Servant never ran out of time.
+    expect(checkRemovals([free()], sctx)[0])
+      .toMatchObject({ t: "resource", key: "sustainabilityRemaining", delta: -1 });
   });
 
   it("defeats the Servant when it reaches zero", () => {

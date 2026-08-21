@@ -159,7 +159,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation — **with the dialog that shows it**, reached from the Actors sidebar and the Servant compendium, and refusing a bare compendium drop that would produce a Servant with the template's numbers. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
-| 38 | Testing strategy | **Mostly** | 1589 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1632 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
@@ -770,9 +770,38 @@ concrete: none of these four would have been designed up front, and all four are
 | *Charisma*'s suppression | **Self-options in `contributionsOf`**, which passed an **empty set** — so every `self:` predicate in the system was unsatisfiable. |
 | *Goddess of War* | **Rolled modifiers** — a magnitude rolled per damage event rather than fixed before the attack. Found a second bug on the way: a modifier with no numeric magnitude produced `NaN`, which survived every stage and clamped the final total to **zero**, so one malformed element silently deleted an attack. |
 
-One clause remains: Goddess of War's *"Divinity Rank is increased from B to A"*. `RankShift`
-moves a **parameter**; this moves another ability's rank, which is a different operation and one
-no other Servant in the reference set needs yet. Her Divinity is authored at B.
+**Re-reviewed and completed.** *"She is now fully authored"* above was written before anything
+had been run against a live board, and she was not. Nine further defects, seven of them in
+already-shipped engine code:
+
+| Found | What was actually wrong |
+|---|---|
+| The `not:` prefix | **Never implemented.** `not:self:skillActive:madEnhancement` was looked up as one literal option, which is never in the set, so every such clause was permanently **false**. It gated her *Charisma* (both halves) and all four *Goddess of War* clauses, and Karna's Vasavi Shakti override. |
+| Class-skill slugs | Derived **kebab-case** (`mad-enhancement`) where every reference is camelCase. So `skillActive:madEnhancement` matched nothing, `modeActive: madEnhancement` refused *Outrage Amazon* in every state, and Medea's *Atlas* lost its `skillRank:magicResistance` reduction. |
+| The compulsion filter | Narrowed **every** target resolution, not just attacks. *Howl of the War God* — "affects all allied Units within a 2 panel area" — refused with "no legal targets" for as long as a Greek Male stood near her, which is exactly when a Berserker wants it. |
+| `Goddess of War` | Classified as an **attack**, because every NP did. Clicking a *passive* Noble Phantasm opened a targeting session and offered to spend her Attack. |
+| `Charisma`, `Howl` | Authored as `activeRules`, so both classified as **modes** — a free toggle with no cooldown and no duration, where the sheet gives each a 4◈ clock and a 1◈ effect. |
+| `needsTargeting` | Asked for a placement for any non-`unit` shape, so a centred circle that catches everyone in it opened a session with one possible answer. |
+| The mode toggle | A bare write. Every rule about *when* a mode may be switched — Heracles's "never", the 2◈ lockout, a compulsion holding it on — had nowhere to live. |
+| `sustainability` | Stored and snapshotted as the **string** `"2◈"`, and four rules-layer readers do arithmetic on it. `cannotPay` compared `"2◈" > 5`, so a Free Servant could never pay for a Noble Phantasm; `checkRemovals` computed `"2◈" - 1`, so it never ran out of time. |
+| Mad Enhancement | Three of its seven clauses were absent: the Master drain with its floor and forced deactivation, the Master's ZON +2, and the 2◈ lockout. `madEnhancementDrain` had been in `domain/tables.mjs` with nothing reading it. |
+
+Built for her, all general: **`rules/modes.mjs`** (the three toggle rules, and the *forced* half —
+a compulsion switches Mad Enhancement **on** as well as refusing to let it off);
+**`RankShift` aimed at an ability**, which closes Goddess of War's fourth clause — `to: A` names
+the destination rather than counting five positions across a grade boundary; a **`subject`** on
+event actions, so an effect on the Servant can charge the **Master**; a **value gate**
+(`whenValue`) and a **floor** on `StatDelta`; **`SetMode`** as an intent, for the one clause where
+an effect turns an ability off; and **`modeInactive`**, which is not the same as "does not have
+it" — she always *has* Mad Enhancement.
+
+Three named buffs were authored with her: `Atk Up (Charisma)`, whose behaviour is an aura carried
+by an effect on its owner; `Atk Up (STR)`, component-scoped; and `Atk Up (GreekMale)`, whose
+predicate is deferred to the damage pipeline.
+
+One detail worth keeping. *Howl of the War God* clause 1 **applies** its buff to each ally rather
+than projecting an aura, and the difference is load-bearing: they keep it for 1◈ after walking
+out of the radius, which is exactly what an aura would not do. It had been authored as an aura.
 
 The original four findings read:
 

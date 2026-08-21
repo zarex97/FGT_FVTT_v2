@@ -200,3 +200,42 @@ describe("turnStateAt", () => {
     expect(stale.abilitiesUsed).toEqual([]);
   });
 });
+
+describe("sustainability", () => {
+  const actor = (system) => ({ id: "s", name: "S", type: "servant", items: [], effects: [], system });
+
+  it("projects a NUMBER of turns, not the authored ◈ expression", () => {
+    // Four rules-layer readers do arithmetic on this. The document holds "2◈",
+    // so `cannotPay` compared `"2◈" > 5`, `checkRemovals` computed `"2◈" - 1`,
+    // and `onMasterDefeated` wrote `Math.max(0, NaN)`. A Free Servant could
+    // never pay for a Noble Phantasm and never ran out of time.
+    const snap = snapshotUnit(actor({ sustainability: "2◈" }), { turnsPerRound: 3 });
+
+    expect(snap.sustainability).toBe(6);
+    expect(snap.sustainabilityMax).toBe("2◈");
+  });
+
+  it("resolves against the world's turns per Round", () => {
+    expect(snapshotUnit(actor({ sustainability: "2◈" }), { turnsPerRound: 8 }).sustainability).toBe(16);
+  });
+
+  it("prefers what is left once something has been spent", () => {
+    const snap = snapshotUnit(
+      actor({ sustainability: "2◈", sustainabilityRemaining: 4 }), { turnsPerRound: 3 },
+    );
+    expect(snap.sustainability).toBe(4);
+  });
+
+  it("reads a spent clock as zero rather than as absent", () => {
+    // Zero is "about to disappear"; null is "has no clock at all". Conflating
+    // them makes a Servant out of time immortal.
+    const snap = snapshotUnit(
+      actor({ sustainability: "2◈", sustainabilityRemaining: 0 }), { turnsPerRound: 3 },
+    );
+    expect(snap.sustainability).toBe(0);
+  });
+
+  it("keeps null meaning no clock at all — Independent Action A+/EX", () => {
+    expect(snapshotUnit(actor({ sustainability: null })).sustainability).toBe(null);
+  });
+});

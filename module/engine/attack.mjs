@@ -635,7 +635,9 @@ function costIntents(cost) {
     case "selfHealth":
       return [I.statDelta(cost.unitId, "health.value", -cost.amount), note];
     case "sustainability":
-      return [I.resource(cost.unitId, "sustainability", -cost.amount), note];
+      // The NUMERIC clock, not the authored expression. Writing to
+      // `sustainability` appended to a string and produced NaN.
+      return [I.resource(cost.unitId, "sustainabilityRemaining", -cost.amount), note];
     default:
       return [note];
   }

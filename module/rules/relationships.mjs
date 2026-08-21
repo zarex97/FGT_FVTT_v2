@@ -158,6 +158,11 @@ export function onMasterDefeated(servant) {
     // No clock. It stays until it spends itself on a Noble Phantasm.
     return out;
   }
+  if (typeof servant.sustainability !== "number") {
+    // Not resolved. Refusing to act is the safe direction: the alternative is
+    // NaN arithmetic that silently defeats a Servant with time left.
+    return out;
+  }
   if (servant.sustainability <= 0) {
     out.push({ kind: "defeat", unitId: servant.id, cause: "sustainabilityExhausted" });
     return out;

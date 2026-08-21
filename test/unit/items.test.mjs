@@ -196,7 +196,7 @@ describe("meetsRequirement", () => {
       "targetHasEffect", "predicate",
       // Beyond §15.4's own list, added by content that needed them.
       // `notHasEffect` had been AUTHORED on Medea since she was written.
-      "notHasEffect", "abilityOffCooldown",
+      "notHasEffect", "abilityOffCooldown", "modeInactive",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });
@@ -323,5 +323,23 @@ describe("meetsRequirements", () => {
 
   it("passes an empty list", () => {
     expect(meetsRequirements([], { unit: unit() })).toMatchObject({ ok: true });
+  });
+});
+
+describe("modeInactive", () => {
+  const withMode = (active) => unit({ abilities: [{ id: "me", slug: "madEnhancement", active }] });
+
+  it("is the mirror of modeActive", () => {
+    // Penthesilea's Charisma "cannot be used when Mad Enhancement is
+    // activated" -- and she ALWAYS has Mad Enhancement, so a `hasSkill` test
+    // would refuse it for ever and its absence refused it never.
+    expect(meetsRequirement({ kind: "modeInactive", mode: "madEnhancement" }, { unit: withMode(false) }))
+      .toBe(true);
+    expect(meetsRequirement({ kind: "modeInactive", mode: "madEnhancement" }, { unit: withMode(true) }))
+      .toBe(false);
+  });
+
+  it("passes for a Unit that does not have the mode at all", () => {
+    expect(meetsRequirement({ kind: "modeInactive", mode: "madEnhancement" }, { unit: unit() })).toBe(true);
   });
 });

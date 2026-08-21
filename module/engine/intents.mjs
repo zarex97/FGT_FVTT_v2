@@ -24,6 +24,7 @@ export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
+  "setMode",
 ]);
 
 /**
@@ -57,6 +58,10 @@ const ORDER = Object.freeze({
   grantCommandSpells: 2,
   // After the action it records, before anything reads it back.
   markTurn: 2,
+  // Bookkeeping, and BEFORE anything that reads the mode back: Mad
+  // Enhancement's forced deactivation has to land before the next pass
+  // collects its active rules.
+  setMode: 2,
   heal: 3,
   damage: 4,
   applyEffect: 5,
@@ -121,6 +126,22 @@ export const resource = (unitId, key, delta) =>
  */
 export const consumeUse = (unitId, defId, count = 1) =>
   ({ t: "consumeUse", unitId, defId, count });
+
+/**
+ * Switch a mode on or off.
+ *
+ * The one clause in the reference set where an effect turns an *ability* off
+ * rather than modifying it: *"when its Master's Health is 30 or less, Mad
+ * Enhancement is forcibly deactivated."* Also how a compulsion forces one on.
+ *
+ * @param {string} unitId
+ * @param {string} abilityId a slug or a content id
+ * @param {boolean} active
+ * @param {string|null} [source]
+ * @returns {object}
+ */
+export const setMode = (unitId, abilityId, active, source = null) =>
+  ({ t: "setMode", unitId, abilityId, active, source });
 
 export const cooldown = (unitId, abilityId, ticks, mode = "reduce") =>
   ({ t: "cooldown", unitId, abilityId, ticks, mode });

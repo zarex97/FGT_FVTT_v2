@@ -47,6 +47,8 @@
 > | ability `contentId` / `category` / `exclusionSet` | Any cross-ability gate: a requirement that names a content id, a category or an exclusion set had nothing to match. |
 > | `resources` | §6.10's pools, and with them any cooldown waiver. |
 > | effect-instance `uses` | Count-limited effects fired for ever. |
+> | ability `slug` | Absent from `contributionsOf`'s own ability list, so a cross-ability reference had only the Foundry document id to match on — Goddess of War's "Divinity Rank is increased from B to A" names `divinity` and matched nothing. |
+> | `sustainability` | Projected as the authored **string** `"2◈"` where four rules do arithmetic on it. A Free Servant could never pay for a Noble Phantasm and never ran out of time. |
 > | `health`, in the other direction | Flattened to a **number** by design, and read as `.value` by the engine — so `resolveDefeat` saw `undefined ?? 0` and **defeated every target of every successful attack**. `test/unit/health-shape.test.mjs` now scans `module/engine` too, which is where it hid.
 
 The document subclasses, the derived-data pipeline and its ordering, the snapshot cache, and

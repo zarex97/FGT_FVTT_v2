@@ -100,7 +100,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill",
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
-  "predicate",
+  "modeInactive", "predicate",
 ]);
 
 /**
@@ -141,6 +141,15 @@ export function meetsRequirement(req, ctx) {
       // Holder Mode. "Has the mode" and "has it switched on" are different
       // questions and this is the second.
       return (unit?.abilities ?? []).some(
+        (a) => (a.slug === req.mode || a.id === req.mode) && a.active,
+      );
+
+    case "modeInactive":
+      // The mirror, and not the same as "does not have it". Penthesilea's
+      // Charisma *"cannot be used when Mad Enhancement is activated"* -- and
+      // she always has Mad Enhancement, so a `hasSkill` test would refuse it
+      // for ever and its absence refused it never.
+      return !(unit?.abilities ?? []).some(
         (a) => (a.slug === req.mode || a.id === req.mode) && a.active,
       );
 

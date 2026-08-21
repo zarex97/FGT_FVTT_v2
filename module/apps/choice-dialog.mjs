@@ -45,11 +45,7 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {object} spec
    * @param {string} spec.title
    * @param {string} [spec.hint]
-   * @param {number} spec.count the MOST that may be picked
-   * @param {number} [spec.min] the FEWEST; defaults to `count`, which is the
-   *   exact-N case Wisdom of Dún Scáith needs. Scáthach's Primordial Rune
-   *   needs the range: *"your choice of any of the above effect(s)"* is one or
-   *   more, and forcing exactly one would quietly narrow the rule.
+   * @param {number} spec.count how many must be picked, exactly
    * @param {Array<{id: string, name: string, subtitle?: string, detail?: string}>} spec.options
    * @returns {Promise<string[]|null>}
    */
@@ -73,21 +69,13 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @inheritdoc */
   async _prepareContext() {
     const count = this.#spec.count ?? 1;
-    const min = this.#min();
     return {
       hint: this.#spec.hint ?? "",
       count,
-      min,
-      range: min !== count,
-      remaining: Math.max(0, min - this.#picked.size),
-      complete: this.#picked.size >= min,
+      remaining: count - this.#picked.size,
+      complete: this.#picked.size === count,
       options: (this.#spec.options ?? []).map((o) => ({ ...o, picked: this.#picked.has(o.id) })),
     };
-  }
-
-  /** @returns {number} */
-  #min() {
-    return this.#spec.min ?? this.#spec.count ?? 1;
   }
 
   /**
@@ -127,13 +115,8 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onConfirm() {
     const count = this.#spec.count ?? 1;
-    const min = this.#min();
-    if (this.#picked.size < min || this.#picked.size > count) {
-      ui.notifications.warn(
-        min === count
-          ? game.i18n.format("FGT.Choice.PickExactly", { count })
-          : game.i18n.format("FGT.Choice.PickBetween", { min, count }),
-      );
+    if (this.#picked.size !== count) {
+      ui.notifications.warn(game.i18n.format("FGT.Choice.PickExactly", { count }));
       return;
     }
     const picked = [...this.#picked];

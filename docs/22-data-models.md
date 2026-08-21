@@ -101,13 +101,17 @@ write time. A malformed predicate is a content bug and should never reach runtim
 > chapter's schemas are therefore not documentation of what the code does; they are the *gate*
 > that decides whether the code does anything at all.
 >
-> It has cost this project six features. `system.active` made every mode indistinguishable from
+> It has cost this project eight features. `system.active` made every mode indistinguishable from
 > an attack; `timing.window` left the reaction rung with nothing to offer; `alsoTriggers` made
 > §7.6's trigger clause inert; `uses` made every count-limited effect permanent; `kind` and
 > `passive` made every class skill copyable — and `defeated`, which `io.defeat` had written since
 > it was written, meant **no Unit in the game had ever actually been marked defeated**. The token
 > got its skull, the Grail counter incremented, the contracted Servants were freed, and the
 > Servant kept taking its turn.
+>
+> Two more went the same way on the item side: `isPassive`, without which every Noble Phantasm
+> classified as an attack and a *passive* one opened a targeting session, and `toggleLock`, which
+> left §15.3's two-way mode lockout with nowhere to live.
 >
 > `test/unit/actor-fields.test.mjs` now holds every literal `system.` path the IO layer writes
 > against every field any DataModel declares.

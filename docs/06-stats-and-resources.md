@@ -393,6 +393,23 @@ damage dealt is not reduced"* — the ZON test is `any(castor.inZon, pollux.inZo
 
 ---
 
+### Sustainability has two shapes
+
+The authored value is a **◈ expression** — `"2◈"` is what the sheet prints — and every rule that
+consumes it does **arithmetic**: `cannotPay` compares it against a cost, `checkRemovals` subtracts
+one per turn, `onMasterDefeated` subtracts two Rounds.
+
+Those are different types, and for the whole life of the project the readers got the string.
+`"2◈" > 5` is false, so a Free Servant could never pay for a Noble Phantasm; `"2◈" - 1` is `NaN`,
+so it never ran out of time and never disappeared.
+
+The split mirrors `health`: `sustainability` is the authored maximum and
+`sustainabilityRemaining` is the numeric clock, and **the snapshot projects the number** — so no
+rule has to know the expression exists. `null` still means "no clock at all" (Independent Action
+A+/EX) and is emphatically not a very large number.
+
+---
+
 ## 6.10 The resource system
 
 Ability-specific pools are common enough in the reference set to deserve a general mechanism
