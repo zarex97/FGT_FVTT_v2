@@ -2,7 +2,7 @@
   "id": "fgt",
   "title": "Fate/Grail Tactics",
   "description": "A grid-based tactical wargame of Masters, Servants and Noble Phantasms, with full rules automation.",
-  "version": "0.2.12",
+  "version": "0.3.5",
   "compatibility": {
     "minimum": "14",
     "verified": "14.364"
@@ -12,12 +12,8 @@
       "name": "zarex"
     }
   ],
-  "esmodules": [
-    "module/fgt.mjs"
-  ],
-  "styles": [
-    "styles/fgt.css"
-  ],
+  "esmodules": ["module/fgt.mjs"],
+  "styles": ["styles/fgt.css"],
   "socket": true,
   "languages": [
     {
@@ -37,51 +33,33 @@
   "documentTypes": {
     "Actor": {
       "servant": {
-        "htmlFields": [
-          "biography",
-          "notes"
-        ]
+        "htmlFields": ["biography", "notes"]
       },
       "master": {
-        "htmlFields": [
-          "biography",
-          "notes"
-        ]
+        "htmlFields": ["biography", "notes"]
       },
       "civilian": {},
       "summon": {},
       "platform": {
-        "htmlFields": [
-          "description"
-        ]
+        "htmlFields": ["description"]
       },
       "structure": {}
     },
     "Item": {
       "ability": {
-        "htmlFields": [
-          "description"
-        ]
+        "htmlFields": ["description"]
       },
       "noblePhantasm": {
-        "htmlFields": [
-          "description"
-        ]
+        "htmlFields": ["description"]
       },
       "commandSpell": {
-        "htmlFields": [
-          "description"
-        ]
+        "htmlFields": ["description"]
       },
       "masterEssence": {
-        "htmlFields": [
-          "description"
-        ]
+        "htmlFields": ["description"]
       },
       "equipment": {
-        "htmlFields": [
-          "description"
-        ]
+        "htmlFields": ["description"]
       }
     },
     "ActiveEffect": {
