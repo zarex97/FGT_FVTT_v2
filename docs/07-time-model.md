@@ -303,6 +303,17 @@ Vasavi Shakti's post-activation passives, Kiritsugu's `Kiritsugu` debuff. Never 
 
 ---
 
+> **Implementation note.** A cooldown is set at **confirmation**, beside the cost, by
+> `module/engine/cooldown.mjs` — one implementation shared by both use paths. They disagreed
+> until Medea: the Skill path set a cooldown and `resolveAttack` never did, so **every Attack
+> Skill and every Noble Phantasm in the game was infinitely reusable**, limited only by the attack
+> budget, which is a different rule. Rule Breaker coming back off a `5◈+⅓◈` cooldown reading zero
+> is what surfaced it.
+>
+> `alsoTriggers` (§7.6) rides the same helper. A **per-unit** cooldown is resolved against what
+> the use produced rather than authored as a fixed tick — Medea's Dragon Tooth Warriors is
+> "(Number of Warriors × ⅔◈)", so its cost is not known until the Skill has resolved.
+
 ## 7.6 Cooldowns
 
 ```ts

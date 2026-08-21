@@ -524,6 +524,9 @@ function actorSystem(doc) {
     // Health and nothing about who it shields or how it moves.
     footprint: doc.footprint ?? undefined,
     upkeep: doc.upkeep ?? null,
+    countsTowardBudget: doc.countsTowardBudget ?? undefined,
+    actsOncePerTurn: Boolean(doc.actsOncePerTurn),
+    summonerId: doc.summonerId ?? null,
     capacity: doc.capacity ?? null,
     ownerId: doc.ownerId ?? null,
     level: doc.level ?? undefined,
@@ -575,7 +578,7 @@ function itemSystem(doc) {
     cannotDeactivate: Boolean(doc.cannotDeactivate),
     categorizedAsNP: Boolean(doc.categorizedAsNP),
     npTags: doc.npTags ?? [],
-    cooldown: { max: doc.cooldown ?? null, remaining: 0, regen: 0 },
+    cooldown: compileCooldown(doc.cooldown),
     targeting: doc.targeting ?? null,
     // The bounded field a Noble Phantasm creates (Ch. 43).
     field: doc.field ?? null,
@@ -677,4 +680,29 @@ function describeBand(priority) {
   const above = bands.find(([, v]) => v > priority);
   if (below && above) return `between ${below[0]} (${below[1]}) and ${above[0]} (${above[1]})`;
   return below ? `after ${below[0]} (${below[1]})` : `before ${above[0]} (${above[1]})`;
+}
+
+/**
+ * A cooldown as the schema wants it.
+ *
+ * Two authored forms. A **string** is a tick expression and lands in `max`. An
+ * **object** is a cooldown computed from the use itself -- Medea's Dragon Tooth
+ * Warriors is "(Number of Dragon Tooth Warriors x ⅔◈)" -- and lands in
+ * `perUnit`, with `max` left null because there is no fixed length to record.
+ *
+ * Passing the object straight through produced `max: [object Object]`, which
+ * parsed as no cooldown at all: the Skill was reusable the moment it resolved.
+ *
+ * @param {unknown} cooldown
+ * @returns {object}
+ */
+function compileCooldown(cooldown) {
+  if (cooldown && typeof cooldown === "object") {
+    return {
+      max: null, remaining: 0, regen: 0,
+      perUnit: cooldown.perUnit ?? null,
+      countFrom: cooldown.countFrom ?? null,
+    };
+  }
+  return { max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null, countFrom: null };
 }

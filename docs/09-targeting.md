@@ -40,6 +40,14 @@ So targeting is a declarative specification, evaluated by an engine.
 
 ---
 
+> **Implementation note.** The anchors are `self`, `selfEdgeAdjacent`, `withinRange`,
+> `targetUnit`, `movementPath`, `zone`, `platform`, `global` and `sourceOfAttack`, and
+> `module/rules/targeting/vocabulary.mjs` pairs each with the words a GM reads (§29.6). The ids
+> there **must** be the resolver's own: the picker briefly called `withinRange` "point", which
+> authored cleanly, validated, and threw `Unknown targeting anchor "point"` the first time Medea's
+> Rain of Light was aimed. A drift test now holds the two lists against each other in both
+> directions, as it already did for shapes.
+
 ## 9.2 The four axes
 
 Every targeting declaration is a product of four independent choices.

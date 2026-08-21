@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import {
-  TARGET_SHAPES, TARGET_ANCHORS, SHAPE_IDS,
+  TARGET_SHAPES, TARGET_ANCHORS, SHAPE_IDS, ANCHOR_IDS,
 } from "../../module/rules/targeting/vocabulary.mjs";
 import { resolveTargets, legalPlacements, validate } from "../../module/rules/targeting/resolve.mjs";
 import { expand, orthogonalAdjacentRect } from "../../module/rules/targeting/shapes.mjs";
@@ -545,6 +545,38 @@ describe("the picker vocabulary against the resolver (§29.6)", () => {
 
     for (const id of implemented) {
       expect(SHAPE_IDS, `expand() implements "${id}" and no GM can choose it`).toContain(id);
+    }
+  });
+
+  it("offers only anchors `resolveTargets` can resolve", () => {
+    // The half this guard was missing, and it cost a live failure: the picker
+    // listed `point` and the resolver's name for that is `withinRange`, so
+    // Medea's Rain of Light authored cleanly, validated, and threw
+    // `Unknown targeting anchor "point"` the first time anyone aimed it.
+    const implemented = new Set(
+      readFileSync("module/rules/targeting/resolve.mjs", "utf8")
+        .match(/case "(\w+)":/g)
+        ?.map((m) => m.slice(6, -2)) ?? [],
+    );
+
+    for (const id of ANCHOR_IDS) {
+      expect(implemented.has(id), `the picker offers anchor "${id}" and the resolver has no case for it`)
+        .toBe(true);
+    }
+  });
+
+  it("offers every anchor the resolver implements, so none is unreachable", () => {
+    // `resolve.mjs` also switches on selection modes and shapes, so only the
+    // names that appear in BOTH files are anchors -- an id the vocabulary knows
+    // nothing about is either an anchor nobody can choose or another switch.
+    const anchorCases = readFileSync("module/rules/targeting/resolve.mjs", "utf8")
+      .split("function resolveAnchor")[1] ?? "";
+    const implemented = new Set(
+      (anchorCases.match(/case "(\w+)":/g) ?? []).map((m) => m.slice(6, -2)),
+    );
+
+    for (const id of implemented) {
+      expect(ANCHOR_IDS, `the resolver implements anchor "${id}" and no GM can choose it`).toContain(id);
     }
   });
 

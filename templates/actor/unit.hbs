@@ -35,6 +35,8 @@
     </div>
   </header>
 
+  {{#if isMaster}}{{> fgt-master-panel}}{{/if}}
+
   {{#if canContract}}
     <button type="button" class="fgt-sheet__setup" data-action="contract">
       {{localize "FGT.Contract.Button"}}

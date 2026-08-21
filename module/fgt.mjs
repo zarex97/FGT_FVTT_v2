@@ -121,6 +121,12 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("setup", async () => {
+  // §29.3's Master block, as a named partial so the sheet stays ONE part and
+  // therefore one scroll container.
+  await foundry.applications.handlebars.loadTemplates({
+    "fgt-master-panel": "systems/fgt/templates/actor/master.hbs",
+  });
+
   // Packs are not readable during `init`; `setup` runs after they are indexed
   // and before the canvas draws, which is exactly the window we need.
   const pack = game.packs.get("fgt.effects");

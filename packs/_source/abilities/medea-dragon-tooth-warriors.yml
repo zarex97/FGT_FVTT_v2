@@ -34,5 +34,5 @@ phases:
       placement: { shape: square, size: 5, anchor: self }
       # Both clauses from the sheet, as summon properties rather than as rules
       # the engine would have to special-case for Medea.
-      exemptFromUnitLimit: true
+      countsTowardBudget: false
       actsOncePerTurn: true

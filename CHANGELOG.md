@@ -36,6 +36,14 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Dragon Tooth Warriors and Rule Breaker.** The `summon` phase (two nested rolls, placement on
+  free panels only, a cooldown scaled by the first roll) and the `cutContract` phase, which reads
+  the ladder's outcome because a successful Evade keeps the Contract. Both verified in a live
+  world: 1d6 → 5 Warriors of mixed types with a 10-turn cooldown, and a Contract cut with the
+  loser's three Command Spells stripped and three granted to the winner, namespaced.
+- **The character sheet scrolls.** The scroll is on the part root so ApplicationV2 restores the
+  position across re-renders, and §29.3's Master block became a partial rather than a second part
+  so there is one scroll container instead of two.
 - **Medea**, the fifth Servant and the first Caster — thirteen abilities, seven of them Spells.
   Verified end to end in a live world: Golden Fleece (30% of maximum Health, +3 Agility),
   Keraino, Argos, Teachings of Circe (cleanse by polarity, 10% heal, NP Cooldown Regen),
@@ -251,6 +259,28 @@ coincide by accident; the headings say which is which.
   debt is paid.
 
 ### Fixed
+
+- **No Noble Phantasm has ever been payable, and no second Servant has ever been orderable.**
+  A document stores `health: {value, max}`; `snapshotUnit` flattens it to a **number**. Six rules
+  files read `unit.health.value` directly, so against a real snapshot they saw `undefined`, took
+  the `?? 0` beside them, and compared zero. `cannotPay` then refused every NP (strictly greater),
+  and `mayOrderAnotherServant` refused every second Servant. Every fixture in the unit tests used
+  the document shape, so the code and the tests agreed with each other and not with the system.
+  `module/domain/health.mjs` is the only reader now, with a guard.
+- **No Attack Skill or Noble Phantasm has ever gone on cooldown.** `resolveAttack` never set one;
+  the Skill path did. `module/engine/cooldown.mjs` is now the single implementation for both,
+  applied at confirmation beside the cost, and `alsoTriggers` (§7.6) rides it.
+- **An attack froze permanently at its first interruptible rung** whenever a Master could offer a
+  Command Spell. `awaitInterrupt` compared the process flag against the **in-memory** state, which
+  had already advanced past it — so the first poll reported "somebody spent" when nobody had, and
+  the caller re-read the flag, restoring the pre-advance state and discarding the advance. It
+  needed a Master *on the board* to appear at all.
+- **Tokens are linked at the document level**, not only for compendium content. An actor a GM
+  creates by hand is just as much one unit, and the compiled default did not reach it.
+- **The targeting picker offered an anchor the resolver does not have.** It called `withinRange`
+  "point", which authored cleanly, validated, and threw the first time Medea's Rain of Light was
+  aimed. The drift test guarded shapes and not anchors; it now guards both, which immediately
+  found an invented anchor and an unreachable one.
 
 - **Every `noneRefresh` effect duplicated instead of refreshing.** `resolveStacking` decided
   `refresh` / `extend` / `stage` and the emit step **ignored the action**, always emitting a bare

@@ -18,7 +18,7 @@ normalAttack: { mode: fixed, component: str }
 # `detect` is an explicit override (Ch. 08 §8.7).
 detect: 2
 # Neither clause is Medea-specific machinery: both are properties of the summon.
-exemptFromUnitLimit: true
+countsTowardBudget: false
 actsOncePerTurn: true
 # "Enemy Units cannot Attack Medea or her Master if any Dragon Tooth Warriors
 # are directly next to them" -- a protection projected onto its SUMMONER, which

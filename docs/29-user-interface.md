@@ -13,6 +13,14 @@
 > "1000" tells a GM nothing about whether to re-roll and "18 + 2 (coin) + 2 granted = 22" tells
 > them everything, which is the same argument the damage explainer (Ch. 30) already won.
 >
+> **The sheet scrolls.** Foundry gives `.window-content` a fixed height and no overflow of its
+> own, so a Servant with thirteen abilities — Medea — simply ran off the bottom. The scroll lives
+> on the **part root**, which is what `scrollable: [""]` names, so ApplicationV2 restores the
+> position after each re-render; scrolling `.window-content` instead would jump back to the top on
+> every edit, because the sheet re-renders on change. §29.3's Master block became a **partial**
+> inside the body rather than a second part, for the same reason: two parts meant two scroll
+> containers, and the position ApplicationV2 preserves is per part.
+>
 > `test/unit/i18n.test.mjs` now holds every literal `localize` key in the templates and modules
 > against `lang/en.json`. A missing key does not throw — Foundry renders the key itself, so a
 > button reads `FGT.Summon.Confirm` and the system looks broken in a way nothing else would catch.

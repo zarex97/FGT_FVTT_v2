@@ -13,6 +13,7 @@
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
+import { currentHealth } from "../domain/health.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  19.2 — the Day/Night cycle                                                */
@@ -419,7 +420,7 @@ export function checkVictory(board) {
   }
 
   const alive = [...new Set((board.units ?? [])
-    .filter((u) => (u.health?.value ?? 0) > 0 && u.faction)
+    .filter((u) => currentHealth(u) > 0 && u.faction)
     .map((u) => u.faction))];
   if (alive.length === 1) return { outcome: "elimination", faction: alive[0] };
 

@@ -162,6 +162,22 @@ for each combination; flags compose.
 
 ---
 
+> **Implemented phase kinds.** `damage`, `applyEffects`, `removeEffect` (by name or by a
+> `selector`'s **polarity**, so "all debuffs" covers debuffs written later), `heal` (with
+> `percentOfMax`, because a sheet that says "30% of its maximum value" means the maximum),
+> `statChange`, `resource` (with `clampToMax`, the difference between *restores* 3 Agility and
+> *grants* 3), `cooldown` (by ability id **or by `category`**, so Medea's High-Speed Divine Words
+> can reset all seven of her Spells without naming them), `summon`, and `cutContract`.
+>
+> An `applyEffects` phase carries **`effects:`**, not `rules:` — `phases[].rules` is walked by the
+> validator as *rule elements* and each entry must have a `key`.
+>
+> `summon` is the most structurally demanding (Medea's Dragon Tooth Warriors): two nested rolls,
+> one for how many and one for what each is, placement restricted to **free** panels in the
+> declared area, and a cooldown scaled by the first roll. `cutContract` is the only phase that
+> rewrites the relationship graph, and it reads the ladder's outcome — a successful Evade keeps
+> the Contract, so it cannot be an unconditional rider after damage.
+
 ## 15.2 Phases
 
 An active ability's behaviour is an **ordered list of phases**. Each phase is one of the two

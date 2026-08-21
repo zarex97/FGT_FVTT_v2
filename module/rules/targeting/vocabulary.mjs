@@ -37,16 +37,53 @@ export const TARGET_ANCHORS = Object.freeze([
     schematic: ["..... ", "..... ", "..@#. ", "..... ", "....."],
   },
   {
-    id: "point",
+    // `withinRange` is the resolver's name for "a free panel the player picks".
+    // The id must be the internal one and the LABEL the friendly one -- §29.6's
+    // whole point is that a GM never has to know the former. Calling this
+    // `point` in the picker made it authorable and unresolvable: Medea's Rain
+    // of Light threw `Unknown targeting anchor "point"`.
+    id: "withinRange",
     label: "FGT.Anchor.point",
     hint: "FGT.Anchor.pointHint",
     schematic: ["..... ", ".#... ", "..@.. ", "..... ", "....."],
   },
   {
-    id: "ownerMaster",
-    label: "FGT.Anchor.ownerMaster",
-    hint: "FGT.Anchor.ownerMasterHint",
-    schematic: ["..... ", "..#.. ", "..... ", "..@.. ", "....."],
+    id: "selfEdgeAdjacent",
+    label: "FGT.Anchor.selfEdgeAdjacent",
+    hint: "FGT.Anchor.selfEdgeAdjacentHint",
+    schematic: ["..... ", ".###. ", ".#@#. ", ".###. ", "....."],
+  },
+  {
+    id: "zone",
+    label: "FGT.Anchor.zone",
+    hint: "FGT.Anchor.zoneHint",
+    schematic: ["#####", "#####", "##@##", "#####", "#####"],
+  },
+  {
+    id: "movementPath",
+    label: "FGT.Anchor.movementPath",
+    hint: "FGT.Anchor.movementPathHint",
+    schematic: [".....", "..##.", ".#@..", ".#...", "....."],
+  },
+  {
+    id: "platform",
+    label: "FGT.Anchor.platform",
+    hint: "FGT.Anchor.platformHint",
+    schematic: ["#####", "#...#", "#.@.#", "#...#", "#####"],
+  },
+  {
+    id: "global",
+    label: "FGT.Anchor.global",
+    hint: "FGT.Anchor.globalHint",
+    schematic: ["#####", "#####", "##@##", "#####", "#####"],
+  },
+  {
+    // Reaction abilities: the thing that just hit you. Medea's Trofa and Argos
+    // are both "used when Attacked", and this is where they point.
+    id: "sourceOfAttack",
+    label: "FGT.Anchor.sourceOfAttack",
+    hint: "FGT.Anchor.sourceOfAttackHint",
+    schematic: ["..... ", "..... ", "#..@. ", "..... ", "....."],
   },
 ]);
 

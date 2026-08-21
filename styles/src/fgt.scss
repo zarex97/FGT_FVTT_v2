@@ -1,7 +1,27 @@
 // F/GT — Fate/Grail Tactics
 // Compiled to styles/fgt.css. See docs/29-user-interface.md.
 
+// The sheet scrolls. Foundry gives `.window-content` a fixed height and no
+// overflow of its own, so a Servant with thirteen abilities -- Medea -- simply
+// ran off the bottom with no way to reach the rest.
+//
+// The scroll lives on the PART root, which is what `scrollable: [""]` names, so
+// ApplicationV2 restores the position after each re-render. Scrolling
+// `.window-content` instead would work and would jump back to the top on every
+// edit, because the sheet re-renders on change.
+.application.fgt.sheet .window-content {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
 .fgt-sheet {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
   --fgt-gap: 0.5rem;
   --fgt-border: 1px solid var(--color-border-light-tertiary, #7a7971);
 

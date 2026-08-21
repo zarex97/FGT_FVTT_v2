@@ -242,20 +242,10 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     body: { template: "systems/fgt/templates/actor/unit.hbs", scrollable: [""] },
   };
 
-  /**
-   * A Master gets an extra part (§29.3), because it has three things a Servant
-   * sheet does not: the per-Servant Command Spell tracker, its contracted
-   * Servants with their ZON status, and its Essence.
-   *
-   * @inheritdoc
-   */
-  _configureRenderParts(options) {
-    const parts = super._configureRenderParts(options);
-    if (this.document.type === "master") {
-      parts.master = { template: "systems/fgt/templates/actor/master.hbs" };
-    }
-    return parts;
-  }
+  // §29.3's Master block is a PARTIAL inside the body rather than a second
+  // part. Two parts meant two scroll containers on one sheet, and the scroll
+  // position that ApplicationV2 preserves is per part -- so a Master editing
+  // anything watched its Command Spell tracker jump while its stats stayed put.
 
   /** @inheritdoc */
   async _prepareContext(options) {
@@ -291,6 +281,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // §29.3's three Master-only panels. Computed here rather than in the
       // template because every one of them is derived -- the Unbound warning
       // most of all, which no field on the sheet stores.
+      isMaster: this.document.type === "master",
       ...(this.document.type === "master" ? masterContext(this.document) : {}),
     };
   }

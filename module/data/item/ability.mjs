@@ -35,6 +35,12 @@ function abilityCommon() {
 
     cooldown: new fields.SchemaField({
       max: new TickField(),
+      // A cooldown decided by the use itself rather than authored as a fixed
+      // tick: Medea's Dragon Tooth Warriors is "(Number of Warriors x ⅔◈)",
+      // so the cost is not known until the Skill has resolved. `max` stays null
+      // for these, which is why it is nullable rather than required.
+      perUnit: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+      countFrom: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       remaining: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       regen: new fields.NumberField({ required: true, integer: true, initial: 0 }),
     }),

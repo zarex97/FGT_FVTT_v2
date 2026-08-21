@@ -15,6 +15,7 @@
  */
 
 import { lookup } from "../domain/tables.mjs";
+import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { meetsRequirements } from "./items.mjs";
 
@@ -131,9 +132,9 @@ function cannotPay(cost, unit, master) {
   if (!cost) return null;
   switch (cost.kind) {
     case "masterHealth":
-      return (master?.health?.value ?? 0) > cost.amount ? null : "masterHealth";
+      return currentHealth(master) > cost.amount ? null : "masterHealth";
     case "selfHealth":
-      return (unit?.health?.value ?? 0) > cost.amount ? null : "selfHealth";
+      return currentHealth(unit) > cost.amount ? null : "selfHealth";
     case "sustainability":
       return (unit?.sustainability ?? 0) > cost.amount ? null : "sustainability";
     default:

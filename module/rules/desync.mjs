@@ -16,6 +16,8 @@
  * turned off. So: those three, sorted, and nothing else.
  */
 
+import { currentHealth, isUndamageable } from "../domain/health.mjs";
+
 /**
  * A checksum over the board state that must agree across clients.
  *
@@ -34,7 +36,7 @@ export function boardChecksum(board) {
       u.panel ? `${u.panel.i},${u.panel.j}` : "-",
       // `null` health is intrinsically undamageable (Pale Rider), which is a
       // different state from 0 and must hash differently.
-      u.health === null || u.health === undefined ? "null" : String(u.health.value ?? u.health),
+      isUndamageable(u) || u.health === undefined ? "null" : String(currentHealth(u)),
       [...(u.effects ?? [])].map(effectId).sort().join("|"),
     ].join(":"))
     .sort();
