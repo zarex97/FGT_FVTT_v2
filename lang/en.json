@@ -389,5 +389,21 @@
   "FGT.Skill.UnknownEffect": "{name} applies an unknown effect \"{id}\" — it did nothing.",
   "FGT.Skill.DamagePhase": "{name} deals damage but was used as a Skill. It should be marked as an Attack Skill.",
   "FGT.Skill.Reason.negated": "it is negated by an effect on this Unit",
-  "FGT.Skill.Reason.sameTurnExclusive": "another Skill it excludes was already used this Turn"
+  "FGT.Skill.Reason.sameTurnExclusive": "another Skill it excludes was already used this Turn",
+  "FGT.Anchor.selfEdgeAdjacent": "Beside the caster",
+  "FGT.Anchor.selfEdgeAdjacentHint": "A block projected in one non-diagonal direction from the caster; the player picks which.",
+  "FGT.Anchor.zone": "A whole Zone",
+  "FGT.Anchor.zoneHint": "Placed on a named Zone, whatever shape it is.",
+  "FGT.Anchor.movementPath": "The path just moved",
+  "FGT.Anchor.movementPathHint": "Every panel the caster moved through this Turn — used by Riding Attack.",
+  "FGT.Anchor.platform": "A platform",
+  "FGT.Anchor.platformHint": "Placed on a platform and what it carries.",
+  "FGT.Anchor.global": "The whole board",
+  "FGT.Anchor.globalHint": "Everything on the field, wherever it is.",
+  "FGT.Anchor.sourceOfAttack": "Whatever just attacked",
+  "FGT.Anchor.sourceOfAttackHint": "Placed on the attacker — for abilities used when Attacked.",
+  "FGT.Summon.NoRoom": "No free panel for {count} more — they did not appear.",
+  "FGT.Summon.ChooseType": "Choose a Dragon Tooth Warrior",
+  "FGT.Summon.ChooseTypeHint": "The die came up \"your choice\".",
+  "FGT.NP.ContractCut": "{servant}'s Contract was cut and given to {master}."
 }

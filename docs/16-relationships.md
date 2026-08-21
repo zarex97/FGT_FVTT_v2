@@ -505,6 +505,11 @@ walks through the Dioscuri in full.
 > a full pool. The split state this section calls genuinely interesting is visible on the Master
 > sheet (§29.3).
 
+> **First consumer.** Medea's *Rule Breaker* is the only ability in the reference set that takes
+> Command Spells **from** a Master: it cuts the Servant's Contract, strips that Master's spells,
+> and grants three to the caster's Master, namespaced to the Servant just taken. Verified in a
+> live world — 3 → 0 on the loser, `{servantId: 3}` on the winner.
+
 ## 16.9 Command Spell namespacing
 
 Because contracts move, Command Spells must be tracked per-relationship, not per-Master:

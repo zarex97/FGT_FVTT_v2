@@ -15,6 +15,7 @@
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
+import { currentHealth } from "../domain/health.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  NP tags — a real, ordered classification                                  */
@@ -345,7 +346,7 @@ export function extensionFor(field, payer) {
   if (!spec) return { ok: false, reason: "notExtendable" };
 
   const amount = spec.cost?.amount ?? 0;
-  if ((payer?.health?.value ?? 0) < amount) return { ok: false, reason: "cannotAfford", amount };
+  if (currentHealth(payer) < amount) return { ok: false, reason: "cannotAfford", amount };
 
   return { ok: true, amount, grants: spec.grants, repeatable: Boolean(spec.repeatable) };
 }

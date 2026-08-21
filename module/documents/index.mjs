@@ -12,7 +12,42 @@ import { applyStatDeltas, writeDerived } from "../rules/derived.mjs";
 
 export { FGTCombat } from "./combat.mjs";
 
+/**
+ * Unit types whose token must be **linked** to their actor.
+ *
+ * A Servant, a Master or a platform is ONE unit: its sheet and its token have
+ * to be the same document, or a skill resolved from the board writes to a copy
+ * the sheet never shows. Foundry defaults `actorLink` to false, and that
+ * default cost two separate debugging sessions of "the heal applied and the
+ * Health did not change".
+ *
+ * Summons and civilians are the opposite case, and the reason this is a set
+ * rather than a blanket rule: Medea conjures up to six Dragon Tooth Warriors
+ * from one statblock, and six linked tokens would share one pool of Health.
+ */
+const LINKED_TYPES = new Set(["servant", "master", "platform", "structure"]);
+
 export class FGTActor extends Actor {
+  /**
+   * Link the prototype token for the types that need it.
+   *
+   * On the DOCUMENT rather than only in the compiled content, because an actor
+   * a GM creates by hand is just as much one unit as one imported from a
+   * compendium -- and the compiled default does not reach it.
+   *
+   * An explicit choice in the creation data wins: this is a default, not a
+   * policy, and a GM who deliberately wants an unlinked Servant may have one.
+   *
+   * @inheritdoc
+   */
+  _preCreate(data, options, user) {
+    const result = super._preCreate(data, options, user);
+    if (data.prototypeToken?.actorLink === undefined && LINKED_TYPES.has(data.type ?? this.type)) {
+      this.updateSource({ prototypeToken: { actorLink: true } });
+    }
+    return result;
+  }
+
   /**
    * Project this actor into the plain-data snapshot the rules layer consumes.
    * @param {object} [opts]

@@ -18,6 +18,7 @@ import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
 import { evade as evadeCheck, luckCheck, chance, checkPlan } from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
+import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { classifyAbility, targetSpecFor as specForAbility } from "../rules/ability-use.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { inAttackRange } from "../domain/geometry.mjs";
@@ -138,6 +139,20 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   const { charged, superseded } = resolveCosts(pending);
 
   for (const cost of charged) await applyBatch(costIntents(cost), "attack:cost");
+
+  // The cooldown, at the same moment as the cost and for the same reason: the
+  // ability has been committed. `resolveAttack` never did this, so every Attack
+  // Skill and every Noble Phantasm was infinitely reusable -- limited only by
+  // the attack budget, which is a different rule.
+  if (ability) {
+    const clocks = [...cooldownFor(ability, attackerId), ...alsoTriggered(ability, attacker)];
+    if (clocks.length > 0) {
+      await applyBatch(
+        clocks.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
+        "attack:cooldown",
+      );
+    }
+  }
   if (superseded.length > 0) {
     // Logged, because a Master who paid 50 where they expected 70 needs to see
     // which rule did that; a silently smaller number reads as a bug.
@@ -251,7 +266,12 @@ export async function advanceAttack({ messageId, event }) {
     if (interrupted) {
       // Somebody spent. Re-read: the interrupt may have moved the Process to a
       // different rung entirely (§17.4, "RESUME, possibly at a different state").
-      state = process.deserialize(message.getFlag("fgt", "process"));
+      const reread = process.deserialize(message.getFlag("fgt", "process"));
+      // Guard against re-reading BACKWARDS. The flag is only written at the end
+      // of this function, so a spurious interrupt would otherwise restore the
+      // rung we started from and lose everything since -- which is exactly the
+      // freeze this pair of comments describes.
+      if (reread.history.length >= state.history.length) state = reread;
       continue;
     }
     state = await runAutomaticStep(state, message);
@@ -577,7 +597,18 @@ async function awaitInterrupt(message, state) {
     a.type === "master" && offerCommands({ masterId: a.id, window, context: { state: state.state, attack: state.attack } }).length > 0);
   if (!anyOffer) return false;
 
-  const before = process.serialize(state);
+  // The baseline is the FLAG's current value, not the in-memory state.
+  //
+  // Comparing against `serialize(state)` compared two different things: the
+  // flag still holds the state this call started from, while `state` has
+  // already advanced past it. So the very first poll saw a difference, reported
+  // "somebody spent" when nobody had, and the caller then re-read the flag --
+  // restoring the pre-advance state and discarding the advance.
+  //
+  // The effect was that any attack reaching an interruptible rung with a Master
+  // able to offer a Command Spell froze there permanently. It needed a Master
+  // ON THE BOARD to appear at all, which is why it survived every earlier test.
+  const before = message.getFlag("fgt", "process");
   const deadline = Date.now() + seconds * 1000;
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 500));
@@ -941,6 +972,16 @@ async function applyAbilityEffects(state, damageResult) {
   // Through `effectivePhases`, because a copy (§15.7) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
   for (const phase of effectivePhases(ability.system ?? {}, resolveAbilitySource)) {
+    // Medea's Rule Breaker: "removes all buffs from the DU", and then cuts the
+    // Contract if the DU is a Servant that FAILED to Evade.
+    if (phase.kind === "removeEffect") {
+      await applyBatch(removalIntents(phase, defenderDoc), "np:removeEffect");
+      continue;
+    }
+    if (phase.kind === "cutContract") {
+      applied.push(...await cutContract(phase, state, defenderDoc));
+      continue;
+    }
     if (phase.kind !== "applyEffects") continue;
     for (const rule of phase.rules ?? []) {
       const spec = rule.effect;
@@ -1126,4 +1167,98 @@ function resolveAbilitySource(contentId) {
     if (found) return found;
   }
   return null;
+}
+
+/**
+ * Strip effects a Noble Phantasm removes.
+ *
+ * By **polarity** when a selector says so, because "removes all buffs" has to
+ * cover buffs authored after the ability was written. Unremovable effects stay:
+ * Appendix A marks a few that no cleanse reaches, and a blanket removal must
+ * not be the exception that does.
+ *
+ * @param {object} phase
+ * @param {object} doc the defender
+ * @returns {object[]}
+ */
+function removalIntents(phase, doc) {
+  const named = (phase.effects ?? [phase.effect]).filter(Boolean).map((e) => e.id ?? e);
+  const selector = phase.selector ?? null;
+
+  const ids = named.length > 0
+    ? named
+    : doc.effects
+      .filter((e) => {
+        const def = EffectRegistry.get(e.system?.defId);
+        if (!def) return false;
+        if (selector?.polarity && def.polarity !== selector.polarity) return false;
+        return !def.unremovable;
+      })
+      .map((e) => e.system.defId);
+
+  return ids.map((id) => I.removeEffect(doc.id, id, "ruleBreaker"));
+}
+
+/**
+ * Cut a Servant's Contract and take its Master's Command Spells.
+ *
+ * Medea's Rule Breaker, and the only ability in the reference set that rewrites
+ * the relationship graph as an attack rider. Two conditions from the sheet, and
+ * both matter:
+ *
+ *   - **the DU must be a Servant.** A Master or a summon has no Contract to cut.
+ *   - **it must have FAILED to Evade.** A successful Evade keeps the Contract,
+ *     which is why this cannot be an unconditional phase after damage -- it has
+ *     to read the ladder's outcome, and `state.evaded` is where that lives.
+ *
+ * The Contract and the spells move in ONE batch, for §16.2's reason: no
+ * intermediate state where the Servant is Free and unclaimed may be observable.
+ *
+ * @param {object} phase
+ * @param {object} state the Combat Process
+ * @param {object} defenderDoc
+ * @returns {Promise<object[]>}
+ */
+async function cutContract(phase, state, defenderDoc) {
+  const requires = phase.requires ?? {};
+
+  if (requires.targetKind && defenderDoc.type !== requires.targetKind) {
+    return [{ summary: { id: "cutContract", name: "Rule Breaker", outcome: "blocked", reason: "notAServant" } }];
+  }
+  if (requires.evadeFailed && state.evaded) {
+    // The Evade succeeded, so the Contract survives. Recorded rather than
+    // silent: "why did Rule Breaker not steal it" is the first question asked.
+    return [{ summary: { id: "cutContract", name: "Rule Breaker", outcome: "blocked", reason: "evaded" } }];
+  }
+
+  const oldMaster = defenderDoc.system?.masterId ? game.actors.get(defenderDoc.system.masterId) : null;
+  const caster = game.actors.get(state.attackerId);
+  const newMaster = caster?.type === "master" ? caster : game.actors.get(caster?.system?.masterId);
+
+  if (!newMaster) {
+    // A Free Medea has no Master to receive the Contract. The Servant is still
+    // cut loose -- the NP destroyed the talisman either way.
+    await applyBatch([I.markContract(defenderDoc.id, "free", null)], "np:cutContract");
+    return [{ summary: { id: "cutContract", name: "Rule Breaker", outcome: "applied", reason: "freedOnly" } }];
+  }
+
+  const stripped = phase.stripMasterCommandSpells && oldMaster
+    ? oldMaster.system?.commandSpells ?? 0
+    : 0;
+
+  await applyBatch([
+    I.markContract(defenderDoc.id, "contracted", newMaster.id),
+    // "removes the Master's Command Spells" -- all of them, not the three that
+    // move. The three Medea receives are granted separately and are namespaced
+    // to the Servant she just took (§16.9).
+    ...(stripped > 0 ? [I.spendCS(oldMaster.id, stripped, "ruleBreaker", defenderDoc.id)] : []),
+    I.grantCommandSpells(newMaster.id, defenderDoc.id, phase.grantToCaster?.commandSpells ?? 0),
+    I.log({
+      kind: "contract", event: "ruleBreaker",
+      servantId: defenderDoc.id, fromMasterId: oldMaster?.id ?? null,
+      toMasterId: newMaster.id, spellsStripped: stripped,
+    }),
+  ], "np:cutContract");
+
+  return [{ summary: { id: "cutContract", name: "Rule Breaker", outcome: "applied", reason: null } }];
 }

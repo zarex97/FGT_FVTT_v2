@@ -10,6 +10,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { currentHealth } from "../domain/health.mjs";
 import { lookup } from "../domain/tables.mjs";
 
 /** Base chance for both coin flips. */
@@ -228,7 +229,7 @@ export function multiServantTax(master, servants, settings = {}) {
  */
 export function mayOrderAnotherServant(master, servants, settings = {}) {
   if (settings.grandOrder) return { ok: true };
-  if ((master?.health?.value ?? 0) > MULTI_SERVANT_COST) return { ok: true };
+  if (currentHealth(master) > MULTI_SERVANT_COST) return { ok: true };
 
   const acted = (servants ?? []).filter((s) => s.turnState?.acted).length;
   return acted >= 1

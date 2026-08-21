@@ -140,6 +140,43 @@ describe("canUseAbility", () => {
   });
 });
 
+describe("the shape the SNAPSHOT actually provides", () => {
+  // `snapshotUnit` stores `health: sys.health?.value ?? null` -- a NUMBER. Every
+  // fixture in this file used `{value, max}`, so the code and the tests agreed
+  // with each other and not with the system: `health.value` came out undefined,
+  // `?? 0` made it zero, and the strict comparison refused every Noble Phantasm
+  // ever attempted. It surfaced the first time one was fired in a live world.
+  const snapshotServant = (over = {}) => ({
+    id: "medea", kind: "servant", contract: "contracted", masterId: "m", ...over,
+  });
+  const snapshotMaster = (health) => ({ id: "m", kind: "master", rank: "A", health });
+
+  it("accepts a Master whose health is a bare number", () => {
+    expect(canUseAbility({
+      ability: np(), unit: snapshotServant(), master: snapshotMaster(250), round: 3,
+    })).toMatchObject({ ok: true });
+  });
+
+  it("still refuses when that number is at or below the cost", () => {
+    expect(canUseAbility({
+      ability: np(), unit: snapshotServant(), master: snapshotMaster(50), round: 3,
+    })).toMatchObject({ ok: false, reason: "masterHealth" });
+  });
+
+  it("accepts the document shape too, because both reach this function", () => {
+    expect(canUseAbility({
+      ability: np(), unit: snapshotServant(), master: snapshotMaster({ value: 250, max: 250 }), round: 3,
+    })).toMatchObject({ ok: true });
+  });
+
+  it("reads a Free Servant's own health the same way", () => {
+    expect(canUseAbility({
+      ability: np(), unit: snapshotServant({ contract: "free", sustainability: null, health: 500 }),
+      master: null, round: 3,
+    })).toMatchObject({ ok: true });
+  });
+});
+
 describe("resolveCosts — supersession (§15.4)", () => {
   const actCost = { kind: "masterHealth", amount: 20, unitId: "m", id: "servantActs" };
   const npKarna = { kind: "masterHealth", amount: 50, unitId: "m", id: "npCost", supersedes: ["servantActs"] };

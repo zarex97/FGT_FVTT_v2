@@ -28,8 +28,9 @@ import {
 import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
+import { summonPhase } from "./summoning.mjs";
+import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { currentBoard, unitFrom, unitSnapshot } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
@@ -99,7 +100,7 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
 
   await applyWorldIntents([
     ...(usage.cost ? costIntents(usage.cost) : []),
-    ...cooldownIntents(ability, actor),
+    ...cooldownIntents(ability, actor, applied.summoned ?? 0),
     I.markTurn(actorId, marks),
     I.log({
       kind: "ability", event: "skillUsed",
@@ -175,6 +176,9 @@ function targetsSelfOnly(spec) {
 async function runPhases(ability, actor, targets, board) {
   /** @type {object[]} */
   const applied = [];
+  // How many were conjured, for a cooldown that scales with the roll that just
+  // happened -- Dragon Tooth Warriors is the only such cost in the set.
+  let summoned = 0;
 
   for (const phase of effectivePhases(ability.system ?? {}, resolveSource)) {
     for (const target of targets) {
@@ -236,6 +240,16 @@ async function runPhases(ability, actor, targets, board) {
           );
           break;
 
+        case "summon": {
+          // Only once per use, not once per target: the phase conjures from the
+          // CASTER, and looping it over a target list would multiply the squad.
+          if (target.unitId !== actor.id) break;
+          const out = await summonPhase(phase, actor, { choose: chooseSummonType });
+          summoned = out.count;
+          applied.push({ summary: { id: "summon", name: `${out.count} summoned`, outcome: "applied", reason: null } });
+          break;
+        }
+
         case "damage":
           // `countsAsAttack` should have routed this to `resolveAttack`. Loud,
           // because the alternative is a Noble-Phantasm-sized hole that looks
@@ -249,7 +263,7 @@ async function runPhases(ability, actor, targets, board) {
       }
     }
   }
-  return applied;
+  return Object.assign(applied, { summoned });
 }
 
 /**
@@ -305,22 +319,13 @@ async function applyPhaseEffects(phase, ability, actor, target) {
 }
 
 /** @param {object} ability @param {object} actor @returns {object[]} */
-function cooldownIntents(ability, actor) {
-  // `max` is the authored tick expression; `remaining` is the running clock.
-  // Reading `.value` -- which does not exist on this schema -- silently produced
-  // no cooldown at all, so every Skill was reusable the moment it resolved.
-  const raw = ability.system?.cooldown?.max ?? null;
-  if (!raw || typeof raw === "number") return [];
-
-  try {
-    const ticks = resolveTicks(parseTick(String(raw)), {
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    });
-    return ticks > 0 ? [I.cooldown(actor.id, ability.id, ticks, "set")] : [];
-  } catch {
-    console.warn(`FGT | ${ability.name} has an unreadable cooldown "${raw}".`);
-    return [];
-  }
+function cooldownIntents(ability, actor, summoned = 0) {
+  // One implementation for both use paths (`engine/cooldown.mjs`). They used to
+  // disagree: this one set a cooldown and `resolveAttack` did not.
+  return [
+    ...cooldownFor(ability, actor.id, { count: summoned }),
+    ...alsoTriggered(ability, actor),
+  ].map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set"));
 }
 
 /** @param {object} cost @returns {object[]} */
@@ -470,4 +475,24 @@ function usedThisTurn(actor) {
   const state = actor.system?.turnState ?? {};
   const now = game.combat?.system?.globalTurn ?? 0;
   return state.tick === now ? [...(state.abilitiesUsed ?? [])] : [];
+}
+
+/**
+ * Ask which kind of summon to conjure, for a "your choice" entry.
+ *
+ * Dragon Tooth Warriors rolls 1d4 per Warrior and entry 4 is *"your choice of
+ * Blade, Bow or Daggers"* -- a prompt rather than a fourth statblock.
+ *
+ * @param {object} spec
+ * @returns {Promise<string|null>}
+ */
+async function chooseSummonType(spec) {
+  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+  const picked = await ChoiceDialog.pick({
+    title: game.i18n.localize("FGT.Summon.ChooseType"),
+    hint: game.i18n.localize("FGT.Summon.ChooseTypeHint"),
+    count: 1,
+    options: (spec.choiceFrom ?? []).map((id) => ({ id, name: id })),
+  });
+  return picked?.[0] ?? null;
 }

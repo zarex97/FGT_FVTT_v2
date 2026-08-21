@@ -1,5 +1,18 @@
 # 22 — Data Models
 
+> **Health has two shapes, and one helper reads both.** A document stores
+> `health: {value, max}`; `snapshotUnit` flattens it to a **number**, because that is all a rule
+> needs. Six rules files read `unit.health.value` directly — correct against a document, silently
+> `undefined` against a snapshot, and the `?? 0` beside each one turned that into a
+> plausible-looking zero.
+>
+> The consequences were not small: `cannotPay` refused **every Noble Phantasm ever attempted**
+> (a Master's Health read as 0 against a strictly-greater comparison), and `mayOrderAnotherServant`
+> refused every second Servant for the same reason with the opposite sign. Neither showed up in
+> the unit tests, because every fixture used the document shape — so the code and the tests agreed
+> with each other and not with the system. `module/domain/health.mjs` is now the only reader, and
+> `test/unit/health-shape.test.mjs` enforces that.
+
 > **A `SetField` is a `Set`, not an array.** It has `.has` and no `.includes`, and the layers that
 > read documents get the raw `Set` — only `snapshotUnit` converts, which is why the rules layer
 > can use `.includes` safely and the sheet cannot. A `?? []` fallback beside one reads like a

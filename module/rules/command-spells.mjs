@@ -25,6 +25,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { currentHealth } from "../domain/health.mjs";
 import { availableFor } from "./cs-namespacing.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 
@@ -286,7 +287,7 @@ function immunityFor(req) {
 function conditionHolds(condition, ctx) {
   switch (condition) {
     case "damageWouldDefeatServant":
-      return (ctx.incomingDamage ?? 0) >= (ctx.servant?.health?.value ?? 0);
+      return (ctx.incomingDamage ?? 0) >= currentHealth(ctx.servant);
     default:
       return false;
   }

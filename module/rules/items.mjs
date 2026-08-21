@@ -13,6 +13,7 @@
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
+import { currentHealth, maxHealth } from "../domain/health.mjs";
 
 /**
  * May this item move from one unit to another?
@@ -147,13 +148,13 @@ export function meetsRequirement(req, ctx) {
 
     case "healthBelow": {
       // God's Holder: Possession, at under 30%.
-      const max = unit?.health?.max ?? 0;
+      const max = maxHealth(unit);
       if (max <= 0) return false;
-      return (unit?.health?.value ?? 0) < max * (req.fraction ?? 1);
+      return currentHealth(unit) < max * (req.fraction ?? 1);
     }
 
     case "masterHealthAbove":
-      return (master?.health?.value ?? 0) > (req.amount ?? 0);
+      return currentHealth(master) > (req.amount ?? 0);
 
     case "counterpartAdjacent": {
       // The Dioscuri's Noble Phantasm needs the other twin beside it.
