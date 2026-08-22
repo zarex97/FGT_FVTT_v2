@@ -5,7 +5,9 @@ name: "Nine Lives"
 isNP: true
 rank: "A+"
 npTags: [antiUnit]
-cooldown: "7◈"
+# The sheet prints "7◈+⅓◈", not 7◈. A third of a Round is one Turn in this
+# world and five in a Holy Grail War, so the difference is not rounding.
+cooldown: "7◈+⅓◈"
 description: "Base Attack (STR) is used. Deals 4x damage plus 100. Then inflicts Def Dwn for 1◈ Turns, all damage taken is increased by 30%."
 targeting:
   anchor: { kind: targetUnit, range: 1 }

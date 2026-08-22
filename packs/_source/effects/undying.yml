@@ -1,0 +1,28 @@
+# Heracles's Indomitable, char_orig_sheets/Copia de Heracles.md
+#
+# A **Special Guts**: top of the revival chain his sheet states, above generic
+# Guts, Battle Continuation and God Hand. "Stacks with other Guts buffs; but
+# does not stack with itself" is the whole reason it is a distinct effect rather
+# than a magnitude on `guts`.
+schema: 1
+id: undying
+name: "Undying"
+description: "When defeated, revive with 25% of maximum Health. Consumed on use."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+# "Does not stack with itself": a second application refreshes the duration and
+# leaves one charge, which is what `noneRefresh` means. It coexists with `guts`
+# because that is a different definition, not a different instance.
+stacking: noneRefresh
+baseChance: 100
+# One revival, then it is gone.
+uses: 1
+rules:
+  # Priority 300 -- the top of the chain (§31.2). Not cascading: it restores a
+  # fraction of maximum, so there is nothing to roll again.
+  - key: RevivalSource
+    id: undying
+    revivalPriority: 300
+    charges: 1
+    restore: { percentOfMax: 25 }

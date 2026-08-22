@@ -1,0 +1,31 @@
+# Heracles, char_orig_sheets/Copia de Heracles.md
+schema: 1
+id: heracles-indomitable
+name: "Indomitable"
+rank: A
+kind: skill
+slug: indomitable
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies the 'Undying' buff for 1◈+⅔◈ Turns: when Heracles is defeated he is revived with
+     25% of his Max Health. This Undying buff stacks with other Guts buffs, but does not stack
+     with itself.
+  2. Applies the 'Indomitable' buff to Heracles for 1◈+⅔◈ Turns. Its effects are as follows-
+     whenever Heracles is defeated and revived through any effect, Atk Up is applied to him for
+     1◈+⅔◈ Turns, all damage dealt is increased by 30%; if NP, 20%.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      # Two buffs, one press. `Undying` is the revival; `Indomitable` is the
+      # payout for having been revived by ANY of the four, which is why it
+      # listens for the event rather than riding on Undying itself.
+      - { id: undying, duration: "1◈+⅔◈" }
+      - { id: indomitable, duration: "1◈+⅔◈" }

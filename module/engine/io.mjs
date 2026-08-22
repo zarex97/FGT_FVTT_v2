@@ -261,6 +261,23 @@ export function worldIO() {
       await item.update({ "system.shieldHealth": next });
     },
 
+    /**
+     * Add one attack identity to an ability's ledger.
+     * @param {string} unitId @param {string} abilityId @param {string} identity
+     */
+    async recordAttack(unitId, abilityId, identity) {
+      const item = resolve(unitId)?.items?.get(abilityId);
+      if (!item) return;
+
+      const held = new Set(item.system?.recordedAttacks ?? []);
+      if (held.has(identity)) return;
+      held.add(identity);
+      // A `SetField` wants an ARRAY on the way in. Handing it a Set writes an
+      // empty collection, which is the shape defect that has cost this project
+      // more than any other.
+      await item.update({ "system.recordedAttacks": [...held] });
+    },
+
     async consumeUse(unitId, defId, count = 1) {
       const actor = resolve(unitId);
       if (!actor) return;

@@ -33,12 +33,32 @@ abilities:
   - { ref: class-mad-enhancement, rank: B, active: true, cannotDeactivate: true }
   - { ref: divinity, rank: A }
   - { ref: class-battle-continuation, rank: A }
+  - { ref: heracles-indomitable }
+  - { ref: heracles-bravery }
+  - { ref: heracles-eye-of-the-mind-false }
+  - { ref: heracles-god-hand }
   - { ref: heracles-nine-lives }
 
 notes: |
   Mad Enhancement B is PERMANENT and cannot be deactivated (cannotDeactivate), which is what
-  makes Bravery's suppression clause interesting: an ability disabled by its owner's own
-  other ability.
+  makes Bravery's suppression clause interesting: an ability disabled by its owner's own other
+  ability. In practice it means Bravery is on his sheet and he can never use it -- both halves,
+  the active and the standing mental-debuff resistance, are switched off for the whole match.
 
-  Four revival mechanisms with an explicit priority chain -- God Hand, Battle Continuation,
-  Indomitable's Guts, and Quetzalcoatl-style external Guts -- resolved in Ch. 31.
+  **Four revival mechanisms with an explicit priority chain**, and the sheet states the order:
+  *"Undying > normal Guts > Battle Continuation > God Hand"*. That is why revival is a
+  priority-ordered QUERY rather than a chain of handlers -- with one source, taking whichever
+  handler happened to heal first is indistinguishable from correct; with four it burns a God Hand
+  charge while Undying sits unused. Content declares the priority (300 / 200 / 100 / 50) and the
+  engine never names him.
+
+  **God Hand is the ability Ch. 31 was written for.** Its first passive CASCADES: "if the damage
+  of the Attack that defeated Heracles exceeds his current Health, the excess damage is reduced
+  from his newly restored Health, and so on", so one very large Noble Phantasm can burn several
+  of the eleven charges in a single resolution. Its second keeps a ledger of attack identities --
+  a set, not a number, which is the line §6.10 draws while naming this exact ability -- and an
+  attack in that ledger can never take him below 1 Health again.
+
+  What counts as "that Attack" is a judgement rather than a mechanism (§31.3): the **ability**,
+  with a per-attacker pseudo-id for Normal Attacks. Recording the attacking Unit instead would
+  mean one kill locks that Servant out for ever by any means; recording the instance is vacuous.

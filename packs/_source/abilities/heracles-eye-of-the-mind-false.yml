@@ -1,0 +1,35 @@
+# Heracles, char_orig_sheets/Copia de Heracles.md
+#
+# The third Eye of the Mind in the reference set, and the third to carry the
+# "upon a successful Evade, reduce this Skill's Cooldown" clause that
+# `evadeSucceeded` had no way to fire.
+schema: 1
+id: heracles-eye-of-the-mind-false
+name: "Eye of the Mind (False)"
+rank: B
+kind: skill
+slug: eyeOfTheMindFalse
+cooldown: "4◈"
+# "Used at the start of a Combat Process when Attacked" -- a reaction, offered
+# at the react rung beside Block and Evade. A Skill usable only on his own Turn
+# would never fire in defence, which is the whole point of this one.
+timing: { window: whenAttacked }
+description: |
+  (Passive) Upon a successful Evade, reduce the Cooldown of this Skill by ⅓◈ Turns.
+  (Active) Used at the start of a Combat Process when Attacked. Applies Dodge to Heracles for
+  ⅔◈ Turns, and applies Crit DmUp for 1◈ Turns, Crit Damage dealt is increased by 35%.
+  Cooldown: 4◈ Turns.
+passiveRules:
+  - key: OnEvent
+    event: evadeSucceeded
+    automatic: true
+    then:
+      # No `ability`, so `CooldownDelta` turns the clock of the ability that
+      # declared the handler: "the Cooldown of this Skill".
+      - { key: CooldownDelta, ticks: "⅓◈" }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: dodge, duration: "⅔◈" }
+      - { id: critDmUp, magnitude: 35, duration: "1◈" }

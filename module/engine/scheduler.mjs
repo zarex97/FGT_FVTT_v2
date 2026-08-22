@@ -25,6 +25,7 @@ import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
+import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 
 /**
@@ -556,6 +557,13 @@ function onCooldown(unit, abilityId) {
 export function pendingRolls(unit, event) {
   /** @type {Array<{key: string, formula: string|null, bonus: number}>} */
   const out = [];
+
+  // A cascading revival needs one roll per charge it MIGHT spend, because how
+  // many it will actually use is not known until the earlier ones have been
+  // subtracted from the overkill.
+  if (event === "unitDefeated") {
+    for (const spec of pendingRevivalRolls(unit)) out.push({ ...spec, bonus: 0 });
+  }
   for (const handler of unit.eventHandlers ?? []) {
     if (!listensFor(handler, event)) continue;
     for (const action of handler.actions ?? []) {
@@ -595,10 +603,84 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
   // to look like working code.
   if (currentHealth(unit) > 0) return [];
 
+  // Handlers first: `unitDefeated` is where content that is not a revival
+  // hangs -- Mad Enhancement's Sustainability penalty, a log entry, a counter.
   const intents = fireEvent("unitDefeated", [unit], ctx);
-  const revived = intents.some((i) => i.t === "heal" && i.amount > 0);
 
-  return revived ? intents : [...intents, I.defeat(unit.id, cause)];
+  // Then the revival QUERY, priority-ordered (§31.2). Heracles has four ways
+  // back and his sheet states the order: Undying > Guts > Battle Continuation
+  // > God Hand. This used to take any handler that healed, in collection order
+  // -- indistinguishable from correct with one source, and with four it spends
+  // whichever happened to be listed first, burning a God Hand charge while
+  // `Undying` sits unused.
+  const revival = resolveRevival({ unit, overkill: ctx.overkill ?? 0, rolls: ctx.rolls ?? {} });
+  if (revival.revived) {
+    return [
+      ...intents,
+      I.heal(unit.id, revival.restored, revival.source.id, true),
+      // §E.5's `unitRevived`, fired here rather than by a second pass, because
+      // this is the only place that knows a revival happened AND which source
+      // paid for it. Heracles's *Indomitable* is the one clause that listens:
+      // "whenever Heracles is defeated and revived through ANY effect" -- so it
+      // cannot hang off one of the four, and firing it from each would fire it
+      // four times.
+      ...fireEvent("unitRevived", [unit], {
+        ...ctx,
+        options: new Set([`revival:source:${revival.source.id}`]),
+      }),
+      // Charges are spent whether or not they were enough: "and so on"
+      // describes an attempt, not a refund.
+      ...spendRevival(unit, revival, ctx),
+      I.log({
+        kind: "revive", unitId: unit.id, source: revival.source.source,
+        amount: revival.restored, charges: revival.chargesUsed, tick: ctx.tick,
+      }),
+    ];
+  }
+
+  // A handler that heals is still a revival -- Battle Continuation is authored
+  // as one, and content written before `RevivalSource` existed uses that shape.
+  if (intents.some((i) => i.t === "heal" && i.amount > 0)) return intents;
+
+  return [
+    ...intents,
+    ...(revival.source ? spendRevival(unit, revival, ctx) : []),
+    I.defeat(unit.id, cause),
+  ];
+}
+
+/**
+ * Spend what a revival attempt used.
+ *
+ * A charge on an ABILITY is the same `timesUsed` counter every other
+ * whole-match limit spends; a charge on an EFFECT instance is a `consumeUse`,
+ * because `Undying` and `Guts` are *"consumed on use"* and an effect with no
+ * charges left is an effect that is gone.
+ *
+ * @param {object} unit
+ * @param {object} revival
+ * @returns {Intent[]}
+ */
+function spendRevival(unit, revival, ctx = {}) {
+  const source = revival.source;
+  if (!source || revival.chargesUsed <= 0 || !source.consumesOnUse) return [];
+
+  if (source.defId) return [I.consumeUse(unit.id, source.defId, revival.chargesUsed)];
+  if (!source.abilityId) return [];
+
+  return [
+    I.recordUse(unit.id, source.abilityId, null),
+    // Its own cooldown, which is how Battle Continuation's 3 Rounds are
+    // enforced -- the clock `advanceCooldowns` already turns, visible on the
+    // sheet where a player can see why the revive did not happen.
+    // A ◈ EXPRESSION on the way in -- "3◈" -- resolved here against the world's
+    // turns per Round, because `I.cooldown` takes a turn count. Battle
+    // Continuation is 3 Rounds at A, which is nine turns in this world and
+    // twenty-four in a Holy Grail War.
+    ...(source.cooldown
+      ? [I.cooldown(unit.id, source.abilityId, resolveTicks(parseTick(source.cooldown), ctx), "set")]
+      : []),
+  ];
 }
 
 /**

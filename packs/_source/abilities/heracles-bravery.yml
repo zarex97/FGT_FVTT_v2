@@ -1,0 +1,48 @@
+# Heracles, char_orig_sheets/Copia de Heracles.md
+#
+# The only ability in either roster that is switched off by its OWNER's other
+# ability, which is what makes Heracles's permanent Mad Enhancement interesting
+# rather than merely large: Bravery is on his sheet and he can never use it.
+schema: 1
+id: heracles-bravery
+name: "Bravery"
+rank: "A+"
+kind: skill
+slug: bravery
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  Note: Bravery cannot be used and has no effects when Mad Enhancement is Active.
+  (Passive) Chance of being inflicted with Mental Debuffs is reduced by 50%.
+  (Active) Used during your Turn. Applies Atk Up (STR) for 1◈ Turns, STR damage dealt is
+  increased by 25%; if NP, 15%. Cooldown: 4◈-⅓◈ Turns.
+requirements:
+  # "Cannot be used ... when Mad Enhancement is Active." Not the same as "does
+  # not have it": he always has it, so a `hasSkill` test would refuse for ever
+  # and its absence would refuse never.
+  - { kind: modeInactive, mode: madEnhancement }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+passiveRules:
+  # "...and HAS NO EFFECTS when Mad Enhancement is Active." The other half, and
+  # both are needed: the requirement stops it being pressed, and this stops the
+  # standing passive applying. For Heracles specifically they are the same
+  # moment for ever, because his Mad Enhancement cannot be deactivated.
+  #
+  # `volatility: mental` is what "Mental Debuffs" names -- Appendix A's own
+  # classification, so the clause covers a mental debuff written after this one.
+  - key: ApplicationChance
+    direction: incoming
+    volatility: mental
+    value: -50
+    predicate: [{ not: "self:skillActive:madEnhancement" }]
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      # Atk Up (STR), not Atk Up. "STR damage dealt" is explicit, and a blanket
+      # Atk Up would buff the MAG half of a combined attack the sheet does not
+      # touch.
+      - { id: atkUpStr, magnitude: 25, npMagnitude: 15, duration: "1◈" }

@@ -443,6 +443,30 @@ absorption, attack-identity recording, permanent non-toggleable modes, abilities
 their owner's own other ability.
 **Scripts: 0.**
 
+### As built
+
+All eight ship. He had four for a long time — Mad Enhancement, Divinity, Battle Continuation and
+Nine Lives — and the four that were missing were the four Ch. 31 was written about.
+
+Two mappings ended up different from the plan:
+
+- **Bravery is `modeInactive` plus a predicate**, not `blockedWhen`/`suppressedWhen`. Both halves
+  are needed and they are different mechanisms: the requirement stops it being *pressed*, the
+  predicate stops its standing passive *applying*. For Heracles specifically they are the same
+  moment for ever, because his Mad Enhancement cannot be deactivated — so Bravery is on his sheet
+  and he can never use either half of it. Verified live: refused with `modeInactive`, and its
+  mental-debuff resistance absent from his contributions.
+- **God Hand's second passive is engine, not a rule element.** `RecordAttackIdentity` and a
+  `floorAtOne` negation mode were proposed; what shipped is `recordsAttacks: true` plus a clamp
+  in the damage flow, because *"that Attack"* is an identity the damage step computes and a
+  predicate has no way to name it.
+
+Measured live, in one session: Battle Continuation revived him at 38 from `5d20` while God Hand
+spent nothing; the attack that killed him was recorded, and the same attacker's next hit was
+clamped from 76 to 29 to leave him at exactly 1; a fresh attacker then burned a God Hand charge;
+and with *Indomitable* up, `Undying` beat both of them (375 − 147 overkill = 228), was consumed,
+and *Indomitable* paid out its `Atk Up 30` on the revival.
+
 ---
 
 ## D.14 Aggregate — the original twelve

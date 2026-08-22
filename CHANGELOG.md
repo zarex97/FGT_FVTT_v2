@@ -65,6 +65,24 @@ coincide by accident; the headings say which is which.
   - **`Rank#stepGrade`**, `negatedWhile`, `casterOutsideArea`, `minRange` on a unit anchor, and
     `masterHealthByNPRank`.
 
+- **Heracles is finished** — he shipped with four of his eight abilities, and the four that were
+  missing were the four Ch. 31 was written about: *Indomitable*, *Bravery*, *Eye of the Mind
+  (False)* and *God Hand: Twelve Labors*.
+
+  **Revival is now a priority-ordered query** (`rules/revival.mjs`, `RevivalSource`) rather than
+  "whichever handler heals first". His sheet states the order — *"Undying > normal Guts > Battle
+  Continuation > God Hand"* — and with one source the old behaviour is indistinguishable from
+  correct, while with four it burns a God Hand charge with `Undying` sitting unused.
+
+  God Hand needed two things nothing else does: a **cascading** revival that can spend several of
+  its eleven charges against one very large attack, and a **ledger of attack identities** — a
+  `SetField`, which is the line §6.10 draws while naming this exact ability — whose members can
+  never take him below 1 Health again.
+
+  Battle Continuation's second condition is enforced for the first time. It shipped as
+  `requiresHealthAbove` against a field no code wrote, which §45.1 named rather than faking;
+  `system.healthWatermarks` is the history it was waiting for.
+
 ### Fixed
 
 - **Every effect applied by an event handler bypassed the effect pipeline.** `io.createEffects` is
@@ -87,6 +105,13 @@ coincide by accident; the headings say which is which.
   `Bleed Atk` and `NP Seal`. `isEmittableOption` now holds the content against the vocabulary.
 - **`Independent Action` had no content file**, so the contract rule that looks it up by slug had
   never found one.
+- **A revival heal applied before the damage that caused it**, so a revived Unit ended the
+  exchange at 0 Health, alive, having spent a charge for nothing.
+- **A revival source borne by an effect was never consumed**, which makes a one-use `Guts` buff
+  permanent.
+- **`unitRevived` had never fired**, so Heracles's *Indomitable* — the only clause that listens —
+  could not pay out.
+- **Nine Lives' cooldown was `7◈` where the sheet prints `7◈+⅓◈`.**
 
 - **Medea is finished** — all thirteen abilities resolve end to end in a live world. The last
   four needed: **reaction-window abilities** offered at the react rung (`rules/reactions.mjs`),

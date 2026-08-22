@@ -24,9 +24,25 @@ passiveRules:
     mode: dice
     table: battleContinuationReduction
     npDiceDoubled: true
-  - key: OnEvent
-    event: unitDefeated
-    revive:
+  # A `RevivalSource`, not an `OnEvent` with a `revive:` shorthand. Heracles has
+  # FOUR ways back and his sheet states the order they resolve in -- "Undying >
+  # normal Guts > Battle Continuation > God Hand" -- so revival is a
+  # priority-ordered query rather than whichever handler happens to heal first.
+  # Priority 100 is §31.2's "passive revival skill" tier.
+  #
+  # `requiresHealthRestoredSince` is the second condition, which had never been
+  # enforced: "the Unit's Health must have been RESTORED BACK to above half its
+  # maximum value at least once since the last activation" is a question about
+  # history, and a snapshot of the present cannot answer it. `healthWatermarks`
+  # records the crossing when it happens.
+  - key: RevivalSource
+    id: battleContinuation
+    revivalPriority: 100
+    # NO charge limit. It is gated by its own Cooldown and by the recovery
+    # clause, not by a budget -- "can only be used N times" is God Hand's rule
+    # and not this one, and a `charges: 1` here would exhaust it permanently
+    # after the first revive.
+    requiresHealthRestoredSince: 0.5
+    restore:
       table: battleContinuationRevive
       cooldownTable: battleContinuationCooldown
-      requiresHealthAbove: 0.5

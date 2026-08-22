@@ -37,6 +37,20 @@ describe("intent ordering", () => {
     const out = I.order([I.damage("a", 1), I.damage("b", 2), I.damage("c", 3)]);
     expect(out.map((i) => i.unitId)).toEqual(["a", "b", "c"]);
   });
+
+  it("puts a REVIVAL heal after the damage that caused it", () => {
+    // Found live. It is emitted in the same batch as the damage, and at the
+    // ordinary heal rank it applied first -- so Heracles was revived by God
+    // Hand and the damage then took him straight back to zero: alive at 0
+    // Health, with a charge spent for nothing.
+    const out = I.order([I.heal("h", 200, "godHand", true), I.damage("h", 500)]);
+    expect(out.map((i) => i.t)).toEqual(["damage", "heal"]);
+  });
+
+  it("leaves an ordinary heal where it was", () => {
+    const out = I.order([I.heal("h", 200, "potion"), I.damage("h", 500)]);
+    expect(out.map((i) => i.t)).toEqual(["heal", "damage"]);
+  });
 });
 
 describe("intent batching", () => {
