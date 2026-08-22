@@ -168,7 +168,9 @@ function shiftedRank(ability, shifts) {
     const target = Rank.parseOrNull(shift.to);
     return target && Rank.compare(target, rank) > 0 ? target : rank;
   }
-  return shift.steps === 0 ? rank : rank.step(shift.steps);
+  // Grades first, then modifier steps, so a clause that names both composes.
+  const graded = shift.grades ? rank.stepGrade(shift.grades) : rank;
+  return shift.steps === 0 ? graded : graded.step(shift.steps);
 }
 
 /**
@@ -206,9 +208,14 @@ export function abilityRankShifts(abilities, predicateCtx) {
       if (el.suppressed) continue;
       if (el.predicate && !testPredicate(el.predicate, predicateCtx)) continue;
 
-      const prior = shifts.get(el.ability) ?? { steps: 0, to: null };
+      const prior = shifts.get(el.ability) ?? { steps: 0, grades: 0, to: null };
       shifts.set(el.ability, {
-        steps: prior.steps + (el.to ? 0 : (el.steps ?? 1)),
+        // Only when neither a destination nor a GRADE shift was named, and
+        // `steps` defaults to 1 only then -- otherwise "one Rank" would also
+        // add a modifier step on top of the grade it moved.
+        steps: prior.steps + (el.to || el.grades ? 0 : (el.steps ?? 1)),
+        // Whole grades: "increased by one Rank" is D to C, not D to D+.
+        grades: prior.grades + (el.to ? 0 : (el.grades ?? 0)),
         // A named destination wins over accumulated steps: "to A" is an
         // instruction about where to end up, not an adjustment.
         to: el.to ?? prior.to,
@@ -293,7 +300,7 @@ function scalar(v, index = 0) {
  * @returns {{events: string[], actions: object[], automatic: boolean,
  *            abilityId: string|null, source: string}}
  */
-export function normalizeHandler(el, { rank, source, ability, ctx }) {
+export function normalizeHandler(el, { rank, source, ability, ctx, deferred = null }) {
   return {
     // Always an array. Mannanán's Fragarach subscribes to two events at once
     // (Ch. 24 §24.8), and a single-event handler is just the one-element case.
@@ -308,13 +315,49 @@ export function normalizeHandler(el, { rank, source, ability, ctx }) {
     // *"if the DU has the 'Undead' or 'Divine' Attribute, it is reduced by 1◈
     // instead"* is a question about somebody who does not exist yet when the
     // contribution is collected. Same convention as `Compulsion`.
-    targetPredicate: el.targetPredicate ?? null,
+    // Two sources, one field. `targetPredicate` is authored for a condition
+    // about somebody else; `deferred` is this element's own `predicate` when it
+    // names something collection could not answer.
+    //
+    // Merging them is what makes an attack-scoped clause on a handler work at
+    // all. `collectContributions` classifies such a predicate as deferred and
+    // hands it to the executor -- and this executor ignored it, so the clause
+    // was dropped and the handler fired unconditionally. EMIYA's Kanshou &
+    // Bakuya is *"at a Range of 2 or lower"* and it projected the swords at
+    // every distance, twice: once from each of its two range clauses.
+    targetPredicate: mergePredicates(el.targetPredicate, deferred),
+    // Which abilities the event has to be ABOUT. `abilityUsed` fires for every
+    // ability a Unit uses, and both handlers in the reference set care about a
+    // family of them: EMIYA's Magecraft is *"whenever EMIYA uses a Thaumaturgy
+    // Spell"* and his Atk Up (Trace) extends on a Thaumaturgy **or**
+    // Projection. A category, not a list of ids -- a list would go stale the
+    // moment an eighth Spell was written.
+    ofCategory: el.ofCategory === undefined
+      ? null
+      : (Array.isArray(el.ofCategory) ? [...el.ofCategory] : [el.ofCategory]),
     // A charge spent each time the handler pays out, for a count-limited
     // effect: Alpi is "for 1◈ Turns, **3 times**".
     consumesUse: el.consumesUse ?? false,
     defId: ability?.id ?? null,
     source,
   };
+}
+
+/**
+ * Two predicates that must both hold, as one.
+ *
+ * A predicate is an implicit AND over its clauses, so concatenation is
+ * conjunction -- no wrapper node needed, and the result stays a plain array
+ * that `test` and `referencedOptions` already understand.
+ *
+ * @param {unknown} a
+ * @param {unknown} b
+ * @returns {unknown|null}
+ */
+function mergePredicates(a, b) {
+  if (!a) return b ?? null;
+  if (!b) return a;
+  return [...a, ...b];
 }
 
 /**
@@ -577,7 +620,9 @@ export const EXECUTORS = Object.freeze({
     // (`abilityRankShifts`) before any executor runs, because the shifted rank
     // is an INPUT to the collection rather than an output of it.
     if (el.ability) {
-      out.abilityRankShifts.push({ ability: el.ability, steps: el.steps ?? null, to: el.to ?? null, source });
+      out.abilityRankShifts.push({
+        ability: el.ability, steps: el.steps ?? null, grades: el.grades ?? null, to: el.to ?? null, source,
+      });
       return;
     }
 
@@ -593,11 +638,18 @@ export const EXECUTORS = Object.freeze({
 
   /* ── Group 3 — check contributors ─────────────────────────────────────── */
 
-  CheckModifier(el, { rank, source, out, ctx }) {
+  CheckModifier(el, { rank, source, out, ctx, deferred = null }) {
     out.checkModifiers.push({
       check: el.check,
       direction: el.direction ?? "outgoing",
       value: scalar(resolveValue(el, rank, ctx)),
+      // A clause about the ATTACK rather than about the bearer, carried
+      // through to `checkPlan`/`critChance` the same way a damage modifier's
+      // is carried to the pipeline. EMIYA's Hawkeye is *"Crit Chance is
+      // increased by 50% **at a Range of 3 or higher**"*: the distance does
+      // not exist when the buff is applied, so answering it at collection time
+      // is answering it wrong.
+      predicate: deferred,
       source,
     });
   },
@@ -619,12 +671,23 @@ export const EXECUTORS = Object.freeze({
     });
   },
 
-  TableOverride(el, { source, out }) {
+  TableOverride(el, { source, out, deferred = null }) {
     // `forceTable` names a *check* table (favourable/unfavourable), never a
     // rank table -- `table:` on every other element means the latter, so the
     // two must not share a field name. `el.table` is accepted for content
     // written before the split; the validator rejects it.
-    out.checkModifiers.push({ check: el.check, forceTable: el.forceTable ?? el.table, source });
+    //
+    // `chance` is EMIYA's *Clairvoyance*: *"the DU has an 80% chance of using
+    // Evade- when Evading"* -- the only forced table in the set that is not
+    // certain, and the only one aimed at the opponent rather than the bearer.
+    out.checkModifiers.push({
+      check: el.check,
+      forceTable: el.forceTable ?? el.table,
+      direction: el.direction ?? "outgoing",
+      chance: el.chance ?? 100,
+      predicate: deferred,
+      source,
+    });
   },
 
   RollAdjustment(el, { source, out }) {
@@ -654,8 +717,8 @@ export const EXECUTORS = Object.freeze({
 
   /* ── Group 5 — events and grants ──────────────────────────────────────── */
 
-  OnEvent(el, { rank, source, ability, out, ctx }) {
-    out.eventHandlers.push(normalizeHandler(el, { rank, source, ability, ctx }));
+  OnEvent(el, { rank, source, ability, out, ctx, deferred = null }) {
+    out.eventHandlers.push(normalizeHandler(el, { rank, source, ability, ctx, deferred }));
   },
 
   /**

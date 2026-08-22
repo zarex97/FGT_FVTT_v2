@@ -1,0 +1,81 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+#
+# Five clauses, and the second is a question: "apply ONE OF the following
+# effects OF YOUR CHOICE". The same `ChoiceDialog` Scáthach's Primordial Rune
+# wildcard opens, asked at resolution rather than at targeting.
+schema: 1
+id: emiya-trace-on
+name: "Trace, On"
+rank: EX
+kind: skill
+slug: traceOn
+category: thaumaturgy
+isSpell: true
+cooldown: "5◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. If this is not the first time EMIYA has used this Skill in this game, reduce his Health
+     by 5% of its maximum value (cannot drop below 1 in this way).
+  2. Apply one of the following effects of your choice to EMIYA- Activated Circuits (AC) or
+     Blazing Circuits (BC).
+  3. Max and current Luck are increased by 5.
+  4. Restores 5 Agility.
+  5. Applies Atk Up (Trace) for ⅓◈ Turns, all damage dealt is increased by 60%; if NP, 40%.
+     If EMIYA uses a Thaumaturgy or Projection Skill/NP while he has the Atk Up (Trace) buff,
+     its duration is extended by ⅓◈ Turns.
+  Cooldown: 5◈ Turns.
+  If this Skill is used while EMIYA already has the Atk Up (Trace) buff, its duration is
+  extended instead of stacking. Then, you can choose to swap from AC to BC or vice-versa.
+  Note: EMIYA cannot have both the AC and BC effects at the same time.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  # Clause 1. `afterFirstUse` reads the ability's own whole-match counter, which
+  # is the field Heracles's God Hand needs for "can only be used 11 times" --
+  # neither existed, so "if this is not the first time in this game" could not
+  # be written at all.
+  #
+  # `floor: 1` is "cannot drop below 1 IN THIS WAY": a limit on this deduction
+  # rather than on the pool, so ordinary damage may still finish him.
+  - kind: statChange
+    target: self
+    afterFirstUse: true
+    changes:
+      - { stat: health, percentOfMax: -5, floor: 1 }
+
+  # Clause 2. Two effects that cannot coexist -- `blocks` on both sides, so
+  # whichever is applied removes the other and the swap in the closing note is
+  # the same write as the first choice.
+  - kind: choose
+    target: self
+    prompt: "FGT.Emiya.CircuitChoice"
+    count: 1
+    options:
+      - { id: activatedCircuits, label: "Activated Circuits (AC)" }
+      - { id: blazingCircuits, label: "Blazing Circuits (BC)" }
+
+  # Clauses 3 and 4. Luck's MAXIMUM moves and current follows; Agility only
+  # RESTORES, so it is clamped to the maximum he rolled at summon.
+  - kind: statChange
+    target: self
+    changes:
+      - { stat: luck, delta: 5, max: true, alsoCurrent: true }
+  - kind: resource
+    target: self
+    changes:
+      - { key: agility.value, delta: 5, clampToMax: true }
+
+  # Clause 5. `noneExtend` stacking on the effect is what makes "its duration is
+  # extended instead of stacking" a property of the buff rather than a special
+  # case here.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUpTrace, magnitude: 60, npMagnitude: 40, duration: "⅓◈" }

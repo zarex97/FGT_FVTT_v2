@@ -340,13 +340,42 @@ describe("annotateFields", () => {
     expect(board.units[1].fields).toEqual([]);
   });
 
-  it("appends the interior rules to the unit's own modifiers", () => {
-    const u = inside({ faction: "b", modifiers: [] });
+  it("folds a stat-shaped interior rule onto the stat itself", () => {
+    // Everything went into `modifiers`, which the damage pipeline reads and
+    // which does not carry stats — so `MovDelta` inside a Labyrinth changed
+    // nobody's MOV, and EMIYA's "+50 Base Attack (STR) inside Unlimited Blade
+    // Works" changed nobody's Base Attack.
+    const u = inside({ faction: "b", modifiers: [], mov: 6 });
     const board = { units: [u], fields: [labyrinth({ ownerFaction: "a" })], alliances: {} };
 
     annotateFields(board.units, board);
 
-    expect(u.modifiers).toEqual([expect.objectContaining({ key: "MovDelta" })]);
+    expect(u.modifiers).toEqual([]);
+    expect(u.mov).toBe(4);
+  });
+
+  it("honours a minimum, which floors the RESULT and not the deduction", () => {
+    const u = inside({ faction: "b", modifiers: [], mov: 3 });
+    const board = { units: [u], fields: [labyrinth({ ownerFaction: "a" })], alliances: {} };
+
+    annotateFields(board.units, board);
+
+    expect(u.mov).toBe(2);
+  });
+
+  it("gives the owner its own relation", () => {
+    // Folded into "ally", a rule scoped `relations: [self]` matched nobody —
+    // which is every owner-only interior clause in the reference set.
+    const owner = inside({ id: "owner", faction: "a", modifiers: [], mov: 6 });
+    const field = labyrinth({
+      ownerFaction: "a",
+      ownerId: "owner",
+      interior: [{ key: "MovDelta", value: 4, relations: ["self"] }],
+    });
+
+    annotateFields([owner], { units: [owner], fields: [field], alliances: {} });
+
+    expect(owner.mov).toBe(10);
   });
 
   it("is a no-op on a board with no fields", () => {

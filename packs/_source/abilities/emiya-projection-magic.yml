@@ -1,0 +1,21 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+schema: 1
+id: emiya-projection-magic
+name: "Thaumaturgy: Projection Magic"
+rank: "A+"
+kind: skill
+passive: true
+slug: projectionMagic
+category: thaumaturgy
+description: |
+  (Passive) A Skill which is the basis of his Noble Phantasms. 'Projection' Skills and NP
+  cannot be used and have no effects if EMIYA is inflicted with Silence.
+  Note: 'Projection' Skills and NP are treated as Thaumaturgy Spells.
+# Nothing here. The clause it states is enforced on each *Projection* document
+# itself, by `negatedBy: [silence]` and a `notHasEffect` requirement -- two
+# halves that both have to exist, because Silence can land between declaration
+# and resolution and only the second covers that (§15.3).
+#
+# Writing it here as well would put the rule in two places that could disagree,
+# and this one has no way to name the abilities it governs: "with 'Projection'
+# in its name" is a naming convention, and the engine matches on `category`.

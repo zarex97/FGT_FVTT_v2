@@ -1,0 +1,42 @@
+# EMIYA's Trace, On -- char_orig_sheets/Copia de EMIYA.md
+#
+# A NAMED Atk Up, because two other clauses point at it by name: "if EMIYA uses
+# a Thaumaturgy or Projection Skill/NP while he has the Atk Up (Trace) buff, its
+# duration is extended", and "when Atk Up (Trace) is removed from EMIYA, remove
+# the AC/BC effect from him as well". A plain `atkUp` from any other source
+# would trigger both.
+schema: 1
+id: atkUpTrace
+name: "Atk Up (Trace)"
+description: "All damage dealt is increased by X%; a reduced magnitude applies to Noble Phantasms."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+# "If this Skill is used while EMIYA already has the Atk Up (Trace) buff, its
+# duration is extended instead of stacking."
+stacking: noneExtend
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+
+  # The extension clause. `abilityUsed` filtered by category, the same handler
+  # shape Magecraft uses -- and `projection` documents also carry `thaumaturgy`
+  # semantics per the sheet's own note ("'Projection' Skills and NP are treated
+  # as Thaumaturgy Spells"), so both categories are named.
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    ofCategory: [thaumaturgy, projection]
+    then:
+      - { key: ExtendEffect, effect: atkUpTrace, ticks: "⅓◈" }
+
+# When this goes away it takes the Circuits with it. Authored HERE rather than
+# on the Circuits, because the sheet phrases it from this side -- and because an
+# `onRemove` on the Circuits would have to watch a buff that is not itself.
+onRemove:
+  - { key: RemoveEffect, effect: activatedCircuits }
+  - { key: RemoveEffect, effect: blazingCircuits }

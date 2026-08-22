@@ -38,8 +38,31 @@ const HIGH_RANK_MASTER = Object.freeze(["A", "B"]);
  */
 export function npCost({ ability, unit, master }) {
   if (!ability?.isNP) return null;
+  return npCostAt({ rank: ability.rank, unit, master });
+}
 
-  const npRank = Rank.parseOrNull(ability.rank);
+/**
+ * The same cost, for a Noble Phantasm charged at a Rank it does not have.
+ *
+ * Two of EMIYA's need it and neither could state the cost any other way: Rho
+ * Aias prints "?" for a Rank and charges *"equivalent to if an EX Rank NP is
+ * used"*, and Unlimited Blade Works prints the range `E~A++` and charges as B.
+ * Derived from the ability's own `rank`, both read null and cost nothing.
+ *
+ * Routed through here rather than looked up at the call site so the **Free
+ * Servant** branch below applies to them too. A Servant whose Master has just
+ * been defeated has nobody to charge, and an `additionalCosts` entry that
+ * named a Master anyway produced an intent with no target — which aborts the
+ * whole batch rather than falling back to Sustainability the way §16.5 says.
+ *
+ * @param {object} args
+ * @param {string|null} args.rank
+ * @param {object} args.unit
+ * @param {object|null} args.master
+ * @returns {{kind: string, amount: number, unitId?: string}}
+ */
+export function npCostAt({ rank, unit, master }) {
+  const npRank = Rank.parseOrNull(rank);
   const [high, low] = columnsFor(npRank);
 
   // A Free Servant has no Master to charge, so the cost moves onto the Servant
@@ -85,6 +108,13 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
   const remaining = ability?.cooldown?.remaining ?? 0;
   if (remaining > 0) return { ok: false, reason: "cooldown", detail: { remaining }, cost };
 
+  // The whole-match budget. Before the Round gate because it is permanent:
+  // "can only be used 11 times" is never going to become true again by waiting.
+  const maxUses = ability?.maxUses ?? null;
+  if (maxUses !== null && (ability?.timesUsed ?? 0) >= maxUses) {
+    return { ok: false, reason: "exhausted", detail: { maxUses, timesUsed: ability.timesUsed ?? 0 }, cost };
+  }
+
   const requiresRound = ability?.requiresRound ?? null;
   if (requiresRound !== null && round < requiresRound) {
     return { ok: false, reason: "round", detail: { requiresRound, round }, cost };
@@ -103,6 +133,16 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
   )) {
     return { ok: false, reason: "oncePerTurn", cost };
   }
+
+  // Mutual exclusion, at both scales. Checked here rather than only on the
+  // Skill path, which is where it used to live -- so Medea's Keraino/Trofa pair
+  // was enforced and EMIYA's Caladbolg/Hrunting pair, both Noble Phantasms,
+  // would not have been.
+  const turnPartner = firstUsed(ability?.sameTurnExclusive, usedThisTurn(unit));
+  if (turnPartner) return { ok: false, reason: "sameTurnExclusive", detail: { partner: turnPartner }, cost };
+
+  const roundPartner = firstUsed(ability?.sameRoundExclusive, usedThisRound(unit));
+  if (roundPartner) return { ok: false, reason: "sameRoundExclusive", detail: { partner: roundPartner }, cost };
 
   // A Noble Phantasm needs its user inside its Master's ZON. The targeting
   // resolver has always refused this; asking here too means one call answers
@@ -145,6 +185,27 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
  */
 function usedThisTurn(unit) {
   return unit?.turnState?.abilitiesUsed ?? [];
+}
+
+/**
+ * Which abilities this Unit has used this ROUND. Stale-by-round, like the above.
+ * @param {object} unit
+ * @returns {string[]}
+ */
+function usedThisRound(unit) {
+  return unit?.roundState?.abilitiesUsed ?? [];
+}
+
+/**
+ * The first partner in an exclusion list that has already gone.
+ * @param {string[]|undefined} exclusive
+ * @param {string[]} used
+ * @returns {string|null}
+ */
+function firstUsed(exclusive, used) {
+  if (!exclusive?.length) return null;
+  const seen = new Set(used);
+  return exclusive.find((id) => seen.has(id)) ?? null;
 }
 
 /**

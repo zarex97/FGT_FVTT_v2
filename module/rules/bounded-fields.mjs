@@ -154,6 +154,13 @@ export function contains(field, panel, board) {
  * @returns {"ally"|"enemy"}
  */
 function relationTo(field, unit, board) {
+  // The owner is its OWN relation, as everywhere else in the system. It was
+  // folded into "ally", so a rule scoped `relations: [self]` matched nobody --
+  // which is how EMIYA's "+50 Base Attack (STR) inside Unlimited Blade Works"
+  // and Asterios's "+4 MOV inside the Labyrinth" both applied to the one Unit
+  // they were written for and to no other.
+  if (unit?.id && unit.id === field.ownerId) return "self";
+
   const owner = field.ownerFaction
     ?? (board?.units ?? []).find((u) => u.id === field.ownerId)?.faction
     ?? null;
@@ -432,6 +439,63 @@ export function annotateFields(units, board) {
       u.fields.push(field.id);
       gained.push(...interiorModifiers(field, u, board));
     }
-    if (gained.length > 0) u.modifiers = [...(u.modifiers ?? []), ...gained];
+    // Split by what each rule IS. Everything went into `modifiers`, which the
+    // damage pipeline reads -- so a stat-shaped interior rule sat in a bag that
+    // does not carry stats and changed nothing. Both authored fields have one.
+    const [stats, modifiers] = partition(gained, (rule) => STAT_INTERIOR.has(rule.key));
+    for (const rule of stats) applyInteriorStat(u, rule);
+    if (modifiers.length > 0) u.modifiers = [...(u.modifiers ?? []), ...modifiers];
   }
+}
+
+/**
+ * Interior rule keys that move a STAT rather than contributing a modifier.
+ *
+ * The field annotation runs after `prepareDerivedData` -- it needs the whole
+ * board, and derived data is per-document -- so these are folded onto the
+ * snapshot directly. Everything else goes into `modifiers`, where the damage
+ * pipeline reads it.
+ */
+const STAT_INTERIOR = new Set(["StatDelta", "MovDelta", "RangeDelta"]);
+
+/**
+ * @param {object[]} list
+ * @param {(item: object) => boolean} predicate
+ * @returns {[object[], object[]]}
+ */
+function partition(list, predicate) {
+  /** @type {object[]} */ const yes = [];
+  /** @type {object[]} */ const no = [];
+  for (const item of list) (predicate(item) ? yes : no).push(item);
+  return [yes, no];
+}
+
+/**
+ * Fold one stat-shaped interior rule onto a unit snapshot.
+ *
+ * `minimum` is Asterios's *"MOV reduced by 2, minimum 2"* -- a floor on the
+ * resulting value rather than on the deduction, which is the opposite of Mad
+ * Enhancement's Master drain and worth not confusing.
+ *
+ * @param {object} unit
+ * @param {object} rule
+ * @returns {void}
+ */
+function applyInteriorStat(unit, rule) {
+  const path = rule.key === "MovDelta" ? "mov"
+    : rule.key === "RangeDelta" ? "range.panels"
+      : rule.stat;
+  if (!path) return;
+
+  const parts = String(path).split(".");
+  const leaf = parts.pop();
+  let node = unit;
+  for (const part of parts) {
+    if (node[part] === null || node[part] === undefined) return;
+    node = node[part];
+  }
+  if (typeof node[leaf] !== "number") return;
+
+  const next = node[leaf] + (rule.value ?? 0);
+  node[leaf] = typeof rule.minimum === "number" ? Math.max(rule.minimum, next) : next;
 }

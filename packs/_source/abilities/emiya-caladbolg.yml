@@ -1,0 +1,49 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+schema: 1
+id: emiya-caladbolg
+name: "Projection - Caladbolg II: The Fake Spiral Sword"
+rank: A
+isNP: true
+npTags: [antiArmy]
+kind: noblePhantasm
+slug: caladbolg
+category: projection
+cooldown: "7◈"
+timing: { window: ownTurn }
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+# "Caladbolg II cannot be used on the same Round as Hrunting and vice versa."
+# Declared on BOTH sides, like every other exclusion in the system -- a
+# one-sided one is decided by whichever happens to be used first, which is not
+# a rule. ROUND, not Turn: EMIYA acts three times in a Round, so the per-Turn
+# version would forbid only a thing he cannot do anyway.
+sameRoundExclusive: [emiya-hrunting]
+description: |
+  Range+2 for the Combat Process. Base Attack (MAG) is used. Target an enemy Unit. This NP hits
+  a 3x3 panel area around the targeted Unit for 4x damage, and has the Pierce effect on the
+  targeted Unit. EMIYA cannot be within the NP area. Cooldown: 7◈ Turns.
+targeting:
+  # Range 4 + 2 for the Combat Process = 6. Stated as the resolved number
+  # because `anchor.range` is absolute; the "+2" is the sheet's arithmetic, not
+  # a modifier anything else reads.
+  anchor: { kind: targetUnit, range: 6 }
+  shape: { kind: square, size: 3 }
+  # The area catches everyone standing in it -- "hits a 3x3 panel area" names no
+  # relation -- and EMIYA himself is excluded twice over: from the damage here,
+  # and from the placement by `casterOutsideArea` below.
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits:
+    requiresZon: true
+    casterOutsideArea: true
+  isDamagingAoE: true
+damage:
+  multiplier: 4
+  component: mag
+  # "Has the Pierce effect ON THE TARGETED UNIT" -- the anchor, not the whole
+  # 3x3. Pierce ignores Invuln and the Block action, so applying it to the
+  # splash would be handing the NP a property the sheet gives to one panel.
+  pierce: true
+  pierceOn: primary
+phases:
+  - kind: damage

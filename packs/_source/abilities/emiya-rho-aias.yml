@@ -1,0 +1,78 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+#
+# The only ability in the reference set that puts a SECOND Health pool between
+# an attack and its target. Everything else that reduces damage is a percentage
+# or a flat subtraction; this one has a bar, and the bar bleeds its owner.
+schema: 1
+id: emiya-rho-aias
+name: "Projection - Rho Aias: The Seven Rings that Cover the Fiery Heavens"
+rank: null
+isNP: true
+npTags: [barrier, counter]
+kind: noblePhantasm
+slug: rhoAias
+category: projection
+cooldown: "8◈"
+# Used when an ALLY is about to be hit, which is a third reaction window: the
+# Combat Process has to offer it to a unit that is neither the attacker nor the
+# defender.
+timing: { window: whenAllyAttacked, againstKind: np, radius: 3 }
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+  # "EMIYA's Health must have been restored back to above half its maximum
+  # value at least once since the last usage of Rho Aias." A second clock on
+  # top of the 8◈ cooldown, and not the same question as `healthAbove`:
+  # being above half NOW would let him project it twice from a full bar without
+  # ever having dropped, and the clause is about recovery.
+  - { kind: healthRestoredSince, fraction: 0.5 }
+description: |
+  (Non-damaging) Used when any allied Unit (including EMIYA) within a 3 panel area of EMIYA is
+  about to be hit by a Noble Phantasm. EMIYA projects Rho Aias to protect the allied Unit(s)
+  from the Noble Phantasm. Rho Aias has 1400 Health, and it will take the damage of the enemy's
+  NP. For every 200 Health Rho Aias loses, EMIYA loses 100 Health. If the AU's NP deals more
+  than 1400 damage, the remaining damage is dealt to the DUs accordingly. However, if the NP is
+  a 'thrown weapon', Rho Aias' Health cannot drop below 1. EMIYA's Health cannot drop below 1
+  due to Rho Aias being damaged by the AU's NP. Additionally, all Units within a 3x3 panel area
+  around the Unit Rho Aias is protecting also receive the effects of Rho Aias.
+
+  EMIYA's Master loses Health equivalent to if an EX Rank NP is used. Cooldown: 8◈ Turns, and
+  EMIYA's Health must have been restored back to above half its maximum value at least once
+  since the last usage. Every time Rho Aias is used after its first usage, its Health is
+  restored by half of its current Health.
+# "EMIYA's Master loses Health equivalent to if an EX Rank NP is used." Rho Aias
+# has no Rank of its own -- the sheet prints "?" -- so the cost names the Rank
+# it is charged AS. Derived from `rank` it would read null and charge nothing.
+additionalCosts:
+  - { id: rhoAiasNP, kind: masterHealthByNPRank, rank: EX }
+# The barrier itself. A pool with a maximum, restored by HALF ITS CURRENT
+# Health on every use after the first -- so it decays: 1400, then 700+350, then
+# less again. Refilling to the maximum would leave the cooldown as the only
+# limit on it, and the sheet is explicit that it is not.
+shield:
+  health: 1400
+  # "For every 200 Health Rho Aias loses, EMIYA loses 100 Health."
+  ownerLoss: { per: 200, amount: 100 }
+  # "EMIYA's Health cannot drop below 1 due to Rho Aias being damaged."
+  ownerFloor: 1
+  # "If the NP is a 'thrown weapon', Rho Aias' Health cannot drop below 1" --
+  # the shield survives, so the whole attack is stopped however large it was.
+  poolFloor: 1
+  poolFloorWhen: ["attack:thrownWeapon"]
+  refresh: { kind: halfOfCurrent, afterFirstUse: true }
+targeting:
+  # The Unit being protected, and then everyone standing around them: "all
+  # Units within a 3x3 panel area around the Unit Rho Aias is protecting also
+  # receive the effects of Rho Aias".
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      # One barrier, several bearers. The pool lives on the ABILITY rather than
+      # on each instance, which is what makes "the remaining damage is dealt to
+      # the DUs accordingly" work across an area attack: seven defenders draw
+      # down one 1400 in resolution order, instead of each getting their own.
+      - { id: rhoAias, duration: "⅓◈" }

@@ -123,6 +123,12 @@ export function combatantCommon() {
     normalAttack: new fields.SchemaField({
       mode: new fields.StringField({ initial: "fixed", choices: ["fixed", "combined", "rangeBanded"] }),
       component: new fields.StringField({ initial: "str", choices: ["str", "mag"] }),
+      // What `rangeBanded` bands ON. The mode has been a declared choice since
+      // this schema was written with nothing to configure it and nothing
+      // reading it, so a Servant authored `rangeBanded` attacked with its flat
+      // `component` at every distance. Untyped for the same reason rule
+      // elements are; the content validator checks the shape at build time.
+      bands: new fields.ArrayField(new fields.ObjectField()),
     }),
     // null = the Sustainability clock does not exist for this unit
     // (Independent Action A+/EX). Not "a very large number".
@@ -176,6 +182,38 @@ export function combatantCommon() {
       itemTransfers: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       // Which abilities went this Turn, for `sameTurnExclusive` (Medea's
       // Keraino and Trofa). Stale-by-tick like everything else here.
+      abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
+    }),
+
+    /**
+     * The same record at ROUND scale, for exclusions a Turn cannot express.
+     *
+     * *"Caladbolg II cannot be used on the same Round as Hrunting and vice
+     * versa"* is the only clause in the reference set that needs it, and the
+     * distinction is real: EMIYA acts up to three times in a Round, so a
+     * same-Turn exclusion would let him fire both in one Round on consecutive
+     * Turns — which is exactly what the sheet forbids.
+     *
+     * Stamped with the round and stale-by-reading, exactly like `turnState`.
+     */
+    /**
+     * The last tick at which Health was at or above a given fraction of its
+     * maximum, keyed by that fraction as a string.
+     *
+     * Two clauses in the reference set ask a question about HISTORY rather than
+     * about the current bar -- EMIYA's Rho Aias and Battle Continuation's
+     * revival both need Health to *"have been restored back to above half its
+     * maximum value at least once since"* the last use. A snapshot of the
+     * present cannot answer that, and Battle Continuation's half of it has
+     * never been enforced because there was nowhere to record it.
+     *
+     * Only the fractions some ability on this actor actually asks about are
+     * stamped, so this stays a two-key object rather than a log.
+     */
+    healthWatermarks: new fields.ObjectField({ required: true, initial: () => ({}) }),
+
+    roundState: new fields.SchemaField({
+      round: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
     }),
   };

@@ -1,0 +1,25 @@
+# Appendix A §A.4
+#
+# "As Crit Up, but application cannot be prevented and it is Unremovable."
+# Both halves matter for EMIYA's Eye of the Mind (True) EX, which hands it to
+# every ally within 2 panels: a plain Crit Up would be strippable by anything
+# that removes buffs, and resistible by a target with Debuff ResUp -- neither
+# of which should touch a buff its own side applied.
+schema: 1
+id: sCritUp
+name: "S.Crit Up"
+description: "Crit Chance is increased by X%. Cannot be prevented, and is Unremovable."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+# 500, not 100. Appendix A's idiom for "certain, and it stays certain after
+# every reduction in the game has been applied" -- the same figure Proto Gil's
+# Drowning clause uses, and the only way "application cannot be prevented" is
+# expressible in a system where resistances subtract.
+baseChance: 500
+unremovable: true
+rules:
+  - key: CheckModifier
+    check: crit
+    value: "@magnitude"

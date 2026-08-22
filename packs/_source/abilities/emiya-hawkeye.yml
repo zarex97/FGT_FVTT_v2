@@ -1,0 +1,26 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+schema: 1
+id: emiya-hawkeye
+name: "Hawkeye"
+rank: "B+"
+kind: skill
+slug: hawkeye
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Applies Crit Up (Hawkeye) for 1◈ Turns, Crit Chance is
+  increased by 50% at a Range of 3 or higher, and applies Crit DmUp (Hawkeye) for 1◈ Turns,
+  Crit Damage dealt is increased by 100% at a Range of 3 or higher. Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  # Named variants rather than plain `critUp`/`critDmUp`, because the range
+  # condition is part of what is applied. A plain Crit Up would raise his crit
+  # rate in melee, where the sheet gives him nothing.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUpHawkeye, magnitude: 50, duration: "1◈" }
+      - { id: critDmUpHawkeye, magnitude: 100, duration: "1◈" }

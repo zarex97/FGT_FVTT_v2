@@ -80,8 +80,19 @@ export class NPFieldBehavior extends Base {
       extension: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       vulnerabilities: new fields.ArrayField(new fields.ObjectField()),
       onEnd: new fields.ArrayField(new fields.ObjectField()),
+      // Rules the AREA runs at a time boundary, as opposed to `interior`,
+      // which are standing contributions. EMIYA's Unlimited Blade Works is the
+      // first: "at the start of every Turn, all enemy Servants within perform
+      // an Evade roll; if failed, that Unit receives (25 x 1d4) STR damage."
+      // It belongs to the field rather than to the caster's own handlers,
+      // because a Servant dragged inside is subject to it.
+      interiorEvents: new fields.ArrayField(new fields.ObjectField()),
 
       duration: new fields.StringField({ required: false, nullable: true, initial: null }),
+      // The ABSOLUTE tick it closes on, resolved at cast time. Durations are
+      // stored as expiry ticks everywhere else (§7.5) for the same reason: a
+      // countdown needs a hook that can fail to fire, and an expiry cannot.
+      expiry: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       /** Per-unit escape history, which the veteran rule needs (§43.11). */
       state: new fields.ObjectField({ required: true, initial: () => ({ escapeHistory: {} }) }),
     };

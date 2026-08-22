@@ -210,6 +210,8 @@ type Phase =
   | { kind: "move";         target: TargetSpec | "self"; movement: MovementSpec }
   | { kind: "summon";       spec: SummonSpec }
   | { kind: "zone";         spec: ZoneSpec }
+  | { kind: "choose";       target: "self"; options: EffectChoice[]; count: number }
+  | { kind: "createField";  }                              // the ability's own `field:` (Ch. 43)
   | { kind: "modifyAttack"; modifiers: AttackModifier[] }   // for "used when attacking" skills
   | { kind: "script";       fn: string; args: Record<string, unknown> };
 ```
@@ -223,6 +225,64 @@ ignored it, looping every phase over every resolved target. That stayed invisibl
 every `target: self` phase belonged to a *self-targeting* ability, where the two lists are
 identical. Scáthach's *Primordial Rune* is the first where they differ — *"Gain 2 PRS Tokens.
 Then, … on an allied Unit"* — and in a live world the tokens went to the ally.
+
+### A phase may carry its own targeting
+
+`target` has three answers, not two. `self` names the caster and `reuse` names whatever the
+ability's own targeting resolved — and neither is *"all allied Units within a 2 panel area of
+himself"*, which is clause 4 of EMIYA's *Eye of the Mind (True) EX* while its other three clauses
+buff him alone. On a **reaction** the gap is worse: `reuse` resolves to whoever just attacked.
+
+So a phase may declare a whole `targeting:` block of its own, resolved against the board like any
+other:
+
+```yaml
+- kind: applyEffects
+  targeting:
+    anchor: { kind: self }
+    shape: { kind: chebyshevRadius, r: 2 }
+    selection: { relations: [ally, self], includeSelf: true, chooser: all }
+  effects:
+    - { id: sCritUp, magnitude: 30, duration: "⅓◈" }
+```
+
+### `choose`: a phase that asks
+
+The one place in the reference set where the **choice is the rule** rather than a convenience.
+EMIYA's *Trace, On*: *"Apply one of the following effects **of your choice** to EMIYA — Activated
+Circuits (AC) or Blazing Circuits (BC)"*, and a later use *"can choose to swap from AC to BC or
+vice-versa"*. Picking a default would quietly halve the Skill.
+
+It opens the same `ChoiceDialog` Scáthach's *Primordial Rune* wildcard does, at resolution rather
+than at targeting. Dismissing it is an answer: nothing is applied, and the Skill's other clauses
+have already happened.
+
+The swap needs no machinery of its own — see §11's `replaces`.
+
+### `afterFirstUse`: a phase the first press skips
+
+*"If this is **not the first time** EMIYA has used this Skill in this game, reduce his Health by
+5% of its maximum value."* A gate on the ability's whole-match counter, read **before** this use
+is recorded, so the first press costs nothing and every one after does.
+
+`timesUsed` and `maxUses` are new fields on every ability, and three clauses in the reference set
+need them: this one, Heracles's God Hand (*"can only be used 11 times"*), and EMIYA's *Rho Aias*
+(*"every time … after its first usage, its Health is restored by half of its current Health"*).
+A whole-match budget is not a cooldown and cannot be expressed as one.
+
+### The attack path runs the caster's phases too
+
+A Noble Phantasm resolves through the Combat Process, which knows about damage and about the
+effects that ride on it — **and about nothing else**. Every other phase kind was `useSkill`'s
+business, so an NP that spent a Resource, opened a bounded field, conjured a squad or asked the
+player a question silently did none of it.
+
+EMIYA's *Unlimited Blade Works* is the case that found it: it consumed no Aria and created no
+Reality Marble, while charging his Master in full. The attack flow now runs the caster-scoped
+phases once, from the caster, before the fan-out — `resource`, `statChange`, `cooldown`,
+`removeEffect`, `summon`, `createField`, `choose`, `heal`. `damage` and `applyEffects` are
+deliberately absent: the first is the Combat Process itself and the second is its rider step,
+which resolves per defender after the damage has landed.
 
 ### `when`: phases that run before the damage
 
@@ -462,11 +522,14 @@ type Requirement =
   | { kind: "modeInactive"; mode: string }         // the mirror of modeActive
   | { kind: "abilityOffCooldown";                  // §7.6; see below
       abilityIds?: string[]; category?: string; exclusionSet?: string; excludeSelf?: boolean }
+  | { kind: "healthAbove"; fraction: number }      // the mirror of healthBelow
+  | { kind: "healthRestoredSince"; fraction: number }   // a question about HISTORY
   | { kind: "predicate"; predicate: Predicate };   // escape hatch
 
 type Cost =
   | { kind: "resource"; key: string; amount: number }
   | { kind: "masterHealth"; byNPRank: true }
+  | { kind: "masterHealthByNPRank"; rank: Rank }   // charged AS a Rank it does not have
   | { kind: "commandSpells"; amount: number }
   | { kind: "sustainability"; byNPRank: true }      // Free Servants using NP
   | { kind: "selfHealth"; amount: number | "npRankDoubled" };
@@ -488,6 +551,36 @@ type Cost =
 
 `±3` per rank step. Rankless Masters use the left column. Does not apply to Passive NPs unless
 stated.
+
+**A Noble Phantasm may be charged at a Rank it does not have.** Two of EMIYA's are: *Rho Aias*
+prints `?` for a Rank and costs *"equivalent to if an EX Rank NP is used"*; *Unlimited Blade
+Works* prints the range `E~A++` and costs *"equivalent to if a B Rank NP is used"*. Derived from
+the ability's own `rank`, both read null and charge nothing at all, so the cost is stated as an
+`additionalCosts` entry of kind `masterHealthByNPRank`.
+
+It routes through the same function `npCost` does, which matters for the branch below it: a
+**Free Servant** has no Master to charge and pays in Sustainability instead (§16.5). Written as a
+plain Master cost it produced an intent with no target — and found live, because the Master in
+question had been defeated three tests earlier and the Servant freed itself exactly as it should.
+
+### Three scales of "already used"
+
+| Field | Scope | Case |
+|---|---|---|
+| `oncePerTurn` | one Turn | Scáthach's *Ár*, whose cooldown a PRS Token waives entirely |
+| `sameTurnExclusive` | one Turn | Medea's *Keraino* and *Trofa* |
+| `sameRoundExclusive` | one **Round** | EMIYA's *Caladbolg II* and *Hrunting* |
+| `maxUses` | the whole **match** | Heracles's God Hand, *"can only be used 11 times"* |
+
+The Round scale is not a nicety: a Servant acts up to three times in a Round, so *"Caladbolg II
+cannot be used on the same Round as Hrunting and vice versa"* forbids nothing at all if enforced
+per Turn. `system.roundState` mirrors `turnState` and is stale-by-reading in the same way — a
+boundary hook that fails to fire cannot leave a Servant permanently unable to project.
+
+All four are checked in `canUseAbility`, which both use paths consult. They used to be enforced
+on the **Skill path only**, so the abilities most likely to carry one — Noble Phantasms and Attack
+Skills — ignored every one of them: `resolveAttack` recorded no use at all. One `recordUse` intent
+now writes the Turn record, the Round record and the whole-match counter together.
 
 ### Unrecognised kinds refuse
 

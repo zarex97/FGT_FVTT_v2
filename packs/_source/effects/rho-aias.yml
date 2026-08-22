@@ -1,0 +1,22 @@
+# EMIYA's Rho Aias -- char_orig_sheets/Copia de EMIYA.md
+#
+# The marker that says "damage aimed at this Unit goes through a barrier first".
+# It carries no magnitude of its own: the pool lives on the ABILITY, because
+# several Units bear this at once and they share one 1400.
+schema: 1
+id: rhoAias
+name: "Rho Aias"
+description: "Noble Phantasm damage aimed at this Unit is absorbed by Rho Aias until its Health runs out."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+# What the interception reads. `scope: np` is the whole restriction the sheet
+# places on it -- "about to be hit by a Noble Phantasm" -- so an ordinary
+# Attack passes straight through a standing Rho Aias, which is correct and
+# easy to get wrong in the generous direction.
+absorbs:
+  scope: np
+  poolFrom: sourceAbility

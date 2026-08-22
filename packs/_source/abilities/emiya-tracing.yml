@@ -1,0 +1,49 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+#
+# The only ability in the reference set that offers a CHOICE of cooldown
+# reductions rather than applying one: two Projections by 1◈ each, or one by 2◈.
+schema: 1
+id: emiya-tracing
+name: "Thaumaturgy: Tracing"
+rank: null
+kind: skill
+slug: tracing
+category: thaumaturgy
+isSpell: true
+cooldown: "3◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+description: |
+  Spell. Used during your Turn. Reduce the Cooldowns of 2 different Skills or NP with
+  'Projection' in its name by 1◈ Turns OR reduce the Cooldown of a Skill/NP with 'Projection'
+  in its name by 2◈ Turns. Then, apply Dmg Boost for 1◈ Turns, all damage dealt is increased
+  by 30 including NP. Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  # "'Projection' in its name" is a naming convention; the engine matches on
+  # `category`, which every Projection document carries. Naming them one by one
+  # would go stale the moment a fifth is written -- the same reason Medea's
+  # High-Speed Divine Words resets a category.
+  - kind: cooldown
+    target: self
+    choose:
+      category: projection
+      # The two shapes the sheet offers, as options the player picks between.
+      # `spread` is 2 abilities at 1◈ each; `focus` is 1 ability at 2◈.
+      options:
+        - { id: spread, label: "Two Projections by 1◈", count: 2, ticks: "1◈" }
+        - { id: focus, label: "One Projection by 2◈", count: 1, ticks: "2◈" }
+
+  - kind: applyEffects
+    target: self
+    effects:
+      # A FLAT 30, not 30%. "Dmg Boost" is Appendix A's flat-damage buff and the
+      # sheet says "increased by 30 including NP" with no per cent sign; reading
+      # it as a percentage would roughly double a Caladbolg II.
+      - { id: dmgBoost, magnitude: 30, npMagnitude: 30, duration: "1◈" }

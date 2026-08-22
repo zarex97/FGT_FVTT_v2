@@ -1,0 +1,39 @@
+# EMIYA's Kanshou & Bakuya, char_orig_sheets/Copia de EMIYA.md
+#
+# The married swords, held for the rest of the Turn. A short-lived carrier for
+# a RANK SHIFT rather than a magnitude, because the thing that changes is which
+# column of the Magic Resistance table is read -- both the negation threshold
+# and the debuff resistance move together, and a flat percentage could only
+# express one of them.
+schema: 1
+id: dualWieldGuard
+name: "Kanshou & Bakuya"
+description: "Magic Resistance Rank is increased by one Rank."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+# Certain. It is not inflicted on anybody -- EMIYA projects it on himself --
+# so there is nothing for a resistance to reduce.
+baseChance: 500
+unremovable: true
+rules:
+  # Resolved in the `abilityRankShifts` PRE-PASS, before any executor runs,
+  # because the shifted Rank is an INPUT to Magic Resistance's table lookup
+  # rather than an output of it. Collected from an effect instance, which is
+  # what makes the condition expressible at all: the trigger tested the range,
+  # and by the time this is read the answer is already "yes".
+  #
+  # `grades: 1`, not `steps: 1` and not `to: C`.
+  #
+  # `steps` walks the DENSE ladder, where one step from D is D+ -- a Rank the
+  # resistance table has no row for, so it fell back to D and this whole Noble
+  # Phantasm did nothing measurable. "Increased by one RANK" is D to C, which is
+  # a whole grade.
+  #
+  # Not `to: C` either: that would silently cap a Servant who somehow acquired a
+  # higher Magic Resistance, and the parenthetical on the sheet is an example of
+  # the result rather than the rule.
+  - key: RankShift
+    ability: magicResistance
+    grades: 1

@@ -39,6 +39,9 @@ import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { createField } from "./fields.mjs";
+import { fireEvent } from "./scheduler.mjs";
 
 /**
  * Use an active Skill.
@@ -97,15 +100,16 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
   const marks = {
     ...(countsAsAct(ability) ? { acted: true } : {}),
     ...(asAttack ? { attacked: true } : { usedActiveSkill: true }),
-    // Recorded so a mutually-exclusive partner can see it went. Content ids,
-    // because that is what `sameTurnExclusive` names.
-    abilitiesUsed: [...usedThisTurn(actor), ability.system?.contentId || ability.id],
   };
 
   await applyWorldIntents([
     ...(usage.cost ? costIntents(usage.cost) : []),
     ...cooldownIntents(ability, actor, applied.summoned ?? 0, self),
     I.markTurn(actorId, marks),
+    // Recorded so a mutually-exclusive partner can see it went, at both
+    // scales, and so a `maxUses` budget can be spent. One intent, shared with
+    // the attack path, which used to keep no record at all.
+    I.recordUse(actorId, ability.id, ability.system?.contentId ?? null),
     I.log({
       kind: "ability", event: "skillUsed",
       unitId: actorId, abilityId, name: ability.name,
@@ -115,6 +119,7 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
   ], `skill:${abilityId}`);
 
   if (combat?.started) await budget.spend({ combat, unit: self, action: asAttack ? "normal" : "skill" });
+  await fireAbilityUsed(actor, ability);
   await postCard(actor, ability, targets.units, applied);
 
   return { ok: true, applied };
@@ -160,7 +165,17 @@ function resolveSkillTargets(ability, self, board, placement) {
  * @param {object} actor the caster
  * @returns {object[]}
  */
-function phaseTargets(phase, resolved, actor) {
+function phaseTargets(phase, resolved, actor, board) {
+  // A phase whose reach differs from the ability's own. `self` and `reuse`
+  // were the only two answers, and neither is "every ally within 2 panels of
+  // me" -- least of all on a REACTION, where `reuse` resolves to whoever just
+  // attacked. EMIYA's Eye of the Mind (True) EX buffs himself three ways and
+  // his neighbours a fourth, in one use.
+  if (phase.targeting) {
+    const self = board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+    const out = resolveTargets(phase.targeting, self, board, {});
+    return out.units;
+  }
   return (phase.target ?? "reuse") === "self" ? [{ unitId: actor.id }] : resolved;
 }
 
@@ -189,7 +204,7 @@ function targetsSelfOnly(spec) {
  * @param {object} board
  * @returns {Promise<object[]>}
  */
-async function runPhases(ability, actor, targets, board) {
+async function runPhases(ability, actor, targets, board, only = null) {
   /** @type {object[]} */
   const applied = [];
   // How many were conjured, for a cooldown that scales with the roll that just
@@ -197,6 +212,15 @@ async function runPhases(ability, actor, targets, board) {
   let summoned = 0;
 
   for (const phase of effectivePhases(ability.system ?? {}, resolveSource)) {
+    // "If this is NOT THE FIRST TIME EMIYA has used this Skill in this game,
+    // reduce his Health by 5%." A gate on the whole-match counter, which is
+    // read BEFORE this use is recorded -- so the first press costs nothing and
+    // the second onwards does.
+    if (phase.afterFirstUse && (ability.system?.timesUsed ?? 0) < 1) continue;
+    // A caller may want only part of the list -- the attack flow runs the
+    // phases the Combat Process has no rung for, and leaves the effect phases
+    // to the damage step where the riders belong.
+    if (only && !only(phase)) continue;
     // WHO this phase lands on. `target: self` names the caster and `reuse`
     // names whatever the targeting resolved -- a distinction every ability in
     // the reference set has authored since phases existed, and which nothing
@@ -206,7 +230,7 @@ async function runPhases(ability, actor, targets, board) {
     // self-targeting ability, where the two lists are the same. Scáthach's
     // Primordial Rune is the first where they differ -- "Gain 2 PRS Tokens.
     // Then, ... on an allied Unit" -- and the tokens went to the ally.
-    for (const target of phaseTargets(phase, targets, actor)) {
+    for (const target of phaseTargets(phase, targets, actor, board)) {
       const doc = game.actors.get(target.unitId);
       if (!doc) continue;
       const snapshot = board.units.find((u) => u.id === target.unitId) ?? unitSnapshot(doc);
@@ -233,7 +257,7 @@ async function runPhases(ability, actor, targets, board) {
 
         case "statChange":
           await applyWorldIntents(
-            (phase.changes ?? []).map((c) => I.statDelta(target.unitId, `${c.stat}.value`, c.delta, c.clamp !== false)),
+            statChanges(phase, target.unitId, doc),
             `skill:${ability.id}:stat`,
           );
           break;
@@ -253,7 +277,7 @@ async function runPhases(ability, actor, targets, board) {
 
         case "cooldown":
           await applyWorldIntents(
-            cooldownChanges(phase, doc),
+            phase.choose ? await chosenCooldowns(phase, ability, doc) : cooldownChanges(phase, doc),
             `skill:${ability.id}:cooldown`,
           );
           break;
@@ -268,6 +292,30 @@ async function runPhases(ability, actor, targets, board) {
         case "rollTable":
           applied.push(...await runRollTable(phase, ability, actor, snapshot, board));
           break;
+
+        case "choose": {
+          // A phase that asks a question. Trace, On's second clause is "apply
+          // ONE OF the following effects OF YOUR CHOICE" -- the choice is the
+          // rule, so it cannot be resolved by picking one and calling it a
+          // default.
+          applied.push(...await runChoice(phase, ability, actor, snapshot));
+          break;
+        }
+
+        case "createField": {
+          // Once per use, from the caster: a bounded field is one area, and
+          // looping it over a target list would create one per Unit caught.
+          if (target.unitId !== actor.id) break;
+          const field = await createField(ability, actor, board);
+          applied.push({
+            summary: {
+              id: "field", name: ability.name,
+              outcome: field ? "applied" : "failed",
+              reason: field ? null : "noScene",
+            },
+          });
+          break;
+        }
 
         case "summon": {
           // Only once per use, not once per target: the phase conjures from the
@@ -610,6 +658,170 @@ function cooldownChanges(phase, doc) {
 }
 
 /**
+ * The intents a `statChange` phase produces.
+ *
+ * Three shapes, and all three are on EMIYA's *Trace, On*:
+ *
+ *   - `delta`, the plain case.
+ *   - `percentOfMax`, because "reduce his Health by 5% of its maximum value"
+ *     is not a fixed number and 5% of a nearly-dead Servant's CURRENT Health is
+ *     a rounding error — the same distinction Medea's heal draws.
+ *   - `max: true`, which moves the ceiling; with `alsoCurrent` the pool comes
+ *     up with it, which is what "Max **and current** Luck are increased by 5"
+ *     means and what `Max HpUp` does in the other direction.
+ *
+ * `floor` limits THIS deduction rather than the pool: "cannot drop below 1 in
+ * this way" leaves ordinary damage free to finish the job.
+ *
+ * @param {object} phase
+ * @param {string} unitId
+ * @param {object} doc the target's actor document
+ * @returns {object[]}
+ */
+function statChanges(phase, unitId, doc) {
+  /** @type {object[]} */
+  const out = [];
+
+  for (const change of phase.changes ?? []) {
+    const path = change.max ? `${change.stat}.max` : `${change.stat}.value`;
+    const max = doc.system?.[change.stat]?.max ?? 0;
+    const raw = change.percentOfMax !== undefined
+      ? Math.trunc(max * (change.percentOfMax / 100))
+      : (change.delta ?? 0);
+    if (raw === 0) continue;
+
+    const delta = applyFloor(raw, change.floor, doc.system?.[change.stat]?.value ?? 0);
+    if (delta === 0) continue;
+
+    out.push(I.statDelta(unitId, path, delta, change.clamp !== false));
+    // A maximum that carries its pool with it.
+    if (change.max && change.alsoCurrent) out.push(I.statDelta(unitId, `${change.stat}.value`, delta, false));
+  }
+  return out;
+}
+
+/**
+ * Trim a deduction so it cannot take the pool below `floor`.
+ * @param {number} delta @param {number|undefined} floor @param {number} current
+ * @returns {number}
+ */
+function applyFloor(delta, floor, current) {
+  if (typeof floor !== "number" || delta >= 0) return delta;
+  return -Math.min(Math.max(0, current - floor), Math.abs(delta));
+}
+
+/**
+ * Ask the player which of several effects to apply, and apply it.
+ *
+ * The one place in the reference set where the CHOICE is the rule rather than a
+ * convenience: *"apply one of the following effects of your choice to EMIYA —
+ * Activated Circuits (AC) or Blazing Circuits (BC)"*, and the closing note that
+ * a later use "can choose to swap from AC to BC or vice-versa". Picking a
+ * default would quietly halve the Skill.
+ *
+ * The swap needs no code of its own: the two effects `block` each other, so
+ * applying one removes the other.
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} actor
+ * @param {object} snapshot the target's snapshot
+ * @returns {Promise<object[]>}
+ */
+async function runChoice(phase, ability, actor, snapshot) {
+  const options = phase.options ?? [];
+  if (options.length === 0) return [];
+
+  // Imported dynamically, like the other two dialogs this file opens: the
+  // engine is layer 3 and the dialog is layer 4, so a static import would be a
+  // layer inversion the checker rejects.
+  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+  const picked = await ChoiceDialog.pick({
+    title: ability.name,
+    hint: phase.prompt ? game.i18n.localize(phase.prompt) : "",
+    count: phase.count ?? 1,
+    options: options.map((o) => ({
+      id: o.id,
+      name: o.label ?? EffectRegistry.get(o.id)?.name ?? o.id,
+      detail: EffectRegistry.get(o.id)?.description ?? "",
+    })),
+  });
+  // Dismissing is an answer. Nothing is applied, and nothing else in the use is
+  // rolled back — the Skill's other clauses already happened.
+  if (!picked?.length) return [];
+
+  /** @type {object[]} */
+  const out = [];
+  for (const id of picked) {
+    const spec = options.find((o) => o.id === id) ?? { id };
+    out.push(...await applyPhaseEffects({ effects: [spec] }, ability, actor, snapshot));
+  }
+  return out;
+}
+
+/**
+ * A cooldown reduction the player shapes.
+ *
+ * EMIYA's *Tracing* is the only one in the reference set: *"reduce the
+ * Cooldowns of **2 different** Skills or NP with 'Projection' in its name by
+ * 1◈ Turns **OR** reduce the Cooldown of a Skill/NP with 'Projection' in its
+ * name by 2◈ Turns."* Two decisions — the shape, then the abilities — and both
+ * belong to the player, so neither can be resolved by picking a default.
+ *
+ * "With 'Projection' in its name" is a naming convention; the match is on
+ * `category`, which every Projection document carries. Naming them one by one
+ * would go stale the moment a fifth was written.
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} doc the caster's actor document
+ * @returns {Promise<object[]>}
+ */
+async function chosenCooldowns(phase, ability, doc) {
+  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+  const spec = phase.choose ?? {};
+  const options = spec.options ?? [];
+  if (options.length === 0) return [];
+
+  const shape = (await ChoiceDialog.pick({
+    title: ability.name,
+    hint: game.i18n.localize("FGT.Skill.ChooseCooldownShape"),
+    count: 1,
+    options: options.map((o) => ({ id: o.id, name: o.label ?? o.id })),
+  }))?.[0];
+  if (!shape) return [];
+
+  const picked = options.find((o) => o.id === shape);
+  const turns = resolveTicks(parseTick(picked.ticks), {
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+  });
+
+  // Only abilities with something to reduce. Offering one at zero would let the
+  // player spend half the Skill on nothing, and "2 DIFFERENT" is enforced by
+  // the dialog returning a set of distinct ids.
+  const candidates = doc.items.filter((i) =>
+    i.system?.category === spec.category && (i.system?.cooldown?.remaining ?? 0) > 0);
+  if (candidates.length === 0) return [];
+
+  const chosen = await ChoiceDialog.pick({
+    title: ability.name,
+    hint: game.i18n.format("FGT.Skill.ChooseCooldownTargets", { turns }),
+    // Fewer candidates than the shape asks for is not a refusal: reduce what
+    // there is. The alternative is a Skill that cannot be used at all because
+    // only one Projection happens to be running.
+    count: Math.min(picked.count ?? 1, candidates.length),
+    options: candidates.map((i) => ({
+      id: i.id,
+      name: i.name,
+      subtitle: `${i.system.cooldown.remaining} turn(s) left`,
+    })),
+  });
+  if (!chosen?.length) return [];
+
+  return chosen.map((id) => I.cooldown(doc.id, id, turns, "reduce"));
+}
+
+/**
  * Which effect ids a `removeEffect` phase strips.
  *
  * A `selector` matches by **polarity** rather than by name -- "remove all
@@ -674,3 +886,80 @@ async function chooseSummonType(spec) {
   });
   return picked?.[0] ?? null;
 }
+
+/**
+ * Raise `abilityUsed` on the Unit that used it.
+ *
+ * §E.3 has listed the event since the reference was written and nothing ever
+ * raised it, so the two clauses in the reference set that key on *using* an
+ * ability rather than on its outcome could not fire: EMIYA's *Magecraft*
+ * (*"whenever EMIYA uses a Thaumaturgy Spell, apply Range Up"*) and the
+ * duration extension on his *Atk Up (Trace)*.
+ *
+ * The used ability travels in `ctx.subject`, which is what a handler's
+ * `ofCategory` filter reads -- the event is about something, and a handler
+ * that cannot ask what would have to fire on every ability in the game.
+ *
+ * Fired AFTER the phases have resolved, because the sheet's wording is "uses",
+ * and a Skill that was refused mid-resolution has not been used.
+ *
+ * @param {object} actor
+ * @param {object} ability
+ * @returns {Promise<void>}
+ */
+export async function fireAbilityUsed(actor, ability) {
+  const unit = unitSnapshot(actor);
+  const intents = fireEvent("abilityUsed", [unit], {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    options: new Set(),
+    rolls: {},
+    subject: {
+      id: ability?.id ?? null,
+      contentId: ability?.system?.contentId ?? null,
+      category: ability?.system?.category ?? null,
+      isNP: ability?.type === "noblePhantasm" || Boolean(ability?.system?.isNP),
+    },
+  });
+  if (intents.length > 0) await applyWorldIntents(intents, "abilityUsed");
+}
+
+/**
+ * Run the phases a Combat Process has no rung for.
+ *
+ * A Noble Phantasm resolves through `resolveAttack`, which knows about damage
+ * and about the effects that ride on it — and about nothing else. Every other
+ * phase kind an ability can carry is `useSkill`'s business, so an NP that
+ * spends a Resource, opens a bounded field, conjures a squad or asks the player
+ * a question **silently did none of it**.
+ *
+ * EMIYA's Unlimited Blade Works is the case that found it: it consumed no Aria
+ * and created no Reality Marble, while charging his Master the full cost.
+ *
+ * Run once, from the caster, before the fan-out: these are things the ability
+ * does to its user, not to each defender.
+ *
+ * @param {object} ability
+ * @param {object} actor
+ * @param {object} board
+ * @returns {Promise<object[]>}
+ */
+export async function runCasterPhases(ability, actor, board) {
+  // The caster IS the resolved target list here. Passing an empty one made
+  // every phase that had not written `target: self` resolve to `reuse` and then
+  // to nobody, so the loop body never ran -- Unlimited Blade Works spent its
+  // Aria (a `target: self` phase) and created no Reality Marble (which is not).
+  return runPhases(ability, actor, [{ unitId: actor.id }], board, (phase) => CASTER_PHASES.has(phase.kind));
+}
+
+/**
+ * The phase kinds the attack flow delegates here.
+ *
+ * `damage` and `applyEffects` are deliberately absent: the first is the Combat
+ * Process itself and the second is its rider step, which resolves per defender
+ * and after the damage has landed.
+ */
+const CASTER_PHASES = new Set([
+  "resource", "statChange", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
+]);

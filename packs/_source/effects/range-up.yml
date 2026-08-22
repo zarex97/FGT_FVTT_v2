@@ -1,0 +1,18 @@
+# Appendix A -- a Range modifier. EMIYA's Magecraft is the first content to
+# grant one: "whenever EMIYA uses a Thaumaturgy Spell, apply Range Up for 1
+# Turn, Range is increased by 1."
+schema: 1
+id: rangeUp
+name: "Range Up"
+description: "Range is increased by X panels."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+# "Does not stack, but duration is extended if reapplied" -- which is exactly
+# what `noneExtend` means, and the reason it is one of the six stacking rules
+# rather than a special case here.
+stacking: noneExtend
+baseChance: 100
+rules:
+  - key: RangeDelta
+    value: "@magnitude"

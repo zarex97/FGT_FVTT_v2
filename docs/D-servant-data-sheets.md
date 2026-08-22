@@ -980,6 +980,37 @@ has no `[tag]` (`[???]` on UBW). Both are stored as `null` with a display fallba
 the engine requires an NP to have either, which is a small design decision that this sheet
 retroactively justifies.
 
+### As built
+
+Seventeen abilities ship. Four mappings ended up different from the plan above, and each for a
+reason worth recording:
+
+- **Eye of the Mind is two documents, not a rank shift.** *"This Skill changes from Rank B to Rank
+  EX"* changes the clause list, not a number, and a `RankShift` moves a number. The two share an
+  `exclusionSet` so using either puts both on cooldown — it is one Skill — and their requirements
+  **partition** the Health bar (`healthAbove: 0.2` / `healthBelow: 0.2`), so exactly one is offered
+  at any moment. Verified live at 1000, 250 and 199 Health.
+- **Tracing matches on `category`, not on the name.** *"With 'Projection' in its name"* is a naming
+  convention; a substring match would break the moment a Projection was renamed and a `category`
+  would not. Every Projection document carries `category: projection`.
+- **Kanshou & Bakuya's extension is authored on Overedge**, not on Kanshou & Bakuya. Read from the
+  latter, the sheet's two sentences cancel: using Overedge is what starts the cooldown that negates
+  it, so the document switches itself off before the swing it was supposed to extend. Found live —
+  Overedge projected nothing at all.
+- **The Circuits use `replaces`, not `blocks`.** The sheet says *"cannot have both … at the same
+  time"* **and** *"you can choose to swap from AC to BC or vice-versa"*, and `blocks` can only say
+  the first, by refusing the swap.
+
+Two things on the plan above are **not built**, and are not on the source sheet either: the
+`emiya.brokenPhantasm` script and the *"Projection: Unlimited Blade Works"* runtime NP-copying
+entry. Ch. 44 §44.5 proposes them; `char_orig_sheets/Copia de EMIYA.md` contains no such clause.
+
+**Rank ranges.** `E~A++` is not a Rank, and the ladder holds single Ranks. Three Noble Phantasms
+in the roster print a range (this one, Jack's *Maria the Ripper*, Proto Gil's *Bab-ilu*); all three
+store `null` and lead their description with the printed range, because storing either end would
+be storing a Rank the sheet does not claim. The Master's cost is stated separately
+(`masterHealthByNPRank`), which the sheet does for exactly that reason.
+
 ---
 
 ## D.30 Proto Gil

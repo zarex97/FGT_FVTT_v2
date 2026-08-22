@@ -36,6 +36,58 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **EMIYA is finished** — all seventeen abilities resolve end to end in a live world, verified
+  individually. The seventh Servant, the first Archer, and the one whose sheet is written almost
+  entirely in terms of **distance**, which nothing in the engine emitted.
+
+  New engine, in rough order of how much of his kit depends on it:
+
+  - **`attack:range:*` roll options**, as a ladder in both directions (`gte`/`lte`), because a
+    predicate can only test set membership. An unknown distance emits nothing rather than 0.
+  - **`normalAttack.mode: rangeBanded`**, one of three declared choices in the actor schema since
+    it was written, with nothing implementing it. Three things move together at the band edge —
+    the sources, what the attack counts *as*, and whether Magic Resistance sees it.
+  - **`attackFacts`**, one builder for the attack context. Four call sites each rebuilt it and
+    each dropped a different subset, so `component`, `pierce` and `ignoresMagicResistance` were
+    never set — three fields the damage pipeline reads by name.
+  - **Barriers** (`engine/shield.mjs`): a second Health pool in front of a defender, shared by
+    several bearers, charging its owner for what it absorbs.
+  - **Bounded field creation** (`engine/fields.mjs`). Everything in Ch. 43 had a reader and none
+    of it had ever run, because nothing created a field.
+  - **Three events that had never fired**: `attackDeclared`, `evadeSucceeded`, `combatPhaseEnd`,
+    plus `abilityUsed` with an `ofCategory` filter.
+  - **`sameRoundExclusive`, `timesUsed`/`maxUses`, `lastUsedTick`, `healthWatermarks`** — three
+    scales of "already used" beyond the Turn, and the history that `healthRestoredSince` needs.
+  - **`replaces`** on an effect definition: mutual exclusion that resolves by replacement rather
+    than by refusal, which is the only way to say "cannot hold both" and "may swap" at once.
+  - **Phase kinds** `choose` and `createField`, phase-level `targeting`, `afterFirstUse`, and a
+    cooldown phase that offers the player a shape.
+  - **`Rank#stepGrade`**, `negatedWhile`, `casterOutsideArea`, `minRange` on a unit anchor, and
+    `masterHealthByNPRank`.
+
+### Fixed
+
+- **Every effect applied by an event handler bypassed the effect pipeline.** `io.createEffects` is
+  a bare create, and the scheduler's `ApplyEffect` action emitted a bare intent — so immunity,
+  exclusivity, the chance roll and the stacking rule were all skipped for every `OnEvent` rider in
+  the game. Resolved intents are now marked and `applyIntents` runs the rest through the pipeline.
+- **`OnEvent` dropped a deferred predicate**, so a handler gated on the attack fired
+  unconditionally.
+- **`CheckModifier` and `TableOverride` could not be conditional on the attack** at all.
+- **`resolveAttack` recorded no ability use**, so `oncePerTurn`, `sameTurnExclusive` and the rest
+  were enforced for Skills and ignored by Noble Phantasms and Attack Skills.
+- **A non-damaging Noble Phantasm lost every phase that was not an effect** — it could not spend a
+  Resource, open a field, conjure a squad or ask a question, while charging its Master in full.
+- **`ResourceDelta` wrote to a bare pool name** rather than a path, so the write was dropped.
+- **`resourceAtLeast` never read a §6.10 pool** — the mechanism it exists for.
+- **Interior rules of a bounded field all went into `modifiers`**, where a stat-shaped one does
+  nothing; and the field's **owner was not its own relation**, so every `relations: [self]` interior
+  clause in the reference set matched nobody.
+- **Three shipped effects were written against roll options nothing emits** — `N.Atk Up`,
+  `Bleed Atk` and `NP Seal`. `isEmittableOption` now holds the content against the vocabulary.
+- **`Independent Action` had no content file**, so the contract rule that looks it up by slug had
+  never found one.
+
 - **Medea is finished** — all thirteen abilities resolve end to end in a live world. The last
   four needed: **reaction-window abilities** offered at the react rung (`rules/reactions.mjs`),
   **rank-comparison roll options** (`target:rank:mag:gte:B`, `self:skillRank:...:gte:B`), **per

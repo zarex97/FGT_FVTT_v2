@@ -15,6 +15,6 @@ baseChance: 100
 rules:
   - key: OnEvent
     event: damageDealt
-    predicate: ["self:attack:normal"]
+    predicate: ["attack:kind:normal"]
     effect: { id: bleed, chance: "@magnitude" }
     duration: "1◈"

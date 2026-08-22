@@ -152,13 +152,19 @@ export function begin({ attackerId, defenderId, attack, isAoE = false, groupId =
  * @param {string} [args.groupId] supplied only to make a fan-out reproducible
  * @returns {ProcessState[]}
  */
-export function beginFanOut({ attackerId, targetIds, attack, groupId = null }) {
+export function beginFanOut({ attackerId, targetIds, attack, groupId = null, isAoE = null }) {
   const ids = targetIds ?? [];
   if (ids.length === 0) return [];
 
   const group = groupId ?? `fan.${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
+  // More than one PROCESS is not the same as more than one defender. EMIYA's
+  // Overedge is "2 Normal Attacks in a row" against one Unit -- two processes
+  // in one Combat Phase -- and treating that as an area attack would emit
+  // `attack:isAoE` and skip the defender's facing change. The caller decides
+  // when it knows better; the process count remains the default.
+  const area = isAoE ?? ids.length > 1;
   return ids.map((defenderId) =>
-    begin({ attackerId, defenderId, attack, isAoE: ids.length > 1, groupId: group }));
+    begin({ attackerId, defenderId, attack, isAoE: area, groupId: group }));
 }
 
 /**

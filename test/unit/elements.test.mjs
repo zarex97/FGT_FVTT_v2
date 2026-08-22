@@ -442,3 +442,52 @@ describe("a RankShift aimed at another ability", () => {
     expect(out.abilityRankShifts).toEqual([]);
   });
 });
+
+describe("an event handler gated on the attack", () => {
+  it("carries the clause through to the handler instead of dropping it", () => {
+    // Found live. `collectContributions` classifies an `attack:`-scoped
+    // predicate as DEFERRED and hands it to the executor; `OnEvent` ignored the
+    // argument, so the clause vanished and the handler fired unconditionally.
+    // EMIYA's Kanshou & Bakuya is "at a Range of 2 or lower" and it projected
+    // the swords at every distance — twice, once per range clause.
+    const el = {
+      key: "OnEvent",
+      event: "attackDeclared",
+      predicate: ["attack:kind:normal", "attack:range:lte:2"],
+      then: [{ key: "ApplyEffect", effect: { id: "dualWieldGuard" } }],
+    };
+    const out = collectContributions([{ id: "kb", rank: null, active: true, name: "Kanshou & Bakuya", passiveRules: [el] }]);
+
+    expect(out.eventHandlers).toHaveLength(1);
+    expect(out.eventHandlers[0].targetPredicate).toEqual(["attack:kind:normal", "attack:range:lte:2"]);
+  });
+
+  it("keeps an authored targetPredicate as well, as a conjunction", () => {
+    const el = {
+      key: "OnEvent",
+      event: "damageStepEnd",
+      predicate: ["attack:kind:np"],
+      targetPredicate: ["target:attribute:divine"],
+      then: [],
+    };
+    const out = collectContributions([{ id: "a", name: "A", rank: null, active: true, passiveRules: [el] }]);
+
+    expect(out.eventHandlers[0].targetPredicate)
+      .toEqual(["target:attribute:divine", "attack:kind:np"]);
+  });
+
+  it("still answers a self-only clause at collection time", () => {
+    // Unlimited Blade Works gains Aria unless Silenced — a question about its
+    // own bearer, so it is settled here and never reaches the handler.
+    const el = {
+      key: "OnEvent", event: "combatPhaseEnd",
+      predicate: [{ not: "self:effect:silence" }], then: [],
+    };
+    const silenced = collectContributions(
+      [{ id: "u", name: "UBW", rank: null, active: true, passiveRules: [el] }],
+      { options: new Set(["self:effect:silence"]) },
+    );
+    expect(silenced.eventHandlers).toHaveLength(0);
+    expect(collectContributions([{ id: "u", name: "UBW", rank: null, active: true, passiveRules: [el] }]).eventHandlers).toHaveLength(1);
+  });
+});

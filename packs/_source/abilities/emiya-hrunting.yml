@@ -1,0 +1,41 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+schema: 1
+id: emiya-hrunting
+name: "Projection - Hrunting: Hound of the Red Plains"
+rank: A
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: hrunting
+category: projection
+cooldown: "7◈"
+timing: { window: ownTurn }
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+sameRoundExclusive: [emiya-caladbolg]
+description: |
+  Range+3 for the Combat Process. Base Attack (MAG) is used. Hrunting has the Aim effect.
+  Deals 4x damage. Not affected by Magic Resistance. Cannot be used on a Unit directly next to
+  EMIYA. Cooldown: 7◈ Turns.
+targeting:
+  # Range 4 + 3 = 7, and a MINIMUM of 2: "cannot be used on a Unit directly
+  # next to EMIYA". `minRange` was honoured only by the panel anchor until now,
+  # and this picks a Unit.
+  anchor: { kind: targetUnit, range: 7, minRange: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  multiplier: 4
+  component: mag
+  # Aim ignores Dodge and the Evade action; Substitution still beats it (§A.3).
+  # `evade` has read `attack.aim` since it was written against a spec that never
+  # carried it, so no authored ability could have had it.
+  aim: true
+  # "Not affected by Magic Resistance" -- which also exempts anything it
+  # inflicts from Magic Resistance's Instakill/Death clause, because that
+  # exemption is written against exactly this property of the attack.
+  ignoresMagicResistance: true
+phases:
+  - kind: damage

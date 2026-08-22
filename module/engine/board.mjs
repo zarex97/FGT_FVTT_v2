@@ -82,7 +82,23 @@ export function factionOfUser(userId = game.user.id) {
 export function unitSnapshot(actor, token = null) {
   if (!actor) return null;
   const doc = token ?? activeToken(actor);
-  return snapshotUnit(actor, { token: doc, panel: panelOf(doc), tick: currentTick() });
+  return snapshotUnit(actor, {
+    token: doc, panel: panelOf(doc), tick: currentTick(), round: currentRound(),
+  });
+}
+
+/**
+ * The Round a round state must carry to still be in force.
+ *
+ * `null` out of combat, for the same reason `currentTick` is: with no Rounds
+ * there is nothing for the record to be stale against.
+ *
+ * @returns {number|null}
+ */
+export function currentRound() {
+  const combat = game.combats?.active ?? null;
+  if (!combat?.started) return null;
+  return combat.round ?? null;
 }
 
 /**
@@ -333,6 +349,8 @@ function boundedFieldsOf(scene) {
         membership: sys.membership ?? null,
         isolation: sys.isolation ?? null,
         interior: sys.interior ?? [],
+        interiorEvents: sys.interiorEvents ?? [],
+        expiry: sys.expiry ?? null,
         extension: sys.extension ?? null,
         vulnerabilities: sys.vulnerabilities ?? [],
         duration: sys.duration ?? null,

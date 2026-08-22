@@ -1,0 +1,56 @@
+# EMIYA's Trace, On -- char_orig_sheets/Copia de EMIYA.md
+#
+# "This effect is neither a buff or a debuff and is Unremovable except through
+# its own effect." So: `status` polarity, so buff removal and Debuff Immune both
+# ignore it; `unremovable`, so nothing strips it; and the one thing that DOES
+# remove it lives on `atkUpTrace`, which is where the sheet puts it.
+schema: 1
+id: activatedCircuits
+name: "Activated Circuits (AC)"
+description: |
+  While Unlimited Blade Works is Active, a Normal Attack restores 1 Luck and reduces EMIYA's NP
+  Cooldown by 1 Turn at the end of the Combat Process. The next time EMIYA uses an NP that
+  deals damage, restore 2 Luck; and for the rest of the Round, every Attack reduces his NP
+  Cooldown by 2 Turns at the end of the Combat Process.
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+# "EMIYA cannot have both the AC and BC effects at the same time." Declared on
+# BOTH sides -- a one-sided exclusion is decided by whichever is applied first,
+# which is not a rule, and this pair is deliberately swappable.
+# `replaces`, not `blocks`. The sheet says both things at once -- "EMIYA
+# cannot have both the AC and BC effects at the same time" AND "you can
+# choose to swap from AC to BC or vice-versa" -- and `blocks` can only say
+# the first, by REFUSING the swap. Declared on both sides, so whichever is
+# applied wins and the swap is the same write as the first pick.
+replaces: [blazingCircuits]
+rules:
+  # Clause 1. Gated on Unlimited Blade Works being up, which is a question about
+  # a field rather than about a buff -- `self:inField:` is the option the field
+  # annotation emits for the area a unit is standing in.
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal", "self:inField:unlimitedBladeWorks"]
+    then:
+      - { key: ResourceDelta, resource: luck, delta: 1 }
+      - { key: CooldownDelta, scope: np, delta: -1 }
+
+  # Clause 2, first half: "the NEXT time EMIYA uses an NP that deals damage" --
+  # once, hence `consumesUse`, and the charge is what makes "next" a rule rather
+  # than "every".
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    consumesUse: true
+    predicate: ["attack:kind:np"]
+    then:
+      - { key: ResourceDelta, resource: luck, delta: 2 }
+      # Second half: the standing 2-Turn refund, "for the rest of the Round".
+      - key: ApplyEffect
+        effect: { id: acOverdrive }
+        duration: "thisRound"
+uses: 1

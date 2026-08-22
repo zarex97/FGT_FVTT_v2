@@ -251,6 +251,26 @@ export function blockedThisTurn(item, usedThisTurn) {
 }
 
 /**
+ * The same question one scale up.
+ *
+ * *"Caladbolg II cannot be used on the same Round as Hrunting and vice versa."*
+ * Not expressible as a same-Turn exclusion: EMIYA acts up to three times in a
+ * Round, so the Turn-scoped version would forbid only the case where he tried
+ * to fire both with one action — which he cannot do anyway.
+ *
+ * @param {object} item
+ * @param {string[]} usedThisRound
+ * @returns {string|null}
+ */
+export function blockedThisRound(item, usedThisRound) {
+  const exclusive = item?.system?.sameRoundExclusive ?? [];
+  if (exclusive.length === 0) return null;
+
+  const used = new Set(usedThisRound ?? []);
+  return exclusive.find((id) => used.has(id)) ?? null;
+}
+
+/**
  * Is this ability switched off by an effect the Unit is carrying?
  *
  * Distinct from a requirement, and both halves are needed. Medea's High-Speed
@@ -299,6 +319,16 @@ export function usageSpecFor(ability) {
     // "Can only be used once per Turn" — Scáthach's Ár, whose 3◈ cooldown a
     // PRS Token skips entirely, leaving this as the only limit on it.
     oncePerTurn: Boolean(sys.oncePerTurn),
+    // Both exclusion scales, and the whole-match budget. A gate the attack path
+    // could not see was a gate only half the abilities in the game obeyed.
+    sameTurnExclusive: [...(sys.sameTurnExclusive ?? [])],
+    sameRoundExclusive: [...(sys.sameRoundExclusive ?? [])],
+    timesUsed: sys.timesUsed ?? 0,
+    maxUses: sys.maxUses ?? null,
+    // What `healthRestoredSince` compares "since" against.
+    lastUsedTick: sys.lastUsedTick ?? null,
+    // What an `abilityUsed` handler filters on.
+    category: sys.category ?? null,
     requiresRound: sys.targeting?.limits?.requiresRound ?? null,
     requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
   };

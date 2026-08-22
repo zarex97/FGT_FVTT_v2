@@ -24,7 +24,7 @@ where something is a stub the exact line is named.
 The **pure rules core is complete**: the damage pipeline, targeting resolution, checks and the
 roll log, movement legality, the effect application pipeline, the turn budget, ability costs and
 all twelve requirement kinds, items, copied abilities, setup rolls and the rank/tick domain are
-all implemented and carry 1204 tests, and 55 content files.
+all implemented and carry 1723 tests, and 135 content files.
 
 The last pure-rules gaps closed together: `rules/roll-log.mjs` (§14.8), `rules/setup-rolls.mjs`
 (§14.9, §37.6), `rules/items.mjs` (§15.4's full kind list and §15.8) and `rules/copy.mjs`
@@ -103,7 +103,7 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    **done (C3, C4)**. Platforms still lack the Scene Level operations (create, delete, scatter),
    which are logged by name rather than performed; bounded fields still lack the paint tool
    `freeform` needs and the two-phase `markDefined` construction.
-8. **Only 2 of 29 reference Servants are authored.**
+8. **Only 7 of 29 reference Servants are authored.**
 
 The system is at the point where **one player can attack another player and the damage is
 correct and fully audited**. It is not yet at the point where a match can be played to a finish.
@@ -159,11 +159,12 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation — **with the dialog that shows it**, reached from the Actors sidebar and the Servant compendium, and refusing a bare compendium drop that would produce a Servant with the template's numbers. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
-| 38 | Testing strategy | **Mostly** | 1632 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1723 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
-| 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4). **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
-| — | Content | **6 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea, Medea and **Scáthach** — the first Lancer, and the Servant who needed the most engine that did not exist. **All eleven abilities** resolve end to end in a live world, verified individually: *Primordial Rune* (a 2d8 table chosen by relation, duplicates applying twice, and a wildcard row that asks), the three *Primordial Rune Spells* (a PRS Token waiving the cooldown, and the other two gated while the used one runs), *Wisdom of Dún Scáith* (which **had never been able to copy anything**), *Clairvoyance*, *God Slayer* with *Alpi*'s two branches, *Gáe Bolg Alternative*'s Instakill-or-damage fork, and *Gate of Skye*'s per-target Luck Check with `gateOfSkyeSaveModifier`. She is also the first **Resource** pool (§6.10) and the first content to fire §E's `damageStepEnd`. 36 effects of ~152, including Appendix A's **terminal tier**. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
+| 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4) — **and now a writer** (`engine/fields.mjs`): a field is a Region with an `npField` behaviour, created by a `createField` phase, expiring on an absolute tick at the Turn boundary, with `interiorEvents` for rules that fire at a boundary rather than standing. Everything in the chapter had a reader and none of it had ever run. **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
+| — | Content | **7 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea, Medea and **Scáthach** — the first Lancer, and the Servant who needed the most engine that did not exist. **All eleven abilities** resolve end to end in a live world, verified individually: *Primordial Rune* (a 2d8 table chosen by relation, duplicates applying twice, and a wildcard row that asks), the three *Primordial Rune Spells* (a PRS Token waiving the cooldown, and the other two gated while the used one runs), *Wisdom of Dún Scáith* (which **had never been able to copy anything**), *Clairvoyance*, *God Slayer* with *Alpi*'s two branches, *Gáe Bolg Alternative*'s Instakill-or-damage fork, and *Gate of Skye*'s per-target Luck Check with `gateOfSkyeSaveModifier`. She is also the first **Resource** pool (§6.10) and the first content to fire §E's `damageStepEnd`. 36 effects of ~152, including Appendix A's **terminal tier**. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
+| — | Content (EMIYA) | — | **EMIYA**, the first Archer, and the Servant whose sheet is written almost entirely in terms of **distance** — which nothing emitted. All **seventeen** abilities resolve end to end in a live world, verified individually. `attack:range:gte:N` / `lte:N` are new roll options and half his kit turns on them; `normalAttack.mode: rangeBanded` had been a declared choice since the actor schema was written with nothing implementing it, so his Normal Attack was plain STR at every distance (measured: 40 in melee, 72 at Range 3, and 80 versus 54 against a Rank A Magic Resistance depending on whether the exemption applies). He is the first content to need a **whole-match** budget rather than a cooldown (`timesUsed`/`maxUses`), the first **barrier** with its own Health pool (`Rho Aias`: one 1400 shared across four bearers, overflow passing through, 100 off its owner per completed 200), the first **round-scale** exclusion (`Caladbolg II` / `Hrunting`), the first `createField` (Unlimited Blade Works trapped eight Units and tolled three of them at the Turn boundary), and the second **Resource** pool. 50 effects of ~152. 6 class skills, including **Independent Action**, whose contract rule had shipped in `rules/contract.mjs` with no content to attach to. |
 | — | Content (Medea) | — | **Medea**, the first Caster, and the densest sheet at thirteen abilities. **All thirteen** resolve end to end in a live world -- verified individually, including Dragon Tooth Warriors (two nested rolls, 5×5 placement, count-scaled cooldown), Rule Breaker (cuts the Contract, strips the Master's Command Spells, grants three namespaced ones), Rain of Light (a 3×3 AoE that proved the targeting system), Atlas (base 100 reduced to 75 by `target MAG B+ -25`), and Argos and Trofa offered **at the reaction rung** because "used when Attacked" cannot be reached from a sheet button. 21 effects of ~152. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
 
 ---
@@ -223,6 +224,22 @@ was authored a predicate naming `target:` or `attack:` was **tested there and an
 so the element never reached the bucket at all. Three shipped abilities were affected and none of
 them looked broken: Penthesilea's *Goddess of War*, `NP DmUp`, and Scáthach's *God Slayer*. Such
 predicates are now deferred onto the modifier for the pipeline to answer (Ch. 24 §24.4).
+
+**A fourth, subtler again: the executor may drop the deferral.** Classification is only half of
+it — the executor receives the deferred clause and has to put it somewhere a reader will look.
+`OnEvent` ignored the argument entirely, so a handler gated on the attack fired
+**unconditionally** (EMIYA's *Kanshou & Bakuya* projected at every distance, twice); and
+`CheckModifier`/`TableOverride` had no field for one at all, so no check contribution could be
+conditional on the attack (his *Hawkeye* raised his crit rate in melee, where the sheet gives him
+nothing). Both repaired while building him.
+
+**And a fifth, at the write boundary.** An intent produced by the effect pipeline has been through
+immunity, exclusivity, the chance roll and the stacking rule. One produced by the **scheduler's**
+`ApplyEffect` action has not — and `io.createEffects` is a bare create that asks nothing. So every
+effect applied by an **event handler** skipped all four: an immune Unit took it, a resisted one
+took it at full strength, and a `noneExtend` buff made a second document instead of extending.
+Resolved intents are now marked, and `applyIntents` runs any that are not through the pipeline
+first (Ch. 11 §11.2).
 
 Two more that are subtler than "collected only", because they *look* wired:
 

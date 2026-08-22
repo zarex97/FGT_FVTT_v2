@@ -15,7 +15,21 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { rollOptionsFor } from "../../module/rules/options.mjs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { parse } from "yaml";
+import { rollOptionsFor, isEmittableOption } from "../../module/rules/options.mjs";
+import { referencedOptions } from "../../module/rules/predicate.mjs";
+import { ruleElements } from "../../tools/lib/content.mjs";
+
+/** @param {string} dir @returns {string[]} */
+function ymlUnder(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const path = join(dir, e.name);
+    if (e.isDirectory()) return ymlUnder(path);
+    return e.name.endsWith(".yml") ? [path] : [];
+  });
+}
 
 const unit = (over = {}) => ({
   id: "u", kind: "servant", attributes: [], effects: [], region: [], abilities: [], ...over,
@@ -179,5 +193,80 @@ describe("rank comparisons (Medea's Atlas)", () => {
     expect(() => rollOptionsFor({ attacker: null, defender: unit({
       parameters: { str: "?", end: null, agi: "C", mag: "C", luc: "C" },
     }) })).not.toThrow();
+  });
+});
+
+describe("the range ladder", () => {
+  it("emits a distance both ways, so a predicate can compare in either direction", () => {
+    // EMIYA is written almost entirely in these terms: his Normal Attack
+    // changes component at 3, Clairvoyance and Hawkeye turn on at 3, and
+    // Kanshou & Bakuya applies at "Range 2 or lower".
+    const out = optionsFor(unit(), unit(), { kind: "normal", range: 3 });
+
+    expect(out).toContain("attack:range:3");
+    expect(out).toContain("attack:range:gte:3");
+    expect(out).toContain("attack:range:gte:1");
+    expect(out).toContain("attack:range:lte:3");
+    expect(out).not.toContain("attack:range:gte:4");
+    expect(out).not.toContain("attack:range:lte:2");
+  });
+
+  it("says nothing at all when the distance is unknown", () => {
+    // A unit with no panel — a snapshot taken off the board — must not be
+    // read as "at range 0", which would satisfy every `lte` clause in the game.
+    const out = optionsFor(unit(), unit(), { kind: "normal" });
+
+    expect(out.some((o) => o.startsWith("attack:range"))).toBe(false);
+  });
+});
+
+describe("attack properties", () => {
+  it("names Aim and Pierce, which the evade rung and the pipeline read", () => {
+    const out = optionsFor(unit(), unit(), { kind: "np", aim: true, pierce: true });
+
+    expect(out).toContain("attack:aim");
+    expect(out).toContain("attack:pierce");
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  The vocabulary guard                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every predicate in the shipped content must name an option this file can
+ * actually produce.
+ *
+ * This is the same class of defect as `test/unit/skill-references.test.mjs`
+ * and it failed the same way: `N.Atk Up` and `Bleed Atk` were both written
+ * against `self:attack:normal`, which `rollOptionsFor` has never emitted.
+ * Neither errored. The clause was simply absent from the set, so the modifier
+ * was dropped at every damage event and the effect did nothing at all —
+ * `N.Atk Up` raised no Normal Attack's damage for as long as it has shipped.
+ */
+describe("content predicates name options that exist", () => {
+  const SOURCE = ymlUnder("packs/_source");
+
+  /** Every option any authored predicate names, with where it came from. */
+  const referenced = SOURCE.flatMap((path) => {
+    const doc = parse(readFileSync(path, "utf8"));
+    return [...ruleElements(doc)]
+      .flatMap(([where, el]) => [
+        ...[...referencedOptions(el.predicate)].map((o) => ({ path, where, option: o })),
+        ...[...referencedOptions(el.attackPredicate)].map((o) => ({ path, where, option: o })),
+        ...[...referencedOptions(el.targetPredicate)].map((o) => ({ path, where, option: o })),
+      ]);
+  });
+
+  it("finds some, or this guard proves nothing", () => {
+    expect(referenced.length).toBeGreaterThan(5);
+  });
+
+  it("every one is a string rollOptionsFor can emit", () => {
+    const dangling = referenced
+      .filter((r) => !isEmittableOption(r.option))
+      .map((r) => `${r.path}: ${r.where} → ${r.option}`);
+
+    expect(dangling).toEqual([]);
   });
 });

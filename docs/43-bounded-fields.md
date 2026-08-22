@@ -253,6 +253,52 @@ the MOV clause.
 Human: 40/turn; Servant/non-Human: 20/turn), **halved against `Mechanical` units**, with the
 total drained healing Medusa and/or her Master up to the amount drained.
 
+### Interior rules are not all modifiers
+
+The annotation pass appended every interior rule to the unit's `modifiers`, which is the bag the
+**damage pipeline** reads — and a rule that moves a *stat* is not a damage modifier. Both authored
+fields have one, and neither did anything: Asterios's *"MOV +4"* changed nobody's MOV, and EMIYA's
+*"Base Attack (STR) is increased by 50"* changed nobody's Base Attack.
+
+`StatDelta`, `MovDelta` and `RangeDelta` are now folded straight onto the unit snapshot;
+everything else still goes into `modifiers`. The fold happens on the snapshot rather than in
+`prepareDerivedData` because the annotation needs the whole board and derived data is per-document.
+
+`minimum` floors the **result**, not the deduction — *"MOV reduced by 2, minimum 2"* — which is
+the opposite of Mad Enhancement's Master drain and worth not confusing.
+
+### The owner is its own relation
+
+`relationTo` answered `ally` or `enemy` and nothing else, so the owner was folded into `ally` and
+a rule scoped `relations: [self]` matched **nobody**. That is every owner-only interior clause in
+the reference set: Asterios's own MOV bonus inside his Labyrinth, and EMIYA's Base Attack inside
+his Reality Marble. It now returns `self` for the field's owner, as every other relation
+computation in the system does.
+
+### Interior *events*
+
+Interior rules are standing contributions. EMIYA's *Unlimited Blade Works* also has something that
+happens **at a boundary**: *"at the start of every Turn, all enemy Servants within perform an
+Evade roll. If failed, that Unit receives (25 x 1d4) STR damage; this damage is not affected by
+any damage modifying effects on EMIYA."*
+
+That belongs to the **area**, not to its caster — a Servant dragged inside is subject to it, and
+EMIYA's own event handlers do not follow anybody around. So it is a seventh field property rather
+than an `OnEvent` on the ability:
+
+```yaml
+interiorEvents:
+  - event: turnStart
+    relations: [enemy]
+    kinds: [servant]
+    check: evade
+    onFail:
+      - { key: Damage, roll: { formula: "1d4", factor: 25 }, component: str, bypassModifiers: true }
+```
+
+`bypassModifiers` is the same flag periodic effect damage carries, and the reason the toll is a
+bare damage intent rather than a Combat Process.
+
 The recurring **"normal Human"** tier is worth noting: three fields treat them as an instant
 kill. `normalHuman` is therefore a real unit classification, distinct from the `Human` attribute
 — Masters have `Human` but are *not* normal Humans. **DECISION.** `normalHuman` is a derived
@@ -461,6 +507,38 @@ whose source no longer exists, logging each drop.
 
 ---
 
+## 43.11a Creating one
+
+Everything in this chapter had a reader and **no writer**. `panelsOf`, `membershipVerdict`,
+`escapeAttempt`, `isolationBlocks`, `interiorModifiers`, `annotateFields`, the `NPFieldBehavior`
+data model, `boundedFieldsOf` on the board projection and the isolation filter inside the
+targeting resolver all shipped, tested, wired to each other — and `board.fields` was only ever
+populated from Regions that nothing created. Asterios has carried six authored axes since he was
+written and has never trapped anybody.
+
+A field is a Foundry **Region** carrying an `npField` behaviour, for the reasons Ch. 42 gives for
+terrain: membership is maintained natively, `tokenEnter`/`tokenExit` fire natively, and the shape
+survives a reload without the engine having to remember anything. `engine/fields.mjs` is the write
+half: `createField`, `endField`, `expireFields` and `runFieldEvents`.
+
+Four things about it are decisions rather than mechanics:
+
+- **The anchor is stamped at cast time**, even for a `followsUnit` geometry, so a field whose
+  anchor is later defeated still knows where it was — and a `fixedArea` one cannot silently start
+  following its caster, which is the difference between a Reality Marble and a Labyrinth.
+- **The expiry is absolute**, like every other duration in the system (§7.5). A countdown needs a
+  hook that can fail to fire; an expiry tick cannot. It is enforced at the Turn boundary, along
+  with `ownerDefeat` — a `duration` with nothing enforcing it is decoration, and for a
+  total-isolation Reality Marble that means the match never ends.
+- **Recasting replaces.** Two overlapping copies of one field would each answer the isolation
+  question, and a Unit could be inside one and outside the other.
+- **The behaviour is created as a second call.** Passing it inline in the Region's creation data
+  is accepted without complaint and silently yields a Region with an **empty** `behaviors`
+  collection. A rejected behaviour now deletes its Region and logs, because half a bounded field
+  looks exactly like a working one.
+
+---
+
 ## 43.12 Interaction with existing subsystems
 
 | Subsystem | Interaction |
@@ -488,6 +566,9 @@ whose source no longer exists, logging each drop.
 | D43.7 | `kind: schedule` phases register a cancellable callback on the global turn index; sealed NPs already launched still fire. |
 | D43.8 | State history is a gated, diffed, per-turn ring buffer, recorded only when a history-dependent ability is in play. |
 | D43.9 | Rewind excludes position, facing, budget and contract state; orphaned effect instances are dropped and logged. |
+| D43.10 | A field is a Region with an `npField` behaviour, created by `engine/fields.mjs`; its expiry is absolute and enforced at the Turn boundary, and recasting replaces rather than layering. |
+| D43.11 | Interior rules split by kind: `StatDelta`/`MovDelta`/`RangeDelta` fold onto the unit snapshot, everything else goes to `modifiers`. The owner's relation to its own field is `self`. |
+| D43.12 | `interiorEvents` is a seventh field property, for rules that fire at a time boundary rather than standing — they belong to the area, not to its caster. |
 
 ---
 

@@ -84,3 +84,28 @@ export function afterChange(unit, key, delta) {
 export function resourcePath(key) {
   return `resources.${key}.value`;
 }
+
+/**
+ * The write path for a pool named by content, whichever kind it is.
+ *
+ * Content names a pool by its bare name -- `resource: aria`, `resource: luck`
+ * -- and two different things answer to that. §6.10's pools live under
+ * `system.resources`; Agility and Luck are stats with the same `{value, max}`
+ * shape and live at the top level. EMIYA's Activated Circuits restores Luck and
+ * his Unlimited Blade Works grants Aria, from the same action key.
+ *
+ * The unit decides, because only the unit knows which pools it has. A bare
+ * `resources.luck.value` would write a pool that does not exist, silently --
+ * which is what the `ResourceDelta` action did: it passed the bare name
+ * through, `system.aria` resolved to nothing, and the write was dropped.
+ *
+ * @param {string} key
+ * @param {object} [unit] a snapshot or a document's `system`
+ * @returns {string} a dot path under `system`
+ */
+export function resourcePathFor(key, unit = null) {
+  // Already a path: content that spells it out in a phase (`resources.prs.value`).
+  if (String(key).includes(".")) return key;
+  if (unit?.resources && key in unit.resources) return resourcePath(key);
+  return `${key}.value`;
+}

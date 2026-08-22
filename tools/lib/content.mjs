@@ -357,7 +357,7 @@ function validateDocument(doc, path, library, problems, warnings) {
   }
 
   // Cross-references
-  for (const field of ["blocks", "blockedBy"]) {
+  for (const field of ["blocks", "blockedBy", "replaces"]) {
     for (const id of doc[field] ?? []) {
       if (!library.has(id)) problems.push(`${path}: ${field} references unknown id "${id}"`);
     }
@@ -629,7 +629,19 @@ function itemSystem(doc) {
     exclusionSet: doc.exclusionSet ?? null,
     grantedBy: doc.grantedBy ?? null,
     sameTurnExclusive: doc.sameTurnExclusive ?? [],
+    // Round-scale exclusion, and the whole-match use budget.
+    sameRoundExclusive: doc.sameRoundExclusive ?? [],
+    timesUsed: 0,
+    maxUses: doc.maxUses ?? null,
+    lastUsedTick: null,
+    // The barrier spec, and its pool. `shieldHealth` starts full.
+    shield: doc.shield ?? null,
+    shieldHealth: doc.shield?.health ?? null,
     negatedBy: doc.negatedBy ?? [],
+    // Switched off by a STATE rather than by an effect -- "the effect of
+    // 'Kanshou & Bakuya' is negated while 'Overedge' is on Cooldown". A
+    // `negatedBy` cannot say it: a cooldown is not something anybody carries.
+    negatedWhile: doc.negatedWhile ?? null,
     nonStacking: doc.nonStacking ?? null,
     damage: doc.damage ?? null,
     element: doc.element ?? null,
@@ -665,10 +677,15 @@ function itemSystem(doc) {
     defaultMagnitude: doc.defaultMagnitude ?? null,
     // Charges a count-stacked effect starts with.
     uses: doc.uses ?? null,
+    // What a barrier effect absorbs, and where its pool lives (EMIYA's Rho
+    // Aias). Null on every other effect.
+    absorbs: doc.absorbs ?? null,
     defaultDuration: doc.defaultDuration ?? null,
     unremovable: Boolean(doc.unremovable),
     blocks: doc.blocks ?? [],
     blockedBy: doc.blockedBy ?? [],
+    // Mutual exclusion that RESOLVES rather than refuses.
+    replaces: doc.replaces ?? [],
   };
 }
 

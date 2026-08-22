@@ -29,7 +29,7 @@ import { Rank } from "../domain/rank.mjs";
  * @param {object} args
  * @param {object} args.attacker the attacker's snapshot
  * @param {object} args.defender the defender's snapshot
- * @param {object} [args.attack] `{kind, isAoE}`
+ * @param {object} [args.attack] `{kind, isAoE, component, range, aim, pierce}`
  * @returns {Set<string>}
  */
 export function rollOptionsFor({ attacker, defender, attack = {} }) {
@@ -50,9 +50,40 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
   // not be written at all.
   if (attack.component) options.add(`attack:component:${attack.component}`);
   if (attack.ignoresMagicResistance) options.add("attack:ignoresMagicResistance");
+  if (attack.aim) options.add("attack:aim");
+  if (attack.pierce) options.add("attack:pierce");
+  // A property only Rho Aias asks about -- "if the NP is a 'thrown weapon',
+  // Rho Aias' Health cannot drop below 1" -- and therefore the only clause in
+  // the game that can stop an arbitrarily large Noble Phantasm outright.
+  if (attack.thrownWeapon) options.add("attack:thrownWeapon");
+
+  // HOW FAR. EMIYA is written almost entirely in terms of it -- his Normal
+  // Attack changes component at 3, *Clairvoyance* and *Hawkeye* turn on at 3,
+  // *Kanshou & Bakuya* at 2 or lower -- and nothing emitted a distance, so
+  // none of those clauses could be written at all.
+  //
+  // Emitted as a LADDER in both directions, for the same reason the rank
+  // comparison is: a predicate can only test set membership, so "3 or higher"
+  // has to already be a member.
+  if (typeof attack.range === "number" && Number.isFinite(attack.range)) {
+    const range = Math.max(0, Math.round(attack.range));
+    options.add(`attack:range:${range}`);
+    for (let r = 1; r <= Math.min(range, MAX_RANGE_OPTION); r++) options.add(`attack:range:gte:${r}`);
+    for (let r = range; r <= MAX_RANGE_OPTION; r++) options.add(`attack:range:lte:${r}`);
+  }
 
   return options;
 }
+
+/**
+ * How far the range ladder is emitted.
+ *
+ * A cap rather than a board dimension, because `lte` has to be emitted upwards
+ * and the board's own width would put four hundred strings in a set that is
+ * rebuilt for every damage event. The longest range any sheet in the reference
+ * set names is 3.
+ */
+export const MAX_RANGE_OPTION = 12;
 
 /**
  * Everything one side contributes, under its own prefix.
@@ -71,6 +102,12 @@ function add(options, side, unit) {
 
   // Region, so a clause can name where a unit is from.
   for (const r of unit.region ?? []) options.add(`${side}:region:${r}`);
+
+  // Which bounded fields the unit is standing in. `annotateFields` has written
+  // `u.fields` since Ch. 43 was implemented and nothing ever read it back into
+  // a predicate, so "while Unlimited Blade Works is Active" -- which both of
+  // EMIYA's Circuits turn on -- had no way to be written.
+  for (const f of unit.fields ?? []) options.add(`${side}:inField:${f}`);
 
   // Standing in its OWN Home Base. Medea's Territory Creation predicates on it
   // from both directions -- her own damage dealt, and an ally's damage taken --
@@ -132,3 +169,48 @@ function gradesClearedBy(raw) {
 
 /** The grades a comparison may name, weakest first. */
 const GRADE_LADDER = Object.freeze(["E", "D", "C", "B", "A", "EX"]);
+
+/**
+ * Every shape `rollOptionsFor` can produce.
+ *
+ * A predicate is a set-membership test, so an option nobody emits is a clause
+ * that is false for ever — it authors cleanly, compiles cleanly, loads cleanly
+ * and never fires. Two shipped effects were written against
+ * `self:attack:normal`, which is not a string this file has ever produced;
+ * `N.Atk Up` therefore raised no Normal Attack's damage and `Bleed Atk` was
+ * inert. Held against the content by `test/unit/options.test.mjs`.
+ *
+ * Patterns rather than a literal set, because most of the vocabulary is
+ * open-ended: any effect id, any region, any skill slug.
+ */
+const EMITTABLE = Object.freeze([
+  /^(self|target):type:[A-Za-z][\w-]*$/,
+  /^(self|target):attribute:[A-Za-z][\w-]*$/,
+  /^(self|target):effect:[A-Za-z][\w-]*$/,
+  /^(self|target):region:[A-Za-z][\w-]*$/,
+  /^(self|target):inHomeBase$/,
+  /^(self|target):inField:[A-Za-z][\w-]*$/,
+  /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,
+  /^(self|target):skill:[A-Za-z][\w-]*$/,
+  /^(self|target):skillRank:[A-Za-z][\w-]*:gte:(E|D|C|B|A|EX)$/,
+  /^(self|target):skillActive:[A-Za-z][\w-]*$/,
+  /^attack:kind:[A-Za-z][\w-]*$/,
+  /^attack:isAoE$/,
+  /^attack:component:(str|mag)$/,
+  /^attack:ignoresMagicResistance$/,
+  /^attack:aim$/,
+  /^attack:pierce$/,
+  /^attack:thrownWeapon$/,
+  /^attack:range:\d+$/,
+  /^attack:range:(gte|lte):\d+$/,
+]);
+
+/**
+ * Could this option ever be in the set?
+ *
+ * @param {string} option a bare option, with any `not:` prefix already stripped
+ * @returns {boolean}
+ */
+export function isEmittableOption(option) {
+  return EMITTABLE.some((pattern) => pattern.test(option));
+}

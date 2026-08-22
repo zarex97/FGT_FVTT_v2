@@ -80,9 +80,9 @@ same turn, each *effect* fires **once**, keyed by `(effectId, globalTurn)`.
 
 | Event | Fires | Payload |
 |---|---|---|
-| `fgt.attackDeclared` | An attack is declared, before any reaction | `{attackerId, targetIds, abilityId, isNP, isAoE}` |
+| `fgt.attackDeclared` | An attack is declared, before any reaction | `{attackerId, targetIds, abilityId, isNP, isAoE}` — **fired**, once per Combat Process, on the *attacker*, with the defender and the distance in the option set. It is the moment a swing happens rather than the moment it lands, which is what EMIYA's `Kanshou & Bakuya` asks about: a Servant who projected the swords and then missed still projected them. |
 | `fgt.reactionChosen` | A defender picks Evade/Block/nothing | `{defenderId, reaction}` |
-| `fgt.evadeSucceeded` | An evade roll (or Dodge) succeeded | `{defenderId, attackerId, roll}` |
+| `fgt.evadeSucceeded` | An evade roll (or Dodge) succeeded | `{defenderId, attackerId, roll}` — **fired**, on the evader, for an automatic Dodge as well as a rolled evasion (the sheets do not distinguish). Three abilities in the reference set pay out for it — EMIYA's `Eye of the Mind (True)` at both Ranks and Heracles's `Eye of the Mind (False)` — and none of them could. |
 | `fgt.evadeFailed` | An evade roll failed | `{defenderId, attackerId, roll}` |
 | `fgt.luckCheckResolved` | Any Luck Check resolved | `{unitId, subtype, success, roll}` |
 | `fgt.damageStepStart` | Start of Step 3 | `{attackerId, defenderIds, ctx}` |
@@ -95,7 +95,7 @@ same turn, each *effect* fires **once**, keyed by `(effectId, globalTurn)`.
 | `fgt.facingChanged` | Step 5 | `{unitId, from, to, reason}` |
 | `fgt.counterOffered` | A counter opportunity was presented | `{defenderId, attackerId}` |
 | `fgt.combatProcessEnd` | A Combat Process finished | `{phaseId, processIndex, outcome}` |
-| `fgt.combatPhaseEnd` | A Combat Phase finished | `{phaseId, processCount}` |
+| `fgt.combatPhaseEnd` | A Combat Phase finished | `{phaseId, processCount}` — **fired**, once per exchange, on the attacker and every defender in the fan-out. Per *Phase*, not per Process: an area attack is one exchange containing several Processes, and paying per Process would hand EMIYA a full six-charge Aria pool for one Noble Phantasm. Completeness is read back off the sibling chat messages, so it survives a reconnect and a counter joining the group late. |
 
 `fgt.damageStepEnd` is the highest-traffic trigger in the game. Its subscribers in the reference
 set: `Def Dwn (A)`, `Def Dwn (C)`, `Queen's Poison`, Castor's *Twin God's Divine Core*,
@@ -218,6 +218,31 @@ Explicitly stated, because effects that trigger effects depend on them.
 Point 6 is worth emphasising: it means two handlers on the same event both see the *pre-event*
 state, which makes their order irrelevant for reads and is the reason the system is
 deterministic across clients despite subscription order varying.
+
+---
+
+## E.9a `abilityUsed`
+
+| Event | When | Payload |
+|---|---|---|
+| `fgt.abilityUsed` | A Unit finished using a Skill, Spell or Noble Phantasm | `{unitId, abilityId, contentId, category, isNP}` |
+
+Fired on **both** use paths, after the phases have resolved — "uses" is the sheet's word, and a
+Skill refused mid-resolution has not been used. It is the only event with a **subject**, so a
+handler may filter on it:
+
+```yaml
+- key: OnEvent
+  event: abilityUsed
+  ofCategory: [thaumaturgy, projection]
+  then:
+    - { key: ExtendEffect, effect: atkUpTrace, ticks: "⅓◈" }
+```
+
+A category rather than a list of ids, for the reason Medea's *High-Speed Divine Words* names one:
+a list goes stale the moment an eighth Spell is written. Both handlers in the reference set are
+EMIYA's — *Magecraft* widens his Range on any Thaumaturgy Spell, and *Atk Up (Trace)* lengthens
+itself on a Thaumaturgy **or** Projection.
 
 ---
 
