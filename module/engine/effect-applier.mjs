@@ -475,6 +475,10 @@ function chanceContribution(unit, def, direction, options = null) {
     if ((c.direction ?? "incoming") !== direction) continue;
     if (c.effectId && c.effectId !== def.id) continue;
     if (c.valence && c.valence !== def.valence) continue;
+    // Appendix A's classification, which is what "Mental Debuffs" names.
+    // Heracles's Bravery is the only content that uses it, and naming the
+    // mental debuffs one by one would go stale the moment another was written.
+    if (c.volatility && c.volatility !== def.volatility) continue;
 
     // Named severity: those tiers only. Unnamed: `normal` only. A LIST is
     // accepted because Magic Resistance covers three of the four at one

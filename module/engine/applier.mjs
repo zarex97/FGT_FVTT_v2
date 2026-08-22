@@ -252,6 +252,9 @@ async function writeGroup(group, io) {
     case "markTurn":
       await io.markTurn(unitId, Object.assign({}, ...intents.map((i) => i.patch)));
       break;
+    case "recordAttack":
+      for (const i of intents) await io.recordAttack(unitId, i.abilityId, i.identity);
+      break;
     case "shieldDelta":
       for (const i of intents) await io.adjustShield(unitId, i.abilityId, i.delta);
       break;

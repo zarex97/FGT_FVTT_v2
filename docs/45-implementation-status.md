@@ -24,7 +24,7 @@ where something is a stub the exact line is named.
 The **pure rules core is complete**: the damage pipeline, targeting resolution, checks and the
 roll log, movement legality, the effect application pipeline, the turn budget, ability costs and
 all twelve requirement kinds, items, copied abilities, setup rolls and the rank/tick domain are
-all implemented and carry 1723 tests, and 135 content files.
+all implemented and carry 1770 tests, and 142 content files.
 
 The last pure-rules gaps closed together: `rules/roll-log.mjs` (§14.8), `rules/setup-rolls.mjs`
 (§14.9, §37.6), `rules/items.mjs` (§15.4's full kind list and §15.8) and `rules/copy.mjs`
@@ -70,12 +70,13 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    collected, and `fireEvent` reads a field (`handler.intents`) that the executor never writes —
    so Battle Continuation's revive, the single most-cited event in the reference set, is inert.
 
-   One clause of that skill is still open and is **named rather than silently dropped**:
-   `requiresHealthAbove: 0.5` — *"requires its Health to have exceeded half its maximum at least
-   once since the last activation"* — needs a health-peak history that nothing records. Adding
-   the gate against a field no code writes would recreate the exact defect this step repaired,
-   so the gate waits for the history. The cooldown gate, which is the rule that actually stops a
-   revive loop, is implemented and tested.
+   ~~One clause of that skill is still open~~ — **closed while finishing Heracles.**
+   `requiresHealthRestoredSince: 0.5` now has the history it was waiting for:
+   `system.healthWatermarks` stamps the tick at which Health last crossed a fraction somebody
+   asks about, on the way up, and only for the fractions that actor's own abilities name. The
+   original note read: *"needs a health-peak history that nothing records. Adding the gate
+   against a field no code writes would recreate the exact defect this step repaired, so the gate
+   waits for the history."* EMIYA's Rho Aias carries the identical clause and shares it.
 4. ~~**Auras apply to the wrong unit.**~~ — **done (A5)**, see the Unreleased changelog.
    `rules/auras.mjs` expands each aura onto the units in range that match its relation list, and
    `snapshotBoard` runs the pass once every unit exists. The original finding read: `Aura` writes
@@ -159,11 +160,12 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation — **with the dialog that shows it**, reached from the Actors sidebar and the Servant compendium, and refusing a bare compendium drop that would produce a Servant with the template's numbers. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
-| 38 | Testing strategy | **Mostly** | 1723 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1770 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4) — **and now a writer** (`engine/fields.mjs`): a field is a Region with an `npField` behaviour, created by a `createField` phase, expiring on an absolute tick at the Turn boundary, with `interiorEvents` for rules that fire at a boundary rather than standing. Everything in the chapter had a reader and none of it had ever run. **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
 | — | Content | **7 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea, Medea and **Scáthach** — the first Lancer, and the Servant who needed the most engine that did not exist. **All eleven abilities** resolve end to end in a live world, verified individually: *Primordial Rune* (a 2d8 table chosen by relation, duplicates applying twice, and a wildcard row that asks), the three *Primordial Rune Spells* (a PRS Token waiving the cooldown, and the other two gated while the used one runs), *Wisdom of Dún Scáith* (which **had never been able to copy anything**), *Clairvoyance*, *God Slayer* with *Alpi*'s two branches, *Gáe Bolg Alternative*'s Instakill-or-damage fork, and *Gate of Skye*'s per-target Luck Check with `gateOfSkyeSaveModifier`. She is also the first **Resource** pool (§6.10) and the first content to fire §E's `damageStepEnd`. 36 effects of ~152, including Appendix A's **terminal tier**. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
+| — | Content (Heracles) | — | **Heracles is finished.** He shipped with four of eight abilities; the four that were missing were the four Ch. 31 was written about. **Revival is now a priority-ordered query** (`rules/revival.mjs`) rather than "whichever handler heals first" — with one source those are indistinguishable, and with his four the old behaviour burns a God Hand charge while `Undying` sits unused. `RevivalSource` is the element, and Battle Continuation's second condition — *"Health must have been restored back to above half its maximum at least once since the last activation"* — is **enforced for the first time**, against the `healthWatermarks` history §45.1 named as missing rather than faking. God Hand's cascade and its ledger of attack identities both work; measured live. |
 | — | Content (EMIYA) | — | **EMIYA**, the first Archer, and the Servant whose sheet is written almost entirely in terms of **distance** — which nothing emitted. All **seventeen** abilities resolve end to end in a live world, verified individually. `attack:range:gte:N` / `lte:N` are new roll options and half his kit turns on them; `normalAttack.mode: rangeBanded` had been a declared choice since the actor schema was written with nothing implementing it, so his Normal Attack was plain STR at every distance (measured: 40 in melee, 72 at Range 3, and 80 versus 54 against a Rank A Magic Resistance depending on whether the exemption applies). He is the first content to need a **whole-match** budget rather than a cooldown (`timesUsed`/`maxUses`), the first **barrier** with its own Health pool (`Rho Aias`: one 1400 shared across four bearers, overflow passing through, 100 off its owner per completed 200), the first **round-scale** exclusion (`Caladbolg II` / `Hrunting`), the first `createField` (Unlimited Blade Works trapped eight Units and tolled three of them at the Turn boundary), and the second **Resource** pool. 50 effects of ~152. 6 class skills, including **Independent Action**, whose contract rule had shipped in `rules/contract.mjs` with no content to attach to. |
 | — | Content (Medea) | — | **Medea**, the first Caster, and the densest sheet at thirteen abilities. **All thirteen** resolve end to end in a live world -- verified individually, including Dragon Tooth Warriors (two nested rolls, 5×5 placement, count-scaled cooldown), Rule Breaker (cuts the Contract, strips the Master's Command Spells, grants three namespaced ones), Rain of Light (a 3×3 AoE that proved the targeting system), Atlas (base 100 reduced to 75 by `target MAG B+ -25`), and Argos and Trofa offered **at the reaction rung** because "used when Attacked" cannot be reached from a sheet button. 21 effects of ~152. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
 

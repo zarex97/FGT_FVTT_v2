@@ -44,7 +44,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Group 4 — targeting contributors
   "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion",
   // Group 5 — event handlers
-  "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse",
+  "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta
   "Suppress", "Immunity", "ImmunityDowngrade", "ApplicationChance", "ReplaceAbility", "Disguise",
   "EffectVisibility", "SustainabilityGain", "RelationshipProxy",
@@ -634,6 +634,8 @@ function itemSystem(doc) {
     timesUsed: 0,
     maxUses: doc.maxUses ?? null,
     lastUsedTick: null,
+    recordedAttacks: [],
+    recordsAttacks: Boolean(doc.recordsAttacks),
     // The barrier spec, and its pool. `shieldHealth` starts full.
     shield: doc.shield ?? null,
     shieldHealth: doc.shield?.health ?? null,

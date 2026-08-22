@@ -26,6 +26,7 @@ import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
 import { absorb, refreshShield } from "./shield.mjs";
+import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
@@ -1096,15 +1097,58 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   const ctx = {
     tick: combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound") || 3,
+    // How much damage was left over once the Health ran out. God Hand's first
+    // passive spends charges against it -- "if the damage of the Attack that
+    // defeated Heracles exceeds his current Health, the excess damage is
+    // reduced from his newly restored Health, and so on" -- so a very large
+    // Noble Phantasm can burn several charges in one resolution.
+    overkill: Math.max(0, -remaining),
     rolls: {},
   };
   for (const spec of pendingRolls(defender, "unitDefeated")) {
     ctx.rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
   }
 
+  // "Whenever an Attack reduces Heracles' Health to 0 FOR THE FIRST TIME,
+  // record that Attack under this Skill." Recorded at the moment the Health
+  // runs out and before the revival query -- a recorded Attack is one he
+  // survived, and he survives this one or he does not.
+  const recording = recordIntents(defender, state);
+
   // Rebuilt in the SNAPSHOT's shape -- a flat number -- because that is what
   // `resolveDefeat` is given everywhere else and what `currentHealth` reads.
-  return resolveDefeat({ ...defender, health: remaining }, ctx);
+  return [...recording, ...resolveDefeat({ ...defender, health: remaining }, ctx)];
+}
+
+/**
+ * Record the attack that just emptied this unit's Health, if anything asks.
+ *
+ * God Hand is the only ability in the reference set that does, and what counts
+ * as "that Attack" is a judgement §31.3 makes explicitly: the **ability**, with
+ * a per-attacker pseudo-id for Normal Attacks. Recording the attacking *unit*
+ * would mean Karna could never kill him again by any means; recording the
+ * instance is vacuous, because an instance never recurs.
+ *
+ * @param {object} defender
+ * @param {object} state
+ * @returns {object[]}
+ */
+function recordIntents(defender, state) {
+  if (!state.attackerId) return [];
+
+  const identity = attackIdentity(state.attack ?? {}, state.attackerId);
+  const doc = game.actors.get(defender.id);
+  /** @type {object[]} */
+  const out = [];
+
+  for (const item of doc?.items ?? []) {
+    if (!item.system?.recordsAttacks) continue;
+    // "For the FIRST time" -- a second kill by the same ability records nothing
+    // new, which a Set makes free.
+    if ([...(item.system.recordedAttacks ?? [])].includes(identity)) continue;
+    out.push(I.recordAttack(defender.id, item.id, identity));
+  }
+  return out;
 }
 
 /**
@@ -1225,6 +1269,20 @@ async function applyDamage(state, message) {
     result.breakdown = [
       ...(result.breakdown ?? []),
       { stage: "barrier", label: `${barrier.source} absorbed ${barrier.absorbed}`, to: barrier.through },
+    ];
+  }
+
+  // "These recorded Attacks can no longer defeat Heracles -- whenever a recorded
+  // Attack would reduce his Health to 0, his Health will remain at 1 instead."
+  // A floor rather than a negation: the damage still lands, it just cannot be
+  // the last of it.
+  const recorded = recordedAttack(defender, attackIdentity(facts, state.attackerId));
+  if (recorded.floored && result.total >= currentHealth(defender)) {
+    const before = result.total;
+    result.total = Math.max(0, currentHealth(defender) - 1);
+    result.breakdown = [
+      ...(result.breakdown ?? []),
+      { stage: "recorded", label: `${recorded.source}: survives at 1`, from: before, to: result.total },
     ];
   }
 

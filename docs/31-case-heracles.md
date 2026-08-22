@@ -79,23 +79,40 @@ async function resolveDefeat(unit, ctx) {
 Priorities: `Undying` 300, generic `Guts` 200, `Battle Continuation` 100, `God Hand` 50.
 Content declares them; the engine never names Heracles.
 
+**As built.** `rules/revival.mjs` is the query and `RevivalSource` is the element that feeds it.
+Three things about the implementation are worth recording:
+
+- **The field is `revivalPriority`, not `priority`.** `priority` on a rule element already means
+  *"reorder me within my ordering band"* (§24.6) and `orderElements` sorts on it — so a
+  `priority: 300` here would have moved the element itself into a band it does not belong to,
+  silently, while also failing the validator's "say why you reordered" check. One field, two
+  meanings, in one vocabulary.
+- **The source names an effect or an ability, never both.** An effect-borne source is spent with
+  `consumeUse` and an ability-borne one by turning its own clock; without the distinction
+  `Undying` revived Heracles and was **never consumed**, which makes a one-use buff permanent.
+  Found live.
+- **The revival heal is ordered after the damage that caused it.** It is emitted in the same
+  batch, and at the ordinary `heal` rank it applied first — so God Hand revived him and the
+  damage then took him straight back to zero: alive at 0 Health, with a charge spent for nothing.
+  Also found live.
+
 ### The two conditions on Battle Continuation
 
 > *"Cooldown: 3◈ Turns, **and** the Unit's Health must have been restored back to above half its
 > maximum value at least once since the last activation."*
 
-The second condition needs a flag that the health system maintains:
+The second condition needs a record the health system maintains, because it is a question about
+**history**: a Servant who has been at full Health all match and never dropped has not been
+*restored* to anything, so no snapshot of the present can answer it.
 
-```yaml
-- key: OnEvent
-  event: healthChanged
-  predicate: [{ gte: ["@self.health.value", "@self.health.max * 0.5"] }]
-  then:
-    - { key: SetFlag, flag: battleContinuationRearmed, value: true }
-```
+`system.healthWatermarks` is that record — the last tick at which Health was at or above a given
+fraction of its maximum, stamped on the way up, and only for the fractions some ability on that
+actor actually asks about. The gate compares it against the source's `lastUsedTick`.
 
-and `available()` checks both the cooldown and the flag, clearing the flag on use. A small
-piece of authored state rather than engine support.
+It shipped as `requiresHealthAbove: 0.5` on a field no code wrote, which §45.1 named rather than
+silently dropping — *"adding the gate against a field no code writes would recreate the exact
+defect this step repaired"*. It is now `requiresHealthRestoredSince`, and it is enforced. EMIYA's
+*Rho Aias* carries the identical clause and shares the mechanism.
 
 ---
 
@@ -184,8 +201,18 @@ passiveRules:
       - { in: ["@ctx.attack.identity", "@self.flags.godHandRecorded"] }
 ```
 
-`RecordAttackIdentity` and the `floorAtOne` negation mode are the only two additions needed, and
-both are general — `floorAtOne` is also how `Endure` works.
+**As built**, neither is a rule element. Both are engine, and for the same reason: *"that
+Attack"* is an identity the damage step computes, and a predicate has no way to name it.
+
+- `recordsAttacks: true` on the ability, read at the moment the Health runs out and **before**
+  the revival query — a recorded Attack is one he survived, and he survives this one or he does
+  not.
+- The floor is applied in the damage flow beside the barrier step, clamping a recorded Attack's
+  total so it leaves 1 Health rather than negating it. Measured live: a 76-damage hit from a
+  recorded attacker into a Heracles at 30 landed as 29.
+
+The identity itself is `attackIdentity`, in `rules/revival.mjs`, so both halves read the same
+function and cannot disagree about what was recorded.
 
 The recorded set is a `SetField` on the ability item, so it persists and is visible on the sheet:
 

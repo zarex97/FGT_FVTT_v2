@@ -36,6 +36,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {string[]} grantedAbilities
  * @property {object[]} autoSucceeds     checks that succeed without rolling
  * @property {object[]} auras            aura contributions, expanded by rules/auras.mjs
+ * @property {object[]} revivals         ways back from zero Health, priority-ordered
  * @property {object[]} applicationChances  shifts to how likely an effect is to land
  * @property {object[]} compulsions       forced targets, expanded by rules/compulsion.mjs
  * @property {object[]} eventHandlers
@@ -49,7 +50,7 @@ import { orderElements } from "./ordering.mjs";
 function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
-    suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [],
+    suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
     attributes: [], magicResistance: null, damageNegation: [], zonBonuses: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], unhandled: [],
@@ -787,6 +788,10 @@ export const EXECUTORS = Object.freeze({
     out.applicationChances.push({
       direction: el.direction ?? "incoming",
       valence: el.valence ?? null,
+      // Appendix A's own classification, so "Mental Debuffs" covers one written
+      // after the clause was. Heracles's Bravery is the only content that needs
+      // it, and a list of ids would go stale.
+      volatility: el.volatility ?? null,
       effectId: el.effect ?? null,
       // Appendix A keeps Instakill/Death/Erase out of ordinary chance modifiers
       // "unless stated". A contribution that names a severity applies only to
@@ -798,6 +803,51 @@ export const EXECUTORS = Object.freeze({
       // this is the deferred one, same convention as `Compulsion`.
       predicate: el.attackPredicate ?? null,
       value: scalar(resolveValue(el, rank, ctx)),
+      source,
+    });
+  },
+
+  /**
+   * A way back from zero Health.
+   *
+   * Declared rather than hardcoded, because Heracles has **four** and his sheet
+   * states the order they resolve in. The defeat handler used to take any
+   * handler that healed, in collection order -- which with one source is
+   * indistinguishable from correct and with four spends whichever happened to
+   * be listed first, burning a God Hand charge while `Undying` sits unused.
+   */
+  RevivalSource(el, { rank, source, ability, out, ctx }) {
+    out.revivals.push({
+      id: el.id ?? ability?.id ?? source,
+      // `revivalPriority`, NOT `priority`. `priority` on a rule element already
+      // means "reorder me within my ordering band" (§24.6) and `orderElements`
+      // sorts on it -- so §31.2's `priority: 300` for Undying would have moved
+      // the element itself into a band it does not belong to, silently, while
+      // also failing the validator's "say why you reordered" check. One field,
+      // two meanings, in one vocabulary.
+      priority: el.revivalPriority ?? 100,
+      // `null` is unlimited. God Hand is "can only be used 11 times", which is
+      // the ability's own whole-match budget rather than a second counter.
+      charges: el.charges ?? null,
+      cascading: el.cascading === true,
+      // A rank TABLE as well as a literal, because Battle Continuation restores
+      // `5d20` at A and `3d20` at C and the same clause has to say both.
+      formula: reviveFormula(el, rank, ctx),
+      // `null` when unstated, NOT 0. `resolveValue` scalarises an absent value
+      // to zero, and `resolveRevival` reads "has a percentOfMax" as "is not
+      // null" -- so a zero would beat the dice formula to the branch and every
+      // roll-based revival would restore nothing.
+      percentOfMax: percentOfMax(el, rank, ctx),
+      // Its own clock, resolved from a table the same way. A ◈ EXPRESSION, not
+      // a turn count -- `spendRevival` hands it to `I.cooldown`, which the
+      // applier resolves against the world's turns per Round.
+      cooldown: reviveCooldown(el, rank, ctx),
+      consumesOnUse: el.consumesOnUse !== false,
+      requiresHealthRestoredSince: el.requiresHealthRestoredSince ?? null,
+      // Exactly one of these. An effect-borne source is spent by consuming a
+      // charge of the effect; an ability-borne one by turning its own clock.
+      defId: ability?.fromEffect ? (ability.defId ?? ability.id) : null,
+      abilityId: ability?.fromEffect ? null : (ability?.id ?? null),
       source,
     });
   },
@@ -858,6 +908,56 @@ export const EXECUTORS = Object.freeze({
     out.eventHandlers.push({ event: el.event ?? "manual", script: el.script, source });
   },
 });
+
+/**
+ * What one charge of a revival restores, as a dice formula.
+ *
+ * @param {object} el
+ * @param {Rank|null} rank
+ * @param {object} ctx
+ * @returns {string|null}
+ */
+function reviveFormula(el, rank, ctx) {
+  const literal = el.restore?.formula ?? el.formula ?? null;
+  if (literal) return literal;
+
+  const table = el.restore?.table ?? el.table ?? null;
+  if (!table) return null;
+  const value = resolveValue({ table }, rank, ctx);
+  return typeof value === "string" ? value : null;
+}
+
+/**
+ * The fraction of maximum Health one charge restores, or `null`.
+ *
+ * @param {object} el
+ * @param {Rank|null} rank
+ * @param {object} ctx
+ * @returns {number|null}
+ */
+function percentOfMax(el, rank, ctx) {
+  const raw = el.restore?.percentOfMax ?? el.percentOfMax ?? null;
+  if (raw === null || raw === undefined) return null;
+  return scalar(resolveValue({ value: raw }, rank, ctx));
+}
+
+/**
+ * How long a revival source locks itself out for.
+ *
+ * @param {object} el
+ * @param {Rank|null} rank
+ * @param {object} ctx
+ * @returns {string|null} a ◈ expression
+ */
+function reviveCooldown(el, rank, ctx) {
+  const literal = el.cooldown ?? el.restore?.cooldown ?? null;
+  if (literal) return literal;
+
+  const table = el.restore?.cooldownTable ?? el.cooldownTable ?? null;
+  if (!table) return null;
+  const value = resolveValue({ table }, rank, ctx);
+  return typeof value === "string" ? value : null;
+}
 
 /**
  * Every key the executor handles. The content validator checks against this, so

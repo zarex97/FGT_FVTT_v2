@@ -1,0 +1,50 @@
+# Heracles, char_orig_sheets/Copia de Heracles.md · design: docs/31-case-heracles.md §31.3
+#
+# The hard one, and the reason Ch. 31 exists. Two passives, neither of which
+# resembles anything else in the game: a revival that can spend several charges
+# against one attack, and a ledger of attacks that have already killed him once.
+schema: 1
+id: heracles-god-hand
+name: "God Hand: Twelve Labors"
+rank: B
+isNP: true
+isPassive: true
+npTags: [antiUnitSelf]
+kind: noblePhantasm
+slug: godHand
+copyable: { allowed: false, reason: unique }
+# "Can only be used 11 times." The whole-match budget, in the same counter every
+# other permanent limit uses -- one number, one place to get it wrong.
+maxUses: 11
+# "Whenever an Attack reduces Heracles' Health to 0 for the first time, record
+# that Attack under this Skill."
+recordsAttacks: true
+description: |
+  (Passive 1) Whenever Heracles' Health is reduced to 0, roll ten twenty-sided dice, and restore
+  his Health by the number rolled. If the damage of the Attack that defeated Heracles exceeds his
+  current Health, the excess damage is reduced from his newly restored Health, and so on. Can only
+  be used 11 times.
+
+  (Passive 2) Whenever an Attack reduces Heracles' Health to 0 for the first time, record that
+  Attack under this Skill. These recorded Attacks can no longer defeat Heracles- whenever a
+  recorded Attack would reduce his Health to 0, his Health will remain at 1 instead.
+passiveRules:
+  # Priority 50 -- the bottom of the chain his sheet states: "Undying > normal
+  # Guts > Battle Continuation > God Hand". Content declares the number and the
+  # engine never names a Servant, which is what lets a fifth mechanism be added
+  # by authoring it.
+  #
+  # `cascading` is the "and so on": a 4,000-damage hit against a Heracles at
+  # 1,500 leaves 2,500 of overkill, which is two or three charges at an average
+  # of 105 per roll. So one Noble Phantasm can eat a quarter of God Hand.
+  - key: RevivalSource
+    id: godHand
+    revivalPriority: 50
+    charges: 11
+    cascading: true
+    restore: { formula: "10d20" }
+# Passive 2 has no rule element. What records is `recordsAttacks` above, read at
+# the moment the Health runs out; what enforces the floor is the damage flow,
+# which clamps a recorded Attack to leave 1 Health rather than negating it. Both
+# are engine, because "that Attack" is an identity the damage step computes and
+# a predicate has no way to name.

@@ -1,0 +1,21 @@
+# Appendix A §A.6
+#
+# The generic revival buff, priority 200 -- between `Undying` and a passive
+# revival skill, which is the general rule Heracles's sheet specialises:
+# "Special Guts/Other revival buffs > Guts > Passive revival effects".
+schema: 1
+id: guts
+name: "Guts"
+description: "Revive on defeat with X Health. Consumed on use."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+uses: 1
+rules:
+  - key: RevivalSource
+    id: guts
+    revivalPriority: 200
+    charges: 1
+    restore: { percentOfMax: "@magnitude" }

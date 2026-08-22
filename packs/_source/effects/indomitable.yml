@@ -1,0 +1,22 @@
+# Heracles's Indomitable, char_orig_sheets/Copia de Heracles.md
+#
+# The payout for having been revived **by any effect**, which is why it listens
+# for the event rather than riding on `undying`: the sheet says "revived through
+# any effect", and Heracles has four of them.
+schema: 1
+id: indomitable
+name: "Indomitable"
+description: "Whenever this Unit is defeated and revived through any effect, Atk Up is applied to it."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: unitRevived
+    automatic: true
+    then:
+      - key: ApplyEffect
+        effect: { id: atkUp, magnitude: 30, npMagnitude: 20 }
+        duration: "1◈+⅔◈"

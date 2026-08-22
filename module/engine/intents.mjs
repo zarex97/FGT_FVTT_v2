@@ -24,7 +24,7 @@ export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
-  "setMode", "recordUse", "extendEffect", "shieldDelta",
+  "setMode", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
 ]);
 
 /**
@@ -62,6 +62,7 @@ const ORDER = Object.freeze({
   // Before the damage it is deducting from: the pool has to be spent in the
   // same batch that applies what got through it.
   shieldDelta: 2,
+  recordAttack: 2,
   // Bookkeeping, and BEFORE anything that reads the mode back: Mad
   // Enhancement's forced deactivation has to land before the next pass
   // collects its active rules.
@@ -86,8 +87,14 @@ const ORDER = Object.freeze({
 export const damage = (unitId, amount, breakdown = null, meta = {}) =>
   ({ t: "damage", unitId, amount, breakdown, ...meta });
 
-export const heal = (unitId, amount, source) =>
-  ({ t: "heal", unitId, amount, source });
+/**
+ * Restore Health.
+ *
+ * `revival` marks the heal that brings a Unit back from zero, which has to be
+ * applied **after** the damage that emptied it — see {@link order}.
+ */
+export const heal = (unitId, amount, source, revival = false) =>
+  ({ t: "heal", unitId, amount, source, ...(revival ? { revival: true } : {}) });
 
 /**
  * A change to a stat's current value.
@@ -199,6 +206,18 @@ export const recordUse = (unitId, abilityId, contentId = null) =>
 export const shieldDelta = (unitId, abilityId, delta) =>
   ({ t: "shieldDelta", unitId, abilityId, delta });
 
+/**
+ * Record an attack's identity under an ability that watches for it.
+ *
+ * God Hand's second passive, and the reason §6.10 draws a line between a
+ * Resource and a set: this pool stores **identities**, not a number.
+ *
+ * @param {string} unitId @param {string} abilityId @param {string} identity
+ * @returns {Intent}
+ */
+export const recordAttack = (unitId, abilityId, identity) =>
+  ({ t: "recordAttack", unitId, abilityId, identity });
+
 export const cooldown = (unitId, abilityId, ticks, mode = "reduce") =>
   ({ t: "cooldown", unitId, abilityId, ticks, mode });
 
@@ -264,8 +283,26 @@ export const log = (entry) =>
 export function order(intents) {
   return intents
     .map((intent, index) => ({ intent, index }))
-    .sort((a, b) => (ORDER[a.intent.t] - ORDER[b.intent.t]) || (a.index - b.index))
+    .sort((a, b) => (rankOf(a.intent) - rankOf(b.intent)) || (a.index - b.index))
     .map(({ intent }) => intent);
+}
+
+/**
+ * Where one intent sits in the application order.
+ *
+ * Almost always its type. The exception is a **revival** heal, which has to
+ * land *after* the damage that caused it rather than with the other healing:
+ * it is emitted in the same batch as the damage, and at the ordinary `heal`
+ * rank it applied first and the damage then took the Unit straight back to
+ * zero. Found live — Heracles was revived by God Hand and ended the exchange
+ * at 0 Health, alive, having spent a charge for nothing.
+ *
+ * @param {Intent} intent
+ * @returns {number}
+ */
+function rankOf(intent) {
+  if (intent.t === "heal" && intent.revival) return ORDER.damage + 0.5;
+  return ORDER[intent.t];
 }
 
 /**

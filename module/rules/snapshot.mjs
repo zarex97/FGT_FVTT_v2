@@ -140,6 +140,12 @@ export function snapshotUnit(actor, {
     immunities: contributions.immunities,
     grantedAbilities: contributions.grantedAbilities,
     autoSucceeds: contributions.autoSucceeds,
+    // Ways back from zero Health, with the charges each has left folded in --
+    // the contribution declares the budget and the Item holds what is spent.
+    revivals: (contributions.revivals ?? []).map((r) => ({
+      ...r,
+      charges: chargesLeft(actor, r),
+    })),
     checkModifiers: contributions.checkModifiers,
     damageNegation: contributions.damageNegation,
     // Informational. `FGTActor#prepareDerivedData` has ALREADY folded these
@@ -614,6 +620,13 @@ export function contributionsOf(actor) {
     if (!def?.rules?.length) continue;
     abilities.push({
       id: effect.id, name: effect.name, rank: null, active: true,
+      // WHICH definition this is, and that it is an effect at all. A
+      // `RevivalSource` from an effect is spent with `consumeUse` and one from
+      // an ability with `recordUse`, and without this the executor could not
+      // tell them apart -- so `Undying` revived Heracles and was never
+      // consumed, which makes a one-use buff permanent.
+      defId: effect.system?.defId ?? null,
+      fromEffect: true,
       // The INSTANCE's remaining charges. A count-limited effect's rule
       // elements have to know how many uses are left, or the consumer cannot
       // tell a spent Trofa from a fresh one.
@@ -679,6 +692,11 @@ function collectAbilities(actor) {
       // The whole-match budget, so a gate can ask without a document.
       timesUsed: i.system?.timesUsed ?? 0,
       maxUses: i.system?.maxUses ?? null,
+      lastUsedTick: i.system?.lastUsedTick ?? null,
+      // God Hand's ledger. A pool that stores IDENTITIES rather than a number
+      // is a set field, not a §6.10 Resource -- which is the line §6.10 draws
+      // and names this ability while drawing it.
+      recordedAttacks: [...(i.system?.recordedAttacks ?? [])],
       // Both needed by `rules/options.mjs`: `slug` is what a predicate names,
       // and `active` is what separates "has Mad Enhancement" from "has Mad
       // Enhancement switched on" -- two different questions, and content asks
@@ -725,6 +743,24 @@ function negated(item, actor) {
     (other) => (named.has(other.system?.contentId) || named.has(other.id))
       && (other.system?.cooldown?.remaining ?? 0) > 0,
   );
+}
+
+/**
+ * How many charges a revival source has left.
+ *
+ * The rule element declares the budget -- God Hand is *"can only be used 11
+ * times"* -- and the Item holds what has been spent, in the same `timesUsed`
+ * counter every other whole-match limit uses. Two counters for one number would
+ * be two places to get it wrong.
+ *
+ * @param {object} actor
+ * @param {object} revival
+ * @returns {number|null} `null` for an unlimited source
+ */
+function chargesLeft(actor, revival) {
+  if (revival.charges === null || revival.charges === undefined) return null;
+  const item = [...(actor.items ?? [])].find((i) => i.id === revival.abilityId);
+  return Math.max(0, revival.charges - (item?.system?.timesUsed ?? 0));
 }
 
 /**

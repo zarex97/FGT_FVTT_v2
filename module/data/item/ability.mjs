@@ -98,6 +98,19 @@ function abilityCommon() {
     lastUsedTick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
     /**
+     * Attacks this ability has recorded — God Hand's *"these recorded Attacks
+     * can no longer defeat Heracles"*.
+     *
+     * A `SetField`, not a Resource. §6.10 draws exactly this line while
+     * naming this ability: a pool that stores **identities** rather than a
+     * number is a set. It is on the Item so it shows on the sheet, which is
+     * not decoration — it is tactical information the opponent needs too.
+     */
+    recordedAttacks: new fields.SetField(new fields.StringField({ blank: false })),
+    /** Whether this ability records the attacks that empty its bearer's Health. */
+    recordsAttacks: new fields.BooleanField({ initial: false }),
+
+    /**
      * A second Health pool this ability interposes between an attack and its
      * target (EMIYA's Rho Aias, and nothing else in the reference set).
      *
