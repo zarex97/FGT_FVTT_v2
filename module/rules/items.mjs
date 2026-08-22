@@ -100,7 +100,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill",
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
-  "modeInactive", "predicate",
+  "modeInactive", "predicate", "healthAbove", "healthRestoredSince",
 ]);
 
 /**
@@ -154,13 +154,46 @@ export function meetsRequirement(req, ctx) {
       );
 
     case "resourceAtLeast":
-      return (unit?.[req.key]?.value ?? unit?.[req.key] ?? 0) >= (req.amount ?? 0);
+      // §6.10's pools live under `resources`; Agility and Luck are top-level
+      // stats with the same `{value, max}` shape. This looked only at the top
+      // level, so a gate on a real Resource pool -- the mechanism §6.10 exists
+      // for -- was always reading `undefined` and refusing. EMIYA's Unlimited
+      // Blade Works is the first content to gate on one, and it could never be
+      // used however much Aria he held.
+      return resourceHeld(unit, req.key) >= (req.amount ?? 0);
 
     case "healthBelow": {
       // God's Holder: Possession, at under 30%.
       const max = maxHealth(unit);
       if (max <= 0) return false;
       return currentHealth(unit) < max * (req.fraction ?? 1);
+    }
+
+    case "healthAbove": {
+      // The mirror of `healthBelow`, and not the same as "not below": EMIYA's
+      // Eye of the Mind (True) exists at two Ranks and exactly one of them is
+      // offered at a time, so both halves have to be a gate rather than one
+      // being the absence of the other.
+      const max = maxHealth(unit);
+      if (max <= 0) return false;
+      return currentHealth(unit) >= max * (req.fraction ?? 0);
+    }
+
+    case "healthRestoredSince": {
+      // "Health must have been restored back to above half its maximum value
+      // at least once SINCE THE LAST USAGE." A question about history, not
+      // about the current bar: a Servant who never dropped would satisfy
+      // `healthAbove` and has not recovered from anything.
+      //
+      // EMIYA's Rho Aias states it, and so does Battle Continuation's revival
+      // -- whose gate has always been the cooldown alone, so the second half of
+      // that clause has never been enforced either.
+      const last = ctx.ability?.lastUsedTick ?? null;
+      // Never used: vacuously satisfied. The clause is "since the last usage",
+      // and there has not been one.
+      if (last === null) return true;
+      const at = unit?.healthWatermarks?.[String(req.fraction ?? 0.5)] ?? null;
+      return at !== null && at >= last;
     }
 
     case "masterHealthAbove":
@@ -209,6 +242,19 @@ export function meetsRequirement(req, ctx) {
       // `REQUIREMENT_KINDS` is exported for content to be held against.
       return false;
   }
+}
+
+/**
+ * How much of a named pool a unit holds, wherever that pool lives.
+ *
+ * @param {object} unit
+ * @param {string} key
+ * @returns {number}
+ */
+function resourceHeld(unit, key) {
+  const pool = unit?.resources?.[key];
+  if (pool !== undefined) return pool?.value ?? pool ?? 0;
+  return unit?.[key]?.value ?? unit?.[key] ?? 0;
 }
 
 /**

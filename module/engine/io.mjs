@@ -21,6 +21,58 @@ import { snapshotUnit } from "../rules/snapshot.mjs";
  * Build a write adapter bound to the current world.
  * @returns {object}
  */
+/**
+ * The watermark stamps this Health value earns, as an update patch.
+ *
+ * *"EMIYA's Health must have been restored back to above half its maximum value
+ * at least once since the last usage of Rho Aias."* That is a question about
+ * history, and a snapshot of the present cannot answer it -- so the moment
+ * Health crosses a threshold somebody asks about is recorded when it happens.
+ *
+ * Only the fractions this actor's own abilities ask about are stamped, which
+ * keeps it a one- or two-key object rather than a log. Battle Continuation
+ * carries the identical clause and has never had it enforced.
+ *
+ * @param {object} actor
+ * @param {number} value the Health it is about to have
+ * @returns {object} an update patch, empty when nothing crossed
+ */
+function watermarks(actor, value) {
+  const max = actor.system?.health?.max ?? 0;
+  if (max <= 0) return {};
+
+  const tick = game.combat?.system?.globalTurn ?? 0;
+  /** @type {object} */
+  const patch = {};
+  for (const fraction of watchedFractions(actor)) {
+    if (value < max * fraction) continue;
+    patch[`system.healthWatermarks.${fraction}`] = tick;
+  }
+  return patch;
+}
+
+/**
+ * Which Health fractions any ability on this actor asks about.
+ * @param {object} actor
+ * @returns {number[]}
+ */
+function watchedFractions(actor) {
+  /** @type {Set<number>} */
+  const out = new Set();
+  for (const item of actor.items ?? []) {
+    for (const req of item.system?.requirements ?? []) {
+      if (req?.kind === "healthRestoredSince") out.add(req.fraction ?? 0.5);
+    }
+    // Battle Continuation states it on the revival rather than as a
+    // requirement: "the Unit's Health must have been restored back to above
+    // half its maximum value at least once since the last activation".
+    for (const el of item.system?.passiveRules ?? []) {
+      if (el?.revive?.healthRestoredSince) out.add(el.revive.healthRestoredSince);
+    }
+  }
+  return [...out];
+}
+
 export function worldIO() {
   return {
     /**
@@ -37,7 +89,7 @@ export function worldIO() {
       // and the Kagome Spirits. Writing to it would create one.
       if (health?.max === null || health?.value === null) return;
       const next = Math.clamp(health.value + delta, 0, health.max);
-      await actor.update({ "system.health.value": next });
+      await actor.update({ "system.health.value": next, ...watermarks(actor, next) });
     },
 
     /**
@@ -55,7 +107,12 @@ export function worldIO() {
       const next = clamp && typeof max === "number"
         ? Math.clamp(current + delta, 0, max)
         : current + delta;
-      await actor.update({ [path]: next });
+      // Health moves through here too -- Mad Enhancement's Master drain and
+      // every `StatDelta` on `health.value` -- so the watermark has to be
+      // stamped in both writers or a Servant healed by a Skill would look like
+      // one that never recovered.
+      const marks = stat === "health.value" ? watermarks(actor, next) : {};
+      await actor.update({ [path]: next, ...marks });
     },
 
     /**
@@ -167,6 +224,43 @@ export function worldIO() {
       });
     },
 
+    /**
+     * Push a held effect's expiry out by `turns`.
+     *
+     * Durations are stored as ABSOLUTE expiry ticks (§7.5), so extending is an
+     * addition to that number -- which is also why an effect with no expiry
+     * (permanent, or count-limited) is left alone: there is nothing to move,
+     * and stamping one would give it a duration it never had.
+     *
+     * @param {string} unitId @param {string} defId @param {number} turns
+     */
+    async extendEffect(unitId, defId, turns) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+
+      const effect = actor.effects.find((e) => e.system?.defId === defId);
+      const expiry = effect?.system?.expiry ?? null;
+      if (!effect || expiry === null || expiry === undefined) return;
+
+      await effect.update({ "system.expiry": expiry + turns });
+    },
+
+    /**
+     * Move a barrier's own Health pool, clamped to what it was built with.
+     * @param {string} unitId the barrier's owner
+     * @param {string} abilityId
+     * @param {number} delta
+     */
+    async adjustShield(unitId, abilityId, delta) {
+      const actor = resolve(unitId);
+      const item = actor?.items?.get(abilityId);
+      if (!item?.system?.shield) return;
+
+      const max = item.system.shield.health ?? 0;
+      const next = Math.clamp((item.system.shieldHealth ?? max) + delta, 0, max);
+      await item.update({ "system.shieldHealth": next });
+    },
+
     async consumeUse(unitId, defId, count = 1) {
       const actor = resolve(unitId);
       if (!actor) return;
@@ -249,6 +343,53 @@ export function worldIO() {
      * @param {string} unitId
      * @param {object} patch a partial `turnState`
      */
+    /**
+     * Record one use of an ability, at all three scales.
+     *
+     * The turn and round records are stale-by-stamp, so this rewrites them
+     * from scratch when the stamp has moved rather than trusting a boundary
+     * hook to have cleared them -- the same rule `turnStateAt` applies on read.
+     *
+     * @param {string} unitId
+     * @param {string} abilityId
+     * @param {string|null} contentId
+     */
+    async recordUse(unitId, abilityId, contentId = null) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+
+      const item = actor.items.get(abilityId)
+        ?? actor.items.find((i) => i.system?.contentId === (contentId ?? abilityId));
+      // Content ids, because that is what an exclusion list and a
+      // `abilityOffCooldown` requirement name.
+      const name = item?.system?.contentId || contentId || item?.id || abilityId;
+
+      const tick = game.combat?.system?.globalTurn ?? 0;
+      const round = game.combats?.active?.round ?? null;
+      const turn = actor.system?.turnState ?? {};
+      const byRound = actor.system?.roundState ?? {};
+      const turnUsed = turn.tick === tick ? [...(turn.abilitiesUsed ?? [])] : [];
+      const roundUsed = byRound.round === round ? [...(byRound.abilitiesUsed ?? [])] : [];
+
+      await actor.update({
+        "system.turnState.tick": tick,
+        "system.turnState.abilitiesUsed": [...new Set([...turnUsed, name])],
+        "system.roundState.round": round,
+        "system.roundState.abilitiesUsed": [...new Set([...roundUsed, name])],
+      });
+
+      // The whole-match counter lives on the Item, because that is what
+      // `maxUses` is declared on and what a copy of the ability would not
+      // share.
+      if (item) {
+        await item.update({
+          "system.timesUsed": (item.system?.timesUsed ?? 0) + 1,
+          // What `healthRestoredSince` compares "since" against.
+          "system.lastUsedTick": tick,
+        });
+      }
+    },
+
     async markTurn(unitId, patch) {
       const actor = resolve(unitId);
       if (!actor) return;

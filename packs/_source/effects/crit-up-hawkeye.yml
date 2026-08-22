@@ -1,0 +1,22 @@
+# EMIYA's Hawkeye, char_orig_sheets/Copia de EMIYA.md
+#
+# A RANGE-CONDITIONAL Crit Up. Plain `critUp` would raise his crit rate in
+# melee, where the sheet gives him nothing at all -- the whole clause is "at a
+# Range of 3 or higher".
+schema: 1
+id: critUpHawkeye
+name: "Crit Up (Hawkeye)"
+description: "Crit Chance is increased by X% at a Range of 3 or higher."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # The predicate is DEFERRED: the distance does not exist when a buff is
+  # applied, so answering it at collection time answers it wrong and drops the
+  # modifier for ever. `critChance` re-tests it with the attack in scope.
+  - key: CheckModifier
+    check: crit
+    value: "@magnitude"
+    predicate: ["attack:range:gte:3"]

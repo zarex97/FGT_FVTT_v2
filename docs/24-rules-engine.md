@@ -295,14 +295,59 @@ attack:element:fire
 attack:isAoE
 attack:rank:a+
 attack:component:mag
+attack:ignoresMagicResistance
+attack:aim
+attack:pierce
+attack:thrownWeapon
+attack:range:3
+attack:range:gte:3
+attack:range:lte:2
 
 board:phase:night
 board:round:gte:6
 board:region:middleEast
 
+self:inField:emiyaUnlimitedBladeWorks
+target:inField:emiyaUnlimitedBladeWorks
+
 check:kind:evade
 check:vsNP
 ```
+
+### Distance
+
+`attack:range:*` is emitted as a **ladder in both directions**, exactly like the rank comparison
+above and for the same reason: a predicate can only test set membership, so "3 or higher" has to
+already be a member. An attack at Range 3 emits `attack:range:3`, `attack:range:gte:1..3` and
+`attack:range:lte:3..12`.
+
+The cap is 12 rather than the board's width, because `lte` has to be emitted upwards and a full
+board would put several hundred strings into a set that is rebuilt for every damage event. The
+longest range any sheet in the reference set names is 3.
+
+**An unknown distance emits nothing at all.** A snapshot taken off the board has no panel, and
+reading that as range 0 would satisfy every `lte` clause in the game — so the whole family is
+absent rather than wrong. EMIYA is written almost entirely in these terms: his Normal Attack
+changes what it is made of at 3, *Clairvoyance* and *Hawkeye* switch on at 3, *Kanshou & Bakuya*
+applies at 2 or lower and *Hrunting* refuses at 1. None of it could be written before, because
+nothing emitted a distance.
+
+### The vocabulary has to be closed at both ends
+
+An option nobody emits is a clause that is **false for ever** — it authors cleanly, validates,
+compiles, loads, and never fires. Three shipped effects were written that way and none of them
+did anything:
+
+| Effect | Written against | Emitted |
+|---|---|---|
+| `N.Atk Up` | `self:attack:normal` | `attack:kind:normal` |
+| `Bleed Atk` | `self:attack:normal` | `attack:kind:normal` |
+| `NP Seal` | `self:ability:isNP` | nothing — and no reader for the suppression either |
+
+`rules/options.mjs` now exports `isEmittableOption`, a list of patterns covering everything
+`rollOptionsFor` can produce, and `test/unit/options.test.mjs` holds every predicate in the
+shipped content against it. That is the same guard `skill-references.test.mjs` applies to slugs,
+for the same failure.
 
 ### Negation
 
@@ -347,6 +392,40 @@ every executor.
 
 The rule of thumb for an author: **anything about somebody else is free**; the engine works out
 when to ask.
+
+### Every executor has to carry the deferral, or it is not deferred
+
+Classification is only half of it: the executor receives the deferred clause and has to put it
+somewhere a reader will look. Three did not.
+
+- **`OnEvent`** dropped it entirely, so a handler gated on the attack fired **unconditionally**.
+  EMIYA's *Kanshou & Bakuya* is *"used when EMIYA performs a Normal Attack at a Range of 2 or
+  lower"* and it projected the swords at every distance — twice, once per range clause. Found
+  live. A handler now merges the deferred clause into its `targetPredicate`, which `fireEvent`
+  tests against the option set the event carries; the two are an implicit AND, so concatenation
+  is conjunction and the result stays a plain array.
+- **`CheckModifier` and `TableOverride`** did not carry one at all, so a check contribution could
+  not be conditional on the attack. EMIYA's *Hawkeye* is *"Crit Chance is increased by 50% **at a
+  Range of 3 or higher**"* — the distance does not exist when the buff is applied, so answering it
+  at application time answers it wrong. `checkPlan` and `critChance` now take the option set and
+  filter on it.
+
+`TableOverride` gained two more fields in the same pass, both for EMIYA's *Clairvoyance*, which is
+the only clause in the reference set that forces a table on **somebody else's** roll:
+
+```yaml
+- key: TableOverride
+  check: evade
+  forceTable: unfavourable
+  direction: imposed      # applies to the Unit checking AGAINST this one
+  chance: 80              # ...and only most of the time
+  predicate: ["attack:kind:normal", "attack:range:gte:3"]
+```
+
+`direction: imposed` is what keeps it off its own bearer's Evade, and `chance` makes it the only
+**probabilistic** forced table in the game. The `1d100` is rolled by the caller and keyed on the
+contribution's source, like every other roll in the system, so a recorded roll replays to the same
+answer — and a plan with no die refuses rather than treating 80% as certain.
 
 Two options were added for Magic Resistance's terminal ladder, both properties of the incoming
 attack rather than of the bearer: `attack:component:str|mag`, and `attack:ignoresMagicResistance`.

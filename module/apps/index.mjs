@@ -13,6 +13,9 @@ import * as board from "../engine/board.mjs";
 import { currentBoard, unitSnapshot } from "../engine/board.mjs";
 import { poolsOf, isUnbound } from "../rules/cs-namespacing.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
+import { attackFacts } from "../engine/attack.mjs";
+import { normalAttackAt } from "../rules/normal-attack.mjs";
+import { rollOptionsFor } from "../rules/options.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2, ItemSheetV2 } = foundry.applications.sheets;
@@ -463,22 +466,39 @@ async function pickPlacement(actor, ability) {
  * @returns {object}
  */
 function previewContext({ caster, defender, ability, board, isNP }) {
-  return {
-    attacker: caster, defender, board,
+  // Through the SAME facts builder the resolution uses. This built its own
+  // three-line version, which meant the preview ignored an ability's declared
+  // `damage.base` -- Karna's combined STR+MAG read as plain STR -- and handed
+  // the pipeline an EMPTY option set, so every predicated modifier on either
+  // side was dropped and the range it showed was a different rule from the one
+  // that would run.
+  const facts = attackFacts(caster, defender, {
     attack: {
       kind: isNP ? "np" : "normal",
       abilityId: ability?.id ?? null,
+      component: ability?.system?.damage?.component ?? null,
+      aim: Boolean(ability?.system?.damage?.aim),
+      pierce: Boolean(ability?.system?.damage?.pierce),
+      ignoresMagicResistance: Boolean(ability?.system?.damage?.ignoresMagicResistance),
+    },
+  });
+
+  return {
+    attacker: caster, defender, board,
+    attack: {
+      ...facts,
       categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
       element: ability?.system?.element ?? null,
     },
-    base: { sources: [{ unit: "self", component: caster.normalAttack?.component ?? "str", factor: 1 }] },
+    base: ability?.system?.damage?.base
+      ?? { sources: normalAttackAt(caster, facts.range).sources },
     multiplier: ability?.system?.damage?.multiplier ?? 1,
     flatBonus: ability?.system?.damage?.flatBonus ?? 0,
     conditionalMultipliers: ability?.system?.damage?.conditionalMultipliers ?? [],
     crit: { isCrit: false, chanceUsed: 0 },
     reaction: { kind: "none" },
     luckChecks: {},
-    options: new Set(),
+    options: rollOptionsFor({ attacker: caster, defender, attack: facts }),
   };
 }
 

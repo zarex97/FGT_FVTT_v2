@@ -1,0 +1,50 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+#
+# One Skill at two Ranks, authored as two documents. They share an
+# `exclusionSet`, so using either puts BOTH on Cooldown -- it is one Skill, and
+# a shared clock is the only reading under which "changes from Rank B to Rank
+# EX" does not hand him a second free reaction the moment he drops low.
+schema: 1
+id: emiya-eye-of-the-mind-true
+name: "Eye of the Mind (True)"
+rank: B
+kind: skill
+slug: eyeOfTheMind
+exclusionSet: eyeOfTheMind
+cooldown: "4◈"
+# "Used at the start of a Combat Process when Attacked" -- a reaction, and the
+# window is what makes the Combat Process OFFER it. A Skill usable only on his
+# own Turn would never fire in defence, which is the whole point of this one.
+timing: { window: whenAttacked }
+description: |
+  (Passive 1) Upon a successful Evade, reduce the Cooldown of this Skill by ⅓◈ Turns.
+  (Active) Used at the start of a Combat Process when Attacked. Applies Dodge to EMIYA for
+  ⅔◈ Turns and applies Def Up for 1◈ Turns, all damage received is reduced by 20%; if NP, 10%.
+  Cooldown: 4◈ Turns.
+  (Passive 2) While EMIYA's Health is less than 20% of its maximum value, this Skill changes
+  from Rank B to Rank EX.
+requirements:
+  # Passive 2, read as what it says: below 20% he no longer HAS the B version.
+  # The EX document carries the mirror, so exactly one of the pair is offered at
+  # any moment rather than both.
+  - { kind: healthAbove, fraction: 0.2 }
+alsoTriggers:
+  - { exclusionSet: eyeOfTheMind }
+passiveRules:
+  # Passive 1. `evadeSucceeded` has been in §E.3 since the reference was
+  # written and nothing raised it, so this clause -- which all three Eye of the
+  # Mind documents in the reference set carry -- could not fire at all.
+  #
+  # `ability` is omitted, so `CooldownDelta` turns the clock of the ability that
+  # declared the handler: "the Cooldown of this Skill".
+  - key: OnEvent
+    event: evadeSucceeded
+    automatic: true
+    then:
+      - { key: CooldownDelta, ticks: "⅓◈" }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: dodge, duration: "⅔◈" }
+      - { id: defUp, magnitude: 20, npMagnitude: 10, duration: "1◈" }

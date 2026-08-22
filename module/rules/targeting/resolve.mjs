@@ -270,6 +270,16 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   if (limits.minTargets !== undefined && !needsChoice && chosen.length < limits.minTargets) {
     errors.push(`This ability requires at least ${limits.minTargets} target(s).`);
   }
+  // "EMIYA cannot be within the NP area." A restriction on the PLACEMENT, not
+  // on the target list: `includeSelf: false` already keeps him from being
+  // damaged by his own Caladbolg II, and the sheet forbids something stronger
+  // -- standing in the blast at all. Refusing rather than dropping him,
+  // because the player has a legal alternative (aim somewhere else) and
+  // silently sparing him would be inventing a different rule.
+  if (limits.casterOutsideArea && caster.panel && panelKeys.has(geo.key(caster.panel))) {
+    errors.push("The caster cannot be within this ability's area.");
+  }
+
   if (limits.requiresZon && caster.outsideZon) {
     errors.push(
       `Noble Phantasms require the Servant to be within its Master's ZON ` +
@@ -367,6 +377,13 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       const r = spec.range ?? caster.range ?? 1;
       if (!geo.inAttackRange(casterPanel, unit.panel, r)) {
         errors.push(`${unit.name ?? "Target"} is out of Range (${r}).`);
+      }
+      // A minimum, which only the `withinRange` anchor honoured. EMIYA's
+      // Hrunting "cannot be used on a Unit directly next to EMIYA" and picks a
+      // UNIT, so the one anchor that could express the rule was the one it
+      // could not use.
+      if (spec.minRange && geo.chebyshev(casterPanel, unit.panel) < spec.minRange) {
+        errors.push(`${unit.name ?? "Target"} is too close; this ability has a minimum Range of ${spec.minRange}.`);
       }
       return { ...base, panel: unit.panel, panels: unit.panels ?? [unit.panel], unitId: unit.id };
     }

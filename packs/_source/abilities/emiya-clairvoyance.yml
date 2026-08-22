@@ -1,0 +1,33 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+#
+# The only clause in the reference set that forces a table on SOMEBODY ELSE'S
+# check, and the only forced table anywhere that is not certain.
+schema: 1
+id: emiya-clairvoyance
+name: "Clairvoyance"
+rank: C
+kind: skill
+passive: true
+slug: clairvoyance
+description: |
+  (Passive) When EMIYA performs a Normal Attack at a Range of 3 or higher, the DU has an 80%
+  chance of using Evade- when Evading. Otherwise, the Combat Process proceeds as normal.
+passiveRules:
+  # `direction: imposed` is the new part. Every other check contribution in the
+  # game belongs to the unit making the check; this one belongs to the attacker
+  # and lands on the defender's Evade, which is why it cannot be modelled as a
+  # debuff -- it is not applied, not resisted, not removable, and lasts exactly
+  # one roll.
+  #
+  # `chance: 80` makes it the only PROBABILISTIC forced table. The `1d100` is
+  # rolled by the caller and keyed on this ability's name, so a recorded roll
+  # replays to the same answer.
+  #
+  # The predicate is deferred -- both clauses are about the attack, which does
+  # not exist when a passive is collected.
+  - key: TableOverride
+    check: evade
+    forceTable: unfavourable
+    direction: imposed
+    chance: 80
+    predicate: ["attack:kind:normal", "attack:range:gte:3"]

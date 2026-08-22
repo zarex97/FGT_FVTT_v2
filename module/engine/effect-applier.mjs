@@ -198,7 +198,11 @@ export function applyEffect({
     intents.push(I.removeEffect(target.id, def.id, "refreshed"));
   }
 
-  intents.push(I.applyEffect(target.id, effect, source?.unitId ?? null));
+  // Marked as having been through this flow. An `applyEffect` intent that has
+  // NOT been is expanded at the applier boundary -- see `resolveEffects` there
+  // -- because a bare intent skips immunity, resistance, exclusivity and
+  // stacking, and the scheduler's `ApplyEffect` action emits exactly that.
+  intents.push({ ...I.applyEffect(target.id, effect, source?.unitId ?? null), resolved: true });
   return { outcome: "applied", reason: null, intents, trace };
 }
 
@@ -329,6 +333,12 @@ function findImmunity(def, target, held) {
  * @returns {{blocked: boolean, by: string|null, replaces: string[]}}
  */
 function findExclusion(def, held) {
+  // Replacement is checked FIRST, so a pair that declares both does not refuse
+  // itself. EMIYA's Circuits are the reference case: mutually exclusive AND
+  // deliberately swappable, which `blocks` alone cannot say.
+  const replaced = (def.replaces ?? []).filter((id) => held.includes(id));
+  if (replaced.length > 0) return { blocked: false, by: null, replaces: replaced };
+
   for (const id of def.blockedBy ?? []) {
     if (held.includes(id)) return { blocked: true, by: id, replaces: [] };
   }

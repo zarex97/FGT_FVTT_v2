@@ -1,0 +1,24 @@
+# EMIYA's Activated Circuits, second clause -- the standing half.
+#
+# A separate effect rather than more rules on `activatedCircuits`, because it
+# has a different LIFETIME: AC lasts until Atk Up (Trace) goes away, and this
+# lasts "for the rest of the Round". Folding the two together would make the
+# refund permanent or make AC expire at the Round boundary, and both are wrong.
+schema: 1
+id: acOverdrive
+name: "Activated Circuits: Overdrive"
+description: "Whenever EMIYA performs an Attack, his NP Cooldown is reduced by 2 Turns at the end of the Combat Process."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+rules:
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    then:
+      # `scope: np` rather than a named ability: he has five Noble Phantasms and
+      # naming one would pick a winner the sheet does not pick.
+      - { key: CooldownDelta, scope: np, delta: -2 }

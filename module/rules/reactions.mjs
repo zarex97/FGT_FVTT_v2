@@ -17,9 +17,21 @@
  */
 
 import { blockedThisTurn, isNegated } from "./ability-use.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
+import { relationOf } from "./relations.mjs";
 
 /** The window an ability must name to be offered as a reaction. */
 const REACTION_WINDOW = "whenAttacked";
+
+/**
+ * The window for an ability somebody ELSE's peril triggers.
+ *
+ * EMIYA's *Rho Aias* is the only one in the reference set: *"used when any
+ * allied Unit (including EMIYA) within a 3 panel area of EMIYA is about to be
+ * hit by a Noble Phantasm."* The Unit that may act is neither the attacker nor
+ * the defender, which no other ability in the game is true of.
+ */
+const ALLY_WINDOW = "whenAllyAttacked";
 
 /**
  * The abilities this unit could use in response to being attacked.
@@ -69,4 +81,65 @@ export function reactionOptions(base, unit) {
  */
 export function abilityFromOption(event) {
   return typeof event === "string" && event.startsWith("ability:") ? event.slice("ability:".length) : null;
+}
+
+/**
+ * Abilities a **third party** may use because this defender is about to be hit.
+ *
+ * Returned with their owner, because the ability does not belong to the Unit
+ * whose Combat Process it interrupts — which is the whole difficulty. Ch. 27's
+ * ladder prompts one side per rung, so the offer is appended to the defender's
+ * rung and carries the projector's name; the GM or the projector's player is
+ * the one who answers.
+ *
+ * Every gate an ordinary reaction is checked against is checked here too, plus
+ * two of its own: the distance from the projector, and what kind of attack it
+ * answers. *"About to be hit by a Noble Phantasm"* is not a note — a barrier
+ * offered against every Normal Attack would be a different ability.
+ *
+ * @param {object} args
+ * @param {object} args.defender the defender's snapshot
+ * @param {object} args.board
+ * @param {object} args.attack `{kind}`
+ * @param {(id: string) => object|null} args.actorFor resolves a unit id to a document
+ * @returns {Array<{ability: object, ownerId: string, ownerName: string}>}
+ */
+export function allyReactions({ defender, board, attack, actorFor }) {
+  /** @type {Array<{ability: object, ownerId: string, ownerName: string}>} */
+  const out = [];
+  if (!defender?.panel) return out;
+
+  for (const unit of board?.units ?? []) {
+    if (!unit.panel) continue;
+    // "Any allied Unit (INCLUDING EMIYA)" -- the projector may itself be the
+    // defender, which is why `self` counts and the id is not excluded.
+    const relation = unit.id === defender.id ? "self" : relationOf(unit, defender, board);
+    if (relation !== "ally" && relation !== "self") continue;
+
+    const doc = actorFor(unit.id);
+    if (!doc) continue;
+    const used = unit.turnState?.abilitiesUsed ?? [];
+
+    for (const item of doc.items ?? []) {
+      const sys = item.system ?? {};
+      const timing = sys.timing ?? {};
+      if (![timing.window ?? []].flat().includes(ALLY_WINDOW)) continue;
+
+      // Reach, measured from the PROJECTOR to the Unit in peril.
+      const radius = timing.radius ?? 0;
+      if (chebyshev(unit.panel, defender.panel) > radius) continue;
+
+      // What it answers. "About to be hit by a Noble Phantasm" is a
+      // restriction, not a note: a barrier offered against every Normal Attack
+      // would be a different ability entirely.
+      if (timing.againstKind && timing.againstKind !== (attack?.kind ?? "normal")) continue;
+
+      if ((sys.cooldown?.remaining ?? 0) > 0) continue;
+      if (blockedThisTurn(item, used)) continue;
+      if (isNegated(item, unit.effects ?? [])) continue;
+
+      out.push({ ability: item, ownerId: unit.id, ownerName: unit.name ?? doc.name });
+    }
+  }
+  return out;
 }

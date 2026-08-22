@@ -1,0 +1,42 @@
+# docs/B-rank-tables.md §B.3
+#
+# The Archer class skill, and the first content for a rule that has been in
+# `rules/contract.mjs` since contracts were written: `rollsRequired` looks up
+# an ability whose slug is `independentAction` and has never found one, because
+# no authored Servant carried it. EMIYA's B is three rolls, which is exactly
+# what his sheet states.
+schema: 1
+id: class-independent-action
+name: "Independent Action"
+source: class
+# Stated, not derived. The default strips `class-` and leaves kebab-case, and
+# `rollsRequired` matches on the camelCase slug -- so a derived
+# `independent-action` would have found nothing and quietly made him as easy to
+# steal as a Servant with no class skill at all.
+slug: independentAction
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive 1) Has a high Sustainability.
+  (Passive 2) Master's ZON is increased by 2 panels.
+  (Passive 3) Requires several successful 'Contract Servant' rolls to be contracted by enemy
+  Masters and Casters; at A+ and EX, it cannot be contracted by an enemy at all.
+passiveRules:
+  # Passive 2. `stacks` is false BY OMISSION and that is the load-bearing part:
+  # §6.9 says Independent Action and the Caster/Assassin class bonus are "the
+  # same effect" and take the HIGHEST rather than the sum. Mad Enhancement's +2
+  # is a different effect and does add, which is why the field is per-element
+  # rather than global.
+  - key: ZonBonus
+    value: 2
+
+  # Passive 1 is the Servant's own `sustainability`, authored on the sheet
+  # rather than granted here: the skill does not ADD turns, it is the reason the
+  # number is high. A `SustainabilityGain` element would pay out again on top.
+  #
+  # Passive 3 is `rules/contract.mjs`, which reads this skill's RANK off the
+  # unit rather than taking a contribution -- the answer is a count of rolls,
+  # not a modifier, and at A+ it is a prohibition rather than a difficulty.

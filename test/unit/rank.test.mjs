@@ -120,3 +120,28 @@ describe("Rank.step", () => {
     expect(r.step(2).step(-2)).toBe(r);
   });
 });
+
+describe("stepGrade", () => {
+  it("moves a whole grade, which is not what step does", () => {
+    // "EMIYA's Magic Resistance Rank is increased by one Rank" is D → C.
+    // Authored as `step(1)` it produced D+, a Rank the resistance table has no
+    // row for — so it fell back to D and the clause did nothing measurable.
+    expect(String(Rank.of("D").stepGrade(1))).toBe("C");
+    expect(String(Rank.of("D").step(1))).toBe("D+");
+  });
+
+  it("keeps the modifier it started with", () => {
+    expect(String(Rank.of("B", 1).stepGrade(1))).toBe("A+");
+    expect(String(Rank.of("A", -1).stepGrade(-1))).toBe("B-");
+  });
+
+  it("clamps at both ends of the scale", () => {
+    expect(String(Rank.of("EX").stepGrade(3))).toBe("EX");
+    expect(String(Rank.of("E").stepGrade(-3))).toBe("E");
+  });
+
+  it("is the identity at zero", () => {
+    const b = Rank.of("B");
+    expect(b.stepGrade(0)).toBe(b);
+  });
+});

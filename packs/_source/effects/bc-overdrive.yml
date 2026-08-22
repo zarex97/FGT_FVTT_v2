@@ -1,0 +1,21 @@
+# EMIYA's Blazing Circuits, second clause -- the standing half.
+# Separate for the same reason `acOverdrive` is: a different lifetime.
+schema: 1
+id: bcOverdrive
+name: "Blazing Circuits: Overdrive"
+description: "All damage dealt is increased by X% including NP."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+rules:
+  # "Including NP" at the SAME magnitude, which is why `npValue` repeats the
+  # figure rather than being omitted: an omitted one falls back to `value`
+  # anyway, but stating it is what records that the sheet gives no reduction.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@npMagnitude"

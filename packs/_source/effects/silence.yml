@@ -1,0 +1,20 @@
+# Appendix A §A.10
+#
+# Referenced by every Thaumaturgy and Projection document EMIYA carries --
+# "'Projection' Skills and NP cannot be used and have no effects if EMIYA is
+# inflicted with Silence" -- and by `rules/budget.mjs`, whose prevention table
+# has listed `silence: ["spell"]` since it was written with no effect document
+# for it to name.
+schema: 1
+id: silence
+name: "Silence"
+description: "Cannot use Spells. Does not affect Skills or Noble Phantasms unless stated."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+# No rule elements. What refuses a Spell is the prevention table in
+# `rules/budget.mjs`, consulted at declaration; what NEGATES an already-standing
+# effect is `negatedBy` on the ability itself. Both readers exist, and a third
+# half-wired one here would be worse than none -- see `np-seal.yml`.

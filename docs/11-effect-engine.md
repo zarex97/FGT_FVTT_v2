@@ -114,6 +114,7 @@ applyEffect(def, target, magnitude, duration, source, context) → ApplicationRe
     → BLOCKED, with the blocking effect named.
 
  2. REPLACEMENT / EXCLUSIVITY GATE
+    - def.replaces lists ids the target already has ⇒ REPLACE (checked FIRST)
     - def.blocks lists ids the target already has that forbid this ⇒ BLOCKED
     - target has an effect whose `blocks` includes def.id ⇒ BLOCKED
     - mental exclusivity table (§10.5)
@@ -166,6 +167,46 @@ explicit about the multi-buff case:
 > those buffs will fail to be applied."*
 
 So `No Buff` is checked once per applying ability, not per buff, and blocks the whole batch.
+
+---
+
+### `blocks` and `replaces` are opposite answers to one question
+
+Two effects that cannot be held together can resolve it in two ways, and the difference is a rule
+rather than a nicety. EMIYA's *Trace, On* says both halves in the same breath:
+
+> *"EMIYA cannot have both the AC and BC effects at the same time"* … *"you can choose to swap
+> from AC to BC or vice-versa."*
+
+Declared as `blocks`, the swap is **refused** — the second circuit never lands and the Skill
+quietly loses half its second use. Declared as `replaces`, the exclusion holds and the swap is the
+same write as the first pick. Both are declared on **both sides**, like every other exclusion in
+the system: a one-sided one is decided by whichever happens to be applied first, which is not a
+rule.
+
+`replaces` is checked before the refusals, so a pair that declares both does not refuse itself.
+
+### Every application goes through this, whoever asked
+
+`io.createEffects` is a bare create: it makes a document and asks nothing. That is right for an
+intent produced by this pipeline and **wrong for one produced anywhere else** — and the
+scheduler's `ApplyEffect` action emits a bare intent, so every effect applied by an **event
+handler** skipped immunity, exclusivity, the chance roll and the stacking rule.
+
+That is most of the effects in the game: every `OnEvent` rider on every ability, every periodic
+application, everything a time boundary applies. An immune Unit took them; a resisted one took
+them at full strength; a `noneExtend` buff made a second document instead of extending.
+
+Found live, twice in one use of *Trace, On*: EMIYA collected two separate `Range Up` instances
+from his own Magecraft, and could not swap his circuits because the swap is an exclusivity
+decision nobody was making.
+
+Intents that have been through the pipeline are now marked `resolved: true`, and `applyIntents`
+— the single write boundary — runs any that have not through it first. In `applyIntents` rather
+than in `applyWorldIntents`, because three call sites write to the world without going through
+that helper: the attack flow, the scheduler's boundary sequences and the movement hook. Putting
+the step in one of them would leave the other two applying bare intents, which is the same
+"two implementations of one rule" defect that produced this one.
 
 ---
 

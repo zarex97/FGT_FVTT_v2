@@ -1,0 +1,39 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+schema: 1
+id: emiya-reinforcement
+name: "Thaumaturgy: Reinforcement"
+rank: null
+kind: skill
+slug: reinforcement
+category: thaumaturgy
+isSpell: true
+cooldown: "1◈"
+# "Used at the start of a Combat Phase" -- so it is offered where a reaction is,
+# and on his own Turn before he swings.
+timing: { window: [ownTurn, combatPhaseStart] }
+# A Spell, but not an attack: it buffs and resolves. Left to `countsAsAttack`
+# and it would spend his Attack for the Turn, because `isSpell` is one of the
+# three things that make an ability one.
+countsAsAttack: false
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+description: |
+  Spell. Used at the start of a Combat Phase. During this Combat Phase, Normal Attack damage
+  dealt is increased by 30%. Cooldown: 1◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      # N.Atk Up, not Atk Up. "Normal Attack damage" is explicit, and a blanket
+      # Atk Up would quietly buff his Noble Phantasms too -- which is the whole
+      # reason the two effects are separate in Appendix A.
+      #
+      # "During this Combat Phase" is one exchange, and ⅓◈ is the shortest
+      # duration the tick grammar has: one Turn, which is the Turn the Combat
+      # Phase happens in.
+      - { id: nAtkUp, magnitude: 30, duration: "⅓◈" }

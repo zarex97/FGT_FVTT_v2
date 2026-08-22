@@ -24,7 +24,7 @@ export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
-  "setMode",
+  "setMode", "recordUse", "extendEffect", "shieldDelta",
 ]);
 
 /**
@@ -58,6 +58,10 @@ const ORDER = Object.freeze({
   grantCommandSpells: 2,
   // After the action it records, before anything reads it back.
   markTurn: 2,
+  recordUse: 2,
+  // Before the damage it is deducting from: the pool has to be spent in the
+  // same batch that applies what got through it.
+  shieldDelta: 2,
   // Bookkeeping, and BEFORE anything that reads the mode back: Mad
   // Enhancement's forced deactivation has to land before the next pass
   // collects its active rules.
@@ -65,6 +69,9 @@ const ORDER = Object.freeze({
   heal: 3,
   damage: 4,
   applyEffect: 5,
+  // Beside application: extending an effect is a write to an instance that
+  // already exists, and it must not run before one applied in the same batch.
+  extendEffect: 5,
   move: 6,
   setFacing: 7,
   spendCS: 8,
@@ -98,6 +105,21 @@ export const applyEffect = (unitId, effect, sourceId) =>
 
 export const removeEffect = (unitId, effectId, reason) =>
   ({ t: "removeEffect", unitId, effectId, reason });
+
+/**
+ * Push a held effect's expiry further out, in turns.
+ *
+ * Not the same as reapplying it: reapplication re-rolls the application
+ * chance, re-runs the stacking rule and resets the duration to the authored
+ * length. EMIYA's Atk Up (Trace) is *"extended by ⅓◈ Turns"* on top of
+ * whatever is left, which is an addition to an absolute expiry tick.
+ *
+ * @param {string} unitId @param {string} defId @param {number} turns
+ * @param {string|null} [source]
+ * @returns {Intent}
+ */
+export const extendEffect = (unitId, defId, turns, source = null) =>
+  ({ t: "extendEffect", unitId, defId, turns, source });
 
 export const move = (unitId, path, forced = false) =>
   ({ t: "move", unitId, path, forced });
@@ -142,6 +164,40 @@ export const consumeUse = (unitId, defId, count = 1) =>
  */
 export const setMode = (unitId, abilityId, active, source = null) =>
   ({ t: "setMode", unitId, abilityId, active, source });
+
+/**
+ * Record that an ability was used: this Turn, this Round, and ever.
+ *
+ * One intent rather than three writes, because the two use paths had drifted.
+ * `useSkill` appended to `turnState.abilitiesUsed` and `resolveAttack` did not,
+ * so every gate that reads the record -- `oncePerTurn`, `sameTurnExclusive`,
+ * the reaction offer -- was enforced against Skills and silently ignored by
+ * Noble Phantasms and Attack Skills, which are the abilities most likely to
+ * carry one.
+ *
+ * @param {string} unitId
+ * @param {string} abilityId the Item id
+ * @param {string|null} [contentId] what an exclusion list names
+ * @returns {Intent}
+ */
+export const recordUse = (unitId, abilityId, contentId = null) =>
+  ({ t: "recordUse", unitId, abilityId, contentId });
+
+/**
+ * Move a barrier's own Health pool.
+ *
+ * On the ABILITY rather than on the bearer, because several Units stand behind
+ * one barrier: EMIYA's Rho Aias protects a 3x3 block and *"if the AU's NP deals
+ * more than 1400 damage, the remaining damage is dealt to the DUs
+ * accordingly"*, which only means anything against one shared pool.
+ *
+ * @param {string} unitId the barrier's OWNER
+ * @param {string} abilityId
+ * @param {number} delta
+ * @returns {Intent}
+ */
+export const shieldDelta = (unitId, abilityId, delta) =>
+  ({ t: "shieldDelta", unitId, abilityId, delta });
 
 export const cooldown = (unitId, abilityId, ticks, mode = "reduce") =>
   ({ t: "cooldown", unitId, abilityId, ticks, mode });

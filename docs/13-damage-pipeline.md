@@ -110,7 +110,8 @@ Sixteen stages. The numbering is stable and referenced from effect definitions
 | 13 | **Luck: Reduced Damage** | −Damage Modifier roll if the DU's Luck Check succeeded |
 | 14 | **Block** | ×(1 − blockPercent); 25% base, same value vs NP |
 | 15 | **Total-damage modifiers** | Effects that explicitly say "Total Damage": Underpower, Cover, CS Halve NP, PC AoE tails, Mad Enhancement NP reduction |
-| 16 | **Absorption and clamp** | Shield, Invuln, Endure, Def Crk addition, floor at 0, integer floor |
+| 16 | **Absorption and clamp** | Invuln, Endure, Def Crk addition, floor at 0, integer floor |
+| — | **Barrier** | A second Health pool in front of the defender; **after** every stage and every Command Spell interrupt (see §13.8a) |
 
 Stages 0 and 16 are bookends. Stages 1–3 build the bracketed term of the author's formula
 (`[(Base Attack ± 5d10) × multiplier + flat]`), 4–10 are attacker-favouring,
@@ -679,6 +680,47 @@ trigger purposes and can be converted by `PoisHeal`/`CursHeal`/`FlamHeal` at sta
 
 ---
 
+### The context has to carry what the stages read
+
+Three fields the pipeline reads by name — `component`, `pierce` and `ignoresMagicResistance` —
+were **never set**. Four separate call sites each rebuilt `ctx.attack` from scratch and each
+dropped a different subset, so `Pierce` ignored nothing, Magic Resistance could not be bypassed,
+and Magic Resistance's own Instakill exemption — which is written against exactly those two
+properties of the attack — had no way to be true.
+
+There is now one builder, `attackFacts`, and every call site spreads it. It also computes the
+**distance**, which nothing had ever put in the context at all.
+
+### A Normal Attack that changes shape with distance
+
+`normalAttack.mode` has offered `rangeBanded` since the actor schema was written and nothing
+implemented it: a Servant authored with it attacked with its flat `component` at every distance,
+silently, because the fallback is a legal answer.
+
+EMIYA is the Servant it was declared for:
+
+> *"At a Range of 1 or 2, EMIYA's Normal Attacks use Base Attack (STR). At a Range of 3 or higher,
+> EMIYA's Normal Attacks use Base Attack (STR) and 20% of his Base Attack (MAG) combined
+> (i.e. 75+35=110); not affected by Magic Resistance."*
+
+Three things move together at the band edge, which is why `normalAttackAt` returns all three:
+
+| | Melee (1–2) | Ranged (3+) |
+|---|---|---|
+| `sources` | STR ×1 | STR ×1 **+ MAG ×0.2** |
+| `component` (what it counts *as*) | `str` | `str` |
+| `ignoresMagicResistance` | false | **true** |
+
+The third is not decoration. Measured live against Scáthach's Magic Resistance A, the ranged shot
+deals **80** with the exemption and **54** without it — the MAG fifth is negated outright, because
+a Rank A Magic Resistance negates MAG damage from a MAG Rank of up to A. Without that flag EMIYA's
+signature attack is worse at range than in melee against half the roster.
+
+An unknown distance falls back rather than guessing: a snapshot taken off the board has no panel,
+and reading that as range 0 would put him in his melee band while previewing a shot across the map.
+
+---
+
 ## 13.8 Multi-hit
 
 Attacks that hit N times run the pipeline N times, with these shared elements:
@@ -696,6 +738,23 @@ So the correct implementation runs N pipelines, sums, then applies Block once to
 runs stages 15–16 on the sum. **DECISION.** `computeDamage` takes `hitIndex`/`hitCount` and a
 wrapper `computeAttack` orchestrates: run stages 0–13 per hit, sum, run 14–16 once.
 
+### Repeated *attacks* are not multi-hit
+
+EMIYA's *Overedge* is *"EMIYA performs **2 Normal Attacks in a row**"* — two whole Combat
+Processes against the same defender, each with its own reaction ladder and its own Evade, inside
+**one** Combat Phase. That is a different thing from a multi-hit attack, which is one Process
+resolving several hits, and `damage.repeat` says so:
+
+```yaml
+damage:
+  repeat: 2
+```
+
+The Phase boundary is what matters and it is easy to get wrong in a way that looks fine. A Combat
+Phase is what pays EMIYA his Aria, so two Phases would pay twice for one action; and `isAoE` is
+derived from **distinct defenders** rather than the process count, or the two swings would emit
+`attack:isAoE` and suppress the defender's facing change into the bargain.
+
 Multi-hit sources in the reference set: Mannanán's *Toole Fragarach* (3), Nemo's *Quickfire*
 (up to 6 conditional 25-damage hits), HGoB's *Dragon Wing Warriors* (d6+4), `DblAtk Up`,
 `TrplAtk Up`.
@@ -708,6 +767,48 @@ fixed but defender-side normal. `bypassModifiers` needs to be a two-sided flag:
 ```ts
 bypassModifiers: { attacker: boolean; defender: boolean };
 ```
+
+---
+
+## 13.8a Barriers — a second Health pool
+
+Every other defensive effect in the game is a percentage (`Def Up`), a flat subtraction
+(`Dmg Cut`), a refusal (`Invuln`) or an evasion (`Dodge`). A **barrier** is none of those: it has
+a bar, the bar persists between attacks, several Units stand behind one of them, and it charges
+its owner for what it absorbs.
+
+EMIYA's *Rho Aias* is the only one in the reference set, and four clauses interlock:
+
+> *"Rho Aias has 1400 Health, and it will take the damage of the enemy's NP. For every 200 Health
+> Rho Aias loses, EMIYA loses 100 Health. If the AU's NP deals more than 1400 damage, the
+> remaining damage is dealt to the DUs accordingly. However, if the NP is a 'thrown weapon', Rho
+> Aias' Health cannot drop below 1. EMIYA's Health cannot drop below 1 due to Rho Aias being
+> damaged by the AU's NP."*
+
+Four decisions follow from those four sentences:
+
+- **The pool lives on the ability, not on the effect instance.** *"The remaining damage is dealt
+  to the DUs accordingly"* only means something against **one** pool. An area Noble Phantasm over
+  a protected 3×3 draws all of them down one 1400 in resolution order, rather than meeting a fresh
+  barrier at each panel. The marker effect on each bearer carries `absorbs`, which points back at
+  the source ability.
+- **It runs last**, after every stage and after the Command Spell interrupts, because the sheet
+  says it *"will take the damage of the enemy's NP"* — the finished number, not an intermediate.
+- **The owner's share is per completed unit, not pro rata.** *"For **every** 200"* — 199 costs him
+  nothing, which makes a chip attack free. It is a `statDelta` rather than damage, because he is
+  not being attacked: his barrier is, and damage would trigger an Injury Roll and every on-damage
+  effect he has.
+- **A floored pool absorbs everything.** *"If the NP is a 'thrown weapon', Rho Aias' Health cannot
+  drop below 1"* — a barrier that cannot break stops the attack however large it is, and still
+  only spends what it had above the floor.
+
+`scope: np` is the whole restriction on it, and easy to get wrong in the generous direction: an
+ordinary Attack passes straight through a standing Rho Aias. Without that, it is a permanent
+1400-point buffer.
+
+The pool **decays** rather than refilling: *"restored by half of its current Health"* on each use
+after the first, so 1400, then 700 + 350, then less again. Refilling to the maximum would leave
+the 8◈ cooldown as its only limit, and the sheet is explicit that it is not.
 
 ---
 

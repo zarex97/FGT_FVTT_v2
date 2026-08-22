@@ -1,0 +1,59 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+#
+# The low-Health form. See `emiya-eye-of-the-mind-true.yml` for why the two are
+# separate documents sharing one clock.
+schema: 1
+id: emiya-eye-of-the-mind-true-ex
+name: "Eye of the Mind (True) EX"
+rank: EX
+kind: skill
+slug: eyeOfTheMindEx
+exclusionSet: eyeOfTheMind
+cooldown: "4◈"
+# "Used during your Turn OR at the start of a Combat Process when Attacked" --
+# the EX form gains the proactive window the B form does not have.
+timing: { window: [ownTurn, whenAttacked] }
+description: |
+  (Passive 1) Cannot normally be used unless EMIYA's Health is less than 20% of its maximum
+  value.
+  (Passive 2) Upon a successful Evade, reduce the Cooldown of this Skill by ⅓◈ Turns.
+  (Active) Used during your Turn or at the start of a Combat Process when Attacked-
+  1. Applies Dodge for ⅓◈ Turns.
+  2. Applies Atk Up for 1◈ Turns, all damage dealt is increased by 30%; if NP, 15%.
+  3. Applies Def Up for 1◈ Turns, all damage taken is reduced by 30%; if NP, 15%.
+  4. Applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of himself,
+     Crit Chance is increased by 30%.
+  Cooldown: 4◈ Turns.
+requirements:
+  - { kind: healthBelow, fraction: 0.2 }
+alsoTriggers:
+  - { exclusionSet: eyeOfTheMind }
+passiveRules:
+  - key: OnEvent
+    event: evadeSucceeded
+    automatic: true
+    then:
+      - { key: CooldownDelta, ticks: "⅓◈" }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: dodge, duration: "⅓◈" }
+      - { id: atkUp, magnitude: 30, npMagnitude: 15, duration: "1◈" }
+      - { id: defUp, magnitude: 30, npMagnitude: 15, duration: "1◈" }
+
+  # Clause 4 reaches a DIFFERENT set of Units from the other three, so it
+  # carries its own targeting rather than reusing the Skill's. `target: self`
+  # and `target: reuse` are the only two answers `phaseTargets` had, and neither
+  # is "every ally within 2 panels of me" -- least of all on a reaction, where
+  # `reuse` resolves to whoever attacked him.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      # S.Crit Up, not Crit Up: "application cannot be prevented and it is
+      # Unremovable" (§A.4). Handing out plain Crit Up would let a Debuff-heavy
+      # opponent strip the half of this clause that reaches his allies.
+      - { id: sCritUp, magnitude: 30, duration: "⅓◈" }

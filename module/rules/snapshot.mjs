@@ -47,14 +47,18 @@ import { annotateFields } from "./bounded-fields.mjs";
  * @param {number|null} [opts.tick] the current ◈ tick. Turn state stamped with
  *   an earlier one is stale and projects blank — see {@link turnStateAt}.
  * @param {number} [opts.turnsPerRound] for resolving ◈ expressions to turns.
+ * @param {number|null} [opts.round] the current Round, for `roundState`.
  * @returns {UnitSnapshot}
  */
-export function snapshotUnit(actor, { token = null, panel = null, tick = null, turnsPerRound = 3 } = {}) {
+export function snapshotUnit(actor, {
+  token = null, panel = null, tick = null, turnsPerRound = 3, round = null,
+} = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
   const contributions = contributionsOf(actor);
   const footprint = gridFootprint(doc, panel);
   const turnState = turnStateAt(sys.turnState, tick);
+  const roundState = roundStateAt(sys.roundState, round);
 
   return {
     id: actor.id,
@@ -151,6 +155,12 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null, t
     normalAttack: {
       mode: sys.normalAttack?.mode ?? "fixed",
       component: sys.normalAttack?.component ?? "str",
+      // EMIYA's Normal Attack changes what it is made of at Range 3. Without
+      // the bands here the projection reports the flat component, so the
+      // preview and the resolution would disagree about his damage at every
+      // distance -- which is the exact failure the one-projection rule above
+      // exists to prevent.
+      bands: [...(sys.normalAttack?.bands ?? [])],
     },
 
     // ZON belongs to the Master-Servant pair, so a per-unit projection cannot
@@ -180,8 +190,13 @@ export function snapshotUnit(actor, { token = null, panel = null, tick = null, t
     identityRevealed: Boolean(sys.identityRevealed),
     detect: sys.detect ?? null,
     canAct: sys.canAct !== false,
+    // When Health was last at or above a fraction somebody asks about. Read by
+    // the `healthRestoredSince` requirement, which is a question about history
+    // and cannot be answered from the current bar.
+    healthWatermarks: { ...(sys.healthWatermarks ?? {}) },
     acted: turnState.acted,
     turnState,
+    roundState,
   };
 }
 
@@ -230,6 +245,25 @@ export function turnStateAt(raw, tick) {
 }
 
 /**
+ * A unit's round state, or a blank one when it belongs to an earlier Round.
+ *
+ * The same stale-by-reading rule `turnStateAt` uses, one scale up. A Round
+ * boundary that failed to fire cannot leave a Servant permanently unable to
+ * project Caladbolg II — the worst a stale stamp does is forget.
+ *
+ * `round: null` on the caller's side means "do not apply the rule", used when
+ * no combat is running.
+ *
+ * @param {object} raw `system.roundState`
+ * @param {number|null} round
+ * @returns {{round: number|null, abilitiesUsed: string[]}}
+ */
+export function roundStateAt(raw, round) {
+  if (round !== null && (raw?.round ?? null) !== round) return { round, abilitiesUsed: [] };
+  return { round: raw?.round ?? null, abilitiesUsed: [...(raw?.abilitiesUsed ?? [])] };
+}
+
+/**
  * Project the board.
  *
  * @param {object} args
@@ -248,6 +282,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
       // Sustainability is authored as a ◈ expression and consumed as a number
       // of turns, so the projection needs the world's ◈ to resolve it.
       turnsPerRound: settings.turnsPerRound ?? 3,
+      // Round-scale turn state is stale-by-reading like the per-Turn kind, so
+      // the projection needs to know which Round it is looking at.
+      round: settings.round ?? null,
     }));
   const board = {
     bounds: boundsFor(scene, settings),
@@ -546,7 +583,7 @@ function instanceValue(raw, ref, value) {
  */
 export function contributionsOf(actor) {
   const sys = actor.system ?? {};
-  const abilities = [...(actor.items ?? [])].map((item) => ({
+  const abilities = [...(actor.items ?? [])].filter((item) => !negated(item, actor)).map((item) => ({
     id: item.id,
     name: item.name,
     // The stable machine name. Without it a cross-ability reference has only
@@ -639,6 +676,9 @@ function collectAbilities(actor) {
       contentId: i.system?.contentId ?? null,
       category: i.system?.category ?? null,
       exclusionSet: i.system?.exclusionSet ?? null,
+      // The whole-match budget, so a gate can ask without a document.
+      timesUsed: i.system?.timesUsed ?? 0,
+      maxUses: i.system?.maxUses ?? null,
       // Both needed by `rules/options.mjs`: `slug` is what a predicate names,
       // and `active` is what separates "has Mad Enhancement" from "has Mad
       // Enhancement switched on" -- two different questions, and content asks
@@ -660,6 +700,31 @@ function collectAbilities(actor) {
       hasPhases: (i.system?.phases ?? []).length > 0,
       copyable: i.system?.copyable ?? null,
     }));
+}
+
+/**
+ * Is this ability switched off by the state of another one?
+ *
+ * *"The effect of 'Kanshou & Bakuya' is negated while 'Overedge' is on
+ * Cooldown."* Filtered out of the collection entirely rather than having each
+ * of its elements gated, because "has no effects" is what the sheet says --
+ * and gating element by element is how a clause comes to be half-applied.
+ *
+ * @param {object} item
+ * @param {object} actor
+ * @returns {boolean}
+ */
+function negated(item, actor) {
+  const spec = item.system?.negatedWhile ?? null;
+  if (!spec) return false;
+
+  const named = new Set(spec.abilityOnCooldown ?? []);
+  if (named.size === 0) return false;
+
+  return [...(actor.items ?? [])].some(
+    (other) => (named.has(other.system?.contentId) || named.has(other.id))
+      && (other.system?.cooldown?.remaining ?? 0) > 0,
+  );
 }
 
 /**

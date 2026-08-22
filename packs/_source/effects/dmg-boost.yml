@@ -1,0 +1,22 @@
+# Appendix A §A.1
+# "Damage dealt +X flat. Affects NP only if stated."
+schema: 1
+id: dmgBoost
+name: "Dmg Boost"
+description: "All damage dealt is increased by X, flat."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # A FLAT addition at stage 7, not a percentage in the stage-4 bucket. EMIYA's
+  # Tracing grants "+30 including NP", and reading that as 30% would roughly
+  # double a Caladbolg II.
+  - key: FlatDamage
+    modifierKey: dmgBoost
+    value: "@magnitude"
+    # NO `npValue`. `FlatDamage` does not carry one -- flat damage in the
+    # reference set is always "including NP" (Divinity says so too) -- and
+    # authoring a field no executor reads is the exact defect this codebase
+    # keeps finding.

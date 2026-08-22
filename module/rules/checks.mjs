@@ -17,6 +17,8 @@
  * under Q40. `Luck Boost` and `Luck Loss` are live effects.
  */
 
+import { test as testPredicate } from "./predicate.mjs";
+
 /** The unfavourable-table penalty, for both Evade and Luck Checks. */
 export const UNFAVOURABLE_PENALTY = 4;
 
@@ -77,10 +79,18 @@ export function tableFor(own, opposing, forcing = {}) {
  * @param {"outgoing"|"incoming"} [opts.direction] whose check this is
  * @returns {CheckPlan}
  */
-export function checkPlan(unit, check, { direction = "outgoing" } = {}) {
-  const relevant = (unit?.checkModifiers ?? []).filter(
-    (m) => m.check === check || m.check === "any",
-  );
+export function checkPlan(unit, check, { direction = "outgoing", options = null, rolls = {} } = {}) {
+  const relevant = (unit?.checkModifiers ?? [])
+    .filter((m) => m.check === check || m.check === "any")
+    // A contribution whose clause is about the attack rather than about the
+    // bearer travelled here unanswered, and answering it needs the option set.
+    // Without one, an unconditional contribution still applies and a
+    // conditional one does not -- the safe direction, and the same one
+    // `collectContributions` takes.
+    .filter((m) => !m.predicate || (options ? testPredicate(m.predicate, { options }) : false))
+    // A forced table that is only PROBABLE. The caller rolls, keyed by source,
+    // exactly like every other roll in the system.
+    .filter((m) => passesChance(m, rolls));
 
   const modifiers = relevant
     .filter((m) => typeof m.value === "number" && m.value !== 0)
@@ -89,7 +99,14 @@ export function checkPlan(unit, check, { direction = "outgoing" } = {}) {
 
   // Debuffs win ties, as everywhere else in the effect engine: one source
   // forcing the unfavourable table beats any number forcing the favourable one.
-  const forcing = relevant.map((m) => m.forceTable).filter(Boolean);
+  //
+  // Filtered by direction like the numeric modifiers above, so an `imposed`
+  // override does not also apply to its own bearer's checks -- Clairvoyance
+  // would otherwise put EMIYA himself on the unfavourable Evade table.
+  const forcing = relevant
+    .filter((m) => (m.direction ?? "outgoing") === direction)
+    .map((m) => m.forceTable)
+    .filter(Boolean);
   const forceTable = forcing.includes("unfavourable")
     ? "unfavourable"
     : (forcing[0] ?? null);
@@ -98,6 +115,58 @@ export function checkPlan(unit, check, { direction = "outgoing" } = {}) {
   const adjustable = relevant.filter((m) => m.playerAdjustable);
 
   return { modifiers, forceTable, autoSucceed, adjustable };
+}
+
+/**
+ * Fold an opponent's *imposed* plan into the checking unit's own.
+ *
+ * Almost every check contribution belongs to the unit making the check. EMIYA's
+ * *Clairvoyance* is the exception in the reference set: *"When EMIYA performs a
+ * Normal Attack at a Range of 3 or higher, **the DU** has an 80% chance of
+ * using Evade- when Evading"* — a table forced on somebody else's roll, by an
+ * ability they do not have.
+ *
+ * Modelled as a `direction: "imposed"` contribution on the attacker rather than
+ * as an effect applied to the defender, because it is not a debuff: it is not
+ * removable, it is not resisted, and it lasts exactly one roll.
+ *
+ * `unfavourable` wins, as it does everywhere else in the effect engine.
+ *
+ * @param {CheckPlan} own
+ * @param {CheckPlan} imposed
+ * @returns {CheckPlan}
+ */
+export function mergePlans(own, imposed) {
+  const forcing = [own.forceTable, imposed.forceTable].filter(Boolean);
+  return {
+    modifiers: [...own.modifiers, ...imposed.modifiers],
+    forceTable: forcing.includes("unfavourable") ? "unfavourable" : (forcing[0] ?? null),
+    // An automatic success is the checking unit's own; an opponent cannot
+    // grant one, and reading `imposed` here would let an attacker hand its
+    // target a free Evade.
+    autoSucceed: own.autoSucceed,
+    adjustable: own.adjustable,
+  };
+}
+
+/**
+ * The rolls a plan needs before it can be resolved.
+ *
+ * The other half of the "caller rolls" contract, and the reason a probabilistic
+ * forced table can live in a pure function at all: this says which
+ * contributions want a `1d100` and under what key, and the caller supplies the
+ * totals through `rolls`.
+ *
+ * @param {object} unit
+ * @param {string} check
+ * @param {object} [opts]
+ * @returns {Array<{key: string, formula: string}>}
+ */
+export function pendingCheckRolls(unit, check, { direction = "outgoing" } = {}) {
+  return (unit?.checkModifiers ?? [])
+    .filter((m) => (m.check === check || m.check === "any") && (m.direction ?? "outgoing") === direction)
+    .filter((m) => (m.chance ?? 100) < 100)
+    .map((m) => ({ key: m.source, formula: "1d100" }));
 }
 
 /**
@@ -257,12 +326,12 @@ export function applicationChance({ base, inflictBonus = 0, resist = 0,
  * @param {number} [options.base]
  * @returns {{percent: number, automatic: boolean, blocked: boolean, modifiers: object[]}}
  */
-export function critChance(attacker, defender = null, { base = BASE_CRIT_CHANCE } = {}) {
+export function critChance(attacker, defender = null, { base = BASE_CRIT_CHANCE, options = null } = {}) {
   const held = attacker?.effects ?? [];
 
   const modifiers = [
-    ...critModifiers(attacker, "outgoing"),
-    ...critModifiers(defender, "incoming"),
+    ...critModifiers(attacker, "outgoing", options),
+    ...critModifiers(defender, "incoming", options),
   ];
   const percent = base + modifiers.reduce((a, m) => a + m.value, 0);
 
@@ -282,9 +351,31 @@ export const BASE_CRIT_CHANCE = 50;
  * @param {"outgoing"|"incoming"} direction
  * @returns {Array<{source: string, value: number}>}
  */
-function critModifiers(unit, direction) {
+function critModifiers(unit, direction, options = null) {
   return (unit?.checkModifiers ?? [])
     .filter((m) => m.check === "crit" && (m.direction ?? "outgoing") === direction)
     .filter((m) => typeof m.value === "number" && m.value !== 0)
+    .filter((m) => !m.predicate || (options ? testPredicate(m.predicate, { options }) : false))
     .map((m) => ({ source: m.source, value: m.value }));
+}
+
+/**
+ * A forced table that only applies some of the time.
+ *
+ * EMIYA's *Clairvoyance* is the one clause in the set that needs it: *"the DU
+ * has an **80% chance** of using Evade- when Evading. Otherwise, the Combat
+ * Process proceeds as normal."* The roll arrives from the caller keyed by the
+ * contribution's source, so this stays pure and a replay reproduces it.
+ *
+ * @param {object} modifier
+ * @param {Record<string, number>} rolls
+ * @returns {boolean}
+ */
+function passesChance(modifier, rolls) {
+  const percent = modifier.chance ?? 100;
+  if (percent >= 100) return true;
+  const roll = rolls?.[modifier.source];
+  // No die means nobody rolled for it. Refusing is the safe direction: an
+  // unrolled 80% chance must not become a certainty.
+  return typeof roll === "number" ? chance(roll, percent) : false;
 }

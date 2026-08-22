@@ -1,0 +1,123 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+# The bounded field model is Ch. 43; this is a point in its six axes.
+schema: 1
+id: emiya-unlimited-blade-works
+name: "Unlimited Blade Works: Infinite Creation of Swords"
+# `null`, not "E~A++". The Rank ladder holds single Ranks, and three Noble
+# Phantasms in the roster print a RANGE instead (this one, Jack's Maria the
+# Ripper, Proto Gil's Bab-ilu). Storing either end would be storing a Rank the
+# sheet does not claim -- and every reader of `rank` here would then be reading
+# a number nobody wrote. The printed range leads the description, which is what
+# a player actually reads it off.
+rank: null
+isNP: true
+npTags: [antiArmy, boundedField, barrier]
+kind: noblePhantasm
+slug: unlimitedBladeWorks
+category: projection
+cooldown: "7◈"
+timing: { window: ownTurn }
+negatedBy: [silence]
+description: |
+  Rank: E~A++
+
+  (Passive) At the end of every Combat Phase involving EMIYA, he gains 1 Aria. Maximum number
+  of Aria stored is 6. EMIYA cannot gain Aria if he is inflicted with Silence.
+
+  (Activation) Can only be used by consuming 6 Aria. Affects a 7x7 panel area around EMIYA.
+  All Units within that 7x7 panel area are trapped and unable to leave; Units outside are
+  unable to enter. Within Unlimited Blade Works, EMIYA's Base Attack (STR) is increased by 50.
+  At the start of every Turn, all enemy Servants within Unlimited Blade Works perform an Evade
+  roll. If failed, that Unit receives (25 x 1d4) STR damage; this damage is not affected by any
+  damage modifying effects on EMIYA.
+  Lasts for 2◈ Turns. Enemy Units outside Unlimited Blade Works are unable to Attack Units
+  inside it and vice versa.
+  EMIYA's Master loses Health equivalent to if a B Rank NP is used. Cooldown: 7◈ Turns.
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+  # "Can only be used by consuming 6 Aria." A gate AND a cost -- the gate here,
+  # the spend in the phases below, because a refusal that has already taken the
+  # resource is worse than one that has not.
+  - { kind: resourceAtLeast, key: aria, amount: 6 }
+# "EMIYA's Master loses Health equivalent to if a B Rank NP is used" -- charged
+# as B rather than at this NP's own printed range, which is `E~A++` and parses
+# to no single Rank at all.
+additionalCosts:
+  - { id: ubwNP, kind: masterHealthByNPRank, rank: B }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 7 }
+  selection: { relations: [enemy, ally, self], includeSelf: true, chooser: all }
+  limits: { requiresZon: true }
+passiveRules:
+  # The Aria clause, and the reason `combatPhaseEnd` had to become an event that
+  # actually fires. Per PHASE, not per Process: an area attack is one exchange
+  # containing several Combat Processes, and paying per Process would hand him a
+  # full six-charge pool for one Noble Phantasm.
+  #
+  # "EMIYA cannot gain Aria if he is inflicted with Silence" -- a self-only
+  # predicate, answered at collection time, so no deferral is involved.
+  - key: OnEvent
+    event: combatPhaseEnd
+    automatic: true
+    predicate: [{ not: "self:effect:silence" }]
+    then:
+      # Clamped to the pool's own maximum by the writer: "maximum number of Aria
+      # stored is 6".
+      - { key: ResourceDelta, resource: aria, delta: 1 }
+field:
+  # Axis 1 -- geometry. Anchored where it was cast. EMIYA walking out of his own
+  # Reality Marble and dragging it behind him would be a different Noble
+  # Phantasm, and `followsUnit` is right there to be picked by mistake.
+  geometry:
+    kind: fixedArea
+    shape: { kind: square, size: 7 }
+  # Axis 5 -- duration. No extension clause: when it ends, it ends.
+  duration: "2◈"
+  # Axis 2 -- membership. Sealed in both directions with NO escape ladder, which
+  # is the whole difference between this and Asterios's Labyrinth: his gives the
+  # trapped a roll, and a Reality Marble does not.
+  membership:
+    enemyEntry: forbidden
+    enemyExit: forbidden
+    allyEntry: forbidden
+    allyExit: forbidden
+  # Axis 3 -- isolation. "Enemy Units outside are unable to Attack Units inside
+  # it and vice versa."
+  isolation:
+    outsideCanTargetInside: false
+    insideCanTargetOutside: false
+    outsideCanApplyEffectsInside: false
+    visibilityAcrossBoundary: full
+  # Axis 4 -- interior rules. The +50 goes on the Base Attack itself rather than
+  # into a damage modifier, because the sheet raises the BA: everything
+  # downstream that multiplies the base multiplies the 50 too, which a stage-4
+  # percentage would not.
+  interior:
+    - { key: StatDelta, stat: baseAttack.str, value: 50, relations: [self] }
+  # The start-of-Turn toll. Authored on the FIELD rather than as an `OnEvent` on
+  # the ability, because it belongs to the area: a Servant who is dragged in is
+  # subject to it, and EMIYA's own handlers do not follow anybody.
+  #
+  # "This damage is not affected by any damage modifying effects on EMIYA" --
+  # `bypassModifiers`, the same flag periodic effect damage carries, and the
+  # reason this is a bare damage intent rather than a Combat Process.
+  interiorEvents:
+    - event: turnStart
+      relations: [enemy]
+      kinds: [servant]
+      check: evade
+      onFail:
+        - { key: Damage, roll: { formula: "1d4", factor: 25 }, component: str, bypassModifiers: true }
+  # Axis 6 -- vulnerability.
+  vulnerabilities:
+    - { kind: ownerDefeat, result: end }
+phases:
+  # The Aria, spent. After the requirement gate above and before the field
+  # exists, so nothing between the two can leave him charged for a Marble that
+  # never opened.
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.aria.value, delta: -6 }
+  - kind: createField

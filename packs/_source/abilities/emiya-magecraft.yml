@@ -1,0 +1,29 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+schema: 1
+id: emiya-magecraft
+name: "Magecraft"
+rank: C
+kind: skill
+passive: true
+slug: magecraft
+description: |
+  (Passive 1) Allows the use of Thaumaturgy Spells.
+  (Passive 2) Whenever EMIYA uses a Thaumaturgy Spell, apply Range Up (Hawkeye) for 1◈ Turns,
+  Range is increased by 1. Does not stack, but duration is extended if reapplied.
+passiveRules:
+  # `abilityUsed` fires on the USER once a Skill, Spell or Noble Phantasm has
+  # resolved. The `category` filter is what makes "a Thaumaturgy Spell" a rule
+  # rather than a list that goes stale the moment an eighth Spell is written --
+  # the same reason Medea's High-Speed Divine Words names a category.
+  #
+  # Passive 1 is not a rule element: `isSpell` on each Thaumaturgy document is
+  # what routes it through the Spell path, and a grant that added nothing would
+  # be a second, quieter place for the same fact to be wrong.
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    ofCategory: thaumaturgy
+    then:
+      - key: ApplyEffect
+        effect: { id: rangeUp, magnitude: 1 }
+        duration: "1◈"

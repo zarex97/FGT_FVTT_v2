@@ -20,6 +20,7 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { grailContest, checkVictory } from "../rules/environment.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
+import * as fields from "./fields.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -83,6 +84,13 @@ async function onTurnChange(combat, prior, current) {
     }),
     "scheduler:beginTurn",
   );
+
+  // Bounded fields: close the expired ones, then run what the survivors do at
+  // a Turn boundary. Ch. 43's whole read side shipped with nothing creating a
+  // field and nothing ending one, so a `duration` was decoration -- which for a
+  // total-isolation Reality Marble means the match never ends.
+  await fields.expireFields(nextTick);
+  await run(await fields.runFieldEvents("turnStart"), "field:turnStart");
 }
 
 /**

@@ -25,7 +25,7 @@ function ymlUnder(dir) {
   });
 }
 
-/** Sets the engine itself writes. Authored content has to match one of them. */
+/** Sets the engine itself writes, for copies it creates at runtime. */
 const ENGINE_SETS = new Set(
   [...readFileSync("module/engine/copy.mjs", "utf8").matchAll(/exclusionSet: "([^"]+)"/g)].map((m) => m[1]),
 );
@@ -33,24 +33,36 @@ const ENGINE_SETS = new Set(
 describe("authored exclusion sets", () => {
   const docs = ymlUnder("packs/_source").map((path) => ({ path, doc: parse(readFileSync(path, "utf8")) }));
 
+  /** Every holder that joins a set, by set name. */
+  function membership() {
+    /** @type {Map<string, Array<{path: string, id: string}>>} */
+    const out = new Map();
+    for (const { path, doc } of docs) {
+      for (const holder of [doc, ...(doc?.abilities ?? [])]) {
+        const set = holder?.exclusionSet;
+        if (!set) continue;
+        if (!out.has(set)) out.set(set, []);
+        out.get(set).push({ path, id: holder.id ?? holder.ref });
+      }
+    }
+    return out;
+  }
+
   it("the engine declares at least one, or this guard proves nothing", () => {
     expect(ENGINE_SETS.size).toBeGreaterThan(0);
   });
 
-  it("every authored set is one the engine also writes", () => {
-    /** @type {string[]} */
-    const orphans = [];
+  it("no set has exactly one member", () => {
+    // The point of the rule, stated directly. A set of one is not a mutual
+    // exclusion, it is a typo -- which is how `dunScaith` and
+    // `wisdomOfDunScaith` came to be two sets of one that never gated each
+    // other. The engine's own sets count as members, because a copy joins them
+    // at runtime; anything else has to find its partner in the content.
+    const lonely = [...membership()]
+      .filter(([set, members]) => members.length < 2 && !ENGINE_SETS.has(set))
+      .map(([set, members]) => `"${set}" has one member: ${members[0].path}`);
 
-    for (const { path, doc } of docs) {
-      for (const holder of [doc, ...(doc?.abilities ?? [])]) {
-        const set = holder?.exclusionSet;
-        if (set && !ENGINE_SETS.has(set)) {
-          orphans.push(`${path}: ${holder.id ?? holder.ref} joins "${set}", which nothing else is in`);
-        }
-      }
-    }
-
-    expect(orphans).toEqual([]);
+    expect(lonely).toEqual([]);
   });
 
   it("a requirement naming a set joins that set too", () => {

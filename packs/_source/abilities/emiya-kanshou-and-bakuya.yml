@@ -1,0 +1,58 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+#
+# A PASSIVE Noble Phantasm: there is no button, and clicking it must not open a
+# targeting session or spend his Attack. It rides his Normal Attack instead.
+schema: 1
+id: emiya-kanshou-and-bakuya
+name: "Projection - Kanshou & Bakuya"
+rank: "C-"
+isNP: true
+isPassive: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: kanshouAndBakuya
+category: projection
+negatedBy: [silence]
+# "The effect of 'Kanshou & Bakuya' is negated while this Skill (Overedge) is on
+# Cooldown" -- stated on the Overedge sheet, enforced here, because it is THIS
+# ability's rules that stop contributing. A `negatedBy` naming an effect could
+# not say it: Overedge's cooldown is not an effect anybody carries.
+negatedWhile:
+  abilityOnCooldown: [emiya-overedge]
+description: |
+  (Passive) Used when EMIYA performs a Normal Attack at a Range of 2 or lower. When Kanshou &
+  Bakuya are used in Combat, EMIYA's Magic Resistance Rank is increased by one Rank for the
+  rest of that Turn (D to C: MAG damage from a MAG Rank of up to C is negated, otherwise MAG
+  damage taken is reduced by 30%; chance of being inflicted by debuffs is reduced by 15%).
+
+  The effect of 'Kanshou & Bakuya' is negated while 'Overedge' is on Cooldown.
+passiveRules:
+  # The trigger, not the effect. A `RankShift` written directly here would be
+  # collected in the rank pre-pass -- which runs before there is an attack, so
+  # its "at a Range of 2 or lower" clause could never be answered and the shift
+  # would be permanent or absent, never conditional.
+  #
+  # So the range test lives on the TRIGGER, where the attack is in scope, and
+  # what it applies is a short-lived effect that carries the shift. That also
+  # matches the sheet's own timing: the Rank is raised "for the REST OF THAT
+  # TURN", not for the one Combat Process that raised it.
+  - key: OnEvent
+    event: attackDeclared
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:range:lte:2"]
+    then:
+      - key: ApplyEffect
+        effect: { id: dualWieldGuard }
+        duration: "⅓◈"
+
+  # The extension clause lives on OVEREDGE, not here, and that is not a filing
+  # decision -- it is the only reading under which the sheet's two sentences
+  # can both be true.
+  #
+  # "During the Combat Process this Skill is used, the effects of 'Kanshou &
+  # Bakuya' extend to Normal Attacks at a Range of 3 or lower" and "the effect
+  # of 'Kanshou & Bakuya' is negated while this Skill is on Cooldown" flatly
+  # contradict each other if both are read from here: using Overedge is what
+  # puts Overedge on Cooldown, so `negatedWhile` above switches this document
+  # off before the swing it was supposed to extend. Found live -- Overedge
+  # projected nothing at all.

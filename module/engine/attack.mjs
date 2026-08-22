@@ -15,14 +15,17 @@
 import { computeDamage } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
-import { evade as evadeCheck, luckCheck, chance, checkPlan, critChance } from "../rules/checks.mjs";
+import { evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans, pendingCheckRolls } from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
-import { inAttackRange } from "../domain/geometry.mjs";
+import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
+import { rollOptionsFor } from "../rules/options.mjs";
+import { normalAttackAt } from "../rules/normal-attack.mjs";
+import { absorb, refreshShield } from "./shield.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
@@ -34,9 +37,8 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
-import { canUseAbility, resolveCosts } from "../rules/costs.mjs";
-import { rollOptionsFor } from "../rules/options.mjs";
-import { reactionAbilities, abilityFromOption } from "../rules/reactions.mjs";
+import { canUseAbility, resolveCosts, npCostAt } from "../rules/costs.mjs";
+import { reactionAbilities, allyReactions, abilityFromOption } from "../rules/reactions.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 
@@ -119,6 +121,12 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     return { needsChoice: true, candidates: targets.candidates };
   }
 
+  // A barrier is refreshed on the way up, BEFORE the use is recorded: *"every
+  // time Rho Aias is used after its first usage, its Health is restored by half
+  // of its current Health"*, and `refreshShield` decides first-versus-later
+  // from the same counter `recordUse` is about to increment.
+  if (ability?.system?.shield) await refreshShield(ability);
+
   // Declaring the attack is what spends the budget, not landing it: a Noble
   // Phantasm that misses still consumed the Servant's attack for the turn, and
   // *"non-damaging NPs count as the Unit's Attack for that Turn"* says so
@@ -127,7 +135,13 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     await budget.spend({ combat, unit: self, action: actionKind });
     const isAttack = actionKind !== "skill";
     await applyBatch(
-      [I.markTurn(attackerId, isAttack ? { attacked: true, acted: true } : { usedActiveSkill: true, acted: true })],
+      [
+        I.markTurn(attackerId, isAttack ? { attacked: true, acted: true } : { usedActiveSkill: true, acted: true }),
+        // The record every use gate reads. `resolveAttack` kept none, so
+        // `oncePerTurn`, both exclusion scales and the whole-match budget were
+        // enforced for Skills and quietly ignored for Noble Phantasms.
+        ...(ability ? [I.recordUse(attackerId, ability.id, ability.system?.contentId ?? null)] : []),
+      ],
       "attack:declared",
     );
   }
@@ -200,15 +214,46 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     // that is not affected by Magic Resistance"* -- a property of the attack,
     // so it has to travel with the attack.
     component: componentOf(attacker, ability),
-    ignoresMagicResistance: Boolean(ability?.system?.ignoresMagicResistance),
+    // Appendix A treats `Aim` and `Pierce` as properties of the ATTACK, and
+    // `evade`/the pipeline have read both by name since they were written --
+    // against a spec that carried neither, so no authored Noble Phantasm could
+    // ever have one. EMIYA's Hrunting is Aim and his Caladbolg II is Pierce.
+    aim: Boolean(ability?.system?.damage?.aim),
+    pierce: Boolean(ability?.system?.damage?.pierce),
+    ignoresMagicResistance: Boolean(
+      ability?.system?.damage?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
+    ),
   };
-  const targetIds = targets.units.map((t) => t.unitId);
+  // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
+  // the same defender, inside ONE Combat Phase -- which is the distinction that
+  // matters, because a Combat Phase is what pays him his Aria and two phases
+  // would pay twice for one action.
+  const repeat = Math.max(1, ability?.system?.damage?.repeat ?? 1);
+  const targetIds = targets.units.flatMap((t) => Array.from({ length: repeat }, () => t.unitId));
 
   // A resolution that caught no units is still a resolution — a ground-placed
   // non-damaging NP has a shape and no defenders — so it keeps its single
   // null-defender process rather than becoming an empty fan-out.
+  // "Has the Pierce effect ON THE TARGETED UNIT" -- the anchor of the area, not
+  // everyone in it. Pierce ignores Invuln and the Block action, so spreading it
+  // across the splash would hand the Noble Phantasm a property the sheet gives
+  // to one panel.
+  const primaryId = attackSpec.pierce && ability?.system?.damage?.pierceOn === "primary"
+    ? (placement?.unitId ?? placement?.targetId ?? null)
+    : null;
   const states = targetIds.length > 0
-    ? process.beginFanOut({ attackerId, targetIds, attack: attackSpec })
+    ? process.beginFanOut({
+      attackerId,
+      targetIds,
+      attack: attackSpec,
+      // DISTINCT defenders, not processes. Overedge's two swings are two
+      // processes against one Unit and are not an area attack; deriving it from
+      // the process count would have flipped `attack:isAoE` on for them and
+      // suppressed the defender's facing change into the bargain.
+      isAoE: new Set(targetIds).size > 1,
+    }).map((state) => (primaryId === null
+      ? state
+      : { ...state, attack: { ...state.attack, pierce: state.defenderId === primaryId } }))
     : [process.begin({ attackerId, defenderId: null, attack: attackSpec })];
 
   /** @type {Array<{messageId: string, state: object}>} */
@@ -219,7 +264,7 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     // recorded ONCE at creation because the offer is decided by the moment the
     // attack is declared (§15.3).
     const withReactions = state.defenderId
-      ? { ...state, reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId) } }
+      ? { ...state, reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId, state.attack) } }
       : state;
     const advanced = process.advance(withReactions, "done");
     const target = targets.units.find((t) => t.unitId === advanced.defenderId);
@@ -240,6 +285,33 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     await message.setFlag("fgt", "process", process.serialize(advanced));
     await message.setFlag("fgt", "collapse", collapse);
     processes.push({ messageId: message.id, state: advanced });
+
+    // §E.3's `attackDeclared`, raised for the first time. It is the moment
+    // EMIYA's Kanshou & Bakuya asks about -- "used when EMIYA performs a Normal
+    // Attack at a Range of 2 or lower" -- which is a question about the SWING
+    // rather than about whether it landed, so `damageStepEnd` would be the
+    // wrong rung: a Servant who projected the swords and then missed still
+    // projected them.
+    await fireAttackDeclared(advanced);
+  }
+
+  // Everything the ability does to its USER, which the Combat Process has no
+  // rung for: spending a Resource, opening a bounded field, conjuring a squad,
+  // asking the player a question. A Noble Phantasm silently did none of it --
+  // Unlimited Blade Works consumed no Aria and created no Reality Marble while
+  // charging its Master in full.
+  if (ability) {
+    const { runCasterPhases } = await import("./skill-use.mjs");
+    await runCasterPhases(ability, attacker, board);
+  }
+
+  // The event two of EMIYA's passives listen for. On the ATTACK path as well as
+  // the Skill path, because a Projection Noble Phantasm is a Thaumaturgy Spell
+  // by his own sheet's note -- and firing it in only one place is exactly how
+  // `abilitiesUsed` came to be recorded by half the game.
+  if (ability) {
+    const { fireAbilityUsed } = await import("./skill-use.mjs");
+    await fireAbilityUsed(attacker, ability);
   }
 
   return {
@@ -272,10 +344,23 @@ export async function advanceAttack({ messageId, event }) {
   const reactionAbilityId = abilityFromOption(event);
   if (state.state === "react" && reactionAbilityId) {
     const defender = game.actors.get(state.defenderId);
-    const used = defender?.items?.get(reactionAbilityId);
+    // The ability may belong to somebody else entirely -- Rho Aias is projected
+    // by a third party standing up to three panels away -- so the owner is read
+    // off the offer rather than assumed to be the defender.
+    const offer = (state.reactionAbilities?.[state.defenderId] ?? [])
+      .find((a) => a.id === reactionAbilityId) ?? null;
+    const owner = game.actors.get(offer?.ownerId ?? state.defenderId) ?? defender;
+    const used = owner?.items?.get(reactionAbilityId);
     if (used) {
       const { useSkill } = await import("./skill-use.mjs");
-      const out = await useSkill({ actorId: defender.id, abilityId: used.id });
+      const out = await useSkill({
+        actorId: owner.id,
+        abilityId: used.id,
+        // The Unit in peril is what a third-party reaction points at: Rho Aias
+        // is projected in front of the ally who is about to be hit, not in
+        // front of its projector.
+        placement: owner.id === state.defenderId ? undefined : { unitId: state.defenderId },
+      });
       if (!out.ok) ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", { name: used.name, reason: out.reason }));
     }
 
@@ -290,6 +375,7 @@ export async function advanceAttack({ messageId, event }) {
 
       state = process.advance(state, "evade");
       state = process.advance(state, auto.success ? "success" : "fail", auto.outcome);
+      if (auto.success) await fireEvadeSucceeded(state);
       await message.setFlag("fgt", "process", process.serialize(state));
       await updateAttackCard(message, state);
       return state;
@@ -301,6 +387,7 @@ export async function advanceAttack({ messageId, event }) {
     state = process.advance(state, "evade");
     const outcome = await rollEvade(state);
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
+    if (outcome.success) await fireEvadeSucceeded(state);
   } else if (state.state.startsWith("s2") && event === "contest") {
     const outcome = await rollLuck(state);
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
@@ -334,7 +421,133 @@ export async function advanceAttack({ messageId, event }) {
 
   await message.setFlag("fgt", "process", process.serialize(state));
   await updateAttackCard(message, state);
+  if (process.isComplete(state)) await fireCombatPhaseEnd(state);
   return state;
+}
+
+/**
+ * Raise `attackDeclared` on the attacker, once per Combat Process.
+ *
+ * Per process rather than per Combat Phase, because the option set describes
+ * one defender at one distance -- and every handler in the reference set that
+ * listens for it is predicated on exactly those two facts.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function fireAttackDeclared(state) {
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  if (!attacker || !defender) return;
+
+  const intents = fireEvent("attackDeclared", [attacker], {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    options: rollOptions(attacker, defender, state),
+    rolls: {},
+  });
+  if (intents.length > 0) await applyBatch(intents, "attackDeclared");
+}
+
+/**
+ * Raise `evadeSucceeded` on the unit that evaded.
+ *
+ * §E.3 has listed this event since the reference was written and nothing ever
+ * raised it, so the three abilities in the reference set that pay out for a
+ * successful Evade -- EMIYA's *Eye of the Mind (True)* at both Ranks and
+ * Heracles's *Eye of the Mind (False)* -- each carried a clause that could not
+ * fire. All three are *"upon a successful Evade, reduce the Cooldown of this
+ * Skill"*, which is the reward for the defensive read and the reason the Skill
+ * is reusable at all.
+ *
+ * Fired for an automatic Evade as well as a rolled one: `Dodge` is a
+ * *"successful Evade"*, and the sheets do not distinguish.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function fireEvadeSucceeded(state) {
+  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  if (!defender) return;
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+
+  const intents = fireEvent("evadeSucceeded", [defender], {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    // From the EVADER's point of view: `self` is the unit that dodged and
+    // `target` is whoever it dodged, so a clause can pay out differently
+    // against a Noble Phantasm than against a Normal Attack.
+    options: rollOptionsFor({
+      attacker: defender, defender: attacker, attack: attackFacts(attacker, defender, state),
+    }),
+    rolls: {},
+  });
+  if (intents.length > 0) await applyBatch(intents, "evadeSucceeded");
+}
+
+/**
+ * Raise `combatPhaseEnd`, once, when every Process in the fan-out has finished.
+ *
+ * A Combat **Phase** is the whole exchange; a Combat **Process** is one
+ * attacker against one defender, and a Noble Phantasm over seven Units is one
+ * phase containing seven processes. EMIYA's *Unlimited Blade Works* is *"at the
+ * end of every Combat Phase involving EMIYA, he gains 1 Aria"* -- so firing per
+ * process would hand him a full charge for one area attack.
+ *
+ * Completeness is read back off the sibling chat messages rather than counted
+ * in memory, because the ladder can span a reconnect and a counter can add a
+ * process to the group after the first one finished.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function fireCombatPhaseEnd(state) {
+  // The flag holds a JSON STRING -- `process.serialize` stringifies -- so it has
+  // to be parsed before anything can be read off it. Reaching for `.groupId`
+  // straight off the flag gave `undefined` for every message, which silently
+  // made every fan-out look like a group of one.
+  const siblings = state.groupId
+    ? game.messages.filter((m) => {
+      const raw = m.getFlag("fgt", "process");
+      if (!raw) return false;
+      try {
+        return process.deserialize(raw).groupId === state.groupId;
+      } catch {
+        return false;
+      }
+    })
+    : [];
+  const others = siblings.filter((m) => !process.isComplete(process.deserialize(m.getFlag("fgt", "process"))));
+  if (others.length > 0) return;
+
+  // Once per phase. The flag lives on the message rather than in memory so a
+  // second `advanceAttack` on an already-finished process -- which the card's
+  // buttons make easy -- cannot pay out twice.
+  const marker = siblings[0] ?? null;
+  if (marker?.getFlag("fgt", "phaseEnded")) return;
+  if (marker) await marker.setFlag("fgt", "phaseEnded", true);
+
+  const involved = [
+    state.attackerId,
+    state.defenderId,
+    ...siblings.map((m) => process.deserialize(m.getFlag("fgt", "process")).defenderId),
+  ].filter(Boolean);
+  const units = [...new Set(involved)]
+    .map((id) => game.actors.get(id))
+    .filter(Boolean)
+    .map((a) => unitSnapshot(a));
+  if (units.length === 0) return;
+
+  const intents = fireEvent("combatPhaseEnd", units, {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    options: new Set(),
+    rolls: {},
+  });
+  if (intents.length > 0) await applyBatch(intents, "combatPhaseEnd");
 }
 
 /**
@@ -418,6 +631,27 @@ async function runAutomaticStep(state, message) {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Roll the `1d100` for every probabilistic check contribution this unit has.
+ *
+ * The caller-rolls contract, one more time: `checkPlan` is pure and reads
+ * totals out of a map keyed by the contribution's source. Without this the
+ * chance would have to be rolled inside the rules layer, and an 80% forced
+ * table would stop being reproducible from a recorded roll.
+ *
+ * @param {object} unit
+ * @param {string} check
+ * @returns {Promise<Record<string, number>>}
+ */
+async function rollCheckChances(unit, check) {
+  /** @type {Record<string, number>} */
+  const rolls = {};
+  for (const spec of pendingCheckRolls(unit, check, { direction: "imposed" })) {
+    rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
+  }
+  return rolls;
+}
+
+/**
  * Roll the Evade. The table is chosen by comparing current Agility, and Mad
  * Enhancement forces the unfavourable one regardless.
  * @param {object} state
@@ -431,7 +665,17 @@ async function rollEvade(state) {
   // Everything the defender's own abilities have to say about Evade -- Mad
   // Enhancement's forced table, an Agility check penalty, a granted
   // auto-evasion -- arrives through the plan rather than being named here.
-  const plan = checkPlan(defender, "evade");
+  //
+  // Plus what the ATTACKER imposes on it. EMIYA's Clairvoyance forces the
+  // defender onto the unfavourable table 80% of the time, which is a rule on
+  // his sheet and not on theirs, so it can never come from their own plan.
+  const options = rollOptions(attacker, defender, state);
+  const plan = mergePlans(
+    checkPlan(defender, "evade", { options }),
+    checkPlan(attacker, "evade", {
+      direction: "imposed", options, rolls: await rollCheckChances(attacker, "evade"),
+    }),
+  );
   const attackProperties = [];
   if (state.attack?.aim) attackProperties.push("aim");
   if (state.attack?.kind === "np") attackProperties.push("np");
@@ -571,6 +815,14 @@ function pendingCosts({ usage, ability, self, master, board }) {
   // Standing per-use costs the ability declares, each with its own id so
   // something else can name it in `supersedes`.
   for (const extra of ability?.system?.additionalCosts ?? []) {
+    // `masterHealthByNPRank` charges the Noble Phantasm table at a STATED Rank
+    // rather than at the ability's own, and through the same rule `npCost`
+    // uses -- so a Free Servant pays in Sustainability instead of producing an
+    // intent aimed at a Master who does not exist.
+    if (extra.kind === "masterHealthByNPRank") {
+      out.push({ ...npCostAt({ rank: extra.rank, unit: self, master }), id: extra.id, supersedes: extra.supersedes ?? [] });
+      continue;
+    }
     out.push({
       kind: extra.kind ?? "masterHealth",
       amount: extra.amount ?? 0,
@@ -871,6 +1123,11 @@ async function applyDamage(state, message) {
   const defender = unitFrom(board, defenderDoc);
   const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
 
+  // Once, and shared: the option set the predicates read and the context the
+  // pipeline reads have to be describing the same attack.
+  const facts = attackFacts(attacker, defender, state);
+  const options = rollOptionsFor({ attacker, defender, attack: facts });
+
   // The crit roll, then every roll the pipeline will consume — rolled HERE so
   // the pipeline itself stays pure and reproducible.
   //
@@ -878,7 +1135,9 @@ async function applyDamage(state, message) {
   // would be 50%. Some effects increase and decrease the chance." The coin
   // flip encoded the 50 and made every crit modifier in the game inert --
   // `Crit Up` applied, showed on the sheet, and changed nothing.
-  const critSpec = critChance(attacker, defender);
+  // Hawkeye's crit clauses are predicated on the distance, so the plan cannot
+  // be read without the attack in scope.
+  const critSpec = critChance(attacker, defender, { options });
   const critRoll = await new Roll("1d100").evaluate();
   const isCrit = critSpec.blocked
     ? false
@@ -888,14 +1147,16 @@ async function applyDamage(state, message) {
   const ctx = {
     attacker, defender, board,
     attack: {
-      kind: state.attack?.kind ?? "normal",
+      // SPREAD, not rebuilt. `component`, `pierce` and `ignoresMagicResistance`
+      // are all read by the pipeline and all three were dropped here, which is
+      // why Magic Resistance could not be bypassed and Pierce did nothing.
+      ...facts,
       abilityId: state.attack?.abilityId ?? null,
       rank: Rank.parseOrNull(ability?.system?.rank),
       categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
-      isAoE: state.isAoE,
       element: ability?.system?.element ?? null,
     },
-    base: baseSpecFor(attackerDoc, ability),
+    base: baseSpecFor(attackerDoc, ability, facts.range),
     multiplier: ability?.system?.damage?.multiplier ?? 1,
     flatBonus: ability?.system?.damage?.flatBonus ?? 0,
     conditionalMultipliers: ability?.system?.damage?.conditionalMultipliers ?? [],
@@ -910,7 +1171,7 @@ async function applyDamage(state, message) {
       // same rolls reproduces the same number.
       ...(await rollModifierDice([attacker, defender])),
     },
-    options: rollOptions(attacker, defender, state),
+    options,
   };
 
   const result = computeDamage(ctx);
@@ -954,8 +1215,22 @@ async function applyDamage(state, message) {
     ];
   }
 
+  // A barrier standing in front of the defender takes the damage first, and
+  // charges its owner for what it took. LAST, after every stage and every
+  // Command Spell interrupt, because the sheet says it "will take the damage of
+  // the enemy's NP" -- the finished number, not an intermediate one.
+  const barrier = absorb(defender, result.total, { options });
+  if (barrier.absorbed > 0) {
+    result.total = barrier.through;
+    result.breakdown = [
+      ...(result.breakdown ?? []),
+      { stage: "barrier", label: `${barrier.source} absorbed ${barrier.absorbed}`, to: barrier.through },
+    ];
+  }
+
   await applyBatch(
     [
+      ...barrier.intents,
       I.damage(state.defenderId, result.total, result.breakdown),
       ...(result.flags.defeatedOutright ? [I.defeat(state.defenderId, "petrify")] : []),
       I.log({ kind: "damage", attackerId: state.attackerId, defenderId: state.defenderId, total: result.total }),
@@ -1122,11 +1397,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           // Hardcoded to 0 until Medea's Item Construction needed it, which
           // made every outgoing contribution in the game inert.
           inflictBonus: inflictBonusOf(unitSnapshot(game.actors.get(state.attackerId)), def),
-          options: rollOptionsFor({
-            attacker: unitSnapshot(game.actors.get(state.attackerId)),
-            defender,
-            attack: state.attack,
-          }),
+          options: rollOptions(unitSnapshot(game.actors.get(state.attackerId)), defender, state),
           resist: 0,
         },
       });
@@ -1181,7 +1452,7 @@ async function fireDamageStepEnd(state) {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     board: currentBoard(),
-    options: rollOptionsFor({ attacker, defender, attack: state.attack }),
+    options: rollOptions(attacker, defender, state),
     rolls: {},
   });
 
@@ -1293,7 +1564,7 @@ async function applyDeclaredEffects(specs, ability, state, defender) {
         currentTick: game.combat?.system?.globalTurn ?? 0,
         roll: roll.total,
         inflictBonus: inflictBonusOf(attacker, def),
-        options: rollOptionsFor({ attacker, defender, attack: state.attack }),
+        options: rollOptions(attacker, defender, state),
         resist: 0,
       },
     });
@@ -1400,10 +1671,11 @@ export function targetSpecForAttack(attacker, ability) {
  * @param {object|null} ability
  * @returns {object}
  */
-function baseSpecFor(attacker, ability) {
+function baseSpecFor(attacker, ability, range = null) {
   if (ability?.system?.damage?.base) return ability.system.damage.base;
-  const component = attacker.system.normalAttack?.component ?? "str";
-  return { sources: [{ unit: "self", component, factor: 1 }] };
+  // Through the same rule the option set used, so the number the pipeline adds
+  // up and the component a predicate tests cannot disagree.
+  return { sources: normalAttackAt({ normalAttack: attacker.system.normalAttack }, range).sources };
 }
 
 /**
@@ -1417,11 +1689,60 @@ function rollOptions(attacker, defender, state) {
   // Built in the rules layer, where it can be tested without Foundry. It used
   // to be built here, which is why two whole clause families -- `skill:` and
   // `region:` -- went years without ever being emitted.
-  return rollOptionsFor({
-    attacker,
-    defender,
-    attack: { kind: state.attack?.kind ?? "normal", isAoE: state.isAoE },
-  });
+  return rollOptionsFor({ attacker, defender, attack: attackFacts(attacker, defender, state) });
+}
+
+/**
+ * Everything about THIS attack that a predicate may ask about.
+ *
+ * One builder, because there were four call sites and each spread a different
+ * subset. Three of them rebuilt `attack` from scratch and dropped
+ * `component`, `ignoresMagicResistance` and `pierce` on the way -- fields the
+ * damage pipeline reads by name -- so Magic Resistance's own exemption clause
+ * and every `Pierce` in the game were decided against a spec that never
+ * carried them.
+ *
+ * @param {object} attacker attacker snapshot
+ * @param {object} defender defender snapshot
+ * @param {object} state the Combat Process state
+ * @returns {object}
+ */
+export function attackFacts(attacker, defender, state) {
+  const range = attackDistance(attacker, defender);
+  const kind = state.attack?.kind ?? "normal";
+  const facts = { ...(state.attack ?? {}), kind, isAoE: Boolean(state.isAoE), range };
+
+  // A Normal Attack that changes shape with distance decides two of these
+  // fields itself, and only here -- the declaration cannot, because the
+  // distance is not known until there is a defender. EMIYA at Range 3 is a
+  // combined STR/MAG shot that Magic Resistance does not see; at Range 2 the
+  // same button is a plain STR attack.
+  if (kind !== "normal") return facts;
+  const normal = normalAttackAt(attacker, range);
+  return {
+    ...facts,
+    component: normal.component,
+    ignoresMagicResistance: facts.ignoresMagicResistance || normal.ignoresMagicResistance,
+  };
+}
+
+/**
+ * How many panels apart the two units are, or `null` when either has no panel.
+ *
+ * Chebyshev, which is what "at a Range of 3 or higher" counts: the attack-range
+ * shape clips the outer ring's corners at R >= 3 (§8.2), but that is about
+ * which panels are *reachable*, not about how far away the one you hit is.
+ *
+ * @param {object} attacker
+ * @param {object} defender
+ * @returns {number|null}
+ */
+function attackDistance(attacker, defender) {
+  const from = attacker?.panel;
+  const to = defender?.panel;
+  if (!from || !to) return null;
+  if (![from.i, from.j, to.i, to.j].every((n) => typeof n === "number")) return null;
+  return chebyshev(from, to);
 }
 
 /**
@@ -1598,15 +1919,36 @@ async function cutContract(phase, state, defenderDoc) {
  * @param {string} defenderId
  * @returns {Array<{id: string, name: string}>}
  */
-function offeredReactions(defenderId) {
+function offeredReactions(defenderId, attack = null) {
   const actor = game.actors.get(defenderId);
   if (!actor) return [];
 
-  return reactionAbilities({
+  const own = reactionAbilities({
     items: actor.items,
     effects: actor.effects.map((e) => e.system?.defId).filter(Boolean),
     turnState: actor.system?.turnState ?? {},
-  }).map((a) => ({ id: a.id, name: a.name }));
+  }).map((a) => ({ id: a.id, name: a.name, ownerId: defenderId }));
+
+  // Plus anything a nearby ALLY could interpose. EMIYA's Rho Aias is the only
+  // one, and it is the only ability in the game whose user is neither the
+  // attacker nor the defender.
+  //
+  // Offered at the defender's rung because Ch. 27's ladder prompts one side per
+  // rung; the option is labelled with the projector's name so whoever answers
+  // knows whose Health it is about to cost.
+  const board = boardSnapshot();
+  const ally = allyReactions({
+    defender: board.units.find((u) => u.id === defenderId) ?? unitSnapshot(actor),
+    board,
+    attack: attack ?? {},
+    actorFor: (id) => game.actors.get(id),
+  }).map((a) => ({
+    id: a.ability.id,
+    name: `${a.ability.name} (${a.ownerName})`,
+    ownerId: a.ownerId,
+  }));
+
+  return [...own, ...ally];
 }
 
 /**

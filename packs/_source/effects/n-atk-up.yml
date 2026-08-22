@@ -17,4 +17,4 @@ rules:
     modifierKey: atkUp
     direction: dealt
     value: "@magnitude"
-    predicate: ["self:attack:normal"]
+    predicate: ["attack:kind:normal"]

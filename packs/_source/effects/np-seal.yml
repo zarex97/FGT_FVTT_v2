@@ -8,7 +8,11 @@ volatility: nonVolatile
 valence: offensive
 stacking: noneRefresh
 baseChance: 100
-rules:
-  - key: Suppress
-    scope: abilities
-    predicate: ["self:ability:isNP"]
+# NO rule elements. What actually refuses a Noble Phantasm is the prevention
+# table in `rules/budget.mjs` (`npSeal: ["np"]`), which is consulted at
+# declaration -- before targeting, before any cost is paid.
+#
+# There WAS a `Suppress` element here, predicated on `self:ability:isNP`.
+# Nothing emits that option and nothing reads a suppression scoped `abilities`,
+# so it was inert twice over; keeping it implied a second enforcement path that
+# does not exist, which is worse than having none.

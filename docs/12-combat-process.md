@@ -245,6 +245,45 @@ Precedence, from the effect texts:
 Substitution > Aim > Dodge > (roll)
 ```
 
+`Aim` and `Pierce` are properties of the **attack**, and the evade rung and the pipeline have both
+read them by name since they were written — against a spec that carried neither, so no authored
+ability could ever have one. They come off `damage:` now: EMIYA's *Hrunting* is `aim: true` and
+his *Caladbolg II* is `pierce: true`.
+
+Caladbolg II adds `pierceOn: primary`, because the sheet gives it *"the Pierce effect **on the
+targeted Unit**"* and hits a 3×3 around them. Pierce ignores Invuln and the Block action, so
+spreading it across the splash would hand the Noble Phantasm a property the sheet gives to one
+panel — the anchor's process carries it and the others do not.
+
+### A table forced on somebody else's roll
+
+Every check contribution belongs to the Unit making the check, with one exception in the whole
+reference set. EMIYA's *Clairvoyance*: *"When EMIYA performs a Normal Attack at a Range of 3 or
+higher, **the DU** has an 80% chance of using Evade- when Evading."*
+
+It is not a debuff — not applied, not resisted, not removable, and it lasts exactly one roll — so
+it is a `direction: imposed` contribution on the attacker, and the rung merges the defender's own
+plan with whatever the attacker imposes. `mergePlans` takes `unfavourable` on a tie, as the effect
+engine does everywhere else, and an automatic success is read from the defender's plan only: an
+attacker must not be able to hand its target a free Evade.
+
+### A reaction that belongs to a third party
+
+`whenAttacked` offers the **defender** its own abilities. EMIYA's *Rho Aias* is offered to somebody
+who is neither the attacker nor the defender: *"used when any allied Unit (including EMIYA) within
+a 3 panel area of EMIYA is about to be hit by a Noble Phantasm."*
+
+`whenAllyAttacked` is that window, with two gates of its own beyond the ordinary ones — the
+distance from the projector, and `againstKind`, because *"about to be hit by a Noble Phantasm"* is
+a restriction and not a note. Verified live: offered when an ally is hit by an NP, and **not**
+when the same ally is hit by a Normal Attack or when an enemy is hit by an NP.
+
+**Known limitation.** Ch. 27's ladder prompts one side per rung, so the offer is appended to the
+*defender's* rung, labelled with the projector's name, and resolved against the projector's actor.
+The decision is therefore presented where the defender's controller (or the GM) can answer it
+rather than on the projector's own client. Making it a genuine third-party prompt means a new rung
+in the state machine, which is a larger change than this Servant needed.
+
 - *"A Unit affected by Aim is able to ignore the effects of Dodge on an enemy Unit and the
   Evade action of the enemy Unit."*
 - *"Substitution … cannot be hit by all Attacks including NP and Fixed damage; even if the AU

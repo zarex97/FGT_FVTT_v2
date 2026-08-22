@@ -1,0 +1,41 @@
+# EMIYA's Trace, On -- char_orig_sheets/Copia de EMIYA.md
+# The aggressive half of the pair. See `activated-circuits.yml` for why the
+# polarity is `status` and the exclusion is declared twice.
+schema: 1
+id: blazingCircuits
+name: "Blazing Circuits (BC)"
+description: |
+  While Unlimited Blade Works is Active, Normal Attack damage dealt is increased by 50. The
+  next time EMIYA uses an NP that deals damage, all damage dealt by EMIYA is increased by 20%
+  including NP for the rest of the Round.
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+# `replaces`, not `blocks`. The sheet says both things at once -- "EMIYA
+# cannot have both the AC and BC effects at the same time" AND "you can
+# choose to swap from AC to BC or vice-versa" -- and `blocks` can only say
+# the first, by REFUSING the swap. Declared on both sides, so whichever is
+# applied wins and the swap is the same write as the first pick.
+replaces: [activatedCircuits]
+rules:
+  # Clause 1. A FLAT 50 on Normal Attacks inside the Marble -- flat, like Dmg
+  # Boost, because the sheet prints no per cent sign.
+  - key: FlatDamage
+    modifierKey: dmgBoost
+    value: 50
+    predicate: ["attack:kind:normal", "self:inField:unlimitedBladeWorks"]
+
+  # Clause 2, once, on the next damaging NP.
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    consumesUse: true
+    predicate: ["attack:kind:np"]
+    then:
+      - key: ApplyEffect
+        effect: { id: bcOverdrive, magnitude: 20, npMagnitude: 20 }
+        duration: "thisRound"
+uses: 1

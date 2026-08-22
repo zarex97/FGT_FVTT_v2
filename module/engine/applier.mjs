@@ -72,7 +72,13 @@ export function planApplication(intents, { canWrite, isGM = false }) {
  * @returns {Promise<{applied: number, proxied: number, prompted: number}>}
  */
 export async function applyIntents(intents, { io, canWrite, isGM = false, source = "unknown" }) {
-  const plan = planApplication(intents, { canWrite, isGM });
+  // HERE rather than in `applyWorldIntents`, because three call sites write to
+  // the world without going through that helper -- the attack flow, the
+  // scheduler's boundary sequences and the movement hook -- and putting the
+  // step in one of them would leave the other two applying bare effect intents.
+  // That is the same "two implementations of one rule" defect this file's own
+  // header warns about.
+  const plan = planApplication(await resolveEffects(intents), { canWrite, isGM });
   if (plan.problems.length > 0) {
     throw new Error(
       `FGT | Refusing to apply a malformed intent batch from ${source}:\n  ${plan.problems.join("\n  ")}`,
@@ -111,6 +117,82 @@ export async function applyWorldIntents(intents, source) {
     isGM: game.user.isGM,
     source,
   });
+}
+
+/**
+ * Put every unresolved `applyEffect` through the effect flow first.
+ *
+ * `io.createEffects` is a bare create: it makes a document and asks nothing.
+ * That is right for an intent produced by `effect-applier.applyEffect`, which
+ * has already run immunity, exclusivity, the chance roll and the stacking rule
+ * — and wrong for one produced anywhere else.
+ *
+ * The scheduler's `ApplyEffect` action emits a bare intent, so **every effect
+ * applied by an event handler bypassed all four**: an immune Unit took it, a
+ * resisted one took it at full strength, a `blocks` pair could be held
+ * together, and a `noneExtend` buff made a second document instead of
+ * extending. Found live, twice in one use: EMIYA's Magecraft gave him two
+ * separate `Range Up` instances, and his Trace, On could not swap Activated
+ * Circuits for Blazing Circuits because the swap is an exclusivity decision
+ * nobody was making.
+ *
+ * @param {Intent[]} intents
+ * @returns {Promise<Intent[]>}
+ */
+async function resolveEffects(intents) {
+  const raw = intents.filter((i) => i.t === "applyEffect" && !i.resolved);
+  if (raw.length === 0) return intents;
+  // No world: this is a unit test applying against an injected `io`, and there
+  // is no registry to resolve a definition from. Pass the batch through rather
+  // than failing -- the flow is exercised directly by its own tests.
+  if (typeof game === "undefined" || !game?.actors) return intents;
+
+  const [{ applyEffect }, { EffectRegistry }, { unitSnapshot }] = await Promise.all([
+    import("./effect-applier.mjs"),
+    import("../rules/registry.mjs"),
+    import("./board.mjs"),
+  ]);
+
+  /** @type {Intent[]} */
+  const out = [];
+  for (const intent of intents) {
+    if (intent.t !== "applyEffect" || intent.resolved) {
+      out.push(intent);
+      continue;
+    }
+
+    const def = EffectRegistry.get(intent.effect?.defId);
+    const target = game.actors.get(intent.unitId);
+    // Nothing to resolve it against: pass it through rather than dropping it,
+    // because a missing definition is a content problem and losing the write
+    // would hide it.
+    if (!def || !target) {
+      out.push(intent);
+      continue;
+    }
+
+    const result = applyEffect({
+      def,
+      target: unitSnapshot(target),
+      magnitude: intent.effect.magnitude ?? 0,
+      npMagnitude: intent.effect.npMagnitude ?? null,
+      source: { unitId: intent.sourceId ?? null, abilityId: intent.effect.sourceAbilityId ?? null },
+      ctx: {
+        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+        currentTick: game.combat?.system?.globalTurn ?? 0,
+        roll: (await new Roll("1d100").evaluate()).total,
+        options: new Set(),
+      },
+    });
+
+    // The expiry was already computed by whoever emitted the intent, and it
+    // knows the duration this application was authored with; the flow recomputes
+    // from the definition's default, which is not the same thing.
+    out.push(...result.intents.map((i) => (i.t === "applyEffect"
+      ? { ...i, effect: { ...i.effect, expiry: intent.effect.expiry ?? i.effect.expiry } }
+      : i)));
+  }
+  return out;
 }
 
 /**
@@ -169,6 +251,15 @@ async function writeGroup(group, io) {
       break;
     case "markTurn":
       await io.markTurn(unitId, Object.assign({}, ...intents.map((i) => i.patch)));
+      break;
+    case "shieldDelta":
+      for (const i of intents) await io.adjustShield(unitId, i.abilityId, i.delta);
+      break;
+    case "extendEffect":
+      for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns);
+      break;
+    case "recordUse":
+      for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId);
       break;
     case "defeat":
       await io.defeat(unitId, intents[0].cause);

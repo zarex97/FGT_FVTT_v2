@@ -76,8 +76,46 @@ function abilityCommon() {
     // sides -- a one-sided exclusion is decided by whichever happens to be used
     // first, which is not a rule.
     sameTurnExclusive: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // The same declaration at ROUND scale. EMIYA's two projected Noble
+    // Phantasms are "cannot be used on the same Round as" each other, and he
+    // acts three times a Round -- so a per-Turn exclusion would forbid nothing
+    // he would otherwise do.
+    sameRoundExclusive: new fields.ArrayField(new fields.StringField({ blank: false })),
+
+    // A budget for the whole MATCH, not for a turn or a cooldown.
+    //
+    // Three clauses in the reference set need it and none could be written:
+    // Heracles's God Hand is *"can only be used 11 times"*, EMIYA's Trace, On
+    // charges 5% of his Health *"if this is not the first time EMIYA has used
+    // this Skill in this game"*, and his Rho Aias restores half its Health
+    // *"every time it is used after its first usage"*.
+    //
+    // `maxUses` null means unlimited, which is every other ability.
+    timesUsed: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+    maxUses: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // When it was last used, for `healthRestoredSince` -- a gate that has to
+    // compare "since" against something.
+    lastUsedTick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
+    /**
+     * A second Health pool this ability interposes between an attack and its
+     * target (EMIYA's Rho Aias, and nothing else in the reference set).
+     *
+     * On the ABILITY rather than on the effect instance, because several Units
+     * bear one barrier: *"all Units within a 3x3 panel area around the Unit Rho
+     * Aias is protecting also receive the effects"*, and *"if the AU's NP deals
+     * more than 1400 damage, the remaining damage is dealt to the DUs
+     * accordingly"* only makes sense against one shared pool.
+     */
+    shield: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    shieldHealth: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     // Effects that switch this ability off entirely while present.
     negatedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // The same thing, keyed on a STATE instead of on an effect. EMIYA's
+    // Kanshou & Bakuya is "negated while Overedge is on Cooldown", and a
+    // cooldown is not an effect anybody carries -- so `negatedBy` had no way
+    // to express it and the clause had nowhere to live.
+    negatedWhile: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // WHEN it may be used. Only Command Spells had this field, so an ability
     // authored "used when Attacked" -- Medea's Argos and Trofa -- compiled with
     // the window and the DataModel dropped it on load, leaving the reaction
@@ -196,10 +234,21 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // did not declare it -- so `def.uses` was always undefined and every
       // count-limited effect fell back to 1.
       uses: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      // What a barrier effect absorbs, and where its pool lives (§A.3's
+      // barrier tier). EMIYA's Rho Aias is the only instance.
+      absorbs: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       defaultDuration: new TickField(),
       unremovable: new fields.BooleanField({ initial: false }),
       blocks: new fields.ArrayField(new fields.StringField()),
       blockedBy: new fields.ArrayField(new fields.StringField()),
+      // Effects this one REPLACES rather than being refused by.
+      //
+      // `blocks` and `replaces` are opposite answers to the same question and
+      // the difference is a rule, not a nicety: EMIYA's Activated and Blazing
+      // Circuits "cannot be held at the same time" AND *"you can choose to swap
+      // from AC to BC or vice-versa"*. Declared as `blocks`, the swap is
+      // refused; declared as `replaces`, it is the same write as the first pick.
+      replaces: new fields.ArrayField(new fields.StringField()),
       npTags: new fields.ArrayField(new fields.StringField()),
     };
   }

@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { npCost, canUseAbility, resolveCosts } from "../../module/rules/costs.mjs";
+import { npCost, npCostAt, canUseAbility, resolveCosts } from "../../module/rules/costs.mjs";
 
 const master = (over = {}) => ({ id: "m", rank: "A", health: { value: 500, max: 500 }, ...over });
 const servant = (over = {}) => ({ id: "s", kind: "servant", contract: "contracted", masterId: "m", ...over });
@@ -229,5 +229,35 @@ describe("resolveCosts — supersession (§15.4)", () => {
 
   it("handles an empty list", () => {
     expect(resolveCosts([])).toMatchObject({ charged: [], superseded: [] });
+  });
+});
+
+describe("a Noble Phantasm charged at a Rank it does not have", () => {
+  it("uses the stated Rank's column", () => {
+    // EMIYA's Rho Aias prints "?" for a Rank and charges "equivalent to if an
+    // EX Rank NP is used"; his Unlimited Blade Works prints `E~A++` and charges
+    // as B. Derived from the ability's own `rank`, both read null and cost
+    // nothing at all.
+    const master = { id: "m", rank: "A", health: 500 };
+    const ex = npCostAt({ rank: "EX", unit: { id: "s", contract: "contracted" }, master });
+    const b = npCostAt({ rank: "B", unit: { id: "s", contract: "contracted" }, master });
+
+    expect(ex.kind).toBe("masterHealth");
+    expect(ex.amount).toBeGreaterThan(b.amount);
+    expect(ex.unitId).toBe("m");
+  });
+
+  it("falls back to Sustainability for a Free Servant", () => {
+    // Found live: EMIYA's Master was defeated mid-test, which freed him — and
+    // the cost still named a Master, producing an intent with no target that
+    // aborted the whole batch instead of charging him.
+    const out = npCostAt({
+      rank: "EX",
+      unit: { id: "s", contract: "free", sustainability: "7◈" },
+      master: null,
+    });
+
+    expect(out.kind).toBe("sustainability");
+    expect(out.unitId).toBe("s");
   });
 });

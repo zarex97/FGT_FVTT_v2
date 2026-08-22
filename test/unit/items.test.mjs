@@ -197,6 +197,14 @@ describe("meetsRequirement", () => {
       // Beyond §15.4's own list, added by content that needed them.
       // `notHasEffect` had been AUTHORED on Medea since she was written.
       "notHasEffect", "abilityOffCooldown", "modeInactive",
+      // EMIYA's Eye of the Mind (True) exists at two Ranks and exactly one is
+      // offered at a time, so both halves of the threshold are gates.
+      "healthAbove",
+      // "Health must have been restored back to above half its maximum value
+      // at least once SINCE the last usage" -- a question about history, which
+      // Rho Aias states and Battle Continuation's revival has always had with
+      // nothing enforcing it.
+      "healthRestoredSince",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });
@@ -341,5 +349,67 @@ describe("modeInactive", () => {
 
   it("passes for a Unit that does not have the mode at all", () => {
     expect(meetsRequirement({ kind: "modeInactive", mode: "madEnhancement" }, { unit: unit() })).toBe(true);
+  });
+});
+
+describe("healthAbove", () => {
+  it("is the mirror of healthBelow, at the same boundary", () => {
+    // One of EMIYA's two Eye of the Mind documents is offered at any moment,
+    // so the pair has to partition the bar rather than overlap or leave a gap.
+    const at20 = unit({ health: 200, maxHealth: 1000 });
+    expect(meetsRequirement({ kind: "healthAbove", fraction: 0.2 }, { unit: at20 })).toBe(true);
+    expect(meetsRequirement({ kind: "healthBelow", fraction: 0.2 }, { unit: at20 })).toBe(false);
+
+    const at19 = unit({ health: 199, maxHealth: 1000 });
+    expect(meetsRequirement({ kind: "healthAbove", fraction: 0.2 }, { unit: at19 })).toBe(false);
+    expect(meetsRequirement({ kind: "healthBelow", fraction: 0.2 }, { unit: at19 })).toBe(true);
+  });
+});
+
+describe("healthRestoredSince", () => {
+  const ability = (lastUsedTick) => ({ lastUsedTick });
+
+  it("passes when the ability has never been used", () => {
+    // "Since the last usage", and there has not been one.
+    expect(meetsRequirement({ kind: "healthRestoredSince", fraction: 0.5 },
+      { unit: unit(), ability: ability(null) })).toBe(true);
+  });
+
+  it("refuses when Health has not been that high since the last use", () => {
+    expect(meetsRequirement({ kind: "healthRestoredSince", fraction: 0.5 },
+      { unit: unit({ healthWatermarks: { 0.5: 3 } }), ability: ability(7) })).toBe(false);
+  });
+
+  it("passes once it has", () => {
+    expect(meetsRequirement({ kind: "healthRestoredSince", fraction: 0.5 },
+      { unit: unit({ healthWatermarks: { 0.5: 9 } }), ability: ability(7) })).toBe(true);
+  });
+
+  it("refuses a Unit that has no watermark at all", () => {
+    // Not the same as "currently above half": a Servant who has been at full
+    // Health the whole match and never dropped has not been RESTORED to it,
+    // and the stamp is written on the way up.
+    expect(meetsRequirement({ kind: "healthRestoredSince", fraction: 0.5 },
+      { unit: unit(), ability: ability(2) })).toBe(false);
+  });
+});
+
+describe("resourceAtLeast", () => {
+  it("reads a §6.10 pool, which is the mechanism it exists for", () => {
+    // It looked only at the top level, so a gate on a real Resource pool always
+    // read `undefined` and refused. EMIYA's Unlimited Blade Works is the first
+    // content to gate on one, and it could not be used however much Aria he had.
+    const emiya = unit({ resources: { aria: { value: 6, max: 6 } } });
+    expect(meetsRequirement({ kind: "resourceAtLeast", key: "aria", amount: 6 }, { unit: emiya })).toBe(true);
+    expect(meetsRequirement({ kind: "resourceAtLeast", key: "aria", amount: 7 }, { unit: emiya })).toBe(false);
+  });
+
+  it("still reads a top-level stat pool", () => {
+    const u = unit({ luck: { value: 3, max: 3 } });
+    expect(meetsRequirement({ kind: "resourceAtLeast", key: "luck", amount: 3 }, { unit: u })).toBe(true);
+  });
+
+  it("refuses a pool the unit does not have at all", () => {
+    expect(meetsRequirement({ kind: "resourceAtLeast", key: "aria", amount: 1 }, { unit: unit() })).toBe(false);
   });
 });

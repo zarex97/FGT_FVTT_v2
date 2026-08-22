@@ -45,6 +45,8 @@ export const EffectRegistry = {
         unremovable: Boolean(sys.unremovable),
         blocks: sys.blocks ?? [],
         blockedBy: sys.blockedBy ?? [],
+        // Exclusion that resolves by replacement rather than by refusal.
+        replaces: sys.replaces ?? [],
         periodic: sys.periodic ?? null,
         // Appendix A's terminal tier -- what Instakill and Death DO. Dropped
         // here, the applier would create an "Instakill" badge and remove no
@@ -54,6 +56,10 @@ export const EffectRegistry = {
         // read `def.uses` since it was written, so dropping it here made every
         // count-limited effect start at 1 regardless of what it declared.
         uses: sys.uses ?? null,
+        // What a BARRIER effect absorbs, and where its pool lives. EMIYA's Rho
+        // Aias is the only one in the reference set, and without this the
+        // marker would land on its bearers carrying nothing to read.
+        absorbs: sys.absorbs ?? null,
         // Actions that run when the effect goes away -- Shock's "current
         // Agility +1 when max is restored", Coma's exit damage.
         onRemove: sys.onRemove ?? [],

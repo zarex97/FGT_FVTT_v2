@@ -153,6 +153,30 @@ export class Rank {
     return Rank.of(GRADES[gradeIndex], steps);
   }
 
+  /**
+   * Move `n` whole **grades**, keeping the modifier.
+   *
+   * Not the same as {@link step}, and the difference is a real rule rather than
+   * a nicety. `step` walks the dense ladder, where one step from `D` is `D+`;
+   * *"EMIYA's Magic Resistance Rank is increased by one Rank"* means `D` to
+   * `C`, which is five steps on that ladder and one here.
+   *
+   * Authored the wrong way round, Kanshou & Bakuya raised him to `D+` — a Rank
+   * the resistance table has no row for, so it fell back to `D` and the whole
+   * Noble Phantasm did nothing measurable.
+   *
+   * Clamps at the ends of the scale, like `step`.
+   *
+   * @param {number} n
+   * @returns {Rank}
+   * @see docs/05-ranks-and-parameters.md §5.4
+   */
+  stepGrade(n) {
+    if (n === 0) return this;
+    const index = Math.max(0, Math.min(GRADES.length - 1, GRADES.indexOf(this.grade) + n));
+    return Rank.of(GRADES[index], this.steps);
+  }
+
   /** @returns {string} canonical form; round-trips through {@link Rank.parse} */
   toString() {
     return canonical(this.grade, this.steps);

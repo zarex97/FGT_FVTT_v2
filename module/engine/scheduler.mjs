@@ -25,6 +25,7 @@ import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
+import { resourcePathFor } from "../domain/resources.mjs";
 
 /**
  * @typedef {object} SchedulerContext
@@ -187,6 +188,11 @@ export function fireEvent(event, units, ctx) {
       // the contribution is collected.
       if (handler.targetPredicate
         && !testPredicate(handler.targetPredicate, { options: ctx.options ?? new Set() })) continue;
+
+      // The event's SUBJECT, for events that have one. `abilityUsed` fires for
+      // every ability; a handler that names a category only wants to hear
+      // about that family.
+      if (handler.ofCategory && !handler.ofCategory.includes(ctx.subject?.category ?? null)) continue;
 
       // Actions in one `then:` list see each other's effects. Mad Enhancement
       // drains its Master and then asks whether that Master is now at or below
@@ -415,7 +421,7 @@ const ACTIONS = Object.freeze({
    */
   SetMode: (a, u, h) => [I.setMode(u.id, a.ability, a.active === true, h.source)],
 
-  ResourceDelta: (a, u) => [I.resource(u.id, a.resource, a.delta ?? 0)],
+  ResourceDelta: (a, u) => [I.resource(u.id, resourcePathFor(a.resource, u), a.delta ?? 0)],
 
   /**
    * Turn a cooldown clock, by ability or across a whole scope.
@@ -461,6 +467,23 @@ const ACTIONS = Object.freeze({
   },
 
   RemoveEffect: (a, u) => [I.removeEffect(u.id, a.effect ?? a.defId, "event")],
+
+  /**
+   * Push an effect's expiry further out without reapplying it.
+   *
+   * *"If EMIYA uses a Thaumaturgy or Projection Skill/NP while he has the Atk
+   * Up (Trace) buff, its duration is extended by ⅓◈ Turns."* Distinct from
+   * reapplying: reapplication would re-roll the chance, re-run the stacking
+   * rule and reset the duration to its authored length rather than adding to
+   * whatever is left.
+   */
+  ExtendEffect: (a, u, h, c) => {
+    const held = (u.effectInstances ?? []).find((e) => e.defId === (a.effect ?? a.defId));
+    if (!held) return [];
+    const ticks = a.ticks !== undefined ? resolveTicks(parseTick(a.ticks), c) : (a.turns ?? 0);
+    if (ticks <= 0) return [];
+    return [I.extendEffect(u.id, held.defId, ticks, h.source)];
+  },
 
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
 

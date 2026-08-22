@@ -1,0 +1,67 @@
+# EMIYA, char_orig_sheets/Copia de EMIYA.md
+#
+# An Attack Skill "categorized as Noble Phantasm" -- which is a mechanical
+# statement rather than a description: it is what NP Seal, NP DmUp and the Luck
+# Check exclusions read. It is NOT an NP, so it costs his Master nothing.
+schema: 1
+id: emiya-overedge
+name: "Projection - Kanshou & Bakuya: Overedge"
+rank: null
+kind: skill
+slug: overedge
+category: projection
+isAttackSkill: true
+categorizedAsNP: true
+cooldown: "2◈"
+timing: { window: ownTurn }
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+description: |
+  Attack Skill. During the Combat Process this Skill is used, the effects of 'Kanshou & Bakuya'
+  extend to Normal Attacks at a Range of 3 or lower. EMIYA performs 2 Normal Attacks in a row,
+  damage dealt by each Normal Attack is increased by 50%. Counts as EMIYA's Attack for the
+  Turn. Cooldown: 2◈ Turns. Categorized as Noble Phantasm. The effect of 'Kanshou & Bakuya' is
+  negated while this Skill is on Cooldown.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  # "2 Normal Attacks in a row" -- two Combat Processes against the same
+  # defender, inside ONE Combat Phase. That distinction is load-bearing: a
+  # Combat Phase is what pays EMIYA his Aria, and two phases would pay twice
+  # for one action.
+  repeat: 2
+  # A Normal Attack, so the base is his own -- and at Range 3 that is the
+  # banded STR+20%MAG shot rather than plain STR, which is why nothing is
+  # declared here.
+phases:
+  - kind: damage
+passiveRules:
+  # "Damage dealt by each Normal Attack is increased by 50%", for the duration
+  # of this Skill's own Combat Process. Expressed as a standing contribution
+  # gated on the attack rather than as an applied buff, because it is scoped to
+  # the Process and a buff would outlive it.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 50
+    predicate: ["attack:kind:attackSkill"]
+
+  # "During the Combat Process this Skill is used, the effects of 'Kanshou &
+  # Bakuya' extend to Normal Attacks at a Range of 3 or lower."
+  #
+  # Granted from HERE rather than from the ability being extended, because
+  # Kanshou & Bakuya is "negated while this Skill is on Cooldown" -- and using
+  # Overedge is what starts that Cooldown. Read from that document, the two
+  # sentences cancel and Overedge projects nothing at all, which is exactly
+  # what it did.
+  - key: OnEvent
+    event: attackDeclared
+    automatic: true
+    predicate: ["attack:kind:attackSkill", "attack:range:lte:3"]
+    then:
+      - key: ApplyEffect
+        effect: { id: dualWieldGuard }
+        duration: "⅓◈"
