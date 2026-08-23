@@ -103,3 +103,54 @@
 
   .fgt-list__row--on & { opacity: 1; }
 }
+
+/* ── Parameter tiles (§5.6) ─────────────────────────────────────────────── */
+
+.fgt-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+.fgt-param {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.3rem 0.2rem;
+  border: var(--fgt-border);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-sunken);
+
+  &__key {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__rank {
+    width: 100%;
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-family: var(--font-serif, serif);
+    color: var(--fgt-ink);
+    background: none;
+    border: 1px solid transparent;
+
+    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg); }
+  }
+
+  // A granted parameter says what it was WRITTEN with as well as what it is
+  // now. §5.6: only granted steps move Base Attack, so a tile that shows one
+  // number cannot be checked against the Servant it came from.
+  &__granted {
+    font-size: 0.62rem;
+    color: var(--fgt-gold);
+    white-space: nowrap;
+  }
+
+  &--granted { border-color: var(--fgt-gold); }
+}
