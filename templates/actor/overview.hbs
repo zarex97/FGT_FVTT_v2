@@ -1,54 +1,338 @@
 {{!-- The Overview tab (docs/29-user-interface.md §29.2).
-      Type-aware: the Master, Platform and Summon blocks render only for the
-      actor kind that has them. The other three tabs are the same everywhere. --}}
+
+      "What can this unit do right now, and what is stopping it?" -- so this
+      tab answers in that order: the compulsion that forbids a target, the
+      budget already spent, the numbers every action is priced from, and the
+      contract and ZON that decide whether a Noble Phantasm is usable at all.
+
+      Type-aware. The Master, Platform and Summon blocks render only for the
+      actor kind that has them; the other three tabs are the same everywhere. --}}
 <section class="tab fgt-tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
 
-  {{#if canContract}}
-    <button type="button" class="fgt-button" data-action="contract">
-      {{localize "FGT.Contract.Button"}}
-    </button>
-  {{/if}}
+  {{#each overview.compulsions as |c|}}
+    {{!-- Highest-value element on the sheet, with the ZON indicator: both
+          prevent a mistake that is otherwise only discovered after
+          committing. --}}
+    <p class="fgt-warning fgt-warning--compulsion">
+      <i class="fa-solid fa-link"></i> {{c.text}}
+    </p>
+  {{/each}}
 
-  {{#if canRollSetup}}
-    {{!-- §14.9's setup rolls. Disabled rather than hidden once the match has
-          started, so a GM who expected the button learns why it is gone. --}}
-    <button type="button" class="fgt-button" data-action="rollSetup"
-            {{disabled setupLocked}}
-            data-tooltip="{{localize 'FGT.Summon.SetupHint'}}">
-      {{localize "FGT.Summon.RollSetup"}}
-    </button>
-  {{/if}}
+  <section class="fgt-panel">
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Parameters"}}</h3>
+    <div class="fgt-params">
+      {{#each parameters as |p|}}
+        <label class="fgt-param{{#if p.granted}} fgt-param--granted{{/if}}">
+          <span class="fgt-param__key">{{localize (concat "FGT.Param." p.key)}}</span>
+          <input class="fgt-param__rank" type="text" name="system.parameters.{{p.key}}"
+                 value="{{p.rank}}" placeholder="—">
+          {{#if p.granted}}
+            {{!-- §5.6: only GRANTED steps move Base Attack, and a sheet that
+                  shows the granted rank without the authored one cannot be
+                  checked against the Servant it was written from. --}}
+            <span class="fgt-param__granted" data-tooltip="{{localize 'FGT.Sheet.GrantedHint'}}">
+              {{p.authored}} ▸ {{p.rank}}
+            </span>
+          {{/if}}
+        </label>
+      {{else}}
+        <p class="fgt-empty">{{localize "FGT.Sheet.NoParameters"}}</p>
+      {{/each}}
+    </div>
+  </section>
 
-  {{#if system.parameters}}
-    <section class="fgt-panel">
-      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Parameters"}}</h3>
-      <div class="fgt-params">
-        {{#each parameters as |p|}}
-          <label class="fgt-param{{#if p.granted}} fgt-param--granted{{/if}}">
-            <span class="fgt-param__key">{{localize (concat "FGT.Param." p.key)}}</span>
-            <input class="fgt-param__rank" type="text" name="system.parameters.{{p.key}}"
-                   value="{{p.rank}}" placeholder="—">
-            {{#if p.granted}}
-              {{!-- §5.6: only GRANTED steps move Base Attack, and a sheet that
-                    shows the granted rank without the authored one cannot be
-                    checked against the Servant it was written from. --}}
-              <span class="fgt-param__granted"
-                    data-tooltip="{{localize 'FGT.Sheet.GrantedHint'}}">
-                {{p.authored}} ▸ {{p.rank}}
-              </span>
-            {{/if}}
-          </label>
-        {{/each}}
+  <section class="fgt-panel">
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Combat"}}</h3>
+    <div class="fgt-stats">
+      {{#if overview.combat.baseAttack}}
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.BaseAttackStr"}}</span>
+          <span class="fgt-stat__value">{{overview.combat.baseAttack.str}}</span>
+        </div>
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.BaseAttackMag"}}</span>
+          <span class="fgt-stat__value">{{overview.combat.baseAttack.mag}}</span>
+        </div>
+      {{/if}}
+      <div class="fgt-stat">
+        <span class="fgt-stat__key">{{localize "FGT.Sheet.Mov"}}</span>
+        <span class="fgt-stat__value">{{overview.combat.mov}}</span>
       </div>
+      <div class="fgt-stat">
+        <span class="fgt-stat__key">{{localize "FGT.Sheet.Range"}}</span>
+        <span class="fgt-stat__value">{{overview.combat.rangePanels}}</span>
+      </div>
+      <div class="fgt-stat">
+        <span class="fgt-stat__key">{{localize "FGT.Sheet.Targets"}}</span>
+        <span class="fgt-stat__value">{{overview.combat.maxTargets}}</span>
+      </div>
+      <div class="fgt-stat">
+        <span class="fgt-stat__key">{{localize "FGT.Sheet.Detect"}}</span>
+        <span class="fgt-stat__value">
+          {{overview.combat.detect.value}}
+          {{#if overview.combat.detect.derived}}
+            {{!-- Ch. 08 §8.7 derives Detect from attack range with a floor of 2
+                  when it is not stated. Saying so is the difference between a
+                  number a GM trusts and one they go hunting the source of. --}}
+            <span class="fgt-stat__note">{{localize "FGT.Sheet.Derived"}}</span>
+          {{/if}}
+        </span>
+      </div>
+      <div class="fgt-stat">
+        <span class="fgt-stat__key">{{localize "FGT.Sheet.Facing"}}</span>
+        <span class="fgt-stat__value">{{localize (concat "FGT.Facing." overview.combat.facing)}}</span>
+      </div>
+      {{#if overview.combat.sustainability}}
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.Sustainability"}}</span>
+          <span class="fgt-stat__value">
+            {{overview.combat.sustainability.max}}
+            <span class="fgt-stat__note">
+              {{localize "FGT.Sheet.TurnsLeft" n=overview.combat.sustainability.remaining}}
+            </span>
+          </span>
+        </div>
+      {{/if}}
+    </div>
+
+    <p class="fgt-hint">
+      {{localize "FGT.Sheet.NormalAttackMode"}}
+      <strong>{{localize (concat "FGT.NormalAttack." overview.combat.normalAttack.mode)}}</strong>
+      ·
+      {{localize (concat "FGT.Param." overview.combat.normalAttack.component)}}
+    </p>
+
+    {{#if overview.combat.normalAttack.bands.length}}
+      {{!-- EMIYA's Normal Attack changes what it is made of at Range 3. Without
+            this the sheet reports the flat component and the player is told a
+            number that only holds at one distance. --}}
+      <ul class="fgt-bands">
+        {{#each overview.combat.normalAttack.bands as |band|}}
+          <li>
+            {{#if band.to}}
+              {{localize "FGT.Sheet.Band" from=band.from to=band.to}}
+            {{else}}
+              {{localize "FGT.Sheet.BandOpen" from=band.from}}
+            {{/if}}
+            {{#if band.mix.length}}
+              {{!-- The mix, not just the headline component: EMIYA's band is
+                    STR at full weight plus a fifth of MAG, which is a
+                    different number from "STR". --}}
+              {{#each band.mix as |part|}}
+                <strong>{{part.percent}}% {{localize (concat "FGT.Param." part.component)}}</strong>
+              {{/each}}
+            {{else}}
+              <strong>{{localize (concat "FGT.Param." band.component)}}</strong>
+            {{/if}}
+            {{#if band.ignoresMagicResistance}}
+              <span class="fgt-stat__note">{{localize "FGT.Sheet.IgnoresMR"}}</span>
+            {{/if}}
+          </li>
+        {{/each}}
+      </ul>
+    {{/if}}
+
+    {{#if overview.deltas.length}}
+      {{!-- Why the number above is that number. `statDeltas` has carried a
+            comment saying it is "here so a sheet can explain the number" since
+            it was written, and no sheet has ever read it. --}}
+      <ul class="fgt-deltas">
+        {{#each overview.deltas as |d|}}
+          <li><code>{{d.stat}}</code> {{d.amount}} — {{d.source}}</li>
+        {{/each}}
+      </ul>
+    {{/if}}
+  </section>
+
+  <section class="fgt-panel">
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Status"}}</h3>
+    <div class="fgt-stats">
+      {{#if overview.status.contract}}
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.ContractState"}}</span>
+          <span class="fgt-stat__value">
+            {{localize (concat "FGT.ContractState." overview.status.contract)}}
+          </span>
+        </div>
+      {{/if}}
+      {{#if overview.status.masterName}}
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.Master"}}</span>
+          <span class="fgt-stat__value">{{overview.status.masterName}}</span>
+        </div>
+      {{/if}}
+      {{#if overview.status.zon}}
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.Zon"}}</span>
+          <span class="fgt-stat__value">{{overview.status.zon}}</span>
+        </div>
+      {{/if}}
+      {{#if overview.status.zonDistance}}
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.ZonDistance"}}</span>
+          <span class="fgt-stat__value">{{overview.status.zonDistance}}</span>
+        </div>
+      {{/if}}
+    </div>
+
+    {{#if overview.status.outsideZon}}
+      <p class="fgt-warning">
+        <i class="fa-solid fa-circle-dashed"></i>
+        {{localize "FGT.Sheet.OutsideZon"}} — {{overview.status.penalty}}
+      </p>
+    {{/if}}
+    {{#if overview.status.zonExempt}}
+      <p class="fgt-hint">{{localize "FGT.Sheet.ZonExempt"}}</p>
+    {{/if}}
+    {{#each overview.status.zonPartners as |partner|}}
+      {{!-- §16.3: the Dioscuri satisfy ZON if EITHER twin is inside. --}}
+      <p class="fgt-hint">{{localize "FGT.Sheet.ZonPartner" name=partner}}</p>
+    {{/each}}
+    {{#if overview.status.platform}}
+      <p class="fgt-hint">{{localize "FGT.Sheet.BoundToPlatform" name=overview.status.platform}}</p>
+    {{/if}}
+  </section>
+
+  {{#if overview.pools.length}}
+    <section class="fgt-panel">
+      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Pools"}}</h3>
+      <ul class="fgt-pools">
+        {{#each overview.pools as |pool|}}
+          <li class="fgt-pool">
+            <span class="fgt-pool__key">{{pool.key}}</span>
+            {{#if pool.pips}}<span class="fgt-pool__pips">{{pool.pips}}</span>{{/if}}
+            <span class="fgt-pool__count">
+              {{pool.value}}{{#if pool.max}} / {{pool.max}}{{/if}}
+            </span>
+          </li>
+        {{/each}}
+      </ul>
     </section>
   {{/if}}
 
   <section class="fgt-panel">
-    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Actions"}}</h3>
-    <button type="button" class="fgt-button fgt-button--attack" data-action="normalAttack">
-      {{localize "FGT.Sheet.NormalAttack"}}
-    </button>
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Budget"}}</h3>
+    <ul class="fgt-budget">
+      {{!-- Each state is a word AND a filled/hollow marker: a player with seven
+            Servants should not have to remember which have gone. --}}
+      <li class="fgt-budget__item{{#if overview.budget.acted}} fgt-budget__item--spent{{/if}}">
+        {{localize "FGT.Sheet.Acted"}}
+      </li>
+      <li class="fgt-budget__item{{#if overview.budget.moved}} fgt-budget__item--spent{{/if}}">
+        {{localize "FGT.Sheet.Moved"}}
+      </li>
+      <li class="fgt-budget__item{{#if overview.budget.attacked}} fgt-budget__item--spent{{/if}}">
+        {{localize "FGT.Sheet.Attacked"}}
+      </li>
+      <li class="fgt-budget__item{{#if overview.budget.usedActiveSkill}} fgt-budget__item--spent{{/if}}">
+        {{localize "FGT.Sheet.UsedSkill"}}
+      </li>
+    </ul>
+    <p class="fgt-hint">
+      {{localize "FGT.Sheet.MovedPanels" n=overview.budget.movedPanels of=overview.budget.mov}}
+      · {{localize "FGT.Sheet.Segments" n=overview.budget.moveSegments}}
+    </p>
   </section>
+
+  <section class="fgt-panel">
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Actions"}}</h3>
+    <div class="fgt-actions">
+      <button type="button" class="fgt-button fgt-button--attack" data-action="normalAttack">
+        {{localize "FGT.Sheet.NormalAttack"}}
+      </button>
+
+      {{#if canContract}}
+        <button type="button" class="fgt-button" data-action="contract">
+          {{localize "FGT.Contract.Button"}}
+        </button>
+      {{/if}}
+
+      {{#if canRollSetup}}
+        {{!-- §14.9's setup rolls. Disabled rather than hidden once the match
+              has started, so a GM who expected the button learns why it is
+              gone rather than wondering where it went. --}}
+        <button type="button" class="fgt-button" data-action="rollSetup"
+                {{disabled setupLocked}}
+                data-tooltip="{{localize 'FGT.Summon.SetupHint'}}">
+          {{localize "FGT.Summon.RollSetup"}}
+        </button>
+      {{/if}}
+    </div>
+  </section>
+
+  {{#if overview.summon}}
+    <section class="fgt-panel">
+      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.SummonBlock"}}</h3>
+      <div class="fgt-stats">
+        {{#if overview.summon.summoner}}
+          <div class="fgt-stat">
+            <span class="fgt-stat__key">{{localize "FGT.Sheet.Summoner"}}</span>
+            <span class="fgt-stat__value">{{overview.summon.summoner}}</span>
+          </div>
+        {{/if}}
+        {{#if overview.summon.expiresAt}}
+          <div class="fgt-stat">
+            <span class="fgt-stat__key">{{localize "FGT.Sheet.ExpiresAt"}}</span>
+            <span class="fgt-stat__value">{{overview.summon.expiresAt}}</span>
+          </div>
+        {{/if}}
+      </div>
+      <p class="fgt-hint">
+        {{#if overview.summon.countsTowardBudget}}
+          {{localize "FGT.Sheet.CountsTowardBudget"}}
+        {{else}}
+          {{localize "FGT.Sheet.OutsideBudget"}}
+        {{/if}}
+        {{#if overview.summon.actsOncePerTurn}}
+          · {{localize "FGT.Sheet.ActsOncePerTurn"}}
+        {{/if}}
+      </p>
+    </section>
+  {{/if}}
+
+  {{#if overview.platform}}
+    <section class="fgt-panel">
+      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.PlatformBlock"}}</h3>
+      <div class="fgt-stats">
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.Footprint"}}</span>
+          <span class="fgt-stat__value">
+            {{overview.platform.footprint.w}}×{{overview.platform.footprint.h}}
+          </span>
+        </div>
+        <div class="fgt-stat">
+          <span class="fgt-stat__key">{{localize "FGT.Sheet.Level"}}</span>
+          <span class="fgt-stat__value">{{overview.platform.level}}</span>
+        </div>
+        {{#if overview.platform.capacity}}
+          <div class="fgt-stat">
+            <span class="fgt-stat__key">{{localize "FGT.Sheet.Capacity"}}</span>
+            <span class="fgt-stat__value">{{overview.platform.capacity}}</span>
+          </div>
+        {{/if}}
+        {{#if overview.platform.owner}}
+          <div class="fgt-stat">
+            <span class="fgt-stat__key">{{localize "FGT.Sheet.Owner"}}</span>
+            <span class="fgt-stat__value">{{overview.platform.owner}}</span>
+          </div>
+        {{/if}}
+      </div>
+
+      {{#if overview.platform.upkeep}}
+        <p class="fgt-warning">
+          {{localize "FGT.Sheet.Upkeep" n=overview.platform.upkeep.amount}}
+        </p>
+      {{/if}}
+
+      {{!-- §20.7: cross-level protection is decided case by case, so all four
+            axes are shown rather than summarised into one word. --}}
+      <ul class="fgt-deltas">
+        {{#each overview.platform.crossLevel as |axis|}}
+          <li><code>{{axis.key}}</code> {{axis.value}}</li>
+        {{/each}}
+      </ul>
+    </section>
+  {{/if}}
 
   {{#if isMaster}}
     <section class="fgt-panel fgt-master">
