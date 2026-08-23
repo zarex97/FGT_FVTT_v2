@@ -1,0 +1,101 @@
+{{!-- One ability card (docs/29-user-interface.md §29.2).
+
+      Registered as the `fgt-ability-card` partial so the three groups on the
+      Abilities tab share one implementation. Three copies of this markup would
+      be three places for the disabled-reason to go missing from, and the copy
+      is the one nobody updates. --}}
+<article class="fgt-card-ability fgt-card-ability--{{use.kind}}{{#if active}} is-on{{/if}}"
+         data-item-id="{{id}}">
+
+  <header class="fgt-card-ability__head">
+    {{#if img}}<img class="fgt-card-ability__icon" src="{{img}}" alt="">{{/if}}
+
+    <span class="fgt-card-ability__name">{{name}}</span>
+
+    {{#if rank}}<span class="fgt-card-ability__rank">{{rank}}</span>{{/if}}
+    {{#if isNP}}<span class="fgt-card-ability__np">{{localize "FGT.Sheet.NPBadge"}}</span>{{/if}}
+
+    {{#if use.clickable}}
+      {{!-- `classifyAbility` decides which control this is: a toggle for a
+            mode, a button for an attack or an active skill, nothing for a
+            passive. Re-deriving it here is how a self-buff ended up opening
+            an enemy targeting session. --}}
+      <button type="button" class="fgt-button fgt-card-ability__use"
+              data-action="{{use.action}}"
+              {{disabled locked}}
+              data-tooltip="{{localize state.label
+                              remaining=state.detail.remaining ticks=state.detail.ticks
+                              maxUses=state.detail.maxUses timesUsed=state.detail.timesUsed
+                              requiresRound=state.detail.requiresRound away=state.detail.away
+                              partner=state.detail.partner}}">
+        {{#if use.toggles}}
+          {{localize (concat "FGT.Mode." (ifThen active "on" "off"))}}
+        {{else}}
+          {{localize "FGT.Sheet.Use"}}
+        {{/if}}
+      </button>
+    {{else}}
+      {{!-- A passive is not a control. It is always on and has nothing to
+            press: Penthesilea's Goddess of War is four standing clauses. --}}
+      <span class="fgt-card-ability__passive">{{localize "FGT.Use.passive"}}</span>
+    {{/if}}
+
+    <button type="button" class="fgt-card-ability__edit" data-action="editAbility"
+            data-tooltip="{{localize 'FGT.Sheet.Edit'}}">✎</button>
+  </header>
+
+  <p class="fgt-card-ability__state{{#unless state.ok}} fgt-card-ability__state--blocked{{/unless}}">
+    {{#unless state.ok}}<i class="fa-solid fa-ban"></i> {{/unless}}
+    {{localize state.label
+       remaining=state.detail.remaining ticks=state.detail.ticks
+       maxUses=state.detail.maxUses timesUsed=state.detail.timesUsed
+       requiresRound=state.detail.requiresRound round=state.detail.round
+       away=state.detail.away partner=state.detail.partner}}
+    {{#if usage}}
+      <span class="fgt-stat__note">{{localize "FGT.Sheet.Uses" used=usage.used max=usage.max}}</span>
+    {{/if}}
+  </p>
+
+  {{#if cost}}
+    {{!-- Affordability stated, not implied: a player shown "Master cost 53
+          Health" still has to go and look at the Master, and the look is
+          where the mistake happens. --}}
+    <p class="fgt-card-ability__cost{{#unless cost.affordable}} fgt-card-ability__cost--short{{/unless}}">
+      {{#if cost.payer}}
+        {{localize "FGT.Sheet.CostMaster" n=cost.amount payer=cost.payer has=cost.has}}
+      {{else}}
+        {{localize (concat "FGT.Sheet.Cost." cost.kind) n=cost.amount has=cost.has}}
+      {{/if}}
+      {{#if cost.affordable}}
+        <span class="fgt-card-ability__ok">✓</span>
+      {{else}}
+        <span class="fgt-card-ability__no">✗ {{localize "FGT.Sheet.Unaffordable"}}</span>
+      {{/if}}
+    </p>
+  {{/if}}
+
+  {{#if irreversible}}
+    {{!-- Before the click, not after (D29.2). Vasavi Shakti permanently
+          removes Kavacha and Kundala, and there is no undo. --}}
+    <p class="fgt-warning fgt-warning--irreversible">
+      <i class="fa-solid fa-triangle-exclamation"></i> {{localize "FGT.Sheet.Irreversible"}}
+    </p>
+  {{/if}}
+
+  {{#each sameTurnExclusive as |partner|}}
+    <p class="fgt-hint fgt-hint--warn">{{localize "FGT.Sheet.SameTurnExclusive" partner=partner}}</p>
+  {{/each}}
+  {{#each sameRoundExclusive as |partner|}}
+    <p class="fgt-hint fgt-hint--warn">{{localize "FGT.Sheet.SameRoundExclusive" partner=partner}}</p>
+  {{/each}}
+  {{#each alsoTriggers as |partner|}}
+    <p class="fgt-hint">{{localize "FGT.Sheet.AlsoTriggers" partner=partner}}</p>
+  {{/each}}
+
+  {{#if description}}
+    <details class="fgt-card-ability__desc">
+      <summary>{{localize "FGT.Sheet.Description"}}</summary>
+      <div>{{{description}}}</div>
+    </details>
+  {{/if}}
+</article>

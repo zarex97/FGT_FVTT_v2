@@ -123,6 +123,15 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("setup", async () => {
+  // The ability card, as a named partial. The Abilities tab renders it three
+  // times -- class skills, personal skills, Noble Phantasms -- and three copies
+  // of that markup would be three places for the disabled-reason to go missing
+  // from. This is not the Master-panel case: that partial existed to keep two
+  // panels in ONE scroll container, and this one exists because three call
+  // sites want one implementation.
+  await foundry.applications.handlebars.loadTemplates({
+    "fgt-ability-card": "systems/fgt/templates/actor/ability-card.hbs",
+  });
 
   // Packs are not readable during `init`; `setup` runs after they are indexed
   // and before the canvas draws, which is exactly the window we need.

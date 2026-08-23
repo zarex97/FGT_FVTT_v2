@@ -278,3 +278,133 @@
 .fgt-warning--compulsion {
   border-left-color: var(--fgt-crimson);
 }
+
+/* ── Ability cards (§29.2) ──────────────────────────────────────────────── */
+
+.fgt-card-ability {
+  border: var(--fgt-border);
+  border-left: 3px solid var(--fgt-line);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-raised);
+  padding: 0.45rem 0.55rem;
+  margin-bottom: 0.4rem;
+
+  // The kind is a coloured edge AND the control it carries: a passive has no
+  // button at all, which is the signal that does not depend on colour.
+  &--attack { border-left-color: var(--fgt-crimson); }
+  &--mode { border-left-color: var(--fgt-gold); }
+  &--active { border-left-color: var(--fgt-agility); }
+  &--dialog { border-left-color: var(--fgt-luck); }
+  &--passive { border-left-color: var(--fgt-line); }
+
+  &.is-on {
+    background: var(--fgt-bg-sunken);
+    box-shadow: inset 0 0 0 1px var(--fgt-gold);
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &__icon {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 2px;
+    object-fit: cover;
+  }
+
+  &__name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 0;
+  }
+
+  &__rank {
+    font-family: var(--font-serif, serif);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--fgt-gold);
+    padding: 0 0.3rem;
+  }
+
+  &__np {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.05rem 0.3rem;
+    border-radius: 2px;
+    color: var(--fgt-bg);
+    background: var(--fgt-gold);
+  }
+
+  &__use {
+    flex: 0 0 auto;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  &__passive {
+    font-size: 0.68rem;
+    font-style: italic;
+    color: var(--fgt-ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__edit {
+    flex: 0 0 auto;
+    background: none;
+    border: none;
+    color: var(--fgt-ink-dim);
+    cursor: pointer;
+    padding: 0 0.2rem;
+
+    &:hover { color: var(--fgt-gold); }
+  }
+
+  &__state {
+    margin: 0.25rem 0 0;
+    font-size: 0.72rem;
+    color: var(--fgt-ok);
+
+    // A blocked ability says so in words and carries a barred icon. The button
+    // above it is disabled and tooltipped with the same sentence, so the
+    // reason is reachable from the control as well as beside it (D29.2).
+    &--blocked { color: var(--fgt-warn); }
+  }
+
+  &__cost {
+    margin: 0.15rem 0 0;
+    font-size: 0.72rem;
+    color: var(--fgt-ink-dim);
+
+    &--short { color: var(--fgt-danger); }
+  }
+
+  &__ok { color: var(--fgt-ok); font-weight: 700; }
+  &__no { color: var(--fgt-danger); font-weight: 600; }
+
+  &__desc {
+    margin-top: 0.3rem;
+    font-size: 0.76rem;
+
+    summary {
+      cursor: pointer;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--fgt-ink-dim);
+    }
+
+    div { padding-top: 0.25rem; color: var(--fgt-ink-dim); }
+  }
+}
+
+.fgt-warning--irreversible {
+  border-left-color: var(--fgt-danger);
+  color: var(--fgt-danger);
+}

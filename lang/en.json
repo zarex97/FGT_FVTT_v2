@@ -500,5 +500,19 @@
   "FGT.Sheet.Owner": "Owner",
   "FGT.Sheet.Upkeep": "Upkeep: {n} Health per Round, charged to the owner's Master.",
   "FGT.Sheet.BandOpen": "Range {from}+:",
-  "FGT.Sheet.IgnoresMR": "ignores Magic Resistance"
+  "FGT.Sheet.IgnoresMR": "ignores Magic Resistance",
+  "FGT.Sheet.ClassSkills": "Class Skills",
+  "FGT.Sheet.PersonalSkills": "Personal Skills",
+  "FGT.Sheet.NPBadge": "NP",
+  "FGT.Sheet.Use": "Use",
+  "FGT.Sheet.Uses": "used {used} of {max}",
+  "FGT.Sheet.Description": "Description",
+  "FGT.Sheet.CostMaster": "Master cost {n} Health ({payer} has {has})",
+  "FGT.Sheet.Cost.sustainability": "Costs {n} Sustainability ({has} left)",
+  "FGT.Sheet.Cost.masterHealth": "Master cost {n} Health",
+  "FGT.Sheet.Unaffordable": "cannot be paid",
+  "FGT.Sheet.Irreversible": "This cannot be undone. Read the description before using it.",
+  "FGT.Sheet.SameTurnExclusive": "Cannot be used on the same Turn as {partner}.",
+  "FGT.Sheet.SameRoundExclusive": "Cannot be used on the same Round as {partner}.",
+  "FGT.Sheet.AlsoTriggers": "Also puts {partner} on cooldown."
 }
