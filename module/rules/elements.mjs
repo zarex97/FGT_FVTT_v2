@@ -377,6 +377,24 @@ function mergePredicates(a, b) {
 function normalizeActions(el, rank, ctx) {
   const actions = (el.then ?? []).map((a) => normalizeAction(a, rank, ctx));
   if (el.revive) actions.push(normalizeAction({ key: "Revive", ...el.revive }, rank, ctx));
+
+  // `effect:` beside `event:` is the shorthand Appendix A's riders are written
+  // in -- `Bleed Atk` is one line, not a three-key `then` list -- and it
+  // desugared to NOTHING. `normalizeActions` read `then` and `revive` and no
+  // third thing, so every handler authored this way produced `actions: []` and
+  // could not do anything at all when it fired. Two shipped effects were
+  // written that way.
+  if (el.effect) {
+    actions.push(normalizeAction({
+      key: "ApplyEffect",
+      target: el.target ?? "self",
+      effect: el.effect,
+      duration: el.duration,
+      chance: el.chance ?? el.effect.chance,
+      stages: el.stages,
+      secret: el.secret,
+    }, rank, ctx));
+  }
   return actions;
 }
 

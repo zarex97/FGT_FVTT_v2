@@ -325,6 +325,35 @@ Block roll"* is therefore superseded.
 `Luck Check: Strengthen Block` is one of the eight named Luck Checks and rolls Block a second
 time on success.
 
+### Reactions the Process refuses
+
+Two rules take a rung away from the defender rather than modifying it, and the Process records
+them the same way: `state.forbiddenReactions`, decided once at declaration.
+
+| Rule | Refuses |
+|---|---|
+| §27.9's Command Spell **retarget** — a Servant pulled into an attack it never saw coming | `evade`, `block` |
+| **Presence Concealment** clause 2 — *"cannot be Blocked or Countered unless the DU's current AGI Rank is equal to or higher than it"* | `block`, `counter` |
+
+**As built.** The field was written by the retarget interrupt when Command Spells shipped and
+**read by nothing**, so §27.9's own rule was inert: a retargeted Servant could still Block and
+Evade. It is now honoured in two places, and both are needed — the chat card filters the buttons,
+and `advance` refuses the transition outright, because the card is a client and the transition is
+the boundary. A stale card, a macro or a second player's window must not be able to declare a
+reaction the Process already took away.
+
+Clause 2 compares **AGI Rank**, not the Agility pool. The engine compared `attacker.agility >
+defender.agility`, which are the *spendable* resources: two Servants of identical Rank disagree
+about them constantly, so a Servant who had paid for a few Evades became blockable mid-match for
+no stated reason. "Equal to or higher" is the escape, so the refusal needs strictly greater —
+and an attacker with no AGI Rank at all refuses nothing, because a comparison with no answer must
+not cost the defender its reactions.
+
+The Evade penalty on the same clause is a **rank table** (`presenceConcealmentEvade`), not the
+literal `4` the flow carried: Serenity's A+ is 4 and would have been right by accident; Yan Qing's
+C is 3. Verified live — Karna at AGI A could neither Block nor Counter a concealed Serenity at
+AGI A+, and his Evade roll carried `Presence Concealment A+ +4`.
+
 ### Do nothing
 
 Skips to Step 3. Chosen when the defender wants to preserve Luck/Agility, or when they have

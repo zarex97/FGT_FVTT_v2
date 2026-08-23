@@ -42,6 +42,7 @@ import { canUseAbility, resolveCosts, npCostAt } from "../rules/costs.mjs";
 import { reactionAbilities, allyReactions, abilityFromOption } from "../rules/reactions.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
+import { reactionsRefused, aoeOutcome, isConcealed } from "../rules/concealment.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -265,7 +266,15 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     // recorded ONCE at creation because the offer is decided by the moment the
     // attack is declared (§15.3).
     const withReactions = state.defenderId
-      ? { ...state, reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId, state.attack) } }
+      ? {
+        ...state,
+        reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId, state.attack) },
+        // Presence Concealment clause 2: *"This Unit's Attacks cannot be
+        // Blocked or Countered unless the DU's current AGI Rank is equal to or
+        // higher than it."* Decided once, at declaration, alongside the offer --
+        // the same moment and for the same reason.
+        forbiddenReactions: concealmentRefusals(attackerId, state.defenderId),
+      }
       : state;
     const advanced = process.advance(withReactions, "done");
     const target = targets.units.find((t) => t.unitId === advanced.defenderId);
@@ -422,7 +431,10 @@ export async function advanceAttack({ messageId, event }) {
 
   await message.setFlag("fgt", "process", process.serialize(state));
   await updateAttackCard(message, state);
-  if (process.isComplete(state)) await fireCombatPhaseEnd(state);
+  if (process.isComplete(state)) {
+    await endConcealmentAfterAttack(state);
+    await fireCombatPhaseEnd(state);
+  }
   return state;
 }
 
@@ -449,6 +461,77 @@ async function fireAttackDeclared(state) {
     rolls: {},
   });
   if (intents.length > 0) await applyBatch(intents, "attackDeclared");
+}
+
+/**
+ * Reactions a concealed attacker denies this defender.
+ *
+ * @param {string} attackerId
+ * @param {string} defenderId
+ * @returns {string[]}
+ */
+function concealmentRefusals(attackerId, defenderId) {
+  const attacker = game.actors.get(attackerId);
+  const defender = game.actors.get(defenderId);
+  if (!attacker || !defender) return [];
+  return reactionsRefused(unitSnapshot(attacker), unitSnapshot(defender));
+}
+
+/**
+ * Raise `damageDealt` on the attacker, with the victim in reach.
+ *
+ * §E.5 has listed it since the reference was written and nothing raised it, so
+ * every **on-hit rider** in the catalogue was inert: `Bleed Atk`, `Queen's
+ * Poison`, and both halves of Serenity's poisoned daggers. All of them are
+ * *"Normal Attacks inflict X on the DU"*, which needs two things this is the
+ * only place that has together — that the attack landed, and who it landed on.
+ *
+ * The victim travels as `ctx.victim` rather than in the unit list: a handler on
+ * the ATTACKER is what pays out, and putting the defender in the list would run
+ * the defender's own handlers for somebody else's attack.
+ *
+ * @param {object} state
+ * @param {object} result the finished damage result
+ * @returns {Promise<void>}
+ */
+async function fireDamageDealt(state, result) {
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  if (!attacker || !defender) return;
+
+  const intents = fireEvent("damageDealt", [attacker], {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    // `attack:crit` is in the set only here, which is right: a clause that asks
+    // whether the attack crit is by definition asking about a resolved one.
+    options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
+    victim: { unitId: state.defenderId },
+    rolls: {},
+  });
+  if (intents.length > 0) await applyBatch(intents, "damageDealt");
+}
+
+/**
+ * Presence Concealment clause 5, at the end of the Combat Process.
+ *
+ * > *"After performing an Attack while PC is Active, PC is deactivated at the
+ * > end of the Combat Process."*
+ *
+ * At the END, not at the declaration, and the difference is the whole point of
+ * the skill: the attack itself is made from concealment, at +100% damage,
+ * unblockable and uncounterable. What it costs is the concealment.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function endConcealmentAfterAttack(state) {
+  // A counter is the defender attacking; it ends the counterer's concealment on
+  // the same terms, so this asks about whoever swung rather than about roles.
+  if (!process.didHit(state) && !state.evaded && state.state !== "done") return;
+  const { deactivateConcealment } = await import("./concealment.mjs");
+  const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
+  await deactivateConcealment(state.attackerId, DEACTIVATION_REASONS.attacked);
 }
 
 /**
@@ -586,7 +669,11 @@ async function runAutomaticStep(state, message) {
       // Riders declared in the ability's phases land only if the damage did.
       // "Deals 4x damage plus 100. Then inflicts Def Dwn" -- the "then" is
       // conditional on the attack connecting.
-      const applied = skipped ? [] : await applyAbilityEffects(state, result);
+      // "If Heads, no damage AND EFFECTS are received." The riders are refused
+      // by the same coin that refused the damage; applying them anyway would
+      // make a complete negation the strongest debuff delivery in the game.
+      const veiled = result.flags?.concealmentVeil?.effects === false;
+      const applied = (skipped || veiled) ? [] : await applyAbilityEffects(state, result);
 
       // §E's `damageStepEnd`, fired for the first time. It has been in the
       // event reference since the reference was written and nothing ever
@@ -595,6 +682,8 @@ async function runAutomaticStep(state, message) {
       // the first: *"NP Cooldown is reduced by ½◈ Turns at the end of the
       // Damage Step when a successful Attack is performed."*
       if (!skipped && result.total > 0) await fireDamageStepEnd(state);
+      // Riders, which need the victim as well as the fact that it landed.
+      if (!skipped && result.total > 0) await fireDamageDealt(state, result);
 
       await message.setFlag("fgt", "damage", result.total);
       await message.setFlag("fgt", "effects", [...before, ...applied].map((a) => a.summary));
@@ -722,8 +811,16 @@ function evadeModifiers(state, attacker, defender) {
   if ((defender.effects ?? []).includes("slow")) mods.push({ source: "Slow", value: 2 });
   if ((defender.effects ?? []).includes("blind")) mods.push({ source: "Blind", value: 3 });
   if ((defender.effects ?? []).includes("immobilize")) mods.push({ source: "Immobilize", value: 4 });
-  if ((attacker.effects ?? []).includes("presenceConcealment")) {
-    mods.push({ source: "Presence Concealment", value: 4 });
+  // "If the DU Evades, the Evade Roll is increased by 4" -- at A+. From the RANK
+  // TABLE, not the literal: `presenceConcealmentEvade` has been in
+  // `domain/tables.mjs` since the tables were transcribed with nothing reading
+  // it, and the corpus uses the skill at five different ranks. Serenity's A+ is
+  // 4 and would have been right by accident; Yan Qing's C is 3.
+  if (isConcealed(attacker)) {
+    const skill = (attacker.abilities ?? []).find((a) => a.slug === "presenceConcealment");
+    const rank = skill?.rank instanceof Rank ? skill.rank : Rank.parseOrNull(skill?.rank ?? null);
+    const value = rank ? Number(lookup("presenceConcealmentEvade", rank) ?? 4) : 4;
+    mods.push({ source: `Presence Concealment ${rank ?? ""}`.trim(), value });
   }
   return mods;
 }
@@ -983,8 +1080,10 @@ function counterAvailable(state) {
     defenderCanAct: defender.canAct !== false,
     defenderHasBerserk: held.includes("berserk"),
     defenderHasFragarach: held.includes("fragarach"),
-    attackerConcealedAndFaster:
-      Boolean(attacker.concealed) && (attacker.agility ?? 0) > (defender.agility ?? 0),
+    // AGI **Rank**, not the Agility pool. The pool is a spendable resource that
+    // two Servants of the same Rank disagree about constantly, so a Servant who
+    // had paid for a few Evades became blockable mid-match for no stated reason.
+    attackerConcealedAndFaster: reactionsRefused(attacker, defender).includes("counter"),
   });
 }
 
@@ -1219,6 +1318,12 @@ async function applyDamage(state, message) {
   };
 
   const result = computeDamage(ctx);
+  // Whether it crit belongs ON the result, not only on the chat flag. Every
+  // rider fired after the Damage Step reads its predicate off the option set,
+  // and `attack:crit` can only be in that set if the resolved attack says so --
+  // Serenity's `Macabre` is *"Normal Attack **Crits** inflict an additional
+  // Stage of Poison"* and had no way to ask.
+  result.flags = { ...result.flags, isCrit };
 
   // §16.5. Overpower can end the Master outright before damage matters;
   // Underpower halves a Master's own Total Damage. Both are Master-Servant
@@ -1257,6 +1362,43 @@ async function applyDamage(state, message) {
       ...(result.breakdown ?? []),
       { stage: "commandSpell", label: `Command Spell x${csFactor}`, from: before, to: result.total },
     ];
+  }
+
+  // Presence Concealment clause 1, and the reason concealment does not simply
+  // make a Unit untargetable:
+  //
+  //   "This Unit cannot be targeted for an Attack or an enemy Unit's Skill. If
+  //    it is caught in an AoE Attack and fails to Evade, Flip a Coin. If Heads,
+  //    no damage and effects are received; if Tails, Total Damage taken from
+  //    that Attack is reduced by 50% & PC is deactivated."
+  //
+  // Targeting already drops a concealed Unit from anything *chosen* (§9.7); an
+  // area still reaches it, and this is the compensation. On **Total Damage**,
+  // so it lands after every pipeline stage and after the Command Spell factor,
+  // and before the barrier -- a shield in front of a Unit that took no damage
+  // has nothing to absorb.
+  if (state.isAoE && isConcealed(defender)) {
+    const coin = await new Roll("1d2").evaluate();
+    const veil = aoeOutcome(coin.total);
+    const before = result.total;
+    result.total = Math.max(0, Math.round(result.total * veil.factor));
+    result.flags = { ...result.flags, concealmentVeil: veil };
+    result.breakdown = [
+      ...(result.breakdown ?? []),
+      {
+        stage: "concealment",
+        label: veil.heads
+          ? "Presence Concealment: Heads — nothing is received"
+          : "Presence Concealment: Tails — Total Damage halved",
+        from: before,
+        to: result.total,
+      },
+    ];
+    if (veil.deactivates) {
+      const { deactivateConcealment } = await import("./concealment.mjs");
+      const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
+      await deactivateConcealment(defender.id, DEACTIVATION_REASONS.aoe);
+    }
   }
 
   // A barrier standing in front of the defender takes the damage first, and
@@ -1445,6 +1587,10 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
         chance: spec.chance ?? rule.chance ?? null,
         magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
         npMagnitude: spec.npMagnitude ?? rule.npMagnitude ?? null,
+        // How many stages one application is worth. *"Inflicts Stage 3 Poison
+        // on the DU"* is one application, not three -- three would roll the
+        // chance three times and be improved three times by a Debuff ChUp.
+        stages: spec.stages ?? rule.stages ?? 1,
         duration: rule.duration ?? spec.duration ?? def.defaultDuration,
         source: { unitId: state.attackerId, abilityId: ability.id },
         ctx: {
@@ -1731,6 +1877,22 @@ export function targetSpecForAttack(attacker, ability) {
  */
 function baseSpecFor(attacker, ability, range = null) {
   if (ability?.system?.damage?.base) return ability.system.damage.base;
+
+  // A DECLARED component, which decides the arithmetic and not only what the
+  // attack counts as.
+  //
+  // `componentOf` has read `damage.component` since it was written -- so an
+  // ability declaring `mag` was correctly exempt from the wrong half of Magic
+  // Resistance and correctly matched `attack:component:mag` -- while the number
+  // was still built from the Servant's *Normal Attack* component. Every Noble
+  // Phantasm in the corpus that states a Base Attack without spelling out a
+  // `base` block was therefore computed from the other one: Serenity's Zabaniya
+  // multiplied BA(STR) 65 where her sheet says BA(MAG) 100, and EMIYA's
+  // Hrunting and Caladbolg II, Medea's Aero and Rain of Light, and three of
+  // Scáthach's four all did the same. Found live.
+  const declared = ability?.system?.damage?.component ?? null;
+  if (declared) return { sources: [{ unit: "self", component: declared, factor: 1 }] };
+
   // Through the same rule the option set used, so the number the pipeline adds
   // up and the component a predicate tests cannot disagree.
   return { sources: normalAttackAt({ normalAttack: attacker.system.normalAttack }, range).sources };
@@ -1743,11 +1905,13 @@ function baseSpecFor(attacker, ability, range = null) {
  * @param {object} state
  * @returns {Set<string>}
  */
-function rollOptions(attacker, defender, state) {
+function rollOptions(attacker, defender, state, extra = {}) {
   // Built in the rules layer, where it can be tested without Foundry. It used
   // to be built here, which is why two whole clause families -- `skill:` and
   // `region:` -- went years without ever being emitted.
-  return rollOptionsFor({ attacker, defender, attack: attackFacts(attacker, defender, state) });
+  return rollOptionsFor({
+    attacker, defender, attack: { ...attackFacts(attacker, defender, state), ...extra },
+  });
 }
 
 /**

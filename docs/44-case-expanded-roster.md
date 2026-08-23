@@ -427,6 +427,30 @@ Secret Poison damage is applied immediately to real Health but the *cause* is hi
 victim sees their Health drop with an unattributed entry. This preserves state integrity at the
 cost of a weaker secret, and it is the right trade. Recorded as **Q47**.
 
+**As built.** Not a second effect definition, and not `deferredUntil`: it is the ordinary `poison`
+instance carrying `visibility: gmOnly` and `attributionHidden: true`, set by the applying action
+**only when the inflicter is currently concealed**. That last condition is what makes the clause
+self-limiting rather than a mode — the disclosure trigger is the concealment ending, so an
+unconcealed Serenity has nothing to hide behind and poisons openly.
+
+Three pieces had to become real, and all three were fields with no writer:
+
+| Piece | Where it lives | What it was |
+|---|---|---|
+| `visibility` / `attributionHidden` on the instance | `data/misc.mjs` | On the schema since `0.2.0`; `io.createEffects` did not mention either, so an effect could be *constructed* hidden and was always *created* public. |
+| The tally | `system.hiddenDamage`, keyed by cause | New. Accumulated by `io.adjustHealth` from the intents of the write that takes the Health, and cleared key by key on disclosure — assigning `{}` to an ObjectField **merges**, so the obvious clear is a no-op. |
+| The disclosure | `engine/concealment.mjs` | New. Reveals every instance this Unit inflicted, posts the totals, clears the tally. |
+
+The victim's own client is told nothing while it is hidden: §11.10's `visibility` is honoured by
+the token HUD, which is the only surface that lists effects. Only the **explicit** settings are
+applied there, not §11.10's polarity default — that default would hide every ordinary buff from
+everyone but its bearer, which no sheet in the reference set asks for.
+
+**Measured.** Five Units inside Zabaniya's 2-panel cloud took 60 Poison damage each over two
+Rounds with no attribution and no entry on their own HUD; deactivating her Presence Concealment
+revealed all five instances and posted *"Secret Poison revealed: Hassan of Serenity was the
+source"* with each total.
+
 ### Jack the Ripper — Information Erasure
 
 > *"Whenever Jack leaves the Detect area of an enemy Unit, **erase all information recorded by

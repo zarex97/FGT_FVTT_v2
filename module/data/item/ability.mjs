@@ -181,6 +181,19 @@ function abilityCommon() {
     // cooldown entirely, leaving this as the only limit on it.
     oncePerTurn: new fields.BooleanField({ initial: false }),
 
+    // Presence Concealment clause 7: *"Active Skills targeting/affecting an
+    // enemy Unit(s) cannot be used unless stated."* This is the "unless
+    // stated". Serenity's Shapeshift is the only instance in the reference set,
+    // and it pays for the exemption with the field below.
+    usableWhileConcealed: new fields.BooleanField({ initial: false }),
+
+    // The percentage chance that using this ability ends its owner's
+    // concealment. *"Can be used when Presence Concealment is Active, has a 20%
+    // chance of deactivating Presence Concealment when used."*
+    concealmentBreakChance: new fields.NumberField({
+      required: false, nullable: true, initial: null, integer: true, min: 0, max: 100,
+    }),
+
     // Abilities this use ALSO puts on cooldown (§7.6). Scáthach's Gate of Skye
     // is the reference case — "when this NP is used, Primordial Rune and Wisdom
     // of Dún Scáith enter Cooldown" — and `engine/cooldown.mjs` has read this

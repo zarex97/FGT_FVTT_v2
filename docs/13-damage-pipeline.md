@@ -157,6 +157,16 @@ for (const src of ctx.base.sources) {
 
 Component selection follows Chapter 06 §6.7: fixed, combined, or range-banded.
 
+**An ability may state which Base Attack it uses, and that decides the arithmetic** — not only
+what the attack counts as. `damage.component` is read by `componentOf`, which answers the Magic
+Resistance question and feeds `attack:component:`, and the **base spec** ignored it: it fell
+straight through to the Servant's own Normal Attack component. So every Noble Phantasm in the
+corpus that names a Base Attack without spelling out a `base:` block was computed from the other
+one. Serenity's *Zabaniya* multiplied BA(STR) 65 where her sheet says BA(MAG) 100; EMIYA's
+*Hrunting* and *Caladbolg II*, Medea's *Aero* and *Rain of Light*, and three of Scáthach's four
+all did the same. An explicit `base: {sources: […]}` still wins over both — Karna, Penthesilea and
+Heracles's *Nine Lives* use it, and they were unaffected. Found live.
+
 `Silence` intervenes here: it strips the MAG component from normal attacks, and for a
 MAG-only attacker reduces range to 1 and forces BA(STR).
 
@@ -718,6 +728,21 @@ signature attack is worse at range than in melee against half the roster.
 
 An unknown distance falls back rather than guessing: a snapshot taken off the board has no panel,
 and reading that as range 0 would put him in his melee band while previewing a shot across the map.
+
+### The concealment veil
+
+Presence Concealment's first clause is a **coin flip on Total Damage**, and it is applied here
+rather than at a numbered stage because the sheet is explicit about which number it acts on:
+
+> *"If it is caught in an AoE Attack and fails to Evade, Flip a Coin. If Heads, no damage and
+> effects are received; if Tails, Total Damage taken from that Attack is reduced by 50% & PC is
+> deactivated."*
+
+After every pipeline stage and after any Command Spell factor, and **before** the barrier — a
+shield standing in front of a Unit that took no damage has nothing to absorb. Heads is a factor of
+**zero**, not a skipped step, so the explainer shows it as a modifier with a cause; it also refuses
+the attack's riders, because the clause is *"no damage **and effects**"* and a complete negation
+must not be the strongest debuff delivery in the game.
 
 ---
 

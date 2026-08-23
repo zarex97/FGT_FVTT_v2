@@ -327,6 +327,12 @@ of the design works to prevent.
 
 **Where.** Ch. 44 §44.4.
 
+**Built, on our reading.** The debuff is hidden (`visibility: gmOnly`), the attribution is hidden
+(`attributionHidden`), and a per-victim tally of unattributed damage is accumulated and disclosed
+when the concealment ends. The sheet's *"the debuff and total Poison Damage taken is only revealed
+after Presence Concealment is deactivated"* is satisfied word for word — what is revealed is a
+**debuff** and a **total** — without the bar and the truth ever disagreeing.
+
 ---
 
 ### Q48. Does Rule Breaker override absolute Independent Action?

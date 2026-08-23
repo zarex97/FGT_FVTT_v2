@@ -1,0 +1,62 @@
+# docs/B-rank-tables.md §B.3
+#
+# The Assassin class skill, and the widest single ability in the reference set:
+# eight clauses touching targeting, the reaction ladder, the damage pipeline,
+# movement legality, Master protection and what a player may press.
+#
+# Every rank-scaled number it uses was already a table nothing consulted:
+# `presenceConcealmentDiscover` (A+ → 5%), `presenceConcealmentEvade` (A+ → +4)
+# and `presenceConcealmentCooldown` (A+ → 2◈).
+#
+# An ACTIVE skill, not a mode. The sheet is explicit -- *"(Active) Used during
+# your Turn. The effects of this Skill lasts for 2◈ Turns"* -- and the
+# distinction is load-bearing: a mode is a toggle a player holds, and this is a
+# window that closes on its own and on five other triggers.
+schema: 1
+id: class-presence-concealment
+name: "Presence Concealment"
+source: class
+# Stated, not derived: the default would strip `class-` and leave the kebab-case
+# `presence-concealment`, and every reader in the system -- the effect id, the
+# `self:skillActive:` option, `discoverChance`, `concealmentSkill` -- names it in
+# camelCase.
+slug: presenceConcealment
+kind: skill
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank]
+rank: "@rank"
+# "Cooldown: 2◈ Turns AFTER PC is deactivated."
+#
+# `countFrom: deactivation` is the whole point, and it has been a declared field
+# with no reader since the ability schema was written. Starting the clock at the
+# use would run it *underneath* the Skill's own 2◈ duration, so a Servant could
+# re-conceal the instant the first concealment lapsed -- half the cost the sheet
+# charges. `max` is left unstated so the rank table answers instead.
+cooldown: { countFrom: deactivation }
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. The effects of this Skill last for 2◈ Turns.
+  1. This Unit cannot be targeted for an Attack or an enemy Unit's Skill. If it is caught in an
+     AoE Attack and fails to Evade, Flip a Coin. If Heads, no damage and effects are received;
+     if Tails, Total Damage taken from that Attack is reduced by 50% and PC is deactivated.
+  2. This Unit's Attacks cannot be Blocked or Countered unless the Defending Unit's current AGI
+     Rank is equal to or higher than it. If the DU Evades, the Evade Roll is increased by the
+     rank table value.
+  3. This Unit is able to Attack Masters and Move to any panel regardless of enemy
+     Master-Servant positions.
+  4. All damage dealt is increased by 100%; if NP, 50%. Does not apply to Masters.
+  5. After performing an Attack while PC is Active, PC is deactivated at the end of the Combat
+     Process.
+  6. When this Unit Moves into an enemy Servant's Range (or Detect), it has the rank table's
+     chance of being discovered.
+  7. Active Skills targeting or affecting an enemy Unit cannot be used unless stated. Does not
+     include Attack Skills and Spells that deal damage.
+  8. The effects of Presence Concealment are neither a buff nor a debuff, and are Unremovable.
+  Cooldown: the rank table's value, counted from deactivation.
+phases:
+  - kind: applyEffects
+    target: self
+    # The duration is the effect's own default (2◈); stating it here as well
+    # would be two places to change one number.
+    effects:
+      - { id: presenceConcealment }

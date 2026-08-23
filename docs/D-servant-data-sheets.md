@@ -635,7 +635,7 @@ explicitly states the lost current value is *not* restored on removal. `Max HpDw
 
 | Ability | Type | Mapping |
 |---|---|---|
-| Presence Concealment (A+) | Class, mode | RE (5% discover, +4 evade) |
+| Presence Concealment (A+) | Class, **active** | RE (5% discover, +4 evade, 2◈ from deactivation) |
 | Independent Action (A) | Class, passive | RE (Sustainability 8◈, ZON +3, 4 contract rolls) |
 | Shapeshift (Infiltration Spec.) (C) | Active | **RE+** `usableWhileConcealed` with a per-ability **deactivation chance** (20%) |
 | Projectile (Poisoned Daggers) (C++) | Passive | RE (crit +15%; Poison on Normal Attacks; 25% `Deadly Poison`) |
@@ -652,6 +652,57 @@ outside the Item Construction ladder.
 affected by Magic Resistance"*. Serenity is the cleanest example in the corpus of the
 MR-exemption flag doing real work: without it her only damaging NP is negated outright by any
 Magic Resistance of Rank C or better.
+
+### As built
+
+All seven ship. Four mappings ended up different from the plan above.
+
+- **Presence Concealment is an active Skill, not a mode.** The sheet is explicit — *"(Active)
+  Used during your Turn. The effects of this Skill lasts for 2◈ Turns"* — and the distinction is
+  load-bearing: a mode is a toggle a player holds, and this is a window that closes on its own
+  and on five other triggers. The **state** rides the `presenceConcealment` effect, which is what
+  clause 8 asks for anyway (*"neither a buff or a debuff, and are Unremovable"* is a `status`
+  with `unremovable: true`) and gives the 2◈ duration somewhere to live.
+- **Its cooldown counts from deactivation.** `cooldown.countFrom: deactivation` — a declared
+  schema field with no reader until now. Starting the clock at the use runs it *underneath* the
+  Skill's own 2◈, so a Servant could re-conceal the instant the first concealment lapsed.
+- **Secret Poison is a flag on the Poison instance, not a second effect.** `visibility: gmOnly`
+  plus `attributionHidden: true`, set only when the inflicter is concealed — so an unconcealed
+  Serenity poisons openly and the clause is self-limiting. It follows **Q47**, not the literal
+  sentence: the Health comes off on schedule and only the *cause* is deferred.
+- **Zabaniya's cloud is `target: nearby`, not an `Aura`.** An aura contributes a modifier to
+  whoever stands in it; this *applies* something, once, at a moment. Different shape, and one the
+  action table had no way to express.
+
+Six things end the concealment and they arrive from six unrelated places — the Combat Process,
+the movement hooks, a coin flip inside the damage step, Shapeshift's own 20%, the effect clock,
+and a player switching it off. They converge on one function (`engine/concealment.mjs`), because
+each owes the same three debts: the clock that starts at deactivation, the announcement, and the
+Secret Poison that becomes visible.
+
+Measured live, in one session: the eight clauses in order — Karna could not target her, and an
+area attack gave her the coin (Heads: 1 466 → 0 and the concealment survives; Tails: 1 470 → 735
+and it ends); Karna at AGI A could neither Block nor Counter her at AGI A+, and his Evade carried
+`Presence Concealment A+ +4` from the rank table; she reached a Foe Master that EMIYA was refused
+as *"a Master protected by an adjacent Servant"*, and her reachable panels went from 55 to 87 with
+Karna's own panel among them; **+100% against a Servant (198) and nothing against a Master (94)**;
+the concealment ended at the close of the Combat Process and put the Skill on 6 turns; a 5% Detect
+roll found her out of 200 samples at ~6.5%; and an enemy-aimed Skill with the exemption removed
+was refused with `presenceConcealment` while a self-aimed one and a Noble Phantasm were not.
+
+The rest, in the same session: Independent Action A gave 3 panels of ZON (the class skill carried
+a literal `2`), 4 contract rolls and 24 turns of Sustainability; Shapeshift pushed Karna's
+*Brahmastra Kundala* from 0 to 3 turns and applied `Crit Dwn 20`; a critical dagger put Poison at
+**stage 2** in one swing (the rider plus `Macabre`) and landed the 25% `Deadly Poison`; Poison
+dealt 20 at stage 1, staged to 2 at Round start, dealt 40, and **80** with `Deadly Poison` up;
+Zabaniya dealt 3× BA(MAG) + 100, inflicted Stage 3 Poison in one application, and rolled its seals
+at 50% and its Instakill at 70% with Silent Dance's +10 folded in; and against a Magic Resistance
+of Rank A it dealt **232 with the exemption and 0 without it** — negated outright, which is the
+note above, measured.
+
+Secret Poison end to end: five Units inside the 2-panel cloud took 60 each over two Rounds with
+`visibility: gmOnly` and no attribution, the tally accumulated on each victim, and her concealment
+ending revealed all five instances and posted the totals.
 
 ---
 

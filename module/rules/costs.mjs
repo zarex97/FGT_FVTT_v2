@@ -18,6 +18,7 @@ import { lookup } from "../domain/tables.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { meetsRequirements } from "./items.mjs";
+import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
 
 /** Master ranks that pay the cheaper column. Masters come in four ranks (Ch. 04). */
 const HIGH_RANK_MASTER = Object.freeze(["A", "B"]);
@@ -143,6 +144,19 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
 
   const roundPartner = firstUsed(ability?.sameRoundExclusive, usedThisRound(unit));
   if (roundPartner) return { ok: false, reason: "sameRoundExclusive", detail: { partner: roundPartner }, cost };
+
+  // Presence Concealment clause 7:
+  //
+  //   "Active Skills targeting/affecting an enemy Unit(s) cannot be used unless
+  //    stated. Note: Does not include Attack Skills and Spells that deal damage."
+  //
+  // The one gate in the reference set whose subject is the USER'S OWN STATE
+  // rather than the ability's -- concealment refuses a Skill that would give
+  // the position away, and refuses it by category rather than by a list.
+  if (isConcealed(unit)) {
+    const veiled = canUseWhileConcealed(ability);
+    if (!veiled.ok) return { ok: false, reason: "presenceConcealment", cost };
+  }
 
   // A Noble Phantasm needs its user inside its Master's ZON. The targeting
   // resolver has always refused this; asking here too means one call answers

@@ -1,0 +1,98 @@
+# Serenity, char_orig_sheets/Copia de Hassan (Serenity).md
+#
+# The cleanest example in the corpus of the Magic-Resistance exemption doing
+# real work: Base Attack (MAG) 100 against Base Attack (STR) 65, and *"not
+# affected by Magic Resistance"* — without that flag her only damaging Noble
+# Phantasm is negated outright by any Magic Resistance of Rank C or better.
+#
+# It is also where Secret Poison comes from. The passive cloud inflicts ordinary
+# Poison; while she is concealed, the same Poison is inflicted with its cause
+# hidden until her Presence Concealment ends (Ch. 44 §44.4, **Q47**).
+schema: 1
+id: serenity-zabaniya
+name: "Zabaniya: Delusional Poison Body"
+rank: "C+"
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: zabaniya
+cooldown: "5◈+⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Passive 1) Serenity is Immune to Poison and Deadly Poison.
+  (Passive 2) Any Unit within a 2 panel area of Serenity is inflicted with Poison at the end of
+  her Turn. While Presence Concealment is Active they are inflicted with Secret Poison instead,
+  where the debuff and the total Poison Damage taken is only revealed after Presence Concealment
+  is deactivated.
+  (Active) Range=1. Base Attack (MAG) is used. Deals 3x damage plus 100, not affected by Magic
+  Resistance. After dealing damage: inflicts Stage 3 Poison on the Defending Unit; inflicts
+  Deadly Poison for 2◈ Turns, Poison Damage received is doubled; 40% chance to inflict Skill
+  Seal for 1◈ Turns; 40% chance to inflict NP Seal for 1◈ Turns; 60% chance to inflict Instakill.
+  Cooldown: 5◈+⅓◈ Turns.
+passiveRules:
+  # Passive 1. A granted immunity rather than an `X Immune` status: it is
+  # intrinsic and permanent, and a status could be dispelled off her by
+  # somebody else's Skill.
+  #
+  # It also settles the passive cloud below: the radius names "any Unit", and
+  # without this she would poison herself every Turn from her own body.
+  - key: Immunity
+    effects: [poison, deadlyPoison]
+
+  # Passive 2. Fires on the scheduler's `turnEnd`, which runs for the ACTIVE
+  # faction's units only -- so this is "the end of her Turn" and not the end of
+  # everybody's.
+  #
+  # `target: nearby` is new vocabulary and had to be: every other radius clause
+  # in the system is an `Aura`, which contributes a modifier to whoever stands
+  # in it. This one APPLIES something, once, at a moment -- a different shape,
+  # and one the action table had no way to express.
+  - key: OnEvent
+    event: turnEnd
+    automatic: true
+    then:
+      - key: ApplyEffect
+        target: nearby
+        radius: 2
+        # "Any Unit" -- the cloud does not check badges. Her own allies breathe
+        # it too, which is a real cost and is why the sheet is worth reading
+        # twice before standing beside her.
+        relations: [any]
+        effect: { id: poison }
+        # Secret Poison, and only while there is something to hide behind: the
+        # disclosure trigger is her concealment ending, so an unconcealed
+        # Serenity poisons openly and the clause is self-limiting.
+        secret: true
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  multiplier: 3
+  flatBonus: 100
+  component: mag
+  # The flag this Servant exists to exercise. It also exempts everything below
+  # from Magic Resistance's Instakill/Death ladder, because that exemption is
+  # written against exactly this property of the attack -- so the 60% is not
+  # quietly halved against a Saber.
+  ignoresMagicResistance: true
+phases:
+  - kind: damage
+
+  # "AFTER dealing damage" -- so an ordinary rider phase, which the damage step
+  # runs only if the damage landed.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      # "Stage 3 Poison": ONE application worth three stages. Three separate
+      # applications would roll the chance three times and would each be
+      # improved separately by Silent Dance.
+      - { id: poison, stages: 3 }
+      - { id: deadlyPoison, duration: "2◈" }
+      - { id: skillSeal, duration: "1◈", chance: 40 }
+      - { id: npSeal, duration: "1◈", chance: 40 }
+      # The terminal tier. Silent Dance's +10% and Danse Macabre's +40% both
+      # reach it, and neither `Debuff ChUp` nor any ordinary chance modifier
+      # does -- which is the whole reason `Death ChUp` is a separate effect.
+      - { id: instakill, chance: 60 }

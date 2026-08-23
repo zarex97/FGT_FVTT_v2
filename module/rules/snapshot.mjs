@@ -29,6 +29,7 @@ import { annotateCompulsions } from "./compulsion.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, crossLevelRulesFor } from "./platforms.mjs";
 import { annotateFields } from "./bounded-fields.mjs";
+import { CONCEALMENT } from "./concealment.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -58,6 +59,7 @@ export function snapshotUnit(actor, {
   const contributions = contributionsOf(actor);
   const footprint = gridFootprint(doc, panel);
   const turnState = turnStateAt(sys.turnState, tick);
+  const effectIds = activeEffectIds(actor);
   const roundState = roundStateAt(sys.roundState, round);
 
   return {
@@ -122,7 +124,7 @@ export function snapshotUnit(actor, {
     compulsionRules: contributions.compulsions ?? [],
     alignment: sys.alignment ?? null,
 
-    effects: activeEffectIds(actor),
+    effects: effectIds,
     effectInstances: effectInstances(actor),
     modifiers: contributions.modifiers,
     abilities: collectAbilities(actor),
@@ -188,7 +190,23 @@ export function snapshotUnit(actor, {
     capacity: sys.capacity ?? null,
     ownerId: sys.ownerId ?? null,
     crossLevel: sys.crossLevel ?? null,
-    concealed: Boolean(sys.concealed),
+    // Concealment is a STATE, and until now nothing produced it. `sys.concealed`
+    // was projected here, consulted by targeting, by the counter gate, by
+    // movement legality and by the Evade ladder -- and written by no code and
+    // declared by no schema, so all four asked a question whose answer was
+    // always `false`. The whole of Presence Concealment was inert.
+    //
+    // It rides the effect instead, which is what clause 8 asks for anyway:
+    // *"the effects of Presence Concealment are neither a buff or a debuff, and
+    // are Unremovable"*. `sys.concealed` is still honoured so a GM can set it by
+    // hand on a Unit whose concealment comes from somewhere else.
+    concealed: Boolean(sys.concealed) || effectIds.includes(CONCEALMENT),
+    // "This Unit is able to Attack Masters ... regardless of enemy
+    // Master-Servant positions." `resolve.mjs` has consulted
+    // `caster.bypassesMasterProtection` since Master protection was written and
+    // NOTHING set it, so the exemption could not be authored at all.
+    bypassesMasterProtection: (contributions.suppressions ?? [])
+      .some((s2) => s2.scope === "masterProtection"),
     // Identity and Detect (Ch. 04 §4.2, Ch. 08 §8.7).
     trueName: sys.trueName ?? null,
     classContainer: sys.classContainer ?? [...(sys.servantClasses ?? [])][0] ?? null,
@@ -514,6 +532,13 @@ function effectInstances(actor) {
       uses: e.system?.uses ?? 0,
       expiry: e.system?.expiry ?? null,
       sourceUnitId: e.system?.sourceUnitId ?? null,
+      sourceAbilityId: e.system?.sourceAbilityId ?? null,
+      // Deferred disclosure. Projected because the periodic tick has to know
+      // that this instance's damage is not to be attributed -- the tally it
+      // feeds is the "total Poison Damage taken" Serenity's sheet reveals when
+      // her concealment ends.
+      visibility: e.system?.visibility ?? "public",
+      attributionHidden: Boolean(e.system?.attributionHidden),
       suppressed: Boolean(e.isSuppressed),
     }));
 }

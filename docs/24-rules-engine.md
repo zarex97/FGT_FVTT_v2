@@ -231,7 +231,19 @@ a different (smaller) vocabulary from rule elements:
 > ever supplied**, so the resistance path was dead at both ends. Contributions now fill an
 > `applicationChances` bucket, the snapshot carries it, and `applyEffect` reads it off the target.
 >
-> `Suppress`, `StackingOverride` and `ImmunityDowngrade` remain collected-only.
+> `Suppress` is **read for one scope**: `masterProtection`, which the targeting resolver has
+> consulted since Master protection was written (`caster.bypassesMasterProtection`) with nothing
+> ever setting it — so Presence Concealment's *"able to Attack Masters … regardless of the enemy
+> Master-Servant positions"* could not be authored at all. Its other scopes, `StackingOverride`
+> and `ImmunityDowngrade`, remain collected-only.
+>
+> `ApplicationChance` gained two filters for Serenity. A contribution now applies only to
+> **debuffs** unless it names one effect outright — every clause of this shape in the corpus is
+> *"chance of inflicting debuffs"* or *"chance of being inflicted by debuffs"*, and nothing
+> anywhere modifies how likely a **buff** is to land; without the filter her *Silent Dance* raised
+> the application chance of her own self-buffs. And `severity` accepts a **list**, so
+> *"chance of inflicting Instakill and Death is increased by 10%"* is one contribution rather than
+> two claims that the rank table was consulted twice.
 | `StackingOverride` | Rare per-content stacking changes |
 | `Aura` | Wraps another element with a radius and relation filter |
 
@@ -331,6 +343,18 @@ absent rather than wrong. EMIYA is written almost entirely in these terms: his N
 changes what it is made of at 3, *Clairvoyance* and *Hawkeye* switch on at 3, *Kanshou & Bakuya*
 applies at 2 or lower and *Hrunting* refuses at 1. None of it could be written before, because
 nothing emitted a distance.
+
+### Whether it crit
+
+`attack:crit` is in the option set **only** for an attack that has already resolved — it is added
+by the `damageDealt` firing and by nothing earlier. That is correct rather than incomplete: a
+clause that asks whether the attack crit is by definition asking about a resolved one, and
+emitting it at declaration would mean guessing.
+
+Serenity's `Macabre` is the first content to use it — *"Serenity's Normal Attack **Crits** inflict
+an additional Stage of Poison on the DU"* — and it needed the flag put on the damage **result**
+rather than only on the chat card, which is where the crit had been recorded since the pipeline
+was written.
 
 ### The vocabulary has to be closed at both ends
 

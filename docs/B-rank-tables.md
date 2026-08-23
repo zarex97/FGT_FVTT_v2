@@ -164,6 +164,11 @@ Verification: Kiritsugu and Serenity `A` → 8◈ ✓; Kingprotea and EMIYA `B` 
 |---|---|---|
 | +3 | +2 | +1 |
 
+The class skill carried a **literal `value: 2`** until Serenity, which is right for EMIYA's B and
+wrong for every other rank the corpus uses — her sheet states *"Master's ZON is increased by 3
+panels"* and she would have been quietly given 2. It reads the table now. Verified live: Serenity
+A → 3, EMIYA B → 2.
+
 **Passive 3 — contract rolls required** — banded:
 
 | EX, A+ | A | B | C and below |
@@ -245,6 +250,13 @@ From the expanded roster: Serenity, Jack and Hundred-Faced Hassan `A+` → 5% �
 numeric: Hundred-Faced Hassan's sheet adds a ninth clause — `Skill Seal` deactivates PC
 immediately — which no other bearer has. Presence Concealment is therefore a **parameterized
 template with per-Servant clause overrides**, not one shared effect document.
+
+**All three tables now have readers.** They were transcribed here and sat unconsulted:
+`presenceConcealmentDiscover` feeds `discoverChance`, which had a caller only in its own tests;
+`presenceConcealmentEvade` replaced a hardcoded `4` in the Evade ladder — right for Serenity's A+
+by accident and wrong for Yan Qing's C; and `presenceConcealmentCooldown` is what
+`cooldown.countFrom: deactivation` looks up when the Skill ends. The 2◈ duration lives on the
+effect definition rather than in a table, because it does not vary by rank.
 
 ### Mad Enhancement
 

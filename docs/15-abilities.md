@@ -226,6 +226,30 @@ every `target: self` phase belonged to a *self-targeting* ability, where the two
 identical. Scáthach's *Primordial Rune* is the first where they differ — *"Gain 2 PRS Tokens.
 Then, … on an allied Unit"* — and in a live world the tokens went to the ally.
 
+### A `cooldown` phase may lengthen somebody else's clock
+
+`CooldownChange` has three selectors and three directions, and one of each was added for
+Serenity's *Shapeshift* — *"Used on an enemy Unit. Increase its NP Cooldown by 1◈ Turns"*.
+
+| Selector | Names | Used by |
+|---|---|---|
+| `abilityId` | one ability | — |
+| `category` | a family | Medea's *High-Speed Divine Words* (seven Spells; a list would go stale) |
+| `scope: np` | every Noble Phantasm the target has | *Shapeshift* — the clause is aimed at somebody else's sheet, and that Servant may have two (EMIYA has five) |
+
+| Direction | Means |
+|---|---|
+| `set: N` | write the remaining turns outright; `set: 0` is "completely reduce", a set rather than a subtract so it cannot work by accident |
+| `ticks` + `direction: down` | subtract, floored at zero |
+| `ticks` | **add** |
+
+`increase` is the direction the writer did not have: `setCooldown` could set or reduce, so
+lengthening an enemy's clock was the one cooldown operation the system could not perform — and
+`set` would have replaced a *longer* cooldown with a shorter one, turning the debuff into a
+favour. Changes are stated in **◈**, resolved against the world's turns per Round; reading `1◈`
+as one turn would make *Shapeshift* a third as strong. Verified live: Karna's *Brahmastra Kundala*
+went from 0 to 3 turns.
+
 ### A phase may carry its own targeting
 
 `target` has three answers, not two. `self` names the caster and `reuse` names whatever the
@@ -714,6 +738,42 @@ polarity: status              # neither buff nor debuff, unremovable
 mode's state lives on the ability item (`system.mode = {active, activatedOnTurn, cooldownUntil}`)
 and its rule elements are conditioned on `mode:active`. This makes "cannot be deactivated"
 a property of the ability rather than an unremovable effect, which is the correct home for it.
+
+**As built, that decision holds for Mad Enhancement and is reversed for Presence Concealment**,
+because the two are not the same shape after all. The sheets say so:
+
+| | Mad Enhancement | Presence Concealment |
+|---|---|---|
+| The source's own word | *"Constantly Active"*, toggled | *"(Active) Used during your Turn"* |
+| How long | until switched off | *"the effects of this Skill lasts for 2◈ Turns"* |
+| What ends it | a player, or a compulsion | six things, five of which are not a player |
+| Cooldown | none | *"2◈ Turns **after** PC is deactivated"* |
+
+A mode is a toggle somebody **holds**. Presence Concealment is a window that closes on its own —
+and on being attacked with, on being discovered, on a coin, and on a 20% roll. Modelled as a
+toggle, every one of those five would have to reach in and flip a field on an Item; modelled as an
+**effect with a duration**, they remove it, and the clock is the ordinary effect clock.
+
+It also gives clause 8 its natural home: *"the effects of Presence Concealment are neither a buff
+or a debuff, and are Unremovable"* is `polarity: status` with `unremovable: true` — exactly what
+the plan above wanted the polarity line for, on a document that can carry it.
+
+Two fields were added for it, both on the ability:
+
+```yaml
+cooldown: { countFrom: deactivation }   # the clock starts when the Skill ENDS
+usableWhileConcealed: true              # clause 7's "unless stated"
+concealmentBreakChance: 20              # and what stating it costs
+```
+
+`countFrom` had been a declared schema field with **no reader** since the ability schema was
+written. Without it the 2◈ cooldown runs *underneath* the Skill's own 2◈ duration and a Servant
+can re-conceal the instant the first concealment lapses — half the cost the sheet charges.
+
+The six ways it ends converge on one function (`engine/concealment.mjs`), driven by the effect's
+own **deletion** rather than by its six callers, because the sixth caller is the effect clock and
+there is nothing there to call. Each owes the same three debts: the cooldown, the announcement,
+and the Secret Poison that becomes visible (Ch. 44 §44.4).
 
 ### Skills that count as another skill
 

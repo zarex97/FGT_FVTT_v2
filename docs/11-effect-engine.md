@@ -241,6 +241,22 @@ Van Gogh's *Imaginary Numbers Arts* inflicts *"Curse on herself, 3 times"* — t
 stage increments in one application, so the application loop runs three times with three
 independent resistance rolls (which for a self-application at 500% chance always succeed).
 
+**`stages: N` is the other reading, and some sheets need it.** Serenity's *Zabaniya* *"inflicts
+Stage 3 Poison on the DU"*: one application worth three stages, not three applications. The
+distinction is not cosmetic — three applications roll the chance three times and are improved
+three times by a `Debuff ChUp`, which for a Servant carrying +50% to inflict is a materially
+different effect. Van Gogh's *"3 times"* keeps its three rolls; Serenity's *"Stage 3"* gets one.
+
+**Two applications in one batch merge.** A staged effect resolves its new stage against what the
+target is already carrying, and nothing in a batch has been written yet — so two Poisons applied
+in the same breath both see an unpoisoned Unit, both resolve to "create at stage 1", and the Unit
+ends up with **two Poison documents** instead of one at stage 2. Serenity does that routinely: her
+*Projectile* poisons on every Normal Attack and `Macabre` adds *"an additional Stage"* on a crit,
+so a critical dagger raises two handlers against one victim. `applyIntents` folds them, and only
+when they agree about their **chance** — two riders at different odds are two separate rolls, and
+merging them would make the pair land or miss as one. Verified live: one critical dagger, Poison
+at **stage 2**.
+
 ### `highestOnly`
 
 The source states it for two class skills:

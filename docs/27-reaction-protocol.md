@@ -324,6 +324,16 @@ state.defenders[i] = {
 };
 ```
 
+**As built, that field had no reader** — it was written here and consulted nowhere, so a Servant
+teleported into an attack it never saw coming could still Block and Evade it. It is honoured now
+in **two** places, and both are needed: the chat card filters the buttons, and `advance` refuses
+the transition outright. The card is a client; the transition is the boundary. A stale card, a
+macro, or a second player's window must not be able to declare a reaction the Process has already
+taken away.
+
+Presence Concealment writes the same field, for a different rule (Ch. 12, *Reactions the Process
+refuses*), which is why it is a list rather than a boolean.
+
 ---
 
 ## 27.10 The counter sub-process

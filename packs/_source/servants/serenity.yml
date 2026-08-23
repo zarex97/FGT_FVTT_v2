@@ -1,0 +1,67 @@
+# packs/_source/servants/serenity.yml
+# Conversion source: char_orig_sheets/Copia de Hassan (Serenity).md
+schema: 1
+id: serenity
+name: "Hassan of Serenity"
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Hassan-i-Sabbah"
+servantClasses: [assassin]
+classContainer: assassin
+alignment: { order: lawful, morality: evil }
+region: [middleEast]
+attributes: [female, servant, man, humanoid, antiHero]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: D, end: D, agi: "A+", mag: C, luc: A }
+baseHealth: 750
+mov: 7
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 65, mag: 100 }
+# 8◈ from Independent Action A. Stated on the sheet rather than granted by the
+# skill: the skill is the REASON the number is high, it does not add turns.
+sustainability: "8◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: class-presence-concealment, rank: "A+" }
+  - { ref: class-independent-action, rank: A }
+  - { ref: serenity-shapeshift }
+  - { ref: serenity-projectile }
+  - { ref: serenity-silent-dance }
+  - { ref: serenity-danse-macabre }
+  - { ref: serenity-zabaniya }
+
+notes: |
+  The eighth Servant, the first Assassin, and the one whose sheet is written almost entirely in
+  terms of **information**. Presence Concealment is eight clauses long and touches targeting,
+  the reaction ladder, the damage pipeline, movement legality, Master protection and what a
+  player is allowed to press — and every one of those readers already existed. What did not
+  exist was anything that made a Unit *concealed*: `system.concealed` was projected by the
+  snapshot, consulted by four subsystems, written by no code and declared by no schema. The
+  whole class skill answered a question whose answer was always `false`.
+
+  It rides the `presenceConcealment` **effect** now, which is what clause 8 asks for anyway —
+  *"neither a buff or a debuff, and Unremovable"* is a `status` with `unremovable: true`, and it
+  gives *"lasts for 2◈ Turns"* somewhere to live. Six things end it and they arrive from six
+  unrelated places, so they converge on one function (`engine/concealment.mjs`) that owes the
+  same three debts every time: the clock that starts at deactivation, the announcement, and the
+  **Secret Poison** that becomes visible.
+
+  She is also the Servant who made the **on-hit rider** work. `Bleed Atk` and `Queen's Poison`
+  were both written as `OnEvent: damageDealt` with an `effect:` shorthand, and *neither the
+  event nor the shorthand existed*: nothing raised `damageDealt`, and `normalizeActions` read
+  `then` and `revive` and no third thing, so the handler compiled to an empty action list. Two
+  shipped effects were inert twice over. Her poisoned daggers are three riders and would have
+  been a fourth and fifth.
+
+  **Secret Poison follows Q47, not the literal sentence.** The Health comes off on schedule and
+  only the *cause* is deferred — the alternative reading, where the damage accumulates unseen,
+  means a Unit's displayed Health and its real Health diverge and a Servant can be walking
+  around already dead. What is hidden is the debuff itself (`visibility: gmOnly`) and the
+  running tally, and both are disclosed the moment her concealment ends.
+
+  Her Noble Phantasm is why the Magic-Resistance exemption matters: Base Attack (MAG) 100
+  against Base Attack (STR) 65, and *"not affected by Magic Resistance"*. Without the flag her
+  only damaging Noble Phantasm is negated outright by any Magic Resistance of Rank C or better.

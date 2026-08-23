@@ -114,6 +114,7 @@ All are `automatic: true` and therefore negated by `Addle`.
 |---|---|---|---|---|
 | `Debuff ResUp` | B | D | mag | Chance of being inflicted with debuffs −X%. |
 | `Debuff ChUp` | B | O | mag | Chance of inflicting debuffs +X%. Does not affect Instakill/Death/Erase unless stated. |
+| `Death ChUp` | B | O | mag | Chance of inflicting **Instakill and Death** +X%. The counterpart the exclusion above requires: one modifier cannot do both jobs, and Serenity states both at every size — 10% each from Silent Dance, 40% each from Danse Macabre. |
 | `Buff ChUp` | B | — | mag | Chance of applying buffs to others +X%. |
 | `Buff Up` | B | — | mag | Chance of receiving buffs +X%. |
 | `Debuff Immune` | B | D | nr | Immune to debuffs. Excludes Instakill/Death/Erase unless stated. |
@@ -169,7 +170,7 @@ whole attack.
 | Effect | Pol | Semantics |
 |---|---|---|
 | `NP Seal` | D | Cannot use Noble Phantasms. Not passive NPs unless stated. Affects *categorized as NP* abilities. Does **not** delay or stop NPs that fire on a timer. |
-| `Skill Seal` | D | Cannot use Skills or Spells. Not passive skills unless stated. |
+| `Skill Seal` | D | Cannot use Skills or Spells. Not passive skills unless stated. **Authored** for Serenity's Zabaniya; carries no rule element, because what refuses a Skill is `rules/budget.mjs`'s prevention table, which has listed `skillSeal` since it was written with no document to name. |
 | `Debuff ChDwn` | D | Chance of inflicting debuffs −X%. |
 | `Debuff ResDwn` | D | Chance of being inflicted with debuffs +X%. |
 | `Buff ChDwn` | D | Chance of applying buffs to others −X%. |
@@ -206,7 +207,7 @@ All five are `nnr` (no stack, no refresh).
 | `Crystallize` | nnr | MOV −3; Agility Checks +1d6; 50 Fixed damage at the end of any turn it Acts; **all damage taken −10%** including NP. |
 | `Evil Curse` | nnr | Curse damage received increased. |
 | `Severe Burn` | nnr | Burn damage received increased. |
-| `Deadly Poison` | nnr | Poison damage received increased. |
+| `Deadly Poison` | nnr | Poison damage received increased — **doubled**, per every sheet that inflicts it. Carries no rule element: its subject is another effect's periodic tick, which is authored `bypassModifiers` precisely so the damage pipeline cannot touch it, so the multiplier lives beside the tick in `scheduler.AMPLIFIERS`. |
 | `Scald` | nnr | Treated as `Burn` but **ignores Burn resistance including Burn Immune**. Blocks `Burn` from being applied. 50 damage at the end of every Round. |
 | `Seared` | nnr | Combines and **is treated as both** `Burn` and `Shock`. Removal chance −50%. Replaces existing Burn/Shock, **absorbing their remaining duration**. |
 
@@ -305,8 +306,8 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Off.Debuff ResUp` | B | D | mag | — | Chance of being inflicted by **Offensive** debuffs −X%. Completes the valence-scoped family alongside `Off.Debuff Immune`. | Asterios |
 | `Def.Debuff ResUp` | B | D | mag | — | Same, for Defensive debuffs. Added for symmetry; no content uses it yet. | — |
 | `Men.Debuff ResUp` | B | D | mag | — | Same, for Mental debuffs. | Jack, Achilles |
-| `Bleed Atk` | B | O | cnt | — | Normal Attacks have an X% chance of inflicting `Bleed`. An **on-attack rider** rather than a modifier. | Asterios |
-| `Macabre` | B | O | nr | — | Normal Attack **crits** inflict an additional **stage** of `Poison`. The first effect whose subject is another effect's stage counter. | Serenity |
+| `Bleed Atk` | B | O | cnt | — | Normal Attacks have an X% chance of inflicting `Bleed`. An **on-attack rider** rather than a modifier. Was inert **twice over** until Serenity: nothing raised `damageDealt`, and the `effect:` shorthand it is written in desugared to no action at all. It also needed `target: victim` added — without it the shorthand inflicted Bleed on the *attacker*. | Asterios |
+| `Macabre` | B | O | nr | — | Normal Attack **crits** inflict an additional **stage** of `Poison`. The first effect whose subject is another effect's stage counter — and cheap once staging exists, because "an additional stage" is one more application of the same Poison. Needed two things that did not exist: the `damageDealt` event, and `attack:crit` as a roll option. | Serenity |
 | `Raikou` | B | O | cnt | — | Count-limited (3): Normal Attacks deal +40 Lightning, 40% `Shock`, and reduce NP cooldown by ⅓◈. | Raikou |
 | `Enigma` | B | O | nr | — | When the bearer's ally performs a **STR-component** Normal Attack, the DU gains `Def Dwn (MAG)`. Gated on which base attack the attack used. | Nursery Rhyme |
 | `Espionage` | B | — | nr | — | Raises the bearer's own `Presence Concealment` rank. A `RankShift` delivered as a buff. | Yan Qing |
@@ -379,6 +380,25 @@ Added in `0.2.0` for Serenity's Secret Poison and Jack's Information Erasure.
 **Secret Poison uses `attributionHidden`, not deferred damage.** Health drops on schedule; the
 log entry says *"−80 (source hidden)"*. This preserves state integrity at the cost of a weaker
 secret, which is the correct trade (Ch. 44 §44.4, **D44.10**).
+
+**All three fields now have readers.** `visibility` and `attributionHidden` shipped on the
+instance schema in `0.2.0` and **nothing anywhere read or wrote either** — `io.createEffects`
+did not mention them, so an effect could be constructed hidden and was always created public, and
+`canSeeEffect` (which has been in `rules/effect-flow.mjs` since the effect engine was written)
+had no caller at all. Built for Serenity:
+
+- `applyEffect` accepts and stamps both, and `io.createEffects` persists them.
+- The token HUD filters its effect list on the **explicit** settings — `gmOnly` and `ownerOnly`.
+  §11.10's polarity *default* is deliberately not applied there: it would hide every ordinary buff
+  from everyone but its bearer, which is a far larger change than the field asks for and one no
+  sheet in the reference set wants.
+- `deferredUntil` is still **unread**. Secret Poison does not need it — its disclosure is driven
+  by the concealment ending, which is one function rather than an event subscription — and adding
+  a second, half-wired disclosure path would be the exact defect this appendix keeps recording.
+
+The tally the sheet promises to reveal (*"total Poison Damage taken"*) is `system.hiddenDamage`,
+keyed by cause, accumulated by `io.adjustHealth` from the intents of the write that takes the
+Health.
 
 ---
 

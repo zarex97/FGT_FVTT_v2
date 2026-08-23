@@ -1,0 +1,29 @@
+# Serenity, Danse Macabre 2 — "chance of inflicting Instakill and Death is
+# increased by 40%".
+#
+# The counterpart to `Debuff ChUp`, and NOT the same effect with a different
+# magnitude. Appendix A keeps the terminal tier out of ordinary chance modifiers
+# *"unless stated"*, so `Debuff ChUp` names no severity and therefore covers
+# `normal` alone. This one states it, which is the whole reason it is a separate
+# entry in the catalogue.
+#
+# Both of Serenity's chance clauses come in pairs -- Silent Dance is +10% to
+# each, Danse Macabre is +40% to each -- and authoring them as one effect would
+# have made the general one improve a Death roll, which is the exclusion
+# Appendix A goes out of its way to state.
+schema: 1
+id: deathChUp
+name: "Death ChUp"
+description: "Chance of inflicting Instakill and Death is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: ApplicationChance
+    direction: outgoing
+    # A LIST, because the sheet names two tiers at one magnitude. `Erase` is
+    # deliberately absent: no sheet in the corpus lifts it.
+    severity: [instakill, death]
+    value: "@magnitude"

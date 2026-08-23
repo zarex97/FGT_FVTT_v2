@@ -21,17 +21,24 @@ parameterized: [rank]
 rank: "@rank"
 description: |
   (Passive 1) Has a high Sustainability.
-  (Passive 2) Master's ZON is increased by 2 panels.
+  (Passive 2) Master's ZON is increased by @rank's table value in panels.
   (Passive 3) Requires several successful 'Contract Servant' rolls to be contracted by enemy
   Masters and Casters; at A+ and EX, it cannot be contracted by an enemy at all.
 passiveRules:
-  # Passive 2. `stacks` is false BY OMISSION and that is the load-bearing part:
+  # Passive 2, from the RANK TABLE rather than as a literal. `value: 2` was
+  # right for EMIYA's B and wrong for every other rank the corpus uses --
+  # Serenity's A is *"Master's ZON is increased by 3 panels"* and would have
+  # been silently given 2. `independentActionZon` has been in
+  # `domain/tables.mjs` since the tables were transcribed with nothing reading
+  # it.
+  #
+  # `stacks` is false BY OMISSION and that is the load-bearing part:
   # §6.9 says Independent Action and the Caster/Assassin class bonus are "the
   # same effect" and take the HIGHEST rather than the sum. Mad Enhancement's +2
   # is a different effect and does add, which is why the field is per-element
   # rather than global.
   - key: ZonBonus
-    value: 2
+    table: independentActionZon
 
   # Passive 1 is the Servant's own `sustainability`, authored on the sheet
   # rather than granted here: the skill does not ADD turns, it is the reason the

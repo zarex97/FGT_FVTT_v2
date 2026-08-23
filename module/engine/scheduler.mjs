@@ -463,8 +463,26 @@ const ACTIONS = Object.freeze({
       magnitude: a.effect?.magnitude ?? a.magnitude ?? 0,
       expiry: ticks === null || ticks === INFINITE ? (a.effect?.expiry ?? null) : (c.tick ?? 0) + ticks,
       sourceUnitId: u.id,
+      // Riders state their own chance -- "25% chance of inflicting Deadly
+      // Poison" -- and the flow that applies them reads it off the instance,
+      // because an intent has nowhere else to put it.
+      ...(a.chance !== undefined || a.effect?.chance !== undefined
+        ? { chance: a.chance ?? a.effect?.chance } : {}),
+      // "Inflicts Stage 3 Poison": one application worth three stages, not
+      // three applications each rolling their own chance.
+      ...(a.stages !== undefined ? { stages: a.stages } : {}),
+      // Secret Poison. Hidden only while there is something to hide behind:
+      // the disclosure trigger is the inflicter's concealment ending, so an
+      // unconcealed inflicter poisons openly and the clause is self-limiting.
+      ...(a.secret && concealedNow(u) ? { visibility: "gmOnly", attributionHidden: true } : {}),
     };
-    return [I.applyEffect(u.id, effect, h.abilityId)];
+
+    // WHO it lands on. The action used to apply to the handler's owner and
+    // nothing else, so every on-hit rider in the catalogue -- `Bleed Atk`,
+    // `Queen's Poison`, Serenity's poisoned daggers -- would have inflicted its
+    // debuff on the ATTACKER. `target: victim` is the vocabulary Ch. 32 already
+    // writes; it just had no reader.
+    return targetsOf(a, u, c).map((id) => I.applyEffect(id, { ...effect }, h.abilityId));
   },
 
   RemoveEffect: (a, u) => [I.removeEffect(u.id, a.effect ?? a.defId, "event")],
@@ -530,6 +548,70 @@ const ACTIONS = Object.freeze({
     ];
   },
 });
+
+/**
+ * Which Units an action lands on.
+ *
+ * Three shapes, and the reference set uses all three: the handler's owner
+ * (`self`, the default), the Unit on the other end of the event that fired it
+ * (`victim`), and everybody inside a radius (`nearby`) — which is Serenity's
+ * Zabaniya, *"any Unit within a 2 panel area of Serenity will be inflicted with
+ * Poison at the end of her Turn"*.
+ *
+ * @param {object} a the action
+ * @param {object} u the handler's owner
+ * @param {object} c the scheduler context
+ * @returns {string[]} unit ids
+ */
+function targetsOf(a, u, c) {
+  switch (a.target ?? "self") {
+    case "victim":
+      // Absent when the event carries no second party. Emitting nothing is
+      // right: a rider with no victim has nobody to ride.
+      return c.victim?.unitId ? [c.victim.unitId] : [];
+
+    case "nearby": {
+      const radius = a.radius ?? 0;
+      const relations = a.relations ?? ["enemy"];
+      return (c.board?.units ?? [])
+        .filter((other) => other.id !== u.id)
+        .filter((other) => chebyshevish(other.panel, u.panel) <= radius)
+        .filter((other) => matchesRelation(other, u, relations))
+        .map((other) => other.id);
+    }
+
+    default:
+      return [u.id];
+  }
+}
+
+/**
+ * Does this Unit stand in one of the named relations to the handler's owner?
+ *
+ * `any` is deliberately its own entry rather than "omit the list": Serenity's
+ * Zabaniya says *"any Unit"* and means it — the poison cloud does not check
+ * badges — while every other radius clause in the corpus names a side.
+ *
+ * @param {object} other
+ * @param {object} owner
+ * @param {string[]} relations
+ * @returns {boolean}
+ */
+function matchesRelation(other, owner, relations) {
+  if (relations.includes("any")) return true;
+  const allied = other.factionId != null && other.factionId === owner.factionId;
+  return relations.includes(allied ? "ally" : "enemy");
+}
+
+/**
+ * Is this Unit concealed, from the snapshot alone?
+ *
+ * @param {object} unit
+ * @returns {boolean}
+ */
+function concealedNow(unit) {
+  return Boolean(unit?.concealed) || (unit?.effects ?? []).includes("presenceConcealment");
+}
 
 /**
  * @param {object} unit
@@ -749,16 +831,55 @@ export function tickPeriodics(units, when, ctx) {
       // An effect does not tick on the turn it expires (Ch. 11 §11.9).
       if (e.expiry !== null && e.expiry !== undefined && e.expiry <= ctx.tick) continue;
 
-      const amount = spec.amount(e);
+      const amount = amplify(spec.amount(e), e.defId, u);
       const converted = (u.effects ?? []).includes(spec.healConversion);
       out.push(
         converted
           ? I.heal(u.id, amount, e.defId)
-          : I.damage(u.id, amount, null, { periodic: true, defId: e.defId, bypassModifiers: true }),
+          : I.damage(u.id, amount, null, {
+            periodic: true,
+            defId: e.defId,
+            bypassModifiers: true,
+            // Secret Poison: the Health comes off now, and the log says so
+            // without saying whose it was (Q47). The applier keeps the running
+            // total so the disclosure can name a number.
+            attributionHidden: Boolean(e.attributionHidden),
+          }),
       );
     }
   }
   return out;
+}
+
+/**
+ * What a standing effect does to somebody ELSE'S periodic damage.
+ *
+ * `Deadly Poison` is *"Poison Damage received is doubled"* — a multiplier on a
+ * tick that is not its own, which is the only shape of its kind in Appendix A
+ * and the reason it is a table rather than a branch. Serenity applies it three
+ * ways (a 25% rider on every Normal Attack, 2◈ from her Noble Phantasm, and by
+ * standing still while her Zabaniya field ticks), so it is the difference
+ * between Stage 4 dealing 160 and dealing 320.
+ *
+ * @type {Readonly<Record<string, {defId: string, factor: number}>>}
+ */
+const AMPLIFIERS = Object.freeze({
+  deadlyPoison: { defId: "poison", factor: 2 },
+});
+
+/**
+ * @param {number} amount
+ * @param {string} defId the ticking effect
+ * @param {object} unit the unit taking it
+ * @returns {number}
+ */
+function amplify(amount, defId, unit) {
+  let out = amount;
+  for (const held of unit.effects ?? []) {
+    const amp = AMPLIFIERS[held];
+    if (amp && amp.defId === defId) out *= amp.factor;
+  }
+  return Math.round(out);
 }
 
 /**

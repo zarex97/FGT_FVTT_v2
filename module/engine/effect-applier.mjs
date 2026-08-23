@@ -50,11 +50,16 @@ const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
  * @param {object[]} [args.chanceModifiers] per-effect modifiers the ability declares
  * @param {number|null} [args.chance] the ability's own stated chance, which
  *   overrides the effect definition's `baseChance`
+ * @param {number} [args.stages] how many stages one application adds. `1`
+ *   everywhere but Serenity's Zabaniya, which *"inflicts Stage 3 Poison"*.
+ * @param {string} [args.visibility] who may see the instance
+ * @param {boolean} [args.attributionHidden] apply the result, hide the cause
  * @returns {ApplicationResult}
  */
 export function applyEffect({
   def, target, magnitude = 0, npMagnitude = null, duration = null, source, ctx,
-  chanceModifiers = [], chance = null,
+  chanceModifiers = [], chance = null, stages = 1,
+  visibility = "public", attributionHidden = false,
 }) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
   const trace = [];
@@ -140,7 +145,7 @@ export function applyEffect({
 
   // ── 5. STACKING RESOLUTION ───────────────────────────────────────────────
   const existing = instances.filter((e) => e.defId === def.id);
-  const stack = resolveStacking(def, existing, magnitude);
+  const stack = resolveStacking(def, existing, magnitude, stages);
   trace.push({ step: "stacking", outcome: stack.action, detail: stack.detail });
   if (stack.action === "noop") {
     return { outcome: "noop", reason: "already present, does not refresh", intents: [], trace };
@@ -149,7 +154,18 @@ export function applyEffect({
   // ── 6. CONSTRUCT ─────────────────────────────────────────────────────────
   // Duration is stored as an ABSOLUTE expiry tick, not a countdown, so that
   // Stop's clock freeze and mid-game ◈ changes cannot corrupt it (Ch. 07 §7.5).
-  const ticks = resolveTicks(parseTick(duration ?? def.defaultDuration ?? null), ctx);
+  // An effect nobody gave a clock to does not expire; it is removed by a Cure,
+  // by consumption, or by whatever its own text says.
+  //
+  // `resolveTicks(null)` is **0**, which is a legitimate answer for "this turn"
+  // and a disastrous default for "unstated": the expiry lands on the current
+  // tick, so the instance is swept by the very next boundary -- before it has
+  // ticked once. Found live. Poison is the case that exposed it (Appendix A
+  // gives it no duration at all, because it runs until it is cured), and it was
+  // applied, staged to 1, and removed at the end of the same Round having dealt
+  // nothing.
+  const authored = duration ?? def.defaultDuration ?? null;
+  const ticks = authored === null ? INFINITE : resolveTicks(parseTick(authored), ctx);
   const expiry = ticks === INFINITE ? null : (ctx.currentTick ?? 0) + ticks;
 
   const effect = {
@@ -167,6 +183,11 @@ export function applyEffect({
     polarity: def.polarity,
     volatility: def.volatility,
     unremovable: Boolean(def.unremovable),
+    // Deferred disclosure (Appendix A §A.18). Both fields have been on the
+    // instance schema since `0.2.0` and NOTHING wrote either of them, so
+    // Secret Poison had a place to live and no way to get there.
+    visibility,
+    attributionHidden: Boolean(attributionHidden),
   };
 
   // ── 7. EMIT ──────────────────────────────────────────────────────────────
@@ -371,9 +392,10 @@ function findExclusion(def, held) {
  * @param {object} def
  * @param {object[]} existing instances of the same definition already present
  * @param {number} magnitude
+ * @param {number} [stages] how many stages this application is worth
  * @returns {{action: string, magnitude: number, stage: number, uses: number, detail?: string}}
  */
-function resolveStacking(def, existing, magnitude) {
+function resolveStacking(def, existing, magnitude, stages = 1) {
   const current = existing[0];
   switch (def.stacking ?? "noneNoRefresh") {
     case "noneNoRefresh":
@@ -388,7 +410,10 @@ function resolveStacking(def, existing, magnitude) {
       return { action: current ? "extend" : "create", magnitude, stage: 0, uses: def.uses ?? 0 };
 
     case "stage": {
-      const stage = (current?.stage ?? 0) + 1;
+      // *"Reapplication adds a stage"* -- one, normally. Serenity's Zabaniya
+      // *"inflicts Stage 3 Poison"* in a single application, and reading that as
+      // three separate applications would roll its chance three times.
+      const stage = (current?.stage ?? 0) + Math.max(1, stages);
       return { action: current ? "stage" : "create", magnitude, stage, uses: 0, detail: `stage ${stage}` };
     }
 
@@ -474,6 +499,16 @@ function chanceContribution(unit, def, direction, options = null) {
   for (const c of unit?.applicationChances ?? []) {
     if ((c.direction ?? "incoming") !== direction) continue;
     if (c.effectId && c.effectId !== def.id) continue;
+
+    // DEBUFFS, unless the contribution names one effect outright. Every clause
+    // of this shape in the corpus is about inflicting or resisting a debuff --
+    // *"chance of inflicting debuffs"*, *"chance of being inflicted by
+    // debuffs"* -- and nothing anywhere modifies how likely a buff is to land.
+    //
+    // Without the filter, Serenity's Silent Dance raised the application chance
+    // of her own self-buffs: Presence Concealment went on at "110% (automatic)",
+    // which is harmless at 100 and would not have been on anything resistible.
+    if (def.polarity !== "debuff") continue;
     if (c.valence && c.valence !== def.valence) continue;
     // Appendix A's classification, which is what "Mental Debuffs" names.
     // Heracles's Bravery is the only content that uses it, and naming the

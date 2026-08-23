@@ -218,6 +218,15 @@ export const shieldDelta = (unitId, abilityId, delta) =>
 export const recordAttack = (unitId, abilityId, identity) =>
   ({ t: "recordAttack", unitId, abilityId, identity });
 
+/**
+ * Turn an ability's clock.
+ *
+ * `set` writes the remaining turns outright, `reduce` subtracts with a floor of
+ * zero, and `increase` adds — which is the one direction the system could not
+ * express until Serenity's *Shapeshift*, *"increase its NP Cooldown by 1◈
+ * Turns"*. `set` would have overwritten a longer clock with a shorter one and
+ * turned the debuff into a favour.
+ */
 export const cooldown = (unitId, abilityId, ticks, mode = "reduce") =>
   ({ t: "cooldown", unitId, abilityId, ticks, mode });
 
@@ -367,8 +376,8 @@ export function validate(intents) {
     if (intent.t === "markTurn" && (!intent.patch || typeof intent.patch !== "object")) {
       problems.push(`${where}: patch must be a turnState object`);
     }
-    if (intent.t === "cooldown" && !["set", "reduce"].includes(intent.mode)) {
-      problems.push(`${where}: mode must be "set" or "reduce"`);
+    if (intent.t === "cooldown" && !["set", "reduce", "increase"].includes(intent.mode)) {
+      problems.push(`${where}: mode must be "set", "reduce" or "increase"`);
     }
   });
   return problems;

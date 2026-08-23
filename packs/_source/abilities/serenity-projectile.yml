@@ -1,0 +1,54 @@
+# Serenity, char_orig_sheets/Copia de Hassan (Serenity).md
+#
+# Three passives, and two of them are **on-hit riders** — the shape that was
+# entirely inert before she was built. `damageDealt` was in the event reference
+# with nothing raising it, and the `effect:` shorthand every rider in Appendix A
+# is written in desugared to no action at all, so a rider carried a trigger
+# nobody fired for a payload that did not exist.
+schema: 1
+id: serenity-projectile
+name: "Projectile (Poisoned Daggers)"
+rank: "C++"
+kind: skill
+slug: projectile
+passive: true
+description: |
+  (Passive 1) Crit Chance is increased by 15%.
+  (Passive 2) Normal Attacks inflict Poison on the Defending Unit.
+  (Passive 3) Normal Attacks have a 25% chance of inflicting Deadly Poison for 1◈ Turns;
+  Poison Damage received is doubled.
+passiveRules:
+  # Passive 1. A standing crit modifier rather than a buff she applies to
+  # herself: it is unconditional and permanent, so a buff would be strippable.
+  - key: CheckModifier
+    check: crit
+    direction: outgoing
+    value: 15
+
+  # Passive 2. No chance stated, so it is the effect's own `baseChance` of 100 --
+  # every Normal Attack that lands, every time. That is what makes her the
+  # fastest staging engine in the corpus: the stage climbs at Round start
+  # regardless, and each landed dagger adds one more on top.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    target: victim
+    effect: { id: poison }
+
+  # Passive 3. A separate handler rather than a second effect on the same one,
+  # because the two have different chances -- 100% and 25% -- and a shared
+  # handler would have to roll once for both.
+  #
+  # Silent Dance's "+10% chance of inflicting debuffs" reaches this 25 through
+  # `inflictBonus`, which is why the applier now supplies one on the event path:
+  # it did not, so exactly the effects she inflicts through riders were the ones
+  # her own buff could not improve.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    target: victim
+    chance: 25
+    duration: "1◈"
+    effect: { id: deadlyPoison }

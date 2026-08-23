@@ -87,7 +87,16 @@ describe("intent validation", () => {
   });
 
   it("rejects a bad cooldown mode", () => {
-    expect(I.validate([I.cooldown("u", "np", 3, "wobble")])[0]).toMatch(/must be "set" or "reduce"/);
+    expect(I.validate([I.cooldown("u", "np", 3, "wobble")])[0])
+      .toMatch(/must be "set", "reduce" or "increase"/);
+  });
+
+  it("accepts `increase`, which is the direction Shapeshift needs", () => {
+    // "Increase its NP Cooldown by 1◈ Turns" is the only clause in the corpus
+    // that lengthens somebody else's clock, and the writer could only set or
+    // subtract -- so `set` would have replaced a longer cooldown with a shorter
+    // one and made the debuff a favour.
+    expect(I.validate([I.cooldown("u", "np", 3, "increase")])).toEqual([]);
   });
 });
 

@@ -1,0 +1,37 @@
+# Serenity, char_orig_sheets/Copia de Hassan (Serenity).md
+#
+# Four buffs from one press, and the pairing is the same one Silent Dance draws
+# at a tenth of the size: `Debuff ChUp` covers ordinary debuffs and `Death ChUp`
+# covers the terminal tier, because Appendix A refuses to let one modifier do
+# both. With both up she reaches her Noble Phantasm's Instakill at 60 + 40 + 10.
+schema: 1
+id: serenity-danse-macabre
+name: "Danse Macabre"
+rank: A
+kind: skill
+slug: danseMacabre
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn.
+  1. Applies Debuff ChUp for 1◈ Turns; chance of inflicting debuffs is increased by 40%.
+  2. Applies Death ChUp for 1◈ Turns; chance of inflicting Instakill and Death is increased
+     by 40%.
+  3. Applies Atk Up for 1◈ Turns; all damage dealt is increased by 30%, if NP 20%.
+  4. Applies the 'Macabre' buff for 1◈ Turns; Serenity's Normal Attack Crits inflict an
+     additional Stage of Poison on the Defending Unit.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: debuffChUp, magnitude: 40, duration: "1◈" }
+      - { id: deathChUp, magnitude: 40, duration: "1◈" }
+      # "30%; if NP, 20%" -- two magnitudes, not a ratio. The pair has been
+      # authorable since `npMagnitude` reached the instance schema.
+      - { id: atkUp, magnitude: 30, npMagnitude: 20, duration: "1◈" }
+      - { id: macabre, duration: "1◈" }

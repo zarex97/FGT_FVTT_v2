@@ -227,6 +227,19 @@ describe("attack properties", () => {
     expect(out).toContain("attack:aim");
     expect(out).toContain("attack:pierce");
   });
+
+  it("names the crit, which is knowable only once the coin has been flipped", () => {
+    // Serenity's `Macabre` is "Normal Attack **Crits** inflict an additional
+    // Stage of Poison on the DU", and nothing emitted a crit -- so a clause
+    // about a resolved attack could not be written at all.
+    expect(optionsFor(unit(), unit(), { kind: "normal", crit: true })).toContain("attack:crit");
+  });
+
+  it("leaves it out of every set built before the Damage Step", () => {
+    // Correct rather than incomplete: a handler that asks whether the attack
+    // crit is by definition asking about one that has already resolved.
+    expect(optionsFor(unit(), unit(), { kind: "normal" })).not.toContain("attack:crit");
+  });
 });
 
 /* -------------------------------------------------------------------------- */

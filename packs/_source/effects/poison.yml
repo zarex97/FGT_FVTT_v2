@@ -1,0 +1,31 @@
+# Appendix A §A.12
+#
+# "Stage N deals 20 × 2^(N−1) Poison damage at the end of the Round. Stage
+# increments at Round start if still poisoned. Reapplication adds a stage."
+#
+# The first STAGED effect authored, and the only one whose damage is
+# exponential: Stage 5 is 320 a Round, which is a fifth of a Servant with
+# END D. `scheduler.PERIODICS` has carried the formula since the scheduler was
+# written and there was no document for it to key on -- so the whole poison
+# family, every Servant that inflicts it and the Poison Swamp terrain were all
+# pointing at an effect that did not exist.
+schema: 1
+id: poison
+name: "Poison"
+description: |
+  Stage N deals 20 × 2^(N−1) Poison damage at the end of every Round. The stage increases at
+  the start of a Round if the Unit is still Poisoned; reapplication adds a stage.
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: stage
+baseChance: 100
+# No duration: Poison runs until it is cured. Every sheet that inflicts it with
+# a clock says so on the ability instead.
+#
+# The AMOUNT is not declared here, and deliberately. It is a function of the
+# stage rather than a constant, so `periodic.formula` -- which is a literal
+# string the scheduler hands to a die roller -- cannot express it. The catalogue
+# entry in `engine/scheduler.mjs` owns it, exactly as it does for Curse.
+periodic: { when: roundEnd, staged: true, bypassModifiers: true }
+rules: []

@@ -1,0 +1,35 @@
+# Serenity, char_orig_sheets/Copia de Hassan (Serenity).md — Danse Macabre 4.
+#
+# "Serenity's Normal Attack Crits inflict an additional Stage of Poison on the
+# DU."
+#
+# Appendix A §A.17.1 calls it *"the first effect whose subject is another
+# effect's stage counter"*, and that is exactly what makes it cheap: the `stage`
+# stacking rule already adds one per application, so "an additional stage" is
+# one more application of the same Poison — not a new mechanism.
+#
+# It needed two things that did not exist. `damageDealt` was in the event
+# reference and nothing raised it, and `attack:crit` was not an option anybody
+# emitted, so a clause about a Normal Attack that crit could not be written at
+# all.
+schema: 1
+id: macabre
+name: "Macabre"
+description: "Normal Attack Crits inflict an additional Stage of Poison on the Defending Unit."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    # Both clauses are about the ATTACK, so both are deferred to the moment the
+    # event fires -- there is no attack at collection time and a collection-time
+    # test would answer "false" and drop the handler for ever.
+    predicate: ["attack:kind:normal", "attack:crit"]
+    # The Defending Unit. Without this the shorthand applies to the handler's
+    # owner, and Serenity would poison herself on every crit.
+    target: victim
+    effect: { id: poison }

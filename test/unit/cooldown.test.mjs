@@ -28,6 +28,16 @@ describe("a plain tick cooldown", () => {
   it("produces nothing for an ability with no cooldown", () => {
     expect(cooldownFor(ability({}), "u1")).toEqual({ cooldowns: [], spends: [] });
   });
+
+  it("does not start a clock that counts from DEACTIVATION", () => {
+    // Presence Concealment is "Cooldown: 2◈ Turns AFTER PC is deactivated" --
+    // the Skill lasts 2◈ and then sits for 2◈ more. Starting the clock at the
+    // use collapses the two into one window running under the Skill's own
+    // duration, which is half the cost the sheet charges. `countFrom` had been
+    // a declared field with no reader since the ability schema was written.
+    const plan = cooldownFor(ability({ cooldown: { max: "2◈", countFrom: "deactivation" } }), "u1");
+    expect(plan).toEqual({ cooldowns: [], spends: [] });
+  });
 });
 
 describe("a resource waiver", () => {

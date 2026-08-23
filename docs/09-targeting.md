@@ -472,6 +472,21 @@ the AoE is never told the concealed unit is there — the marker is resolved GM-
 resolving all AoE coin flips GM-side in one batch. Full mitigation is impossible client-side;
 see Ch. 26.
 
+**As built.** Both halves work, and both were waiting on the same thing: nothing ever made a Unit
+concealed. `unit.concealed` was projected by the snapshot and consulted **here**, in the counter
+gate, in movement legality and on the Evade ladder — and written by no code and declared by no
+schema. Four readers, one answer, always `false`.
+
+It is derived from the `presenceConcealment` effect now. The exclusion above fires exactly as
+written; the coin lands in the **damage step**, on Total Damage, after every pipeline stage and
+after any Command Spell factor, because the sheet says *"Total Damage taken from that Attack"*.
+Heads is applied as a **factor of zero** rather than as a skipped step, so the explainer shows it
+as a modifier with a cause — and it also refuses the attack's riders, because the clause is *"no
+damage **and effects** are received"*.
+
+Measured live against Karna's *Brahmastra Kundala*: Heads took 1 466 to 0 and left the
+concealment standing; Tails took 1 470 to 735 and ended it.
+
 ### Master protection
 
 > *"Masters cannot be targeted for an Attack when their Servant is within 2 panels of their
@@ -481,6 +496,13 @@ A selection filter, applied to `["enemy"]` sets containing Masters. Bypassed by 
 Presence Concealment (*"able to Attack Masters … regardless of the enemy Master-Servant
 positions"*) and by Scáthach's *Gate of Skye* (*"Masters can be targeted regardless of their
 distance from their Servant"*).
+
+**As built.** The filter consults `caster.bypassesMasterProtection`, which it has done since it
+was written and which **nothing ever set** — so the exemption could not be authored at all. It is
+now a contribution: `Suppress { scope: masterProtection }`, carried by the `presenceConcealment`
+effect, projected onto the snapshot. Verified live: a concealed Serenity reached a Foe Master
+standing beside its Servant that EMIYA was refused as *"a Master protected by an adjacent
+Servant"*.
 
 The counter-redirect is the same rule from the other side: *"the Counter Attack cannot be used
 on the Master if its Servant is within a 2 panel area of itself, the Counter Attack is
