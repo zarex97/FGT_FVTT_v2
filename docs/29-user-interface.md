@@ -17,16 +17,28 @@
 > own, so a Servant with thirteen abilities — Medea — simply ran off the bottom. The scroll lives
 > on the **part root**, which is what `scrollable: [""]` names, so ApplicationV2 restores the
 > position after each re-render; scrolling `.window-content` instead would jump back to the top on
-> every edit, because the sheet re-renders on change. §29.3's Master block became a **partial**
-> inside the body rather than a second part, for the same reason: two parts meant two scroll
-> containers, and the position ApplicationV2 preserves is per part.
+> every edit, because the sheet re-renders on change.
+>
+> §29.3's Master block was a **partial** inside the body rather than a second part, for the same
+> reason: two parts meant two scroll containers on one visible page, and the position ApplicationV2
+> preserves is per part — so a Master editing a stat watched its Command Spell tracker jump. That
+> argument is about two panels visible **at once**. The sheet has tabs now (§29.2), one part each,
+> and only one is on screen at a time — so per-part scroll is the behaviour we want rather than the
+> defect it was, and the Master block is Overview content.
 >
 > `test/unit/i18n.test.mjs` now holds every literal `localize` key in the templates and modules
 > against `lang/en.json`. A missing key does not throw — Foundry renders the key itself, so a
 > button reads `FGT.Summon.Confirm` and the system looks broken in a way nothing else would catch.
 >
-> Still missing from this chapter: the Master sheet (§29.3), the token HUD (§29.5) and the ability
-> editor (§29.6).
+> It also holds a rule that is easy to miss and expensive to hit: **no key may be the prefix of
+> another key.** Foundry expands the flat dotted keys into a tree, and a key that is both a string
+> and a prefix asks that tree to hold a string and an object at one node. `expandObject` throws and
+> the merge of the *whole file* is abandoned, so one bad pair takes down all 591 keys and every
+> string in the system renders as its own name. `FGT.Editor.Kind` was the label on a field whose
+> options were `FGT.Editor.Kind.classSkill` and friends. Nothing failed loudly.
+>
+> Still missing from this chapter: §29.6's dropdown predicate builder, the facing dialog and the
+> remaining §29.8 dialogs.
 
 The UI's job in a game this mechanically dense is not to look good — it is to make the rules
 legible. Every screen in this chapter is justified by a specific class of mistake it prevents.
@@ -75,10 +87,37 @@ The `actions` map replaces `activateListeners` — handlers are declared, bound 
 
 ---
 
+> **Implemented.** `module/apps/actor-sheet/`, as **four** tabs rather than this section's five —
+> the fifth was a stats tab, and D29.3 wants those values in the header where they are always
+> visible. One `FGTActorSheet` serves all six actor types: the tabs are the same everywhere and
+> only Overview's blocks differ, so six classes would have been six copies of the same eighty
+> percent. Tabs come from `ApplicationV2.TABS` with **one `PART` per tab**, which is what finally
+> makes §29.10's `render({parts: ["effects"]})` possible.
+>
+> Two things the framework needs that are easy to miss. `changeTab` finds the nav with
+> `closest(".tabs")` and the panes with `.tab[data-group]`, so without those two class names it
+> binds the click and then has nothing to toggle. And a tab `PART` must be handed its own entry
+> from `context.tabs` in `_preparePartContext`, or its template has no `data-tab` to render.
+>
+> The split that matters is not the tabs but **`present.mjs`**: every piece of arithmetic the sheet
+> does — bar percentages, granted-step recovery, turns-to-◈, effect grouping, stage damage — lives
+> in a module with no `game`, no documents and no canvas, and is unit-tested with plain objects.
+> `context.mjs` is the impure half: it fetches and hands the results over. A question with an
+> answer belongs in a test rather than inside a template that can only be checked by opening it.
+>
+> **Every state line and every cost is read from the engine's own gate.** A card calls
+> `canUseAbility({ability: usageSpecFor(item), …})` and `npCost(…)` — the same calls
+> `engine/attack.mjs` makes before it resolves anything — so what the card promises and what the
+> click does cannot disagree, and a gate added to `rules/costs.mjs` later appears on the sheet
+> without anyone wiring it. `abilityState`'s default branch is load-bearing: an unrecognised reason
+> falls through to `FGT.Ability.Refused.<reason>`, so the worst case is an untranslated key rather
+> than a disabled button with no explanation, which is the one thing D29.2 forbids.
+
 ## 29.2 The Servant sheet
 
-Five tabs. The design constraint: a player mid-turn needs to answer *"what can this unit do
-right now, and what is stopping it?"* in under five seconds.
+Four tabs — Overview, Abilities, Effects, Details — over an always-visible header. The design
+constraint: a player mid-turn needs to answer *"what can this unit do right now, and what is
+stopping it?"* in under five seconds.
 
 ### Header (always visible)
 
@@ -148,6 +187,27 @@ STATUSES  (neither buff nor debuff — unremovable)
 
 The Poison entry showing **Stage 3** and its computed 80 damage is the kind of thing a player
 will otherwise get wrong: `20 × 2^(3−1) = 80` is not obvious from "Stage 3".
+
+> **Implemented**, with three corrections this section needed.
+>
+> The groups are keyed on the definition's **`polarity`** (`buff` / `debuff` / `status`), not on
+> its `valence`. Valence is a separate axis — `offensive` / `defensive` / `neutral` / `neither` —
+> and no effect in the catalogue carries `valence: debuff` at all, so grouping on it filed every
+> debuff in the game under Statuses.
+>
+> The stage damage comes from `engine/scheduler.mjs`'s **`periodicDamageFor`**, extracted for this
+> so there is one implementation. The registry's own `periodic` field is not what ticks — the
+> scheduler's `PERIODICS` table is — and the figure carries `AMPLIFIERS` with it, so a bearer who
+> also holds Deadly Poison reads 160 rather than 80. That is the number that will actually come
+> off, which is the only number worth printing.
+>
+> An instance whose definition is missing from the registry gets its own group with a warning
+> rather than being dropped. It *is* on the Unit, nothing will apply its rules, and "it loads and
+> does nothing" is the failure shape this project keeps finding in its own content.
+>
+> Below the groups: immunities, auras, and a collapsible **modifier table** — `snapshot.modifiers`
+> with each predicate rendered as text. It is the answer to *"why is my attack +50%"*, and a
+> predicate written straight into a template arrives as `[object Object]`, which answers nothing.
 
 ---
 
@@ -267,6 +327,49 @@ The targeting picker is the piece that matters most. A GM should never have to k
 `selfEdgeAdjacent` is the internal name for "a 5×5 area in any non-diagonal direction next to
 the caster" — they should see four little diagrams and click one.
 
+> **Reworked.** The diagrams were `<pre>` blocks of the vocabulary's raw characters inside a
+> `flex-wrap` row with no width constraint, so a wide schematic overflowed its own button and
+> landed on the labels of the row beneath. The picker is a grid of fixed tiles now and the
+> schematics are **inline SVG built from the same rows** — one description of each shape, so the
+> drift test that holds the picker against `expand()` still covers what is drawn. Foundry pins
+> every `<button>` to a 28px `--button-size`, which clipped the first attempt to a strip: a tile
+> holding a diagram above a wrapping label has to say `height: auto`.
+>
+> The editor also **could not set an ability's name**, which made SC-6 unreachable regardless of
+> how good the picker was. It now sets name, image, kind, description, cost, cooldown, uses per
+> match, the Round gate, category and the behaviour flags, and gives each phase a typed editor.
+>
+> **The typed editors merge, never replace.** A phase carries properties this form has no field
+> for — a predicate, an event filter, a target selector — and building a fresh object from the
+> form would drop them silently, which is precisely the defect the editor exists to catch in other
+> people's content. Four kinds (`resource`, `statChange`, `removeEffect`, `cooldown`) carry their
+> payload in a nested `changes` array or a `selector` object, so they get `target` plus the JSON
+> editor rather than invented flat fields; a form that cannot express what the phase does is worse
+> than no form. A blank typed field never stamps a key onto a phase that did not have one.
+>
+> Three bugs found by driving it rather than by reading it, all of the same family — **every input
+> is submitted on every change**:
+>
+> - The raw-JSON textarea, applied in DOM order, ran *after* the typed fields and replaced the
+>   phase with its own stale contents. Typing into a typed field did nothing at all, every time.
+>   It is applied first now, and only where the text differs from the phase's current
+>   serialization — that is what tells an edit from an echo.
+> - Editing anything rewrote `rank: null` to `""`. Null is deliberate on the three Noble Phantasms
+>   whose sheets print a *range* rather than a Rank. A blank input no longer overwrites a value
+>   that was never set; blanking one that has a value still works.
+> - `<option {{#if (eq k ../p.kind)}}selected>` inside two nested `{{#each}}`es marks nothing
+>   selected, so every phase dropdown showed the first kind alphabetically beside the fields of
+>   whatever it really was. The same mistake named the inputs `phase..target`. Block params reach
+>   into nested scopes directly; the `../` was wrong. Both are `selectOptions` now.
+>
+> And one that predates this work: the duration hint §29.6 asks for — *"`1◈+⅔◈` shows `= 5 turns at
+> 3 turns/round`"* — read `tick.rounds` and `tick.turns` off the parse result. A `TickExpr` has
+> neither, so the hint had rendered `NaN turns` for every expression since it was written. It uses
+> `resolveTicks`, which is what the scheduler uses.
+>
+> **Still not built:** the dropdown predicate builder over the roll-option vocabulary. Predicates
+> remain a raw-JSON escape hatch with parse validation, and this section still asks for more.
+
 ---
 
 ## 29.7 Chat cards
@@ -334,6 +437,16 @@ The system respects Foundry's light/dark themes. All colours are CSS custom prop
 for both, with the faction palette chosen for distinguishability under the common forms of
 colour vision deficiency (deuteranopia and protanopia), verified with a simulator.
 
+> **Implemented.** `styles/src/_tokens.scss`. This was previously true of the window frame and
+> false of everything inside it: `#7a7971`, `#b07`, `#3a3`, `#c80`, `#b33` and `#666` were spelled
+> at their use sites, so there was nothing for a theme to redefine. Agility is teal rather than the
+> obvious green, for the deuteranopia reason above.
+>
+> The 974-line flat stylesheet split into partials at the same time — it had the HUD, the chat
+> cards, three dialogs and the sheet interleaved, with `.fgt-hud` declared twice 160 lines apart
+> and `.fgt-preview` likewise. The split was done mechanically and checked by selector count:
+> nothing was lost in the move.
+
 ---
 
 ## 29.10 Performance
@@ -376,6 +489,12 @@ and pluralization through `game.i18n.format` with explicit plural keys.
 | D29.7 | Colour is never the only signal. |
 | D29.8 | Sheets re-render by part, not wholesale. |
 | D29.9 | Spanish is a first-class localization target; no concatenated grammar. |
+| D29.10 | One sheet class for all six actor types; only the Overview tab's blocks differ. |
+| D29.11 | Four tabs, one `PART` each, on ApplicationV2's native `TABS`. The header carries what gates an action. |
+| D29.12 | Presentation arithmetic lives in a **pure** module and is unit-tested without a world. |
+| D29.13 | Ability state and cost are read from `canUseAbility` / `npCost` — the engine's own gate — never from a copy. |
+| D29.14 | Derived values render as text; only what a GM legitimately changes is an input. |
+| D29.15 | No localization key may be the prefix of another: one collision silently voids the whole file. |
 
 ---
 
