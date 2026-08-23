@@ -40,25 +40,27 @@ describe("resourceBar", () => {
 });
 
 describe("parameterTiles", () => {
-  it("shows what was granted beside what is in force", () => {
-    // §5.6: a sheet that shows the granted rank and not the authored one is a
-    // sheet nobody can check. `authored` walks back down the DENSE ladder, so
-    // one step below B is B- -- C is a whole grade, which is five steps.
+  it("reports the granted steps beside the rank in force", () => {
     const tiles = parameterTiles({ str: "B", end: "C" }, { str: 1, end: 0 });
     expect(tiles.find((t) => t.key === "str")).toMatchObject({
-      rank: "B", authored: "B-", steps: 1, granted: true,
+      rank: "B", steps: 1, granted: true,
     });
   });
 
-  it("steps the dense ladder, not whole grades", () => {
-    // Penthesilea is written STR A+; one granted step is A++, not S+.
-    const tiles = parameterTiles({ str: "A++" }, { str: 1 });
-    expect(tiles[0]).toMatchObject({ rank: "A++", authored: "A+" });
+  it("never invents an 'authored' rank by stepping back down", () => {
+    // Nothing in the engine shifts `system.parameters` by `grantedSteps`:
+    // summon writes the steps and only `baseAttackAdjustment` reads them, and a
+    // Region bonus travels a different path. So a tile that rendered
+    // "B- ▸ B" would print a Rank the Servant was never written with, on the
+    // one tile whose whole purpose is being checkable against its sheet.
+    const tiles = parameterTiles({ str: "B" }, { str: 1 });
+    expect(tiles[0].authored).toBeUndefined();
+    expect(tiles[0].rank).toBe("B");
   });
 
-  it("leaves an ungranted parameter with no arrow", () => {
+  it("leaves an ungranted parameter unmarked", () => {
     const tiles = parameterTiles({ end: "C" }, { end: 0 });
-    expect(tiles[0]).toMatchObject({ key: "end", rank: "C", granted: false, authored: null });
+    expect(tiles[0]).toMatchObject({ key: "end", rank: "C", granted: false, steps: 0 });
   });
 
   it("renders an unset parameter as a dash rather than as empty", () => {

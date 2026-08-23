@@ -436,7 +436,7 @@
   "FGT.Sheet.OutsideZonHint": "Outside its Master's Zone of Nourishment: attacks are penalised and Noble Phantasms are unusable.",
   "FGT.Sheet.Parameters": "Parameters",
   "FGT.Sheet.Actions": "Actions",
-  "FGT.Sheet.GrantedHint": "Written first, granted second. Only granted steps move Base Attack (§5.6).",
+  "FGT.Sheet.GrantedHint": "Steps granted at summon by a High Rank Master or the war Region. Only granted steps move Base Attack (§5.6).",
   "FGT.Sheet.NoEffects": "Nothing is currently in effect on this Unit.",
   "FGT.Sheet.NoDetails": "This Unit has no further details recorded.",
   "FGT.Sheet.UnknownSource": "unattributed",
@@ -596,5 +596,6 @@
   "FGT.Editor.Field.otherFactor": "Other factor",
   "FGT.Editor.Field.side": "Side",
   "FGT.Editor.Field.scope": "Scope",
-  "FGT.Editor.Field.anchor": "Anchor"
+  "FGT.Editor.Field.anchor": "Anchor",
+  "FGT.Sheet.GrantedSteps": "+{n} granted"
 }

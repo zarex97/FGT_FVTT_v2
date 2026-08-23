@@ -27,11 +27,13 @@
           <input class="fgt-param__rank" type="text" name="system.parameters.{{p.key}}"
                  value="{{p.rank}}" placeholder="—">
           {{#if p.granted}}
-            {{!-- §5.6: only GRANTED steps move Base Attack, and a sheet that
-                  shows the granted rank without the authored one cannot be
-                  checked against the Servant it was written from. --}}
+            {{!-- §5.6: only GRANTED steps move Base Attack, so the grant is
+                  reported as the separate fact it is. No "written X, now Y"
+                  arrow: nothing in the engine shifts the stored parameter by
+                  these steps, so an arrow would print a Rank the Servant was
+                  never written with. --}}
             <span class="fgt-param__granted" data-tooltip="{{localize 'FGT.Sheet.GrantedHint'}}">
-              {{p.authored}} ▸ {{p.rank}}
+              {{localize "FGT.Sheet.GrantedSteps" n=p.steps}}
             </span>
           {{/if}}
         </label>

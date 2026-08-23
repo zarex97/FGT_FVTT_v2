@@ -12,7 +12,6 @@
  * `context.mjs` is the impure half. It fetches, and hands the results here.
  */
 
-import { Rank } from "../../domain/rank.mjs";
 import { periodicDamageFor } from "../../engine/scheduler.mjs";
 
 /**
@@ -54,22 +53,28 @@ export function resourceBar(resource) {
 }
 
 /**
- * The parameter row, with granted steps shown apart from authored ranks.
+ * The parameter row, with granted steps shown beside the rank in force.
  *
- * §5.6 is explicit that a Servant stores base parameters and granted steps
- * separately, *"because only granted steps move Base Attack, and because a
- * sheet that shows `B` where the Servant was written `C` and granted one step
- * is a sheet nobody can check"*. `rank` is what is in force — the value every
- * rule reads — and `authored` is recovered by stepping back down, so the sheet
- * can never show a rank the engine is not using.
+ * §5.6 keeps base parameters and granted steps apart *"because only granted
+ * steps move Base Attack, and because a sheet that shows `B` where the Servant
+ * was written `C` and granted one step is a sheet nobody can check"*.
  *
- * The walk is `step`, not `stepGrade`: one granted step from `A+` is `A++`, and
- * Penthesilea is the case that makes the difference visible.
+ * `rank` is **whatever the field holds** — the value every rule reads — and
+ * `steps` is reported as the separate fact it is. The tile deliberately does
+ * NOT render an "authored ▸ granted" transition, because nothing in the engine
+ * performs that shift: `grantedSteps` is written by `engine/summon.mjs` and
+ * read only by `baseAttackAdjustment`, while a war Region's bonus travels a
+ * different path entirely (a `rankShift` statDelta re-applied per snapshot).
+ * Computing an "authored" rank by stepping back down would therefore print a
+ * Rank the Servant was never written with, on the one tile whose whole purpose
+ * is being checkable against the sheet it came from.
+ *
+ * §5.6's `effective` getter is still unimplemented for the Master-grant path.
+ * That is an engine gap, not a display one, and it is recorded in Ch. 45.
  *
  * @param {Record<string, string>} parameters the ranks in force
- * @param {Record<string, number>} [grantedSteps] steps added post-summon
- * @returns {Array<{key: string, rank: string, steps: number, granted: boolean,
- *                  authored: string|null}>}
+ * @param {Record<string, number>} [grantedSteps] steps granted post-summon
+ * @returns {Array<{key: string, rank: string, steps: number, granted: boolean}>}
  */
 export function parameterTiles(parameters, grantedSteps = {}) {
   const keys = [
@@ -79,15 +84,12 @@ export function parameterTiles(parameters, grantedSteps = {}) {
 
   return keys.map((key) => {
     const raw = parameters?.[key];
-    const rank = raw ? String(raw) : "—";
     const steps = grantedSteps?.[key] ?? 0;
-    const parsed = steps > 0 ? Rank.parseOrNull(rank) : null;
     return {
       key,
-      rank,
+      rank: raw ? String(raw) : "—",
       steps,
       granted: steps > 0,
-      authored: parsed ? parsed.step(-steps).toString() : null,
     };
   });
 }
