@@ -408,3 +408,37 @@
   border-left-color: var(--fgt-danger);
   color: var(--fgt-danger);
 }
+
+/* ── Details fields ─────────────────────────────────────────────────────── */
+
+.fgt-field {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.78rem;
+
+  > span {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+  }
+
+  // Display-first: reads as a stat block until you mean to edit it.
+  input[type="text"] {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--fgt-ink);
+
+    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg-sunken); }
+  }
+
+  &--check {
+    grid-template-columns: auto 1fr;
+
+    > span { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 0.75rem; }
+  }
+}
