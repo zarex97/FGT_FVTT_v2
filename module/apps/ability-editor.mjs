@@ -26,9 +26,65 @@
 import { handledKeys } from "../rules/elements.mjs";
 import { TARGET_ANCHORS, TARGET_SHAPES, SHAPE_IDS, ANCHOR_IDS } from "../rules/targeting/vocabulary.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { parseTick } from "../domain/tick.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/**
+ * What an ability IS. Content uses exactly these three.
+ */
+const ABILITY_KINDS = Object.freeze(["classSkill", "skill", "noblePhantasm"]);
+
+/**
+ * The phase kinds the content packs actually use, each with the fields that
+ * are safe to type.
+ *
+ * A phase is an `ObjectField` and a module may add a kind (§21.4), so this is
+ * a list of what is **known**, never a list of what is allowed. A kind absent
+ * from here falls through to the JSON editor rather than being lost — see
+ * `#applyPhasePatch`, where the same rule is enforced on the way back in.
+ *
+ * @type {Readonly<Record<string, Array<{key: string, type: string}>>>}
+ */
+const PHASE_FIELDS = Object.freeze({
+  damage: [
+    { key: "target", type: "text" },
+    { key: "multiplier", type: "number" },
+    { key: "flatBonus", type: "number" },
+    { key: "component", type: "text" },
+  ],
+  heal: [
+    { key: "target", type: "text" },
+    { key: "amount", type: "number" },
+    // Of MAXIMUM, not of current, which is why it is its own field.
+    { key: "percentOfMax", type: "number" },
+  ],
+  modifyDamage: [
+    { key: "factor", type: "number" },
+    { key: "normalAttackFactor", type: "number" },
+    { key: "otherFactor", type: "number" },
+    { key: "side", type: "text" },
+  ],
+  cooldownDelta: [
+    { key: "target", type: "text" },
+    { key: "scope", type: "text" },
+    { key: "delta", type: "text" },
+  ],
+  teleport: [{ key: "target", type: "text" }, { key: "anchor", type: "text" }],
+  overrideValidation: [{ key: "reason", type: "text" }],
+
+  // These four carry their payload in a nested `changes` array, a `selector`
+  // or a `choose` object -- structure, not scalars. Typing `target` alone and
+  // leaving the rest to the JSON editor is honest; inventing flat fields for
+  // them would offer a form that cannot express what the phase does.
+  resource: [{ key: "target", type: "text" }],
+  statChange: [{ key: "target", type: "text" }],
+  removeEffect: [{ key: "target", type: "text" }],
+  cooldown: [{ key: "target", type: "text" }],
+
+  // Its payload lives on `rules`, which gets its own editor below.
+  applyEffects: [],
+});
 
 export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -57,6 +113,15 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** @type {object} the working copy — nothing is written until Save */
   #draft;
+
+  /** @type {string|null} a new name, held until Save with the rest of the draft */
+  #pendingName = null;
+
+  /** @type {string|null} a new image, held until Save. */
+  #pendingImg = null;
+
+  /** @type {Record<number, boolean>} phases whose raw JSON did not parse */
+  #rawErrors = {};
 
   /** @param {object} item */
   constructor(item) {
@@ -92,17 +157,36 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
         countsForNPSeal: this.#draft.countsForNPSeal ?? Boolean(this.#draft.isNP),
       },
 
-      phases: (this.#draft.phases ?? []).map((p, index) => ({
-        ...p, index, isFirst: index === 0,
-        isLast: index === (this.#draft.phases ?? []).length - 1,
-      })),
+      // What the ability IS, and the per-use limits. None of these could be set
+      // in this editor before -- not even the name.
+      identity: {
+        name: this.#item.name,
+        img: this.#item.img,
+        kind: this.#draft.kind ?? (this.#item.type === "noblePhantasm" ? "noblePhantasm" : "skill"),
+        kindChoices: Object.fromEntries(ABILITY_KINDS.map((k) => [k, `FGT.Editor.AbilityKind.${k}`])),
+        description: this.#draft.description ?? "",
+      },
+      limits: {
+        cost: this.#draft.cost ?? 1,
+        cooldown: this.#draft.cooldown?.max ?? "",
+        cooldownHint: this.#tickHint(this.#draft.cooldown?.max),
+        maxUses: this.#draft.maxUses ?? "",
+        requiresRound: this.#draft.targeting?.limits?.requiresRound ?? this.#draft.requiresRound ?? "",
+        oncePerTurn: Boolean(this.#draft.oncePerTurn),
+        isPassive: Boolean(this.#draft.isPassive),
+        isMode: Boolean(this.#draft.isMode),
+        isAttackSkill: Boolean(this.#draft.isAttackSkill),
+        category: this.#draft.category ?? "",
+      },
+
+      phases: (this.#draft.phases ?? []).map((phase, index) => this.#phaseContext(phase, index)),
 
       // Illustrated, not named. See the file comment.
       anchors: TARGET_ANCHORS.map((a) => ({
-        ...a, selected: this.#draft.targeting?.anchor === a.id,
+        ...a, svg: schematicSvg(a.schematic), selected: this.#draft.targeting?.anchor === a.id,
       })),
       shapes: TARGET_SHAPES.map((sh) => ({
-        ...sh, selected: this.#draft.targeting?.shape === sh.id,
+        ...sh, svg: schematicSvg(sh.schematic), selected: this.#draft.targeting?.shape === sh.id,
       })),
 
       elementKeys: handledKeys().sort(),
@@ -164,13 +248,20 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       problems.push(game.i18n.format("FGT.Editor.UnknownAnchor", { anchor: targeting.anchor?.kind ?? targeting.anchor }));
     }
 
-    for (const [where, value] of [["duration", this.#draft.duration], ["cooldown", this.#draft.cooldown?.value]]) {
+    for (const [where, value] of [["duration", this.#draft.duration], ["cooldown", this.#draft.cooldown?.max]]) {
       if (!value) continue;
       try {
         parseTick(String(value));
       } catch (err) {
         problems.push(game.i18n.format("FGT.Editor.BadTick", { where, message: err.message }));
       }
+    }
+
+    // A phase whose JSON did not parse. Reported rather than swallowed: the
+    // edit was silently discarded, and an author who is not told that will
+    // save believing it took.
+    for (const index of Object.keys(this.#rawErrors)) {
+      problems.push(game.i18n.format("FGT.Editor.BadPhaseJSON", { index }));
     }
 
     // A phaseless, ruleless ability is legal -- a pure flavour entry -- but it
@@ -180,6 +271,69 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     return { problems, warnings };
+  }
+
+  /**
+   * One phase, as the editor shows it.
+   *
+   * A kind this editor has never heard of gets the JSON editor rather than an
+   * empty form. Phases are an `ObjectField` and a module may add a kind
+   * (§21.4); an editor that rendered nothing for it would look like the phase
+   * was empty, and saving would then make it so.
+   *
+   * @param {object} phase
+   * @param {number} index
+   * @returns {object}
+   */
+  #phaseContext(phase, index) {
+    const known = Object.hasOwn(PHASE_FIELDS, phase.kind);
+
+    return {
+      index,
+      kind: phase.kind ?? "",
+      known,
+      isFirst: index === 0,
+      isLast: index === (this.#draft.phases ?? []).length - 1,
+
+      // Built here rather than compared in the template. A hand-rolled
+      // `<option {{#if (eq k ../p.kind)}}selected{{/if}}>` inside two nested
+      // `{{#each}}`es silently marked NOTHING selected, so every phase's
+      // dropdown showed the first kind alphabetically -- `applyEffects` -- next
+      // to the fields of whatever kind it actually was.
+      //
+      // An unrecognised kind is included so it stays selectable: dropping it
+      // from the list would rewrite the phase on the next render.
+      kindChoices: {
+        ...Object.fromEntries(Object.keys(PHASE_FIELDS).sort().map((k) => [k, k])),
+        ...(known || !phase.kind ? {} : { [phase.kind]: `${phase.kind} (unrecognised)` }),
+      },
+
+      fields: (PHASE_FIELDS[phase.kind] ?? []).map((field) => ({
+        ...field,
+        label: `FGT.Editor.Field.${field.key}`,
+        value: phase[field.key] ?? "",
+      })),
+
+      // `applyEffects` carries rule elements, and the effect id is the field
+      // that decides whether the phase does anything at all.
+      rules: phase.kind === "applyEffects"
+        ? (phase.rules ?? []).map((rule, r) => ({
+          index: r,
+          key: rule.key ?? "",
+          effectId: rule.effect?.id ?? "",
+          magnitude: rule.effect?.magnitude ?? "",
+          duration: rule.duration ?? "",
+          // Every registered effect, by name. Carried per rule rather than
+          // looked up from the root, because `selectOptions` inside two nested
+          // `{{#each}}`es resolves a bare name against the ITEM.
+          effectChoices: registeredEffects(),
+        }))
+        : [],
+
+      // The escape hatch, and for an unknown kind the only editor. Pretty
+      // printed so a GM can actually read what they are editing.
+      raw: JSON.stringify(phase, null, 2),
+    };
   }
 
   /** @returns {Array<[string, object]>} */
@@ -199,14 +353,31 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** @returns {string|null} */
   #durationHint() {
-    const raw = this.#draft.duration ?? this.#draft.cooldown?.value ?? null;
+    return this.#tickHint(this.#draft.duration ?? this.#draft.cooldown?.max ?? null);
+  }
+
+  /**
+   * What a tick expression resolves to, in turns.
+   *
+   * §29.6 asks for `"1◈+⅔◈"` to show *"= 5 turns at 3 turns/round"*, because
+   * tick arithmetic is the thing authors get wrong and the notation gives no
+   * hint at all.
+   *
+   * It has never shown that. The old implementation read `tick.rounds` and
+   * `tick.turns` off the parse result, and a `TickExpr` has neither — it is
+   * `{kind, n}` or `{kind, whole, frac, sign}` — so the hint has rendered
+   * `NaN turns` for every expression since it was written. `resolveTicks` is
+   * the function that answers this, and it is the same one the scheduler uses.
+   *
+   * @param {string|number|null} raw
+   * @returns {string|null}
+   */
+  #tickHint(raw) {
     if (!raw) return null;
+    const perRound = game.settings.get("fgt", "turnsPerRound") ?? 3;
     try {
-      const tick = parseTick(String(raw));
-      const perRound = game.settings.get("fgt", "turnsPerRound") ?? 3;
-      return game.i18n.format("FGT.Editor.DurationHint", {
-        turns: tick.rounds * perRound + tick.turns, perRound,
-      });
+      const turns = resolveTicks(parseTick(String(raw)), { turnsPerRound: perRound });
+      return game.i18n.format("FGT.Editor.DurationHint", { turns, perRound });
     } catch (err) {
       return game.i18n.format("FGT.Editor.DurationBad", { message: err.message });
     }
@@ -221,8 +392,116 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {object} formData
    */
   static async #onChange(_event, _form, formData) {
-    foundry.utils.mergeObject(this.#draft, foundry.utils.expandObject(formData.object));
+    const raw = { ...formData.object };
+
+    // Phase inputs are named `phase.<i>.<field>` and handled separately,
+    // because `expandObject` turns an indexed path into an OBJECT with numeric
+    // keys and `mergeObject` then replaces the phases array wholesale. Every
+    // property this editor has no field for would be dropped on the next
+    // keystroke -- a predicate, an event filter, a target selector -- and the
+    // ability would keep authoring cleanly while doing less than it says.
+    /** @type {Record<string, string>} */
+    const phaseInputs = {};
+    for (const [key, value] of Object.entries(raw)) {
+      if (!key.startsWith("phase.")) continue;
+      phaseInputs[key] = value;
+      delete raw[key];
+    }
+
+    // `name` and `img` belong to the Item, not to `system`.
+    if ("name" in raw) { this.#pendingName = raw.name; delete raw.name; }
+    if ("img" in raw) { this.#pendingImg = raw.img; delete raw.img; }
+
+    // A blank input does not overwrite a value that was never set. Every field
+    // is submitted on every change, so an author who edited one thing would
+    // otherwise rewrite `rank: null` -- deliberately null on the three Noble
+    // Phantasms whose sheets print a RANGE rather than a Rank -- to `""` on
+    // their way past. Blanking a field that HAS a value is a real edit and
+    // still applies.
+    for (const [key, value] of Object.entries(raw)) {
+      if (String(value).trim() !== "") continue;
+      const existing = foundry.utils.getProperty(this.#draft, key);
+      if (existing === null || existing === undefined) delete raw[key];
+    }
+
+    foundry.utils.mergeObject(this.#draft, foundry.utils.expandObject(raw));
+    this.#applyPhasePatch(phaseInputs);
     this.render();
+  }
+
+  /**
+   * Write the phase inputs back onto the phases they came from.
+   *
+   * **Merges, never replaces.** The typed editor knows a handful of fields per
+   * kind; the phase may carry any number of others. Assigning a fresh object
+   * built from the form would lose them, and lose them silently — which is the
+   * precise failure this editor exists to catch in other people's content.
+   *
+   * @param {Record<string, string>} inputs keyed `phase.<i>.<field>`
+   * @returns {void}
+   */
+  #applyPhasePatch(inputs) {
+    const phases = [...(this.#draft.phases ?? [])];
+    const entries = Object.entries(inputs);
+
+    // The raw JSON pass runs FIRST, and only where the text has actually been
+    // edited.
+    //
+    // `submitOnChange` submits every input on any change, and the textarea is
+    // one of them. Applied in DOM order it ran *after* the typed fields and
+    // replaced the whole phase with its own stale contents -- so typing into a
+    // typed field appeared to do nothing at all, every time. Comparing against
+    // the phase's current serialization is what tells an edit from an echo.
+    for (const [path, value] of entries) {
+      const [, indexPart, field] = path.split(".");
+      if (field !== "raw") continue;
+
+      const index = Number(indexPart);
+      const phase = phases[index];
+      if (!phase) continue;
+      if (String(value) === JSON.stringify(phase, null, 2)) continue;
+
+      try {
+        phases[index] = JSON.parse(String(value));
+        delete this.#rawErrors[index];
+      } catch {
+        this.#rawErrors[index] = true;
+      }
+    }
+
+    for (const [path, value] of entries) {
+      const [, indexPart, ...rest] = path.split(".");
+      const index = Number(indexPart);
+      const phase = phases[index];
+      if (!phase || rest.length === 0 || rest[0] === "raw") continue;
+
+      if (rest[0] === "rule") {
+        const [, ruleIndex, field] = rest;
+        const rules = [...(phase.rules ?? [])];
+        const rule = rules[Number(ruleIndex)];
+        if (!rule) continue;
+
+        if (field === "effectId") rule.effect = { ...(rule.effect ?? {}), id: value };
+        else if (field === "magnitude") rule.effect = { ...(rule.effect ?? {}), magnitude: numberOrRaw(value) };
+        else rule[field] = value;
+
+        rules[Number(ruleIndex)] = rule;
+        phases[index] = { ...phase, rules };
+        continue;
+      }
+
+      // A blank field never invents a key. `submitOnChange` submits EVERY
+      // input on any edit, so a typed field this editor offers for a kind that
+      // does not actually use it would otherwise stamp `""` onto the phase the
+      // first time anything else was touched -- adding junk beside the real
+      // payload rather than replacing it, which is the quiet kind of wrong.
+      const blank = String(value).trim() === "";
+      if (blank && !Object.hasOwn(phase, rest[0])) continue;
+
+      phases[index] = { ...phase, [rest[0]]: numberOrRaw(value) };
+    }
+
+    this.#draft.phases = phases;
   }
 
   /** @this {AbilityEditor} */
@@ -301,8 +580,94 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    await this.#item.update({ system: this.#draft });
+    await this.#item.update({
+      // The name and the image live on the Item, not in `system`. This editor
+      // could not set either of them before, which meant authoring an ability
+      // still required opening a second sheet to give it a name.
+      ...(this.#pendingName !== null ? { name: this.#pendingName } : {}),
+      ...(this.#pendingImg !== null ? { img: this.#pendingImg } : {}),
+      system: this.#draft,
+    });
     ui.notifications.info(game.i18n.format("FGT.Editor.Saved", { name: this.#item.name }));
     await this.close();
   }
+}
+
+/**
+ * A form value as a number where it reads as one, and as itself otherwise.
+ *
+ * Every input arrives as a string. Writing `"3"` into a phase's `multiplier`
+ * makes the damage pipeline multiply by a string, and writing `3` into a
+ * `component` makes it look up a parameter that does not exist — so the test
+ * is the value, not the field.
+ *
+ * @param {string} value
+ * @returns {string|number}
+ */
+function numberOrRaw(value) {
+  const text = String(value).trim();
+  if (text === "" || Number.isNaN(Number(text))) return value;
+  return Number(text);
+}
+
+/* -------------------------------------------------------------------------- */
+
+/** Pixel size of one schematic cell. Five of them fit the picker's tile. */
+const CELL = 9;
+
+/**
+ * One targeting schematic, as an inline SVG grid.
+ *
+ * §29.6: *"a GM should never have to know that `selfEdgeAdjacent` is the
+ * internal name ... they should see four little diagrams and click one."*
+ *
+ * The diagrams were `<pre>` blocks of the raw characters with no width
+ * constraint, so a wide one overflowed its button and landed on the labels of
+ * the row beneath — which is what the reported screenshot shows. A fixed-size
+ * SVG cannot do that: it scales to its box.
+ *
+ * Built from the vocabulary's **own** rows, so there is still exactly one
+ * description of each shape and the drift test that holds the picker against
+ * `expand()` still covers what is drawn.
+ *
+ * @param {string[]} rows `.` empty, `#` covered, `@` the caster
+ * @returns {string} an SVG fragment, to be emitted with a triple-stash
+ */
+export function schematicSvg(rows) {
+  const grid = (rows ?? []).map((row) => [...String(row)]);
+  // Rows are authored by hand and some carry a trailing space. Pad to the
+  // widest rather than trusting them to agree, or one ragged row silently
+  // shifts every cell to its right.
+  const width = Math.max(1, ...grid.map((row) => row.length));
+  const height = Math.max(1, grid.length);
+
+  const cells = grid.flatMap((row, y) =>
+    Array.from({ length: width }, (_, x) => {
+      const ch = row[x] ?? ".";
+      const fill = ch === "@" ? "var(--fgt-gold)"
+        : ch === "#" ? "var(--fgt-crimson)"
+          : "var(--fgt-bg-sunken)";
+      return `<rect x="${x * CELL + 0.5}" y="${y * CELL + 0.5}" width="${CELL - 1}" `
+        + `height="${CELL - 1}" rx="1" fill="${fill}" stroke="var(--fgt-line)" stroke-width="0.5"/>`;
+    }));
+
+  return `<svg class="fgt-editor__svg" viewBox="0 0 ${width * CELL} ${height * CELL}" `
+    + `role="img" aria-hidden="true">${cells.join("")}</svg>`;
+}
+
+/**
+ * Every registered effect as an id → name map, for a `<select>`.
+ *
+ * The effect id is the field that decides whether an `applyEffects` phase does
+ * anything at all — a typo'd one authors cleanly, loads, and applies nothing —
+ * so it is a list of what exists rather than free text.
+ *
+ * @returns {Record<string, string>}
+ */
+function registeredEffects() {
+  return Object.fromEntries(
+    EffectRegistry.all()
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+      .map((def) => [def.id, def.name]),
+  );
 }

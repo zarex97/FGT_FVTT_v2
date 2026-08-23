@@ -1,28 +1,244 @@
 // The ability editor (docs/29-user-interface.md §29.6).
+//
+// The reported defect: `&__picker` was `display: flex; flex-wrap: wrap` over
+// `<pre>` schematics with no width constraint, so a wide diagram overflowed its
+// own button and landed on the labels of the row beneath. A grid of fixed-size
+// tiles cannot do that, and the diagrams are SVG now, which scale to their box
+// instead of being however many characters wide they were authored.
 
 .fgt-editor {
-  display: flex; flex-direction: column; height: 100%; gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0.5rem;
+  color: var(--fgt-ink);
 
-  &__body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem; }
-  &__hint { font-size: 0.72rem; opacity: 0.75; margin: 0.1rem 0; }
+  &__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.25rem;
+  }
 
-  // The picker §29.6 says matters most: diagrams, not internal names.
-  &__picker { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  &__section {
+    border: var(--fgt-border);
+    border-radius: var(--fgt-radius);
+    background: var(--fgt-bg-raised);
+    padding: 0.6rem;
+  }
+
+  &__heading {
+    margin: 0 0 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+    border-bottom: var(--fgt-border);
+    padding-bottom: 0.25rem;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.5rem;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+
+    > span {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--fgt-ink-dim);
+    }
+
+    input, select, textarea { width: 100%; min-width: 0; }
+    textarea { font-family: var(--font-mono, monospace); font-size: 0.72rem; }
+
+    &--wide { grid-column: span 2; }
+    &--block { margin-top: 0.5rem; }
+  }
+
+  &__flags {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.2rem 0.6rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+
+    label { display: flex; align-items: center; gap: 0.35rem; }
+    input { flex: 0 0 auto; }
+  }
+
+  &__hint {
+    font-size: 0.68rem;
+    color: var(--fgt-ink-dim);
+    margin: 0.1rem 0;
+  }
+
+  /* ── The picker ───────────────────────────────────────────────────────── */
+
+  &__picker {
+    display: grid;
+    // Fixed columns, so a tile can never be sized by its contents. This is the
+    // whole fix for the reported overlap.
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+
   &__option {
-    display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
-    padding: 0.3rem; border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 3px;
-    background: none; cursor: pointer; font-size: 0.7rem;
+    display: grid;
+    // A fixed diagram box above a label that wraps beneath it. Neither row can
+    // push into the other.
+    grid-template-rows: 3.6rem auto;
+    align-items: center;
+    justify-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem;
+    // Foundry gives every <button> a fixed `--button-size` height (28px) and a
+    // matching line-height. A tile that has to hold a 3.6rem diagram above a
+    // wrapping label cannot be 28px tall, and the diagram was being clipped to
+    // a strip rather than shrunk -- which reads exactly like the overflow bug
+    // this grid was meant to fix.
+    height: auto;
+    min-height: 0;
+    line-height: 1.15;
+    border: 1px solid var(--fgt-line);
+    border-radius: var(--fgt-radius);
+    background: var(--fgt-bg-sunken);
+    color: var(--fgt-ink);
+    cursor: pointer;
+    overflow: hidden;
 
-    &--on { border-color: var(--fgt-accent, #b07); background: rgba(180, 0, 120, 0.08); }
-  }
-  &__schematic {
-    margin: 0; font-family: var(--font-mono, monospace);
-    font-size: 0.62rem; line-height: 1; letter-spacing: 0.08em;
+    &:hover { border-color: var(--fgt-gold); }
+
+    // Selected is a gold border AND a filled background AND the label goes
+    // bold: three signals, because colour is never the only one (D29.7).
+    &--on {
+      border-color: var(--fgt-gold);
+      background: var(--fgt-bg);
+      box-shadow: inset 0 0 0 1px var(--fgt-gold);
+
+      .fgt-editor__label { font-weight: 700; color: var(--fgt-gold); }
+    }
   }
 
-  &__validation { font-size: 0.75rem; }
-  &__ok { color: var(--fgt-ok, #3a3); }
-  &__problems { color: var(--fgt-danger, #b33); margin: 0.2rem 0; padding-left: 1.2rem; }
-  &__warnings { color: var(--fgt-warn, #c80); margin: 0.2rem 0; padding-left: 1.2rem; }
-  &__footer { display: flex; justify-content: flex-end; }
+  &__diagram {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  // Explicit, not `auto`. An inline SVG with only a viewBox has no intrinsic
+  // size, so `width: auto` collapses it to a strip -- which is what the first
+  // pass rendered.
+  &__svg {
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+
+  &__label {
+    font-size: 0.66rem;
+    line-height: 1.15;
+    text-align: center;
+    // Wraps rather than overflowing. The old layout let a long label push the
+    // tile wide and shove its neighbour into the next row's diagram.
+    overflow-wrap: anywhere;
+  }
+
+  /* ── Phases ───────────────────────────────────────────────────────────── */
+
+  &__phase {
+    border: var(--fgt-border);
+    border-left: 3px solid var(--fgt-gold);
+    border-radius: var(--fgt-radius);
+    background: var(--fgt-bg-sunken);
+    padding: 0.45rem;
+    margin-bottom: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  &__phasehead {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+
+    select { flex: 1; min-width: 0; }
+    button { flex: 0 0 auto; padding: 0.1rem 0.4rem; }
+  }
+
+  &__phaseno {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--fgt-ink-dim);
+    min-width: 1.2rem;
+    text-align: center;
+  }
+
+  &__rule {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 0.3rem;
+  }
+
+  &__raw {
+    font-size: 0.7rem;
+
+    summary { cursor: pointer; color: var(--fgt-ink-dim); }
+    textarea {
+      width: 100%;
+      font-family: var(--font-mono, monospace);
+      font-size: 0.7rem;
+      margin-top: 0.2rem;
+    }
+  }
+
+  &__add { align-self: flex-start; padding: 0.3rem 0.6rem; }
+
+  /* ── Validation and save ──────────────────────────────────────────────── */
+
+  &__validation {
+    font-size: 0.75rem;
+    padding: 0 0.25rem;
+
+    h4 { margin: 0.2rem 0; font-size: 0.72rem; }
+  }
+
+  &__ok { color: var(--fgt-ok); margin: 0.2rem 0; }
+  &__problems { color: var(--fgt-danger); margin: 0.2rem 0; padding-left: 1.2rem; }
+  &__warnings { color: var(--fgt-warn); margin: 0.2rem 0; padding-left: 1.2rem; }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 0.25rem 0.25rem;
+  }
+
+  &__save {
+    padding: 0.4rem 1.2rem;
+    font-weight: 700;
+    border: 1px solid var(--fgt-gold);
+    border-radius: var(--fgt-radius);
+    background: var(--fgt-bg-raised);
+    color: var(--fgt-gold);
+    cursor: pointer;
+
+    // Save is refused while any live check fails, and the button says so by
+    // being visibly out of reach rather than by failing on click.
+    &:disabled { opacity: 0.45; cursor: not-allowed; border-color: var(--fgt-line); color: var(--fgt-ink-dim); }
+  }
 }
