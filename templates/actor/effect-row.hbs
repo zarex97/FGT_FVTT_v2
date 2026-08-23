@@ -1,0 +1,62 @@
+{{!-- One effect instance (docs/29-user-interface.md §29.2).
+
+      Registered as the `fgt-effect-row` partial: the Effects tab renders it
+      four times, once per group, and four copies of this markup would be four
+      places for the remove-guard to go missing from. --}}
+<div class="fgt-effect{{#if suppressed}} fgt-effect--suppressed{{/if}}" data-effect-id="{{id}}">
+
+  <span class="fgt-effect__name">
+    {{name}}
+    {{#if stage}}<span class="fgt-effect__stage">{{localize "FGT.Sheet.Stage" n=stage}}</span>{{/if}}
+    {{#unless known}}<span class="fgt-effect__unknown">{{localize "FGT.Sheet.NoDefinition"}}</span>{{/unless}}
+  </span>
+
+  <span class="fgt-effect__magnitude">
+    {{#if magnitude}}{{magnitude}}{{/if}}
+  </span>
+
+  <span class="fgt-effect__source">
+    {{#if sourceAbility}}
+      {{sourceAbility}}
+    {{else if sourceName}}
+      {{sourceName}}
+    {{/if}}
+  </span>
+
+  <span class="fgt-effect__duration">
+    {{#if remaining}}
+      {{localize "FGT.Sheet.TurnsLeft" n=remaining}}
+    {{else}}
+      {{!-- No expiry, or no combat to count against. "∞" beats a blank, which
+            reads as an effect that is about to fall off. --}}
+      ∞
+    {{/if}}
+  </span>
+
+  {{#if removable}}
+    {{#if @root.isGM}}
+      <button type="button" class="fgt-effect__remove" data-action="removeEffect"
+              data-tooltip="{{localize 'FGT.Sheet.RemoveEffect'}}">✕</button>
+    {{/if}}
+  {{else}}
+    <span class="fgt-effect__locked" data-tooltip="{{localize 'FGT.Sheet.UnremovableHint'}}">
+      <i class="fa-solid fa-lock"></i>
+    </span>
+  {{/if}}
+
+  {{#if periodic}}
+    {{!-- D29.4's worked example. "Stage 3" does not look like 80 until
+          somebody does 20 × 2^(3−1) out loud, and the figure carries Deadly
+          Poison's doubling with it -- so this is the number that will actually
+          come off, not the table's. --}}
+    <p class="fgt-effect__periodic">{{localize "FGT.Sheet.PeriodicDamage" n=periodic}}</p>
+  {{/if}}
+
+  {{#if uses}}
+    <p class="fgt-effect__uses">{{localize "FGT.Sheet.UsesLeft" n=uses}}</p>
+  {{/if}}
+
+  {{#if suppressed}}
+    <p class="fgt-effect__note">{{localize "FGT.Sheet.Suppressed"}}</p>
+  {{/if}}
+</div>

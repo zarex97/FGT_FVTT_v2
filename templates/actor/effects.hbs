@@ -1,4 +1,81 @@
-{{!-- The Effects tab (docs/29-user-interface.md §29.2). --}}
+{{!-- The Effects tab (docs/29-user-interface.md §29.2).
+
+      Grouped by polarity, with the source and the remaining duration. The
+      Poison row showing Stage 3 AND its computed 80 is the point of the tab:
+      `20 × 2^(3−1)` is not obvious from "Stage 3", and D29.4 names it as the
+      kind of derived value players otherwise get wrong. --}}
 <section class="tab fgt-tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
-  <p class="fgt-empty">{{localize "FGT.Sheet.NoEffects"}}</p>
+
+  {{#unless effects.any}}
+    <p class="fgt-empty">{{localize "FGT.Sheet.NoEffects"}}</p>
+  {{/unless}}
+
+  {{#if effects.buffs.length}}
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Buffs"}}</h3>
+    {{#each effects.buffs as |e|}}{{> fgt-effect-row e}}{{/each}}
+  {{/if}}
+
+  {{#if effects.debuffs.length}}
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Debuffs"}}</h3>
+    {{#each effects.debuffs as |e|}}{{> fgt-effect-row e}}{{/each}}
+  {{/if}}
+
+  {{#if effects.statuses.length}}
+    {{!-- Neither buff nor debuff, and usually unremovable: Mad Enhancement is
+          a class skill, not something that was done to the Unit. --}}
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Statuses"}}</h3>
+    {{#each effects.statuses as |e|}}{{> fgt-effect-row e}}{{/each}}
+  {{/if}}
+
+  {{#if effects.unknown.length}}
+    {{!-- An instance the registry has no definition for. Shown rather than
+          dropped: it IS on the Unit, and "it loads and does nothing" is the
+          failure this project keeps finding in its own content. --}}
+    <h3 class="fgt-panel__title fgt-panel__title--warn">{{localize "FGT.Sheet.UnknownEffects"}}</h3>
+    <p class="fgt-hint fgt-hint--warn">{{localize "FGT.Sheet.UnknownEffectsHint"}}</p>
+    {{#each effects.unknown as |e|}}{{> fgt-effect-row e}}{{/each}}
+  {{/if}}
+
+  {{#if effects.immunities.length}}
+    <section class="fgt-panel">
+      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Immunities"}}</h3>
+      <ul class="fgt-tags">
+        {{#each effects.immunities as |i|}}<li class="fgt-tag">{{i}}</li>{{/each}}
+      </ul>
+    </section>
+  {{/if}}
+
+  {{#if effects.auras.length}}
+    <section class="fgt-panel">
+      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Auras"}}</h3>
+      <ul class="fgt-tags">
+        {{#each effects.auras as |a|}}<li class="fgt-tag">{{a.effectId}} · {{a.radius}}</li>{{/each}}
+      </ul>
+    </section>
+  {{/if}}
+
+  {{#if effects.modifiers.length}}
+    <section class="fgt-panel">
+      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Modifiers"}}</h3>
+      {{!-- The answer to "why is my attack +50%". Collapsed, because it is a
+            reference rather than something read every turn. --}}
+      <details>
+        <summary class="fgt-hint">{{localize "FGT.Sheet.ModifiersHint" n=effects.modifiers.length}}</summary>
+        <table class="fgt-modifiers">
+          <tbody>
+            {{#each effects.modifiers as |m|}}
+              <tr>
+                <th scope="row"><code>{{m.key}}</code></th>
+                <td class="fgt-modifiers__value">{{m.value}}</td>
+                <td>{{localize m.source}}</td>
+                <td class="fgt-modifiers__when">
+                  {{#if m.predicate}}{{m.predicate}}{{else}}{{localize "FGT.Sheet.Always"}}{{/if}}
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </details>
+    </section>
+  {{/if}}
 </section>
