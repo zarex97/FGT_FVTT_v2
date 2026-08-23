@@ -285,6 +285,26 @@ Two more that are subtler than "collected only", because they *look* wired:
   Penthesilea's *Hatred of Achilles*) and step 4b of `resolveTargets` narrows a compelled unit's
   candidates to what it is compelled to attack. The other three keys still have no reader.
 
+### §5.6's granted steps never reach the Parameter — **open**
+
+Found while building the Overview tab's parameter tiles, and **not fixed**: it is an engine
+change, and the sheet work was scoped to render what exists.
+
+Ch. 05 §5.6 specifies `effective = base shifted by granted`. `engine/summon.mjs` writes
+`system.grantedSteps` and adjusts Base Attack from it, and then **nothing shifts the Parameter
+itself** — the only other reader of the field is `baseAttackAdjustment`. A war Region's bonus
+does reach the rank, but by a different route entirely (`annotateRegionBonus` emits a `rankShift`
+statDelta re-applied per snapshot), so the two grant sources behave differently for no stated
+reason.
+
+The consequence is small and quiet: a Servant granted a STR step by a High Rank Master gets the
++10 Base Attack and keeps its written Rank, so anything comparing Ranks — Magic Resistance, the
+damage table rows, `Rank.gte` gates — sees the unmodified one.
+
+The sheet does not paper over it. The parameter tile shows the Rank the field holds and reports
+the granted steps beside it as the separate fact they are, rather than rendering a
+"written C ▸ now B" arrow that would print a Rank the Servant was never written with.
+
 ### One localization key took down all 591
 
 Found while building the ability editor, and the most expensive small mistake in the project so
