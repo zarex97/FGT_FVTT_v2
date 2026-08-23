@@ -136,18 +136,26 @@
 
 /* ── Nav rail ───────────────────────────────────────────────────────────── */
 
+// The `tabs` class is required for `changeTab` to find this nav -- and it
+// brings Foundry's own tab-bar styling with it, which is a horizontal bar that
+// distributes its items across the full axis. Down a 700px-tall rail that put
+// four icons a hundred pixels apart, so both axes are restated here.
 .fgt-nav {
   grid-area: nav;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
   gap: 0.15rem;
   padding: 0.4rem 0.25rem;
   background: var(--fgt-bg-sunken);
   border-right: var(--fgt-border);
+  border-bottom: none;
 
   &__item {
     display: grid;
     place-items: center;
+    flex: 0 0 auto;
     height: 2.25rem;
     border-radius: var(--fgt-radius);
     color: var(--fgt-ink-dim);

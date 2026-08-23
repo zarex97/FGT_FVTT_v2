@@ -16,6 +16,7 @@ import { currentBoard, unitSnapshot, currentTick, currentRound } from "../../eng
 import { poolsOf, isUnbound } from "../../rules/cs-namespacing.mjs";
 import { chebyshev } from "../../domain/geometry.mjs";
 import { classifyAbility } from "../../rules/ability-use.mjs";
+import { detectRangeOf } from "../../rules/identity.mjs";
 import { resourceBar, parameterTiles } from "./present.mjs";
 
 /**
@@ -157,6 +158,7 @@ export function buildContext(actor, sheet) {
     setupLocked: Boolean(game.combat?.started),
 
     parameters: parameterTiles(system.parameters, system.grantedSteps),
+    overview: overviewContext(actor, snapshot),
     header: headerContext(actor, snapshot),
     isMaster,
     ...(isMaster ? masterContext(actor) : {}),
@@ -284,4 +286,198 @@ function badgesFor(system, snapshot) {
 function titleCase(text) {
   const spaced = String(text).replace(/([a-z])([A-Z])/g, "$1 $2");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/**
+ * The Overview tab: everything that decides what this Unit may do now.
+ *
+ * Reads the **snapshot** rather than the raw system wherever the two differ,
+ * because the snapshot is what every rule reads. A sheet showing the authored
+ * MOV beside an engine using the modified one is a sheet that lies quietly.
+ *
+ * @param {object} actor
+ * @param {object} snapshot
+ * @returns {object}
+ */
+function overviewContext(actor, snapshot) {
+  const system = actor.system;
+
+  return {
+    combat: {
+      baseAttack: system.baseAttack ?? null,
+      normalAttack: normalAttackLine(system.normalAttack),
+      mov: snapshot.mov,
+      rangePanels: snapshot.range,
+      maxTargets: snapshot.maxTargets,
+      // Ch. 08 §8.7. `snapshot.detect` is the AUTHORED override and is `null`
+      // on almost every unit -- the derivation lives in `detectRangeOf`, which
+      // needs the board for a Caster's Home Base check. Reading the raw field
+      // printed an empty Detect on every sheet that had not overridden it,
+      // which is every sheet but the Golden Hind's.
+      detect: {
+        value: detectRangeOf(snapshot, currentBoard()),
+        derived: system.detect === null,
+      },
+      // The authored expression AND what is left of it. Every consumer used to
+      // treat `sustainability` itself as a number and compare "2◈" > 5.
+      sustainability: system.sustainability
+        ? { max: system.sustainability, remaining: system.sustainabilityRemaining ?? snapshot.sustainability }
+        : null,
+      facing: system.facing,
+    },
+
+    // Documented in `rules/snapshot.mjs` as being "here so a sheet can explain
+    // the number", and unread by any sheet until now.
+    deltas: (snapshot.statDeltas ?? [])
+      .filter((d) => !d.target || d.target === "self")
+      .map((d) => ({
+        stat: d.stat,
+        source: d.source ?? game.i18n.localize("FGT.Sheet.UnknownSource"),
+        amount: d.rankShift ? `${d.rankShift > 0 ? "+" : ""}${d.rankShift} rank` : signed(d.value),
+      })),
+
+    status: {
+      contract: system.contract ?? null,
+      masterName: system.masterId ? (game.actors.get(system.masterId)?.name ?? null) : null,
+      zon: snapshot.zon ?? null,
+      zonDistance: snapshot.zonDistance ?? null,
+      outsideZon: Boolean(snapshot.outsideZon),
+      // Named rather than implied: a player who sees "outside ZON" and not what
+      // it costs has to remember the rule, and remembering it is the mistake.
+      penalty: snapshot.outsideZon ? game.i18n.localize("FGT.Master.ZonPenalty") : null,
+      zonExempt: Boolean(system.zonExempt),
+      zonPartners: [...(system.zonPartnerIds ?? [])]
+        .map((id) => game.actors.get(id)?.name ?? id),
+      platform: system.boundToPlatformId
+        ? (game.actors.get(system.boundToPlatformId)?.name ?? system.boundToPlatformId)
+        : null,
+    },
+
+    // A warning that does not block (§29.9's amber badge). Shown because the
+    // alternative is discovering it after committing an attack.
+    compulsions: (snapshot.compulsionRules ?? []).map((rule) => ({
+      text: rule.text ?? rule.reason ?? JSON.stringify(rule),
+    })),
+
+    budget: budgetRow(snapshot),
+
+    // §6.10's per-unit pools -- PRS Tokens, Fragarach Tokens, Construction --
+    // which gate abilities and appeared nowhere on the old sheet.
+    pools: Object.entries(snapshot.resources ?? {}).map(([key, pool]) => ({
+      key,
+      value: pool.value ?? 0,
+      max: pool.max ?? null,
+      // Pips built here: Foundry registers no `range` helper and a template
+      // that invents one throws at render time.
+      pips: pool.max
+        ? "●".repeat(Math.min(pool.value ?? 0, 12)) + "○".repeat(Math.max(0, pool.max - (pool.value ?? 0)))
+        : null,
+    })),
+
+    platform: actor.type === "platform" ? platformBlock(system) : null,
+    summon: actor.type === "summon" ? summonBlock(system) : null,
+  };
+}
+
+/**
+ * What a Normal Attack is made of.
+ *
+ * EMIYA's changes component at Range 3, and nothing on the old sheet said so —
+ * a player reading "BA(STR) 75" had no way to know that at range his attack
+ * draws on MAG instead.
+ *
+ * @param {object|null} normalAttack
+ * @returns {object}
+ */
+function normalAttackLine(normalAttack) {
+  const mode = normalAttack?.mode ?? "fixed";
+  const bands = mode === "rangeBanded" ? [...(normalAttack?.bands ?? [])] : [];
+
+  return {
+    mode,
+    component: normalAttack?.component ?? "str",
+    // A band declares only where it STARTS. EMIYA's single band is `{from: 3}`
+    // with no upper bound, so a template printing `{{to}}` rendered "Range
+    // 3–undefined" -- the range is read off the NEXT band's start, or is open.
+    //
+    // `sources` is the other half nobody was showing: his band is not "STR"
+    // but STR at full weight plus a fifth of MAG, which is a different number.
+    bands: bands.map((band, index) => ({
+      from: band.from ?? 0,
+      to: bands[index + 1]?.from ? bands[index + 1].from - 1 : null,
+      component: band.component ?? "str",
+      mix: (band.sources ?? []).map((s) => ({
+        component: s.component,
+        percent: Math.round((s.factor ?? 0) * 100),
+      })),
+      ignoresMagicResistance: Boolean(band.ignoresMagicResistance),
+    })),
+  };
+}
+
+/**
+ * What this Unit has already spent this Turn.
+ *
+ * Read from the snapshot, which has already applied the stale-by-tick rule —
+ * a state stamped with an earlier tick is spent whatever it says, so a reset
+ * hook that failed to fire cannot leave a Servant looking exhausted forever.
+ *
+ * @param {object} snapshot
+ * @returns {object}
+ */
+function budgetRow(snapshot) {
+  const turn = snapshot.turnState ?? {};
+  return {
+    acted: Boolean(turn.acted),
+    moved: Boolean(turn.moved),
+    attacked: Boolean(turn.attacked),
+    usedActiveSkill: Boolean(turn.usedActiveSkill),
+    movedPanels: turn.movedPanels ?? 0,
+    mov: snapshot.mov ?? 0,
+    moveSegments: turn.moveSegments ?? 0,
+    itemTransfers: turn.itemTransfers ?? 0,
+  };
+}
+
+/**
+ * Platform-only Overview blocks (Ch. 20).
+ * @param {object} system
+ * @returns {object}
+ */
+function platformBlock(system) {
+  return {
+    footprint: system.footprint ?? null,
+    capacity: system.capacity ?? null,
+    level: system.level ?? 0,
+    owner: system.ownerId ? (game.actors.get(system.ownerId)?.name ?? system.ownerId) : null,
+    upkeep: system.upkeep ?? null,
+    // §20.7: cross-level protection is decided per platform, not globally, so
+    // the four axes are shown rather than summarised into a single word.
+    crossLevel: Object.entries(system.crossLevel ?? {}).map(([key, value]) => ({ key, value: String(value) })),
+  };
+}
+
+/**
+ * Summon-only Overview blocks.
+ * @param {object} system
+ * @returns {object}
+ */
+function summonBlock(system) {
+  return {
+    summoner: system.summonerId ? (game.actors.get(system.summonerId)?.name ?? system.summonerId) : null,
+    expiresAt: system.expiresAt ?? null,
+    countsTowardBudget: Boolean(system.countsTowardBudget),
+    // Medea's second clause: "The same Dragon Tooth Warrior can only Move/Attack
+    // once per Turn", which is distinct from the budget exemption above.
+    actsOncePerTurn: Boolean(system.actsOncePerTurn),
+  };
+}
+
+/**
+ * @param {number|null|undefined} value
+ * @returns {string}
+ */
+function signed(value) {
+  const n = value ?? 0;
+  return n > 0 ? `+${n}` : String(n);
 }

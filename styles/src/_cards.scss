@@ -154,3 +154,127 @@
 
   &--granted { border-color: var(--fgt-gold); }
 }
+
+/* ── Stat grid ──────────────────────────────────────────────────────────── */
+
+.fgt-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.3rem;
+}
+
+.fgt-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-sunken);
+
+  &__key {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // "derived", "3 turns left" -- the qualifier that stops a reader hunting for
+  // where a number came from.
+  &__note {
+    font-size: 0.62rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--fgt-ink-dim);
+  }
+}
+
+// Why a number is that number. `statDeltas` has said in a comment since it was
+// written that it is "here so a sheet can explain the number".
+.fgt-deltas,
+.fgt-bands {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.72rem;
+  color: var(--fgt-ink-dim);
+
+  code {
+    font-size: 0.7rem;
+    color: var(--fgt-gold);
+    background: none;
+    padding: 0;
+  }
+}
+
+/* ── Resource pools (§6.10) ─────────────────────────────────────────────── */
+
+.fgt-pools {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fgt-pool {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+
+  &__key { text-transform: capitalize; }
+  &__pips { color: var(--fgt-gold); letter-spacing: 0.1em; }
+  &__count { font-variant-numeric: tabular-nums; color: var(--fgt-ink-dim); }
+}
+
+/* ── Turn budget ────────────────────────────────────────────────────────── */
+
+.fgt-budget {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.12rem 0.45rem;
+    border: 1px solid var(--fgt-line);
+    border-radius: 999px;
+    color: var(--fgt-ink-dim);
+
+    // Spent is struck through as well as dimmed: a player with seven Servants
+    // should not have to distinguish two greys.
+    &--spent {
+      color: var(--fgt-ink);
+      border-color: var(--fgt-gold);
+      background: var(--fgt-bg-sunken);
+      text-decoration: line-through;
+    }
+  }
+}
+
+.fgt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+
+  .fgt-button { flex: 1 1 8rem; }
+}
+
+// A compulsion forbids a target. It is one of the two highest-value elements
+// on the sheet (§29.2) because the alternative is finding out after committing.
+.fgt-warning--compulsion {
+  border-left-color: var(--fgt-crimson);
+}
