@@ -1,4 +1,149 @@
-{{!-- The Details tab (docs/29-user-interface.md §29.2). --}}
+{{!-- The Details tab (docs/29-user-interface.md §29.2).
+
+      Two halves. The identity fields a GM edits, and the reference data
+      nothing else has anywhere to show: the defeat cause a revival source has
+      to consult, the hidden-damage tally Serenity's concealment discloses, and
+      the Health watermarks two abilities ask history questions about. --}}
 <section class="tab fgt-tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
-  <p class="fgt-empty">{{localize "FGT.Sheet.NoDetails"}}</p>
+
+  <section class="fgt-panel">
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Identity"}}</h3>
+
+    {{#if isGM}}
+      <label class="fgt-field">
+        <span>{{localize "FGT.Sheet.TrueName"}}</span>
+        <input type="text" name="system.trueName" value="{{system.trueName}}">
+      </label>
+      <label class="fgt-field">
+        <span>{{localize "FGT.Sheet.ClassContainer"}}</span>
+        <input type="text" name="system.classContainer" value="{{system.classContainer}}">
+      </label>
+      <label class="fgt-field">
+        <span>{{localize "FGT.Sheet.ConcealedIdentity"}}</span>
+        {{!-- Derived from the container when blank, so the common case needs
+              no authoring (§4.2). --}}
+        <input type="text" name="system.concealedIdentity" value="{{system.concealedIdentity}}"
+               placeholder="{{system.classContainer}}">
+      </label>
+      <label class="fgt-field fgt-field--check">
+        <input type="checkbox" name="system.identityRevealed" {{checked system.identityRevealed}}>
+        <span>{{localize "FGT.Sheet.IdentityRevealed"}}</span>
+      </label>
+      <label class="fgt-field">
+        <span>{{localize "FGT.Sheet.AlignmentOrder"}}</span>
+        <input type="text" name="system.alignment.order" value="{{system.alignment.order}}">
+      </label>
+      <label class="fgt-field">
+        <span>{{localize "FGT.Sheet.AlignmentMorality"}}</span>
+        {{!-- Open, not an enum: Anastasia's sheet reads "Chaotic Summer". --}}
+        <input type="text" name="system.alignment.morality" value="{{system.alignment.morality}}">
+      </label>
+    {{else}}
+      <p class="fgt-hint">{{localize "FGT.Sheet.IdentityGMOnly"}}</p>
+    {{/if}}
+
+    {{#if details.servantClasses.length}}
+      <div class="fgt-field">
+        <span>{{localize "FGT.Sheet.ServantClasses"}}</span>
+        <ul class="fgt-tags">
+          {{#each details.servantClasses as |c|}}<li class="fgt-tag">{{c}}</li>{{/each}}
+        </ul>
+      </div>
+    {{/if}}
+
+    {{#if details.region.length}}
+      <div class="fgt-field">
+        <span>{{localize "FGT.Sheet.Region"}}</span>
+        <ul class="fgt-tags">
+          {{#each details.region as |r|}}<li class="fgt-tag">{{r}}</li>{{/each}}
+        </ul>
+      </div>
+    {{/if}}
+
+    {{#if details.attributes.length}}
+      <div class="fgt-field">
+        {{!-- An OPEN tag set by design (§4.5): the expanded roster added
+              Fairytale, Wraith, Liangshan, Gorgon and Demonic Beast without a
+              schema change, and content predicates match on these. --}}
+        <span>{{localize "FGT.Sheet.Attributes"}}</span>
+        <ul class="fgt-tags">
+          {{#each details.attributes as |a|}}<li class="fgt-tag">{{a}}</li>{{/each}}
+        </ul>
+      </div>
+    {{/if}}
+  </section>
+
+  <section class="fgt-panel">
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Biography"}}</h3>
+    {{editor system.biography target="system.biography" button=true editable=isEditable}}
+  </section>
+
+  <section class="fgt-panel">
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Notes"}}</h3>
+    {{editor system.notes target="system.notes" button=true editable=isEditable}}
+  </section>
+
+  {{#if details.otherItems.length}}
+    <section class="fgt-panel">
+      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Items"}}</h3>
+      <ul class="fgt-list">
+        {{#each details.otherItems as |item|}}
+          <li class="fgt-list__row" data-item-id="{{item.id}}">
+            <span class="fgt-list__name">{{item.name}}</span>
+            {{#if item.quantity}}<span class="fgt-list__rank">×{{item.quantity}}</span>{{/if}}
+            {{#if item.equipped}}<span class="fgt-tag">{{localize "FGT.Sheet.Equipped"}}</span>{{/if}}
+          </li>
+        {{/each}}
+      </ul>
+    </section>
+  {{/if}}
+
+  <section class="fgt-panel">
+    <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Reference"}}</h3>
+
+    {{#if system.defeated}}
+      <p class="fgt-warning">
+        {{!-- `defeatCause` matters separately from `defeated`: a Death cause
+              "ignores all revival effects", and a revival source has to be
+              able to tell what killed the bearer. --}}
+        {{localize "FGT.Sheet.DefeatedBy" cause=system.defeatCause}}
+      </p>
+    {{/if}}
+
+    {{#if details.hiddenDamage.length}}
+      <div class="fgt-field">
+        <span>{{localize "FGT.Sheet.HiddenDamage"}}</span>
+        <ul class="fgt-deltas">
+          {{#each details.hiddenDamage as |h|}}
+            <li><code>{{h.cause}}</code> {{h.amount}}</li>
+          {{/each}}
+        </ul>
+      </div>
+    {{/if}}
+
+    {{#if details.watermarks.length}}
+      <div class="fgt-field">
+        <span>{{localize "FGT.Sheet.Watermarks"}}</span>
+        <ul class="fgt-deltas">
+          {{#each details.watermarks as |w|}}
+            <li><code>{{w.fraction}}</code> ◈{{w.tick}}</li>
+          {{/each}}
+        </ul>
+      </div>
+    {{/if}}
+
+    <details>
+      <summary class="fgt-hint">{{localize "FGT.Sheet.RawState"}}</summary>
+      <table class="fgt-modifiers">
+        <tbody>
+          {{#each details.turnState as |row|}}
+            <tr><th scope="row"><code>turn.{{row.key}}</code></th><td>{{row.value}}</td></tr>
+          {{/each}}
+          {{#each details.roundState as |row|}}
+            <tr><th scope="row"><code>round.{{row.key}}</code></th><td>{{row.value}}</td></tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </details>
+  </section>
 </section>

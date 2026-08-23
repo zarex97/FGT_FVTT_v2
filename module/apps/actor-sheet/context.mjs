@@ -167,6 +167,7 @@ export function buildContext(actor, sheet) {
     overview: overviewContext(actor, snapshot),
     abilityCards: abilitiesContext(actor, snapshot, game.settings.get("fgt", "turnsPerRound")),
     effects: effectsContext(actor, snapshot, tick),
+    details: detailsContext(actor, snapshot),
     header: headerContext(actor, snapshot),
     isMaster,
     ...(isMaster ? masterContext(actor) : {}),
@@ -655,4 +656,68 @@ function sourceOf(row) {
     sourceName: source?.name ?? (row.sourceUnitId ? game.i18n.localize("FGT.Sheet.UnknownSource") : null),
     sourceAbility: ability?.name ?? null,
   };
+}
+
+/**
+ * The Details tab: identity, prose, and the reference half.
+ *
+ * `SetField`s arrive as `Set`s and are spread to arrays here. A template
+ * calling `.length` or `{{#each}}` on a `Set` gets nothing and reports
+ * nothing, which is the same silent-drop shape as an unread rule element.
+ *
+ * @param {object} actor
+ * @param {object} snapshot
+ * @returns {object}
+ */
+function detailsContext(actor, snapshot) {
+  const system = actor.system;
+
+  return {
+    servantClasses: [...(system.servantClasses ?? [])],
+    region: [...(system.region ?? [])],
+    attributes: [...(system.attributes ?? [])],
+
+    // Damage taken from a cause this Unit is not allowed to see yet. Serenity's
+    // Secret Poison is the only thing that writes it, and the tally is what
+    // gets disclosed when her Presence Concealment ends -- so a GM has to be
+    // able to read it before then.
+    hiddenDamage: Object.entries(system.hiddenDamage ?? {})
+      .map(([cause, amount]) => ({ cause, amount })),
+
+    // History, not present state: EMIYA's Rho Aias and Battle Continuation both
+    // ask whether Health has been above a fraction of its maximum SINCE a use,
+    // and no snapshot of the present can answer that.
+    watermarks: Object.entries(system.healthWatermarks ?? {})
+      .map(([fraction, tick]) => ({ fraction, tick })),
+
+    turnState: rows(snapshot.turnState),
+    roundState: rows(snapshot.roundState),
+
+    // Everything that is not an ability: equipment, Command Spells, Essences.
+    otherItems: [...actor.items]
+      .filter((i) => i.type !== "ability" && i.type !== "noblePhantasm")
+      .map((i) => ({
+        id: i.id,
+        name: i.name,
+        type: i.type,
+        equipped: Boolean(i.system?.equipped),
+        quantity: i.system?.quantity ?? null,
+        transferable: Boolean(i.system?.transferable),
+      })),
+  };
+}
+
+/**
+ * A flat state object as label/value rows a template can walk.
+ *
+ * @param {object|null} state
+ * @returns {Array<{key: string, value: string}>}
+ */
+function rows(state) {
+  return Object.entries(state ?? {})
+    .filter(([, value]) => typeof value !== "object" || Array.isArray(value))
+    .map(([key, value]) => ({
+      key,
+      value: Array.isArray(value) ? (value.join(", ") || "—") : String(value),
+    }));
 }
