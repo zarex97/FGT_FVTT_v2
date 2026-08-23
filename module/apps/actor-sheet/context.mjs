@@ -19,7 +19,11 @@ import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf } from "../../rules/identity.mjs";
-import { resourceBar, parameterTiles, abilityState, abilityCost } from "./present.mjs";
+import { EffectRegistry } from "../../rules/registry.mjs";
+import {
+  resourceBar, parameterTiles, abilityState, abilityCost,
+  groupEffects, describeModifier, remainingTurns,
+} from "./present.mjs";
 
 /**
  * Present one ability to the sheet.
@@ -162,6 +166,7 @@ export function buildContext(actor, sheet) {
     parameters: parameterTiles(system.parameters, system.grantedSteps),
     overview: overviewContext(actor, snapshot),
     abilityCards: abilitiesContext(actor, snapshot, game.settings.get("fgt", "turnsPerRound")),
+    effects: effectsContext(actor, snapshot, tick),
     header: headerContext(actor, snapshot),
     isMaster,
     ...(isMaster ? masterContext(actor) : {}),
@@ -581,4 +586,73 @@ function nameOnActor(actor, id) {
   const item = actor.items.get(id)
     ?? [...actor.items].find((i) => i.system?.contentId === id);
   return item?.name ?? id;
+}
+
+/**
+ * The Effects tab: what is on this Unit, and what it is doing.
+ *
+ * The grouping and the periodic arithmetic are `present.mjs`'s; this half
+ * resolves the things that need a world — the source Unit's name, the source
+ * ability's name, and the tick to count expiry from.
+ *
+ * @param {object} actor
+ * @param {object} snapshot
+ * @param {number|null} tick
+ * @returns {object}
+ */
+function effectsContext(actor, snapshot, tick) {
+  // A lookup FUNCTION rather than the registry itself, which is what lets
+  // `groupEffects` stay pure and be tested with a plain object.
+  const groups = groupEffects(
+    snapshot.effectInstances ?? [],
+    (id) => EffectRegistry.get(id),
+    snapshot,
+  );
+
+  const decorate = (rows) => rows.map((row) => ({
+    ...row,
+    remaining: remainingTurns(row.expiry, tick),
+    ...sourceOf(row),
+  }));
+
+  return {
+    buffs: decorate(groups.buffs),
+    debuffs: decorate(groups.debuffs),
+    statuses: decorate(groups.statuses),
+    // Instances the registry has no definition for. Surfaced rather than
+    // dropped: an effect that is really on the Unit but absent from the
+    // registry is exactly the case a GM needs to see, and "it loads and does
+    // nothing" is this project's recurring failure shape.
+    unknown: decorate(groups.unknown),
+    any: [groups.buffs, groups.debuffs, groups.statuses, groups.unknown]
+      .some((g) => g.length > 0),
+
+    immunities: [...(snapshot.immunities ?? [])].map((i) => (typeof i === "string" ? i : i.effectId ?? JSON.stringify(i))),
+    auras: [...(snapshot.auras ?? [])],
+    // The "why is my attack +50%" table. A predicate rendered straight into a
+    // template arrives as [object Object], which answers nothing.
+    modifiers: (snapshot.modifiers ?? []).map(describeModifier),
+  };
+}
+
+/**
+ * Who put this effect here, by name.
+ *
+ * An id on screen is a thing the reader has to go and look up. An
+ * unresolvable source says so rather than printing sixteen hex characters.
+ *
+ * @param {object} row
+ * @returns {{sourceName: string|null, sourceAbility: string|null}}
+ */
+function sourceOf(row) {
+  const source = row.sourceUnitId ? game.actors.get(row.sourceUnitId) : null;
+  const ability = source && row.sourceAbilityId
+    ? (source.items.get(row.sourceAbilityId)
+      ?? [...source.items].find((i) => i.system?.contentId === row.sourceAbilityId))
+    : null;
+
+  return {
+    sourceName: source?.name ?? (row.sourceUnitId ? game.i18n.localize("FGT.Sheet.UnknownSource") : null),
+    sourceAbility: ability?.name ?? null,
+  };
 }

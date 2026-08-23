@@ -192,14 +192,21 @@ describe("abilityCost", () => {
 });
 
 describe("groupEffects", () => {
+  // `polarity` is the buff/debuff/status axis, NOT `valence`. Valence is a
+  // separate one -- offensive/defensive/neutral/neither -- and no effect in
+  // the catalogue carries `valence: debuff` at all, so grouping on it filed
+  // every debuff in the game under Statuses.
   const defs = {
-    defUp: { id: "defUp", name: "Def Up", valence: "buff" },
-    poison: { id: "poison", name: "Poison", valence: "debuff" },
-    madEnhancement: { id: "madEnhancement", name: "Mad Enhancement", valence: "neither", unremovable: true },
+    defUp: { id: "defUp", name: "Def Up", polarity: "buff", valence: "defensive" },
+    poison: { id: "poison", name: "Poison", polarity: "debuff", valence: "offensive" },
+    madEnhancement: {
+      id: "madEnhancement", name: "Mad Enhancement",
+      polarity: "status", valence: "neither", unremovable: true,
+    },
   };
   const lookup = (id) => defs[id] ?? null;
 
-  it("groups by the definition's valence", () => {
+  it("groups by the definition's polarity, not its valence", () => {
     const out = groupEffects(
       [{ defId: "defUp" }, { defId: "poison" }, { defId: "madEnhancement" }],
       lookup, { effects: [] },

@@ -36,6 +36,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       openDialog: FGTActorSheet.#onOpenDialog,
       rollSetup: FGTActorSheet.#onRollSetup,
       contract: FGTActorSheet.#onContract,
+      removeEffect: FGTActorSheet.#onRemoveEffect,
     },
   };
 
@@ -238,6 +239,35 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onContract() {
     const { ContractDialog } = await import("../contract-dialog.mjs");
     ContractDialog.open(this.document.id);
+  }
+
+  /**
+   * Remove one effect instance from this Unit.
+   *
+   * GM only, and it refuses an `unremovable` definition even though the
+   * template does not draw the control for one. A rule that is only enforced
+   * by not rendering a button is not enforced — the button comes back the
+   * first time somebody renders the row a second way.
+   *
+   * @this {FGTActorSheet}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onRemoveEffect(_event, target) {
+    if (!game.user.isGM) return;
+
+    const id = target.closest("[data-effect-id]")?.dataset.effectId;
+    const effect = this.document.effects.get(id);
+    if (!effect) return;
+
+    const { EffectRegistry } = await import("../../rules/registry.mjs");
+    const def = EffectRegistry.get(effect.system?.defId ?? effect.name);
+    if (def?.unremovable) {
+      ui.notifications.warn(game.i18n.format("FGT.Effect.Unremovable", { name: effect.name }));
+      return;
+    }
+
+    await effect.delete();
   }
 
   /**

@@ -249,6 +249,11 @@ export function groupEffects(instances, lookup, unit) {
       ...instance,
       name: def?.name ?? instance.defId,
       img: def?.img ?? null,
+      // `polarity` is the buff/debuff/status axis §29.2 groups by. `valence`
+      // is a DIFFERENT axis -- offensive/defensive/neutral -- and grouping on
+      // it filed every debuff in the catalogue under Statuses, because no
+      // effect in the pack has `valence: debuff` at all.
+      polarity: def?.polarity ?? null,
       valence: def?.valence ?? null,
       severity: def?.severity ?? null,
       // Nothing offers an [x] for an effect the rules say cannot be removed.
@@ -260,8 +265,8 @@ export function groupEffects(instances, lookup, unit) {
     };
 
     if (!def) out.unknown.push(row);
-    else if (def.valence === "buff") out.buffs.push(row);
-    else if (def.valence === "debuff") out.debuffs.push(row);
+    else if (def.polarity === "buff") out.buffs.push(row);
+    else if (def.polarity === "debuff") out.debuffs.push(row);
     else out.statuses.push(row);
   }
 

@@ -1,3 +1,127 @@
 // The Effects tab: rows, groups and the modifier table.
+// See docs/29-user-interface.md §29.2.
 
+.fgt-effect {
+  display: grid;
+  grid-template-columns: 1fr auto minmax(5rem, 8rem) 4.5rem 1.2rem;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border: var(--fgt-border);
+  border-left: 3px solid var(--fgt-line);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-raised);
+  margin-bottom: 0.3rem;
+  font-size: 0.78rem;
 
+  // Suppressed is present but not in force. Dimmed AND said in words below --
+  // a grey row alone reads as a rendering accident.
+  &--suppressed { opacity: 0.6; }
+
+  &__name {
+    font-weight: 600;
+    min-width: 0;
+  }
+
+  &__stage {
+    margin-left: 0.3rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fgt-crimson);
+  }
+
+  &__unknown {
+    margin-left: 0.3rem;
+    font-size: 0.62rem;
+    font-style: italic;
+    color: var(--fgt-warn);
+  }
+
+  &__magnitude {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--fgt-gold);
+  }
+
+  &__source,
+  &__duration {
+    font-size: 0.7rem;
+    color: var(--fgt-ink-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__duration { text-align: right; font-variant-numeric: tabular-nums; }
+
+  &__remove {
+    background: none;
+    border: none;
+    color: var(--fgt-ink-dim);
+    cursor: pointer;
+    padding: 0;
+
+    &:hover { color: var(--fgt-danger); }
+  }
+
+  &__locked { color: var(--fgt-ink-dim); font-size: 0.7rem; text-align: center; }
+
+  // The three trailing notes span the whole row rather than sitting in a
+  // column: they are sentences, not fields.
+  &__periodic,
+  &__uses,
+  &__note {
+    grid-column: 1 / -1;
+    margin: 0.15rem 0 0;
+    font-size: 0.7rem;
+    color: var(--fgt-ink-dim);
+  }
+
+  // The number that will actually come off, Deadly Poison's doubling folded
+  // in. D29.4 names this as the derived value players get wrong.
+  &__periodic { color: var(--fgt-crimson); font-weight: 600; }
+}
+
+.fgt-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fgt-tag {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  border: var(--fgt-border);
+  border-radius: 999px;
+  background: var(--fgt-bg-sunken);
+  color: var(--fgt-ink-dim);
+}
+
+.fgt-modifiers {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  margin-top: 0.3rem;
+
+  th {
+    text-align: left;
+    font-weight: 500;
+    padding: 0.15rem 0.4rem 0.15rem 0;
+  }
+
+  td { padding: 0.15rem 0.4rem; }
+
+  code { color: var(--fgt-gold); background: none; padding: 0; font-size: 0.7rem; }
+
+  &__value { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  // The condition, which is the half that answers "why is it not applying".
+  &__when { color: var(--fgt-ink-dim); font-style: italic; }
+}
+
+.fgt-panel__title--warn { color: var(--fgt-warn); }

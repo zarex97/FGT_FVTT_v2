@@ -131,6 +131,7 @@ Hooks.once("setup", async () => {
   // sites want one implementation.
   await foundry.applications.handlebars.loadTemplates({
     "fgt-ability-card": "systems/fgt/templates/actor/ability-card.hbs",
+    "fgt-effect-row": "systems/fgt/templates/actor/effect-row.hbs",
   });
 
   // Packs are not readable during `init`; `setup` runs after they are indexed
