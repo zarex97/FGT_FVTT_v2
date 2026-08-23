@@ -831,7 +831,7 @@ export function tickPeriodics(units, when, ctx) {
       // An effect does not tick on the turn it expires (Ch. 11 §11.9).
       if (e.expiry !== null && e.expiry !== undefined && e.expiry <= ctx.tick) continue;
 
-      const amount = amplify(spec.amount(e), e.defId, u);
+      const amount = periodicDamageFor(e, u);
       const converted = (u.effects ?? []).includes(spec.healConversion);
       out.push(
         converted
@@ -875,11 +875,33 @@ const AMPLIFIERS = Object.freeze({
  */
 function amplify(amount, defId, unit) {
   let out = amount;
-  for (const held of unit.effects ?? []) {
+  for (const held of unit?.effects ?? []) {
     const amp = AMPLIFIERS[held];
     if (amp && amp.defId === defId) out *= amp.factor;
   }
   return Math.round(out);
+}
+
+/**
+ * What one periodic effect instance deals to its bearer right now.
+ *
+ * The **only** implementation. `tickPeriodics` emits it and the Effects tab
+ * displays it, because a sheet that recomputed *"20 × 2^(stage−1), doubled if
+ * Deadly Poison is held"* would be a second reading of Appendix A §A.12 — and
+ * the copy is the one nobody updates when a stage curve changes. That is the
+ * same argument `engine/cooldown.mjs` was written to settle.
+ *
+ * Pure, which is what lets layer 4 call it: it reads the instance and the
+ * bearer's effect list, and nothing else.
+ *
+ * @param {object} instance an entry from `unit.effectInstances`
+ * @param {object|null} unit the bearer's snapshot, for the amplifier lookup
+ * @returns {number|null} `null` when this effect has no periodic tick at all
+ */
+export function periodicDamageFor(instance, unit) {
+  const spec = PERIODICS[instance?.defId];
+  if (!spec) return null;
+  return amplify(spec.amount(instance), instance.defId, unit);
 }
 
 /**
