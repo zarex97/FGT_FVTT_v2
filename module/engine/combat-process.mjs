@@ -181,6 +181,17 @@ export function advance(s, event, detail = undefined) {
   // to the same next state as declining: using Trofa is not itself an Evade
   // roll -- the ability's own AutoSucceed decides that a rung later.
   const normalized = String(event).startsWith("ability:") ? "nothing" : event;
+
+  // A reaction this Process has already refused. The card filters the buttons,
+  // but the card is a client and the transition is the boundary: a stale card,
+  // a macro, or a second player's window must not be able to declare an Evade
+  // that Presence Concealment or a Command Spell retarget already took away.
+  if (s.state === "react" && (s.forbiddenReactions ?? []).includes(normalized)) {
+    throw new RangeError(
+      `FGT | "${normalized}" is not available against this attack.`,
+    );
+  }
+
   const key = `${s.state}:${normalized}`;
   const next = TRANSITIONS[key];
   if (!next) {

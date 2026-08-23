@@ -1,0 +1,63 @@
+# The state Presence Concealment puts a Unit into.
+#
+# Eight clauses, and this document carries two of them. The other six are not
+# modifiers at all — they are decisions taken inside targeting, the reaction
+# ladder, the damage step, movement legality and the ability gate — and each is
+# named below beside the code that answers it, so the sheet can be read against
+# the system in one place.
+#
+#   1. Cannot be targeted; AoE gives a coin flip instead
+#      → `rules/targeting/resolve.mjs` step 7 + `engine/attack.mjs`'s veil
+#   2. Cannot be Blocked or Countered by a slower AGI Rank
+#      → `rules/concealment.mjs` `reactionsRefused`
+#   3. May attack Masters and move past them          → `Suppress` below
+#   4. Damage dealt +100%, NP +50%, not vs Masters    → `DamageModifier` below
+#   5. Deactivates at the end of a Combat Process it attacked in
+#      → `engine/attack.mjs` `endConcealmentAfterAttack`
+#   6. 5% to be Discovered on moving into Detect      → `engine/concealment.mjs`
+#   7. Active Skills aimed at enemies are refused     → `rules/costs.mjs`
+#   8. Neither a buff nor a debuff, and Unremovable   → this file's own header
+#
+# Clause 8 is why this is a `status` with `unremovable: true` rather than a
+# buff: it must survive Dispel, must not be counted by "remove N buffs", and
+# must not be blocked by `No Buff`.
+schema: 1
+id: presenceConcealment
+name: "Presence Concealment"
+description: |
+  This Unit cannot be targeted directly, its Attacks cannot be Blocked or Countered by a Unit
+  of lower AGI Rank, and its damage dealt is increased by 100% (50% for a Noble Phantasm)
+  against anything that is not a Master. Neither a buff nor a debuff, and Unremovable.
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+# "The effects of this Skill lasts for 2◈ Turns." The Skill's own cooldown is a
+# separate 2◈ that starts when this expires, which is what
+# `cooldown.countFrom: deactivation` says on the class skill.
+defaultDuration: "2◈"
+rules:
+  # Clause 4. "All damage dealt is increased by 100%; if NP, 50%. Does not apply
+  # to Masters."
+  #
+  # The exclusion is a predicate on the TARGET, so it is deferred to the damage
+  # pipeline -- there is no defender when this contribution is collected, and a
+  # collection-time test would answer "false" and drop the modifier entirely.
+  - key: DamageModifier
+    value: 100
+    npValue: 50
+    predicate:
+      - { not: "target:type:master" }
+
+  # Clause 3. "This Unit is able to Attack Masters ... regardless of enemy
+  # Master-Servant positions."
+  #
+  # `resolve.mjs` has consulted `caster.bypassesMasterProtection` since Master
+  # protection was written and nothing ever set it, so the exemption could not
+  # be authored. The movement half of the same clause -- *"and Move to any panel
+  # regardless of enemy Master-Servant positions"* -- was already wired:
+  # `rules/movement.mjs` lists `presenceConcealment` in `IGNORES_BLOCKING`.
+  - key: Suppress
+    scope: masterProtection

@@ -43,6 +43,13 @@ import { canSpend, resourcePath } from "../domain/resources.mjs";
 export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
   const cd = ability?.system?.cooldown ?? {};
 
+  // A clock that does not start at the use. Presence Concealment is *"Cooldown:
+  // 2◈ Turns AFTER PC is deactivated"* -- the Skill lasts 2◈ and then sits for
+  // 2◈ more, which starting the clock here would collapse into one window
+  // running under the Skill's own duration. `countFrom` has been on the schema
+  // since it was written and nothing has ever read it.
+  if (cd.countFrom === "deactivation") return { cooldowns: [], spends: [] };
+
   const waiver = ability?.system?.cooldownWaiver ?? null;
   if (waiver && unit && canSpend(unit, waiver.resource, waiver.amount ?? 1)) {
     return {

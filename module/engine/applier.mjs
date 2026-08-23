@@ -147,7 +147,7 @@ async function resolveEffects(intents) {
   // than failing -- the flow is exercised directly by its own tests.
   if (typeof game === "undefined" || !game?.actors) return intents;
 
-  const [{ applyEffect }, { EffectRegistry }, { unitSnapshot }] = await Promise.all([
+  const [{ applyEffect, inflictBonusOf }, { EffectRegistry }, { unitSnapshot }] = await Promise.all([
     import("./effect-applier.mjs"),
     import("../rules/registry.mjs"),
     import("./board.mjs"),
@@ -155,7 +155,7 @@ async function resolveEffects(intents) {
 
   /** @type {Intent[]} */
   const out = [];
-  for (const intent of intents) {
+  for (const intent of mergeStages(intents)) {
     if (intent.t !== "applyEffect" || intent.resolved) {
       out.push(intent);
       continue;
@@ -171,16 +171,40 @@ async function resolveEffects(intents) {
       continue;
     }
 
+    // The INFLICTER's own contributions. `inflictBonus` reaches
+    // `applicationChance` from the attack flow and the skill flow, and this
+    // third path -- everything an event handler applies -- passed none, so
+    // Serenity's Silent Dance (*"chance of inflicting debuffs is increased by
+    // 10%"*) would have been inert against exactly the effects her sheet inflicts
+    // through riders.
+    const inflicter = intent.effect?.sourceUnitId ?? intent.sourceId ?? null;
+    const inflicterDoc = inflicter ? game.actors.get(inflicter) : null;
+
     const result = applyEffect({
       def,
       target: unitSnapshot(target),
       magnitude: intent.effect.magnitude ?? 0,
       npMagnitude: intent.effect.npMagnitude ?? null,
-      source: { unitId: intent.sourceId ?? null, abilityId: intent.effect.sourceAbilityId ?? null },
+      // An ability's stated chance beats the definition's `baseChance`. Carried
+      // on the instance because that is the only thing an intent has room for.
+      chance: intent.effect.chance ?? null,
+      stages: intent.effect.stages ?? 1,
+      visibility: intent.effect.visibility ?? "public",
+      attributionHidden: Boolean(intent.effect.attributionHidden),
+      // The effect's own `sourceUnitId` FIRST. The scheduler's `ApplyEffect`
+      // action passes the handler's *ability* id as the intent's `sourceId`, so
+      // reading that as the inflicter stamped an ability id into a field every
+      // reader treats as a Unit -- and Secret Poison's disclosure, which asks
+      // "which instances did this Unit inflict", could never match one.
+      source: {
+        unitId: intent.effect.sourceUnitId ?? intent.sourceId ?? null,
+        abilityId: intent.effect.sourceAbilityId ?? null,
+      },
       ctx: {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
         currentTick: game.combat?.system?.globalTurn ?? 0,
         roll: (await new Roll("1d100").evaluate()).total,
+        inflictBonus: inflicterDoc ? inflictBonusOf(unitSnapshot(inflicterDoc), def) : 0,
         options: new Set(),
       },
     });
@@ -189,8 +213,70 @@ async function resolveEffects(intents) {
     // knows the duration this application was authored with; the flow recomputes
     // from the definition's default, which is not the same thing.
     out.push(...result.intents.map((i) => (i.t === "applyEffect"
-      ? { ...i, effect: { ...i.effect, expiry: intent.effect.expiry ?? i.effect.expiry } }
+      ? {
+        ...i,
+        effect: {
+          ...i.effect,
+          expiry: intent.effect.expiry ?? i.effect.expiry,
+          // The SOURCE has to survive the round trip: Secret Poison is
+          // disclosed by asking "which instances did this Unit inflict", and an
+          // instance that lost its inflicter can never be revealed.
+          sourceUnitId: i.effect.sourceUnitId ?? intent.effect.sourceUnitId ?? intent.sourceId ?? null,
+        },
+      }
       : i)));
+  }
+  return out;
+}
+
+/**
+ * Collapse repeated applications of the same STAGED effect in one batch.
+ *
+ * A staged effect resolves its new stage against what the target is already
+ * carrying, and nothing in a batch has been written yet — so two applications
+ * of Poison in the same breath both see an unpoisoned Unit, both resolve to
+ * "create at stage 1", and the Unit ends up with two Poison documents instead
+ * of one at stage 2.
+ *
+ * Serenity is where that happens routinely: her Projectile inflicts Poison on
+ * every Normal Attack and her `Macabre` buff inflicts *"an additional Stage"* on
+ * a crit, so a critical dagger raises two handlers against one victim.
+ *
+ * Merged only when the two agree about their **chance**. Two riders at
+ * different odds are two separate rolls, and folding them together would make
+ * the pair land or miss as one.
+ *
+ * @param {Intent[]} intents
+ * @returns {Intent[]}
+ */
+function mergeStages(intents) {
+  /** @type {Map<string, number>} */
+  const at = new Map();
+  /** @type {Intent[]} */
+  const out = [];
+
+  for (const intent of intents) {
+    if (intent.t !== "applyEffect" || intent.resolved || !intent.effect?.defId) {
+      out.push(intent);
+      continue;
+    }
+    const key = `${intent.unitId}:${intent.effect.defId}:${intent.effect.chance ?? ""}`;
+    const index = at.get(key);
+    if (index === undefined) {
+      at.set(key, out.length);
+      out.push({ ...intent, effect: { ...intent.effect } });
+      continue;
+    }
+    // Fold into the first, by replacement rather than by mutation -- the caller
+    // still owns the array it handed us. Only meaningful for a staged
+    // definition; for anything else the extra `stages` is ignored by
+    // `resolveStacking` and the merge is still right, because a second identical
+    // application of a non-staged effect is a refresh, not a second instance.
+    const first = out[index];
+    out[index] = {
+      ...first,
+      effect: { ...first.effect, stages: (first.effect.stages ?? 1) + (intent.effect.stages ?? 1) },
+    };
   }
   return out;
 }

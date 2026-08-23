@@ -1,0 +1,42 @@
+# Serenity, char_orig_sheets/Copia de Hassan (Serenity).md
+#
+# The only ability in the reference set that buys its way out of Presence
+# Concealment's clause 7 — *"Active Skills targeting/affecting an enemy Unit(s)
+# cannot be used unless stated"* — and the price is stated in the same breath.
+schema: 1
+id: serenity-shapeshift
+name: "Shapeshift (Infiltration Specialization)"
+rank: C
+kind: skill
+slug: shapeshift
+cooldown: "3◈"
+timing: { window: ownTurn }
+# The "unless stated" of clause 7, and the 20% it costs. Two fields rather than
+# one because they are separable: an ability could be exempt for free, and one
+# already is -- an Attack Skill, by the clause's own note.
+usableWhileConcealed: true
+concealmentBreakChance: 20
+description: |
+  (Active) Used during your Turn. Range=2. Used on an enemy Unit. Increase its NP Cooldown by
+  1◈ Turns and inflicts Crit Down for 1◈ Turns, Crit Chance is reduced by 20%.
+  Cooldown: 3◈ Turns. Can be used when Presence Concealment is Active, and has a 20% chance of
+  deactivating Presence Concealment when used.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+phases:
+  # `scope: np` rather than an ability id: the clause is aimed at somebody
+  # else's sheet, and that Servant may have two Noble Phantasms (EMIYA has five).
+  # `increase` was not a direction `setCooldown` had -- it could set or reduce --
+  # so lengthening an enemy's clock was the one cooldown operation the system
+  # could not perform.
+  - kind: cooldown
+    target: reuse
+    changes:
+      - { scope: np, ticks: "1◈" }
+
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: critDwn, magnitude: 20, duration: "1◈" }

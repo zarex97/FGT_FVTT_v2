@@ -1,0 +1,30 @@
+# Serenity, char_orig_sheets/Copia de Hassan (Serenity).md
+#
+# Two clauses that look like one and are not. Appendix A keeps Instakill, Death
+# and Erase out of ordinary chance modifiers *"unless stated"*, so a single
+# `+10% to inflict` would have covered the debuffs and left the terminal tier
+# untouched — which is precisely the half of this skill that matters, because
+# her Noble Phantasm's Instakill is a 60% roll.
+schema: 1
+id: serenity-silent-dance
+name: "Silent Dance"
+rank: B
+kind: skill
+slug: silentDance
+passive: true
+description: |
+  (Passive) Chance of inflicting debuffs is increased by 10%. Chance of inflicting Instakill
+  and Death is increased by 10%.
+passiveRules:
+  # Ordinary debuffs. No `severity`, which `chanceContribution` reads as
+  # `normal` only -- the exclusion, stated by omission.
+  - key: ApplicationChance
+    direction: outgoing
+    value: 10
+
+  # The terminal tier, stated. `Erase` is absent because the sheet does not
+  # name it and Appendix A treats the three separately.
+  - key: ApplicationChance
+    direction: outgoing
+    severity: [instakill, death]
+    value: 10

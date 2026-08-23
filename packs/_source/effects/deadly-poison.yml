@@ -1,0 +1,22 @@
+# Appendix A §A.12 — "Poison damage received increased."
+#
+# Serenity's sheet fixes the magnitude: *"Poison Damage received is doubled"*,
+# stated identically on her Projectile rider and on her Noble Phantasm.
+#
+# The only effect in the catalogue whose subject is ANOTHER effect's periodic
+# tick. That is why it carries no rule element: a `DamageModifier` is read by
+# the damage pipeline, and a Poison tick is authored `bypassModifiers` precisely
+# so that nothing in that pipeline touches it. The multiplier lives in the
+# scheduler's `AMPLIFIERS` table, beside the tick it multiplies.
+schema: 1
+id: deadlyPoison
+name: "Deadly Poison"
+description: "Poison Damage received is doubled."
+polarity: debuff
+volatility: volatile
+valence: offensive
+# `nnr`: a second Deadly Poison does not stack and does not refresh. Doubling
+# twice would be quadrupling, which no sheet claims.
+stacking: noneNoRefresh
+baseChance: 100
+rules: []

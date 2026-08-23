@@ -16,5 +16,8 @@ rules:
   - key: OnEvent
     event: damageDealt
     predicate: ["attack:kind:normal"]
+    # `target: victim`, not the default. The rider inflicts Bleed on the
+    # Defending Unit; without it the shorthand applies it to the ATTACKER.
+    target: victim
     effect: { id: bleed, chance: "@magnitude" }
     duration: "1◈"

@@ -51,6 +51,7 @@ import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
 import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
+import { attachConcealment } from "./engine/concealment.mjs";
 import { attachTokenHUD } from "./apps/hud/token-hud.mjs";
 import { attachAwaitTimeouts } from "./engine/await-timeout.mjs";
 
@@ -177,6 +178,10 @@ Hooks.once("ready", () => {
   // the same invalidation the aura index does, because the question is
   // positional and changes whenever anybody moves.
   attachForcedModes();
+
+  // Presence Concealment's aftermath: the cooldown that starts when the Skill
+  // ENDS, and the Secret Poison that becomes visible at the same moment.
+  attachConcealment();
   // Once at load, for a world resumed mid-match with a Greek Male already
   // standing beside her. A rule that only fires on a *change* would leave her
   // calm until somebody happened to move.

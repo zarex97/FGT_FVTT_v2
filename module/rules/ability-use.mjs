@@ -331,5 +331,12 @@ export function usageSpecFor(ability) {
     category: sys.category ?? null,
     requiresRound: sys.targeting?.limits?.requiresRound ?? null,
     requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
+    // Presence Concealment clause 7 needs all four: whether the ability is
+    // aimed at an enemy, and the three escapes the clause itself names --
+    // "unless stated", Attack Skills, and Spells that deal damage.
+    targeting: sys.targeting ?? null,
+    isAttackSkill: Boolean(sys.isAttackSkill),
+    damage: sys.damage ?? null,
+    usableWhileConcealed: Boolean(sys.usableWhileConcealed),
   };
 }

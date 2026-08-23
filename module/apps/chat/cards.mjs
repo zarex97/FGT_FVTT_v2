@@ -82,7 +82,7 @@ async function cardContext({ state, attacker, ability, targets, result = null, m
       ? {
           ...prompt,
           label: game.i18n.localize(`FGT.Prompt.${prompt.kind}`),
-          options: promptOptions(prompt),
+          options: promptOptions(prompt, state),
           isMine: game.actors.get(prompt.unitId)?.isOwner ?? false,
         }
       : null,
@@ -167,15 +167,21 @@ function attackContext(state) {
 /**
  * The buttons offered for a prompting state, with their cost shown.
  * @param {object} prompt
+ * @param {object} [state] the Combat Process, for the reactions it refuses
  * @returns {Array<{event: string, label: string, hint: string|null}>}
  */
-function promptOptions(prompt) {
+function promptOptions(prompt, state = null) {
   if (prompt.kind === "reaction") {
+    // `forbiddenReactions` has been written by the `retarget` interrupt since
+    // Command Spells shipped and read by NOTHING, so a Servant pulled into an
+    // attack it never saw coming could still Block and Evade it -- §27.9's own
+    // rule, inert. Presence Concealment writes the same field.
+    const refused = state?.forbiddenReactions ?? [];
     return [
       { event: "nothing", label: game.i18n.localize("FGT.Reaction.Nothing"), hint: null },
       { event: "block", label: game.i18n.localize("FGT.Reaction.Block"), hint: game.i18n.localize("FGT.Reaction.BlockHint") },
       { event: "evade", label: game.i18n.localize("FGT.Reaction.Evade"), hint: null },
-    ];
+    ].filter((o) => !refused.includes(o.event));
   }
   if (prompt.kind === "acceptOrEscape") {
     return [

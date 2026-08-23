@@ -42,6 +42,7 @@ import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { createField } from "./fields.mjs";
 import { fireEvent } from "./scheduler.mjs";
+import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
 
 /**
  * Use an active Skill.
@@ -120,9 +121,43 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
 
   if (combat?.started) await budget.spend({ combat, unit: self, action: asAttack ? "normal" : "skill" });
   await fireAbilityUsed(actor, ability);
+  await rollConcealmentBreak(actor, ability, self);
   await postCard(actor, ability, targets.units, applied);
 
   return { ok: true, applied };
+}
+
+/**
+ * The price of using a Skill from concealment.
+ *
+ * > *"Can be used when Presence Concealment is Active, has a 20% chance of
+ * > deactivating Presence Concealment when used."*
+ *
+ * The other half of clause 7's "unless stated": an exemption that is free would
+ * make the clause a formality, and Serenity's Shapeshift is the only ability in
+ * the reference set that buys one. Rolled **after** the Skill has resolved, so
+ * a bad roll never costs the Skill itself.
+ *
+ * @param {object} actor
+ * @param {object} ability
+ * @param {object} self the user's snapshot
+ * @returns {Promise<void>}
+ */
+async function rollConcealmentBreak(actor, ability, self) {
+  const chance = concealmentBreakChance(ability);
+  if (chance <= 0 || !isConcealed(self)) return;
+
+  const roll = await new Roll("1d100").evaluate();
+  if (roll.total > chance) return;
+
+  const { deactivateConcealment } = await import("./concealment.mjs");
+  const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
+  await deactivateConcealment(actor.id, DEACTIVATION_REASONS.skillUse);
+  await ChatMessage.create({
+    content: `<p><strong>${ability.name}</strong> gave ${actor.name} away —`
+      + ` rolled ${roll.total} vs ${chance}%. Presence Concealment ends.</p>`,
+    speaker: ChatMessage.getSpeaker({ actor }),
+  });
 }
 
 /* -------------------------------------------------------------------------- */
@@ -504,6 +539,8 @@ async function applyPhaseEffects(phase, ability, actor, target) {
       // such effect definition as `@npMagnitude`, against an instance that
       // never carried it.
       npMagnitude: spec.npMagnitude ?? rule.npMagnitude ?? null,
+      // See `applyAbilityEffects`: one application worth N stages.
+      stages: spec.stages ?? rule.stages ?? 1,
       duration: rule.duration ?? spec.duration ?? def.defaultDuration,
       source: { unitId: actor.id, abilityId: ability.id },
       // Declared per effect by the ability (§15.2). Atlas's two reductions
@@ -643,18 +680,47 @@ function cooldownChanges(phase, doc) {
   const out = [];
 
   for (const change of phase.changes ?? []) {
-    const targets = change.category
-      ? doc.items.filter((i) => i.system?.category === change.category)
-      : [doc.items.get(change.abilityId)].filter(Boolean);
+    const targets = selectAbilities(change, doc);
 
     for (const item of targets) {
       // `set: 0` is "completely reduce", which is a set rather than a subtract:
       // a reduce of some large number would work by accident and read as a bug.
-      if (change.set !== undefined) out.push(I.cooldown(doc.id, item.id, change.set, "set"));
-      else out.push(I.cooldown(doc.id, item.id, Math.abs(change.delta ?? 0), (change.delta ?? 0) < 0 ? "reduce" : "set"));
+      if (change.set !== undefined) {
+        out.push(I.cooldown(doc.id, item.id, change.set, "set"));
+        continue;
+      }
+      // A ◈ EXPRESSION as well as a raw turn count. Every cooldown a sheet
+      // prints is in ◈ -- *"increase its NP Cooldown by 1◈ Turns"* -- and
+      // reading that as one turn would make Shapeshift a third as strong in a
+      // three-turn Round.
+      const turns = change.ticks !== undefined
+        ? resolveTicks(parseTick(change.ticks), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") })
+        : Math.abs(change.delta ?? 0);
+      const down = change.ticks !== undefined ? (change.direction === "down") : (change.delta ?? 0) < 0;
+      out.push(I.cooldown(doc.id, item.id, turns, down ? "reduce" : "increase"));
     }
   }
   return out;
+}
+
+/**
+ * Which of a Unit's abilities a cooldown change reaches.
+ *
+ * Three selectors. `abilityId` names one, `category` names a family -- Medea has
+ * seven Spells and naming each would go stale -- and `scope: np` names every
+ * Noble Phantasm, which is what a sheet means by *"its NP Cooldown"* when the
+ * Unit it is aimed at is somebody else's and may have two.
+ *
+ * @param {object} change
+ * @param {object} doc the target's actor document
+ * @returns {object[]}
+ */
+function selectAbilities(change, doc) {
+  if (change.scope === "np") {
+    return doc.items.filter((i) => i.type === "noblePhantasm" || i.system?.categorizedAsNP);
+  }
+  if (change.category) return doc.items.filter((i) => i.system?.category === change.category);
+  return [doc.items.get(change.abilityId)].filter(Boolean);
 }
 
 /**

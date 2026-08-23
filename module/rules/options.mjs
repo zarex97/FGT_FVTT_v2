@@ -56,6 +56,12 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
   // Rho Aias' Health cannot drop below 1" -- and therefore the only clause in
   // the game that can stop an arbitrarily large Noble Phantasm outright.
   if (attack.thrownWeapon) options.add("attack:thrownWeapon");
+  // WHETHER IT CRIT. Known only once the coin has been flipped, so it is absent
+  // from every option set built before the Damage Step -- which is correct: a
+  // clause that reads it is by definition asking about a resolved attack.
+  // Serenity's `Macabre` is the first: *"Normal Attack Crits inflict an
+  // additional Stage of Poison on the DU"*.
+  if (attack.crit) options.add("attack:crit");
 
   // HOW FAR. EMIYA is written almost entirely in terms of it -- his Normal
   // Attack changes component at 3, *Clairvoyance* and *Hawkeye* turn on at 3,
@@ -201,6 +207,7 @@ const EMITTABLE = Object.freeze([
   /^attack:aim$/,
   /^attack:pierce$/,
   /^attack:thrownWeapon$/,
+  /^attack:crit$/,
   /^attack:range:\d+$/,
   /^attack:range:(gte|lte):\d+$/,
 ]);

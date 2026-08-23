@@ -85,6 +85,25 @@ export function unitCommon() {
     // mechanism, and a general mechanism cannot enumerate its instances.
     resources: new fields.ObjectField({ required: false, initial: () => ({}) }),
 
+    // Whether this Unit is under Presence Concealment.
+    //
+    // Derived from the `presenceConcealment` effect by the snapshot, and
+    // declared here so a GM can also set it by hand on a Unit whose concealment
+    // comes from somewhere the effect does not cover. The projection read this
+    // field, four subsystems consulted the projection, and NO schema declared
+    // it -- so a write would have been dropped even if anything had made one.
+    concealed: new fields.BooleanField({ initial: false }),
+
+    // Damage this Unit has taken from a cause it is not allowed to see yet,
+    // keyed by that cause.
+    //
+    // Serenity's Secret Poison is the only thing that writes it: the Health
+    // comes off on schedule -- Q47's ruling, so displayed and real Health never
+    // diverge -- and this is the tally that is disclosed and cleared when her
+    // Presence Concealment ends. An object rather than a number because the
+    // disclosure names what it was.
+    hiddenDamage: new fields.ObjectField({ required: true, initial: () => ({}) }),
+
     biography: new fields.HTMLField({ required: false, blank: true }),
     notes: new fields.HTMLField({ required: false, blank: true }),
   };

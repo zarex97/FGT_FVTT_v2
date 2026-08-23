@@ -89,7 +89,7 @@ same turn, each *effect* fires **once**, keyed by `(effectId, globalTurn)`.
 | `fgt.critDetermined` | The crit coin flip resolved | `{attackerId, isCrit, chance}` |
 | `fgt.damageComputed` | The pipeline returned, before application | `{defenderId, result}` |
 | `fgt.damageTaken` | Damage applied to a unit | `{unitId, amount, sourceId, packet}` |
-| `fgt.damageDealt` | Damage dealt by a unit | `{unitId, amount, targetId}` |
+| `fgt.damageDealt` | Damage dealt by a unit | `{unitId, amount, targetId}` — **fired**, on the *attacker*, once the damage has landed, with the Defending Unit reachable as `ctx.victim` and `attack:crit` in the option set. This is the rung every **on-hit rider** in Appendix A hangs from — *"Normal Attacks inflict X on the DU"* — and until Serenity nothing raised it, so `Bleed Atk`, `Queen's Poison` and both halves of her poisoned daggers were all inert. See §E.9b. |
 | `fgt.damageStepEnd` | End of Step 3 | `{attackerId, defenderIds, results}` — **fired**, on the *attacker*, once damage has landed. The Defending Unit travels in the option set rather than in the unit list, so a handler can pay out differently against them without the defender's own handlers firing for somebody else's attack. Scáthach's `Alpi` is the first content to use it. |
 | `fgt.injuryRolled` | An Injury Roll resolved | `{unitId, roll, agilityAfter}` |
 | `fgt.facingChanged` | Step 5 | `{unitId, from, to, reason}` |
@@ -155,7 +155,8 @@ attack that killed Heracles even when God Hand then prevents the death (Ch. 31 �
 | `fgt.zoneEntered` / `fgt.zoneExited` | Region membership changed | `{unitId, zoneId, tags}` |
 | `fgt.zonEntered` / `fgt.zonExited` | A Servant crossed its Master's ZON boundary | `{servantId, masterId}` |
 | `fgt.levelChanged` | Boarded, jumped, or fell between Scene Levels | `{unitId, from, to, cause}` |
-| `fgt.discovered` | A concealed unit was found | `{unitId, byId}` |
+| `fgt.discovered` | A concealed unit was found | `{unitId, byId}` — **fired**, from the movement hooks, once per watcher whose Detect radius the mover entered. Every roll is GM-only and silent unless it succeeds: *"if either Player performs the roll, that would mean that they would already know there is a Unit with Active Presence Concealment in the area."* |
+| `fgt.concealmentEnded` | Presence Concealment switched off, for any of its six reasons | `{unitId, reason}` — `attacked`, `discovered`, `aoe`, `skillUse`, `expired`, `manual`. Raised from the one function every removal path converges on, because the aftermath (the cooldown that counts from *here*, and the Secret Poison that becomes visible) is owed by all six. |
 | `fgt.sizeChanged` | A unit's footprint changed | `{unitId, from, to}` |
 
 `fgt.zonExited` drives the "your Servant is out of ZON" badge — a small affordance that prevents
@@ -243,6 +244,42 @@ A category rather than a list of ids, for the reason Medea's *High-Speed Divine 
 a list goes stale the moment an eighth Spell is written. Both handlers in the reference set are
 EMIYA's — *Magecraft* widens his Range on any Thaumaturgy Spell, and *Atk Up (Trace)* lengthens
 itself on a Thaumaturgy **or** Projection.
+
+---
+
+## E.9b `damageDealt` and the on-hit rider
+
+| Event | When | Payload |
+|---|---|---|
+| `fgt.damageDealt` | Damage landed | `{unitId, amount, targetId}`, plus `ctx.victim` |
+
+The **second** event with something other than its owner in scope, and the shape is deliberately
+different from `damageStepEnd`'s. `damageStepEnd` puts the Defending Unit in the *option set*, so
+a handler can pay out **differently** against them; this puts them in `ctx.victim`, so a handler
+can pay out **onto** them.
+
+```yaml
+- key: OnEvent
+  event: damageDealt
+  predicate: ["attack:kind:normal"]     # answered when the event fires
+  target: victim                        # NOT the default
+  chance: 25
+  duration: "1◈"
+  effect: { id: deadlyPoison }
+```
+
+Two traps, both of which shipped:
+
+1. **`target` defaults to `self`.** A rider that omits it inflicts its debuff on the *attacker*.
+   `Bleed Atk` omitted it, which was invisible only because the event never fired.
+2. **`effect:` beside `event:` is a shorthand that had no desugaring.** `normalizeActions` read
+   `then` and `revive` and no third thing, so a handler written this way produced an empty action
+   list and did nothing when it fired. Two shipped effects were written that way.
+
+`target` takes three values: `self` (the default), `victim`, and `nearby` with a `radius` and a
+`relations` list. The third is Serenity's Zabaniya — *"any Unit within a 2 panel area … at the end
+of her Turn"* — and it is **not** an `Aura`: an aura contributes a modifier to whoever stands in
+it, and this applies something, once, at a moment.
 
 ---
 

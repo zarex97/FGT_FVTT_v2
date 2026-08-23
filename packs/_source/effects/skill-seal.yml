@@ -1,0 +1,19 @@
+# Appendix A §A.10
+#
+# "Cannot use Skills or Spells. Not passive skills unless stated."
+#
+# No rule elements, for the same reason `np-seal.yml` and `silence.yml` have
+# none: what actually refuses a Skill is the prevention table in
+# `rules/budget.mjs`, which has listed `skillSeal: ["skill", "spell"]` since it
+# was written with no effect document for it to name. A second, half-wired
+# enforcement path here would be worse than having one.
+schema: 1
+id: skillSeal
+name: "Skill Seal"
+description: "Cannot use Skills or Spells. Does not affect passive Skills unless stated."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules: []

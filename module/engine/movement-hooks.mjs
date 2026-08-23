@@ -136,6 +136,19 @@ async function onMove(document, movement) {
   if (!state.moved) await budget.spend({ combat, unit, action: "move" });
 
   Hooks.callAll("fgtUnitMoved", actor, { panels: spent, forced: false });
+
+  // Presence Concealment clause 6: *"When This Unit Moves into an enemy
+  // Servant's Range (or Detect, if in use), it has a 5% chance of being
+  // discovered."* Asked after the move has been recorded, so the roll is made
+  // against where the Unit now stands.
+  //
+  // `discoverAttempts` has existed since Ch. 04 was implemented with no caller
+  // at all -- and could not have found anything if it had one, because nothing
+  // ever made a Unit concealed.
+  if (unit.concealed) {
+    const { runDiscoverChecks } = await import("./concealment.mjs");
+    await runDiscoverChecks(actor.id);
+  }
 }
 
 /* -------------------------------------------------------------------------- */

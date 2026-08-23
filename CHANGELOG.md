@@ -36,6 +36,54 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Hassan of Serenity is built** — all seven abilities resolve end to end in a live world,
+  verified individually. The eighth Servant, the first Assassin, and the one whose sheet is
+  written almost entirely in terms of **information**.
+
+  **Presence Concealment did nothing at all before this.** Eight clauses touching targeting, the
+  reaction ladder, the damage pipeline, movement legality, Master protection and what a player may
+  press — and every one of those readers already existed. `system.concealed` was projected by the
+  snapshot, consulted by four subsystems, **written by no code and declared by no schema**, so all
+  four asked a question whose answer was always `false`. The state rides the `presenceConcealment`
+  effect now, which is also what clause 8 asks for (*"neither a buff or a debuff, and are
+  Unremovable"*).
+
+  New engine:
+
+  - **`rules/concealment.mjs` and `engine/concealment.mjs`** — the eight clauses as answerable
+    questions, and the one function the six deactivation paths converge on. Each owes the same
+    three debts: the cooldown that starts at deactivation, the announcement, and the Secret Poison
+    that becomes visible.
+  - **`cooldown.countFrom: deactivation`** — a declared schema field with no reader. Without it
+    the 2◈ cooldown runs *underneath* the Skill's own 2◈ duration.
+  - **The `damageDealt` event**, with the victim reachable as `ctx.victim`, plus **`target:
+    victim | nearby`** on the `ApplyEffect` action and a desugaring for the **`effect:`
+    shorthand**. All three were needed by every on-hit rider in Appendix A, and none existed:
+    `Bleed Atk` and `Queen's Poison` were inert twice over — nothing raised the event, and the
+    shorthand compiled to an empty action list.
+  - **The poison family**: `Poison` (staged, 20 × 2^(N−1)), `Deadly Poison` (a multiplier on
+    somebody else's periodic tick, which no rule element can express), `Macabre`, `Skill Seal`,
+    `Death ChUp`. `scheduler.PERIODICS` had carried Poison's formula since it was written with no
+    document to key on.
+  - **`stages: N`** — one application worth N stages, for *"inflicts Stage 3 Poison"*, and a
+    batch-level merge so two riders staging the same effect in one breath produce one instance at
+    stage 2 rather than two at stage 1.
+  - **Secret Poison** — `visibility` and `attributionHidden` on the instance finally written and
+    read, plus `system.hiddenDamage` as the tally the sheet promises to reveal. Follows **Q47**:
+    the Health comes off on schedule and only the cause is deferred.
+  - **`state.forbiddenReactions` is honoured**, in the card and at the transition. It had been
+    written by the Command Spell retarget since Command Spells shipped and read by nothing, so
+    §27.9's own rule was inert.
+  - **`Suppress { scope: masterProtection }`**, for the reader `resolve.mjs` has consulted since
+    Master protection was written with nothing ever setting it.
+  - **A cooldown `increase` direction**, `scope: np` on a cooldown phase, and ◈ expressions in
+    cooldown changes — Shapeshift's *"increase its NP Cooldown by 1◈ Turns"* was the one cooldown
+    operation the system could not perform.
+  - **`attack:crit`** as a roll option, and the crit flag put on the damage **result** rather than
+    only on the chat card.
+  - **`usableWhileConcealed` and `concealmentBreakChance`** on the ability, for clause 7's
+    "unless stated" and what stating it costs.
+
 - **EMIYA is finished** — all seventeen abilities resolve end to end in a live world, verified
   individually. The seventh Servant, the first Archer, and the one whose sheet is written almost
   entirely in terms of **distance**, which nothing in the engine emitted.
@@ -85,6 +133,35 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **An ability that stated its Base Attack was computed from the other one.** `damage.component`
+  was read by `componentOf` — which answers the Magic Resistance question and feeds
+  `attack:component:` — and ignored by the **base spec**, which fell through to the Servant's own
+  Normal Attack component. So every Noble Phantasm in the corpus that names a Base Attack without
+  spelling out a `base:` block used the wrong one: Serenity's *Zabaniya* multiplied BA(STR) 65
+  where her sheet says BA(MAG) 100, and EMIYA's *Hrunting* and *Caladbolg II*, Medea's *Aero* and
+  *Rain of Light*, and three of Scáthach's four did the same. Abilities with an explicit `base:`
+  block — Karna, Penthesilea, Heracles's *Nine Lives* — were unaffected.
+- **An effect with no stated duration expired before it ticked once.** `resolveTicks(null)` is 0,
+  which is right for *"this turn"* and disastrous for *"unstated"*: the expiry landed on the
+  current tick and the instance was swept by the very next boundary. Poison, which Appendix A gives
+  no duration because it runs until cured, was applied, staged to 1, and removed at the end of the
+  same Round having dealt nothing. An unstated duration now means permanent.
+- **`io.createEffects` dropped `visibility` and `attributionHidden`.** Both have been on the
+  instance schema since `0.2.0`; the writer named ten of twelve fields, so an effect could be
+  constructed hidden by a correct pipeline and was created public every time.
+- **A retargeted defender could still Block and Evade.** `state.forbiddenReactions` was written by
+  the Command Spell retarget and read by nothing, so §27.9's own rule was inert.
+- **`Debuff ChUp` improved the chance of applying a buff.** An outgoing `ApplicationChance` now
+  applies only to debuffs unless it names one effect outright — which is what every clause of that
+  shape in the corpus says. Serenity's *Silent Dance* was raising her own self-buffs to 110%.
+- **Independent Action granted a flat 2 panels of ZON at every Rank.** The class skill carried a
+  literal where a rank table belongs; right for EMIYA's B, wrong for Serenity's A, which her sheet
+  states as 3.
+- **The Presence Concealment Evade bonus was hardcoded to 4.** Right for A+ by accident, wrong for
+  every other Rank the corpus uses; it reads `presenceConcealmentEvade` now.
+- **The Block/Counter refusal compared Agility pools, not AGI Ranks.** Two Servants of identical
+  Rank disagree about the spendable resource constantly, so a concealed attacker who had paid for
+  a few Evades became blockable mid-match with nothing on screen to explain it.
 - **Every effect applied by an event handler bypassed the effect pipeline.** `io.createEffects` is
   a bare create, and the scheduler's `ApplyEffect` action emitted a bare intent — so immunity,
   exclusivity, the chance roll and the stacking rule were all skipped for every `OnEvent` rider in

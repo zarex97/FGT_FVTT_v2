@@ -178,7 +178,22 @@ function modeToggles(actor) {
  * @returns {HTMLElement|null}
  */
 function effectPips(unit) {
-  const effects = unit?.effects ?? [];
+  // §11.10's `visibility`, honoured for the first time. The field has been on
+  // the instance schema since `0.2.0` and nothing anywhere read it, so
+  // `gmOnly` did nothing at all -- and Serenity's Secret Poison would have
+  // announced itself on the victim's own HUD the moment it landed.
+  //
+  // Only the EXPLICIT settings are applied here, not §11.10's polarity default.
+  // The default would hide every ordinary buff from everyone but its bearer,
+  // which is a much larger change than this hook is entitled to make and one no
+  // sheet in the reference set asks for.
+  const restricted = new Set(
+    (unit?.effectInstances ?? [])
+      .filter((e) => e.visibility === "gmOnly" || e.visibility === "ownerOnly")
+      .filter((e) => !(e.visibility === "ownerOnly" && ownsUnit(unit)))
+      .map((e) => e.defId),
+  );
+  const effects = (unit?.effects ?? []).filter((id) => game.user.isGM || !restricted.has(id));
   if (effects.length === 0) return null;
 
   const el = document.createElement("div");
@@ -186,6 +201,15 @@ function effectPips(unit) {
   el.dataset.tooltip = effects.join(", ");
   el.textContent = String(effects.length);
   return el;
+}
+
+/**
+ * Does the current user control this Unit?
+ * @param {object} unit
+ * @returns {boolean}
+ */
+function ownsUnit(unit) {
+  return Boolean(game.actors.get(unit?.id)?.isOwner);
 }
 
 /**

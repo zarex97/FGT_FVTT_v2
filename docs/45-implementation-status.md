@@ -24,7 +24,7 @@ where something is a stub the exact line is named.
 The **pure rules core is complete**: the damage pipeline, targeting resolution, checks and the
 roll log, movement legality, the effect application pipeline, the turn budget, ability costs and
 all twelve requirement kinds, items, copied abilities, setup rolls and the rank/tick domain are
-all implemented and carry 1770 tests, and 142 content files.
+all implemented and carry 1858 tests, and 155 content files.
 
 The last pure-rules gaps closed together: `rules/roll-log.mjs` (§14.8), `rules/setup-rolls.mjs`
 (§14.9, §37.6), `rules/items.mjs` (§15.4's full kind list and §15.8) and `rules/copy.mjs`
@@ -104,7 +104,7 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    **done (C3, C4)**. Platforms still lack the Scene Level operations (create, delete, scatter),
    which are logged by name rather than performed; bounded fields still lack the paint tool
    `freeform` needs and the two-phase `markDefined` construction.
-8. **Only 7 of 29 reference Servants are authored.**
+8. **Only 8 of 29 reference Servants are authored.**
 
 The system is at the point where **one player can attack another player and the damage is
 correct and fully audited**. It is not yet at the point where a match can be played to a finish.
@@ -160,13 +160,14 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation — **with the dialog that shows it**, reached from the Actors sidebar and the Servant compendium, and refusing a bare compendium drop that would produce a Servant with the template's numbers. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
-| 38 | Testing strategy | **Mostly** | 1770 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 1858 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4) — **and now a writer** (`engine/fields.mjs`): a field is a Region with an `npField` behaviour, created by a `createField` phase, expiring on an absolute tick at the Turn boundary, with `interiorEvents` for rules that fire at a boundary rather than standing. Everything in the chapter had a reader and none of it had ever run. **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
-| — | Content | **7 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea, Medea and **Scáthach** — the first Lancer, and the Servant who needed the most engine that did not exist. **All eleven abilities** resolve end to end in a live world, verified individually: *Primordial Rune* (a 2d8 table chosen by relation, duplicates applying twice, and a wildcard row that asks), the three *Primordial Rune Spells* (a PRS Token waiving the cooldown, and the other two gated while the used one runs), *Wisdom of Dún Scáith* (which **had never been able to copy anything**), *Clairvoyance*, *God Slayer* with *Alpi*'s two branches, *Gáe Bolg Alternative*'s Instakill-or-damage fork, and *Gate of Skye*'s per-target Luck Check with `gateOfSkyeSaveModifier`. She is also the first **Resource** pool (§6.10) and the first content to fire §E's `damageStepEnd`. 36 effects of ~152, including Appendix A's **terminal tier**. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
+| — | Content | **8 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea, Medea and **Scáthach** — the first Lancer, and the Servant who needed the most engine that did not exist. **All eleven abilities** resolve end to end in a live world, verified individually: *Primordial Rune* (a 2d8 table chosen by relation, duplicates applying twice, and a wildcard row that asks), the three *Primordial Rune Spells* (a PRS Token waiving the cooldown, and the other two gated while the used one runs), *Wisdom of Dún Scáith* (which **had never been able to copy anything**), *Clairvoyance*, *God Slayer* with *Alpi*'s two branches, *Gáe Bolg Alternative*'s Instakill-or-damage fork, and *Gate of Skye*'s per-target Luck Check with `gateOfSkyeSaveModifier`. She is also the first **Resource** pool (§6.10) and the first content to fire §E's `damageStepEnd`. 36 effects of ~152, including Appendix A's **terminal tier**. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
 | — | Content (Heracles) | — | **Heracles is finished.** He shipped with four of eight abilities; the four that were missing were the four Ch. 31 was written about. **Revival is now a priority-ordered query** (`rules/revival.mjs`) rather than "whichever handler heals first" — with one source those are indistinguishable, and with his four the old behaviour burns a God Hand charge while `Undying` sits unused. `RevivalSource` is the element, and Battle Continuation's second condition — *"Health must have been restored back to above half its maximum at least once since the last activation"* — is **enforced for the first time**, against the `healthWatermarks` history §45.1 named as missing rather than faking. God Hand's cascade and its ledger of attack identities both work; measured live. |
 | — | Content (EMIYA) | — | **EMIYA**, the first Archer, and the Servant whose sheet is written almost entirely in terms of **distance** — which nothing emitted. All **seventeen** abilities resolve end to end in a live world, verified individually. `attack:range:gte:N` / `lte:N` are new roll options and half his kit turns on them; `normalAttack.mode: rangeBanded` had been a declared choice since the actor schema was written with nothing implementing it, so his Normal Attack was plain STR at every distance (measured: 40 in melee, 72 at Range 3, and 80 versus 54 against a Rank A Magic Resistance depending on whether the exemption applies). He is the first content to need a **whole-match** budget rather than a cooldown (`timesUsed`/`maxUses`), the first **barrier** with its own Health pool (`Rho Aias`: one 1400 shared across four bearers, overflow passing through, 100 off its owner per completed 200), the first **round-scale** exclusion (`Caladbolg II` / `Hrunting`), the first `createField` (Unlimited Blade Works trapped eight Units and tolled three of them at the Turn boundary), and the second **Resource** pool. 50 effects of ~152. 6 class skills, including **Independent Action**, whose contract rule had shipped in `rules/contract.mjs` with no content to attach to. |
+| — | Content (Serenity) | — | **Hassan of Serenity**, the first Assassin, and the Servant whose sheet is written almost entirely in terms of **information**. All **seven** abilities resolve end to end in a live world, verified individually. Presence Concealment is eight clauses touching targeting, the reaction ladder, the damage pipeline, movement legality, Master protection and what a player may press — and **every one of those readers already existed**. What did not exist was anything that made a Unit concealed: `system.concealed` was projected by the snapshot, consulted by four subsystems, written by no code and declared by no schema, so all four asked a question whose answer was always `false`. It rides the `presenceConcealment` effect now, with `cooldown.countFrom: deactivation` — another declared field with no reader — and six deactivation paths converging on one function. She is also the Servant who made the **on-hit rider** work: `damageDealt` had never been fired and the `effect:` shorthand every rider in Appendix A is written in desugared to no action at all, so `Bleed Atk` and `Queen's Poison` were inert twice over. **Secret Poison** is built on Q47's reading — the Health comes off on schedule, the debuff and the running tally are hidden, and both are disclosed when her concealment ends. First staged effect (`Poison`, 20 × 2^(N−1)), first `stages: N` application, first `target: nearby` handler. 59 effects of ~152. 7 class skills. |
 | — | Content (Medea) | — | **Medea**, the first Caster, and the densest sheet at thirteen abilities. **All thirteen** resolve end to end in a live world -- verified individually, including Dragon Tooth Warriors (two nested rolls, 5×5 placement, count-scaled cooldown), Rule Breaker (cuts the Contract, strips the Master's Command Spells, grants three namespaced ones), Rain of Light (a 3×3 AoE that proved the targeting system), Atlas (base 100 reduced to 75 by `target MAG B+ -25`), and Argos and Trofa offered **at the reaction rung** because "used when Attacked" cannot be reached from a sheet button. 21 effects of ~152. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
 
 ---
@@ -218,7 +219,7 @@ Thirty executors exist. Their output lands in eleven buckets, of which **four ha
 | `eventHandlers` | `scheduler.fireEvent` | **Live** — as of A1; see below |
 | `grantedAbilities` | `rules/granted.mjs` → movement, budget | **Live** — as of B3 |
 | `applicationChances` | `effect-applier`, both directions | **Live** |
-| `suppressions` | — | **Collected only** |
+| `suppressions` | `resolve.mjs` for `scope: masterProtection` | **Partly live** — one scope of several |
 
 **A third failure mode, subtler than either.** A bucket can be live and its *contents* still be
 unreachable. Collection runs per unit with only that unit's options in scope, and until Scáthach
@@ -242,6 +243,29 @@ effect applied by an **event handler** skipped all four: an immune Unit took it,
 took it at full strength, and a `noneExtend` buff made a second document instead of extending.
 Resolved intents are now marked, and `applyIntents` runs any that are not through the pipeline
 first (Ch. 11 §11.2).
+
+**A sixth, and it is the plainest: a writer that does not mention the field.** `io.createEffects`
+builds the document data for a new effect instance by naming each field it copies — and it named
+ten of twelve. `visibility` and `attributionHidden` had been on the schema since `0.2.0`, so an
+effect could be *constructed* hidden by a correct pipeline and was *created* public every time.
+This is the mirror of the schema defect the project started with (a DataModel silently dropping a
+field it does not declare); here the schema declares it and the writer forgets it, and the symptom
+is identical — the value is simply not there afterwards, with nothing raised.
+
+Found building Secret Poison. The same pass turned up two more of the shape:
+`suppressions.masterProtection` and `caster.bypassesMasterProtection` (a reader with no writer, so
+Presence Concealment's clause 3 could not be authored), and `state.forbiddenReactions` (a writer
+with no reader, so §27.9's Command Spell retarget let a Servant Block and Evade an attack it never
+saw coming).
+
+**A seventh, which is not about fields at all: a default that is a legal answer.**
+`resolveTicks(null)` is `0`, which is correct for *"this turn"* and disastrous for *"unstated"* —
+the expiry lands on the current tick, so an effect with no authored duration is swept by the very
+next boundary, **before it has ticked once**. Poison exposed it (Appendix A gives it no duration,
+because it runs until it is cured): it applied, staged to 1, and was removed at the end of the same
+Round having dealt nothing. An unstated duration now means permanent. The shape is worth naming
+separately because nothing was missing and nothing was inert — a real value was computed, and it
+was the wrong one.
 
 Two more that are subtler than "collected only", because they *look* wired:
 

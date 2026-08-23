@@ -52,6 +52,33 @@ function watermarks(actor, value) {
 }
 
 /**
+ * Accumulate damage the victim is not allowed to attribute yet.
+ *
+ * The Health is already coming off in the same write — Q47's ruling is that the
+ * bar is always true — so this records only the *number that has to be revealed
+ * later*: *"the debuff and total Poison Damage taken is only revealed after
+ * Presence Concealment is deactivated."*
+ *
+ * Keyed by cause, so the disclosure can say what it was rather than posting a
+ * bare figure, and cleared wholesale when `discloseSecretPoison` runs.
+ *
+ * @param {object} actor
+ * @param {object[]} intents the damage intents this write is applying
+ * @returns {object} an update patch fragment
+ */
+function hiddenTally(actor, intents) {
+  const hidden = intents.filter((i) => i.attributionHidden && (i.amount ?? 0) > 0);
+  if (hidden.length === 0) return {};
+
+  const tally = { ...(actor.system?.hiddenDamage ?? {}) };
+  for (const i of hidden) {
+    const key = i.defId ?? "unknown";
+    tally[key] = (tally[key] ?? 0) + i.amount;
+  }
+  return { "system.hiddenDamage": tally };
+}
+
+/**
  * Which Health fractions any ability on this actor asks about.
  * @param {object} actor
  * @returns {number[]}
@@ -81,7 +108,7 @@ export function worldIO() {
      * @param {string} unitId
      * @param {number} delta negative for damage
      */
-    async adjustHealth(unitId, delta) {
+    async adjustHealth(unitId, delta, { intents = [] } = {}) {
       const actor = resolve(unitId);
       if (!actor) return;
       const health = actor.system.health;
@@ -89,7 +116,11 @@ export function worldIO() {
       // and the Kagome Spirits. Writing to it would create one.
       if (health?.max === null || health?.value === null) return;
       const next = Math.clamp(health.value + delta, 0, health.max);
-      await actor.update({ "system.health.value": next, ...watermarks(actor, next) });
+      await actor.update({
+        "system.health.value": next,
+        ...watermarks(actor, next),
+        ...hiddenTally(actor, intents),
+      });
     },
 
     /**
@@ -166,6 +197,13 @@ export function worldIO() {
           uses: e.uses ?? 0, expiry: e.expiry ?? null,
           sourceUnitId: e.sourceUnitId ?? null, sourceAbilityId: e.sourceAbilityId ?? null,
           unremovable: Boolean(e.unremovable),
+          // §11.10 / Appendix A §A.18. Both have been on the instance schema
+          // since `0.2.0` and this writer dropped both, so an effect could be
+          // constructed hidden and would always be created public -- the same
+          // shape as every other defect in this file's history: a field the
+          // schema declares and the writer does not mention.
+          visibility: e.visibility ?? "public",
+          attributionHidden: Boolean(e.attributionHidden),
         },
       }));
       await actor.createEmbeddedDocuments("ActiveEffect", data);
@@ -294,14 +332,21 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string} abilityId
      * @param {number} ticks
-     * @param {"set"|"reduce"} mode
+     * @param {"set"|"reduce"|"increase"} mode
      */
     async setCooldown(unitId, abilityId, ticks, mode) {
       const actor = resolve(unitId);
       const item = actor?.items?.get(abilityId);
       if (!item) return;
       const current = item.system.cooldown?.remaining ?? 0;
-      const next = mode === "set" ? ticks : Math.max(0, current - ticks);
+      // `increase` is the only direction the system could not express, and it is
+      // the whole of Serenity's Shapeshift: *"increase its NP Cooldown by 1◈
+      // Turns"* -- a debuff that costs an enemy tempo without touching its
+      // Health. `set` would have overwritten a longer clock with a shorter one,
+      // which turns the debuff into a favour.
+      const next = mode === "set"
+        ? ticks
+        : (mode === "increase" ? current + ticks : Math.max(0, current - ticks));
       await item.update({ "system.cooldown.remaining": next });
     },
 
