@@ -1,0 +1,269 @@
+/**
+ * @file The sheet's arithmetic, held without a world.
+ * @see docs/29-user-interface.md §29.2
+ *
+ * Every function under test is pure by construction. That is the whole point
+ * of the split: "Cooldown 4◈ (12 turns)", "Poison Stage 3 → 80" and "written
+ * C, granted +1" are questions with answers, and a question with an answer
+ * belongs in a test rather than inside a template that can only be checked by
+ * opening it and looking.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  resourceBar, parameterTiles, remainingTurns, ticksLabel,
+  abilityState, abilityCost, groupEffects, describeModifier,
+} from "../../module/apps/actor-sheet/present.mjs";
+
+describe("resourceBar", () => {
+  it("computes a percentage", () => {
+    expect(resourceBar({ value: 500, max: 1000 })).toMatchObject({ pct: 50, label: "500 / 1000" });
+  });
+
+  it("calls a null maximum undamageable rather than drawing an empty bar", () => {
+    // `null` health is intrinsic -- Pale Rider, the Kagome Spirits -- and a
+    // zero-width bar reads as "about to die", which is the opposite of true.
+    expect(resourceBar({ value: null, max: null })).toMatchObject({ undamageable: true, pct: 0 });
+  });
+
+  it("does not divide by zero", () => {
+    expect(resourceBar({ value: 0, max: 0 })).toMatchObject({ pct: 0 });
+  });
+
+  it("clamps a value above its maximum", () => {
+    expect(resourceBar({ value: 1200, max: 1000 })).toMatchObject({ pct: 100 });
+  });
+
+  it("survives being handed nothing", () => {
+    expect(resourceBar(null)).toMatchObject({ undamageable: true });
+  });
+});
+
+describe("parameterTiles", () => {
+  it("shows what was granted beside what is in force", () => {
+    // §5.6: a sheet that shows the granted rank and not the authored one is a
+    // sheet nobody can check. `authored` walks back down the DENSE ladder, so
+    // one step below B is B- -- C is a whole grade, which is five steps.
+    const tiles = parameterTiles({ str: "B", end: "C" }, { str: 1, end: 0 });
+    expect(tiles.find((t) => t.key === "str")).toMatchObject({
+      rank: "B", authored: "B-", steps: 1, granted: true,
+    });
+  });
+
+  it("steps the dense ladder, not whole grades", () => {
+    // Penthesilea is written STR A+; one granted step is A++, not S+.
+    const tiles = parameterTiles({ str: "A++" }, { str: 1 });
+    expect(tiles[0]).toMatchObject({ rank: "A++", authored: "A+" });
+  });
+
+  it("leaves an ungranted parameter with no arrow", () => {
+    const tiles = parameterTiles({ end: "C" }, { end: 0 });
+    expect(tiles[0]).toMatchObject({ key: "end", rank: "C", granted: false, authored: null });
+  });
+
+  it("renders an unset parameter as a dash rather than as empty", () => {
+    expect(parameterTiles({ luc: "" }, {})[0]).toMatchObject({ key: "luc", rank: "—" });
+  });
+
+  it("keeps the five parameters in sheet order", () => {
+    const keys = parameterTiles({ luc: "A", str: "B", mag: "C", end: "D", agi: "E" }, {}).map((t) => t.key);
+    expect(keys).toEqual(["str", "end", "agi", "mag", "luc"]);
+  });
+});
+
+describe("remainingTurns", () => {
+  it("is the difference between expiry and now", () => {
+    expect(remainingTurns(24, 20)).toBe(4);
+  });
+
+  it("is null out of combat, where there is no tick to count from", () => {
+    expect(remainingTurns(24, null)).toBe(null);
+  });
+
+  it("is null for an effect with no expiry", () => {
+    expect(remainingTurns(null, 20)).toBe(null);
+  });
+
+  it("never goes negative", () => {
+    expect(remainingTurns(18, 20)).toBe(0);
+  });
+});
+
+describe("ticksLabel", () => {
+  it("renders whole rounds", () => {
+    expect(ticksLabel(12, 3)).toBe("4◈");
+  });
+
+  it("renders a part round as a vulgar fraction", () => {
+    expect(ticksLabel(4, 3)).toBe("1⅓◈");
+    expect(ticksLabel(2, 3)).toBe("⅔◈");
+  });
+
+  it("handles halves and quarters for other round lengths", () => {
+    expect(ticksLabel(1, 2)).toBe("½◈");
+    expect(ticksLabel(3, 4)).toBe("¾◈");
+  });
+
+  it("falls back to n/d for a fraction with no glyph", () => {
+    expect(ticksLabel(1, 5)).toBe("1/5◈");
+  });
+
+  it("is empty for no turns at all", () => {
+    expect(ticksLabel(0, 3)).toBe("");
+  });
+});
+
+describe("abilityState", () => {
+  const ctx = { turnsPerRound: 3 };
+
+  it("reports Ready when the gate allows it", () => {
+    expect(abilityState({ ok: true }, ctx)).toMatchObject({ ok: true, label: "FGT.Ability.Ready" });
+  });
+
+  it("converts a cooldown to both notations", () => {
+    // "12" tells a player nothing about when; "4◈ (12 turns)" tells them both.
+    expect(abilityState({ ok: false, reason: "cooldown", detail: { remaining: 12 } }, ctx))
+      .toMatchObject({ ok: false, label: "FGT.Ability.Cooldown", detail: { remaining: 12, ticks: "4◈" } });
+  });
+
+  it("keeps a part-round cooldown honest rather than rounding it to a tick", () => {
+    expect(abilityState({ ok: false, reason: "cooldown", detail: { remaining: 4 } }, ctx))
+      .toMatchObject({ detail: { remaining: 4, ticks: "1⅓◈" } });
+  });
+
+  it("reports an exhausted whole-match budget with both numbers", () => {
+    expect(abilityState({ ok: false, reason: "exhausted", detail: { maxUses: 11, timesUsed: 11 } }, ctx))
+      .toMatchObject({ ok: false, label: "FGT.Ability.Exhausted", detail: { maxUses: 11, timesUsed: 11 } });
+  });
+
+  it("reports a round gate with how far away it is", () => {
+    expect(abilityState({ ok: false, reason: "round", detail: { requiresRound: 6, round: 4 } }, ctx))
+      .toMatchObject({ label: "FGT.Ability.FromRound", detail: { requiresRound: 6, away: 2 } });
+  });
+
+  it("labels every reason canUseAbility can return", () => {
+    // A refusal with no label is a disabled button with no explanation, which
+    // is the one thing D29.2 forbids.
+    for (const reason of ["oncePerTurn", "sameTurnExclusive", "sameRoundExclusive",
+      "presenceConcealment", "zon"]) {
+      expect(abilityState({ ok: false, reason }, ctx).label).toBe(`FGT.Ability.Refused.${reason}`);
+    }
+  });
+
+  it("passes an unrecognised reason through rather than dropping it", () => {
+    expect(abilityState({ ok: false, reason: "someNewGate" }, ctx))
+      .toMatchObject({ ok: false, label: "FGT.Ability.Refused.someNewGate" });
+  });
+});
+
+describe("abilityCost", () => {
+  it("states affordability rather than implying it", () => {
+    expect(abilityCost({ kind: "masterHealth", amount: 53 }, { name: "Jinako", health: { value: 118 } }))
+      .toMatchObject({ kind: "masterHealth", amount: 53, affordable: true, payer: "Jinako", has: 118 });
+  });
+
+  it("marks an unaffordable cost", () => {
+    expect(abilityCost({ kind: "masterHealth", amount: 53 }, { name: "Jinako", health: { value: 40 } }))
+      .toMatchObject({ affordable: false });
+  });
+
+  it("is not affordable when a contracted Servant has no Master at all", () => {
+    expect(abilityCost({ kind: "masterHealth", amount: 53 }, null))
+      .toMatchObject({ affordable: false });
+  });
+
+  it("charges a Free Servant's Sustainability against its own clock", () => {
+    expect(abilityCost({ kind: "sustainability", amount: 2 }, null, { sustainability: 7 }))
+      .toMatchObject({ kind: "sustainability", amount: 2, has: 7, affordable: true });
+  });
+
+  it("refuses a Sustainability cost the clock cannot pay", () => {
+    expect(abilityCost({ kind: "sustainability", amount: 5 }, null, { sustainability: 2 }))
+      .toMatchObject({ affordable: false });
+  });
+
+  it("is null when there is no cost", () => {
+    expect(abilityCost(null, null)).toBe(null);
+  });
+
+  it("is null for a zero cost, which is not a cost", () => {
+    expect(abilityCost({ kind: "masterHealth", amount: 0 }, null)).toBe(null);
+  });
+});
+
+describe("groupEffects", () => {
+  const defs = {
+    defUp: { id: "defUp", name: "Def Up", valence: "buff" },
+    poison: { id: "poison", name: "Poison", valence: "debuff" },
+    madEnhancement: { id: "madEnhancement", name: "Mad Enhancement", valence: "neither", unremovable: true },
+  };
+  const lookup = (id) => defs[id] ?? null;
+
+  it("groups by the definition's valence", () => {
+    const out = groupEffects(
+      [{ defId: "defUp" }, { defId: "poison" }, { defId: "madEnhancement" }],
+      lookup, { effects: [] },
+    );
+    expect(out.buffs.map((e) => e.defId)).toEqual(["defUp"]);
+    expect(out.debuffs.map((e) => e.defId)).toEqual(["poison"]);
+    expect(out.statuses.map((e) => e.defId)).toEqual(["madEnhancement"]);
+  });
+
+  it("surfaces an instance with no definition rather than dropping it", () => {
+    // A silently dropped effect is the failure mode this project keeps
+    // finding: it loads, it does nothing, and nothing reports it.
+    const out = groupEffects([{ defId: "notInRegistry" }], lookup, { effects: [] });
+    expect(out.unknown.map((e) => e.defId)).toEqual(["notInRegistry"]);
+    expect(out.unknown[0].name).toBe("notInRegistry");
+  });
+
+  it("carries the computed periodic damage on the row", () => {
+    const out = groupEffects([{ defId: "poison", stage: 3 }], lookup, { effects: ["poison"] });
+    expect(out.debuffs[0]).toMatchObject({ stage: 3, periodic: 80 });
+  });
+
+  it("carries the amplified figure, not the table one", () => {
+    const out = groupEffects([{ defId: "poison", stage: 3 }], lookup,
+      { effects: ["poison", "deadlyPoison"] });
+    expect(out.debuffs[0].periodic).toBe(160);
+  });
+
+  it("marks an unremovable effect so no [x] is offered for it", () => {
+    const out = groupEffects([{ defId: "madEnhancement" }], lookup, { effects: [] });
+    expect(out.statuses[0]).toMatchObject({ removable: false });
+  });
+
+  it("keeps a suppressed instance visible, and says it is suppressed", () => {
+    const out = groupEffects([{ defId: "defUp", suppressed: true }], lookup, { effects: [] });
+    expect(out.buffs[0]).toMatchObject({ suppressed: true });
+  });
+
+  it("returns four empty groups for a unit with nothing on it", () => {
+    expect(groupEffects([], lookup, {})).toEqual({ buffs: [], debuffs: [], statuses: [], unknown: [] });
+  });
+});
+
+describe("describeModifier", () => {
+  it("renders a predicate as text rather than as [object Object]", () => {
+    expect(describeModifier({ key: "atkUp", value: 50, source: "Mana Burst", predicate: ["attack:kind:np"] }))
+      .toMatchObject({ key: "atkUp", value: 50, source: "Mana Burst", predicate: "attack:kind:np" });
+  });
+
+  it("has no predicate text when the modifier is unconditional", () => {
+    expect(describeModifier({ key: "atkUp", value: 50 })).toMatchObject({ predicate: null });
+  });
+
+  it("flattens a nested predicate clause to something readable", () => {
+    expect(describeModifier({ key: "x", value: 1, predicate: [{ not: "attack:component:str" }] }))
+      .toMatchObject({ predicate: "not attack:component:str" });
+  });
+
+  it("joins several clauses", () => {
+    expect(describeModifier({ key: "x", value: 1, predicate: ["a:b", { not: "c:d" }] }))
+      .toMatchObject({ predicate: "a:b · not c:d" });
+  });
+
+  it("names an unattributed modifier rather than leaving it blank", () => {
+    expect(describeModifier({ key: "x", value: 1 }).source).toBe("FGT.Sheet.UnknownSource");
+  });
+});
