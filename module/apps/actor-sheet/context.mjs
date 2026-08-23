@@ -15,9 +15,11 @@ import * as board from "../../engine/board.mjs";
 import { currentBoard, unitSnapshot, currentTick, currentRound } from "../../engine/board.mjs";
 import { poolsOf, isUnbound } from "../../rules/cs-namespacing.mjs";
 import { chebyshev } from "../../domain/geometry.mjs";
-import { classifyAbility } from "../../rules/ability-use.mjs";
+import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
+import { canUseAbility } from "../../rules/costs.mjs";
+import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf } from "../../rules/identity.mjs";
-import { resourceBar, parameterTiles } from "./present.mjs";
+import { resourceBar, parameterTiles, abilityState, abilityCost } from "./present.mjs";
 
 /**
  * Present one ability to the sheet.
@@ -159,6 +161,7 @@ export function buildContext(actor, sheet) {
 
     parameters: parameterTiles(system.parameters, system.grantedSteps),
     overview: overviewContext(actor, snapshot),
+    abilityCards: abilitiesContext(actor, snapshot, game.settings.get("fgt", "turnsPerRound")),
     header: headerContext(actor, snapshot),
     isMaster,
     ...(isMaster ? masterContext(actor) : {}),
@@ -480,4 +483,102 @@ function summonBlock(system) {
 function signed(value) {
   const n = value ?? 0;
   return n > 0 ? `+${n}` : String(n);
+}
+
+/**
+ * The Abilities tab: one card per ability, grouped as the reference sheets are.
+ *
+ * @param {object} actor
+ * @param {object} snapshot
+ * @param {number} turnsPerRound
+ * @returns {object}
+ */
+function abilitiesContext(actor, snapshot, turnsPerRound) {
+  const boardNow = currentBoard();
+  const master = snapshot.masterId
+    ? (boardNow.units.find((u) => u.id === snapshot.masterId) ?? null)
+    : null;
+  const round = currentRound() ?? 1;
+
+  const cards = [...actor.items]
+    .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
+    .map((item) => abilityCard(item, {
+      actor, unit: snapshot, master, round, turnsPerRound, board: boardNow,
+    }));
+
+  // The order every reference sheet prints them in. An ability with no `kind`
+  // falls in with the personal skills rather than vanishing -- content that
+  // omits the field is common and losing it from the sheet would be silent.
+  return {
+    classSkills: cards.filter((c) => c.kind === "classSkill"),
+    skills: cards.filter((c) => c.kind !== "classSkill" && c.kind !== "noblePhantasm"),
+    noblePhantasms: cards.filter((c) => c.kind === "noblePhantasm"),
+    anyAbilities: cards.length > 0,
+  };
+}
+
+/**
+ * One ability, as the tab shows it.
+ *
+ * The state line comes from `canUseAbility` — the **same call**
+ * `engine/attack.mjs` makes before it resolves anything — rather than from a
+ * second reading of the cooldown fields. A card that computed its own answer
+ * would be a second implementation of §15.10, and the copy is the one nobody
+ * updates. That is the argument `engine/cooldown.mjs` was written to settle.
+ *
+ * @param {object} item an ability Item
+ * @param {object} ctx
+ * @returns {object}
+ */
+function abilityCard(item, { actor, unit, master, round, turnsPerRound, board }) {
+  const use = classifyAbility(item);
+  const spec = usageSpecFor(item);
+  const verdict = canUseAbility({ ability: spec, unit, master, round, board });
+
+  return {
+    id: item.id,
+    name: item.name,
+    img: item.img,
+    rank: item.system.rank ?? null,
+    kind: item.type === "noblePhantasm" ? "noblePhantasm" : (item.system.kind ?? "skill"),
+    isNP: item.type === "noblePhantasm" || Boolean(item.system.isNP),
+    use,
+    active: Boolean(item.system.active),
+    // A mode that is on reads as on; `cannotDeactivate` explains a disabled
+    // toggle rather than leaving the player clicking a dead control.
+    locked: Boolean(item.system.active && item.system.cannotDeactivate),
+    state: abilityState(verdict, { turnsPerRound }),
+    cost: abilityCost(verdict.cost, master, unit),
+    usage: item.system.maxUses !== null && item.system.maxUses !== undefined
+      ? { used: item.system.timesUsed ?? 0, max: item.system.maxUses }
+      : null,
+    // Resolved by the engine's own `alsoTriggered`, not by reading the raw
+    // entries. An entry may be a bare content id, a `{ability: id}` pair, or a
+    // GROUP -- Scáthach's "Wisdom of Dún Scáith enters Cooldown" means her
+    // three Wisdom slots, not the grant that hands them out. A sheet guessing
+    // at the shape got an empty name for two of the three forms.
+    alsoTriggers: alsoTriggered(item, actor)
+      .map((cd) => nameOnActor(actor, cd.abilityId))
+      .filter(Boolean),
+    sameTurnExclusive: (item.system.sameTurnExclusive ?? []).map((id) => nameOnActor(actor, id)),
+    sameRoundExclusive: (item.system.sameRoundExclusive ?? []).map((id) => nameOnActor(actor, id)),
+    // Before the click, not after (D29.2). Vasavi Shakti permanently removes
+    // Kavacha and Kundala, and there is no undo for it.
+    irreversible: (item.system.permanentConsequence ?? []).length > 0,
+    description: item.system.description ?? "",
+  };
+}
+
+/**
+ * An ability id or content id, as the name it is known by on this actor.
+ *
+ * @param {object} actor
+ * @param {string} id
+ * @returns {string}
+ */
+function nameOnActor(actor, id) {
+  if (!id) return "";
+  const item = actor.items.get(id)
+    ?? [...actor.items].find((i) => i.system?.contentId === id);
+  return item?.name ?? id;
 }
