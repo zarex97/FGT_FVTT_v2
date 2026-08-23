@@ -1,0 +1,93 @@
+{{!-- The sheet header (docs/29-user-interface.md §29.2).
+
+      Always visible, never a tab. D29.3: "the header carries every value that
+      gates an action" -- so identity, the three depleting resources and the
+      states that change what every other rule does live here, and the tabs
+      hold everything a player looks up rather than acts on.
+
+      NOT a <form>. ApplicationV2 renders the sheet's frame AS the form element
+      (`tag: "form"`), and a part's HTML is parsed detached, so a <form> here
+      really does become a nested one. Every input would then have the INNER
+      form as its owner, `FormDataExtended(outerForm)` would collect nothing,
+      and no edit on this sheet would ever save. --}}
+<header class="fgt-header" style="--fgt-faction: {{header.factionColor}}">
+  <img class="fgt-header__portrait" src="{{document.img}}" alt="{{document.name}}" data-edit="img">
+
+  <div class="fgt-header__identity">
+    <input class="fgt-header__name" type="text" name="name" value="{{document.name}}"
+           placeholder="{{localize 'FGT.Sheet.Name'}}">
+
+    {{#if header.line}}<p class="fgt-header__line">{{header.line}}</p>{{/if}}
+
+    {{!-- The true name is hidden until `identityRevealed` is set, which is what
+          gives closed-information play (§26.6) something to conceal. A GM sees
+          it regardless -- they are the one who has to run the concealment. --}}
+    {{#if header.showTrueName}}
+      <p class="fgt-header__truename">
+        {{header.trueName}}
+        {{#unless system.identityRevealed}}
+          <span class="fgt-header__concealed" data-tooltip="{{localize 'FGT.Sheet.GMOnly'}}">
+            {{localize "FGT.Sheet.Concealed"}}
+          </span>
+        {{/unless}}
+      </p>
+    {{/if}}
+
+    {{#if header.badges.length}}
+      <ul class="fgt-badges">
+        {{#each header.badges as |badge|}}
+          {{!-- Every badge is an icon AND a word. Colour is never the only
+                signal (D29.7). --}}
+          <li class="fgt-badge fgt-badge--{{badge.tone}}" data-tooltip="{{localize badge.hint}}">
+            <i class="{{badge.icon}}"></i> {{localize badge.label}}
+          </li>
+        {{/each}}
+      </ul>
+    {{/if}}
+
+    <label class="fgt-header__faction">
+      <span>{{localize "FGT.Sheet.Faction"}}</span>
+      {{!-- Targeting resolves relations from this. A Unit with no faction is
+            "neutral" to everyone, which is why an unset faction makes every
+            attack report that it has no legal targets. --}}
+      <select name="system.factionId">
+        <option value="">{{localize "FGT.Sheet.NoFaction"}}</option>
+        {{selectOptions factionChoices selected=system.factionId}}
+      </select>
+    </label>
+
+    {{#unless hasFaction}}
+      <p class="fgt-hint fgt-hint--warn">
+        {{#if hasFactions}}
+          {{localize "FGT.Sheet.NoFactionHint"}}
+        {{else}}
+          {{localize "FGT.Sheet.NoFactionsAtAll"}}
+        {{/if}}
+      </p>
+    {{/unless}}
+  </div>
+
+  <div class="fgt-header__vitals">
+    {{#each header.bars as |bar|}}
+      <label class="fgt-bar fgt-bar--{{bar.key}}">
+        <span class="fgt-bar__label">{{localize bar.name}}</span>
+        <span class="fgt-bar__track">
+          {{#if bar.undamageable}}
+            {{!-- `null` max is intrinsically undamageable -- Pale Rider, the
+                  Kagome Spirits. An empty track would read as "one hit from
+                  death", which is the opposite of what it means. --}}
+            <span class="fgt-bar__none">{{localize "FGT.Sheet.Undamageable"}}</span>
+          {{else}}
+            <span class="fgt-bar__fill" style="width: {{bar.pct}}%"></span>
+            <span class="fgt-bar__value">{{bar.label}}</span>
+          {{/if}}
+        </span>
+        <input type="number" name="system.{{bar.key}}.value" value="{{bar.value}}"
+               data-tooltip="{{localize 'FGT.Sheet.Current'}}">
+        <span class="fgt-bar__sep">/</span>
+        <input type="number" name="system.{{bar.key}}.max" value="{{bar.max}}"
+               data-tooltip="{{localize 'FGT.Sheet.Maximum'}}">
+      </label>
+    {{/each}}
+  </div>
+</header>

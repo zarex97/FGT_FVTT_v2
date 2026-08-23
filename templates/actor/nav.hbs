@@ -1,0 +1,25 @@
+{{!-- The tab rail (docs/29-user-interface.md §29.2).
+
+      `data-action="tab"` is ApplicationV2's own tab action -- the framework
+      binds it, tracks which tab is active and re-renders. There is no click
+      handler for this in `sheet.mjs`, and there should not be one.
+
+      Every tab is always present, on every actor type. A Structure gets an
+      empty Abilities tab rather than losing the tab: D29.2 says a control that
+      is unavailable is disabled with its reason on screen, never hidden, and a
+      navigation item that appears and disappears per actor type teaches a GM
+      nothing except that the sheet is inconsistent. --}}
+{{!-- The `tabs` class is not decoration: `changeTab` finds the nav with
+      `button.closest(".tabs")` and the panes with `.tab[data-group=...]`, so
+      without these two class names the framework binds the click and then
+      cannot find anything to toggle. --}}
+<nav class="tabs fgt-nav" data-group="primary" role="tablist">
+  {{#each tabs as |tab|}}
+    <a class="fgt-nav__item {{tab.cssClass}}" data-action="tab"
+       data-group="{{tab.group}}" data-tab="{{tab.id}}"
+       role="tab" aria-selected="{{tab.active}}"
+       data-tooltip="{{localize tab.label}}" aria-label="{{localize tab.label}}">
+      <i class="{{tab.icon}}"></i>
+    </a>
+  {{/each}}
+</nav>

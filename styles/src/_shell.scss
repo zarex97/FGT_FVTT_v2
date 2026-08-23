@@ -1,8 +1,26 @@
 // The sheet shell: window, header, nav rail, tab panes.
 // See docs/29-user-interface.md §29.2.
+//
+// The layout is a CSS grid over the six PARTS ApplicationV2 renders as
+// siblings. The header spans the full width, the nav rail sits under it on the
+// left, and the four tab parts all occupy the same cell -- only one of them is
+// `.active`, and the rest are display:none. That is why they can share a cell
+// without stacking.
 
-// F/GT — Fate/Grail Tactics
-// Compiled to styles/fgt.css. See docs/29-user-interface.md.
+.application.fgt.sheet .window-content {
+  overflow: hidden;
+  padding: 0;
+
+  display: grid;
+  grid-template-columns: 2.75rem 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "header header"
+    "nav    body";
+
+  background: var(--fgt-bg);
+  color: var(--fgt-ink);
+}
 
 // The sheet scrolls. Foundry gives `.window-content` a fixed height and no
 // overflow of its own, so a Servant with thirteen abilities -- Medea -- simply
@@ -12,21 +30,295 @@
 // ApplicationV2 restores the position after each re-render. Scrolling
 // `.window-content` instead would work and would jump back to the top on every
 // edit, because the sheet re-renders on change.
-.application.fgt.sheet .window-content {
-  overflow: hidden;
+//
+// One scroll container per tab is now the point rather than the problem: the
+// position ApplicationV2 preserves is per part, and only one part is visible.
+.fgt-tab {
+  grid-area: body;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
   display: flex;
   flex-direction: column;
-  padding: 0;
+  gap: var(--fgt-gap);
+  padding: 0.75rem;
+
+  // Foundry's own tab handling toggles `.active`. Anything else is not on
+  // screen, which is what lets all four share one grid cell.
+  &:not(.active) { display: none; }
 }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.fgt-header {
+  grid-area: header;
+  display: grid;
+  grid-template-columns: auto 1fr minmax(12rem, 18rem);
+  gap: 0.75rem;
+  padding: 0.75rem;
+
+  background: linear-gradient(180deg, var(--fgt-bg-raised), var(--fgt-bg));
+  border-bottom: var(--fgt-border);
+
+  // The faction's colour, as a rail rather than as a tint: a tinted panel
+  // fights the theme and a rail does not.
+  border-left: 4px solid var(--fgt-faction);
+
+  &__portrait {
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border: var(--fgt-border);
+    border-radius: var(--fgt-radius);
+    background: var(--fgt-bg-sunken);
+  }
+
+  &__identity {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    background: none;
+    border: 1px solid transparent;
+    color: var(--fgt-ink);
+
+    // Display-first: a derived-looking field that turns into an input only
+    // when you mean to use it. The sheet is a stat block, not a form.
+    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg-sunken); }
+  }
+
+  &__line {
+    margin: 0;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fgt-gold);
+  }
+
+  &__truename {
+    margin: 0;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__concealed {
+    font-style: normal;
+    font-size: 0.68rem;
+    padding: 0 0.3rem;
+    border: 1px solid var(--fgt-line);
+    border-radius: 999px;
+  }
+
+  &__faction {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+
+    select { flex: 1; min-width: 0; }
+  }
+
+  &__vitals {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    justify-content: center;
+  }
+}
+
+/* ── Nav rail ───────────────────────────────────────────────────────────── */
+
+.fgt-nav {
+  grid-area: nav;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.4rem 0.25rem;
+  background: var(--fgt-bg-sunken);
+  border-right: var(--fgt-border);
+
+  &__item {
+    display: grid;
+    place-items: center;
+    height: 2.25rem;
+    border-radius: var(--fgt-radius);
+    color: var(--fgt-ink-dim);
+    cursor: pointer;
+
+    &:hover { background: var(--fgt-bg-raised); color: var(--fgt-ink); }
+
+    // Active is a filled block AND a gold rule down the side -- two signals,
+    // because colour is never the only one (D29.7).
+    &.active {
+      background: var(--fgt-bg-raised);
+      color: var(--fgt-gold);
+      box-shadow: inset 2px 0 0 var(--fgt-gold);
+    }
+  }
+}
+
+/* ── Shared furniture ───────────────────────────────────────────────────── */
+
+.fgt-panel {
+  border: var(--fgt-border);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-raised);
+  padding: 0.6rem;
+
+  &__title {
+    margin: 0 0 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+    border-bottom: var(--fgt-border);
+    padding-bottom: 0.25rem;
+  }
+}
+
+.fgt-empty {
+  margin: 0;
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--fgt-ink-dim);
+}
+
+.fgt-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--fgt-ink-dim);
+
+  &--warn { color: var(--fgt-warn); }
+}
+
+// A warning that does not block (§29.9's amber badge). Always an icon or a
+// word too, never the colour alone.
+.fgt-warning {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.45rem;
+  border-left: 3px solid var(--fgt-warn);
+  background: var(--fgt-bg-sunken);
+}
+
+.fgt-button {
+  padding: 0.4rem 0.6rem;
+  font-weight: 600;
+  border: var(--fgt-border);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-raised);
+  color: var(--fgt-ink);
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: var(--fgt-gold); color: var(--fgt-gold); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  &--attack {
+    width: 100%;
+    border-color: var(--fgt-crimson);
+  }
+}
+
+.fgt-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fgt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid currentcolor;
+
+  &--danger { color: var(--fgt-danger); }
+  &--warn { color: var(--fgt-warn); }
+  &--info { color: var(--fgt-ink-dim); }
+  &--ok { color: var(--fgt-ok); }
+}
+
+/* ── Resource bars ──────────────────────────────────────────────────────── */
+
+.fgt-bar {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr 3.2rem auto 3.2rem;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+
+  &__label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__track {
+    position: relative;
+    height: 0.95rem;
+    border: var(--fgt-border);
+    border-radius: 2px;
+    background: var(--fgt-bg-sunken);
+    overflow: hidden;
+  }
+
+  &__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--fgt-health);
+  }
+
+  // The number is printed ON the bar, always. A bar alone is a colour, and
+  // colour is never the only signal (D29.7).
+  &__value {
+    position: relative;
+    display: block;
+    text-align: center;
+    line-height: 0.95rem;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 3px var(--fgt-bg-sunken);
+  }
+
+  &__none {
+    display: block;
+    text-align: center;
+    line-height: 0.95rem;
+    font-style: italic;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__sep { color: var(--fgt-ink-dim); }
+
+  input { width: 100%; text-align: center; font-size: 0.72rem; }
+
+  &--agility &__fill { background: var(--fgt-agility); }
+  &--luck &__fill { background: var(--fgt-luck); }
+}
+
+/* ── Legacy sheet body, still used by the item sheet ────────────────────── */
 
 .fgt-sheet {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-
-  --fgt-gap: 0.5rem;
-  --fgt-border: 1px solid var(--color-border-light-tertiary, #7a7971);
 
   display: flex;
   flex-direction: column;
@@ -46,7 +338,7 @@
     height: 96px;
     object-fit: cover;
     border: var(--fgt-border);
-    border-radius: 4px;
+    border-radius: var(--fgt-radius);
   }
 
   &__icon { width: 64px; height: 64px; }
@@ -77,51 +369,46 @@
     gap: var(--fgt-gap);
     padding: var(--fgt-gap);
     border: var(--fgt-border);
-    border-radius: 4px;
+    border-radius: var(--fgt-radius);
   }
 
   &__description,
   &__notes {
     padding: var(--fgt-gap);
     border: var(--fgt-border);
-    border-radius: 4px;
+    border-radius: var(--fgt-radius);
     white-space: pre-wrap;
   }
 }
 
 .fgt-sheet__setup {
   align-self: flex-start;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.78rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
 }
-
-// ── Sheet actions and ability rows ──────────────────────────────────────────
-// A mode, an attack and a passive have to look different at a glance, because
-// clicking them does three different things.
 
 .fgt-sheet__actions {
   display: flex;
-  gap: 0.4rem;
-  padding: 0.35rem 0;
+  gap: var(--fgt-gap);
 }
 
 .fgt-sheet__attack {
-  flex: 1 1 auto;
+  flex: 1;
+  padding: 0.4rem;
   font-weight: 600;
 }
 
 .fgt-sheet__faction {
   display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-size: 0.8rem;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
 
-  input { flex: 0 1 8rem; }
+  select { flex: 1; }
 }
 
 .fgt-sheet__hint {
-  margin: 0.2rem 0 0;
+  margin: 0;
   font-size: 0.72rem;
-  line-height: 1.3;
-  opacity: 0.8;
+  opacity: 0.75;
 }
