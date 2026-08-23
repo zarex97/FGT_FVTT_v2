@@ -1,0 +1,720 @@
+// Dialogs, HUD and chat cards -- moved unchanged from the flat file.
+
+// ── Chat cards ──────────────────────────────────────────────────────────────
+// The card is the audit record, so density matters more than decoration.
+
+.fgt-card {
+  --fgt-gap: 0.5rem;
+  --fgt-border: 1px solid var(--color-border-light-tertiary, #7a7971);
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding-bottom: 0.25rem;
+    border-bottom: var(--fgt-border);
+    font-weight: 600;
+  }
+
+  &__arrow { opacity: 0.6; }
+  &__ability { flex: 1 1 100%; font-weight: 400; font-style: italic; opacity: 0.8; }
+
+  &__result { text-align: center; padding: 0.35rem 0; }
+  &__total { font-size: 2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  &__split { font-size: 0.8rem; opacity: 0.75; }
+  &__negated { font-weight: 600; opacity: 0.9; }
+  &__flag { font-size: 0.8rem; opacity: 0.85; }
+
+  &__toggle {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: var(--fgt-border);
+    border-radius: 3px;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  &__prompt {
+    padding: var(--fgt-gap);
+    border: var(--fgt-border);
+    border-radius: 4px;
+
+    &--other { opacity: 0.7; }
+  }
+
+  &__prompt-label { margin: 0 0 0.35rem; font-weight: 600; }
+  &__waiting { margin: 0; font-style: italic; opacity: 0.75; }
+
+  &__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+
+    button {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+
+      small { font-size: 0.7rem; opacity: 0.7; }
+      &[disabled] { opacity: 0.45; cursor: not-allowed; }
+    }
+  }
+}
+
+.fgt-breakdown {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+
+  &__row {
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+
+    // Stages that did nothing still appear; they are just quieter.
+    &--inert { opacity: 0.45; }
+  }
+
+  &__index { width: 2ch; text-align: right; opacity: 0.6; padding-right: 0.35rem; }
+  &__delta { text-align: right; white-space: nowrap; padding-left: 0.35rem; }
+  &__running { text-align: right; font-weight: 600; padding-left: 0.5rem; }
+
+  &__contributor {
+    display: flex;
+    gap: 0.35rem;
+    padding-left: 0.6rem;
+    font-size: 0.72rem;
+    opacity: 0.85;
+
+    span:first-child { flex: 0 0 auto; }
+  }
+
+  &__note { flex: 1 1 auto; font-style: italic; opacity: 0.75; }
+  &__value { margin-left: auto; }
+  &__blocked { padding-left: 0.6rem; font-size: 0.72rem; opacity: 0.8; }
+}
+
+.fgt-ladder {
+  margin: 0;
+  padding-left: 1.4rem;
+  font-size: 0.75rem;
+  opacity: 0.8;
+
+  &__state { font-weight: 600; }
+}
+
+.fgt-card--skill {
+  .fgt-card__header { display: flex; gap: 0.5rem; align-items: center; }
+  .fgt-card__title { font-weight: 700; }
+  .fgt-card__rank { opacity: 0.7; font-weight: 400; }
+  .fgt-card__caster { font-size: 0.75rem; opacity: 0.8; }
+  .fgt-card__meta { font-size: 0.75rem; opacity: 0.8; margin-top: 0.2rem; }
+  .fgt-card__effects { margin: 0.3rem 0 0; padding-left: 1.2rem; font-size: 0.8rem; }
+  .fgt-card__none { font-size: 0.78rem; font-style: italic; opacity: 0.7; }
+  // A resisted effect is a fact the player needs; a silently empty card reads
+  // as a skill that did nothing at all.
+  .fgt-card__refused {
+    margin: 0.3rem 0 0; padding-left: 1.2rem;
+    font-size: 0.75rem; opacity: 0.75; font-style: italic;
+  }
+}
+
+.fgt-contract {
+  display: flex; flex-direction: column; gap: 0.5rem;
+
+  &__hint { font-size: 0.75rem; opacity: 0.8; margin: 0; }
+  &__empty { font-style: italic; opacity: 0.7; font-size: 0.8rem; }
+  &__list { list-style: none; margin: 0; padding: 0; }
+  &__row {
+    display: flex; gap: 0.5rem; align-items: baseline;
+    padding: 0.25rem 0.3rem;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+
+    // Refused rows stay visible: "why can I not contract that one" has four
+    // different answers, and hiding the row answers all four with silence.
+    &--refused { opacity: 0.65; }
+  }
+  &__name { font-weight: 600; flex: 1; }
+  &__state { font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; }
+  &__terms { font-size: 0.72rem; }
+  &__odds { font-size: 0.7rem; opacity: 0.75; }
+  &__refusal { font-size: 0.72rem; font-style: italic; opacity: 0.85; }
+}
+
+// §28.8's inline legality. The KIND is what the colour carries: a hard refusal
+// and one a Command Spell can lift are different decisions.
+.fgt-preview {
+  &__reason--overridable { border-left: 3px solid var(--fgt-accent, #b07); padding-left: 0.3rem; }
+  &__reason--confirm { border-left: 3px solid var(--fgt-warn, #c80); padding-left: 0.3rem; }
+  &__override {
+    display: inline-block; margin-left: 0.3rem;
+    font-size: 0.68rem; font-weight: 600;
+    color: var(--fgt-accent, #b07);
+  }
+  &__confirm {
+    margin-top: 0.2rem; padding: 0.2rem 0.3rem;
+    font-size: 0.72rem; font-weight: 700;
+    background: rgba(200, 136, 0, 0.15);
+  }
+}
+
+.fgt-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+
+  &__filters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) auto;
+    gap: 0.4rem;
+    align-items: end;
+
+    label { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.75rem; }
+  }
+
+  &__summary { font-size: 0.75rem; opacity: 0.8; margin: 0; }
+  &__overridecount { margin-left: 0.4rem; font-weight: 600; }
+  &__empty { font-style: italic; opacity: 0.7; font-size: 0.8rem; }
+
+  &__list {
+    list-style: none; margin: 0; padding: 0;
+    flex: 1; overflow-y: auto;
+    font-size: 0.78rem;
+  }
+
+  &__entry {
+    display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: baseline;
+    padding: 0.2rem 0.3rem;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+
+    // §30.10: the original stays in the record, struck through, with the
+    // replacement beneath. Both, or neither is worth having.
+    &--superseded { opacity: 0.55; text-decoration: line-through; }
+    &--override {
+      border-left: 3px solid var(--fgt-accent, #b07);
+      text-decoration: none;
+      opacity: 1;
+    }
+  }
+
+  &__seq { opacity: 0.5; font-variant-numeric: tabular-nums; }
+  &__round { font-weight: 600; }
+  &__kind { opacity: 0.7; font-size: 0.72rem; text-transform: uppercase; }
+  &__text { flex: 1; }
+  &__actors, &__rolls { font-size: 0.7rem; opacity: 0.65; }
+  &__overridebody { flex-basis: 100%; padding-left: 0.6rem; }
+  &__reason { font-style: italic; opacity: 0.85; }
+  &__overrides { font-size: 0.72rem; opacity: 0.7; }
+  &__footer { display: flex; justify-content: flex-end; }
+}
+
+// The token HUD's budget dot (§29.5).
+.fgt-hud {
+  &__dot {
+    display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%;
+
+    &--fresh { background: #3a3; }
+    &--part { background: #c80; }
+    &--done { background: #666; }
+  }
+  &__facing select { font-size: 0.7rem; width: 100%; }
+}
+
+.fgt-card__waiting {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.4rem;
+  border-left: 3px solid var(--fgt-warn, #c80);
+
+  &--expired { border-left-color: #666; opacity: 0.8; }
+}
+
+.fgt-summon {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+
+  &__setup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+  &__field { display: flex; flex-direction: column; gap: 0.15rem;
+
+    label { font-size: 0.75rem; font-weight: 600; }
+  }
+
+  &__hint { font-size: 0.72rem; opacity: 0.75; margin: 0 0 0.3rem; }
+  &__grantrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; }
+  &__grant {
+    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+    font-size: 0.72rem; font-weight: 600;
+
+    input { width: 100%; text-align: center; }
+  }
+
+  &__header { display: flex; align-items: center; gap: 0.6rem;
+
+    h2 { margin: 0; }
+  }
+
+  // The rolls lock at match start; the reason is on screen rather than implied
+  // by a missing button.
+  &__locked {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    border-left: 3px solid var(--fgt-warn, #c80);
+    opacity: 0.9;
+  }
+
+  &__lines {
+    width: 100%;
+    border-collapse: collapse;
+
+    th { text-align: left; font-weight: 600; padding: 0.2rem 0.4rem 0.2rem 0; }
+    td { padding: 0.2rem 0.3rem; }
+  }
+  // The arithmetic, not just the answer: "1000" tells a GM nothing about
+  // whether to re-roll.
+  &__workings { font-size: 0.75rem; opacity: 0.8; font-family: var(--font-mono, monospace); }
+  &__value { font-weight: 700; text-align: right; }
+  &__note { font-style: italic; opacity: 0.7; margin-left: 0.4rem; }
+
+  &__steps {
+    margin: 0; padding-left: 1.2rem;
+    font-size: 0.75rem; opacity: 0.85;
+  }
+  &__steplabel { font-weight: 600; }
+  &__stepdetail { opacity: 0.8; margin-left: 0.3rem; }
+
+  &__confirm, &__roll { padding: 0.4rem; font-weight: 600; }
+}
+
+.fgt-copy, .fgt-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__hint { font-size: 0.78rem; opacity: 0.85; margin: 0; }
+  &__empty { font-size: 0.78rem; opacity: 0.7; font-style: italic; }
+  &__list { list-style: none; margin: 0; padding: 0; max-height: 22rem; overflow-y: auto; }
+  &__footer { display: flex; align-items: center; gap: 0.5rem; }
+  &__count { font-size: 0.75rem; opacity: 0.8; }
+}
+
+.fgt-copy {
+  &__row--offered { background: rgba(120, 200, 120, 0.12); }
+  &__toggle {
+    display: flex; flex-direction: column; align-items: flex-start;
+    width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  }
+  &__name { font-weight: 600; }
+  &__meta { font-size: 0.72rem; opacity: 0.75; }
+  &__preferred {
+    margin-left: 0.3rem; padding: 0 0.25rem;
+    border-radius: 2px; background: rgba(180, 140, 40, 0.25);
+  }
+}
+
+.fgt-choice {
+  &__counter { font-size: 0.75rem; font-weight: 600; margin: 0; }
+  &__option--picked { background: rgba(120, 200, 120, 0.15); }
+  &__toggle {
+    display: flex; flex-direction: column; align-items: flex-start;
+    width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  }
+  &__name { font-weight: 600; }
+  &__subtitle { font-size: 0.72rem; opacity: 0.75; }
+  &__detail { font-size: 0.72rem; opacity: 0.65; }
+}
+
+.fgt-rolls {
+  font-size: 0.75rem;
+  opacity: 0.85;
+
+  &__entry {
+    margin-bottom: 0.4rem;
+
+    // A re-rolled record is kept beside its replacement (P6), so the two have
+    // to be tellable apart at a glance.
+    &--reroll { border-left: 2px solid var(--fgt-accent, #b07); padding-left: 0.4rem; }
+  }
+
+  &__purpose { font-weight: 600; }
+  &__line { font-family: var(--font-mono, monospace); white-space: pre; }
+  &__reason { font-style: italic; opacity: 0.75; }
+}
+
+// ── Turn HUD ────────────────────────────────────────────────────────────────
+// Three sections in a fixed order: what the faction has spent, which units are
+// still available, and what is stopping the turn from ending. The last section
+// is the reason this panel exists, so it is the loudest thing in it.
+
+.fgt-hud {
+  --fgt-hud-border: 1px solid var(--color-border-light-tertiary, #7a7971);
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: var(--fgt-hud-border);
+  }
+
+  &__faction { font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+
+  &__clock {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+
+  // The ◈ tick, which is a different number from the turn position and must not
+  // read as part of it.
+  &__tick { font-variant-numeric: tabular-nums; opacity: 0.8; }
+
+  &__pools { display: flex; flex-direction: column; gap: 0.2rem; }
+
+  &__pool {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &__pool-label { opacity: 0.85; }
+  &__pool-count { font-variant-numeric: tabular-nums; font-size: 0.75rem; opacity: 0.7; }
+
+  &__pips { display: inline-flex; gap: 0.15rem; }
+
+  &__pip {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    border: 1px solid currentcolor;
+    opacity: 0.45;
+
+    &--spent { background: currentcolor; opacity: 1; }
+  }
+
+  &__units {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding-top: 0.35rem;
+    border-top: var(--fgt-hud-border);
+  }
+
+  &__unit {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.1rem 0.15rem;
+    border-radius: 3px;
+    cursor: pointer;
+
+    &:hover { background: rgb(0 0 0 / 8%); }
+  }
+
+  &__unit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__unit-mov { font-variant-numeric: tabular-nums; font-size: 0.75rem; opacity: 0.7; }
+
+  &__badge {
+    display: inline-block;
+    min-width: 1.1em;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 1px solid currentcolor;
+    border-radius: 2px;
+    opacity: 0.35;
+
+    &--done { opacity: 1; }
+  }
+
+  // The order after Delay, which is public information: a player weighing a
+  // delay has to be able to see who they would end up behind.
+  &__order {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding-top: 0.35rem;
+    border-top: var(--fgt-hud-border);
+    font-size: 0.72rem;
+  }
+
+  &__slot {
+    display: flex;
+    gap: 0.2rem;
+    align-items: baseline;
+    padding: 0.05rem 0.3rem;
+    border: 1px solid currentcolor;
+    border-radius: 2px;
+    opacity: 0.6;
+
+    // Never colour alone: the active slot is also the bold one, and a faction
+    // that has acted is struck through.
+    &--active { opacity: 1; font-weight: 700; }
+    &--acted { opacity: 0.35; text-decoration: line-through; }
+  }
+
+  &__slot-delay { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  &__delay {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: var(--fgt-hud-border);
+    font-size: 0.78rem;
+
+    label { display: flex; align-items: center; gap: 0.3rem; }
+    select { width: 4.5rem; }
+    button { flex: 0 0 auto; cursor: pointer; }
+  }
+
+  &__warnings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: 0.35rem;
+    border-top: var(--fgt-hud-border);
+  }
+
+  &__warning {
+    display: flex;
+    gap: 0.35rem;
+    align-items: flex-start;
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  &__warning-icon { flex: 0 0 auto; }
+
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding-top: 0.35rem;
+    border-top: var(--fgt-hud-border);
+
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+  }
+
+  &__blocked { font-size: 0.72rem; opacity: 0.75; text-align: center; }
+}
+
+// ── Targeting preview ───────────────────────────────────────────────────────
+// Follows the cursor, so it is positioned by script and must not intercept
+// pointer events — the canvas underneath is what the player is aiming at.
+
+.fgt-preview {
+  position: fixed;
+  z-index: 70;
+  pointer-events: none;
+  min-width: 15rem;
+  max-width: 22rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border-light-primary, #b5b3a4);
+  border-radius: 4px;
+  background: var(--color-bg-option, rgb(0 0 0 / 82%));
+  color: var(--color-text-light-highlight, #f0f0e0);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+
+  &__header { font-weight: 700; padding-bottom: 0.2rem; }
+  &__meta { font-size: 0.72rem; opacity: 0.7; padding-bottom: 0.25rem; }
+  &__empty { opacity: 0.7; font-style: italic; }
+
+  &__targets {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.25rem 0;
+    border-top: 1px solid rgb(255 255 255 / 15%);
+    border-bottom: 1px solid rgb(255 255 255 / 15%);
+  }
+
+  &__target { display: flex; align-items: baseline; gap: 0.4rem; }
+  &__name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__band { font-size: 0.7rem; opacity: 0.65; }
+  &__damage { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  // Who the area caught and the rules dropped. Dimmed and struck through, so it
+  // reads as "considered and rejected" rather than as a second target list —
+  // and the reason is always on the row, never only in a tooltip.
+  &__excluded {
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgb(255 255 255 / 15%);
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+
+  &__excluded-head {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+  }
+
+  &__target--excluded {
+    display: block;
+
+    .fgt-preview__name { text-decoration: line-through; }
+  }
+
+  &__why { display: block; padding-left: 0.9rem; font-style: italic; opacity: 0.85; }
+
+  &__warning { padding-top: 0.25rem; font-size: 0.75rem; }
+  &__reason { padding-top: 0.25rem; font-size: 0.75rem; opacity: 0.9; }
+
+  &__verdict {
+    padding-top: 0.3rem;
+    font-weight: 600;
+
+    // Legality is never signalled by colour alone: the text says which it is.
+    &--ok { opacity: 0.9; }
+    &--no { opacity: 1; }
+  }
+}
+
+// ── Faction roster ──────────────────────────────────────────────────────────
+
+.fgt-factions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.5rem;
+
+  &__intro { margin: 0; font-size: 0.8rem; line-height: 1.4; opacity: 0.85; }
+  &__empty { margin: 0; font-style: italic; opacity: 0.7; }
+
+  &__row {
+    border: 1px solid var(--color-border-light-tertiary, #7a7971);
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem 0.6rem;
+
+    legend {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      padding: 0 0.3rem;
+    }
+  }
+
+  &__swatch {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 2px;
+    border: 1px solid rgb(0 0 0 / 35%);
+  }
+
+  &__id { font-size: 0.7rem; opacity: 0.55; }
+
+  &__fields {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 0.5rem;
+    align-items: end;
+
+    label { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.75rem; }
+  }
+
+  &__allies {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  &__allies-label { opacity: 0.75; }
+
+  &__ally {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    white-space: nowrap;
+  }
+
+  &__delete {
+    margin-top: 0.5rem;
+    width: auto;
+    font-size: 0.75rem;
+  }
+
+  &__footer { display: flex; justify-content: flex-start; }
+}
+
+// ── The targeting confirmation ──────────────────────────────────────────────
+// Two lists in one window: what will be hit, and what was in the area and will
+// not be. The second is the reason the window exists, so it is legible rather
+// than tucked away — but dimmed, because it is context and not a choice.
+
+.fgt-review {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+
+  &__meta { margin: 0; font-size: 0.75rem; opacity: 0.7; }
+
+  &__head {
+    margin: 0.25rem 0 0;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--color-border-light-tertiary, #7a7971);
+    border-radius: 4px;
+
+    &--out { opacity: 0.7; }
+  }
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.2rem 0.4rem;
+    border-bottom: 1px solid rgb(128 128 128 / 20%);
+
+    &:last-child { border-bottom: none; }
+
+    label { display: flex; align-items: center; gap: 0.35rem; flex: 1 1 auto; cursor: pointer; }
+
+    // Never colour alone: an excluded row is struck through as well as dimmed.
+    &--out .fgt-review__name { text-decoration: line-through; }
+  }
+
+  &__name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__damage { font-variant-numeric: tabular-nums; font-weight: 600; }
+  &__band { font-size: 0.7rem; opacity: 0.65; }
+  &__why { flex: 1 1 100%; padding-left: 0.9rem; font-size: 0.75rem; font-style: italic; opacity: 0.85; }
+  &__warning { margin: 0; font-size: 0.78rem; }
+}

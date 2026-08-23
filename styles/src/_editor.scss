@@ -1,0 +1,28 @@
+// The ability editor (docs/29-user-interface.md §29.6).
+
+.fgt-editor {
+  display: flex; flex-direction: column; height: 100%; gap: 0.5rem;
+
+  &__body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem; }
+  &__hint { font-size: 0.72rem; opacity: 0.75; margin: 0.1rem 0; }
+
+  // The picker §29.6 says matters most: diagrams, not internal names.
+  &__picker { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  &__option {
+    display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+    padding: 0.3rem; border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 3px;
+    background: none; cursor: pointer; font-size: 0.7rem;
+
+    &--on { border-color: var(--fgt-accent, #b07); background: rgba(180, 0, 120, 0.08); }
+  }
+  &__schematic {
+    margin: 0; font-family: var(--font-mono, monospace);
+    font-size: 0.62rem; line-height: 1; letter-spacing: 0.08em;
+  }
+
+  &__validation { font-size: 0.75rem; }
+  &__ok { color: var(--fgt-ok, #3a3); }
+  &__problems { color: var(--fgt-danger, #b33); margin: 0.2rem 0; padding-left: 1.2rem; }
+  &__warnings { color: var(--fgt-warn, #c80); margin: 0.2rem 0; padding-left: 1.2rem; }
+  &__footer { display: flex; justify-content: flex-end; }
+}

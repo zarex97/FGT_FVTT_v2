@@ -1,0 +1,58 @@
+// Colour, in one place, for both themes.
+//
+// §29.9 says "all colours are CSS custom properties defined for both [light
+// and dark]", and the flat file this replaced hardcoded #7a7971, #b07, #3a3,
+// #c80, #b33 and #666 at their use sites. So "the system respects Foundry's
+// light/dark themes" was true of the window frame and false of everything
+// inside it.
+//
+// The palette is dark-first because the game is: a Grail War at night, gold
+// leaf on black. The light theme redefines only what has to move.
+//
+// Every one of these has a shape, an icon or a word beside it wherever it is
+// used. Colour is never the only signal (D29.7).
+
+.fgt {
+  --fgt-bg: #17161c;
+  --fgt-bg-raised: #21202a;
+  --fgt-bg-sunken: #100f14;
+  --fgt-ink: #e8e3d8;
+  --fgt-ink-dim: #a09a8e;
+  --fgt-line: #3a3644;
+
+  --fgt-gold: #c9a227;
+  --fgt-crimson: #9b2226;
+
+  --fgt-ok: #4c9a5b;
+  --fgt-warn: #c8860d;
+  --fgt-danger: #c0392b;
+
+  // The three depleting resources (§6). Distinguishable under deuteranopia and
+  // protanopia, which is why Agility is teal rather than the obvious green.
+  --fgt-health: #a83232;
+  --fgt-agility: #2f7d6d;
+  --fgt-luck: #7a5ea8;
+
+  // Overwritten per sheet from the faction's own colour, which the board and
+  // the HUD already read from `rules/factions.mjs`.
+  --fgt-faction: var(--fgt-gold);
+
+  --fgt-radius: 4px;
+  --fgt-gap: 0.5rem;
+  --fgt-border: 1px solid var(--fgt-line);
+}
+
+.theme-light .fgt,
+.fgt.theme-light {
+  --fgt-bg: #f2eee3;
+  --fgt-bg-raised: #fffdf7;
+  --fgt-bg-sunken: #e3ddcd;
+  --fgt-ink: #23201a;
+  --fgt-ink-dim: #6a6458;
+  --fgt-line: #c5bda8;
+
+  --fgt-gold: #8a6d12;
+  --fgt-ok: #2f6b3a;
+  --fgt-warn: #96650a;
+  --fgt-danger: #94291d;
+}
