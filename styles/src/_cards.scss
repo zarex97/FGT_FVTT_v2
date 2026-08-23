@@ -1,0 +1,105 @@
+// Stat tiles, ability cards, pip rows and bars.
+
+.fgt-resource {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  input { width: 5ch; text-align: center; }
+  &__sep { opacity: 0.6; }
+}
+
+.fgt-parameter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  span { font-size: 0.7rem; letter-spacing: 0.05em; opacity: 0.75; }
+  input { width: 4ch; text-align: center; }
+}
+
+.fgt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-bottom: var(--fgt-border);
+
+    &--np { font-weight: 600; }
+    &:last-child { border-bottom: none; }
+  }
+
+  &__rank { font-variant-numeric: tabular-nums; opacity: 0.8; }
+  &__empty { padding: 0.25rem 0.5rem; opacity: 0.6; font-style: italic; }
+}
+
+.fgt-master {
+  &__cs { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  &__pips { letter-spacing: 0.15em; }
+  &__cscount { font-variant-numeric: tabular-nums; }
+  &__granted { font-size: 0.7rem; opacity: 0.75; margin-left: 0.3rem; }
+  &__unbound { color: var(--fgt-danger, #b33); font-size: 0.72rem; font-weight: 700; }
+  &__cs--unbound { background: rgba(180, 50, 50, 0.08); }
+
+  &__servants { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; }
+  &__servant { display: flex; gap: 0.4rem; align-items: baseline; padding: 0.15rem 0; }
+  &__name { font-weight: 600; }
+  &__distance { opacity: 0.7; font-size: 0.72rem; }
+  &__zon--in { color: var(--fgt-ok, #3a3); }
+  &__zon--out { color: var(--fgt-danger, #b33); }
+  &__penalty { font-size: 0.7rem; opacity: 0.75; }
+  &__none { font-style: italic; opacity: 0.7; font-size: 0.78rem; }
+  &__warning {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
+    border-left: 3px solid var(--fgt-warn, #c80);
+  }
+}
+
+.fgt-list__edit {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+
+  &:hover { opacity: 1; }
+}
+
+.fgt-list__name {
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  flex: 1 1 auto;
+
+  &:hover { text-decoration: underline; }
+}
+
+.fgt-list__row {
+  &--mode { font-style: italic; }
+  &--on { font-weight: 600; font-style: normal; }
+  &--passive { opacity: 0.75; }
+}
+
+.fgt-list__name--passive {
+  flex: 1 1 auto;
+  cursor: default;
+}
+
+.fgt-list__state {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0 0.25rem;
+  border: 1px solid currentcolor;
+  border-radius: 2px;
+  opacity: 0.5;
+
+  .fgt-list__row--on & { opacity: 1; }
+}

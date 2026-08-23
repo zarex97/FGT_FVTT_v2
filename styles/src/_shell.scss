@@ -1,0 +1,127 @@
+// The sheet shell: window, header, nav rail, tab panes.
+// See docs/29-user-interface.md §29.2.
+
+// F/GT — Fate/Grail Tactics
+// Compiled to styles/fgt.css. See docs/29-user-interface.md.
+
+// The sheet scrolls. Foundry gives `.window-content` a fixed height and no
+// overflow of its own, so a Servant with thirteen abilities -- Medea -- simply
+// ran off the bottom with no way to reach the rest.
+//
+// The scroll lives on the PART root, which is what `scrollable: [""]` names, so
+// ApplicationV2 restores the position after each re-render. Scrolling
+// `.window-content` instead would work and would jump back to the top on every
+// edit, because the sheet re-renders on change.
+.application.fgt.sheet .window-content {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.fgt-sheet {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  --fgt-gap: 0.5rem;
+  --fgt-border: 1px solid var(--color-border-light-tertiary, #7a7971);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--fgt-gap);
+  padding: var(--fgt-gap);
+
+  &__header {
+    display: flex;
+    gap: var(--fgt-gap);
+    align-items: flex-start;
+  }
+
+  &__portrait,
+  &__icon {
+    flex: 0 0 auto;
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border: var(--fgt-border);
+    border-radius: 4px;
+  }
+
+  &__icon { width: 64px; height: 64px; }
+
+  &__identity {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    input[type="text"] { font-size: 1.25rem; font-weight: 600; }
+  }
+
+  &__truename { margin: 0; font-style: italic; opacity: 0.75; }
+
+  &__meta {
+    display: flex;
+    gap: var(--fgt-gap);
+
+    label { display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; }
+    input { width: 6ch; text-align: center; }
+  }
+
+  &__resources,
+  &__parameters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--fgt-gap);
+    padding: var(--fgt-gap);
+    border: var(--fgt-border);
+    border-radius: 4px;
+  }
+
+  &__description,
+  &__notes {
+    padding: var(--fgt-gap);
+    border: var(--fgt-border);
+    border-radius: 4px;
+    white-space: pre-wrap;
+  }
+}
+
+.fgt-sheet__setup {
+  align-self: flex-start;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+// ── Sheet actions and ability rows ──────────────────────────────────────────
+// A mode, an attack and a passive have to look different at a glance, because
+// clicking them does three different things.
+
+.fgt-sheet__actions {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+}
+
+.fgt-sheet__attack {
+  flex: 1 1 auto;
+  font-weight: 600;
+}
+
+.fgt-sheet__faction {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+
+  input { flex: 0 1 8rem; }
+}
+
+.fgt-sheet__hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  opacity: 0.8;
+}
