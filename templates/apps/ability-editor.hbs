@@ -1,79 +1,198 @@
-{{!-- The ability editor (docs/29-user-interface.md §29.6). --}}
+{{!-- The ability editor (docs/29-user-interface.md §29.6).
+
+      The tool §29.6 says decides whether SC-6 is met -- a GM authors a
+      Karna-complexity Servant in under an hour. It could not set an ability's
+      name.
+
+      The targeting pickers are grids of fixed-size tiles. They were flex-wrap
+      over unconstrained <pre> blocks, so a wide schematic overflowed its button
+      and landed on the labels of the row beneath. --}}
 <div class="fgt-editor">
 
   <div class="fgt-editor__body">
-    <section class="fgt-editor__basics">
-      <label>
-        <span>{{localize "FGT.Editor.Rank"}}</span>
-        <input type="text" name="rank" value="{{draft.rank}}">
+
+    <section class="fgt-editor__section">
+      <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Identity"}}</h3>
+      <div class="fgt-editor__grid">
+        <label class="fgt-editor__field fgt-editor__field--wide">
+          <span>{{localize "FGT.Editor.Name"}}</span>
+          {{!-- On the Item, not in `system` -- held until Save with the rest
+                of the draft, so nothing is written by typing. --}}
+          <input type="text" name="name" value="{{identity.name}}">
+        </label>
+        <label class="fgt-editor__field">
+          <span>{{localize "FGT.Editor.Kind"}}</span>
+          <select name="kind">{{selectOptions identity.kindChoices selected=identity.kind localize=true}}</select>
+        </label>
+        <label class="fgt-editor__field">
+          <span>{{localize "FGT.Editor.Rank"}}</span>
+          <input type="text" name="rank" value="{{draft.rank}}">
+        </label>
+      </div>
+
+      <label class="fgt-editor__field fgt-editor__field--block">
+        <span>{{localize "FGT.Editor.Description"}}</span>
+        <textarea name="description" rows="4">{{identity.description}}</textarea>
       </label>
-      <label>
-        <span>{{localize "FGT.Editor.Duration"}}</span>
-        <input type="text" name="duration" value="{{draft.duration}}">
-        {{#if durationHint}}
-          {{!-- Tick arithmetic is what authors get wrong, and the notation
-                gives no hint, so the field explains itself as you type. --}}
-          <span class="fgt-editor__hint">{{durationHint}}</span>
-        {{/if}}
-      </label>
+    </section>
+
+    <section class="fgt-editor__section">
+      <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Limits"}}</h3>
+      <div class="fgt-editor__grid">
+        <label class="fgt-editor__field">
+          <span>{{localize "FGT.Editor.Duration"}}</span>
+          <input type="text" name="duration" value="{{draft.duration}}">
+          {{#if durationHint}}
+            {{!-- Tick arithmetic is what authors get wrong and the notation
+                  gives no hint, so the field explains itself as you type. --}}
+            <span class="fgt-editor__hint">{{durationHint}}</span>
+          {{/if}}
+        </label>
+        <label class="fgt-editor__field">
+          <span>{{localize "FGT.Editor.Cooldown"}}</span>
+          <input type="text" name="cooldown.max" value="{{limits.cooldown}}">
+          {{#if limits.cooldownHint}}
+            <span class="fgt-editor__hint">{{limits.cooldownHint}}</span>
+          {{/if}}
+        </label>
+        <label class="fgt-editor__field">
+          <span>{{localize "FGT.Editor.Cost"}}</span>
+          <input type="number" name="cost" value="{{limits.cost}}" min="1">
+        </label>
+        <label class="fgt-editor__field">
+          <span>{{localize "FGT.Editor.MaxUses"}}</span>
+          <input type="number" name="maxUses" value="{{limits.maxUses}}"
+                 placeholder="{{localize 'FGT.Editor.Unlimited'}}">
+        </label>
+        <label class="fgt-editor__field">
+          <span>{{localize "FGT.Editor.RequiresRound"}}</span>
+          <input type="number" name="requiresRound" value="{{limits.requiresRound}}">
+        </label>
+        <label class="fgt-editor__field">
+          <span>{{localize "FGT.Editor.Category"}}</span>
+          <input type="text" name="category" value="{{limits.category}}">
+        </label>
+      </div>
+
+      <div class="fgt-editor__flags">
+        <label><input type="checkbox" name="oncePerTurn" {{checked limits.oncePerTurn}}>
+          {{localize "FGT.Editor.OncePerTurn"}}</label>
+        <label><input type="checkbox" name="isPassive" {{checked limits.isPassive}}>
+          {{localize "FGT.Editor.IsPassive"}}</label>
+        <label><input type="checkbox" name="isMode" {{checked limits.isMode}}>
+          {{localize "FGT.Editor.IsMode"}}</label>
+        <label><input type="checkbox" name="isAttackSkill" {{checked limits.isAttackSkill}}>
+          {{localize "FGT.Editor.IsAttackSkill"}}</label>
+      </div>
     </section>
 
     <details class="fgt-editor__advanced">
       <summary>{{localize "FGT.Editor.Advanced"}}</summary>
       <p class="fgt-editor__hint">{{localize "FGT.Editor.AdvancedHint"}}</p>
-      <label><input type="checkbox" name="isNP" {{checked advanced.isNP}}>
-        {{localize "FGT.Editor.IsNP"}}</label>
-      <label><input type="checkbox" name="categorizedAsNP" {{checked advanced.categorizedAsNP}}>
-        {{localize "FGT.Editor.CategorizedAsNP"}}</label>
-      <label><input type="checkbox" name="countsForNPSeal" {{checked advanced.countsForNPSeal}}>
-        {{localize "FGT.Editor.CountsForNPSeal"}}</label>
+      <div class="fgt-editor__flags">
+        <label><input type="checkbox" name="isNP" {{checked advanced.isNP}}>
+          {{localize "FGT.Editor.IsNP"}}</label>
+        <label><input type="checkbox" name="categorizedAsNP" {{checked advanced.categorizedAsNP}}>
+          {{localize "FGT.Editor.CategorizedAsNP"}}</label>
+        <label><input type="checkbox" name="countsForNPSeal" {{checked advanced.countsForNPSeal}}>
+          {{localize "FGT.Editor.CountsForNPSeal"}}</label>
+      </div>
     </details>
 
-    {{!-- The piece §29.6 says matters most: shapes as diagrams, not names. --}}
-    <section class="fgt-editor__targeting">
-      <h3>{{localize "FGT.Editor.Anchor"}}</h3>
+    {{!-- The piece §29.6 says matters most: diagrams, not internal names. --}}
+    <section class="fgt-editor__section">
+      <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Anchor"}}</h3>
       <div class="fgt-editor__picker">
         {{#each anchors as |a|}}
           <button type="button" data-action="pickAnchor" data-anchor-id="{{a.id}}"
                   class="fgt-editor__option {{#if a.selected}}fgt-editor__option--on{{/if}}"
                   data-tooltip="{{localize a.hint}}">
-            <pre class="fgt-editor__schematic">{{#each a.schematic as |row|}}{{row}}
-{{/each}}</pre>
-            <span>{{localize a.label}}</span>
+            <span class="fgt-editor__diagram">{{{a.svg}}}</span>
+            <span class="fgt-editor__label">{{localize a.label}}</span>
           </button>
         {{/each}}
       </div>
 
-      <h3>{{localize "FGT.Editor.Shape"}}</h3>
+      <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Shape"}}</h3>
       <div class="fgt-editor__picker">
         {{#each shapes as |s|}}
           <button type="button" data-action="pickShape" data-shape-id="{{s.id}}"
                   class="fgt-editor__option {{#if s.selected}}fgt-editor__option--on{{/if}}"
                   data-tooltip="{{localize s.hint}}">
-            <pre class="fgt-editor__schematic">{{#each s.schematic as |row|}}{{row}}
-{{/each}}</pre>
-            <span>{{localize s.label}}</span>
+            <span class="fgt-editor__diagram">{{{s.svg}}}</span>
+            <span class="fgt-editor__label">{{localize s.label}}</span>
           </button>
         {{/each}}
       </div>
     </section>
 
-    <section class="fgt-editor__phases">
-      <h3>{{localize "FGT.Editor.Phases"}}</h3>
+    <section class="fgt-editor__section">
+      <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Phases"}}</h3>
       <p class="fgt-editor__hint">{{localize "FGT.Editor.PhasesHint"}}</p>
-      <ol>
-        {{#each phases as |p|}}
-          <li data-index="{{p.index}}">
-            <input type="text" name="phases.{{p.index}}.kind" value="{{p.kind}}">
+
+      {{#each phases as |p|}}
+        <article class="fgt-editor__phase" data-index="{{p.index}}">
+          <header class="fgt-editor__phasehead">
+            <span class="fgt-editor__phaseno">{{p.index}}</span>
+            {{!-- `selectOptions`, not a hand-rolled loop. Comparing `k` against
+                  `../p.kind` across two nested {{#each}}es marked nothing
+                  selected, so every dropdown showed the first kind
+                  alphabetically beside the fields of the kind it really was.
+                  An unrecognised kind is in `kindChoices` too, so selecting it
+                  is possible and the next render cannot rewrite it. --}}
+            <select name="phase.{{p.index}}.kind">
+              {{selectOptions p.kindChoices selected=p.kind}}
+            </select>
             <button type="button" data-action="movePhase" data-direction="up"
                     {{disabled p.isFirst}}>↑</button>
             <button type="button" data-action="movePhase" data-direction="down"
                     {{disabled p.isLast}}>↓</button>
             <button type="button" data-action="removePhase">✕</button>
-          </li>
-        {{/each}}
-      </ol>
-      <button type="button" data-action="addPhase">{{localize "FGT.Editor.AddPhase"}}</button>
+          </header>
+
+          {{#each p.fields as |f|}}
+            <label class="fgt-editor__field">
+              <span>{{localize f.label}}</span>
+              <input type="{{f.type}}" name="phase.{{p.index}}.{{f.key}}" value="{{f.value}}">
+            </label>
+          {{/each}}
+
+          {{#each p.rules as |r|}}
+            {{!-- The effect id is the field that decides whether an
+                  applyEffects phase does anything at all, so it is a list of
+                  registered effects rather than free text. --}}
+            <div class="fgt-editor__rule">
+              {{!-- `selectOptions` for the same reason the kind select uses it:
+                    an `{{#if (eq …)}}` against a block param two {{#each}}es up
+                    marks nothing selected, and a dropdown that always shows its
+                    first entry is worse than a text box. --}}
+              <select name="phase.{{p.index}}.rule.{{r.index}}.effectId">
+                <option value="">—</option>
+                {{selectOptions r.effectChoices selected=r.effectId}}
+              </select>
+              <input type="number" name="phase.{{p.index}}.rule.{{r.index}}.magnitude"
+                     value="{{r.magnitude}}" data-tooltip="{{localize 'FGT.Editor.Magnitude'}}">
+              <input type="text" name="phase.{{p.index}}.rule.{{r.index}}.duration"
+                     value="{{r.duration}}" data-tooltip="{{localize 'FGT.Editor.Duration'}}">
+            </div>
+          {{/each}}
+
+          <details class="fgt-editor__raw" {{#unless p.known}}open{{/unless}}>
+            <summary>
+              {{#if p.known}}
+                {{localize "FGT.Editor.RawPhase"}}
+              {{else}}
+                {{localize "FGT.Editor.RawPhaseOnly"}}
+              {{/if}}
+            </summary>
+            <textarea name="phase.{{p.index}}.raw" rows="6" spellcheck="false">{{p.raw}}</textarea>
+          </details>
+        </article>
+      {{/each}}
+
+      <button type="button" class="fgt-editor__add" data-action="addPhase">
+        {{localize "FGT.Editor.AddPhase"}}
+      </button>
     </section>
   </div>
 
@@ -96,7 +215,7 @@
   </section>
 
   <footer class="fgt-editor__footer">
-    <button type="button" data-action="save" {{disabled (not valid)}}>
+    <button type="button" class="fgt-editor__save" data-action="save" {{disabled (not valid)}}>
       {{localize "FGT.Editor.Save"}}
     </button>
   </footer>

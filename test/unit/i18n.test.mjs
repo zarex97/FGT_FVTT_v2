@@ -72,6 +72,32 @@ describe("localization keys", () => {
     }
   });
 
+  it("has no key that is also the prefix of another key", () => {
+    // Foundry expands the flat dotted keys into a tree. A key that is both a
+    // STRING and the prefix of another key asks that tree to hold a string and
+    // an object at the same node, `expandObject` throws, and the merge of the
+    // WHOLE file is abandoned -- so one bad pair takes down all 591 keys and
+    // every string in the system renders as its own name.
+    //
+    // Found the honest way: `FGT.Editor.Kind` was the label on a field whose
+    // options were `FGT.Editor.Kind.classSkill` and friends. Nothing failed
+    // loudly; the entire interface just started showing key names.
+    const keys = Object.keys(strings);
+    const all = new Set(keys);
+
+    /** @type {string[]} */
+    const clashes = [];
+    for (const key of keys) {
+      const parts = key.split(".");
+      for (let i = 1; i < parts.length; i++) {
+        const prefix = parts.slice(0, i).join(".");
+        if (all.has(prefix)) clashes.push(`"${prefix}" is a string, but "${key}" needs it to be an object`);
+      }
+    }
+
+    expect(clashes).toEqual([]);
+  });
+
   it("has no key whose value is empty", () => {
     // An empty value renders as nothing at all, which reads as a layout bug
     // rather than as a missing string.
