@@ -152,7 +152,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | 26 | Authority and sockets | **Done (§26.6 deferred by decision)** | Typed operations, authorization, hidden rolls, `FGTSocket.ask`, and **per-viewer cards (§26.7)** — redaction by side, with unattributed rows kept because dropping them leaves a breakdown that does not add up. **§26.6's shadow actors stay deferred to Ch. 40 — that is this chapter's own decision, not a gap**: Foundry cannot hide part of a document, and the workaround doubles the document count for a failure mode that leaks the wrong thing. |
 | 27 | Reaction protocol | **Done** | Message-chain state, prompts, collapsing, resumption, interrupt injection (§27.9), the counter sub-process (§27.10), and **per-rung timeouts (§27.5)** — GM-clocked, deadline stored on the message so no two clients disagree, and every default asserted to spend nothing as a property over the whole table. |
 | 28 | Targeting implementation | **Done** | Canvas layer, four modes, preview, speculative damage, and **all seven §28.9 overlays** — Decoy pull, platform footprints with level badges and the Grail contest ring joined ZON, threat and Master protection. They now redraw from `fgt.invalidate` rather than a hand-maintained hook list. |
-| 29 | User interface | **Done** | Unit sheet, ability sheet, turn HUD, chat cards, summon, Wisdom curation, the choice prompt, and the three that were missing: **Master sheet (§29.3)** — which required implementing §16.9's per-Servant spell pools first — **token HUD (§29.5)** and **the ability editor (§29.6)** with its illustrated targeting picker and live validation. |
+| 29 | User interface | **Done** | Unit sheet, ability sheet, turn HUD, chat cards, summon, Wisdom curation, the choice prompt, **Master sheet (§29.3)** — which required implementing §16.9's per-Servant spell pools first — **token HUD (§29.5)** and **the ability editor (§29.6)**. The actor sheet is now **four tabs** (§29.2) on ApplicationV2's native `TABS`, one `PART` each, rendering everything an actor holds rather than the five fields it showed before: Base Attack and its range bands, MOV, Range, Detect, Sustainability, alignment, region, attributes, contract and ZON, the §6.10 resource pools, the turn budget, biography, and every effect in force with its stage damage, source and remaining duration. Presentation arithmetic lives in a **pure** module (`present.mjs`, 45 unit tests); ability state and cost come from `canUseAbility` / `npCost`, the same calls `engine/attack.mjs` makes. The editor gained the fields it lacked — including the ability's **name** — and typed per-phase editors that merge rather than replace. Still missing: §29.6's dropdown predicate builder, and the §29.8 dialogs beyond those listed. |
 | 30 | Chat and audit | **Done** | Cards, the damage explainer, **the game log (§30.8)** with its bounded storage and journal overflow, **the export (§30.9)** carrying rolls so replay is exact rather than re-simulation, and **GM overrides (§30.10)** recorded beside what they changed with the reason enforced in the rules layer. |
 
 ### Part IV — reference
@@ -284,6 +284,35 @@ Two more that are subtler than "collected only", because they *look* wired:
   `Compulsion` element covers the forced-target case (Berserk's nearest-enemy rule, Decoy's pull,
   Penthesilea's *Hatred of Achilles*) and step 4b of `resolveTargets` narrows a compelled unit's
   candidates to what it is compelled to attack. The other three keys still have no reader.
+
+### One localization key took down all 591
+
+Found while building the ability editor, and the most expensive small mistake in the project so
+far — because nothing failed.
+
+Foundry expands the flat dotted keys in `lang/en.json` into a tree. `FGT.Editor.Kind` was the
+label on a field whose options were `FGT.Editor.Kind.classSkill`, `…skill` and `…noblePhantasm`.
+That asks one node of the tree to hold a **string and an object at the same time**:
+`expandObject` throws, the merge of the whole file is abandoned, and every FGT string in the
+system falls back to rendering its own name. Not one string — all of them, across every sheet,
+dialog, HUD and chat card.
+
+There was no error in the console. `game.system.languages` still listed the file, the file still
+served with a 200, and it still parsed as valid JSON. The only symptom was an interface full of
+`FGT.Editor.Title`.
+
+`test/unit/i18n.test.mjs` now fails on any key that is the prefix of another key. It is a
+four-line check for a failure that is invisible at every other layer.
+
+### Periodic damage had one implementation and no way to read it
+
+`tickPeriodics` computed Poison's `20 × 2^(stage−1)` and applied `AMPLIFIERS` — Deadly Poison's
+doubling — behind a module-private `amplify`. The Effects tab (§29.2) has to print that number,
+and the only route to it was to write Appendix A §A.12 out a second time.
+
+Extracted as `periodicDamageFor(instance, unit)` and exported, with `tickPeriodics` now calling
+it. Pure, so layer 4 may use it. The registry's own `periodic` field is *not* what ticks — the
+scheduler's `PERIODICS` table is — which is worth knowing before reading either.
 
 ### The layer rule was documented, computed and unenforced
 
