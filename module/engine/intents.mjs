@@ -141,6 +141,28 @@ export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });
 
 /**
+ * Set a resource to an ABSOLUTE value, rather than adjusting it by a delta.
+ *
+ * `resource`'s delta is added to whatever the field currently holds — and a
+ * field that is legitimately `null` until its first write has no "current" to
+ * add against. Sustainability's remaining-turns clock is exactly this: `null`
+ * means "not started yet, defaults to the resolved maximum" (Ch. 06 §6.8), not
+ * "zero". A relative `resource` intent against it reads the raw stored `null`,
+ * and `io.adjustResource` cannot invent the resolved maximum on its own — it
+ * has no ◈ expression to resolve and no `turnsPerRound` to resolve it with.
+ * The caller has usually already resolved it (`u.sustainability` on a
+ * snapshot); this intent carries that number through rather than a delta the
+ * writer would have to reconstruct it from.
+ *
+ * @param {string} unitId
+ * @param {string} key
+ * @param {number} value
+ * @returns {Intent}
+ */
+export const setResource = (unitId, key, value) =>
+  ({ t: "resource", unitId, key, delta: value, absolute: true });
+
+/**
  * Spend one charge of a count-limited effect.
  *
  * `uses` has been stored on every count-stacked effect since the applier was

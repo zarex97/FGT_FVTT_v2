@@ -14,6 +14,8 @@
     <section class="fgt-editor__section">
       <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Identity"}}</h3>
       <div class="fgt-editor__grid">
+        <img class="fgt-editor__icon" src="{{identity.img}}" alt="{{identity.name}}"
+             data-action="editImage" data-tooltip="{{localize 'FGT.Editor.Icon'}}">
         <label class="fgt-editor__field fgt-editor__field--wide">
           <span>{{localize "FGT.Editor.Name"}}</span>
           {{!-- On the Item, not in `system` -- held until Save with the rest

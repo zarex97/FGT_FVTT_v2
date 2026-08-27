@@ -8,6 +8,7 @@
  */
 
 import { FGTActorSheet } from "./actor-sheet/sheet.mjs";
+import { editImage } from "./image-edit.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -19,7 +20,19 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     position: { width: 560, height: 620 },
     window: { resizable: true },
     form: { submitOnChange: true },
+    actions: {
+      editImage: FGTItemSheet.#onEditImage,
+    },
   };
+
+  /**
+   * @this {FGTItemSheet}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onEditImage(_event, target) {
+    return editImage(this, target);
+  }
 
   static PARTS = {
     body: { template: "systems/fgt/templates/item/ability.hbs", scrollable: [""] },

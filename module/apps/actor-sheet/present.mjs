@@ -59,18 +59,17 @@ export function resourceBar(resource) {
  * steps move Base Attack, and because a sheet that shows `B` where the Servant
  * was written `C` and granted one step is a sheet nobody can check"*.
  *
- * `rank` is **whatever the field holds** — the value every rule reads — and
- * `steps` is reported as the separate fact it is. The tile deliberately does
- * NOT render an "authored ▸ granted" transition, because nothing in the engine
- * performs that shift: `grantedSteps` is written by `engine/summon.mjs` and
- * read only by `baseAttackAdjustment`, while a war Region's bonus travels a
- * different path entirely (a `rankShift` statDelta re-applied per snapshot).
- * Computing an "authored" rank by stepping back down would therefore print a
- * Rank the Servant was never written with, on the one tile whose whole purpose
- * is being checkable against the sheet it came from.
+ * `rank` is **the written Rank**, not the effective one — the tile deliberately
+ * does NOT render an "authored ▸ granted" transition, because that would print
+ * a Rank the Servant was never written with, on the one tile whose whole
+ * purpose is being checkable against the sheet it came from. `steps` is
+ * reported beside it as the separate fact it is.
  *
- * §5.6's `effective` getter is still unimplemented for the Master-grant path.
- * That is an engine gap, not a display one, and it is recorded in Ch. 45.
+ * The shift itself is real, just not here: `rules/snapshot.mjs` folds a High
+ * Rank Master's `grantedSteps` (and, live, the war Region's bonus) into the
+ * Rank every rule reads — Magic Resistance, the damage table rows, `Rank.gte`
+ * gates — without touching `system.parameters`, so this tile keeps showing the
+ * sheet's own number (Ch. 05 §5.6).
  *
  * @param {Record<string, string>} parameters the ranks in force
  * @param {Record<string, number>} [grantedSteps] steps granted post-summon

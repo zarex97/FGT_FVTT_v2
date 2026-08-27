@@ -35,9 +35,13 @@ export function unitCommon() {
     // needs the override, stating "Detect: 4" regardless of its range.
     detect: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true, min: 0 }),
 
-    // A portrait shipped with the system, so a Servant imported from a
-    // compendium is not a grey silhouette. Separate from the document's own
-    // `img`, which a GM may overwrite freely without losing the default.
+    // The standard image, separate from the document's own `img` (the TRUE
+    // portrait) so a GM may overwrite `img` freely without losing it. Only a
+    // Servant currently gives this a job: while its identity is unrevealed, a
+    // non-GM viewer's sheet shows this instead of the true portrait (Ch. 04
+    // §4.2), the same way `classContainer` stands in for `trueName`. Every
+    // unit kind carries the field regardless, on the same reasoning as
+    // `attributes` being open rather than typed per-kind.
     defaultImage: new fields.FilePathField({
       required: false, nullable: true, initial: null, categories: ["IMAGE"],
     }),

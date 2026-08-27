@@ -157,7 +157,7 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   const pending = pendingCosts({ usage, ability, self, master, board });
   const { charged, superseded } = resolveCosts(pending);
 
-  for (const cost of charged) await applyBatch(costIntents(cost), "attack:cost");
+  for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
 
   // The cooldown, at the same moment as the cost and for the same reason: the
   // ability has been committed. `resolveAttack` never did this, so every Attack
@@ -976,18 +976,23 @@ function usageRefusal(usage) {
  * Master's triggers.
  *
  * @param {object} cost
+ * @param {object} self the paying unit's snapshot, for a sustainability cost
  * @returns {object[]} intents
  */
-function costIntents(cost) {
+function costIntents(cost, self) {
   const note = I.log({ kind: "cost", cost: cost.kind, amount: cost.amount, unitId: cost.unitId });
   switch (cost.kind) {
     case "masterHealth":
     case "selfHealth":
       return [I.statDelta(cost.unitId, "health.value", -cost.amount), note];
     case "sustainability":
-      // The NUMERIC clock, not the authored expression. Writing to
-      // `sustainability` appended to a string and produced NaN.
-      return [I.resource(cost.unitId, "sustainabilityRemaining", -cost.amount), note];
+      // An ABSOLUTE write, from `self.sustainability` -- the already-resolved
+      // remaining figure -- not a relative delta against the raw stored field.
+      // That field is `null` until its first write, and a Free Servant's FIRST
+      // Noble Phantasm read that `null` as 0 and set the clock to 0 regardless
+      // of how much it actually had (same defect `checkRemovals` had; see its
+      // comment in `scheduler.mjs`).
+      return [I.setResource(cost.unitId, "sustainabilityRemaining", self.sustainability - cost.amount), note];
     default:
       return [note];
   }

@@ -23,6 +23,12 @@
 > multi-Servant tax. The drain is a content gap rather than an engine one — nothing authors an
 > `OnEvent` against it.
 
+> **§16.6 fixed (Ch. 45).** The decrement in the pseudocode below was landing against a `null`
+> `sustainabilityRemaining` read as `0`, not against the resolved remaining figure — so a freshly
+> Free Servant's clock collapsed to zero after one Turn no matter what its sheet said. Every writer
+> (the per-Turn decay here, and a Free Servant's Noble Phantasm cost in §16.5) now writes the
+> resolved figure minus the amount directly, instead of a delta against storage.
+
 The Master–Servant bond is the game's central tension: Servants are strong and Masters are
 fragile, but a Servant far from its Master is weakened and a Servant without a Master is on a
 timer. This chapter specifies contracts, ZON, Sustainability, Cover, Overpower/Underpower, and

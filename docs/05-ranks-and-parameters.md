@@ -386,6 +386,22 @@ interface Parameters {
 `baseAttackAdjustment = granted.str * 10` and `granted.mag * 10`. Clean, and it makes the
 Region rule ("+ to all Parameters") a single `granted[k] += 1` loop.
 
+**Implementation.** `base` and `granted` are stored exactly as above (`system.parameters`,
+`system.grantedSteps`), but `effective` is not a stored field — it is computed in the rules
+layer, not the data model, because the Region's contribution to it is a *live* setting rather
+than a permanent fact (see below). `rules/snapshot.mjs#applyGrantedSteps` folds a High Rank
+Master's `grantedSteps` into a unit's projected `parameters` at snapshot time, and
+`annotateRegionBonus` folds the war Region's step in the same way once `snapshotBoard` has the
+current Region in hand — both leave `system.parameters` itself untouched, so the sheet still
+shows the Servant's written Rank. Every Rank comparison downstream (Magic Resistance, the damage
+table rows, `Rank.gte` gates) reads the projected, shifted value.
+
+One path does not yet see the Region's contribution: `engine/board.mjs#unitSnapshot`, used for a
+single unit outside a full board projection (`engine/attack.mjs`'s check phase and reaction
+gating), has no board and so no war Region to apply. It does see a Master's grant, because that
+one needs no board — it is a permanent fact already on the Servant. Ch. 45 §"granted steps"
+tracks closing this.
+
 ### Semiramis's rank-up
 
 Aboard the Hanging Gardens, *all* of Semiramis's Parameters go up one rank, with explicit

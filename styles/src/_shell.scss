@@ -72,6 +72,9 @@
     border: var(--fgt-border);
     border-radius: var(--fgt-radius);
     background: var(--fgt-bg-sunken);
+    // Clickable -- it opens the FilePicker (`data-action="editImage"`) --
+    // and nothing else marked that, so it looked exactly as inert as it was.
+    cursor: pointer;
   }
 
   &__identity {
@@ -347,6 +350,7 @@
     object-fit: cover;
     border: var(--fgt-border);
     border-radius: var(--fgt-radius);
+    cursor: pointer;
   }
 
   &__icon { width: 64px; height: 64px; }

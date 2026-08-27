@@ -8,6 +8,13 @@
 > Agility is depleted by exactly three things, and all three now exist: the Injury Roll,
 > `Def Dwn (C)`, and Luck Checks. The Home Base restores 1 per Round (§19.1 E1) and a Civilian
 > kill grants 1.
+>
+> **§6.8 fixed (Ch. 45).** `sustainabilityRemaining` is `null` in storage until its first write —
+> deliberately, so it falls back to the full authored clock (below) rather than to zero — and every
+> writer used to read that `null` as `0` before decrementing, so a freshly Free Servant's clock
+> collapsed to zero on its first Turn regardless of what it actually had. Every writer now writes
+> the already-resolved remaining figure minus the amount, absolutely, rather than a relative delta
+> against the raw stored field.
 
 Parameters are ranks; **stats** are the numbers combat actually reads. This chapter specifies
 each stat's semantics, its modifier model, its clamping rules, and the general-purpose

@@ -1,7 +1,8 @@
 {{!-- A <div>, not a <form>: see templates/actor/unit.hbs. --}}
 <div class="fgt-sheet fgt-sheet--item">
   <header class="fgt-sheet__header">
-    <img class="fgt-sheet__icon" src="{{document.img}}" alt="{{document.name}}" data-edit="img">
+    <img class="fgt-sheet__icon" src="{{document.img}}" alt="{{document.name}}"
+         data-edit="img" data-action="editImage">
     <div class="fgt-sheet__identity">
       <input type="text" name="name" value="{{document.name}}">
       <div class="fgt-sheet__meta">
