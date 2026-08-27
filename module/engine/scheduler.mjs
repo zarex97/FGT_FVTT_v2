@@ -984,6 +984,20 @@ function onRemoveIntents(unit, instance, ctx) {
  * Action at A+ or EX. That is not "a very large number"; the field is absent
  * and the check must not run.
  *
+ * Writes the new remaining value as an ABSOLUTE `I.setResource`, not a
+ * relative `-1` `I.resource` delta. `u.sustainability` here is already the
+ * correctly-resolved remaining figure — it falls back to the full authored
+ * maximum when nothing has decremented it yet (`rules/snapshot.mjs`'s
+ * `sustainabilityTurns`) — and a relative delta would instead land against
+ * whatever `sustainabilityRemaining` literally holds in storage, which is
+ * `null` until the first write. `io.adjustResource` cannot resolve that ◈
+ * expression itself, so the first-ever decrement for a newly Free or Unbound
+ * Servant collapsed the clock to zero in one Turn: `null` was read as `0`, and
+ * `max(0, 0 - 1)` is `0`, regardless of how much Sustainability the Servant
+ * actually had. Writing the number already computed here sidesteps the
+ * storage's `null` entirely, so it is correct whether or not anything ever
+ * initialized the field.
+ *
  * @param {object[]} units
  * @param {SchedulerContext} ctx
  * @returns {Intent[]}
@@ -996,7 +1010,7 @@ export function checkRemovals(units, ctx) {
     if (u.contract !== "free" && u.contract !== "unbound") continue;
     if (u.sustainability === null || u.sustainability === undefined) continue;
 
-    out.push(I.resource(u.id, "sustainabilityRemaining", -1));
+    out.push(I.setResource(u.id, "sustainabilityRemaining", u.sustainability - 1));
     if (u.sustainability - 1 <= 0) {
       out.push(I.defeat(u.id, "sustainabilityExhausted"));
       out.push(I.log({ kind: "disappear", unitId: u.id, tick: ctx.tick }));

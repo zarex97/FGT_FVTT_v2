@@ -29,6 +29,14 @@
         <input type="checkbox" name="system.identityRevealed" {{checked system.identityRevealed}}>
         <span>{{localize "FGT.Sheet.IdentityRevealed"}}</span>
       </label>
+      <label class="fgt-field fgt-field--image">
+        <span>{{localize "FGT.Sheet.DefaultImage"}}</span>
+        {{!-- The standard image shown in place of the true portrait while
+              `identityRevealed` is unset, to anyone but the GM. --}}
+        <img class="fgt-field__image" src="{{details.defaultImageSrc}}" alt=""
+             data-edit="system.defaultImage" data-action="editImage"
+             data-tooltip="{{localize 'FGT.Sheet.DefaultImageHint'}}">
+      </label>
       <label class="fgt-field">
         <span>{{localize "FGT.Sheet.AlignmentOrder"}}</span>
         <input type="text" name="system.alignment.order" value="{{system.alignment.order}}">

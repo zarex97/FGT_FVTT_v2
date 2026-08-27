@@ -441,4 +441,16 @@
 
     > span { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 0.75rem; }
   }
+
+  &--image { align-items: start; }
+}
+
+.fgt-field__image {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: var(--fgt-border);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-sunken);
+  cursor: pointer;
 }

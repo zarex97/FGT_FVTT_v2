@@ -100,6 +100,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       movePhase: AbilityEditor.#onMovePhase,
       pickAnchor: AbilityEditor.#onPickAnchor,
       pickShape: AbilityEditor.#onPickShape,
+      editImage: AbilityEditor.#onEditImage,
       save: AbilityEditor.#onSave,
     },
   };
@@ -161,7 +162,9 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       // in this editor before -- not even the name.
       identity: {
         name: this.#item.name,
-        img: this.#item.img,
+        // `#pendingImg` first, or a pick would visibly revert to the old icon
+        // on every re-render between clicking it and hitting Save.
+        img: this.#pendingImg ?? this.#item.img,
         kind: this.#draft.kind ?? (this.#item.type === "noblePhantasm" ? "noblePhantasm" : "skill"),
         kindChoices: Object.fromEntries(ABILITY_KINDS.map((k) => [k, `FGT.Editor.AbilityKind.${k}`])),
         description: this.#draft.description ?? "",
@@ -561,6 +564,29 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   static #onPickShape(_event, target) {
     this.#draft.targeting = { ...(this.#draft.targeting ?? {}), shape: target.dataset.shapeId };
     this.render();
+  }
+
+  /**
+   * Change the ability's icon.
+   *
+   * `#pendingImg` already existed and `#onSave` already wrote it -- the FIELD
+   * this editor could not set had a control for `name` and never grew one for
+   * `img`, so the plumbing for it sat unused since the editor could set a name.
+   * Held in `#pendingImg` rather than written immediately, for the same reason
+   * every other field here is: nothing is written until Save.
+   *
+   * @this {AbilityEditor}
+   */
+  static async #onEditImage() {
+    const picker = new foundry.applications.apps.FilePicker.implementation({
+      type: "image",
+      current: this.#pendingImg ?? this.#item.img,
+      callback: (path) => {
+        this.#pendingImg = path;
+        this.render();
+      },
+    });
+    return picker.browse();
   }
 
   /**

@@ -129,6 +129,20 @@ describe("applyIntents", () => {
     await applyIntents([I.setFacing("a", "n"), I.setFacing("a", "e")], { io, canWrite: ownsA });
     expect(io.calls.find(([n]) => n === "setFacing")[2]).toBe("e");
   });
+
+  it("passes a relative I.resource's delta through with absolute=false", async () => {
+    const io = fakeIo();
+    await applyIntents([I.resource("a", "sustainabilityRemaining", -1)], { io, canWrite: ownsA });
+    expect(io.calls.find(([n]) => n === "adjustResource"))
+      .toEqual(["adjustResource", "a", "sustainabilityRemaining", -1, false]);
+  });
+
+  it("passes an I.setResource's value through with absolute=true", async () => {
+    const io = fakeIo();
+    await applyIntents([I.setResource("a", "sustainabilityRemaining", 5)], { io, canWrite: ownsA });
+    expect(io.calls.find(([n]) => n === "adjustResource"))
+      .toEqual(["adjustResource", "a", "sustainabilityRemaining", 5, true]);
+  });
 });
 
 describe("markTurn — what the budget reads back", () => {

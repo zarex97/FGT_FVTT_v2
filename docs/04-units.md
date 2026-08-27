@@ -9,8 +9,10 @@
 > the concealment is from opponents, not from the player running it.
 >
 > Every unit also carries `detect` (vision range and Detect are the same number, Ch. 08 §8.7)
-> and `defaultImage`, a portrait shipped with the system so an imported Servant is not a grey
-> silhouette.
+> and `defaultImage`, a standard image separate from `img` (the true portrait). **Fixed (Ch. 45):**
+> only a Servant gives it a job today — while `identityRevealed` is unset, this is what a non-GM
+> viewer's sheet shows in place of the true portrait, the same way `classContainer` stands in for
+> `trueName`. It used to be schema-only: declared, authored by nothing, read by nothing.
 
 > **Implemented (Ch. 45 C2, C3).** The Civilian rules of §4.6 are live: a Servant attacking a
 > Civilian kills it with **no damage calculation and no reaction ladder** — `resolveAttack`

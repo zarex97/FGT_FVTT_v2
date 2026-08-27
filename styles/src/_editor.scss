@@ -47,6 +47,20 @@
     gap: 0.5rem;
   }
 
+  // The editor could set a name and never grew a control for the icon that
+  // sits right next to it -- `#pendingImg` existed in the app and `#onSave`
+  // already wrote it; nothing in the template asked for a value.
+  &__icon {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border: var(--fgt-border);
+    border-radius: var(--fgt-radius);
+    cursor: pointer;
+    justify-self: start;
+    align-self: center;
+  }
+
   &__field {
     display: flex;
     flex-direction: column;

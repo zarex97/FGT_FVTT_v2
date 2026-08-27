@@ -104,7 +104,7 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
   };
 
   await applyWorldIntents([
-    ...(usage.cost ? costIntents(usage.cost) : []),
+    ...(usage.cost ? costIntents(usage.cost, self) : []),
     ...cooldownIntents(ability, actor, applied.summoned ?? 0, self),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
@@ -595,16 +595,23 @@ function cooldownIntents(ability, actor, summoned = 0, unit = null) {
   ];
 }
 
-/** @param {object} cost @returns {object[]} */
-function costIntents(cost) {
+/**
+ * @param {object} cost
+ * @param {object} self the paying unit's snapshot, for a sustainability cost
+ * @returns {object[]}
+ */
+function costIntents(cost, self) {
   // `statDelta`, never `damage` -- Health *loss* must not feed damage-keyed
   // triggers (Ch. 06). Same reason as the attack path.
   if (!cost?.unitId) return [];
-  const path = cost.kind === "sustainability" ? "sustainabilityRemaining" : "health.value";
-  return [
-    I.statDelta(cost.unitId, path, -cost.amount, false),
-    I.log({ kind: "cost", cost: cost.kind, amount: cost.amount, unitId: cost.unitId }),
-  ];
+  const note = I.log({ kind: "cost", cost: cost.kind, amount: cost.amount, unitId: cost.unitId });
+  if (cost.kind === "sustainability") {
+    // An ABSOLUTE write, from `self.sustainability` -- see `costIntents` in
+    // `engine/attack.mjs` for why a relative delta against the raw stored
+    // field (`null` until its first write) is wrong here.
+    return [I.setResource(cost.unitId, "sustainabilityRemaining", self.sustainability - cost.amount), note];
+  }
+  return [I.statDelta(cost.unitId, "health.value", -cost.amount, false), note];
 }
 
 /** @param {object} ability @returns {object} */

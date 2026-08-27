@@ -17,6 +17,7 @@
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
+import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { EffectRegistry } from "./registry.mjs";
@@ -105,7 +106,12 @@ export function snapshotUnit(actor, {
     contract: sys.contract ?? "contracted",
     commandSpells: sys.commandSpells ?? 0,
 
-    parameters: parseParameters(sys.parameters),
+    // §5.6: `effective = base shifted by granted`. Only a High Rank Master's
+    // grant is folded in here -- it is a permanent, per-unit fact this
+    // projection can settle on its own. The war Region's grant is folded in by
+    // `annotateRegionBonus` once `snapshotBoard` has the current Region in
+    // hand, because this layer never touches `game` and cannot look it up.
+    parameters: applyGrantedSteps(parseParameters(sys.parameters), sys.grantedSteps),
     baseAttack: { str: sys.baseAttack?.str ?? 0, mag: sys.baseAttack?.mag ?? 0 },
     // Abilities can grant attributes -- Divinity grants `divine`, which is what
     // Karna's Vasavi Shakti and Scathach's God Slayer key on.
@@ -150,10 +156,13 @@ export function snapshotUnit(actor, {
     })),
     checkModifiers: contributions.checkModifiers,
     damageNegation: contributions.damageNegation,
-    // Informational. `FGTActor#prepareDerivedData` has ALREADY folded these
-    // into `mov`, `range`, `agility` and friends above -- this list is here so
-    // a sheet can explain the number, not so a consumer can apply it again.
-    statDeltas: contributions.statDeltas,
+    // `contributions.statDeltas` is informational: `FGTActor#prepareDerivedData`
+    // has ALREADY folded those into `mov`, `range`, `agility` and friends above
+    // -- this list is here so a sheet can explain the number, not so a consumer
+    // can apply it again. `grantedStepDeltas` is the opposite: it explains a
+    // shift `parameters` above has ALREADY received (from `applyGrantedSteps`),
+    // for the same "why is my Rank B" trace `annotateRegionBonus` feeds too.
+    statDeltas: [...contributions.statDeltas, ...grantedStepDeltas(sys.grantedSteps)],
 
     magicResistance: contributions.magicResistance ?? magicResistanceOf(actor),
 
@@ -398,9 +407,17 @@ function annotatePlatforms(units, board) {
 /**
  * Apply the war Region's parameter step.
  *
- * A **rank shift**, not a numeric delta, so it flows through the same derived
- * path Enkidu's reduction and Mad Enhancement's boost use — and so it moves
- * Base Attack by 10 per step with it (Ch. 05 §5.6).
+ * A **rank shift**, not a numeric delta, so it moves Base Attack by 10 per
+ * step with it (Ch. 05 §5.6) — the same rule a High Rank Master's grant
+ * applies via `applyGrantedSteps` above, kept live here instead of baked into
+ * the sheet, because *"changing the region mid-configuration does not need
+ * every sheet rewritten"*.
+ *
+ * The statDelta this used to only RECORD and never apply — `u.parameters` kept
+ * the written Rank regardless of the Region, so a Servant fielded in a war
+ * fought in its own Region got the trace entry and nothing else. Both
+ * `u.parameters` and `u.baseAttack` are mutated directly here, the same way
+ * `applyGrantedSteps` mutates the projection rather than the source document.
  *
  * @param {object[]} units
  * @param {object} board
@@ -413,6 +430,14 @@ function annotateRegionBonus(units, board) {
   for (const u of units) {
     const steps = regionBonusFor(u, warRegion);
     if (steps === 0) continue;
+
+    for (const p of ["str", "end", "agi", "mag", "luc"]) {
+      if (!u.parameters[p]) continue;
+      u.parameters[p] = u.parameters[p].step(steps);
+    }
+    const ba = baseAttackAdjustment({ str: steps, mag: steps });
+    u.baseAttack = { str: u.baseAttack.str + ba.str, mag: u.baseAttack.mag + ba.mag };
+
     u.statDeltas = [
       ...(u.statDeltas ?? []),
       ...["str", "end", "agi", "mag", "luc"].map((p) => ({
@@ -502,6 +527,47 @@ function parseParameters(raw) {
     out[key] = Rank.parseOrNull(value);
   }
   return out;
+}
+
+/**
+ * Shift parsed parameters by a High Rank Master's grant (Ch. 05 §5.6).
+ *
+ * `system.grantedSteps` was, until now, read only by `baseAttackAdjustment`
+ * at summon time -- the Parameter itself kept its written Rank forever, so a
+ * Servant granted a STR step got +10 Base Attack and nothing else: every Rank
+ * comparison (Magic Resistance, the damage table rows, `Rank.gte` gates) saw
+ * the unmodified Rank. `system.parameters` is left untouched -- it is still
+ * "what the Servant was written with", exactly as the sheet's parameter tile
+ * needs it to be -- and only this projection's copy moves.
+ *
+ * @param {Record<string, Rank|null>} parameters
+ * @param {Record<string, number>} [grantedSteps]
+ * @returns {Record<string, Rank|null>}
+ */
+function applyGrantedSteps(parameters, grantedSteps) {
+  if (!grantedSteps) return parameters;
+  const out = { ...parameters };
+  for (const [key, steps] of Object.entries(grantedSteps)) {
+    if (!steps || !out[key]) continue;
+    out[key] = out[key].step(steps);
+  }
+  return out;
+}
+
+/**
+ * Trace entries explaining a Master grant's Rank shift, in the same shape
+ * `annotateRegionBonus` produces for the Region's.
+ *
+ * @param {Record<string, number>} [grantedSteps]
+ * @returns {object[]}
+ */
+function grantedStepDeltas(grantedSteps) {
+  return Object.entries(grantedSteps ?? {})
+    .filter(([, steps]) => steps)
+    .map(([key, steps]) => ({
+      stat: `parameters.${key}`, rankShift: steps, target: "self",
+      source: "High Rank Master grant",
+    }));
 }
 
 /**

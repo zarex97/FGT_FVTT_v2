@@ -158,21 +158,40 @@ export function worldIO() {
      * The ceiling is read from the sibling `max` rather than passed in, so a
      * caller cannot get it wrong and no caller has to know it exists.
      *
+     * `current` is read BEFORE defaulting it to `0`, and a `null` current
+     * refuses the write outright rather than treating the resource as if it
+     * started at zero — `null` means "does not apply" throughout this schema
+     * (`health: null` is the undamageable convention this mirrors), not "zero
+     * and counting". Reading `?? 0` first defeated that check every time: it
+     * coerced the very `null` the guard existed to catch, so a resource that
+     * had never been written moved anyway, from a phantom zero rather than
+     * from nothing. Sustainability's remaining-turns clock is `null` until its
+     * first write by design (Ch. 06 §6.8) — its very first per-Turn decrement
+     * read that phantom zero and wrote `max(0, 0 - 1) = 0`, so a freshly Free
+     * Servant's clock collapsed to zero after one Turn regardless of how many
+     * it actually had left.
+     *
+     * `absolute` bypasses `current` entirely for a caller that has already
+     * resolved the number the field should hold (see `I.setResource`) — the
+     * one legitimate way to write past a `null` baseline, because it does not
+     * depend on what was there before.
+     *
      * @param {string} unitId
      * @param {string} key a path under `system`, e.g. `resources.prs.value`
      * @param {number} delta
+     * @param {boolean} [absolute] write `delta` itself rather than adding it
      */
-    async adjustResource(unitId, key, delta) {
+    async adjustResource(unitId, key, delta, absolute = false) {
       const actor = resolve(unitId);
       if (!actor) return;
       const path = `system.${key}`;
-      const current = foundry.utils.getProperty(actor, path) ?? 0;
-      if (current === null) return;
+      const current = foundry.utils.getProperty(actor, path);
+      if (current === null && !absolute) return;
 
       const max = key.endsWith(".value")
         ? foundry.utils.getProperty(actor, `system.${key.slice(0, -".value".length)}.max`)
         : null;
-      const raw = Math.max(0, current + delta);
+      const raw = Math.max(0, absolute ? delta : (current ?? 0) + delta);
       await actor.update({ [path]: typeof max === "number" ? Math.min(max, raw) : raw });
     },
 

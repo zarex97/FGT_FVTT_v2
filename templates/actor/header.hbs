@@ -11,7 +11,8 @@
       form as its owner, `FormDataExtended(outerForm)` would collect nothing,
       and no edit on this sheet would ever save. --}}
 <header class="fgt-header" style="--fgt-faction: {{header.factionColor}}">
-  <img class="fgt-header__portrait" src="{{document.img}}" alt="{{document.name}}" data-edit="img">
+  <img class="fgt-header__portrait" src="{{header.portraitImg}}" alt="{{document.name}}"
+       data-edit="img" data-action="editImage">
 
   <div class="fgt-header__identity">
     <input class="fgt-header__name" type="text" name="name" value="{{document.name}}"

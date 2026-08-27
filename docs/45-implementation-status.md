@@ -285,25 +285,54 @@ Two more that are subtler than "collected only", because they *look* wired:
   Penthesilea's *Hatred of Achilles*) and step 4b of `resolveTargets` narrows a compelled unit's
   candidates to what it is compelled to attack. The other three keys still have no reader.
 
-### §5.6's granted steps never reach the Parameter — **open**
+### ~~§5.6's granted steps never reach the Parameter~~ — **repaired**
 
-Found while building the Overview tab's parameter tiles, and **not fixed**: it is an engine
-change, and the sheet work was scoped to render what exists.
+Found while building the Overview tab's parameter tiles, left open at the time because it was an
+engine change and the sheet work was scoped to render what existed. Reported again independently
+by a GM as a live bug and fixed.
 
 Ch. 05 §5.6 specifies `effective = base shifted by granted`. `engine/summon.mjs` writes
-`system.grantedSteps` and adjusts Base Attack from it, and then **nothing shifts the Parameter
-itself** — the only other reader of the field is `baseAttackAdjustment`. A war Region's bonus
-does reach the rank, but by a different route entirely (`annotateRegionBonus` emits a `rankShift`
-statDelta re-applied per snapshot), so the two grant sources behave differently for no stated
-reason.
+`system.grantedSteps` and adjusts Base Attack from it, and **nothing shifted the Parameter
+itself** — the only other reader of the field was `baseAttackAdjustment`. A Servant granted a
+STR step by a High Rank Master got the +10 Base Attack and kept its written Rank, so anything
+comparing Ranks — Magic Resistance, the damage table rows, `Rank.gte` gates — saw the unmodified
+one.
 
-The consequence is small and quiet: a Servant granted a STR step by a High Rank Master gets the
-+10 Base Attack and keeps its written Rank, so anything comparing Ranks — Magic Resistance, the
-damage table rows, `Rank.gte` gates — sees the unmodified one.
+This entry originally claimed the war Region's bonus "does reach the rank, via a different
+route" (`annotateRegionBonus` emitting a `rankShift` statDelta). Re-investigating while fixing the
+Master-grant path found that claim was **wrong**: `applyStatDeltas` (`rules/derived.mjs`) is only
+ever called from `FGTActor#prepareDerivedData`, over an actor's own ability/effect contributions —
+never over a board snapshot's `statDeltas`. The Region's `rankShift` entry was pushed onto
+`u.statDeltas` and then read by nothing; a snapshot's `u.parameters` never moved for it either. Both
+grant sources were silently inert for Rank comparisons, not just the Master's — confirmed with a
+throwaway probe test before either fix landed (Ch. 05 documents the reproduction).
 
-The sheet does not paper over it. The parameter tile shows the Rank the field holds and reports
-the granted steps beside it as the separate fact they are, rather than rendering a
-"written C ▸ now B" arrow that would print a Rank the Servant was never written with.
+**Fix**, in `rules/snapshot.mjs`:
+- `snapshotUnit` now folds `system.grantedSteps` into its own copy of `parameters` via the new
+  `applyGrantedSteps`, and records a matching trace entry in `statDeltas` via `grantedStepDeltas`.
+  This is a permanent, per-unit fact, so it settles at single-unit projection time and is visible
+  to every caller — `snapshotBoard` and the direct `unitSnapshot` calls `engine/attack.mjs` makes
+  for checks and reaction gating alike. `system.parameters` itself is never written to; the sheet
+  keeps showing the authored Rank.
+- `annotateRegionBonus` now actually mutates `u.parameters` (via `Rank#step`) and `u.baseAttack`
+  (via `baseAttackAdjustment`, the same ±10-per-STR/MAG-step helper the Master-grant path already
+  used at summon), instead of only appending a statDelta nobody consumed. This only reaches units
+  projected through `snapshotBoard` — a single-unit `unitSnapshot` call has no board and therefore
+  no current war Region to apply, which stays a known, narrower gap (see below).
+- The two sources stack normally: a Master's `+1 STR` plus a matching Region's `+1 STR` step the
+  Rank twice, same as if either had granted `+2` alone.
+
+**Still open, smaller:** a direct `unitSnapshot(actor)` call (no board) cannot pick up the war
+Region's bonus, because `rules/snapshot.mjs` is a pure layer that never touches `game` and the
+Region setting is not threaded through that call path. `engine/attack.mjs`'s check-phase and
+reaction-gating snapshots are built this way, so a Region-only bonus (no Master grant) is not yet
+visible to those two call sites specifically — everything reached through `currentBoard()` /
+`snapshotBoard` is unaffected. Threading `warRegion` into `board.mjs#unitSnapshot` would close it;
+scoped out here to keep this fix to what was reported.
+
+The sheet still does not paper over any of this. The parameter tile shows the Rank the field
+holds and reports the granted steps beside it as the separate fact they are, rather than
+rendering a "written C ▸ now B" arrow.
 
 ### One localization key took down all 591
 
@@ -396,6 +425,52 @@ Still inert, and now on the list rather than buried: **the Sustainability drain*
 Dice keep the "caller rolls" contract the rest of layer 3 uses: `fireEvent` is pure and reads
 totals from `ctx.rolls`, and `pendingRolls(unit, event)` tells the impure caller which formulas
 to roll first — so the attack flow does not have to know what Battle Continuation is.
+
+### ~~A Free Servant's Sustainability collapsed to zero after one Turn~~ — **repaired**
+
+Reported by a GM as "Sustainability ticks down even while contracted" — a live symptom that turned
+out to have a different cause than the report guessed. `checkRemovals` (Ch. 06 §6.8, Ch. 16 §16.6)
+was already, correctly, gated on `contract === "free" || "unbound"`; a contracted Servant's clock
+never moved, confirmed against the actual world state (`system.contract: "contracted"`) and by
+calling `checkRemovals` directly against it — it returned `[]`, as it should. What was live was the
+next Turn end for a Servant that HAD just gone Free.
+
+`sustainabilityRemaining` is `null` in storage until its first write — by design, so a Servant
+summoned before the field existed, or one that has simply never lost a Master, falls back to its
+full authored clock rather than to zero (`rules/snapshot.mjs`'s `sustainabilityTurns`). Every write
+to it went through `io.adjustResource`, which read the current stored value with
+`foundry.utils.getProperty(actor, path) ?? 0` — coercing that meaningful `null` to `0` **before**
+its own guard (`if (current === null) return;`) ever ran. The guard was dead code, exactly the
+shape Ch. 45 keeps finding elsewhere: written once, never able to fire again once the line above it
+changed.
+
+The consequence: the FIRST decrement a newly-Free Servant's clock ever received —
+`checkRemovals`'s per-Turn `-1`, or a Free Servant's first Noble-Phantasm-by-Sustainability
+payment in either `engine/attack.mjs` or `engine/skill-use.mjs` — read the phantom `0` and wrote
+`max(0, 0 - 1)`, or `0 - cost`, back to storage. A Servant with a stated 6-Turn clock disappeared
+on its second Turn as a Free unit, regardless of the number on its sheet, and every subsequent
+report of "it disappeared instantly" would have looked like a different bug each time depending on
+which write path got there first.
+
+**Fix, in three parts:**
+
+1. **`io.adjustResource` gained an `absolute` mode.** `null` still means "does not apply" and a
+   relative delta against it is still refused — that guard now actually runs, which is a
+   correctness fix on its own for any future resource with the same nullable-until-first-write
+   shape. `absolute: true` writes the given number directly, for a caller that has already
+   resolved what the field should hold and does not need a "current" to add to.
+2. **`I.setResource(unitId, key, value)`** (`engine/intents.mjs`) is the constructor for that mode,
+   alongside the existing relative `I.resource`.
+3. **Every Sustainability writer switched to it**, using the number already resolved on the
+   caller's own snapshot rather than the raw stored field: `checkRemovals`'s per-Turn decrement
+   (`scheduler.mjs`) and the Noble-Phantasm-by-Sustainability cost in both `attack.mjs` and
+   `skill-use.mjs`. All three now write `resolvedRemaining - amount` outright, which is correct
+   whether the stored field was `null`, freshly initialized by a Master's death, or already
+   mid-countdown.
+
+Reproduced and verified live before and after, against the actual `Heracles` actor in a running
+world: a freshly-Free Servant with a resolved 6-Turn clock decremented `null → 5 → 4` instead of
+`null → 0`, and a contracted Servant still produced no intents at all.
 
 ---
 

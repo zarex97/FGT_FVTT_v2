@@ -193,13 +193,21 @@ function headerContext(actor, snapshot) {
   // colour as the token on the canvas rather than a second palette.
   const faction = system.factionId ? board.faction(system.factionId) : null;
 
+  // A GM sees the truth regardless of `identityRevealed` — they are the one
+  // who has to run the concealment (§26.6). Only a Servant has an identity to
+  // conceal at all.
+  const concealed = actor.type === "servant" && !system.identityRevealed && !game.user.isGM;
+
   return {
     factionColor: faction?.color ?? "var(--fgt-gold)",
     line: identityLine(actor),
-    // A GM sees the true name regardless of `identityRevealed` — they are the
-    // one who has to run the concealment (§26.6).
-    showTrueName: Boolean(system.trueName) && (system.identityRevealed || game.user.isGM),
+    showTrueName: Boolean(system.trueName) && !concealed,
     trueName: system.trueName ?? "",
+    // The standard image content authors for exactly this — a Servant whose
+    // identity is not revealed is not its own portrait to anyone but the GM.
+    // Falls back to the true portrait when none was authored, rather than
+    // showing nothing.
+    portraitImg: (concealed && system.defaultImage) ? system.defaultImage : actor.img,
     badges: badgesFor(system, snapshot),
     // `name` rather than `label`: `resourceBar` returns a `label` of its own
     // ("1000 / 1000"), and spreading it over a key of the same name replaced
@@ -676,6 +684,11 @@ function detailsContext(actor, snapshot) {
     servantClasses: [...(system.servantClasses ?? [])],
     region: [...(system.region ?? [])],
     attributes: [...(system.attributes ?? [])],
+
+    // The GM's own control always shows what is actually stored, blank or
+    // not, unlike the header's `portraitImg` — which is what a concealed
+    // viewer sees, and falls back to the true portrait rather than nothing.
+    defaultImageSrc: system.defaultImage || "icons/svg/mystery-man.svg",
 
     // Damage taken from a cause this Unit is not allowed to see yet. Serenity's
     // Secret Poison is the only thing that writes it, and the tally is what

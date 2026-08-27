@@ -305,7 +305,7 @@ async function writeGroup(group, io) {
       for (const i of intents) await io.adjustStat(unitId, i.stat, i.delta, i.clamp);
       break;
     case "resource":
-      for (const i of intents) await io.adjustResource(unitId, i.key, i.delta);
+      for (const i of intents) await io.adjustResource(unitId, i.key, i.delta, Boolean(i.absolute));
       break;
     case "applyEffect":
       await io.createEffects(unitId, intents.map((i) => i.effect), intents[0].sourceId);

@@ -140,6 +140,17 @@ The header carries every value that gates an action. The ZON indicator and the c
 warning are the two highest-value elements: both prevent mistakes that are otherwise only
 discovered after committing.
 
+The `▣` portrait is a click target, not decoration: it opens Foundry's FilePicker, the same as
+the ability sheet's icon (§29.6). Both used AppV1's `data-edit` markup, which `ActorSheetV2` and
+`ItemSheetV2` do not wire up on their own — `apps/image-edit.mjs` is the small shared handler
+that does, bound as the `editImage` action both sheets declare.
+
+A Servant carries a second image, `system.defaultImage` (the Details tab, GM-only, beside the
+identity fields), for the same reason `classContainer` stands in for `trueName`: while
+`identityRevealed` is unset, anyone but the GM sees this standard image in the header instead of
+the true portrait — the true `img` is never overwritten, so the sheet the GM edits and the one
+everyone else sees stay two different, correct things.
+
 ### Abilities tab
 
 One card per ability, sorted: class skills, personal skills, Noble Phantasms.
@@ -312,6 +323,10 @@ Servant in under an hour) is met.
 
 A form over the ability schema (Ch. 22 §22.6), with:
 
+- **Name and icon**, both on the Item document rather than in `system`, held as `#pendingName` /
+  `#pendingImg` until Save with the rest of the draft. The icon control was the missing half of
+  that pair: `#pendingImg` and `#onSave` already existed, but nothing in the template ever gave
+  it a value — the editor could set a name and had nowhere to click for the icon beside it.
 - **Type flags** as checkboxes, with the three NP-scoping flags in an "advanced" disclosure
   that defaults to the derived values.
 - **Phases** as a sortable list, each expanding into a type-specific editor.

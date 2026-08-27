@@ -104,6 +104,86 @@ describe("snapshotBoard", () => {
   });
 });
 
+describe("parameter grants reach the Rank (Ch. 05 §5.6)", () => {
+  const withParams = (over = {}) => actor({
+    ...over,
+    system: {
+      parameters: { str: "C", end: "C", agi: "C", mag: "C", luc: "C" },
+      baseAttack: { str: 100, mag: 0 },
+      ...(over.system ?? {}),
+    },
+  });
+
+  it("a High Rank Master's grant shifts the Rank a single-unit snapshot reports", () => {
+    const u = snapshotUnit(withParams({ system: { grantedSteps: { str: 1, end: 0, agi: 0, mag: 0, luc: 0 } } }));
+    expect(u.parameters.str.toString()).toBe("C+");
+    // Untouched parameters are not disturbed by an unrelated grant.
+    expect(u.parameters.end.toString()).toBe("C");
+  });
+
+  it("does not disturb Base Attack — that adjustment is already baked in at summon", () => {
+    const u = snapshotUnit(withParams({ system: { grantedSteps: { str: 1, end: 0, agi: 0, mag: 0, luc: 0 } } }));
+    expect(u.baseAttack).toEqual({ str: 100, mag: 0 });
+  });
+
+  it("leaves parameters alone when nothing was granted", () => {
+    const u = snapshotUnit(withParams());
+    expect(u.parameters.str.toString()).toBe("C");
+  });
+
+  it("a negative grant steps the Rank down", () => {
+    const u = snapshotUnit(withParams({ system: { grantedSteps: { str: 0, end: -1, agi: 0, mag: 0, luc: 0 } } }));
+    expect(u.parameters.end.toString()).toBe("C-");
+  });
+
+  it("the war Region's bonus shifts every Rank for a matching Servant, live at board build", () => {
+    const board = snapshotBoard({
+      scene: null,
+      actors: [{ actor: withParams({ system: { region: ["greece"] } }) }],
+      settings: { warRegion: "greece" },
+    });
+    const u = board.units[0];
+    expect(u.parameters.str.toString()).toBe("C+");
+    expect(u.parameters.mag.toString()).toBe("C+");
+  });
+
+  it("the Region's bonus also moves Base Attack by 10 per STR/MAG step, live", () => {
+    const board = snapshotBoard({
+      scene: null,
+      actors: [{ actor: withParams({ system: { region: ["greece"] } }) }],
+      settings: { warRegion: "greece" },
+    });
+    expect(board.units[0].baseAttack).toEqual({ str: 110, mag: 10 });
+  });
+
+  it("does not grant a Region bonus to a Servant from a different Region", () => {
+    const board = snapshotBoard({
+      scene: null,
+      actors: [{ actor: withParams({ system: { region: ["japan"] } }) }],
+      settings: { warRegion: "greece" },
+    });
+    expect(board.units[0].parameters.str.toString()).toBe("C");
+    expect(board.units[0].baseAttack).toEqual({ str: 100, mag: 0 });
+  });
+
+  it("a Master grant and a matching Region bonus stack", () => {
+    const board = snapshotBoard({
+      scene: null,
+      actors: [{
+        actor: withParams({
+          system: { region: ["greece"], grantedSteps: { str: 1, end: 0, agi: 0, mag: 0, luc: 0 } },
+        }),
+      }],
+      settings: { warRegion: "greece" },
+    });
+    // C -> C+ (Master) -> C++ (Region), two steps up the dense ladder.
+    expect(board.units[0].parameters.str.toString()).toBe("C++");
+    // Only the Region's step is live-adjusted here; the Master's +10 is already
+    // in `sys.baseAttack` from summon, so the board only adds the Region's own.
+    expect(board.units[0].baseAttack.str).toBe(110);
+  });
+});
+
 describe("range projection", () => {
   it("is the panel count, not the schema object", () => {
     expect(snapshotUnit(actor({ system: { range: { panels: 3, targets: 2 } } })).range).toBe(3);

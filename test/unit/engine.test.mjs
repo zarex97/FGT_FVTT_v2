@@ -597,11 +597,15 @@ describe("Sustainability", () => {
   const free = (over = {}) => ({ id: "s", kind: "servant", contract: "free", sustainability: 3, ...over });
 
   it("decays for Free Servants", () => {
-    // The NUMERIC clock. `system.sustainability` holds the authored ◈
-    // expression -- "2◈" -- and writing a delta to it appended to a string and
-    // produced NaN, so a Free Servant never ran out of time.
+    // An ABSOLUTE write (`u.sustainability - 1`), not a relative `-1` delta.
+    // `sustainabilityRemaining` is `null` in storage until its first write, and
+    // a relative delta against a `null` current was read as `0` -- so the
+    // FIRST decrement ever collapsed a Servant with e.g. 3 turns left straight
+    // to 0. `u.sustainability` here is already resolved (falls back to the
+    // authored maximum when nothing has decremented it yet), so writing that
+    // minus one is correct regardless of what the stored field holds.
     expect(checkRemovals([free()], sctx)[0])
-      .toMatchObject({ t: "resource", key: "sustainabilityRemaining", delta: -1 });
+      .toMatchObject({ t: "resource", key: "sustainabilityRemaining", delta: 2, absolute: true });
   });
 
   it("defeats the Servant when it reaches zero", () => {

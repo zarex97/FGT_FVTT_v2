@@ -18,6 +18,7 @@ import { attackFacts } from "../../engine/attack.mjs";
 import { normalAttackAt } from "../../rules/normal-attack.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { buildContext } from "./context.mjs";
+import { editImage } from "../image-edit.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -37,8 +38,22 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rollSetup: FGTActorSheet.#onRollSetup,
       contract: FGTActorSheet.#onContract,
       removeEffect: FGTActorSheet.#onRemoveEffect,
+      editImage: FGTActorSheet.#onEditImage,
     },
   };
+
+  /**
+   * Change the portrait, or any other `data-edit`-named image field the sheet
+   * carries -- the Details tab's concealed-image control uses this same
+   * action for `system.defaultImage`.
+   *
+   * @this {FGTActorSheet}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onEditImage(_event, target) {
+    return editImage(this, target);
+  }
 
   /**
    * Declare an attack with an ability.
