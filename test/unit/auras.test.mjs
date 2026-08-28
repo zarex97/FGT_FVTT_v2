@@ -262,6 +262,38 @@ describe("a field-wide aura conditioned on the RECIPIENT (Territory Creation)", 
   });
 });
 
+describe("a field-wide aura conditioned on a STRING recipient field (Semiramis's Territory Creation)", () => {
+  // `platformContentId` asks "aboard THIS platform", by content id -- a
+  // boolean cannot tell "on the Hanging Gardens" apart from "on some other
+  // platform". Named for the unit FIELD it reads (`rules/snapshot.mjs`'s
+  // `annotatePlatforms`), the same convention `inHomeBase` above uses.
+  const semiramis = {
+    id: "semiramis", factionId: "red", faction: "red", panel: { i: 0, j: 0 },
+    auras: [{
+      key: "aura", scope: "field", relations: ["ally", "self"],
+      group: "territoryCreation", rank: "EX",
+      requiresRecipient: { platformContentId: "hanging-gardens-of-babylon" },
+      elements: [{ key: "DamageNegation", value: 30 }],
+    }],
+  };
+  const ally = (over = {}) => ({ id: "ally", factionId: "red", faction: "red", panel: { i: 10, j: 10 }, ...over });
+
+  it("reaches an ally aboard the named platform", () => {
+    const board = { units: [semiramis, ally({ platformContentId: "hanging-gardens-of-babylon" })] };
+    expect(collectAuras(ally({ platformContentId: "hanging-gardens-of-babylon" }), board)).toHaveLength(1);
+  });
+
+  it("does not reach an ally aboard a DIFFERENT platform", () => {
+    const board = { units: [semiramis, ally({ platformContentId: "golden-hind" })] };
+    expect(collectAuras(ally({ platformContentId: "golden-hind" }), board)).toEqual([]);
+  });
+
+  it("does not reach an ally on the ground", () => {
+    const board = { units: [semiramis, ally()] };
+    expect(collectAuras(ally(), board)).toEqual([]);
+  });
+});
+
 describe("aura-delivered contributions reach their readers", () => {
   const medea = {
     id: "medea", factionId: "red", faction: "red", panel: { i: 5, j: 5 },

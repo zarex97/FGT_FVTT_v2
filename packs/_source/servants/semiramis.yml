@@ -63,4 +63,6 @@ abilities:
   - { ref: semiramis-double-summon-caster }
   - { ref: class-presence-concealment, rank: "C+" }
   - { ref: semiramis-item-construction }
+  - { ref: semiramis-territory-creation }
   - { ref: divinity, rank: C }
+  - { ref: semiramis-double-summon }

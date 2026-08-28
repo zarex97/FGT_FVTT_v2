@@ -184,6 +184,97 @@ describe("parameter grants reach the Rank (Ch. 05 §5.6)", () => {
   });
 });
 
+describe("VariantOverride (Ch. 32, Semiramis's Double Summon buff)", () => {
+  // The DSC buff grants Semiramis her OWN 'heads' branch shape for 1◈ Turn --
+  // the same `summonVariant.heads.overrides` block `engine/summon.mjs`
+  // applies permanently on a real Heads result, read live instead of copied.
+  const withDscBuff = actor({
+    system: {
+      range: { panels: 2, targets: 1 },
+      normalAttack: { mode: "fixed", component: "str" },
+      sustainability: "2◈",
+      summonVariant: {
+        heads: {
+          id: "dsc",
+          overrides: {
+            range: { panels: 3, targets: 1 },
+            normalAttack: { mode: "rangeBanded", component: "str", bands: [{ to: 2 }, { from: 3 }] },
+            sustainability: "4◈",
+          },
+        },
+        tails: { id: "noDsc" },
+      },
+    },
+    items: [{
+      id: "dscBuff", name: "DSC", type: "effect",
+      system: { passiveRules: [{ key: "VariantOverride", branch: "heads" }] },
+    }],
+  });
+
+  it("overrides range while the buff is active", () => {
+    const u = snapshotUnit(withDscBuff);
+    expect(u.range).toBe(3);
+    expect(u.maxTargets).toBe(1);
+  });
+
+  it("overrides normalAttack's mode, component and bands", () => {
+    const u = snapshotUnit(withDscBuff);
+    expect(u.normalAttack).toEqual({
+      mode: "rangeBanded", component: "str", bands: [{ to: 2 }, { from: 3 }],
+    });
+  });
+
+  it("overrides sustainability's authored maximum", () => {
+    const u = snapshotUnit(withDscBuff, { turnsPerRound: 1 });
+    expect(u.sustainability).toBe(4);
+  });
+
+  it("leaves the base shape alone without the buff", () => {
+    const plain = actor({ system: { range: { panels: 2, targets: 1 }, sustainability: "2◈" } });
+    const u = snapshotUnit(plain, { turnsPerRound: 1 });
+    expect(u.range).toBe(2);
+    expect(u.sustainability).toBe(2);
+  });
+});
+
+describe("platformContentId (Ch. 20, Semiramis's Territory Creation)", () => {
+  // `annotatePlatforms` matches a unit to a platform by ELEVATION, not by the
+  // platform's own `system.level` field -- both are projected through the
+  // same generic `level: footprint[0].k ?? doc?.elevation ?? 0`, so the token
+  // fixture below is what actually places a unit "aboard".
+  const platform = (over = {}) => actor({
+    id: "hgob-actor", type: "platform",
+    system: { contentId: "hanging-gardens-of-babylon", footprint: { w: 9, h: 9 }, ...(over.system ?? {}) },
+    ...over,
+  });
+  const at = (elevation) => token({ x: 0, y: 0, offsets: [{ i: 0, j: 0, k: elevation }], elevation });
+
+  it("stamps the platform's STABLE content id on a unit aboard it, not its Foundry id", () => {
+    const board = snapshotBoard({
+      scene: null,
+      actors: [
+        { actor: platform(), token: at(1) },
+        { actor: actor({ id: "semiramis" }), token: at(1) },
+      ],
+    });
+    const semiramis = board.units.find((u) => u.id === "semiramis");
+    expect(semiramis.platformContentId).toBe("hanging-gardens-of-babylon");
+    expect(semiramis.platformId).toBe("hgob-actor");
+  });
+
+  it("leaves platformContentId unset for a unit on the ground", () => {
+    const board = snapshotBoard({
+      scene: null,
+      actors: [
+        { actor: platform(), token: at(1) },
+        { actor: actor({ id: "on-ground" }), token: at(0) },
+      ],
+    });
+    const onGround = board.units.find((u) => u.id === "on-ground");
+    expect(onGround.platformContentId).toBeUndefined();
+  });
+});
+
 describe("range projection", () => {
   it("is the panel count, not the schema object", () => {
     expect(snapshotUnit(actor({ system: { range: { panels: 3, targets: 2 } } })).range).toBe(3);

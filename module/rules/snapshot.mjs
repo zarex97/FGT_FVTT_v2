@@ -62,12 +62,26 @@ export function snapshotUnit(actor, {
   const turnState = turnStateAt(sys.turnState, tick);
   const effectIds = activeEffectIds(actor);
   const roundState = roundStateAt(sys.roundState, round);
+  // A temporary `VariantOverride` contribution (Semiramis's `Double Summon`
+  // buff granting the 'DSC' shape for 1◈ Turn) reads the SAME
+  // `summonVariant.<branch>.overrides` block the permanent, summon-time
+  // variant uses (`rules/summon-variant.mjs`) -- one set of numbers for both
+  // the permanent and the temporary grant, rather than re-authoring Range,
+  // Normal Attack and Sustainability a second time on the buff itself.
+  const variantOverride = contributions.variantOverride
+    ? sys.summonVariant?.[contributions.variantOverride]?.overrides ?? null
+    : null;
 
   return {
     id: actor.id,
     uuid: actor.uuid,
     name: actor.name,
     kind: actor.type,
+    // The STABLE, content-authored id -- `unitCommon()` declares it on every
+    // unit type, and nothing ever projected it. `platformContentId` below is
+    // its first real consumer: a Foundry document id is random per world and
+    // content cannot predicate on one.
+    contentId: sys.contentId ?? null,
     factionId: sys.factionId ?? null,
     faction: sys.factionId ?? null,
 
@@ -90,8 +104,9 @@ export function snapshotUnit(actor, {
     // The NUMBER of panels, not the `{panels, targets}` schema object. Every
     // consumer compares it against a distance, and comparing a distance to an
     // object is silently false rather than an error.
-    range: sys.range?.panels ?? (typeof sys.range === "number" ? sys.range : 1),
-    maxTargets: sys.range?.targets ?? 1,
+    range: variantOverride?.range?.panels
+      ?? sys.range?.panels ?? (typeof sys.range === "number" ? sys.range : 1),
+    maxTargets: variantOverride?.range?.targets ?? sys.range?.targets ?? 1,
     shield: sys.shield ?? 0,
 
     // `null` means the Sustainability clock does not exist for this unit
@@ -100,7 +115,9 @@ export function snapshotUnit(actor, {
     // layer does arithmetic on this in four places and the document holds a ◈
     // expression, so resolving it is the snapshot's job -- exactly as it is
     // for `health`, and for the same reason.
-    sustainability: sustainabilityTurns(sys, turnsPerRound),
+    sustainability: variantOverride?.sustainability
+      ? sustainabilityTurns({ ...sys, sustainability: variantOverride.sustainability }, turnsPerRound)
+      : sustainabilityTurns(sys, turnsPerRound),
     // The authored maximum, for the sheet.
     sustainabilityMax: sys.sustainability ?? null,
     contract: sys.contract ?? "contracted",
@@ -173,14 +190,14 @@ export function snapshotUnit(actor, {
     // the same base spec the real attack will; without it a MAG attacker was
     // previewed as a STR one.
     normalAttack: {
-      mode: sys.normalAttack?.mode ?? "fixed",
-      component: sys.normalAttack?.component ?? "str",
+      mode: variantOverride?.normalAttack?.mode ?? sys.normalAttack?.mode ?? "fixed",
+      component: variantOverride?.normalAttack?.component ?? sys.normalAttack?.component ?? "str",
       // EMIYA's Normal Attack changes what it is made of at Range 3. Without
       // the bands here the projection reports the flat component, so the
       // preview and the resolution would disagree about his damage at every
       // distance -- which is the exact failure the one-projection rule above
       // exists to prevent.
-      bands: [...(sys.normalAttack?.bands ?? [])],
+      bands: [...(variantOverride?.normalAttack?.bands ?? sys.normalAttack?.bands ?? [])],
     },
 
     // ZON belongs to the Master-Servant pair, so a per-unit projection cannot
@@ -402,7 +419,14 @@ function annotatePlatforms(units, board) {
   for (const u of units) {
     if (u.kind === "platform") continue;
     const aboard = platforms.find((p) => (p.level ?? 0) === (u.level ?? 0));
-    if (aboard) u.platformId = aboard.id;
+    if (aboard) {
+      u.platformId = aboard.id;
+      // The STABLE content id, not the world's random Foundry document id --
+      // `self:onPlatform:<id>` (`rules/options.mjs`) is authored content, and
+      // content cannot predicate on an id that only exists once a GM's world
+      // has actually created one.
+      u.platformContentId = aboard.contentId ?? null;
+    }
   }
   board.crossLevel = crossLevelRulesFor(board);
 }

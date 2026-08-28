@@ -42,6 +42,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {object[]} eventHandlers
  * @property {string[]} attributes       attributes granted by an ability
  * @property {object|null} magicResistance
+ * @property {string|null} variantOverride
  * @property {object[]} damageNegation   dice-based flat reductions
  * @property {object[]} unhandled        elements with no executor — a bug, surfaced
  */
@@ -51,7 +52,7 @@ function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
-    attributes: [], magicResistance: null, damageNegation: [], zonBonuses: [],
+    attributes: [], magicResistance: null, variantOverride: null, damageNegation: [], zonBonuses: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], unhandled: [],
   };
@@ -120,13 +121,25 @@ export function collectContributions(abilities, ctx = {}) {
 }
 
 /**
- * The option prefixes that describe somebody other than the element's owner.
+ * The option prefixes that describe somebody other than the element's owner,
+ * plus the `self:` options that name BOARD state rather than the owner's own
+ * document fields.
  *
  * Collection runs per unit, with only that unit's own options in scope. A
  * predicate naming any of these cannot be answered yet and must travel to a
  * reader that can answer it.
+ *
+ * `self:inHomeBase` and `self:onPlatform:` are board annotations —
+ * `annotateEnvironment`/`annotatePlatforms` stamp them on a unit only during
+ * `snapshotBoard`, well after `contributionsOf` has already collected and
+ * tested this predicate with a board-blind, actor-only options set. Left off
+ * this list, they read as permanently false: Medea's and Semiramis's own
+ * Territory Creation bonus ("all damage dealt by it is increased") never
+ * applied to the unit that owns the ability, while the recipient-side aura
+ * half (`requiresRecipient`, tested later against the annotated board) always
+ * worked — which is why only half of Territory Creation ever looked broken.
  */
-const DEFERRED_PREFIXES = Object.freeze(["target:", "attack:"]);
+const DEFERRED_PREFIXES = Object.freeze(["target:", "attack:", "self:inHomeBase", "self:onPlatform:"]);
 
 /**
  * The predicate to carry through, or `null` if this pass can answer it.
@@ -516,6 +529,23 @@ export const EXECUTORS = Object.freeze({
       includesNP: el.includesNP ?? true,
       source,
     };
+  },
+
+  /**
+   * Temporarily grant a unit its OWN alternate summon-variant shape.
+   *
+   * Semiramis's `Double Summon` buff: *"gains the DSC buff... this buff
+   * grants her the 'Double Summon: Caster' Skill"* — which is Range, Normal
+   * Attack and Sustainability, not a rule-element-driven ability at all
+   * (`resolveSummonVariant`/`engine/summon.mjs#sheetPatch` bake those onto
+   * the DOCUMENT once, permanently, at summon time). Re-authoring the same
+   * three numbers again on the buff effect would drift the moment the
+   * servant file's `summonVariant.heads.overrides` changed; naming the
+   * BRANCH instead and reading the servant's own block at snapshot time
+   * keeps the numbers in exactly one place.
+   */
+  VariantOverride(el, { out }) {
+    out.variantOverride = el.branch ?? "heads";
   },
 
   /** Battle Continuation's dice reduction at stage 12. */

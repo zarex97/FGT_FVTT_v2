@@ -1,0 +1,21 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 70-73
+#
+# Applied by `Double Summon`'s second clause. "Neither a buff or debuff and is
+# Unremovable" -- same shape as Queen's Poison and Presence Concealment.
+schema: 1
+id: construction
+name: "Construction"
+description: "HGoB Construction is increased by 1d6 at the end of every Turn."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+defaultDuration: "1◈"
+rules:
+  - key: OnEvent
+    event: turnEnd
+    automatic: true
+    then:
+      - { key: ResourceDelta, resource: hgobConstruction, roll: { key: constructionGain, formula: "1d6" } }

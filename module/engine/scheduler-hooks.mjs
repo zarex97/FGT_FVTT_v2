@@ -46,16 +46,26 @@ async function onTurnChange(combat, prior, current) {
 
   const board = boardFor(combat);
   const tick = combat.system?.globalTurn ?? 0;
+  const activeFactionId = factionOf(combat, prior);
+  const activeUnits = board.units.filter((u) => u.factionId === activeFactionId);
+  const actedUnits = board.units.filter((u) => u.acted);
 
   const ctx = {
     tick,
     round: combat.round ?? 1,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    activeFactionId: factionOf(combat, prior),
+    activeFactionId,
     // Injected rather than imported by the scheduler, so the scheduler stays
     // testable without a compendium. It is what lets an expiring effect run
     // its own "on removal" clause -- Shock's Agility restoration.
     effectDef: (id) => EffectRegistry.get(id),
+    // The other half of `scheduler.pendingRolls`'s "caller rolls" contract
+    // (module/engine/scheduler.mjs), which `attack.mjs` already honours for
+    // `unitDefeated` -- this hook never did, for the boundary events it
+    // fires here. A `turnEnd`/`actedTurnEnd` handler with its own `roll:`
+    // (Semiramis's `Construction` effect: "HGoB Construction is increased by
+    // 1d6 at the end of every Turn") wrote nothing, silently, forever.
+    rolls: await gatherRolls([[activeUnits, "turnEnd"], [actedUnits, "actedTurnEnd"]]),
   };
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
@@ -78,9 +88,14 @@ async function onTurnChange(combat, prior, current) {
   await budget.reset(combat, incoming);
   await clearTurnState(combat, incoming);
 
+  const startingBoard = boardFor(combat);
   await run(
-    scheduler.beginTurn(boardFor(combat), {
+    scheduler.beginTurn(startingBoard, {
       ...ctx, tick: nextTick, activeFactionId: incoming,
+      // `beginTurn` fires `turnStart` for EVERY unit (Shock's action-loss
+      // roll can land on anyone's turn start), not just the incoming
+      // faction's -- so this is its own gather, not `ctx.rolls` carried over.
+      rolls: await gatherRolls([[startingBoard.units, "turnStart"]]),
     }),
     "scheduler:beginTurn",
   );
@@ -104,6 +119,7 @@ async function onRoundChange(combat, updateData, options) {
   // Only fire on a forward round change; rewinding is a GM correction.
   if ((options?.direction ?? 1) < 0) return;
 
+  const board = boardFor(combat);
   const ctx = {
     tick: combat.system?.globalTurn ?? 0,
     round: combat.round ?? 1,
@@ -113,9 +129,9 @@ async function onRoundChange(combat, updateData, options) {
     // Switches off the multi-Servant tax (§16.7). Read here rather than in the
     // rules layer, which has no settings.
     grandOrder: setting("grandOrder", false),
+    rolls: await gatherRolls([[board.units, "roundEnd"]]),
   };
 
-  const board = boardFor(combat);
   await run(scheduler.endRound(board, ctx), "scheduler:endRound");
 
   // The Grail's contest and the victory check, both evaluated at round end
@@ -128,8 +144,12 @@ async function onRoundChange(combat, updateData, options) {
   // start-of-round effects fire.
   if (typeof combat.rollTurnOrder === "function") await combat.rollTurnOrder();
 
+  const startingBoard = boardFor(combat);
   await run(
-    scheduler.beginRound(boardFor(combat), { ...ctx, round: (combat.round ?? 1) + 1 }),
+    scheduler.beginRound(startingBoard, {
+      ...ctx, round: (combat.round ?? 1) + 1,
+      rolls: await gatherRolls([[startingBoard.units, "roundStart"]]),
+    }),
     "scheduler:beginRound",
   );
 }
@@ -164,6 +184,33 @@ async function clearTurnState(combat, factionId) {
     .filter((a) => (a.system?.factionId ?? null) === factionId)
     .map((a) => I.markTurn(a.id, fresh));
   await run(intents, "scheduler:clearTurnState");
+}
+
+/**
+ * The rolls a batch of (units, event) pairs will need, evaluated.
+ *
+ * The caller-rolls half of `scheduler.pendingRolls`'s contract: a pure
+ * scheduler sequence reads totals out of `ctx.rolls` and never rolls dice
+ * itself (`module/engine/scheduler.mjs`), so whoever calls it has to gather
+ * and evaluate first. `attack.mjs` already does this for `unitDefeated`; nothing
+ * did it for a Turn or Round boundary event's own `roll:`, which produced a
+ * silent no-op indistinguishable from a working, zero-magnitude effect.
+ *
+ * @param {Array<[object[], string]>} pairs
+ * @returns {Promise<Record<string, number>>}
+ */
+async function gatherRolls(pairs) {
+  /** @type {Record<string, number>} */
+  const rolls = {};
+  for (const [units, event] of pairs) {
+    for (const u of units) {
+      for (const spec of scheduler.pendingRolls(u, event)) {
+        if (!spec.formula || spec.key in rolls) continue;
+        rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
+      }
+    }
+  }
+  return rolls;
 }
 
 /**

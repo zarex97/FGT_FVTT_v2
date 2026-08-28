@@ -797,6 +797,108 @@ unit on a scene to see for the first time.
 
 ---
 
+## Session progress log (read this first before resuming)
+
+As of this checkpoint, landed and verified (each live in `FGT_2026`, each with passing unit
+tests, full suite green, lint clean):
+
+- **Task 11 (summon variant)** — done, committed (`0ca6bef`).
+- **Task 18 (servant file)** — done for the base stats/identity; abilities list is partial
+  (grows as each ability below lands). Committed alongside Task 11.
+- **Task 19 (Presence Concealment)** — done, reuses `class-presence-concealment` unmodified.
+- **Task 20 (Item Construction / poison item / Queen's Poison)** — done, committed (`9f91584`).
+  Found and fixed two real, previously-dead engine gaps along the way: the `itemGrant` ability
+  phase kind did not exist (nothing let an ability CREATE an item), and `engine/items.mjs`'s
+  `toIntents` never resolved a `consumeEffect`'s short-form `{id, duration}` into the
+  `{defId, expiry}` shape an `applyEffect` intent needs — `[Semiramis' Poison]` was the first
+  content ever to exercise that path, and it silently did nothing.
+- **Task 22 (Divinity)** — done, reuses `divinity` unmodified (`{ref: divinity, rank: C}`).
+- **Task 21 (Territory Creation)** — content authored and unit-tested; live-verified at the
+  `collectContributions` layer (below). Found and fixed two more real gaps: `snapshotUnit` never
+  projected `contentId` at all (declared on every unit type's schema, read by nothing), and
+  `annotatePlatforms` only ever stamped a unit with the platform's random Foundry document id —
+  useless to content, which cannot predicate on an id that does not exist until a specific world
+  creates one. Added `platformContentId` (the STABLE content id) alongside it, plus a
+  `self:onPlatform:<id>` roll option and a `requiresRecipient` string-equality mode in
+  `rules/auras.mjs` (it only supported booleans).
+- **Root-cause bug found and fixed while live-verifying Task 21**: Territory Creation's OWN
+  `DamageModifier` clauses (both the EX platform half and the C home-base half — "all damage
+  dealt BY this Unit is increased") were being silently dropped by `contributionsOf`, while the
+  recipient-side `Aura` half kept working. Root cause: `module/rules/elements.mjs`'s
+  `DEFERRED_PREFIXES` only deferred `target:`/`attack:` predicates; `self:inHomeBase` and
+  `self:onPlatform:<id>` are `self:`-prefixed but are BOARD annotations
+  (`annotateEnvironment`/`annotatePlatforms`, stamped only during `snapshotBoard`) that don't
+  exist yet when `contributionsOf` collects with its board-blind, actor-only options set — so the
+  predicate was tested immediately, answered false, and the element dropped for good, instead of
+  deferring to `rules/damage/pipeline.mjs`'s later re-test against the fully-annotated board
+  (the exact mechanism `target:`/`attack:` predicates already use). This is a **pre-existing bug
+  affecting Medea's Territory Creation too**, not something introduced by Semiramis's content —
+  `medea-territory-creation.yml`'s own Passive 1 (`predicate: ["self:inHomeBase"]`) was equally
+  dead. Fixed by adding `"self:inHomeBase"` and `"self:onPlatform:"` to `DEFERRED_PREFIXES`.
+  Verified: new regression test in `test/unit/elements.test.mjs`, full suite green (1947 tests),
+  and live on the actual `Semiramis` actor in FGT_2026 — `contributionsOf(actor)` now returns
+  both Territory Creation `DamageModifier` contributions (EX + C) with their predicates intact,
+  alongside the two `Aura` contributions that already worked.
+
+- **Task 23 (Double Summon)** — done, committed. Required real engine work, not just content:
+  - **Phase-level `predicate:`** (`module/engine/skill-use.mjs`'s `runPhases`): clause 3 ("if she
+    does not have DSC, gain the buff") is the first ability where only ONE of several phases is
+    conditional. Gated against the caster's own options (`rollOptionsFor({attacker: unitSnapshot(actor)})`),
+    same self-only scope a rule element's own `predicate` gets at collection time.
+  - **`VariantOverride` rule element** (`module/rules/elements.mjs`, `module/rules/snapshot.mjs`):
+    the DSC buff must grant Range/Normal Attack/Sustainability identical to the permanent 'dsc'
+    variant, without re-authoring those three numbers a second time. The executor names a BRANCH
+    (`heads`); `snapshotUnit` reads `sys.summonVariant.<branch>.overrides` live and merges it onto
+    the projection, on top of the ordinary `sys.*` fields, whenever a temporary grant is active —
+    one set of numbers serves both the permanent (`resolveSummonVariant`/`sheetPatch`, summon-time)
+    and the temporary (this) path.
+  - **`ResourceDelta` gained a `roll:` form** (`module/engine/scheduler.mjs`): every prior use was
+    a flat `delta`; Construction's "HGoB Construction increased by 1d6 at the end of every Turn"
+    needed a rolled amount, resolved through the existing `rolled()` helper `Heal` already uses.
+  - **Root-cause bug found and fixed, systemic, not Semiramis-specific**: `ctx.rolls` was NEVER
+    populated for `turnEnd`/`actedTurnEnd`/`turnStart`/`roundEnd`/`roundStart` in
+    `module/engine/scheduler-hooks.mjs` — `scheduler.pendingRolls`'s "caller rolls" contract
+    (module/engine/scheduler.mjs) was honoured for `unitDefeated` (`attack.mjs`) and NOWHERE ELSE.
+    Any `OnEvent` handler with its own `roll:` firing at a Turn/Round boundary silently wrote
+    nothing, indistinguishable from a working zero-magnitude effect — this would have affected any
+    future content using that pattern, not just Semiramis's Construction. Fixed with a new
+    `gatherRolls(pairs)` helper, called before every `scheduler.endTurn`/`beginTurn`/`endRound`/
+    `beginRound` invocation.
+  - **Content bug found and fixed in `semiramis-territory-creation.yml`** (authored earlier this
+    session, at Task 21): both `Aura` elements (the Passive 2 wards) were missing the
+    `predicate: ["self:variant:dsc"]` gate their sibling `DamageModifier` elements (Passive 1)
+    already carried — so a **noDsc** Semiramis's own, unowned Territory Creation still contributed
+    its Passive 2 ward auras, when clause 1's entire package ("if she has it...") should not have
+    applied to her at all. Caught live: a noDsc actor's `contributionsOf(actor).auras` returned two
+    stray candidates (EX + C) before the buff, when it should have returned none. Fixed by adding
+    the same predicate to both Auras.
+  - Verified: `test/unit/scheduler.test.mjs` (rolled `ResourceDelta`), `test/unit/snapshot.test.mjs`
+    (`VariantOverride` describe block), full suite green (1953 tests), `validate:content` clean, and
+    live in FGT_2026 end-to-end — a noDsc Semiramis using Double Summon gained all three effects,
+    her Range/Normal Attack/Sustainability flipped to the DSC shape, `contributionsOf` showed
+    exactly one `territoryCreation` aura (dscBuff's Rank C, clause 1's own contributing nothing),
+    and advancing an actual Combat turn increased her `hgobConstruction` resource by a real `1d6`
+    roll (0 → 4) through the newly-wired `gatherRolls` path.
+- **Not yet started:** Task 24 (Familiar: Doves — needs the vision/
+`unitFirstSeen`/`RevealPosition` system, Task 17, not yet built), Task 25 (Arrogant King's
+Poison — needs an item-quantity REQUIREMENT kind that does not exist yet in
+`rules/items.mjs#meetsRequirement`, a materially-sized addition, not a one-liner), Task 26
+(Scales of the Sacred Fish — genuinely novel: "an ally within 2 panels reacts when attacked"
+has no existing event to hook; `attackDeclared` fires only on the attacker, not broadcast near
+the defender, so this needs either a new broadcast event or an aura-style proximity mechanism,
+not yet designed), Tasks 27-28 (Bašmu + its NP), Task 29 (Sikera Ušum), Tasks 4/8/9/10/12-16/30-
+32 (the entire Hanging Gardens: channel kind, platform combat, the 6-source Construction
+resource, and the platform's real numbers).
+
+**Live-test debt on what IS done:** Territory Creation's platform-scoped (EX) half has still not
+been exercised through an actual ATTACK ROLL live (no HGoB platform token exists yet in
+FGT_2026) — only confirmed at the collection layer above. Its ground-Home-Base (C) half is now
+attack-testable (no platform dependency) but hasn't been driven through a real attack yet either.
+Re-verify both halves through actual damage rolls once Task 32's platform lands, or sooner via a
+manual Home Base zone + attack in FGT_2026.
+
+---
+
 ## Phase 5 — Semiramis herself: base servant and non-NP abilities
 
 From here on, every task ends with the corresponding piece live-tested in `FGT_2026` as it lands,

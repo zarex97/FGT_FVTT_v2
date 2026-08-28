@@ -1,0 +1,45 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, line 74; Territory
+# Creation clause 2, line 61 (packs/_source/abilities/semiramis-territory-
+# creation.yml, which carries clause 1 -- read that file's header first).
+#
+# "This buff grants her the 'Double Summon: Caster' Skill" -- Range 3/1, Normal
+# Attack rangeBanded, Sustainability 4◈, read live off her own
+# `summonVariant.heads.overrides` (`rules/elements.mjs`'s `VariantOverride`,
+# `rules/snapshot.mjs`) rather than re-authored here.
+#
+# Territory Creation clause 2 rides here too, not on the Skill itself: "If
+# Semiramis does NOT have [DSC], when she uses Double Summon, she gains the
+# effects of Territory Creation Rank C while she has the DSC buff" is a grant
+# from the BUFF, not from her (unowned) Territory Creation clause 1 -- a buff
+# cannot make an ability she does not have contribute passiveRules
+# retroactively, so this is its own copy of the Rank C pair, not a reference.
+# A noDsc Semiramis can never be aboard her own HGoB (it needs DSC to build at
+# all), so unlike clause 1's EX half there is no platform exclusion to add.
+schema: 1
+id: dscBuff
+name: "DSC"
+description: "Grants the 'Double Summon: Caster' Skill's Range, Normal Attack, Sustainability, and
+  Territory Creation Rank C for her Faction's Home Base."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+defaultDuration: "1◈"
+rules:
+  - { key: VariantOverride, branch: heads }
+  - key: DamageModifier
+    stage: flat
+    predicate: ["self:inHomeBase"]
+    roll: { key: territoryCreationBonusC, formula: "5d8" }
+  - key: Aura
+    scope: field
+    relations: [ally, self]
+    stacking: highestOnly
+    group: territoryCreation
+    rank: C
+    requiresRecipient: { inHomeBase: true }
+    elements:
+      - key: DamageNegation
+        roll: { key: territoryCreationWardC, formula: "3d10+10" }
