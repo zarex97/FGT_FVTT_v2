@@ -551,6 +551,11 @@ function actorSystem(doc) {
     baseAttack: doc.baseAttack ?? { str: 0, mag: 0 },
     normalAttack: doc.normalAttack ?? { mode: "fixed", component: "str" },
     sustainability: doc.sustainability ?? null,
+    // A summon-time variant (`rules/summon-variant.mjs`) -- Semiramis's coin
+    // flip. `variant` is never authored; it is written at commit, once
+    // resolved, and is undefined here so a compiled Servant does not ship
+    // with a stale one.
+    summonVariant: doc.summonVariant ?? null,
     // §6.10's pools, declared on the Servant that owns them.
     resources: doc.resources ?? {},
     notes: doc.notes ?? "",

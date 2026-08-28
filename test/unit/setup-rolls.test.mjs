@@ -18,6 +18,18 @@ const lineOf = (plan, id) => plan.lines.find((l) => l.id === id);
 /* ── §14.9 Servant ────────────────────────────────────────────────────────── */
 
 describe("servantSetupPlan", () => {
+  it("has no summonVariant line for an ordinary Servant", () => {
+    expect(lineOf(servantSetupPlan(karna), "summonVariant")).toBeUndefined();
+  });
+
+  it("puts the summonVariant line FIRST, ahead of every other roll", () => {
+    // It changes what the Servant's other lines even mean (a variant's
+    // Sustainability base differs), so it must resolve before anything reads
+    // her shape.
+    const semiramis = { ...karna, summonVariant: { heads: { id: "dsc" }, tails: { id: "noDsc" } } };
+    expect(servantSetupPlan(semiramis).lines[0].id).toBe("summonVariant");
+  });
+
   it("takes Max Health from the END table with no roll", () => {
     // "NO ROLL — Health(S) is not used" for a Servant. The asymmetry with the
     // Master, who does roll, is easy to implement backwards.
@@ -149,6 +161,19 @@ describe("resolveSetupPlan", () => {
     const out = resolveSetupPlan(servantSetupPlan(karna), {});
 
     expect(out.find((l) => l.id === "maxHealth")).toMatchObject({ value: 1000, rolled: null });
+  });
+
+  it("resolves a summon variant's map to the branch id, not to base + a number", () => {
+    // Ch. 05, `rules/summon-variant.mjs`: the variant line's `map` carries
+    // strings. `base + signed` would string-concatenate "0dsc" if this were
+    // not special-cased.
+    const semiramis = { ...karna, summonVariant: { heads: { id: "dsc" }, tails: { id: "noDsc" } } };
+
+    const heads = resolveSetupPlan(servantSetupPlan(semiramis), { summonVariant: 1 });
+    expect(heads.find((l) => l.id === "summonVariant")).toMatchObject({ value: "dsc" });
+
+    const tails = resolveSetupPlan(servantSetupPlan(semiramis), { summonVariant: 2 });
+    expect(tails.find((l) => l.id === "summonVariant")).toMatchObject({ value: "noDsc" });
   });
 });
 

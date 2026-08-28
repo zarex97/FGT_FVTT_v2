@@ -373,6 +373,20 @@ export function sheetPatch(lines, sheet, granted) {
   // The granted steps themselves, so the sheet can show "B (granted +1)" rather
   // than silently displaying a rank the Servant was not written with.
   patch.grantedSteps = { str: 0, end: 0, agi: 0, mag: 0, luc: 0, ...granted };
+
+  // A resolved summon variant (`rules/summon-variant.mjs`): the branch id, for
+  // downstream `self:variant:<id>` predicates, and its `overrides` merged in
+  // directly — Semiramis's Range and normal-attack mode differ by branch, so
+  // these are real field replacements, not a delta on a fixed shape.
+  const variantId = value("summonVariant") || null;
+  if (variantId) {
+    patch.variant = variantId;
+    const branch = sheet?.summonVariant?.heads?.id === variantId
+      ? sheet.summonVariant.heads
+      : sheet?.summonVariant?.tails;
+    Object.assign(patch, branch?.overrides ?? {});
+  }
+
   return patch;
 }
 

@@ -105,3 +105,40 @@ describe("§37.6 — summoning Karna into an Indian war", () => {
     expect(valueOf(applyGrants(resolved(), karna, elsewhere), "maxAgility")).toBe(20);
   });
 });
+
+/* ── A summon-time variant, applied at commit ────────────────────────────── */
+
+describe("sheetPatch applies a resolved summon variant", () => {
+  const semiramis = {
+    ...karna,
+    summonVariant: {
+      heads: { id: "dsc", overrides: { sustainability: "4◈", range: { panels: 3, targets: 1 } } },
+      tails: { id: "noDsc", overrides: { sustainability: "2◈", range: { panels: 2, targets: 1 } } },
+    },
+  };
+
+  it("writes the branch id and merges its overrides on heads", () => {
+    const lines = resolveSetupPlan(servantSetupPlan(semiramis), { summonVariant: 1, maxAgility: 2, maxLuck: 3 });
+    const patch = sheetPatch(lines, semiramis, {});
+
+    expect(patch.variant).toBe("dsc");
+    expect(patch.sustainability).toBe("4◈");
+    expect(patch.range).toEqual({ panels: 3, targets: 1 });
+  });
+
+  it("writes the OTHER branch's overrides on tails", () => {
+    const lines = resolveSetupPlan(servantSetupPlan(semiramis), { summonVariant: 2, maxAgility: 2, maxLuck: 3 });
+    const patch = sheetPatch(lines, semiramis, {});
+
+    expect(patch.variant).toBe("noDsc");
+    expect(patch.sustainability).toBe("2◈");
+    expect(patch.range).toEqual({ panels: 2, targets: 1 });
+  });
+
+  it("does nothing for a Servant with no summonVariant block", () => {
+    const patch = sheetPatch(resolved(), karna, {});
+
+    expect(patch.variant).toBeUndefined();
+    expect(patch.sustainability).toBeUndefined();
+  });
+});

@@ -119,6 +119,9 @@ export function snapshotUnit(actor, {
     // Where the unit is from. Predicates name it -- "damage dealt to Male Units
     // from the Greece region" -- and nothing carried it before.
     region: [...(sys.region ?? [])],
+    // A resolved summon-time variant (`rules/summon-variant.mjs`) -- `null` for
+    // every Servant but the ones authored with a `summonVariant` block.
+    variant: sys.variant ?? null,
     // The unit's OWN auras, unexpanded. `snapshotBoard` runs `annotateAuras`
     // once every unit exists and appends what each unit actually stands in to
     // its `modifiers`. A unit snapshotted alone receives only its own auras --
@@ -747,6 +750,7 @@ export function contributionsOf(actor) {
       attributes: [...(sys.attributes ?? [])],
       effects: [...(actor.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
       region: [...(sys.region ?? [])],
+      variant: sys.variant ?? null,
       abilities: [...(actor.items ?? [])].map((i) => ({
         id: i.id, slug: i.system?.slug ?? i.id, active: Boolean(i.system?.active),
       })),

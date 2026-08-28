@@ -265,6 +265,15 @@ describe("compileDocument", () => {
   it("throws for a source directory with no pack mapping", () => {
     expect(() => compileDocument(ok(), "sketches", library)).toThrow(/No pack mapping/);
   });
+
+  it("carries a Servant's summonVariant block through — every actorSystem field must be listed explicitly or it compiles to its schema default", () => {
+    const doc = {
+      schema: 1, id: "semiramis", name: "Semiramis", parameters: { str: "E" },
+      summonVariant: { heads: { id: "dsc", overrides: { sustainability: "4◈" } }, tails: { id: "noDsc" } },
+    };
+    const out = compileDocument(doc, "servants", library);
+    expect(out.system.summonVariant).toEqual(doc.summonVariant);
+  });
 });
 
 describe("copyable (§15.7)", () => {
