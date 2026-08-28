@@ -200,6 +200,17 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
  * @returns {object}
  */
 function describe(line) {
+  // A summon variant's `applied` is a BRANCH ID (`rules/summon-variant.mjs`),
+  // not a number added to a base — "null + NaN" is what the arithmetic below
+  // would otherwise render for it, since there is no base to add it to.
+  if (typeof line.applied === "string") {
+    return {
+      id: line.id, label: line.label, value: line.value,
+      workings: `${line.roll.formula} → ${line.applied}`,
+      rollable: Boolean(line.roll), note: line.note ?? null, unrolled: Boolean(line.unrolled),
+    };
+  }
+
   const parts = [String(line.base)];
   if (line.applied !== null && line.applied !== undefined) {
     // `applied`, not `rolled`: a tails 2d100 of 87 contributes −87, and showing

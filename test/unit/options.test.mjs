@@ -124,6 +124,21 @@ describe("rollOptionsFor", () => {
     });
   });
 
+  describe("summon-time variant", () => {
+    it("names a resolved variant", () => {
+      // Semiramis's 'Double Summon: Caster' passives predicate on this.
+      const out = optionsFor(unit({ variant: "dsc" }), unit());
+
+      expect(out).toContain("self:variant:dsc");
+    });
+
+    it("emits nothing for a Servant with no variant", () => {
+      const out = optionsFor(unit(), unit());
+
+      expect(out.some((o) => o.includes(":variant:"))).toBe(false);
+    });
+  });
+
   it("is safe on a unit with nothing on it", () => {
     expect(() => rollOptionsFor({ attacker: {}, defender: {}, attack: {} })).not.toThrow();
   });

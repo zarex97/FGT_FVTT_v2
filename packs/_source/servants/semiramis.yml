@@ -1,0 +1,65 @@
+# packs/_source/servants/semiramis.yml
+# Conversion source: char_orig_sheets/Copia de Semiramis.md
+# Discussed: docs/32-case-semiramis.md
+#
+# The project's own acceptance test for "everything structural" (docs/32):
+# conditionally a different Servant depending on a coin flip at summon, a 9x9
+# flying fortress built over many rounds, a bound dragon summon, a
+# transferable item granting a status, and a Noble Phantasm whose behaviour
+# changes entirely based on which version of herself was summoned.
+schema: 1
+id: semiramis
+name: Semiramis
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Semiramis
+# Both, unconditionally -- the source states "(Passive) Semiramis is both a
+# 'Caster' and 'Assassin' Class Servant" as its own unnumbered clause, not as
+# Passive 1 or 2 of the Double Summon: Caster branch it sits beside.
+servantClasses: [caster, assassin]
+classContainer: caster
+alignment: { order: lawful, morality: neutral }
+region: [mesopotamia, middleEast]
+attributes: [female, servant, earth, king, humanoid]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: E, end: D, agi: D, mag: A, luc: A }
+baseHealth: 750
+mov: 4
+baseAttack: { str: 45, mag: 200 }
+
+# Range, normal attack and Sustainability below are the Tails/default shape
+# ("Double Summon: Caster" NOT rolled). `summonVariant.heads.overrides`
+# replaces all three on a Heads result -- see `rules/summon-variant.mjs`.
+range: { panels: 2, targets: 1 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+summonVariant:
+  heads:
+    id: dsc
+    overrides:
+      range: { panels: 3, targets: 1 }
+      normalAttack:
+        mode: rangeBanded
+        component: str
+        bands:
+          - { to: 2, component: str, sources: [{ component: str, factor: 1 }] }
+          - { from: 3, component: mag, sources: [{ component: mag, factor: 1 }] }
+      sustainability: "4◈"
+  tails:
+    id: noDsc
+
+# ─── Resources (§6.10) ─────────────────────────────────────────────────
+# HGoB Construction. The region-based starting value (25 in Mesopotamia/the
+# Middle East, 10 if adjacent) and the summon-time 1d6x1d6 roll are applied at
+# commit time by `engine/summon.mjs`, not authored here as a static number.
+resources:
+  hgobConstruction: { value: 0, max: 100 }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: semiramis-double-summon-caster }
+  - { ref: class-presence-concealment, rank: "C+" }
+  - { ref: divinity, rank: C }

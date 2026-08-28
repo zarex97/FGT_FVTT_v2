@@ -42,6 +42,19 @@ export function servantSetupPlan(sheet) {
   return {
     kind: "servant",
     lines: [
+      // A summon-time variant (Ch. 05, `rules/summon-variant.mjs`) FIRST — it
+      // changes what the Servant's other lines even mean (Semiramis's
+      // Sustainability base differs by branch), so it has to resolve before
+      // anything downstream reads her shape. `map` is a two-entry array
+      // because the roll is always `1d2`: index 0 is heads (roll 1), index 1
+      // is tails (roll 2) -- `resolveSetupPlan`'s existing `map` mechanism,
+      // extended to carry a variant id instead of a number.
+      ...(sheet?.summonVariant ? [{
+        id: "summonVariant",
+        label: "Summon Variant",
+        base: null,
+        roll: { formula: "1d2", map: [sheet.summonVariant.heads?.id ?? null, sheet.summonVariant.tails?.id ?? null] },
+      }] : []),
       {
         id: "maxHealth",
         label: "Max Health",
@@ -148,7 +161,13 @@ export function resolveSetupPlan(plan, rolls, signs = {}) {
     // `rolled` is what the die showed after mapping; `applied` is what it
     // contributed, sign included. A display that used `rolled` for both would
     // render a tails 2d100 as "250 + 87 = 163".
-    return { ...line, rolled: mapped, applied: signed, value: line.base + signed };
+    //
+    // A `map` may carry a STRING (a summon variant's id) rather than a number
+    // -- `resolveSummonVariant`'s one caller here. `line.base + signed` would
+    // string-concatenate rather than add, so a mapped string is the value
+    // outright; every other line's `map` entries are numbers, unaffected.
+    const value = typeof signed === "string" ? signed : line.base + signed;
+    return { ...line, rolled: mapped, applied: signed, value };
   });
 }
 

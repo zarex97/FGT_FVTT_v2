@@ -109,6 +109,10 @@ function add(options, side, unit) {
   // Region, so a clause can name where a unit is from.
   for (const r of unit.region ?? []) options.add(`${side}:region:${r}`);
 
+  // A resolved summon-time variant (`rules/summon-variant.mjs`) — Semiramis's
+  // 'Double Summon: Caster' passives are gated on `self:variant:dsc`.
+  if (unit.variant) options.add(`${side}:variant:${unit.variant}`);
+
   // Which bounded fields the unit is standing in. `annotateFields` has written
   // `u.fields` since Ch. 43 was implemented and nothing ever read it back into
   // a predicate, so "while Unlimited Blade Works is Active" -- which both of
@@ -194,6 +198,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):attribute:[A-Za-z][\w-]*$/,
   /^(self|target):effect:[A-Za-z][\w-]*$/,
   /^(self|target):region:[A-Za-z][\w-]*$/,
+  /^(self|target):variant:[A-Za-z][\w-]*$/,
   /^(self|target):inHomeBase$/,
   /^(self|target):inField:[A-Za-z][\w-]*$/,
   /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,

@@ -46,6 +46,25 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // "derive it".
       baseHealth: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
+      // A coin flip AT SUMMON that changes this Servant's shape from then on --
+      // Semiramis is the only one in the reference set that needs it. An
+      // ObjectField for the same reason `resources` is one (Ch. 06 §6.10): this
+      // is per-unit content, and a typed schema would have to name every future
+      // Servant's branch shape before any of them could ship.
+      //
+      // Shape: `{ heads: {id, overrides}, tails: {id, overrides} }`.
+      // `engine/summon.mjs` rolls it (roll 1 = heads, the same "1d2, heads on 1"
+      // convention `masterSetupPlan`'s `coinFlip` mode already uses), applies
+      // the chosen branch's `overrides` into the committed sheet patch, and
+      // writes the result below.
+      summonVariant: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+      // The RESOLVED result of `summonVariant`, once and for ever from summon --
+      // `"dsc"` or `"noDsc"` for Semiramis. `null` for every Servant without a
+      // `summonVariant` block. Read as a roll option (`self:variant:<id>`) by
+      // content predicated on which branch this Servant was summoned as.
+      variant: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+
       contract: new fields.StringField({
         required: true, initial: "contracted", choices: ["contracted", "free", "unbound"],
       }),

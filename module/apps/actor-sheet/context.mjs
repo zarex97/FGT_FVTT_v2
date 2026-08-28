@@ -388,8 +388,13 @@ function overviewContext(actor, snapshot) {
       value: pool.value ?? 0,
       max: pool.max ?? null,
       // Pips built here: Foundry registers no `range` helper and a template
-      // that invents one throws at render time.
-      pips: pool.max
+      // that invents one throws at render time. Only for a pool small enough
+      // for dots to read as a count rather than a wall — HGoB Construction's
+      // max of 100 rendered ONE HUNDRED empty circles, since only the FILLED
+      // half of the string was ever capped. `pool.value / pool.max` is shown
+      // as text regardless (below), so a large pool loses nothing by having
+      // no pips at all.
+      pips: pool.max && pool.max <= 12
         ? "●".repeat(Math.min(pool.value ?? 0, 12)) + "○".repeat(Math.max(0, pool.max - (pool.value ?? 0)))
         : null,
     })),
