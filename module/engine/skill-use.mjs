@@ -337,6 +337,30 @@ async function runPhases(ability, actor, targets, board, only = null) {
           break;
         }
 
+        case "itemGrant": {
+          // Item Construction: "roll a four-sided die; Semiramis creates that
+          // number of [Semiramis' Poison] Items." `I.itemGrant`, not
+          // `I.itemQuantity` -- the caster may hold none of the item yet, so
+          // there is nothing an `itemQuantity` delta could adjust (the same
+          // reason the RECEIVING half of a transfer uses it, `rules/items.mjs`).
+          const amount = phase.roll
+            ? (await new Roll(phase.roll).evaluate()).total
+            : (phase.delta ?? 1);
+          if (amount > 0) {
+            await applyWorldIntents(
+              [
+                I.itemGrant(target.unitId, phase.contentId, amount),
+                I.log({ kind: "itemGrant", contentId: phase.contentId, unitId: target.unitId, amount }),
+              ],
+              `skill:${ability.id}:itemGrant`,
+            );
+          }
+          applied.push({
+            summary: { id: "itemGrant", name: `${amount} ${phase.contentId}`, outcome: "applied", reason: null },
+          });
+          break;
+        }
+
         case "createField": {
           // Once per use, from the caster: a bounded field is one area, and
           // looping it over a target list would create one per Unit caught.

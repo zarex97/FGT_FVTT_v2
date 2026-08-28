@@ -468,6 +468,13 @@ const ACTIONS = Object.freeze({
       // because an intent has nowhere else to put it.
       ...(a.chance !== undefined || a.effect?.chance !== undefined
         ? { chance: a.chance ?? a.effect?.chance } : {}),
+      // Queen's Poison's third clause: "a 50% chance of inflicting an
+      // additional Stage of Poison ... this 50% extra chance is not affected
+      // by debuff chance increasing/reducing effects, it is a flat 50%
+      // chance." A rider that names its own probability outright, immune to
+      // both the inflicter's outgoing bonus and the target's incoming resist.
+      ...(a.bypassChanceModifiers || a.effect?.bypassChanceModifiers
+        ? { bypassChanceModifiers: true } : {}),
       // "Inflicts Stage 3 Poison": one application worth three stages, not
       // three applications each rolling their own chance.
       ...(a.stages !== undefined ? { stages: a.stages } : {}),

@@ -1,0 +1,26 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md
+#
+# Not Medea's ability of the same name (packs/_source/abilities/medea-item-construction.yml) --
+# the two Servants each author a Skill called "Item Construction" that does
+# something completely different. This one actually CREATES an item, which is
+# the `itemGrant` phase kind's reason for existing (module/engine/skill-use.mjs).
+schema: 1
+id: semiramis-item-construction
+name: "Item Construction"
+rank: C
+kind: classSkill
+copyable: { allowed: false, reason: classSkill }
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Roll a four-sided die; Semiramis creates that number of
+  [Semiramis' Poison] Items.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: itemGrant
+    target: self
+    contentId: semiramis-poison
+    roll: "1d4"

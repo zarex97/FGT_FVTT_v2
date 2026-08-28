@@ -188,6 +188,7 @@ async function resolveEffects(intents) {
       // An ability's stated chance beats the definition's `baseChance`. Carried
       // on the instance because that is the only thing an intent has room for.
       chance: intent.effect.chance ?? null,
+      bypassChanceModifiers: Boolean(intent.effect.bypassChanceModifiers),
       stages: intent.effect.stages ?? 1,
       visibility: intent.effect.visibility ?? "public",
       attributionHidden: Boolean(intent.effect.attributionHidden),

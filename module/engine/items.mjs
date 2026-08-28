@@ -14,6 +14,8 @@ import { canTransferItem, transferItem, consumeItem } from "../rules/items.mjs";
 import { currentBoard, unitFrom } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { INFINITE } from "../domain/enums.mjs";
 
 /**
  * Hand an item to another unit.
@@ -68,7 +70,10 @@ export async function useItem({ unitId, itemId }) {
   const descriptors = consumeItem(itemSpec(item), unit);
   if (descriptors.length === 0) return { ok: false, reason: "noneLeft" };
 
-  await applyWorldIntents(toIntents(descriptors), `item:use:${item.id}`);
+  await applyWorldIntents(
+    toIntents(descriptors, { tick: board.tick, turnsPerRound: board.turnsPerRound }),
+    `item:use:${item.id}`,
+  );
   return { ok: true };
 }
 
@@ -108,15 +113,29 @@ function transfersThisTurn(actor) {
 /**
  * Descriptors from `rules/items.mjs` into intents.
  *
- * `applyEffect` descriptors come from the item's own `consumeEffect`, which is
- * authored in the same vocabulary the rule elements use — so an unknown kind is
- * dropped with a warning rather than silently, which is how two Command Spell
- * requirements managed to do nothing for a week.
+ * `applyEffect` descriptors come from the item's own `consumeEffect`, authored
+ * in the SAME short-form vocabulary `OnEvent`'s `then:` actions use --
+ * `{id, duration}`, not the resolved `{defId, expiry}` shape `applyEffect`
+ * intents actually carry. `scheduler.mjs`'s `ApplyEffect` action does that
+ * resolution for the ability-rule path; this claimed to be "the same
+ * vocabulary" and skipped it, so `[Semiramis' Poison]`'s `consumeEffect` —
+ * the first and only content to use this field — passed `d.effect` straight
+ * through with no `defId` and no resolved `expiry`. `resolveEffects`
+ * (`applier.mjs`) reads `intent.effect.defId`, found nothing, and the intent
+ * fell through to the raw document writer with a shape it cannot use: the
+ * item was consumed and nothing was ever applied.
+ *
+ * An unknown descriptor kind is dropped with a warning rather than silently,
+ * which is how two Command Spell requirements managed to do nothing for a
+ * week.
  *
  * @param {object[]} descriptors
+ * @param {object} [ctx]
+ * @param {number} [ctx.tick]
+ * @param {number} [ctx.turnsPerRound]
  * @returns {object[]}
  */
-function toIntents(descriptors) {
+export function toIntents(descriptors, ctx = {}) {
   /** @type {object[]} */
   const out = [];
   for (const d of descriptors) {
@@ -127,9 +146,16 @@ function toIntents(descriptors) {
       case "itemGrant":
         out.push(I.itemGrant(d.unitId, d.contentId, d.delta));
         break;
-      case "applyEffect":
-        out.push(I.applyEffect(d.unitId, d.effect, d.source));
+      case "applyEffect": {
+        const ticks = d.effect?.duration ? resolveTicks(parseTick(d.effect.duration), ctx) : null;
+        out.push(I.applyEffect(d.unitId, {
+          ...d.effect,
+          defId: d.effect?.defId ?? d.effect?.id,
+          magnitude: d.effect?.magnitude ?? 0,
+          expiry: ticks === null || ticks === INFINITE ? (d.effect?.expiry ?? null) : (ctx.tick ?? 0) + ticks,
+        }, d.source));
         break;
+      }
       case "removeEffect":
         out.push(I.removeEffect(d.unitId, d.effect ?? d.effectId, "item"));
         break;

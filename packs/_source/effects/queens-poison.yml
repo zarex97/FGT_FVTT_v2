@@ -1,0 +1,31 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md
+#
+# Granted by consuming [Semiramis' Poison] (packs/_source/abilities/semiramis-poison.yml).
+schema: 1
+id: queensPoison
+name: "Queen's Poison"
+description: |
+  1. The chance of inflicting volatile debuffs is increased by 30%.
+  2. The chance of being inflicted by volatile debuffs is reduced by 15%.
+  3. When a Unit with this effect performs a Normal Attack which uses Base Attack (STR), Poison
+     is inflicted on the DU at the end of the Damage Step, with a 50% chance of inflicting an
+     additional Stage of Poison (this 50% is a flat chance, not affected by debuff chance
+     increasing/reducing effects); then remove this effect from the AU.
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+defaultDuration: "3◈"
+rules:
+  - { key: ApplicationChance, direction: outgoing, volatility: volatile, value: 30 }
+  - { key: ApplicationChance, direction: incoming, volatility: volatile, value: -15 }
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:component:str"]
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: poison } }
+      - { key: ApplyEffect, target: victim, effect: { id: poison }, chance: 50, bypassChanceModifiers: true }
+      - { key: RemoveEffect, effect: queensPoison }

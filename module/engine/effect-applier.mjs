@@ -58,7 +58,7 @@ const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
  */
 export function applyEffect({
   def, target, magnitude = 0, npMagnitude = null, duration = null, source, ctx,
-  chanceModifiers = [], chance = null, stages = 1,
+  chanceModifiers = [], chance = null, stages = 1, bypassChanceModifiers = false,
   visibility = "public", attributionHidden = false,
 }) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
@@ -93,7 +93,11 @@ export function applyEffect({
   // reason they are a list rather than one number: "reduced by 25% on Units
   // with a MAG Rank of B or higher; reduced by 25% on Units with a Magic
   // Resistance of Rank B or higher; **this reduction does stack**."
-  const matched = (chanceModifiers ?? []).filter(
+  // Skipped outright when `bypassChanceModifiers` is set: Queen's Poison's
+  // extra Stage is "a flat 50% chance ... not affected by debuff chance
+  // increasing/reducing effects", and `matched`/`declared` are themselves
+  // debuff-chance modifiers the ability declares.
+  const matched = bypassChanceModifiers ? [] : (chanceModifiers ?? []).filter(
     (m) => !m.predicate || test(m.predicate, { options: ctx.options ?? new Set() }),
   );
   const declared = matched.reduce((sum, m) => sum + (m.value ?? 0), 0);
@@ -106,12 +110,12 @@ export function applyEffect({
     // made every stated chance in the game inert -- Stun's own 100 would have
     // applied to both.
     base: (chance ?? def.baseChance ?? 100) + declared,
-    inflictBonus: ctx.inflictBonus ?? 0,
+    inflictBonus: bypassChanceModifiers ? 0 : (ctx.inflictBonus ?? 0),
     // The target's own resistance, from its `ApplicationChance` contributions.
     // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
     // the target here closes the loop without every caller having to know.
-    resist: ctx.resist ?? resistanceOf(target, def, ctx.options),
+    resist: bypassChanceModifiers ? 0 : (ctx.resist ?? resistanceOf(target, def, ctx.options)),
     immune: false,
     bypassesImmunity: Boolean(def.bypassesImmunity),
   });
