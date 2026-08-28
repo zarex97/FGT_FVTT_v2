@@ -1,0 +1,30 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 84-85
+#
+# The `whenAllyAttacked` reaction window (`rules/reactions.mjs`'s
+# `allyReactions`) already exists for exactly this shape -- EMIYA's Rho Aias
+# is the reference case, and this ability needed none of its NP-only
+# restriction or its ownerLoss/decay clauses, just the plain barrier pool.
+schema: 1
+id: semiramis-scales-of-the-sacred-fish
+name: "Scales of the Sacred Fish"
+rank: null
+isSpell: true
+category: spell
+kind: skill
+cooldown: "3◈"
+timing: { window: whenAllyAttacked, radius: 2 }
+description: |
+  Spell. Used at the start of a Combat Phase when Semiramis or an allied Unit within a 2 panel
+  area of herself is Attacked; the Unit gains the Shield (200) buff for 2◈ Turns. Cooldown: 3◈
+  Turns.
+shield:
+  health: 200
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: scalesShield, duration: "2◈" }

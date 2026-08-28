@@ -1,0 +1,21 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, line 85
+#
+# The marker that says "damage aimed at this Unit goes through a barrier
+# first" -- the same shape Rho Aias's own marker is (packs/_source/effects/
+# rho-aias.yml), minus the `scope: np` restriction: "the Unit gains the
+# Shield (200) buff" names no attack kind, so it stops an ordinary Attack too.
+# The pool itself lives on `semiramis-scales-of-the-sacred-fish.yml`'s
+# `shield:` field, refreshed to a fresh 200 on every cast
+# (`engine/shield.mjs`'s `refreshShield` default, added for this Servant).
+schema: 1
+id: scalesShield
+name: "Shield"
+description: "Damage aimed at this Unit is absorbed by the Shield until its Health runs out."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+absorbs:
+  poolFrom: sourceAbility

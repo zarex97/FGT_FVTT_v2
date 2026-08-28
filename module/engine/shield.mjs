@@ -168,10 +168,20 @@ export async function refreshShield(item) {
     return full;
   }
 
-  if (spec.refresh?.kind !== "halfOfCurrent") return item.system?.shieldHealth ?? 0;
+  // "Full" is the default a barrier with no decay clause needs: Scales of the
+  // Sacred Fish's Shield(200) is a fresh 200 on every cast, not Rho Aias's
+  // "restored by half of its CURRENT Health" -- without an explicit case here
+  // it fell through to whatever was left over from the pool's last use, which
+  // for a short-lived reactive Shield is usually a stale, mostly-spent number
+  // rather than the 200 the sheet promises.
+  if (spec.refresh?.kind === "halfOfCurrent") {
+    const current = item.system?.shieldHealth ?? 0;
+    const next = Math.min(spec.health ?? current, current + Math.floor(current / 2));
+    await item.update({ "system.shieldHealth": next });
+    return next;
+  }
 
-  const current = item.system?.shieldHealth ?? 0;
-  const next = Math.min(spec.health ?? current, current + Math.floor(current / 2));
-  await item.update({ "system.shieldHealth": next });
-  return next;
+  const full = spec.health ?? 0;
+  if ((item.system?.shieldHealth ?? null) !== full) await item.update({ "system.shieldHealth": full });
+  return full;
 }

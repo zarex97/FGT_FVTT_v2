@@ -926,7 +926,27 @@ tests, full suite green, lint clean):
   green (1960 tests), `validate:content`/`lint` clean, and live in FGT_2026 — refused with reason
   `itemAtLeast` at 0 and at 1 held poison, succeeded at 4 (landed Poison + Def Dwn 30/40% on the
   target and correctly deducted exactly 3, leaving 1).
-- **Not yet started:** Task 26 (Scales of the
+- **Task 26 (Scales of the Sacred Fish)** — done, committed. Needed almost no new engine work: the
+  `whenAllyAttacked` reaction window (`rules/reactions.mjs`'s `allyReactions`) already exists for
+  exactly this shape (EMIYA's Rho Aias is the reference case) and offered the Spell correctly with
+  no changes at all. The one real gap: `engine/shield.mjs`'s `refreshShield` only knew "fill to
+  full on first use" and "decay by half of current" (Rho Aias's own clause) — anything else fell
+  through to whatever was left in the pool from its last use. Scales' Shield(200) needs a FRESH 200
+  on every cast, so added that as the default for any ability with no `refresh.kind` specified
+  (Rho Aias's own behavior unchanged, since its `first`-use branch and explicit `halfOfCurrent`
+  spec are both untouched).
+  Verified: `test/unit/shield.test.mjs` (`refreshShield`, 4 new tests covering first-use, repeat-
+  use-refills-full, explicit decay, and no-spec), full suite green (1964 tests), `validate:content`/
+  `lint` clean, and live in FGT_2026 — `allyReactions` offered the Spell when Semiramis herself was
+  the (simulated) defender, using it applied the Shield effect and filled the pool to 200, and
+  `absorb()` fully intercepted a 150-damage hit with no NP restriction (unlike Rho Aias).
+- **Phase 5 checkpoint reached**: every non-NP/non-summon/non-platform ability of Semiramis's now
+  works live — Presence Concealment (reused), Item Construction, Territory Creation, Divinity
+  (reused), Double Summon, Familiar: Doves, Arrogant King's Poison, Scales of the Sacred Fish.
+  Full suite green, `validate:content`/`lint` clean. Remaining work is Phase 6-9: Bašmu (spell +
+  summon + NP), Sikera Ušum (her actual NP), and the entire Hanging Gardens of Babylon platform —
+  by far the largest remaining scope, expected per the plan's own framing of that milestone.
+- **Not yet started:** Tasks 27-29 (Bašmu +
 `unitFirstSeen`/`RevealPosition` system, Task 17, not yet built), Task 25 (Arrogant King's
 Poison — needs an item-quantity REQUIREMENT kind that does not exist yet in
 `rules/items.mjs#meetsRequirement`, a materially-sized addition, not a one-liner), Task 26
