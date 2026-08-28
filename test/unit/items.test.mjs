@@ -201,6 +201,17 @@ describe("meetsRequirement", () => {
       ctx({ unit: me, board: { units: [me, { ...twin, panel: at(9, 9) }] } }))).toBe(false);
   });
 
+  it("checks the caster's own held item quantity", () => {
+    // Arrogant King's Poison: "Requires 3 [Semiramis' Poison] to use."
+    const req = { kind: "itemAtLeast", contentId: "semiramis-poison", amount: 3 };
+    const held = (quantity) => unit({ items: [{ contentId: "semiramis-poison", quantity }] });
+
+    expect(meetsRequirement(req, ctx({ unit: held(3) }))).toBe(true);
+    expect(meetsRequirement(req, ctx({ unit: held(4) }))).toBe(true);
+    expect(meetsRequirement(req, ctx({ unit: held(2) }))).toBe(false);
+    expect(meetsRequirement(req, ctx({ unit: unit() }))).toBe(false);
+  });
+
   it("checks an effect on the target", () => {
     expect(meetsRequirement({ kind: "targetHasEffect", effectId: "burn" },
       ctx({ target: { effects: ["burn"] } }))).toBe(true);
@@ -239,6 +250,9 @@ describe("meetsRequirement", () => {
       // Rho Aias states and Battle Continuation's revival has always had with
       // nothing enforcing it.
       "healthRestoredSince",
+      // "Requires 3 [Semiramis' Poison] to use" -- a gate on the caster's own
+      // held item quantity, needed by nothing before Arrogant King's Poison.
+      "itemAtLeast",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });

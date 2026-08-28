@@ -611,6 +611,11 @@ function itemSystem(doc) {
     opensDialog: doc.opensDialog ?? null,
     // §15.4's supersession, as authored data.
     additionalCosts: doc.additionalCosts ?? [],
+    // Arrogant King's Poison: "Requires 3 [Semiramis' Poison] to use" -- an
+    // item-quantity cost spent at use time (`engine/skill-use.mjs`'s
+    // `itemCostIntents`), distinct from `additionalCosts` (health/
+    // Sustainability) above.
+    itemCost: doc.itemCost ?? null,
     // Medea: a Spell is a category High-Speed Divine Words resets wholesale,
     // and `sameTurnExclusive` is a pair that may not both fire in one Turn.
     category: doc.category ?? null,

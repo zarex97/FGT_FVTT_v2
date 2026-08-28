@@ -100,7 +100,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill",
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
-  "modeInactive", "predicate", "healthAbove", "healthRestoredSince",
+  "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
 ]);
 
 /**
@@ -229,6 +229,13 @@ export function meetsRequirement(req, ctx) {
       // on an empty set would make Clairvoyance unusable until she copied.
       return matched.every((a) => (a.cooldownRemaining ?? 0) <= 0);
     }
+
+    case "itemAtLeast":
+      // "Requires 3 [Semiramis' Poison] to use" -- a gate on the CASTER's own
+      // held quantity, keyed by the stable content id the same way
+      // `platformContentId` is (a Foundry item id is random per world and
+      // content cannot name one).
+      return ((unit?.items ?? []).find((i) => i.contentId === req.contentId)?.quantity ?? 0) >= (req.amount ?? 1);
 
     case "predicate":
       // The escape hatch. Without an evaluator it refuses rather than passing:

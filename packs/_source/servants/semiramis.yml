@@ -67,3 +67,4 @@ abilities:
   - { ref: divinity, rank: C }
   - { ref: semiramis-double-summon }
   - { ref: semiramis-familiar-doves }
+  - { ref: semiramis-arrogant-kings-poison }

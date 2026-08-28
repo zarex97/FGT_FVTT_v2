@@ -274,6 +274,19 @@ describe("compileDocument", () => {
     const out = compileDocument(doc, "servants", library);
     expect(out.system.summonVariant).toEqual(doc.summonVariant);
   });
+
+  it("carries an ability's itemCost through — same allowlist gap as summonVariant", () => {
+    // Found live: Arrogant King's Poison landed its AoE but never spent the 3
+    // [Semiramis' Poison] it costs, because `itemCost` was authored and never
+    // added to this file's explicit field list -- it compiled to `null` and
+    // `itemCostIntents` (engine/skill-use.mjs) saw nothing to spend.
+    const doc = {
+      schema: 1, id: "akp", name: "Arrogant King's Poison",
+      itemCost: { contentId: "semiramis-poison", amount: 3 },
+    };
+    const out = compileDocument(doc, "abilities", library);
+    expect(out.system.itemCost).toEqual(doc.itemCost);
+  });
 });
 
 describe("copyable (§15.7)", () => {
