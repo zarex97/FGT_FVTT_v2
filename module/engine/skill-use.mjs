@@ -323,7 +323,7 @@ async function runPhases(ability, actor, targets, board, only = null) {
 
         case "cooldown":
           await applyWorldIntents(
-            phase.choose ? await chosenCooldowns(phase, ability, doc) : cooldownChanges(phase, doc),
+            phase.choose ? await chosenCooldowns(phase, ability, doc) : cooldownChanges(phase, doc, board),
             `skill:${ability.id}:cooldown`,
           );
           break;
@@ -715,9 +715,10 @@ async function postCard(actor, ability, targets, applied) {
  *
  * @param {object} phase
  * @param {object} doc the actor whose abilities are affected
+ * @param {object} [board] needed only by a `countMatching` change
  * @returns {object[]}
  */
-function cooldownChanges(phase, doc) {
+function cooldownChanges(phase, doc, board = null) {
   /** @type {object[]} */
   const out = [];
 
@@ -737,12 +738,47 @@ function cooldownChanges(phase, doc) {
       // three-turn Round.
       const turns = change.ticks !== undefined
         ? resolveTicks(parseTick(change.ticks), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") })
-        : Math.abs(change.delta ?? 0);
-      const down = change.ticks !== undefined ? (change.direction === "down") : (change.delta ?? 0) < 0;
+        : change.countMatching
+          ? countMatchingTurns(change, doc, board)
+          : Math.abs(change.delta ?? 0);
+      const down = change.ticks !== undefined ? (change.direction === "down")
+        : change.countMatching ? true : (change.delta ?? 0) < 0;
       out.push(I.cooldown(doc.id, item.id, turns, down ? "reduce" : "increase"));
     }
   }
   return out;
+}
+
+/**
+ * A cooldown reduction sized by a board census: "reduce Semiramis' NP
+ * Cooldown by X, where X = number of enemy Units on the board with the
+ * 'Dove' effect (max Cooldown reduction = 1◈ Turns)" (Familiar: Doves).
+ *
+ * Reuses the ordinary predicate grammar (`rules/predicate.mjs`) against each
+ * candidate unit's own roll options, rather than inventing a `@count(...)`
+ * expression syntax the predicate language has no aggregate form for — the
+ * count is a per-unit membership test summed over the board, which `test()`
+ * already answers one unit at a time.
+ *
+ * @param {object} change `{countMatching: {relation, requires}, maxTicks?}`
+ * @param {object} doc the caster, whose relation to each candidate is asked
+ * @param {object|null} board
+ * @returns {number}
+ */
+function countMatchingTurns(change, doc, board) {
+  const self = board?.units?.find((u) => u.id === doc.id) ?? unitSnapshot(doc);
+  const spec = change.countMatching;
+  const count = (board?.units ?? []).reduce((n, u) => {
+    if (spec.relation && relationOf(self, u, board) !== spec.relation) return n;
+    const options = rollOptionsFor({ attacker: u });
+    return testPredicate(spec.requires ?? [], { options }) ? n + 1 : n;
+  }, 0);
+
+  if (change.maxTicks === undefined) return count;
+  const cap = resolveTicks(
+    parseTick(change.maxTicks), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") },
+  );
+  return Math.min(count, cap);
 }
 
 /**

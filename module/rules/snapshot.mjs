@@ -247,6 +247,12 @@ export function snapshotUnit(actor, {
     // the `healthRestoredSince` requirement, which is a question about history
     // and cannot be answered from the current bar.
     healthWatermarks: { ...(sys.healthWatermarks ?? {}) },
+    // For `unitFirstSeen` (`engine/vision.mjs`) -- SetFields arrive as `Set`,
+    // spread for the same reason every other one on this projection is.
+    seenUnitIds: [...(sys.seenUnitIds ?? [])],
+    // Familiar: Doves' `RevealPosition` -- the effect id this unit can see
+    // the position of, regardless of Fog of War (`apps/canvas/overlay-layer.mjs`).
+    revealsEffect: contributions.revealsEffect ?? null,
     acted: turnState.acted,
     turnState,
     roundState,

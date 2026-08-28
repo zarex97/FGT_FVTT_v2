@@ -1,0 +1,17 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, line 78
+#
+# Applied by `unitFirstSeen` (module/engine/vision.mjs) via
+# semiramis-familiar-doves.yml's passive. A marker, not a mechanical effect --
+# it carries no rules of its own; `RevealPosition` on Semiramis's own ability
+# is what reads "who carries this id" (module/rules/elements.mjs).
+schema: 1
+id: dove
+name: "Dove"
+description: "A marker. Semiramis can see this Unit's position regardless of Fog of War."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+rules: []

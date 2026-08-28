@@ -43,6 +43,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {string[]} attributes       attributes granted by an ability
  * @property {object|null} magicResistance
  * @property {string|null} variantOverride
+ * @property {string|null} revealsEffect
  * @property {object[]} damageNegation   dice-based flat reductions
  * @property {object[]} unhandled        elements with no executor — a bug, surfaced
  */
@@ -52,7 +53,7 @@ function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
-    attributes: [], magicResistance: null, variantOverride: null, damageNegation: [], zonBonuses: [],
+    attributes: [], magicResistance: null, variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], unhandled: [],
   };
@@ -546,6 +547,18 @@ export const EXECUTORS = Object.freeze({
    */
   VariantOverride(el, { out }) {
     out.variantOverride = el.branch ?? "heads";
+  },
+
+  /**
+   * "Semiramis can see the position of all Units with the 'Dove' effect on
+   * the field, regardless of Fog of War (but the effect does not remove Fog
+   * of War for her)." A position, not the unit's full information -- the
+   * canvas layer that reads this (`apps/canvas/overlay-layer.mjs`) draws a
+   * marker at the carrier's live panel and nothing else, which is the
+   * "does not remove Fog of War" half: everything BUT the marker stays fogged.
+   */
+  RevealPosition(el, { out }) {
+    out.revealsEffect = el.effect ?? null;
   },
 
   /** Battle Continuation's dice reduction at stage 12. */

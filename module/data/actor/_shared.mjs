@@ -235,6 +235,16 @@ export function combatantCommon() {
      */
     healthWatermarks: new fields.ObjectField({ required: true, initial: () => ({}) }),
 
+    /**
+     * Unit ids this unit has ever seen, for `unitFirstSeen` (`engine/vision.mjs`).
+     *
+     * "Whenever Semiramis sees a Unit for the FIRST time" is a question about
+     * history the same way `healthWatermarks` is -- a snapshot of the present
+     * board only says who is in Detect range *right now*, not who is new. A
+     * set rather than a log, since only membership is ever asked.
+     */
+    seenUnitIds: new fields.SetField(new fields.StringField({ blank: false }), { initial: () => [] }),
+
     roundState: new fields.SchemaField({
       round: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
