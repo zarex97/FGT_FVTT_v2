@@ -194,9 +194,12 @@ function headerContext(actor, snapshot) {
   const faction = system.factionId ? board.faction(system.factionId) : null;
 
   // A GM sees the truth regardless of `identityRevealed` — they are the one
-  // who has to run the concealment (§26.6). Only a Servant has an identity to
-  // conceal at all.
-  const concealed = actor.type === "servant" && !system.identityRevealed && !game.user.isGM;
+  // who has to run the concealment (§26.6) — and so does the Servant's own
+  // controller, the same exemption `rules/identity.mjs#publicNameOf` already
+  // states (`viewer.isOwner`): the concealment is from OPPONENTS, not from the
+  // player running the unit. Only a Servant has an identity to conceal at all.
+  const concealed = actor.type === "servant" && !system.identityRevealed
+    && !game.user.isGM && !actor.isOwner;
 
   return {
     factionColor: faction?.color ?? "var(--fgt-gold)",

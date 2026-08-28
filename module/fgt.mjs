@@ -43,6 +43,8 @@ import { LogViewer } from "./apps/log-viewer.mjs";
 import { AbilityEditor } from "./apps/ability-editor.mjs";
 import { ContractDialog } from "./apps/contract-dialog.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
+import { FactionOwnership } from "./engine/faction-ownership.mjs";
+import { TokenImage } from "./engine/token-image.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
@@ -162,6 +164,13 @@ Hooks.once("ready", () => {
   Scheduler.attach();
   // Every client validates its own movement; the write is proxied as usual.
   Movement.attach();
+  // §26.1: "a player owns their own Servants and Master." Keeps that true —
+  // GM client only, like the faction roster it reads.
+  FactionOwnership.attach();
+  // §4.2: a Servant's token shows its standard image until identityRevealed,
+  // then its true portrait — for every viewer at once, since a token texture
+  // has no per-viewer rendering the way the sheet's own portrait does.
+  TokenImage.attach();
   // Everyone sees the budget; only the acting faction can spend it.
   TurnHUD.attach();
   // ZON rings, threat ranges and Master protection, drawn from selection and

@@ -147,9 +147,17 @@ that does, bound as the `editImage` action both sheets declare.
 
 A Servant carries a second image, `system.defaultImage` (the Details tab, GM-only, beside the
 identity fields), for the same reason `classContainer` stands in for `trueName`: while
-`identityRevealed` is unset, anyone but the GM sees this standard image in the header instead of
-the true portrait — the true `img` is never overwritten, so the sheet the GM edits and the one
-everyone else sees stay two different, correct things.
+`identityRevealed` is unset, anyone but the GM or the Servant's own owner sees this standard image
+in the header instead of the true portrait — the true `img` is never overwritten, so the sheet the
+GM edits and the one everyone else sees stay two different, correct things.
+
+The **placed token** carries the same standard-image-until-revealed behaviour, but not the
+owner exemption: a token's texture is one field every connected client renders identically, with
+no per-viewer branch the way a sheet's own render has, so showing the true portrait to the owner
+there would show it to everyone sharing the canvas, opponents included. `engine/token-image.mjs`
+keeps the placed token and `prototypeToken` in sync with whichever image is currently public —
+revealing a Servant's identity is what puts its true face on the board, for the whole table at
+once.
 
 ### Abilities tab
 

@@ -10,9 +10,14 @@
 >
 > Every unit also carries `detect` (vision range and Detect are the same number, Ch. 08 §8.7)
 > and `defaultImage`, a standard image separate from `img` (the true portrait). **Fixed (Ch. 45):**
-> only a Servant gives it a job today — while `identityRevealed` is unset, this is what a non-GM
-> viewer's sheet shows in place of the true portrait, the same way `classContainer` stands in for
-> `trueName`. It used to be schema-only: declared, authored by nothing, read by nothing.
+> only a Servant gives it a job today — while `identityRevealed` is unset, a non-GM, non-owner
+> viewer's sheet shows this in place of the true portrait (`context.mjs`'s `concealed`, which also
+> exempts the Servant's own owner — the same exemption `publicNameOf` states above), the same way
+> `classContainer` stands in for `trueName`. Its **placed token** shows it too, once revealed or
+> not, for every viewer identically (`engine/token-image.mjs`) — a token's texture has no
+> per-viewer render the way a sheet does, so it cannot also exempt the owner without leaking the
+> true portrait to opponents sharing the same canvas. It used to be schema-only: declared,
+> authored by nothing, read by nothing.
 
 > **Implemented (Ch. 45 C2, C3).** The Civilian rules of §4.6 are live: a Servant attacking a
 > Civilian kills it with **no damage calculation and no reaction ladder** — `resolveAttack`
@@ -481,6 +486,16 @@ function relation(a: UnitSnapshot, b: UnitSnapshot): "self"|"ally"|"enemy"|"neut
 `TokenDocument.disposition` is maintained as a *display* mirror for the currently-viewing
 user, so token borders colour correctly, but no rule reads it. Every targeting filter and
 effect predicate uses `relation()`.
+
+> **Fixed (Ch. 45).** Assigning a faction's controlling user in `FactionConfig` fires
+> `fgtFactionsChanged`, and nothing consumed it: `game.settings.get("fgt", "factions")` held the
+> assignment, but every actor's Foundry `ownership` stayed `{default: 0}` regardless of which
+> faction it belonged to, contradicting Ch. 26 §26.1's stated design (*"a player owns their own
+> Servants and Master"*). `engine/faction-ownership.mjs` now grants OWNER to a faction's assigned
+> user on every actor carrying that `factionId`, and revokes it from whoever previously held it
+> if a faction is reassigned — kept current on every roster edit and on any actor's own
+> `factionId` changing. Player permission for a Servant is a consequence of its faction now,
+> the same way `contract` state or `region` bonus already were.
 
 This matters because `Charm` **switches control of a unit to the enemy player** for a
 duration. During Charm, the unit's `controllerId` changes but its `factionId` does not — the

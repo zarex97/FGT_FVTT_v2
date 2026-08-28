@@ -29,8 +29,16 @@ can and cannot guarantee.
 
 ## 26.1 The problem
 
-Foundry permissions are per-document. A player owns their own Servants and Master. An attack
-resolution needs to:
+Foundry permissions are per-document. A player owns their own Servants and Master —
+**mechanically**, this means `engine/faction-ownership.mjs` (Ch. 45) grants a faction's assigned
+user OWNER on every actor with that `factionId`, kept in sync with `apps/faction-config.mjs`.
+That statement used to describe only the intent: the config dialog recorded the assignment and
+nothing ever turned it into an actual `ownership` write, so a player assigned to a faction had
+`NONE` on their own Servant regardless — unable to open it with real permission, drag its token
+(Foundry's own permission gate, distinct from this chapter's proxy and from this system's own
+MOV/budget legality), or pass the `isOwner` exemption Ch. 04 §4.2's identity concealment checks.
+
+An attack resolution needs to:
 
 - reduce the **defender's** health,
 - apply effects to the **defender**,
