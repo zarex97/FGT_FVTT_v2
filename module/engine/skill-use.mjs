@@ -43,6 +43,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { createField } from "./fields.mjs";
 import { fireEvent } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
+import { test as testPredicate } from "../rules/predicate.mjs";
 
 /**
  * Use an active Skill.
@@ -246,12 +247,22 @@ async function runPhases(ability, actor, targets, board, only = null) {
   // happened -- Dragon Tooth Warriors is the only such cost in the set.
   let summoned = 0;
 
+  // The CASTER's own options, for a phase-level `predicate:` -- Semiramis's
+  // `Double Summon` grants the 'DSC' buff only in its THIRD clause, "if
+  // Semiramis does not have the Double Summon: Caster Skill", a condition on
+  // one phase of a three-phase ability rather than on the ability as a whole.
+  // Self-only, like a rule element's own `predicate` (Ch. 24 §24.3) -- there
+  // is no target and no attack here either, so a clause naming one belongs on
+  // an `OnEvent` handler instead, not on a phase.
+  const selfOptions = rollOptionsFor({ attacker: unitSnapshot(actor) });
+
   for (const phase of effectivePhases(ability.system ?? {}, resolveSource)) {
     // "If this is NOT THE FIRST TIME EMIYA has used this Skill in this game,
     // reduce his Health by 5%." A gate on the whole-match counter, which is
     // read BEFORE this use is recorded -- so the first press costs nothing and
     // the second onwards does.
     if (phase.afterFirstUse && (ability.system?.timesUsed ?? 0) < 1) continue;
+    if (phase.predicate && !testPredicate(phase.predicate, { options: selfOptions })) continue;
     // A caller may want only part of the list -- the attack flow runs the
     // phases the Combat Process has no rung for, and leaves the effect phases
     // to the damage step where the riders belong.

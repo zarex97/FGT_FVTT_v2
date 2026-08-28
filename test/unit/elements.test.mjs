@@ -162,6 +162,32 @@ describe("predicates gate contribution entirely", () => {
 
     expect(out.modifiers[0].predicate).toBe(null);
   });
+
+  it("DEFERS self:inHomeBase and self:onPlatform:, rather than answering them as false", () => {
+    // `contributionsOf` (rules/snapshot.mjs) collects with a board-blind,
+    // actor-only options set -- `inHomeBase` and `platformContentId` are board
+    // annotations `annotateEnvironment`/`annotatePlatforms` stamp on later, in
+    // `snapshotBoard`. Answering these here as false silently dropped Medea's
+    // and Semiramis's OWN Territory Creation bonus ("all damage dealt by it is
+    // increased") -- the recipient-side aura half kept working because it is
+    // tested later, against the annotated board, which is why only half of
+    // Territory Creation ever looked broken.
+    const home = { key: "DamageModifier", value: 100, predicate: ["self:inHomeBase"] };
+    const platform = {
+      key: "DamageModifier", value: 200,
+      predicate: ["self:variant:dsc", "self:onPlatform:hanging-gardens-of-babylon"],
+    };
+    const out = collectContributions(
+      [ability({ passiveRules: [home, platform] })],
+      { options: new Set() },
+    );
+
+    expect(out.modifiers).toHaveLength(2);
+    expect(out.modifiers[0].predicate).toEqual(["self:inHomeBase"]);
+    expect(out.modifiers[1].predicate).toEqual([
+      "self:variant:dsc", "self:onPlatform:hanging-gardens-of-babylon",
+    ]);
+  });
 });
 
 describe("deferredPredicate", () => {

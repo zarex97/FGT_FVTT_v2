@@ -422,7 +422,17 @@ const ACTIONS = Object.freeze({
    */
   SetMode: (a, u, h) => [I.setMode(u.id, a.ability, a.active === true, h.source)],
 
-  ResourceDelta: (a, u) => [I.resource(u.id, resourcePathFor(a.resource, u), a.delta ?? 0)],
+  ResourceDelta: (a, u, h, c) => {
+    // `rolled()` falls back to `a.amount`, not `a.delta` — the bare-number
+    // shape every ResourceDelta shipped with before Semiramis's HGoB
+    // Construction needed a rolled gain (Ch. 32 "1d4+2 per Turn"). A roll
+    // that has not arrived yet writes nothing, same as `Heal`.
+    if (a.roll) {
+      const amount = rolled(a, c);
+      return amount === null ? [] : [I.resource(u.id, resourcePathFor(a.resource, u), amount)];
+    }
+    return [I.resource(u.id, resourcePathFor(a.resource, u), a.delta ?? 0)];
+  },
 
   /**
    * Turn a cooldown clock, by ability or across a whole scope.

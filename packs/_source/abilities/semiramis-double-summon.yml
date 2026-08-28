@@ -1,0 +1,48 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 70-75
+#
+# Clause 3 ("if Semiramis does NOT have DSC, she gains the DSC buff") is the
+# first content to need a phase-level `predicate:` -- one skill, three phases,
+# and only the last one is conditional (module/engine/skill-use.mjs's
+# `runPhases`, tested against the CASTER's own options, same self-only scope a
+# rule element's own `predicate` gets at collection time). A permanently-DSC
+# Semiramis already has everything clause 3 would grant, so the phase simply
+# does not fire for her.
+schema: 1
+id: semiramis-double-summon
+name: "Double Summon"
+rank: B
+kind: activeSkill
+copyable: { allowed: false, reason: classSkill }
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies NP Regen for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  2. Applies the 'Construction' effect for 1◈ Turns- HGoB Construction is increased by 1d6 at the
+     end of every Turn. The 'Construction' effect is neither a buff or debuff and is Unremovable.
+  3. If Semiramis does not have the 'Double Summon: Caster' Skill, she gains the 'DSC' buff for
+     1◈ Turns, this buff grants her the 'Double Summon: Caster' Skill.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    rules:
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: npRegen, magnitude: 1 }
+        duration: "1◈"
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: construction }
+        duration: "1◈"
+  - kind: applyEffects
+    target: self
+    predicate: ["self:variant:noDsc"]
+    rules:
+      - key: OnEvent
+        event: abilityUsed
+        effect: { id: dscBuff }
+        duration: "1◈"

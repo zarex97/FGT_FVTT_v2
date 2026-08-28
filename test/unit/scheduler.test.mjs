@@ -48,6 +48,21 @@ describe("ResourceDelta", () => {
 
     expect(out[0].key).toBe("resources.prs.value");
   });
+
+  it("resolves a rolled amount, for a per-turn gain like Semiramis's HGoB Construction", () => {
+    const action = { kind: "ResourceDelta", resource: "hgobConstruction", roll: { key: "constructionGain" } };
+    const rolledCtx = { ...ctx, rolls: { constructionGain: 5 } };
+    const out = dispatch(action, emiya({ resources: { hgobConstruction: { value: 0, max: 100 } } }), handler, rolledCtx);
+
+    expect(out).toEqual([{ t: "resource", unitId: "emiya", key: "resources.hgobConstruction.value", delta: 5 }]);
+  });
+
+  it("writes nothing when the roll has not arrived", () => {
+    const action = { kind: "ResourceDelta", resource: "aria", roll: { key: "missing" } };
+    const out = dispatch(action, emiya(), handler, ctx);
+
+    expect(out).toEqual([]);
+  });
 });
 
 describe("resourcePathFor", () => {

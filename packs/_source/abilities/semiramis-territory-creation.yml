@@ -1,0 +1,82 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md
+#
+# Rank EX, scoped to two DIFFERENT zones at once, using the same DamageModifier
+# + field-wide Aura pattern Medea's Territory Creation already established
+# (packs/_source/abilities/medea-territory-creation.yml) -- extended with
+# `self:onPlatform:<id>` (module/rules/options.mjs) and a STRING-valued
+# `requiresRecipient` (module/rules/auras.mjs) for the platform-scoped half,
+# neither of which existed before this Servant needed them.
+#
+# Authored unconditionally, like the DSC class skill it depends on: every
+# clause here is gated on `self:variant:dsc` rather than the ability being
+# conditionally attached. The non-DSC branch -- Territory Creation Rank C
+# while the temporary 'DSC' buff from `Double Summon` is active -- is a
+# SEPARATE, later concern (semiramis-double-summon.yml): a buff cannot grant
+# passive rules retroactively, so it has to carry its own copy of clause 2.
+schema: 1
+id: semiramis-territory-creation
+name: "Territory Creation"
+rank: EX
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  Has different effects depending on whether Semiramis has the 'Double Summon: Caster' Skill.
+  1. If Semiramis has it, the effects of Territory Creation are reduced to Rank C for her
+     Faction's Home Base. Territory Creation Rank EX is only applied to the whole area of
+     Semiramis' 'Hanging Gardens of Babylon'.
+     (Passive 1) When this Unit is in its Home Base, all damage dealt by it is increased by
+     6d20, including NP.
+     (Passive 2) While this Unit is on the field, all damage taken by allied Units who are in
+     their Home Base is further reduced by (3d10+30), including NP.
+  2. If Semiramis does not have it, when she uses the 'Double Summon' Skill, she gains the
+     effects of Territory Creation Rank C while she has the 'DSC' buff.
+  Note: If there are multiple allied Units with this Skill, only the Territory Creation with
+  the highest Rank takes effect.
+passiveRules:
+  # Rank EX -- the whole Hanging Gardens area -- only once Semiramis has DSC.
+  - key: DamageModifier
+    stage: flat
+    predicate: ["self:variant:dsc", "self:onPlatform:hanging-gardens-of-babylon"]
+    roll: { key: territoryCreationBonusEX, formula: "6d20" }
+  - key: Aura
+    scope: field
+    relations: [ally, self]
+    stacking: highestOnly
+    group: territoryCreation
+    rank: EX
+    # Clause 1's whole package is conditional on having DSC -- the sibling
+    # DamageModifier above says so and this was missing it, which meant a
+    # noDsc Semiramis (who has Territory Creation but not DSC, and so should
+    # get NONE of clause 1) contributed the EX ward anyway. Caught live: a
+    # noDsc Semiramis's `contributionsOf` offered three `territoryCreation`
+    # aura candidates (EX + C from her own unowned clause 1, plus dscBuff's
+    # own Rank C copy) when clause 1 should have offered none.
+    predicate: ["self:variant:dsc"]
+    requiresRecipient: { platformContentId: hanging-gardens-of-babylon }
+    elements:
+      - key: DamageNegation
+        roll: { key: territoryCreationWardEX, formula: "3d10+30" }
+
+  # Rank C -- her GROUND Home Base -- only while she has DSC and is NOT
+  # aboard the HGoB (the two are mutually exclusive: her sheet's own DECISION
+  # is that EX replaces C for the Home Base while she has DSC, not that both
+  # apply at once).
+  - key: DamageModifier
+    stage: flat
+    predicate:
+      - "self:variant:dsc"
+      - "self:inHomeBase"
+      - { not: "self:onPlatform:hanging-gardens-of-babylon" }
+    roll: { key: territoryCreationBonusC, formula: "5d8" }
+  - key: Aura
+    scope: field
+    relations: [ally, self]
+    stacking: highestOnly
+    group: territoryCreation
+    rank: C
+    predicate: ["self:variant:dsc"]
+    requiresRecipient: { inHomeBase: true }
+    elements:
+      - key: DamageNegation
+        roll: { key: territoryCreationWardC, formula: "3d10+10" }

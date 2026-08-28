@@ -246,6 +246,12 @@ function outranks(a, b) {
 /**
  * Does the recipient meet the aura's own condition?
  *
+ * Two shapes: `{inHomeBase: true}` asks a yes/no question and is answered by
+ * truthiness. `{onPlatform: "hanging-gardens-of-babylon"}` asks "aboard THIS
+ * one" — Semiramis's Territory Creation needs the whole HGoB area told apart
+ * from any other platform an ally might someday stand on, which a boolean
+ * cannot express — so a string `wanted` is an equality check instead.
+ *
  * @param {object|null} requires
  * @param {object} unit the RECIPIENT
  * @returns {boolean}
@@ -253,6 +259,10 @@ function outranks(a, b) {
 function recipientQualifies(requires, unit) {
   if (!requires) return true;
   for (const [key, wanted] of Object.entries(requires)) {
+    if (typeof wanted === "string") {
+      if (unit?.[key] !== wanted) return false;
+      continue;
+    }
     if (Boolean(unit?.[key]) !== Boolean(wanted)) return false;
   }
   return true;

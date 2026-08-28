@@ -119,6 +119,14 @@ function add(options, side, unit) {
   // EMIYA's Circuits turn on -- had no way to be written.
   for (const f of unit.fields ?? []) options.add(`${side}:inField:${f}`);
 
+  // Which PLATFORM the unit is aboard (Ch. 20) -- distinct from a bounded
+  // field. `annotatePlatforms` sets `u.platformContentId` to the platform's
+  // STABLE content id (never its random Foundry document id, which content
+  // cannot predicate on) -- Semiramis's Territory Creation needs to tell "on
+  // the Hanging Gardens" apart from "in the ground Home Base" to give the two
+  // different Ranks.
+  if (unit.platformContentId) options.add(`${side}:onPlatform:${unit.platformContentId}`);
+
   // Standing in its OWN Home Base. Medea's Territory Creation predicates on it
   // from both directions -- her own damage dealt, and an ally's damage taken --
   // which is why it is emitted for `self` and `target` alike.
@@ -201,6 +209,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):variant:[A-Za-z][\w-]*$/,
   /^(self|target):inHomeBase$/,
   /^(self|target):inField:[A-Za-z][\w-]*$/,
+  /^(self|target):onPlatform:[A-Za-z][\w-]*$/,
   /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,
   /^(self|target):skill:[A-Za-z][\w-]*$/,
   /^(self|target):skillRank:[A-Za-z][\w-]*:gte:(E|D|C|B|A|EX)$/,
