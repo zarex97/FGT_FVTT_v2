@@ -13,6 +13,56 @@
 import { describe, it, expect } from "vitest";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 
+describe("bypassChanceModifiers (Queen's Poison's extra Stage)", () => {
+  // Poison-like, non-terminal, so the chance path is exercised without the
+  // terminal short-circuit `applyEffect` takes for Instakill/Death.
+  const poison = { id: "poison", name: "Poison", polarity: "debuff", volatility: "volatile", baseChance: 50 };
+  const victim = (over = {}) => ({ id: "v", health: 800, effects: [], effectInstances: [], ...over });
+
+  it("an inflict bonus normally raises the roll's chance of success", () => {
+    // Base 50 + a 40 inflict bonus clears a roll of 80; the same roll without
+    // the bonus does not.
+    const withBonus = applyEffect({
+      def: poison, target: victim(), source: {},
+      ctx: { roll: 80, currentTick: 0, turnsPerRound: 3, inflictBonus: 40 },
+    });
+    expect(withBonus.outcome).toBe("applied");
+  });
+
+  it("bypassChanceModifiers ignores the SAME inflict bonus", () => {
+    const bypassed = applyEffect({
+      def: poison, target: victim(), source: {}, bypassChanceModifiers: true,
+      ctx: { roll: 80, currentTick: 0, turnsPerRound: 3, inflictBonus: 40 },
+    });
+    expect(bypassed.outcome).toBe("resisted");
+  });
+
+  it("bypassChanceModifiers also ignores the target's own resist", () => {
+    const resisted = applyEffect({
+      def: poison, target: victim(), source: {},
+      ctx: { roll: 45, currentTick: 0, turnsPerRound: 3, resist: 40 },
+    });
+    expect(resisted.outcome).toBe("resisted");
+
+    const bypassed = applyEffect({
+      def: poison, target: victim(), source: {}, bypassChanceModifiers: true,
+      ctx: { roll: 45, currentTick: 0, turnsPerRound: 3, resist: 40 },
+    });
+    expect(bypassed.outcome).toBe("applied");
+  });
+
+  it("still honours an explicit chance override while bypassed", () => {
+    // The flat "50%" IS the stated chance, not the effect's own `baseChance` --
+    // this asserts the two are independent: bypass skips MODIFIERS, not the
+    // caller's own stated number.
+    const out = applyEffect({
+      def: poison, target: victim(), source: {}, chance: 50, bypassChanceModifiers: true,
+      ctx: { roll: 50, currentTick: 0, turnsPerRound: 3, inflictBonus: 999 },
+    });
+    expect(out.outcome).toBe("applied");
+  });
+});
+
 describe("terminal effects", () => {
   const instakill = {
     id: "instakill", name: "Instakill", polarity: "debuff", volatility: "terminal",

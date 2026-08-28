@@ -8,6 +8,7 @@ import {
   canTransferItem, transferItem, consumeItem,
   meetsRequirement, meetsRequirements, REQUIREMENT_KINDS,
 } from "../../module/rules/items.mjs";
+import { toIntents } from "../../module/engine/items.mjs";
 
 const at = (i, j) => ({ i, j });
 const unit = (over = {}) => ({ id: "u", panel: at(0, 0), abilities: [], effects: [], zones: [], ...over });
@@ -91,6 +92,39 @@ describe("consumeItem", () => {
 
   it("does nothing when there are none left", () => {
     expect(consumeItem(poison({ quantity: 0 }), unit())).toEqual([]);
+  });
+});
+
+describe("toIntents resolves a consumeEffect's applyEffect descriptor (engine/items.mjs)", () => {
+  // `consumeEffect` is authored in the short form `{id, duration}` -- the same
+  // convention `OnEvent`'s `then:` actions use -- not the resolved
+  // `{defId, expiry}` shape an `applyEffect` intent actually carries.
+  // `toIntents` used to pass `d.effect` straight through unresolved, so
+  // `resolveEffects` (`applier.mjs`), which reads `intent.effect.defId`, found
+  // nothing and the effect was never applied -- the item was still spent.
+  const descriptors = () => consumeItem(
+    poison({ consumeEffect: [{ kind: "applyEffect", effect: { id: "queensPoison", duration: "3◈" } }] }),
+    unit(),
+  );
+
+  it("resolves the short-form id into defId", () => {
+    const [, applyEffect] = toIntents(descriptors(), { tick: 10, turnsPerRound: 3 });
+    expect(applyEffect.effect.defId).toBe("queensPoison");
+  });
+
+  it("resolves the authored duration into an absolute expiry", () => {
+    // 3◈ at 3 turns/round = 9 ticks, from the current tick.
+    const [, applyEffect] = toIntents(descriptors(), { tick: 10, turnsPerRound: 3 });
+    expect(applyEffect.effect.expiry).toBe(19);
+  });
+
+  it("leaves expiry null for an undurationed effect", () => {
+    const noDuration = consumeItem(
+      poison({ consumeEffect: [{ kind: "applyEffect", effect: { id: "queensPoison" } }] }),
+      unit(),
+    );
+    const [, applyEffect] = toIntents(noDuration, { tick: 10, turnsPerRound: 3 });
+    expect(applyEffect.effect.expiry).toBeNull();
   });
 });
 

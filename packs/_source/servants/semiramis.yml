@@ -62,4 +62,5 @@ resources:
 abilities:
   - { ref: semiramis-double-summon-caster }
   - { ref: class-presence-concealment, rank: "C+" }
+  - { ref: semiramis-item-construction }
   - { ref: divinity, rank: C }

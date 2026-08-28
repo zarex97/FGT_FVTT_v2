@@ -1,0 +1,24 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md
+#
+# The reference case `rules/items.mjs`'s own header comment names: "Items
+# cannot be traded/given/passed to other Units unless stated. Only
+# [Semiramis' Poison] says otherwise in the reference set."
+#
+# Created by `semiramis-item-construction`'s `itemGrant` phase, which does not
+# require Semiramis to already hold one -- `I.itemGrant` looks this up by
+# `contentId` and creates it from scratch the first time.
+schema: 1
+id: semiramis-poison
+name: "[Semiramis' Poison]"
+type: equipment
+description: |
+  Whenever Semiramis is standing directly next to an allied Unit, any number of [Semiramis'
+  Poison] can be passed from Semiramis to that Unit (once per Turn). Consuming 1 grants the
+  'Queen's Poison' effect for 3◈ Turns.
+quantity: 0
+transferable: true
+transferRange: 1
+transfersPerTurn: 1
+consumeEffect:
+  - kind: applyEffect
+    effect: { id: queensPoison, duration: "3◈" }
