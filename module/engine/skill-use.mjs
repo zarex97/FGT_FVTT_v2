@@ -106,6 +106,7 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
 
   await applyWorldIntents([
     ...(usage.cost ? costIntents(usage.cost, self) : []),
+    ...itemCostIntents(ability, actor),
     ...cooldownIntents(ability, actor, applied.summoned ?? 0, self),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
@@ -607,6 +608,28 @@ async function applyPhaseEffects(phase, ability, actor, target) {
     });
   }
   return out;
+}
+
+/**
+ * Spend an ability's `itemCost`, if it has one.
+ *
+ * "Arrogant King's Poison requires 3 [Semiramis' Poison] to use" is a cost on
+ * USING the ability, not on landing its effect -- unlike a consumed
+ * `[Semiramis' Poison]`'s own `consumeEffect` (Queen's Poison), spending the
+ * cost here does not itself apply anything. The `itemAtLeast` requirement
+ * above (`rules/items.mjs`) already refused the use before this runs if the
+ * caster held fewer than the cost, so the item is guaranteed to exist.
+ *
+ * @param {object} ability
+ * @param {object} actor
+ * @returns {object[]}
+ */
+function itemCostIntents(ability, actor) {
+  const cost = ability.system?.itemCost;
+  if (!cost) return [];
+  const item = actor.items.find((i) => (i.system?.contentId ?? i.id) === cost.contentId);
+  if (!item) return [];
+  return [I.itemQuantity(actor.id, item.id, -(cost.amount ?? 1))];
 }
 
 /**

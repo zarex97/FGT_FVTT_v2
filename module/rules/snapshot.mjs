@@ -253,6 +253,15 @@ export function snapshotUnit(actor, {
     // Familiar: Doves' `RevealPosition` -- the effect id this unit can see
     // the position of, regardless of Fog of War (`apps/canvas/overlay-layer.mjs`).
     revealsEffect: contributions.revealsEffect ?? null,
+    // Consumable `equipment` items and how many, for an `itemAtLeast`
+    // requirement (`rules/items.mjs`) -- "Requires 3 [Semiramis' Poison] to
+    // use" is a gate on the CASTER's own held quantity, and nothing before
+    // Arrogant King's Poison needed to answer that question from a pure
+    // snapshot. Keyed by the STABLE content id, the same reason
+    // `platformContentId` is: a Foundry item id is random per world.
+    items: [...(actor.items ?? [])]
+      .filter((i) => i.type === "equipment")
+      .map((i) => ({ contentId: i.system?.contentId ?? i.id, quantity: i.system?.quantity ?? 0 })),
     acted: turnState.acted,
     turnState,
     roundState,

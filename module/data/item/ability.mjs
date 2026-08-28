@@ -68,6 +68,11 @@ function abilityCommon() {
     // rather than stacking with it.
     additionalCosts: new fields.ArrayField(new fields.ObjectField()),
 
+    // "Requires 3 [Semiramis' Poison] to use" -- a cost on USING the ability,
+    // spent by `engine/skill-use.mjs`'s `itemCostIntents` once the matching
+    // `itemAtLeast` requirement (`rules/items.mjs`) has already gated it.
+    itemCost: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
     // A named group of abilities something can act on wholesale. Medea's
     // High-Speed Divine Words resets "all of Medea's Spells", and naming each
     // one would go stale the moment an eighth Spell was written.

@@ -1,0 +1,31 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, line 81
+#
+# "Requires 3 [Semiramis' Poison] to use" is the first ability in the reference
+# set costing a held ITEM quantity rather than health, Sustainability or a
+# resource pool -- needed a new `itemAtLeast` requirement kind (module/rules/
+# items.mjs, gate) and `itemCost` (module/engine/skill-use.mjs, actual spend).
+schema: 1
+id: semiramis-arrogant-kings-poison
+name: "Arrogant King's Poison"
+rank: B+
+kind: activeSkill
+copyable: { allowed: false, reason: classSkill }
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+itemCost: { contentId: semiramis-poison, amount: 3 }
+requirements:
+  - { kind: itemAtLeast, contentId: semiramis-poison, amount: 3 }
+description: |
+  (Active) Requires 3 [Semiramis' Poison] to use. Hits a 3x3 panel area within Range. Inflicts
+  Poison on all affected Units, and also inflicts Def Dwn (B) for 1◈ Turns, all damage received is
+  increased by 30%; if NP, 40%. Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: withinRange, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy], chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: poison }
+      - { id: defDwn, magnitude: 30, npMagnitude: 40, duration: "1◈" }

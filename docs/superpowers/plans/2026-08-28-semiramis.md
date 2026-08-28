@@ -906,7 +906,27 @@ tests, full suite green, lint clean):
     once (idempotent on a second call) and applied the Dove effect to the SEEN unit; confirmed
     `contributionsOf(semiramis).revealsEffect === "dove"`; used the active clause on a 3x3 area and
     confirmed Debuff ResDwn (magnitude 30, correct ⅓◈ expiry) landed on the Dove-tagged enemy.
-- **Not yet started:** Task 25 (Arrogant King's
+- **Task 25 (Arrogant King's Poison)** — done, committed. Needed two new pieces (the plan's own
+  guess at Task 25 was right that this was needed, and confirmed no item-quantity cost existed
+  yet): an `itemAtLeast` requirement kind (`rules/items.mjs`, gate) reading a new `items` array on
+  the unit snapshot (`rules/snapshot.mjs`, keyed by stable `contentId` the same way
+  `platformContentId` is), and `itemCost`/`itemCostIntents` (`engine/skill-use.mjs`) to actually
+  spend it at use time — distinct from a consumed `[Semiramis' Poison]`'s own `consumeEffect`
+  (Queen's Poison): this cost is on USING the ability, not on landing an item's own effect.
+  Tick-expression subtraction (`"4◈-⅓◈"`) needed no engine work — already an explicit example in
+  `domain/tick.mjs`'s own doc comment.
+  **Found and fixed live**: `itemCost` was authored and silently dropped TWICE over — once by
+  `tools/lib/content.mjs`'s explicit ability-`system` allowlist (the same class of bug
+  `summonVariant` hit at Task 21: a field compiled to its schema default because nothing named it),
+  and again by `data/item/ability.mjs`'s DataModel schema not declaring the field at all, so even
+  the correctly-compiled compendium data was stripped the moment `Actor.create` instantiated a
+  world Item from it. Both fixed; a `itemCost` survives `compileDocument` regression test added
+  alongside `summonVariant`'s in `test/unit/content.test.mjs`.
+  Verified: `test/unit/items.test.mjs` (`itemAtLeast`), `test/unit/content.test.mjs`, full suite
+  green (1960 tests), `validate:content`/`lint` clean, and live in FGT_2026 — refused with reason
+  `itemAtLeast` at 0 and at 1 held poison, succeeded at 4 (landed Poison + Def Dwn 30/40% on the
+  target and correctly deducted exactly 3, leaving 1).
+- **Not yet started:** Task 26 (Scales of the
 `unitFirstSeen`/`RevealPosition` system, Task 17, not yet built), Task 25 (Arrogant King's
 Poison — needs an item-quantity REQUIREMENT kind that does not exist yet in
 `rules/items.mjs#meetsRequirement`, a materially-sized addition, not a one-liner), Task 26
