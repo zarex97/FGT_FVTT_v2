@@ -472,6 +472,65 @@ Reproduced and verified live before and after, against the actual `Heracles` act
 world: a freshly-Free Servant with a resolved 6-Turn clock decremented `null → 5 → 4` instead of
 `null → 0`, and a contracted Servant still produced no intents at all.
 
+### ~~A player assigned to a faction had no Foundry permission on its units~~ — **repaired**
+
+Reported live, while testing the identity-concealment fix above: a player, told they controlled
+Faction 1, could not see either of a Servant's images correctly, could not drag its token without
+Foundry rejecting the write, and saw the concealed standard image on their OWN sheet.
+
+`apps/faction-config.mjs` lets a GM assign a controlling user to a faction and has fired
+`Hooks.callAll("fgtFactionsChanged", ...)` since it was written — **nothing ever listened for
+it.** `game.settings.get("fgt", "factions")` held the assignment exactly as configured; every
+actor's Foundry `ownership` stayed `{default: 0}` regardless, contradicting Ch. 26 §26.1's stated
+design outright: *"A player owns their own Servants and Master."* Confirmed on the actual world,
+from the actual assigned player's own client: `game.actors.getName("Heracles").isOwner === false`,
+`permission: 0`, for a Servant on the faction they had just been told was theirs.
+
+That single missing sync explained every symptom at once:
+
+- **The sheet showed the standard image, not the true one, to the Servant's own controller.**
+  `context.mjs`'s concealment check exempts the Servant's owner — the same exemption
+  `rules/identity.mjs#publicNameOf` already states for the name (*"the concealment is from
+  opponents, not from the player running it"*) — and `actor.isOwner` was structurally false for
+  a "controller" with no real ownership, so the exemption could never fire. Fixed alongside this:
+  `context.mjs`'s `concealed` now also checks `actor.isOwner`.
+- **Token drags failed with a permission error and looked unconstrained doing it.** Foundry's own
+  write permission gate (a player needs OWNER to move a token they do not own) rejected the
+  position update; the client-side drag preview and ruler, which run before that gate is ever
+  consulted, showed no limit because this system's own MOV/budget legality in
+  `movement-hooks.mjs`'s `preMoveToken` hook never got the chance to matter — the write was
+  always going to fail regardless of what it computed.
+
+**Fix.** `engine/faction-ownership.mjs`, attached GM-side alongside `Scheduler`/`Movement` in
+`fgt.mjs`'s `ready` hook: on `fgtFactionsChanged` (a roster edit) and on `updateActor` /
+`createActor` for an actor's own `factionId` (a Servant reassigned, or created with one already
+set), every actor's `ownership` is rewritten so the current owner of its faction — and only that
+user — holds OWNER. Reassigning a faction to a different player revokes the previous one's
+ownership in the same pass, rather than only ever adding.
+
+Verified live, from the assigned player's own client, before and after: `isOwner` went
+`false → true` for a Servant on their faction after the sync ran, the sheet's portrait switched
+from the standard image to the true one, and `TokenDocument#canUserModify(user, "update")` went
+`false → true`, followed by an actual successful move.
+
+**A second, separate gap surfaced alongside this one, and is now also closed:** a Servant's
+placed token and `prototypeToken` texture did not follow `img` or `system.defaultImage` at all —
+verified live, changing either left both the prototype and the already-placed token showing
+whatever they were set to before. Foundry does not propagate an actor's portrait to already-placed
+tokens on its own, and this system had never synced the two.
+
+Ch. 26 §26.6 is the reason this could not simply mirror what the sheet does: it deliberately
+defers full per-viewer closed-information play (the shadow-actor pattern) to Ch. 40, and a placed
+token's texture is one shared field every viewer sees identically — there is no per-viewer render
+the way `context.mjs`'s `concealed` branch gives the sheet. `engine/token-image.mjs` (new, GM-side,
+attached beside `FactionOwnership`) resolves this the same way the sheet's non-owner view already
+does: the token shows the standard image (`system.defaultImage`) while `identityRevealed` is
+unset, and the true portrait once it is set, for every viewer identically. Revealing a Servant's
+identity is therefore also what puts its real face on the board. Verified live: setting the true
+`img` and a standard `defaultImage` while unrevealed updated both the prototype token and an
+already-placed one to the standard image; setting `identityRevealed` moved both to the true
+portrait; unsetting it moved both back.
+
 ---
 
 ## 45.5 The completion plan
