@@ -91,6 +91,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
     for (const token of canvas.tokens?.controlled ?? []) {
       this.#drawZon(token, board);
       this.#drawProtection(token, board);
+      this.#drawRevealedPositions(token, board);
     }
 
     if (this.#hovered && !this.#hovered.controlled) {
@@ -212,6 +213,39 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
     const status = zonStatus(unit, board);
     if (status.zon === null) return;
     this.#ring(status.master.panel, status.zon, status.outside ? BAD : OK, 0.08, board.bounds);
+  }
+
+  /* ── Revealed positions (Familiar: Doves, Ch. 32) ─────────────────────────── */
+
+  /**
+   * A marker at the live panel of every unit carrying `token`'s owner's
+   * `revealsEffect` id.
+   *
+   * "Semiramis can see the position of all Units with the 'Dove' effect on
+   * the field, regardless of Fog of War (but the effect does not remove Fog
+   * of War for her)" — a dot at a position, drawn only for the token's own
+   * controller (this method only ever runs over `canvas.tokens.controlled`),
+   * and nothing else about the marked unit: no name, no stats, no vision
+   * radius lifted. That is the "does not remove Fog of War" half.
+   *
+   * @param {object} token
+   * @param {object} board
+   */
+  #drawRevealedPositions(token, board) {
+    const unit = board.units.find((u) => u.id === token.actor?.id);
+    if (!unit?.revealsEffect) return;
+
+    for (const other of board.units) {
+      if (other.id === unit.id || !other.panel) continue;
+      if (!(other.effects ?? []).includes(unit.revealsEffect)) continue;
+
+      const { x, y } = this.#panelToPoint(other.panel);
+      const size = canvas.grid.size;
+      this.#graphics.lineStyle(2, 0xd4af37, 0.9);
+      this.#graphics.beginFill(0xd4af37, 0.35);
+      this.#graphics.drawCircle(x + size / 2, y + size / 2, size / 5);
+      this.#graphics.endFill();
+    }
   }
 
   /* ── Threat range ───────────────────────────────────────────────────────── */

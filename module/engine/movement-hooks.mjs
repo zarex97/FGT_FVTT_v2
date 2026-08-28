@@ -149,6 +149,12 @@ async function onMove(document, movement) {
     const { runDiscoverChecks } = await import("./concealment.mjs");
     await runDiscoverChecks(actor.id);
   }
+
+  // Familiar: Doves (Ch. 32): "whenever Semiramis sees a Unit for the first
+  // time" is not about concealment at all, so it runs unconditionally on
+  // every move rather than gated behind `unit.concealed` above.
+  const { checkSightings } = await import("./vision.mjs");
+  await checkSightings({ board: boardSnapshot(combat) });
 }
 
 /* -------------------------------------------------------------------------- */

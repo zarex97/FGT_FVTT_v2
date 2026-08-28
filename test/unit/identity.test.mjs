@@ -11,7 +11,7 @@
 import { describe, it, expect } from "vitest";
 import {
   publicNameOf, isIdentityRevealed, detectRangeOf, discoverChance, discoverAttempts,
-  DETECT_BY_CLASS,
+  DETECT_BY_CLASS, newlySeenBy,
 } from "../../module/rules/identity.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -164,6 +164,33 @@ describe("discoverChance", () => {
   it("is certain against a unit with no Presence Concealment", () => {
     // Van Gogh has none: there is nothing to conceal, so nothing to discover.
     expect(discoverChance(servant())).toBe(100);
+  });
+});
+
+describe("newlySeenBy (Ch. 32, Semiramis's Familiar: Doves)", () => {
+  const seer = (over = {}) => servant({
+    id: "seer", classContainer: "assassin", panel: at(5, 5), seenUnitIds: [], ...over,
+  });
+  const other = (over = {}) => ({ id: "other", kind: "servant", panel: at(5, 6), ...over });
+
+  it("offers a unit within Detect range that has never been seen", () => {
+    expect(newlySeenBy(seer(), board([seer(), other()]))).toEqual(["other"]);
+  });
+
+  it("ignores a unit already recorded as seen", () => {
+    expect(newlySeenBy(seer({ seenUnitIds: ["other"] }), board([seer(), other()]))).toEqual([]);
+  });
+
+  it("ignores a unit outside Detect range", () => {
+    expect(newlySeenBy(seer(), board([seer(), other({ panel: at(20, 20) })]))).toEqual([]);
+  });
+
+  it("never offers the seer itself", () => {
+    expect(newlySeenBy(seer(), board([seer()]))).toEqual([]);
+  });
+
+  it("offers nothing for a unit with no position", () => {
+    expect(newlySeenBy(seer({ panel: null }), board([seer({ panel: null }), other()]))).toEqual([]);
   });
 });
 

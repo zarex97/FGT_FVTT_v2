@@ -1,0 +1,52 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, line 77-79
+#
+# The passive needs `unitFirstSeen` (module/engine/vision.mjs, module/rules/
+# identity.mjs's `newlySeenBy`) and `RevealPosition` (module/rules/elements.mjs),
+# neither of which existed before this Servant needed them. The active needs
+# `countMatching` on a `cooldown` phase (module/engine/skill-use.mjs), reusing
+# the ordinary predicate grammar rather than a new `@count(...)` expression
+# form the language has no aggregate shape for.
+schema: 1
+id: semiramis-familiar-doves
+name: "Familiar: Doves"
+rank: D
+kind: skill
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  (Passive) Whenever Semiramis sees a Unit for the first time, the 'Dove' effect is applied to it
+  (neither a buff nor a debuff, is Unremovable). Semiramis can see the position of all Units with
+  the 'Dove' effect on the field, regardless of Fog of War (but the effect does not remove Fog of
+  War for her).
+  (Active) Used during your Turn. Range=4. Hits a 3x3 panel area within Range. Inflicts Debuff
+  ResDwn for 1/3◈ Turns, chance of being inflicted with debuffs is increased by 30%; then reduce
+  Semiramis' NP Cooldown by X Turns, where X=number of enemy Units on the board with the 'Dove'
+  effect (max Cooldown reduction=1◈ Turns).
+passiveRules:
+  - key: RevealPosition
+    effect: dove
+  - key: OnEvent
+    event: unitFirstSeen
+    automatic: true
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: dove } }
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy], chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      # "chance of being inflicted with debuffs is increased by 30%" is Debuff
+      # ResDwn's OWN wording for its magnitude (Appendix A §A.10's
+      # `ApplicationChance value: "-@magnitude"`), not a chanceModifier on
+      # landing THIS application -- Familiar: Doves states no boosted chance
+      # for its own ResDwn to land, unlike Queen's Poison's extra-stage roll.
+      - { id: debuffResDwn, magnitude: 30, duration: "⅓◈" }
+  - kind: cooldown
+    target: self
+    changes:
+      - scope: np
+        countMatching: { relation: enemy, requires: ["self:effect:dove"] }
+        maxTicks: "1◈"

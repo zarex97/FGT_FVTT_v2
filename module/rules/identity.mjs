@@ -152,6 +152,34 @@ function inOwnHomeBase(unit, board) {
 }
 
 /**
+ * Every unit newly within `seer`'s Detect range it has not seen before.
+ *
+ * Familiar: Doves' passive: *"Whenever Semiramis sees a Unit for the first
+ * time, the 'Dove' effect is applied to it."* "First time" is a question
+ * about history (`seer.seenUnitIds`, `_shared.mjs`), the same way
+ * `discoverAttempts` above answers "in range right now" without one —
+ * membership is all `unitFirstSeen` (`engine/vision.mjs`) needs to add.
+ *
+ * Symmetric only in that it is called for both parties of a move: this
+ * answers "who does `seer` now see", and the caller asks it once with the
+ * mover as `seer` and once per OTHER unit as `seer` (with the mover as the
+ * only candidate) to cover both directions of a Detect crossing.
+ *
+ * @param {object} seer
+ * @param {object} board
+ * @returns {string[]} unit ids
+ */
+export function newlySeenBy(seer, board) {
+  if (!seer?.panel) return [];
+  const seen = new Set(seer.seenUnitIds ?? []);
+  const range = detectRangeOf(seer, board);
+
+  return (board?.units ?? [])
+    .filter((u) => u.id !== seer.id && u.panel && !seen.has(u.id) && chebyshev(seer.panel, u.panel) <= range)
+    .map((u) => u.id);
+}
+
+/**
  * The chance that a watcher Discovers this concealed unit.
  *
  * Drawn from the **concealed** unit's Presence Concealment rank, inverted:

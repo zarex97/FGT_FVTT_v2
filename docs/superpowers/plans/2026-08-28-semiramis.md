@@ -879,7 +879,34 @@ tests, full suite green, lint clean):
     exactly one `territoryCreation` aura (dscBuff's Rank C, clause 1's own contributing nothing),
     and advancing an actual Combat turn increased her `hgobConstruction` resource by a real `1d6`
     roll (0 → 4) through the newly-wired `gatherRolls` path.
-- **Not yet started:** Task 24 (Familiar: Doves — needs the vision/
+- **Tasks 2, 17, 24 (`@count`, vision system, Familiar: Doves)** — done, committed. Three engine
+  pieces:
+  - **`countMatching` on a `cooldown` phase change** (`module/engine/skill-use.mjs`), not a new
+    `@count(...)` expression syntax — the aggregate is a per-unit predicate membership test summed
+    over the board, which the ORDINARY predicate grammar (`rules/predicate.mjs`) already answers
+    one unit at a time. `{countMatching: {relation, requires}, maxTicks}` reuses `relationOf` and
+    `testPredicate` rather than inventing a parser the language has no aggregate form for.
+  - **`unitFirstSeen`** (`module/rules/identity.mjs`'s pure `newlySeenBy`, `module/engine/
+    vision.mjs`'s impure `checkSightings`, hooked into `movement-hooks.mjs`'s `onMove`): symmetric
+    by construction (checks every unit as a candidate seer, not only the one that moved), tracked
+    via a new `seenUnitIds` SetField (`data/actor/_shared.mjs`, alongside `healthWatermarks`'s
+    "question about history" pattern). Reused Queen's Poison's own `target: "victim"` /
+    `ctx.victim` vocabulary (`scheduler.mjs`'s `targetsOf`) for landing the Dove effect on the SEEN
+    unit rather than inventing a new `subject:` case — tried that first, found the existing
+    mechanism already covers a second-party event.
+  - **`RevealPosition`** (`module/rules/elements.mjs`, projected as `revealsEffect` in
+    `snapshot.mjs`) and a canvas marker (`apps/canvas/overlay-layer.mjs`'s `#drawRevealedPositions`,
+    added to the EXISTING always-on overlay layer rather than a new layer class — far less code
+    than Task 17's original sketch, and the layer was already exactly the "permission-scoped"
+    pattern to reuse). A dot at the carrier's live panel, drawn only for the viewer's controlled
+    tokens, nothing else revealed — the "does not remove Fog of War" half.
+  - Verified: `test/unit/identity.test.mjs` (`newlySeenBy`), full suite green (1958 tests),
+    `validate:content` and `lint` clean, and live in FGT_2026 end-to-end — moved an enemy Servant
+    into Semiramis's Detect range, confirmed `checkSightings` recorded it in `seenUnitIds` exactly
+    once (idempotent on a second call) and applied the Dove effect to the SEEN unit; confirmed
+    `contributionsOf(semiramis).revealsEffect === "dove"`; used the active clause on a 3x3 area and
+    confirmed Debuff ResDwn (magnitude 30, correct ⅓◈ expiry) landed on the Dove-tagged enemy.
+- **Not yet started:** Task 25 (Arrogant King's
 `unitFirstSeen`/`RevealPosition` system, Task 17, not yet built), Task 25 (Arrogant King's
 Poison — needs an item-quantity REQUIREMENT kind that does not exist yet in
 `rules/items.mjs#meetsRequirement`, a materially-sized addition, not a one-liner), Task 26
