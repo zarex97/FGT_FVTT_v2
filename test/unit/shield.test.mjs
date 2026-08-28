@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { absorb } from "../../module/engine/shield.mjs";
+import { absorb, refreshShield } from "../../module/engine/shield.mjs";
 import { EffectRegistry } from "../../module/rules/registry.mjs";
 
 const NP = new Set(["attack:kind:np"]);
@@ -163,5 +163,43 @@ describe("one pool, several bearers", () => {
     const second = absorb(defender({ id: "b" }), 1000, { options: NP });
     expect(second.absorbed).toBe(400);
     expect(second.through).toBe(600);
+  });
+});
+
+describe("refreshShield", () => {
+  /** A fake ability Item, with the update calls it received recorded. */
+  const item = (system) => {
+    const doc = { system: { ...system }, update: vi.fn(async (patch) => Object.assign(doc.system, unflatten(patch))) };
+    return doc;
+  };
+  const unflatten = (patch) => Object.fromEntries(
+    Object.entries(patch).map(([k, v]) => [k.replace("system.", ""), v]),
+  );
+
+  it("fills to the authored maximum on a first use", async () => {
+    const doc = item({ shield: { health: 200 }, timesUsed: 0 });
+    expect(await refreshShield(doc)).toBe(200);
+    expect(doc.system.shieldHealth).toBe(200);
+  });
+
+  it("fills to the maximum again on every later use with no decay clause", async () => {
+    // Scales of the Sacred Fish's Shield(200): a fresh 200 on every cast, not
+    // Rho Aias's "restored by half of its CURRENT Health" -- without an
+    // explicit default here it returned whatever was left over from the
+    // pool's last use, usually a stale, mostly-spent number.
+    const doc = item({ shield: { health: 200 }, shieldHealth: 30, timesUsed: 3 });
+    expect(await refreshShield(doc)).toBe(200);
+    expect(doc.system.shieldHealth).toBe(200);
+  });
+
+  it("still decays by half of current when the ability says so (Rho Aias)", async () => {
+    const doc = item({
+      shield: { health: 1400, refresh: { kind: "halfOfCurrent" } }, shieldHealth: 400, timesUsed: 2,
+    });
+    expect(await refreshShield(doc)).toBe(600);
+  });
+
+  it("returns 0 for an ability with no shield spec at all", async () => {
+    expect(await refreshShield(item({ timesUsed: 1 }))).toBe(0);
   });
 });
