@@ -11,6 +11,7 @@ import { describe, it, expect } from "vitest";
 import {
   platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
   boardingTarget, fallOff, destructionSequence, aoePassengerFactor,
+  platformCentre, withinPlatformCentre,
 } from "../../module/rules/platforms.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -272,5 +273,25 @@ describe("destructionSequence", () => {
     const out = destructionSequence(platform(), board, { saves: { r: false } });
 
     expect(out.at(-1)).toMatchObject({ kind: "removeLevel" });
+  });
+});
+
+describe("platformCentre / withinPlatformCentre", () => {
+  it("is the panel offset by half the footprint from the anchor corner", () => {
+    // Semiramis's Hanging Gardens: 9x9, so the centre is 4 panels in from the
+    // anchor corner in both directions.
+    const hgob = platform({ panel: at(0, 0), footprint: { w: 9, h: 9 } });
+    expect(platformCentre(hgob)).toEqual(at(4, 4));
+  });
+
+  it("returns null for a platform with no panel", () => {
+    expect(platformCentre({ footprint: { w: 9, h: 9 } })).toBeNull();
+  });
+
+  it("is true within the radius, false past it — the Throne Room's own 5x5", () => {
+    const hgob = platform({ panel: at(0, 0), footprint: { w: 9, h: 9 } });
+    expect(withinPlatformCentre({ panel: at(4, 4) }, hgob, 2)).toBe(true);
+    expect(withinPlatformCentre({ panel: at(6, 6) }, hgob, 2)).toBe(true);
+    expect(withinPlatformCentre({ panel: at(7, 4) }, hgob, 2)).toBe(false);
   });
 });

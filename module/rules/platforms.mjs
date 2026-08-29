@@ -166,6 +166,38 @@ function isDirectlyBelow(unit, platform) {
 }
 
 /**
+ * The geometric centre of a platform's own footprint.
+ *
+ * `panel` is a token's own anchor corner (top-left), not the middle of a 9x9
+ * (or any other) multi-panel footprint -- the same `panel` + `footprint.{w,h}`
+ * shape `isDirectlyBelow` already reasons about occupancy with.
+ *
+ * @param {object} platform
+ * @returns {{i: number, j: number}|null}
+ */
+export function platformCentre(platform) {
+  if (!platform?.panel) return null;
+  const { w = 1, h = 1 } = platform.footprint ?? {};
+  return { i: platform.panel.i + Math.floor(h / 2), j: platform.panel.j + Math.floor(w / 2) };
+}
+
+/**
+ * Is this unit within a `radius`-Chebyshev square of the platform's centre --
+ * Semiramis's own "Throne Room", the middle 5x5 of her Hanging Gardens
+ * (radius 2).
+ *
+ * @param {object} unit
+ * @param {object} platform
+ * @param {number} [radius]
+ * @returns {boolean}
+ */
+export function withinPlatformCentre(unit, platform, radius = 2) {
+  const centre = platformCentre(platform);
+  if (!centre || !unit?.panel) return false;
+  return Math.max(Math.abs(unit.panel.i - centre.i), Math.abs(unit.panel.j - centre.j)) <= radius;
+}
+
+/**
  * How much of an area attack reaches this unit through its platform.
  *
  * The Golden Hind soaks half for everyone and **all** of it for Masters;

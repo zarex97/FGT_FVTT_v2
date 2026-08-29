@@ -1,13 +1,29 @@
 # Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 107-117
 #
-# Clause 2 (the DSC / Throne Room branch) is DELIBERATELY not authored here --
-# the Throne Room is the middle 5x5 of the Hanging Gardens of Babylon, which
-# does not exist yet (Phase 8). Only clause 1 (a noDsc Semiramis, the 5x5 area
-# that follows her) is built; a noDsc Semiramis is a valid, permanent identity
-# (Ch. 32's own coin-flip), so this half is not provisional the way the
-# platform-dependent abilities elsewhere are.
+# Both clauses. Clause 2 (the DSC / Throne Room branch) needed the Hanging
+# Gardens platform to exist at all, and three new field-branch mechanisms
+# once it did -- `field.branches` (engine/fields.mjs#createField), selected
+# the same way `damage.branches`/`targeting.branches`/`cooldown.branches`
+# (engine/attack.mjs, rules/ability-use.mjs, engine/cooldown.mjs) already
+# pick between an ability's several behaviours:
+# - `geometry.anchorRef: "platform"`: the Throne Room is a named place fixed
+#   to the HGoB's own geometric centre, not wherever aboard it she happens to
+#   stand when she casts (`rules/platforms.mjs#platformCentre`).
+# - `withinPlatformCentre`, a new requirement kind scoped to the DSC branch
+#   alone via its own `predicate` (any requirement may carry one,
+#   rules/items.mjs#meetsRequirement, vacuously satisfied when it does not
+#   apply -- the same shape Summoning: Bašmu's `noAliveSummon` needed first):
+#   "Can only be used within the Throne Room."
+# - `membership.trappedAtActivation`: "all Units within the Throne Room WHEN
+#   THE NP WAS ACTIVATED cannot leave it while it is Active" is a MEMBERSHIP
+#   SNAPSHOT taken at creation (engine/fields.mjs), not a standing rule that
+#   would also trap a Unit who wanders in and back out later -- Axis 2's own
+#   `membershipVerdict` (rules/bounded-fields.mjs) has answered "may this
+#   unit cross the boundary" since it was written, and nothing had ever asked
+#   it during a move (`rules/movement.mjs#canPassThrough`) until this NP.
 #
-# Rules a-e needed three engine pieces that did not exist before this NP:
+# Rules a-e (both clauses share them; the sheet states them once, after
+# describing both branches) needed three further engine pieces:
 # - self:inField:<id> is already emittable (module/rules/options.mjs) but was
 #   missing from DEFERRED_PREFIXES (module/rules/elements.mjs) -- the same bug
 #   Territory Creation hit at self:inHomeBase/self:onPlatform:, fixed there.
@@ -32,14 +48,14 @@ slug: sikeraUsum
 # field's own closure, not at the NP's use (`engine/fields.mjs`'s
 # `setCooldownOnDeactivation`, the same `countFrom: deactivation` shape
 # Presence Concealment's rank-table-only version already reads, extended to
-# accept a flat authored max too).
+# accept a flat authored max too). Same for both clauses -- the sheet states
+# one cooldown for the whole NP.
 cooldown: { max: "6◈+⅓◈", countFrom: deactivation }
 timing: { window: ownTurn }
-# Only clause 1 is authored (see the header note) -- gated off from clause 2's
-# Throne-Room branch by her PERMANENT variant, not by whether she currently
-# holds the DSC buff, matching the sheet's own "was summoned with it" wording.
 requirements:
-  - { kind: predicate, predicate: ["self:variant:noDsc"] }
+  - kind: withinPlatformCentre
+    radius: 2
+    predicate: ["self:variant:dsc"]
 description: |
   Has different effects depending on whether Semiramis was summoned with the 'Double Summon:
   Caster' Skill.
@@ -77,12 +93,25 @@ passiveRules:
     then:
       - { key: ApplyEffect, target: victim, effect: { id: poison } }
 field:
-  # Axis 1. "The 5x5 panel area around her (which Moves with her)."
-  geometry:
-    kind: followsUnit
-    shape: { kind: square, size: 5 }
-  # Axis 5. "For 2◈ Turns."
-  duration: "2◈"
+  # Axes 1 and 5 differ by clause; axis 2 (membership) only exists at all for
+  # clause 2. First match wins (`engine/fields.mjs#createField`).
+  branches:
+    - predicate: ["self:variant:noDsc"]
+      # "The 5x5 panel area around her (which Moves with her)."
+      geometry: { kind: followsUnit, shape: { kind: square, size: 5 } }
+      # "For 2◈ Turns."
+      duration: "2◈"
+    - predicate: ["self:variant:dsc"]
+      # "Affects the Throne Room" -- the HGoB's own fixed centre, not
+      # wherever she is standing within it.
+      geometry: { kind: fixedArea, anchorRef: platform, shape: { kind: square, size: 5 } }
+      # "For 3◈ Turns."
+      duration: "3◈"
+      # "All Units within the Throne Room when the NP was activated cannot
+      # leave it while it is Active." Both keys need a value or `free` wins;
+      # what actually gates the exit is `trappedAtActivation` (both
+      # membershipVerdict and blockedByFieldExit check that flag first).
+      membership: { allyExit: sealed, enemyExit: sealed, trappedAtActivation: true }
   # Axis 4. Rules c/d/e apply to anyone in the area, Semiramis included --
   # nothing in the source excludes her the way rule b explicitly does.
   interior:

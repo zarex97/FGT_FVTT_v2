@@ -106,6 +106,36 @@ describe("clause 3 — through, not onto", () => {
   });
 });
 
+describe("a sealed field's own boundary — Sikera Ušum's Throne Room", () => {
+  // Chebyshev 5x5 around (6, 6): panels (4,4)-(8,8).
+  const throneRoom = {
+    id: "sikeraUsum", ownerId: "semiramis", ownerFaction: "a",
+    geometry: { kind: "fixedArea", anchor: at(6, 6), shape: { kind: "square", size: 5 } },
+    membership: { allyExit: "sealed", enemyExit: "sealed", trappedAtActivation: true },
+    state: { escapeHistory: {}, trappedUnitIds: ["me"] },
+  };
+
+  it("refuses a step that would cross the boundary outward", () => {
+    const b = board([], { fields: [throneRoom] });
+    expect(canPassThrough(at(4, 3), mover({ panel: at(4, 4) }), b)).toBe(false);
+  });
+
+  it("still allows a step that stays inside the field", () => {
+    const b = board([], { fields: [throneRoom] });
+    expect(canPassThrough(at(5, 5), mover({ panel: at(4, 4) }), b)).toBe(true);
+  });
+
+  it("does not restrict a unit who was not trapped at activation", () => {
+    const b = board([], { fields: [throneRoom] });
+    expect(canPassThrough(at(4, 3), mover({ id: "latecomer", panel: at(4, 4) }), b)).toBe(true);
+  });
+
+  it("does not restrict a unit already outside the field", () => {
+    const b = board([], { fields: [throneRoom] });
+    expect(canPassThrough(at(0, 1), mover({ panel: at(0, 0) }), b)).toBe(true);
+  });
+});
+
 describe("clause 4 — enemy Master protection", () => {
   const master = { id: "m", kind: "master", factionId: "b", panel: at(6, 9), effects: [] };
   const guard = { id: "g", kind: "servant", factionId: "b", panel: at(6, 10), effects: [] };

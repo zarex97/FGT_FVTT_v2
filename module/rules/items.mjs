@@ -14,6 +14,7 @@
 
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
+import { withinPlatformCentre } from "./platforms.mjs";
 
 /**
  * May this item move from one unit to another?
@@ -101,7 +102,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
-  "noAliveSummon",
+  "noAliveSummon", "withinPlatformCentre",
 ]);
 
 /**
@@ -272,6 +273,14 @@ export function meetsRequirement(req, ctx) {
       return !(board?.units ?? []).some(
         (u) => u.contentId === req.contentId && u.summonerId === unit?.id && !u.defeated,
       );
+
+    case "withinPlatformCentre": {
+      // Sikera Ušum clause 2: "Can only be used within the 'Throne Room' of
+      // 'Hanging Gardens of Babylon'" -- the middle 5x5 (radius 2) of
+      // whichever platform the caster is currently aboard.
+      const platform = (board?.units ?? []).find((u) => u.id === unit?.platformId);
+      return platform ? withinPlatformCentre(unit, platform, req.radius ?? 2) : false;
+    }
 
     default:
       // Unknown kinds refuse, which is the safe direction — and the reason

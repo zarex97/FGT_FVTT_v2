@@ -248,6 +248,24 @@ describe("meetsRequirement", () => {
       ctx({ testPredicate: () => false }))).toBe(false);
   });
 
+  it("checks whether the caster is within a radius of its platform's centre", () => {
+    // Sikera Ušum: "Can only be used within the 'Throne Room' of 'Hanging
+    // Gardens of Babylon'" -- the middle 5x5 (radius 2) of a 9x9 platform.
+    const req = { kind: "withinPlatformCentre" };
+    const platform = { id: "hgob", panel: at(0, 0), footprint: { w: 9, h: 9 } };
+    // Centre is (4, 4); radius 2 reaches (2, 2)-(6, 6).
+    const inCentre = unit({ id: "semiramis", panel: at(4, 4), platformId: "hgob" });
+    const atEdgeOfRadius = unit({ id: "semiramis", panel: at(6, 6), platformId: "hgob" });
+    const outsideRadius = unit({ id: "semiramis", panel: at(7, 4), platformId: "hgob" });
+    const board = { units: [platform] };
+
+    expect(meetsRequirement(req, ctx({ unit: inCentre, board }))).toBe(true);
+    expect(meetsRequirement(req, ctx({ unit: atEdgeOfRadius, board }))).toBe(true);
+    expect(meetsRequirement(req, ctx({ unit: outsideRadius, board }))).toBe(false);
+    // Not aboard any platform at all.
+    expect(meetsRequirement(req, ctx({ unit: unit({ platformId: null }), board }))).toBe(false);
+  });
+
   it("checks an effect on the target", () => {
     expect(meetsRequirement({ kind: "targetHasEffect", effectId: "burn" },
       ctx({ target: { effects: ["burn"] } }))).toBe(true);
@@ -292,6 +310,9 @@ describe("meetsRequirement", () => {
       // "Only one Bašmu summoned by this Spell can exist on the field" --
       // needed by nothing before Summoning: Bašmu's summon branch.
       "noAliveSummon",
+      // "Can only be used within the 'Throne Room'" -- needed by nothing
+      // before Sikera Ušum's DSC branch.
+      "withinPlatformCentre",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });

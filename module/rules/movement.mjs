@@ -14,6 +14,7 @@
 
 import * as geo from "../domain/geometry.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
+import { contains, membershipVerdict } from "./bounded-fields.mjs";
 
 /** Effects that let a unit ignore occupancy and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
@@ -205,7 +206,31 @@ export function canPassThrough(panel, unit, board) {
   const blocking = occupant && !["platform", "structure"].includes(occupant.kind);
   if (blocking && isEnemy(unit, occupant, board)) return false;
   if (inEnemyMasterProtection(panel, unit, board)) return false;
+  if (blockedByFieldExit(panel, unit, board)) return false;
   return true;
+}
+
+/**
+ * Is this unit currently held inside a field that will not let it leave?
+ *
+ * Sikera Ušum's Throne-Room branch: "all Units within the Throne Room when
+ * the NP was activated cannot leave it while it is Active." Axis 2's own
+ * `membershipVerdict` (rules/bounded-fields.mjs) has answered this question
+ * since it was written; nothing had ever asked it during a move, so a
+ * `allyExit`/`enemyExit` policy stricter than `"free"` refused nobody.
+ *
+ * @param {GridOffset} panel the candidate destination
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+function blockedByFieldExit(panel, unit, board) {
+  for (const field of board?.fields ?? []) {
+    if (!contains(field, unit.panel, board)) continue; // not currently inside
+    if (contains(field, panel, board)) continue; // still inside after this step
+    if (!membershipVerdict(field, unit, "exit", board).ok) return true;
+  }
+  return false;
 }
 
 /**
