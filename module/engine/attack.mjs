@@ -44,7 +44,6 @@ import { reactionAbilities, allyReactions, abilityFromOption } from "../rules/re
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 import { reactionsRefused, aoeOutcome, isConcealed } from "../rules/concealment.mjs";
-import { summonPhase } from "./summoning.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -1616,20 +1615,17 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
       applied.push(...await runCheckPhase(phase, ability, state, defender));
       continue;
     }
-    // Semiramis's Summoning: Bašmu, aboard her own Hanging Gardens: "summons
-    // a Bašmu on a panel directly next to her." Only from the CASTER's own
-    // resolution, the same guard `engine/skill-use.mjs#runPhases`'s own
-    // `summon` case uses -- this loop runs once per defender and she is her
-    // own here, but nothing stops a future summon-branch ability from
-    // resolving against someone else's Combat Process.
-    if (phase.kind === "summon") {
-      if (state.defenderId !== state.attackerId) continue;
-      const out = await summonPhase(phase, attackerDoc);
-      applied.push({
-        summary: { id: "summon", name: `${out.count} summoned`, outcome: "applied", reason: null },
-      });
-      continue;
-    }
+    // NOT `summon` (nor `resource`/`statChange`/etc): those are "everything
+    // the ability does to its USER, which the Combat Process has no rung
+    // for" and already run exactly once, at declaration, through
+    // `resolveAttack`'s own `runCasterPhases` call -- `CASTER_PHASES`
+    // (engine/skill-use.mjs) lists `summon` explicitly. Adding a second
+    // `case "summon"` here double-conjured Bašmu: one from that call, one
+    // from this loop's own "afterDamage" pass, found live the moment two
+    // appeared from a single cast. This loop's whole job is the two kinds
+    // `CASTER_PHASES` deliberately excludes -- `damage` IS the Combat
+    // Process, and `applyEffects` is its post-damage rider step, both of
+    // which resolve per DEFENDER rather than once per caster.
     if (phase.kind !== "applyEffects" && phase.kind !== "applyEffect") continue;
     // Both authored shapes. §15.2's own is `effects: [{id, ...}]`; the earlier
     // content wrapped each in an `OnEvent` rule element, and both still ship.
