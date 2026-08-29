@@ -10,13 +10,11 @@
 # "Each instance of damage can be separately Evaded or Blocked" is exactly
 # `repeat`'s existing behaviour -- one Combat Process per instance, one
 # reaction ladder each. "Damaged Units only perform an Injury Roll once
-# regardless of number of hits taken" is NOT modelled: each repeat is its own
-# Combat Process and so still runs its own Injury Roll (`attack.mjs`'s
-# `applyInjury`, keyed per chat message). Consolidating N processes' Injury
-# Rolls into one is a real, separate subsystem -- tracking which processes
-# belong to the same Attack declaration across N reaction ladders -- and is
-# out of scope for this platform's own checkpoint. Recorded here rather than
-# left to look implemented.
+# regardless of number of hits taken" is `damage.singleInjuryRoll`
+# (module/engine/attack.mjs#applyInjury): every process but the first against
+# a given defender, within the same declaration (`state.groupId`), finds an
+# `injury` flag already recorded on a sibling message and skips its own roll
+# rather than repeating it.
 schema: 1
 id: semiramis-hgob-dragon-wing-warriors
 name: "Dragon Wing Warriors"
@@ -43,5 +41,6 @@ damage:
   base: { fixedValue: 50 }
   component: str
   repeat: { roll: "1d6+4" }
+  singleInjuryRoll: true
 phases:
   - kind: damage
