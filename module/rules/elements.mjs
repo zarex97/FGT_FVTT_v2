@@ -850,14 +850,6 @@ export const EXECUTORS = Object.freeze({
   },
 
   /**
-   * Debuff ChUp/ResUp, Item Construction, Magic Resistance's clause 2.
-   *
-   * A shift to how likely an effect is to **land**, not to what it does once
-   * it has. `direction: "incoming"` resists what is applied to this unit;
-   * `"outgoing"` improves what this unit inflicts. `valence` narrows it to
-   * offensive or defensive effects, which is what "Off.Debuff ResUp" means.
-   */
-  /**
    * Being forced to act against a particular unit — Berserk's nearest-enemy
    * rule, Decoy's pull, Penthesilea's *Hatred of Achilles*.
    *
@@ -883,6 +875,31 @@ export const EXECUTORS = Object.freeze({
     });
   },
 
+  /**
+   * Bašmu's protection: *"Enemy Units cannot Attack Semiramis or her allied
+   * Units if a Bašmu is next to them."* An aura that changes who may
+   * legally be TARGETED, not a stat or a chance — so it rides through the
+   * same expansion `Aura` above does (`rules/auras.mjs`'s `annotateAuras`,
+   * `key: "untargetable"` routed to its own bucket rather than `modifiers`),
+   * and `rules/targeting/resolve.mjs`'s legality filter is the reader,
+   * the same shape `bypassesMasterProtection` already is.
+   */
+  TargetabilityModifier(el, { source, out }) {
+    out.auras.push({
+      key: "untargetable", radius: el.radius ?? 1,
+      relations: el.relations ?? ["ally", "self"],
+      value: true, stacking: "noneRefresh", source,
+    });
+  },
+
+  /**
+   * Debuff ChUp/ResUp, Item Construction, Magic Resistance's clause 2.
+   *
+   * A shift to how likely an effect is to **land**, not to what it does once
+   * it has. `direction: "incoming"` resists what is applied to this unit;
+   * `"outgoing"` improves what this unit inflicts. `valence` narrows it to
+   * offensive or defensive effects, which is what "Off.Debuff ResUp" means.
+   */
   ApplicationChance(el, { rank, source, out, ctx }) {
     out.applicationChances.push({
       direction: el.direction ?? "incoming",

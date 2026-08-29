@@ -1001,7 +1001,50 @@ tests, full suite green, lint clean):
   herself showed all three interior contributions (immunity-downgrade suppression, vulnerability
   amplifier, periodic override) correctly routed and none leaking into `modifiers`; and a DSC-
   variant Semiramis was correctly refused with reason `predicate`.
-- **Not yet started:** Tasks 27-28 (Bašmu +
+- **Tasks 7, 27, 28 (Bašmu spell/summon/NP)** — done, committed. Clause 1 of Summoning: Bašmu
+  (the damage-spell branch, usable without the HGoB) is fully built and live-verified. Clause 2
+  (summon a Bašmu) and its stats/NP are fully authored and `validate:content`-clean but
+  deliberately NOT live-tested — Bašmu cannot exist before the HGoB does, and the two clauses'
+  DIFFERENT cooldowns (2◈ vs 4◈) need a real "computed cooldown, keyed on which branch fired"
+  design (Dragon Tooth Warriors' `countFrom: summonCount` shape) that Phase 8 should make, not a
+  guess now.
+  - **`TargetabilityModifier`** (Task 7, new): Bašmu's "enemy Units cannot Attack Semiramis or her
+    allied Units if a Bašmu is next to them." An aura that changes legal targeting rather than a
+    stat, so it rides through `rules/auras.mjs`'s EXISTING expansion (`Aura`'s own machinery, a
+    new `key: "untargetable"` ROUTES entry) rather than a second pass — the plan's own uncertainty
+    about needing a sibling pass turned out unnecessary. `rules/targeting/resolve.mjs` gained a
+    new filter step reading it, checked against the caster's RELATION to the target (enemy only —
+    an ally must still be able to protect/heal a Bašmu-guarded unit). Found and fixed inline: an
+    orphaned JSDoc comment (`ApplicationChance`'s own description, stranded above `Compulsion`
+    after some earlier edit moved the executor without its comment) was moved back to the right
+    place. **Also found, left unfixed and flagged**: Medea's Dragon Tooth Warriors already has an
+    equivalent-sounding `TargetingModifier mode: protectSummoner` clause that has been dead since
+    it was written — `protectSummoner` is never read anywhere. Out of scope for Semiramis; noted
+    here for whoever picks it up (it protects a NARROWER set — "Medea or her Master" only, not
+    every ally — so it cannot just be swapped for `TargetabilityModifier`'s default relations
+    without also narrowing them).
+  - **`SummonData` schema** gained `boundToZoneId`/`dismissOnZoneRemoval` (Bašmu's tie to the
+    HGoB) and `movesOntoOccupiedPanels`, plus `tools/lib/content.mjs`'s `actorSystem` allowlist —
+    the by-now-familiar two-gate pattern (compiler AND DataModel schema) confirmed again.
+  - **Knockback** ("when it Moves to any occupied panels, all Units occupying said panels are
+    knocked back by 1 panel until the space is free"): a real primitive, `rules/movement.mjs`'s
+    `knockbackPanel` (directional, steps along the line away from the mover until it finds a free
+    panel), wired into `movement-hooks.mjs`'s `onMove` via a new `ignoresOccupancy` snapshot flag
+    (`rules/movement.mjs`'s existing `ignoresBlocking` already read this generic flag; nothing had
+    ever set it). `directionFrom`/`knockbackCollisionByEnd`, two low-level primitives that existed
+    with no consumer at all, were not reused — this needed a directional "push until free" search,
+    not what those two computed. The Hanging Gardens platform will need this exact same primitive
+    for its own knockback/board-edge rules, so it is built as a general one, not Bašmu-specific.
+  - **`resolveAttack` (attack.mjs) had the SAME `testPredicate` gap `useSkill` did**, found live
+    testing Summoning: Bašmu's damage branch (which routes through the attack path, not `useSkill`,
+    since it has a `damage` phase) — fixed the same way.
+  Verified: `test/unit/targeting.test.mjs` (Bašmu's protection, 3 new tests),
+  `test/unit/movement.test.mjs` (`knockbackPanel`, 5 new tests), `test/unit/content.test.mjs`
+  (Bašmu's summon-specific fields), full suite green (1991 tests), `validate:content`/`lint`
+  clean, and live in FGT_2026 — Summoning: Bašmu's damage branch correctly refused for a noDsc
+  Semiramis, then correctly resolved a full two-defender Combat Process for a DSC one: 25%
+  Magic damage landed on both AoE targets and Poison was freshly applied to the one that lacked it.
+- **Not yet started:** Task 29 (Sikera Ušum's
 `unitFirstSeen`/`RevealPosition` system, Task 17, not yet built), Task 25 (Arrogant King's
 Poison — needs an item-quantity REQUIREMENT kind that does not exist yet in
 `rules/items.mjs#meetsRequirement`, a materially-sized addition, not a one-liner), Task 26

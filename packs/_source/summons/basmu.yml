@@ -1,0 +1,48 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 90-104
+#
+# Summoned by `semiramis-summoning-basmu.yml`'s HGoB branch (Phase 8 -- Bašmu
+# cannot exist until the Hanging Gardens does, so this file is authored and
+# validated now but not live-tested until then, per the plan's own scoping).
+schema: 1
+id: basmu
+name: "Bašmu"
+type: summon
+attributes: [summon, earth, large, dragon]
+baseHealth: 1250
+agility: 14
+luck: 7
+mov: 5
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 150, mag: 150 }
+normalAttack: { mode: fixed, component: str }
+# "Bašmu do not count towards the number of Units who Move/Attack in a Turn.
+# A Bašmu can only Move/Attack once per Turn."
+countsTowardBudget: false
+actsOncePerTurn: true
+# "Bašmu cannot leave the HGoB. If HGoB is removed from the field while Bašmu
+# is summoned, it disappears." Stable content id, the same reason
+# `platformContentId` names one instead of a random Foundry document id.
+boundToZoneId: hanging-gardens-of-babylon
+dismissOnZoneRemoval: true
+# "When it Moves to any occupied panels, all Units occupying said panels are
+# knocked back by 1 panel until the space is free for Bašmu to stand on."
+movesOntoOccupiedPanels: true
+abilities:
+  - { ref: basmu-cursed-poison-dragonfire }
+passiveRules:
+  # "Normal Attacks use Base Attack (STR) and have a 50% chance of inflicting
+  # Poison." Same OnEvent/damageStepEnd shape Sikera Ušum's clause a uses.
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:component:str"]
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: poison }, chance: 50 }
+  # "Enemy Units cannot Attack Semiramis or her allied Units if a Bašmu is
+  # next to them."
+  - key: TargetabilityModifier
+    radius: 1
+    relations: [ally, self]
+notes: |
+  Summoned by Summoning: Bašmu's HGoB branch, on a panel directly next to Semiramis. Only one
+  Bašmu summoned this way may exist on the field at a time.

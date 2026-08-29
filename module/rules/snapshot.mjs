@@ -164,6 +164,11 @@ export function snapshotUnit(actor, {
     // three separate places were each deciding it for themselves — two of them
     // by reaching for `game.actors` from a layer that may not. One projection.
     hasRiding: hasSkill(actor, "riding"),
+    // Bašmu: "the HGoB can move onto occupied panels" and Bašmu itself "when
+    // it Moves to any occupied panels, all Units occupying said panels are
+    // knocked back" -- `rules/movement.mjs`'s `ignoresBlocking` already reads
+    // this generic flag, unset until now because nothing needed it.
+    ignoresOccupancy: Boolean(sys.movesOntoOccupiedPanels),
     eventHandlers: contributions.eventHandlers,
     immunities: contributions.immunities,
     grantedAbilities: contributions.grantedAbilities,

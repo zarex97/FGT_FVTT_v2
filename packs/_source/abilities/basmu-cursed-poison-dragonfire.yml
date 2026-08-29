@@ -1,0 +1,38 @@
+# Bašmu, char_orig_sheets/Copia de Semiramis.md, lines 100-101
+#
+# The knockback-on-move behaviour a few lines below this NP in the source
+# ("when it Moves to any occupied panels...") is NOT here -- it is a
+# MOVEMENT rule (`packs/_source/summons/basmu.yml`'s `movesOntoOccupiedPanels`,
+# `module/engine/movement-hooks.mjs`'s `knockBackOccupants`), not an ability
+# rule; putting it here would only fire it on Bašmu's Attack, not its Move.
+schema: 1
+id: basmu-cursed-poison-dragonfire
+name: "Cursed Poison Dragonfire"
+rank: null
+isNP: true
+categorizedAsNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Base Attack (MAG) is used. Hits a 3x3 panel area in any non-diagonal direction next
+  to itself for 3x and inflicts Poison, then inflicts Crit DmDwn for 1◈ Turns, Crit Damage dealt
+  is reduced by 30%. Categorized as Noble Phantasm. Cooldown: 3◈ Turns.
+targeting:
+  # `selfEdgeAdjacent` is the resolver's name for exactly this wording --
+  # confirmed against Scáthach's Gate of Skye, which states it identically.
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+damage:
+  multiplier: 3
+  component: mag
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: poison }
+      - { id: critDmDwn, magnitude: 30, duration: "1◈" }

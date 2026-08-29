@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   planMovement, validatePath, remainingMovement, effectiveMov, segmentCheck,
-  canPassThrough, canStopOn, inEnemyMasterProtection,
+  canPassThrough, canStopOn, inEnemyMasterProtection, knockbackPanel,
 } from "../../module/rules/movement.mjs";
 import { squareBounds, key } from "../../module/domain/geometry.mjs";
 
@@ -220,5 +220,36 @@ describe("moving repeatedly, and what stops it", () => {
     const plan = planMovement(mover(), board(), { hasRiding: true });
     expect(plan.maxSegments).toBe(2);
     expect(planMovement(mover(), board()).maxSegments).toBe(1);
+  });
+});
+
+describe("knockbackPanel (Ch. 32, Bašmu)", () => {
+  // Bašmu at (6, 6), moving onto (6, 7) where `victim` stands -- knocked back
+  // one further panel along the same line, away from Bašmu.
+  const basmu = at(6, 6);
+  const victim = (over = {}) => other("v", 6, 7, over);
+
+  it("pushes the victim one panel further along the line away from the origin", () => {
+    expect(knockbackPanel(basmu, victim(), board([victim()]))).toEqual(at(6, 8));
+  });
+
+  it("keeps pushing until it finds a free panel", () => {
+    const blocker = other("b", 6, 8, {});
+    expect(knockbackPanel(basmu, victim(), board([victim(), blocker]))).toEqual(at(6, 9));
+  });
+
+  it("returns null when the board edge is reached first", () => {
+    const edge = other("v", 6, 12, {});
+    expect(knockbackPanel(basmu, edge, board([edge]))).toBe(null);
+  });
+
+  it("returns null when the origin and the victim share a panel", () => {
+    // No direction to push along.
+    expect(knockbackPanel(basmu, other("v", 6, 6, {}), board([]))).toBe(null);
+  });
+
+  it("picks the axis the mover actually approached from", () => {
+    const below = other("v", 8, 6, {});
+    expect(knockbackPanel(basmu, below, board([below]))).toEqual(at(9, 6));
   });
 });

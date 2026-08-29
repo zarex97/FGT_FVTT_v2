@@ -136,6 +136,10 @@ export function annotateAuras(units, board, index = null) {
 const ROUTES = Object.freeze({
   ApplicationChance: "applicationChances",
   Compulsion: "compulsions",
+  // Bašmu's protection (`TargetabilityModifier`, `rules/elements.mjs`) — read
+  // by `rules/targeting/resolve.mjs`'s legality filter, not the damage
+  // pipeline.
+  untargetable: "untargetableBy",
 });
 
 /* -------------------------------------------------------------------------- */

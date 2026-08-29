@@ -207,6 +207,22 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     survivors = survivors.filter((u) => crossLevelAllows(caster, u, spec, board, warnings, drop));
   }
 
+  // 8b. TARGETABILITY AURA — Bašmu's protection: "Enemy Units cannot Attack
+  // Semiramis or her allied Units if a Bašmu is next to them." Unlike Master
+  // protection above, the sheet states no "unless" clause, so there is no
+  // bypass flag to check. An aura the TARGET carries (`untargetableBy`,
+  // `rules/auras.mjs`'s `annotateAuras`), not a suppression the caster does —
+  // the same reason Master protection is read off the DEFENDER's position.
+  {
+    const before = survivors.length;
+    survivors = survivors.filter(
+      (u) => (u.untargetableBy ?? []).length === 0
+        || relationOf(caster, u, board) !== "enemy"
+        || drop(u, "protected by a nearby Bašmu"),
+    );
+    if (survivors.length < before) warnings.push("A Unit protected by Bašmu was excluded.");
+  }
+
   // 9. CHOOSER
   const withMeta = survivors.map((u) => toTargeted(u, caster, bands));
   let chosen = withMeta;
