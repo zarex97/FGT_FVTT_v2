@@ -248,6 +248,8 @@ export function snapshotUnit(actor, {
     identityRevealed: Boolean(sys.identityRevealed),
     detect: sys.detect ?? null,
     canAct: sys.canAct !== false,
+    // The Hanging Gardens' multi-Turn activation (`engine/channel.mjs`).
+    channel: sys.channel ?? null,
     // When Health was last at or above a fraction somebody asks about. Read by
     // the `healthRestoredSince` requirement, which is a question about history
     // and cannot be answered from the current bar.

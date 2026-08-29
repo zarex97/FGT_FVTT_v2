@@ -115,9 +115,9 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
   };
 
   await applyWorldIntents([
-    ...(usage.cost ? costIntents(usage.cost, self) : []),
+    ...(usage.cost && !applied.channelStarted ? costIntents(usage.cost, self) : []),
     ...itemCostIntents(ability, actor),
-    ...cooldownIntents(ability, actor, applied.summoned ?? 0, self),
+    ...(applied.channelStarted ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
@@ -257,6 +257,10 @@ async function runPhases(ability, actor, targets, board, only = null) {
   // How many were conjured, for a cooldown that scales with the roll that just
   // happened -- Dragon Tooth Warriors is the only such cost in the set.
   let summoned = 0;
+  // Whether a `channel` phase just opened a multi-Turn activation -- the
+  // Hanging Gardens' NP cost and cooldown are both deferred to
+  // `channel.mjs`'s `completeChannel`, not paid at this use.
+  let channelStarted = false;
 
   // The CASTER's own options, for a phase-level `predicate:` -- Semiramis's
   // `Double Summon` grants the 'DSC' buff only in its THIRD clause, "if
@@ -422,6 +426,28 @@ async function runPhases(ability, actor, targets, board, only = null) {
           break;
         }
 
+        case "channel": {
+          // Only once per use, from the caster. The Hanging Gardens' own
+          // activation: "cannot Act for 3◈ Turns... if Attacked during this
+          // period, interrupted and has to restart... Master only loses
+          // Health as per NP usage rules ONLY WHEN HGoB SUCCESSFULLY
+          // ACTIVATES, not at the start" -- the deferred-cost half of that
+          // is why `useSkill` skips its own cost/cooldown intents below
+          // when a channel starts, and `completeChannel` pays them instead.
+          if (target.unitId !== actor.id) break;
+          const { startChannel } = await import("./channel.mjs");
+          const started = await startChannel(actor, ability, phase);
+          applied.push({
+            summary: {
+              id: "channel", name: ability.name,
+              outcome: started ? "applied" : "failed",
+              reason: started ? null : "alreadyChannelling",
+            },
+          });
+          if (started) channelStarted = true;
+          break;
+        }
+
         case "damage":
           // `countsAsAttack` should have routed this to `resolveAttack`. Loud,
           // because the alternative is a Noble-Phantasm-sized hole that looks
@@ -435,7 +461,7 @@ async function runPhases(ability, actor, targets, board, only = null) {
       }
     }
   }
-  return Object.assign(applied, { summoned });
+  return Object.assign(applied, { summoned, channelStarted });
 }
 
 /**
@@ -682,7 +708,7 @@ function cooldownIntents(ability, actor, summoned = 0, unit = null) {
  * @param {object} self the paying unit's snapshot, for a sustainability cost
  * @returns {object[]}
  */
-function costIntents(cost, self) {
+export function costIntents(cost, self) {
   // `statDelta`, never `damage` -- Health *loss* must not feed damage-keyed
   // triggers (Ch. 06). Same reason as the attack path.
   if (!cost?.unitId) return [];

@@ -1,0 +1,53 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 134-139.
+#
+# Applied directly by `module/engine/hgob.mjs` at activation (a bare,
+# `resolved: true` `applyEffect` intent -- no chance roll, no immunity check;
+# boarding your own platform is not a landed attack) and removed by the
+# PRE-EXISTING `engine/scene-levels.mjs#reverseOwnerEffects`, which deletes
+# every effect on the owner whose `system.sourceUnitId` is the platform's own
+# actor id. That is why this file authors no `defaultDuration`: the instance's
+# `expiry: null` is set by the intent itself, and this buff's whole lifetime is
+# the platform's, not a clock.
+#
+# STR/END/AGI/MAG/LUC each move exactly one grade (`RankShift`, no `steps`
+# needed beyond the default of 1) -- confirmed against `rules/derived.mjs`'s
+# `applyStatDeltas`, which already handles a rank shift and an `alsoCurrent`
+# numeric delta generically; no engine change was needed for this file.
+#
+# ZON exemption is NOT a rule element here: `zonExempt` (module/data/actor/
+# servant.mjs) is a plain Boolean already read by `rules/zon.mjs#zonStatus`
+# and already commented "Semiramis aboard the Hanging Gardens" -- it is
+# written directly by `hgob.mjs` alongside this effect, not derived from it,
+# because it is a pre-existing per-actor flag with no rule-element reader.
+#
+# "Sustainability is increased by 2◈" is ALSO not a rule element here.
+# `system.sustainability` is a tick-EXPRESSION ("4◈"), not a number --
+# `rules/snapshot.mjs#sustainabilityTurns` parses it once at summon and the
+# running countdown lives in the separate `sustainabilityRemaining` field. A
+# `StatDelta` adds to a plain number and would corrupt the expression string
+# without ever touching the countdown that actually matters. `hgob.mjs` writes
+# `sustainabilityRemaining` directly (+2◈ worth of turns, reversed by the
+# same amount at destruction), the same one-shot-write shape `zonExempt` uses.
+schema: 1
+id: hgob-owner-buff
+name: "Aboard the Hanging Gardens"
+description: "While Semiramis is on her HGoB, all of her Parameters are increased by one Rank, and
+  her Sustainability is increased by 2◈ Turns."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+rules:
+  - { key: RankShift, parameter: str }
+  - { key: RankShift, parameter: end }
+  - { key: RankShift, parameter: agi }
+  - { key: RankShift, parameter: mag }
+  - { key: RankShift, parameter: luc }
+  - { key: StatDelta, stat: baseAttack.str, value: 25 }
+  - { key: StatDelta, stat: baseAttack.mag, value: 50 }
+  - { key: StatDelta, stat: health.max, value: 500, alsoCurrent: true }
+  - { key: StatDelta, stat: mov, value: 1 }
+  - { key: StatDelta, stat: agility.max, value: 2, alsoCurrent: true }
+  - { key: StatDelta, stat: luck.max, value: 4, alsoCurrent: true }

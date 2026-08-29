@@ -1,0 +1,53 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 119-134.
+#
+# This is the (Activation) clause only -- the platform's own two Attacks are
+# `semiramis-hgob-dragon-wing-warriors.yml` and `semiramis-hgob-aerial-garden-
+# of-vanity.yml`, authored on the platform actor itself
+# (packs/_source/platforms/hanging-gardens.yml), not here.
+#
+# "Cannot Act for 3◈ Turns... interrupted [by being Attacked]... Master only
+# loses Health as per NP usage rules ONLY when it successfully activates" is
+# the `channel` phase kind (module/engine/channel.mjs): `canAct: false` for
+# the duration, `interruptChannels` clears it on being attacked, and the NP
+# cost is paid by `completeChannel` rather than by `useSkill`'s own cost
+# intents (skipped here via `applied.channelStarted`).
+#
+# "Semiramis can perform the activation without being in her Master's ZON" is
+# NOT separately gated: nothing in `rules/costs.mjs`'s NP-cost path refuses an
+# out-of-ZON activation to begin with for a channel (ZON only gates the
+# COMBAT PROCESS's targeting legality, and this ability targets no one), so
+# there is no exclusion to author.
+schema: 1
+id: semiramis-hanging-gardens-of-babylon
+name: "Hanging Gardens of Babylon: Aerial Garden of Vanity"
+rank: EX
+isNP: true
+categorizedAsNP: true
+npTags: [antiWorld, boundedField]
+kind: noblePhantasm
+# No stated cooldown -- the real gate on reactivation is `hgobConstruction`
+# resetting to 0 on destruction and needing to climb back to 100, which the
+# `resourceAtLeast` requirement below already enforces.
+cooldown: "0◈"
+timing: { window: ownTurn }
+requirements:
+  - { kind: predicate, predicate: ["self:inHomeBase", "self:variant:dsc"] }
+  - { kind: resourceAtLeast, key: hgobConstruction, amount: 100 }
+description: |
+  (Activation) Only in effect and usable if Semiramis was summoned with the 'Double Summon:
+  Caster' Skill. Hanging Gardens of Babylon (HGoB) can only be used when the HGoB Construction
+  counter reaches 100. In order to activate the Hanging Gardens of Babylon, Semiramis has to be
+  within her Home Base, and cannot Act for 3◈ Turns. If Semiramis is Attacked during this period,
+  the period of 3◈ Turns is interrupted and she has to restart the activation process. If Semiramis
+  is not interrupted, the Hanging Gardens of Babylon is activated at the end of the last Turn in
+  that period. Semiramis' Master only loses Health as per NP usage rules only when HGoB
+  successfully activates, not at the start of the NP activation process. However, Semiramis can
+  perform the activation without being in her Master's ZON.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: channel
+    ticks: "3◈"
+    onComplete: { kind: activateHangingGardens }

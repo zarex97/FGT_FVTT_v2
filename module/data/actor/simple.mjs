@@ -30,11 +30,14 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       actsOncePerTurn: new fields.BooleanField({ initial: false }),
       expiresAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       // Bašmu: "Bašmu cannot leave the HGoB. If HGoB is removed from the
-      // field while Bašmu is summoned, it disappears." The STABLE content id
-      // of the zone/platform it is tied to, the same reason
-      // `platformContentId` names one instead of a random Foundry id.
-      boundToZoneId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
-      dismissOnZoneRemoval: new fields.BooleanField({ initial: false }),
+      // field while Bašmu is summoned, it disappears." A Foundry DOCUMENT id
+      // (unlike `platformContentId`, which is content-authored and stable) --
+      // this is written at summon time, once the real platform actor exists,
+      // and matches `engine/scene-levels.mjs#reverseOwnerEffects`'s own
+      // `boundToPlatformId` filter, which dismisses unconditionally: nothing
+      // in the source states an exception, so there is no separate flag to
+      // gate it.
+      boundToPlatformId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       // Bašmu: "when it Moves to any occupied panels, all Units occupying
       // said panels are knocked back by 1 panel until the space is free."
       // Movement legality otherwise refuses a panel already standing on
@@ -57,6 +60,12 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       capacity: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       /** The Servant that created it, whose effects are reversed on destruction. */
       ownerId: new fields.StringField({ required: false, nullable: true, initial: null }),
+      // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn."
+      // `rules/budget.mjs#canConsume` reads this the same way `SummonData`'s
+      // own field of the same name is meant to -- a platform is exempt from
+      // every POOL (D18.1), which is a different rule from the per-unit cap
+      // this gates.
+      actsOncePerTurn: new fields.BooleanField({ initial: true }),
       /** Its own Scene Level (D20.1). Every active platform gets one. */
       level: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),
       // The Foundry `Level` document's id, as opposed to `level` above, which is

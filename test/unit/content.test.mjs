@@ -304,13 +304,28 @@ describe("compileDocument", () => {
   it("carries Bašmu's summon-specific fields through", () => {
     const doc = {
       schema: 1, id: "basmu", name: "Bašmu", parameters: { str: "E" },
-      boundToZoneId: "hanging-gardens-of-babylon", dismissOnZoneRemoval: true,
       movesOntoOccupiedPanels: true,
     };
     const out = compileDocument(doc, "summons", library);
-    expect(out.system.boundToZoneId).toBe("hanging-gardens-of-babylon");
-    expect(out.system.dismissOnZoneRemoval).toBe(true);
     expect(out.system.movesOntoOccupiedPanels).toBe(true);
+  });
+
+  it("carries Dragon Wing Warriors' rolled repeat and fixed damage through — `damage` is a raw passthrough", () => {
+    const doc = {
+      schema: 1, id: "dww", name: "Dragon Wing Warriors",
+      damage: { fixed: true, base: { fixedValue: 50 }, component: "str", repeat: { roll: "1d6+4" } },
+    };
+    const out = compileDocument(doc, "abilities", library);
+    expect(out.system.damage).toEqual(doc.damage);
+  });
+
+  it("carries a platform's actsOncePerTurn through — the same field basmu.yml uses", () => {
+    const doc = {
+      schema: 1, id: "hgob", name: "Hanging Gardens of Babylon", parameters: { str: "E" },
+      actsOncePerTurn: true,
+    };
+    const out = compileDocument(doc, "platforms", library);
+    expect(out.system.actsOncePerTurn).toBe(true);
   });
 });
 

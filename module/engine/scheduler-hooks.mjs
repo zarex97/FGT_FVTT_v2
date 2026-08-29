@@ -76,6 +76,13 @@ async function onTurnChange(combat, prior, current) {
   // whoever is dragged in is subject to it, not just units she targets.
   await run(await fields.runFieldEvents("actedTurnEnd"), "field:actedTurnEnd");
 
+  // A channelling unit's own Turn ending, uninterrupted -- the Hanging
+  // Gardens' "cannot Act for 3◈ Turns." Scoped to the active faction's units
+  // for the same reason `turnEnd` handlers are: this counts THIS unit's own
+  // Turn, not the global tick.
+  const { advanceChannels } = await import("./channel.mjs");
+  await advanceChannels(activeUnits);
+
   // The faction that just finished is frozen in the order: a Delay declared
   // from here on applies to the next Round, not to a turn already taken.
   if (typeof combat.markTurnTaken === "function") {

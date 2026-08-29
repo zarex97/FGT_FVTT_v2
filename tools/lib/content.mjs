@@ -529,8 +529,7 @@ function actorSystem(doc) {
     actsOncePerTurn: Boolean(doc.actsOncePerTurn),
     // Bašmu (Ch. 32): tied to the HGoB and free to displace whoever it walks
     // into. Absent from every other summon and cheap to carry.
-    boundToZoneId: doc.boundToZoneId ?? null,
-    dismissOnZoneRemoval: Boolean(doc.dismissOnZoneRemoval),
+    boundToPlatformId: doc.boundToPlatformId ?? null,
     movesOntoOccupiedPanels: Boolean(doc.movesOntoOccupiedPanels),
     // Rule elements authored directly on the unit (Bašmu's Normal Attack
     // rider and Targetability aura; HGoB Construction's round-end regen) --

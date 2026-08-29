@@ -1,0 +1,27 @@
+# Hanging Gardens of Babylon, char_orig_sheets/Copia de Semiramis.md, line 154-155.
+#
+# "Cannot hit under or above the HGoB" is not re-implemented here -- the
+# platform's own `crossLevel.forbidDirectlyBelow` (packs/_source/platforms/
+# hanging-gardens.yml) already states the general rule for every ranged
+# Attack to or from the HGoB.
+schema: 1
+id: semiramis-hgob-aerial-garden-of-vanity
+name: "Aerial Garden of Vanity"
+rank: null
+kind: skill
+slug: aerial-garden-of-vanity
+isAttackSkill: true
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  Range=7. Cannot hit under or above the HGoB. Base Attack (MAG) is used. Hits a 7x7 panel area
+  within Range for 2x damage. Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: withinRange, range: 7, metric: chebyshev }
+  shape: { kind: square, size: 7 }
+  selection: { relations: [enemy], chooser: all }
+damage:
+  multiplier: 2
+  component: mag
+phases:
+  - kind: damage
