@@ -1172,6 +1172,19 @@ async function applyInjury(state, message) {
   const defenderDoc = game.actors.get(state.defenderId);
   if (!result || !defenderDoc) return;
 
+  // Dragon Wing Warriors: "1d6+4 instances... each can be separately Evaded
+  // or Blocked. Damaged Units only perform an Injury Roll ONCE regardless of
+  // number of hits taken." Each instance is its own Combat Process (`repeat`,
+  // above) and so reaches this same step once per hit; `singleInjuryRoll`
+  // makes every instance but the first against a given defender, within the
+  // same declaration (`state.groupId`), a no-op here.
+  const attackerDoc = game.actors.get(state.attackerId);
+  const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
+  if (ability?.system?.damage?.singleInjuryRoll && alreadyInjuryRolled(state, message)) {
+    await message.setFlag("fgt", "injury", { roll: false, reason: "singleInjuryRoll" });
+    return;
+  }
+
   const verdict = injuryCheck({
     exceededThreshold: Boolean(result.flags?.exceededInjuryThreshold),
     damage: result.total,
@@ -1197,6 +1210,30 @@ async function applyInjury(state, message) {
     "injury",
   );
   await message.setFlag("fgt", "injury", { ...verdict, amount: roll.total });
+}
+
+/**
+ * Has a SIBLING process -- the same declaration (`groupId`), the same
+ * defender, a different message -- already recorded an Injury Roll verdict?
+ *
+ * `applyInjury` sets the `injury` flag unconditionally (even when the roll
+ * itself is skipped), so its presence is exactly "this process's own Injury
+ * step has already run" -- checked, not assumed, because `repeat`'s several
+ * processes reach this state one at a time, not all at once.
+ *
+ * @param {object} state
+ * @param {object} message the current process's own message, excluded from the search
+ * @returns {boolean}
+ */
+function alreadyInjuryRolled(state, message) {
+  return game.messages.some((m) => {
+    if (m.id === message.id) return false;
+    const raw = m.getFlag("fgt", "process");
+    if (!raw) return false;
+    const sibling = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (sibling.groupId !== state.groupId || sibling.defenderId !== state.defenderId) return false;
+    return Boolean(m.getFlag("fgt", "injury"));
+  });
 }
 
 /**
