@@ -102,6 +102,20 @@ describe("snapshotBoard", () => {
     });
     expect(board.alliances.red).toEqual(["red", "blue"]);
   });
+
+  it("carries settings.zones through — the Home Base map, not a nonexistent scene.zones", () => {
+    // `homeBaseZonesOf` (engine/board.mjs) computes this into `currentBoard`'s
+    // `settings.zones`; this function used to read `scene?.zones` instead --
+    // a property no Scene document has -- so `board.zones` was always `{}`
+    // regardless of what was passed in. Found live: a Home Base region built
+    // for Semiramis's Hanging Gardens never made `self:inHomeBase` true for
+    // anyone standing in it, for any Servant, ever.
+    const board = snapshotBoard({
+      scene: null, actors: [],
+      settings: { zones: { r1: { faction: "faction-1", panels: [{ i: 5, j: 5 }] } } },
+    });
+    expect(board.zones).toEqual({ r1: { faction: "faction-1", panels: [{ i: 5, j: 5 }] } });
+  });
 });
 
 describe("parameter grants reach the Rank (Ch. 05 §5.6)", () => {

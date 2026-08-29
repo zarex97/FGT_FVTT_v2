@@ -364,7 +364,14 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   const board = {
     bounds: boundsFor(scene, settings),
     units,
-    zones: scene?.zones ?? {},
+    // `homeBaseZonesOf` (engine/board.mjs) computes this into `settings.zones`;
+    // reading `scene.zones` instead -- a property no Scene document has -- meant
+    // `board.zones` was always `{}`, so `ownBaseOf` (rules/environment.mjs),
+    // `newlySeenBy` (rules/identity.mjs) and the `requiresRecipient: {zoneId}`
+    // Aura path (rules/targeting/resolve.mjs) never saw a Home Base or a named
+    // zone exist. Found live setting up a Home Base region to test Semiramis's
+    // Hanging Gardens activation, which gates on `self:inHomeBase`.
+    zones: settings.zones ?? {},
     alliances: settings.alliances ?? {},
     roundPhase: settings.phase ?? "day",
     round: settings.round ?? 1,

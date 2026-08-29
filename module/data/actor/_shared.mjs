@@ -37,6 +37,18 @@ export function unitCommon() {
     agility: resourceField(0),
     luck: resourceField(0),
 
+    // The content-authored starting Health, consumed by each type's own
+    // `prepareBaseData` -- a Servant's (servant.mjs) reads it with an
+    // END-rank table fallback and no other type needs one, so this field is
+    // shared but the derivation is not. `tools/lib/content.mjs#actorSystem`
+    // has compiled `doc.baseHealth` for every unit type since it was
+    // written; only `ServantData` ever declared a schema field for it, so a
+    // Summon or a Platform actor built straight from content had `health:
+    // {value: 0, max: 0}` regardless of what its sheet stated. Found live
+    // creating Semiramis's Hanging Gardens platform actor (baseHealth: 6000,
+    // health.max: 0).
+    baseHealth: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
     mov: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     range: new fields.SchemaField({
       panels: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),

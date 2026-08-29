@@ -467,6 +467,17 @@ describe("a RankShift aimed at another ability", () => {
     expect(out.statDeltas[0]).toMatchObject({ stat: "parameters.str", rankShift: 1 });
     expect(out.abilityRankShifts).toEqual([]);
   });
+
+  it("carries a parameter RankShift's `grades` through instead of defaulting to steps", () => {
+    // The Hanging Gardens' owner buff: "STR: E to D... one Rank" is a whole
+    // grade, not the default `steps: 1` this branch used to fall back to
+    // regardless of what was authored.
+    const out = collectContributions([ability({
+      passiveRules: [{ key: "RankShift", parameter: "str", grades: 1 }],
+    })]);
+    expect(out.statDeltas[0]).toMatchObject({ stat: "parameters.str", rankGrades: 1 });
+    expect(out.statDeltas[0].rankShift).toBeUndefined();
+  });
 });
 
 describe("an event handler gated on the attack", () => {
