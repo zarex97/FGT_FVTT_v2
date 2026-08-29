@@ -70,6 +70,12 @@ async function onTurnChange(combat, prior, current) {
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
 
+  // A field's OWN "acted then ended its Turn" rule -- Sikera Ušum clause b.
+  // Belongs to the AREA rather than to Semiramis, the same reason
+  // Unlimited Blade Works' turnStart toll below is authored on the field:
+  // whoever is dragged in is subject to it, not just units she targets.
+  await run(await fields.runFieldEvents("actedTurnEnd"), "field:actedTurnEnd");
+
   // The faction that just finished is frozen in the order: a Delay declared
   // from here on applies to the next Round, not to a turn already taken.
   if (typeof combat.markTurnTaken === "function") {

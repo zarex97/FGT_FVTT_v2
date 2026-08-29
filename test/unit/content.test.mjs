@@ -287,6 +287,19 @@ describe("compileDocument", () => {
     const out = compileDocument(doc, "abilities", library);
     expect(out.system.itemCost).toEqual(doc.itemCost);
   });
+
+  it("keeps an authored max alongside countFrom (Ch. 32, Sikera Ušum's '6◈+⅓◈ after the NP ends')", () => {
+    // The object-form branch used to return `max: null` unconditionally,
+    // discarding any authored one -- fine for Presence Concealment (rank
+    // table only) and silent for the first ability that ALSO needed a flat
+    // max with its `countFrom: deactivation`.
+    const doc = {
+      schema: 1, id: "sikera-usum", name: "Sikera Ušum",
+      cooldown: { max: "6◈+⅓◈", countFrom: "deactivation" },
+    };
+    const out = compileDocument(doc, "abilities", library);
+    expect(out.system.cooldown).toMatchObject({ max: "6◈+⅓◈", countFrom: "deactivation" });
+  });
 });
 
 describe("copyable (§15.7)", () => {

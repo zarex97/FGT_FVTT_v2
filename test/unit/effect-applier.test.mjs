@@ -63,6 +63,68 @@ describe("bypassChanceModifiers (Queen's Poison's extra Stage)", () => {
   });
 });
 
+describe("Immunity Downgrade (Ch. 32, Sikera Ušum clause d)", () => {
+  const poison = { id: "poison", name: "Poison", polarity: "debuff", volatility: "volatile", baseChance: 100 };
+  const immune = (over = {}) => ({
+    id: "v", health: 800, effects: ["immune:poison"], effectInstances: [],
+    suppressions: [{ scope: "immunity", effectId: "poison", downgradeTo: "poisonResist", resistPercent: 75 }],
+    ...over,
+  });
+
+  it("blocks outright with no downgrade in effect", () => {
+    const out = applyEffect({
+      def: poison, target: { ...immune(), suppressions: [] }, source: {},
+      ctx: { roll: 1, currentTick: 0, turnsPerRound: 3 },
+    });
+    expect(out.outcome).toBe("blocked");
+  });
+
+  it("downgrades to a 75-point resist instead of blocking, inside the field", () => {
+    const passes = applyEffect({
+      def: poison, target: immune(), source: {},
+      ctx: { roll: 20, currentTick: 0, turnsPerRound: 3 },
+    });
+    expect(passes.outcome).toBe("applied");
+
+    const fails = applyEffect({
+      def: poison, target: immune(), source: {},
+      ctx: { roll: 90, currentTick: 0, turnsPerRound: 3 },
+    });
+    expect(fails.outcome).toBe("resisted");
+  });
+
+  it("halves a Poison Resist contribution for a unit that was never immune", () => {
+    const resistant = {
+      id: "v", health: 800, effects: [], effectInstances: [],
+      applicationChances: [{ direction: "incoming", effectId: "poison", value: 60 }],
+      suppressions: [{ scope: "immunity", effectId: "poison", downgradeTo: "poisonResist", resistPercent: 75 }],
+    };
+    // Unhalved, 60 resist against a roll of 50 (base 100) resists; halved to
+    // 30, the same roll succeeds.
+    const out = applyEffect({
+      def: poison, target: resistant, source: {},
+      ctx: { roll: 50, currentTick: 0, turnsPerRound: 3 },
+    });
+    expect(out.outcome).toBe("applied");
+  });
+
+  it("does not halve a Poison resist when the field's downgrade is scoped to a different effect", () => {
+    const other = {
+      id: "v", health: 800, effects: [], effectInstances: [],
+      applicationChances: [{ direction: "incoming", effectId: "poison", value: 60 }],
+      // Some OTHER field's downgrade, scoped to Burn -- must not touch this
+      // unit's Poison resist.
+      suppressions: [{ scope: "immunity", effectId: "burn", downgradeTo: "burnResist", resistPercent: 75 }],
+    };
+    const out = applyEffect({
+      def: poison, target: other, source: {},
+      ctx: { roll: 50, currentTick: 0, turnsPerRound: 3 },
+    });
+    // Unhalved resist (60) beats a roll of 50 against base 100.
+    expect(out.outcome).toBe("resisted");
+  });
+});
+
 describe("terminal effects", () => {
   const instakill = {
     id: "instakill", name: "Instakill", polarity: "debuff", volatility: "terminal",

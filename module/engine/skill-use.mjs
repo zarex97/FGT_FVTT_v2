@@ -73,6 +73,15 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
     master,
     round: combat?.round ?? 1,
     board,
+    // The `predicate` requirement kind (`rules/items.mjs`) has been in
+    // `meetsRequirement` since §15.4 was implemented and refused every use
+    // that named it: `ctx.testPredicate` had no supplier here, so
+    // `typeof undefined === "function"` failed and the gate always lost.
+    // Semiramis's Sikera Ušum is the first content that needs it --
+    // `self:variant:noDsc`, gating clause 1 off from clause 2's Throne-Room
+    // branch -- and self-only, the same scope a rule element's own
+    // `predicate` gets at collection time.
+    testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: self }) }),
   });
   if (!usage.ok) return { ok: false, reason: usage.reason };
 

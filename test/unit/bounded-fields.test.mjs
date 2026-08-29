@@ -384,4 +384,52 @@ describe("annotateFields", () => {
 
     expect(u.fields).toEqual([]);
   });
+
+  it("routes a DamageModifier-shaped interior rule to modifiers, through the real executor", () => {
+    const u = inside({ faction: "b", modifiers: [] });
+    const field = labyrinth({
+      ownerFaction: "a",
+      interior: [{ key: "DamageModifier", stage: "flat", value: 10, relations: ["enemy"] }],
+    });
+
+    annotateFields([u], { units: [u], fields: [field], alliances: {} });
+
+    expect(u.modifiers).toEqual([expect.objectContaining({ key: "atkUp", value: 10 })]);
+  });
+
+  it("routes ImmunityDowngrade to suppressions, not modifiers (Sikera Ušum clause d)", () => {
+    // The raw dump this replaced put every non-stat interior rule into
+    // `modifiers` verbatim -- a `{key: "ImmunityDowngrade", to: ...}` shape
+    // nothing that reads `suppressions` would ever recognise.
+    const u = inside({ faction: "b", modifiers: [] });
+    const field = labyrinth({
+      ownerFaction: "a",
+      interior: [{ key: "ImmunityDowngrade", effectId: "poison", to: "poisonResist", relations: ["enemy"] }],
+    });
+
+    annotateFields([u], { units: [u], fields: [field], alliances: {} });
+
+    expect(u.modifiers).toEqual([]);
+    expect(u.suppressions).toEqual([
+      expect.objectContaining({ scope: "immunity", effectId: "poison", downgradeTo: "poisonResist" }),
+    ]);
+  });
+
+  it("routes VulnerabilityAmplifier and PeriodicOverride to their own buckets", () => {
+    const u = inside({ faction: "b", modifiers: [] });
+    const field = labyrinth({
+      ownerFaction: "a",
+      interior: [
+        { key: "VulnerabilityAmplifier", effectId: "poison", factor: 2, relations: ["enemy"] },
+        { key: "PeriodicOverride", effectId: "poison", triggers: ["turnEnd", "actedTurnEnd"], relations: ["enemy"] },
+      ],
+    });
+
+    annotateFields([u], { units: [u], fields: [field], alliances: {} });
+
+    expect(u.vulnerabilityAmplifiers).toEqual([expect.objectContaining({ effectId: "poison", factor: 2 })]);
+    expect(u.periodicOverrides).toEqual([
+      expect.objectContaining({ effectId: "poison", triggers: ["turnEnd", "actedTurnEnd"] }),
+    ]);
+  });
 });

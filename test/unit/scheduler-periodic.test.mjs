@@ -46,3 +46,42 @@ describe("periodicDamageFor", () => {
     expect(periodicDamageFor({ defId: "burn" }, null)).toBe(50);
   });
 });
+
+describe("Sikera Ušum clause e — the field's VulnerabilityAmplifier", () => {
+  // "Units in the NP area who are weak to Poison ... receive double Poison
+  // Damage ... has to be an effect the Unit already has" -- the amplifier
+  // (populated by `rules/bounded-fields.mjs`'s `annotateFields` for a unit
+  // standing in a matching field) only ever widens a weakness the unit
+  // independently carries.
+  const inField = (over = {}) => ({
+    effects: ["poison"], vulnerabilityAmplifiers: [{ effectId: "poison", factor: 2 }], ...over,
+  });
+
+  it("doubles Poison damage for a unit with a standing weakTo marker", () => {
+    const unit = inField({ effects: ["poison", "weakToPoison"] });
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit)).toBe(40);
+  });
+
+  it("doubles it for a unit whose own resist contribution already raises Poison's chance", () => {
+    const unit = inField({
+      applicationChances: [{ direction: "incoming", effectId: "poison", value: -20 }],
+    });
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit)).toBe(40);
+  });
+
+  it("does nothing for an ordinary unit standing in the same field", () => {
+    // Not weak to Poison at all -- the field widens an EXISTING weakness, it
+    // does not invent one.
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, inField())).toBe(20);
+  });
+
+  it("does not amplify an unrelated effect the amplifier does not name", () => {
+    const unit = inField({ effects: ["burn", "weakToPoison"] });
+    expect(periodicDamageFor({ defId: "burn", stage: 0 }, unit)).toBe(50);
+  });
+
+  it("stacks with Deadly Poison rather than replacing it", () => {
+    const unit = inField({ effects: ["poison", "deadlyPoison", "weakToPoison"] });
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit)).toBe(80);
+  });
+});

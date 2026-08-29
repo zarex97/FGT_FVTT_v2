@@ -16,6 +16,7 @@
 
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth } from "../domain/health.mjs";
+import { EXECUTORS, empty } from "./elements.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  NP tags — a real, ordered classification                                  */
@@ -332,6 +333,33 @@ export function interiorModifiers(field, unit, board) {
     .map((rule) => ({ ...rule, field: field.id, source: field.id }));
 }
 
+/**
+ * A field's interior rules, run through the SAME executor table an ability's
+ * `passiveRules` are (`rules/elements.mjs`'s `EXECUTORS`), rather than the
+ * narrower raw dump `annotateFields` used to do.
+ *
+ * The dump worked for `DamageModifier`-shaped rules, which read back off
+ * `modifiers` in their AUTHORED shape by coincidence -- but an interior rule
+ * key whose executor transforms the shape or routes to a DIFFERENT bucket
+ * (`ImmunityDowngrade` → `suppressions`; Sikera Ušum's `VulnerabilityAmplifier`
+ * and `PeriodicOverride` → their own dedicated lists) went into `modifiers`
+ * verbatim and was read by nothing there.
+ *
+ * @param {object} field
+ * @param {object} unit
+ * @param {object} board
+ * @returns {import("./elements.mjs").Contributions}
+ */
+export function interiorContributions(field, unit, board) {
+  const out = empty();
+  for (const rule of interiorModifiers(field, unit, board)) {
+    const execute = EXECUTORS[rule.key];
+    if (!execute) continue;
+    execute(rule, { rank: null, source: rule.source, ability: null, out, ctx: {} });
+  }
+  return out;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Axis 5 — duration and extension                                           */
 /* -------------------------------------------------------------------------- */
@@ -439,12 +467,36 @@ export function annotateFields(units, board) {
       u.fields.push(field.id);
       gained.push(...interiorModifiers(field, u, board));
     }
-    // Split by what each rule IS. Everything went into `modifiers`, which the
-    // damage pipeline reads -- so a stat-shaped interior rule sat in a bag that
-    // does not carry stats and changed nothing. Both authored fields have one.
-    const [stats, modifiers] = partition(gained, (rule) => STAT_INTERIOR.has(rule.key));
+    // A stat-shaped rule moves the snapshot's OWN value directly: the field
+    // pass runs after `prepareDerivedData` (a per-document Foundry hook that
+    // cannot know about a board-wide area), so nothing else would fold it in.
+    const [stats, rest] = partition(gained, (rule) => STAT_INTERIOR.has(rule.key));
     for (const rule of stats) applyInteriorStat(u, rule);
-    if (modifiers.length > 0) u.modifiers = [...(u.modifiers ?? []), ...modifiers];
+
+    // Everything else runs through the SAME executor table an ability's
+    // `passiveRules` do (`interiorContributions`), so a rule that routes to
+    // `suppressions` or its own dedicated bucket actually lands there instead
+    // of sitting in `modifiers` unread.
+    const out = empty();
+    for (const rule of rest) {
+      const execute = EXECUTORS[rule.key];
+      if (!execute) continue;
+      execute(rule, { rank: null, source: rule.source, ability: null, out, ctx: {} });
+    }
+    if (out.modifiers.length > 0) u.modifiers = [...(u.modifiers ?? []), ...out.modifiers];
+    if (out.suppressions.length > 0) u.suppressions = [...(u.suppressions ?? []), ...out.suppressions];
+    if (out.applicationChances.length > 0) {
+      u.applicationChances = [...(u.applicationChances ?? []), ...out.applicationChances];
+    }
+    if (out.vulnerabilityAmplifiers.length > 0) {
+      u.vulnerabilityAmplifiers = [...(u.vulnerabilityAmplifiers ?? []), ...out.vulnerabilityAmplifiers];
+    }
+    if (out.periodicOverrides.length > 0) {
+      u.periodicOverrides = [...(u.periodicOverrides ?? []), ...out.periodicOverrides];
+    }
+    if (out.damageNegation.length > 0) {
+      u.damageNegation = [...(u.damageNegation ?? []), ...out.damageNegation];
+    }
   }
 }
 

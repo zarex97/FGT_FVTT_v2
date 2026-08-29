@@ -25,6 +25,7 @@ import { panelsOf } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
+import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 
 /**
@@ -132,6 +133,33 @@ export async function endField(fieldId) {
 }
 
 /**
+ * Set the owning ability's cooldown from its OWN `max`, if it is authored
+ * `countFrom: "deactivation"`.
+ *
+ * @param {object} field
+ * @returns {Promise<void>}
+ */
+async function setCooldownOnDeactivation(field) {
+  const owner = game.actors.get(field.ownerId);
+  // `field.id` IS `ability.system.contentId ?? ability.id` -- exactly how
+  // `createField` stamped it as `fieldId` -- so the same lookup finds the
+  // ability back (`board.mjs`'s `boundedFieldsOf` projects it as `id`).
+  const ability = owner?.items?.find?.((i) => (i.system?.contentId ?? i.id) === field.id);
+  const cd = ability?.system?.cooldown ?? null;
+  if (!cd || cd.countFrom !== "deactivation" || !cd.max) return;
+
+  const ticks = resolveTicks(parseTick(String(cd.max)), {
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+  });
+  if (ticks <= 0) return;
+
+  await applyWorldIntents(
+    [I.cooldown(owner.id, ability.id, ticks, "set")],
+    `field:deactivationCooldown:${field.id}`,
+  );
+}
+
+/**
  * The absolute tick a field expires on.
  * @param {string|null} duration
  * @returns {number|null}
@@ -194,7 +222,16 @@ export async function expireFields(tick) {
   const closed = [];
   for (const field of currentBoard().fields ?? []) {
     if (!shouldClose(field, tick)) continue;
-    if (await endField(field.id)) closed.push(field.id);
+    if (await endField(field.id)) {
+      closed.push(field.id);
+      // Sikera Ušum's "6◈+⅓◈ Turns AFTER the NP ends" -- a clock that starts
+      // at the field's OWN closure, not at the ability's use, the same shape
+      // Presence Concealment's `countFrom: deactivation` already reads for a
+      // standing effect (`engine/concealment.mjs`'s `cooldownTicks`). A field
+      // has no effect instance to watch for deletion, so its own lifecycle
+      // is the trigger instead.
+      await setCooldownOnDeactivation(field);
+    }
   }
   return closed;
 }
@@ -255,10 +292,17 @@ async function runFieldEvent(field, spec, board) {
   const owner = (board.units ?? []).find((u) => u.id === field.ownerId) ?? null;
   const relations = new Set(spec.relations ?? ["enemy"]);
   const kinds = spec.kinds ? new Set(spec.kinds) : null;
+  // Sikera Ušum clause b: "a Unit OTHER THAN Semiramis OR HER MASTER" -- the
+  // owner was always excluded; the owner's Master needed a second exclusion
+  // no prior field needed.
+  const excludedIds = new Set([field.ownerId, ...(spec.excludeOwnerMaster ? [field.ownerMasterId] : [])]);
 
   const inside = (board.units ?? []).filter((u) =>
     (u.fields ?? []).includes(field.id)
-    && u.id !== field.ownerId
+    && !excludedIds.has(u.id)
+    // "Acts then ends its Turn within the NP area" -- a Unit that never Acted
+    // this Turn has nothing to trigger the clause with.
+    && (!spec.requiresActed || u.acted)
     && (!kinds || kinds.has(u.kind))
     && relations.has(relationOf(owner, u, board)));
 
@@ -283,17 +327,33 @@ async function runFieldEvent(field, spec, board) {
     }
 
     for (const action of spec.onFail ?? []) {
-      if (action.key !== "Damage") continue;
-      const rolled = action.roll?.formula
-        ? (await new Roll(action.roll.formula).evaluate()).total * (action.roll.factor ?? 1)
-        : (action.amount ?? 0);
-      if (rolled <= 0) continue;
-      // A bare damage intent, never the pipeline: "not affected by any damage
-      // modifying effects on EMIYA" is the same exemption periodic effect
-      // damage carries, and running the pipeline would apply his Atk Up to it.
-      out.push(I.damage(unit.id, rolled, null, {
-        bypassModifiers: true, source: field.id, component: action.component ?? "str",
-      }));
+      if (action.key === "Damage") {
+        const rolled = action.roll?.formula
+          ? (await new Roll(action.roll.formula).evaluate()).total * (action.roll.factor ?? 1)
+          : (action.amount ?? 0);
+        if (rolled <= 0) continue;
+        // A bare damage intent, never the pipeline: "not affected by any damage
+        // modifying effects on EMIYA" is the same exemption periodic effect
+        // damage carries, and running the pipeline would apply his Atk Up to it.
+        out.push(I.damage(unit.id, rolled, null, {
+          bypassModifiers: true, source: field.id, component: action.component ?? "str",
+        }));
+        continue;
+      }
+
+      // Sikera Ušum clause b: "it is inflicted with Poison" -- no damage
+      // number to roll, an effect to apply. `expiry: null` is the correct
+      // "no duration" reading (Ch. 7 §7.5's resolution, the same one an
+      // ability phase's `applyEffects` uses): Poison's own duration is its
+      // stage clock, not this rider's.
+      if (action.key === "ApplyEffect") {
+        out.push(I.applyEffect(unit.id, {
+          defId: action.effect?.id ?? action.effect?.defId,
+          magnitude: action.effect?.magnitude ?? 0,
+          expiry: null,
+          sourceUnitId: field.ownerId,
+        }, field.ownerId));
+      }
     }
   }
   return out;
