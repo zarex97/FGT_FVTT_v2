@@ -44,6 +44,7 @@ import { reactionAbilities, allyReactions, abilityFromOption } from "../rules/re
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 import { reactionsRefused, aoeOutcome, isConcealed } from "../rules/concealment.mjs";
+import { summonPhase } from "./summoning.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -65,6 +66,10 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // `limits.requiresZon` on every Noble Phantasm turns on.
   const self = unitFrom(board, attacker);
   const ability = abilityId ? attacker.items.get(abilityId) : null;
+  // The caster's own options, for `targeting.branches`/`cooldown.branches`/
+  // `damage.branches` (Summoning: Bašmu) -- computed once here rather than
+  // per call site, since `self` does not change across this declaration.
+  const options = rollOptionsFor({ attacker: self });
 
   // The budget is checked before the targeting is resolved, so a player who
   // has no attacks left is told that rather than being told their target is
@@ -120,7 +125,7 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     throw new Error("FGT | No attacks are permitted during the first Round.");
   }
 
-  const spec = targetSpecFor(attacker, ability);
+  const spec = targetSpecFor(attacker, ability, options);
   const targets = resolveTargets(spec, self, board, placement);
 
   if (targets.errors.length > 0) {
@@ -222,15 +227,15 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
     // that is not affected by Magic Resistance"* -- a property of the attack,
     // so it has to travel with the attack.
-    component: componentOf(attacker, ability),
+    component: componentOf(attacker, ability, options),
     // Appendix A treats `Aim` and `Pierce` as properties of the ATTACK, and
     // `evade`/the pipeline have read both by name since they were written --
     // against a spec that carried neither, so no authored Noble Phantasm could
     // ever have one. EMIYA's Hrunting is Aim and his Caladbolg II is Pierce.
-    aim: Boolean(ability?.system?.damage?.aim),
-    pierce: Boolean(ability?.system?.damage?.pierce),
+    aim: Boolean(resolvedDamage(ability, options)?.aim),
+    pierce: Boolean(resolvedDamage(ability, options)?.pierce),
     ignoresMagicResistance: Boolean(
-      ability?.system?.damage?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
+      resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
     ),
   };
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
@@ -244,7 +249,7 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // repeat is still its own Combat Process and so still its own Injury Roll;
   // "Damaged Units only perform an Injury Roll once regardless of number of
   // hits taken" is a known, unmodelled simplification -- see basmu.yml.
-  const repeatSpec = ability?.system?.damage?.repeat ?? 1;
+  const repeatSpec = resolvedDamage(ability, options)?.repeat ?? 1;
   const repeat = Math.max(
     1,
     repeatSpec && typeof repeatSpec === "object" && repeatSpec.roll
@@ -1335,12 +1340,17 @@ async function applyDamage(state, message) {
       // `ctx.attack.isFixedDamage` (stages 1 and 2, `rules/damage/pipeline.mjs`)
       // since it was written; nothing ever set it from content, so an authored
       // `damage.fixed` was always computed as a normal, modifiable attack.
-      isFixedDamage: Boolean(ability?.system?.damage?.fixed),
+      //
+      // Summoning: Bašmu's summon branch: `resolvedDamage` picks the matching
+      // `damage.branches` entry (`{fixed: true, base: {fixedValue: 0}}`) so
+      // this Combat Process -- which still runs, she resolves as her own
+      // defender -- deals nothing rather than her own Base Attack.
+      isFixedDamage: Boolean(resolvedDamage(ability, options)?.fixed),
     },
-    base: baseSpecFor(attackerDoc, ability, facts.range),
-    multiplier: ability?.system?.damage?.multiplier ?? 1,
-    flatBonus: ability?.system?.damage?.flatBonus ?? 0,
-    conditionalMultipliers: ability?.system?.damage?.conditionalMultipliers ?? [],
+    base: baseSpecFor(attackerDoc, ability, facts.range, options),
+    multiplier: resolvedDamage(ability, options)?.multiplier ?? 1,
+    flatBonus: resolvedDamage(ability, options)?.flatBonus ?? 0,
+    conditionalMultipliers: resolvedDamage(ability, options)?.conditionalMultipliers ?? [],
     crit: { isCrit, chanceUsed: critSpec.percent },
     reaction: { kind: state.reaction ?? "none" },
     luckChecks: {},
@@ -1574,12 +1584,20 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   const defender = unitSnapshot(defenderDoc);
   const applied = [];
 
+  // The CASTER's own options, for a phase-level `predicate:` -- the same
+  // vocabulary `engine/skill-use.mjs#runPhases` already reads, extended to
+  // this loop for Summoning: Bašmu's summon branch (a `summon` phase gated
+  // off from the damage-spell branch's `damage`/`applyEffects` pair).
+  const attackerUnit = unitFrom(boardSnapshot(), attackerDoc);
+  const casterOptions = rollOptionsFor({ attacker: attackerUnit });
+
   // Through `effectivePhases`, because a copy (§15.7) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
   for (const phase of effectivePhases(ability.system ?? {}, resolveAbilitySource)) {
     // WHEN this phase runs relative to the damage. Unstated means after, which
     // is what every phase written before this window existed meant.
     if ((phase.when ?? "afterDamage") !== when) continue;
+    if (phase.predicate && !testPredicate(phase.predicate, { options: casterOptions })) continue;
     // Medea's Rule Breaker: "removes all buffs from the DU", and then cuts the
     // Contract if the DU is a Servant that FAILED to Evade.
     if (phase.kind === "removeEffect") {
@@ -1596,6 +1614,20 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // Unit's Luck Check Succeeds, it receives 4x damage plus 100."*
     if (phase.kind === "check") {
       applied.push(...await runCheckPhase(phase, ability, state, defender));
+      continue;
+    }
+    // Semiramis's Summoning: Bašmu, aboard her own Hanging Gardens: "summons
+    // a Bašmu on a panel directly next to her." Only from the CASTER's own
+    // resolution, the same guard `engine/skill-use.mjs#runPhases`'s own
+    // `summon` case uses -- this loop runs once per defender and she is her
+    // own here, but nothing stops a future summon-branch ability from
+    // resolving against someone else's Combat Process.
+    if (phase.kind === "summon") {
+      if (state.defenderId !== state.attackerId) continue;
+      const out = await summonPhase(phase, attackerDoc);
+      applied.push({
+        summary: { id: "summon", name: `${out.count} summoned`, outcome: "applied", reason: null },
+      });
       continue;
     }
     if (phase.kind !== "applyEffects" && phase.kind !== "applyEffect") continue;
@@ -1887,10 +1919,12 @@ function boardSnapshot() {
  * declares its own targeting.
  * @param {object} attacker
  * @param {object|null} ability
+ * @param {Set<string>|null} [options] the caster's own roll options, for
+ *   `targeting.branches`
  * @returns {object}
  */
-function targetSpecFor(attacker, ability) {
-  return specForAbility(ability, attacker.system.range?.panels ?? 1);
+function targetSpecFor(attacker, ability, options = null) {
+  return specForAbility(ability, attacker.system.range?.panels ?? 1, options);
 }
 
 /**
@@ -1902,10 +1936,11 @@ function targetSpecFor(attacker, ability) {
  *
  * @param {object} attacker an `FGTActor`
  * @param {object|null} ability
+ * @param {Set<string>|null} [options]
  * @returns {object}
  */
-export function targetSpecForAttack(attacker, ability) {
-  return targetSpecFor(attacker, ability);
+export function targetSpecForAttack(attacker, ability, options = null) {
+  return targetSpecFor(attacker, ability, options);
 }
 
 /**
@@ -1913,8 +1948,9 @@ export function targetSpecForAttack(attacker, ability) {
  * @param {object|null} ability
  * @returns {object}
  */
-function baseSpecFor(attacker, ability, range = null) {
-  if (ability?.system?.damage?.base) return ability.system.damage.base;
+function baseSpecFor(attacker, ability, range = null, options = null) {
+  const dmg = resolvedDamage(ability, options);
+  if (dmg?.base) return dmg.base;
 
   // A DECLARED component, which decides the arithmetic and not only what the
   // attack counts as.
@@ -1928,7 +1964,7 @@ function baseSpecFor(attacker, ability, range = null) {
   // multiplied BA(STR) 65 where her sheet says BA(MAG) 100, and EMIYA's
   // Hrunting and Caladbolg II, Medea's Aero and Rain of Light, and three of
   // Scáthach's four all did the same. Found live.
-  const declared = ability?.system?.damage?.component ?? null;
+  const declared = dmg?.component ?? null;
   if (declared) return { sources: [{ unit: "self", component: declared, factor: 1 }] };
 
   // Through the same rule the option set used, so the number the pipeline adds
@@ -2020,10 +2056,41 @@ function attackDistance(attacker, defender) {
  * @param {object|null} ability
  * @returns {"str"|"mag"}
  */
-function componentOf(attacker, ability) {
-  const declared = ability?.system?.damage?.component
-    ?? ability?.system?.damage?.base?.sources?.[0]?.component;
+function componentOf(attacker, ability, options = null) {
+  const dmg = resolvedDamage(ability, options);
+  const declared = dmg?.component ?? dmg?.base?.sources?.[0]?.component;
   return declared ?? attacker?.system?.normalAttack?.component ?? "str";
+}
+
+/**
+ * The ability's `damage:` block, resolved for whichever behaviour is
+ * actually firing.
+ *
+ * Summoning: Bašmu's `damage:` differs by branch the same way its
+ * `cooldown:` and `targeting:` do (`cooldown.branches` in
+ * `engine/cooldown.mjs`, `targeting.branches` in
+ * `rules/ability-use.mjs#targetSpecFor`) -- its summon branch has a real
+ * Combat Process (she resolves as her own defender, same as any self-cast
+ * Spell) but deals no damage at all, and the Combat Process ladder always
+ * runs the damage stage regardless of which phase is conceptually active.
+ * `{fixed: true, base: {fixedValue: 0}}` is the existing "deals no damage"
+ * vocabulary, selected per branch rather than invented per ability.
+ *
+ * Recomputed at every call site rather than resolved once and threaded
+ * through, because the Combat Process is stateful across chat-message
+ * advances (`advanceAttack` re-fetches the ability fresh each time) --
+ * exactly how `ctx.attack.isFixedDamage` already works, extended to the rest
+ * of the `damage:` block.
+ *
+ * @param {object|null} ability
+ * @param {Set<string>|null} options the caster's own roll options
+ * @returns {object|null}
+ */
+function resolvedDamage(ability, options) {
+  const dmg = ability?.system?.damage ?? null;
+  if (!dmg?.branches?.length || !options) return dmg;
+  const match = dmg.branches.find((b) => testPredicate(b.predicate, { options }));
+  return match ?? dmg;
 }
 
 function abilityKind(ability) {

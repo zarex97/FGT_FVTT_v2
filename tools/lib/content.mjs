@@ -784,7 +784,10 @@ function compileCooldown(cooldown) {
       max: cooldown.max ?? null, remaining: 0, regen: 0,
       perUnit: cooldown.perUnit ?? null,
       countFrom: cooldown.countFrom ?? null,
+      // Summoning: Bašmu's own two-cooldown branches (`engine/cooldown.mjs`),
+      // dropped by the same allowlist shape this file's `max` used to drop.
+      branches: cooldown.branches ?? null,
     };
   }
-  return { max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null, countFrom: null };
+  return { max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null, countFrom: null, branches: null };
 }

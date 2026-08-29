@@ -212,6 +212,42 @@ describe("meetsRequirement", () => {
     expect(meetsRequirement(req, ctx({ unit: unit() }))).toBe(false);
   });
 
+  it("refuses while a summon of the same content id and summoner is still alive", () => {
+    // "Only one Bašmu summoned by this Spell can exist on the field."
+    const req = { kind: "noAliveSummon", contentId: "basmu" };
+    const semiramis = unit({ id: "semiramis" });
+    const basmu = (over = {}) => ({ contentId: "basmu", summonerId: "semiramis", defeated: false, ...over });
+
+    expect(meetsRequirement(req, ctx({ unit: semiramis, board: { units: [semiramis] } }))).toBe(true);
+    expect(meetsRequirement(req,
+      ctx({ unit: semiramis, board: { units: [semiramis, basmu()] } }))).toBe(false);
+    // Defeated: does not block a rebuild.
+    expect(meetsRequirement(req,
+      ctx({ unit: semiramis, board: { units: [semiramis, basmu({ defeated: true })] } }))).toBe(true);
+    // A different Servant's own Bašmu is not this clause's business.
+    expect(meetsRequirement(req,
+      ctx({ unit: semiramis, board: { units: [semiramis, basmu({ summonerId: "medea" })] } }))).toBe(true);
+  });
+
+  it("scopes any requirement to a branch via its own predicate, vacuously passing when it doesn't apply", () => {
+    // Summoning: Bašmu's `noAliveSummon` must not block its unrelated
+    // damage-spell branch just because a Bašmu happens to be alive.
+    const req = { kind: "noAliveSummon", contentId: "basmu", predicate: ["self:onPlatform:hgob"] };
+    const semiramis = unit({ id: "semiramis" });
+    const board = { units: [semiramis, { contentId: "basmu", summonerId: "semiramis", defeated: false }] };
+
+    // Not on the platform: the gate does not apply, so it does not refuse --
+    // even though a Bašmu is alive.
+    expect(meetsRequirement(req, ctx({ unit: semiramis, board, testPredicate: () => false }))).toBe(true);
+    // On the platform: the gate applies, and a live Bašmu refuses it.
+    expect(meetsRequirement(req, ctx({ unit: semiramis, board, testPredicate: () => true }))).toBe(false);
+  });
+
+  it("does not vacuously pass a plain predicate requirement -- its own predicate IS the test", () => {
+    expect(meetsRequirement({ kind: "predicate", predicate: ["x"] },
+      ctx({ testPredicate: () => false }))).toBe(false);
+  });
+
   it("checks an effect on the target", () => {
     expect(meetsRequirement({ kind: "targetHasEffect", effectId: "burn" },
       ctx({ target: { effects: ["burn"] } }))).toBe(true);
@@ -253,6 +289,9 @@ describe("meetsRequirement", () => {
       // "Requires 3 [Semiramis' Poison] to use" -- a gate on the caster's own
       // held item quantity, needed by nothing before Arrogant King's Poison.
       "itemAtLeast",
+      // "Only one Bašmu summoned by this Spell can exist on the field" --
+      // needed by nothing before Summoning: Bašmu's summon branch.
+      "noAliveSummon",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });

@@ -49,6 +49,11 @@ function abilityCommon() {
       countFrom: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       remaining: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       regen: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+      // A cooldown decided by WHICH BEHAVIOUR of a multi-branch ability fired
+      // -- Summoning: Bašmu is 2◈ for its damage-spell branch, 4◈ for its
+      // summon branch (`engine/cooldown.mjs#cooldownFor`). Untyped for the
+      // same reason a requirement is: the content validator checks the shape.
+      branches: new fields.ArrayField(new fields.ObjectField()),
     }),
 
     // Rule elements and targeting stay as authored data. Keeping them
