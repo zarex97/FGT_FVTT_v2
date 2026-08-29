@@ -42,10 +42,6 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       }),
       region: new fields.SetField(new fields.StringField({ blank: false })),
 
-      // Stated on the sheet where it disagrees with the END table; null means
-      // "derive it".
-      baseHealth: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
-
       // A coin flip AT SUMMON that changes this Servant's shape from then on --
       // Semiramis is the only one in the reference set that needs it. An
       // ObjectField for the same reason `resources` is one (Ch. 06 §6.10): this

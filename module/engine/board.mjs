@@ -313,10 +313,16 @@ function panelsOfRegion(region) {
   const panels = [];
   const topLeft = grid.getOffset({ x: bounds.x, y: bounds.y });
   const bottomRight = grid.getOffset({ x: bounds.right, y: bounds.bottom });
+  // `RegionDocument#testPoint` is a real method in v14 but always answers
+  // `false` -- containment lives on the canvas PLACEABLE (`region.object`),
+  // not the document. Found live setting up a Home Base region for Semiramis's
+  // Hanging Gardens: every panel swept out, so `inOwnHomeBase` refused a unit
+  // standing in the middle of its own Region.
+  const tester = region.object?.testPoint?.bind(region.object) ?? region.testPoint?.bind(region);
   for (let i = topLeft.i; i <= bottomRight.i; i++) {
     for (let j = topLeft.j; j <= bottomRight.j; j++) {
       const centre = grid.getCenterPoint({ i, j });
-      if (region.testPoint?.(centre) !== false) panels.push({ i, j });
+      if (tester?.(centre) !== false) panels.push({ i, j });
     }
   }
   return panels;

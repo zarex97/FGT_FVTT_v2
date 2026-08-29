@@ -737,8 +737,18 @@ export const EXECUTORS = Object.freeze({
       return;
     }
 
+    // `steps` walks the dense +/- ladder (`Rank#step`); `grades` moves whole
+    // letter grades and keeps the modifier (`Rank#stepGrade`) -- the
+    // distinction `abilityRankShifts` above already makes, that this branch
+    // never did. "STR: E to D... one Rank" is a `stepGrade`, not five steps
+    // of `+`; found live when the Hanging Gardens' owner buff raised her
+    // Parameters to `E+`/`D+`/`A+` instead of a full grade -- the same
+    // wrong-way-round failure this file's own `abilityRankShifts` comment
+    // already documents for Kanshou & Bakuya, just on the branch that never
+    // had a caller to catch it.
     out.statDeltas.push({
-      stat: `parameters.${el.parameter}`, rankShift: el.steps ?? 1,
+      stat: `parameters.${el.parameter}`,
+      ...(el.grades !== undefined ? { rankGrades: el.grades } : { rankShift: el.steps ?? 1 }),
       target: el.target ?? null, source,
     });
   },

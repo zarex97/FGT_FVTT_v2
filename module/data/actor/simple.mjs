@@ -46,6 +46,19 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       movesOntoOccupiedPanels: new fields.BooleanField({ initial: false }),
     };
   }
+
+  /**
+   * Fill Health from `baseHealth`, the same shape `ServantData`'s own
+   * override uses minus its END-rank table fallback -- a Summon states its
+   * Health directly, it never derives one.
+   * @inheritdoc
+   */
+  prepareBaseData() {
+    if ((this.health.max === null || this.health.max === 0) && this.baseHealth) {
+      this.health.max = this.baseHealth;
+      if (this.health.value === null || this.health.value === 0) this.health.value = this.baseHealth;
+    }
+  }
 }
 
 export class PlatformData extends foundry.abstract.TypeDataModel {
@@ -53,6 +66,14 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
     return {
       ...unitCommon(),
       description: new fields.HTMLField({ required: false, blank: true }),
+      // A Platform can Attack (the HGoB's own Dragon Wing Warriors and Aerial
+      // Garden of Vanity both read it) but has no Parameters of its own on
+      // any reference sheet, so this is declared directly rather than by
+      // spreading the whole of `combatantCommon()`.
+      baseAttack: new fields.SchemaField({
+        str: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+        mag: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+      }),
       footprint: new fields.SchemaField({
         w: new fields.NumberField({ integer: true, initial: 3, min: 1 }),
         h: new fields.NumberField({ integer: true, initial: 3, min: 1 }),
@@ -97,6 +118,19 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
         forbidDirectlyBelow: new fields.BooleanField({ initial: false }),
       }),
     };
+  }
+
+  /**
+   * Fill Health from `baseHealth` -- see `SummonData`'s override of the same
+   * name. Found live: the Hanging Gardens platform actor had `health: {value:
+   * 0, max: 0}` despite `baseHealth: 6000` in its content.
+   * @inheritdoc
+   */
+  prepareBaseData() {
+    if ((this.health.max === null || this.health.max === 0) && this.baseHealth) {
+      this.health.max = this.baseHealth;
+      if (this.health.value === null || this.health.value === 0) this.health.value = this.baseHealth;
+    }
   }
 }
 

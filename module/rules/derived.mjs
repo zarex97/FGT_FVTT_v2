@@ -52,13 +52,16 @@ export function applyStatDeltas(system, statDeltas = []) {
 
   // ── 1. Rank shifts ───────────────────────────────────────────────────────
   for (const d of statDeltas) {
-    if (!d.rankShift) continue;
+    if (!d.rankShift && !d.rankGrades) continue;
     // A shift aimed at somebody else -- Enkidu's rank reduction on its target --
     // is not this unit's derived data.
     if (d.target && d.target !== "self") continue;
     const current = Rank.parseOrNull(read(d.stat));
     if (!current) continue;
-    const shifted = current.step(d.rankShift);
+    // `rankGrades` moves whole letter grades and keeps the modifier
+    // (`Rank#stepGrade`); `rankShift` walks the dense +/- ladder
+    // (`Rank#step`) -- "one Rank" is the former, not five steps of `+`.
+    const shifted = d.rankGrades ? current.stepGrade(d.rankGrades) : current.step(d.rankShift);
     changes[d.stat] = shifted.toString();
     trace.push({ path: d.stat, value: changes[d.stat], source: d.source });
   }

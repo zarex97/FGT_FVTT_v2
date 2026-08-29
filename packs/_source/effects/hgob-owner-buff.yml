@@ -9,10 +9,15 @@
 # `expiry: null` is set by the intent itself, and this buff's whole lifetime is
 # the platform's, not a clock.
 #
-# STR/END/AGI/MAG/LUC each move exactly one grade (`RankShift`, no `steps`
-# needed beyond the default of 1) -- confirmed against `rules/derived.mjs`'s
-# `applyStatDeltas`, which already handles a rank shift and an `alsoCurrent`
-# numeric delta generically; no engine change was needed for this file.
+# STR/END/AGI/MAG/LUC each move exactly one grade -- `RankShift`'s
+# `grades: 1`, not its default `steps` (which walks the dense +/- ladder,
+# five steps to a grade). Found live: the default landed her at `E+`/`D+`/
+# `A+` instead of `D`/`C`/`EX`, which is why `RankShift`'s parameter branch
+# (module/rules/elements.mjs) and `applyStatDeltas` (rules/derived.mjs) now
+# both know `grades` as well as `steps` -- this file was the first content
+# ever to exercise a parameter `RankShift` at all, and the gap had no caller
+# to catch it until now. The `alsoCurrent` numeric-delta half needed no
+# change; that part was already correct.
 #
 # ZON exemption is NOT a rule element here: `zonExempt` (module/data/actor/
 # servant.mjs) is a plain Boolean already read by `rules/zon.mjs#zonStatus`
@@ -40,11 +45,11 @@ stacking: noneRefresh
 baseChance: 100
 unremovable: true
 rules:
-  - { key: RankShift, parameter: str }
-  - { key: RankShift, parameter: end }
-  - { key: RankShift, parameter: agi }
-  - { key: RankShift, parameter: mag }
-  - { key: RankShift, parameter: luc }
+  - { key: RankShift, parameter: str, grades: 1 }
+  - { key: RankShift, parameter: end, grades: 1 }
+  - { key: RankShift, parameter: agi, grades: 1 }
+  - { key: RankShift, parameter: mag, grades: 1 }
+  - { key: RankShift, parameter: luc, grades: 1 }
   - { key: StatDelta, stat: baseAttack.str, value: 25 }
   - { key: StatDelta, stat: baseAttack.mag, value: 50 }
   - { key: StatDelta, stat: health.max, value: 500, alsoCurrent: true }

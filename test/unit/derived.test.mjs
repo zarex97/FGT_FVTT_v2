@@ -92,6 +92,24 @@ describe("applyStatDeltas", () => {
     expect(changes["parameters.str"]).toBe("B+");
   });
 
+  it("moves a whole grade for rankGrades, not five steps of '+' — the HGoB owner buff's 'one Rank'", () => {
+    // Found live: the Hanging Gardens' owner buff ("STR: E to D... one Rank")
+    // used the default `rankShift` and landed on `E+` instead of `D`, the
+    // exact wrong-way-round failure this file's own RankShift comment already
+    // documents for Kanshou & Bakuya's Magic Resistance.
+    const { changes } = applyStatDeltas(servant({ parameters: { str: "D" } }), [
+      { stat: "parameters.str", rankGrades: 1, source: "Aboard the Hanging Gardens" },
+    ]);
+    expect(changes["parameters.str"]).toBe("C");
+  });
+
+  it("keeps the modifier across a rankGrades shift — 'D+' one grade up is 'C+', not 'C'", () => {
+    const { changes } = applyStatDeltas(servant({ parameters: { str: "D+" } }), [
+      { stat: "parameters.str", rankGrades: 1, source: "Aboard the Hanging Gardens" },
+    ]);
+    expect(changes["parameters.str"]).toBe("C+");
+  });
+
   it("ignores a rank shift aimed at somebody else", () => {
     const { changes } = applyStatDeltas(servant(), [
       { stat: "parameters.str", rankShift: -1, target: "target", source: "Enkidu" },
