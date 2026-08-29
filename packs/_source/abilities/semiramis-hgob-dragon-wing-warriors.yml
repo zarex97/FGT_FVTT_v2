@@ -11,10 +11,13 @@
 # `repeat`'s existing behaviour -- one Combat Process per instance, one
 # reaction ladder each. "Damaged Units only perform an Injury Roll once
 # regardless of number of hits taken" is `damage.singleInjuryRoll`
-# (module/engine/attack.mjs#applyInjury): every process but the first against
-# a given defender, within the same declaration (`state.groupId`), finds an
-# `injury` flag already recorded on a sibling message and skips its own roll
-# rather than repeating it.
+# (module/engine/attack.mjs#applyInjury) -- "once, on the TOTAL" (docs/12
+# §12.6's own reading): each of 50-Fixed-damage hits is individually well
+# under the 100-damage Injury threshold, so checking only the first hit would
+# mean this NEVER rolls, regardless of how many land. Every process but the
+# LAST to resolve its own damage step (against a given defender, within the
+# same declaration) defers; the last one sums every sibling's damage and
+# performs the one check against that total.
 schema: 1
 id: semiramis-hgob-dragon-wing-warriors
 name: "Dragon Wing Warriors"

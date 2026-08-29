@@ -1174,20 +1174,43 @@ async function applyInjury(state, message) {
 
   // Dragon Wing Warriors: "1d6+4 instances... each can be separately Evaded
   // or Blocked. Damaged Units only perform an Injury Roll ONCE regardless of
-  // number of hits taken." Each instance is its own Combat Process (`repeat`,
-  // above) and so reaches this same step once per hit; `singleInjuryRoll`
-  // makes every instance but the first against a given defender, within the
-  // same declaration (`state.groupId`), a no-op here.
+  // number of hits taken" — "on the total" (docs/12 §12.6's own reading,
+  // matching the reference set's other multi-hit attacks), not "using
+  // whichever hit happens to run the check first". Each instance is its own
+  // Combat Process and so reaches this step once per hit; naively checking
+  // the FIRST hit alone against the 100-damage threshold would mean Dragon
+  // Wing Warriors (50 Fixed damage per hit) could never trigger an Injury
+  // Roll at all, hit count notwithstanding.
+  //
+  // `singleInjuryRoll` therefore waits until every sibling process (same
+  // `state.groupId`, same defender) has resolved its own damage step, sums
+  // them, and performs the one check against the total -- on whichever
+  // process turns out to be the LAST to have a `result` recorded, since
+  // that is the only point the full total is known. Earlier siblings defer
+  // (`singleInjuryRollPending`); later ones find the real verdict already
+  // recorded and skip (`singleInjuryRoll`).
   const attackerDoc = game.actors.get(state.attackerId);
   const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
-  if (ability?.system?.damage?.singleInjuryRoll && alreadyInjuryRolled(state, message)) {
-    await message.setFlag("fgt", "injury", { roll: false, reason: "singleInjuryRoll" });
-    return;
+  let damage = result.total;
+  let exceededThreshold = Boolean(result.flags?.exceededInjuryThreshold);
+
+  if (ability?.system?.damage?.singleInjuryRoll) {
+    if (alreadyInjuryRolled(state, message)) {
+      await message.setFlag("fgt", "injury", { roll: false, reason: "singleInjuryRoll" });
+      return;
+    }
+    const siblings = siblingInjuryTotals(state);
+    if (siblings.pending > 0) {
+      await message.setFlag("fgt", "injury", { roll: false, reason: "singleInjuryRollPending" });
+      return;
+    }
+    damage = siblings.total;
+    exceededThreshold = siblings.anyExceeded;
   }
 
   const verdict = injuryCheck({
-    exceededThreshold: Boolean(result.flags?.exceededInjuryThreshold),
-    damage: result.total,
+    exceededThreshold,
+    damage,
     healthAfter: defenderDoc.system?.health?.value ?? 0,
     defender: unitFrom(boardSnapshot(), defenderDoc),
     isNP: state.attack?.kind === "np",
@@ -1214,12 +1237,13 @@ async function applyInjury(state, message) {
 
 /**
  * Has a SIBLING process -- the same declaration (`groupId`), the same
- * defender, a different message -- already recorded an Injury Roll verdict?
+ * defender, a different message -- already recorded the REAL Injury Roll
+ * verdict for this defender?
  *
- * `applyInjury` sets the `injury` flag unconditionally (even when the roll
- * itself is skipped), so its presence is exactly "this process's own Injury
- * step has already run" -- checked, not assumed, because `repeat`'s several
- * processes reach this state one at a time, not all at once.
+ * `singleInjuryRollPending` does not count: that is a sibling saying "I could
+ * not tell yet", not "it has been decided" -- counting it would let the
+ * decision be skipped forever if this process happened to run before the one
+ * that actually resolves it.
  *
  * @param {object} state
  * @param {object} message the current process's own message, excluded from the search
@@ -1232,8 +1256,41 @@ function alreadyInjuryRolled(state, message) {
     if (!raw) return false;
     const sibling = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (sibling.groupId !== state.groupId || sibling.defenderId !== state.defenderId) return false;
-    return Boolean(m.getFlag("fgt", "injury"));
+    const injury = m.getFlag("fgt", "injury");
+    return Boolean(injury) && injury.reason !== "singleInjuryRollPending";
   });
+}
+
+/**
+ * The combined picture across every sibling process against one defender --
+ * total damage taken and whether any single hit individually exceeded the
+ * Injury threshold (Ch. 12 §12.6's "damage received... greater than 100" is
+ * about the ATTACK, and `Def Crk`-style additions aside, a `singleInjuryRoll`
+ * attack's own pipeline already marks each hit correctly; the total's own
+ * comparison against the threshold is redone by `injuryCheck` regardless).
+ *
+ * @param {object} state
+ * @returns {{total: number, anyExceeded: boolean, pending: number}}
+ */
+function siblingInjuryTotals(state) {
+  let total = 0;
+  let anyExceeded = false;
+  let pending = 0;
+  for (const m of game.messages) {
+    const raw = m.getFlag("fgt", "process");
+    if (!raw) continue;
+    const sibling = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (sibling.groupId !== state.groupId || sibling.defenderId !== state.defenderId) continue;
+
+    const result = m.getFlag("fgt", "result");
+    if (!result) {
+      pending += 1;
+      continue;
+    }
+    total += result.total;
+    if (result.flags?.exceededInjuryThreshold) anyExceeded = true;
+  }
+  return { total, anyExceeded, pending };
 }
 
 /**

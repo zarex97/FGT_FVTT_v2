@@ -188,6 +188,16 @@ An **entry mechanic that the field's owner drives**, with a defender reaction. I
 every structural sense except that it deals no damage, so it runs Pipeline A (Ch. 03 §3.5) with a
 `move` outcome instead of a `damage` one.
 
+**Implementation note.** `membershipVerdict` was shipped, tested and never called from anywhere a
+move actually happens — `rules/movement.mjs#canPassThrough` now asks it before every step, so
+*every* field's exit policy is enforced for the first time, not just the one that surfaced the
+gap. Semiramis's Sikera Ušum (Ch. 32) added a seventh policy neither table above lists:
+`trappedAtActivation`, for *"all Units within the Throne Room when the NP was activated cannot
+leave it while it is Active"* — a **membership snapshot taken at creation** (`field.state.
+trappedUnitIds`, `engine/fields.mjs#createField`), not a standing `allyExit`/`enemyExit` policy,
+because those would also catch a unit who wanders in and back out later. When set, it overrides
+whatever `allyExit`/`enemyExit` values are present.
+
 ---
 
 ## 43.5 Axis 3 — Isolation
@@ -537,6 +547,16 @@ Four things about it are decisions rather than mechanics:
   collection. A rejected behaviour now deletes its Region and logs, because half a bounded field
   looks exactly like a working one.
 
+**Implementation note.** `field.branches` (Ch. 32, Sikera Ušum) lets `createField` pick between
+several `{predicate, geometry, duration, membership}` shapes for one ability — first match wins,
+falling back to the base `geometry`/`duration`/`membership` when nothing matches or there are no
+branches, the same shape `damage.branches`/`targeting.branches`/`cooldown.branches` (Ch. 15) pick
+between an ability's several behaviours with. `geometry.anchorRef: "platform"` is the one addition
+`panelsOf`'s `fixedArea`/`followsUnit` pair didn't have a use for before: it anchors the field to
+a platform's own geometric centre (`rules/platforms.mjs#platformCentre`) instead of the caster's
+own panel, for a field that names a fixed place on a platform rather than one that moves with
+whoever cast it.
+
 ---
 
 ## 43.12 Interaction with existing subsystems
@@ -544,7 +564,7 @@ Four things about it are decisions rather than mechanics:
 | Subsystem | Interaction |
 |---|---|
 | **Targeting** (Ch. 09) | Isolation adds a boundary filter alongside the cross-level filter. New anchor: `field` (target the field itself). New interaction mode E (freeform paint) for The Mist. |
-| **Movement** (Ch. 08) | Exit restrictions are `Infinity` movement costs; the escape roll is a movement *interruption* at the border, not a cost |
+| **Movement** (Ch. 08) | Exit restrictions are a **legality refusal** (`rules/movement.mjs#canPassThrough` asks `membershipVerdict` before every step), not an `Infinity` cost — a unit that cannot leave should never see the panel as reachable at all, the same distinction clause 3's occupancy check already draws; the escape roll is a movement *interruption* at the border |
 | **Damage** (Ch. 13) | Interior rule elements use the ordinary stages; `[Anti-World]` breaking Doomsday Come applies a stage-15 −50% |
 | **Effects** (Ch. 11) | The duel field's source-scoped suppression is a new `Suppress` selector |
 | **Terrain** (Ch. 42) | Fields may *carry* terrain (Piedra Del Sol is Burning); the two systems compose without interacting |

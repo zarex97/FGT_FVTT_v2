@@ -29,6 +29,23 @@
 > them** — they were the long tail after the cooldown, round and ZON gates, which are checked
 > first because those are the refusals a player can act on. An unrecognised kind **refuses**.
 >
+> Two more shipped with Semiramis's kit: **`itemAtLeast`** (a gate on the caster's own held item
+> quantity), **`noAliveSummon`** (at most one live instance of a named summon on the field), and
+> **`withinPlatformCentre`** (inside a radius of a platform's own geometric centre — "the Throne
+> Room"). More load-bearing: **any requirement may now carry its own `predicate`**, scoping it to
+> one of an ability's several behaviours — vacuously satisfied (never refuses) when that predicate
+> is false, rather than a hard AND across the whole requirement list. `noAliveSummon` needed this
+> for Summoning: Bašmu (its clause must not block the OTHER, unrelated clause just because a Bašmu
+> happens to be alive) and it generalizes past that one case.
+>
+> A wider pattern runs through this Servant's kit: **`damage`, `targeting`, `cooldown` and a
+> bounded field's own `geometry`/`duration`/`membership` may each carry a `branches` array**
+> (`{predicate, ...override}[]`, first match wins, falling back to the base declaration) for an
+> ability whose targeting shape, damage, cooldown length, or field shape genuinely differs by
+> which of its stated behaviours fires — one document, not several abilities pretending to be
+> unrelated. `engine/attack.mjs#resolvedDamage`, `rules/ability-use.mjs#targetSpecFor`,
+> `engine/cooldown.mjs#cooldownFor` and `engine/fields.mjs#createField` each read it the same way.
+>
 > Items (§15.8) are `canTransferItem`, `transferItem` and `consumeItem` in the same module, with
 > `module/engine/items.mjs` (`giveItem`, `useItem`) writing through the new `itemQuantity` and
 > `itemGrant` intents. `transferable` **defaults to false** — "Items cannot be traded/given/passed
