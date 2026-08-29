@@ -254,11 +254,40 @@ export function inEnemyMasterProtection(panel, unit, board) {
 }
 
 /**
+ * The nearest free panel a unit lands on when knocked back FROM `origin`.
+ *
+ * Bašmu: *"when it Moves to any occupied panels, all Units occupying said
+ * panels are knocked back by 1 panel until the space is free for Bašmu to
+ * stand on."* Directional (away from `origin`) rather than a search in every
+ * direction, and "until the space is free" is why this steps repeatedly along
+ * that one line rather than stopping after a single panel.
+ *
+ * @param {GridOffset} origin what the knockback is FROM (Bašmu's own panel)
+ * @param {object} unit the unit being knocked back
+ * @param {object} board
+ * @param {object} [opts]
+ * @param {number} [opts.maxSteps] how far along the line to search
+ * @returns {GridOffset|null} `null` when no free panel was found within range
+ */
+export function knockbackPanel(origin, unit, board, { maxSteps = 5 } = {}) {
+  const dir = geo.cardinalToward(origin, unit.panel);
+  if (dir.i === 0 && dir.j === 0) return null;
+
+  let panel = unit.panel;
+  for (let i = 0; i < maxSteps; i++) {
+    panel = { i: panel.i + dir.i, j: panel.j + dir.j };
+    if (!geo.inBounds(panel, board.bounds ?? null)) return null;
+    if (!occupantAt(panel, board)) return panel;
+  }
+  return null;
+}
+
+/**
  * @param {GridOffset} panel
  * @param {object} board
  * @returns {object|null}
  */
-function occupantAt(panel, board) {
+export function occupantAt(panel, board) {
   for (const u of board.units ?? []) {
     const footprint = u.panels ?? (u.panel ? [u.panel] : []);
     if (footprint.some((p) => p.i === panel.i && p.j === panel.j)) return u;

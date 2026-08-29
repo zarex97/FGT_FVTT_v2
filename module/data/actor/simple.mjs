@@ -29,6 +29,18 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // outside the Unit limit does not mean acting without limit.
       actsOncePerTurn: new fields.BooleanField({ initial: false }),
       expiresAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      // Bašmu: "Bašmu cannot leave the HGoB. If HGoB is removed from the
+      // field while Bašmu is summoned, it disappears." The STABLE content id
+      // of the zone/platform it is tied to, the same reason
+      // `platformContentId` names one instead of a random Foundry id.
+      boundToZoneId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+      dismissOnZoneRemoval: new fields.BooleanField({ initial: false }),
+      // Bašmu: "when it Moves to any occupied panels, all Units occupying
+      // said panels are knocked back by 1 panel until the space is free."
+      // Movement legality otherwise refuses a panel already standing on
+      // something; this is the one summon in the reference set that displaces
+      // rather than being refused.
+      movesOntoOccupiedPanels: new fields.BooleanField({ initial: false }),
     };
   }
 }

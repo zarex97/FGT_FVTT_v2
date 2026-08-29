@@ -300,6 +300,18 @@ describe("compileDocument", () => {
     const out = compileDocument(doc, "abilities", library);
     expect(out.system.cooldown).toMatchObject({ max: "6◈+⅓◈", countFrom: "deactivation" });
   });
+
+  it("carries Bašmu's summon-specific fields through", () => {
+    const doc = {
+      schema: 1, id: "basmu", name: "Bašmu", parameters: { str: "E" },
+      boundToZoneId: "hanging-gardens-of-babylon", dismissOnZoneRemoval: true,
+      movesOntoOccupiedPanels: true,
+    };
+    const out = compileDocument(doc, "summons", library);
+    expect(out.system.boundToZoneId).toBe("hanging-gardens-of-babylon");
+    expect(out.system.dismissOnZoneRemoval).toBe(true);
+    expect(out.system.movesOntoOccupiedPanels).toBe(true);
+  });
 });
 
 describe("copyable (§15.7)", () => {

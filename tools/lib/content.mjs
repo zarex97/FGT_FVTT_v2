@@ -42,7 +42,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Group 3 — check contributors
   "CheckModifier", "AutoSucceed", "TableOverride", "RollAdjustment",
   // Group 4 — targeting contributors
-  "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion",
+  "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion", "TargetabilityModifier",
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta
@@ -527,6 +527,11 @@ function actorSystem(doc) {
     upkeep: doc.upkeep ?? null,
     countsTowardBudget: doc.countsTowardBudget ?? undefined,
     actsOncePerTurn: Boolean(doc.actsOncePerTurn),
+    // Bašmu (Ch. 32): tied to the HGoB and free to displace whoever it walks
+    // into. Absent from every other summon and cheap to carry.
+    boundToZoneId: doc.boundToZoneId ?? null,
+    dismissOnZoneRemoval: Boolean(doc.dismissOnZoneRemoval),
+    movesOntoOccupiedPanels: Boolean(doc.movesOntoOccupiedPanels),
     summonerId: doc.summonerId ?? null,
     capacity: doc.capacity ?? null,
     ownerId: doc.ownerId ?? null,

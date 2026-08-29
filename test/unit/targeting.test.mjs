@@ -282,6 +282,40 @@ describe("Master protection", () => {
   });
 });
 
+describe("Bašmu's protection (Ch. 32, TargetabilityModifier)", () => {
+  const spec = {
+    anchor: { kind: "self" },
+    shape: { kind: "chebyshevRadius", r: 3 },
+    selection: { relations: ["enemy"], chooser: "all" },
+  };
+
+  it("excludes a Unit an untargetable aura is protecting from an ENEMY caster", () => {
+    const board = boardWith([
+      caster,
+      unit("protected", 6, 8, { untargetableBy: [{ source: "basmu" }] }),
+      unit("exposed", 6, 9),
+    ]);
+    const r = resolveTargets(spec, caster, board);
+    expect(r.units.map((u) => u.unitId)).toEqual(["exposed"]);
+    expect(r.warnings).toContain("A Unit protected by Bašmu was excluded.");
+  });
+
+  it("does not exclude it for an ALLY caster — the sheet says 'enemy Units'", () => {
+    const ally = { id: "ally-caster", panel: at(6, 6), kind: "servant", faction: "b", range: 3 };
+    const board = boardWith([
+      ally,
+      unit("protected", 6, 8, { untargetableBy: [{ source: "basmu" }] }),
+    ], { alliances: { a: ["a"], b: ["b"] } });
+    const allySpec = { ...spec, selection: { relations: ["ally"], chooser: "all", includeSelf: false } };
+    expect(resolveTargets(allySpec, ally, board).units.map((u) => u.unitId)).toEqual(["protected"]);
+  });
+
+  it("allows it once no untargetable aura reaches", () => {
+    const board = boardWith([caster, unit("free", 6, 8)]);
+    expect(resolveTargets(spec, caster, board).units.map((u) => u.unitId)).toEqual(["free"]);
+  });
+});
+
 describe("chooser: chosen — Gate of Skye's subset selection", () => {
   const spec = {
     anchor: { kind: "selfEdgeAdjacent" },

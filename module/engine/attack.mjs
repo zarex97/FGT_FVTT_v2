@@ -24,6 +24,7 @@ import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
+import { test as testPredicate } from "../rules/predicate.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
 import { absorb, refreshShield } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
@@ -89,6 +90,12 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     // target. Passing neither made those two kinds silently unsatisfiable.
     board,
     target: placement?.targetId ? unitFrom(board, game.actors.get(placement.targetId)) : null,
+    // The same gap `engine/skill-use.mjs`'s `useSkill` had: the `predicate`
+    // requirement kind (`rules/items.mjs`) refused every use on the ATTACK
+    // path too, unconditionally, for the same reason -- nothing ever
+    // supplied `ctx.testPredicate`. Semiramis's Summoning: Bašmu is the
+    // first damage-dealing ability that names one.
+    testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: self }) }),
   });
   // CS: Force Noble Phantasm bypasses the cooldown and uses-exhausted gates.
   // It explicitly cannot bypass the Round gate, so `overrides` is consulted per

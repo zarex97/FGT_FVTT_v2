@@ -137,6 +137,13 @@ async function onMove(document, movement) {
 
   Hooks.callAll("fgtUnitMoved", actor, { panels: spent, forced: false });
 
+  // Bašmu: "when it Moves to any occupied panels, all Units occupying said
+  // panels are knocked back by 1 panel until the space is free." Read off a
+  // FRESH board, taken after the write above, so `occupantAt` sees whoever
+  // is actually standing on Bašmu's new panel rather than where they were
+  // before this move.
+  if (unit.ignoresOccupancy) await knockBackOccupants(actor.id, unit.panel);
+
   // Presence Concealment clause 6: *"When This Unit Moves into an enemy
   // Servant's Range (or Detect, if in use), it has a 5% chance of being
   // discovered."* Asked after the move has been recorded, so the roll is made
@@ -155,6 +162,34 @@ async function onMove(document, movement) {
   // every move rather than gated behind `unit.concealed` above.
   const { checkSightings } = await import("./vision.mjs");
   await checkSightings({ board: boardSnapshot(combat) });
+}
+
+/**
+ * Push every OTHER unit standing on `panel` one panel further away from
+ * `origin` (Bašmu's own new position), repeating until each lands on a free
+ * one.
+ *
+ * @param {string} moverId the unit that just arrived (never knocks itself back)
+ * @param {object} origin the mover's own panel
+ * @returns {Promise<void>}
+ */
+async function knockBackOccupants(moverId, origin) {
+  const { knockbackPanel, occupantAt } = await import("../rules/movement.mjs");
+  const board = boardSnapshot(game.combats.active);
+
+  const occupant = occupantAt(origin, board);
+  if (!occupant || occupant.id === moverId) return;
+
+  const landing = knockbackPanel(origin, occupant, board);
+  // "Until the space is free" -- when no free panel exists within range, the
+  // occupant simply stays: there is nowhere the sheet's own rule can send it.
+  if (!landing) return;
+
+  const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
+  if (!token) return;
+
+  const point = canvas.grid.getTopLeftPoint(landing);
+  await token.document.update({ x: point.x, y: point.y }, { fgtForced: true });
 }
 
 /* -------------------------------------------------------------------------- */
