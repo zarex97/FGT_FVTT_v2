@@ -12,7 +12,7 @@
  * it back.
  */
 
-import { computeDamage } from "../rules/damage/pipeline.mjs";
+import { computeDamage, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
 import { evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans, pendingCheckRolls } from "../rules/checks.mjs";
@@ -1205,7 +1205,16 @@ async function applyInjury(state, message) {
       return;
     }
     damage = siblings.total;
-    exceededThreshold = siblings.anyExceeded;
+    // NOT `siblings.anyExceeded` (whether any ONE hit individually exceeded
+    // 100) -- each of Dragon Wing Warriors' hits is 50 Fixed damage, so no
+    // single one ever does, and reusing the per-hit flags here would make
+    // the "once, on the total" roll never fire regardless of hit count. The
+    // pipeline's own Def-Crk-exclusion reasoning for NOT re-deriving this
+    // from `damage` (`rules/injury.mjs`'s own comment) is about a single
+    // hit's stage-16 addition; a `singleInjuryRoll` attack's total is a sum
+    // of already-settled `result.total` values with nothing further to add,
+    // so comparing the sum directly is the correct fresh threshold check.
+    exceededThreshold = siblings.total > INJURY_THRESHOLD;
   }
 
   const verdict = injuryCheck({
@@ -1263,18 +1272,14 @@ function alreadyInjuryRolled(state, message) {
 
 /**
  * The combined picture across every sibling process against one defender --
- * total damage taken and whether any single hit individually exceeded the
- * Injury threshold (Ch. 12 §12.6's "damage received... greater than 100" is
- * about the ATTACK, and `Def Crk`-style additions aside, a `singleInjuryRoll`
- * attack's own pipeline already marks each hit correctly; the total's own
- * comparison against the threshold is redone by `injuryCheck` regardless).
+ * total damage taken (each already-settled `result.total`) and how many
+ * siblings have not resolved their own damage step yet.
  *
  * @param {object} state
- * @returns {{total: number, anyExceeded: boolean, pending: number}}
+ * @returns {{total: number, pending: number}}
  */
 function siblingInjuryTotals(state) {
   let total = 0;
-  let anyExceeded = false;
   let pending = 0;
   for (const m of game.messages) {
     const raw = m.getFlag("fgt", "process");
@@ -1288,9 +1293,8 @@ function siblingInjuryTotals(state) {
       continue;
     }
     total += result.total;
-    if (result.flags?.exceededInjuryThreshold) anyExceeded = true;
   }
-  return { total, anyExceeded, pending };
+  return { total, pending };
 }
 
 /**
