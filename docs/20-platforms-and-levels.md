@@ -273,6 +273,16 @@ A voluntary level change. Another `changeLevel` operation.
 
 Rebuildable — the Construction counter resets and the whole cycle can run again.
 
+**Implementation note.** Built and live-tested; see docs/32 §32.10 for the full list of where the
+shipped version differs from this section's sketch (no `anchor: compound`, no
+`TerritoryCreationScope`, Dragon Wing Warriors' single-Injury-Roll clause not modelled). The
+channelled ability kind shipped as `phases: [{kind: "channel", ticks, onComplete}]`
+(`module/engine/channel.mjs`), not the `activation.kind: channelled` shape sketched above; the
+platform-specific glue (creating the actor, applying the owner buff, setting `zonExempt`, bumping
+`sustainabilityRemaining`) lives in `module/engine/hgob.mjs`, which listens for `channel.mjs`'s
+own `fgt.channelComplete` Hook rather than being part of the channel mechanism itself — a platform
+activation is one thing a completed channel can do, not the only one.
+
 ---
 
 ## 20.5 The Golden Hind

@@ -94,8 +94,19 @@ owned by unit's faction`, not a single-region test.
 ### Implementation
 
 Foundry `Region` documents with a `fgt.homeBase` behaviour carrying `factionId`. Region
-membership is maintained natively (`RegionDocument#tokens`), and `tokenEnter`/`tokenExit`
-events drive the residency counter. No polling.
+membership is computed per board snapshot (`engine/board.mjs#homeBaseZonesOf`,
+`rules/snapshot.mjs#snapshotBoard`), not maintained via `tokenEnter`/`tokenExit` events — a
+board-build sweep, not a running residency subscription.
+
+**Implementation note.** `snapshotBoard` read a `scene.zones` property no Scene document has,
+discarding `homeBaseZonesOf`'s own output (`currentBoard`'s `settings.zones`); `board.zones` was
+`{}` for every board, always, so no unit was ever "in" a Home Base — found live activating
+Semiramis's Hanging Gardens, which gates on it. The Region-membership sweep itself had a second,
+independent bug: its fallback path (`panelsOfRegion`, used when
+`RegionDocument#getOccupiedGridSpaceOffsets` is unavailable) called `RegionDocument#testPoint`,
+which is a real method that always answers `false` in this Foundry build — containment lives on
+the canvas placeable (`region.object`), not the document. Both fixed; see
+`rules/snapshot.mjs#snapshotBoard` and `engine/board.mjs#panelsOfRegion`.
 
 ---
 

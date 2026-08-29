@@ -437,6 +437,16 @@ The rule element is:
 
 Reversible: when the HGoB is destroyed, the deltas are subtracted and current values clamped.
 
+**Implementation note.** `RankShift`'s parameter branch shipped as one element per parameter
+(`{key: RankShift, parameter: "str", grades: 1}` ×5, not one element naming all five), and
+`grades` — not `steps` — is what moves a whole letter grade. `steps` walks the *dense* ladder
+`step()` builds (five positions per grade: `--, -, ., +, ++`), so `steps: 1` on a bare `D` gives
+`D+`, not `C` — the exact failure this chapter's own §5.4 worked example warns about for Kanshou
+& Bakuya, just on the parameter branch rather than the ability-rank one. `grades` calls
+`Rank#stepGrade` (§5.4), which moves by grade index and keeps the modifier. Found live building
+this section's own worked example — see `module/rules/elements.mjs`'s `RankShift` executor and
+`module/rules/derived.mjs#applyStatDeltas`.
+
 ---
 
 ## 5.7 Runtime rank changes

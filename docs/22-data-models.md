@@ -405,6 +405,22 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
 Note `acceptsEffects` and friends are stored fields rather than hardcoded class behaviour, so a
 GM homebrewing a platform that *can* be buffed does not need code.
 
+**Implementation note.** The shipped `PlatformData` (`module/data/actor/simple.mjs`) is smaller
+than this sketch — no `subZones`, no `detect` override, no `luck.mode: "shared"`, `upkeep` without
+`supersedesNPCost` wired to anything — see docs/32 §32.10 and Ch. 20 §20.4's own note for what
+built out and what did not. One gap this section's own sketch does not show: **neither
+`SummonData` nor `PlatformData` declared a `baseHealth` field**, and nothing derived `health.max`
+from it — `tools/lib/content.mjs` compiles a Summon's or Platform's authored `baseHealth` into
+`system.baseHealth` regardless, so the DataModel silently dropped it and every actor built from
+content had `health: {value: 0, max: 0}`. `ServantData`'s own `prepareBaseData` (§22.3) already
+does this derivation, with an END-rank table fallback the other two types don't need; `SummonData`
+and `PlatformData` now have the same override, minus the fallback, and `unitCommon()` (§22.2)
+carries the shared `baseHealth` field both they and `ServantData` read. `PlatformData` also gained
+its own `baseAttack` field, absent above despite both of the Hanging Gardens' Attacks needing one
+(a Platform has no Parameters on any reference sheet, so it is declared directly rather than by
+pulling in the whole Servant/Summon `combatantCommon()` mixin). Found live building Semiramis's
+Hanging Gardens platform actor.
+
 ---
 
 ## 22.6 `AbilityData`
