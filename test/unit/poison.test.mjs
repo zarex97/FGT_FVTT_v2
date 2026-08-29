@@ -44,6 +44,45 @@ describe("the tick", () => {
   });
 });
 
+describe("PeriodicOverride (Ch. 32, Sikera Ušum clause c)", () => {
+  // "Units inflicted with Poison while within this NP area receive Poison
+  // damage at the end of its Turn and at the end of any Turn it Acts, IN
+  // ADDITION TO at the end of the Round." A field's `PeriodicOverride`
+  // interior rule (`rules/bounded-fields.mjs`'s `annotateFields`) widens
+  // which boundaries this specific instance answers to, on top of its
+  // ordinary `roundEnd`.
+  const widened = (over = {}) => poisoned(1, {
+    periodicOverrides: [{ effectId: "poison", triggers: ["turnEnd", "actedTurnEnd"] }],
+    ...over,
+  });
+
+  it("still ticks at round end, unaffected", () => {
+    expect(tickPeriodics([widened()], "roundEnd", ctx)[0]?.amount).toBe(20);
+  });
+
+  it("also ticks at turn end when it is this unit's own turn", () => {
+    const unit = widened({ factionId: "f1" });
+    expect(tickPeriodics([unit], "turnEnd", { ...ctx, activeFactionId: "f1" })[0]?.amount).toBe(20);
+  });
+
+  it("does NOT tick at turn end for somebody else's turn", () => {
+    // "The end of ITS Turn" -- a `turnEnd` boundary belonging to a different
+    // faction must not widen this unit's Poison too.
+    const unit = widened({ factionId: "f1" });
+    expect(tickPeriodics([unit], "turnEnd", { ...ctx, activeFactionId: "f2" })).toEqual([]);
+  });
+
+  it("also ticks at actedTurnEnd, regardless of faction", () => {
+    expect(tickPeriodics([widened()], "actedTurnEnd", ctx)[0]?.amount).toBe(20);
+  });
+
+  it("an ordinary poison instance with no override still does not tick at either boundary", () => {
+    expect(tickPeriodics([poisoned(1, { factionId: "f1" })], "turnEnd", { ...ctx, activeFactionId: "f1" }))
+      .toEqual([]);
+    expect(tickPeriodics([poisoned(1)], "actedTurnEnd", ctx)).toEqual([]);
+  });
+});
+
 describe("Deadly Poison", () => {
   it("doubles it", () => {
     const unit = poisoned(2, { effects: ["poison", "deadlyPoison"] });

@@ -68,11 +68,20 @@ export function applyEffect({
 
   // ── 1. IMMUNITY GATE ─────────────────────────────────────────────────────
   const immunity = findImmunity(def, target, held);
-  if (immunity) {
+  // Sikera Ušum clause d: "the Poison Immune effect is reduced to a Poison
+  // Resist effect" -- a downgrade FROM immune TO merely resistant, not a
+  // second, separate refusal. The gate still runs; it just does not block
+  // when a matching downgrade covers this specific effect.
+  const downgrade = immunity ? immunityDowngradeFor(def, target) : null;
+  if (immunity && !downgrade) {
     trace.push({ step: "immunity", outcome: "blocked", detail: immunity });
     return blocked(immunity, trace);
   }
-  trace.push({ step: "immunity", outcome: "passed" });
+  trace.push({
+    step: "immunity",
+    outcome: "passed",
+    detail: downgrade ? `${immunity} downgraded to ${downgrade.resistPercent}% resist` : undefined,
+  });
 
   // ── 2. REPLACEMENT / EXCLUSIVITY GATE ────────────────────────────────────
   const exclusion = findExclusion(def, held);
@@ -115,7 +124,8 @@ export function applyEffect({
     // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
     // the target here closes the loop without every caller having to know.
-    resist: bypassChanceModifiers ? 0 : (ctx.resist ?? resistanceOf(target, def, ctx.options)),
+    resist: bypassChanceModifiers ? 0
+      : (ctx.resist ?? resistanceOf(target, def, ctx.options)) + (downgrade?.resistPercent ?? 0),
     immune: false,
     bypassesImmunity: Boolean(def.bypassesImmunity),
   });
@@ -353,6 +363,28 @@ function findImmunity(def, target, held) {
 }
 
 /**
+ * A field's `ImmunityDowngrade` covering this specific immunity, if the
+ * target stands in one.
+ *
+ * Sikera Ušum clause d is the reference case and, at authoring time, the
+ * only one: *"When a Unit with Poison Immune effects is in this NP area, the
+ * Poison Immune effect is reduced to a Poison Resist effect, the chance of
+ * being inflicted with Poison is reduced by 75%."* `rules/bounded-fields.mjs`'s
+ * `annotateFields` is what populates `target.suppressions` from a field's
+ * OWN interior rules, scoped by geometry and relation before this ever runs.
+ *
+ * @param {object} def
+ * @param {object} target
+ * @returns {{resistPercent: number}|null}
+ */
+function immunityDowngradeFor(def, target) {
+  const hit = (target.suppressions ?? []).find(
+    (s) => s.scope === "immunity" && (s.effectId === null || s.effectId === def.id),
+  );
+  return hit ? { resistPercent: hit.resistPercent ?? 75 } : null;
+}
+
+/**
  * @param {object} def
  * @param {string[]} held
  * @returns {{blocked: boolean, by: string|null, replaces: string[]}}
@@ -534,7 +566,16 @@ function chanceContribution(unit, def, direction, options = null) {
     // collection-time predicate.
     if (c.predicate && !test(c.predicate, { options: options ?? new Set() })) continue;
 
-    total += c.value ?? 0;
+    // Sikera Ušum clause d's other half: "Units with Poison Resist effects
+    // that are NOT Poison Immune in this area have the magnitude of those
+    // Poison Resist effects halved." The immune case is handled separately
+    // (`immunityDowngradeFor`, a flat resist points ADDED at the chance
+    // step) -- this is the same field's downgrade suppression, read here
+    // because a RESIST contribution is a property of the effect the unit
+    // already carries, not of the field's own rule.
+    const halved = direction === "incoming"
+      && (unit?.suppressions ?? []).some((s) => s.scope === "immunity" && (s.effectId === null || s.effectId === def.id));
+    total += (c.value ?? 0) * (halved ? 0.5 : 1);
   }
   return total;
 }

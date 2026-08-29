@@ -946,7 +946,62 @@ tests, full suite green, lint clean):
   Full suite green, `validate:content`/`lint` clean. Remaining work is Phase 6-9: Bašmu (spell +
   summon + NP), Sikera Ušum (her actual NP), and the entire Hanging Gardens of Babylon platform —
   by far the largest remaining scope, expected per the plan's own framing of that milestone.
-- **Not yet started:** Tasks 27-29 (Bašmu +
+- **Task 29 (Sikera Ušum, clause 1 only)** — done, committed. Clause 1 (a noDsc Semiramis, the 5x5
+  area following her) is fully built and live-verified; clause 2 (the DSC/Throne-Room branch) is
+  deliberately deferred to Phase 8 since the Throne Room does not exist until the Hanging Gardens
+  platform does — gated off by a `predicate` requirement on `self:variant:dsc`/`noDsc`, confirmed
+  refusing correctly for a DSC-variant Semiramis.
+  Six real engine pieces, more than any prior task this session:
+  - `self:inField:<id>` was already emittable (`rules/options.mjs`) but missing from
+    `DEFERRED_PREFIXES` — the exact same collection-time bug Territory Creation hit at
+    `self:inHomeBase`/`self:onPlatform:`, fixed there.
+  - `ImmunityDowngrade`/`VulnerabilityAmplifier` (new)/`PeriodicOverride` (new) rule elements.
+    Found along the way: `rules/bounded-fields.mjs`'s `annotateFields` used a raw dump for every
+    non-stat interior rule, which worked by coincidence for `DamageModifier`-shaped rules (the
+    only kind any field had ever used) but silently misrouted anything whose executor produces a
+    DIFFERENT shape or a different bucket (`ImmunityDowngrade` → `suppressions`). Rewritten to run
+    interior rules through the SAME `EXECUTORS` table `passiveRules` use
+    (`interiorContributions`, `elements.mjs`'s `empty` now exported for it).
+  - `ImmunityDowngrade` was ALSO entirely dead downstream — collected into `suppressions` since
+    the day it was written, consulted by nothing. Wired into `effect-applier.mjs`'s immunity gate
+    (downgrades a block to an added resist penalty) and its `chanceContribution` resist summation
+    (halves a matching Poison Resist contribution for a non-immune bearer).
+  - `VulnerabilityAmplifier`'s consumer: `scheduler.mjs`'s `amplify()` (previously a hardcoded
+    `AMPLIFIERS` table keyed by a STANDING effect like Deadly Poison) now also multiplies for a
+    unit standing in a matching field, gated on the unit ALREADY being "weak to" the effect (a
+    standing marker or an existing chance-raising contribution) — the field widens an existing
+    weakness, per the sheet's own wording, rather than inventing one.
+  - `engine/fields.mjs`'s `runFieldEvent` (built for Unlimited Blade Works' evade-then-damage
+    shape) gained an `ApplyEffect` action, a `requiresActed` filter, and an `excludeOwnerMaster`
+    exclusion for clause b's "a Unit other than Semiramis or her Master." Its `runFieldEvents`
+    is now also invoked at `actedTurnEnd` (`scheduler-hooks.mjs`), not just `turnStart`.
+  - `tools/lib/content.mjs`'s `compileCooldown` dropped an authored `max` unconditionally in its
+    object-form branch — worked for Presence Concealment (rank-table-only) but silently broke the
+    first ability needing BOTH a flat max and `countFrom: deactivation`. Fixed, plus a NEW,
+    genuinely generic "field closes → set its ability's cooldown from `countFrom: deactivation`"
+    hook (`fields.mjs`'s `setCooldownOnDeactivation`, called from `expireFields`) — Presence
+    Concealment's own version of this is hardcoded to one effect id via a `deleteActiveEffect`
+    hook; this is the first version any FUTURE field-owning ability can reuse for free.
+  - `engine/skill-use.mjs`'s `useSkill` never supplied `ctx.testPredicate` to `canUseAbility`, so
+    the `predicate` requirement kind (`rules/items.mjs`) — present in the vocabulary since §15.4
+    was implemented — refused every use that named it, unconditionally. Wired using the same
+    self-only `rollOptionsFor`/`testPredicate` pattern Task 23's phase-level predicate already
+    established.
+  Verified: `test/unit/bounded-fields.test.mjs` (interior-rule routing, 3 new tests),
+  `test/unit/effect-applier.test.mjs` (Immunity Downgrade, 4 new tests),
+  `test/unit/scheduler-periodic.test.mjs` (Vulnerability Amplifier, 5 new tests),
+  `test/unit/poison.test.mjs` (Periodic Override, 5 new tests), `test/unit/content.test.mjs`
+  (`compileCooldown`'s `max`+`countFrom`), full suite green (1982 tests), `validate:content`/`lint`
+  clean, and live in FGT_2026 — the field opened with all four axes correctly authored; clause a
+  fired via `fireEvent("damageStepEnd", ...)` with a live board's options (Karna received a real
+  `applyEffect` poison intent from a simulated STR Normal Attack); clause b fired via
+  `runFieldEvents("actedTurnEnd")` for an acted, non-owner/non-Master enemy inside the field;
+  clause c's `tickPeriodics` answered `turnEnd`, `actedTurnEnd` AND `roundEnd` for the same Poison
+  instance (only `roundEnd` without the override); `contributionsOf`/`annotateFields` on Semiramis
+  herself showed all three interior contributions (immunity-downgrade suppression, vulnerability
+  amplifier, periodic override) correctly routed and none leaking into `modifiers`; and a DSC-
+  variant Semiramis was correctly refused with reason `predicate`.
+- **Not yet started:** Tasks 27-28 (Bašmu +
 `unitFirstSeen`/`RevealPosition` system, Task 17, not yet built), Task 25 (Arrogant King's
 Poison — needs an item-quantity REQUIREMENT kind that does not exist yet in
 `rules/items.mjs#meetsRequirement`, a materially-sized addition, not a one-liner), Task 26

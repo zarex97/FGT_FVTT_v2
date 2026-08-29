@@ -1,0 +1,112 @@
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 107-117
+#
+# Clause 2 (the DSC / Throne Room branch) is DELIBERATELY not authored here --
+# the Throne Room is the middle 5x5 of the Hanging Gardens of Babylon, which
+# does not exist yet (Phase 8). Only clause 1 (a noDsc Semiramis, the 5x5 area
+# that follows her) is built; a noDsc Semiramis is a valid, permanent identity
+# (Ch. 32's own coin-flip), so this half is not provisional the way the
+# platform-dependent abilities elsewhere are.
+#
+# Rules a-e needed three engine pieces that did not exist before this NP:
+# - self:inField:<id> is already emittable (module/rules/options.mjs) but was
+#   missing from DEFERRED_PREFIXES (module/rules/elements.mjs) -- the same bug
+#   Territory Creation hit at self:inHomeBase/self:onPlatform:, fixed there.
+# - ImmunityDowngrade/VulnerabilityAmplifier/PeriodicOverride (rule d/e/c)
+#   needed `rules/bounded-fields.mjs`'s `annotateFields` to route interior
+#   rules through the SAME executor table an ability's passiveRules use,
+#   rather than a raw dump that only worked for DamageModifier-shaped rules.
+# - Rule b ("a Unit other than Semiramis or her Master Acts then ends its
+#   Turn...") needed `engine/fields.mjs`'s `runFieldEvent` extended with an
+#   ApplyEffect action, a `requiresActed` filter, and an `excludeOwnerMaster`
+#   exclusion -- Unlimited Blade Works' own interiorEvents rule only ever
+#   needed Damage-on-failed-Evade.
+schema: 1
+id: semiramis-sikera-usum
+name: "Sikera Ušum: Arrogant King's Alcohol"
+rank: B+
+isNP: true
+npTags: [antiArmy]
+kind: noblePhantasm
+slug: sikeraUsum
+# "Cooldown: 6◈+⅓◈ Turns AFTER the NP ends" -- a clock that starts at the
+# field's own closure, not at the NP's use (`engine/fields.mjs`'s
+# `setCooldownOnDeactivation`, the same `countFrom: deactivation` shape
+# Presence Concealment's rank-table-only version already reads, extended to
+# accept a flat authored max too).
+cooldown: { max: "6◈+⅓◈", countFrom: deactivation }
+timing: { window: ownTurn }
+# Only clause 1 is authored (see the header note) -- gated off from clause 2's
+# Throne-Room branch by her PERMANENT variant, not by whether she currently
+# holds the DSC buff, matching the sheet's own "was summoned with it" wording.
+requirements:
+  - { kind: predicate, predicate: ["self:variant:noDsc"] }
+description: |
+  Has different effects depending on whether Semiramis was summoned with the 'Double Summon:
+  Caster' Skill.
+  1. If Semiramis was not summoned with it: When this NP is used, it affects the 5x5 panel area
+     around her (which Moves with her) for 2◈ Turns.
+  2. If Semiramis was summoned with it: Can only be used within the 'Throne Room' of 'Hanging
+     Gardens of Babylon'. Affects the Throne Room for 3◈ Turns, and all Units within the Throne
+     Room when the NP was activated cannot leave it while it is Active.
+  The effects of this NP area are as follows-
+  a. Semiramis' Normal Attacks which use Base Attack (STR) inflict Poison.
+  b. When a Unit other than Semiramis or her Master Acts then ends its Turn within the NP area,
+     it is inflicted with Poison.
+  c. Units inflicted with Poison while within this NP area receive Poison damage at the end of
+     its Turn and at the end of any Turn it Acts, in addition to at the end of the Round.
+  d. When a Unit with Poison Immune effects is in this NP area, the Poison Immune effect is
+     reduced to a Poison Resist effect, the chance of being inflicted with Poison is reduced by
+     75%. Units with Poison Resist effects that are not Poison Immune in this area have the
+     magnitude of those Poison Resist effects halved. Only applies to effects that specify Poison.
+  e. Units in the NP area who are weak to Poison receive double Poison Damage (in addition to
+     any other effects they might have which increase Poison Damage received). Does not apply to
+     external debuffs or effects affecting said Units.
+  Cooldown: 6◈+⅓◈ Turns after the NP ends.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+passiveRules:
+  # Clause a. `self:inField:<id>` only answers once collection defers it
+  # (a board annotation, unknowable at contributionsOf's actor-only pass) --
+  # confirmed present in DEFERRED_PREFIXES for this reason.
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["self:inField:semiramis-sikera-usum", "attack:kind:normal", "attack:component:str"]
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: poison } }
+field:
+  # Axis 1. "The 5x5 panel area around her (which Moves with her)."
+  geometry:
+    kind: followsUnit
+    shape: { kind: square, size: 5 }
+  # Axis 5. "For 2◈ Turns."
+  duration: "2◈"
+  # Axis 4. Rules c/d/e apply to anyone in the area, Semiramis included --
+  # nothing in the source excludes her the way rule b explicitly does.
+  interior:
+    - key: ImmunityDowngrade
+      effectId: poison
+      to: poisonResist
+      resistPercent: 75
+      relations: [ally, enemy, self]
+    - key: VulnerabilityAmplifier
+      effectId: poison
+      factor: 2
+      relations: [ally, enemy, self]
+    - key: PeriodicOverride
+      effectId: poison
+      triggers: [turnEnd, actedTurnEnd]
+      relations: [ally, enemy, self]
+  # Rule b. Any relation but Semiramis (excluded as the field's own owner)
+  # and her Master (the `excludeOwnerMaster` addition this NP needed).
+  interiorEvents:
+    - event: actedTurnEnd
+      relations: [ally, enemy]
+      excludeOwnerMaster: true
+      requiresActed: true
+      onFail:
+        - { key: ApplyEffect, effect: { id: poison } }
+phases:
+  - kind: createField

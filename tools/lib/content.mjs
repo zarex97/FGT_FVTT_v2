@@ -48,6 +48,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Group 6 — suppression and meta
   "Suppress", "Immunity", "ImmunityDowngrade", "ApplicationChance", "ReplaceAbility", "Disguise",
   "EffectVisibility", "SustainabilityGain", "RelationshipProxy", "VariantOverride", "RevealPosition",
+  "VulnerabilityAmplifier", "PeriodicOverride",
   // Group 7 — the escape hatch
   "Script",
 ]);
@@ -763,7 +764,13 @@ function describeBand(priority) {
 function compileCooldown(cooldown) {
   if (cooldown && typeof cooldown === "object") {
     return {
-      max: null, remaining: 0, regen: 0,
+      // Sikera Ušum's "6◈+⅓◈ Turns AFTER the NP ends" is `countFrom:
+      // deactivation` WITH a flat max, unlike Presence Concealment's rank-
+      // table-only version -- this branch dropped `max` unconditionally, so
+      // an authored one compiled to null and `cooldownTicks`-equivalent
+      // readers (which already prefer an authored max over a rank table,
+      // `engine/concealment.mjs`) had nothing to prefer.
+      max: cooldown.max ?? null, remaining: 0, regen: 0,
       perUnit: cooldown.perUnit ?? null,
       countFrom: cooldown.countFrom ?? null,
     };

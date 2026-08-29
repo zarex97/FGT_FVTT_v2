@@ -66,6 +66,11 @@ export function endTurn(board, ctx) {
 
   // 4. Periodic effects due at turn end.
   intents.push(...tickPeriodics(units, "turnEnd", ctx));
+  // Same boundary, the ACTED half: only a `PeriodicOverride`-widened instance
+  // (Sikera Ušum clause c) answers "turnEnd" to this, ever -- no periodic in
+  // `PERIODICS` has `when: "actedTurnEnd"` as its own default, so this call
+  // is a no-op everywhere the widening does not apply.
+  intents.push(...tickPeriodics(units.filter((u) => u.acted), "actedTurnEnd", ctx));
 
   // 5. Expiry — after the final tick, so an effect ending now still ticks.
   intents.push(...expireEffects(units, ctx));
@@ -842,7 +847,20 @@ export function tickPeriodics(units, when, ctx) {
     if ((u.effects ?? []).includes("stop")) continue;
     for (const e of u.effectInstances ?? []) {
       const spec = PERIODICS[e.defId];
-      if (!spec || spec.when !== when) continue;
+      if (!spec) continue;
+      // Sikera Ušum clause c: "Units inflicted with Poison while within this
+      // NP area receive Poison damage at the end of its Turn and at the end
+      // of any Turn it Acts, IN ADDITION TO at the end of the Round" -- extra
+      // triggers a field's `PeriodicOverride` interior rule widens this
+      // instance to, on top of its ordinary `spec.when`, not instead of it.
+      // "The end of ITS Turn" -- widened only for the unit whose own Turn is
+      // actually ending, not for every unit a faction-unscoped `turnEnd` tick
+      // happens to reach.
+      const overridden = when === "turnEnd"
+        ? u.factionId === ctx.activeFactionId
+          && (u.periodicOverrides ?? []).some((o) => o.effectId === e.defId && o.triggers.includes(when))
+        : (u.periodicOverrides ?? []).some((o) => o.effectId === e.defId && o.triggers.includes(when));
+      if (spec.when !== when && !overridden) continue;
       if (spec.actedOnly && !u.acted) continue;
 
       // An effect does not tick on the turn it expires (Ch. 11 §11.9).
@@ -896,7 +914,37 @@ function amplify(amount, defId, unit) {
     const amp = AMPLIFIERS[held];
     if (amp && amp.defId === defId) out *= amp.factor;
   }
+  // Sikera Ušum clause e: "Units in the NP area who are weak to Poison ...
+  // receive double Poison Damage ... has to be an effect the Unit ALREADY
+  // has" -- the field's own `VulnerabilityAmplifier` interior rule
+  // (`rules/bounded-fields.mjs`'s `annotateFields`, gated on standing in the
+  // field's panels already) only widens a weakness the unit independently
+  // carries: a standing `weakTo<Effect>`-shaped marker, or an existing
+  // incoming `ApplicationChance` contribution that already RAISES this
+  // effect's own infliction chance ("has an increased chance of being
+  // inflicted with" is the sheet's own second reading of "weak to").
+  for (const amp of unit?.vulnerabilityAmplifiers ?? []) {
+    if (amp.effectId !== defId) continue;
+    if (isWeakTo(unit, defId)) out *= amp.factor;
+  }
   return Math.round(out);
+}
+
+/**
+ * @param {object|null} unit
+ * @param {string} defId
+ * @returns {boolean}
+ */
+function isWeakTo(unit, defId) {
+  if ((unit?.effects ?? []).includes(`weakTo${capitalize(defId)}`)) return true;
+  return (unit?.applicationChances ?? []).some(
+    (c) => (c.direction ?? "incoming") === "incoming" && c.effectId === defId && (c.value ?? 0) < 0,
+  );
+}
+
+/** @param {string} s @returns {string} */
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /**

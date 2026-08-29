@@ -44,16 +44,27 @@ import { orderElements } from "./ordering.mjs";
  * @property {object|null} magicResistance
  * @property {string|null} variantOverride
  * @property {string|null} revealsEffect
+ * @property {object[]} vulnerabilityAmplifiers
+ * @property {object[]} periodicOverrides
  * @property {object[]} damageNegation   dice-based flat reductions
  * @property {object[]} unhandled        elements with no executor — a bug, surfaced
  */
 
-/** An empty contribution set. */
-function empty() {
+/**
+ * An empty contribution set.
+ * Exported so `rules/bounded-fields.mjs` can run a field's OWN interior rules
+ * through the same {@link EXECUTORS} table an ability's do, rather than a
+ * second, narrower dispatch that only understood `DamageModifier`-shaped
+ * rules dumped raw into `modifiers` (Sikera Ušum's Immunity Downgrade and
+ * Vulnerability Amplifier clauses need `suppressions` and a dedicated bucket
+ * neither of which the raw dump ever routed to).
+ */
+export function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
     attributes: [], magicResistance: null, variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [],
+    vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], unhandled: [],
   };
@@ -561,6 +572,33 @@ export const EXECUTORS = Object.freeze({
     out.revealsEffect = el.effect ?? null;
   },
 
+  /**
+   * Sikera Ušum clause e: "Units in the NP area who are weak to Poison ...
+   * receive double Poison Damage." A multiplier `scheduler.mjs`'s
+   * `periodicDamageFor` applies on top of whatever the effect's own
+   * amplification already does (stacking, not replacing, e.g. Deadly
+   * Poison's own doubling) -- gated to the SPECIFIC effect id the vulnerable
+   * unit already carries, not the bearer of the field: "has to be an effect
+   * the Unit already has", not one imposed from outside.
+   */
+  VulnerabilityAmplifier(el, { source, out }) {
+    out.vulnerabilityAmplifiers.push({
+      effectId: el.effectId, factor: el.factor ?? 2, source,
+    });
+  },
+
+  /**
+   * Sikera Ušum clause c: Poison inside the NP area ticks at the bearer's own
+   * Turn-end and any Turn it Acts, in addition to round-end. A named zone
+   * rather than a bare boolean, because a bearer can stand in more than one
+   * such area at once and each names which periodic it widens.
+   */
+  PeriodicOverride(el, { source, out }) {
+    out.periodicOverrides.push({
+      effectId: el.effectId, triggers: el.triggers ?? ["turnEnd", "actedTurnEnd"], source,
+    });
+  },
+
   /** Battle Continuation's dice reduction at stage 12. */
   DamageNegation(el, { rank, source, out, ctx }) {
     const v = resolveValue(el, rank, ctx);
@@ -936,7 +974,14 @@ export const EXECUTORS = Object.freeze({
   },
 
   ImmunityDowngrade(el, { source, out }) {
-    out.suppressions.push({ scope: "immunity", downgradeTo: el.to, source });
+    // Scoped to ONE effect id -- Sikera Ušum's clause d downgrades Poison
+    // Immune specifically, not every immunity a Unit standing in the area
+    // happens to hold. `effectId: null` (unscoped) is left legal for a future
+    // clause that genuinely means "any immunity."
+    out.suppressions.push({
+      scope: "immunity", effectId: el.effectId ?? null, downgradeTo: el.to,
+      resistPercent: el.resistPercent ?? 75, source,
+    });
   },
 
   ReplaceAbility(el, { source, out }) {
