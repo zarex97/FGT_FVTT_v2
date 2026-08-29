@@ -563,4 +563,38 @@ every one of those additions is now available to future content.
 
 ---
 
+## 32.10 Implementation notes
+
+Semiramis is fully built and live-tested against a running world: every ability, Bašmu, and the
+Hanging Gardens platform (activation through destruction's owner-effect reversal). Where the
+actual build diverged from this chapter's illustrative pseudocode above:
+
+- **No `anchor: compound`.** Dragon Wing Warriors' "Range 4 plus the area under the HGoB and the
+  area of the HGoB" is authored as plain `withinRange` from the platform's own panel. A 9×9
+  platform's Range-4 halo already overlaps its own footprint and the ground beneath it in every
+  practical case, so the compound anchor's second and third terms never contribute anything a
+  plain `withinRange` did not already cover.
+- **No `TerritoryCreationScope`.** The EX/C scope split is ordinary `DamageModifier` + `Aura`
+  pairs, each gated by an ordinary predicate (`self:variant:dsc`, `self:onPlatform:<id>`,
+  `self:inHomeBase`) — the general predicate grammar already said what the script element would
+  have said.
+- **`singleInjuryRoll` was not built.** Dragon Wing Warriors' repeat hits (`damage.repeat:
+  {roll}`, Ch. 12's Combat Process) each run their own Injury Roll; the sheet's "only performs an
+  Injury Roll once regardless of hits taken" is a documented, un-implemented simplification —
+  see `packs/_source/abilities/semiramis-hgob-dragon-wing-warriors.yml`.
+- **Bašmu's platform tether is `boundToPlatformId`**, not `boundToZoneId`/`dismissOnZoneRemoval`:
+  `engine/scene-levels.mjs#reverseOwnerEffects` already used that exact field name and dismisses
+  unconditionally, which the sketch's separate `dismissOnZoneRemoval` flag would have duplicated.
+- **The `hgobConstruction`→100 activation, the 3◈-Turn commitment, and the owner buff are real
+  engine mechanisms now, not sketches**: the `channel` ability kind (`module/engine/channel.mjs`),
+  `module/engine/hgob.mjs` (creates the platform actor, applies the owner buff, sets `zonExempt`,
+  bumps `sustainabilityRemaining`), and `RankShift`'s `grades` field (Ch. 05 — a whole-grade shift
+  is `Rank#stepGrade`, not `steps: 1`, which only ever walked the dense +/- ladder) all shipped as
+  part of this build, along with fixes the platform surfaced in code that predates it: `board.zones`
+  was never actually wired into `snapshotBoard` (Ch. 19's Home Base membership was `{}` for every
+  unit, always), and `SummonData`/`PlatformData` had no `baseHealth`→`health.max` derivation at
+  all (every Summon and every Platform built from content had 0 Health).
+
+---
+
 **Next:** [33 — Case Study: Mannanán mac Lir](33-case-mannanan.md)

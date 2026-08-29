@@ -15,7 +15,13 @@
 > alongside the held-effect forms.
 >
 > Platforms spend **no budget at all** (Ch. 20 §20.10), checked before every other gate: a
-> platform is equipment its owner operates, not a combatant taking a slot.
+> platform is equipment its owner operates, not a combatant taking a slot. That exemption used
+> to also grant unlimited actions — `canConsume` returned `free: true` unconditionally for any
+> `kind: "platform"` unit and for an `actsOncePerTurn` summon (Bašmu), enforcing "does not count
+> toward the budget" but never the *paired* "once per Turn" cap the source states in the same
+> sentence. Fixed live testing Semiramis's Hanging Gardens: both are now checked against
+> `turnState.moved`/`.attacked` the same way an ordinary unit's per-unit limit (§18.4) is, just
+> without touching a pool.
 >
 > Riding's double move reads the **grant** rather than a name-match on the skill, so anything
 > that grants `doubleMove` confers it.
