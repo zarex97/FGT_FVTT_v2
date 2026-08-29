@@ -237,8 +237,29 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // the same defender, inside ONE Combat Phase -- which is the distinction that
   // matters, because a Combat Phase is what pays him his Aria and two phases
   // would pay twice for one action.
-  const repeat = Math.max(1, ability?.system?.damage?.repeat ?? 1);
+  //
+  // Bašmu's Dragon Wing Warriors: "X times, where X = a d6 roll + 4" -- a
+  // repeat count decided once per declaration rather than a fixed number, so
+  // `repeat` accepts `{roll}` alongside the plain integer EMIYA uses. Each
+  // repeat is still its own Combat Process and so still its own Injury Roll;
+  // "Damaged Units only perform an Injury Roll once regardless of number of
+  // hits taken" is a known, unmodelled simplification -- see basmu.yml.
+  const repeatSpec = ability?.system?.damage?.repeat ?? 1;
+  const repeat = Math.max(
+    1,
+    repeatSpec && typeof repeatSpec === "object" && repeatSpec.roll
+      ? (await new Roll(repeatSpec.roll).evaluate()).total
+      : repeatSpec,
+  );
   const targetIds = targets.units.flatMap((t) => Array.from({ length: repeat }, () => t.unitId));
+
+  // The Hanging Gardens' activation: "If Semiramis is Attacked during this
+  // period, the period... is interrupted." Declared against, not necessarily
+  // hit -- fired here, at declaration, rather than after the damage step.
+  if (targetIds.length > 0) {
+    const { interruptChannels } = await import("./channel.mjs");
+    await interruptChannels(targetIds);
+  }
 
   // A resolution that caught no units is still a resolution — a ground-placed
   // non-damaging NP has a shape and no defenders — so it keeps its single
@@ -1310,6 +1331,11 @@ async function applyDamage(state, message) {
       rank: Rank.parseOrNull(ability?.system?.rank),
       categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
       element: ability?.system?.element ?? null,
+      // Dragon Wing Warriors: "50 Fixed STR damage". The pipeline has read
+      // `ctx.attack.isFixedDamage` (stages 1 and 2, `rules/damage/pipeline.mjs`)
+      // since it was written; nothing ever set it from content, so an authored
+      // `damage.fixed` was always computed as a normal, modifiable attack.
+      isFixedDamage: Boolean(ability?.system?.damage?.fixed),
     },
     base: baseSpecFor(attackerDoc, ability, facts.range),
     multiplier: ability?.system?.damage?.multiplier ?? 1,

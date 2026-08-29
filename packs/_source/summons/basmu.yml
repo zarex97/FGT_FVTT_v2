@@ -20,10 +20,9 @@ normalAttack: { mode: fixed, component: str }
 countsTowardBudget: false
 actsOncePerTurn: true
 # "Bašmu cannot leave the HGoB. If HGoB is removed from the field while Bašmu
-# is summoned, it disappears." Stable content id, the same reason
-# `platformContentId` names one instead of a random Foundry document id.
-boundToZoneId: hanging-gardens-of-babylon
-dismissOnZoneRemoval: true
+# is summoned, it disappears." `boundToPlatformId` is a real Foundry document
+# id, not authorable content -- it is written by whatever creates a Bašmu
+# instance (Summoning: Bašmu's HGoB branch, Phase 8), not stated here.
 # "When it Moves to any occupied panels, all Units occupying said panels are
 # knocked back by 1 panel until the space is free for Bašmu to stand on."
 movesOntoOccupiedPanels: true

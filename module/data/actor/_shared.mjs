@@ -259,6 +259,23 @@ export function combatantCommon() {
      */
     seenUnitIds: new fields.SetField(new fields.StringField({ blank: false }), { initial: () => [] }),
 
+    // `null` defers to the ordinary rules; `false` overrides them. Read
+    // (`!== false`) by `rules/budget.mjs`, `rules/targeting/resolve.mjs`,
+    // `engine/attack.mjs` and `apps/canvas/overlay-layer.mjs` since each was
+    // written, and declared by NONE of their schemas until now -- a write
+    // to it (a GM's manual override, or `engine/channel.mjs`'s "cannot Act
+    // for 3◈ Turns" while the Hanging Gardens activation channels) was
+    // silently dropped by the DataModel before it ever reached a reader.
+    canAct: new fields.BooleanField({ required: false, nullable: true, initial: null }),
+
+    // A multi-Turn activation in progress -- Semiramis's Hanging Gardens of
+    // Babylon is the only clause in the reference set that needs one:
+    // "cannot Act for 3◈ Turns... if Attacked during this period, the
+    // period is interrupted and she has to restart." `null` when nothing is
+    // channelling. Untyped past the top level for the same reason a rule
+    // element's own shape is (Ch. 21 §21.4).
+    channel: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
     roundState: new fields.SchemaField({
       round: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),

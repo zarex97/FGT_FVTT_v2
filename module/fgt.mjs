@@ -26,6 +26,7 @@ import * as intents from "./engine/intents.mjs";
 import * as combatProcess from "./engine/combat-process.mjs";
 import * as scheduler from "./engine/scheduler.mjs";
 import { Scheduler } from "./engine/scheduler-hooks.mjs";
+import { Hgob } from "./engine/hgob.mjs";
 import * as budget from "./engine/budget.mjs";
 import * as summon from "./engine/summon.mjs";
 import * as items from "./engine/items.mjs";
@@ -162,6 +163,9 @@ Hooks.once("setup", async () => {
 Hooks.once("ready", () => {
   // GM client only; a no-op everywhere else.
   Scheduler.attach();
+  // Semiramis's Hanging Gardens: listens for `channel.mjs`'s completion hook
+  // and for a platform's own destruction hook, both GM-gated internally.
+  Hgob.attach();
   // Every client validates its own movement; the write is proxied as usual.
   Movement.attach();
   // §26.1: "a player owns their own Servants and Master." Keeps that true —

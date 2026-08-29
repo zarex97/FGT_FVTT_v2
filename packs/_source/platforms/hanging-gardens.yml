@@ -1,24 +1,61 @@
-# docs/20-platforms-and-levels.md §20.4
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 119-173.
+#
+# `id` deliberately does NOT follow Golden Hind/Storm Border's `platform-<slug>`
+# prefix: three already-authored, already-tested Semiramis files
+# (semiramis-territory-creation.yml's `self:onPlatform:`/`requiresRecipient`
+# predicates) were written against the unprefixed `hanging-gardens-of-babylon`
+# content id before this file was corrected, and matching them costs nothing
+# a rename of THIS file's `id` wouldn't also cost.
+#
+# `baseAttack.mag` here is a static placeholder. "Base Attack (MAG): Uses
+# Semiramis'" is a live mirror the schema has no field for -- `engine/hgob.mjs`
+# copies Semiramis's own (post-buff) `baseAttack.mag` onto this actor at
+# activation time. It will not follow a LATER buff to her MAG; see hgob.mjs's
+# own note.
+#
+# `footprint` is the standard-board 9x9 only. "11x11 panels on Large Board" is
+# not modelled -- there is no board-size setting anywhere in this codebase for
+# a platform's footprint to key off, and adding one is its own subsystem.
 schema: 1
-id: platform-hanging-gardens
+id: hanging-gardens-of-babylon
 name: "Hanging Gardens of Babylon"
 type: platform
 description: |
-  Semiramis' fortress. Built by a channelled Construction counter, activated from her Home Base,
-  and rebuildable after destruction.
-attributes: [large, structure]
-baseHealth: 3000
-mov: 3
-range: { panels: 5, targets: 1 }
+  Semiramis' floating fortress. Built from a channelled Construction counter and activated from
+  her Home Base; destroyed when Semiramis is defeated or its Health reaches 0, at which point she
+  may rebuild it from Construction 0. Counts as a second Home Base for her Faction.
+attributes: [large, mechanical]
+baseHealth: 6000
+agility: 0
+luck: 0
+mov: 2
+# "Does not Normal Attack, see below" -- only its own two named Attacks
+# (basmu... no: semiramis-hgob-dragon-wing-warriors, semiramis-hgob-aerial-
+# garden-of-vanity) exist; it has no Normal Attack of its own.
+range: { panels: 0, targets: 0 }
 baseAttack: { str: 0, mag: 200 }
-footprint: { w: 5, h: 5 }
+footprint: { w: 9, h: 9 }
 capacity: null
-level: 1
-# "Occupants cannot be targeted from outside at all; you must board."
+level: 4
+# "During Semiramis' Turn, the HGoB can Move/Attack once per Turn ... does not
+# count towards number of Units who Move or Act in a Turn" -- the second half
+# is unconditional for every `kind: platform` unit (`rules/budget.mjs#poolFor`);
+# this flag is the first half, and must be authored (the schema's own
+# `initial: true` only covers a platform actor built by hand, not one compiled
+# from content -- `tools/lib/content.mjs`'s allowlist reads it with `Boolean()`).
+actsOncePerTurn: true
+abilities:
+  - { ref: semiramis-hgob-dragon-wing-warriors }
+  - { ref: semiramis-hgob-aerial-garden-of-vanity }
+# "The HGoB cannot be affected by buffs and/or debuffs" and "cannot Evade,
+# Block, and Counter; and cannot be Countered" are UNMODELLED: no engine
+# mechanism reads a unit-level "immune to buffs" or "no reaction ladder" flag
+# today, and building one is out of scope for this platform's own checkpoint.
+# Recorded here rather than left to look implemented.
 crossLevel:
   occupantTargeting: forbidden
   requiresBoarding: true
-  aoePassengerFactor: 0.5
+  aoePassengerFactor: 0
   aoeMastersImmune: false
   outboundTargeting: rangedOnly
   forbidDirectlyBelow: true

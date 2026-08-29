@@ -58,6 +58,39 @@ describe("the four pools", () => {
     expect(poolFor({ id: "x", kind: "servant", exemptFromBudget: true }, "attack")).toBeNull();
   });
 
+  it("lets a platform Move once and Attack once free, per Turn -- but not twice", () => {
+    const b = emptyBudget();
+    const platform = { id: "p", kind: "platform", turnState: {} };
+
+    expect(canConsume(b, platform, "move").ok).toBe(true);
+    expect(canConsume(b, platform, "attack").ok).toBe(true);
+
+    // "Bašmu's actsOncePerTurn" shares the same cap; a platform is always
+    // once-per-turn ("During Semiramis' Turn, the HGoB can Move/Attack once
+    // per Turn"), so it needs no content flag of its own.
+    const acted = { id: "p", kind: "platform", turnState: { moved: true, attacked: true } };
+    expect(canConsume(b, acted, "move").ok).toBe(false);
+    expect(canConsume(b, acted, "attack").ok).toBe(false);
+    // Still free (no pool), even when refused.
+    expect(canConsume(b, acted, "move").pool).toBeNull();
+  });
+
+  it("caps a summon with actsOncePerTurn -- Medea's Dragon Tooth Warriors", () => {
+    const b = emptyBudget();
+    const capped = { id: "s", kind: "summon", actsOncePerTurn: true, turnState: { moved: true } };
+    expect(canConsume(b, capped, "move").ok).toBe(false);
+
+    // A summon with the flag unset is exempt from every POOL regardless
+    // (`poolFor`'s own unconditional `kind === "summon"` check), but is not
+    // held to the once-per-turn cap -- that half is opt-in per the flag, and
+    // the GENERIC rule below only refuses a second Move after an Attack, not
+    // after a first Move (D18.2: "may Move as many times as MOV allows").
+    const uncapped = { id: "w", kind: "summon", turnState: { moved: true } };
+    const verdict = canConsume(b, uncapped, "move");
+    expect(verdict.ok).toBe(true);
+    expect(verdict.pool).toBeNull();
+  });
+
   it("lets four Servants move and two DIFFERENT Servants attack — six units active", () => {
     const movers = ["a", "b", "c", "d"].map((id) => servant(id));
     const attackers = ["e", "f"].map((id) => servant(id));

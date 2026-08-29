@@ -148,16 +148,24 @@ export function canConsume(budget, unit, action) {
     return { ok: false, reason: `prevented by ${prevention.by}`, pool: null, free: false };
   }
 
-  // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn ... does
-  // not count towards number of Units who Move or Act in a Turn" (§20.10). A
-  // platform is not a combatant taking a slot; it is equipment its owner
-  // operates, so it spends nothing and is refused nothing.
-  if (unit?.kind === "platform") {
-    return { ok: true, reason: null, pool: null, free: true };
-  }
-
   const state = unit?.turnState ?? {};
   const isAttack = ["attack", "np", "spell", "ridingAttack"].includes(action);
+
+  // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn ... does
+  // not count towards number of Units who Move or Act in a Turn" (§20.10),
+  // and Bašmu's "can only Move/Attack once per Turn" (§20.10/summons) --
+  // exempt from every pool below, but not from a PER-UNIT cap, which is a
+  // separate rule (see the module docstring's rule 2 vs. rule 1). A platform
+  // is not a combatant taking a slot; it is equipment its owner operates, so
+  // it spends nothing -- but "spends nothing" is not "acts without limit",
+  // which the unconditional `free: true` this replaced could not tell apart.
+  if (unit?.kind === "platform" || unit?.actsOncePerTurn) {
+    const already = isAttack ? state.attacked : (action === "move" ? state.moved : false);
+    if (already) {
+      return { ok: false, reason: "this unit has already acted this Turn", pool: null, free: false };
+    }
+    return { ok: true, reason: null, pool: null, free: true };
+  }
 
   if (isAttack && state.attacked) {
     return { ok: false, reason: "this unit has already attacked this turn", pool: null, free: false };
