@@ -52,11 +52,38 @@ summonVariant:
     id: noDsc
 
 # ─── Resources (§6.10) ─────────────────────────────────────────────────
-# HGoB Construction. The region-based starting value (25 in Mesopotamia/the
-# Middle East, 10 if adjacent) and the summon-time 1d6x1d6 roll are applied at
-# commit time by `engine/summon.mjs`, not authored here as a static number.
+# HGoB Construction. Sources 1-2 (the region-based starting value and the
+# summon-time 1d6x1d6 roll) are applied at commit time by `engine/summon.mjs`,
+# not authored here as a static number. Source 6 (Gather) is a standalone
+# action (`engine/gather.mjs`), not a rule element -- any allied Unit may
+# perform it, not just Semiramis.
 resources:
   hgobConstruction: { value: 0, max: 100 }
+
+# Sources 3 and 5. Source 4 (Item Construction's own poison count) rides
+# `semiramis-item-construction.yml`'s `itemGrant` phase instead -- it needs
+# the SAME roll that decided the item count, not a second, independent one.
+passiveRules:
+  # Source 3: "At the end of every Round, roll a four-sided die and increase
+  # HGoB Construction by 2 plus the number rolled."
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    then:
+      - { key: ResourceDelta, resource: hgobConstruction, roll: { key: hgobConstructionRoundRegen, formula: "1d4+2" },
+          regionScaled: middleEast }
+  # Source 5: "Whenever a non-Spell Skill is used excluding Item Construction,
+  # increase HGoB Construction by 2." `excludeCategory`/`excludeContentId`
+  # (module/engine/scheduler.mjs's `fireEvent`) are what let one clause state
+  # both exclusions at once.
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    excludeCategory: spell
+    excludeNP: true
+    excludeContentId: semiramis-item-construction
+    then:
+      - { key: ResourceDelta, resource: hgobConstruction, delta: 2, regionScaled: middleEast }
 
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:

@@ -33,6 +33,7 @@ import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitSnapshot } from "./board.mjs";
+import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
@@ -41,7 +42,7 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { createField } from "./fields.mjs";
-import { fireEvent } from "./scheduler.mjs";
+import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 
@@ -372,6 +373,20 @@ async function runPhases(ability, actor, targets, board, only = null) {
               [
                 I.itemGrant(target.unitId, phase.contentId, amount),
                 I.log({ kind: "itemGrant", contentId: phase.contentId, unitId: target.unitId, amount }),
+                // HGoB Construction source 4 (Ch. 32): "increased by the
+                // number of [Semiramis' Poison] PRODUCED" -- the SAME roll
+                // that decided the item count, not a second, independent
+                // one. `alsoGrantsResource` rides the one roll rather than
+                // a sibling `resource` phase re-rolling the die.
+                ...(phase.alsoGrantsResource
+                  ? [I.resource(
+                    phase.alsoGrantsResource.unitId === "self" ? actor.id : target.unitId,
+                    resourcePathFor(phase.alsoGrantsResource.resource, unitFrom(board, actor)),
+                    phase.alsoGrantsResource.regionScaled
+                      ? regionScale(amount, phase.alsoGrantsResource.regionScaled, board.warRegion)
+                      : amount,
+                  )]
+                  : []),
               ],
               `skill:${ability.id}:itemGrant`,
             );

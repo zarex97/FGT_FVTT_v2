@@ -19,6 +19,7 @@
 import {
   servantSetupPlan, masterSetupPlan, resolveSetupPlan, summonPlan, baseAttackAdjustment,
 } from "../rules/setup-rolls.mjs";
+import { regionsAdjacent } from "../rules/environment.mjs";
 
 /**
  * Roll one line of a plan.
@@ -168,7 +169,10 @@ export function reviseSummon(prepared, { masterId, warRegion, masterGrants }) {
  */
 export async function commitSummon(prepared) {
   const data = prepared.source.toObject();
-  data.system = { ...data.system, ...sheetPatch(prepared.lines, prepared.sheet, prepared.granted) };
+  data.system = {
+    ...data.system,
+    ...sheetPatch(prepared.lines, prepared.sheet, prepared.granted, prepared.warRegion),
+  };
 
   if (prepared.master) {
     data.system.masterId = prepared.master.id;
@@ -351,9 +355,12 @@ function healthAt(sheet, steps) {
  * @param {object[]} lines
  * @param {object} sheet
  * @param {Record<string, number>} granted
+ * @param {string|null} [warRegion] HGoB Construction source 1's own input,
+ *   unrelated to the parameter-grant Region bonus `summonPlan` already
+ *   handles as a `steps` entry
  * @returns {object}
  */
-export function sheetPatch(lines, sheet, granted) {
+export function sheetPatch(lines, sheet, granted, warRegion = null) {
   /** @type {Record<string, unknown>} */
   const patch = {};
   const value = (id) => lines.find((l) => l.id === id)?.value ?? 0;
@@ -385,6 +392,22 @@ export function sheetPatch(lines, sheet, granted) {
       ? sheet.summonVariant.heads
       : sheet?.summonVariant?.tails;
     Object.assign(patch, branch?.overrides ?? {});
+  }
+
+  // HGoB Construction (Ch. 32 §32.2). Source 1 -- the Region-based starting
+  // value -- is not a roll, so it is added here rather than through the
+  // setup plan: 25 if the war's own Region IS Middle East, 10 if merely
+  // adjacent to it, 0 otherwise. Source 2 (the summon-time "2d6 multiplied")
+  // is `value("hgobConstructionRoll")`, already resolved by the setup plan.
+  if (sheet?.resources?.hgobConstruction) {
+    const starting = warRegion === "middleEast" ? 25 : regionsAdjacent(warRegion, "middleEast") ? 10 : 0;
+    patch.resources = {
+      ...(sheet.resources ?? {}),
+      hgobConstruction: {
+        ...sheet.resources.hgobConstruction,
+        value: starting + value("hgobConstructionRoll"),
+      },
+    };
   }
 
   return patch;

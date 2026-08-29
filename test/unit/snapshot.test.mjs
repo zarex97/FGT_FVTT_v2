@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { snapshotUnit, snapshotBoard, turnStateAt } from "../../module/rules/snapshot.mjs";
+import { snapshotUnit, snapshotBoard, turnStateAt, contributionsOf } from "../../module/rules/snapshot.mjs";
 import { remainingMovement, segmentCheck } from "../../module/rules/movement.mjs";
 
 /** A minimal actor. */
@@ -181,6 +181,42 @@ describe("parameter grants reach the Rank (Ch. 05 §5.6)", () => {
     // Only the Region's step is live-adjusted here; the Master's +10 is already
     // in `sys.baseAttack` from summon, so the board only adds the Region's own.
     expect(board.units[0].baseAttack.str).toBe(110);
+  });
+});
+
+describe("unit-authored passiveRules (Ch. 32, Bašmu's Normal Attack rider)", () => {
+  // A summon has no separate ability item to carry a standing rule -- Bašmu's
+  // Normal Attack rider and its Targetability protection are authored
+  // directly on the SUMMON, not on an Item, and `contributionsOf` used to
+  // read only `actor.items` -- so a unit-level `passiveRules` block was
+  // authored, validated, compiled onto the actor's `system`, and then
+  // silently dropped by the one reader that would have collected it.
+  const withRules = actor({
+    system: {
+      passiveRules: [{ key: "FlatDamage", value: 10 }],
+    },
+  });
+
+  it("collects a unit's own passiveRules as a pseudo-ability", () => {
+    const c = contributionsOf(withRules);
+    expect(c.modifiers).toEqual([expect.objectContaining({ key: "divinity", value: 10 })]);
+  });
+
+  it("adds nothing for a unit with no unit-level rules", () => {
+    const c = contributionsOf(actor());
+    expect(c.modifiers).toEqual([]);
+  });
+
+  it("collects alongside an ordinary item's own passiveRules, not instead of it", () => {
+    const both = actor({
+      system: { passiveRules: [{ key: "FlatDamage", value: 10 }] },
+      items: [{
+        id: "ability1", name: "Some Skill", type: "ability",
+        system: { passiveRules: [{ key: "FlatDamage", value: 5 }] },
+      }],
+    });
+    const c = contributionsOf(both);
+    expect(c.modifiers.map((m) => m.value).sort((a, b) => a - b)).toEqual([5, 10]);
   });
 });
 

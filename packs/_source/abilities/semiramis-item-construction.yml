@@ -24,3 +24,8 @@ phases:
     target: self
     contentId: semiramis-poison
     roll: "1d4"
+    # HGoB Construction source 4: "Whenever Item Construction is used, HGoB
+    # Construction is increased by the number of [Semiramis' Poison]
+    # produced" -- the SAME roll that decided the item count above, not a
+    # second, independent one (`skill-use.mjs`'s `alsoGrantsResource`).
+    alsoGrantsResource: { resource: hgobConstruction, unitId: self, regionScaled: middleEast }

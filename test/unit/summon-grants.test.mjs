@@ -142,3 +142,36 @@ describe("sheetPatch applies a resolved summon variant", () => {
     expect(patch.sustainability).toBeUndefined();
   });
 });
+
+/* ── HGoB Construction's summon-time value (Ch. 32 §32.2, sources 1-2) ───── */
+
+describe("sheetPatch computes HGoB Construction's starting value", () => {
+  const semiramis = { ...karna, resources: { hgobConstruction: { value: 0, max: 100 } } };
+  const lines = (roll) => resolveSetupPlan(servantSetupPlan(semiramis),
+    { maxAgility: 2, maxLuck: 3, hgobConstructionRoll: roll });
+
+  it("starts at 25 when the war's Region IS Middle East, plus the summon roll", () => {
+    const patch = sheetPatch(lines(12), semiramis, {}, "middleEast");
+    expect(patch.resources.hgobConstruction.value).toBe(37);
+  });
+
+  it("starts at 10 when merely adjacent to Middle East, plus the summon roll", () => {
+    // Greece borders Middle East but is not it.
+    const patch = sheetPatch(lines(12), semiramis, {}, "greece");
+    expect(patch.resources.hgobConstruction.value).toBe(22);
+  });
+
+  it("starts at 0 for an unrelated Region, plus the summon roll", () => {
+    const patch = sheetPatch(lines(12), semiramis, {}, "japan");
+    expect(patch.resources.hgobConstruction.value).toBe(12);
+  });
+
+  it("starts at 0 with no war Region at all", () => {
+    const patch = sheetPatch(lines(6), semiramis, {}, null);
+    expect(patch.resources.hgobConstruction.value).toBe(6);
+  });
+
+  it("does nothing for a Servant with no hgobConstruction resource", () => {
+    expect(sheetPatch(resolved(), karna, {}, "middleEast").resources).toBeUndefined();
+  });
+});

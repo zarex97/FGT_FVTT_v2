@@ -532,6 +532,13 @@ function actorSystem(doc) {
     boundToZoneId: doc.boundToZoneId ?? null,
     dismissOnZoneRemoval: Boolean(doc.dismissOnZoneRemoval),
     movesOntoOccupiedPanels: Boolean(doc.movesOntoOccupiedPanels),
+    // Rule elements authored directly on the unit (Bašmu's Normal Attack
+    // rider and Targetability aura; HGoB Construction's round-end regen) --
+    // the same allowlist gap `itemCost` and `summonVariant` hit earlier: an
+    // authored field compiles to its schema default unless named here.
+    rules: doc.rules ?? [],
+    passiveRules: doc.passiveRules ?? [],
+    activeRules: doc.activeRules ?? [],
     summonerId: doc.summonerId ?? null,
     capacity: doc.capacity ?? null,
     ownerId: doc.ownerId ?? null,
