@@ -578,10 +578,34 @@ actual build diverged from this chapter's illustrative pseudocode above:
   pairs, each gated by an ordinary predicate (`self:variant:dsc`, `self:onPlatform:<id>`,
   `self:inHomeBase`) — the general predicate grammar already said what the script element would
   have said.
-- **`singleInjuryRoll` was not built.** Dragon Wing Warriors' repeat hits (`damage.repeat:
-  {roll}`, Ch. 12's Combat Process) each run their own Injury Roll; the sheet's "only performs an
-  Injury Roll once regardless of hits taken" is a documented, un-implemented simplification —
-  see `packs/_source/abilities/semiramis-hgob-dragon-wing-warriors.yml`.
+- **`singleInjuryRoll` is built.** Dragon Wing Warriors' repeat hits (`damage.repeat: {roll}`,
+  Ch. 12's Combat Process) are each their own Combat Process and so each reach the Injury step —
+  and each hit (50 Fixed damage) is individually well under the 100-damage threshold, so a naive
+  "check the first hit only" reading would mean this NEVER rolls. `damage.singleInjuryRoll`
+  (`engine/attack.mjs#applyInjury`) instead defers every process but the LAST to resolve its own
+  damage step (same declaration, same defender), sums every sibling's damage, and performs one
+  check against the total — "once, on the total", matching docs/12 §12.6's own reading. Live-
+  verified against four defenders and ten hits each: one real Injury verdict per defender on the
+  combined total, nine deferrals.
+- **Summoning: Bašmu's summon branch is built.** One ability document, two branches
+  (`targeting.branches`/`cooldown.branches`/`damage.branches`, first-match-wins the same way
+  `field.branches` does below), selected by `self:onPlatform:hanging-gardens-of-babylon`. Needed
+  `damage.branches` specifically because `isSpell: true` always routes through the attack path,
+  which runs a real Combat Process against whoever the targeting resolves — herself, since
+  `selection: {relations: [self]}` resolves self as a legitimate defender rather than an empty
+  target list — and the summon branch deals no damage at all (`{fixed: true, base: {fixedValue:
+  0}}`). Finding this live also surfaced a real, pre-existing bug: EMIYA's Thaumaturgy:
+  Reinforcement and Tracing, both self-targeted Spells with no `damage:` block and their own
+  `countsAsAttack: false`, were taking real self-damage from their own Base Attack on every use,
+  because `classifyAbility`'s routing (as opposed to the separate `countsAsAttack()` budget check)
+  never consulted that flag. Fixed at the root, not per-ability.
+- **Sikera Ušum's Throne-Room branch is built.** `field.branches` picks geometry/duration/
+  membership by the same predicate; `geometry.anchorRef: "platform"` anchors the field to the
+  Hanging Gardens' own geometric centre rather than wherever aboard it she is standing
+  (`rules/platforms.mjs#platformCentre`); `membership.trappedAtActivation` snapshots who was
+  inside when the field opened (not a standing rule that would also trap a later arrival) and
+  `rules/movement.mjs#canPassThrough` now actually asks Axis 2's `membershipVerdict` before a
+  move, which nothing had ever done for *any* bounded field before this NP needed it.
 - **Bašmu's platform tether is `boundToPlatformId`**, not `boundToZoneId`/`dismissOnZoneRemoval`:
   `engine/scene-levels.mjs#reverseOwnerEffects` already used that exact field name and dismisses
   unconditionally, which the sketch's separate `dismissOnZoneRemoval` flag would have duplicated.
