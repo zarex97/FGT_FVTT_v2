@@ -7,7 +7,7 @@ import {
 } from "../../module/engine/combat-process.mjs";
 import {
   endTurn, beginTurn, beginRound, endRound, tickPeriodics, expireEffects,
-  advanceCooldowns, cooldownRate, checkRemovals, resolveDefeat,
+  advanceCooldowns, cooldownRate, checkRemovals, resolveDefeat, fireEvent,
 } from "../../module/engine/scheduler.mjs";
 
 /* ========================================================================== */
@@ -505,6 +505,78 @@ describe("endTurn ordering", () => {
     const hit = out.filter((i) => i.t === "damage").map((i) => i.unitId);
     expect(hit).toContain("theirs");
     expect(hit).not.toContain("mine");
+  });
+
+  it("threads ctx.board through to a fired handler (Ch. 32, HGoB Construction's Region multiplier)", () => {
+    // `endTurn`/`beginTurn`/`endRound`/`beginRound` receive `board` as their
+    // own parameter, separate from `ctx` -- and never merged it in, so
+    // anything a handler's action reads off `ctx.board` (a Region multiplier,
+    // `subjectOf`'s "master" resolution) saw `undefined` when fired from a
+    // Turn or Round boundary specifically (as opposed to `attack.mjs`'s own
+    // `damageStepEnd`, which already built its own ctx with `board` in it).
+    const semi = {
+      id: "s", factionId: "a", resources: { hgobConstruction: { value: 0 } },
+      eventHandlers: [{
+        events: ["turnEnd"],
+        actions: [{ kind: "ResourceDelta", resource: "hgobConstruction", delta: 5, regionScaled: "middleEast" }],
+      }],
+    };
+    const out = endTurn({ ...board([semi]), warRegion: "middleEast" }, { ...sctx, activeFactionId: "a" });
+    // If ctx.board never reached the action, `warRegion` would read from
+    // `ctx.board.warRegion` (undefined) rather than doubling — 10, not 5.
+    expect(out.find((i) => i.t === "resource")?.delta).toBe(10);
+  });
+});
+
+describe("fireEvent's excludeCategory/excludeContentId (Ch. 32, HGoB Construction source 5)", () => {
+  const handler = (over = {}) => ({
+    events: ["abilityUsed"],
+    actions: [{ kind: "ResourceDelta", resource: "hgobConstruction", delta: 2 }],
+    ...over,
+  });
+  const unit = (h) => ({ id: "s", resources: { hgobConstruction: { value: 0 } }, eventHandlers: [h] });
+  const ctxFor = (subject) => ({ tick: 0, turnsPerRound: 3, board: { units: [] }, subject });
+
+  it("fires for an ordinary Skill", () => {
+    const out = fireEvent("abilityUsed", [unit(handler())], ctxFor({ category: "skill" }));
+    expect(out.some((i) => i.t === "resource")).toBe(true);
+  });
+
+  it("does not fire for a Spell", () => {
+    const out = fireEvent(
+      "abilityUsed", [unit(handler({ excludeCategory: ["spell"] }))], ctxFor({ category: "spell" }),
+    );
+    expect(out.some((i) => i.t === "resource")).toBe(false);
+  });
+
+  it("does not fire for the specifically-excluded ability, even if its category is not excluded", () => {
+    const out = fireEvent(
+      "abilityUsed",
+      [unit(handler({ excludeCategory: ["spell"], excludeContentId: ["semiramis-item-construction"] }))],
+      ctxFor({ category: "skill", contentId: "semiramis-item-construction" }),
+    );
+    expect(out.some((i) => i.t === "resource")).toBe(false);
+  });
+
+  it("fires for a different Skill the exclusion does not name", () => {
+    const out = fireEvent(
+      "abilityUsed",
+      [unit(handler({ excludeCategory: ["spell"], excludeContentId: ["semiramis-item-construction"] }))],
+      ctxFor({ category: "skill", contentId: "semiramis-double-summon" }),
+    );
+    expect(out.some((i) => i.t === "resource")).toBe(true);
+  });
+
+  it("does not fire for a Noble Phantasm when excludeNP is set", () => {
+    const out = fireEvent(
+      "abilityUsed", [unit(handler({ excludeNP: true }))], ctxFor({ category: null, isNP: true }),
+    );
+    expect(out.some((i) => i.t === "resource")).toBe(false);
+  });
+
+  it("fires for a Noble Phantasm when excludeNP is not set", () => {
+    const out = fireEvent("abilityUsed", [unit(handler())], ctxFor({ category: null, isNP: true }));
+    expect(out.some((i) => i.t === "resource")).toBe(true);
   });
 });
 

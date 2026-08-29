@@ -516,4 +516,18 @@ describe("an event handler gated on the attack", () => {
     expect(silenced.eventHandlers).toHaveLength(0);
     expect(collectContributions([{ id: "u", name: "UBW", rank: null, active: true, passiveRules: [el] }]).eventHandlers).toHaveLength(1);
   });
+
+  it("carries excludeCategory/excludeContentId through (Ch. 32, HGoB Construction source 5)", () => {
+    // "A non-Spell Skill used, EXCLUDING Item Construction" -- two exclusions
+    // `ofCategory`'s include-list cannot express together.
+    const el = {
+      key: "OnEvent", event: "abilityUsed",
+      excludeCategory: "spell", excludeContentId: "semiramis-item-construction",
+      then: [{ key: "ResourceDelta", resource: "hgobConstruction", delta: 2 }],
+    };
+    const out = collectContributions([{ id: "u", name: "U", rank: null, active: true, passiveRules: [el] }]);
+
+    expect(out.eventHandlers[0].excludeCategory).toEqual(["spell"]);
+    expect(out.eventHandlers[0].excludeContentId).toEqual(["semiramis-item-construction"]);
+  });
 });

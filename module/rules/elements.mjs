@@ -361,6 +361,17 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     ofCategory: el.ofCategory === undefined
       ? null
       : (Array.isArray(el.ofCategory) ? [...el.ofCategory] : [el.ofCategory]),
+    // The mirror of `ofCategory`: HGoB Construction source 5 (Ch. 32) is "a
+    // non-Spell Skill used, EXCLUDING Item Construction" -- an exclusion on
+    // the category AND on one specific ability at once, which an include-list
+    // alone cannot say without naming every OTHER category or ability.
+    excludeCategory: el.excludeCategory === undefined
+      ? null
+      : (Array.isArray(el.excludeCategory) ? [...el.excludeCategory] : [el.excludeCategory]),
+    excludeContentId: el.excludeContentId === undefined
+      ? null
+      : (Array.isArray(el.excludeContentId) ? [...el.excludeContentId] : [el.excludeContentId]),
+    excludeNP: el.excludeNP ?? false,
     // A charge spent each time the handler pays out, for a count-limited
     // effect: Alpi is "for 1◈ Turns, **3 times**".
     consumesUse: el.consumesUse ?? false,

@@ -17,6 +17,20 @@ export function unitCommon() {
     contentId: new fields.StringField({ required: false, blank: true }),
     factionId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
+    // Standing rule elements authored directly on the UNIT rather than on an
+    // ability item -- a summon with no separate "class skill" to carry its
+    // clauses (Bašmu's Normal Attack rider, its Targetability protection),
+    // or a Servant-level passive with no natural Item home (HGoB
+    // Construction's round-end regen, Ch. 32 §32.2 source 3). Untyped for
+    // the same reason an ability's are (Ch. 21 §21.4): the content validator
+    // checks their shape at build time, and a rigid schema would reject a
+    // module-added rule element. Read by `rules/snapshot.mjs`'s
+    // `contributionsOf`, folded in as a pseudo-ability alongside the unit's
+    // real items.
+    rules: new fields.ArrayField(new fields.ObjectField()),
+    passiveRules: new fields.ArrayField(new fields.ObjectField()),
+    activeRules: new fields.ArrayField(new fields.ObjectField()),
+
     // `null` health means intrinsically undamageable -- Pale Rider and the
     // Kagome Spirits -- which is why the field is nullable rather than 0.
     health: resourceField(0),

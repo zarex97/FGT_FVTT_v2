@@ -745,6 +745,18 @@ export function contributionsOf(actor) {
     activeRules: item.system?.activeRules ?? [],
   }));
 
+  // Rule elements authored directly on the unit -- a summon with no separate
+  // ability item to carry them (Bašmu's Normal Attack rider), or a
+  // Servant-level passive with no natural Item home (HGoB Construction's
+  // round-end regen). One pseudo-ability, always active, so it collects
+  // exactly like an ordinary passive class skill would.
+  if ((sys.rules?.length ?? 0) + (sys.passiveRules?.length ?? 0) + (sys.activeRules?.length ?? 0) > 0) {
+    abilities.push({
+      id: actor.id, name: actor.name, slug: "self", rank: null, active: true,
+      rules: sys.rules ?? [], passiveRules: sys.passiveRules ?? [], activeRules: sys.activeRules ?? [],
+    });
+  }
+
   // Effects on the actor carry rule elements too, and they are active by
   // definition -- an effect that is present is in force.
   for (const effect of actor.effects ?? []) {

@@ -1427,8 +1427,60 @@ much larger surface.
 
 ## Phase 8 — The Hanging Gardens of Babylon
 
-The largest remaining piece. Every engine primitive it needs (Tasks 4, 8, 9, 10, 12, 13, 14, 15,
-16) is already built by this point — this phase is close to pure content authoring plus wiring.
+The largest remaining piece. **Task 30 is done and fully live-verified**; Tasks 31-32 (the
+channel ability kind, the platform's own rewrite) remain — see the session log below for exactly
+which of Tasks 4/8/9/10/12/13/14/15/16 the survey this plan was written against had wrong.
+
+- **Task 30 (HGoB Construction, all six sources + the Region multiplier)** — done, committed. The
+  plan's own claims about existing infrastructure were wrong on both counts: `module/rules/
+  resources.mjs` does not exist (resources are a plain `{value, max}` object, already fully
+  served by Task 23's `ResourceDelta`), and "Gather" was NOT already routed in `budget.mjs` beyond
+  the bare `ActionKind` string and `poolFor`/`canConsume` cases — there was no actual Gather
+  ACTION anywhere.
+  - Sources 1-2 (the Region-based starting value, the summon-time "2d6 multiplied"): Foundry's own
+    Roll grammar evaluates `"1d6*1d6"` as two independent dice multiplied, needing no
+    `multiplyDice` primitive at all. Source 1 is not a roll and does not belong in the setup plan
+    (`rules/setup-rolls.mjs`); both are computed in `engine/summon.mjs`'s `sheetPatch`, which
+    gained a `warRegion` parameter, reusing `rules/environment.mjs`'s `regionsAdjacent` — a
+    generic helper that turned out to already exist (built earlier this session with this exact
+    consumer in mind, per its own doc comment) and only needed wiring.
+  - Sources 3 and 5 are ordinary `passiveRules` on Semiramis's own servant file — **which needed
+    two more real fixes**: (1) actor-level `passiveRules`/`rules`/`activeRules` were validated,
+    compiled, and read by NOTHING — `unitCommon()` never declared the schema fields,
+    `tools/lib/content.mjs`'s `actorSystem` allowlist never carried them, and
+    `rules/snapshot.mjs`'s `contributionsOf` only ever read `actor.items`. This is why Bašmu's OWN
+    `passiveRules` (Task 28, authored and validated two commits ago) were dead on arrival — now
+    fixed, collected as a pseudo-ability alongside a unit's real items. (2) `scheduler.mjs`'s
+    `fireEvent` only had an INCLUDE filter (`ofCategory`); source 5's "a non-Spell Skill... 
+    excluding Item Construction" needed two EXCLUDE filters at once (`excludeCategory`,
+    `excludeContentId`), plus a third (`excludeNP`) once live testing showed a Noble Phantasm use
+    also needs excluding — this game's own vocabulary keeps "Skill", "Spell" and "Noble Phantasm"
+    three distinct categories throughout the corpus, and `ctx.subject` only carried `isNP` as a
+    boolean, not a `kind` string `excludeNP` could otherwise read directly.
+  - Source 4 (Item Construction's own poison count) needed the SAME roll that decided the item
+    count, not a second independent one — `itemGrant`'s phase kind (`skill-use.mjs`) gained an
+    `alsoGrantsResource` field riding the one roll already made.
+  - Source 6 (Gather) is a genuinely new standalone action (`engine/gather.mjs`), not a rule
+    element authored on Semiramis — "any allied Unit" may perform it, which a granted-per-unit
+    ability would have modeled the hard way. Reuses the Move budget pool `rules/budget.mjs`
+    already generically routes `"gather"` through, and reuses the SAME two `turnState` fields an
+    ordinary Move and a spent Attack already write for "counts as a Move" and "cannot Attack the
+    same Turn," rather than a third bespoke flag.
+  - **Found and fixed along the way, systemic**: `ctx.board` was never populated for ANY handler
+    fired from a Turn or Round boundary (`endTurn`/`beginTurn`/`endRound`/`beginRound` receive
+    `board` as their own parameter and never merged it into the `ctx` they pass to `fireEvent`
+    internally) — affecting not just the Region multiplier here but `subjectOf`'s "master" subject
+    resolution for ANY handler firing from these four boundaries specifically (as opposed to
+    `attack.mjs`'s own boundaries, which already built `ctx.board` correctly). Fixed by merging
+    `board` into `ctx` once at the top of all four functions.
+  Verified: 20+ new tests across `summon-grants`/`snapshot`/`elements`/`engine`, full suite green
+  (2007 tests), `validate:content`/`lint` clean, and live in FGT_2026 end-to-end for all six
+  sources plus the Region multiplier together — summoning into a Middle-East war started
+  Construction at 35 (25 + a 2d6-multiplied 10); a Round-end tick added 8 (a rolled 4, doubled);
+  an ordinary Skill added 4 (2, doubled) while Item Construction's OWN use and a Noble Phantasm use
+  both correctly added nothing on their own; Item Construction's poison roll of 4 also added 8
+  (4, doubled) through the SAME roll; and Gather added 10 for Semiramis herself, 8 for her Master,
+  and 6 for an unrelated ally — every number exactly matching the sheet's stated amounts, doubled.
 
 ### Task 30: HGoB Construction resource
 

@@ -17,7 +17,7 @@
 
 import { INFINITE } from "../domain/enums.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
-import { endOfRoundHomeBase } from "../rules/environment.mjs";
+import { endOfRoundHomeBase, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { transferEffect, transferableFrom } from "../rules/effect-flow.mjs";
@@ -49,6 +49,12 @@ import { resourcePathFor } from "../domain/resources.mjs";
  * @returns {Intent[]}
  */
 export function endTurn(board, ctx) {
+  // `ctx.board` -- `subjectOf`'s "master" subject resolution and
+  // `regionScale`'s Region lookup both read it, and nothing set it: the
+  // scheduler-hooks.mjs callers build `ctx` without a `board` field and pass
+  // this function's own `board` parameter separately, so every handler fired
+  // from a Turn/Round boundary saw `ctx.board` as `undefined`.
+  ctx = { ...ctx, board };
   const units = board.units ?? [];
   /** @type {Intent[]} */
   const intents = [];
@@ -98,6 +104,7 @@ export function endTurn(board, ctx) {
  * @returns {Intent[]}
  */
 export function beginTurn(board, ctx) {
+  ctx = { ...ctx, board };
   const units = board.units ?? [];
   const mine = units.filter((u) => u.factionId === ctx.activeFactionId);
   /** @type {Intent[]} */
@@ -127,6 +134,7 @@ export function beginTurn(board, ctx) {
  * @returns {Intent[]}
  */
 export function endRound(board, ctx) {
+  ctx = { ...ctx, board };
   const units = board.units ?? [];
   /** @type {Intent[]} */
   const intents = [];
@@ -156,6 +164,7 @@ export function endRound(board, ctx) {
  * @returns {Intent[]}
  */
 export function beginRound(board, ctx) {
+  ctx = { ...ctx, board };
   const units = board.units ?? [];
   /** @type {Intent[]} */
   const intents = [I.log({ kind: "roundStart", round: ctx.round })];
@@ -199,6 +208,20 @@ export function fireEvent(event, units, ctx) {
       // every ability; a handler that names a category only wants to hear
       // about that family.
       if (handler.ofCategory && !handler.ofCategory.includes(ctx.subject?.category ?? null)) continue;
+
+      // The mirror: HGoB Construction source 5 (Ch. 32) is "a non-Spell
+      // Skill used, EXCLUDING Item Construction" -- two exclusions
+      // (category AND a specific ability), neither of which `ofCategory`'s
+      // include-list can express.
+      if (handler.excludeCategory?.includes(ctx.subject?.category ?? null)) continue;
+      if (handler.excludeContentId?.includes(ctx.subject?.contentId ?? null)) continue;
+      // "A non-Spell SKILL" is this game's own vocabulary for a category
+      // distinct from both Spells and Noble Phantasms (every other clause in
+      // the corpus keeps the three apart, e.g. Presence Concealment's "Active
+      // Skills ... does not include Attack Skills and Spells"), so a Noble
+      // Phantasm use is excluded the same way a Spell is, by its own flag
+      // rather than a `category` neither NPs nor ordinary Skills carry.
+      if (handler.excludeNP && ctx.subject?.isNP) continue;
 
       // Actions in one `then:` list see each other's effects. Mad Enhancement
       // drains its Master and then asks whether that Master is now at or below
@@ -432,11 +455,11 @@ const ACTIONS = Object.freeze({
     // shape every ResourceDelta shipped with before Semiramis's HGoB
     // Construction needed a rolled gain (Ch. 32 "1d4+2 per Turn"). A roll
     // that has not arrived yet writes nothing, same as `Heal`.
-    if (a.roll) {
-      const amount = rolled(a, c);
-      return amount === null ? [] : [I.resource(u.id, resourcePathFor(a.resource, u), amount)];
-    }
-    return [I.resource(u.id, resourcePathFor(a.resource, u), a.delta ?? 0)];
+    const raw = a.roll ? rolled(a, c) : (a.delta ?? 0);
+    if (raw === null) return [];
+    const amount = a.regionScaled ? regionScale(raw, a.regionScaled, c.board?.warRegion) : raw;
+    if (amount === 0) return [];
+    return [I.resource(u.id, resourcePathFor(a.resource, u), amount)];
   },
 
   /**
@@ -945,6 +968,27 @@ function isWeakTo(unit, defId) {
 /** @param {string} s @returns {string} */
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * HGoB Construction's Region multiplier (Ch. 32 §32.2): *"If the Grail
+ * War's Region is in a Middle East region, all Construction increases are
+ * doubled excluding effects 1 and 2; if directly next to a Middle East
+ * region, all Construction increases are increased by 2 excluding effects 1
+ * and 2."* Sources 1 (the starting value) and 2 (the summon-time roll) are
+ * excluded by construction — they are applied at `engine/summon.mjs`'s
+ * `sheetPatch`, never through a `ResourceDelta` action, so this is never
+ * asked about them.
+ *
+ * @param {number} amount
+ * @param {string} scaledRegion the region the scaling is centred on
+ * @param {string|null} warRegion
+ * @returns {number}
+ */
+export function regionScale(amount, scaledRegion, warRegion) {
+  if (warRegion === scaledRegion) return amount * 2;
+  if (warRegion && regionsAdjacent(warRegion, scaledRegion)) return amount + 2;
+  return amount;
 }
 
 /**

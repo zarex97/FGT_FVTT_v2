@@ -55,6 +55,20 @@ export function servantSetupPlan(sheet) {
         base: null,
         roll: { formula: "1d2", map: [sheet.summonVariant.heads?.id ?? null, sheet.summonVariant.tails?.id ?? null] },
       }] : []),
+      // HGoB Construction source 2 (Ch. 32): "roll 2 six-sided dice. The
+      // Construction is increased by X, where X = the number of both dice
+      // multiplied together." Foundry's own Roll grammar already evaluates
+      // "1d6*1d6" as two independent dice multiplied, so this needs no
+      // separate dice-multiplication primitive. Source 1 (the Region-based
+      // starting value) is NOT a roll and is added separately in
+      // `engine/summon.mjs`'s `sheetPatch`, which has `warRegion` in scope
+      // and this plan does not.
+      ...(sheet?.resources?.hgobConstruction ? [{
+        id: "hgobConstructionRoll",
+        label: "HGoB Construction (summon roll)",
+        base: 0,
+        roll: { formula: "1d6*1d6" },
+      }] : []),
       {
         id: "maxHealth",
         label: "Max Health",
