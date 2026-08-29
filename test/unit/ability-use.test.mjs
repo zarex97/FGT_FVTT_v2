@@ -57,6 +57,42 @@ describe("classifyAbility", () => {
     expect(classifyAbility(ability({ isSpell: true })).isAttack).toBe(true);
   });
 
+  it("routes a Spell with countsAsAttack: false away from the attack path", () => {
+    // EMIYA's Reinforcement and Tracing: `isSpell: true`, `countsAsAttack:
+    // false`, no `damage:` block, self-targeted. Left routed through the
+    // attack path (the old behaviour, `isAttack` never read the flag),
+    // `resolveAttack` ran a real Combat Process against whoever resolved --
+    // often the caster itself -- and `baseSpecFor`'s fallback then computed
+    // NORMAL ATTACK damage for an ability that authored none: EMIYA took 75
+    // self-damage from casting a buff spell that grants nothing but a Normal
+    // Attack bonus. Content's own `countsAsAttack: false` was always the
+    // signal that this ability is not attack-shaped; only the budget
+    // bookkeeping (`countsAsAttack()`, tested below) ever read it.
+    const reinforcement = ability({
+      isSpell: true, countsAsAttack: false,
+      targeting: { anchor: { kind: "self" } },
+      phases: [{ kind: "applyEffects", effects: [{ id: "nAtkUp" }] }],
+    });
+    const use = classifyAbility(reinforcement);
+    expect(use.isAttack).toBe(false);
+    expect(use.kind).toBe("active");
+
+    // An Attack Skill gets the same override.
+    expect(classifyAbility(ability({ isAttackSkill: true, countsAsAttack: false })).isAttack).toBe(false);
+
+    // A real Noble Phantasm is NEVER exempted, even with the flag set --
+    // "non-damaging NPs still cost the Attack" is a rule about NPs
+    // specifically, not something content can opt out of.
+    expect(classifyAbility(ability({ isNP: true, countsAsAttack: false })).isAttack).toBe(true);
+
+    // Nor is an ability with a REAL damage phase, regardless of the flag.
+    const contradictory = ability({
+      isSpell: true, countsAsAttack: false,
+      phases: [{ kind: "damage" }],
+    });
+    expect(classifyAbility(contradictory).isAttack).toBe(true);
+  });
+
   it("survives an item with no system data at all", () => {
     expect(classifyAbility(null).kind).toBe("passive");
     expect(classifyAbility({}).clickable).toBe(false);
@@ -91,6 +127,29 @@ describe("targetSpecFor", () => {
 
   it("targets the user for a mode", () => {
     expect(targetSpecFor(ability({ isMode: true }), 3).anchor.kind).toBe("self");
+  });
+
+  it("picks a targeting branch by the caster's own options, falling back to the base declaration", () => {
+    // Summoning: Bašmu: an enemy 3x3 AoE off her HGoB, a self anchor aboard it
+    // -- one document, two shapes that cannot be expressed as one spec.
+    const enemyAoE = { anchor: { kind: "withinRange" }, shape: { kind: "square", size: 3 } };
+    const selfAnchor = { anchor: { kind: "self" }, shape: { kind: "unit" } };
+    const basmuSpell = ability({
+      targeting: {
+        branches: [
+          { predicate: ["self:onPlatform:hanging-gardens-of-babylon"], ...selfAnchor },
+          { predicate: [{ not: "self:onPlatform:hanging-gardens-of-babylon" }], ...enemyAoE },
+        ],
+      },
+    });
+
+    const onPlatform = new Set(["self:onPlatform:hanging-gardens-of-babylon"]);
+    expect(targetSpecFor(basmuSpell, 2, onPlatform).anchor.kind).toBe("self");
+    expect(targetSpecFor(basmuSpell, 2, new Set()).anchor.kind).toBe("withinRange");
+    // No options supplied at all: falls through to the raw `targeting` block
+    // rather than throwing -- a caller with no board context still gets
+    // something back, even if it is not branch-selected.
+    expect(targetSpecFor(basmuSpell, 2)).toBe(basmuSpell.system.targeting);
   });
 });
 

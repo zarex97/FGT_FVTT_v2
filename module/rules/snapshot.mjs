@@ -84,6 +84,15 @@ export function snapshotUnit(actor, {
     contentId: sys.contentId ?? null,
     factionId: sys.factionId ?? null,
     faction: sys.factionId ?? null,
+    // Who conjured this unit, and whether it still counts as alive. Neither
+    // was ever projected: `system.defeated` has been read and written by
+    // `io.defeat`/`resolveDefeat` since they existed, but nothing in `rules/`
+    // could ask a unit's own SNAPSHOT whether it was defeated -- a defeat
+    // never removes the token, so "still on the board" is not "still alive".
+    // First real consumer: Bašmu's "only one summoned by this Spell can exist
+    // on the field" (`noAliveSummon` requirement, rules/items.mjs).
+    summonerId: sys.summonerId ?? null,
+    defeated: Boolean(sys.defeated),
 
     // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and
     // reading them as offsets made two adjacent tokens a hundred panels apart.

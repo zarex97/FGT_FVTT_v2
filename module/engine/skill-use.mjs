@@ -188,7 +188,7 @@ async function rollConcealmentBreak(actor, ability, self) {
  * @returns {{units: object[], errors: string[]}}
  */
 function resolveSkillTargets(ability, self, board, placement) {
-  const spec = targetSpecFor(ability, self.range?.panels ?? 1);
+  const spec = targetSpecFor(ability, self.range?.panels ?? 1, rollOptionsFor({ attacker: self }));
 
   // A skill that targets only its caster resolves to the caster **without
   // consulting geometry at all**. Running it through the targeting resolver
@@ -269,7 +269,15 @@ async function runPhases(ability, actor, targets, board, only = null) {
   // Self-only, like a rule element's own `predicate` (Ch. 24 §24.3) -- there
   // is no target and no attack here either, so a clause naming one belongs on
   // an `OnEvent` handler instead, not on a phase.
-  const selfOptions = rollOptionsFor({ attacker: unitSnapshot(actor) });
+  //
+  // The BOARD-derived unit, not a bare `unitSnapshot(actor)` -- `platformId`/
+  // `platformContentId` are stamped by `annotatePlatforms` during the full
+  // board projection (`self:onPlatform:` is in `DEFERRED_PREFIXES` for
+  // exactly this reason) and a bare snapshot never carries them, so
+  // `self:onPlatform:hanging-gardens-of-babylon` could never be true here.
+  // Found live authoring Summoning: Bašmu's summon-branch phase, which needs
+  // exactly that predicate. Same fallback `phaseTargets` (below) already uses.
+  const selfOptions = rollOptionsFor({ attacker: board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor) });
 
   for (const phase of effectivePhases(ability.system ?? {}, resolveSource)) {
     // "If this is NOT THE FIRST TIME EMIYA has used this Skill in this game,

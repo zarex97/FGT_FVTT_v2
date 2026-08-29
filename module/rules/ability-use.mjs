@@ -21,6 +21,8 @@
  * attack. Neither needs a target, and asking for one is a bug, not a rule.
  */
 
+import { test as testPredicate } from "./predicate.mjs";
+
 /**
  * @typedef {object} AbilityUse
  * @property {"attack"|"mode"|"active"|"passive"} kind
@@ -69,9 +71,25 @@ export function classifyAbility(item) {
   }
 
   // An attack is anything that resolves damage, plus every Noble Phantasm --
-  // including the non-damaging ones, which still cost the Servant's attack.
+  // including the non-damaging ones, which still cost the Servant's attack
+  // (a rule about NPs specifically, so `isNP`/`hasDamagePhase` are never
+  // overridden below).
+  //
+  // `countsAsAttack: false` (Ch. 15 §15.1) is content's own declaration that
+  // a Spell or Attack Skill is NOT attack-shaped, and used to only reach
+  // `engine/skill-use.mjs`'s budget bookkeeping -- this function's own
+  // `isAttack` (what the UI and `resolveAttack` route on) never read it, so
+  // EMIYA's Thaumaturgy: Reinforcement and Tracing -- both `isSpell: true`,
+  // `countsAsAttack: false`, no `damage:` block -- still opened a real Combat
+  // Process (against themselves, `selection: {relations: [self]}` resolves
+  // self as a legitimate defender) whose `baseSpecFor` fallback then computed
+  // NORMAL ATTACK damage for an ability that authored none. EMIYA took 75
+  // self-damage from casting a buff spell that grants nothing but a Normal
+  // Attack bonus, every time. Found live building Semiramis's Summoning:
+  // Bašmu, which needed the SAME override to work for its own summon branch.
   const hasDamagePhase = (sys.phases ?? []).some((p) => p.kind === "damage");
-  if (isNP || hasDamagePhase || sys.isAttackSkill === true || sys.isSpell === true) {
+  const declaredAttack = sys.isAttackSkill === true || sys.isSpell === true;
+  if (isNP || hasDamagePhase || (declaredAttack && sys.countsAsAttack !== false)) {
     return { kind: "attack", isAttack: true, clickable: true, toggles: false, action: "useAbility" };
   }
 
@@ -98,11 +116,29 @@ export function classifyAbility(item) {
  * then reported that it had no legal targets. Only an attack gets that default
  * now; anything else that failed to declare a target targets its user.
  *
+ * `targeting.branches` is for an ability whose targeting shape itself
+ * differs by which of its behaviours will fire -- Summoning: Bašmu is
+ * "Hits a 3x3 panel area" when not on her HGoB and "summons a Bašmu on a
+ * panel directly next to her" (a self anchor) when she is, and the two
+ * cannot share one static `targeting:` block the way `cooldown.branches`
+ * (`engine/cooldown.mjs`) and a phase's own `predicate:` already let its
+ * cooldown and its phases vary. First match wins; falls through to the
+ * plain `targeting` block when nothing matches or no `options` were given
+ * to test against (a caller with no board context, e.g. the canvas preview
+ * before a board exists, gets the ability's base declaration).
+ *
  * @param {object|null} item the ability, or `null` for a normal attack
  * @param {number} range the caster's Range in panels
+ * @param {Set<string>|null} [options] the caster's own roll options, for
+ *   `targeting.branches`'s predicate
  * @returns {object} a `TargetSpec`
  */
-export function targetSpecFor(item, range) {
+export function targetSpecFor(item, range, options = null) {
+  const branches = item?.system?.targeting?.branches;
+  if (branches?.length > 0 && options) {
+    const match = branches.find((b) => testPredicate(b.predicate, { options }));
+    if (match) return match;
+  }
   if (item?.system?.targeting) return item.system.targeting;
 
   const use = item ? classifyAbility(item) : { isAttack: true };

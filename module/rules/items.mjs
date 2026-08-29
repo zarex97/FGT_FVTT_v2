@@ -101,6 +101,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
+  "noAliveSummon",
 ]);
 
 /**
@@ -117,6 +118,25 @@ export const REQUIREMENT_KINDS = Object.freeze([
  * @returns {boolean}
  */
 export function meetsRequirement(req, ctx) {
+  // Scoped to ONE of an ability's several behaviours -- Summoning: Bašmu's
+  // own `noAliveSummon` only makes sense for its summon branch, and must not
+  // block the unrelated damage-spell branch just because a Bašmu happens to
+  // be alive. Vacuously satisfied when the gate does not apply, mirroring a
+  // phase's own `predicate:` (`engine/skill-use.mjs#runPhases`) and
+  // `cooldown.branches`/`targeting.branches`'s (`engine/cooldown.mjs`,
+  // `rules/ability-use.mjs#targetSpecFor`) first-match-wins shape -- this is
+  // the same "which behaviour is actually firing" question asked a fourth
+  // way, on the one thing among them that gates rather than selects.
+  //
+  // NOT for `kind: "predicate"` itself -- there, `req.predicate` IS the whole
+  // requirement, tested once below; reading it here too would make every
+  // `predicate` requirement whose condition is false vacuously PASS instead
+  // of refusing, which is the opposite of what it authors.
+  if (req.kind !== "predicate" && req.predicate
+    && typeof ctx.testPredicate === "function" && !ctx.testPredicate(req.predicate)) {
+    return true;
+  }
+
   const { unit, master, target, board, round } = ctx;
 
   switch (req.kind) {
@@ -243,6 +263,15 @@ export function meetsRequirement(req, ctx) {
       return typeof ctx.testPredicate === "function"
         ? Boolean(ctx.testPredicate(req.predicate))
         : false;
+
+    case "noAliveSummon":
+      // "Only one Bašmu summoned by this Spell can exist on the field."
+      // Keyed on `summonerId` (not just `contentId`) because a summon whose
+      // `summonerId` names someone else is a different Servant's copy of the
+      // same creature, which this clause has nothing to say about.
+      return !(board?.units ?? []).some(
+        (u) => u.contentId === req.contentId && u.summonerId === unit?.id && !u.defeated,
+      );
 
     default:
       // Unknown kinds refuse, which is the safe direction — and the reason

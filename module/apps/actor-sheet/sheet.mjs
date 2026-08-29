@@ -374,11 +374,12 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
  * @returns {Promise<object|null>}
  */
 async function pickPlacement(actor, ability) {
-  const [{ pickTarget }, { targetSpecForAttack }, { currentBoard, unitSnapshot }, preview] =
+  const [{ pickTarget }, { targetSpecForAttack }, { currentBoard, unitSnapshot }, { rollOptionsFor }, preview] =
     await Promise.all([
       import("../canvas/targeting-layer.mjs"),
       import("../../engine/attack.mjs"),
       import("../../engine/board.mjs"),
+      import("../../rules/options.mjs"),
       import("../../rules/preview.mjs"),
     ]);
 
@@ -387,7 +388,13 @@ async function pickPlacement(actor, ability) {
   const caster = unitSnapshot(actor);
   const board = currentBoard();
 
-  const spec = targetSpecForAttack(actor, ability);
+  // The board-derived unit, not `caster` above -- `targeting.branches`
+  // (Summoning: Bašmu) is tested against `self:onPlatform:`, which only the
+  // full board projection stamps (`annotatePlatforms`). Without this the
+  // targeting SESSION itself asked for an enemy AoE while aboard the HGoB,
+  // where the ability actually summons at her own panel.
+  const boardSelf = board.units.find((u) => u.id === actor.id) ?? caster;
+  const spec = targetSpecForAttack(actor, ability, rollOptionsFor({ attacker: boardSelf }));
   const isNP = ability?.type === "noblePhantasm";
 
   return pickTarget({

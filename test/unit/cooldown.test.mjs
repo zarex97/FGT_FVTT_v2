@@ -40,6 +40,39 @@ describe("a plain tick cooldown", () => {
   });
 });
 
+describe("a cooldown decided by which branch fired", () => {
+  // Summoning: Bašmu: "Cooldown: 2◈" for its damage-spell branch, "Cooldown:
+  // 4◈" for its summon branch (used within her Hanging Gardens).
+  const basmuSpell = ability({
+    cooldown: {
+      branches: [
+        { predicate: ["self:onPlatform:hanging-gardens-of-babylon"], max: "4◈" },
+        { predicate: [{ not: "self:onPlatform:hanging-gardens-of-babylon" }], max: "2◈" },
+      ],
+    },
+  });
+
+  it("picks the branch whose predicate matches the caster's own options", () => {
+    const onPlatform = { platformContentId: "hanging-gardens-of-babylon" };
+    expect(cooldownFor(basmuSpell, "semiramis", { unit: onPlatform }).cooldowns)
+      .toEqual([{ actorId: "semiramis", abilityId: "abil", ticks: 12 }]);
+
+    const grounded = {};
+    expect(cooldownFor(basmuSpell, "semiramis", { unit: grounded }).cooldowns)
+      .toEqual([{ actorId: "semiramis", abilityId: "abil", ticks: 6 }]);
+  });
+
+  it("falls back to an empty option set with no unit supplied -- the NOT-onPlatform branch still matches", () => {
+    expect(cooldownFor(basmuSpell, "semiramis").cooldowns)
+      .toEqual([{ actorId: "semiramis", abilityId: "abil", ticks: 6 }]);
+  });
+
+  it("produces nothing when a branch matches but authors no max", () => {
+    const noMax = ability({ cooldown: { branches: [{ predicate: [] }] } });
+    expect(cooldownFor(noMax, "semiramis", { unit: {} }).cooldowns).toEqual([]);
+  });
+});
+
 describe("a resource waiver", () => {
   const runeSpell = ability({
     cooldown: { max: "3◈" },

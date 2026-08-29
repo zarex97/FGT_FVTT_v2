@@ -1,28 +1,40 @@
-# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 87-90
+# Semiramis, char_orig_sheets/Copia de Semiramis.md, lines 87-105
 #
-# Only clause 1 (the damage-spell branch, used when NOT within the HGoB) is
-# authored here. Clause 2 (summon a Bašmu, used WITHIN the HGoB) is deferred
-# to Phase 8 along with the platform it needs to exist at all -- and unlike
-# Double Summon's two phases, the two clauses here carry DIFFERENT cooldowns
-# (2◈ vs 4◈, line 105), which needs a real design decision (a computed
-# cooldown keyed on which branch actually fired, the same shape Medea's
-# Dragon Tooth Warriors' `countFrom: summonCount` already is) rather than a
-# half-built guess now.
+# Both clauses. Clause 1 (the damage-spell branch, used when NOT within the
+# HGoB) was authored and live-tested first, since Bašmu and the platform did
+# not exist yet; clause 2 (summon a Bašmu, used WITHIN the HGoB) needed the
+# platform to exist to test at all, and needed three real engine additions
+# to work correctly once it did:
 #
-# "Can only be used when Semiramis has the 'Double Summon: Caster' Skill" --
-# true whether that is her PERMANENT variant or her temporary DSC buff
-# (Double Summon's own third clause), so the gate is `anyOf` over both rather
-# than `self:variant:dsc` alone.
+# - `targeting.branches` (rules/ability-use.mjs#targetSpecFor) and
+#   `cooldown.branches` (engine/cooldown.mjs#cooldownFor): the two clauses
+#   share one ability document but need DIFFERENT targeting shapes (an enemy
+#   3x3 AoE vs. a self anchor) and DIFFERENT cooldowns (2◈ vs 4◈, line 105),
+#   picked by the same `self:onPlatform:hanging-gardens-of-babylon` predicate
+#   that already gates the phases below.
+# - `damage.branches` (engine/attack.mjs#resolvedDamage): `isSpell: true`
+#   always resolves through the ATTACK path (`classifyAbility`), which always
+#   runs a real Combat Process against whoever the targeting resolves --
+#   herself, for the summon branch (`selection: {relations: [self]}` resolves
+#   self as a legitimate defender, not an empty target list). Without a
+#   damage override for that branch, the Combat Process's damage stage still
+#   runs and computes her own Base Attack against herself as a fallback.
+#   Found live: this is the SAME defect `classifyAbility`'s `countsAsAttack:
+#   false` fix (rules/ability-use.mjs) closed for EMIYA's Reinforcement and
+#   Tracing, except this ability genuinely IS meant to cost her Attack on
+#   both branches ("Counts as her Attack for the Turn"), so it cannot be
+#   rerouted away from the attack path the way theirs were -- it has to deal
+#   `{fixed: true, base: {fixedValue: 0}}` instead.
+# - `noAliveSummon`, scoped to the summon branch only via its own `predicate`
+#   (rules/items.mjs#meetsRequirement) -- "Only one Bašmu summoned by this
+#   Spell can exist on the field," which must not block the unrelated
+#   damage-spell branch just because a Bašmu happens to be alive.
 schema: 1
 id: semiramis-summoning-basmu
 name: "Summoning: Bašmu"
 rank: null
 isSpell: true
 category: spell
-cooldown: "2◈"
-timing: { window: ownTurn }
-requirements:
-  - { kind: predicate, predicate: [{ anyOf: ["self:variant:dsc", "self:effect:dscBuff"] }] }
 description: |
   Spell. Can only be used when Semiramis has the 'Double Summon: Caster' Skill. Has different
   effects depending on whether Semiramis is within her 'Hanging Gardens of Babylon' or not.
@@ -30,17 +42,49 @@ description: |
      for 25% extra damage and inflicts Poison. Cooldown: 2◈ Turns.
   2. If used when within her HGoB: Semiramis summons a Bašmu on a panel directly next to her.
      Counts as her Attack for the Turn. Cooldown: 4◈ Turns.
+timing: { window: ownTurn }
+requirements:
+  - { kind: predicate, predicate: [{ anyOf: ["self:variant:dsc", "self:effect:dscBuff"] }] }
+  - kind: noAliveSummon
+    contentId: basmu
+    predicate: ["self:onPlatform:hanging-gardens-of-babylon"]
+cooldown:
+  branches:
+    - { predicate: ["self:onPlatform:hanging-gardens-of-babylon"], max: "4◈" }
+    - { predicate: [{ not: "self:onPlatform:hanging-gardens-of-babylon" }], max: "2◈" }
 targeting:
-  anchor: { kind: withinRange, metric: chebyshev }
-  shape: { kind: square, size: 3 }
-  selection: { relations: [enemy], chooser: all }
+  branches:
+    - predicate: ["self:onPlatform:hanging-gardens-of-babylon"]
+      anchor: { kind: self }
+      shape: { kind: unit }
+      selection: { relations: [self], includeSelf: true, chooser: all }
+    - predicate: [{ not: "self:onPlatform:hanging-gardens-of-babylon" }]
+      anchor: { kind: withinRange, metric: chebyshev }
+      shape: { kind: square, size: 3 }
+      selection: { relations: [enemy], chooser: all }
 damage:
-  multiplier: 1.25
-  component: mag
+  branches:
+    - predicate: ["self:onPlatform:hanging-gardens-of-babylon"]
+      fixed: true
+      base: { fixedValue: 0 }
+    - predicate: [{ not: "self:onPlatform:hanging-gardens-of-babylon" }]
+      multiplier: 1.25
+      component: mag
 phases:
   - kind: damage
     target: reuse
+    predicate: [{ not: "self:onPlatform:hanging-gardens-of-babylon" }]
   - kind: applyEffects
     target: reuse
+    predicate: [{ not: "self:onPlatform:hanging-gardens-of-babylon" }]
     effects:
       - { id: poison }
+  - kind: summon
+    predicate: ["self:onPlatform:hanging-gardens-of-babylon"]
+    spec:
+      countRoll: "1"
+      typeRoll: "1"
+      types: { "1": basmu }
+      # "On a panel directly next to her" -- Chebyshev radius 1, which
+      # `freePanels` (engine/summoning.mjs) derives from `floor(size / 2)`.
+      placement: { size: 3 }

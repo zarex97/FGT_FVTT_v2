@@ -17,6 +17,8 @@
 
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { canSpend, resourcePath } from "../domain/resources.mjs";
+import { rollOptionsFor } from "../rules/options.mjs";
+import { test as testPredicate } from "../rules/predicate.mjs";
 
 /**
  * The cooldown a use produces, and what paying to avoid it costs.
@@ -64,6 +66,26 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
   if (cd.perUnit) {
     const ticks = Math.ceil(fractionOfRound(cd.perUnit) * turnsPerRound() * count);
     return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
+  }
+
+  // A cooldown decided by WHICH BEHAVIOUR fired, not by a count: Summoning:
+  // Bašmu is "Cooldown: 2◈" for its damage-spell branch and "Cooldown: 4◈"
+  // for its summon branch, and the two share one ability document. Tested
+  // against the SAME predicate grammar `runPhases`'s own phase-level
+  // `predicate:` uses, against the caster's board-derived options -- so a
+  // branch's cooldown and the condition that ran it can never disagree.
+  // First match wins, matching how phase predicates are read in order.
+  if (cd.branches) {
+    const options = unit ? rollOptionsFor({ attacker: unit }) : new Set();
+    const branch = cd.branches.find((b) => testPredicate(b.predicate, { options }));
+    if (!branch?.max) return { cooldowns: [], spends: [] };
+    try {
+      const ticks = resolveTicks(parseTick(String(branch.max)), { turnsPerRound: turnsPerRound() });
+      return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
+    } catch (err) {
+      console.warn(`FGT | ${ability.name} has an unreadable branch cooldown "${branch.max}": ${err.message}`);
+      return { cooldowns: [], spends: [] };
+    }
   }
 
   if (!cd.max) return { cooldowns: [], spends: [] };
