@@ -26,6 +26,9 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { applyWorldIntents } from "./applier.mjs";
+import { platformCentre } from "../rules/platforms.mjs";
+import { rollOptionsFor } from "../rules/options.mjs";
+import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 
 /**
@@ -45,11 +48,39 @@ export async function createField(ability, actor, board = null) {
   const self = (snapshot.units ?? []).find((u) => u.id === actor.id);
   if (!self?.panel) return null;
 
+  // Sikera Ušum: the area rules (interior a-e) are the same regardless of
+  // which of Semiramis's two variants cast it, but the SHAPE is not -- a 5x5
+  // that follows her for 2◈ Turns off her Hanging Gardens, the fixed 5x5
+  // Throne Room for 3◈ Turns aboard it. `branches` overrides just the two
+  // axes that differ, selected the same way `damage.branches`/
+  // `targeting.branches`/`cooldown.branches` (engine/attack.mjs,
+  // rules/ability-use.mjs, engine/cooldown.mjs) pick between an ability's
+  // several behaviours -- first match wins, falling back to the base
+  // `geometry`/`duration` when nothing matches or there are no branches.
+  const options = rollOptionsFor({ attacker: self });
+  const branch = (spec.branches ?? []).find((b) => testPredicate(b.predicate, { options }));
+  const specGeometry = branch?.geometry ?? spec.geometry;
+  const specDuration = branch?.duration ?? spec.duration;
+  // "All Units within the Throne Room... cannot leave it" is stated only for
+  // Sikera Ušum's Throne-Room branch, not its 5x5-follows-her one -- a
+  // per-branch override, same as geometry/duration, rather than a blanket
+  // membership rule every field caster would otherwise inherit.
+  const specMembership = branch?.membership ?? spec.membership;
+
   // The anchor is stamped at cast time even for a `followsUnit` geometry, so a
   // field whose anchor is later defeated still knows where it was — and a
   // `fixedArea` one does not silently follow its caster, which is the
   // difference between a Reality Marble and a Labyrinth.
-  const geometry = { ...(spec.geometry ?? {}), anchor: { ...self.panel } };
+  //
+  // `anchorRef: "platform"` overrides the default (the caster's own panel)
+  // with the platform's geometric centre -- Sikera Ušum's Throne-Room branch
+  // is "the Throne Room", a named place fixed to the Hanging Gardens itself,
+  // not wherever aboard it she happens to be standing when she casts.
+  const platform = self.platformId ? (snapshot.units ?? []).find((u) => u.id === self.platformId) : null;
+  const anchor = specGeometry?.anchorRef === "platform"
+    ? (platformCentre(platform) ?? self.panel)
+    : self.panel;
+  const geometry = { ...(specGeometry ?? {}), anchor: { ...anchor } };
   const field = {
     // `fieldId`, which is what `NPFieldBehavior` declares and what
     // `boundedFieldsOf` reads back. Written as `id`, the behaviour failed
@@ -62,18 +93,18 @@ export async function createField(ability, actor, board = null) {
     ownerFaction: self.faction ?? null,
     npTags: [...(ability.system?.npTags ?? [])],
     geometry,
-    membership: spec.membership ?? null,
+    membership: specMembership ?? null,
     isolation: spec.isolation ?? null,
     interior: spec.interior ?? [],
     interiorEvents: spec.interiorEvents ?? [],
     extension: spec.extension ?? null,
     vulnerabilities: spec.vulnerabilities ?? [],
     onEnd: spec.onEnd ?? [],
-    duration: spec.duration ?? null,
+    duration: specDuration ?? null,
     // Absolute, like every other duration in the system (§7.5): a countdown
     // would have to be decremented by a hook that can fail to fire, and an
     // absolute expiry cannot.
-    expiry: expiryOf(spec.duration),
+    expiry: expiryOf(specDuration),
     state: { escapeHistory: {} },
   };
 
@@ -83,6 +114,16 @@ export async function createField(ability, actor, board = null) {
   const runtime = { ...field, id: field.fieldId, ownerId: actor.id };
   const panels = panelsOf(runtime, snapshot);
   if (panels.length === 0) return null;
+
+  // The membership snapshot itself, taken at the same moment the panels are
+  // -- "Units within the Throne Room WHEN THE NP WAS ACTIVATED", not
+  // whoever happens to be standing there the instant something asks.
+  if (specMembership?.trappedAtActivation) {
+    const panelKeys = new Set(panels.map((p) => `${p.i},${p.j}`));
+    field.state.trappedUnitIds = (snapshot.units ?? [])
+      .filter((u) => u.panel && panelKeys.has(`${u.panel.i},${u.panel.j}`))
+      .map((u) => u.id);
+  }
 
   const existing = scene.regions?.find((r) =>
     r.behaviors?.some((b) => b.type === "npField" && b.system?.fieldId === field.fieldId));

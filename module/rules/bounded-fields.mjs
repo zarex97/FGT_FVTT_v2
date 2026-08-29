@@ -184,8 +184,21 @@ function relationTo(field, unit, board) {
  * @returns {{ok: boolean, reason?: string}}
  */
 export function membershipVerdict(field, unit, direction, board) {
-  const relation = relationTo(field, unit, board);
   const rules = field.membership ?? {};
+
+  // Sikera Ušum's Throne-Room branch: "all Units within the Throne Room WHEN
+  // THE NP WAS ACTIVATED cannot leave it" -- a snapshot at creation, not a
+  // standing rule that would also trap a Unit who wanders in and straight
+  // back out later. `trappedUnitIds` is stamped once, at creation
+  // (`engine/fields.mjs#createField`), and this policy is keyed on THAT
+  // membership rather than the live ally/enemy split every other field uses.
+  if (rules.trappedAtActivation && direction === "exit") {
+    return (field.state?.trappedUnitIds ?? []).includes(unit?.id)
+      ? { ok: false, reason: "trappedAtActivation" }
+      : { ok: true };
+  }
+
+  const relation = relationTo(field, unit, board);
   const key = `${relation === "ally" ? "ally" : "enemy"}${direction === "enter" ? "Entry" : "Exit"}`;
   const policy = rules[key] ?? "free";
 

@@ -131,6 +131,41 @@ describe("membership", () => {
     expect(membershipVerdict(ubw, outside({ faction: "b" }), "enter", board))
       .toMatchObject({ ok: false, reason: "forbidden" });
   });
+
+  describe("trappedAtActivation — Sikera Ušum's Throne Room", () => {
+    const throneRoom = labyrinth({
+      ownerFaction: "a",
+      membership: { allyExit: "sealed", enemyExit: "sealed", trappedAtActivation: true },
+      state: { escapeHistory: {}, trappedUnitIds: ["present"] },
+    });
+
+    it("refuses exit for a unit that was inside when the field activated", () => {
+      expect(membershipVerdict(throneRoom, { id: "present" }, "exit", board))
+        .toMatchObject({ ok: false, reason: "trappedAtActivation" });
+    });
+
+    it("lets a unit who was NOT there at activation leave freely, even standing inside now", () => {
+      // "Units within the Throne Room WHEN THE NP WAS ACTIVATED" is a
+      // snapshot, not a standing rule -- someone who wanders in later and
+      // straight back out is not caught by it.
+      expect(membershipVerdict(throneRoom, { id: "latecomer" }, "exit", board))
+        .toMatchObject({ ok: true });
+    });
+
+    it("never gates entry — only leaving is restricted", () => {
+      expect(membershipVerdict(throneRoom, { id: "anyone" }, "enter", board)).toMatchObject({ ok: true });
+    });
+
+    it("ignores the plain allyExit/enemyExit values once trappedAtActivation is set", () => {
+      // Both keys are "sealed", an unrecognised policy string that would
+      // otherwise refuse everyone — trappedAtActivation must take over
+      // before that fallback is ever consulted.
+      expect(membershipVerdict(throneRoom, { id: "present" }, "exit", board).reason)
+        .toBe("trappedAtActivation");
+      expect(membershipVerdict(throneRoom, { id: "present" }, "exit", board).reason)
+        .not.toBe("sealed");
+    });
+  });
 });
 
 /* ── The Labyrinth escape ladder ──────────────────────────────────────────── */
