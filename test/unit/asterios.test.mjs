@@ -10,6 +10,9 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { parse } from "yaml";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
@@ -17,6 +20,15 @@ import { classifyAbility } from "../../module/rules/ability-use.mjs";
 import { abilitiesAtWindow } from "../../module/rules/reactions.mjs";
 import { regionSizedShape } from "../../module/engine/fields.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+
+/** @param {string} dir @returns {string[]} */
+function ymlUnder(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const path = join(dir, e.name);
+    if (e.isDirectory()) return ymlUnder(path);
+    return e.name.endsWith(".yml") ? [path] : [];
+  });
+}
 
 /** Mad Enhancement at Rank B, exactly as `class-skills/mad-enhancement.yml` authors it. */
 function madEnhancement(rank = "B") {
@@ -247,6 +259,53 @@ describe("Chaos Labyrinthos — the Region clause", () => {
   it("leaves a shape it cannot size alone rather than guessing", () => {
     const line = { shape: { kind: "line", length: 5 }, regionSizeOverride: { greece: 11 } };
     expect(regionSizedShape(line, "greece")).toMatchObject({ kind: "line", length: 5 });
+  });
+});
+
+describe("a non-damaging Noble Phantasm", () => {
+  // Every NP goes through `resolveAttack` -- a non-damaging one still costs the
+  // Servant its Attack -- and the Combat Process always runs its damage stage,
+  // where `baseSpecFor` falls back to the caster's NORMAL ATTACK when there is
+  // no `damage:` block. So five authored Noble Phantasms that hit nobody dealt
+  // their caster's full Base Attack: Chaos Labyrinthos (measured live at 203),
+  // Unlimited Blade Works, Rho Aias, the Hanging Gardens and Sikera Ušum.
+  //
+  // A static guard, because the fix is in `engine/attack.mjs` and that needs a
+  // world. What can be held here is the CONTENT invariant the fix relies on:
+  // an ability that means "no damage" says so by declaring phases and not
+  // declaring a damage one.
+  const docs = ymlUnder("packs/_source/abilities")
+    .map((path) => ({ path, doc: parse(readFileSync(path, "utf8")) }));
+
+  it("is recognisable from its phases alone", () => {
+    const nonDamaging = docs.filter(({ doc }) =>
+      doc?.isNP && !doc.isPassive && !doc.damage
+      && (doc.phases ?? []).length > 0
+      && !(doc.phases ?? []).some((p) => p.kind === "damage"));
+
+    // The five. If a sixth is authored it lands here, which is the point: the
+    // engine rule keys on exactly this shape.
+    expect(nonDamaging.map(({ doc }) => doc.id).sort()).toEqual([
+      "asterios-chaos-labyrinthos",
+      "emiya-rho-aias",
+      "emiya-unlimited-blade-works",
+      "semiramis-hanging-gardens-of-babylon",
+      "semiramis-sikera-usum",
+    ]);
+  });
+
+  it("never leaves a damaging NP without a way to compute its base", () => {
+    // The mirror. An NP with a `damage` phase must either declare a `damage:`
+    // block or be content to use its caster's Normal Attack -- both legitimate,
+    // but a `damage` phase AND a `fixed: true` block with no value would be a
+    // Noble Phantasm that silently deals nothing.
+    const broken = docs.filter(({ doc }) =>
+      (doc?.phases ?? []).some((p) => p.kind === "damage")
+      && doc.damage?.fixed === true
+      && doc.damage?.base?.fixedValue === undefined
+      && !doc.damage?.branches);
+
+    expect(broken.map(({ path }) => path)).toEqual([]);
   });
 });
 

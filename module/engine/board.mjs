@@ -209,7 +209,22 @@ export function currentBoard(overrides = {}) {
       terrain: { areas: terrainAreasOf(scene) },
       // The war's Region and the Grail live on the match: chosen once at
       // setup, and read by every Servant from that region thereafter.
-      warRegion: combat?.system?.region ?? null,
+      //
+      // Falling back to the WORLD SETTING, which is where a Region is actually
+      // chosen. `MatchData.region` is declared on the schema and **nothing in
+      // this system has ever written it** -- no setup flow, no sheet, no API --
+      // while `fgt.region` is a registered setting the GM sets and which
+      // `engine/summon.mjs` already reads. So `warRegion` was permanently
+      // `null` in every world, and everything keyed on it was inert:
+      // `annotateRegionBonus` (§5.6's Region Parameter grants, a core rule),
+      // `regionScale` (the Hanging Gardens' Construction multiplier) and
+      // Asterios's *"if the Region is Greece, it affects an 11x11 panel area
+      // instead"*.
+      //
+      // The match field stays first because a per-match override is the right
+      // shape once something writes one; the setting is the default rather than
+      // a replacement.
+      warRegion: combat?.system?.region || setting("region", null) || null,
       difficulty: combat?.system?.difficulty ?? "intermediate",
       grail: {
         threshold: combat?.system?.grailThreshold ?? 9,

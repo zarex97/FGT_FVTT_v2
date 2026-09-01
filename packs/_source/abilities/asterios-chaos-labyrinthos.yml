@@ -40,6 +40,15 @@ targeting:
   # the caster despite him not being in this list.
   selection: { relations: [enemy], chooser: all, includeSelf: false }
   limits: { requiresZon: true }
+# "(Non-damaging)" is the first word of the sheet's description, and it needs no
+# `damage:` block to say so: an ability with phases and no `damage` phase deals
+# no damage (`engine/attack.mjs#dealsNoDamage`).
+#
+# It did not used to. Every Noble Phantasm resolves through `resolveAttack` and
+# the Combat Process always runs its damage stage, so `baseSpecFor` fell back to
+# the caster's NORMAL ATTACK -- opening the Labyrinth dealt Asterios's full
+# BA(STR) 170 plus a crit roll. Measured live at 203. Four other authored Noble
+# Phantasms had the same hole.
 field:
   # Axis 1 -- geometry. Anchored where it was cast; it does not follow Asterios.
   geometry:
