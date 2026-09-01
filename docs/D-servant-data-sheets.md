@@ -278,18 +278,18 @@ Discussed: Ch. 36 §36.1.
 
 | Ability | Type | Mapping |
 |---|---|---|
-| Fated Rivals of the Mahabharata | Passive | RE (`ForceTarget` on a named unit; CS-negatable) |
+| Fated Rivals of the Mahabharata | Passive | RE (`Compulsion` with `target:contentId:arjuna`; CS-negatable). **Inert by design** — Arjuna is not in the reference set (§36.1). |
 | Magic Resistance (C) | Class, passive | RE |
 | Riding (A) | Class | RE (MOV +5, 3 passives) |
 | Divinity (A) | Passive | RE (+50 flat) |
 | Discernment of the Poor (A) | Active | RE (NP Seal + Debuff ResDwn 50%) |
 | Uncrowned Arms Mastership (−) | Passive toggle | RE (crit +20% **or** crit damage +40%; switchable once per Round) |
 | End of Charity (−) | Active | RE (`Charity` buff enabling **both** UAM effects; ally `S.Crit Up`; a choice of NP cooldown reduction) |
-| Mana Burst (Flames) (A) | Passive + `whenAttacking` | RE (25% Burn on normals; Burn immunity; Fire damage taken −50%; combined BA; MR exemption) |
+| Mana Burst (Flames) (A) | Passive + **Attack Skill** | RE (25% Burn on normals; Burn immunity; Fire damage taken −50% via `attack:element:fire`; combined BA 325; MR exemption). Not a `modifyAttack` phase — see Ch. 15 §15.3. |
 | Flash of the Sun God (EX) | Active | RE (Agility +3, Atk Up, NP DmUp) |
-| Brahmastra (A+, NP) | Damaging NP | RE (the five-parameter comparison predicate; Aim) |
+| Brahmastra (A+, NP) | Damaging NP | RE (`damage.branches` on the five-Parameter comparison, via `target:paramVsSelf:`; Aim) |
 | Kavacha and Kundala (A, NP) | **Passive NP** | RE (−90% damage taken; Master upkeep with floor 1; lost on Vasavi activation) |
-| Vasavi Shakti (EX, NP) | Multi-mode NP | **RE+** `modes` on an ability; permanent activation status |
+| Vasavi Shakti (EX, NP) | **Two documents** | A free non-NP activation Skill (`maxUses: 1`) applying a permanent status, plus the NP gated on it. `modes:` was **not** built — an `isNP` document cannot be free (§36.1). |
 | Brahmastra Kundala (A+, NP) | AoE NP | RE (7×7 within Range 5; combined BA; `alsoTriggers` Mana Burst's cooldown) |
 
 **Exercises:** four Noble Phantasms on one Servant, passive NPs, permanent one-way activation,
@@ -298,6 +298,12 @@ toggleable passives, cost superseding, the most complex predicate in the set.
 
 **Note:** Karna has the most abilities of any reference Servant (13) and the most Noble
 Phantasms (4). He is the practical benchmark for SC-6's "author a Servant in under an hour".
+
+> **Status: complete.** All thirteen resolve end to end in a live world, verified individually.
+> Six clauses could not be written at all before this pass and each was closed with a general
+> mechanism (Ch. 45, "Asterios and Karna"). One known simplification: *Mana Burst (Flames)*'s
+> `Fire Damage (half)` is Fire *entirely*, because `ctx.attack.element` is a single value
+> (Ch. 13 §13.9).
 
 ---
 
@@ -1139,6 +1145,20 @@ extension that also re-applies debuffs.
 largest *rules* surface per ability. Chaos Labyrinthos alone has ten numbered clauses. Ability
 count is not a proxy for conversion cost, which is why Chapter 37's content-pipeline estimates
 are per-clause rather than per-ability.
+
+> **Status: complete.** All five resolve end to end in a live world, verified individually.
+>
+> He is the sharpest illustration in the project that *authored* and *working* are different
+> states. All five abilities were on disk, validating and compiling, while **six of their clauses
+> had no reader at all** — *Monstrous Strength* could not be switched on by anything, the
+> Labyrinth was never opened (no `createField` phase), its anchor kind made the Noble Phantasm
+> *throw*, its cooldown started at the wrong end, its debuffs hit his own team, and the Greece
+> footprint above had no reader anywhere in the system. Ability count is not a proxy for
+> conversion cost, and *file exists* is not a proxy for either.
+>
+> Mad Enhancement's row above is now accurate. It was not: the 20% figure against Noble Phantasms
+> was being applied as 40%, the MAG halving was not implemented, and the drain floor was 30
+> rather than 20 at every rank below EX.
 
 ---
 

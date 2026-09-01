@@ -37,6 +37,59 @@ patterns are now established.
 
 ## 36.1 Karna — layered Noble Phantasms and permanent activation
 
+> **Implemented, and `modes:` was not built.** All thirteen abilities resolve end to end in a
+> live world, verified individually. Four were authored before this pass and the four included
+> neither of the two that define him.
+>
+> **DECISION — Vasavi Shakti is two documents, not a `modes:` block.** The `modes:` schema this
+> section sketches below was never built, and the reason is concrete rather than aesthetic: an
+> `isNP: true` document **cannot be free**. `npCost` prices every Noble Phantasm off
+> `npCostByRank`, and `canUseAbility` *refuses the use outright* when the Master cannot pay — so
+> an EX-rank activation would have been gated behind 75 Master Health that the sheet explicitly
+> says it does not cost. So `karna-vasavi-shakti-activation` is a free, non-NP Skill with
+> `maxUses: 1`, and `karna-vasavi-shakti` is the Noble Phantasm, gated on the status the first
+> applies.
+>
+> The branch machinery that arrived later for Semiramis's *Summoning: Bašmu* —
+> `targeting.branches`, `damage.branches`, `cooldown.branches`, per-phase `predicate:` — covers
+> every case `modes:` was invented for, and this one is not a branch at all: it is a separate,
+> free, one-way action. Two buttons is also the honest presentation of a decision that
+> permanently deletes his best defensive clause. Nemo's Zero Sail and the HGoB build-vs-use, the
+> two other cases this section cites for `modes:`, are both branch-shaped and already built that
+> way.
+>
+> **`vasaviActivated`'s clause 1 is expressed from the other side.** *"Kavacha and Kundala's
+> effect is permanently lost"* is `negatedBy: [vasaviActivated]` on the Noble Phantasm itself, so
+> the −90% **stops contributing** rather than being cancelled out by a +90% that would show in
+> every damage breakdown and fight with anything else touching the same bucket. That is what
+> forced `negatedBy` to be honoured for passive contributions at all (§15.4).
+>
+> **Clause 3's Divinity ladder is six predicated elements, not a rank table.** *"For every Rank
+> in Divinity the DU has, damage dealt is increased by 30 (e.g. Divinity Rank C, +90)"* is keyed
+> on the **defender's** Divinity, and `table:` on a rule element resolves against the **owning
+> ability's** rank — an effect-borne rule has no rank at all, so a table would look up `null`.
+> Six +30s gated on `target:skillRank:divinity:gte:<grade>` reproduce the sheet's own arithmetic
+> by counting grades: a Divinity C defender satisfies `gte:E`, `gte:D` and `gte:C`, and collects
+> 90. Measured live against the authored roster — Semiramis (C) 90, Penthesilea (B) 120,
+> Heracles (A) 150, all on top of Karna's own Divinity A +50.
+>
+> **Brahmastra's comparison needed a new roll option**, and the reason is in Ch. 24 §24.4: the
+> existing `rank:gte:` ladder is grade-coarse, so *"equal or lower"* written against it hands the
+> 4× branch to a `B+` defender against Karna's `B`. Measured live, the `+` step decides three of
+> six matchups on the authored roster.
+>
+> **Note 2 is not `supersedes`.** *"His Master's Health loss from him using the NP overwrites the
+> 20 Health loss from when Karna would normally Act/Attack"* looks like §15.4's cost
+> supersession, and §15.4 cites it as such — but `resolveCosts` resolves a set of costs against
+> each other *at the moment an ability is used*, and this 20 is a standing upkeep that falls due
+> at the end of a Turn. `unlessUsedThisTurn` on the handler asks the Turn record instead
+> (Ch. 24 §24.3, Group 5).
+>
+> `Fated Rivals` is authored and **inert by design**: Arjuna is not in the reference set. The
+> DECISION below — that a cross-Servant reference resolves by a stable id and warns rather than
+> erroring — is now backed by a `target:contentId:` roll option, which nothing emitted before.
+
+
 **The demand: an NP whose activation permanently rewrites the Servant.**
 
 `Vasavi Shakti` has an `(Passive/Activation)` clause distinct from its `(Active)` use:

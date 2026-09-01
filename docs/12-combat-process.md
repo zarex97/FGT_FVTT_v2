@@ -46,6 +46,29 @@ State that resets per **Phase**:
   Process, actually. Worth noting the source uses both boundaries and they must be read
   literally each time.
 
+**Both boundaries now fire.** `combatPhaseEnd` was raised for EMIYA's Aria; `combatProcessEnd`
+had been listed in Appendix E since that reference was written and **nothing ever raised it**, so
+a clause priced per Process had no trigger.
+
+Karna is why it matters, and he states both scales himself:
+
+| Clause | Boundary |
+|---|---|
+| *Kavacha and Kundala*: Master loses 20 *"at the end of every **Turn** that Karna is involved in a Combat Phase"* | per Turn |
+| *Vasavi Shakti*: Master loses 20 *"at the end of every **Combat Process** Karna is involved in"* | per Process |
+
+A Noble Phantasm over seven Units is one Phase containing seven Processes, so trading the armour
+away multiplies the bill — that escalation is the price the sheet is describing, and collapsing
+the two boundaries would erase it.
+
+> **A known narrowing.** *Kavacha and Kundala*'s per-Turn charge is fired from `actedTurnEnd`,
+> which fires once per Turn for every Unit that **Acted**, on any faction. *"Involved in a Combat
+> Phase"* also covers being attacked on somebody else's Turn without acting, which that event does
+> not see. The sheet's own Note 2 is the tie-breaker: it re-describes this exact charge as *"from
+> when Karna would normally Act/Attack"*. The alternative — firing on `combatPhaseEnd` — is per
+> *Phase* and would charge him twice on a Turn where he attacks and is countered, which *"at the
+> end of every Turn"* excludes.
+
 ---
 
 ## 12.2 The step list
@@ -369,7 +392,8 @@ on them:
 ```
 DAMAGE STEP
  ├── onDamageStepStart
- │     • Kingprotea's Monstrous Strength (used at the start of a Damage Step)
+ │     • the ATTACKER's own window (§15.3) — Asterios's Monstrous Strength,
+ │       Kingprotea's, both "used at the start of a Damage Step"
  │     • Kiritsugu's Suppression buff (removes 1 buff from the DU at the start)
  │
  ├── Crit determination (coin flip, modified by crit chance)

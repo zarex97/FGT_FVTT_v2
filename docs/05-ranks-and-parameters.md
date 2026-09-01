@@ -164,7 +164,7 @@ value. The stat derivation tables (§5.6) clamp at their own boundaries instead.
 | Magic Resistance negation | `defenderMR.rank ≥ attack.magRank` ⇒ full negation |
 | Presence Concealment counter clause | `du.agiRank ≥ pcUnit.agiRank` ⇒ may Block/Counter |
 | HGoB boarding roll | `unit.agiRank` in bands (`C..B` → −1, `≥A` → −2); same for LUC |
-| Karna's Brahmastra | *any* DU parameter > Karna's ⇒ 2× instead of 4× |
+| Karna's Brahmastra | *any* DU parameter > Karna's ⇒ 2× instead of 4× — **a comparison between two Units, not against a threshold; see below** |
 | Petrify cure | `cureAbility.rank ≥ petrifySource.rank` |
 | Scáthach's Gate of Skye | DU `MAG == B` → −2 to roll; `MAG == A` → −4 |
 | Vasavi Shakti bonus | DU Divinity rank in `B..EX` → ×3; `E..C` → ×2 |
@@ -178,6 +178,33 @@ predicates support `eq`, `gte`, `lte`, `in` over ranks, and the author picks.
 **RISK.** It is very easy to write `>=` where the source says "is Rank B". The content
 validator flags any rank predicate authored with `gte` against a *mid-scale* grade with a
 warning, requiring an explicit `@intentional` marker. Cheap, and catches a real class of bug.
+
+### Unit-against-Unit is not the same operation
+
+Every row in the table above compares a rank to a **fixed threshold**. Karna's *Brahmastra* is
+the only clause in the set that compares two Units to each other, Parameter by Parameter:
+
+> 1. If **all** of the DU's Parameters are equal or lower than Karna's → 4× damage plus 100.
+> 2. If the DU has **any** Parameter higher than Karna's → 2× plus 100.
+
+A predicate is a set-membership test, so `rollOptionsFor` emits the threshold form as a ladder —
+`target:rank:str:gte:B` for every grade a Unit clears. It is tempting to write clause 1 against
+that ladder, and it is wrong: **the ladder is grade-coarse.** `gradesClearedBy` gives a `B+` Unit
+the grades `E…B` and *not* `A`, so `not:target:rank:str:gte:A` reads as *"STR is not above B"* for
+a Unit whose STR **is** above B.
+
+Against Karna's own `B/C/A/B/D` that hands the 4× branch to defenders who should be getting 2×,
+and this is the largest single damage swing any predicate in the game decides. Measured against
+the authored roster, the `+` step alone decides three of six matchups — Semiramis's `END C+`
+versus Karna's `C` is the sharpest.
+
+**DECISION.** A Unit-against-Unit comparison is made where both are in scope, with
+`Rank.compare`, and emitted as its **answer**: `target:paramVsSelf:<parameter>:<gt|eq|lt>`. An
+unranked Parameter on either side emits nothing for that Parameter — a Unit with no MAG rank has
+not got a MAG higher than Karna's, and has not got one equal to his either, so *"all of the DU's
+Parameters are equal or lower"* reads over the Parameters it has. Clause 1 is authored as the
+**absence** of clause 2's condition, which is both what the sheet says and what makes the
+unranked case fall out correctly.
 
 ---
 
@@ -481,6 +508,22 @@ Two modifier kinds:
 
 `set` wins over `shift` and is applied last, matching the intent of both cases (Kiritsugu is
 EX regardless of anything else; Karna is A regardless).
+
+> **`set` was accepted on one branch of `RankShift` and dropped on the other.** The element takes
+> `to:` for a shift aimed at another ability's rank (Penthesilea's *Goddess of War*) and honoured
+> it there; the **parameter** branch ignored `to:` entirely and fell through to `rankShift: 1`, a
+> single step along the dense ladder.
+>
+> So *"STR Rank is increased **from B to A**"* would have made Karna `B+`, and Kiritsugu's
+> `E → EX` would have made him `E+`. Both are `set(rank)` cases — and `to:` is the form a sheet
+> uses whenever the distance is more than one step, because the author is naming an endpoint
+> rather than counting `+`/`−` positions across a grade boundary. `rankTo` is now carried through
+> to `applyStatDeltas`, applied **upward only**, for the same reason the ability branch restricts
+> it: every such clause in the corpus is a grant, and one arriving after a debuff has already
+> pushed the Parameter higher must not undo it.
+>
+> Measured live: Vasavi Shakti's activation takes Karna's STR to `A` and his Base Attack (STR)
+> to 150.
 
 **RISK.** Rank changes invalidate cached derived data across many systems (Magic Resistance
 tables, ZON, boarding rolls). Rank is included in the `derivedVersion` counter that

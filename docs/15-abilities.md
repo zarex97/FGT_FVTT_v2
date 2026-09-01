@@ -475,32 +475,85 @@ turn's move/attack allowance.
 **DECISION.** Read it as: using an Active Skill counts the unit toward the turn's budget of
 units that may act, and does **not** require a prior move or attack. Ch. 41, Q4.
 
-### `whenAttacking` — the modifier skills
+### The modifier skills — an Attack Skill, not a `modifyAttack` phase
 
 Karna's *Mana Burst (Flames)*, Castor's and Pollux's *Mana Burst (Light/Ancient)*, and
 Kiritsugu's *Thaumaturgy: Reinforcement* are all "used when performing a Normal Attack" and
-change the attack's parameters rather than performing one:
+change the attack's parameters rather than performing one.
+
+This chapter originally proposed a `modifyAttack` phase pushing `BaseAttackOverride`,
+`IgnoreMagicResistance`, `ElementTag` and `OnHit` into a pending `AttackContext`. **None of those
+five things were built, and none of them need to be.** The `damage:` block already says all of
+it, and it says it in the vocabulary the pipeline reads:
 
 ```yaml
 id: karna-mana-burst-flames
-timing: { window: whenAttacking, appliesTo: [normalAttack] }
+isAttackSkill: true                  # it performs the attack; it does not decorate one
+element: fire
 cooldown: "3◈"
 sameTurnExclusive: [karna-flash-of-the-sun-god]
+damage:
+  base:
+    sources:                         # "BA(STR) and BA(MAG) combined (e.g. BA=300)"
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 1 }
+  component: str                     # what it COUNTS AS, for Magic Resistance's own exemption
+  ignoresMagicResistance: true
 phases:
-  - kind: modifyAttack
-    modifiers:
-      - { key: BaseAttackOverride, sources: [
-            { unit: self, component: str, factor: 1.0 },
-            { unit: self, component: mag, factor: 1.0 }] }
-      - { key: IgnoreMagicResistance }
-      - { key: ElementTag, element: fire, portion: 0.5 }
-      - { key: OnHit, condition: notEvaded,
-          effects: [{ id: burn, duration: "2◈" }] }
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - { key: OnEvent, event: damageDealt, effect: { id: burn }, duration: "2◈" }
 ```
 
-The `modifyAttack` phase pushes modifiers into the pending `AttackContext`. The UI presents
-these as toggles on the attack dialog rather than as separate buttons, which is a substantially
-better interaction than making the player remember to click the skill first.
+**DECISION.** A Skill that "is used when performing a Normal Attack" *is* the attack —
+`isAttackSkill: true`, one button, one Combat Process. The alternative asks the player to press
+two things in the right order and gives the engine a second attack-building path to keep in step
+with the first. `damageDealt` is what *"if the Attack is not Evaded"* means, because that rung
+only fires once the damage has landed.
+
+Measured live: 551 damage from a combined Base Attack of 325 (150 STR after Vasavi Shakti's +25,
+plus 175 MAG) with Atk Up 40% and Divinity +50, Burn applied, cooldown 9.
+
+### The attacker's own windows
+
+Every window above describes a moment inside **somebody else's** Combat Process. Two abilities in
+the reference set are used at a moment inside *your own*, and neither had anywhere to be offered:
+
+| Window | Ability | Text |
+|---|---|---|
+| `damageStep` | Asterios, *Monstrous Strength* | *"used at the start of a **Damage Step** when performing an Attack"* |
+| `combatPhaseStart` | Karna, *Uncrowned Arms Mastership* | *"used during your Turn **or at the start of a Combat Phase**"* |
+
+`abilitiesAtWindow` (`rules/reactions.mjs`) is `reactionAbilities` with the window as a
+parameter — one gate list for both sides of an exchange, because an ability offered at a moment
+it is on cooldown for is the refusal-when-pressed §17.6 forbids whichever side its owner is on.
+`offerAttackerWindow` (`engine/attack.mjs`) does the asking.
+
+Three things about it are decisions rather than details:
+
+**It is asked inline, not through `PROMPTS`.** The Combat Process's own prompt table exists
+because the reaction ladder is answered by the *other* client and has to survive serialization
+into a chat flag between rungs (Ch. 27). This question is answered by the player already driving
+the resolution, so a card round trip would add a rung to ask somebody something they are looking
+at. `FGTSocket.ask` still routes it to the ability's actual owner rather than to the arbitrating
+GM.
+
+**The Damage Step, not the declaration.** *Monstrous Strength* has a 3◈ cooldown, and an attack
+that is Evaded never reaches a Damage Step. Offering it at declaration would spend the clock on a
+swing that missed. Declining costs nothing — measured live at 201 damage declined, 406 accepted,
+cooldown untouched in the first case.
+
+**What "using it" means depends on what it is.** *Monstrous Strength* contributes rules to the
+attack in progress, folded into that one damage computation and nothing else — *"STR Damage dealt
+by **that Attack**"*, so an effect applied to Asterios would be the wrong shape twice over: it
+would survive into his next attack and be strippable by buff removal, neither of which the sheet
+says. *Uncrowned Arms Mastership* is a **mode**, and using it *is* the switch.
+
+An ability whose only moment is a window is **not a sheet button**: `classifyAbility` returns
+`windowed`. *Monstrous Strength* previously fell through to the `activeRules` fallback and
+classified as a mode, which put a toggle on the sheet that switches a permanent +100% STR damage
+on and leaves it there.
 
 ---
 
@@ -632,6 +685,30 @@ fail loudly — it becomes *permanently unusable*: it compiles, validates, loads
 renders on the sheet, and refuses every time it is pressed. Medea's *High-Speed Divine Words* had
 been shipping a `notHasEffect` gate the vocabulary never had.
 
+### …but a recognised kind with an unrecognised **field** does the opposite
+
+An unknown *kind* refuses, which is loud enough to find. An unknown **selector field** on a known
+kind is the dangerous case, because the failure mode is a **pass**.
+
+`abilityOffCooldown` collects the abilities its selector matches and asks
+`matched.every(cooldown <= 0)`. On an empty set that is `true` — deliberately, and correctly: a
+Scáthach who has not copied anything has no Wisdom slots to be blocked *by*, and a gate that
+refused on an empty set would make *Clairvoyance* unusable until she copied. Which means a
+selector matching nothing **because its field name is wrong** is indistinguishable from a gate
+that legitimately has nothing to check.
+
+Karna's *Brahmastra Kundala* is *"cannot be used if Mana Burst (Flames) or Vasavi Shakti is on
+Cooldown"*, authored with `abilityId` where `gatedAbilities` reads `abilityIds`. Both gates passed
+unconditionally, in a live world, with no warning anywhere — measured as ALLOWED with Mana Burst
+on a nine-tick clock.
+
+**DECISION.** The content validator checks requirement **kinds** and **selectors**: a kind whose
+empty match set is a silent pass must name at least one of its selector fields. Abilities are
+checked against `rules/items.mjs`'s own exported vocabulary rather than a second copy of it;
+Command Spells get a separate list, because theirs is a different vocabulary with a different
+reader (`rules/command-spells.mjs`) — sharing one would let an ability author `attackIsNotNP` and
+receive a gate that never fires.
+
 ### `oncePerTurn`
 
 A field on the ability rather than a requirement, because the question is about the ability
@@ -639,6 +716,32 @@ A field on the ability rather than a requirement, because the question is about 
 
 It is **not** implied by a cooldown. Scáthach's *Ár* is the case: a PRS Token waives its `3◈`
 entirely (§7.6), so *"can only be used once per Turn"* is the only limit left on it.
+
+### `oncePerRound`
+
+The same limit one scale up, and it exists for the reason `sameRoundExclusive` exists beside
+`sameTurnExclusive` (§15.3): a Servant acts up to three times in a Round, so a per-Turn cap
+forbids almost nothing it would otherwise do.
+
+Karna's *Uncrowned Arms Mastership* is *"can only be used once per Round"* and has **no cooldown
+at all**, which makes this the only limit on it. Authored as `oncePerTurn` it would be a free
+toggle three times a Round, and the choice between its two effects would stop being a choice.
+
+### `negatedBy` has two halves, and only one was built
+
+> Medea, *High-Speed Divine Words*: *"cannot be used **and its effects are negated** while
+> inflicted with Silence."*
+
+`negatedBy` was read only by `isNegated`, which sits on the **use** path. So it refused the
+button and left the ability's rules contributing underneath. `rules/snapshot.mjs#negated` now
+honours it too, which is what drops the contributions.
+
+Three things turned on it. EMIYA carries `negatedBy: [silence]` on eight abilities, one of which
+(*Kanshou & Bakuya*) is `isPassive` and therefore never *used* at all — so its clause could not be
+checked anywhere. Karna's *Kavacha and Kundala* is *"lost when Vasavi Shakti is used/Activated"*,
+which is how the largest single defensive modifier in the game (−90%, including NP) stops
+existing. And *Uncrowned Arms Mastership*'s *"effects are negated by Skill Seal"* is the same
+shape.
 
 > *"The Servant cannot use its Noble Phantasm if its Master's Health is equal to or less than
 > the amount that would be lost."*

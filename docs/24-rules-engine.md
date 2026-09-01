@@ -133,10 +133,32 @@ Roughly 30 elements cover the entire reference set. Grouped by contribution poin
 key: DamageModifier
 value: 40                # magnitude, percent
 npValue: 30              # magnitude when the attack is an NP (optional)
+table: madEnhancementDefence   # …or a rank table, resolved against the owner's rank
+magnitudeFactor: 0.5     # scale whatever the value or table produced
 direction: dealt|taken   # attacker-side or defender-side
 includesNP: true         # if true, npValue is ignored and value applies to NP too
 predicate: [...]
 ```
+
+Two of those are worth stating explicitly, because both were silent gaps:
+
+**A `table:` that returns a PAIR is `[normal, vsNP]`.** `madEnhancementDefence` has been that
+shape since the tables were transcribed — Rank B is `[40, 20]`, and its own comment says so — and
+the executor took index 0 and nothing else. Every Mad Enhancement in the game therefore reduced
+Noble Phantasm damage by its full *normal* figure: 40% instead of 20% at B, 75% instead of 30% at
+EX. The second element is now the modifier's `npValue` unless one is stated outright.
+
+**`magnitudeFactor` is for a magnitude stated as a fraction of another clause.** Mad Enhancement
+is one table said twice — *"increased by X%; this effect is **halved** for Attacks which use Base
+Attack (MAG)"* — and the halving is a relationship, not a second ladder. A
+`madEnhancementOffenceMag` table would be six numbers obliged to stay exactly half of six others
+for ever. Deliberately **not** named `factor`: `StatDelta`/`MovDelta` already use that name for a
+multiplicative delta on the *stat* (Slow halves MOV), and one field meaning two things in one
+vocabulary is the defect `revivalPriority` exists to avoid.
+
+`Ward` carries `npValue` for the same reason `DamageModifier` does. Karna's Fire resistance is
+the case where the two are **equal** — *"reduced by 50% **including NP**"* — and stating it is how
+a reader knows that was the author's intent rather than an omission.
 
 ### Group 3 — Check contributors (`contributeCheck`)
 
@@ -198,6 +220,37 @@ One element, many uses. It is the most powerful and most-used element after `Dam
 > Dice keep the "caller rolls" contract: `fireEvent` is pure and reads totals from `ctx.rolls`,
 > and `pendingRolls(unit, event)` tells the impure caller which formulas to roll first — so the
 > attack flow does not have to know what Battle Continuation is.
+
+**Filters on the handler.** Beyond `predicate` (answered at collection time) and
+`targetPredicate` (answered when the event fires), a handler may narrow on what the event is
+*about* — `ofCategory`, `excludeCategory`, `excludeContentId`, `excludeNP` — and on one thing the
+event is **not** about:
+
+```yaml
+unlessUsedThisTurn: { category: karnaNP }
+```
+
+A standing charge the bearer has already paid a **bigger version of** this Turn. Karna's Note 2 is
+the only clause in the set: *"when Karna uses a NP that deals damage, his Master's Health loss
+from him using the NP **overwrites** the 20 Health loss from when Karna would normally
+Act/Attack."*
+
+§15.4's `supersedes` is the right idea in the wrong scope — it resolves a set of costs against
+each other at the moment an ability is used, and this is not a cost of any ability. It is a
+standing upkeep that falls due at the end of a Turn, and what suppresses it happened earlier in
+that same Turn. So the question is asked where the Turn record is: `turnState.abilitiesUsed`,
+matched against the bearer's own abilities to recover the `category` (the record holds ids).
+
+Measured live: no NP used, the Master loses 20; *Brahmastra* used, the charge is suppressed
+entirely; an ordinary Skill used, the 20 still lands.
+
+**A `table:` inside an action.** `StatDelta` resolves `table`, `floorTable` and
+`whenValue.lteTable` / `whenValue.gteTable` against the owning ability's rank, because rank is in
+scope at collection time and gone by dispatch. Mad Enhancement clause 1 is one number said three
+times — *"loses 20 Health … when its Master's Health is 20 or less"* is `madEnhancementDrain` at
+Rank B — and the floor and the threshold had both been authored as the literal `30`, the table's
+**EX** value. Every rank below EX clamped and deactivated against a number the Servant's own
+sheet never mentions.
 
 Supported events: every hook in Appendix E. The `then` array is a list of **actions**, which are
 a different (smaller) vocabulary from rule elements:
@@ -372,6 +425,45 @@ did anything:
 `rollOptionsFor` can produce, and `test/unit/options.test.mjs` holds every predicate in the
 shipped content against it. That is the same guard `skill-references.test.mjs` applies to slugs,
 for the same failure.
+
+### The other end: a clause nobody can write
+
+The guard above catches an option nobody emits. It cannot catch the opposite — a **rule the
+sheets state that the vocabulary has no way to express at all**. Those do not fail validation,
+because they are never authored; they are silently converted into something weaker or left out.
+Karna and Asterios needed four:
+
+| Option | The clause that had no way to be written |
+|---|---|
+| `target:paramVsSelf:<p>:<gt\|eq\|lt>` | Karna, *Brahmastra*: *"if **all** of the DU's Parameters are equal or lower than Karna's"* |
+| `attack:element:<x>` | Karna, *Mana Burst (Flames)*: *"All Total **Fire** Damage taken is reduced by 50%"* |
+| `(self\|target):contentId:<id>` | Karna, *Fated Rivals*: *"if **Arjuna** is on the opposing Faction"* |
+| `attack:component:mag` (already emitted; **unused**) | Mad Enhancement: *"halved for Attacks which use Base Attack (MAG)"* — see Ch. 13 stage 5 |
+
+The first is the one worth dwelling on, because it looks expressible and is not. `rollOptionsFor`
+already emits an absolute rank ladder — `target:rank:str:gte:B` for every grade a Unit clears —
+and *"equal or lower than Karna's STR B"* reads like `not:target:rank:str:gte:A`. But the ladder
+is **grade-coarse**: `gradesClearedBy` gives a `B+` Unit the grades `E…B` and not `A`, so that
+clause is *true* for a Unit whose STR is above B.
+
+Against Karna's own `B/C/A/B/D` that hands the **4× branch** to defenders who should be getting
+2×, and 4× versus 2× on an A+ Noble Phantasm is the largest single damage swing any predicate in
+this game decides. Measured live against the authored roster, the `+` step decides three of six
+matchups — Semiramis's `END C+` against Karna's `C` is the clearest: one step, one grade letter,
+and the difference between 2× and 4×.
+
+**DECISION.** A comparison between two Units is made where both are in scope, with
+`Rank.compare`, and emitted as its **answer** rather than as a ladder either side has to be
+read off. `gt` is the one the clause names; `eq` and `lt` are emitted too, because the same
+three-way answer is what any future "higher/equal/lower Parameter" clause wants and leaving them
+out would make the next one add a fourth comparison mechanism. An unranked Parameter on either
+side emits nothing for that Parameter rather than guessing.
+
+`contentId:` is §36.1's *"cross-Servant references resolve by a stable slug"*, which had been a
+DECISION with nothing emitting one. The **content id**, not the display name and not the true
+name: a player may rename an actor, and `identityRevealed` deliberately hides the true name from
+opponents — the compulsion is a fact about who the Servant *is*, and it holds whether or not the
+table has worked that out yet.
 
 ### Negation
 
