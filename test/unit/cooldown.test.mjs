@@ -29,6 +29,21 @@ describe("a plain tick cooldown", () => {
     expect(cooldownFor(ability({}), "u1")).toEqual({ cooldowns: [], spends: [] });
   });
 
+  it("still resolves when the DataModel has supplied an EMPTY branches array", () => {
+    // The shape a real document has. `branches` is an `ArrayField`, so the
+    // DataModel turns the `null` `compileCooldown` writes for an ordinary
+    // string cooldown into `[]` -- and `[]` is truthy, so `if (cd.branches)`
+    // sent every such ability down the branch path, where it matched nothing
+    // and got no clock.
+    //
+    // That was EVERY COOLDOWN IN THE GAME: measured live at 49 of 49 abilities
+    // across six authored Servants, all infinitely reusable. The fixtures above
+    // never caught it because they omit the field, and `undefined` is falsy --
+    // a fixture is only evidence if it is the shape the caller actually gets.
+    const plan = cooldownFor(ability({ cooldown: { max: "3◈", branches: [] } }), "u1");
+    expect(plan.cooldowns).toEqual([{ actorId: "u1", abilityId: "abil", ticks: 9 }]);
+  });
+
   it("does not start a clock that counts from DEACTIVATION", () => {
     // Presence Concealment is "Cooldown: 2◈ Turns AFTER PC is deactivated" --
     // the Skill lasts 2◈ and then sits for 2◈ more. Starting the clock at the

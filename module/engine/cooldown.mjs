@@ -75,7 +75,18 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
   // `predicate:` uses, against the caster's board-derived options -- so a
   // branch's cooldown and the condition that ran it can never disagree.
   // First match wins, matching how phase predicates are read in order.
-  if (cd.branches) {
+  // `?.length`, NOT truthiness. `branches` is an `ArrayField` on the schema, so
+  // the DataModel turns the `null` `compileCooldown` writes for an ordinary
+  // string cooldown into `[]` -- and `[]` is truthy. Every ability whose
+  // cooldown is a plain tick expression therefore entered this branch, matched
+  // nothing, and returned no clock at all.
+  //
+  // That is EVERY COOLDOWN IN THE GAME: measured live at 49 of 49 abilities
+  // across six authored Servants, every one of them infinitely reusable. It
+  // arrived with `cooldown.branches` itself (Summoning: Bašmu is the only
+  // ability that has any), which is why the Servants verified before that were
+  // verified correctly and have been broken ever since.
+  if (cd.branches?.length) {
     const options = unit ? rollOptionsFor({ attacker: unit }) : new Set();
     const branch = cd.branches.find((b) => testPredicate(b.predicate, { options }));
     if (!branch?.max) return { cooldowns: [], spends: [] };
