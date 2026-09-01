@@ -372,6 +372,10 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
       ? null
       : (Array.isArray(el.excludeContentId) ? [...el.excludeContentId] : [el.excludeContentId]),
     excludeNP: el.excludeNP ?? false,
+    // A standing upkeep this Turn's bigger charge has already replaced --
+    // Karna's Note 2. `{category}` or `{contentId}`, tested against the
+    // bearer's own turn record when the event fires (`engine/scheduler.mjs`).
+    unlessUsedThisTurn: el.unlessUsedThisTurn ?? null,
     // A charge spent each time the handler pays out, for a count-limited
     // effect: Alpi is "for 1◈ Turns, **3 times**".
     consumesUse: el.consumesUse ?? false,
@@ -669,8 +673,16 @@ export const EXECUTORS = Object.freeze({
 
   /** A category-predicated reduction. Same bucket as Def Up. */
   Ward(el, { rank, source, out, ctx, deferred = null }) {
+    // `npValue` for the same reason `DamageModifier` carries one: most
+    // percentage defences in Appendix A are reduced against Noble Phantasms,
+    // and a Ward that could not say so would have to be authored twice. Karna's
+    // fire resistance is the case where the two are EQUAL -- *"reduced by 50%
+    // **including NP**"* -- and stating it is how the reader knows that was the
+    // author's intent rather than an omission.
+    const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.modifiers.push({
       key: "ward", value: scalar(resolveValue(el, rank, ctx)),
+      ...(np !== null && np !== undefined ? { npValue: scalar(np) } : {}),
       component: el.component ?? null, predicate: deferred, source,
     });
   },
@@ -791,9 +803,21 @@ export const EXECUTORS = Object.freeze({
     // wrong-way-round failure this file's own `abilityRankShifts` comment
     // already documents for Kanshou & Bakuya, just on the branch that never
     // had a caller to catch it.
+    // `to:` names the DESTINATION outright, and it was accepted only on the
+    // ability branch above -- this one dropped it and fell through to
+    // `rankShift: 1`, a single dense step. Karna's Vasavi Shakti is *"STR Rank
+    // is increased **from B to A**"* and would have moved him to `B+`;
+    // Kiritsugu's *"E → EX"* would have moved him to `E+`. Both are the form
+    // §5.9 lists as `set(rank)`, and it is the form a sheet uses whenever the
+    // distance is more than one step, because the author is naming an endpoint
+    // rather than counting positions across a grade boundary.
     out.statDeltas.push({
       stat: `parameters.${el.parameter}`,
-      ...(el.grades !== undefined ? { rankGrades: el.grades } : { rankShift: el.steps ?? 1 }),
+      ...(el.to
+        ? { rankTo: el.to }
+        : el.grades !== undefined
+          ? { rankGrades: el.grades }
+          : { rankShift: el.steps ?? 1 }),
       target: el.target ?? null, source,
     });
   },

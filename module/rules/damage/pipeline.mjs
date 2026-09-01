@@ -854,7 +854,17 @@ class PipelineState {
 
   floor() {
     // Floor the total, then re-split so the components still sum to it exactly.
-    const t = Math.max(0, Math.floor(this.total));
+    //
+    // `round4` FIRST, or binary floating point silently costs a point. A 90%
+    // reduction is `1 + (-90)/100`, which is `0.09999999999999998`, so 1000
+    // damage comes out of stage 4 as `99.99999999999998` and floors to 99.
+    // Karna's Kavacha and Kundala is the largest such percentage in the game
+    // and hits it every time; every other percentage in the system is exposed
+    // to the same error at some magnitude. Rounding to the precision the rest
+    // of this file already reports at (`round4`, used by every `contribute`
+    // and every stage boundary) removes the representation error without
+    // touching a genuine fraction: 99.6 still floors to 99.
+    const t = Math.max(0, Math.floor(round4(this.total)));
     const share = this.total > 0 ? this.mag / this.total : 0;
     this.mag = Math.round(t * share);
     this.phys = t - this.mag;

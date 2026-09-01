@@ -902,6 +902,29 @@ function collectAbilities(actor) {
  * @returns {boolean}
  */
 function negated(item, actor) {
+  // Negated by an EFFECT the bearer is carrying. `negatedBy` was read only by
+  // `rules/ability-use.mjs#isNegated`, which sits on the **use** path -- so it
+  // refused the button and left the ability's rules contributing underneath.
+  //
+  // Both halves are stated in the source and only one was built. Medea's
+  // High-Speed Divine Words is *"cannot be used **and its effects are negated**
+  // while inflicted with Silence"*; EMIYA carries `negatedBy: [silence]` on
+  // eight abilities, one of which (Kanshou & Bakuya) is `isPassive` and is
+  // therefore never used at all, so its clause could not be checked anywhere;
+  // and Karna's Kavacha and Kundala -- a -90% damage reduction, the largest
+  // single defensive modifier in the game -- is *"lost when Vasavi Shakti is
+  // used/Activated"*.
+  const byEffect = item.system?.negatedBy ?? [];
+  if (byEffect.length > 0) {
+    const carried = new Set(
+      [...(actor.effects ?? [])]
+        .filter((e) => !e.disabled && !e.isSuppressed)
+        .map((e) => e.system?.defId)
+        .filter(Boolean),
+    );
+    if (byEffect.some((id) => carried.has(id))) return true;
+  }
+
   const spec = item.system?.negatedWhile ?? null;
   if (!spec) return false;
 

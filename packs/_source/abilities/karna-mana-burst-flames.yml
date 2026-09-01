@@ -1,0 +1,105 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+# The combined Base Attack is docs/06-stats-and-resources.md §6.7: "BA = 125 + 175 = 300".
+schema: 1
+id: karna-mana-burst-flames
+name: "Mana Burst (Flames)"
+rank: A
+cooldown: "3◈"
+# An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat
+# Process and spends Karna's Attack for the Turn (§15.1).
+isAttackSkill: true
+element: fire
+sameTurnExclusive: [karna-flash-of-the-sun-god]
+description: |
+  (Passive) Karna's Normal Attacks have a 25% chance of inflicting Burn for 2◈ Turns on the DU.
+  Karna is Immune to Burn. All Total Fire Damage taken is reduced by 50% including NP.
+  (Active) This Skill is used when performing a Normal Attack. For that Combat Process, Karna's
+  Base Attack used is his BA(STR) and BA(MAG) combined (e.g. BA=300). If the Attack is not
+  Evaded, Burn is inflicted on the DU for 2◈ Turns. Not affected by Magic Resistance.
+  Fire Damage (half). Cooldown: 3◈ Turns. Cannot be used on the same Turn as Flash of the
+  Sun God.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  # "His BA(STR) and BA(MAG) combined (e.g. BA=300)" -- 125 + 175, both at full
+  # weight. Two sources rather than a `component`, because the number is the sum
+  # and `baseSpecFor` would otherwise build it from one of them.
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 1 }
+  # What the attack COUNTS AS. `str`, because "not affected by Magic Resistance"
+  # is stated separately below and is the clause that would otherwise be doing
+  # this work -- and because Magic Resistance's own Instakill/Death exemption
+  # reads `attack:component`, so the two must not disagree.
+  component: str
+  # "Not affected by Magic Resistance." Stage 11 is skipped entirely rather than
+  # reduced; without it, a Rank C Magic Resistance would negate the MAG half of
+  # a 300 Base Attack outright.
+  ignoresMagicResistance: true
+  # "Fire Damage (half)." The element is carried so `flamHeal`, Freeze and
+  # Dragonblight all see it, and so his OWN fire resistance below can be
+  # predicated on it.
+  #
+  # KNOWN SIMPLIFICATION: the "(half)" is not modelled. An `element` is a single
+  # value on the attack, and every reader of it (stage 0's conversion, the
+  # Freeze break, Dragonblight) is all-or-nothing -- so a target with `flamHeal`
+  # heals from all of this rather than from half. Recorded here and in Ch. 45
+  # rather than faked, which is the same choice `basmu.yml` makes about the
+  # Injury Roll. It is the only clause on Karna's sheet that is not exact.
+  element: fire
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      # "If the Attack is NOT EVADED, Burn is inflicted" -- certain rather than
+      # the passive's 25%, and `damageDealt` is the rung that only fires once
+      # the damage has landed, which is what "not evaded" means here.
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: burn }
+        duration: "2◈"
+passiveRules:
+  # Passive 1. The rider on his ORDINARY Normal Attacks -- 25%, as against the
+  # Active's certainty. `damageDealt` fires on the attacker with the victim in
+  # `ctx.victim`, which is the rung every "Normal Attacks inflict X on the DU"
+  # clause in Appendix A hangs from.
+  #
+  # `attack:kind:normal` rather than `excludeNP`: a Noble Phantasm is not the
+  # only thing that is not a Normal Attack -- his own Mana Burst Active and any
+  # Attack Skill are not either, and the predicate names what the sheet names.
+  #
+  # `not:self:effect:vasaviActivated` is the other half of Vasavi Shakti's
+  # clause 4: *"Normal Attacks have a 50% chance of inflicting Burn INSTEAD OF
+  # 25%"*. Instead of, not as well as -- a Karna who has activated would
+  # otherwise roll both and land Burn 62.5% of the time, which is neither number
+  # on the sheet. The mirror predicate lives on the 50% rider.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: [attack:kind:normal, not:self:effect:vasaviActivated]
+    target: victim
+    effect: { id: burn }
+    chance: 25
+    duration: "2◈"
+  # Passive 2. "Karna is Immune to Burn" -- he sets people on fire and stands in
+  # it, and both of his other Noble Phantasms are Fire AoEs he can be caught in.
+  - key: Immunity
+    effect: burn
+  # Passive 3. "All Total Fire Damage taken is reduced by 50% including NP."
+  #
+  # `Ward`, not `defUp`: a Ward is the category-predicated reduction (§24.3
+  # Group 2) and lands in the same stage-4 bucket, which keeps it additive
+  # against Atk Up the way §13.4 requires. `npValue` equals `value` because the
+  # sheet says "including NP" rather than giving a reduced NP figure.
+  #
+  # `attack:element:fire` is a NEW roll option. The pipeline has read
+  # `ctx.attack.element` at stage 0 since it was written and no predicate could
+  # ask about it, so a resistance written against a damage type could not be
+  # authored at all.
+  - key: Ward
+    value: 50
+    npValue: 50
+    predicate: [attack:element:fire]

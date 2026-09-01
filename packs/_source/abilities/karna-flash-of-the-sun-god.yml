@@ -1,0 +1,34 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+schema: 1
+id: karna-flash-of-the-sun-god
+name: "Flash of the Sun God"
+rank: EX
+cooldown: "4◈"
+# "Cannot be used on the same Turn as Mana Burst (Flames)." Declared on BOTH
+# sides -- a one-sided exclusion is decided by whichever happens to be used
+# first, which is not a rule (§15.3).
+sameTurnExclusive: [karna-mana-burst-flames]
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Restores 3 Agility.
+  2. Applies Atk Up for 1◈ Turns (all damage dealt is increased by 40%; if NP, 30%).
+  3. Applies NP DmUp for 1◈ Turns (NP Damage dealt is increased by 20%).
+  Cooldown: 4◈ Turns. Cannot be used on the same Turn as Mana Burst (Flames).
+phases:
+  # Clause 1. RESTORES, so it is clamped to the maximum Karna rolled at summon
+  # -- `clampToMax` is the difference between "restores 3 Agility" and "grants
+  # 3 Agility", and Agility is the stat the Injury Roll spends.
+  - kind: resource
+    target: self
+    changes:
+      - { key: agility.value, delta: 3, clampToMax: true }
+  # Clauses 2 and 3.
+  - kind: applyEffects
+    target: self
+    rules:
+      # `npMagnitude` is the "if NP" half of Appendix A's damage family. It is
+      # carried on the instance and read by `atkUp`'s own `@npMagnitude`
+      # reference; a rider that omits it silently applies the full 40% to Noble
+      # Phantasms too.
+      - { effect: { id: atkUp, magnitude: 40, npMagnitude: 30 }, duration: "1◈" }
+      - { effect: { id: npDmUp, magnitude: 20 }, duration: "1◈" }
