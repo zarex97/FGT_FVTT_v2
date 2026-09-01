@@ -23,8 +23,13 @@ element: fire
 # Both gates were missing entirely, so the Noble Phantasm the sheet fences
 # behind two other clocks could be fired whenever its own was ready.
 requirements:
-  - { kind: abilityOffCooldown, abilityId: karna-mana-burst-flames }
-  - { kind: abilityOffCooldown, abilityId: karna-vasavi-shakti }
+  # `abilityIds`, PLURAL and a list. `gatedAbilities` matches on that field and
+  # nothing else, so an `abilityId` singular selected no abilities at all --
+  # and an empty match set is VACUOUSLY SATISFIED (`matched.every(...)` on
+  # `[]`), which is right for Scathach's un-copied Wisdom slots and silently
+  # wrong here. Both gates passed unconditionally; measured live.
+  - { kind: abilityOffCooldown, abilityIds: [karna-mana-burst-flames] }
+  - { kind: abilityOffCooldown, abilityIds: [karna-vasavi-shakti] }
 description: |
   Cannot be used if Mana Burst (Flames) or Vasavi Shakti is on Cooldown. Range=5. Base Attack
   (STR) and Base Attack (MAG) combined is used. Hits a 7x7 panel area within Range for 4x damage
