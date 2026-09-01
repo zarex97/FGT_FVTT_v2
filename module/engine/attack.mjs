@@ -1522,9 +1522,11 @@ async function applyDamage(state, message) {
       // `damage.branches` entry (`{fixed: true, base: {fixedValue: 0}}`) so
       // this Combat Process -- which still runs, she resolves as her own
       // defender -- deals nothing rather than her own Base Attack.
-      isFixedDamage: Boolean(resolvedDamage(ability, options)?.fixed),
+      isFixedDamage: Boolean(resolvedDamage(ability, options)?.fixed) || dealsNoDamage(ability),
     },
-    base: baseSpecFor(attackerDoc, ability, facts.range, options),
+    base: dealsNoDamage(ability)
+      ? { fixedValue: 0 }
+      : baseSpecFor(attackerDoc, ability, facts.range, options),
     multiplier: resolvedDamage(ability, options)?.multiplier ?? 1,
     flatBonus: resolvedDamage(ability, options)?.flatBonus ?? 0,
     conditionalMultipliers: resolvedDamage(ability, options)?.conditionalMultipliers ?? [],
@@ -2265,6 +2267,44 @@ function resolvedDamage(ability, options) {
   if (!dmg?.branches?.length || !options) return dmg;
   const match = dmg.branches.find((b) => testPredicate(b.predicate, { options }));
   return match ?? dmg;
+}
+
+/**
+ * Does this ability deal no damage at all?
+ *
+ * An ability that declares **phases** and does not declare a `damage` one is
+ * saying what it does, exhaustively. Asterios's *Chaos Labyrinthos* opens with
+ * the word *"(Non-damaging)"*; EMIYA's *Unlimited Blade Works* creates a Reality
+ * Marble whose toll is an interior event; Semiramis's *Hanging Gardens* is a
+ * platform and her *Sikera Ušum* is an area of poison. None of them hits
+ * anybody at the moment they are used.
+ *
+ * All five did. `classifyAbility` routes every Noble Phantasm through
+ * `resolveAttack` deliberately -- a non-damaging NP still costs the Servant its
+ * Attack -- and the Combat Process always runs its damage stage, where
+ * `baseSpecFor` falls back to the caster's **Normal Attack** for an ability with
+ * no `damage:` block. So opening the Labyrinth dealt Asterios's full BA(STR) 170
+ * plus a crit roll to whichever Unit the fan-out picked. Measured live at 203.
+ *
+ * The alternative was five content files each carrying
+ * `{fixed: true, base: {fixedValue: 0}}`, which is the same statement made five
+ * times in a vocabulary that already contains it once, and a sixth author would
+ * have had to know to write it.
+ *
+ * A `damage:` block still wins: Summoning: Bašmu's summon branch selects
+ * `{fixed: true, fixedValue: 0}` explicitly, and an ability that declares a
+ * damage BLOCK without a damage PHASE (Gáe Bolg Alternative, whose damage is
+ * conditional on its Instakill missing) means it.
+ *
+ * @param {object|null} ability
+ * @returns {boolean}
+ */
+function dealsNoDamage(ability) {
+  if (!ability) return false;
+  const sys = ability.system ?? {};
+  if (sys.damage) return false;
+  const phases = sys.phases ?? [];
+  return phases.length > 0 && !phases.some((p) => p.kind === "damage");
 }
 
 function abilityKind(ability) {
