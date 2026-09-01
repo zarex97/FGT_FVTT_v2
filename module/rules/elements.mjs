@@ -467,6 +467,27 @@ function normalizeAction(a, rank, ctx) {
   }
   if (a.cooldownTable) out.cooldown = lookup(a.cooldownTable, rank);
   if (a.amount !== undefined) out.amount = resolveValue(a, rank, ctx, "amount");
+
+  // A FLOOR and a THRESHOLD read from the same rank table the amount does.
+  //
+  // Mad Enhancement clause 1 is one number said three times: *"its Master loses
+  // 20 Health at the end of every Turn it Acts; when its Master's Health is 20
+  // or less, ME is forcibly deactivated"*, and the 20 is `madEnhancementDrain`
+  // at Rank B. Both the floor and the deactivation threshold were authored as
+  // the literal `30`, which is the table's **EX** value -- so Asterios's Rank B
+  // Mad Enhancement drained 20 but refused to switch off until his Master was
+  // under 30, and clamped the drain against the wrong floor on the way. Every
+  // rank below EX was wrong, in the Servant's favour on one clause and against
+  // it on the other.
+  if (a.floorTable) out.floor = lookup(a.floorTable, rank);
+  if (a.whenValue?.lteTable || a.whenValue?.gteTable) {
+    const { lteTable, gteTable, ...gate } = a.whenValue;
+    out.whenValue = {
+      ...gate,
+      ...(lteTable ? { lte: lookup(lteTable, rank) } : {}),
+      ...(gteTable ? { gte: lookup(gteTable, rank) } : {}),
+    };
+  }
   return out;
 }
 
@@ -503,7 +524,31 @@ export const EXECUTORS = Object.freeze({
   /** A percentage into the stage-4 bucket. */
   DamageModifier(el, { rank, source, out, ctx, deferred = null }) {
     const v = resolveValue(el, rank, ctx);
-    const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
+    // An explicit `npValue`, or the SECOND element of an `[normal, vsNP]` table.
+    //
+    // `madEnhancementDefence` has been that shape since the tables were
+    // transcribed -- B is `[40, 20]`, and its own comment says so -- and
+    // `scalar()` takes index 0 and nothing else, so the pair collapsed to its
+    // first half the moment it left the table. Every Mad Enhancement in the
+    // game therefore reduced Noble Phantasm damage by the FULL normal figure
+    // (40% at B, 75% at EX) instead of the NP one, which is the difference
+    // between a Berserker who is hard to kill with a Noble Phantasm and one who
+    // is nearly immune to it.
+    const np = el.npValue !== undefined
+      ? resolveValue(el, rank, ctx, "npValue")
+      : (Array.isArray(v) ? v[1] : undefined);
+    // A magnitude stated as a FRACTION OF ANOTHER CLAUSE rather than as its own
+    // number. Mad Enhancement is *"All damage dealt is increased by X%
+    // including NP; this effect is **halved** for Attacks which use Base Attack
+    // (MAG)"* -- one table said twice, and the halving is a relationship rather
+    // than a second ladder. A `madEnhancementOffenceMag` table would restate six
+    // numbers that must stay exactly half of six others for ever.
+    //
+    // Deliberately NOT called `factor`: `StatDelta`/`MovDelta` already use that
+    // name for a multiplicative delta on the STAT (Slow halves MOV), and one
+    // field meaning two things in one vocabulary is the defect
+    // `revivalPriority` exists to avoid.
+    const f = typeof el.magnitudeFactor === "number" ? el.magnitudeFactor : 1;
     out.modifiers.push({
       key: el.modifierKey ?? (el.direction === "taken" ? "defUp" : "atkUp"),
       // A magnitude rolled per damage event rather than fixed before the
@@ -511,8 +556,8 @@ export const EXECUTORS = Object.freeze({
       // out of `ctx.rolls`, so the dice stay with the caller like every other
       // roll in the system.
       ...(el.roll ? { roll: { ...el.roll } } : {}),
-      value: scalar(v),
-      ...(np !== null && np !== undefined ? { npValue: scalar(np) } : {}),
+      value: scalar(v) * f,
+      ...(np !== null && np !== undefined ? { npValue: scalar(np) * f } : {}),
       component: el.component ?? null,
       // `null` when the collection pass answered it; the clause itself when it
       // could not, for the pipeline to answer with the attack in scope.

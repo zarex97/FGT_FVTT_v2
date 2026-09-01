@@ -191,6 +191,14 @@ function abilityCommon() {
     // cooldown entirely, leaving this as the only limit on it.
     oncePerTurn: new fields.BooleanField({ initial: false }),
 
+    // The same limit one scale up, and the same argument `sameRoundExclusive`
+    // makes against `sameTurnExclusive`: a Servant acts up to three times in a
+    // Round, so a per-Turn cap forbids almost nothing. Karna's *Uncrowned Arms
+    // Mastership* is *"can only be used once per Round"* and has **no cooldown
+    // at all**, which makes this the only limit on it — authored as
+    // `oncePerTurn` it would have been a free toggle twice more every Round.
+    oncePerRound: new fields.BooleanField({ initial: false }),
+
     // Presence Concealment clause 7: *"Active Skills targeting/affecting an
     // enemy Unit(s) cannot be used unless stated."* This is the "unless
     // stated". Serenity's Shapeshift is the only instance in the reference set,

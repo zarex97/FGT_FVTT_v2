@@ -8,10 +8,31 @@ description: |
   (Active) Used at the start of a Damage Step when performing an Attack. STR Damage dealt by
   that Attack is increased by 100%; if NP, 50%.
 isAttackSkill: false
+# WHEN it may be used, and the reason it did nothing until this line existed.
+#
+# `activeRules` are collected only while `ability.active` is true
+# (`rules/elements.mjs#collectContributions`), and this ability is not a mode --
+# nothing could ever set that flag on it, so its +100% was authored, compiled,
+# loaded and unreachable. `damageStep` is the attacker-side window
+# (`rules/reactions.mjs`, `engine/attack.mjs#offerAttackerWindow`): the player is
+# asked at the start of the Damage Step and the rules below are folded into that
+# one attack.
+#
+# The Damage Step rather than the declaration, because the sheet says so and the
+# difference is real: an attack that is Evaded never reaches a Damage Step, so a
+# 3◈ Cooldown is not spent on a swing that missed.
+timing: { window: [damageStep] }
 activeRules:
   # A component-scoped modifier: it lifts the STR share only, which is exactly
   # what stage 5 of the pipeline exists to express. The NP value is separate
   # rather than a blanket halving, because the sheet states both numbers.
+  #
+  # Stage 5 is right for THIS clause in a way it is not for Mad Enhancement's
+  # (see `class-skills/mad-enhancement.yml`): *"STR Damage dealt"* names one
+  # component and gives no magnitude for the other, so there is no second
+  # magnitude for the additive bucket to hold. Against Karna's Mana Burst
+  # (Flames) -- BA(STR) and BA(MAG) combined -- only the STR half is lifted,
+  # which is what stage 5 does and what the sentence says.
   - key: DamageModifier
     modifierKey: atkUp
     component: str

@@ -24,6 +24,7 @@ import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
+import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
 import { absorb, refreshShield } from "./shield.mjs";
@@ -40,7 +41,9 @@ import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { canUseAbility, resolveCosts, npCostAt } from "../rules/costs.mjs";
-import { reactionAbilities, allyReactions, abilityFromOption } from "../rules/reactions.mjs";
+import {
+  reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow,
+} from "../rules/reactions.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 import { reactionsRefused, aoeOutcome, isConcealed } from "../rules/concealment.mjs";
@@ -196,6 +199,28 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     );
   }
 
+  // "Used during your Turn OR at the start of a Combat Phase" -- the attacker's
+  // second window, offered once for the whole Phase rather than per Process,
+  // because a Combat Phase is one exchange however many defenders it catches
+  // (§E, `combatPhaseEnd`). Karna's Uncrowned Arms Mastership is the only
+  // ability in the reference set that names it, and it had no moment to be used
+  // at: the sheet button covers "during your Turn" and nothing covered the rest.
+  //
+  // After the cost and the cooldown, so an attack that was refused never opens
+  // the window, and before any Process exists, so the switch is in force for the
+  // crit coin it is about to change.
+  const phaseWindow = await offerAttackerWindow({ attackerId }, "combatPhaseStart", null);
+  if ((phaseWindow.windowAbilities ?? []).length > 0) {
+    // Loud, because the alternative is this project's signature defect. A
+    // non-mode ability at this window would contribute rules that only
+    // `applyDamage` can fold in, and there is no Process yet to carry them to --
+    // so they would be collected, discarded, and look like they had applied.
+    console.warn(
+      "FGT | combatPhaseStart offered a non-mode ability; its rules reach no Combat Process:",
+      phaseWindow.windowAbilities,
+    );
+  }
+
   // Civilians never enter a Combat Process: "the Civilian is instantly killed"
   // -- no damage calculation, no reaction ladder, no Overpower (Ch. 04 §4.6).
   // Resolved here, before any Process exists, because a Process that always
@@ -233,6 +258,13 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     // ever have one. EMIYA's Hrunting is Aim and his Caladbolg II is Pierce.
     aim: Boolean(resolvedDamage(ability, options)?.aim),
     pierce: Boolean(resolvedDamage(ability, options)?.pierce),
+    // The damage TYPE, carried on the attack for the same reason `component` is.
+    // The pipeline has read `ctx.attack.element` at stage 0 since it was written
+    // -- Fire breaks Freeze, `flamHeal` converts it -- and the attack spec never
+    // carried one, so `element:` on an ability document reached the pipeline
+    // only through `damageContext` and never through the predicate vocabulary.
+    // Karna's Mana Burst (Flames) resists by type in both directions.
+    element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? null,
     ignoresMagicResistance: Boolean(
       resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
     ),
@@ -675,6 +707,13 @@ async function fireCombatPhaseEnd(state) {
 async function runAutomaticStep(state, message) {
   switch (state.state) {
     case "damage": {
+      // "Used at the start of a Damage Step when performing an Attack" -- the
+      // attacker's own window, asked before anything is computed, because what
+      // it grants is an input to the computation. Recorded on the state so
+      // `applyDamage` can fold the chosen abilities' rules into this one
+      // attack and nothing else (§15.3).
+      state = await offerAttackerWindow(state, "damageStep", message);
+
       // Phases that resolve BEFORE the damage, because the damage depends on
       // them. Scáthach's Gáe Bolg Alternative is the case: *"has a 75% chance
       // of inflicting Instakill. **If Instakill is not inflicted**, this NP
@@ -1397,7 +1436,7 @@ async function applyDamage(state, message) {
   const board = boardSnapshot();
   // Stage 9 subtracts 5d10 when the attacker is outside its Master's ZON, which
   // only the board can answer.
-  const attacker = unitFrom(board, attackerDoc);
+  const attacker = windowAugmented(unitFrom(board, attackerDoc), attackerDoc, state);
   const defender = unitFrom(board, defenderDoc);
   const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
 
@@ -1432,7 +1471,12 @@ async function applyDamage(state, message) {
       abilityId: state.attack?.abilityId ?? null,
       rank: Rank.parseOrNull(ability?.system?.rank),
       categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
-      element: ability?.system?.element ?? null,
+      // The branch-resolved element first, then the ability's own. Rebuilding it
+      // from `ability.system` alone would drop a `damage.branches` element the
+      // way this block used to drop `component` and `pierce` -- Karna's
+      // Brahmastra Kundala is Fire and his Brahmastra is not, and both are the
+      // same Servant's Noble Phantasms.
+      element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? facts.element ?? null,
       // Dragon Wing Warriors: "50 Fixed STR damage". The pipeline has read
       // `ctx.attack.isFixedDamage` (stages 1 and 2, `rules/damage/pipeline.mjs`)
       // since it was written; nothing ever set it from content, so an authored
@@ -2328,6 +2372,192 @@ async function cutContract(phase, state, defenderDoc) {
   ], "np:cutContract");
 
   return [{ summary: { id: "cutContract", name: "Rule Breaker", outcome: "applied", reason: null } }];
+}
+
+/**
+ * The attacker's snapshot with any window ability's rules folded in.
+ *
+ * *"STR Damage dealt by **that Attack** is increased by 100%"* — by that
+ * attack, so the contribution belongs to this one damage computation and to
+ * nothing else. An effect applied to Asterios would be the wrong shape twice
+ * over: it would survive into his next attack, and it would be strippable by
+ * buff removal, which the sheet does not say.
+ *
+ * The ability is collected with `active: true` because that is what using it
+ * means. Monstrous Strength shipped as `activeRules` on an ability with no
+ * `isMode`, and `collectContributions` reads `activeRules` only while
+ * `ability.active` is true — a flag nothing could ever set on it. The rules were
+ * authored, compiled, loaded, and unreachable.
+ *
+ * Folded in **before** the option set and the crit plan are built, so a window
+ * ability that changes the crit chance is counted by the coin it is supposed to
+ * change rather than after it.
+ *
+ * @param {object} attacker the board snapshot
+ * @param {object} attackerDoc
+ * @param {object} state
+ * @returns {object}
+ */
+function windowAugmented(attacker, attackerDoc, state) {
+  const ids = state.windowAbilities ?? [];
+  if (ids.length === 0) return attacker;
+
+  const abilities = ids
+    .map((id) => attackerDoc.items.get(id))
+    .filter(Boolean)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      slug: item.system?.slug ?? item.id,
+      rank: item.system?.rank ?? null,
+      active: true,
+      rules: item.system?.rules ?? [],
+      passiveRules: [],
+      activeRules: item.system?.activeRules ?? [],
+    }));
+  if (abilities.length === 0) return attacker;
+
+  const extra = collectContributions(abilities, {
+    options: rollOptionsFor({ attacker, defender: null }),
+    refs: { self: attackerDoc },
+  });
+
+  return {
+    ...attacker,
+    modifiers: [...(attacker.modifiers ?? []), ...extra.modifiers],
+    checkModifiers: [...(attacker.checkModifiers ?? []), ...extra.checkModifiers],
+  };
+}
+
+/**
+ * Offer the **attacker** its own abilities at a timing window inside its attack.
+ *
+ * The mirror of the reaction rung, and it did not exist. Every window in
+ * `rules/reactions.mjs` describes a moment inside somebody else's Combat
+ * Process; an ability whose text places it inside *your own* — Asterios's
+ * *Monstrous Strength*, Karna's *Uncrowned Arms Mastership* — had no moment at
+ * which it could be reached, so both shipped inert.
+ *
+ * Asked **inline** rather than through the Combat Process's own prompt table,
+ * and the distinction is deliberate. `PROMPTS` exists because the reaction
+ * ladder is answered by the *other* client and has to survive being serialized
+ * into a chat flag between rungs (Ch. 27). This question is answered by the
+ * player who is already driving this resolution, so a round trip through a card
+ * would add a rung and a re-entry to ask somebody something they are looking at.
+ * `FGTSocket.ask` still routes it to the ability's actual owner, because the
+ * arbiter running this is the GM and the choice is not theirs.
+ *
+ * Declining is a real answer: these cost a cooldown, and a player may rationally
+ * keep it. Nothing is spent unless something is picked.
+ *
+ * @param {object} state the Combat Process state
+ * @param {string} window
+ * @param {object} message the process's chat message
+ * @returns {Promise<object>} the state, with `windowAbilities` recorded
+ */
+async function offerAttackerWindow(state, window, message) {
+  // Asked once per Process. Re-entry after a Command Spell interrupt would
+  // otherwise offer the same cooldown twice for one attack.
+  if (state.windowAbilities !== undefined) return state;
+
+  const actor = game.actors.get(state.attackerId);
+  if (!actor) return { ...state, windowAbilities: [] };
+
+  const offers = abilitiesAtWindow({
+    items: actor.items,
+    effects: actor.effects.map((e) => e.system?.defId).filter(Boolean),
+    turnState: actor.system?.turnState ?? {},
+    roundState: actor.system?.roundState ?? {},
+  }, window);
+  if (offers.length === 0) return { ...state, windowAbilities: [] };
+
+  const picked = await askOwner(actor, {
+    kind: "choose",
+    title: game.i18n.localize(`FGT.Window.${window}`),
+    hint: game.i18n.format("FGT.Window.Hint", { name: actor.name }),
+    // `min: 0` -- keeping the cooldown is a legitimate play, and a dialog that
+    // forces a pick would make "at the start of a Damage Step" mandatory.
+    min: 0,
+    count: offers.length,
+    options: offers.map((a) => ({
+      id: a.id,
+      name: a.name,
+      detail: a.system?.description ?? "",
+    })),
+  });
+
+  const chosen = (picked ?? []).filter((id) => offers.some((a) => a.id === id));
+  if (chosen.length === 0) return { ...state, windowAbilities: [] };
+
+  // Paid for at the moment it is taken. `cooldownFor` is the same planner both
+  // use paths run through, so a window use and a sheet click cannot disagree
+  // about what the ability costs -- the disagreement `engine/cooldown.mjs` was
+  // written to end.
+  //
+  // What "using it" MEANS depends on what the ability is, and the two in the
+  // reference set are the two answers. Monstrous Strength contributes rules to
+  // the attack in progress (`windowAugmented`); Uncrowned Arms Mastership is a
+  // MODE, and using it is the switch itself -- *"switch the effect of this Skill
+  // from 1 to 2, or 2 to 1"*. Folding a mode's rules into one attack would apply
+  // the state it is leaving rather than the one it is entering.
+  const intents = chosen.flatMap((id) => {
+    const item = actor.items.get(id);
+    const plan = cooldownFor(item, actor.id, { unit: unitSnapshot(actor) });
+    const toggles = classifyAbility(item).toggles;
+    return [
+      ...plan.cooldowns.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
+      ...(toggles
+        ? [I.setMode(actor.id, item.system?.slug ?? id, !item.system?.active, `window:${window}`)]
+        : []),
+      I.recordUse(actor.id, id, item?.system?.contentId ?? null),
+      I.log({
+        kind: "ability", event: "windowUsed", window,
+        unitId: actor.id, abilityId: id, name: item?.name ?? id,
+      }),
+    ];
+  });
+  await applyBatch(intents, `window:${window}`);
+
+  // A mode's switch is its whole effect, so it is not carried forward as a
+  // contribution: `contributionsOf` will read the new state off the document on
+  // the next snapshot, which is every snapshot after this batch.
+  const carried = chosen.filter((id) => !classifyAbility(actor.items.get(id)).toggles);
+
+  await ChatMessage.create({
+    content: `<p><strong>${actor.name}</strong> uses `
+      + `${chosen.map((id) => actor.items.get(id)?.name ?? id).join(", ")}.</p>`,
+    speaker: ChatMessage.getSpeaker({ actor }),
+  });
+
+  void message;
+  return { ...state, windowAbilities: carried };
+}
+
+/**
+ * Ask the player who owns this actor, or answer it here when nobody does.
+ *
+ * A GM-run resolution must not put a Servant's decision in the GM's hands when
+ * the Servant belongs to somebody: `FGTSocket.ask` is the primitive for exactly
+ * that, and it short-circuits to a local dialog when the owner *is* this client.
+ * An unowned actor (a summon, an NPC) falls back to whoever is arbitrating.
+ *
+ * A timeout or a disconnected owner resolves to **null**, which every caller
+ * reads as "declined" — the attack must not stall because somebody walked away.
+ *
+ * @param {object} actor
+ * @param {object} spec a prompt spec (`module/apps/prompt.mjs`)
+ * @returns {Promise<unknown>}
+ */
+async function askOwner(actor, spec) {
+  const owner = game.users.find((u) => u.active && !u.isGM && actor.testUserPermission(u, "OWNER"))
+    ?? game.user;
+  try {
+    const { FGTSocket } = await import("../net/socket.mjs");
+    return await FGTSocket.ask(owner.id, spec);
+  } catch (err) {
+    console.warn(`FGT | ${actor.name}'s window prompt was not answered:`, err);
+    return null;
+  }
 }
 
 /**

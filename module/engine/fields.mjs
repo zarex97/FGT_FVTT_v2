@@ -32,6 +32,40 @@ import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 
 /**
+ * A field's shape, grown or shrunk by the war Region it is cast in.
+ *
+ * > *"Affects a 9x9 panel area around Asterios when used; **if the Region is
+ * > Greece, it affects an 11x11 panel area instead**."*
+ *
+ * `regionSizeOverride` has been authored on his *Chaos Labyrinthos* since he was
+ * written and had **no reader at all**, so the home-ground clause on the largest
+ * bounded field in the game did nothing. It is the field-shaped sibling of
+ * `regionScaled` (`engine/scheduler.mjs#regionScale`), which does the same job
+ * for a resource gain.
+ *
+ * Keyed on the war Region rather than on the caster's own `region` list: the
+ * clause is about *where the war is being fought*, not about where the Servant
+ * is from — Asterios is Greek wherever he is summoned, and the sheet still only
+ * gives him the bigger Labyrinth in Greece.
+ *
+ * Sizes a `square` by `size` and a `rect` by both edges. A shape with neither is
+ * returned untouched rather than guessed at.
+ *
+ * @param {object|null|undefined} geometry
+ * @param {string|null} warRegion
+ * @returns {object|undefined}
+ */
+export function regionSizedShape(geometry, warRegion) {
+  const shape = geometry?.shape;
+  const override = geometry?.regionSizeOverride?.[warRegion ?? ""];
+  if (!shape || override === undefined || override === null) return shape;
+
+  if (shape.kind === "square") return { ...shape, size: override };
+  if (shape.kind === "rect") return { ...shape, w: override, h: override };
+  return shape;
+}
+
+/**
  * Open the bounded field an ability declares.
  *
  * @param {object} ability the ability Item
@@ -80,7 +114,11 @@ export async function createField(ability, actor, board = null) {
   const anchor = specGeometry?.anchorRef === "platform"
     ? (platformCentre(platform) ?? self.panel)
     : self.panel;
-  const geometry = { ...(specGeometry ?? {}), anchor: { ...anchor } };
+  const geometry = {
+    ...(specGeometry ?? {}),
+    shape: regionSizedShape(specGeometry, snapshot.warRegion),
+    anchor: { ...anchor },
+  };
   const field = {
     // `fieldId`, which is what `NPFieldBehavior` declares and what
     // `boundedFieldsOf` reads back. Written as `id`, the behaviour failed

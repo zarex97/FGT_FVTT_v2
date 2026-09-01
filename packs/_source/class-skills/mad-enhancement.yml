@@ -37,10 +37,42 @@ description: |
 activeRules:
   # The STR share goes into the stage-4 bucket; the MAG differential is applied
   # at stage 5, because one bucket cannot hold two magnitudes for one modifier.
+  # Clause 3, as a PREDICATED PAIR rather than as a stage-4/stage-5 split.
+  #
+  # *"All damage dealt is increased by X% including NP; this effect is halved for
+  # Attacks which use Base Attack (MAG)."* Ch. 13's stage 5 proposed contributing
+  # `min(str, mag)` to the additive bucket and the difference to stage 5, on the
+  # grounds that "one bucket cannot hold two magnitudes for one modifier". It
+  # can now: a DEFERRED predicate (`attack:` clauses, built for Scáthach and
+  # EMIYA long after that decision was written) picks which magnitude is in the
+  # bucket, and exactly one of these two ever applies.
+  #
+  # That is not a tidier spelling of the same arithmetic -- the split gets the
+  # STR case WRONG whenever anything else is in the bucket, because stage 4 and
+  # stage 5 compose multiplicatively while §13.4's rule is additive. Rank B
+  # (60/30) against 100% Def Up, attacking with STR: the rulebook's own worked
+  # form is (100 + 60 - 100)% = x0.60; the split gives (100 + 30 - 100)% = x0.30
+  # at stage 4 and then x1.3 at stage 5 = x0.39. Ch. 13 §13.5 records the
+  # correction.
   - key: DamageModifier
     modifierKey: atkUp
     direction: dealt
     table: madEnhancementOffence
+    predicate: [not:attack:component:mag]
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    table: madEnhancementOffence
+    # "Halved" -- the same ladder scaled, not a second one. See `magnitudeFactor`
+    # in `rules/elements.mjs`: a `madEnhancementOffenceMag` table would be six
+    # numbers obliged to stay exactly half of six others.
+    magnitudeFactor: 0.5
+    predicate: [attack:component:mag]
+  # Clause 2. `madEnhancementDefence` is an `[normal, vsNP]` PAIR -- B is
+  # `[40, 20]` -- and the second half is picked up by `DamageModifier` as the
+  # modifier's `npValue`. It used to be dropped on the floor by `scalar()`, so
+  # every Mad Enhancement in the game reduced Noble Phantasm damage by its full
+  # normal figure.
   - key: DamageModifier
     modifierKey: defUp
     direction: taken
@@ -82,16 +114,22 @@ activeRules:
         stat: health.value
         table: madEnhancementDrain
         direction: down
-        floor: 30
+        # The SAME table as the drain, not a literal. Clause 1 is one number
+        # said three times -- Asterios's is *"loses 20 Health ... when its
+        # Master's Health is 20 or less"* -- and both of these were authored as
+        # `30`, which is `madEnhancementDrain`'s **EX** value. At every rank
+        # below EX the floor clamped against a number the Servant's own sheet
+        # never mentions.
+        floorTable: madEnhancementDrain
 
-      # "When its Master's Health is 30 or less, ME is forcibly deactivated."
-      # Ordered after the drain, so it tests what the drain left. Note the
-      # asymmetry the source draws: this is forcible, and a player's own click
-      # is still refused by the 2◈ lockout above.
+      # "When its Master's Health is [the drain] or less, ME is forcibly
+      # deactivated." Ordered after the drain, so it tests what the drain left.
+      # Note the asymmetry the source draws: this is forcible, and a player's own
+      # click is still refused by the 2◈ lockout above.
       - key: SetMode
         ability: madEnhancement
         active: false
-        whenValue: { subject: master, stat: health.value, lte: 30 }
+        whenValue: { subject: master, stat: health.value, lteTable: madEnhancementDrain }
 
   # Clause 5 is deliberately NOT here. "Sustainability is reduced by 2◈ if its
   # Master is defeated while ME is Active" is a consequence of the Master
