@@ -36,6 +36,110 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Asterios and Karna are finished.** Both were already on the "authored" list. Asterios had all
+  five abilities and **six of their clauses had no reader**; Karna had four of thirteen, and the
+  four included neither of the two that define him. All eighteen abilities now resolve end to end
+  in a live world, verified individually.
+
+  **Asterios — six clauses that were authored, validated, compiled, loaded and unreachable:**
+
+  - *Monstrous Strength* shipped as `activeRules` on an ability that is not a mode, so nothing
+    could ever switch it on. It needed **the attacker's own timing window**, which did not exist —
+    every window in the system described a moment inside somebody *else's* Combat Process.
+    `abilitiesAtWindow` + `offerAttackerWindow` add `damageStep` and `combatPhaseStart`; the
+    chosen ability's rules are folded into that one attack, because the sheet says *"that Attack"*.
+    Measured: 406 accepted, 201 declined, cooldown untouched when declined.
+  - *Chaos Labyrinthos* declared six field axes and carried **no `createField` phase**, so the
+    Labyrinth was never opened; its anchor was `{kind: selfCentred}`, which `resolveAnchor`
+    **throws** on; its cooldown was a bare `8◈` where the sheet says *"after the NP ends"*; and its
+    activation debuffs were aimed at `[enemy, ally, self]`, so he debuffed his own team and himself
+    every cast.
+  - `regionSizeOverride: {greece: 11}` had no reader anywhere. `regionSizedShape` is its first.
+
+  **Karna — six clauses that could not be written at all**, each closed with something general:
+  `target:paramVsSelf:` (Brahmastra's 4×/2× fork), `attack:element:` (his Fire resistance),
+  §E's **`combatProcessEnd`** (Vasavi Shakti's per-Process upkeep), `unlessUsedThisTurn` (Note 2),
+  `target:contentId:` (Fated Rivals, backing §36.1's own DECISION), and `oncePerRound` (the only
+  limit on Uncrowned Arms Mastership, which has no cooldown).
+
+  **Vasavi Shakti is two documents**, not §36.1's proposed `modes:` schema: an `isNP` document
+  cannot be free, and `canUseAbility` would have gated a free activation behind 75 Master Health
+  the sheet says it does not cost.
+
+- **Four new content-validator checks**, each added because something had already gone wrong
+  silently: targeting **anchors and shapes** (an unknown anchor throws, so the ability cannot be
+  used at all); requirement **kinds and selector fields** (an unknown kind refuses, which is loud —
+  a misnamed field on a known kind **passes**, which is not); rank tables named inside an event
+  action; and `applyEffects` phase entries classified as the effect specs they are.
+
+### Fixed
+
+- **Every cooldown in the game.** `cooldownFor` gated its branch lookup on `if (cd.branches)`.
+  `branches` is an `ArrayField`, so the DataModel turns the `null` the compiler writes for an
+  ordinary string cooldown into `[]` — and `[]` is truthy. Every ability whose cooldown is a plain
+  tick expression entered the branch path, matched nothing, and got no clock. Measured live:
+  **49 of 49 abilities** across six authored Servants were infinitely reusable. It arrived with
+  `cooldown.branches` itself, so every Servant verified before that was verified correctly and had
+  been wrong since.
+
+- **`board.warRegion` was permanently `null` in every world.** It reads `combat.system.region`, a
+  field declared on `MatchData` that **nothing has ever written** — no setup flow, no sheet, no
+  API — while the Region a GM picks lives in the `fgt.region` setting, read only by
+  `engine/summon.mjs`. §5.6's Region Parameter grant, the Hanging Gardens' Construction multiplier
+  and Asterios's Greece clause were all inert. `currentBoard` falls back to the setting.
+
+- **Non-damaging Noble Phantasms dealt their caster's Normal Attack.** Every NP resolves through
+  `resolveAttack` and the Combat Process always runs its damage stage, so an NP with no `damage:`
+  block fell through to the Normal Attack fallback. Five were affected; Chaos Labyrinthos measured
+  at **203** damage from an ability whose description opens with "(Non-damaging)". An ability that
+  declares phases and no `damage` phase now deals none.
+
+- **`RankShift`'s parameter branch dropped `to:`.** *"STR Rank is increased from B to A"* would
+  have made Karna `B+`; Kiritsugu's `E → EX` would have made him `E+`. The ability branch honoured
+  `to:` and the parameter branch never did.
+
+- **`negatedBy` was read only on the use path**, so it refused the button and left the ability's
+  rules contributing underneath. EMIYA carries it on eight abilities, one of them `isPassive` and
+  therefore never used at all; Medea's *"cannot be used **and its effects are negated**"* had only
+  its first half built.
+
+- **Mad Enhancement contributed three wrong numbers**, all reaching Penthesilea too: the
+  `[normal, vsNP]` table pair collapsed to its first half, so NP damage was reduced by 40% instead
+  of 20% at B; *"halved for Base Attack (MAG)"* was not implemented at all; and the drain floor and
+  forced-deactivation threshold were both the literal `30`, `madEnhancementDrain`'s **EX** value,
+  at every rank.
+
+- **Mad Enhancement's Sustainability clause read a field nothing writes.** `onMasterDefeated`
+  tested `servant.modes`, which no snapshot, applier or schema has ever produced.
+
+- **The damage pipeline lost a point to binary floating point.** A 90% reduction is
+  `1 + (-90)/100 = 0.09999999999999998`, so 1000 damage floored to 99. `Ward` also dropped
+  `npValue`, so a type resistance could not state an NP figure.
+
+### Corrected
+
+- **Ch. 13 §13.5's stage-5 DECISION is superseded.** Contributing `min(str, mag)` to the additive
+  bucket and the difference to stage 5 gets the STR case wrong whenever anything else is in the
+  bucket, because stages 4 and 5 compose multiplicatively while §13.4's rule is additive. Mad
+  Enhancement B against 100% Def Up is ×0.60 by the rulebook's own worked form and ×0.39 by the
+  split. A **predicated pair in the bucket** is exact, and only became possible when deferred
+  predicates arrived. Stage 5 keeps a real user in Monstrous Strength, which names one component
+  and gives no magnitude for the other.
+
+- **Ch. 15 §15.3's `modifyAttack` phase was never built and is not needed.** The `damage:` block
+  already expresses everything `BaseAttackOverride`, `IgnoreMagicResistance`, `ElementTag` and
+  `OnHit` were invented for. A Skill "used when performing a Normal Attack" *is* the attack:
+  `isAttackSkill: true`, one button, one Combat Process.
+
+- **Two unit-test fixtures described shapes no document has**, and each hid one of the two worst
+  findings above. Stated as a rule because it landed twice in one pass: *a fixture is only evidence
+  if it is the shape the caller actually gets.*
+
+- **Known simplification, recorded rather than faked:** Karna's *Mana Burst (Flames)* declares
+  `Fire Damage (half)` and the "(half)" is not modelled — `ctx.attack.element` is a single value
+  and every reader of it is all-or-nothing. It is the only clause on either sheet that is not
+  exact.
+
 - **Hassan of Serenity is built** — all seven abilities resolve end to end in a live world,
   verified individually. The eighth Servant, the first Assassin, and the one whose sheet is
   written almost entirely in terms of **information**.

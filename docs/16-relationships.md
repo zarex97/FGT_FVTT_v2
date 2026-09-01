@@ -396,10 +396,24 @@ Master dies
 |---|---|
 | Independent Action | grants a "high" value, stated per-Servant |
 | High Rank Master (alive) | +1◈ |
-| Mad Enhancement active when the Master dies | −2◈ |
+| Mad Enhancement active when the Master dies | −2◈ (see below) |
 | Semiramis aboard HGoB | +2◈ |
 | Semiramis with `Double Summon: Caster` | 4◈ instead of 2◈ |
 | Using an NP while Free | −1◈ to −6◈ by NP rank |
+
+> **The Mad Enhancement row read a field nothing writes.** `onMasterDefeated` tested
+> `servant.modes.includes("madEnhancement")`, and `modes` has never been written by the snapshot,
+> the applier or any document schema — so `undefined ?? []` made the clause permanently false and
+> clause 5 of the commonest class skill in the game charged nobody.
+>
+> Its unit test passed, because the test supplied `modes: ["madEnhancement"]` by hand. **A
+> fixture is only evidence if it is the shape the caller actually gets**; this one described a
+> projection that does not exist, so the rule was correct and unreachable at the same time. It now
+> reads `abilities` — `slug` plus `active`, which `collectAbilities` has projected since it was
+> written and which `rules/options.mjs` already reads for `self:skillActive:`.
+>
+> The same lesson landed twice in one pass: `cooldownFor`'s `branches` fixture (Ch. 07 §7.5) omits
+> a field the DataModel always supplies, and hid every cooldown in the game being broken.
 
 ### `N/A` Sustainability
 

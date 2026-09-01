@@ -531,6 +531,27 @@ terrain: membership is maintained natively, `tokenEnter`/`tokenExit` fire native
 survives a reload without the engine having to remember anything. `engine/fields.mjs` is the write
 half: `createField`, `endField`, `expireFields` and `runFieldEvents`.
 
+> **And Asterios still did not trap anybody**, because the writer needs *calling*. `createField`
+> is a **phase kind**, and *Chaos Labyrinthos* declared six axes and carried no `createField`
+> phase — so it resolved as a pair of debuffs on an empty board and the Labyrinth never existed.
+> EMIYA's *Unlimited Blade Works* has always carried the phase; this one never did.
+>
+> Two more of its own, both found the same way. Its targeting anchor was
+> `{kind: selfCentred}`, **which is not an anchor this system has** — `resolveAnchor`'s default
+> branch *throws*, so the largest bounded field in the corpus could not be used at all. And its
+> activation debuffs were aimed at `[enemy, ally, self]` where the sheet says *"all **enemy**
+> Units within the Labyrinth"*, so Asterios handed his own team and himself 40% Atk Dwn and 40%
+> Def Dwn every time he opened it.
+>
+> The content validator now checks anchors and shapes against the resolver's own vocabulary
+> (`ANCHOR_IDS`/`SHAPE_IDS`), which is how the first was found. The others needed a live board.
+>
+> Measured live afterwards: a 9×9 Region named for the ability, 81 panels, seven Units caught,
+> both debuffs on the enemy and neither on Asterios, the EX Noble Phantasm cost of 75 charged to
+> his Master, and **no damage** (§13.9) — and 11×11 / 121 panels with the war Region set to
+> Greece, which `regionSizeOverride` had never been able to do because nothing read it and
+> nothing set `board.warRegion` either (§19.3).
+
 Four things about it are decisions rather than mechanics:
 
 - **The anchor is stamped at cast time**, even for a `followsUnit` geometry, so a field whose

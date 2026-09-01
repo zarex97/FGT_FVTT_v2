@@ -252,6 +252,29 @@ mode.
 | Every targeting shape and anchor is known | `selfAdjacentRect` vs `selfEdgeAdjacent` |
 | Every attribute is in the closed vocabulary | `Non-hominidae` vs `nonHominidae` |
 | Every localization key exists | untranslated strings in play |
+| Every requirement **kind** is one its reader implements | a gate that refuses for ever |
+| Every requirement **selector field** is one its reader reads | a gate that **passes** for ever |
+| Every rank table an event action names exists | `floorTable`/`lteTable` resolving to nothing |
+
+Four of those were added by authoring Asterios and Karna, and each was added because something
+had already gone wrong in a way nothing announced:
+
+- **Anchors and shapes** were listed here and not implemented. `resolveAnchor` *throws* on an
+  unknown kind, so Asterios's *Chaos Labyrinthos* — authored `{kind: selfCentred}`, which reads
+  perfectly and has never been an anchor this system has — could not be used at all.
+- **Requirement selectors** are the subtler half. An unknown requirement *kind* refuses, which is
+  loud. A misnamed *field* on a known kind matches nothing, and `abilityOffCooldown`'s empty match
+  set is a deliberate **pass** (§15.4) — so Karna's two cross-NP gates, authored `abilityId` where
+  the reader takes `abilityIds`, passed unconditionally in a live world.
+- **Tables inside an event action** were unreachable by `ruleElements`, which walks the element
+  lists and stops. Every `table:`, `cooldownTable:`, `floorTable:` and `whenValue.lteTable:` under
+  a `then:` was unchecked, and an unknown table id is not an error at runtime — it is `lookup`
+  returning `undefined` and the action quietly doing nothing.
+- **An `applyEffects` phase's entries are effect specs, not rule elements.** Validating them as
+  rule elements demanded a `key` they have no use for, so four shipped files carried a decorative
+  `key: OnEvent, event: abilityUsed` that reads as an event handler and is not one —
+  `applyPhaseEffects` reads `rule.effect ?? rule` and never looks at `key`. Their durations and
+  effect ids are still checked; nothing new has to write the ceremony.
 
 ### Advisory (warnings, not failures)
 

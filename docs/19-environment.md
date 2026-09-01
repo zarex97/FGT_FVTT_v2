@@ -182,6 +182,29 @@ mechanism is general.
 }
 ```
 
+### Where the Region actually lives
+
+There are two places it could: the world setting `fgt.region`, and `MatchData.region` on the
+active Combat. **The board read the second, and nothing in this system has ever written it** — no
+setup flow, no sheet, no API. Meanwhile the setting is registered, appears in the world config,
+and was read only by `engine/summon.mjs`.
+
+So `board.warRegion` was permanently `null` in every world, and **everything keyed on the Region
+was inert**:
+
+| Reader | Clause |
+|---|---|
+| `annotateRegionBonus` | §5.6's Region Parameter grant — the rule this whole section is about |
+| `regionScale` | Semiramis's HGoB Construction multiplier, above |
+| `regionSizedShape` | Asterios, *Chaos Labyrinthos*: *"if the Region is Greece, it affects an 11×11 panel area instead"* |
+
+**DECISION.** `currentBoard` falls back to the setting: `combat.system.region || setting("region")`.
+The match field stays first, because a per-match override is the right shape once something
+writes one; the setting is the **default**, not a replacement.
+
+Measured live: with the war Region set to Greece, Asterios's Labyrinth is 11×11 / 121 panels; at
+any other Region it is 9×9 / 81.
+
 ---
 
 ## 19.4 The Holy Grail

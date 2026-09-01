@@ -348,16 +348,40 @@ Modifiers that apply to only one component:
 > damage which uses Base Attack (MAG)."*
 
 So Mad Enhancement contributes its full value to the STR portion and half to the MAG portion.
-That cannot live in a single shared bucket, so it splits: the STR share joins stage 4, the
-differential joins stage 5.
 
-**DECISION.** A modifier with different STR and MAG magnitudes contributes
-`min(strVal, magVal)` to stage 4 and the difference to stage 5 on the larger component. This
-keeps the additive-bucket semantics while supporting asymmetric modifiers. The breakdown shows
-both contributions attributed to the same source, so the audit trail stays readable.
+**DECISION (superseded).** The original decision was that a modifier with different STR and MAG
+magnitudes contributes `min(strVal, magVal)` to stage 4 and the difference to stage 5 on the
+larger component, on the grounds that one bucket cannot hold two magnitudes.
+
+**That is wrong, and the error is not small.** Stage 4 and stage 5 compose *multiplicatively*,
+while §13.4's rule is *additive* — so the split gets the STR case wrong the moment anything else
+is in the bucket. Mad Enhancement at Rank B (60 / 30) against 100% Def Up, attacking with STR:
+
+| | STR | MAG |
+|---|---|---|
+| §13.4's own worked form, `(100 + 60 − 100)%` | **×0.60** | ×0.30 |
+| The split: `(100 + 30 − 100)%` at stage 4, then ×1.3 at stage 5 | ×0.39 | ×0.30 |
+
+**DECISION (current).** A modifier whose magnitude differs by component is authored as a
+**predicated pair in the additive bucket**, one clause per component, gated on
+`attack:component:mag` and its negation. Exactly one applies to any given attack, and the
+additive semantics are preserved exactly. `magnitudeFactor` expresses *"halved"* as the
+relationship it is, so the two clauses share one rank table rather than needing a second one
+obliged to stay exactly half of the first.
+
+This only became possible when **deferred predicates** arrived (built for Scáthach and EMIYA,
+long after the original decision was written): a predicate naming the attack survives collection
+and is re-tested by the pipeline with the attack in scope. Before that, the split really was the
+only option available.
+
+**Stage 5 keeps a real user.** Asterios's *Monstrous Strength* is *"**STR Damage** dealt by that
+Attack is increased by 100%"* — one component named, no magnitude given for the other, so there
+is no second magnitude for the bucket to hold. Against Karna's *Mana Burst (Flames)*, whose Base
+Attack is STR and MAG combined, it lifts the STR half and leaves the MAG half alone. Measured
+live: 100 STR + 100 MAG becomes 300, not 400.
 
 Also here: Karna's *Mana Burst (Flames)* declaring `Fire Damage (half)` — an element applying
-to half the damage.
+to half the damage. **Not implemented** — see §13.9.
 
 ### Stage 6 — Band
 
@@ -858,6 +882,46 @@ revived unit does not take an injury roll for the killing blow (it "survived" on
 **DECISION.** A unit revived by Guts/Battle Continuation/God Hand does **not** perform an
 Injury Roll for that attack, because Step 4 of Combat requires the DU to have "survived", and
 revival is explicitly a post-defeat event. Ch. 41.
+
+### The final floor rounds first
+
+`floor(total)` at stage 16 rounds to four decimal places before flooring, because binary floating
+point otherwise costs a point at large percentages. A 90% reduction is `1 + (-90)/100`, which is
+`0.09999999999999998`, so 1000 damage leaves stage 4 as `99.99999999999998` and floors to **99**.
+
+Karna's *Kavacha and Kundala* is the largest such percentage in the game and hits it on every
+attack; every other percentage in the system is exposed to it at some magnitude. Rounding to the
+precision every `contribute` and every stage boundary already reports at removes the
+representation error without touching a genuine fraction — 99.6 still floors to 99. Measured
+live: 1030 into Kavacha and Kundala is 103, not 102.
+
+### A Noble Phantasm that deals no damage
+
+Every Noble Phantasm resolves through `resolveAttack` — a non-damaging one still costs the
+Servant its Attack (§15.1) — and the Combat Process always runs its damage stage. So an NP with
+no `damage:` block fell through to `baseSpecFor`'s fallback and computed its caster's **Normal
+Attack**.
+
+**DECISION.** An ability that declares `phases` and does **not** declare a `damage` phase deals
+no damage: `dealsNoDamage` sets `isFixedDamage` with a `fixedValue` of 0. An explicit `damage:`
+block still wins, which is what keeps Bašmu's `{fixed: true, fixedValue: 0}` summon branch and
+Gáe Bolg Alternative's conditional damage working as authored.
+
+Five shipped Noble Phantasms were affected: Asterios's *Chaos Labyrinthos* (measured live at
+**203** damage from an ability whose description opens with the word "Non-damaging"), EMIYA's
+*Unlimited Blade Works* and *Rho Aias*, and Semiramis's *Hanging Gardens* and *Sikera Ušum*.
+
+### `Fire Damage (half)` is not modelled
+
+Karna's *Mana Burst (Flames)* is the only clause in the corpus that gives an attack a **partial**
+element. `ctx.attack.element` is a single value and every reader of it is all-or-nothing — stage
+0's element-to-heal conversion, the Fire-breaks-Freeze branch, Dragonblight, and the
+`attack:element:` predicate family. So the attack is Fire, entirely.
+
+**DECISION.** Recorded rather than faked, the same way `basmu.yml` records the Injury Roll
+simplification. What it costs: a defender with `flamHeal` heals from all of Mana Burst rather
+than half of it, and Karna's own 50% Fire resistance would apply to all of an incoming copy
+rather than half. Nothing in the reference set exercises either case.
 
 ---
 

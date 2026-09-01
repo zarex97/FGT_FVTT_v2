@@ -313,6 +313,23 @@ Vasavi Shakti's post-activation passives, Kiritsugu's `Kiritsugu` debuff. Never 
 > `alsoTriggers` (§7.6) rides the same helper. A **per-unit** cooldown is resolved against what
 > the use produced rather than authored as a fixed tick — Medea's Dragon Tooth Warriors is
 > "(Number of Warriors × ⅔◈)", so its cost is not known until the Skill has resolved.
+>
+> **And then it broke again, in exactly the same way, for a different reason.** `cooldown.branches`
+> arrived for Semiramis's *Summoning: Bašmu* — an ability whose clock differs by which of its two
+> behaviours fired — and `cooldownFor` gated the branch lookup on `if (cd.branches)`. `branches` is
+> an `ArrayField`, so the DataModel turns the `null` the compiler writes for an ordinary string
+> cooldown into `[]`, and **`[]` is truthy**. Every ability whose cooldown is a plain tick
+> expression entered the branch path, matched nothing, and got no clock at all.
+>
+> Measured live, before the fix: **49 of 49 abilities** across Karna, Asterios, Scáthach, EMIYA,
+> Medea and Semiramis returned no cooldown. The Servants verified before `branches` existed were
+> verified correctly and had been wrong ever since.
+>
+> The unit tests could not catch it. Their fixtures build `{cooldown: {max: "3◈"}}` with no
+> `branches` key at all, and `undefined` is falsy — so they exercised the correct path against a
+> shape no document ever has. **A fixture is only evidence if it is the shape the caller actually
+> gets**, which is the same lesson `onMasterDefeated`'s `modes: []` fixture taught in the same
+> pass (§16.6).
 
 ## 7.6 Cooldowns
 
@@ -441,6 +458,31 @@ used; anything `alsoTriggers` drags along with it pays in full.
 That interacts with one more field. A waived cooldown leaves nothing limiting the ability, which
 is why `oncePerTurn` exists and is **not** redundant with a cooldown: Ár's `3◈` never runs while
 she holds a token, and *"can only be used once per Turn"* is then the only limit on it.
+
+**`oncePerRound` is the same limit one scale up**, and it exists for the same reason
+`sameRoundExclusive` exists beside `sameTurnExclusive` (§15.3): a Servant acts up to three times
+in a Round, so a per-Turn cap forbids almost nothing. Karna's *Uncrowned Arms Mastership* is
+*"can only be used once per Round"* and has **no cooldown at all** — this is the only thing
+limiting it, and authored as `oncePerTurn` it would have been a free toggle three times a Round,
+which would make the choice between its two effects stop being a choice.
+
+### `countFrom: deactivation`
+
+A clock that does not start at the use. Two abilities in the set state it, and both would
+otherwise collapse their cost by half:
+
+| Ability | Text |
+|---|---|
+| Presence Concealment | *"Cooldown: 2◈ Turns **after PC is deactivated**"* |
+| Asterios, *Chaos Labyrinthos* | *"Cooldown: 8◈ Turns **after the NP ends**"* |
+
+The Labyrinth is the sharper case, because it can be **extended**: 4◈ base plus 2◈ per 200 of
+Asterios's own Health, repeatably. A clock started at the cast would come off cooldown while the
+Labyrinth was still standing and still being paid for. `cooldownFor` deliberately returns no
+clock for such an ability, and the field's own teardown starts it (`engine/fields.mjs`).
+
+Measured live: with every other clock of his resolving correctly, Chaos Labyrinthos reports none
+at the moment of use — which is the right answer, not a missing one.
 
 ---
 

@@ -1,6 +1,6 @@
 # 45 — Implementation Status and Completion Plan
 
-**As of `0.2.11`.** This chapter audits the 44 specification chapters against the ~10,500 lines
+**As of `0.3.5`.** This chapter audits the 44 specification chapters against the ~38,400 lines
 of code in `module/`, names what is missing, and lays out a step-by-step plan to finish it.
 
 It is written to be **acted on**, so it is blunt about three distinctions that a status table
@@ -24,7 +24,7 @@ where something is a stub the exact line is named.
 The **pure rules core is complete**: the damage pipeline, targeting resolution, checks and the
 roll log, movement legality, the effect application pipeline, the turn budget, ability costs and
 all twelve requirement kinds, items, copied abilities, setup rolls and the rank/tick domain are
-all implemented and carry 1858 tests, and 155 content files.
+all implemented and carry 2089 tests, and 189 content files.
 
 The last pure-rules gaps closed together: `rules/roll-log.mjs` (§14.8), `rules/setup-rolls.mjs`
 (§14.9, §37.6), `rules/items.mjs` (§15.4's full kind list and §15.8) and `rules/copy.mjs`
@@ -104,7 +104,9 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    **done (C3, C4)**. Platforms still lack the Scene Level operations (create, delete, scatter),
    which are logged by name rather than performed; bounded fields still lack the paint tool
    `freeform` needs and the two-phase `markDefined` construction.
-8. **Only 8 of 29 reference Servants are authored.**
+8. **Only 9 of 29 reference Servants are authored** — and "authored" is a claim only a
+   live board can settle. Asterios and Karna were both on this list while six of Asterios's
+   clauses had no reader and nine of Karna's thirteen abilities did not exist.
 
 The system is at the point where **one player can attack another player and the damage is
 correct and fully audited**. It is not yet at the point where a match can be played to a finish.
@@ -160,14 +162,17 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
 | 37 | Content pipeline | **Done** | YAML → LevelDB, validator, stable ids, and **the summon operation (§37.6)** — an ordered, inspectable plan that rolls before it grants, keeps Master and Region grants as separate steps, and ends in a re-rollable confirmation — **with the dialog that shows it**, reached from the Actors sidebar and the Servant compendium, and refusing a bare compendium drop that would produce a Servant with the template's numbers. The validator also refuses an undocumented `copyable` refusal and a copy that carries its own phases. |
-| 38 | Testing strategy | **Mostly** | 1858 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
+| 38 | Testing strategy | **Mostly** | 2089 unit and golden tests, plus `check:smoke`, which loads a real world and fails if it does not come up. **Integration tests (§38.6), performance tests (§38.7) and the twelve-Servant playtest (§38.8) missing.** |
 | 39 | Migration and versioning | **Missing** | No migration runner; the schema has no version stamp. |
 | 42 | Terrain | **Done** | Catalogue, panel model, standing/periodic/on-entry/conversion clauses, the annotation pass and the `Region` behaviour that populates areas from a scene (C1). |
 | 43 | Bounded fields | **Mostly** | The six-axis model, NP tag ordering, the escape ladder with its veteran clause, isolation enforced by the resolver, and Chaos Labyrinthos authored (C4) — **and now a writer** (`engine/fields.mjs`): a field is a Region with an `npField` behaviour, created by a `createField` phase, expiring on an absolute tick at the Turn boundary, with `interiorEvents` for rules that fire at a boundary rather than standing. Everything in the chapter had a reader and none of it had ever run. **`freeform` needs a paint tool, `markDefined` a two-phase construction, and §43.9 scheduled detonation.** |
-| — | Content | **8 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea, Medea and **Scáthach** — the first Lancer, and the Servant who needed the most engine that did not exist. **All eleven abilities** resolve end to end in a live world, verified individually: *Primordial Rune* (a 2d8 table chosen by relation, duplicates applying twice, and a wildcard row that asks), the three *Primordial Rune Spells* (a PRS Token waiving the cooldown, and the other two gated while the used one runs), *Wisdom of Dún Scáith* (which **had never been able to copy anything**), *Clairvoyance*, *God Slayer* with *Alpi*'s two branches, *Gáe Bolg Alternative*'s Instakill-or-damage fork, and *Gate of Skye*'s per-target Luck Check with `gateOfSkyeSaveModifier`. She is also the first **Resource** pool (§6.10) and the first content to fire §E's `damageStepEnd`. 36 effects of ~152, including Appendix A's **terminal tier**. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
+| — | Content | **9 of 29 Servants** | Heracles, Karna, Asterios, Penthesilea, Medea, EMIYA, Serenity, Semiramis and **Scáthach** — the first Lancer, and the Servant who needed the most engine that did not exist. **All eleven abilities** resolve end to end in a live world, verified individually: *Primordial Rune* (a 2d8 table chosen by relation, duplicates applying twice, and a wildcard row that asks), the three *Primordial Rune Spells* (a PRS Token waiving the cooldown, and the other two gated while the used one runs), *Wisdom of Dún Scáith* (which **had never been able to copy anything**), *Clairvoyance*, *God Slayer* with *Alpi*'s two branches, *Gáe Bolg Alternative*'s Instakill-or-damage fork, and *Gate of Skye*'s per-target Luck Check with `gateOfSkyeSaveModifier`. She is also the first **Resource** pool (§6.10) and the first content to fire §E's `damageStepEnd`. 36 effects of ~152, including Appendix A's **terminal tier**. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
 | — | Content (Heracles) | — | **Heracles is finished.** He shipped with four of eight abilities; the four that were missing were the four Ch. 31 was written about. **Revival is now a priority-ordered query** (`rules/revival.mjs`) rather than "whichever handler heals first" — with one source those are indistinguishable, and with his four the old behaviour burns a God Hand charge while `Undying` sits unused. `RevivalSource` is the element, and Battle Continuation's second condition — *"Health must have been restored back to above half its maximum at least once since the last activation"* — is **enforced for the first time**, against the `healthWatermarks` history §45.1 named as missing rather than faking. God Hand's cascade and its ledger of attack identities both work; measured live. |
 | — | Content (EMIYA) | — | **EMIYA**, the first Archer, and the Servant whose sheet is written almost entirely in terms of **distance** — which nothing emitted. All **seventeen** abilities resolve end to end in a live world, verified individually. `attack:range:gte:N` / `lte:N` are new roll options and half his kit turns on them; `normalAttack.mode: rangeBanded` had been a declared choice since the actor schema was written with nothing implementing it, so his Normal Attack was plain STR at every distance (measured: 40 in melee, 72 at Range 3, and 80 versus 54 against a Rank A Magic Resistance depending on whether the exemption applies). He is the first content to need a **whole-match** budget rather than a cooldown (`timesUsed`/`maxUses`), the first **barrier** with its own Health pool (`Rho Aias`: one 1400 shared across four bearers, overflow passing through, 100 off its owner per completed 200), the first **round-scale** exclusion (`Caladbolg II` / `Hrunting`), the first `createField` (Unlimited Blade Works trapped eight Units and tolled three of them at the Turn boundary), and the second **Resource** pool. 50 effects of ~152. 6 class skills, including **Independent Action**, whose contract rule had shipped in `rules/contract.mjs` with no content to attach to. |
 | — | Content (Serenity) | — | **Hassan of Serenity**, the first Assassin, and the Servant whose sheet is written almost entirely in terms of **information**. All **seven** abilities resolve end to end in a live world, verified individually. Presence Concealment is eight clauses touching targeting, the reaction ladder, the damage pipeline, movement legality, Master protection and what a player may press — and **every one of those readers already existed**. What did not exist was anything that made a Unit concealed: `system.concealed` was projected by the snapshot, consulted by four subsystems, written by no code and declared by no schema, so all four asked a question whose answer was always `false`. It rides the `presenceConcealment` effect now, with `cooldown.countFrom: deactivation` — another declared field with no reader — and six deactivation paths converging on one function. She is also the Servant who made the **on-hit rider** work: `damageDealt` had never been fired and the `effect:` shorthand every rider in Appendix A is written in desugared to no action at all, so `Bleed Atk` and `Queen's Poison` were inert twice over. **Secret Poison** is built on Q47's reading — the Health comes off on schedule, the debuff and the running tally are hidden, and both are disclosed when her concealment ends. First staged effect (`Poison`, 20 × 2^(N−1)), first `stages: N` application, first `target: nearby` handler. 59 effects of ~152. 7 class skills. |
+| — | Content (Asterios) | — | **Asterios is finished**, and he is the clearest case in the project of content that was *authored, validated, compiled, loaded — and unreachable*. All five abilities resolve end to end in a live world. **Six clauses had no reader at all**, and none announced itself: *Monstrous Strength* shipped as `activeRules` on an ability that is not a mode, so nothing could ever switch it on (it needed the **attacker's own timing window**, which did not exist — every window in the system described a moment inside somebody *else's* Combat Process); *Chaos Labyrinthos* declared six field axes and carried **no `createField` phase**, so the Labyrinth was never opened; its anchor was `{kind: selfCentred}`, which `resolveAnchor` **throws** on, so the largest bounded field in the corpus could not be used at all; its cooldown was a bare `8◈` where the sheet says *"after the NP ends"*; its activation debuffs were aimed at `[enemy, ally, self]`, so he debuffed his own team and himself every cast; and `regionSizeOverride: {greece: 11}` had no reader anywhere. Measured live after: Monstrous Strength 406 accepted versus 201 declined, a 9×9 / 81-panel Labyrinth (11×11 / 121 in Greece) catching seven Units with both debuffs on the enemy and neither on him, and **0 damage** from an NP whose description opens with the word "Non-damaging". |
+| — | Content (Mad Enhancement) | — | Three wrong numbers in the commonest class skill in the game, all reaching Penthesilea too. `madEnhancementDefence` is an `[normal, vsNP]` **pair** and `scalar()` took index 0, so every Mad Enhancement reduced Noble Phantasm damage by its full normal figure — 40% instead of 20% at B. *"Halved for Attacks which use Base Attack (MAG)"* was **not implemented at all**; it is now a predicated pair in the additive bucket rather than Ch. 13 §13.5's stage-4/5 split, which gets the STR case wrong whenever anything else is in the bucket (×0.60 by §13.4's own worked form, ×0.39 by the split). And the drain floor and the forced-deactivation threshold were both the literal `30` — `madEnhancementDrain`'s **EX** value — at every rank; Asterios's Rank B is 20 in all three places, as his sheet says three times. Clause 5 read `servant.modes`, a field **nothing has ever written**, and its unit test passed because the fixture supplied it by hand. |
+| — | Content (Karna) | — | **Karna is finished** — thirteen abilities, four Noble Phantasms, the most of the original twelve, and nine of the thirteen were unauthored (including both that define him). All thirteen resolve end to end in a live world. **Six clauses could not be written at all** before this pass, and each needed something general: `target:paramVsSelf:` for *Brahmastra*'s 4×/2× fork (the existing rank ladder is grade-coarse and would have mis-paid the 4× branch to any `+`-stepped defender — measured, the `+` step decides three of six matchups on the authored roster); `attack:element:` for *"All Total Fire Damage taken is reduced by 50%"*, which the pipeline had read as `ctx.attack.element` since stage 0 was written while no predicate could ask; §E's **`combatProcessEnd`**, listed since the reference was written and never raised, for *Vasavi Shakti*'s per-Process upkeep; `unlessUsedThisTurn` for Note 2, which is §15.4's supersession in the wrong scope; `target:contentId:` for *Fated Rivals*, backing §36.1's own DECISION that nothing emitted; and `oncePerRound`, the only limit on *Uncrowned Arms Mastership*, which has no cooldown. **Vasavi Shakti is two documents**, not §36.1's proposed `modes:` schema — an `isNP` document cannot be free, and `canUseAbility` would have gated a free activation behind 75 Master Health the sheet says it does not cost. |
 | — | Content (Medea) | — | **Medea**, the first Caster, and the densest sheet at thirteen abilities. **All thirteen** resolve end to end in a live world -- verified individually, including Dragon Tooth Warriors (two nested rolls, 5×5 placement, count-scaled cooldown), Rule Breaker (cuts the Contract, strips the Master's Command Spells, grants three namespaced ones), Rain of Light (a 3×3 AoE that proved the targeting system), Atlas (base 100 reduced to 75 by `target MAG B+ -25`), and Argos and Trofa offered **at the reaction rung** because "used when Attacked" cannot be reached from a sheet button. 21 effects of ~152. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
 
 ---
@@ -936,8 +941,49 @@ the general log.
 
 ### Phase D — content and polish
 
-**D1. The remaining 23 Servants** — **STARTED.** Six authored: Heracles, Karna, **Asterios**,
-**Penthesilea**, **Medea** and **Scáthach**.
+**D1. The remaining 23 Servants** — **STARTED.** Nine authored: Heracles, **Karna**,
+**Asterios**, Penthesilea, Medea, Scáthach, EMIYA, Serenity and Semiramis.
+
+---
+
+### Asterios and Karna — and the argument for live testing, made twice
+
+Both were on the "authored" list before this pass. Asterios had all five abilities and Karna had
+four of thirteen, and **the four included neither of the two that define him**. Finishing them
+found seven defects in shipped code, and the two most serious were not in either Servant.
+
+**Every cooldown in the game was broken.** `cooldownFor` gated its branch lookup on
+`if (cd.branches)`. `branches` is an `ArrayField`, so the DataModel turns the `null` the compiler
+writes for an ordinary string cooldown into `[]` — and `[]` is truthy. Every ability whose
+cooldown is a plain tick expression entered the branch path, matched nothing, and got no clock.
+Measured before the fix: **49 of 49 abilities** across six authored Servants returned no cooldown.
+It arrived with `cooldown.branches` itself (Summoning: Bašmu, still the only ability that has
+any), so every Servant verified before that was verified correctly and had been wrong since.
+
+**`board.warRegion` was permanently `null` in every world.** It reads `combat.system.region`, a
+field declared on `MatchData` that **nothing in this system has ever written** — no setup flow, no
+sheet, no API — while the Region a GM actually picks lives in the `fgt.region` setting, read only
+by `engine/summon.mjs`. So §5.6's Region Parameter grant, the Hanging Gardens' Construction
+multiplier and Asterios's Greece clause were all inert. Two sources, one written and one read.
+
+The other five: non-damaging Noble Phantasms dealing their caster's Normal Attack (five shipped
+NPs; Chaos Labyrinthos measured at 203 damage); `RankShift`'s parameter branch silently dropping
+`to:`, so *"STR B → A"* would have produced `B+`; `negatedBy` read only on the use path, leaving
+an ability's rules contributing under a refused button; `Ward` dropping `npValue`; and the damage
+pipeline losing a point to binary floating point at large percentages (1030 into Kavacha and
+Kundala floored to 102 instead of 103).
+
+**Two unit-test fixtures described shapes no document ever has**, and each hid one of the two
+worst findings: `onMasterDefeated`'s test supplied a `modes` array nothing writes, and
+`cooldownFor`'s omits a `branches` key the DataModel always supplies. Both tests passed. The
+lesson is worth stating as a rule, because it landed twice in one pass: **a fixture is only
+evidence if it is the shape the caller actually gets.**
+
+Four new validator checks came out of it, each because something had already gone wrong silently:
+targeting anchors and shapes (an unknown anchor *throws*), requirement kinds **and selector
+fields** (an unknown kind refuses, which is loud — a misnamed field on a known kind **passes**,
+which is not), rank tables named inside an event action, and `applyEffects` phase entries
+classified as the effect specs they are rather than as rule elements.
 
 ---
 
@@ -1096,17 +1142,26 @@ B4 ✔ → B3 ✔              costs after auras, because a cost may read an aur
 B1 ✔                   Command Spells: catalogue, spend flow and the interrupt protocol
 C1 ✔ → C2 ✔            terrain then environment; environment reads terrain. Both complete.
 D1 ~ (continuous)      author Servants alongside, not after — they are the real test suite.
-                       Asterios and Penthesilea done. Between them they found eight engine
-                       gaps and closed them; none would have been designed up front
+                       Nine done. Asterios and Karna were both already ON that list and both
+                       were unfinished; finishing them found seven defects in shipped code,
+                       and the two worst -- every cooldown in the game, and a war Region
+                       nothing ever set -- were in neither Servant
 C3 ✔ → C4 ✔            platforms and bounded fields. PHASE C COMPLETE.
 D2 → D3 → D4
 ```
 
 The one ordering constraint that is not obvious: **D1 should run continuously alongside B and C,
 not after them.** Every Servant authored so far has found an engine gap — Karna found the
-`equality` table kind, Heracles found the Def Dwn family and the mode/attack conflation. Twenty-
-seven more Servants is twenty-seven more chances to find a defect while the surrounding code is
-still fresh.
+`equality` table kind, Heracles found the Def Dwn family and the mode/attack conflation. Twenty
+more Servants is twenty more chances to find a defect while the surrounding code is still fresh.
+
+And a second constraint the Asterios/Karna pass established: **"authored" is not a status a
+static check can award.** Both were listed as authored. Asterios had five abilities of which
+*six clauses* had no reader; Karna had four of thirteen. What separated the two states was not
+more content but a **live board** — the cooldown regression, the null war Region, the
+non-damaging Noble Phantasms and the vacuously-passing requirement gates were each invisible to
+2 000 passing unit tests and obvious within minutes of a real world. A Servant counts as done
+when every clause on its sheet has been *measured*, individually, in `fgt2026`.
 
 ---
 
