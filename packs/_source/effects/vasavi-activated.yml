@@ -1,0 +1,108 @@
+# Karna's Vasavi Shakti, the (Passive/Activation) half.
+# Discussed: docs/36-case-remaining.md §36.1; the rank change is docs/05 §5.9.
+schema: 1
+id: vasaviActivated
+name: "Vasavi Shakti (Activated)"
+description: |
+  Kavacha and Kundala is permanently lost. Base Attack (STR) +25 and STR Rank B → A. Normal
+  Attacks deal extra damage to Units with Divinity. Normal Attacks inflict Burn at 50% instead
+  of 25%. Karna's Master loses 20 Health at the end of every Combat Process Karna is involved in.
+polarity: status
+# Not a buff and not a debuff: it is a one-way change of state, and it is both
+# at once -- he trades a 90% damage reduction for a stronger attack.
+volatility: none
+stacking: noneNoRefresh
+baseChance: 500
+# PERMANENT, and unremovable. "The following effects are PERMANENTLY applied";
+# there is no clause anywhere on the sheet that takes it back off, and a buff
+# removal that could strip it would hand Kavacha and Kundala back.
+defaultDuration: permanent
+unremovable: true
+rules:
+  # Clause 1 is NOT here. "The effect of Kavacha and Kundala is permanently
+  # lost" is expressed from the other side, as `negatedBy: [vasaviActivated]`
+  # on the Noble Phantasm itself -- so the −90% stops contributing rather than
+  # being cancelled out by a +90% that would show in every damage breakdown and
+  # fight with anything else touching the same bucket.
+
+  # Clause 2. Both halves: the flat Base Attack and the Parameter.
+  - key: StatDelta
+    stat: baseAttack.str
+    value: 25
+  # "STR Rank is increased FROM B TO A" -- a named destination, not a step
+  # count. `to:` is the only form that does not require the author to count
+  # `+`/`-` positions across a grade boundary.
+  - key: RankShift
+    parameter: str
+    to: A
+
+  # Clause 3. "For every Rank in Divinity the DU has, damage dealt is increased
+  # by 30 (e.g. Divinity Rank C, +90 damage)."
+  #
+  # A LADDER of six identical +30s, each gated on one grade of the option ladder
+  # `rules/options.mjs` already emits, rather than a rank table. That is not a
+  # workaround -- it is the only shape that works, and the reason is worth
+  # recording: `table:` on a rule element resolves against the OWNING ability's
+  # rank (`resolveValue`), and this bonus is keyed on the DEFENDER's Divinity.
+  # An effect-borne rule has no rank at all, so a table here would look up
+  # `null` and contribute nothing.
+  #
+  # `target:skillRank:divinity:gte:X` is emitted for every grade the target
+  # clears, so a Divinity C defender satisfies gte:E, gte:D and gte:C and
+  # collects 3 x 30 = 90 -- which is the sheet's own worked example, arrived at
+  # by counting grades rather than by restating the answer.
+  #
+  # NORMAL ATTACKS only: the Active has its own, much larger, anti-Divine ladder
+  # and this must not stack onto it.
+  - { key: FlatDamage, modifierKey: divinity, value: 30, predicate: [attack:kind:normal, target:skillRank:divinity:gte:E] }
+  - { key: FlatDamage, modifierKey: divinity, value: 30, predicate: [attack:kind:normal, target:skillRank:divinity:gte:D] }
+  - { key: FlatDamage, modifierKey: divinity, value: 30, predicate: [attack:kind:normal, target:skillRank:divinity:gte:C] }
+  - { key: FlatDamage, modifierKey: divinity, value: 30, predicate: [attack:kind:normal, target:skillRank:divinity:gte:B] }
+  - { key: FlatDamage, modifierKey: divinity, value: 30, predicate: [attack:kind:normal, target:skillRank:divinity:gte:A] }
+  - { key: FlatDamage, modifierKey: divinity, value: 30, predicate: [attack:kind:normal, target:skillRank:divinity:gte:EX] }
+  # "If the DU has the 'Divine' Attribute but no 'Divinity' Skill, then damage
+  # dealt is increased by 100." A different question -- the attribute WITHOUT
+  # the skill -- so it is its own element rather than a row on the ladder above,
+  # and the `not:` is what keeps the two mutually exclusive.
+  - key: FlatDamage
+    modifierKey: divinity
+    value: 100
+    predicate: [attack:kind:normal, target:attribute:divine, not:target:skill:divinity]
+
+  # Clause 4. "Normal Attacks have a 50% chance of inflicting Burn for 2◈ Turns
+  # (INSTEAD OF 25%)."
+  #
+  # "Instead of", not "as well as". Mana Burst (Flames)'s own 25% rider carries
+  # the mirror predicate (`not:self:effect:vasaviActivated`), so exactly one of
+  # the two is ever live. Rolling both would land Burn 62.5% of the time, which
+  # is neither number the sheet prints.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: [attack:kind:normal]
+    target: victim
+    effect: { id: burn }
+    chance: 50
+    duration: "2◈"
+
+  # Clause 5. "Karna's Master loses 20 Health at the end of every COMBAT PROCESS
+  # Karna is involved in; his Master's Health cannot drop below 1 in this way."
+  #
+  # Per PROCESS, where Kavacha and Kundala's identical 20 was per Turn. That
+  # escalation is the price of the trade, and it is why `combatProcessEnd` had
+  # to start firing: §E has listed the event since the reference was written and
+  # nothing ever raised it, so this clause had no trigger. A Noble Phantasm over
+  # seven Units is one Phase containing seven Processes.
+  #
+  # `unlessUsedThisTurn` for Note 2, exactly as Kavacha and Kundala carries it.
+  - key: OnEvent
+    event: combatProcessEnd
+    automatic: true
+    unlessUsedThisTurn: { category: karnaNP }
+    then:
+      - key: StatDelta
+        subject: master
+        stat: health.value
+        amount: 20
+        direction: down
+        floor: 1

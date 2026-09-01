@@ -1,0 +1,89 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+# Discussed: docs/36-case-remaining.md §36.1; the permanence is docs/07 §7.7.
+schema: 1
+id: karna-kavacha-and-kundala
+name: "Kavacha and Kundala: O' Sun, Become Armor"
+isNP: true
+rank: A
+npTags: [antiUnitSelf]
+kind: noblePhantasm
+slug: kavachaAndKundala
+# A PASSIVE Noble Phantasm: there is nothing to use, so it is not a button and
+# it never costs Karna his Attack (`classifyAbility`, `countsAsAttack`). No
+# `category: karnaNP` either -- it has no Cooldown for End of Charity to reduce.
+isPassive: true
+# "The effect of Kavacha and Kundala is LOST when Vasavi Shakti is
+# used/Activated." Modelled as being negated by the permanent status Vasavi
+# Shakti's activation applies, rather than as a flag -- so the -90% simply stops
+# existing, which is §36.1's own framing.
+#
+# This is the clause that forced `rules/snapshot.mjs#negated` to honour
+# `negatedBy` at all. It read `negatedWhile` only, so `negatedBy` gated the USE
+# path and left an ability's rules contributing underneath -- and a passive NP
+# is never used, so for this one it could not be checked anywhere.
+negatedBy: [vasaviActivated]
+# "This effect is negated if Karna is affected by NP Seal?"
+#
+# DECISION (§36.1, Ch. 41): it is NOT. The trailing question mark is in the
+# source, a question mark is not a statement, and `NP Seal`'s own text is "does
+# not affect passive NPs unless stated". So Kavacha and Kundala survives NP
+# Seal, and `npSeal` is deliberately absent from `negatedBy` above.
+description: |
+  (Passive) All damage received by Karna is reduced by 90% including NP; this effect is ignored
+  by Attacks which have the Pierce effect. While Kavacha and Kundala is in effect, Karna's
+  Master loses 20 Health at the end of every Turn that Karna is involved in a Combat Phase;
+  his Master's Health cannot drop below 1 in this way. The effect of Kavacha and Kundala is
+  lost when Vasavi Shakti is used/Activated.
+passiveRules:
+  # −90%, the largest single defensive modifier in the corpus, and it joins the
+  # ADDITIVE stage-4 bucket like every other Def Up. §36.1 makes the point that
+  # this is why the bucket is additive: an attacker with +95% Atk Up still nets
+  # +5% rather than being multiplied down to nothing.
+  #
+  # `npValue` equals `value` because the sheet says "including NP" rather than
+  # giving a reduced figure -- stated rather than omitted, so a reader can tell
+  # it was decided.
+  #
+  # "Ignored by Attacks which have the Pierce effect" is a clause about the
+  # ATTACK, so it is a deferred predicate the pipeline re-tests with the attack
+  # in scope. Note that Pierce ignoring THIS is separate from Pierce ignoring
+  # Invuln and Block, which stage 14 and stage 16 handle themselves.
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 90
+    npValue: 90
+    predicate: [not:attack:pierce]
+
+  # The upkeep. `subject: master` -- the effect is on Karna and the cost lands on
+  # somebody else, which is the same shape Mad Enhancement's drain has.
+  #
+  # `actedTurnEnd` rather than `combatPhaseEnd`: the sheet's own Note 2 reframes
+  # this charge as "when Karna would normally Act/Attack", and this event fires
+  # once per Turn for every Unit that Acted, on any faction. `combatPhaseEnd`
+  # would charge him once per exchange -- twice on a Turn where he attacks and
+  # is countered, which the sentence "at the end of every TURN" excludes.
+  #
+  # KNOWN NARROWING: "involved in a Combat Phase" also covers being attacked on
+  # somebody else's Turn without Acting, which `actedTurnEnd` does not see. The
+  # alternative over-charges, and Note 2 is the tie-breaker: it prices this as an
+  # Act/Attack cost. Recorded in Ch. 45.
+  #
+  # `floor: 1` limits THIS deduction rather than the pool -- "his Master's Health
+  # cannot drop below 1 IN THIS WAY", so ordinary damage may still finish them.
+  - key: OnEvent
+    event: actedTurnEnd
+    automatic: true
+    # Note 2: "his Master's Health loss from him using the NP OVERWRITES the 20
+    # Health loss from when Karna would normally Act/Attack." The three Noble
+    # Phantasms that charge a Master share `category: karnaNP`, and using any of
+    # them this Turn suppresses this charge entirely rather than stacking with
+    # it -- 50 and 20 billed together is 70 where the rules say 50.
+    unlessUsedThisTurn: { category: karnaNP }
+    then:
+      - key: StatDelta
+        subject: master
+        stat: health.value
+        amount: 20
+        direction: down
+        floor: 1

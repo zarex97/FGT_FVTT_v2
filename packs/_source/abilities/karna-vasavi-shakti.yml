@@ -1,0 +1,73 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+# Targeting shape T11 in docs/09-targeting.md §9.13.
+schema: 1
+id: karna-vasavi-shakti
+name: "Vasavi Shakti: O' Sun, Abide to Death"
+isNP: true
+rank: EX
+npTags: [antiDivine]
+kind: noblePhantasm
+slug: vasaviShakti
+category: karnaNP
+cooldown: "8◈"
+element: fire
+# "Cannot be used if Brahmastra Kundala is on Cooldown." Declared on both sides;
+# Brahmastra Kundala carries the mirror.
+requirements:
+  # "Can only be used if Vasavi Shakti has been Activated." A predicate rather
+  # than a new `hasEffect` requirement kind -- `self:effect:<id>` is already
+  # emitted, and `notHasEffect` exists only because its negation is not.
+  - { kind: predicate, predicate: [self:effect:vasaviActivated] }
+  - { kind: abilityOffCooldown, abilityId: karna-brahmastra-kundala }
+description: |
+  (Active) Can only be used if Vasavi Shakti has been Activated. Cannot be used if Brahmastra
+  Kundala is on Cooldown. Range=3 to 4. Base Attack (MAG) is used. Hits a 3x3 panel area within
+  Range for 5x damage and inflicts Burn for 4◈ Turns to all affected Units. Fire damage.
+  This NP deals extra damage to DUs with 'Divinity' as follows-
+  Divinity Rank B to EX: damage dealt is further increased by 200% (tripled).
+  Divinity Rank E to C: damage dealt is further increased by 100% (doubled).
+  'Divine' Attribute, no Divinity: damage dealt is further increased by 150%.
+  Cooldown: 8◈ Turns.
+targeting:
+  # "Range=3 TO 4" -- a minimum as well as a maximum, which is the only anchor
+  # clause in the corpus with a floor on a ground-placed area. He cannot drop
+  # the sun on somebody standing next to him.
+  anchor: { kind: withinRange, range: 4, minRange: 3, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  # Everyone caught. The sheet says "all affected Units" and gives no exemption
+  # for his own side -- unlike Brahmastra Kundala, which explicitly exempts
+  # Karna himself. He is out of the blast by the Range=3 minimum, not by a rule.
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 5
+  element: fire
+  # The anti-Divine ladder, as `conditionalMultipliers` -- stage 3, INSIDE the
+  # bracket, which is where the author's own reference calculation puts a
+  # multiplier stated in an ability's own description (Ch. 13 §13.3). A stage-4
+  # percentage would be additive with Def Up and would not triple anything.
+  #
+  # `vasaviShaktiDivinityBonus` has been in `domain/tables.mjs` since the tables
+  # were transcribed and is NOT used here, deliberately: `table:` resolves
+  # against the OWNING ability's rank (`resolveValue`), and this ladder is keyed
+  # on the DEFENDER's Divinity. The table would look up EX -- Vasavi Shakti's
+  # own rank -- and hand every target the top row.
+  #
+  # The three rows are mutually exclusive by construction: the second excludes
+  # `gte:B`, and the third requires the attribute WITHOUT the skill.
+  conditionalMultipliers:
+    - { factor: 3.0, predicate: [target:skillRank:divinity:gte:B], source: "Divinity B–EX (+200%)" }
+    - { factor: 2.0, predicate: [target:skill:divinity, not:target:skillRank:divinity:gte:B], source: "Divinity E–C (+100%)" }
+    - { factor: 2.5, predicate: [target:attribute:divine, not:target:skill:divinity], source: "Divine, no Divinity (+150%)" }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      # "Inflicts Burn for 4◈ Turns to ALL AFFECTED Units" -- a rider on the
+      # damage landing, which is what `damageDealt` is.
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: burn }
+        duration: "4◈"

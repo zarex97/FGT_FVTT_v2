@@ -1,0 +1,53 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+# Discussed: docs/36-case-remaining.md §36.1.
+schema: 1
+id: karna-vasavi-shakti-activation
+name: "Vasavi Shakti — Activate"
+# NOT `isNP`. This is the half the sheet goes out of its way to separate:
+#
+#   "The above 5 are Passive effects of Vasavi Shakti after it has been
+#    Activated. Note: 'Activating' Vasavi Shakti is different from using the
+#    Active effect below this sentence; ALSO IT DOES NOT COST MASTER HEALTH TO
+#    'ACTIVATE' IT."
+#
+# An `isNP: true` document cannot be free: `npCost` prices every Noble Phantasm
+# off `npCostByRank`, and `canUseAbility` REFUSES the use outright when the
+# Master cannot afford it -- so an EX-rank activation would have been gated
+# behind 75 Master Health that the sheet says it does not cost.
+#
+# §36.1 proposed a `modes:` block on one document for this. Two documents
+# instead: the branch machinery that arrived later (`targeting.branches`,
+# `damage.branches`, `cooldown.branches`, per-phase `predicate:`) covers every
+# case `modes:` was invented for, and this one is not a branch at all -- it is a
+# separate, free, one-way action. Two buttons is also the honest presentation of
+# a decision that permanently deletes his best defensive clause.
+rank: EX
+slug: vasaviShaktiActivation
+# NO cooldown and no category: it is used once, ever, and there is nothing for
+# End of Charity to reduce.
+#
+# `maxUses: 1` is what makes it one-way. The status it applies is `unremovable`
+# and permanent, so a second press could not do anything anyway -- but an
+# ability that can be pressed twice and does nothing the second time reads as
+# broken, and `canUseAbility` refuses it with `exhausted` instead.
+maxUses: 1
+# Refused once it has been done, from the other direction too, so the button
+# disappears rather than refusing when pressed (§17.6).
+requirements:
+  - { kind: notHasEffect, effectId: vasaviActivated }
+description: |
+  (Activation) Permanently applies the five effects of Vasavi Shakti to Karna. Kavacha and
+  Kundala's effect is permanently lost. Base Attack (STR) +25 and STR Rank B → A. Normal
+  Attacks deal extra damage to Units with Divinity. Normal Attacks inflict Burn at 50%
+  instead of 25%. Karna's Master loses 20 Health at the end of every Combat Process he is
+  involved in.
+
+  Activating is different from using Vasavi Shakti's Active effect, and does not cost
+  Master Health.
+phases:
+  - kind: applyEffects
+    target: self
+    rules:
+      # No duration: the effect's own `defaultDuration: permanent` is the rule,
+      # and restating it here would be a second place for it to drift.
+      - { effect: { id: vasaviActivated } }

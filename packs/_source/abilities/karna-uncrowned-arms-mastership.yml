@@ -1,0 +1,56 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+schema: 1
+id: karna-uncrowned-arms-mastership
+name: "Uncrowned Arms Mastership"
+# "Rank: -" is not a rank, and not a blank one either: docs/05 §5.7 lists this
+# Skill by name as one of the unranked ones. `null` is what `Rank.parseOrNull`
+# returns for the unranked marker, and every table lookup keyed on it falls
+# back rather than guessing at E.
+rank: null
+slug: uncrownedArmsMastership
+# A MODE with two states, which is the only shape that fits *"switch the effect
+# of this Skill from 1 to 2, or 2 to 1"*. Switched OFF is effect 1 and switched
+# ON is effect 2; "at the start of the game, choose either" is the initial
+# `active` flag, and the default below is effect 1.
+isMode: true
+# NO cooldown at all -- the sheet gives it none. `oncePerRound` is therefore the
+# ONLY thing limiting it, which is why the field had to exist: authored as
+# `oncePerTurn` it would be a free toggle three times a Round and the choice
+# between the two effects would stop being a choice.
+oncePerRound: true
+# "Used during your Turn OR at the start of a Combat Phase." The first is the
+# sheet button (`isMode` above); the second is the attacker's own window
+# (`engine/attack.mjs#offerAttackerWindow`), which had no implementation --
+# every timing window in the system described a moment inside somebody else's
+# Combat Process.
+timing: { window: [combatPhaseStart] }
+# "The effects of this Skill are negated by Skill Seal." Both halves: the mode
+# cannot be switched, AND its rules stop contributing. The second half is
+# `rules/snapshot.mjs#negated`, which read `negatedWhile` only until Karna --
+# so `negatedBy` refused the button and left the rules running underneath.
+negatedBy: [skillSeal]
+description: |
+  (Passive) At the start of the game, choose either Effect 1 or 2; this Skill starts with that
+  effect Active. The effects of this Skill are negated by Skill Seal.
+  1. Crit Chance is increased by 20%.
+  2. Crit Damage dealt is increased by 40%.
+  (Active) Used during your Turn or at the start of a Combat Phase. Switch the effect of this
+  Skill from 1 to 2, or 2 to 1. Can only be used once per Round.
+# `passiveRules`, not `passiveRules` + `activeRules`, because BOTH states are
+# always collected and each carries the predicate that selects it. Splitting
+# them across the two lists cannot express the third case: End of Charity's
+# 'Charity' buff makes *both* effects Active at once, and `activeRules` has no
+# way to be true while `active` is false.
+passiveRules:
+  # Effect 1 — the default state, and whenever Charity is up.
+  - key: CheckModifier
+    check: crit
+    value: 20
+    predicate:
+      - { or: ["not:self:skillActive:uncrownedArmsMastership", "self:effect:charity"] }
+  # Effect 2 — the switched state, and whenever Charity is up.
+  - key: CritModifier
+    aspect: damage
+    value: 40
+    predicate:
+      - { anyOf: ["self:skillActive:uncrownedArmsMastership", "self:effect:charity"] }

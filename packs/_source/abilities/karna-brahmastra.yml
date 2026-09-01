@@ -1,0 +1,89 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+# The parameter comparison is docs/05-ranks-and-parameters.md §5.9 and
+# docs/36-case-remaining.md §36.1; targeting shape T9 in docs/09 §9.13.
+schema: 1
+id: karna-brahmastra
+name: "Brahmastra: O' Brahma, Cover the Earth"
+isNP: true
+rank: "A+"
+npTags: [antiArmy]
+kind: noblePhantasm
+slug: brahmastra
+# What End of Charity's clause 3 reduces. A category rather than three ids,
+# so a fourth Noble Phantasm does not go stale (`karna-end-of-charity.yml`).
+category: karnaNP
+cooldown: "7◈+⅓◈"
+description: |
+  Range=4. Base Attack (MAG) is used. This NP has the Aim effect. Has two different effects,
+  depending on the DU-
+  1. If all of the DU's Parameters are equal or lower than Karna's, this NP deals 4x damage
+     plus 100.
+  2. If the DU has any Parameter that is higher than Karna's, this NP deals 2x damage plus 100.
+  Note: Does not deal extra damage to Units with Divinity.
+
+  "Real heroes kill with their eyes."
+targeting:
+  anchor: { kind: targetUnit, range: 4 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  component: mag
+  # "This NP has the Aim effect." Aim beats Dodge (`rules/checks.mjs#evade`),
+  # which is the whole reason the quote on the sheet is about eyes.
+  aim: true
+  # The fork, as two `damage.branches` -- the same first-match-wins mechanism
+  # Summoning: Bašmu uses to have two behaviours in one document.
+  #
+  # `target:paramVsSelf:<p>:gt` is a NEW roll option, and it had to be: the
+  # `rank:gte:` ladder `rollOptionsFor` already emitted is absolute and
+  # GRADE-COARSE. A `B+` Unit clears the grades E..B and not A, so
+  # `not:target:rank:str:gte:A` reads as "STR is not above B" for a Unit whose
+  # STR is above B -- and against Karna's own `B/C/A/B/D` that hands the 4x
+  # branch to defenders who should be getting 2x. 4x versus 2x on an A+ Noble
+  # Phantasm is the largest single swing any predicate in this game decides,
+  # so it is compared with `Rank.compare` where both Units are in scope.
+  #
+  # Clause 1 is authored as the ABSENCE of clause 2's condition rather than as
+  # five `lte` tests, because that is what the sheet says -- "all ... equal or
+  # lower" is "none higher" -- and because it is then correct for a defender
+  # whose Parameter is unranked, which has no Parameter higher than Karna's and
+  # emits no option either way.
+  #
+  # §36.1 notes the consequence and it is deliberate design: Heracles's LUC A
+  # and Drake's LUC EX both beat Karna's D on their own, so the 4x branch is
+  # rarer than it looks.
+  branches:
+    - predicate:
+        - not:target:paramVsSelf:str:gt
+        - not:target:paramVsSelf:end:gt
+        - not:target:paramVsSelf:agi:gt
+        - not:target:paramVsSelf:mag:gt
+        - not:target:paramVsSelf:luc:gt
+      component: mag
+      aim: true
+      multiplier: 4
+      flatBonus: 100
+    - predicate:
+        - { anyOf: [
+            "target:paramVsSelf:str:gt", "target:paramVsSelf:end:gt",
+            "target:paramVsSelf:agi:gt", "target:paramVsSelf:mag:gt",
+            "target:paramVsSelf:luc:gt",
+          ] }
+      component: mag
+      aim: true
+      multiplier: 2
+      flatBonus: 100
+  # The fallback, for a defender whose Parameters cannot be read at all. The
+  # WEAKER branch: an unanswerable comparison must not pay out the 4x.
+  multiplier: 2
+  flatBonus: 100
+# "Note: Does not deal extra damage to Units with Divinity."
+#
+# NO rule element, and that is the whole point of the note. It is drawing a
+# contrast with Vasavi Shakti, which does -- Brahmastra simply has no anti-Divine
+# clause, so there is nothing here to switch off. Karna's own Divinity A (+50
+# flat, stage 7) still applies, because that is his damage and not a bonus
+# against the target.
+phases:
+  - kind: damage

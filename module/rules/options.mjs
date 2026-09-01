@@ -182,6 +182,20 @@ function add(options, side, unit) {
   if (!unit) return;
 
   if (unit.kind) options.add(`${side}:type:${unit.kind}`);
+
+  // WHICH Servant this is, by the one name of theirs that a world cannot rename.
+  //
+  // §36.1's DECISION -- *"cross-Servant references resolve by a stable slug"* --
+  // with nothing emitting one, so the only clause in the reference set that
+  // names another Heroic Spirit could not be written at all. Karna's *Fated
+  // Rivals of the Mahabharata* is *"if **Arjuna** is on the opposing Faction and
+  // within Range of Karna, they will only Attack each other"*.
+  //
+  // The content id, not the display name and not the true name: a player may
+  // rename an actor, and `identityRevealed` deliberately hides the true name
+  // from opponents. The compulsion is a fact about who the Servant IS, and it
+  // holds whether or not the table has worked that out yet.
+  if (unit.contentId) options.add(`${side}:contentId:${unit.contentId}`);
   for (const a of unit.attributes ?? []) options.add(`${side}:attribute:${a}`);
   for (const e of unit.effects ?? []) options.add(`${side}:effect:${e}`);
 
@@ -282,6 +296,7 @@ const GRADE_LADDER = Object.freeze(["E", "D", "C", "B", "A", "EX"]);
  */
 const EMITTABLE = Object.freeze([
   /^(self|target):type:[A-Za-z][\w-]*$/,
+  /^(self|target):contentId:[A-Za-z][\w-]*$/,
   /^(self|target):attribute:[A-Za-z][\w-]*$/,
   /^(self|target):effect:[A-Za-z][\w-]*$/,
   /^(self|target):region:[A-Za-z][\w-]*$/,

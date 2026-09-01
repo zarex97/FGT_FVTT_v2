@@ -1,14 +1,38 @@
 # Karna, docs/13-damage-pipeline.md §13.6 -- this is worked example 2.
+# Targeting shape T10 in docs/09-targeting.md §9.13.
 schema: 1
 id: karna-brahmastra-kundala
-name: "Brahmastra Kundala"
+name: "Brahmastra Kundala: O' Brahma, Curse Me"
 isNP: true
 rank: "A+"
-npTags: [antiArmy]
+# [Anti-COUNTRY], as the sheet says. It shipped as `antiArmy`, which is
+# Brahmastra's tag -- and §43.8 compares Noble Phantasms by the highest scale
+# tag present, so a 7x7 Anti-Country NP was being weighed as an Anti-Army one.
+npTags: [antiCountry]
+kind: noblePhantasm
+slug: brahmastraKundala
+category: karnaNP
+# "Cooldown: 7◈+⅓◈ Turns, AND MANA BURST (FLAMES) ALSO ENTERS COOLDOWN when
+# this NP is used." §7.6's `alsoTriggers`, which `engine/cooldown.mjs` has read
+# since it was written -- the clause was simply never authored here.
 cooldown: "7◈+⅓◈"
+alsoTriggers:
+  - { ability: karna-mana-burst-flames }
+element: fire
+# "Cannot be used if Mana Burst (Flames) or Vasavi Shakti is on Cooldown."
+# Both gates were missing entirely, so the Noble Phantasm the sheet fences
+# behind two other clocks could be fired whenever its own was ready.
+requirements:
+  - { kind: abilityOffCooldown, abilityId: karna-mana-burst-flames }
+  - { kind: abilityOffCooldown, abilityId: karna-vasavi-shakti }
 description: |
-  Base Attack (STR) and Base Attack (MAG) combined is used. Hits a 7x7 panel area within
-  Range for 4x damage plus 100. Karna is not affected by this NP if he is within the NP area.
+  Cannot be used if Mana Burst (Flames) or Vasavi Shakti is on Cooldown. Range=5. Base Attack
+  (STR) and Base Attack (MAG) combined is used. Hits a 7x7 panel area within Range for 4x damage
+  plus 100, and inflicts Burn for 3◈ Turns to all affected Units. Then, inflicts Def Dwn (B) on
+  all affected Units for 1◈ Turns (all damage received is increased by 30%; if NP, 40%).
+  Fire damage. Affected by Magic Resistance. Karna is not affected by this NP if he is within
+  the NP area.
+  Cooldown: 7◈+⅓◈ Turns, and Mana Burst (Flames) also enters Cooldown when this NP is used.
 targeting:
   anchor: { kind: withinRange, range: 5, metric: chebyshev }
   shape: { kind: rect, w: 7, h: 7 }
@@ -23,6 +47,15 @@ damage:
       - { unit: self, component: mag, factor: 1 }
   multiplier: 4
   flatBonus: 100
+  # "AFFECTED by Magic Resistance" -- stated on the sheet because his Mana Burst
+  # (Flames) is not, and the pair of clauses only makes sense read together.
+  # `ignoresMagicResistance` is therefore deliberately absent rather than false
+  # by omission, and `component: mag` is what lets stage 11 see the MAG half at
+  # all: `baseSpecFor` builds the number from the two sources above, and
+  # `componentOf` would otherwise fall back to his Normal Attack's `str` and
+  # exempt the whole thing.
+  component: mag
+  element: fire
 phases:
   - kind: damage
   - kind: applyEffects
@@ -31,3 +64,17 @@ phases:
         event: damageDealt
         effect: { id: burn }
         duration: "3◈"
+      # "THEN, inflicts Def Dwn (B) on all affected Units for 1◈ Turns, all
+      # damage received is increased by 30%; IF NP, 40%."
+      #
+      # The one Def Dwn in the corpus whose NP magnitude is HIGHER than its
+      # normal one, which is why `npMagnitude` has to be stated rather than
+      # defaulted -- the family's usual direction is the other way and an
+      # omitted value would silently apply 30% to Noble Phantasms.
+      #
+      # The "(B)" is the effect's Rank for §10.6's non-stacking comparison, not
+      # a magnitude.
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: defDwn, magnitude: 30, npMagnitude: 40, rank: B }
+        duration: "1◈"

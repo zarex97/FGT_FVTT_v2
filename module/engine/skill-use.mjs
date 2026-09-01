@@ -1008,12 +1008,22 @@ async function chosenCooldowns(phase, ability, doc) {
   const options = spec.options ?? [];
   if (options.length === 0) return [];
 
-  const shape = (await ChoiceDialog.pick({
-    title: ability.name,
-    hint: game.i18n.localize("FGT.Skill.ChooseCooldownShape"),
-    count: 1,
-    options: options.map((o) => ({ id: o.id, name: o.label ?? o.id })),
-  }))?.[0];
+  // A question with one possible answer is a click that asks nothing -- the
+  // same argument `needsTargeting` makes about a targeting session for a
+  // self-buff. EMIYA's Tracing has two shapes and is a real decision; Karna's
+  // End of Charity has one ("reduce one of your Noble Phantasms by 1◈") and the
+  // only decision is WHICH, which is the prompt below.
+  const shape = options.length === 1
+    ? options[0].id
+    : (await ChoiceDialog.pick({
+      title: ability.name,
+      hint: game.i18n.localize("FGT.Skill.ChooseCooldownShape"),
+      count: 1,
+      // Localized, like every other authored label the dialogs render. It was
+      // passed through raw, so an authored `label:` showed the player its
+      // translation key.
+      options: options.map((o) => ({ id: o.id, name: o.label ? game.i18n.localize(o.label) : o.id })),
+    }))?.[0];
   if (!shape) return [];
 
   const picked = options.find((o) => o.id === shape);

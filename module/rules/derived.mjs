@@ -52,16 +52,25 @@ export function applyStatDeltas(system, statDeltas = []) {
 
   // ── 1. Rank shifts ───────────────────────────────────────────────────────
   for (const d of statDeltas) {
-    if (!d.rankShift && !d.rankGrades) continue;
+    if (!d.rankShift && !d.rankGrades && !d.rankTo) continue;
     // A shift aimed at somebody else -- Enkidu's rank reduction on its target --
     // is not this unit's derived data.
     if (d.target && d.target !== "self") continue;
     const current = Rank.parseOrNull(read(d.stat));
     if (!current) continue;
-    // `rankGrades` moves whole letter grades and keeps the modifier
-    // (`Rank#stepGrade`); `rankShift` walks the dense +/- ladder
-    // (`Rank#step`) -- "one Rank" is the former, not five steps of `+`.
-    const shifted = d.rankGrades ? current.stepGrade(d.rankGrades) : current.step(d.rankShift);
+    // `rankTo` names the destination; `rankGrades` moves whole letter grades and
+    // keeps the modifier (`Rank#stepGrade`); `rankShift` walks the dense +/-
+    // ladder (`Rank#step`) -- "one Rank" is the middle one, not five steps of
+    // `+`.
+    //
+    // A named destination is applied only UPWARD, for the same reason
+    // `shiftedRank` restricts it: every such clause in the corpus is a grant,
+    // and one arriving after a debuff has already pushed the Parameter higher
+    // must not undo it.
+    const destination = d.rankTo ? Rank.parseOrNull(d.rankTo) : null;
+    const shifted = destination
+      ? (Rank.compare(destination, current) > 0 ? destination : current)
+      : d.rankGrades ? current.stepGrade(d.rankGrades) : current.step(d.rankShift);
     changes[d.stat] = shifted.toString();
     trace.push({ path: d.stat, value: changes[d.stat], source: d.source });
   }

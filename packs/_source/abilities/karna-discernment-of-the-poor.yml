@@ -1,0 +1,30 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+# Targeting shape T5 in docs/09-targeting.md §9.13.
+schema: 1
+id: karna-discernment-of-the-poor
+name: "Discernment of the Poor"
+rank: A
+cooldown: "3◈"
+description: |
+  (Active) Used during your Turn. Range=2. Used on an enemy Unit. Inflicts NP Seal for ⅓◈
+  Turns and inflicts Debuff ResDwn for ⅓◈ Turns (chance of being inflicted with debuffs is
+  increased by 50%).
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  # ONE enemy, chosen. `count: 1` is what makes this a decision the player makes
+  # rather than a fan-out (`rules/ability-use.mjs#needsTargeting`).
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+phases:
+  # `reuse` -- the enemy the targeting resolved, stated rather than defaulted.
+  # Both debuffs land on the DU, and an ability whose targeting can reach
+  # somebody else must say per phase which of them each phase is for
+  # (`test/unit/phase-targets.test.mjs`, the Primordial Rune case).
+  - kind: applyEffects
+    target: reuse
+    rules:
+      # "⅓◈ Turns" -- a THIRD of a Round, i.e. one Turn in a three-Turn Round.
+      # Written as the fraction the sheet prints rather than as "1 turn", so it
+      # scales with the world's `turnsPerRound` setting the way §7.2 requires.
+      - { effect: { id: npSeal }, duration: "⅓◈" }
+      - { effect: { id: debuffResDwn, magnitude: 50 }, duration: "⅓◈" }

@@ -1,8 +1,9 @@
 # packs/_source/servants/karna.yml
+# Conversion source: char_orig_sheets/Copia de Karna.md
 # Discussed: docs/36-case-remaining.md §36.1 · data sheet: docs/D-servant-data-sheets.md §D.8
 #
 # Karna is the practical benchmark for SC-6 ("author a Servant in under an hour"):
-# 13 abilities and 4 Noble Phantasms, the most of the original twelve.
+# thirteen abilities and four Noble Phantasms, the most of the original twelve.
 schema: 1
 id: karna
 name: Karna
@@ -13,9 +14,20 @@ servantClasses: [lancer]
 # The container it is summoned into, and the name opponents see until its
 # true name is revealed (Ch. 04 §4.2).
 classContainer: lancer
-alignment: { order: lawful, morality: good }
+# CHAOTIC Good, as the sheet says. It shipped `lawful`, which is not a
+# transcription slip anybody would notice reading the file and is not cosmetic:
+# `mayAttackCivilian` refuses a Good-aligned Servant either way, but the
+# alignment is read for relationship and Command Spell gates too.
+alignment: { order: chaotic, morality: good }
 region: [india]
-attributes: [male, servant, sky, humanoid, divine]
+# NO `divine` here. The sheet's Attributes line is "Male, Servant, [Sky],
+# Humanoid" and the Divine attribute comes from his Divinity Skill, which
+# grants it (`class-skills/divinity.yml`'s `StatDelta stat: attributes`).
+# Authoring it in both places means Skill Seal on Divinity would leave the
+# attribute standing -- and his own Vasavi Shakti pays a DIFFERENT bonus
+# against "the Divine Attribute but no Divinity Skill", so the distinction is
+# one his own sheet turns on.
+attributes: [male, servant, sky, humanoid]
 
 parameters: { str: B, end: C, agi: A, mag: B, luc: D }
 baseHealth: 1000
@@ -26,12 +38,43 @@ normalAttack: { mode: fixed, component: str }
 sustainability: "2◈"
 
 abilities:
+  - { ref: karna-fated-rivals }
   - { ref: class-magic-resistance, rank: C }
-  - { ref: class-riding, rank: A, cooldown: "3◈-⅓◈" }
+  # "Cooldown: 3◈ Turns", which is also what `ridingCooldown` gives at Rank A.
+  # It shipped as `3◈-⅓◈`, a number the sheet does not print.
+  - { ref: class-riding, rank: A, cooldown: "3◈" }
   - { ref: divinity, rank: A }
+  - { ref: karna-discernment-of-the-poor }
+  - { ref: karna-uncrowned-arms-mastership }
+  - { ref: karna-end-of-charity }
+  - { ref: karna-mana-burst-flames }
+  - { ref: karna-flash-of-the-sun-god }
+  - { ref: karna-brahmastra }
+  - { ref: karna-kavacha-and-kundala }
+  - { ref: karna-vasavi-shakti-activation }
+  - { ref: karna-vasavi-shakti }
   - { ref: karna-brahmastra-kundala }
 
 notes: |
-  Range 2 with BA(STR) 125 and BA(MAG) 175 -- but his NPs use BA(STR), so his Noble
-  Phantasms are weaker in raw numbers than his normal attacks. An unusual profile the
-  damage pipeline handles without comment.
+  Four of thirteen abilities were authored when this pass started, and the four included neither
+  of the two that define him: `Kavacha and Kundala` (−90% damage received) and `Vasavi Shakti`
+  (the one-way activation that trades it away). What shipped was Magic Resistance, Riding,
+  Divinity and one of his four Noble Phantasms.
+
+  **Vasavi Shakti is two documents, not §36.1's proposed `modes:` block.** The sheet is explicit
+  that *"'Activating' Vasavi Shakti is different from using the Active effect below … also it
+  does not cost Master Health to 'Activate' it"*, so the activation is a free Skill
+  (`karna-vasavi-shakti-activation`) and the Noble Phantasm is gated on the status it applies.
+  §36.1 proposed a new `modes:` schema for this; the branch machinery that arrived later for
+  Semiramis's Summoning: Bašmu — `targeting.branches`, `damage.branches`, `cooldown.branches`,
+  per-phase `predicate:` — already covers every case `modes:` was invented for, and two documents
+  also gives the player two buttons, which is the honest presentation of a one-way decision that
+  permanently deletes his best defensive clause.
+
+  `Fated Rivals of the Mahabharata` is authored and **inert by design**: Arjuna is not in the
+  reference set. §36.1's DECISION is that a cross-Servant reference resolves by slug and warns
+  rather than erroring, because a match legitimately may not include the Servant named.
+
+  Note 2 on the sheet — *"when Karna uses a NP that deals damage, his Master's Health loss from
+  him using the NP overwrites the 20 Health loss from when Karna would normally Act/Attack"* — is
+  §15.4's `supersedes`, and the 20 it overwrites is Kavacha and Kundala's own upkeep.

@@ -497,9 +497,45 @@ export async function advanceAttack({ messageId, event }) {
   await updateAttackCard(message, state);
   if (process.isComplete(state)) {
     await endConcealmentAfterAttack(state);
+    await fireCombatProcessEnd(state);
     await fireCombatPhaseEnd(state);
   }
   return state;
+}
+
+/**
+ * Raise `combatProcessEnd` on both combatants, once per Process.
+ *
+ * §E has listed the event since the reference was written and **nothing ever
+ * raised it**, so the one clause in the set that is priced per *Process* rather
+ * than per *Phase* had no trigger.
+ *
+ * The distinction is the whole point and Karna states both halves himself.
+ * `Kavacha and Kundala` charges his Master *"at the end of every Turn that Karna
+ * is involved in a Combat Phase"*; `Vasavi Shakti` charges the same 20 *"at the
+ * end of every Combat Process Karna is involved in"*. A Noble Phantasm over
+ * seven Units is one Phase containing seven Processes, so trading the armour
+ * away multiplies the bill — which is the cost the sheet is describing, and
+ * collapsing the two events would erase it.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function fireCombatProcessEnd(state) {
+  const units = [...new Set([state.attackerId, state.defenderId].filter(Boolean))]
+    .map((id) => game.actors.get(id))
+    .filter(Boolean)
+    .map((a) => unitSnapshot(a));
+  if (units.length === 0) return;
+
+  const intents = fireEvent("combatProcessEnd", units, {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    options: new Set(),
+    rolls: {},
+  });
+  if (intents.length > 0) await applyBatch(intents, "combatProcessEnd");
 }
 
 /**

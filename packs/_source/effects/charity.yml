@@ -1,0 +1,23 @@
+# Karna's End of Charity. Not an Appendix A effect -- a Servant-specific buff.
+schema: 1
+id: charity
+name: "Charity"
+description: "While Karna has this buff, both effects of 'Uncrowned Arms Mastership' are Active."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+# One instance, refreshed by a second use. There is no magnitude to stack and no
+# stage ladder: the buff either is or is not on him.
+stacking: noneRefresh
+baseChance: 100
+defaultDuration: "1◈"
+# NO rule elements, deliberately.
+#
+# What this buff does is make somebody ELSE's clauses true, and it does it by
+# being present: both of Uncrowned Arms Mastership's effects are predicated on
+# `self:effect:charity` as well as on the mode's own state
+# (`karna-uncrowned-arms-mastership.yml`). Restating the +20% and the +40% here
+# would be the same two numbers in two files obliged to stay equal, and — worse
+# — they would then apply a second time on top of whichever effect the mode was
+# already in, so switching Charity on while effect 2 was Active would silently
+# double it.

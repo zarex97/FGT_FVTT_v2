@@ -223,6 +223,20 @@ export function fireEvent(event, units, ctx) {
       // rather than a `category` neither NPs nor ordinary Skills carry.
       if (handler.excludeNP && ctx.subject?.isNP) continue;
 
+      // A standing charge the bearer has ALREADY PAID a bigger version of this
+      // Turn. Karna's Note 2: *"when Karna uses a NP that deals damage, his
+      // Master's Health loss from him using the NP **overwrites** the 20 Health
+      // loss from when Karna would normally Act/Attack."*
+      //
+      // §15.4's `supersedes` is the right idea in the wrong scope -- it resolves
+      // a set of costs against each other at the moment an ability is used, and
+      // this charge is not a cost of any ability. It is a standing upkeep that
+      // falls due at the end of a Turn, and what suppresses it happened earlier
+      // in that same Turn. So the question is asked where the Turn record is:
+      // `turnState.abilitiesUsed`, matched against the bearer's own abilities to
+      // recover the category, because the record holds ids.
+      if (handler.unlessUsedThisTurn && usedThisTurn(u, handler.unlessUsedThisTurn)) continue;
+
       // Actions in one `then:` list see each other's effects. Mad Enhancement
       // drains its Master and then asks whether that Master is now at or below
       // the floor -- and computing both against the same starting value made
@@ -261,6 +275,37 @@ export function fireEvent(event, units, ctx) {
  */
 function listensFor(handler, event) {
   return handler.events ? handler.events.includes(event) : handler.event === event;
+}
+
+/**
+ * Has this Unit used a matching ability this Turn?
+ *
+ * A `{category}` or a `{contentId}` -- a category for the same reason every
+ * other grouping in this system prefers one: Karna's three damaging Noble
+ * Phantasms share `karnaNP`, and naming them one by one goes stale the moment a
+ * fourth is written.
+ *
+ * The turn record holds ability **ids**, so the categories are recovered from
+ * the Unit's own ability list. Read stale-by-tick like the rest of turn state
+ * (`turnStateAt` blanks a list stamped with an earlier tick), so a missed reset
+ * cannot suppress an upkeep for ever.
+ *
+ * @param {object} unit a snapshot
+ * @param {{category?: string|string[], contentId?: string|string[]}} spec
+ * @returns {boolean}
+ */
+function usedThisTurn(unit, spec) {
+  const used = new Set(unit?.turnState?.abilitiesUsed ?? []);
+  if (used.size === 0) return false;
+
+  const categories = new Set([spec.category ?? []].flat());
+  const contentIds = new Set([spec.contentId ?? []].flat());
+
+  return (unit.abilities ?? []).some((a) => {
+    if (!used.has(a.id) && !used.has(a.contentId)) return false;
+    if (contentIds.has(a.contentId) || contentIds.has(a.id)) return true;
+    return categories.has(a.category);
+  });
 }
 
 /**

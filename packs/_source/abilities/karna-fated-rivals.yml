@@ -1,0 +1,40 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+# Discussed: docs/36-case-remaining.md §36.1
+schema: 1
+id: karna-fated-rivals
+name: "Fated Rivals of the Mahabharata"
+slug: fatedRivals
+passive: true
+# Not a technique and not a body: it is a relationship between two specific
+# Heroic Spirits, and there is nobody for Scáthach to copy it AGAINST.
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive) If Arjuna is on the opposing Faction and within Range of Karna, they will only
+  Attack each other. This effect can be negated for 1◈ Turns by spending a Command Spell, but
+  it will only affect Karna.
+passiveRules:
+  # A `Compulsion`, which is positional and re-answered against the board every
+  # time it is asked (`rules/compulsion.mjs`) -- it holds while Arjuna is within
+  # Range and lifts the instant he is not, which no stored effect could track
+  # without a write on every move.
+  #
+  # `within: 2` is Karna's own Range in panels. The sheet says "within Range of
+  # Karna", and a compulsion whose reach did not match the Range would force him
+  # to walk toward a target he cannot legally attack.
+  #
+  # `targetPredicate`, not `predicate`. The test is about the OTHER Unit, and a
+  # `predicate` is evaluated at collection time against Karna alone -- which
+  # would make the element vanish, silently, before any board exists.
+  #
+  # INERT UNTIL ARJUNA IS AUTHORED, and deliberately so: §36.1's DECISION is
+  # that a cross-Servant reference resolves by a stable slug and produces a
+  # warning rather than an error, because a match legitimately may not include
+  # the Servant named. `target:trueName:` is not a roll option; the identity is
+  # matched on the CONTENT ID, which is what a future `arjuna.yml` will carry
+  # and the only name of his that cannot be renamed in a world.
+  - key: Compulsion
+    id: fatedRivals
+    within: 2
+    relations: [enemy]
+    targetPredicate: [target:contentId:arjuna]
+    forcesTarget: true

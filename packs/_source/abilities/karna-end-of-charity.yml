@@ -1,0 +1,51 @@
+# Karna, char_orig_sheets/Copia de Karna.md
+# Targeting: docs/09-targeting.md §9.9 — "self buff, THEN allies within 2 panels".
+schema: 1
+id: karna-end-of-charity
+name: "End of Charity"
+rank: null
+cooldown: "4◈"
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies the 'Charity' buff for 1◈ Turns; as long as Karna has this buff, both effects of
+     'Uncrowned Arms Mastership' are Active.
+  2. Applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of himself
+     (Crit Chance +40%).
+  3. Reduce the NP Cooldown of Brahmastra, or Vasavi Shakti, or Brahmastra Kundala by 1◈ Turns
+     (your choice).
+# No `targeting:` block: clause 1 is a self buff, and clause 2 declares its own
+# reach on the phase. An ability with no declaration targets its user
+# (`targetSpecFor`), which is exactly right here and means no targeting session
+# opens for a Skill whose only decision is clause 3's.
+phases:
+  # Clause 1.
+  - kind: applyEffects
+    target: self
+    rules:
+      - { effect: { id: charity }, duration: "1◈" }
+  # Clause 2. A PHASE-LEVEL targeting override, because this phase's reach
+  # differs from the ability's own -- the pattern EMIYA's Eye of the Mind (True)
+  # EX established. `self` is in the relation list: "all allied Units within a 2
+  # panel area of himself" includes himself unless the text excludes him, which
+  # it does not (Ch. 11 §11.6; Penthesilea's Charisma is the case that DOES).
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    rules:
+      - { effect: { id: sCritUp, magnitude: 40 }, duration: "⅓◈" }
+  # Clause 3. "OR ... OR ... (your choice)" -- the choice IS the rule, so it
+  # cannot be resolved by reducing all three or by picking one as a default.
+  #
+  # Matched on `category` rather than by naming the three ids: `karnaNP` is
+  # carried by exactly his three cooldown-bearing Noble Phantasms (Kavacha and
+  # Kundala is passive and has no clock), and a list of ids would go stale the
+  # moment a fourth was written. Only abilities with something to reduce are
+  # offered (`chosenCooldowns`), so the prompt never spends the Skill on nothing.
+  - kind: cooldown
+    target: self
+    choose:
+      category: karnaNP
+      options:
+        - { id: one, label: "FGT.Karna.ReduceOneNP", ticks: "1◈", count: 1 }
