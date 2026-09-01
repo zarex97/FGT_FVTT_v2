@@ -9,17 +9,9 @@ description: |
   Bleed Atk (Normal Attacks have a 10% chance of inflicting Bleed for 1◈ Turns), each for
   1◈ Turns.
 phases:
+  # Effect specs, not rule elements -- see `asterios-natural-monster.yml`.
   - kind: applyEffects
     rules:
-      - key: OnEvent
-        event: abilityUsed
-        effect: { id: critUp, magnitude: 60 }
-        duration: "1◈"
-      - key: OnEvent
-        event: abilityUsed
-        effect: { id: nAtkUp, magnitude: 40 }
-        duration: "1◈"
-      - key: OnEvent
-        event: abilityUsed
-        effect: { id: bleedAtk, magnitude: 10 }
-        duration: "1◈"
+      - { effect: { id: critUp, magnitude: 60 }, duration: "1◈" }
+      - { effect: { id: nAtkUp, magnitude: 40 }, duration: "1◈" }
+      - { effect: { id: bleedAtk, magnitude: 10 }, duration: "1◈" }

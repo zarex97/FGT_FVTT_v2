@@ -37,17 +37,33 @@ abilities:
   - { ref: asterios-chaos-labyrinthos }
 
 notes: |
-  Authored from the original tabletop sheet as the first of the D1 pass.
+  Authored from the original tabletop sheet as the first of the D1 pass, and **completed** in the
+  Asterios/Karna pass. Every clause on the sheet now has a reader.
 
-  `Chaos Labyrinthos` is authored as of C4. It is a point in Ch. 43's six-axis bounded-field
-  model rather than a special case: `fixedArea` geometry with a Greece size override, free entry
-  and a roll to leave, total isolation both ways, MOV +4 for Asterios and −2 for enemies inside,
-  paid extension at 200 of his own Health, and an owner-defeat vulnerability. The escape ladder —
-  20% base, +5% per failure, border contact and remaining MOV required, and the veteran clause
-  that lets an escapee lead adjacent allies out — is the reference implementation of §43.4.
+  `Chaos Labyrinthos` is a point in Ch. 43's six-axis bounded-field model rather than a special
+  case: `fixedArea` geometry with a Greece size override, free entry and a roll to leave, total
+  isolation both ways, MOV +4 for Asterios and −2 for enemies inside, paid extension at 200 of his
+  own Health, and an owner-defeat vulnerability. The escape ladder — 20% base, +5% per failure,
+  border contact and remaining MOV required, and the veteran clause that lets an escapee lead
+  adjacent allies out — is the reference implementation of §43.4.
 
-  ONE CLAUSE REMAINS: Mad Enhancement's two-way 2◈ lockout (it cannot be deactivated until 2◈
-  after activating, and cannot be reactivated until 2◈ after deactivating). The class-skill
-  template has no lockout field, and this is a property of the SKILL rather than of Asterios —
-  Penthesilea's Mad Enhancement EX carries the same clause. It is recorded in Ch. 45 rather than
-  faked here.
+  Mad Enhancement's two-way 2◈ lockout is `toggleLock` on the class-skill template and is read by
+  `rules/modes.mjs`; the note that used to stand here saying it was unbuilt predates both.
+
+  **Six clauses were authored and inert when this pass started**, and none of them announced it:
+
+  - `Monstrous Strength` had `activeRules` on an ability that is not a mode, so nothing could ever
+    switch it on. It is now offered at the attacker's own `damageStep` window.
+  - `Chaos Labyrinthos` declared six field axes and **no `createField` phase**, so the Labyrinth
+    was never opened — the NP resolved as two debuffs and nothing else.
+  - …and its `anchor: {kind: selfCentred}` is not an anchor this system has. `resolveAnchor`
+    throws on an unknown kind, so the NP could not be used at all.
+  - …and its cooldown was a bare `8◈` where the sheet says *"8◈ Turns after the NP ends"*.
+  - …and its activation debuffs were aimed at `[enemy, ally, self]`, so Asterios debuffed his own
+    team and himself every time he opened it.
+  - `regionSizeOverride: {greece: 11}` had no reader anywhere in the system.
+
+  Mad Enhancement contributed three wrong numbers on top of that — the NP half of its damage
+  reduction, the MAG halving of its damage bonus, and the drain floor/deactivation threshold,
+  which were hardcoded to the EX value at every rank. All three are class-skill fixes and reach
+  Penthesilea too.

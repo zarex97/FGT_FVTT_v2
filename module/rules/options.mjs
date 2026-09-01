@@ -38,6 +38,7 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
 
   add(options, "self", attacker);
   add(options, "target", defender);
+  compareParameters(options, attacker, defender);
 
   options.add(`attack:kind:${attack.kind ?? "normal"}`);
   if (attack.isAoE) options.add("attack:isAoE");
@@ -49,6 +50,14 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
   // Magic Resistance"*. Neither was expressible before, so the exemption could
   // not be written at all.
   if (attack.component) options.add(`attack:component:${attack.component}`);
+  // WHICH ELEMENT, for a resistance written against a damage type rather than
+  // against a source. Karna's Mana Burst (Flames) is *"All Total Fire Damage
+  // taken is reduced by 50% including NP"* -- a clause about the attack's
+  // element, which the pipeline has read as `ctx.attack.element` since stage 0
+  // was written (Fire breaks Freeze, `flamHeal` converts it) while no predicate
+  // could ask about it. Three Servants in the corpus already declare an
+  // `element:` on an ability and none of them could be resisted by type.
+  if (attack.element) options.add(`attack:element:${attack.element}`);
   if (attack.ignoresMagicResistance) options.add("attack:ignoresMagicResistance");
   if (attack.aim) options.add("attack:aim");
   if (attack.pierce) options.add("attack:pierce");
@@ -90,6 +99,76 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
  * set names is 3.
  */
 export const MAX_RANGE_OPTION = 12;
+
+/**
+ * The defender's Parameters against the attacker's own, one option per
+ * Parameter.
+ *
+ * Karna's *Brahmastra* is the only clause in the reference set that compares
+ * two Units Parameter by Parameter:
+ *
+ * > 1. If **all** of the DU's Parameters are equal or lower than Karna's, this
+ * >    NP deals 4× damage plus 100.
+ * > 2. If the DU has **any** Parameter higher than Karna's, it deals 2× plus 100.
+ *
+ * It cannot be written with the `rank:gte:` ladder `add()` emits. That ladder is
+ * absolute and **grade-coarse**: `gradesClearedBy` gives a `B+` Unit the grades
+ * `E…B` and not `A`, so `not:target:rank:str:gte:A` reads as *"STR is not above
+ * B"* for a Unit whose STR **is** above B. Against Karna's own `B/C/A/B/D` that
+ * silently hands the 4× branch to half the Servants who should get 2× — and 4×
+ * versus 2× on an A+ Noble Phantasm is the largest single damage swing any
+ * predicate in the game decides.
+ *
+ * So the comparison is made where both Units are in scope, with `Rank.compare`,
+ * and emitted as its answer. `gt` is the one the clause actually names; `eq` and
+ * `lt` are emitted too because the same three-way answer is what any future
+ * "higher/equal/lower Parameter" clause asks for, and leaving them out would
+ * make the next one add a fourth comparison mechanism.
+ *
+ * An **unranked** Parameter on either side emits nothing for that Parameter,
+ * rather than guessing. A Unit with no MAG rank at all has not got a MAG higher
+ * than Karna's, and it has not got one equal to his either — the question does
+ * not apply, and `not:...:gt` (which is how clause 1 is authored) is therefore
+ * satisfied, matching *"all of the DU's Parameters are equal or lower"* read
+ * over the Parameters it has.
+ *
+ * @param {Set<string>} options
+ * @param {object} attacker
+ * @param {object} defender
+ * @returns {void}
+ */
+function compareParameters(options, attacker, defender) {
+  const mine = attacker?.parameters ?? null;
+  const theirs = defender?.parameters ?? null;
+  if (!mine || !theirs) return;
+
+  for (const parameter of Object.keys(theirs)) {
+    const a = parseRank(theirs[parameter]);
+    const b = parseRank(mine[parameter]);
+    if (!a || !b) continue;
+    const order = Rank.compare(a, b);
+    const verdict = order > 0 ? "gt" : order < 0 ? "lt" : "eq";
+    options.add(`target:paramVsSelf:${parameter}:${verdict}`);
+  }
+}
+
+/**
+ * A rank, or `null` for anything unparseable.
+ *
+ * Same reason `gradesClearedBy` swallows the throw: this pass runs over whatever
+ * a live document holds, and one malformed rank must not take the whole board
+ * snapshot down with it.
+ *
+ * @param {unknown} raw
+ * @returns {Rank|null}
+ */
+function parseRank(raw) {
+  try {
+    return Rank.parseOrNull(raw);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Everything one side contributes, under its own prefix.
@@ -211,12 +290,14 @@ const EMITTABLE = Object.freeze([
   /^(self|target):inField:[A-Za-z][\w-]*$/,
   /^(self|target):onPlatform:[A-Za-z][\w-]*$/,
   /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,
+  /^target:paramVsSelf:[A-Za-z]+:(gt|eq|lt)$/,
   /^(self|target):skill:[A-Za-z][\w-]*$/,
   /^(self|target):skillRank:[A-Za-z][\w-]*:gte:(E|D|C|B|A|EX)$/,
   /^(self|target):skillActive:[A-Za-z][\w-]*$/,
   /^attack:kind:[A-Za-z][\w-]*$/,
   /^attack:isAoE$/,
   /^attack:component:(str|mag)$/,
+  /^attack:element:[A-Za-z][\w-]*$/,
   /^attack:ignoresMagicResistance$/,
   /^attack:aim$/,
   /^attack:pierce$/,

@@ -6,22 +6,49 @@ name: "Chaos Labyrinthos: Eternally Unchanging Labyrinth"
 isNP: true
 rank: EX
 npTags: [labyrinth, boundedField]
-cooldown: "8◈"
+# "Cooldown: 8◈ Turns AFTER THE NP ENDS." `countFrom: deactivation` is the
+# difference between a Labyrinth that may be recast eight Turns after it opened
+# -- while it is still standing, and with four Turns of paid extensions still
+# available -- and one that may be recast eight Turns after it closed. Authored
+# as a bare `"8◈"`, `cooldownFor` started the clock at the cast and the sheet's
+# whole attrition cycle collapsed. `engine/fields.mjs` starts it at the end
+# instead (the same mechanism Presence Concealment and Sikera Usum use).
+cooldown: { max: "8◈", countFrom: deactivation }
 description: |
   (Non-damaging) Creates a 9x9 Labyrinth around Asterios; 11x11 if the Region is Greece.
   Asterios gains MOV +4 inside. Enemies inside suffer Atk Dwn and Def Dwn on activation, have
   their MOV reduced by 2 (minimum 2), and must roll to escape. Units outside and inside cannot
-  reach each other at all. Lasts 4 Rounds, extendable by 200 of Asterios' Health for 2 more.
+  reach each other at all. Lasts for 4◈ Turns, extendable by 2◈ more for 200 of Asterios'
+  Health, repeatably. Ends at the end of the Turn if Asterios is defeated.
 targeting:
-  anchor: { kind: selfCentred }
+  # `self`, not `selfCentred` -- which is not an anchor this system has and never
+  # was. `resolveAnchor`'s default branch THROWS on an unknown kind, so this
+  # Noble Phantasm could not be used at all: it did not silently do less than its
+  # text, it raised a RangeError the moment anybody pressed it. The content
+  # validator now checks anchors and shapes against the resolver's own
+  # vocabulary, which is how this was found.
+  anchor: { kind: self }
   shape: { kind: square, size: 9 }
-  selection: { relations: [enemy, ally, self], chooser: all }
+  # Clause 2 is *"inflicts Atk Dwn ... on all ENEMY Units within the Labyrinth"*,
+  # and the phases below are what it resolves against. `[enemy, ally, self]`
+  # handed Asterios's own allies -- and Asterios -- 40% Atk Dwn and 40% Def Dwn
+  # for 2◈ Turns every time he opened his own Noble Phantasm.
+  #
+  # The FIELD is what catches everybody: `membership` below lets any Unit enter
+  # and traps them, which is a different question from who the activation
+  # debuffs. The `createField` phase names `target: self` so it still runs from
+  # the caster despite him not being in this list.
+  selection: { relations: [enemy], chooser: all, includeSelf: false }
   limits: { requiresZon: true }
 field:
   # Axis 1 -- geometry. Anchored where it was cast; it does not follow Asterios.
   geometry:
     kind: fixedArea
     shape: { kind: square, size: 9 }
+    # "If the Region is Greece, it affects an 11x11 panel area instead." Read by
+    # `engine/fields.mjs#regionSizedShape` against the war Region -- it had no
+    # reader at all until Asterios was finished, so his home-ground clause was
+    # authored, compiled and inert.
     regionSizeOverride: { greece: 11 }
   # Axis 5 -- duration, with paid extension. An attrition engine: Asterios burns
   # his own Health to keep the trap shut while the trapped burn theirs escaping.
@@ -63,13 +90,19 @@ field:
   vulnerabilities:
     - { kind: ownerDefeat, result: end }
 phases:
+  # The Labyrinth itself. The `field:` block above declares six axes and NOTHING
+  # OPENED IT: `createField` is a phase kind (`engine/skill-use.mjs`), and this
+  # Noble Phantasm had no phase that named it -- so the most elaborate bounded
+  # field in the corpus resolved as a pair of debuffs on an empty board and the
+  # Labyrinth never existed. EMIYA's Unlimited Blade Works has always carried
+  # the phase; this one never did.
+  #
+  # `target: self` because the phase conjures from the caster, and the targeting
+  # above deliberately resolves to enemies only.
+  - kind: createField
+    target: self
+  # Clause 2, on the enemy Units the targeting resolved.
   - kind: applyEffects
     rules:
-      - key: OnEvent
-        event: abilityUsed
-        effect: { id: atkDwn, magnitude: 40, npMagnitude: 20 }
-        duration: "2◈"
-      - key: OnEvent
-        event: abilityUsed
-        effect: { id: defDwn, magnitude: 40 }
-        duration: "2◈"
+      - { effect: { id: atkDwn, magnitude: 40, npMagnitude: 20 }, duration: "2◈" }
+      - { effect: { id: defDwn, magnitude: 40 }, duration: "2◈" }

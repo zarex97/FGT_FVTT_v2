@@ -169,7 +169,18 @@ export function onMasterDefeated(servant) {
   }
 
   // Mad Enhancement active at the moment the Master died costs 2 more.
-  if ((servant.modes ?? []).includes("madEnhancement")) {
+  //
+  // Read off `abilities`, which the snapshot projects. `servant.modes` was a
+  // field **nothing has ever written** -- not the snapshot, not the applier, not
+  // a document schema -- so `undefined ?? []` made this clause permanently
+  // false and clause 5 of the commonest class skill in the game never charged
+  // anybody. The same question is already answered by `slug`/`active`, which
+  // `rules/options.mjs` reads for `self:skillActive:` and which
+  // `collectAbilities` has projected since it was written.
+  const madEnhancement = (servant.abilities ?? []).some(
+    (a) => (a.slug === "madEnhancement" || a.id === "madEnhancement") && a.active,
+  );
+  if (madEnhancement) {
     out.push({ kind: "resource", unitId: servant.id, key: "sustainability", delta: -2 });
   }
   return out;

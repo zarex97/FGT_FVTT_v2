@@ -135,6 +135,17 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
     return { ok: false, reason: "oncePerTurn", cost };
   }
 
+  // The same question one scale up, and for the same reason `sameRoundExclusive`
+  // exists beside `sameTurnExclusive`: a Servant acts up to three times in a
+  // Round. Karna's Uncrowned Arms Mastership is *"can only be used once per
+  // Round"* with no cooldown, so without this gate it is a free toggle every
+  // Turn and the choice between its two effects stops being a choice.
+  if (ability?.oncePerRound && usedThisRound(unit).some(
+    (id) => id === ability.id || id === ability.contentId,
+  )) {
+    return { ok: false, reason: "oncePerRound", cost };
+  }
+
   // Mutual exclusion, at both scales. Checked here rather than only on the
   // Skill path, which is where it used to live -- so Medea's Keraino/Trofa pair
   // was enforced and EMIYA's Caladbolg/Hrunting pair, both Noble Phantasms,

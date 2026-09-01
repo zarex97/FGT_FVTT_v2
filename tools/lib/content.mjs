@@ -17,6 +17,7 @@ import { parseTick } from "../../module/domain/tick.mjs";
 import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
+import { ANCHOR_IDS, SHAPE_IDS } from "../../module/rules/targeting/vocabulary.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -304,6 +305,16 @@ function validateDocument(doc, path, library, problems, warnings) {
       const hint = CHECK_TABLES.has(el.table) ? ` — did you mean forceTable: ${el.table}?` : "";
       problems.push(`${path}: ${where} references unknown table "${el.table}"${hint}`);
     }
+    // Tables named inside an `OnEvent`'s own actions. `ruleElements` walks the
+    // element lists and stops there, so every `table:`, `cooldownTable:`,
+    // `floorTable:` and `whenValue.lteTable:` under a `then:` was unchecked --
+    // and an unknown table id is not a loud failure at runtime, it is `lookup`
+    // returning `undefined` and the action quietly doing nothing. Mad
+    // Enhancement's drain, floor and deactivation threshold are all three of
+    // these shapes.
+    for (const [field, id] of actionTables(el)) {
+      if (!(id in TABLES)) problems.push(`${path}: ${where} ${field} references unknown table "${id}"`);
+    }
     if (el.forceTable !== undefined) {
       if (el.key !== "TableOverride") {
         problems.push(`${path}: ${where} sets "forceTable" but only TableOverride uses it`);
@@ -377,13 +388,119 @@ function validateDocument(doc, path, library, problems, warnings) {
     resolveRef(entry, library, problems, `${path}: abilities[${index}]`);
   }
 
-  // Effect ids referenced by rule elements must exist
+  // Targeting anchors and shapes must be ones the resolver has.
+  //
+  // The same argument as `RULE_ELEMENT_KEYS`, with a louder failure at the far
+  // end: `resolveAnchor`'s default branch **throws**, so an unknown anchor is
+  // not an ability that quietly does less than its text -- it is a Noble
+  // Phantasm that cannot be used at all. Asterios's *Chaos Labyrinthos* shipped
+  // with `anchor: {kind: selfCentred}`, which reads perfectly and has never
+  // been an anchor this system has.
+  for (const [where, spec] of targetSpecs(doc)) {
+    const anchor = spec.anchor?.kind ?? spec.anchor;
+    if (anchor && !ANCHOR_IDS.includes(anchor)) {
+      problems.push(
+        `${path}: ${where} uses unknown targeting anchor "${anchor}" — `
+        + `expected one of ${ANCHOR_IDS.join(", ")}`,
+      );
+    }
+    const shape = spec.shape?.kind ?? spec.shape;
+    if (shape && !SHAPE_IDS.includes(shape)) {
+      problems.push(
+        `${path}: ${where} uses unknown targeting shape "${shape}" — `
+        + `expected one of ${SHAPE_IDS.join(", ")}`,
+      );
+    }
+  }
+
+  // Effect ids referenced by rule elements must exist.
   for (const [where, el] of ruleElements(doc)) {
     const id = el.effect?.id ?? el.effectId;
     if (id && !library.has(id)) {
       problems.push(`${path}: ${where} applies unknown effect "${id}"`);
     }
   }
+
+  // The same check for an `applyEffects` phase's own specs, where a BARE `id`
+  // is the effect. Deliberately not folded into the loop above: a rule element's
+  // `id` is its own name and means something else entirely -- Battle
+  // Continuation's `RevivalSource id: battleContinuation`, Hatred of Achilles's
+  // `Compulsion id: hatred` -- and reading those as effect ids reports three
+  // shipped, correct files as broken.
+  for (const [where, spec] of phaseEffects(doc)) {
+    const id = spec.effect?.id ?? spec.id;
+    if (id && !library.has(id)) {
+      problems.push(`${path}: ${where} applies unknown effect "${id}"`);
+    }
+  }
+}
+
+/**
+ * Every targeting declaration in a document, with a path for error messages.
+ *
+ * Four places one can appear, and all four are live content: the ability's own
+ * block, each `targeting.branches` entry (Summoning: Bašmu), each phase's own
+ * override (EMIYA's Eye of the Mind (True) EX), and a Servant's embedded
+ * abilities.
+ *
+ * @param {object} doc
+ * @returns {Array<[string, object]>}
+ */
+function targetSpecs(doc) {
+  /** @type {Array<[string, object]>} */
+  const out = [];
+
+  const collect = (spec, prefix) => {
+    if (!spec || typeof spec !== "object") return;
+    out.push([prefix, spec]);
+    for (const [index, branch] of (spec.branches ?? []).entries()) {
+      if (branch && typeof branch === "object") out.push([`${prefix}.branches[${index}]`, branch]);
+    }
+  };
+
+  collect(doc.targeting, "targeting");
+  for (const [index, phase] of (doc.phases ?? []).entries()) {
+    collect(phase?.targeting, `phases[${index}].targeting`);
+  }
+  return out;
+}
+
+/**
+ * Every rank table an element's ACTIONS name, with the field that named it.
+ *
+ * `revive:` is desugared into an action by `normalizeActions`, so it is walked
+ * here for the same reason the `then:` list is.
+ *
+ * @param {object} el a rule element
+ * @returns {Array<[string, string]>} `[field, tableId]`
+ */
+function actionTables(el) {
+  /** @type {Array<[string, string]>} */
+  const out = [];
+  const actions = [...(el.then ?? []), ...(el.revive ? [el.revive] : [])];
+
+  for (const [index, action] of actions.entries()) {
+    if (!action || typeof action !== "object") continue;
+    const at = `then[${index}]`;
+    for (const field of ["table", "cooldownTable", "floorTable"]) {
+      if (typeof action[field] === "string") out.push([`${at}.${field}`, action[field]]);
+    }
+    for (const field of ["lteTable", "gteTable"]) {
+      const id = action.whenValue?.[field];
+      if (typeof id === "string") out.push([`${at}.whenValue.${field}`, id]);
+    }
+    // `restore: {table, cooldownTable}` — a `RevivalSource`'s nested pair.
+    for (const field of ["table", "cooldownTable"]) {
+      const id = action.restore?.[field];
+      if (typeof id === "string") out.push([`${at}.restore.${field}`, id]);
+    }
+  }
+
+  for (const field of ["table", "cooldownTable"]) {
+    const id = el.restore?.[field];
+    if (typeof id === "string") out.push([`restore.${field}`, id]);
+  }
+  return out;
 }
 
 /**
@@ -423,7 +540,7 @@ function durationFields(doc) {
       if (a?.[field] !== undefined) out.push([`abilities[${index}].${field}`, a[field]]);
     }
   }
-  for (const [where, el] of ruleElements(doc)) {
+  for (const [where, el] of [...ruleElements(doc), ...phaseEffects(doc)]) {
     if (el.duration !== undefined) out.push([`${where}.duration`, el.duration]);
   }
   return out;
@@ -446,7 +563,43 @@ export function ruleElements(doc) {
   collect(doc.passiveRules, "passiveRules");
   collect(doc.activeRules, "activeRules");
   for (const [index, phase] of (doc.phases ?? []).entries()) {
+    // An `applyEffects` phase's entries are EFFECT SPECS, not rule elements.
+    // `engine/skill-use.mjs#applyPhaseEffects` reads `rule.effect ?? rule` and
+    // looks for an `id`; it never looks at `key`, and phase rules are never
+    // collected as contributions (`contributionsOf` reads `rules`/
+    // `passiveRules`/`activeRules` off the Item and nothing else).
+    //
+    // Validating them as rule elements demanded a `key` they have no use for,
+    // so four shipped files carry a decorative `key: OnEvent, event:
+    // abilityUsed` that reads as an event handler and is one. They still
+    // validate -- a `key` here is simply not examined -- but nothing new has to
+    // write one. `phaseEffects` below keeps their durations and effect ids
+    // checked, which is what the old classification was actually buying.
+    if (isEffectPhase(phase)) continue;
     collect(phase?.rules, `phases[${index}].rules`);
+  }
+  return out;
+}
+
+/** @param {object} phase @returns {boolean} */
+function isEffectPhase(phase) {
+  return phase?.kind === "applyEffects" || phase?.kind === "applyEffect";
+}
+
+/**
+ * Every effect spec an `applyEffects` phase declares, with a path.
+ *
+ * @param {object} doc
+ * @returns {Array<[string, object]>}
+ */
+export function phaseEffects(doc) {
+  /** @type {Array<[string, object]>} */
+  const out = [];
+  for (const [index, phase] of (doc.phases ?? []).entries()) {
+    if (!isEffectPhase(phase)) continue;
+    for (const [k, spec] of (phase.rules ?? phase.effects ?? []).entries()) {
+      if (spec && typeof spec === "object") out.push([`phases[${index}].rules[${k}]`, spec]);
+    }
   }
   return out;
 }
@@ -641,6 +794,9 @@ function itemSystem(doc) {
     countsAsAttack: doc.countsAsAttack ?? undefined,
     countsAsAct: doc.countsAsAct ?? undefined,
     oncePerTurn: Boolean(doc.oncePerTurn),
+    // The Round-scale cap. Karna's Uncrowned Arms Mastership has no cooldown,
+    // so this is the only thing limiting it.
+    oncePerRound: Boolean(doc.oncePerRound),
     // §7.6. `engine/cooldown.mjs` has read this since it was written.
     // Normalised to objects, so the schema can hold both forms: a bare id is
     // the common case and `{exclusionSet}` / `{category}` names a group.

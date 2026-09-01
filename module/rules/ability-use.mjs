@@ -99,6 +99,23 @@ export function classifyAbility(item) {
     return { kind: "active", isAttack: false, clickable: true, toggles: false, action: "useAbility" };
   }
 
+  // An ability whose only moment is a TIMING WINDOW is not a button. Asterios's
+  // *Monstrous Strength* is *"used at the start of a Damage Step when performing
+  // an Attack"* -- there is no point during his Turn at which pressing it means
+  // anything, and it is offered at its window instead
+  // (`engine/attack.mjs#offerAttackerWindow`).
+  //
+  // Checked BEFORE the `activeRules` fallback below, which would otherwise
+  // classify it as a mode that forgot to declare itself and put a toggle on the
+  // sheet that switches a permanent +100% STR damage on and leaves it on.
+  //
+  // An ability that is usable at a window AND during its owner's Turn -- Medea's
+  // *Argos*, *"used during your Turn or when Attacked"* -- has phases, and is
+  // caught by the `active` branch above before it reaches here.
+  if (sys.timing?.window && (sys.phases ?? []).length === 0 && !sys.targeting) {
+    return { kind: "windowed", isAttack: false, clickable: false, toggles: false, action: "" };
+  }
+
   // Everything else is passive. `activeRules` without phases is a mode that
   // forgot to declare itself -- Riding's Active MOV Up -- so it toggles too.
   if ((sys.activeRules ?? []).length > 0) {
@@ -355,6 +372,9 @@ export function usageSpecFor(ability) {
     // "Can only be used once per Turn" — Scáthach's Ár, whose 3◈ cooldown a
     // PRS Token skips entirely, leaving this as the only limit on it.
     oncePerTurn: Boolean(sys.oncePerTurn),
+    // "Can only be used once per Round" — Karna's Uncrowned Arms Mastership,
+    // whose only limit this is.
+    oncePerRound: Boolean(sys.oncePerRound),
     // Both exclusion scales, and the whole-match budget. A gate the attack path
     // could not see was a gate only half the abilities in the game obeyed.
     sameTurnExclusive: [...(sys.sameTurnExclusive ?? [])],

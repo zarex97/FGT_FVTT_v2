@@ -16,13 +16,12 @@ description: |
   Debuffs reduced by 100%) and Def Up for 1◈ Turns (all damage taken reduced by 40%;
   if NP, 20%).
 phases:
+  # Effect SPECS, not rule elements. `applyPhaseEffects` reads `rule.effect` and
+  # `rule.duration` and never looks at `key` -- the `key: OnEvent, event:
+  # abilityUsed` these used to carry existed only to satisfy a validator that
+  # classified an `applyEffects` phase's entries as rule elements, and it read as
+  # an event handler that fires on any ability use. It never was one.
   - kind: applyEffects
     rules:
-      - key: OnEvent
-        event: abilityUsed
-        effect: { id: offDebuffResUp, magnitude: 100 }
-        duration: "1◈"
-      - key: OnEvent
-        event: abilityUsed
-        effect: { id: defUp, magnitude: 40, npMagnitude: 20 }
-        duration: "1◈"
+      - { effect: { id: offDebuffResUp, magnitude: 100 }, duration: "1◈" }
+      - { effect: { id: defUp, magnitude: 40, npMagnitude: 20 }, duration: "1◈" }

@@ -24,6 +24,26 @@ import { relationOf } from "./relations.mjs";
 const REACTION_WINDOW = "whenAttacked";
 
 /**
+ * The windows the **attacker's own** abilities may name.
+ *
+ * The mirror of `whenAttacked`, and it had no implementation at all: every
+ * window in this file describes a moment inside somebody *else's* Combat
+ * Process, so an ability used at a moment inside *your own* had nowhere to be
+ * offered. Two in the reference set, and both were inert:
+ *
+ *   - Asterios's *Monstrous Strength* — *"used at the start of a **Damage Step**
+ *     when performing an Attack"*. It shipped as `activeRules` on an ability
+ *     that is not a mode, and `collectContributions` only reads `activeRules`
+ *     while `ability.active` is true, so its +100% STR damage could never be
+ *     switched on by anything. The Damage Step is the right moment rather than
+ *     declaration: with a 3◈ cooldown, spending it on an attack that is then
+ *     evaded is the difference the sheet's wording is drawing.
+ *   - Karna's *Uncrowned Arms Mastership* — *"used during your Turn **or at the
+ *     start of a Combat Phase**"*.
+ */
+export const ATTACKER_WINDOWS = Object.freeze(["damageStep", "combatPhaseStart"]);
+
+/**
  * The window for an ability somebody ELSE's peril triggers.
  *
  * EMIYA's *Rho Aias* is the only one in the reference set: *"used when any
@@ -40,20 +60,51 @@ const ALLY_WINDOW = "whenAllyAttacked";
  * @returns {object[]}
  */
 export function reactionAbilities(unit) {
+  return abilitiesAtWindow(unit, REACTION_WINDOW);
+}
+
+/**
+ * The abilities this unit could use at a named timing window.
+ *
+ * One implementation for both sides of the exchange. `reactionAbilities` was
+ * this function with `"whenAttacked"` inlined, and the attacker-side windows
+ * need exactly the same gate list — an ability offered at a moment it is on
+ * cooldown for is the refusal-when-pressed §17.6 forbids, whichever side of the
+ * attack its owner is standing on.
+ *
+ * `oncePerTurn` and the **round**-scale exclusion are checked here and are not
+ * checked by `reactionAbilities`'s original list, because they had no attacker
+ * to be true of: Karna's *Uncrowned Arms Mastership* is *"can only be used once
+ * per Round"*, which is the only limit on it — it has no cooldown at all.
+ *
+ * @param {object} unit an actor-shaped object with `items`
+ * @param {string} window
+ * @returns {object[]}
+ */
+export function abilitiesAtWindow(unit, window) {
   const used = unit?.turnState?.abilitiesUsed ?? [];
+  const usedThisRound = unit?.roundState?.abilitiesUsed ?? [];
   const effects = unit?.effects ?? [];
 
   return [...(unit?.items ?? [])].filter((item) => {
     const sys = item.system ?? {};
 
     // A window may be a single string or a list; both are legitimate, and
-    // Medea has one of each.
+    // Medea has one of each. Karna's Uncrowned Arms Mastership has two, and
+    // they are not both reaction windows: *"during your Turn OR at the start of
+    // a Combat Phase"* is the sheet button and this offer, one ability.
     const windows = [sys.timing?.window ?? []].flat();
-    if (!windows.includes(REACTION_WINDOW)) return false;
+    if (!windows.includes(window)) return false;
 
     if ((sys.cooldown?.remaining ?? 0) > 0) return false;
     if (blockedThisTurn(item, used)) return false;
     if (isNegated(item, effects)) return false;
+
+    if (sys.oncePerTurn && used.some((id) => id === item.id || id === sys.contentId)) return false;
+    if (sys.oncePerRound && usedThisRound.some((id) => id === item.id || id === sys.contentId)) return false;
+
+    const maxUses = sys.maxUses ?? null;
+    if (maxUses !== null && (sys.timesUsed ?? 0) >= maxUses) return false;
 
     return true;
   });

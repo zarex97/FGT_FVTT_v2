@@ -133,8 +133,25 @@ describe("onMasterDefeated", () => {
   });
 
   it("costs two more Sustainability if Mad Enhancement was active", () => {
-    expect(onMasterDefeated(servant({ sustainability: 4, modes: ["madEnhancement"] })))
+    // Read off `abilities`, the shape `rules/snapshot.mjs` actually projects.
+    // This test used to pass a `modes: ["madEnhancement"]` array, which no
+    // snapshot, applier or schema has ever produced -- so the test passed, the
+    // rule was correct, and against a real board the clause was permanently
+    // false. A fixture is only evidence if it is the shape the caller gets.
+    const active = servant({
+      sustainability: 4,
+      abilities: [{ id: "me", slug: "madEnhancement", active: true }],
+    });
+    expect(onMasterDefeated(active))
       .toContainEqual(expect.objectContaining({ key: "sustainability", delta: -2 }));
+  });
+
+  it("does not charge the two when Mad Enhancement is switched off", () => {
+    const idle = servant({
+      sustainability: 4,
+      abilities: [{ id: "me", slug: "madEnhancement", active: false }],
+    });
+    expect(onMasterDefeated(idle).some((d) => d.key === "sustainability")).toBe(false);
   });
 
   it("does nothing to a Master", () => {
