@@ -18,7 +18,9 @@ requirements:
   # than a new `hasEffect` requirement kind -- `self:effect:<id>` is already
   # emitted, and `notHasEffect` exists only because its negation is not.
   - { kind: predicate, predicate: [self:effect:vasaviActivated] }
-  - { kind: abilityOffCooldown, abilityId: karna-brahmastra-kundala }
+  # `abilityIds`, plural -- see `karna-brahmastra-kundala.yml`. The singular
+  # form matches nothing and is then vacuously satisfied.
+  - { kind: abilityOffCooldown, abilityIds: [karna-brahmastra-kundala] }
 description: |
   (Active) Can only be used if Vasavi Shakti has been Activated. Cannot be used if Brahmastra
   Kundala is on Cooldown. Range=3 to 4. Base Attack (MAG) is used. Hits a 3x3 panel area within

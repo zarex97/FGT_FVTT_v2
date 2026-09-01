@@ -18,6 +18,11 @@ import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
 import { ANCHOR_IDS, SHAPE_IDS } from "../../module/rules/targeting/vocabulary.mjs";
+// The list `meetsRequirement` itself exports, not a second copy of it. A
+// hand-maintained duplicate is what `RULE_ELEMENT_KEYS` has to be held
+// against `EXECUTORS` by a test; where the reader already exports its own
+// vocabulary there is no reason to have two.
+import { REQUIREMENT_KINDS as ABILITY_REQUIREMENT_KINDS } from "../../module/rules/items.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -53,6 +58,43 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Group 7 — the escape hatch
   "Script",
 ]);
+
+/**
+ * The requirement kinds a **Command Spell** may name.
+ *
+ * A separate vocabulary with a separate reader (`rules/command-spells.mjs#meets`),
+ * because a Command Spell is checked against a Master and an in-flight Combat
+ * Process rather than against a Unit's own state — `servantInZon` asks about
+ * somebody else's Servant, and `attackIsNotNP` about an attack that is already
+ * being resolved. Sharing one list would let an ability author `attackIsNotNP`
+ * and get a gate that never fires.
+ */
+export const CS_REQUIREMENT_KINDS = new Set([
+  "servantInZon", "attackIsNotNP", "targetNotImmune", "servantWithin", "servantNotWithin",
+  "highRankMaster", "inZone", "notInZone", "noOtherRevival", "damageWouldDefeatServant",
+]);
+
+/**
+ * Which field each selector-driven requirement needs to select ANYTHING.
+ *
+ * Only the kinds whose empty case is a silent pass are listed. A
+ * `roundAtLeast` with no `round` defaults to 1 and is merely weak; an
+ * `abilityOffCooldown` with no recognised selector matches nothing and is then
+ * vacuously satisfied, which is a gate that reads as enforced and is not.
+ */
+const REQUIREMENT_SELECTORS = Object.freeze({
+  abilityOffCooldown: ["abilityIds", "category", "exclusionSet"],
+  hasSkill: ["abilityId"],
+  modeActive: ["mode"],
+  modeInactive: ["mode"],
+  targetHasEffect: ["effectId"],
+  notHasEffect: ["effectId"],
+  resourceAtLeast: ["key"],
+  itemAtLeast: ["contentId"],
+  predicate: ["predicate"],
+  inZone: ["zoneId"],
+  notInZone: ["zoneId"],
+});
 
 /** Effect classification vocabularies, from Appendix A. */
 const POLARITIES = new Set(["buff", "debuff", "status"]);
@@ -222,9 +264,9 @@ export function validateAll(files) {
   const library = new Map(files.filter((f) => f.doc?.id).map((f) => [f.doc.id, f.doc]));
 
   // ── Domain ──────────────────────────────────────────────────────────────
-  for (const { path, doc } of files) {
+  for (const { path, dir, doc } of files) {
     if (!doc?.id) continue;
-    validateDocument(doc, path, library, problems, warnings);
+    validateDocument(doc, path, library, problems, warnings, dir);
   }
 
   return { problems, warnings };
@@ -236,8 +278,9 @@ export function validateAll(files) {
  * @param {Map<string, object>} library
  * @param {string[]} problems
  * @param {string[]} warnings
+ * @param {string} [dir] the source directory, which selects the requirement vocabulary
  */
-function validateDocument(doc, path, library, problems, warnings) {
+function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Ranks
   for (const [field, value] of rankFields(doc)) {
     if (value === null || value === undefined) continue;
@@ -386,6 +429,49 @@ function validateDocument(doc, path, library, problems, warnings) {
   // Ability refs on Servants
   for (const [index, entry] of (doc.abilities ?? []).entries()) {
     resolveRef(entry, library, problems, `${path}: abilities[${index}]`);
+  }
+
+  // Requirements must name a kind the gate understands, and give it a selector.
+  //
+  // `meetsRequirement`'s failure mode is not an error, it is a **pass**:
+  // `abilityOffCooldown` collects the abilities its selector matches and then
+  // asks `matched.every(cooldown <= 0)`, which is `true` for an empty set. That
+  // vacuous case is deliberate and correct -- a Scáthach who has not copied
+  // anything has no Wisdom slots to be blocked by -- so a selector that matches
+  // nothing because its FIELD NAME is wrong is indistinguishable from a gate
+  // that legitimately has nothing to check.
+  //
+  // Karna's Brahmastra Kundala is *"cannot be used if Mana Burst (Flames) or
+  // Vasavi Shakti is on Cooldown"*, authored with `abilityId` where the reader
+  // wants `abilityIds`. Both gates passed unconditionally, in a live world,
+  // with no warning anywhere.
+  // A Command Spell is checked by its own reader against its own vocabulary,
+  // so which list applies depends on which document this is.
+  const isCommandSpell = dir === "command-spells";
+  const kinds = isCommandSpell ? CS_REQUIREMENT_KINDS : new Set(ABILITY_REQUIREMENT_KINDS);
+
+  for (const [index, req] of (doc.requirements ?? []).entries()) {
+    const where = `requirements[${index}]`;
+    if (!req?.kind) {
+      problems.push(`${path}: ${where} has no "kind"`);
+      continue;
+    }
+    if (!kinds.has(req.kind)) {
+      problems.push(
+        `${path}: ${where} uses unknown requirement kind "${req.kind}" — `
+        + `expected one of ${[...kinds].sort().join(", ")}`,
+      );
+      continue;
+    }
+    // Only the ability vocabulary's selectors; a Command Spell's are read
+    // positionally by its own evaluator.
+    const needs = isCommandSpell ? null : REQUIREMENT_SELECTORS[req.kind];
+    if (needs && !needs.some((f) => req[f] !== undefined)) {
+      problems.push(
+        `${path}: ${where} is a "${req.kind}" with none of ${needs.join(" / ")} — `
+        + "it would match nothing and pass vacuously",
+      );
+    }
   }
 
   // Targeting anchors and shapes must be ones the resolver has.

@@ -389,9 +389,14 @@ describe("Brahmastra Kundala", () => {
   });
 
   it("is fenced behind two other clocks", () => {
+    // `abilityIds`, PLURAL. `gatedAbilities` matches on that field alone, so a
+    // singular `abilityId` selected nothing -- and an empty match set is
+    // vacuously satisfied (`[].every(...)`), which is the correct reading for
+    // Scáthach's un-copied Wisdom slots and silently wrong here. Both gates
+    // passed unconditionally in a live world before this was caught.
     expect(bk.requirements).toEqual([
-      { kind: "abilityOffCooldown", abilityId: "karna-mana-burst-flames" },
-      { kind: "abilityOffCooldown", abilityId: "karna-vasavi-shakti" },
+      { kind: "abilityOffCooldown", abilityIds: ["karna-mana-burst-flames"] },
+      { kind: "abilityOffCooldown", abilityIds: ["karna-vasavi-shakti"] },
     ]);
   });
 
