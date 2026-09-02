@@ -4,6 +4,9 @@
  * @see packs/_source/servants/jack-the-ripper.yml, docs/D-servant-data-sheets.md §D.18
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parse } from "yaml";
 import { interiorModifiers, isExempt, hasCategory } from "../../module/rules/bounded-fields.mjs";
 import { collectContributions, empty } from "../../module/rules/elements.mjs";
 import { detectRangeOf } from "../../module/rules/identity.mjs";
@@ -147,5 +150,49 @@ describe("Maria the Ripper — the Night gate", () => {
     // "(automatically fulfilled if playing without Day-Night cycle)" -- a gate
     // that can never open would be worse than one that is always open.
     expect(meetsRequirement({ kind: "roundPhase", is: "night" }, ctx("none", false))).toBe(true);
+  });
+});
+
+describe("The Mist — the High Rank Master exemption", () => {
+  const spec = { masterTier: "high" };
+  const master = (tier) => unit({ id: `m-${tier}`, kind: "master", masterTier: tier });
+
+  it("spares a High Rank Master and poisons everyone else", () => {
+    expect(isExempt(spec, master("high"), board([master("high")]))).toBe(true);
+    expect(isExempt(spec, master("low"), board([master("low")]))).toBe(false);
+    expect(isExempt(spec, master("rankless"), board([master("rankless")]))).toBe(false);
+  });
+
+  it("drops the contact clause out of the interior list for a High Rank Master", () => {
+    // The clause is an interiorEvent rather than an interior rule, but the
+    // exemption predicate is the same one -- this proves `isExempt` reads a
+    // tier the way it reads a category.
+    const field = mist([{ key: "MovDelta", factor: 0.5, relations: ["enemy"], exemptIf: spec }]);
+    const high = unit({ kind: "master", faction: "f2", masterTier: "high" });
+    const low = unit({ kind: "master", faction: "f2", masterTier: "low" });
+    expect(interiorModifiers(field, high, board([high]))).toHaveLength(0);
+    expect(interiorModifiers(field, low, board([low]))).toHaveLength(1);
+  });
+});
+
+describe("The Mist as authored — the exemption is on contact only", () => {
+  const mistDoc = parse(readFileSync(
+    join(process.cwd(), "packs/_source/abilities/jack-the-mist.yml"), "utf8",
+  ));
+  const masterEvents = mistDoc.field.interiorEvents
+    .filter((e) => (e.kinds ?? []).includes("master"));
+
+  it("exempts a High Rank Master from the CONTACT clause", () => {
+    const contact = masterEvents.find((e) => e.event === "contact");
+    expect(contact.exemptIf).toEqual({ masterTier: "high" });
+  });
+
+  it("does NOT exempt them from the standing turn-end clauses", () => {
+    // "Upon contact" qualifies walking in, not standing there. A High Rank
+    // Master who parks in the fog is still Poisoned at the end of their Turn.
+    for (const event of masterEvents.filter((e) => e.event !== "contact")) {
+      expect(event.exemptIf).toBeUndefined();
+    }
+    expect(masterEvents.filter((e) => e.event !== "contact").length).toBeGreaterThan(0);
   });
 });

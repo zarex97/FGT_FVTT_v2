@@ -140,13 +140,18 @@ field:
     # Effect 2, the contact half. Masters only -- a Servant is not a Human, and
     # "non-normal Humans" in this corpus is the Master category.
     #
-    # The High-Rank-Master exemption is the sheet's own Advanced Note and is
-    # NOT modelled: nothing in this system carries a Master rank, and inventing
-    # one for a parenthesis would be a subsystem. Recorded here rather than
-    # left to look implemented.
+    # The sheet's Advanced Note -- "High Rank Masters are not inflicted with
+    # Poison upon contact with the Mist" -- is now modelled. It was left out
+    # when Jack was built because nothing carried a Master rank; `masterTier`
+    # reaches the snapshot from `rules/master-rank.mjs` and `isExempt` reads it.
+    #
+    # CONTACT only. The standing turn-end Poison below still applies to a High
+    # Rank Master standing in the fog, which is exactly what "upon contact"
+    # qualifies -- the note spares them walking in, not staying.
     - event: contact
       kinds: [master]
       relations: [enemy]
+      exemptIf: { masterTier: high }
       onFail:
         - { key: ApplyEffect, effect: { id: poison } }
 

@@ -21,6 +21,7 @@
  */
 
 import * as geo from "../domain/geometry.mjs";
+import { isHighRank } from "./master-rank.mjs";
 
 /**
  * Base ZON by Servant class, before bonuses.
@@ -87,7 +88,17 @@ export function zonRadius(servant, master, config = {}) {
 
   // The Master's own ZON stat is the floor: a Master sheet that states a number
   // is stating it, and the derivation is what fills in a sheet that does not.
-  const derived = radius + exclusive + stacking;
+  // "High Rank Masters additionally grant ZON +1" (Ch. 04 §4.5). A STACKING
+  // bonus, exactly as this file's own formula comment says -- and it has never
+  // been applied: `zonRadius` had no rank term at all, so the line reading
+  // `+ highRankMaster // stacks` documented a rule nothing implemented.
+  //
+  // Added to `derived` rather than folded into the floor below. That floor
+  // exists so a Master sheet stating a ZON is believed; a rank bonus is a
+  // different thing, and a stated ZON would swallow it whole.
+  const rankBonus = isHighRank(master) ? 1 : 0;
+
+  const derived = radius + exclusive + stacking + rankBonus;
   return Math.max(derived, master?.zon ?? 0);
 }
 

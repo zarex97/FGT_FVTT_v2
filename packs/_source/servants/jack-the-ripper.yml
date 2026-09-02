@@ -90,5 +90,7 @@ notes: |
     question — and Ch. 26 §26.6 defers closed-information play to Ch. 40.
 
   The Mist's Advanced Note — *"High Rank Masters are not inflicted with Poison upon contact"* —
-  is unmodelled for the same reason: nothing in this system carries a Master rank, and inventing
-  one for a parenthesis would be a subsystem of its own.
+  was unmodelled at first for the same reason, and is now built: a Master carries a rank
+  (`rules/master-rank.mjs`), and `isExempt` reads the tier it derives. It spares a High Rank
+  Master walking in, not standing there — the turn-end Poison still applies, which is what
+  "upon contact" qualifies.

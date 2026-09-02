@@ -9,6 +9,8 @@ import {
 import { npCostAt } from "../../module/rules/costs.mjs";
 import { costOf } from "../../module/rules/command-spells.mjs";
 import { masterSetupPlan, resolveSetupPlan } from "../../module/rules/setup-rolls.mjs";
+import { zonRadius } from "../../module/rules/zon.mjs";
+import { snapshotBoard } from "../../module/rules/snapshot.mjs";
 
 const master = (rank) => ({ id: "m1", kind: "master", rank });
 
@@ -137,5 +139,77 @@ describe("the coin flip keeps the rank it determines", () => {
     expect(rankless.find((l) => l.id === "baseAttackMag").value).toBe(100);
     const byEssence = resolveSetupPlan(masterSetupPlan({ rank: "A" }, { mode: "essences" }), {});
     expect(byEssence.find((l) => l.id === "baseAttackMag").value).toBe(125);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  What High Rank actually buys (Ch. 04 §4.5)                                 */
+/* -------------------------------------------------------------------------- */
+
+describe("High Rank Master grants — ZON", () => {
+  const saber = { id: "s", servantClasses: ["saber"], zonBonuses: [] };
+
+  it("widens ZON by 1", () => {
+    const low = zonRadius(saber, { id: "m", rank: "C", zon: 0 });
+    const high = zonRadius(saber, { id: "m", rank: "A", zon: 0 });
+    expect(high).toBe(low + 1);
+  });
+
+  it("does not widen it for a Rankless Master", () => {
+    expect(zonRadius(saber, { id: "m", rank: null, zon: 0 }))
+      .toBe(zonRadius(saber, { id: "m", rank: "C", zon: 0 }));
+  });
+
+  it("lands on the derived radius, not the Master's stated-ZON floor", () => {
+    // `Math.max(derived, master.zon)` exists so a Master sheet that states a
+    // ZON is believed. A rank bonus is a different thing: added to `derived`,
+    // it survives; folded into the floor, a stated ZON would swallow it.
+    const stated = zonRadius(saber, { id: "m", rank: "A", zon: 99 });
+    expect(stated).toBe(99);
+    expect(zonRadius(saber, { id: "m", rank: "A", zon: 0 }))
+      .toBeGreaterThan(zonRadius(saber, { id: "m", rank: "D", zon: 0 }));
+  });
+});
+
+describe("High Rank Master grants — Sustainability", () => {
+  const unitOf = (id, type, system) => ({
+    actor: { id, uuid: `Actor.${id}`, name: id, type, system, items: [], effects: [] },
+  });
+
+  const build = (rank, masterHealth) => snapshotBoard({
+    scene: null,
+    actors: [
+      unitOf("s1", "servant", {
+        factionId: "red", sustainability: "2◈", masterId: "m1", contract: "contracted",
+        health: { value: 100, max: 100 }, range: { panels: 1, targets: 1 },
+      }),
+      unitOf("m1", "master", {
+        factionId: "red", rank, health: { value: masterHealth, max: 250 },
+        range: { panels: 1, targets: 1 },
+      }),
+    ],
+    settings: { turnsPerRound: 3 },
+  });
+
+  const sustainabilityOf = (board) => board.units.find((u) => u.id === "s1").sustainability;
+
+  it("adds a turn for a living High Rank Master", () => {
+    expect(sustainabilityOf(build("A", 250))).toBe(sustainabilityOf(build("C", 250)) + 1);
+  });
+
+  it("lapses the moment the Master is dead", () => {
+    // "+1◈ WHILE ALIVE" -- the bonus ends at the same instant the Free-Servant
+    // clock starts, which is what the two rules together describe.
+    expect(sustainabilityOf(build("A", 0))).toBe(sustainabilityOf(build("C", 250)));
+  });
+
+  it("gives a Rankless Master's Servant nothing", () => {
+    expect(sustainabilityOf(build("", 250))).toBe(sustainabilityOf(build("C", 250)));
+  });
+
+  it("records the tier on both the Servant and the Master", () => {
+    const board = build("A", 250);
+    expect(board.units.find((u) => u.id === "s1").masterTier).toBe("high");
+    expect(board.units.find((u) => u.id === "m1").masterTier).toBe("high");
   });
 });

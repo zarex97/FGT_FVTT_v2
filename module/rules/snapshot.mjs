@@ -27,6 +27,8 @@ import {
   phase, darkModifiers, homeBaseModifiers, regionBonusFor, inOwnHomeBase,
 } from "./environment.mjs";
 import { annotateCompulsions } from "./compulsion.mjs";
+import { tierOf } from "./master-rank.mjs";
+import { currentHealth } from "../domain/health.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, crossLevelRulesFor } from "./platforms.mjs";
 import { annotateFields } from "./bounded-fields.mjs";
@@ -161,6 +163,10 @@ export function snapshotUnit(actor, {
     // ask whether this unit may swing first at whoever just declared on it.
     preemptions: contributions.preemptions ?? [],
     alignment: sys.alignment ?? null,
+    // A Master's stored letter (Ch. 04 §4.5). `masterTier` is derived from it
+    // by `annotateMasterRank`, which needs the board: a Servant's tier is its
+    // MASTER's, and only the board knows who that is.
+    rank: sys.rank ?? null,
 
     effects: effectIds,
     effectInstances: effectInstances(actor),
@@ -418,6 +424,11 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // targeting resolver and the canvas overlay all ask the same question.
   annotateZon(units, board, settings.zon ?? {});
 
+  // What a Servant's Master's rank gives it. After `annotateZon`, because ZON
+  // reads the rank through `zonRadius` and takes the Master snapshot directly
+  // rather than this annotation.
+  annotateMasterRank(units);
+
   // Auras are the same shape of problem as ZON and get the same answer: a
   // property of the board, settled once every unit is projected. Doing it here
   // rather than per-unit is what stops the cycle in Ch. 23 §23.3 -- every unit
@@ -529,6 +540,40 @@ function annotateRegionBonus(units, board) {
         source: `Region: ${warRegion}`,
       })),
     ];
+  }
+}
+
+/**
+ * What a Servant's Master's rank gives it, and the tier every predicate reads.
+ *
+ * A board pass rather than a per-unit projection because it needs the OTHER
+ * unit: *"High Rank Masters: +1◈ while alive"* (Ch. 04 §4.5, Ch. 16) turns on
+ * whether the Master is still standing, and only the board knows that. The
+ * bonus therefore lapses at the same instant the Free-Servant clock starts,
+ * which is what the two rules together describe.
+ *
+ * `masterTier` is recorded on every unit — on a Master it is its own tier —
+ * because `rules/options.mjs` emits it as a predicate and Jack's Mist exempts a
+ * High Rank Master from its contact Poison.
+ *
+ * @param {object[]} units
+ * @returns {void}
+ */
+function annotateMasterRank(units) {
+  for (const u of units) {
+    if (u.kind === "master") {
+      u.masterTier = tierOf({ rank: u.rank });
+      continue;
+    }
+    const master = u.masterId ? units.find((m) => m.id === u.masterId) : null;
+    u.masterTier = master ? tierOf({ rank: master.rank }) : null;
+
+    // "WHILE ALIVE". A dead Master grants nothing, and its Servant is already
+    // spending the clock this would have lengthened.
+    const alive = master ? currentHealth(master) > 0 : false;
+    if (alive && u.masterTier === "high" && typeof u.sustainability === "number") {
+      u.sustainability += 1;
+    }
   }
 }
 

@@ -22,7 +22,7 @@
 
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import { currentHealth } from "../domain/health.mjs";
-import { panelsOf } from "../rules/bounded-fields.mjs";
+import { panelsOf, isExempt } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
@@ -425,6 +425,12 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     // this Turn has nothing to trigger the clause with.
     && (!spec.requiresActed || u.acted)
     && (!kinds || kinds.has(u.kind))
+    // An interior EVENT may be exempted the same way an interior RULE is.
+    // `isExempt` was wired into `interiorModifiers` alone, so a clause like
+    // Jack's "High Rank Masters are not Poisoned upon contact" authored its
+    // exemption, compiled it, and fired anyway -- found live, because the unit
+    // test exercised `isExempt` and the rule path rather than this one.
+    && !isExempt(spec.exemptIf, u, board)
     && relations.has(relationOf(owner, u, board)));
 
   /** @type {object[]} */
