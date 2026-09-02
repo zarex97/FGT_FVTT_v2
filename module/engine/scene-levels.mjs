@@ -152,13 +152,31 @@ export async function sweepOrphanLevels(scene = canvas.scene) {
   const orphans = scene.levels.contents.filter((l) => {
     const platformId = l.flags?.fgt?.platformId ?? null;
     if (!platformId) return false; // not ours; the ground and any GM level
-    if (game.actors.get(platformId)) return false; // still alive
-    return !(scene.tokens?.contents ?? []).some((t) => t.level === l.id);
+    return !game.actors.get(platformId); // the platform is gone
   });
   if (orphans.length === 0) return [];
 
   const ids = orphans.map((l) => l.id);
   const ground = groundLevel(scene);
+
+  // Anyone still standing on an orphan comes down FIRST.
+  //
+  // The passengers outlive the platform: deleting a platform actor by hand
+  // leaves its riders assigned to a level whose owner no longer exists, and
+  // `TokenDocument#level` is required and non-nullable, so deleting the level
+  // under them would leave every one of them pointing at an id that resolves to
+  // nothing — the corruption `destroyLevel` refuses to cause.
+  //
+  // An earlier version of this sweep simply skipped an occupied orphan, which
+  // meant it could never clean up the case it exists for: the stranded riders
+  // are exactly why the platform's level outlived the platform. Measured — a
+  // second "Hanging Gardens" level accumulated on the very next activation.
+  if (ground) {
+    const stranded = (scene.tokens?.contents ?? []).filter((t) => ids.includes(t.level));
+    if (stranded.length > 0) {
+      await assignLevel(stranded.map((t) => t.id), ground, scene);
+    }
+  }
   if (ground) {
     await ground.update({
       "visibility.levels": (ground.visibility?.levels ?? []).filter((id) => !ids.includes(id)),

@@ -137,6 +137,58 @@ movement linkage, the boarding rolls, and destruction/scatter.
 > on its own level at elevation 20, its owner aboard, `passengersOf` returning **1** instead of
 > 21, and the platform able to pass through and stop on every ground-occupied panel.
 
+### A 9×9 token's hit area covers eighty other panels
+
+Moving the platform was only half the problem. **Clicking** anything near it selected the
+platform: a Servant standing *on* it, and a Servant standing *under* it.
+
+`PlaceablesLayer` sorts its children by `elevation → sort → zIndex → insertion order` and PIXI
+picks the topmost, while `Token#hitArea` is the token's whole shape. So the Hanging Gardens at
+elevation 20, nine panels square, sat on top of the board and swallowed every click inside its
+footprint. Two different causes, needing two different fixes:
+
+| Case | Why | Fix |
+|---|---|---|
+| A **passenger** on the platform | Same elevation, so the tie fell to `sort` — and both were `0`, so insertion order decided it, and the platform's token is the newer one | `sort: -1000` on the platform |
+| A unit **below** the platform | Genuinely lower elevation, so no `sort` can help | only the viewed level is interactive |
+
+**`sort` is the right tool for the first**, and it is the one Foundry uses in the other direction:
+`TokenLayer#_onDropActorData` drops a new token with `sort: getMaxSort() + 1` to put it on top.
+A platform is scenery you stand on, so it goes to the bottom of its own elevation and stays there.
+
+**DECISION for the second: you interact with the floor you are looking at.** Foundry already
+scopes vision and fog exploration exactly that way — `Token#_isVisionSource` and
+`#_isFogExplorationSource` both bail on `level !== canvas.level.id` — and it draws an off-level
+badge on everything else. It simply never scoped *interaction*. `FGTToken#isInteractable`
+(`apps/canvas/token.mjs`) adds the one missing clause.
+
+Overriding `isInteractable` rather than assigning `eventMode` from a hook is what makes it stick:
+`PlaceableObject#_refreshState` re-reads the getter and re-assigns `eventMode` on **every**
+refresh, so a hook-based fix is undone by the next token update — measured, a fix applied by hand
+was reverted before the next click landed. A single-level scene is unaffected, because every
+token is on the level being viewed.
+
+**The level switcher already exists.** It is the scene-navigation panel in the top-left, listing
+the scene and its levels; `Scene#cycleLevel(direction)` is the same thing programmatically. There
+is no need for a system-specific elevation control.
+
+### Bands touch; they do not leave a gap
+
+Ground `0–20` and platform `20–30` share an edge on purpose. Foundry's own documented example
+(`BaseLevel.defineSchema`) is `{-10, 0}`, `{0, 10}`, `{10, 20}` — contiguous — and
+`Canvas#inferLevelFromElevation` exists to resolve the shared edge: it scores a candidate `0` when
+the elevation is strictly interior, `1` on the bottom edge, `2` on the top, and takes the lowest.
+So an elevation exactly on the boundary belongs to the **upper** level, which is what a floor
+should do.
+
+A one-unit gap would be worse, not tidier: an elevation inside the gap matches no level at all,
+and `inferLevelFromElevation` returns the current level unchanged for it.
+
+For the same reason, a passenger does **not** need to be one unit above the platform. `sort`
+separates them for picking and drawing, while both keep the elevation of the floor they are
+standing on — which is what every elevation-based rule should see, and what keeps
+`passengersOf`'s membership test (which compares elevation) working.
+
 ---
 
 ## 20.3 The platform model

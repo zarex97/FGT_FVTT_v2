@@ -49,6 +49,7 @@ import { TokenImage } from "./engine/token-image.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
+import { FGTToken as FGTTokenPlaceable } from "./apps/canvas/token.mjs";
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
@@ -100,6 +101,11 @@ Hooks.once("init", () => {
   CONFIG.Combat.documentClass = documents.FGTCombat;
   CONFIG.Combatant.documentClass = documents.FGTCombatant;
   CONFIG.Token.documentClass = documents.FGTToken;
+  // The PLACEABLE, not the document. A platform is a 9x9 token whose hit area
+  // covers eighty other panels, so "which level accepts a click" has to be a
+  // rule (§20.2). Registered at init, because the canvas reads this when it
+  // builds the token layer.
+  CONFIG.Token.objectClass = FGTTokenPlaceable;
 
   // There is no initiative. Turn order is a 1d100 per faction, re-rolled every
   // Round, plus Delay (Ch. 25 §25.3).
