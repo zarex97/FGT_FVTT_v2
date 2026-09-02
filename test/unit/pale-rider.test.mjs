@@ -16,6 +16,7 @@ import { parse } from "yaml";
 import { GRANTS, hasGranted } from "../../module/rules/granted.mjs";
 import { zonRadius } from "../../module/rules/zon.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
+import { interiorModifiers } from "../../module/rules/bounded-fields.mjs";
 
 const effect = (name) => parse(readFileSync(`packs/_source/effects/${name}.yml`, "utf8"));
 const classSkill = (name) => parse(readFileSync(`packs/_source/class-skills/${name}.yml`, "utf8"));
@@ -269,5 +270,92 @@ describe("Doomsday Come — the drag-in", () => {
       { kind: "dragInto", target: "reuse", fieldId: "pale-rider-doomsday-come" },
     ]);
     expect(drag.damage).toBeUndefined();
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Innocent World — six interior rules on Doomsday Come                       */
+/* -------------------------------------------------------------------------- */
+
+describe("Innocent World", () => {
+  const np = ability("pale-rider-doomsday-come");
+  const clauses = np.field.interior.filter((r) => r.relations?.length === 1 && r.relations[0] === "enemy");
+
+  const field = (interior) => ({
+    id: "pale-rider-doomsday-come", ownerId: "pale", ownerFaction: "a",
+    geometry: { kind: "freeform" }, panels: [{ i: 0, j: 0 }], interior,
+  });
+  const enemy = (over = {}) => ({
+    id: "e", kind: "servant", faction: "b", panel: { i: 0, j: 0 },
+    parameters: {}, abilities: [], effects: [], ...over,
+  });
+  // Innocent World's six, without the Anti-World shelter beside them: that one
+  // is `relations: [ally, enemy, self]` because "all Units within it receive
+  // the damage" means all of them, and it would otherwise be counted here.
+  const rulesFor = (unit) => interiorModifiers(field(np.field.interior), unit, { units: [unit], alliances: {} })
+    .filter((r) => r.relations?.length === 1)
+    .map((r) => r.key + (r.check ? `:${r.check}` : "") + (r.scope ? `:${r.scope}` : ""));
+
+  it("is authored on the AREA, and its own Skill file carries no rules", () => {
+    // "Constantly affects all enemy Units WITHIN Doomsday Come" -- a fact
+    // about the area, so a Unit dragged in by somebody else is subject to it.
+    expect(ability("pale-rider-innocent-world").passiveRules).toEqual([]);
+    // SEVEN rules for six numbered clauses: clause 4 is two of them, because
+    // "chance of being inflicted by debuffs is increased by 50% AND Total
+    // Debuff Damage taken is increased by 50%" is two different mechanisms.
+    expect(clauses).toHaveLength(7);
+    expect(clauses.filter((r) => r.key === "ApplicationChance")).toHaveLength(1);
+    expect(clauses.filter((r) => r.key === "VulnerabilityAmplifier")).toHaveLength(1);
+  });
+
+  it("gives a STR-highest enemy the damage-dealt reduction and nothing else", () => {
+    expect(rulesFor(enemy({ parameters: { str: "A", end: "C", agi: "C", mag: "C", luc: "C" } })))
+      .toEqual(["DamageModifier"]);
+  });
+
+  it("gives an AGI-highest enemy the Evade bonus", () => {
+    expect(rulesFor(enemy({ parameters: { agi: "A", str: "C" } })))
+      .toEqual(["CheckModifier:evade"]);
+  });
+
+  it("gives a MAG-highest enemy both halves of clause 4", () => {
+    // "Chance of being inflicted by debuffs is increased by 50% AND Total
+    // Debuff Damage taken is increased by 50%."
+    expect(rulesFor(enemy({ parameters: { mag: "A", str: "C" } })))
+      .toEqual(["ApplicationChance", "VulnerabilityAmplifier"]);
+  });
+
+  it("gives a tied enemy every related effect", () => {
+    // "If the Unit has two or more Parameters of the same Rank, it is affected
+    // by all related effects."
+    expect(rulesFor(enemy({ parameters: { str: "A", agi: "A", luc: "C" } })))
+      .toEqual(["DamageModifier", "CheckModifier:evade"]);
+  });
+
+  it("seals an enemy whose NP outranks every Parameter", () => {
+    const sealed = enemy({ parameters: { str: "C", end: "C" }, abilities: [{ isNP: true, rank: "A" }] });
+    expect(rulesFor(sealed)).toContain("Suppress:npSeal");
+    const unsealed = enemy({ parameters: { str: "A" }, abilities: [{ isNP: true, rank: "A" }] });
+    expect(rulesFor(unsealed)).not.toContain("Suppress:npSeal");
+  });
+
+  it("gives a Unit with NO Parameters exactly one clause, stably", () => {
+    // "Roll a six-sided die and apply the effect corresponding to the number
+    // rolled; that Unit will receive the same effect every time."
+    const master = enemy({ id: "our-master", kind: "master", parameters: {} });
+    const once = rulesFor(master);
+    expect(once).toHaveLength(1);
+    expect(rulesFor(master)).toEqual(once);
+  });
+
+  it("touches no ally, however its Parameters fall", () => {
+    // "Constantly affects all enemy Units within" -- enemies only. The
+    // Anti-World shelter beside these six is the clause that covers everyone,
+    // and it is filtered out above.
+    const ally = { ...enemy(), id: "a", faction: "a", parameters: { str: "A" } };
+    expect(rulesFor(ally)).toEqual([]);
+    const shelter = interiorModifiers(field(np.field.interior), ally, { units: [ally], alliances: {} })
+      .filter((r) => r.relations?.length === 3);
+    expect(shelter).toHaveLength(1);
   });
 });

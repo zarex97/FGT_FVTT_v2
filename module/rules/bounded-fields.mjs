@@ -19,6 +19,7 @@ import { Rank } from "../domain/rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { EXECUTORS, empty, deferredPredicate } from "./elements.mjs";
 import { test as testPredicate } from "./predicate.mjs";
+import { rollOptionsFor } from "./options.mjs";
 // The NP scale lives in its own module so `options.mjs` can read it without
 // importing this one, which imports `options.mjs` in turn. Re-exported here
 // because every existing caller and test asks this file for it.
@@ -413,6 +414,32 @@ export function interiorModifiers(field, unit, board) {
     // filter the interior rules need and `interiorEvents` already had.
     .filter((rule) => !rule.kinds || rule.kinds.includes(unit?.kind))
     .filter((rule) => !isExempt(rule.exemptIf, unit, board))
+    // A predicate about the UNIT is answered here; one about the attack is
+    // carried through for the pipeline to answer. Innocent World is six rules
+    // on one field, *"depending on which of the Unit's Parameters are
+    // highest"*, and Doomsday's shelter is about the attack that just crossed
+    // its boundary — so both halves exist and neither can be answered in the
+    // other's place.
+    //
+    // The split is per CLAUSE rather than all-or-nothing, and that is a
+    // correctness requirement rather than tidiness: `self:` in the pipeline's
+    // option set means the **attacker**, so carrying an answered
+    // `self:highestParameter:agi` through to a defender-side modifier would
+    // re-test it against the wrong Unit entirely.
+    .map((rule) => {
+      if (!rule.predicate || !Array.isArray(rule.predicate)) return rule;
+
+      const later = rule.predicate.filter((clause) => deferredPredicate([clause]));
+      const now = rule.predicate.filter((clause) => !deferredPredicate([clause]));
+
+      if (now.length > 0 && !testPredicate(now, { options: rollOptionsFor({ attacker: unit }) })) {
+        return null;
+      }
+      // Strip what has been answered; carry only what has not.
+      const { predicate: _answered, ...rest } = rule;
+      return later.length > 0 ? { ...rest, predicate: later } : rest;
+    })
+    .filter(Boolean)
     .map((rule) => ({ ...rule, field: field.id, source: field.id }));
 }
 

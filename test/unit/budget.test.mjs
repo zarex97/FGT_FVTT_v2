@@ -263,3 +263,27 @@ describe("summarize — what the HUD draws", () => {
     expect(summarize(emptyBudget()).map((r) => r.pool)).not.toContain("masterAttack");
   });
 });
+
+describe("a standing NP Seal", () => {
+  it("refuses a Noble Phantasm the way the effect does", () => {
+    // Innocent World clause 6: "the Servant is affected with NP Seal ...
+    // cannot be prevented or removed as long as a Unit is within Doomsday
+    // Come." A standing suppression rather than an applied effect: it is
+    // present exactly while the Unit stands inside, gone the moment it leaves,
+    // and there is nothing for Dispel to find.
+    const sealed = { effects: [], suppressions: [{ scope: "npSeal", source: "doomsday" }] };
+    expect(preventedBy(sealed, "np")).toEqual({ prevented: true, by: "npSeal" });
+  });
+
+  it("spares everything else, exactly as the effect does", () => {
+    const sealed = { effects: [], suppressions: [{ scope: "npSeal", source: "doomsday" }] };
+    for (const action of ["skill", "move", "normal", "spell"]) {
+      expect(preventedBy(sealed, action).prevented).toBe(false);
+    }
+  });
+
+  it("ignores a suppression scoped to something the table does not prevent", () => {
+    const other = { effects: [], suppressions: [{ scope: "targeting", source: "decoy" }] };
+    expect(preventedBy(other, "np").prevented).toBe(false);
+  });
+});

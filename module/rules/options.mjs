@@ -282,6 +282,49 @@ function add(options, side, unit) {
     }
   }
 
+  // WHICH Parameter is highest, which is the whole of Innocent World: six
+  // clauses, one per Parameter, applied *"depending on which of the Unit's
+  // Parameters are highest"*.
+  //
+  // One option per Parameter TIED for the top, because *"if the Unit has two
+  // or more Parameters of the same Rank, it is affected by all related
+  // effects"* — set membership, not a tie-break. An unranked Parameter is
+  // skipped rather than treated as lowest: a Unit that has no MAG has not got
+  // a low MAG, and the question does not apply to it.
+  const ranked = Object.entries(unit.parameters ?? {})
+    .map(([p, raw]) => [p, parseRank(raw)])
+    .filter(([, rank]) => rank);
+
+  if (ranked.length > 0) {
+    const best = ranked.reduce((top, [, rank]) => (top === null || Rank.compare(rank, top) > 0 ? rank : top), null);
+    for (const [p, rank] of ranked) {
+      if (Rank.compare(rank, best) === 0) options.add(`${side}:highestParameter:${p}`);
+    }
+
+    // Clause 6: *"if the Unit has any NP whose Rank is HIGHER than all its
+    // Parameters"*. Higher, not equal — an A-rank NP on a Servant with an
+    // A-rank Parameter does not qualify.
+    const outranks = (unit.abilities ?? []).some((a) => {
+      if (!a?.isNP) return false;
+      const rank = parseRank(a.rank);
+      return rank && Rank.compare(rank, best) > 0;
+    });
+    if (outranks) options.add(`${side}:npAboveAllParameters`);
+  } else if (unit.id) {
+    // *"If a Unit has no Parameters, roll a six-sided die and apply the effect
+    // corresponding to the number rolled; that Unit will receive the SAME
+    // effect every time it is affected by Innocent World."*
+    //
+    // A hash of the unit's id folded to 1–6 rather than a roll that has to be
+    // remembered: random-looking, identical on every read, survives a reload,
+    // needs no stored state, and cannot drift between two clients computing
+    // the same board. Masters are the case — none of them has Parameters.
+    //
+    // This satisfies the clause's intent rather than its letter: no die is
+    // ever rolled, so a GM cannot reroll one. Recorded in the spec (§9).
+    options.add(`${side}:stableDie:d6:${stableDie(unit.id, 6)}`);
+  }
+
   for (const ability of unit.abilities ?? []) {
     const slug = ability.slug ?? ability.id;
     if (!slug) continue;
@@ -351,6 +394,9 @@ const EMITTABLE = Object.freeze([
   /^(self|target):masterTier:(high|low|rankless)$/,
   /^(self|target):inField:[A-Za-z][\w-]*$/,
   /^(self|target):withinOfOwnerMaster:[1-6]$/,
+  /^(self|target):highestParameter:[a-z]+$/,
+  /^(self|target):npAboveAllParameters$/,
+  /^(self|target):stableDie:d6:[1-6]$/,
   /^(self|target):onPlatform:[A-Za-z][\w-]*$/,
   /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,
   /^target:paramVsSelf:[A-Za-z]+:(gt|eq|lt)$/,
@@ -379,4 +425,25 @@ const EMITTABLE = Object.freeze([
  */
 export function isEmittableOption(option) {
   return EMITTABLE.some((pattern) => pattern.test(option));
+}
+
+/**
+ * A stable die face for an id.
+ *
+ * FNV-1a, folded onto `1..faces`. Innocent World needs *"the same effect every
+ * time"* for a Unit with no Parameters, and a hash gives that for free: no
+ * stored roll to lose, nothing to reload, and two clients computing the same
+ * board agree without talking to each other.
+ *
+ * @param {string} id
+ * @param {number} faces
+ * @returns {number} `1..faces`
+ */
+function stableDie(id, faces) {
+  let h = 0x811c9dc5;
+  for (const ch of String(id)) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return (h % faces) + 1;
 }

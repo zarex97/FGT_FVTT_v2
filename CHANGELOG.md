@@ -89,6 +89,24 @@ coincide by accident; the headings say which is which.
   than from the caster — the area may be anchored on somebody else and nowhere near them — and a
   **`dragInto` phase**, an attack in every structural sense except that it deals no damage.
 - **A `fieldOpen` ability requirement**, for a clause that exists only while an area does.
+- **Three roll-option families for asking about a Unit's own Parameters** —
+  `self:highestParameter:<p>` (one per Parameter *tied* for the top, so "affected by all related
+  effects" is set membership rather than a tie-break), `self:npAboveAllParameters`, and
+  `self:stableDie:d6:<n>` for a Unit with no Parameters at all. The die is a **hash** of the
+  Unit's id rather than a stored roll, so "the same effect every time" survives a reload and is
+  agreed by every client without anybody persisting it.
+- **An interior rule's predicate is split per clause** — the part about the Unit answered where
+  the Unit is known, the part about the attack carried to the damage pipeline, and the answered
+  part stripped rather than carried. Stripping matters: `self:` in the pipeline's option set means
+  the *attacker*, so a carried unit-clause would be re-tested against the wrong Unit.
+- **A standing suppression can prevent an action**, not only a held effect. `Suppress scope:
+  npSeal` refuses a Noble Phantasm exactly as the effect does — which is what makes Innocent
+  World's *"cannot be prevented or removed as long as a Unit is within"* free rather than a
+  feature: an interior annotation is present exactly while the Unit stands inside, and there is
+  nothing for Dispel to find.
+- **`VulnerabilityAmplifier` can name a polarity** instead of one effect id, for
+  *"Total Debuff Damage taken is increased by 50%"* — every debuff at once, which no list of ids
+  would keep up with.
 - **Paid extension of a bounded field actually runs.** `extensionFor` had been authored on Chaos
   Labyrinthos since Asterios was written and **had no caller**, so every field with an extension
   simply closed on schedule and its whole attrition cycle was decoration. The cost now names who
