@@ -16,7 +16,7 @@ import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
-import { relationOf } from "../relations.mjs";
+import { relationOf, guardsOf } from "../relations.mjs";
 
 /**
  * @typedef {import("../../domain/geometry.mjs").GridOffset} GridOffset
@@ -667,13 +667,11 @@ function relationReason(relation, caster, unit, wanted) {
 function isProtectedMaster(unit, caster, board) {
   if (unit.kind !== "master") return false;
   if (relationOf(caster, unit, board) !== "enemy") return false;
-  return (board.units ?? []).some(
-    (u) =>
-      u.kind === "servant" &&
-      u.faction === unit.faction &&
-      u.canAct !== false &&
-      u.panel &&
-      geo.chebyshev(u.panel, unit.panel) <= 1,
+  // `guardsOf` rather than "any Servant of that faction": Pale Rider's
+  // Kagome Spirits stand in for him here, and he does not protect his own
+  // Master at all (Ch. 16).
+  return guardsOf(unit, board).some(
+    (u) => u.canAct !== false && u.panel && geo.chebyshev(u.panel, unit.panel) <= 1,
   );
 }
 

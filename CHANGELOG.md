@@ -104,6 +104,14 @@ coincide by accident; the headings say which is which.
   World's *"cannot be prevented or removed as long as a Unit is within"* free rather than a
   feature: an interior annotation is present exactly while the Unit stands inside, and there is
   nothing for Dispel to find.
+- **Pale Rider**, the fourteenth Servant — eight abilities, four summons and five effects,
+  verified clause by clause in a live world (Ch. D §D.26). Almost nothing on his sheet is an
+  attack, which is why he took fourteen general engine additions and turned up eleven
+  long-standing defects, nine of them in machinery that had shipped, been tested, and never once
+  run.
+- **`RelationshipProxy` has a reader.** Both Master-protection rules ask `guardsOf`, so a Servant
+  may hand the Servant–Master relationship rules to its own bound summons — and stops satisfying
+  them itself, which is the clause's own first half.
 - **The Kagome Spirits**, and the six general pieces they needed: `inherit` (a summon's stat stated
   relative to its summoner), `normalAttack.shape` (an area Normal Attack — until now every Normal
   Attack in the game hit exactly one panel), `SummonBound` (one summon per enemy, bound to it, with

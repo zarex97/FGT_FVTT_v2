@@ -18,6 +18,7 @@ import { zonRadius } from "../../module/rules/zon.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { interiorModifiers } from "../../module/rules/bounded-fields.mjs";
 import { pursuitVerdict } from "../../module/rules/movement.mjs";
+import { guardsOf } from "../../module/rules/relations.mjs";
 
 const effect = (name) => parse(readFileSync(`packs/_source/effects/${name}.yml`, "utf8"));
 const classSkill = (name) => parse(readFileSync(`packs/_source/class-skills/${name}.yml`, "utf8"));
@@ -506,5 +507,78 @@ describe("pursuit", () => {
 
   it("says nothing about a unit that hunts nobody", () => {
     expect(pursuitVerdict({ id: "x" }, [{ i: 0, j: 0 }, { i: 9, j: 9 }], board).ok).toBe(true);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  The Servant, and the relationship proxy                                    */
+/* -------------------------------------------------------------------------- */
+
+describe("Pale Rider", () => {
+  const pale = parse(readFileSync("packs/_source/servants/pale-rider.yml", "utf8"));
+
+  it("has no Health at all, and cannot hold Items", () => {
+    expect(pale.baseHealth).toBeNull();
+    expect(pale.undamageable).toBe(true);
+    expect(pale.cannotHoldItems).toBe(true);
+  });
+
+  it("carries every ability on his sheet, in the sheet's order", () => {
+    expect(pale.abilities.map((a) => a.ref)).toEqual([
+      "pale-rider-riding",
+      "class-magic-resistance",
+      "pale-rider-contagion",
+      "pale-rider-innocent-world",
+      "pale-rider-guidance-of-the-netherworld",
+      "pale-rider-doomsday-come",
+      "pale-rider-doomsday-drag",
+      "pale-rider-kagome-kagome",
+    ]);
+    expect(pale.abilities.find((a) => a.ref === "class-magic-resistance").rank).toBe("C");
+  });
+
+  it("states the sheet's numbers", () => {
+    expect(pale.parameters).toEqual({ str: "E", end: "A", agi: "B", mag: "A", luc: "C" });
+    expect(pale.mov).toBe(6);
+    expect(pale.baseAttack).toEqual({ str: 50, mag: 200 });
+    expect(pale.sustainability).toBe("2◈");
+    // "Range: - (See 'Contagion')" -- and he cannot Normal Attack at all.
+    expect(pale.range.panels).toBe(0);
+  });
+
+  it("hands the relationship rules to his Spirits", () => {
+    expect(pale.rules).toEqual([{ key: "RelationshipProxy", proxy: "summons" }]);
+  });
+});
+
+describe("guardsOf", () => {
+  const master = { id: "m", kind: "master", factionId: "a", panel: { i: 5, j: 5 } };
+  const ordinary = { id: "s", kind: "servant", factionId: "a", panel: { i: 5, j: 6 } };
+  const proxying = {
+    id: "pale", kind: "servant", factionId: "a", panel: { i: 5, j: 6 },
+    suppressions: [{ scope: "relationship", proxy: "summons" }],
+  };
+  const spirit = {
+    id: "k", kind: "summon", factionId: "a", panel: { i: 6, j: 6 },
+    summonerId: "pale", boundToFieldId: "doomsday",
+  };
+
+  it("is the Master's own Servants, ordinarily", () => {
+    expect(guardsOf(master, { units: [master, ordinary] }).map((u) => u.id)).toEqual(["s"]);
+  });
+
+  it("substitutes a proxying Servant's bound summons for the Servant itself", () => {
+    // "...have no effect between Pale Rider and its Master; but apply between
+    // Kagome Spirits and Pale Rider's Master." The substitution is total.
+    const board = { units: [master, proxying, spirit] };
+    expect(guardsOf(master, board).map((u) => u.id)).toEqual(["k"]);
+  });
+
+  it("leaves the Master unguarded when the proxy has no summons left", () => {
+    expect(guardsOf(master, { units: [master, proxying] })).toEqual([]);
+    const dead = { ...spirit, defeated: true };
+    expect(guardsOf(master, { units: [master, proxying, dead] })).toEqual([]);
+    const unbound = { ...spirit, boundToFieldId: null };
+    expect(guardsOf(master, { units: [master, proxying, unbound] })).toEqual([]);
   });
 });

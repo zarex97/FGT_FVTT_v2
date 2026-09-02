@@ -100,6 +100,10 @@ extend to Danzō by analogy.
 
 ### Pale Rider — a Servant that cannot be damaged or attack
 
+> **Built (Ch. 45).** Every clause below runs in a live world; Ch. D §D.26 has the
+> clause-by-clause table and the two unmodelled items, both of which are gaps in other
+> subsystems rather than in him.
+
 ```
 Base Health: -      Range: -      Health: -
 1. Pale Rider cannot take damage.

@@ -15,6 +15,7 @@
 import * as geo from "../domain/geometry.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { contains, membershipVerdict } from "./bounded-fields.mjs";
+import { guardsOf } from "./relations.mjs";
 
 /** Effects that let a unit ignore occupancy and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
@@ -320,10 +321,10 @@ export function inEnemyMasterProtection(panel, unit, board) {
     if (!isEnemy(unit, other, board)) continue;
     if (geo.chebyshev(panel, other.panel) > 1) continue;
 
-    const guard = (board.units ?? []).find(
-      (u) => u.kind === "servant"
-        && u.factionId === other.factionId
-        && geo.chebyshev(u.panel, other.panel) <= 2,
+    // `guardsOf`, so Pale Rider's Kagome Spirits deny the zone in his place --
+    // and he does not deny it himself.
+    const guard = guardsOf(other, board).find(
+      (u) => u.panel && geo.chebyshev(u.panel, other.panel) <= 2,
     );
     if (guard) return true;
   }

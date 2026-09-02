@@ -1,0 +1,79 @@
+# packs/_source/servants/pale-rider.yml
+# Conversion source: char_orig_sheets/Copia de Pale Rider.md
+# Data sheet: docs/D-servant-data-sheets.md §D.26 · bounded fields: Ch. 43
+#
+# The strongest argument in the corpus for the snapshot/intent boundary:
+# almost nothing on his sheet is an attack. He cannot be damaged, cannot
+# attack, cannot react. Everything he does happens AROUND him -- an area that
+# leaks Health, a moving prison anchored to his Master, an aura of
+# parameter-keyed effects, and four summoned spirits that hunt their assigned
+# enemy. A design grown outward from "attacker hits defender" would need a
+# special case for every line of him; the bounded-field model of Ch. 43 is
+# what makes him buildable without one.
+schema: 1
+id: pale-rider
+name: "Pale Rider"
+type: servant
+
+trueName: "Pale Rider"
+servantClasses: [rider]
+classContainer: rider
+# "Alignment: True Neutral".
+alignment: { order: neutral, morality: neutral }
+region: []
+# "Attributes: Servant, [-]". One attribute and an empty bracket.
+attributes: [servant]
+
+parameters: { str: E, end: A, agi: B, mag: A, luc: C }
+# "Base Health: -" and "Pale Rider cannot take damage". The flag is what keeps
+# `prepareBaseData` from backfilling the null from the END table -- an END of A
+# would otherwise have quietly given him 1600 and a health bar.
+baseHealth: null
+undamageable: true
+# "Items held: Pale Rider cannot hold Items."
+cannotHoldItems: true
+mov: 6
+# "Range: - (See 'Contagion')". He cannot perform Normal Attacks at all
+# (Riding EX passive 3), so the number is never asked; 0 says so out loud.
+range: { panels: 0, targets: 1 }
+baseAttack: { str: 50, mag: 200 }
+normalAttack: { mode: fixed, component: mag }
+sustainability: "2◈"
+
+abilities:
+  - { ref: pale-rider-riding }
+  - { ref: class-magic-resistance, rank: C }
+  - { ref: pale-rider-contagion }
+  - { ref: pale-rider-innocent-world }
+  - { ref: pale-rider-guidance-of-the-netherworld }
+  - { ref: pale-rider-doomsday-come }
+  - { ref: pale-rider-doomsday-drag }
+  - { ref: pale-rider-kagome-kagome }
+
+# "The following Servant-Master Relationship Rules have no effect between Pale
+# Rider and its Master; but apply between Kagome Spirits and Pale Rider's
+# Master (replace 'Servant' with 'Kagome Spirit')."
+#
+# Read by `rules/relations.mjs#guardsOf`, which both relationship rules that
+# exist now consult. The substitution is total: he does NOT protect his own
+# Master, which is the clause's own first half and the reason the Spirits
+# matter tactically.
+rules:
+  - key: RelationshipProxy
+    proxy: summons
+
+notes: |
+  Unmodelled, with reasons.
+
+  1. The third relationship rule -- "when a Master that has his/her Servant within a 2 panel
+     range gets caught in a Noble Phantasm and fails to Evade, the Master is unharmed while the
+     Total Damage taken by the Servant is doubled; Servants cannot Evade an enemy Unit's NP if
+     their Master is within a 2 panel range" -- is implemented for NO Servant in the system, so
+     there is nothing to redirect. It is a Ch. 16 gap rather than a Pale Rider one, and the
+     proxy will cover him the day it is built.
+
+  2. "All Items that would be obtained by Pale Rider are instead obtained by his Master if
+     he/she is within a 2 panel area" presupposes an item ACQUISITION flow, and there is none:
+     `engine/items.mjs` has `giveItem` and `useItem`, and nothing drops an item on a panel or
+     awards one on a kill. The refusal half is enforced (`cannotHoldItems`); the redirect
+     redirects an event that cannot happen.

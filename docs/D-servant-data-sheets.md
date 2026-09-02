@@ -970,6 +970,51 @@ runs until Medusa is defeated. Chapter 43's `expiry: onOwnerDefeat` exists solel
 
 ## D.26 Pale Rider
 
+> **Built (Ch. 45).** Eight commits. Every clause of the sheet runs in a live world except the
+> two recorded at the bottom of this section, each of which is a gap in a *different* subsystem
+> rather than in Pale Rider.
+>
+> He is the strongest argument in the corpus for the snapshot/intent boundary: almost nothing on
+> his sheet is an attack. What he does happens **around** him, and the bounded-field model of
+> Ch. 43 is what made him buildable without a special case per line. Fourteen general engine
+> pieces came out of him, and **eleven long-standing defects** were found on the way — nine of
+> them in machinery that had shipped, been tested, and never once run.
+>
+> | Clause | Built as |
+> |---|---|
+> | *"Base Health: —"*, *"cannot take damage"* | `undamageable` on the unit, so `prepareBaseData` stops backfilling an END-table Health |
+> | *"cannot perform Normal Attacks"*, *"cannot Evade, Block, or Counter"* | two grants that **subtract** — the first in `GRANTS` |
+> | *"Master's ZON +X, X = MOV"* | `ZonBonus fromStat`; read literally, so Riding's Active swells it to 14 for that Turn |
+> | Contagion's area | the first **passive** bounded field: no cast, no duration, no cooldown |
+> | Contagion 5×5 → 9×9, and *"the NP area instead"* | `geometry.overrides`, tested in authored order |
+> | *"Health is reduced by 100 … does not count as 'damage'"* | `HealthLoss`, a stat write that ignores Def Up entirely |
+> | 50/10 → 75/25, and 150 near the Master | event `branches`, selected **per victim**, with `self:withinOfOwnerMaster:<n>` |
+> | *"at the end of Pale Rider's Turn"* | `fgt.unitTurnEnd`, dispatched for the first time |
+> | Doomsday's *"X = 2 + 1d4"* | `shape.radiusRoll`, rolled once at cast and stored |
+> | *"Moves together with Pale Rider's Master"* | `followsUnit` + Foundry v14's native `attachment.token` |
+> | *"cannot leave said area"* / *"Units outside cannot Attack Units within"* | `enemyExit: sealed`, both isolation flags |
+> | *"extend by 1◈ … by reducing its Health by 100"* | the extension **runner**, which nothing had ever run |
+> | *"[Anti-World] or higher can be used on"* | `isolation.piercedBy` + the `attack:npScale:gte` ladder |
+> | *"forcibly ended at the end of that Combat Process"* | the `npScaleUsedOn` vulnerability |
+> | *"Total Damage is reduced by 50%"* | an interior `defUp` predicated on the scale |
+> | the drag-in | a `fieldEdge` anchor, a `dragInto` phase, a `fieldOpen` requirement |
+> | Innocent World's six clauses | six interior rules predicated per Unit, plus `highestParameter` / `npAboveAllParameters` / `stableDie` |
+> | *"affected with NP Seal … cannot be prevented or removed"* | a **standing suppression**, so there is nothing for Dispel to find |
+> | Guidance's three buffs, and GotN | an `applyEffects` phase with its own targeting; `requiresEffect` + `RemoveEffect` on contact |
+> | the four Spirits | `inherit`, `normalAttack.shape`, `SummonBound` with memory, pursuit, `fgt.attacked`, `Banish` |
+> | *"apply between Kagome Spirits and Pale Rider's Master"* | `guardsOf`, the first reader `RelationshipProxy` has ever had |
+>
+> **Unmodelled, and why.** Both are gaps elsewhere, and both will cover him the day they are
+> filled:
+>
+> 1. The third relationship rule — *"the Master is unharmed while the Total Damage taken by the
+>    Servant is doubled"* — is implemented for **no Servant in the system**, so there is nothing
+>    for the proxy to redirect. A Ch. 16 gap.
+> 2. *"All Items that would be obtained by Pale Rider are instead obtained by his Master"*
+>    presupposes an item **acquisition** flow, and there is none: nothing drops an item on a
+>    panel or awards one on a kill. The refusal half is enforced (`cannotHoldItems`); the
+>    redirect redirects an event that cannot happen.
+
 Bounded field: **Doomsday Come** (Ch. 43). Unit shape: Ch. 44 §44.1.
 
 | Ability | Type | Mapping |

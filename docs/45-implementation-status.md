@@ -1062,6 +1062,50 @@ to tag anything.
 | *"a Light attack … Flip a Coin"* | token hidden, `state.banished` recording tick 16 = 10 + 2◈ (heads) |
 | *"then it reappears on a random panel within"* | still hidden at tick 15; at 16 visible again, on a free panel **inside the area**, the record cleared |
 
+#### Commit 9 — the relationship proxy, the Servant, and the close
+
+`guardsOf` is the first reader `RelationshipProxy` has ever had. Both Master-protection rules
+that exist — the targeting immunity and the zone denial — ask it instead of scanning for a
+Servant of the right faction, so Pale Rider's Kagome Spirits stand in for him and **he does not
+protect his own Master**, which is the clause's own first half.
+
+`packs/_source/servants/pale-rider.yml` closes it: eight abilities, `baseHealth: null`,
+`undamageable`, `cannotHoldItems`, and the proxy.
+
+**Measured live**, dragging the finished Servant out of the compendium: Health `{null, null}`
+with an END of A; both grants collected; ZON **8** = base 2 + MOV 6; Contagion opening itself the
+moment he was placed; Doomsday Come summoning a Spirit for the enemy inside; and the Master's
+guard list containing **Kagome: Sword and not Pale Rider**.
+
+---
+
+### Pale Rider — what the eight commits cost, and what they bought
+
+Fourteen general engine pieces, and **eleven defects found**, nine of them in machinery that had
+shipped, been tested, and never once run:
+
+| Found | Had been broken since |
+|---|---|
+| A flat `DamageNegation` reduced nothing | the element was written; every negation in the corpus is dice-mode |
+| `rules/control.mjs` had **no consumer**; `ownerUserId` was projected by nothing; `charmSource` read a shape the projection never produced | Charm existed |
+| An effect's event handlers never knew their own expiry | `periodic:` got the rule and handlers did not |
+| An `OnEvent` authored `events:` listens for `undefined` | no content had ever needed a multi-event handler |
+| A bounded field could only belong to a Noble Phantasm | every field so far was one |
+| `medea-rule-breaker.yml` had **no NP scale** (`npType`, a key nothing reads) | Medea was written |
+| A `followsUnit` field's drawn Region never followed anything | `followsUnit` existed |
+| `extensionFor` had **no caller** | Asterios was written |
+| A field's `interior` rules were **never validated** | fields were authored |
+| An unread `modifierKey` is silently inert; an interior `predicate` was dropped | `annotateFields` was written |
+| `ForceTarget` had **no reader**; `suppressions` was **never projected** onto a snapshot | the executor table was written |
+
+Six of those were found by *writing a test for something else*, and three by testing the **second**
+author of a feature rather than the first — Asterios's extension exposed the unlinked-token payer
+bug that Doomsday Come's linked-token Master had hidden completely.
+
+Four new guards now fail the build on the classes of error that produced them: an `OnEvent` with
+no event, an unknown `chooser`, an unknown `modifierKey`, and any authored key missing from the
+DataModel its document compiles to.
+
 ---
 
 ## 45.5 The completion plan

@@ -64,6 +64,11 @@ export function unitCommon() {
     // disappear."* `boundToFieldId` generalises Bašmu's `boundToPlatformId`.
     //
     // Both are Foundry document ids stamped at placement, never authored.
+    // *"Pale Rider cannot hold Items."* A flag rather than an inference from
+    // `undamageable`: the two happen to coincide on him and mean nothing like
+    // the same thing.
+    cannotHoldItems: new fields.BooleanField({ initial: false }),
+
     pursuitTargetId: new fields.StringField({ required: false, nullable: true, initial: null }),
     boundToFieldId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
