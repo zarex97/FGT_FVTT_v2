@@ -194,6 +194,19 @@ const Anchors = {
 };
 ```
 
+### The anchor is itself a target
+
+An area's anchor and an area's splash are two different questions, and Master protection
+(Ch. 16 §16.4 rule 1) answers them differently. Aiming a Noble Phantasm *at* a protected Master
+is "targeting a Master for an Attack" and is refused, in `resolve.mjs` right after the anchor
+resolves. Catching one in the blast is not, and the selection filter lets it through — step 8 is
+gated on the same `isChosen` that step 7 uses for concealment, whose comment already drew the
+line: *concealment blocks targeting, but an AoE still catches the unit*.
+
+Filtering both alike made §16.4 rule 4 (Cover) unreachable, because it removed the Master from
+every area the rule is about. Found live, not in review: Cover was built, tested and wired, and
+the fan-out simply never contained a Master.
+
 ---
 
 ## 28.5 The canvas layer

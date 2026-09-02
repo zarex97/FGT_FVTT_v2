@@ -338,6 +338,7 @@
   "FGT.HUD.ReshapeField": "Reshape {name}",
   "FGT.Paint.Keys": "Drag to paint · shift-drag to erase · Enter confirms · Esc or right-click cancels",
   "FGT.Paint.Announce": "Drag to paint · shift-drag to erase · Enter to confirm · Esc to cancel",
+  "FGT.Cover.CannotEvade": "This Servant is covering its Master and cannot Evade this Noble Phantasm.",
   "FGT.Field.ExtendTitle": "Extend the field?",
   "FGT.Field.ExtendHint": "{name} may pay {amount} Health to keep it open for {grants} longer.",
   "FGT.Field.Extend": "Pay and extend",

@@ -93,6 +93,16 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   // 1. ANCHOR
   const anchor = resolveAnchor(spec.anchor, caster, board, placement, errors);
 
+  // 1b. The anchor is itself a target. Step 8 lets an area's SPLASH catch a
+  //     protected Master (§16.4 rule 4's whole premise), but aiming the area at
+  //     one is still "targeting a Master for an Attack" and rule 1 refuses it.
+  if (anchor.unitId && !(spec.limits ?? {}).bypassMasterProtection && !caster.bypassesMasterProtection) {
+    const aimed = (board.units ?? []).find((u) => u.id === anchor.unitId);
+    if (aimed && isProtectedMaster(aimed, caster, board)) {
+      errors.push(`${aimed.name ?? "That Master"} is protected by an adjacent Servant and cannot be targeted.`);
+    }
+  }
+
   // 2. SHAPE
   const { panels, bands } = expand(spec.shape ?? { kind: "point" }, anchor, {
     bounds: board.bounds ?? null,
@@ -222,7 +232,19 @@ export function resolveTargets(spec, caster, board, placement = {}) {
 
   // 8. PROTECTION — a Master adjacent to a Servant of its own faction cannot be
   //    targeted through it, unless the attacker bypasses protection.
-  if (!limits.bypassMasterProtection && !caster.bypassesMasterProtection) {
+  //
+  //    Gated on `isChosen` for the same reason concealment is at step 7, and
+  //    the two rules draw the line with the same verb. §16.4 rule 1 refuses
+  //    *targeting*: "Masters cannot be TARGETED for an Attack when their
+  //    Servant is within 2 panels". §16.4 rule 4 then describes a Master who
+  //    "gets CAUGHT IN an AoE Noble Phantasm" while a Servant stands within
+  //    those same 2 panels — a state rule 1 would make unreachable if the
+  //    splash were filtered too. Filtering here unconditionally is exactly why
+  //    Cover could never fire: the one configuration rule 4 is about was the
+  //    one this line removed from the area. The area catches whoever stands in
+  //    it; only a directly chosen target is refused. The ANCHOR of an area is
+  //    still refused below — aiming an AoE at a Master is targeting it.
+  if (!limits.bypassMasterProtection && !caster.bypassesMasterProtection && isChosen) {
     const before = survivors.length;
     survivors = survivors.filter(
       (u) => !isProtectedMaster(u, caster, board) || drop(u, "a Master protected by an adjacent Servant"),

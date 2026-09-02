@@ -15,7 +15,10 @@
 import { computeDamage, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
-import { evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans, pendingCheckRolls } from "../rules/checks.mjs";
+import {
+  evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
+  pendingCheckRolls, resolveCheck,
+} from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
@@ -28,6 +31,7 @@ import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
+import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
 import { currentHealth } from "../domain/health.mjs";
@@ -515,12 +519,29 @@ export async function advanceAttack({ messageId, event }) {
     }
   }
 
+  // §16.4 rule 4's price: *"in this situation, Servants cannot Evade the enemy
+  // Unit's AoE NP if their Master is within a 2 panel range of them."* A
+  // Servant that has just failed to shove its Master takes the blast standing.
+  //
+  // Refused HERE rather than by withholding the option at declaration, because
+  // the reaction list is recorded once when the attack is declared and Cover
+  // is not decided until the Master's own Evade has failed — several rungs
+  // later, on a different Process.
+  if (state.state === "react" && event === "evade"
+    && isCovering({ id: state.defenderId }, coverStateFor(state))) {
+    ui.notifications?.warn(game.i18n.localize("FGT.Cover.CannotEvade"));
+    return state;
+  }
+
   // A reaction choice resolves into a roll before the machine moves on.
   if (state.state === "react" && event === "evade") {
     state = process.advance(state, "evade");
     const outcome = await rollEvade(state);
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
     if (outcome.success) await fireEvadeSucceeded(state);
+    // §16.4 rule 4. A Master who fails to Evade an AoE Noble Phantasm gets one
+    // more chance: its Servants throw themselves at it.
+    else await resolveCover(state, message);
   } else if (state.state.startsWith("s2") && event === "contest") {
     const outcome = await rollLuck(state);
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
@@ -602,15 +623,220 @@ async function fireCombatProcessEnd(state) {
 }
 
 /**
- * Raise `attackDeclared` on the attacker, once per Combat Process.
+ * Cover — a Servant taking the blast for its Master (§16.4 rule 4).
  *
- * Per process rather than per Combat Phase, because the option set describes
- * one defender at one distance -- and every handler in the reference set that
- * listens for it is predicated on exactly those two facts.
+ * > *"When a Master that has its Servant within a 2 panel Range of itself gets
+ * > caught in an AoE Noble Phantasm and fails to Evade, the Servant performs an
+ * > Agility Check. If Successful, the Servant shoves (Moves) its Master out of
+ * > the NP area … If Failed, the Master receives no damage and effects, while
+ * > the Total Damage the Servant takes from the AoE NP is increased by 100%."*
  *
- * @param {object} state
+ * Resolved on the MASTER's Process, at the moment its Evade fails, and
+ * recorded on the fan-out group — because the Servants it changes are being
+ * resolved in Processes of their own, and each has to be able to read the
+ * decision that was taken over here.
+ *
+ * The shove is a **success** for the Master and costs the Servants nothing:
+ * only a failed Agility Check turns a Servant into a shield. One success is
+ * enough, which is why the roll stops at the first.
+ *
+ * @param {object} state the Master's Process state
+ * @param {object} message its chat message
  * @returns {Promise<void>}
  */
+async function resolveCover(state, message) {
+  // AoE Noble Phantasms only. The sheet offers the same process for a non-NP
+  // AoE and makes it *optional* there; that prompt is not built, and Ch. 16
+  // records it.
+  if (state.attack?.kind !== "np" || !state.isAoE) return;
+  // Once per group, whatever re-enters. Cover writes to chat messages while
+  // this Process is still mid-flight, and `attachAwaitTimeouts` re-arms a
+  // message's prompt clock on every `updateChatMessage` -- so a write here can
+  // wake a timeout that re-runs `advanceAttack` against the process flag as it
+  // stood BEFORE this call, rolling the Agility Checks a second time. Found
+  // live: a Master was shoved twice, (6,4) to (5,3) to (4,2).
+  if (coverStateFor(state)) return;
+
+  const board = currentBoard();
+  const master = (board.units ?? []).find((u) => u.id === state.defenderId);
+  if (master?.kind !== "master") return;
+
+  // The area this Noble Phantasm actually covers: every panel a defender in
+  // the fan-out is standing on. Taken from the group rather than recomputed,
+  // so Cover asks about the same blast the targeting resolved.
+  const siblings = siblingStates(state);
+  const areaPanels = siblings
+    .map((s2) => (board.units ?? []).find((u) => u.id === s2.defenderId)?.panel)
+    .filter(Boolean);
+
+  const servants = coveringServantsFor(master, board, areaPanels);
+  if (servants.length === 0) return;
+
+  // "The Servant performs an Agility Check." One success shoves, so the rolls
+  // stop there -- and the Servant that succeeded is not then also a shield.
+  /** @type {object[]} */
+  const rolls = [];
+  for (const servant of servants) {
+    const roll = await new Roll("1d20").evaluate();
+    // An AGILITY Check, not an Evade. The same table machinery (§16.4 names it
+    // *"Agility Check/Agility Check−"*, and the dash is the unfavourable
+    // table), but its own name in the plan vocabulary -- resolving it as an
+    // Evade would let an Evade-specific bonus help a Servant shove, and
+    // Innocent World hands out +4 Evade to half the board.
+    const plan = checkPlan(servant, "agility");
+    const outcome = resolveCheck({
+      roll: roll.total,
+      target: servant.agility,
+      table: plan.forceTable === "unfavourable" ? "unfavourable" : "favourable",
+      modifiers: plan.modifiers,
+    });
+    rolls.push({ unitId: servant.id, name: servant.name, roll: roll.total, success: outcome.success });
+    if (!outcome.success) continue;
+
+    // "The Servant shoves (Moves) its Master out of the NP area."
+    const panel = shoveDestination(master, areaPanels, board);
+    if (!panel) break;                       // nowhere to go: the shove fails
+    const token = game.actors.get(master.id)?.getActiveTokens?.()[0]?.document;
+    if (!token) break;
+    // Displacement, not movement: it spends none of the Master's own budget
+    // and is not re-validated as a voluntary step.
+    await token.update(
+      { x: panel.j * canvas.scene.grid.size, y: panel.i * canvas.scene.grid.size },
+      { fgtForced: true },
+    );
+    // A shoved Master is OUT of the area, so this Noble Phantasm no longer
+    // reaches it — recorded on the group with nobody covering, which is exactly
+    // the state the rest of this file already reads: `coverModifiersFor` zeroes
+    // the Master at stage 15, the rider guard drops its effects, and an empty
+    // `coveringIds` leaves every Servant free to Evade.
+    //
+    // The sheet spells the immunity out only in the FAILURE branch ("the Master
+    // receives no damage and effects"), which reads at first as though a
+    // successful shove leaves the Master to take the hit. It cannot: failure
+    // would then be strictly better for the Master AND for the Servant, whose
+    // reward for succeeding would be an unharmed enemy Master and its own
+    // undivided damage. The Agility Check would be a trap nobody should pass.
+    // "Moved to one panel OUTSIDE of the NP area" is the protection; "the
+    // Combat Process proceeds as normal" is about everyone else's Processes.
+    const shoved = { masterId: master.id, coveringIds: [], factor: 1, shoved: true };
+    await broadcastCover(state, message, shoved);
+    await applyBatch([I.log({
+      kind: "cover", event: "shoved", unitId: master.id,
+      by: servant.id, panel, rolls,
+    })], "cover:shove");
+    return;
+  }
+
+  // Every Check failed. "The Master receives no damage and effects, while the
+  // Total Damage the Servant takes ... is increased by 100%" -- divided among
+  // them, so two Servants take +50% each.
+  const cover = {
+    masterId: master.id,
+    coveringIds: servants.map((u) => u.id),
+    factor: coverFactor(servants.length),
+  };
+  await broadcastCover(state, message, cover);
+  await applyBatch([I.log({
+    kind: "cover", event: "covered", unitId: master.id,
+    by: cover.coveringIds, factor: cover.factor, rolls,
+  })], "cover:covered");
+}
+
+/**
+ * Record a cover decision across the fan-out group.
+ *
+ * On every message of the group EXCEPT the one whose Process is making the
+ * decision, so each Servant's own Process finds it without having to know which
+ * sibling recorded it. The exception is not tidiness: writing to this Process's
+ * own message fires `updateChatMessage`, which re-arms its prompt clock
+ * (`engine/await-timeout.mjs`) against a process flag that has not been written
+ * yet -- the timeout then answers the rung this call is still resolving. An AoE
+ * always has a second defender, so the record always lands somewhere
+ * `coverStateFor` will find it.
+ *
+ * @param {object} state
+ * @param {object} message the deciding Process's own message
+ * @param {object} cover
+ * @returns {Promise<void>}
+ */
+async function broadcastCover(state, message, cover) {
+  for (const sibling of siblingMessages(state)) {
+    if (sibling.id === message?.id) continue;
+    await sibling.setFlag("fgt", "cover", cover);
+  }
+}
+
+/**
+ * What Cover does to THIS defender's damage.
+ *
+ * The Master takes nothing at all — a factor of zero rather than a flat
+ * subtraction, because *"receives no damage and effects"* is unconditional and
+ * must survive anything that would otherwise add to the number. Each covering
+ * Servant takes the multiplied Total.
+ *
+ * @param {object} state
+ * @param {object} defender the defender's snapshot
+ * @returns {object[]}
+ */
+function coverModifiersFor(state, defender) {
+  const cover = coverStateFor(state);
+  if (!cover) return [];
+
+  if (defender?.id === cover.masterId) {
+    return [{
+      key: "cover",
+      factor: 0,
+      source: cover.shoved ? "shoved clear of the area by its Servant" : "covered by its Servant",
+    }];
+  }
+  if ((cover.coveringIds ?? []).includes(defender?.id)) {
+    return [{ key: "cover", factor: cover.factor, source: "covering its Master" }];
+  }
+  return [];
+}
+
+/**
+ * The chat messages of this Process's fan-out group, itself included.
+ * @param {object} state
+ * @returns {object[]}
+ */
+function siblingMessages(state) {
+  if (!state.groupId) return [];
+  return game.messages.filter((m) => {
+    const raw = m.getFlag("fgt", "process");
+    if (!raw) return false;
+    try {
+      return process.deserialize(raw).groupId === state.groupId;
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * The Process states of this fan-out group.
+ * @param {object} state
+ * @returns {object[]}
+ */
+function siblingStates(state) {
+  const messages = siblingMessages(state);
+  if (messages.length === 0) return [state];
+  return messages.map((m) => process.deserialize(m.getFlag("fgt", "process")));
+}
+
+/**
+ * The cover decision taken for this fan-out group, if any.
+ * @param {object} state
+ * @returns {object|null}
+ */
+function coverStateFor(state) {
+  for (const m of siblingMessages(state)) {
+    const cover = m.getFlag("fgt", "cover");
+    if (cover) return cover;
+  }
+  return null;
+}
+
 /**
  * The DEFENDER-side declaration event.
  *
@@ -647,7 +873,12 @@ async function fireAttacked(state) {
 }
 
 /**
- * Raise `attackDeclared` on the attacker.
+ * Raise `attackDeclared` on the attacker, once per Combat Process.
+ *
+ * Per process rather than per Combat Phase, because the option set describes
+ * one defender at one distance -- and every handler in the reference set that
+ * listens for it is predicated on exactly those two facts.
+ *
  * @param {object} state
  * @returns {Promise<void>}
  */
@@ -1699,6 +1930,15 @@ async function applyDamage(state, message) {
     conditionalMultipliers: resolvedDamage(ability, options)?.conditionalMultipliers ?? [],
     crit: { isCrit, chanceUsed: critSpec.percent },
     reaction: { kind: state.reaction ?? "none" },
+    // §16.4 rule 4, both halves. The Master its Servants covered *"receives no
+    // damage and effects"*; each covering Servant's *"Total Damage ... is
+    // increased by 100%"*, divided among them.
+    //
+    // Stage 15 has read `totalDamageModifiers` since the pipeline was written
+    // and **nothing had ever supplied one** -- so the whole "Total Damage"
+    // family of clauses had a stage of its own and no way into it. This is its
+    // first entry.
+    totalDamageModifiers: coverModifiersFor(state, defender),
     luckChecks: {},
     rolls: {
       [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
@@ -1948,6 +2188,12 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
   const defenderDoc = game.actors.get(state.defenderId);
   if (!ability || !defenderDoc) return [];
+
+  // §16.4 rule 4: *"the Master receives no damage AND EFFECTS"*. The damage
+  // half is stage 15's `factor: 0`; this is the other half, and it has to be
+  // here rather than in the pipeline because a rider is not damage and would
+  // otherwise land on a Master its Servants just took the blast for.
+  if (coverStateFor(state)?.masterId === state.defenderId) return [];
 
   // Nothing rides on an attack that dealt nothing. Invuln explicitly does NOT
   // prevent rider debuffs, but it also does not zero the damage to zero via

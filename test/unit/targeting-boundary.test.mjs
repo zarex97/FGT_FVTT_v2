@@ -70,13 +70,19 @@ describe("exclusion reasons", () => {
   });
 
   it("explains a Master shielded by an adjacent Servant of its own faction", () => {
+    // A CHOSEN target, because that is the verb §16.4 rule 1 uses: "Masters
+    // cannot be TARGETED for an Attack". An area's splash is a different
+    // question, pinned in `targeting.test.mjs`.
     const me = unit("me", "Heracles", at(6, 6), { faction: "red", factionId: "red" });
     const foe = unit("m", "Enemy Master", at(6, 7), { kind: "master", faction: "blue", factionId: "blue" });
     const guard = unit("g", "Guard", at(6, 8), { faction: "blue", factionId: "blue" });
-    const r = resolveTargets(AREA, me, boardWith([me, foe, guard]));
+    const single = {
+      ...AREA, selection: { ...AREA.selection, chooser: "chosen", count: 1 },
+    };
+    const r = resolveTargets(single, me, boardWith([me, foe, guard]));
 
     expect(r.excluded.find((e) => e.unitId === "m").reason).toMatch(/protected by an adjacent Servant/);
-    expect(r.units.map((u) => u.unitId)).toEqual(["g"]);
+    expect(r.candidates.map((u) => u.unitId ?? u.id)).toEqual(["g"]);
   });
 
   it("explains a unit excluded by the ability's own predicate", () => {

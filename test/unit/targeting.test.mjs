@@ -244,15 +244,54 @@ describe("Master protection", () => {
     selection: { relations: ["enemy"], chooser: "all" },
   };
 
-  it("excludes a Master standing next to its own Servant", () => {
+  /** The same reach, but picking one unit rather than sweeping an area. */
+  const chosen = { ...spec, selection: { ...spec.selection, chooser: "chosen", count: 1 } };
+
+  it("excludes a Master standing next to its own Servant from a CHOSEN attack", () => {
+    // §16.4 rule 1: "Masters cannot be TARGETED for an Attack when their
+    // Servant is within 2 panels of their Master."
+    const board = boardWith([
+      caster,
+      unit("master", 6, 8, { kind: "master" }),
+      unit("guard", 6, 9),
+    ]);
+    // A chosen selection hands back CANDIDATES and waits for the pick, so the
+    // exclusion shows there rather than in `units`.
+    const r = resolveTargets(chosen, caster, board);
+    expect(r.candidates.map((u) => u.unitId ?? u.id)).toEqual(["guard"]);
+    expect(r.excluded.find((e) => e.unitId === "master").reason)
+      .toMatch(/protected by an adjacent Servant/);
+    expect(r.warnings).toContain("Protected Masters were excluded.");
+  });
+
+  it("still CATCHES that Master in an area, which is what Cover is about", () => {
+    // Rule 1 refuses targeting; rule 4 opens with a Master who "gets CAUGHT IN
+    // an AoE Noble Phantasm" while a Servant stands within those same 2 panels.
+    // Filtering the splash too would make rule 4 — the Agility Check, the
+    // shove, the divided +100%, the "not within the NP area" exclusion —
+    // describe a state that could never occur. Found live: Cover was wired
+    // end-to-end and never fired, because the Master was never in the area.
     const board = boardWith([
       caster,
       unit("master", 6, 8, { kind: "master" }),
       unit("guard", 6, 9),
     ]);
     const r = resolveTargets(spec, caster, board);
-    expect(r.units.map((u) => u.unitId)).toEqual(["guard"]);
-    expect(r.warnings).toContain("Protected Masters were excluded.");
+    expect(r.units.map((u) => u.unitId).sort()).toEqual(["guard", "master"]);
+    expect(r.warnings).not.toContain("Protected Masters were excluded.");
+  });
+
+  it("refuses to AIM an area at a protected Master", () => {
+    // The splash is not targeting; the anchor is. Aiming a Noble Phantasm at a
+    // Master is exactly the thing rule 1 names.
+    const board = boardWith([
+      caster,
+      unit("master", 6, 8, { kind: "master" }),
+      unit("guard", 6, 9),
+    ]);
+    const aimed = { ...spec, anchor: { kind: "targetUnit", range: 6 } };
+    const r = resolveTargets(aimed, caster, board, { unitId: "master" });
+    expect(r.errors.join(" ")).toMatch(/protected by an adjacent Servant/);
   });
 
   it("allows the Master once no Servant is adjacent", () => {

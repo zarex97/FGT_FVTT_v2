@@ -202,8 +202,36 @@ coincide by accident; the headings say which is which.
   The flag travels on the board snapshot under `board.rules`, read as `=== false`, so absence can
   never disable a rule.
 
+- **Cover** (Ch. 16 §16.4 rule 4) — the last of the four Master-protection rules, and the only
+  one that spans two Combat Processes: an AoE Noble Phantasm fans out into one Process per
+  defender, so the Master's decides and the Servants' are what the decision changes. A failed
+  Master Evade sends each Servant within 2 panels *and inside the area* to an Agility Check; one
+  success shoves the Master to the nearest free panel outside, and total failure hands the Master
+  a stage-15 `×0` plus an effect-rider veto while the Servants split a `×(1 + 1/N)` between them
+  and lose the right to Evade. `rules/cover.mjs` is pure and asks `guardsOf`, so Pale Rider's
+  Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
+  `fgt2026` across all four branches.
+
 ### Fixed
 
+- **§16.4 rule 1 was filtering an area's splash, which made rule 4 unreachable.** *"Masters cannot
+  be **targeted** for an Attack"* is a rule about picking a target; rule 4 then describes a Master
+  who *"gets **caught in** an AoE Noble Phantasm"* with a Servant within those same 2 panels — a
+  state the filter removed from existence by dropping every protected Master out of every area.
+  Step 8 of `targeting/resolve.mjs` is now gated on the same `isChosen` step 7 uses for
+  concealment, whose comment had drawn the line years earlier; aiming an area *at* a protected
+  Master is still refused, at the anchor. Found by building Cover, wiring it end to end, watching
+  its tests pass, and casting Caladbolg II over a Master and its adjacent Servant in `fgt2026` to
+  get a fan-out with no Master in it.
+- **Stage 15 of the damage pipeline had no supplier.** `totalDamageModifiers` has been read since
+  the pipeline was written — and unit-tested — while every caller left the array empty; Cover is
+  the first thing to put anything in it.
+- **Writing a flag to a Combat Process's own chat message re-enters `advanceAttack`.**
+  `attachAwaitTimeouts` re-arms that message's prompt clock on every `updateChatMessage`, and
+  mid-Process the clock re-reads a process flag that has not been written back yet, so the
+  timeout answers the rung the caller is still resolving. Cover broadcasts its record to the
+  group's *other* messages only — an AoE always has a second defender — and returns early if the
+  group already carries one. Found live: a Master shoved twice, (6,4) to (5,3) to (4,2).
 - **`ForceTarget` had no reader anywhere.** Decoy's pull, Karna's *Fated Rivals* and a bound
   summon's prey all pushed a `{scope: "targeting", forceTarget}` suppression into a bucket nothing
   consulted, so no compulsion of that shape has ever narrowed a target list.

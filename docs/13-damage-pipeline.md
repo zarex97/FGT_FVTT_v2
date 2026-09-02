@@ -535,6 +535,25 @@ Multiplicative on the finished total, in this order:
 Multiplicative here, unlike stage 4, because each is stated as operating on the finished
 "Total Damage" independently.
 
+**Cover is this stage's first supplier, and for a long time it had none.** The reader —
+`for (const m of s.ctx.totalDamageModifiers ?? [])` — shipped with the pipeline, was exercised
+by its own unit tests, and no caller ever put anything in that array: every entry in the list
+above was either unbuilt or arriving through a different stage. `engine/attack.mjs`'s
+`coverModifiersFor` is the first thing to fill it, with `{key: "cover", factor, source}`. The
+covered Master gets `factor: 0` rather than a flat subtraction, because *"receives no damage"*
+is unconditional and has to survive anything that would otherwise add to the number.
+
+Measured live in `fgt2026` (Caladbolg II over a Foe Master and its adjacent Heracles, both
+Checks rigged to fail):
+
+```
+Servant   stage 15   before 428.6  →  after 857.2   cover ×2    "covering its Master"
+Master    stage 15   before 796.0  →  after   0.0   cover ×0    "covered by its Servant"
+```
+
+and with the shove succeeding instead, the same pair at `572 → 0` and `576.6 → 576.6` — the
+Servant undoubled, because nobody covered. See Ch. 16 §16.4.
+
 ### Stage 16 — Absorption and clamp
 
 ```
