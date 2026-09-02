@@ -1,0 +1,40 @@
+# Pale Rider -- Kagome Kagome: Sword, Famine, Death, Beast. Rank A (NP)
+# [Anti-World]. Passive.
+# Conversion source: char_orig_sheets/Copia de Pale Rider.md
+# Data sheet: docs/D-servant-data-sheets.md §D.26
+#
+# Like Innocent World, its mechanism lives on Doomsday Come's area -- the
+# summoning is a `contact` event there, because "whenever a NEW enemy Unit
+# enters Doomsday Come, perform this process for that Unit as well" is
+# precisely a contact clause, and the teardown is that field's `onEnd`.
+#
+# This file is the sheet entry, and carries no rules of its own.
+schema: 1
+id: pale-rider-kagome-kagome
+name: "Kagome Kagome: Sword, Famine, Death, Beast"
+rank: A
+kind: noblePhantasm
+isNP: true
+npTags: [antiWorld]
+isPassive: true
+description: |
+  (Passive) When Doomsday Come is activated, roll a four-sided die for each enemy Unit within
+  Doomsday Come, and summon a Kagome Spirit corresponding to the number rolled. The Kagome
+  Spirit summoned for each enemy Unit will constantly Move towards that Unit and Attack it.
+  Whenever a new enemy Unit enters Doomsday Come, perform this process for that Unit as well.
+  If a damage-dealing NP or Attack that deals Light damage or Attack that deals extra damage to
+  Units with the 'Dark' or 'Spirit' Attribute is used on a Kagome Spirit, Flip a Coin; that
+  Kagome Spirit disappears for 1◈ Turns if Tails, and disappears for 2◈ Turns if Heads; then
+  after that period it reappears on a random panel within Doomsday Come.
+  Kagome Spirits do not count towards the number of Units that Move and/or Attack during your
+  Turn. The same Kagome Spirit can only Move/Attack once per Turn.
+  When Doomsday Come ends, all Kagome Spirits immediately disappear. If Doomsday Come is
+  activated again, the same Kagome Spirit will be summoned for the same enemy Unit if that enemy
+  Unit was previously within Doomsday Come.
+passiveRules: []
+notes: |
+  "Constantly Move towards that Unit and Attack it" is built as a CONSTRAINT on the player rather
+  than as an automaton: `rules/movement.mjs#pursuitVerdict` refuses a step that ends further from
+  the assigned enemy than it began, and a `ForceTarget` suppression refuses an attack on anyone
+  else. The player still chooses the route and the moment. It is lifted once the prey is no
+  longer inside the area, because a Spirit is summoned for an enemy *within* Doomsday Come.

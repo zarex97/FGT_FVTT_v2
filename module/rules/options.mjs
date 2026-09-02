@@ -24,6 +24,7 @@
 import { Rank } from "../domain/rank.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
+import { referencedOptions } from "./predicate.mjs";
 
 /**
  * Every option describing this attacker, this defender and this attack.
@@ -73,6 +74,22 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
     for (const tag of NP_TAG_SCALE) {
       options.add(`attack:npScale:gte:${tag}`);
       if (tag === scale) break;
+    }
+  }
+  // WHAT THE ATTACK IS GOOD AGAINST. *"An Attack that deals extra damage to
+  // Units with the 'Dark' or 'Spirit' Attribute"* is not a property an ability
+  // declares -- it is a property of the attacker's own active damage
+  // modifiers, which is where the extra damage comes from. So it is read off
+  // the predicates those modifiers carry.
+  //
+  // The Kagome Spirits are the first clause to ask, and they ask about a whole
+  // class of attacks nobody has to remember to tag.
+  for (const m of attacker?.modifiers ?? []) {
+    if (m.direction !== "dealt" || !m.predicate) continue;
+    if ((m.value ?? 0) <= 0 && (m.npValue ?? 0) <= 0) continue;
+    for (const ref of referencedOptions(m.predicate)) {
+      const hit = /^target:attribute:([A-Za-z][\w-]*)$/.exec(ref);
+      if (hit) options.add(`attack:vsAttribute:${hit[1]}`);
     }
   }
   if (attack.ignoresMagicResistance) options.add("attack:ignoresMagicResistance");
@@ -408,6 +425,7 @@ const EMITTABLE = Object.freeze([
   /^attack:component:(str|mag)$/,
   /^attack:element:[A-Za-z][\w-]*$/,
   /^attack:npScale:gte:[A-Za-z][\w-]*$/,
+  /^attack:vsAttribute:[A-Za-z][\w-]*$/,
   /^attack:ignoresMagicResistance$/,
   /^attack:aim$/,
   /^attack:pierce$/,

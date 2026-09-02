@@ -104,6 +104,15 @@ coincide by accident; the headings say which is which.
   World's *"cannot be prevented or removed as long as a Unit is within"* free rather than a
   feature: an interior annotation is present exactly while the Unit stands inside, and there is
   nothing for Dispel to find.
+- **The Kagome Spirits**, and the six general pieces they needed: `inherit` (a summon's stat stated
+  relative to its summoner), `normalAttack.shape` (an area Normal Attack — until now every Normal
+  Attack in the game hit exactly one panel), `SummonBound` (one summon per enemy, bound to it, with
+  the type remembered so a reactivation returns the same Spirit to the same enemy), a pursuit
+  constraint, the `fgt.attacked` defender-side declaration event, and `Banish` — the only thing in
+  the game that leaves the board and comes back.
+- **`attack:vsAttribute:<a>`** — *"an Attack that deals extra damage to Units with the 'Dark'
+  Attribute"* is not a property an ability declares but one of the attacker's own damage
+  modifiers, read off the predicates they carry.
 - **`requiresEffect` and `RemoveEffect` on a bounded field's interior events** — a filter on what
   a Unit is carrying rather than on what it is, and the one action in that table that takes
   something away. Guidance of the Netherworld's marker discharges on contact with Doomsday Come
@@ -187,6 +196,14 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **`ForceTarget` had no reader anywhere.** Decoy's pull, Karna's *Fated Rivals* and a bound
+  summon's prey all pushed a `{scope: "targeting", forceTarget}` suppression into a bucket nothing
+  consulted, so no compulsion of that shape has ever narrowed a target list.
+- **A unit snapshot never carried `suppressions` at all.** They were collected by the executor
+  table and projected nowhere, so every `Suppress`, `Decoy` and `WeakPoint` an *ability*
+  contributed was invisible to every consumer — only `bypassesMasterProtection`, which reads the
+  contributions directly, escaped. A *field's* suppression worked, because the field annotation
+  writes that key itself, which is exactly why the gap was invisible.
 - **A bounded field's interior rules had never been validated.** The content validator walks an
   ability's rule elements and its phases, and not its `field.interior` — so no field's interior
   has ever been checked for unknown keys, unknown tables or malformed predicates, Jack's Mist and

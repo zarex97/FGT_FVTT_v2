@@ -144,6 +144,22 @@ export function resolveTargets(spec, caster, board, placement = {}) {
       compelled.includes(u.id) || drop(u, "the attacker is compelled to attack another unit"));
   }
 
+  // 4b-ii. FORCED TARGET. `ForceTarget` has been in the executor table since
+  // it was written and had **no reader anywhere**: Decoy's pull, Karna's Fated
+  // Rivals and now a Kagome Spirit's prey all pushed a `{scope: "targeting",
+  // forceTarget}` suppression into a bucket nothing consulted. Same scope as
+  // the compulsion above and the same narrowing — it makes the CHOICE illegal
+  // rather than the attack.
+  if (relations.has("enemy")) {
+    const forced = (caster.suppressions ?? [])
+      .filter((sup) => sup?.scope === "targeting" && sup.forceTarget)
+      .map((sup) => sup.forceTarget);
+    if (forced.length > 0) {
+      survivors = survivors.filter((u) =>
+        forced.includes(u.id) || drop(u, "the attacker is forced to attack another unit"));
+    }
+  }
+
   // 4c. BOUNDED FIELD ISOLATION (Ch. 43 §43.5). Full isolation partitions the
   // board into two independent combats: a player whose units straddle the
   // boundary still takes one turn and acts with both groups, but the groups

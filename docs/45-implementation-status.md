@@ -1022,6 +1022,46 @@ applications), then GotN to the two allies and **not** to him; a GotN-bearing al
 Doomsday Come opened received Atk Up, Regen and Dmg Cut (3 charges) and lost the marker in the
 same breath.
 
+#### Commit 8 — the Kagome Spirits
+
+The largest single piece of Pale Rider, and six general additions:
+
+| Piece | For |
+|---|---|
+| `inherit` on a summon | *"Agility: Pale Rider's plus 2"* — a stat that is not a number, resolved at placement from the summoner's live values |
+| `normalAttack.shape` | *"Range: 3 panels, 3×3 panel area"* — until now **every Normal Attack in the game hit exactly one panel**, because the targeting fallback said `{kind: "unit"}` and nothing could say otherwise |
+| `SummonBound` | one summon per enemy, bound to it, with the type **remembered on the owner** so a reactivation returns the same Spirit to the same enemy |
+| `pursuitVerdict` | *"constantly Move towards that Unit"* as a **constraint**, not an automaton |
+| `fgt.attacked` | the defender-side declaration event the corpus had never had |
+| `Banish` | the only thing in the game that leaves the board and comes back |
+
+**Two more silent gaps closed on the way.** `ForceTarget` had been in the executor table since it
+was written with **no reader anywhere** — Decoy's pull, Karna's *Fated Rivals* and a Spirit's prey
+all pushed a suppression into a bucket nothing consulted. And `suppressions` was **never projected
+onto a unit snapshot at all**: only `bypassesMasterProtection`, which reads the contributions
+directly, ever escaped. So every `Suppress`, `Decoy` and `WeakPoint` an ability contributed was
+invisible downstream. (A *field's* suppression worked, because `annotateFields` writes to that key
+itself — which is why Innocent World's NP Seal functioned in commit 6 while an ability's identical
+clause would not have.)
+
+`attack:vsAttribute:<a>` is worth its own line: *"an Attack that deals extra damage to Units with
+the 'Dark' or 'Spirit' Attribute"* is not a property an ability declares — it is a property of the
+attacker's own active damage modifiers, read off the predicates they carry. Nobody has to remember
+to tag anything.
+
+**Measured live:**
+
+| Clause | Measured |
+|---|---|
+| one Spirit per enemy inside | five enemies → five Spirits, each with a distinct prey and all bound to the area |
+| *"Agility: Pale Rider's plus 2"* etc. | Sword +2, Beast +1, Famine −1 (floored at 0), Death equal; Luck equal; Health `null` |
+| *"when Doomsday Come ends, all Kagome Spirits immediately disappear"* | all five actors **and** their tokens gone |
+| *"the same Kagome Spirit ... for the same enemy Unit"* | reopened at a re-rolled radius of 5: the three enemies still inside got back their **exact** prior types, and the memory kept all five |
+| *"constantly Move towards that Unit"* | a step away refused by name; a step closer allowed |
+| …and *"Attack it"* | its prey selectable; an equally adjacent enemy refused *"the attacker is forced to attack another unit"* |
+| *"a Light attack … Flip a Coin"* | token hidden, `state.banished` recording tick 16 = 10 + 2◈ (heads) |
+| *"then it reappears on a random panel within"* | still hidden at tick 15; at 16 visible again, on a free panel **inside the area**, the record cleared |
+
 ---
 
 ## 45.5 The completion plan

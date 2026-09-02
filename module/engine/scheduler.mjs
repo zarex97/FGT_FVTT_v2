@@ -610,6 +610,34 @@ const ACTIONS = Object.freeze({
   RemoveEffect: (a, u) => [I.removeEffect(u.id, a.effect ?? a.defId, "event")],
 
   /**
+   * Take a Unit off the board for a span, and put it back.
+   *
+   * The Kagome Spirits: *"Flip a Coin; that Kagome Spirit disappears for 1◈
+   * Turns if Tails, and disappears for 2◈ Turns if Heads; then after that
+   * period it reappears on a random panel within Doomsday Come."*
+   *
+   * A LOG intent rather than a direct write, because this layer is pure: the
+   * coin comes from `ctx.rolls` on the caller's own contract, and hiding a
+   * token is `engine/applier.mjs`'s business. The tick to return on is settled
+   * here, where the turn length is known.
+   */
+  Banish: (a, u, h, c) => {
+    const coin = c.rolls?.[`coin:${u.id}`] ?? c.rolls?.coin ?? 1;
+    // 1 is heads, the same convention `masterSetupPlan`'s own coin flip uses.
+    const span = coin === 1 ? a.coin?.heads : a.coin?.tails;
+    if (!span) return [];
+    const ticks = resolveTicks(parseTick(String(span)), c);
+    return [I.log({
+      kind: "banish",
+      unitId: u.id,
+      untilTick: (c.tick ?? 0) + ticks,
+      fieldId: u.boundToFieldId ?? null,
+      heads: coin === 1,
+      source: h.source,
+    })];
+  },
+
+  /**
    * Push an effect's expiry further out without reapplying it.
    *
    * *"If EMIYA uses a Thaumaturgy or Projection Skill/NP while he has the Atk

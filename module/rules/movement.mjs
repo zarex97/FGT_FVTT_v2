@@ -262,6 +262,48 @@ export function canStopOn(panel, unit, board) {
  * @param {object} board
  * @returns {boolean}
  */
+/**
+ * May this summon take this step?
+ *
+ * The Kagome Spirits are *"constantly Move towards that Unit and Attack it"*,
+ * and the decision taken in the design was that this is a **constraint on the
+ * player** rather than an automaton: the engine refuses a step that ends
+ * further from the assigned enemy than it began, and the player chooses the
+ * route. "Constantly" is a rule, not an AI.
+ *
+ * @param {object} unit
+ * @param {Array<{i: number, j: number}>} path
+ * @param {object} board
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function pursuitVerdict(unit, path, board) {
+  if (!unit?.pursuitTargetId || !Array.isArray(path) || path.length < 2) return { ok: true };
+
+  const prey = (board?.units ?? []).find((u) => u.id === unit.pursuitTargetId);
+  if (!prey?.panel || prey.defeated) return { ok: true };
+
+  // Lifted once the prey is no longer inside the field the Spirit is bound to.
+  // The compulsion is a property of the area -- a Spirit is summoned for an
+  // enemy *within* Doomsday Come, and one who has left is no longer its
+  // business.
+  if (unit.boundToFieldId && !(prey.fields ?? []).includes(unit.boundToFieldId)) return { ok: true };
+
+  const before = geo.chebyshev(path[0], prey.panel);
+  const after = geo.chebyshev(path[path.length - 1], prey.panel);
+  // Closing OR holding. "Constantly Move towards that Unit" is a direction,
+  // not a speed, and a Spirit already adjacent has nowhere closer to go.
+  return after <= before
+    ? { ok: true }
+    : { ok: false, reason: `${unit.name ?? "This summon"} must Move towards ${prey.name ?? "its target"}.` };
+}
+
+/**
+ * Zone denial around an enemy Master.
+ * @param {{i: number, j: number}} panel
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
 export function inEnemyMasterProtection(panel, unit, board) {
   // An OPTIONAL rule. It is the one clause in Ch. 08 that stops a player moving
   // where the board looks empty, and the refusal is easy to read as a bug --

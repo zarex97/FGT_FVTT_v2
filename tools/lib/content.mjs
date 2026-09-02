@@ -860,6 +860,9 @@ function actorSystem(doc) {
     // damaged". Without this the flag compiled to its schema default and each
     // type's `prepareBaseData` backfilled a Health the sheet does not state.
     undamageable: Boolean(doc.undamageable),
+    // Stats stated relative to the summoner (the Kagome Spirits' Agility and
+    // Luck), resolved at placement rather than written as numbers.
+    inherit: doc.inherit ?? null,
     // Rule elements authored directly on the unit (Bašmu's Normal Attack
     // rider and Targetability aura; HGoB Construction's round-end regen) --
     // the same allowlist gap `itemCost` and `summonVariant` hit earlier: an
