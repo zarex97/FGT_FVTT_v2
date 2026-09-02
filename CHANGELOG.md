@@ -108,6 +108,23 @@ coincide by accident; the headings say which is which.
   platform resolves to that unit; viewing the garden, a passenger sharing the platform's centre
   panel resolves to the passenger.
 
+- **The overlay layer wedged itself permanently after any canvas redraw**, throwing
+  `Cannot read properties of null (reading 'off')` on every `hoverToken`, `controlToken` and
+  `fgt.invalidate` — and silently drawing nothing.
+
+  `OverlayLayer#refresh` destroys its text badges by hand (`Graphics.clear()` does not remove
+  Text). The badges are children of the layer, and `_tearDown` did not clear `#labels` — so after
+  a level switch or any `canvas.draw()` the array held Text objects Foundry had already destroyed
+  with the rest of the layer's children. `PIXI.Text#destroy` nulls `_style` and then reads
+  `_style.off(...)` on a second call.
+
+  The throw happened **before** `this.#labels = []`, so the stale array was never cleared and
+  every later refresh threw again — a one-off turned permanent. `_tearDown` now clears the list
+  (the root cause), and `refresh` replaces it *before* destroying anything and skips a label that
+  reports `destroyed`, so a single bad element can no longer prevent the bookkeeping that would
+  have recovered from it. Verified from a cold load: zero errors across a battery of hovers,
+  selection, five invalidation targets and a level switch, with the badges still rendering.
+
 - **Orphan level sweep now scatters stranded passengers first.** It skipped an occupied orphan,
   which meant it could never clean up the case it exists for — the riders are exactly why the
   level outlived the platform. Measured: a second "Hanging Gardens" level accumulated on the very
