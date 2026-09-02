@@ -19,6 +19,7 @@ import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf } from "../../rules/identity.mjs";
+import { tierOf } from "../../rules/master-rank.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import {
   resourceBar, parameterTiles, abilityState, abilityCost,
@@ -692,6 +693,20 @@ function detailsContext(actor, snapshot) {
     servantClasses: [...(system.servantClasses ?? [])],
     region: [...(system.region ?? [])],
     attributes: [...(system.attributes ?? [])],
+
+    // A Master's rank, which had no control anywhere -- the only way to set it
+    // was to hand-edit the document. The tier is shown beside the letter,
+    // because a GM choosing "C" should not have to look up what it costs them.
+    isMaster: actor.type === "master",
+    // Built with `selected` per entry rather than compared in the template:
+    // this project registers no `eq` helper, and a template that invents one
+    // throws at render time.
+    rankChoices: ["", "A", "B", "C", "D"].map((value) => ({
+      value,
+      label: value || game.i18n.localize("FGT.MasterRank.blank"),
+      selected: (system.rank ?? "") === value,
+    })),
+    masterTierLabel: `FGT.MasterRank.${tierOf(system)}`,
 
     // The GM's own control always shows what is actually stored, blank or
     // not, unlike the header's `portraitImg` — which is what a concealed

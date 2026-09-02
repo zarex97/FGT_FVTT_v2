@@ -12,7 +12,19 @@ export class MasterData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       ...unitCommon(),
-      rank: new fields.StringField({ required: false, blank: true }),
+      // A–D (Ch. 04 §4.5), or blank for Rankless — a real state with rules of
+      // its own (Ch. 17 prices an all-Rankless table differently), not a
+      // missing value.
+      //
+      // `choices` is what stops a typo. This was a free-form string, and
+      // `Rank.parseOrNull` THROWS on anything it cannot parse rather than
+      // returning null — so `rank: "high"` did not read as Rankless, it
+      // crashed the Noble Phantasm cost. `rules/master-rank.mjs#tierOf` now
+      // catches that too, but the schema is where it should never arise.
+      rank: new fields.StringField({
+        required: false, blank: true, initial: "",
+        choices: ["", "A", "B", "C", "D"],
+      }),
       // Three, spendable, and the only pre-emption mechanism in the game.
       // The Master's OWN spells, usable on any contracted Servant (§16.9).
       commandSpells: new fields.NumberField({ required: true, integer: true, initial: 3, min: 0 }),

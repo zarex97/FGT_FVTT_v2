@@ -24,10 +24,10 @@
  *     is Rankless.
  */
 
-import { Rank } from "../domain/rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { availableFor } from "./cs-namespacing.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
+import { paysHighColumn } from "./master-rank.mjs";
 
 /** The interruptible points (§17.4). `anyTime` commands are offered at all of them. */
 export const WINDOWS = Object.freeze({
@@ -40,9 +40,6 @@ export const WINDOWS = Object.freeze({
   ownTurn: "ownTurn",
   validationFailure: "validationFailure",
 });
-
-/** Master ranks that pay the cheaper Kill Yourself price (Ch. 04: Masters are A–D). */
-const HIGH_RANK_MASTER = Object.freeze(["A", "B"]);
 
 /**
  * What this command costs this Master.
@@ -58,7 +55,7 @@ export function costOf(command, master, settings = {}) {
   if (!variant) return command.cost ?? 1;
   // "If all Masters are Rankless, the Kill Yourself command only costs one."
   if (settings.allMastersRankless) return variant.high;
-  return isHighRankMaster(master) ? variant.high : variant.low;
+  return paysHighColumn(master) ? variant.high : variant.low;
 }
 
 /**
@@ -190,7 +187,7 @@ function meets(req, ctx) {
     case "servantNotWithin":
       return distance(master, servant) > (req.panels ?? 2);
     case "highRankMaster":
-      return isHighRankMaster(master);
+      return paysHighColumn(master);
     case "inZone":
       return inZone(req, master, servant);
     case "notInZone":
@@ -327,16 +324,3 @@ function distance(a, b) {
   return chebyshev(a.panel, b.panel);
 }
 
-/**
- * A rankless Master counts as High Rank here, matching the Noble Phantasm cost
- * rule in `rules/costs.mjs` — the right column is the Low Rank penalty, not the
- * default.
- *
- * @param {object|null} master
- * @returns {boolean}
- */
-function isHighRankMaster(master) {
-  const rank = Rank.parseOrNull(master?.rank ?? null);
-  if (!rank) return true;
-  return HIGH_RANK_MASTER.includes(rank.grade);
-}

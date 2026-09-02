@@ -19,9 +19,7 @@ import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { meetsRequirements } from "./items.mjs";
 import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
-
-/** Master ranks that pay the cheaper column. Masters come in four ranks (Ch. 04). */
-const HIGH_RANK_MASTER = Object.freeze(["A", "B"]);
+import { paysHighColumn } from "./master-rank.mjs";
 
 /**
  * What using this ability costs, or `null` when it is free.
@@ -82,7 +80,7 @@ export function npCostAt({ rank, unit, master }) {
 
   return {
     kind: "masterHealth",
-    amount: isHighRankMaster(master) ? high : low,
+    amount: paysHighColumn(master) ? high : low,
     unitId: master?.id ?? null,
   };
 }
@@ -268,20 +266,6 @@ function cannotPay(cost, unit, master) {
 function columnsFor(npRank) {
   const v = lookup("npCostByRank", npRank);
   return Array.isArray(v) ? [v[0], v[1]] : [0, 0];
-}
-
-/**
- * A rankless Master pays the **left** column — the cheaper one. That reads
- * backwards until you notice it is the default rather than a reward: the right
- * column is the penalty a Low Rank Master carries.
- *
- * @param {object|null} master
- * @returns {boolean}
- */
-function isHighRankMaster(master) {
-  const rank = Rank.parseOrNull(master?.rank ?? null);
-  if (!rank) return true;
-  return HIGH_RANK_MASTER.includes(rank.grade);
 }
 
 /** @param {object} unit @returns {boolean} */

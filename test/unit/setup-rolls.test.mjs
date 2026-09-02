@@ -89,11 +89,23 @@ describe("masterSetupPlan", () => {
     expect(lineOf(masterSetupPlan({ rank: "C" }), "baseAttackMag").base).toBe(100);
   });
 
-  it("flips a coin for the rank when essences are not in play", () => {
-    // "Heads=High Rank, Tails=Low Rank." The coin picks the VALUE, because the
-    // rank exists at this point only to select it.
+  it("flips a coin for the RANK when essences are not in play", () => {
+    // "Heads=High Rank, Tails=Low Rank." The coin picks the RANK, and Base
+    // Attack (MAG) derives from it.
+    //
+    // It used to pick the VALUE and discard which side came up, on the
+    // reasoning that "the rank exists at this point only to select it" -- but
+    // the rank also decides ZON, Sustainability, the parameter grant and the
+    // Kill Yourself price, so a table that flipped Heads got a Master with 125
+    // who was Rankless for every other rule in the game.
+    expect(lineOf(masterSetupPlan({ rank: "A" }, { mode: "coinFlip" }), "rank"))
+      .toMatchObject({ roll: { formula: "1d2", map: ["A", "C"] } });
+  });
+
+  it("derives Base Attack (MAG) from that rank rather than rolling a second coin", () => {
+    // Two coins could disagree; one cannot.
     expect(lineOf(masterSetupPlan({ rank: "A" }, { mode: "coinFlip" }), "baseAttackMag"))
-      .toMatchObject({ base: 0, roll: { formula: "1d2", map: [125, 100] } });
+      .toMatchObject({ roll: null, derivedFrom: "rank" });
   });
 
   it("gives every Master 100 when ranks are not used at all", () => {
@@ -102,10 +114,14 @@ describe("masterSetupPlan", () => {
       .toMatchObject({ base: 100, roll: null });
   });
 
-  it("resolves a coin-flipped rank to one of the two values, not to a die face", () => {
-    const out = resolveSetupPlan(masterSetupPlan({}, { mode: "coinFlip" }), { baseAttackMag: 1 });
+  it("resolves a coin-flipped rank to a grade, and its Base Attack alongside", () => {
+    const heads = resolveSetupPlan(masterSetupPlan({}, { mode: "coinFlip" }), { rank: 1 });
+    expect(heads.find((l) => l.id === "rank").value).toBe("A");
+    expect(heads.find((l) => l.id === "baseAttackMag").value).toBe(125);
 
-    expect(out.find((l) => l.id === "baseAttackMag").value).toBe(125);
+    const tails = resolveSetupPlan(masterSetupPlan({}, { mode: "coinFlip" }), { rank: 2 });
+    expect(tails.find((l) => l.id === "rank").value).toBe("C");
+    expect(tails.find((l) => l.id === "baseAttackMag").value).toBe(100);
   });
 
   it("starts every Master with three Command Spells", () => {
