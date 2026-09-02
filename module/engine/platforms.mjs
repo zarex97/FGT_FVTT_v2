@@ -138,7 +138,16 @@ export async function activatePlatform({ platformId, initialUnitIds = [] }) {
   const level = await createLevel(platform);
   if (!level) return { ok: false, reason: "noScene" };
 
-  if (initialUnitIds.length > 0) await moveToLevel(initialUnitIds, platform);
+  // THE PLATFORM'S OWN TOKEN FIRST. It was never assigned to the level it had
+  // just been given: `activateHangingGardens` creates the token before calling
+  // this, and nothing here moved it. So the Hanging Gardens — a flying garden —
+  // sat at elevation 0 on the ground level, where it collided with every unit
+  // on the board and counted every one of them as a passenger.
+  //
+  // Included here rather than fixed in `hgob.mjs` because it is true of every
+  // platform: a platform belongs on its own level by definition, and no caller
+  // should have to remember to say so.
+  await moveToLevel([platform.id, ...initialUnitIds], platform);
 
   Hooks.callAll("fgtPlatformActivated", platform, level);
   return { ok: true };

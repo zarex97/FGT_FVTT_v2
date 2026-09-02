@@ -36,6 +36,56 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Enemy Master protection is now an optional rule** (`fgt.masterProtection`, default **on**).
+  §8.3 clause 4 is the one movement clause that refuses a step onto a panel which looks empty, so
+  a table can switch it off; it then stops applying everywhere at once, reachability included.
+  The flag travels on the board snapshot under `board.rules`, read as `=== false`, so absence can
+  never disable a rule.
+
+### Fixed
+
+- **The Hanging Gardens could not fly, could not carry anybody, and left a Scene Level behind
+  every time it was raised.** Seven defects, found by driving it on a live board; §20.2 has the
+  full account.
+
+  - **The platform's own token was never assigned to its level.**
+    `activateHangingGardens` creates the token and *then* calls `activatePlatform`, which moved
+    only the initial passengers. So the Gardens flew at elevation 0 on the ground, where it
+    collided with every unit on the board and `passengersOf` counted all **21** of them as
+    passengers — moving it would have dragged the entire match sideways.
+  - **…and it could not have been, because our own movement hook refused it.** Foundry counts
+    `elevation` and `level` among `TokenDocument.MOVEMENT_FIELDS`, so a level assignment reaches
+    `preMoveToken` as a movement with no horizontal step and `validatePath` rejected it:
+    *"Step 1 is not an orthogonal move."* **This broke boarding by the same route.**
+  - **`fgtForced` had never worked.** Foundry calls the hook as
+    `Hooks.call("preMoveToken", document, move, options)` — the options are the **third**
+    argument, and `move` carries none. Our two-parameter hook read `movement.options.fgtForced`,
+    so every forced displacement in the system was re-validated as a voluntary move.
+  - **Elevation bands overlapped the ground.** `bottom = levelCount × 10` assumes a 10-tall
+    ground; Foundry's default Level is `{bottom: 0, top: 20}`, so the first platform landed
+    *inside* it — and `inferLevelFromElevation` prefers a strictly-interior level to a
+    bottom-edge one, pulling every passenger back down. Bands now start at the highest existing
+    `top`.
+  - **Nothing swept a level whose platform was gone.** `teardown` runs only from
+    `destroyPlatform`, so a hand-deleted platform stranded its level and the next activation
+    stacked another. Measured at **three** orphaned "Hanging Gardens" levels on one scene — what
+    a GM sees as four sub-scenes. A GM should see exactly one level per active platform, plus
+    the ground.
+  - **`occupantAt` ignored the level**, comparing `i` and `j` only, so every unit in a scene
+    shared one 2D grid whatever its elevation and a flying platform was blocked by the ground.
+    §20.2 lists "separate occupancy" as the first thing a Scene Level buys; it was the one thing
+    it did not.
+  - **§20.8's movement linkage had never carried a passenger.** `carryPassengers` computed its
+    delta as `platform.panel − movement.origin`, and at `moveToken` the document still reports
+    the origin — so the delta was always `{0, 0}` and it returned before moving anybody. It now
+    uses the operation's own `origin` and `destination`, neither of which depends on document
+    propagation.
+
+  Measured live after the fixes: two levels (0–20 and 20–30, non-overlapping), the platform on
+  its own level at elevation 20 with its owner aboard, one passenger instead of 21, free movement
+  across ground-occupied panels, and a two-passenger formation carried two panels with both
+  relative offsets preserved.
+
 - **Asterios and Karna are finished.** Both were already on the "authored" list. Asterios had all
   five abilities and **six of their clauses had no reader**; Karna had four of thirteen, and the
   four included neither of the two that define him. All eighteen abilities now resolve end to end

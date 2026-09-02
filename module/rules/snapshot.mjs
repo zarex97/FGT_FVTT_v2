@@ -396,6 +396,16 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     fields: settings.fields ?? [],
     crossLevel: settings.crossLevel ?? null,
     terrain: scene?.terrain ?? {},
+    // OPTIONAL RULES the table has switched off. A block rather than loose
+    // fields, so the next one is a line of data instead of a new board
+    // property every consumer has to learn about.
+    //
+    // Defaults are the rules as written: absence must never disable a rule,
+    // because every board built before an entry existed has no value for it.
+    rules: {
+      masterProtection: settings.rules?.masterProtection ?? true,
+      ...(settings.rules ?? {}),
+    },
     // Seeded so a replayed combat picks the same random targets.
     seed: settings.seed ?? 0,
   };
@@ -456,7 +466,13 @@ function annotatePlatforms(units, board) {
 
   for (const u of units) {
     if (u.kind === "platform") continue;
-    const aboard = platforms.find((p) => (p.level ?? 0) === (u.level ?? 0));
+    // Never the ground (level 0). A platform that has not been given a level of
+    // its own would otherwise claim every unit standing on the board, and
+    // `self:onPlatform:<contentId>` would be true for all of them — including
+    // Semiramis's opponents, and including the predicates her own Sikera Ušum
+    // and Territory Creation branch on.
+    const level = u.level ?? 0;
+    const aboard = level === 0 ? null : platforms.find((p) => (p.level ?? 0) === level);
     if (aboard) {
       u.platformId = aboard.id;
       // The STABLE content id, not the world's random Foundry document id --

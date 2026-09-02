@@ -25,6 +25,37 @@
 const LEVEL_HEIGHT = 10;
 
 /**
+ * The elevation band a new platform level should occupy.
+ *
+ * **Above every band that already exists**, not `count × height`. The old
+ * arithmetic assumed the ground level was `LEVEL_HEIGHT` tall; Foundry's
+ * default Level is `{bottom: 0, top: 20}` (see `BaseLevel.defineSchema`), so
+ * the first platform landed at 10–20 — *inside* the ground band.
+ *
+ * That is not cosmetic. `Canvas#inferLevelFromElevation` scores a candidate
+ * level 0 when the elevation is strictly interior to it, 1 when it sits exactly
+ * on the bottom, 2 on the top, and takes the **lowest** score. A passenger
+ * placed at elevation 10 therefore scored the ground 0 (interior to 0–20) and
+ * the platform 1 (its bottom) — so Foundry inferred every passenger straight
+ * back down onto the ground, undoing the assignment `assignLevel` had just
+ * made. Measured live: the Hanging Gardens' owner stayed at elevation 0 on the
+ * ground level immediately after being moved aboard.
+ *
+ * Starting at the highest existing `top` also makes the boundary resolve
+ * upward, which is what we want: a token at exactly the shared edge scores 2
+ * (top) for the level below and 1 (bottom) for the platform, so the platform
+ * wins.
+ *
+ * @param {Array<{elevation?: {top?: number}}>} levels every level already on the scene
+ * @param {number} [height]
+ * @returns {{bottom: number, top: number}}
+ */
+export function nextBand(levels, height = LEVEL_HEIGHT) {
+  const bottom = (levels ?? []).reduce((max, l) => Math.max(max, l?.elevation?.top ?? 0), 0);
+  return { bottom, top: bottom + height };
+}
+
+/**
  * The Scene Level a platform lives on, if it has one.
  * @param {object} platform an `FGTActor` of type `platform`
  * @param {object} [scene]
@@ -60,13 +91,30 @@ export async function createLevel(platform, scene = canvas.scene) {
   if (!scene) return null;
   if (levelOf(platform, scene)) return levelOf(platform, scene);
 
+  // A level this platform already owns but has lost the id of. `system.levelId`
+  // and the level's own `flags.fgt.platformId` are two records of one fact, and
+  // only the second survives the platform actor being re-created — so without
+  // this, re-activating leaves the old level behind and makes a second one.
+  const existing = scene.levels.contents.find((l) => l.flags?.fgt?.platformId === platform.id);
+  if (existing) {
+    await platform.update({ "system.levelId": existing.id });
+    return existing;
+  }
+
+  // Levels whose platform no longer exists. Nothing else ever removes them:
+  // `teardown` runs only from `destroyPlatform`, so a platform actor deleted by
+  // hand — or a test run that made one and moved on — strands its level for
+  // good. Measured live at **three** orphaned "Hanging Gardens of Babylon"
+  // levels on one scene, which is what a GM sees as four sub-scenes.
+  await sweepOrphanLevels(scene);
+
   const ground = groundLevel(scene);
   const used = scene.levels.contents.length;
-  const bottom = used * LEVEL_HEIGHT;
+  const elevation = nextBand(scene.levels.contents);
 
   const [level] = await scene.createEmbeddedDocuments("Level", [{
     name: platform.name,
-    elevation: { bottom, top: bottom + LEVEL_HEIGHT },
+    elevation,
     visibility: { levels: ground ? [ground.id] : [] },
     sort: used,
     flags: { fgt: { platformId: platform.id } },
@@ -84,7 +132,51 @@ export async function createLevel(platform, scene = canvas.scene) {
 }
 
 /**
+ * Delete every platform level whose platform is gone.
+ *
+ * A level is only ever removed by `teardown`, which runs from
+ * `destroyPlatform`. Anything else that ends a platform's life — a GM deleting
+ * the actor, a test run, an activation that failed after `createLevel` — leaves
+ * the level behind for ever, and the next activation stacks another one on top.
+ *
+ * Refuses to remove a level that still has tokens on it, for the same schema
+ * reason `destroyLevel` does: `TokenDocument#level` is required and
+ * non-nullable and Foundry does not re-parent on delete.
+ *
+ * @param {object} [scene]
+ * @returns {Promise<string[]>} the level ids removed
+ */
+export async function sweepOrphanLevels(scene = canvas.scene) {
+  if (!scene) return [];
+
+  const orphans = scene.levels.contents.filter((l) => {
+    const platformId = l.flags?.fgt?.platformId ?? null;
+    if (!platformId) return false; // not ours; the ground and any GM level
+    if (game.actors.get(platformId)) return false; // still alive
+    return !(scene.tokens?.contents ?? []).some((t) => t.level === l.id);
+  });
+  if (orphans.length === 0) return [];
+
+  const ids = orphans.map((l) => l.id);
+  const ground = groundLevel(scene);
+  if (ground) {
+    await ground.update({
+      "visibility.levels": (ground.visibility?.levels ?? []).filter((id) => !ids.includes(id)),
+    });
+  }
+  await scene.deleteEmbeddedDocuments("Level", ids);
+  return ids;
+}
+
+/**
  * Move units onto a platform's level.
+ *
+ * **The platform's own token is included by the caller** (`activatePlatform`),
+ * and that is the fix for the defect this comment exists to record: the token
+ * was created before the level and never assigned to it, so the Hanging
+ * Gardens flew at elevation 0 on the ground level. Everything downstream reads
+ * membership off the level, so a platform standing on the ground made every
+ * unit in the scene one of its passengers — measured live at 21 of 21.
  *
  * @param {string[]} unitIds
  * @param {object} platform
@@ -226,7 +318,15 @@ async function assignLevel(tokenIds, level, scene) {
       elevation: level.elevation?.bottom ?? 0,
     }));
 
-  if (updates.length > 0) await scene.updateEmbeddedDocuments("Token", updates);
+  // `fgtForced`: assigning a level is an engine operation, not a player's Move.
+  // Foundry counts `elevation`/`level` among its movement fields, so this
+  // arrives at `preMoveToken` as a movement and was refused by our own legality
+  // check (`engine/movement-hooks.mjs`). Belt and braces with the level-only
+  // test that hook now makes: this says what the operation *is*, that says what
+  // it *looks like*, and either alone would be enough.
+  if (updates.length > 0) {
+    await scene.updateEmbeddedDocuments("Token", updates, { fgtForced: true });
+  }
 }
 
 /**

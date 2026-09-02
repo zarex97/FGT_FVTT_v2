@@ -41,15 +41,39 @@ export const Movement = {
  *
  * @param {object} document the `TokenDocument`
  * @param {object} movement the movement operation
+ * @param {object} [operation] the update operation, which carries our own options
  * @returns {boolean} `false` rejects it
  */
-function onPreMove(document, movement) {
+function onPreMove(document, movement, operation) {
   const combat = game.combats.active;
   if (!combat?.started) return true;
   if (movement?.method === "undo" || movement?.method === "reset") return true;
-  // Forced movement -- knockback, Gather -- is displacement, not movement, and
-  // is not subject to the mover's own legality or budget (Ch. 08 §8.3).
-  if (movement?.forced || movement?.options?.fgtForced) return true;
+  // Forced movement -- knockback, Gather, a platform carrying its passengers --
+  // is displacement, not movement, and is not subject to the mover's own
+  // legality or budget (Ch. 08 §8.3).
+  //
+  // `operation`, not `movement.options`. Foundry calls this hook as
+  // `Hooks.call("preMoveToken", document, move, options)` (`TokenDocument`
+  // §1993) -- the update options are the THIRD argument, and `move` has no
+  // `options` at all. So `fgtForced` resolved to `undefined` every time and
+  // **the escape hatch had never once worked**: every forced displacement this
+  // system performs was being re-validated as a voluntary move.
+  if (movement?.forced || operation?.fgtForced || movement?.options?.fgtForced) return true;
+
+  // A change of LEVEL is not a Move. Foundry counts `elevation` and `level`
+  // among its movement fields, so assigning a token to a platform's Scene Level
+  // arrives here as a movement whose path has no horizontal step at all --
+  // and `validatePath` rejected it with *"Step 1 is not an orthogonal move"*.
+  //
+  // That is why the Hanging Gardens never reached its own level: `createLevel`
+  // made the level, `assignLevel` tried to put the platform on it, and this
+  // hook refused. The platform then flew at elevation 0 on the ground, where it
+  // collided with every unit on the board and counted all of them as
+  // passengers. Boarding was broken the same way, for the same reason.
+  //
+  // Changing level is `boardPlatform`'s business and is gated by its own roll;
+  // it is not a step across the board and has no business being measured as one.
+  if (isLevelOnlyChange(document, movement)) return true;
 
   const actor = document.actor;
   if (!actor) return true;
@@ -101,10 +125,16 @@ function onPreMove(document, movement) {
  * @param {object} movement
  * @returns {Promise<void>}
  */
-async function onMove(document, movement) {
+async function onMove(document, movement, operation) {
   const combat = game.combats.active;
   if (!combat?.started) return;
-  if (movement?.forced || movement?.options?.fgtForced) return;
+  // `operation`, not `movement.options` -- see `onPreMove`. A forced
+  // displacement must not spend the mover's budget, and this read never
+  // resolved, so `carryPassengers` could recurse into its own carried
+  // passengers and every carried unit was billed for a move it did not make.
+  if (movement?.forced || operation?.fgtForced || movement?.options?.fgtForced) return;
+  // A level change is not a step, so it costs nothing (see `onPreMove`).
+  if (isLevelOnlyChange(document, movement)) return;
   if (!game.users.activeGM?.isSelf && !document.actor?.isOwner) return;
 
   const actor = document.actor;
@@ -177,7 +207,10 @@ async function knockBackOccupants(moverId, origin) {
   const { knockbackPanel, occupantAt } = await import("../rules/movement.mjs");
   const board = boardSnapshot(game.combats.active);
 
-  const occupant = occupantAt(origin, board);
+  // On the MOVER's own level: Bašmu knocks aside whoever it walks into, and it
+  // cannot walk into somebody standing twenty feet above it.
+  const mover = board.units.find((u) => u.id === moverId) ?? null;
+  const occupant = occupantAt(origin, board, mover?.level);
   if (!occupant || occupant.id === moverId) return;
 
   const landing = knockbackPanel(origin, occupant, board);
@@ -199,6 +232,33 @@ async function knockBackOccupants(moverId, origin) {
  *
  * @param {object} movement
  * @returns {Array<{i: number, j: number}>}
+ */
+/**
+ * Is this "movement" only a change of level or elevation?
+ *
+ * Foundry counts `elevation` and `level` among `TokenDocument.MOVEMENT_FIELDS`,
+ * so assigning a token to a Scene Level arrives at `preMoveToken` as a
+ * movement — one whose every waypoint sits on the panel the token is already
+ * standing on. Measured against the board's own grid offsets rather than
+ * against pixel coordinates, because a level change may nudge `x`/`y` by a
+ * sub-panel amount and still not be a step.
+ *
+ * @param {object} document the `TokenDocument`
+ * @param {object} movement
+ * @returns {boolean}
+ */
+function isLevelOnlyChange(document, movement) {
+  const path = pathOf(movement);
+  if (path.length === 0) return true;
+
+  const here = canvas?.grid?.getOffset?.({ x: document.x, y: document.y });
+  if (!here) return false;
+  return path.every((p) => p.i === here.i && p.j === here.j);
+}
+
+/**
+ * @param {object} movement
+ * @returns {{i: number, j: number}[]}
  */
 function pathOf(movement) {
   const waypoints = movement?.pending?.waypoints?.length
@@ -254,9 +314,24 @@ async function carryPassengers(actor, document, movement) {
   const platform = board.units.find((u) => u.id === actor.id);
   if (!platform) return;
 
-  const origin = movement?.origin ?? null;
-  const delta = origin && canvas?.grid
-    ? offsetDelta(canvas.grid.getOffset(origin), { i: platform.panel.i, j: platform.panel.j })
+  // The delta comes from the MOVEMENT, origin to destination — not from the
+  // board's idea of where the platform is now.
+  //
+  // It used to be `platform.panel − movement.origin`, and `platform.panel` is
+  // read from a board snapshot taken inside this hook. At `moveToken` the
+  // document has not caught up: it still reports the origin. So the subtraction
+  // was origin − origin, the delta was always `{0, 0}`, and this function
+  // returned before moving anybody. **§20.8's movement linkage had never once
+  // carried a passenger** — measured live, with two passengers aboard the
+  // Hanging Gardens and the platform moved two panels: both stayed where they
+  // were.
+  //
+  // `origin` and `destination` are both on the operation, both final, and
+  // neither depends on document propagation (`TokenMovementOperation`).
+  const from = movement?.origin;
+  const to = movement?.destination;
+  const delta = from && to && canvas?.grid
+    ? offsetDelta(canvas.grid.getOffset(from), canvas.grid.getOffset(to))
     : null;
   if (!delta || (delta.i === 0 && delta.j === 0)) return;
 

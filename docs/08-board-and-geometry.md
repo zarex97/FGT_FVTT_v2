@@ -212,6 +212,27 @@ Exceptions that bypass 3 and 4: active Presence Concealment (*"able to Attack Ma
 anywhere regardless of the enemy Master-Servant positions"*), Kingprotea's `Huge Scale`, and
 Bašmu.
 
+### Clause 3 and 7 are per LEVEL
+
+"Occupied" means *occupied on the mover's own level*. `occupantAt` compared `i` and `j` and
+nothing else, so every unit in the scene shared one 2D grid whatever its elevation — and a
+platform, which flies, could not be moved anywhere near the board because the units on the
+ground blocked it (Ch. 20 §20.2 gives each platform its own Scene Level for "separate occupancy",
+which was the one thing it did not buy). An absent level reads as the ground, so a scene with no
+platforms behaves exactly as before.
+
+### Clause 4 is OPTIONAL (`fgt.masterProtection`)
+
+It is the one clause here that refuses a step onto a panel which *looks* empty, and a refusal
+nobody can see the reason for reads as a bug. A table that finds it more trouble than it is worth
+can switch it off in the world settings, and it then stops applying everywhere at once —
+`canPassThrough`, `validatePath` and the reachability overlay all consult the same predicate.
+
+**Default ON**: it is a rule as written, not a house rule. The flag travels on the board snapshot
+under `board.rules`, alongside anything optional that comes later, and is read as
+`board.rules.masterProtection === false` — so *absence* can never disable a rule, which matters
+because every board built before an entry exists has no value for it.
+
 ### Implementation via Foundry v14 movement
 
 v14's `TokenDocument.move(waypoints, options)` with a custom **movement cost function** gives

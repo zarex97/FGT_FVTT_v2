@@ -55,6 +55,20 @@ export function platformsOn(board) {
  * @returns {object[]}
  */
 export function passengersOf(platform, board) {
+  // A platform on the GROUND has no passengers. §20.2 gives every active
+  // platform a level of its own, stacked above the ground, so a platform still
+  // sitting at level 0 has not been activated — and reading membership off
+  // `level ?? 0` made it the owner of everyone standing on the ground.
+  //
+  // That is exactly what happened: `activatePlatform` created the Hanging
+  // Gardens' level and never moved the platform's own token onto it, so it flew
+  // at elevation 0 and `passengersOf` returned **21 of 21** units on the board.
+  // Moving it would have carried the entire match one panel sideways.
+  //
+  // The guard stays even though the assignment bug is fixed, because "everyone
+  // on the ground belongs to this platform" is never a correct answer.
+  if ((platform?.level ?? 0) === 0) return [];
+
   return (board?.units ?? []).filter(
     (u) => u.id !== platform.id && (u.level ?? 0) === (platform.level ?? 0),
   );
@@ -104,7 +118,14 @@ export function movePlatform(platform, delta, board) {
 function platformOf(unit, board) {
   if (!unit) return null;
   if (unit.kind === "platform") return unit;
-  return platformsOn(board).find((p) => (p.level ?? 0) === (unit.level ?? 0)) ?? null;
+  // Never the ground, for the same reason `passengersOf` refuses it: a platform
+  // still at level 0 is not activated, and matching on it would put every unit
+  // in the scene "aboard" — which `annotatePlatforms` then stamps as
+  // `self:onPlatform:<id>`, making Semiramis's own platform predicates true for
+  // her opponents.
+  const level = unit.level ?? 0;
+  if (level === 0) return null;
+  return platformsOn(board).find((p) => (p.level ?? 0) === level) ?? null;
 }
 
 /**
