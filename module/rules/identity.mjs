@@ -120,7 +120,15 @@ function titleCase(raw) {
 export function detectRangeOf(unit, board = null) {
   const base = unit?.detect ?? detectForClass(unit, board);
   const deafened = (unit?.effects ?? []).includes("deafen") ? 1 : 0;
-  return Math.max(MIN_DETECT, base - deafened);
+  // A bounded field may cap it outright — Jack's Mist reduces Detect "to 1
+  // panel" for every enemy inside. Applied to the DERIVED number, after the
+  // class table and Deafen, because the cap is stated as a result and not as
+  // an adjustment. The tightest cap wins if a unit somehow stands in two.
+  const caps = (unit?.suppressions ?? [])
+    .filter((s) => s.scope === "detect" && typeof s.maximum === "number")
+    .map((s) => s.maximum);
+  const capped = caps.length > 0 ? Math.min(base, ...caps) : base;
+  return Math.max(MIN_DETECT, capped - deafened);
 }
 
 /**

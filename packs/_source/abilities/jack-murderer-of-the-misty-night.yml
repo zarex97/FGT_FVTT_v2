@@ -1,0 +1,99 @@
+# Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 39-42.
+# Data sheet: docs/D-servant-data-sheets.md §D.18
+#
+# The widest ability on her sheet, and the one that needed new engine.
+#
+# PASSIVE 1 is the first REACTION PRE-EMPTION in the corpus: *"Jack can Attack
+# first instead of the opposing Unit."* Not a Counter -- a Counter happens at
+# the end of the Process it answers, after the damage has landed (§12.8's
+# `counter` rung), and this happens instead, before the attacker's Process
+# exists at all. `AttackFirst` (rules/elements.mjs) declares it and
+# `engine/attack.mjs#offerPreemption` runs it: the attacker's declaration is
+# DEFERRED onto Jack's own Process and re-entered when it finishes, so if she
+# kills them there, their Attack never happens.
+#
+# The Day/Night split is the first place the Round phase is a COST rather than
+# a damage modifier -- free at night, a Luck Check by day. `requiresLuckCheckIn`
+# names phases rather than taking a boolean for exactly that reason.
+#
+# ACTIVE 1 varies its magnitude, its duration AND its cooldown by whether she
+# stands in her own Mist. All three come from machinery that already existed --
+# per-phase `predicate:` (engine/skill-use.mjs) and `cooldown.branches`
+# (engine/cooldown.mjs) -- but `self:inField:` had to be added to
+# `DEFERRED_PREFIXES`: field membership is a board annotation, so answering it
+# during the actor-only collection pass answers "false" every time.
+schema: 1
+id: jack-murderer-of-the-misty-night
+name: "Murderer of the Misty Night"
+rank: A
+kind: skill
+slug: murdererOfTheMistyNight
+timing: { window: ownTurn }
+# "Cooldown: 3◈ Turns (4◈ Turns if used within the Mist)." The stronger branch
+# costs more, which is the whole trade the parenthesis states.
+cooldown:
+  branches:
+    - predicate: ["self:inField:jack-the-mist"]
+      max: "4◈"
+    - predicate: []
+      max: "3◈"
+description: |
+  (Passive 1) Whenever Jack is Attacked by an enemy Unit, and the AU is within Jack's Range,
+  Jack can Attack first instead of the opposing Unit. If it is a Day Round, the activation of
+  this effect requires a Successful Luck Check. Luck Check is not required during Night Rounds.
+  (Passive 2) Whenever Jack performs an Attack when both Jack and the DU are within 'The Mist';
+  increase the DU's Evade Roll by 4 if it Evades.
+  (Active 1) Used during your Turn. Restore 3 Agility, applies Dodge to Jack for ⅓◈ Turns; and
+  applies Atk Up for ⅓◈ Turns, all damage dealt is increased by 30%; if NP, 20%. If used while
+  within the Mist, effect duration is increased to 1◈ Turns, and Atk Up boost is 50% instead of
+  30% (if NP, 30%).
+  Cooldown: 3◈ Turns (4◈ Turns if used within the Mist).
+passiveRules:
+  # Passive 1.
+  - key: AttackFirst
+    # "…and the AU is within JACK'S Range." Measured against her reach, not the
+    # attacker's, so a sniper outside it cannot be pre-empted.
+    withinOwnRange: true
+    requiresLuckCheckIn: [day]
+
+  # Passive 2. `direction: imposed` is a modifier on SOMEBODY ELSE'S check --
+  # the shape EMIYA's Clairvoyance introduced (`rules/checks.mjs#mergePlans`)
+  # and the only honest model for a clause that is on Jack's sheet and lands on
+  # her victim's roll. A higher Evade total is a WORSE outcome for the evader,
+  # which is why every clause of this family in the corpus adds rather than
+  # subtracts.
+  #
+  # Both halves of "when BOTH Jack and the DU are within the Mist" are named:
+  # the predicate defers whole (it mentions `target:`), and dropping either
+  # side would hand her the bonus for standing in her own fog alone.
+  - key: CheckModifier
+    check: evade
+    direction: imposed
+    value: 4
+    predicate: ["self:inField:jack-the-mist", "target:inField:jack-the-mist"]
+phases:
+  # Unconditional, and first: the Agility restore does not change inside the
+  # Mist, so splitting it across both branches would be one number in two
+  # places. `clamp` keeps it a restore rather than a boost past the maximum
+  # she rolled at summon.
+  - kind: statChange
+    target: self
+    changes:
+      - { stat: agility, delta: 3, clamp: true }
+
+  # The two branches of Active 1. First match wins by ORDER of evaluation here,
+  # so the Mist branch is stated first and the plain one carries the negation
+  # rather than relying on the runner to stop at the first hit -- every phase
+  # whose predicate passes is executed.
+  - kind: applyEffects
+    target: self
+    predicate: ["self:inField:jack-the-mist"]
+    effects:
+      - { id: dodge, duration: "1◈" }
+      - { id: atkUp, magnitude: 50, npMagnitude: 30, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: [{ not: "self:inField:jack-the-mist" }]
+    effects:
+      - { id: dodge, duration: "⅓◈" }
+      - { id: atkUp, magnitude: 30, npMagnitude: 20, duration: "⅓◈" }

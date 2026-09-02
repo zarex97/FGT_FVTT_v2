@@ -66,7 +66,7 @@ export function empty() {
     attributes: [], magicResistance: null, variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [],
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
-    auras: [], applicationChances: [], compulsions: [], unhandled: [],
+    auras: [], applicationChances: [], compulsions: [], preemptions: [], unhandled: [],
   };
 }
 
@@ -151,7 +151,16 @@ export function collectContributions(abilities, ctx = {}) {
  * half (`requiresRecipient`, tested later against the annotated board) always
  * worked — which is why only half of Territory Creation ever looked broken.
  */
-const DEFERRED_PREFIXES = Object.freeze(["target:", "attack:", "self:inHomeBase", "self:onPlatform:"]);
+// `self:inField:` belongs here for the same reason `self:inHomeBase` and
+// `self:onPlatform:` do: field membership is a BOARD annotation
+// (`rules/bounded-fields.mjs#annotateFields`), unknowable during
+// `collectContributions`'s actor-only pass, so answering it there answers it
+// "false" every time. Sikera Ušum's own clause survived only because its
+// predicate also names `attack:kind:normal` and deferral is all-or-nothing —
+// a predicate that named field membership ALONE was silently dropped.
+const DEFERRED_PREFIXES = Object.freeze([
+  "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:",
+]);
 
 /**
  * The predicate to carry through, or `null` if this pass can answer it.
@@ -844,6 +853,37 @@ export const EXECUTORS = Object.freeze({
     });
   },
 
+  /**
+   * Attack before the Unit that just declared an Attack on you.
+   *
+   * Jack the Ripper's *Murderer of the Misty Night* is the reference case and
+   * the only one in the corpus: *"Whenever Jack is Attacked by an enemy Unit,
+   * and the AU is within Jack's Range, Jack can Attack first instead of the
+   * opposing Unit. If it is a Day Round, the activation of this effect requires
+   * a Successful Luck Check."*
+   *
+   * Not a Counter, and the distinction is the whole clause: a Counter happens
+   * at the END of the Combat Process it answers (§12.8, the `counter` rung),
+   * after the damage has already landed. This happens INSTEAD — Jack swings
+   * first, and if the attacker dies there its attack never resolves at all.
+   *
+   * `requiresLuckCheckIn` names the Round phases that charge a Luck Check
+   * rather than a boolean, because the sheet's own asymmetry is the point:
+   * free at night, paid by day. An empty list is a pre-emption that never
+   * costs a check.
+   */
+  AttackFirst(el, { source, ability, out }) {
+    out.preemptions.push({
+      source,
+      abilityId: ability?.id ?? null,
+      // "…and the AU is within Jack's Range." A distance in panels measured
+      // against the PRE-EMPTER's range, which is the defender's — so it cannot
+      // be read off the attack.
+      withinOwnRange: el.withinOwnRange !== false,
+      requiresLuckCheckIn: [el.requiresLuckCheckIn ?? []].flat(),
+    });
+  },
+
   AutoSucceed(el, { source, ability, out }) {
     out.autoSucceeds.push({
       check: el.check, beatenBy: el.beatenBy ?? [], source,
@@ -891,6 +931,21 @@ export const EXECUTORS = Object.freeze({
 
   TargetingModifier(el, { source, out, deferred = null }) {
     out.modifiers.push({ key: "targeting", spec: el.spec ?? el, value: 0, predicate: deferred, source });
+  },
+
+  /**
+   * A ceiling on how far this unit can Discover a concealed one.
+   *
+   * Jack's Mist: *"The Detect of all enemy Units within the Mist is reduced to
+   * 1 panel."* A CAP, not a subtraction — a Servant with Detect 2 and one with
+   * Detect 9 both end at 1 — and it cannot be a `StatDelta` because `detect`
+   * on a unit snapshot is the authored OVERRIDE, `null` on almost everybody,
+   * with the real number derived in `rules/identity.mjs#detectRangeOf`.
+   * Subtracting from `null` is how you get a rule that works for the Golden
+   * Hind and silently does nothing for every Servant in the game.
+   */
+  DetectOverride(el, { source, out }) {
+    out.suppressions.push({ scope: "detect", maximum: el.maximum ?? 1, source });
   },
 
   ForceTarget(el, { source, out }) {

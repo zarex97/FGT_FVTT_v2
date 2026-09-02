@@ -18,6 +18,7 @@
 import { classifyAbility } from "../../rules/ability-use.mjs";
 import { currentBoard, unitFrom } from "../../engine/board.mjs";
 import { budgetFor } from "../../engine/budget.mjs";
+import { mayDeactivate } from "../../engine/fields.mjs";
 
 /** How many abilities the quick-bar shows. §29.5 says up to six. */
 const QUICK_BAR = 6;
@@ -37,6 +38,16 @@ export function attachTokenHUD() {
 
     column.append(...controls(actor, token));
     root.querySelector(".col.right")?.after(column) ?? root.append(column);
+  });
+
+  // The dial reads its arrow from `system.facing` at render time, so the HUD
+  // has to be told when that changes — including when somebody else changes it.
+  // Foundry re-renders the token HUD for its own document's updates, never for
+  // the Actor's.
+  Hooks.on("updateActor", (actor, changes) => {
+    if (!(changes.system && "facing" in changes.system)) return;
+    const hud = canvas.hud?.token;
+    if (hud?.rendered && hud.object?.actor?.id === actor.id) hud.render();
   });
 }
 
@@ -60,8 +71,54 @@ function controls(actor, token) {
     facingDial(actor),
     ...quickBar(actor),
     ...modeToggles(actor),
+    ...fieldSwitches(actor, board),
     effectPips(unit),
   ].filter(Boolean);
+}
+
+/**
+ * A switch for each open bounded field this unit may close.
+ *
+ * Jack's Mist is the first field in the corpus its owner may end at will —
+ * *"This NP can be deactivated at any time … during her Turn or at the start or
+ * end of any Turn or Round"* — and without a control the `deactivation` spec
+ * would be one more authored field with no way to reach it. Most fields carry
+ * none and get no button: a Reality Marble runs its clock out.
+ *
+ * Deactivating is what starts an ability's `countFrom: "deactivation"` cooldown
+ * (`engine/fields.mjs#deactivateField`), so this must not be a bare Region
+ * delete — the clock would never start.
+ *
+ * @param {object} actor
+ * @param {object} board
+ * @returns {HTMLElement[]}
+ */
+function fieldSwitches(actor, board) {
+  return (board?.fields ?? [])
+    .filter((field) => mayDeactivate(field, actor.id))
+    .map((field) => button(
+      `field-${field.id}`,
+      "fa-solid fa-circle-xmark",
+      null,
+      async () => {
+        const { deactivateField } = await import("../../engine/fields.mjs");
+        await deactivateField(field.id, "owner");
+      },
+      game.i18n.format("FGT.HUD.EndField", { name: nameOfField(field, actor) }),
+    ));
+}
+
+/**
+ * The ability's own name, so the button says what it will close rather than
+ * naming a content id.
+ *
+ * @param {object} field
+ * @param {object} actor
+ * @returns {string}
+ */
+function nameOfField(field, actor) {
+  const item = actor.items.find((i) => i.system?.contentId === field.id);
+  return item?.name ?? field.id;
 }
 
 /**
@@ -90,31 +147,65 @@ function budgetPip(state, stale) {
 }
 
 /**
+ * The eight compass points, in clockwise order. Index arithmetic on this array
+ * is what makes the dial turn, and `rules/snapshot.mjs` uses the same order.
+ */
+export const FACINGS = Object.freeze(["n", "ne", "e", "se", "s", "sw", "w", "nw"]);
+
+/**
  * The facing dial.
  *
  * §29.5 is explicit that this must **not** end the turn: facing is a correction
  * a player makes while thinking, and a control that spent their turn for them
  * would be worse than no control.
  *
+ * **This was a `<select>`, and it was unusable.** Foundry's `.control-icon` is
+ * a fixed 35px square built to hold one glyph; a native select inside it,
+ * stretched to `width: 100%` with the theme's own `0 8px` padding, measured
+ * **25px wide with 16px of that spent on padding** — nine pixels of content box
+ * for "South-west", plus a dropdown arrow that alone is wider than that. It
+ * rendered as an empty grey sliver: the current facing could not be read, and
+ * neither could any option. Measured live before it was replaced.
+ *
+ * So the control is now what the box is shaped for — one arrow, pointing the
+ * way the unit faces. Left-click turns it 45° clockwise, right-click 45°
+ * anticlockwise, so any of the eight is at most four clicks away in either
+ * direction. The board is where the answer is read (`apps/canvas/token.mjs`
+ * draws the same heading on the token itself), which is what lets this be a
+ * turn-by-turn control rather than a menu.
+ *
  * @param {object} actor
  * @returns {HTMLElement}
  */
 function facingDial(actor) {
+  const current = FACINGS.includes(actor.system?.facing) ? actor.system.facing : "n";
+
   const el = document.createElement("div");
   el.className = "control-icon fgt-hud__facing";
-  el.dataset.tooltip = game.i18n.localize("FGT.HUD.Facing");
+  el.dataset.tooltip = game.i18n.format("FGT.HUD.Facing", {
+    facing: game.i18n.localize(`FGT.Facing.${current}`),
+  });
 
-  const select = document.createElement("select");
-  for (const dir of ["n", "ne", "e", "se", "s", "sw", "w", "nw"]) {
-    const option = document.createElement("option");
-    option.value = dir;
-    option.textContent = game.i18n.localize(`FGT.Facing.${dir}`);
-    option.selected = actor.system?.facing === dir;
-    select.append(option);
-  }
-  select.addEventListener("change", () => actor.update({ "system.facing": select.value }));
+  // One glyph, rotated. `fa-location-arrow` points north-east at rest, so the
+  // base rotation is -45deg and each compass step adds 45.
+  const icon = document.createElement("i");
+  icon.className = "fa-solid fa-location-arrow fgt-hud__facing-arrow";
+  icon.style.transform = `rotate(${FACINGS.indexOf(current) * 45 - 45}deg)`;
+  el.append(icon);
 
-  el.append(select);
+  const turn = (steps) => {
+    const next = FACINGS[(FACINGS.indexOf(current) + steps + FACINGS.length) % FACINGS.length];
+    return actor.update({ "system.facing": next });
+  };
+  el.addEventListener("click", () => turn(1));
+  // Right-click is the other direction rather than a context menu: the HUD has
+  // no context menu of its own, and losing it costs nothing here.
+  el.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    return turn(-1);
+  });
+
   return el;
 }
 

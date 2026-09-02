@@ -1,0 +1,53 @@
+# Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 68-78.
+# Method 1. Method 2 is `jack-maria-the-ripper-slaughter.yml`.
+#
+# TWO DOCUMENTS, not one ability with a mode, and for the same reason Karna's
+# Vasavi Shakti is two: *"Can be used in two different methods. Method 1 has no
+# conditions while Method 2 has conditions that need to be met."* The two carry
+# different Ranges (2 vs 4), different cooldowns (4◈ vs 6◈+⅓◈), different
+# damage and a different outcome, and only one of them is ever legal at a time.
+# Two documents give the player two buttons and let the gate refuse the one
+# that does not apply, which is the honest presentation of a choice the sheet
+# describes as two methods rather than as a toggle.
+schema: 1
+id: jack-maria-the-ripper
+name: "Maria the Ripper: The Holy Mother of Dismemberment"
+# "Rank: D~B+" -- a RANGE, which the schema has no way to hold and which
+# Ch. D §D.18's own table records as a range too. `D` is the floor and the
+# method that has no conditions, so it is the one stated here; the conditional
+# method carries the top of the band. Three Noble Phantasms in the roster print
+# a range and all three are handled this way.
+rank: D
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: mariaTheRipper
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  Method 1 (no conditions). Base Attack (STR) is used. Deals 2.5x damage; if the Defending Unit
+  is Female, damage dealt is further increased by 100% (doubled).
+  Cooldown: 4◈ Turns.
+targeting:
+  # Her printed Range. Method 2 extends it to 4; this one does not say so, so
+  # it does not get it.
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], includeSelf: false, chooser: all, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  branches:
+    # "…if the DU is Female, damage dealt is further increased by 100%
+    # (doubled)". Folded into the multiplier rather than authored as a separate
+    # `DamageModifier`, because "damage dealt is doubled" multiplies the whole
+    # of this NP's own output and a stage-5 modifier would instead be one more
+    # additive percentage among everyone else's.
+    - predicate: ["target:attribute:female"]
+      multiplier: 5
+      component: str
+    - predicate: [{ not: "target:attribute:female" }]
+      multiplier: 2.5
+      component: str
+phases:
+  - kind: damage
+    target: reuse

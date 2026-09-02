@@ -324,6 +324,38 @@ to remember which of their seven Servants has already acted.
 > Those are the checks that decide whether an ability *does anything*. **CI remains authoritative**
 > for the rest, and Save is refused while any of them fails.
 
+> **Fixed (Ch. 45): the facing dial was unusable, and facing was invisible on the board.**
+>
+> The dial was a `<select>` inside Foundry's `.control-icon`, which is a fixed 35px square built
+> to hold one glyph. Measured live: the select came out **25px wide with `0 8px` padding** — nine
+> pixels of content box for "South-west", and a native dropdown arrow alone is wider than that.
+> It rendered as an empty grey sliver, so the current facing could not be read and neither could
+> any option. The write path worked perfectly; nothing about it was visible.
+>
+> It is now one arrow rotated to the heading. **Left-click turns it 45° clockwise, right-click
+> 45° anticlockwise**, so any of the eight is at most four clicks away either way — and right-
+> click is the second direction rather than a context menu, which the HUD does not otherwise
+> have. The HUD re-renders on `updateActor` for `system.facing`, because Foundry re-renders the
+> token HUD only for its own document's updates.
+>
+> The other half is that the answer now lives **on the board**. `apps/canvas/token.mjs` draws a
+> gold chevron on the token pointing the way it faces, seated so its tip lands on the token's own
+> boundary and nothing crosses into the neighbouring panel. It is drawn on the placeable rather
+> than in `OverlayLayer` because it has to follow the token: the overlay layer redraws on
+> selection, hover and invalidation, none of which fire during a drag. An actor with no `facing`
+> draws nothing rather than defaulting to north, which would assert a heading the rules are not
+> using.
+>
+> Also new on the HUD: a **field switch**, one per open bounded field the selected unit may close
+> at will. Jack's Mist is the first in the corpus whose owner may end it — *"can be deactivated at
+> any time"* — and without a control the `deactivation` spec would be one more authored field with
+> no way to reach it. It routes through `engine/fields.mjs#deactivateField` rather than deleting
+> the Region, because deactivating is what starts a `countFrom: "deactivation"` cooldown.
+>
+> Related: **every token's artwork rotation is now locked** (`lockRotation`). Facing is
+> `system.facing` and nothing in this system reads Foundry's own `rotation`, so an unlocked token
+> only let a player point the picture somewhere the rules disagreed with.
+
 ## 29.6 The ability editor
 
 The tool that determines whether success criterion **SC-6** (a GM authors a Karna-complexity

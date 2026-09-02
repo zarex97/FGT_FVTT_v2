@@ -1,0 +1,200 @@
+# Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 55-66.
+# The bounded-field model is Ch. 43; this is a point in its six axes.
+#
+# Ch. 43 listed The Mist's `freeform` geometry as NOT BUILT. It is now: a
+# freeform field opens on its authored `shape` -- for Jack, a 5x5 centred on
+# her, which is exactly the 25 panels the sheet caps her at and every one of
+# them inside the 4-panel leash -- and stores its panels rather than
+# recomputing them, so reshaping is a write to that list and not a new field.
+#
+# Four clauses needed engine that did not exist, all of it general rather than
+# Jack-shaped:
+#   - effect 3 (+3 Evade) is an interior `CheckModifier`, and `annotateFields`
+#     merged every contribution bucket EXCEPT `checkModifiers` -- so a field
+#     could declare a check penalty, compile it, and never impose it.
+#   - effect 4 (MOV halved) needed `factor` on an interior stat rule; the fold
+#     only ever added a delta, and "halved" cannot be a delta because half of 7
+#     and half of 4 are different numbers.
+#   - effect 5 (Detect -> 1) needed `DetectOverride`, because `detect` on a
+#     snapshot is the authored OVERRIDE (null on almost everybody) and the real
+#     number is derived in `rules/identity.mjs#detectRangeOf`.
+#   - effects 1 and 2 are CONTACT clauses, and `runFieldEvents` only ever had
+#     Turn boundaries to fire on.
+#
+# The Instinct exemption is the first rule in the corpus keyed on a CATEGORY
+# asserted at the bottom of a character sheet rather than on a named ability.
+# See `rules/bounded-fields.mjs#isExempt`.
+schema: 1
+id: jack-the-mist
+name: "The Mist: Darkened Misty Metropolis"
+rank: C
+isNP: true
+npTags: [barrier, boundedField]
+kind: noblePhantasm
+slug: theMist
+# "Cooldown: 5◈ Turns AFTER The Mist is deactivated" -- the clock starts at the
+# field's closure, not at the cast, which is what `countFrom: deactivation`
+# says and what `engine/fields.mjs#setCooldownOnDeactivation` runs.
+cooldown: { max: "5◈", countFrom: deactivation }
+timing: { window: ownTurn }
+description: |
+  (Non-damaging) When this NP is used, a cloud of Mist forms around Jack which covers a maximum
+  of 25 panels. This area can be in any shape, but cannot expand past a distance of 4 panels
+  from Jack (including diagonal). The effects of this Mist are as follows-
+  1. Normal Humans immediately die if they are caught in the Mist (this counts as Jack killing
+     the Human).
+  2. Enemy Masters and non-normal Humans are inflicted with Poison upon contact with the Mist;
+     and are inflicted with Poison at the end of its Turn or at the end of a Turn they Act while
+     still within the Mist. (High Rank Masters are not inflicted with Poison upon contact.)
+  3. Whenever an enemy Servant within the Mist Rolls for Evade, increase the value rolled by 3.
+  4. The Move of all enemy Units within the Mist is halved.
+  5. The Detect of all enemy Units within the Mist is reduced to 1 panel.
+  A Servant ignores effects 3, 4 and 5 if they have the Instinct Skill of Rank B or higher.
+  Effect 4 is also ignored by any allied Units of that Servant with Instinct (Rank B or higher)
+  who are standing directly next to them.
+  6. Jack's Master loses 15 Health at the end of the Turn after every 1◈ Turns since activation.
+     Forcefully deactivated if her Master has 15 Health or less and would lose Health this way,
+     at the end of a Turn Jack is defeated, or at any time Jack chooses.
+  7. Jack is not affected by the Fog of War area within the Mist.
+  Cooldown: 5◈ Turns after The Mist is deactivated.
+# "(Non-damaging)". An ability with phases and no `damage` phase deals none
+# (`engine/attack.mjs#dealsNoDamage`) -- the hole five authored Noble Phantasms
+# shipped with, where the Combat Process fell back to the caster's Normal
+# Attack and a "non-damaging" NP measured 203.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+  limits: { requiresZon: true }
+field:
+  # Axis 1 -- geometry. Freeform, opening at its largest legal footprint.
+  geometry:
+    kind: freeform
+    shape: { kind: square, size: 5 }
+    # "Cannot expand past a distance of 4 panels from Jack (including
+    # diagonal)" and "covers a maximum of 25 panels" -- the leash and the cap,
+    # read when the shape is redrawn.
+    maxPanels: 25
+    maxDistance: 4
+    anchorRef: owner
+  # Axis 2 -- membership. Open in both directions: Ch. 43 §43.6 files this as
+  # "a debuff field, not a prison", and nothing in the sheet stops anyone
+  # walking out of fog.
+  membership: { allyEntry: free, allyExit: free, enemyEntry: free, enemyExit: free }
+  # Axis 3 -- isolation. None: the Mist blinds, it does not cut the board in
+  # two, and clause 7 is about Jack SEEING THROUGH it rather than about anyone
+  # being unable to reach across.
+  isolation:
+    outsideCanTargetInside: true
+    insideCanTargetOutside: true
+    outsideCanApplyEffectsInside: true
+    visibilityAcrossBoundary: full
+  # Axis 4 -- interior rules.
+  interior:
+    # Effect 3. `direction: outgoing` -- this worsens the EVADER'S OWN roll,
+    # which is a different mechanism from Murderer of the Misty Night's
+    # `imposed` +4 (that one is Jack's clause landing on her victim's roll).
+    # Both can apply at once, and on Jack's own sheet they are meant to.
+    #
+    # `kinds: [servant]` because the sheet says "enemy SERVANT" here where
+    # effects 4 and 5 say "enemy Units".
+    - key: CheckModifier
+      check: evade
+      direction: outgoing
+      value: 3
+      relations: [enemy]
+      kinds: [servant]
+      exemptIf: { categorizedAs: instinct, minRank: B }
+
+    # Effect 4. "Halved", rounding down like every other division here.
+    #
+    # `orAdjacentToAlly` is the sentence the note adds for this effect and no
+    # other: *"Effect 4 is also ignored by any allied Units of the Servant with
+    # Instinct who are standing directly next to the aforementioned Servant."*
+    - key: MovDelta
+      factor: 0.5
+      minimum: 1
+      relations: [enemy]
+      exemptIf: { categorizedAs: instinct, minRank: B, orAdjacentToAlly: true }
+
+    # Effect 5. A ceiling, not a subtraction.
+    - key: DetectOverride
+      maximum: 1
+      relations: [enemy]
+      exemptIf: { categorizedAs: instinct, minRank: B }
+  interiorEvents:
+    # Effect 1. "Normal Humans immediately die if they are caught in the Mist."
+    #
+    # Every relation, `neutral` included and FIRST -- that is the one a Civilian
+    # actually has. `rules/relations.mjs#relationOf` returns "neutral" for a
+    # Civilian by design ("a Civilian belongs to nobody, and neither is an ally
+    # nor a legal enemy"), and the default relation filter is [ally, enemy], so
+    # a clause that did not name it matched nobody at all. The sheet's sentence
+    # carries no relation qualifier: the fog does not ask whose side you are on.
+    - event: contact
+      kinds: [civilian]
+      relations: [neutral, ally, enemy, self]
+      onFail:
+        - { key: Defeat, cause: mist, creditOwner: true }
+
+    # Effect 2, the contact half. Masters only -- a Servant is not a Human, and
+    # "non-normal Humans" in this corpus is the Master category.
+    #
+    # The High-Rank-Master exemption is the sheet's own Advanced Note and is
+    # NOT modelled: nothing in this system carries a Master rank, and inventing
+    # one for a parenthesis would be a subsystem. Recorded here rather than
+    # left to look implemented.
+    - event: contact
+      kinds: [master]
+      relations: [enemy]
+      onFail:
+        - { key: ApplyEffect, effect: { id: poison } }
+
+    # Effect 2, the standing half: "at the end of its Turn OR at the end of a
+    # Turn they Act while still within the Mist". Two dispatchers, and only the
+    # acted one existed before this NP.
+    - event: turnEnd
+      kinds: [master]
+      relations: [enemy]
+      onFail:
+        - { key: ApplyEffect, effect: { id: poison } }
+    - event: actedTurnEnd
+      kinds: [master]
+      relations: [enemy]
+      requiresActed: true
+      onFail:
+        - { key: ApplyEffect, effect: { id: poison } }
+  # Axis 5 -- duration. There is none: the Mist stands until it is switched
+  # off, until her Master cannot pay, or until she dies. `upkeep` is the clock
+  # that actually limits it.
+  upkeep:
+    every: "1◈"
+    cost: { kind: health, amount: 15, payer: ownerMaster }
+    # "This NP is forcefully deactivated if Jack's Master has 15 Health or less
+    # and WOULD LOSE HEALTH due to this effect. Her Master does not lose Health
+    # on the same Turn this NP is deactivated." So the field closes INSTEAD of
+    # charging, rather than charging and then closing.
+    endWhenUnaffordable: true
+  # Axis 6 -- vulnerability.
+  vulnerabilities:
+    # "Forcefully deactivated at the end of a Turn Jack is defeated."
+    - { kind: ownerDefeat, result: end }
+  # "This NP can be deactivated at any time ... during her Turn or at the start
+  # or end of any Turn or Round."
+  deactivation: { byOwner: true, window: any }
+phases:
+  - kind: createField
+    target: self
+# Effect 7 -- "Jack is not affected by the Fog of War area within the Mist
+# (i.e. she can see all Units within the Mist)" -- is NOT MODELLED, and this is
+# the honest place to say so rather than authoring a rule that compiles and
+# does nothing.
+#
+# There is no Fog of War subsystem to be exempt from. `engine/vision.mjs` is
+# Detect and first-sighting (Ch. 08 §8.7), which is a different question:
+# Detect decides whether a Presence-Concealed unit may be Discovered, not what
+# any player can see on the canvas. Foundry's own token vision is off for this
+# system, and closed-information play is what Ch. 26 §26.6 defers to Ch. 40.
+#
+# When that arrives, this clause is one `Suppress` element and a reader.
+

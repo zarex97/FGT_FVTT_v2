@@ -22,6 +22,7 @@ import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { movePlatform } from "../rules/platforms.mjs";
+import { contains as fieldContains } from "../rules/bounded-fields.mjs";
 
 export const Movement = {
   /** Register the hooks. */
@@ -128,13 +129,21 @@ function onPreMove(document, movement, operation) {
 async function onMove(document, movement, operation) {
   const combat = game.combats.active;
   if (!combat?.started) return;
+  // A level change is not a step, so it costs nothing (see `onPreMove`) and it
+  // crosses no boundary in the plane either.
+  if (isLevelOnlyChange(document, movement)) return;
+
+  // Bounded-field CONTACT is settled before anything else, and deliberately
+  // above the forced-move return below: a Unit knocked back or carried into
+  // Jack's Mist has still walked into the fog, and "Normal Humans immediately
+  // die if they are CAUGHT IN the Mist" does not ask whose move it was.
+  if (document.actor) await runContactEvents([document.actor.id], enteredFields(document, movement));
+
   // `operation`, not `movement.options` -- see `onPreMove`. A forced
   // displacement must not spend the mover's budget, and this read never
   // resolved, so `carryPassengers` could recurse into its own carried
   // passengers and every carried unit was billed for a move it did not make.
   if (movement?.forced || operation?.fgtForced || movement?.options?.fgtForced) return;
-  // A level change is not a step, so it costs nothing (see `onPreMove`).
-  if (isLevelOnlyChange(document, movement)) return;
   if (!game.users.activeGM?.isSelf && !document.actor?.isOwner) return;
 
   const actor = document.actor;
@@ -354,4 +363,72 @@ async function carryPassengers(actor, document, movement) {
  */
 function offsetDelta(from, to) {
   return { i: to.i - from.i, j: to.j - from.j };
+}
+
+/**
+ * Run every bounded field's `contact` rules for the units named.
+ *
+ * The entry half of Ch. 43's axis 4. `runFieldEvents` fires from the Turn
+ * boundaries the scheduler owns (`turnStart`, `turnEnd`, `actedTurnEnd`), and
+ * a clause that happens *on walking in* has no Turn boundary to wait for —
+ * Jack's Mist kills a Normal Human "if they are caught in" it and Poisons an
+ * enemy Master "upon contact", neither of which is a thing that happens at the
+ * end of anything.
+ *
+ * Scoped to the units that just moved rather than to everyone inside, so a
+ * Servant standing still in the fog is not re-poisoned every time an ally
+ * crosses the boundary. Field creation fires its own pass over whoever the
+ * shape closed around (`engine/fields.mjs#createField`).
+ *
+ * @param {string[]} unitIds
+ * @param {string[]|null} [fieldIds] only these fields, for an entry pass
+ * @returns {Promise<void>}
+ */
+export async function runContactEvents(unitIds, fieldIds = null) {
+  if (!game.users.activeGM?.isSelf) return;
+  if (fieldIds && fieldIds.length === 0) return;
+  const { runFieldEvents } = await import("./fields.mjs");
+  const intents = await runFieldEvents("contact", { unitIds, fieldIds, assumeInside: Boolean(fieldIds) });
+  if (intents.length === 0) return;
+  await applyIntents(intents, {
+    io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "field:contact",
+  });
+}
+
+/**
+ * The bounded fields this move CROSSED INTO, as opposed to the ones it stayed
+ * inside.
+ *
+ * "Upon contact" is an entry clause. Firing it for whichever fields the mover
+ * ends up standing in would re-poison an enemy Master on every step he takes
+ * through the fog, and kill a Civilian who was already dead — the difference
+ * between the sheet's rule and a per-panel toll.
+ *
+ * The origin comes off `movement.origin` rather than off the document, which
+ * still reports the destination by the time this hook runs (the same trap
+ * `carryPassengers` fell into: its delta was always {0,0}).
+ *
+ * @param {object} document the TokenDocument, now at its destination
+ * @param {object} movement
+ * @returns {string[]|null} field ids, or `null` for "no origin, so test them all"
+ */
+function enteredFields(document, movement) {
+  const origin = movement?.origin;
+  if (!origin || !canvas?.grid) return null;
+
+  // BOTH ends off the movement payload. Neither the document nor the board can
+  // supply the destination here: at `moveToken` the TokenDocument still reports
+  // its ORIGIN (the same trap `carryPassengers` fell into, whose delta was
+  // therefore always {0,0}), and `currentBoard()` reads the canvas placeables,
+  // which lag it further. Measured: taking the destination from the document
+  // made `from` and `to` the same panel, so nothing was ever "newly entered"
+  // and no contact clause fired at all.
+  const destination = movement.destination ?? { x: document.x, y: document.y };
+  const from = canvas.grid.getOffset({ x: origin.x, y: origin.y });
+  const to = canvas.grid.getOffset({ x: destination.x, y: destination.y });
+  const board = currentBoard();
+
+  return (board.fields ?? [])
+    .filter((f) => fieldContains(f, to, board) && !fieldContains(f, from, board))
+    .map((f) => f.id);
 }

@@ -714,6 +714,13 @@ ending revealed all five instances and posted the totals.
 
 ## D.18 Jack the Ripper
 
+**Built (Ch. 45).** `packs/_source/servants/jack-the-ripper.yml` plus seven ability documents,
+verified in the live `fgt2026` world. Two clauses are deliberately unmodelled and say so in
+their own files — *Information Erasure*'s passive (it erases a player's notebook, which is not
+game state) and *The Mist*'s effect 7 (there is no Fog of War subsystem to be exempt from);
+so is the Mist's *"High Rank Masters are not Poisoned on contact"* Advanced Note, because
+nothing in this system carries a Master rank.
+
 Bounded field: **The Mist** (Ch. 43). Terrain interaction: Ch. 42.
 
 | Ability | Type | Mapping |
@@ -730,6 +737,22 @@ Bounded field: **The Mist** (Ch. 43). Terrain interaction: Ch. 42.
 skill-name-keyed immunity lists, mode gates compounding three unrelated conditions, and
 Sustainability that **grows** rather than only draining.
 **Scripts: 0.**
+
+**What it actually took.** Nine engine additions, all of them general rather than Jack-shaped,
+and four of them repairs to machinery that was already there and inert:
+
+| Clause | What was missing |
+|---|---|
+| Murderer passive 1 | `AttackFirst` + `engine/attack.mjs#offerPreemption`. **Not** a Counter — a Counter resolves *after* the damage lands; this replaces the order. The attacker's declaration is deferred onto the pre-empter's own Process and re-entered when it finishes, so "if she kills them, their Attack never happens" falls out of re-resolving rather than needing a special case. |
+| Murderer passive 2 | Nothing: `CheckModifier` with `direction: "imposed"` already existed for EMIYA's Clairvoyance. |
+| Maria method 2, gate (i) | A `roundPhase` requirement kind — **and a repair**: `board.startedAtDay` had one reader and no writer anywhere, so every Round was Day on the odd ones regardless of the match. `MatchData.phase` (`day｜night｜none`) had carried the answer since the schema was written with nothing consuming it. |
+| Maria method 2, gate (ii) | A repair: a `predicate` requirement naming `target:` was unsatisfiable in **every** case, because `resolveAttack` built the option set from the attacker alone. |
+| Mist effect 3 | A repair: `annotateFields` merged every contribution bucket **except** `checkModifiers`, so a field could declare a check penalty, compile it, and never impose it. |
+| Mist effect 4 | `factor` on an interior stat rule. "Halved" cannot be a delta — half of 7 and half of 4 are different numbers. |
+| Mist effect 5 | `DetectOverride`. `detect` on a snapshot is the authored *override*, `null` on almost everybody, with the real number derived in `identity.mjs#detectRangeOf` — so a subtraction would have worked for the Golden Hind and silently done nothing for every Servant in the game. |
+| Mist effects 1–2 | A `contact` event, a `Defeat` action, and a `turnEnd` dispatcher. Contact needs both ends of the move read off the **movement payload**: at `moveToken` the document still reports its origin and the board lags it further, so entry detection taken from either sees no crossing at all. |
+| Mist clause 6 | `upkeep` on a field — a toll that keeps it open, as opposed to `duration`, which closes it on a clock — with `endWhenUnaffordable` closing it **instead** of charging. |
+| Sustainability note | A repair: `SustainabilityGain` had put its value on an event handler since the element was written and **nothing read it back**, so the one clause in the corpus whose Sustainability grows had no payer. |
 
 **Note.** The `Instinct` exemption is the first place a rule refers to abilities by a
 *category* that is asserted at the bottom of a character sheet rather than declared on the

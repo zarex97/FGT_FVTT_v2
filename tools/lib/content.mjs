@@ -47,6 +47,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   "CritModifier", "BlockModifier", "AttackerPropertyTier",
   // Group 3 — check contributors
   "CheckModifier", "AutoSucceed", "TableOverride", "RollAdjustment",
+  // Jack the Ripper — pre-emption, and a Detect ceiling a bounded field imposes.
+  "AttackFirst", "DetectOverride",
   // Group 4 — targeting contributors
   "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion", "TargetabilityModifier",
   // Group 5 — event handlers
@@ -746,6 +748,11 @@ export function compileDocument(doc, dir, library) {
         // that `rules/platforms.mjs` nonetheless treated as sheltering 81.
         // `engine/token-footprint.mjs` enforces the same equality at runtime.
         ...footprintSize(doc.footprint),
+        // Facing is `system.facing`, an eight-point compass the Combat Process
+        // reads; Foundry's own `rotation` is artwork orientation and nothing
+        // in this system touches it. Leaving it unlocked lets a player spin
+        // the picture away from the direction the rules are using.
+        lockRotation: true,
         ...(doc.prototypeToken ?? {}),
       },
       _key: `!actors!${base._id}`,
@@ -861,6 +868,14 @@ function itemSystem(doc) {
     // §15.3's two-way toggle lockout.
     toggleLock: doc.toggleLock ?? null,
     categorizedAsNP: Boolean(doc.categorizedAsNP),
+    // An open tag set naming CATEGORIES this ability also counts as. Jack's
+    // Mist exempts anyone holding "the Instinct Skill of Rank B or higher",
+    // and her sheet then lists five other skills that count as Instinct --
+    // a list that lives on the sheets asserting it, not in code.
+    categorizedAs: doc.categorizedAs ?? [],
+    // "Eye of the Mind (only when Active/its buffs are in effect)": the effect
+    // ids whose presence makes the tag above count.
+    categorizedWhile: doc.categorizedWhile ?? [],
     npTags: doc.npTags ?? [],
     cooldown: compileCooldown(doc.cooldown),
     // §6.10: a resource that buys this use out of its cooldown entirely.

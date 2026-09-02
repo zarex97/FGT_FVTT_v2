@@ -20,7 +20,8 @@
  * without this module having to remember anything.
  */
 
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitSnapshot } from "./board.mjs";
+import { currentHealth } from "../domain/health.mjs";
 import { panelsOf } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -138,6 +139,9 @@ export async function createField(ability, actor, board = null) {
     extension: spec.extension ?? null,
     vulnerabilities: spec.vulnerabilities ?? [],
     onEnd: spec.onEnd ?? [],
+    createdAt: game.combat?.system?.globalTurn ?? 0,
+    upkeep: spec.upkeep ?? null,
+    deactivation: spec.deactivation ?? null,
     duration: specDuration ?? null,
     // Absolute, like every other duration in the system (§7.5): a countdown
     // would have to be decremented by a hook that can fail to fire, and an
@@ -150,6 +154,18 @@ export async function createField(ability, actor, board = null) {
   // `ownerId`; the stored behaviour uses the schema's names. One object, two
   // vocabularies, so the runtime view is built explicitly rather than assumed.
   const runtime = { ...field, id: field.fieldId, ownerId: actor.id };
+  // A FREEFORM field has no shape to compute from -- `panelsOf` reads its
+  // stored `panels` and a newly created one has none, so it would open with
+  // zero panels and `createField` would refuse it outright. The authored
+  // `shape` is its OPENING footprint: Jack's Mist "covers a maximum of 25
+  // panels ... cannot expand past a distance of 4 panels from Jack", and a 5x5
+  // centred on her is exactly 25 panels every one of which is within 2 -- the
+  // largest legal opening, which is what a player who draws nothing wants.
+  // Reshaping it is a separate control (§43.4).
+  if (specGeometry?.kind === "freeform" && !field.panels) {
+    field.panels = panelsOf({ ...runtime, geometry: { ...geometry, kind: "fixedArea" } }, snapshot);
+    runtime.panels = field.panels;
+  }
   const panels = panelsOf(runtime, snapshot);
   if (panels.length === 0) return null;
 
@@ -193,6 +209,18 @@ export async function createField(ability, actor, board = null) {
     await region.delete();
     return null;
   }
+  // Whoever the shape just closed around has made CONTACT with it. Jack's
+  // Mist kills Normal Humans caught in it and Poisons enemy Masters on
+  // contact -- and "caught in" plainly covers the fog rolling over you, not
+  // only walking into it. The mover-side pass lives in movement-hooks.mjs.
+  const caught = (snapshot.units ?? [])
+    .filter((u) => u.panel && panels.some((q) => q.i === u.panel.i && q.j === u.panel.j))
+    .map((u) => u.id);
+  if (caught.length > 0) {
+    const intents = await runFieldEvents("contact", { unitIds: caught });
+    if (intents.length > 0) await applyWorldIntents(intents, "field:contact");
+  }
+
   return region;
 }
 
@@ -347,15 +375,16 @@ function shouldClose(field, tick) {
  * @param {string} event the boundary that fired
  * @returns {Promise<object[]>} the intents produced
  */
-export async function runFieldEvents(event) {
+export async function runFieldEvents(event, { unitIds = null, fieldIds = null, assumeInside = false } = {}) {
   const board = currentBoard();
   /** @type {object[]} */
   const intents = [];
 
   for (const field of board.fields ?? []) {
+    if (fieldIds && !fieldIds.includes(field.id)) continue;
     for (const spec of field.interiorEvents ?? []) {
       if (spec.event !== event) continue;
-      intents.push(...await runFieldEvent(field, spec, board));
+      intents.push(...await runFieldEvent(field, spec, board, unitIds, assumeInside));
     }
   }
   return intents;
@@ -367,7 +396,7 @@ export async function runFieldEvents(event) {
  * @param {object} board
  * @returns {Promise<object[]>}
  */
-async function runFieldEvent(field, spec, board) {
+async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = false) {
   const owner = (board.units ?? []).find((u) => u.id === field.ownerId) ?? null;
   const relations = new Set(spec.relations ?? ["enemy"]);
   const kinds = spec.kinds ? new Set(spec.kinds) : null;
@@ -377,7 +406,15 @@ async function runFieldEvent(field, spec, board) {
   const excludedIds = new Set([field.ownerId, ...(spec.excludeOwnerMaster ? [field.ownerMasterId] : [])]);
 
   const inside = (board.units ?? []).filter((u) =>
-    (u.fields ?? []).includes(field.id)
+    (!unitIds || unitIds.includes(u.id))
+    // `assumeInside` is the CONTACT path, and it is not a shortcut: at
+    // `moveToken` the board still places the mover on the panel it left --
+    // `currentBoard()` reads the canvas placeables, which lag the document,
+    // which itself lags the movement payload -- so `u.fields` says "outside"
+    // for the very unit that just walked in. The caller established membership
+    // from `movement.origin`/`destination`, which is the only source that is
+    // right at this instant, and says so here.
+    && (assumeInside || (u.fields ?? []).includes(field.id))
     && !excludedIds.has(u.id)
     // "Acts then ends its Turn within the NP area" -- a Unit that never Acted
     // this Turn has nothing to trigger the clause with.
@@ -420,6 +457,27 @@ async function runFieldEvent(field, spec, board) {
         continue;
       }
 
+      // Jack's Mist: *"Normal Humans immediately die if they are caught in the
+      // Mist (this counts as Jack killing the Human)."* No damage number and
+      // no roll -- the same shape §4.6 gives a Servant attacking a Civilian,
+      // which `rules/environment.mjs#civilianKill` already writes as a bare
+      // defeat plus the killer's bounty.
+      //
+      // `creditOwner` is the parenthesis, and it is load-bearing rather than
+      // flavour: Jack's own Sustainability GROWS by 1◈ for every Human she
+      // kills while she is a Free Servant, and a death the field takes credit
+      // for instead of her would quietly stop paying her.
+      if (action.key === "Defeat") {
+        out.push(I.defeat(unit.id, action.cause ?? "field"));
+        if (action.creditOwner && field.ownerId) {
+          out.push(I.log({
+            kind: "defeat", event: "fieldKill", unitId: unit.id,
+            by: field.ownerId, field: field.id, victimKind: unit.kind,
+          }));
+        }
+        continue;
+      }
+
       // Sikera Ušum clause b: "it is inflicted with Poison" -- no damage
       // number to roll, an effect to apply. `expiry: null` is the correct
       // "no duration" reading (Ch. 7 §7.5's resolution, the same one an
@@ -436,4 +494,144 @@ async function runFieldEvent(field, spec, board) {
     }
   }
   return out;
+}
+
+/**
+ * Charge every open field's recurring toll, and close the ones nobody can pay.
+ *
+ * The other half of axis 5. `duration` closes a field on a clock; an `upkeep`
+ * keeps it open only as long as somebody keeps paying, which is a different
+ * shape and the one Jack's Mist uses: *"At the end of the Turn after every 1◈
+ * Turns since this NP was activated, Jack's Master loses 15 Health."*
+ *
+ * The refusal is what makes it a real limit rather than a slow drain:
+ * *"forcefully deactivated if Jack's Master has 15 Health or less and would
+ * lose Health due to this effect. Her Master does not lose Health on the same
+ * Turn this NP is deactivated."* So an unaffordable toll closes the field
+ * **instead** of being charged — not charged and then closed, which would take
+ * a Master to 0 and kill a Servant the sheet is protecting.
+ *
+ * @param {number} tick the global turn that just ended
+ * @returns {Promise<void>}
+ */
+export async function runUpkeep(tick) {
+  const board = currentBoard();
+  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+
+  for (const field of board.fields ?? []) {
+    const upkeep = field.upkeep;
+    if (!upkeep?.every) continue;
+
+    const period = resolveTicks(parseTick(upkeep.every), { turnsPerRound });
+    if (!(period > 0)) continue;
+    const since = tick - (field.lastUpkeepAt ?? field.createdAt ?? tick);
+    if (since < period) continue;
+
+    // Who pays. `ownerMaster` is the only payer any sheet names, but the field
+    // is the wrong place to assume it: the Golden Hind's upkeep is Drake's own
+    // Health, and that is the same axis with a different payer.
+    const payerId = upkeep.cost?.payer === "owner"
+      ? field.ownerId
+      : (field.ownerMasterId ?? game.actors.get(field.ownerId)?.system?.masterId ?? null);
+    const payer = payerId ? game.actors.get(payerId) : null;
+    const amount = Number(upkeep.cost?.amount ?? 0);
+
+    if (!payer || (upkeep.endWhenUnaffordable && currentHealth(unitSnapshot(payer)) <= amount)) {
+      await applyWorldIntents(
+        [I.log({
+          kind: "field", event: "upkeepUnaffordable", unitId: payerId ?? field.ownerId,
+          field: field.id, amount,
+        })],
+        "field:upkeep",
+      );
+      await deactivateField(field.id, "upkeep");
+      continue;
+    }
+
+    await applyWorldIntents(
+      [I.damage(payer.id, amount, null, { bypassModifiers: true, source: field.id })],
+      "field:upkeep",
+    );
+    await stampUpkeep(field, tick);
+  }
+}
+
+/**
+ * Record when a field last charged, so the next period counts from here.
+ *
+ * Written onto the behaviour rather than kept in memory for the same reason
+ * every other field fact is: the state has to survive a reload, and a counter
+ * held by whichever client happens to be the scheduler does not.
+ *
+ * @param {object} field
+ * @param {number} tick
+ * @returns {Promise<void>}
+ */
+async function stampUpkeep(field, tick) {
+  const behavior = behaviorFor(field.id);
+  if (!behavior) return;
+  await behavior.update({ "system.state": { ...(behavior.system?.state ?? {}), lastUpkeepAt: tick } });
+}
+
+/**
+ * The `npField` behaviour document backing a field id.
+ *
+ * @param {string} fieldId
+ * @returns {object|null}
+ */
+function behaviorFor(fieldId) {
+  for (const region of canvas?.scene?.regions ?? []) {
+    for (const behavior of region.behaviors ?? []) {
+      if (behavior.type === "npField" && behavior.system?.fieldId === fieldId) return behavior;
+    }
+  }
+  return null;
+}
+
+/**
+ * Close a field and start its owning ability's cooldown.
+ *
+ * The difference from `endField` is the cooldown: an ability authored
+ * `countFrom: "deactivation"` starts its clock here and not at the cast, and a
+ * caller that deletes the Region directly skips that entirely.
+ *
+ * @param {string} fieldId
+ * @param {string} [reason]
+ * @returns {Promise<boolean>}
+ */
+export async function deactivateField(fieldId, reason = "manual") {
+  const board = currentBoard();
+  const field = (board.fields ?? []).find((f) => f.id === fieldId);
+  if (!field) return false;
+
+  await setCooldownOnDeactivation(field);
+  for (const action of field.onEnd ?? []) {
+    if (action.key !== "ApplyEffect") continue;
+    await applyWorldIntents([I.applyEffect(field.ownerId, {
+      defId: action.effect?.id, magnitude: action.effect?.magnitude ?? 0, expiry: null,
+      sourceUnitId: field.ownerId,
+    }, field.ownerId)], "field:onEnd");
+  }
+  await applyWorldIntents(
+    [I.log({ kind: "field", event: "deactivated", unitId: field.ownerId, field: fieldId, reason })],
+    "field:deactivate",
+  );
+  return endField(fieldId);
+}
+
+/**
+ * May this unit switch this field off right now?
+ *
+ * Authored per field rather than assumed, because most cannot: a Reality
+ * Marble runs its clock out. Jack's Mist is the exception — *"This NP can be
+ * deactivated at any time … during her Turn or at the start or end of any Turn
+ * or Round"* — and `window: "any"` is that sentence.
+ *
+ * @param {object} field
+ * @param {string} unitId
+ * @returns {boolean}
+ */
+export function mayDeactivate(field, unitId) {
+  if (!field?.deactivation?.byOwner) return false;
+  return field.ownerId === unitId;
 }

@@ -23,10 +23,26 @@
 > **Chaos Labyrinthos is authored** (`packs/_source/abilities/asterios-chaos-labyrinthos.yml`) as
 > the reference point in the model, including §43.4's escape ladder and its veteran clause.
 >
-> Not built: the **paint-style canvas tool** `freeform` needs (The Mist, targeting mode E), the
-> two-phase `markDefined` construction (Blood Fort Andromeda's Bloodmarks), and the scheduled
-> detonation of §43.9. The state history of §43.11 exists only as `state.escapeHistory` — enough
-> for the veteran rule, not the general log.
+> **`freeform` is now built** (Jack the Ripper's The Mist, Ch. 45). A freeform field has no shape
+> to recompute from, so it **stores its panels** — which is the whole difference from `fixedArea`,
+> and what makes reshaping a write rather than a recast. It opens at its authored `shape`, which
+> for The Mist is a 5×5 centred on Jack: exactly the 25 panels her sheet caps her at, every one of
+> them inside the 4-panel leash, and therefore the largest legal opening. Without that,
+> `createField` would have refused it outright — `panelsOf` reads the stored list, and a newly
+> created field has none.
+>
+> The same pass added the two axes The Mist needed and no earlier field did: **`upkeep`**, a
+> recurring toll that keeps a field open (as opposed to `duration`, which closes it on a clock),
+> with `endWhenUnaffordable` closing it *instead* of charging when the payer cannot pay; and
+> **`deactivation`**, which says whether the owner may switch it off and when. It also added a
+> **`contact`** event — the entry half of axis 4, which had only Turn boundaries to fire on
+> before — and a `Defeat` action for the fields that kill on contact.
+>
+> Still not built: the **paint-style canvas tool** for redrawing a freeform footprint turn by
+> turn (a field opens at its legal maximum and keeps it), the two-phase `markDefined`
+> construction (Blood Fort Andromeda's Bloodmarks), and the scheduled detonation of §43.9. The
+> state history of §43.11 exists only as `state.escapeHistory` — enough for the veteran rule, not
+> the general log.
 
 The expanded roster added nine abilities that create a **persistent area with its own rules of
 entry, exit, and suppression**. They are not platforms (Ch. 20 — those are about elevation) and

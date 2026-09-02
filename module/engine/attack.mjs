@@ -58,7 +58,7 @@ import { reactionsRefused, aoeOutcome, isConcealed } from "../rules/concealment.
  * @param {object} args.placement  the player's targeting choices
  * @returns {Promise<{messageId: string, state: object}>}
  */
-export async function resolveAttack({ attackerId, abilityId, placement }) {
+export async function resolveAttack({ attackerId, abilityId, placement, resume = false }) {
   const attacker = game.actors.get(attackerId);
   if (!attacker) throw new Error(`FGT | Unknown attacker ${attackerId}`);
 
@@ -102,7 +102,19 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
     // path too, unconditionally, for the same reason -- nothing ever
     // supplied `ctx.testPredicate`. Semiramis's Summoning: Bašmu is the
     // first damage-dealing ability that names one.
-    testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: self }) }),
+    // The DEFENDER too, when the declaration already names one. A `predicate`
+    // requirement mentioning `target:` was unsatisfiable in EVERY case: this
+    // built the option set from the attacker alone, so
+    // `target:attribute:female` -- the second of the three gates on Jack's
+    // Maria the Ripper -- could never be true. The target is resolved a few
+    // lines above for the other requirement kinds that need it, and was simply
+    // never handed to this one.
+    testPredicate: (p) => testPredicate(p, {
+      options: rollOptionsFor({
+        attacker: self,
+        defender: placement?.targetId ? unitFrom(board, game.actors.get(placement.targetId)) : null,
+      }),
+    }),
   });
   // CS: Force Noble Phantasm bypasses the cooldown and uses-exhausted gates.
   // It explicitly cannot bypass the Round gate, so `overrides` is consulted per
@@ -147,7 +159,11 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // Phantasm that misses still consumed the Servant's attack for the turn, and
   // *"non-damaging NPs count as the Unit's Attack for that Turn"* says so
   // explicitly.
-  if (combat?.started) {
+  // `resume` is the second half of a PRE-EMPTED declaration (see
+  // `offerPreemption`): the budget, the costs and the cooldown were all paid
+  // when the attack was first declared, before the defender swung first.
+  // Charging them again would bill a Servant twice for one attack.
+  if (combat?.started && !resume) {
     await budget.spend({ combat, unit: self, action: actionKind });
     const isAttack = actionKind !== "skill";
     await applyBatch(
@@ -168,7 +184,7 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // that it `supersedes` another -- Karna's NP cost overwrites the 20 Health his
   // Master loses when he Acts, and the Hanging Gardens upkeep overwrites the NP
   // cost the other way -- and charging both would bill more than the rules say.
-  const pending = pendingCosts({ usage, ability, self, master, board });
+  const pending = resume ? [] : pendingCosts({ usage, ability, self, master, board });
   const { charged, superseded } = resolveCosts(pending);
 
   for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
@@ -177,7 +193,7 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // ability has been committed. `resolveAttack` never did this, so every Attack
   // Skill and every Noble Phantasm was infinitely reusable -- limited only by
   // the attack budget, which is a different rule.
-  if (ability) {
+  if (ability && !resume) {
     const plan = cooldownFor(ability, attackerId, { unit: self });
     const clocks = [...plan.cooldowns, ...alsoTriggered(ability, attacker)];
     const intents = [
@@ -209,7 +225,9 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   // After the cost and the cooldown, so an attack that was refused never opens
   // the window, and before any Process exists, so the switch is in force for the
   // crit coin it is about to change.
-  const phaseWindow = await offerAttackerWindow({ attackerId }, "combatPhaseStart", null);
+  const phaseWindow = resume
+    ? { windowAbilities: [] }
+    : await offerAttackerWindow({ attackerId }, "combatPhaseStart", null);
   if ((phaseWindow.windowAbilities ?? []).length > 0) {
     // Loud, because the alternative is this project's signature defect. A
     // non-mode ability at this window would contribute rules that only
@@ -295,6 +313,20 @@ export async function resolveAttack({ attackerId, abilityId, placement }) {
   if (targetIds.length > 0) {
     const { interruptChannels } = await import("./channel.mjs");
     await interruptChannels(targetIds);
+  }
+
+  // "Whenever Jack is Attacked by an enemy Unit, and the AU is within Jack's
+  // Range, Jack can Attack first INSTEAD of the opposing Unit."
+  //
+  // Offered after the declaration is fully paid for and before any Process
+  // exists, because the pre-emption replaces the ORDER of this exchange rather
+  // than any part of its cost: a pre-empted attacker has still spent its
+  // attack for the Turn whether or not it survives to swing.
+  if (!resume && targetIds.length > 0) {
+    const preempted = await offerPreemption({
+      attackerId, abilityId, placement, targetIds, board, self,
+    });
+    if (preempted) return { preempted: true, messageId: preempted.messageId };
   }
 
   // A resolution that caught no units is still a resolution — a ground-placed
@@ -499,6 +531,9 @@ export async function advanceAttack({ messageId, event }) {
     await endConcealmentAfterAttack(state);
     await fireCombatProcessEnd(state);
     await fireCombatPhaseEnd(state);
+    // Last, so the deferred half sees a board on which this Process has fully
+    // settled -- including a defeat it caused.
+    await resumeDeferredAttack(state, message);
   }
   return state;
 }
@@ -2740,4 +2775,199 @@ function chanceFor(auto, attackProperties) {
     }
   }
   return auto.chance ?? 100;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Pre-emption — attacking first, instead of the Unit attacking you           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Offer any defender who may swing first the chance to do so.
+ *
+ * Jack the Ripper's *Murderer of the Misty Night* is the only clause in the
+ * corpus that does this, and it is **not** a Counter. A Counter happens at the
+ * end of the Process it answers (§12.8's `counter` rung), after the damage has
+ * already landed; this happens *instead*, before the attacker's Process exists
+ * at all. So it cannot reuse `beginCounter`: a counter cannot be countered and
+ * ends the counterer's concealment on different terms, and neither is true of
+ * an attack that is simply early.
+ *
+ * The original declaration is not discarded — it is **deferred onto the
+ * pre-emptive Process**. When that Process completes, `resumeDeferredAttack`
+ * re-enters `resolveAttack` with `resume: true`, which re-resolves targeting
+ * (so a defender who died drops out) while skipping the budget, the costs and
+ * the cooldown, all of which were already paid at the first declaration. If the
+ * pre-empter killed the attacker, the deferred attack never happens: that is
+ * what "instead of" buys, and it falls out of re-resolving rather than needing
+ * a special case of its own.
+ *
+ * Only ONE pre-emption per declaration. A Noble Phantasm over seven Units that
+ * caught two pre-empters would otherwise open two exchanges the sheet never
+ * describes, and there is no stated order between them.
+ *
+ * @param {object} args
+ * @returns {Promise<{messageId: string}|null>}
+ */
+async function offerPreemption({ attackerId, abilityId, placement, targetIds, board, self }) {
+  const attackerDoc = game.actors.get(attackerId);
+  if (!attackerDoc) return null;
+
+  for (const defenderId of new Set(targetIds)) {
+    if (defenderId === attackerId) continue;
+    const defenderDoc = game.actors.get(defenderId);
+    const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
+    const rule = (defender?.preemptions ?? [])[0];
+    if (!rule) continue;
+
+    // "…and the AU is within JACK'S Range." The pre-empter's range, not the
+    // attacker's: she is the one about to swing, so a sniper hitting her from
+    // outside her own reach is exactly the case the clause does not cover.
+    if (rule.withinOwnRange) {
+      // `range` on a BOARD unit is the resolved number of panels, not the
+      // `{panels, targets}` shape the document carries -- `rules/snapshot.mjs`
+      // flattens it. Reading `.panels` here gave `undefined`, which fell to a
+      // reach of 0, which refused every pre-emption at every distance. Both
+      // shapes are accepted rather than assuming the caller's.
+      const reach = typeof defender.range === "number"
+        ? defender.range
+        : (defender.range?.panels ?? 0);
+      if (chebyshev(defender.panel, self.panel) > reach) continue;
+    }
+
+    const picked = await askOwner(defenderDoc, {
+      kind: "choose",
+      title: game.i18n.localize("FGT.Preempt.Title"),
+      hint: game.i18n.format("FGT.Preempt.Hint", {
+        name: defenderDoc.name, attacker: attackerDoc.name, source: rule.source,
+      }),
+      min: 0,
+      count: 1,
+      options: [{ id: "preempt", name: game.i18n.localize("FGT.Preempt.Take"), detail: rule.source }],
+    });
+    if (!(picked ?? []).includes("preempt")) continue;
+
+    // "If it is a Day Round, the activation of this effect requires a
+    // Successful Luck Check. Luck Check is not required during Night Rounds."
+    // The Round phase is a COST modifier here rather than a damage one: the
+    // same clause costs a point of Luck and a die by day, and nothing at night.
+    if ((rule.requiresLuckCheckIn ?? []).includes(board.phase)) {
+      const ok = await preemptionLuckCheck(defenderDoc, attackerId);
+      if (!ok) continue;
+    }
+
+    return runPreemption({ preempterId: defenderId, attackerId, abilityId, placement, targetIds });
+  }
+  return null;
+}
+
+/**
+ * The Luck Check a Day Round charges for a pre-emption.
+ *
+ * Uncontested: the clause asks whether Jack got the drop on somebody, not
+ * whether she is luckier than they are. Costs 1 Luck whether or not it
+ * succeeds, like every other Luck Check.
+ *
+ * @param {object} defenderDoc
+ * @param {string} attackerId
+ * @returns {Promise<boolean>}
+ */
+async function preemptionLuckCheck(defenderDoc, attackerId) {
+  const unit = unitSnapshot(defenderDoc);
+  const roll = await new Roll("1d20").evaluate();
+  const plan = checkPlan(unit, "luck");
+  const outcome = luckCheck({
+    roll: roll.total,
+    luck: unit.luck,
+    hasBoost: (unit.effects ?? []).includes("luckBoost") || plan.forceTable === "favourable",
+    hasLoss: (unit.effects ?? []).includes("luckLoss") || plan.forceTable === "unfavourable",
+    modifiers: plan.modifiers,
+  });
+  await applyBatch([
+    I.statDelta(defenderDoc.id, "luck.value", -1),
+    I.log({
+      kind: "check", event: "preemptLuck", unitId: defenderDoc.id,
+      against: attackerId, success: outcome.success, roll: roll.total,
+    }),
+  ], "preempt:luck");
+  return outcome.success;
+}
+
+/**
+ * Open the pre-empter's own Combat Process, carrying the deferred attack.
+ *
+ * @param {object} args
+ * @returns {Promise<{messageId: string}|null>}
+ */
+async function runPreemption({ preempterId, attackerId, abilityId, placement, targetIds }) {
+  const preempter = game.actors.get(preempterId);
+  const target = game.actors.get(attackerId);
+  if (!preempter || !target) return null;
+
+  // A NORMAL Attack. The clause says "Attack", and a Servant's Attack with no
+  // ability named is its Normal Attack everywhere else in this engine.
+  const state = process.advance(
+    process.begin({
+      attackerId: preempterId,
+      defenderId: attackerId,
+      attack: {
+        abilityId: null,
+        kind: "normal",
+        component: componentOf(preempter, null, rollOptionsFor({ attacker: unitSnapshot(preempter) })),
+      },
+      isAoE: false,
+      isPreemption: true,
+    }),
+    "done",
+  );
+
+  const message = await renderAttackCard({
+    state, attacker: preempter, ability: null, targets: [{ unitId: attackerId }],
+  });
+  await message.setFlag("fgt", "process", process.serialize(state));
+  await message.setFlag("fgt", "collapse", process.laddersCollapse(unitSnapshot(target)));
+  // The other half of the exchange, parked until this one finishes.
+  await message.setFlag("fgt", "deferredAttack", {
+    attackerId, abilityId, placement: placement ?? null, targetIds,
+  });
+  return { messageId: message.id };
+}
+
+/**
+ * Re-enter the attack a pre-emption interrupted, if its attacker still lives.
+ *
+ * Called from the Process completion point, so *"Jack killed him and his attack
+ * never happened"* needs no special case: a defeated attacker cannot
+ * re-declare, and a target the pre-emption killed drops out of the re-resolved
+ * targeting on its own.
+ *
+ * @param {object} state
+ * @param {object} message
+ * @returns {Promise<void>}
+ */
+async function resumeDeferredAttack(state, message) {
+  const deferred = message.getFlag("fgt", "deferredAttack");
+  if (!deferred) return;
+  // Cleared FIRST. A Process re-read after a Command Spell interrupt can reach
+  // this point twice, and the second pass would launch the deferred attack a
+  // second time.
+  await message.unsetFlag("fgt", "deferredAttack");
+
+  const attacker = game.actors.get(deferred.attackerId);
+  if (!attacker) return;
+  if (attacker.system?.defeated?.at || currentHealth(unitSnapshot(attacker)) <= 0) {
+    await applyBatch([I.log({
+      kind: "attack", event: "preemptCancelled", unitId: deferred.attackerId,
+      by: state.attackerId,
+    })], "preempt:cancelled");
+    return;
+  }
+
+  try {
+    await resolveAttack({ ...deferred, resume: true });
+  } catch (err) {
+    // Loud, not silent: the deferred half failing leaves a half-resolved
+    // exchange, and the players need to know which half is missing.
+    console.error("FGT | The attack a pre-emption deferred could not resume:", err);
+    ui.notifications?.warn(game.i18n.localize("FGT.Preempt.ResumeFailed"));
+  }
 }
