@@ -434,6 +434,8 @@
   "FGT.Skill.ChooseCooldownShape": "Choose how to spend the reduction.",
   "FGT.Skill.ChooseCooldownTargets": "Choose what to reduce by {turns} turn(s).",
   "FGT.Emiya.CircuitChoice": "Which circuits does EMIYA open? He cannot hold both.",
+  "FGT.Anchor.fieldEdge": "Near a bounded field",
+  "FGT.Anchor.fieldEdgeHint": "A Unit within the stated Range of the area's nearest panel, measured from the AREA rather than from the caster.",
   "FGT.Anchor.selfEdgeAdjacent": "Beside the caster",
   "FGT.Anchor.selfEdgeAdjacentHint": "A block projected in one non-diagonal direction from the caster; the player picks which.",
   "FGT.Anchor.zone": "A whole Zone",

@@ -36,6 +36,9 @@ import { currentBoard, unitFrom, unitSnapshot } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
+import { evade, checkPlan } from "../rules/checks.mjs";
+import { randomFreePanelIn } from "../rules/bounded-fields.mjs";
+import { runContactEvents } from "./movement-hooks.mjs";
 import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
@@ -421,6 +424,63 @@ async function runPhases(ability, actor, targets, board, only = null) {
               reason: field ? null : "noScene",
             },
           });
+          break;
+        }
+
+        case "dragInto": {
+          // Doomsday Come: *"that target has to perform an Evade roll. If the
+          // Evade succeeded, nothing happens. If the Evade failed, the DU is
+          // forcibly dragged into the Doomsday Come area and placed on a random
+          // panel within."*
+          //
+          // An attack in every structural sense except that it deals no damage
+          // (Ch. 43): it spends the attack budget and marks `acted`, through
+          // the ability's own `countsAsAttack`, and it never opens a Combat
+          // Process -- there is no damage step for one to run.
+          const field = (board.fields ?? []).find((f) => f.id === phase.fieldId);
+          if (!field) break;
+
+          const roll = await new Roll("1d20").evaluate();
+          const plan = checkPlan(snapshot, "evade");
+          const outcome = evade({
+            roll: roll.total,
+            agility: snapshot.agility,
+            hasDodge: (snapshot.effects ?? []).includes("dodge"),
+            forceUnfavourable: plan.forceTable === "unfavourable",
+            autoSucceed: plan.autoSucceed,
+            modifiers: plan.modifiers,
+          });
+          if (outcome.success) {
+            applied.push({ summary: {
+              id: "dragInto", name: doc.name, outcome: "resisted", reason: `Evade ${roll.total}`,
+            } });
+            break;
+          }
+
+          const panel = randomFreePanelIn(field, board);
+          if (!panel) {
+            applied.push({ summary: {
+              id: "dragInto", name: doc.name, outcome: "failed", reason: "no free panel inside",
+            } });
+            break;
+          }
+
+          const token = doc.getActiveTokens?.()[0]?.document ?? null;
+          if (!token) break;
+          // `fgtForced`, because this is displacement rather than movement: it
+          // must not spend the victim's own move budget or be re-validated as
+          // a voluntary step, and `x`/`y` are movement fields the pre-move hook
+          // would otherwise refuse outright.
+          await token.update(
+            { x: panel.j * canvas.scene.grid.size, y: panel.i * canvas.scene.grid.size },
+            { fgtForced: true },
+          );
+          // Being swept into an area is contact with it, the same reading
+          // `createField` makes for whoever a field opens around.
+          await runContactEvents([doc.id], [field.id]);
+          applied.push({ summary: {
+            id: "dragInto", name: doc.name, outcome: "applied", reason: `Evade ${roll.total}`,
+          } });
           break;
         }
 

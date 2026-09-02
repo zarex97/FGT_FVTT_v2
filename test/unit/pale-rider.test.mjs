@@ -222,3 +222,52 @@ describe("Doomsday Come", () => {
     });
   });
 });
+
+describe("Doomsday Come — the Anti-World escape", () => {
+  const np = ability("pale-rider-doomsday-come");
+
+  it("opens its boundary for an Anti-World NP and ends on the same use", () => {
+    expect(np.field.isolation.piercedBy).toEqual({ npScale: "antiWorld" });
+    expect(np.field.vulnerabilities).toContainEqual({
+      kind: "npScaleUsedOn", scale: "antiWorld", result: "end", when: "combatProcessEnd",
+    });
+  });
+
+  it("halves that NP's damage for everyone inside, ally and enemy alike", () => {
+    // "All Units within it receive the damage from that NP, but its Total
+    // Damage is reduced by 50%."
+    const [rule] = np.field.interior;
+    // POSITIVE, and keyed `defUp`: a `taken` modifier's magnitude is how much
+    // the damage is reduced by, and the pipeline reads that bucket by name.
+    expect(rule).toMatchObject({
+      key: "DamageModifier", modifierKey: "defUp", direction: "taken", value: 50, npValue: 50,
+    });
+    expect(rule.relations).toEqual(["ally", "enemy", "self"]);
+    expect(rule.predicate).toEqual(["attack:npScale:gte:antiWorld"]);
+  });
+});
+
+describe("Doomsday Come — the drag-in", () => {
+  const drag = ability("pale-rider-doomsday-drag");
+
+  it("is measured from the AREA's edge, not from Pale Rider", () => {
+    // The area is anchored on his Master and may be nowhere near him, so an
+    // anchor measured from the caster would ask the wrong question entirely.
+    expect(drag.targeting.anchor).toEqual({
+      kind: "fieldEdge", fieldId: "pale-rider-doomsday-come", range: 2,
+    });
+  });
+
+  it("exists only while the area does, and costs an Attack once per Turn", () => {
+    expect(drag.requirements).toEqual([{ kind: "fieldOpen", field: "pale-rider-doomsday-come" }]);
+    expect(drag.countsAsAttack).toBe(true);
+    expect(drag.oncePerTurn).toBe(true);
+  });
+
+  it("resolves as a dragInto phase and deals no damage", () => {
+    expect(drag.phases).toEqual([
+      { kind: "dragInto", target: "reuse", fieldId: "pale-rider-doomsday-come" },
+    ]);
+    expect(drag.damage).toBeUndefined();
+  });
+});

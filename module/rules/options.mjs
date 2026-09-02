@@ -23,6 +23,7 @@
 
 import { Rank } from "../domain/rank.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
+import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
 
 /**
  * Every option describing this attacker, this defender and this attack.
@@ -59,6 +60,21 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
   // could ask about it. Three Servants in the corpus already declare an
   // `element:` on an ability and none of them could be resisted by type.
   if (attack.element) options.add(`attack:element:${attack.element}`);
+  // WHICH SCALE. Emitted as a ladder, for the same reason the rank comparison
+  // is: a predicate can only test set membership, so *"[Anti-World] **or
+  // higher**"* has to already be a member. An Anti-Army NP is therefore also
+  // "Anti-Unit or higher".
+  //
+  // Doomsday Come is the first clause to ask -- its isolation opens for one,
+  // its vulnerability ends on one, and its interior halves that one's damage.
+  // A qualifier-only tag list (`[Barrier]`) has no scale and emits nothing.
+  const scale = scaleTagOf(attack.npTags ?? []);
+  if (scale) {
+    for (const tag of NP_TAG_SCALE) {
+      options.add(`attack:npScale:gte:${tag}`);
+      if (tag === scale) break;
+    }
+  }
   if (attack.ignoresMagicResistance) options.add("attack:ignoresMagicResistance");
   if (attack.aim) options.add("attack:aim");
   if (attack.pierce) options.add("attack:pierce");
@@ -345,6 +361,7 @@ const EMITTABLE = Object.freeze([
   /^attack:isAoE$/,
   /^attack:component:(str|mag)$/,
   /^attack:element:[A-Za-z][\w-]*$/,
+  /^attack:npScale:gte:[A-Za-z][\w-]*$/,
   /^attack:ignoresMagicResistance$/,
   /^attack:aim$/,
   /^attack:pierce$/,

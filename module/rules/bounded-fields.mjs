@@ -14,68 +14,18 @@
  * space; nothing here is named after a Servant.
  */
 
-import { chebyshev } from "../domain/geometry.mjs";
+import { chebyshev, inBounds } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
-import { EXECUTORS, empty } from "./elements.mjs";
+import { EXECUTORS, empty, deferredPredicate } from "./elements.mjs";
 import { test as testPredicate } from "./predicate.mjs";
-
-/* -------------------------------------------------------------------------- */
-/*  NP tags — a real, ordered classification                                  */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The **scale** tags, in order.
- *
- * "Anti-World or higher" and "Anti-Fortress or higher" are comparisons, so the
- * tags cannot be a flat vocabulary. Ch. 41 Q44 records that this ordering is a
- * construction from conventional usage rather than a stated rule.
- */
-export const NP_TAG_SCALE = Object.freeze([
-  "antiUnit", "antiArmy", "antiFortress", "antiCountry", "antiWorld",
-]);
-
-/**
- * Qualifiers that do **not** participate in the comparison.
- *
- * Listed rather than inferred, so a new tag is a deliberate decision about
- * which kind it is instead of an accident of not appearing in the scale.
- */
-export const NP_TAG_QUALIFIERS = Object.freeze([
-  "antiDivine", "antiBeast", "antiUnitSelf", "barrier", "fortress",
-  "labyrinth", "counter", "boundedField", "unknown",
-]);
-
-/**
- * The highest scale an NP's tags reach, or `-1` for none.
- *
- * Ozymandias's is `[Anti-Fortress/Fortress/Anti-Unit]`; the comparison uses
- * Anti-Fortress, not the Anti-Unit it also carries.
- *
- * @param {string[]} tags
- * @returns {number}
- */
-export function scaleOf(tags) {
-  let best = -1;
-  for (const t of tags ?? []) best = Math.max(best, NP_TAG_SCALE.indexOf(t));
-  return best;
-}
-
-/**
- * Does this Noble Phantasm reach the required scale?
- *
- * `???` sorts as unknown and **never** satisfies a threshold: the field's check
- * surfaces a prompt for the GM rather than silently deciding either way.
- *
- * @param {string[]} npTags
- * @param {string} required
- * @returns {boolean}
- */
-export function meetsTagThreshold(npTags, required) {
-  const needed = NP_TAG_SCALE.indexOf(required);
-  if (needed === -1) return false;
-  return scaleOf(npTags) >= needed;
-}
+// The NP scale lives in its own module so `options.mjs` can read it without
+// importing this one, which imports `options.mjs` in turn. Re-exported here
+// because every existing caller and test asks this file for it.
+export {
+  NP_TAG_SCALE, NP_TAG_QUALIFIERS, scaleOf, scaleTagOf, meetsTagThreshold,
+} from "./np-scale.mjs";
+import { meetsTagThreshold } from "./np-scale.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  Axis 1 — geometry                                                         */
@@ -181,6 +131,40 @@ function overrideApplies(override, field, board) {
 export function selectBranch(spec, options) {
   const branch = (spec?.branches ?? []).find((b) => testPredicate(b.predicate, { options }));
   return branch ?? spec;
+}
+
+/**
+ * A random unoccupied panel of the field.
+ *
+ * Doomsday Come needs one twice — *"the DU is forcibly dragged into the
+ * Doomsday Come area and **placed on a random panel within**"*, and a banished
+ * Kagome Spirit *"reappears on a random panel within"*.
+ *
+ * The randomness is **injected** rather than reached for, which is what keeps
+ * this layer pure and the choice reproducible in a test. A defeated unit's
+ * panel counts as free: a defeat never removes the token, so treating it as
+ * occupied would let a corpse block a drag-in.
+ *
+ * @param {object} field
+ * @param {object} board
+ * @param {() => number} [random] `[0, 1)`
+ * @returns {{i: number, j: number}|null} `null` when there is nowhere to put them
+ */
+export function randomFreePanelIn(field, board, random = Math.random) {
+  const taken = new Set(
+    (board?.units ?? [])
+      .filter((u) => u.panel && !u.defeated)
+      .map((u) => `${u.panel.i},${u.panel.j}`),
+  );
+  // ON THE BOARD. A field's computed panels are not clipped to it -- a 13x13
+  // cast near an edge reaches well past the last column -- and dropping a Unit
+  // on a panel that does not exist puts it wherever Foundry clamps a negative
+  // coordinate to, which is outside the very area it was dragged into.
+  const free = panelsOf(field, board)
+    .filter((p) => inBounds(p, board?.bounds ?? null))
+    .filter((p) => !taken.has(`${p.i},${p.j}`));
+  if (free.length === 0) return null;
+  return free[Math.min(free.length - 1, Math.floor(random() * free.length))];
 }
 
 /**
@@ -383,6 +367,18 @@ export function isolationBlocks(field, attacker, target, board, ctx = {}) {
     return rules.blocksCommandSpells
       ? { blocked: true, reason: "commandSpellsBlocked" }
       : { blocked: false };
+  }
+
+  // The one hole in an otherwise sealed boundary. Doomsday Come: *"A Noble
+  // Phantasm of [Anti-World] or higher can be used on Doomsday Come (from
+  // outside) OR within Doomsday Come"* — both directions, which is why this
+  // sits above both checks rather than beside either.
+  //
+  // It is the field's only counter-play: enemies inside cannot leave and
+  // nobody can shoot across, so without this the area is a soft lock that ends
+  // only when its owner does.
+  if (rules.piercedBy?.npScale && meetsTagThreshold(ctx.npTags ?? [], rules.piercedBy.npScale)) {
+    return { blocked: false };
   }
 
   if (!attackerIn && targetIn && rules.outsideCanTargetInside === false) {
@@ -614,6 +610,17 @@ export function vulnerabilityTriggered(field, event) {
         if (event.kind === "ownerDefeat") return { triggered: true, result: v.result ?? "end" };
         break;
 
+      // Doomsday Come: *"if used in this way, Doomsday Come is forcibly ended
+      // at the end of that Combat Process."* Distinct from `npTagAtLeast`,
+      // which asks whether an NP of that scale was used ANYWHERE — this asks
+      // whether one was used **on this field**, across or inside its own
+      // boundary, and it is the same use `piercedBy` just let through.
+      case "npScaleUsedOn":
+        if (event.kind === "npUsedOn" && meetsTagThreshold(event.npTags ?? [], v.scale)) {
+          return { triggered: true, result: v.result ?? "end" };
+        }
+        break;
+
       case "npTagAtLeast":
         if (event.kind === "npUsed" && meetsTagThreshold(event.npTags, v.tag)) {
           return { triggered: true, result: v.result ?? "end" };
@@ -701,7 +708,18 @@ export function annotateFields(units, board) {
     for (const rule of rest) {
       const execute = EXECUTORS[rule.key];
       if (!execute) continue;
-      execute(rule, { rank: null, source: rule.source, ability: null, out, ctx: {} });
+      // A predicate this pass cannot answer travels ON the contribution, the
+      // same way `collectContributions` carries an ability's. Doomsday Come's
+      // shelter is *"all Units within it receive the damage from that NP, but
+      // its Total Damage is reduced by 50%"* -- a clause about the ATTACK, and
+      // there is no attack at annotation time.
+      //
+      // This was passed as `ctx: {}` with no `deferred`, so every interior
+      // rule's predicate was dropped: the shelter applied to every attack of
+      // every scale rather than to the [Anti-World] one that earned it, and
+      // any future interior rule would have done the same.
+      const deferred = deferredPredicate(rule.predicate);
+      execute(rule, { rank: null, source: rule.source, ability: null, out, ctx: {}, deferred });
     }
     if (out.modifiers.length > 0) u.modifiers = [...(u.modifiers ?? []), ...out.modifiers];
     if (out.suppressions.length > 0) u.suppressions = [...(u.suppressions ?? []), ...out.suppressions];

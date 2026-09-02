@@ -908,6 +908,46 @@ board.
 | *"Cooldown: 8◈ Turns **after** Doomsday Come ends"* | 24 ticks, stamped at closure |
 | Chaos Labyrinthos, `payer: owner` | Asterios paid **200 of his own**, expiry +2◈, and every enemy inside gained `Atk Dwn` and `Def Dwn` while he did not |
 
+#### Commit 5 — the Anti-World escape and the drag-in
+
+One clause read three ways (isolation opens, interior halves, vulnerability ends) plus the
+drag-in, and the pass turned up **four defects, three of them older than Pale Rider**.
+
+1. **A bounded field's interior rules had never been validated.** `ruleElements` walks an
+   ability's `rules`/`passiveRules`/`activeRules` and its phases — and not `field.interior`. So no
+   field's interior has ever been checked for unknown keys, unknown tables, malformed predicates
+   or anything else, Jack's Mist and Sikera Ušum included. It now is.
+2. **A `modifierKey` outside the damage pipeline's closed buckets is silently unread.** The
+   shelter shipped as `modifierKey: doomsdayShelter`, was collected onto every unit inside, and
+   was never consulted — a "reduced by 50%" that authored cleanly and reduced nothing. The
+   pipeline now exports `MODIFIER_KEYS` and the validator refuses one it does not read.
+3. **An interior rule's `predicate` was dropped.** `annotateFields` called the executors with
+   `ctx: {}` and no `deferred`, so the predicate never reached the contribution. The shelter
+   therefore applied to *every* attack of every scale rather than the [Anti-World] one that earned
+   it. `deferredPredicate` — the mechanism `collectContributions` has used for ability rules all
+   along — is now used here too.
+4. **An unknown `chooser` throws at resolution rather than failing the build.** The drag-in was
+   authored `chooser: caster`, a word that reads perfectly and has never existed. Now refused by
+   the validator, alongside the anchors and shapes it already checked.
+
+Two more in the new code, both the same mistake made twice: **reading a bare `unitSnapshot`
+where a board-annotated unit was needed.** Which fields a unit stands in is a board-wide
+annotation, so `closeFieldsPiercedBy` asked `undefined` and the area never came down; and
+`randomFreePanelIn` did not clip to the board's bounds, so a drag could land a Unit on an
+off-board panel and thus outside the area it was dragged into.
+
+**Measured live:**
+
+| Clause | Measured |
+|---|---|
+| *"cannot Attack Units within it and vice versa"* | Normal attack, Anti-Army and Anti-Country NPs all refused `separated by pale-rider-doomsday-come` |
+| *"a Noble Phantasm of [Anti-World] or higher can be used on"* | the same attack, tagged `antiWorld`, resolved |
+| *"its Total Damage is reduced by 50%"* | `defUp −50 (pale-rider-doomsday-come)` present for the Anti-World NP and **absent** for the Anti-Army one |
+| *"forcibly ended at the end of that Combat Process"* | field open before, gone after, with the 8◈ cooldown stamped at closure |
+| *"within a 2 panel area of the Doomsday Come area"* | at 2 legal; at 3 *"is 3 panels from the area; Range is 2"*; already inside refused by name |
+| *"the DU is forcibly dragged into the area"* | dragged from outside to a free panel inside, its `fields` then naming the area; the Attack spent |
+| *"if the Evade succeeded, nothing happens"* | six evades at AGI 60, all `resisted`, all leaving him outside |
+
 ---
 
 ## 45.5 The completion plan

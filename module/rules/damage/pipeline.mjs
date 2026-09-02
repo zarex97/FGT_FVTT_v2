@@ -648,6 +648,26 @@ const FLAT_ATTACK_KEYS = new Set(["divinity", "dmgBoost", "avengerCounter", "fla
 const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
 
 /**
+ * Every `modifierKey` this pipeline actually consults.
+ *
+ * The buckets above are **closed sets**: a modifier whose key is not in one is
+ * collected onto the unit, carried through the snapshot, and never read — which
+ * is a percentage that authors cleanly, validates, loads, and does nothing.
+ * Doomsday Come's shelter shipped as `modifierKey: doomsdayShelter` and was
+ * inert for exactly that reason.
+ *
+ * Exported so `tools/lib/content.mjs` can refuse an unknown one at build time.
+ * Kept here rather than duplicated there, because this file is the authority on
+ * what it reads.
+ */
+export const MODIFIER_KEYS = Object.freeze([
+  ...ATTACKER_BUCKET_KEYS, ...DEFENDER_BUCKET_KEYS,
+  ...FLAT_ATTACK_KEYS, ...FLAT_REDUCTION_KEYS,
+  // Read by their own single-key lookups rather than through a bucket.
+  "critDmUp", "critDmDwn", "critResUp", "critResDwn", "blockUp", "defCrk",
+]);
+
+/**
  * @param {object|null|undefined} unit
  * @param {string} id
  * @returns {boolean}

@@ -1,0 +1,47 @@
+# Doomsday Come's drag-in, authored as its own ability.
+#
+# It is a clause OF the Noble Phantasm -- "during Pale Rider's Turn, if there
+# are any enemy Units within a 2 panel area of the Doomsday Come area..." --
+# but it is a separate ACTION, taken on a later Turn than the cast, once per
+# Turn, with its own targeting. A phase of the NP could not be any of those
+# things: the NP resolves once, when it is used.
+#
+# So it lives beside the NP and is gated on the NP's area being open, which is
+# what `fieldOpen` says. That is better than granting and revoking it as the
+# field comes and goes: there is nothing to remember to take away.
+schema: 1
+id: pale-rider-doomsday-drag
+name: "Doomsday Come: Drag"
+kind: skill
+slug: doomsdayDrag
+# "An attack in every structural sense except that it deals no damage"
+# (Ch. 43): it spends the Attack, marks him as having Acted, and opens no
+# Combat Process -- there is no damage step for one to run.
+countsAsAttack: true
+oncePerTurn: true
+timing: { window: ownTurn }
+requirements:
+  - { kind: fieldOpen, field: pale-rider-doomsday-come }
+description: |
+  During Pale Rider's Turn, if there are any enemy Units within a 2 panel area of the Doomsday
+  Come area, Pale Rider can target an enemy Unit within this Range; that target has to perform an
+  Evade roll. If the Evade succeeded, nothing happens. If the Evade failed, the DU is forcibly
+  dragged into the Doomsday Come area and placed on a random panel within. Can only be used once
+  per Turn.
+targeting:
+  # Measured from the nearest panel of the AREA, not from Pale Rider. The area
+  # is anchored on his Master and may be the width of the board away from him,
+  # so a `targetUnit` anchor -- which measures from the caster -- would ask
+  # entirely the wrong question.
+  anchor: { kind: fieldEdge, fieldId: pale-rider-doomsday-come, range: 2 }
+  shape: { kind: unit }
+  # "Pale Rider can TARGET an enemy Unit within this Range" -- he picks one,
+  # which is `chosen` with a count of 1. (`caster` is not a chooser: the
+  # vocabulary is all｜nearest｜random｜chosen, and anything else throws at
+  # resolution rather than failing the build -- now checked, see
+  # `tools/lib/content.mjs`.)
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+phases:
+  - kind: dragInto
+    target: reuse
+    fieldId: pale-rider-doomsday-come

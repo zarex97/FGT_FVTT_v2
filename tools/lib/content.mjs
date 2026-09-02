@@ -17,7 +17,8 @@ import { parseTick } from "../../module/domain/tick.mjs";
 import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
-import { ANCHOR_IDS, SHAPE_IDS } from "../../module/rules/targeting/vocabulary.mjs";
+import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS } from "../../module/rules/targeting/vocabulary.mjs";
+import { MODIFIER_KEYS } from "../../module/rules/damage/pipeline.mjs";
 // The list `meetsRequirement` itself exports, not a second copy of it. A
 // hand-maintained duplicate is what `RULE_ELEMENT_KEYS` has to be held
 // against `EXECUTORS` by a test; where the reader already exports its own
@@ -96,6 +97,10 @@ const REQUIREMENT_SELECTORS = Object.freeze({
   predicate: ["predicate"],
   inZone: ["zoneId"],
   notInZone: ["zoneId"],
+  // A `fieldOpen` with no `field` matches no field and is then vacuously
+  // FALSE rather than vacuously true -- so the ability would never be usable,
+  // which is the opposite failure but just as silent.
+  fieldOpen: ["field"],
 });
 
 /** Effect classification vocabularies, from Appendix A. */
@@ -384,6 +389,15 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
         );
       }
     }
+    // A `DamageModifier`'s bucket. The pipeline reads a CLOSED set of keys, so
+    // one outside it is collected onto the Unit and never consulted -- a
+    // percentage that authors cleanly and does nothing.
+    if (el.modifierKey && !MODIFIER_KEYS.includes(el.modifierKey)) {
+      problems.push(
+        `${path}: ${where} uses unknown modifierKey "${el.modifierKey}" — `
+        + `the damage pipeline reads only ${MODIFIER_KEYS.join(", ")}`,
+      );
+    }
     for (const option of referencedOptions(el.predicate)) {
       if (!looksLikeRollOption(option)) {
         warnings.push(`${path}: ${where} predicate option "${option}" does not match the expected shape`);
@@ -512,6 +526,18 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
       problems.push(
         `${path}: ${where} uses unknown targeting shape "${shape}" — `
         + `expected one of ${SHAPE_IDS.join(", ")}`,
+      );
+    }
+    // The CHOOSER, for the same reason and with the same failure:
+    // `resolveTargets` throws a `RangeError` on one it does not know, so an
+    // authored typo is a crash the moment somebody uses the ability. Doomsday
+    // Come's drag-in was written `chooser: caster` -- a word that reads
+    // perfectly and has never been one.
+    const chooser = spec.selection?.chooser;
+    if (chooser && !CHOOSER_IDS.includes(chooser)) {
+      problems.push(
+        `${path}: ${where} uses unknown chooser "${chooser}" — `
+        + `expected one of ${CHOOSER_IDS.join(", ")}`,
       );
     }
   }
@@ -680,6 +706,23 @@ export function ruleElements(doc) {
     // checked, which is what the old classification was actually buying.
     if (isEffectPhase(phase)) continue;
     collect(phase?.rules, `phases[${index}].rules`);
+  }
+
+  // A bounded field's INTERIOR rules, which are rule elements in every sense --
+  // `rules/bounded-fields.mjs#annotateFields` runs them through the same
+  // `EXECUTORS` table an ability's `passiveRules` go through -- and which this
+  // walker never visited. So no field's interior has ever been validated: not
+  // its keys, not its tables, not its predicates, not its `modifierKey`. Found
+  // when Doomsday Come's damage shelter shipped as `modifierKey:
+  // doomsdayShelter`, a bucket the pipeline does not read.
+  //
+  // Deliberately NOT the interior EVENTS' `onFail` lists: those are actions
+  // (`HealthLoss`, `Defeat`, `ApplyEffect`), a different vocabulary with a
+  // different reader, and validating them as rule elements would reject every
+  // one of them.
+  collect(doc.field?.interior, "field.interior");
+  for (const [index, branch] of (doc.field?.branches ?? []).entries()) {
+    collect(branch?.interior, `field.branches[${index}].interior`);
   }
   return out;
 }

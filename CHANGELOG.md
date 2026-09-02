@@ -76,6 +76,19 @@ coincide by accident; the headings say which is which.
 - **A bounded field's size can be rolled.** `shape.radiusRoll` is evaluated once at cast and
   stored as a concrete size — a field that re-rolled on every read would breathe, and membership
   would depend on who asked last. Doomsday Come opens as a 7×7 through a 13×13.
+- **A bounded field's isolation can have a hole, and a Noble Phantasm can break the field.**
+  `piercedBy` lets an NP of a stated scale or higher across a sealed boundary in both
+  directions; `npScaleUsedOn` ends the field at the end of that Combat Process. Doomsday Come
+  reads one sentence three ways — the NP crosses, the interior halves it for everyone inside,
+  and the area comes down afterwards, in that order, because the damage has to land inside the
+  shelter that halves it.
+- **`attack:npScale:gte:<tag>`**, a ladder up the Noble Phantasm scale, so *"[Anti-World] or
+  higher"* can be written as a predicate. The attack now carries its own `npTags`, for the same
+  reason it carries `element` and `pierce`: three rules ask and none can reach the ability.
+- **A `fieldEdge` targeting anchor**, measured from the nearest panel of a bounded field rather
+  than from the caster — the area may be anchored on somebody else and nowhere near them — and a
+  **`dragInto` phase**, an attack in every structural sense except that it deals no damage.
+- **A `fieldOpen` ability requirement**, for a clause that exists only while an area does.
 - **Paid extension of a bounded field actually runs.** `extensionFor` had been authored on Chaos
   Labyrinthos since Asterios was written and **had no caller**, so every field with an extension
   simply closed on schedule and its whole attrition cycle was decoration. The cost now names who
@@ -152,6 +165,20 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **A bounded field's interior rules had never been validated.** The content validator walks an
+  ability's rule elements and its phases, and not its `field.interior` — so no field's interior
+  has ever been checked for unknown keys, unknown tables or malformed predicates, Jack's Mist and
+  Sikera Ušum included.
+- **A `DamageModifier` whose `modifierKey` is not one the pipeline reads was silently inert.**
+  The buckets are closed sets, so an unrecognised key is collected onto the unit, carried through
+  the snapshot, and never consulted — a percentage that authors cleanly and does nothing. The
+  pipeline now exports the keys it reads and the validator refuses the rest.
+- **A bounded field's interior rule lost its `predicate`.** `annotateFields` ran the executors
+  with no `deferred`, so a predicated interior rule became an unconditional one — the opposite of
+  the authored intent, and silent. Doomsday Come's anti-Anti-World shelter applied to every attack
+  of every scale until this was fixed.
+- **An unknown targeting `chooser` threw at resolution instead of failing the build**, unlike the
+  anchors and shapes beside it, which the validator had always checked.
 - **A bounded field could only belong to a Noble Phantasm.** `field` was declared on
   `NoblePhantasmData` and not on `AbilityData`, because every field in the corpus so far is an
   NP. Contagion is a **Skill**, and Foundry dropped its entire six-axis block on load without a
