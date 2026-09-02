@@ -48,3 +48,52 @@ export function relationOf(source, unit, board) {
 export function isFriendly(relation) {
   return relation === "ally" || relation === "self";
 }
+
+/**
+ * The Units that stand as "this Master's Servant" for the Servant–Master
+ * relationship rules (Ch. 16).
+ *
+ * Ordinarily the Master's own Servants. For a Servant carrying a
+ * `RelationshipProxy`, its live bound summons instead — Pale Rider:
+ *
+ * > *"The following Servant-Master Relationship Rules have no effect between
+ * > Pale Rider and its Master; but apply between Kagome Spirits and Pale
+ * > Rider's Master (replace 'Servant' with 'Kagome Spirit')."*
+ *
+ * `RelationshipProxy` has been in the executor table since it was written,
+ * emitted into `suppressions`, **read by nothing and authored by nobody**.
+ * This is its first reader, and Pale Rider is its first author.
+ *
+ * The substitution is total: a proxying Servant does **not** protect its own
+ * Master, which is the clause's own first half and the reason the Spirits
+ * matter tactically at all.
+ *
+ * @param {object} master
+ * @param {object} board
+ * @returns {object[]}
+ */
+export function guardsOf(master, board) {
+  const units = board?.units ?? [];
+  const faction = master?.factionId ?? master?.faction ?? null;
+
+  /** @type {object[]} */
+  const out = [];
+  for (const unit of units) {
+    if (unit.kind !== "servant") continue;
+    if ((unit.factionId ?? unit.faction ?? null) !== faction) continue;
+
+    const proxy = (unit.suppressions ?? [])
+      .find((s) => s?.scope === "relationship")?.proxy ?? null;
+    if (!proxy) {
+      out.push(unit);
+      continue;
+    }
+    if (proxy === "summons") {
+      // Its LIVE bound summons: a Spirit that has been torn down with its
+      // field, or defeated, guards nobody.
+      out.push(...units.filter((u) =>
+        u.summonerId === unit.id && u.boundToFieldId && !u.defeated));
+    }
+  }
+  return out;
+}

@@ -860,6 +860,7 @@ function actorSystem(doc) {
     // damaged". Without this the flag compiled to its schema default and each
     // type's `prepareBaseData` backfilled a Health the sheet does not state.
     undamageable: Boolean(doc.undamageable),
+    cannotHoldItems: Boolean(doc.cannotHoldItems),
     // Stats stated relative to the summoner (the Kagome Spirits' Agility and
     // Luck), resolved at placement rather than written as numbers.
     inherit: doc.inherit ?? null,

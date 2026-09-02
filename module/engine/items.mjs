@@ -33,6 +33,16 @@ export async function giveItem({ fromId, toId, itemId, count = 1 }) {
   const item = fromDoc?.items?.get(itemId);
   if (!fromDoc || !toDoc || !item) return { ok: false, reason: "notFound" };
 
+  // *"Pale Rider cannot hold Items."* The redirect that follows it -- "all
+  // Items that would be obtained by Pale Rider are instead obtained by his
+  // Master if he/she is within a 2 panel area" -- presupposes an item
+  // ACQUISITION flow, and there is none: nothing drops an item on a panel or
+  // awards one on a kill. So the refusal is enforced and the redirect is
+  // recorded as unmodelled (Ch. D §D.26), rather than half-built.
+  if (toDoc.system?.cannotHoldItems) {
+    return { ok: false, reason: "cannotHoldItems" };
+  }
+
   const board = currentBoard();
   const from = unitFrom(board, fromDoc);
   const to = unitFrom(board, toDoc);

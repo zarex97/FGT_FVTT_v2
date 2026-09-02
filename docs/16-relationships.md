@@ -212,6 +212,29 @@ per-Servant colour coding when the Master is selected.
 
 Four rules, all keyed on "the Master's Servant is within 2 panels of it".
 
+> **Who counts as "the Master's Servant" is itself a question (Ch. 45).** Pale Rider states the
+> only exception in the corpus:
+>
+> > *"The following Servant-Master Relationship Rules have no effect between Pale Rider and its
+> > Master; but apply between Kagome Spirits and Pale Rider's Master (replace 'Servant' with
+> > 'Kagome Spirit')."*
+>
+> So the two rules that are built ask `rules/relations.mjs#guardsOf` rather than scanning for a
+> Servant of the right faction: ordinarily it answers with the Master's own Servants, and for a
+> Servant carrying a `RelationshipProxy` it answers with that Servant's live bound summons
+> instead. The substitution is **total** — a proxying Servant does not protect its own Master,
+> which is the clause's own first half and the reason his Spirits matter tactically.
+>
+> `RelationshipProxy` had been in the executor table since it was written, emitted into
+> `suppressions`, **read by nothing and authored by nobody**. This is its first reader and Pale
+> Rider its first author.
+>
+> **Rule 3 is implemented for nobody.** *"When a Master that has his/her Servant within a 2 panel
+> range gets caught in a Noble Phantasm and fails to Evade, the Master is unharmed while the
+> Total Damage taken by the Servant from the Noble Phantasm is increased by 100%"* has no
+> implementation for any Servant, so there is nothing for the proxy to redirect. It is a gap
+> here rather than in Pale Rider, and the proxy will cover him the day it is filled.
+
 ### 1. Targeting immunity
 
 > *"Masters cannot be targeted for an Attack when their Servant is within 2 panels of their
