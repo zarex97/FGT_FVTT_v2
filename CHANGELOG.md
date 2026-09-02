@@ -44,6 +44,39 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **A placed token followed neither its actor's portrait nor its declared footprint.** Two
+  independent defects reported from play and confirmed live before anything changed; Ch. 04 §4.2
+  and Ch. 20 §20.3 carry the full accounts.
+
+  - **Only a Servant's token followed its image.** The sync ran under
+    `if (actor.type !== "servant") return`, so a Master, Summon, Civilian, Structure or Platform
+    whose portrait changed kept its old texture with no way to shift it short of deleting the
+    token — the Hanging Gardens sat on the board as a mystery man while its sheet showed its own
+    art. Only a Servant has an identity to *conceal*, so the concealment branch stays
+    Servant-only and the sync itself now covers every unit type. `defaultImage` is inert on
+    anything but an unrevealed Servant, matching what the sheet actually displays.
+  - **The sweep covered only the scene currently open**, under a comment claiming the opposite:
+    `Actor#getActiveTokens()` passes `scenes: canvas.scene`. A token on any other scene kept its
+    old texture indefinitely.
+  - **One deleted token stopped the whole pass.** `getDependentTokens()` reads an
+    `IterableWeakSet` a deleted token stays in until collection; `await token.update()` on a
+    ghost throws, and a single sequential loop meant the real token behind it was never reached.
+    Foundry's own `getActiveTokens` carries that liveness guard, which is why losing it went
+    unnoticed. `engine/token-sync.mjs#placedTokensOf` now owns both corrections.
+  - **A 9×9 platform placed a 1×1 token.** `system.footprint` and `TokenDocument#width`/`#height`
+    are the same fact in two places and nothing joined them, so `prototypeToken` compiled at
+    Foundry's default: the Hanging Gardens showed as one cell in the compendium and dropped onto
+    a scene as one cell. Not cosmetic — `snapshot.mjs#gridFootprint` reads occupancy off the
+    **token** while `platforms.mjs#isUnderPlatform` reads the footprint, so the board saw a
+    one-panel obstacle sheltering 81 panels. Only `engine/hgob.mjs` escaped, sizing its token by
+    hand, which is why an HGoB *raised in play* was 9×9 and one *dragged from the compendium* was
+    not. Fixed at build time (`tools/lib/content.mjs`) and at runtime
+    (`engine/token-footprint.mjs`, covering prototypes that predate the fix).
+  - **The runtime resize needed `fgtForced`, and said nothing without it.** `width` and `height`
+    are Foundry v14 `MOVEMENT_FIELDS`, so a resize routes through the movement pipeline and
+    `onPreMove` refused it — arriving at `preUpdateToken` as a bare `{_id}`, with no throw and no
+    rejection. The third silent-failure-by-movement-field here after `level` and `elevation`.
+
 - **The Hanging Gardens could not fly, could not carry anybody, and left a Scene Level behind
   every time it was raised.** Seven defects, found by driving it on a live board; §20.2 has the
   full account.

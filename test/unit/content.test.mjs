@@ -327,6 +327,35 @@ describe("compileDocument", () => {
     const out = compileDocument(doc, "platforms", library);
     expect(out.system.actsOncePerTurn).toBe(true);
   });
+
+  it("sizes a platform's prototype token from its footprint", () => {
+    const doc = {
+      schema: 1, id: "hgob", name: "Hanging Gardens of Babylon",
+      footprint: { w: 9, h: 9 },
+    };
+    const out = compileDocument(doc, "platforms", library);
+    expect(out.system.footprint).toEqual({ w: 9, h: 9 });
+    // The board reads occupancy off the TOKEN's grid footprint
+    // (`rules/snapshot.mjs#gridFootprint`), so a 1x1 prototype for a 9x9
+    // platform is a rules contradiction, not a display one.
+    expect(out.prototypeToken.width).toBe(9);
+    expect(out.prototypeToken.height).toBe(9);
+  });
+
+  it("leaves the token size alone for a document with no footprint", () => {
+    const out = compileDocument({ schema: 1, id: "x", name: "X" }, "servants", library);
+    expect(out.prototypeToken.width).toBeUndefined();
+    expect(out.prototypeToken.height).toBeUndefined();
+  });
+
+  it("lets an explicit prototypeToken override the footprint-derived size", () => {
+    const doc = {
+      schema: 1, id: "hgob", name: "HGoB",
+      footprint: { w: 9, h: 9 }, prototypeToken: { width: 11, height: 11 },
+    };
+    const out = compileDocument(doc, "platforms", library);
+    expect(out.prototypeToken.width).toBe(11);
+  });
 });
 
 describe("copyable (§15.7)", () => {

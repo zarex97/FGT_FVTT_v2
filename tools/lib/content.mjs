@@ -739,6 +739,13 @@ export function compileDocument(doc, dir, library) {
         // than global: Medea conjures up to six Dragon Tooth Warriors from one
         // statblock, and six linked tokens would share one pool of Health.
         actorLink: !["summon", "civilian"].includes(type),
+        // A Platform's `footprint` and a token's `width`/`height` are the same
+        // fact in two places, and only the first was ever compiled -- so the
+        // Hanging Gardens (9x9) shipped a 1x1 prototype, showed as one cell in
+        // the compendium, and dropped onto a scene as a one-panel platform
+        // that `rules/platforms.mjs` nonetheless treated as sheltering 81.
+        // `engine/token-footprint.mjs` enforces the same equality at runtime.
+        ...footprintSize(doc.footprint),
         ...(doc.prototypeToken ?? {}),
       },
       _key: `!actors!${base._id}`,
@@ -751,6 +758,20 @@ export function compileDocument(doc, dir, library) {
     system: itemSystem(doc),
     _key: `!items!${base._id}`,
   };
+}
+
+/**
+ * The `prototypeToken` size an authored footprint calls for, as a spreadable
+ * fragment. Empty for every document that declares none.
+ *
+ * @param {{w?: number, h?: number}|undefined} footprint
+ * @returns {{width: number, height: number}|{}}
+ */
+function footprintSize(footprint) {
+  const width = Number(footprint?.w);
+  const height = Number(footprint?.h);
+  if (!(width >= 1) || !(height >= 1)) return {};
+  return { width, height };
 }
 
 /**
