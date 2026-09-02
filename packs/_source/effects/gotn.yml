@@ -1,0 +1,27 @@
+# Guidance of the Netherworld's marker.
+#
+# "Then, applies the 'GotN' effect to all affected Units excluding itself. The
+# GotN effect is neither a buff or a debuff and is Unremovable. When a Unit
+# with the 'GotN' effect enters the area of 'Doomsday Come', apply effects 1 to
+# 3 of 'Guidance of the Netherworld' to that Unit, then remove the 'GotN'
+# effect from that Unit."
+#
+# It STORES NOTHING. The bundle it discharges is authored on the one field that
+# will ever discharge it (Doomsday Come's `contact` event), because an effect
+# carrying an unapplied payload has no second consumer in the corpus and would
+# be a subsystem built for one clause.
+schema: 1
+id: gotn
+name: "GotN"
+description: |
+  On entering the area of 'Doomsday Come', the Unit receives Guidance of the Netherworld's Atk
+  Up, Regen and Dmg Cut; the GotN effect is then removed.
+# "Neither a buff or a debuff": `status`, and `neither` -- the one valence in
+# the vocabulary that means exactly that, used by nothing before now.
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+rules: []

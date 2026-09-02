@@ -359,3 +359,46 @@ describe("Innocent World", () => {
     expect(shelter).toHaveLength(1);
   });
 });
+
+/* -------------------------------------------------------------------------- */
+/*  Guidance of the Netherworld, and the GotN discharge                        */
+/* -------------------------------------------------------------------------- */
+
+describe("Guidance of the Netherworld", () => {
+  const g = ability("pale-rider-guidance-of-the-netherworld");
+
+  it("buffs every ally within 2, itself included", () => {
+    expect(g.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
+    expect(g.targeting.selection).toMatchObject({ relations: ["ally", "self"], includeSelf: true });
+    expect(g.phases[0].effects.map((e) => e.id)).toEqual(["atkUp", "regen", "dmgCut"]);
+    expect(g.phases[0].effects[0]).toMatchObject({ magnitude: 20, npMagnitude: 10, duration: "1◈" });
+    expect(g.cooldown).toBe("4◈");
+  });
+
+  it("marks everyone it affected EXCEPT itself", () => {
+    // Its own targeting rather than a flag: the phase target list is the
+    // ability's, and this clause reaches a different set.
+    const mark = g.phases[1];
+    expect(mark.effects).toEqual([{ id: "gotn" }]);
+    expect(mark.targeting.selection).toMatchObject({ relations: ["ally"], includeSelf: false });
+  });
+
+  it("leaves the charge count on the effect definition, where it is read", () => {
+    expect(effect("dmg-cut").uses).toBe(3);
+    expect(g.phases[0].effects.find((e) => e.id === "dmgCut").uses).toBeUndefined();
+  });
+
+  it("is neither buff nor debuff, and unremovable", () => {
+    expect(effect("gotn")).toMatchObject({
+      polarity: "status", valence: "neither", unremovable: true, rules: [],
+    });
+  });
+
+  it("discharges on contact with Doomsday, then removes the marker", () => {
+    const contact = ability("pale-rider-doomsday-come").field.interiorEvents
+      .find((e) => e.requiresEffect === "gotn");
+    expect(contact).toMatchObject({ event: "contact", relations: ["ally", "self"] });
+    expect(contact.onFail.map((a) => a.effect?.id)).toEqual(["atkUp", "regen", "dmgCut", "gotn"]);
+    expect(contact.onFail.at(-1).key).toBe("RemoveEffect");
+  });
+});

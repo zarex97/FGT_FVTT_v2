@@ -84,6 +84,13 @@ describe("authored phases", () => {
         if (!relations || relations.every((r) => r === "self")) continue;
 
         for (const [index, phase] of (holder?.phases ?? []).entries()) {
+          // A phase carrying its OWN `targeting` has answered the question
+          // more precisely than `target` could: `phaseTargets` reads that and
+          // ignores `target` entirely. Guidance of the Netherworld's second
+          // phase is the case -- "applies GotN to all affected Units EXCLUDING
+          // ITSELF" reaches a different set from the Skill's own, which is
+          // neither `self` nor `reuse`.
+          if (phase?.targeting) continue;
           if (phase?.target === undefined) {
             bad.push(`${path}: ${holder.id ?? holder.ref}.phases[${index}] has no target`);
           }

@@ -999,6 +999,29 @@ without emits exactly one.
 | *"cannot be prevented or removed"* | NP refused `by: npSeal` with **no `npSeal` effect held**; the seal vanished when the area closed and returned when it reopened |
 | *"all **enemy** Units within"* | every faction-1 ally inside carried only the Anti-World shelter |
 
+#### Commit 7 — Guidance of the Netherworld, and the GotN discharge
+
+Two small field-event additions: **`requiresEffect`**, the mirror of `kinds:` — a filter on what
+the Unit is *carrying* rather than on what it *is* — and a **`RemoveEffect`** action, the only
+one in the table that takes something away.
+
+**GotN stores nothing.** The bundle it discharges is authored on the one field that will ever
+discharge it, because an effect carrying an unapplied payload has no second consumer in the
+corpus and would be a subsystem built for a single clause. `contact` fires on walking in **and**
+on the field opening over you, which is what *"enters the area"* has to mean for an area that
+appears around you.
+
+The second phase carries its **own targeting** rather than an `includeSelf` flag: *"applies GotN
+to all affected Units excluding itself"* reaches a different set from the Skill's, which is
+neither `self` nor `reuse`. `test/unit/phase-targets.test.mjs` was demanding a `target` on every
+phase of a non-attack ability; a phase with its own `targeting` has answered that question more
+precisely, and the guard now says so.
+
+**Measured live:** Guidance applied its three buffs to Pale Rider and both adjacent allies (nine
+applications), then GotN to the two allies and **not** to him; a GotN-bearing ally standing where
+Doomsday Come opened received Atk Up, Regen and Dmg Cut (3 charges) and lost the marker in the
+same breath.
+
 ---
 
 ## 45.5 The completion plan

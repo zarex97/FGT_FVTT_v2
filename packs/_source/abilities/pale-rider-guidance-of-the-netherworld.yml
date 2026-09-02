@@ -1,0 +1,48 @@
+# Pale Rider -- Guidance of the Netherworld, Rank EX.
+# Conversion source: char_orig_sheets/Copia de Pale Rider.md
+# Data sheet: docs/D-servant-data-sheets.md §D.26
+schema: 1
+id: pale-rider-guidance-of-the-netherworld
+name: "Guidance of the Netherworld"
+rank: EX
+kind: skill
+slug: guidanceOfTheNetherworld
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel area of itself. Has
+  the following effects-
+  1. Applies Atk Up for 1◈ Turns, all damage dealt is increased by 20%; if NP, 10%.
+  2. Applies Regen for 1◈ Turns, Health is restored by 10% of its maximum value at the end of
+     the Unit's Turn, the end of any Turn the Unit Acts, and at the end of the Round.
+  3. Applies Dmg Cut for 1◈ Turns, 3 times; all damage taken is reduced by 100.
+  Then, applies the 'GotN' effect to all affected Units excluding itself. The GotN effect is
+  neither a buff or a debuff and is Unremovable. When a Unit with the 'GotN' effect enters the
+  area of 'Doomsday Come', apply effects 1 to 3 of 'Guidance of the Netherworld' to that Unit,
+  then remove the 'GotN' effect from that Unit.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  # Effects 1-3, on himself and every ally within 2.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUp, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+      - { id: regen, duration: "1◈" }
+      # "3 times" lives on the effect definition (`dmg-cut.yml`'s `uses`),
+      # which is where `effect-applier.mjs` reads a charge count from.
+      - { id: dmgCut, magnitude: 100, duration: "1◈" }
+
+  # "...to all affected Units EXCLUDING ITSELF." Its own targeting rather than
+  # an `includeSelf` flag on the phase: the phase target list is the ability's,
+  # and this clause reaches a different set.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally], includeSelf: false, chooser: all }
+    effects:
+      - { id: gotn }
