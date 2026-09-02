@@ -212,8 +212,37 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **An item acquisition seam** (Ch. 15 §15.8). The rulebook describes one way to obtain an item
+  — being handed one — and "Items held" is blank on all 29 Servant sheets, so this is a seam
+  rather than a subsystem: the two writers that can put an item on a unit both ask
+  `acquisitionTarget` first, and a drop or a kill reward would inherit the answer. It exists
+  because Pale Rider redirects: *"All Items that would be obtained by Pale Rider are instead
+  obtained by his Master if he/she is within a 2 panel area"* — two halves, independently
+  satisfiable, with the redirect lapsing back to the refusal when no Master is in reach.
+- **A content guard that an authored unit key actually reaches the compiled actor.**
+  `actorSystem` is an explicit allowlist and a key it does not name is dropped in silence: the
+  document builds, the pack builds, the validator passes, the sheet loads, and the clause does
+  nothing. That had happened to `itemCost`, `summonVariant` and `rules` before, each found only
+  by reading a live value and wondering why it was the default — and the allowlist's own comment
+  named the failure mode without preventing it. `unitKeyCoverage` compares the authored keys
+  against the compiler's own output, so it covers a field added tomorrow.
+
+### Open
+
+- **Q50 — no Servant states an Agility or a Luck.** All 29 sheets read `Agility: XX/XX` and
+  `Luck: XX/XX`, an unfilled placeholder, so every Servant compiles to 0 — and 0 is a target no
+  d20 can roll under, which means **every Servant Evade and Luck Check fails automatically**.
+  Not derived from the AGI rank, because that would be an invention: §6.3 makes Agility a
+  depleting resource rather than a function of a parameter, and Q8 already settled the parallel
+  case for MOV as *authored per-Servant, not derived*. Two numbers per sheet from the author and
+  it is pure content. Recorded rather than guessed; Ch. 41 Q50 and Ch. 06 §6.3.
+
 ### Fixed
 
+- **Every summon's and platform's stated Agility and Luck were being dropped.** Found by the new
+  guard on its first run. Bašmu's sheet says *"Agility: 14 / Luck: 7"* and it compiled to 0 and
+  0, as did the four Dragon Tooth Warriors and the Hanging Gardens — so each of them has evaded
+  and Luck-Checked against a target no d20 can roll under since it shipped.
 - **§16.4 rule 1 was filtering an area's splash, which made rule 4 unreachable.** *"Masters cannot
   be **targeted** for an Attack"* is a rule about picking a target; rule 4 then describes a Master
   who *"gets **caught in** an AoE Noble Phantasm"* with a Servant within those same 2 panels — a

@@ -15,6 +15,8 @@
  */
 
 import * as I from "./intents.mjs";
+import { acquisitionTarget } from "../rules/items.mjs";
+import { currentBoard } from "./board.mjs";
 
 /**
  * @typedef {object} ApplicationPlan
@@ -358,7 +360,28 @@ async function writeGroup(group, io) {
       for (const i of intents) await io.adjustItemQuantity(unitId, i.itemId, i.delta);
       break;
     case "itemGrant":
-      for (const i of intents) await io.grantItem(unitId, i.contentId, i.delta);
+      // Every route by which a unit comes to HOLD an item ends here -- a
+      // transfer, Item Construction conjuring one from nothing, and whatever
+      // drop or reward is added later -- so this is where Pale Rider's *"all
+      // Items that would be obtained by Pale Rider are instead obtained by his
+      // Master"* is answered. Asked per intent rather than per batch: the
+      // destination depends on where the Master is standing right now.
+      //
+      // Idempotent against `giveItem`, which asks the same question to decide
+      // what to REFUSE and reports the redirect to its caller; by the time the
+      // descriptor reaches here it already names the Master, and a Master holds
+      // its own items.
+      for (const i of intents) {
+        const board = currentBoard();
+        const to = acquisitionTarget(board.units.find((u) => u.id === unitId), board);
+        if (!to.ok) {
+          // Loud: an item that lands nowhere is a clause doing less than it
+          // says, and silence is how that goes unnoticed for a month.
+          console.warn(`FGT | "${i.contentId}" could not be granted to ${unitId}: ${to.reason}.`);
+          continue;
+        }
+        await io.grantItem(to.unitId, i.contentId, i.delta);
+      }
       break;
     case "markContract":
       await io.setContract(unitId, intents.at(-1).contract, intents.at(-1).masterId);

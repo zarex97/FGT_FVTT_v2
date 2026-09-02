@@ -140,6 +140,14 @@ agility: Resource
 Agility is **not** a to-hit bonus. It is the number you must roll *under* on an Evade roll,
 and it is a depleting resource that combat grinds down.
 
+> **No Servant in the reference set states one.** All 29 sheets read `Agility: XX/XX` and
+> `Luck: XX/XX` — an unfilled placeholder — so every Servant compiles to 0, and a target of 0
+> is one no d20 can roll under. Every Servant Evade and Luck Check therefore fails
+> automatically today. Only the summons and platforms carry real numbers (Bašmu's 14 and 7, the
+> Dragon Tooth Warriors, the Hanging Gardens), and those the compiler now carries. Not derived
+> from the AGI rank, which would be an invention: Q8 settled the parallel case for MOV as
+> *authored per-Servant, not derived*. Ch. 41 Q50.
+
 **Consumption:**
 - **Injury Roll** — after surviving an attack that dealt >100 damage, roll and subtract the
   result from current Agility. This is the primary attrition mechanism in the game.
