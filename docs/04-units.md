@@ -132,6 +132,46 @@ abstract class Unit {
 }
 ```
 
+### Units that cannot be hurt
+
+`health` is `{value, max}` and both may be **`null`**, which is not the same as zero: zero is
+a unit about to be defeated, `null` is a unit that cannot be damaged at all. Pale Rider's
+sheet prints *"Base Health: —"* and *"Pale Rider cannot take damage"*; the four Kagome
+Spirits print *"Health: - (Cannot be damaged)"*.
+
+The convention was already there — `domain/health.mjs#isUndamageable` reads exactly this, and
+`rules/damage/pipeline.mjs` halts at stage 0 with `negated by invulnerable-by-nature` — but
+nothing could *reach* it, because each type's `prepareBaseData` **backfills** a null Max
+Health: a Servant's from the END-rank table (Pale Rider's END is A, so he silently acquired
+1600 and a health bar), a Summon's from its stated `baseHealth`.
+
+So `undamageable` is a flag on the unit, not a rule element: it is read in
+`prepareBaseData`, which runs long before any rule element is collected, and all it does is
+make the backfill stand aside.
+
+```yaml
+baseHealth: null
+undamageable: true
+```
+
+### Two grants that take a capability away
+
+`rules/granted.mjs`'s `GRANTS` had three entries, all of them Riding's, all of them additive.
+Pale Rider's Riding EX adds two that subtract:
+
+| Grant | Sheet clause | Reader |
+|---|---|---|
+| `noNormalAttack` | *"Pale Rider cannot perform Normal Attacks."* | `engine/attack.mjs#resolveAttack` refuses a declaration carrying no ability, ahead of the budget and cost checks so the message names the rule |
+| `noReactions` | *"cannot Evade, Block, or Counter."* | `engine/attack.mjs#offeredReactions` returns nothing, so the defender's rung offers only *nothing* |
+
+Grants rather than degenerate stats, and the distinction is load-bearing in both directions.
+A Range of 0 would have refused his Attack Skills and Spells too — his sheet prints Base
+Attack (MAG) 200, which those still spend. An empty reaction list on the unit would not have
+covered an **ally's** Rho Aias, which is offered at the same rung and is equally unavailable
+to him.
+
+The Kagome Spirits carry `noReactions` alone: their attacks are ordinary Normal Attacks.
+
 ### Identity and hidden information
 
 F/GT supports **Closed Info** play, where unit stats and abilities are hidden from opponents.

@@ -49,6 +49,14 @@ export function unitCommon() {
     // health.max: 0).
     baseHealth: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
+    // Pale Rider and the Kagome Spirits: *"Base Health: —"*, *"cannot take
+    // damage"*. `null` Health is already the convention above and the damage
+    // pipeline already halts at stage 0 on it; what this flag does is keep
+    // each type's `prepareBaseData` from BACKFILLING that null from the
+    // END-rank table -- which is exactly what it did to a Servant whose sheet
+    // states no Health, quietly giving him 1600 and a health bar.
+    undamageable: new fields.BooleanField({ initial: false }),
+
     mov: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     range: new fields.SchemaField({
       panels: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),

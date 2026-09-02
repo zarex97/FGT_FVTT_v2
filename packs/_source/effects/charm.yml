@@ -1,0 +1,32 @@
+# Appendix A -- a mental debuff that hands the Unit's actions to the inflicter
+# for the duration.
+#
+# `rules/control.mjs#isCharmed` has looked for exactly this id since it was
+# written and there was no document for it to find, so the whole control
+# subsystem was pointing at an effect that did not exist. First inflicter:
+# Pale Rider's Contagion, "10% chance of being inflicted with Charm for 1◈".
+#
+# No rules of its own: control is not a modifier, it is a question the turn
+# machinery asks (`isCharmed`), and the answer is the effect's presence.
+schema: 1
+id: charm
+name: "Charm"
+description: |
+  The Unit is controlled by the inflicter's Faction for the duration: its owner does not choose
+  its Moves or Attacks.
+polarity: debuff
+# `mental`, which is Appendix A's own classification and the thing Heracles'
+# Bravery and Jack's Mental Pollution both name -- so both already resist this
+# without either sheet listing it.
+volatility: mental
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+defaultDuration: "1◈"
+rules: []
+notes: |
+  Unmodelled from Appendix A §A: "removed at the end of the Combat Phase if the Unit takes
+  damage from an Attack" (no effect in the corpus is cleared by damage, so there is no
+  machinery to hang it on), and the mutual immunity with Berserk and Confuse (neither effect
+  is authored; the exclusion has nothing to reference). Pale Rider's Contagion needs neither.

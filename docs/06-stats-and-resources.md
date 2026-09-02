@@ -387,6 +387,18 @@ zon = zonBase
 > into the `Math.max(derived, master.zon)` floor below it: that floor exists so a Master sheet
 > stating a ZON is believed, and it would otherwise swallow the rank bonus whole.
 
+**A bonus may name a stat rather than a number.** Pale Rider's Riding EX is *"Pale Rider's
+Master's ZON is increased by X panels, X = Pale Rider's MOV"* — the first ZON clause in the
+corpus whose size is not a constant, and `ZonBonus` could only carry one. A bonus authored
+`fromStat: mov` is resolved against the Servant's own snapshot inside `zonRadius`, in the
+stacking channel, because it is not "the same effect" as the class bonus.
+
+> **Read literally, and flagged.** Riding's own Active is *"+6 MOV for this Turn"*, and `mov`
+> on the snapshot includes it — so Pale Rider's Master's zone swells from 8 to **14** on the
+> Turn he uses it, and shrinks back afterwards. Measured live: base 2 (Rider) + MOV 6 = 8,
+> and 2 + 12 = 14 with the Active standing. The sheet states no cap and none is imposed; one
+> flag on the bonus would add one if that is not the intent.
+
 which reproduces the stated defaults (Assassin 2+2=4, Caster 3+2=5) and handles Kingprotea
 (Independent Action B: +2; not a Caster/Assassin; Mad Enhancement +2 ⇒ base 2 + 2 + 2 = 6).
 

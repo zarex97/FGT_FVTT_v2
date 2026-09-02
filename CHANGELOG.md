@@ -36,6 +36,24 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **A unit can be intrinsically undamageable.** `null` Health has been the convention since
+  Ch. 04 and the damage pipeline has halted at stage 0 on it for as long — but nothing could
+  ever *reach* that state, because each type's `prepareBaseData` backfills a null Max Health
+  from the END-rank table. A Servant whose sheet reads *"Base Health: —"* silently acquired
+  1600 and a health bar. The `undamageable` flag makes the backfill stand aside; it is a flag
+  rather than a rule element because `prepareBaseData` runs long before any rule is collected.
+- **Two grants that take a capability away** — `noNormalAttack` and `noReactions`, the first
+  in `GRANTS` that subtract rather than add. Refused where the rule can be named: a bare
+  Normal Attack is refused ahead of the budget and cost checks, and the defender's reaction
+  rung offers only *nothing* (which also covers an **ally's** Rho Aias, projected at the same
+  rung — the reason this is a grant and not an empty ability list).
+- **A ZON bonus may name a stat rather than a number.** `ZonBonus fromStat: mov` is the first
+  ZON clause in the corpus whose size is not a constant. Read literally, so Riding's own
+  +6 MOV Active swells the zone by six for that Turn; §6.9 records the reading rather than
+  capping it.
+- **`Charm`, `Regen` and `Dmg Cut`** as content. `charm` closes the longest-standing of the
+  three gaps: `rules/control.mjs#isCharmed` has looked for exactly that id since it was
+  written, so the entire control subsystem pointed at a definition that did not exist.
 - **Masters carry a rank that means something.** The letter (`A`–`D`, or blank for Rankless) is
   settable from the Master's sheet for the first time — it was a free-form string with no
   vocabulary and no control anywhere, so the only way to rank a Master was to hand-edit the
@@ -105,6 +123,15 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **A flat `DamageNegation` reduced nothing.** `mode: "flat"` has been the executor's own
+  default since the element was written, and `engine/attack.mjs#rollNegation` opened with
+  `if (n.mode !== "dice") continue` — so a flat negation authored cleanly, collected cleanly
+  into the `damageNegation` bucket, and was then skipped in silence. It stayed invisible
+  because every negation in the corpus is dice-mode (Battle Continuation, both Territory
+  Creations); Pale Rider's Dmg Cut is the first flat one and would have done nothing at all.
+  Flat entries now contribute their resolved value with no roll. A negation can also carry a
+  charge count for the first time (`uses`/`consumesUse`, the same three fields `AutoSucceed`
+  already carried), spent only when the negation stage had damage to reduce.
 - **A bounded field stored the bounding rectangle of its panels, not the panels.**
   `fields.mjs#shapeOf` built the Region as one rectangle while `boundedFieldsOf` reads the panels
   back *off* the Region — so the stored set was discarded on every board read and replaced by its
