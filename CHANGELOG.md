@@ -86,6 +86,33 @@ coincide by accident; the headings say which is which.
   across ground-occupied panels, and a two-passenger formation carried two panels with both
   relative offsets preserved.
 
+- **…and you could not click anything near it either.** A platform is a **9×9 token**, and
+  `Token#hitArea` is the token's whole shape, so its hit area covers eighty other panels.
+  `PlaceablesLayer` sorts by `elevation → sort → zIndex → insertion order` and PIXI picks the
+  topmost, so clicking a Servant standing *on* the Gardens selected the Gardens, and so did
+  clicking one standing *under* it. Two causes, two fixes:
+
+  - **A passenger** shares the platform's elevation, so the tie fell to `sort` — both were `0`,
+    and insertion order gave it to the platform. Platforms now take `sort: -1000`, which is the
+    field Foundry uses in the other direction (`_onDropActorData` drops new tokens at
+    `getMaxSort() + 1`). A platform is scenery you stand on; it belongs at the bottom of its own
+    elevation.
+  - **A unit below** is genuinely lower, so no `sort` can help. `FGTToken#isInteractable` adds
+    the clause levels imply and Foundry never applied to interaction: **only the level you are
+    viewing accepts clicks.** Foundry already scopes vision and fog that way
+    (`_isVisionSource`, `_isFogExplorationSource`) and badges off-level tokens; it just never
+    scoped picking. Overriding the getter rather than assigning `eventMode` from a hook is what
+    makes it survive — `_refreshState` re-reads it on every refresh.
+
+  Single-level scenes are unaffected. Measured live: viewing the ground, a unit under the 9×9
+  platform resolves to that unit; viewing the garden, a passenger sharing the platform's centre
+  panel resolves to the passenger.
+
+- **Orphan level sweep now scatters stranded passengers first.** It skipped an occupied orphan,
+  which meant it could never clean up the case it exists for — the riders are exactly why the
+  level outlived the platform. Measured: a second "Hanging Gardens" level accumulated on the very
+  next activation.
+
 - **Asterios and Karna are finished.** Both were already on the "authored" list. Asterios had all
   five abilities and **six of their clauses had no reader**; Karna had four of thirteen, and the
   four included neither of the two that define him. All eighteen abilities now resolve end to end

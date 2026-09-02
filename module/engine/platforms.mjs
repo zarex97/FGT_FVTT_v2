@@ -148,9 +148,52 @@ export async function activatePlatform({ platformId, initialUnitIds = [] }) {
   // platform: a platform belongs on its own level by definition, and no caller
   // should have to remember to say so.
   await moveToLevel([platform.id, ...initialUnitIds], platform);
+  await sinkBeneathPassengers(platform);
 
   Hooks.callAll("fgtPlatformActivated", platform, level);
   return { ok: true };
+}
+
+/**
+ * The `sort` value that puts a platform underneath everything on its level.
+ *
+ * Low enough that no ordinary token collides with it, and a constant rather
+ * than `min(sort) - 1` so it does not drift downward every time a platform is
+ * raised.
+ */
+const PLATFORM_SORT = -1000;
+
+/**
+ * Put a platform's token beneath the units standing on it.
+ *
+ * `PlaceablesLayer` sorts by `elevation → sort → zIndex → insertion order` and
+ * PIXI picks the topmost, so a platform and its passengers — which share an
+ * elevation by construction — were separated only by insertion order. The
+ * platform is created first and its passengers board afterwards, so the
+ * platform should already have lost that race; it did not, because the
+ * PASSENGERS are pre-existing tokens and the platform's token is the new one.
+ *
+ * A platform is scenery you stand on. `sort` is the field Foundry provides for
+ * saying so, and it is what `_onDropActorData` uses in the other direction
+ * (`sort: getMaxSort() + 1`) to drop a new token on top.
+ *
+ * Measured live: a 9×9 Hanging Gardens at `sort: 0` swallowed every click
+ * aimed at a passenger standing on it; at `sort: -1000` the passenger is
+ * selected.
+ *
+ * @param {object} platform the platform actor
+ * @returns {Promise<void>}
+ */
+async function sinkBeneathPassengers(platform) {
+  const tokens = (canvas?.scene?.tokens?.contents ?? [])
+    .filter((t) => t.actorId === platform.id && t.sort !== PLATFORM_SORT);
+  if (tokens.length === 0) return;
+
+  await canvas.scene.updateEmbeddedDocuments(
+    "Token",
+    tokens.map((t) => ({ _id: t.id, sort: PLATFORM_SORT })),
+    { fgtForced: true },
+  );
 }
 
 /**
