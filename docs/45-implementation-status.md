@@ -948,6 +948,57 @@ off-board panel and thus outside the area it was dragged into.
 | *"the DU is forcibly dragged into the area"* | dragged from outside to a free panel inside, its `fields` then naming the area; the Attack spent |
 | *"if the Evade succeeded, nothing happens"* | six evades at AGI 60, all `resisted`, all leaving him outside |
 
+#### Commit 6 — Innocent World
+
+Six numbered clauses, seven interior rules (clause 4 is two mechanisms), all of them authored on
+**Doomsday Come's area** rather than on the Skill — because *"constantly affects all enemy Units
+**within** 'Doomsday Come'"* is a fact about the area, which is what makes it apply to a Unit
+dragged in by somebody else and stop applying the moment it leaves.
+
+Three option families, none of them Pale-Rider-shaped:
+
+- `self:highestParameter:<p>`, emitted once per Parameter **tied** for the top, so *"if the Unit
+  has two or more Parameters of the same Rank, it is affected by all related effects"* falls out
+  of set membership rather than needing a clause of its own. An unranked Parameter is skipped
+  rather than counted as lowest.
+- `self:npAboveAllParameters` — *higher*, not equal.
+- `self:stableDie:d6:<n>`, a **hash** of the Unit's id folded to 1–6 rather than a stored roll.
+  *"That Unit will receive the same effect every time"* then costs nothing: identical on every
+  read, survives a reload, agreed by every client without anybody persisting it. It satisfies the
+  clause's intent rather than its letter — no die is ever rolled, so a GM cannot reroll one.
+
+Every clause is authored as `{or: [highestParameter, stableDie]}`, so the sheet's two halves are
+one predicate rather than two rule sets: a Unit **with** Parameters never emits a face, and a Unit
+without emits exactly one.
+
+**Two engine pieces beyond the options:**
+
+- **An interior rule's predicate is split per clause** — the unit half answered at annotation, the
+  attack half carried to the pipeline, and the answered half **stripped**. Stripping is a
+  correctness requirement, not tidiness: `self:` in the pipeline's option set means the
+  *attacker*, so a carried `self:highestParameter:agi` on a defender-side modifier would be
+  re-tested against the wrong Unit entirely.
+- **A standing suppression can prevent an action.** `preventedBy` reads `unit.suppressions`
+  against the same `PREVENTS` table it reads held effect ids against, so `Suppress scope: npSeal`
+  refuses a Noble Phantasm exactly as the effect does — and *"cannot be prevented or removed as
+  long as a Unit is within"* is then free, because an interior annotation has nothing for Dispel
+  to find.
+
+**Measured live**, with thirteen Units standing inside a 13×13 Doomsday Come:
+
+| Clause | Measured |
+|---|---|
+| 1. STR highest | Heracles (foe) → `atkDwn` alone |
+| 1 + 2, tied | Asterios (foe), STR = END → `atkDwn` **and** `defDwn` |
+| 3. AGI highest | Karna (foe) → `evade +4` |
+| 4. MAG highest | both halves: `ApplicationChance incoming 50` **and** `VulnerabilityAmplifier debuff ×1.5` |
+| all five tied | Dummy (test) → every clause at once |
+| 6. NP above all | Karna and Asterios sealed; Semiramis (an ally, also NP-above) not |
+| no Parameters | Foe Master → die face 1 → clause 1; Our Master → face 4 |
+| *"the same effect every time"* | both faces identical across a world reload, with nothing stored |
+| *"cannot be prevented or removed"* | NP refused `by: npSeal` with **no `npSeal` effect held**; the seal vanished when the area closed and returned when it reopened |
+| *"all **enemy** Units within"* | every faction-1 ally inside carried only the Anti-World shelter |
+
 ---
 
 ## 45.5 The completion plan

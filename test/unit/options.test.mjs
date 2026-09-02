@@ -345,3 +345,95 @@ describe("attack:npScale:gte", () => {
     }
   });
 });
+
+/* ── Innocent World's three option families ───────────────────────────────── */
+
+describe("self:highestParameter", () => {
+  const unit = (parameters, over = {}) => ({ id: "u", parameters, abilities: [], ...over });
+
+  it("names the single highest Parameter", () => {
+    const o = rollOptionsFor({ attacker: unit({ str: "A", end: "B", agi: "C", mag: "D", luc: "E" }) });
+    expect(o.has("self:highestParameter:str")).toBe(true);
+    expect(o.has("self:highestParameter:end")).toBe(false);
+  });
+
+  it("names EVERY Parameter tied for highest", () => {
+    // "If the Unit has two or more Parameters of the same Rank, it is affected
+    // by all related effects" -- set membership, not a tie-break.
+    const o = rollOptionsFor({ attacker: unit({ str: "A", end: "A", agi: "A", mag: "C", luc: "E" }) });
+    for (const p of ["str", "end", "agi"]) expect(o.has(`self:highestParameter:${p}`)).toBe(true);
+    for (const p of ["mag", "luc"]) expect(o.has(`self:highestParameter:${p}`)).toBe(false);
+  });
+
+  it("compares by full Rank, steps included", () => {
+    const o = rollOptionsFor({ attacker: unit({ str: "A", end: "A+", agi: "B" }) });
+    expect(o.has("self:highestParameter:end")).toBe(true);
+    expect(o.has("self:highestParameter:str")).toBe(false);
+  });
+
+  it("ignores an unranked Parameter rather than treating it as lowest", () => {
+    const o = rollOptionsFor({ attacker: unit({ str: "C", end: null, agi: "-" }) });
+    expect(o.has("self:highestParameter:str")).toBe(true);
+    expect([...o].filter((x) => x.startsWith("self:highestParameter:"))).toHaveLength(1);
+  });
+});
+
+describe("self:npAboveAllParameters", () => {
+  const unit = (parameters, abilities) => ({ id: "u", parameters, abilities });
+
+  it("holds when any NP outranks every Parameter", () => {
+    const o = rollOptionsFor({
+      attacker: unit({ str: "C", end: "C", agi: "C", mag: "C", luc: "C" },
+        [{ isNP: true, rank: "A" }, { isNP: false, rank: "EX" }]),
+    });
+    expect(o.has("self:npAboveAllParameters")).toBe(true);
+  });
+
+  it("does not hold when the NP merely ties the best Parameter", () => {
+    // "HIGHER than all its Parameters" -- equal is not higher.
+    const o = rollOptionsFor({
+      attacker: unit({ str: "A", end: "C" }, [{ isNP: true, rank: "A" }]),
+    });
+    expect(o.has("self:npAboveAllParameters")).toBe(false);
+  });
+
+  it("ignores a non-NP ability, however high", () => {
+    const o = rollOptionsFor({
+      attacker: unit({ str: "C" }, [{ isNP: false, rank: "EX" }]),
+    });
+    expect(o.has("self:npAboveAllParameters")).toBe(false);
+  });
+});
+
+describe("self:stableDie", () => {
+  const noParams = (id) => ({ id, parameters: {}, abilities: [] });
+
+  it("gives a unit with no Parameters exactly one face, in 1..6", () => {
+    const o = rollOptionsFor({ attacker: noParams("master-1") });
+    const faces = [...o].filter((x) => x.startsWith("self:stableDie:d6:"));
+    expect(faces).toHaveLength(1);
+    const n = Number(faces[0].split(":").pop());
+    expect(n).toBeGreaterThanOrEqual(1);
+    expect(n).toBeLessThanOrEqual(6);
+  });
+
+  it("is the SAME face every time it is asked", () => {
+    // "That Unit will receive the same effect every time it is affected by
+    // Innocent World" -- so it survives a reload and needs no stored state.
+    const face = (id) => [...rollOptionsFor({ attacker: noParams(id) })]
+      .find((x) => x.startsWith("self:stableDie:d6:"));
+    expect(face("master-1")).toBe(face("master-1"));
+  });
+
+  it("differs between units, or it is not a die", () => {
+    const face = (id) => [...rollOptionsFor({ attacker: noParams(id) })]
+      .find((x) => x.startsWith("self:stableDie:d6:"));
+    const faces = new Set(["a", "b", "c", "d", "e", "f", "g", "h"].map(face));
+    expect(faces.size).toBeGreaterThan(1);
+  });
+
+  it("is absent for a unit that HAS Parameters", () => {
+    const o = rollOptionsFor({ attacker: { id: "u", parameters: { str: "C" }, abilities: [] } });
+    expect([...o].some((x) => x.startsWith("self:stableDie:"))).toBe(false);
+  });
+});

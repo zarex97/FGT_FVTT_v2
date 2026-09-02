@@ -667,7 +667,13 @@ export const EXECUTORS = Object.freeze({
    */
   VulnerabilityAmplifier(el, { source, out }) {
     out.vulnerabilityAmplifiers.push({
-      effectId: el.effectId, factor: el.factor ?? 2, source,
+      effectId: el.effectId,
+      // A whole POLARITY rather than one named effect. Innocent World's MAG
+      // clause is *"Total Debuff Damage taken is increased by 50%"* -- every
+      // debuff at once, which no list of ids could keep up with.
+      polarity: el.polarity ?? null,
+      factor: el.factor ?? 2,
+      source,
     });
   },
 

@@ -363,6 +363,28 @@ the MOV clause.
 Human: 40/turn; Servant/non-Human: 20/turn), **halved against `Mechanical` units**, with the
 total drained healing Medusa and/or her Master up to the amount drained.
 
+### An interior rule may ask about the Unit it lands on
+
+Innocent World is six clauses on one field, applied *"depending on which of the Unit's
+Parameters are highest"* — so the field carries six rules and each one asks a question about the
+Unit standing under it.
+
+The predicate is split **per clause**, and that is a correctness requirement rather than
+tidiness:
+
+| Clause names | Answered | Why |
+|---|---|---|
+| the unit (`self:highestParameter:agi`) | at annotation, against the unit's own options | there is no attack yet, so deferring it means it is never answered |
+| the attack (`attack:npScale:gte:antiWorld`) | later, by the damage pipeline | there is no attack yet, so answering it now reads false for everybody |
+
+An answered clause is **stripped** before the rule travels on. `self:` in the pipeline's option
+set means the **attacker**, so carrying an already-answered `self:highestParameter:agi` through
+to a defender-side modifier would re-test it against the wrong Unit entirely.
+
+`annotateFields` used to pass `ctx: {}` and no `deferred`, so every interior predicate was simply
+dropped — a predicated rule became an unconditional one, which is the opposite of the authored
+intent and silent in both directions.
+
 ### Interior rules are not all modifiers
 
 The annotation pass appended every interior rule to the unit's `modifiers`, which is the bag the

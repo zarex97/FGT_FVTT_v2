@@ -265,6 +265,27 @@ element compiles, validates, loads, and subscribes to `undefined`: it listens fo
 ever, in silence. The content validator now refuses an `OnEvent` that names no event, and says
 so by name when it finds an `events:` beside it.
 
+**Three option families for one Skill.** Innocent World needed all three, and none of them is
+Pale-Rider-shaped:
+
+```
+self:highestParameter:<p>     one per Parameter TIED for highest
+self:npAboveAllParameters     any NP ranked strictly above every Parameter
+self:stableDie:d6:<1-6>       a Unit with NO Parameters, same face every time
+```
+
+The tie is why the first is a set rather than a single answer: *"if the Unit has two or more
+Parameters of the same Rank, it is affected by all related effects."* An **unranked** Parameter
+is skipped rather than counted as lowest — a Unit that has no MAG has not got a low MAG, and the
+question does not apply to it. `npAboveAllParameters` is *higher*, not equal: an A-rank NP on a
+Servant with an A-rank Parameter does not qualify.
+
+`stableDie` is a **hash** of the Unit's id folded to 1–6, not a roll that is stored. *"That Unit
+will receive the same effect every time it is affected by Innocent World"* then costs nothing:
+identical on every read, survives a reload, agreed on by every client without anybody
+persisting it. It satisfies the clause's intent rather than its letter — no die is ever rolled,
+so a GM cannot reroll one — and the spec records the alternative.
+
 **An effect's handler carries that effect's expiry.** Ch. 11 §11.9's *"does not fire on the turn
 it ends"* held for `periodic:` effects and for nothing else, because the effect pseudo-ability
 passed `defId` and `uses` and not `expiry`. It travels now, and `fireEvent` skips a handler on

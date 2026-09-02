@@ -122,6 +122,85 @@ field:
       npValue: 50
       relations: [ally, enemy, self]
       predicate: ["attack:npScale:gte:antiWorld"]
+
+    # ── Innocent World (`pale-rider-innocent-world.yml`) ───────────────────
+    #
+    # Six clauses, keyed on which of the Unit's Parameters is highest. They
+    # live on the AREA rather than on the Skill because that is what they are
+    # about -- "constantly affects all enemy Units WITHIN 'Doomsday Come'" --
+    # so a Unit dragged in by somebody else is subject to them, and a Unit that
+    # leaves stops being.
+    #
+    # Every predicate is an `or` with a `stableDie` face, which is the "no
+    # Parameters" clause: "roll a six-sided die and apply the effect
+    # corresponding to the number rolled". A Unit WITH Parameters never emits a
+    # face, and a Unit without emits exactly one -- so the two halves of the
+    # sheet's rule are one predicate rather than two rule sets.
+    #
+    # A tie emits every tied Parameter, so "if the Unit has two or more
+    # Parameters of the same Rank, it is affected by all related effects"
+    # falls out of set membership rather than needing a clause of its own.
+
+    # 1. STR highest: all damage dealt is reduced by 50%; if NP, 25%.
+    - key: DamageModifier
+      modifierKey: atkDwn
+      direction: dealt
+      value: 50
+      npValue: 25
+      relations: [enemy]
+      predicate: [{ or: ["self:highestParameter:str", "self:stableDie:d6:1"] }]
+
+    # 2. END highest: all damage received is increased by 50%; if NP, 25%.
+    - key: DamageModifier
+      modifierKey: defDwn
+      direction: taken
+      value: 50
+      npValue: 25
+      relations: [enemy]
+      predicate: [{ or: ["self:highestParameter:end", "self:stableDie:d6:2"] }]
+
+    # 3. AGI highest: the value of Evade rolls is increased by 4.
+    - key: CheckModifier
+      check: evade
+      direction: outgoing
+      value: 4
+      relations: [enemy]
+      predicate: [{ or: ["self:highestParameter:agi", "self:stableDie:d6:3"] }]
+
+    # 4. MAG highest, first half: chance of being inflicted by debuffs +50%.
+    - key: ApplicationChance
+      direction: incoming
+      severity: normal
+      value: 50
+      relations: [enemy]
+      predicate: [{ or: ["self:highestParameter:mag", "self:stableDie:d6:4"] }]
+
+    # 4. MAG highest, second half: Total Debuff Damage taken +50%. A POLARITY
+    # rather than a named effect -- "debuff damage" is every debuff at once,
+    # and no list of ids would keep up with the catalogue.
+    - key: VulnerabilityAmplifier
+      polarity: debuff
+      factor: 1.5
+      relations: [enemy]
+      predicate: [{ or: ["self:highestParameter:mag", "self:stableDie:d6:4"] }]
+
+    # 5. LUC highest: the value of Luck Check rolls is increased by 4.
+    - key: CheckModifier
+      check: luck
+      direction: outgoing
+      value: 4
+      relations: [enemy]
+      predicate: [{ or: ["self:highestParameter:luc", "self:stableDie:d6:5"] }]
+
+    # 6. An NP ranked above every Parameter: NP Seal. A standing SUPPRESSION
+    # rather than the applied effect, which is what makes "cannot be prevented
+    # or removed" free: it is present exactly while the Unit stands inside and
+    # there is nothing for Dispel to find. `rules/budget.mjs#preventedBy` reads
+    # the scope against the same table the effect id is read against.
+    - key: Suppress
+      scope: npSeal
+      relations: [enemy]
+      predicate: [{ or: ["self:npAboveAllParameters", "self:stableDie:d6:6"] }]
   interiorEvents: []
 
   # Axis 6 -- vulnerability. The Anti-World NP that pierced the boundary also

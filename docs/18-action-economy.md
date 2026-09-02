@@ -35,6 +35,15 @@
 > `factionId` is untouched throughout, so the token keeps its colour and every relation still
 > reads it as the enemy it was.
 >
+> **A prevention may be a standing suppression rather than an applied effect.** `preventedBy`
+> reads `unit.suppressions` against the same `PREVENTS` table it reads held effect ids against,
+> so a `Suppress scope: npSeal` refuses a Noble Phantasm exactly as the `npSeal` effect does.
+> Innocent World needs it: *"the Servant is affected with NP Seal ... the effects of Innocent
+> World cannot be prevented or removed as long as a Unit is within Doomsday Come."* As an
+> interior annotation the second half is free — present exactly while the Unit stands inside,
+> gone the moment it leaves, with nothing for Dispel or a Cure to find and no exit event to
+> clean up.
+>
 > Still open: Undo (§18.7) and Confuse's random selector.
 
 A player commands up to 14 units but may only act with a handful each turn. The budget is the

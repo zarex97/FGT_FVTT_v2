@@ -693,3 +693,54 @@ describe("randomFreePanelIn — the board's own edges", () => {
     expect(randomFreePanelIn(field, { units: [] }, () => 0)).toEqual(at(-1, -1));
   });
 });
+
+/* ── Interior rules that ask about the unit they land on ──────────────────── */
+
+describe("interiorModifiers — a predicate about the UNIT", () => {
+  const innocent = (predicate) => labyrinth({
+    id: "doomsday",
+    interior: [{ key: "CheckModifier", check: "evade", direction: "outgoing", value: 4, relations: ["enemy"], predicate }],
+  });
+  const enemy = (parameters) => inside({ id: "e", faction: "b", parameters, abilities: [] });
+
+  it("lands only on a unit whose own options satisfy it", () => {
+    // Innocent World: "AGI highest: the value of Evade rolls are increased by
+    // 4." Six rules on one field, each for a different kind of Unit.
+    const agile = enemy({ str: "C", agi: "A" });
+    const strong = enemy({ str: "A", agi: "C" });
+    const field = innocent(["self:highestParameter:agi"]);
+    expect(interiorModifiers(field, agile, { units: [agile] })).toHaveLength(1);
+    expect(interiorModifiers(field, strong, { units: [strong] })).toHaveLength(0);
+  });
+
+  it("strips the answered predicate, so nothing tests it twice", () => {
+    const agile = enemy({ agi: "A" });
+    const [rule] = interiorModifiers(innocent(["self:highestParameter:agi"]), agile, { units: [agile] });
+    expect(rule.predicate).toBeUndefined();
+  });
+
+  it("keeps a predicate about the ATTACK for the pipeline to answer", () => {
+    // There is no attack at annotation time, so testing it here would answer
+    // "false" for every unit and the rule would never apply.
+    const u = enemy({ agi: "A" });
+    const field = labyrinth({
+      interior: [{ key: "DamageModifier", modifierKey: "defUp", direction: "taken", value: 50,
+        relations: ["enemy"], predicate: ["attack:npScale:gte:antiWorld"] }],
+    });
+    const [rule] = interiorModifiers(field, u, { units: [u] });
+    expect(rule.predicate).toEqual(["attack:npScale:gte:antiWorld"]);
+  });
+
+  it("answers the unit half and defers the attack half of a mixed predicate", () => {
+    const agile = enemy({ agi: "A" });
+    const slow = enemy({ agi: "E", str: "A" });
+    const field = labyrinth({
+      interior: [{ key: "DamageModifier", modifierKey: "defUp", direction: "taken", value: 50,
+        relations: ["enemy"],
+        predicate: ["self:highestParameter:agi", "attack:npScale:gte:antiWorld"] }],
+    });
+    expect(interiorModifiers(field, slow, { units: [slow] })).toHaveLength(0);
+    const [rule] = interiorModifiers(field, agile, { units: [agile] });
+    expect(rule.predicate).toEqual(["attack:npScale:gte:antiWorld"]);
+  });
+});

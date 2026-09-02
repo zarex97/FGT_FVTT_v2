@@ -131,6 +131,22 @@ export function preventedBy(unit, action) {
     // complements and the table above says so directly.
     if (actions.includes(action)) return { prevented: true, by: id };
   }
+
+  // A STANDING prevention, from a suppression rather than from an effect.
+  // Innocent World clause 6: *"the Servant is affected with NP Seal ... the
+  // effects of Innocent World cannot be prevented or removed as long as a Unit
+  // is within Doomsday Come."*
+  //
+  // An interior annotation rather than an applied effect, which is what makes
+  // the second half free: it is present exactly while the Unit stands inside,
+  // gone the moment it leaves, and there is nothing for Dispel or a Cure to
+  // find. Read against the SAME table the effects are, so a scope and an
+  // effect id that share a name prevent the same actions.
+  for (const suppression of unit?.suppressions ?? []) {
+    const actions = PREVENTS[suppression?.scope];
+    if (actions?.includes(action)) return { prevented: true, by: suppression.scope };
+  }
+
   return { prevented: false, by: null };
 }
 

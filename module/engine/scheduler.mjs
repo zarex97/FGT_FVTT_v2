@@ -966,7 +966,7 @@ export function tickPeriodics(units, when, ctx) {
       // An effect does not tick on the turn it expires (Ch. 11 §11.9).
       if (e.expiry !== null && e.expiry !== undefined && e.expiry <= ctx.tick) continue;
 
-      const amount = periodicDamageFor(e, u);
+      const amount = periodicDamageFor(e, u, ctx.effectDef);
       const converted = (u.effects ?? []).includes(spec.healConversion);
       out.push(
         converted
@@ -1008,7 +1008,7 @@ const AMPLIFIERS = Object.freeze({
  * @param {object} unit the unit taking it
  * @returns {number}
  */
-function amplify(amount, defId, unit) {
+function amplify(amount, defId, unit, effectDef = null) {
   let out = amount;
   for (const held of unit?.effects ?? []) {
     const amp = AMPLIFIERS[held];
@@ -1024,6 +1024,18 @@ function amplify(amount, defId, unit) {
   // effect's own infliction chance ("has an increased chance of being
   // inflicted with" is the sheet's own second reading of "weak to").
   for (const amp of unit?.vulnerabilityAmplifiers ?? []) {
+    // A whole POLARITY, rather than one named effect. Innocent World's MAG
+    // clause is *"Total Debuff Damage taken is increased by 50%"* -- every
+    // debuff at once, and no list of ids could keep up with the catalogue.
+    //
+    // Not gated on `isWeakTo`: that gate belongs to Sikera Ušum's clause,
+    // which only widens a weakness the Unit independently carries ("has to be
+    // an effect the Unit ALREADY has"). Innocent World states no such
+    // condition -- it amplifies the damage as such.
+    if (amp.polarity) {
+      if (effectDef?.(defId)?.polarity === amp.polarity) out *= amp.factor;
+      continue;
+    }
     if (amp.effectId !== defId) continue;
     if (isWeakTo(unit, defId)) out *= amp.factor;
   }
@@ -1084,10 +1096,10 @@ export function regionScale(amount, scaledRegion, warRegion) {
  * @param {object|null} unit the bearer's snapshot, for the amplifier lookup
  * @returns {number|null} `null` when this effect has no periodic tick at all
  */
-export function periodicDamageFor(instance, unit) {
+export function periodicDamageFor(instance, unit, effectDef = null) {
   const spec = PERIODICS[instance?.defId];
   if (!spec) return null;
-  return amplify(spec.amount(instance), instance.defId, unit);
+  return amplify(spec.amount(instance), instance.defId, unit, effectDef);
 }
 
 /**
