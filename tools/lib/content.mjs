@@ -798,6 +798,10 @@ function actorSystem(doc) {
     // into. Absent from every other summon and cheap to carry.
     boundToPlatformId: doc.boundToPlatformId ?? null,
     movesOntoOccupiedPanels: Boolean(doc.movesOntoOccupiedPanels),
+    // Pale Rider and the Kagome Spirits: "Base Health: -", "cannot be
+    // damaged". Without this the flag compiled to its schema default and each
+    // type's `prepareBaseData` backfilled a Health the sheet does not state.
+    undamageable: Boolean(doc.undamageable),
     // Rule elements authored directly on the unit (Bašmu's Normal Attack
     // rider and Targetability aura; HGoB Construction's round-end regen) --
     // the same allowlist gap `itemCost` and `summonVariant` hit earlier: an

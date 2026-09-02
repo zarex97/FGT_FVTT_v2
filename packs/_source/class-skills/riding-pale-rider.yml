@@ -1,0 +1,45 @@
+# Pale Rider's Riding, Rank EX. char_orig_sheets/Copia de Pale Rider.md.
+#
+# A VARIANT FILE rather than a rank row on `riding.yml`, and the distinction is
+# the point: a rank table can give two Servants different NUMBERS off one
+# skill (Presence Concealment does exactly that for Jack and Serenity), but it
+# cannot give them different PASSIVES. Pale Rider's Riding grants none of
+# Double Move, Riding Attack or Passenger Seat -- it grants two prohibitions
+# instead, and adds a ZON clause no other Riding has.
+#
+# Passive 1 ("cannot take damage") is not here: it is the `undamageable` flag
+# on the Servant itself, because `prepareBaseData` runs long before any rule
+# element is collected and the Health has to be null from the start.
+schema: 1
+id: pale-rider-riding
+name: "Riding"
+source: class
+slug: riding
+kind: classSkill
+rank: EX
+cooldown: "3◈"
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive) Has the following effects-
+  1. Pale Rider cannot take damage.
+  2. Pale Rider's Master's ZON is increased by X panels, X = Pale Rider's MOV.
+  3. Pale Rider cannot perform Normal Attacks.
+  4. Pale Rider cannot Evade, Block, or Counter.
+  (Active) Used during your Turn. Increases MOV by 6 panels for this Turn. Cooldown: 3◈ Turns.
+  The MOV Up effect from Riding's Active usage is not a buff and cannot be removed by buff
+  removal effects, or prevented by an effect that prevents buffs from being applied.
+passiveRules:
+  - key: GrantedAbility
+    abilities: [noNormalAttack, noReactions]
+  # X = his MOV, so a number cannot say it. Stacking, like every other ZON
+  # bonus that is not "the same effect" as the class bonus.
+  - key: ZonBonus
+    fromStat: mov
+    stacks: true
+activeRules:
+  # A flat 6 rather than the `ridingMov` table: the sheet prints the number,
+  # and EX is not a row that table has.
+  - key: MovDelta
+    value: 6
+    duration: "this turn"
+    isBuff: false

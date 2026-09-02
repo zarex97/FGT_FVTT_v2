@@ -669,13 +669,22 @@ export const EXECUTORS = Object.freeze({
   },
 
   /** Battle Continuation's dice reduction at stage 12. */
-  DamageNegation(el, { rank, source, out, ctx }) {
+  DamageNegation(el, { rank, source, ability, out, ctx }) {
     const v = resolveValue(el, rank, ctx);
     out.damageNegation.push({
       mode: el.mode ?? "flat",
       formula: typeof v === "object" && v?.formula ? v.formula : v,
       bonus: typeof v === "object" && v?.bonus ? v.bonus : 0,
       npDiceDoubled: el.npDiceDoubled ?? false,
+      includesNP: el.includesNP !== false,
+      // Dmg Cut: "applies Dmg Cut for 1◈ Turns, 3 TIMES; all damage taken is
+      // reduced by 100." A negation with a charge count, which this bucket has
+      // never carried. Same three fields `AutoSucceed` carries for the same
+      // reason -- which effect this came from and how many charges are left,
+      // so the consumer can spend one.
+      consumesUse: el.consumesUse === true,
+      defId: ability?.id ?? null,
+      uses: el.uses ?? ability?.uses ?? null,
       source,
     });
   },
@@ -784,6 +793,10 @@ export const EXECUTORS = Object.freeze({
   ZonBonus(el, { rank, source, out, ctx }) {
     out.zonBonuses.push({
       value: scalar(resolveValue(el, rank, ctx)),
+      // Pale Rider's Riding EX: "increased by X panels, X = Pale Rider's MOV".
+      // A stat the zone reader resolves off the Servant snapshot, because no
+      // number here could be right for both a MOV of 6 and a MOV of 12.
+      fromStat: el.fromStat ?? null,
       stacks: el.stacks === true,
       source,
     });

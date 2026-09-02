@@ -22,7 +22,7 @@ import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { transferEffect, transferableFrom } from "../rules/effect-flow.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
-import { currentHealth } from "../domain/health.mjs";
+import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
@@ -466,6 +466,14 @@ const ACTIONS = Object.freeze({
   Damage: (a, u) => [I.damage(u.id, a.amount ?? 0, null, { event: true, defId: a.defId ?? null })],
 
   Heal: (a, u, h, c) => {
+    // Regen: *"Health is restored by 10% of its MAXIMUM value."* Of maximum,
+    // not of current -- the same reading `skill-use.mjs`'s `heal` phase makes,
+    // and for the same reason: 10% of a nearly-dead unit's current Health is a
+    // rounding error, which is not what a regeneration buff is for.
+    if (typeof a.percentOfMax === "number") {
+      const amount = Math.floor(maxHealth(u) * (a.percentOfMax / 100));
+      return amount > 0 ? [I.heal(u.id, amount, h.source)] : [];
+    }
     const amount = rolled(a, c);
     return amount === null ? [] : [I.heal(u.id, amount, h.source)];
   },

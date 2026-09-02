@@ -91,6 +91,13 @@ export class ServantData extends foundry.abstract.TypeDataModel {
    * @inheritdoc
    */
   prepareBaseData() {
+    // Pale Rider: "Base Health: —". A Servant who cannot be damaged has no
+    // Max Health to derive, and the END table would have given him one.
+    if (this.undamageable) {
+      this.health.value = null;
+      this.health.max = null;
+      return;
+    }
     if (this.health.max === null || this.health.max === 0) {
       const end = Rank.parseOrNull(this.parameters?.end);
       const derived = end ? lookup("baseHealthByEnd", end) : null;

@@ -1,0 +1,28 @@
+# Guidance of the Netherworld effect 3: "Applies Dmg Cut for 1◈ Turns, 3 times;
+# all damage taken is reduced by 100."
+#
+# The first negation in the catalogue with a CHARGE COUNT. `uses` is the
+# effect's own (the same field Activated Circuits carries) and `consumesUse` is
+# what tells the attack flow to spend one when the reduction actually applies
+# -- a flat cut that never fires because the attack dealt nothing should not
+# burn a charge.
+#
+# Flat rather than a percentage, and it applies to Noble Phantasms too: the
+# sheet says "all damage taken" with no NP column, which every other effect in
+# this catalogue states explicitly when it means something narrower.
+schema: 1
+id: dmgCut
+name: "Dmg Cut"
+description: "All damage taken is reduced by X, a limited number of times."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+uses: 3
+rules:
+  - key: DamageNegation
+    mode: flat
+    value: "@magnitude"
+    includesNP: true
+    consumesUse: true

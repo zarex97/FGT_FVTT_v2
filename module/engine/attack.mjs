@@ -27,6 +27,7 @@ import { rollOptionsFor } from "../rules/options.mjs";
 import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
+import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { absorb, refreshShield } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
 import { currentHealth } from "../domain/health.mjs";
@@ -72,6 +73,18 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // `damage.branches` (Summoning: Bašmu) -- computed once here rather than
   // per call site, since `self` does not change across this declaration.
   const options = rollOptionsFor({ attacker: self });
+
+  // Pale Rider's Riding EX passive 3: *"Pale Rider cannot perform Normal
+  // Attacks."* Refused ahead of the budget, so the message names the rule
+  // rather than reporting an attack slot he was never going to spend -- and
+  // ahead of the cost check, because a refused declaration costs nothing.
+  //
+  // A grant rather than a Range of 0: his sheet prints Base Attack (MAG) 200,
+  // which an Attack Skill or a Spell could still spend, and a zero Range would
+  // have refused those too.
+  if (!ability && hasGranted(self, GRANTS.noNormalAttack)) {
+    throw new Error(`FGT | ${attacker.name} cannot perform Normal Attacks.`);
+  }
 
   // The budget is checked before the targeting is resolved, so a player who
   // has no attacks left is told that rather than being told their target is
@@ -1587,6 +1600,18 @@ async function applyDamage(state, message) {
   // Stage of Poison"* and had no way to ask.
   result.flags = { ...result.flags, isCrit };
 
+  // Dmg Cut: *"3 times"*. Spent here rather than at collection, and only when
+  // the negation stage had something to reduce -- a charge burned against an
+  // attack that already dealt nothing would make three uses mean fewer.
+  const consuming = (ctx.rolls.negation ?? []).filter((n) => n.consumes);
+  if (consuming.length > 0) {
+    const stage = (result.breakdown ?? []).find((b) => b.index === 12);
+    const before = (stage?.before?.mag ?? 0) + (stage?.before?.phys ?? 0);
+    if (before > 0) {
+      await applyBatch(consuming.map((n) => I.consumeUse(defender.id, n.consumes)), "damageNegation");
+    }
+  }
+
   // §16.5. Overpower can end the Master outright before damage matters;
   // Underpower halves a Master's own Total Damage. Both are Master-Servant
   // asymmetries and neither fires between two units of the same kind.
@@ -1754,6 +1779,21 @@ async function rollModifierDice(units) {
 async function rollNegation(defender, isNP) {
   const out = [];
   for (const n of defender.damageNegation ?? []) {
+    // A FLAT negation, which this loop skipped outright. Every negation in the
+    // corpus was dice-mode until Pale Rider's Dmg Cut ("all damage taken is
+    // reduced by 100"), so `mode: "flat"` -- the executor's own default --
+    // authored cleanly, collected cleanly and reduced nothing. There is no
+    // roll to make; the value is the value.
+    if (n.mode === "flat") {
+      const value = Number(n.formula) || 0;
+      if (value <= 0) continue;
+      if (isNP && n.includesNP === false) continue;
+      // Spent only when it is about to apply. A charge burned on an attack
+      // that dealt nothing would make "3 times" mean rather less than three.
+      if (n.consumesUse && n.defId) out.push({ source: n.source, value, consumes: n.defId });
+      else out.push({ source: n.source, value });
+      continue;
+    }
     if (n.mode !== "dice" || !n.formula) continue;
     const formula = isNP && n.npDiceDoubled ? doubleDice(n.formula) : n.formula;
     const roll = await new Roll(formula).evaluate();
@@ -2684,6 +2724,13 @@ async function askOwner(actor, spec) {
 function offeredReactions(defenderId, attack = null) {
   const actor = game.actors.get(defenderId);
   if (!actor) return [];
+
+  // Pale Rider and the Kagome Spirits: *"cannot Evade, Block, or Counter."*
+  // The rung still happens -- Ch. 27's ladder prompts the defender either way
+  // -- and the only option on it is nothing. Refused here rather than by
+  // giving them no reaction abilities, because an ALLY's Rho Aias is offered
+  // at this same rung and is equally unavailable to them.
+  if (hasGranted(unitSnapshot(actor), GRANTS.noReactions)) return [];
 
   const own = reactionAbilities({
     items: actor.items,

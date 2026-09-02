@@ -699,6 +699,58 @@ leaves both the field and the flag untouched.
 to synthesised drags, so shift-drag *erase* was confirmed only by reading `event.shiftKey` as
 `true` on a real shift-click. The code path is otherwise identical to paint.
 
+### Pale Rider — **in progress**
+
+Spec: `docs/superpowers/specs/2026-09-02-pale-rider-design.md`.
+Plan: `docs/superpowers/plans/2026-09-02-pale-rider.md`. Eight commits, each leaving the system
+working.
+
+He is the strongest argument in the corpus for the snapshot/intent boundary (Ch. D §D.26):
+almost nothing on his sheet is an attack. Everything he does happens *around* him, which is why
+the bounded-field model of Ch. 43 is what makes him buildable without a special case per line.
+
+#### Commit 1 — the unit shape, two grants, ZON from a stat, three effects
+
+| Piece | What it repairs |
+|---|---|
+| `undamageable` on `unitCommon()` | `null` Health was already the convention and the pipeline already halted on it, but **nothing could reach it**: `ServantData#prepareBaseData` backfills a null max from the END table, so a Servant whose sheet says "Base Health: —" quietly acquired 1600. The flag makes the backfill stand aside; `SummonData` gets the same, for the Kagome Spirits. |
+| `GRANTS.noNormalAttack` / `noReactions` | The first two grants that take a capability away rather than adding one (Ch. 04). |
+| `ZonBonus fromStat` | The first ZON clause whose size is a **stat**, not a number (Ch. 06 §6.9). |
+| `Heal percentOfMax` | Regen restores *"10% of its maximum value"*; the event action could only heal a rolled or literal amount. |
+| `charm`, `regen`, `dmgCut` | Three catalogued effects with no content file. `charm` is the sharper one: `rules/control.mjs#isCharmed` has looked for exactly this id since it was written, so the whole control subsystem pointed at a definition that did not exist. |
+
+**A defect found while building it, which the spec had not predicted.** `DamageNegation` has
+carried `mode: "flat"` as its **executor default** since it was written, and
+`engine/attack.mjs#rollNegation` opened with `if (n.mode !== "dice") continue`. Every negation
+in the corpus happens to be dice-mode — Battle Continuation, both Territory Creations — so the
+gap never showed: a flat negation authored cleanly, collected cleanly into `damageNegation`,
+and reduced **nothing**. Dmg Cut is the first flat one, and it would have silently done nothing
+at all. `rollNegation` now emits flat entries with their resolved value and no roll.
+
+`uses` is the other half. A `DamageNegation` had no charge count, so *"3 times"* had nowhere to
+live. It now carries the same three fields `AutoSucceed` already carried for the same reason —
+`defId`, `uses`, `consumesUse` — and a charge is spent **only when stage 12 had damage to
+reduce**, because a charge burned against an attack that already dealt nothing would make three
+uses mean fewer than three.
+
+**Measured live in `fgt2026`** (a Pale Rider stand-in; the Servant file lands in commit 8):
+
+| Clause | Measured |
+|---|---|
+| *"Base Health: —"*, END A | `health: {value: null, max: null}` — the END table stood aside |
+| *"cannot take damage"* | 900 STR at him → **0**, stage 0 `negated by invulnerable-by-nature` |
+| *"cannot perform Normal Attacks"* | Bare attack refused: `FGT \| Pale Rider (test) cannot perform Normal Attacks.` |
+| *"cannot Evade, Block, or Counter"* | Both grants collected on his snapshot; `offeredReactions` returns nothing |
+| *"Master's ZON +X, X = MOV"* | ZON **8** = base 2 (Rider) + MOV 6, at distance 2 from his Master |
+| …with Riding's Active (+6 MOV) | ZON **14**. Read literally; flagged in §6.9 rather than capped |
+| Dmg Cut, flat −100, 3 times | Real attack: stage 12 `flatReductions` 280.4 → 180.4, contributor `damageNegation −100 (dmgCut)`; 180 dealt (4940 → 4760); uses **3 → 2** |
+
+Three clauses are recorded **unmodelled**, each with its reason on the content file: Charm's
+removal on taking damage and its mutual immunity with Berserk and Confuse (no effect in the
+corpus is cleared by damage, and neither of those two effects is authored), and Regen's *"does
+not fire on the turn it ends"* (nothing distinguishes an effect's last tick; `NP Regen` carries
+the same clause and does not model it either).
+
 ---
 
 ## 45.5 The completion plan

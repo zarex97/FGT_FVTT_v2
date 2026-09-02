@@ -45,7 +45,11 @@ describe("EffectRegistry", () => {
       for (const key of Object.keys(parse(readFileSync(`${DIR}/${f}`, "utf8")))) declared.add(key);
     }
     // Not effect behaviour: bookkeeping the registry has no reason to keep.
-    for (const key of ["schema", "id", "name", "description"]) declared.delete(key);
+    // `notes` joined them with Charm and Regen, which is where each records
+    // the clauses of its Appendix A entry that are NOT modelled and why --
+    // authorial commentary in the same category as `description`, addressed to
+    // whoever builds the machinery those clauses need.
+    for (const key of ["schema", "id", "name", "description", "notes"]) declared.delete(key);
 
     const projected = new Set(Object.keys(EffectRegistry.all()[0] ?? {}));
     const missing = [...declared].filter((k) => !projected.has(k));

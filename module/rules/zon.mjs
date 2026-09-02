@@ -75,16 +75,27 @@ export function zonRadius(servant, master, config = {}) {
     classes.length === 0 ? (config.defaultBase ?? ZON_DEFAULT_BASE) : -Infinity,
   );
 
+  // A bonus may name a STAT rather than a number. Pale Rider's Riding EX:
+  // *"Pale Rider's Master's ZON is increased by X panels, X = Pale Rider's
+  // MOV"* -- the first ZON clause in the corpus whose size is not a constant,
+  // and `ZonBonus` could only carry one.
+  //
+  // Read literally, and off the same snapshot the rest of this function has:
+  // Riding's own Active is "+6 MOV for this Turn", `mov` includes it, so the
+  // zone swells by six on that Turn. The sheet states no cap and none is
+  // imposed here; Ch. 06 records the reading.
+  const valueOf = (b) => (b.fromStat ? (Number(servant?.[b.fromStat]) || 0) : (b.value ?? 0));
+
   // Max, not sum, across every bonus that claims to be "the same effect".
   const equivalent = [
     ...classes.map((c) => classBonus[c] ?? 0),
-    ...(servant.zonBonuses ?? []).filter((b) => b.stacks !== true).map((b) => b.value ?? 0),
+    ...(servant.zonBonuses ?? []).filter((b) => b.stacks !== true).map(valueOf),
   ];
   const exclusive = equivalent.length > 0 ? Math.max(...equivalent) : 0;
 
   const stacking = (servant.zonBonuses ?? [])
     .filter((b) => b.stacks === true)
-    .reduce((sum, b) => sum + (b.value ?? 0), 0);
+    .reduce((sum, b) => sum + valueOf(b), 0);
 
   // The Master's own ZON stat is the floor: a Master sheet that states a number
   // is stating it, and the derivation is what fills in a sheet that does not.

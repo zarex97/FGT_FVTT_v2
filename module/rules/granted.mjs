@@ -33,6 +33,25 @@ export const GRANTS = Object.freeze({
   ridingAttack: "ridingAttack",
   /** Riding: carrying another unit. Needs platforms (Ch. 20), so nothing reads it yet. */
   passengerSeat: "passengerSeat",
+
+  /**
+   * Pale Rider's Riding EX: *"Pale Rider cannot perform Normal Attacks."*
+   *
+   * A grant rather than a Range of 0 -- his sheet prints a MAG Base Attack of
+   * 200, which an ability could still spend. Read by
+   * `engine/attack.mjs#resolveAttack`, which refuses a declaration carrying no
+   * ability.
+   */
+  noNormalAttack: "noNormalAttack",
+
+  /**
+   * Pale Rider and the Kagome Spirits: *"cannot Evade, Block, or Counter."*
+   *
+   * The defender's rung of the ladder (Ch. 27) still happens -- the Process
+   * asks the defender -- and the only answer is nothing. Read by
+   * `engine/attack.mjs#offeredReactions`.
+   */
+  noReactions: "noReactions",
 });
 
 /**

@@ -1,7 +1,9 @@
 # Appendix A — Effect Catalogue
 
-> **Authored so far (Ch. 45).** 14 of roughly 152 effect definitions exist as content in
-> `packs/_source/effects/`: `atkUp`, `bleed`, `bleedAtk`, `burn`, `critUp`, `curse`, `debuffImmune`, `defDwn`, `defUp`, `dodge`, `nAtkUp`, `npRegen`, `npSeal`, `offDebuffResUp`.
+> **Authored so far (Ch. 45).** 70 of roughly 152 effect definitions exist as content in
+> `packs/_source/effects/`. The three most recent are Pale Rider's: `charm` — the id
+> `rules/control.mjs#isCharmed` has looked for since it was written, with nothing to find —
+> `regen`, and `dmgCut`, the first negation in the catalogue with a charge count.
 >
 > An effect an ability references but which is **not** in that directory fails the content
 > build — `validate-content.mjs` refuses an unknown effect id, which is how the five added
@@ -45,7 +47,7 @@ and its implementation note. This is the authoritative reference the compendium 
 |---|---|---|---|---|---|
 | `Def Up` | B | D | mag | 4 | Damage taken −X%. Reduced magnitude vs NP. Family: `defUp`. Sums additively with attacker `Atk Up` (Ch. 13 §13.4). |
 | `Ward` | B | D | mag | 4 | Damage from a matching category −X%, **including NP**. Predicated. |
-| `Dmg Cut` | B | D | mag | 12 | Damage taken −X **flat**, including NP. Not bypassed by `Pierce`. |
+| `Dmg Cut` | B | D | mag | 12 | Damage taken −X **flat**, including NP. Not bypassed by `Pierce`. **Built** (`dmgCut`), and the first effect to carry `uses` on a `DamageNegation`: Guidance of the Netherworld applies it "3 times", and a charge is spent only when the negation stage had damage to reduce. `mode: flat` was the executor's default and the attack flow skipped it outright — every negation in the corpus was dice-mode — so a flat cut authored cleanly and reduced nothing until this was built. |
 | `Crit ResUp` | B | D | mag | 2 | Crit damage taken −X%. Not NP. |
 | `Crit Guard` | B | D | mag | — | AU's crit chance −X% when attacking this unit. Not NP unless stated. |
 | `Shield (X)` | B | D | nr | 16 | Separate pool absorbing damage; excess passes through. **A Master with Shield cannot be Overpowered.** |
@@ -86,7 +88,7 @@ and its implementation note. This is the authoritative reference the compendium 
 
 | Effect | Pol | Val | Stack | Semantics |
 |---|---|---|---|---|
-| `Regen` | B | — | mag | Restores Health at declared intervals. **Does not fire on the turn it ends.** |
+| `Regen` | B | — | mag | Restores Health at declared intervals. **Does not fire on the turn it ends.** **Built** (`regen`): an `OnEvent` on `turnEnd`/`actedTurnEnd`/`roundEnd` healing `percentOfMax`, which is the three intervals Guidance of the Netherworld names. The final-turn exclusion is **unmodelled** — nothing in the system distinguishes an effect's last tick, and `NP Regen` carries the same clause and does not model it either. |
 | `NP Regen` | B | — | mag | NP cooldown −X per interval, **in addition to** the natural reduction. Does not fire on its final turn. Affects *categorized as NP* abilities. |
 | `Dmged NP Regen` | B | — | mag | NP cooldown −X at the end of a Damage Step in which this unit was successfully attacked. |
 | `Drain` | B | O | mag | Restores Health by X% of damage dealt on a successful attack. May carry a cap. |
@@ -188,7 +190,7 @@ All five are `nnr` (no stack, no refresh).
 
 | Effect | Semantics |
 |---|---|
-| `Charm` | Control switches to the inflicter's player for X turns. Removed at the end of the Combat Phase if the unit takes damage from an attack. **Immune to Confuse and Berserk while charmed.** |
+| `Charm` | Control switches to the inflicter's player for X turns. Removed at the end of the Combat Phase if the unit takes damage from an attack. **Immune to Confuse and Berserk while charmed.** **Built** (`charm`), `volatility: mental` — which is this appendix's own classification, so Heracles' Bravery and Jack's Mental Pollution already resist it without either sheet naming it. `rules/control.mjs#isCharmed` has read this exact id since it was written and there was no document for it to find, so the whole control subsystem pointed at nothing. Two clauses are **unmodelled**: removal on taking damage (nothing in the corpus is cleared by damage) and the mutual immunity with Berserk and Confuse (neither effect is authored). Pale Rider's Contagion, the first inflicter, needs neither. |
 | `Berserk` | (1) Only moves toward and attacks the **nearest** enemy, only with BA(STR) Normal Attacks; a MAG-only attacker's Range drops to 1. (2) Damage dealt +50% including NP. (3) Cannot Block or Evade. (4) **Must** move and attack if able. (5) Immune to Charm and Confuse. |
 | `Confuse` | Cannot be controlled. Performs random actions at the end of its player's turn. Removed at the end of the Damage Step if it takes damage. Immune to Charm and Berserk. |
 | `Terror` | At the end of every turn, X% chance (default 50) of `Stun 1◈`, then Terror is removed. **The chance is not modified by debuff chance/resist effects.** |

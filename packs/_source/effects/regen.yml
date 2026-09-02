@@ -1,0 +1,34 @@
+# Guidance of the Netherworld effect 2: "Applies Regen for 1◈ Turns, Health is
+# restored by 10% of its maximum value at the end of the Unit's Turn, the end
+# of any Turn the Unit Acts, and at the end of the Round."
+#
+# Three boundaries on one handler rather than three handlers: they are one
+# clause, and the deduplication §E.2 describes (an effect fires once per
+# `(effectId, globalTurn)`) is what stops a Unit that Acted on its own Turn
+# healing twice for the same sentence.
+#
+# Of MAXIMUM, not of current -- the same reading `skill-use.mjs`'s `heal` phase
+# already makes for Medea, and the reason `Heal` gained `percentOfMax`.
+schema: 1
+id: regen
+name: "Regen"
+description: |
+  Health is restored by 10% of its maximum value at the end of the Unit's Turn, the end of any
+  Turn the Unit Acts, and at the end of the Round.
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    events: [turnEnd, actedTurnEnd, roundEnd]
+    automatic: true
+    then:
+      - { key: Heal, percentOfMax: 10 }
+notes: |
+  Unmodelled from Appendix A: "does not fire on the turn it ends". No effect in the system
+  distinguishes its last tick from the others -- NP Regen carries the same clause and does not
+  model it either -- so the convention needs machinery of its own rather than a line here.
+  Pale Rider's Guidance of the Netherworld applies Regen for 1◈, where the difference is one
+  tick of 10%.

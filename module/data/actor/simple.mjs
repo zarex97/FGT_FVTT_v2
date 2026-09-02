@@ -54,6 +54,14 @@ export class SummonData extends foundry.abstract.TypeDataModel {
    * @inheritdoc
    */
   prepareBaseData() {
+    // The Kagome Spirits: "Health: - (Cannot be damaged)". The same
+    // stand-aside `ServantData` makes, for the same reason -- a summon that
+    // states no Health must not be given one.
+    if (this.undamageable) {
+      this.health.value = null;
+      this.health.max = null;
+      return;
+    }
     if ((this.health.max === null || this.health.max === 0) && this.baseHealth) {
       this.health.max = this.baseHealth;
       if (this.health.value === null || this.health.value === 0) this.health.value = this.baseHealth;
