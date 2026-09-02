@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   planMovement, validatePath, remainingMovement, effectiveMov, segmentCheck,
-  canPassThrough, canStopOn, inEnemyMasterProtection, knockbackPanel,
+  canPassThrough, canStopOn, inEnemyMasterProtection, knockbackPanel, occupantAt,
 } from "../../module/rules/movement.mjs";
 import { squareBounds, key } from "../../module/domain/geometry.mjs";
 
@@ -136,6 +136,35 @@ describe("a sealed field's own boundary — Sikera Ušum's Throne Room", () => {
   });
 });
 
+describe("occupancy is per LEVEL, not per panel", () => {
+  // §20.2's whole reason for giving each platform its own Scene Level is
+  // "separate occupancy". `occupantAt` compared `i` and `j` and nothing else,
+  // so every unit in the scene occupied the same 2D grid whatever its
+  // elevation — and the Hanging Gardens, which is flying, could not be moved
+  // anywhere near the board because the ground units blocked it.
+  const ground = other("g", 6, 8);
+  const flyer = mover({ id: "hgob", kind: "platform", level: 20 });
+
+  it("does not block a unit on a different level", () => {
+    const b = board([ground]);
+    expect(occupantAt(at(6, 8), b, 20)).toBeNull();
+    expect(canPassThrough(at(6, 8), flyer, b)).toBe(true);
+    expect(canStopOn(at(6, 8), flyer, b)).toBe(true);
+  });
+
+  it("still blocks a unit on the SAME level", () => {
+    const b = board([ground]);
+    expect(occupantAt(at(6, 8), b, 0)?.id).toBe("g");
+    expect(canPassThrough(at(6, 8), mover(), b)).toBe(false);
+  });
+
+  it("treats an absent level as the ground, so old boards behave as before", () => {
+    const b = board([{ ...ground, level: undefined }]);
+    expect(occupantAt(at(6, 8), b, 0)?.id).toBe("g");
+    expect(occupantAt(at(6, 8), b, undefined)?.id).toBe("g");
+  });
+});
+
 describe("clause 4 — enemy Master protection", () => {
   const master = { id: "m", kind: "master", factionId: "b", panel: at(6, 9), effects: [] };
   const guard = { id: "g", kind: "servant", factionId: "b", panel: at(6, 10), effects: [] };
@@ -153,6 +182,24 @@ describe("clause 4 — enemy Master protection", () => {
   it("does not protect a Master from its own faction's units", () => {
     const friendly = { ...master, factionId: "a" };
     expect(inEnemyMasterProtection(at(6, 8), mover(), board([friendly, guard]))).toBe(false);
+  });
+
+  it("can be switched off as an optional rule", () => {
+    // A table that does not want clause 4 turns it off, and the whole rule
+    // stops applying -- including its effect on reachability, which is where a
+    // player actually meets it.
+    const off = board([master, guard], { rules: { masterProtection: false } });
+
+    expect(inEnemyMasterProtection(at(6, 8), mover(), off)).toBe(false);
+    expect(canPassThrough(at(6, 8), mover(), off)).toBe(true);
+    expect(planMovement(mover({ mov: 3 }), off).reachable.has(key(at(6, 8)))).toBe(true);
+  });
+
+  it("is ON when the board says nothing, because it is a core rule", () => {
+    // Absence must not silently disable it. Every board built before the
+    // setting existed carries no `rules` block at all.
+    expect(inEnemyMasterProtection(at(6, 8), mover(), board([master, guard]))).toBe(true);
+    expect(inEnemyMasterProtection(at(6, 8), mover(), board([master, guard], { rules: {} }))).toBe(true);
   });
 
   it("removes the protected panels from reachability", () => {

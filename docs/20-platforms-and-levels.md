@@ -95,6 +95,48 @@ What this buys us for free:
 What we still implement: the platform's own stats and attacks, the passenger manifest, the
 movement linkage, the boarding rolls, and destruction/scatter.
 
+> **Every line of that table was false in a live world, and five separate defects made it so.**
+> The Hanging Gardens flew at elevation 0 on the ground level, blocked by every unit on the board,
+> counting all 21 of them as passengers, and leaving a spare Scene Level behind on each attempt.
+>
+> **1. The platform's own token was never put on its level.** `activateHangingGardens` creates the
+> token and *then* calls `activatePlatform`, which created the level and moved only the initial
+> passengers. Nothing ever moved the platform itself. `activatePlatform` now assigns
+> `[platform.id, ...initialUnitIds]`, because a platform belongs on its own level by definition
+> and no caller should have to remember to say so.
+>
+> **2. …and it could not have been, because our own movement hook refused it.** Foundry counts
+> `elevation` and `level` among `TokenDocument.MOVEMENT_FIELDS`, so assigning a token to a level
+> arrives at `preMoveToken` as a *movement* — one with no horizontal step — and `validatePath`
+> rejected it with *"Step 1 is not an orthogonal move."* A change of level is not a Move; it is
+> `boardPlatform`'s business and is gated by its own roll. **This broke boarding too.**
+>
+> **3. The `fgtForced` escape hatch had never worked.** Foundry calls the hook as
+> `Hooks.call("preMoveToken", document, move, options)` — the update options are the **third**
+> argument, and `move` has no `options` at all. Our hook read `movement.options.fgtForced`, took
+> two parameters, and therefore re-validated every forced displacement in the system as a
+> voluntary move.
+>
+> **4. The elevation bands overlapped.** `bottom = levelCount × 10` assumed the ground was 10
+> tall; Foundry's default Level is `{bottom: 0, top: 20}`, so the first platform landed at 10–20,
+> *inside* it. `inferLevelFromElevation` scores a strictly-interior candidate 0 and a
+> bottom-edge one 1 and takes the lowest — so Foundry inferred every passenger straight back down
+> onto the ground. Bands now start at the highest existing `top`, which also makes a shared edge
+> resolve upward, to the platform.
+>
+> **5. Nothing ever removed a level whose platform was gone.** `teardown` runs only from
+> `destroyPlatform`, so a platform actor deleted by hand — or an activation that was redone —
+> stranded its level for good and the next activation stacked another one on top.
+> `sweepOrphanLevels` runs before each create, and `createLevel` now also reuses a level already
+> flagged with the platform's id rather than making a second.
+>
+> **How many levels should a GM see?** Exactly **one per active platform, plus the ground.** One
+> Hanging Gardens means two. Four meant one live level and three orphans.
+>
+> Measured live after the fixes: two levels (0–20 and 20–30, non-overlapping), the platform token
+> on its own level at elevation 20, its owner aboard, `passengersOf` returning **1** instead of
+> 21, and the platform able to pass through and stop on every ground-occupied panel.
+
 ---
 
 ## 20.3 The platform model

@@ -224,6 +224,8 @@ export function currentBoard(overrides = {}) {
       // The match field stays first because a per-match override is the right
       // shape once something writes one; the setting is the default rather than
       // a replacement.
+      // Optional rules the table has switched off (§8.3 clause 4 today).
+      rules: { masterProtection: setting("masterProtection", true) !== false },
       warRegion: combat?.system?.region || setting("region", null) || null,
       difficulty: combat?.system?.difficulty ?? "intermediate",
       grail: {

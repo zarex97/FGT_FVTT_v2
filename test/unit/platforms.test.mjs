@@ -13,6 +13,7 @@ import {
   boardingTarget, fallOff, destructionSequence, aoePassengerFactor,
   platformCentre, withinPlatformCentre,
 } from "../../module/rules/platforms.mjs";
+import { nextBand } from "../../module/engine/scene-levels.mjs";
 
 const at = (i, j) => ({ i, j });
 
@@ -60,6 +61,35 @@ describe("platform membership", () => {
 });
 
 /* ── 20.8 Movement linkage — the C3 gate ──────────────────────────────────── */
+
+describe("a platform that is not on a level of its own", () => {
+  // Membership is "units on the platform's level", and `level ?? 0` made a
+  // platform sitting on the GROUND the owner of everyone standing on the
+  // ground. That is not hypothetical: `activatePlatform` created the Hanging
+  // Gardens' level and never moved the platform's own token onto it, so it flew
+  // at elevation 0 — and `passengersOf` returned 21 of 21 units on the board.
+  // Moving it would have dragged the entire match one panel sideways.
+  // NOT named `grounded` -- that is a module-scope helper for a ground UNIT.
+  const groundedPlatform = platform({ level: 0 });
+  const board = boardOf([groundedPlatform, rider({ level: 0 }), rider({ id: "r2", level: 0 })]);
+
+  it("carries nobody", () => {
+    expect(passengersOf(groundedPlatform, board)).toEqual([]);
+  });
+
+  it("moves alone", () => {
+    const moves = movePlatform(groundedPlatform, { i: 1, j: 0 }, board);
+    expect(moves).toHaveLength(1);
+    expect(moves[0].unitId).toBe("hgob");
+  });
+
+  it("still carries passengers once it is on its own level", () => {
+    const flying = platform({ level: 20 });
+    const b = boardOf([flying, rider({ level: 20 }), rider({ id: "down", level: 0 })]);
+
+    expect(passengersOf(flying, b).map((u) => u.id)).toEqual(["r"]);
+  });
+});
 
 describe("movePlatform", () => {
   const board = boardOf([platform(), rider(), grounded()]);
@@ -293,5 +323,42 @@ describe("platformCentre / withinPlatformCentre", () => {
     expect(withinPlatformCentre({ panel: at(4, 4) }, hgob, 2)).toBe(true);
     expect(withinPlatformCentre({ panel: at(6, 6) }, hgob, 2)).toBe(true);
     expect(withinPlatformCentre({ panel: at(7, 4) }, hgob, 2)).toBe(false);
+  });
+});
+
+/* ── Scene Level bands (engine/scene-levels.mjs) ───────────────────────────── */
+
+describe("nextBand", () => {
+  // Pure, and exported for exactly this reason: the rest of `scene-levels.mjs`
+  // needs a Foundry Scene and this is the arithmetic that was wrong.
+  const level = (bottom, top) => ({ elevation: { bottom, top } });
+
+  it("stacks above the highest band that already exists", () => {
+    // Foundry's DEFAULT level is {bottom: 0, top: 20} -- see
+    // `BaseLevel.defineSchema` -- and the old `count * height` arithmetic
+    // assumed the ground was `height` tall, so the first platform landed at
+    // 10-20: INSIDE the ground band.
+    expect(nextBand([level(0, 20)])).toEqual({ bottom: 20, top: 30 });
+  });
+
+  it("never overlaps a band, however tall the ground is", () => {
+    for (const groundTop of [10, 20, 50, 100]) {
+      const band = nextBand([level(0, groundTop)]);
+      expect(band.bottom).toBeGreaterThanOrEqual(groundTop);
+    }
+  });
+
+  it("keeps stacking for a second and third platform", () => {
+    const levels = [level(0, 20)];
+    const first = nextBand(levels);
+    levels.push(level(first.bottom, first.top));
+    const second = nextBand(levels);
+
+    expect(first).toEqual({ bottom: 20, top: 30 });
+    expect(second).toEqual({ bottom: 30, top: 40 });
+  });
+
+  it("copes with a scene that has no levels at all", () => {
+    expect(nextBand([])).toEqual({ bottom: 0, top: 10 });
   });
 });

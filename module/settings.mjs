@@ -45,6 +45,16 @@ export function registerSettings() {
     choices: { beginner: "FGT.Difficulty.Beginner", standard: "FGT.Difficulty.Standard", expert: "FGT.Difficulty.Expert" },
     onChange: () => guardRuleChange("difficulty"),
   });
+  // §8.3 clause 4, as an OPTIONAL rule. It is the one movement clause that
+  // refuses a step onto a panel that looks empty, so a table that finds it more
+  // trouble than it is worth can switch it off -- and then it stops applying
+  // everywhere at once, reachability included. Default TRUE: it is a rule as
+  // written, not a house rule.
+  s("masterProtection", {
+    name: "FGT.Settings.MasterProtection", hint: "FGT.Settings.MasterProtectionHint",
+    type: Boolean, default: true,
+    onChange: () => guardRuleChange("masterProtection"),
+  });
   s("region", { name: "FGT.Settings.Region", type: String, default: "" });
   s("grailThreshold", { name: "FGT.Settings.GrailThreshold", type: Number, default: 9 });
   s("closedInfo", { name: "FGT.Settings.ClosedInfo", type: Boolean, default: false });

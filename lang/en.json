@@ -77,6 +77,8 @@
   "FGT.Prompt.commandSpell": "Interrupt with a Command Spell?",
   "FGT.Settings.GrandOrder": "Grand Order Holy Grail War",
   "FGT.Settings.GrandOrderHint": "Switches off the rules that assume rival Masters: the multi-Servant tax, and forced-attack compulsions against allied units.",
+  "FGT.Settings.MasterProtection": "Enemy Master protection (optional rule)",
+  "FGT.Settings.MasterProtectionHint": "Units may not enter a 1-panel area of an enemy Master while that Master's Servant is within 2 panels of it. Switch this off to let Units walk right up to a guarded Master.",
   "FGT.Victory.grailObtained": "The Holy Grail has been obtained!",
   "FGT.Victory.elimination": "Every rival has fallen.",
   "FGT.Victory.noWinner": "The Holy Grail was destroyed. There are no winners.",

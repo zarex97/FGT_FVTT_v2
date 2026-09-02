@@ -200,7 +200,7 @@ export function segmentCheck(unit, hasRiding = unit?.hasRiding ?? false) {
 export function canPassThrough(panel, unit, board) {
   if (ignoresBlocking(unit)) return true;
 
-  const occupant = occupantAt(panel, board);
+  const occupant = occupantAt(panel, board, unit.level);
   // Platforms and structures are terrain, not Units: a Platform is stood on,
   // and clause 3 is about *Units*, so neither blocks a step.
   const blocking = occupant && !["platform", "structure"].includes(occupant.kind);
@@ -243,7 +243,7 @@ function blockedByFieldExit(panel, unit, board) {
  */
 export function canStopOn(panel, unit, board) {
   if (!canPassThrough(panel, unit, board)) return false;
-  const occupant = occupantAt(panel, board);
+  const occupant = occupantAt(panel, board, unit.level);
   // Platforms are stood on, not blocked by, and Huge Scale overlaps by design.
   if (!occupant) return true;
   if (["platform", "structure"].includes(occupant.kind)) return true;
@@ -263,6 +263,16 @@ export function canStopOn(panel, unit, board) {
  * @returns {boolean}
  */
 export function inEnemyMasterProtection(panel, unit, board) {
+  // An OPTIONAL rule. It is the one clause in Ch. 08 that stops a player moving
+  // where the board looks empty, and the refusal is easy to read as a bug --
+  // so a table that does not want it can switch it off, and then it stops
+  // applying everywhere at once, reachability included.
+  //
+  // Default ON: it is a core rule, and a board built before the setting existed
+  // carries no `rules` block at all. `?? true` is what keeps absence from
+  // silently disabling it, which would be the worst of both worlds.
+  if (board?.rules?.masterProtection === false) return false;
+
   for (const other of board.units ?? []) {
     if (other.kind !== "master") continue;
     if (!isEnemy(unit, other, board)) continue;
@@ -302,7 +312,7 @@ export function knockbackPanel(origin, unit, board, { maxSteps = 5 } = {}) {
   for (let i = 0; i < maxSteps; i++) {
     panel = { i: panel.i + dir.i, j: panel.j + dir.j };
     if (!geo.inBounds(panel, board.bounds ?? null)) return null;
-    if (!occupantAt(panel, board)) return panel;
+    if (!occupantAt(panel, board, unit.level)) return panel;
   }
   return null;
 }
@@ -312,8 +322,22 @@ export function knockbackPanel(origin, unit, board, { maxSteps = 5 } = {}) {
  * @param {object} board
  * @returns {object|null}
  */
-export function occupantAt(panel, board) {
+export function occupantAt(panel, board, level = 0) {
+  // Per LEVEL, not per panel. §20.2 gives each platform its own Scene Level for
+  // "separate occupancy" among four reasons, and this function -- the only
+  // thing that answers "is somebody standing there" for movement -- compared
+  // `i` and `j` and nothing else. Every unit in the scene therefore occupied
+  // one shared 2D grid whatever its elevation, so the Hanging Gardens, which
+  // flies, could not be moved anywhere near the board: the ground units blocked
+  // it. Measured live before the fix, with the HGoB unable to pass through or
+  // stop on any occupied panel.
+  //
+  // `?? 0` on both sides treats an absent level as the ground, which is what
+  // every unit in a scene with no platforms has and what every board built
+  // before levels existed carries.
+  const here = level ?? 0;
   for (const u of board.units ?? []) {
+    if ((u.level ?? 0) !== here) continue;
     const footprint = u.panels ?? (u.panel ? [u.panel] : []);
     if (footprint.some((p) => p.i === panel.i && p.j === panel.j)) return u;
   }
