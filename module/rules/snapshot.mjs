@@ -27,6 +27,7 @@ import {
   phase, darkModifiers, homeBaseModifiers, regionBonusFor, inOwnHomeBase,
 } from "./environment.mjs";
 import { annotateCompulsions } from "./compulsion.mjs";
+import { annotateControl } from "./control.mjs";
 import { tierOf } from "./master-rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { rollOptionsFor } from "./options.mjs";
@@ -55,7 +56,7 @@ import { CONCEALMENT } from "./concealment.mjs";
  * @returns {UnitSnapshot}
  */
 export function snapshotUnit(actor, {
-  token = null, panel = null, tick = null, turnsPerRound = 3, round = null,
+  token = null, panel = null, tick = null, turnsPerRound = 3, round = null, ownerUserId = null,
 } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
@@ -86,6 +87,15 @@ export function snapshotUnit(actor, {
     contentId: sys.contentId ?? null,
     factionId: sys.factionId ?? null,
     faction: sys.factionId ?? null,
+    // The player who owns this unit, which is what Charm transfers control
+    // AWAY from. `rules/control.mjs#controllerOf` has read `unit.ownerUserId`
+    // since it was written and nothing projected it, so every unit answered
+    // `undefined` and the whole control map resolved to the GM.
+    //
+    // A NON-GM owner: `Actor#ownership` grants the GM everything, so taking
+    // the first owner would name a Gamemaster for every unit in the world and
+    // make Charm a no-op in the other direction.
+    ownerUserId,
     // Who conjured this unit, and whether it still counts as alive. Neither
     // was ever projected: `system.defeated` has been read and written by
     // `io.defeat`/`resolveDefeat` since they existed, but nothing in `rules/`
@@ -434,6 +444,13 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // reads the rank through `zonRadius` and takes the Master snapshot directly
   // rather than this annotation.
   annotateMasterRank(units);
+
+  // Who acts with each unit, and on whose Turn. Board-wide for the same reason
+  // ZON is: a charm points at ANOTHER unit, so a unit projected alone cannot
+  // answer either question. Before the positional passes because nothing
+  // downstream of here depends on it and everything upstream of the movement
+  // gate does.
+  annotateControl(units, board);
 
   // Auras are the same shape of problem as ZON and get the same answer: a
   // property of the board, settled once every unit is projected. Doing it here
@@ -879,6 +896,12 @@ export function contributionsOf(actor) {
       // consumed, which makes a one-use buff permanent.
       defId: effect.system?.defId ?? null,
       fromEffect: true,
+      // WHEN this instance runs out, so a handler it contributes can honour
+      // Ch. 11 §11.9 ("an effect does not act on the Turn it ends") the way the
+      // periodic pass already does. Carried here because the instance is the
+      // only thing that knows: the definition has no clock, and the handler is
+      // built from the definition's rules.
+      expiry: effect.system?.expiry ?? null,
       // The INSTANCE's remaining charges. A count-limited effect's rule
       // elements have to know how many uses are left, or the consumer cannot
       // tell a spent Trofa from a fresh one.

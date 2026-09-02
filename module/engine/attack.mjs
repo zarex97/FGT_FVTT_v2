@@ -772,11 +772,28 @@ async function fireCombatPhaseEnd(state) {
     .map((a) => unitSnapshot(a));
   if (units.length === 0) return;
 
+  // Who this phase actually hurt. Charm is *"removed at the end of the Combat
+  // Phase if the unit takes damage from an attack"* -- a condition about the
+  // BEARER, not about the event's subject, so the boundary has to carry it.
+  // Read off the same sibling messages the completeness check used: an Evade,
+  // a Block that absorbed everything, and being the attacker all leave a
+  // defender undamaged and its Charm standing.
+  const damagedIds = [...new Set(
+    siblings
+      .map((m) => {
+        const result = m.getFlag("fgt", "result") ?? null;
+        if (!result || (result.total ?? 0) <= 0) return null;
+        return process.deserialize(m.getFlag("fgt", "process")).defenderId ?? null;
+      })
+      .filter(Boolean),
+  )];
+
   const intents = fireEvent("combatPhaseEnd", units, {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     board: currentBoard(),
     options: new Set(),
+    damagedIds,
     rolls: {},
   });
   if (intents.length > 0) await applyBatch(intents, "combatPhaseEnd");

@@ -341,6 +341,41 @@ So a charmed unit appears in the *charmer's* `currentUnits` during their turn an
 its owner's. The token remains visually the owner's colour (its faction has not changed), with a
 charm status icon.
 
+> **Implemented (Ch. 45).** `rules/control.mjs` computed all of this correctly from the day it
+> was written and **had no consumer anywhere in the system** — its only import was `fgt.mjs`,
+> which never called it. Two further defects sat underneath, each of which alone would have
+> been enough to make Charm inert:
+>
+> 1. **`unit.ownerUserId` was projected by nothing.** `controllerOf` read it, every unit
+>    answered `undefined`, and the whole control map collapsed to the GM. It is now resolved in
+>    `engine/board.mjs` (the rules layer may not touch `game`), skipping Gamemasters — Foundry
+>    grants a GM `OWNER` on everything, so "the first owner" would have named a GM for every
+>    unit in the world and a charm could never have moved control off one.
+> 2. **`charmSource` looked in the wrong array, for a shape nothing produces.** It searched
+>    `unit.effects` — a list of **bare defIds** — for an object carrying `source.unitId`. The
+>    file's own unit tests were written against the same invention, so the suite was green and
+>    the feature did nothing. The source lives on `effectInstances.sourceUnitId`.
+>
+> Two things transfer, and they are separate questions:
+>
+> | Question | Function | Consumer |
+> |---|---|---|
+> | Who may act with it | `controllerOf` | the turn HUD, `unitsControlledBy` |
+> | **Whose Turn** it acts on, and whose budget it spends | `actingFactionOf` | `engine/movement-hooks.mjs`'s faction gate, `engine/budget.mjs` |
+>
+> `annotateControl` settles both once per board, for the same reason ZON is settled there: a
+> charm points at another unit, so a unit projected alone cannot answer either.
+>
+> The two differ deliberately in one case. When the charmer has left the board, **control**
+> falls back to the GM (handing it back to the victim's own player would make a dead charmer's
+> charm a no-op) while the **Turn** falls back to the unit's own faction — there is no other
+> faction left to act on, and a unit that can never be activated is a softlock, not a rule.
+>
+> Measured live: a faction-2 unit charmed a faction-1 Servant; the Servant's `factionId` stayed
+> `faction-1` while its acting faction became `faction-2`, it left its owner's
+> `unitsControlledBy` list and joined the charmer's, and a Move it spent came off **faction-2's**
+> `servantMove` pool with faction-1's untouched.
+
 **RISK.** Foundry permissions are not changed by Charm, so the charmer's client cannot write to
 the charmed actor. Every action with a charmed unit routes through the GM proxy. This is already
 the default path (Ch. 26), so no special case is needed — but it does mean charmed-unit actions

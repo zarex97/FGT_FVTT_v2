@@ -39,7 +39,12 @@ export function isCharmed(unit) {
  * @returns {string|null}
  */
 export function charmSource(unit) {
-  return findCharm(unit)?.source?.unitId ?? null;
+  const charm = findCharm(unit);
+  // `sourceUnitId` is what the projection writes (`rules/snapshot.mjs`'s
+  // `effectInstances`); `source.unitId` is the older nested form the tests and
+  // Ch. 25 §25.7's sketch use. Both, because the whole reason this file did
+  // nothing for so long is that it only knew the one nobody produced.
+  return charm?.sourceUnitId ?? charm?.source?.unitId ?? null;
 }
 
 /**
@@ -90,10 +95,98 @@ export function unitsControlledBy(userId, board) {
   return (board?.units ?? []).filter((u) => controllerOf(u, board) === userId);
 }
 
+/**
+ * Which faction's **Turn** this unit acts on.
+ *
+ * §25.7 again, in the half that is about the clock rather than about the
+ * keyboard: *"a charmed unit appears in the charmer's `currentUnits` during
+ * their turn and is absent from its owner's"*. So a charmed unit moves on the
+ * charmer's Turn, spends the charmer's action budget, and cannot be moved on
+ * its owner's Turn at all — while its **own** `factionId` is untouched, which
+ * is why the token keeps its colour and every relation still reads it as the
+ * enemy it was.
+ *
+ * Follows the chain for the same reason `controllerOf` does, and shares its
+ * cycle guard.
+ *
+ * Differs from `controllerOf` in exactly one case, deliberately: when the
+ * charmer has left the board, control falls back to the **GM** (handing it
+ * back to the victim's own player would make a dead charmer's charm a no-op)
+ * but the Turn falls back to the unit's **own** faction — there is no other
+ * faction left to act on, and a unit that can never be activated is a softlock
+ * rather than a rule.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @param {Set<string>} [seen] internal, for the cycle guard
+ * @returns {string|null}
+ */
+export function actingFactionOf(unit, board, seen = new Set()) {
+  if (!unit) return null;
+  if (seen.has(unit.id)) return unit.factionId ?? null;
+
+  const sourceId = charmSource(unit);
+  if (!sourceId || sourceId === unit.id) return unit.factionId ?? null;
+
+  const charmer = (board?.units ?? []).find((u) => u.id === sourceId);
+  if (!charmer) return unit.factionId ?? null;
+
+  return actingFactionOf(charmer, board, new Set([...seen, unit.id]));
+}
+
+/**
+ * Annotate every unit with who acts with it and on whose Turn.
+ *
+ * Board-wide and settled once, for the same reason ZON and the aura pass are
+ * (`rules/snapshot.mjs`): a charm points at another unit, so a unit projected
+ * alone cannot answer either question, and every consumer — the movement gate,
+ * the action budget, the turn HUD — wants the same answer.
+ *
+ * Both fields were computable from the day this file was written and **nothing
+ * ever called it**: `control.mjs` had no consumer anywhere in the system, and
+ * `unit.ownerUserId` — which `controllerOf` reads — was projected by nothing.
+ * So Charm applied, showed on the sheet, and transferred no control at all.
+ *
+ * @param {object[]} units
+ * @param {object} board
+ * @returns {object[]} the same units, annotated
+ */
+export function annotateControl(units, board) {
+  for (const unit of units ?? []) {
+    unit.actingFactionId = actingFactionOf(unit, board);
+    unit.controllerUserId = controllerOf(unit, board);
+  }
+  return units;
+}
+
 /* -------------------------------------------------------------------------- */
 
-/** @param {object} unit @returns {object|null} */
+/**
+ * The charm instance on this unit, or `null`.
+ *
+ * Reads `effectInstances`, which is where the snapshot actually puts the
+ * source: `unit.effects` is a list of **bare defIds** (`activeEffectIds`), and
+ * this file used to search it for an object with a `.source.unitId` — a shape
+ * `rules/snapshot.mjs` has never produced. So `charmSource` returned `null`
+ * for every charm that ever existed, `controllerOf` fell straight through to
+ * the owner, and Charm transferred nothing. The unit tests agreed with it,
+ * because they were written against the same imagined shape.
+ *
+ * Both forms are accepted now: a caller holding only the id list can still ask
+ * *whether* a unit is charmed, it just cannot learn by whom.
+ *
+ * A suppressed instance does not hold control — the same reading `isActive`
+ * always intended.
+ *
+ * @param {object} unit
+ * @returns {object|null}
+ */
 function findCharm(unit) {
+  const instance = (unit?.effectInstances ?? []).find(
+    (e) => e?.defId === CHARM && !e.suppressed && e.isActive !== false,
+  );
+  if (instance) return instance;
+
   return (unit?.effects ?? []).find(
     (e) => (e?.defId ?? e) === CHARM && (typeof e === "string" || e.isActive),
   ) ?? null;

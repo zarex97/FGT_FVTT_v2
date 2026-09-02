@@ -44,8 +44,28 @@ export function budgetFor(combat, factionId) {
  * @returns {{ok: boolean, reason: string|null}}
  */
 export function affordable(combat, unit, action) {
-  const verdict = canConsume(budgetFor(combat, unit.factionId), unit, action);
+  const verdict = canConsume(budgetFor(combat, actingFactionOf(unit)), unit, action);
   return { ok: verdict.ok, reason: verdict.reason };
+}
+
+/**
+ * Whose pool this unit spends from.
+ *
+ * Its own faction, unless a Charm has moved it. §25.7 puts a charmed unit in
+ * *"the charmer's `currentUnits` during their turn"*, and a unit acting on
+ * another faction's Turn has to spend that faction's slots — its owner's pool
+ * is not even reset while somebody else is taking their Turn, so charging it
+ * would deduct from a budget nobody is using and leave the charmer's
+ * untouched.
+ *
+ * Annotated onto the snapshot by `rules/control.mjs#annotateControl`. The
+ * fallback covers a bare `snapshotUnit` that never went through a board.
+ *
+ * @param {object} unit
+ * @returns {string|null}
+ */
+function actingFactionOf(unit) {
+  return unit.actingFactionId ?? unit.factionId ?? null;
 }
 
 /**
@@ -58,7 +78,8 @@ export function affordable(combat, unit, action) {
  * @returns {Promise<{ok: boolean, reason: string|null}>}
  */
 export async function spend({ combat, unit, action }) {
-  const factionId = unit.factionId;
+  // The ACTING faction's pool, not the owning one — see `actingFactionOf`.
+  const factionId = actingFactionOf(unit);
   const result = consume(budgetFor(combat, factionId), unit, action);
   if (!result.ok) return { ok: false, reason: result.reason };
 

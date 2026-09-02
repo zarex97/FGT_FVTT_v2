@@ -197,6 +197,20 @@ export function fireEvent(event, units, ctx) {
     for (const handler of u.eventHandlers ?? []) {
       if (!listensFor(handler, event)) continue;
 
+      // Ch. 11 §11.9: an effect does not act on the Turn it ends. Enforced for
+      // `periodic:` effects since the periodic pass was written, and nowhere
+      // for the handlers an effect contributes -- Regen's three intervals are
+      // handlers, not a periodic, so it would have healed once more on its way
+      // out. `null` for an ability's own handler, which has no clock.
+      if (handler.expiry !== null && handler.expiry !== undefined
+        && handler.expiry <= (ctx.tick ?? 0)) continue;
+
+      // Charm: "removed at the end of the Combat Phase if the unit takes
+      // damage from an attack." The caller reports who the phase actually
+      // damaged; an untracked phase damages nobody, so the clause cannot fire
+      // on an event that never measured it.
+      if (handler.requiresDamagedThisPhase && !(ctx.damagedIds ?? []).includes(u.id)) continue;
+
       // A condition on somebody OTHER than the owner, evaluated now because
       // the event carries them. Scáthach's Alpi pays double against an Undead
       // or Divine Defending Unit, and the Defending Unit does not exist when

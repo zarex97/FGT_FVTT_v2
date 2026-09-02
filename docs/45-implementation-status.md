@@ -745,11 +745,70 @@ uses mean fewer than three.
 | …with Riding's Active (+6 MOV) | ZON **14**. Read literally; flagged in §6.9 rather than capped |
 | Dmg Cut, flat −100, 3 times | Real attack: stage 12 `flatReductions` 280.4 → 180.4, contributor `damageNegation −100 (dmgCut)`; 180 dealt (4940 → 4760); uses **3 → 2** |
 
-Three clauses are recorded **unmodelled**, each with its reason on the content file: Charm's
-removal on taking damage and its mutual immunity with Berserk and Confuse (no effect in the
-corpus is cleared by damage, and neither of those two effects is authored), and Regen's *"does
-not fire on the turn it ends"* (nothing distinguishes an effect's last tick; `NP Regen` carries
-the same clause and does not model it either).
+#### Commit 2 — the machinery those effects turned out to need
+
+Commit 1 landed Charm and Regen with three clauses recorded as unmodelled. Building them
+instead surfaced **four more defects**, three of them in code that had been shipping, tested and
+inert for as long as it had existed. This is the same pattern as Jack's nine additions: what
+looks like a missing feature is usually a wired-up-looking subsystem with a severed wire.
+
+**1. Charm transferred no control at all.** `rules/control.mjs` — 130 lines, fully unit-tested,
+computing exactly the right answers — **had no consumer anywhere in the system**. Its only
+import was `fgt.mjs`, which never called it. Underneath sat two more failures, either of which
+alone was fatal:
+
+- `unit.ownerUserId`, which `controllerOf` reads, was **projected by nothing**. Every unit
+  answered `undefined` and the whole control map collapsed to the GM. It is resolved now in
+  `engine/board.mjs`, because the rules layer may not touch `game`, and it skips Gamemasters:
+  Foundry grants a GM `OWNER` on everything, so "the first owner" names a GM for every unit in
+  the world.
+- `charmSource` searched `unit.effects` — a list of **bare defIds** — for an object carrying
+  `source.unitId`, **a shape the projection has never produced**. The source lives on
+  `effectInstances.sourceUnitId`. The file's own tests were written against the same invention,
+  so the suite was green and the feature did nothing; the fixtures now build what a real board
+  builds.
+
+Wiring it needed one new question the module did not answer: `controllerOf` says who may act
+with a unit, and nothing said **whose Turn** it acts on. `actingFactionOf` does, `annotateControl`
+settles both once per board, and the two consumers are the movement gate and the action budget.
+The two answers differ deliberately in one case: with the charmer off the board, control falls
+back to the GM and the *Turn* falls back to the unit's own faction — a unit that can never be
+activated is a softlock, not a rule.
+
+**2. An effect-borne handler never knew when its own effect ended.** Ch. 11 §11.9's *"does not
+fire on the turn it ends"* was enforced in the periodic pass and nowhere else, because the effect
+pseudo-ability passed `defId` and `uses` and not `expiry`. Regen's three intervals are a handler,
+not a periodic, so it would have healed one extra 10% on its way off the unit — as would every
+future effect written this way.
+
+**3. Regen subscribed to nothing.** The handler field is `event`, which *may hold an array*;
+authored as `events:` — the plural reads naturally, and Regen is the corpus's first multi-event
+handler — it compiled, validated, loaded, and listened for `undefined`. Caught by a unit test
+written for defect 2. The content validator now refuses an `OnEvent` that names no event.
+
+**4. Charm's removal needed a per-bearer condition on a boundary event.**
+`requiresDamagedThisPhase`: `fireCombatPhaseEnd` reports which units the phase actually damaged,
+read off the sibling messages' results. The **Phase**, not the Process (Ch. 12 §12.1) — a Charm
+broken by the opening attack must not be broken again by the counter it provoked — and an Evade,
+a fully-absorbed Block, or being the attacker all leave it standing.
+
+**Measured live in `fgt2026`:**
+
+| Clause | Measured |
+|---|---|
+| Charm moves control | A faction-2 unit charmed a faction-1 Servant: `factionId` stayed `faction-1`, `actingFactionId` became `faction-2`, `controllerUserId` moved from Player1 to Player2 |
+| …and the unit lists | It left `unitsControlledBy(Player1)` and joined `unitsControlledBy(Player2)` — both halves, since a unit in two lists acts twice |
+| …and the budget | A Move spent came off **faction-2's** `servantMove` (0 → 1) with faction-1's untouched |
+| Charm removal | Fires only for a unit in `damagedIds`; silent for an undamaged participant and for an untracked phase |
+| Charm immunity | `berserk`, `confuse` on the bearer's `immunities` |
+| Regen's three intervals | One handler listening on `turnEnd`, `actedTurnEnd`, `roundEnd` — the proof the `event:` fix took |
+| Regen heals of maximum | 150 on a 1500-max unit |
+| Regen's final turn | Fires at tick 11 with expiry 12; **silent** at tick 12 |
+
+Still unauthored, and now the only thing left: **Berserk and Confuse** as effect definitions.
+Charm declares immunity to both, so the relationship is expressed and switches on the moment
+either exists. Neither is a Pale Rider clause, and Ch. 18 §18.5 lists Confuse's random action
+selector as an open item of its own.
 
 ---
 

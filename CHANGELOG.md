@@ -51,9 +51,14 @@ coincide by accident; the headings say which is which.
   ZON clause in the corpus whose size is not a constant. Read literally, so Riding's own
   +6 MOV Active swells the zone by six for that Turn; §6.9 records the reading rather than
   capping it.
-- **`Charm`, `Regen` and `Dmg Cut`** as content. `charm` closes the longest-standing of the
-  three gaps: `rules/control.mjs#isCharmed` has looked for exactly that id since it was
-  written, so the entire control subsystem pointed at a definition that did not exist.
+- **`Charm`, `Regen` and `Dmg Cut`** as content, with every clause of their Appendix A entries
+  working rather than three of them deferred. Charm removes itself at the end of a Combat
+  **Phase** that damaged its bearer (`requiresDamagedThisPhase` — an Evade, a fully-absorbed
+  Block, or being the attacker all leave it standing) and declares its immunity to Berserk and
+  Confuse, which switches on when either of those is authored.
+- **A handler can be conditioned on what a boundary did to its own bearer.** The boundary
+  reports; the handler asks whether it happened to *it*. `combatPhaseEnd` now carries the ids
+  the phase actually damaged.
 - **Masters carry a rank that means something.** The letter (`A`–`D`, or blank for Rankless) is
   settable from the Master's sheet for the first time — it was a free-form string with no
   vocabulary and no control anywhere, so the only way to rank a Master was to hand-edit the
@@ -123,6 +128,25 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Charm transferred no control whatsoever.** `rules/control.mjs` computed the right answers,
+  was fully unit-tested, and **had no consumer anywhere in the system** — its only import was
+  `fgt.mjs`, which never called it. Two defects sat underneath, either fatal on its own:
+  `unit.ownerUserId`, which `controllerOf` reads, was projected by nothing (so every unit
+  answered `undefined` and the control map collapsed to the GM); and `charmSource` searched the
+  bare-defId `effects` list for an object carrying `source.unitId`, a shape the projection has
+  never produced. The module's own tests were written against that same invented shape, which is
+  why a green suite hid an inert feature. A charmed unit now moves to its charmer's Turn, spends
+  the charmer's action budget, leaves its owner's controllable-unit list and joins the charmer's
+  — while its own `factionId` stays put, so the token keeps its colour.
+- **An effect's event handler never knew when its own effect ended.** Ch. 11 §11.9 — *"does not
+  fire on the turn it ends"* — was enforced for `periodic:` effects and for nothing else,
+  because the pseudo-ability an effect contributes passed `defId` and `uses` and not `expiry`.
+  Regen, whose three intervals are a handler rather than a periodic, would have paid out one
+  extra tick on its way off the unit; so would every effect written that way after it.
+- **An `OnEvent` authored as `events:` listened for nothing, silently.** The field is `event`
+  and it may hold an array. No content had ever needed a multi-event handler, so nothing caught
+  it until Regen — which shipped, in the same session, subscribed to `undefined`. The validator
+  now refuses an `OnEvent` that names no event, and says so by name when it finds an `events:`.
 - **A flat `DamageNegation` reduced nothing.** `mode: "flat"` has been the executor's own
   default since the element was written, and `engine/attack.mjs#rollNegation` opened with
   `if (n.mode !== "dice") continue` — so a flat negation authored cleanly, collected cleanly
