@@ -482,6 +482,34 @@ colour vision deficiency (deuteranopia and protanopia), verified with a simulato
 | Chat log growth | Transient messages deleted on phase completion (Ch. 27 §27.7) |
 | Zone overlays redrawing on every move | Dirty-flag per overlay; only the moved unit's overlays redraw |
 
+### A destroyed label wedged the overlay layer permanently
+
+Worth recording because the failure mode is the interesting part, not the bug.
+
+`OverlayLayer#refresh` destroys its text badges by hand — `Graphics.clear()` does not remove
+Text, because Text is not part of the graphics buffer. The badges are children of the **layer**
+(`#label` does `this.addChild`), and `_tearDown` did not clear `#labels`. So after any canvas
+redraw — a level switch, a scene change, `canvas.draw()` — the array still held Text objects that
+Foundry had already destroyed along with the rest of the layer's children.
+
+`PIXI.Text#destroy` nulls `_style` and then reads `_style.off(...)` on a second call, so
+destroying one threw `Cannot read properties of null (reading 'off')` (verified against PIXI
+7.4.3: `destroyed` flips to `true`, `_style` to `null`, and a second `destroy()` throws exactly
+that).
+
+**And the throw happened before `this.#labels = []`**, so the stale array was never cleared.
+That is what turned a one-off into a permanent condition: every subsequent refresh threw again,
+so hovering a token, selecting one, or *any* `fgt.invalidate` produced a fresh console error —
+and the overlays silently stopped drawing, because `refresh` never reached its draw calls.
+
+Two changes, and the second is the one that matters for the next bug of this shape:
+
+1. `_tearDown` clears `#labels`. That is the root cause.
+2. `refresh` takes the list and **replaces it before destroying anything**, and skips a label
+   that reports `destroyed`. Clearing first is what makes the failure self-healing instead of
+   permanent — a single bad element can no longer prevent the bookkeeping that would have
+   recovered from it.
+
 ---
 
 ## 29.11 Localization

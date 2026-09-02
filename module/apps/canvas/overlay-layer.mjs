@@ -59,6 +59,11 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
   async _tearDown(options) {
     this.#graphics = null;
     this.#hovered = null;
+    // The labels are OUR children (`#label` does `this.addChild`), and
+    // `super._tearDown` destroys the layer's children -- so every reference in
+    // `#labels` is about to dangle. Dropping them here is the whole fix for the
+    // error stream described on `refresh` below; not dropping them was the bug.
+    this.#labels = [];
     return super._tearDown(options);
   }
 
@@ -81,9 +86,30 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
   refresh() {
     if (!this.#graphics || !canvas.ready) return;
     this.#graphics.clear();
+
     // Text is not part of the Graphics buffer, so `clear()` does not remove it.
-    for (const label of this.#labels) label.destroy();
+    //
+    // The list is taken and REPLACED before anything is destroyed, and each
+    // label is checked, because this loop used to wedge the whole layer:
+    //
+    //   - `_tearDown` did not clear `#labels`, so after a canvas redraw the
+    //     array held Text objects Foundry had already destroyed with the rest
+    //     of the layer's children;
+    //   - `PIXI.Text#destroy` nulls `_style` and then reads `_style.off(...)`
+    //     on a second call, so destroying one of those threw
+    //     "Cannot read properties of null (reading 'off')";
+    //   - and because the throw happened BEFORE `this.#labels = []`, the stale
+    //     array was never cleared -- so every later refresh threw again, for
+    //     ever. Hovering a token, selecting one, or any `fgt.invalidate` each
+    //     produced a fresh console error, and the overlays stopped drawing.
+    //
+    // Clearing first makes the failure self-healing rather than permanent, and
+    // the `destroyed` guard means nothing else that disposes of a label behind
+    // our back can reintroduce it.
+    const stale = this.#labels;
     this.#labels = [];
+    for (const label of stale) if (!label.destroyed) label.destroy();
+
     if (!game.settings.get("fgt", "showOverlays")) return;
 
     const board = currentBoard();
