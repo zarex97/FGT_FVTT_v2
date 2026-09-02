@@ -22,7 +22,9 @@
 
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import { currentHealth } from "../domain/health.mjs";
-import { panelsOf, isExempt, legalRepaint, mayReshape, selectBranch } from "../rules/bounded-fields.mjs";
+import {
+  panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor,
+} from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan, chance } from "../rules/checks.mjs";
@@ -133,9 +135,30 @@ async function openField(ability, actor, snapshot, spec) {
   const anchor = specGeometry?.anchorRef === "platform"
     ? (platformCentre(platform) ?? self.panel)
     : self.panel;
+  // Doomsday Come: *"an X panel area around Pale Rider's Master ... where X =
+  // (2 + number rolled on a four-sided die)"*. Rolled ONCE, here, and the
+  // result stored as a concrete size: a field that re-rolled its own radius on
+  // every read would breathe, and membership would depend on who asked last.
+  //
+  // "X panel area" is RADIUS X, by the corpus's own convention -- Contagion's
+  // "2 panel area" is its 5x5 -- so the stored side is 2r+1, giving 7x7
+  // through 13x13.
+  let rolledShape = specGeometry?.shape ?? null;
+  if (specGeometry?.shape?.radiusRoll) {
+    const roll = await new Roll(String(specGeometry.shape.radiusRoll)).evaluate();
+    const radius = Math.max(0, roll.total);
+    rolledShape = {
+      ...specGeometry.shape,
+      kind: specGeometry.shape.kind ?? "square",
+      size: radius * 2 + 1,
+      radius,
+      rolled: roll.total,
+      formula: roll.formula,
+    };
+  }
   const geometry = {
     ...(specGeometry ?? {}),
-    shape: regionSizedShape(specGeometry, snapshot.warRegion),
+    shape: regionSizedShape({ ...(specGeometry ?? {}), shape: rolledShape }, snapshot.warRegion),
     anchor: { ...anchor },
   };
   const field = {
@@ -430,6 +453,16 @@ export async function expireFields(tick) {
   const closed = [];
   for (const field of currentBoard().fields ?? []) {
     if (!shouldClose(field, tick)) continue;
+    // Axis 5's other half, and the one nothing has ever run. Both authored
+    // extensions are attrition engines -- Doomsday Come's *"after the initial
+    // NP period, Pale Rider's Master can extend the NP duration by 1◈ more
+    // Turns by reducing its Health by 100 ... and can be repeatedly
+    // extended"*, and Chaos Labyrinthos burning Asterios's own Health to keep
+    // the trap shut. Offered only when the CLOCK is what is closing it: a
+    // field ended by its owner's defeat is not for sale.
+    const expired = field.expiry !== null && field.expiry !== undefined && field.expiry <= tick;
+    if (expired && field.extension && await offerExtension(field, tick)) continue;
+
     if (await endField(field.id)) {
       closed.push(field.id);
       // Sikera Ušum's "6◈+⅓◈ Turns AFTER the NP ends" -- a clock that starts
@@ -442,6 +475,99 @@ export async function expireFields(tick) {
     }
   }
   return closed;
+}
+
+/**
+ * Offer a field's paid extension to whoever the cost names, and take it.
+ *
+ * Refused **outright, with no prompt**, when the payer is below the stated
+ * floor: Doomsday Come says *"cannot be used if the Master's Health is less
+ * than 100"*, and a Master should never be asked a question whose answer would
+ * kill them.
+ *
+ * The side effects are Chaos Labyrinthos's, and they are why extending is not
+ * simply "pay to wait": *"the enemies inside also receive Atk Dwn and Def
+ * Dwn"* — the trap tightens each time it is paid for.
+ *
+ * @param {object} field
+ * @param {number} tick
+ * @returns {Promise<boolean>} whether it was extended
+ */
+async function offerExtension(field, tick) {
+  const spec = field.extension;
+  // "Repeatedly" is stated by Doomsday Come and by Chaos Labyrinthos; a field
+  // that does not say so gets one.
+  if (!spec.repeatable && field.lastExtendedAt !== null && field.lastExtendedAt !== undefined) return false;
+
+  const payerId = (spec.cost?.payer ?? "owner") === "ownerMaster" ? field.ownerMasterId : field.ownerId;
+  const doc = payerId ? game.actors.get(payerId) : null;
+  if (!doc || doc.system?.defeated) return false;
+
+  // The payer AS THE BOARD SEES THEM, not as `game.actors` does. For an
+  // UNLINKED token those are two different documents with two different
+  // Healths -- the board reads `t.actor` (the token's synthetic actor, which
+  // is what every write lands on) and `game.actors.get(id)` is the prototype
+  // nobody is playing. Asking the prototype whether it can afford 100 and then
+  // charging the token is how a Master gets billed for an extension they could
+  // not pay, or refused one they could.
+  const board = currentBoard();
+  const payer = (board.units ?? []).find((u) => u.id === payerId) ?? unitSnapshot(doc);
+
+  const verdict = extensionFor(field, payer);
+  if (!verdict.ok) return false;
+
+  const user = game.users.find((u) => u.active && !u.isGM && doc.testUserPermission(u, "OWNER"))
+    ?? game.user;
+  const { FGTSocket } = await import("../net/socket.mjs");
+  const picked = await FGTSocket.ask(user.id, {
+    kind: "choose",
+    title: game.i18n.localize("FGT.Field.ExtendTitle"),
+    hint: game.i18n.format("FGT.Field.ExtendHint", {
+      name: doc.name, amount: verdict.amount, grants: spec.grants,
+    }),
+    // `min: 0` -- letting it close is a legitimate play, and a dialog that
+    // forced the payment would make an optional clause mandatory.
+    min: 0,
+    count: 1,
+    options: [{ id: "extend", name: game.i18n.localize("FGT.Field.Extend") }],
+  }).catch(() => null);
+  if (!(picked ?? []).includes("extend")) return false;
+
+  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const ticks = resolveTicks(parseTick(String(spec.grants)), { turnsPerRound });
+
+  /** @type {object[]} */
+  const intents = [I.statDelta(doc.id, "health.value", -verdict.amount)];
+
+  // "Enemies inside also receive..." -- read from the board rather than
+  // remembered from cast time, because who is inside is exactly what the last
+  // few Turns have been about.
+  for (const side of verdict.sideEffects) {
+    if (side.kind !== "applyEffect" || side.target !== "enemiesInside") continue;
+    const owner = (board.units ?? []).find((u) => u.id === field.ownerId) ?? null;
+    const expiry = side.duration
+      ? (game.combat?.system?.globalTurn ?? 0) + resolveTicks(parseTick(String(side.duration)), { turnsPerRound })
+      : null;
+    for (const unit of board.units ?? []) {
+      if (!(unit.fields ?? []).includes(field.id)) continue;
+      if (relationOf(owner, unit, board) !== "enemy") continue;
+      intents.push(I.applyEffect(unit.id, {
+        defId: side.effect?.id ?? side.effect?.defId,
+        magnitude: side.effect?.magnitude ?? 0,
+        npMagnitude: side.effect?.npMagnitude ?? undefined,
+        expiry,
+        sourceUnitId: field.ownerId,
+      }, field.ownerId));
+    }
+  }
+
+  await applyWorldIntents(intents, `field:${field.id}:extend`);
+  const behavior = behaviorFor(field.id);
+  await behavior?.update({
+    "system.expiry": (field.expiry ?? tick) + ticks,
+    "system.lastExtendedAt": tick,
+  });
+  return true;
 }
 
 /**

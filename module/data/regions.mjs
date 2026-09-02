@@ -117,6 +117,10 @@ export class NPFieldBehavior extends Base {
       // stored as expiry ticks everywhere else (§7.5) for the same reason: a
       // countdown needs a hook that can fail to fire, and an expiry cannot.
       expiry: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      // The tick a paid extension was last taken on. `repeatable: false` means
+      // "once", and once needs a record — Doomsday Come *"can be repeatedly
+      // extended"* and says so, which implies something that cannot.
+      lastExtendedAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       /** Per-unit escape history, which the veteran rule needs (§43.11). */
       state: new fields.ObjectField({ required: true, initial: () => ({ escapeHistory: {} }) }),
     };

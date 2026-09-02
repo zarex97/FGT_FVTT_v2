@@ -566,9 +566,34 @@ export function extensionFor(field, payer) {
   if (!spec) return { ok: false, reason: "notExtendable" };
 
   const amount = spec.cost?.amount ?? 0;
-  if (currentHealth(payer) < amount) return { ok: false, reason: "cannotAfford", amount };
+  // Doomsday Come: *"by reducing its Health by 100 (cannot be used if the
+  // Master's Health is LESS THAN 100)"*. A floor stated separately from the
+  // price, and the two are not the same question: at exactly 100 the Master
+  // may pay it down to zero, and at 99 they are never asked. Where no floor is
+  // stated it IS the price -- Chaos Labyrinthos says only "reduce its Health
+  // by 200", which nobody on 199 can do.
+  // Two different refusals, and they are worth telling apart in the log: a
+  // STATED floor turned the payer away even though the price might have been
+  // payable, versus the payer simply not having the price. They coincide
+  // whenever no floor is stated, which is why the floor is only reported when
+  // the sheet actually names one.
+  const minimum = spec.cost?.minimum ?? amount;
+  const health = currentHealth(payer);
+  if (spec.cost?.minimum !== undefined && health < spec.cost.minimum) {
+    return { ok: false, reason: "belowMinimum", amount, minimum };
+  }
+  if (health < amount) return { ok: false, reason: "cannotAfford", amount, minimum };
 
-  return { ok: true, amount, grants: spec.grants, repeatable: Boolean(spec.repeatable) };
+  return {
+    ok: true,
+    amount,
+    // WHO pays. Doomsday Come charges Pale Rider's Master; Chaos Labyrinthos
+    // charges Asterios himself. One runner serves both, so it has to be told.
+    payer: spec.cost?.payer ?? "owner",
+    grants: spec.grants,
+    repeatable: Boolean(spec.repeatable),
+    sideEffects: spec.sideEffects ?? [],
+  };
 }
 
 /* -------------------------------------------------------------------------- */

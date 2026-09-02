@@ -283,7 +283,7 @@ describe("a non-damaging Noble Phantasm", () => {
       && (doc.phases ?? []).length > 0
       && !(doc.phases ?? []).some((p) => p.kind === "damage"));
 
-    // The six. If a seventh is authored it lands here, which is the point: the
+    // If an eighth is authored it lands here, which is the point: the
     // engine rule keys on exactly this shape.
     expect(nonDamaging.map(({ doc }) => doc.id).sort()).toEqual([
       "asterios-chaos-labyrinthos",
@@ -292,6 +292,9 @@ describe("a non-damaging Noble Phantasm", () => {
       // Jack's Mist: "(Non-damaging)" is the first word of its description,
       // and it needs no `damage:` block to say so.
       "jack-the-mist",
+      // Doomsday Come, the seventh: "(Non-damaging)" and its only phase opens
+      // a field. Everything it does to a Unit is the AREA's doing.
+      "pale-rider-doomsday-come",
       "semiramis-hanging-gardens-of-babylon",
       "semiramis-sikera-usum",
     ]);

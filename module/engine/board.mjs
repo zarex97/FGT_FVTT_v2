@@ -405,6 +405,7 @@ function boundedFieldsOf(scene) {
         interior: sys.interior ?? [],
         interiorEvents: sys.interiorEvents ?? [],
         expiry: sys.expiry ?? null,
+        lastExtendedAt: sys.lastExtendedAt ?? null,
         extension: sys.extension ?? null,
         vulnerabilities: sys.vulnerabilities ?? [],
         duration: sys.duration ?? null,

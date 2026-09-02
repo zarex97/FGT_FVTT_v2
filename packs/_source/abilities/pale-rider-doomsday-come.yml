@@ -1,0 +1,102 @@
+# Pale Rider -- Doomsday Come: Come to Me, Realm of the Dead, Come to Me.
+# Rank EX (NP) [Anti-World]. Non-damaging.
+# Conversion source: char_orig_sheets/Copia de Pale Rider.md
+# Data sheet: docs/D-servant-data-sheets.md §D.26 · bounded field: Ch. 43
+#
+# The six axes are all here; three of its clauses arrive in later commits and
+# are named where they belong:
+#   - Innocent World's six interior rules  (its own Skill, commit 5)
+#   - Guidance of the Netherworld's discharge on contact  (commit 6)
+#   - Kagome Kagome's bound summons  (commit 7)
+#   - the Anti-World escape and the drag-in  (commit 4)
+schema: 1
+id: pale-rider-doomsday-come
+name: "Doomsday Come: Come to Me, Realm of the Dead, Come to Me"
+rank: EX
+kind: noblePhantasm
+isNP: true
+npTags: [antiWorld]
+# "(Non-damaging)" needs no flag: the corpus recognises one from its SHAPE --
+# phases declared, and no `damage:` block among them (test/unit/asterios.test.mjs).
+# "Cooldown: 8◈ Turns AFTER Doomsday Come ends" -- from the field's own
+# closure, which is what `countFrom: deactivation` means. Authored as a bare
+# "8◈" the clock would start at the cast and the whole attrition cycle would
+# collapse, which is the mistake Chaos Labyrinthos shipped with.
+cooldown: { max: "8◈", countFrom: deactivation }
+timing: { window: ownTurn }
+description: |
+  (Non-damaging) When this NP is used, an X panel area around Pale Rider's Master becomes the
+  'Doomsday Come' area, where X = (2 + number rolled on a four-sided die) for 2◈ Turns; this
+  'Doomsday Come' area Moves together with Pale Rider's Master.
+  Enemy Units within the Doomsday Come area cannot leave said area, but enemy Units outside the
+  Doomsday Come area can enter it; while allied Units can freely Move in and out of the Doomsday
+  Come area.
+  Units outside the Doomsday Come area cannot Attack Units within it and vice versa.
+  After the initial NP period, Pale Rider's Master can extend the NP duration by 1◈ more Turns by
+  reducing its Health by 100 (cannot be used if the Master's Health is less than 100), and can be
+  repeatedly extended.
+  During Pale Rider's Turn, if there are any enemy Units within a 2 panel area of the Doomsday
+  Come area, Pale Rider can target an enemy Unit within this Range, that target has to perform an
+  Evade roll. If the Evade succeeded, nothing happens. If the Evade failed, the DU is forcibly
+  dragged into the Doomsday Come area and placed on a random panel within. Can only be used once
+  per Turn.
+  A Noble Phantasm of [Anti-World] or higher can be used on Doomsday Come (from outside) or
+  within Doomsday Come. If used in this way, Doomsday Come is forcibly ended at the end of that
+  Combat Process, and all Units within it receive the damage from that NP, but its Total Damage
+  is reduced by 50%.
+  Cooldown: 8◈ Turns after Doomsday Come ends.
+
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: createField
+    target: self
+
+field:
+  # Axis 1 -- geometry. Around the MASTER, not the caster, and it moves with
+  # them: the field is a mobile prison and that is the whole design. The
+  # Region is attached to the Master's token, so Foundry moves the drawn area
+  # itself (§43.3).
+  #
+  # "X panel area" is radius X, by the corpus's convention -- so 2+1d4 gives a
+  # 7x7 through a 13x13, rolled once at cast and stored.
+  geometry:
+    kind: followsUnit
+    unitRef: ownerMaster
+    shape: { kind: square, radiusRoll: "2+1d4" }
+
+  # Axis 2 -- membership. One-way for enemies, free for allies. `sealed` has no
+  # escape ladder: unlike Chaos Labyrinthos there is no roll out of this, and
+  # the counter-play is the Anti-World clause instead.
+  membership:
+    enemyEntry: free
+    enemyExit: sealed
+    allyEntry: free
+    allyExit: free
+
+  # Axis 3 -- isolation, both directions. `piercedBy` (commit 4) is the one
+  # hole in it.
+  isolation:
+    outsideCanTargetInside: false
+    insideCanTargetOutside: false
+    outsideCanApplyEffectsInside: false
+    visibilityAcrossBoundary: full
+
+  # Axis 5 -- duration, and the paid extension the Master pays for. The floor
+  # is stated separately from the price: at exactly 100 the Master may pay it
+  # down to zero, and at 99 they are never asked.
+  duration: "2◈"
+  extension:
+    cost: { kind: health, amount: 100, payer: ownerMaster, minimum: 100 }
+    grants: "1◈"
+    repeatable: true
+
+  interior: []
+  interiorEvents: []
+
+  # Axis 6 -- vulnerability. The Anti-World clause (commit 4) joins this list.
+  vulnerabilities:
+    - { kind: ownerDefeat, result: end }
+  onEnd: []

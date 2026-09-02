@@ -864,6 +864,50 @@ mid-match or a reloaded world repairs itself at the next boundary.
 | *"Charm for 1◈ Turns"* | expiry = tick + 1◈ |
 | *"Affects all enemy Units within"* | Pale Rider stands inside his own field and is untouched; only the enemy is affected |
 
+#### Commit 4 — Doomsday Come's axes, the rolled radius, and the extension runner
+
+Doomsday Come is the corpus's only field whose **size is rolled** (`shape.radiusRoll`, evaluated
+once at cast and stored — a field that re-rolled on every read would breathe, and membership
+would depend on who asked last) and the only one anchored on a unit that is **not its creator**.
+
+**`extensionFor` had no caller.** Authored on Chaos Labyrinthos from the day Asterios was
+written, it was a pure function nothing invoked, so a field with a paid extension simply closed
+on schedule and the whole attrition cycle — the owner burning their own Health to keep the trap
+shut while the trapped burn theirs escaping — was decoration. `expireFields` now offers it, and
+only when the **clock** is what is closing the field: one ended by its owner's defeat is not for
+sale. Building it forced three things into the spec:
+
+- **`payer`** — Doomsday Come charges Pale Rider's *Master*, Chaos Labyrinthos charges Asterios.
+- **`minimum`, which is not the price** — *"cannot be used if the Master's Health is less than
+  100"*: at exactly 100 they may pay it down to zero, at 99 they are **never asked**. Defaults to
+  the price where no floor is stated, and the two refusals stay distinguishable.
+- **`sideEffects`** — Asterios's re-apply `Atk Dwn`/`Def Dwn` to every enemy *currently* inside,
+  read from the board rather than remembered from cast time.
+
+**One defect in the new code, found by testing the second author rather than the first.** The
+payer was resolved with `game.actors.get(id)` and charged through the applier, which resolves
+the **token's** actor. For an *unlinked* token those are two different documents with two
+different Healths — so the affordability question was put to the prototype nobody is playing
+while the charge landed on the token. It cost an hour of chasing a phantom "payment not applied"
+before the two Asterios tokens on the board explained themselves. The payer now comes from the
+board.
+
+**Measured live:**
+
+| Clause | Measured |
+|---|---|
+| *"X = (2 + number rolled on a four-sided die)"* | five casts: radii 6, 3, 6, 3, 4 — range 3–6, every size `2r+1`, every panel count `size²` |
+| *"an X panel area around Pale Rider's **Master**"* | centred on the Master at (10,1) while Pale Rider stood at (10,14), Region attached to the Master's token |
+| *"enemy Units within cannot leave"* | exit refused, `sealed` |
+| *"enemy Units outside can enter it"* | entry allowed |
+| *"allied Units can freely Move in and out"* | ally exit allowed |
+| *"Units outside cannot Attack Units within it and vice versa"* | both directions blocked; inside-to-inside allowed |
+| *"extend … by reducing its Health by 100"* | prompt named the Master and the price; 150 → 50; expiry 10 → 13 |
+| *"can be repeatedly extended"* | a second payment charged another 100 |
+| *"cannot be used if the Master's Health is less than 100"* | at 99: **zero prompts**, field closed, Health untouched |
+| *"Cooldown: 8◈ Turns **after** Doomsday Come ends"* | 24 ticks, stamped at closure |
+| Chaos Labyrinthos, `payer: owner` | Asterios paid **200 of his own**, expiry +2◈, and every enemy inside gained `Atk Dwn` and `Def Dwn` while he did not |
+
 ---
 
 ## 45.5 The completion plan

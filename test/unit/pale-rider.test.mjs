@@ -169,3 +169,56 @@ describe("Contagion", () => {
     ]);
   });
 });
+
+/* -------------------------------------------------------------------------- */
+/*  Doomsday Come — the six axes                                               */
+/* -------------------------------------------------------------------------- */
+
+describe("Doomsday Come", () => {
+  const np = ability("pale-rider-doomsday-come");
+
+  it("is a non-damaging Anti-World NP on an 8◈ cooldown counted from its end", () => {
+    expect(np.isNP).toBe(true);
+    expect(np.npTags).toEqual(["antiWorld"]);
+    // "(Non-damaging)" is a SHAPE, not a flag: phases declared, no `damage`
+    // block among them. `asterios.test.mjs` holds that invariant for the
+    // whole corpus, and this NP is the seventh in it.
+    expect(np.damage).toBeUndefined();
+    expect(np.phases.some((p) => p.kind === "damage")).toBe(false);
+    // "Cooldown: 8◈ Turns AFTER Doomsday Come ends" -- from the field's own
+    // closure, not from the cast.
+    expect(np.cooldown).toEqual({ max: "8◈", countFrom: "deactivation" });
+  });
+
+  it("is a rolled-radius area around the MASTER that moves with them", () => {
+    // "An X panel area around Pale Rider's Master ... X = (2 + number rolled on
+    // a four-sided die) ... this area Moves together with Pale Rider's Master."
+    expect(np.field.geometry).toMatchObject({
+      kind: "followsUnit", unitRef: "ownerMaster",
+      shape: { kind: "square", radiusRoll: "2+1d4" },
+    });
+  });
+
+  it("seals enemies in and lets allies through", () => {
+    // "Enemy Units within cannot leave said area, but enemy Units outside can
+    // enter it; while allied Units can freely Move in and out."
+    expect(np.field.membership).toEqual({
+      enemyEntry: "free", enemyExit: "sealed", allyEntry: "free", allyExit: "free",
+    });
+  });
+
+  it("isolates both directions", () => {
+    // "Units outside cannot Attack Units within it and vice versa."
+    expect(np.field.isolation).toMatchObject({
+      outsideCanTargetInside: false, insideCanTargetOutside: false,
+    });
+  });
+
+  it("lasts 2◈ and is extended by the Master, repeatedly, never below 100", () => {
+    expect(np.field.duration).toBe("2◈");
+    expect(np.field.extension).toEqual({
+      cost: { kind: "health", amount: 100, payer: "ownerMaster", minimum: 100 },
+      grants: "1◈", repeatable: true,
+    });
+  });
+});

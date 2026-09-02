@@ -73,6 +73,16 @@ coincide by accident; the headings say which is which.
 - **A `followsUnit` field's drawn Region follows its anchor**, using Foundry v14's native
   `attachment.token`. Membership was always computed correctly; the *drawn* area was left where
   it was cast, so what a player could see had been wrong for every field of that kind.
+- **A bounded field's size can be rolled.** `shape.radiusRoll` is evaluated once at cast and
+  stored as a concrete size — a field that re-rolled on every read would breathe, and membership
+  would depend on who asked last. Doomsday Come opens as a 7×7 through a 13×13.
+- **Paid extension of a bounded field actually runs.** `extensionFor` had been authored on Chaos
+  Labyrinthos since Asterios was written and **had no caller**, so every field with an extension
+  simply closed on schedule and its whole attrition cycle was decoration. The cost now names who
+  pays (`payer`), may state a floor distinct from the price (`minimum` — *"cannot be used if the
+  Master's Health is less than 100"* means a Master on 99 is never asked, rather than asked and
+  refused), and may carry `sideEffects`, which is what makes Asterios's extension tighten the
+  trap rather than merely postpone it.
 - **Masters carry a rank that means something.** The letter (`A`–`D`, or blank for Rankless) is
   settable from the Master's sheet for the first time — it was a free-form string with no
   vocabulary and no control anywhere, so the only way to rank a Master was to hand-edit the
