@@ -703,3 +703,64 @@ function applyInteriorStat(unit, rule) {
   if (typeof rule.minimum === "number") next = Math.max(rule.minimum, next);
   node[leaf] = next;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Redrawing a freeform field                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Is this a legal footprint for the field?
+ *
+ * The decision half of the paint tool. `apps/canvas/targeting-layer.mjs` draws
+ * legality live so a player never composes something that will be refused, but
+ * the layer decides nothing — that is its own stated contract, and the painter
+ * is not the exception. This is checked again GM-side at commit, so a
+ * hand-crafted socket payload cannot draw a forty-panel Mist across the board.
+ *
+ * The leash is measured from the ANCHOR to each panel, never from the field to
+ * the anchor. That is what makes Jack's *"Jack does not need to be within the
+ * Mist"* true without a rule of its own.
+ *
+ * @param {object} field
+ * @param {Array<{i: number, j: number}>} panels
+ * @param {{i: number, j: number}|null} anchorPanel the owner's panel
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function legalRepaint(field, panels, anchorPanel) {
+  const geometry = field?.geometry ?? {};
+  if (geometry.kind !== "freeform") return { ok: false, reason: "notFreeform" };
+  if (!panels?.length) return { ok: false, reason: "empty" };
+
+  const cap = geometry.maxPanels ?? Infinity;
+  if (panels.length > cap) return { ok: false, reason: "tooManyPanels" };
+
+  const leash = geometry.maxDistance;
+  if (typeof leash === "number" && anchorPanel) {
+    if (panels.some((p) => chebyshev(p, anchorPanel) > leash)) {
+      return { ok: false, reason: "outsideLeash" };
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * May this unit redraw this field right now?
+ *
+ * The sibling of `engine/fields.mjs#mayDeactivate`, which the token HUD's field
+ * switch already uses, and it lives here for the same reason: the HUD asks and
+ * never decides.
+ *
+ * The once-per-Turn flag is `turnState.reshapedField`, which the schema clears
+ * by the same tick-stamped staleness rule as the rest of that block — so a hook
+ * that fails to fire cannot lock the ability out for the rest of the match.
+ *
+ * @param {object} field
+ * @param {object} unit a unit SNAPSHOT — this reads `turnState`, which an actor
+ *   document does not carry in the same shape
+ * @returns {boolean}
+ */
+export function mayReshape(field, unit) {
+  if (field?.geometry?.kind !== "freeform") return false;
+  if (field.ownerId !== unit?.id) return false;
+  return !unit?.turnState?.reshapedField;
+}
