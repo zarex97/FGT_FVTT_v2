@@ -280,30 +280,35 @@ function expiryOf(duration) {
 }
 
 /**
- * The Region shape covering a panel list.
+ * The Region shape that stores a field's panels.
  *
- * One rectangle per panel rather than a traced outline: a field's panels are
- * always a solid block in the reference set, and Foundry unions overlapping
- * shapes anyway — so the simple version is correct and a traced polygon would
- * be a second place for the geometry to be wrong.
+ * A **grid** shape with explicit offsets, not the bounding rectangle this used
+ * to return. The docstring it replaces argued that one rectangle was fine
+ * because "a field's panels are always a solid block in the reference set" —
+ * true when every field in the corpus was a square, and false the moment
+ * anything is painted freehand.
+ *
+ * It is not merely a display question. `engine/board.mjs#boundedFieldsOf` reads
+ * a field's panels back **off its Region** (`panelsOfRegion`, which prefers
+ * `getOccupiedGridSpaceOffsets()`), so a rectangle meant the stored panel set
+ * was discarded on every board read and replaced by its own bounding box. Paint
+ * an L and the board fills in the notch — silently, because the two agree for
+ * every shape that has ever been cast.
+ *
+ * `apps/canvas/target-region.mjs#gridShape` has always done it this way for
+ * transient targeting areas; fields simply never did.
  *
  * @param {Array<{i: number, j: number}>} panels
- * @param {object} scene
- * @returns {object}
+ * @param {object} scene unused, kept so the call site does not change
+ * @returns {{type: string, offsets: Array<{i: number, j: number}>, origin: null}}
  */
-function shapeOf(panels, scene) {
-  const size = scene.grid?.size ?? 100;
-  const is = panels.map((p) => p.i);
-  const js = panels.map((p) => p.j);
-  const top = Math.min(...is);
-  const left = Math.min(...js);
-
+export function shapeOf(panels, scene) { // eslint-disable-line no-unused-vars
   return {
-    type: "rectangle",
-    x: left * size,
-    y: top * size,
-    width: (Math.max(...js) - left + 1) * size,
-    height: (Math.max(...is) - top + 1) * size,
+    type: "grid",
+    offsets: panels.map((p) => ({ i: p.i, j: p.j })),
+    // Null anchors at the first offset, which is already an absolute board
+    // position -- fields work in absolute panels, never in deltas.
+    origin: null,
   };
 }
 
