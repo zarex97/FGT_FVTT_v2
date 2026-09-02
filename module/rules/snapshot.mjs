@@ -157,6 +157,9 @@ export function snapshotUnit(actor, {
     applicationChances: contributions.applicationChances ?? [],
     // Expanded by `annotateCompulsions` once the board exists.
     compulsionRules: contributions.compulsions ?? [],
+    // Read by `engine/attack.mjs` before the Combat Processes are built, to
+    // ask whether this unit may swing first at whoever just declared on it.
+    preemptions: contributions.preemptions ?? [],
     alignment: sys.alignment ?? null,
 
     effects: effectIds,
@@ -537,7 +540,21 @@ function annotateRegionBonus(units, board) {
  * @returns {void}
  */
 function annotateEnvironment(units, board) {
-  board.phase = phase(board.round ?? 1, board.startedAtDay !== false);
+  // The opening coin flip, read from the match. `board.startedAtDay` had ONE
+  // reader — this line — and no writer anywhere in the system, so every Round
+  // this game has ever played was Day on the odd ones regardless of what the
+  // match said. `MatchData.phase` has carried `day|night|none` since the
+  // schema was written with nothing consuming it; it is the flip's result, so
+  // it is what seeds the alternation.
+  //
+  // `none` is the sheet's *"playing without Day-Night cycle"*: not a third
+  // lighting condition but the absence of the axis, which is why it is
+  // reported as-is rather than resolved to one of the two.
+  const opening = board.roundPhase ?? "day";
+  board.dayNightCycle = opening !== "none";
+  board.phase = board.dayNightCycle
+    ? phase(board.round ?? 1, board.startedAtDay ?? (opening === "day"))
+    : "none";
   for (const u of units) {
     // Recorded on the unit as well as folded into modifiers: Medea's Territory
     // Creation predicates on it, and a predicate cannot read a modifier list.
@@ -866,6 +883,16 @@ function collectAbilities(actor) {
       cooldownRemaining: i.system?.cooldown?.remaining ?? 0,
       regen: i.system?.cooldown?.regen ?? 0,
       categorizedAsNP: Boolean(i.system?.categorizedAsNP),
+      // An open TAG SET, and the first rule keyed on one is Jack's Mist:
+      // *"Skills that are also categorized as 'Instinct': …"* is a list
+      // asserted at the bottom of a character sheet, so it belongs on the
+      // abilities it names rather than in a table in code
+      // (`rules/bounded-fields.mjs#hasCategory`). `category` above is a
+      // different, single-valued field naming an ability's own family.
+      categorizedAs: [...(i.system?.categorizedAs ?? [])],
+      // "Eye of the Mind (only when Active/its buffs are in effect)" — the
+      // effect ids whose presence makes the tag above count.
+      categorizedWhile: [...(i.system?.categorizedWhile ?? [])],
       // What a cross-ability gate matches on. Scathach's Gate of Skye "cannot
       // be used if Primordial Rune, Wisdom of Dun Scaith and/or Gae Bolg
       // Alternative are on Cooldown", and a gate that can only see `id` cannot

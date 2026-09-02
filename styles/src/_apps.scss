@@ -227,7 +227,22 @@
     &--part { background: #c80; }
     &--done { background: #666; }
   }
-  &__facing select { font-size: 0.7rem; width: 100%; }
+  // One arrow filling the 35px control, rotated to the heading. The `<select>`
+  // this replaced measured 25px wide with 16px of padding -- nine pixels of
+  // content box for "South-west" (§29.5).
+  &__facing {
+    cursor: pointer;
+
+    .fgt-hud__facing-arrow {
+      display: block;
+      // Sized so the ROTATED bounding box still fits the 35px control: a
+      // square glyph at 45deg needs sqrt(2) times its own width.
+      font-size: 0.85rem;
+      line-height: 1;
+      transition: transform 120ms ease-out;
+      color: var(--fgt-gold, #c9a227);
+    }
+  }
 }
 
 .fgt-card__waiting {

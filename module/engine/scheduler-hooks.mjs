@@ -76,6 +76,16 @@ async function onTurnChange(combat, prior, current) {
   // whoever is dragged in is subject to it, not just units she targets.
   await run(await fields.runFieldEvents("actedTurnEnd"), "field:actedTurnEnd");
 
+  // …and the plain end of a Turn. Jack's Mist charges Poison BOTH ways --
+  // "at the end of its Turn OR at the end of a Turn they Act while still
+  // within the Mist" -- and only the acted half had a dispatcher, so a field
+  // could author a `turnEnd` interior event and never be asked.
+  await run(await fields.runFieldEvents("turnEnd"), "field:turnEnd");
+
+  // A field that charges to stay open, charged. Applies its own intents and
+  // may close the field, so it is not folded into the `run` above.
+  await fields.runUpkeep(tick);
+
   // A channelling unit's own Turn ending, uninterrupted -- the Hanging
   // Gardens' "cannot Act for 3◈ Turns." Scoped to the active faction's units
   // for the same reason `turnEnd` handlers are: this counts THIS unit's own

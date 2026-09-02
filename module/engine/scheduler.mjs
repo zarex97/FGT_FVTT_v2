@@ -257,6 +257,16 @@ export function fireEvent(event, units, ctx) {
         }
         out.push(...produced);
       }
+      // A handler that pays SUSTAINABILITY rather than running actions.
+      // `SustainabilityGain` has put this on the handler since the element
+      // was written and nothing ever read it back, so the only clause in the
+      // corpus whose Sustainability GROWS instead of draining -- Jack the
+      // Ripper's "every time Jack kills a Human when she is a Free Servant,
+      // increase her Sustainability by 1◈ Turns" -- had no payer.
+      if (handler.sustainabilityGain) {
+        const gain = resolveTicks(parseTick(`${handler.sustainabilityGain}◈`), ctx);
+        out.push(I.statDelta(u.id, "sustainabilityRemaining", gain, false));
+      }
       // A count-limited handler spends a charge each time it pays out.
       if (handler.consumesUse && handler.defId) out.push(I.consumeUse(u.id, handler.defId));
       out.push(I.log({ kind: "event", event, unitId: u.id, source: handler.source, tick: ctx.tick }));

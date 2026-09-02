@@ -1,0 +1,94 @@
+# packs/_source/servants/jack-the-ripper.yml
+# Conversion source: char_orig_sheets/Copia de Jack the Ripper.md
+# Data sheet: docs/D-servant-data-sheets.md §D.18 · bounded field: Ch. 43
+schema: 1
+id: jack-the-ripper
+name: "Jack the Ripper"
+type: servant
+
+trueName: "Jack the Ripper"
+servantClasses: [assassin]
+classContainer: assassin
+alignment: { order: chaotic, morality: evil }
+region: [england]
+# "Female, Servant, [Man], Humanoid, Wraith, Anti-Hero". `[Man]` is a
+# bracketed ATTRIBUTE in this corpus's notation (the same shape as Karna's
+# `[Sky]`), not a second gender tag -- `female` and `man` are both carried
+# because the sheet carries both, and her own Maria the Ripper reads `female`
+# on its target rather than on herself.
+attributes: [female, servant, man, humanoid, wraith, antiHero]
+
+parameters: { str: C, end: C, agi: A, mag: C, luc: E }
+baseHealth: 1000
+mov: 7
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 85, mag: 150 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  # A+ is her printed Rank, and the rank tables answer all three of its
+  # numbers: `presenceConcealmentDiscover` (5%), `presenceConcealmentEvade`
+  # (+4) and `presenceConcealmentCooldown` (2◈) all match her sheet exactly at
+  # A+, which is what makes the shared class skill usable unmodified.
+  - { ref: class-presence-concealment, rank: "A+" }
+  - { ref: jack-murderer-of-the-misty-night }
+  - { ref: jack-mental-pollution }
+  - { ref: jack-information-erasure }
+  - { ref: jack-surgical-procedure }
+  - { ref: jack-the-mist }
+  - { ref: jack-maria-the-ripper }
+  - { ref: jack-maria-the-ripper-slaughter }
+
+# "Every time Jack kills a Human when she is a Free Servant, increase her
+# Sustainability by 1◈ Turns."
+#
+# The only clause in the corpus whose Sustainability GROWS rather than drains,
+# and `SustainabilityGain` had put its value on an event handler since the
+# element was written with nothing reading it back -- so this is authored
+# against a payer that now exists (`engine/scheduler.mjs#fireEvent`).
+#
+# `targetPredicate` is the "Human" half: a Civilian (a Normal Human) or a
+# Master (a non-normal one). A Servant is not a Human and does not pay.
+# `predicate` is the "when she is a Free Servant" half, tested against her own
+# options at collection time.
+rules:
+  - key: SustainabilityGain
+    event: unitDefeated
+    value: 1
+    predicate: ["self:free"]
+    targetPredicate: [{ or: ["target:type:civilian", "target:type:master"] }]
+
+notes: |
+  Seven abilities plus a class skill, and five of the eight needed engine that did not exist.
+  Ch. D §D.18 lists what this Servant was expected to exercise; all of it is now built except
+  the two things named below.
+
+  **Reaction pre-emption** (`Murderer of the Misty Night` passive 1) is new and general:
+  `AttackFirst` declares it and `engine/attack.mjs#offerPreemption` runs it. It is deliberately
+  NOT a Counter — a Counter resolves at the end of the Process it answers, after the damage has
+  landed, and this resolves instead of it. The attacker's declaration is deferred onto Jack's own
+  Combat Process and re-entered when that finishes, so "if she kills them, their Attack never
+  happens" falls out of re-resolving the targeting rather than needing a special case. The
+  Day/Night split is the first place the Round phase is a **cost** rather than a damage modifier.
+
+  **The Mist** is Ch. 43's first `freeform` field. It opens at its largest legal footprint — a
+  5×5 centred on Jack, exactly the 25 panels the sheet caps her at, every one inside the 4-panel
+  leash — and stores its panels rather than recomputing them from a shape, which is what makes
+  reshaping a write rather than a recast. Its Instinct exemption is the first rule anywhere keyed
+  on an ability **category** asserted at the bottom of a character sheet rather than on a named
+  ability, which is why `categorizedAs` is a tag on the abilities and not a list in code.
+
+  Two clauses are deliberately **not** modelled, and both say so in their own files rather than
+  compiling into rules that do nothing:
+
+  - *Information Erasure*'s passive erases what a player wrote in their notebook. Its own text
+    hands it to the GM, and what it erases is not game state. Ch. 44 §44.4 files it under
+    closed-information play.
+  - *The Mist*'s effect 7 exempts Jack from "the Fog of War area". There is no Fog of War
+    subsystem to be exempt from — `engine/vision.mjs` is Detect and first-sighting, a different
+    question — and Ch. 26 §26.6 defers closed-information play to Ch. 40.
+
+  The Mist's Advanced Note — *"High Rank Masters are not inflicted with Poison upon contact"* —
+  is unmodelled for the same reason: nothing in this system carries a Master rank, and inventing
+  one for a parenthesis would be a subsystem of its own.

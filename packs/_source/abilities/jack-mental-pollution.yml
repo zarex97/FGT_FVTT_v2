@@ -1,0 +1,34 @@
+# Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 44-46.
+# Data sheet: docs/D-servant-data-sheets.md §D.18
+#
+# Two passives, no active, no cooldown. Both are `ApplicationChance` and both
+# fall out of machinery Heracles's Bravery and Medea's Item Construction built:
+# the executor already distinguishes direction, valence, volatility and
+# severity, and the consumer (`engine/effect-applier.mjs`) already filters to
+# debuffs on its own -- so neither clause needs to name one.
+schema: 1
+id: jack-mental-pollution
+name: "Mental Pollution"
+rank: C
+kind: skill
+slug: mentalPollution
+passive: true
+description: |
+  (Passive 1) Chance of inflicting debuffs is increased by 15%.
+  (Passive 2) Chance of being inflicted by Mental Debuffs is reduced by 60%.
+passiveRules:
+  # Clause 1. No `valence` and no `volatility`: "debuffs" is every debuff, and
+  # the consumer refuses to apply an outgoing chance modifier to a buff anyway
+  # (the bug Serenity's Silent Dance found -- her own Presence Concealment was
+  # going on at "110% (automatic)").
+  - key: ApplicationChance
+    direction: outgoing
+    value: 15
+
+  # Clause 2. `volatility: mental` is Appendix A's own classification rather
+  # than a list of ids, so this covers a mental debuff written after Jack was.
+  # Bravery is the only other content that uses it and it uses it identically.
+  - key: ApplicationChance
+    direction: incoming
+    volatility: mental
+    value: -60

@@ -1,0 +1,37 @@
+# Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 52-53.
+#
+# The whole of Jack's kit that is not about killing somebody. Medea's Teachings
+# of Circe is the same shape at a longer range, and this is authored against it
+# deliberately: `percentOfMax` rather than a flat number, because 5% of a
+# nearly-dead Servant's CURRENT Health is a rounding error.
+schema: 1
+id: jack-surgical-procedure
+name: "Surgical Procedure"
+rank: E
+kind: skill
+slug: surgicalProcedure
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Used on Jack or an allied Unit directly next to her. Restore
+  the Unit's Health by 5% of its maximum value, and restores 1 Agility.
+  Cooldown: 2◈ Turns.
+# "Jack or an allied Unit DIRECTLY NEXT TO HER" -- range 1 with `includeSelf`,
+# which is the pair that makes both halves of that sentence true. `count: 1`
+# because it is one Unit, not everyone adjacent.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: heal
+    target: reuse
+    percentOfMax: 5
+  # "Restores 1 Agility" -- a restore, so it is clamped to the maximum the Unit
+  # rolled at summon rather than pushing the pool past it. `clamp` defaults to
+  # true (`engine/skill-use.mjs#statChanges`); stated here because the whole
+  # meaning of the clause is in it.
+  - kind: statChange
+    target: reuse
+    changes:
+      - { stat: agility, delta: 1, clamp: true }

@@ -243,6 +243,15 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // "Categorized as NP" is the mechanical dividing line for NP Seal, NP
       // DmUp and the Luck Check exclusions -- distinct from actually being one.
       categorizedAsNP: new fields.BooleanField({ initial: false }),
+      // An open tag set: which CATEGORIES this ability also counts as. Jack's
+      // Mist exempts "the Instinct Skill of Rank B or higher" and her sheet
+      // then names five other skills that count as Instinct, so the list has
+      // to live on the abilities rather than in a table in code
+      // (`rules/bounded-fields.mjs#hasCategory`).
+      categorizedAs: new fields.SetField(new fields.StringField({ blank: false })),
+      // "Eye of the Mind (only when Active/its buffs are in effect)" — the
+      // effect ids whose presence makes the tag above count.
+      categorizedWhile: new fields.SetField(new fields.StringField({ blank: false })),
 
       // Effect-definition fields. Present only on documents in the effects
       // pack; null elsewhere.
@@ -304,6 +313,15 @@ export class NoblePhantasmData extends foundry.abstract.TypeDataModel {
       ...abilityCommon(),
       isNP: new fields.BooleanField({ initial: true }),
       categorizedAsNP: new fields.BooleanField({ initial: false }),
+      // An open tag set: which CATEGORIES this ability also counts as. Jack's
+      // Mist exempts "the Instinct Skill of Rank B or higher" and her sheet
+      // then names five other skills that count as Instinct, so the list has
+      // to live on the abilities rather than in a table in code
+      // (`rules/bounded-fields.mjs#hasCategory`).
+      categorizedAs: new fields.SetField(new fields.StringField({ blank: false })),
+      // "Eye of the Mind (only when Active/its buffs are in effect)" — the
+      // effect ids whose presence makes the tag above count.
+      categorizedWhile: new fields.SetField(new fields.StringField({ blank: false })),
       /**
        * A bounded field this Noble Phantasm creates (Ch. 43). Untyped for the
        * same reason rule elements are: ten fields are points in one six-axis

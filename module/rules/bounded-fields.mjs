@@ -15,6 +15,7 @@
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
+import { Rank } from "../domain/rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { EXECUTORS, empty } from "./elements.mjs";
 
@@ -343,7 +344,105 @@ export function interiorModifiers(field, unit, board) {
 
   return (field.interior ?? [])
     .filter((rule) => (rule.relations ?? ["ally", "enemy"]).includes(relation))
+    // Jack's Mist says "enemy SERVANT" for its Evade clause and "enemy Units"
+    // for the two beside it, in consecutive sentences — so the unit kind is a
+    // filter the interior rules need and `interiorEvents` already had.
+    .filter((rule) => !rule.kinds || rule.kinds.includes(unit?.kind))
+    .filter((rule) => !isExempt(rule.exemptIf, unit, board))
     .map((rule) => ({ ...rule, field: field.id, source: field.id }));
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Exemptions — the first rule keyed on an ability CATEGORY                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Does this unit walk out from under one of a field's interior rules?
+ *
+ * Jack's Mist is the reference case and the first rule anywhere in the corpus
+ * that refers to abilities by a **category asserted at the bottom of a
+ * character sheet** rather than by name or by slug:
+ *
+ * > *"A Servant ignores effects 3, 4 and 5 if they have the Instinct Skill of
+ * > Rank B or higher. Effect 4 is also ignored by any allied Units of the
+ * > Servant with Instinct (Rank B or higher) who are standing directly next to
+ * > the aforementioned Servant."*
+ * >
+ * > *"Skills that are also categorized as 'Instinct': Divine Protection of the
+ * > Jaguar, Evaporation of Sanity, Eye of the Mind (only when Active/its buffs
+ * > are in effect), Revelation, Star Emblem."*
+ *
+ * So the category is a TAG on the ability (`categorizedAs`), not a list in
+ * this file: the list is open, it lives on the character sheets that assert
+ * it, and a sixth Instinct-equivalent must be addable without a code change.
+ * Ch. D §D.18 argued for exactly this and it is what is built.
+ *
+ * @param {object|null|undefined} spec the rule's `exemptIf`
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+export function isExempt(spec, unit, board) {
+  if (!spec) return false;
+  if (hasCategory(unit, spec.categorizedAs, spec.minRank)) return true;
+
+  // "…is also ignored by any allied Units of the Servant with Instinct who are
+  // standing DIRECTLY NEXT TO the aforementioned Servant." The exemption is
+  // lent outward by one panel, and only by an ally — which is why this needs
+  // the board and the other half does not.
+  if (!spec.orAdjacentToAlly) return false;
+  return (board?.units ?? []).some((other) => (
+    other.id !== unit?.id
+    && other.faction === unit?.faction
+    && adjacent(other.panel, unit?.panel)
+    && hasCategory(other, spec.categorizedAs, spec.minRank)
+  ));
+}
+
+/**
+ * Does this unit hold an ability tagged with `category` at `minRank` or better?
+ *
+ * `categorizedWhile` is *"Eye of the Mind (only when Active/its buffs are in
+ * effect)"* — an ability that counts toward the category only while the
+ * effects it grants are standing. Checked against the bearer's live effect
+ * list rather than against the ability's `active` flag, because Eye of the
+ * Mind is a cooldown Skill and not a mode: it is never `active`, and its
+ * buffs outlive the moment it was pressed, which is exactly the window the
+ * parenthesis names.
+ *
+ * @param {object} unit
+ * @param {string|undefined} category
+ * @param {string|null|undefined} minRank
+ * @returns {boolean}
+ */
+export function hasCategory(unit, category, minRank = null) {
+  if (!category) return false;
+  const floor = minRank ? Rank.parseOrNull(minRank) : null;
+
+  return (unit?.abilities ?? []).some((ability) => {
+    if (!(ability.categorizedAs ?? []).includes(category)) return false;
+
+    const gate = ability.categorizedWhile ?? [];
+    if (gate.length > 0 && !gate.some((id) => (unit?.effects ?? []).includes(id))) return false;
+
+    if (!floor) return true;
+    const rank = ability.rank instanceof Rank ? ability.rank : Rank.parseOrNull(ability.rank ?? null);
+    return Boolean(rank && Rank.compare(rank, floor) >= 0);
+  });
+}
+
+/**
+ * Chebyshev adjacency — "directly next to", diagonals included, as everywhere
+ * else on this board.
+ *
+ * @param {{i: number, j: number}|null|undefined} a
+ * @param {{i: number, j: number}|null|undefined} b
+ * @returns {boolean}
+ */
+function adjacent(a, b) {
+  if (!a || !b) return false;
+  const d = Math.max(Math.abs(a.i - b.i), Math.abs(a.j - b.j));
+  return d === 1;
 }
 
 /**
@@ -510,6 +609,17 @@ export function annotateFields(units, board) {
     if (out.damageNegation.length > 0) {
       u.damageNegation = [...(u.damageNegation ?? []), ...out.damageNegation];
     }
+    // Jack's Mist: *"Whenever an enemy Servant within the Mist Rolls for Evade,
+    // increase the value rolled by 3."* An interior `CheckModifier` collected
+    // into `out.checkModifiers` and then dropped on the floor here, because
+    // this merge listed every other bucket and not that one — so a field could
+    // declare a check penalty, compile it, and never impose it.
+    if (out.checkModifiers.length > 0) {
+      u.checkModifiers = [...(u.checkModifiers ?? []), ...out.checkModifiers];
+    }
+    if (out.immunities.length > 0) {
+      u.immunities = [...(u.immunities ?? []), ...out.immunities];
+    }
   }
 }
 
@@ -538,9 +648,27 @@ function partition(list, predicate) {
 /**
  * Fold one stat-shaped interior rule onto a unit snapshot.
  *
+ * Three ways to move a number, because the corpus states its area effects in
+ * three different grammars and collapsing them loses the rule:
+ *
+ *   - `value` — a delta. Asterios's *"MOV +4"* inside his own Labyrinth.
+ *   - `factor` — a multiplier. Jack's Mist: *"The Move of all enemy Units
+ *     within the Mist is **halved**."* Expressed as a delta it would have to
+ *     be authored per victim, since half of 7 and half of 4 are different
+ *     numbers; `MovDelta` already accepts `factor` when it goes through the
+ *     ordinary stat pipeline (Slow), and this path simply never read it.
+ *   - `maximum` — a cap. Jack's Mist again: *"The Detect of all enemy Units
+ *     within the Mist is **reduced to 1 panel**"*, which is a ceiling and not
+ *     a subtraction — a Servant with Detect 2 and one with Detect 9 both end
+ *     at 1, and neither ends below it.
+ *
  * `minimum` is Asterios's *"MOV reduced by 2, minimum 2"* -- a floor on the
  * resulting value rather than on the deduction, which is the opposite of Mad
  * Enhancement's Master drain and worth not confusing.
+ *
+ * Order is fixed and stated: factor, then delta, then clamp. A field that
+ * halves MOV and another that subtracts 2 must not depend on which was
+ * annotated first for whether the subtraction is halved too.
  *
  * @param {object} unit
  * @param {object} rule
@@ -561,6 +689,12 @@ function applyInteriorStat(unit, rule) {
   }
   if (typeof node[leaf] !== "number") return;
 
-  const next = node[leaf] + (rule.value ?? 0);
-  node[leaf] = typeof rule.minimum === "number" ? Math.max(rule.minimum, next) : next;
+  let next = node[leaf];
+  // "Halved" rounds DOWN, as every other division in this system does
+  // (`rules/damage/pipeline.mjs#floor`).
+  if (typeof rule.factor === "number") next = Math.floor(next * rule.factor);
+  next += rule.value ?? 0;
+  if (typeof rule.maximum === "number") next = Math.min(rule.maximum, next);
+  if (typeof rule.minimum === "number") next = Math.max(rule.minimum, next);
+  node[leaf] = next;
 }

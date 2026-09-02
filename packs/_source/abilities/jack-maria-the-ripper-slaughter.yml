@@ -1,0 +1,90 @@
+# Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 71-78.
+# Method 2. Method 1 is `jack-maria-the-ripper.yml`; that file says why two.
+#
+# THREE unrelated gates compounding, which is what Ch. D §D.18 lists this
+# Servant as exercising:
+#   i)   the Round is a Night Round      -> `roundPhase`, a new requirement kind
+#   ii)  the target Unit is Female       -> a `target:` predicate, which was
+#        UNSATISFIABLE until `engine/attack.mjs` began handing the resolved
+#        defender's options to the requirement check
+#   iii) both Jack and the target are within the Mist
+#
+# And a RANGE-BANDED outcome: the same Noble Phantasm deals damage plus a coin
+# for Instakill up close, and is Instakill-only at reach. `attack:range:lte:2`
+# and `attack:range:gte:3` have been in the option vocabulary since EMIYA was
+# written; this is the first ability whose OUTCOME, rather than its magnitude,
+# turns on them.
+schema: 1
+id: jack-maria-the-ripper-slaughter
+name: "Maria the Ripper: The Holy Mother of Dismemberment (Method 2)"
+# The top of the printed `D~B+` band -- see method 1's note on the range.
+rank: B+
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: mariaTheRipperSlaughter
+cooldown: "6◈+⅓◈"
+timing: { window: ownTurn }
+description: |
+  Method 2. Requires: (i) the Round is a Night Round (automatically fulfilled if playing without
+  Day-Night cycle); (ii) the target Unit is Female; (iii) both Jack and the target Unit are
+  within the Mist.
+  Base Attack (STR) is used. Range=4.
+  If used at a Range of 1 or 2, this NP deals 3.5x damage plus 100; if the Defending Unit is
+  Female, damage dealt is further increased by 100% (doubled). Then, has a 50% chance of
+  inflicting Instakill.
+  If used at a Range of 3 or 4, no damage is dealt, this NP just has a 50% chance of inflicting
+  Instakill.
+  Cooldown: 6◈+⅓◈ Turns.
+requirements:
+  # (i). `board.dayNightCycle === false` satisfies this outright, which is the
+  # parenthesis: with no cycle there is no Night to wait for, and a gate that
+  # can never open is worse than one that is always open.
+  - { kind: roundPhase, is: night }
+  # (ii).
+  - { kind: predicate, predicate: ["target:attribute:female"] }
+  # (iii). Both sides named; either alone is a different rule.
+  - { kind: predicate, predicate: ["self:inField:jack-the-mist", "target:inField:jack-the-mist"] }
+targeting:
+  # "Range=4" -- this method's own reach, twice her printed Range.
+  anchor: { kind: targetUnit, range: 4 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], includeSelf: false, chooser: all, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  branches:
+    # Close: "3.5x damage plus 100 … further increased by 100% (doubled)".
+    # "Damage dealt" is the whole of this NP's output, so BOTH the multiplier
+    # and the flat bonus double -- 7x + 200, not 7x + 100. Gate (ii) makes the
+    # Female branch the only reachable one; the other is written anyway so that
+    # relaxing the gate cannot silently keep paying the doubled figure.
+    - predicate: ["attack:range:lte:2", "target:attribute:female"]
+      multiplier: 7
+      flatBonus: 200
+      component: str
+    - predicate: ["attack:range:lte:2"]
+      multiplier: 3.5
+      flatBonus: 100
+      component: str
+    # Reach: "no damage is dealt, this NP just has a 50% chance of inflicting
+    # Instakill." A fixed zero rather than an absent branch -- an NP that
+    # reaches the damage step with no branch matching falls back to her Normal
+    # Attack, which is the defect five authored Noble Phantasms shipped with
+    # (see asterios-chaos-labyrinthos.yml).
+    - predicate: ["attack:range:gte:3"]
+      fixed: true
+      base: { fixedValue: 0 }
+      component: str
+phases:
+  - kind: damage
+    target: reuse
+  # "Then, has a 50% chance of inflicting Instakill." Both bands get it -- the
+  # far band gets ONLY it -- so this phase carries no range predicate.
+  #
+  # Instakill is `severity: instakill`, which Appendix A keeps out of ordinary
+  # chance modifiers "unless stated": Mental Pollution's +15% to inflicting
+  # debuffs does NOT raise this, and that is correct.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: instakill, chance: 50 }

@@ -36,6 +36,42 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Jack the Ripper**, the thirteenth Servant — seven abilities plus Presence Concealment,
+  verified in a live world. Ch. D §D.18 has the clause-by-clause table. Nine engine additions,
+  of which **four were repairs to machinery that already existed and had never once run**:
+  `annotateFields` merged every contribution bucket except `checkModifiers`; `board.startedAtDay`
+  had a reader and no writer, so every Round was Day on the odd ones regardless of what the match
+  said; a `predicate` requirement naming `target:` was unsatisfiable in every case, because the
+  option set was built from the attacker alone; and `SustainabilityGain` put its value on an
+  event handler nothing read back, so the one clause in the corpus whose Sustainability *grows*
+  had no payer.
+- **Reaction pre-emption** (`AttackFirst`) — *"Jack can Attack first instead of the opposing
+  Unit."* Deliberately not a Counter: a Counter resolves at the end of the Process it answers,
+  after the damage has landed, and this replaces the order. The attacker's declaration is
+  deferred onto the pre-empter's own Combat Process and re-entered when it finishes, so "if she
+  kills them, their Attack never happens" falls out of re-resolving the targeting. The Round
+  phase is a **cost** here rather than a damage modifier: a Luck Check by day, free at night.
+- **`freeform` bounded fields** (Ch. 43), with two new axes they needed: `upkeep`, a recurring
+  toll that keeps a field open as opposed to a `duration` that closes it on a clock, closing it
+  *instead* of charging when the payer cannot pay; and `deactivation`, for a field its owner may
+  switch off. Plus a `contact` event — the entry half of axis 4, which had only Turn boundaries
+  to fire on — and a `Defeat` action for fields that kill on contact.
+- **Ability categories** (`categorizedAs`, `categorizedWhile`), the first rule anywhere keyed on
+  a category *asserted at the bottom of a character sheet* rather than on a named ability. Jack's
+  Mist exempts anyone holding "the Instinct Skill of Rank B or higher", and her sheet then names
+  five other skills that count as Instinct — an open list that has to live on the abilities.
+- **A `roundPhase` requirement kind** and `DetectOverride`, plus `factor` and `maximum` on a
+  field's interior stat rules: "halved" cannot be a delta, and "reduced to 1 panel" is a ceiling.
+- **Artwork rotation is locked on every token.** Facing is `system.facing`, an eight-point
+  compass the Combat Process reads; Foundry's own `rotation` is artwork orientation and nothing
+  in this system touches it, so an unlocked token only let a player point the picture somewhere
+  the rules disagreed with.
+- **A facing indicator on the token itself.** The field the rules read appeared nowhere except a
+  dropdown, one unit at a time.
+- **A field switch on the token HUD**, one per open bounded field its owner may close at will —
+  the control Jack's Mist needed, and the only way a `deactivation` spec can be reached.
+
+
 - **Enemy Master protection is now an optional rule** (`fgt.masterProtection`, default **on**).
   §8.3 clause 4 is the one movement clause that refuses a step onto a panel which looks empty, so
   a table can switch it off; it then stops applying everywhere at once, reachability included.
@@ -43,6 +79,14 @@ coincide by accident; the headings say which is which.
   never disable a rule.
 
 ### Fixed
+
+- **The token HUD's facing control was unusable.** A `<select>` inside Foundry's fixed 35px
+  `.control-icon`, measured live at **25px wide with 16px of that spent on padding** — nine
+  pixels of content box for "South-west", and a native dropdown arrow is wider than that. It
+  rendered as an empty grey sliver: the current facing could not be read and neither could any
+  option. The write path was fine; nothing about it was visible. Replaced by one arrow rotated
+  to the heading, left-click clockwise and right-click anticlockwise.
+
 
 - **A placed token followed neither its actor's portrait nor its declared footprint.** Two
   independent defects reported from play and confirmed live before anything changed; Ch. 04 §4.2

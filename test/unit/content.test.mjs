@@ -348,6 +348,15 @@ describe("compileDocument", () => {
     expect(out.prototypeToken.height).toBeUndefined();
   });
 
+  it("locks artwork rotation on every compiled prototype token", () => {
+    // Facing is `system.facing`; Foundry's own rotation is artwork only, and
+    // spinning it desyncs the picture from the field the rules read.
+    for (const dir of ["servants", "masters", "summons", "platforms"]) {
+      const out = compileDocument({ schema: 1, id: "x", name: "X" }, dir, library);
+      expect(out.prototypeToken.lockRotation).toBe(true);
+    }
+  });
+
   it("lets an explicit prototypeToken override the footprint-derived size", () => {
     const doc = {
       schema: 1, id: "hgob", name: "HGoB",

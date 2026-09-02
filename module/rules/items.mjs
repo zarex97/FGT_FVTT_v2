@@ -102,7 +102,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
-  "noAliveSummon", "withinPlatformCentre",
+  "noAliveSummon", "withinPlatformCentre", "roundPhase",
 ]);
 
 /**
@@ -146,6 +146,20 @@ export function meetsRequirement(req, ctx) {
 
     case "roundAtLeast":
       return (round ?? 1) >= (req.round ?? 1);
+
+    // "If the Round is a Night Round (automatically fulfilled if playing
+    // without Day-Night cycle)." Jack's Maria the Ripper is the first ability
+    // gated on the phase rather than merely modified by it -- `board.phase` is
+    // a pure function of the round number and the opening coin flip
+    // (`rules/environment.mjs#phase`), computed onto the board projection
+    // since it was written, with nothing until now asking.
+    //
+    // The parenthesis is honoured by `board.dayNightCycle === false`: with the
+    // cycle switched off there is no Night to wait for, so the condition is
+    // satisfied rather than permanently unsatisfiable.
+    case "roundPhase":
+      if (board?.dayNightCycle === false) return true;
+      return (board?.phase ?? "day") === (req.is ?? "night");
 
     case "inZone":
       return (unit?.zones ?? []).includes(req.zoneId);

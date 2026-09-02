@@ -586,6 +586,55 @@ changed portrait to their placed tokens (the HGoB's token moved from `mystery-ma
 from the *stale* 1×1 world actor both produced a 9×9, 81-panel token; and editing
 `system.footprint` to 5×7 and back moved the prototype **and** the placed token both ways.
 
+### Jack the Ripper, and three UI repairs — **built**
+
+Her seven abilities plus Presence Concealment are authored and verified in the live world; Ch. D
+§D.18 has the clause-by-clause table of what each one needed. Nine engine additions, and the
+striking thing about them is the ratio: **four were repairs to machinery that already existed
+and had never once run.** `annotateFields` merged every contribution bucket except
+`checkModifiers`; `board.startedAtDay` had a reader and no writer, so every Round was Day on the
+odd ones; a `predicate` requirement naming `target:` was unsatisfiable in every case because the
+option set was built from the attacker alone; and `SustainabilityGain` put its value on an event
+handler that nothing read back. None of the four would have been found by inspection — each was
+found by measuring the clause that depended on it.
+
+**Reaction pre-emption** is the genuinely new mechanism, and the design decision worth recording
+is that it is *not* a Counter. A Counter resolves at the end of the Process it answers, after the
+damage has landed (§12.8's `counter` rung). *"Attack first instead of the opposing Unit"*
+replaces the order instead, so the attacker's declaration is **deferred onto the pre-empter's own
+Combat Process** and re-entered with `resume: true` when that finishes — skipping the budget, the
+costs and the cooldown, all paid at the first declaration. "If she kills them, their Attack never
+happens" then falls out of re-resolving the targeting rather than needing a case of its own.
+
+Verified live, end to end: the Mist opened with 25 freeform panels; an enemy Servant inside had
+MOV 8 → 4, Detect 2 → 1 and a +3 Evade penalty, and an EMIYA carrying Eye of the Mind's buffs was
+exempt from all three and lost the exemption the moment they were stripped; an enemy Master was
+Poisoned on entry and **not** re-poisoned stepping further in; a Civilian's contact produced the
+defeat plus the kill credited to Jack; the upkeep charged 15 at one 1◈ and no sooner, and at 15
+Health it closed the field **instead** of charging, starting the 5◈ cooldown at closure; the
+Murderer active gave 30%/20% and 3◈ outside the fog and 50%/30% and 4◈ inside it; Information
+Erasure stripped both buffs and left the debuff; Maria's gate refused by day naming `roundPhase`
+and opened at night; its damage bands selected ×5 vs a Female, ×2.5 otherwise, ×7+200 at range
+1–2 and a fixed zero at 3–4; and the pre-emption prompted, parked the original attack, and cost
+a point of Luck by day and none at night.
+
+**Three interface repairs** shipped alongside, all found by measurement rather than report:
+
+- **Every token's artwork rotation is locked.** Facing is `system.facing`, an eight-point compass
+  the Combat Process reads; Foundry's own `rotation` is artwork orientation and nothing in this
+  system touches it — so an unlocked token let a player spin the picture away from the direction
+  the rules were using. Enforced on every compiled prototype, on creation, and by a GM-side sweep
+  over existing tokens.
+- **The facing control was unusable.** It was a `<select>` inside Foundry's fixed 35px
+  `.control-icon`, measured at **25px wide with 16px of that spent on padding** — nine pixels of
+  content box for "South-west", plus a dropdown arrow wider than that. It rendered as an empty
+  grey sliver. Replaced by the thing the box is shaped for: one arrow pointing the way the unit
+  faces, left-click clockwise and right-click anticlockwise.
+- **Facing was invisible on the board.** The field the rules read appeared nowhere except that
+  dropdown, one unit at a time — the same defect as a stat with no display. `FGTToken` now draws
+  a chevron on the token itself, sized so its tip lands on the token's own boundary and never
+  crosses into the next panel.
+
 ---
 
 ## 45.5 The completion plan

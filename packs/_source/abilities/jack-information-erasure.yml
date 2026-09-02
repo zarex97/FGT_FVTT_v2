@@ -1,0 +1,47 @@
+# Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 48-50.
+# Discussed: docs/44-case-expanded-roster.md §44.4
+#
+# The PASSIVE is deliberately not modelled, and this is the one place in Jack's
+# kit where that is the honest answer rather than a gap:
+#
+#   "(Passive) Whenever Jack leaves the Detect area of an enemy Unit, erase all
+#    information recorded by that Player about Jack, if any had been recorded
+#    in the Player's Notebook (let the GM do this)."
+#
+# The clause's own text hands it to the GM, and what it erases lives outside
+# the game state entirely -- a human player's notes. There is no system value
+# to write. Ch. 44 §44.4 files it under closed-information play; when that
+# arrives it will have a Notebook to clear, and this file will grow a rule.
+# Recorded here rather than left to look implemented.
+schema: 1
+id: jack-information-erasure
+name: "Information Erasure"
+rank: B
+kind: skill
+slug: informationErasure
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Passive) Whenever Jack leaves the Detect area of an enemy Unit, erase all information
+  recorded by that Player about Jack, if any had been recorded in the Player's Notebook (let the
+  GM do this).
+  (Active) Used during your Turn. Range=2. Used on an enemy Unit. Removes all buffs on the
+  Defending Unit; then inflicts Crit Dwn for 1◈ Turns, Crit Chance is reduced by 30%.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], includeSelf: false, chooser: all, count: 1 }
+phases:
+  # "Removes ALL buffs" -- by polarity, the same selector Medea's Rule Breaker
+  # uses, so a buff authored after Jack was is still stripped. Ordered BEFORE
+  # the debuff: the sheet says "removes all buffs on the DU; THEN inflicts Crit
+  # Dwn", and a Crit Dwn applied first would be removed by its own clause if
+  # the selector were ever widened.
+  - kind: removeEffect
+    target: reuse
+    selector: { polarity: buff }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: critDwn, magnitude: 30, duration: "1◈" }

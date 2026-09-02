@@ -88,6 +88,24 @@ export class NPFieldBehavior extends Base {
       // because a Servant dragged inside is subject to it.
       interiorEvents: new fields.ArrayField(new fields.ObjectField()),
 
+      // A recurring toll the field charges to keep itself open, as opposed to
+      // `duration`, which closes it on a clock. Jack's Mist is the first:
+      // "at the end of the Turn after every 1◈ Turns since this NP was
+      // activated, Jack's Master loses 15 Health", and it closes INSTEAD of
+      // charging when the Master cannot pay — "her Master does not lose Health
+      // on the same Turn this NP is deactivated."
+      upkeep: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // Whether the owner may switch it off, and when. Jack's Mist: "can be
+      // deactivated at any time … during her Turn or at the start or end of
+      // any Turn or Round."
+      deactivation: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // A FREEFORM field stores the panels it was drawn as: there is no shape
+      // spec to recompute them from, which is the whole difference between it
+      // and `fixedArea`.
+      panels: new fields.ArrayField(new fields.ObjectField()),
+      // The tick the field opened on, which an `upkeep` period counts from.
+      createdAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
       duration: new fields.StringField({ required: false, nullable: true, initial: null }),
       // The ABSOLUTE tick it closes on, resolved at cast time. Durations are
       // stored as expiry ticks everywhere else (§7.5) for the same reason: a

@@ -310,6 +310,10 @@ describe("meetsRequirement", () => {
       // "Only one Bašmu summoned by this Spell can exist on the field" --
       // needed by nothing before Summoning: Bašmu's summon branch.
       "noAliveSummon",
+      // "If the Round is a Night Round (automatically fulfilled if playing
+      // without Day-Night cycle)" -- Jack's Maria the Ripper is the first
+      // ability GATED on the Round phase rather than merely modified by it.
+      "roundPhase",
       // "Can only be used within the 'Throne Room'" -- needed by nothing
       // before Sikera Ušum's DSC branch.
       "withinPlatformCentre",

@@ -220,6 +220,14 @@ function add(options, side, unit) {
   // different Ranks.
   if (unit.platformContentId) options.add(`${side}:onPlatform:${unit.platformContentId}`);
 
+  // A Servant with no Master. §16.6's state, and the one this system already
+  // charges differently for (`rules/costs.mjs`'s `freeServantNPSustainability
+  // Cost`) — but the cost path asked the question privately, so no clause could
+  // be WRITTEN against it. Jack the Ripper's Sustainability grows by 1◈ for
+  // every Human she kills "when she is a Free Servant", which is the first
+  // clause in the corpus that needs to say it.
+  if (unit.contract === "free" || unit.contract === "unbound") options.add(`${side}:free`);
+
   // Standing in its OWN Home Base. Medea's Territory Creation predicates on it
   // from both directions -- her own damage dealt, and an ally's damage taken --
   // which is why it is emitted for `self` and `target` alike.
@@ -302,6 +310,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):region:[A-Za-z][\w-]*$/,
   /^(self|target):variant:[A-Za-z][\w-]*$/,
   /^(self|target):inHomeBase$/,
+  /^(self|target):free$/,
   /^(self|target):inField:[A-Za-z][\w-]*$/,
   /^(self|target):onPlatform:[A-Za-z][\w-]*$/,
   /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,

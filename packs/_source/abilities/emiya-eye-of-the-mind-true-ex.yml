@@ -13,6 +13,19 @@ cooldown: "4◈"
 # "Used during your Turn OR at the start of a Combat Process when Attacked" --
 # the EX form gains the proactive window the B form does not have.
 timing: { window: [ownTurn, whenAttacked] }
+# Jack the Ripper's sheet lists this skill among those "also categorized as
+# 'Instinct'", which is what her Mist's exemption keys on (Ch. 43, and
+# `rules/bounded-fields.mjs#hasCategory`). The parenthesis on her list is
+# "(only when Active/its buffs are in effect)", so the tag is gated on the
+# buffs this skill grants rather than being unconditional -- it is a cooldown
+# Skill and never `active`, so gating on that flag would make the tag dead.
+#
+# The FALSE variant (`heracles-eye-of-the-mind-false.yml`) is deliberately NOT
+# tagged: her list names "Eye of the Mind", and this corpus carries "Eye of the
+# Mind (False)" as a separate, lesser named skill. If the author intends the
+# family rather than the skill, adding the two lines there is the whole change.
+categorizedAs: [instinct]
+categorizedWhile: [dodge, atkUp, defUp]
 description: |
   (Passive 1) Cannot normally be used unless EMIYA's Health is less than 20% of its maximum
   value.
