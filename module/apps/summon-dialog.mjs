@@ -20,6 +20,7 @@
 import {
   prepareSummon, rerollSummonLine, reviseSummon, commitSummon, servantCatalogue,
 } from "../engine/summon.mjs";
+import { grantBudget } from "../rules/master-rank.mjs";
 import { REGION_ADJACENCY } from "../rules/environment.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -84,6 +85,13 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       grantRows: PARAMETERS.map((p) => ({
         key: p, label: p.toUpperCase(), value: this.#form.grants[p] ?? 0,
       })),
+      // *"High Rank Masters additionally grant a free `+` to one of their
+      // Servant's Parameters"* (Ch. 04 §4.5). The rows above have always
+      // offered the CHOICE; the ALLOWANCE is what nothing enforced, so a GM
+      // could type any number into any row and `prepareSummon` honoured it.
+      grantBudget: this.#grantBudget(),
+      grantSpent: this.#grantSpent(),
+      grantOverspent: this.#grantSpent() > this.#grantBudget(),
 
       prepared: this.#prepared
         ? {
@@ -174,10 +182,35 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * The parameter steps the selected Master may grant.
+   * @returns {number}
+   */
+  #grantBudget() {
+    return grantBudget(game.actors.get(this.#form.masterId)?.system ?? null);
+  }
+
+  /**
+   * The steps currently selected across every Parameter row.
+   * @returns {number}
+   */
+  #grantSpent() {
+    return Object.values(this.#form.grants).reduce((n, v) => n + Number(v || 0), 0);
+  }
+
+  /**
    * @this {SummonDialog}
    */
   static async #onConfirm() {
     if (!this.#prepared) return;
+
+    // Refused here rather than silently trimmed: a GM who typed two steps
+    // meant two, and quietly writing one would be a number they never see.
+    if (this.#grantSpent() > this.#grantBudget()) {
+      ui.notifications.warn(game.i18n.format("FGT.Summon.GrantOverspent", {
+        budget: this.#grantBudget(), spent: this.#grantSpent(),
+      }));
+      return;
+    }
 
     const actor = await commitSummon(this.#prepared);
     ui.notifications.info(game.i18n.format("FGT.Summon.Created", { name: actor.name }));

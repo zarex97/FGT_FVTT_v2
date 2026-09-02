@@ -386,6 +386,11 @@ export function isExempt(spec, unit, board) {
   if (!spec) return false;
   if (hasCategory(unit, spec.categorizedAs, spec.minRank)) return true;
 
+  // Jack's Mist Advanced Note: *"High Rank Masters are not inflicted with
+  // Poison upon contact with the Mist."* A property of the unit under test,
+  // which for that clause is always a Master (`kinds: [master]`).
+  if (spec.masterTier && unit?.masterTier === spec.masterTier) return true;
+
   // "…is also ignored by any allied Units of the Servant with Instinct who are
   // standing DIRECTLY NEXT TO the aforementioned Servant." The exemption is
   // lent outward by one panel, and only by an ally — which is why this needs

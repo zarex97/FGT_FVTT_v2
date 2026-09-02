@@ -228,6 +228,11 @@ function add(options, side, unit) {
   // clause in the corpus that needs to say it.
   if (unit.contract === "free" || unit.contract === "unbound") options.add(`${side}:free`);
 
+  // The rank of the Master this unit answers to -- or its own, if it IS one.
+  // Jack's Mist exempts a High Rank Master from its contact Poison, which is
+  // the first clause in the corpus to ask.
+  if (unit.masterTier) options.add(`${side}:masterTier:${unit.masterTier}`);
+
   // Standing in its OWN Home Base. Medea's Territory Creation predicates on it
   // from both directions -- her own damage dealt, and an ally's damage taken --
   // which is why it is emitted for `self` and `target` alike.
@@ -311,6 +316,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):variant:[A-Za-z][\w-]*$/,
   /^(self|target):inHomeBase$/,
   /^(self|target):free$/,
+  /^(self|target):masterTier:(high|low|rankless)$/,
   /^(self|target):inField:[A-Za-z][\w-]*$/,
   /^(self|target):onPlatform:[A-Za-z][\w-]*$/,
   /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,
