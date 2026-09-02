@@ -316,6 +316,45 @@ describe("extensionFor", () => {
 
 /* ── Axis 6: vulnerability ────────────────────────────────────────────────── */
 
+describe("extensionFor — the payer and the floor", () => {
+  const doomsday = (over = {}) => labyrinth({
+    id: "doomsday",
+    extension: {
+      cost: { kind: "health", amount: 100, payer: "ownerMaster", minimum: 100 },
+      grants: "1◈", repeatable: true,
+    },
+    ...over,
+  });
+
+  it("names who pays, so the runner does not assume the owner", () => {
+    // Doomsday Come: "Pale Rider's Master can extend the NP duration". Chaos
+    // Labyrinthos charges its OWNER, and one runner serves both.
+    expect(extensionFor(doomsday(), { health: 500 })).toMatchObject({
+      ok: true, amount: 100, payer: "ownerMaster",
+    });
+    const asterios = labyrinth({
+      extension: { cost: { kind: "health", amount: 200, payer: "owner" }, grants: "2◈", repeatable: true },
+    });
+    expect(extensionFor(asterios, { health: 500 })).toMatchObject({ ok: true, payer: "owner" });
+  });
+
+  it("refuses below the stated floor, which is not the price", () => {
+    // "Cannot be used if the Master's Health is less than 100" -- so a payer at
+    // exactly 100 may pay it down to zero, and one at 99 is never asked.
+    expect(extensionFor(doomsday(), { health: 99 }))
+      .toMatchObject({ ok: false, reason: "belowMinimum", minimum: 100 });
+    expect(extensionFor(doomsday(), { health: 100 })).toMatchObject({ ok: true });
+  });
+
+  it("defaults the floor to the price when none is stated", () => {
+    const asterios = labyrinth({
+      extension: { cost: { kind: "health", amount: 200, payer: "owner" }, grants: "2◈" },
+    });
+    expect(extensionFor(asterios, { health: 199 }).ok).toBe(false);
+    expect(extensionFor(asterios, { health: 200 }).ok).toBe(true);
+  });
+});
+
 describe("vulnerabilityTriggered", () => {
   it("ends a field when its owner is defeated", () => {
     expect(vulnerabilityTriggered(labyrinth(), { kind: "ownerDefeat" }))

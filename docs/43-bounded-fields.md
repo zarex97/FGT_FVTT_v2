@@ -124,7 +124,7 @@ type FieldGeometry =
 | Field | Geometry |
 |---|---|
 | Chaos Labyrinthos | `fixedArea` 9×9 around Asterios (11×11 if the Region is Greece) |
-| Doomsday Come | **`followsUnit`** — `(2 + 1d4)` panels around **Pale Rider's Master**, moving with them |
+| Doomsday Come | **`followsUnit`** — `(2 + 1d4)` panels around **Pale Rider's Master**, moving with them. The only field whose **size is rolled**: `shape.radiusRoll` is evaluated once at cast and stored as a concrete size, because a field that re-rolled on every read would breathe and membership would depend on who asked last. "X panel area" is radius X by the corpus's convention, so it opens as a 7×7 through a 13×13 |
 | Unlimited Blade Works | `fixedArea` 7×7 around EMIYA |
 | The Mist | **`freeform`** — any shape up to 25 panels, within 4 panels of Jack, **reshapeable once per turn** |
 | Ramesseum Tentyris | `fixedArea` 11×11, **cannot intersect an enemy Home Base** |
@@ -437,7 +437,12 @@ type FieldDuration =
   | { kind: "onceOnly" };
 
 interface ExtensionSpec {
-  cost: { kind: "health"; amount: number; payer: "owner" | "ownerMaster" };
+  cost: {
+    kind: "health";
+    amount: number;                          // the price
+    payer: "owner" | "ownerMaster";
+    minimum?: number;                        // a floor, when the sheet states one
+  };
   grants: TickExpr;
   repeatable: boolean;
   sideEffects?: Phase[];
@@ -454,6 +459,37 @@ Two fields introduce **paid extension**, a mechanic nothing else in the game has
 So both are attrition engines: the owner burns their own resource to keep the trap shut, and the
 trapped units burn theirs trying to get out. That is a genuinely elegant piece of design and it
 needs no special engine support beyond `ExtensionSpec`.
+
+> **The runner exists (Ch. 45).** `ExtensionSpec` was authored on Chaos Labyrinthos from the day
+> Asterios was written and **nothing ever ran it**: `extensionFor` was a pure function with no
+> caller, so a field with a paid extension simply closed on schedule and the whole attrition
+> cycle was decoration. `expireFields` now offers it, and only when the **clock** is what is
+> closing the field — one ended by its owner's defeat is not for sale.
+>
+> Three things the spec had to say out loud once something read it:
+>
+> - **`payer`.** Doomsday Come charges Pale Rider's *Master*; Chaos Labyrinthos charges Asterios
+>   himself. One runner serves both, so the cost names who pays.
+> - **`minimum`, which is not the price.** Doomsday Come: *"cannot be used if the Master's Health
+>   is **less than 100**"* — so at exactly 100 the Master may pay it down to zero, and at 99 they
+>   are **never asked**, because a Master should not be offered a question whose answer kills
+>   them. Where no floor is stated it defaults to the price, and the two refusals stay
+>   distinguishable in the log (`belowMinimum` versus `cannotAfford`).
+> - **`sideEffects`.** Asterios's are why extending is not merely paying to wait: each extension
+>   re-applies `Atk Dwn` and `Def Dwn` to every enemy *currently* inside, read from the board
+>   rather than remembered from cast time — who is inside is exactly what the intervening Turns
+>   were about.
+>
+> The payer is read **from the board**, not from `game.actors`. For an unlinked token those are
+> two different documents with two different Healths: the board reads the token's actor, which is
+> what every write lands on, while `game.actors.get(id)` is the prototype nobody is playing.
+> Asking the prototype and charging the token is how a Master gets billed for an extension they
+> could not afford, or refused one they could.
+>
+> Measured live: the Master paid 100 and the expiry moved 10 → 13 (1◈); a second extension
+> charged another 100, since both fields say *"repeatedly"*; at 99 the prompt never appeared and
+> the field closed with the Health untouched; Asterios paid **200 of his own** for 2◈ and every
+> enemy inside gained `Atk Dwn` and `Def Dwn` while he did not.
 
 **Ramesseum Tentyris is permanent** once activated — *"remains constantly Active"* — with four
 distinct termination paths (§43.8).
