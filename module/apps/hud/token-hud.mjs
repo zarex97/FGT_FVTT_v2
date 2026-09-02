@@ -19,6 +19,7 @@ import { classifyAbility } from "../../rules/ability-use.mjs";
 import { currentBoard, unitFrom } from "../../engine/board.mjs";
 import { budgetFor } from "../../engine/budget.mjs";
 import { mayDeactivate } from "../../engine/fields.mjs";
+import { mayReshape } from "../../rules/bounded-fields.mjs";
 
 /** How many abilities the quick-bar shows. §29.5 says up to six. */
 const QUICK_BAR = 6;
@@ -48,6 +49,16 @@ export function attachTokenHUD() {
     if (!(changes.system && "facing" in changes.system)) return;
     const hud = canvas.hud?.token;
     if (hud?.rendered && hud.object?.actor?.id === actor.id) hud.render();
+  });
+
+  // The end-of-turn repaint window, raised by the scheduler once the owner has
+  // accepted it (`engine/fields.mjs#offerReshape`). Opened here rather than
+  // there because the painter is layer 4 and the scheduler is layer 3.
+  Hooks.on("fgtOfferReshape", async ({ fieldId, unitId }) => {
+    const board = currentBoard();
+    const field = (board.fields ?? []).find((f) => f.id === fieldId);
+    const unit = (board.units ?? []).find((u) => u.id === unitId);
+    if (field && unit) await reshape(field, unit);
   });
 }
 
@@ -94,18 +105,63 @@ function controls(actor, token) {
  * @returns {HTMLElement[]}
  */
 function fieldSwitches(actor, board) {
-  return (board?.fields ?? [])
-    .filter((field) => mayDeactivate(field, actor.id))
-    .map((field) => button(
-      `field-${field.id}`,
-      "fa-solid fa-circle-xmark",
-      null,
-      async () => {
-        const { deactivateField } = await import("../../engine/fields.mjs");
-        await deactivateField(field.id, "owner");
-      },
-      game.i18n.format("FGT.HUD.EndField", { name: nameOfField(field, actor) }),
-    ));
+  const unit = unitFrom(board, actor);
+  /** @type {HTMLElement[]} */
+  const out = [];
+
+  for (const field of board?.fields ?? []) {
+    if (mayDeactivate(field, actor.id)) {
+      out.push(button(
+        `field-${field.id}`,
+        "fa-solid fa-circle-xmark",
+        null,
+        async () => {
+          const { deactivateField } = await import("../../engine/fields.mjs");
+          await deactivateField(field.id, "owner");
+        },
+        game.i18n.format("FGT.HUD.EndField", { name: nameOfField(field, actor) }),
+      ));
+    }
+    // `mayReshape` takes a SNAPSHOT, not the actor: it reads `turnState`, which
+    // the document does not carry in the same shape.
+    if (mayReshape(field, unit)) {
+      out.push(button(
+        `reshape-${field.id}`,
+        "fa-solid fa-pen-nib",
+        null,
+        () => reshape(field, unit),
+        game.i18n.format("FGT.HUD.ReshapeField", { name: nameOfField(field, actor) }),
+      ));
+    }
+  }
+  return out;
+}
+
+/**
+ * Open the painter for a field, and commit what comes back.
+ *
+ * A cancelled session resolves `null` and writes nothing — including the
+ * once-per-Turn flag, so backing out of the painter does not spend the window.
+ *
+ * @param {object} field
+ * @param {object} unit the owner's snapshot
+ * @returns {Promise<void>}
+ */
+async function reshape(field, unit) {
+  const { pickPaint } = await import("../canvas/targeting-layer.mjs");
+  const panels = await pickPaint({
+    anchor: unit.panel,
+    maxPanels: field.geometry?.maxPanels ?? 25,
+    maxDistance: field.geometry?.maxDistance ?? 4,
+    initial: field.panels ?? [],
+  });
+  if (!panels) return;
+
+  const { repaintField } = await import("../../engine/fields.mjs");
+  const verdict = await repaintField(field.id, panels);
+  // Named, not swallowed: the painter refuses illegal panels as you draw, so a
+  // refusal here means something moved between drawing and committing.
+  if (!verdict.ok) ui.notifications.warn(game.i18n.localize(`FGT.Paint.${verdict.reason}`));
 }
 
 /**

@@ -82,6 +82,12 @@ async function onTurnChange(combat, prior, current) {
   // could author a `turnEnd` interior event and never be asked.
   await run(await fields.runFieldEvents("turnEnd"), "field:turnEnd");
 
+  // Jack's Mist: "During Jack's Turn OR at the end of any Turn Jack Acts,
+  // she can Move the Mist and/or change the shape once." The second window,
+  // offered before the upkeep so a repaint cannot be pre-empted by the field
+  // closing for non-payment on the same boundary.
+  await fields.offerReshape(board);
+
   // A field that charges to stay open, charged. Applies its own intents and
   // may close the field, so it is not folded into the `run` above.
   await fields.runUpkeep(tick);

@@ -227,6 +227,10 @@
     &--part { background: #c80; }
     &--done { background: #666; }
   }
+  // The painter takes over the canvas, so the control says so before the first
+  // drag does. Matched on the prefix because the class carries the field's id.
+  &[class*="fgt-hud__reshape-"] { cursor: crosshair; }
+
   // One arrow filling the 35px control, rotated to the heading. The `<select>`
   // this replaced measured 25px wide with 16px of padding -- nine pixels of
   // content box for "South-west" (§29.5).

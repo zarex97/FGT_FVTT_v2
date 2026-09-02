@@ -225,6 +225,11 @@ export function combatantCommon() {
       mayMoveAgain: new fields.BooleanField({ initial: false }),
       // Riding Attack is terminal for that unit's turn.
       usedRidingAttack: new fields.BooleanField({ initial: false }),
+      // Jack's Mist: *"she can Move the Mist and/or change the shape of the
+      // Mist ONCE"* per Turn. Its own flag rather than `usedActiveSkill`,
+      // because the same sentence says it "does not count as Moving a Unit and
+      // is not an Attack" -- so a repaint must spend nothing else.
+      reshapedField: new fields.BooleanField({ initial: false }),
       // How many items this Unit has passed this turn (Ch. 15 §15.8). A count
       // rather than a flag, because `transfersPerTurn` is per item and one of
       // them may allow more than one.

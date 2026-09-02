@@ -22,7 +22,7 @@
 
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import { currentHealth } from "../domain/health.mjs";
-import { panelsOf, isExempt } from "../rules/bounded-fields.mjs";
+import { panelsOf, isExempt, legalRepaint, mayReshape } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
@@ -645,4 +645,119 @@ export async function deactivateField(fieldId, reason = "manual") {
 export function mayDeactivate(field, unitId) {
   if (!field?.deactivation?.byOwner) return false;
   return field.ownerId === unitId;
+}
+
+/**
+ * Redraw a freeform field's footprint in place.
+ *
+ * **In place** is the whole point. The field keeps its id, its interior rules,
+ * its `createdAt` and its upkeep clock — closing it and casting it again would
+ * restart the upkeep period and fire the owning ability's
+ * `countFrom: "deactivation"` cooldown, which for Jack's Mist is 5◈ she has not
+ * earned.
+ *
+ * Contact fires for whoever the NEW footprint closes over and not for anyone
+ * the old one already covered, reusing the entry set `runContactEvents` takes.
+ * So painting the fog onto an enemy Master Poisons him; painting it off and
+ * back on next Turn Poisons him again, which is what "upon contact" means.
+ *
+ * @param {string} fieldId
+ * @param {Array<{i: number, j: number}>} panels
+ * @returns {Promise<{ok: boolean, reason?: string}>}
+ */
+export async function repaintField(fieldId, panels) {
+  const board = currentBoard();
+  const field = (board.fields ?? []).find((f) => f.id === fieldId);
+  if (!field) return { ok: false, reason: "noField" };
+
+  const owner = (board.units ?? []).find((u) => u.id === field.ownerId);
+  const verdict = legalRepaint(field, panels, owner?.panel ?? null);
+  if (!verdict.ok) return verdict;
+
+  const region = canvas?.scene?.regions?.get(field.regionId);
+  const behavior = region?.behaviors?.find(
+    (b) => b.type === "npField" && b.system?.fieldId === fieldId,
+  );
+  if (!region || !behavior) return { ok: false, reason: "noRegion" };
+
+  const before = new Set((field.panels ?? []).map((p) => `${p.i},${p.j}`));
+  const next = panels.map((p) => ({ i: p.i, j: p.j }));
+
+  await region.update({ shapes: [shapeOf(next, canvas.scene)] });
+  await behavior.update({ "system.panels": next });
+
+  // Whoever the new footprint newly covers. Read from the board AFTER the
+  // write, so a unit standing on a panel the fog just reached is found where
+  // it actually is rather than where the old shape put it.
+  const after = currentBoard();
+  const caught = (after.units ?? [])
+    .filter((u) => u.panel
+      && next.some((p) => p.i === u.panel.i && p.j === u.panel.j)
+      && !before.has(`${u.panel.i},${u.panel.j}`))
+    .map((u) => u.id);
+
+  if (caught.length > 0) {
+    const intents = await runFieldEvents("contact", {
+      unitIds: caught, fieldIds: [fieldId], assumeInside: true,
+    });
+    if (intents.length > 0) await applyWorldIntents(intents, "field:contact");
+  }
+
+  // "Does not count as Moving a Unit and is not an Attack" -- so this writes
+  // the repaint flag and nothing else. Not `moved`, not `attacked`, not
+  // `acted`.
+  if (owner) {
+    await applyWorldIntents([I.markTurn(owner.id, { reshapedField: true })], "field:repaint");
+  }
+  return { ok: true };
+}
+
+/**
+ * Offer a repaint to every field owner whose Turn is ending and who acted.
+ *
+ * Jack's Mist gives two windows: *"During Jack's Turn OR at the end of any Turn
+ * Jack Acts."* The first is a button on the token HUD. This is the second, and
+ * it is OFFERED rather than left as a button that quietly stops working — a
+ * window that closes silently is one players lose, and this one only opens on
+ * Turns she acted, which is exactly when she is least likely to be watching
+ * for it.
+ *
+ * The prompt goes to the owner's player, falling back to the GM, the same way
+ * `engine/attack.mjs#askOwner` picks one. A refusal or a timeout is a decline:
+ * the window shutting is the default outcome, not an error.
+ *
+ * @param {object} board
+ * @returns {Promise<void>}
+ */
+export async function offerReshape(board) {
+  if (!game.users.activeGM?.isSelf) return;
+
+  for (const field of board.fields ?? []) {
+    const owner = (board.units ?? []).find((u) => u.id === field.ownerId);
+    if (!owner?.acted || !mayReshape(field, owner)) continue;
+
+    const doc = game.actors.get(owner.id);
+    if (!doc) continue;
+
+    const user = game.users.find((u) => u.active && !u.isGM && doc.testUserPermission(u, "OWNER"))
+      ?? game.user;
+    const { FGTSocket } = await import("../net/socket.mjs");
+    const picked = await FGTSocket.ask(user.id, {
+      kind: "choose",
+      title: game.i18n.localize("FGT.Paint.OfferTitle"),
+      hint: game.i18n.format("FGT.Paint.OfferHint", { name: doc.name }),
+      // `min: 0` -- keeping the shape is a legitimate play, and a dialog that
+      // forced a redraw would make an optional clause mandatory.
+      min: 0,
+      count: 1,
+      options: [{ id: "reshape", name: game.i18n.localize("FGT.Paint.Offer") }],
+    }).catch(() => null);
+
+    // Raised as a hook rather than opening the canvas layer from here: this is
+    // layer 3 and the painter is layer 4, and the GM client running the
+    // scheduler is not necessarily the client that answered.
+    if ((picked ?? []).includes("reshape")) {
+      Hooks.callAll("fgtOfferReshape", { fieldId: field.id, unitId: owner.id });
+    }
+  }
 }

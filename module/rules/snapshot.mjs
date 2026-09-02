@@ -314,6 +314,7 @@ export function turnStateAt(raw, tick) {
   const blank = {
     tick, acted: false, moved: false, attacked: false, movedPanels: 0,
     moveSegments: 0, usedActiveSkill: false, mayMoveAgain: false, usedRidingAttack: false,
+    reshapedField: false,
     // WHICH abilities went. Absent from both branches until now, so every
     // snapshot reader of the turn record saw `undefined`: `oncePerTurn` never
     // refused anything, and `reactionAbilities` offered a Skill whose
@@ -332,6 +333,11 @@ export function turnStateAt(raw, tick) {
     usedActiveSkill: Boolean(raw?.usedActiveSkill),
     mayMoveAgain: Boolean(raw?.mayMoveAgain),
     usedRidingAttack: Boolean(raw?.usedRidingAttack),
+    // The once-per-Turn field repaint. This projection copies a FIXED key list,
+    // so a flag added to the schema and not added here is written to the
+    // document and invisible to every rule that reads a snapshot -- which is
+    // how `mayReshape` kept saying yes to a Servant who had already redrawn.
+    reshapedField: Boolean(raw?.reshapedField),
     itemTransfers: raw?.itemTransfers ?? 0,
     abilitiesUsed: [...(raw?.abilitiesUsed ?? [])],
   };

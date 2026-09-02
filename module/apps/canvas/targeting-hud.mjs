@@ -21,6 +21,9 @@ export class TargetingHUD {
   /** @type {string} */
   #label;
 
+  /** An override for the empty-state hint, so each mode names its own keys. */
+  #emptyHint = null;
+
   /** @type {Function|null} */
   #damageFor;
 
@@ -38,6 +41,24 @@ export class TargetingHUD {
   }
 
   /**
+   * Replace the header text and redraw.
+   *
+   * `update(option)` renders a placement PREVIEW and has nothing to show when
+   * there is no placement — which is every moment of a freeform paint session,
+   * where the only status worth reporting is how many panels are down. Mode E
+   * sets the count here and lets `update(null)` render the header plus the
+   * choose-a-panel hint.
+   *
+   * @param {string} label
+   * @returns {void}
+   */
+  setLabel(label, hint = null) {
+    this.#label = label;
+    this.#emptyHint = hint;
+    this.update(null);
+  }
+
+  /**
    * Redraw for one placement option.
    *
    * @param {object|null} option `{legal, reasons, resolved}`, or null for "nothing under the cursor"
@@ -45,8 +66,12 @@ export class TargetingHUD {
   update(option) {
     const el = this.#ensure();
     if (!option) {
+      // The empty-state hint is overridable because it names the CONTROLS, and
+      // mode E's are not mode B's -- "right-click or Escape to cancel" is a lie
+      // in a session where Enter confirms and right-click does nothing.
+      const hint = this.#emptyHint ?? game.i18n.localize("FGT.Targeting.ChoosePanel");
       el.innerHTML = `<div class="fgt-preview__header">${escape(this.#label)}</div>
-        <div class="fgt-preview__empty">${game.i18n.localize("FGT.Targeting.ChoosePanel")}</div>`;
+        <div class="fgt-preview__empty">${escape(hint)}</div>`;
       return;
     }
 

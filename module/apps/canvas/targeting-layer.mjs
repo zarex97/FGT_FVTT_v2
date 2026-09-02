@@ -7,7 +7,8 @@
  * Range is, what an anchor is, or why a placement is illegal — it asks, and
  * paints the answer.
  *
- * Four interactions, one function behind all of them (D28.2, D28.4):
+ * Five interactions (D28.2, D28.4). The first four share one function; the
+ * fifth is its own, because it has no anchor to place and no shape to resolve:
  *
  * | Anchor | Mode | Interaction |
  * |---|---|---|
@@ -15,6 +16,7 @@
  * | `withinRange`      | B | free placement inside a dimmed range overlay |
  * | `targetUnit`       | C | unit picker |
  * | anything else      | D | resolves with nothing to ask |
+ * | freeform field     | E | drag to paint, shift-drag to erase, live cap and leash |
  *
  * Mode A is the important one. Showing all four legal directions
  * simultaneously, tinted by legality, replaces the prototype's
@@ -28,6 +30,7 @@ import { TargetingHUD } from "./targeting-hud.mjs";
 import { showArea, discardArea } from "./target-region.mjs";
 import { reviewTargets, REAIM } from "./target-review.mjs";
 import { faction as factionById } from "../../engine/board.mjs";
+import { chebyshev } from "../../domain/geometry.mjs";
 
 const LEGAL = 0x4488ff;
 const ILLEGAL = 0xff4444;
@@ -54,6 +57,139 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   async _tearDown(options) {
     this.#cancel();
     return super._tearDown(options);
+  }
+
+
+  /**
+   * Mode E — paint a freeform footprint.
+   *
+   * The fifth interaction, and the first outside Ch. 09's targeting grammar:
+   * there is no anchor to place and no shape to resolve, only a set of panels a
+   * player draws. Ch. 43 has called it "targeting mode E" since it was written
+   * and listed it as not built.
+   *
+   * Legality is **drawn, not enforced afterwards** — a panel outside the leash
+   * renders in the illegal tint and refuses paint, so nothing is composed that
+   * will be rejected at commit. The layer still decides nothing: the verdict is
+   * `rules/bounded-fields.mjs#legalRepaint`, and the GM checks it again.
+   *
+   * @param {object} args
+   * @param {{i: number, j: number}} args.anchor the owner's panel; the leash is measured from it
+   * @param {number} args.maxPanels
+   * @param {number} args.maxDistance
+   * @param {Array<{i: number, j: number}>} [args.initial] the current footprint
+   * @returns {Promise<Array<{i: number, j: number}>|null>} panels, or null on cancel
+   */
+  async paintPanels({ anchor, maxPanels, maxDistance, initial = [] }) {
+    this.#cancel();
+    this.activate();
+
+    const key = (p) => `${p.i},${p.j}`;
+    const painted = new Map(initial.map((p) => [key(p), { i: p.i, j: p.j }]));
+    const legal = (p) => chebyshev(p, anchor) <= maxDistance;
+
+    const hud = new TargetingHUD({ label: `${painted.size}/${maxPanels}` });
+    const redraw = () => {
+      this.#graphics.clear();
+      // Illegal panels first and underneath, so a painted panel that has since
+      // become illegal (the anchor moved) still reads as painted.
+      this.#drawPanels([...painted.values()].filter((p) => !legal(p)), ILLEGAL, 0.35);
+      this.#drawPanels([...painted.values()].filter(legal), LEGAL, 0.3);
+      hud.setLabel(`${painted.size}/${maxPanels}`, game.i18n.localize("FGT.Paint.Keys"));
+    };
+
+    announce(game.i18n.localize("FGT.Paint.Announce"), "E");
+
+    try {
+      return await this.#runPaint({ painted, legal, maxPanels, key, redraw });
+    } finally {
+      hud.close();
+      this.#graphics?.clear();
+      this.deactivate();
+    }
+  }
+
+  /**
+   * The pointer loop for mode E.
+   *
+   * A stroke paints or erases **uniformly**, decided by whether `shift` was
+   * held when it started. Deciding per-panel instead would let a stroke that
+   * crosses its own path toggle a panel back off, which makes a long drag
+   * unpredictable.
+   *
+   * @param {object} ctx
+   * @returns {Promise<Array<{i: number, j: number}>|null>}
+   */
+  #runPaint({ painted, legal, maxPanels, key, redraw }) {
+    return new Promise((resolve) => {
+      let stroke = null;
+
+      // `event.data.getLocalPosition` -- the same call every other mode makes
+      // (`#await`), so all five read the pointer one way.
+      const panelAt = (event) => {
+        const offset = canvas.grid.getOffset(event.data.getLocalPosition(canvas.stage));
+        return { i: offset.i, j: offset.j };
+      };
+
+      const apply = (panel) => {
+        const k = key(panel);
+        if (stroke === "erase") painted.delete(k);
+        // The cap is checked against panels not already down, so dragging back
+        // over your own work at 25/25 does not read as an overflow.
+        else if (legal(panel) && (painted.has(k) || painted.size < maxPanels)) {
+          painted.set(k, panel);
+        }
+        redraw();
+      };
+
+      const onDown = (event) => {
+        // `event.shiftKey` directly. A PIXI 7 federated event sets `data` to
+        // ITSELF and `originalEvent` to the federated event it came from -- not
+        // to the DOM event -- so `data.originalEvent.shiftKey` is undefined and
+        // every stroke read as paint. Measured with a real shift-drag: the
+        // count sat at 25/25 because the stroke was repainting panels that were
+        // already down.
+        stroke = event.shiftKey ? "erase" : "paint";
+        apply(panelAt(event));
+      };
+      const onMove = (event) => { if (stroke) apply(panelAt(event)); };
+      const onUp = () => { stroke = null; };
+      // Right-click cancels, as it does in every other mode. Without it the
+      // announced controls would be true of four interactions and not the fifth.
+      const onRight = () => finish(null);
+
+      const finish = (result) => {
+        canvas.stage.off("pointerdown", onDown);
+        canvas.stage.off("pointermove", onMove);
+        canvas.stage.off("pointerup", onUp);
+        canvas.stage.off("pointerupoutside", onUp);
+        canvas.stage.off("rightdown", onRight);
+        window.removeEventListener("keydown", onKey, true);
+        this.#session = null;
+        resolve(result);
+      };
+
+      function onKey(event) {
+        if (event.key === "Escape") { event.preventDefault(); finish(null); }
+        if (event.key === "Enter") { event.preventDefault(); finish([...painted.values()]); }
+      }
+
+      canvas.stage.on("pointerdown", onDown);
+      canvas.stage.on("pointermove", onMove);
+      canvas.stage.on("pointerup", onUp);
+      // A pointer released off the canvas still ends the stroke; without this
+      // the next hover would keep painting with no button held.
+      canvas.stage.on("pointerupoutside", onUp);
+      canvas.stage.on("rightdown", onRight);
+      // Registered like every other session, so `#cancel()` can end this one --
+      // otherwise a second targeting session opened over a live paint would
+      // leave both listening.
+      this.#session = { finish };
+      // Capture phase, so Foundry's own Escape handling does not close the
+      // session before this sees it.
+      window.addEventListener("keydown", onKey, true);
+      redraw();
+    });
   }
 
   /**
@@ -426,6 +562,7 @@ const MODE_HINTS = Object.freeze({
   selfEdgeAdjacent: "FGT.Targeting.ModeDirection",
   withinRange: "FGT.Targeting.ModePanel",
   targetUnit: "FGT.Targeting.ModeUnit",
+  E: "FGT.Paint.Keys",
 });
 
 /**
@@ -534,4 +671,19 @@ export function pickTarget(args) {
   const layer = canvas.fgtTargeting;
   if (!layer) throw new Error("FGT | The targeting layer is not on the canvas.");
   return layer.pick(args);
+}
+
+/**
+ * Open a freeform paint session on the canvas.
+ *
+ * The module-level door to mode E, matching `pickTarget`'s shape so a caller
+ * never reaches for `canvas.fgtTargeting` itself.
+ *
+ * @param {object} args see {@link TargetingLayer#paintPanels}
+ * @returns {Promise<Array<{i: number, j: number}>|null>}
+ */
+export function pickPaint(args) {
+  const layer = canvas.fgtTargeting;
+  if (!layer) throw new Error("FGT | The targeting layer is not on the canvas.");
+  return layer.paintPanels(args);
 }
