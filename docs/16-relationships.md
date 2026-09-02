@@ -229,11 +229,9 @@ Four rules, all keyed on "the Master's Servant is within 2 panels of it".
 > `suppressions`, **read by nothing and authored by nobody**. This is its first reader and Pale
 > Rider its first author.
 >
-> **Rule 3 is implemented for nobody.** *"When a Master that has his/her Servant within a 2 panel
-> range gets caught in a Noble Phantasm and fails to Evade, the Master is unharmed while the
-> Total Damage taken by the Servant from the Noble Phantasm is increased by 100%"* has no
-> implementation for any Servant, so there is nothing for the proxy to redirect. It is a gap
-> here rather than in Pale Rider, and the proxy will cover him the day it is filled.
+> All four rules now ask it. Cover was the last to be built, and until it was, the note here
+> read *"implemented for nobody, so there is nothing for the proxy to redirect"* — a gap in this
+> chapter rather than in Pale Rider. `rules/cover.mjs` closed it, and the proxy covers him.
 
 ### 1. Targeting immunity
 
@@ -242,6 +240,19 @@ Four rules, all keyed on "the Master's Servant is within 2 panels of it".
 
 A selection filter (Ch. 09 §9.5). Bypassed by active Presence Concealment and by Scáthach's
 *Gate of Skye*.
+
+**"Targeted" is the operative word, and rule 4 is the proof.** The filter applies to a unit the
+attacker *picks* — a chosen target, or the unit an area is *aimed at* — and not to whoever an
+area happens to cover. `resolve.mjs` step 8 is gated on the same `isChosen` that step 7 uses for
+concealment, and step 1b refuses the anchor separately.
+
+It was applied to the splash too, once. That made rule 4 unreachable: a Master with its Servant
+within 2 panels was removed from every area, so the one configuration Cover is *about* could
+never occur. Cover was wired end to end, its tests green, and it never fired — found by casting
+Caladbolg II over a Master and its adjacent Servant in `fgt2026` and getting a two-defender
+fan-out with no Master in it. Rule 4 opens with a Master who "gets **caught in** an AoE Noble
+Phantasm"; if rule 1 removed him, the Agility Check, the shove, the divided +100% and the "not
+within the NP area" exclusion would all describe a state with no way to reach it.
 
 ### 2. Counter redirect
 
@@ -302,6 +313,40 @@ Two covering Servants ⇒ +50% each. Three ⇒ +33% each.
 
 So a Servant outside the blast cannot absorb it. If *all* covering Servants are outside the
 area and all fail, the Master takes the hit normally.
+
+**The successful shove protects the Master too.** The sheet spells the immunity out only in the
+failure branch, which reads at first as though a shoved Master still takes the hit — it does
+not. Failure would then be strictly better for the Master *and* for the Servant, whose reward
+for passing the Check would be an unharmed enemy Master and its own undivided damage; the
+Agility Check would be a trap nobody should ever pass. *"Moved to one panel **outside** of the
+NP area"* is the protection, and *"the Combat Process proceeds as normal"* is about everyone
+else's Processes. Recorded as a cover record with an empty `coveringIds`, so the same stage-15
+zero and the same rider guard serve both branches and no Servant is refused its Evade.
+
+### How it is built
+
+Cover spans **two Combat Processes**, which is what makes it awkward. An AoE Noble Phantasm fans
+out into one Process per defender, so the Master's Process decides and the *Servants'* Processes
+are what the decision changes. `engine/attack.mjs#resolveCover` runs on the Master's failed
+Evade and writes one `fgt.cover` record — `{masterId, coveringIds, factor, shoved?}` — onto the
+group's other messages. Every consumer reads it from there:
+
+| Clause | Where |
+|---|---|
+| *"the Servant performs an Agility Check"* | `resolveCheck` with `checkPlan(servant, "agility")` — not `evade()`, which would let an Evade-specific bonus help a shove |
+| *"shoves its Master out of the NP area"* | `rules/cover.mjs#shoveDestination`, nearest free panel outside, moved with `{fgtForced: true}` |
+| *"the Master receives no damage"* | a stage-15 `factor: 0` (Ch. 13) |
+| *"and effects"* | an early return in `applyAbilityEffects` — a rider is not damage and the pipeline never sees it |
+| *"Total Damage … increased by 100%"*, divided | `coverFactor(n)` = `1 + 1/n`, supplied to stage 15 |
+| *"Servants cannot Evade"* | `isCovering` refused in `advanceAttack`, at the rung rather than at declaration: the reaction list is recorded once when the attack is declared, and Cover is not decided until several rungs later on a different Process |
+
+**The record never lands on the deciding Process's own message.** Writing to it fires
+`updateChatMessage`, which re-arms that message's prompt clock (`engine/await-timeout.mjs`)
+against a process flag that has not been written yet — the timeout then answers the rung the
+call is still resolving. Live, that re-entered `advanceAttack`, re-rolled the Agility Checks and
+shoved one Master twice: (6,4) to (5,3) to (4,2). An AoE always has a second defender, so the
+record always lands somewhere `coverStateFor` will find it; `resolveCover` also returns early
+if the group already carries one.
 
 **Optional for non-NP AoE:**
 
