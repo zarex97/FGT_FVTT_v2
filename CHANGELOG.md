@@ -104,6 +104,10 @@ coincide by accident; the headings say which is which.
   World's *"cannot be prevented or removed as long as a Unit is within"* free rather than a
   feature: an interior annotation is present exactly while the Unit stands inside, and there is
   nothing for Dispel to find.
+- **`requiresEffect` and `RemoveEffect` on a bounded field's interior events** — a filter on what
+  a Unit is carrying rather than on what it is, and the one action in that table that takes
+  something away. Guidance of the Netherworld's marker discharges on contact with Doomsday Come
+  and is removed in the same breath.
 - **`VulnerabilityAmplifier` can name a polarity** instead of one effect id, for
   *"Total Debuff Damage taken is increased by 50%"* — every debuff at once, which no list of ids
   would keep up with.

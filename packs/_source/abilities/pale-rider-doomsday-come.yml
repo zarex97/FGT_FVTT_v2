@@ -201,7 +201,25 @@ field:
       scope: npSeal
       relations: [enemy]
       predicate: [{ or: ["self:npAboveAllParameters", "self:stableDie:d6:6"] }]
-  interiorEvents: []
+  interiorEvents:
+    # Guidance of the Netherworld's discharge. "When a Unit with the 'GotN'
+    # effect ENTERS the area of Doomsday Come, apply effects 1 to 3 ... then
+    # remove the 'GotN' effect from that Unit."
+    #
+    # `contact` fires on walking in AND on the field opening over you, which is
+    # what "enters the area" has to mean for an area that appears around you.
+    #
+    # The bundle is authored HERE rather than carried on the effect: this is
+    # the one field that will ever discharge it, and an effect with an
+    # unapplied payload would be a subsystem built for a single clause.
+    - event: contact
+      relations: [ally, self]
+      requiresEffect: gotn
+      onFail:
+        - { key: ApplyEffect, effect: { id: atkUp, magnitude: 20, npMagnitude: 10 }, duration: "1◈" }
+        - { key: ApplyEffect, effect: { id: regen }, duration: "1◈" }
+        - { key: ApplyEffect, effect: { id: dmgCut, magnitude: 100 }, duration: "1◈" }
+        - { key: RemoveEffect, effect: { id: gotn } }
 
   # Axis 6 -- vulnerability. The Anti-World NP that pierced the boundary also
   # breaks it, at the END of that Combat Process: the damage lands inside,

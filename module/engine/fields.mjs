@@ -653,6 +653,12 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     // exemption, compiled it, and fired anyway -- found live, because the unit
     // test exercised `isExempt` and the rule path rather than this one.
     && !isExempt(spec.exemptIf, u, board)
+    // Guidance of the Netherworld: *"when a Unit with the 'GotN' effect ENTERS
+    // the area of Doomsday Come, apply effects 1 to 3 ... then remove the
+    // 'GotN' effect from that Unit."* The mirror of `kinds`, on what the Unit
+    // is carrying rather than on what it is.
+    && (!spec.requiresEffect
+      || (u.effects ?? []).map((e) => e?.defId ?? e).includes(spec.requiresEffect))
     && relations.has(relationOf(owner, u, board)));
 
   /** @type {object[]} */
@@ -736,6 +742,18 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // "no duration" reading (Ch. 7 §7.5's resolution, the same one an
       // ability phase's `applyEffects` uses): Poison's own duration is its
       // stage clock, not this rider's.
+      // *"...then remove the 'GotN' effect from that Unit."* A field event that
+      // takes something away, which only the discharge needs -- every other
+      // action in this table gives.
+      if (action.key === "RemoveEffect") {
+        out.push(I.removeEffect(
+          unit.id,
+          action.effect?.id ?? action.effect?.defId ?? action.effect,
+          "field",
+        ));
+        continue;
+      }
+
       if (action.key === "ApplyEffect") {
         // *"Has a 50% chance of being inflicted with Poison."* A field's own
         // probability, rolled here rather than left to the effect's
