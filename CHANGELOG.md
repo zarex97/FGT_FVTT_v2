@@ -59,6 +59,20 @@ coincide by accident; the headings say which is which.
 - **A handler can be conditioned on what a boundary did to its own bearer.** The boundary
   reports; the handler asks whether it happened to *it*. `combatPhaseEnd` now carries the ids
   the phase actually damaged.
+- **Passive bounded fields** (Ch. 43) — an area nothing casts and nothing expires, reconciled
+  with the board at `ready` and every Turn start. Pale Rider's Contagion is the first: *"the 2
+  panel area around Pale Rider **is** the Contagion area."*
+- **A field's geometry can read the board.** `whileOwnerHas` measures the same area differently
+  while its owner carries an effect; `whileFieldOpen` / `sameAs` borrows another open field's
+  panels. Tested in authored order, because *"instead of its usual Range"* is a precedence claim.
+- **`HealthLoss`, `chance`, `duration` and `branches` on a field's interior events.** A
+  deduction that is explicitly not damage; a probability and a clock that belong to the field
+  rather than to the effect; and the same trigger resolving to different numbers **per victim**.
+- **`fgt.unitTurnEnd` is dispatched**, scoped to the fields whose owner's faction just ended its
+  Turn. It had been listed in Appendix E since that reference was written and raised by nothing.
+- **A `followsUnit` field's drawn Region follows its anchor**, using Foundry v14's native
+  `attachment.token`. Membership was always computed correctly; the *drawn* area was left where
+  it was cast, so what a player could see had been wrong for every field of that kind.
 - **Masters carry a rank that means something.** The letter (`A`–`D`, or blank for Rankless) is
   settable from the Master's sheet for the first time — it was a free-form string with no
   vocabulary and no control anywhere, so the only way to rank a Master was to hand-edit the
@@ -128,6 +142,17 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **A bounded field could only belong to a Noble Phantasm.** `field` was declared on
+  `NoblePhantasmData` and not on `AbilityData`, because every field in the corpus so far is an
+  NP. Contagion is a **Skill**, and Foundry dropped its entire six-axis block on load without a
+  word: the Item existed, its `field` read `null`, and nothing opened. A new guard,
+  `test/unit/item-schema-coverage.test.mjs`, fails the build when any key content authors is
+  missing from the DataModel its document compiles to.
+- **Rule Breaker had no Noble Phantasm scale.** `medea-rule-breaker.yml` authored
+  `npType: antiUnit` — a key no schema declares and nothing anywhere reads; the field is
+  `npTags`. Found by the guard above on its first run. It matters: Ch. 43's vulnerabilities and
+  isolation exceptions both compare scale through `npTags`, and an empty tag list clears no
+  threshold.
 - **Charm transferred no control whatsoever.** `rules/control.mjs` computed the right answers,
   was fully unit-tested, and **had no consumer anywhere in the system** — its only import was
   `fgt.mjs`, which never called it. Two defects sat underneath, either fatal on its own:

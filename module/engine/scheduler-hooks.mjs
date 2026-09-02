@@ -82,6 +82,25 @@ async function onTurnChange(combat, prior, current) {
   // could author a `turnEnd` interior event and never be asked.
   await run(await fields.runFieldEvents("turnEnd"), "field:turnEnd");
 
+  // A field's OWNER's Turn ending. Contagion trigger 1 is *"at the end of Pale
+  // Rider's Turn: affects all enemy Units within the Contagion area"* -- every
+  // enemy inside, not just one who acted, and only on HIS Turn.
+  //
+  // `fgt.unitTurnEnd` has been in §E since that reference was written and
+  // nothing ever dispatched it. Scoped to the fields whose owner belongs to
+  // the faction whose Turn just ended, which is what "its own Turn" means for
+  // an area: firing it unscoped would charge Contagion on every faction's Turn
+  // and triple the toll.
+  const ownedFields = (board.fields ?? [])
+    .filter((f) => activeUnits.some((u) => u.id === f.ownerId))
+    .map((f) => f.id);
+  if (ownedFields.length > 0) {
+    await run(
+      await fields.runFieldEvents("unitTurnEnd", { fieldIds: ownedFields }),
+      "field:unitTurnEnd",
+    );
+  }
+
   // Jack's Mist: "During Jack's Turn OR at the end of any Turn Jack Acts,
   // she can Move the Mist and/or change the shape once." The second window,
   // offered before the upkeep so a repaint cannot be pre-empted by the field
@@ -134,6 +153,12 @@ async function onTurnChange(combat, prior, current) {
   // field and nothing ending one, so a `duration` was decoration -- which for a
   // total-isolation Reality Marble means the match never ends.
   await fields.expireFields(nextTick);
+  // A passive field has no cast to open it and no expiry to close it, so the
+  // Turn boundary is where it is reconciled with the board: a Servant summoned
+  // mid-match gets his area, one who left the board loses it. Idempotent, and
+  // after `expireFields` so a field that just closed is not reopened by its
+  // own passive twin on the same tick.
+  await fields.ensurePassiveFields();
   await run(await fields.runFieldEvents("turnStart"), "field:turnStart");
 }
 

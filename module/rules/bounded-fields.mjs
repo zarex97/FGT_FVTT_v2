@@ -18,6 +18,7 @@ import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { EXECUTORS, empty } from "./elements.mjs";
+import { test as testPredicate } from "./predicate.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  NP tags — a real, ordered classification                                  */
@@ -100,7 +101,23 @@ export function panelsOf(field, board) {
       // named rather than assumed to be the owner.
       const anchorId = geometry.unitRef === "ownerMaster" ? field.ownerMasterId : field.ownerId;
       const anchor = (board?.units ?? []).find((u) => u.id === anchorId);
-      return anchor?.panel ? square(anchor.panel, geometry.shape?.size ?? 1) : [];
+      if (!anchor?.panel) return [];
+
+      // A shape that reads the BOARD. Contagion states two rewrites of its own
+      // area in one paragraph -- *"increases the Contagion area ... from 5x5
+      // to 9x9 for 1◈ Turns"* and *"when Doomsday Come is Active, Contagion
+      // constantly affects all enemy Units within the NP area INSTEAD of its
+      // usual Range"* -- and neither is a new field: it is the same passive
+      // area, measured differently while something else is true.
+      //
+      // Tested in authored order, first match wins, because "instead of" is a
+      // precedence claim and the file is where precedence belongs.
+      const override = (geometry.overrides ?? []).find((o) => overrideApplies(o, field, board));
+      if (override?.sameAs) {
+        const other = (board?.fields ?? []).find((f) => f.id === override.sameAs);
+        return other ? panelsOf(other, board) : square(anchor.panel, geometry.shape?.size ?? 1);
+      }
+      return square(anchor.panel, (override?.shape ?? geometry.shape)?.size ?? 1);
     }
 
     case "freeform":
@@ -113,6 +130,57 @@ export function panelsOf(field, board) {
     default:
       return field.panels ?? [];
   }
+}
+
+/**
+ * Does this geometry override apply right now?
+ *
+ * Two conditions, both pure and both answered off the board `panelsOf` already
+ * takes: an effect the OWNER carries, and another field being open. An
+ * override that states neither never applies — a bare `{shape}` in the list
+ * would otherwise shadow everything after it.
+ *
+ * @param {object} override
+ * @param {object} field
+ * @param {object} board
+ * @returns {boolean}
+ */
+function overrideApplies(override, field, board) {
+  if (!override?.whileOwnerHas && !override?.whileFieldOpen) return false;
+
+  if (override.whileOwnerHas) {
+    const owner = (board?.units ?? []).find((u) => u.id === field.ownerId);
+    // A real board projects `effects` as bare defIds; a hand-built unit may
+    // carry instances. Both, for the same reason `charmSource` accepts both.
+    const held = (owner?.effects ?? []).map((e) => e?.defId ?? e);
+    if (!held.includes(override.whileOwnerHas)) return false;
+  }
+  if (override.whileFieldOpen
+    && !(board?.fields ?? []).some((f) => f.id === override.whileFieldOpen)) return false;
+
+  return true;
+}
+
+/**
+ * Which of an interior event's `branches` applies to THIS unit.
+ *
+ * The same first-match shape `damage.branches`, `targeting.branches`,
+ * `cooldown.branches` and a field's own `branches` already use — but selected
+ * per UNIT rather than per cast, because that is what the clause is about.
+ * Contagion under Doomsday rewrites three numbers at once: *"the chance of
+ * being inflicted with Poison is 75% while chance of being inflicted with
+ * Charm is 25%; and if the enemy Unit is within a 3 panel area of Pale Rider's
+ * Master, Health is reduced by 150 instead of 100."*
+ *
+ * Falls back to the spec itself, so a branchless event reads unchanged.
+ *
+ * @param {object} spec the interior event
+ * @param {Set<string>} options the unit's own roll options
+ * @returns {object} the branch, or the spec
+ */
+export function selectBranch(spec, options) {
+  const branch = (spec?.branches ?? []).find((b) => testPredicate(b.predicate, { options }));
+  return branch ?? spec;
 }
 
 /**
@@ -582,6 +650,16 @@ export function annotateFields(units, board) {
     for (const field of fields) {
       if (!contains(field, u.panel, board)) continue;
       u.fields.push(field.id);
+      // Where the MASTER of this field's owner is standing, for
+      // `self:withinOfOwnerMaster:<n>`. Contagion's Doomsday branch measures a
+      // distance to a third party that is neither side of the clause, and only
+      // the field knows who that is. First field wins: a unit standing in two
+      // fields at once is inside one owner's Doomsday, and the clause that
+      // asks is authored on that field.
+      if (!u.ownerMasterPanel && field.ownerMasterId) {
+        const master = (board.units ?? []).find((x) => x.id === field.ownerMasterId);
+        if (master?.panel) u.ownerMasterPanel = { ...master.panel };
+      }
       gained.push(...interiorModifiers(field, u, board));
     }
     // A stat-shaped rule moves the snapshot's OWN value directly: the field

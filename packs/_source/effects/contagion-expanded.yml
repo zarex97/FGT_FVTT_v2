@@ -1,0 +1,19 @@
+# Contagion's Active: "Increases the Contagion area by a Range of 2 panels for
+# 1◈ Turns (i.e. from 5x5 panel area around Pale Rider to a 9x9 panel area)."
+#
+# A MARKER, carrying no rules. The area is not a second field and the Active is
+# not a cast -- Contagion is one passive area that measures itself differently
+# while this is standing, which the field's own `geometry.overrides` reads
+# (`whileOwnerHas`). Expressing it as a field of its own would put two Regions
+# on the board answering the same membership question.
+schema: 1
+id: contagionExpanded
+name: "Contagion (Expanded)"
+description: "Pale Rider's Contagion area covers a 9×9 panel area instead of 5×5."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 500
+defaultDuration: "1◈"
+rules: []

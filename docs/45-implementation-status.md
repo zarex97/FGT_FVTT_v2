@@ -810,6 +810,60 @@ Charm declares immunity to both, so the relationship is expressed and switches o
 either exists. Neither is a Pale Rider clause, and Ch. 18 §18.5 lists Confuse's random action
 selector as an open item of its own.
 
+#### Commit 3 — passive fields, geometry that reads the board, Contagion
+
+Contagion is the first **passive** bounded field: *"(Passive) The 2 panel area around Pale Rider
+is the Contagion area."* No cast, no duration, no cooldown — `ensurePassiveFields()` reconciles
+it with the board at `ready` and at every Turn start, idempotently, so a Servant summoned
+mid-match or a reloaded world repairs itself at the next boundary.
+
+| Piece | What it is for |
+|---|---|
+| `field.passive` | a field nothing casts and nothing expires |
+| `geometry.overrides` | one area measured differently while an effect stands or another field is open (§43.3) |
+| `HealthLoss` | a deduction that is explicitly **not damage** (§43.6) |
+| `chance` / `duration` on `ApplyEffect` | the probability and the clock belong to the field, not to the effect |
+| event `branches` | the same trigger, different numbers **per victim** |
+| `self:withinOfOwnerMaster:<n>` | a distance to a third party neither side of the clause is |
+| `unitTurnEnd` dispatch | §E's last undispatched time event |
+
+**Three defects found building it**, two of them older than Pale Rider:
+
+1. **A bounded field could only belong to a Noble Phantasm.** `field` was declared on
+   `NoblePhantasmData` alone — every field in the corpus so far is an NP, so nothing had ever
+   noticed. Contagion is a **Skill**, and its whole six-axis block was dropped by the schema
+   in silence: the Item loaded, its `field` read `null`, and the passive sweep found nothing to
+   open. `test/unit/item-schema-coverage.test.mjs` now fails the build when any authored key is
+   missing from the model its document compiles to.
+2. **`medea-rule-breaker.yml` authored `npType: antiUnit`** — a key no schema declares and
+   nothing anywhere reads. The field is `npTags`. Caught by that same new guard on its first
+   run. It matters immediately: §43.8's vulnerabilities and Doomsday Come's `piercedBy` both
+   compare scale through `meetsTagThreshold(npTags, …)`, and an NP with an empty tag list clears
+   no threshold and triggers no vulnerability.
+3. **A `followsUnit` field's drawn Region never followed anything.** Membership was always
+   right — `panelsOf` recomputes from the anchor every time — but the Region was drawn once at
+   cast time and left there, so the area a player could *see* was in the wrong place for every
+   field of that kind, Sikera Ušum's 5×5-follows-Semiramis branch included. Foundry v14 answers
+   this natively: a Region carries `attachment.token` and the core translates its offsets as the
+   token moves. Fields are created attached to their anchor's token — the **Master's** for
+   Doomsday Come. Resizing is the half the core cannot do, so `syncDerivedFields()` redraws a
+   field whose computed panels no longer match its drawn ones, on effect changes and at Turn
+   start.
+
+**Measured live in `fgt2026`:**
+
+| Clause | Measured |
+|---|---|
+| The area exists without being cast | `ensurePassiveFields` opened a 25-panel field owned by him; a second pass left exactly one |
+| *"The 2 panel area around Pale Rider"* | 5×5, drawn centred on him |
+| Active → *"9x9 panel area"* | live and drawn both 81, still centred |
+| It follows him | moved 3 west; drawn area moved with him, still centred, no redraw needed |
+| Active expires | back to 25, centred |
+| *"Health is reduced by 100 … does not count as 'damage'"* | one `statDelta` intent, **100** lost against a standing Def Up of 50%; twenty firings, all exactly −100 |
+| *"50% chance of Poison"* / *"10% chance of Charm"* | 9 and 3 out of 20 |
+| *"Charm for 1◈ Turns"* | expiry = tick + 1◈ |
+| *"Affects all enemy Units within"* | Pale Rider stands inside his own field and is untouched; only the enemy is affected |
+
 ---
 
 ## 45.5 The completion plan

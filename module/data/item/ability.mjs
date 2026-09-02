@@ -303,6 +303,23 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // refused; declared as `replaces`, it is the same write as the first pick.
       replaces: new fields.ArrayField(new fields.StringField()),
       npTags: new fields.ArrayField(new fields.StringField()),
+      /**
+       * A bounded field this ability creates (Ch. 43). Untyped for the same
+       * reason rule elements are.
+       *
+       * Declared on `NoblePhantasmData` alone until Pale Rider, because every
+       * field in the corpus so far belonged to a Noble Phantasm — Chaos
+       * Labyrinthos, Unlimited Blade Works, Sikera Ušum, The Mist. Nothing in
+       * Ch. 43 makes that a rule: a bounded field is an *area*, and what opens
+       * it is a separate question.
+       *
+       * Contagion is the counter-example and it is a **Skill**: *"(Passive)
+       * The 2 panel area around Pale Rider is the Contagion area."* Authored
+       * on an ability, its whole `field` block was dropped by the schema
+       * without complaint — the Item existed, carried a `field` of `null`,
+       * and `ensurePassiveFields` found nothing to open.
+       */
+      field: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     };
   }
 }

@@ -19,6 +19,7 @@ import { collectContributions } from "../../module/rules/elements.mjs";
 
 const effect = (name) => parse(readFileSync(`packs/_source/effects/${name}.yml`, "utf8"));
 const classSkill = (name) => parse(readFileSync(`packs/_source/class-skills/${name}.yml`, "utf8"));
+const ability = (name) => parse(readFileSync(`packs/_source/abilities/${name}.yml`, "utf8"));
 
 /* -------------------------------------------------------------------------- */
 
@@ -98,5 +99,73 @@ describe("the three new effects", () => {
     expect(def.uses).toBe(3);
     const out = collectContributions([{ id: "dmgCut", name: "Dmg Cut", rules: def.rules }]);
     expect(out.damageNegation[0]).toMatchObject({ mode: "flat", consumesUse: true });
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Contagion — the first passive bounded field                                */
+/* -------------------------------------------------------------------------- */
+
+describe("Contagion", () => {
+  const contagion = ability("pale-rider-contagion");
+
+  it("is a passive field that follows him, with no duration and nothing to cast it", () => {
+    // "(Passive) The 2 panel area around Pale Rider IS the Contagion area."
+    const f = contagion.field;
+    expect(f.passive).toBe(true);
+    expect(f.geometry).toMatchObject({ kind: "followsUnit", shape: { kind: "square", size: 5 } });
+    expect(f.duration).toBeUndefined();
+  });
+
+  it("lets Doomsday's area outrank the Active's marker, in file order", () => {
+    // "Instead of its usual Range" is a precedence claim, and the file is
+    // where precedence lives: first match wins.
+    const [first, second] = contagion.field.geometry.overrides;
+    expect(first).toMatchObject({ whileFieldOpen: "pale-rider-doomsday-come", sameAs: "pale-rider-doomsday-come" });
+    expect(second).toMatchObject({ whileOwnerHas: "contagionExpanded", shape: { size: 9 } });
+  });
+
+  it("answers all three boundaries the sheet names", () => {
+    // Trigger 1 is the OWNER's Turn ending, reaching every enemy inside;
+    // trigger 2 is one enemy's own Turn ending inside, acted or not.
+    const events = contagion.field.interiorEvents;
+    expect(events.map((e) => e.event)).toEqual(["unitTurnEnd", "turnEnd", "actedTurnEnd"]);
+    expect(events.every((e) => e.relations).valueOf()).toBe(true);
+    expect(events.find((e) => e.event === "actedTurnEnd").requiresActed).toBe(true);
+  });
+
+  it("takes 100 as a Health loss rather than as damage, everywhere", () => {
+    // "Not affected by effects that modify damage taken (does not count as
+    // 'damage')" -- so never `Damage`, which is the pipeline.
+    for (const event of contagion.field.interiorEvents) {
+      expect(event.onFail[0]).toEqual({ key: "HealthLoss", amount: 100 });
+      expect(event.onFail.some((a) => a.key === "Damage")).toBe(false);
+    }
+  });
+
+  it("rewrites all three numbers under Doomsday Come, and 150 only near the Master", () => {
+    const [near, inside] = contagion.field.interiorEvents[0].branches;
+    expect(near.predicate).toEqual([
+      "self:inField:pale-rider-doomsday-come", "self:withinOfOwnerMaster:3",
+    ]);
+    expect(near.onFail[0]).toEqual({ key: "HealthLoss", amount: 150 });
+    expect(inside.onFail[0]).toEqual({ key: "HealthLoss", amount: 100 });
+    for (const branch of [near, inside]) {
+      expect(branch.onFail.find((a) => a.effect?.id === "poison").chance).toBe(75);
+      expect(branch.onFail.find((a) => a.effect?.id === "charm").chance).toBe(25);
+    }
+  });
+
+  it("uses 50/10 with no Doomsday standing", () => {
+    const base = contagion.field.interiorEvents[0].onFail;
+    expect(base.find((a) => a.effect?.id === "poison").chance).toBe(50);
+    expect(base.find((a) => a.effect?.id === "charm")).toMatchObject({ chance: 10, duration: "1◈" });
+  });
+
+  it("has an Active that only marks him — the area reads the marker", () => {
+    expect(contagion.cooldown).toBe("4◈");
+    expect(contagion.phases).toEqual([
+      { kind: "applyEffects", target: "self", effects: [{ id: "contagionExpanded", duration: "1◈" }] },
+    ]);
   });
 });

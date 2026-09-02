@@ -410,6 +410,7 @@ function boundedFieldsOf(scene) {
         duration: sys.duration ?? null,
         upkeep: sys.upkeep ?? null,
         deactivation: sys.deactivation ?? null,
+        passive: Boolean(sys.passive),
         createdAt: sys.createdAt ?? null,
         lastUpkeepAt: sys.state?.lastUpkeepAt ?? null,
         state: sys.state ?? { escapeHistory: {} },

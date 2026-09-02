@@ -298,3 +298,21 @@ describe("content predicates name options that exist", () => {
     expect(dangling).toEqual([]);
   });
 });
+
+describe("self:withinOfOwnerMaster", () => {
+  it("is a ladder: emitted for every radius the unit is within", () => {
+    // Contagion under Doomsday: "if the enemy Unit is within a 3 panel area of
+    // Pale Rider's Master, Health is reduced by 150 instead of 100". Stamped
+    // by `annotateFields` from the field the unit is standing in.
+    const unit = { id: "u", panel: { i: 0, j: 0 }, ownerMasterPanel: { i: 0, j: 2 } };
+    const o = rollOptionsFor({ attacker: unit });
+    expect(o.has("self:withinOfOwnerMaster:2")).toBe(true);
+    expect(o.has("self:withinOfOwnerMaster:3")).toBe(true);
+    expect(o.has("self:withinOfOwnerMaster:1")).toBe(false);
+  });
+
+  it("is absent when the unit stands in no field with an owning Master", () => {
+    const o = rollOptionsFor({ attacker: { id: "u", panel: { i: 0, j: 0 } } });
+    expect([...o].some((x) => x.startsWith("self:withinOfOwnerMaster:"))).toBe(false);
+  });
+});
