@@ -12,30 +12,36 @@
 
 Two requests, and both turn out to be finishing something rather than starting it.
 
-### 1.1 Masters have a rank that is read wrongly and cannot say "Rankless"
+### 1.1 A Master's rank cannot be set, and the one thing that determines it throws it away
 
-`MasterData.rank` already exists — a free-form `StringField` — and two separate copies of the
-same function parse it as a Servant grade:
+**What already works, and must not be "fixed".** `MasterData.rank` exists, and the *pricing* that
+reads it is correct. Both `rules/costs.mjs:281` and `rules/command-spells.mjs:338` treat an unset
+rank as High Rank, deliberately and with the reasoning written above them:
 
-```js
-// duplicated verbatim in rules/costs.mjs:281 AND rules/command-spells.mjs:338
-const HIGH_RANK_MASTER = Object.freeze(["A", "B"]);
+> *"A rankless Master pays the **left** column — the cheaper one. That reads backwards until you
+> notice it is the default rather than a reward: the right column is the penalty a Low Rank
+> Master carries."*
 
-function isHighRankMaster(master) {
-  const rank = Rank.parseOrNull(master?.rank ?? null);
-  if (!rank) return true;                       // ← unset ⇒ HIGH
-  return HIGH_RANK_MASTER.includes(rank.grade);
-}
-```
+That is Ch. 15 §15.4 (*"Rankless Masters use the left column"*) implemented exactly. Ch. 17's
+all-Rankless Kill Yourself rule is implemented too: `engine/command-spells.mjs:143` computes
+`allMastersRankless(board)`, `rules/command-spells.mjs#costOf` honours it, and
+`test/unit/command-spells.test.mjs:80` covers it. **Rankless is already representable and already
+priced correctly.** None of this changes.
 
-Three problems in nine lines:
+What is missing is everything *upstream* and *downstream* of that:
 
-1. **`if (!rank) return true`.** Every Master in a live world has `rank: ""`, so every Master
-   silently takes the *cheap* column on Command Spells and Noble Phantasm Master-Health costs.
-2. **"Rankless" is unrepresentable.** Ch. 17 gives it a rule of its own — *"If all Masters are
-   Rankless, the Kill Yourself command only costs one Command Spell"* — and the current shape
-   has nowhere to put it.
-3. **The list is duplicated**, so the two readers can drift.
+1. **Nothing can set the rank.** It is a free-form `StringField` with no `choices` and **no
+   control on the Master sheet anywhere** — the only way to give a Master a rank is to hand-edit
+   the document. A typo (`"high"`, `"Rank A"`) parses to `null` and silently reads as Rankless.
+2. **The coin flip determines the rank and then discards it.** `rules/setup-rolls.mjs`'s
+   `coinFlip` mode implements Ch. 14 §14.9 — *"Heads=High Rank, Tails=Low Rank"* — as a `1d2`
+   mapped to `[125, 100]`, with the comment *"The coin picks the **value**, because the rank
+   exists here only to select it."* It does not: the rank also decides ZON, Sustainability, the
+   parameter grant, the Kill Yourself price and (once Jack exists) whether the Mist poisons you.
+   So a table that flips Heads gets a Master with `Base Attack (MAG) 125` who is **Rankless for
+   every other rule in the game**.
+3. **The list is duplicated** across the two cost readers, so they can drift. Minor, but free to
+   fix while the module exists.
 
 And the rank's three stated benefits (Ch. 04 §4.5, Ch. 16) are **all unwired**:
 
@@ -45,8 +51,8 @@ And the rank's three stated benefits (Ch. 04 §4.5, Ch. 16) are **all unwired**:
 | `Sustainability +1◈` while alive | No term anywhere in `rules/relationships.mjs`. |
 | A free `+` to one Servant parameter | `masterGrants` is an argument the *caller* hands `prepareSummon`; nothing derives it from the contracting Master's rank. |
 
-So the rank exists, is misread, cannot express a third of its own vocabulary, and none of its
-effects fire.
+So the rank is priced correctly and is otherwise inert: unsettable from the interface, thrown
+away by the roll that decides it, and buying none of the three things it is supposed to buy.
 
 ### 1.2 A freeform field cannot be reshaped, and would not survive it if it could
 
@@ -112,22 +118,35 @@ export function tierOf(master) {
 
 export const isHighRank = (master) => tierOf(master) === "high";
 export const isRankless = (master) => tierOf(master) === "rankless";
+
+/**
+ * Whether this Master pays the LEFT (cheap) column. High and Rankless both do
+ * — Ch. 15 §15.4, and the right column is the Low Rank penalty rather than the
+ * default. This is the existing `isHighRankMaster` behaviour, unchanged.
+ */
+export const paysHighColumn = (master) => tierOf(master) !== "low";
 ```
 
-Both existing copies of `isHighRankMaster` are **deleted** and their callers import from here.
-That removes the duplication and the `if (!rank) return true` defect in one move.
+Both existing copies of `isHighRankMaster` are **deleted** and their callers import
+`paysHighColumn` from here. This is a pure de-duplication: the behaviour is already right in both
+places and must not change.
 
-### 2.2 What Rankless costs — read from the rules, not invented
+### 2.2 The two prices — already correct, and staying that way
 
-The two prices are different questions and must not share a predicate:
+This is the part of the system that works, recorded so the implementer does not "fix" it:
 
-| Rule | Source | Predicate |
-|---|---|---|
-| Noble Phantasm Master-Health cost | Ch. 15 §15.4: *"Rankless Masters use the left column"* | `tierOf(m) !== "low"` — High **and** Rankless take the High column |
-| Kill Yourself Command Spell cost | Ch. 17: 1 for High, 2 for Low, *"if **all** Masters are Rankless … only one"* | `isHighRank(m)`, plus a board-wide `everyMasterRankless(board)` |
+| Rule | Source | Predicate | Status |
+|---|---|---|---|
+| Noble Phantasm Master-Health cost | Ch. 15 §15.4: *"Rankless Masters use the left column"* | `paysHighColumn(m)` — `tierOf(m) !== "low"`, so High **and** Rankless take the High column | **Correct today** |
+| Kill Yourself Command Spell cost | Ch. 17: 1 for High, 2 for Low, *"if **all** Masters are Rankless … only one"* | `paysHighColumn(m)`, plus the board-wide `allMastersRankless(board)` already computed in `engine/command-spells.mjs:143` | **Correct today, and tested** |
 
-Writing both as `isHighRank` would make Rankless Masters pay the Low NP price, which the rules
-explicitly deny.
+Both readers keep their exact current behaviour; only the function they call moves. The
+regression tests in §4 exist to prove the de-duplication changed nothing, not to fix anything.
+
+`tierOf` is what the *new* consumers (the three grants, the sheet, the Mist) need, and
+`paysHighColumn` is what the two existing ones need. They are different questions — a Rankless
+Master pays the High price but does not get a High Master's ZON — so they are two functions and
+not one.
 
 ### 2.3 The three grants, wired
 
@@ -148,12 +167,17 @@ explicitly deny.
 
 ### 2.4 Reach
 
-- **Sheet.** A rank selector on the Master's details tab (`templates/actor/details.hbs`), four
-  grades plus a blank meaning Rankless, with `masterContext` projecting the derived tier beside
-  it so the sheet shows both the letter and what it buys.
-- **Setup.** `rules/setup-rolls.mjs#masterSetupPlan`'s `coinFlip` mode (Ch. 14 §14.9) writes
-  `A` on Heads and `C` on Tails; the no-essence mode leaves `null`, which is the rulebook's
-  *"all Masters have Base Attack (MAG)=100"* case.
+- **Sheet.** There is **no rank control anywhere today**. One goes on the Master's details tab
+  (`templates/actor/details.hbs`): a `<select>` of the four grades plus a blank meaning Rankless,
+  with `masterContext` projecting the derived tier beside it so the sheet shows both the letter
+  and what it buys.
+- **Setup — the coin flip keeps its answer.** `rules/setup-rolls.mjs`'s `coinFlip` mode currently
+  maps `1d2` straight onto `[125, 100]` and discards which side came up. It gains a `rank` line
+  carrying `A` on Heads and `C` on Tails, and `engine/summon.mjs#rollMasterSetup` writes it to
+  `system.rank`. Base Attack (MAG) is then **derived from that rank** rather than rolled
+  separately, so the two can no longer disagree — a Master with 125 and no rank becomes
+  unrepresentable. The `rankless` mode leaves `rank: null`, which is the rulebook's *"all Masters
+  have Base Attack (MAG)=100"* case, and `essences` keeps reading the rank off the sheet.
 - **Snapshot.** `rules/snapshot.mjs` projects `masterTier` onto a Master's unit snapshot, and
   `rules/options.mjs` emits `self:masterTier:<t>` / `target:masterTier:<t>` so content can
   predicate on it.
@@ -163,16 +187,19 @@ explicitly deny.
 
 ### 2.5 Migration
 
-Every Master in an existing world has `rank: ""`, which reads as High today and as **Rankless**
-afterwards. Consequences:
+**None needed, and nothing silently changes price.** Every Master in an existing world has
+`rank: ""`, which reads as Rankless before this work and as Rankless after it — the `choices`
+list accepts `null`, and `""` parses to `null` exactly as it does today. Both prices are computed
+by the same predicate as before, only imported from a different file.
 
-- Noble Phantasm cost: **unchanged** (Rankless uses the High column).
-- Kill Yourself: unchanged in a world where no Master has a rank (all Rankless ⇒ 1 spell). It
-  changes only at a **mixed** table, which cannot exist today because the field is unset
-  everywhere.
+What *does* change for an existing world is that a Master who was never ranked now gains no ZON,
+no Sustainability and no parameter grant — which is already true, because none of those are
+wired. So the first GM to set a rank is opting in deliberately, and everyone else sees no
+difference.
 
-No migration script. The change is a no-op on a world nobody has ranked, and the first GM to set
-a rank is opting in deliberately.
+The one number that moves is on **new** summons in `coinFlip` mode, where Base Attack (MAG)
+becomes derived from the recorded rank rather than rolled independently. Same two values, same
+coin, now with the rank kept.
 
 ---
 
@@ -271,8 +298,8 @@ to each panel, never from the fog to her.
 | Pure (vitest) | Live (`fgt2026`) |
 |---|---|
 | `tierOf` over `A`/`B`/`C`/`D`/`null`/`""`/junk | Sheet selector writes; derived tier follows |
-| NP cost: Rankless takes the **left** column; Low the right | Kill Yourself at 1 / 2 / 1-when-all-Rankless |
-| `everyMasterRankless` with mixed and empty boards | — |
+| **Regression:** NP cost and Kill Yourself price are byte-identical before and after the de-duplication, for all of High/Low/Rankless | Kill Yourself at 1 / 2 / 1-when-all-Rankless, unchanged |
+| `coinFlip` mode emits a `rank` line, and Base Attack (MAG) derives from it | A coin-flip summon leaves a Master with a rank on the sheet |
 | ZON +1 stacks onto `derived`, not the `Math.max` floor | A High Rank Master's Servant stays in ZON one panel further out |
 | Sustainability +1◈ while alive; gone when dead | The bonus lapses on the Master's death |
 | `legalRepaint`: over cap, outside leash, empty set, non-contiguous | Paint an L; the board reads an L |
@@ -290,7 +317,8 @@ Four commits, each leaving the system working:
 
 1. **`shapeOf` → grid shape**, with the non-rectangular round-trip test. A standalone bug fix,
    worth having whether or not anything is ever painted.
-2. **Master rank**: schema, `tierOf`, de-duplication, sheet selector, setup coin flip.
+2. **Master rank**: schema `choices`, `tierOf`/`paysHighColumn`, de-duplication (behaviour-
+   preserving, proved by regression tests), sheet selector, and the coin flip keeping its answer.
 3. **The three grants**, plus Jack's Mist `exemptIf: { masterTier: high }`.
 4. **The painter**: mode E, `legalRepaint`, `repaintField`, HUD button, end-of-turn prompt.
 
@@ -310,6 +338,10 @@ in the same commit, which makes a surprising number easy to bisect.
 - **`turnState.reshapedField` is a seventh boolean on an already-wide schema.** Correct now; if a
   second ability ever wants a once-per-turn action, that schema should become a set of used-action
   keys rather than growing an eighth flag.
+- **The pricing readers are correct and must not be "improved".** The first draft of this spec
+  called `if (!rank) return true` a defect; it is the rule, documented above both copies. The
+  de-duplication in commit 2 is behaviour-preserving and its tests exist to prove exactly that.
+  An implementer who "fixes" Rankless to pay the Low column has broken Ch. 15 §15.4.
 - **Out of scope, and staying out.** The two clauses left unmodelled when Jack was built — her
   *Information Erasure* passive (it erases a player's notebook, which is not game state) and *The
   Mist*'s Fog of War exemption (there is no Fog of War subsystem) — are untouched by this work and
