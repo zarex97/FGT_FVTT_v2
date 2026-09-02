@@ -102,7 +102,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
-  "noAliveSummon", "withinPlatformCentre", "roundPhase",
+  "noAliveSummon", "withinPlatformCentre", "roundPhase", "fieldOpen",
 ]);
 
 /**
@@ -278,6 +278,17 @@ export function meetsRequirement(req, ctx) {
       return typeof ctx.testPredicate === "function"
         ? Boolean(ctx.testPredicate(req.predicate))
         : false;
+
+    case "fieldOpen":
+      // An ability that exists only while a bounded field does. Doomsday
+      // Come's drag-in is a clause OF the NP -- "during Pale Rider's Turn, if
+      // there are any enemy Units within a 2 panel area of the Doomsday Come
+      // area" -- so it is offered while the area stands and refused otherwise,
+      // rather than being a grant something has to remember to give and take
+      // away.
+      return (board?.fields ?? []).some((f) => f.id === req.field)
+        ? { ok: true }
+        : { ok: false, reason: `${req.field} is not open` };
 
     case "noAliveSummon":
       // "Only one Bašmu summoned by this Spell can exist on the field."

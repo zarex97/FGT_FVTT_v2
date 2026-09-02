@@ -316,3 +316,32 @@ describe("self:withinOfOwnerMaster", () => {
     expect([...o].some((x) => x.startsWith("self:withinOfOwnerMaster:"))).toBe(false);
   });
 });
+
+describe("attack:npScale:gte", () => {
+  const optionsFor = (npTags) => rollOptionsFor({
+    attacker: { id: "a" }, defender: { id: "b" }, attack: { kind: "np", npTags },
+  });
+
+  it("is a ladder: an Anti-Army NP is also 'Anti-Unit or higher'", () => {
+    const o = optionsFor(["antiArmy"]);
+    expect(o.has("attack:npScale:gte:antiUnit")).toBe(true);
+    expect(o.has("attack:npScale:gte:antiArmy")).toBe(true);
+    expect(o.has("attack:npScale:gte:antiFortress")).toBe(false);
+    expect(o.has("attack:npScale:gte:antiWorld")).toBe(false);
+  });
+
+  it("reads the HIGHEST tag when several are carried", () => {
+    // Ozymandias is [Anti-Fortress/Fortress/Anti-Unit]; the comparison uses
+    // Anti-Fortress, not the Anti-Unit it also carries.
+    const o = optionsFor(["antiUnit", "fortress", "antiFortress"]);
+    expect(o.has("attack:npScale:gte:antiFortress")).toBe(true);
+    expect(o.has("attack:npScale:gte:antiCountry")).toBe(false);
+  });
+
+  it("emits nothing for an attack with no scale at all", () => {
+    for (const tags of [[], ["barrier"], undefined]) {
+      const o = optionsFor(tags);
+      expect([...o].some((x) => x.startsWith("attack:npScale:"))).toBe(false);
+    }
+  });
+});

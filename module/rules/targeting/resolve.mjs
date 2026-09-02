@@ -15,7 +15,7 @@ import * as geo from "../../domain/geometry.mjs";
 import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
-import { isolationBlocks } from "../bounded-fields.mjs";
+import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
 import { relationOf } from "../relations.mjs";
 
 /**
@@ -148,9 +148,19 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   // board into two independent combats: a player whose units straddle the
   // boundary still takes one turn and acts with both groups, but the groups
   // cannot reach each other.
+  //
+  // The attack's own NP tags travel with the placement, because one field's
+  // boundary opens for a big enough Noble Phantasm: Doomsday Come is
+  // *"a Noble Phantasm of [Anti-World] or higher can be used on Doomsday Come
+  // (from outside) or within"*. Without them every isolation question is asked
+  // as though the attack were a Normal one, and the exception could never fire.
+  const isolationCtx = {
+    npTags: placement.npTags ?? [],
+    isCommandSpell: Boolean(placement.isCommandSpell),
+  };
   for (const field of board.fields ?? []) {
     survivors = survivors.filter((u) => {
-      const verdict = isolationBlocks(field, caster, u, board);
+      const verdict = isolationBlocks(field, caster, u, board, isolationCtx);
       return !verdict.blocked || drop(u, `separated by ${field.id}`);
     });
   }
@@ -400,6 +410,36 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       // could not use.
       if (spec.minRange && geo.chebyshev(casterPanel, unit.panel) < spec.minRange) {
         errors.push(`${unit.name ?? "Target"} is too close; this ability has a minimum Range of ${spec.minRange}.`);
+      }
+      return { ...base, panel: unit.panel, panels: unit.panels ?? [unit.panel], unitId: unit.id };
+    }
+
+    // Measured from the nearest panel of a FIELD, not from the caster.
+    // Doomsday Come: *"if there are any enemy Units within a 2 panel area of
+    // the Doomsday Come area, Pale Rider can target an enemy Unit within this
+    // Range"* — his own position is irrelevant, because the area is anchored
+    // on his Master and may be the width of the board away from him.
+    case "fieldEdge": {
+      const field = (board.fields ?? []).find((f) => f.id === spec.fieldId);
+      if (!field) {
+        errors.push("That area is not open.");
+        return { ...base, panel: casterPanel };
+      }
+      const unit = (board.units ?? []).find((u) => u.id === placement.unitId);
+      if (!unit?.panel) {
+        errors.push("Choose a target.");
+        return { ...base, panel: casterPanel };
+      }
+      const panels = panelsOf(field, board);
+      const edge = panels.length > 0
+        ? Math.min(...panels.map((p) => geo.chebyshev(p, unit.panel)))
+        : Infinity;
+      const r = spec.range ?? 1;
+      // Already inside: there is nothing to drag them into.
+      if (edge === 0) {
+        errors.push(`${unit.name ?? "That Unit"} is already inside.`);
+      } else if (edge > r) {
+        errors.push(`${unit.name ?? "Target"} is ${edge} panels from the area; Range is ${r}.`);
       }
       return { ...base, panel: unit.panel, panels: unit.panels ?? [unit.panel], unitId: unit.id };
     }

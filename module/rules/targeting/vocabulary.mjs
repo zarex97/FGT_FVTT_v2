@@ -54,6 +54,17 @@ export const TARGET_ANCHORS = Object.freeze([
     schematic: ["..... ", ".###. ", ".#@#. ", ".###. ", "....."],
   },
   {
+    // Measured from the nearest panel of a bounded FIELD rather than from the
+    // caster, which is why `targetUnit` cannot express it. Doomsday Come:
+    // *"if there are any enemy Units within a 2 panel area of the Doomsday
+    // Come area"* — Pale Rider himself may be nowhere near the edge in
+    // question, since the area is anchored on his Master.
+    id: "fieldEdge",
+    label: "FGT.Anchor.fieldEdge",
+    hint: "FGT.Anchor.fieldEdgeHint",
+    schematic: ["..... ", ".###. ", ".#@#. ", ".###. ", "....."],
+  },
+  {
     id: "zone",
     label: "FGT.Anchor.zone",
     hint: "FGT.Anchor.zoneHint",
@@ -148,3 +159,14 @@ export const TARGET_SHAPES = Object.freeze([
 /** Just the ids, for a drift test against the resolver. */
 export const SHAPE_IDS = Object.freeze(TARGET_SHAPES.map((s) => s.id));
 export const ANCHOR_IDS = Object.freeze(TARGET_ANCHORS.map((a) => a.id));
+
+/**
+ * How the target list is narrowed once the shape has found everybody in it.
+ *
+ * `resolveTargets` throws a `RangeError` on anything else, so an authored typo
+ * is a crash at resolution rather than a build failure — which is the wrong way
+ * round. Exported so `tools/lib/content.mjs` can refuse it at build time; found
+ * when Doomsday Come's drag-in was authored `chooser: caster`, a word that
+ * reads perfectly and does not exist.
+ */
+export const CHOOSER_IDS = Object.freeze(["all", "nearest", "random", "chosen"]);

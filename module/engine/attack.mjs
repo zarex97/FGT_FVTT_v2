@@ -153,7 +153,11 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   }
 
   const spec = targetSpecFor(attacker, ability, options);
-  const targets = resolveTargets(spec, self, board, placement);
+  // The scale travels with the placement so the isolation filter can honour a
+  // field's `piercedBy` -- see `rules/targeting/resolve.mjs` step 4c.
+  const targets = resolveTargets(spec, self, board, {
+    ...placement, npTags: [...(ability?.system?.npTags ?? [])],
+  });
 
   if (targets.errors.length > 0) {
     throw new Error(`FGT | Illegal attack: ${targets.errors.join(" ")}`);
@@ -299,6 +303,12 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     ignoresMagicResistance: Boolean(
       resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
     ),
+    // The SCALE, carried on the attack for exactly the reasons `element` and
+    // `pierce` are: three separate rules ask about it and none of them can
+    // reach the ability document. Doomsday Come's isolation opens for an
+    // [Anti-World] NP, its vulnerability ends on one, and its interior halves
+    // that one's damage -- all three keyed on tags the attack never carried.
+    npTags: [...(ability?.system?.npTags ?? [])],
   };
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
   // the same defender, inside ONE Combat Phase -- which is the distinction that
@@ -542,6 +552,7 @@ export async function advanceAttack({ messageId, event }) {
   await updateAttackCard(message, state);
   if (process.isComplete(state)) {
     await endConcealmentAfterAttack(state);
+    await closeFieldsPiercedBy(state);
     await fireCombatProcessEnd(state);
     await fireCombatPhaseEnd(state);
     // Last, so the deferred half sees a board on which this Process has fully
@@ -673,6 +684,53 @@ async function fireDamageDealt(state, result) {
  * @param {object} state
  * @returns {Promise<void>}
  */
+/**
+ * Close any field a big enough Noble Phantasm was just used on.
+ *
+ * > *"A Noble Phantasm of [Anti-World] or higher can be used on Doomsday Come
+ * > (from outside) or within Doomsday Come. If used in this way, Doomsday Come
+ * > is **forcibly ended at the end of that Combat Process**."*
+ *
+ * At the END, and the timing is the whole clause: the damage lands **inside**
+ * the field, where its interior halves it, and only then does the area come
+ * down. Ending it at declaration would put the target outside the very rule
+ * that is supposed to protect them from it.
+ *
+ * Asked of every open field rather than of the one that was targeted, because
+ * "used on … or within" covers both, and a Reality Marble that happens to
+ * enclose the fight is as much *used on* as one the attacker aimed at.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function closeFieldsPiercedBy(state) {
+  const npTags = state.attack?.npTags ?? [];
+  if (state.attack?.kind !== "np" || npTags.length === 0) return;
+
+  const { vulnerabilityTriggered } = await import("../rules/bounded-fields.mjs");
+  const { deactivateField } = await import("./fields.mjs");
+
+  // From the BOARD, not `unitSnapshot`. Which fields a unit stands in is a
+  // board-wide annotation (`annotateFields`) and a unit projected alone does
+  // not carry one — so reading `fields` off a bare snapshot answers
+  // `undefined` for everybody, and the test below is false for every field on
+  // the board. Measured live: an [Anti-World] NP crossed the boundary exactly
+  // as it should and the area did not come down.
+  const board = currentBoard();
+  const attacker = (board.units ?? []).find((u) => u.id === state.attackerId) ?? null;
+  const defender = (board.units ?? []).find((u) => u.id === state.defenderId) ?? null;
+
+  for (const field of board.fields ?? []) {
+    // Only a field this Process actually reached. One at the far end of the
+    // board is not "used on" by an NP fired at somebody else, however large.
+    const touched = [attacker, defender].some((u) => (u?.fields ?? []).includes(field.id));
+    if (!touched) continue;
+
+    const hit = vulnerabilityTriggered(field, { kind: "npUsedOn", npTags });
+    if (hit.triggered && hit.result === "end") await deactivateField(field.id, "vulnerability");
+  }
+}
+
 async function endConcealmentAfterAttack(state) {
   // A counter is the defender attacking; it ends the counterer's concealment on
   // the same terms, so this asks about whoever swung rather than about roles.

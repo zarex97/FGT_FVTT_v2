@@ -278,13 +278,14 @@ interface IsolationRules {
   insideCanTargetOutside: boolean;
   outsideCanApplyEffectsInside: boolean;
   visibilityAcrossBoundary: "full" | "none" | "ownerOnly";
+  piercedBy?: { npScale: NPTag };          // a big enough NP ignores all of it
 }
 ```
 
 | Field | Cross-boundary targeting |
 |---|---|
 | Chaos Labyrinthos | **Fully isolated** — *"Units outside cannot Attack or apply any effects to Units within and vice versa"* |
-| Doomsday Come | **Fully isolated** |
+| Doomsday Come | **Fully isolated, except to an [Anti-World] Noble Phantasm** |
 | Unlimited Blade Works | **Fully isolated** |
 | The Mist | Open — it is a debuff field, not a prison |
 | Ramesseum Tentyris | Open |
@@ -293,6 +294,37 @@ interface IsolationRules {
 Full isolation is a strong statement: it partitions the board into two independent combats. The
 turn system must handle a player whose units are split across the boundary — they take one turn
 and act with both groups, but the groups cannot help each other.
+
+### One hole, and it is the counter-play
+
+Doomsday Come is the only field with an exception written into its own isolation:
+
+> *"A Noble Phantasm of [Anti-World] or higher can be used on Doomsday Come (from outside) or
+> within Doomsday Come. If used in this way, Doomsday Come is forcibly ended at the end of that
+> Combat Process, and all Units within it receive the damage from that NP, but its Total Damage
+> is reduced by 50%."*
+
+`piercedBy` is tested **before** both direction flags, because the clause names both directions.
+It has to exist: enemies inside cannot leave, nobody can shoot across, and without this the area
+is a soft lock that ends only when Pale Rider does.
+
+Three pieces move together, and they are one clause read three ways:
+
+| Axis | Reads |
+|---|---|
+| Isolation | `piercedBy` lets the NP across the boundary |
+| Interior | a `defUp` contribution predicated `attack:npScale:gte:antiWorld` halves it for **everyone** inside — "all Units", ally and enemy alike |
+| Vulnerability | `npScaleUsedOn` ends the area at the end of that Combat Process |
+
+The **timing** is the whole clause: at the END, so the damage lands inside where the shelter
+halves it, and only then does the area come down. Ending it at declaration would put the target
+outside the very rule meant to shelter them.
+
+The attack's own tags reach all three through `attack.npTags`, carried on the attack spec for
+the same reason `element` and `pierce` are — three rules ask, and none of them can reach the
+ability document. `attack:npScale:gte:<tag>` is emitted as a **ladder** (an Anti-Army NP is also
+"Anti-Unit or higher"), for the same reason the rank comparison is: a predicate can only test set
+membership.
 
 **The duel field goes further than isolation.** It suppresses:
 - All outside interference, *"even with Command Spells"* — the only thing in the game that
@@ -502,7 +534,7 @@ How the field can be broken from outside. This is where the NP tag system become
 
 ```ts
 interface FieldVulnerability {
-  kind: "npTagAtLeast" | "damageThreshold" | "npCount" | "ownerDefeat" | "markDestruction";
+  kind: "npTagAtLeast" | "npScaleUsedOn" | "damageThreshold" | "npCount" | "ownerDefeat" | "markDestruction";
   tag?: NPTag;
   threshold?: number;
   window?: "round" | "turn";
@@ -677,6 +709,31 @@ A field is a Foundry **Region** carrying an `npField` behaviour, for the reasons
 terrain: membership is maintained natively, `tokenEnter`/`tokenExit` fire natively, and the shape
 survives a reload without the engine having to remember anything. `engine/fields.mjs` is the write
 half: `createField`, `endField`, `expireFields` and `runFieldEvents`.
+
+### Dragging a Unit into one
+
+Doomsday Come: *"During Pale Rider's Turn, if there are any enemy Units within a 2 panel area of
+the Doomsday Come area, Pale Rider can target an enemy Unit within this Range, that target has to
+perform an Evade roll. If the Evade failed, the DU is forcibly dragged into the Doomsday Come area
+and placed on a random panel within. Can only be used once per Turn."*
+
+Three things this needed, none of them Pale-Rider-shaped:
+
+- **A `fieldEdge` anchor**, measured from the nearest panel of the *area* rather than from the
+  caster. No existing anchor could express it, and the distinction is not academic: the area is
+  anchored on his **Master** and may be the width of the board away from Pale Rider himself.
+- **A `dragInto` phase.** It is an attack in every structural sense except that it deals no
+  damage — it spends the Attack, marks him as having Acted, and opens **no Combat Process**,
+  because there is no damage step for one to run. The displacement is `fgtForced`, so it neither
+  spends the victim's move budget nor is re-validated as a voluntary step.
+- **A `fieldOpen` requirement.** The drag is a clause *of* the Noble Phantasm taken on a later
+  Turn, so it is authored as its own ability and gated on the area standing — better than a grant
+  something has to remember to give and take away.
+
+`randomFreePanelIn` picks the destination, and it clips to the **board's own bounds**: a field's
+computed panels are not clipped to the board, so a 13×13 cast near an edge reaches past the last
+column, and dropping a Unit there puts it wherever a negative coordinate clamps to — outside the
+very area it was just dragged into. Found live.
 
 ### A field that is never cast
 

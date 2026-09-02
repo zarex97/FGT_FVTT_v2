@@ -317,6 +317,11 @@ describe("meetsRequirement", () => {
       // "Can only be used within the 'Throne Room'" -- needed by nothing
       // before Sikera Ušum's DSC branch.
       "withinPlatformCentre",
+      // An ability that exists only while a bounded field does. Doomsday
+      // Come's drag-in is a clause of the NP taken on a later Turn, so it is
+      // gated on the area standing rather than granted and revoked as the
+      // field comes and goes -- there is then nothing to forget to take away.
+      "fieldOpen",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });

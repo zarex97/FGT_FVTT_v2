@@ -12,7 +12,7 @@ import {
   NP_TAG_SCALE, scaleOf, meetsTagThreshold,
   panelsOf, contains, membershipVerdict, escapeAttempt,
   isolationBlocks, interiorModifiers, extensionFor, vulnerabilityTriggered,
-  annotateFields, selectBranch,
+  annotateFields, selectBranch, randomFreePanelIn,
 } from "../../module/rules/bounded-fields.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -589,5 +589,107 @@ describe("selectBranch", () => {
   it("returns the spec itself when there are no branches at all", () => {
     const plain = { event: "contact", onFail: [{ key: "Defeat" }] };
     expect(selectBranch(plain, new Set())).toBe(plain);
+  });
+});
+
+/* ── The Anti-World escape ────────────────────────────────────────────────── */
+
+describe("isolation — piercedBy", () => {
+  const doomsday = () => labyrinth({
+    id: "doomsday",
+    isolation: {
+      outsideCanTargetInside: false, insideCanTargetOutside: false,
+      piercedBy: { npScale: "antiWorld" },
+    },
+  });
+  const board = { units: [inside(), outside()] };
+
+  it("opens for an Anti-World NP from outside", () => {
+    // "A Noble Phantasm of [Anti-World] or higher can be used on Doomsday Come
+    // (from outside) or within Doomsday Come."
+    expect(isolationBlocks(doomsday(), outside(), inside(), board, { npTags: ["antiWorld"] }))
+      .toEqual({ blocked: false });
+  });
+
+  it("opens from inside too — the clause names both directions", () => {
+    expect(isolationBlocks(doomsday(), inside(), outside(), board, { npTags: ["antiWorld"] }))
+      .toEqual({ blocked: false });
+  });
+
+  it("stays shut for anything below the scale, and for an ordinary attack", () => {
+    expect(isolationBlocks(doomsday(), outside(), inside(), board, { npTags: ["antiCountry"] }).blocked).toBe(true);
+    expect(isolationBlocks(doomsday(), outside(), inside(), board, { npTags: ["antiArmy"] }).blocked).toBe(true);
+    expect(isolationBlocks(doomsday(), outside(), inside(), board, {}).blocked).toBe(true);
+  });
+
+  it("leaves a field that names no exception sealed", () => {
+    expect(isolationBlocks(labyrinth(), outside(), inside(), board, { npTags: ["antiWorld"] }).blocked).toBe(true);
+  });
+});
+
+describe("vulnerability — npScaleUsedOn", () => {
+  const field = () => labyrinth({
+    vulnerabilities: [{ kind: "npScaleUsedOn", scale: "antiWorld", result: "end", when: "combatProcessEnd" }],
+  });
+
+  it("ends the field when an NP of that scale or higher is used on it", () => {
+    expect(vulnerabilityTriggered(field(), { kind: "npUsedOn", npTags: ["antiWorld"] }))
+      .toEqual({ triggered: true, result: "end" });
+  });
+
+  it("ignores a smaller NP, and any other event", () => {
+    expect(vulnerabilityTriggered(field(), { kind: "npUsedOn", npTags: ["antiCountry"] }).triggered).toBe(false);
+    expect(vulnerabilityTriggered(field(), { kind: "npUsed", npTags: ["antiWorld"] }).triggered).toBe(false);
+  });
+});
+
+describe("randomFreePanelIn", () => {
+  const field = () => labyrinth({
+    geometry: { kind: "fixedArea", shape: { kind: "square", size: 3 }, anchor: at(1, 1) },
+  });
+
+  it("returns an unoccupied panel of the field, chosen by the injected random", () => {
+    // "Placed on a RANDOM panel within." The randomness is injected so the rule
+    // stays pure and the choice stays reproducible in a test.
+    const board = { units: [inside({ panel: at(0, 0) })] };
+    expect(randomFreePanelIn(field(), board, () => 0)).toEqual(at(0, 1));
+  });
+
+  it("skips a panel somebody is standing on", () => {
+    const occupied = [at(0, 0), at(0, 1), at(0, 2)].map((p, n) => inside({ id: `u${n}`, panel: p }));
+    const picked = randomFreePanelIn(field(), { units: occupied }, () => 0);
+    expect(occupied.some((u) => u.panel.i === picked.i && u.panel.j === picked.j)).toBe(false);
+  });
+
+  it("counts a defeated unit's panel as free, and returns null when there is no room", () => {
+    const all = panelsOf(field(), {}).map((p, n) => inside({ id: `u${n}`, panel: p }));
+    expect(randomFreePanelIn(field(), { units: all }, () => 0)).toBe(null);
+    const dead = all.map((u) => ({ ...u, defeated: true }));
+    expect(randomFreePanelIn(field(), { units: dead }, () => 0)).not.toBe(null);
+  });
+});
+
+describe("randomFreePanelIn — the board's own edges", () => {
+  it("never returns a panel off the board", () => {
+    // A field's computed panels are not clipped to the board: a 13×13 cast
+    // near an edge reaches past the last column. Dropping a Unit there puts it
+    // wherever a negative coordinate clamps to — outside the very area it was
+    // just dragged into. Measured live before this was added.
+    const field = labyrinth({
+      geometry: { kind: "fixedArea", shape: { kind: "square", size: 5 }, anchor: at(0, 0) },
+    });
+    const board = { units: [], bounds: { iMin: 0, jMin: 0, iMax: 12, jMax: 12 } };
+    for (let n = 0; n < 20; n++) {
+      const p = randomFreePanelIn(field, board, () => n / 20);
+      expect(p.i).toBeGreaterThanOrEqual(0);
+      expect(p.j).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("is unbounded when the board states no bounds", () => {
+    const field = labyrinth({
+      geometry: { kind: "fixedArea", shape: { kind: "square", size: 3 }, anchor: at(0, 0) },
+    });
+    expect(randomFreePanelIn(field, { units: [] }, () => 0)).toEqual(at(-1, -1));
   });
 });

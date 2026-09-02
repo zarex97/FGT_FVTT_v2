@@ -76,13 +76,20 @@ field:
     allyEntry: free
     allyExit: free
 
-  # Axis 3 -- isolation, both directions. `piercedBy` (commit 4) is the one
-  # hole in it.
+  # Axis 3 -- isolation, both directions, with one hole. "A Noble Phantasm of
+  # [Anti-World] or higher can be used on Doomsday Come (from outside) OR
+  # within Doomsday Come" -- both directions, which is why `piercedBy` is not
+  # an override of either flag but a test taken before both.
+  #
+  # It is the area's only counter-play: enemies inside cannot leave and nobody
+  # can shoot across, so without this it is a soft lock that ends only when
+  # Pale Rider does.
   isolation:
     outsideCanTargetInside: false
     insideCanTargetOutside: false
     outsideCanApplyEffectsInside: false
     visibilityAcrossBoundary: full
+    piercedBy: { npScale: antiWorld }
 
   # Axis 5 -- duration, and the paid extension the Master pays for. The floor
   # is stated separately from the price: at exactly 100 the Master may pay it
@@ -93,10 +100,36 @@ field:
     grants: "1◈"
     repeatable: true
 
-  interior: []
+  interior:
+    # "All Units within it receive the damage from that NP, but its Total
+    # Damage is reduced by 50%." Everyone inside, ally and enemy and Pale
+    # Rider's own Master alike -- the sheet says "all Units" and means it.
+    # `defUp` -- the damage-taken bucket the pipeline actually reads. A
+    # `modifierKey` outside its closed sets is collected onto the Unit and
+    # never consulted, which is how "reduced by 50%" can author cleanly and
+    # reduce nothing (`tools/lib/content.mjs` refuses one now).
+    #
+    # POSITIVE, because a `taken` modifier's magnitude is how much the damage
+    # is REDUCED by -- Def Up 50 is "damage taken -50%". A -50 here would have
+    # meant the shelter increased the damage by half.
+    #
+    # `npValue` matches `value`: most percentage buffs are weaker against a
+    # Noble Phantasm, and this one only ever applies to one.
+    - key: DamageModifier
+      modifierKey: defUp
+      direction: taken
+      value: 50
+      npValue: 50
+      relations: [ally, enemy, self]
+      predicate: ["attack:npScale:gte:antiWorld"]
   interiorEvents: []
 
-  # Axis 6 -- vulnerability. The Anti-World clause (commit 4) joins this list.
+  # Axis 6 -- vulnerability. The Anti-World NP that pierced the boundary also
+  # breaks it, at the END of that Combat Process: the damage lands inside,
+  # where the interior rule above halves it, and only then does the area come
+  # down. Ending it at declaration would put the target outside the very rule
+  # meant to shelter them.
   vulnerabilities:
     - { kind: ownerDefeat, result: end }
+    - { kind: npScaleUsedOn, scale: antiWorld, result: end, when: combatProcessEnd }
   onEnd: []
