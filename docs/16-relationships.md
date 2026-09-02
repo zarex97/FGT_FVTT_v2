@@ -395,11 +395,18 @@ Master dies
 | Source | Delta |
 |---|---|
 | Independent Action | grants a "high" value, stated per-Servant |
-| High Rank Master (alive) | +1◈ |
+| High Rank Master (alive) | +1◈ — **implemented (Ch. 45)**; see below |
 | Mad Enhancement active when the Master dies | −2◈ (see below) |
 | Semiramis aboard HGoB | +2◈ |
 | Semiramis with `Double Summon: Caster` | 4◈ instead of 2◈ |
 | Using an NP while Free | −1◈ to −6◈ by NP rank |
+
+> **The High Rank Master row had no implementation at all** until Masters carried a rank
+> (Ch. 45). It is a board pass rather than a per-unit projection, because it needs the *other*
+> unit: **"while alive"** means the bonus ends at the same instant the Free-Servant clock starts,
+> and only the board knows whether the Master is still standing. So a Servant whose High Rank
+> Master dies loses the extra ◈ on the same tick it begins spending the clock — which is what the
+> two rules, read together, describe.
 
 > **The Mad Enhancement row read a field nothing writes.** `onMasterDefeated` tested
 > `servant.modes.includes("madEnhancement")`, and `modes` has never been written by the snapshot,

@@ -717,9 +717,15 @@ ending revealed all five instances and posted the totals.
 **Built (Ch. 45).** `packs/_source/servants/jack-the-ripper.yml` plus seven ability documents,
 verified in the live `fgt2026` world. Two clauses are deliberately unmodelled and say so in
 their own files — *Information Erasure*'s passive (it erases a player's notebook, which is not
-game state) and *The Mist*'s effect 7 (there is no Fog of War subsystem to be exempt from);
-so is the Mist's *"High Rank Masters are not Poisoned on contact"* Advanced Note, because
-nothing in this system carries a Master rank.
+game state) and *The Mist*'s effect 7 (there is no Fog of War subsystem to be exempt from).
+
+The Mist's *"High Rank Masters are not Poisoned on contact"* Advanced Note was unmodelled at
+first, because nothing carried a Master rank. Masters carry one now, and the clause is built —
+it spares a High Rank Master **walking in**, not standing there: the turn-end Poison still
+applies, which is exactly what "upon contact" qualifies.
+
+The Mist's footprint is redrawable turn by turn as her sheet says, through Ch. 43's mode E
+painter.
 
 Bounded field: **The Mist** (Ch. 43). Terrain interaction: Ch. 42.
 

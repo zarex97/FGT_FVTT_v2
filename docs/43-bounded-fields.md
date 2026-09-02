@@ -38,11 +38,23 @@
 > **`contact`** event — the entry half of axis 4, which had only Turn boundaries to fire on
 > before — and a `Defeat` action for the fields that kill on contact.
 >
-> Still not built: the **paint-style canvas tool** for redrawing a freeform footprint turn by
-> turn (a field opens at its legal maximum and keeps it), the two-phase `markDefined`
-> construction (Blood Fort Andromeda's Bloodmarks), and the scheduled detonation of §43.9. The
-> state history of §43.11 exists only as `state.escapeHistory` — enough for the veteran rule, not
-> the general log.
+> **The painter is built too** (Ch. 45): mode E on the existing `TargetingLayer`, reached from a
+> button on the token HUD during the owner's Turn and from a prompt the scheduler offers at the
+> end of any Turn the owner Acts — a window that closes silently is one players lose. A repaint
+> updates the Region and the stored panels **together and touches nothing else**, so the field
+> keeps its id, its interior rules, its `createdAt` and its upkeep clock. Closing and recasting
+> would restart the upkeep period and fire a `countFrom: "deactivation"` cooldown the owner has
+> not earned, which is why a reshape must not be one.
+>
+> Once per Turn, via `turnState.reshapedField` — its own flag rather than `usedActiveSkill`,
+> because the sheet says a reshape *"does not count as Moving a Unit and is not an Attack"*, so
+> it must spend nothing else. Note that `rules/snapshot.mjs#turnStateAt` copies a **fixed key
+> list**: a flag added to the schema and not added there is written to the document and invisible
+> to every rule that reads a snapshot.
+>
+> Still not built: the two-phase `markDefined` construction (Blood Fort Andromeda's Bloodmarks)
+> and the scheduled detonation of §43.9. The state history of §43.11 exists only as
+> `state.escapeHistory` — enough for the veteran rule, not the general log.
 
 The expanded roster added nine abilities that create a **persistent area with its own rules of
 entry, exit, and suppression**. They are not platforms (Ch. 20 — those are about elevation) and

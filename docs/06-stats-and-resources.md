@@ -381,6 +381,12 @@ zon = zonBase
     + highRankMasterBonus;       // +1, stacks
 ```
 
+> **`highRankMasterBonus` is implemented (Ch. 45).** It was in this formula from the day the
+> chapter was written and `rules/zon.mjs#zonRadius` had **no rank term at all** — a rule
+> documented here and absent from the code. It is added to the derived radius rather than folded
+> into the `Math.max(derived, master.zon)` floor below it: that floor exists so a Master sheet
+> stating a ZON is believed, and it would otherwise swallow the rank bonus whole.
+
 which reproduces the stated defaults (Assassin 2+2=4, Caster 3+2=5) and handles Kingprotea
 (Independent Action B: +2; not a Caster/Assassin; Mad Enhancement +2 ⇒ base 2 + 2 + 2 = 6).
 

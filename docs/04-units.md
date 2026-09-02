@@ -350,6 +350,32 @@ Masters come in four ranks with different `Base Attack (MAG)` (125 for A/B, 100 
 different bonuses. High Rank Masters (A, B) additionally grant `ZON +1`, `Sustainability +1◈`,
 and a free `+` to one of their Servant's Parameters.
 
+> **Built (Ch. 45).** The rank is a letter on the Master (`A`–`D`, or blank for **Rankless**) and
+> the tier every rule actually asks for — `high｜low｜rankless` — is derived from it once, in
+> `rules/master-rank.mjs`. Two duplicated copies of that derivation used to live in the two cost
+> readers.
+>
+> **`paysHighColumn` and `isHighRank` are different questions**, and the distinction is the one
+> thing to get right here. A Rankless Master pays the *cheaper* Noble Phantasm price — Ch. 15
+> §15.4: *"Rankless Masters use the left column"*, because the right column is the Low Rank
+> penalty rather than the default — while earning none of the three benefits above. A single
+> predicate would either overcharge every Rankless Master or hand them a ZON they have not
+> earned.
+>
+> Two things had to be fixed before the rank could mean anything. **Nothing could set it:** a
+> free-form string with no vocabulary and no control on any sheet, so the only way to rank a
+> Master was to hand-edit the document — and `Rank.parseOrNull` throws rather than returning null
+> for what it cannot parse, so `rank: "high"` did not read as Rankless, it crashed the Noble
+> Phantasm cost. And **the coin flip threw away the rank it determined:** §14.9's `coinFlip` mode
+> mapped its `1d2` straight onto Base Attack (MAG) 125/100, so a table that flipped Heads got a
+> Master with 125 who was Rankless for ZON, Sustainability, the parameter grant and the Kill
+> Yourself price. The coin now picks the rank and Base Attack derives from it.
+>
+> All three grants are wired: `ZON +1` stacks onto the derived radius (Ch. 06 §6.9), the
+> Sustainability `+1◈` lapses the moment the Master dies (Ch. 16), and the parameter grant is an
+> **allowance** the summon dialog spends against — the dialog always offered the choice of which
+> Parameter, and nothing ever limited how many.
+
 Essences are a *draft* concept — each is a distinct passive granting one specific bonus to the
 contracted Servant. There are 10 essences per rank in the source. They are modelled as
 ordinary passive abilities on the Master with rule elements targeting the Servant, not as a

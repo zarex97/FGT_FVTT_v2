@@ -36,6 +36,31 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Masters carry a rank that means something.** The letter (`A`–`D`, or blank for Rankless) is
+  settable from the Master's sheet for the first time — it was a free-form string with no
+  vocabulary and no control anywhere, so the only way to rank a Master was to hand-edit the
+  document. `rules/master-rank.mjs` derives the `high｜low｜rankless` tier every rule actually
+  asks for, replacing two duplicated copies of that derivation.
+- **The setup coin flip keeps the rank it determines.** §14.9's `coinFlip` mode mapped its `1d2`
+  straight onto Base Attack (MAG) 125/100 and threw the rank away, so a table that flipped Heads
+  got a Master with 125 who was **Rankless** for ZON, Sustainability, the parameter grant and the
+  Kill Yourself price. The coin now picks the rank and Base Attack derives from it, so the two
+  cannot disagree.
+- **The three things High Rank is supposed to grant, wired.** `ZON +1` (stacking onto the derived
+  radius, not the stated-ZON floor), `Sustainability +1◈` while the Master lives, and the
+  parameter step — which the summon dialog always offered as a *choice* while nothing limited how
+  many could be spent.
+- **Jack's Mist spares High Rank Masters on contact**, the Advanced Note left unmodelled when she
+  was built because nothing carried a Master rank. Contact only: the turn-end Poison still lands.
+- **A freeform bounded field can be redrawn on the canvas** — Ch. 43's "mode E", the fifth
+  interaction on the targeting layer and the first outside Ch. 09's anchor-and-shape grammar.
+  Drag paints, shift-drag erases, `Enter` confirms, `Escape` or right-click cancels, with a live
+  panel counter and the leash drawn rather than enforced after the fact. Offered as a HUD button
+  during the owner's Turn and as a prompt at the end of any Turn they Act.
+- **`upkeep` and `deactivation` on a bounded field**, and a `contact` interior event — the entry
+  half of axis 4, which had only Turn boundaries to fire on.
+
+
 - **Jack the Ripper**, the thirteenth Servant — seven abilities plus Presence Concealment,
   verified in a live world. Ch. D §D.18 has the clause-by-clause table. Nine engine additions,
   of which **four were repairs to machinery that already existed and had never once run**:
@@ -79,6 +104,25 @@ coincide by accident; the headings say which is which.
   never disable a rule.
 
 ### Fixed
+
+- **A bounded field stored the bounding rectangle of its panels, not the panels.**
+  `fields.mjs#shapeOf` built the Region as one rectangle while `boundedFieldsOf` reads the panels
+  back *off* the Region — so the stored set was discarded on every board read and replaced by its
+  own bounding box. Invisible while every field in the corpus was a square, where the two agree;
+  it fills in the notch the moment anything is painted as an L. Fields now store a grid shape,
+  which `target-region.mjs` has always used for transient targeting areas.
+- **The once-per-Turn repaint gate never closed.** `rules/snapshot.mjs#turnStateAt` copies a fixed
+  key list, so `reshapedField` was written to the document and invisible to every rule reading a
+  snapshot.
+- **Shift-drag never erased.** A PIXI 7 federated pointer event sets `data` to *itself* and
+  `originalEvent` to the federated event it came from — not the DOM event — so
+  `data.originalEvent.shiftKey` was `undefined` and every stroke read as paint.
+- **A field's interior EVENTS ignored their own exemptions.** `isExempt` was wired into
+  `interiorModifiers` alone, so a clause could author an exemption, compile it, and fire anyway.
+- **`Rank.parseOrNull` throws rather than returning null** for what it cannot parse, so a Master
+  whose rank was junk crashed the Noble Phantasm cost instead of being priced. `tierOf` reads
+  unparseable as Rankless, and the schema's `choices` stops it arising.
+
 
 - **The token HUD's facing control was unusable.** A `<select>` inside Foundry's fixed 35px
   `.control-icon`, measured live at **25px wide with 16px of that spent on padding** — nine

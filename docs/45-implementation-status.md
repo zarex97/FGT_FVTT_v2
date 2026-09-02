@@ -635,6 +635,70 @@ a point of Luck by day and none at night.
   a chevron on the token itself, sized so its tip lands on the token's own boundary and never
   crosses into the next panel.
 
+### Master rank, and painting a bounded field — **built**
+
+Spec: `docs/superpowers/specs/2026-09-02-master-rank-and-field-painting-design.md`. Four commits,
+each leaving the system working.
+
+**The spec's first draft was wrong, and correcting it is the lesson.** It reported
+`if (!rank) return true` in the two cost readers as a defect that priced every Master as High.
+It is not a defect — it is Ch. 15 §15.4 (*"Rankless Masters use the left column"*), stated in
+twelve lines of comment directly above the nine lines of code, which the first pass did not read.
+Rankless was already representable and Ch. 17's all-Rankless Kill Yourself rule was already
+implemented **and tested**. The design was rewritten around what was actually missing before any
+of it was built, and the de-duplication that followed is explicitly behaviour-preserving: its
+regression tests were written and passing *before* the refactor, so they capture today's prices
+rather than tomorrow's.
+
+What was actually missing:
+
+- **Nothing could set a rank.** A free-form string with no vocabulary and no control on any
+  sheet. Worse, `Rank.parseOrNull` **throws** rather than returning null for what it cannot
+  parse, so `rank: "high"` did not read as Rankless — it crashed `npCostAt`.
+- **The coin flip discarded the rank it determined.** §14.9's `coinFlip` mode mapped its `1d2`
+  straight onto Base Attack (MAG) 125/100, with a comment saying *"the rank exists here only to
+  select it"*. It does not: the rank also decides ZON, Sustainability, the parameter grant and
+  the Kill Yourself price. A table that flipped Heads got a Master with 125 who was **Rankless
+  for every other rule in the game**. The coin now picks the rank and Base Attack derives from it.
+- **All three grants were unwired.** `zonRadius` had no rank term at all despite Ch. 06's formula
+  listing one; `relationships.mjs` had no Sustainability term; and the summon dialog offered the
+  *choice* of which Parameter to raise while nothing limited *how many*.
+
+`masterTier` on the snapshot then let Jack's Mist state its Advanced Note — and the live test
+caught a gap the unit tests could not: `isExempt` was wired into `interiorModifiers` only, so an
+interior **event** could author an exemption, compile it, and fire anyway. The contact clause is
+an event.
+
+**The painter** is Ch. 43's mode E, and it rested on a defect underneath it. `fields.mjs#shapeOf`
+stored a field's Region as the **bounding rectangle** of its panels while `boundedFieldsOf` read
+the panels back off the Region — so a freeform footprint was squared off on the next board read.
+Invisible while every field in the corpus was a square, where the two are the same set. That fix
+landed first and alone.
+
+Three defects surfaced only by driving the painter with a **real pointer** rather than calling
+its handlers:
+
+1. `turnStateAt` copies a fixed key list, so `reshapedField` was written to the document and
+   invisible to every snapshot reader — the once-per-Turn gate never closed. The same
+   authored-with-no-reader trap this project keeps finding, one layer up.
+2. A PIXI 7 federated event sets `data` to *itself*, so `data.originalEvent.shiftKey` is
+   undefined and every stroke read as paint. The tell was a counter sitting at exactly 25/25: it
+   *was* painting, over panels already down.
+3. The HUD's empty-state hint is hard-coded to mode B's controls, which is a lie in a session
+   where `Enter` confirms.
+
+Verified live: ZON 4 → 5 and Sustainability 6 → 7 for a High Rank Master, with the Sustainability
+bonus lapsing on the Master's death and ZON not — matching a sheet that says "while alive" of one
+and not the other; a High Rank Master walks into the Mist unpoisoned and is poisoned at the end of
+their Turn; and through a real pointer, the HUD button opens the painter at 3/25, a drag paints it
+to 6/25, `Enter` commits exactly those six — a **non-contiguous** set a bounding rectangle would
+have made twenty — the button then disappears for the rest of the Turn, and `Escape` after a drag
+leaves both the field and the flag untouched.
+
+**One gesture is unverified by machine.** The test harness applies modifier keys to clicks but not
+to synthesised drags, so shift-drag *erase* was confirmed only by reading `event.shiftKey` as
+`true` on a real shift-click. The code path is otherwise identical to paint.
+
 ---
 
 ## 45.5 The completion plan

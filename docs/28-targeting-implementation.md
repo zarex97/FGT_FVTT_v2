@@ -281,6 +281,32 @@ async #freePlacement() {
 
 Unit picker and subset picker, as specified in Ch. 09 §9.9. Both reuse `#render`.
 
+### Mode E — the freeform painter
+
+**Built (Ch. 45).** The first interaction outside this chapter's anchor-and-shape grammar: there
+is no placement to validate and no shape to resolve, only a set of panels a player draws.
+Ch. 43 named it "mode E" when the bounded-field model was written and listed it as not built.
+
+Drag paints, shift-drag erases, `Enter` confirms, `Escape` or right-click cancels. A stroke
+paints or erases **uniformly**, decided by whether shift was held when it began — deciding
+per-panel would let a stroke crossing its own path toggle a panel back off, which makes a long
+drag unpredictable.
+
+It keeps this file's own contract: **the layer draws and never decides.** A panel outside the
+field's leash renders in the illegal tint and refuses paint, so nothing is composed that will be
+rejected — but the verdict is `rules/bounded-fields.mjs#legalRepaint`, and the GM checks it again
+at commit so a hand-crafted socket payload cannot draw a forty-panel Mist across the board.
+
+Two traps worth recording, both found by driving it with a real pointer rather than by calling
+its handlers:
+
+- A PIXI 7 **`FederatedPointerEvent` sets `data` to itself** and `originalEvent` to the federated
+  event it came from — not to the DOM event. So `event.data.originalEvent.shiftKey` is
+  `undefined` and every stroke reads as paint. Use `event.shiftKey`.
+- `TargetingHUD`'s empty-state hint is hard-coded to mode B's controls
+  (*"right-click or Escape to cancel"*), which is a lie in a session where `Enter` confirms.
+  `setLabel(label, hint)` takes an override, and each mode names its own keys.
+
 ---
 
 ## 28.6 The preview HUD
@@ -419,6 +445,8 @@ mistake in the game.
 |---|---|
 | `Arrow keys` | Cycle placement options (Mode A) / nudge the anchor (Mode B) |
 | `Tab` | Cycle legal targets (Mode C) |
+| `Drag` / `Shift+drag` | Paint / erase panels (Mode E) |
+| `Enter` | Confirm the painted footprint (Mode E) |
 | `Space` / `Enter` | Confirm |
 | `Escape` | Cancel |
 | `Shift` | Hold to show the full damage breakdown for each target |
