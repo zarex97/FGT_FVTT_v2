@@ -280,6 +280,53 @@ export function validateAll(files) {
 }
 
 /**
+ * Keys an Actor document may carry that are deliberately NOT part of `system`.
+ *
+ * Everything else a unit sheet authors has to appear in `actorSystem`'s output,
+ * or it compiles to a schema default and the sheet quietly does less than it
+ * says. See `unitKeyCoverage`.
+ */
+const NON_SYSTEM_UNIT_KEYS = new Set([
+  "schema", "id", "name", "type", "img", "description", "notes", "source",
+  "abilities", "folder", "sort", "ownership", "prototypeToken", "effects",
+  "flags", "token", "items",
+]);
+
+/**
+ * Every authored key on a unit sheet reaches the compiled actor.
+ *
+ * `actorSystem` is an explicit allowlist, and a key it does not name is
+ * silently dropped: the document builds, the pack builds, the validator passes,
+ * the sheet loads, and the clause does nothing. That has happened four times --
+ * `itemCost`, `summonVariant`, `rules` and `itemHandling` -- each found only by
+ * reading a live value in `fgt2026` and wondering why it was the default. The
+ * allowlist's own comment named the failure mode without preventing it.
+ *
+ * Checked structurally rather than against a hand-written list, so a key added
+ * to a schema tomorrow is covered by this the moment somebody authors it.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function unitKeyCoverage(doc, path, problems) {
+  let system;
+  try {
+    system = actorSystem(doc);
+  } catch {
+    return;                       // a shape problem another rule will report
+  }
+  for (const key of Object.keys(doc)) {
+    if (NON_SYSTEM_UNIT_KEYS.has(key)) continue;
+    if (key in system) continue;
+    problems.push(
+      `${path}: "${key}" is authored but not mapped by actorSystem() in `
+      + "tools/lib/content.mjs, so it compiles to its schema default and does nothing",
+    );
+  }
+}
+
+/**
  * @param {object} doc
  * @param {string} path
  * @param {Map<string, object>} library
@@ -288,6 +335,8 @@ export function validateAll(files) {
  * @param {string} [dir] the source directory, which selects the requirement vocabulary
  */
 function validateDocument(doc, path, library, problems, warnings, dir = "") {
+  if (PACKS[dir]?.documentType === "Actor") unitKeyCoverage(doc, path, problems);
+
   // Ranks
   for (const [field, value] of rankFields(doc)) {
     if (value === null || value === undefined) continue;
@@ -840,6 +889,21 @@ function footprintSize(footprint) {
 }
 
 /**
+ * A stated resource number into the `{value, max}` pair the schema wants.
+ *
+ * `undefined` when unauthored -- the key is still present, so `unitKeyCoverage`
+ * is satisfied, and the schema default applies.
+ *
+ * @param {number|object|undefined} authored
+ * @returns {object|undefined}
+ */
+function resourceOf(authored) {
+  if (authored === undefined || authored === null) return undefined;
+  if (typeof authored === "object") return authored;
+  return { value: authored, max: authored };
+}
+
+/**
  * @param {object} doc
  * @returns {object}
  */
@@ -861,6 +925,21 @@ function actorSystem(doc) {
     // type's `prepareBaseData` backfilled a Health the sheet does not state.
     undamageable: Boolean(doc.undamageable),
     cannotHoldItems: Boolean(doc.cannotHoldItems),
+    // Where an item this unit would obtain actually goes. Authored alongside
+    // `cannotHoldItems` and dropped by this same allowlist on its first build,
+    // which is the fourth time that has happened -- see `unitKeyCoverage` in
+    // `tools/validate-content.mjs`, added so it is the last.
+    itemHandling: doc.itemHandling ?? "hold",
+    // Agility and Luck as STATED numbers (§6.3: Agility is the number you roll
+    // under, not a rank), which only summons and platforms carry -- Bašmu's
+    // "Agility: 14 / Luck: 7", the four Dragon Tooth Warriors, the Hanging
+    // Gardens. Every Servant sheet in the reference set reads "Agility: XX/XX",
+    // a slot the author never filled, so a Servant compiling to 0 is faithful
+    // and these were the only real values in the corpus. This allowlist dropped
+    // all of them: Bašmu has evaded and Luck-Checked against 0 since it shipped.
+    // Emitted only when authored, so a Servant keeps its schema default.
+    agility: resourceOf(doc.agility),
+    luck: resourceOf(doc.luck),
     // Stats stated relative to the summoner (the Kagome Spirits' Agility and
     // Luck), resolved at placement rather than written as numbers.
     inherit: doc.inherit ?? null,

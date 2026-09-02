@@ -45,6 +45,57 @@ export function canTransferItem(item, from, to, ctx = {}) {
 }
 
 /**
+ * How near a Master must stand to receive its Servant's items.
+ *
+ * *"instead obtained by his Master **if he/she is within a 2 panel area**"* —
+ * the same 2 panels every Master-Servant rule in §16.4 is keyed on.
+ */
+export const ITEM_REDIRECT_RANGE = 2;
+
+/**
+ * Who actually ends up holding an item this unit would obtain.
+ *
+ * **The one seam every acquisition goes through.** The rulebook describes no
+ * way to *acquire* an item beyond being handed one — nothing drops an item on a
+ * panel, nothing awards one on a kill, and "Items held" is a blank slot on all
+ * 29 reference sheets — so there is exactly one caller today, `giveItem`. It is
+ * a seam rather than a branch inside that caller because Pale Rider's clause is
+ * about **obtaining**, not about being given: the day a drop or a reward is
+ * added, it asks this and inherits the redirect for free.
+ *
+ * > *"Items held: Pale Rider cannot hold Items. All Items that would be
+ * > obtained by Pale Rider are instead obtained by his Master if he/she is
+ * > within a 2 panel area."*
+ *
+ * The two halves are separable and both are enforced here: `cannotHoldItems`
+ * refuses, `itemHandling: "redirectToMaster"` re-routes, and a unit that
+ * declares the redirect but has no Master in reach falls back to the refusal —
+ * which is what the clause's own *"if"* says happens.
+ *
+ * NOT routed through `guardsOf`. Pale Rider's `RelationshipProxy` substitutes
+ * his Kagome Spirits for him in the four §16.4 **relationship rules**; this is a
+ * separate line on his sheet, and it says *"his Master"*.
+ *
+ * @param {object} unit the unit that would obtain the item
+ * @param {object} board
+ * @returns {{ok: boolean, unitId?: string, redirected?: boolean, reason?: string}}
+ */
+export function acquisitionTarget(unit, board) {
+  if (!unit?.id) return { ok: false, reason: "notFound" };
+
+  if (unit.itemHandling === "redirectToMaster") {
+    const master = (board?.units ?? []).find((u) => u.id === unit.masterId);
+    const reachable = master && !master.defeated && !master.cannotHoldItems
+      && master.panel && unit.panel
+      && chebyshev(master.panel, unit.panel) <= ITEM_REDIRECT_RANGE;
+    if (reachable) return { ok: true, unitId: master.id, redirected: true };
+  }
+
+  if (unit.cannotHoldItems) return { ok: false, reason: "cannotHoldItems" };
+  return { ok: true, unitId: unit.id, redirected: false };
+}
+
+/**
  * Move one of an item between units.
  *
  * Quantity moves as data rather than as two independent writes, so a transfer

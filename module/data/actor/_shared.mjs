@@ -69,6 +69,16 @@ export function unitCommon() {
     // the same thing.
     cannotHoldItems: new fields.BooleanField({ initial: false }),
 
+    // Where an item this unit would obtain actually goes. *"All Items that
+    // would be obtained by Pale Rider are instead obtained by his Master if
+    // he/she is within a 2 panel area."* Separate from the refusal above
+    // because the clause has two halves and they can be met independently:
+    // with no Master in reach the redirect lapses and the refusal stands.
+    // Read by `rules/items.mjs#acquisitionTarget`.
+    itemHandling: new fields.StringField({
+      required: false, initial: "hold", choices: ["hold", "redirectToMaster"],
+    }),
+
     pursuitTargetId: new fields.StringField({ required: false, nullable: true, initial: null }),
     boundToFieldId: new fields.StringField({ required: false, nullable: true, initial: null }),
 

@@ -1009,6 +1009,35 @@ interface Item {
 
 Kept deliberately thin. Items are an ability with a quantity.
 
+### Acquisition
+
+The rulebook describes exactly one way to **obtain** an item — being handed one — and "Items
+held" is a blank slot on all 29 Servant sheets. Nothing drops an item on a panel and nothing
+awards one on a kill, so there is no acquisition *system* to speak of; there is a moment at
+which a unit comes to hold something, and two code paths reach it: `giveItem` and the
+`itemGrant` intent (which is how Semiramis' *Item Construction* conjures a Poison from nothing).
+
+Both ask `rules/items.mjs#acquisitionTarget` first, because one Servant redirects:
+
+> *"Items held: Pale Rider cannot hold Items. All Items that would be obtained by Pale Rider are
+> instead obtained by his Master if he/she is within a 2 panel area."*
+
+Two halves, independently satisfiable, and the seam enforces both: `cannotHoldItems` refuses,
+`itemHandling: "redirectToMaster"` re-routes, and a redirect with no Master in reach lapses back
+to the refusal — which is what the clause's own *"if"* says happens. Verified live: Semiramis
+passes a Poison to an adjacent Pale Rider and his Master, two panels away, ends up holding it;
+push the Master to three panels and the pass is refused with nothing moved.
+
+It is a **seam** rather than a branch inside `giveItem` because the clause is about *obtaining*,
+not about being given. The day a drop or a kill reward is added it asks the same question and
+inherits the answer. The redirect lives at the `itemGrant` intent so that every writer is
+covered including future ones; `giveItem` asks it too, so it can *refuse* with a reason rather
+than let an item silently land elsewhere.
+
+**NOT routed through `guardsOf`.** Pale Rider's `RelationshipProxy` substitutes his Kagome
+Spirits for him in the four §16.4 relationship rules. This is a separate line on his sheet and
+it says *"his Master"*.
+
 ---
 
 ## 15.9 The ability lifecycle

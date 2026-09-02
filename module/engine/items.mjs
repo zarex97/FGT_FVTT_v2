@@ -10,7 +10,7 @@
  * changed hands would otherwise carry a spent allowance to its new owner.
  */
 
-import { canTransferItem, transferItem, consumeItem } from "../rules/items.mjs";
+import { canTransferItem, transferItem, consumeItem, acquisitionTarget } from "../rules/items.mjs";
 import { currentBoard, unitFrom } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -33,22 +33,29 @@ export async function giveItem({ fromId, toId, itemId, count = 1 }) {
   const item = fromDoc?.items?.get(itemId);
   if (!fromDoc || !toDoc || !item) return { ok: false, reason: "notFound" };
 
-  // *"Pale Rider cannot hold Items."* The redirect that follows it -- "all
-  // Items that would be obtained by Pale Rider are instead obtained by his
-  // Master if he/she is within a 2 panel area" -- presupposes an item
-  // ACQUISITION flow, and there is none: nothing drops an item on a panel or
-  // awards one on a kill. So the refusal is enforced and the redirect is
-  // recorded as unmodelled (Ch. D §D.26), rather than half-built.
-  if (toDoc.system?.cannotHoldItems) {
-    return { ok: false, reason: "cannotHoldItems" };
-  }
-
   const board = currentBoard();
   const from = unitFrom(board, fromDoc);
-  const to = unitFrom(board, toDoc);
+  const named = unitFrom(board, toDoc);
+
+  // *"All Items that would be obtained by Pale Rider are instead obtained by
+  // his Master if he/she is within a 2 panel area."* Being handed one is the
+  // only way to obtain an item that the rulebook describes, so this is the one
+  // acquisition site there is -- but the question is asked through the shared
+  // seam rather than answered here, because the clause is about OBTAINING and
+  // a later drop or reward has to inherit the same answer.
+  const destination = acquisitionTarget(named, board);
+  if (!destination.ok) return { ok: false, reason: destination.reason };
+  const to = destination.redirected
+    ? board.units.find((u) => u.id === destination.unitId)
+    : named;
+  if (!to) return { ok: false, reason: "notFound" };
 
   const spec = itemSpec(item);
-  const verdict = canTransferItem(spec, from, to, {
+  // Range is measured to the unit the giver actually reached for. A redirect is
+  // not a longer throw: Semiramis passes to Pale Rider from one panel away and
+  // it is his Master who ends up holding it, wherever that Master stands within
+  // its own 2 panels.
+  const verdict = canTransferItem(spec, from, named, {
     transfersThisTurn: transfersThisTurn(fromDoc),
   });
   if (!verdict.ok) return verdict;
@@ -59,7 +66,7 @@ export async function giveItem({ fromId, toId, itemId, count = 1 }) {
   intents.push(I.markTurn(fromId, { itemTransfers: transfersThisTurn(fromDoc) + 1 }));
 
   await applyWorldIntents(intents, `item:give:${spec.id}`);
-  return { ok: true };
+  return { ok: true, toId: to.id, redirected: destination.redirected };
 }
 
 /**

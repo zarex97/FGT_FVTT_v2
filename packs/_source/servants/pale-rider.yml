@@ -30,8 +30,13 @@ parameters: { str: E, end: A, agi: B, mag: A, luc: C }
 # would otherwise have quietly given him 1600 and a health bar.
 baseHealth: null
 undamageable: true
-# "Items held: Pale Rider cannot hold Items."
+# "Items held: Pale Rider cannot hold Items. All Items that would be obtained by
+# Pale Rider are instead obtained by his Master if he/she is within a 2 panel
+# area." Two halves, and both can be met independently: with no Master in reach
+# the redirect lapses and the refusal is what is left. Read through
+# `rules/items.mjs#acquisitionTarget`, the seam every acquisition goes through.
 cannotHoldItems: true
+itemHandling: redirectToMaster
 mov: 6
 # "Range: - (See 'Contagion')". He cannot perform Normal Attacks at all
 # (Riding EX passive 3), so the number is never asked; 0 says so out loud.
@@ -63,17 +68,18 @@ rules:
     proxy: summons
 
 notes: |
-  Unmodelled, with reasons.
+  Both of his relationship clauses are built, and building them filled two gaps
+  elsewhere rather than in this sheet.
 
-  1. The third relationship rule -- "when a Master that has his/her Servant within a 2 panel
-     range gets caught in a Noble Phantasm and fails to Evade, the Master is unharmed while the
-     Total Damage taken by the Servant is doubled; Servants cannot Evade an enemy Unit's NP if
-     their Master is within a 2 panel range" -- is implemented for NO Servant in the system, so
-     there is nothing to redirect. It is a Ch. 16 gap rather than a Pale Rider one, and the
-     proxy will cover him the day it is built.
+  1. Cover (Ch. 16 §16.4 rule 4) -- "the Master is unharmed while the Total Damage taken by the
+     Servant is doubled; Servants cannot Evade an enemy Unit's NP if their Master is within a 2
+     panel range" -- had no implementation for ANY Servant, so there was nothing for the proxy
+     to redirect. `rules/cover.mjs` asks `guardsOf`, so his Kagome Spirits inherit the duty the
+     other three rules already redirect. Building it also found §16.4 rule 1 filtering an area's
+     splash and not merely its chosen targets, which had made rule 4 unreachable for everyone.
 
   2. "All Items that would be obtained by Pale Rider are instead obtained by his Master if
-     he/she is within a 2 panel area" presupposes an item ACQUISITION flow, and there is none:
-     `engine/items.mjs` has `giveItem` and `useItem`, and nothing drops an item on a panel or
-     awards one on a kill. The refusal half is enforced (`cannotHoldItems`); the redirect
-     redirects an event that cannot happen.
+     he/she is within a 2 panel area." The rulebook describes exactly one way to obtain an item
+     -- being handed one (§15.8) -- and nothing drops one on a panel or awards one on a kill.
+     `acquisitionTarget` is the seam every acquisition asks, so `giveItem` redirects today and a
+     drop or a reward inherits the answer the day either is added.

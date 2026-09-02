@@ -110,6 +110,11 @@ export function snapshotUnit(actor, {
     pursuitTargetId: sys.pursuitTargetId ?? null,
     boundToFieldId: sys.boundToFieldId ?? null,
     summonAssignments: sys.summonAssignments ?? {},
+    // Both halves of Pale Rider's Items line. Projected because
+    // `acquisitionTarget` is pure and decides from the BOARD -- it has to see
+    // the would-be holder, its Master, and the distance between them at once.
+    cannotHoldItems: Boolean(sys.cannotHoldItems),
+    itemHandling: sys.itemHandling ?? "hold",
     defeated: Boolean(sys.defeated),
 
     // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and

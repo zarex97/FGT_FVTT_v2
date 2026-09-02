@@ -1004,16 +1004,17 @@ runs until Medusa is defeated. Chapter 43's `expiry: onOwnerDefeat` exists solel
 > | the four Spirits | `inherit`, `normalAttack.shape`, `SummonBound` with memory, pursuit, `fgt.attacked`, `Banish` |
 > | *"apply between Kagome Spirits and Pale Rider's Master"* | `guardsOf`, the first reader `RelationshipProxy` has ever had |
 >
-> **Unmodelled, and why.** Both are gaps elsewhere, and both will cover him the day they are
-> filled:
+> **Both of his relationship clauses are built**, and building them filled gaps elsewhere:
 >
-> 1. The third relationship rule — *"the Master is unharmed while the Total Damage taken by the
->    Servant is doubled"* — is implemented for **no Servant in the system**, so there is nothing
->    for the proxy to redirect. A Ch. 16 gap.
-> 2. *"All Items that would be obtained by Pale Rider are instead obtained by his Master"*
->    presupposes an item **acquisition** flow, and there is none: nothing drops an item on a
->    panel or awards one on a kill. The refusal half is enforced (`cannotHoldItems`); the
->    redirect redirects an event that cannot happen.
+> 1. Cover (§16.4 rule 4) — *"the Master is unharmed while the Total Damage taken by the Servant
+>    is doubled"* — was implemented for **no Servant in the system**, so there was nothing for
+>    the proxy to redirect. `rules/cover.mjs` asks `guardsOf`, so his Spirits inherit it. It also
+>    turned out rule 1 was filtering an area's *splash* and not merely its chosen targets, which
+>    had made rule 4 unreachable for everyone; Ch. 16 §16.4 has the account.
+> 2. *"All Items that would be obtained by Pale Rider are instead obtained by his Master if
+>    he/she is within a 2 panel area"* is answered by `acquisitionTarget`, the seam both writers
+>    that can put an item on a unit now ask (Ch. 15 §15.8). The rulebook still describes no drop
+>    and no kill reward — but being handed one is obtaining one, and that is reachable today.
 
 Bounded field: **Doomsday Come** (Ch. 43). Unit shape: Ch. 44 §44.1.
 
@@ -1026,11 +1027,12 @@ Bounded field: **Doomsday Come** (Ch. 43). Unit shape: Ch. 44 §44.1.
 | Guidance of the Netherworld (EX) | Active | **RE+** `GotN`, a status that **stores an unapplied effect bundle** and discharges it when the bearer later enters a specific area |
 | Doomsday Come (EX, NP) | Bounded field | **RE+** `2+1d4` panels, anchored to the **Master** and **moving with them**; sealed in both directions; asymmetric permeability (allies free, enemies one-way); paid extension; a per-turn **drag-in attack**; an `[Anti-World]` escape clause that ends it and halves its own damage |
 | Kagome Kagome (A, NP) | Summon NP | **RE+** one `1d4` summon **per enemy unit**, with persistent per-enemy identity across reactivation; four `health: null` statlines; a Light/`Dark`-keyed **temporary banishment** on a coin flip |
-| — | Relationship rules | **RE+** `relationshipProxy: summons`; `itemHandling: redirectToMaster` |
+| — | Relationship rules | **RE+** `relationshipProxy: summons` (the first reader `RelationshipProxy` ever had); `itemHandling: redirectToMaster`, through the acquisition seam |
 
 **Exercises:** units with no health resource, health loss that is not damage, fields anchored to
 a moving unit, one-way permeability, per-target summon assignment with memory, effects stored
-for later discharge, and Master-protection rules redirected to a proxy.
+for later discharge, Master-protection rules redirected to a proxy, and an item that is obtained
+by somebody other than the unit that obtained it.
 **Scripts: 1.**
 
 **Note.** Pale Rider is the strongest argument in the corpus for the Snapshot/Intent boundary

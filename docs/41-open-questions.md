@@ -12,7 +12,7 @@ resolution and where it is implemented.
 
 **Status as of `0.2.1`:** questions **Q1–Q40 have been answered by the game's author**. They are
 retained below in condensed form as the record of what was decided and why, because several
-resolutions changed the design. **Q41–Q49 are open** — Q41–Q48 raised by the expanded roster and
+resolutions changed the design. **Q41–Q50 are open** — Q41–Q48 raised by the expanded roster and
 terrain documents, Q49 raised by the reference calculation supplied with the Q39 answer.
 
 ---
@@ -211,7 +211,7 @@ Exactly parallel to `Evade−`. Everything `0.2.0` wrote off as inert is live:
 
 ---
 
-## Part 3 — Open (Q41–Q49)
+## Part 3 — Open (Q41–Q50)
 
 
 ### Q41. What is a "Dead panel"?
@@ -373,9 +373,47 @@ ships rather than blocks.
 
 ---
 
+### Q50. What are Servants' Agility and Luck values?
+
+**This one has a live consequence and is the most important question in Part 3.**
+
+Agility is not a rank: §6.3 makes it a number you must roll **under** on an Evade, and Luck the
+same for a Luck Check. Every Servant sheet in the reference set states them as an unfilled
+placeholder:
+
+```
+Agility: XX/XX
+Luck: XX/XX
+```
+
+Only the summons and platforms carry real numbers — Bašmu's *"Agility: 14 / Luck: 7"*, the four
+Dragon Tooth Warriors, the Hanging Gardens. So all 29 Servants compile to **0 and 0**, and a
+target of 0 is one no d20 can roll under: **every Servant Evade and every Servant Luck Check
+fails automatically**, including Lucky Hit, Lucky Evasion and the contests either side of them.
+
+This was invisible for a long time because it is not an error anywhere — the sheets say `XX`,
+the compiler carries `XX` faithfully as "unstated", and the schema default for an unstated
+resource is 0. It surfaced only when a new content guard (`unitKeyCoverage`) noticed that the
+*summons'* stated numbers were being dropped by the compiler's allowlist, and the fix for that
+made the Servants' silence conspicuous by contrast.
+
+**We do not guess.** A rank-derived table would be an invention: §6.3 describes Agility as a
+depleting resource that Injury Rolls grind down, not as a function of AGI, and Q8 already
+established the parallel case — *"MOV is authored per-Servant, not derived"*. A per-Servant
+number is what the sheets are shaped to hold.
+
+**What we do instead.** The value stays 0 until the author supplies the numbers, one per
+Servant, at which point it is pure content: `agility: N` and `luck: N` on each sheet, compiled
+by the mapper that now carries the summons'.
+
+**Where.** Ch. 06 §6.3, Appendix D.
+
+---
+
 ## How to use this chapter
 
-**For the game's author.** Q49 is the one worth answering soon — it is a two-line arithmetic
+**For the game's author.** Q50 is the one that changes play today — every Servant currently
+auto-fails every Evade and Luck Check for want of two numbers per sheet. Q49 is next — it is a two-line arithmetic
 clarification that decides whether one term is being counted twice. Q41 through Q48 are
 individually small and can be settled in play.
 
