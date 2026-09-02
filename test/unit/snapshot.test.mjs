@@ -271,6 +271,9 @@ describe("VariantOverride (Ch. 32, Semiramis's Double Summon buff)", () => {
     const u = snapshotUnit(withDscBuff);
     expect(u.normalAttack).toEqual({
       mode: "rangeBanded", component: "str", bands: [{ to: 2 }, { from: 3 }],
+      // A Normal Attack may carry an AREA (Kagome: Famine's 3x3); Semiramis's
+      // is a single panel, so it projects null.
+      shape: null,
     });
   });
 

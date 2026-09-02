@@ -159,6 +159,9 @@ async function onTurnChange(combat, prior, current) {
   // after `expireFields` so a field that just closed is not reopened by its
   // own passive twin on the same tick.
   await fields.ensurePassiveFields();
+  // A banished Kagome Spirit whose span has run out comes back, on a random
+  // panel of the area it belongs to rather than where it fell.
+  await fields.returnBanished(nextTick);
   await run(await fields.runFieldEvents("turnStart"), "field:turnStart");
 }
 

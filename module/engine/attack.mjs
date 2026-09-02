@@ -422,6 +422,10 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     // wrong rung: a Servant who projected the swords and then missed still
     // projected them.
     await fireAttackDeclared(advanced);
+    // ...and the mirror on the defender, which nothing raised before. A Unit
+    // that is about to be hit may have something to say about it -- a Kagome
+    // Spirit vanishes rather than take a Light attack.
+    await fireAttacked(advanced);
   }
 
   // Everything the ability does to its USER, which the Combat Process has no
@@ -604,6 +608,46 @@ async function fireCombatProcessEnd(state) {
  * one defender at one distance -- and every handler in the reference set that
  * listens for it is predicated on exactly those two facts.
  *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+/**
+ * The DEFENDER-side declaration event.
+ *
+ * `attackDeclared` fires on the attacker; nothing ever told a Unit it was
+ * about to be hit, so a clause like the Kagome Spirits' *"if a damage-dealing
+ * NP or Attack that deals Light damage ... is used on a Kagome Spirit"* had no
+ * handler slot to hang on. Fired once per defender, with the attack in its
+ * option set.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function fireAttacked(state) {
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  if (!attacker || !defender) return;
+
+  // The coin the Kagome Spirits' banishment flips, pre-rolled on the same
+  // "caller rolls" contract every other event honours: `fireEvent` is pure and
+  // reads totals out of `ctx.rolls`.
+  const coin = await new Roll("1d2").evaluate();
+
+  const intents = fireEvent("attacked", [defender], {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    // `self:` here is the ATTACKER, as in every other attack-scoped option
+    // set; a handler on the defender predicates on `attack:`.
+    options: rollOptions(attacker, defender, state),
+    attackerId: attacker.id,
+    rolls: { [`coin:${defender.id}`]: coin.total },
+  });
+  if (intents.length > 0) await applyBatch(intents, "attacked");
+}
+
+/**
+ * Raise `attackDeclared` on the attacker.
  * @param {object} state
  * @returns {Promise<void>}
  */
@@ -2250,7 +2294,10 @@ function boardSnapshot() {
  * @returns {object}
  */
 function targetSpecFor(attacker, ability, options = null) {
-  return specForAbility(ability, attacker.system.range?.panels ?? 1, options);
+  // The ATTACKER travels through so a bare Normal Attack can carry a shape of
+  // its own -- Kagome: Famine's "3x3 panel area". `attacker.system` rather
+  // than a snapshot, because that is what this function is handed.
+  return specForAbility(ability, attacker.system.range?.panels ?? 1, options, attacker.system);
 }
 
 /**

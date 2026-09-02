@@ -1,0 +1,64 @@
+# Pale Rider -- Kagome Kagome: Death.
+# Conversion source: char_orig_sheets/Copia de Pale Rider.md
+# Data sheet: docs/D-servant-data-sheets.md §D.26
+#
+# The dangerous one: a quarter of its Normal Attacks inflict Death outright.
+#
+# Summoned by Doomsday Come's `contact` event (`SummonBound`), one per enemy
+# Unit inside, and bound to that enemy for as long as the area stands.
+schema: 1
+id: kagome-death
+name: "Kagome: Death"
+type: summon
+attributes: [summon, dark, spirit]
+# "Health: - (Cannot be damaged)". Not a large number -- no number at all.
+undamageable: true
+baseHealth: null
+# "Agility: Same as Pale Rider's. Luck: Same as Pale Rider's." Numbers that are not
+# numbers, resolved at placement from the summoner's live values.
+inherit:
+  agility: { from: summoner }
+  luck: { from: summoner }
+mov: 5
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 0, mag: 125 }
+normalAttack: { mode: fixed, component: mag }
+# "Kagome Spirits do not count towards the number of Units that Move and/or
+# Attack during your Turn. The same Kagome Spirit can only Move/Attack once per
+# Turn." Two different rules, and both are stated.
+countsTowardBudget: false
+actsOncePerTurn: true
+passiveRules:
+  # "Pale Rider cannot Evade, Block, or Counter" is his; a Spirit that cannot
+  # be damaged has nothing to defend either, and the rung would offer it
+  # choices it can never take.
+  - key: GrantedAbility
+    abilities: [noReactions]
+
+  # "Normal Attacks have a 25% chance of inflicting Death."
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: death }, chance: 25 }
+
+  # "If a damage-dealing NP or Attack that deals Light damage or Attack that
+  # deals extra damage to Units with the 'Dark' or 'Spirit' Attribute is used
+  # on a Kagome Spirit, Flip a Coin; that Kagome Spirit disappears for 1◈ Turns
+  # if Tails, and disappears for 2◈ Turns if Heads; then after that period it
+  # reappears on a random panel within Doomsday Come."
+  #
+  # `attack:vsAttribute:` is what "deals extra damage to Dark Units" IS: a
+  # property of the attacker's own active damage modifiers, read off the
+  # predicates they carry rather than a tag somebody has to remember to add.
+  - key: OnEvent
+    event: attacked
+    automatic: true
+    predicate:
+      - or: ["attack:element:light", "attack:vsAttribute:dark", "attack:vsAttribute:spirit"]
+    then:
+      - { key: Banish, coin: { heads: "2◈", tails: "1◈" } }
+notes: |
+  The Process still runs after a banishment and still halts at stage 0: the Spirit cannot be
+  damaged, so there is nothing for the attack to do once it has driven it off.

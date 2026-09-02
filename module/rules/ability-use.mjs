@@ -150,7 +150,7 @@ export function classifyAbility(item) {
  *   `targeting.branches`'s predicate
  * @returns {object} a `TargetSpec`
  */
-export function targetSpecFor(item, range, options = null) {
+export function targetSpecFor(item, range, options = null, attacker = null) {
   const branches = item?.system?.targeting?.branches;
   if (branches?.length > 0 && options) {
     const match = branches.find((b) => testPredicate(b.predicate, { options }));
@@ -160,10 +160,20 @@ export function targetSpecFor(item, range, options = null) {
 
   const use = item ? classifyAbility(item) : { isAttack: true };
   if (use.isAttack) {
+    // A Normal Attack that covers an AREA. Kagome: Famine is *"Range: 3
+    // panels, 3x3 panel area"*, and every Normal Attack in the game hit one
+    // panel because this fallback said so and nothing could override it. Only
+    // consulted for a bare Normal Attack -- an ability states its own
+    // targeting a few lines above.
+    const shape = !item ? (attacker?.normalAttack?.shape ?? null) : null;
     return {
       anchor: { kind: "targetUnit", range },
-      shape: { kind: "unit" },
-      selection: { relations: ["enemy"], chooser: "all", count: 1 },
+      shape: shape ?? { kind: "unit" },
+      selection: {
+        relations: ["enemy"],
+        chooser: "all",
+        ...(shape ? {} : { count: 1 }),
+      },
     };
   }
 

@@ -17,6 +17,7 @@ import { GRANTS, hasGranted } from "../../module/rules/granted.mjs";
 import { zonRadius } from "../../module/rules/zon.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { interiorModifiers } from "../../module/rules/bounded-fields.mjs";
+import { pursuitVerdict } from "../../module/rules/movement.mjs";
 
 const effect = (name) => parse(readFileSync(`packs/_source/effects/${name}.yml`, "utf8"));
 const classSkill = (name) => parse(readFileSync(`packs/_source/class-skills/${name}.yml`, "utf8"));
@@ -400,5 +401,110 @@ describe("Guidance of the Netherworld", () => {
     expect(contact).toMatchObject({ event: "contact", relations: ["ally", "self"] });
     expect(contact.onFail.map((a) => a.effect?.id)).toEqual(["atkUp", "regen", "dmgCut", "gotn"]);
     expect(contact.onFail.at(-1).key).toBe("RemoveEffect");
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Kagome Kagome — four bound Spirits                                         */
+/* -------------------------------------------------------------------------- */
+
+describe("the Kagome Spirits", () => {
+  const summon = (name) => parse(readFileSync(`packs/_source/summons/${name}.yml`, "utf8"));
+
+  it.each([
+    ["kagome-sword", { delta: 2 }, 5, 1, 150, 5],
+    ["kagome-famine", { delta: -1 }, 4, 3, 100, 10],
+    ["kagome-death", null, 5, 1, 125, 25],
+    ["kagome-beast", { delta: 1 }, 6, 2, 125, 10],
+  ])("%s takes its Agility from the summoner and rides a Death chance", (id, agi, mov, range, mag, chance) => {
+    const s = summon(id);
+    // "Health: - (Cannot be damaged)" -- no number at all.
+    expect(s.undamageable).toBe(true);
+    expect(s.baseHealth).toBeNull();
+    // "Agility: Pale Rider's plus 2" / "Same as Pale Rider's".
+    expect(s.inherit.agility).toEqual(agi ? { from: "summoner", ...agi } : { from: "summoner" });
+    expect(s.inherit.luck).toEqual({ from: "summoner" });
+    expect(s.mov).toBe(mov);
+    expect(s.range.panels).toBe(range);
+    expect(s.baseAttack.mag).toBe(mag);
+    expect(s.attributes).toEqual(expect.arrayContaining(["dark", "spirit"]));
+    // "Do not count towards the number of Units that Move and/or Attack" AND
+    // "can only Move/Attack once per Turn" -- two rules, both stated.
+    expect(s.countsTowardBudget).toBe(false);
+    expect(s.actsOncePerTurn).toBe(true);
+
+    const rider = s.passiveRules.find((r) => r.event === "damageDealt");
+    expect(rider.then[0]).toMatchObject({
+      key: "ApplyEffect", target: "victim", effect: { id: "death" }, chance,
+    });
+  });
+
+  it("gives Famine, and only Famine, an area Normal Attack", () => {
+    // "Range: 3 panels, 3x3 panel area."
+    expect(summon("kagome-famine").normalAttack.shape).toEqual({ kind: "square", size: 3 });
+    for (const id of ["kagome-sword", "kagome-death", "kagome-beast"]) {
+      expect(summon(id).normalAttack.shape).toBeUndefined();
+    }
+  });
+
+  it("vanishes from Light and from anti-Dark or anti-Spirit attacks", () => {
+    for (const id of ["kagome-sword", "kagome-famine", "kagome-death", "kagome-beast"]) {
+      const banish = summon(id).passiveRules.find((r) => r.event === "attacked");
+      expect(banish.predicate[0].or).toEqual([
+        "attack:element:light", "attack:vsAttribute:dark", "attack:vsAttribute:spirit",
+      ]);
+      // "1◈ Turns if Tails, 2◈ Turns if Heads."
+      expect(banish.then[0]).toEqual({ key: "Banish", coin: { heads: "2◈", tails: "1◈" } });
+    }
+  });
+
+  it("cannot Evade, Block or Counter", () => {
+    const granted = summon("kagome-sword").passiveRules.find((r) => r.key === "GrantedAbility");
+    expect(granted.abilities).toEqual(["noReactions"]);
+  });
+
+  it("is summoned one per enemy on contact, remembered on Pale Rider", () => {
+    const ev = ability("pale-rider-doomsday-come").field.interiorEvents
+      .find((e) => e.onFail.some((a) => a.key === "SummonBound"));
+    expect(ev).toMatchObject({ event: "contact", relations: ["enemy"] });
+    const [action] = ev.onFail;
+    expect(action).toMatchObject({ typeRoll: "1d4", rememberOn: "owner" });
+    expect(Object.values(action.types))
+      .toEqual(["kagome-sword", "kagome-famine", "kagome-death", "kagome-beast"]);
+  });
+});
+
+describe("pursuit", () => {
+  const prey = { id: "prey", name: "Prey", faction: "b", panel: { i: 0, j: 5 }, fields: ["doomsday"] };
+  const spirit = {
+    id: "s", name: "Kagome: Sword", faction: "a", panel: { i: 0, j: 0 },
+    pursuitTargetId: "prey", boundToFieldId: "doomsday",
+  };
+  const board = { units: [prey, spirit] };
+
+  it("refuses a step that ends further away", () => {
+    // "Constantly Move towards that Unit" is a constraint on the player, not
+    // an automaton: the route is theirs, the direction is the rule's.
+    // Chebyshev, so retreating means moving AWAY along the axis that
+    // separates them: the prey is five panels east, so west is away.
+    const verdict = pursuitVerdict(spirit, [{ i: 0, j: 0 }, { i: 0, j: -1 }, { i: 0, j: -2 }], board);
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toMatch(/must Move towards Prey/);
+  });
+
+  it("allows a step that closes or holds the distance", () => {
+    expect(pursuitVerdict(spirit, [{ i: 0, j: 0 }, { i: 0, j: 1 }], board).ok).toBe(true);
+    expect(pursuitVerdict(spirit, [{ i: 0, j: 0 }, { i: 1, j: 1 }], board).ok).toBe(true);
+  });
+
+  it("is lifted once the prey has left the bound field", () => {
+    // A Spirit is summoned for an enemy WITHIN Doomsday Come; one who has left
+    // is no longer its business.
+    const gone = { ...prey, fields: [] };
+    expect(pursuitVerdict(spirit, [{ i: 0, j: 0 }, { i: 0, j: -2 }], { units: [gone, spirit] }).ok).toBe(true);
+  });
+
+  it("says nothing about a unit that hunts nobody", () => {
+    expect(pursuitVerdict({ id: "x" }, [{ i: 0, j: 0 }, { i: 9, j: 9 }], board).ok).toBe(true);
   });
 });

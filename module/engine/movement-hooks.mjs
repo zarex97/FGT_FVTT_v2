@@ -15,7 +15,7 @@
  * authoritative check lives here (Ch. 08 §8.3).
  */
 
-import { validatePath, remainingMovement, segmentCheck } from "../rules/movement.mjs";
+import { validatePath, remainingMovement, segmentCheck, pursuitVerdict } from "../rules/movement.mjs";
 import { unitSnapshot, currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
@@ -111,6 +111,13 @@ function onPreMove(document, movement, operation) {
   const verdict = validatePath(path, unit, board, { hasRiding: unit.hasRiding });
   if (!verdict.ok) {
     ui.notifications.warn(`FGT | ${verdict.reasons[0]}`);
+    return false;
+  }
+
+  // A Kagome Spirit may not walk away from the enemy it was summoned for.
+  const pursuit = pursuitVerdict(unit, path, board);
+  if (!pursuit.ok) {
+    ui.notifications.warn(`FGT | ${pursuit.reason}`);
     return false;
   }
 

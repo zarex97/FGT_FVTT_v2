@@ -61,7 +61,7 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
   }
 
   const panels = freePanels(summoner, spec.placement ?? {}, contentIds.length);
-  const created = await place(contentIds, panels, summoner, scene, spec);
+  const created = await placeSummons(contentIds, panels, summoner, scene, spec);
 
   return { count: created.length, created, rolls };
 }
@@ -101,7 +101,7 @@ export function scaledCooldown(cooldown, count, turnsPerRound) {
  * @param {number} needed
  * @returns {Array<{i: number, j: number}>}
  */
-function freePanels(summoner, placement, needed) {
+export function freePanels(summoner, placement, needed) {
   const board = currentBoard();
   const origin = board.units.find((u) => u.id === summoner.id)?.panel;
   if (!origin) return [];
@@ -127,7 +127,7 @@ function freePanels(summoner, placement, needed) {
  * @param {object} spec
  * @returns {Promise<object[]>}
  */
-async function place(contentIds, panels, summoner, scene, spec) {
+export async function placeSummons(contentIds, panels, summoner, scene, spec, stamps = {}) {
   /** @type {object[]} */
   const created = [];
 
@@ -155,6 +155,23 @@ async function place(contentIds, panels, summoner, scene, spec) {
     // Move and/or Attack", and "can only Move/Attack once per Turn".
     data.system.countsTowardBudget = spec.countsTowardBudget ?? data.system.countsTowardBudget;
     data.system.actsOncePerTurn = spec.actsOncePerTurn ?? data.system.actsOncePerTurn;
+
+    // Stats stated RELATIVE to the summoner. The Kagome Spirits are the first
+    // in the corpus: *"Agility: Pale Rider's plus 2"*, *"Luck: Same as Pale
+    // Rider's"* -- which cannot be written as numbers on a sheet, because they
+    // are not numbers. Resolved here, from the summoner's LIVE values, because
+    // that is the only moment they are both known and fixed.
+    for (const [stat, rule] of Object.entries(data.system.inherit ?? {})) {
+      if (rule?.from !== "summoner") continue;
+      const base = summoner.system?.[stat]?.max ?? summoner.system?.[stat]?.value ?? 0;
+      const value = Math.max(0, base + (rule.delta ?? 0));
+      data.system[stat] = { value, max: value };
+    }
+
+    // Whatever the caller needs stamped on every summon it is placing --
+    // `pursuitTargetId` and `boundToFieldId` for a Kagome Spirit. Foundry
+    // document ids, so they can only be written here and never authored.
+    Object.assign(data.system, stamps);
 
     const actor = await Actor.create(data);
     const token = await actor.getTokenDocument({

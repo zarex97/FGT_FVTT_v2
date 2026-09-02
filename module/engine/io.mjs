@@ -335,6 +335,34 @@ export function worldIO() {
       await item.update({ "system.recordedAttacks": [...held] });
     },
 
+    /**
+     * Take a Unit off the board until a stated tick.
+     *
+     * The Kagome Spirits are the only thing in the game that leaves and comes
+     * back: *"that Kagome Spirit disappears for 1◈ Turns ... then after that
+     * period it reappears on a random panel within Doomsday Come."*
+     *
+     * The token is HIDDEN rather than deleted, so it keeps its id, its
+     * Agility, its assignment and everything else it was summoned with — a
+     * delete-and-resummon would be a different Spirit wearing the same name.
+     * The return tick is recorded on the field, which is where the panel it
+     * comes back to lives.
+     *
+     * @param {string} unitId
+     * @param {number} untilTick
+     * @param {string|null} fieldId
+     */
+    async banish(unitId, untilTick, fieldId) {
+      const actor = resolve(unitId);
+      const token = resolveToken(unitId);
+      if (token) await token.update({ hidden: true });
+      if (!fieldId) return;
+
+      const { behaviorFor } = await import("./fields.mjs");
+      const behavior = behaviorFor(fieldId);
+      if (behavior) await behavior.update({ [`system.state.banished.${actor?.id ?? unitId}`]: untilTick });
+    },
+
     async consumeUse(unitId, defId, count = 1) {
       const actor = resolve(unitId);
       if (!actor) return;

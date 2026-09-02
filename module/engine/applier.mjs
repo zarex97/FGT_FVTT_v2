@@ -367,6 +367,14 @@ async function writeGroup(group, io) {
       for (const i of intents) await io.grantCommandSpells(i.masterId, i.servantId, i.count);
       break;
     case "log":
+      // A `banish` entry is a log line AND a world write: the Kagome Spirits'
+      // *"disappears for 1◈ Turns ... then reappears on a random panel
+      // within"*. The scheduler settles the tick to return on -- it is pure
+      // and knows the turn length -- and hiding the token is this layer's job.
+      for (const i of intents) {
+        if (i.entry?.kind !== "banish") continue;
+        await io.banish(i.entry.unitId, i.entry.untilTick, i.entry.fieldId);
+      }
       await io.log(intents.map((i) => i.entry));
       break;
     default:

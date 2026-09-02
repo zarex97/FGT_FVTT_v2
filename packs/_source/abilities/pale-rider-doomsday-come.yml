@@ -202,6 +202,30 @@ field:
       relations: [enemy]
       predicate: [{ or: ["self:npAboveAllParameters", "self:stableDie:d6:6"] }]
   interiorEvents:
+    # Kagome Kagome. "When Doomsday Come is activated, roll a four-sided die
+    # for each enemy Unit within ... whenever a NEW enemy Unit enters Doomsday
+    # Come, perform this process for that Unit as well."
+    #
+    # Both halves are `contact`: the event fires for whoever the area opens
+    # over AND for whoever walks in afterwards, which is exactly the pair the
+    # sheet names in two sentences.
+    #
+    # `rememberOn: owner` is the third sentence -- "the SAME Kagome Spirit will
+    # be summoned for the same enemy Unit if that enemy Unit was previously
+    # within Doomsday Come" -- and it is written on Pale Rider rather than on
+    # the area because the memory has to outlive the area.
+    - event: contact
+      relations: [enemy]
+      onFail:
+        - key: SummonBound
+          typeRoll: "1d4"
+          types:
+            1: kagome-sword
+            2: kagome-famine
+            3: kagome-death
+            4: kagome-beast
+          rememberOn: owner
+
     # Guidance of the Netherworld's discharge. "When a Unit with the 'GotN'
     # effect ENTERS the area of Doomsday Come, apply effects 1 to 3 ... then
     # remove the 'GotN' effect from that Unit."

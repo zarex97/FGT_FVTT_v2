@@ -65,6 +65,12 @@ export class ServantData extends foundry.abstract.TypeDataModel {
         required: true, initial: "contracted", choices: ["contracted", "free", "unbound"],
       }),
       masterId: new fields.DocumentIdField({ required: false, nullable: true, initial: null }),
+      // Which summon type is bound to which enemy, by enemy id. Kagome Kagome:
+      // *"if Doomsday Come is activated again, the SAME Kagome Spirit will be
+      // summoned for the same enemy Unit if that enemy Unit was previously
+      // within Doomsday Come."* The memory outlives the field, so it lives on
+      // the Servant rather than on the area.
+      summonAssignments: new fields.ObjectField({ required: false, initial: () => ({}) }),
 
       // ZON exceptions, both from the reference set (Ch. 16 §16.3). Semiramis
       // aboard the Hanging Gardens is exempt outright; the Dioscuri satisfy ZON

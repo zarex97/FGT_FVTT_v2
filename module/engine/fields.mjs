@@ -23,7 +23,7 @@
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
-  panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor,
+  panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
 } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -305,6 +305,52 @@ async function openField(ability, actor, snapshot, spec) {
  *
  * @returns {Promise<void>}
  */
+/**
+ * Bring back every banished Unit whose tick has come.
+ *
+ * @param {number} tick
+ * @returns {Promise<void>}
+ */
+export async function returnBanished(tick) {
+  if (!game.users?.activeGM?.isSelf) return;
+  const board = currentBoard();
+
+  for (const field of board.fields ?? []) {
+    for (const [unitId, until] of Object.entries(field.state?.banished ?? {})) {
+      if (until > tick) continue;
+
+      const actor = game.actors.get(unitId);
+      const token = actor?.getActiveTokens?.(false, true)?.[0]
+        ?? canvas?.tokens?.placeables?.find((t) => t.actor?.id === unitId)?.document;
+      // *"...reappears on a random panel within."* Its own field, not wherever
+      // it fell: the Spirit belongs to the area, and the area may have moved
+      // the width of the board since it was banished.
+      const panel = randomFreePanelIn(field, board);
+      if (token && panel) {
+        await token.update({
+          hidden: false,
+          x: panel.j * canvas.scene.grid.size,
+          y: panel.i * canvas.scene.grid.size,
+        }, { fgtForced: true });
+      } else if (token) {
+        // Nowhere free inside. Better back on the board where it was than
+        // hidden for ever.
+        await token.update({ hidden: false });
+      }
+      await behaviorFor(field.id)?.update({ [`system.state.banished.-=${unitId}`]: null });
+    }
+  }
+}
+
+/**
+ * Open every passive field whose owner is on the board, and close every one
+ * whose owner has left it.
+ *
+ * (See the note above `returnBanished`; this is the other half of the Turn
+ * boundary's field housekeeping.)
+ *
+ * @returns {Promise<void>}
+ */
 export async function ensurePassiveFields() {
   if (!game.users?.activeGM?.isSelf) return;
   if (!canvas?.scene) return;
@@ -354,6 +400,16 @@ export async function endField(fieldId) {
   const region = scene?.regions?.find((r) =>
     r.behaviors?.some((b) => b.type === "npField" && b.system?.fieldId === fieldId));
   if (!region) return false;
+
+  // *"When Doomsday Come ends, all Kagome Spirits immediately disappear."*
+  // The same shape a platform taking its bound summons with it already has
+  // (`engine/scene-levels.mjs`), keyed on the field instead. Before the Region
+  // goes, so a teardown that fails leaves something to retry against.
+  for (const summon of game.actors?.filter?.((a) => a.system?.boundToFieldId === fieldId) ?? []) {
+    for (const token of summon.getActiveTokens?.() ?? []) await token.document.delete();
+    await summon.delete();
+  }
+
   await region.delete();
   return true;
 }
@@ -754,6 +810,48 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         continue;
       }
 
+      // Kagome Kagome: *"roll a four-sided die for each enemy Unit within
+      // Doomsday Come, and summon a Kagome Spirit corresponding to the number
+      // rolled ... whenever a NEW enemy Unit enters Doomsday Come, perform
+      // this process for that Unit as well."*
+      //
+      // The MEMORY is the interesting half: *"if Doomsday Come is activated
+      // again, the same Kagome Spirit will be summoned for the same enemy Unit
+      // if that enemy Unit was previously within Doomsday Come."* It outlives
+      // the field, so it is written on the OWNER rather than on the area.
+      if (action.key === "SummonBound") {
+        const ownerDoc = game.actors.get(field.ownerId);
+        if (!ownerDoc) continue;
+
+        // One Spirit per enemy, not one per contact: an enemy who steps out
+        // and back in already has theirs.
+        const already = game.actors.some((a) =>
+          a.system?.pursuitTargetId === unit.id
+          && a.system?.boundToFieldId === field.id
+          && !a.system?.defeated);
+        if (already) continue;
+
+        const remembered = ownerDoc.system?.summonAssignments?.[unit.id] ?? null;
+        let contentId = remembered;
+        if (!contentId) {
+          const roll = await new Roll(String(action.typeRoll ?? "1")).evaluate();
+          contentId = action.types?.[roll.total] ?? action.types?.[String(roll.total)] ?? null;
+          if (contentId && action.rememberOn === "owner") {
+            await ownerDoc.update({ [`system.summonAssignments.${unit.id}`]: contentId });
+          }
+        }
+        if (!contentId) continue;
+
+        const { placeSummons, freePanels } = await import("./summoning.mjs");
+        const panels = freePanels(unit, action.placement ?? { adjacentTo: "self" }, 1);
+        await placeSummons([contentId], panels, ownerDoc, canvas.scene, {}, {
+          pursuitTargetId: unit.id,
+          boundToFieldId: field.id,
+          factionId: ownerDoc.system?.factionId ?? null,
+        });
+        continue;
+      }
+
       if (action.key === "ApplyEffect") {
         // *"Has a 50% chance of being inflicted with Poison."* A field's own
         // probability, rolled here rather than left to the effect's
@@ -869,7 +967,7 @@ async function stampUpkeep(field, tick) {
  * @param {string} fieldId
  * @returns {object|null}
  */
-function behaviorFor(fieldId) {
+export function behaviorFor(fieldId) {
   for (const region of canvas?.scene?.regions ?? []) {
     for (const behavior of region.behaviors ?? []) {
       if (behavior.type === "npField" && behavior.system?.fieldId === fieldId) return behavior;

@@ -104,6 +104,12 @@ export function snapshotUnit(actor, {
     // First real consumer: Bašmu's "only one summoned by this Spell can exist
     // on the field" (`noAliveSummon` requirement, rules/items.mjs).
     summonerId: sys.summonerId ?? null,
+    // Which enemy this summon hunts, and which field it dies with. Both are
+    // Kagome Spirit clauses and both are read by rules that cannot reach the
+    // document: the movement constraint and the field teardown.
+    pursuitTargetId: sys.pursuitTargetId ?? null,
+    boundToFieldId: sys.boundToFieldId ?? null,
+    summonAssignments: sys.summonAssignments ?? {},
     defeated: Boolean(sys.defeated),
 
     // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and
@@ -231,6 +237,11 @@ export function snapshotUnit(actor, {
       // distance -- which is the exact failure the one-projection rule above
       // exists to prevent.
       bands: [...(variantOverride?.normalAttack?.bands ?? sys.normalAttack?.bands ?? [])],
+      // A Normal Attack with an AREA. Kagome: Famine is *"Range: 3 panels,
+      // 3x3 panel area"* -- the first in the corpus, and until now every
+      // Normal Attack in the game hit exactly one panel because the targeting
+      // fallback said `{kind: "unit"}` and nothing could say otherwise.
+      shape: variantOverride?.normalAttack?.shape ?? sys.normalAttack?.shape ?? null,
     },
 
     // ZON belongs to the Master-Servant pair, so a per-unit projection cannot
@@ -269,6 +280,23 @@ export function snapshotUnit(actor, {
     // NOTHING set it, so the exemption could not be authored at all.
     bypassesMasterProtection: (contributions.suppressions ?? [])
       .some((s2) => s2.scope === "masterProtection"),
+    // What this Unit switches OFF. Collected since the executor table was
+    // written and **never projected**, so every `Suppress`, `ForceTarget`,
+    // `Decoy` and `WeakPoint` an ability contributed reached a bucket nothing
+    // downstream could see -- only `bypassesMasterProtection` above, which
+    // reads the contributions directly, ever escaped. `annotateFields` writes
+    // to this same key for a field's interior rules, which is why a field's
+    // suppression worked and an ability's did not.
+    //
+    // A summon that hunts one enemy is FORCED onto it here, which is the
+    // attack half of *"constantly Move towards that Unit and Attack it"*. Not
+    // an authored `ForceTarget`, because the id is a Foundry document stamped
+    // at placement and content cannot name one.
+    suppressions: sys.pursuitTargetId
+      ? [...(contributions.suppressions ?? []), {
+        scope: "targeting", forceTarget: sys.pursuitTargetId, source: "pursuit",
+      }]
+      : (contributions.suppressions ?? []),
     // Identity and Detect (Ch. 04 §4.2, Ch. 08 §8.7).
     trueName: sys.trueName ?? null,
     classContainer: sys.classContainer ?? [...(sys.servantClasses ?? [])][0] ?? null,

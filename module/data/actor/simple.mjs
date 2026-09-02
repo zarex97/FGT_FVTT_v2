@@ -28,6 +28,12 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // Move/Attack once per Turn." Distinct from the budget exemption -- being
       // outside the Unit limit does not mean acting without limit.
       actsOncePerTurn: new fields.BooleanField({ initial: false }),
+      // Stats stated RELATIVE to the summoner. The Kagome Spirits are the
+      // first: *"Agility: Pale Rider's plus 2"*, *"Luck: Same as Pale
+      // Rider's"* -- numbers that cannot be written on the sheet because they
+      // are not numbers, and are resolved at placement from the summoner's
+      // live values. Untyped for the same reason rule elements are.
+      inherit: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       expiresAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       // Bašmu: "Bašmu cannot leave the HGoB. If HGoB is removed from the
       // field while Bašmu is summoned, it disappears." A Foundry DOCUMENT id

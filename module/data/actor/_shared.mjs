@@ -57,6 +57,16 @@ export function unitCommon() {
     // states no Health, quietly giving him 1600 and a health bar.
     undamageable: new fields.BooleanField({ initial: false }),
 
+    // A summon that hunts ONE enemy, and one that lives only while a field
+    // stands. The Kagome Spirits are both: *"the Kagome Spirit summoned for
+    // each enemy Unit will constantly Move towards that Unit and Attack it"*,
+    // and *"when Doomsday Come ends, all Kagome Spirits immediately
+    // disappear."* `boundToFieldId` generalises Bašmu's `boundToPlatformId`.
+    //
+    // Both are Foundry document ids stamped at placement, never authored.
+    pursuitTargetId: new fields.StringField({ required: false, nullable: true, initial: null }),
+    boundToFieldId: new fields.StringField({ required: false, nullable: true, initial: null }),
+
     mov: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     range: new fields.SchemaField({
       panels: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),
