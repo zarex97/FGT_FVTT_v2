@@ -1,0 +1,108 @@
+# Pale Rider -- Contagion, Rank A.
+# Conversion source: char_orig_sheets/Copia de Pale Rider.md
+# Data sheet: docs/D-servant-data-sheets.md §D.26 · bounded field: Ch. 43
+#
+# The first PASSIVE bounded field in the corpus: "The 2 panel area around Pale
+# Rider IS the Contagion area." There is no activation to open it, no duration
+# to close it, and no cooldown -- it exists because he does, and
+# `engine/fields.mjs#ensurePassiveFields` reconciles it with the board at
+# `ready` and at every Turn start.
+#
+# "2 panel area" is radius 2, by the corpus's own convention, and the sheet
+# confirms it in the same paragraph: "from 5x5 panel area around Pale Rider to
+# a 9x9 panel area" -- so radius 2 is 5x5 and the Active's +2 is 9x9.
+schema: 1
+id: pale-rider-contagion
+name: "Contagion"
+rank: A
+kind: skill
+slug: contagion
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Passive) The 2 panel area around Pale Rider is the Contagion area. The effects of Contagion
+  trigger whenever the following occurs-
+  1. At the end of Pale Rider's Turn: Affects all enemy Units within the Contagion area.
+  2. If an enemy Unit ended its Turn within the Contagion area, or at the end of a Turn an
+     enemy Unit Acted and ended that Turn within the Contagion area: Only affects that enemy Unit.
+  When triggered, the effects of Contagion are as follows-
+  1. Health is reduced by 100. Not affected by effects that modify damage taken (does not count
+     as 'damage').
+  2. Has a 50% chance of being inflicted with Poison.
+  3. Has a 10% chance of being inflicted with Charm for 1◈ Turns.
+  (Active) Used during your Turn. Increases the Contagion area by a Range of 2 panels for 1◈
+  Turns. Cooldown: 4◈ Turns.
+  When 'Doomsday Come' is Active, Contagion constantly affects all enemy Units within the NP
+  area instead of its usual Range; and the chance of being inflicted with Poison is 75% while
+  chance of being inflicted with Charm is 25%; and if the enemy Unit is within a 3 panel area
+  of Pale Rider's Master, Health is reduced by 150 instead of 100.
+
+# The Active does one thing: mark him. The area reads the marker.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: contagionExpanded, duration: "1◈" }
+
+field:
+  passive: true
+  geometry:
+    kind: followsUnit
+    shape: { kind: square, size: 5 }
+    # Tested in THIS order, first match wins. "Instead of its usual Range" is a
+    # precedence claim, so Doomsday's area outranks the Active's marker -- a
+    # Contagion that was expanded and then swallowed by Doomsday Come is the
+    # NP's area, not a 9x9.
+    overrides:
+      - { whileFieldOpen: pale-rider-doomsday-come, sameAs: pale-rider-doomsday-come }
+      - { whileOwnerHas: contagionExpanded, shape: { kind: square, size: 9 } }
+  # Nobody is trapped and nothing is sealed: it is a contagion, not a prison.
+  membership: { enemyEntry: free, enemyExit: free, allyEntry: free, allyExit: free }
+  isolation: null
+  interior: []
+
+  # Trigger 1 is the OWNER's Turn ending and reaches every enemy inside;
+  # triggers 2a and 2b are one enemy's own Turn ending inside. Three events
+  # rather than one, because the sheet states three boundaries and the engine
+  # fires each of them separately.
+  interiorEvents:
+    - event: unitTurnEnd
+      relations: [enemy]
+      branches: &contagion
+        # "If the enemy Unit is within a 3 panel area of Pale Rider's Master,
+        # Health is reduced by 150 instead of 100." Inside Doomsday and close
+        # to the Master.
+        - predicate: ["self:inField:pale-rider-doomsday-come", "self:withinOfOwnerMaster:3"]
+          onFail:
+            - { key: HealthLoss, amount: 150 }
+            - { key: ApplyEffect, effect: { id: poison }, chance: 75 }
+            - { key: ApplyEffect, effect: { id: charm }, duration: "1◈", chance: 25 }
+        # Inside Doomsday, further from the Master.
+        - predicate: ["self:inField:pale-rider-doomsday-come"]
+          onFail:
+            - { key: HealthLoss, amount: 100 }
+            - { key: ApplyEffect, effect: { id: poison }, chance: 75 }
+            - { key: ApplyEffect, effect: { id: charm }, duration: "1◈", chance: 25 }
+      # No Doomsday: the printed numbers.
+      onFail: &contagionBase
+        - { key: HealthLoss, amount: 100 }
+        - { key: ApplyEffect, effect: { id: poison }, chance: 50 }
+        - { key: ApplyEffect, effect: { id: charm }, duration: "1◈", chance: 10 }
+
+    - event: turnEnd
+      relations: [enemy]
+      branches: *contagion
+      onFail: *contagionBase
+
+    - event: actedTurnEnd
+      relations: [enemy]
+      requiresActed: true
+      branches: *contagion
+      onFail: *contagionBase
+
+  vulnerabilities: []
+  onEnd: []

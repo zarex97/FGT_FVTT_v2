@@ -22,10 +22,10 @@
 
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import { currentHealth } from "../domain/health.mjs";
-import { panelsOf, isExempt, legalRepaint, mayReshape } from "../rules/bounded-fields.mjs";
+import { panelsOf, isExempt, legalRepaint, mayReshape, selectBranch } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
-import { evade, checkPlan } from "../rules/checks.mjs";
+import { evade, checkPlan, chance } from "../rules/checks.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { platformCentre } from "../rules/platforms.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
@@ -76,10 +76,28 @@ export function regionSizedShape(geometry, warRegion) {
  */
 export async function createField(ability, actor, board = null) {
   const spec = ability?.system?.field ?? null;
+  if (!spec) return null;
+  return openField(ability, actor, board ?? currentBoard(), spec);
+}
+
+/**
+ * Build and place one field's Region and behaviour.
+ *
+ * Split out of `createField` so a PASSIVE field can be opened by
+ * {@link ensurePassiveFields} without going through an ability use — there is
+ * no cast, no phase and no cooldown to run, and every line below is about the
+ * area rather than about the activation.
+ *
+ * @param {object} ability the ability Item declaring the field
+ * @param {object} actor its owner
+ * @param {object} snapshot the board
+ * @param {object} spec `ability.system.field`
+ * @returns {Promise<object|null>} the created Region, or null
+ */
+async function openField(ability, actor, snapshot, spec) {
   const scene = canvas?.scene ?? null;
   if (!spec || !scene) return null;
 
-  const snapshot = board ?? currentBoard();
   const self = (snapshot.units ?? []).find((u) => u.id === actor.id);
   if (!self?.panel) return null;
 
@@ -142,6 +160,10 @@ export async function createField(ability, actor, board = null) {
     createdAt: game.combat?.system?.globalTurn ?? 0,
     upkeep: spec.upkeep ?? null,
     deactivation: spec.deactivation ?? null,
+    // Carried so `ensurePassiveFields` can recognise its own on a later pass:
+    // an open passive field must not be opened a second time, and must close
+    // when its owner leaves the board.
+    passive: Boolean(spec.passive),
     duration: specDuration ?? null,
     // Absolute, like every other duration in the system (§7.5): a countdown
     // would have to be decremented by a hook that can fail to fire, and an
@@ -186,9 +208,25 @@ export async function createField(ability, actor, board = null) {
   // question, and a Unit could be inside one and outside the other.
   if (existing) await existing.delete();
 
+  // A field anchored to a Unit is ATTACHED to that Unit's token, which is a
+  // Foundry v14 Region feature (`attachment.token`) and exactly this problem:
+  // the core translates the stored shape as the token moves, so the drawn area
+  // and the rules' own `panelsOf` agree without a hook, a write, or a guess
+  // about which movement paths we manage to observe.
+  //
+  // Doomsday Come attaches to the MASTER -- *"this area Moves together with
+  // Pale Rider's Master"* -- which is what `unitRef` already names.
+  const anchorActorId = specGeometry?.kind === "followsUnit"
+    ? (specGeometry.unitRef === "ownerMaster" ? actor.system?.masterId : actor.id)
+    : null;
+  const anchorToken = anchorActorId
+    ? game.actors.get(anchorActorId)?.getActiveTokens?.()[0]?.document ?? null
+    : null;
+
   const [region] = await scene.createEmbeddedDocuments("Region", [{
     name: ability.name,
     shapes: [shapeOf(panels, scene)],
+    ...(anchorToken ? { attachment: { token: anchorToken.id } } : {}),
   }]);
   if (!region) return null;
 
@@ -222,6 +260,64 @@ export async function createField(ability, actor, board = null) {
   }
 
   return region;
+}
+
+/**
+ * Open every passive field whose owner is on the board, and close every one
+ * whose owner has left it.
+ *
+ * A passive field is neither cast nor ended. Pale Rider's Contagion is the
+ * first in the corpus: *"(Passive) The 2 panel area around Pale Rider is the
+ * Contagion area"* — there is no activation to hang `createField` off, no
+ * duration, and no cooldown. It exists because he does.
+ *
+ * **Idempotent, and deliberately so.** It runs at `ready` and at every Turn
+ * start, which is what makes it self-healing: a Servant summoned mid-match, a
+ * world reloaded, a Region deleted by hand — each is repaired on the next
+ * boundary rather than needing its own hook. Opening is skipped when a field
+ * with that id is already open, so the repeat costs one board read.
+ *
+ * GM-only, like every other world write in this file: three clients running it
+ * would race to create three Regions for one Servant.
+ *
+ * @returns {Promise<void>}
+ */
+export async function ensurePassiveFields() {
+  if (!game.users?.activeGM?.isSelf) return;
+  if (!canvas?.scene) return;
+
+  const board = currentBoard();
+  const open = new Set((board.fields ?? []).map((f) => f.id));
+
+  for (const unit of board.units ?? []) {
+    if (!unit.panel || unit.defeated) continue;
+    const actor = game.actors.get(unit.id);
+    if (!actor) continue;
+
+    for (const ability of actor.items ?? []) {
+      const spec = ability.system?.field ?? null;
+      if (!spec?.passive) continue;
+      const fieldId = ability.system?.contentId ?? ability.id;
+      if (open.has(fieldId)) continue;
+      await openField(ability, actor, board, spec);
+      open.add(fieldId);
+    }
+  }
+
+  // The other half. A passive field has no expiry for `expireFields` to reach,
+  // so the only thing that ends it is its owner leaving — defeated, or no
+  // longer placed. Without this the Region outlives the Servant and goes on
+  // poisoning whoever walks through it.
+  for (const field of board.fields ?? []) {
+    if (!field.passive) continue;
+    const owner = (board.units ?? []).find((u) => u.id === field.ownerId);
+    if (!owner?.panel || owner.defeated) await endField(field.id);
+  }
+
+  // ...and put every derived shape where the board now says it is. A field
+  // whose size is decided by an EFFECT -- Contagion's 9x9 Active -- changes
+  // without anybody moving, so the move hook alone would leave it stale.
+  await syncDerivedFields();
 }
 
 /**
@@ -453,7 +549,27 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       if (outcome.success) continue;
     }
 
-    for (const action of spec.onFail ?? []) {
+    // Which numbers this unit gets. Contagion rewrites three of its own at
+    // once under Doomsday Come, and the choice is per UNIT rather than per
+    // cast -- "if the enemy Unit is within a 3 panel area of Pale Rider's
+    // Master" is a fact about the victim, not about the field.
+    const chosen = selectBranch(spec, rollOptionsFor({ attacker: unit }));
+
+    for (const action of chosen.onFail ?? []) {
+      // Contagion effect 1: *"Health is reduced by 100. Not affected by
+      // effects that modify damage taken (does not count as 'damage')."*
+      //
+      // A stat write, never the pipeline: routing it through `I.damage` would
+      // subject it to Def Up, Dmg Cut, Magic Resistance and the whole of Ch.
+      // 13, and would raise `fgt.damageTaken` for every on-damage rider in the
+      // game. It still reaches zero and `resolveDefeat` still notices, which
+      // is the one thing "not damage" must NOT mean.
+      if (action.key === "HealthLoss") {
+        const amount = Math.abs(action.amount ?? 0);
+        if (amount > 0) out.push(I.statDelta(unit.id, "health.value", -amount));
+        continue;
+      }
+
       if (action.key === "Damage") {
         const rolled = action.roll?.formula
           ? (await new Roll(action.roll.formula).evaluate()).total * (action.roll.factor ?? 1)
@@ -495,10 +611,29 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // ability phase's `applyEffects` uses): Poison's own duration is its
       // stage clock, not this rider's.
       if (action.key === "ApplyEffect") {
+        // *"Has a 50% chance of being inflicted with Poison."* A field's own
+        // probability, rolled here rather than left to the effect's
+        // `baseChance` -- Poison's is 100, and the number that varies is the
+        // FIELD's, which under Doomsday Come becomes 75.
+        if (typeof action.chance === "number") {
+          const roll = await new Roll("1d100").evaluate();
+          if (!chance(roll.total, action.chance)) continue;
+        }
+
+        // *"Charm for 1◈ Turns."* A duration stated by the rider rather than
+        // by the effect: Sikera Ušum's Poison has none (its clock is its own
+        // stage counter) and Contagion's Charm has one, so `expiry: null` can
+        // no longer be assumed.
+        const ticks = action.duration
+          ? resolveTicks(parseTick(String(action.duration)), {
+            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          })
+          : null;
+
         out.push(I.applyEffect(unit.id, {
           defId: action.effect?.id ?? action.effect?.defId,
           magnitude: action.effect?.magnitude ?? 0,
-          expiry: null,
+          expiry: ticks === null ? null : (game.combat?.system?.globalTurn ?? 0) + ticks,
           sourceUnitId: field.ownerId,
         }, field.ownerId));
       }
@@ -674,9 +809,35 @@ export async function repaintField(fieldId, panels) {
   const verdict = legalRepaint(field, panels, owner?.panel ?? null);
   if (!verdict.ok) return verdict;
 
+  const drawn = await redraw(field, panels);
+  if (!drawn.ok) return drawn;
+
+  // "Does not count as Moving a Unit and is not an Attack" -- so this writes
+  // the repaint flag and nothing else. Not `moved`, not `attacked`, not
+  // `acted`.
+  if (owner) {
+    await applyWorldIntents([I.markTurn(owner.id, { reshapedField: true })], "field:repaint");
+  }
+  return { ok: true };
+}
+
+/**
+ * Put a field's Region where its panels now say it is, and fire `contact` for
+ * whoever that newly covers.
+ *
+ * Shared by the player's own reshape ({@link repaintField}) and the automatic
+ * geometry sync ({@link syncDerivedFields}). Neither the leash check nor the
+ * once-per-Turn flag lives here: those belong to the reshape, not to the
+ * redraw.
+ *
+ * @param {object} field the field as the board projects it
+ * @param {Array<{i: number, j: number}>} panels
+ * @returns {Promise<{ok: boolean, reason?: string}>}
+ */
+async function redraw(field, panels) {
   const region = canvas?.scene?.regions?.get(field.regionId);
   const behavior = region?.behaviors?.find(
-    (b) => b.type === "npField" && b.system?.fieldId === fieldId,
+    (b) => b.type === "npField" && b.system?.fieldId === field.id,
   );
   if (!region || !behavior) return { ok: false, reason: "noRegion" };
 
@@ -698,18 +859,46 @@ export async function repaintField(fieldId, panels) {
 
   if (caught.length > 0) {
     const intents = await runFieldEvents("contact", {
-      unitIds: caught, fieldIds: [fieldId], assumeInside: true,
+      unitIds: caught, fieldIds: [field.id], assumeInside: true,
     });
     if (intents.length > 0) await applyWorldIntents(intents, "field:contact");
   }
-
-  // "Does not count as Moving a Unit and is not an Attack" -- so this writes
-  // the repaint flag and nothing else. Not `moved`, not `attacked`, not
-  // `acted`.
-  if (owner) {
-    await applyWorldIntents([I.markTurn(owner.id, { reshapedField: true })], "field:repaint");
-  }
   return { ok: true };
+}
+
+/**
+ * Redraw every field whose drawn shape no longer matches its computed one.
+ *
+ * **Movement is not what this is for.** A `followsUnit` field is attached to
+ * its anchor's token (`attachment.token`, see {@link createField}) and Foundry
+ * translates the stored offsets itself, so after a move the drawn shape and
+ * `panelsOf` already agree and every field here compares equal.
+ *
+ * What the core cannot do is change a shape's SIZE, and Contagion changes its
+ * own twice: *"increases the Contagion area ... from 5x5 to 9x9 for 1◈ Turns"*
+ * on an Active, and *"when Doomsday Come is Active, Contagion constantly
+ * affects all enemy Units within the NP area instead"* while another field
+ * stands. Neither involves anybody moving, so neither would ever be redrawn.
+ *
+ * Only computed shapes are touched. A `freeform` field stores what the player
+ * painted and `panelsOf` returns exactly that, so it compares equal and is
+ * never redrawn — the painter stays the only thing that reshapes it.
+ *
+ * @returns {Promise<void>}
+ */
+export async function syncDerivedFields() {
+  if (!game.users?.activeGM?.isSelf) return;
+  if (!canvas?.scene) return;
+
+  for (const field of currentBoard().fields ?? []) {
+    const live = panelsOf(field, currentBoard());
+    if (live.length === 0) continue;
+    const drawn = field.panels ?? [];
+    const same = live.length === drawn.length
+      && live.every((p) => drawn.some((q) => q.i === p.i && q.j === p.j));
+    if (same) continue;
+    await redraw(field, live);
+  }
 }
 
 /**

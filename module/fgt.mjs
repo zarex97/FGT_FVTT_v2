@@ -54,6 +54,7 @@ import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-laye
 import { FGTToken as FGTTokenPlaceable } from "./apps/canvas/token.mjs";
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
+import { ensurePassiveFields, syncDerivedFields } from "./engine/fields.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
 import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
@@ -205,6 +206,21 @@ Hooks.once("ready", () => {
   // A targeting area is discarded in a `finally`, so the only way one survives
   // is a client that stopped existing mid-decision. Sweep them once, here.
   sweepTransientRegions();
+  // Ch. 43: a PASSIVE bounded field has no cast to open it. Pale Rider's
+  // Contagion is the area around him, full stop — so it is reconciled with the
+  // board here and at every Turn start rather than waiting for an activation
+  // that never comes. Idempotent and GM-gated internally.
+  ensurePassiveFields();
+  // A field's SIZE can change without anybody moving: Contagion's Active takes
+  // it from 5×5 to 9×9 by applying a marker, and Doomsday Come opening takes it
+  // over entirely. Movement needs no hook — a `followsUnit` field is attached
+  // to its anchor's token and Foundry translates it — but an effect does.
+  for (const hook of ["createActiveEffect", "deleteActiveEffect"]) {
+    Hooks.on(hook, (effect) => {
+      if (effect.parent?.documentName !== "Actor") return;
+      syncDerivedFields();
+    });
+  }
   // §37.6's summon, reachable from the sidebar and the compendium. GM only,
   // and it intercepts a bare compendium drop -- which would otherwise produce a
   // Servant with the template's numbers instead of its own rolled ones.

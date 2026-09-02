@@ -22,6 +22,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 
 /**
  * Every option describing this attacker, this defender and this attack.
@@ -212,6 +213,21 @@ function add(options, side, unit) {
   // EMIYA's Circuits turn on -- had no way to be written.
   for (const f of unit.fields ?? []) options.add(`${side}:inField:${f}`);
 
+  // How close this unit is standing to the MASTER of whoever owns the field it
+  // is in. Contagion under Doomsday: *"if the enemy Unit is within a 3 panel
+  // area of Pale Rider's Master, Health is reduced by 150 instead of 100"* --
+  // a distance to a third party neither side of the clause is, which is why
+  // `annotateFields` stamps `ownerMasterPanel` rather than this reaching for
+  // the board.
+  //
+  // A LADDER, like `attack:range:gte`: a unit 2 panels away is also "within 3".
+  // Capped at 6 because a bounded field's own leash is shorter than that and an
+  // unbounded loop over board size would emit noise.
+  if (unit.panel && unit.ownerMasterPanel) {
+    const d = chebyshev(unit.panel, unit.ownerMasterPanel);
+    for (let n = Math.max(1, d); n <= 6; n++) options.add(`${side}:withinOfOwnerMaster:${n}`);
+  }
+
   // Which PLATFORM the unit is aboard (Ch. 20) -- distinct from a bounded
   // field. `annotatePlatforms` sets `u.platformContentId` to the platform's
   // STABLE content id (never its random Foundry document id, which content
@@ -318,6 +334,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):free$/,
   /^(self|target):masterTier:(high|low|rankless)$/,
   /^(self|target):inField:[A-Za-z][\w-]*$/,
+  /^(self|target):withinOfOwnerMaster:[1-6]$/,
   /^(self|target):onPlatform:[A-Za-z][\w-]*$/,
   /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,
   /^target:paramVsSelf:[A-Za-z]+:(gt|eq|lt)$/,

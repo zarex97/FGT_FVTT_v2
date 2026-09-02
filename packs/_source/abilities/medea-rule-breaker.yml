@@ -8,7 +8,13 @@ id: medea-rule-breaker
 name: "σπάσιμο κανόνα (Rule Breaker): Destroyer of All Talismans"
 rank: "C+"
 isNP: true
-npType: antiUnit
+# `npTags`, not `npType`. Authored as the latter it matched no schema key, was
+# dropped on load, and read by nothing anywhere in the system -- so the one
+# Noble Phantasm in the corpus written this way had NO SCALE AT ALL. It matters
+# now: Ch. 43 §43.8's vulnerabilities and Doomsday Come's `piercedBy` both
+# compare scale through `meetsTagThreshold(npTags, ...)`, and an NP with an
+# empty tag list clears no threshold and triggers no vulnerability.
+npTags: [antiUnit]
 cooldown: "5◈+⅓◈"
 timing: { window: ownTurn }
 # Stated: "Uses Base Attack (STR)" -- unusual for a Caster, and the reason the

@@ -99,6 +99,12 @@ export class NPFieldBehavior extends Base {
       // deactivated at any time … during her Turn or at the start or end of
       // any Turn or Round."
       deactivation: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // A field that is neither cast nor ended. Pale Rider's Contagion is the
+      // first: *"(Passive) The 2 panel area around Pale Rider IS the Contagion
+      // area"* -- it exists because he does, has no activation, no duration
+      // and no cooldown, and the only thing that closes it is his leaving the
+      // board. `engine/fields.mjs#ensurePassiveFields` opens and closes them.
+      passive: new fields.BooleanField({ initial: false }),
       // A FREEFORM field stores the panels it was drawn as: there is no shape
       // spec to recompute them from, which is the whole difference between it
       // and `fixedArea`.

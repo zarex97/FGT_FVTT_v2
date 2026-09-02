@@ -61,6 +61,12 @@ the L2 purity boundary and makes triggered effects testable.
 | `fgt.turnEnd` | End of every turn, for the active player's units | `{combatantId}` | Scheduler step 1 |
 | `fgt.actedTurnEnd` | End of every turn, for **every unit that Acted**, any faction | `{actedUnitIds}` | Scheduler step 2 |
 | `fgt.unitTurnEnd` | End of the **owner's** turn only | `{unitId}` | With step 1 |
+
+> **Dispatched (Ch. 45).** Listed here since this reference was written and raised by nothing.
+> A bounded field's own `unitTurnEnd` interior event is what needed it — Pale Rider's Contagion
+> is *"at the end of Pale Rider's Turn: affects all enemy Units within the Contagion area"* —
+> and it is scoped to the fields whose owner belongs to the faction whose Turn just ended.
+> Unscoped, an area would charge its toll on every faction's Turn.
 | `fgt.roundStart` | Start of every round | `{round, phase}` | After day/night flip |
 | `fgt.roundEnd` | End of every round | `{round}` | Before the boundary sequence |
 | `fgt.effectExpired` | An effect's duration ran out | `{unitId, effectId, defId}` | Scheduler step 5, **after** step 4's periodic ticks |

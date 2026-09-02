@@ -147,6 +147,46 @@ fourth completes a legal rectangle. The marks are objects on the board that **on
 destroy**, and that are **only visible within 3 panels**. So the counter-play is a Master
 sortie into fog.
 
+### A geometry may read the board
+
+Pale Rider's Contagion states two rewrites of its own area in a single paragraph, and neither
+is a new field: it is one passive area measured differently while something else is true.
+
+```yaml
+geometry:
+  kind: followsUnit
+  shape: { kind: square, size: 5 }
+  overrides:
+    - { whileFieldOpen: pale-rider-doomsday-come, sameAs: pale-rider-doomsday-come }
+    - { whileOwnerHas: contagionExpanded, shape: { kind: square, size: 9 } }
+```
+
+`whileOwnerHas` reads an effect off the owner; `whileFieldOpen` / `sameAs` borrows another open
+field's panels. Both are pure — `panelsOf` already takes the board — and both are tested in
+**authored order, first match wins**, because *"instead of its usual Range"* is a precedence
+claim and the file is where precedence belongs. An override stating neither condition never
+applies, so a bare `{shape}` cannot shadow the entries after it.
+
+### The drawn Region and the computed one
+
+A field's membership is computed: `panelsOf` reads the anchor's current panel every time it is
+asked, so the **rules** have always followed a `followsUnit` anchor correctly. What the player
+can *see* is a different object — a Foundry Region, drawn once at cast time — and it did not
+follow anything.
+
+Foundry v14 answers the movement half natively. A Region carries `attachment.token`, and the
+core translates its stored offsets as that token moves. So a `followsUnit` field is created
+attached to its anchor's token — the **Master's** token for Doomsday Come, which is what
+`unitRef` already names — and the drawn area and the computed one agree with no hook, no write,
+and no dependence on which movement paths the system manages to observe.
+
+What the core cannot do is resize a shape, and Contagion resizes itself twice without anybody
+moving: 5×5 to 9×9 on its Active, and to Doomsday's whole area while that field stands.
+`engine/fields.mjs#syncDerivedFields` redraws a field whose computed panels no longer match its
+drawn ones, and runs on effect changes and at every Turn start. A `freeform` field stores what
+the player painted, so its computed panels *are* its drawn ones and it is never touched — the
+painter stays the only thing that reshapes it.
+
 ---
 
 ## 43.4 Axis 2 — Membership: entry and exit
@@ -341,6 +381,49 @@ The recurring **"normal Human"** tier is worth noting: three fields treat them a
 kill. `normalHuman` is therefore a real unit classification, distinct from the `Human` attribute
 — Masters have `Human` but are *not* normal Humans. **DECISION.** `normalHuman` is a derived
 predicate: `attribute:human && kind:civilian`. Masters and Demi-Servants are excluded.
+
+#### `HealthLoss` — a deduction that is not damage
+
+Contagion: *"Health is reduced by 100. Not affected by effects that modify damage taken (does
+not count as 'damage')."*
+
+`Damage` is the pipeline. Routing this through it would subject the 100 to Def Up, Dmg Cut,
+Magic Resistance and all thirteen stages, and would raise `fgt.damageTaken` for every on-damage
+rider in the game. `HealthLoss` is a plain `statDelta` on `health.value` instead. It still
+reaches zero and `resolveDefeat` still notices — which is the one thing *"not damage"* must not
+be read to mean. Measured live: 100 lost against a standing Def Up of 50%.
+
+#### `chance` and `duration` on an applied effect
+
+*"A 50% chance of being inflicted with Poison"*, *"Charm for 1◈ Turns"*. The probability belongs
+to the **field**, not to the effect — Poison's own `baseChance` is 100, and the number that
+varies under Doomsday Come is Contagion's. The duration likewise: Sikera Ušum's Poison has none
+(its clock is its own stage counter) and Contagion's Charm has one, so an applied effect can no
+longer assume `expiry: null`.
+
+#### `branches` — the same event, different numbers per unit
+
+Contagion under Doomsday Come rewrites three of its own numbers at once, and one of them depends
+on where the victim is standing relative to a *third party*: *"the chance of being inflicted with
+Poison is 75% while chance of being inflicted with Charm is 25%; and if the enemy Unit is within
+a 3 panel area of Pale Rider's Master, Health is reduced by 150 instead of 100."*
+
+So an interior event may carry `branches`, selected **per unit** against that unit's own option
+set — first match wins, falling back to the event's base actions. It is the same shape
+`damage.branches`, `targeting.branches`, `cooldown.branches` and a field's own `branches`
+already use; what differs is that the choice is made per victim rather than once per cast.
+
+The distance to the field owner's Master is emitted as `self:withinOfOwnerMaster:<n>`, a ladder
+like `attack:range:gte`. `annotateFields` stamps `ownerMasterPanel` from the field the unit is
+standing in, because only the field knows who that Master is.
+
+#### `unitTurnEnd` — the owner's own Turn
+
+Contagion's first trigger is *"at the end of Pale Rider's Turn: affects all enemy Units within
+the Contagion area"* — every enemy inside, on **his** Turn only. `fgt.unitTurnEnd` has been in
+§E since that reference was written and nothing ever dispatched it. It is dispatched now, scoped
+to the fields whose owner belongs to the faction whose Turn just ended: firing it unscoped would
+charge Contagion on every faction's Turn and triple the toll.
 
 ---
 
@@ -558,6 +641,28 @@ A field is a Foundry **Region** carrying an `npField` behaviour, for the reasons
 terrain: membership is maintained natively, `tokenEnter`/`tokenExit` fire natively, and the shape
 survives a reload without the engine having to remember anything. `engine/fields.mjs` is the write
 half: `createField`, `endField`, `expireFields` and `runFieldEvents`.
+
+### A field that is never cast
+
+Pale Rider's Contagion has no activation at all: *"(Passive) The 2 panel area around Pale Rider
+**is** the Contagion area."* There is nothing for `createField` to hang off, no duration for
+`expireFields` to reach, and no cooldown.
+
+`field.passive: true` marks one. `ensurePassiveFields()` reconciles them with the board — opening
+one for every placed owner whose ability declares a passive field and has none open, closing every
+open passive field whose owner has left the board or been defeated. It runs at `ready` and at every
+Turn start, and it is **idempotent by design**: that is what makes it self-healing, so a Servant
+summoned mid-match, a reloaded world or a hand-deleted Region is repaired at the next boundary
+rather than needing a hook of its own.
+
+**A bounded field is not a Noble Phantasm property.** `field` was declared on `NoblePhantasmData`
+alone, because every field in the corpus up to this point belonged to one — Chaos Labyrinthos,
+Unlimited Blade Works, Sikera Ušum, The Mist. Nothing in this chapter makes that a rule, and
+Contagion is a **Skill**. Authored on an ability, its whole six-axis block was dropped by the
+schema without a word: the Item existed, its `field` read `null`, and `ensurePassiveFields` found
+nothing to open. `AbilityData` declares it too now, and
+`test/unit/item-schema-coverage.test.mjs` fails the build if any authored key is missing from the
+model its document compiles to.
 
 > **And Asterios still did not trap anybody**, because the writer needs *calling*. `createField`
 > is a **phase kind**, and *Chaos Labyrinthos* declared six axes and carried no `createField`

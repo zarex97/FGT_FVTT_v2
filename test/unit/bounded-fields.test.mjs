@@ -12,7 +12,7 @@ import {
   NP_TAG_SCALE, scaleOf, meetsTagThreshold,
   panelsOf, contains, membershipVerdict, escapeAttempt,
   isolationBlocks, interiorModifiers, extensionFor, vulnerabilityTriggered,
-  annotateFields,
+  annotateFields, selectBranch,
 } from "../../module/rules/bounded-fields.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -466,5 +466,89 @@ describe("annotateFields", () => {
     expect(u.periodicOverrides).toEqual([
       expect.objectContaining({ effectId: "poison", triggers: ["turnEnd", "actedTurnEnd"] }),
     ]);
+  });
+});
+
+/* ── Geometry that reads the board (Ch. 43 §43.3) ─────────────────────────── */
+
+describe("geometry overrides — Contagion", () => {
+  const contagion = (over = {}) => ({
+    id: "pale-rider-contagion", ownerId: "pale", passive: true,
+    geometry: {
+      kind: "followsUnit",
+      shape: { kind: "square", size: 5 },
+      overrides: [
+        // Order IS precedence: "when Doomsday Come is Active, Contagion
+        // constantly affects all enemy Units within the NP area INSTEAD of its
+        // usual Range" -- instead of, so it outranks the Active's marker.
+        { whileFieldOpen: "pale-rider-doomsday-come", sameAs: "pale-rider-doomsday-come" },
+        { whileOwnerHas: "contagionExpanded", shape: { kind: "square", size: 9 } },
+      ],
+    },
+    ...over,
+  });
+  const pale = (over = {}) => ({ id: "pale", faction: "a", panel: at(10, 10), effects: [], ...over });
+  const doomsday = {
+    id: "pale-rider-doomsday-come", ownerId: "pale",
+    geometry: { kind: "freeform" }, panels: [at(0, 0), at(0, 1), at(0, 2)],
+  };
+
+  it("is the 5×5 around the owner by default", () => {
+    expect(panelsOf(contagion(), { units: [pale()], fields: [] })).toHaveLength(25);
+  });
+
+  it("becomes 9×9 while the owner carries the marker", () => {
+    const board = { units: [pale({ effects: ["contagionExpanded"] })], fields: [] };
+    expect(panelsOf(contagion(), board)).toHaveLength(81);
+  });
+
+  it("borrows Doomsday's panels while Doomsday is open, marker or not", () => {
+    const board = { units: [pale({ effects: ["contagionExpanded"] })], fields: [doomsday] };
+    expect(panelsOf(contagion(), board)).toEqual(doomsday.panels);
+  });
+
+  it("falls back to its own shape when the named field is not open", () => {
+    expect(panelsOf(contagion(), { units: [pale()], fields: [] })).toHaveLength(25);
+  });
+
+  it("reads an effect INSTANCE as well as a bare id", () => {
+    // `annotateFields` runs on a real board, where `effects` is a list of
+    // defIds -- but a hand-built unit may carry instances.
+    const board = { units: [pale({ effects: [{ defId: "contagionExpanded" }] })], fields: [] };
+    expect(panelsOf(contagion(), board)).toHaveLength(81);
+  });
+});
+
+describe("selectBranch", () => {
+  const spec = {
+    event: "turnEnd",
+    branches: [
+      {
+        predicate: ["self:inField:pale-rider-doomsday-come", "self:withinOfOwnerMaster:3"],
+        onFail: [{ key: "HealthLoss", amount: 150 }],
+      },
+      { predicate: ["self:inField:pale-rider-doomsday-come"], onFail: [{ key: "HealthLoss", amount: 100 }] },
+    ],
+    onFail: [{ key: "HealthLoss", amount: 100 }, { key: "ApplyEffect", effect: { id: "poison" }, chance: 50 }],
+  };
+
+  it("takes the first branch whose predicate holds", () => {
+    const options = new Set(["self:inField:pale-rider-doomsday-come", "self:withinOfOwnerMaster:3"]);
+    expect(selectBranch(spec, options).onFail[0].amount).toBe(150);
+  });
+
+  it("takes a later branch when the earlier one does not hold", () => {
+    const options = new Set(["self:inField:pale-rider-doomsday-come"]);
+    expect(selectBranch(spec, options).onFail[0].amount).toBe(100);
+    expect(selectBranch(spec, options).onFail).toHaveLength(1);
+  });
+
+  it("falls back to the base actions when no branch matches", () => {
+    expect(selectBranch(spec, new Set()).onFail).toBe(spec.onFail);
+  });
+
+  it("returns the spec itself when there are no branches at all", () => {
+    const plain = { event: "contact", onFail: [{ key: "Defeat" }] };
+    expect(selectBranch(plain, new Set())).toBe(plain);
   });
 });
