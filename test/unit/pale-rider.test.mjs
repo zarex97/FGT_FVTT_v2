@@ -83,8 +83,11 @@ describe("the three new effects", () => {
     // "Health is restored by 10% of its maximum value at the end of the Unit's
     // Turn, the end of any Turn the Unit Acts, and at the end of the Round."
     const rules = effect("regen").rules;
-    const events = rules.flatMap((r) => r.events ?? [r.event]);
-    expect(events).toEqual(expect.arrayContaining(["turnEnd", "actedTurnEnd", "roundEnd"]));
+    // `event`, singular, holding an array -- which is what `normalizeHandler`
+    // reads. Authored as `events:` it listened for `undefined` and healed
+    // nobody; this assertion is the reason that was caught.
+    const events = rules.flatMap((r) => (Array.isArray(r.event) ? r.event : [r.event]));
+    expect(events).toEqual(["turnEnd", "actedTurnEnd", "roundEnd"]);
     expect(rules[0].then[0]).toMatchObject({ key: "Heal", percentOfMax: 10 });
   });
 

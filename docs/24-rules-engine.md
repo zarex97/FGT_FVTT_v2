@@ -244,6 +244,32 @@ matched against the bearer's own abilities to recover the `category` (the record
 Measured live: no NP used, the Master loses 20; *Brahmastra* used, the charge is suppressed
 entirely; an ordinary Skill used, the 20 still lands.
 
+**A condition about the bearer, not the subject.** `requiresDamagedThisPhase` is the second of
+these, and the shape generalises: the boundary reports what happened and the handler asks
+whether it happened to *its own owner*. Charm is *"removed at the end of the Combat Phase if
+the unit takes damage from an attack"* — `fireCombatPhaseEnd` reports the ids the phase actually
+damaged, read off the sibling messages' results, so an Evade, a Block that absorbed all of it,
+or simply being the attacker leaves the Charm standing. A boundary that measured no damage
+damages nobody, so the clause cannot fire on an event that never looked.
+
+**The event field is `event`, and it may hold an array.**
+
+```yaml
+- key: OnEvent
+  event: [turnEnd, actedTurnEnd, roundEnd]     # not `events:`
+```
+
+`normalizeHandler` reads `el.event` and spreads it when it is a list. Written as `events:` — the
+plural reads naturally, and Regen was the first multi-event handler anyone authored — the
+element compiles, validates, loads, and subscribes to `undefined`: it listens for nothing, for
+ever, in silence. The content validator now refuses an `OnEvent` that names no event, and says
+so by name when it finds an `events:` beside it.
+
+**An effect's handler carries that effect's expiry.** Ch. 11 §11.9's *"does not fire on the turn
+it ends"* held for `periodic:` effects and for nothing else, because the effect pseudo-ability
+passed `defId` and `uses` and not `expiry`. It travels now, and `fireEvent` skips a handler on
+the tick its effect runs out. An ability's own handler carries `null`: an ability has no clock.
+
 **A `table:` inside an action.** `StatDelta` resolves `table`, `floorTable` and
 `whenValue.lteTable` / `whenValue.gteTable` against the owning ability's rank, because rank is in
 scope at collection time and gone by dispatch. Mad Enhancement clause 1 is one number said three

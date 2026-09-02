@@ -605,6 +605,25 @@ Note `Sap/Bleed` and `Drowning` fire on **both** `unitTurnEnd` and `actedTurnEnd
 collapse to one firing when the unit acted on its own turn (dedup by `(instanceId, globalTurn)`
 — Ch. 07 §7.4).
 
+### `skipFinalTurn` applies to handlers too
+
+*"Does not fire on the turn it ends"* is stated by `Regen`, `NP Regen` and several others, and
+until Pale Rider it held for exactly one of the two ways an effect can act on a boundary:
+
+| Shape | Where it runs | Final turn skipped |
+|---|---|---|
+| `periodic:` on the definition | the scheduler's periodic pass | **yes**, since it was written |
+| `OnEvent` in the definition's `rules` | `fireEvent` | **no** — nothing carried the expiry |
+
+An effect's rule elements are collected into a pseudo-ability (`contributionsOf`) that passed
+`defId` and `uses` and *not* the instance's `expiry`, so a handler had no way to know when its
+own effect ran out. Regen is the case that exposed it — its three intervals are a handler, not
+a periodic — and it would have paid out one extra 10% on the way off the unit.
+
+The instance's `expiry` now travels onto every handler it contributes, and `fireEvent` skips a
+handler on the tick its effect expires. An ability's own handler carries `null` and is
+unaffected: an ability has no clock.
+
 `Terror` and `Disorder` are notable because their probability is explicitly **not** modified by
 debuff chance effects: *"The Stun inflicting chance of Terror is not affected by effects that
 affect chance of inflicting and being inflicted with debuffs."* So the inner application skips

@@ -22,13 +22,16 @@ stacking: noneRefresh
 baseChance: 100
 rules:
   - key: OnEvent
-    events: [turnEnd, actedTurnEnd, roundEnd]
+    # `event`, which may be an ARRAY -- `normalizeHandler` reads `el.event`
+    # and spreads it when it is one. Regen is the first multi-event handler in
+    # the corpus, and authored as `events:` it produced a handler listening
+    # for `undefined`: it compiled, loaded, and healed nobody, ever.
+    event: [turnEnd, actedTurnEnd, roundEnd]
     automatic: true
     then:
       - { key: Heal, percentOfMax: 10 }
 notes: |
-  Unmodelled from Appendix A: "does not fire on the turn it ends". No effect in the system
-  distinguishes its last tick from the others -- NP Regen carries the same clause and does not
-  model it either -- so the convention needs machinery of its own rather than a line here.
-  Pale Rider's Guidance of the Netherworld applies Regen for 1◈, where the difference is one
-  tick of 10%.
+  "Does not fire on the turn it ends" (Appendix A, and Ch. 11 §11.9 generally) is enforced by
+  the engine, not by this file: a handler contributed by an effect carries that effect's
+  expiry, and `fireEvent` skips it on the tick it runs out. The rule already held for
+  `periodic:` effects and had never held for handlers, which is the shape Regen uses.

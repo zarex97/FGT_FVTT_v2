@@ -388,7 +388,22 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     // A charge spent each time the handler pays out, for a count-limited
     // effect: Alpi is "for 1◈ Turns, **3 times**".
     consumesUse: el.consumesUse ?? false,
+    // Charm: *"removed at the end of the Combat Phase if the unit takes damage
+    // from an attack."* A condition about the BEARER rather than about the
+    // event's subject, so it is answered in `fireEvent` against the damage the
+    // phase actually did -- the same shape `unlessUsedThisTurn` already uses.
+    // An Evade, a Block that absorbed everything, or being the attacker all
+    // leave the Charm standing.
+    requiresDamagedThisPhase: el.requiresDamagedThisPhase ?? false,
     defId: ability?.id ?? null,
+    // When the EFFECT carrying this handler runs out, for Ch. 11 §11.9: an
+    // effect does not act on the Turn it ends. The periodic pass has enforced
+    // that since it was written (`scheduler.mjs`) and event handlers had no way
+    // to know -- the effect pseudo-ability passed `defId` and `uses` and not
+    // this -- so Regen, whose three intervals are `OnEvent` rather than
+    // `periodic`, would have paid out one extra tick on its way off the unit.
+    // `null` for an ability's own handler, which never expires.
+    expiry: ability?.fromEffect ? (ability.expiry ?? null) : null,
     source,
   };
 }

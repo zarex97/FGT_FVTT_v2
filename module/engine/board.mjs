@@ -84,7 +84,38 @@ export function unitSnapshot(actor, token = null) {
   const doc = token ?? activeToken(actor);
   return snapshotUnit(actor, {
     token: doc, panel: panelOf(doc), tick: currentTick(), round: currentRound(),
+    ownerUserId: ownerUserOf(actor),
   });
+}
+
+/**
+ * The player who owns this actor, or `null` for a GM-run one.
+ *
+ * Resolved here rather than in the projection because it needs the user list,
+ * and `rules/` may not touch `game` (§3.6). Charm is what makes it matter:
+ * `rules/control.mjs#controllerOf` has read `unit.ownerUserId` since the file
+ * was written and **nothing ever projected it**, so every unit answered
+ * `undefined` and the whole control map collapsed to the GM.
+ *
+ * Gamemasters are skipped deliberately. `Actor#ownership` grants a GM `OWNER`
+ * on everything, so "the first owner" would name a Gamemaster for every unit
+ * in the world and a charm could never move control off one.
+ *
+ * The ownership RECORD, not `Actor#isOwner` — the latter answers for whoever
+ * is asking, which would give two players different board snapshots of the
+ * same match.
+ *
+ * @param {object} actor
+ * @returns {string|null}
+ */
+function ownerUserOf(actor) {
+  const OWNER = CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
+  const ownership = actor?.ownership ?? {};
+  for (const user of game?.users ?? []) {
+    if (user.isGM) continue;
+    if ((ownership[user.id] ?? ownership.default ?? 0) >= OWNER) return user.id;
+  }
+  return null;
 }
 
 /**

@@ -369,6 +369,21 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     } else if (el.key === "TableOverride") {
       problems.push(`${path}: ${where} is a TableOverride with no "forceTable"`);
     }
+    // An `OnEvent` has to name an event, and the field is `event` -- which may
+    // hold an array, which is how a handler subscribes to several. Written as
+    // `events:` (the plural reads naturally, and Regen was the corpus's first
+    // multi-event handler) the element compiles, loads, and subscribes to
+    // `undefined`: it listens for nothing, for ever, in silence. Exactly the
+    // failure this validator exists to make loud.
+    if (el.key === "OnEvent") {
+      const named = Array.isArray(el.event) ? el.event.filter(Boolean) : [el.event].filter(Boolean);
+      if (named.length === 0) {
+        problems.push(
+          `${path}: ${where} is an OnEvent with no "event"`
+          + (el.events ? ` — it has "events", which nothing reads; the field is "event" and it may hold an array` : ""),
+        );
+      }
+    }
     for (const option of referencedOptions(el.predicate)) {
       if (!looksLikeRollOption(option)) {
         warnings.push(`${path}: ${where} predicate option "${option}" does not match the expected shape`);

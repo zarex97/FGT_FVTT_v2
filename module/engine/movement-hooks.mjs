@@ -90,7 +90,13 @@ function onPreMove(document, movement, operation) {
   // the one it produced most.
   if (!game.user.isGM) {
     const acting = combat.actingFactionId ?? null;
-    if (unit.factionId && acting && unit.factionId !== acting) {
+    // The faction whose Turn this unit acts on, which is its own unless a
+    // Charm has moved it: §25.7's *"a charmed unit appears in the charmer's
+    // currentUnits during their turn and is absent from its owner's"*. Its own
+    // `factionId` is untouched, so the token keeps its colour and every
+    // relation still reads it as the enemy it was.
+    const side = unit.actingFactionId ?? unit.factionId;
+    if (side && acting && side !== acting) {
       ui.notifications.warn(game.i18n.format("FGT.Movement.NotYourTurn", {
         name: actor.name,
         faction: combat.combatant?.name ?? acting,

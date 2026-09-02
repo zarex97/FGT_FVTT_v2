@@ -26,6 +26,15 @@
 > Riding's double move reads the **grant** rather than a name-match on the skill, so anything
 > that grants `doubleMove` confers it.
 >
+> **The budget is keyed on the ACTING faction, not the owning one.** A charmed unit acts on its
+> charmer's Turn (Ch. 25 §25.7), so it spends the charmer's slots: its owner's pool is not even
+> reset while somebody else is taking their Turn, and charging it would deduct from a budget
+> nobody is using while leaving the charmer's untouched. `engine/budget.mjs` reads
+> `unit.actingFactionId`, annotated board-wide by `rules/control.mjs#annotateControl`; the same
+> field is what the movement gate compares against `combat.actingFactionId`. The unit's own
+> `factionId` is untouched throughout, so the token keeps its colour and every relation still
+> reads it as the enemy it was.
+>
 > Still open: Undo (§18.7) and Confuse's random selector.
 
 A player commands up to 14 units but may only act with a handful each turn. The budget is the

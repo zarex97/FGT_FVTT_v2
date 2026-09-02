@@ -24,9 +24,26 @@ stacking: noneRefresh
 baseChance: 100
 severity: normal
 defaultDuration: "1◈"
-rules: []
-notes: |
-  Unmodelled from Appendix A §A: "removed at the end of the Combat Phase if the Unit takes
-  damage from an Attack" (no effect in the corpus is cleared by damage, so there is no
-  machinery to hang it on), and the mutual immunity with Berserk and Confuse (neither effect
-  is authored; the exclusion has nothing to reference). Pale Rider's Contagion needs neither.
+rules:
+  # "Removed at the end of the Combat Phase if the Unit takes damage from an
+  # Attack." The PHASE, not the Process -- a Counter is part of the same
+  # exchange (Ch. 12 §12.1), so a Charm broken by the opening attack should not
+  # also be broken a second time by the counter it provoked.
+  #
+  # `requiresDamagedThisPhase` is answered against the damage the phase
+  # actually did, so an Evade, a Block that absorbed all of it, or simply being
+  # the attacker all leave the Charm standing.
+  - key: OnEvent
+    event: combatPhaseEnd
+    automatic: true
+    requiresDamagedThisPhase: true
+    then:
+      - { key: RemoveEffect, effect: charm }
+
+  # "Immune to Confuse and Berserk while charmed." Appendix A states the same
+  # exclusion from all three sides; this is Charm's. Neither of the other two
+  # is authored yet (Ch. 18 §18.5 lists Confuse's random selector as open), so
+  # this is inert today and correct the moment either exists -- which is the
+  # right way round: the alternative is remembering to come back here.
+  - key: Immunity
+    effects: [berserk, confuse]

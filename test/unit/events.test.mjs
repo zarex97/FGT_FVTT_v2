@@ -211,3 +211,70 @@ describe("actions in one handler see each other", () => {
     expect(out.filter((i) => i.t !== "log")).toEqual([]);
   });
 });
+
+/* ========================================================================== */
+/*  Ch. 11 §11.9 — an effect does not act on the Turn it ends                  */
+/* ========================================================================== */
+
+describe("an effect-borne handler on the turn its effect expires", () => {
+  /** A handler as an EFFECT contributes it: the instance carries the expiry. */
+  const borne = (expiry) => collectContributions([{
+    id: "inst", name: "Regen", defId: "regen", fromEffect: true, expiry, active: true,
+    rules: [{ key: "OnEvent", event: ["turnEnd"], automatic: true, then: [{ key: "Heal", amount: 100 }] }],
+  }]).eventHandlers;
+
+  it("does not fire on the tick the effect expires", () => {
+    // The rule already held for `periodic:` effects (`scheduler.mjs`'s
+    // periodic pass has skipped an expiring instance since it was written) and
+    // not for event handlers, which is the shape Regen uses -- so Regen would
+    // have paid out one extra 10% on its way off the unit.
+    const intents = fireEvent("turnEnd", [{ id: "u1", eventHandlers: borne(3) }], { tick: 3 });
+    expect(intents.filter((i) => i.t === "heal")).toEqual([]);
+  });
+
+  it("fires normally while the effect is still standing", () => {
+    const intents = fireEvent("turnEnd", [{ id: "u1", eventHandlers: borne(4) }], { tick: 3 });
+    expect(intents.filter((i) => i.t === "heal")).toHaveLength(1);
+  });
+
+  it("leaves an ABILITY's handler alone, which has no expiry at all", () => {
+    const handlers = handlersFor([
+      { key: "OnEvent", event: "turnEnd", then: [{ key: "Heal", amount: 100 }] },
+    ]);
+    const intents = fireEvent("turnEnd", [{ id: "u1", eventHandlers: handlers }], { tick: 3 });
+    expect(intents.filter((i) => i.t === "heal")).toHaveLength(1);
+  });
+});
+
+/* ========================================================================== */
+/*  Charm — removed at the end of a Combat Phase in which it took damage       */
+/* ========================================================================== */
+
+describe("requiresDamagedThisPhase", () => {
+  const handlers = handlersFor([{
+    key: "OnEvent", event: "combatPhaseEnd", requiresDamagedThisPhase: true,
+    then: [{ key: "RemoveEffect", effect: "charm" }],
+  }]);
+
+  it("fires for a unit the phase damaged", () => {
+    const intents = fireEvent("combatPhaseEnd", [{ id: "u1", eventHandlers: handlers }],
+      { tick: 3, damagedIds: ["u1"] });
+    expect(intents.filter((i) => i.t === "removeEffect")).toEqual([
+      expect.objectContaining({ unitId: "u1", effectId: "charm" }),
+    ]);
+  });
+
+  it("does not fire for a unit that was in the phase and took nothing", () => {
+    // "Removed at the end of the Combat Phase IF the unit takes damage from an
+    // attack" -- an Evade, a Block that absorbed it all, or simply being the
+    // attacker all leave the Charm standing.
+    const intents = fireEvent("combatPhaseEnd", [{ id: "u1", eventHandlers: handlers }],
+      { tick: 3, damagedIds: ["someone-else"] });
+    expect(intents.filter((i) => i.t === "removeEffect")).toEqual([]);
+  });
+
+  it("does not fire when the caller tracked no damage at all", () => {
+    const intents = fireEvent("combatPhaseEnd", [{ id: "u1", eventHandlers: handlers }], { tick: 3 });
+    expect(intents.filter((i) => i.t === "removeEffect")).toEqual([]);
+  });
+});
