@@ -269,6 +269,10 @@ const SETUP_PATHS = Object.freeze({
   maxAgility: "system.agility.max",
   maxLuck: "system.luck.max",
   baseAttackMag: "system.baseAttack.mag",
+  // The rank the coin decided, KEPT. `setup-rolls.mjs` used to fold it into
+  // Base Attack (MAG) and throw it away, leaving a Master who flipped Heads
+  // Rankless for ZON, Sustainability, the parameter grant and Kill Yourself.
+  rank: "system.rank",
   commandSpells: "system.commandSpells.value",
 });
 

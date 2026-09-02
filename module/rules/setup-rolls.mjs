@@ -114,6 +114,10 @@ export function masterSetupPlan(sheet, { mode = "essences" } = {}) {
       { id: "maxHealth", label: "Max Health", base: 250, roll: { formula: "2d100", signCoin: true } },
       { id: "maxAgility", label: "Max Agility", base: 4, roll: { formula: "1d8" } },
       { id: "maxLuck", label: "Max Luck", base: 8, roll: { formula: "1d12" } },
+      // Ch. 14 §14.9: "Heads=High Rank, Tails=Low Rank." Emitted BEFORE the
+      // Base Attack line, which derives from it -- `resolveSetupPlan` walks
+      // the lines in order.
+      ...(mode === "coinFlip" ? [rankLine()] : []),
       baseAttackLine(sheet, mode),
       { id: "commandSpells", label: "Command Spells", base: 3, roll: null },
     ],
@@ -135,6 +139,24 @@ export function masterSetupPlan(sheet, { mode = "essences" } = {}) {
  * @param {string} mode
  * @returns {object}
  */
+/**
+ * The rank a coin decides.
+ *
+ * *"You can still determine High Rank or Low Rank Masters by Flipping a Coin
+ * for each Master; Heads=High Rank, Tails=Low Rank"* (Ch. 14 §14.9). `A` and
+ * `C` stand for the two tiers -- the rulebook names the tier, not the letter,
+ * and any A/B or C/D would serve.
+ *
+ * `map` carrying strings is already supported: `resolveSetupPlan` takes a
+ * mapped string as the value outright rather than adding it to `base`, which
+ * is what the summon-variant line needed first.
+ *
+ * @returns {object}
+ */
+function rankLine() {
+  return { id: "rank", label: "Rank", base: "", roll: { formula: "1d2", map: ["A", "C"] } };
+}
+
 function baseAttackLine(sheet, mode) {
   const label = "Base Attack (MAG)";
 
@@ -142,10 +164,16 @@ function baseAttackLine(sheet, mode) {
     return { id: "baseAttackMag", label, base: 100, roll: null, note: "no ranks in play" };
   }
   if (mode === "coinFlip") {
+    // DERIVED from the `rank` line, not rolled again. This used to carry its
+    // own `1d2` mapped straight onto [125, 100] with the note that "the rank
+    // exists here only to select it" -- but the rank also decides ZON,
+    // Sustainability, the parameter grant and the Kill Yourself price, so a
+    // table that flipped Heads got a Master with 125 who was Rankless for
+    // every other rule in the game. One coin, one answer, and the two can no
+    // longer disagree.
     return {
-      id: "baseAttackMag", label, base: 0,
-      roll: { formula: "1d2", map: [125, 100] },
-      note: "heads = High Rank",
+      id: "baseAttackMag", label, base: 0, roll: null,
+      derivedFrom: "rank", map: { A: 125, B: 125, C: 100, D: 100 }, fallback: 100,
     };
   }
 
@@ -163,12 +191,31 @@ function baseAttackLine(sheet, mode) {
  * @returns {Array<{id: string, label: string, value: number, base: number, rolled: number|null}>}
  */
 export function resolveSetupPlan(plan, rolls, signs = {}) {
+  /** Values of lines already resolved, for `derivedFrom` to read. @type {Record<string, unknown>} */
+  const resolved = {};
+
   return (plan?.lines ?? []).map((line) => {
-    if (!line.roll) return { ...line, rolled: null, value: line.base };
+    // A line whose value comes from ANOTHER line rather than from a die. The
+    // coin-flip Master's Base Attack (MAG) follows the rank the coin picked,
+    // so the two cannot disagree. Depends on `lines` order, which is why the
+    // rank is emitted first.
+    if (line.derivedFrom) {
+      const from = resolved[line.derivedFrom];
+      const value = line.map?.[from] ?? line.fallback ?? line.base;
+      resolved[line.id] = value;
+      return { ...line, rolled: null, value, derivedValue: from ?? null };
+    }
+    if (!line.roll) {
+      resolved[line.id] = line.base;
+      return { ...line, rolled: null, value: line.base };
+    }
 
     const raw = rolls?.[line.id];
     // A line nobody rolled resolves to its base rather than to NaN, and says so.
-    if (typeof raw !== "number") return { ...line, rolled: null, value: line.base, unrolled: true };
+    if (typeof raw !== "number") {
+      resolved[line.id] = line.base;
+      return { ...line, rolled: null, value: line.base, unrolled: true };
+    }
 
     const mapped = line.roll.map ? line.roll.map[raw - 1] ?? raw : raw;
     const signed = line.roll.signCoin && signs[line.id] ? -mapped : mapped;
@@ -181,6 +228,7 @@ export function resolveSetupPlan(plan, rolls, signs = {}) {
     // string-concatenate rather than add, so a mapped string is the value
     // outright; every other line's `map` entries are numbers, unaffected.
     const value = typeof signed === "string" ? signed : line.base + signed;
+    resolved[line.id] = value;
     return { ...line, rolled: mapped, applied: signed, value };
   });
 }

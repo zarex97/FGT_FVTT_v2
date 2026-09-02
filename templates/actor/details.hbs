@@ -18,6 +18,19 @@
         <span>{{localize "FGT.Sheet.ClassContainer"}}</span>
         <input type="text" name="system.classContainer" value="{{system.classContainer}}">
       </label>
+      {{#if details.isMaster}}
+      <label class="fgt-field">
+        <span>{{localize "FGT.Sheet.MasterRank"}}</span>
+        {{!-- A–D or blank for Rankless. The tier is spelled out beside it
+              because "C" does not say "Low Rank" on its own. --}}
+        <select name="system.rank">
+          {{#each details.rankChoices as |choice|}}
+          <option value="{{choice.value}}" {{#if choice.selected}}selected{{/if}}>{{choice.label}}</option>
+          {{/each}}
+        </select>
+        <span class="fgt-field__hint">{{localize details.masterTierLabel}}</span>
+      </label>
+      {{/if}}
       <label class="fgt-field">
         <span>{{localize "FGT.Sheet.ConcealedIdentity"}}</span>
         {{!-- Derived from the container when blank, so the common case needs
