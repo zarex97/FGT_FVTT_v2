@@ -536,6 +536,56 @@ identity is therefore also what puts its real face on the board. Verified live: 
 already-placed one to the standard image; setting `identityRevealed` moved both to the true
 portrait; unsetting it moved both back.
 
+### A token showed neither the right picture nor the right size — **repaired**
+
+Reported from play: "changing the standard or true image of a token that is already placed does
+not update it on the board", and "why is the Hanging Gardens a 1-cell token in the compendium?"
+Two independent defects, both confirmed live in `fgt2026` before any code changed.
+
+**The image.** The sync above ran under `if (actor.type !== "servant") return`. Measured on the
+live board: setting a Platform's `img` and `defaultImage` left its placed token on
+`icons/svg/mystery-man.svg` while the sheet showed its own art, and a Master's did the same. The
+guard was wrong in scope, not in principle — only a Servant has an identity to **conceal**, but
+every unit type has a portrait that ought to reach the board. `publicImageOf` now applies the
+concealment branch to an unrevealed Servant and returns `img` for everything else, mirroring
+`context.mjs`'s `portraitImg` minus its viewer-dependent half. Two further faults in the same
+fifteen lines came out of the re-measurement, both invisible to inspection:
+
+1. `Actor#getActiveTokens()` passes `scenes: canvas.scene`, so the sweep covered **only the open
+   scene** — under a comment that claimed the opposite.
+2. `getDependentTokens()`, its replacement, reads an `IterableWeakSet` that a **deleted** token
+   stays in until collection. Updating a ghost throws, and one sequential loop meant a single
+   ghost aborted the pass, leaving the real token behind it unchanged. This is precisely the
+   guard Foundry's own `getActiveTokens` carries, and dropping it re-broke the case the change
+   was meant to fix. `engine/token-sync.mjs#placedTokensOf` now owns both corrections for the
+   two callers that need them.
+
+**The size.** A platform declares `system.footprint: {w, h}`; a Foundry token's size lives in
+`TokenDocument#width`/`#height`; nothing joined them, so `prototypeToken` compiled at the 1×1
+default. Worse than cosmetic: `rules/snapshot.mjs#gridFootprint` reads occupancy off the
+**token**, while `rules/platforms.mjs#isUnderPlatform` reads `system.footprint` — a 1×1 token for
+a 9×9 platform makes the board see a one-panel obstacle sheltering 81 panels. `engine/hgob.mjs`
+alone escaped, sizing its token by hand at activation, which is why an HGoB *raised in play* was
+9×9 and one *dragged from the compendium* was not. Fixed at build time
+(`tools/lib/content.mjs` compiles the prototype size from the footprint) and at runtime
+(`engine/token-footprint.mjs`, a `preCreateToken` guard for prototypes that predate the fix plus
+an `updateActor` sync). See Ch. 20 §20.3 and Ch. 04 §4.2.
+
+The runtime resize needed `{fgtForced: true}`: `width` and `height` are Foundry v14
+**`MOVEMENT_FIELDS`**, so a resize routes through the movement pipeline and our own
+`onPreMove` refused it — arriving at `preUpdateToken` as a bare `{_id}`, with no throw and no
+rejection. **The third silent-failure-by-movement-field in this codebase**, after `level` and
+`elevation` in `scene-levels.mjs`. The pattern is now worth stating as a rule: *any* engine-side
+`token.update()` touching `x`, `y`, `elevation`, `depth`, `shape`, `level`, `width` or `height`
+must carry `fgtForced`, or it will do nothing and say nothing.
+
+Verified live in `fgt2026` after a cold reload: a Platform, a Master and a Summon each pushed a
+changed portrait to their placed tokens (the HGoB's token moved from `mystery-man` to
+`assets/grail/HGoB.jpeg`); a Servant still showed `defaultImage` while concealed and swapped to
+`img` on reveal; the compendium entry read `prototypeToken 9×9`; a compendium drop and a drop
+from the *stale* 1×1 world actor both produced a 9×9, 81-panel token; and editing
+`system.footprint` to 5×7 and back moved the prototype **and** the placed token both ways.
+
 ---
 
 ## 45.5 The completion plan

@@ -18,6 +18,35 @@
 > per-viewer render the way a sheet does, so it cannot also exempt the owner without leaking the
 > true portrait to opponents sharing the same canvas. It used to be schema-only: declared,
 > authored by nothing, read by nothing.
+>
+> **Fixed again (Ch. 45): every unit type's token follows its portrait, not just a Servant's.**
+> The sync ran under `if (actor.type !== "servant") return`, so a Master, a Summon, a Civilian,
+> a Structure or a Platform whose portrait changed kept its old token texture with no way to
+> shift it short of deleting the token and dropping a new one — the Hanging Gardens sat on the
+> board as a mystery man while its sheet showed its own art. Only a Servant has an identity to
+> **conceal** (`identityRevealed` is declared on `ServantData`, not on the shared schema), so
+> the concealment branch stayed Servant-only and the sync itself widened to every unit type.
+> `publicImageOf` now mirrors `context.mjs`'s `portraitImg` exactly, minus that function's
+> viewer-dependent half: `defaultImage` is inert on anything but an unrevealed Servant, because
+> reading it unconditionally would pin a Master's token to a field its own sheet never displays.
+>
+> Two further faults in the same 15 lines, both found only by measuring:
+>
+> - It enumerated tokens with `Actor#getActiveTokens()`, which passes `scenes: canvas.scene` —
+>   so it silently covered **only the scene currently open**, despite a comment claiming it
+>   reached tokens on unopened ones. `engine/token-sync.mjs#placedTokensOf` uses
+>   `getDependentTokens()`, which genuinely spans scenes because every `TokenDocument`
+>   registers itself on its base actor at initialization and every Scene is initialized at
+>   world load.
+> - That list reads an `IterableWeakSet` a **deleted** token stays in until the collector gets
+>   to it. `await token.update()` on a ghost throws, and because the pass is one sequential
+>   loop, a single ghost aborted it — the genuinely placed token behind it kept its old
+>   texture. Foundry's own `getActiveTokens` carries that liveness guard for exactly this
+>   reason, which is what made dropping it so easy to miss; `placedTokensOf` carries it now.
+>
+> An **unlinked** token's image is read from the token's own `ActorDelta` rather than from the
+> base actor, so per-token art a GM chose deliberately is not stomped when the base portrait
+> changes.
 
 > **Implemented (Ch. 45 C2, C3).** The Civilian rules of §4.6 are live: a Servant attacking a
 > Civilian kills it with **no damage calculation and no reaction ladder** — `resolveAttack`

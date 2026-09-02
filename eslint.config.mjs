@@ -91,6 +91,7 @@ export default [
       "tools/**/*.mjs", "module/fgt.mjs",
       "module/engine/scheduler-hooks.mjs", "module/engine/movement-hooks.mjs",
       "module/engine/faction-ownership.mjs", "module/engine/token-image.mjs",
+      "module/engine/token-footprint.mjs",
       "module/apps/canvas/target-region.mjs",
     ],
     rules: { "no-console": "off" },

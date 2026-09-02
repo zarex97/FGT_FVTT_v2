@@ -218,6 +218,19 @@ resolved at build time, because a rank can change at runtime (Ch. 05 §5.7 — S
 HGoB, Kiritsugu under Skill Seal). A Magic Resistance whose reduction was baked to 30% at build
 time would not respond to a rank shift.
 
+**Step 7 has one derived field, and it is derived for a reason.** `compileDocument` builds
+`prototypeToken` from two things: `actorLink` (per actor type — a Servant is one unit and must
+share a document with its token; six Dragon Tooth Warriors from one statblock must not), and now
+`width`/`height`, taken from an authored `footprint`. Those are the same fact in two places —
+the platform's size in panels, and the token's size in grid squares — and only the first was
+ever compiled, so the Hanging Gardens shipped a 1×1 prototype for a 9×9 platform. An explicitly
+authored `prototypeToken:` block still overrides both, since it is spread last.
+
+This is the general shape of the "authored and inert" defect this chapter's validator exists to
+catch, in its hardest form: the field *was* compiled, into `system`, where the rules read it —
+what went missing was its Foundry-side twin. §37.4's checks cannot see that class of gap, because
+nothing about the source file is wrong. Ch. 20 §20.3 has the consequences.
+
 ---
 
 ## 37.4 Validation

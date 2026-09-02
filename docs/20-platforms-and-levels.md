@@ -233,6 +233,37 @@ interface Platform {
 }
 ```
 
+> **Fixed (Ch. 45): `footprint` and the token's own size are the same fact, and only one of
+> them was ever written.** A Foundry token's size lives in `TokenDocument#width`/`#height`,
+> not in `system.footprint`, and nothing connected the two — so `prototypeToken` compiled at
+> Foundry's 1×1 default. The Hanging Gardens showed as a **one-cell** entry in the compendium
+> and dropped onto a scene as a one-cell token.
+>
+> That is not cosmetic. `rules/snapshot.mjs#gridFootprint` derives a unit's occupied panels
+> from `TokenDocument#getOccupiedGridSpaceOffsets()` — the **token's** grid size — while
+> `rules/platforms.mjs#isUnderPlatform` reads `system.footprint`. A 1×1 token for a 9×9
+> platform makes those two disagree: the board sees a single-panel obstacle that nonetheless
+> shelters an 81-panel area, and boarding, cross-level targeting and occupancy all read the
+> wrong one. Only `engine/hgob.mjs` escaped it, because it passes `width`/`height` to
+> `getTokenDocument()` by hand at activation time — which is why an HGoB raised in play was
+> 9×9 while one dragged from the compendium was not.
+>
+> The equality is now enforced in three places, deliberately: `tools/lib/content.mjs` compiles
+> `prototypeToken.width`/`height` from the authored footprint (what makes the **compendium**
+> entry right); `engine/token-footprint.mjs`'s `preCreateToken` sizes any platform token on the
+> way in (which covers a world actor whose prototype predates the fix and was never rebuilt);
+> and its `updateActor` follows a footprint edit onto the prototype and every placed token, so
+> changing the number on the sheet is enough. An explicitly authored `prototypeToken` still
+> wins over the derived size.
+>
+> The runtime resize needs `{fgtForced: true}`: `width` and `height` are Foundry v14
+> **`MOVEMENT_FIELDS`** (with `x`, `y`, `elevation`, `depth`, `shape` and `level`), so a resize
+> is routed through the movement pipeline and `engine/movement-hooks.mjs#onPreMove` refuses it
+> as a Move that is not an orthogonal step. Without the flag the update arrives at
+> `preUpdateToken` as a bare `{_id}` and fails **silently** — no throw, no rejection, just a
+> token that never changed size. This is the same trap `engine/scene-levels.mjs#assignLevel`
+> documented for `level`.
+
 ---
 
 ## 20.4 The Hanging Gardens of Babylon

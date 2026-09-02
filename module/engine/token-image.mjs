@@ -18,13 +18,29 @@
  * while `identityRevealed` is unset, the true portrait once it is set. A GM
  * revealing a Servant's identity is therefore also what puts its real face on
  * the board, for everyone, in one action.
+ *
+ * This ran for `type === "servant"` alone until it was found live: a Master, a
+ * Summon or a Platform whose portrait changed kept its old token texture with
+ * no way to shift it short of deleting the token and dropping a new one. Only
+ * a Servant has an identity to CONCEAL (`identityRevealed` is declared on
+ * `ServantData`, not on the shared schema), but every unit type has a portrait
+ * that ought to reach the board, so the concealment branch stayed Servant-only
+ * and the sync itself widened to every unit type.
  */
+
+import { placedTokensOf } from "./token-sync.mjs";
+
+/**
+ * The Actor types this system defines (`system.json`'s `documentTypes.Actor`).
+ * A journal or a stock Foundry actor sharing the world is none of our business.
+ */
+const UNIT_TYPES = new Set(["servant", "master", "civilian", "summon", "platform", "structure"]);
 
 export const TokenImage = {
   /** Register the hooks. Idempotent. */
   attach() {
     Hooks.on("updateActor", (actor, changes) => {
-      if (actor.type !== "servant") return;
+      if (!UNIT_TYPES.has(actor.type)) return;
       if (!touchesWatchedPath(changes)) return;
       syncOne(actor).catch((err) => console.error("FGT | Token image sync:", err));
     });
@@ -45,12 +61,21 @@ function touchesWatchedPath(changes) {
 }
 
 /**
- * The image every viewer's canvas should currently show for this Servant.
+ * The image every viewer's canvas should currently show for this unit.
+ *
+ * Mirrors `apps/actor-sheet/context.mjs`'s `portraitImg` minus that function's
+ * viewer-dependent half: concealment applies to a Servant whose identity is
+ * unrevealed and to nothing else, so a Master or a Platform shows its own
+ * portrait and `defaultImage` is inert on it. Getting this wrong the other way
+ * — treating `defaultImage` as an unconditional token override — would pin a
+ * Master's token to a field its own sheet never displays.
+ *
  * @param {object} actor
  * @returns {string}
  */
 export function publicImageOf(actor) {
-  if (actor.system?.identityRevealed) return actor.img;
+  const concealed = actor.type === "servant" && !actor.system?.identityRevealed;
+  if (!concealed) return actor.img;
   return actor.system?.defaultImage || actor.img;
 }
 
@@ -67,16 +92,27 @@ export function publicImageOf(actor) {
 async function syncOne(actor) {
   if (!game.user.isGM) return;
 
-  const src = publicImageOf(actor);
-  if (actor.prototypeToken.texture.src !== src) {
-    await actor.update({ "prototypeToken.texture.src": src });
+  // A synthetic (token) actor has no prototype of its own to write -- Foundry
+  // resolves `.prototypeToken` through to the base actor, so writing it here
+  // would push one token's local portrait onto every OTHER token of the same
+  // base actor.
+  if (!actor.isToken) {
+    const src = publicImageOf(actor);
+    if (actor.prototypeToken.texture.src !== src) {
+      await actor.update({ "prototypeToken.texture.src": src });
+    }
   }
-  // `linked=false` -- an UNLINKED token (its own ActorDelta) is exactly the
-  // shape a Servant summoned with per-instance state uses, and defaulting to
-  // `linked=true` would silently skip every one of them. `document=true`
-  // returns `TokenDocument`s directly rather than canvas placeables, so this
-  // still finds a token on a scene nobody currently has open.
-  for (const token of actor.getActiveTokens(false, true)) {
+
+  // `placedTokensOf` rather than `getActiveTokens()`, which covers only the
+  // scene currently open — this claimed to reach a token on an unopened scene
+  // and did not. See `token-sync.mjs` for what that call gets wrong.
+  //
+  // Unlinked tokens are included because that is exactly the shape a summoned
+  // Servant uses. Their image is read from the token's OWN actor: an
+  // ActorDelta that overrides `img` is per-token art the GM chose
+  // deliberately, and the base actor's portrait must not stomp it.
+  for (const token of placedTokensOf(actor)) {
+    const src = publicImageOf(token.actor ?? actor);
     if (token.texture.src !== src) await token.update({ "texture.src": src });
   }
 }

@@ -46,6 +46,7 @@ import { ContractDialog } from "./apps/contract-dialog.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
 import { FactionOwnership } from "./engine/faction-ownership.mjs";
 import { TokenImage } from "./engine/token-image.mjs";
+import { TokenFootprint } from "./engine/token-footprint.mjs";
 import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
@@ -179,8 +180,13 @@ Hooks.once("ready", () => {
   FactionOwnership.attach();
   // §4.2: a Servant's token shows its standard image until identityRevealed,
   // then its true portrait — for every viewer at once, since a token texture
-  // has no per-viewer rendering the way the sheet's own portrait does.
+  // has no per-viewer rendering the way the sheet's own portrait does. Every
+  // other unit type just follows its portrait.
   TokenImage.attach();
+  // §20.3: a Platform's token is the size of the footprint it declares. The
+  // board reads occupancy off the TOKEN, so the two disagreeing is a rules
+  // contradiction, not a cosmetic one.
+  TokenFootprint.attach();
   // Everyone sees the budget; only the acting faction can spend it.
   TurnHUD.attach();
   // ZON rings, threat ranges and Master protection, drawn from selection and
