@@ -258,12 +258,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   if (limits.requiresFacing) {
     survivors = survivors.filter(
       (u) => facingAllows(caster, u)
-        || drop(u, `${caster.name ?? "the attacker"} is not facing it`),
+        || drop(u, `not in front of ${caster.name ?? "the attacker"}`),
     );
   }
   if (limits.requiresClearPath) {
     survivors = survivors.filter(
-      (u) => pathClear(caster, u, board) || drop(u, "another Unit is in the way"),
+      (u) => pathClear(caster, u, board) || drop(u, "behind another Unit"),
     );
   }
 

@@ -1,0 +1,100 @@
+# Medusa, char_orig_sheets/Copia de Medusa.md
+#
+# "Mystic Eyes of Petrification: Cybele. Used during your Turn. Range=2 panels.
+# Used on an enemy Unit. Cannot be used on a Unit if there is an
+# obstacle/obstruction between Medusa and the target Unit, and can only be used
+# if Medusa is facing the targeted Unit. (Example: Unit [Cannot be targeted] -
+# Unit [Can be targeted] - Medusa)"
+#
+# The only ability in the corpus that asks either question, which is exactly
+# what D44.8 decided: no general line of sight, a per-ability predicate instead.
+schema: 1
+id: medusa-mystic-eyes
+name: "Mystic Eyes of Petrification: Cybele"
+type: ability
+source: personal
+rank: "A+"
+cooldown: "4◈-⅓◈"
+description: |
+  Used during your Turn. Range 2 panels, on an enemy Unit. Cannot be used if there is an
+  obstruction between Medusa and the target, and only if Medusa is facing it.
+
+  Humans (including Masters): Perform an Agility Check. If Successful, the DU is Stunned for
+  2◈ Turns. If Failed, the DU is Petrified.
+
+  Non-humans, Servants with MAG of Rank C or lower: Perform an Agility Check. If Successful,
+  reduce the DU's Agility by 2. If Failed, roll again. On the second time, if Successful, the DU
+  is Stunned for 1◈ Turns. If Failed, the DU is Petrified.
+
+  Servants with MAG of Rank B or higher: Perform an Agility Check. If Successful, reduce the
+  DU's Agility by 2. If Failed, the DU is Stunned for 1◈ Turns.
+
+  Debuffs inflicted by this Skill ignore the DU's debuff resistance due to Magic Resistance.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  # `chooser: all` over a `unit` shape, which is how the corpus spells a
+  # single-target ability (Heracles's Nine Lives is the same three lines). The
+  # anchor has already picked the one unit; `chooser: chosen` would ask for a
+  # SECOND pick out of that set of one and hand back an empty target list until
+  # it arrived.
+  selection: { relations: [enemy], chooser: all, count: 1 }
+  limits:
+    requiresFacing: true
+    requiresClearPath: true
+phases:
+  - kind: check
+    # The enemy the Skill selected. Stated rather than defaulted: an ability
+    # whose targeting can reach somebody else must say per phase which of them
+    # each phase is for (`test/unit/phase-targets.test.mjs`).
+    target: reuse
+    check: agility
+    # "Debuffs inflicted by this Skill ignore the DU's debuff resistance due to
+    # Magic Resistance." Scoped to the SOURCE by slug, so Magic Resistance's
+    # other halves -- the MAG-damage negation and the Instakill/Death
+    # interaction -- are untouched, which is what the sheet says.
+    ignoresResistanceFrom: [magicResistance]
+    branches:
+      # "Humans (including Masters)."
+      #
+      # By KIND, not by attribute. Jack's Mist established the corpus reading
+      # and its own file states it: a Normal Human is a Civilian, a "non-normal
+      # Human" is a Master, and *a Servant is not a Human*. No unit in the
+      # reference set carries a `human` attribute, so an attribute test here
+      # would have matched nobody -- which is exactly what it did on the first
+      # live run.
+      #
+      # ORDER IS LOAD-BEARING: a Master also has a MAG rank and would fall to a
+      # later branch. The sheet lists the human case first and means it.
+      - when:
+          - or: ["target:type:civilian", "target:type:master"]
+        onSuccess: { effects: [{ id: stun, duration: "2◈" }] }
+        onFail: { effects: [{ id: petrify }] }
+
+      # "Non-humans, Servants with MAG of Rank C or lower."
+      #
+      # `non-humans` is what the first branch did not take and the third does
+      # not claim: summons and beasts, which have no MAG rank to compare, joined
+      # with the Servants below Rank B. The three branches partition the board.
+      #
+      # `C or lower` as `not gte B`, because the option ladder is emitted
+      # upwards: a unit clears every grade at or below its own, and there is no
+      # `lte` form to invert.
+      - when:
+          - or:
+              - { not: "target:type:servant" }
+              - { not: "target:rank:mag:gte:B" }
+        onSuccess: { statDeltas: [{ path: "agility.value", delta: -2 }] }
+        # "If Failed, roll again. On the second time, if Successful, the DU is
+        # Stunned for 1 turn. If Failed, the DU is Petrified."
+        onFail:
+          check: agility
+          onSuccess: { effects: [{ id: stun, duration: "1◈" }] }
+          onFail: { effects: [{ id: petrify }] }
+
+      # "Servants with MAG of Rank B or higher." The catch-all, because the two
+      # branches above have already taken everything else -- and a Servant at
+      # MAG B or better is the only thing that can reach here.
+      - when: []
+        onSuccess: { statDeltas: [{ path: "agility.value", delta: -2 }] }
+        onFail: { effects: [{ id: stun, duration: "1◈" }] }

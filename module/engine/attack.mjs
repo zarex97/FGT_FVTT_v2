@@ -2377,7 +2377,7 @@ async function fireDamageStepEnd(state) {
  * @param {object} defender the defender's snapshot
  * @returns {Promise<object[]>}
  */
-async function runCheckPhase(phase, ability, state, defender, depth = 0) {
+export async function runCheckPhase(phase, ability, state, defender, depth = 0) {
   // *"If Failed, roll again"* is one more roll, not a loop.
   if (depth >= MAX_CHECK_DEPTH) return [];
 
@@ -2388,7 +2388,11 @@ async function runCheckPhase(phase, ability, state, defender, depth = 0) {
   // Eyes has three, chosen by what the target IS -- and a phase with no
   // `branches` is its own branch, which is the shape Gate of Skye authors and
   // the one that had to keep resolving unchanged.
-  const branch = selectBranch(phase, rollOptionsFor({ attacker: defender }));
+  // The DEFENDER's options, on the `target:` side. A branch asks what the unit
+  // being checked is -- "Humans (including Masters)", "Servants with MAG of
+  // Rank B or higher" -- so passing it as the attacker would emit `self:` and
+  // every branch predicate would miss.
+  const branch = selectBranch(phase, rollOptionsFor({ attacker: null, defender }));
   if (!branch) return [];
 
   const kind = branch.check ?? phase.check ?? "luck";

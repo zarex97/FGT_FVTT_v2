@@ -41,6 +41,7 @@ abilities:
   # header comment records as verified.
   - { ref: divinity, rank: "E-" }
   - { ref: class-independent-action, rank: C }
+  - { ref: medusa-mystic-eyes }
 
 
 # "(Passive 4) Every time Medusa kills a Civilian when she is a Free Servant,
