@@ -1079,7 +1079,7 @@ export const EXECUTORS = Object.freeze({
    * `"outgoing"` improves what this unit inflicts. `valence` narrows it to
    * offensive or defensive effects, which is what "Off.Debuff ResUp" means.
    */
-  ApplicationChance(el, { rank, source, out, ctx }) {
+  ApplicationChance(el, { rank, source, ability, out, ctx }) {
     out.applicationChances.push({
       direction: el.direction ?? "incoming",
       valence: el.valence ?? null,
@@ -1099,6 +1099,12 @@ export const EXECUTORS = Object.freeze({
       predicate: el.attackPredicate ?? null,
       value: scalar(resolveValue(el, rank, ctx)),
       source,
+      // The STABLE identifier of the skill this resistance came from, beside
+      // the display name. Medusa's Mystic Eyes *"ignore the DU's debuff
+      // resistance due to Magic Resistance"* -- a bypass scoped to one SOURCE,
+      // which needs something better to name than "Magic Resistance" as it
+      // happens to be spelled on a sheet.
+      sourceSlug: ability?.slug ?? null,
     });
   },
 

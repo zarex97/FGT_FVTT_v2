@@ -125,7 +125,8 @@ export function applyEffect({
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
     // the target here closes the loop without every caller having to know.
     resist: bypassChanceModifiers ? 0
-      : (ctx.resist ?? resistanceOf(target, def, ctx.options)) + (downgrade?.resistPercent ?? 0),
+      : (ctx.resist ?? resistanceOf(target, def, ctx.options, ctx.ignoresResistanceFrom))
+        + (downgrade?.resistPercent ?? 0),
     immune: false,
     bypassesImmunity: Boolean(def.bypassesImmunity),
   });
@@ -494,8 +495,8 @@ function blocked(reason, trace) {
  * @param {object} def the effect definition
  * @returns {number} percentage points of resistance
  */
-function resistanceOf(target, def, options = null) {
-  return chanceContribution(target, def, "incoming", options);
+function resistanceOf(target, def, options = null, ignoreSources = null) {
+  return chanceContribution(target, def, "incoming", options, ignoreSources);
 }
 
 /**
@@ -528,12 +529,20 @@ export function inflictBonusOf(attacker, def, options = null) {
  * @param {string} direction
  * @returns {number}
  */
-function chanceContribution(unit, def, direction, options = null) {
+function chanceContribution(unit, def, direction, options = null, ignoreSources = null) {
   const severity = def.severity ?? "normal";
+  const ignored = ignoreSources instanceof Set ? ignoreSources : new Set(ignoreSources ?? []);
   let total = 0;
 
   for (const c of unit?.applicationChances ?? []) {
     if ((c.direction ?? "incoming") !== direction) continue;
+    // "Debuffs inflicted by this Skill ignore the DU's debuff resistance due
+    // to Magic Resistance." Scoped to the SOURCE rather than to the magnitude:
+    // Magic Resistance's other halves -- the MAG-damage negation and the
+    // Instakill/Death interaction -- are untouched, which is what the sheet
+    // says. Matched on the stable slug, with the display name accepted too so
+    // a skill that states no slug can still be named.
+    if (ignored.size > 0 && (ignored.has(c.sourceSlug) || ignored.has(c.source))) continue;
     if (c.effectId && c.effectId !== def.id) continue;
 
     // DEBUFFS, unless the contribution names one effect outright. Every clause

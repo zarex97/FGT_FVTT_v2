@@ -212,6 +212,16 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **A check phase may branch, nest, and change a stat** (Ch. 14, Ch. 15 §15.2). `check:` selects
+  the parameter — an Agility Check spends no Luck, where a Luck Check still costs 1 either way;
+  `branches:` picks an outcome by what the *target* is, first match wins in authored order; a
+  branch may hold another check (*"if Failed, roll again"*); and a branch may carry `statDeltas`
+  as well as `effects` (*"reduce the DU's Agility by 2"*). A phase with no `branches` is its own
+  branch, so the one check phase that shipped before this — Scáthach's Gate of Skye — resolves
+  unchanged.
+- **`ignoresResistanceFrom`**, a resistance bypass scoped to one **source** rather than to
+  resistance at large. Contributions now carry the stable slug of the skill they came from
+  beside its display name.
 - **`requiresFacing` and `requiresClearPath`** (Ch. 09 §9.6) — the only two sight rules in the
   game, both per-ability, both opt-in, and both on Medusa's Mystic Eyes alone. D44.8 decided
   against general line of sight and that still stands. `coneOf` had been in
@@ -277,6 +287,12 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **A target's debuff resistance was universally inert.** `applyEffect` falls back to
+  `resistanceOf(target)` when `ctx.resist` is absent — and both callers in `engine/attack.mjs`
+  passed an explicit `resist: 0`, which `??` treats as a value. So Magic Resistance's *"chance of
+  being inflicted by debuffs is reduced by 20%"* reduced nothing, on either path, and the
+  applier's own comment describing the loop as closed was describing an intention. Found because
+  Medusa's bypass of that exact resistance would otherwise have had nothing to bypass.
 - **§16.4's negation clause was inert: a Stunned Servant still protected its Master.** All four
   Master-protection rules — targeting immunity, counter redirect, zone denial and Cover — read
   `canAct`, and `canAct` answered only `system.canAct`, which nothing but `engine/channel.mjs`
