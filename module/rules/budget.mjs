@@ -53,7 +53,7 @@ const LABELS = Object.freeze({
 });
 
 /**
- * @typedef {"move"|"attack"|"skill"|"np"|"spell"|"ridingAttack"|"gather"} ActionKind
+ * @typedef {"move"|"attack"|"skill"|"np"|"spell"|"ridingAttack"|"gather"|"mark"} ActionKind
  */
 
 /**
@@ -98,6 +98,11 @@ export function poolFor(unit, action) {
     case "np":
     case "spell":
     case "ridingAttack":
+    case "mark":
+      // "Using the 'Mark' Action places a Bloodmark ... and COUNTS AS HER
+      // ATTACK FOR THE TURN." Billed to the attack pool rather than given one
+      // of its own, so the mutual exclusion with attacking and with a Riding
+      // Attack is the one the budget already enforces.
       return master ? "masterAttack" : "servantAttack";
     // D18.2: an Active Skill consumes a MOVE slot, not an attack slot. Reading
     // (b) would leave Scáthach and Karna nearly unusable.
@@ -165,7 +170,7 @@ export function canConsume(budget, unit, action) {
   }
 
   const state = unit?.turnState ?? {};
-  const isAttack = ["attack", "np", "spell", "ridingAttack"].includes(action);
+  const isAttack = ["attack", "np", "spell", "ridingAttack", "mark"].includes(action);
 
   // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn ... does
   // not count towards number of Units who Move or Act in a Turn" (§20.10),
@@ -233,7 +238,7 @@ export function consume(budget, unit, action) {
   if (!verdict.ok) return { ok: false, reason: verdict.reason, budget };
   if (verdict.free || verdict.pool === null) return { ok: true, reason: null, budget };
 
-  const isAttack = ["attack", "np", "spell", "ridingAttack"].includes(action);
+  const isAttack = ["attack", "np", "spell", "ridingAttack", "mark"].includes(action);
   const next = {
     pools: { ...budget.pools, [verdict.pool]: { ...budget.pools[verdict.pool], used: budget.pools[verdict.pool].used + 1 } },
     countedUnits: isAttack ? [...budget.countedUnits] : [...budget.countedUnits, unit.id],

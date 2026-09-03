@@ -45,6 +45,7 @@ abilities:
   - { ref: medusa-monstrous-snake-metamorphosis }
   - { ref: medusa-mystic-eyes }
   - { ref: medusa-blood-temple }
+  - { ref: medusa-blood-fort-andromeda }
 
 
 # "(Passive 4) Every time Medusa kills a Civilian when she is a Free Servant,

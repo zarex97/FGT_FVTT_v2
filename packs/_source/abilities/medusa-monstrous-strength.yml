@@ -6,7 +6,7 @@
 schema: 1
 id: medusa-monstrous-strength
 name: "Monstrous Strength"
-type: ability
+kind: skill
 source: personal
 rank: B
 cooldown: "3◈"

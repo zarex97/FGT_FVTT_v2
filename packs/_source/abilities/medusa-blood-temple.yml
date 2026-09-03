@@ -7,7 +7,7 @@
 schema: 1
 id: medusa-blood-temple
 name: "Blood Temple"
-type: ability
+kind: skill
 source: personal
 rank: B
 cooldown: "4◈"

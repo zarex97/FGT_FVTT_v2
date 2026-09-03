@@ -162,3 +162,49 @@ describe("the resolver honours both limits", () => {
     expect(r.units.map((u) => u.unitId).sort()).toEqual(["behind", "far", "near"]);
   });
 });
+
+describe("a Structure that names who may break it", () => {
+  // "Only Masters can destroy a Bloodmark, and it is done by simply Attacking
+  // it." A Normal Attack declares no `kinds`, and platforms and structures are
+  // excluded from targeting unless an ability asks for them -- so a Bloodmark
+  // had to be able to opt in, or a Master could never swing at one.
+  const spec = {
+    anchor: { kind: "targetUnit", range: 5 },
+    shape: { kind: "unit" },
+    selection: { relations: ["enemy"], chooser: "all", count: 1 },
+  };
+  const mark = {
+    id: "mark", name: "Bloodmark", kind: "structure", panel: at(5, 7),
+    faction: "a", factionId: "a", attributes: [], effects: [], destroyableBy: ["master"],
+  };
+  const board = (units) => ({ bounds: squareBounds(13), units, alliances: { a: ["a"], b: ["b"] } });
+
+  it("lets the named kind attack it", () => {
+    const master = {
+      id: "m", name: "Enemy Master", kind: "master", panel: at(5, 5),
+      faction: "b", factionId: "b", range: 5,
+    };
+    const r = resolveTargets(spec, master, board([master, mark]), { unitId: "mark" });
+    expect(r.units.map((u) => u.unitId)).toEqual(["mark"]);
+  });
+
+  it("refuses everybody else, and says which kinds may", () => {
+    const servant = {
+      id: "s", name: "A Servant", kind: "servant", panel: at(5, 5),
+      faction: "b", factionId: "b", range: 5,
+    };
+    const r = resolveTargets(spec, servant, board([servant, mark]), { unitId: "mark" });
+    expect(r.units).toEqual([]);
+    expect(r.excluded.find((e) => e.unitId === "mark").reason).toMatch(/structure/);
+  });
+
+  it("still excludes a Structure that names nobody", () => {
+    const plain = { ...mark, destroyableBy: [] };
+    const master = {
+      id: "m", name: "Enemy Master", kind: "master", panel: at(5, 5),
+      faction: "b", factionId: "b", range: 5,
+    };
+    const r = resolveTargets(spec, master, board([master, plain]), { unitId: "mark" });
+    expect(r.units).toEqual([]);
+  });
+});
