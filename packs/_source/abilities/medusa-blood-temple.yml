@@ -1,0 +1,51 @@
+# Medusa, char_orig_sheets/Copia de Medusa.md
+#
+# "(Active) Used during your Turn. NP Cooldown is reduced by ⅔◈ Turns and apply
+# NP Regen for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every
+# Turn. If Blood Fort Andromeda is Active, NP Cooldown is reduced by 2◈ Turns
+# instead. Cooldown: 4◈ Turns."
+schema: 1
+id: medusa-blood-temple
+name: "Blood Temple"
+type: ability
+source: personal
+rank: B
+cooldown: "4◈"
+description: |
+  (Active) Used during your Turn. NP Cooldown is reduced by ⅔◈ Turns and apply NP Regen for
+  1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn. If Blood Fort Andromeda
+  is Active, NP Cooldown is reduced by 2◈ Turns instead. Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  # The ordinary reduction. Two phases with opposite predicates rather than one
+  # phase with a conditional magnitude, because "instead" replaces the number
+  # rather than adding to it -- and a single phase would have to be told which
+  # of the two it was after the fact.
+  #
+  # `self:fieldActive:<id>` asks whether Medusa's OWN area exists, wherever she
+  # is standing. `self:inField:` is the neighbouring option and cannot answer
+  # it: Blood Fort Andromeda excludes Medusa, so she is typically outside the
+  # very field the clause is about.
+  - kind: cooldown
+    target: self
+    predicate: [{ not: "self:fieldActive:medusa-blood-fort-andromeda" }]
+    changes:
+      - { scope: np, ticks: "⅔◈", direction: down }
+
+  # "If Blood Fort Andromeda is Active, NP Cooldown is reduced by 2◈ instead."
+  - kind: cooldown
+    target: self
+    predicate: ["self:fieldActive:medusa-blood-fort-andromeda"]
+    changes:
+      - { scope: np, ticks: "2◈", direction: down }
+
+  # "and apply NP Regen for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the
+  # end of every Turn." Unconditional -- the "instead" governs the immediate
+  # reduction only.
+  - kind: applyEffects
+    target: self
+    rules:
+      - { effect: { id: npRegen, magnitude: 1 }, duration: "1◈" }

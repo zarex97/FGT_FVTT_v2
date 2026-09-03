@@ -1,0 +1,37 @@
+# Medusa, char_orig_sheets/Copia de Medusa.md
+#
+# "(Active) Used during your Turn. Has the following effects-
+#  1. Applies Atk Up (STR) for 1◈ Turns, STR Damage dealt is increased by 30%;
+#     if NP, 15%.
+#  2. Applies Crit DmUp for 1◈ Turns, Crit Damage dealt is increased by 30%.
+#  3. Applies Dmg Up (Bind) for 1◈ Turns, all damage dealt to Units inflicted
+#     with Bind effects is increased by 50%.
+#  Cooldown: 4◈ Turns. Cannot be used on the same Turn as Monstrous Strength."
+schema: 1
+id: medusa-monstrous-snake-metamorphosis
+name: "Monstrous Snake Metamorphosis"
+type: ability
+source: personal
+rank: B
+cooldown: "4◈"
+sameTurnExclusive: [medusa-monstrous-strength]
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies Atk Up (STR) for 1◈ Turns, STR Damage dealt is increased by 30%; if NP, 15%.
+  2. Applies Crit DmUp for 1◈ Turns, Crit Damage dealt is increased by 30%.
+  3. Applies Dmg Up (Bind) for 1◈ Turns, all damage dealt to Units inflicted with Bind
+     effects is increased by 50%.
+  Cooldown: 4◈ Turns. Cannot be used on the same Turn as Monstrous Strength.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    rules:
+      # `npMagnitude` is the "if NP" half: a rider that omits it silently
+      # applies the full 30% to Noble Phantasms too.
+      - { effect: { id: atkUpStr, magnitude: 30, npMagnitude: 15 }, duration: "1◈" }
+      - { effect: { id: critDmUp, magnitude: 30 }, duration: "1◈" }
+      - { effect: { id: dmgUpBind, magnitude: 50 }, duration: "1◈" }

@@ -952,10 +952,10 @@ Andromeda** (Ch. 43).
 | Magic Resistance (B) | Class, passive | RE |
 | Divinity (E−) | Passive | RE (+5 flat) — the **first sub-E rank in the corpus** |
 | Independent Action (C) | Class, passive | RE (Sustainability 6◈, ZON +2, 2 contract rolls, +1◈ per Civilian killed) |
-| Monstrous Strength (B) | Active, `damageStepStart` | RE (+80% STR, +40% NP) |
-| Monstrous Snake Metamorphosis (B) | Active | RE — including `Dmg Up (Bind)`, a **family-predicated** damage bonus |
+| Monstrous Strength (B) | Active, `damageStep` window | **Built.** +80% STR, +40% NP, scoped to the one attack it is chosen for. Needed no new event: the Combat Process already pauses at an attacker window there, which is the right shape because what it grants is an *input* to the damage rather than a rider on it. |
+| Monstrous Snake Metamorphosis (B) | Active | **Built.** Three buffs, including `Dmg Up (Bind)` — the first **family-predicated** damage bonus, asking `target:effectFamily:bind` rather than naming ten effects that would go stale. Same-turn exclusion with Monstrous Strength through the existing `sameTurnExclusive`. |
 | Mystic Eyes (A+) | Active | **Built.** `requiresClearPath` + `requiresFacing` (Ch. 44 §44.3, the game's only sight rules); a three-branch Agility Check ladder whose middle tier rolls twice; an outcome that is a stat change rather than an effect; `ignoresResistanceFrom: [magicResistance]`. The branches test *kind*, not an attribute: Jack's Mist established that a Normal Human is a Civilian, a "non-normal Human" is a Master, and **a Servant is not a Human** — and no unit in the set carries a `human` attribute. |
-| Blood Temple (B) | Active | RE (magnitude conditional on her own field being active) |
+| Blood Temple (B) | Active | **Built.** Two cooldown phases with opposite predicates rather than one conditional magnitude, because *"instead"* replaces the number. `self:fieldActive:<id>` is new. |
 | Blood Fort Andromeda (B, NP) | Mark-built bounded field | **RE+** built by placing **four corner Bloodmarks** as separate turn actions; drain-to-heal with a shared pool cap; **halved against `Mechanical`**; marks visible only within 3 panels and destroyable **only by Masters** |
 | Bellerophon (A+, NP) | Line NP | **RE+** 1×13 **diagonal-capable, bidirectional**, board-size-dependent |
 

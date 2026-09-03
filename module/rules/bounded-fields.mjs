@@ -702,6 +702,14 @@ export function annotateFields(units, board) {
 
   for (const u of units ?? []) {
     u.fields = [];
+    // The open fields this unit OWNS, by content id. Distinct from `fields`,
+    // which is the ones it is standing in: Medusa's Blood Temple asks *"if
+    // Blood Fort Andromeda is Active"*, which is a question about whether her
+    // own area exists at all and not about where she happens to be standing.
+    // A field's `id` is its ability's content id (`engine/fields.mjs`
+    // stamps `fieldId` from `system.contentId`), so it is already the
+    // stable name content predicates on.
+    u.ownedFields = fields.filter((f) => f.ownerId === u.id).map((f) => f.id);
     if (fields.length === 0) continue;
 
     /** @type {object[]} */

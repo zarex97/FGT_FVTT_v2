@@ -212,6 +212,11 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **Medusa's three Active skills** — Monstrous Strength (at the damage-step window), Monstrous
+  Snake Metamorphosis, and Blood Temple, whose *"if Blood Fort Andromeda is Active"* branch is
+  a new `self:fieldActive:<id>` option: a field this unit **owns** being open, wherever it is
+  standing. `self:inField:` could not answer it — Blood Fort Andromeda excludes Medusa, so she
+  is typically outside the very area the clause is about.
 - **Medusa's Mystic Eyes of Petrification: Cybele** — the only ability in the game that asks
   where its caster is looking, and the first three-way check ladder. Verified live across all
   six outcomes.
