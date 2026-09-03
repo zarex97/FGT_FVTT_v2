@@ -357,18 +357,41 @@ entries: the **ability's** stated chance, overriding the effect definition's own
 ### `check`: a phase the defender rolls
 
 ```ts
-  | { kind: "check"; check: "luck"; modifierTable?: string; modifierRank?: Parameter;
-      onFail?: { effects: EffectApplication[] }; onSuccess?: { effects: EffectApplication[] } }
+  type Outcome =
+    | { effects?: EffectApplication[]; statDeltas?: { path: string; delta: number }[] }
+    | CheckPhase;                                  // "if Failed, roll again"
+
+  | { kind: "check"; check?: Parameter;            // default "luck"
+      modifierTable?: string; modifierRank?: Parameter;
+      ignoresResistanceFrom?: string[];            // skill slugs
+      branches?: { when: Predicate[]; onSuccess?: Outcome; onFail?: Outcome }[];
+      onFail?: Outcome; onSuccess?: Outcome }      // when there are no branches
 ```
 
-One ability in the reference set needs it, and every part of it is unusual. Scáthach's *Gate of
-Skye*: the check is rolled by the **target** rather than by the attacker, its difficulty is read
-from a rank table keyed on the *target's own* MAG, and failing it is worse than succeeding —
+**Scáthach's *Gate of Skye*** was the only author for a long time, and every part of it is
+unusual: the check is rolled by the **target** rather than by the attacker, its difficulty is
+read from a rank table keyed on the *target's own* MAG, and failing it is worse than succeeding —
 success only means taking 4x damage.
 
 `gateOfSkyeSaveModifier` is an **equality** table, not a threshold: *"if their MAG is Rank B,
 reduce the value rolled by 2; if their MAG is Rank A, reduce it by 4"*, and a `MAG A+` or `MAG EX`
 target gets nothing at all. Do not "improve" it into a `gte`.
+
+**Medusa's *Mystic Eyes*** is what generalised the shape, and it needed four things:
+
+| Clause | Mechanism |
+|---|---|
+| *"Perform an **Agility** Check"* | `check:` names the parameter. A Luck Check is contested against the attacker's Luck and costs the defender 1 either way (Ch. 14); anything else is a plain check against that stat, through the same `resolveCheck`/`checkPlan` pair Cover uses. |
+| three outcomes by what the target **is** | `branches:`, first match wins **in authored order** — load-bearing, because a Master is a Human *and* has a MAG rank, and the sheet lists the human case first. |
+| *"If Failed, roll again"* | a branch may hold another check. Capped at `MAX_CHECK_DEPTH` against an authored cycle, not as a rule. |
+| *"reduce the DU's Agility by 2"* | `statDeltas`, an outcome that is not an effect. |
+
+A phase with **no** `branches` is its own branch, which is how Gate of Skye keeps resolving
+untouched — verified live rather than assumed.
+
+`ignoresResistanceFrom` names skills by slug: *"Debuffs inflicted by this Skill ignore the DU's
+debuff resistance due to Magic Resistance."* Scoped to the **source**, so Magic Resistance's other
+halves — the MAG-damage negation and the Instakill/Death interaction — are untouched.
 
 ### `rollTable`: an ability whose effect is decided by a die
 

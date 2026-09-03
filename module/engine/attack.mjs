@@ -52,6 +52,7 @@ import {
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 import { reactionsRefused, aoeOutcome, isConcealed } from "../rules/concealment.mjs";
+import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -2288,7 +2289,13 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           // made every outgoing contribution in the game inert.
           inflictBonus: inflictBonusOf(unitSnapshot(game.actors.get(state.attackerId)), def),
           options: rollOptions(unitSnapshot(game.actors.get(state.attackerId)), defender, state),
-          resist: 0,
+          // NOT `resist: 0`. `applyEffect` falls back to `resistanceOf(target)`
+          // when this is absent -- and `0 ?? x` is `0`, so an explicit zero
+          // here defeated that fallback and made the target's resistance
+          // universally inert. Magic Resistance's *"chance of being inflicted
+          // by debuffs is reduced by 20%"* has therefore never reduced
+          // anything, on this path or the check path; the applier's own
+          // comment describes the loop as closed and it was not.
         },
       });
 
@@ -2370,9 +2377,21 @@ async function fireDamageStepEnd(state) {
  * @param {object} defender the defender's snapshot
  * @returns {Promise<object[]>}
  */
-async function runCheckPhase(phase, ability, state, defender) {
+async function runCheckPhase(phase, ability, state, defender, depth = 0) {
+  // *"If Failed, roll again"* is one more roll, not a loop.
+  if (depth >= MAX_CHECK_DEPTH) return [];
+
   const attackerDoc = game.actors.get(state.attackerId);
   const attacker = unitSnapshot(attackerDoc);
+
+  // WHICH outcome this target gets, before anything is rolled. Medusa's Mystic
+  // Eyes has three, chosen by what the target IS -- and a phase with no
+  // `branches` is its own branch, which is the shape Gate of Skye authors and
+  // the one that had to keep resolving unchanged.
+  const branch = selectBranch(phase, rollOptionsFor({ attacker: defender }));
+  if (!branch) return [];
+
+  const kind = branch.check ?? phase.check ?? "luck";
   const roll = await new Roll("1d20").evaluate();
 
   // The table modifier, keyed on the SUBJECT's parameter rather than on the
@@ -2387,30 +2406,61 @@ async function runCheckPhase(phase, ability, state, defender) {
     }
   }
 
-  const plan = checkPlan(defender, phase.check ?? "luck");
-  const outcome = luckCheck({
-    roll: roll.total,
-    luck: defender.luck,
-    opposingLuck: attacker.luck,
-    hasBoost: (defender.effects ?? []).includes("luckBoost") || plan.forceTable === "favourable",
-    hasLoss: (defender.effects ?? []).includes("luckLoss") || plan.forceTable === "unfavourable",
-    modifiers: [...plan.modifiers, ...tableModifiers],
+  const plan = checkPlan(defender, kind);
+  // A LUCK Check is contested against the attacker's Luck and costs the
+  // defender a point either way (Ch. 14). Any other parameter is a plain check
+  // against that stat -- the same `resolveCheck`/`checkPlan` pair Cover
+  // (§16.4 rule 4) resolves an Agility Check with, and for the same reason:
+  // going through `evade()` would let an Evade-specific bonus help.
+  const outcome = kind === "luck"
+    ? luckCheck({
+      roll: roll.total,
+      luck: defender.luck,
+      opposingLuck: attacker.luck,
+      hasBoost: (defender.effects ?? []).includes("luckBoost") || plan.forceTable === "favourable",
+      hasLoss: (defender.effects ?? []).includes("luckLoss") || plan.forceTable === "unfavourable",
+      modifiers: [...plan.modifiers, ...tableModifiers],
+    })
+    : resolveCheck({
+      roll: roll.total,
+      target: defender[kind] ?? 0,
+      table: plan.forceTable === "unfavourable" ? "unfavourable" : "favourable",
+      modifiers: [...plan.modifiers, ...tableModifiers],
+    });
+
+  /** @type {object[]} */
+  const intents = [I.log({
+    kind: "check", check: kind, unitId: state.defenderId, attempt: depth + 1,
+    roll: outcome.roll, total: outcome.total, target: outcome.target, success: outcome.success,
+    modifiers: outcome.modifiers,
+  })];
+  if (kind === "luck") intents.unshift(I.statDelta(state.defenderId, "luck.value", -1));
+  await applyBatch(intents, "np:check");
+
+  const taken = outcome.success ? branch.onSuccess : branch.onFail;
+  if (!taken) return [];
+
+  // "If Failed, roll again. On the second time, if Successful ... If Failed ..."
+  if (isNestedCheck(taken)) {
+    return runCheckPhase(
+      { ...taken, modifierTable: phase.modifierTable, modifierRank: phase.modifierRank,
+        ignoresResistanceFrom: phase.ignoresResistanceFrom },
+      ability, state, defender, depth + 1,
+    );
+  }
+
+  // An outcome that is not an effect: *"reduce the DU's Agility by 2"*.
+  if (taken.statDeltas?.length) {
+    await applyBatch(
+      taken.statDeltas.map((d) => I.statDelta(state.defenderId, d.path, d.delta)),
+      "np:check:stat",
+    );
+  }
+  if (!taken.effects?.length) return [];
+
+  return applyDeclaredEffects(taken.effects, ability, state, defender, {
+    ignoresResistanceFrom: phase.ignoresResistanceFrom ?? [],
   });
-
-  // A Luck Check costs 1 Luck whether or not it succeeds (Ch. 14).
-  await applyBatch([
-    I.statDelta(state.defenderId, "luck.value", -1),
-    I.log({
-      kind: "check", check: phase.check ?? "luck", unitId: state.defenderId,
-      roll: outcome.roll, total: outcome.total, target: outcome.target, success: outcome.success,
-      modifiers: outcome.modifiers,
-    }),
-  ], "np:check");
-
-  const branch = outcome.success ? phase.onSuccess : phase.onFail;
-  if (!branch?.effects?.length) return [];
-
-  return applyDeclaredEffects(branch.effects, ability, state, defender);
 }
 
 /**
@@ -2427,7 +2477,7 @@ async function runCheckPhase(phase, ability, state, defender) {
  * @param {object} defender
  * @returns {Promise<object[]>}
  */
-async function applyDeclaredEffects(specs, ability, state, defender) {
+async function applyDeclaredEffects(specs, ability, state, defender, { ignoresResistanceFrom = [] } = {}) {
   const attacker = unitSnapshot(game.actors.get(state.attackerId));
   /** @type {object[]} */
   const out = [];
@@ -2455,7 +2505,11 @@ async function applyDeclaredEffects(specs, ability, state, defender) {
         roll: roll.total,
         inflictBonus: inflictBonusOf(attacker, def),
         options: rollOptions(attacker, defender, state),
-        resist: 0,
+        // Left undefined rather than 0 so the applier computes the target's
+        // own resistance: `ctx.resist ?? resistanceOf(...)` reads a literal 0
+        // as "no resistance", which is how an authored `Debuff Res Up` used to
+        // be ignored on this path.
+        ignoresResistanceFrom,
       },
     });
 
