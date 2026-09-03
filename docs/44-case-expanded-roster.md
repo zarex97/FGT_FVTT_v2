@@ -579,7 +579,7 @@ second example of each shape appears.
 | D44.5 | `stance` is distinct from `mode`: free to change, but only at declared transition points. |
 | D44.6 | `Resistance` gains a `dice` mode that never fully negates. |
 | D44.7 | `weakPoint` is a general construct resolved after a failed Evade, with a per-side base chance and conditional modifiers. |
-| D44.8 | No general line of sight; `requiresClearPath` is a per-ability targeting predicate. |
+| D44.8 | No general line of sight; `requiresClearPath` is a per-ability targeting predicate. **Built** — with `requiresFacing` beside it (Ch. 09 §9.6). |
 | D44.9 | `Disguise` is presentation-only and per-viewer, so it never desynchronizes state. |
 | D44.10 | Secret Poison hides the *cause*, not the damage — state integrity wins over secrecy. |
 | D44.11 | Rule Breaker's seizure does not override absolute Independent Action immunity. |
