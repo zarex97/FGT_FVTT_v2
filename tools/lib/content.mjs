@@ -1163,6 +1163,11 @@ function itemSystem(doc) {
     // Actions that run when the effect goes away.
     onRemove: doc.onRemove ?? [],
     volatility: doc.volatility ?? null,
+    // Appendix A's umbrella names -- `Bind` over its ten members. Declared on
+    // each member rather than centrally, so a new binding effect counts by
+    // saying so about itself.
+    families: doc.families ?? [],
+    suppressesOtherEffects: Boolean(doc.suppressesOtherEffects),
     valence: doc.valence ?? null,
     stacking: doc.stacking ?? null,
     baseChance: doc.baseChance ?? null,

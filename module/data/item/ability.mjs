@@ -258,6 +258,15 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       polarity: new fields.StringField({ required: false, nullable: true, initial: null }),
       volatility: new fields.StringField({ required: false, nullable: true, initial: null }),
       valence: new fields.StringField({ required: false, nullable: true, initial: null }),
+      // Appendix A's umbrella names. `Bind` covers ten effects and Medusa's
+      // `Dmg Up (Bind)` is the first clause that asks about the umbrella
+      // rather than about a member.
+      families: new fields.SetField(new fields.StringField({ blank: false })),
+      // Petrify's *"buffs, debuffs and other effects have no effect"*. A flag
+      // rather than a `Suppress` rule element because it decides what the unit
+      // projection CONTAINS, and rule elements are collected from that
+      // projection -- `rules/snapshot.mjs#activeEffectIds` answers it.
+      suppressesOtherEffects: new fields.BooleanField({ initial: false }),
       stacking: new fields.StringField({ required: false, nullable: true, initial: null }),
       baseChance: new fields.NumberField({ required: false, nullable: true, initial: null }),
       // Appendix A's Instakill/Death ladder. `Debuff ChUp` and `Debuff Immune`

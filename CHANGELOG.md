@@ -212,6 +212,16 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **Effect families** (Ch. 11, §A). `Bind` is not an effect anybody applies — Appendix A defines
+  it as an umbrella over ten that are — and Medusa's `Dmg Up (Bind)` is the first clause that has
+  to ask about the umbrella. Declared on each member rather than as a central list, projected
+  once as `effectFamilies`, and emitted as `self:`/`target:effectFamily:<id>`.
+- **`Petrify` has a definition.** The damage pipeline has enforced its *">200 damage in one
+  attack ⇒ defeat"* rule at stage 16 since it was written, and `budget.mjs` has listed it among
+  the effects that stop a unit acting for just as long — both against a definition that did not
+  exist, so nothing could ever inflict it. Its *"buffs, debuffs and other effects have no
+  effect"* is a projection-level blanket negation rather than a rule element, because rule
+  elements are collected **from** the projection.
 - **Medusa's statline and her four passive skills** — Riding A+, Magic Resistance B, Divinity
   **E−** and Independent Action C. `E−` is the first sub-E rank in the corpus and needed no new
   content: the `divinity` table is scaled at ±5 a step and already answered 5 there.
@@ -261,6 +271,14 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **§16.4's negation clause was inert: a Stunned Servant still protected its Master.** All four
+  Master-protection rules — targeting immunity, counter redirect, zone denial and Cover — read
+  `canAct`, and `canAct` answered only `system.canAct`, which nothing but `engine/channel.mjs`
+  ever writes. So *"while a Servant is affected by Charm, Confuse, Berserk, Stun, Stop, Petrify,
+  Freeze, Sleep, or any other effect that prevents a Servant from Acting, the effects in the
+  above paragraphs are negated"* negated nothing. Now read off the effect **definitions** via
+  `preventsAction` — the field whose own schema comment says §23.9 *"had to guess from a
+  hard-coded list before any effect could say so itself"*.
 - **`self:free` could never hold, so the only two clauses that ask it had never fired.**
   `options.mjs` emits it from `unit.contract` and its own comment names Jack the Ripper's
   *"every time Jack kills a Human **when she is a Free Servant**"* as the reason it exists —

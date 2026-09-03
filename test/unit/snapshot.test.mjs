@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { snapshotUnit, snapshotBoard, turnStateAt, contributionsOf } from "../../module/rules/snapshot.mjs";
 import { remainingMovement, segmentCheck } from "../../module/rules/movement.mjs";
+import { EffectRegistry } from "../../module/rules/registry.mjs";
 
 /** A minimal actor. */
 function actor(over = {}) {
@@ -461,5 +462,47 @@ describe("sustainability", () => {
 
   it("keeps null meaning no clock at all — Independent Action A+/EX", () => {
     expect(snapshotUnit(actor({ sustainability: null })).sustainability).toBe(null);
+  });
+});
+
+describe("canAct reads the effects, not only the channelling flag", () => {
+  // §16.4: "While a Servant is affected by Charm, Confuse, Berserk, Stun,
+  // Stop, Petrify, Freeze, Sleep, or any other effect that prevents a Servant
+  // from Acting, the effects in the above paragraphs are negated."
+  //
+  // All four Master-protection rules read `canAct`, and it used to answer only
+  // `system.canAct` -- which nothing but `engine/channel.mjs` ever writes. So a
+  // Stunned bodyguard still protected its Master, still redirected a Counter,
+  // still denied the zone and still Covered, and the negation clause was inert.
+  // `load()` is handed its documents rather than going looking for them,
+  // which is what makes the lookup half testable without a world.
+  EffectRegistry.load([
+    { name: "Stun", system: { contentId: "stun", polarity: "debuff", preventsAction: true } },
+    { name: "Petrify", system: { contentId: "petrify", polarity: "debuff", preventsAction: true } },
+    { name: "Burn", system: { contentId: "burn", polarity: "debuff" } },
+  ]);
+
+  const withEffect = (defId) => actor({
+    effects: [{ id: "e1", disabled: false, isSuppressed: false, system: { defId } }],
+  });
+
+  it("is true for a unit carrying nothing", () => {
+    expect(snapshotUnit(actor()).canAct).toBe(true);
+  });
+
+  it("is false while an action-preventing effect is in force", () => {
+    // `stun` declares `preventsAction: true`; the registry answers from the
+    // definition rather than from a list this file would have to keep current.
+    expect(snapshotUnit(withEffect("stun")).canAct).toBe(false);
+  });
+
+  it("is still false when the flag says nothing but an effect does", () => {
+    const a = withEffect("petrify");
+    a.system.canAct = null;
+    expect(snapshotUnit(a).canAct).toBe(false);
+  });
+
+  it("stays true for an effect that does not prevent acting", () => {
+    expect(snapshotUnit(withEffect("burn")).canAct).toBe(true);
   });
 });

@@ -21,6 +21,7 @@ import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { EffectRegistry } from "./registry.mjs";
+import { familiesPresent } from "./effects/families.mjs";
 import { buildAuraIndex } from "./aura-index.mjs";
 import { annotateTerrain } from "./terrain.mjs";
 import {
@@ -190,6 +191,11 @@ export function snapshotUnit(actor, {
     rank: sys.rank ?? null,
 
     effects: effectIds,
+    // The FAMILIES those effects put the unit in (§A). Computed once here
+    // because this is the only layer holding both the live ids and the
+    // registry; `Bind` is an umbrella over ten effects and Metamorphosis is
+    // the first clause that has to ask about the umbrella.
+    effectFamilies: familiesPresent(effectIds, EffectRegistry),
     effectInstances: effectInstances(actor),
     modifiers: contributions.modifiers,
     abilities: collectAbilities(actor),
@@ -308,7 +314,20 @@ export function snapshotUnit(actor, {
     concealedIdentity: sys.concealedIdentity || null,
     identityRevealed: Boolean(sys.identityRevealed),
     detect: sys.detect ?? null,
-    canAct: sys.canAct !== false,
+    // "While a Servant is affected by Charm, Confuse, Berserk, Stun, Stop,
+    // Petrify, Freeze, Sleep, **or any other effect that prevents a Servant
+    // from Acting**, the effects in the above paragraphs are negated"
+    // (§16.4). The flag alone answered only `engine/channel.mjs`, which is the
+    // one thing that writes it — so a Stunned Servant still protected its
+    // Master, still redirected a Counter, still denied the zone and still
+    // covered against an AoE, and §16.4's negation clause was inert for all
+    // four rules.
+    //
+    // Read off the DEFINITIONS rather than a hard-coded list, which is what
+    // `preventsAction` was added for: its own schema comment says §23.9 "had
+    // to guess from a hard-coded list before any effect could say so itself".
+    canAct: sys.canAct !== false
+      && !effectIds.some((id) => EffectRegistry.get(id)?.preventsAction),
     // The Hanging Gardens' multi-Turn activation (`engine/channel.mjs`).
     channel: sys.channel ?? null,
     // When Health was last at or above a fraction somebody asks about. Read by
@@ -777,9 +796,20 @@ function grantedStepDeltas(grantedSteps) {
  * @returns {string[]}
  */
 function activeEffectIds(actor) {
-  return [...(actor.effects ?? [])]
+  const live = [...(actor.effects ?? [])]
     .filter((e) => !e.disabled && !e.isSuppressed)
     .map((e) => e.system?.defId ?? e.name);
+
+  // Petrify: *"Buffs, debuffs and other effects have no effect."* A blanket
+  // negation that has to be answered HERE rather than by a rule element,
+  // because it decides what the projection contains and rule elements are
+  // collected from the projection -- the same argument `undamageable` made for
+  // being a flag rather than a rule.
+  //
+  // Blanket effects do not negate each other: two of them are both in force,
+  // and neither the corpus nor Appendix A describes a precedence between them.
+  const blanket = live.filter((id) => EffectRegistry.get(id)?.suppressesOtherEffects);
+  return blanket.length > 0 ? blanket : live;
 }
 
 /**

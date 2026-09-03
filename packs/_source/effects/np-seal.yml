@@ -16,3 +16,8 @@ baseChance: 100
 # Nothing emits that option and nothing reads a suppression scoped `abilities`,
 # so it was inert twice over; keeping it implied a second enforcement path that
 # does not exist, which is worse than having none.
+# Appendix A lists this among `Bind`'s members: "Bind -- umbrella for Stun,
+# Disable, Immobilize, Slow, Petrify, Shock, Webbed, Seal, Freeze,
+# Crystalfreeze." Declared here rather than in a central list so a binding
+# effect authored later counts by saying so about itself.
+families: [bind]

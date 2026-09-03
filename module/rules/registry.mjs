@@ -40,6 +40,11 @@ export const EffectRegistry = {
         // Appendix A's Instakill/Death ladder, which chance modifiers filter on.
         severity: sys.severity ?? "normal",
         preventsAction: Boolean(sys.preventsAction),
+        // Appendix A's umbrella names (`Bind`), and Petrify's blanket
+        // negation. `rules/snapshot.mjs` reads both off this registry to
+        // build `effectFamilies` and to decide what is in force at all.
+        families: [...(sys.families ?? [])],
+        suppressesOtherEffects: Boolean(sys.suppressesOtherEffects),
         defaultMagnitude: sys.defaultMagnitude ?? 0,
         defaultDuration: sys.defaultDuration ?? null,
         unremovable: Boolean(sys.unremovable),
