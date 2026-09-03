@@ -86,7 +86,14 @@ export function expand(shape, anchor, opts = {}) {
     case "line": {
       const dir = anchor.direction ? DELTA[anchor.direction] : DELTA.n;
       const panels = geo.line(anchor.casterPanel ?? origin, dir, shape.length, {
-        bidirectional: shape.bidirectional ?? false,
+        // *"Hits in both directions (Front and back); but only hits in one
+        // direction (Front) if playing on the Large Board."* A board-size
+        // dependent shape, joining the HGoB footprint in the `*ByBoardSize`
+        // pattern -- read off `bounds` rather than off a setting, because the
+        // scene is what actually decides which board is in play.
+        bidirectional: shape.bidirectional === "unlessLargeBoard"
+          ? !isLargeBoard(bounds)
+          : (shape.bidirectional ?? false),
         diagonalLength: shape.diagonalLength ?? null,
         bounds,
       });
@@ -192,4 +199,28 @@ export function orthogonalAdjacentRect(c, w, h, d, bounds = null) {
  */
 function flat(panels) {
   return { panels, bands: null };
+}
+
+/** The standard board is 13×13; the Large Board is 25×25 (Ch. 08). */
+const STANDARD_BOARD = 13;
+
+/**
+ * Is this the Large Board rather than the standard one?
+ *
+ * *"Hits in both directions (Front and back); but only hits in one direction
+ * (Front) if playing on the Large Board."*
+ *
+ * "Large" is read as **anything bigger than the standard 13×13** rather than
+ * as exactly 25×25. The game defines two boards and a scene is normally one of
+ * them, but a table playing on some other size gets the more conservative
+ * projection — a Noble Phantasm that reaches further than the sheet intends is
+ * the worse of the two errors, and the clause exists because a longer board
+ * makes a bidirectional 13-panel line disproportionate.
+ *
+ * @param {object|null} bounds
+ * @returns {boolean}
+ */
+function isLargeBoard(bounds) {
+  if (!bounds) return false;
+  return (bounds.iMax - bounds.iMin + 1) > STANDARD_BOARD;
 }

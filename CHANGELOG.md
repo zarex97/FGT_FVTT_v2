@@ -212,6 +212,22 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **Riding Attack and Passenger Seat have readers.** Both have been in `GRANTS` since grants
+  were written and **no engine read either**. A Riding Attack is a Move that is also an Attack:
+  the move resolves first and completely, and the units it ran through are the target list of
+  one ordinary fan-out. Passenger Seat rides the movement hook beside the platform carry, and
+  displaces the Master by the same delta — *"the same orientation/position prior to the Move"*
+  read as the same **relative** position, since otherwise the Master does not move at all.
+- **A granted ability may be conditional on an effect.** Medusa's Riding unlocks its two
+  passives *through the Active*, unlike Achilles's and Ozymandias's. No new mechanism: a
+  `GrantedAbility` element takes a `predicate` like any other, and the Active applies the marker
+  it asks for.
+- **Bellerophon**, and with it `directions: "all"` on a line shape. Ch. 44 §44.3 reads diagonal
+  lines and bidirectional projection as two novelties for the targeting engine; only half was
+  true. `geometry.line` has stepped a diagonal correctly since it was written and `DELTA` has
+  held all eight compass values — a diagonal line was **expressible and unofferable**, because
+  `legalPlacements` returned four directions. `bidirectional: "unlessLargeBoard"` reads the
+  board off `bounds`.
 - **Blood Fort Andromeda** (Ch. 43) — the only bounded field in the corpus that is **built
   rather than cast**, and the only one with no duration at all. Four `Mark` Actions over four
   Turns place `Structure` actors; the fourth completes a 5×5, 7×7 or 9×9 square and the area
@@ -308,6 +324,11 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **An attack's rider phases ignored `target` and always hit the defender.** A `target: self`
+  rider on a Noble Phantasm therefore buffed the enemy it had just damaged. Bellerophon is the
+  first to want one (*"Then, applies Crit Up"* — to Medusa), and it is paid **once per Combat
+  Phase** rather than once per defender: a 13-panel line through four Units would otherwise
+  have granted +120% instead of +30%.
 - **Masters had no turn record at all.** `turnState` and `roundState` live in
   `combatantCommon()`, which is Servant-shaped (parameters, Base Attack, normal attack,
   Sustainability) and which `MasterData` does not take — so every `turnState` question asked of

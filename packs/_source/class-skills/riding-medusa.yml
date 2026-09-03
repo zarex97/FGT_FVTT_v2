@@ -1,0 +1,56 @@
+# Medusa, char_orig_sheets/Copia de Medusa.md
+#
+# Riding A+, and the ONE instantiation in the corpus whose Riding Attack and
+# Passenger Seat are unlocked BY the Active rather than being permanent
+# passives:
+#
+#   "(Active) Used during your Turn. Increases MOV by 5 panels for this Turn.
+#    ADDITIONALLY, 'Riding Attack', and 'Passenger Seat' CAN BE USED ON THIS
+#    TURN."
+#
+# Achilles's and Ozymandias's read the other way and keep `class-riding`, which
+# is why this is a separate document rather than a flag on the shared one.
+#
+# No new mechanism: a `GrantedAbility` element takes a `predicate` like any
+# other, `self:effect:<id>` is emitted for the owner's own effects, and
+# collection answers it. The Active applies the marker; the grants ask for it.
+schema: 1
+id: class-riding-medusa
+name: "Riding"
+source: class
+slug: riding
+parameterized: [rank]
+rank: "@rank"
+cooldown: "@cooldown"
+description: |
+  (Passive 1) Double Move: can Move twice during its Turn, once before and once after Attacking;
+  total distance Moved cannot exceed the Unit's MOV.
+  (Active) Used during your Turn. Increases MOV by 5 panels for this Turn. Additionally,
+  'Riding Attack' and 'Passenger Seat' can be used on this Turn.
+  (Passive 2) Riding Attack: can Attack all Units in its path while Moving in a straight line as
+  its Normal Attack during its Turn. Cannot Attack or Move after it has stopped. If the Unit has
+  already Moved this Turn, the panels it may Move for its Riding Attack equal its MOV minus the
+  panels already Moved.
+  (Passive 3) Passenger Seat: the Servant's Master can Move together with its Servant; after
+  Moving, both must be in the same relative position as before. Counts as only Moving one Unit.
+
+  The MOV Up from the Active is NOT a buff: it cannot be removed by buff removal and is not
+  prevented by an effect that blocks buffs.
+passiveRules:
+  # Double Move is unconditional -- it is Passive 1, not part of the Active.
+  - key: GrantedAbility
+    abilities: [doubleMove]
+  # Passives 2 and 3, gated on the marker the Active applies.
+  - key: GrantedAbility
+    abilities: [ridingAttack, passengerSeat]
+    predicate: ["self:effect:ridingActive"]
+activeRules:
+  - key: MovDelta
+    table: ridingMov
+    duration: "this turn"
+    isBuff: false
+phases:
+  - kind: applyEffects
+    target: self
+    rules:
+      - { effect: { id: ridingActive }, duration: "this turn" }

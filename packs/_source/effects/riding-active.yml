@@ -1,0 +1,22 @@
+# Medusa's Riding A+ Active: "Additionally, 'Riding Attack', and 'Passenger
+# Seat' can be used on this Turn."
+#
+# A marker, not a buff in its own right -- it carries no modifier. What it does
+# is satisfy the `self:effect:ridingActive` predicate on Riding's two granted
+# abilities, which is how a passive becomes conditional on an Active without a
+# new mechanism.
+#
+# `unremovable`, for the same reason the MOV Up is not a buff: the sheet says
+# the Active's grant "cannot be removed by buff removal effects, or prevented
+# by an effect that prevents buffs from being applied."
+schema: 1
+id: ridingActive
+name: "Riding (Active)"
+description: "Riding Attack and Passenger Seat may be used this Turn."
+polarity: buff
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+rules: []
