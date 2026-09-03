@@ -344,6 +344,46 @@ breadth-first displacement that can chain. The algorithm:
 construction; it is deterministic and terminating, which is what matters for multiplayer
 consistency. Flagged in Ch. 41.
 
+### Riding Attack — a Move that is also an Attack
+
+> *"Can Attack all Units in its path while Moving in a straight line as its Normal Attack during
+> its Turn. Cannot Attack or Move after it has stopped. Can be combined with Passenger Seat. If
+> the Unit has already Moved during its Turn and intends to use Riding Attack, the number of
+> panels it can Move for its Riding Attack is equal to its MOV minus the number of panels it has
+> already Moved."*
+
+The only action in the game that is both. `GRANTS.ridingAttack` has existed since grants were
+written with **no engine reading it**; Medusa is the first Servant whose sheet needs it, and hers
+is unlocked by Riding's Active rather than being permanent.
+
+It does not need a Combat Process of its own. `rules/movement.mjs#ridingAttackPath` decides the
+line and who is on it, `engine/riding.mjs` resolves the **move first and completely**, and the
+units it ran through become the target list of **one** ordinary fan-out — one Combat Phase, one
+Process per defender, exactly as an AoE Noble Phantasm produces.
+
+*Straight* means the three axes a grid has: a shared row, a shared column, or an exact diagonal.
+The same test `panelsBetween` uses, deliberately — a Riding Attack down a diagonal and a Mystic
+Eye down one should agree about what a line is.
+
+*"Cannot Attack or Move after it has stopped"* is enforced by `usedRidingAttack`, which also
+closes Riding's own Double Move: the two passives would otherwise disagree about whether the turn
+is over.
+
+### Passenger Seat
+
+> *"The Servant's Master can Move together with its Servant; after Moving, both Servant and
+> Master must be in the same orientation/position prior to the Move. Counts as only Moving one
+> Unit."*
+
+The same **relative** position, not the same absolute one — otherwise the Master does not move at
+all and the clause says nothing. So the Master is displaced by exactly the delta the Servant
+travelled, with `{fgtForced: true}`, and the budget is charged once.
+
+It rides the movement hook beside the platform carry (§20.8) and for the same reason: at
+`moveToken` the document still reports the origin, so the delta has to come from the **movement**
+rather than from the board's idea of where anybody is now. The Master stays put if the landing
+panel is occupied or off the board — a displacement is not a shove.
+
 ---
 
 ## 8.4 Occupancy

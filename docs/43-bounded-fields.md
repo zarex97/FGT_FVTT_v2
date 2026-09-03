@@ -52,8 +52,9 @@
 > list**: a flag added to the schema and not added there is written to the document and invisible
 > to every rule that reads a snapshot.
 >
-> Still not built: the two-phase `markDefined` construction (Blood Fort Andromeda's Bloodmarks)
-> and the scheduled detonation of §43.9. The state history of §43.11 exists only as
+> The two-phase `markDefined` construction (Blood Fort Andromeda's Bloodmarks) **is now built**,
+> along with `Structure` content and the drain-to-heal pool. Still not built: the scheduled
+> detonation of §43.9. The state history of §43.11 exists only as
 > `state.escapeHistory` — enough for the veteran rule, not the general log.
 
 The expanded roster added nine abilities that create a **persistent area with its own rules of
@@ -143,9 +144,35 @@ targeting interaction that is not one of the four modes in Ch. 09 §9.9. Mode E.
 
 **`markDefined`** (Blood Fort Andromeda) is a two-phase construction: Medusa spends four Actions
 placing Bloodmarks (each counting as her Attack for the turn), and the field activates when the
-fourth completes a legal rectangle. The marks are objects on the board that **only Masters can
+fourth completes a legal **square**. The marks are objects on the board that **only Masters can
 destroy**, and that are **only visible within 3 panels**. So the counter-play is a Master
 sortie into fog.
+
+> **Built.** `rules/bloodmarks.mjs#squareFrom` decides it and `engine/marks.mjs` places the
+> objects. Four readings the sheet forces:
+>
+> - **Corners, not four panels.** *"The four CORNER panels"* — three in a row and a fourth adrift
+>   is not a field, so it wants exactly two distinct rows and two distinct columns with all four
+>   combinations present.
+> - **A square, not a rectangle**, and only at 5, 7 or 9. A 5×7 is not on the list and a 6×6 is
+>   not either.
+> - **Order-independent**, because the marks are placed over four separate Turns and nothing says
+>   which corner comes first.
+> - **A stray mark may coexist with a completed set** — *"whenever Blood Fort Andromeda is
+>   complete, all OTHER Bloodmarks will vanish"* only means anything if it can, so completion
+>   looks for **any** completing four rather than requiring exactly four to exist.
+>
+> A mark's panel is **written at placement**, not read back off its token: `getActiveTokens()`
+> lags `createEmbeddedDocuments`, and the fourth mark completed no square because its own token
+> was not yet queryable. `placeMark` reads Medusa's own panel from the token **document** for the
+> same reason — `currentBoard()` reads canvas placeables, which lag it, and a Mark taken right
+> after a Move landed one panel behind her.
+>
+> Visibility is **approximated**. The rule is per-viewer and Foundry has no per-viewer token
+> rendering — the constraint `engine/token-image.mjs` states for a Servant's portrait, and the
+> one D44.9 assessed and deferred. So it drives Foundry's `hidden`, which players cannot see
+> through and the GM always can, from whether any enemy stands within 3. It errs toward
+> concealment, which is the clause's own direction.
 
 ### A geometry may read the board
 
@@ -362,6 +389,22 @@ the MOV clause.
 **Blood Fort Andromeda** — a tiered health drain (normal Human: instant death; Master/non-normal
 Human: 40/turn; Servant/non-Human: 20/turn), **halved against `Mechanical` units**, with the
 total drained healing Medusa and/or her Master up to the amount drained.
+
+> **Built, and the first interior event that pays somebody outside itself.** Every other one
+> writes to the unit it landed on. `HealthLoss` accumulates into a per-tick pool when the event
+> declares `payout:`, and `rules/fields/pool.mjs#distributePool` splits it **capped at the pool**
+> — the cap is the rule, so it is enforced in the rules layer rather than trusted to content:
+> two beneficiaries and one pool means an uncapped split would pay the drain out twice.
+> *"Either or both"* states no procedure, so an even split is the neutral reading and the
+> remainder goes to the field's owner; nothing is wasted and nothing is invented.
+>
+> `halveIf` states *"halved against Mechanical Units"* **once on the event** rather than as three
+> more branches — one clause covering every tier, which authoring per tier would let drift.
+>
+> The tiers use the corpus reading Jack's Mist established: a **Normal Human is a Civilian**, a
+> *"non-normal Human"* is a **Master**, and a Servant is not a Human. The Civilian tier carries
+> `creditOwner`, so the kill is Medusa's — Independent Action pays her 1◈ per Civilian she kills
+> while Free, and a death the *field* took credit for would quietly stop paying her.
 
 ### An interior rule may ask about the Unit it lands on
 
@@ -642,7 +685,11 @@ Two fields are anchored to a **placed object** rather than to a unit or a panel 
 her Master 50 Health per 1◈.
 
 **Medusa's Bloodmarks** are four destructible objects that define a field only when all four are
-placed.
+placed. **Built** — `StructureData` was a registered actor type with no content, and this is its
+first. `destroyableBy: [master]` is both an **opt-in** and a refusal: platforms and structures
+are excluded from targeting unless an ability asks with `kinds`, and *"it is done by simply
+Attacking it"* is a Normal Attack, which asks for nothing. Destroying a corner ends the field,
+because the square no longer exists.
 
 **DECISION.** These are `Structure` actors (Ch. 04 §4.9) with a linked `BoundedField`. Modelling
 them as units gives targeting, destruction, visibility rules, and health for free — the Grail

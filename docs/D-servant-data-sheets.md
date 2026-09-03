@@ -943,15 +943,29 @@ written and is now load-bearing.
 
 ## D.25 Medusa
 
-**Being built** (Ch. 45), `packs/_source/servants/medusa.yml`. Bounded field: **Blood Fort
-Andromeda** (Ch. 43).
+> **Built (Ch. 45).** Eight commits, `packs/_source/servants/medusa.yml` plus nine ability
+> documents. Every clause of the sheet runs in a live world, with one approximation named in the
+> table below and nothing deferred.
+>
+> Pale Rider was a Servant who does almost nothing himself; Medusa is the opposite, and the
+> engine's gaps were all in the **verbs**. Fourteen general features, and nine were the pattern
+> this project keeps turning up — `ridingAttack`, `passengerSeat`, `expiry: onOwnerDefeat`,
+> `markDefined`, `Structure`, `requiresClearPath`, `requiresFacing`, `Petrify` and `coneOf` were
+> all named in the specification and implemented by nothing.
+>
+> Two of §44.3's expectations turned out to be **narrower than written**, and both are recorded
+> where they were claimed: `line` never needed `allowDiagonal` (only the direction picker was
+> cardinal-only), and *"used at the start of a Damage Step"* needed no new event (the Combat
+> Process already pauses at an attacker window there).
+
+Bounded field: **Blood Fort Andromeda** (Ch. 43).
 
 | Ability | Type | Mapping |
 |---|---|---|
 | Riding (A+) | Class | **Built**, and both grants got their first readers. Unlocked by the Active, which needed no new mechanism — a `GrantedAbility` element takes a `predicate`, and the Active applies the marker it asks for. |
-| Magic Resistance (B) | Class, passive | RE |
-| Divinity (E−) | Passive | RE (+5 flat) — the **first sub-E rank in the corpus** |
-| Independent Action (C) | Class, passive | RE (Sustainability 6◈, ZON +2, 2 contract rolls, +1◈ per Civilian killed) |
+| Magic Resistance (B) | Class, passive | **Built** from the shared class document. Building Mystic Eyes' bypass of it found that a target's debuff resistance had never applied to anything: both callers passed `resist: 0`, and `0 ?? x` is `0`. |
+| Divinity (E−) | Passive | **Built**, and it needed no new content: `Rank.parse("E-")` already yields ordinal −1 and the `divinity` table is scaled at ±5 a step, so it already answered 5 there. The **first sub-E rank in the corpus**. |
+| Independent Action (C) | Class, passive | **Built.** Sustainability 6◈, ZON +2 and the contract rolls come from the shared document; the Civilian clause is authored on *her* sheet, because no other instantiation carries it. It surfaced that `self:free` could never hold — the option exists for Jack the Ripper's near-identical clause and had never once been satisfiable. |
 | Monstrous Strength (B) | Active, `damageStep` window | **Built.** +80% STR, +40% NP, scoped to the one attack it is chosen for. Needed no new event: the Combat Process already pauses at an attacker window there, which is the right shape because what it grants is an *input* to the damage rather than a rider on it. |
 | Monstrous Snake Metamorphosis (B) | Active | **Built.** Three buffs, including `Dmg Up (Bind)` — the first **family-predicated** damage bonus, asking `target:effectFamily:bind` rather than naming ten effects that would go stale. Same-turn exclusion with Monstrous Strength through the existing `sameTurnExclusive`. |
 | Mystic Eyes (A+) | Active | **Built.** `requiresClearPath` + `requiresFacing` (Ch. 44 §44.3, the game's only sight rules); a three-branch Agility Check ladder whose middle tier rolls twice; an outcome that is a stat change rather than an effect; `ignoresResistanceFrom: [magicResistance]`. The branches test *kind*, not an attribute: Jack's Mist established that a Normal Human is a Civilian, a "non-normal Human" is a Master, and **a Servant is not a Human** — and no unit in the set carries a `human` attribute. |
@@ -961,8 +975,10 @@ Andromeda** (Ch. 43).
 
 **Exercises:** the only line-of-sight requirement in the game, facing as a targeting
 prerequisite, resistance bypass scoped to one *source*, multi-turn field construction, fields
-built from placed markers with their own visibility and destructibility, and diagonal lines.
-**Scripts: 0.**
+built from placed markers with their own visibility and destructibility, diagonal lines, a Move
+that is also an Attack, a Master carried along by its Servant, a check phase that branches and
+nests, an effect **family**, and a field that drains one set of Units to heal another.
+**Scripts: 0** — as predicted, and unlike Pale Rider nothing here needed one.
 
 **Note.** Blood Fort Andromeda is the only bounded field that **has no duration at all** — it
 runs until Medusa is defeated. Chapter 43's `expiry: onOwnerDefeat` exists solely for it.

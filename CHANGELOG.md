@@ -34,6 +34,21 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+> **Medusa is complete.** Eight commits, ten abilities, every clause running in a live world.
+> Fourteen general engine features, and nine of them were the pattern this project keeps turning
+> up: `ridingAttack`, `passengerSeat`, `expiry: onOwnerDefeat`, `markDefined`, `Structure`,
+> `requiresClearPath`, `requiresFacing`, `Petrify` and `coneOf` were all named in the
+> specification and implemented by nothing.
+>
+> Building her also found six defects in shipped machinery, each listed under **Fixed** below and
+> none of them hers: `self:free` was unsatisfiable, §16.4's negation clause was inert, a target's
+> debuff resistance never applied, a `check` phase on a Skill did nothing, Masters had no turn
+> record, and an attack's rider phases ignored `target`.
+>
+> Two of the specification's own expectations turned out narrower than written, and both are
+> corrected where they were claimed (Ch. 44 §44.3): `line` never needed `allowDiagonal`, and
+> *"used at the start of a Damage Step"* needed no new event.
+
 ### Added
 
 - **A unit can be intrinsically undamageable.** `null` Health has been the convention since

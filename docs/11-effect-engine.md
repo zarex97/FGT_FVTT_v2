@@ -663,6 +663,52 @@ the default and has no such issue.
 
 ---
 
+## 11.10a Families, and a resistance scoped to its source
+
+### Families
+
+`Bind` is not an effect anybody applies. Appendix A defines it as an **umbrella** — *"Bind:
+umbrella for Stun, Disable, Immobilize, Slow, Petrify, Shock, Webbed, Seal, Freeze,
+Crystalfreeze"* — and Medusa's `Dmg Up (Bind)` is *"all damage dealt to Units inflicted with Bind
+effects is increased by 50%"*, the first clause in the corpus that has to ask about the umbrella
+rather than about one of its members.
+
+A definition declares `families: [...]`; the snapshot projects the set a unit's live effects put
+it in as `effectFamilies`; `options.mjs` emits `self:`/`target:effectFamily:<id>`. The bonus is
+then an ordinary predicated `Dmg Up` and nothing in the damage pipeline changes.
+
+**Declared on each member, never as a central list.** A binding effect authored tomorrow counts
+by saying so about itself, and a list held somewhere else would go stale the moment it did not.
+A **suppressed** instance does not count — a Stun that is not stunning anybody is not binding
+them either, the same reading `rules/control.mjs#findCharm` takes of a suppressed Charm.
+
+### `ignoresResistanceFrom`
+
+> Medusa's Mystic Eyes: *"Debuffs inflicted by this Skill ignore the DU's debuff resistance due
+> to Magic Resistance."*
+
+A bypass of one **source**, not of resistance at large: Magic Resistance's other halves — the
+MAG-damage negation and the Instakill/Death interaction — are untouched, which is what the sheet
+says. So an `ApplicationChance` contribution carries the stable **slug** of the skill it came
+from beside its display name, and the applier drops the named ones before summing.
+
+> **It had nothing to bypass.** `applyEffect` falls back to `resistanceOf(target)` when
+> `ctx.resist` is absent, and both callers in `engine/attack.mjs` passed an explicit `resist: 0`
+> — which `??` treats as a value, not as absence. So a target's debuff resistance was
+> **universally inert**, and Magic Resistance's *"chance of being inflicted by debuffs is reduced
+> by 20%"* had never reduced anything. Found only because Medusa's clause bypasses that exact
+> resistance and the bypass would otherwise have been unobservable.
+
+### A blanket negation is a projection, not a rule
+
+Petrify's *"buffs, debuffs and other effects have no effect"* is answered by
+`rules/snapshot.mjs#activeEffectIds` from a `suppressesOtherEffects` flag on the definition,
+rather than by a `Suppress` rule element. Rule elements are collected **from** the projection, so
+a rule could not answer a question about what the projection contains without asking itself —
+the same argument `undamageable` made for being a flag.
+
+---
+
 ## 11.11 The effect registry
 
 At world init, all `EffectDefinition` documents are loaded from the compendium into a registry:

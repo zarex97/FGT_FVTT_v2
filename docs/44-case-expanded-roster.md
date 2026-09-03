@@ -315,12 +315,19 @@ single value.
 
 Two novelties for the targeting engine (Ch. 09):
 
-**Diagonal lines.** Every previous directional shape was cardinal-only. `line` gains
-`allowDiagonal: true`, and diagonal lines use Chebyshev stepping.
+**Diagonal lines — and this section was wrong about where the gap was.** `domain/geometry.mjs`'s
+`line` has stepped a diagonal direction correctly since it was written, and `DELTA` has held all
+eight compass values, so a diagonal line was **expressible and unofferable**: the gap was in
+`legalPlacements`, whose Mode A returned `["n", "e", "s", "w"]` — *"always all four, so the
+player sees the choice rather than discovering it."* What was built is `directions: "all"` on the
+shape, which widens the **picker**. No `allowDiagonal`, and no change to the maths.
 
 **Bidirectional projection.** The line extends *both ways* from the caster on the 13×13 board and
 one way on the 25×25 — a **board-size-dependent shape**, joining the HGoB's footprint in the
-`*ByBoardSize` pattern.
+`*ByBoardSize` pattern. Built as `bidirectional: "unlessLargeBoard"`, read off `bounds` rather
+than a setting, because the scene is what decides which board is in play. "Large" is anything
+bigger than the standard 13×13 rather than exactly 25×25: an unusual scene gets the conservative
+projection, and a Noble Phantasm reaching further than the sheet intends is the worse error.
 
 Achilles's `Troias Tragōidia` is the same shape delivered as a Riding Attack over 13 panels, with
 `X` and `Y` computed from remaining MOV and from the number of units actually hit — so its
@@ -358,6 +365,13 @@ Yan Qing's NP is the same shape with `2d4`, **reroll-on-duplicate**, and "a 4 ap
 
 Chapter 08 §8.6 states flatly that F/GT has no line of sight. **This is the exception**, and it
 is scoped to a single ability: `requiresClearPath: true` plus `requiresFacing: true`.
+
+> **Built.** `requiresFacing` and `requiresClearPath` are `targeting.limits` flags, default off,
+> and Mystic Eyes is the only ability in the corpus that sets either (Ch. 09 §9.6). `coneOf`
+> answered the facing half already and had **never been called** — its intended consumer,
+> Ch. 14 §14.5's *"attacked from left or right +1"* / *"from behind +2"* Evade modifiers, is
+> still unbuilt, and `rollEvade` assembles its modifiers without them. A Ch. 14 gap, recorded
+> here because it is why the function Medusa needed already existed.
 
 **DECISION.** Do **not** introduce general LOS. Implement `requiresClearPath` as a per-ability
 targeting predicate that walks the panel line and rejects if any panel is occupied. That keeps
