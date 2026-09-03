@@ -55,6 +55,7 @@ import { FGTToken as FGTTokenPlaceable } from "./apps/canvas/token.mjs";
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 import { ensurePassiveFields, syncDerivedFields } from "./engine/fields.mjs";
+import { ensureSetupRolls } from "./engine/summon.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
 import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
@@ -225,6 +226,12 @@ Hooks.once("ready", () => {
   // and it intercepts a bare compendium drop -- which would otherwise produce a
   // Servant with the template's numbers instead of its own rolled ones.
   attachSummonEntries();
+  // ...and a safety net behind it. Agility and Luck are ROLLED, not derived, so
+  // a Servant that reached the world by some other route -- duplicated, built
+  // by a macro, imported -- keeps the template's zeroes, and a maximum of 0 is
+  // a number no d20 can roll under: that Servant auto-fails every Evade and
+  // Luck Check in silence. GM-gated and idempotent internally.
+  ensureSetupRolls().catch((err) => console.error("FGT | Setup rolls:", err));
   // §23.9's invalidation table, driving the canvas aura index and the overlays,
   // plus §25.10's round-boundary desync check.
   attachInvalidation();

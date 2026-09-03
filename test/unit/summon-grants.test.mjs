@@ -17,7 +17,9 @@
 
 import { describe, it, expect } from "vitest";
 import { applyGrants, mergeGrants, sheetPatch } from "../../module/engine/summon.mjs";
-import { servantSetupPlan, resolveSetupPlan, summonPlan } from "../../module/rules/setup-rolls.mjs";
+import {
+  servantSetupPlan, resolveSetupPlan, summonPlan, baseAttackFor,
+} from "../../module/rules/setup-rolls.mjs";
 
 /** Karna, as §37.6 has him. */
 const karna = {
@@ -71,17 +73,22 @@ describe("§37.6 — summoning Karna into an Indian war", () => {
 
   it("adds 10 to each Base Attack component for its granted step", () => {
     // "STR B → B+ ⇒ BA(STR) +10 → 135" and "MAG B → B+ ⇒ BA(MAG) +10 → 185".
-    const patch = sheetPatch(applyGrants(resolved(), karna, granted), karna, granted);
-
-    expect(patch.baseAttack).toEqual({ str: 135, mag: 185 });
+    //
+    // Read off `baseAttackFor` rather than off the patch: since the author
+    // supplied the conversion table (Ch. 41 Q50) Base Attack is DERIVED from
+    // STR and MAG, so `sheetPatch` no longer carries it and a granted step
+    // reaches it by moving the rank. The numbers are unchanged -- Karna is
+    // STR B MAG B, and the table's B is exactly the 125/175 his sheet states.
+    expect(baseAttackFor({ ...karna, grantedSteps: granted })).toEqual({ str: 135, mag: 185 });
+    expect(sheetPatch(applyGrants(resolved(), karna, granted), karna, granted).baseAttack)
+      .toBeUndefined();
   });
 
   it("leaves Base Attack alone for the AGI grant", () => {
     // §37.6 says it outright: "BA adjustment: none (AGI does not affect BA)".
     const agiOnly = mergeGrants(summonPlan({ sheet: karna, warRegion: null, masterGrants: { agi: 1 } }));
-    const patch = sheetPatch(applyGrants(resolved(), karna, agiOnly), karna, agiOnly);
 
-    expect(patch.baseAttack).toEqual({ str: 125, mag: 175 });
+    expect(baseAttackFor({ ...karna, grantedSteps: agiOnly })).toEqual({ str: 125, mag: 175 });
   });
 
   it("records the granted steps on the sheet, so a rank can be checked", () => {

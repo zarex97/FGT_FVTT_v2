@@ -12,7 +12,7 @@ resolution and where it is implemented.
 
 **Status as of `0.2.1`:** questions **Q1–Q40 have been answered by the game's author**. They are
 retained below in condensed form as the record of what was decided and why, because several
-resolutions changed the design. **Q41–Q50 are open** — Q41–Q48 raised by the expanded roster and
+resolutions changed the design. **Q41–Q49 are open** — Q41–Q48 raised by the expanded roster and
 terrain documents, Q49 raised by the reference calculation supplied with the Q39 answer.
 
 ---
@@ -211,7 +211,7 @@ Exactly parallel to `Evade−`. Everything `0.2.0` wrote off as inert is live:
 
 ---
 
-## Part 3 — Open (Q41–Q50)
+## Part 3 — Open (Q41–Q49), and Q50 answered
 
 
 ### Q41. What is a "Dead panel"?
@@ -373,47 +373,54 @@ ships rather than blocks.
 
 ---
 
-### Q50. What are Servants' Agility and Luck values?
+### Q50. Where do Servants' Agility, Luck and Base Attack come from — **ANSWERED: all derived**
 
-**This one has a live consequence and is the most important question in Part 3.**
+**And our reading was wrong twice, in opposite directions.**
 
-Agility is not a rank: §6.3 makes it a number you must roll **under** on an Evade, and Luck the
-same for a Luck Check. Every Servant sheet in the reference set states them as an unfilled
-placeholder:
+Every Servant sheet states `Agility: XX/XX` and `Luck: XX/XX`, and this chapter first recorded
+that as an unfilled placeholder with a live consequence — *"every Servant Evade and Luck Check
+fails automatically"*. That overstated it. The `XX` is not a blank the author forgot; it is a
+value **derived at summon**, and `rules/setup-rolls.mjs` had been deriving it correctly from the
+day it was written. A Servant summoned through the dialog, or dropped from the compendium, has
+had the right numbers all along.
 
-```
-Agility: XX/XX
-Luck: XX/XX
-```
+The author supplied the conversion table in full:
 
-Only the summons and platforms carry real numbers — Bašmu's *"Agility: 14 / Luck: 7"*, the four
-Dragon Tooth Warriors, the Hanging Gardens. So all 29 Servants compile to **0 and 0**, and a
-target of 0 is one no d20 can roll under: **every Servant Evade and every Servant Luck Check
-fails automatically**, including Lucky Hit, Lucky Evasion and the contests either side of them.
+| From | Rank | EX | A | B | C | D | E | Per step |
+|---|---|---|---|---|---|---|---|---|
+| Max Health | END | — | 1500 | 1250 | 1000 | 750 | 500 | ±100 |
+| Max Agility | AGI | 20 + 1d4 | 18 + X | 16 + X | 14 + X | 12 + X | 10 + X | ±1 |
+| Max Luck | LUC | 20 + X | 16 + X | 12 + X | 8 + X | 4 + X | 0 + X | ±1 |
+| BA(STR) | STR | 200 | 150 | 125 | 100 | 75 | 50 | ±10 |
+| BA(MAG) | MAG | 250 | 200 | 175 | 150 | 125 | 100 | ±10 |
 
-This was invisible for a long time because it is not an error anywhere — the sheets say `XX`,
-the compiler carries `XX` faithfully as "unstated", and the schema default for an unstated
-resource is 0. It surfaced only when a new content guard (`unitKeyCoverage`) noticed that the
-*summons'* stated numbers were being dropped by the compiler's allowlist, and the fix for that
-made the Servants' silence conspicuous by contrast.
+where Agility's `X` is a coin flip (2 on Heads, 1 on Tails) and Luck's is a `1d4`.
 
-**We do not guess.** A rank-derived table would be an invention: §6.3 describes Agility as a
-depleting resource that Injury Rolls grind down, not as a function of AGI, and Q8 already
-established the parallel case — *"MOV is authored per-Servant, not derived"*. A per-Servant
-number is what the sheets are shaped to hold.
+**What was actually missing.**
 
-**What we do instead.** The value stays 0 until the author supplies the numbers, one per
-Servant, at which point it is pure content: `agility: N` and `luck: N` on each sheet, compiled
-by the mapper that now carries the summons'.
+1. **Base Attack was not derived at all.** The sheets state it and we trusted them, on the
+   reasoning — written into `rules/setup-rolls.mjs`'s own header — that *"the sheet's Base Attack
+   already accounts for the parameters it was written with"*. The author settles it the other
+   way: *"If you find a value of Base attack that differs from this calculation choose the value
+   of this table instead of what is on the character sheet."* Four figures across three sheets
+   disagreed and were being played with. Now derived in `ServantData#prepareBaseData`, and the
+   separate ±10-per-granted-step that `engine/summon.mjs` applied is gone with the reasoning that
+   justified it — a granted step moves the **rank**, and the rank picks the row, so keeping both
+   double-counted.
+2. **A Servant that never passed through `commitSummon` kept the template's zeroes.** Agility and
+   Luck need dice, so unlike Health and Base Attack they cannot be derived on demand — they are
+   rolled once and stamped. The ordinary routes are covered (the summon dialog, and a bare
+   compendium drop, which `apps/summon-entry.mjs` intercepts); one that was duplicated, built by
+   a macro or imported was not, and *that* Servant did auto-fail every Evade. `ensureSetupRolls`
+   at `ready` is the safety net, idempotent and announced.
 
-**Where.** Ch. 06 §6.3, Appendix D.
+**Where.** Ch. 06 §6.3 and §6.4, Appendix B §B.1, Ch. 37 §37.6.
 
 ---
 
 ## How to use this chapter
 
-**For the game's author.** Q50 is the one that changes play today — every Servant currently
-auto-fails every Evade and Luck Check for want of two numbers per sheet. Q49 is next — it is a two-line arithmetic
+**For the game's author.** Q49 is the one worth answering soon — it is a two-line arithmetic
 clarification that decides whether one term is being counted twice. Q41 through Q48 are
 individually small and can be settled in play.
 

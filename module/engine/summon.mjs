@@ -17,7 +17,7 @@
  */
 
 import {
-  servantSetupPlan, masterSetupPlan, resolveSetupPlan, summonPlan, baseAttackAdjustment,
+  servantSetupPlan, masterSetupPlan, resolveSetupPlan, summonPlan, needsSetupRolls,
 } from "../rules/setup-rolls.mjs";
 import { regionsAdjacent } from "../rules/environment.mjs";
 
@@ -201,6 +201,55 @@ export async function summonServant(args) {
 }
 
 /**
+ * Give every Servant that never had its setup rolls made them, once.
+ *
+ * Agility and Luck are rolled, not derived, so a Servant that reached the world
+ * without passing through `commitSummon` keeps the compendium template's zeroes
+ * — and a maximum of 0 is a number no d20 can roll under, so that Servant
+ * auto-fails every Evade and every Luck Check in silence. The ordinary paths are
+ * covered (the summon dialog, and `apps/summon-entry.mjs` intercepting a bare
+ * compendium drop); this catches an actor that was duplicated, built by a macro
+ * or imported.
+ *
+ * Idempotent: `needsSetupRolls` is false the moment the maxima are written, so a
+ * second pass rolls nothing. Health is deliberately left alone —
+ * `ServantData#prepareBaseData` derives it from the END table with no die, and
+ * Base Attack likewise from STR and MAG.
+ *
+ * Announced rather than silent. A Servant's Agility changing under the GM
+ * without explanation is worse than the bug it fixes.
+ *
+ * @returns {Promise<object[]>} what was rolled, per Servant
+ */
+export async function ensureSetupRolls() {
+  if (!game.user.isGM) return [];
+
+  /** @type {object[]} */
+  const done = [];
+  for (const actor of game.actors) {
+    if (actor.type !== "servant") continue;
+    if (!needsSetupRolls(actor.system)) continue;
+
+    const { lines } = await rollSetupPlan(servantSetupPlan(sheetSnapshot(actor)));
+    const value = (id) => lines.find((l) => l.id === id)?.value ?? 0;
+    const agility = value("maxAgility");
+    const luck = value("maxLuck");
+
+    await actor.update({
+      "system.agility": { max: agility, value: agility },
+      "system.luck": { max: luck, value: luck },
+    });
+    done.push({ id: actor.id, name: actor.name, agility, luck });
+  }
+
+  if (done.length > 0) {
+    console.warn("FGT | Setup rolls made for Servants that had none:", done);
+    ui.notifications?.info(game.i18n.format("FGT.Summon.BackfilledRolls", { count: done.length }));
+  }
+  return done;
+}
+
+/**
  * Roll a Master's setup lines onto an existing Master actor.
  *
  * @param {object} args
@@ -373,13 +422,12 @@ export function sheetPatch(lines, sheet, granted, warRegion = null) {
   patch.agility = { max: value("maxAgility"), value: value("maxAgility") };
   patch.luck = { max: value("maxLuck"), value: value("maxLuck") };
 
-  // Only STR and MAG move Base Attack, and only for **granted** steps — the
-  // sheet's own figure already accounts for the parameters it was written with.
-  const ba = baseAttackAdjustment(granted);
-  patch.baseAttack = {
-    str: (sheet?.baseAttack?.str ?? 0) + ba.str,
-    mag: (sheet?.baseAttack?.mag ?? 0) + ba.mag,
-  };
+  // Base Attack is NOT patched here. It is derived from STR and
+  // MAG by `ServantData#prepareBaseData`, which reads the `grantedSteps` written
+  // just below — so a granted step reaches Base Attack by moving the rank,
+  // exactly as an innate one does. Adding an adjustment here as well paid for
+  // the same step twice. The pre-table reading is quoted in
+  // `rules/setup-rolls.mjs`'s header; Ch. 41 Q50 has the author's answer.
 
   // The granted steps themselves, so the sheet can show "B (granted +1)" rather
   // than silently displaying a rank the Servant was not written with.
