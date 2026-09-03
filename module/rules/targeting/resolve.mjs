@@ -196,6 +196,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   const kinds = sel.kinds ?? null;
   survivors = survivors.filter((u) => {
     if (kinds) return kinds.includes(u.kind) || drop(u, `a ${u.kind}; this ability targets ${kinds.join(" or ")}`);
+    // A Structure that names who may break it is asking to be attacked by
+    // them. *"Only Masters can destroy a Bloodmark, and it is done by SIMPLY
+    // ATTACKING IT"* -- a Normal Attack, which declares no `kinds` and would
+    // otherwise be refused by the blanket exclusion below. Everybody else is
+    // still refused, at step 8b-ii and with a reason that names the kinds.
+    if (u.kind === "structure" && (u.destroyableBy ?? []).includes(caster.kind)) return true;
     if (u.kind === "platform" || u.kind === "structure") return drop(u, `a ${u.kind}`);
     return true;
   });
@@ -252,6 +258,16 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     );
     if (survivors.length < before) warnings.push("Protected Masters were excluded.");
   }
+  // 8b-ii. WHO MAY BREAK IT. *"Only Masters can destroy a Bloodmark, and it is
+  //     done by simply Attacking it."* A property of the OBJECT rather than of
+  //     the attacker, so it is refused with a reason instead of letting a
+  //     Servant swing at something it can never break.
+  survivors = survivors.filter((u) => {
+    const allowed = u.destroyableBy ?? [];
+    return allowed.length === 0 || allowed.includes(caster.kind)
+      || drop(u, `destructible only by ${allowed.join(" or ")}`);
+  });
+
   // 8c. FACING and CLEAR PATH — Medusa's Mystic Eyes is the only ability in
   //     the corpus that asks either, which is exactly what D44.8 decided: no
   //     general line of sight, a per-ability predicate instead.

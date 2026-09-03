@@ -116,6 +116,12 @@ export function snapshotUnit(actor, {
     // the would-be holder, its Master, and the distance between them at once.
     cannotHoldItems: Boolean(sys.cannotHoldItems),
     itemHandling: sys.itemHandling ?? "hold",
+    // Structure-only (Ch. 43 §43.10). Who may break this object, and how near
+    // a viewer must be to see it -- the first is a targeting filter and the
+    // second is presentation, never state.
+    destroyableBy: [...(sys.destroyableBy ?? [])],
+    visibleWithin: sys.visibleWithin ?? null,
+    placedById: sys.placedById ?? null,
     defeated: Boolean(sys.defeated),
 
     // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and

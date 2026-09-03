@@ -1,0 +1,26 @@
+# Medusa, char_orig_sheets/Copia de Medusa.md
+#
+# "Using the 'Mark' Action places a Bloodmark on the panel Medusa is standing
+# on, and counts as her Attack for the Turn. Bloodmarks can be placed on any
+# panel, even within enemy Home Bases. ... Only Masters can destroy a
+# Bloodmark, and it is done by simply Attacking it, Bloodmarks can only be seen
+# from a distance of 3 cells Maximum."
+#
+# A `Structure` actor, which §43.10 chose so that targeting, destruction,
+# visibility and Health all come from the unit model rather than from a bespoke
+# object layer. `StructureData` has been a registered actor type with NO
+# CONTENT since the types were declared; this is its first.
+schema: 1
+id: bloodmark
+name: "Bloodmark"
+type: structure
+attributes: [structure, mark]
+# It is destroyed by being Attacked, so it needs Health to lose -- one point,
+# because the sheet gives no figure and "simply Attacking it" is a single act
+# rather than a damage race.
+baseHealth: 1
+mov: 0
+range: { panels: 0, targets: 0 }
+baseAttack: { str: 0, mag: 0 }
+destroyableBy: [master]
+visibleWithin: 3

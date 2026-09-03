@@ -1,0 +1,97 @@
+# Medusa, char_orig_sheets/Copia de Medusa.md
+#
+# The only bounded field in the corpus that is BUILT rather than cast, and the
+# only one with no duration at all -- Ch. 43's `expiry: onOwnerDefeat` exists
+# for this ability alone.
+schema: 1
+id: medusa-blood-fort-andromeda
+name: "Blood Fort Andromeda: Outer-Seal, Blood Temple"
+# `isNP` + `kind`, the corpus convention: every document in `abilities/`
+# compiles as an `ability` item, and an NP is one that says so.
+isNP: true
+kind: noblePhantasm
+slug: bloodFortAndromeda
+rank: B
+npTags: [antiArmy]
+# No cooldown line on the sheet: it is not cast, it is assembled, and the four
+# Mark Actions are its cost.
+isPassive: true
+description: |
+  (Passive) To use this Noble Phantasm, Medusa has to first Mark the four corner panels of a
+  5x5, 7x7, or 9x9 panel area; these Marks are Bloodmarks. The 'Mark' Action places a Bloodmark
+  on the panel Medusa is standing on and counts as her Attack for the Turn. Bloodmarks can be
+  placed on any panel, even within enemy Home Bases.
+
+  If all four Bloodmarks are complete, Blood Fort Andromeda is activated. Only Masters can
+  destroy a Bloodmark, by Attacking it; Bloodmarks can only be seen from a distance of 3 cells
+  maximum. Once activated it is continuously Active until Medusa is defeated.
+
+  It affects all Units within its area excluding Medusa and her Master:
+  Normal Human: immediately dies; Medusa or her Master heals 100 Health and 1 Agility.
+  Master, non-normal Human: loses 40 Health at the end of every Turn it Acts within the area.
+  Servant, non-Human: loses 20 Health at the end of every Turn it Acts within the area.
+  The total Health lost from all affected victims heals either or both Medusa and her Master,
+  and cannot exceed the amount drained. The effects are halved against 'Mechanical' Units.
+field:
+  geometry:
+    # The four corners decided it, four Actions and at least four Turns ago.
+    # `panelsOf` reads a stored `panels` for this kind because there is no
+    # shape spec to recompute it from.
+    kind: markDefined
+  # NO duration. "Continuously Active until Medusa is defeated" is the only
+  # such field in the game, and the owner-defeat vulnerability below is the
+  # whole of its lifecycle.
+  duration: null
+  vulnerabilities:
+    - kind: ownerDefeat
+      result: end
+  interiorEvents:
+    # "Normal Human: Immediately dies. Either Medusa or her Master heals 100
+    # Health and 1 Agility."
+    #
+    # `creditOwner` so the kill is Medusa's: Independent Action pays her 1◈ of
+    # Sustainability per Civilian she kills while Free, and a death the FIELD
+    # took credit for would quietly stop paying her -- the same reason Jack's
+    # Mist carries the flag.
+    - event: turnEnd
+      relations: [enemy, ally, neutral]
+      # "This NP constantly affects all Units within its area EXCLUDING MEDUSA
+      # AND HER MASTER." The owner is always excluded; the owner's Master needs
+      # the flag Sikera Usum introduced for the same clause.
+      excludeOwnerMaster: true
+      kinds: [civilian]
+      onFail:
+        - { key: Defeat, cause: bloodFort, creditOwner: true }
+        - { key: Heal, target: owner, amount: 100 }
+        - { key: StatDelta, target: owner, stat: agility.value, delta: 1 }
+
+    # "Master, non-normal Human: Loses 40 Health at the end of every Turn it
+    # ACTS within Bloodfort Andromeda." A Unit that never Acted has nothing to
+    # trigger the clause with, which `requiresActed` already asks.
+    #
+    # `HealthLoss`, not `Damage`: the sheet calls it losing Health and the
+    # total is what heals Medusa, so running it through the pipeline would let
+    # Def Up and Magic Resistance change how much she gains.
+    - event: turnEnd
+      relations: [enemy, ally, neutral]
+      kinds: [master]
+      excludeOwnerMaster: true
+      requiresActed: true
+      # "The effects of this NP is halved against Units with the 'Mechanical'
+      # Attribute." One clause over every tier, so it is stated once on the
+      # event rather than three times as extra branches.
+      halveIf: ["self:attribute:mechanical"]
+      payout: [owner, ownerMaster]
+      onFail:
+        - { key: HealthLoss, amount: 40 }
+
+    # "Servant, non-Human: Loses 20 Health at the end of every Turn it Acts."
+    - event: turnEnd
+      relations: [enemy, ally, neutral]
+      kinds: [servant, summon]
+      excludeOwnerMaster: true
+      requiresActed: true
+      halveIf: ["self:attribute:mechanical"]
+      payout: [owner, ownerMaster]
+      onFail:
+        - { key: HealthLoss, amount: 20 }

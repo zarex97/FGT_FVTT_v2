@@ -140,6 +140,10 @@ export const PACKS = Object.freeze({
   masters: { pack: "masters", documentType: "Actor", actorType: "master" },
   platforms: { pack: "servants", documentType: "Actor", actorType: "platform" },
   summons: { pack: "servants", documentType: "Actor", actorType: "summon" },
+  // Destructible objects that define or carry a field. Medusa's Bloodmarks are
+  // the first; §43.10 ruled them `Structure` actors precisely so that
+  // targeting, destruction, visibility and Health all come for free.
+  structures: { pack: "servants", documentType: "Actor", actorType: "structure" },
 });
 
 /* -------------------------------------------------------------------------- */
@@ -975,6 +979,10 @@ function actorSystem(doc) {
     // which is the fourth time that has happened -- see `unitKeyCoverage` in
     // `tools/validate-content.mjs`, added so it is the last.
     itemHandling: doc.itemHandling ?? "hold",
+    // Structure-only (Ch. 43 §43.10). "Only Masters can destroy a Bloodmark",
+    // and "Bloodmarks can only be seen from a distance of 3 cells Maximum".
+    destroyableBy: doc.destroyableBy ?? [],
+    visibleWithin: doc.visibleWithin ?? null,
     // Agility and Luck as STATED numbers (§6.3: Agility is the number you roll
     // under, not a rank), which only summons and platforms carry -- Bašmu's
     // "Agility: 14 / Luck: 7", the four Dragon Tooth Warriors, the Hanging

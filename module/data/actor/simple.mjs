@@ -150,6 +150,41 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
 
 export class StructureData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
-    return { ...unitCommon() };
+    const fields = foundry.data.fields;
+    return {
+      ...unitCommon(),
+
+      // "Only Masters can destroy a Bloodmark, and it is done by simply
+      // Attacking it." A list of unit KINDS, empty meaning anybody -- the
+      // targeting filter refuses everyone else with a reason.
+      destroyableBy: new fields.ArrayField(new fields.StringField({ blank: false })),
+
+      // "Bloodmarks can only be seen from a distance of 3 cells Maximum."
+      // Per-viewer and PRESENTATION ONLY, the same ruling D44.9 made for
+      // Disguise: a hidden mark is still on the board for every rule, so
+      // hiding it can never desynchronize state.
+      visibleWithin: new fields.NumberField({
+        required: false, nullable: true, initial: null, integer: true, min: 0,
+      }),
+
+      // Which field this object belongs to, so tearing the field down takes
+      // its marks with it and destroying a mark can end the field.
+      fieldId: new fields.StringField({ required: false, nullable: true, initial: null }),
+
+      // Who put it there. NOT `summonerId`, which is declared on `SummonData`
+      // alone -- writing to a field this type does not have is how the first
+      // four Bloodmarks placed themselves and then could not be found again.
+      placedById: new fields.DocumentIdField({ required: false, nullable: true, initial: null }),
+
+      // Where it stands, written at placement rather than read back off the
+      // token. A Structure never moves, and the token index lags its own
+      // creation -- the fourth Bloodmark completed no square because its token
+      // was not yet queryable when the check ran. Note `panels` on a unit is
+      // `range.panels`, a NUMBER: this needed a name of its own.
+      panel: new fields.SchemaField({
+        i: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+        j: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+      }, { required: false, nullable: true, initial: null }),
+    };
   }
 }

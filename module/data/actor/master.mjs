@@ -3,15 +3,30 @@
  * @see docs/16-relationships.md
  */
 
-import { unitCommon } from "./_shared.mjs";
+import { unitCommon, combatantCommon } from "./_shared.mjs";
 
 const fields = foundry.data.fields;
 
 export class MasterData extends foundry.abstract.TypeDataModel {
   /** @inheritdoc */
   static defineSchema() {
+    // A Master keeps a turn and round record, and nothing else from
+    // `combatantCommon` -- that helper is Servant-shaped (parameters, Base
+    // Attack, normal attack, Sustainability) and a Master has none of it.
+    //
+    // Masters move, attack and spend Command Spells, and none of it was ever
+    // recorded: every `turnState` question asked of a Master answered
+    // `undefined`, so any clause predicated on one could not be true. Blood
+    // Fort Andromeda's middle tier is *"Master ... loses 40 Health at the end
+    // of every Turn it ACTS within Bloodfort Andromeda"*, and it could never
+    // have fired. Taken from the one definition rather than restated, so the
+    // two records cannot drift.
+    const { turnState, roundState } = combatantCommon();
+
     return {
       ...unitCommon(),
+      turnState,
+      roundState,
       // A–D (Ch. 04 §4.5), or blank for Rankless — a real state with rules of
       // its own (Ch. 17 prices an all-Rankless table differently), not a
       // missing value.

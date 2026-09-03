@@ -212,6 +212,19 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **Blood Fort Andromeda** (Ch. 43) — the only bounded field in the corpus that is **built
+  rather than cast**, and the only one with no duration at all. Four `Mark` Actions over four
+  Turns place `Structure` actors; the fourth completes a 5×5, 7×7 or 9×9 square and the area
+  opens, running until Medusa is defeated. `markDefined`, `Structure` content, and Ch. 43's
+  `ownerDefeat` lifecycle all existed as specification with nothing implementing them.
+- **A field may drain its victims and pay the total to somebody else** — the first interior
+  event that takes from one set of units and gives to another, with the cap that couples them
+  (*"cannot exceed the amount of Health drained"*) enforced in the rules layer rather than
+  trusted to the content. `halveIf` states *"halved against Mechanical Units"* once for every
+  tier instead of doubling the branches.
+- **A Structure may name who can break it.** `destroyableBy` is both an opt-in — platforms and
+  structures are excluded from targeting unless an ability asks, and *"done by simply Attacking
+  it"* is a Normal Attack that asks for nothing — and a refusal for everybody else.
 - **Medusa's three Active skills** — Monstrous Strength (at the damage-step window), Monstrous
   Snake Metamorphosis, and Blood Temple, whose *"if Blood Fort Andromeda is Active"* branch is
   a new `self:fieldActive:<id>` option: a field this unit **owns** being open, wherever it is
@@ -295,6 +308,12 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Masters had no turn record at all.** `turnState` and `roundState` live in
+  `combatantCommon()`, which is Servant-shaped (parameters, Base Attack, normal attack,
+  Sustainability) and which `MasterData` does not take — so every `turnState` question asked of
+  a Master answered `undefined` and no clause predicated on one could be true. Blood Fort
+  Andromeda's middle tier is *"Master … loses 40 Health at the end of every Turn it **Acts**
+  within"*, and it could never have fired.
 - **A `check` phase on a Skill did nothing and said so only to the console.** `check` was an
   attack-path phase kind, so an Active Skill carrying one fell to `runPhases`'s `default` and
   warned. Medusa's Mystic Eyes is used on an enemy without a Combat Process, which is how it

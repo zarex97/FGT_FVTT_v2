@@ -10,7 +10,7 @@
 schema: 1
 id: medusa-monstrous-snake-metamorphosis
 name: "Monstrous Snake Metamorphosis"
-type: ability
+kind: skill
 source: personal
 rank: B
 cooldown: "4◈"

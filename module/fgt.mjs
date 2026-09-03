@@ -56,6 +56,7 @@ import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 import { ensurePassiveFields, syncDerivedFields } from "./engine/fields.mjs";
 import { ensureSetupRolls } from "./engine/summon.mjs";
+import { syncMarkVisibility } from "./engine/marks.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
 import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
@@ -232,6 +233,15 @@ Hooks.once("ready", () => {
   // a number no d20 can roll under: that Servant auto-fails every Evade and
   // Luck Check in silence. GM-gated and idempotent internally.
   ensureSetupRolls().catch((err) => console.error("FGT | Setup rolls:", err));
+  // Ch. 43 §43.10: *"Bloodmarks can only be seen from a distance of 3 cells
+  // Maximum."* Presentation only, GM-gated internally, and re-evaluated
+  // whenever anybody moves -- the question is positional, exactly like the
+  // aura index above.
+  syncMarkVisibility().catch((err) => console.error("FGT | Mark visibility:", err));
+  Hooks.on("updateToken", (_doc, changes) => {
+    if (!("x" in changes) && !("y" in changes)) return;
+    syncMarkVisibility().catch((err) => console.error("FGT | Mark visibility:", err));
+  });
   // §23.9's invalidation table, driving the canvas aura index and the overlays,
   // plus §25.10's round-boundary desync check.
   attachInvalidation();

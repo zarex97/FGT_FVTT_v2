@@ -33,6 +33,7 @@ import { platformCentre } from "../rules/platforms.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
+import { distributePool } from "../rules/fields/pool.mjs";
 
 /**
  * A field's shape, grown or shrunk by the war Region it is cast in.
@@ -96,7 +97,7 @@ export async function createField(ability, actor, board = null) {
  * @param {object} spec `ability.system.field`
  * @returns {Promise<object|null>} the created Region, or null
  */
-async function openField(ability, actor, snapshot, spec) {
+async function openField(ability, actor, snapshot, spec, { panels: givenPanels = null } = {}) {
   const scene = canvas?.scene ?? null;
   if (!spec || !scene) return null;
 
@@ -207,6 +208,13 @@ async function openField(ability, actor, snapshot, spec) {
   // centred on her is exactly 25 panels every one of which is within 2 -- the
   // largest legal opening, which is what a player who draws nothing wants.
   // Reshaping it is a separate control (§43.4).
+  // A `markDefined` field's shape was decided by four objects on the board over
+  // four Turns, so it arrives already computed. `panelsOf` reads a stored
+  // `panels` for this geometry kind and there is nothing else to derive it from.
+  if (givenPanels) {
+    field.panels = givenPanels;
+    runtime.panels = givenPanels;
+  }
   if (specGeometry?.kind === "freeform" && !field.panels) {
     field.panels = panelsOf({ ...runtime, geometry: { ...geometry, kind: "fixedArea" } }, snapshot);
     runtime.panels = field.panels;
@@ -492,6 +500,24 @@ export function shapeOf(panels, scene) { // eslint-disable-line no-unused-vars
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Open a `markDefined` field from the square its Marks completed.
+ *
+ * The one field in the corpus that is BUILT rather than cast: its area is the
+ * four corners Medusa spent four Actions placing, so it is handed in rather
+ * than derived from a shape spec.
+ *
+ * @param {object} ability the Noble Phantasm the marks belong to
+ * @param {object} actor its owner
+ * @param {{panels: object[], size: number}} square from `rules/bloodmarks.mjs`
+ * @returns {Promise<object|null>}
+ */
+export async function openFieldFromMarks(ability, actor, square) {
+  const spec = ability.system?.field ?? null;
+  if (!spec) return null;
+  return openField(ability, actor, currentBoard(), spec, { panels: square.panels });
+}
+
+/**
  * Close every field whose expiry has arrived, and every one whose owner is gone.
  *
  * The reader `duration` and `vulnerabilities` never had. A field with a
@@ -719,6 +745,13 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
 
   /** @type {object[]} */
   const out = [];
+  // Blood Fort Andromeda: *"The total Health lost from all affected victims is
+  // used to heal either or both Medusa and her Master."* The first interior
+  // event in the corpus that takes from one set of units and gives to another,
+  // so the amounts have to be summed across the whole pass before anything is
+  // paid out.
+  let pool = 0;
+
   for (const unit of inside) {
     // The check the Unit gets to avoid it. A success is a clean escape: the
     // sheet says "perform an Evade roll. If Failed, that Unit receives …", so
@@ -753,8 +786,19 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // game. It still reaches zero and `resolveDefeat` still notices, which
       // is the one thing "not damage" must NOT mean.
       if (action.key === "HealthLoss") {
-        const amount = Math.abs(action.amount ?? 0);
-        if (amount > 0) out.push(I.statDelta(unit.id, "health.value", -amount));
+        // *"The effects of this NP is halved against Units with the
+        // 'Mechanical' Attribute."* One clause covering every tier, so it is a
+        // property of the EVENT rather than three more branches -- authoring it
+        // per tier would state the same rule three times and let them drift.
+        const halve = spec.halveIf && testPredicate(spec.halveIf, {
+          options: rollOptionsFor({ attacker: unit }),
+        });
+        const amount = Math.floor(Math.abs(action.amount ?? 0) * (halve ? 0.5 : 1));
+        if (amount > 0) {
+          out.push(I.statDelta(unit.id, "health.value", -amount));
+          // What is drained is what may be paid out, and no more.
+          if (spec.payout) pool += amount;
+        }
         continue;
       }
 
@@ -801,6 +845,24 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // *"...then remove the 'GotN' effect from that Unit."* A field event that
       // takes something away, which only the discharge needs -- every other
       // action in this table gives.
+      // Blood Fort Andromeda's Civilian tier: *"Immediately dies. Either
+      // Medusa or her Master heals 100 Health and 1 Agility."* A fixed reward
+      // rather than a share of the drain -- it is stated as a flat number and
+      // is not part of the pooled total, so it does not go through `payout`.
+      //
+      // The first interior actions in the corpus that write to somebody OTHER
+      // than the unit the event landed on, which is why they take a `target`.
+      if (action.key === "Heal" || action.key === "StatDelta") {
+        const who = action.target === "ownerMaster" ? field.ownerMasterId
+          : action.target === "owner" ? field.ownerId
+            : unit.id;
+        if (!who) continue;
+        out.push(action.key === "Heal"
+          ? I.heal(who, Math.abs(action.amount ?? 0), field.id)
+          : I.statDelta(who, action.stat ?? "health.value", action.delta ?? 0));
+        continue;
+      }
+
       if (action.key === "RemoveEffect") {
         out.push(I.removeEffect(
           unit.id,
@@ -879,6 +941,23 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
           sourceUnitId: field.ownerId,
         }, field.ownerId));
       }
+    }
+  }
+
+  // *"The total Health lost from all affected victims is used to heal either or
+  // both Medusa and her Master (total amount healed between the two cannot
+  // exceed the amount of Health drained from victims)."*
+  //
+  // Paid AFTER the loop because the cap is on the total, and enforced by
+  // `distributePool` rather than trusted to the content: two beneficiaries and
+  // one pool means an uncapped split would pay the drain out twice.
+  if (spec.payout && pool > 0) {
+    const beneficiaries = [...(spec.payout ?? [])]
+      .map((who) => (who === "owner" ? field.ownerId : who === "ownerMaster" ? field.ownerMasterId : who))
+      .filter(Boolean)
+      .map((unitId) => ({ unitId }));
+    for (const heal of distributePool(pool, beneficiaries)) {
+      out.push(I.heal(heal.unitId, heal.amount, field.id));
     }
   }
   return out;

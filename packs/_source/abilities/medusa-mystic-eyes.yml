@@ -11,7 +11,7 @@
 schema: 1
 id: medusa-mystic-eyes
 name: "Mystic Eyes of Petrification: Cybele"
-type: ability
+kind: skill
 source: personal
 rank: "A+"
 cooldown: "4◈-⅓◈"
