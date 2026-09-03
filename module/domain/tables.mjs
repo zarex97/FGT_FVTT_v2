@@ -64,6 +64,35 @@ export const TABLES = Object.freeze({
     perStep: 1,
   },
 
+  /**
+   * Base Attack, per component, from the parameter that drives it.
+   *
+   * **The table is authoritative over the sheet.** The author states it
+   * outright: *"If you find a value of Base attack that differs from this
+   * calculation choose the value of this table instead of what is on the
+   * character sheet."* Three of the eleven authored Servants disagree -- Jack
+   * the Ripper (85 at STR C, table 100), Semiramis (45 at STR E, table 50) and
+   * Hassan of Serenity (65/100 at STR D MAG C, table 75/150) -- so this is a
+   * derivation, not a validation, and `rules/setup-rolls.mjs#baseAttackFor` is
+   * the one reader.
+   *
+   * Note the two grades are NOT the same shape: MAG starts at 100 and steps by
+   * 25 a grade, STR starts at 50 and steps by 25 too, but EX breaks the pattern
+   * on both (200 and 250, not 175 and 225). Hence a `byGrade` map rather than
+   * arithmetic on the ordinal.
+   */
+  baseAttackStrByStr: {
+    kind: "scaled",
+    byGrade: { EX: 200, A: 150, B: 125, C: 100, D: 75, E: 50 },
+    perStep: 10,
+  },
+
+  baseAttackMagByMag: {
+    kind: "scaled",
+    byGrade: { EX: 250, A: 200, B: 175, C: 150, D: 125, E: 100 },
+    perStep: 10,
+  },
+
   /* ------------------------------------------------------- noble phantasms */
 
   /** `[highRankOrRankless, lowRank]` Master Health cost. */

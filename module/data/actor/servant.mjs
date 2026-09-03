@@ -7,6 +7,7 @@ import { unitCommon, combatantCommon } from "./_shared.mjs";
 import { RankField } from "../fields.mjs";
 import { lookup } from "../../domain/tables.mjs";
 import { Rank } from "../../domain/rank.mjs";
+import { baseAttackFor } from "../../domain/base-attack.mjs";
 
 const fields = foundry.data.fields;
 
@@ -97,6 +98,21 @@ export class ServantData extends foundry.abstract.TypeDataModel {
    * @inheritdoc
    */
   prepareBaseData() {
+    // Base Attack is DERIVED from STR and MAG, and the table beats the sheet:
+    // *"if you find a value of Base attack that differs from this calculation
+    // choose the value of this table instead of what is on the character
+    // sheet."* Unconditional, unlike Max Health below, which fills only when
+    // unstated — Health has a stated-figure exception (Medea's 750) and Base
+    // Attack has none.
+    //
+    // Here rather than at summon so a Servant dragged straight onto the board
+    // is right too, and because it reads `grantedSteps` — which the summon
+    // patch writes — so the two compose instead of double-counting. Ch. 41 Q50.
+    //
+    // ABOVE the `undamageable` return: Pale Rider cannot be damaged but he
+    // still deals damage, and BA(MAG) 200 is what Contagion is priced from.
+    this.baseAttack = baseAttackFor(this);
+
     // Pale Rider: "Base Health: —". A Servant who cannot be damaged has no
     // Max Health to derive, and the END table would have given him one.
     if (this.undamageable) {

@@ -8,20 +8,55 @@
  * a way a sequence of side effects is not.
  *
  * The `granted` versus `base` distinction (Ch. 05 §5.6) is at its most visible
- * here. A **granted** parameter step moves Base Attack by ±10; an innate one
- * does not, because the sheet's Base Attack already accounts for it. Applying
- * the adjustment to both would pay a Servant twice for the rank it was written
- * with.
+ * here — though not, any longer, in Base Attack. This file used to hold that a
+ * granted parameter step moved Base Attack by ±10 while an innate one did not,
+ * *"because the sheet's Base Attack already accounts for it"*. The author has
+ * since supplied the conversion table and settled it the other way: Base Attack
+ * is DERIVED from STR and MAG, and *"if you find a value of Base attack that
+ * differs from this calculation choose the value of this table instead of what
+ * is on the character sheet."* So innate and granted steps are the same thing —
+ * both move the rank, and the rank picks the table row. `baseAttackFor` is the
+ * single reader; nothing adds a separate ±10 any more. See Ch. 41 Q50.
  */
 
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
+// Re-exported so the summon machinery and its tests keep one import site, while
+// the definition lives in `domain/` -- `data/actor/servant.mjs` derives Base
+// Attack in `prepareBaseData` and a data model may import from `domain` only.
+export { baseAttackFor } from "../domain/base-attack.mjs";
 
 /** Base Attack moves by this much per **granted** parameter step. */
 const BA_PER_GRANTED_STEP = 10;
 
 /** Which parameters move which Base Attack component. */
 const BA_COMPONENT = Object.freeze({ str: "str", mag: "mag" });
+
+/**
+ * Has this Servant never had its setup rolls made?
+ *
+ * Agility and Luck are the two stats that need a die (a coin for Agility, a d4
+ * for Luck), so unlike Health they cannot be derived on demand — they are
+ * rolled once and stamped. `engine/summon.mjs` does that, and the compendium
+ * drop is intercepted so the ordinary path is covered; an actor that arrives
+ * some other way (duplicated, built by a macro, imported) keeps the template's
+ * zeroes.
+ *
+ * A zero maximum is unambiguous evidence of that. The lowest row of either
+ * table is `E`, and even E is `10 + X` for Agility and `0 + 1d4` for Luck, so a
+ * Servant with a stated rank can never legitimately sit at 0. The failure is
+ * silent and total where it happens — Agility is the number you must roll
+ * *under*, so a maximum of 0 auto-fails every Evade — which is why it is worth
+ * detecting rather than trusting the creation paths.
+ *
+ * @param {object} sheet a Servant's system data
+ * @returns {boolean}
+ */
+export function needsSetupRolls(sheet) {
+  const stated = (parameter) => Rank.parseOrNull(sheet?.parameters?.[parameter]) !== null;
+  const unrolled = (stat) => !(sheet?.[stat]?.max > 0);
+  return (stated("agi") && unrolled("agility")) || (stated("luc") && unrolled("luck"));
+}
 
 /**
  * Everything a Servant's summon needs rolled, as a plan.

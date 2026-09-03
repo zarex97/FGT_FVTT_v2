@@ -181,6 +181,7 @@
   "FGT.Targeting.NothingCaught": "{name}: nothing in the area.",
   "FGT.Summon.Title": "Summon a Servant",
   "FGT.Summon.Button": "Summon",
+  "FGT.Summon.BackfilledRolls": "{count} Servant(s) had no setup rolls; Agility and Luck have been rolled.",
   "FGT.Summon.ContextEntry": "Summon this Servant",
   "FGT.Summon.Servant": "Servant",
   "FGT.Summon.PickServant": "Choose a Servant…",

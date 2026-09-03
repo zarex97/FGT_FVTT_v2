@@ -49,10 +49,29 @@ Seventeen sheets, no exceptions.
 |---|---|---|---|---|---|
 | 20 + 1d4 | 16 + 1d4 | 12 + 1d4 | 8 + 1d4 | 4 + 1d4 | 0 + 1d4 |
 
-### Base Attack
+### `baseAttackStrByStr` and `baseAttackMagByMag` — scaled, perStep ±10
 
-Not rank-derived — authored per Servant. Adjusted by **±10 per granted step**
-(Ch. 05 §5.6), where "granted" excludes the Servant's innate steps.
+| | EX | A | B | C | D | E |
+|---|---|---|---|---|---|---|
+| **BA(STR)** from STR | 200 | 150 | 125 | 100 | 75 | 50 |
+| **BA(MAG)** from MAG | 250 | 200 | 175 | 150 | 125 | 100 |
+
+Note EX breaks the pattern on both rows: the grades otherwise step by 25, and EX jumps by 50.
+
+**The table beats the sheet.** The author states it outright — *"if you find a value of Base
+attack that differs from this calculation choose the value of this table instead of what is on
+the character sheet"* — so this is a derivation, not a validation. Four figures across three
+transcribed sheets disagree and are overridden: Jack the Ripper (85 at STR C → 100), Semiramis
+(45 at STR E → 50) and Hassan of Serenity (65/100 at STR D MAG C → 75/150). The sheets keep the
+transcribed number — they are faithful records of the author's documents — and
+`npm run validate:content` names each divergence as a warning.
+
+**Granted steps move the rank, not the number.** *"Then on top of it the + or - from other
+sources (High Rank Master, Region)"*: a Region grant raises the parameter and the parameter picks
+the row. This appendix used to say Base Attack was *"not rank-derived — authored per Servant,
+adjusted by ±10 per granted step, where 'granted' excludes the Servant's innate steps."* That
+distinction is gone: innate and granted steps are the same operation now, and the separate ±10
+that `engine/summon.mjs` added was removed with it (it would double-count). Ch. 41 Q50.
 
 ---
 

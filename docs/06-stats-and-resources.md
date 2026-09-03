@@ -140,13 +140,22 @@ agility: Resource
 Agility is **not** a to-hit bonus. It is the number you must roll *under* on an Evade roll,
 and it is a depleting resource that combat grinds down.
 
-> **No Servant in the reference set states one.** All 29 sheets read `Agility: XX/XX` and
-> `Luck: XX/XX` — an unfilled placeholder — so every Servant compiles to 0, and a target of 0
-> is one no d20 can roll under. Every Servant Evade and Luck Check therefore fails
-> automatically today. Only the summons and platforms carry real numbers (Bašmu's 14 and 7, the
-> Dragon Tooth Warriors, the Hanging Gardens), and those the compiler now carries. Not derived
-> from the AGI rank, which would be an invention: Q8 settled the parallel case for MOV as
-> *authored per-Servant, not derived*. Ch. 41 Q50.
+**Where the number comes from.** A Servant sheet states `Agility: XX/XX`, because the value is
+**derived at summon** rather than authored: read the AGI rank off the table below, then flip a
+coin and add 2 on Heads or 1 on Tails (EX adds `1d4` instead), ±1 per rank step.
+
+| EX | A | B | C | D | E |
+|---|---|---|---|---|---|
+| 20 + 1d4 | 18 + X | 16 + X | 14 + X | 12 + X | 10 + X |
+
+Luck is the same shape with a `1d4` in place of the coin (Appendix B §B.1). Both need a die, so
+unlike Max Health and Base Attack they cannot be derived on demand — they are rolled once and
+stamped by `engine/summon.mjs`. A Servant that reaches the world by some other route keeps the
+template's zeroes, and a maximum of 0 is a number no d20 can roll under, so it would auto-fail
+every Evade in silence; `ensureSetupRolls` catches that at `ready`. Ch. 41 Q50.
+
+Summons and platforms state theirs outright instead — Bašmu's *"Agility: 14 / Luck: 7"* — and
+carry no AGI or LUC rank at all, so there is nothing to derive and nothing to roll.
 
 **Consumption:**
 - **Injury Roll** — after surviving an attack that dealt >100 damage, roll and subtract the
@@ -297,13 +306,31 @@ ability). The ability model distinguishes `rangeDelta` from `rangeOverride`.
 baseAttack: { str: DerivedScalar; mag: DerivedScalar }
 ```
 
-The raw numbers before any multiplier. Authored per-Servant.
+The raw numbers before any multiplier. **Derived from STR and MAG**, not authored:
+
+| From | EX | A | B | C | D | E | Per step |
+|---|---|---|---|---|---|---|---|
+| BA(STR) from STR | 200 | 150 | 125 | 100 | 75 | 50 | ±10 |
+| BA(MAG) from MAG | 250 | 200 | 175 | 150 | 125 | 100 | ±10 |
+
+Sheets state a figure as well, and where the two disagree **the table wins** — the author says
+so outright: *"if you find a value of Base attack that differs from this calculation choose the
+value of this table instead of what is on the character sheet."* Four figures across three
+transcribed sheets are overridden (Appendix B §B.1 names them). The authored number survives only
+for a unit with no parameters to derive from, which is every summon and platform.
+
+Derived in `ServantData#prepareBaseData`, so a Servant dragged straight onto the board is right
+without being summoned — the same place and for the same reason Max Health is.
+
+A **granted** parameter step (§5.6) needs no separate arithmetic: it moves the rank, and the rank
+picks the row. This section used to list *"Setup parameter grants: ±10 per added step"* as a
+modifier alongside `Burn` and `Pigify`, and `engine/summon.mjs` applied it — correct while the
+sheet was the base, a double count now. Ch. 41 Q50.
 
 **Modifiers:**
 
 | Source | Effect |
 |---|---|
-| Setup parameter grants | `±10` per added step (§5.6) |
 | `Burn` | `−30` (to STR and MAG — see Ch. 41, the source has a literal `?`) |
 | Kiritsugu's `Kiritsugu` debuff | both halved, ignores resistance, unremovable, no stack |
 | `Pigify` | both reduced to 10% |

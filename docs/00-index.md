@@ -81,7 +81,7 @@ sufficient to implement the system without further reference to the original doc
 | 38 | [Testing Strategy](38-testing-strategy.md) | Unit-testing a rules engine, golden-file combat tests, property tests for geometry |
 | 39 | [Migration and Versioning](39-migration-and-versioning.md) | Schema versioning, data migration, rule-version pinning for in-progress games |
 | 40 | [Roadmap](40-roadmap.md) | Milestones, sequencing, what "done" means per phase |
-| 41 | [Open Questions](41-open-questions.md) | Q1–Q40 answered by the game's author; Q41–Q50 still open |
+| 41 | [Open Questions](41-open-questions.md) | Q1–Q40 and Q50 answered by the game's author; Q41–Q49 still open |
 | 42 | [Terrain](42-terrain.md) | The 21 terrain types, the directional overlap matrix, and day/night as a per-panel property |
 | 43 | [Bounded Fields](43-bounded-fields.md) | The third area family: enclosed NP zones with their own membership, permeability and escape rules |
 | 44 | [Case Studies: The Expanded Roster](44-case-expanded-roster.md) | Everything the 17 added Servants demanded, grouped by mechanism |

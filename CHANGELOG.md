@@ -212,6 +212,18 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **Base Attack is derived from STR and MAG, and the table beats the sheet** (Ch. 06 §6.7,
+  Appendix B §B.1). `domain/base-attack.mjs`, read by `ServantData#prepareBaseData` so a Servant
+  dragged straight onto the board is right without being summoned. Four authored figures across
+  three sheets disagreed with the author's own table and were being played with: Jack the Ripper
+  (85 at STR C → 100), Semiramis (45 at STR E → 50) and Hassan of Serenity (65/100 at STR D
+  MAG C → 75/150). The sheets keep the transcribed number — they are faithful records — and
+  `validate:content` names each divergence.
+- **`ensureSetupRolls`, a safety net for a Servant that never passed through `commitSummon`.**
+  Agility and Luck need dice, so unlike Health and Base Attack they are rolled once and stamped
+  rather than derived on demand. The ordinary routes were covered; one duplicated, built by a
+  macro or imported kept the template's zeroes — and a maximum of 0 is a number no d20 can roll
+  under, so that Servant auto-failed every Evade in silence. Idempotent, GM-gated, announced.
 - **An item acquisition seam** (Ch. 15 §15.8). The rulebook describes one way to obtain an item
   — being handed one — and "Items held" is blank on all 29 Servant sheets, so this is a seam
   rather than a subsystem: the two writers that can put an item on a unit both ask
@@ -227,18 +239,29 @@ coincide by accident; the headings say which is which.
   named the failure mode without preventing it. `unitKeyCoverage` compares the authored keys
   against the compiler's own output, so it covers a field added tomorrow.
 
-### Open
+### Corrected
 
-- **Q50 — no Servant states an Agility or a Luck.** All 29 sheets read `Agility: XX/XX` and
-  `Luck: XX/XX`, an unfilled placeholder, so every Servant compiles to 0 — and 0 is a target no
-  d20 can roll under, which means **every Servant Evade and Luck Check fails automatically**.
-  Not derived from the AGI rank, because that would be an invention: §6.3 makes Agility a
-  depleting resource rather than a function of a parameter, and Q8 already settled the parallel
-  case for MOV as *authored per-Servant, not derived*. Two numbers per sheet from the author and
-  it is pure content. Recorded rather than guessed; Ch. 41 Q50 and Ch. 06 §6.3.
+- **We reported that every Servant auto-fails every Evade and Luck Check. It was narrower than
+  that.** `Agility: XX/XX` on a Servant sheet is not a blank the author forgot; it is a value
+  derived at summon, and `rules/setup-rolls.mjs` had been deriving it correctly since it was
+  written. A Servant summoned through the dialog or dropped from the compendium has always had
+  the right numbers. Only one that reached the world by another route — duplicated, built by a
+  macro, imported — kept the zeroes, and only that Servant auto-failed.
+
+### Answered
+
+- **Q50 — Agility, Luck and Base Attack are all derived from parameters.** The author supplied
+  the conversion table: Agility and Luck from AGI and LUC with a coin flip and a `1d4`
+  respectively (±1 per step), Base Attack from STR and MAG (±10 per step), alongside the Health
+  table already implemented. Two things follow, and one of them corrects us.
 
 ### Fixed
 
+- **A granted parameter step was moving Base Attack twice.** `engine/summon.mjs` added ±10 per
+  granted step on the reasoning — written into `rules/setup-rolls.mjs`'s own header — that *"the
+  sheet's Base Attack already accounts for the parameters it was written with"*. True while the
+  sheet was the base; a double count now that the rank picks the row. The adjustment is gone and
+  granted steps reach Base Attack the same way innate ones do.
 - **Every summon's and platform's stated Agility and Luck were being dropped.** Found by the new
   guard on its first run. Bašmu's sheet says *"Agility: 14 / Luck: 7"* and it compiled to 0 and
   0, as did the four Dragon Tooth Warriors and the Hanging Gardens — so each of them has evaded

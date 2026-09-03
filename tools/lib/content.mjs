@@ -15,7 +15,7 @@ import { createHash } from "node:crypto";
 import { Rank } from "../../module/domain/rank.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
 import { referencedOptions } from "../../module/rules/predicate.mjs";
-import { TABLES } from "../../module/domain/tables.mjs";
+import { TABLES, lookup } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS } from "../../module/rules/targeting/vocabulary.mjs";
 import { MODIFIER_KEYS } from "../../module/rules/damage/pipeline.mjs";
@@ -309,6 +309,48 @@ const NON_SYSTEM_UNIT_KEYS = new Set([
  * @param {string} path
  * @param {string[]} problems
  */
+/**
+ * Does an authored Base Attack agree with the parameter it derives from?
+ *
+ * A **warning**, not an error, and the file is left as written. These sheets
+ * are transcriptions of the author's own documents, and the author has since
+ * ruled that where the two disagree *"choose the value of this table instead of
+ * what is on the character sheet"* — so the transcription stays faithful and
+ * the derivation wins at runtime. The warning is what keeps the divergence
+ * visible instead of silent.
+ *
+ * Three diverge today: Jack the Ripper (85 at STR C), Semiramis (45 at STR E)
+ * and Hassan of Serenity (65/100 at STR D MAG C).
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} warnings
+ */
+function baseAttackAgreesWithTable(doc, path, warnings) {
+  const authored = doc.baseAttack;
+  if (!authored) return;
+  for (const [parameter, component, table] of [
+    ["str", "str", "baseAttackStrByStr"],
+    ["mag", "mag", "baseAttackMagByMag"],
+  ]) {
+    const rank = Rank.parseOrNull(doc.parameters?.[parameter]);
+    if (!rank) continue;                       // nothing to derive from
+    const derived = lookup(table, rank);
+    if (typeof derived !== "number") continue;
+    if (authored[component] === derived) continue;
+    warnings.push(
+      `${path}: Base Attack (${component.toUpperCase()}) is ${authored[component]} but `
+      + `${parameter.toUpperCase()} ${rank} derives ${derived}; the TABLE is used `
+      + "(Ch. 41 Q50) and the sheet's figure is ignored",
+    );
+  }
+}
+
+/**
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
 function unitKeyCoverage(doc, path, problems) {
   let system;
   try {
@@ -335,7 +377,10 @@ function unitKeyCoverage(doc, path, problems) {
  * @param {string} [dir] the source directory, which selects the requirement vocabulary
  */
 function validateDocument(doc, path, library, problems, warnings, dir = "") {
-  if (PACKS[dir]?.documentType === "Actor") unitKeyCoverage(doc, path, problems);
+  if (PACKS[dir]?.documentType === "Actor") {
+    unitKeyCoverage(doc, path, problems);
+    baseAttackAgreesWithTable(doc, path, warnings);
+  }
 
   // Ranks
   for (const [field, value] of rankFields(doc)) {
