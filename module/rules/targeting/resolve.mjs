@@ -611,7 +611,15 @@ function candidatePlacements(spec, caster, board, max) {
     // Mode A. Four directions, always all four, so the player sees the choice
     // rather than discovering it.
     case "selfEdgeAdjacent":
-      return ["n", "e", "s", "w"].map((direction) => ({ direction }));
+      // Eight for a shape that says so. Bellerophon *"hits a 1x13 or 13x1
+      // panel area in a straight line IN ANY DIRECTION (INCLUDING DIAGONAL)"*,
+      // and `domain/geometry.mjs#line` has stepped a diagonal correctly since
+      // it was written -- `DELTA` holds all eight compass values too. Only
+      // this picker was cardinal-only, so a diagonal line was expressible and
+      // unofferable. Ch. 44 §44.3 reads it as a geometry gap; it was not.
+      return (spec.shape?.directions === "all"
+        ? ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
+        : ["n", "e", "s", "w"]).map((direction) => ({ direction }));
 
     // Mode B. Every panel the anchor could legally sit on, plus the panels just
     // outside it -- the overlay needs to draw the boundary, not only its inside.

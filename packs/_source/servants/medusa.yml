@@ -34,7 +34,7 @@ abilities:
   # Riding A+ is the ONE instantiation in the corpus whose Riding Attack and
   # Passenger Seat are unlocked BY the Active rather than being permanent
   # passives, so it refs its own document rather than `class-riding`.
-  - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
+  - { ref: class-riding-medusa, rank: "A+", cooldown: "3◈-⅓◈" }
   - { ref: class-magic-resistance, rank: B }
   # E- is the first sub-E rank in the corpus. No new document: the `divinity`
   # table is scaled at ±5 per step and already answers 5 at E-, which its own
@@ -46,6 +46,7 @@ abilities:
   - { ref: medusa-mystic-eyes }
   - { ref: medusa-blood-temple }
   - { ref: medusa-blood-fort-andromeda }
+  - { ref: medusa-bellerophon }
 
 
 # "(Passive 4) Every time Medusa kills a Civilian when she is a Free Servant,

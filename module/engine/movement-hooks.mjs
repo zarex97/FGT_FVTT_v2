@@ -15,13 +15,17 @@
  * authoritative check lives here (Ch. 08 §8.3).
  */
 
-import { validatePath, remainingMovement, segmentCheck, pursuitVerdict } from "../rules/movement.mjs";
+import {
+  validatePath, remainingMovement, segmentCheck, pursuitVerdict,
+  passengerDestination, occupantAt,
+} from "../rules/movement.mjs";
 import { unitSnapshot, currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { movePlatform } from "../rules/platforms.mjs";
+import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
 
 export const Movement = {
@@ -166,6 +170,16 @@ async function onMove(document, movement, operation) {
   // bookkeeping, so a passenger is already where it belongs by the time
   // anything reads the board.
   if (actor.type === "platform") await carryPassengers(actor, document, movement);
+
+  // Riding's Passenger Seat: *"The Servant's Master can Move together with its
+  // Servant; after Moving, both Servant and Master must be in the same
+  // orientation/position prior to the Move. Counts as only Moving one Unit."*
+  //
+  // The same shape as the platform carry above and for the same reason -- the
+  // delta comes from the MOVEMENT, because at `moveToken` the document still
+  // reports the origin. `GRANTS.passengerSeat` has existed with no reader
+  // since grants were written; this is it.
+  await carryMaster(actor, movement);
 
   const unit = unitSnapshot(actor, document);
   const spent = panelsMoved(movement);
@@ -328,6 +342,42 @@ export function movementAllowance(actor) {
  *
  * @param {object} actor the platform
  * @param {object} document its token
+ * @param {object} movement
+ * @returns {Promise<void>}
+ */
+async function carryMaster(actor, movement) {
+  const board = currentBoard();
+  const servant = board.units.find((u) => u.id === actor.id);
+  if (!servant || !hasGranted(servant, GRANTS.passengerSeat)) return;
+
+  const master = board.units.find((u) => u.id === servant.masterId);
+  if (!master?.panel || master.defeated) return;
+
+  const from = movement?.origin;
+  const to = movement?.destination;
+  if (!from || !to || !canvas?.grid) return;
+  const origin = canvas.grid.getOffset(from);
+  const destination = canvas.grid.getOffset(to);
+
+  const landing = passengerDestination(
+    { i: origin.i, j: origin.j }, { i: destination.i, j: destination.j },
+    master.panel, board.bounds ?? null,
+  );
+  if (!landing || (landing.i === master.panel.i && landing.j === master.panel.j)) return;
+  // Somebody is standing there: the Master stays rather than being stacked.
+  if (occupantAt(landing, board, master.level ?? 0)) return;
+
+  const token = game.actors.get(master.id)?.getActiveTokens?.()[0]?.document;
+  if (!token) return;
+  const size = canvas.scene.grid.size;
+  // Displacement, not a Move of its own -- *"counts as only Moving one Unit"*,
+  // so it spends nothing and is not re-validated as a voluntary step.
+  await token.update({ x: landing.j * size, y: landing.i * size }, { fgtForced: true });
+}
+
+/**
+ * @param {object} actor
+ * @param {object} document
  * @param {object} movement
  * @returns {Promise<void>}
  */

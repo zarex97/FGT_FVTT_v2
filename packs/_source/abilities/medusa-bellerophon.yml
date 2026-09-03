@@ -1,0 +1,48 @@
+# Medusa, char_orig_sheets/Copia de Medusa.md
+#
+# "Base Attack (MAG) is used. Hits a 1x13 or 13x1 panel area in a straight line
+# in any direction (including diagonal) next to Medusa for 4x damage plus 100.
+# Then, applies Crit Up for 1◈ Turns, Crit Chance is increased by 30%. Not
+# affected by Magic Resistance. Cooldown: 7◈+⅓◈ Turns.
+#  Note: Hits in both directions (Front and back); but only hits in one
+#  direction (Front) if playing on the Large Board."
+schema: 1
+id: medusa-bellerophon
+name: "Bellerophon: Bridle of Chivalry - Pegasus"
+isNP: true
+kind: noblePhantasm
+slug: bellerophon
+rank: "A+"
+npTags: [antiArmy]
+cooldown: "7◈+⅓◈"
+description: |
+  Base Attack (MAG) is used. Hits a 1x13 or 13x1 panel area in a straight line in any direction
+  (including diagonal) next to Medusa for 4x damage plus 100. Then, applies Crit Up for 1◈
+  Turns, Crit Chance is increased by 30%. Not affected by Magic Resistance.
+  Cooldown: 7◈+⅓◈ Turns.
+
+  Hits in both directions (Front and back); but only hits in one direction (Front) if playing
+  on the Large Board.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape:
+    kind: line
+    length: 13
+    width: 1
+    # "in any direction (including diagonal)" -- eight ghost previews rather
+    # than four. The geometry always handled a diagonal; the picker did not.
+    directions: all
+    # "Hits in both directions ... but only one direction on the Large Board."
+    bidirectional: unlessLargeBoard
+  selection: { relations: [enemy], chooser: all }
+damage:
+  multiplier: 4
+  flatBonus: 100
+  component: mag
+  ignoresMagicResistance: true
+phases:
+  - kind: applyEffects
+    when: afterDamage
+    target: self
+    rules:
+      - { effect: { id: critUp, magnitude: 30 }, duration: "1◈" }

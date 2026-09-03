@@ -157,12 +157,30 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     throw new Error("FGT | No attacks are permitted during the first Round.");
   }
 
-  const spec = targetSpecFor(attacker, ability, options);
+  // A Riding Attack supplies its own target list: *"Can Attack all Units in
+  // its path while Moving in a straight line as its Normal Attack"*, and a
+  // Normal Attack's own spec picks ONE unit. The path decided who is hit
+  // before this was called, so the shape is a straight-line multi-target for
+  // this declaration only -- not a change to what a Normal Attack is.
+  const spec = placement?.pathTargets
+    ? {
+      anchor: { kind: "self" },
+      shape: { kind: "unit" },
+      selection: { relations: ["enemy"], chooser: "all" },
+      pathTargets: placement.pathTargets,
+    }
+    : targetSpecFor(attacker, ability, options);
   // The scale travels with the placement so the isolation filter can honour a
   // field's `piercedBy` -- see `rules/targeting/resolve.mjs` step 4c.
-  const targets = resolveTargets(spec, self, board, {
-    ...placement, npTags: [...(ability?.system?.npTags ?? [])],
-  });
+  const targets = spec.pathTargets
+    ? {
+      units: spec.pathTargets.map((id) => ({ unitId: id, distance: 0, band: 0, relation: "enemy" })),
+      panels: [], anchor: {}, warnings: [], errors: [], needsChoice: false,
+      candidates: [], excluded: [],
+    }
+    : resolveTargets(spec, self, board, {
+      ...placement, npTags: [...(ability?.system?.npTags ?? [])],
+    });
 
   if (targets.errors.length > 0) {
     throw new Error(`FGT | Illegal attack: ${targets.errors.join(" ")}`);
@@ -794,6 +812,26 @@ function coverModifiersFor(state, defender) {
     return [{ key: "cover", factor: cover.factor, source: "covering its Master" }];
   }
   return [];
+}
+
+/**
+ * Is this the Process a once-per-Phase effect should be paid on?
+ *
+ * A fan-out is one Combat Phase and many Processes. Anything the ability does
+ * to its own USER happens once, so it is pinned to the first message of the
+ * group — a stable choice every client makes the same way, rather than "whoever
+ * finishes first".
+ *
+ * @param {object} state
+ * @returns {boolean}
+ */
+function isFirstOfGroup(state) {
+  const siblings = siblingMessages(state);
+  if (siblings.length <= 1) return true;
+  const first = siblings
+    .map((m) => process.deserialize(m.getFlag("fgt", "process")))
+    .find(Boolean);
+  return !first || first.defenderId === state.defenderId;
 }
 
 /**
@@ -2248,6 +2286,28 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // Process, and `applyEffects` is its post-damage rider step, both of
     // which resolve per DEFENDER rather than once per caster.
     if (phase.kind !== "applyEffects" && phase.kind !== "applyEffect") continue;
+
+    // A rider aimed at the ATTACKER. Bellerophon is the first: *"Then, applies
+    // Crit Up for 1◈ Turns"* -- to Medusa, after her own damage lands. This
+    // loop read no `target` at all and applied everything to the defender, so
+    // a self-buff would have gone to the enemy it just hit.
+    //
+    // ONCE per Combat Phase, not once per defender: an AoE fans out into a
+    // Process each, and `critUp` stacks by magnitude -- a 13-panel line
+    // through four Units would have granted +120% instead of +30%. The first
+    // defender's Process is the one that pays it, chosen by group order so
+    // every client agrees which that is.
+    if (phase.target === "self") {
+      if (!isFirstOfGroup(state)) continue;
+      const attackerUnit2 = unitSnapshot(attackerDoc);
+      applied.push(...await applyDeclaredEffects(
+        (phase.rules ?? phase.effects ?? []).map((r) => r.effect ?? r),
+        ability,
+        { ...state, defenderId: state.attackerId },
+        attackerUnit2,
+      ));
+      continue;
+    }
     // Both authored shapes. §15.2's own is `effects: [{id, ...}]`; the earlier
     // content wrapped each in an `OnEvent` rule element, and both still ship.
     // Reading only `rules` silently dropped every rider on the newer shape --

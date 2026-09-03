@@ -948,7 +948,7 @@ Andromeda** (Ch. 43).
 
 | Ability | Type | Mapping |
 |---|---|---|
-| Riding (A+) | Class | RE — but note Riding Attack and Passenger Seat are **unlocked by the Active** rather than being permanent passives, unlike Achilles' and Ozymandias's |
+| Riding (A+) | Class | **Built**, and both grants got their first readers. Unlocked by the Active, which needed no new mechanism — a `GrantedAbility` element takes a `predicate`, and the Active applies the marker it asks for. |
 | Magic Resistance (B) | Class, passive | RE |
 | Divinity (E−) | Passive | RE (+5 flat) — the **first sub-E rank in the corpus** |
 | Independent Action (C) | Class, passive | RE (Sustainability 6◈, ZON +2, 2 contract rolls, +1◈ per Civilian killed) |
@@ -957,7 +957,7 @@ Andromeda** (Ch. 43).
 | Mystic Eyes (A+) | Active | **Built.** `requiresClearPath` + `requiresFacing` (Ch. 44 §44.3, the game's only sight rules); a three-branch Agility Check ladder whose middle tier rolls twice; an outcome that is a stat change rather than an effect; `ignoresResistanceFrom: [magicResistance]`. The branches test *kind*, not an attribute: Jack's Mist established that a Normal Human is a Civilian, a "non-normal Human" is a Master, and **a Servant is not a Human** — and no unit in the set carries a `human` attribute. |
 | Blood Temple (B) | Active | **Built.** Two cooldown phases with opposite predicates rather than one conditional magnitude, because *"instead"* replaces the number. `self:fieldActive:<id>` is new. |
 | Blood Fort Andromeda (B, NP) | Mark-built bounded field | **Built.** Four corner Bloodmarks as separate `Mark` Actions, each costing her Attack; the fourth completes a 5×5/7×7/9×9 and opens the area, which then runs until she is defeated. Drain-to-heal with the pool cap enforced in `rules/fields/pool.mjs`; `halveIf` for `Mechanical`; `destroyableBy: [master]`. Visibility is **approximated** — Foundry has no per-viewer token rendering (the same limit D44.9 recorded), so a mark is hidden unless an enemy stands within 3. |
-| Bellerophon (A+, NP) | Line NP | **RE+** 1×13 **diagonal-capable, bidirectional**, board-size-dependent |
+| Bellerophon (A+, NP) | Line NP | **Built.** The geometry always handled a diagonal; only `legalPlacements` was cardinal-only, so `directions: "all"` widens the picker rather than the maths. `bidirectional: "unlessLargeBoard"` reads `bounds`. |
 
 **Exercises:** the only line-of-sight requirement in the game, facing as a targeting
 prerequisite, resistance bypass scoped to one *source*, multi-turn field construction, fields

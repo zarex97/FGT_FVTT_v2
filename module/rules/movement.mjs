@@ -15,7 +15,7 @@
 import * as geo from "../domain/geometry.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { contains, membershipVerdict } from "./bounded-fields.mjs";
-import { guardsOf } from "./relations.mjs";
+import { guardsOf, relationOf } from "./relations.mjs";
 
 /** Effects that let a unit ignore occupancy and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
@@ -85,6 +85,100 @@ export function planMovement(unit, board, { hasRiding = undefined } = {}) {
  */
 export function remainingMovement(unit) {
   return Math.max(0, effectiveMov(unit) - (unit?.turnState?.movedPanels ?? 0));
+}
+
+/**
+ * A Riding Attack's path, and everyone it runs through.
+ *
+ * > *"Riding Attack: Can Attack all Units in its path while Moving in a
+ * > straight line as its Normal Attack during its Turn. Cannot Attack or Move
+ * > after it has stopped. ... If the Unit has already Moved during its Turn and
+ * > intends to use Riding Attack, the number of panels it can Move for its
+ * > Riding Attack is equal to its MOV minus the number of panels it has already
+ * > Moved."*
+ *
+ * A move that is also an attack, which nothing else in the game is. `GRANTS`
+ * has carried `ridingAttack` since grants were written and **no engine ever
+ * read it** — this is its first reader.
+ *
+ * STRAIGHT means the three axes a grid has: a shared row, a shared column, or
+ * an exact diagonal. Same test `panelsBetween` uses, and reusing it is the
+ * point — a Riding Attack down a diagonal and a Mystic Eye down one should
+ * agree about what a line is.
+ *
+ * @param {object} unit
+ * @param {{i: number, j: number}} destination
+ * @param {object} board
+ * @param {object} [opts]
+ * @param {number} [opts.movedAlready] panels spent earlier this Turn
+ * @returns {{ok: boolean, reason?: string, hits?: object[], path?: object[], distance?: number}}
+ */
+export function ridingAttackPath(unit, destination, board, { movedAlready = null } = {}) {
+  if (!unit?.panel || !destination) return { ok: false, reason: "unplaced" };
+
+  const path = geo.panelsBetween(unit.panel, destination);
+  const di = destination.i - unit.panel.i;
+  const dj = destination.j - unit.panel.j;
+  const distance = Math.max(Math.abs(di), Math.abs(dj));
+  if (distance === 0) return { ok: false, reason: "noMovement" };
+  // `panelsBetween` returns [] both for an adjacent panel and for one off the
+  // three axes, so straightness is tested directly rather than inferred.
+  if (di !== 0 && dj !== 0 && Math.abs(di) !== Math.abs(dj)) {
+    return { ok: false, reason: "notStraight" };
+  }
+
+  const spent = movedAlready ?? unit.turnState?.movedPanels ?? 0;
+  const allowance = Math.max(0, effectiveMov(unit) - spent);
+  if (distance > allowance) {
+    return {
+      ok: false,
+      reason: spent > 0
+        ? `only ${allowance} panels left; it has already Moved ${spent}`
+        : `${distance} panels is further than its MOV of ${allowance}`,
+    };
+  }
+
+  // Everyone it runs THROUGH, plus whoever is standing on the destination.
+  // In path order, because the fan-out reads as a sequence down the line.
+  const walked = [...path, destination];
+  const hits = [];
+  for (const panel of walked) {
+    for (const other of board?.units ?? []) {
+      if (other.id === unit.id || !other.panel || other.defeated) continue;
+      if (other.panel.i !== panel.i || other.panel.j !== panel.j) continue;
+      if (relationOf(unit, other, board) !== "enemy") continue;
+      hits.push(other);
+    }
+  }
+  return { ok: true, hits, path: walked, distance };
+}
+
+/**
+ * Where a Master lands when it rides along with its Servant.
+ *
+ * > *"Passenger Seat: The Servant's Master can Move together with its Servant;
+ * > after Moving, both Servant and Master must be in the same
+ * > orientation/position prior to the Move. Counts as only Moving one Unit."*
+ *
+ * The **same relative** position, not the same absolute one — otherwise the
+ * Master does not move at all and the clause says nothing. So the Master is
+ * displaced by exactly the delta the Servant travelled.
+ *
+ * `GRANTS.passengerSeat` has existed with no reader for as long as
+ * `ridingAttack` has.
+ *
+ * @param {{i: number, j: number}} from the Servant's origin
+ * @param {{i: number, j: number}} to the Servant's destination
+ * @param {{i: number, j: number}} master where the Master is standing
+ * @param {object|null} [bounds]
+ * @returns {{i: number, j: number}|null} `null` when it would leave the board
+ */
+export function passengerDestination(from, to, master, bounds = null) {
+  if (!from || !to || !master) return null;
+  const panel = { i: master.i + (to.i - from.i), j: master.j + (to.j - from.j) };
+  if (bounds && (panel.i < bounds.iMin || panel.i > bounds.iMax
+    || panel.j < bounds.jMin || panel.j > bounds.jMax)) return null;
+  return panel;
 }
 
 /**
