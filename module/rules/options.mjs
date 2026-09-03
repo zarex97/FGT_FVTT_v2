@@ -232,6 +232,10 @@ function add(options, side, unit) {
   if (unit.contentId) options.add(`${side}:contentId:${unit.contentId}`);
   for (const a of unit.attributes ?? []) options.add(`${side}:attribute:${a}`);
   for (const e of unit.effects ?? []) options.add(`${side}:effect:${e}`);
+  // The umbrella, beside the members. Medusa's `Dmg Up (Bind)` is
+  // *"all damage dealt to Units inflicted with Bind effects"* -- one predicate
+  // over ten effects, which naming each of them could not keep current.
+  for (const f of unit.effectFamilies ?? []) options.add(`${side}:effectFamily:${f}`);
 
   // Region, so a clause can name where a unit is from.
   for (const r of unit.region ?? []) options.add(`${side}:region:${r}`);
@@ -404,6 +408,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):contentId:[A-Za-z][\w-]*$/,
   /^(self|target):attribute:[A-Za-z][\w-]*$/,
   /^(self|target):effect:[A-Za-z][\w-]*$/,
+  /^(self|target):effectFamily:[A-Za-z][\w-]*$/,
   /^(self|target):region:[A-Za-z][\w-]*$/,
   /^(self|target):variant:[A-Za-z][\w-]*$/,
   /^(self|target):inHomeBase$/,

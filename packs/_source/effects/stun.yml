@@ -14,4 +14,9 @@ stacking: noneRefresh
 baseChance: 100
 preventsAction: true
 severity: normal
+# Appendix A lists this among `Bind`'s members: "Bind -- umbrella for Stun,
+# Disable, Immobilize, Slow, Petrify, Shock, Webbed, Seal, Freeze,
+# Crystalfreeze." Declared here rather than in a central list so a binding
+# effect authored later counts by saying so about itself.
+families: [bind]
 rules: []

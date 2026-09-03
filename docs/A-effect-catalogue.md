@@ -408,7 +408,7 @@ Health.
 
 | Keyword | Meaning |
 |---|---|
-| `Bind` | Umbrella for Stun, Disable, Immobilize, Slow, Petrify, Shock, Webbed, Seal, Freeze, Crystalfreeze. |
+| `Bind` | Umbrella for Stun, Disable, Immobilize, Slow, Petrify, Shock, Webbed, Seal, Freeze, Crystalfreeze. **Built as a family** (Ch. 11): declared on each member, projected as `effectFamilies`, asked as `target:effectFamily:bind`. Medusa's `Dmg Up (Bind)` is its first reader; the members without definitions yet cannot carry it. |
 | `Multihit (N)` | One Attack hitting N times. Evade per hit until the first failure; Block once on the total; one Injury Roll. |
 | `Discovered` | A Presence-Concealed unit found by an enemy's Detect roll. Deactivates PC. |
 | `Magnitude` | The numeric strength of an effect. |

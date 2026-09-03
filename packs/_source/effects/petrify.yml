@@ -1,0 +1,31 @@
+# Appendix A -- "Cannot Act. Buffs, debuffs and other effects have no effect.
+# >200 damage in one attack => immediate defeat. Cured only by [Gold Needle] or
+# a removal effect of equal-or-higher Rank (Rank A+ if the source was
+# unranked)."
+#
+# The pipeline has enforced the >200 rule at stage 16 since it was written, and
+# `budget.mjs` has listed `petrify` among the effects that prevent action for
+# just as long -- both against a definition that did not exist, so nothing
+# could ever inflict it. Medusa's Mystic Eyes is the first thing that does.
+schema: 1
+id: petrify
+name: "Petrify"
+description: |
+  Cannot Act. Buffs, debuffs and other effects have no effect while Petrified.
+  More than 200 damage from a single attack defeats the Unit outright.
+polarity: debuff
+volatility: volatile
+valence: offensive
+# Like Stun, "cannot act" has no magnitude to add to, so a second application
+# refreshes the clock instead of stacking.
+stacking: noneRefresh
+baseChance: 100
+preventsAction: true
+severity: normal
+families: [bind]
+# "Buffs, debuffs and other effects have no effect." A FLAG rather than a
+# `Suppress` rule element: it decides what the unit projection contains, and
+# rule elements are collected from that projection, so a rule could not answer
+# it without asking itself. `rules/snapshot.mjs#activeEffectIds` reads it.
+suppressesOtherEffects: true
+rules: []
