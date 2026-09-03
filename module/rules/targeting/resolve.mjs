@@ -17,6 +17,7 @@ import { test as testPredicate } from "../predicate.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
 import { relationOf, guardsOf } from "../relations.mjs";
+import { facingAllows, pathClear } from "./facing.mjs";
 
 /**
  * @typedef {import("../../domain/geometry.mjs").GridOffset} GridOffset
@@ -251,6 +252,21 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     );
     if (survivors.length < before) warnings.push("Protected Masters were excluded.");
   }
+  // 8c. FACING and CLEAR PATH — Medusa's Mystic Eyes is the only ability in
+  //     the corpus that asks either, which is exactly what D44.8 decided: no
+  //     general line of sight, a per-ability predicate instead.
+  if (limits.requiresFacing) {
+    survivors = survivors.filter(
+      (u) => facingAllows(caster, u)
+        || drop(u, `${caster.name ?? "the attacker"} is not facing it`),
+    );
+  }
+  if (limits.requiresClearPath) {
+    survivors = survivors.filter(
+      (u) => pathClear(caster, u, board) || drop(u, "another Unit is in the way"),
+    );
+  }
+
   if (board.crossLevel) {
     survivors = survivors.filter((u) => crossLevelAllows(caster, u, spec, board, warnings, drop));
   }

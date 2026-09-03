@@ -212,6 +212,12 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **`requiresFacing` and `requiresClearPath`** (Ch. 09 §9.6) — the only two sight rules in the
+  game, both per-ability, both opt-in, and both on Medusa's Mystic Eyes alone. D44.8 decided
+  against general line of sight and that still stands. `coneOf` had been in
+  `domain/geometry.mjs` since it was written with **nothing calling it**; this is its first
+  reader. `panelsBetween` is new: `line` projects a direction for a length, and nothing walked
+  to a *given* panel.
 - **Effect families** (Ch. 11, §A). `Bind` is not an effect anybody applies — Appendix A defines
   it as an umbrella over ten that are — and Medusa's `Dmg Up (Bind)` is the first clause that has
   to ask about the umbrella. Declared on each member rather than as a central list, projected

@@ -340,6 +340,35 @@ export function line(origin, dir, length, opts = {}) {
 }
 
 /**
+ * The panels strictly between two panels, exclusive of both ends.
+ *
+ * Only meaningful on a shared row, column or exact diagonal -- which is what
+ * "between" means on a grid the game gives no line of sight. Anything off
+ * those three axes returns `[]`: it has no panels between it and the origin,
+ * so nothing can obstruct it. The conservative reading, and the only one
+ * Medusa's single worked example supports (Ch. 44 §44.3).
+ *
+ * {@link line} projects a DIRECTION for a length; this walks to a GIVEN panel,
+ * which nothing did before.
+ *
+ * @param {GridOffset} a
+ * @param {GridOffset} b
+ * @returns {GridOffset[]} in order from `a` toward `b`
+ */
+export function panelsBetween(a, b) {
+  const di = b.i - a.i;
+  const dj = b.j - a.j;
+  if (di !== 0 && dj !== 0 && Math.abs(di) !== Math.abs(dj)) return [];
+
+  const steps = Math.max(Math.abs(di), Math.abs(dj));
+  const step = { i: Math.sign(di), j: Math.sign(dj) };
+  /** @type {GridOffset[]} */
+  const out = [];
+  for (let n = 1; n < steps; n++) out.push({ i: a.i + step.i * n, j: a.j + step.j * n });
+  return out;
+}
+
+/**
  * The ring at exactly Chebyshev distance `r`.
  * No content uses it yet; implemented because the rules text describes it.
  * @param {GridOffset} centre

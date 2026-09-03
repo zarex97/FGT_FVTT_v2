@@ -536,8 +536,39 @@ interface LimitSpec {
   requiresCasterIn?: string;                   // zone id, e.g. HGoB Throne Room
   forbidsCasterIn?: string;
   minTargets?: number;
+  requiresFacing?: boolean;                    // the target must be in front
+  requiresClearPath?: boolean;                 // nothing standing between
 }
 ```
+
+### Facing, and a clear path
+
+`requiresLineOfSight` is `false` **always**, and that is a decision rather than an omission
+(§8.6, D44.8): F/GT has no line-of-sight rule and inventing one would change every ability in
+the game. Exactly one ability asks anything of the kind, so it asks per-ability:
+
+> Medusa's Mystic Eyes: *"Cannot be used on a Unit if there is an obstacle/obstruction between
+> Medusa and the target Unit, and can only be used if Medusa is facing the targeted Unit.
+> (Example: Unit [Cannot be targeted] — Unit [Can be targeted] — Medusa)"*
+
+`requiresFacing` puts the target in the caster's **front** quadrant, through
+`domain/geometry.mjs#coneOf` — which had answered that question since it was written with
+nothing calling it. (Its intended consumer, Ch. 14 §14.5's *"attacked from left or right +1"* /
+*"from behind +2"* Evade modifiers, is **still unbuilt**: `rollEvade` assembles its modifiers
+from check-plan contributions and the NP/AoE flags only.)
+
+`requiresClearPath` refuses a target with a blocking unit strictly between, walked by the new
+`geometry.mjs#panelsBetween`. Three readings the sheet forces:
+
+- **A Civilian does not obstruct.** They are bystanders, not cover; a rule letting one shield a
+  Servant would make Civilians a tactical resource the game never describes.
+- **A defeated unit does not obstruct.** A defeat never removes the token — the same
+  distinction `rules/cover.mjs` had to draw about who can Cover.
+- **Off the row, column and exact diagonal there is no "between" at all**, so the target is
+  unrestricted. The conservative reading, and the only one a single worked example supports on a
+  board with no line of sight to interpolate.
+
+Both are recorded as `excluded` reasons, so the preview says *why* a unit greyed out.
 
 ### Validation happens at placement, not at execution
 
