@@ -137,7 +137,7 @@ describe("the resolver honours both limits", () => {
     const behind = unit("behind", 5, 3);
     const r = resolveTargets(spec({ requiresFacing: true }), caster, board([caster, behind]));
     expect(r.units.map((u) => u.unitId)).toEqual([]);
-    expect(r.excluded.find((e) => e.unitId === "behind").reason).toMatch(/not facing it/);
+    expect(r.excluded.find((e) => e.unitId === "behind").reason).toMatch(/not in front of Medusa/);
   });
 
   it("keeps a unit in front", () => {
@@ -151,7 +151,7 @@ describe("the resolver honours both limits", () => {
     const far = unit("far", 5, 7);
     const r = resolveTargets(spec({ requiresClearPath: true }), caster, board([caster, near, far]));
     expect(r.units.map((u) => u.unitId)).toEqual(["near"]);
-    expect(r.excluded.find((e) => e.unitId === "far").reason).toMatch(/in the way/);
+    expect(r.excluded.find((e) => e.unitId === "far").reason).toMatch(/behind another Unit/);
   });
 
   it("applies neither limit when the ability does not ask", () => {

@@ -954,7 +954,7 @@ Andromeda** (Ch. 43).
 | Independent Action (C) | Class, passive | RE (Sustainability 6◈, ZON +2, 2 contract rolls, +1◈ per Civilian killed) |
 | Monstrous Strength (B) | Active, `damageStepStart` | RE (+80% STR, +40% NP) |
 | Monstrous Snake Metamorphosis (B) | Active | RE — including `Dmg Up (Bind)`, a **family-predicated** damage bonus |
-| Mystic Eyes (A+) | Active | **RE+** `requiresClearPath` + `requiresFacing` (Ch. 44 §44.3); a **nested** Agility Check ladder (the middle tier rolls twice); `ignoresResistanceFrom: [magicResistance]` |
+| Mystic Eyes (A+) | Active | **Built.** `requiresClearPath` + `requiresFacing` (Ch. 44 §44.3, the game's only sight rules); a three-branch Agility Check ladder whose middle tier rolls twice; an outcome that is a stat change rather than an effect; `ignoresResistanceFrom: [magicResistance]`. The branches test *kind*, not an attribute: Jack's Mist established that a Normal Human is a Civilian, a "non-normal Human" is a Master, and **a Servant is not a Human** — and no unit in the set carries a `human` attribute. |
 | Blood Temple (B) | Active | RE (magnitude conditional on her own field being active) |
 | Blood Fort Andromeda (B, NP) | Mark-built bounded field | **RE+** built by placing **four corner Bloodmarks** as separate turn actions; drain-to-heal with a shared pool cap; **halved against `Mechanical`**; marks visible only within 3 panels and destroyable **only by Masters** |
 | Bellerophon (A+, NP) | Line NP | **RE+** 1×13 **diagonal-capable, bidirectional**, board-size-dependent |

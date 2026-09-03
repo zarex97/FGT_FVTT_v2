@@ -516,6 +516,24 @@ async function runPhases(ability, actor, targets, board, only = null) {
           break;
         }
 
+        // A check the TARGET rolls, branching the Skill. Medusa's Mystic Eyes
+        // is an Active Skill used on an enemy, so it never passes through a
+        // Combat Process -- and `check` was an attack-path phase kind, which
+        // meant it fell to the `default` below and warned into the console
+        // while the Skill did nothing at all.
+        //
+        // Dynamically imported for the same reason `runCasterPhases` is
+        // imported the other way: the two modules already need each other.
+        case "check": {
+          const { runCheckPhase } = await import("./attack.mjs");
+          applied.push(...await runCheckPhase(
+            phase, ability,
+            { attackerId: actor.id, defenderId: target.unitId, attack: null },
+            snapshot,
+          ));
+          break;
+        }
+
         case "damage":
           // `countsAsAttack` should have routed this to `resolveAttack`. Loud,
           // because the alternative is a Noble-Phantasm-sized hole that looks

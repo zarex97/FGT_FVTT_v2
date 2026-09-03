@@ -212,6 +212,9 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **Medusa's Mystic Eyes of Petrification: Cybele** — the only ability in the game that asks
+  where its caster is looking, and the first three-way check ladder. Verified live across all
+  six outcomes.
 - **A check phase may branch, nest, and change a stat** (Ch. 14, Ch. 15 §15.2). `check:` selects
   the parameter — an Agility Check spends no Luck, where a Luck Check still costs 1 either way;
   `branches:` picks an outcome by what the *target* is, first match wins in authored order; a
@@ -287,6 +290,10 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **A `check` phase on a Skill did nothing and said so only to the console.** `check` was an
+  attack-path phase kind, so an Active Skill carrying one fell to `runPhases`'s `default` and
+  warned. Medusa's Mystic Eyes is used on an enemy without a Combat Process, which is how it
+  surfaced; `runCheckPhase` is now shared by both paths.
 - **A target's debuff resistance was universally inert.** `applyEffect` falls back to
   `resistanceOf(target)` when `ctx.resist` is absent — and both callers in `engine/attack.mjs`
   passed an explicit `resist: 0`, which `??` treats as a value. So Magic Resistance's *"chance of
