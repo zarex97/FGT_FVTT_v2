@@ -212,6 +212,10 @@ coincide by accident; the headings say which is which.
   Kagome Spirits inherit the duty the other three rules already redirect. Verified live in
   `fgt2026` across all four branches.
 
+- **Medusa's statline and her four passive skills** — Riding A+, Magic Resistance B, Divinity
+  **E−** and Independent Action C. `E−` is the first sub-E rank in the corpus and needed no new
+  content: the `divinity` table is scaled at ±5 a step and already answered 5 there.
+
 - **Base Attack is derived from STR and MAG, and the table beats the sheet** (Ch. 06 §6.7,
   Appendix B §B.1). `domain/base-attack.mjs`, read by `ServantData#prepareBaseData` so a Servant
   dragged straight onto the board is right without being summoned. Four authored figures across
@@ -257,6 +261,13 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **`self:free` could never hold, so the only two clauses that ask it had never fired.**
+  `options.mjs` emits it from `unit.contract` and its own comment names Jack the Ripper's
+  *"every time Jack kills a Human **when she is a Free Servant**"* as the reason it exists —
+  but `snapshot.mjs` built a unit's self-option set without carrying `contract`, so the
+  predicate was unsatisfiable and the handler never collected. The same omission hid the
+  `self:rank:<parameter>:gte:<grade>` ladder. Found building Medusa's narrower version of
+  Jack's clause; it is the same partial fix an adjacent comment already describes one layer out.
 - **A granted parameter step was moving Base Attack twice.** `engine/summon.mjs` added ±10 per
   granted step on the reasoning — written into `rules/setup-rolls.mjs`'s own header — that *"the
   sheet's Base Attack already accounts for the parameters it was written with"*. True while the

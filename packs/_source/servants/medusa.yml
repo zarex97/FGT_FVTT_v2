@@ -1,0 +1,82 @@
+# packs/_source/servants/medusa.yml
+# Conversion source: char_orig_sheets/Copia de Medusa.md
+schema: 1
+id: medusa
+name: "Medusa"
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Medusa"
+servantClasses: [rider]
+classContainer: rider
+alignment: { order: chaotic, morality: good }
+region: [greece]
+attributes: [female, servant, earth, humanoid, gorgon, nonHominidae, antiHero]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: B, end: D, agi: A, mag: B, luc: E }
+baseHealth: 750
+mov: 7
+range: { panels: 2, targets: 1 }
+# Agrees with the STR/MAG tables at B/B (Ch. 41 Q50), so it is derived rather
+# than overridden and `validate:content` raises no divergence warning.
+baseAttack: { str: 125, mag: 175 }
+normalAttack: { mode: fixed, component: str }
+# 6◈ from Independent Action C. Stated here rather than granted by the skill:
+# the skill is the REASON the number is high, it does not add turns.
+sustainability: "6◈"
+# `contract` is NOT authored. No sheet in the corpus states one -- it is decided
+# at summon and by Ch. 16 §16.2's contracting, and her Sustainability clause
+# tests `self:free` at runtime rather than assuming it.
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # Riding A+ is the ONE instantiation in the corpus whose Riding Attack and
+  # Passenger Seat are unlocked BY the Active rather than being permanent
+  # passives, so it refs its own document rather than `class-riding`.
+  - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
+  - { ref: class-magic-resistance, rank: B }
+  # E- is the first sub-E rank in the corpus. No new document: the `divinity`
+  # table is scaled at ±5 per step and already answers 5 at E-, which its own
+  # header comment records as verified.
+  - { ref: divinity, rank: "E-" }
+  - { ref: class-independent-action, rank: C }
+
+
+# "(Passive 4) Every time Medusa kills a Civilian when she is a Free Servant,
+# increase her Sustainability by 1◈ Turns."
+#
+# Printed under Independent Action on her sheet, authored HERE because no other
+# instantiation of that skill carries it -- EMIYA's B and Serenity's A do not,
+# and putting it on the shared class document would pay them both. The same
+# element and the same payer Jack the Ripper's near-identical clause uses; hers
+# is narrower, being Civilians rather than Humans at large.
+rules:
+  - key: SustainabilityGain
+    event: unitDefeated
+    value: 1
+    predicate: ["self:free"]
+    targetPredicate: ["target:type:civilian"]
+
+notes: |
+  Ten abilities, and the engine's gaps were all in the verbs. Ch. D §D.25 lists what she was
+  expected to exercise; all of it is built.
+
+  She is the only unit in the game that cares where she is looking. `requiresFacing` and
+  `requiresClearPath` are per-ability targeting predicates on Mystic Eyes alone — D44.8 decided
+  against general line of sight and that still stands. `coneOf` had been in `domain/geometry.mjs`
+  since it was written with **nothing calling it**; this is its first reader.
+
+  Blood Fort Andromeda is the only bounded field that is BUILT rather than cast, and the only one
+  with no duration at all — four Bloodmark Actions over four turns, then it runs until she is
+  defeated. Ch. 43's `expiry: onOwnerDefeat` and its `markDefined` construction both existed as
+  specification with no implementation, and `Structure` was a registered actor type with no
+  content.
+
+  Mystic Eyes is a decision tree rather than a check: three branches chosen by what the target
+  **is**, the middle one rolling a second time on failure, and one outcome that is a stat change
+  rather than an effect. `runCheckPhase` was a single Luck check with two flat branches.
+
+  Riding Attack and Passenger Seat had been in `GRANTS` since grants were written and **no engine
+  read either**. Hers are conditional on the Active, unlike Achilles's and Ozymandias's, which is
+  why `GrantedAbility` gained `while:`.

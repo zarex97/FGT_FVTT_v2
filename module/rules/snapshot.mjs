@@ -965,6 +965,15 @@ export function contributionsOf(actor) {
       effects: [...(actor.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
       region: [...(sys.region ?? [])],
       variant: sys.variant ?? null,
+      // `self:free`, and the `self:rank:<parameter>:gte:<grade>` ladder. Both
+      // emitters read a field this object did not carry, so both were
+      // unsatisfiable from a unit's own contributions -- the same partial fix
+      // the comment above describes, one layer further in. Jack the Ripper's
+      // *"every time Jack kills a Human WHEN SHE IS A FREE SERVANT"* is named
+      // in `options.mjs` as the clause `self:free` exists for, and it had never
+      // once collected; Medusa's narrower version of it is the second.
+      contract: sys.contract ?? null,
+      parameters: sys.parameters ?? {},
       abilities: [...(actor.items ?? [])].map((i) => ({
         id: i.id, slug: i.system?.slug ?? i.id, active: Boolean(i.system?.active),
       })),

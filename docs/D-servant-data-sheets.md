@@ -943,7 +943,8 @@ written and is now load-bearing.
 
 ## D.25 Medusa
 
-Bounded field: **Blood Fort Andromeda** (Ch. 43).
+**Being built** (Ch. 45), `packs/_source/servants/medusa.yml`. Bounded field: **Blood Fort
+Andromeda** (Ch. 43).
 
 | Ability | Type | Mapping |
 |---|---|---|
