@@ -41,7 +41,10 @@ abilities:
   # header comment records as verified.
   - { ref: divinity, rank: "E-" }
   - { ref: class-independent-action, rank: C }
+  - { ref: medusa-monstrous-strength }
+  - { ref: medusa-monstrous-snake-metamorphosis }
   - { ref: medusa-mystic-eyes }
+  - { ref: medusa-blood-temple }
 
 
 # "(Passive 4) Every time Medusa kills a Civilian when she is a Free Servant,

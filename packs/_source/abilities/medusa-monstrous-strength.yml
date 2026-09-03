@@ -1,0 +1,34 @@
+# Medusa, char_orig_sheets/Copia de Medusa.md
+#
+# "(Active) Used at the start of a Damage Step when performing an Attack. STR
+# Damage dealt by that Attack is increased by 80%; if NP, 40%. Cooldown: 3◈
+# Turns. Cannot be used on the same Turn as Monstrous Snake Metamorphosis."
+schema: 1
+id: medusa-monstrous-strength
+name: "Monstrous Strength"
+type: ability
+source: personal
+rank: B
+cooldown: "3◈"
+# Declared on BOTH sides -- a one-sided exclusion is decided by whichever
+# happens to be used first, which is not a rule (§15.3).
+sameTurnExclusive: [medusa-monstrous-snake-metamorphosis]
+# "At the START of a Damage Step", which is a window the Combat Process already
+# pauses at (`offerAttackerWindow`): what this grants is an INPUT to the damage
+# computation, so it cannot be a rider that fires after it.
+timing:
+  window: damageStep
+description: |
+  (Active) Used at the start of a Damage Step when performing an Attack. STR Damage dealt by
+  that Attack is increased by 80%; if NP, 40%. Cooldown: 3◈ Turns. Cannot be used on the same
+  Turn as Monstrous Snake Metamorphosis.
+# Scoped to THIS attack rather than applied as a buff: the sheet says "STR
+# Damage dealt by that Attack", so a duration would let it ride the next one
+# too. `windowAbilities` folds these into the one attack it was chosen for.
+activeRules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    component: str
+    value: 80
+    npValue: 40

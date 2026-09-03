@@ -249,6 +249,11 @@ function add(options, side, unit) {
   // a predicate, so "while Unlimited Blade Works is Active" -- which both of
   // EMIYA's Circuits turn on -- had no way to be written.
   for (const f of unit.fields ?? []) options.add(`${side}:inField:${f}`);
+  // A field this unit OWNS being open, wherever the unit is standing. Medusa's
+  // Blood Temple reduces her NP cooldown by more *"if Blood Fort Andromeda is
+  // Active"* -- a question about the area existing, not about her position,
+  // and `inField` cannot answer it.
+  for (const f of unit.ownedFields ?? []) options.add(`${side}:fieldActive:${f}`);
 
   // How close this unit is standing to the MASTER of whoever owns the field it
   // is in. Contagion under Doomsday: *"if the enemy Unit is within a 3 panel
@@ -415,6 +420,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):free$/,
   /^(self|target):masterTier:(high|low|rankless)$/,
   /^(self|target):inField:[A-Za-z][\w-]*$/,
+  /^(self|target):fieldActive:[A-Za-z][\w-]*$/,
   /^(self|target):withinOfOwnerMaster:[1-6]$/,
   /^(self|target):highestParameter:[a-z]+$/,
   /^(self|target):npAboveAllParameters$/,

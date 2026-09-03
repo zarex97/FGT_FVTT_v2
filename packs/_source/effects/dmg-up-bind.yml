@@ -1,0 +1,24 @@
+# Medusa's Monstrous Snake Metamorphosis, clause 3.
+#
+# "Applies Dmg Up (Bind) for 1◈ Turns, all damage dealt to Units inflicted with
+# Bind effects is increased by 50%."
+#
+# An ordinary predicated damage modifier. What is new is the question it asks:
+# `Bind` is an umbrella over ten effects (§A) and `target:effectFamily:bind` is
+# what makes the umbrella askable at all -- naming the ten members here would
+# go stale the moment an eleventh was written.
+schema: 1
+id: dmgUpBind
+name: "Dmg Up (Bind)"
+description: "All damage dealt to Units inflicted with Bind effects is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["target:effectFamily:bind"]
