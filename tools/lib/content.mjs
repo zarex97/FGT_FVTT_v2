@@ -1224,7 +1224,7 @@ export function compileDocument(doc, dir, library, assets = new Map(), reference
       img: images.img,
       type,
       system: { ...actorSystem(linked), defaultImage: images.defaultImage },
-      items: abilities.map((a) => compileEmbeddedAbility(a, doc.id, base._id)),
+      items: abilities.map((a) => compileEmbeddedAbility(a, doc.id, base._id, references)),
       prototypeToken: {
         // A Servant, Master or platform is ONE unit: its sheet and its token
         // must be the same document, or a skill resolved from the board writes
@@ -1551,13 +1551,20 @@ function itemSystem(doc) {
  * @param {string} ownerDocumentId
  * @returns {object}
  */
-function compileEmbeddedAbility(ability, ownerContentId, ownerDocumentId) {
+function compileEmbeddedAbility(ability, ownerContentId, ownerDocumentId, references = null) {
   const id = documentId(`${ownerContentId}/${ability.id ?? ability._ref}`);
+  // Markers here too, and this is the path that matters most: a Servant's own
+  // abilities are embedded, so they never pass through `compileDocument`'s own
+  // rewrite. Missing it shipped every Servant ability with its markers raw --
+  // which is to say, with `@effect[burn]` printed on the sheet.
+  const linked = references
+    ? { ...ability, description: rewriteReferences(ability.description, references).text }
+    : ability;
   return {
     _id: id,
     name: ability.name ?? ability._ref ?? ability.id,
     type: ability.isNP ? "noblePhantasm" : "ability",
-    system: itemSystem(ability),
+    system: itemSystem(linked),
     _key: `!actors.items!${ownerDocumentId}.${id}`,
   };
 }
