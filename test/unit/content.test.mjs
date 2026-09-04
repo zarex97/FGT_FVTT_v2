@@ -726,3 +726,30 @@ describe("the rules journal", () => {
       .toBe(`Compendium.fgt.rules.JournalEntry.${documentId("mark")}`);
   });
 });
+
+describe("markers reach a Servant's EMBEDDED abilities", () => {
+  // The path that matters most, and the one the first live test caught: a
+  // Servant's own abilities are compiled by `compileEmbeddedAbility`, which
+  // never passed through `compileDocument`'s own rewrite. Every Servant
+  // ability shipped with `@effect[burn]` printed on the sheet.
+  const library = new Map([["karna-mana-burst", {
+    id: "karna-mana-burst", name: "Mana Burst",
+    description: "inflicts @effect[burn] on the DU",
+  }]]);
+  const index = new Map([
+    ["effect:burn", { uuid: "Compendium.fgt.effects.Item.zzzz", name: "Burn" }],
+  ]);
+
+  it("rewrites the marker inside an embedded ability", () => {
+    const doc = { schema: 1, id: "karna", name: "Karna", abilities: [{ ref: "karna-mana-burst" }] };
+    const out = compileDocument(doc, "servants", library, new Map(), index);
+    expect(out.items[0].system.description)
+      .toBe("inflicts @UUID[Compendium.fgt.effects.Item.zzzz]{Burn} on the DU");
+  });
+
+  it("leaves the embedded description alone with no index", () => {
+    const doc = { schema: 1, id: "karna", name: "Karna", abilities: [{ ref: "karna-mana-burst" }] };
+    expect(compileDocument(doc, "servants", library).items[0].system.description)
+      .toBe("inflicts @effect[burn] on the DU");
+  });
+});
