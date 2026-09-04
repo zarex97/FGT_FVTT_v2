@@ -78,10 +78,11 @@ description: |
 | `@essence[id]` | `master-essences` | none yet — see below |
 | `@action[id]` | the new `rules` directory | `@action[mark]` |
 
-**`@essence` has no targets today.** `master-essences` is mapped in `PACKS` and declared in
+**`@essence` has no targets yet.** `master-essences` is mapped in `PACKS` and declared in
 `system.json`, and has **no source directory** — the second declared-but-empty pack this design
 turned up, alongside `rules`. The marker is defined so the vocabulary is complete and the
 validator can reject a stray one; it starts resolving the day the first essence is authored.
+`docs/Master Essences.md` is the source those 35 essences will be built from, in separate work.
 
 `@effect[burn]` renders as **Burn**, the document's own name. `@effect[burn]{Burning}` renders as
 **Burning**. The label is for inflection and case, never for pointing somewhere else.
