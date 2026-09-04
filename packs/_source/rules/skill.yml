@@ -1,0 +1,7 @@
+schema: 1
+id: skill
+name: "Skill"
+kind: action
+description: |
+  Use an active Skill. A Skill is not an Attack unless the Skill says so, and using one does not
+  by itself spend the Unit's Attack for the Turn.

@@ -1,0 +1,7 @@
+schema: 1
+id: move
+name: "Move"
+kind: action
+description: |
+  Move up to this Unit's MOV in panels. A faction's Servant and Master Moves are drawn from
+  separate pools, and both are spent from the faction's budget for the Turn.

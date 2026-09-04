@@ -1,0 +1,9 @@
+# The Mark Action (Ch. 43 §43.4). Linked from Blood Fort Andromeda, and from
+# anything else built by marking.
+schema: 1
+id: mark
+name: "Mark"
+kind: action
+description: |
+  Places a Bloodmark on the panel this Unit is standing on, and counts as its Attack for the
+  Turn. Bloodmarks may be placed on any panel, even within an enemy Home Base.

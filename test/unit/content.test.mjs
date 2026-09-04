@@ -698,3 +698,31 @@ describe("cross-reference validation (§37.4)", () => {
     expect(w.some((m) => /without linking it/.test(m))).toBe(false);
   });
 });
+
+describe("the rules journal", () => {
+  const doc = {
+    schema: 1, id: "mark", name: "Mark", kind: "action",
+    description: "Places a Bloodmark on this Unit's panel.",
+  };
+
+  it("compiles a JournalEntry with one page", () => {
+    const out = compileDocument(doc, "rules", new Map());
+    expect(out.type).toBeUndefined();
+    expect(out._key).toBe(`!journal!${documentId("mark")}`);
+    expect(out.pages).toHaveLength(1);
+    expect(out.pages[0].text.content).toBe("Places a Bloodmark on this Unit's panel.");
+  });
+
+  it("keys the page so the pack compiler accepts it", () => {
+    // An embedded document with no `_key` is dropped by `compilePack` without
+    // a word, which is how a journal ships with no pages in it.
+    const out = compileDocument(doc, "rules", new Map());
+    expect(out.pages[0]._key).toBe(`!journal.pages!${out._id}.${out.pages[0]._id}`);
+  });
+
+  it("is addressable as an action", () => {
+    const index = referenceIndex([{ path: "mark.yml", dir: "rules", doc }]);
+    expect(index.get("action:mark").uuid)
+      .toBe(`Compendium.fgt.rules.JournalEntry.${documentId("mark")}`);
+  });
+});

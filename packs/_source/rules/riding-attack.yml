@@ -1,0 +1,10 @@
+# Riding Attack (Ch. 03). Granted by Riding, permanently for some Servants and
+# by the Active for others.
+schema: 1
+id: riding-attack
+name: "Riding Attack"
+kind: action
+description: |
+  Attack every Unit in the path while Moving in a straight line, as a Normal Attack, during this
+  Unit's Turn. It cannot Attack or Move after it has stopped. If the Unit has already Moved this
+  Turn, the panels it may Move for its Riding Attack equal its MOV minus the panels already Moved.
