@@ -415,7 +415,11 @@ function armCounterRung(message) {
   const token = actor.getActiveTokens?.()[0] ?? null;
   if (!token) return;
   ActionBar.armForCounter({
-    token, messageId: message.id, requiredTargetId: state.attackerId,
+    token,
+    messageId: message.id,
+    // §12.8: aim at the Servant, not the Master it is shielding.
+    requiredTargetId: state.counterRedirectId ?? state.attackerId,
+    excludeUnitIds: state.counterRedirectId ? [state.attackerId] : [],
   });
 }
 

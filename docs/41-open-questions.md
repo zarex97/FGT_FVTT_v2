@@ -351,6 +351,28 @@ intended to override everything.
 
 ---
 
+### Q51. Does a redirected Counter ignore the counter-attacker's range? — **NARROWED**
+
+§12.8's Master redirect used to answer *"the redirect succeeds regardless of range, because
+the rule is written as an absolute protection."*
+
+**That answer was correct for a game where a Counter was always an auto-aimed Normal Attack
+against exactly one unit**, which is what a Counter was when it was written. It is not that
+any more: the counterer now chooses an ability, and an ability's reach is a targeting rule
+enforced under the cursor like every other legality clause. "Regardless of range" has no
+place to live in that model — it would mean an aim resolving onto a unit the targeting layer
+had just called unreachable, which is true nowhere else in the system.
+
+**Our reading.** The Servant becomes the unit the Counter must catch, the Master is dropped
+from the targets entirely, and the chosen ability's reach applies. **The protection is not
+weakened by this, it is completed**: the Master takes nothing either way, and a counterer who
+cannot reach the Servant counters nobody. What changes is only which of the two protected
+outcomes you get.
+
+**Where.** Ch. 12 §12.8, `rules/counter.mjs#counterRedirect`.
+
+---
+
 ### Q49. In the Q39 reference calculation, is the `[Sky]` bonus counted twice?
 
 The supplied worked case is `[(200+35) × 4 × 2 + 100] × (100+100+20−30)%`. The setup names three

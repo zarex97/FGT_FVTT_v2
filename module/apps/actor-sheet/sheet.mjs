@@ -395,7 +395,7 @@ async function pickPlacement(actor, ability) {
  * @param {string|null} [opts.requireUnitId]
  * @returns {Promise<object|null>}
  */
-export async function pickPlacementFor(actor, ability, { requireUnitId = null } = {}) {
+export async function pickPlacementFor(actor, ability, { requireUnitId = null, excludeUnitIds = [] } = {}) {
   const [{ pickTarget }, { targetSpecForAttack }, { currentBoard, unitSnapshot }, { rollOptionsFor }, preview] =
     await Promise.all([
       import("../canvas/targeting-layer.mjs"),
@@ -420,8 +420,8 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null } 
   // §12.8: a Counter must catch the unit that attacked. Merged into the spec so
   // the refusal is DRAWN, in the illegal tint with its reason, while the player
   // is still aiming.
-  const spec = requireUnitId
-    ? { ...base, limits: { ...(base.limits ?? {}), requireUnitId } }
+  const spec = (requireUnitId || excludeUnitIds.length > 0)
+    ? { ...base, limits: { ...(base.limits ?? {}), requireUnitId, excludeUnitIds } }
     : base;
   const isNP = ability?.type === "noblePhantasm";
 

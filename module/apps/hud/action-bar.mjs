@@ -344,6 +344,8 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const { pickPlacementFor } = await import("../actor-sheet/sheet.mjs");
     const placement = await pickPlacementFor(actor, item, {
       requireUnitId: armed.requiredTargetId,
+      // §12.8: the shielded Master is dropped even from an area that covers it.
+      excludeUnitIds: armed.excludeUnitIds ?? [],
     });
     if (!placement) return;
 
@@ -369,14 +371,27 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {string} args.messageId
    * @param {string} args.requiredTargetId
    */
-  static armForCounter({ token, messageId, requiredTargetId }) {
+  static armForCounter({ token, messageId, requiredTargetId, excludeUnitIds = [] }) {
     const bar = ActionBar.instance;
     if (!bar || !token) return;
-    if (bar.counter?.messageId === messageId) return;
 
-    token.control({ releaseOthers: true });
+    // Already armed for this rung with these terms: nothing to do. Compared on
+    // the TERMS and not on the message id alone, which is the bug this comment
+    // exists for -- §12.8's redirect is decided at the rung and lands on the
+    // Process a render LATER than the first arming, so an id-only guard armed
+    // the bar at the Master and then refused every correction. The player aimed
+    // at a unit the resolution would have refused.
+    const same = bar.counter?.messageId === messageId
+      && bar.counter?.requiredTargetId === requiredTargetId
+      && (bar.counter?.excludeUnitIds ?? []).join() === excludeUnitIds.join();
+    if (same) return;
+
+    // Re-select only on the FIRST arming for this rung. Re-controlling the
+    // token on every correction would yank the camera while the player is
+    // reading their options.
+    if (bar.counter?.messageId !== messageId) token.control({ releaseOthers: true });
     bar.token = token;
-    bar.counter = { messageId, requiredTargetId };
+    bar.counter = { messageId, requiredTargetId, excludeUnitIds };
     bar.render({ force: true });
   }
 
