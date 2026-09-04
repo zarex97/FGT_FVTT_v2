@@ -1,5 +1,11 @@
 # 32 — Case Study: Semiramis
 
+> **Gather has a control (Ch. 45).** `engine/gather.mjs` was complete and had no caller, so
+> Construction could not be fed by the action the sheet describes. The action bar offers it to any
+> unit the rule allows, and because *"Semiramis or any allied Unit"* may perform it the slot
+> appears on an **ally's** bar as a consequence of who else is on the board.
+
+
 Semiramis is the acceptance test for **everything structural**. She is conditionally a different
 Servant depending on a coin flip at summon, builds a 9×9 flying fortress over many rounds via a
 resource counter with six accrual sources, summons a dragon bound to that fortress, carries a
