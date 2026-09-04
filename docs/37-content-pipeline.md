@@ -231,6 +231,16 @@ catch, in its hardest form: the field *was* compiled, into `system`, where the r
 what went missing was its Foundry-side twin. §37.4's checks cannot see that class of gap, because
 nothing about the source file is wrong. Ch. 20 §20.3 has the consequences.
 
+**Step 3.5 resolves cross-references.** Every marker in every `description` is rewritten to a
+`@UUID[...]` link against an index built from content ids, so an author never writes a document
+id and never sees a 16-character hash. A Servant's own ability is addressed **through the
+Servant**, at the embedded id `compileEmbeddedAbility` already derives — which is why nothing has
+to be shipped standalone for a Servant's skills to be linkable.
+
+The rewrite happens here rather than at render time on purpose: the compendium then holds
+ordinary Foundry content links, so they work in a chat card, a journal and an exported adventure
+with no system code involved.
+
 **Step 7's other derived fields are the images.** No Servant file names its artwork. The build
 indexes `assets/` (`loadAssets`, the one other place the pipeline touches a disk) and
 `unitImages` in `content.mjs` fills three fields from it by the ids the content is already
@@ -327,8 +337,16 @@ had already gone wrong in a way nothing announced:
 | An ability has >6 phases | probably wants decomposition |
 | A unit has no portrait, or a Servant's class has no image | §37.3 — artwork arrives on its own schedule, but a file committed under the wrong name looks exactly like one never drawn |
 | A file in `assets/classes/` is named for no known Servant class | inert, and ships in the release zip; the one image miss no source file can reveal |
+| A description mentions a document's name without linking it | the retrofit worklist, and what stops a NEW description shipping without its links |
 
-And one new **failure**, because this shape has now shipped three times:
+Two more **failures**, both cross-reference links that would not work in play:
+
+| Check |
+|---|
+| A marker names an id that resolves to no document |
+| A marker's kind disagrees with its target — `@effect[...]` pointing at an ability, or `@np[...]` at something whose `isNP` is not set |
+
+And one more, because this shape has now shipped three times:
 
 | Check | Why it fails the build |
 |---|---|
@@ -440,6 +458,35 @@ Established so that 47 Servants look like they were authored by one person:
 | Ordering | Phases in the order the source describes them |
 | Naming | The ability's `name` is exactly the source's, including the subtitle after the colon |
 | Artwork | `assets/<source dir>/<id>.webp` for a portrait, `assets/classes/<class>.webp` for a class image; never an `img:` line in the YAML (§37.3) |
+| Cross-references | A rules term another document defines is written as a marker, so a reader can click it (below) |
+
+### Cross-reference markers
+
+A description naming something this system also ships writes it as a marker, and the build turns
+it into a real Foundry content link:
+
+```yaml
+description: |
+  Inflicts @effect[burn] for 3◈ Turns to all affected Units.
+  Cannot be used if @ability[scathach-primordial-rune]{Primordial Rune} is on Cooldown.
+  Using @action[mark] counts as this Unit's Attack for the Turn.
+```
+
+| Marker | Resolves against |
+|---|---|
+| `@effect[id]` | the `effects` directory |
+| `@ability[id]` | `class-skills` and `abilities`, where `isNP` is not set |
+| `@np[id]` | `abilities`, where `isNP` is set |
+| `@spell[id]` | `command-spells` |
+| `@essence[id]` | `master-essences`, which has no source directory yet |
+| `@action[id]` | the `rules` directory (§37.3) |
+
+`@effect[burn]` shows the document's own name. `@effect[burn]{Burning}` shows the author's
+wording. **The label is for inflection and case, never for pointing somewhere else.**
+
+Mark the FIRST occurrence of a name in a description and leave later repetitions as prose. A
+paragraph in which every instance of "Burn" is a link is harder to read than one where the first
+is, which is the whole reason the links exist.
 
 The last one matters more than it sounds: `"Gáe Bolg Alternative: Soaring Spear of Piercing
 Death"` is how players refer to it, and truncating it to `"Gáe Bolg Alternative"` makes the
@@ -502,6 +549,12 @@ sufficient; the two script cases are the evidence that the escape hatch is neede
 | D37.9 | Artwork is found by id under `assets/` at build time; the compiled token texture is the public image, so a concealed Servant never drops onto the board with its true face. |
 | D37.10 | The artwork checks run in both directions: a unit with no image, and an image no unit will ask for. |
 | D37.11 | `activeRules` on an ability nothing can switch on fails the build; a used ability's lasting half belongs on the effect it applies. |
+| DX.1 | Cross-references are explicit typed markers in the YAML, not names matched from prose. A typo fails the build. |
+| DX.2 | The build resolves a marker to a real `@UUID` link, so content never writes a document id. |
+| DX.3 | A Servant's own ability is linked through the Servant, at its embedded address. Nothing ships standalone to make linking work. |
+| DX.4 | Actions and rules terms live in the `rules` JournalEntry pack, declared since `0.1.0` and empty until now. |
+| DX.5 | A known name mentioned without a marker is a warning, so the backlog is a worklist rather than a mystery. |
+| DX.6 | Descriptions are enriched in `_prepareContext`, because `enrichHTML` is async and Handlebars is not. |
 
 ---
 
