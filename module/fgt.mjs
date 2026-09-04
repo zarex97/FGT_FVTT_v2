@@ -57,6 +57,7 @@ import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 import { ensurePassiveFields, syncDerivedFields } from "./engine/fields.mjs";
 import { ensureSetupRolls } from "./engine/summon.mjs";
 import { syncMarkVisibility } from "./engine/marks.mjs";
+import { ActionBar } from "./apps/hud/action-bar.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
 import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
@@ -317,6 +318,7 @@ Hooks.once("ready", () => {
   // §29.5: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   attachTokenHUD();
+  ActionBar.attach();
   // §27.5: a player who has closed their browser must not block the table, and
   // the decision made for them must never spend anything.
   attachAwaitTimeouts();

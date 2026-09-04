@@ -1,0 +1,39 @@
+{{!-- The action bar (§29.5). Rows wrap; nothing here has an upper bound,
+      which is exactly what the token HUD column could not survive. --}}
+<div class="fgt-bar">
+  <div class="fgt-bar__portrait">
+    <img src="{{portrait.img}}" alt="{{portrait.name}}">
+    <div class="fgt-bar__identity">
+      <span class="fgt-bar__name">{{portrait.name}}</span>
+      {{#if portrait.subtitle}}<span class="fgt-bar__subtitle">{{portrait.subtitle}}</span>{{/if}}
+    </div>
+    <div class="fgt-bar__resources">
+      {{#each resources as |r|}}
+        <span class="fgt-bar__resource"><b>{{localize r.label}}</b> {{r.value}}{{#if r.max}} / {{r.max}}{{/if}}</span>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="fgt-bar__rows">
+    {{#each rows as |row|}}
+      <div class="fgt-bar__row" data-row="{{row.id}}">
+        <span class="fgt-bar__row-label">{{localize row.label}}</span>
+        <div class="fgt-bar__slots">
+          {{#each row.slots as |slot|}}
+            <button type="button"
+                    class="fgt-slot{{#if slot.disabled}} fgt-slot--disabled{{/if}}{{#if slot.ring}} fgt-slot--{{slot.ring}}{{/if}}"
+                    data-action="useSlot" data-row="{{../row.id}}" data-slot="{{slot.id}}"
+                    data-tooltip="{{slot.tooltip}}">
+              {{#if slot.img}}<img class="fgt-slot__art" src="{{slot.img}}" alt="">{{/if}}
+              {{#if slot.icon}}<i class="fgt-slot__icon {{slot.icon}}"></i>{{/if}}
+              {{#if slot.cost}}<span class="fgt-slot__cost">{{slot.cost.amount}}◈</span>{{/if}}
+              {{#if slot.cooldown}}<span class="fgt-slot__cooldown">{{slot.cooldown.label}}</span>{{/if}}
+            </button>
+          {{/each}}
+        </div>
+      </div>
+    {{/each}}
+  </div>
+
+  <div class="fgt-bar__turn"></div>
+</div>
