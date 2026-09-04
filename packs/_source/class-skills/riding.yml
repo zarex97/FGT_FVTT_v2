@@ -12,7 +12,7 @@ description: |
   (Passive 3) Passenger Seat.
   (Active) Increases MOV for this Turn.
 
-  The MOV Up from the Active is NOT a buff: it cannot be removed by buff removal and is not
+  The @effect[movUp]{MOV Up} from the Active is NOT a buff: it cannot be removed by buff removal and is not
   prevented by an effect that blocks buffs.
 passiveRules:
   - key: GrantedAbility
