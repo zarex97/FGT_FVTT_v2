@@ -101,6 +101,12 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **The item sheet is legible.** It was rendering into Foundry v14's tab-strip column — a
+  single-part sheet lands in the first grid track, 44 pixels wide — so an effect's description
+  came out one word per line beside 680 pixels of empty space. It spans the full grid now, sizes
+  its window to its content, and an effect definition shows its own kind, duration, stacking and
+  volatility rather than a rule-element key. Rule elements are GM-only (Ch. 29 §29.5).
+
 - **Every rules term in a description is clickable.** A description naming something this system
   also ships writes it as a marker — `@effect[burn]`, `@ability[scathach-primordial-rune]`,
   `@action[mark]` — and the build resolves it to a real Foundry content link. A Servant's own

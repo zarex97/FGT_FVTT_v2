@@ -406,6 +406,19 @@ the `@UUID` links the build wrote (Ch. 37 §37.8) become real anchors a player c
 
 ---
 
+> **The item sheet was 44 pixels wide (Ch. 45).** Foundry v14 lays `.window-content` out as a
+> TWO-column grid, a narrow tab strip beside the content. A sheet with several parts fills both
+> columns; the item sheet has a single part, so it landed in the **tab strip** and rendered one
+> word per line beside 680 pixels of empty black. `grid-column: 1 / -1` is what a single-part
+> sheet has to say. Reported from play as *"absolutely horrible"*, and it was.
+>
+> Two things came with the repair. The window is `height: "auto"` now, because most of these
+> documents are three lines long and a fixed 620 left a two-sentence effect floating above half a
+> screen of nothing. And an **effect definition shows its own facts** — kind, default duration,
+> stacking and volatility, all of which were already on the document and none of which were
+> displayed. What a player got instead was the rule-element key `CheckModifier`, which is the one
+> thing on that sheet that is not for them; rule elements are GM-only now.
+
 ## 29.6 The ability editor
 
 The tool that determines whether success criterion **SC-6** (a GM authors a Karna-complexity

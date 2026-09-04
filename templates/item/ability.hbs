@@ -6,12 +6,24 @@
     <div class="fgt-sheet__identity">
       <input type="text" name="name" value="{{document.name}}">
       <div class="fgt-sheet__meta">
-        <label>{{localize "FGT.Sheet.Rank"}}
-          <input type="text" name="system.rank" value="{{system.rank}}" placeholder="—">
-        </label>
-        <label>{{localize "FGT.Sheet.Cooldown"}}
-          <input type="text" name="system.cooldown.max" value="{{system.cooldown.max}}" placeholder="—">
-        </label>
+        {{!-- Rank and Cooldown are an ABILITY's fields. An effect definition
+              has neither, and two empty boxes reading "—" told a player who
+              followed a link from a description nothing at all. --}}
+        {{#unless effect}}
+          <label>{{localize "FGT.Sheet.Rank"}}
+            <input type="text" name="system.rank" value="{{system.rank}}" placeholder="—">
+          </label>
+          <label>{{localize "FGT.Sheet.Cooldown"}}
+            <input type="text" name="system.cooldown.max" value="{{system.cooldown.max}}" placeholder="—">
+          </label>
+        {{else}}
+          <span class="fgt-chip fgt-chip--{{effect.polarity}}">{{localize (concat "FGT.Polarity." effect.polarity)}}</span>
+          {{#if effect.unremovable}}
+            <span class="fgt-chip" data-tooltip="{{localize 'FGT.Sheet.UnremovableHint'}}">
+              {{localize "FGT.Sheet.Unremovable"}}
+            </span>
+          {{/if}}
+        {{/unless}}
       </div>
     </div>
   </header>
@@ -20,14 +32,27 @@
         raw field would print them as literal text. --}}
   <section class="fgt-sheet__description">{{{enrichedDescription}}}</section>
 
-  {{#if system.rules.length}}
-    <section class="fgt-sheet__rules">
-      <h3>{{localize "FGT.Sheet.RuleElements"}}</h3>
-      <ul class="fgt-list">
-        {{#each system.rules as |rule|}}
-          <li class="fgt-list__row"><code>{{rule.key}}</code></li>
-        {{/each}}
-      </ul>
-    </section>
+  {{#if effect.rows.length}}
+    <dl class="fgt-facts">
+      {{#each effect.rows as |row|}}
+        <dt>{{localize row.label}}</dt>
+        <dd>{{#if row.localize}}{{localize row.value}}{{else}}{{row.value}}{{/if}}</dd>
+      {{/each}}
+    </dl>
+  {{/if}}
+
+  {{!-- Internals. A GM debugging content wants them; a player who followed a
+        link from a description does not. --}}
+  {{#if isGM}}
+    {{#if system.rules.length}}
+      <section class="fgt-sheet__rules">
+        <h3>{{localize "FGT.Sheet.RuleElements"}}</h3>
+        <ul class="fgt-list">
+          {{#each system.rules as |rule|}}
+            <li class="fgt-list__row"><code>{{rule.key}}</code></li>
+          {{/each}}
+        </ul>
+      </section>
+    {{/if}}
   {{/if}}
 </div>
