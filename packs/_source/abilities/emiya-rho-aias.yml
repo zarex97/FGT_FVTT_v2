@@ -28,7 +28,7 @@ requirements:
   - { kind: healthRestoredSince, fraction: 0.5 }
 description: |
   (Non-damaging) Used when any allied Unit (including EMIYA) within a 3 panel area of EMIYA is
-  about to be hit by a Noble Phantasm. EMIYA projects Rho Aias to protect the allied Unit(s)
+  about to be hit by a Noble Phantasm. EMIYA projects @effect[rhoAias]{Rho Aias} to protect the allied Unit(s)
   from the Noble Phantasm. Rho Aias has 1400 Health, and it will take the damage of the enemy's
   NP. For every 200 Health Rho Aias loses, EMIYA loses 100 Health. If the AU's NP deals more
   than 1400 damage, the remaining damage is dealt to the DUs accordingly. However, if the NP is

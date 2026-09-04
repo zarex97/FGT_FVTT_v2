@@ -43,8 +43,8 @@ description: |
   this effect requires a Successful Luck Check. Luck Check is not required during Night Rounds.
   (Passive 2) Whenever Jack performs an Attack when both Jack and the DU are within 'The Mist';
   increase the DU's Evade Roll by 4 if it Evades.
-  (Active 1) Used during your Turn. Restore 3 Agility, applies Dodge to Jack for ⅓◈ Turns; and
-  applies Atk Up for ⅓◈ Turns, all damage dealt is increased by 30%; if NP, 20%. If used while
+  (Active 1) Used during your Turn. Restore 3 Agility, applies @effect[dodge]{Dodge} to Jack for ⅓◈ Turns; and
+  applies @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage dealt is increased by 30%; if NP, 20%. If used while
   within the Mist, effect duration is increased to 1◈ Turns, and Atk Up boost is 50% instead of
   30% (if NP, 30%).
   Cooldown: 3◈ Turns (4◈ Turns if used within the Mist).

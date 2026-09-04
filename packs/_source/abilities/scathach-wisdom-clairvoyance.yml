@@ -17,9 +17,9 @@ exclusionSet: wisdomOfDunScaith
 timing: { window: ownTurn }
 countsAsAttack: false
 description: |
-  (Active) Used during your Turn. Has an 80% chance of applying Crit DmUp for 1◈ Turns (Crit
-  Damage +50%), an 80% chance of applying Crit Up for 1◈ Turns (Crit Chance +50%), and applies
-  Dodge for 1◈ Turns. Cooldown 4◈-⅓◈ Turns. Cannot be used if Wisdom of Dún Scáith (Skill 1)
+  (Active) Used during your Turn. Has an 80% chance of applying @effect[critDmUp]{Crit DmUp} for 1◈ Turns (Crit
+  Damage +50%), an 80% chance of applying @effect[critUp]{Crit Up} for 1◈ Turns (Crit Chance +50%), and applies
+  @effect[dodge]{Dodge} for 1◈ Turns. Cooldown 4◈-⅓◈ Turns. Cannot be used if @ability[scathach-wisdom-of-dun-scaith]{Wisdom of Dún Scáith} (Skill 1)
   or (Skill 2) is on Cooldown.
 requirements:
   - kind: abilityOffCooldown

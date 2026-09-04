@@ -29,7 +29,7 @@ description: |
   Servants with MAG of Rank B or higher: Perform an Agility Check. If Successful, reduce the
   DU's Agility by 2. If Failed, the DU is Stunned for 1◈ Turns.
 
-  Debuffs inflicted by this Skill ignore the DU's debuff resistance due to Magic Resistance.
+  Debuffs inflicted by this Skill ignore the DU's debuff resistance due to @ability[class-magic-resistance]{Magic Resistance}.
 targeting:
   anchor: { kind: targetUnit, range: 2 }
   shape: { kind: unit }

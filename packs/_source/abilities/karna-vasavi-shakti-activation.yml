@@ -38,7 +38,7 @@ requirements:
 description: |
   (Activation) Permanently applies the five effects of Vasavi Shakti to Karna. Kavacha and
   Kundala's effect is permanently lost. Base Attack (STR) +25 and STR Rank B → A. Normal
-  Attacks deal extra damage to Units with Divinity. Normal Attacks inflict Burn at 50%
+  Attacks deal extra damage to Units with @ability[divinity]{Divinity}. Normal Attacks inflict @effect[burn]{Burn} at 50%
   instead of 25%. Karna's Master loses 20 Health at the end of every Combat Process he is
   involved in.
 

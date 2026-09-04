@@ -18,7 +18,7 @@ negatedBy: [silence]
 requirements:
   - { kind: notHasEffect, effectId: silence }
 description: |
-  Attack Skill. During the Combat Process this Skill is used, the effects of 'Kanshou & Bakuya'
+  Attack Skill. During the Combat Process this Skill is used, the effects of '@effect[dualWieldGuard]{Kanshou & Bakuya}'
   extend to Normal Attacks at a Range of 3 or lower. EMIYA performs 2 Normal Attacks in a row,
   damage dealt by each Normal Attack is increased by 50%. Counts as EMIYA's Attack for the
   Turn. Cooldown: 2◈ Turns. Categorized as Noble Phantasm. The effect of 'Kanshou & Bakuya' is

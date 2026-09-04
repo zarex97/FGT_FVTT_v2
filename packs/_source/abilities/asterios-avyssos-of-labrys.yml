@@ -5,8 +5,8 @@ name: "Avyssos of Labrys"
 rank: C
 cooldown: "3◈"
 description: |
-  (Active) Applies Crit Up (+60% Crit Chance), N.Atk Up (+40% Normal Attack damage) and
-  Bleed Atk (Normal Attacks have a 10% chance of inflicting Bleed for 1◈ Turns), each for
+  (Active) Applies @effect[critUp]{Crit Up} (+60% Crit Chance), @effect[nAtkUp]{N.Atk Up} (+40% Normal Attack damage) and
+  @effect[bleedAtk]{Bleed Atk} (Normal Attacks have a 10% chance of inflicting @effect[bleed]{Bleed} for 1◈ Turns), each for
   1◈ Turns.
 phases:
   # Effect specs, not rule elements -- see `asterios-natural-monster.yml`.

@@ -57,7 +57,7 @@ requirements:
     radius: 2
     predicate: ["self:variant:dsc"]
 description: |
-  Has different effects depending on whether Semiramis was summoned with the 'Double Summon:
+  Has different effects depending on whether Semiramis was summoned with the '@ability[semiramis-double-summon]{Double Summon}:
   Caster' Skill.
   1. If Semiramis was not summoned with it: When this NP is used, it affects the 5x5 panel area
      around her (which Moves with her) for 2◈ Turns.
@@ -65,7 +65,7 @@ description: |
      Gardens of Babylon'. Affects the Throne Room for 3◈ Turns, and all Units within the Throne
      Room when the NP was activated cannot leave it while it is Active.
   The effects of this NP area are as follows-
-  a. Semiramis' Normal Attacks which use Base Attack (STR) inflict Poison.
+  a. Semiramis' Normal Attacks which use Base Attack (STR) inflict @effect[poison]{Poison}.
   b. When a Unit other than Semiramis or her Master Acts then ends its Turn within the NP area,
      it is inflicted with Poison.
   c. Units inflicted with Poison while within this NP area receive Poison damage at the end of

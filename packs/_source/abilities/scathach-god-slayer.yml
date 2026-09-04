@@ -13,8 +13,8 @@ description: |
   (Passive) All damage dealt to Units with the 'Undead' or 'Divine' Attribute is increased by
   30%, including NP.
 
-  (Active) Used during your Turn. Applies Dmg Up (Gods) for 1◈ Turns — damage dealt to Units
-  with the 'Undead' or 'Divine' Attribute is further increased by 70% — and applies the 'Alpi'
+  (Active) Used during your Turn. Applies @effect[dmgUpGods]{Dmg Up (Gods)} for 1◈ Turns — damage dealt to Units
+  with the 'Undead' or 'Divine' Attribute is further increased by 70% — and applies the '@effect[alpi]{Alpi}'
   buff for 1◈ Turns, 3 times.
   Cooldown 4◈ Turns.
 passiveRules:

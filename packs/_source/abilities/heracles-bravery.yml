@@ -12,9 +12,9 @@ slug: bravery
 cooldown: "4◈-⅓◈"
 timing: { window: ownTurn }
 description: |
-  Note: Bravery cannot be used and has no effects when Mad Enhancement is Active.
+  Note: Bravery cannot be used and has no effects when @ability[class-mad-enhancement]{Mad Enhancement} is Active.
   (Passive) Chance of being inflicted with Mental Debuffs is reduced by 50%.
-  (Active) Used during your Turn. Applies Atk Up (STR) for 1◈ Turns, STR damage dealt is
+  (Active) Used during your Turn. Applies @effect[atkUpStr]{Atk Up (STR)} for 1◈ Turns, STR damage dealt is
   increased by 25%; if NP, 15%. Cooldown: 4◈-⅓◈ Turns.
 requirements:
   # "Cannot be used ... when Mad Enhancement is Active." Not the same as "does

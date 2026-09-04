@@ -26,7 +26,7 @@ description: |
   recorded by that Player about Jack, if any had been recorded in the Player's Notebook (let the
   GM do this).
   (Active) Used during your Turn. Range=2. Used on an enemy Unit. Removes all buffs on the
-  Defending Unit; then inflicts Crit Dwn for 1◈ Turns, Crit Chance is reduced by 30%.
+  Defending Unit; then inflicts @effect[critDwn]{Crit Dwn} for 1◈ Turns, Crit Chance is reduced by 30%.
   Cooldown: 4◈ Turns.
 targeting:
   anchor: { kind: targetUnit, range: 2 }

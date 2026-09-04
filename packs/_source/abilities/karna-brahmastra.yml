@@ -19,7 +19,7 @@ description: |
   1. If all of the DU's Parameters are equal or lower than Karna's, this NP deals 4x damage
      plus 100.
   2. If the DU has any Parameter that is higher than Karna's, this NP deals 2x damage plus 100.
-  Note: Does not deal extra damage to Units with Divinity.
+  Note: Does not deal extra damage to Units with @ability[divinity]{Divinity}.
 
   "Real heroes kill with their eyes."
 targeting:

@@ -4,7 +4,7 @@ id: penthesilea-hatred-of-achilles
 name: "Hatred of Achilles"
 description: |
   At any time, if there is a Greek Male Unit (regardless of enemy or ally) within a 4 panel area
-  around Penthesilea, her Mad Enhancement is immediately activated regardless of Cooldown or any
+  around Penthesilea, her @ability[class-mad-enhancement]{Mad Enhancement} is immediately activated regardless of Cooldown or any
   other factors, and cannot be deactivated until no such Unit remains within 4 panels.
 
   During your Turn, Penthesilea ignores all orders/Player commands; she will constantly Move

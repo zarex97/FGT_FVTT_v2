@@ -14,7 +14,7 @@ cooldown: "2◈"
 timing: { window: ownTurn }
 description: |
   (Active) Used during your Turn. Roll a four-sided die; Semiramis creates that number of
-  [Semiramis' Poison] Items.
+  @ability[semiramis-poison]{[Semiramis' Poison]} Items.
 targeting:
   anchor: { kind: self }
   shape: { kind: unit }

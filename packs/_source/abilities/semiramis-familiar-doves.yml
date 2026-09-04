@@ -14,7 +14,7 @@ kind: skill
 cooldown: "2◈"
 timing: { window: ownTurn }
 description: |
-  (Passive) Whenever Semiramis sees a Unit for the first time, the 'Dove' effect is applied to it
+  (Passive) Whenever Semiramis sees a Unit for the first time, the '@effect[dove]{Dove}' effect is applied to it
   (neither a buff nor a debuff, is Unremovable). Semiramis can see the position of all Units with
   the 'Dove' effect on the field, regardless of Fog of War (but the effect does not remove Fog of
   War for her).

@@ -17,12 +17,12 @@ description: |
   direction next to her. All targeted Units perform a Luck Check; if their MAG is Rank B, the
   value rolled is reduced by 2, and if their MAG is Rank A, by 4.
 
-  If the targeted Unit's Luck Check fails, it is inflicted with Death. If it succeeds, it
+  If the targeted Unit's Luck Check fails, it is inflicted with @effect[death]{Death}. If it succeeds, it
   receives 4x damage plus 100, using Scáthach's Base Attack (MAG).
 
   Masters can be targeted regardless of their distance from their Servant.
 
-  Cooldown 7◈+⅓◈ Turns. Cannot be used if Primordial Rune, Wisdom of Dún Scáith and/or
+  Cooldown 7◈+⅓◈ Turns. Cannot be used if @ability[scathach-primordial-rune]{Primordial Rune}, @ability[scathach-wisdom-of-dun-scaith]{Wisdom of Dún Scáith} and/or
   Gáe Bolg Alternative are on Cooldown; when this NP is used, Primordial Rune and Wisdom of
   Dún Scáith enter Cooldown.
 requirements:

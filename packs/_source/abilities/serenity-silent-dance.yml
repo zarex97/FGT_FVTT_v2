@@ -13,8 +13,8 @@ kind: skill
 slug: silentDance
 passive: true
 description: |
-  (Passive) Chance of inflicting debuffs is increased by 10%. Chance of inflicting Instakill
-  and Death is increased by 10%.
+  (Passive) Chance of inflicting debuffs is increased by 10%. Chance of inflicting @effect[instakill]{Instakill}
+  and @effect[death]{Death} is increased by 10%.
 passiveRules:
   # Ordinary debuffs. No `severity`, which `chanceContribution` reads as
   # `normal` only -- the exclusion, stated by omission.

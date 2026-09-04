@@ -31,7 +31,7 @@ timing: { window: [combatPhaseStart] }
 negatedBy: [skillSeal]
 description: |
   (Passive) At the start of the game, choose either Effect 1 or 2; this Skill starts with that
-  effect Active. The effects of this Skill are negated by Skill Seal.
+  effect Active. The effects of this Skill are negated by @effect[skillSeal]{Skill Seal}.
   1. Crit Chance is increased by 20%.
   2. Crit Damage dealt is increased by 40%.
   (Active) Used during your Turn or at the start of a Combat Phase. Switch the effect of this

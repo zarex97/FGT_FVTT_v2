@@ -15,7 +15,7 @@ cooldown: "3◈"
 timing: { window: whenAllyAttacked, radius: 2 }
 description: |
   Spell. Used at the start of a Combat Phase when Semiramis or an allied Unit within a 2 panel
-  area of herself is Attacked; the Unit gains the Shield (200) buff for 2◈ Turns. Cooldown: 3◈
+  area of herself is Attacked; the Unit gains the @effect[scalesShield]{Shield} (200) buff for 2◈ Turns. Cooldown: 3◈
   Turns.
 shield:
   health: 200

@@ -8,8 +8,8 @@ slug: hawkeye
 cooldown: "4◈-⅓◈"
 timing: { window: ownTurn }
 description: |
-  (Active) Used during your Turn. Applies Crit Up (Hawkeye) for 1◈ Turns, Crit Chance is
-  increased by 50% at a Range of 3 or higher, and applies Crit DmUp (Hawkeye) for 1◈ Turns,
+  (Active) Used during your Turn. Applies @effect[critUpHawkeye]{Crit Up (Hawkeye)} for 1◈ Turns, Crit Chance is
+  increased by 50% at a Range of 3 or higher, and applies @effect[critDmUpHawkeye]{Crit DmUp (Hawkeye)} for 1◈ Turns,
   Crit Damage dealt is increased by 100% at a Range of 3 or higher. Cooldown: 4◈-⅓◈ Turns.
 targeting:
   anchor: { kind: self }

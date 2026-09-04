@@ -16,7 +16,7 @@ kind: classSkill
 passive: true
 copyable: { allowed: false, reason: unique }
 description: |
-  (Passive 1) If Scáthach uses a Primordial Rune Spell while she has any PRS Tokens, remove one
+  (Passive 1) If Scáthach uses a @ability[scathach-primordial-rune]{Primordial Rune} Spell while she has any PRS Tokens, remove one
   PRS Token from herself, and the Primordial Rune Spell she used does not enter Cooldown. The
   maximum number of PRS Tokens Scáthach can have is 2.
 

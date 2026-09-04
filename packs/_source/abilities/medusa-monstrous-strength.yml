@@ -21,7 +21,7 @@ timing:
 description: |
   (Active) Used at the start of a Damage Step when performing an Attack. STR Damage dealt by
   that Attack is increased by 80%; if NP, 40%. Cooldown: 3◈ Turns. Cannot be used on the same
-  Turn as Monstrous Snake Metamorphosis.
+  Turn as @ability[medusa-monstrous-snake-metamorphosis]{Monstrous Snake Metamorphosis}.
 # Scoped to THIS attack rather than applied as a buff: the sheet says "STR
 # Damage dealt by that Attack", so a duration would let it ride the next one
 # too. `windowAbilities` folds these into the one attack it was chosen for.

@@ -32,7 +32,7 @@ description: |
   Base Attack (STR) is used. Range=4.
   If used at a Range of 1 or 2, this NP deals 3.5x damage plus 100; if the Defending Unit is
   Female, damage dealt is further increased by 100% (doubled). Then, has a 50% chance of
-  inflicting Instakill.
+  inflicting @effect[instakill]{Instakill}.
   If used at a Range of 3 or 4, no damage is dealt, this NP just has a 50% chance of inflicting
   Instakill.
   Cooldown: 6◈+⅓◈ Turns.

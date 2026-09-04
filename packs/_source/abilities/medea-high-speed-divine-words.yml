@@ -7,7 +7,7 @@ cooldown: "3◈"
 timing: { window: ownTurn }
 description: |
   (Active) Completely reduce the cooldown of all of Medea's Spells.
-  Cannot be used, and its effects are negated, while inflicted with Silence.
+  Cannot be used, and its effects are negated, while inflicted with @effect[silence]{Silence}.
 # Both halves of the Silence clause: it cannot be USED while silenced, and the
 # effect is negated -- the second matters because Silence can land between the
 # declaration and the resolution.

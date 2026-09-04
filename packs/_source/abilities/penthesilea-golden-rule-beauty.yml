@@ -5,7 +5,7 @@ name: "Golden Rule (Beauty)"
 rank: A
 cooldown: "4◈"
 description: |
-  (Active) Applies Debuff Immune for 1◈ Turns (not Instakill, Death or Erase) and NP Regen for
+  (Active) Applies @effect[debuffImmune]{Debuff Immune} for 1◈ Turns (not @effect[instakill]{Instakill}, @effect[death]{Death} or Erase) and @effect[npRegen]{NP Regen} for
   1◈ Turns (NP Cooldown reduced by 1 Turn at the end of every Turn).
 phases:
   - kind: applyEffects

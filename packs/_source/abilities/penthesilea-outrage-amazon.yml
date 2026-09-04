@@ -8,8 +8,8 @@ npTags: [antiUnit]
 cooldown: "6◈"
 timing: { window: ownTurn }
 description: |
-  Only usable when Mad Enhancement is activated. Base Attack (STR) is used. Deals 3.5x damage
-  and inflicts Def Dwn for 1◈ Turns, all damage received is increased by 30%.
+  Only usable when @ability[class-mad-enhancement]{Mad Enhancement} is activated. Base Attack (STR) is used. Deals 3.5x damage
+  and inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage received is increased by 30%.
   Cooldown 6◈ Turns.
 requirements:
   # "Only usable when Mad Enhancement is activated." Stated on the sheet and

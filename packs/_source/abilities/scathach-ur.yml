@@ -10,7 +10,7 @@ cooldown: "2◈"
 cooldownWaiver: { resource: prs, amount: 1 }
 timing: { window: ownTurn }
 description: |
-  Primordial Rune Spell. Damage Spell. Range 3. Deals 2x damage and inflicts Slow for
+  @ability[scathach-primordial-rune]{Primordial Rune} Spell. Damage Spell. Range 3. Deals 2x damage and inflicts @effect[slow]{Slow} for
   1◈ Turns. Water damage. Cooldown 2◈ Turns.
 requirements:
   - { kind: abilityOffCooldown, category: primordialRuneSpell, excludeSelf: true }

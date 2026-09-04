@@ -11,7 +11,7 @@ timing: { window: ownTurn }
 isSpell: true
 element: wind
 description: |
-  Damage Spell. Deals 2x damage and inflicts Bleed for 1◈ Turns. Wind damage.
+  Damage Spell. Deals 2x damage and inflicts @effect[bleed]{Bleed} for 1◈ Turns. Wind damage.
 targeting:
   anchor: { kind: targetUnit, range: 3 }
   shape: { kind: unit }

@@ -18,7 +18,7 @@ passive: true
 copyable: { allowed: false, reason: classSkill }
 description: |
   (Trigger) When Semiramis is summoned, Flip a Coin. If Heads, she is summoned with the
-  'Double Summon: Caster' Skill (i.e. this Skill). If Tails, she does not have this Skill.
+  '@ability[semiramis-double-summon]{Double Summon}: Caster' Skill (i.e. this Skill). If Tails, she does not have this Skill.
   (Passive 1) If Semiramis has Double Summon: Caster, her Range is 3 panels, 1 target. At a
   Range of 1 to 2, her Normal Attacks use Base Attack (STR). At a Range of 3 or higher, her
   Normal Attacks use Base Attack (MAG).

@@ -21,12 +21,12 @@ description: |
   (Active) Used during your Turn. Has the following effects-
   1. If this is not the first time EMIYA has used this Skill in this game, reduce his Health
      by 5% of its maximum value (cannot drop below 1 in this way).
-  2. Apply one of the following effects of your choice to EMIYA- Activated Circuits (AC) or
-     Blazing Circuits (BC).
+  2. Apply one of the following effects of your choice to EMIYA- @effect[activatedCircuits]{Activated Circuits (AC)} or
+     @effect[blazingCircuits]{Blazing Circuits (BC)}.
   3. Max and current Luck are increased by 5.
   4. Restores 5 Agility.
-  5. Applies Atk Up (Trace) for ⅓◈ Turns, all damage dealt is increased by 60%; if NP, 40%.
-     If EMIYA uses a Thaumaturgy or Projection Skill/NP while he has the Atk Up (Trace) buff,
+  5. Applies @effect[atkUpTrace]{Atk Up (Trace)} for ⅓◈ Turns, all damage dealt is increased by 60%; if NP, 40%.
+     If EMIYA uses a Thaumaturgy or Projection Skill/NP while he has the @effect[atkUp]{Atk Up} (Trace) buff,
      its duration is extended by ⅓◈ Turns.
   Cooldown: 5◈ Turns.
   If this Skill is used while EMIYA already has the Atk Up (Trace) buff, its duration is

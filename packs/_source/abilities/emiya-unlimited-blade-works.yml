@@ -22,7 +22,7 @@ description: |
   Rank: E~A++
 
   (Passive) At the end of every Combat Phase involving EMIYA, he gains 1 Aria. Maximum number
-  of Aria stored is 6. EMIYA cannot gain Aria if he is inflicted with Silence.
+  of Aria stored is 6. EMIYA cannot gain Aria if he is inflicted with @effect[silence]{Silence}.
 
   (Activation) Can only be used by consuming 6 Aria. Affects a 7x7 panel area around EMIYA.
   All Units within that 7x7 panel area are trapped and unable to leave; Units outside are

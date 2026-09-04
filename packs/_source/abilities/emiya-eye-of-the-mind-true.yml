@@ -31,8 +31,8 @@ categorizedAs: [instinct]
 categorizedWhile: [dodge, atkUp, defUp]
 description: |
   (Passive 1) Upon a successful Evade, reduce the Cooldown of this Skill by ⅓◈ Turns.
-  (Active) Used at the start of a Combat Process when Attacked. Applies Dodge to EMIYA for
-  ⅔◈ Turns and applies Def Up for 1◈ Turns, all damage received is reduced by 20%; if NP, 10%.
+  (Active) Used at the start of a Combat Process when Attacked. Applies @effect[dodge]{Dodge} to EMIYA for
+  ⅔◈ Turns and applies @effect[defUp]{Def Up} for 1◈ Turns, all damage received is reduced by 20%; if NP, 10%.
   Cooldown: 4◈ Turns.
   (Passive 2) While EMIYA's Health is less than 20% of its maximum value, this Skill changes
   from Rank B to Rank EX.

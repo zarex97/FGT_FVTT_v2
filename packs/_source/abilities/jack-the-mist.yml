@@ -43,7 +43,7 @@ description: |
   from Jack (including diagonal). The effects of this Mist are as follows-
   1. Normal Humans immediately die if they are caught in the Mist (this counts as Jack killing
      the Human).
-  2. Enemy Masters and non-normal Humans are inflicted with Poison upon contact with the Mist;
+  2. Enemy Masters and non-normal Humans are inflicted with @effect[poison]{Poison} upon contact with the Mist;
      and are inflicted with Poison at the end of its Turn or at the end of a Turn they Act while
      still within the Mist. (High Rank Masters are not inflicted with Poison upon contact.)
   3. Whenever an enemy Servant within the Mist Rolls for Evade, increase the value rolled by 3.

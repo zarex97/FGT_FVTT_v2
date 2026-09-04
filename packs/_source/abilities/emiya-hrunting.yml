@@ -16,7 +16,7 @@ requirements:
 sameRoundExclusive: [emiya-caladbolg]
 description: |
   Range+3 for the Combat Process. Base Attack (MAG) is used. Hrunting has the Aim effect.
-  Deals 4x damage. Not affected by Magic Resistance. Cannot be used on a Unit directly next to
+  Deals 4x damage. Not affected by @ability[class-magic-resistance]{Magic Resistance}. Cannot be used on a Unit directly next to
   EMIYA. Cooldown: 7◈ Turns.
 targeting:
   # Range 4 + 3 = 7, and a MINIMUM of 2: "cannot be used on a Unit directly

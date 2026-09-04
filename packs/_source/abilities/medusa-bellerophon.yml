@@ -17,8 +17,8 @@ npTags: [antiArmy]
 cooldown: "7◈+⅓◈"
 description: |
   Base Attack (MAG) is used. Hits a 1x13 or 13x1 panel area in a straight line in any direction
-  (including diagonal) next to Medusa for 4x damage plus 100. Then, applies Crit Up for 1◈
-  Turns, Crit Chance is increased by 30%. Not affected by Magic Resistance.
+  (including diagonal) next to Medusa for 4x damage plus 100. Then, applies @effect[critUp]{Crit Up} for 1◈
+  Turns, Crit Chance is increased by 30%. Not affected by @ability[class-magic-resistance]{Magic Resistance}.
   Cooldown: 7◈+⅓◈ Turns.
 
   Hits in both directions (Front and back); but only hits in one direction (Front) if playing

@@ -21,7 +21,7 @@ kind: classSkill
 passive: true
 copyable: { allowed: false, reason: classSkill }
 description: |
-  Has different effects depending on whether Semiramis has the 'Double Summon: Caster' Skill.
+  Has different effects depending on whether Semiramis has the '@ability[semiramis-double-summon-caster]{Double Summon: Caster}' Skill.
   1. If Semiramis has it, the effects of Territory Creation are reduced to Rank C for her
      Faction's Home Base. Territory Creation Rank EX is only applied to the whole area of
      Semiramis' 'Hanging Gardens of Babylon'.
@@ -29,7 +29,7 @@ description: |
      6d20, including NP.
      (Passive 2) While this Unit is on the field, all damage taken by allied Units who are in
      their Home Base is further reduced by (3d10+30), including NP.
-  2. If Semiramis does not have it, when she uses the 'Double Summon' Skill, she gains the
+  2. If Semiramis does not have it, when she uses the '@ability[semiramis-double-summon]{Double Summon}' Skill, she gains the
      effects of Territory Creation Rank C while she has the 'DSC' buff.
   Note: If there are multiple allied Units with this Skill, only the Territory Creation with
   the highest Rank takes effect.

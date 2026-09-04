@@ -10,7 +10,7 @@ cooldown: "4◈"
 # defence, which is the whole point of this one.
 timing: { window: [ownTurn, whenAttacked] }
 description: |
-  Spell. Used during your Turn or when Attacked. Applies Def Up for 1◈ Turns: all damage taken
+  Spell. Used during your Turn or when Attacked. Applies @effect[defUp]{Def Up} for 1◈ Turns: all damage taken
   is reduced by 50%; if NP, 30%.
 phases:
   - kind: applyEffects

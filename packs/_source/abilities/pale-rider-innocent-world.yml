@@ -29,7 +29,7 @@ description: |
      Damage taken is increased by 50%.
   5. LUC highest: The value of Luck Check rolls are increased by 4.
   6. If the Unit has any NP whose Rank is higher than all its Parameters: The Servant is
-     affected with NP Seal.
+     affected with @effect[npSeal]{NP Seal}.
   If a Unit has no Parameters, roll a six-sided die and apply the effect corresponding to the
   number rolled; that Unit will receive the same effect every time it is affected by Innocent
   World. If the Unit has two or more Parameters of the same Rank, it is affected by all related

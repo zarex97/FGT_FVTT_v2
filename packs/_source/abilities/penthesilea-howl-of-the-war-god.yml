@@ -8,9 +8,9 @@ timing: { window: ownTurn }
 countsAsAttack: false
 description: |
   (Active) Used during your Turn.
-  1. Affects all allied Units within a 2 panel area. Applies Atk Up (STR) for 1◈ Turns: damage
+  1. Affects all allied Units within a 2 panel area. Applies @effect[atkUpStr]{Atk Up (STR)} for 1◈ Turns: damage
   dealt which uses Base Attack (STR) is increased by 30%; if NP, 20%.
-  2. Applied to herself. Applies Atk Up (GreekMale) for 1◈ Turns: damage dealt to Male Units
+  2. Applied to herself. Applies @effect[atkUpGreekMale]{Atk Up (GreekMale)} for 1◈ Turns: damage dealt to Male Units
   from the Greece region is increased by 100% including NP.
   Cooldown 4◈-⅓◈ Turns.
 targeting:

@@ -11,9 +11,9 @@ sameTurnExclusive: [karna-mana-burst-flames]
 description: |
   (Active) Used during your Turn. Has the following effects-
   1. Restores 3 Agility.
-  2. Applies Atk Up for 1◈ Turns (all damage dealt is increased by 40%; if NP, 30%).
-  3. Applies NP DmUp for 1◈ Turns (NP Damage dealt is increased by 20%).
-  Cooldown: 4◈ Turns. Cannot be used on the same Turn as Mana Burst (Flames).
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns (all damage dealt is increased by 40%; if NP, 30%).
+  3. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns (NP Damage dealt is increased by 20%).
+  Cooldown: 4◈ Turns. Cannot be used on the same Turn as @ability[karna-mana-burst-flames]{Mana Burst (Flames)}.
 phases:
   # Clause 1. RESTORES, so it is clamped to the maximum Karna rolled at summon
   # -- `clampToMax` is the difference between "restores 3 Agility" and "grants

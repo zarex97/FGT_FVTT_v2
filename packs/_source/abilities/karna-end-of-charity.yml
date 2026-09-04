@@ -7,9 +7,9 @@ rank: null
 cooldown: "4◈"
 description: |
   (Active) Used during your Turn. Has the following effects-
-  1. Applies the 'Charity' buff for 1◈ Turns; as long as Karna has this buff, both effects of
-     'Uncrowned Arms Mastership' are Active.
-  2. Applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of himself
+  1. Applies the '@effect[charity]{Charity}' buff for 1◈ Turns; as long as Karna has this buff, both effects of
+     '@ability[karna-uncrowned-arms-mastership]{Uncrowned Arms Mastership}' are Active.
+  2. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of himself
      (Crit Chance +40%).
   3. Reduce the NP Cooldown of Brahmastra, or Vasavi Shakti, or Brahmastra Kundala by 1◈ Turns
      (your choice).

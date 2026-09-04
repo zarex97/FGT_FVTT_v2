@@ -21,11 +21,11 @@ negatedWhile:
   abilityOnCooldown: [emiya-overedge]
 description: |
   (Passive) Used when EMIYA performs a Normal Attack at a Range of 2 or lower. When Kanshou &
-  Bakuya are used in Combat, EMIYA's Magic Resistance Rank is increased by one Rank for the
+  Bakuya are used in Combat, EMIYA's @ability[class-magic-resistance]{Magic Resistance} Rank is increased by one Rank for the
   rest of that Turn (D to C: MAG damage from a MAG Rank of up to C is negated, otherwise MAG
   damage taken is reduced by 30%; chance of being inflicted by debuffs is reduced by 15%).
 
-  The effect of 'Kanshou & Bakuya' is negated while 'Overedge' is on Cooldown.
+  The effect of '@effect[dualWieldGuard]{Kanshou & Bakuya}' is negated while 'Overedge' is on Cooldown.
 passiveRules:
   # The trigger, not the effect. A `RankShift` written directly here would be
   # collected in the rank pre-pass -- which runs before there is an attack, so
