@@ -13,6 +13,13 @@
 > budget spend stays above it in `resolveAttack`, so a Counter does not *skip* paying for
 > a turn; the payment is not on its path.
 >
+> The ability's **own** price is a separate function, `payAbilityPrice` — its use record,
+> its costs and its cooldown — and a Counter pays all of it. The split matters: for most
+> Noble Phantasms the cooldown is the only price there is, so a Counter that skipped it
+> would let a Servant answer every attack with its Noble Phantasm forever. `recordUse`
+> moved to this side too; it gates `oncePerTurn`, the exclusion scales and the whole-match
+> use budget, which are ability rules rather than turn rules.
+>
 > Interrupts (§12.11) land through Ch. 17's Command Spell protocol: `applyInterrupt` mutates the
 > Process and the ladder resumes from wherever it left it.
 >

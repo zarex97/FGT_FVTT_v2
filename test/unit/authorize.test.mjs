@@ -112,9 +112,58 @@ describe("every socket operation has a caller", () => {
     // satisfies the same rule without a round trip. Listed rather than deleted
     // because removing a socket operation is an API change; a candidate for
     // deletion, not a thing to build a caller for.
-    const DEAD = new Set(["discoverRoll"]);
+    // TEMPORARY, removed in the task that wires the action bar. `declareCounter`
+    // is declared before its only caller exists; leaving this entry in place
+    // once the bar requests it would defeat the point of this test.
+    const DEAD = new Set(["discoverRoll", "declareCounter"]);
     const orphans = Object.keys(OPERATIONS)
       .filter((op) => !DEAD.has(op) && !callers.includes(`"${op}"`));
     expect(orphans).toEqual([]);
+  });
+});
+
+describe("declareCounter authorization", () => {
+  // The second clause matters more than the first. Without the rung check, any
+  // owner could post this operation at any moment and receive a free attack
+  // that costs no turn budget — which is precisely what a Counter is, minus the
+  // part where somebody attacked them first.
+  const auth = OPERATIONS.declareCounter.authorize;
+
+  /** `authorize` reads `game` off the global; give it one. */
+  function withWorld(fn) {
+    const w = world();
+    const previous = globalThis.game;
+    globalThis.game = {
+      ...w,
+      messages: {
+        get: (id) => (id === "missing" ? null : {
+          getFlag: () => JSON.stringify({ state: id === "onCounterRung" ? "counter" : "damage" }),
+        }),
+      },
+    };
+    try { return fn(); } finally { globalThis.game = previous; }
+  }
+
+  it("refuses a user who does not own the responding unit", () => {
+    const out = withWorld(() => auth({ respondingUnitId: "archer", messageId: "onCounterRung" }, "alice"));
+    expect(out.allowed).toBe(false);
+    expect(out.reason).toMatch(/Not your decision/);
+  });
+
+  it("allows the owner while the parent process is on the counter rung", () => {
+    const out = withWorld(() => auth({ respondingUnitId: "saber", messageId: "onCounterRung" }, "alice"));
+    expect(out.allowed).toBe(true);
+  });
+
+  it("refuses the owner when the parent process is somewhere else", () => {
+    // A free attack on demand, if this clause were missing.
+    const out = withWorld(() => auth({ respondingUnitId: "saber", messageId: "onDamageRung" }, "alice"));
+    expect(out.allowed).toBe(false);
+    expect(out.reason).toMatch(/not offering a Counter/);
+  });
+
+  it("refuses when the message is gone entirely", () => {
+    const out = withWorld(() => auth({ respondingUnitId: "saber", messageId: "missing" }, "alice"));
+    expect(out.allowed).toBe(false);
   });
 });
