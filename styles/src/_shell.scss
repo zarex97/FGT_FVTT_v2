@@ -328,6 +328,14 @@
 .fgt-sheet {
   flex: 1;
   min-height: 0;
+
+  // Foundry v14 lays `.window-content` out as a TWO-column grid: a narrow tab
+  // strip and the content beside it. A sheet with several parts fills both. A
+  // sheet with ONE part lands in the first column and is squeezed to its 44px
+  // width -- which is how the item sheet came to render one word per line
+  // beside 680px of empty black. Spanning every track is what a single-part
+  // sheet means to say.
+  grid-column: 1 / -1;
   overflow-y: auto;
   overflow-x: hidden;
 
@@ -423,4 +431,32 @@
   margin: 0;
   font-size: 0.72rem;
   opacity: 0.75;
+}
+
+// An effect definition's own facts, on the item sheet. Two columns, so the
+// labels line up and the values are scannable.
+.fgt-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.75rem;
+  margin: 0;
+  font-size: 0.9em;
+
+  dt { opacity: 0.7; }
+  dd { margin: 0; }
+}
+
+// A polarity chip: what kind of thing this is, in one word.
+.fgt-chip {
+  align-self: center;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--color-border-light-tertiary, #7a7971);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &--buff { border-color: #6a9; color: #8cb; }
+  &--debuff { border-color: #a66; color: #c88; }
+  &--status { border-color: var(--fgt-gold, #c9a227); color: var(--fgt-gold, #c9a227); }
 }

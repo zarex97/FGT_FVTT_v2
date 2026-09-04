@@ -9,7 +9,7 @@
 
 import { FGTActorSheet } from "./actor-sheet/sheet.mjs";
 import { editImage } from "./image-edit.mjs";
-import { enrichText } from "./enrich.mjs";
+import { enrichText, effectFacts } from "./enrich.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -18,7 +18,10 @@ const { DocumentSheetConfig } = foundry.applications.apps;
 class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   static DEFAULT_OPTIONS = {
     classes: ["fgt", "sheet", "item"],
-    position: { width: 560, height: 620 },
+    // `height: "auto"`, because most of these documents are three lines long.
+    // A fixed 620 left an effect's two-sentence description floating above
+    // half a screen of nothing.
+    position: { width: 560, height: "auto" },
     window: { resizable: true },
     form: { submitOnChange: true },
     actions: {
@@ -49,6 +52,14 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
       // `enrichHTML` is async and Handlebars is not, so this is the only place
       // it can happen. Without it a `@UUID` link renders as literal text.
       enrichedDescription: await enrichText(this.document.system?.description),
+      // What a player who just clicked "Burn" actually wants to know. Every
+      // one of these was already on the document and none of it was shown;
+      // the sheet offered a rule-element key instead, which is the one thing
+      // on here that is not for them.
+      effect: effectFacts(this.document.system),
+      // Rule elements are internals. A GM debugging content wants them; a
+      // player who followed a link from a description does not.
+      isGM: game.user?.isGM ?? false,
     };
   }
 }
