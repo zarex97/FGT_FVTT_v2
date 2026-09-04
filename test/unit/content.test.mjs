@@ -368,6 +368,46 @@ describe("compileDocument", () => {
   });
 });
 
+describe("activeRules nothing can switch on (§37.4)", () => {
+  const errors = (doc, dir = "abilities") => validateAll([file(doc, "x.yml", dir)]).problems;
+  const withActive = (over = {}) => ok({
+    activeRules: [{ key: "MovDelta", value: 5 }], ...over,
+  });
+
+  it("accepts a declared mode", () => {
+    expect(errors(withActive({ isMode: true }))).toEqual([]);
+  });
+
+  it("accepts an ability whose activeRules ARE its mode, undeclared", () => {
+    // `class-riding.yml` and Pale Rider's: activeRules and no phases, which
+    // `classifyAbility` reads as a mode that forgot to say so.
+    expect(errors(withActive())).toEqual([]);
+  });
+
+  it("accepts a windowed ability, which is offered at its window instead", () => {
+    // Monstrous Strength: `engine/attack.mjs#offerAttackerWindow` reads
+    // `activeRules` off the item directly, so this path is genuinely wired.
+    expect(errors(withActive({ timing: { window: "damageStep" } }))).toEqual([]);
+  });
+
+  it("REFUSES activeRules on an ability that has phases", () => {
+    // Medusa's Riding: phases make it `active`, and `contributionsOf` reads
+    // `activeRules` only while `system.active` is set, which nothing ever sets
+    // for a used ability. Authored, shipped, and applied by nothing.
+    const problems = errors(withActive({ phases: [{ kind: "applyEffects", target: "self" }] }));
+    expect(problems[0]).toMatch(/activeRules/);
+    expect(problems[0]).toMatch(/active/);
+  });
+
+  it("REFUSES activeRules on an attack", () => {
+    expect(errors(withActive({ isSpell: true }))[0]).toMatch(/activeRules/);
+  });
+
+  it("says nothing about an ability with no activeRules at all", () => {
+    expect(errors(ok({ phases: [{ kind: "applyEffects", target: "self" }] }))).toEqual([]);
+  });
+});
+
 describe("shipped artwork (§37.3)", () => {
   const library = new Map();
   const { assets } = indexAssets([

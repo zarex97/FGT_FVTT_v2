@@ -58,6 +58,7 @@ import { CONCEALMENT } from "./concealment.mjs";
  */
 export function snapshotUnit(actor, {
   token = null, panel = null, tick = null, turnsPerRound = 3, round = null, ownerUserId = null,
+  warRegion = null,
 } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
@@ -76,7 +77,13 @@ export function snapshotUnit(actor, {
     ? sys.summonVariant?.[contributions.variantOverride]?.overrides ?? null
     : null;
 
-  return {
+  // The war Region's grant is applied on the way out rather than inline,
+  // because it shifts Ranks that the object literal below is still building.
+  // `applyRegionBonus` is the SAME function `snapshotBoard`'s pass runs, and it
+  // refuses to fire twice on one unit -- a caller with a canvas
+  // (`engine/board.mjs#unitSnapshot`) projects with the Region already known so
+  // the SHEET can show it, and hands that finished snapshot to the board.
+  return applyRegionBonus({
     id: actor.id,
     uuid: actor.uuid,
     name: actor.name,
@@ -159,14 +166,25 @@ export function snapshotUnit(actor, {
       : sustainabilityTurns(sys, turnsPerRound),
     // The authored maximum, for the sheet.
     sustainabilityMax: sys.sustainability ?? null,
-    contract: sys.contract ?? "contracted",
+    // §16.2: *"State is derived, not stored"* -- `if (!m) return "free"`. The
+    // stored field exists because the contract OPERATIONS write it, but it
+    // initialises to `"contracted"` and a Servant summoned with no Master had
+    // nothing to overwrite it, so every Free Servant's sheet claimed a contract
+    // it never had. With no `masterId` there is no Master to derive anything
+    // else from, and the stored value is not evidence of one.
+    contract: sys.masterId ? (sys.contract ?? "contracted") : "free",
     commandSpells: sys.commandSpells ?? 0,
 
-    // §5.6: `effective = base shifted by granted`. Only a High Rank Master's
-    // grant is folded in here -- it is a permanent, per-unit fact this
-    // projection can settle on its own. The war Region's grant is folded in by
-    // `annotateRegionBonus` once `snapshotBoard` has the current Region in
-    // hand, because this layer never touches `game` and cannot look it up.
+    // §5.6: `effective = base shifted by granted`. `grantedSteps` holds the
+    // MASTER's grant and only that -- it is a permanent, per-unit fact this
+    // projection can settle alone, and `grantedStepDeltas` names the Master as
+    // its source. The war Region's grant is applied by `applyRegionBonus` on
+    // the way out of this function instead, because it is a fact about the
+    // WAR: it has to move when the Region does, without rewriting a sheet.
+    //
+    // The summon used to bake the Region into this field as well
+    // (`engine/summon.mjs#commitSummon`), which counted it twice on a board and
+    // labelled it as the Master's on a sheet.
     parameters: applyGrantedSteps(parseParameters(sys.parameters), sys.grantedSteps),
     baseAttack: { str: sys.baseAttack?.str ?? 0, mag: sys.baseAttack?.mag ?? 0 },
     // Abilities can grant attributes -- Divinity grants `divine`, which is what
@@ -358,7 +376,7 @@ export function snapshotUnit(actor, {
     acted: turnState.acted,
     turnState,
     roundState,
-  };
+  }, warRegion);
 }
 
 /**
@@ -602,26 +620,48 @@ function annotatePlatforms(units, board) {
 function annotateRegionBonus(units, board) {
   const warRegion = board.warRegion ?? null;
   if (!warRegion) return;
+  for (const u of units) applyRegionBonus(u, warRegion);
+}
 
-  for (const u of units) {
-    const steps = regionBonusFor(u, warRegion);
-    if (steps === 0) continue;
+/**
+ * Apply the war Region's step to ONE unit, at most once.
+ *
+ * The guard is the point. `snapshotBoard` accepts a snapshot a caller already
+ * projected — that is how `engine/board.mjs#unitSnapshot` gets the Region onto
+ * the actor SHEET, which has no board to run a pass over — and without the
+ * flag the board pass then shifted the same Ranks a second time. A Servant
+ * fielded in her own Region read one thing on her sheet and another on the
+ * board, and her Base Attack carried the Region's +10 twice.
+ *
+ * Idempotence rather than "only one caller may do it" because both callers are
+ * legitimate: the sheet needs it before any board exists, and the board needs
+ * it for units nobody pre-projected.
+ *
+ * @param {object} unit
+ * @param {string|null} warRegion
+ * @returns {object} the same unit, mutated
+ */
+export function applyRegionBonus(unit, warRegion) {
+  if (!warRegion || !unit || unit.regionBonusApplied) return unit;
+  const steps = regionBonusFor(unit, warRegion);
+  if (steps === 0) return unit;
 
-    for (const p of ["str", "end", "agi", "mag", "luc"]) {
-      if (!u.parameters[p]) continue;
-      u.parameters[p] = u.parameters[p].step(steps);
-    }
-    const ba = baseAttackAdjustment({ str: steps, mag: steps });
-    u.baseAttack = { str: u.baseAttack.str + ba.str, mag: u.baseAttack.mag + ba.mag };
-
-    u.statDeltas = [
-      ...(u.statDeltas ?? []),
-      ...["str", "end", "agi", "mag", "luc"].map((p) => ({
-        stat: `parameters.${p}`, rankShift: steps, target: "self",
-        source: `Region: ${warRegion}`,
-      })),
-    ];
+  for (const p of ["str", "end", "agi", "mag", "luc"]) {
+    if (!unit.parameters?.[p]) continue;
+    unit.parameters[p] = unit.parameters[p].step(steps);
   }
+  const ba = baseAttackAdjustment({ str: steps, mag: steps });
+  unit.baseAttack = { str: unit.baseAttack.str + ba.str, mag: unit.baseAttack.mag + ba.mag };
+
+  unit.statDeltas = [
+    ...(unit.statDeltas ?? []),
+    ...["str", "end", "agi", "mag", "luc"].map((p) => ({
+      stat: `parameters.${p}`, rankShift: steps, target: "self",
+      source: `Region: ${warRegion}`,
+    })),
+  ];
+  unit.regionBonusApplied = true;
+  return unit;
 }
 
 /**

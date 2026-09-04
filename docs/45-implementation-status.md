@@ -1138,6 +1138,57 @@ both directions. `Class-Shielder-Gold.webp` arrived with the downloaded icon set
 it was indistinguishable from a class image that works — a directory listing shows fifteen files
 either way. The validator names it and lists the fourteen ids that would work.
 
+### Medusa's first live summon — four defects, one of them three years old in shape
+
+Reported from play after summoning Medusa into a Greek war as a **Free Servant**: every Parameter
+tile read `+1 granted`, the Combat tab credited all five steps to a *"High Rank Master grant"*
+when she had no Master, the Status panel said **Contracted**, and using Riding raised her MOV by
+nothing. Four separate defects, and the first three share a cause.
+
+**The war Region was baked into `grantedSteps`.** `summonPlan` keeps the Master's grant and the
+Region's apart as separate steps — it always has, and `setup-rolls.test.mjs` pins it — but
+`mergeGrants` folded them into one map and `commitSummon` wrote the whole thing to the sheet.
+Everything downstream of that field says "Master", because until now that is all it held:
+`grantedStepDeltas` labels it, `baseAttackFor` reads it, `applyGrantedSteps` shifts by it. So a
+Free Servant was told a Master granted her five steps.
+
+Worse, and invisible on the sheet: `annotateRegionBonus` applies the Region **live**, and says in
+its own header that it is kept live *"instead of baked into the sheet"*. So on a board the Region
+moved every Rank a second time and added its ±10 to Base Attack twice. `snapshot.test.mjs` already
+had a test asserting a Master grant and a Region bonus stack to `C++` — it passed only because it
+hand-built `grantedSteps` with the Master's step alone, which is the shape the summon never
+produced. The integration between the two was never tested, and that is where the bug lived.
+
+Now `grantedSteps` holds the Master's steps and nothing else; the rolled maxima still take both,
+because those are rolled once and locked and the Region is part of that roll. The Region's effect
+on Ranks is `applyRegionBonus`, which is idempotent per unit — the sheet projects with the Region
+known so a player can see it before a board exists, and the board pass skips any unit already
+carrying it. The tile prints the grant as the rank ladder writes it: `+ granted`, not `+1`.
+
+**Contract state was specified as derived and implemented as stored.** §16.2 gives the
+derivation and its first clause is `if (!m) return "free"`; the field initialises to
+`"contracted"` and `commitSummon` never wrote it. Fixed at both ends — written at summon, and
+derived in the projection whenever there is no `masterId`, so a compendium drop is right too.
+
+**Riding's Active MOV was collected by nothing.** Medusa's Riding has `phases` (it applies the
+`ridingActive` marker that unlocks Riding Attack and Passenger Seat), so `classifyAbility` calls
+it `active` rather than a mode — correctly, it is used, not toggled. But `contributionsOf` reads
+`activeRules` only while `system.active` is set, and nothing sets that for a used ability. Her +5
+MOV was authored on the skill, shipped in the pack, printed in the tooltip, and applied by
+nothing. It lives on the `ridingActive` effect now, which is in force for exactly as long as the
+Active lasts.
+
+That is the third time this shape has shipped — Monstrous Strength and Hatred of Achilles were
+the first two, and both are recorded above. So it is a build failure now (D37.11) rather than a
+fourth entry in this list: `activeRules` on an ability that classifies as neither a mode nor
+windowed fails `validate:content`, naming what to do instead.
+
+**One thing this does not fix.** A Servant summoned into a matching Region *before* this change
+has the Region baked into her stored `grantedSteps`, and no migration can tell those steps from a
+Master's after the fact. Her Ranks were already double-counted on a board; they now double-count
+on her sheet too, which is the same defect made visible. **Re-summon her.** Ch. 39's migration
+framework is still specification-only, which is the honest reason there is no automatic repair.
+
 ---
 
 ## 45.5 The completion plan

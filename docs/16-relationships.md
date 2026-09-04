@@ -1,5 +1,17 @@
 # 16 — Relationships
 
+> **§16.2's derivation was specified and not applied (Ch. 45).** This chapter says *"State is
+> derived, not stored"* and gives the derivation, whose first clause is `if (!m) return "free"`.
+> The implementation stores the state instead, on a field that initialises to `"contracted"` —
+> and the summon never wrote it, so **every Servant summoned without a Master reported a contract
+> it never had**, with an empty Master slot beside it and a Sustainability clock that should have
+> been running.
+>
+> Two changes, because the field is written by real operations and cannot simply be dropped:
+> `commitSummon` now writes the state at the one moment it is unambiguous, and the projection
+> derives `free` whenever there is no `masterId` — so a Servant dropped straight from the
+> compendium is right too, without a migration. The sheet reads the projection, not the raw field.
+
 > **§16.5–16.7 implemented (Ch. 45).** Overpower and Underpower are direction-scoped and return
 > `applies: false` rather than a zero chance when the pair is wrong — "the rule does not apply"
 > and "it cannot happen" are different facts and the interface shows them differently. Invuln and

@@ -14,6 +14,7 @@
 import { createHash } from "node:crypto";
 import { Rank } from "../../module/domain/rank.mjs";
 import { SERVANT_CLASSES } from "../../module/domain/enums.mjs";
+import { classifyAbility } from "../../module/rules/ability-use.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
 import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES, lookup } from "../../module/domain/tables.mjs";
@@ -384,6 +385,40 @@ export function validateAll(files, assets = null) {
 }
 
 /**
+ * `activeRules` on an ability that nothing will ever switch on.
+ *
+ * `contributionsOf` (`rules/snapshot.mjs`) collects an ability's `activeRules`
+ * only while `system.active` is set, and the only thing that sets it is
+ * toggling a MODE. Two shapes are therefore legitimate:
+ *
+ * - a mode, declared (`isMode: true`) or inferred by `classifyAbility` from
+ *   having `activeRules` and no phases — `class-riding.yml`, Mad Enhancement;
+ * - a WINDOWED ability, which `engine/attack.mjs#offerAttackerWindow` reads
+ *   `activeRules` off directly at its timing window — Monstrous Strength.
+ *
+ * Everything else is authored and inert, and says nothing when it fails. This
+ * exact shape has now shipped three times: Monstrous Strength, Hatred of
+ * Achilles, and Medusa's Riding — whose Active promised +5 MOV on the sheet,
+ * in the compendium, and in the tooltip, and moved her zero panels, because
+ * having `phases` made it `active` rather than a mode. The lasting half of a
+ * USED ability belongs on the effect it applies, which is collected in force.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function activeRulesAreReachable(doc, path, problems) {
+  if (!(doc?.activeRules ?? []).length) return;
+  const { kind } = classifyAbility({ type: doc.type, system: doc });
+  if (kind === "mode" || kind === "windowed") return;
+  problems.push(
+    `${path}: has activeRules but classifies as "${kind}", and only a mode's activeRules are ` +
+    `ever collected (a windowed ability's are read at its window). Nothing will switch these on. ` +
+    `Move the lasting effect onto what this ability applies, or declare "isMode: true".`,
+  );
+}
+
+/**
  * Warn for every unit whose artwork is missing from `assets/`.
  *
  * A class image is reported once per class rather than once per Servant in
@@ -529,6 +564,8 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   if (PACKS[dir]?.documentType === "Actor") {
     unitKeyCoverage(doc, path, problems);
     baseAttackAgreesWithTable(doc, path, warnings);
+  } else {
+    activeRulesAreReachable(doc, path, problems);
   }
 
   // Ranks

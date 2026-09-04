@@ -276,3 +276,24 @@ describe("describeModifier", () => {
     expect(describeModifier({ key: "x", value: 1 }).source).toBe("FGT.Sheet.UnknownSource");
   });
 });
+
+describe("a granted step is written in the game's own notation", () => {
+  it("renders one step as a single +, not as +1", () => {
+    // Ch. 04 §4.5 states the grant as "a free `+` to one of their Servant's
+    // Parameters", and a Rank carries it that way: A becomes A+. "+1" is
+    // arithmetic the rank ladder does not use anywhere else on the sheet.
+    expect(parameterTiles({ str: "B" }, { str: 1 })[0].plus).toBe("+");
+  });
+
+  it("renders two steps as ++", () => {
+    expect(parameterTiles({ str: "B" }, { str: 2 })[0].plus).toBe("++");
+  });
+
+  it("renders a negative step with the matching minus", () => {
+    expect(parameterTiles({ str: "B" }, { str: -1 })[0].plus).toBe("-");
+  });
+
+  it("is empty when nothing was granted", () => {
+    expect(parameterTiles({ str: "B" }, { str: 0 })[0].plus).toBe("");
+  });
+});

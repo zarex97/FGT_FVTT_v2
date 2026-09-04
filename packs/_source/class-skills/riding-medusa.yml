@@ -44,11 +44,12 @@ passiveRules:
   - key: GrantedAbility
     abilities: [ridingAttack, passengerSeat]
     predicate: ["self:effect:ridingActive"]
-activeRules:
-  - key: MovDelta
-    table: ridingMov
-    duration: "this turn"
-    isBuff: false
+# NO `activeRules`. This ability has phases, so it is USED rather than toggled,
+# and `contributionsOf` collects `activeRules` only for a mode -- the MOV Up
+# authored here was applied by nothing. It lives on the `ridingActive` effect
+# below, which is what the Active applies and what is therefore in force for
+# exactly as long as the Active lasts. `tools/lib/content.mjs` now fails the
+# build on this shape so it cannot come back.
 phases:
   - kind: applyEffects
     target: self

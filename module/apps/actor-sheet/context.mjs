@@ -358,7 +358,10 @@ function overviewContext(actor, snapshot) {
       })),
 
     status: {
-      contract: system.contract ?? null,
+      // The SNAPSHOT's, not `system`'s: §16.2 derives this state, and the
+      // stored field's `"contracted"` default is wrong for a Servant that has
+      // no Master. Same convention as every other field here that differs.
+      contract: snapshot.contract ?? system.contract ?? null,
       masterName: system.masterId ? (game.actors.get(system.masterId)?.name ?? null) : null,
       zon: snapshot.zon ?? null,
       zonDistance: snapshot.zonDistance ?? null,

@@ -1,10 +1,19 @@
 # Medusa's Riding A+ Active: "Additionally, 'Riding Attack', and 'Passenger
 # Seat' can be used on this Turn."
 #
-# A marker, not a buff in its own right -- it carries no modifier. What it does
-# is satisfy the `self:effect:ridingActive` predicate on Riding's two granted
-# abilities, which is how a passive becomes conditional on an Active without a
-# new mechanism.
+# What it does is satisfy the `self:effect:ridingActive` predicate on Riding's
+# two granted abilities, which is how a passive becomes conditional on an Active
+# without a new mechanism -- AND carry the Active's MOV Up.
+#
+# The MOV lives here rather than in Riding's own `activeRules` because Medusa's
+# Riding is a USED ability, not a mode: it has phases, so `classifyAbility`
+# calls it `active`, and `contributionsOf` reads `activeRules` only while
+# `system.active` is set -- which nothing sets for an ability that is used
+# rather than toggled. Authored there, the +5 was collected by nothing and
+# using Riding raised her MOV by zero. An effect is collected with
+# `active: true` because an effect that is present is in force, so the lasting
+# half of a used ability belongs on what it applies. `class-riding.yml` and Pale
+# Rider's keep theirs in `activeRules` correctly: those two ARE modes.
 #
 # `unremovable`, for the same reason the MOV Up is not a buff: the sheet says
 # the Active's grant "cannot be removed by buff removal effects, or prevented
@@ -19,4 +28,14 @@ valence: neither
 stacking: noneRefresh
 baseChance: 100
 unremovable: true
-rules: []
+rules:
+  # "Increases MOV by 5 panels for this Turn." A literal rather than the
+  # `ridingMov` table, on Pale Rider's precedent: an effect is collected with
+  # `rank: null`, so a table lookup here has no grade to read. Medusa's Riding
+  # is A+, and `ridingMov` at grade A is 5 -- the same number her sheet prints.
+  - key: MovDelta
+    value: 5
+    # Not a buff: "cannot be removed by buff removal effects, or prevented by an
+    # effect that prevents buffs from being applied." The effect's own
+    # `unremovable` covers the instance; this covers the modifier it contributes.
+    isBuff: false
