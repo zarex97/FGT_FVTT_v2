@@ -67,7 +67,7 @@ jobs:
       - name: Assemble the package
         run: |
           mkdir -p dist/fgt
-          cp -r system.json module packs templates styles lang LICENSE README.md CHANGELOG.md dist/fgt/
+          cp -r system.json module packs templates styles lang assets LICENSE README.md CHANGELOG.md dist/fgt/
           rm -rf dist/fgt/packs/_source dist/fgt/styles/src
           cd dist/fgt && zip -r ../fgt.zip . -x '*.DS_Store'
 

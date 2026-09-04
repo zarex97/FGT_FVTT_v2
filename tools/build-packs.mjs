@@ -15,16 +15,18 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { compilePack } from "@foundryvtt/foundryvtt-cli";
-import { loadSource } from "./lib/load.mjs";
+import { loadSource, loadAssets } from "./lib/load.mjs";
 import { validateAll, compileDocument, PACKS } from "./lib/content.mjs";
 
 const SOURCE = "packs/_source";
+const ASSETS = "assets";
 const STAGING = ".build/packs";
 const OUT = "packs";
 
 const { files, problems: loadProblems } = await loadSource(SOURCE);
-const { problems, warnings } = validateAll(files);
-const all = [...loadProblems, ...problems];
+const { assets, problems: assetProblems } = await loadAssets(ASSETS);
+const { problems, warnings } = validateAll(files, assets);
+const all = [...loadProblems, ...assetProblems, ...problems];
 
 for (const w of warnings) console.warn(`  warning  ${w}`);
 if (all.length > 0) {
@@ -50,7 +52,7 @@ for (const { path, dir, doc } of files) {
     continue;
   }
   if (!byPack.has(spec.pack)) byPack.set(spec.pack, []);
-  byPack.get(spec.pack).push(compileDocument(doc, dir, library));
+  byPack.get(spec.pack).push(compileDocument(doc, dir, library, assets));
 }
 
 await rm(STAGING, { recursive: true, force: true });

@@ -231,6 +231,31 @@ catch, in its hardest form: the field *was* compiled, into `system`, where the r
 what went missing was its Foundry-side twin. §37.4's checks cannot see that class of gap, because
 nothing about the source file is wrong. Ch. 20 §20.3 has the consequences.
 
+**Step 7's other derived fields are the images.** No Servant file names its artwork. The build
+indexes `assets/` (`loadAssets`, the one other place the pipeline touches a disk) and
+`unitImages` in `content.mjs` fills three fields from it by the ids the content is already
+authored under:
+
+| Field | Comes from | Shown |
+|---|---|---|
+| `img`, the true portrait | `assets/<source dir>/<id>.<ext>` — `assets/servants/karna.webp` | compendium thumbnail, the owner's and the GM's sheet, the token once revealed |
+| `system.defaultImage`, the standard image | `assets/classes/<classContainer>.<ext>` — `assets/classes/lancer.webp`, Servants only | everyone else's sheet, and the token, while `identityRevealed` is unset (Ch. 04 §4.2) |
+| `prototypeToken.texture.src` | the public one of the two: the class image for a Servant, the portrait for anything else | the board, on the first drop |
+
+The third is the one that had to be derived rather than left to Foundry. A Servant leaves the
+compendium unrevealed, and `Actor#_preCreate` copies `img` onto any token whose texture is unset
+— so an imported Servant with no compiled texture dropped onto the board wearing its true face,
+for every opponent, before `engine/token-image.mjs` had an update to react to. The compiled value
+is the same one `publicImageOf` would compute at runtime; the runtime sync takes over from there.
+
+Foundry serves the installed system from `systems/fgt/`, so every compiled path starts
+`systems/fgt/assets/`, and the release workflow ships `assets/` alongside `packs/`. An authored
+`img:` or `defaultImage:` still wins over the file on disk. Two files differing only by extension
+fail the build rather than let `readdir` order choose. A missing file is a §37.4 warning naming
+the path expected, because artwork arrives on its own schedule and a Servant without a portrait
+is playable — but a portrait committed under the wrong name is indistinguishable from one never
+drawn, and the warning is what tells them apart.
+
 ---
 
 ## 37.4 Validation
@@ -401,6 +426,7 @@ Established so that 47 Servants look like they were authored by one person:
 | Durations | Always the ◈ notation as written in the source, never pre-resolved turns |
 | Ordering | Phases in the order the source describes them |
 | Naming | The ability's `name` is exactly the source's, including the subtitle after the colon |
+| Artwork | `assets/<source dir>/<id>.webp` for a portrait, `assets/classes/<class>.webp` for a class image; never an `img:` line in the YAML (§37.3) |
 
 The last one matters more than it sounds: `"Gáe Bolg Alternative: Soaring Spear of Piercing
 Death"` is how players refer to it, and truncating it to `"Gáe Bolg Alternative"` makes the
@@ -460,6 +486,7 @@ sufficient; the two script cases are the evidence that the escape hatch is neede
 | D37.6 | Summon shows every rolled value with per-line GM re-roll, then locks at match start. |
 | D37.7 | The ability editor round-trips losslessly to and from the source YAML. |
 | D37.8 | Localization keys are generated from inline English by the build. |
+| D37.9 | Artwork is found by id under `assets/` at build time; the compiled token texture is the public image, so a concealed Servant never drops onto the board with its true face. |
 
 ---
 
