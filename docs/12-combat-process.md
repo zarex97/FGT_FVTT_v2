@@ -513,6 +513,13 @@ function canCounter(du, au, ctx): boolean {
 }
 ```
 
+> **Implementation note.** `module/rules/counter.mjs` holds the two rules this section
+> implies but never states. `counterOffer` answers *"declare an Attack"* — any ability
+> `classifyAbility` calls an Attack, plus the Normal Attack, which is always offered and
+> always free. `mayCounterAgain` answers *"Counters cannot be Countered again"* precisely:
+> the unit a Counter was **aimed at** never answers it, and whether a bystander an area
+> Counter merely caught may answer is the `fgt.counterChain` setting, default `collateral`.
+
 Note *"Steps 1 and 4 are repeated"* — the source says 1 and 4, which would skip the reaction
 ladder and the damage step. That is clearly a typo for "Steps 1 **to** 4"; a counter that
 cannot be evaded and deals no damage is nonsense, and the Instant Counter keyword explicitly
