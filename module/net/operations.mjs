@@ -58,6 +58,21 @@ export function authorizeIntents(intents, userId, world = undefined) {
  * no path from a socket message to arbitrary code.
  * @type {Readonly<Record<string, {authorize: Function, execute: Function}>>}
  */
+/**
+ * A Process off a message flag, or `null` if it cannot be read.
+ *
+ * @param {unknown} raw
+ * @returns {object|null}
+ */
+function readProcess(raw) {
+  if (!raw) return null;
+  try {
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch {
+    return null;
+  }
+}
+
 export const OPERATIONS = Object.freeze({
   /** Apply a batch of intents that the caller could not write itself. */
   applyIntents: {
@@ -137,6 +152,47 @@ export const OPERATIONS = Object.freeze({
     execute: async (payload) => {
       const { advanceAttack } = await import("../engine/attack.mjs");
       return advanceAttack(payload);
+    },
+  },
+
+  /**
+   * Declare a §12.8 Counter with a chosen ability.
+   *
+   * Separate from `advanceProcess` because it carries a placement, and because
+   * its authorizer needs a second clause: the parent Process must actually be
+   * ON its counter rung. Without that, any owner could post this at any moment
+   * and receive a free attack that costs no turn budget — which is what a
+   * Counter is, minus the part where somebody attacked them first.
+   */
+  declareCounter: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      if (user?.isGM) return { allowed: true, reason: null };
+
+      const unit = game.actors.get(payload.respondingUnitId);
+      if (!unit?.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: "Not your decision to make." };
+      }
+
+      const message = game.messages.get(payload.messageId);
+      const raw = message?.getFlag("fgt", "process");
+      // A malformed flag reads as "not on the counter rung", which is the safe
+      // answer: this operation grants a free attack and an unparseable Process
+      // is not evidence that one was earned.
+      const state = readProcess(raw);
+      if (state?.state !== "counter") {
+        return { allowed: false, reason: "That Process is not offering a Counter." };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const { advanceAttack } = await import("../engine/attack.mjs");
+      return advanceAttack({
+        messageId: payload.messageId,
+        event: "counter",
+        abilityId: payload.abilityId ?? null,
+        placement: payload.placement ?? null,
+      });
     },
   },
 

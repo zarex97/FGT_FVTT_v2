@@ -399,6 +399,14 @@ benefit at a fraction of the cost.
 > filtered card still *ships* the full result to every client that can read the flags, so `strict`
 > is the one that is actually secure.
 
+> **`declareCounter`.** Declares a §12.8 Counter with a chosen ability and placement.
+> Authorized on two clauses, not one: the caller must own the responding unit **and** the
+> parent Process must actually be on its `counter` rung. Without the second, any owner
+> could post the operation at any moment and receive a free attack that costs no turn
+> budget — which is what a Counter is, minus the part where somebody attacked them first.
+> A malformed Process flag reads as "not on the counter rung", because an unparseable
+> Process is not evidence that a Counter was earned.
+
 ## 26.7 Chat card visibility
 
 ```js

@@ -190,12 +190,6 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     return { needsChoice: true, candidates: targets.candidates };
   }
 
-  // A barrier is refreshed on the way up, BEFORE the use is recorded: *"every
-  // time Rho Aias is used after its first usage, its Health is restored by half
-  // of its current Health"*, and `refreshShield` decides first-versus-later
-  // from the same counter `recordUse` is about to increment.
-  if (ability?.system?.shield) await refreshShield(ability);
-
   // Declaring the attack is what spends the budget, not landing it: a Noble
   // Phantasm that misses still consumed the Servant's attack for the turn, and
   // *"non-damaging NPs count as the Unit's Attack for that Turn"* says so
@@ -208,53 +202,17 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     await budget.spend({ combat, unit: self, action: actionKind });
     const isAttack = actionKind !== "skill";
     await applyBatch(
-      [
-        I.markTurn(attackerId, isAttack ? { attacked: true, acted: true } : { usedActiveSkill: true, acted: true }),
-        // The record every use gate reads. `resolveAttack` kept none, so
-        // `oncePerTurn`, both exclusion scales and the whole-match budget were
-        // enforced for Skills and quietly ignored for Noble Phantasms.
-        ...(ability ? [I.recordUse(attackerId, ability.id, ability.system?.contentId ?? null)] : []),
-      ],
+      [I.markTurn(attackerId, isAttack
+        ? { attacked: true, acted: true }
+        : { usedActiveSkill: true, acted: true })],
       "attack:declared",
     );
   }
 
-  // Confirmation: targeting is settled and legal, so the costs are now paid.
-  //
-  // Plural, and resolved against each other first (§15.4). A cost may declare
-  // that it `supersedes` another -- Karna's NP cost overwrites the 20 Health his
-  // Master loses when he Acts, and the Hanging Gardens upkeep overwrites the NP
-  // cost the other way -- and charging both would bill more than the rules say.
-  const pending = resume ? [] : pendingCosts({ usage, ability, self, master, board });
-  const { charged, superseded } = resolveCosts(pending);
-
-  for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
-
-  // The cooldown, at the same moment as the cost and for the same reason: the
-  // ability has been committed. `resolveAttack` never did this, so every Attack
-  // Skill and every Noble Phantasm was infinitely reusable -- limited only by
-  // the attack budget, which is a different rule.
-  if (ability && !resume) {
-    const plan = cooldownFor(ability, attackerId, { unit: self });
-    const clocks = [...plan.cooldowns, ...alsoTriggered(ability, attacker)];
-    const intents = [
-      ...clocks.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
-      // A waived cooldown is PAID for -- Scáthach's PRS Token. Her damaging
-      // Rune Spells come through this path rather than `useSkill`, so the
-      // waiver has to be honoured in both places or it works for Ár and not
-      // for Þurs.
-      ...plan.spends.map((sp) => I.resource(sp.unitId, sp.key, sp.delta)),
-    ];
-    if (intents.length > 0) await applyBatch(intents, "attack:cooldown");
-  }
-  if (superseded.length > 0) {
-    // Logged, because a Master who paid 50 where they expected 70 needs to see
-    // which rule did that; a silently smaller number reads as a bug.
-    await applyBatch(
-      [I.log({ kind: "cost", event: "superseded", superseded, unitId: master?.id ?? self.id })],
-      "attack:cost",
-    );
-  }
+  // The ability's OWN price -- its shield refresh, its use record, its costs
+  // and its cooldown. Shared with the §12.8 Counter path, which pays all of it
+  // and none of the budget above.
+  await payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume });
 
   // "Used during your Turn OR at the start of a Combat Phase" -- the attacker's
   // second window, offered once for the whole Phase rather than per Process,
@@ -302,38 +260,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
   // the rest, so a Noble Phantasm over seven units damaged one of them.
-  const attackSpec = {
-    abilityId,
-    kind: ability ? abilityKind(ability) : "normal",
-    // Which Base Attack this uses, and whether Magic Resistance sees it at all.
-    // Both are read by Magic Resistance's Instakill/Death ladder, which is
-    // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
-    // that is not affected by Magic Resistance"* -- a property of the attack,
-    // so it has to travel with the attack.
-    component: componentOf(attacker, ability, options),
-    // Appendix A treats `Aim` and `Pierce` as properties of the ATTACK, and
-    // `evade`/the pipeline have read both by name since they were written --
-    // against a spec that carried neither, so no authored Noble Phantasm could
-    // ever have one. EMIYA's Hrunting is Aim and his Caladbolg II is Pierce.
-    aim: Boolean(resolvedDamage(ability, options)?.aim),
-    pierce: Boolean(resolvedDamage(ability, options)?.pierce),
-    // The damage TYPE, carried on the attack for the same reason `component` is.
-    // The pipeline has read `ctx.attack.element` at stage 0 since it was written
-    // -- Fire breaks Freeze, `flamHeal` converts it -- and the attack spec never
-    // carried one, so `element:` on an ability document reached the pipeline
-    // only through `damageContext` and never through the predicate vocabulary.
-    // Karna's Mana Burst (Flames) resists by type in both directions.
-    element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? null,
-    ignoresMagicResistance: Boolean(
-      resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
-    ),
-    // The SCALE, carried on the attack for exactly the reasons `element` and
-    // `pierce` are: three separate rules ask about it and none of them can
-    // reach the ability document. Doomsday Come's isolation opens for an
-    // [Anti-World] NP, its vulnerability ends on one, and its interior halves
-    // that one's damage -- all three keyed on tags the attack never carried.
-    npTags: [...(ability?.system?.npTags ?? [])],
-  };
+  const attackSpec = buildAttackSpec({ attacker, ability, abilityId, options });
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
   // the same defender, inside ONE Combat Phase -- which is the distinction that
   // matters, because a Combat Phase is what pays him his Aria and two phases
@@ -383,6 +310,133 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   });
 }
 
+
+
+/**
+ * Charge an ability's own price: its use record, its costs and its cooldown.
+ *
+ * Separated from the BUDGET immediately above its old home, because a §12.8
+ * Counter pays one and not the other. A Counter costs no turn — it is a
+ * reaction — but the Noble Phantasm it is declared with costs exactly what it
+ * would on the counterer's own turn. Without this split a Servant could
+ * answer every attack with its Noble Phantasm forever, since the cooldown is
+ * the only thing most of them cost.
+ *
+ * `resume` is the second half of a PRE-EMPTED declaration: everything here
+ * was paid when the attack was first declared, and charging it again would
+ * bill a Servant twice for one attack.
+ *
+ * @param {object} args
+ * @returns {Promise<void>}
+ */
+async function payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume }) {
+  if (resume) return;
+
+  // A barrier is refreshed on the way up, BEFORE the use is recorded: *"every
+  // time Rho Aias is used after its first usage, its Health is restored by half
+  // of its current Health"*, and `refreshShield` decides first-versus-later
+  // from the same counter `recordUse` is about to increment.
+  if (ability?.system?.shield) await refreshShield(ability);
+
+  // The record every use gate reads: `oncePerTurn`, both exclusion scales and
+  // the whole-match use budget. An ABILITY rule, not a turn rule, which is why
+  // it moved here from beside the budget spend -- a Counter records its use and
+  // pays no turn.
+  if (ability) {
+    await applyBatch(
+      [I.recordUse(attackerId, ability.id, ability.system?.contentId ?? null)],
+      "attack:declared",
+    );
+  }
+
+
+  // Confirmation: targeting is settled and legal, so the costs are now paid.
+  //
+  // Plural, and resolved against each other first (§15.4). A cost may declare
+  // that it `supersedes` another -- Karna's NP cost overwrites the 20 Health his
+  // Master loses when he Acts, and the Hanging Gardens upkeep overwrites the NP
+  // cost the other way -- and charging both would bill more than the rules say.
+  const pending = resume ? [] : pendingCosts({ usage, ability, self, master, board });
+  const { charged, superseded } = resolveCosts(pending);
+
+  for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
+
+  // The cooldown, at the same moment as the cost and for the same reason: the
+  // ability has been committed. `resolveAttack` never did this, so every Attack
+  // Skill and every Noble Phantasm was infinitely reusable -- limited only by
+  // the attack budget, which is a different rule.
+  if (ability && !resume) {
+    const plan = cooldownFor(ability, attackerId, { unit: self });
+    const clocks = [...plan.cooldowns, ...alsoTriggered(ability, attacker)];
+    const intents = [
+      ...clocks.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
+      // A waived cooldown is PAID for -- Scáthach's PRS Token. Her damaging
+      // Rune Spells come through this path rather than `useSkill`, so the
+      // waiver has to be honoured in both places or it works for Ár and not
+      // for Þurs.
+      ...plan.spends.map((sp) => I.resource(sp.unitId, sp.key, sp.delta)),
+    ];
+    if (intents.length > 0) await applyBatch(intents, "attack:cooldown");
+  }
+  if (superseded.length > 0) {
+    // Logged, because a Master who paid 50 where they expected 70 needs to see
+    // which rule did that; a silently smaller number reads as a bug.
+    await applyBatch(
+      [I.log({ kind: "cost", event: "superseded", superseded, unitId: master?.id ?? self.id })],
+      "attack:cost",
+    );
+  }
+}
+/**
+ * The `attack` descriptor a Combat Process carries.
+ *
+ * Extracted alongside `declareProcesses` and for the same reason: a §12.8
+ * Counter declares a real attack, so it needs a real spec, and building a
+ * second one beside this would be the copy nobody updates. Every field here
+ * exists because some rule reaches for it and cannot reach the ability
+ * document — the comments say which.
+ *
+ * @param {object} args
+ * @param {object} args.attacker the Actor
+ * @param {object|null} args.ability
+ * @param {string|null} args.abilityId
+ * @param {object|null} args.options roll options for the attacker
+ * @returns {object}
+ */
+function buildAttackSpec({ attacker, ability, abilityId, options }) {
+  return {
+      abilityId,
+      kind: ability ? abilityKind(ability) : "normal",
+      // Which Base Attack this uses, and whether Magic Resistance sees it at all.
+      // Both are read by Magic Resistance's Instakill/Death ladder, which is
+      // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
+      // that is not affected by Magic Resistance"* -- a property of the attack,
+      // so it has to travel with the attack.
+      component: componentOf(attacker, ability, options),
+      // Appendix A treats `Aim` and `Pierce` as properties of the ATTACK, and
+      // `evade`/the pipeline have read both by name since they were written --
+      // against a spec that carried neither, so no authored Noble Phantasm could
+      // ever have one. EMIYA's Hrunting is Aim and his Caladbolg II is Pierce.
+      aim: Boolean(resolvedDamage(ability, options)?.aim),
+      pierce: Boolean(resolvedDamage(ability, options)?.pierce),
+      // The damage TYPE, carried on the attack for the same reason `component` is.
+      // The pipeline has read `ctx.attack.element` at stage 0 since it was written
+      // -- Fire breaks Freeze, `flamHeal` converts it -- and the attack spec never
+      // carried one, so `element:` on an ability document reached the pipeline
+      // only through `damageContext` and never through the predicate vocabulary.
+      // Karna's Mana Burst (Flames) resists by type in both directions.
+      element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? null,
+      ignoresMagicResistance: Boolean(
+        resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
+      ),
+      // The SCALE, carried on the attack for exactly the reasons `element` and
+      // `pierce` are: three separate rules ask about it and none of them can
+      // reach the ability document. Doomsday Come's isolation opens for an
+      // [Anti-World] NP, its vulnerability ends on one, and its interior halves
+      // that one's damage -- all three keyed on tags the attack never carried.
+      npTags: [...(ability?.system?.npTags ?? [])],
+  };
+}
 /**
  * Turn resolved targets into live Combat Processes: one per defender, each with
  * its reaction offer, its card, its flags and its events.
@@ -536,7 +590,7 @@ async function declareProcesses({
  * @param {string} args.event  the ladder event: `"evade"`, `"success"`, `"declined"`, …
  * @returns {Promise<object>} the new state
  */
-export async function advanceAttack({ messageId, event }) {
+export async function advanceAttack({ messageId, event, abilityId = null, placement = null }) {
   const message = game.messages.get(messageId);
   if (!message) throw new Error(`FGT | Unknown attack message ${messageId}`);
 
@@ -617,7 +671,14 @@ export async function advanceAttack({ messageId, event }) {
     // Declaring the counter starts a second Process in the opposite direction
     // and finishes this one. The new Process drives itself from here through
     // the same machinery, and cannot be countered in turn.
-    const counter = await runCounter(state);
+    const counter = await runCounter(state, { abilityId, placement });
+    // A refused counter must NOT advance the ladder: the rung stays open and
+    // the player may aim again. Advancing anyway is how one mis-aimed area
+    // would have silently consumed the whole counter.
+    if (!counter) {
+      ui.notifications?.warn(game.i18n.localize("FGT.Counter.MustIncludeAttacker"));
+      return state;
+    }
     state = process.advance(state, "counter", { counterMessageId: counter?.messageId ?? null });
   } else {
     state = process.advance(state, event);
@@ -1689,37 +1750,94 @@ function counterAvailable(state) {
 }
 
 /**
- * Run the counter as its own Combat Process, roles reversed (§12.8, §27.10).
+ * Run the counter as its own Combat Processes, roles reversed (§12.8, §27.10).
  *
- * A full Process, not a bare damage roll: Ch. 41 rules that the source's
+ * A full declaration, not a bare damage roll: Ch. 41 rules that the source's
  * *"Steps 1 and 4 are repeated"* is a typo for "1 **to** 4", because a counter
  * that cannot be evaded and deals no damage is nonsense and Instant Counter's
  * *"skip straight to Step 3"* is only a special property if the normal counter
  * does not skip.
  *
- * No budget is spent — a counter is a reaction, and `budget.spend` lives in
- * `resolveAttack`, which this path does not go through.
+ * **The counterer picks what to counter with.** Until now this hardcoded a
+ * Normal Attack, and `beginCounter`'s `attack` parameter — which it has had
+ * since it was written — was never passed by anybody, so the default was the
+ * whole feature.
+ *
+ * No budget is spent: `declareProcesses` sits BELOW `resolveAttack`'s spend, so
+ * this path never reaches it. The chosen ability's own cost is paid in full,
+ * because `declareProcesses` runs the caster phases and records the use exactly
+ * as a declaration on the counterer's own turn does.
  *
  * @param {object} state the process being countered
- * @returns {Promise<{messageId: string, state: object}|null>}
+ * @param {object} [choice]
+ * @param {string|null} [choice.abilityId] null for a Normal Attack
+ * @param {object|null} [choice.placement] from the targeting session
+ * @returns {Promise<object|null>} null when the counter is refused
  */
-async function runCounter(state) {
+async function runCounter(state, { abilityId = null, placement = null } = {}) {
   const counterer = game.actors.get(state.defenderId);
-  const target = game.actors.get(state.attackerId);
-  if (!counterer || !target) return null;
+  const required = game.actors.get(state.attackerId);
+  if (!counterer || !required) return null;
 
-  const [first] = process.beginCounter(state);
-  const counter = process.advance(first, "done");
-  const message = await renderAttackCard({
-    state: counter,
+  const ability = abilityId ? counterer.items.get(abilityId) : null;
+  const board = boardSnapshot();
+  const self = unitFrom(board, counterer) ?? unitSnapshot(counterer);
+  const options = rollOptionsFor({ attacker: self });
+  const attackSpec = buildAttackSpec({ attacker: counterer, ability, abilityId, options });
+
+  // Who this counter actually caught. A Normal Attack with no placement is the
+  // original attacker and nobody else -- the old behaviour, kept as the default
+  // so a counter declared without a choice still works.
+  let targets = { units: [{ unitId: state.attackerId }] };
+  if (ability && placement) {
+    const spec = targetSpecForAttack(counterer, ability, options);
+    targets = resolveTargets(
+      { ...spec, limits: { ...(spec.limits ?? {}), requireUnitId: state.attackerId } },
+      self, board, placement,
+    );
+  }
+
+  // The server saying what the targeting session already said under the cursor.
+  // The client is not the authority: a payload that got past the authorizer
+  // with a placement that misses is refused here, and the rung stays open.
+  if (!(targets.units ?? []).some((u) => u.unitId === state.attackerId)) return null;
+
+  // The ability's OWN price -- its use record, its costs, its cooldown -- and
+  // none of the budget. A Counter costs no turn, but the Noble Phantasm it is
+  // declared with costs what it always costs; for most of them the cooldown is
+  // the only price there is, and skipping it would let a Servant answer every
+  // attack with its Noble Phantasm forever.
+  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  await payAbilityPrice({
+    ability,
+    attackerId: counterer.id,
     attacker: counterer,
-    ability: null,
-    targets: [{ unitId: state.attackerId }],
+    self,
+    master,
+    // The same shape `resolveAttack` builds. `canUseAbility` decided whether
+    // the slot was offered at all; this is the record of what it costs.
+    usage: canUseAbility({
+      ability: abilityUsageSpec(ability), unit: self, master,
+      round: game.combats.active?.round ?? 1, board,
+      target: unitFrom(board, required),
+    }),
+    board,
+    resume: false,
   });
 
-  await message.setFlag("fgt", "process", process.serialize(counter));
-  await message.setFlag("fgt", "collapse", process.laddersCollapse(unitSnapshot(target)));
-  return { messageId: message.id, state: counter };
+  return declareProcesses({
+    attackerId: counterer.id,
+    attacker: counterer,
+    ability,
+    attackSpec,
+    targetIds: targets.units.map((u) => u.unitId),
+    targets,
+    placement,
+    board,
+    isCounter: true,
+    requiredTargetId: state.attackerId,
+    counterDepth: (state.counterDepth ?? 0) + 1,
+  });
 }
 
 /**
