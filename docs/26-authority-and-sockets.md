@@ -407,6 +407,25 @@ benefit at a fraction of the cost.
 > A malformed Process flag reads as "not on the counter rung", because an unparseable
 > Process is not evidence that a Counter was earned.
 
+> **Two clocks, and they are not the same clock.** `FGTSocket.request`'s timeout is a
+> TRANSPORT wait — how long the asking client waits for the GM's client to run the operation
+> and reply. A human's thinking time is §27.5's `AwaitPolicy`: `reactionTimeout` (60s) and
+> `interruptTimeout` (45s), both GM settings, plus `FGTSocket.ask`'s two minutes for a
+> question a person is actually reading.
+>
+> The transport wait is **60 seconds**, raised from fifteen. Fifteen was chosen for a
+> request-reply round trip, and the work at the far end has since grown teeth: declaring an
+> area attack fans out to one Process per defender, each with a card, a reaction offer,
+> events and several document writes.
+>
+> **A timeout is not a failure, and the message must not say it is.** There is no
+> cancellation in this protocol: giving up on the reply does not stop the GM. An
+> `advanceProcess` was observed timing out on the caller while the GM completed the entire
+> ladder — `react->nothing, damage->done, injury->done, facing->done`. Telling that player
+> their action failed invites a retry, and a retry on a completed operation applies it
+> twice. The rejection says *"it may still have gone through — check the chat log before
+> trying again."*
+
 ## 26.7 Chat card visibility
 
 ```js

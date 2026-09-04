@@ -43,12 +43,25 @@ export class FGTSocket {
   /**
    * Ask the GM client to perform an operation.
    *
+   * **This timeout is a TRANSPORT wait, not a player's clock.** It measures how
+   * long this client waits for the GM's client to run the operation and reply.
+   * A human's thinking time is §27.5's `AwaitPolicy` — `reactionTimeout` (60s)
+   * and `interruptTimeout` (45s), both GM settings — and `ask` below, which
+   * waits two minutes because a person is reading it.
+   *
+   * Sixty seconds, raised from fifteen. The old value was chosen for a
+   * request-reply round trip and the work at the other end has since grown
+   * teeth: declaring an area attack fans out to one Process per defender, each
+   * with a card, a reaction offer, events and several document writes. Fifteen
+   * seconds was not enough for a seven-target Noble Phantasm, observed in a
+   * live game.
+   *
    * @param {string} op a key of {@link OPERATIONS}
    * @param {object} payload
    * @param {{timeout?: number}} [options]
    * @returns {Promise<unknown>}
    */
-  static async request(op, payload, { timeout = 15_000 } = {}) {
+  static async request(op, payload, { timeout = 60_000 } = {}) {
     if (!OPERATIONS[op]) throw new FGTError("UNKNOWN_OP", `Unknown operation "${op}".`);
     if (!game.users.activeGM) {
       throw new FGTError("NO_ACTIVE_GM", "No Game Master is connected. This action requires a GM.");
@@ -62,7 +75,18 @@ export class FGTSocket {
     const promise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.#pending.delete(id);
-        reject(new FGTError("TIMEOUT", `Operation "${op}" timed out after ${timeout}ms.`));
+        // Deliberately NOT phrased as a failure. Giving up on the reply does
+        // not cancel the GM's work -- there is no cancellation in this
+        // protocol -- so a timed-out operation has very often SUCCEEDED, and
+        // one was observed doing exactly that: the caller reported a timeout
+        // while the GM finished the whole ladder. Telling a player their
+        // action failed invites a retry, and a retry on a completed operation
+        // applies it twice.
+        reject(new FGTError(
+          "TIMEOUT",
+          `No reply from the Gamemaster for "${op}" within ${Math.round(timeout / 1000)}s. `
+          + "It may still have gone through -- check the chat log before trying again.",
+        ));
       }, timeout);
       this.#pending.set(id, { resolve, reject, timer });
     });
