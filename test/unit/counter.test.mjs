@@ -246,3 +246,36 @@ describe("the counter keeps its parent's Combat Phase", () => {
     expect(source).toMatch(/counterDepth = 0, groupId = null,/);
   });
 });
+
+describe("the redirect travels on the Process", () => {
+  it("defaults to null on every process", () => {
+    expect(begin({ attackerId: "A", defenderId: "B", attack }).counterRedirectId).toBeNull();
+  });
+
+  it("is carried to every process of a fan-out", () => {
+    const states = beginFanOut({
+      attackerId: "A", targetIds: ["B", "C"], attack, counterRedirectId: "S",
+    });
+    for (const s of states) expect(s.counterRedirectId).toBe("S");
+  });
+});
+
+describe("the redirect reaches the declaration", () => {
+  // A source check, because the wiring lives in `engine/attack.mjs` and needs a
+  // live Foundry to exercise. The property is a RULE: a Counter against a
+  // shielded Master must hit the Servant and must not touch the Master, and
+  // both halves have to be threaded or one silently does nothing.
+  const source = readFileSync("module/engine/attack.mjs", "utf8");
+
+  it("decides the redirect at the counter rung, beside counterAvailable", () => {
+    expect(source).toMatch(/counterRedirect\(/);
+  });
+
+  it("makes the redirect target the one the Counter must catch", () => {
+    expect(source).toMatch(/state\.counterRedirectId \?\? state\.attackerId/);
+  });
+
+  it("excludes the protected Master from the Counter's targets", () => {
+    expect(source).toMatch(/excludeUnitIds/);
+  });
+});

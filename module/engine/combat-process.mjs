@@ -107,6 +107,7 @@ export const PROMPTS = Object.freeze({
 export function begin({
   attackerId, defenderId, attack, isAoE = false, groupId = null,
   isCounter = false, requiredTargetId = null, counterDepth = 0,
+  counterRedirectId = null,
 }) {
   return {
     state: "declare",
@@ -129,6 +130,11 @@ export function begin({
     // this; it is a backstop against a content bug that authors a free area
     // attack (`MAX_COUNTER_DEPTH`).
     counterDepth,
+    // §12.8's Master redirect: the unit a Counter off THIS process must hit
+    // instead of its attacker, because the attacker is a Master with a Servant
+    // within two panels. Decided by the orchestrator at the counter rung, which
+    // can see positions; `null` everywhere else.
+    counterRedirectId,
     history: [],
     // Every roll this Process made (§14.8). On the state rather than beside it
     // because the state is what crosses the socket and what the card is built
@@ -168,6 +174,7 @@ export function begin({
 export function beginFanOut({
   attackerId, targetIds, attack, groupId = null, isAoE = null,
   isCounter = false, requiredTargetId = null, counterDepth = 0,
+  counterRedirectId = null,
 }) {
   const ids = targetIds ?? [];
   if (ids.length === 0) return [];
@@ -186,7 +193,7 @@ export function beginFanOut({
       // entirely, which was harmless only while a counter was 1v1 and never
       // came through here -- the moment one fans out, a bystander's process
       // that forgot the flag lets the counter be countered.
-      isCounter, requiredTargetId, counterDepth,
+      isCounter, requiredTargetId, counterDepth, counterRedirectId,
     }));
 }
 

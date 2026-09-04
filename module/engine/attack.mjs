@@ -23,6 +23,7 @@ import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
+import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
@@ -1367,8 +1368,16 @@ async function runAutomaticStep(state, message) {
       if (state.counterAvailable !== undefined) return process.advance(state, "done");
 
       const available = counterAvailable(state);
-      await message.setFlag("fgt", "counter", { available });
-      const marked = { ...state, counterAvailable: available };
+      // §12.8's redirect, decided here for the same reason `counterAvailable`
+      // is: it needs positions, and this file can see them while the pure
+      // module cannot. Recorded once, so the armed bar and the resolution
+      // cannot disagree about who is being protected.
+      const rungBoard = boardSnapshot();
+      const redirectId = available
+        ? counterRedirect(unitFrom(rungBoard, game.actors.get(state.attackerId)), rungBoard)
+        : null;
+      await message.setFlag("fgt", "counter", { available, redirectId });
+      const marked = { ...state, counterAvailable: available, counterRedirectId: redirectId };
       return available ? marked : process.advance(marked, "done");
     }
     default:
@@ -1781,8 +1790,14 @@ function counterAvailable(state) {
  * @returns {Promise<object|null>} null when the counter is refused
  */
 async function runCounter(state, { abilityId = null, placement = null } = {}) {
+  // §12.8: a Counter aimed at a Master whose Servant shields it hits the
+  // Servant instead, and the Master takes nothing. Read off the Process rather
+  // than recomputed, so this and the armed bar cannot disagree.
+  const requiredId = state.counterRedirectId ?? state.attackerId;
+  const excludeUnitIds = state.counterRedirectId ? [state.attackerId] : [];
+
   const counterer = game.actors.get(state.defenderId);
-  const required = game.actors.get(state.attackerId);
+  const required = game.actors.get(requiredId);
   if (!counterer || !required) return null;
 
   const ability = abilityId ? counterer.items.get(abilityId) : null;
@@ -1794,11 +1809,11 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // Who this counter actually caught. A Normal Attack with no placement is the
   // original attacker and nobody else -- the old behaviour, kept as the default
   // so a counter declared without a choice still works.
-  let targets = { units: [{ unitId: state.attackerId }] };
+  let targets = { units: [{ unitId: requiredId }] };
   if (ability && placement) {
     const spec = targetSpecForAttack(counterer, ability, options);
     targets = resolveTargets(
-      { ...spec, limits: { ...(spec.limits ?? {}), requireUnitId: state.attackerId } },
+      { ...spec, limits: { ...(spec.limits ?? {}), requireUnitId: requiredId, excludeUnitIds } },
       self, board, placement,
     );
   }
@@ -1806,7 +1821,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // The server saying what the targeting session already said under the cursor.
   // The client is not the authority: a payload that got past the authorizer
   // with a placement that misses is refused here, and the rung stays open.
-  if (!(targets.units ?? []).some((u) => u.unitId === state.attackerId)) return null;
+  if (!(targets.units ?? []).some((u) => u.unitId === requiredId)) return null;
 
   // The ability's OWN price -- its use record, its costs, its cooldown -- and
   // none of the budget. A Counter costs no turn, but the Noble Phantasm it is
@@ -1841,7 +1856,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
     placement,
     board,
     isCounter: true,
-    requiredTargetId: state.attackerId,
+    requiredTargetId: state.counterRedirectId ?? state.attackerId,
     counterDepth: (state.counterDepth ?? 0) + 1,
     // The parent's, deliberately. See `declareProcesses`.
     groupId: state.groupId,

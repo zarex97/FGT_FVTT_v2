@@ -130,6 +130,21 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **The Master redirect (Ch. 12 §12.8).** A Counter aimed at a Master whose Servant stands
+  within two panels hits the **Servant** instead, and the Master takes nothing even from an
+  area that covers it. Specified since the chapter was written and implemented nowhere.
+
+  Distinct from §16.4's general Master protection, which is **one** panel, applies to every
+  attack rather than to Counters, refuses rather than retargets, and is deliberately gated so
+  an area may still catch a protected Master incidentally — which is what makes Cover work.
+  The two rules pull in opposite directions, so the new exclusion is applied unconditionally
+  and outside that gate.
+
+  The chapter's *"regardless of range"* decision is narrowed (Q51): the chosen ability's reach
+  applies, because a Counter is now a real attack declaration rather than an auto-aimed Normal
+  Attack — and the Master is protected either way, since a counterer who cannot reach the
+  Servant counters nobody.
+
 - **A Counter is a real attack (Ch. 12 §12.8).** The rung accepts any ability
   `classifyAbility` calls an Attack — a Noble Phantasm, an attack Skill, or the Normal
   Attack — aimed anywhere that catches the unit that attacked you. `beginCounter` had taken
