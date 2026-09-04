@@ -20,7 +20,7 @@ description: |
   taken is reduced by the table value. Also affects NP.
   (Passive 2) Chance of being inflicted by debuffs is reduced.
 
-  Also affects Instakill and Death UNLESS the source deals STR damage or is otherwise
+  Also affects @effect[instakill]{Instakill} and @effect[death]{Death} UNLESS the source deals STR damage or is otherwise
   unaffected by Magic Resistance. Erase is completely unaffected.
 passiveRules:
   # The negated rank is the skill's own rank, extended by each +, which is why

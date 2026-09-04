@@ -34,7 +34,7 @@ description: |
   (Passive 3) Passenger Seat: the Servant's Master can Move together with its Servant; after
   Moving, both must be in the same relative position as before. Counts as only Moving one Unit.
 
-  The MOV Up from the Active is NOT a buff: it cannot be removed by buff removal and is not
+  The @effect[movUp]{MOV Up} from the Active is NOT a buff: it cannot be removed by buff removal and is not
   prevented by an effect that blocks buffs.
 passiveRules:
   # Double Move is unconditional -- it is Passive 1, not part of the Active.

@@ -26,7 +26,7 @@ description: |
   3. Pale Rider cannot perform Normal Attacks.
   4. Pale Rider cannot Evade, Block, or Counter.
   (Active) Used during your Turn. Increases MOV by 6 panels for this Turn. Cooldown: 3◈ Turns.
-  The MOV Up effect from Riding's Active usage is not a buff and cannot be removed by buff
+  The @effect[movUp]{MOV Up} effect from Riding's Active usage is not a buff and cannot be removed by buff
   removal effects, or prevented by an effect that prevents buffs from being applied.
 passiveRules:
   - key: GrantedAbility
