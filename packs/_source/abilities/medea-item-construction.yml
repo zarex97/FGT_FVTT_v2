@@ -14,7 +14,7 @@ passive: true
 copyable: { allowed: false, reason: classSkill }
 description: |
   (Passive) Affects all allied Units within a 2 panel area. The chance of inflicting debuffs is
-  increased by 50% (Instakill 25%, Death 10%); the chance of being inflicted by debuffs is
+  increased by 50% (@effect[instakill]{Instakill} 25%, @effect[death]{Death} 10%); the chance of being inflicted by debuffs is
   reduced by 50% (Instakill 25%, Death 10%).
 passiveRules:
   # "Only the Item Construction with the highest Rank takes effect" -- resolved

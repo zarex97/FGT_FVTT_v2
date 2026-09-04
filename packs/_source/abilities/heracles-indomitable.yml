@@ -9,11 +9,11 @@ cooldown: "4◈"
 timing: { window: ownTurn }
 description: |
   (Active) Used during your Turn. Has the following effects-
-  1. Applies the 'Undying' buff for 1◈+⅔◈ Turns: when Heracles is defeated he is revived with
-     25% of his Max Health. This Undying buff stacks with other Guts buffs, but does not stack
+  1. Applies the '@effect[undying]{Undying}' buff for 1◈+⅔◈ Turns: when Heracles is defeated he is revived with
+     25% of his Max Health. This Undying buff stacks with other @effect[guts]{Guts} buffs, but does not stack
      with itself.
   2. Applies the 'Indomitable' buff to Heracles for 1◈+⅔◈ Turns. Its effects are as follows-
-     whenever Heracles is defeated and revived through any effect, Atk Up is applied to him for
+     whenever Heracles is defeated and revived through any effect, @effect[atkUp]{Atk Up} is applied to him for
      1◈+⅔◈ Turns, all damage dealt is increased by 30%; if NP, 20%.
   Cooldown: 4◈ Turns.
 targeting:

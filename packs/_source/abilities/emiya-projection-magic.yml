@@ -9,7 +9,7 @@ slug: projectionMagic
 category: thaumaturgy
 description: |
   (Passive) A Skill which is the basis of his Noble Phantasms. 'Projection' Skills and NP
-  cannot be used and have no effects if EMIYA is inflicted with Silence.
+  cannot be used and have no effects if EMIYA is inflicted with @effect[silence]{Silence}.
   Note: 'Projection' Skills and NP are treated as Thaumaturgy Spells.
 # Nothing here. The clause it states is enforced on each *Projection* document
 # itself, by `negatedBy: [silence]` and a `notHasEffect` requirement -- two

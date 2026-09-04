@@ -11,11 +11,11 @@ isAttackSkill: true
 element: fire
 sameTurnExclusive: [karna-flash-of-the-sun-god]
 description: |
-  (Passive) Karna's Normal Attacks have a 25% chance of inflicting Burn for 2◈ Turns on the DU.
+  (Passive) Karna's Normal Attacks have a 25% chance of inflicting @effect[burn]{Burn} for 2◈ Turns on the DU.
   Karna is Immune to Burn. All Total Fire Damage taken is reduced by 50% including NP.
   (Active) This Skill is used when performing a Normal Attack. For that Combat Process, Karna's
   Base Attack used is his BA(STR) and BA(MAG) combined (e.g. BA=300). If the Attack is not
-  Evaded, Burn is inflicted on the DU for 2◈ Turns. Not affected by Magic Resistance.
+  Evaded, Burn is inflicted on the DU for 2◈ Turns. Not affected by @ability[class-magic-resistance]{Magic Resistance}.
   Fire Damage (half). Cooldown: 3◈ Turns. Cannot be used on the same Turn as Flash of the
   Sun God.
 targeting:

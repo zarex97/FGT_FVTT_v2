@@ -17,7 +17,7 @@ cooldown: "3◈"
 timing: { window: ownTurn }
 description: |
   (Active) Base Attack (MAG) is used. Hits a 3x3 panel area in any non-diagonal direction next
-  to itself for 3x and inflicts Poison, then inflicts Crit DmDwn for 1◈ Turns, Crit Damage dealt
+  to itself for 3x and inflicts @effect[poison]{Poison}, then inflicts @effect[critDmDwn]{Crit DmDwn} for 1◈ Turns, Crit Damage dealt
   is reduced by 30%. Categorized as Noble Phantasm. Cooldown: 3◈ Turns.
 targeting:
   # `selfEdgeAdjacent` is the resolver's name for exactly this wording --

@@ -19,7 +19,7 @@ requirements:
 description: |
   Spell. Used during your Turn. Reduce the Cooldowns of 2 different Skills or NP with
   'Projection' in its name by 1◈ Turns OR reduce the Cooldown of a Skill/NP with 'Projection'
-  in its name by 2◈ Turns. Then, apply Dmg Boost for 1◈ Turns, all damage dealt is increased
+  in its name by 2◈ Turns. Then, apply @effect[dmgBoost]{Dmg Boost} for 1◈ Turns, all damage dealt is increased
   by 30 including NP. Cooldown: 3◈ Turns.
 targeting:
   anchor: { kind: self }

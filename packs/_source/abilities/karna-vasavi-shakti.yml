@@ -24,8 +24,8 @@ requirements:
 description: |
   (Active) Can only be used if Vasavi Shakti has been Activated. Cannot be used if Brahmastra
   Kundala is on Cooldown. Range=3 to 4. Base Attack (MAG) is used. Hits a 3x3 panel area within
-  Range for 5x damage and inflicts Burn for 4◈ Turns to all affected Units. Fire damage.
-  This NP deals extra damage to DUs with 'Divinity' as follows-
+  Range for 5x damage and inflicts @effect[burn]{Burn} for 4◈ Turns to all affected Units. Fire damage.
+  This NP deals extra damage to DUs with '@ability[divinity]{Divinity}' as follows-
   Divinity Rank B to EX: damage dealt is further increased by 200% (tripled).
   Divinity Rank E to C: damage dealt is further increased by 100% (doubled).
   'Divine' Attribute, no Divinity: damage dealt is further increased by 150%.

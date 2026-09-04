@@ -17,9 +17,9 @@ cooldown: "4◈"
 sameTurnExclusive: [medusa-monstrous-strength]
 description: |
   (Active) Used during your Turn. Has the following effects-
-  1. Applies Atk Up (STR) for 1◈ Turns, STR Damage dealt is increased by 30%; if NP, 15%.
-  2. Applies Crit DmUp for 1◈ Turns, Crit Damage dealt is increased by 30%.
-  3. Applies Dmg Up (Bind) for 1◈ Turns, all damage dealt to Units inflicted with Bind
+  1. Applies @effect[atkUpStr]{Atk Up (STR)} for 1◈ Turns, STR Damage dealt is increased by 30%; if NP, 15%.
+  2. Applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 30%.
+  3. Applies @effect[dmgUpBind]{Dmg Up (Bind)} for 1◈ Turns, all damage dealt to Units inflicted with Bind
      effects is increased by 50%.
   Cooldown: 4◈ Turns. Cannot be used on the same Turn as Monstrous Strength.
 targeting:

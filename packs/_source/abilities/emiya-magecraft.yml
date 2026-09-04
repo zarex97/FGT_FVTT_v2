@@ -8,7 +8,7 @@ passive: true
 slug: magecraft
 description: |
   (Passive 1) Allows the use of Thaumaturgy Spells.
-  (Passive 2) Whenever EMIYA uses a Thaumaturgy Spell, apply Range Up (Hawkeye) for 1◈ Turns,
+  (Passive 2) Whenever EMIYA uses a Thaumaturgy Spell, apply @effect[rangeUp]{Range Up} (@ability[emiya-hawkeye]{Hawkeye}) for 1◈ Turns,
   Range is increased by 1. Does not stack, but duration is extended if reapplied.
 passiveRules:
   # `abilityUsed` fires on the USER once a Skill, Spell or Noble Phantasm has

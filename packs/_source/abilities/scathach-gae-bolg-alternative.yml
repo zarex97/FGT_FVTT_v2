@@ -14,8 +14,8 @@ npTags: [antiUnit]
 cooldown: "6◈+⅓◈"
 timing: { window: ownTurn }
 description: |
-  Base Attack (STR) is used. Range 4. Has a 500% chance of inflicting Stun for 1◈ Turns; then
-  has a 75% chance of inflicting Instakill. If Instakill is not inflicted, this NP deals
+  Base Attack (STR) is used. Range 4. Has a 500% chance of inflicting @effect[stun]{Stun} for 1◈ Turns; then
+  has a 75% chance of inflicting @effect[instakill]{Instakill}. If Instakill is not inflicted, this NP deals
   3.5x damage plus 100. Cooldown 6◈+⅓◈ Turns.
 targeting:
   anchor: { kind: targetUnit, range: 4 }

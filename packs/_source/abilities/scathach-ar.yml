@@ -16,8 +16,8 @@ timing: { window: ownTurn }
 # Skill and must not spend her Attack (§15.1).
 countsAsAttack: false
 description: |
-  Primordial Rune Spell. Range 2. Used during your Turn on an allied Unit within Range.
-  Restores 4 Agility, then applies Atk Up for ⅓◈ Turns: damage dealt is increased by 50%;
+  @ability[scathach-primordial-rune]{Primordial Rune} Spell. Range 2. Used during your Turn on an allied Unit within Range.
+  Restores 4 Agility, then applies @effect[atkUp]{Atk Up} for ⅓◈ Turns: damage dealt is increased by 50%;
   if NP, 30%. Cooldown 3◈ Turns. Can only be used once per Turn.
 requirements:
   # "When one of Scáthach's Primordial Rune Spells is used, the OTHER TWO cannot

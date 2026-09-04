@@ -6,8 +6,8 @@ name: "Discernment of the Poor"
 rank: A
 cooldown: "3◈"
 description: |
-  (Active) Used during your Turn. Range=2. Used on an enemy Unit. Inflicts NP Seal for ⅓◈
-  Turns and inflicts Debuff ResDwn for ⅓◈ Turns (chance of being inflicted with debuffs is
+  (Active) Used during your Turn. Range=2. Used on an enemy Unit. Inflicts @effect[npSeal]{NP Seal} for ⅓◈
+  Turns and inflicts @effect[debuffResDwn]{Debuff ResDwn} for ⅓◈ Turns (chance of being inflicted with debuffs is
   increased by 50%).
 targeting:
   anchor: { kind: targetUnit, range: 2 }

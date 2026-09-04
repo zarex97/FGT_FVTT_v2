@@ -31,10 +31,10 @@ description: |
   value.
   (Passive 2) Upon a successful Evade, reduce the Cooldown of this Skill by ⅓◈ Turns.
   (Active) Used during your Turn or at the start of a Combat Process when Attacked-
-  1. Applies Dodge for ⅓◈ Turns.
-  2. Applies Atk Up for 1◈ Turns, all damage dealt is increased by 30%; if NP, 15%.
-  3. Applies Def Up for 1◈ Turns, all damage taken is reduced by 30%; if NP, 15%.
-  4. Applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of himself,
+  1. Applies @effect[dodge]{Dodge} for ⅓◈ Turns.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30%; if NP, 15%.
+  3. Applies @effect[defUp]{Def Up} for 1◈ Turns, all damage taken is reduced by 30%; if NP, 15%.
+  4. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of himself,
      Crit Chance is increased by 30%.
   Cooldown: 4◈ Turns.
 requirements:

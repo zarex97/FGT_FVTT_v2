@@ -31,11 +31,11 @@ requirements:
   - { kind: abilityOffCooldown, abilityIds: [karna-mana-burst-flames] }
   - { kind: abilityOffCooldown, abilityIds: [karna-vasavi-shakti] }
 description: |
-  Cannot be used if Mana Burst (Flames) or Vasavi Shakti is on Cooldown. Range=5. Base Attack
+  Cannot be used if @ability[karna-mana-burst-flames]{Mana Burst (Flames)} or Vasavi Shakti is on Cooldown. Range=5. Base Attack
   (STR) and Base Attack (MAG) combined is used. Hits a 7x7 panel area within Range for 4x damage
-  plus 100, and inflicts Burn for 3◈ Turns to all affected Units. Then, inflicts Def Dwn (B) on
+  plus 100, and inflicts @effect[burn]{Burn} for 3◈ Turns to all affected Units. Then, inflicts @effect[defDwn]{Def Dwn} (B) on
   all affected Units for 1◈ Turns (all damage received is increased by 30%; if NP, 40%).
-  Fire damage. Affected by Magic Resistance. Karna is not affected by this NP if he is within
+  Fire damage. Affected by @ability[class-magic-resistance]{Magic Resistance}. Karna is not affected by this NP if he is within
   the NP area.
   Cooldown: 7◈+⅓◈ Turns, and Mana Burst (Flames) also enters Cooldown when this NP is used.
 targeting:

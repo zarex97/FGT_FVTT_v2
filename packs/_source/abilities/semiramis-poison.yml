@@ -13,8 +13,8 @@ name: "[Semiramis' Poison]"
 type: equipment
 description: |
   Whenever Semiramis is standing directly next to an allied Unit, any number of [Semiramis'
-  Poison] can be passed from Semiramis to that Unit (once per Turn). Consuming 1 grants the
-  'Queen's Poison' effect for 3◈ Turns.
+  @effect[poison]{Poison}] can be passed from Semiramis to that Unit (once per Turn). Consuming 1 grants the
+  '@effect[queensPoison]{Queen's Poison}' effect for 3◈ Turns.
 quantity: 0
 transferable: true
 transferRange: 1

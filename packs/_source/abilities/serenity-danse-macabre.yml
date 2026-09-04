@@ -14,12 +14,12 @@ cooldown: "4◈"
 timing: { window: ownTurn }
 description: |
   (Active) Used during your Turn.
-  1. Applies Debuff ChUp for 1◈ Turns; chance of inflicting debuffs is increased by 40%.
-  2. Applies Death ChUp for 1◈ Turns; chance of inflicting Instakill and Death is increased
+  1. Applies @effect[debuffChUp]{Debuff ChUp} for 1◈ Turns; chance of inflicting debuffs is increased by 40%.
+  2. Applies @effect[deathChUp]{Death ChUp} for 1◈ Turns; chance of inflicting @effect[instakill]{Instakill} and @effect[death]{Death} is increased
      by 40%.
-  3. Applies Atk Up for 1◈ Turns; all damage dealt is increased by 30%, if NP 20%.
-  4. Applies the 'Macabre' buff for 1◈ Turns; Serenity's Normal Attack Crits inflict an
-     additional Stage of Poison on the Defending Unit.
+  3. Applies @effect[atkUp]{Atk Up} for 1◈ Turns; all damage dealt is increased by 30%, if NP 20%.
+  4. Applies the '@effect[macabre]{Macabre}' buff for 1◈ Turns; Serenity's Normal Attack Crits inflict an
+     additional Stage of @effect[poison]{Poison} on the Defending Unit.
   Cooldown: 4◈ Turns.
 targeting:
   anchor: { kind: self }

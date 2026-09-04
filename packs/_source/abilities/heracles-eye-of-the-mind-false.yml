@@ -16,8 +16,8 @@ cooldown: "4◈"
 timing: { window: whenAttacked }
 description: |
   (Passive) Upon a successful Evade, reduce the Cooldown of this Skill by ⅓◈ Turns.
-  (Active) Used at the start of a Combat Process when Attacked. Applies Dodge to Heracles for
-  ⅔◈ Turns, and applies Crit DmUp for 1◈ Turns, Crit Damage dealt is increased by 35%.
+  (Active) Used at the start of a Combat Process when Attacked. Applies @effect[dodge]{Dodge} to Heracles for
+  ⅔◈ Turns, and applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 35%.
   Cooldown: 4◈ Turns.
 passiveRules:
   - key: OnEvent

@@ -16,7 +16,7 @@ npTags: [labyrinth, boundedField]
 cooldown: { max: "8◈", countFrom: deactivation }
 description: |
   (Non-damaging) Creates a 9x9 Labyrinth around Asterios; 11x11 if the Region is Greece.
-  Asterios gains MOV +4 inside. Enemies inside suffer Atk Dwn and Def Dwn on activation, have
+  Asterios gains MOV +4 inside. Enemies inside suffer @effect[atkDwn]{Atk Dwn} and @effect[defDwn]{Def Dwn} on activation, have
   their MOV reduced by 2 (minimum 2), and must roll to escape. Units outside and inside cannot
   reach each other at all. Lasts for 4◈ Turns, extendable by 2◈ more for 200 of Asterios'
   Health, repeatably. Ends at the end of the Turn if Asterios is defeated.

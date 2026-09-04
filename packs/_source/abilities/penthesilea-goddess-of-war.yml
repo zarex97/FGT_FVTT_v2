@@ -10,11 +10,11 @@ isPassive: true
 rank: A
 npTags: [antiUnit]
 description: |
-  (Passive) Active only while Mad Enhancement is DEACTIVATED. Grants Penthesilea-
+  (Passive) Active only while @ability[class-mad-enhancement]{Mad Enhancement} is DEACTIVATED. Grants Penthesilea-
   1. Normal Attack damage dealt +(1d4 x 10)%.
   2. Damage received −(1d4 x 10)%; if NP, the magnitude is halved.
   3. Evade rolls reduced by 1d4.
-  4. Divinity Rank raised from B to A.
+  4. @ability[divinity]{Divinity} Rank raised from B to A.
 passiveRules:
   # Every clause carries the same gate: "only active when Mad Enhancement is
   # deactivated". `skillActive` is what distinguishes having Mad Enhancement

@@ -12,7 +12,7 @@ source: personal
 rank: B
 cooldown: "4◈"
 description: |
-  (Active) Used during your Turn. NP Cooldown is reduced by ⅔◈ Turns and apply NP Regen for
+  (Active) Used during your Turn. NP Cooldown is reduced by ⅔◈ Turns and apply @effect[npRegen]{NP Regen} for
   1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn. If Blood Fort Andromeda
   is Active, NP Cooldown is reduced by 2◈ Turns instead. Cooldown: 4◈ Turns.
 targeting:

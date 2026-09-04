@@ -12,10 +12,10 @@ timing: { window: ownTurn }
 # It buffs; it deals no damage, so it is not an Attack Skill (§15.1).
 countsAsAttack: false
 description: |
-  Effects are negated and cannot be used while Mad Enhancement is active.
+  Effects are negated and cannot be used while @ability[class-mad-enhancement]{Mad Enhancement} is active.
   (Passive) All damage dealt by OTHER allied Units within 2 panels is increased by 20 including
-  NP. Negated while Penthesilea has Atk Up (Charisma) or is inflicted with Skill Seal.
-  (Active) Used during your Turn. Applies Atk Up (Charisma) to herself for 1◈ Turns: allied
+  NP. Negated while Penthesilea has @effect[atkUpCharisma]{Atk Up (Charisma)} or is inflicted with @effect[skillSeal]{Skill Seal}.
+  (Active) Used during your Turn. Applies @effect[atkUp]{Atk Up} (Charisma) to herself for 1◈ Turns: allied
   damage within 2 panels +20%; if NP, 10%. Cooldown 4◈ Turns.
 requirements:
   # "Effects are negated AND CANNOT BE USED when Mad Enhancement is activated."

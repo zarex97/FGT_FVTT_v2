@@ -11,7 +11,7 @@ timing: { window: ownTurn }
 # first, which is not a rule.
 sameTurnExclusive: [medea-trofa]
 description: |
-  Spell. Used during your Turn. Applies MOV Up for 1◈ Turns: MOV is increased by 3.
+  Spell. Used during your Turn. Applies @effect[movUp]{MOV Up} for 1◈ Turns: MOV is increased by 3.
   Cannot be used on the same Turn as Tροψα.
 phases:
   - kind: applyEffects

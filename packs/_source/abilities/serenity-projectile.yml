@@ -14,8 +14,8 @@ slug: projectile
 passive: true
 description: |
   (Passive 1) Crit Chance is increased by 15%.
-  (Passive 2) Normal Attacks inflict Poison on the Defending Unit.
-  (Passive 3) Normal Attacks have a 25% chance of inflicting Deadly Poison for 1◈ Turns;
+  (Passive 2) Normal Attacks inflict @effect[poison]{Poison} on the Defending Unit.
+  (Passive 3) Normal Attacks have a 25% chance of inflicting @effect[deadlyPoison]{Deadly Poison} for 1◈ Turns;
   Poison Damage received is doubled.
 passiveRules:
   # Passive 1. A standing crit modifier rather than a buff she applies to

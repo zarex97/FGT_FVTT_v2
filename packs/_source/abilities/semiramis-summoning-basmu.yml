@@ -36,10 +36,10 @@ rank: null
 isSpell: true
 category: spell
 description: |
-  Spell. Can only be used when Semiramis has the 'Double Summon: Caster' Skill. Has different
+  Spell. Can only be used when Semiramis has the '@ability[semiramis-double-summon-caster]{Double Summon: Caster}' Skill. Has different
   effects depending on whether Semiramis is within her 'Hanging Gardens of Babylon' or not.
   1. If used when she is not within her HGoB: Damage Spell. Hits a 3x3 panel area within Range
-     for 25% extra damage and inflicts Poison. Cooldown: 2◈ Turns.
+     for 25% extra damage and inflicts @effect[poison]{Poison}. Cooldown: 2◈ Turns.
   2. If used when within her HGoB: Semiramis summons a Bašmu on a panel directly next to her.
      Counts as her Attack for the Turn. Cooldown: 4◈ Turns.
 timing: { window: ownTurn }

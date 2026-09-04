@@ -17,10 +17,10 @@ cooldown: "4◈"
 timing: { window: ownTurn }
 description: |
   (Active) Used during your Turn. Has the following effects-
-  1. Applies NP Regen for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
-  2. Applies the 'Construction' effect for 1◈ Turns- HGoB Construction is increased by 1d6 at the
+  1. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  2. Applies the '@effect[construction]{Construction}' effect for 1◈ Turns- HGoB Construction is increased by 1d6 at the
      end of every Turn. The 'Construction' effect is neither a buff or debuff and is Unremovable.
-  3. If Semiramis does not have the 'Double Summon: Caster' Skill, she gains the 'DSC' buff for
+  3. If Semiramis does not have the '@ability[semiramis-double-summon-caster]{Double Summon: Caster}' Skill, she gains the 'DSC' buff for
      1◈ Turns, this buff grants her the 'Double Summon: Caster' Skill.
 targeting:
   anchor: { kind: self }

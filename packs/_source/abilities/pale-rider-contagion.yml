@@ -28,8 +28,8 @@ description: |
   When triggered, the effects of Contagion are as follows-
   1. Health is reduced by 100. Not affected by effects that modify damage taken (does not count
      as 'damage').
-  2. Has a 50% chance of being inflicted with Poison.
-  3. Has a 10% chance of being inflicted with Charm for 1◈ Turns.
+  2. Has a 50% chance of being inflicted with @effect[poison]{Poison}.
+  3. Has a 10% chance of being inflicted with @effect[charm]{Charm} for 1◈ Turns.
   (Active) Used during your Turn. Increases the Contagion area by a Range of 2 panels for 1◈
   Turns. Cooldown: 4◈ Turns.
   When 'Doomsday Come' is Active, Contagion constantly affects all enemy Units within the NP

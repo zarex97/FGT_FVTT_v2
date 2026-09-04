@@ -7,7 +7,7 @@ cooldown: "4◈"
 timing: { window: ownTurn }
 description: |
   (Active) Used on an allied Unit within Range 3. Remove all debuffs from it, restore its Health
-  by 10% of its maximum value, and apply NP Cooldown Regen for 1◈ Turns.
+  by 10% of its maximum value, and apply @effect[npCooldownRegen]{NP Cooldown Regen} for 1◈ Turns.
 # An ally within range is a CHOICE, so this one does open a targeting session.
 targeting:
   anchor: { kind: targetUnit, range: 3 }
