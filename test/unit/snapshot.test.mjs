@@ -570,3 +570,33 @@ describe("contract state for a Servant with no Master (Ch. 16 §16.2)", () => {
     expect(snapshotUnit(servant({ masterId: "abc", contract: "unbound" })).contract).toBe("unbound");
   });
 });
+
+describe("abilities carry the geometry of the field they build", () => {
+  const withNP = (geometryKind) => ({
+    id: "m", uuid: "Actor.m", name: "Medusa", type: "servant",
+    system: { factionId: "red", range: { panels: 1, targets: 1 } },
+    items: [{
+      id: "np1", name: "Blood Fort Andromeda", type: "noblePhantasm",
+      system: { contentId: "medusa-blood-fort-andromeda", field: { geometry: { kind: geometryKind } } },
+    }],
+    effects: [],
+  });
+
+  it("reports markDefined so the Mark action can be offered", () => {
+    // `rules/actions.mjs` decides whether to offer Mark from the snapshot
+    // alone, and cannot reach the item document to ask.
+    const u = snapshotUnit(withNP("markDefined"));
+    expect(u.abilities[0].fieldGeometryKind).toBe("markDefined");
+    expect(u.abilities[0].contentId).toBe("medusa-blood-fort-andromeda");
+  });
+
+  it("is null for an ability that builds no field", () => {
+    const u = snapshotUnit({
+      id: "m", uuid: "Actor.m", name: "M", type: "servant",
+      system: { factionId: "red", range: { panels: 1, targets: 1 } },
+      items: [{ id: "a1", name: "Skill", type: "ability", system: {} }],
+      effects: [],
+    });
+    expect(u.abilities[0].fieldGeometryKind).toBeNull();
+  });
+});
