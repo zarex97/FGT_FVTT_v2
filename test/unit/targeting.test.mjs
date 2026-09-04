@@ -699,3 +699,49 @@ describe("limits.requireUnitId", () => {
     expect(validate(spec({}), caster, board, { unitId: "bystander" }).ok).toBe(true);
   });
 });
+
+describe("limits.excludeUnitIds", () => {
+  // §12.8's redirect has two halves. `requireUnitId` is the half that says who
+  // must be caught; this is the half that says who must NOT be, so a Master
+  // whose Servant shields it takes nothing even from an area that covers it.
+  const board = boardWith([caster, unit("master", 6, 7, { kind: "master" }), unit("guard", 6, 8)]);
+  const spec = (limits) => ({
+    anchor: { kind: "withinRange", range: 4 },
+    shape: { kind: "rect", w: 3, h: 3 },
+    selection: { relations: ["enemy"], chooser: "all" },
+    limits,
+  });
+
+  it("drops the named unit from the targets", () => {
+    const out = resolveTargets(spec({ excludeUnitIds: ["master"] }), caster, board, { panel: at(6, 7) });
+    expect(out.units.map((u) => u.unitId)).not.toContain("master");
+  });
+
+  it("keeps everything else the area caught", () => {
+    const out = resolveTargets(spec({ excludeUnitIds: ["master"] }), caster, board, { panel: at(6, 7) });
+    expect(out.units.map((u) => u.unitId)).toContain("guard");
+  });
+
+  it("records WHY, so the targeting preview can show it", () => {
+    // A unit that silently vanishes from the preview reads as a bug. The
+    // exclusion has to say the rule that caused it.
+    const out = resolveTargets(spec({ excludeUnitIds: ["master"] }), caster, board, { panel: at(6, 7) });
+    const row = out.excluded.find((e) => e.unitId === "master");
+    expect(row).toBeTruthy();
+    expect(row.reason).toMatch(/Counter is redirected/);
+  });
+
+  it("changes nothing when the limit is absent", () => {
+    const out = resolveTargets(spec({}), caster, board, { panel: at(6, 7) });
+    expect(out.units.map((u) => u.unitId)).toContain("master");
+  });
+
+  it("combines with requireUnitId", () => {
+    // The redirect in one call: the Master out, the Servant required.
+    const out = resolveTargets(
+      spec({ excludeUnitIds: ["master"], requireUnitId: "guard" }), caster, board, { panel: at(6, 7) },
+    );
+    expect(out.errors).toEqual([]);
+    expect(out.units.map((u) => u.unitId)).toEqual(["guard"]);
+  });
+});

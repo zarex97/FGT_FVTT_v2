@@ -539,6 +539,7 @@ interface LimitSpec {
   requiresFacing?: boolean;                    // the target must be in front
   requiresClearPath?: boolean;                 // nothing standing between
   requireUnitId?: string;                      // a Counter must catch the AU
+  excludeUnitIds?: string[];                   // §12.8: a redirected Master
 }
 ```
 
@@ -548,6 +549,13 @@ interface LimitSpec {
 > limit rather than a check after the placement is committed, so the refusal is drawn under
 > the cursor while the player is still aiming (§28.8): *"This Counter must include
 > Heracles"* is a refusal fixed by moving the mouse.
+>
+> **`excludeUnitIds`** is the other half of the same rule. §12.8's redirect both *requires*
+> the Servant and *forbids* the Master, so an area Counter covering both resolves onto the
+> Servant with the Master listed in `excluded` and its reason shown in the preview. It is
+> applied unconditionally, unlike §16.4's general Master protection, which is gated on
+> `isChosen` so that an area may still catch a protected Master incidentally — the two rules
+> pull in opposite directions and the gating is what separates them.
 
 ### Facing, and a clear path
 
