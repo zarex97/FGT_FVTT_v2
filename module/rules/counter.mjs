@@ -12,6 +12,8 @@
  */
 
 import { classifyAbility } from "./ability-use.mjs";
+import { guardsOf } from "./relations.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 
 /**
  * How far a chain of Counters may run before the engine stops it.
@@ -89,4 +91,52 @@ export function mayCounterAgain(process, defenderId, mode) {
   if (!process.requiredTargetId) return false;
   if (defenderId === process.requiredTargetId) return false;
   return mode === "collateral";
+}
+
+/**
+ * How far a Master's Servant may stand and still absorb a Counter (§12.8).
+ *
+ * TWO, and deliberately not the ONE that `rules/targeting/resolve.mjs`'s
+ * `isProtectedMaster` uses. That is §16.4's general protection -- a Master
+ * beside a Servant cannot be targeted at all, by anything. This is a different
+ * rule with a wider radius that applies only to Counters, and it *retargets*
+ * rather than refusing.
+ */
+export const COUNTER_REDIRECT_PANELS = 2;
+
+/**
+ * The unit a Counter aimed at this target must hit instead, or `null`.
+ *
+ * > *"If a Master performs an Attack on an enemy Unit and the enemy Unit
+ * > decides to Counter, the Counter Attack cannot be used on the Master if its
+ * > Servant is within a 2 panel area of itself, the Counter Attack is
+ * > **redirected** to that Master's Servant instead."*
+ *
+ * A retarget, not a refusal: the Counter happens, against the Servant.
+ *
+ * `guardsOf` rather than "any Servant of that faction", because it already
+ * knows the one case where that is wrong -- Pale Rider's Kagome Spirits guard
+ * in his place, and he does not guard his own Master at all (Ch. 16).
+ *
+ * The NEAREST guard, so a Master flanked by two Servants has one answer rather
+ * than whichever the board happened to list first. The rule does not say which,
+ * and an arbitrary answer is one that changes when a token is re-placed.
+ *
+ * @param {object} target the unit the Counter is aimed at
+ * @param {object} board
+ * @returns {string|null} the Servant's id
+ */
+export function counterRedirect(target, board) {
+  if (target?.kind !== "master" || !target.panel) return null;
+
+  let best = null;
+  let bestDistance = Infinity;
+  for (const guard of guardsOf(target, board)) {
+    if (guard.id === target.id || guard.canAct === false || !guard.panel) continue;
+    const distance = chebyshev(guard.panel, target.panel);
+    if (distance > COUNTER_REDIRECT_PANELS || distance >= bestDistance) continue;
+    best = guard.id;
+    bestDistance = distance;
+  }
+  return best;
 }

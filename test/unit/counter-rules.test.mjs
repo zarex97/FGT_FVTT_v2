@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
-  counterOffer, mayCounterAgain, MAX_COUNTER_DEPTH, COUNTER_CHAIN_MODES,
+  counterOffer, mayCounterAgain, counterRedirect, MAX_COUNTER_DEPTH, COUNTER_CHAIN_MODES,
 } from "../../module/rules/counter.mjs";
 
 const np = (id, name) => ({ id, name, img: `${id}.webp`, type: "noblePhantasm", system: {} });
@@ -93,5 +93,58 @@ describe("the constants", () => {
 
   it("caps the depth", () => {
     expect(MAX_COUNTER_DEPTH).toBe(8);
+  });
+});
+
+describe("counterRedirect", () => {
+  // §12.8: "the Counter Attack cannot be used on the Master if its Servant is
+  // within a 2 panel area of itself, the Counter Attack is redirected to that
+  // Master's Servant instead."
+  const master = { id: "M", kind: "master", faction: "f1", panel: { i: 5, j: 5 } };
+  const servant = (id, i, j, over = {}) => ({
+    id, kind: "servant", faction: "f1", panel: { i, j }, canAct: true, ...over,
+  });
+  const board = (units) => ({ units });
+
+  it("redirects to a Servant standing at exactly two panels", () => {
+    // The band the general §16.4 protection does NOT cover; it stops at one.
+    expect(counterRedirect(master, board([master, servant("S", 5, 7)]))).toBe("S");
+  });
+
+  it("redirects to an adjacent Servant too", () => {
+    expect(counterRedirect(master, board([master, servant("S", 5, 6)]))).toBe("S");
+  });
+
+  it("does not redirect past two panels", () => {
+    expect(counterRedirect(master, board([master, servant("S", 5, 8)]))).toBeNull();
+  });
+
+  it("picks the NEAREST of two guards, so the answer is never arbitrary", () => {
+    const units = [master, servant("far", 5, 7), servant("near", 5, 6)];
+    expect(counterRedirect(master, board(units))).toBe("near");
+  });
+
+  it("ignores a guard that cannot act", () => {
+    // A Stunned or Frozen Servant is not shielding anybody.
+    expect(counterRedirect(master, board([master, servant("S", 5, 6, { canAct: false })]))).toBeNull();
+  });
+
+  it("ignores a Servant of another faction", () => {
+    const enemy = servant("E", 5, 6, { faction: "f2" });
+    expect(counterRedirect(master, board([master, enemy]))).toBeNull();
+  });
+
+  it("returns null for anything that is not a Master", () => {
+    // The rule is about Masters. A Servant being countered is countered.
+    const servantTarget = { id: "T", kind: "servant", faction: "f1", panel: { i: 5, j: 5 } };
+    expect(counterRedirect(servantTarget, board([servantTarget, servant("S", 5, 6)]))).toBeNull();
+  });
+
+  it("returns null for a Master with no panel, rather than throwing", () => {
+    expect(counterRedirect({ id: "M", kind: "master", faction: "f1" }, board([]))).toBeNull();
+  });
+
+  it("never redirects a Master to itself", () => {
+    expect(counterRedirect(master, board([master]))).toBeNull();
   });
 });
