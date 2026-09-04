@@ -26,3 +26,15 @@ describe("requiresEffect", () => {
     expect(holds({})).toBe(false);
   });
 });
+
+describe("a field announces itself opening and closing", () => {
+  it("names the hook the action bar listens to", async () => {
+    // Nothing announced a field's lifecycle, so the bar's Fields row had no
+    // trigger. Listening to Region documents instead would fire for terrain
+    // and home bases too, which is why this is explicit.
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("module/engine/fields.mjs", "utf8");
+    const raises = [...source.matchAll(/Hooks\.callAll\("fgtFieldChanged"/g)];
+    expect(raises.length).toBeGreaterThanOrEqual(2);
+  });
+});

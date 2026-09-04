@@ -290,6 +290,11 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     if (intents.length > 0) await applyWorldIntents(intents, "field:contact");
   }
 
+  // The bar's Fields row, and anything else that cares that the board's field
+  // set changed. Explicit rather than listening to Region documents, which
+  // would also fire for terrain and home bases.
+  Hooks.callAll("fgtFieldChanged", { fieldId: field.fieldId, ownerId: actor.id, open: true });
+
   return region;
 }
 
@@ -419,6 +424,12 @@ export async function endField(fieldId) {
   }
 
   await region.delete();
+
+  // The closing half of the pair raised in `openField`. `ownerId` is read off
+  // the behaviour rather than looked up, because the Region is already gone by
+  // the time anything can ask the board.
+  Hooks.callAll("fgtFieldChanged", { fieldId, ownerId: null, open: false });
+
   return true;
 }
 
