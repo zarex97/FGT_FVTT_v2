@@ -68,6 +68,17 @@ export function registerSettings() {
     name: "FGT.Settings.ClosedInfo", hint: "FGT.Settings.ClosedInfoHint",
     type: Boolean, default: true,
   });
+  // §12.8. Rule 1 -- the unit a Counter was aimed at never answers it -- is NOT
+  // configurable; it is what stops two Servants countering each other to death.
+  // This governs only the bystander an AREA counter caught on its way to
+  // somebody else. Default `collateral`: they were not the one being countered,
+  // so they keep their own right to counter, and their answer is itself a
+  // Counter that Rule 1 closes one step later.
+  s("counterChain", {
+    name: "FGT.Settings.CounterChain", hint: "FGT.Settings.CounterChainHint",
+    type: String, default: "collateral",
+    choices: { collateral: "FGT.CounterChain.Collateral", strict: "FGT.CounterChain.Strict" },
+  });
   s("masterMode", {
     name: "FGT.Settings.MasterMode", type: String, default: "essences",
     choices: { essences: "FGT.MasterMode.Essences", coinFlip: "FGT.MasterMode.CoinFlip", rankless: "FGT.MasterMode.Rankless" },

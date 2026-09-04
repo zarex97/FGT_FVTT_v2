@@ -18,6 +18,7 @@
  */
 
 import { append as appendRoll } from "../rules/roll-log.mjs";
+import { mayCounterAgain, MAX_COUNTER_DEPTH } from "../rules/counter.mjs";
 
 /** Every state the process can occupy. */
 export const STATES = Object.freeze([
@@ -103,7 +104,10 @@ export const PROMPTS = Object.freeze({
  * @param {object} args
  * @returns {ProcessState}
  */
-export function begin({ attackerId, defenderId, attack, isAoE = false, groupId = null, isCounter = false }) {
+export function begin({
+  attackerId, defenderId, attack, isAoE = false, groupId = null,
+  isCounter = false, requiredTargetId = null, counterDepth = 0,
+}) {
   return {
     state: "declare",
     attackerId,
@@ -116,6 +120,15 @@ export function begin({ attackerId, defenderId, attack, isAoE = false, groupId =
     // "Counters cannot be Countered again" — carried on the state because the
     // check happens inside a process that has no other way to know what it is.
     isCounter,
+    // WHO this counter was aimed at. Implicit in `defenderId` while a counter
+    // was 1v1; an area counter has several defenders and only one of them was
+    // the point, and `rules/counter.mjs#mayCounterAgain` has to tell them apart
+    // to let a bystander answer without reopening the chain.
+    requiredTargetId,
+    // 0 for a declaration, +1 per counter. The chain terminates on COST, not on
+    // this; it is a backstop against a content bug that authors a free area
+    // attack (`MAX_COUNTER_DEPTH`).
+    counterDepth,
     history: [],
     // Every roll this Process made (§14.8). On the state rather than beside it
     // because the state is what crosses the socket and what the card is built
@@ -152,7 +165,10 @@ export function begin({ attackerId, defenderId, attack, isAoE = false, groupId =
  * @param {string} [args.groupId] supplied only to make a fan-out reproducible
  * @returns {ProcessState[]}
  */
-export function beginFanOut({ attackerId, targetIds, attack, groupId = null, isAoE = null }) {
+export function beginFanOut({
+  attackerId, targetIds, attack, groupId = null, isAoE = null,
+  isCounter = false, requiredTargetId = null, counterDepth = 0,
+}) {
   const ids = targetIds ?? [];
   if (ids.length === 0) return [];
 
@@ -164,7 +180,14 @@ export function beginFanOut({ attackerId, targetIds, attack, groupId = null, isA
   // when it knows better; the process count remains the default.
   const area = isAoE ?? ids.length > 1;
   return ids.map((defenderId) =>
-    begin({ attackerId, defenderId, attack, isAoE: area, groupId: group }));
+    begin({
+      attackerId, defenderId, attack, isAoE: area, groupId: group,
+      // Carried to EVERY process in the fan-out. This dropped `isCounter`
+      // entirely, which was harmless only while a counter was 1v1 and never
+      // came through here -- the moment one fans out, a bystander's process
+      // that forgot the flag lets the counter be countered.
+      isCounter, requiredTargetId, counterDepth,
+    }));
 }
 
 /**
@@ -287,12 +310,21 @@ export function isComplete(s) {
 export function canCounter(s, {
   defenderAlive, attackerInRange, attackerHasAccel = false, defenderCanAct = true,
   defenderHasBerserk = false, defenderHasFragarach = false, attackerConcealedAndFaster = false,
+  chainMode = "collateral",
 }) {
   // "Counters cannot be Countered again." First, because without it two
   // Servants in range of each other counter one another until something gives
   // out — and it is the one clause that is a safety property rather than a
   // rules detail.
-  if (s.isCounter) return false;
+  //
+  // It used to be a flat refusal on `isCounter`. It is now precise about WHICH
+  // unit is refused: the one the counter was AIMED at, always, and a bystander
+  // an area counter merely caught only when the GM has chosen `strict`.
+  if (!mayCounterAgain(s, s.defenderId, chainMode)) return false;
+  // The backstop. Cost is what actually terminates the chain -- reaching a
+  // bystander needs an area ability and an ability pays its own price -- so
+  // this only catches a content bug that authors a free one.
+  if ((s.counterDepth ?? 0) >= MAX_COUNTER_DEPTH) return false;
 
   if (attackerHasAccel) return false;
   if (!defenderCanAct) return false;
@@ -311,36 +343,54 @@ export function canCounter(s, {
 }
 
 /**
- * The counter sub-process: the same attack, the other way round (§12.8).
+ * The counter sub-processes: an Attack the other way round (§12.8).
  *
  * > *"the DU may use the 'Counter' Action and declare an Attack on the AU.
  * > Steps 1 and 4 of Combat are repeated, but with the roles reversed."*
  *
- * A **fresh** process, not a mutation of the original: the counter runs the
- * full ladder (Ch. 41's ruling on the "Steps 1 and 4" typo — a counter that
- * cannot be evaded and deals no damage is nonsense, and Instant Counter's
+ * A **fresh** set of processes, not a mutation of the original: the counter
+ * runs the full ladder (Ch. 41's ruling on the "Steps 1 and 4" typo — a counter
+ * that cannot be evaded and deals no damage is nonsense, and Instant Counter's
  * "skip straight to Step 3" is only special if the normal one does not skip),
  * so it needs its own history and its own state.
  *
- * `isCounter` is what makes it un-counterable, and `canCounter` refuses on it
- * first. It also carries no budget cost — the counter is a reaction, and
- * `resolveAttack`'s budget spend is not on this path at all.
+ * **An array, and an area is allowed.** The old signature returned one state
+ * and said "a counter is one unit hitting one unit" — true only because the
+ * `attack` parameter it already took was never passed by anybody, so every
+ * counter was a Normal Attack. A counter declared with a Noble Phantasm has
+ * that Noble Phantasm's shape.
  *
- * Never an AoE resolution: a counter is one unit hitting one unit, so the
- * defender of a counter does turn to face it.
+ * **The parent's `groupId` is kept.** §12.1: a Combat Phase is the declaration
+ * plus any counters. `engine/attack.mjs#fireCombatPhaseEnd` counts unfinished
+ * siblings by `groupId` and says so in as many words — *"a counter can add a
+ * process to the group after the first one finished"* — so giving the counter
+ * its own group would end the phase while the counter is still resolving.
+ *
+ * It carries no budget cost: `resolveAttack`'s spend sits above the shared
+ * declaration path this leads to, so a counter does not skip paying for a turn,
+ * it never reaches the payment.
  *
  * @param {ProcessState} s the process being countered
- * @param {object} [attack] what to counter with; a normal attack by default
- * @returns {ProcessState}
+ * @param {object} [choice]
+ * @param {object} [choice.attack] what to counter with; a Normal Attack by default
+ * @param {string[]} [choice.targetIds] every unit the ability caught; the
+ *   original attacker MUST be among them (`rules/counter.mjs`)
+ * @param {boolean|null} [choice.isAoE]
+ * @returns {ProcessState[]}
  */
-export function beginCounter(s, attack = { abilityId: null, kind: "normal" }) {
-  return begin({
+export function beginCounter(s, {
+  attack = { abilityId: null, kind: "normal" }, targetIds = null, isAoE = null,
+} = {}) {
+  const ids = targetIds?.length ? targetIds : [s.attackerId];
+  return beginFanOut({
     attackerId: s.defenderId,
-    defenderId: s.attackerId,
+    targetIds: ids,
     attack,
-    isAoE: false,
     groupId: s.groupId,
+    isAoE: isAoE ?? ids.length > 1,
     isCounter: true,
+    requiredTargetId: s.attackerId,
+    counterDepth: (s.counterDepth ?? 0) + 1,
   });
 }
 
