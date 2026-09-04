@@ -113,9 +113,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         return {
           ...slot,
           group: use.toggles ? "mode" : (entry.isNP ? "np" : "skill"),
-          tooltip: slot.reason
-            ? `${item.name} — ${game.i18n.localize(`FGT.Action.Refusal.${slot.reason}`)}`
-            : item.name,
+          tooltip: slot.reason ? `${item.name} — ${refusalText(slot.reason)}` : item.name,
         };
       })
       .filter(Boolean);
@@ -155,7 +153,12 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const actor = this.token?.actor;
     if (!actor) return;
 
-    const row = target.dataset.row;
+    // The row is read from the DOM ancestor rather than trusted from the
+    // button's own attribute. Both are written, but only the ancestor cannot
+    // be silently empty: `{{../row.id}}` rendered as "" under Handlebars block
+    // params and this handler returned without a word, which is exactly the
+    // silent no-op this bar exists to stop doing.
+    const row = target.dataset.row || target.closest(".fgt-bar__row")?.dataset?.row || "";
     const id = target.dataset.slot;
 
     if (row === "actions") {
@@ -175,9 +178,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       }
 
       const result = await performAction(id, { actor, token: this.token, context: entry.context });
-      if (result?.ok === false) {
-        ui.notifications.warn(game.i18n.localize(`FGT.Action.Refusal.${result.reason}`));
-      }
+      if (result?.ok === false) ui.notifications.warn(refusalText(result.reason));
       return;
     }
 
@@ -224,8 +225,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // Right-click on the dial is the other direction; on an ability it
         // pins. The HUD has no context menu of its own, so losing it costs
         // nothing here.
+        const elRow = el.dataset.row || el.closest(".fgt-bar__row")?.dataset?.row || "";
         if (el.dataset.slot === "facing") return this.turnFacing(actor, -1);
-        if (el.dataset.row === "actions") return undefined;
+        if (elRow === "actions") return undefined;
         return this.togglePin(actor.id, el.dataset.slot);
       });
     }
@@ -259,6 +261,25 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.user.setFlag("fgt", "pins", all);
     this.render({ force: true });
   }
+}
+
+/**
+ * A refusal, in words a player can read.
+ *
+ * The engines do not agree on what `reason` is. `placeMark` and `gather`
+ * return short ids (`alreadyMarked`, `noHgobOwner`) that key a translation;
+ * `engine/budget.mjs#affordable` returns a finished English sentence
+ * (*"Servant attacks exhausted (2/2)"*). Localizing blindly printed
+ * `FGT.Action.Refusal.Servant attacks exhausted (2/2)` on screen, which is
+ * worse than either — so a reason with no translation is shown as it stands.
+ *
+ * @param {string|undefined} reason
+ * @returns {string}
+ */
+function refusalText(reason) {
+  if (!reason) return game.i18n.localize("FGT.Action.Refusal.unavailable");
+  const key = `FGT.Action.Refusal.${reason}`;
+  return game.i18n.has(key) ? game.i18n.localize(key) : reason;
 }
 
 /**
