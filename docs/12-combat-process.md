@@ -6,6 +6,13 @@
 > Process per defender, sharing a `groupId`. The Counter (§12.8) is offered when eligible and
 > resolved as a full nested Process, marked `isCounter` so it cannot be countered in turn.
 >
+> Declaration is **one code path**. `engine/attack.mjs#declareProcesses` turns resolved
+> targets into live Processes — the fan-out, each defender's reaction offer and
+> concealment refusals, the cards, `attackDeclared`, `attacked`, the caster phases and
+> `abilityUsed` — and both an ordinary declaration and a §12.8 Counter go through it. The
+> budget spend stays above it in `resolveAttack`, so a Counter does not *skip* paying for
+> a turn; the payment is not on its path.
+>
 > Interrupts (§12.11) land through Ch. 17's Command Spell protocol: `applyInterrupt` mutates the
 > Process and the ladder resumes from wherever it left it.
 >

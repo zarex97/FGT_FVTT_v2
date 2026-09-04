@@ -376,6 +376,47 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     if (preempted) return { preempted: true, messageId: preempted.messageId };
   }
 
+  // The rest of a declaration -- the fan-out, the cards, the events -- is
+  // shared with the §12.8 Counter path, which needs every step of it.
+  return declareProcesses({
+    attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
+  });
+}
+
+/**
+ * Turn resolved targets into live Combat Processes: one per defender, each with
+ * its reaction offer, its card, its flags and its events.
+ *
+ * Extracted from `resolveAttack` so the **Counter** path can use it too. A
+ * counter needs every one of these steps — the fan-out, the per-defender
+ * reaction offer, the concealment refusals, `attackDeclared`, `attacked`, the
+ * caster phases, `abilityUsed` and the ladder-collapse flag — and a second copy
+ * would be the one nobody updates. This file has been bitten by exactly that
+ * twice: `resolveAttack` kept no use record, and an attack's rider phases
+ * ignored `target`.
+ *
+ * What deliberately did NOT move is the budget spend. It stays in
+ * `resolveAttack`, above this call, so a Counter does not *skip* paying for a
+ * turn — the payment is not on its path at all.
+ *
+ * @param {object} args
+ * @param {string} args.attackerId
+ * @param {object} args.attacker the Actor
+ * @param {object|null} args.ability
+ * @param {object} args.attackSpec
+ * @param {string[]} args.targetIds
+ * @param {object} args.targets the resolved target set
+ * @param {object|null} args.placement
+ * @param {object} args.board
+ * @param {boolean} [args.isCounter] §12.8: this declaration answers an attack
+ * @param {string|null} [args.requiredTargetId] the unit the Counter was aimed at
+ * @param {number} [args.counterDepth]
+ * @returns {Promise<{groupId: string, processes: Array<{messageId: string, state: object}>, messageId: string, state: object}>}
+ */
+async function declareProcesses({
+  attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
+  isCounter = false, requiredTargetId = null, counterDepth = 0,
+}) {
   // A resolution that caught no units is still a resolution — a ground-placed
   // non-damaging NP has a shape and no defenders — so it keeps its single
   // null-defender process rather than becoming an empty fan-out.
@@ -396,10 +437,17 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
       // the process count would have flipped `attack:isAoE` on for them and
       // suppressed the defender's facing change into the bargain.
       isAoE: new Set(targetIds).size > 1,
+      // §12.8. Null on an ordinary declaration; set on every process of a
+      // Counter's fan-out, so a bystander it caught cannot counter it in turn
+      // unless `fgt.counterChain` says so.
+      isCounter, requiredTargetId, counterDepth,
     }).map((state) => (primaryId === null
       ? state
       : { ...state, attack: { ...state.attack, pierce: state.defenderId === primaryId } }))
-    : [process.begin({ attackerId, defenderId: null, attack: attackSpec })];
+    : [process.begin({
+      attackerId, defenderId: null, attack: attackSpec,
+      isCounter, requiredTargetId, counterDepth,
+    })];
 
   /** @type {Array<{messageId: string, state: object}>} */
   const processes = [];
