@@ -876,3 +876,61 @@
   0%, 100% { box-shadow: 0 0 0 1px rgba(255, 214, 128, 0.85), 0 0 8px 1px rgba(255, 176, 32, 0.45); }
   50%      { box-shadow: 0 0 0 1px rgba(255, 226, 160, 1),    0 0 14px 4px rgba(255, 176, 32, 0.75); }
 }
+
+// §27.5's queue. Top-right: clear of the action bar at the bottom and the
+// sidebar at the right, and out of the way of the token being asked about.
+.fgt-pending {
+  position: fixed;
+  top: 4rem;
+  right: 21rem;
+  z-index: 60;
+  max-width: 18rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid rgba(255, 214, 128, 0.4);
+  border-radius: 5px;
+  background: rgba(20, 18, 15, 0.88);
+  font-size: 0.78rem;
+
+  &__head { display: flex; gap: 0.4rem; align-items: baseline; padding: 0 0.2rem 0.25rem; }
+  &__title { font-weight: 700; letter-spacing: 0.02em; color: rgba(255, 214, 128, 0.95); }
+  &__count { margin-left: auto; opacity: 0.7; }
+
+  &__rows {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: 0.15rem;
+    // A second guard beside `MAX_ROWS`: even eight rows must not push the panel
+    // past the canvas on a short viewport.
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
+  &__more { padding: 0.2rem 0.3rem 0; font-size: 0.72rem; font-style: italic; opacity: 0.65; }
+
+  &__jump {
+    display: flex; align-items: center; gap: 0.4rem;
+    width: 100%; padding: 0.2rem 0.3rem;
+    border: 1px solid transparent; border-radius: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit; text-align: left; cursor: pointer;
+
+    &:hover { background: rgba(255, 255, 255, 0.12); }
+  }
+
+  &__art { width: 1.4rem; height: 1.4rem; object-fit: cover; border-radius: 2px; }
+  &__unit { font-weight: 600; }
+  &__kind { opacity: 0.75; }
+  &__clock { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  // A Counter is the rung that arms the bar, so it is worth telling apart.
+  &__row--counter .fgt-pending__jump { border-color: rgba(255, 176, 32, 0.55); }
+  // §27.5's default on expiry spends nothing, which is a real loss of agency.
+  &__row--expired .fgt-pending__clock { color: #d9534f; font-weight: 700; }
+}
+
+// The flash a jumped-to card gets, so the eye lands on the right one.
+.fgt-pending-flash { animation: fgt-pending-flash 1.2s ease-out; }
+
+@keyframes fgt-pending-flash {
+  0% { box-shadow: 0 0 0 2px rgba(255, 214, 128, 0.9); }
+  100% { box-shadow: 0 0 0 2px rgba(255, 214, 128, 0); }
+}

@@ -59,6 +59,7 @@ import { ensureSetupRolls } from "./engine/summon.mjs";
 import { syncMarkVisibility } from "./engine/marks.mjs";
 import { ActionBar } from "./apps/hud/action-bar.mjs";
 import { resumeCounterArming } from "./apps/chat/cards.mjs";
+import { PendingPanel } from "./apps/hud/pending-panel.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
 import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
@@ -329,6 +330,10 @@ Hooks.once("ready", () => {
   // §29.5: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   ActionBar.attach();
+  // §27.5: one place that answers "what is the game waiting for me to do?" An
+  // AoE already fans out to one ladder per defender, so a player with four
+  // units can hold three prompts at once in a scrolling log.
+  PendingPanel.attach();
   // §12.8: a Counter rung that was already waiting when this client loaded. The
   // render hook that normally arms the bar fires before the bar exists, so a
   // player who reloads mid-exchange would otherwise see the prompt and have
