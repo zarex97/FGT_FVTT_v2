@@ -1,0 +1,34 @@
+{{!-- §27.5. Exists only while something is pending; `sync` closes it otherwise,
+      so there is no empty state to design. --}}
+<div class="fgt-pending">
+  <div class="fgt-pending__head">
+    <span class="fgt-pending__title">{{localize "FGT.Pending.Title"}}</span>
+    <span class="fgt-pending__count">{{count}}</span>
+  </div>
+
+  <ul class="fgt-pending__rows">
+    {{#each rows as |row|}}
+      <li class="fgt-pending__row{{#if row.expired}} fgt-pending__row--expired{{/if}}{{#if row.isCounter}} fgt-pending__row--counter{{/if}}"
+          data-message-id="{{row.messageId}}">
+        {{!-- Jumps to the card. It does NOT answer the prompt: the buttons and
+              their refusal reasons live there, and a second set here would be a
+              second place to keep in step. --}}
+        <button type="button" class="fgt-pending__jump" data-action="jump"
+                data-tooltip="{{localize 'FGT.Pending.Jump'}}">
+          {{#if row.unitImg}}<img class="fgt-pending__art" src="{{row.unitImg}}" alt="">{{/if}}
+          <span class="fgt-pending__unit">{{row.unitName}}</span>
+          <span class="fgt-pending__kind">{{row.labelText}}</span>
+          {{#if row.countdown}}
+            <span class="fgt-pending__clock">{{row.countdown.label}}</span>
+          {{/if}}
+        </button>
+      </li>
+    {{/each}}
+  </ul>
+
+  {{!-- A GM sees the whole table's prompts, and a long match has many. The list
+        is a call to action, so the rest become a count rather than a wall. --}}
+  {{#if hidden}}
+    <div class="fgt-pending__more">{{localize "FGT.Pending.More" n=hidden}}</div>
+  {{/if}}
+</div>

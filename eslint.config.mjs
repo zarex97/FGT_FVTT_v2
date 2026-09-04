@@ -94,6 +94,7 @@ export default [
       "module/engine/token-footprint.mjs", "module/engine/token-rotation.mjs",
       "module/engine/token-vision.mjs",
       "module/apps/canvas/target-region.mjs", "module/apps/hud/action-bar.mjs",
+      "module/apps/hud/pending-panel.mjs",
     ],
     rules: { "no-console": "off" },
   },
