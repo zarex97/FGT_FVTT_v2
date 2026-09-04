@@ -59,23 +59,27 @@ export function resourceBar(resource) {
  * steps move Base Attack, and because a sheet that shows `B` where the Servant
  * was written `C` and granted one step is a sheet nobody can check"*.
  *
- * `rank` is **the written Rank**, not the effective one — the tile deliberately
- * does NOT render an "authored ▸ granted" transition, because that would print
- * a Rank the Servant was never written with, on the one tile whose whole
- * purpose is being checkable against the sheet it came from. `steps` is
- * reported beside it as the separate fact it is.
+ * `rank` is **the written Rank** and stays the editable field: it is the one
+ * tile whose job is being checkable against the paper sheet it came from.
+ * `effective` is the Rank every rule is actually reading — `rules/snapshot.mjs`
+ * folds the Master's `grantedSteps` and the war Region's bonus into it without
+ * touching `system.parameters` — and the two are shown as a transition,
+ * `B ▸ B+`, when they differ.
  *
- * The shift itself is real, just not here: `rules/snapshot.mjs` folds a High
- * Rank Master's `grantedSteps` (and, live, the war Region's bonus) into the
- * Rank every rule reads — Magic Resistance, the damage table rows, `Rank.gte`
- * gates — without touching `system.parameters`, so this tile keeps showing the
- * sheet's own number (Ch. 05 §5.6).
+ * This tile used to show the written Rank ALONE, on the argument that an arrow
+ * would print a Rank the Servant was never written with. That argument was
+ * sound when nothing shifted the Rank; it stopped being sound once
+ * `applyGrantedSteps` and `applyRegionBonus` did. Showing only the written Rank
+ * then meant the number on the tile was not the number Magic Resistance, the
+ * damage table rows or a `Rank.gte` gate were using, and a player checking one
+ * against the other found a disagreement the sheet never explained.
  *
- * @param {Record<string, string>} parameters the ranks in force
+ * @param {Record<string, string>} parameters the WRITTEN ranks
  * @param {Record<string, number>} [grantedSteps] steps granted post-summon
+ * @param {Record<string, object>|null} [effective] the projected ranks in force
  * @returns {Array<{key: string, rank: string, steps: number, plus: string, granted: boolean}>}
  */
-export function parameterTiles(parameters, grantedSteps = {}) {
+export function parameterTiles(parameters, grantedSteps = {}, effective = null) {
   const keys = [
     ...PARAMETER_ORDER.filter((k) => k in (parameters ?? {})),
     ...Object.keys(parameters ?? {}).filter((k) => !PARAMETER_ORDER.includes(k)),
@@ -84,9 +88,22 @@ export function parameterTiles(parameters, grantedSteps = {}) {
   return keys.map((key) => {
     const raw = parameters?.[key];
     const steps = grantedSteps?.[key] ?? 0;
+    const rank = raw ? String(raw) : "—";
+    // What the rules are actually reading, off the projection: the written Rank
+    // shifted by the Master's grant AND by the war Region's, plus anything else
+    // that moves a Rank. Compared as STRINGS rather than derived from `steps`,
+    // because `steps` knows only about the Master and the tile must not claim a
+    // transition the snapshot does not agree with.
+    const now = effective?.[key] ? String(effective[key]) : null;
     return {
       key,
-      rank: raw ? String(raw) : "—",
+      rank,
+      // The transition, shown only when there IS one. The written Rank stays on
+      // the tile and stays editable -- it is the one field on this sheet whose
+      // job is being checkable against the paper sheet it came from -- and the
+      // Rank in force sits beside it rather than replacing it.
+      effective: now,
+      shifted: Boolean(now && now !== rank),
       steps,
       // The grant as the RANK LADDER writes it. Ch. 04 §4.5 states it as *"a
       // free `+` to one of their Servant's Parameters"*, and a granted step is
@@ -97,6 +114,37 @@ export function parameterTiles(parameters, grantedSteps = {}) {
       granted: steps > 0,
     };
   });
+}
+
+/**
+ * The written Base Attack and the one in force, as the tile shows them.
+ *
+ * The same fault the parameter tiles had, in the one place it costs the most:
+ * this panel read `system.baseAttack` while every other field beside it read
+ * the projection. A Servant fielded in her own war Region has the Region's ±10
+ * per component folded into the Rank the damage pipeline reads, so her sheet
+ * said 125 while every attack she made used 135, and nothing on the sheet
+ * explained the gap.
+ *
+ * Written first, because this panel is checkable against the paper sheet for
+ * the same reason the parameter tile is.
+ *
+ * @param {{str: number, mag: number}|null} written `system.baseAttack`
+ * @param {{str: number, mag: number}|null} effective the projection's
+ * @returns {object|null}
+ */
+export function baseAttackTiles(written, effective) {
+  if (!written) return null;
+  const one = (key) => {
+    const value = written[key] ?? 0;
+    const now = effective?.[key];
+    return {
+      value,
+      effective: Number.isFinite(now) ? now : null,
+      shifted: Number.isFinite(now) && now !== value,
+    };
+  };
+  return { str: one("str"), mag: one("mag") };
 }
 
 /**

@@ -1183,6 +1183,25 @@ the first two, and both are recorded above. So it is a build failure now (D37.11
 fourth entry in this list: `activeRules` on an ability that classifies as neither a mode nor
 windowed fails `validate:content`, naming what to do instead.
 
+**Verified live, and it found three more.** The fixes above were confirmed in `fgt2026` on a
+cold load: Medusa summoned into a Greek war as a Free Servant reads `B ▸ B+` on every Parameter,
+`Region: greece` on all five trace lines, `Contract: Free`, and MOV 12 with Riding's Active up.
+Getting there took three further repairs, and none of them would have been found by testing.
+
+1. **The war Region had no writer at all.** Un-baking the grant made the *first* re-summon
+   produce nothing, because the dialog's Region went into that summon and nowhere else while
+   `fgt.region` — what every reader consults — still said `middleEast` from some earlier
+   session. A war has one Region and `commitSummon` records it now (Ch. 19).
+2. **Base Attack was the Parameter tile's fault a second time.** The Combat panel read
+   `system.baseAttack` while every field beside it read the projection, so her sheet said 125
+   and every attack she made used 135.
+3. **Every `rules:`-based effect was inert on a cold load.** `EffectRegistry` is filled in the
+   `setup` hook, behind an `await`, and Foundry prepares every Actor before that — so derived
+   data was computed against an empty registry and effects contributed nothing until something
+   touched the actor. Medusa's +5 MOV showed in the sheet's explainer, which reads a
+   render-time snapshot, and not in her MOV, which did not. `fgt.mjs` re-prepares every unit
+   once the registries are loaded (Ch. 23 §23.2).
+
 **One thing this does not fix.** A Servant summoned into a matching Region *before* this change
 has the Region baked into her stored `grantedSteps`, and no migration can tell those steps from a
 Master's after the fact. Her Ranks were already double-counted on a board; they now double-count

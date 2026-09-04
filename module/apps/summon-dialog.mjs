@@ -22,6 +22,7 @@ import {
 } from "../engine/summon.mjs";
 import { grantBudget } from "../rules/master-rank.mjs";
 import { REGION_ADJACENCY } from "../rules/environment.mjs";
+import { currentWarRegion } from "../engine/board.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -53,8 +54,17 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {Array<{contentId: string, name: string}>} */
   #catalogue = [];
 
-  /** @type {{contentId: string|null, masterId: string|null, region: string, grants: object}} */
-  #form = { contentId: null, masterId: null, region: "", grants: {} };
+  /**
+   * The controls, seeded with the war's Region.
+   *
+   * Blank by default meant the picker read as a per-summon choice, and the
+   * second Servant summoned into the same war silently got no Region unless
+   * the GM remembered to pick it again. A war has one Region; this shows which
+   * one, and `commitSummon` writes back any change.
+   *
+   * @type {{contentId: string|null, masterId: string|null, region: string, grants: object}}
+   */
+  #form = { contentId: null, masterId: null, region: currentWarRegion() ?? "", grants: {} };
 
   /**
    * Open the dialog, optionally pre-selecting a Servant.

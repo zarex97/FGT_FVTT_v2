@@ -11,7 +11,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  resourceBar, parameterTiles, remainingTurns, ticksLabel,
+  resourceBar, parameterTiles, baseAttackTiles, remainingTurns, ticksLabel,
   abilityState, abilityCost, groupEffects, describeModifier,
 } from "../../module/apps/actor-sheet/present.mjs";
 
@@ -295,5 +295,33 @@ describe("a granted step is written in the game's own notation", () => {
 
   it("is empty when nothing was granted", () => {
     expect(parameterTiles({ str: "B" }, { str: 0 })[0].plus).toBe("");
+  });
+});
+
+describe("the sheet shows the numbers the rules are using", () => {
+  it("pairs the written Rank with the Rank in force", () => {
+    const tiles = parameterTiles({ str: "B", end: "D" }, { str: 0 }, { str: "B+", end: "D" });
+    expect(tiles.find((t) => t.key === "str")).toMatchObject({ rank: "B", effective: "B+", shifted: true });
+    // Unshifted parameters say so, so the arrow appears only where it means something.
+    expect(tiles.find((t) => t.key === "end")).toMatchObject({ rank: "D", shifted: false });
+  });
+
+  it("does not claim a shift when no projection was passed", () => {
+    expect(parameterTiles({ str: "B" }, { str: 1 })[0].shifted).toBe(false);
+  });
+
+  it("pairs the written Base Attack with the one the damage pipeline uses", () => {
+    // Medusa in a Greek war: STR B becomes B+, which is +10 Base Attack.
+    const ba = baseAttackTiles({ str: 125, mag: 175 }, { str: 135, mag: 185 });
+    expect(ba.str).toMatchObject({ value: 125, effective: 135, shifted: true });
+    expect(ba.mag).toMatchObject({ value: 175, effective: 185, shifted: true });
+  });
+
+  it("marks Base Attack unshifted when the two agree", () => {
+    expect(baseAttackTiles({ str: 125, mag: 0 }, { str: 125, mag: 0 }).str.shifted).toBe(false);
+  });
+
+  it("survives a unit with no Base Attack at all", () => {
+    expect(baseAttackTiles(null, { str: 1, mag: 1 })).toBeNull();
   });
 });

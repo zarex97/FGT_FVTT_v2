@@ -51,6 +51,23 @@ coincide by accident; the headings say which is which.
 
 ### Corrected
 
+- **Every effect whose behaviour is `rules:` did nothing until its actor was touched.** The
+  effect registry is filled in the `setup` hook, from a compendium, behind an `await` — and
+  Foundry prepares every Actor before that hook runs. Derived data was therefore computed
+  against an empty registry, and an effect's modifiers appeared only when something happened to
+  re-run preparation. Found on Medusa: Riding's +5 MOV was listed in the sheet's own explainer,
+  which reads a render-time snapshot, and absent from her MOV, which did not. Every unit is
+  re-prepared once the registries are loaded (Ch. 23 §23.2).
+- **Nothing ever recorded the war's Region.** The summon dialog asked for it and the answer
+  reached that one summon and nowhere else, so `fgt.region` kept whatever it last held. Harmless
+  while the Region's grant was baked into the Servant; fatal once it became a live
+  recomputation, which is how the first re-summon after that change produced no bonus at all.
+  `commitSummon` records it, and the dialog opens on it (Ch. 19).
+- **The sheet printed numbers no rule was using.** The Parameter tile showed the written Rank
+  alone and the Combat panel read `system.baseAttack`, while the damage pipeline read the Rank
+  the Master's grant and the war Region had moved. Both now show the transition: `B ▸ B+` and
+  `125 ▸ 135`, written first and still editable (Ch. 05 §5.6).
+
 - **The war Region's parameter grant was applied twice, and credited to the wrong source.** The
   summon baked it into `system.grantedSteps` alongside the Master's, and `annotateRegionBonus`
   applied it again live on every board — so a Servant fielded in her own Region had every Rank

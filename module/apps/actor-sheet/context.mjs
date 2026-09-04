@@ -22,7 +22,7 @@ import { detectRangeOf } from "../../rules/identity.mjs";
 import { tierOf } from "../../rules/master-rank.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import {
-  resourceBar, parameterTiles, abilityState, abilityCost,
+  resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost,
   groupEffects, describeModifier, remainingTurns,
 } from "./present.mjs";
 
@@ -164,7 +164,10 @@ export function buildContext(actor, sheet) {
     canRollSetup: isMaster && game.user.isGM,
     setupLocked: Boolean(game.combat?.started),
 
-    parameters: parameterTiles(system.parameters, system.grantedSteps),
+    // The snapshot's parameters are the third argument: the tile shows the
+    // written Rank and the Rank in force together, and only the projection
+    // knows the second one.
+    parameters: parameterTiles(system.parameters, system.grantedSteps, snapshot?.parameters),
     overview: overviewContext(actor, snapshot),
     abilityCards: abilitiesContext(actor, snapshot, game.settings.get("fgt", "turnsPerRound")),
     effects: effectsContext(actor, snapshot, tick),
@@ -325,7 +328,10 @@ function overviewContext(actor, snapshot) {
 
   return {
     combat: {
-      baseAttack: system.baseAttack ?? null,
+      // The projection's, beside the written one: every other field in this
+      // panel already reads the snapshot, and the damage pipeline reads the
+      // Rank the Region and the Master's grant moved, not `system.baseAttack`.
+      baseAttack: baseAttackTiles(system.baseAttack ?? null, snapshot?.baseAttack ?? null),
       normalAttack: normalAttackLine(system.normalAttack),
       mov: snapshot.mov,
       rangePanels: snapshot.range,

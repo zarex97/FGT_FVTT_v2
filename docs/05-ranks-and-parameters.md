@@ -22,6 +22,15 @@ Presence Concealment's counter clause, HGoB boarding, and Karna's Brahmastra.
 > `applyRegionBonus` refuses to fire twice on one unit. Both callers are legitimate — the sheet
 > projects with the Region known before any board exists, and the board projects units nobody
 > pre-projected — so the guard lives in the applier rather than in a rule about who may call it.
+>
+> **The sheet shows both numbers.** The Parameter tile used to print the written Rank alone, on
+> the argument that an arrow would show a Rank the Servant was never written with. That was
+> sound while nothing shifted the Rank and stopped being sound once `applyGrantedSteps` and
+> `applyRegionBonus` did: the tile then disagreed with Magic Resistance, the damage table rows
+> and every `Rank.gte` gate, and never said so. It reads `B ▸ B+` now — written first, still
+> editable, with the Rank in force beside it — and Base Attack does the same, `125 ▸ 135`, for
+> exactly the same reason and after exactly the same fault: that panel read
+> `system.baseAttack` while every other field beside it already read the projection.
 
 ---
 
