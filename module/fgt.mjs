@@ -48,7 +48,6 @@ import { FactionOwnership } from "./engine/faction-ownership.mjs";
 import { TokenImage } from "./engine/token-image.mjs";
 import { TokenFootprint } from "./engine/token-footprint.mjs";
 import { TokenRotation } from "./engine/token-rotation.mjs";
-import { TurnHUD } from "./apps/hud/turn-hud.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
 import { FGTToken as FGTTokenPlaceable } from "./apps/canvas/token.mjs";
@@ -147,6 +146,9 @@ Hooks.once("setup", async () => {
   await foundry.applications.handlebars.loadTemplates({
     "fgt-ability-card": "systems/fgt/templates/actor/ability-card.hbs",
     "fgt-effect-row": "systems/fgt/templates/actor/effect-row.hbs",
+    // The turn panel, rendered inside the action bar rather than in a
+    // window of its own.
+    "fgt-turn-panel": "systems/fgt/templates/hud/turn.hbs",
   });
 
   // Packs are not readable during `init`; `setup` runs after they are indexed
@@ -257,7 +259,6 @@ Hooks.once("ready", () => {
     for (const token of actor.getActiveTokens()) token.refreshFacing?.();
   });
   // Everyone sees the budget; only the acting faction can spend it.
-  TurnHUD.attach();
   // ZON rings, threat ranges and Master protection, drawn from selection and
   // hover. Context, never a control.
   attachOverlays();

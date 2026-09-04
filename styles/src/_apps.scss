@@ -770,7 +770,18 @@
     text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.7;
   }
   &__slots { display: flex; flex-wrap: wrap; gap: 0.25rem; min-width: 0; }
-  &__turn { flex: 0 0 auto; }
+  // The turn segment: faction, budget, compulsions and the End Turn gate,
+  // sitting beside the hotbar the way BG3 places end-turn. Scrolls on its own
+  // so a long turn order cannot stretch the bar past the screen.
+  &__turn {
+    flex: 0 0 auto;
+    max-width: 22rem;
+    max-height: 14rem;
+    overflow-y: auto;
+    padding-left: 0.75rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.8em;
+  }
 }
 
 .fgt-slot {
