@@ -376,6 +376,20 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     errors.push("The caster cannot be within this ability's area.");
   }
 
+  // §12.8's *"declare an Attack on the AU"*. A Counter may be aimed anywhere,
+  // as long as it CATCHES the unit that attacked -- not centred on it, which
+  // would forbid an area answer that legitimately covers the attacker from one
+  // side. Stated as a limit rather than checked after the placement is
+  // committed, so the refusal is drawn under the cursor while the player is
+  // still aiming (§28.8): a refusal they fix by moving the mouse rather than
+  // one they fix by guessing.
+  if (limits.requireUnitId && !chosen.some((t) => t.unitId === limits.requireUnitId)) {
+    const required = (board.units ?? []).find((u) => u.id === limits.requireUnitId);
+    errors.push(
+      `This Counter must include ${required?.name ?? "the unit that attacked"}.`,
+    );
+  }
+
   if (limits.requiresZon && caster.outsideZon) {
     errors.push(
       `Noble Phantasms require the Servant to be within its Master's ZON ` +
