@@ -562,8 +562,20 @@ Process. Ch. 41.
 A retarget, not a refusal. The counter proceeds against the Servant, and the Servant's range
 eligibility is *not* re-checked against the counter-attacker (the redirect is mandatory).
 **RISK.** What if the Servant is out of the counter-attacker's range? The source does not say.
-**DECISION.** The redirect succeeds regardless of range, because the rule is written as an
-absolute protection. Ch. 41.
+**DECISION (narrowed).** The redirect makes the Servant the unit the Counter must catch,
+and drops the Master from its targets entirely. The **chosen ability's reach still
+applies**: the original decision said the redirect succeeds *"regardless of range"*, which
+was written when a Counter was always an auto-aimed Normal Attack and has no clear meaning
+now that the counterer picks an ability and aims it. An ability that cannot reach the
+Servant refuses under the cursor like any other illegal aim; the player picks another or
+Declines. The Master is protected either way — if the Servant cannot be reached either, the
+counter hits nobody. Ch. 41.
+
+> **Implementation note.** `rules/counter.mjs#counterRedirect`. Two panels, via `guardsOf`,
+> nearest guard wins — nearest because the rule does not say which of two, and an arbitrary
+> answer is one that changes when a token is re-placed. Distinct from
+> `resolve.mjs#isProtectedMaster`, which is §16.4's general **one**-panel protection,
+> applies to every attack rather than to Counters, and refuses rather than retargets.
 
 ### Automatic counters
 
