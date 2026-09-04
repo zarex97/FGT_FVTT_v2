@@ -75,7 +75,10 @@ export function isIdentityRevealed(unit) {
  */
 export function publicNameOf(unit, board, viewer = {}) {
   if (viewer.isOwner || isIdentityRevealed(unit)) {
-    return unit?.trueName || titleCase(unit?.classContainer) || "Servant";
+    // `name` before the class container, and before the literal "Servant":
+    // every non-Servant takes this branch, and a Master with no `trueName`
+    // was being announced as "Servant" on every surface that asked.
+    return unit?.trueName || unit?.name || titleCase(unit?.classContainer) || "Servant";
   }
 
   // An explicit override wins: a Servant may be publicly known as something

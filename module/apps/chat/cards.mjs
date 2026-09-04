@@ -13,6 +13,8 @@ import { cardFor } from "../../rules/card-visibility.mjs";
 import { countdownFor } from "../../engine/await-timeout.mjs";
 import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
 import { offerCommands } from "../../engine/command-spells.mjs";
+import { publicIdentityOf } from "../../engine/public-identity.mjs";
+import { currentBoard } from "../../engine/board.mjs";
 
 /**
  * Create the card for a newly declared attack.
@@ -62,10 +64,16 @@ export async function updateAttackCard(message, state) {
 async function cardContext({ state, attacker, ability, targets, result = null, message = null }) {
   const prompt = pendingPrompt(state);
   const defender = game.actors.get(state.defenderId);
+  // For the public names below: `publicNameOf` reads a unit's faction to say
+  // "Rider of Red", and only the board knows the factions.
+  const board = currentBoard();
 
   return {
-    attackerName: attacker?.name ?? "Unknown",
-    defenderName: defender?.name ?? "—",
+    // The PUBLIC names. A card is one document every client reads, so it must
+    // not print a concealed Servant's true name -- the same reason its token
+    // shows a class image rather than its face.
+    attackerName: attacker ? publicIdentityOf(attacker, board).name : "Unknown",
+    defenderName: defender ? publicIdentityOf(defender, board).name : "—",
     abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
     abilityRank: ability?.system?.rank ?? null,
     isNP: ability?.type === "noblePhantasm",

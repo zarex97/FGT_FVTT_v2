@@ -48,6 +48,7 @@ import { createField } from "./fields.mjs";
 import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
+import { publicIdentityOf } from "./public-identity.mjs";
 
 /**
  * Use an active Skill.
@@ -836,9 +837,22 @@ function resolveSource(contentId) {
  * @param {object[]} applied
  */
 async function postCard(actor, ability, targets, applied) {
+  // A chat message is ONE document every client reads identically, so it
+  // shows the PUBLIC identity -- the class image and the class name while a
+  // Servant is concealed. Using a Skill used to announce a concealed
+  // Servant's true face and true name to the whole table.
+  const board = currentBoard();
+  const self = publicIdentityOf(actor, board);
+
   const names = targets
-    .map((t) => game.actors.get(t.unitId)?.name ?? t.unitId)
-    .filter((n) => n !== actor.name);
+    // The PUBLIC name of each target, for the same reason the caster's is:
+    // this list goes into a message every client reads, so naming a concealed
+    // Servant here reveals it to the table.
+    .map((t) => {
+      const target = game.actors.get(t.unitId);
+      return target ? publicIdentityOf(target, board).name : t.unitId;
+    })
+    .filter((n) => n !== self.name);
 
   const effects = applied
     .filter((a) => a.summary.outcome === "applied")
@@ -847,8 +861,8 @@ async function postCard(actor, ability, targets, applied) {
   const content = await foundry.applications.handlebars.renderTemplate(
     "systems/fgt/templates/chat/skill.hbs",
     {
-      caster: actor.name,
-      img: actor.img,
+      caster: self.name,
+      img: self.img,
       ability: ability.name,
       rank: ability.system?.rank ?? null,
       targets: names,

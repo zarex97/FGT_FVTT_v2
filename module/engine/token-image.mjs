@@ -29,6 +29,11 @@
  */
 
 import { placedTokensOf } from "./token-sync.mjs";
+// ONE definition of "what does everyone see", shared with the chat cards.
+// Two copies of this rule is how a token and a card come to disagree.
+import { publicImageOf } from "./public-identity.mjs";
+
+export { publicImageOf };
 
 /**
  * The Actor types this system defines (`system.json`'s `documentTypes.Actor`).
@@ -58,25 +63,6 @@ function touchesWatchedPath(changes) {
   if ("img" in changes) return true;
   const sys = changes.system;
   return Boolean(sys && ("defaultImage" in sys || "identityRevealed" in sys));
-}
-
-/**
- * The image every viewer's canvas should currently show for this unit.
- *
- * Mirrors `apps/actor-sheet/context.mjs`'s `portraitImg` minus that function's
- * viewer-dependent half: concealment applies to a Servant whose identity is
- * unrevealed and to nothing else, so a Master or a Platform shows its own
- * portrait and `defaultImage` is inert on it. Getting this wrong the other way
- * — treating `defaultImage` as an unconditional token override — would pin a
- * Master's token to a field its own sheet never displays.
- *
- * @param {object} actor
- * @returns {string}
- */
-export function publicImageOf(actor) {
-  const concealed = actor.type === "servant" && !actor.system?.identityRevealed;
-  if (!concealed) return actor.img;
-  return actor.system?.defaultImage || actor.img;
 }
 
 /**
