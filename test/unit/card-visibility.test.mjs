@@ -4,7 +4,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { cardFor, redactSources, VISIBILITY_MODES, skillEffectsFor } from "../../module/rules/card-visibility.mjs";
+import {
+  cardFor, redactSources, VISIBILITY_MODES, skillEffectsFor, redactBreakdown,
+} from "../../module/rules/card-visibility.mjs";
+import { readFileSync } from "node:fs";
 
 const result = () => ({
   summary: "Karna attacks Heracles",
@@ -199,5 +202,182 @@ describe("an attack card's effects, split for a template (§26.7)", () => {
   it("gives a bystander no damage total at all", () => {
     expect(cardFor(input, { id: "nobody" }).damage).toBeNull();
     expect(cardFor(input, { id: "def" }).damage).toBe(120);
+  });
+});
+
+describe("redactBreakdown", () => {
+  // One stage of the real sixteen, with a contributor from each side and one
+  // that belongs to neither.
+  const rows = () => [
+    {
+      index: 4,
+      label: "Combined percent",
+      delta: "+30%",
+      running: 390,
+      inert: false,
+      contributors: [
+        { source: "Atk Up", value: "+30%", note: "Howl of the War God", side: "attacker" },
+        { source: "Def Up", value: "-20%", note: "God Hand", side: "defender" },
+        { source: "Day/Night", value: "+25%", note: "night vs [Dark]", side: null },
+      ],
+      notes: [
+        { source: "bucket", text: "+35% -> x1.35", side: null },
+        { source: "block", text: "bypassed by Pierce", side: "defender" },
+      ],
+    },
+  ];
+
+  const names = (out) => out[0].contributors.map((c) => c.source);
+
+  it("keeps the attacker their own modifiers and the board's", () => {
+    const out = redactBreakdown(rows(), { isAttacker: true });
+    expect(names(out)).toEqual(["Atk Up", "Day/Night"]);
+  });
+
+  it("keeps the defender their own modifiers and the board's", () => {
+    const out = redactBreakdown(rows(), { isDefender: true });
+    expect(names(out)).toEqual(["Def Up", "Day/Night"]);
+  });
+
+  it("gives the GM everything, untouched", () => {
+    expect(names(redactBreakdown(rows(), { isGM: true }))).toEqual(
+      ["Atk Up", "Def Up", "Day/Night"],
+    );
+  });
+
+  it("hides nothing from a unit that is both sides at once", () => {
+    // An AoE that caught its own caster, or a charmed Servant attacking its
+    // own faction. There is no side to hide it from.
+    const out = redactBreakdown(rows(), { isAttacker: true, isDefender: true });
+    expect(names(out)).toHaveLength(3);
+  });
+
+  it("hides both sides from a bystander", () => {
+    // `involved` already gates the whole section, so a bystander never sees
+    // this. Returning "nothing hidden" would make the function unsafe the
+    // moment somebody renders it without that gate -- which is exactly how the
+    // redaction came to be computed and never read.
+    expect(names(redactBreakdown(rows(), {}))).toEqual(["Day/Night"]);
+  });
+
+  it("counts what it withheld rather than saying nothing", () => {
+    // One contributor and one note, so the reader knows there is more here.
+    expect(redactBreakdown(rows(), { isAttacker: true })[0].hiddenContributors).toBe(2);
+    expect(redactBreakdown(rows(), { isDefender: true })[0].hiddenContributors).toBe(1);
+    expect(redactBreakdown(rows(), { isGM: true })[0].hiddenContributors).toBeUndefined();
+  });
+
+  it("redacts the blocked-reason notes too", () => {
+    const out = redactBreakdown(rows(), { isAttacker: true });
+    expect(out[0].notes.map((n) => n.source)).toEqual(["bucket"]);
+  });
+
+  it("leaves the arithmetic alone", () => {
+    // The delta and the running total are how a viewer checks the number they
+    // are being shown. A table that does not add up reads as a bug rather
+    // than as discretion.
+    const out = redactBreakdown(rows(), { isAttacker: true })[0];
+    expect(out.delta).toBe("+30%");
+    expect(out.running).toBe(390);
+    expect(out.index).toBe(4);
+    expect(out.label).toBe("Combined percent");
+  });
+
+  it("survives rows with no contributors at all", () => {
+    const inert = [{ index: 9, label: "ZON penalty", delta: "\u2014", running: 390, inert: true }];
+    expect(() => redactBreakdown(inert, { isDefender: true })).not.toThrow();
+    expect(redactBreakdown(inert, { isDefender: true })[0].contributors).toEqual([]);
+  });
+});
+
+describe("the pipeline attributes every contribution", () => {
+  // A contributor with no side is shown to EVERYONE. That is right for a board
+  // fact and wrong for a modifier, and the difference is invisible at review:
+  // the card still renders, just to the wrong person. So the six deliberate
+  // unattributed calls are listed here by hand, and a seventh fails this test.
+  const UNATTRIBUTED = [
+    'state.note("fixedDamage"',       // arithmetic: which stages were skipped
+    's.note("bucket"',                // arithmetic: the summed percentage
+    's.contribute("band"',            // the board: an AoE's distance band
+    's.contribute("dayNight"',        // the board: the panel's phase
+    's.contribute("homeBaseAttack"',  // the board: both units in a home base
+    's.contribute(m.key ?? "totalDamage"', // no owner is recorded on these
+    'this.note("precondition"',       // the negation, already public in the summary
+  ];
+
+  it("gives every contributor an explicit side", () => {
+    const source = readFileSync("module/rules/damage/pipeline.mjs", "utf8");
+    const calls = source
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => /\b(s|state|this)\.(contribute|note)\(/.test(l));
+
+    const unsided = calls.filter(
+      (l) => !/"(attacker|defender)"\);$/.test(l) && !UNATTRIBUTED.some((u) => l.includes(u)),
+    );
+    expect(unsided).toEqual([]);
+  });
+
+  it("finds the calls at all, so a broken match cannot pass vacuously", () => {
+    const source = readFileSync("module/rules/damage/pipeline.mjs", "utf8");
+    const calls = source.match(/\b(s|state|this)\.(contribute|note)\(/g) ?? [];
+    expect(calls.length).toBeGreaterThan(30);
+  });
+});
+
+describe("an open table", () => {
+  // `closedInfo` is the GM's switch, and it spent its whole life registered
+  // and read by nothing. Off, every viewer reads the card the GM reads.
+  const result = () => ({
+    summary: "Karna attacks Heracles",
+    attackerControllers: ["u-karna"],
+    defenderControllers: ["u-heracles"],
+    total: 2071,
+    breakdown: [
+      { source: "Mana Burst", side: "attacker", value: 300 },
+      { source: "God Hand", side: "defender", value: -200 },
+    ],
+    effects: ["Burn"],
+    rolls: [{ purpose: "discover", visibility: "gm", actorId: "hassan" }],
+  });
+
+  it("gives a bystander the damage and the whole breakdown", () => {
+    const out = cardFor(result(), { id: "nobody", openTable: true });
+    expect(out.involved).toBe(true);
+    expect(out.damage).toBe(2071);
+    expect(out.breakdown).toHaveLength(2);
+  });
+
+  it("gives the attacker the defender's rows too", () => {
+    const out = cardFor(result(), { id: "u-karna", openTable: true });
+    expect(out.breakdown.map((r) => r.source)).toEqual(["Mana Burst", "God Hand"]);
+  });
+
+  it("still keeps a GM-only roll to the GM", () => {
+    // Opening the table is not the same as opening the GM's screen: a hidden
+    // Discover roll would give away the Assassin's panel to everyone.
+    expect(cardFor(result(), { id: "nobody", openTable: true }).rolls).toEqual([]);
+    expect(cardFor(result(), { id: "gm", isGM: true }).rolls).toHaveLength(1);
+  });
+
+  it("hides nothing in the rich breakdown either", () => {
+    const rows = [{
+      index: 4, label: "Combined percent", delta: "+30%", running: 390, inert: false,
+      contributors: [
+        { source: "Atk Up", value: "+30%", note: null, side: "attacker" },
+        { source: "Def Up", value: "-20%", note: null, side: "defender" },
+      ],
+      notes: [],
+    }];
+    const out = redactBreakdown(rows, { isAttacker: true, seesAll: true });
+    expect(out[0].contributors).toHaveLength(2);
+  });
+
+  it("names every effect on a Skill card", () => {
+    const rows = [{ name: "Burn", controllers: ["u-a"] }, { name: "Atk Up", controllers: ["u-b"] }];
+    expect(skillEffectsFor(rows, { id: "u-c", openTable: true })).toEqual({
+      names: ["Burn", "Atk Up"], hidden: 0,
+    });
+    expect(skillEffectsFor(rows, { id: "u-c" })).toEqual({ names: [], hidden: 2 });
   });
 });

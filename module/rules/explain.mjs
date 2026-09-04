@@ -31,8 +31,9 @@ export const STAGE_LABELS = Object.freeze([
  * @property {string} label
  * @property {string} delta what this stage changed, or `"—"`
  * @property {number} running the running total after the stage
- * @property {Array<{source: string, value: string, note: string|null}>} contributors
- * @property {Array<{source: string, text: string}>} notes
+ * @property {Array<{source: string, value: string, note: string|null,
+ *                   side: string|null}>} contributors
+ * @property {Array<{source: string, text: string, side: string|null}>} notes
  * @property {boolean} inert nothing happened here
  */
 
@@ -54,8 +55,12 @@ export function explainDamage(result, opts = {}) {
       source: prettySource(c.source),
       value: formatValue(c.source, c.value),
       note: c.note ?? null,
+      // Carried through untouched. Deciding who may READ a contributor is a
+      // separate question, answered by `redactBreakdown` in card-visibility;
+      // this file's job is to say what happened, completely.
+      side: c.side ?? null,
     }));
-    const notes = stage.notes ?? [];
+    const notes = (stage.notes ?? []).map((n) => ({ ...n, side: n.side ?? null }));
     const inert = contributors.length === 0 && notes.length === 0 && before === after;
 
     if (opts.hideInert && inert) continue;

@@ -410,7 +410,7 @@ story, and it is deliberately the same mechanism the system itself uses.
 | `difficulty` | world | `expert` | Ch. 14 §14.10 |
 | `region` | world | `null` | The war's region |
 | `grailThreshold` | world | 9 | Servants defeated before materialization |
-| `closedInfo` | world | `false` | Hide enemy stats and effects |
+| `closedInfo` | world | `true` | Redact chat cards per viewer (§26.7): own modifiers, own effects, own exchanges |
 | `diceFormulas` | world | `{}` | Overrides for the dice registry |
 | `masterMode` | world | `essences` | `essences` / `coinFlip` / `rankless` |
 | `activeSkillBudget` | world | `move` | Ch. 18 §18.3 / Ch. 41 Q5 |

@@ -540,7 +540,11 @@ describe("the breakdown", () => {
       base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
     });
     const s4 = computeDamage(ctx).breakdown.find((s) => s.index === 4);
-    expect(s4.contributors).toContainEqual({ source: "atkUp", value: 30, note: "Howl of the War God" });
+    // The side travels with the contributor: it is what lets a card show a
+    // viewer their own modifiers and withhold the opponent's (Ch. 26 26.7).
+    expect(s4.contributors).toContainEqual({
+      source: "atkUp", value: 30, note: "Howl of the War God", side: "attacker",
+    });
   });
 });
 

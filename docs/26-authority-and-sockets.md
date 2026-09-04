@@ -318,6 +318,24 @@ units (a zero-length batch), so the timing profile is uniform. Cheap and effecti
 > What *is* built is the half this section says covers most of the practical benefit at a fraction
 > of the cost: the card. `module/rules/card-visibility.mjs` implements §26.7, and it is wired into
 > `module/apps/chat/cards.mjs`.
+>
+> **The redaction now reaches the damage breakdown, row by row.** `redactBreakdown` filters the
+> sixteen-stage explainer by the **side** each contributor carries (Ch. 13): an attacker reads
+> their own Base Attack, crit roll, Atk Up and Divinity and sees the defender's Block as
+> *"1 hidden — the other side's"*; the defender reads the mirror. What survives redaction is the
+> ARITHMETIC — the stage, its delta and the running total — because a viewer entitled to see the
+> damage is entitled to check that it adds up, and a table of numbers that does not add up reads
+> as a bug rather than as discretion. A contributor with no side is a fact about the board and
+> stays for everyone. A bystander loses both sides, so the function is safe even if somebody
+> renders it without §26.7's `involved` gate.
+>
+> **`closedInfo` is the switch, and it is finally read.** The setting was registered in
+> `module/settings.mjs`, translated, and listed in Ch. 21's settings table since that table was
+> written, and **no code anywhere consulted it** — a GM could turn "Closed-information play" on
+> and off and change nothing. It now governs this whole subsystem, and its default changed to
+> **true**: the rulebook's information rules are rules, not a house style. Off, every card reads
+> the way the GM's does — except a GM-only roll, which stays GM-only, because opening the table
+> is not the same as opening the GM's screen.
 
 ## 26.6 Closed-information play
 
