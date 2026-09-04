@@ -670,3 +670,32 @@ describe("the picker vocabulary against the resolver (§29.6)", () => {
     }
   });
 });
+
+describe("limits.requireUnitId", () => {
+  // A Counter may be aimed anywhere as long as it catches the unit that
+  // attacked you (§12.8). Expressed as a targeting LIMIT rather than a check
+  // after the fact, so the refusal is drawn under the cursor while the player
+  // is still aiming — §28.8's rule for every other legality clause.
+  const board = boardWith([caster, unit("attacker", 6, 8), unit("bystander", 6, 9)]);
+  const spec = (limits) => ({
+    anchor: { kind: "targetUnit", range: 3 },
+    shape: { kind: "unit" },
+    selection: { relations: ["enemy"], chooser: "all", count: 1 },
+    limits,
+  });
+
+  it("passes when the required unit is caught", () => {
+    const v = validate(spec({ requireUnitId: "attacker" }), caster, board, { unitId: "attacker" });
+    expect(v.ok).toBe(true);
+  });
+
+  it("refuses when it is not, and names whose fault it is", () => {
+    const v = validate(spec({ requireUnitId: "attacker" }), caster, board, { unitId: "bystander" });
+    expect(v.ok).toBe(false);
+    expect(v.reasons.join(" ")).toMatch(/Counter must include/);
+  });
+
+  it("changes nothing when the limit is absent", () => {
+    expect(validate(spec({}), caster, board, { unitId: "bystander" }).ok).toBe(true);
+  });
+});

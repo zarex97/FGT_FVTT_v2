@@ -538,8 +538,16 @@ interface LimitSpec {
   minTargets?: number;
   requiresFacing?: boolean;                    // the target must be in front
   requiresClearPath?: boolean;                 // nothing standing between
+  requireUnitId?: string;                      // a Counter must catch the AU
 }
 ```
+
+> **`requireUnitId`.** §12.8's *"declare an Attack on the AU"*. A Counter may be aimed
+> anywhere so long as the resolved targets **include** that unit — not centred on it, which
+> would forbid an area answer that legitimately covers the attacker from one side. It is a
+> limit rather than a check after the placement is committed, so the refusal is drawn under
+> the cursor while the player is still aiming (§28.8): *"This Counter must include
+> Heracles"* is a refusal fixed by moving the mouse.
 
 ### Facing, and a clear path
 
