@@ -147,6 +147,99 @@ export const PACKS = Object.freeze({
 });
 
 /* -------------------------------------------------------------------------- */
+/*  Images                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Where the system's shipped artwork lives, as Foundry addresses it. The
+ * repository directory is `assets/`; Foundry serves the installed system from
+ * `systems/<id>/`, so this is the prefix every compiled image path carries.
+ */
+export const ASSET_ROOT = "systems/fgt/assets";
+
+/** Image formats Foundry's `FilePathField` accepts under `categories: ["IMAGE"]`. */
+export const IMAGE_EXTENSIONS = new Set(["webp", "png", "jpg", "jpeg", "svg", "gif", "avif"]);
+
+/**
+ * Index a list of asset files by `<dir>/<basename>` so a document can find its
+ * artwork by the same id it is authored under, whatever the file extension.
+ *
+ * `assets/servants/karna.webp` -> `servants/karna` -> `systems/fgt/assets/servants/karna.webp`.
+ *
+ * Pure: takes relative paths, not a disk, so `loadAssets` in `load.mjs` is the
+ * only part that walks a directory. Two files that differ only by extension
+ * are a problem rather than a silent pick, because whichever one won would be
+ * whichever `readdir` listed first.
+ *
+ * @param {string[]} relativePaths paths relative to the `assets/` directory, `/`-separated
+ * @returns {{assets: Map<string, string>, problems: string[]}}
+ */
+export function indexAssets(relativePaths) {
+  /** @type {Map<string, string>} */ const assets = new Map();
+  /** @type {string[]} */ const problems = [];
+  for (const rel of [...relativePaths].sort()) {
+    const dot = rel.lastIndexOf(".");
+    if (dot === -1) continue;
+    const ext = rel.slice(dot + 1).toLowerCase();
+    if (!IMAGE_EXTENSIONS.has(ext)) continue;
+    const key = rel.slice(0, dot);
+    if (assets.has(key)) {
+      const kept = assets.get(key).slice(ASSET_ROOT.length + 1);
+      problems.push(`assets/${rel}: ambiguous with assets/${kept} -- keep one`);
+      continue;
+    }
+    assets.set(key, `${ASSET_ROOT}/${rel}`);
+  }
+  return { assets, problems };
+}
+
+/**
+ * The shipped image for `<dir>/<id>`, or `null` when none is on disk.
+ *
+ * @param {Map<string, string>} assets from `indexAssets`
+ * @param {string} dir the asset directory: a source directory (`servants`) or `classes`
+ * @param {string} id
+ * @returns {string|null}
+ */
+export function assetFor(assets, dir, id) {
+  if (!id) return null;
+  return assets.get(`${dir}/${id}`) ?? null;
+}
+
+/**
+ * The two images a compiled unit carries, and the one its token shows.
+ *
+ * - `img`, the true portrait: authored `img`, else `assets/<dir>/<id>.*`.
+ * - `defaultImage`, the standard image an unrevealed Servant shows the table
+ *   in place of its portrait (Ch. 04 s4.2): authored `defaultImage`, else
+ *   `assets/classes/<classContainer>.*`. Only a Servant derives one -- the
+ *   field is inert on every other type (`engine/token-image.mjs`), so
+ *   filling it there would be authored-and-inert by construction.
+ * - `token`, what `prototypeToken.texture.src` is set to: the same rule
+ *   `publicImageOf` applies at runtime. A Servant is unrevealed when it leaves
+ *   the compendium, so its token is the class image. Left undefined without
+ *   one, because Foundry's own `Actor#_preCreate` would otherwise copy `img`
+ *   onto the token -- and that is the true portrait, on the board, for every
+ *   opponent, the moment the Servant is imported.
+ *
+ * @param {object} doc
+ * @param {string} dir source directory
+ * @param {string} type actor type
+ * @param {Map<string, string>} assets
+ * @returns {{img: string|undefined, defaultImage: string|null, token: string|undefined}}
+ */
+export function unitImages(doc, dir, type, assets) {
+  const img = doc.img ?? assetFor(assets, dir, doc.id) ?? undefined;
+  const isServant = type === "servant";
+  const container = doc.classContainer ?? (doc.servantClasses ?? [])[0] ?? "";
+  const defaultImage = isServant
+    ? (doc.defaultImage ?? assetFor(assets, "classes", container))
+    : (doc.defaultImage ?? null);
+  const token = isServant ? (defaultImage ?? img) : img;
+  return { img, defaultImage, token };
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Ids                                                                        */
 /* -------------------------------------------------------------------------- */
 
@@ -248,7 +341,7 @@ export function substitute(node, params) {
  * @param {Array<{path: string, dir: string, doc: object}>} files
  * @returns {{problems: string[], warnings: string[]}}
  */
-export function validateAll(files) {
+export function validateAll(files, assets = null) {
   /** @type {string[]} */ const problems = [];
   /** @type {string[]} */ const warnings = [];
 
@@ -280,7 +373,45 @@ export function validateAll(files) {
     validateDocument(doc, path, library, problems, warnings, dir);
   }
 
+  // -- Images ---------------------------------------------------------------
+  // Advisory: artwork arrives on its own schedule and a Servant without a
+  // portrait is playable. But a portrait that is on disk under the wrong name
+  // is indistinguishable from one that was never drawn, so every miss is named.
+  if (assets) validateImages(files, assets, warnings);
+
   return { problems, warnings };
+}
+
+/**
+ * Warn for every unit whose artwork is missing from `assets/`.
+ *
+ * A class image is reported once per class rather than once per Servant in
+ * it, since it is one file either way.
+ *
+ * @param {Array<{path: string, dir: string, doc: object}>} files
+ * @param {Map<string, string>} assets
+ * @param {string[]} warnings
+ */
+function validateImages(files, assets, warnings) {
+  if (assets.size === 0) {
+    warnings.push("assets/: no images found -- no compiled unit will carry a portrait or a class image");
+    return;
+  }
+  /** @type {Map<string, string>} */ const missingClasses = new Map();
+  for (const { path, dir, doc } of files) {
+    const spec = PACKS[dir];
+    if (!doc?.id || spec?.documentType !== "Actor") continue;
+    const type = doc.type ?? spec.actorType;
+    const { img, defaultImage } = unitImages(doc, dir, type, assets);
+    if (!img) warnings.push(`${path}: no portrait -- expected assets/${dir}/${doc.id}.<ext>`);
+    if (type === "servant" && !defaultImage) {
+      const container = doc.classContainer ?? (doc.servantClasses ?? [])[0] ?? "";
+      if (container && !missingClasses.has(container)) missingClasses.set(container, path);
+    }
+  }
+  for (const [container, path] of missingClasses) {
+    warnings.push(`${path}: no class image for "${container}" -- expected assets/classes/${container}.<ext>`);
+  }
 }
 
 /**
@@ -865,14 +996,14 @@ export function phaseEffects(doc) {
  * @param {Map<string, object>} library
  * @returns {object}
  */
-export function compileDocument(doc, dir, library) {
+export function compileDocument(doc, dir, library, assets = new Map()) {
   const spec = PACKS[dir];
   if (!spec) throw new Error(`FGT | No pack mapping for source directory "${dir}"`);
 
   const base = {
     _id: documentId(doc.id),
     name: doc.name,
-    img: doc.img ?? undefined,
+    img: doc.img ?? assetFor(assets, dir, doc.id) ?? undefined,
     _key: null, // filled in below
   };
 
@@ -881,10 +1012,12 @@ export function compileDocument(doc, dir, library) {
       .map((entry, index) => resolveRef(entry, library, [], `abilities[${index}]`))
       .filter(Boolean);
     const type = doc.type ?? spec.actorType;
+    const images = unitImages(doc, dir, type, assets);
     return {
       ...base,
+      img: images.img,
       type,
-      system: actorSystem(doc),
+      system: { ...actorSystem(doc), defaultImage: images.defaultImage },
       items: abilities.map((a) => compileEmbeddedAbility(a, doc.id, base._id)),
       prototypeToken: {
         // A Servant, Master or platform is ONE unit: its sheet and its token
@@ -909,6 +1042,12 @@ export function compileDocument(doc, dir, library) {
         // in this system touches it. Leaving it unlocked lets a player spin
         // the picture away from the direction the rules are using.
         lockRotation: true,
+        // The token shows the PUBLIC image (`unitImages`): a Servant's class
+        // image, everything else's portrait. Foundry copies `img` onto a
+        // token whose texture is unset, which for a concealed Servant is the
+        // true face on the board before the first Turn. `engine/token-image.mjs`
+        // keeps this in step afterwards; this is the value it starts from.
+        ...(images.token ? { texture: { src: images.token } } : {}),
         ...(doc.prototypeToken ?? {}),
       },
       _key: `!actors!${base._id}`,

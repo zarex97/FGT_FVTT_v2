@@ -100,6 +100,7 @@ FGT_FVTT_v2/
 │   ├── net/               ← the GM proxy socket and its typed operations
 │   └── apps/              ← sheets, chat cards, the turn HUD, the targeting canvas layer
 ├── packs/_source/         ← content as YAML; the packs themselves are build artefacts
+├── assets/                ← artwork, found by id at build time (assets/README.md)
 ├── tools/                 ← pack build, content validator, release stamping
 ├── test/                  ← 604 unit and golden tests, no Foundry required
 ├── templates/  styles/  lang/
@@ -246,6 +247,10 @@ packs/_source/
 
 `ref:` indirection is the point: Magic Resistance is authored once and instantiated at seven
 different ranks, so fixing it fixes every Servant that has it.
+
+Artwork is never named in the YAML. Drop `assets/servants/<id>.webp` for a portrait and
+`assets/classes/<class>.webp` for the image a Servant wears until its identity is revealed; the
+build attaches both (`assets/README.md`).
 
 Run `npm run validate:content` after any edit. It catches unknown effect ids, unparseable ranks
 and durations, unregistered rule-element keys, refs that do not resolve, and one-sided mutual

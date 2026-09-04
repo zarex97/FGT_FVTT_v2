@@ -47,6 +47,12 @@
 > An **unlinked** token's image is read from the token's own `ActorDelta` rather than from the
 > base actor, so per-token art a GM chose deliberately is not stomped when the base portrait
 > changes.
+>
+> **Where the two images come from (Ch. 37 §37.3).** Neither is authored. The build fills `img`
+> from `assets/servants/<id>.*` and `defaultImage` from `assets/classes/<classContainer>.*`, and
+> compiles the **class image** — not the portrait — onto the prototype token, since a Servant
+> leaves the compendium unrevealed and Foundry would otherwise put `img` there itself. The sync
+> above then keeps the token in step with `identityRevealed` from that starting point.
 
 > **Implemented (Ch. 45 C2, C3).** The Civilian rules of §4.6 are live: a Servant attacking a
 > Civilian kills it with **no damage calculation and no reaction ladder** — `resolveAttack`

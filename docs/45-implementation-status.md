@@ -1106,6 +1106,28 @@ Four new guards now fail the build on the classes of error that produced them: a
 no event, an unknown `chooser`, an unknown `modifierKey`, and any authored key missing from the
 DataModel its document compiles to.
 
+### Shipped artwork — **built**
+
+Every image field existed and nothing filled one: the compendium had no pictures because no
+Servant file carried an `img:` line, and the repository had no directory to carry one from. The
+build now indexes `assets/` and derives all three image fields from ids the content already has
+— `img` from `assets/servants/<id>.*`, `defaultImage` from `assets/classes/<classContainer>.*`,
+and the prototype token's texture from whichever of the two is public (Ch. 37 §37.3, D37.9).
+`assets/` was also absent from the release zip, so a shipped path would have resolved to nothing
+in an installed system; the workflow copies it now.
+
+The token texture was the finding. `Actor#_preCreate` copies `img` onto a token whose texture is
+unset, and a Servant is unrevealed when it is imported — so the first drop of a concealed Servant
+put its true portrait on the board for every opponent, before `engine/token-image.mjs` (whose
+sync runs on *update*, not create) had anything to react to. The compiled texture is the class
+image, the same value `publicImageOf` would compute; the sync inherits a correct starting point
+rather than repairing a wrong one.
+
+The validator warns per missing file, naming the path it expected, and once for an empty
+`assets/`; two files differing only by extension fail the build. Twelve tests in
+`content.test.mjs`. No image has been committed yet — the directory, the naming rule and the
+pipeline are in place for the batch that is.
+
 ---
 
 ## 45.5 The completion plan

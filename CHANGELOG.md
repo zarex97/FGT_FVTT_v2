@@ -51,6 +51,13 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Compendium entries carry their artwork.** `assets/` is where images live and the build finds
+  them by id: `assets/servants/<id>.*` becomes a unit's `img`, `assets/classes/<class>.*` becomes
+  every Servant-of-that-class's `defaultImage`, and the prototype token's texture is set to the
+  public one of the two — the class image for a Servant, since it leaves the compendium
+  unrevealed and Foundry would otherwise put the true portrait there itself. No YAML edit is
+  needed; a file under the right name is enough, and the validator names the path it expected
+  for every unit still without one. The release zip ships `assets/` (Ch. 37 §37.3, D37.9).
 - **A unit can be intrinsically undamageable.** `null` Health has been the convention since
   Ch. 04 and the damage pipeline has halted at stage 0 on it for as long — but nothing could
   ever *reach* that state, because each type's `prepareBaseData` backfills a null Max Health

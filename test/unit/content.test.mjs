@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import {
   validateAll, resolveRef, substitute, documentId, ruleElements, compileDocument,
+  indexAssets, unitImages, ASSET_ROOT,
 } from "../../tools/lib/content.mjs";
 
 const file = (doc, path = "test.yml", dir = "effects") => ({ path, dir, doc });
@@ -364,6 +365,106 @@ describe("compileDocument", () => {
     };
     const out = compileDocument(doc, "platforms", library);
     expect(out.prototypeToken.width).toBe(11);
+  });
+});
+
+describe("shipped artwork (§37.3)", () => {
+  const library = new Map();
+  const { assets } = indexAssets([
+    "classes/berserker.webp", "classes/alterEgo.png", "servants/asterios.webp",
+    "masters/kiritsugu.jpg", "README.md", "classes/notes.txt",
+  ]);
+  const servant = (over = {}) => ({
+    schema: 1, id: "asterios", name: "Asterios", servantClasses: ["berserker"], ...over,
+  });
+
+  it("indexes by <dir>/<basename> under the system's Foundry path, ignoring non-images", () => {
+    expect(assets.get("classes/berserker")).toBe(`${ASSET_ROOT}/classes/berserker.webp`);
+    expect(assets.get("servants/asterios")).toBe(`${ASSET_ROOT}/servants/asterios.webp`);
+    expect(assets.has("README")).toBe(false);
+    expect(assets.has("classes/notes")).toBe(false);
+  });
+
+  it("refuses two files that differ only by extension rather than picking one", () => {
+    const { assets: a, problems } = indexAssets(["servants/karna.png", "servants/karna.webp"]);
+    expect(problems[0]).toMatch(/servants\/karna\.webp: ambiguous with assets\/servants\/karna\.png/);
+    expect(a.get("servants/karna")).toBe(`${ASSET_ROOT}/servants/karna.png`);
+  });
+
+  it("derives a Servant's portrait from its id and its standard image from its class container", () => {
+    const out = compileDocument(servant(), "servants", library, assets);
+    expect(out.img).toBe(`${ASSET_ROOT}/servants/asterios.webp`);
+    expect(out.system.defaultImage).toBe(`${ASSET_ROOT}/classes/berserker.webp`);
+  });
+
+  it("starts a Servant's token on the class image, not the true portrait", () => {
+    // A Servant leaves the compendium unrevealed. Foundry copies `img` onto a
+    // token whose texture is unset, so without this the true face is on the
+    // board for every opponent before `engine/token-image.mjs` has anything to
+    // react to.
+    const out = compileDocument(servant(), "servants", library, assets);
+    expect(out.prototypeToken.texture.src).toBe(`${ASSET_ROOT}/classes/berserker.webp`);
+  });
+
+  it("falls back to the portrait for a Servant whose class has no image yet", () => {
+    const out = compileDocument(servant({ servantClasses: ["saber"] }), "servants", library, assets);
+    expect(out.system.defaultImage).toBeNull();
+    expect(out.prototypeToken.texture.src).toBe(`${ASSET_ROOT}/servants/asterios.webp`);
+  });
+
+  it("uses classContainer over the first declared class, as the runtime does", () => {
+    const images = unitImages(
+      servant({ servantClasses: ["saber", "alterEgo"], classContainer: "alterEgo" }), "servants", "servant", assets,
+    );
+    expect(images.defaultImage).toBe(`${ASSET_ROOT}/classes/alterEgo.png`);
+  });
+
+  it("gives a non-Servant its own portrait as token art and no standard image", () => {
+    // `defaultImage` is inert on anything but an unrevealed Servant
+    // (`publicImageOf`); filling it would be authored-and-inert by construction.
+    const out = compileDocument({ schema: 1, id: "kiritsugu", name: "Kiritsugu" }, "masters", library, assets);
+    expect(out.img).toBe(`${ASSET_ROOT}/masters/kiritsugu.jpg`);
+    expect(out.system.defaultImage).toBeNull();
+    expect(out.prototypeToken.texture.src).toBe(`${ASSET_ROOT}/masters/kiritsugu.jpg`);
+  });
+
+  it("lets authored img and defaultImage win over the files on disk", () => {
+    const out = compileDocument(
+      servant({ img: "worlds/x/true.png", defaultImage: "worlds/x/mask.png" }), "servants", library, assets,
+    );
+    expect(out.img).toBe("worlds/x/true.png");
+    expect(out.system.defaultImage).toBe("worlds/x/mask.png");
+    expect(out.prototypeToken.texture.src).toBe("worlds/x/mask.png");
+  });
+
+  it("leaves the token texture unset when there is no image at all", () => {
+    // Foundry's own default (`mystery-man`) is the honest state; an empty
+    // string is a broken image.
+    const out = compileDocument(servant({ id: "nobody" }), "servants", library, new Map());
+    expect(out.img).toBeUndefined();
+    expect(out.prototypeToken.texture).toBeUndefined();
+  });
+
+  it("warns, by expected path, for a unit whose artwork is missing", () => {
+    const files = [
+      file(servant({ id: "medea", servantClasses: ["caster"] }), "medea.yml", "servants"),
+      file(servant({ id: "medusa", servantClasses: ["caster", "rider"] }), "medusa.yml", "servants"),
+    ];
+    const warnings = validateAll(files, assets).warnings;
+    expect(warnings).toContain("medea.yml: no portrait -- expected assets/servants/medea.<ext>");
+    // One class, one warning -- not one per Servant summoned into it.
+    expect(warnings.filter((w) => w.includes('class image for "caster"'))).toHaveLength(1);
+  });
+
+  it("collapses an empty assets directory to a single warning", () => {
+    const warnings = validateAll([file(servant(), "asterios.yml", "servants")], new Map()).warnings;
+    expect(warnings.filter((w) => w.startsWith("assets/"))).toHaveLength(1);
+    expect(warnings.some((w) => w.includes("no portrait"))).toBe(false);
+  });
+
+  it("says nothing about images when no index is passed at all", () => {
+    expect(validateAll([file(servant(), "asterios.yml", "servants")]).warnings.some((w) => /portrait|assets/.test(w)))
+      .toBe(false);
   });
 });
 

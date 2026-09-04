@@ -7,14 +7,16 @@
  * build, because they flag things that are suspicious rather than wrong.
  */
 
-import { loadSource } from "./lib/load.mjs";
+import { loadSource, loadAssets } from "./lib/load.mjs";
 import { validateAll } from "./lib/content.mjs";
 
 const SOURCE = "packs/_source";
+const ASSETS = "assets";
 
 const { files, problems: loadProblems } = await loadSource(SOURCE);
-const { problems, warnings } = validateAll(files);
-const all = [...loadProblems, ...problems];
+const { assets, problems: assetProblems } = await loadAssets(ASSETS);
+const { problems, warnings } = validateAll(files, assets);
+const all = [...loadProblems, ...assetProblems, ...problems];
 
 if (files.length === 0) {
   console.error(`FGT | No content found under ${SOURCE}/`);

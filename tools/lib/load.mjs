@@ -9,6 +9,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import YAML from "yaml";
+import { indexAssets } from "./content.mjs";
 
 /**
  * Load every `.yml` under `root`, tagged with its immediate source directory.
@@ -36,6 +37,24 @@ export async function loadSource(root) {
     }
   }
   return { files, problems };
+}
+
+/**
+ * Index every image under `root`, keyed `<dir>/<basename>` (s37.3).
+ *
+ * A missing directory is an empty index rather than an error: the validator
+ * reports that as one warning, which is the right weight for "the art has not
+ * been committed yet".
+ *
+ * @param {string} root e.g. `assets`
+ * @returns {Promise<{assets: Map<string, string>, problems: string[]}>}
+ */
+export async function loadAssets(root) {
+  /** @type {string[]} */ const paths = [];
+  for await (const abs of walk(root)) {
+    paths.push(relative(root, abs).split(sep).join("/"));
+  }
+  return indexAssets(paths);
 }
 
 /**
