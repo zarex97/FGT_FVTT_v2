@@ -37,6 +37,7 @@ import { currentBoard } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { publicSpeakerFor } from "./public-identity.mjs";
+import { publicIdentityOf } from "./public-identity.mjs";
 
 /**
  * Guards against re-entry.
@@ -128,7 +129,8 @@ async function announce(switched, board) {
       .filter(Boolean);
 
     await ChatMessage.create({
-      content: `<p><strong>${ability}</strong> activated on ${actor?.name ?? unitId} — `
+      content: `<p><strong>${ability}</strong> activated on `
+        + `${actor ? publicIdentityOf(actor, currentBoard()).name : unitId} — `
         + `${cause?.source ?? "a compulsion"}`
         + `${culprits.length ? `: ${culprits.join(", ")} within range` : ""}.</p>`,
       speaker: actor ? publicSpeakerFor(actor) : undefined,

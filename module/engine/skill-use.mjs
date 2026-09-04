@@ -170,7 +170,8 @@ async function rollConcealmentBreak(actor, ability, self) {
   const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
   await deactivateConcealment(actor.id, DEACTIVATION_REASONS.skillUse);
   await ChatMessage.create({
-    content: `<p><strong>${ability.name}</strong> gave ${actor.name} away —`
+    content: `<p><strong>${ability.name}</strong> gave `
+      + `${publicIdentityOf(actor, currentBoard()).name} away —`
       + ` rolled ${roll.total} vs ${chance}%. Presence Concealment ends.</p>`,
     speaker: publicSpeakerFor(actor),
   });

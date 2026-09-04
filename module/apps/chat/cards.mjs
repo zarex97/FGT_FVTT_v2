@@ -12,6 +12,7 @@ import { visibleTo, renderBreakdown } from "../../rules/roll-log.mjs";
 import { cardFor, skillEffectsFor } from "../../rules/card-visibility.mjs";
 import { countdownFor } from "../../engine/await-timeout.mjs";
 import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
+import * as process from "../../engine/combat-process.mjs";
 import { offerCommands } from "../../engine/command-spells.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity.mjs";
 import { currentBoard } from "../../engine/board.mjs";
@@ -27,10 +28,23 @@ export async function renderAttackCard({ state, attacker, ability, targets }) {
     await cardContext({ state, attacker, ability, targets }),
   );
 
+  const board = currentBoard();
+  const defender = game.actors.get(state.defenderId);
   return ChatMessage.create({
-    speaker: publicSpeakerFor(attacker, currentBoard()),
+    speaker: publicSpeakerFor(attacker, board),
     content,
-    flags: { fgt: { kind: "attack", attackerId: attacker.id, defenderId: state.defenderId } },
+    flags: {
+      fgt: {
+        kind: "attack",
+        attackerId: attacker.id,
+        defenderId: state.defenderId,
+        // Remembered so the card still reads after a unit is deleted.
+        names: {
+          attacker: attacker ? publicIdentityOf(attacker, board).name : null,
+          defender: defender ? publicIdentityOf(defender, board).name : null,
+        },
+      },
+    },
   });
 }
 
@@ -46,6 +60,7 @@ export async function updateAttackCard(message, state) {
     "systems/fgt/templates/chat/attack.hbs",
     await cardContext({
       state, attacker, ability,
+      names: message.getFlag("fgt", "names") ?? null,
       targets: state.defenderId ? [{ unitId: state.defenderId }] : [],
       result: message.getFlag("fgt", "result") ?? null,
       // The countdown needs the message it lives on -- the deadline is stored
@@ -61,7 +76,9 @@ export async function updateAttackCard(message, state) {
  * @param {object} args
  * @returns {Promise<object>}
  */
-async function cardContext({ state, attacker, ability, targets, result = null, message = null }) {
+async function cardContext({
+  state, attacker, ability, targets, result = null, message = null, names = null,
+}) {
   const prompt = pendingPrompt(state);
   const defender = game.actors.get(state.defenderId);
   // For the public names below: `publicNameOf` reads a unit's faction to say
@@ -72,8 +89,13 @@ async function cardContext({ state, attacker, ability, targets, result = null, m
     // The PUBLIC names. A card is one document every client reads, so it must
     // not print a concealed Servant's true name -- the same reason its token
     // shows a class image rather than its face.
-    attackerName: attacker ? publicIdentityOf(attacker, board).name : "Unknown",
-    defenderName: defender ? publicIdentityOf(defender, board).name : "—",
+    // The live public name, falling back to the one remembered on the message.
+    // Re-rendering from flags means a card about a DELETED actor would
+    // otherwise lose the name it was posted with, and the chat log is the
+    // match's audit record (Ch. 30) -- it has to stay readable after a unit is
+    // gone, which is precisely when somebody goes back to read it.
+    attackerName: (attacker ? publicIdentityOf(attacker, board).name : names?.attacker) ?? "Unknown",
+    defenderName: (defender ? publicIdentityOf(defender, board).name : names?.defender) ?? "—",
     abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
     abilityRank: ability?.system?.rank ?? null,
     isNP: ability?.type === "noblePhantasm",
@@ -124,11 +146,10 @@ async function cardContext({ state, attacker, ability, targets, result = null, m
     // document, and the workaround doubles the document count for a failure mode
     // that leaks the wrong thing. The card covers most of the benefit at a
     // fraction of the cost, which §26.6 says outright.
-    visibility: result
-      ? cardFor(visibilityInput(state, result), {
-        id: game.user.id, isGM: game.user.isGM,
-      })
-      : null,
+    // Computed for `game.user`, which is THE VIEWER because `fillAttackCard`
+    // re-renders this context on every client. Built once and stored, as it
+    // was, it described whoever pressed the button.
+    visibility: result ? viewerVisibility(state, result) : null,
 
     // The roll log (§14.8), filtered per viewer -- a hidden Discover roll on a
     // card everyone can read would give away the Assassin's panel.
@@ -137,6 +158,79 @@ async function cardContext({ state, attacker, ability, targets, result = null, m
       ownedActorIds: game.actors.filter((a) => a.isOwner).map((a) => a.id),
     }).map((r) => ({ ...r, lines: renderBreakdown(r) })),
   };
+}
+
+/**
+ * §26.7's redaction for whoever is looking, with the effects split into the two
+ * shapes a template can render.
+ *
+ * `cardFor` returns `effects` as an ARRAY for those entitled to read it and a
+ * COUNT for everyone else. One field with two types cannot be rendered without
+ * a helper Handlebars does not have, so it is split here.
+ *
+ * @param {object} state
+ * @param {object} result
+ * @returns {object}
+ */
+function viewerVisibility(state, result) {
+  const card = cardFor(visibilityInput(state, result), {
+    id: game.user.id, isGM: game.user.isGM,
+  });
+  const names = Array.isArray(card.effects) ? card.effects : [];
+  return {
+    ...card,
+    effectNames: names,
+    effectCount: Array.isArray(card.effects) ? names.length : (card.effects ?? 0),
+  };
+}
+
+/**
+ * Re-render an attack card for the client that is looking at it.
+ *
+ * §26.7's `filtered` mode. Until this existed the card was built ONCE, on
+ * whichever client happened to resolve the attack, and that HTML was stored and
+ * served to everyone — so the redaction described the wrong person, and the
+ * template never read `visibility` at all, which meant the full damage
+ * breakdown was public to the whole table.
+ *
+ * Everything needed is already on the message: the serialized Process and the
+ * damage result. So the context is simply rebuilt here, where `game.user` is
+ * the viewer rather than the author.
+ *
+ * Asynchronous, because rendering a template is. The card shows its stored
+ * content for a frame and is then replaced; a client that fails to re-render
+ * keeps the stored content, which is why that content ships REDACTED rather
+ * than complete.
+ *
+ * @param {object} message
+ * @param {HTMLElement} html
+ */
+function fillAttackCard(message, html) {
+  if (message.getFlag?.("fgt", "kind") !== "attack") return;
+  const raw = message.getFlag("fgt", "process");
+  if (!raw) return;
+
+  const state = process.deserialize(raw);
+  const attacker = game.actors.get(state.attackerId);
+  const ability = state.attack?.abilityId ? attacker?.items.get(state.attack.abilityId) : null;
+
+  cardContext({
+    state,
+    attacker,
+    ability,
+    names: message.getFlag("fgt", "names") ?? null,
+    targets: state.defenderId ? [{ unitId: state.defenderId }] : [],
+    result: message.getFlag("fgt", "result") ?? null,
+    message,
+  })
+    .then((context) => foundry.applications.handlebars.renderTemplate(
+      "systems/fgt/templates/chat/attack.hbs", context,
+    ))
+    .then((content) => {
+      const target = html.querySelector(".fgt-card");
+      if (target) target.outerHTML = content;
+    })
+    .catch((err) => console.error("FGT | Could not re-render an attack card:", err));
 }
 
 /**
@@ -228,6 +322,7 @@ function promptOptions(prompt, state = null) {
 export function activateChatListeners() {
   Hooks.on("renderChatMessageHTML", (message, html) => {
     fillSkillEffects(message, html);
+    fillAttackCard(message, html);
 
     for (const button of html.querySelectorAll("[data-fgt-event]")) {
       button.addEventListener("click", async (event) => {
