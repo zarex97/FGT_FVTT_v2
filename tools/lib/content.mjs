@@ -15,7 +15,7 @@ import { createHash } from "node:crypto";
 import { Rank } from "../../module/domain/rank.mjs";
 import { SERVANT_CLASSES } from "../../module/domain/enums.mjs";
 import { classifyAbility } from "../../module/rules/ability-use.mjs";
-import { rewriteReferences } from "./references.mjs";
+import { rewriteReferences, parseMarkers, mentionsWithoutMarkers } from "./references.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
 import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES, lookup } from "../../module/domain/tables.mjs";
@@ -456,6 +456,9 @@ export function validateAll(files, assets = null) {
   // is indistinguishable from one that was never drawn, so every miss is named.
   if (assets) validateImages(files, assets, warnings);
 
+  // -- Cross-references ----------------------------------------------------
+  validateReferences(files, problems, warnings);
+
   return { problems, warnings };
 }
 
@@ -491,6 +494,47 @@ function activeRulesAreReachable(doc, path, problems) {
     `ever collected (a windowed ability's are read at its window). Nothing will switch these on. ` +
     `Move the lasting effect onto what this ability applies, or declare "isMode: true".`,
   );
+}
+
+/**
+ * Every marker resolves, and every unmarked mention is listed.
+ *
+ * The error half is the point of explicit markers: a typo is a link that would
+ * 404 in play, and the build is the only place that can still catch it. The
+ * warning half is the retrofit worklist -- 106 of the 226 files mention a
+ * linkable name in prose -- and it also stops a NEW description quietly
+ * shipping without its links.
+ *
+ * @param {Array<{path: string, dir: string, doc: object}>} files
+ * @param {string[]} problems
+ * @param {string[]} warnings
+ */
+function validateReferences(files, problems, warnings) {
+  const index = referenceIndex(files);
+  const names = referenceNames(files);
+
+  for (const { path, doc } of files) {
+    const text = doc?.description;
+    if (!text) continue;
+
+    for (const marker of parseMarkers(text)) {
+      if (index.has(`${marker.kind}:${marker.id}`)) continue;
+      problems.push(
+        `${path}: ${marker.raw} resolves to no document of that kind -- `
+        + "check the id, or the marker's kind",
+      );
+    }
+
+    for (const name of mentionsWithoutMarkers(text, names)) {
+      // A document naming itself is not a missing link.
+      if (name === doc.name) continue;
+      const [kind, id] = names.get(name).split(":");
+      warnings.push(
+        `${path}: description mentions "${name}" without linking it -- `
+        + `write @${kind}[${id}], or leave it if the mention is incidental`,
+      );
+    }
+  }
 }
 
 /**
