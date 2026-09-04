@@ -251,6 +251,23 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //    one this line removed from the area. The area catches whoever stands in
   //    it; only a directly chosen target is refused. The ANCHOR of an area is
   //    still refused below — aiming an AoE at a Master is targeting it.
+  // §12.8's redirect, the half that says who must NOT be caught. Unconditional,
+  // and deliberately NOT inside §16.4's block below: that one is gated on
+  // `isChosen` so an area may still catch a protected Master incidentally,
+  // which is the whole reason Cover works. This rule is the opposite -- the
+  // Master takes nothing even from an area that covers it, because "the Counter
+  // Attack cannot be used on the Master".
+  //
+  // Dropped through `drop` rather than filtered silently: a unit that vanishes
+  // from the targeting preview with no explanation reads as a bug.
+  const excludeIds = limits.excludeUnitIds ?? [];
+  if (excludeIds.length > 0) {
+    survivors = survivors.filter(
+      (u) => !excludeIds.includes(u.id)
+        || drop(u, "protected by its Servant; the Counter is redirected"),
+    );
+  }
+
   if (!limits.bypassMasterProtection && !caster.bypassesMasterProtection && isChosen) {
     const before = survivors.length;
     survivors = survivors.filter(
