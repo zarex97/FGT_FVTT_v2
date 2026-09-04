@@ -176,6 +176,19 @@ and a reconnecting GM rebuilds the collector by reading them.
 
 ## 27.5 Timeouts and absence
 
+> **Implementation note.** §27.5's clock is per card, and a player can hold several at once:
+> an AoE fans out to one ladder per defender, so owning four units and being caught by one
+> Noble Phantasm means three prompts in a scrolling log.
+> `apps/hud/pending-panel.mjs` lists them, soonest deadline first, and a row jumps to its
+> card. It answers nothing itself — the card carries the buttons, their costs and their
+> refusal reasons, and a second set would be a second place to keep in step.
+>
+> It shows the eight most urgent and counts the rest: a GM sees the whole table's prompts,
+> and a live world reached 178, which covered the screen.
+>
+> **Do not confuse these clocks with `FGTSocket.request`'s timeout**, which is a transport
+> wait for the GM's client and not a human's thinking time. Ch. 26 has the distinction.
+
 A player who has closed their browser must not block the table.
 
 ```ts
