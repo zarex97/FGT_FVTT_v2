@@ -519,6 +519,18 @@ function canCounter(du, au, ctx): boolean {
 > always free. `mayCounterAgain` answers *"Counters cannot be Countered again"* precisely:
 > the unit a Counter was **aimed at** never answers it, and whether a bystander an area
 > Counter merely caught may answer is the `fgt.counterChain` setting, default `collateral`.
+>
+> A Counter keeps the **parent's `groupId`**, because §12.1's Combat Phase is the
+> declaration plus its counters and `engine/attack.mjs#fireCombatPhaseEnd` counts
+> unfinished siblings by group — it says so outright: *"a counter can add a process to the
+> group after the first one finished."* That means an area Counter can catch a unit the
+> original attack also caught, so the single-Injury-Roll sibling search matches on
+> `attackerId` too. Without it, one unit's injuries from two different attackers inside one
+> Phase would be summed as though they were two hits of one multi-hit ability.
+>
+> Two fields carry the rule: `requiredTargetId` (who the Counter was aimed at — implicit in
+> `defenderId` only while a Counter was 1v1) and `counterDepth`. `beginFanOut` propagates
+> both, along with `isCounter`, which it used to drop entirely.
 
 Note *"Steps 1 and 4 are repeated"* — the source says 1 and 4, which would skip the reaction
 ladder and the damage step. That is clearly a typo for "Steps 1 **to** 4"; a counter that

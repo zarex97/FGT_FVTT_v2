@@ -1634,6 +1634,9 @@ function counterAvailable(state) {
     // two Servants of the same Rank disagree about constantly, so a Servant who
     // had paid for a few Evades became blockable mid-match for no stated reason.
     attackerConcealedAndFaster: reactionsRefused(attacker, defender).includes("counter"),
+    // The GM's `fgt.counterChain`. Read here rather than in the pure module,
+    // which takes every derived fact as an argument.
+    chainMode: game.settings.get("fgt", "counterChain"),
   });
 }
 
@@ -1657,7 +1660,8 @@ async function runCounter(state) {
   const target = game.actors.get(state.attackerId);
   if (!counterer || !target) return null;
 
-  const counter = process.advance(process.beginCounter(state), "done");
+  const [first] = process.beginCounter(state);
+  const counter = process.advance(first, "done");
   const message = await renderAttackCard({
     state: counter,
     attacker: counterer,
@@ -1777,7 +1781,14 @@ function alreadyInjuryRolled(state, message) {
     const raw = m.getFlag("fgt", "process");
     if (!raw) return false;
     const sibling = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (sibling.groupId !== state.groupId || sibling.defenderId !== state.defenderId) return false;
+    // `attackerId` as well as the group and the defender. A Counter shares the
+    // parent's groupId (§12.1's Combat Phase) and an AREA counter can catch a
+    // unit the original attack also caught -- so without this, one unit's
+    // injuries from two DIFFERENT attackers in one Phase would be treated as
+    // two hits of one multi-hit ability.
+    if (sibling.groupId !== state.groupId) return false;
+    if (sibling.attackerId !== state.attackerId) return false;
+    if (sibling.defenderId !== state.defenderId) return false;
     const injury = m.getFlag("fgt", "injury");
     return Boolean(injury) && injury.reason !== "singleInjuryRollPending";
   });
@@ -1798,7 +1809,12 @@ function siblingInjuryTotals(state) {
     const raw = m.getFlag("fgt", "process");
     if (!raw) continue;
     const sibling = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (sibling.groupId !== state.groupId || sibling.defenderId !== state.defenderId) continue;
+    // Same three keys as `alreadyInjuryRolled`, and for the same reason: a
+    // counter shares the parent's group, so the attacker is what separates two
+    // exchanges against one unit within a single Combat Phase.
+    if (sibling.groupId !== state.groupId) continue;
+    if (sibling.attackerId !== state.attackerId) continue;
+    if (sibling.defenderId !== state.defenderId) continue;
 
     const result = m.getFlag("fgt", "result");
     if (!result) {

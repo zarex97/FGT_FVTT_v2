@@ -13,6 +13,7 @@ import { describe, it, expect } from "vitest";
 import {
   begin, beginCounter, beginFanOut, canCounter, advance, pendingPrompt,
 } from "../../module/engine/combat-process.mjs";
+import { MAX_COUNTER_DEPTH } from "../../module/rules/counter.mjs";
 
 const attack = { abilityId: null, kind: "normal" };
 const proc = (over = {}) => ({ ...begin({ attackerId: "atk", defenderId: "def", attack }), ...over });
@@ -76,42 +77,126 @@ describe("canCounter", () => {
 
 describe("beginCounter", () => {
   it("swaps the attacker and the defender", () => {
-    const counter = beginCounter(proc());
+    const [counter] = beginCounter(proc());
 
     expect(counter.attackerId).toBe("def");
     expect(counter.defenderId).toBe("atk");
   });
 
   it("marks the new process as a counter", () => {
-    expect(beginCounter(proc()).isCounter).toBe(true);
+    expect(beginCounter(proc())[0].isCounter).toBe(true);
   });
 
-  it("produces a process that cannot itself be countered", () => {
-    // The two halves together: a counter is marked, and a marked process is
-    // refused. This is the property that actually stops the recursion.
-    expect(canCounter(beginCounter(proc()), eligible)).toBe(false);
+  it("produces a process the unit it was aimed at cannot counter", () => {
+    // The property that actually stops the recursion. It used to be "a marked
+    // process is refused"; it is now "the unit it was AIMED at is refused", so
+    // that `fgt.counterChain` can let a bystander answer without reopening it.
+    const [counter] = beginCounter(proc());
+    expect(canCounter(counter, { ...eligible, chainMode: "collateral" })).toBe(false);
+    expect(canCounter(counter, { ...eligible, chainMode: "strict" })).toBe(false);
   });
 
   it("counters with a normal attack unless told otherwise", () => {
-    expect(beginCounter(proc()).attack).toMatchObject({ kind: "normal", abilityId: null });
+    expect(beginCounter(proc())[0].attack).toMatchObject({ kind: "normal", abilityId: null });
   });
 
   it("can counter with a named ability", () => {
-    expect(beginCounter(proc(), { abilityId: "gaeBolg", kind: "np" }).attack)
-      .toMatchObject({ abilityId: "gaeBolg", kind: "np" });
+    const [counter] = beginCounter(proc(), { attack: { abilityId: "gaeBolg", kind: "np" } });
+    expect(counter.attack).toMatchObject({ abilityId: "gaeBolg", kind: "np" });
   });
 
-  it("is never an AoE resolution, so the counter turns its target", () => {
+  it("is single-target by default, and an area when the ability is", () => {
+    // It used to be single-target ALWAYS -- "a counter is one unit hitting one
+    // unit" -- which was only true because the `attack` parameter was never
+    // passed and every counter was a Normal Attack. A counter declared with an
+    // area Noble Phantasm has that Noble Phantasm's shape.
     const [aoe] = beginFanOut({ attackerId: "atk", targetIds: ["def", "d2"], attack });
 
-    expect(beginCounter(aoe).isAoE).toBe(false);
+    expect(beginCounter(aoe)[0].isAoE).toBe(false);
+    expect(beginCounter(aoe, { targetIds: ["atk", "d3"] })[0].isAoE).toBe(true);
   });
 
   it("starts a fresh ladder rather than inheriting the original's state", () => {
     const spent = advance(proc(), "done");
 
-    expect(beginCounter(spent).state).toBe("declare");
-    expect(beginCounter(spent).history).toEqual([]);
+    expect(beginCounter(spent)[0].state).toBe("declare");
+    expect(beginCounter(spent)[0].history).toEqual([]);
+  });
+});
+
+describe("counter process fields", () => {
+  it("gives every process a requiredTargetId and a depth", () => {
+    const s = begin({ attackerId: "A", defenderId: "B", attack });
+    expect(s.requiredTargetId).toBeNull();
+    expect(s.counterDepth).toBe(0);
+  });
+
+  it("fans a counter out over every unit the ability caught", () => {
+    const states = beginCounter(proc(), { targetIds: ["atk", "C"] });
+    expect(states.map((x) => x.defenderId)).toEqual(["atk", "C"]);
+  });
+
+  it("marks every process of the fan-out as a counter aimed at the attacker", () => {
+    // Not just the one against the attacker. A bystander's process that forgot
+    // `isCounter` would reopen the chain through the side door -- and
+    // `beginFanOut` dropped the flag entirely before this.
+    const states = beginCounter(proc(), { targetIds: ["atk", "C"] });
+    for (const x of states) {
+      expect(x.isCounter).toBe(true);
+      expect(x.requiredTargetId).toBe("atk");
+      expect(x.counterDepth).toBe(1);
+    }
+  });
+
+  it("keeps the parent's groupId, because a Counter is part of the same Phase", () => {
+    // §12.1: a Phase is the declaration plus any Counters.
+    // `engine/attack.mjs#fireCombatPhaseEnd` counts unfinished siblings by
+    // groupId and says so outright -- "a counter can add a process to the group
+    // after the first one finished" -- so a counter with its own group would
+    // let the phase end while the counter is still running.
+    const [aoe] = beginFanOut({ attackerId: "atk", targetIds: ["def", "d2"], attack });
+    expect(beginCounter(aoe)[0].groupId).toBe(aoe.groupId);
+  });
+
+  it("counts depth upward through a chain", () => {
+    const first = beginCounter(proc(), { targetIds: ["atk", "C"] });
+    const second = beginCounter({ ...first[1], state: "counter" }, { targetIds: ["def"] });
+    expect(second[0].counterDepth).toBe(2);
+  });
+});
+
+describe("canCounter and the chain", () => {
+  const counterState = (over = {}) => ({
+    ...begin({ attackerId: "def", defenderId: "atk", attack }),
+    isCounter: true, requiredTargetId: "atk", counterDepth: 1, ...over,
+  });
+
+  it("still allows a counter on an ordinary attack", () => {
+    expect(canCounter(proc(), { ...eligible, chainMode: "collateral" })).toBe(true);
+  });
+
+  it("refuses the unit the counter was aimed at, in both modes", () => {
+    expect(canCounter(counterState(), { ...eligible, chainMode: "collateral" })).toBe(false);
+    expect(canCounter(counterState(), { ...eligible, chainMode: "strict" })).toBe(false);
+  });
+
+  it("allows a bystander in collateral mode and refuses in strict", () => {
+    const bystander = counterState({ defenderId: "C" });
+    expect(canCounter(bystander, { ...eligible, chainMode: "collateral" })).toBe(true);
+    expect(canCounter(bystander, { ...eligible, chainMode: "strict" })).toBe(false);
+  });
+
+  it("stops at the depth cap even in collateral mode", () => {
+    const deep = counterState({ defenderId: "C", counterDepth: MAX_COUNTER_DEPTH });
+    expect(canCounter(deep, { ...eligible, chainMode: "collateral" })).toBe(false);
+  });
+
+  it("still refuses for every §12.8 reason it always did", () => {
+    expect(canCounter(proc(), { ...eligible, attackerInRange: false })).toBe(false);
+    expect(canCounter(proc(), { ...eligible, attackerHasAccel: true })).toBe(false);
+    expect(canCounter(proc(), { ...eligible, defenderHasBerserk: true })).toBe(false);
+    expect(canCounter(proc(), { ...eligible, defenderHasFragarach: true })).toBe(false);
+    expect(canCounter(proc(), { ...eligible, defenderCanAct: false })).toBe(false);
   });
 });
 
