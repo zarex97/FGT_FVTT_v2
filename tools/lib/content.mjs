@@ -13,6 +13,7 @@
 
 import { createHash } from "node:crypto";
 import { Rank } from "../../module/domain/rank.mjs";
+import { SERVANT_CLASSES } from "../../module/domain/enums.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
 import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES, lookup } from "../../module/domain/tables.mjs";
@@ -411,6 +412,19 @@ function validateImages(files, assets, warnings) {
   }
   for (const [container, path] of missingClasses) {
     warnings.push(`${path}: no class image for "${container}" -- expected assets/classes/${container}.<ext>`);
+  }
+
+  // The mirror of the miss above, and the one no Servant file can reveal: an
+  // image under a name no `classContainer` will ever ask for. It is inert, it
+  // ships in the release zip, and without this it is indistinguishable from a
+  // class image that works -- both are simply a file sitting in the directory.
+  for (const [key, path] of assets) {
+    const [dir, id] = key.split("/");
+    if (dir !== "classes" || SERVANT_CLASSES.includes(id)) continue;
+    warnings.push(
+      `${path.slice(ASSET_ROOT.length + 1)}: no Servant class is called "${id}", so nothing will ever show this ` +
+      `-- rename it to one of ${SERVANT_CLASSES.join(", ")}, or remove it`,
+    );
   }
 }
 

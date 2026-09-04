@@ -325,6 +325,8 @@ had already gone wrong in a way nothing announced:
 | A priority override lacks `@intentional` | Ch. 24 §24.6 |
 | A cross-Servant reference is unresolvable | the Servant may simply not be in this match |
 | An ability has >6 phases | probably wants decomposition |
+| A unit has no portrait, or a Servant's class has no image | §37.3 — artwork arrives on its own schedule, but a file committed under the wrong name looks exactly like one never drawn |
+| A file in `assets/classes/` is named for no known Servant class | inert, and ships in the release zip; the one image miss no source file can reveal |
 
 Output format, designed for someone fixing it rather than someone who wrote the validator:
 
@@ -487,6 +489,7 @@ sufficient; the two script cases are the evidence that the escape hatch is neede
 | D37.7 | The ability editor round-trips losslessly to and from the source YAML. |
 | D37.8 | Localization keys are generated from inline English by the build. |
 | D37.9 | Artwork is found by id under `assets/` at build time; the compiled token texture is the public image, so a concealed Servant never drops onto the board with its true face. |
+| D37.10 | The artwork checks run in both directions: a unit with no image, and an image no unit will ask for. |
 
 ---
 
