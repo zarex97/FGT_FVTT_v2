@@ -56,6 +56,14 @@
             {{#each row.notes as |n|}}
               <div class="fgt-breakdown__blocked">✕ {{n.text}}</div>
             {{/each}}
+            {{!-- §26.7. The delta and the running total stay so the reader can
+                  check the arithmetic; what is withheld is whose rule produced
+                  it. --}}
+            {{#if row.hiddenContributors}}
+              <div class="fgt-breakdown__redacted">
+                {{localize "FGT.Chat.HiddenContributors" n=row.hiddenContributors}}
+              </div>
+            {{/if}}
           </td>
           <td class="fgt-breakdown__delta">{{row.delta}}</td>
           <td class="fgt-breakdown__running">{{row.running}}</td>

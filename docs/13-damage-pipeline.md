@@ -26,6 +26,21 @@ it testable and what makes the targeting preview possible.
 
 ---
 
+
+> **Implementation note.** Every contribution the pipeline records carries the **side** that
+> produced it — `"attacker"`, `"defender"`, or `null` for a fact about the board. That is what
+> lets a chat card show a viewer their own modifiers and withhold their opponent's (Ch. 26
+> §26.7): before it existed the explainer named every source to everyone, so a defender's
+> Magic Resistance rank and a Block were legible to the attacker straight off the card.
+>
+> The side is passed **explicitly at every `contribute` and `note` call site**, never inferred
+> from the modifier key. Inference would be a second table to keep in step with this one, and a
+> stale entry there leaks silently — the card still renders, just to the wrong person. Six calls
+> are deliberately unattributed: the band, the phase, Home Base, the summed-bucket note, the
+> skipped-stages note and the negation note. A drift test lists those six by hand and fails on a
+> seventh.
+
+
 ## 13.1 The signature
 
 ```ts

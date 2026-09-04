@@ -125,7 +125,7 @@ function stage0Precondition(s) {
   const heal = { poison: "poisHeal", curse: "cursHeal", burn: "flamHeal" }[attack?.element ?? ""];
   if (heal && has(defender, heal)) {
     s.converted = true;
-    s.note("conversion", `${attack.element} converted to healing by ${heal}`);
+    s.note("conversion", `${attack.element} converted to healing by ${heal}`, "defender");
   }
 
   // Fire removes Freeze with no damage or effects. The <150 absorption clause
@@ -157,7 +157,7 @@ function stage1Base(s) {
   if (s.ctx.attack?.isFixedDamage) {
     s.phys = spec.fixedValue ?? 0;
     s.fixed = s.phys;
-    s.contribute("fixed", s.phys, "fixed damage");
+    s.contribute("fixed", s.phys, "fixed damage", "attacker");
     return s.end(1);
   }
 
@@ -167,7 +167,7 @@ function stage1Base(s) {
     const v = base * (src.factor ?? 1);
     if (src.component === "mag") s.mag += v;
     else s.phys += v;
-    s.contribute(`base:${src.component}`, v, `${src.unit} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`);
+    s.contribute(`base:${src.component}`, v, `${src.unit} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`, "attacker");
   }
   s.end(1);
 }
@@ -201,10 +201,10 @@ function stage2Crit(s) {
       overCritBonus(s);
     const factor = Math.max(0, 1 + pct / 100);
     const applied = roll * factor;
-    s.contribute("attack+", applied, pct === 0 ? `5d10 = ${roll}` : `5d10 = ${roll}, ×${factor.toFixed(2)} crit damage`);
+    s.contribute("attack+", applied, pct === 0 ? `5d10 = ${roll}` : `5d10 = ${roll}, ×${factor.toFixed(2)} crit damage`, "attacker");
     s.addProportional(applied);
   } else {
-    s.contribute("attack-", -roll, `5d10 = ${roll}, subtracted`);
+    s.contribute("attack-", -roll, `5d10 = ${roll}, subtracted`, "attacker");
     s.addProportional(-roll);
   }
   s.clampNonNegative();
@@ -232,17 +232,17 @@ function stage3AbilityMultiplier(s) {
   for (const cm of s.ctx.conditionalMultipliers ?? []) {
     if (!testPredicate(cm.predicate, s.predicateCtx)) continue;
     conditional *= cm.factor;
-    s.contribute("conditionalMultiplier", cm.factor, cm.source ?? "ability clause");
+    s.contribute("conditionalMultiplier", cm.factor, cm.source ?? "ability clause", "attacker");
   }
 
   const before = s.mag + s.phys;
   const scaled = before * mult * conditional;
-  if (mult !== 1) s.contribute("multiplier", mult, `${mult}× damage`);
+  if (mult !== 1) s.contribute("multiplier", mult, `${mult}× damage`, "attacker");
 
   // The flat bonus is distributed proportionally so that component-scoped
   // modifiers downstream (Magic Resistance) see the right share.
   const total = scaled + flat;
-  if (flat !== 0) s.contribute("flatBonus", flat, `plus ${flat}`);
+  if (flat !== 0) s.contribute("flatBonus", flat, `plus ${flat}`, "attacker");
   s.split(total, before === 0 ? 0.5 : s.mag / before);
   s.end(3);
 }
@@ -270,18 +270,18 @@ function stage4CombinedPercent(s) {
     const shared = m.component ? 0 : v;
     if (shared === 0 && m.component) continue;
     bucket += NEGATIVE_KEYS.has(m.key) ? -shared : shared;
-    s.contribute(m.key, NEGATIVE_KEYS.has(m.key) ? -shared : shared, m.source);
+    s.contribute(m.key, NEGATIVE_KEYS.has(m.key) ? -shared : shared, m.source, "attacker");
   }
 
   for (const m of activeMods(s, s.ctx.defender, DEFENDER_BUCKET_KEYS)) {
     if (m.key === "defUp" && s.ctx.attack?.ignoresDefUp) {
-      s.contribute("defUp", 0, `${m.source} (ignored by Ignore Def)`);
+      s.contribute("defUp", 0, `${m.source} (ignored by Ignore Def)`, "defender");
       continue;
     }
     const v = magnitudeOf(m, isNP, s.ctx);
     const signed = DEFENDER_POSITIVE_KEYS.has(m.key) ? v : -v;
     bucket += signed;
-    s.contribute(m.key, signed, m.source);
+    s.contribute(m.key, signed, m.source, "defender");
   }
 
   const factor = Math.max(0, 1 + bucket / 100);
@@ -311,7 +311,7 @@ function stage5ComponentAmplification(s) {
     const v = magnitudeOf(m, isNP, s.ctx) * (NEGATIVE_KEYS.has(m.key) ? -1 : 1);
     if (m.component === "str") strPct += v;
     else magPct += v;
-    s.contribute(m.key, v, `${m.source} (${m.component.toUpperCase()} only)`);
+    s.contribute(m.key, v, `${m.source} (${m.component.toUpperCase()} only)`, "attacker");
   }
 
   if (strPct !== 0) s.phys *= Math.max(0, 1 + strPct / 100);
@@ -343,7 +343,7 @@ function stage7FlatAttackBonuses(s) {
   for (const m of activeMods(s, s.ctx.attacker, FLAT_ATTACK_KEYS)) {
     const value = magnitudeOf(m, s.isNP, s.ctx);
     flat += value;
-    s.contribute(m.key, value, m.source);
+    s.contribute(m.key, value, m.source, "attacker");
   }
   if (flat !== 0) s.addProportional(flat);
   s.end(7);
@@ -373,7 +373,7 @@ function stage8Environment(s) {
   const tc = s.ctx.rolls?.territoryCreationAtk ?? 0;
   if (tc) {
     s.addProportional(tc);
-    s.contribute("territoryCreation", tc, "Territory Creation (offence)");
+    s.contribute("territoryCreation", tc, "Territory Creation (offence)", "attacker");
   }
   s.end(8);
 }
@@ -389,7 +389,7 @@ function stage9ZonPenalty(s) {
   if (s.ctx.attacker?.outsideZon) {
     const roll = s.ctx.rolls?.zonPenalty ?? 0;
     s.addProportional(-roll);
-    s.contribute("zonPenalty", -roll, "outside the Master's ZON");
+    s.contribute("zonPenalty", -roll, "outside the Master's ZON", "attacker");
     s.clampNonNegative();
   }
   s.end(9);
@@ -404,10 +404,10 @@ function stage10LuckIncreasedDamage(s) {
   s.begin(10);
   const v = s.ctx.luckChecks?.increasedDamage ?? 0;
   if (v && s.isNP) {
-    s.note("luckIncreasedDamage", "blocked: cannot increase NP damage");
+    s.note("luckIncreasedDamage", "blocked: cannot increase NP damage", "attacker");
   } else if (v) {
     s.addProportional(v);
-    s.contribute("luckIncreasedDamage", v, "Luck Check: Increased Damage");
+    s.contribute("luckIncreasedDamage", v, "Luck Check: Increased Damage", "attacker");
   }
   s.end(10);
 }
@@ -426,7 +426,7 @@ function stage11Resistance(s) {
   const mr = s.ctx.defender?.magicResistance;
   if (!mr || s.mag <= 0 || s.ctx.attack?.ignoresMagicResistance) {
     if (mr && s.ctx.attack?.ignoresMagicResistance) {
-      s.note("resistance", "bypassed: attack is not affected by Magic Resistance");
+      s.note("resistance", "bypassed: attack is not affected by Magic Resistance", "defender");
     }
     return s.end(11);
   }
@@ -434,7 +434,7 @@ function stage11Resistance(s) {
   if (mr.mode === "dice") {
     const roll = s.ctx.rolls?.magicResistanceDice ?? 0;
     s.mag = Math.max(0, s.mag - roll);
-    s.contribute("magicResistance", -roll, `dice mode (${mr.formula ?? "?"}) — never negates`);
+    s.contribute("magicResistance", -roll, `dice mode (${mr.formula ?? "?"}) — never negates`, "defender");
     return s.end(11);
   }
 
@@ -442,14 +442,14 @@ function stage11Resistance(s) {
   const attackRank = s.ctx.attack?.rank ?? s.ctx.attacker?.parameters?.mag ?? null;
   const mrRank = mr.rank instanceof Rank ? mr.rank : Rank.parseOrNull(mr.rank);
   if (Rank.gte(mrRank, attackRank, false)) {
-    s.contribute("magicResistance", -s.mag, `negated: MR ${mrRank} ≥ attack ${attackRank}`);
+    s.contribute("magicResistance", -s.mag, `negated: MR ${mrRank} ≥ attack ${attackRank}`, "defender");
     s.mag = 0;
     s.flags.negatedBy = "Magic Resistance";
   } else {
     const pct = mr.percent ?? lookupNumber("magicResistancePercent", mrRank);
     const lost = s.mag * (pct / 100);
     s.mag -= lost;
-    s.contribute("magicResistance", -lost, `−${pct}% MAG (MR ${mrRank} < attack ${attackRank})`);
+    s.contribute("magicResistance", -lost, `−${pct}% MAG (MR ${mrRank} < attack ${attackRank})`, "defender");
   }
   s.end(11);
 }
@@ -465,13 +465,13 @@ function stage12FlatReductions(s) {
   for (const m of activeMods(s, s.ctx.defender, FLAT_REDUCTION_KEYS)) {
     // Dmg Cut is explicitly NOT bypassed by Pierce, unlike Invuln and Block.
     flat += magnitudeOf(m, s.isNP, s.ctx);
-    s.contribute(m.key, -magnitudeOf(m, s.isNP, s.ctx), m.source);
+    s.contribute(m.key, -magnitudeOf(m, s.isNP, s.ctx), m.source, "defender");
   }
 
   const bc = s.ctx.rolls?.battleContinuation ?? 0;
   if (bc) {
     flat += bc;
-    s.contribute("battleContinuation", -bc, "Battle Continuation");
+    s.contribute("battleContinuation", -bc, "Battle Continuation", "defender");
   }
 
   // Dice-mode `DamageNegation` elements the defender carries. The caller rolls
@@ -481,12 +481,12 @@ function stage12FlatReductions(s) {
     const value = typeof n === "number" ? n : (n.value ?? 0);
     if (!value) continue;
     flat += value;
-    s.contribute("damageNegation", -value, typeof n === "number" ? "damage negation" : n.source);
+    s.contribute("damageNegation", -value, typeof n === "number" ? "damage negation" : n.source, "defender");
   }
   const tcDef = s.ctx.rolls?.territoryCreationDef ?? 0;
   if (tcDef) {
     flat += tcDef;
-    s.contribute("territoryCreationDefence", -tcDef, "Territory Creation (defence)");
+    s.contribute("territoryCreationDefence", -tcDef, "Territory Creation (defence)", "defender");
   }
 
   if (flat !== 0) {
@@ -505,7 +505,7 @@ function stage13LuckReducedDamage(s) {
   const v = s.ctx.luckChecks?.reducedDamage ?? 0;
   if (v) {
     s.addProportional(-v);
-    s.contribute("luckReducedDamage", -v, "Luck Check: Reduced Damage");
+    s.contribute("luckReducedDamage", -v, "Luck Check: Reduced Damage", "defender");
     s.clampNonNegative();
   }
   s.end(13);
@@ -525,27 +525,27 @@ function stage14Block(s) {
   if (s.ctx.reaction?.kind !== "block") return s.end(14);
 
   if (s.ctx.attack?.pierce) {
-    s.note("block", "bypassed by Pierce");
+    s.note("block", "bypassed by Pierce", "defender");
     return s.end(14);
   }
   if (s.ctx.attack?.breakSucceeded) {
-    s.note("block", "bypassed by Break");
+    s.note("block", "bypassed by Break", "defender");
     return s.end(14);
   }
 
   let pct = BLOCK_BASE_PERCENT;
   for (const m of activeMods(s, s.ctx.defender, new Set(["blockUp"]))) {
     pct += m.value;
-    s.contribute("blockUp", m.value, m.source);
+    s.contribute("blockUp", m.value, m.source, "defender");
   }
   if (s.ctx.luckChecks?.strengthenBlock) {
     pct += BLOCK_BASE_PERCENT;
-    s.contribute("strengthenBlock", BLOCK_BASE_PERCENT, "Luck Check: Strengthen Block");
+    s.contribute("strengthenBlock", BLOCK_BASE_PERCENT, "Luck Check: Strengthen Block", "defender");
   }
 
   pct = Math.min(pct, 100);
   s.scale(1 - pct / 100);
-  s.contribute("block", -pct, `Block −${pct}% of Total Damage`);
+  s.contribute("block", -pct, `Block −${pct}% of Total Damage`, "defender");
   s.end(14);
 }
 
@@ -583,7 +583,7 @@ function stage16AbsorptionAndClamp(s) {
 
   for (const m of activeMods(s, d, new Set(["defCrk"]))) {
     s.addProportional(m.value);
-    s.contribute("defCrk", m.value, m.source);
+    s.contribute("defCrk", m.value, m.source, "defender");
   }
 
   // Freeze's absorption clause needs the total, which is why it is here and not
@@ -591,24 +591,24 @@ function stage16AbsorptionAndClamp(s) {
   for (const [status, label] of [["freeze", "Freeze"], ["crystalfreeze", "Crystalfreeze"]]) {
     if (!has(d, status)) continue;
     if (s.total < 150) {
-      s.contribute(status, -s.total, `${label}: attack under 150 does nothing`);
+      s.contribute(status, -s.total, `${label}: attack under 150 does nothing`, "defender");
       s.zero();
       s.flags.negatedBy = label;
       return s.end(16);
     }
-    s.note(status, `${label} broken; excess passes through`);
+    s.note(status, `${label} broken; excess passes through`, "defender");
     s.removeFreeze = true;
   }
 
   if (has(d, "petrify") && s.total > 200) {
     s.flags.defeatedOutright = true;
-    s.note("petrify", "over 200 in one attack — the unit is defeated");
+    s.note("petrify", "over 200 in one attack — the unit is defeated", "defender");
   }
 
   if (has(d, "invuln") && !s.ctx.attack?.pierce) {
     // The NP halving already happened at stage 15; what remains is negation.
     if (!s.isNP) {
-      s.contribute("invuln", -s.total, "Invuln");
+      s.contribute("invuln", -s.total, "Invuln", "defender");
       s.zero();
       s.flags.negatedBy = "Invuln";
       return s.end(16);
@@ -620,13 +620,13 @@ function stage16AbsorptionAndClamp(s) {
     const absorbed = Math.min(shield, s.total);
     s.flags.shieldAbsorbed = absorbed;
     s.addProportional(-absorbed);
-    s.contribute("shield", -absorbed, `Shield absorbed ${absorbed}`);
+    s.contribute("shield", -absorbed, `Shield absorbed ${absorbed}`, "defender");
   }
 
   if (has(d, "endure") && d.health > 1 && s.total >= d.health) {
     const reduced = s.total - (d.health - 1);
     s.addProportional(-reduced);
-    s.contribute("endure", -reduced, "Endure: leaves the unit at 1 Health");
+    s.contribute("endure", -reduced, "Endure: leaves the unit at 1 Health", "defender");
   }
 
   s.clampNonNegative();
@@ -803,20 +803,36 @@ class PipelineState {
   }
 
   /**
+   * Record one contribution, and **whose** it is.
+   *
+   * `side` is what lets a card show a viewer their own modifiers and withhold
+   * their opponent's (Ch. 26 §26.7). It is passed explicitly at every call
+   * site rather than inferred from the key, because inference would be a
+   * second table to keep in step with this one, and a stale entry there leaks
+   * silently — the card would still render, just to the wrong person.
+   *
+   * `null` means unattributed: terrain, the phase, the band, and the running
+   * arithmetic. Those are facts about the board rather than about either
+   * combatant, and every viewer sees them.
+   *
    * @param {string} source
    * @param {number} value
    * @param {string} [note]
+   * @param {"attacker"|"defender"|null} [side]
    */
-  contribute(source, value, note) {
-    this.current?.contributors.push({ source, value: round4(value), ...(note ? { note } : {}) });
+  contribute(source, value, note, side = null) {
+    this.current?.contributors.push({
+      source, value: round4(value), ...(note ? { note } : {}), side,
+    });
   }
 
   /**
    * @param {string} source
    * @param {string} text
+   * @param {"attacker"|"defender"|null} [side]
    */
-  note(source, text) {
-    this.current?.notes.push({ source, text });
+  note(source, text, side = null) {
+    this.current?.notes.push({ source, text, side });
   }
 
   /** @param {string} reason */

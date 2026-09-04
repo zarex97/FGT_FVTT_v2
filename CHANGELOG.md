@@ -130,6 +130,53 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Fog of war (Ch. 08 §8.7).** `engine/token-vision.mjs` writes a unit's Detect radius onto its
+  token as Foundry vision. Ch. 8.7 had said since it was written that fog is Foundry's, driven by
+  `TokenDocument.sight`, and `data/actor/_shared.mjs` states outright that vision range and Detect
+  are the same number — `detectRangeOf` computed it, the class table behind it was authored and
+  tested, and **nothing ever wrote it to a token**. Every unit therefore stood at Foundry's default
+  `sight.enabled: false, range: 0`, and on a scene with token vision on that is a player looking at
+  an entirely black canvas with their own Servant invisible in the middle of it. Reported from
+  play. Writes `enabled` and `range` only — Foundry derives `basicSight` and `lightPerception`
+  itself — and converts panels into the scene's distance units, which is the difference between a
+  correct Archer and a quartered one on a 5-foot grid. Synced on token creation, on a sheet edit,
+  and on movement, because a Caster sees 5 panels in its own Home Base and 3 outside it. A
+  `ready`-time backfill covers tokens already placed.
+
+- **Per-side redaction of the damage breakdown (Ch. 26 §26.7).** Every contribution the damage
+  pipeline records now carries the side that produced it, and the attack card shows a viewer their
+  own contributors while replacing their opponent's with a count. The arithmetic — stage, delta,
+  running total — survives redaction, because a viewer entitled to see the damage is entitled to
+  check that it adds up. The side is passed explicitly at all 38 `contribute`/`note` call sites
+  rather than inferred from the modifier key; a drift test names the six deliberate exceptions and
+  fails on a seventh.
+
+### Fixed
+
+- **The reaction ladder was unusable for players.** Two defects stacked. `fillAttackCard`
+  re-renders a card per viewer by assigning `outerHTML`, which **replaced the element every button
+  listener had just been bound to** — so Block, Evade, Counter, the Command Spell buttons and the
+  breakdown toggle all looked normal and did nothing, silently. Binding is now delegated to the
+  message element, which no re-render can detach. Underneath that sat the second: the card called
+  `advanceAttack` directly on the clicking player's own client, and advancing a Process writes the
+  Combat document, which only a GM owns — *"User Player2 lacks permission to update Combat"*.
+  `OPERATIONS.advanceProcess` had been written for exactly this, authorizer and all, and **had no
+  caller anywhere**. Both found by playing two clients against each other. A drift test now fails
+  on any socket operation nothing requests.
+
+- **`closedInfo` was registered and read by nothing.** The GM setting for closed-information play
+  was declared, translated, and documented in Ch. 21's settings table; no code consulted it, so
+  turning it on or off changed nothing anywhere. It now governs card redaction, and its default is
+  **true**. A drift test fails on any setting nothing reads — it found two more, `activeSkillBudget`
+  and `diceFormulas`, both listed as known-inert rather than silently tolerated.
+
+- **The damage breakdown wrapped one character per line.** In the ~270px chat sidebar the running
+  total rendered "302.4" as three stacked digits, stage 10's index broke in half, and a
+  contributor's note shredded into one word per line. The running total and index no longer wrap,
+  and a contributor is a small grid: source and value on one line, note beneath.
+
+
+
 - **The item sheet is legible.** It was rendering into Foundry v14's tab-strip column — a
   single-part sheet lands in the first grid track, 44 pixels wide — so an effect's description
   came out one word per line beside 680 pixels of empty space. It spans the full grid now, sizes

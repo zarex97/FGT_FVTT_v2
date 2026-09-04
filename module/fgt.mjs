@@ -48,6 +48,7 @@ import { FactionOwnership } from "./engine/faction-ownership.mjs";
 import { TokenImage } from "./engine/token-image.mjs";
 import { TokenFootprint } from "./engine/token-footprint.mjs";
 import { TokenRotation } from "./engine/token-rotation.mjs";
+import { TokenVision, backfillVision } from "./engine/token-vision.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
 import { FGTToken as FGTTokenPlaceable } from "./apps/canvas/token.mjs";
@@ -248,6 +249,11 @@ Hooks.once("ready", () => {
   // board reads occupancy off the TOKEN, so the two disagreeing is a rules
   // contradiction, not a cosmetic one.
   TokenFootprint.attach();
+  // §8.7: a unit's Detect radius IS its vision range, and until this was
+  // attached nothing ever wrote it to a token — so every token sat at
+  // Foundry's `sight.enabled: false`, and a scene with token vision on showed
+  // its players a black canvas with their own Servant invisible in it.
+  TokenVision.attach();
   // Facing lives in `system.facing`, not in Foundry's `rotation` — so an
   // unlocked token lets the artwork point somewhere the rules disagree with.
   TokenRotation.attach();
@@ -315,6 +321,10 @@ Hooks.once("ready", () => {
   // standing beside her. A rule that only fires on a *change* would leave her
   // calm until somebody happened to move.
   reconcileForcedModes().catch((err) => console.error("FGT | Forced modes:", err));
+  // Once at load, for the tokens already on a board. The hooks above only
+  // catch a token being placed or an actor being edited, and every token in
+  // every world that predates §8.7's vision sync is sitting at range 0.
+  backfillVision().catch((err) => console.error("FGT | Token vision backfill:", err));
   // §29.5: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   ActionBar.attach();

@@ -4,7 +4,9 @@
  * player's Servant, so it gets tested harder than anything else in net/.
  */
 import { describe, it, expect } from "vitest";
-import { authorizeIntents } from "../../module/net/operations.mjs";
+import { authorizeIntents, OPERATIONS } from "../../module/net/operations.mjs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import * as I from "../../module/engine/intents.mjs";
 
 function world({ gm = false } = {}) {
@@ -66,5 +68,53 @@ describe("authorizeIntents", () => {
   it("checks masterId as well as unitId", () => {
     const r = authorizeIntents([I.spendCS("archer", 1, "killYourself")], "alice", world());
     expect(r.allowed).toBe(false);
+  });
+});
+
+describe("every socket operation has a caller", () => {
+  /**
+   * A proxied write that nothing requests is not "available for later" -- it is
+   * a permission model for a code path that does not exist, and the real path
+   * is running unproxied somewhere and failing on the GM-only document it
+   * cannot write.
+   *
+   * `advanceProcess` is why this exists. It was written complete, with an
+   * authorizer admitting only the side the ladder is waiting on, and had no
+   * caller anywhere: the chat card imported `advanceAttack` and called it on
+   * the clicking player's own client, so pressing Block produced *"User Player2
+   * lacks permission to update Combat"* and the reaction ladder stopped. Found
+   * in play, two players deep into an exchange.
+   */
+  const sources = (dir = "module") => {
+    const out = [];
+    for (const entry of readdirSync(dir)) {
+      const path = join(dir, entry);
+      if (statSync(path).isDirectory()) out.push(...sources(path));
+      else if (entry.endsWith(".mjs")) out.push(path);
+    }
+    return out;
+  };
+
+  const callers = sources()
+    .filter((f) => !f.endsWith("operations.mjs"))
+    .map((f) => readFileSync(f, "utf8"))
+    .join("\n");
+
+  it("declares operations at all, so a broken read cannot pass vacuously", () => {
+    expect(Object.keys(OPERATIONS).length).toBeGreaterThan(5);
+  });
+
+  it("is requested from somewhere for every operation it declares", () => {
+    // KNOWN DEAD. `discoverRoll` proxies a 1d100 to the GM so a player never
+    // learns a Discover was even attempted (Ch. 8.7). It was superseded before
+    // it was ever called: `engine/concealment.mjs#runDiscoverChecks` returns
+    // early for anyone who is not the GM and rolls there directly, which
+    // satisfies the same rule without a round trip. Listed rather than deleted
+    // because removing a socket operation is an API change; a candidate for
+    // deletion, not a thing to build a caller for.
+    const DEAD = new Set(["discoverRoll"]);
+    const orphans = Object.keys(OPERATIONS)
+      .filter((op) => !DEAD.has(op) && !callers.includes(`"${op}"`));
+    expect(orphans).toEqual([]);
   });
 });

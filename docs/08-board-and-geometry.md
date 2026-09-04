@@ -26,7 +26,27 @@
 > carriage** moves a passenger with `forced: true`, so it costs no budget and triggers no
 > movement-keyed effect: a passenger has not moved, it has been carried.
 >
-> Line of sight and cover (§8.6) and fog/Detect (§8.7) remain unimplemented.
+> Line of sight and cover (§8.6) need no implementation — the chapter's own decision is that
+> F/GT has none.
+>
+> **Fog of war (§8.7) is now built** (`engine/token-vision.mjs`). This chapter said from the
+> start that fog is Foundry's, driven by `TokenDocument.sight`, and `data/actor/_shared.mjs`
+> stated that vision range and Detect are the same number. `detectRangeOf` computed that number
+> and **nothing ever wrote it to a token**, so every unit stood at Foundry's default
+> `sight.enabled: false, range: 0`. On a scene with token vision on that is not "no fog": it is
+> a player looking at an entirely black canvas with their own Servant invisible in the middle
+> of it, which is how it was found — in play, by a player who owned a Servant and could see
+> nothing.
+>
+> The sync writes `sight.enabled` and `sight.range` and nothing else: Foundry's
+> `TokenDocument#_prepareDetectionModes` derives `basicSight` at exactly that range and
+> `lightPerception` at infinity on its own, so writing detection modes by hand would duplicate
+> a default that is already right. `range` is in the scene's DISTANCE units, so the panel count
+> is multiplied by `grid.distance` — reading panels straight into the field works by accident
+> on a grid of distance 1 and quarters an Archer's vision on a 5-foot one. Three write points:
+> `preCreateToken`, `updateActor` for a sheet edit, and `fgtUnitMoved`, because a Caster sees 5
+> panels in its own Home Base and 3 outside it and that is the one range in the game that
+> changes as its owner walks. A `ready`-time backfill covers the tokens already placed.
 
 Everything spatial. Distance metrics (there are three, used in different places), the
 Range shape with its diagonal-reduction rule, movement legality, occupancy, zones, and

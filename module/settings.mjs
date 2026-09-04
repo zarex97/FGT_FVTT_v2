@@ -57,7 +57,17 @@ export function registerSettings() {
   });
   s("region", { name: "FGT.Settings.Region", type: String, default: "" });
   s("grailThreshold", { name: "FGT.Settings.GrailThreshold", type: Number, default: 9 });
-  s("closedInfo", { name: "FGT.Settings.ClosedInfo", type: Boolean, default: false });
+  // Ch. 26 §26.7. ON, a chat card is redacted per viewer: each side reads its
+  // own contributing modifiers and the effects that landed on its own units,
+  // and the damage of an exchange it was not part of stays hidden. OFF, every
+  // card reads the way the GM's does. Default TRUE, because the rulebook's
+  // information rules are rules rather than a house style -- and because the
+  // switch spent its whole life registered and read by nothing, which is
+  // indistinguishable from it not existing.
+  s("closedInfo", {
+    name: "FGT.Settings.ClosedInfo", hint: "FGT.Settings.ClosedInfoHint",
+    type: Boolean, default: true,
+  });
   s("masterMode", {
     name: "FGT.Settings.MasterMode", type: String, default: "essences",
     choices: { essences: "FGT.MasterMode.Essences", coinFlip: "FGT.MasterMode.CoinFlip", rankless: "FGT.MasterMode.Rankless" },

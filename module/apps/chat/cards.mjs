@@ -9,7 +9,7 @@
 
 import { explainDamage } from "../../rules/explain.mjs";
 import { visibleTo, renderBreakdown } from "../../rules/roll-log.mjs";
-import { cardFor, skillEffectsFor } from "../../rules/card-visibility.mjs";
+import { cardFor, skillEffectsFor, redactBreakdown } from "../../rules/card-visibility.mjs";
 import { countdownFor } from "../../engine/await-timeout.mjs";
 import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
 import * as process from "../../engine/combat-process.mjs";
@@ -81,6 +81,8 @@ async function cardContext({
 }) {
   const prompt = pendingPrompt(state);
   const defender = game.actors.get(state.defenderId);
+  // Computed BEFORE the breakdown, because the breakdown is redacted with it.
+  const visibility = result ? viewerVisibility(state, result) : null;
   // For the public names below: `publicNameOf` reads a unit's faction to say
   // "Rider of Red", and only the board knows the factions.
   const board = currentBoard();
@@ -135,7 +137,7 @@ async function cardContext({
     // question for every player at the table.
     commandSpells: offerableCommands(state),
 
-    result: result ? explainDamage(result) : null,
+    result: result ? explainedFor(result, visibility) : null,
 
     // §26.7: what THIS viewer may see. A bystander gets the header and a count
     // of effects; the attacker gets their own contributing modifiers; the
@@ -149,7 +151,7 @@ async function cardContext({
     // Computed for `game.user`, which is THE VIEWER because `fillAttackCard`
     // re-renders this context on every client. Built once and stored, as it
     // was, it described whoever pressed the button.
-    visibility: result ? viewerVisibility(state, result) : null,
+    visibility,
 
     // The roll log (§14.8), filtered per viewer -- a hidden Discover roll on a
     // card everyone can read would give away the Assassin's panel.
@@ -158,6 +160,53 @@ async function cardContext({
       ownedActorIds: game.actors.filter((a) => a.isOwner).map((a) => a.id),
     }).map((r) => ({ ...r, lines: renderBreakdown(r) })),
   };
+}
+
+/**
+ * Whether the GM has switched closed-information play OFF.
+ *
+ * `closedInfo` was registered in `settings.mjs` and read by NOTHING: a GM who
+ * turned it on or off changed no behaviour anywhere. It is the switch that
+ * governs this whole file, so it is read here.
+ *
+ * @returns {boolean}
+ */
+function openTable() {
+  return !game.settings.get("fgt", "closedInfo");
+}
+
+/**
+ * The unit the ladder is currently waiting on.
+ *
+ * `OPERATIONS.advanceProcess` authorizes on this: a player may answer only the
+ * rung their own unit is being asked about. Derived from the stored Process at
+ * the moment of the click rather than baked into the button, because the card
+ * a client is looking at may be a rung behind what the GM has already recorded.
+ *
+ * @param {object} message
+ * @returns {string|null}
+ */
+function respondingUnitOf(message) {
+  const raw = message.getFlag?.("fgt", "process");
+  if (!raw) return null;
+  return pendingPrompt(process.deserialize(raw))?.unitId ?? null;
+}
+
+/**
+ * The damage explainer, with the other side's contributors taken out.
+ *
+ * The rows are built in full and then redacted, rather than built partially:
+ * the running total has to be computed from every stage or it stops being a
+ * running total, and a viewer who cannot check the arithmetic cannot tell a
+ * redaction from a bug.
+ *
+ * @param {object} result a raw `DamageResult`
+ * @param {object|null} visibility
+ * @returns {object}
+ */
+function explainedFor(result, visibility) {
+  const explained = explainDamage(result);
+  return { ...explained, rows: redactBreakdown(explained.rows, visibility ?? {}) };
 }
 
 /**
@@ -174,7 +223,7 @@ async function cardContext({
  */
 function viewerVisibility(state, result) {
   const card = cardFor(visibilityInput(state, result), {
-    id: game.user.id, isGM: game.user.isGM,
+    id: game.user.id, isGM: game.user.isGM, openTable: openTable(),
   });
   const names = Array.isArray(card.effects) ? card.effects : [];
   return {
@@ -323,60 +372,107 @@ export function activateChatListeners() {
   Hooks.on("renderChatMessageHTML", (message, html) => {
     fillSkillEffects(message, html);
     fillAttackCard(message, html);
+    bindCardEvents(message, html);
+  });
+}
 
-    for (const button of html.querySelectorAll("[data-fgt-event]")) {
-      button.addEventListener("click", async (event) => {
-        event.preventDefault();
-        button.disabled = true;
-        const { advanceAttack } = await import("../../engine/attack.mjs");
-        try {
-          await advanceAttack({ messageId: message.id, event: button.dataset.fgtEvent });
-        } catch (err) {
-          button.disabled = false;
-          ui.notifications.error(err.message);
-          throw err;
-        }
-      });
+/**
+ * Wire a card's buttons, by DELEGATION on the message element.
+ *
+ * These used to be bound directly, one listener per button, in the render hook.
+ * That worked until `fillAttackCard` was added beside them: it re-renders the
+ * card per viewer and assigns `outerHTML`, which REPLACES the element every
+ * listener was attached to. The buttons kept their look and stopped working —
+ * a defender could not Block, an attacker could not spend a Command Spell, and
+ * the breakdown would not open. Nothing threw; the clicks simply went nowhere.
+ *
+ * Ordering the two correctly would fix it once. Delegation fixes it for good:
+ * `html` is the message's own element and survives anything done to the card
+ * inside it, so a listener here cannot be detached by a re-render that has not
+ * been written yet.
+ *
+ * @param {object} message
+ * @param {HTMLElement} html the rendered message element
+ */
+function bindCardEvents(message, html) {
+  html.addEventListener("click", async (event) => {
+    // `closest` exists on Element and not on Node; a click can land on a text
+    // node inside a button.
+    const target = event.target?.closest ? event.target : event.target?.parentElement;
+    if (!target) return;
+
+    // A reaction, a Luck Check, a counter -- one step of the ladder.
+    //
+    // Routed to the GM through `advanceProcess`, NOT called locally. Advancing
+    // a Process writes the Combat document's turn budget, and nobody but the
+    // GM owns Combat -- so a player pressing Block got
+    // *"User Player2 lacks permission to update Combat"* and the ladder stopped
+    // dead. `OPERATIONS.advanceProcess` was written for exactly this, complete
+    // with an authorizer that admits only the side the machine is waiting on,
+    // and had no caller anywhere in the system.
+    //
+    // `FGTSocket.request` executes locally when the caller IS the active GM, so
+    // this one path serves both and there is no branch to get wrong.
+    const step = target.closest("[data-fgt-event]");
+    if (step) {
+      event.preventDefault();
+      step.disabled = true;
+      const { FGTSocket } = await import("../../net/socket.mjs");
+      try {
+        await FGTSocket.request("advanceProcess", {
+          messageId: message.id,
+          event: step.dataset.fgtEvent,
+          // Whose decision this is, for the authorizer. Read off the Process
+          // rather than assumed to be the defender: a Luck Check and a Command
+          // Spell interrupt are answered by different people on the same card.
+          respondingUnitId: respondingUnitOf(message),
+        });
+      } catch (err) {
+        step.disabled = false;
+        ui.notifications.error(err.message);
+        throw err;
+      }
+      return;
     }
+
     // Command Spell interrupts. Routed through the socket to the GM, because a
     // spend changes a Process other clients are participating in (Ch. 27 §27.9).
-    for (const button of html.querySelectorAll("[data-fgt-cs]")) {
-      button.addEventListener("click", async (event) => {
-        event.preventDefault();
-        button.disabled = true;
-        const { FGTSocket } = await import("../../net/socket.mjs");
-        try {
-          const result = await FGTSocket.request("spendCommandSpell", {
-            masterId: button.dataset.fgtMaster,
-            commandId: button.dataset.fgtCs,
-            messageId: message.id,
-          });
-          if (!result?.ok) {
-            button.disabled = false;
-            ui.notifications.warn(`FGT | Command Spell refused: ${result?.reason ?? "unknown"}`);
-          }
-        } catch (err) {
-          button.disabled = false;
-          ui.notifications.error(err.message);
-          throw err;
+    const spell = target.closest("[data-fgt-cs]");
+    if (spell) {
+      event.preventDefault();
+      spell.disabled = true;
+      const { FGTSocket } = await import("../../net/socket.mjs");
+      try {
+        const result = await FGTSocket.request("spendCommandSpell", {
+          masterId: spell.dataset.fgtMaster,
+          commandId: spell.dataset.fgtCs,
+          messageId: message.id,
+        });
+        if (!result?.ok) {
+          spell.disabled = false;
+          ui.notifications.warn(`FGT | Command Spell refused: ${result?.reason ?? "unknown"}`);
         }
-      });
+      } catch (err) {
+        spell.disabled = false;
+        ui.notifications.error(err.message);
+        throw err;
+      }
+      return;
     }
+
     // §27.5's "decide for them". GM-only, and it applies the SAME default the
     // timeout would -- so a GM who is tired of waiting cannot accidentally make
     // a costlier choice than the clock would have.
-    for (const button of html.querySelectorAll("[data-fgt-decide]")) {
-      button.addEventListener("click", async () => {
-        const { applyExpiry } = await import("../../engine/await-timeout.mjs");
-        await applyExpiry(message);
-      });
+    if (target.closest("[data-fgt-decide]")) {
+      const { applyExpiry } = await import("../../engine/await-timeout.mjs");
+      await applyExpiry(message);
+      return;
     }
 
-    for (const toggle of html.querySelectorAll("[data-fgt-toggle]")) {
-      toggle.addEventListener("click", () => {
-        const target = html.querySelector(`#${toggle.dataset.fgtToggle}`);
-        if (target) target.hidden = !target.hidden;
-      });
+    const toggle = target.closest("[data-fgt-toggle]");
+    if (toggle) {
+      const panel = html.querySelector(`#${toggle.dataset.fgtToggle}`);
+      if (panel) panel.hidden = !panel.hidden;
     }
   });
 }
@@ -468,6 +564,7 @@ function fillSkillEffects(message, html) {
   const { names, hidden } = skillEffectsFor(flags.rows, {
     id: game.user.id,
     isGM: game.user.isGM,
+    openTable: openTable(),
     casterControllers: flags.casterControllers ?? [],
   });
 
