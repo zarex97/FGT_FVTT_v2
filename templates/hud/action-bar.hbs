@@ -22,7 +22,12 @@
           {{#each row.slots as |slot|}}
             <button type="button"
                     class="fgt-slot{{#if slot.disabled}} fgt-slot--disabled{{/if}}{{#if slot.ring}} fgt-slot--{{slot.ring}}{{/if}}"
-                    data-action="useSlot" data-row="{{../row.id}}" data-slot="{{slot.id}}"
+                    {{!-- `row.id`, NOT `../row.id`: a block parameter stays in
+                          scope inside the nested each, and `../` walks past it
+                          to nothing. It rendered as an empty attribute, so the
+                          click handler could not tell an action from an
+                          ability and returned silently. --}}
+                    data-action="useSlot" data-row="{{row.id}}" data-slot="{{slot.id}}"
                     data-tooltip="{{slot.tooltip}}">
               {{#if slot.img}}<img class="fgt-slot__art" src="{{slot.img}}" alt="">{{/if}}
               {{#if slot.icon}}<i class="fgt-slot__icon {{slot.icon}}"></i>{{/if}}
