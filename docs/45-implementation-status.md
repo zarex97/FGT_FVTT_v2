@@ -1259,6 +1259,46 @@ and three handlers that the bar renders at its right-hand end. The turn panel st
 faction-scoped beside a unit-scoped bar, because the End Turn gate is about the faction's whole
 budget. `FACINGS` turned out to be declared twice; `domain/enums.mjs` had always exported it.
 
+### Clickable rules in every description — **built**
+
+Asked for directly: *"if someone is reading the description of an NP that applies burn, that they
+are able to see 'burn' as clickable compendium entry"*. The question came with a premise about
+the actor and item architecture, and the premise turned out not to be where the problem was.
+
+**Three facts, checked rather than assumed.** `@UUID[...]` is Foundry **core**, not a pf2e
+invention: `TextEditor.enrichHTML` runs `_enrichContentLinks`, whose accepted types are
+`CONST.DOCUMENT_LINK_TYPES.concat(["Compendium", "UUID"])`. Foundry's Actor document declares
+`embedded: {ActiveEffect: "effects", Item: "items"}`, so pf2e's items sit on an actor exactly
+where ours do and "embedded versus standalone" was never a choice for actor-owned items. And an
+embedded document has a resolvable UUID, so a Servant's own abilities are addressable without
+shipping anything standalone.
+
+**What was actually missing was one call.** Searching all of `module/` for `enrichHTML` returned
+nothing. 195 linkable documents already shipped; the templates printed descriptions raw.
+
+Markers are authored (`@effect[burn]`), resolved to real links at build time, and rendered by
+Foundry's own enricher. Actions are rules rather than documents, so they got the `fgt.rules`
+JournalEntry pack — **declared in `system.json` since `0.1.0` and never populated** — and eight
+pages, one per action kind. `master-essences` is the second such pack and is still empty;
+`docs/Master Essences.md` is the source its 35 essences will be built from.
+
+**The retrofit, measured rather than estimated.** 197 unmarked mentions across the corpus, all
+marked, ending at zero. Verified in `fgt2026`: Karna's sheet carries 23 content links and no raw
+marker, Burn opens the effect, and Gate of Skye's *Primordial Rune* opens Scáthach's own embedded
+ability from inside her.
+
+**Three defects the work found, each invisible until something exercised it:**
+
+1. **Embedded abilities were never rewritten.** `compileEmbeddedAbility` does not pass through
+   `compileDocument`'s rewrite, so every Servant ability — the descriptions players actually read
+   — shipped with `@effect[burn]` printed on the sheet. Caught by the first live check.
+2. **The warning demanded what the convention forbade.** It asked for a marker on the *second*
+   occurrence of a name already linked in the same description, 61 times, when the rule is to
+   mark the first and leave repetitions as prose.
+3. **Actions cannot be found by name.** Indexing them raised the warning count from 214 to 365,
+   because "Attack", "Move", "Skill" and "Spell" are ordinary words in this prose. An action must
+   be marked explicitly; it is excluded from the name index entirely.
+
 ---
 
 ## 45.5 The completion plan

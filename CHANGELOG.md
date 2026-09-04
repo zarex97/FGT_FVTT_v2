@@ -101,6 +101,18 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Every rules term in a description is clickable.** A description naming something this system
+  also ships writes it as a marker — `@effect[burn]`, `@ability[scathach-primordial-rune]`,
+  `@action[mark]` — and the build resolves it to a real Foundry content link. A Servant's own
+  abilities are linked through the Servant at their embedded address, so nothing had to ship
+  standalone. 197 mentions were marked across the corpus, and the validator warns on any that is
+  missed. **Nothing in this system had ever called `enrichHTML`**, which is the whole reason no
+  rules term was clickable despite 195 linkable documents already shipping (Ch. 29 §29.5,
+  Ch. 37 §37.8, DX.1–DX.6).
+- **The `rules` compendium, declared since `0.1.0` and never populated**, now ships eight pages,
+  one per action kind, so `@action[mark]` has somewhere real to land. `master-essences` is the
+  second declared-and-empty pack and stays empty until its content is authored.
+
 - **Every requirement kind can now say why it refused.** `abilityState` builds
   `FGT.Ability.Refused.<reason>` from the requirement that failed, and **19 of the 22 kinds had no
   string**, so an unavailable ability told the player `withinPlatformCentre` — on the sheet's

@@ -384,6 +384,28 @@ on the board. That is why `available` takes the board and not only the unit.
 
 ---
 
+## 29.5 Enriched descriptions
+
+Every description is passed through Foundry's `TextEditor.enrichHTML` before it is rendered, so
+the `@UUID` links the build wrote (Ch. 37 §37.8) become real anchors a player can click.
+
+> **Nothing in this system had ever called it (Ch. 45).** Searching the whole of `module/` for
+> `enrichHTML` or `TextEditor` returned nothing, and the templates printed descriptions raw. A
+> content link written into a description would have rendered as literal text, which is why no
+> rules term in the game was clickable despite 195 linkable documents already shipping.
+>
+> `apps/enrich.mjs` is the one place that calls it. Two things about where:
+>
+> - It happens in `_prepareContext` and **cannot** happen in a template or a helper, because
+>   `enrichHTML` is async and Handlebars is not.
+> - `rolls: false`. This system resolves every die through the engine, and an inline `[[/r]]` in
+>   a description would open a second path to a roll that no rule agrees with.
+>
+> The ability cards are enriched as a group rather than one array at a time, so a group added to
+> `abilitiesContext` later is covered without a second edit.
+
+---
+
 ## 29.6 The ability editor
 
 The tool that determines whether success criterion **SC-6** (a GM authors a Karna-complexity
