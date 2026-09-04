@@ -9,11 +9,11 @@
 
 import { explainDamage } from "../../rules/explain.mjs";
 import { visibleTo, renderBreakdown } from "../../rules/roll-log.mjs";
-import { cardFor } from "../../rules/card-visibility.mjs";
+import { cardFor, skillEffectsFor } from "../../rules/card-visibility.mjs";
 import { countdownFor } from "../../engine/await-timeout.mjs";
 import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
 import { offerCommands } from "../../engine/command-spells.mjs";
-import { publicIdentityOf } from "../../engine/public-identity.mjs";
+import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity.mjs";
 import { currentBoard } from "../../engine/board.mjs";
 
 /**
@@ -28,7 +28,7 @@ export async function renderAttackCard({ state, attacker, ability, targets }) {
   );
 
   return ChatMessage.create({
-    speaker: ChatMessage.getSpeaker({ actor: attacker }),
+    speaker: publicSpeakerFor(attacker, currentBoard()),
     content,
     flags: { fgt: { kind: "attack", attackerId: attacker.id, defenderId: state.defenderId } },
   });
@@ -227,6 +227,8 @@ function promptOptions(prompt, state = null) {
  */
 export function activateChatListeners() {
   Hooks.on("renderChatMessageHTML", (message, html) => {
+    fillSkillEffects(message, html);
+
     for (const button of html.querySelectorAll("[data-fgt-event]")) {
       button.addEventListener("click", async (event) => {
         event.preventDefault();
@@ -346,4 +348,40 @@ function sideOf(row, state) {
 function ownersOf(actor) {
   if (!actor) return [];
   return game.users.filter((u) => !u.isGM && actor.testUserPermission(u, "OWNER")).map((u) => u.id);
+}
+
+/**
+ * Fill a Skill card's effect list for whoever is looking at it.
+ *
+ * §26.7's `filtered` mode: one message, rendered differently per client. The
+ * card ships with a count and the hook replaces it with the rows this viewer
+ * is entitled to read — everything for the caster's controller and the GM, and
+ * for everyone else only what landed on a unit they control.
+ *
+ * A Servant buffing itself is the case that prompted this: the card listed
+ * every buff to the whole table, which tells an opponent exactly what that
+ * Servant just gained.
+ *
+ * @param {object} message
+ * @param {HTMLElement} html
+ */
+function fillSkillEffects(message, html) {
+  const flags = message.getFlag?.("fgt", "kind") === "skill" ? message.flags.fgt : null;
+  const list = html.querySelector("[data-fgt-effects]");
+  if (!flags || !list) return;
+
+  const { names, hidden } = skillEffectsFor(flags.rows, {
+    id: game.user.id,
+    isGM: game.user.isGM,
+    casterControllers: flags.casterControllers ?? [],
+  });
+
+  const rows = names.map((n) => `<li>${foundry.utils.escapeHTML(n)}</li>`);
+  // A count rather than silence: "something happened" is public, "what" is not.
+  if (hidden > 0) {
+    rows.push(
+      `<li class="fgt-card__hidden">${game.i18n.format("FGT.Skill.HiddenEffects", { n: hidden })}</li>`,
+    );
+  }
+  list.innerHTML = rows.join("");
 }

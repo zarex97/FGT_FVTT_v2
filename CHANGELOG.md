@@ -51,6 +51,11 @@ coincide by accident; the headings say which is which.
 
 ### Corrected
 
+- **A Skill card listed every effect to everybody.** A Servant buffing itself announced each buff
+  to the table. The card now runs §26.7's `filtered` mode — the first card that actually does:
+  content ships with a count, flags carry who may read each row, and the render hook fills the
+  list per viewer. The caster's controller and the GM see everything; everyone else sees what
+  landed on a unit they control (Ch. 26 §26.7).
 - **Chat cards revealed a concealed Servant's true face and name.** The skill card printed
   `actor.img` and `actor.name`, so using a Skill announced both to the whole table; the attack
   card named both combatants outright. A chat message is one document every client reads, like a

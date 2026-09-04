@@ -1,5 +1,24 @@
 # 26 — Authority and Sockets
 
+> **The Skill card had no visibility model at all (Ch. 45).** §26.7 describes `filtered` and
+> `strict`, and the attack card uses `cardFor`; the Skill card listed every effect it applied to
+> everybody. A Servant buffing ITSELF announced each buff to the table, which tells an opponent
+> exactly what it just gained.
+>
+> It runs `filtered` properly now, and is the first card that does: the message content ships
+> with a COUNT, the flags carry each row with the users entitled to read it, and
+> `renderChatMessageHTML` fills the list per viewer. The caster's controller and the GM see
+> everything; everyone else sees what landed on a unit they control, and a count for the rest.
+>
+> The documented trade stands and is worth restating: a filtered card still ships the full list
+> in its flags to every client that can read them. `strict` — a whisper per audience — is the
+> setting for a table that wants more than that, and remains unimplemented.
+>
+> **The attack card is still baked by the acting client.** `cardFor` is called with
+> `game.user.id` at build time, so the redaction is computed for whoever pressed the button and
+> then stored for everyone. Giving it the same flags-and-hook treatment is the obvious next step
+> and is not done.
+
 > **Implementation note (Ch. 45).** `FGTSocket.ask(userId, spec)` joins `request` and `broadcast`
 > as a third routing shape: a question for **one named user**, awaiting their answer. `request`
 > sends everything to the active GM, which is right for anything that writes and exactly wrong for

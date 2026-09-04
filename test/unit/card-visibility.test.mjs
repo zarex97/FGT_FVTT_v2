@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { cardFor, redactSources, VISIBILITY_MODES } from "../../module/rules/card-visibility.mjs";
+import { cardFor, redactSources, VISIBILITY_MODES, skillEffectsFor } from "../../module/rules/card-visibility.mjs";
 
 const result = () => ({
   summary: "Karna attacks Heracles",
@@ -116,5 +116,48 @@ describe("VISIBILITY_MODES", () => {
     // "one message with client-side filtering (fast, simple)" is the default,
     // and "separate whispered messages (slower, actually secure)" is strict.
     expect([...VISIBILITY_MODES].sort()).toEqual(["filtered", "strict"]);
+  });
+});
+
+describe("a Skill card's effect list (§26.7)", () => {
+  const rows = [
+    { name: "Atk Up (STR)", controllers: ["caster-player"] },
+    { name: "Burn", controllers: ["victim-player"] },
+    { name: "Crit DmUp", controllers: ["caster-player"] },
+  ];
+  const casterControllers = ["caster-player"];
+
+  it("shows the caster's controller everything", () => {
+    // They applied it, so they already know it.
+    const out = skillEffectsFor(rows, { id: "caster-player", casterControllers });
+    expect(out.names).toEqual(["Atk Up (STR)", "Burn", "Crit DmUp"]);
+    expect(out.hidden).toBe(0);
+  });
+
+  it("shows a GM everything", () => {
+    expect(skillEffectsFor(rows, { id: "gm", isGM: true, casterControllers }).names).toHaveLength(3);
+  });
+
+  it("shows a victim only what landed on their own unit", () => {
+    // The two buffs the caster put on ITSELF are not this player's business.
+    const out = skillEffectsFor(rows, { id: "victim-player", casterControllers });
+    expect(out.names).toEqual(["Burn"]);
+    expect(out.hidden).toBe(2);
+  });
+
+  it("shows a bystander nothing but a count", () => {
+    const out = skillEffectsFor(rows, { id: "nobody", casterControllers });
+    expect(out.names).toEqual([]);
+    expect(out.hidden).toBe(3);
+  });
+
+  it("counts rather than hides, so something is known to have happened", () => {
+    // Silence reads as "the Skill did nothing", which is a different fact.
+    expect(skillEffectsFor(rows, { id: "nobody", casterControllers }).hidden).toBe(3);
+  });
+
+  it("survives an empty list", () => {
+    expect(skillEffectsFor([], { id: "x" })).toEqual({ names: [], hidden: 0 });
+    expect(skillEffectsFor(undefined, { id: "x" })).toEqual({ names: [], hidden: 0 });
   });
 });

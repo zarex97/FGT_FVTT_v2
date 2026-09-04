@@ -69,6 +69,37 @@ export function cardFor(result, viewer) {
 }
 
 /**
+ * Which rows of a Skill card's effect list this viewer may read.
+ *
+ * The same rule `cardFor` applies to an attack, stated for a Skill: a player
+ * learns **that** a Skill was used, and learns the effects applied to units
+ * they control. A Servant buffing ITSELF is its own owner's business, and a
+ * card listing those rows tells the table exactly what that Servant just
+ * gained — which is the information concealment exists to withhold.
+ *
+ * The caster's controller sees everything, including what landed on enemies:
+ * they are the one who applied it, so they already know.
+ *
+ * `hidden` is a COUNT rather than silence. "2 more" says something happened
+ * without saying what, which is the line §26.7 draws everywhere else.
+ *
+ * @param {Array<{name: string, controllers?: string[]}>} rows
+ * @param {object} viewer
+ * @param {string} viewer.id
+ * @param {boolean} [viewer.isGM]
+ * @param {string[]} [viewer.casterControllers]
+ * @returns {{names: string[], hidden: number}}
+ */
+export function skillEffectsFor(rows, viewer) {
+  const all = rows ?? [];
+  const isCaster = (viewer?.casterControllers ?? []).includes(viewer?.id);
+  if (viewer?.isGM || isCaster) return { names: all.map((r) => r.name), hidden: 0 };
+
+  const mine = all.filter((r) => (r.controllers ?? []).includes(viewer?.id));
+  return { names: mine.map((r) => r.name), hidden: all.length - mine.length };
+}
+
+/**
  * Drop the rows belonging to one side.
  *
  * A row with **no side** is kept. Unattributed is not secret: it is a board

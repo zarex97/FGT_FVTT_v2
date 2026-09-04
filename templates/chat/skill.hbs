@@ -15,9 +15,12 @@
     </div>
   {{/if}}
 
-  {{#if effects.length}}
-    <ul class="fgt-card__effects">
-      {{#each effects as |e|}}<li>{{e}}</li>{{/each}}
+  {{!-- Filled per viewer by `activateChatListeners`, from the message flags.
+        It ships EMPTY: a client that never runs the hook shows a count rather
+        than every effect the caster put on itself. --}}
+  {{#if effectCount}}
+    <ul class="fgt-card__effects" data-fgt-effects>
+      <li class="fgt-card__hidden">{{localize "FGT.Skill.HiddenEffects" n=effectCount}}</li>
     </ul>
   {{else}}
     {{#unless refused.length}}
