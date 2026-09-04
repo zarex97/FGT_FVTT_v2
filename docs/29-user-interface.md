@@ -397,6 +397,23 @@ on the board. That is why `available` takes the board and not only the unit.
 
 ## 29.5 Enriched descriptions
 
+> **Armed for a Counter (§12.8).** On the Counter rung the bar is armed *for* the player
+> rather than waiting to be found: the token is selected, the bar opens, a gold banner
+> reads *"Counter — choose an Attack"*, and every ability that could answer glows and hints
+> *"Available as a Counter"*. Everything else dims — dimmed rather than hidden, because a
+> player needs to see that their buff exists and is simply not an answer to being attacked.
+> The actions row gets its own wording: Riding Attack **is** an Attack, and what disqualifies
+> it is that it is also a Move, so it says *"A Counter is an Attack and nothing else"* rather
+> than something the player can see is false.
+>
+> Aiming refuses under the cursor — *"Refused: This Counter must include Heracles"*, in the
+> illegal tint — rather than after the placement is committed. Cancelling the aim leaves the
+> bar armed; declining is always a deliberate click on the card, and disarms it.
+>
+> The bar is re-armed on load as well as on render (`resumeCounterArming`): the chat renders
+> before `ActionBar.attach()` exists, so a player who reloaded mid-exchange used to find the
+> rung on the card and no armed bar to answer it with.
+
 Every description is passed through Foundry's `TextEditor.enrichHTML` before it is rendered, so
 the `@UUID` links the build wrote (Ch. 37 §37.8) become real anchors a player can click.
 

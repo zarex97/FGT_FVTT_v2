@@ -379,6 +379,23 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
  * @returns {Promise<object|null>}
  */
 async function pickPlacement(actor, ability) {
+  return pickPlacementFor(actor, ability);
+}
+
+/**
+ * Open a targeting session for an attack, optionally requiring a unit be caught.
+ *
+ * Exported for §12.8: the action bar arms for a Counter and needs the same
+ * session with one extra limit, `requireUnitId`, so an area that misses the
+ * attacker is refused under the cursor rather than after the player commits.
+ *
+ * @param {object} actor
+ * @param {object|null} ability
+ * @param {object} [opts]
+ * @param {string|null} [opts.requireUnitId]
+ * @returns {Promise<object|null>}
+ */
+export async function pickPlacementFor(actor, ability, { requireUnitId = null } = {}) {
   const [{ pickTarget }, { targetSpecForAttack }, { currentBoard, unitSnapshot }, { rollOptionsFor }, preview] =
     await Promise.all([
       import("../canvas/targeting-layer.mjs"),
@@ -399,7 +416,13 @@ async function pickPlacement(actor, ability) {
   // targeting SESSION itself asked for an enemy AoE while aboard the HGoB,
   // where the ability actually summons at her own panel.
   const boardSelf = board.units.find((u) => u.id === actor.id) ?? caster;
-  const spec = targetSpecForAttack(actor, ability, rollOptionsFor({ attacker: boardSelf }));
+  const base = targetSpecForAttack(actor, ability, rollOptionsFor({ attacker: boardSelf }));
+  // §12.8: a Counter must catch the unit that attacked. Merged into the spec so
+  // the refusal is DRAWN, in the illegal tint with its reason, while the player
+  // is still aiming.
+  const spec = requireUnitId
+    ? { ...base, limits: { ...(base.limits ?? {}), requireUnitId } }
+    : base;
   const isNP = ability?.type === "noblePhantasm";
 
   return pickTarget({

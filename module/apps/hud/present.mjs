@@ -45,9 +45,11 @@ export function portraitBlock(unit, { img, defaultImage, publicName, trueName, i
  * @param {{ok: boolean, reason?: string}} view.verdict from `rules/costs.mjs#canUseAbility`
  * @param {object|null} [view.cost] from `apps/actor-sheet/present.mjs#abilityCost`
  * @param {number} [view.turnsPerRound]
+ * @param {{isAttack: boolean}|null} [view.counter] set while the bar is armed
+ *   for a §12.8 Counter; `isAttack` is whether THIS ability could answer one
  * @returns {object}
  */
-export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3 }) {
+export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3, counter = null }) {
   const remaining = ability?.cooldownRemaining ?? 0;
   const cooldown = remaining > 0
     ? { remaining, label: ticksLabel(remaining, turnsPerRound) }
@@ -60,6 +62,12 @@ export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3 }) {
   else if (ability?.active) ring = "on";
 
   const refused = verdict?.ok === false;
+  // §12.8. While the bar is armed for a Counter, an ability that is not an
+  // Attack is not a choice -- and it is DIMMED with a reason rather than
+  // hidden, so a player can see that their buff exists and is simply not an
+  // answer to being attacked.
+  const notAnAttack = Boolean(counter) && counter.isAttack === false;
+
   return {
     id: ability?.id ?? null,
     name: ability?.name ?? "",
@@ -67,11 +75,17 @@ export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3 }) {
     cost,
     cooldown,
     ring,
-    disabled: refused || Boolean(cooldown),
+    // The glow. True only for something that could actually answer, which is a
+    // different question from whether it can be AFFORDED: an unaffordable
+    // Noble Phantasm still glows, and still says why it is disabled.
+    counter: Boolean(counter) && counter.isAttack === true,
+    disabled: refused || Boolean(cooldown) || notAnAttack,
     // The reason travels with the slot so the tooltip can say it. A dead
     // control with no explanation is how a player concludes the system is
     // broken (`rules/modes.mjs` states the same rule for `cannotDeactivate`).
-    reason: refused ? (verdict.reason ?? "unavailable") : (cooldown ? "cooldown" : null),
+    reason: notAnAttack
+      ? "notAnAttack"
+      : (refused ? (verdict.reason ?? "unavailable") : (cooldown ? "cooldown" : null)),
   };
 }
 

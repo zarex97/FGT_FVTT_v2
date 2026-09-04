@@ -16,6 +16,7 @@ import * as process from "../../engine/combat-process.mjs";
 import { offerCommands } from "../../engine/command-spells.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity.mjs";
 import { currentBoard } from "../../engine/board.mjs";
+import { ActionBar } from "../hud/action-bar.mjs";
 
 /**
  * Create the card for a newly declared attack.
@@ -372,8 +373,72 @@ export function activateChatListeners() {
   Hooks.on("renderChatMessageHTML", (message, html) => {
     fillSkillEffects(message, html);
     fillAttackCard(message, html);
+    armCounterRung(message);
     bindCardEvents(message, html);
   });
+}
+
+/**
+ * Arm the token's action bar when this viewer owns the unit being offered a
+ * Counter, and disarm it once the rung has passed.
+ *
+ * §12.8's rung is the one moment a unit may attack outside its own turn, so the
+ * player is not left to discover that the bar has quietly become meaningful:
+ * the token is selected, the bar opens, and the abilities that could answer
+ * glow.
+ *
+ * @param {object} message
+ */
+function armCounterRung(message) {
+  if (message.getFlag?.("fgt", "kind") !== "attack") return;
+  const raw = message.getFlag("fgt", "process");
+  if (!raw) return;
+
+  let state;
+  try {
+    state = process.deserialize(raw);
+  } catch {
+    return;
+  }
+
+  const prompt = pendingPrompt(state);
+  const onRung = state.state === "counter" && prompt?.kind === "counter";
+  const actor = state.defenderId ? game.actors.get(state.defenderId) : null;
+
+  if (!onRung || !actor?.isOwner) {
+    // Only OUR rung disarms the bar. A card for somebody else's exchange
+    // rendering behind us must not cancel the prompt we are answering.
+    if (ActionBar.instance?.counter?.messageId === message.id) ActionBar.disarmCounter();
+    return;
+  }
+
+  const token = actor.getActiveTokens?.()[0] ?? null;
+  if (!token) return;
+  ActionBar.armForCounter({
+    token, messageId: message.id, requiredTargetId: state.attackerId,
+  });
+}
+
+/**
+ * Arm the bar for a Counter rung that was already open when the client loaded.
+ *
+ * `armCounterRung` rides `renderChatMessageHTML`, and on a page load the chat
+ * renders BEFORE `ActionBar.attach()` has made an instance — so `armForCounter`
+ * returned silently and a player who reloaded mid-exchange found the rung on
+ * the card and no armed bar to answer it with. Found in play, by reloading.
+ *
+ * Called once from the `ready` hook, after the bar exists. Newest first, since
+ * only one rung can be answered at a time and the newest is the live one.
+ *
+ * @returns {void}
+ */
+export function resumeCounterArming() {
+  for (let i = game.messages.contents.length - 1; i >= 0; i -= 1) {
+    const message = game.messages.contents[i];
+    if (message.getFlag?.("fgt", "kind") !== "attack") continue;
+    armCounterRung(message);
+    if (ActionBar.instance?.counter) return;
+  }
 }
 
 /**

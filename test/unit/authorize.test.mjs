@@ -112,10 +112,7 @@ describe("every socket operation has a caller", () => {
     // satisfies the same rule without a round trip. Listed rather than deleted
     // because removing a socket operation is an API change; a candidate for
     // deletion, not a thing to build a caller for.
-    // TEMPORARY, removed in the task that wires the action bar. `declareCounter`
-    // is declared before its only caller exists; leaving this entry in place
-    // once the bar requests it would defeat the point of this test.
-    const DEAD = new Set(["discoverRoll", "declareCounter"]);
+    const DEAD = new Set(["discoverRoll"]);
     const orphans = Object.keys(OPERATIONS)
       .filter((op) => !DEAD.has(op) && !callers.includes(`"${op}"`));
     expect(orphans).toEqual([]);

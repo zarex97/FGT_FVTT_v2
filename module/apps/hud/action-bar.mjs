@@ -45,6 +45,17 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
   /** The controlled token this bar is showing. @type {object|null} */
   token = null;
 
+  /**
+   * The Counter this bar is armed for, or `null`.
+   *
+   * §12.8's rung is the one moment a unit may attack outside its own turn, so
+   * the bar is armed FOR the player rather than waiting to be found: the token
+   * is selected, the bar opens, and the abilities that could answer glow.
+   *
+   * @type {{messageId: string, requiredTargetId: string}|null}
+   */
+  counter = null;
+
   /** The singleton: one selection, one bar. */
   static instance = null;
 
@@ -72,6 +83,11 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     // `controlToken`, `updateActor` and `fgtBudgetChanged` in one breath, and
     // each of those used to be its own full render.
     const refresh = foundry.utils.debounce(() => {
+      // An ARMED bar belongs to a Counter rung, not to the selection. Closing
+      // it because the player clicked empty canvas would lose the prompt they
+      // are being asked to answer.
+      if (bar.counter) return bar.render({ force: true });
+
       const controlled = canvas.tokens?.controlled?.[0] ?? null;
       bar.token = controlled?.actor?.isOwner ? controlled : null;
       if (bar.token) bar.render({ force: true });
@@ -115,9 +131,27 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
     const openFields = new Set((board.fields ?? []).map((f) => f.id));
 
-    const actions = availableActions(snapshot, board).map((a) => ({
-      ...a, tooltip: game.i18n.localize(a.label),
-    }));
+    const actions = availableActions(snapshot, board).map((a) => {
+      // §12.8. Armed, the actions row is the Normal Attack and nothing else:
+      // it glows, and Move, Gather and the facing dial dim with a reason. The
+      // Normal Attack is ALWAYS offered as a Counter and always free, so it is
+      // lit even when every ability the unit holds is unaffordable.
+      const counter = this.counter ? a.id === "attack" : null;
+      return {
+        ...a,
+        counter: counter === true,
+        disabled: Boolean(a.disabled) || counter === false,
+        // A distinct string from the abilities row. Riding Attack IS an attack;
+        // what disqualifies it is that it is a MOVE as well, and a Counter is
+        // not a chance to move on somebody else's turn. Telling the player it
+        // "is not an Attack" would be plainly false and they can see that.
+        tooltip: counter === true
+          ? `${game.i18n.localize(a.label)} — ${game.i18n.localize("FGT.Counter.Available")}`
+          : (counter === false
+            ? `${game.i18n.localize(a.label)} — ${game.i18n.localize("FGT.Counter.ActionRefused")}`
+            : game.i18n.localize(a.label)),
+      };
+    });
 
     const abilities = [...actor.items]
       .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
@@ -136,6 +170,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
           verdict,
           cost: abilityCost(item.system?.cost, null, snapshot),
           turnsPerRound,
+          counter: this.counter ? { isAttack: use.isAttack } : null,
         });
         return {
           ...slot,
@@ -144,9 +179,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
           // the sheet's ability cards use, so the two never disagree about why
           // something is unavailable. `FGT.Action.Refusal.*` stays for the
           // ACTION slots, whose reasons come from the engines instead.
-          tooltip: slot.disabled
-            ? `${item.name} — ${abilityRefusal(verdict, entry, turnsPerRound)}`
-            : item.name,
+          tooltip: counterTooltip(slot, item, verdict, entry, turnsPerRound),
         };
       })
       .filter(Boolean);
@@ -195,6 +228,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       // Tokens. They gate abilities, so a player choosing what to press needs
       // them where the buttons are and not one tab away on the sheet.
       pools: poolsFor(snapshot.resources),
+      // §12.8. The banner, and what makes every slot below read as a Counter
+      // choice rather than an ordinary one.
+      counter: this.counter ? { armed: true } : null,
       rows: rowsFor({ actions, abilities, fields, pins }),
       // FACTION-scoped, while everything above is unit-scoped. Two scopes
       // side by side, which is what BG3 does with end-turn beside the hotbar.
@@ -215,6 +251,24 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
   static async onUseSlot(_event, target) {
     const actor = this.token?.actor;
     if (!actor) return;
+
+    const armedRow = target.dataset.row
+      || target.closest(".fgt-actionbar__row")?.dataset?.row || "";
+    const armedId = target.dataset.slot;
+
+    // §12.8. While armed, EVERY click is a Counter declaration: the Normal
+    // Attack from the actions row, an ability from any other. The ordinary
+    // handlers below are not reached, so a Move or a mode toggle cannot be
+    // performed by answering somebody else's attack.
+    if (this.counter) {
+      const isNormal = armedRow === "actions" && armedId === "attack";
+      const item = isNormal ? null : actor.items.get(armedId);
+      if (!isNormal && !(item && classifyAbility(item).isAttack)) {
+        ui.notifications.warn(game.i18n.localize("FGT.Counter.NotAnAttack"));
+        return;
+      }
+      return this.declareCounterWith(actor, item);
+    }
 
     // The row is read from the DOM ancestor rather than trusted from the
     // button's own attribute. Both are written, but only the ancestor cannot
@@ -267,6 +321,71 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     if (classifyAbility(item).isAttack) await FGTActorSheet.declareAttack(actor, item);
     else await FGTActorSheet.useSkill(actor, item);
+  }
+
+  /**
+   * Aim a Counter and send it.
+   *
+   * `requireUnitId` goes into the spec's limits, so an area that misses the
+   * attacker is refused **under the cursor** while the player is still aiming
+   * rather than after they commit (§28.8).
+   *
+   * Cancelling targeting leaves the bar armed. Declining is a button on the
+   * card and is always explicit — a cancelled aim must not spend the rung.
+   *
+   * @param {object} actor
+   * @param {object|null} item null for a Normal Attack
+   * @returns {Promise<void>}
+   */
+  async declareCounterWith(actor, item) {
+    const armed = this.counter;
+    if (!armed) return;
+
+    const { pickPlacementFor } = await import("../actor-sheet/sheet.mjs");
+    const placement = await pickPlacementFor(actor, item, {
+      requireUnitId: armed.requiredTargetId,
+    });
+    if (!placement) return;
+
+    const { FGTSocket } = await import("../../net/socket.mjs");
+    try {
+      await FGTSocket.request("declareCounter", {
+        messageId: armed.messageId,
+        respondingUnitId: actor.id,
+        abilityId: item?.id ?? null,
+        placement,
+      });
+      ActionBar.disarmCounter();
+    } catch (err) {
+      ui.notifications.error(err.message);
+    }
+  }
+
+  /**
+   * Arm the bar for a Counter: select the token, open the bar, light it up.
+   *
+   * @param {object} args
+   * @param {object} args.token
+   * @param {string} args.messageId
+   * @param {string} args.requiredTargetId
+   */
+  static armForCounter({ token, messageId, requiredTargetId }) {
+    const bar = ActionBar.instance;
+    if (!bar || !token) return;
+    if (bar.counter?.messageId === messageId) return;
+
+    token.control({ releaseOthers: true });
+    bar.token = token;
+    bar.counter = { messageId, requiredTargetId };
+    bar.render({ force: true });
+  }
+
+  /** Put the bar back to normal. Idempotent. */
+  static disarmCounter() {
+    const bar = ActionBar.instance;
+    if (!bar?.counter) return;
+    bar.counter = null;
+    if (bar.rendered) bar.render({ force: true });
   }
 
   /**
@@ -458,4 +577,32 @@ function humanise(key) {
 function nameOfField(field, actor) {
   const item = actor.items.find((i) => i.system?.contentId === field.id);
   return item?.name ?? field.id;
+}
+
+/**
+ * What a slot's tooltip says, armed or not.
+ *
+ * Three cases, and the middle one is the point: an ability that *could* answer
+ * says so, an ability that could not says why, and everything else keeps the
+ * refusal it always had. "Not an Attack" is a different fact from "you cannot
+ * afford this", and a player deciding whether to counter needs to tell them
+ * apart.
+ *
+ * @param {object} slot
+ * @param {object} item
+ * @param {object} verdict
+ * @param {object} entry
+ * @param {number} turnsPerRound
+ * @returns {string}
+ */
+function counterTooltip(slot, item, verdict, entry, turnsPerRound) {
+  if (slot.counter && !slot.disabled) {
+    return `${item.name} \u2014 ${game.i18n.localize("FGT.Counter.Available")}`;
+  }
+  if (slot.reason === "notAnAttack") {
+    return `${item.name} \u2014 ${game.i18n.localize("FGT.Counter.NotAnAttack")}`;
+  }
+  return slot.disabled
+    ? `${item.name} \u2014 ${abilityRefusal(verdict, entry, turnsPerRound)}`
+    : item.name;
 }
