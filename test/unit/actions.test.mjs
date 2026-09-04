@@ -9,6 +9,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { UNIT_ACTIONS, ACTION_EXEMPT_KINDS, availableActions } from "../../module/rules/actions.mjs";
+import { ACTION_KINDS } from "../../module/rules/budget.mjs";
 
 const unit = (over = {}) => ({
   id: "u1", kind: "servant", faction: "red",
@@ -117,5 +118,28 @@ describe("the registry's shape", () => {
 
   it("survives a null unit rather than throwing", () => {
     expect(availableActions(null, board())).toEqual([]);
+  });
+});
+
+describe("no ActionKind may go unreachable (§29.5 DA.3)", () => {
+  it("gives every ActionKind either a registry entry or an explicit exemption", () => {
+    // The guard that would have caught `mark`, `gather` and `ridingAttack`,
+    // all three of which shipped with a complete engine and no caller. A new
+    // action kind now fails the build until somebody decides how it is offered.
+    const offered = new Set(UNIT_ACTIONS.map((a) => a.kind).filter(Boolean));
+    const exempt = new Set(ACTION_EXEMPT_KINDS);
+    const orphans = ACTION_KINDS.filter((k) => !offered.has(k) && !exempt.has(k));
+    expect(orphans).toEqual([]);
+  });
+
+  it("lets no registry entry name a kind the budget does not bill", () => {
+    const known = new Set(ACTION_KINDS);
+    const unknown = UNIT_ACTIONS.map((a) => a.kind).filter((k) => k && !known.has(k));
+    expect(unknown).toEqual([]);
+  });
+
+  it("keeps the exemptions honest", () => {
+    const known = new Set(ACTION_KINDS);
+    expect(ACTION_EXEMPT_KINDS.filter((k) => !known.has(k))).toEqual([]);
   });
 });
