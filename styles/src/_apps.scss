@@ -773,6 +773,15 @@
   bottom: 0.5rem;
   left: 50%;
   transform: translateX(-50%);
+
+  // §12.8's banner. Nested first so it inherits the bar's own stacking.
+  &__counter {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: rgba(255, 214, 128, 0.95);
+  }
   z-index: 70;
   display: flex;
   align-items: stretch;
@@ -853,4 +862,17 @@
   &--disabled { opacity: 0.45; border-style: dashed; cursor: not-allowed; }
   &--on { border-color: var(--fgt-gold, #c9a227); box-shadow: 0 0 4px var(--fgt-gold, #c9a227); }
   &--built { border-color: #77aacc; box-shadow: 0 0 4px #77aacc; }
+
+  // §12.8. Armed for a Counter: this ability can answer. A soft outer GLOW
+  // rather than a border, so it does not collide with `--on` and `--built`,
+  // which say something else entirely (a mode is switched on; a field is
+  // built) and can be true at the same time.
+  &--counter {
+    animation: fgt-counter-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes fgt-counter-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 214, 128, 0.85), 0 0 8px 1px rgba(255, 176, 32, 0.45); }
+  50%      { box-shadow: 0 0 0 1px rgba(255, 226, 160, 1),    0 0 14px 4px rgba(255, 176, 32, 0.75); }
 }

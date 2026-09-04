@@ -469,7 +469,7 @@ function buildAttackSpec({ attacker, ability, abilityId, options }) {
  */
 async function declareProcesses({
   attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
-  isCounter = false, requiredTargetId = null, counterDepth = 0,
+  isCounter = false, requiredTargetId = null, counterDepth = 0, groupId = null,
 }) {
   // A resolution that caught no units is still a resolution — a ground-placed
   // non-damaging NP has a shape and no defenders — so it keeps its single
@@ -491,6 +491,12 @@ async function declareProcesses({
       // the process count would have flipped `attack:isAoE` on for them and
       // suppressed the defender's facing change into the bargain.
       isAoE: new Set(targetIds).size > 1,
+      // §12.1: a Combat Phase is the declaration PLUS its counters, and
+      // `fireCombatPhaseEnd` counts unfinished siblings by group. A Counter
+      // therefore inherits the parent's group rather than minting its own, or
+      // the phase would end while the counter was still resolving. `null` on an
+      // ordinary declaration, which mints one.
+      groupId,
       // §12.8. Null on an ordinary declaration; set on every process of a
       // Counter's fan-out, so a bystander it caught cannot counter it in turn
       // unless `fgt.counterChain` says so.
@@ -1837,6 +1843,8 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
     isCounter: true,
     requiredTargetId: state.attackerId,
     counterDepth: (state.counterDepth ?? 0) + 1,
+    // The parent's, deliberately. See `declareProcesses`.
+    groupId: state.groupId,
   });
 }
 

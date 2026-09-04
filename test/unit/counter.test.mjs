@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   begin, beginCounter, beginFanOut, canCounter, advance, pendingPrompt,
 } from "../../module/engine/combat-process.mjs";
@@ -223,5 +224,25 @@ describe("the counter offer", () => {
 
   it("still finishes when the step resolves itself", () => {
     expect(advance(atCounter(), "done").state).toBe("done");
+  });
+});
+
+describe("the counter keeps its parent's Combat Phase", () => {
+  // A source check, because the wiring it guards lives in `engine/attack.mjs`
+  // and needs a live Foundry to exercise. It is here because the property is a
+  // RULE (§12.1: a Phase is the declaration plus its counters) and because it
+  // has already broken once: `runCounter` stopped going through `beginCounter`
+  // when it started sharing the ordinary declaration path, and
+  // `declareProcesses` quietly minted a fresh group. Nothing failed. The phase
+  // simply ended while the counter was still resolving, and it was found by
+  // reading ids off two cards in a live game.
+  const source = readFileSync("module/engine/attack.mjs", "utf8");
+
+  it("threads the parent's groupId into the counter's declaration", () => {
+    expect(source).toMatch(/groupId: state\.groupId/);
+  });
+
+  it("lets declareProcesses accept one, or the line above would do nothing", () => {
+    expect(source).toMatch(/counterDepth = 0, groupId = null,/);
   });
 });

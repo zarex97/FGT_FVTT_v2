@@ -58,6 +58,7 @@ import { ensurePassiveFields, syncDerivedFields } from "./engine/fields.mjs";
 import { ensureSetupRolls } from "./engine/summon.mjs";
 import { syncMarkVisibility } from "./engine/marks.mjs";
 import { ActionBar } from "./apps/hud/action-bar.mjs";
+import { resumeCounterArming } from "./apps/chat/cards.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
 import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
@@ -328,6 +329,11 @@ Hooks.once("ready", () => {
   // §29.5: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   ActionBar.attach();
+  // §12.8: a Counter rung that was already waiting when this client loaded. The
+  // render hook that normally arms the bar fires before the bar exists, so a
+  // player who reloads mid-exchange would otherwise see the prompt and have
+  // nothing to answer it with.
+  resumeCounterArming();
   // §27.5: a player who has closed their browser must not block the table, and
   // the decision made for them must never spend anything.
   attachAwaitTimeouts();

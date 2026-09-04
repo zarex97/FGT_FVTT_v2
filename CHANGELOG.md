@@ -130,6 +130,26 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **A Counter is a real attack (Ch. 12 §12.8).** The rung accepts any ability
+  `classifyAbility` calls an Attack — a Noble Phantasm, an attack Skill, or the Normal
+  Attack — aimed anywhere that catches the unit that attacked you. `beginCounter` had taken
+  the attack as a parameter since it was written and **no caller ever passed one**, so the
+  default *was* the feature: every Counter in the game was a Normal Attack at exactly one
+  target.
+
+  The ability pays its own price and no turn budget. That split is load-bearing rather than
+  tidy: for most Noble Phantasms the cooldown is the only cost there is, so a Counter that
+  skipped it could answer every attack with an NP forever. `payAbilityPrice` is now separate
+  from the budget spend for exactly that reason.
+
+  The choice is made on the token's own action bar, armed automatically — the token is
+  selected, the bar opens, and the abilities that could answer glow. Aiming refuses under
+  the cursor unless the attacker is caught. `fgt.counterChain` decides whether a bystander
+  an area Counter merely caught may answer back; the unit it was *aimed* at never can, in
+  either mode, which is what stops two Servants countering each other to death.
+
+  Still missing, and now recorded as such: §12.8's **Master redirect**.
+
 - **Fog of war (Ch. 08 §8.7).** `engine/token-vision.mjs` writes a unit's Detect radius onto its
   token as Foundry vision. Ch. 8.7 had said since it was written that fog is Foundry's, driven by
   `TokenDocument.sight`, and `data/actor/_shared.mjs` states outright that vision range and Detect

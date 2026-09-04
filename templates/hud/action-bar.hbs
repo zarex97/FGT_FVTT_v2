@@ -19,6 +19,12 @@
     </div>
   </div>
 
+  {{!-- §12.8. Said out loud, because the bar opening by itself is otherwise a
+        surprise: the player did not press anything to get here. --}}
+  {{#if counter.armed}}
+    <div class="fgt-actionbar__counter">{{localize "FGT.Counter.Armed"}}</div>
+  {{/if}}
+
   <div class="fgt-actionbar__rows">
     {{#each rows as |row|}}
       <div class="fgt-actionbar__row" data-row="{{row.id}}">
@@ -26,7 +32,7 @@
         <div class="fgt-actionbar__slots">
           {{#each row.slots as |slot|}}
             <button type="button"
-                    class="fgt-slot{{#if slot.disabled}} fgt-slot--disabled{{/if}}{{#if slot.ring}} fgt-slot--{{slot.ring}}{{/if}}"
+                    class="fgt-slot{{#if slot.disabled}} fgt-slot--disabled{{/if}}{{#if slot.ring}} fgt-slot--{{slot.ring}}{{/if}}{{#if slot.counter}} fgt-slot--counter{{/if}}"
                     {{!-- `row.id`, NOT `../row.id`: a block parameter stays in
                           scope inside the nested each, and `../` walks past it
                           to nothing. It rendered as an empty attribute, so the

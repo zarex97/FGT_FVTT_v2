@@ -127,3 +127,42 @@ describe("rowsFor", () => {
     expect(rows.some((r) => r.id === "pinned")).toBe(false);
   });
 });
+
+describe("slotFor in counter mode", () => {
+  // §12.8's rung is the one moment a unit may attack outside its own turn, so
+  // the bar is armed FOR the player rather than waiting to be found.
+  const np = { id: "np1", name: "Nine Lives", img: "np.webp", isNP: true };
+  const ok = { ok: true };
+
+  it("marks an Attack as available to Counter with", () => {
+    const slot = slotFor(np, { verdict: ok, counter: { isAttack: true } });
+    expect(slot.counter).toBe(true);
+    expect(slot.disabled).toBe(false);
+  });
+
+  it("disables anything that is not an Attack, and says why", () => {
+    // Dimmed with a reason, never hidden. A dead control with no explanation is
+    // how a player concludes the system is broken.
+    const slot = slotFor({ id: "s1", name: "Argos" }, { verdict: ok, counter: { isAttack: false } });
+    expect(slot.disabled).toBe(true);
+    expect(slot.reason).toBe("notAnAttack");
+    expect(slot.counter).toBe(false);
+  });
+
+  it("keeps an unaffordable Attack visible, disabled, with its own reason", () => {
+    // The counterer needs to know the Noble Phantasm exists and why it cannot
+    // be used, which is a different fact from "this is not an Attack".
+    const slot = slotFor(np, {
+      verdict: { ok: false, reason: "sustainability" }, counter: { isAttack: true },
+    });
+    expect(slot.disabled).toBe(true);
+    expect(slot.reason).toBe("sustainability");
+    expect(slot.counter).toBe(true);
+  });
+
+  it("behaves exactly as before when not countering", () => {
+    const slot = slotFor(np, { verdict: ok });
+    expect(slot.counter).toBe(false);
+    expect(slot.disabled).toBe(false);
+  });
+});
