@@ -656,3 +656,45 @@ describe("compileDocument rewrites markers", () => {
     expect(compileDocument(doc, "abilities", library).system.description).toBe("@effect[burn]");
   });
 });
+
+describe("cross-reference validation (§37.4)", () => {
+  const corpus = (extra) => [
+    { path: "burn.yml", dir: "effects", doc: { schema: 1, id: "burn", name: "Burn" } },
+    { path: "riding.yml", dir: "class-skills", doc: { schema: 1, id: "class-riding", name: "Riding" } },
+    extra,
+  ];
+  const problemsFor = (extra) => validateAll(corpus(extra)).problems;
+  const warningsOf = (extra) => validateAll(corpus(extra)).warnings;
+
+  it("refuses a marker that resolves to nothing", () => {
+    const p = problemsFor({ path: "x.yml", dir: "abilities", doc: { schema: 1, id: "x", name: "X", description: "@effect[nope]" } });
+    expect(p.some((m) => /@effect\[nope\] resolves to no document/.test(m))).toBe(true);
+  });
+
+  it("refuses a marker whose kind disagrees with its target", () => {
+    // `burn` is an effect, not an ability. The link would 404 in play.
+    const p = problemsFor({ path: "x.yml", dir: "abilities", doc: { schema: 1, id: "x", name: "X", description: "@ability[burn]" } });
+    expect(p.some((m) => /@ability\[burn\]/.test(m))).toBe(true);
+  });
+
+  it("accepts a marker that resolves", () => {
+    const p = problemsFor({ path: "x.yml", dir: "abilities", doc: { schema: 1, id: "x", name: "X", description: "@effect[burn]" } });
+    expect(p).toEqual([]);
+  });
+
+  it("warns about a known name mentioned without a marker", () => {
+    const w = warningsOf({ path: "x.yml", dir: "abilities", doc: { schema: 1, id: "x", name: "X", description: "inflicts Burn now" } });
+    expect(w.some((m) => /mentions "Burn" without linking it/.test(m))).toBe(true);
+  });
+
+  it("says nothing when the name IS linked", () => {
+    const w = warningsOf({ path: "x.yml", dir: "abilities", doc: { schema: 1, id: "x", name: "X", description: "inflicts @effect[burn]{Burn} now" } });
+    expect(w.some((m) => /without linking it/.test(m))).toBe(false);
+  });
+
+  it("does not warn about a document mentioning its own name", () => {
+    // Every description is free to say what it is called.
+    const w = warningsOf({ path: "r.yml", dir: "class-skills", doc: { schema: 1, id: "class-riding", name: "Riding", description: "Riding lets it move twice." } });
+    expect(w.some((m) => /without linking it/.test(m))).toBe(false);
+  });
+});
