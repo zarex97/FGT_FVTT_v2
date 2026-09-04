@@ -9,3 +9,6 @@ styles/fgt.css.map
 .build/
 RELEASE_NOTES.md
 dist/
+
+# graphify build output: a local knowledge-graph cache, not project source.
+graphify-out/

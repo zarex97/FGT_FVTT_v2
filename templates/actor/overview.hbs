@@ -26,12 +26,21 @@
           <span class="fgt-param__key">{{localize (concat "FGT.Param." p.key)}}</span>
           <input class="fgt-param__rank" type="text" name="system.parameters.{{p.key}}"
                  value="{{p.rank}}" placeholder="—">
+          {{#if p.shifted}}
+            {{!-- The written Rank and the Rank in force, together. The input
+                  keeps the written one and stays editable -- checking the sheet
+                  against the paper it came from is this tile's whole job -- and
+                  the effective Rank sits beside it, because that is what Magic
+                  Resistance, the damage table rows and every `Rank.gte` gate
+                  are actually reading (§5.6). --}}
+            <span class="fgt-param__effective" data-tooltip="{{localize 'FGT.Sheet.EffectiveHint'}}">
+              &rarr; {{p.effective}}
+            </span>
+          {{/if}}
           {{#if p.granted}}
-            {{!-- §5.6: only GRANTED steps move Base Attack, so the grant is
-                  reported as the separate fact it is. No "written X, now Y"
-                  arrow: nothing in the engine shifts the stored parameter by
-                  these steps, so an arrow would print a Rank the Servant was
-                  never written with. --}}
+            {{!-- Which of the shifts above the MASTER paid for, since only a
+                  granted step moves Base Attack (§5.6). The war Region's own
+                  step is listed under Combat with its Region named. --}}
             <span class="fgt-param__granted" data-tooltip="{{localize 'FGT.Sheet.GrantedHint'}}">
               {{localize "FGT.Sheet.GrantedSteps" plus=p.plus}}
             </span>
@@ -47,13 +56,19 @@
     <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Combat"}}</h3>
     <div class="fgt-stats">
       {{#if overview.combat.baseAttack}}
+        {{!-- Written, then the figure the damage pipeline actually uses. Same
+              shape as the Parameter tiles above, because it is the same fact:
+              a granted or Region-shifted Rank moves Base Attack by 10 a step
+              (§5.6) and the sheet must not print a number no attack uses. --}}
         <div class="fgt-stat">
           <span class="fgt-stat__key">{{localize "FGT.Sheet.BaseAttackStr"}}</span>
-          <span class="fgt-stat__value">{{overview.combat.baseAttack.str}}</span>
+          <span class="fgt-stat__value">{{overview.combat.baseAttack.str.value}}{{#if overview.combat.baseAttack.str.shifted}}<span
+            class="fgt-stat__effective" data-tooltip="{{localize 'FGT.Sheet.EffectiveHint'}}"> &rarr; {{overview.combat.baseAttack.str.effective}}</span>{{/if}}</span>
         </div>
         <div class="fgt-stat">
           <span class="fgt-stat__key">{{localize "FGT.Sheet.BaseAttackMag"}}</span>
-          <span class="fgt-stat__value">{{overview.combat.baseAttack.mag}}</span>
+          <span class="fgt-stat__value">{{overview.combat.baseAttack.mag.value}}{{#if overview.combat.baseAttack.mag.shifted}}<span
+            class="fgt-stat__effective" data-tooltip="{{localize 'FGT.Sheet.EffectiveHint'}}"> &rarr; {{overview.combat.baseAttack.mag.effective}}</span>{{/if}}</span>
         </div>
       {{/if}}
       <div class="fgt-stat">

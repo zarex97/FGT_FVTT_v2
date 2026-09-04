@@ -4,6 +4,19 @@ The board is not neutral. Home bases heal and protect, the day/night cycle swing
 50% against [Dark] units, regions buff whole rosters, the Grail materializes and can be
 destroyed, and the GM can inject events at will. This chapter specifies all of it.
 
+> **The war's Region had no writer (Ch. 45).** The summon dialog has always asked for it, and
+> the answer went into that ONE summon and nowhere else — `fgt.region`, the setting every other
+> reader consults, was never written. That was survivable only while the Region's parameter
+> grant was baked into the Servant at summon; once the grant became a live recomputation the
+> bonus was measured against a Region nobody had recorded, and a Servant summoned into her own
+> Region got nothing at all.
+>
+> A war has one Region, so `commitSummon` records it. That also switches on everything else
+> keyed to it that was inert for want of a writer: `regionScale` (the Hanging Gardens'
+> Construction multiplier) and Asterios's *"if the Region is Greece"* clause. The dialog opens
+> on the current Region rather than blank, so it reads as the war's and not as a per-summon
+> field, and the second Servant into the same war no longer depends on the GM remembering.
+
 ---
 
 > **Implemented (Ch. 45 C2).** `module/rules/environment.mjs` holds the rules; `snapshotBoard`

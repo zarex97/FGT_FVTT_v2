@@ -169,7 +169,62 @@ Hooks.once("setup", async () => {
       ui.notifications.error(`FGT: ${report.errors.length} content errors — see console.`);
     }
   }
+
+  // Everything above landed AFTER every Actor was already prepared, so redo it.
+  console.log(`FGT | Re-prepared ${reprepareUnits()} unit(s) against the loaded registries`);
 });
+
+/**
+ * Re-run derived data on every unit, now that the registries hold something.
+ *
+ * Foundry prepares the world's documents while its collections initialize,
+ * which is **before** the `setup` hook — and the registries are loaded inside
+ * that hook, from a compendium, behind an `await`. So every Actor computed its
+ * derived data against an EMPTY `EffectRegistry`.
+ *
+ * `contributionsOf` resolves an effect's behaviour through that registry and
+ * skips any effect it cannot find a definition for, so on a cold load **every
+ * effect whose behaviour is expressed as `rules:` contributed nothing** —
+ * silently, and only until something happened to touch the actor and re-run
+ * preparation, at which point the modifier appeared out of nowhere. Found on
+ * Medusa: her Riding Active's +5 MOV was in `statDeltas` on the sheet's
+ * explainer and NOT in her MOV, because the explainer reads a snapshot taken
+ * at render time and the MOV came from derived data computed at world load.
+ *
+ * This is the second half of a defect whose first half is recorded in
+ * `rules/snapshot.mjs#contributionsOf`: that one read a field nothing
+ * populated, this one reads a registry nothing had filled yet. Same symptom,
+ * and Medea's MOV Up is again the example.
+ *
+ * Unlinked token actors are prepared separately: they are synthetic documents
+ * built from an `ActorDelta` and do not inherit the base actor's preparation.
+ *
+ * @returns {number} how many units were re-prepared
+ */
+function reprepareUnits() {
+  let count = 0;
+  for (const actor of game.actors ?? []) {
+    try {
+      actor.prepareData();
+      count += 1;
+    } catch (err) {
+      console.error(`FGT | Could not re-prepare ${actor.name}:`, err);
+    }
+  }
+  for (const scene of game.scenes ?? []) {
+    for (const token of scene.tokens ?? []) {
+      // A linked token shares the base actor that was just re-prepared.
+      if (token.actorLink) continue;
+      try {
+        token.actor?.prepareData();
+        count += 1;
+      } catch (err) {
+        console.error(`FGT | Could not re-prepare token ${token.name}:`, err);
+      }
+    }
+  }
+  return count;
+}
 
 Hooks.once("ready", () => {
   // GM client only; a no-op everywhere else.

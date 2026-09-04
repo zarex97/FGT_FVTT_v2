@@ -83,6 +83,24 @@ This chapter's job is to make that fast enough while keeping it correct.
 
 ## 23.2 The preparation order
 
+> **The registries load AFTER preparation, and nothing re-ran it (Ch. 45).** Foundry prepares
+> every world document while its collections initialize, which is before the `setup` hook — and
+> `EffectRegistry` is loaded inside that hook, from a compendium, behind an `await`. So every
+> Actor computed the derived data below against an **empty** registry.
+>
+> `contributionsOf` resolves an effect's behaviour through that registry and skips any effect
+> whose definition it cannot find, so on a cold world load **every effect expressing its
+> behaviour as `rules:` contributed nothing** — until something happened to touch the actor, at
+> which point the modifier appeared out of nowhere. `fgt.mjs` re-prepares every unit at the end
+> of `setup` now, unlinked token actors included, since those are synthetic documents that do
+> not inherit the base actor's preparation.
+>
+> This is the second half of a defect whose first half is recorded at `contributionsOf`: that
+> one read a field nothing populated, this one read a registry nothing had filled yet. Medea's
+> MOV Up is the example in both. Found on Medusa, whose Riding Active's +5 MOV appeared in the
+> sheet's own explainer and not in her MOV — the explainer reads a snapshot taken at render
+> time, and the MOV came from derived data computed at world load.
+
 Foundry's sequence per document, with our insertions:
 
 ```

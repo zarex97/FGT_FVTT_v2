@@ -176,6 +176,23 @@ export async function commitSummon(prepared) {
     ...sheetPatch(prepared.lines, prepared.sheet, prepared.masterGranted ?? {}, prepared.warRegion),
   };
 
+  // The war's Region, recorded where the rest of the system reads it.
+  //
+  // The dialog has always asked for it, and the answer went into this ONE
+  // summon and nowhere else. That was survivable only while the Region's grant
+  // was baked into `grantedSteps`; now that the grant is recomputed live from
+  // `board.warRegion`, a Region chosen here and stored nowhere means the bonus
+  // is computed against `null` and the Servant gets nothing. Found immediately
+  // on the first re-summon after the grant was un-baked.
+  //
+  // A war has ONE Region, so this is not a per-summon field that happens to be
+  // asked at summon time -- it is the war's, and `settings.mjs` already
+  // declares `fgt.region` for it. Writing it here also switches on everything
+  // else keyed to the war Region that has been inert for want of a writer:
+  // `regionScale` (the Hanging Gardens' Construction multiplier) and Asterios's
+  // *"if the Region is Greece"* clause.
+  if (prepared.warRegion) await setWarRegion(prepared.warRegion);
+
   // §16.2's derivation, written down at the one moment it is unambiguous. The
   // schema initialises `contract` to `"contracted"`, which is the right default
   // for nothing: a Servant summoned with no Master is FREE, and left to the
@@ -195,6 +212,27 @@ export async function commitSummon(prepared) {
 
   const [actor] = await Actor.createDocuments([data]);
   return actor;
+}
+
+/**
+ * Record the war's Region, unless it is already what it should be.
+ *
+ * A world setting rather than the Combat document because `engine/board.mjs`
+ * reads the match first and this second, and a match may not exist yet at
+ * summon time. GM-only: a player summoning cannot write world settings, and
+ * failing loudly here would abort an otherwise valid summon.
+ *
+ * @param {string} region
+ * @returns {Promise<void>}
+ */
+async function setWarRegion(region) {
+  try {
+    if (!game.user?.isGM) return;
+    if (game.settings.get("fgt", "region") === region) return;
+    await game.settings.set("fgt", "region", region);
+  } catch (err) {
+    console.warn("FGT | Could not record the war Region:", err);
+  }
 }
 
 /**
