@@ -9,7 +9,7 @@
 schema: 1
 id: contagionExpanded
 name: "Contagion (Expanded)"
-description: "Pale Rider's Contagion area covers a 9×9 panel area instead of 5×5."
+description: "Pale Rider's @ability[pale-rider-contagion]{Contagion} area covers a 9×9 panel area instead of 5×5."
 polarity: status
 volatility: nonVolatile
 valence: neutral

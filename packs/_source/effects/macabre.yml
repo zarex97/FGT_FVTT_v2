@@ -15,7 +15,7 @@
 schema: 1
 id: macabre
 name: "Macabre"
-description: "Normal Attack Crits inflict an additional Stage of Poison on the Defending Unit."
+description: "Normal Attack Crits inflict an additional Stage of @effect[poison]{Poison} on the Defending Unit."
 polarity: buff
 volatility: nonVolatile
 valence: offensive

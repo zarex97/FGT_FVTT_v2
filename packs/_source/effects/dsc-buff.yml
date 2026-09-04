@@ -18,7 +18,7 @@
 schema: 1
 id: dscBuff
 name: "DSC"
-description: "Grants the 'Double Summon: Caster' Skill's Range, Normal Attack, Sustainability, and
+description: "Grants the '@ability[semiramis-double-summon-caster]{Double Summon: Caster}' Skill's Range, Normal Attack, Sustainability, and
   Territory Creation Rank C for her Faction's Home Base."
 polarity: status
 volatility: nonVolatile

@@ -117,3 +117,18 @@ describe("mentionsWithoutMarkers", () => {
     expect(mentionsWithoutMarkers("Burn, then Burn again", names)).toEqual(["Burn"]);
   });
 });
+
+describe("a name linked once is done", () => {
+  const names = new Map([["Burn", "effect:burn"]]);
+
+  it("does not demand a marker for a repetition of a name already linked", () => {
+    // The convention is to mark the first occurrence and leave the rest as
+    // prose. Without this the warning asked for markers it had been told not
+    // to write, 61 times across the corpus.
+    expect(mentionsWithoutMarkers("@effect[burn]{Burn} then Burn again", names)).toEqual([]);
+  });
+
+  it("still reports a name that is never linked at all", () => {
+    expect(mentionsWithoutMarkers("Burn then Burn again", names)).toEqual(["Burn"]);
+  });
+});

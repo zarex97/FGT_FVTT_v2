@@ -21,7 +21,7 @@ id: hanging-gardens-of-babylon
 name: "Hanging Gardens of Babylon"
 type: platform
 description: |
-  Semiramis' floating fortress. Built from a channelled Construction counter and activated from
+  Semiramis' floating fortress. Built from a channelled @effect[construction]{Construction} counter and activated from
   her Home Base; destroyed when Semiramis is defeated or its Health reaches 0, at which point she
   may rebuild it from Construction 0. Counts as a second Home Base for her Faction.
 attributes: [large, mechanical]

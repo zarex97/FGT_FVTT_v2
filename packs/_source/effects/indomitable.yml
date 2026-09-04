@@ -6,7 +6,7 @@
 schema: 1
 id: indomitable
 name: "Indomitable"
-description: "Whenever this Unit is defeated and revived through any effect, Atk Up is applied to it."
+description: "Whenever this Unit is defeated and revived through any effect, @effect[atkUp]{Atk Up} is applied to it."
 polarity: buff
 volatility: nonVolatile
 valence: offensive
