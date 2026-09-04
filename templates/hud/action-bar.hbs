@@ -40,5 +40,7 @@
     {{/each}}
   </div>
 
-  <div class="fgt-bar__turn"></div>
+  {{!-- The partial is handed `turn` as its context, so `turn.hbs` keeps
+        reading its own fields at the top level and needed no edits. --}}
+  {{#if turn.active}}<div class="fgt-bar__turn">{{> fgt-turn-panel turn}}</div>{{/if}}
 </div>

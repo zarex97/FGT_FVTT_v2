@@ -19,6 +19,7 @@ import { canUseAbility } from "../../rules/costs.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost } from "../actor-sheet/present.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "../../engine/board.mjs";
+import { turnContext, TURN_ACTIONS } from "./turn-panel.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -28,7 +29,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: ["fgt", "action-bar"],
     position: { width: "auto", height: "auto" },
     window: { frame: false, positioned: false },
-    actions: { useSlot: ActionBar.onUseSlot },
+    // The turn panel's three controls sit beside the bar's own, because the
+    // panel is now this bar's right-hand segment rather than a second window.
+    actions: { useSlot: ActionBar.onUseSlot, ...TURN_ACTIONS },
   };
 
   static PARTS = {
@@ -78,7 +81,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     const token = this.token;
     const actor = token?.actor;
-    if (!actor) return { rows: [], portrait: {}, resources: [] };
+    if (!actor) return { rows: [], portrait: {}, resources: [], turn: await turnContext() };
 
     // ONE snapshot per render, threaded through every builder — the same
     // discipline `actor-sheet/context.mjs` uses and for the same reason.
@@ -136,6 +139,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         { label: "FGT.Resource.luck", value: actor.system?.luck?.value ?? 0, max: actor.system?.luck?.max ?? null },
       ],
       rows: rowsFor({ actions, abilities, pins }),
+      // FACTION-scoped, while everything above is unit-scoped. Two scopes
+      // side by side, which is what BG3 does with end-turn beside the hotbar.
+      turn: await turnContext(),
     };
   }
 
