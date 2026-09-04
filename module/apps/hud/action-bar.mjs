@@ -19,6 +19,9 @@ import { canUseAbility } from "../../rules/costs.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost } from "../actor-sheet/present.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "../../engine/board.mjs";
+import { mayDeactivate } from "../../engine/fields.mjs";
+import { mayReshape } from "../../rules/bounded-fields.mjs";
+import { FACINGS } from "../../domain/enums.mjs";
 import { turnContext, TURN_ACTIONS } from "./turn-panel.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -73,6 +76,16 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.on("fgtBudgetChanged", refresh);
     Hooks.on("fgtFieldChanged", refresh);
 
+    // The end-of-turn repaint window, raised by the scheduler once the owner
+    // has accepted it (`engine/fields.mjs#offerReshape`). Opened here rather
+    // than there because the painter is layer 4 and the scheduler is layer 3.
+    Hooks.on("fgtOfferReshape", async ({ fieldId, unitId }) => {
+      const board = currentBoard();
+      const field = (board.fields ?? []).find((f) => f.id === fieldId);
+      const target = (board.units ?? []).find((u) => u.id === unitId);
+      if (field && target) await reshape(field, target);
+    });
+
     console.log("FGT | Action bar attached");
     return bar;
   }
@@ -121,6 +134,29 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       })
       .filter(Boolean);
 
+    // The Fields row, moved here from the token HUD. Jack's Mist is the first
+    // field in the corpus its owner may end at will, and without a control the
+    // `deactivation` spec would be one more authored field with no way to
+    // reach it. Most fields carry none and get no slot.
+    const fields = [];
+    for (const field of board.fields ?? []) {
+      const name = nameOfField(field, actor);
+      if (mayDeactivate(field, actor.id)) {
+        fields.push({
+          id: `end:${field.id}`, name, img: null, icon: "fa-solid fa-circle-xmark",
+          cost: null, cooldown: null, ring: null, disabled: false, reason: null,
+          tooltip: game.i18n.format("FGT.HUD.EndField", { name }),
+        });
+      }
+      if (mayReshape(field, unit)) {
+        fields.push({
+          id: `reshape:${field.id}`, name, img: null, icon: "fa-solid fa-pen-nib",
+          cost: null, cooldown: null, ring: null, disabled: false, reason: null,
+          tooltip: game.i18n.format("FGT.HUD.ReshapeField", { name }),
+        });
+      }
+    }
+
     const pins = (game.user.getFlag("fgt", "pins") ?? {})[actor.id] ?? [];
 
     return {
@@ -138,7 +174,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         { label: "FGT.Resource.agility", value: actor.system?.agility?.value ?? 0, max: actor.system?.agility?.max ?? null },
         { label: "FGT.Resource.luck", value: actor.system?.luck?.value ?? 0, max: actor.system?.luck?.max ?? null },
       ],
-      rows: rowsFor({ actions, abilities, pins }),
+      rows: rowsFor({ actions, abilities, fields, pins }),
       // FACTION-scoped, while everything above is unit-scoped. Two scopes
       // side by side, which is what BG3 does with end-turn beside the hotbar.
       turn: await turnContext(),
@@ -185,6 +221,19 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
 
       const result = await performAction(id, { actor, token: this.token, context: entry.context });
       if (result?.ok === false) ui.notifications.warn(refusalText(result.reason));
+      return;
+    }
+
+    if (row === "fields") {
+      const [what, fieldId] = id.split(":");
+      const board = currentBoard();
+      const field = (board.fields ?? []).find((f) => f.id === fieldId);
+      if (!field) return;
+      if (what === "reshape") return reshape(field, unitFrom(board, actor));
+      // Deactivating is what starts a `countFrom: "deactivation"` cooldown, so
+      // this must not be a bare Region delete -- the clock would never start.
+      const { deactivateField } = await import("../../engine/fields.mjs");
+      await deactivateField(fieldId, "owner");
       return;
     }
 
@@ -288,8 +337,46 @@ function refusalText(reason) {
   return game.i18n.has(key) ? game.i18n.localize(key) : reason;
 }
 
+/* -------------------------------------------------------------------------- */
+
 /**
- * The eight compass points, in clockwise order. Index arithmetic on this array
- * is what makes the dial turn, and `rules/snapshot.mjs` uses the same order.
+ * Open the painter for a field, and commit what comes back.
+ *
+ * A cancelled session resolves `null` and writes nothing — including the
+ * once-per-Turn flag, so backing out of the painter does not spend the window.
+ *
+ * Moved here from the token HUD unchanged.
+ *
+ * @param {object} field
+ * @param {object} unit the owner's snapshot
+ * @returns {Promise<void>}
  */
-export const FACINGS = Object.freeze(["n", "ne", "e", "se", "s", "sw", "w", "nw"]);
+async function reshape(field, unit) {
+  const { pickPaint } = await import("../canvas/targeting-layer.mjs");
+  const panels = await pickPaint({
+    anchor: unit.panel,
+    maxPanels: field.geometry?.maxPanels ?? 25,
+    maxDistance: field.geometry?.maxDistance ?? 4,
+    initial: field.panels ?? [],
+  });
+  if (!panels) return;
+
+  const { repaintField } = await import("../../engine/fields.mjs");
+  const verdict = await repaintField(field.id, panels);
+  // Named, not swallowed: the painter refuses illegal panels as you draw, so a
+  // refusal here means something moved between drawing and committing.
+  if (!verdict.ok) ui.notifications.warn(game.i18n.localize(`FGT.Paint.${verdict.reason}`));
+}
+
+/**
+ * The ability's own name, so the slot says what it will close rather than
+ * naming a content id.
+ *
+ * @param {object} field
+ * @param {object} actor
+ * @returns {string}
+ */
+function nameOfField(field, actor) {
+  const item = actor.items.find((i) => i.system?.contentId === field.id);
+  return item?.name ?? field.id;
+}
