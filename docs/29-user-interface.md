@@ -397,6 +397,22 @@ on the board. That is why `available` takes the board and not only the unit.
 
 ## 29.5 Enriched descriptions
 
+> **The pending-decisions window (§27.5).** Top-right, clear of the action bar at the bottom
+> and the sidebar at the right. It answers *"what is the game waiting for me to do?"* and
+> **exists only while something is pending** — a player with nothing to answer has no window,
+> rather than an empty panel taking canvas.
+>
+> It lists the viewer's own prompts, every prompt for a GM (who answers for absent players
+> through §27.5's "decide for them"), and any rung the viewer holds a Command Spell for —
+> §17.4's interrupt is the one decision that is yours on somebody else's rung. Sorted by
+> soonest clock. Counter rungs are outlined, because that is the rung that arms the bar.
+>
+> Names and images are **public**, through `publicIdentityOf`. The window is the viewer's own
+> list, but a concealed Servant's true name must not leak into it from a card that is
+> correctly hiding it: a row reads "Lancer", not "Karna".
+>
+> A row **jumps** to its card and flashes it; it does not answer the prompt.
+
 > **Armed for a Counter (§12.8).** On the Counter rung the bar is armed *for* the player
 > rather than waiting to be found: the token is selected, the bar opens, a gold banner
 > reads *"Counter — choose an Attack"*, and every ability that could answer glows and hints

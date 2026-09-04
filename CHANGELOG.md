@@ -130,6 +130,18 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **A pending-decisions window (Ch. 27 §27.5).** One place that answers *"what is the game
+  waiting for me to do?"* An AoE attack already fans out to one ladder per defender, so
+  owning four units and being caught by one Noble Phantasm meant three prompts in a
+  scrolling chat log, each with a clock whose default on expiry spends nothing.
+
+  Soonest deadline first; Counter rungs marked, since that is the rung that arms the action
+  bar; names public, so a concealed Servant reads as "Lancer" and not "Karna". A row jumps
+  to its card and flashes it — it answers nothing itself, because the card carries the
+  buttons and their refusal reasons and a second set would be a second place to keep in
+  step. It exists only while something is pending, and shows the eight most urgent with a
+  count of the rest: a GM sees the whole table's prompts, and a live world reached 178.
+
 - **The Master redirect (Ch. 12 §12.8).** A Counter aimed at a Master whose Servant stands
   within two panels hits the **Servant** instead, and the Master takes nothing even from an
   area that covers it. Specified since the chapter was written and implemented nowhere.
