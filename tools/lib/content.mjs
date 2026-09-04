@@ -15,6 +15,7 @@ import { createHash } from "node:crypto";
 import { Rank } from "../../module/domain/rank.mjs";
 import { SERVANT_CLASSES } from "../../module/domain/enums.mjs";
 import { classifyAbility } from "../../module/rules/ability-use.mjs";
+import { rewriteReferences } from "./references.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
 import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES, lookup } from "../../module/domain/tables.mjs";
@@ -265,6 +266,80 @@ export function documentId(contentId) {
     out += alphabet[parseInt(hex.slice(k * 2, k * 2 + 2), 16) % alphabet.length];
   }
   return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Cross-references                                                           */
+/* -------------------------------------------------------------------------- */
+
+/** Which source directory answers which marker kind. */
+const KIND_OF_DIR = Object.freeze({
+  effects: "effect",
+  "class-skills": "ability",
+  abilities: "ability",
+  "command-spells": "spell",
+  "master-essences": "essence",
+  rules: "action",
+});
+
+/**
+ * Every linkable document, keyed `kind:id`, with the UUID a link needs.
+ *
+ * A Servant's own ability is addressed THROUGH the Servant, at the embedded id
+ * `compileEmbeddedAbility` already derives. That is why nothing has to be
+ * shipped standalone for a Servant's skills to be linkable (DX.5): an embedded
+ * document has a perfectly good UUID.
+ *
+ * @param {Array<{path: string, dir: string, doc: object}>} files
+ * @returns {Map<string, {uuid: string, name: string}>}
+ */
+export function referenceIndex(files) {
+  /** @type {Map<string, string>} abilityId -> owning Servant contentId */
+  const owners = new Map();
+  for (const { dir, doc } of files) {
+    if (PACKS[dir]?.documentType !== "Actor" || !doc?.id) continue;
+    for (const entry of doc.abilities ?? []) {
+      const id = entry?.ref ?? entry?.id;
+      if (id) owners.set(id, doc.id);
+    }
+  }
+
+  /** @type {Map<string, {uuid: string, name: string}>} */
+  const index = new Map();
+  for (const { dir, doc } of files) {
+    const kind = KIND_OF_DIR[dir];
+    if (!kind || !doc?.id || !doc?.name) continue;
+    const resolved = kind === "ability" && doc.isNP ? "np" : kind;
+
+    const owner = owners.get(doc.id);
+    const spec = PACKS[dir];
+    const uuid = owner
+      ? `Compendium.fgt.servants.Actor.${documentId(owner)}.Item.${documentId(`${owner}/${doc.id}`)}`
+      : `Compendium.fgt.${spec.pack}.${spec.documentType}.${documentId(doc.id)}`;
+
+    index.set(`${resolved}:${doc.id}`, { uuid, name: doc.name });
+  }
+  return index;
+}
+
+/**
+ * Display name -> `kind:id`, for the warning that lists unmarked mentions.
+ *
+ * A name shared by two documents is dropped: six are (Monstrous Strength,
+ * Indomitable, Item Construction, Territory Creation, Presence Concealment,
+ * Riding), and warning about a name that could mean either would send an
+ * author to guess, which is exactly what explicit markers exist to avoid.
+ *
+ * @param {Array<{path: string, dir: string, doc: object}>} files
+ * @returns {Map<string, string>}
+ */
+export function referenceNames(files) {
+  /** @type {Map<string, string|null>} */ const seen = new Map();
+  for (const [key, entry] of referenceIndex(files)) {
+    if (entry.name.length < 4) continue;
+    seen.set(entry.name, seen.has(entry.name) ? null : key);
+  }
+  return new Map([...seen].filter(([, key]) => key !== null));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1047,9 +1122,16 @@ export function phaseEffects(doc) {
  * @param {Map<string, object>} library
  * @returns {object}
  */
-export function compileDocument(doc, dir, library, assets = new Map()) {
+export function compileDocument(doc, dir, library, assets = new Map(), references = null) {
   const spec = PACKS[dir];
   if (!spec) throw new Error(`FGT | No pack mapping for source directory "${dir}"`);
+
+  // Markers become real content links here rather than at render time, so the
+  // compendium holds ordinary Foundry links that work in chat, journals and
+  // exported adventures with no system code involved (§37.3).
+  const linked = references
+    ? { ...doc, description: rewriteReferences(doc.description, references).text }
+    : doc;
 
   const base = {
     _id: documentId(doc.id),
@@ -1068,7 +1150,7 @@ export function compileDocument(doc, dir, library, assets = new Map()) {
       ...base,
       img: images.img,
       type,
-      system: { ...actorSystem(doc), defaultImage: images.defaultImage },
+      system: { ...actorSystem(linked), defaultImage: images.defaultImage },
       items: abilities.map((a) => compileEmbeddedAbility(a, doc.id, base._id)),
       prototypeToken: {
         // A Servant, Master or platform is ONE unit: its sheet and its token
@@ -1108,7 +1190,7 @@ export function compileDocument(doc, dir, library, assets = new Map()) {
   return {
     ...base,
     type: doc.type ?? spec.itemType,
-    system: itemSystem(doc),
+    system: itemSystem(linked),
     _key: `!items!${base._id}`,
   };
 }

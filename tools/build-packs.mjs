@@ -16,7 +16,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { compilePack } from "@foundryvtt/foundryvtt-cli";
 import { loadSource, loadAssets } from "./lib/load.mjs";
-import { validateAll, compileDocument, PACKS } from "./lib/content.mjs";
+import { validateAll, compileDocument, PACKS, referenceIndex } from "./lib/content.mjs";
 
 const SOURCE = "packs/_source";
 const ASSETS = "assets";
@@ -37,6 +37,11 @@ if (all.length > 0) {
 
 const library = new Map(files.filter((f) => f.doc?.id).map((f) => [f.doc.id, f.doc]));
 
+// Built once for the whole corpus: every marker in every description is
+// resolved against it, so a link cannot point at a document that is not
+// being shipped in the same build.
+const references = referenceIndex(files);
+
 // Group compiled documents by destination pack.
 /** @type {Map<string, object[]>} */
 const byPack = new Map();
@@ -52,7 +57,7 @@ for (const { path, dir, doc } of files) {
     continue;
   }
   if (!byPack.has(spec.pack)) byPack.set(spec.pack, []);
-  byPack.get(spec.pack).push(compileDocument(doc, dir, library, assets));
+  byPack.get(spec.pack).push(compileDocument(doc, dir, library, assets, references));
 }
 
 await rm(STAGING, { recursive: true, force: true });

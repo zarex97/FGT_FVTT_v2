@@ -5,7 +5,7 @@
 import { describe, it, expect } from "vitest";
 import {
   validateAll, resolveRef, substitute, documentId, ruleElements, compileDocument,
-  indexAssets, unitImages, ASSET_ROOT,
+  indexAssets, unitImages, ASSET_ROOT, referenceIndex, referenceNames,
 } from "../../tools/lib/content.mjs";
 
 const file = (doc, path = "test.yml", dir = "effects") => ({ path, dir, doc });
@@ -592,5 +592,67 @@ describe("priority overrides (§24.6)", () => {
     const out = validateAll([file(withPriority({ "@intentional": "because" }))]);
 
     expect(out.warnings.join(" ")).toMatch(/multiplicative|40/i);
+  });
+});
+
+describe("cross-reference index (§37.3)", () => {
+  const files = [
+    { path: "burn.yml", dir: "effects", doc: { schema: 1, id: "burn", name: "Burn" } },
+    { path: "riding.yml", dir: "class-skills", doc: { schema: 1, id: "class-riding", name: "Riding" } },
+    { path: "bell.yml", dir: "abilities", doc: { schema: 1, id: "medusa-bellerophon", name: "Bellerophon", isNP: true } },
+    { path: "medusa.yml", dir: "servants", doc: { schema: 1, id: "medusa", name: "Medusa", abilities: [{ ref: "medusa-bellerophon" }] } },
+  ];
+
+  it("addresses a standalone document through its own pack", () => {
+    const index = referenceIndex(files);
+    expect(index.get("effect:burn").uuid)
+      .toBe(`Compendium.fgt.effects.Item.${documentId("burn")}`);
+    expect(index.get("effect:burn").name).toBe("Burn");
+  });
+
+  it("addresses a Servant's own ability THROUGH the Servant", () => {
+    // An embedded document has a resolvable UUID, so nothing has to be shipped
+    // standalone for a Servant's own skills to be linkable (DX.5).
+    const index = referenceIndex(files);
+    expect(index.get("np:medusa-bellerophon").uuid).toBe(
+      `Compendium.fgt.servants.Actor.${documentId("medusa")}`
+      + `.Item.${documentId("medusa/medusa-bellerophon")}`,
+    );
+  });
+
+  it("separates an NP from an ability, so a mistyped marker fails", () => {
+    const index = referenceIndex(files);
+    expect(index.has("np:medusa-bellerophon")).toBe(true);
+    expect(index.has("ability:medusa-bellerophon")).toBe(false);
+    expect(index.has("ability:class-riding")).toBe(true);
+    expect(index.has("np:class-riding")).toBe(false);
+  });
+
+  it("indexes display names for the retrofit warning", () => {
+    expect(referenceNames(files).get("Burn")).toBe("effect:burn");
+  });
+});
+
+describe("compileDocument rewrites markers", () => {
+  const library = new Map();
+  const index = new Map([
+    ["effect:burn", { uuid: "Compendium.fgt.effects.Item.zzzz", name: "Burn" }],
+  ]);
+
+  it("turns a marker into a real content link", () => {
+    const doc = { schema: 1, id: "x", name: "X", description: "inflicts @effect[burn] now" };
+    const out = compileDocument(doc, "abilities", library, new Map(), index);
+    expect(out.system.description).toBe("inflicts @UUID[Compendium.fgt.effects.Item.zzzz]{Burn} now");
+  });
+
+  it("leaves a description with no markers exactly as authored", () => {
+    const doc = { schema: 1, id: "x", name: "X", description: "plain prose" };
+    expect(compileDocument(doc, "abilities", library, new Map(), index).system.description)
+      .toBe("plain prose");
+  });
+
+  it("compiles without an index at all, for callers that do not have one", () => {
+    const doc = { schema: 1, id: "x", name: "X", description: "@effect[burn]" };
+    expect(compileDocument(doc, "abilities", library).system.description).toBe("@effect[burn]");
   });
 });
