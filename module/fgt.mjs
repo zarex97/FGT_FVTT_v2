@@ -61,7 +61,6 @@ import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
 import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
 import { attachConcealment } from "./engine/concealment.mjs";
-import { attachTokenHUD } from "./apps/hud/token-hud.mjs";
 import { attachAwaitTimeouts } from "./engine/await-timeout.mjs";
 
 Hooks.once("init", () => {
@@ -318,7 +317,6 @@ Hooks.once("ready", () => {
   reconcileForcedModes().catch((err) => console.error("FGT | Forced modes:", err));
   // §29.5: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
-  attachTokenHUD();
   ActionBar.attach();
   // §27.5: a player who has closed their browser must not block the table, and
   // the decision made for them must never spend anything.
