@@ -384,6 +384,17 @@ on the board. That is why `available` takes the board and not only the unit.
 
 ---
 
+> **A CSS class collision moved every resource bar to the bottom of the screen (Ch. 45).**
+> `.fgt-bar` had belonged to the actor sheet's Health, Agility and Luck bars since the sheet was
+> built. The action bar took the same name, and its block sets `position: fixed` — so every
+> character sheet's bars were pulled out of their header and pinned to the bottom of the viewport
+> at 1500px wide, showing as two empty boxes and a slash. The action bar is `.fgt-actionbar` now.
+>
+> Nothing caught it: the stylesheet compiled, the template check passed, and every test was
+> green. A collision is invisible to all three. `test/unit/styles.test.mjs` holds the invariant
+> that made the fix safe — **one owning partial per top-level class** — which was already true of
+> every other class in the system.
+
 ## 29.5 Enriched descriptions
 
 Every description is passed through Foundry's `TextEditor.enrichHTML` before it is rendered, so

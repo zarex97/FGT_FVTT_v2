@@ -1,29 +1,29 @@
 {{!-- The action bar (§29.5). Rows wrap; nothing here has an upper bound,
       which is exactly what the token HUD column could not survive. --}}
-<div class="fgt-bar">
-  <div class="fgt-bar__portrait">
+<div class="fgt-actionbar">
+  <div class="fgt-actionbar__portrait">
     <img src="{{portrait.img}}" alt="{{portrait.name}}">
-    <div class="fgt-bar__identity">
-      <span class="fgt-bar__name">{{portrait.name}}</span>
-      {{#if portrait.subtitle}}<span class="fgt-bar__subtitle">{{portrait.subtitle}}</span>{{/if}}
+    <div class="fgt-actionbar__identity">
+      <span class="fgt-actionbar__name">{{portrait.name}}</span>
+      {{#if portrait.subtitle}}<span class="fgt-actionbar__subtitle">{{portrait.subtitle}}</span>{{/if}}
     </div>
-    <div class="fgt-bar__resources">
+    <div class="fgt-actionbar__resources">
       {{#each resources as |r|}}
-        <span class="fgt-bar__resource"><b>{{localize r.label}}</b> {{r.value}}{{#if r.max}} / {{r.max}}{{/if}}</span>
+        <span class="fgt-actionbar__resource"><b>{{localize r.label}}</b> {{r.value}}{{#if r.max}} / {{r.max}}{{/if}}</span>
       {{/each}}
       {{!-- §6.10's pools. They gate abilities, so they belong beside the
             buttons rather than a tab away on the sheet. --}}
       {{#each pools as |p|}}
-        <span class="fgt-bar__resource fgt-bar__resource--pool"><b>{{p.label}}</b> {{p.value}}{{#if p.max}} / {{p.max}}{{/if}}</span>
+        <span class="fgt-actionbar__resource fgt-actionbar__resource--pool"><b>{{p.label}}</b> {{p.value}}{{#if p.max}} / {{p.max}}{{/if}}</span>
       {{/each}}
     </div>
   </div>
 
-  <div class="fgt-bar__rows">
+  <div class="fgt-actionbar__rows">
     {{#each rows as |row|}}
-      <div class="fgt-bar__row" data-row="{{row.id}}">
-        <span class="fgt-bar__row-label">{{localize row.label}}</span>
-        <div class="fgt-bar__slots">
+      <div class="fgt-actionbar__row" data-row="{{row.id}}">
+        <span class="fgt-actionbar__row-label">{{localize row.label}}</span>
+        <div class="fgt-actionbar__slots">
           {{#each row.slots as |slot|}}
             <button type="button"
                     class="fgt-slot{{#if slot.disabled}} fgt-slot--disabled{{/if}}{{#if slot.ring}} fgt-slot--{{slot.ring}}{{/if}}"
@@ -47,5 +47,5 @@
 
   {{!-- The partial is handed `turn` as its context, so `turn.hbs` keeps
         reading its own fields at the top level and needed no edits. --}}
-  {{#if turn.active}}<div class="fgt-bar__turn">{{> fgt-turn-panel turn}}</div>{{/if}}
+  {{#if turn.active}}<div class="fgt-actionbar__turn">{{> fgt-turn-panel turn}}</div>{{/if}}
 </div>

@@ -739,7 +739,12 @@
 }
 
 // The action bar (§29.5). Anchored bottom-centre, above the macro hotbar.
-.fgt-bar {
+//
+// NOT `.fgt-bar`, which the actor sheet's Health/Agility/Luck bars have
+// owned since `_shell.scss` was written. Taking that name pinned every
+// resource bar on every character sheet to the bottom of the SCREEN at
+// 1500px wide, because this block sets `position: fixed`.
+.fgt-actionbar {
   position: fixed;
   bottom: 0.5rem;
   left: 50%;

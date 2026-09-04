@@ -221,7 +221,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     // be silently empty: `{{../row.id}}` rendered as "" under Handlebars block
     // params and this handler returned without a word, which is exactly the
     // silent no-op this bar exists to stop doing.
-    const row = target.dataset.row || target.closest(".fgt-bar__row")?.dataset?.row || "";
+    const row = target.dataset.row || target.closest(".fgt-actionbar__row")?.dataset?.row || "";
     const id = target.dataset.slot;
 
     if (row === "actions") {
@@ -301,7 +301,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // Right-click on the dial is the other direction; on an ability it
         // pins. The HUD has no context menu of its own, so losing it costs
         // nothing here.
-        const elRow = el.dataset.row || el.closest(".fgt-bar__row")?.dataset?.row || "";
+        const elRow = el.dataset.row || el.closest(".fgt-actionbar__row")?.dataset?.row || "";
         if (el.dataset.slot === "facing") return this.turnFacing(actor, -1);
         if (elRow === "actions") return undefined;
         return this.togglePin(actor.id, el.dataset.slot);

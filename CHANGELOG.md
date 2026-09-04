@@ -51,6 +51,13 @@ coincide by accident; the headings say which is which.
 
 ### Corrected
 
+- **Every character sheet's Health, Agility and Luck bars were pinned to the bottom of the
+  screen.** The action bar claimed `.fgt-bar`, a class the actor sheet header had owned since it
+  was built, and the action bar's block sets `position: fixed`. The bars were torn out of their
+  header and stretched to 1500px, rendering as two empty boxes and a slash. Renamed to
+  `.fgt-actionbar`, with a test enforcing one owning partial per class — an invariant that was
+  already true everywhere else (Ch. 29 §29.4).
+
 - **Three of the eight action kinds could not be reached by any player.** `mark`, `gather` and
   `ridingAttack` each had a complete engine — budget checks, turn bookkeeping, intents, chat
   output — and **no caller anywhere in the repository**. `placeMark` even detects the finished
