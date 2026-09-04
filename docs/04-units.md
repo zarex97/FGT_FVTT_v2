@@ -44,6 +44,14 @@
 >   texture. Foundry's own `getActiveTokens` carries that liveness guard for exactly this
 >   reason, which is what made dropping it so easy to miss; `placedTokensOf` carries it now.
 >
+> **Chat cards show the public identity too (Ch. 45).** The skill card printed `actor.img` and
+> `actor.name`, so using a Skill announced a concealed Servant's true face and true name to the
+> whole table; the attack card printed both units' true names for the same reason. A chat message
+> is ONE document every client reads identically — exactly like a token's texture — so it shows
+> what everyone is entitled to see, **including to the unit's own owner**, whose card is the same
+> card the opponent is reading. `engine/public-identity.mjs` is the single home for that question
+> now, shared with the token sync that used to own its own copy of it.
+
 > An **unlinked** token's image is read from the token's own `ActorDelta` rather than from the
 > base actor, so per-token art a GM chose deliberately is not stomped when the base portrait
 > changes.

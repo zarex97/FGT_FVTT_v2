@@ -51,6 +51,13 @@ coincide by accident; the headings say which is which.
 
 ### Corrected
 
+- **Chat cards revealed a concealed Servant's true face and name.** The skill card printed
+  `actor.img` and `actor.name`, so using a Skill announced both to the whole table; the attack
+  card named both combatants outright. A chat message is one document every client reads, like a
+  token's texture, so all of them now show the public identity — the class image and the class
+  name while the identity is unrevealed. `publicNameOf` also stopped calling a Master "Servant",
+  which it did for any unit with no `trueName` (Ch. 04 §4.2).
+
 - **Every character sheet's Health, Agility and Luck bars were pinned to the bottom of the
   screen.** The action bar claimed `.fgt-bar`, a class the actor sheet header had owned since it
   was built, and the action bar's block sets `position: fixed`. The bars were torn out of their
