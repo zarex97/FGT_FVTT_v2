@@ -1091,6 +1091,11 @@ function collectAbilities(actor) {
       // name a content id, a whole category, or a copy's exclusion set --
       // which is all three of the ways her sheet groups abilities.
       contentId: i.system?.contentId ?? null,
+      // The geometry of the field this ability BUILDS, if any. `rules/actions.mjs`
+      // offers the Mark action from the snapshot alone and cannot reach the item
+      // document to ask -- and "markDefined" is the whole test for whether this
+      // Noble Phantasm is assembled rather than cast (Ch. 43 §43.4).
+      fieldGeometryKind: i.system?.field?.geometry?.kind ?? null,
       category: i.system?.category ?? null,
       exclusionSet: i.system?.exclusionSet ?? null,
       // The whole-match budget, so a gate can ask without a document.
