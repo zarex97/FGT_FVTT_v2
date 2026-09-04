@@ -445,6 +445,14 @@ a much better interaction than prompting after each move.
 
 ## 18.9 Budget display
 
+> **Three of the eight `ActionKind`s were unreachable (Ch. 45).** `mark`, `gather` and
+> `ridingAttack` each had a complete engine and **no caller anywhere in the repository**, so the
+> economy billed for actions no player could take. They are offered by `rules/actions.mjs`'s
+> registry now, and a drift test fails the build if a fourth ever joins them: every kind must have
+> a registry entry or an explicit exemption. `skill`, `np` and `spell` are the exemptions, billed
+> by ability buttons rather than by an action slot.
+
+
 The turn budget is the primary HUD element (Ch. 29):
 
 ```

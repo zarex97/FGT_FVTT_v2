@@ -269,92 +269,96 @@ CONTRACTED
 
 ---
 
-## 29.4 The turn HUD
+## 29.4 The action bar
 
-Specified in Ch. 18 §18.9 and Ch. 25 §25.6. Pinned, always visible during a match. The single
-most-looked-at element in the interface.
+One persistent panel for the controlled unit, anchored bottom-centre, replacing both the turn HUD
+and the F/GT column on Foundry's token HUD. `module/apps/hud/action-bar.mjs`.
+
+**Why it replaced the column.** The old HUD appended a single vertical `col` to Foundry's token
+HUD and packed into it a budget pip, Attack, Move, a facing dial, up to six abilities, one toggle
+per mode, two buttons per open bounded field, and effect pips. Foundry sizes that column for
+roughly four 35px controls. Medusa produces twelve, so it overflowed — and no styling fixes a
+list with **no upper bound** inside a fixed height. Rows wrap here, so a Servant with three open
+fields and two modes fits by construction.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ ┌──────┐  PINNED   [ ][ ][ ]                    │  RED FACTION   │
+│ │ art  │  ACTIONS  [⚔][👣][✚ mark][🧭]          │  Round 3 · 2◈  │
+│ └──────┘  SKILLS   [ ][ ][ ][ ][ ][ ]           │  ⚠ Charmed     │
+│ Medusa    NP       [ ][ ]   MODES [ ]  FIELDS [ ]│ ┌───────────┐  │
+│ RIDER     EFFECTS  [▪ 2◈][▪ 1◈]                 │ │ End Turn  │  │
+│ HP ████ 850  AGI 20  LUC 5   ◈ ●●○              │ └───────────┘  │
+└──────────────────────────────────────────────────┴────────────────┘
+```
+
+**Rows are filled from what the unit has**, and a row with nothing in it is omitted rather than
+drawn blank. A Master shows three rows and Medusa seven. The **pinned** row is a per-user
+shortcut, a `game.user` flag rather than actor data — a pin is one player's convenience, and
+storing it on the actor would let one player rearrange another's bar and would need a socket to
+sync it. Pins never hide anything, because the auto rows always show the whole roster.
+
+**A slot says what it is without being hovered.** Cost in the top-left, cooldown as an overlay
+carrying the remaining ticks, a ring for a mode that is on or a Noble Phantasm whose field is
+built, and dimmed with a dashed border when it cannot be used — with the reason in the tooltip
+and raised as a notification on click. `apps/hud/present.mjs` computes all of it and is pure, so
+every state is testable without Foundry, the same split `actor-sheet/present.mjs` uses.
+
+**The turn segment is adjacent, not merged.** Faction, clock, compulsion warnings and the End
+Turn gate sit at the right-hand end the way BG3 places end-turn beside the hotbar. It stays
+**faction-scoped** while everything else on the bar is unit-scoped: the gate is about the
+faction's whole budget, not about whichever token is selected. The compulsion section remains the
+loudest thing in it, because that is the reason the panel exists — compulsions are turn-scoped
+(D18.4), so a player can only discover a violation *after* committing to it.
+
+### Actions are a registry, not buttons
+
+`module/rules/actions.mjs` declares every unit action as data: an id, the `ActionKind` it bills,
+an icon, a label, and an availability predicate over a unit snapshot and the board. Layer 2 and
+pure. `module/engine/actions.mjs` maps each id to the engine that performs it.
+
+| Action | Offered when | Mode |
+|---|---|---|
+| Attack | the unit is not granted `noNormalAttack` (Pale Rider is) | targeted |
+| Move | always | targeted |
+| Riding Attack | `hasGranted(unit, GRANTS.ridingAttack)` | targeted |
+| Mark | the unit owns an NP whose `field.geometry.kind` is `markDefined`, and that field is not open | immediate |
+| Gather | the board holds a non-enemy unit with `hgobConstruction` | immediate |
+| Facing | always; bills no `ActionKind`, because setting facing must not end the turn | dial |
+
+Gather's predicate is **board-dependent rather than unit-intrinsic**: *"Semiramis or any allied
+Unit can perform 'Gather'"*, so the slot appears on an ally's bar because of who else is standing
+on the board. That is why `available` takes the board and not only the unit.
+
+> **The registry exists because three actions had shipped unreachable.** `rules/budget.mjs`
+> defines eight `ActionKind`s, and `mark`, `gather` and `ridingAttack` had **no caller anywhere in
+> the repository** — while all three engines were complete, down to budget checks and chat output.
+> `placeMark` even detects the finished Bloodmark square and opens the field. `riding.mjs`'s own
+> header records that `GRANTS.ridingAttack` *"has been declared since grants were written and no
+> engine ever read it"*.
+>
+> So Blood Fort Andromeda could not be built, Semiramis's Construction could not be fed, and no
+> Servant could ride through a line — for want of a button. A hand-written HUD is where that
+> happens. A table plus a drift test (§37.4, D37.11's sibling) is where it cannot: every
+> `ActionKind` must now have a registry entry or an explicit exemption, or `npm test` fails.
+>
+> **Verified live.** Four Bloodmarks placed from the bar onto the corners of a 5×5, the field
+> opened, and the Mark slot withdrew itself — *"Medusa cannot place new Bloodmarks while
+> Bloodfort Andromeda is Active"*. That had never been possible.
+
+> **Two defects the first live use found, both invisible to inspection.**
+>
+> - The template wrote `data-row="{{../row.id}}"`, which renders **empty** under Handlebars block
+>   params: a block parameter stays in scope inside the nested `each`, and `../` walks past it to
+>   nothing. Every click read a blank row, matched no branch, and returned silently — the exact
+>   dead control this bar exists to stop being. The handler reads the row off the DOM ancestor
+>   now, which cannot be silently empty.
+> - Refusals were localized blindly. The engines do not agree on what `reason` is: `placeMark` and
+>   `gather` return ids that key a translation, while `engine/budget.mjs#affordable` returns a
+>   finished English sentence. The screen read `FGT.Action.Refusal.Servant attacks exhausted
+>   (2/2)`. A reason with no translation is shown as it stands.
 
 ---
-
-> **Implemented.** `module/apps/hud/token-hud.mjs`, extending Foundry's HUD rather than replacing
-> it. Every control is a **shortcut to something that already exists** — the attack flow is
-> `FGTActorSheet.declareAttack`, reused rather than reimplemented, because a second path into a
-> resolution is a second place for it to be wrong and the copy is the one nobody updates.
->
-> The quick-bar filters to **ready** abilities: a button that refuses when pressed teaches nothing
-> a missing button does not teach faster. The facing dial does **not** end the turn, as this
-> section requires. The budget dot reads turn state as **stale-by-reading** — a state stamped with
-> an earlier tick is spent whatever it says — which is why a missed reset hook cannot leave a
-> Servant looking exhausted for the rest of the match.
-
-## 29.5 The token HUD
-
-Extends Foundry's token HUD with F/GT-specific controls:
-
-| Control | Purpose |
-|---|---|
-| Attack | Opens the attack flow (targeting mode C) |
-| Move | Enters movement mode with the reachable set highlighted |
-| Ability quick-bar | Up to 6 ready abilities, one click each |
-| Facing dial | Set facing without ending the turn |
-| Mode toggles | Presence Concealment / Mad Enhancement, with their cooldowns |
-| Effect pips | Hover for the full list |
-| Budget indicator | Whether this unit has already moved/attacked |
-
-The budget indicator on the token itself (a small dot in a corner) means a player does not have
-to remember which of their seven Servants has already acted.
-
----
-
-> **Implemented.** `module/apps/ability-editor.mjs`, opened from the ability list for a GM and
-> falling back to the plain sheet for everyone else — the editor writes rule elements, and a player
-> who reorders a phase has changed the ability for the whole table.
->
-> The **targeting picker** is built as this section demands: `module/rules/targeting/vocabulary.mjs`
-> pairs each internal id with a plain-language label and a small schematic, so a GM picks a diagram
-> and the internal name is written, never read. A drift test holds the picker's shape list against
-> `expand()`'s `switch` **in both directions** — a shape offered but not implemented authors an
-> ability that targets nothing, and one implemented but not offered is unreachable.
->
-> One deviation, stated plainly. This section asks for validation "running the same checks as the
-> content build", and the editor **does not import the build's validator**: `tools/lib/content.mjs`
-> already imports from `module/`, so importing it back would invert the layer graph. Instead every
-> live check consults the authority the engine uses at runtime — `handledKeys()` for rule elements,
-> `EffectRegistry` for effect ids, `parseTick` for durations, the shape vocabulary for targeting.
-> Those are the checks that decide whether an ability *does anything*. **CI remains authoritative**
-> for the rest, and Save is refused while any of them fails.
-
-> **Fixed (Ch. 45): the facing dial was unusable, and facing was invisible on the board.**
->
-> The dial was a `<select>` inside Foundry's `.control-icon`, which is a fixed 35px square built
-> to hold one glyph. Measured live: the select came out **25px wide with `0 8px` padding** — nine
-> pixels of content box for "South-west", and a native dropdown arrow alone is wider than that.
-> It rendered as an empty grey sliver, so the current facing could not be read and neither could
-> any option. The write path worked perfectly; nothing about it was visible.
->
-> It is now one arrow rotated to the heading. **Left-click turns it 45° clockwise, right-click
-> 45° anticlockwise**, so any of the eight is at most four clicks away either way — and right-
-> click is the second direction rather than a context menu, which the HUD does not otherwise
-> have. The HUD re-renders on `updateActor` for `system.facing`, because Foundry re-renders the
-> token HUD only for its own document's updates.
->
-> The other half is that the answer now lives **on the board**. `apps/canvas/token.mjs` draws a
-> gold chevron on the token pointing the way it faces, seated so its tip lands on the token's own
-> boundary and nothing crosses into the neighbouring panel. It is drawn on the placeable rather
-> than in `OverlayLayer` because it has to follow the token: the overlay layer redraws on
-> selection, hover and invalidation, none of which fire during a drag. An actor with no `facing`
-> draws nothing rather than defaulting to north, which would assert a heading the rules are not
-> using.
->
-> Also new on the HUD: a **field switch**, one per open bounded field the selected unit may close
-> at will. Jack's Mist is the first in the corpus whose owner may end it — *"can be deactivated at
-> any time"* — and without a control the `deactivation` spec would be one more authored field with
-> no way to reach it. It routes through `engine/fields.mjs#deactivateField` rather than deleting
-> the Region, because deactivating is what starts a `countFrom: "deactivation"` cooldown.
->
-> Related: **every token's artwork rotation is now locked** (`lockRotation`). Facing is
-> `system.facing` and nothing in this system reads Foundry's own `rotation`, so an unlocked token
-> only let a player point the picture somewhere the rules disagreed with.
 
 ## 29.6 The ability editor
 
@@ -564,6 +568,14 @@ and pluralization through `game.i18n.format` with explicit plural keys.
 | # | Decision |
 |---|---|
 | D29.1 | ApplicationV2 with the declarative `actions` map throughout; no V1 Application, no jQuery. |
+| DA.1 | One persistent bar for the controlled unit, bottom-centre. The token keeps Foundry's own controls only. |
+| DA.2 | Unit actions are a pure layer-2 registry, not hardcoded buttons. Availability is a predicate over a snapshot and the board. |
+| DA.3 | A drift test fails the build when an `ActionKind` has no registry entry and no explicit exemption. |
+| DA.4 | Rows fill automatically so nothing can be hidden; a pinned row sits in front as a shortcut. |
+| DA.5 | Pins are a user flag, not actor data: no socket, and no player rearranging another's bar. |
+| DA.6 | Slot appearance is a pure view-model, so every state is testable without Foundry. |
+| DA.7 | A refusal is never a silent no-op; an untranslated reason is shown verbatim rather than as a raw key. |
+| DA.8 | The turn panel is adjacent to the bar, not merged into it: it stays faction-scoped. |
 | D29.2 | Every disabled control states its reason; every irreversible action warns before, not after. |
 | D29.3 | The header carries every value that gates an action — ZON, contract, compulsions, resources. |
 | D29.4 | Derived values that players compute wrong (Poison stage damage, tick durations) are shown computed. |

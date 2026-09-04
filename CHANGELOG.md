@@ -51,6 +51,14 @@ coincide by accident; the headings say which is which.
 
 ### Corrected
 
+- **Three of the eight action kinds could not be reached by any player.** `mark`, `gather` and
+  `ridingAttack` each had a complete engine — budget checks, turn bookkeeping, intents, chat
+  output — and **no caller anywhere in the repository**. `placeMark` even detects the finished
+  Bloodmark square and opens the field. So Blood Fort Andromeda could not be built, Semiramis's
+  Construction could not be fed, and no Servant could perform a Riding Attack. All three are
+  offered by the new action bar, and a drift test now fails the build when an `ActionKind` has no
+  registry entry and no explicit exemption (Ch. 18 §18.9, Ch. 29 §29.4, Ch. 43, Ch. 32).
+
 - **Every effect whose behaviour is `rules:` did nothing until its actor was touched.** The
   effect registry is filled in the `setup` hook, from a compendium, behind an `await` — and
   Foundry prepares every Actor before that hook runs. Derived data was therefore computed
@@ -92,6 +100,14 @@ coincide by accident; the headings say which is which.
   printed `+1 granted`, arithmetic used nowhere else on the sheet. It reads `+ granted` now.
 
 ### Added
+
+- **The action bar** replaces the token HUD's F/GT column and the separate turn HUD. One
+  persistent panel for the controlled unit: portrait and resources, rows that fill themselves from
+  what the unit has and **wrap** instead of overflowing, a per-user pinned row, and the turn panel
+  adjacent at the right-hand end. The old column had no upper bound on its contents inside a
+  container Foundry sizes for four controls, so Medusa's twelve overflowed it. Slots carry cost,
+  cooldown, a ring for a mode that is on or a Noble Phantasm that is built, and the reason they
+  are refusing (Ch. 29 §29.4, DA.1–DA.8).
 
 - **The build fails on `activeRules` nothing can switch on.** They are collected only for a mode
   (or read at a window, for a windowed ability); on anything else they are inert and silent. This

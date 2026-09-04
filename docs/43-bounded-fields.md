@@ -1,5 +1,12 @@
 # 43 — Bounded Fields
 
+> **Mark has a control, so a `markDefined` field is playable (Ch. 45).** `engine/marks.mjs`
+> implemented the whole action — budget, turn bookkeeping, the Bloodmark structure, the completed
+> square and the field opening — and **nothing called it**. Blood Fort Andromeda could not be
+> built. The action bar offers Mark to any unit whose Noble Phantasm declares this geometry, and
+> withdraws it once the field is open. Verified live: four corners of a 5×5, and the field opened.
+
+
 > **Implemented (Ch. 45 C4).** `module/rules/bounded-fields.mjs` is the six-axis model, one
 > module rather than ten special cases — which is this chapter's own argument.
 > `NPFieldBehavior` (Ch. 22 §22.10) carries the axes on a Region; `engine/board.mjs` projects

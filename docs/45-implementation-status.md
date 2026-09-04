@@ -1208,6 +1208,57 @@ Master's after the fact. Her Ranks were already double-counted on a board; they 
 on her sheet too, which is the same defect made visible. **Re-summon her.** Ch. 39's migration
 framework is still specification-only, which is the honest reason there is no automatic repair.
 
+### The action bar, and the three actions nobody could reach — **built**
+
+Reported from play: *"I don't like how the current hud on the token is done, it seems ugly,
+specially because the actions overflow."* The overflow was structural rather than cosmetic. The
+F/GT column appended one vertical `col` to Foundry's token HUD and packed into it a budget pip,
+Attack, Move, a facing dial, six abilities, one toggle per mode, two buttons per open field and
+effect pips. Foundry sizes that column for about four controls. Medusa produces twelve, and a
+list with **no upper bound** cannot be styled into a fixed height.
+
+Auditing the action economy to rebuild it found the real defect. `rules/budget.mjs` defines eight
+`ActionKind`s, and **three had no caller anywhere in the repository**:
+
+| Action | Engine | State |
+|---|---|---|
+| `mark` | `engine/marks.mjs#placeMark` | complete, never called |
+| `gather` | `engine/gather.mjs#gather` | complete, never called |
+| `ridingAttack` | `engine/riding.mjs#performRidingAttack` | complete, never called |
+
+Every one of them was finished — budget checks, turn bookkeeping, intents, chat output.
+`placeMark` detects the completed Bloodmark square and opens the field. `riding.mjs`'s header
+says outright that `GRANTS.ridingAttack` *"has been declared since grants were written and no
+engine ever read it"*. The consequence in play was that **Blood Fort Andromeda could not be
+built**, Semiramis's Construction could not be fed by Gather, and no Servant could perform a
+Riding Attack. This is the authored-and-inert shape this chapter keeps recording, one layer up:
+the rule-element version is above, and this is the action version.
+
+`rules/actions.mjs` declares every unit action as data with an availability predicate over a unit
+snapshot and the board, `engine/actions.mjs` maps each id to its engine, and a drift test holds
+the two against the `ActionKind` union in **both** directions. A ninth kind now fails the build
+until somebody decides how a player reaches it. The guard was checked by adding a fake `teleport`
+kind and watching the suite go red.
+
+**Verified live in `fgt2026`.** Four Bloodmarks placed from the bar onto the corners of a 5×5;
+Blood Fort Andromeda opened; the Mark slot then withdrew itself, because *"Medusa cannot place
+new Bloodmarks while Bloodfort Andromeda is Active"*. That sequence had never been possible.
+
+The live pass found two defects that inspection would not have:
+
+1. The bar's template wrote `data-row="{{../row.id}}"`, which renders **empty** under Handlebars
+   block params — a block parameter stays in scope inside the nested `each`, and `../` walks past
+   it to nothing. Every click read a blank row, matched no branch, and returned without a word:
+   precisely the silent dead control the bar exists to abolish.
+2. Refusals were localized blindly, and the engines disagree about what `reason` is. `placeMark`
+   and `gather` return ids that key a translation; `budget.affordable` returns a finished English
+   sentence. The screen read `FGT.Action.Refusal.Servant attacks exhausted (2/2)`.
+
+`apps/hud/token-hud.mjs` is deleted and `turn-hud.mjs` is now `turn-panel.mjs`, a context builder
+and three handlers that the bar renders at its right-hand end. The turn panel stays
+faction-scoped beside a unit-scoped bar, because the End Turn gate is about the faction's whole
+budget. `FACINGS` turned out to be declared twice; `domain/enums.mjs` had always exported it.
+
 ---
 
 ## 45.5 The completion plan
