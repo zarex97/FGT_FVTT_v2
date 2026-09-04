@@ -101,6 +101,11 @@ coincide by accident; the headings say which is which.
 
 ### Added
 
+- **Every requirement kind can now say why it refused.** `abilityState` builds
+  `FGT.Ability.Refused.<reason>` from the requirement that failed, and **19 of the 22 kinds had no
+  string**, so an unavailable ability told the player `withinPlatformCentre` — on the sheet's
+  ability cards as much as on the new bar. All 19 are written, and a drift test fails the build if
+  a twenty-third arrives without one.
 - **The action bar** replaces the token HUD's F/GT column and the separate turn HUD. One
   persistent panel for the controlled unit: portrait and resources, rows that fill themselves from
   what the unit has and **wrap** instead of overflowing, a per-user pinned row, and the turn panel

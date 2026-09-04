@@ -346,6 +346,30 @@ on the board. That is why `available` takes the board and not only the unit.
 > opened, and the Mark slot withdrew itself — *"Medusa cannot place new Bloodmarks while
 > Bloodfort Andromeda is Active"*. That had never been possible.
 
+> **Five corrections from the first session of play, and two more they uncovered.**
+>
+> - **A Structure was offered actions.** Selecting one of Medusa's Bloodmarks put Move, Attack,
+>   Gather and a facing dial on the bar. Every predicate asked what a unit *has* and none asked
+>   what it *is*. Bloodmarks are the corpus's first Structures, so nothing had exercised the case.
+>   `ACTING_KINDS` excludes `structure` and keeps `platform`, because the Hanging Gardens acts.
+> - **The bar took about three seconds to follow a new selection**, and it was not render cost:
+>   one render measures 13ms. `controlToken` fires **twice** when a selection moves — once for the
+>   token being released, with nothing controlled at that instant — so the bar closed on the first
+>   event and re-opened on the second, playing a full fade-out and fade-in every time. A 60ms
+>   debounce fixes it and also collapses the `updateActor` and `fgtBudgetChanged` cascade that
+>   rides along. Measured end to end, click to new name on screen: **118ms**.
+> - **The bar holds a width** rather than shrinking to its contents, so it does not jump about as
+>   a unit's row count changes, and the portrait block is wide enough to read at a glance.
+> - **§6.10's pools are on it** — Aria, Construction, PRS Tokens — in the accent colour, because a
+>   pool gates abilities and belongs beside the buttons rather than one tab away on the sheet.
+> - **Ability refusals go through `abilityState`**, the mapping the sheet's ability cards already
+>   use, so the bar and the sheet cannot describe the same refusal differently.
+>
+> That last one exposed a gap far older than the bar: **19 of the 22 `REQUIREMENT_KINDS` had no
+> translation**, on the ability cards as much as here, so a refused ability told the player
+> `withinPlatformCentre`. All 19 are written, and a drift test in `i18n.test.mjs` fails the build
+> if a twenty-third kind arrives without one.
+
 > **Two defects the first live use found, both invisible to inspection.**
 >
 > - The template wrote `data-row="{{../row.id}}"`, which renders **empty** under Handlebars block
