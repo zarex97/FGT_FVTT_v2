@@ -1,0 +1,8 @@
+schema: 1
+id: attack
+name: "Attack"
+kind: action
+description: |
+  Perform a Normal Attack against a target in range. A faction may make a limited number of
+  Servant Attacks each Turn, and several other Actions — Mark among them — count as a Unit's
+  Attack for the Turn.

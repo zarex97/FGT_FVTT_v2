@@ -147,6 +147,10 @@ export const PACKS = Object.freeze({
   // the first; §43.10 ruled them `Structure` actors precisely so that
   // targeting, destruction, visibility and Health all come for free.
   structures: { pack: "servants", documentType: "Actor", actorType: "structure" },
+  // The `fgt.rules` pack has been declared in `system.json` since 0.1.0 and
+  // nothing has ever populated it. Actions are rules rather than documents, so
+  // `@action[mark]` needs somewhere real to land.
+  rules: { pack: "rules", documentType: "JournalEntry" },
 });
 
 /* -------------------------------------------------------------------------- */
@@ -337,6 +341,12 @@ export function referenceNames(files) {
   /** @type {Map<string, string|null>} */ const seen = new Map();
   for (const [key, entry] of referenceIndex(files)) {
     if (entry.name.length < 4) continue;
+    // ACTIONS are excluded, and the corpus proved why: "Attack", "Move",
+    // "Skill" and "Spell" are ordinary words in this prose, and warning on
+    // every one of them raised the count from 214 to 365 and buried the
+    // warnings worth reading. An action must still be marked explicitly; it
+    // simply cannot be found by name.
+    if (key.startsWith("action:")) continue;
     seen.set(entry.name, seen.has(entry.name) ? null : key);
   }
   return new Map([...seen].filter(([, key]) => key !== null));
@@ -1183,6 +1193,25 @@ export function compileDocument(doc, dir, library, assets = new Map(), reference
     img: doc.img ?? assetFor(assets, dir, doc.id) ?? undefined,
     _key: null, // filled in below
   };
+
+  if (spec.documentType === "JournalEntry") {
+    const pageId = documentId(`${linked.id}/page`);
+    return {
+      _id: base._id,
+      name: linked.name,
+      pages: [{
+        _id: pageId,
+        name: linked.name,
+        type: "text",
+        title: { show: false, level: 1 },
+        text: { content: linked.description ?? "", format: 1 },
+        // An embedded document with no `_key` is dropped by `compilePack`
+        // silently, which ships a journal with no pages in it.
+        _key: `!journal.pages!${base._id}.${pageId}`,
+      }],
+      _key: `!journal!${base._id}`,
+    };
+  }
 
   if (spec.documentType === "Actor") {
     const abilities = (doc.abilities ?? [])

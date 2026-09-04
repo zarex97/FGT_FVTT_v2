@@ -1,0 +1,7 @@
+schema: 1
+id: np
+name: "Noble Phantasm"
+kind: action
+description: |
+  Use a Noble Phantasm. Every Noble Phantasm costs the Servant's Attack for the Turn, including
+  the ones that deal no damage, and most require the Servant to be within its Master's ZON.

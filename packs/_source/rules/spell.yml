@@ -1,0 +1,7 @@
+schema: 1
+id: spell
+name: "Spell"
+kind: action
+description: |
+  Cast a Spell. A Spell is an Attack-shaped Action unless the Spell declares otherwise, and it is
+  billed to the same pool a Servant's Attack is.

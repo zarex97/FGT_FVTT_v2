@@ -1,0 +1,10 @@
+# The Gather Action (Ch. 32). Any allied Unit may perform it, which is why it
+# appears on a bar because of who ELSE is on the board.
+schema: 1
+id: gather
+name: "Gather"
+kind: action
+description: |
+  Increases the Hanging Gardens' Construction by 3. Semiramis herself increases it by 5, and her
+  Master by 4. Using Gather counts as the Unit's Move for that Turn, and a Unit cannot Attack on
+  the same Turn it uses Gather.
