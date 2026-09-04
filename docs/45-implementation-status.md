@@ -1124,9 +1124,19 @@ image, the same value `publicImageOf` would compute; the sync inherits a correct
 rather than repairing a wrong one.
 
 The validator warns per missing file, naming the path it expected, and once for an empty
-`assets/`; two files differing only by extension fail the build. Twelve tests in
-`content.test.mjs`. No image has been committed yet — the directory, the naming rule and the
-pipeline are in place for the batch that is.
+`assets/`; two files differing only by extension fail the build. Thirteen tests in
+`content.test.mjs`.
+
+**The artwork is in.** Twelve Servant portraits and all fourteen class images, verified in the
+compiled pack: every Servant carries its portrait as `img`, its container's image as
+`defaultImage`, and the container's image — not the portrait — as its prototype token texture.
+
+Committing them found the one image miss no source file can reveal, and the check now runs in
+both directions. `Class-Shielder-Gold.webp` arrived with the downloaded icon set; no
+`classContainer` will ever ask for it, because Shielder is not a class this system defines
+(`domain/enums.mjs`). It was inert, it would have shipped in the release zip, and by inspection
+it was indistinguishable from a class image that works — a directory listing shows fifteen files
+either way. The validator names it and lists the fourteen ids that would work.
 
 ---
 

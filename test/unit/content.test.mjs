@@ -462,6 +462,19 @@ describe("shipped artwork (§37.3)", () => {
     expect(warnings.some((w) => w.includes("no portrait"))).toBe(false);
   });
 
+  it("warns for a class image under a name no classContainer will ever ask for", () => {
+    // The one miss no Servant file can reveal: `Class-Shielder-Gold.webp` came
+    // in with a downloaded icon set, ships in the release zip, and is
+    // indistinguishable from a working class image by inspection alone.
+    const { assets: a } = indexAssets(["classes/berserker.webp", "classes/Class-Shielder-Gold.webp"]);
+    const warnings = validateAll([file(servant(), "asterios.yml", "servants")], a).warnings;
+    const orphan = warnings.filter((w) => w.startsWith("classes/Class-Shielder-Gold.webp"));
+    expect(orphan).toHaveLength(1);
+    expect(orphan[0]).toMatch(/no Servant class is called "Class-Shielder-Gold"/);
+    // And says nothing about the one that is a real class.
+    expect(warnings.some((w) => w.startsWith("classes/berserker.webp"))).toBe(false);
+  });
+
   it("says nothing about images when no index is passed at all", () => {
     expect(validateAll([file(servant(), "asterios.yml", "servants")]).warnings.some((w) => /portrait|assets/.test(w)))
       .toBe(false);

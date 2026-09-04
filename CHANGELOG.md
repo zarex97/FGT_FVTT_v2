@@ -58,6 +58,11 @@ coincide by accident; the headings say which is which.
   unrevealed and Foundry would otherwise put the true portrait there itself. No YAML edit is
   needed; a file under the right name is enough, and the validator names the path it expected
   for every unit still without one. The release zip ships `assets/` (Ch. 37 §37.3, D37.9).
+- **The twelve Servant portraits and all fourteen class images**, verified in the compiled pack.
+  The artwork checks run in both directions (D37.10): a unit with no image, and — the miss no
+  source file can reveal — an image in `assets/classes/` named for no class this system defines.
+  The second found `Class-Shielder-Gold.webp`, inert and bound for the release zip, on the first
+  run against real files.
 - **A unit can be intrinsically undamageable.** `null` Health has been the convention since
   Ch. 04 and the damage pipeline has halted at stage 0 on it for as long — but nothing could
   ever *reach* that state, because each type's `prepareBaseData` backfills a null Max Health
