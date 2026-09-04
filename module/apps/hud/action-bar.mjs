@@ -13,11 +13,12 @@
  */
 
 import { rowsFor, slotFor, portraitBlock } from "./present.mjs";
+import { ticksLabel } from "../actor-sheet/present.mjs";
 import { availableActions } from "../../rules/actions.mjs";
 import { classifyAbility } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
-import { abilityCost } from "../actor-sheet/present.mjs";
+import { abilityCost, abilityState } from "../actor-sheet/present.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "../../engine/board.mjs";
 import { mayDeactivate } from "../../engine/fields.mjs";
 import { mayReshape } from "../../rules/bounded-fields.mjs";
@@ -60,12 +61,22 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     ActionBar.instance ??= new ActionBar();
     const bar = ActionBar.instance;
 
-    const refresh = () => {
-      const token = canvas.tokens?.controlled?.[0] ?? null;
-      bar.token = token?.actor?.isOwner ? token : null;
+    // Debounced, and this is not a micro-optimisation. `controlToken` fires
+    // TWICE when the selection moves: once for the token being released, with
+    // nothing controlled at that instant, and once for the new one. Acting on
+    // the first closed the application and the second re-opened it, so every
+    // switch played a full fade-out and fade-in. One render at 13ms looked
+    // like lag because it was bracketed by two animations.
+    //
+    // The delay also collapses the cascade: selecting a unit can raise
+    // `controlToken`, `updateActor` and `fgtBudgetChanged` in one breath, and
+    // each of those used to be its own full render.
+    const refresh = foundry.utils.debounce(() => {
+      const controlled = canvas.tokens?.controlled?.[0] ?? null;
+      bar.token = controlled?.actor?.isOwner ? controlled : null;
       if (bar.token) bar.render({ force: true });
-      else bar.close();
-    };
+      else if (bar.rendered) bar.close();
+    }, 60);
 
     Hooks.on("controlToken", refresh);
     Hooks.on("updateActor", refresh);
@@ -129,7 +140,13 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         return {
           ...slot,
           group: use.toggles ? "mode" : (entry.isNP ? "np" : "skill"),
-          tooltip: slot.reason ? `${item.name} — ${refusalText(slot.reason)}` : item.name,
+          // An ability's refusal goes through `abilityState`, the same mapping
+          // the sheet's ability cards use, so the two never disagree about why
+          // something is unavailable. `FGT.Action.Refusal.*` stays for the
+          // ACTION slots, whose reasons come from the engines instead.
+          tooltip: slot.disabled
+            ? `${item.name} — ${abilityRefusal(verdict, entry, turnsPerRound)}`
+            : item.name,
         };
       })
       .filter(Boolean);
@@ -174,6 +191,10 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         { label: "FGT.Resource.agility", value: actor.system?.agility?.value ?? 0, max: actor.system?.agility?.max ?? null },
         { label: "FGT.Resource.luck", value: actor.system?.luck?.value ?? 0, max: actor.system?.luck?.max ?? null },
       ],
+      // §6.10's pools — EMIYA's Aria, Semiramis's Construction, Scáthach's PRS
+      // Tokens. They gate abilities, so a player choosing what to press needs
+      // them where the buttons are and not one tab away on the sheet.
+      pools: poolsFor(snapshot.resources),
       rows: rowsFor({ actions, abilities, fields, pins }),
       // FACTION-scoped, while everything above is unit-scoped. Two scopes
       // side by side, which is what BG3 does with end-turn beside the hotbar.
@@ -366,6 +387,64 @@ async function reshape(field, unit) {
   // Named, not swallowed: the painter refuses illegal panels as you draw, so a
   // refusal here means something moved between drawing and committing.
   if (!verdict.ok) ui.notifications.warn(game.i18n.localize(`FGT.Paint.${verdict.reason}`));
+}
+
+/**
+ * Why an ability is unavailable, in the sheet's own words.
+ *
+ * `abilityState` is what the ability cards already use, so routing through it
+ * means the bar and the sheet cannot describe the same refusal differently. A
+ * reason with no translation falls back to the reason itself rather than
+ * printing `FGT.Ability.Refused.withinPlatformCentre` at a player.
+ *
+ * @param {{ok: boolean, reason?: string}} verdict
+ * @param {object} entry the snapshot's ability entry
+ * @param {number} turnsPerRound
+ * @returns {string}
+ */
+function abilityRefusal(verdict, entry, turnsPerRound) {
+  if (verdict?.ok === false) {
+    const state = abilityState(verdict, { turnsPerRound });
+    if (game.i18n.has(state.label)) return game.i18n.format(state.label, state.detail ?? {});
+    return verdict.reason ?? game.i18n.localize("FGT.Action.Refusal.unavailable");
+  }
+  // Not refused, so the only thing left that disables a slot is its cooldown.
+  const remaining = entry?.cooldownRemaining ?? 0;
+  return game.i18n.format("FGT.Ability.Cooldown", {
+    remaining, ticks: ticksLabel(remaining, turnsPerRound),
+  });
+}
+
+/**
+ * §6.10's pools, labelled for a reader.
+ *
+ * `FGT.Pool.<key>` when a translation exists, and the camelCase key split into
+ * words when it does not — so a pool a future Servant introduces shows as
+ * "Some New Pool" rather than as `someNewPool`, and never as nothing.
+ *
+ * @param {Record<string, {value: number, max: number|null}>} resources
+ * @returns {Array<{key: string, label: string, value: number, max: number|null}>}
+ */
+function poolsFor(resources) {
+  return Object.entries(resources ?? {}).map(([key, pool]) => {
+    const translation = `FGT.Pool.${key}`;
+    return {
+      key,
+      label: game.i18n.has(translation) ? game.i18n.localize(translation) : humanise(key),
+      value: pool?.value ?? 0,
+      max: pool?.max ?? null,
+    };
+  });
+}
+
+/**
+ * `hgobConstruction` → `Hgob Construction`.
+ * @param {string} key
+ * @returns {string}
+ */
+function humanise(key) {
+  const spaced = String(key).replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 /**

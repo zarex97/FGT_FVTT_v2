@@ -748,18 +748,33 @@
   display: flex;
   align-items: stretch;
   gap: 0.75rem;
-  max-width: min(1400px, 96vw);
-  padding: 0.5rem 0.75rem;
+  // A BAR, not a box that shrinks to its contents. BG3's hotbar holds the
+  // width of the screen and the rows sit inside it, which is what stops the
+  // panel jumping about as a unit's row count changes.
+  width: min(1500px, 96vw);
+  padding: 0.5rem 0.9rem;
   border: 1px solid var(--color-border-dark, #000);
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.82);
   color: var(--color-text-light-highlight, #f0f0e0);
 
-  &__portrait { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; min-width: 6rem; }
-  &__portrait img { width: 4rem; height: 4rem; object-fit: cover; border-radius: 4px; }
-  &__name { font-weight: 700; }
-  &__subtitle { opacity: 0.75; font-size: 0.8em; }
-  &__resources { display: flex; flex-direction: column; font-size: 0.75em; }
+  // Roomier than the rows: this block carries the portrait, the identity and
+  // every number that decides what is pressable, so it is read as often as the
+  // buttons are.
+  &__portrait {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.3rem;
+    flex: 0 0 11rem;
+    padding-right: 0.9rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  &__portrait img { width: 6rem; height: 6rem; object-fit: cover; border-radius: 4px; }
+  &__name { font-weight: 700; font-size: 1.05em; }
+  &__subtitle { opacity: 0.75; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; }
+  &__resources { display: flex; flex-direction: column; gap: 0.05rem; width: 100%; font-size: 0.78em; }
+  &__resource { display: flex; justify-content: space-between; gap: 0.5rem; }
+  // A pool is not a stat: it gates abilities, so it reads in the accent.
+  &__resource--pool { color: var(--fgt-gold, #c9a227); }
 
   // The whole reason this replaced a column: rows WRAP, so an unbounded
   // number of controls has somewhere to go.

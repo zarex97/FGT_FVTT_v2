@@ -153,3 +153,30 @@ describe("every offered action has a handler", () => {
     expect(Object.keys(ACTION_HANDLERS).sort()).toEqual(registry);
   });
 });
+
+describe("a Structure is not a unit that acts", () => {
+  // Reported from play: selecting one of Medusa's Bloodmarks offered Move,
+  // Attack, Gather and a facing dial. Every predicate asked what a unit HAS
+  // and none asked what it IS.
+  const bloodmark = () => unit({ id: "bm1", kind: "structure", faction: "red" });
+  const semiramis = () => unit({ id: "s1", resources: { hgobConstruction: { value: 0 } } });
+
+  it("offers a Bloodmark nothing at all", () => {
+    expect(availableActions(bloodmark(), board([bloodmark(), semiramis()]))).toEqual([]);
+  });
+
+  it("withholds even the facing dial, which a Structure does not have", () => {
+    expect(idsFor(bloodmark(), board([bloodmark()]))).not.toContain("facing");
+  });
+
+  it("still offers everything to the kinds that do act", () => {
+    for (const kind of ["servant", "master", "civilian", "summon", "platform"]) {
+      const u = unit({ kind });
+      expect(idsFor(u, board([u]))).toEqual(expect.arrayContaining(["attack", "move", "facing"]));
+    }
+  });
+
+  it("does not let a Structure be offered Gather by standing near Semiramis", () => {
+    expect(idsFor(bloodmark(), board([bloodmark(), semiramis()]))).not.toContain("gather");
+  });
+});

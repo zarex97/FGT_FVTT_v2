@@ -105,3 +105,17 @@ describe("localization keys", () => {
       .toEqual([]);
   });
 });
+
+describe("every requirement kind can explain itself", () => {
+  it("has a FGT.Ability.Refused.* string for each REQUIREMENT_KINDS entry", async () => {
+    // `abilityState`'s default branch builds `FGT.Ability.Refused.<reason>`
+    // from the requirement that failed, so a kind with no string shows the
+    // player an internal id. Nineteen of the twenty-two had none, on the
+    // ability cards as well as the action bar — visible only once the bar
+    // started printing the fallback instead of a raw key.
+    const { REQUIREMENT_KINDS } = await import("../../module/rules/items.mjs");
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    const missing = REQUIREMENT_KINDS.filter((k) => !(`FGT.Ability.Refused.${k}` in lang));
+    expect(missing).toEqual([]);
+  });
+});

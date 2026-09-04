@@ -23,6 +23,28 @@ import { hasGranted, GRANTS } from "./granted.mjs";
 import { relationOf } from "./relations.mjs";
 
 /**
+ * The unit kinds that TAKE actions.
+ *
+ * A `structure` is a destructible object with Health and a panel — Medusa's
+ * Bloodmarks are the first — and it does not move, attack, gather or face
+ * anywhere. Selecting one offered all four, because these predicates asked
+ * what a unit HAS and never what it IS.
+ *
+ * Platforms are in: the Hanging Gardens acts once per Turn (`actsOncePerTurn`),
+ * so it is a unit that does things, not scenery.
+ */
+const ACTING_KINDS = Object.freeze(["servant", "master", "civilian", "summon", "platform"]);
+
+/**
+ * Does this unit take actions at all?
+ * @param {object|null} unit
+ * @returns {boolean}
+ */
+function acts(unit) {
+  return Boolean(unit) && ACTING_KINDS.includes(unit.kind);
+}
+
+/**
  * The `ActionKind`s billed by an ability button rather than by an entry here.
  *
  * Named rather than implied so the drift test can tell "deliberately not an
@@ -50,7 +72,7 @@ export const UNIT_ACTIONS = Object.freeze([
     // Pale Rider's Riding EX: *"cannot perform Normal Attacks."* The grant is
     // already read by `engine/attack.mjs#resolveAttack`, which refuses the
     // declaration; withholding the button means he is never invited to try.
-    available: (unit) => (unit && !hasGranted(unit, GRANTS.noNormalAttack) ? {} : null),
+    available: (unit) => (acts(unit) && !hasGranted(unit, GRANTS.noNormalAttack) ? {} : null),
   },
   {
     id: "move",
@@ -58,7 +80,7 @@ export const UNIT_ACTIONS = Object.freeze([
     icon: "fa-solid fa-shoe-prints",
     label: "FGT.Action.Move",
     mode: "targeted",
-    available: (unit) => (unit ? {} : null),
+    available: (unit) => (acts(unit) ? {} : null),
   },
   {
     id: "ridingAttack",
@@ -69,7 +91,7 @@ export const UNIT_ACTIONS = Object.freeze([
     // Permanent for Achilles, unlocked by Riding's Active for Medusa. Either
     // way the GRANT is what says it is available, which is the whole reason
     // `granted.mjs` exists rather than a name-match on the Riding skill.
-    available: (unit) => (unit && hasGranted(unit, GRANTS.ridingAttack) ? {} : null),
+    available: (unit) => (acts(unit) && hasGranted(unit, GRANTS.ridingAttack) ? {} : null),
   },
   {
     id: "mark",
@@ -78,6 +100,7 @@ export const UNIT_ACTIONS = Object.freeze([
     label: "FGT.Action.Mark",
     mode: "immediate",
     available: (unit, board) => {
+      if (!acts(unit)) return null;
       const np = (unit?.abilities ?? []).find((a) => a.fieldGeometryKind === "markDefined");
       if (!np) return null;
       // *"Medusa cannot place new Bloodmarks while Bloodfort Andromeda is
@@ -98,7 +121,7 @@ export const UNIT_ACTIONS = Object.freeze([
     // not unit-intrinsic: this button appears on an ally's bar because of who
     // ELSE is standing on the board.
     available: (unit, board) => {
-      if (!unit) return null;
+      if (!acts(unit)) return null;
       const owner = (board?.units ?? []).find(
         (u) => u.resources?.hgobConstruction && relationOf(u, unit, board) !== "enemy",
       );
@@ -113,7 +136,7 @@ export const UNIT_ACTIONS = Object.freeze([
     mode: "dial",
     // §29.5 is explicit that setting facing must not end the turn, so it bills
     // no ActionKind at all.
-    available: (unit) => (unit ? {} : null),
+    available: (unit) => (acts(unit) ? {} : null),
   },
 ]);
 
