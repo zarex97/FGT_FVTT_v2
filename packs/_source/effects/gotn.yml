@@ -14,8 +14,8 @@ schema: 1
 id: gotn
 name: "GotN"
 description: |
-  On entering the area of 'Doomsday Come', the Unit receives Guidance of the Netherworld's Atk
-  Up, Regen and Dmg Cut; the GotN effect is then removed.
+  On entering the area of 'Doomsday Come', the Unit receives @ability[pale-rider-guidance-of-the-netherworld]{Guidance of the Netherworld}'s Atk
+  Up, @effect[regen]{Regen} and @effect[dmgCut]{Dmg Cut}; the GotN effect is then removed.
 # "Neither a buff or a debuff": `status`, and `neither` -- the one valence in
 # the vocabulary that means exactly that, used by nothing before now.
 polarity: status

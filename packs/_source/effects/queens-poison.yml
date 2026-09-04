@@ -7,7 +7,7 @@ name: "Queen's Poison"
 description: |
   1. The chance of inflicting volatile debuffs is increased by 30%.
   2. The chance of being inflicted by volatile debuffs is reduced by 15%.
-  3. When a Unit with this effect performs a Normal Attack which uses Base Attack (STR), Poison
+  3. When a Unit with this effect performs a Normal Attack which uses Base Attack (STR), @effect[poison]{Poison}
      is inflicted on the DU at the end of the Damage Step, with a 50% chance of inflicting an
      additional Stage of Poison (this 50% is a flat chance, not affected by debuff chance
      increasing/reducing effects); then remove this effect from the AU.
