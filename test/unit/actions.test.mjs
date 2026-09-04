@@ -143,3 +143,13 @@ describe("no ActionKind may go unreachable (§29.5 DA.3)", () => {
     expect(ACTION_EXEMPT_KINDS.filter((k) => !known.has(k))).toEqual([]);
   });
 });
+
+describe("every offered action has a handler", () => {
+  it("maps each registry id to exactly one dispatcher entry", async () => {
+    // The other half of the drift guard: a registry entry with no handler is a
+    // button that throws, and a handler with no entry is dead code.
+    const { ACTION_HANDLERS } = await import("../../module/engine/actions.mjs");
+    const registry = UNIT_ACTIONS.map((a) => a.id).sort();
+    expect(Object.keys(ACTION_HANDLERS).sort()).toEqual(registry);
+  });
+});
