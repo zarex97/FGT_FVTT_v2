@@ -80,9 +80,16 @@ export function rewriteReferences(text, index) {
  * @returns {string[]} each name once, in the order the map lists them
  */
 export function mentionsWithoutMarkers(text, names) {
-  const stripped = String(text ?? "").replace(MARKER, " ");
+  const source = String(text ?? "");
+  const stripped = source.replace(MARKER, " ");
+  // A name already linked ONCE in this description is done. The convention is
+  // to mark the first occurrence and leave later repetitions as plain prose,
+  // and without this the warning kept demanding markers for the repetitions
+  // it had itself been told not to write -- 61 of them across the corpus.
+  const linked = new Set(parseMarkers(source).map((m) => `${m.kind}:${m.id}`));
   const out = [];
   for (const name of names.keys()) {
+    if (linked.has(names.get(name))) continue;
     const pattern = new RegExp(
       `(?<![\\w-])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`,
     );

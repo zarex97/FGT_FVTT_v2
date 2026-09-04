@@ -8,7 +8,7 @@
 schema: 1
 id: dualWieldGuard
 name: "Kanshou & Bakuya"
-description: "Magic Resistance Rank is increased by one Rank."
+description: "@ability[class-magic-resistance]{Magic Resistance} Rank is increased by one Rank."
 polarity: buff
 volatility: nonVolatile
 valence: defensive

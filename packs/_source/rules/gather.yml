@@ -5,6 +5,6 @@ id: gather
 name: "Gather"
 kind: action
 description: |
-  Increases the Hanging Gardens' Construction by 3. Semiramis herself increases it by 5, and her
+  Increases the Hanging Gardens' @effect[construction]{Construction} by 3. Semiramis herself increases it by 5, and her
   Master by 4. Using Gather counts as the Unit's Move for that Turn, and a Unit cannot Attack on
   the same Turn it uses Gather.

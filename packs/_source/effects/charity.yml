@@ -2,7 +2,7 @@
 schema: 1
 id: charity
 name: "Charity"
-description: "While Karna has this buff, both effects of 'Uncrowned Arms Mastership' are Active."
+description: "While Karna has this buff, both effects of '@ability[karna-uncrowned-arms-mastership]{Uncrowned Arms Mastership}' are Active."
 polarity: buff
 volatility: nonVolatile
 valence: offensive

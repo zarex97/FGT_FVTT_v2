@@ -14,7 +14,7 @@
 schema: 1
 id: deathChUp
 name: "Death ChUp"
-description: "Chance of inflicting Instakill and Death is increased by X%."
+description: "Chance of inflicting @effect[instakill]{Instakill} and @effect[death]{Death} is increased by X%."
 polarity: buff
 volatility: nonVolatile
 valence: offensive

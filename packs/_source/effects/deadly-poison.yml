@@ -11,7 +11,7 @@
 schema: 1
 id: deadlyPoison
 name: "Deadly Poison"
-description: "Poison Damage received is doubled."
+description: "@effect[poison]{Poison} Damage received is doubled."
 polarity: debuff
 volatility: volatile
 valence: offensive

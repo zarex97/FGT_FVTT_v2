@@ -2,7 +2,7 @@
 schema: 1
 id: debuffImmune
 name: "Debuff Immune"
-description: "Cannot be inflicted with debuffs. Does not affect Instakill, Death or Erase."
+description: "Cannot be inflicted with debuffs. Does not affect @effect[instakill]{Instakill}, @effect[death]{Death} or Erase."
 polarity: buff
 volatility: nonVolatile
 valence: defensive
