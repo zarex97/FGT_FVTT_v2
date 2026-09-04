@@ -328,6 +328,17 @@ had already gone wrong in a way nothing announced:
 | A unit has no portrait, or a Servant's class has no image | §37.3 — artwork arrives on its own schedule, but a file committed under the wrong name looks exactly like one never drawn |
 | A file in `assets/classes/` is named for no known Servant class | inert, and ships in the release zip; the one image miss no source file can reveal |
 
+And one new **failure**, because this shape has now shipped three times:
+
+| Check | Why it fails the build |
+|---|---|
+| `activeRules` on an ability that classifies as neither a mode nor windowed | `contributionsOf` collects `activeRules` only while `system.active` is set, and only toggling a **mode** sets it. On anything else they are authored, shipped, and applied by nothing — Monstrous Strength, Hatred of Achilles, and Medusa's Riding, whose Active promised +5 MOV on the sheet, in the compendium and in the tooltip, and moved her zero panels |
+
+A windowed ability is exempt because `engine/attack.mjs#offerAttackerWindow` reads its
+`activeRules` off the item directly, which is a genuinely wired second path. The fix for
+everything else is to put the lasting change on the effect the ability **applies**: an effect is
+collected with `active: true`, because an effect that is present is in force.
+
 Output format, designed for someone fixing it rather than someone who wrote the validator:
 
 ```
@@ -490,6 +501,7 @@ sufficient; the two script cases are the evidence that the escape hatch is neede
 | D37.8 | Localization keys are generated from inline English by the build. |
 | D37.9 | Artwork is found by id under `assets/` at build time; the compiled token texture is the public image, so a concealed Servant never drops onto the board with its true face. |
 | D37.10 | The artwork checks run in both directions: a unit with no image, and an image no unit will ask for. |
+| D37.11 | `activeRules` on an ability nothing can switch on fails the build; a used ability's lasting half belongs on the effect it applies. |
 
 ---
 

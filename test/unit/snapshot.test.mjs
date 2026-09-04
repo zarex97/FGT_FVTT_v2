@@ -506,3 +506,67 @@ describe("canAct reads the effects, not only the channelling flag", () => {
     expect(snapshotUnit(withEffect("burn")).canAct).toBe(true);
   });
 });
+
+describe("the war Region's bonus is applied exactly once", () => {
+  const greek = () => ({
+    id: "m", uuid: "Actor.m", name: "Medusa", type: "servant",
+    system: {
+      factionId: "red", range: { panels: 1, targets: 1 },
+      region: ["greece"], parameters: { str: "C", end: "C", agi: "C", mag: "C", luc: "C" },
+      baseAttack: { str: 100, mag: 0 },
+    },
+    items: [], effects: [],
+  });
+
+  it("does not shift a unit twice when its snapshot already carries it", () => {
+    // `snapshotBoard` accepts a pre-projected snapshot from a caller that has a
+    // canvas (`engine/board.mjs#unitSnapshot`), and that caller applies the
+    // Region bonus so the SHEET can show it. Without a guard the board pass
+    // then applied it a second time and Medusa read C++ on a board and C+ on
+    // her own sheet.
+    const pre = snapshotUnit(greek(), { warRegion: "greece" });
+    expect(pre.parameters.str.toString()).toBe("C+");
+
+    const board = snapshotBoard({
+      scene: null, actors: [{ actor: greek(), snapshot: pre }],
+      settings: { warRegion: "greece" },
+    });
+    expect(board.units[0].parameters.str.toString()).toBe("C+");
+    expect(board.units[0].baseAttack).toEqual({ str: 110, mag: 10 });
+  });
+
+  it("records the Region as the source, never the Master", () => {
+    const u = snapshotUnit(greek(), { warRegion: "greece" });
+    const sources = u.statDeltas.filter((d) => d.stat === "parameters.str").map((d) => d.source);
+    expect(sources).toEqual(["Region: greece"]);
+  });
+
+  it("attributes a Master's baked grant to the Master", () => {
+    const a = greek();
+    a.system.grantedSteps = { str: 1, end: 0, agi: 0, mag: 0, luc: 0 };
+    const u = snapshotUnit(a);
+    expect(u.statDeltas.find((d) => d.stat === "parameters.str").source).toBe("High Rank Master grant");
+  });
+});
+
+describe("contract state for a Servant with no Master (Ch. 16 §16.2)", () => {
+  const servant = (system = {}) => ({
+    id: "m", uuid: "Actor.m", name: "Medusa", type: "servant",
+    system: { factionId: "red", range: { panels: 1, targets: 1 }, ...system },
+    items: [], effects: [],
+  });
+
+  it("is free, not the schema's 'contracted' default", () => {
+    // §16.2: "State is derived, not stored" -- `if (!m) return 'free'`. The
+    // stored field initialises to "contracted", and a Servant summoned without
+    // a Master had nothing to overwrite it, so a Free Servant's sheet claimed
+    // a contract it never had.
+    expect(snapshotUnit(servant()).contract).toBe("free");
+    expect(snapshotUnit(servant({ contract: "contracted" })).contract).toBe("free");
+  });
+
+  it("keeps the stored state once a Master actually exists", () => {
+    expect(snapshotUnit(servant({ masterId: "abc", contract: "contracted" })).contract).toBe("contracted");
+    expect(snapshotUnit(servant({ masterId: "abc", contract: "unbound" })).contract).toBe("unbound");
+  });
+});

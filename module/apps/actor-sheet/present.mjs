@@ -73,7 +73,7 @@ export function resourceBar(resource) {
  *
  * @param {Record<string, string>} parameters the ranks in force
  * @param {Record<string, number>} [grantedSteps] steps granted post-summon
- * @returns {Array<{key: string, rank: string, steps: number, granted: boolean}>}
+ * @returns {Array<{key: string, rank: string, steps: number, plus: string, granted: boolean}>}
  */
 export function parameterTiles(parameters, grantedSteps = {}) {
   const keys = [
@@ -88,6 +88,12 @@ export function parameterTiles(parameters, grantedSteps = {}) {
       key,
       rank: raw ? String(raw) : "—",
       steps,
+      // The grant as the RANK LADDER writes it. Ch. 04 §4.5 states it as *"a
+      // free `+` to one of their Servant's Parameters"*, and a granted step is
+      // literally that: A becomes A+, A+ becomes A++. "+1" is arithmetic this
+      // ladder does not do anywhere else on the sheet, and it reads as a
+      // numeric bonus to a value rather than a step up a scale.
+      plus: steps > 0 ? "+".repeat(steps) : (steps < 0 ? "-".repeat(-steps) : ""),
       granted: steps > 0,
     };
   });

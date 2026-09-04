@@ -49,7 +49,38 @@ coincide by accident; the headings say which is which.
 > corrected where they were claimed (Ch. 44 §44.3): `line` never needed `allowDiagonal`, and
 > *"used at the start of a Damage Step"* needed no new event.
 
+### Corrected
+
+- **The war Region's parameter grant was applied twice, and credited to the wrong source.** The
+  summon baked it into `system.grantedSteps` alongside the Master's, and `annotateRegionBonus`
+  applied it again live on every board — so a Servant fielded in her own Region had every Rank
+  moved twice and the Region's ±10 added to Base Attack twice. Because `grantedSteps` had only
+  ever held a Master's grant, the sheet's explainer credited all of it to a *"High Rank Master
+  grant"*, which a **Free Servant with no Master** was duly told. `grantedSteps` is now the
+  Master's alone; the Region is recomputed per projection by `applyRegionBonus`, which refuses to
+  fire twice on one unit. The rolled maxima still take both grants, because they are rolled once
+  and locked. **A Servant summoned before this change must be re-summoned** — nothing can tell a
+  baked Region step from a Master's after the fact (Ch. 05 §5.6, Ch. 45).
+- **A Servant summoned with no Master reported itself Contracted.** §16.2 says the contract state
+  is *"derived, not stored"* and derives `free` when there is no Master; the stored field
+  initialises to `"contracted"` and the summon never wrote it, so a Free Servant showed a
+  contract, an empty Master slot and no Sustainability clock. Written at summon and derived in
+  the projection, so a compendium drop is right too (Ch. 16 §16.2).
+- **Medusa's Riding Active raised her MOV by zero.** The +5 was authored in `activeRules`, which
+  `contributionsOf` collects only while a **mode** is switched on — and her Riding has phases, so
+  it is a used ability, not a mode. Authored, shipped, tooltipped, and applied by nothing. It now
+  lives on the `ridingActive` effect the Active applies, which is in force for exactly as long.
+- **A granted step is written as the `+` it is.** §4.5 states the grant as *"a free `+` to one of
+  their Servant's Parameters"* and the rank ladder carries it that way — A becomes A+. The tile
+  printed `+1 granted`, arithmetic used nowhere else on the sheet. It reads `+ granted` now.
+
 ### Added
+
+- **The build fails on `activeRules` nothing can switch on.** They are collected only for a mode
+  (or read at a window, for a windowed ability); on anything else they are inert and silent. This
+  shape has shipped three times — Monstrous Strength, Hatred of Achilles, Medusa's Riding — so it
+  is a content error now, and it names the fix: put the lasting change on the effect the ability
+  applies (Ch. 37 §37.4, D37.11).
 
 - **Compendium entries carry their artwork.** `assets/` is where images live and the build finds
   them by id: `assets/servants/<id>.*` becomes a unit's `img`, `assets/classes/<class>.*` becomes

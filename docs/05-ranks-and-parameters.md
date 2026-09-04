@@ -5,6 +5,24 @@ rank, and several combat rules compare ranks at runtime. This chapter specifies 
 algebra precisely, because a subtly wrong `compare()` silently breaks Magic Resistance,
 Presence Concealment's counter clause, HGoB boarding, and Karna's Brahmastra.
 
+> **The two grants are stored differently, and §5.6 needs them to be (Ch. 45).** A **Master's**
+> grant is baked into `system.grantedSteps` at summon: it is permanent and belongs to the
+> Servant. The **war Region's** is not stored at all — it is recomputed on every projection by
+> `applyRegionBonus`, because it is a fact about the *war* and has to move when the Region does
+> without rewriting a sheet.
+>
+> The summon baked **both** into `grantedSteps`, which was wrong three times over. The Rank moved
+> twice on a board (once off the stored field, once from the live Region pass) and the Base Attack
+> carried the Region's ±10 twice. The sheet's own explainer named a *"High Rank Master grant"* as
+> the source, because that is the only source `grantedSteps` has ever had — so a **Free Servant
+> with no Master at all** was told a Master had granted it five steps. And the tile printed
+> `+1 granted`, arithmetic this ladder does not use: §4.5 states the grant as *"a free `+`"*, and
+> a granted step is literally that. It reads `+ granted` now, and `++` for two.
+>
+> `applyRegionBonus` refuses to fire twice on one unit. Both callers are legitimate — the sheet
+> projects with the Region known before any board exists, and the board projects units nobody
+> pre-projected — so the guard lives in the applier rather than in a rule about who may call it.
+
 ---
 
 ## 5.1 The rank scale

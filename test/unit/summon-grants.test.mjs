@@ -182,3 +182,33 @@ describe("sheetPatch computes HGoB Construction's starting value", () => {
     expect(sheetPatch(resolved(), karna, {}, "middleEast").resources).toBeUndefined();
   });
 });
+
+describe("what the summon BAKES, and what it leaves live (Ch. 05 §5.6, Ch. 19 §19.3)", () => {
+  const steps = summonPlan({ sheet: karna, warRegion: "india", masterGrants: { agi: 1 } });
+
+  it("merges every source when asked for the total, for the rolled maxima", () => {
+    // The maxima are rolled ONCE and locked, so they take both grants.
+    expect(mergeGrants(steps)).toMatchObject({ str: 1, end: 1, agi: 2, mag: 1, luc: 1 });
+  });
+
+  it("can merge one source alone", () => {
+    expect(mergeGrants(steps, "master")).toEqual({ agi: 1 });
+  });
+
+  it("bakes ONLY the Master's steps into the sheet's grantedSteps", () => {
+    // The war Region's bonus is applied live by `annotateRegionBonus`, which
+    // says so in its own header: "kept live here instead of baked into the
+    // sheet, because changing the region mid-configuration does not need every
+    // sheet rewritten". Baking it as well is the same step counted twice --
+    // once by `applyGrantedSteps` off this field, once by the board pass.
+    const patch = sheetPatch(resolved(), karna, mergeGrants(steps, "master"), "india");
+    expect(patch.grantedSteps).toEqual({ str: 0, end: 0, agi: 1, mag: 0, luc: 0 });
+  });
+
+  it("still raises the rolled maxima by the Region's steps", () => {
+    // Baking less must not cost the Region its effect on the locked rolls.
+    const lines = applyGrants(resolved(), karna, mergeGrants(steps));
+    // AGI 18 + 2 (coin) = 20, then +1 Master and +1 Region.
+    expect(valueOf(lines, "maxAgility")).toBe(22);
+  });
+});

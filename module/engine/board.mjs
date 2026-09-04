@@ -85,7 +85,26 @@ export function unitSnapshot(actor, token = null) {
   return snapshotUnit(actor, {
     token: doc, panel: panelOf(doc), tick: currentTick(), round: currentRound(),
     ownerUserId: ownerUserOf(actor),
+    // The war's Region, so a sheet opened with no board built still shows the
+    // Ranks the rules are actually using. `snapshotBoard` runs the same applier
+    // and it refuses to fire twice, so handing this snapshot to a board is
+    // safe. Resolved the same way `currentBoard` resolves it, from the match
+    // first and the world setting second.
+    warRegion: currentWarRegion(),
   });
+}
+
+/**
+ * The Region this war is being fought in.
+ *
+ * @returns {string|null}
+ */
+export function currentWarRegion() {
+  try {
+    return game.combat?.system?.region || setting("region", null) || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -257,7 +276,7 @@ export function currentBoard(overrides = {}) {
       // a replacement.
       // Optional rules the table has switched off (§8.3 clause 4 today).
       rules: { masterProtection: setting("masterProtection", true) !== false },
-      warRegion: combat?.system?.region || setting("region", null) || null,
+      warRegion: currentWarRegion(),
       difficulty: combat?.system?.difficulty ?? "intermediate",
       grail: {
         threshold: combat?.system?.grailThreshold ?? 9,

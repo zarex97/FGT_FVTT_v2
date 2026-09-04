@@ -171,12 +171,23 @@ export async function commitSummon(prepared) {
   const data = prepared.source.toObject();
   data.system = {
     ...data.system,
-    ...sheetPatch(prepared.lines, prepared.sheet, prepared.granted, prepared.warRegion),
+    // `masterGranted`, not `granted`: see `sheetPatch`. The Region's step is
+    // already in the rolled maxima and is recomputed live for the Ranks.
+    ...sheetPatch(prepared.lines, prepared.sheet, prepared.masterGranted ?? {}, prepared.warRegion),
   };
+
+  // §16.2's derivation, written down at the one moment it is unambiguous. The
+  // schema initialises `contract` to `"contracted"`, which is the right default
+  // for nothing: a Servant summoned with no Master is FREE, and left to the
+  // default its sheet reported a contract, a Master slot with no name in it,
+  // and a Sustainability clock that should have been running.
+  data.system.contract = prepared.master ? "contracted" : "free";
 
   if (prepared.master) {
     data.system.masterId = prepared.master.id;
     data.system.factionId = prepared.master.system?.factionId ?? null;
+  } else {
+    data.system.masterId = null;
   }
   // The rolls lock at match start (§37.6); recording when they were made is
   // what lets anyone check that afterwards.
@@ -338,7 +349,16 @@ const SETUP_PATHS = Object.freeze({
 function refresh(prepared) {
   const granted = mergeGrants(prepared.steps);
   const resolved = resolveSetupPlan(prepared.plan, prepared.totals, prepared.signs);
-  return { ...prepared, granted, lines: applyGrants(resolved, prepared.sheet, granted) };
+  return {
+    ...prepared,
+    granted,
+    // The Master's steps ALONE, which is what gets written to the sheet. The
+    // merged map above still drives the rolled maxima, because those are rolled
+    // once and locked and the Region's step is part of that roll; the Region's
+    // effect on RANKS is recomputed live instead. See `commitSummon`.
+    masterGranted: mergeGrants(prepared.steps, "master"),
+    lines: applyGrants(resolved, prepared.sheet, granted),
+  };
 }
 
 /**
@@ -348,13 +368,18 @@ function refresh(prepared) {
  * here only to compute the final sheet, and the plan keeps them apart so the
  * dialog can show where each step came from.
  *
+ * `source` narrows the merge to one of them. `commitSummon` needs the Master's
+ * alone: the Region's grant is not a property of the Servant and must not be
+ * written onto it.
+ *
  * @param {object[]} steps
+ * @param {string|null} [source] `"master"`, `"region:<id>"`, or null for all
  * @returns {Record<string, number>}
  */
-export function mergeGrants(steps) {
+export function mergeGrants(steps, source = null) {
   /** @type {Record<string, number>} */
   const out = {};
-  for (const step of (steps ?? []).filter((s) => s.kind === "grant")) {
+  for (const step of (steps ?? []).filter((s) => s.kind === "grant" && (!source || s.source === source))) {
     for (const [parameter, n] of Object.entries(step.steps)) {
       out[parameter] = (out[parameter] ?? 0) + n;
     }
@@ -370,7 +395,9 @@ export function mergeGrants(steps) {
  *
  * @param {object[]} lines
  * @param {object} sheet
- * @param {Record<string, number>} granted
+ * @param {Record<string, number>} bakedGrants the grants to WRITE onto the
+ *   sheet — the Master's, never the Region's. The maxima have already taken
+ *   both, in `applyGrants`.
  * @returns {object[]}
  */
 export function applyGrants(lines, sheet, granted) {
@@ -413,7 +440,7 @@ function healthAt(sheet, steps) {
  *   handles as a `steps` entry
  * @returns {object}
  */
-export function sheetPatch(lines, sheet, granted, warRegion = null) {
+export function sheetPatch(lines, sheet, bakedGrants, warRegion = null) {
   /** @type {Record<string, unknown>} */
   const patch = {};
   const value = (id) => lines.find((l) => l.id === id)?.value ?? 0;
@@ -431,7 +458,15 @@ export function sheetPatch(lines, sheet, granted, warRegion = null) {
 
   // The granted steps themselves, so the sheet can show "B (granted +1)" rather
   // than silently displaying a rank the Servant was not written with.
-  patch.grantedSteps = { str: 0, end: 0, agi: 0, mag: 0, luc: 0, ...granted };
+  // ONLY the Master's steps belong here. `commitSummon` passes them alone, and
+  // the field is read by `baseAttackFor` and by the snapshot's
+  // `applyGrantedSteps`/`grantedStepDeltas` -- all three of which say "Master".
+  // Baking the war Region's step in as well made every one of them wrong: the
+  // Rank moved twice on a board (once here, once in the live Region pass), the
+  // Base Attack carried the Region's +10 twice, and the sheet's own explainer
+  // told the player a High Rank Master had granted it when there was no Master
+  // at all.
+  patch.grantedSteps = { str: 0, end: 0, agi: 0, mag: 0, luc: 0, ...bakedGrants };
 
   // A resolved summon variant (`rules/summon-variant.mjs`): the branch id, for
   // downstream `self:variant:<id>` predicates, and its `overrides` merged in
