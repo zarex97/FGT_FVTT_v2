@@ -161,3 +161,43 @@ describe("a Skill card's effect list (§26.7)", () => {
     expect(skillEffectsFor(undefined, { id: "x" })).toEqual({ names: [], hidden: 0 });
   });
 });
+
+describe("an attack card's effects, split for a template (§26.7)", () => {
+  // `cardFor` returns `effects` as an ARRAY for those entitled to read it and
+  // a COUNT for everyone else. One field with two types cannot be rendered
+  // without a helper Handlebars does not have, so the card splits it — and the
+  // split has to agree with `cardFor` or the card shows the wrong thing.
+  const input = {
+    attackerControllers: ["att"], defenderControllers: ["def"],
+    total: 120, breakdown: [], rolls: [],
+    effects: ["Burn", "Def Dwn"],
+  };
+
+  it("gives the defender the names", () => {
+    expect(cardFor(input, { id: "def" }).effects).toEqual(["Burn", "Def Dwn"]);
+  });
+
+  it("gives a bystander a count and no names", () => {
+    const out = cardFor(input, { id: "nobody" });
+    expect(out.effects).toBe(2);
+    expect(Array.isArray(out.effects)).toBe(false);
+  });
+
+  it("gives the attacker a count too, since the effects landed on the defender", () => {
+    // The attacker learns their damage and their own modifiers, not what
+    // stuck to the target -- that is the defender's to know.
+    expect(cardFor(input, { id: "att" }).effects).toBe(2);
+  });
+
+  it("marks a bystander as not involved, which is what hides the breakdown", () => {
+    expect(cardFor(input, { id: "nobody" }).involved).toBe(false);
+    expect(cardFor(input, { id: "att" }).involved).toBe(true);
+    expect(cardFor(input, { id: "def" }).involved).toBe(true);
+    expect(cardFor(input, { id: "gm", isGM: true }).involved).toBe(true);
+  });
+
+  it("gives a bystander no damage total at all", () => {
+    expect(cardFor(input, { id: "nobody" }).damage).toBeNull();
+    expect(cardFor(input, { id: "def" }).damage).toBe(120);
+  });
+});

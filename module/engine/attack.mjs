@@ -53,7 +53,7 @@ import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/envi
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 import { reactionsRefused, aoeOutcome, isConcealed } from "../rules/concealment.mjs";
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
-import { publicSpeakerFor } from "./public-identity.mjs";
+import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -3162,7 +3162,7 @@ async function offerAttackerWindow(state, window, message) {
   const carried = chosen.filter((id) => !classifyAbility(actor.items.get(id)).toggles);
 
   await ChatMessage.create({
-    content: `<p><strong>${actor.name}</strong> uses `
+    content: `<p><strong>${publicIdentityOf(actor, currentBoard()).name}</strong> uses `
       + `${chosen.map((id) => actor.items.get(id)?.name ?? id).join(", ")}.</p>`,
     speaker: publicSpeakerFor(actor),
   });

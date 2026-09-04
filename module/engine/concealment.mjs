@@ -26,6 +26,7 @@ import { applyWorldIntents } from "./applier.mjs";
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { publicSpeakerFor } from "./public-identity.mjs";
+import { publicIdentityOf } from "./public-identity.mjs";
 
 /**
  * End a Unit's concealment.
@@ -204,7 +205,11 @@ async function announce(inflicterId, disclosed) {
   });
 
   await ChatMessage.create({
-    content: `<p><strong>Secret Poison</strong> revealed: ${inflicter?.name ?? "a concealed Unit"}`
+    // The PUBLIC name. Revealing the SOURCE of the poison is the point of this
+    // card; revealing who the Servant actually is, is a separate fact the
+    // rules never said this reveals.
+    content: `<p><strong>Secret Poison</strong> revealed: `
+      + `${inflicter ? publicIdentityOf(inflicter, currentBoard()).name : "a concealed Unit"}`
       + ` was the source.</p><ul>${rows.join("")}</ul>`,
     speaker: inflicter ? publicSpeakerFor(inflicter) : undefined,
   });
@@ -281,12 +286,24 @@ export async function runDiscoverChecks(unitId) {
 
     Hooks.callAll("fgt.discovered", { unitId, byId: attempt.watcherId });
     await ChatMessage.create({
-      content: `<p><strong>Discovered.</strong> ${game.actors.get(attempt.watcherId)?.name ?? "A watcher"}`
-        + ` found ${game.actors.get(unitId)?.name ?? unitId}`
+      // A Discover reveals a concealed unit's POSITION, not its identity.
+      content: `<p><strong>Discovered.</strong> ${publicNameFor(attempt.watcherId) ?? "A watcher"}`
+        + ` found ${publicNameFor(unitId) ?? unitId}`
         + ` (rolled ${roll.total} vs ${attempt.chance}%).</p>`,
     });
     await deactivateConcealment(unitId, DEACTIVATION_REASONS.discovered);
     return { attempts: attempts.length, discoveredBy: attempt.watcherId };
   }
   return { attempts: attempts.length, discoveredBy: null };
+}
+
+/**
+ * One unit's public name, by id.
+ *
+ * @param {string} unitId
+ * @returns {string|null}
+ */
+function publicNameFor(unitId) {
+  const actor = game.actors.get(unitId);
+  return actor ? publicIdentityOf(actor, currentBoard()).name : null;
 }

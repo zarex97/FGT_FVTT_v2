@@ -14,10 +14,21 @@
 > in its flags to every client that can read them. `strict` — a whisper per audience — is the
 > setting for a table that wants more than that, and remains unimplemented.
 >
-> **The attack card is still baked by the acting client.** `cardFor` is called with
-> `game.user.id` at build time, so the redaction is computed for whoever pressed the button and
-> then stored for everyone. Giving it the same flags-and-hook treatment is the obvious next step
-> and is not done.
+> **The attack card was worse than baked: its redaction was never rendered.** `cardContext`
+> computed `cardFor` into a `visibility` field, and `attack.hbs` referenced that field **zero
+> times**. The template rendered `result.rows` — the complete, unredacted breakdown — to
+> everybody. Confirmed live: as a player, 439 attack cards showed the full damage and every
+> breakdown row of exchanges that player had no part in.
+>
+> It re-renders per client now, from the serialized Process and result already on the message, so
+> `game.user` is the viewer rather than the author. The template reads `visibility`: a bystander
+> gets the header and a notice, the involved get the total and the breakdown, a defender gets the
+> effects by name and everyone else a count.
+>
+> One cost, and it is the reason the names are remembered on the message. Re-rendering from flags
+> means a card about a **deleted** actor loses the name it was posted with, and the chat log is
+> the match's audit record (Ch. 30) — it has to stay readable after a unit is gone, which is
+> exactly when somebody goes back to read it.
 
 > **Implementation note (Ch. 45).** `FGTSocket.ask(userId, spec)` joins `request` and `broadcast`
 > as a third routing shape: a question for **one named user**, awaiting their answer. `request`

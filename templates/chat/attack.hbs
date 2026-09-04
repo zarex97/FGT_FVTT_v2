@@ -8,7 +8,17 @@
     </span>
   </header>
 
+  {{!-- §26.7. `visibility` is computed for whoever is LOOKING, because
+        `fillAttackCard` re-renders this template on each client. It used to be
+        computed and then never read: the damage and the whole breakdown were
+        public to the table regardless of who was involved. --}}
   {{#if result}}
+    {{#unless visibility.involved}}
+      <div class="fgt-card__hidden">{{localize "FGT.Chat.HiddenDamage"}}</div>
+    {{/unless}}
+  {{/if}}
+
+  {{#if visibility.involved}}
     <section class="fgt-card__result">
       <div class="fgt-card__total">{{result.summary.total}}</div>
       {{#if result.summary.hasSplit}}
@@ -52,6 +62,18 @@
         </tr>
       {{/each}}
     </table>
+
+    {{!-- What landed, for those entitled to read it. A defender learns what was
+          applied to them by name; everyone else learns only how many. --}}
+    {{#if visibility.effectNames.length}}
+      <ul class="fgt-card__effects">
+        {{#each visibility.effectNames as |e|}}<li>{{e}}</li>{{/each}}
+      </ul>
+    {{else}}
+      {{#if visibility.effectCount}}
+        <div class="fgt-card__hidden">{{localize "FGT.Skill.HiddenEffects" n=visibility.effectCount}}</div>
+      {{/if}}
+    {{/if}}
   {{/if}}
 
   {{#if prompt}}

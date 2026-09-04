@@ -51,6 +51,16 @@ coincide by accident; the headings say which is which.
 
 ### Corrected
 
+- **The attack card's redaction was computed and never rendered.** `cardContext` built a
+  `visibility` object and `attack.hbs` referenced it zero times, so every client saw the full
+  damage total and every breakdown row of exchanges it had no part in. The card re-renders per
+  client now, from the Process and result already on the message, and the template reads the
+  redaction: a bystander gets a notice, the involved get the numbers, a defender gets the effects
+  by name. Public names are remembered on the message so a card about a deleted unit still reads
+  (Ch. 26 §26.7).
+- **Five more cards printed true names** — the Command Spell card, the Secret Poison reveal, the
+  Discover card, the compulsion card and the Presence Concealment break. A Discover reveals a
+  concealed unit's position, not who it is.
 - **A Skill card listed every effect to everybody.** A Servant buffing itself announced each buff
   to the table. The card now runs §26.7's `filtered` mode — the first card that actually does:
   content ships with a count, flags carry who may read each row, and the render hook fills the
