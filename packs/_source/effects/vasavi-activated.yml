@@ -5,7 +5,7 @@ id: vasaviActivated
 name: "Vasavi Shakti (Activated)"
 description: |
   Kavacha and Kundala is permanently lost. Base Attack (STR) +25 and STR Rank B → A. Normal
-  Attacks deal extra damage to Units with Divinity. Normal Attacks inflict Burn at 50% instead
+  Attacks deal extra damage to Units with @ability[divinity]{Divinity}. Normal Attacks inflict @effect[burn]{Burn} at 50% instead
   of 25%. Karna's Master loses 20 Health at the end of every Combat Process Karna is involved in.
 polarity: status
 # Not a buff and not a debuff: it is a one-way change of state, and it is both
