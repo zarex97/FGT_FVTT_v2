@@ -19,6 +19,7 @@ import { normalAttackAt } from "../../rules/normal-attack.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { buildContext } from "./context.mjs";
 import { editImage } from "../image-edit.mjs";
+import { enrichAbilityCards } from "../enrich.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -339,7 +340,11 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   /** @inheritdoc */
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
-    return { ...context, ...buildContext(this.document, this) };
+    const built = { ...context, ...buildContext(this.document, this) };
+    // `enrichHTML` is async and Handlebars is not, so this is the only place
+    // it can happen. Without it a `@UUID` link renders as literal text.
+    await enrichAbilityCards(built.abilityCards);
+    return built;
   }
 
   /**

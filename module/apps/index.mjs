@@ -9,6 +9,7 @@
 
 import { FGTActorSheet } from "./actor-sheet/sheet.mjs";
 import { editImage } from "./image-edit.mjs";
+import { enrichText } from "./enrich.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -41,7 +42,14 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   /** @inheritdoc */
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
-    return { ...context, system: this.document.system, isEditable: this.isEditable };
+    return {
+      ...context,
+      system: this.document.system,
+      isEditable: this.isEditable,
+      // `enrichHTML` is async and Handlebars is not, so this is the only place
+      // it can happen. Without it a `@UUID` link renders as literal text.
+      enrichedDescription: await enrichText(this.document.system?.description),
+    };
   }
 }
 

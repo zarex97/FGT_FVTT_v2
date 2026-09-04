@@ -16,7 +16,9 @@
     </div>
   </header>
 
-  <section class="fgt-sheet__description">{{{system.description}}}</section>
+  {{!-- Enriched in `_prepareContext`, so `@UUID` links are real anchors. The
+        raw field would print them as literal text. --}}
+  <section class="fgt-sheet__description">{{{enrichedDescription}}}</section>
 
   {{#if system.rules.length}}
     <section class="fgt-sheet__rules">
