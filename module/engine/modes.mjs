@@ -36,6 +36,7 @@ import { forcedModes } from "../rules/modes.mjs";
 import { currentBoard } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
+import { publicSpeakerFor } from "./public-identity.mjs";
 
 /**
  * Guards against re-entry.
@@ -130,7 +131,7 @@ async function announce(switched, board) {
       content: `<p><strong>${ability}</strong> activated on ${actor?.name ?? unitId} — `
         + `${cause?.source ?? "a compulsion"}`
         + `${culprits.length ? `: ${culprits.join(", ")} within range` : ""}.</p>`,
-      speaker: actor ? ChatMessage.getSpeaker({ actor }) : undefined,
+      speaker: actor ? publicSpeakerFor(actor) : undefined,
     });
   }
 }

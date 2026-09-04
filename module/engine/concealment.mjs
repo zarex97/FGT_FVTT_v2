@@ -25,6 +25,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import * as I from "./intents.mjs";
+import { publicSpeakerFor } from "./public-identity.mjs";
 
 /**
  * End a Unit's concealment.
@@ -205,7 +206,7 @@ async function announce(inflicterId, disclosed) {
   await ChatMessage.create({
     content: `<p><strong>Secret Poison</strong> revealed: ${inflicter?.name ?? "a concealed Unit"}`
       + ` was the source.</p><ul>${rows.join("")}</ul>`,
-    speaker: inflicter ? ChatMessage.getSpeaker({ actor: inflicter }) : undefined,
+    speaker: inflicter ? publicSpeakerFor(inflicter) : undefined,
   });
 }
 

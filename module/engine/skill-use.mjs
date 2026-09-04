@@ -48,7 +48,7 @@ import { createField } from "./fields.mjs";
 import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
-import { publicIdentityOf } from "./public-identity.mjs";
+import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
 
 /**
  * Use an active Skill.
@@ -172,7 +172,7 @@ async function rollConcealmentBreak(actor, ability, self) {
   await ChatMessage.create({
     content: `<p><strong>${ability.name}</strong> gave ${actor.name} away —`
       + ` rolled ${roll.total} vs ${chance}%. Presence Concealment ends.</p>`,
-    speaker: ChatMessage.getSpeaker({ actor }),
+    speaker: publicSpeakerFor(actor),
   });
 }
 
@@ -307,6 +307,12 @@ async function runPhases(ability, actor, targets, board, only = null) {
       const doc = game.actors.get(target.unitId);
       if (!doc) continue;
       const snapshot = board.units.find((u) => u.id === target.unitId) ?? unitSnapshot(doc);
+      // Where the entries below land, stamped once here rather than at each of
+      // the ten `applied.push` sites. The card needs it to decide who is
+      // entitled to read a row: an effect a Servant put on ITSELF is its
+      // owner's business, and a card that lists it tells the table what that
+      // Servant just gained.
+      const from = applied.length;
 
       switch (phase.kind) {
         case "applyEffects":
@@ -546,6 +552,8 @@ async function runPhases(ability, actor, targets, board, only = null) {
         default:
           console.warn(`FGT | Phase "${phase.kind}" is not supported on a Skill; it did nothing.`);
       }
+
+      for (let i = from; i < applied.length; i += 1) applied[i].unitId ??= target.unitId;
     }
   }
   return Object.assign(applied, { summoned, channelStarted });
@@ -675,7 +683,7 @@ async function postRollCard(actor, ability, target, results) {
   await ChatMessage.create({
     content: `<p><strong>${ability.name}</strong> on ${target.name ?? "the target"}: `
       + `rolled ${results.join(", ")}.</p>`,
-    speaker: ChatMessage.getSpeaker({ actor }),
+    speaker: publicSpeakerFor(actor),
   });
 }
 
@@ -854,9 +862,15 @@ async function postCard(actor, ability, targets, applied) {
     })
     .filter((n) => n !== self.name);
 
-  const effects = applied
+  // Each applied row with WHO may read it. `renderChatMessageHTML` filters the
+  // list per viewer from the flags below; the content ships without it, so a
+  // client that never runs the hook shows a count rather than the whole list.
+  const rows = applied
     .filter((a) => a.summary.outcome === "applied")
-    .map((a) => a.summary.name);
+    .map((a) => ({
+      name: a.summary.name,
+      controllers: ownersOf(game.actors.get(a.unitId)),
+    }));
 
   const content = await foundry.applications.handlebars.renderTemplate(
     "systems/fgt/templates/chat/skill.hbs",
@@ -866,7 +880,9 @@ async function postCard(actor, ability, targets, applied) {
       ability: ability.name,
       rank: ability.system?.rank ?? null,
       targets: names,
-      effects,
+      // Rendered empty on purpose: the hook fills it for whoever is looking.
+      effects: [],
+      effectCount: rows.length,
       // A refusal is shown too: an effect the target was immune to is a fact
       // the player needs, and an empty card reads as a skill that did nothing.
       refused: applied
@@ -875,7 +891,16 @@ async function postCard(actor, ability, targets, applied) {
     },
   );
 
-  await ChatMessage.create({ content, speaker: ChatMessage.getSpeaker({ actor }) });
+  await ChatMessage.create({
+    content,
+    speaker: publicSpeakerFor(actor, board),
+    // §26.7's `filtered` mode: one message every client renders differently.
+    // The flags carry the full list, which is the documented trade -- a
+    // filtered card ships the whole result to every client that can read them,
+    // and `strict` (a whisper per audience) is the setting for a table that
+    // wants more than that.
+    flags: { fgt: { kind: "skill", rows, casterControllers: ownersOf(actor) } },
+  });
 }
 
 /**
@@ -1290,3 +1315,14 @@ export async function runCasterPhases(ability, actor, board) {
 const CASTER_PHASES = new Set([
   "resource", "statChange", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
 ]);
+
+/**
+ * The non-GM users who own this actor.
+ *
+ * @param {object|null} actor
+ * @returns {string[]}
+ */
+function ownersOf(actor) {
+  if (!actor) return [];
+  return game.users.filter((u) => !u.isGM && actor.testUserPermission(u, "OWNER")).map((u) => u.id);
+}

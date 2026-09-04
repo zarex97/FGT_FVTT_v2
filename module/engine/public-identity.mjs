@@ -66,3 +66,25 @@ export function publicIdentityOf(actor, board) {
     img: publicImageOf(actor),
   };
 }
+
+/**
+ * A chat speaker whose ALIAS is the public name.
+ *
+ * Foundry builds a speaker's alias from the actor's own name, and that alias is
+ * the line the chat log prints above the card. So a card whose body correctly
+ * said "Rider" still had "Medusa" written across the top of it — the fix to the
+ * body was invisible until somebody looked at the message rather than at the
+ * content string.
+ *
+ * `ChatMessage` is referenced inside the function rather than imported, so this
+ * module still loads without Foundry and the rest of it stays unit-testable.
+ *
+ * @param {object|null} actor
+ * @param {object} [board]
+ * @returns {object}
+ */
+export function publicSpeakerFor(actor, board = null) {
+  const speaker = ChatMessage.getSpeaker(actor ? { actor } : {});
+  if (!actor) return speaker;
+  return { ...speaker, alias: publicIdentityOf(actor, board).name };
+}

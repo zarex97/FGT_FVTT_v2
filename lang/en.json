@@ -471,6 +471,7 @@
   "FGT.Contract.Refusal.immune": "Independent Action at this rank cannot be contracted by enemies at all.",
   "FGT.Targeting.ClickAgain": "Click again to confirm.",
   "FGT.Skill.On": "on",
+  "FGT.Skill.HiddenEffects": "{n} effect(s) applied",
   "FGT.Skill.NoEffects": "No effects were applied.",
   "FGT.Skill.Refused": "{name} cannot be used: {reason}.",
   "FGT.Skill.UnknownEffect": "{name} applies an unknown effect \"{id}\" — it did nothing.",
