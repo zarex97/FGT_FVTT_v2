@@ -53,6 +53,20 @@ const LABELS = Object.freeze({
 });
 
 /**
+ * Every kind of action the economy bills, as DATA rather than only a typedef.
+ *
+ * A typedef cannot be tested. `test/unit/actions.test.mjs` holds this against
+ * `rules/actions.mjs`'s registry in both directions, which is the guard that
+ * would have caught `mark`, `gather` and `ridingAttack` shipping with complete
+ * engines and no caller anywhere.
+ *
+ * @type {ReadonlyArray<string>}
+ */
+export const ACTION_KINDS = Object.freeze([
+  "move", "attack", "skill", "np", "spell", "ridingAttack", "gather", "mark",
+]);
+
+/**
  * @typedef {"move"|"attack"|"skill"|"np"|"spell"|"ridingAttack"|"gather"|"mark"} ActionKind
  */
 
