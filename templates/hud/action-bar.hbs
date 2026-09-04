@@ -11,6 +11,11 @@
       {{#each resources as |r|}}
         <span class="fgt-bar__resource"><b>{{localize r.label}}</b> {{r.value}}{{#if r.max}} / {{r.max}}{{/if}}</span>
       {{/each}}
+      {{!-- §6.10's pools. They gate abilities, so they belong beside the
+            buttons rather than a tab away on the sheet. --}}
+      {{#each pools as |p|}}
+        <span class="fgt-bar__resource fgt-bar__resource--pool"><b>{{p.label}}</b> {{p.value}}{{#if p.max}} / {{p.max}}{{/if}}</span>
+      {{/each}}
     </div>
   </div>
 
