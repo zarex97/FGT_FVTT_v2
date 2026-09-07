@@ -41,6 +41,14 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // Caster -- kept as a set because content and rules both ask "is it a X".
       servantClasses: new fields.SetField(new fields.StringField({ blank: false })),
 
+      // A stance (Ch. 44 §44.1), and only Achilles has one. Blank means "the
+      // spec's default", so an actor imported before the field existed reads
+      // correctly rather than as an unknown state. `stanceSpec` is authored on
+      // the sheet and compiled by `tools/lib/content.mjs`; `rules/stance.mjs`
+      // is the only thing that interprets either.
+      stance: new fields.StringField({ required: false, blank: true }),
+      stanceSpec: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
       // The ONE it is summoned into, and the one it is publicly known by. A
       // Servant is not "Heracles" to its opponents, it is "Berserker" -- or
       // "Berserker of Yellow" once it belongs to a named faction (Ch. 04 §4.2).

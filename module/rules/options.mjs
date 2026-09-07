@@ -25,6 +25,7 @@ import { Rank } from "../domain/rank.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
 import { referencedOptions } from "./predicate.mjs";
+import { stanceOf } from "./stance.mjs";
 
 /**
  * Every option describing this attacker, this defender and this attack.
@@ -244,6 +245,15 @@ function add(options, side, unit) {
   // 'Double Summon: Caster' passives are gated on `self:variant:dsc`.
   if (unit.variant) options.add(`${side}:variant:${unit.variant}`);
 
+  // The stance (Ch. 44 §44.1). This one option is what makes the rest of
+  // Achilles's sheet ordinary: every *"while Mounted"* clause on it — Riding's
+  // Attack and Passenger Seat, Troias Tragōidia and its Master upkeep — and
+  // every *"when Unmounted"* clause — Dromeus Komētēs, Runner Comet, the duel,
+  // Akhilleus Kosmos, the Heel itself — is one predicate rather than a special
+  // case in whatever code happens to be asking.
+  const stance = stanceOf(unit);
+  if (stance) options.add(`${side}:stance:${stance}`);
+
   // Which bounded fields the unit is standing in. `annotateFields` has written
   // `u.fields` since Ch. 43 was implemented and nothing ever read it back into
   // a predicate, so "while Unlimited Blade Works is Active" -- which both of
@@ -416,6 +426,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):effectFamily:[A-Za-z][\w-]*$/,
   /^(self|target):region:[A-Za-z][\w-]*$/,
   /^(self|target):variant:[A-Za-z][\w-]*$/,
+  /^(self|target):stance:[A-Za-z][\w-]*$/,
   /^(self|target):inHomeBase$/,
   /^(self|target):free$/,
   /^(self|target):masterTier:(high|low|rankless)$/,

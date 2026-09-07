@@ -227,6 +227,25 @@
     </section>
   {{/if}}
 
+  {{!-- A stance (Ch. 44 §44.1), and only Achilles has one. Not a mode toggle:
+        switching is free, but only at the moments his sheet names, so the
+        control is a two-state selector and the engine refuses the rest. --}}
+  {{#if overview.stance}}
+    <section class="fgt-panel">
+      <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Stance"}}</h3>
+      <ul class="fgt-stance">
+        {{#each overview.stance.states as |s|}}
+          <li>
+            <button type="button" class="fgt-stance__option{{#if s.current}} fgt-stance__option--on{{/if}}"
+                    data-action="setStance" data-stance="{{s.id}}" {{#if s.current}}aria-pressed="true"{{/if}}>
+              {{localize s.label}}
+            </button>
+          </li>
+        {{/each}}
+      </ul>
+    </section>
+  {{/if}}
+
   <section class="fgt-panel">
     <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Budget"}}</h3>
     <ul class="fgt-budget">

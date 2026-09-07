@@ -423,6 +423,16 @@ export function worldIO() {
 
     /**
      * @param {string} unitId
+     * @param {string} stance one of the Unit's `stanceSpec.states`
+     */
+    async setStance(unitId, stance) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      await actor.update({ "system.stance": stance });
+    },
+
+    /**
+     * @param {string} unitId
      * @param {string} facing
      */
     async setFacing(unitId, facing) {

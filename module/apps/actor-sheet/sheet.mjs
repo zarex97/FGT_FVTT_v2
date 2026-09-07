@@ -13,6 +13,7 @@
 
 import { classifyAbility, needsTargeting } from "../../rules/ability-use.mjs";
 import { canToggleMode } from "../../rules/modes.mjs";
+import { mayChangeStance } from "../../rules/stance.mjs";
 import { unitSnapshot } from "../../engine/board.mjs";
 import { attackFacts } from "../../engine/attack.mjs";
 import { normalAttackAt } from "../../rules/normal-attack.mjs";
@@ -34,6 +35,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       normalAttack: FGTActorSheet.#onNormalAttack,
       useAbility: FGTActorSheet.#onUseAbility,
       toggleMode: FGTActorSheet.#onToggleMode,
+      setStance: FGTActorSheet.#onSetStance,
       editAbility: FGTActorSheet.#onEditAbility,
       openDialog: FGTActorSheet.#onOpenDialog,
       rollSetup: FGTActorSheet.#onRollSetup,
@@ -83,6 +85,34 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * @param {PointerEvent} _event
    * @param {HTMLElement} target
    */
+  /**
+   * Declare a stance (Ch. 44 §44.1).
+   *
+   * Not a mode toggle: switching costs nothing, so there is no price to pay and
+   * no cooldown to spend. What there is instead is a window -- his sheet allows
+   * the declaration when he acts, allows dropping out of Mounted at a Combat
+   * Phase start, and allows nothing else -- and `rules/stance.mjs` is the one
+   * place that knows which is which.
+   *
+   * @this {FGTActorSheet}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onSetStance(_event, target) {
+    const to = target.dataset.stance;
+    const unit = unitSnapshot(this.document);
+    const at = game.combat?.started ? "declare" : "free";
+    const verdict = mayChangeStance(unit, to, { at, acted: Boolean(unit.turnState?.acted) });
+    if (!verdict.ok) {
+      ui.notifications.warn(game.i18n.format(`FGT.Stance.Refused.${verdict.reason}`, {
+        name: this.document.name,
+        stance: game.i18n.localize(`FGT.Stance.${to}`),
+      }));
+      return;
+    }
+    await this.document.update({ "system.stance": to });
+  }
+
   static async #onToggleMode(_event, target) {
     const id = target.closest("[data-item-id]")?.dataset.itemId;
     const item = this.document.items.get(id);
