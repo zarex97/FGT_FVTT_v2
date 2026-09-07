@@ -279,6 +279,15 @@ function stage4CombinedPercent(s) {
       s.contribute("defUp", 0, `${m.source} (ignored by Ignore Def)`, "defender");
       continue;
     }
+    // A successful Heel Attack: *"receives damage that ignores all Defensive
+    // Buffs and damage reducing effects"* (Ch. 44 §44.2). Wider than Ignore
+    // Def, which reaches `defUp` alone. Only the REDUCING half is skipped — a
+    // Def Dwn standing on him still helps his attacker, which is what "ignores
+    // his defences" means and not "ignores his condition".
+    if (bypassesDefence(s) && !DEFENDER_POSITIVE_KEYS.has(m.key)) {
+      s.contribute(m.key, 0, `${m.source} (bypassed)`, "defender");
+      continue;
+    }
     const v = magnitudeOf(m, isNP, s.ctx);
     const signed = DEFENDER_POSITIVE_KEYS.has(m.key) ? v : -v;
     bucket += signed;
@@ -423,6 +432,11 @@ function stage10LuckIncreasedDamage(s) {
  * @param {PipelineState} s
  */
 function stage11Resistance(s) {
+  if (bypassesDefence(s) && s.ctx.defender?.magicResistance) {
+    s.begin(11);
+    s.contribute("magicResistance", 0, "Magic Resistance (bypassed)", "defender");
+    return s.end(11);
+  }
   s.begin(11);
   const mr = s.ctx.defender?.magicResistance;
   if (!mr || s.mag <= 0 || s.ctx.attack?.ignoresMagicResistance) {
@@ -461,6 +475,19 @@ function stage11Resistance(s) {
  */
 function stage12FlatReductions(s) {
   s.begin(12);
+  // Battle Continuation's dice and every Dmg Cut, bypassed together. This is
+  // the stage that matters most for a Heel Attack: Achilles's own Battle
+  // Continuation A takes `2d10+20` off everything, and the clause that reaches
+  // his Heel is the one thing his sheet says goes through it.
+  if (bypassesDefence(s)) {
+    for (const m of activeMods(s, s.ctx.defender, FLAT_REDUCTION_KEYS)) {
+      s.contribute(m.key, 0, `${m.source} (bypassed)`, "defender");
+    }
+    if (s.ctx.rolls?.battleContinuation) {
+      s.contribute("battleContinuation", 0, "Battle Continuation (bypassed)", "defender");
+    }
+    return s.end(12);
+  }
   let flat = 0;
 
   for (const m of activeMods(s, s.ctx.defender, FLAT_REDUCTION_KEYS)) {
@@ -576,6 +603,13 @@ function stage15TotalDamageModifiers(s) {
   // received is reduced"*, and because a factor of zero at stage 4 would be
   // undone by every flat bonus that follows it.
   for (const tier of activeMods(s, s.ctx.defender, new Set(["attackerPropertyTier"]))) {
+    // Andreias Amarantos is a damage-reducing effect like any other, and the
+    // Heel is the clause written to get past it -- which is the whole shape of
+    // the pair: he is untouchable until somebody aims low.
+    if (bypassesDefence(s)) {
+      s.contribute("attackerPropertyTier", 1, `${tier.source} (bypassed)`, "defender");
+      continue;
+    }
     const category = tier.property ?? "divinity";
     const rank = categoryRankOf(s.ctx.attacker, category);
     const percent = lookup(tier.table, rank);
@@ -694,6 +728,31 @@ export const MODIFIER_KEYS = Object.freeze([
  */
 function has(unit, id) {
   return Boolean(unit?.effects?.includes?.(id));
+}
+
+/**
+ * Does this attack go through the defender's reductions entirely?
+ *
+ * A successful Heel Attack (Ch. 44 §44.2): *"Achilles receives damage that
+ * ignores all Defensive Buffs and damage reducing effects."*
+ *
+ * Wider than `Ignore Def`, which reaches `defUp` alone, and wider than
+ * `Pierce`, which reaches Invuln and Block. This reaches the whole defensive
+ * half of the pipeline — stage 4's reducing bucket, Magic Resistance, every
+ * flat reduction including Battle Continuation's dice, and Andreias Amarantos
+ * itself.
+ *
+ * Two things it deliberately does NOT touch. A **Block** is a reaction rather
+ * than a buff, and the attack that carries this flag is `unblockable` anyway,
+ * so stage 14 cannot fire for one. And **outright negation** — Substitution,
+ * Anti-Purge, a reflect — is avoidance rather than reduction, and lives at
+ * stage 0 where the attack has not been measured yet.
+ *
+ * @param {PipelineState} s
+ * @returns {boolean}
+ */
+function bypassesDefence(s) {
+  return Boolean(s.ctx.attack?.ignoresDefensiveBuffs);
 }
 
 /**

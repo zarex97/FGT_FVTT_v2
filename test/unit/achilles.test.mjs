@@ -315,3 +315,54 @@ describe("Andreias Amarantos", () => {
     expect(dealt("C")).toBe(1000);
   });
 });
+
+/* ========================================================================== */
+/*  A Heel Attack's damage                                                    */
+/* ========================================================================== */
+
+describe("ignoresDefensiveBuffs", () => {
+  // "If the AU's Heel Attack succeeded, Achilles receives damage that ignores
+  // all Defensive Buffs and damage reducing effects." Everything he has is a
+  // damage-reducing effect, so this is the clause that makes the Heel matter.
+  const defended = {
+    id: "achilles",
+    magicResistance: { mode: "rankComparison", negatesUpToRank: "C", percent: 30, includesNP: true },
+    modifiers: [
+      { key: "defUp", value: 50, source: "Affections of the Goddess" },
+      { key: "dmgCut", value: 100, source: "Dmg Cut" },
+      {
+        key: "attackerPropertyTier", property: "divinity",
+        table: "andreiasAmarantosByAttackerDivinity", source: "Andreias Amarantos",
+      },
+    ],
+  };
+  const attacker = { id: "foe", baseAttack: { str: 1000, mag: 1000 }, abilities: [] };
+  /** @param {boolean} bypass */
+  const hit = (bypass) => computeDamage({
+    attacker,
+    defender: defended,
+    base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+    component: "str",
+    attack: { kind: "normal", ignoresDefensiveBuffs: bypass },
+    rolls: { attackMinus: 0, battleContinuation: 220 },
+  });
+
+  it("takes nothing at all through his standing defences", () => {
+    // Andreias Amarantos alone: the attacker has no Divinity, so ×0.
+    expect(hit(false).total).toBe(0);
+  });
+
+  it("lands the full number when the Heel is struck", () => {
+    expect(hit(true).total).toBe(1000);
+  });
+
+  it("names every bypassed source in the breakdown rather than hiding them", () => {
+    // A reduction that silently did not apply is indistinguishable from one
+    // that was never collected, which is the failure this reports its way out
+    // of — the same reason `Ignore Def` contributes a visible zero.
+    const labels = hit(true).breakdown.flatMap((b) => (b.contributors ?? []).map((c) => c.note ?? ""));
+    for (const source of ["Affections of the Goddess", "Dmg Cut", "Battle Continuation", "Andreias Amarantos"]) {
+      expect(labels.some((l) => l.includes(source) && l.includes("bypassed")), source).toBe(true);
+    }
+  });
+});
