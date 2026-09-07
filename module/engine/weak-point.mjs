@@ -19,6 +19,7 @@
 import { weakPointChance, weakPointOffered } from "../rules/weak-point.mjs";
 import { luckCheck } from "../rules/checks.mjs";
 import { unitSnapshot } from "./board.mjs";
+import * as I from "./intents.mjs";
 
 /**
  * The weak point this defender exposes to this attack, or `null`.
@@ -146,7 +147,36 @@ export async function resolveWeakPoint(state, { board = null } = {}) {
   return {
     event: succeeded ? "success" : "fail",
     detail: { chance, roll, breakdown, luckRoll, luckPassed, specId: spec.id },
+    // What a success leaves behind. Returned rather than applied here so that
+    // the caller writes it in the same batch as everything else the rung does,
+    // and so this function stays a roll rather than a write.
+    onSuccess: succeeded ? (spec.onSuccess ?? null) : null,
   };
+}
+
+/**
+ * The permanent mark a successful weak-point attack leaves.
+ *
+ * Applied with no chance roll and no duration: the sheet states the consequence
+ * outright, so there is nothing to resist and nothing to expire. `heelWounded`
+ * is `unremovable`, which is what carries "for the rest of the game".
+ *
+ * @param {object} state at `heelResolve`, after a success
+ * @param {object|null} onSuccess the spec's `onSuccess` block
+ * @returns {import("./intents.mjs").Intent[]}
+ */
+export function weakPointIntents(state, onSuccess) {
+  if (!onSuccess?.applies) return [];
+  return [I.applyEffect(state.defenderId, {
+    defId: onSuccess.applies,
+    magnitude: 0,
+    stage: 0,
+    uses: 0,
+    expiry: null,
+    unremovable: true,
+    sourceUnitId: state.attackerId,
+    visibility: "public",
+  }, state.attackerId)];
 }
 
 /**
