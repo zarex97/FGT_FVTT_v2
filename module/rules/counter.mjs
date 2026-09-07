@@ -27,8 +27,15 @@ import { chebyshev } from "../domain/geometry.mjs";
  */
 export const MAX_COUNTER_DEPTH = 8;
 
-/** The two answers to "may a Counter be Countered?" (`fgt.counterChain`). */
-export const COUNTER_CHAIN_MODES = Object.freeze(["collateral", "strict"]);
+/**
+ * The two answers to "may a Counter be Countered?" (`fgt.counterChain`).
+ *
+ * The default first, which is also the fail-safe: `mayCounterAgain` returns
+ * `true` for the bystander case only on an exact match with `collateral`, so a
+ * missing, misspelt or not-yet-registered setting refuses rather than opens the
+ * chain.
+ */
+export const COUNTER_CHAIN_MODES = Object.freeze(["strict", "collateral"]);
 
 /**
  * Everything this unit could answer a Counter with.
@@ -74,9 +81,19 @@ export function counterOffer(items) {
  * until one of them dies.
  *
  * **The setting** governs only the other case — a bystander an area Counter
- * caught on its way to somebody else. In `collateral` they keep their own right
- * to counter, because they were not the ones being countered; their answer is
- * itself a Counter aimed at its own target, so Rule 1 closes it one step later.
+ * caught on its way to somebody else.
+ *
+ * `strict`, the **default**: no Counter begins as the product of a Counter, for
+ * anybody. A Counter is then always the last attack of an exchange, and the
+ * ladder a player is reading has an end they can see from the first rung.
+ *
+ * `collateral`, off by default: the bystander was not the one being countered,
+ * so it keeps its own right to counter; its answer is itself a Counter aimed at
+ * its own target, so Rule 1 closes it one step later. Defensible, and the
+ * engine implements it in full — the depth cap and the redirect all hold under
+ * it — but a table has to ask for it, because it turns one attack into a
+ * branching tree of them and the branches are not visible when the first
+ * Counter is declared.
  *
  * A Counter with no `requiredTargetId` is a bug upstream, and refusing is the
  * safe reading: the alternative is the open chain this function exists to close.

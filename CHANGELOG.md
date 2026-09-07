@@ -198,6 +198,26 @@ coincide by accident; the headings say which is which.
   rather than inferred from the modifier key; a drift test names the six deliberate exceptions and
   fails on a seventh.
 
+### Changed
+
+- **No Counter may be Countered, by default (Ch. 12 §12.8).** `fgt.counterChain` now ships
+  as `strict` rather than `collateral`. Once an exchange reaches a Counter, that Counter is
+  its last attack: the unit it was aimed at could never answer it, and now neither can a
+  bystander an area Counter merely caught on its way there.
+
+  This is what the chapter's own eligibility pseudocode has said since it was written
+  (`if (ctx.isCounter) return false`), and it is the reading a player can hold in their head
+  — the ladder in front of them has an end they can see from the first rung. The permissive
+  reading is defensible and is implemented in full, depth cap and Master redirect included,
+  so it stays as **"A bystander may counter back"** in the settings window for a table that
+  wants it. It is off because it turns one attack into a branching tree of them, and the
+  branches are not visible at the moment the first Counter is declared.
+
+  `canCounter`'s own default parameter moved with the setting, and only an exact match on
+  `"collateral"` opens the bystander case, so a caller that forgets to read the setting
+  closes the chain rather than opening it. A source-level test pins the shipped default,
+  because a rules change of this size otherwise reads as a one-word diff.
+
 ### Fixed
 
 - **The reaction ladder was unusable for players.** Two defects stacked. `fillAttackCard`

@@ -187,6 +187,13 @@ describe("canCounter and the chain", () => {
     expect(canCounter(bystander, { ...eligible, chainMode: "strict" })).toBe(false);
   });
 
+  it("refuses a bystander by default, with no mode passed", () => {
+    // `canCounter`'s own default has to agree with the setting's, or the one
+    // caller that forgets to read `fgt.counterChain` silently plays a
+    // different game from the one the GM configured.
+    expect(canCounter(counterState({ defenderId: "C" }), eligible)).toBe(false);
+  });
+
   it("stops at the depth cap even in collateral mode", () => {
     const deep = counterState({ defenderId: "C", counterDepth: MAX_COUNTER_DEPTH });
     expect(canCounter(deep, { ...eligible, chainMode: "collateral" })).toBe(false);

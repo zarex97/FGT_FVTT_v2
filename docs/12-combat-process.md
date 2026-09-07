@@ -531,8 +531,22 @@ function canCounter(du, au, ctx): boolean {
 > implies but never states. `counterOffer` answers *"declare an Attack"* — any ability
 > `classifyAbility` calls an Attack, plus the Normal Attack, which is always offered and
 > always free. `mayCounterAgain` answers *"Counters cannot be Countered again"* precisely:
-> the unit a Counter was **aimed at** never answers it, and whether a bystander an area
-> Counter merely caught may answer is the `fgt.counterChain` setting, default `collateral`.
+> the unit a Counter was **aimed at** never answers it, in every configuration.
+>
+> A Counter can now be an area attack, which raises a case the source never had to answer:
+> a **bystander** the Counter merely caught on its way to the unit it was aimed at. It was
+> not the one being countered, so *"Counters cannot be Countered again"* does not obviously
+> reach it. `fgt.counterChain` decides, and the **default is `strict`** — nothing that began
+> as a Counter may start another one, for anybody, which is exactly what the pseudocode
+> above already says (`if (ctx.isCounter) return false`). A Counter is then always the last
+> attack of an exchange, and the ladder a player is reading has an end they can see from the
+> first rung.
+>
+> `collateral` is the other reading and is off by default. It lets that bystander answer
+> with a Counter of its own aimed at the counter-attacker; Rule 1 then closes *that* one a
+> step later, and the depth cap and the Master redirect hold under it unchanged. It is a
+> setting rather than the default because it turns one attack into a branching tree of
+> them, and the branches are not visible at the moment the first Counter is declared.
 >
 > A Counter keeps the **parent's `groupId`**, because §12.1's Combat Phase is the
 > declaration plus its counters and `engine/attack.mjs#fireCombatPhaseEnd` counts

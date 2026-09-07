@@ -71,13 +71,18 @@ export function registerSettings() {
   // §12.8. Rule 1 -- the unit a Counter was aimed at never answers it -- is NOT
   // configurable; it is what stops two Servants countering each other to death.
   // This governs only the bystander an AREA counter caught on its way to
-  // somebody else. Default `collateral`: they were not the one being countered,
-  // so they keep their own right to counter, and their answer is itself a
-  // Counter that Rule 1 closes one step later.
+  // somebody else. Default `strict`: NO Counter begins as the product of a
+  // Counter, so a Counter is always the last attack of an exchange and the
+  // ladder a player is reading has an end they can see from the first rung.
+  // `collateral` is the more permissive reading and is defensible -- the
+  // bystander was not the one being countered -- so the engine implements it
+  // in full and a table can turn it on. It is off by default because it turns
+  // one attack into a branching tree of them, and the branches are not visible
+  // at the moment the first Counter is declared.
   s("counterChain", {
     name: "FGT.Settings.CounterChain", hint: "FGT.Settings.CounterChainHint",
-    type: String, default: "collateral",
-    choices: { collateral: "FGT.CounterChain.Collateral", strict: "FGT.CounterChain.Strict" },
+    type: String, default: "strict",
+    choices: { strict: "FGT.CounterChain.Strict", collateral: "FGT.CounterChain.Collateral" },
   });
   s("masterMode", {
     name: "FGT.Settings.MasterMode", type: String, default: "essences",

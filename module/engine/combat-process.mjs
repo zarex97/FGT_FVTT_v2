@@ -317,7 +317,7 @@ export function isComplete(s) {
 export function canCounter(s, {
   defenderAlive, attackerInRange, attackerHasAccel = false, defenderCanAct = true,
   defenderHasBerserk = false, defenderHasFragarach = false, attackerConcealedAndFaster = false,
-  chainMode = "collateral",
+  chainMode = "strict",
 }) {
   // "Counters cannot be Countered again." First, because without it two
   // Servants in range of each other counter one another until something gives
@@ -326,7 +326,9 @@ export function canCounter(s, {
   //
   // It used to be a flat refusal on `isCounter`. It is now precise about WHICH
   // unit is refused: the one the counter was AIMED at, always, and a bystander
-  // an area counter merely caught only when the GM has chosen `strict`.
+  // an area counter merely caught unless the GM has turned on `collateral`.
+  // The default here is `strict` and matches the setting's, so a caller that
+  // forgets to read it refuses rather than opening the chain.
   if (!mayCounterAgain(s, s.defenderId, chainMode)) return false;
   // The backstop. Cost is what actually terminates the chain -- reaching a
   // bystander needs an area ability and an ability pays its own price -- so
