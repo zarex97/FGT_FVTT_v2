@@ -113,7 +113,7 @@ export function remainingMovement(unit) {
  * @param {number} [opts.movedAlready] panels spent earlier this Turn
  * @returns {{ok: boolean, reason?: string, hits?: object[], path?: object[], distance?: number}}
  */
-export function ridingAttackPath(unit, destination, board, { movedAlready = null } = {}) {
+export function ridingAttackPath(unit, destination, board, { movedAlready = null, distanceOverride = null } = {}) {
   if (!unit?.panel || !destination) return { ok: false, reason: "unplaced" };
 
   const path = geo.panelsBetween(unit.panel, destination);
@@ -128,7 +128,14 @@ export function ridingAttackPath(unit, destination, board, { movedAlready = null
   }
 
   const spent = movedAlready ?? unit.turnState?.movedPanels ?? 0;
-  const allowance = Math.max(0, effectiveMov(unit) - spent);
+  // *"This NP is used in the form of a Riding Attack, with a distance of 13
+  // panels."* An ability may state the ride's reach outright, and then MOV is
+  // not what bounds it -- Achilles's own is 8 at best, and Troias Tragōidia
+  // crosses the whole board. The allowance is still reduced by what he has
+  // already walked, because the clause overrides the distance and not the
+  // rule that a Unit moves once.
+  const reach = typeof distanceOverride === "number" ? distanceOverride : effectiveMov(unit);
+  const allowance = Math.max(0, reach - spent);
   if (distance > allowance) {
     return {
       ok: false,

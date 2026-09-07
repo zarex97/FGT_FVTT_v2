@@ -74,6 +74,7 @@ abilities:
   - { ref: achilles-affections-of-the-goddess }
   - { ref: achilles-andreias-amarantos }
   - { ref: achilles-heel }
+  - { ref: achilles-troias-tragoidia }
   - { ref: achilles-dromeus-kometes }
   - { ref: achilles-runner-comet }
 

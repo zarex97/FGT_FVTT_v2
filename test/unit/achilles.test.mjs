@@ -21,6 +21,8 @@ import { meetsRequirements } from "../../module/rules/items.mjs";
 import { checkPlan, evade } from "../../module/rules/checks.mjs";
 import { categoryRankOf } from "../../module/rules/items.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
+import { resolveValue } from "../../module/rules/elements.mjs";
+import { ridingAttackPath } from "../../module/rules/movement.mjs";
 
 /** @param {string} dir @param {string} id @returns {object} */
 const doc = (dir, id) => parse(readFileSync(join("packs/_source", dir, `${id}.yml`), "utf8"));
@@ -448,5 +450,82 @@ describe("heelWounded", () => {
     expect(phases[0].effects.map((e) => e.magnitude)).toEqual([30, 30]);
     expect(phases[1].predicate).toEqual(["self:effect:heelWounded"]);
     expect(phases[1].effects.map((e) => e.magnitude)).toEqual([10, 10]);
+  });
+});
+
+/* ========================================================================== */
+/*  Troias Tragōidia                                                          */
+/* ========================================================================== */
+
+describe("Troias Tragōidia", () => {
+  const np = ability("achilles-troias-tragoidia");
+
+  it("rides 13 panels, which is the NP's distance and not his MOV", () => {
+    expect(np.ridingAttack).toEqual({ distance: 13 });
+    // His MOV is 8 at best, so without the override the ride could not happen.
+    expect(SHEET.mov + 1).toBeLessThan(np.ridingAttack.distance);
+  });
+
+  it("lets an ability state the ride's reach", () => {
+    const unit = { id: "a", panel: { i: 5, j: 5 }, mov: 7, turnState: { movedPanels: 0 }, effects: [] };
+    const board = { units: [unit], bounds: { rows: 25, cols: 25 } };
+    const far = { i: 5, j: 18 };
+    expect(ridingAttackPath(unit, far, board).ok).toBe(false);
+    expect(ridingAttackPath(unit, far, board, { distanceOverride: 13 }).ok).toBe(true);
+  });
+
+  it("hits in both directions on the normal board only", () => {
+    expect(np.targeting.shape).toMatchObject({ kind: "line", length: 13, bidirectional: "unlessLargeBoard" });
+  });
+
+  it("deals 4x on Base Attack (STR), and is Mounted-only", () => {
+    expect(np.damage).toEqual({ component: "str", multiplier: 4 });
+    expect(np.requirements).toEqual([{ kind: "stance", stance: "mounted" }]);
+    expect(np.cooldown).toBe("7◈+⅓◈");
+  });
+
+  it("computes X from what was left of his movement, rounded down", () => {
+    /** `10 * @ride.x`, resolved the way the attack path resolves it. */
+    const atkUp = np.phases.find((p) => p.kind === "applyEffects" && p.when === "beforeDamage").effects[0];
+    const at = (x, field) => resolveValue(atkUp, null, { refs: { ride: { x, xLessOne: Math.max(0, x - 1) } } }, field);
+    // MOV 8, moved 3 → 5 left → X = 2 → 20% and 10%.
+    expect(at(2, "magnitude")).toBe(20);
+    expect(at(2, "npMagnitude")).toBe(10);
+    // A full allowance of 8 → X = 4 → 40% and 30%.
+    expect(at(4, "magnitude")).toBe(40);
+    expect(at(4, "npMagnitude")).toBe(30);
+    // Nothing left: no buff either way, and never a negative one.
+    expect(at(0, "magnitude")).toBe(0);
+    expect(at(0, "npMagnitude")).toBe(0);
+  });
+
+  it("restores the same X in Agility, not a second number", () => {
+    const restore = np.phases.find((p) => p.kind === "resource");
+    expect(restore.changes).toEqual([{ key: "agility", delta: "@ride.x" }]);
+    expect(restore.when).toBe("beforeDamage");
+  });
+
+  it("computes Y from the Units it actually reached, after the damage", () => {
+    const rider = np.phases.filter((p) => p.kind === "applyEffects").at(-1);
+    expect(rider.when).toBeUndefined();
+    const critDmUp = rider.effects[0];
+    const at = (hitCount) => resolveValue(critDmUp, null, { refs: { hitCount } }, "magnitude");
+    expect(at(0)).toBe(0);
+    expect(at(4)).toBe(40);
+  });
+
+  it("does not buff itself with its own Riding Attack passive", () => {
+    // "Riding Attack damage is increased by 25%, does not affect NP" — and this
+    // NP *is* a Riding Attack, so the exclusion is what stops it compounding.
+    const passive = np.passiveRules.find((r) => r.key === "DamageModifier");
+    expect(passive).toMatchObject({ value: 25, npValue: 0, predicate: ["attack:kind:ridingAttack"] });
+  });
+
+  it("bills his Master 25 Health at the end of any Turn he Acts while Mounted", () => {
+    const upkeep = np.passiveRules.find((r) => r.key === "OnEvent");
+    expect(upkeep).toMatchObject({ event: "actedTurnEnd", predicate: ["self:stance:mounted"] });
+    expect(upkeep.then[0]).toEqual({
+      key: "StatDelta", subject: "master", stat: "health.value", amount: 25, direction: "down",
+    });
   });
 });

@@ -266,7 +266,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
   // the rest, so a Noble Phantasm over seven units damaged one of them.
-  const attackSpec = buildAttackSpec({ attacker, ability, abilityId, options });
+  const attackSpec = buildAttackSpec({ attacker, ability, abilityId, options, placement });
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
   // the same defender, inside ONE Combat Phase -- which is the distinction that
   // matters, because a Combat Phase is what pays him his Aria and two phases
@@ -423,9 +423,40 @@ async function payAbilityPrice({ ability, attackerId, attacker, self, master, us
  * @param {object|null} args.ability
  * @param {string|null} args.abilityId
  * @param {object|null} args.options roll options for the attacker
+ * @param {object} [args.placement] the declaration's placement, for a ride's own facts
  * @returns {object}
  */
-function buildAttackSpec({ attacker, ability, abilityId, options }) {
+/**
+ * What a Riding Attack leaves for a magnitude to read.
+ *
+ * The DERIVED numbers are computed here rather than in the content, because the
+ * expression grammar is deliberately `N * @path` and its own comment argues
+ * against widening it — *"a general arithmetic evaluator here would be an
+ * expression language nobody asked for, running on data from a shared
+ * compendium."* So the rounding, which is a system rule (fractions always round
+ * down), lives in code; the `X0%` from the sheet stays in the content as
+ * `10 * @ride.x`, where a reader comparing the two will find it.
+ *
+ * @param {object} placement
+ * @returns {{panels: number, hitCount: number, remainingMov: number, x: number, xLessOne: number}}
+ */
+function rideFacts(placement) {
+  const remainingMov = placement.remainingMov ?? 0;
+  // *"X = (the amount of remaining MOV Achilles has divided by 2)"*, rounded
+  // down by Ch. 02's blanket rule.
+  const x = Math.floor(remainingMov / 2);
+  return {
+    panels: placement.ridePanels,
+    hitCount: placement.hitCount ?? 0,
+    remainingMov,
+    x,
+    // *"if NP (X−1)0%"*, floored at zero: a ride with nothing left must not
+    // hand out a negative buff.
+    xLessOne: Math.max(0, x - 1),
+  };
+}
+
+function buildAttackSpec({ attacker, ability, abilityId, options, placement = null }) {
   return {
       abilityId,
       kind: ability ? abilityKind(ability) : "normal",
@@ -435,6 +466,12 @@ function buildAttackSpec({ attacker, ability, abilityId, options }) {
       // that is not affected by Magic Resistance"* -- a property of the attack,
       // so it has to travel with the attack.
       component: componentOf(attacker, ability, options),
+      // Facts that do not exist until the ride has happened. Troias Tragōidia
+      // reads two of them — how much MOV he had left when he used it, and how
+      // many Units he actually reached — and neither can come off a document.
+      ride: placement?.ridePanels !== undefined
+        ? rideFacts(placement)
+        : null,
       // Appendix A treats `Aim` and `Pierce` as properties of the ATTACK, and
       // `evade`/the pipeline have read both by name since they were written --
       // against a spec that carried neither, so no authored Noble Phantasm could
@@ -2906,9 +2943,10 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
         // path already did this, and an ability that resolves through the
         // attack path instead -- every Noble Phantasm -- would otherwise apply
         // the string itself as a magnitude and land nothing at all.
-        magnitude: authoredMagnitude(spec, attackerDoc) ?? def.defaultMagnitude ?? 0,
-        npMagnitude: authoredMagnitude(spec, attackerDoc, "npMagnitude")
-          ?? authoredMagnitude(rule, attackerDoc, "npMagnitude"),
+        magnitude: authoredMagnitude(spec, attackerDoc, "magnitude", state.attack?.ride)
+          ?? def.defaultMagnitude ?? 0,
+        npMagnitude: authoredMagnitude(spec, attackerDoc, "npMagnitude", state.attack?.ride)
+          ?? authoredMagnitude(rule, attackerDoc, "npMagnitude", state.attack?.ride),
         // How many stages one application is worth. *"Inflicts Stage 3 Poison
         // on the DU"* is one application, not three -- three would roll the
         // chance three times and be improved three times by a Debuff ChUp.
@@ -2959,7 +2997,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
  * @param {object} actor the caster
  * @returns {number|null}
  */
-function authoredMagnitude(spec, actor, field = "magnitude") {
+function authoredMagnitude(spec, actor, field = "magnitude", ride = null) {
   const raw = spec?.[field];
   if (raw === null || raw === undefined) return null;
   // Straight through unless the SPEC asks for more than a number: a literal
@@ -2967,7 +3005,10 @@ function authoredMagnitude(spec, actor, field = "magnitude") {
   if (typeof raw === "number" && !spec.perStack && spec.max === undefined) return raw;
 
   const value = resolveValue(spec, null, {
-    refs: expressionRefs(actor),
+    // The ride's own facts, when there was one. `@self.remainingMov` is
+    // OVERRIDDEN here rather than read off the document, because the ride has
+    // already written its movement by the time a rider phase resolves.
+    refs: expressionRefs(actor, ride ? { ride, hitCount: ride.hitCount } : {}),
     // `perStack` on an effect spec, so a magnitude may scale with what the
     // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
     // is increased by X%"* where X is her size, and her size is one step per
@@ -3203,8 +3244,9 @@ async function applyDeclaredEffects(specs, ability, state, defender, { ignoresRe
       // helper -- `target: self` effects come through here (Bellerophon's own
       // Crit Up, Mannanán's token-scaled Atk Up) and an authored expression
       // must mean the same number on both.
-      magnitude: authoredMagnitude(spec, game.actors.get(state.attackerId)) ?? def.defaultMagnitude ?? 0,
-      npMagnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "npMagnitude"),
+      magnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "magnitude", state.attack?.ride)
+        ?? def.defaultMagnitude ?? 0,
+      npMagnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "npMagnitude", state.attack?.ride),
       duration: spec.duration ?? def.defaultDuration,
       chanceModifiers: spec.chanceModifiers ?? [],
       chance: spec.chance ?? null,

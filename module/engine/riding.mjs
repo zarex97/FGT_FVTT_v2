@@ -15,7 +15,7 @@
  * what keeps a Move-that-is-an-Attack from needing a Combat Process of its own.
  */
 
-import { ridingAttackPath } from "../rules/movement.mjs";
+import { ridingAttackPath, effectiveMov } from "../rules/movement.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
@@ -30,7 +30,7 @@ import { applyWorldIntents } from "./applier.mjs";
  * @param {{i: number, j: number}} args.destination
  * @returns {Promise<{ok: boolean, reason?: string, hit?: string[], messageId?: string}>}
  */
-export async function performRidingAttack({ unitId, destination }) {
+export async function performRidingAttack({ unitId, destination, abilityId = null }) {
   const actor = game.actors.get(unitId);
   if (!actor) return { ok: false, reason: "notFound" };
 
@@ -44,8 +44,23 @@ export async function performRidingAttack({ unitId, destination }) {
   const verdict = affordableRide(unit);
   if (!verdict.ok) return verdict;
 
-  const plan = ridingAttackPath(unit, destination, board);
+  // A Noble Phantasm may BE a Riding Attack rather than merely benefit from
+  // one: *"This NP is used in the form of a Riding Attack, with a distance of
+  // 13 panels."* The ability then decides the reach and the fan-out is the
+  // ability rather than a Normal Attack.
+  const ability = abilityId ? actor.items.get(abilityId) : null;
+  const ride = ability?.system?.ridingAttack ?? null;
+  const plan = ridingAttackPath(unit, destination, board, {
+    distanceOverride: typeof ride?.distance === "number" ? ride.distance : null,
+  });
   if (!plan.ok) return { ok: false, reason: plan.reason };
+
+  // *"X = the amount of remaining MOV Achilles has divided by 2."* Captured
+  // BEFORE the ride writes its own movement, and deliberately: the NP's
+  // distance is 13 and his MOV is 8 at best, so measuring afterwards would make
+  // X zero every time and the clause dead. What the sheet is asking is how much
+  // of his Turn's movement he had left when he used it.
+  const remainingMov = Math.max(0, effectiveMov(unit) - (unit.turnState?.movedPanels ?? 0));
 
   // The MOVE, first and completely. `{fgtForced: true}` because the legality
   // was decided by `ridingAttackPath` rather than by the ordinary movement
@@ -84,8 +99,16 @@ export async function performRidingAttack({ unitId, destination }) {
   const { resolveAttack } = await import("./attack.mjs");
   const result = await resolveAttack({
     attackerId: unitId,
-    abilityId: null,
-    placement: { pathTargets: plan.hits.map((u) => u.id) },
+    abilityId,
+    placement: {
+      pathTargets: plan.hits.map((u) => u.id),
+      // How far he actually rode and how many he actually reached. Troias
+      // Tragōidia's two magnitudes are read off these, and neither exists
+      // until the ride has happened.
+      ridePanels: plan.distance,
+      hitCount: plan.hits.length,
+      remainingMov,
+    },
   });
   return { ok: true, hit: plan.hits.map((u) => u.id), messageId: result?.messageId ?? null };
 }
