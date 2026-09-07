@@ -212,6 +212,11 @@ export function snapshotUnit(actor, {
     // A resolved summon-time variant (`rules/summon-variant.mjs`) -- `null` for
     // every Servant but the ones authored with a `summonVariant` block.
     variant: sys.variant ?? null,
+    // The stance and the rules for changing it (Ch. 44 §44.1). Both travel,
+    // because `rules/stance.mjs` answers "may this change now" from the
+    // projection and never from the document.
+    stance: sys.stance ?? "",
+    stanceSpec: sys.stanceSpec ?? null,
     // The unit's OWN auras, unexpanded. `snapshotBoard` runs `annotateAuras`
     // once every unit exists and appends what each unit actually stands in to
     // its `modifiers`. A unit snapshotted alone receives only its own auras --

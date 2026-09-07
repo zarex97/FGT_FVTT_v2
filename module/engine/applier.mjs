@@ -373,6 +373,9 @@ async function writeGroup(group, io) {
     case "setMode":
       for (const i of intents) await io.setMode(unitId, i.abilityId, i.active);
       break;
+    case "setStance":
+      await io.setStance(unitId, intents.at(-1).stance);
+      break;
     case "cooldown":
       for (const i of intents) await io.setCooldown(unitId, i.abilityId, i.ticks, i.mode);
       break;

@@ -24,7 +24,7 @@ export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
-  "setMode", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
+  "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
 ]);
 
 /**
@@ -67,6 +67,10 @@ const ORDER = Object.freeze({
   // Enhancement's forced deactivation has to land before the next pass
   // collects its active rules.
   setMode: 2,
+  // Beside `setMode`, and bookkeeping for the same reason: a stance decides
+  // which of a Unit's clauses are collected at all, so it must land before
+  // anything reads them back.
+  setStance: 2,
   heal: 3,
   damage: 4,
   applyEffect: 5,
@@ -195,6 +199,15 @@ export const consumeUse = (unitId, defId, count = 1) =>
  */
 export const setMode = (unitId, abilityId, active, source = null) =>
   ({ t: "setMode", unitId, abilityId, active, source });
+
+/**
+ * Put a Unit into a stance (Ch. 44 §44.1).
+ *
+ * Emitted by the Turn boundary for *"always Dismounted when it is not his
+ * Turn"*, and by the sheet control for the declaration.
+ */
+export const setStance = (unitId, stance, source = null) =>
+  ({ t: "setStance", unitId, stance, source });
 
 /**
  * Record that an ability was used: this Turn, this Round, and ever.

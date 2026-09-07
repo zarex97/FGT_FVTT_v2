@@ -16,6 +16,7 @@ import { currentBoard, unitSnapshot, currentTick, currentRound } from "../../eng
 import { poolsOf, isUnbound } from "../../rules/cs-namespacing.mjs";
 import { chebyshev } from "../../domain/geometry.mjs";
 import { resourceLabel } from "../../domain/resources.mjs";
+import { stanceOf } from "../../rules/stance.mjs";
 import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
@@ -81,6 +82,27 @@ function masterContext(master) {
     // to Act, and the tax has already been charged by the time anyone looks.
     taxWarning: (master.system.health?.value ?? 0) <= 25,
     multiServantTax: master.system.turnState?.servantsActed ?? 0,
+  };
+}
+
+/**
+ * The stance panel's two buttons, or `null` for a Unit that has no stance.
+ *
+ * The label key is derived rather than authored, so a stance written later gets
+ * its buttons for free: `FGT.Stance.<state>`.
+ *
+ * @param {object} snapshot
+ * @returns {{states: Array<{id: string, label: string, current: boolean}>}|null}
+ */
+function stanceContext(snapshot) {
+  const current = stanceOf(snapshot);
+  if (!current) return null;
+  return {
+    states: (snapshot.stanceSpec?.states ?? []).map((id) => ({
+      id,
+      label: `FGT.Stance.${id}`,
+      current: id === current,
+    })),
   };
 }
 
@@ -374,6 +396,10 @@ function overviewContext(actor, snapshot) {
         source: d.source ?? game.i18n.localize("FGT.Sheet.UnknownSource"),
         amount: d.rankShift ? `${d.rankShift > 0 ? "+" : ""}${d.rankShift} rank` : signed(d.value),
       })),
+
+    // The stance and its two buttons (Ch. 44 §44.1). `null` for every Unit but
+    // Achilles, which is what the template's `{{#if}}` reads.
+    stance: stanceContext(snapshot),
 
     status: {
       // The SNAPSHOT's, not `system`'s: §16.2 derives this state, and the

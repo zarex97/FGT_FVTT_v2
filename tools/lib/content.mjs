@@ -1402,6 +1402,11 @@ function actorSystem(doc) {
     // resolved, and is undefined here so a compiled Servant does not ship
     // with a stale one.
     summonVariant: doc.summonVariant ?? null,
+    // The stance's rules, authored as a `stance:` block on the sheet. Compiled
+    // whole rather than field by field: `rules/stance.mjs` is its only reader
+    // and the schema lives there, in prose, beside the clause it came from.
+    stanceSpec: doc.stance ?? null,
+    stance: doc.stance?.default ?? "",
     // §6.10's pools, declared on the Servant that owns them.
     resources: doc.resources ?? {},
     notes: doc.notes ?? "",

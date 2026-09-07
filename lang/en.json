@@ -265,6 +265,13 @@
   "FGT.Mode.cannotDeactivate": "{name} cannot be deactivated.",
   "FGT.Mode.compelled": "{name} cannot be deactivated while the Unit is compelled.",
   "FGT.Mode.toggleLock": "{name} was switched too recently — {remaining} more turn(s).",
+
+  "FGT.Sheet.Stance": "Stance",
+  "FGT.Stance.mounted": "Mounted",
+  "FGT.Stance.dismounted": "Dismounted",
+  "FGT.Stance.Refused.window": "{name} cannot become {stance} now.",
+  "FGT.Stance.Refused.acted": "{name} has already acted this Turn; the stance is settled.",
+  "FGT.Stance.Refused.unknownState": "{name} has no such stance.",
   "FGT.Choice.Title": "Choose",
   "FGT.Choice.Confirm": "Confirm",
   "FGT.Choice.Ready": "Ready.",

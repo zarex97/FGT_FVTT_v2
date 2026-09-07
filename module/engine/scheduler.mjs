@@ -21,6 +21,7 @@ import { endOfRoundHomeBase, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { transferEffect, transferableFrom } from "../rules/effect-flow.mjs";
+import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
@@ -104,7 +105,17 @@ export function endTurn(board, ctx) {
   //    nothing reduces it.
   intents.push(...multiServantIntents(units, ctx));
 
-  // 9. Sustainability and removal checks.
+  // 9. A stance is dropped when its owner's Turn ends. *"Achilles is always
+  //    Dismounted when it is not his Turn"* (Ch. 44 §44.1) -- a statement about
+  //    what is true rather than about a transition, so it is enforced at the
+  //    boundary rather than offered as one, and it is what makes Achilles' Heel
+  //    a threat at all: whatever he attacked in, he defends on foot.
+  for (const u of units.filter((x) => x.factionId === ctx.activeFactionId)) {
+    const forced = forcedStanceFor(u, { isOwnTurn: false });
+    if (forced) intents.push(I.setStance(u.id, forced, "turn end"));
+  }
+
+  // 10. Sustainability and removal checks.
   intents.push(...checkRemovals(units, ctx));
 
   return intents;

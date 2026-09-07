@@ -507,6 +507,27 @@ describe("endTurn ordering", () => {
     expect(hit).not.toContain("mine");
   });
 
+  it("drops a stance when its owner's Turn ends", () => {
+    // "Achilles is always Dismounted when it is not his Turn." Enforced at the
+    // boundary rather than offered as a transition, because it is a statement
+    // about what is true.
+    const spec = {
+      states: ["mounted", "dismounted"], default: "dismounted",
+      forcedOutsideOwnTurn: "dismounted",
+      transitions: [{ from: "mounted", to: "dismounted", at: "combatPhaseStart" }],
+    };
+    const mine = { id: "achilles", factionId: "a", acted: true, stance: "mounted", stanceSpec: spec };
+    const theirs = { id: "other", factionId: "b", acted: false, stance: "mounted", stanceSpec: spec };
+    const out = endTurn(board([mine, theirs]), sctx).filter((i) => i.t === "setStance");
+    expect(out).toEqual([{ t: "setStance", unitId: "achilles", stance: "dismounted", source: "turn end" }]);
+  });
+
+  it("writes no stance intent for a Unit already in the forced one", () => {
+    const spec = { states: ["mounted", "dismounted"], default: "dismounted", forcedOutsideOwnTurn: "dismounted" };
+    const mine = { id: "achilles", factionId: "a", acted: true, stance: "dismounted", stanceSpec: spec };
+    expect(endTurn(board([mine]), sctx).some((i) => i.t === "setStance")).toBe(false);
+  });
+
   it("fires `anyTurnEnd` for every unit, whoever is acting", () => {
     // §7.4's `turnEnd` -- *"every turn, any player's"*. The handler vocabulary
     // spends that name on the owner's Turn, so the pass that matches the
