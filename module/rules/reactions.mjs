@@ -18,6 +18,7 @@
 
 import { blockedThisTurn, isNegated } from "./ability-use.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
+import { Rank } from "../domain/rank.mjs";
 import { relationOf } from "./relations.mjs";
 
 /** The window an ability must name to be offered as a reaction. */
@@ -106,6 +107,9 @@ export function abilitiesAtWindow(unit, window) {
     const maxUses = sys.maxUses ?? null;
     if (maxUses !== null && (sys.timesUsed ?? 0) >= maxUses) return false;
 
+    // Already spent for good.
+    if (sys.expended) return false;
+
     return true;
   });
 }
@@ -184,6 +188,21 @@ export function allyReactions({ defender, board, attack, actorFor }) {
       // restriction, not a note: a barrier offered against every Normal Attack
       // would be a different ability entirely.
       if (timing.againstKind && timing.againstKind !== (attack?.kind ?? "normal")) continue;
+
+      // *"...an AoE Noble Phantasm of Rank A and above."* Achilles's barrier
+      // answers a narrower set than EMIYA's: his gates on the incoming Noble
+      // Phantasm's RANK and on it being an area attack at all, where Rho Aias
+      // gates only on it being a Noble Phantasm.
+      if (timing.againstRank) {
+        const floor = Rank.parseOrNull(timing.againstRank);
+        const incoming = Rank.parseOrNull(attack?.rank ?? null);
+        if (!floor || !incoming || Rank.compare(incoming, floor) < 0) continue;
+      }
+      if (timing.requiresAoE && !attack?.isAoE) continue;
+
+      // Spent for the rest of the game, which is not a cooldown: there is no
+      // number of Turns after which Akhilleus Kosmos comes back.
+      if (sys.expended) continue;
 
       if ((sys.cooldown?.remaining ?? 0) > 0) continue;
       if (blockedThisTurn(item, used)) continue;

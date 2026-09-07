@@ -274,6 +274,15 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
         distance: new fields.NumberField({ integer: true, required: false, nullable: true, initial: null }),
       }),
 
+      // Spent for the rest of the game rather than put on a cooldown.
+      // Akhilleus Kosmos is the only one: *"After that, Akhilleus Kosmos is
+      // broken; all its effects are lost and cannot be used for the rest of the
+      // game."* There is no number of Turns after which it comes back, so a
+      // cooldown cannot say it.
+      expendsPermanently: new fields.BooleanField({ initial: false }),
+      // Set when it has been. Written once and never cleared.
+      expended: new fields.BooleanField({ initial: false }),
+
       // Effect-definition fields. Present only on documents in the effects
       // pack; null elsewhere.
       polarity: new fields.StringField({ required: false, nullable: true, initial: null }),
@@ -394,6 +403,15 @@ export class NoblePhantasmData extends foundry.abstract.TypeDataModel {
       ridingAttack: new fields.SchemaField({
         distance: new fields.NumberField({ integer: true, required: false, nullable: true, initial: null }),
       }),
+
+      // Spent for the rest of the game rather than put on a cooldown.
+      // Akhilleus Kosmos is the only one: *"After that, Akhilleus Kosmos is
+      // broken; all its effects are lost and cannot be used for the rest of the
+      // game."* There is no number of Turns after which it comes back, so a
+      // cooldown cannot say it.
+      expendsPermanently: new fields.BooleanField({ initial: false }),
+      // Set when it has been. Written once and never cleared.
+      expended: new fields.BooleanField({ initial: false }),
       /**
        * A bounded field this Noble Phantasm creates (Ch. 43). Untyped for the
        * same reason rule elements are: ten fields are points in one six-axis

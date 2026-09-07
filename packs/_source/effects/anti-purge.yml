@@ -1,0 +1,30 @@
+# Appendix A §A.2
+#
+# "No damage from anything, including NP and Fixed, even against Pierce. Beats
+# Invuln."
+#
+# `rules/damage/pipeline.mjs` has halted at stage 0 on `antiPurge` since the
+# pipeline was written, and NO CONTENT HAD EVER APPLIED IT -- the strongest
+# defensive entry in the catalogue existed only as a branch nothing reached.
+# Achilles's Akhilleus Kosmos is the first thing to need it: *"Negate all damage
+# and effects of that Noble Phantasm in a 5x5 panel area around Achilles."*
+#
+# Damage AND effects is why this rather than `Invuln`. Invuln zeroes the number
+# at stage 16 and Appendix A is explicit that it does not stop a rider debuff;
+# Anti-Purge halts at stage 0, before the attack has been measured, so the
+# riders never fire either.
+schema: 1
+id: antiPurge
+name: "Anti-Purge"
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+description: |
+  No damage from anything, including NP and Fixed damage, even against Pierce.
+  Beats Invuln.
+# No rules of its own: the pipeline recognises it by id at stage 0, the same way
+# it recognises `substitution` and `invuln`. A `DamageNegation` element here
+# would be a second, weaker implementation of a halt that already exists.
+rules: []

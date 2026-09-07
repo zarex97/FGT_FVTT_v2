@@ -221,6 +221,9 @@ export function snapshotUnit(actor, {
     weakPoints: [...(actor.items ?? [])]
       .map((i) => i.system?.weakPoint)
       .filter(Boolean),
+    // How this Unit shoves whoever it walks into (Ch. 08 §8.3). `null` for
+    // everyone but Achilles; Kingprotea's outward push is the default.
+    knockback: contributions.knockback ?? null,
     stance: sys.stance ?? "",
     stanceSpec: sys.stanceSpec ?? null,
     // The unit's OWN auras, unexpanded. `snapshotBoard` runs `annotateAuras`

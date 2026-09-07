@@ -300,6 +300,54 @@ describe("moving repeatedly, and what stops it", () => {
   });
 });
 
+describe("knockbackPanel — Akhilleus Kosmos's directional push", () => {
+  const at2 = (i, j) => ({ i, j });
+  const mover = at2(6, 6);
+  /** @param {number} i @param {number} j */
+  const victim = (i, j) => other("v", i, j, {});
+
+  it("shoves along the mover's travel rather than away from a point", () => {
+    // He walks east into somebody: they go east, not "away from his centre".
+    const v = victim(6, 7);
+    const out = knockbackPanel(mover, v, board([v]), { preferredDirection: at2(0, 1) });
+    expect(out).toEqual({ panel: at2(6, 8), sidestepped: false });
+  });
+
+  it("keeps pushing along that line until it finds room", () => {
+    const v = victim(6, 7);
+    const blocker = other("b", 6, 8, {});
+    const out = knockbackPanel(mover, v, board([v, blocker]), { preferredDirection: at2(0, 1) });
+    expect(out).toEqual({ panel: at2(6, 9), sidestepped: false });
+  });
+
+  it("steps them aside when the line is full, and says so", () => {
+    // "If the Unit does not or cannot vacate those panels, that Unit is
+    // forcefully Moved to one of the panels to its sides, and receives damage
+    // equivalent to a Normal Attack."
+    const v = victim(6, 7);
+    const wall = [8, 9, 10, 11, 12].map((j, n) => other(`w${n}`, 6, j, {}));
+    const out = knockbackPanel(mover, v, board([v, ...wall]), {
+      preferredDirection: at2(0, 1), allowSidestep: true,
+    });
+    expect(out).toEqual({ panel: at2(5, 7), sidestepped: true });
+  });
+
+  it("refuses rather than sidestepping when the caller did not ask", () => {
+    const v = victim(6, 7);
+    const wall = [8, 9, 10, 11, 12].map((j, n) => other(`w${n}`, 6, j, {}));
+    expect(knockbackPanel(mover, v, board([v, ...wall]), { preferredDirection: at2(0, 1) })).toBe(null);
+  });
+
+  it("returns null when even the sides are taken", () => {
+    const v = victim(6, 7);
+    const wall = [8, 9, 10, 11, 12].map((j, n) => other(`w${n}`, 6, j, {}));
+    const sides = [other("n", 5, 7, {}), other("s", 7, 7, {})];
+    expect(knockbackPanel(mover, v, board([v, ...wall, ...sides]), {
+      preferredDirection: at2(0, 1), allowSidestep: true,
+    })).toBe(null);
+  });
+});
+
 describe("knockbackPanel (Ch. 32, Bašmu)", () => {
   // Bašmu at (6, 6), moving onto (6, 7) where `victim` stands -- knocked back
   // one further panel along the same line, away from Bašmu.
@@ -307,12 +355,12 @@ describe("knockbackPanel (Ch. 32, Bašmu)", () => {
   const victim = (over = {}) => other("v", 6, 7, over);
 
   it("pushes the victim one panel further along the line away from the origin", () => {
-    expect(knockbackPanel(basmu, victim(), board([victim()]))).toEqual(at(6, 8));
+    expect(knockbackPanel(basmu, victim(), board([victim()])).panel).toEqual(at(6, 8));
   });
 
   it("keeps pushing until it finds a free panel", () => {
     const blocker = other("b", 6, 8, {});
-    expect(knockbackPanel(basmu, victim(), board([victim(), blocker]))).toEqual(at(6, 9));
+    expect(knockbackPanel(basmu, victim(), board([victim(), blocker])).panel).toEqual(at(6, 9));
   });
 
   it("returns null when the board edge is reached first", () => {
@@ -324,7 +372,7 @@ describe("knockbackPanel (Ch. 32, Bašmu)", () => {
     // Which is the ORDINARY case for a 1x1 mover: Bašmu walks ONTO its victim,
     // so "away from the mover" has no direction at all. This branch returned
     // `null`, and Bašmu therefore never knocked anybody back in its own right.
-    expect(knockbackPanel(basmu, other("v", 6, 6, {}), board([]))).toEqual(at(5, 6));
+    expect(knockbackPanel(basmu, other("v", 6, 6, {}), board([])).panel).toEqual(at(5, 6));
   });
 
   it("takes the NEAREST free panel when it fans out, not the first direction's", () => {
@@ -333,7 +381,7 @@ describe("knockbackPanel (Ch. 32, Bašmu)", () => {
     const south = other("s", 7, 6, {});
     // North and south are taken at one step, so west at one step wins over
     // north at two.
-    expect(knockbackPanel(basmu, victim, board([victim, north, south]))).toEqual(at(6, 5));
+    expect(knockbackPanel(basmu, victim, board([victim, north, south])).panel).toEqual(at(6, 5));
   });
 
   it("pushes outward from a multi-panel mover's centre (Kingprotea, 3x3)", () => {
@@ -342,12 +390,12 @@ describe("knockbackPanel (Ch. 32, Bašmu)", () => {
     // direction the panel-by-panel reading would give.
     const west = other("w", 6, 5, {});
     const east = other("e", 6, 7, {});
-    expect(knockbackPanel(at(6, 6), west, board([west]))).toEqual(at(6, 4));
-    expect(knockbackPanel(at(6, 6), east, board([east]))).toEqual(at(6, 8));
+    expect(knockbackPanel(at(6, 6), west, board([west])).panel).toEqual(at(6, 4));
+    expect(knockbackPanel(at(6, 6), east, board([east])).panel).toEqual(at(6, 8));
   });
 
   it("picks the axis the mover actually approached from", () => {
     const below = other("v", 8, 6, {});
-    expect(knockbackPanel(basmu, below, board([below]))).toEqual(at(9, 6));
+    expect(knockbackPanel(basmu, below, board([below])).panel).toEqual(at(9, 6));
   });
 });
