@@ -1,0 +1,60 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+#
+# "Attack Skill. Range+1 for the Combat Process. Uses Base Attack (STR) and 50%
+#  of Base Attack (MAG) combined (e.g. 150+125=275). Deals 30% extra damage; if
+#  the DU Evades, its Evade Roll is increased by 3. Not affected by Magic
+#  Resistance. Cooldown: 3◈ Turns."
+#
+# Holder Mode's clause 5: it REPLACES Toole Fragarach. The two are a pair of
+# documents sharing one clock rather than one document with a branch, for the
+# reason Ch. 33 §33.5 gives -- a player must not be able to reset a cooldown by
+# switching modes, and Holder Mode is one-way, so there is nothing to branch
+# back to.
+schema: 1
+id: mannanan-hallowed-sea-gods-sword
+name: "Hallowed Sea God's Sword"
+kind: skill
+slug: hallowedSeaGodsSword
+isAttackSkill: true
+category: fragarachSword
+cooldown: "3◈"
+timing: { window: ownTurn }
+alsoTriggers:
+  - { ability: mannanan-toole-fragarach }
+requirements:
+  # The other half of the replacement. Refused until she is in Holder Mode, so
+  # the button is absent rather than present-and-refusing (§17.6).
+  - { kind: modeActive, mode: godsHolderPossession }
+description: |
+  Attack Skill. Range+1 for the Combat Process. Uses Base Attack (STR) and 50% of Base Attack
+  (MAG) combined (e.g. 150+125=275). Deals 30% extra damage; if the DU @effect[evade]{Evades},
+  its Evade Roll is increased by 3. Not affected by Magic Resistance. Cooldown: 3◈ Turns.
+targeting:
+  # Relative, like Toole Fragarach's -- and here it matters twice over, because
+  # Holder Mode has already moved her Range to 3, so this reaches 4.
+  anchor: { kind: targetUnit, rangeBonus: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  # "Base Attack (STR) and 50% of Base Attack (MAG) combined (e.g. 150+125=275)."
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 0.5 }
+  # What the attack COUNTS AS. `componentOf` would otherwise fall back to her
+  # Normal Attack's component, and in Holder Mode that is a range-banded spec --
+  # so the Skill would report whatever band the distance happened to land in
+  # rather than what its own sheet says.
+  component: str
+  # "Deals 30% extra damage."
+  multiplier: 1.3
+  # "Not affected by Magic Resistance." Load-bearing: half of this Skill is MAG,
+  # and against a Rank B Magic Resistance that half would otherwise be reduced
+  # by 40% or negated outright.
+  ignoresMagicResistance: true
+  # "If the DU Evades, its Evade Roll is increased by 3." One hit, so there is
+  # no `noEvadeAfterFail` to go with it -- that clause belongs to the three-hit
+  # Skill this one replaces.
+  evadeModifier: 3
+phases:
+  - kind: damage

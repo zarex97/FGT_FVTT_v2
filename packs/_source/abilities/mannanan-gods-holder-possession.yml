@@ -1,0 +1,127 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+# Discussed: docs/33-case-mannanan.md §33.5
+#
+# "(Active) This Skill can only be used when Mannanán's Health is less than 30%
+#  of its maximum value OR when she is defeated, and while she has at least 1
+#  Fragarach Token. Remove all Fragarach Counters from Mannanán and she enters
+#  Holder Mode, restoring her Health to 50% of its maximum value."
+#
+# A MODE with an entry price, and the first in the corpus: Mad Enhancement,
+# Presence Concealment and Riding's Active are all free switches, so the toggle
+# was a bare write with no gates and no phases. It is also a FIFTH kind of
+# revival (§31.2 lists four) -- optional, gated on a resource, and transforming
+# its bearer rather than only restoring Health.
+schema: 1
+id: mannanan-gods-holder-possession
+name: "God's Holder: Possession"
+kind: skill
+slug: godsHolderPossession
+isMode: true
+# One-way. "Holder Mode has no duration and no way back" -- the character's
+# whole arc, and the reason the swap with Toole Fragarach can share one clock
+# without anybody being able to game it.
+cannotDeactivate: true
+maxUses: 1
+requirements:
+  # The two gates on the ACTIVE press. "Health is less than 30% of its maximum
+  # value OR when she is defeated" -- a defeated Servant is at 0, which is below
+  # 30% of anything, so one test covers both and the defeat half is reached
+  # through the revival below rather than through this button.
+  - { kind: healthBelow, fraction: 0.3 }
+  - { kind: resourceAtLeast, key: fragarachTokens, amount: 1 }
+description: |
+  (Active) Can only be used when Mannanán's Health is less than 30% of its maximum value OR when
+  she is defeated, and while she has at least 1 Fragarach Token. Remove all Fragarach Tokens from
+  Mannanán and she enters Holder Mode, restoring her Health to 50% of its maximum value.
+
+  (Passive) While Mannanán is in Holder Mode-
+  1. The maximum number of Fragarach Tokens is increased to 7.
+  2. Mannanán now also gains 1 Fragarach Token at the end of every Turn she Acts.
+  3. Range is increased to 3 panels.
+  4. Normal Attacks at a Range of 1 to 2 use Base Attack (STR) and 30% of Base Attack (MAG)
+     combined (e.g. 150+75=225), not affected by Magic Resistance. Normal Attacks at a Range of
+     3 or higher use Base Attack (MAG).
+  5. @ability[mannanan-toole-fragarach]{Toole Fragarach} is replaced with
+     @ability[mannanan-hallowed-sea-gods-sword]{Hallowed Sea God's Sword}.
+
+# ─── The entry, pressed while alive ────────────────────────────────────
+# Phases run on the way ON only (`apps/actor-sheet/sheet.mjs#onToggleMode`);
+# switching a mode off never pays, because no sheet in the corpus states an exit
+# price.
+phases:
+  # "Remove all Fragarach Counters." An absolute write, not a very large
+  # negative delta: the clause names the resulting number.
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.fragarachTokens.value, set: 0 }
+  # Passive 1, paid once. The ceiling is a field on her sheet and Holder Mode is
+  # permanent, so raising it is one write rather than a derived cap maintained
+  # for a state that never reverts.
+  - kind: statChange
+    target: self
+    changes:
+      - { stat: resources.fragarachTokens, max: true, delta: 2 }
+  # "...restoring her Health TO 50% of its maximum value." A floor, not an
+  # addition: she enters Holder Mode at exactly half whether she pressed the
+  # button at 29% or came back from zero. `percentOfMax` would ADD 625 to
+  # whatever she had left, which pays her more for having been healthier.
+  - kind: heal
+    target: self
+    toPercentOfMax: 50
+
+passiveRules:
+  # ─── The entry, taken instead of dying ───────────────────────────────
+  #
+  # A `RevivalSource`, and the first that is `optional`: it costs every token
+  # she holds and transforms her permanently, so a Mannanán with one token and
+  # a Noble Phantasm coming off cooldown may rationally prefer the defeat.
+  # `resolveDefeat` stays pure -- the orchestrator asks and drops the source if
+  # the answer is no.
+  #
+  # Priority 250: above generic Guts (200) and below Special Guts (300), which
+  # is where §33.5 places it.
+  - key: RevivalSource
+    id: holderMode
+    revivalPriority: 250
+    optional: true
+    charges: 1
+    consumesOnUse: false
+    percentOfMax: 50
+    # "...restoring her Health TO 50% of its maximum value." A destination, so
+    # the excess damage that killed her does not eat into it -- the same reading
+    # the button's own `toPercentOfMax` heal makes, and the reason both halves
+    # of this Skill land her at exactly half.
+    ignoresOverkill: true
+    requires:
+      - { kind: resourceAtLeast, key: fragarachTokens, amount: 1 }
+    enterMode: godsHolderPossession
+    then:
+      - { key: ResourceDelta, resource: fragarachTokens, set: 0 }
+      - { key: StatDelta, stat: "resources.fragarachTokens.max", delta: 2 }
+
+activeRules:
+  # ─── Holder Mode itself ──────────────────────────────────────────────
+  #
+  # `activeRules` rather than `passiveRules`: `collectContributions` reads them
+  # only while the mode is switched on, which is exactly what "while Mannanán is
+  # in Holder Mode" means.
+
+  # Passive 2. `actedTurnEnd` fires for every Unit that Acted, any faction --
+  # which is the event this clause names and not `turnEnd`, because she Acts on
+  # her own faction's Turn and this is about hers.
+  - key: OnEvent
+    event: actedTurnEnd
+    automatic: true
+    then:
+      - { key: ResourceDelta, resource: fragarachTokens, delta: 1 }
+
+  # Passives 3 and 4, as one branch of her own sheet's `summonVariant` block.
+  # `VariantOverride` names the BRANCH rather than restating the numbers, so the
+  # Range and the range-banded Normal Attack live in exactly one place
+  # (`packs/_source/servants/mannanan.yml`) and cannot drift from each other.
+  - key: VariantOverride
+    branch: holder
+
+# Passive 5 is the pair of `modeActive` / `modeInactive` requirements on the two
+# swords, which share one cooldown clock through `alsoTriggers`. Nothing here.

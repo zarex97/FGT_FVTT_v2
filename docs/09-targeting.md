@@ -213,6 +213,18 @@ type RangeSpec =
   | { metric: "chebyshev";   panels: number };  // "within an N panel area"
 ```
 
+An anchor's reach may also be **relative**, which is how the corpus actually writes an Attack
+Skill's: Mannanán's *Toole Fragarach* is *"Range+2 for the Combat Process"* and her *Hallowed Sea
+God's Sword* is *"Range+1"*. `rangeBonus: 2` beside the anchor adds to whatever the caster's own
+Range currently is; `range: 3` states an absolute. For her the difference is not cosmetic — Holder
+Mode moves her Range from 1 to 3, and an absolute would have been wrong the moment anything else
+moved it (a `Range Up` on any Servant does).
+
+The caster's Range is read from the **projection**, not the document. It is not always the one
+the sheet was written with: `rules/snapshot.mjs` folds in `RangeDelta` contributions and a
+variant override, and reading `attacker.system.range` refused Mannanán's own Normal Attack at two
+panels while every other consumer agreed she reached three.
+
 **DECISION.** When an ability says "Range=N" use `attackRange`; when it says "within an N panel
 area" use `chebyshev`. This is a real semantic difference at N≥3 and the content authoring
 guide makes it explicit.

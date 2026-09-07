@@ -1,9 +1,13 @@
-{{!-- Picking a fixed number of things from a curated list (§15.7, §36.4). --}}
+{{!-- Picking from a curated list (§15.7, §36.4). `min` may be 0, which is an
+      OFFER rather than a question -- Mannanán's optional token spend and her
+      optional revival are both declined by confirming nothing. --}}
 <div class="fgt-choice">
   {{#if hint}}<p class="fgt-choice__hint">{{hint}}</p>{{/if}}
 
   <p class="fgt-choice__counter">
-    {{#if complete}}
+    {{#if optional}}
+      {{localize "FGT.Choice.Optional"}}
+    {{else if complete}}
       {{localize "FGT.Choice.Ready"}}
     {{else}}
       {{localize "FGT.Choice.Remaining" remaining=remaining}}

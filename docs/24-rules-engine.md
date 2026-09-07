@@ -835,10 +835,21 @@ rules:
 Also fully declarative, at the cost of the `Attack` action supporting a nested `then`. That
 nesting is worth it — chained on-hit effects are extremely common.
 
-The one piece that stays scripted is her *Fragarach* NP itself, which **cancels an incoming
-Noble Phantasm** and either instakills its user or reflects its damage, with the branch
-depending on whether the cancelled NP was that Servant's strongest. Determining "strongest NP"
-requires comparing damage formulas across abilities, which is genuinely a computation.
+**Built**, with two changes. `ForbidReaction` and the automatic counter are two elements rather
+than a nested `Attack` action: §12.8's ruling is that a Counter is a **full declaration** — its
+own reaction ladder, its own damage pipeline, its own riders — so `AutoCounter` names an ability
+and `engine/auto-counter.mjs` queues the provocation for `engine/attack.mjs#flushAutoCounters` to
+declare. Describing the attack inline would have been a second, weaker damage path that no ladder
+reaches. And the two provocations are a **set on one element** rather than two subscriptions, so
+an attack that also lands a debuff owes one counter and not two.
+
+Her *Fragarach* NP was expected to stay scripted — it **cancels an incoming Noble Phantasm** and
+either instakills its user or reflects its damage, with the branch depending on whether the
+cancelled NP was that Servant's strongest. It did not need a script either. The genuinely
+computational part is *"was it their strongest"*, and that is `rules/np-strength.mjs`: pure,
+testable, and ranked against a synthetic neutral defender so the answer does not depend on who is
+standing in front of it. What is left is two branches of data on the ability
+(`cancelsNP: {againstStrongest, otherwise}`). **The reference set's script count is zero.**
 
 ---
 

@@ -94,7 +94,7 @@ same turn, each *effect* fires **once**, keyed by `(effectId, globalTurn)`.
 | `fgt.damageStepStart` | Start of Step 3 | `{attackerId, defenderIds, ctx}` |
 | `fgt.critDetermined` | The crit coin flip resolved | `{attackerId, isCrit, chance}` |
 | `fgt.damageComputed` | The pipeline returned, before application | `{defenderId, result}` |
-| `fgt.damageTaken` | Damage applied to a unit | `{unitId, amount, sourceId, packet}` |
+| `fgt.damageTaken` | Damage applied to a unit | `{unitId, amount, sourceId, packet}` — **fired**, on the DEFENDER, once the damage has landed, with the attacker reachable as `ctx.victim`. The mirror of `damageDealt`, and it had no trigger at all — so every clause in the catalogue that pays out for *receiving* damage had no rung. `Def Dwn (C)` is the first content to need it: *"Agility is reduced by 1 when damage is received"* is a handler on the bearer, not on whoever hit them. |
 | `fgt.damageDealt` | Damage dealt by a unit | `{unitId, amount, targetId}` — **fired**, on the *attacker*, once the damage has landed, with the Defending Unit reachable as `ctx.victim` and `attack:crit` in the option set. This is the rung every **on-hit rider** in Appendix A hangs from — *"Normal Attacks inflict X on the DU"* — and until Serenity nothing raised it, so `Bleed Atk`, `Queen's Poison` and both halves of her poisoned daggers were all inert. See §E.9b. |
 | `fgt.damageStepEnd` | End of Step 3 | `{attackerId, defenderIds, results}` — **fired**, on the *attacker*, once damage has landed. The Defending Unit travels in the option set rather than in the unit list, so a handler can pay out differently against them without the defender's own handlers firing for somebody else's attack. Scáthach's `Alpi` is the first content to use it. |
 | `fgt.injuryRolled` | An Injury Roll resolved | `{unitId, roll, agilityAfter}` |
@@ -118,7 +118,7 @@ the General Notes and `Invuln`'s own text.
 
 | Event | Fires | Payload |
 |---|---|---|
-| `fgt.effectApplied` | An effect landed | `{unitId, effectId, defId, sourceId, magnitude}` |
+| `fgt.effectApplied` | An effect landed | `{unitId, effectId, defId, sourceId, magnitude}` — not raised as a Foundry hook. What needed it is Mannanán's `Fragarach`, *"when she is Attacked **or inflicted with a debuff**"*, and that is answered at the one place every debuff in the game converges: `engine/applier.mjs` reads what a batch actually wrote and queues the provocation (`engine/auto-counter.mjs`). A hook fired from each of the four application paths would have been four chances to miss one. |
 | `fgt.effectBlocked` | Immunity or exclusivity refused it | `{unitId, defId, blockedBy}` |
 | `fgt.effectResisted` | The chance roll failed | `{unitId, defId, chance, roll}` |
 | `fgt.effectRemoved` | Removed by any means | `{unitId, effectId, defId, reason}` |

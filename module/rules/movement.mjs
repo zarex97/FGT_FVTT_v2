@@ -393,6 +393,41 @@ export function pursuitVerdict(unit, path, board) {
 }
 
 /**
+ * Decoy's movement half.
+ *
+ * > *"That enemy Unit cannot Move away from the Unit with Decoy, and can only
+ * > Move in its direction."*
+ *
+ * The same shape as {@link pursuitVerdict} and deliberately a separate
+ * function: a pursuit is a property of the mover (a Kagome Spirit summoned for
+ * one enemy), and a Decoy pull is a property of somebody else that the board
+ * pass stamps on the mover each time it is projected. Merging them would make
+ * one refusal message stand for two different rules.
+ *
+ * Holding position is legal. "Cannot Move **away**" forbids increasing the
+ * distance, not standing still, and a Unit already adjacent has nowhere closer
+ * to go.
+ *
+ * @param {object} unit a projected unit, carrying `decoy`
+ * @param {Array<{i: number, j: number}>} path
+ * @param {object} board
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function decoyVerdict(unit, path, board) {
+  const sourceId = unit?.decoy?.sourceUnitId ?? null;
+  if (!sourceId || !Array.isArray(path) || path.length < 2) return { ok: true };
+
+  const decoy = (board?.units ?? []).find((u) => u.id === sourceId);
+  if (!decoy?.panel || decoy.defeated) return { ok: true };
+
+  const before = geo.chebyshev(path[0], decoy.panel);
+  const after = geo.chebyshev(path[path.length - 1], decoy.panel);
+  return after <= before
+    ? { ok: true }
+    : { ok: false, reason: `${unit.name ?? "This Unit"} cannot Move away from ${decoy.name ?? "the Decoy"}.` };
+}
+
+/**
  * Zone denial around an enemy Master.
  * @param {{i: number, j: number}} panel
  * @param {object} unit

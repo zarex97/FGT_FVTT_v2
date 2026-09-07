@@ -383,6 +383,17 @@ a *forced-action* requirement (Ch. 18). And it is exempt from resistance when se
 ally-applied — because it is used defensively (Kiritsugu's *Scapegoat* puts Decoy on an ally
 deliberately).
 
+**Built** (`packs/_source/effects/decoy.yml`), and it pulls the opposite way from every other
+debuff in the catalogue: a `Compulsion` rule element describes something its own bearer is under,
+while Decoy sits on the **decoy** and constrains everybody else. Nothing carried it, so the
+effect was authorable and inert. `rules/compulsion.mjs#annotateCompulsions` reads it off the
+bearer in the board pass and writes the compulsion onto the enemies it catches — the nearest
+decoy, within `max(radius, that enemy's own Range)`, and nothing at all while the bearer is
+concealed. The movement half is `rules/movement.mjs#decoyVerdict`, which refuses a step that
+increases the distance. The resistance exemption is
+`allySelfBypassesResistance` on the definition, read at steps 1 and 3 of the application
+pipeline (Ch. 11 §11.2).
+
 `Delay` mutates turn order (Ch. 07 §7.8).
 
 ### Group D7 — Terminal

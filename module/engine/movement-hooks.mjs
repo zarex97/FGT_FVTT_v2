@@ -16,7 +16,7 @@
  */
 
 import {
-  validatePath, remainingMovement, segmentCheck, pursuitVerdict,
+  validatePath, remainingMovement, segmentCheck, pursuitVerdict, decoyVerdict,
   passengerDestination, occupantAt,
 } from "../rules/movement.mjs";
 import { unitSnapshot, currentBoard } from "./board.mjs";
@@ -122,6 +122,15 @@ function onPreMove(document, movement, operation) {
   const pursuit = pursuitVerdict(unit, path, board);
   if (!pursuit.ok) {
     ui.notifications.warn(`FGT | ${pursuit.reason}`);
+    return false;
+  }
+
+  // ...and nothing may walk away from a Decoy. The same shape, a different
+  // rule: the pull is stamped on this Unit by the board pass rather than
+  // authored on it (`rules/compulsion.mjs`).
+  const pulled = decoyVerdict(unit, path, board);
+  if (!pulled.ok) {
+    ui.notifications.warn(`FGT | ${pulled.reason}`);
     return false;
   }
 

@@ -1,0 +1,27 @@
+# Appendix A §A.3 — the automatic-evasion tier, and NOT `Dodge`.
+#
+# The two do the same thing and the corpus needs them to be distinguishable.
+# Mannanán's Fragarach Counter *"cannot be Blocked, and cannot be Evaded except
+# with Dodge"*, which is a sentence with no meaning unless "Evade" names
+# something Dodge is not -- so `damage.evadableOnlyBy: [dodge]` tests for the
+# effect id, and `Evade` is refused by it while `Dodge` gets through.
+#
+# Van Gogh's Ivy is the other holder: "Applies Evade for 1◈ Turns, 1 time",
+# which is `uses` and a duration together.
+schema: 1
+id: evade
+name: "Evade"
+description: "Automatically evades attacks for the duration."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: count
+baseChance: 100
+rules:
+  # `beatenBy: [aim]` for the same reason Dodge carries it: Aim *"ignores Dodge
+  # and the Evade action"*, and an automatic evasion is the Evade action taken
+  # without a die.
+  - key: AutoSucceed
+    check: evade
+    source: "Evade"
+    beatenBy: [aim]

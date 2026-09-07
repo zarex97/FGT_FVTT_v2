@@ -90,10 +90,55 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   for (const group of I.batch(plan.local)) {
     await writeGroup(group, io);
   }
+
+  // Who has just been debuffed, and by whom.
+  //
+  // Read HERE because this is the one place every debuff in the game converges,
+  // whatever declared it -- an attack's rider, a Skill's phase, a field's
+  // interior rule, a periodic tick. Mannanán's `Fragarach` fires *"when she is
+  // Attacked **or inflicted with a debuff**"*, and a trigger that hung off the
+  // attack path alone would miss the half the clause exists for: a pure control
+  // ability provoking a 2.5× retaliation.
+  //
+  // Queued, never resolved: a Counter is a full declaration (§12.8) and cannot
+  // be opened from inside the write path (`engine/auto-counter.mjs`).
+  await noteDebuffs(plan.local);
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length };
+}
+
+/**
+ * Queue an automatic counter for every debuff this batch landed.
+ *
+ * Guarded on `game` rather than on the caller, because `applyIntents` is
+ * exercised by unit tests with an injected `io` and no Foundry globals at all.
+ * A batch that lands no debuffs costs one array scan.
+ *
+ * @param {Intent[]} intents the intents that were actually written
+ * @returns {Promise<void>}
+ */
+async function noteDebuffs(intents) {
+  const { debuffsIn, provoke, isDraining } = await import("./auto-counter.mjs");
+  if (isDraining()) return;
+
+  const landed = debuffsIn(intents);
+  if (landed.length === 0) return;
+  if (typeof game === "undefined" || !game?.actors) return;
+
+  const { currentBoard } = await import("./board.mjs");
+  const board = currentBoard();
+  for (const { unitId, sourceId } of landed) {
+    const bearer = (board.units ?? []).find((u) => u.id === unitId);
+    if (!bearer || !(bearer.autoCounters ?? []).length) continue;
+    // "On the DU" -- an enemy. A debuff an ally landed (a Bloodmark, a
+    // deliberate Decoy) is not a provocation, and answering it would turn a
+    // support Skill into friendly fire.
+    const provoker = (board.units ?? []).find((u) => u.id === sourceId);
+    if (!provoker || (provoker.factionId != null && provoker.factionId === bearer.factionId)) continue;
+    provoke({ bearer, provokerId: sourceId, cause: "debuffed" });
+  }
 }
 
 /**

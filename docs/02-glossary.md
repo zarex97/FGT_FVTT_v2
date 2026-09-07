@@ -429,7 +429,10 @@ both dispel and cure, and are not counted by "remove 1 buff" effects.
 ## 2.10 Attributes
 
 Attributes are tags on units that other effects key off. The source defines implication rules
-which the engine must apply transitively:
+which the engine must apply transitively. **Built** (`module/domain/attributes.mjs`), closed for
+every Unit by `rules/snapshot.mjs` — until Mannanán it was not, `spirit` appeared nowhere in the
+corpus, and `Pseudo Servant` was a word with no consequence because the only thing it does is
+*withhold* an implication nobody was applying:
 
 ```
 Human          ⟹ Humanoid, Living Human
@@ -448,6 +451,11 @@ unit type (`Servant`, `Master`, `Civilian`), origin (`[Man]`, `[Sky]`, `[Earth]`
 `[Beast]`), body (`Humanoid`, `Non-Hominidae`, `Large`, `Giant`, `Mechanical`, `Animalistic`,
 `Dragon`), social (`King`, `Anti-Hero`, `Child`, `Threat to Humanity`), and metaphysical
 (`Divine`, `Outsider`, `Undead`, `Magus`, `Living Human`, `Levitating`).
+
+`Magus` is the one entry that is not a tag-to-tag implication, and Mannanán's *Sealing
+Designation Enforcer* is what defines it: *"Masters, Casters, all Units whose Normal Attacks use
+Base Attack (MAG)."* It reads the Unit's kind, its classes and its normal attack, so the closure
+takes the Unit rather than only its list.
 
 Note `[Earth]` the origin attribute is unrelated to the Earth *element*.
 **Owner:** `AttributeSet`. **Ch.** 04.

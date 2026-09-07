@@ -528,6 +528,14 @@ const ACTIONS = Object.freeze({
   SetMode: (a, u, h) => [I.setMode(u.id, a.ability, a.active === true, h.source)],
 
   ResourceDelta: (a, u, h, c) => {
+    // An ABSOLUTE write, for a clause that names the resulting number rather
+    // than a change. *"Remove all Fragarach Counters from Mannanán"* is
+    // `set: 0`, and expressing it as a very large negative delta would work by
+    // accident and read as a bug -- the same argument `cooldownChanges` makes
+    // for its own `set`.
+    if (a.set !== undefined) {
+      return [I.setResource(u.id, resourcePathFor(a.resource, u), a.set)];
+    }
     // `rolled()` falls back to `a.amount`, not `a.delta` — the bare-number
     // shape every ResourceDelta shipped with before Semiramis's HGoB
     // Construction needed a rolled gain (Ch. 32 "1d4+2 per Turn"). A roll
@@ -863,6 +871,14 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
       // Charges are spent whether or not they were enough: "and so on"
       // describes an attempt, not a refund.
       ...spendRevival(unit, revival, ctx),
+      // What the revival TURNS HER INTO, and what it costs to get there.
+      //
+      // §31.2 lists four revival shapes and all four only restore Health.
+      // Mannanán's *God's Holder: Possession* is a fifth: *"Remove all
+      // Fragarach Counters from Mannanán and she enters Holder Mode, restoring
+      // her Health to 50% of its maximum value."* The restore is the ordinary
+      // `percentOfMax` above; the removal and the transformation are these.
+      ...revivalTransform(unit, revival, ctx),
       I.log({
         kind: "revive", unitId: unit.id, source: revival.source.source,
         amount: revival.restored, charges: revival.chargesUsed, tick: ctx.tick,
@@ -879,6 +895,32 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
     ...(revival.source ? spendRevival(unit, revival, ctx) : []),
     I.defeat(unit.id, cause),
   ];
+}
+
+/**
+ * The writes a transforming revival performs beyond restoring Health.
+ *
+ * `then:` is the same action vocabulary an `OnEvent` handler's is, dispatched
+ * through the same table — so *"the maximum number of Fragarach Tokens is
+ * increased to 7"* is a `StatDelta` and not a fifth bespoke field.
+ *
+ * @param {object} unit
+ * @param {object} revival
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+function revivalTransform(unit, revival, ctx) {
+  const source = revival.source ?? {};
+  /** @type {Intent[]} */
+  const out = [];
+
+  if (source.enterMode) out.push(I.setMode(unit.id, source.enterMode, true, source.source));
+
+  const handler = { source: source.source, abilityId: source.abilityId ?? null };
+  for (const action of source.then ?? []) {
+    out.push(...dispatch(action, unit, handler, ctx));
+  }
+  return out;
 }
 
 /**

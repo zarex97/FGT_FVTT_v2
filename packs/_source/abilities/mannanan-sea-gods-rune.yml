@@ -1,0 +1,39 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+# Discussed: docs/33-case-mannanan.md §33.7 -- "what the typical ability looks
+# like once the hard cases are handled".
+schema: 1
+id: mannanan-sea-gods-rune
+name: "Sea God's Rune"
+rank: EX
+kind: skill
+slug: seaGodsRune
+cooldown: "3◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: rankEX }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. NP Cooldown is reduced by 2◈ Turns.
+  2. Applies @effect[critUp]{Crit Up} for ⅓◈ Turns, Crit Chance is increased by 30%.
+  3. Applies @effect[critDmUp]{Crit DmUp} for ⅓◈ Turns, Crit Damage dealt is increased by 100%.
+  Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  # `includeSelf: true` is what makes a self-cast resolve against herself
+  # rather than against nobody: `resolveTargets` drops the caster from its own
+  # target list otherwise, and an ability with an empty target list opens a
+  # Combat Process with no defender that nothing can advance.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # `scope: np` rather than an ability id: "NP Cooldown" names no Noble Phantasm
+  # and she has three. Naming one would pick a winner the sheet does not pick.
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, ticks: "2◈", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, magnitude: 30, duration: "⅓◈" }
+      - { id: critDmUp, magnitude: 100, duration: "⅓◈" }

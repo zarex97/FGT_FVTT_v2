@@ -483,7 +483,8 @@ Refinements:
   so the threshold test uses damage *before* the Def Crk addition.
 - Multi-hit attacks (`Multihit`, `DblAtk Up`, `TrplAtk Up`, Nemo's `Quickfire`, HGoB's
   `Dragon Wing Warriors`, Mannanán's `Toole Fragarach`) perform **one** Injury Roll on the
-  total.
+  total. **Built**: `damage.singleInjuryRoll` defers on every sibling Process until the last one
+  can see the whole sum (`engine/attack.mjs#applyInjury`).
 - `Luck Check: Light Wound` can cancel it entirely.
 - Golden Hind: *"Agility: 10 (Only performs Injury Roll when damaged by NP)"* — a per-unit
   override.
@@ -509,6 +510,23 @@ For a multi-panel AU, "the direction it was attacked from" uses the nearest occu
 > Range of the DU, the DU may use the 'Counter' Action and declare an Attack on the AU. Steps 1
 > and 4 of Combat are repeated, but with the roles reversed."*
 > *"Counters cannot be Countered again."*
+
+### Restrictions the ATTACK imposes on the ladder
+
+The three rungs are fixed, and until Mannanán nothing narrowed them per attack. Her Fragarach
+Counter is the first: *"A Fragarach Counter cannot be Blocked, and cannot be Evaded except with
+Dodge."* Both are properties of the attack and travel with it (`buildAttackSpec`):
+
+| Field | Effect |
+|---|---|
+| `damage.unblockable` | `block` is added to the Process's `forbiddenReactions` at declaration, so the card does not offer it and `advance` refuses the event |
+| `damage.evadableOnlyBy` | `rules/checks.mjs#evade` fails automatically unless the defender holds one of the named effects. `null` means no restriction; an **empty list** means nothing evades at all |
+| `damage.evadeModifier` | A penalty on the Evade roll the ability states itself — *"its Evade Roll is increased by 3"* |
+| `damage.noEvadeAfterFail` | *"If any Evade fails, the remaining hits cannot be Evaded."* Read across the sibling Processes of one declaration, which is where the earlier hits are; it resolves to the empty permit above |
+
+The empty list is not an edge case to be tidied away — it is how the multi-hit lock is expressed:
+a permit that exists and admits nobody. `Evade` and `Dodge` are two effects rather than one for
+exactly this reason (Appendix A §A.3).
 
 Eligibility:
 

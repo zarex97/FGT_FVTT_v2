@@ -1299,6 +1299,71 @@ ability from inside her.
    because "Attack", "Move", "Skill" and "Spell" are ordinary words in this prose. An action must
    be marked explicitly; it is excluded from the name index entirely.
 
+### Mannanán is complete — and three defects in shipped machinery
+
+Fourteen abilities, every clause exercised in `fgt2026`. Ch. 33 was the design and Ch. 33 §33.9
+is now the record of where the build departed from it; the short version is that **the reference
+set's `Script` count is zero** (§33.4 budgeted one for *Fragarach* and it turned out to be a
+ranking function plus two branches of data), and two proposed elements — `ResourceMax` and
+`ReplaceAbility` — were not built because vocabulary that already exists says the same thing.
+
+**Twelve general features arrived with her**, and the pattern holds: five were named in the
+specification and implemented by nothing.
+
+| Feature | Where | Named in the spec? |
+|---|---|---|
+| The attribute implication table (`Servant ⇒ Spirit`, `Magus`) | `domain/attributes.mjs` | Ch. 02 §2.10 — yes, and `spirit` appeared nowhere in the corpus |
+| `Decoy`'s three systems | `rules/compulsion.mjs`, `rules/movement.mjs` | Ch. 10 §10.4 — yes, and nothing carried it |
+| `DurationExtension` | `engine/effect-applier.mjs` step 6 | Ch. 33 §33.2 |
+| `OptionalCost` | `engine/optional-costs.mjs` | Ch. 33 §33.2 |
+| `AutoCounter` / `ForbidReaction` | `engine/auto-counter.mjs` | Ch. 24 §24.8 |
+| `damage.unblockable` / `evadableOnlyBy` / `evadeModifier` / `noEvadeAfterFail` | `rules/checks.mjs`, `engine/attack.mjs` | Ch. 33 §33.3 |
+| `cancelsNP` and `rules/np-strength.mjs` | `engine/attack.mjs` | Ch. 33 §33.4 |
+| `RevivalSource`: `optional`, `requires`, `enterMode`, `then`, `ignoresOverkill` | `rules/revival.mjs` | Ch. 33 §33.5, partly |
+| A mode with an entry price | `apps/actor-sheet/sheet.mjs` | no |
+| `anchor.rangeBonus` | `rules/targeting/resolve.mjs` | no |
+| `heal.toPercentOfMax`, `resource` phase `set:` | `engine/skill-use.mjs` | no |
+| `N * @path` expressions, `resourceLabel` | `rules/elements.mjs`, `domain/resources.mjs` | Ch. 24 §24.5 shows the expression and nothing parsed it |
+| `damageTaken` fires | `engine/attack.mjs` | §E — yes, listed and never raised |
+
+**And three defects in machinery that had nothing to do with her:**
+
+1. **A Unit reduced to zero Health came back at maximum.** Each actor type's `prepareBaseData`
+   backfills an unset Health pool and read "unset" as *zero* — which is what a Unit that has just
+   been killed looks like. Every Servant in the game was unkillable by damage unless something had
+   happened to persist its `max`. Found by killing her: she revived at 1250 before her own
+   revival's heal was written, and the heal then clamped to the maximum she was already at.
+   `test/unit/health-backfill.test.mjs` guards the condition in all three files.
+2. **`min: 0` on a choice prompt was ignored.** Four call sites have passed it since they were
+   written; `ChoiceDialog` enforced an exact count and disabled Confirm below it, so declining was
+   possible only by dismissing the window. Jack's pre-emption, the attacker's timing window and
+   both of Mannanán's own offers were all affected.
+3. **The attack path read the document where it should have read the projection.**
+   `baseSpecFor` took `attacker.system.normalAttack` and `targetSpecFor` took
+   `attacker.system.range`, so Holder Mode's banded Normal Attack bypassed Magic Resistance (from
+   the projection) and then dealt the sheet's flat STR (from the document), and her own Normal
+   Attack was refused at two panels while every other consumer agreed she reached three. A
+   `Range Up` on any Servant had the same effect.
+
+**Measured live**, each figure read off a chat card in `fgt2026`:
+
+| Clause | Measured |
+|---|---|
+| Alter Ego, both directions | 190 → 265 dealt to an Outsider (+50%); 150 → 75 received from one (-50%) |
+| Tradition Carrier, crit damage | `critDmUp` 25 at five tokens, 10 at two |
+| Buff duration extension | Atk Up 1◈ + ⅓◈ = expiry tick +4, on her and not on her ally |
+| Fragarach Enbarr | Atk Up 25 / NP 12.5 at five tokens; Decoy and Fragarach applied; 0 damage |
+| Fragarach Counter (attacked) | 143 = (150 − crit roll) × 2.5, her Atk Up at its **NP** magnitude against Kavacha and Kundala's −90%, +40 Divinity |
+| Fragarach Counter (debuffed) | fired from a debuff with no attack at all |
+| Evade against it | "cannot be Evaded except with dodge" — roll 5 against Agility 19, automatic failure |
+| Toole Fragarach | 3 processes, 3 tokens, +3 Evade named on the roll, hits 2 and 3 unevadable, one Injury Roll on 162 |
+| Fragarach (not strongest) | Brahmastra cancelled, 444 reflected onto Karna, she took nothing |
+| Fragarach (strongest) | Vasavi Shakti cancelled, Instakill, Karna at 0 |
+| Holder Mode on defeat | 60 HP, hit for 158, revived at **exactly 625** with 0/7 tokens and the mode on |
+| Holder Mode Normal Attack | 150 STR + 75 MAG at Range 1, Magic Resistance bypassed; 250 MAG at Range 3 |
+| Hallowed Sea God's Sword | 150 + 125 = 275, ×1.3, Magic Resistance bypassed, both swords on one 3◈ clock |
+| Token producers | +1 at round end always; +1 at acted-turn end **only** in Holder Mode; clamped at 7 |
+
 ---
 
 ## 45.5 The completion plan

@@ -96,6 +96,19 @@ Three things about the implementation are worth recording:
   damage then took him straight back to zero: alive at 0 Health, with a charge spent for nothing.
   Also found live.
 
+### Three fields Mannanán added
+
+The chain above has four sources and they share a shape: automatic, ungated beyond charges and a
+cooldown, and restoring Health and nothing else. Her *God's Holder: Possession* (Ch. 33 §33.5) is
+none of those, and each difference is a field rather than a special case:
+
+| Field | Means |
+|---|---|
+| `optional: true` | The player **chooses**. It costs every Fragarach Token she holds and transforms her permanently, so a Servant with one token and a Noble Phantasm coming off cooldown may rationally prefer the defeat. `resolveDefeat` stays pure — the orchestrator asks first and stamps the answer on the unit it hands in, and **silence is no** |
+| `requires: [...]` | Gates in the ordinary requirement vocabulary (`rules/items.mjs`), beyond charges and cooldown: *"and while she has at least 1 Fragarach Token"* |
+| `enterMode` / `then` | What the revival **turns her into**, and what it costs to get there. §31.2's four only restore Health; hers removes every token, raises the pool's ceiling and switches a mode on. `then` is the same action vocabulary an `OnEvent` handler's is |
+| `ignoresOverkill: true` | The excess damage that killed her does **not** eat into what this restores. God Hand's clause is *"the excess damage is reduced from his newly restored Health"* and it was generalised to every source; hers is *"restoring her Health **to** 50% of its maximum value"*, a destination rather than an amount. A cascading source cannot opt out — spending several charges against the excess is the only thing cascading means |
+
 ### The two conditions on Battle Continuation
 
 > *"Cooldown: 3◈ Turns, **and** the Unit's Health must have been restored back to above half its

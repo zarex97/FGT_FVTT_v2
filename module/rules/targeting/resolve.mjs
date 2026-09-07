@@ -478,7 +478,7 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         errors.push("Choose a panel.");
         return { ...base, panel: casterPanel };
       }
-      const r = spec.range ?? caster.range ?? 1;
+      const r = anchorRange(spec, caster);
       const inRange = spec.metric === "chebyshev"
         ? geo.chebyshev(casterPanel, panel) <= r
         : geo.inAttackRange(casterPanel, panel, r);
@@ -501,7 +501,7 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         errors.push(`${unit.name ?? "That unit"} is not placed on the board.`);
         return { ...base, panel: casterPanel };
       }
-      const r = spec.range ?? caster.range ?? 1;
+      const r = anchorRange(spec, caster);
       if (!geo.inAttackRange(casterPanel, unit.panel, r)) {
         errors.push(`${unit.name ?? "Target"} is out of Range (${r}).`);
       }
@@ -626,6 +626,25 @@ export function legalPlacements(spec, caster, board, { max = 400 } = {}) {
 }
 
 /**
+ * How far an anchor reaches.
+ *
+ * `range:` states an absolute number and `rangeBonus:` states a **relative**
+ * one, on top of whatever the caster's own Range happens to be. The second is
+ * how the corpus actually writes an Attack Skill's reach -- Mannanán's *Toole
+ * Fragarach* is *"Range+2 for the Combat Process"* and her *Hallowed Sea God's
+ * Sword* is *"Range+1"* -- and for her it is not the same thing as an absolute
+ * number: Holder Mode moves her Range from 1 to 3 and both Skills move with it.
+ *
+ * @param {object} spec an anchor spec
+ * @param {object} caster
+ * @returns {number}
+ */
+function anchorRange(spec, caster) {
+  if (typeof spec?.range === "number") return spec.range;
+  return (caster?.range ?? 1) + (spec?.rangeBonus ?? 0);
+}
+
+/**
  * The raw placement candidates for an anchor kind, before validation.
  *
  * @param {object} spec
@@ -636,7 +655,7 @@ export function legalPlacements(spec, caster, board, { max = 400 } = {}) {
  */
 function candidatePlacements(spec, caster, board, max) {
   const anchor = spec.anchor ?? { kind: "self" };
-  const range = anchor.range ?? caster.range ?? 1;
+  const range = anchorRange(anchor, caster);
 
   switch (anchor.kind) {
     // Mode A. Four directions, always all four, so the player sees the choice

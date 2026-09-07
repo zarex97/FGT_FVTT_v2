@@ -48,6 +48,9 @@ export const EffectRegistry = {
         defaultMagnitude: sys.defaultMagnitude ?? 0,
         defaultDuration: sys.defaultDuration ?? null,
         unremovable: Boolean(sys.unremovable),
+        // Ch. 10 §10.6's self/ally exemption, read by `engine/effect-applier`
+        // at steps 1 and 3. `Decoy` is the only holder today.
+        allySelfBypassesResistance: Boolean(sys.allySelfBypassesResistance),
         blocks: sys.blocks ?? [],
         blockedBy: sys.blockedBy ?? [],
         // Exclusion that resolves by replacement rather than by refusal.

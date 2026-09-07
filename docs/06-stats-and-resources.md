@@ -80,6 +80,18 @@ The distinction from `Resource` matters: a Counter has no max to clamp against a
 health: Resource
 ```
 
+> **Zero is a value, not an absence.** Each actor type's `prepareBaseData` backfills a Health pool
+> that content never filled in — a Servant dragged straight onto the board gets the END table's
+> maximum, a Master gets 250, a Summon gets its `baseHealth`. All three recognised "never filled
+> in" as **zero**, which is also what a Unit that has just been killed looks like, so the next
+> data preparation put it back to maximum: **every Servant in the game was unkillable by damage**
+> unless something had happened to persist its `max`. The pool's initial is `null` now and the
+> backfill fires only on `null`. Found live killing Mannanán, who came back at full Health before
+> her own revival's heal was even written.
+>
+> A world built before this fix may hold Units stored at `{value: 0, max: 0}` that were never
+> given Health; they now read as defeated, and the fix is to set their Health on the sheet once.
+
 **Defeat condition.** The rulebook says *"The Unit is defeated when this drops below 0"* but
 almost every effect says *"reduced to 0"*. **DECISION.** Defeat triggers at `value ≤ 0`.
 Treating "below 0" literally would mean a unit at exactly 0 survives, which contradicts
@@ -474,6 +486,13 @@ A+/EX) and is emphatically not a very large number.
 
 Ability-specific pools are common enough in the reference set to deserve a general mechanism
 rather than bespoke fields.
+
+> **`label` is derived, not authored.** Content names a pool in camelCase because that is the
+> write path (`fragarachTokens`, `prs`, `hgobConstruction`), and until Mannanán that is also what
+> the sheet, the action bar and every prompt printed — *"spend 1 fragarachTokens"*.
+> `domain/resources.mjs#resourceLabel` derives the reader's form and `FGT.Pool.<key>` overrides
+> it where the corpus has a name of its own; an acronym stays an acronym, because "Prs" is a
+> different word.
 
 ```ts
 interface ResourceDef {

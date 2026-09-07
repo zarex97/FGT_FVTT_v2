@@ -139,6 +139,15 @@ function abilityCommon() {
     // cooldown is not an effect anybody carries -- so `negatedBy` had no way
     // to express it and the clause had nowhere to live.
     negatedWhile: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // What this ability does to an incoming Noble Phantasm it CANCELS.
+    //
+    // One ability in the corpus (§33.4) and the only thing in the game besides
+    // a Command Spell that interrupts somebody else's resolution. Untyped for
+    // the same reason rule elements are: the two branches -- "the strongest, so
+    // Instakill" and "not the strongest, so reflect what it would have dealt"
+    // -- are a shape the content validator checks, and a rigid schema here
+    // would refuse a third that a module adds.
+    cancelsNP: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // WHEN it may be used. Only Command Spells had this field, so an ability
     // authored "used when Attacked" -- Medea's Argos and Trofa -- compiled with
     // the window and the DataModel dropped it on load, leaving the reaction
@@ -301,6 +310,14 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       absorbs: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       defaultDuration: new TickField(),
       unremovable: new fields.BooleanField({ initial: false }),
+      // Ch. 10 §10.6: *"Decoy is not affected by Debuff Resist or Immune
+      // effects when a Unit applies it on itself or on another allied Unit."*
+      // A property of the EFFECT, so the applier can skip its resistance steps
+      // without every caller having to know which effects are exempt. Two need
+      // it -- `Decoy` and Kiritsugu's `Decoy (Scapegoat)` -- and both are
+      // debuffs used defensively, which is the whole reason the exemption
+      // exists.
+      allySelfBypassesResistance: new fields.BooleanField({ initial: false }),
       blocks: new fields.ArrayField(new fields.StringField()),
       blockedBy: new fields.ArrayField(new fields.StringField()),
       // Effects this one REPLACES rather than being refused by.

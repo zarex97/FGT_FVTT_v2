@@ -33,7 +33,18 @@ export function unitCommon() {
 
     // `null` health means intrinsically undamageable -- Pale Rider and the
     // Kagome Spirits -- which is why the field is nullable rather than 0.
-    health: resourceField(0),
+    //
+    // The INITIAL is `null` and not 0, and the difference is a defect this
+    // schema carried from the beginning. Each type's `prepareBaseData`
+    // backfills an unset pool from the END table, and it recognised "unset" as
+    // **zero** -- so a Unit whose Health had been reduced to zero was
+    // indistinguishable from one that had never been given any, and the next
+    // data preparation refilled it to maximum. Found live: Mannanán was
+    // defeated at 0, came back at 1250 before the revival's own heal was
+    // written, and the heal then clamped to the maximum she was already at.
+    // Every Servant in the game was unkillable by damage unless something had
+    // happened to persist its `max`.
+    health: resourceField(null),
     agility: resourceField(0),
     luck: resourceField(0),
 

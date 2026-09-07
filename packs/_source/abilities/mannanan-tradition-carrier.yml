@@ -1,0 +1,60 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+# Discussed: docs/33-case-mannanan.md §33.2
+schema: 1
+id: mannanan-tradition-carrier
+name: "God's Holder: Tradition Carrier"
+rank: EX
+kind: skill
+slug: traditionCarrier
+passive: true
+copyable: { allowed: false, reason: rankEX }
+description: |
+  (Passive 1) The maximum number of Fragarach Tokens Mannanán can have is 5. Mannanán gains a
+  Fragarach Token at the end of every Round.
+  (Passive 2) At the start of a Combat Phase, Mannanán can remove 1 Fragarach Token from
+  herself, her @effect[critUp]{Crit Chance} is increased by 30% for that Combat Phase.
+  (Passive 3) @effect[critDmUp]{Crit Damage} dealt is increased by 5% for every Fragarach Token
+  on Mannanán.
+  (Passive 4) The duration of buffs are extended by ⅓◈ extra Turns when applied to Mannanán.
+passiveRules:
+  # Passive 1's second half. The ceiling itself is the pool's own `max` on her
+  # sheet (§6.10) and `io.adjustResource` clamps to it, so the gain does not
+  # have to know the number -- which is what lets Holder Mode raise it to 7 by
+  # moving one field.
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    then:
+      - { key: ResourceDelta, resource: fragarachTokens, delta: 1 }
+
+  # Passive 2. An `OptionalCost`, not a cost: holding a token is worth 5% crit
+  # damage by Passive 3 below, and three other things want the same tokens, so
+  # spending one for crit CHANCE is a trade the player makes rather than a
+  # formality the engine performs (`engine/optional-costs.mjs`).
+  #
+  # "For that Combat Phase" is authored as `this turn`. A Combat Phase is the
+  # declaration plus its Counters (§12.1) and lives inside one Turn, and the
+  # duration vocabulary's smallest unit is the Turn -- so this is the closest
+  # honest expression and it never outlives the exchange it was bought for.
+  - key: OptionalCost
+    timing: combatPhaseStart
+    label: "+30% Crit Chance this Combat Phase"
+    cost: { resource: fragarachTokens, amount: 1 }
+    effects:
+      - { id: critUp, magnitude: 30, duration: "this turn" }
+
+  # Passive 3. The reason `@` expressions gained a scalar: the magnitude is a
+  # function of a pool that changes several times a Round, so it cannot be a
+  # number and cannot be a rank table either.
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critDmUp
+    value: "5 * @self.resources.fragarachTokens.value"
+
+  # Passive 4. A modifier on the effect APPLICATION pipeline rather than on a
+  # stat -- step 6 of Ch. 11 §11.2, adjusting the resolved tick count before the
+  # expiry is stamped.
+  - key: DurationExtension
+    amount: "⅓◈"
+    appliesTo: buffs
+    direction: incoming

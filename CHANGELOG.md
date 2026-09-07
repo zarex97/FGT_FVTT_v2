@@ -34,6 +34,102 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+> **Mannanán mac Lir is complete.** Fourteen abilities, every clause exercised in a live world.
+> Ch. 33 was written as a design and §33.9 now records where the build departed from it: the
+> reference set's **`Script` count is zero** — §33.4 budgeted the one script in the game for
+> *Fragarach*, and it turned out to be a ranking function plus two branches of data — and two
+> proposed rule elements, `ResourceMax` and `ReplaceAbility`, were not built because vocabulary
+> that already exists says the same thing.
+>
+> Thirteen general features arrived with her, and ten of them were named in the specification and
+> implemented by nothing: the attribute implication table (Ch. 02 §2.10, so `spirit` appeared
+> nowhere in the corpus and `Pseudo Servant` had no consequence), `Decoy`'s three systems,
+> `DurationExtension`, `OptionalCost`, `AutoCounter`/`ForbidReaction`, the four per-attack ladder
+> restrictions, `cancelsNP`, four new `RevivalSource` fields, arithmetic in an `@` expression, and
+> the `damageTaken` event.
+>
+> Building her also found three defects in machinery that has nothing to do with her, each listed
+> under **Fixed** below, and the first is the worst this project has shipped: **a Unit reduced to
+> zero Health came back at maximum.**
+
+### Added
+
+- **Mannanán mac Lir** (`packs/_source/servants/mannanan.yml`), the thirteenth Servant and the
+  reference set's acceptance test for reactive mechanics: fourteen abilities, five new effects
+  (`fragarach`, `decoy`, `evade`, `defDwnC`, `atkUpMagus`), and a token economy with four
+  producers and three consumers.
+- **The attribute implication table** (Ch. 02 §2.10), as `module/domain/attributes.mjs`, closed
+  for every Unit by the snapshot. `Servant ⇒ Spirit` *unless* Demi- or Pseudo-Servant is what
+  makes her `Pseudo Servant` mean something, and `Magus` — *"Masters, Casters, all Units whose
+  Normal Attacks use Base Attack (MAG)"* — is derived rather than authored, so her *Atk Up
+  (Magus)* is one predicate instead of three.
+- **`Decoy`** as a working effect. It sits on the decoy and constrains everybody else, which is
+  the inverse of every other debuff, so nothing carried it: the board pass reads it off the
+  bearer and writes the compulsion onto the enemies it catches, and
+  `rules/movement.mjs#decoyVerdict` refuses a step that increases the distance.
+- **`AutoCounter` and `ForbidReaction`.** A Counter performed without being asked, and the rung
+  traded away for it. The provocation set is *"Attacked **or** inflicted with a debuff"* — one
+  trigger, two firings, and one counter for an exchange that does both.
+- **Per-attack restrictions on the reaction ladder** (Ch. 12 §12.8): `damage.unblockable`,
+  `damage.evadableOnlyBy`, `damage.evadeModifier`, `damage.noEvadeAfterFail`. An empty
+  `evadableOnlyBy` is a permit that admits nobody, which is how *"if any Evade fails, the
+  remaining hits cannot be Evaded"* is expressed across the sibling Processes of one declaration.
+- **`cancelsNP`** and `module/rules/np-strength.mjs`. An ability that interrupts another Unit's
+  Noble Phantasm — the only thing besides a Command Spell that does — and the pure ranking that
+  decides *"was it their strongest"* against a synthetic neutral defender, so the answer does not
+  depend on who happens to be standing in front of it.
+- **`DurationExtension`** (§11.2 step 6) and **`OptionalCost`** (`engine/optional-costs.mjs`).
+  The second is the first *offer* in a system where every other price is a cost: holding a
+  Fragarach Token is worth 5% crit damage, so spending one for crit chance is a trade the player
+  makes rather than a formality the engine performs.
+- **Four `RevivalSource` fields** (Ch. 31 §31.2): `optional`, `requires`, `enterMode`/`then`, and
+  `ignoresOverkill`. Together they make Holder Mode a fifth kind of revival — chosen rather than
+  automatic, gated on a resource, transforming its bearer, and landing at exactly half whatever
+  killed her.
+- **A mode may have an entry price** (Ch. 15 §15.3). Every mode in the corpus was a free switch,
+  so the toggle was a bare write with no gates and no phases; a mode with `phases` now runs them
+  on the way **on**. Switching one off still pays nothing.
+- **`anchor.rangeBonus`** (Ch. 09), the relative reach an Attack Skill actually states — *"Range+2
+  for the Combat Process"* — which an absolute number gets wrong the moment anything moves the
+  caster's Range.
+- **`heal.toPercentOfMax`** and a `resource` phase's `set:`. *"Restoring her Health **to** 50%"*
+  is a destination and *"restores 50%"* is an amount; *"remove all Fragarach Counters"* names a
+  resulting number rather than a change.
+- **Arithmetic in an `@` expression** — `"5 * @self.resources.fragarachTokens.value"`, the form
+  Ch. 24 §24.5 documents and nothing parsed — resolved on both use paths from one helper.
+- **`fgt.damageTaken` fires**, on the defender, with the attacker as `ctx.victim`. `Def Dwn (C)`
+  is the first content to need it: *"Agility is reduced by 1 when damage is received"* is a
+  handler on the bearer, not on whoever hit them.
+- **Pool names are derived** (`domain/resources.mjs#resourceLabel`, with a `FGT.Pool.<key>`
+  override). The sheet, the action bar and every prompt printed the write path's camelCase, so
+  the offer read *"spend 1 fragarachTokens"*.
+
+### Fixed
+
+- **A Unit reduced to zero Health came back at maximum.** Each actor type's `prepareBaseData`
+  backfills a Health pool content never filled in, and all three recognised "never filled in" as
+  **zero** — which is also what a Unit that has just been killed looks like. So the next data
+  preparation refilled it, and every Servant in the game was unkillable by damage unless
+  something had happened to persist its `max`. The initial is `null` now and the backfill fires
+  only on `null`; `test/unit/health-backfill.test.mjs` guards all three files. Found by killing
+  Mannanán, who revived at full Health before her own revival's heal had been written.
+  **Migration:** a Unit stored at `{value: 0, max: 0}` that was never given Health now reads as
+  defeated. Set its Health on the sheet once.
+- **`min: 0` on a choice prompt was ignored.** `ChoiceDialog` enforced an exact count and disabled
+  Confirm below it, so four call sites that have passed `min: 0` since they were written — Jack's
+  pre-emption, the attacker's timing window, and both of Mannanán's own offers — could only be
+  declined by dismissing the window. Confirm warned and refused.
+- **The attack path read the document where it should have read the projection.** `baseSpecFor`
+  took `attacker.system.normalAttack` and `targetSpecFor` took `attacker.system.range`, so Holder
+  Mode's banded Normal Attack bypassed Magic Resistance (from the projection) and then dealt the
+  sheet's flat STR (from the document), and her own Normal Attack was refused at two panels while
+  every other consumer agreed she reached three. Any Servant carrying a `Range Up` had the same.
+- **A rider phase's own `targeting:` was honoured on the Skill path and ignored on the attack
+  path**, so *"apply S.Crit Up to all allied Units within a 2 panel area of **Mannanán**"* landed
+  on whoever the attack had hit.
+- **`FGT.Ability.Refused.modeActive` said the opposite of what it means** — *"Requires a mode that
+  is switched off"* on an ability that requires one switched **on**.
+
 > **Medusa is complete.** Eight commits, ten abilities, every clause running in a live world.
 > Fourteen general engine features, and nine of them were the pattern this project keeps turning
 > up: `ridingAttack`, `passengerSeat`, `expiry: onOwnerDefeat`, `markDefined`, `Structure`,

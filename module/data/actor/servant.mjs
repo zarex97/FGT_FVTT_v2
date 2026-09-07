@@ -125,7 +125,11 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       const derived = end ? lookup("baseHealthByEnd", end) : null;
       const max = this.baseHealth ?? (typeof derived === "number" ? derived : 0);
       this.health.max = max;
-      if (this.health.value === null || this.health.value === 0) this.health.value = max;
+      // `=== null` and NOT `=== 0`. A stored zero is a Unit that has been
+      // emptied; only `null` is one that has never been given Health at all.
+      // Reading the two as the same thing refilled a defeated Servant to
+      // maximum on the very next data preparation.
+      if (this.health.value === null) this.health.value = max;
     }
   }
 }

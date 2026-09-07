@@ -1,0 +1,68 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+# Discussed: docs/33-case-mannanan.md §33.4 -- "the hardest single ability in
+# the reference set".
+schema: 1
+id: mannanan-fragarach
+name: "Fragarach: Gouging Sword of the War God"
+isNP: true
+rank: EX
+kind: noblePhantasm
+slug: fragarach
+npTags: [counter]
+category: mannananNP
+cooldown: "8◈"
+# The window. Every other reaction in the game answers an attack from inside
+# somebody else's Combat Process; this one answers a DECLARATION, before any
+# Process exists, because what it does is stop the Process from happening.
+timing: { window: whenTargetedByNP }
+requirements:
+  # "Can only be used by removing 5 Fragarach Tokens from herself."
+  - { kind: resourceAtLeast, key: fragarachTokens, amount: 5 }
+description: |
+  Can only be used by removing 5 Fragarach Tokens from herself. Can be used when a Noble Phantasm
+  is used against Mannanán. Cannot be used against (Passive) or (Non-damaging) Noble Phantasms.
+  Has different effects depending on the NP used against her-
+  1. If the NP was the enemy Unit's strongest NP (or its only damage-dealing NP), the NP is
+     canceled and the Servant/Unit who used the NP is inflicted with @effect[instakill]{Instakill}.
+  2. If the Noble Phantasm was not the enemy Unit's strongest, the Noble Phantasm is canceled and
+     the equivalent amount of damage that NP would have dealt is dealt to the NP's user instead
+     (only affects the user if it was an AoE NP).
+  Both versions of this NP are effective at any Range. Fragarach cannot be responded to (Block,
+  Evade, Luck Check, Counter, etc).
+  Cooldown: 8◈ Turns.
+
+# "Both versions of this NP are effective at any Range." Not a targeting
+# declaration at all: the target is whoever just declared on her, and the
+# distance is not a gate. The anchor exists so the document has a shape.
+targeting:
+  anchor: { kind: sourceOfAttack }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+
+# The two branches, as data. §33.4 budgets a `Script` for this and it turned out
+# not to need one: the only genuinely computational part is *"was it their
+# strongest"*, and that belongs in `rules/np-strength.mjs` where it is pure and
+# testable rather than inside a registered function that content cannot inspect.
+# What is left is a two-branch declaration.
+cancelsNP:
+  # 1. "...the Servant/Unit who used the NP is inflicted with Instakill."
+  #
+  # Through the ordinary effect applier, so the target's own defences still get
+  # their say -- which matters: Magic Resistance covers Instakill *"unless the
+  # Instakill is from an Attack/Attack Skill/Spell/NP that deals STR damage or
+  # that is not affected by Magic Resistance"*, and this deals no damage at all.
+  againstStrongest:
+    effect: instakill
+  # 2. "...the equivalent amount of damage that NP would have dealt is dealt to
+  # the NP's user instead (only affects the user if it was an AoE NP)."
+  otherwise:
+    reflect: true
+
+phases:
+  # The tokens, spent. `runCasterPhases` is reached through the same
+  # `payAbilityPrice` path a declaration uses, so the five are taken whether the
+  # branch instakills or reflects.
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.fragarachTokens.value, delta: -5 }

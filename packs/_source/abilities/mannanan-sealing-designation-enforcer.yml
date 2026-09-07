@@ -1,0 +1,47 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+schema: 1
+id: mannanan-sealing-designation-enforcer
+name: "Sealing Designation Enforcer"
+rank: A
+kind: skill
+slug: sealingDesignationEnforcer
+cooldown: "4◈"
+timing: { window: ownTurn }
+# A Skill that restores Agility and buffs its user deals no damage, so it is not
+# an Attack Skill and must not spend her Attack for the Turn (§15.1).
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Restore 3 Agility.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 40%; if NP, 30%.
+  3. Applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 30%.
+  4. Applies @effect[atkUpMagus]{Atk Up (Magus)} for 1◈ Turns, all damage dealt to Units with the
+     'Magus' Attribute is increased by 30% including NP.
+  Cooldown: 4◈ Turns.
+
+  Note: Units with the 'Magus' Attribute — Masters, Casters, all Units whose Normal Attacks use
+  Base Attack (MAG).
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  # `includeSelf: true` is what makes a self-cast resolve against herself
+  # rather than against nobody: `resolveTargets` drops the caster from its own
+  # target list otherwise, and an ability with an empty target list opens a
+  # Combat Process with no defender that nothing can advance.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # RESTORES, so it clamps: a Servant cannot be pushed above the Agility it
+  # rolled at summon by a restoration.
+  - kind: resource
+    target: self
+    changes:
+      - { key: agility.value, delta: 3, clampToMax: true }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 30, duration: "1◈" }
+      - { id: critDmUp, magnitude: 30, duration: "1◈" }
+      # The `Magus` attribute is DERIVED, not authored -- the Note on her sheet
+      # is its definition, and `domain/attributes.mjs` closes it for every Unit.
+      # So the effect's predicate is one option rather than three.
+      - { id: atkUpMagus, magnitude: 30, npMagnitude: 30, duration: "1◈" }

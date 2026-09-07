@@ -292,8 +292,17 @@ describe("a non-damaging Noble Phantasm", () => {
       // Jack's Mist: "(Non-damaging)" is the first word of its description,
       // and it needs no `damage:` block to say so.
       "jack-the-mist",
-      // Doomsday Come, the seventh: "(Non-damaging)" and its only phase opens
-      // a field. Everything it does to a Unit is the AREA's doing.
+      // Fragarach, the eighth. It deals no damage of its own: it CANCELS an
+      // incoming Noble Phantasm and then either instakills its user or reflects
+      // what that Noble Phantasm would have dealt (`cancelsNP`), which is the
+      // other Unit's number rather than hers.
+      "mannanan-fragarach",
+      // Fragarach Enbarr, the ninth, and the sheet's own first word about it is
+      // "(Non-damaging)". Its three effects are what make attacking her
+      // expensive; it never swings.
+      "mannanan-fragarach-enbarr",
+      // Doomsday Come: "(Non-damaging)" and its only phase opens a field.
+      // Everything it does to a Unit is the AREA's doing.
       "pale-rider-doomsday-come",
       "semiramis-hanging-gardens-of-babylon",
       "semiramis-sikera-usum",

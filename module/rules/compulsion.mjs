@@ -28,9 +28,97 @@ import { rollOptionsFor } from "./options.mjs";
  * @returns {void} mutates `unit.compulsions`
  */
 export function annotateCompulsions(units, board) {
+  const decoys = decoysOn(units);
+
   for (const unit of units ?? []) {
     unit.compulsions = compulsionsFor(unit, board);
+
+    // Decoy pulls the OTHER way round from every other compulsion in the game.
+    // A `Compulsion` rule element describes something its own bearer is under;
+    // Decoy sits on the decoy and constrains everybody else, which is why
+    // nothing carried it and the effect had been authorable-but-inert.
+    const pull = decoyPullOn(unit, decoys, board);
+    if (!pull) {
+      unit.decoy = null;
+      continue;
+    }
+    // Read by `apps/canvas/overlay-layer.mjs#drawDecoyPull`, which has drawn
+    // an arrow from `unit.decoy.sourceUnitId` since it was written against a
+    // projection that never had one -- and by `rules/movement.mjs`, which
+    // refuses a step that increases the distance.
+    unit.decoy = { sourceUnitId: pull.id, radius: pull.radius };
+    unit.compulsions = [
+      ...unit.compulsions,
+      { id: "decoy", forcesTarget: true, forcesSkill: null, targetIds: [pull.id], source: pull.source },
+    ];
   }
+}
+
+/**
+ * Every Unit currently acting as a Decoy, with the radius it declares.
+ *
+ * *"Inert while the bearer is concealed"* (Appendix A §A.10): a decoy nobody
+ * can see is not drawing anybody, and the alternative is an enemy compelled to
+ * attack a Unit it is not allowed to target.
+ *
+ * @param {object[]} units
+ * @returns {Array<{id: string, radius: number, source: string, panel: object|null, factionId: unknown}>}
+ */
+function decoysOn(units) {
+  /** @type {Array<{id: string, radius: number, source: string, panel: object|null, factionId: unknown}>} */
+  const out = [];
+  for (const unit of units ?? []) {
+    if (unit.concealed) continue;
+    for (const sup of unit.suppressions ?? []) {
+      if (sup?.scope !== "targeting" || !sup.decoy) continue;
+      out.push({
+        id: unit.id,
+        radius: sup.radius ?? 3,
+        source: sup.source ?? "Decoy",
+        panel: unit.panel ?? null,
+        factionId: unit.factionId ?? null,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * The Decoy this Unit is pulled toward, or `null`.
+ *
+ * > *"Enemies within `max(3, their Range)`."*
+ *
+ * The reach is the LARGER of the effect's own radius and the pulled Unit's own
+ * Range, which is why it is measured per enemy rather than once per decoy: a
+ * sniper standing at Range 4 is caught by a 3-panel Decoy, and a Servant at
+ * Range 1 standing four panels away is not.
+ *
+ * The NEAREST, when two enemies both carry one: the rule does not say which,
+ * and an arbitrary answer is one that changes when a token is re-placed.
+ *
+ * @param {object} unit
+ * @param {Array<object>} decoys
+ * @param {object} board
+ * @returns {object|null}
+ */
+function decoyPullOn(unit, decoys, board) {
+  if (decoys.length === 0 || !unit.panel) return null;
+  // A decoy does not pull itself, and does not pull its own side.
+  let best = null;
+  let bestDistance = Infinity;
+  const reach = typeof unit.range === "number" ? unit.range : (unit.range?.panels ?? 1);
+
+  for (const decoy of decoys) {
+    if (decoy.id === unit.id || !decoy.panel) continue;
+    const allied = board?.alliances?.[unit.factionId]?.includes(decoy.factionId)
+      ?? (decoy.factionId != null && decoy.factionId === unit.factionId);
+    if (allied) continue;
+    const distance = chebyshev(decoy.panel, unit.panel);
+    if (distance > Math.max(decoy.radius, reach) || distance >= bestDistance) continue;
+    best = decoy;
+    bestDistance = distance;
+  }
+  return best;
 }
 
 /**

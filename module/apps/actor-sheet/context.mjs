@@ -15,6 +15,7 @@ import * as board from "../../engine/board.mjs";
 import { currentBoard, unitSnapshot, currentTick, currentRound } from "../../engine/board.mjs";
 import { poolsOf, isUnbound } from "../../rules/cs-namespacing.mjs";
 import { chebyshev } from "../../domain/geometry.mjs";
+import { resourceLabel } from "../../domain/resources.mjs";
 import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
@@ -332,7 +333,12 @@ function overviewContext(actor, snapshot) {
       // panel already reads the snapshot, and the damage pipeline reads the
       // Rank the Region and the Master's grant moved, not `system.baseAttack`.
       baseAttack: baseAttackTiles(system.baseAttack ?? null, snapshot?.baseAttack ?? null),
-      normalAttack: normalAttackLine(system.normalAttack),
+      // The PROJECTION's, for the same reason `baseAttack` above shows both:
+      // a Unit's Normal Attack is not always the one its sheet was written
+      // with. Mannanán's Holder Mode swaps a fixed STR attack for a
+      // range-banded one, and this line went on printing "fixed · STR" while
+      // the attack she was actually making was STR plus 30% of MAG.
+      normalAttack: normalAttackLine(snapshot?.normalAttack ?? system.normalAttack),
       mov: snapshot.mov,
       rangePanels: snapshot.range,
       maxTargets: snapshot.maxTargets,
@@ -394,7 +400,10 @@ function overviewContext(actor, snapshot) {
     // §6.10's per-unit pools -- PRS Tokens, Fragarach Tokens, Construction --
     // which gate abilities and appeared nowhere on the old sheet.
     pools: Object.entries(snapshot.resources ?? {}).map(([key, pool]) => ({
-      key,
+      // The player's name for the pool, not the write path's. `FGT.Pool.<key>`
+      // when the corpus has translated it, and the derived form otherwise --
+      // the same rule the action bar applies, from the same function.
+      key: game.i18n.has(`FGT.Pool.${key}`) ? game.i18n.localize(`FGT.Pool.${key}`) : resourceLabel(key),
       value: pool.value ?? 0,
       max: pool.max ?? null,
       // Pips built here: Foundry registers no `range` helper and a template
