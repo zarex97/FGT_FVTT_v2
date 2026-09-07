@@ -1163,10 +1163,16 @@ export function stacksHeld(actor) {
  * @param {object} actor
  * @returns {object}
  */
-export function expressionRefs(actor) {
+export function expressionRefs(actor, extras = {}) {
   const sys = actor?.system ?? {};
   return {
+    // Values that do not exist until the action is under way. Troias Tragōidia
+    // is the first to need any: *"X = the amount of remaining MOV Achilles has
+    // divided by 2"* and *"Y = number of Units successfully hit by this NP"*
+    // are both read AFTER the ride, so neither can come off the document.
+    ...extras,
     self: {
+      ...(extras.self ?? {}),
       document: actor,
       system: sys,
       resources: sys.resources ?? {},
@@ -1178,6 +1184,10 @@ export function expressionRefs(actor) {
       agility: sys.agility ?? null,
       luck: sys.luck ?? null,
       parameters: sys.parameters ?? {},
+      // What is left of his allowance this Turn. Read here rather than
+      // recomputed by each caller, so "remaining MOV" means the same thing to
+      // a magnitude as it does to the movement planner.
+      remainingMov: Math.max(0, (sys.mov ?? 0) - (sys.turnState?.movedPanels ?? 0)),
     },
   };
 }

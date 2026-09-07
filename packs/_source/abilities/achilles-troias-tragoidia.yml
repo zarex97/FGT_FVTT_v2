@@ -1,0 +1,117 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+# Discussed: docs/44-case-expanded-roster.md §44.3
+#
+# His only damaging Noble Phantasm, and the one his Mount is named after. It is
+# a Riding Attack rather than an ability that benefits from one -- he rides 13
+# panels and everything on the line is a defender of the same Combat Phase.
+#
+# Two of its magnitudes cannot exist until the ride has happened, which is what
+# makes it novel: X is what was LEFT of his movement when he used it, and Y is
+# how many Units he actually reached.
+schema: 1
+id: achilles-troias-tragoidia
+name: "Troias Tragōidia: Tempestuous Immortal Chariot"
+isNP: true
+rank: "A+"
+npTags: [antiArmy]
+kind: noblePhantasm
+slug: troiasTragoidia
+cooldown: "7◈+⅓◈"
+timing: { window: ownTurn }
+requirements:
+  # Everything Riding-related is Mounted-only, and this is the Mount.
+  - { kind: stance, stance: mounted }
+description: |
+  Troy's Tragedy.
+  (Passive) @ability[class-riding-achilles]{Riding} Attack damage is increased by 25%, does not
+  affect NP. At the end of any Turn where Achilles Acts while Mounted, his Master loses 25 Health.
+  (Active) Base Attack (STR) is used. This NP is used in the form of a Riding Attack, with a
+  distance of 13 panels. First restores X Agility and applies @effect[atkUp]{Atk Up} for ⅓◈ Turns,
+  all damage dealt is increased by X0%; if NP (X−1)0%; X=(the amount of remaining MOV Achilles has
+  divided by 2). Deals 4x damage. Then, applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit
+  Damage dealt is increased by Y0%, Y=number of Units successfully hit by this NP.
+  Cooldown: 7◈+⅓◈ Turns.
+  Note: Hits in both directions (Front and back) on the normal board; but only hits in one
+  direction (Front) if playing on the Large Board.
+
+# "This NP is used in the form of a Riding Attack, with a distance of 13
+# panels." The distance is the NP's, not his MOV -- his is 8 at best.
+ridingAttack:
+  distance: 13
+
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape:
+    kind: line
+    length: 13
+    width: 1
+    # "Hits in both directions (Front and back) on the normal board; but only
+    # hits in one direction (Front) if playing on the Large Board." The same
+    # board-size-dependent projection Bellerophon uses, read off the scene's
+    # own bounds rather than off a setting.
+    bidirectional: unlessLargeBoard
+  selection: { relations: [enemy], chooser: all }
+
+damage:
+  # "Base Attack (STR) is used." Stated on the sheet, and stated here, because
+  # `componentOf` would otherwise fall back to his Normal Attack's component --
+  # the same number today, and not guaranteed to stay so.
+  component: str
+  multiplier: 4
+
+passiveRules:
+  # "Riding Attack damage is increased by 25%, does not affect NP." The
+  # exclusion is the interesting half: this NP is ITSELF a Riding Attack, so
+  # without `includesNP: false` it would buff itself.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 25
+    npValue: 0
+    predicate: ["attack:kind:ridingAttack"]
+
+  # "At the end of any Turn where Achilles Acts while Mounted, his Master loses
+  # 25 Health." `actedTurnEnd`, because "any Turn where Achilles Acts" is not
+  # only his own -- and `subject: master`, the same shape Mad Enhancement's
+  # drain uses, because the effect is on him and the cost lands on somebody
+  # else.
+  - key: OnEvent
+    event: actedTurnEnd
+    automatic: true
+    predicate: ["self:stance:mounted"]
+    then:
+      - { key: StatDelta, subject: master, stat: health.value, amount: 25, direction: down }
+
+phases:
+  # "FIRST restores X Agility and applies Atk Up" -- before the damage, because
+  # the Atk Up is a bonus to this very NP.
+  #
+  # `@ride.x` IS X -- `remaining MOV / 2`, already rounded down, computed where
+  # the ride happens (`engine/attack.mjs#rideFacts`). The expression grammar is
+  # deliberately `N * @path`, so the division and the flooring live in code and
+  # the sheet's own "X0%" stays here as the multiplication.
+  #
+  # `@ride.xLessOne` is `(X−1)` floored at zero, for the "if NP (X−1)0%" half.
+  - kind: resource
+    when: beforeDamage
+    target: self
+    changes:
+      - { key: agility, delta: "@ride.x" }
+  - kind: applyEffects
+    when: beforeDamage
+    target: self
+    effects:
+      - id: atkUp
+        magnitude: "10 * @ride.x"
+        npMagnitude: "10 * @ride.xLessOne"
+        duration: "⅓◈"
+
+  - kind: damage
+
+  # "THEN, applies Crit DmUp ... Y = number of Units successfully hit by this
+  # NP." A magnitude read off the ability's own targeting result, which nothing
+  # in the corpus had needed: it cannot exist until the attack has resolved.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critDmUp, magnitude: "10 * @hitCount", duration: "1◈" }

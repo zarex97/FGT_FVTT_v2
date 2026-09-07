@@ -1450,6 +1450,8 @@ function itemSystem(doc) {
     // its only reader and the schema lives there, in prose, beside the clause
     // it came from.
     weakPoint: doc.weakPoint ?? null,
+    // An ability that IS a Riding Attack (Ch. 44 §44.3).
+    ridingAttack: doc.ridingAttack ?? null,
     // "Eye of the Mind (only when Active/its buffs are in effect)": the effect
     // ids whose presence makes the tag above count.
     categorizedWhile: doc.categorizedWhile ?? [],
