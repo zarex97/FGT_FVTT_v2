@@ -18,6 +18,7 @@ import { collectContributions } from "../../module/rules/elements.mjs";
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { meetsRequirements } from "../../module/rules/items.mjs";
+import { checkPlan, evade } from "../../module/rules/checks.mjs";
 
 /** @param {string} dir @param {string} id @returns {object} */
 const doc = (dir, id) => parse(readFileSync(join("packs/_source", dir, `${id}.yml`), "utf8"));
@@ -171,5 +172,82 @@ describe("Affections of the Goddess", () => {
 
   it("does not spend his Attack for the Turn", () => {
     expect(skill.countsAsAttack).toBe(false);
+  });
+});
+
+/* ========================================================================== */
+/*  Dromeus Komētēs and Runner Comet                                          */
+/* ========================================================================== */
+
+describe("Dromeus Komētēs", () => {
+  const np = ability("achilles-dromeus-kometes");
+
+  it("is a Noble Phantasm that is purely passive and deals nothing", () => {
+    expect(np.isNP).toBe(true);
+    expect(np.passive).toBe(true);
+    expect(np.damage).toBeUndefined();
+    expect(np.phases).toBeUndefined();
+  });
+
+  it("re-grants Double Move on foot, so a Seal on either document leaves it standing", () => {
+    const grant = np.passiveRules.find((r) => r.key === "GrantedAbility");
+    expect(grant.abilities).toEqual(["doubleMove"]);
+    expect(grant.predicate).toEqual(["self:stance:dismounted"]);
+  });
+
+  it("lowers the value of his Evade rolls by 4, and only on foot", () => {
+    // A `CheckModifier`, not a new element: `checks.mjs` already folds numeric
+    // modifiers into an Evade, which is how Jack's Mist raises everyone else's.
+    const mod = np.passiveRules.find((r) => r.key === "CheckModifier");
+    expect(mod).toMatchObject({ check: "evade", direction: "outgoing", value: -4 });
+    expect(mod.predicate).toEqual(["self:stance:dismounted"]);
+  });
+
+  it("turns a failed Evade into a successful one at the margin", () => {
+    // `success: total <= target`, so a NEGATIVE modifier is the helpful one.
+    const unit = {
+      checkModifiers: [{ check: "evade", direction: "outgoing", value: -4, source: "Dromeus Komētēs" }],
+    };
+    const plan = checkPlan(unit, "evade", { options: new Set(["self:stance:dismounted"]) });
+    expect(plan.modifiers).toEqual([{ source: "Dromeus Komētēs", value: -4 }]);
+    // Agility 14, rolled 17: fails bare, succeeds with the comet.
+    expect(evade({ roll: 17, agility: 14 }).success).toBe(false);
+    expect(evade({ roll: 17, agility: 14, modifiers: plan.modifiers }).success).toBe(true);
+  });
+});
+
+describe("Runner Comet", () => {
+  const skill = ability("achilles-runner-comet");
+
+  it("opens at the start of a Combat Phase rather than on his Turn", () => {
+    expect(skill.timing.window).toBe("combatPhaseStart");
+    expect(skill.cooldown).toBe("3◈-⅓◈");
+  });
+
+  it("is refused mounted, and refused under either Seal", () => {
+    const kinds = skill.requirements.map((r) => r.kind);
+    expect(kinds).toEqual(["stance", "notHasEffect", "notHasEffect"]);
+    expect(skill.requirements[0].stance).toBe("dismounted");
+    expect(skill.requirements.slice(1).map((r) => r.effectId)).toEqual(["skillSeal", "npSeal"]);
+
+    expect(meetsRequirements(skill.requirements, { unit: inStance("mounted") }))
+      .toEqual({ ok: false, reason: "stance" });
+    expect(meetsRequirements(skill.requirements, {
+      unit: { ...inStance("dismounted"), effects: ["npSeal"] },
+    })).toEqual({ ok: false, reason: "notHasEffect" });
+    expect(meetsRequirements(skill.requirements, { unit: { ...inStance("dismounted"), effects: [] } }))
+      .toEqual({ ok: true });
+  });
+
+  it("restores 3 Agility before it buffs, in the sheet's order", () => {
+    expect(skill.phases.map((p) => p.kind)).toEqual(["resource", "applyEffects"]);
+    expect(skill.phases[0].changes).toEqual([{ key: "agility", delta: 3 }]);
+  });
+
+  it("applies both buffs at 30 for that Turn only", () => {
+    expect(skill.phases[1].effects).toEqual([
+      { id: "nAtkUp", magnitude: 30, duration: "this turn" },
+      { id: "critDmUp", magnitude: 30, duration: "this turn" },
+    ]);
   });
 });
