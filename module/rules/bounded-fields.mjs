@@ -534,6 +534,49 @@ export function hasCategory(unit, category, minRank = null) {
 }
 
 /**
+ * May this Unit spend Luck at all?
+ *
+ * *"Luck Check cannot be used by the involved Units."* Achilles's duel is the
+ * only thing in the game that says so, and it is a removal of the OPTION rather
+ * than a penalty on the roll — the ladder's Luck rungs are not offered.
+ *
+ * @param {object} unit a Unit projection
+ * @returns {boolean}
+ */
+export function luckChecksBlocked(unit) {
+  return (unit?.suppressions ?? []).some((s) => s.scope === "luckCheck");
+}
+
+/**
+ * Effects this Unit is carrying that the field it stands in negates.
+ *
+ * *"All buffs and debuffs that were caused by Units not involved in the duel
+ * are negated for the duration of the duel."* NEGATED, not removed: they are
+ * still on the Unit when the field comes down, so this filters the projection
+ * rather than deleting anything.
+ *
+ * "Not involved" means not inside the field — the two duellists are the only
+ * Units in it, because nobody may enter.
+ *
+ * @param {object} unit a Unit projection, already annotated with `fields`
+ * @param {object[]} instances the Unit's effect instances
+ * @param {object} board
+ * @returns {object[]} the instances that still count
+ */
+export function withoutForeignEffects(unit, instances, board) {
+  if (!(unit?.suppressions ?? []).some((s) => s.scope === "foreignEffects")) return instances;
+  const inside = new Set((board?.units ?? [])
+    .filter((u) => (u.fields ?? []).some((f) => (unit.fields ?? []).includes(f)))
+    .map((u) => u.id));
+  return (instances ?? []).filter((e) => {
+    const from = e.sourceUnitId ?? null;
+    // An effect with no recorded source is the Unit's own -- a mode's marker, a
+    // stance -- and stays. Only something another Unit put there is negated.
+    return !from || from === unit.id || inside.has(from);
+  });
+}
+
+/**
  * Chebyshev adjacency — "directly next to", diagonals included, as everywhere
  * else on this board.
  *

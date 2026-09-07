@@ -1175,6 +1175,29 @@ export const EXECUTORS = Object.freeze({
    * The default is Kingprotea's, so a Unit with the occupancy grant and no
    * `Knockback` element behaves as Bašmu and she already do.
    */
+  /**
+   * *"Luck Check cannot be used by the involved Units."*
+   *
+   * A suppression rather than a `CheckModifier`: a modifier makes a check
+   * harder and this removes the option, which is a different answer — the
+   * ladder's Luck rungs are not offered at all.
+   */
+  BlockLuckChecks(el, { source, out }) {
+    out.suppressions.push({ scope: "luckCheck", source });
+  },
+
+  /**
+   * *"All buffs and debuffs that were caused by Units not involved in the duel
+   * are negated for the duration of the duel."*
+   *
+   * NEGATED, not removed: they are still on the Unit when the field comes down,
+   * which is why this is a suppression the projection reads rather than a
+   * `removeEffect` phase.
+   */
+  SuppressForeignEffects(el, { source, out }) {
+    out.suppressions.push({ scope: "foreignEffects", source });
+  },
+
   Knockback(el, { source, out }) {
     out.knockback = {
       direction: el.direction ?? "fromCentre",

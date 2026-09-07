@@ -44,6 +44,7 @@ import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { offerWeakPoint, resolveWeakPoint, weakPointIntents } from "./weak-point.mjs";
+import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
@@ -1550,6 +1551,19 @@ async function fireCombatPhaseEnd(state) {
  * @returns {Promise<object>}
  */
 async function runAutomaticStep(state, message) {
+  // *"Luck Check cannot be used by the involved Units."* Achilles's duel is the
+  // only thing in the game that says so, and it removes the OPTION rather than
+  // penalising the roll -- so the rung is declined automatically rather than
+  // offered and refused. Declining is already a legal edge on every Luck rung,
+  // because Luck is finite and a player may rationally refuse.
+  const prompt = process.pendingPrompt(state);
+  if (prompt?.kind === "luckCheck") {
+    const asked = game.actors.get(prompt.unitId);
+    if (asked && luckChecksBlocked(unitFrom(boardSnapshot(), asked) ?? unitSnapshot(asked))) {
+      return process.advance(state, "declined", { reason: "luckChecksBlocked" });
+    }
+  }
+
   switch (state.state) {
     case "heelResolve": {
       // The declared weak-point attack, rolled in place of the damage. Both

@@ -34,7 +34,7 @@ import { currentHealth } from "../domain/health.mjs";
 import { closeAttributes } from "../domain/attributes.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, crossLevelRulesFor } from "./platforms.mjs";
-import { annotateFields } from "./bounded-fields.mjs";
+import { annotateFields, withoutForeignEffects } from "./bounded-fields.mjs";
 import { CONCEALMENT } from "./concealment.mjs";
 
 /**
@@ -597,6 +597,16 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // Bounded fields, last of the positional passes: their interior rules sit
   // after the ground and the auras in the explainer's reading order.
   annotateFields(units, board);
+  // ...and the one interior rule that takes something AWAY. Achilles's duel
+  // negates "all buffs and debuffs that were caused by Units not involved" for
+  // as long as it stands, so the projection is filtered after the fields have
+  // said who is inside and before anything reads the effects back.
+  for (const u of units) {
+    const kept = withoutForeignEffects(u, u.effectInstances ?? [], board);
+    if (kept.length === (u.effectInstances ?? []).length) continue;
+    u.effectInstances = kept;
+    u.effects = kept.map((e) => e.defId);
+  }
   // Positional, like auras: it holds while somebody is standing nearby.
   annotateCompulsions(units, board);
   // Built here rather than cached across calls: `snapshotBoard` is where the

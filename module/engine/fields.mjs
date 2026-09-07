@@ -77,10 +77,43 @@ export function regionSizedShape(geometry, warRegion) {
  * @param {object} [board] an existing snapshot
  * @returns {Promise<object|null>} the created Region, or null when there is nowhere to put it
  */
-export async function createField(ability, actor, board = null) {
+export async function createField(ability, actor, board = null, { targetId = null } = {}) {
   const spec = ability?.system?.field ?? null;
   if (!spec) return null;
+
+  // *"The Noble Phantasm is only activated if the opposing Unit (player) agrees
+  // to the duel."* The only consent gate in the game -- every other field opens
+  // whether or not anyone inside wants it -- and a refusal means the NP was
+  // never activated at all, so nothing is spent.
+  if (spec.requiresConsent && !(await agreesToField(ability, actor, targetId))) return null;
+
   return openField(ability, actor, board ?? currentBoard(), spec);
+}
+
+/**
+ * Ask the Unit being challenged whether it accepts.
+ *
+ * @param {object} ability
+ * @param {object} actor the caster
+ * @param {string|null} targetId
+ * @returns {Promise<boolean>}
+ */
+async function agreesToField(ability, actor, targetId) {
+  const target = targetId ? game.actors.get(targetId) : null;
+  if (!target) return false;
+  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+  const picked = await ChoiceDialog.pick({
+    title: game.i18n.format("FGT.Duel.Title", { challenger: actor.name, name: target.name }),
+    hint: game.i18n.localize("FGT.Duel.Hint"),
+    count: 1,
+    min: 0,
+    options: [{
+      id: "accept",
+      name: game.i18n.format("FGT.Duel.Accept", { name: target.name }),
+      detail: game.i18n.localize("FGT.Duel.AcceptHint"),
+    }],
+  });
+  return (picked ?? []).includes("accept");
 }
 
 /**
