@@ -215,6 +215,12 @@ export function snapshotUnit(actor, {
     // The stance and the rules for changing it (Ch. 44 §44.1). Both travel,
     // because `rules/stance.mjs` answers "may this change now" from the
     // projection and never from the document.
+    // Weak points the ATTACKER may aim at (Ch. 44 §44.2). Collected from the
+    // Unit's own abilities, because it is a property of the Unit rather than a
+    // technique it uses -- which is also why nothing here checks a cooldown.
+    weakPoints: [...(actor.items ?? [])]
+      .map((i) => i.system?.weakPoint)
+      .filter(Boolean),
     stance: sys.stance ?? "",
     stanceSpec: sys.stanceSpec ?? null,
     // The unit's OWN auras, unexpanded. `snapshotBoard` runs `annotateAuras`

@@ -1,0 +1,58 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+# Discussed: docs/44-case-expanded-roster.md §44.2
+#
+# The counter-play to Andreias Amarantos, and the only route through it. Ch. 44
+# calls it the most involved single mechanic in either roster and it is: a base
+# that depends on which of his four cones the attack came from, six conditional
+# modifiers over it, and a permanent consequence that rewrites three of his
+# abilities.
+#
+# Not a Skill and not a Noble Phantasm -- it is a property of the Unit that the
+# ATTACKER uses. `weakPoint:` is the block, `rules/weak-point.mjs` computes the
+# chance, and `engine/attack.mjs` offers it at declaration when it can land.
+schema: 1
+id: achilles-heel
+name: "Achilles' Heel"
+kind: skill
+slug: achillesHeel
+passive: true
+# Not a technique to be copied: it is where he is vulnerable.
+copyable: { allowed: false, reason: unique }
+description: |
+  Whenever Achilles participates in a Combat Phase while Unmounted, the enemy Unit has a chance to
+  Attack Achilles' Heel during its Attack (the player states whether the AU performs a Heel Attack
+  or not). Achilles cannot Block Heel Attacks. If Achilles Failed to @effect[evade]{Evade} the Heel Attack, the
+  percentage chance of succeeding are as follows-
+  1. Attack from the Front: 0%
+  2. Attack from the Sides: 5%
+  3. Attack from the Back: 10%
+  a) +5% if the AU's Agility is equal to or higher than Achilles'.
+  b) +5% if the Attack was performed at a Range of 3 or higher.
+  c) +5% if Combat was initiated by the AU (i.e. not a Counter Attack).
+  d) −10% if the Attack was an AoE Attack.
+  e) +10% if Achilles was Attacked from within the Fog of War.
+  f) A Luck Check can be used to increase the success chance by 25%.
+  If the AU's Heel Attack fails, Achilles successfully Evades the Attack. If it succeeded,
+  Achilles receives damage that ignores all Defensive Buffs and damage reducing effects, and
+  his Heel is damaged permanently.
+weakPoint:
+  id: achillesHeel
+  # "Whenever Achilles participates in a Combat Phase while UNMOUNTED." On the
+  # DEFENDER, which is why `rules/weak-point.mjs` reads it off him rather than
+  # through the attack's option set.
+  availableWhen: ["self:stance:dismounted"]
+  # "Attack from the Sides: 5%" is both cones at 5.
+  baseChanceBySide: { front: 0, left: 5, right: 5, back: 10 }
+  agilityBonus: 5
+  rangeBonus: { atLeast: 3, value: 5 }
+  initiatorBonus: 5
+  # The only negative clause, and the reason the total is clamped at zero.
+  aoePenalty: -10
+  fogOfWarBonus: 10
+  # His sheet prints "25%(?)" -- the author's own uncertainty, taken as 25.
+  luckCheckBonus: 25
+  # "Achilles cannot Block Heel Attacks."
+  blockable: false
+  onSuccess:
+    ignoresDefensiveBuffs: true
+    applies: heelWounded
