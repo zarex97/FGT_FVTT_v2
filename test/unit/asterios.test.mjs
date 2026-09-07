@@ -286,6 +286,10 @@ describe("a non-damaging Noble Phantasm", () => {
     // If an eighth is authored it lands here, which is the point: the
     // engine rule keys on exactly this shape.
     expect(nonDamaging.map(({ doc }) => doc.id).sort()).toEqual([
+      // Akhilleus Kosmos, the twelfth. Its one phase negates an incoming Noble
+      // Phantasm for everyone in a 5x5 and then the ability is spent for the
+      // rest of the game.
+      "achilles-akhilleus-kosmos",
       "asterios-chaos-labyrinthos",
       "emiya-rho-aias",
       "emiya-unlimited-blade-works",

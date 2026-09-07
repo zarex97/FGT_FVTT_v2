@@ -511,6 +511,11 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // [Anti-World] NP, its vulnerability ends on one, and its interior halves
       // that one's damage -- all three keyed on tags the attack never carried.
       npTags: [...(ability?.system?.npTags ?? [])],
+      // The Noble Phantasm's own RANK, beside its tags. Achilles's barrier
+      // answers *"an AoE Noble Phantasm of Rank A and above"* -- a threshold on
+      // the rank rather than on the scale tag, which is a different axis
+      // (Ch. 43 §43.8) and the one his sheet does not use.
+      rank: ability?.system?.rank ?? null,
   };
 }
 /**
@@ -612,7 +617,7 @@ async function declareProcesses({
     const withReactions = state.defenderId
       ? {
         ...state,
-        reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId, state.attack) },
+        reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId, state.attack, state.isAoE) },
         // Presence Concealment clause 2: *"This Unit's Attacks cannot be
         // Blocked or Countered unless the DU's current AGI Rank is equal to or
         // higher than it."* Decided once, at declaration, alongside the offer --
@@ -3941,7 +3946,7 @@ async function askOwner(actor, spec) {
  * @param {string} defenderId
  * @returns {Array<{id: string, name: string}>}
  */
-function offeredReactions(defenderId, attack = null) {
+function offeredReactions(defenderId, attack = null, isAoE = false) {
   const actor = game.actors.get(defenderId);
   if (!actor) return [];
 
@@ -3969,7 +3974,10 @@ function offeredReactions(defenderId, attack = null) {
   const ally = allyReactions({
     defender: board.units.find((u) => u.id === defenderId) ?? unitSnapshot(actor),
     board,
-    attack: attack ?? {},
+    // `isAoE` lives on the Process rather than on the attack spec, and
+    // Akhilleus Kosmos gates on it, so it is folded in here where both are in
+    // scope.
+    attack: { ...(attack ?? {}), isAoE: Boolean(isAoE) },
     actorFor: (id) => game.actors.get(id),
   }).map((a) => ({
     id: a.ability.id,

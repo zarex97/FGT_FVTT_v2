@@ -1,0 +1,83 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+# Discussed: docs/43-bounded-fields.md, docs/44-case-expanded-roster.md §44.2
+#
+# Two clauses under one name and they have almost nothing to do with each
+# other: a passive that decides how he walks through people, and a barrier he
+# gets to raise exactly once in the whole game.
+schema: 1
+id: achilles-akhilleus-kosmos
+name: "Akhilleus Kosmos: The Miniature World Enclosed by the Azure Sky"
+isNP: true
+rank: "A+"
+npTags: [barrier]
+kind: noblePhantasm
+slug: akhilleusKosmos
+# "Once ... After that, Akhilleus Kosmos is broken; all its effects are lost and
+# cannot be used for the rest of the game." Not a cooldown -- there is no number
+# of Turns after which it comes back.
+expendsPermanently: true
+# Used when an ALLY is about to be hit, the same third reaction window Rho Aias
+# opens in. `againstRank: A` is the difference: his sheet gates on the incoming
+# NP's RANK where EMIYA's gates on it being one at all.
+timing: { window: whenAllyAttacked, againstKind: np, againstRank: A, requiresAoE: true, radius: 2 }
+requirements:
+  # "Used when Achilles Moves when Unmounted", and the barrier likewise: every
+  # clause of this Noble Phantasm is a dismounted one.
+  - { kind: stance, stance: dismounted }
+description: |
+  (Passive) Used when Achilles Moves when Unmounted. If Achilles intends to Move onto an occupied
+  Panel, the Unit occupying said panel is forced to Move backward until Achilles stops Moving in
+  that direction. If the Unit does not or cannot vacate those panels, that Unit is forcefully
+  Moved to one of the panels to its sides, and receives damage equivalent to a Normal Attack from
+  Achilles (Base Attack (STR) is used).
+  (Non-damaging) Once, when Achilles or any allied Unit within a 2 panel area of himself is
+  targeted/is within Range of an AoE Noble Phantasm of Rank A and above, Akhilleus Kosmos can be
+  used. Negate all damage and effects of that Noble Phantasm in a 5x5 panel area around Achilles.
+  After that, Akhilleus Kosmos is broken; all its effects are lost and cannot be used for the
+  rest of the game.
+passiveRules:
+  # He walks through people. The grant is the same one Kingprotea's *Huge Scale*
+  # hands out -- `rules/movement.mjs#ignoresBlocking` is the one place the
+  # question is asked -- and the `Knockback` element below is what makes his
+  # push differ from hers.
+  - key: GrantedAbility
+    abilities: [ignoresOccupancy]
+    predicate: ["self:stance:dismounted"]
+
+  # "...forced to Move BACKWARD until Achilles stops Moving in that direction.
+  # If the Unit does not or cannot vacate those panels, that Unit is forcefully
+  # Moved to one of the panels to its sides, and receives damage equivalent to a
+  # Normal Attack from Achilles."
+  #
+  # Two departures from Kingprotea's cascade in one element: the direction is
+  # his TRAVEL rather than outward from a centre, and running out of room is a
+  # different outcome rather than a failure -- she leaves an occupant standing,
+  # he shoves them aside and hits them.
+  - key: Knockback
+    direction: travel
+    sidestep: { damage: normalAttack }
+    predicate: ["self:stance:dismounted"]
+
+targeting:
+  # "Negate all damage and effects of that Noble Phantasm in a 5x5 panel area
+  # AROUND ACHILLES" -- centred on him, not on whoever was targeted.
+  anchor: { kind: self }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  # "Negate all damage and effects of that Noble Phantasm in a 5x5 panel area
+  # around Achilles."
+  #
+  # `Anti-Purge`, and not `Invuln`, because the sheet says damage AND EFFECTS:
+  # Invuln zeroes the number at stage 16 and Appendix A is explicit that it does
+  # not stop a rider debuff, while Anti-Purge halts at stage 0 before the attack
+  # has been measured, so the riders never fire either.
+  #
+  # `1 time` and `this turn` together: it answers the one Noble Phantasm it was
+  # raised against and is gone whether or not a second arrives. The ability
+  # itself is spent for good (`expendsPermanently`), so there is no second use
+  # for a longer duration to protect.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: antiPurge, duration: "this turn", uses: 1 }

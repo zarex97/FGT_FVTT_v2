@@ -492,9 +492,17 @@ export function inEnemyMasterProtection(panel, unit, board) {
  * @param {number} [opts.maxSteps] how far along the line to search
  * @returns {GridOffset|null} `null` when no free panel was found within range
  */
-export function knockbackPanel(origin, unit, board, { maxSteps = 5 } = {}) {
-  const toward = geo.cardinalToward(origin, unit.panel);
-  const directions = (toward.i === 0 && toward.j === 0)
+export function knockbackPanel(origin, unit, board, {
+  maxSteps = 5, preferredDirection = null, allowSidestep = false,
+} = {}) {
+  // *"the Unit occupying said panel is forced to Move BACKWARD until Achilles
+  // stops Moving in that direction"* — Akhilleus Kosmos shoves along the
+  // mover's own travel rather than away from a point, so the caller may name
+  // the direction outright. Kingprotea's cascade names none and the direction
+  // is derived from her centre, as before.
+  const toward = preferredDirection ?? geo.cardinalToward(origin, unit.panel);
+  const fanned = (toward.i === 0 && toward.j === 0);
+  const directions = fanned
     ? [{ i: -1, j: 0 }, { i: 1, j: 0 }, { i: 0, j: -1 }, { i: 0, j: 1 }]
     : [toward];
 
@@ -504,10 +512,33 @@ export function knockbackPanel(origin, unit, board, { maxSteps = 5 } = {}) {
     for (const dir of directions) {
       const panel = { i: unit.panel.i + dir.i * step, j: unit.panel.j + dir.j * step };
       if (!geo.inBounds(panel, board.bounds ?? null)) continue;
-      if (!occupantAt(panel, board, unit.level)) return panel;
+      if (!occupantAt(panel, board, unit.level)) return { panel, sidestepped: false };
     }
   }
+
+  // *"If the Unit does not or cannot vacate those panels, that Unit is
+  // forcefully Moved to one of the panels to its sides, and receives damage
+  // equivalent to a Normal Attack."* The fallback is a different OUTCOME rather
+  // than a wider search: it is the clause that makes his push hurt, and the
+  // caller has to know which one it got.
+  if (!allowSidestep || fanned) return null;
+  for (const side of perpendicular(toward)) {
+    const panel = { i: unit.panel.i + side.i, j: unit.panel.j + side.j };
+    if (!geo.inBounds(panel, board.bounds ?? null)) continue;
+    if (!occupantAt(panel, board, unit.level)) return { panel, sidestepped: true };
+  }
   return null;
+}
+
+/**
+ * The two cardinals at right angles to `dir` — "the panels to its sides".
+ * @param {GridOffset} dir
+ * @returns {GridOffset[]}
+ */
+function perpendicular(dir) {
+  return dir.i !== 0
+    ? [{ i: 0, j: -1 }, { i: 0, j: 1 }]
+    : [{ i: -1, j: 0 }, { i: 1, j: 0 }];
 }
 
 /**

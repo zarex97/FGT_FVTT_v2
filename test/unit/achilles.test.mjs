@@ -22,7 +22,8 @@ import { checkPlan, evade } from "../../module/rules/checks.mjs";
 import { categoryRankOf } from "../../module/rules/items.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { resolveValue } from "../../module/rules/elements.mjs";
-import { ridingAttackPath } from "../../module/rules/movement.mjs";
+import { ridingAttackPath, knockbackPanel } from "../../module/rules/movement.mjs";
+import { allyReactions } from "../../module/rules/reactions.mjs";
 
 /** @param {string} dir @param {string} id @returns {object} */
 const doc = (dir, id) => parse(readFileSync(join("packs/_source", dir, `${id}.yml`), "utf8"));
@@ -527,5 +528,95 @@ describe("Troias Tragōidia", () => {
     expect(upkeep.then[0]).toEqual({
       key: "StatDelta", subject: "master", stat: "health.value", amount: 25, direction: "down",
     });
+  });
+});
+
+/* ========================================================================== */
+/*  Akhilleus Kosmos                                                          */
+/* ========================================================================== */
+
+describe("Akhilleus Kosmos — the push", () => {
+  const np = ability("achilles-akhilleus-kosmos");
+
+  it("walks through people only on foot", () => {
+    const grant = np.passiveRules.find((r) => r.key === "GrantedAbility");
+    expect(grant.abilities).toEqual(["ignoresOccupancy"]);
+    expect(grant.predicate).toEqual(["self:stance:dismounted"]);
+  });
+
+  it("shoves along his travel, and hurts whoever has nowhere to go", () => {
+    const push = np.passiveRules.find((r) => r.key === "Knockback");
+    expect(push).toMatchObject({ direction: "travel", sidestep: { damage: "normalAttack" } });
+  });
+
+  it("differs from Kingprotea's cascade in both direction and outcome", () => {
+    // `inBounds` reads `iMin`/`iMax`/`jMin`/`jMax`, not a size.
+    const board = { units: [], bounds: { iMin: 0, iMax: 12, jMin: 0, jMax: 12 } };
+    const victim = { id: "v", panel: { i: 6, j: 7 }, level: 0 };
+    const walled = [8, 9, 10, 11, 12].map((j, n) => ({ id: `w${n}`, panel: { i: 6, j }, level: 0 }));
+    const full = { ...board, units: [victim, ...walled] };
+
+    // His: pushed east, along the travel, and stepped aside when the line jams.
+    expect(knockbackPanel({ i: 6, j: 6 }, victim, full, {
+      preferredDirection: { i: 0, j: 1 }, allowSidestep: true,
+    })).toEqual({ panel: { i: 5, j: 7 }, sidestepped: true });
+
+    // Hers: no preferred direction, no sidestep — the occupant simply stays.
+    expect(knockbackPanel({ i: 6, j: 6 }, victim, full)).toBe(null);
+  });
+});
+
+describe("Akhilleus Kosmos — the barrier", () => {
+  const np = ability("achilles-akhilleus-kosmos");
+
+  it("answers an AoE Noble Phantasm of Rank A or above, within 2 panels", () => {
+    expect(np.timing).toEqual({
+      window: "whenAllyAttacked", againstKind: "np", againstRank: "A", requiresAoE: true, radius: 2,
+    });
+  });
+
+  it("is offered only against what its sheet names", () => {
+    const achilles = {
+      id: "achilles", name: "Achilles", panel: { i: 5, j: 5 }, factionId: "a",
+      turnState: {}, effects: [],
+    };
+    const board = { units: [achilles], alliances: { a: ["a"] } };
+    const item = { id: "ak", name: "Akhilleus Kosmos", system: { timing: np.timing, cooldown: {} } };
+    const offer = (attack) => allyReactions({
+      defender: achilles, board, attack, actorFor: () => ({ items: [item], name: "Achilles" }),
+    }).length;
+
+    expect(offer({ kind: "np", rank: "A+", isAoE: true })).toBe(1);
+    expect(offer({ kind: "np", rank: "A", isAoE: true })).toBe(1);
+    // Below Rank A, single-target, or not a Noble Phantasm at all: silent.
+    expect(offer({ kind: "np", rank: "B", isAoE: true })).toBe(0);
+    expect(offer({ kind: "np", rank: "A+", isAoE: false })).toBe(0);
+    expect(offer({ kind: "normal", rank: "A+", isAoE: true })).toBe(0);
+  });
+
+  it("is silent once it has been spent", () => {
+    const achilles = {
+      id: "achilles", name: "Achilles", panel: { i: 5, j: 5 }, factionId: "a",
+      turnState: {}, effects: [],
+    };
+    const board = { units: [achilles], alliances: { a: ["a"] } };
+    const spent = { id: "ak", name: "AK", system: { timing: np.timing, cooldown: {}, expended: true } };
+    expect(allyReactions({
+      defender: achilles, board, attack: { kind: "np", rank: "A+", isAoE: true },
+      actorFor: () => ({ items: [spent], name: "Achilles" }),
+    })).toEqual([]);
+  });
+
+  it("negates damage AND effects, which is why it is Anti-Purge and not Invuln", () => {
+    // Invuln zeroes the number at stage 16 and Appendix A says plainly that it
+    // does not stop a rider debuff; Anti-Purge halts at stage 0, before the
+    // attack is measured, so the riders never fire either.
+    expect(np.phases[0].effects).toEqual([{ id: "antiPurge", duration: "this turn", uses: 1 }]);
+    expect(effectDoc("anti-purge").id).toBe("antiPurge");
+  });
+
+  it("is spent for the rest of the game rather than put on a cooldown", () => {
+    expect(np.expendsPermanently).toBe(true);
+    expect(np.cooldown).toBeUndefined();
   });
 });

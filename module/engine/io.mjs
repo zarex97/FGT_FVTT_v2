@@ -518,6 +518,11 @@ export function worldIO() {
           "system.timesUsed": (item.system?.timesUsed ?? 0) + 1,
           // What `healthRestoredSince` compares "since" against.
           "system.lastUsedTick": tick,
+          // *"After that, Akhilleus Kosmos is broken; all its effects are lost
+          // and cannot be used for the rest of the game."* Spent rather than
+          // cooled down, so it is written once, here, beside the other
+          // whole-match bookkeeping -- and never cleared.
+          ...(item.system?.expendsPermanently ? { "system.expended": true } : {}),
         });
       }
     },

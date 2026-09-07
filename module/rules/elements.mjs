@@ -73,7 +73,7 @@ export function empty() {
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], unhandled: [],
     autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
-    buffRemovalResist: [],
+    buffRemovalResist: [], knockback: null,
   };
 }
 
@@ -1162,6 +1162,27 @@ export const EXECUTORS = Object.freeze({
    * 35%. For every additional stock, the magnitude is increased by 5%"* — which
    * is `perStack` with a `base`, one element for both halves of the sentence.
    */
+  /**
+   * How this Unit shoves whoever it walks into.
+   *
+   * Two Units in the corpus walk onto occupied panels and they do it
+   * differently. Kingprotea pushes outward from her centre, because she is nine
+   * panels of Unit and there is no one direction. Achilles pushes along his own
+   * travel, and *"if the Unit does not or cannot vacate those panels, that Unit
+   * is forcefully Moved to one of the panels to its sides, and receives damage
+   * equivalent to a Normal Attack."*
+   *
+   * The default is Kingprotea's, so a Unit with the occupancy grant and no
+   * `Knockback` element behaves as Bašmu and she already do.
+   */
+  Knockback(el, { source, out }) {
+    out.knockback = {
+      direction: el.direction ?? "fromCentre",
+      sidestep: el.sidestep ?? null,
+      source,
+    };
+  },
+
   BuffRemovalResist(el, { rank, source, out, ctx }) {
     const value = scalar(resolveValue(el, rank, ctx));
     if (value === 0) return;

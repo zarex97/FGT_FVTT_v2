@@ -217,7 +217,7 @@ async function onMove(document, movement, operation) {
   // FRESH board, taken after the write above, so `occupantAt` sees whoever
   // is actually standing on Bašmu's new panel rather than where they were
   // before this move.
-  if (ignoresOccupancy(unit)) await knockBackOccupants(actor.id);
+  if (ignoresOccupancy(unit)) await knockBackOccupants(actor.id, movement);
 
   // Presence Concealment clause 6: *"When This Unit Moves into an enemy
   // Servant's Range (or Detect, if in use), it has a 5% chance of being
@@ -272,7 +272,7 @@ function ignoresOccupancy(unit) {
  * @param {string} moverId the unit that just arrived (never knocks itself back)
  * @returns {Promise<void>}
  */
-async function knockBackOccupants(moverId) {
+async function knockBackOccupants(moverId, movement = null) {
   const { knockbackPanel, occupantAt } = await import("../rules/movement.mjs");
   const board = boardSnapshot(game.combats.active);
 
@@ -291,11 +291,27 @@ async function knockBackOccupants(moverId) {
   // you already are" has no direction at all.
   const centre = centreOf(occupied);
 
+  // Two shapes of push, and the mover's own grant says which.
+  //
+  //   Kingprotea: "all Units occupying said panels will be knocked back by 1
+  //   panel until Kingprotea has space to stand on" -- outward, from her
+  //   centre, because she is nine panels of Unit and there is no one direction.
+  //
+  //   Achilles: "the Unit occupying said panel is forced to Move BACKWARD until
+  //   Achilles stops Moving in that direction. If the Unit does not or cannot
+  //   vacate those panels, that Unit is forcefully Moved to one of the panels
+  //   to its sides, and receives damage equivalent to a Normal Attack."
+  const push = pushStyle(mover);
+  const along = push.direction === "travel" ? travelDirection(movement) : null;
+
   for (const panel of occupied) {
     const occupant = occupantAt(panel, board, mover.level);
     if (!occupant || occupant.id === moverId) continue;
 
-    const landing = knockbackPanel(centre, occupant, board);
+    const landing = knockbackPanel(centre, occupant, board, {
+      preferredDirection: along,
+      allowSidestep: Boolean(push.sidestepDamages),
+    });
     // "Until the space is free" -- when no free panel exists within range, the
     // occupant simply stays: there is nowhere the sheet's own rule can send it.
     if (!landing) continue;
@@ -303,11 +319,57 @@ async function knockBackOccupants(moverId) {
     const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
     if (!token) continue;
 
-    const point = canvas.grid.getTopLeftPoint(landing);
+    const point = canvas.grid.getTopLeftPoint(landing.panel);
     // `animate: false`: a knockback is displacement, not a walk -- and it is
     // what makes the write LAND. See `engine/io.mjs#move`.
     await token.document.update({ x: point.x, y: point.y }, { fgtForced: true, animate: false });
+
+    // "...and receives damage equivalent to a Normal Attack from Achilles."
+    // Only on the SIDESTEP: a Unit that got out of the way in time is merely
+    // displaced, and the damage is the price of not having room.
+    if (landing.sidestepped && push.sidestepDamages) {
+      const { resolveAttack } = await import("./attack.mjs");
+      await resolveAttack({
+        attackerId: moverId,
+        abilityId: null,
+        placement: { pathTargets: [occupant.id] },
+      });
+    }
   }
+}
+
+/**
+ * How this mover pushes, from the grant it carries.
+ *
+ * @param {object} mover a Unit projection
+ * @returns {{direction: string, sidestepDamages: boolean}}
+ */
+function pushStyle(mover) {
+  const spec = mover?.knockback ?? null;
+  return {
+    direction: spec?.direction ?? "fromCentre",
+    sidestepDamages: Boolean(spec?.sidestep?.damage),
+  };
+}
+
+/**
+ * The cardinal the mover was travelling in, or `null` when it cannot be told.
+ *
+ * @param {object|null} movement the v14 movement operation
+ * @returns {{i: number, j: number}|null}
+ */
+function travelDirection(movement) {
+  const from = movement?.origin;
+  const to = movement?.destination ?? movement?.passed?.waypoints?.at(-1);
+  if (!from || !to) return null;
+  const a = canvas?.grid?.getOffset?.(from);
+  const b = canvas?.grid?.getOffset?.(to);
+  if (!a || !b) return null;
+  const di = Math.sign(b.i - a.i);
+  const dj = Math.sign(b.j - a.j);
+  if (di === 0 && dj === 0) return null;
+  // One axis, like every other step on this board.
+  return Math.abs(b.i - a.i) >= Math.abs(b.j - a.j) ? { i: di, j: 0 } : { i: 0, j: dj };
 }
 
 /**

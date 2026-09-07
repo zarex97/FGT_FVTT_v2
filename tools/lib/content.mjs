@@ -61,6 +61,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Kingprotea — how hard her buffs are to take off (`rules/removal.mjs`).
   "BuffRemovalResist",
   "AttackerPropertyTier",
+  "Knockback",
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta
@@ -1452,6 +1453,7 @@ function itemSystem(doc) {
     weakPoint: doc.weakPoint ?? null,
     // An ability that IS a Riding Attack (Ch. 44 §44.3).
     ridingAttack: doc.ridingAttack ?? null,
+    expendsPermanently: Boolean(doc.expendsPermanently),
     // "Eye of the Mind (only when Active/its buffs are in effect)": the effect
     // ids whose presence makes the tag above count.
     categorizedWhile: doc.categorizedWhile ?? [],
