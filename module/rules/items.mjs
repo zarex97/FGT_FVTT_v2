@@ -15,6 +15,7 @@
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { withinPlatformCentre } from "./platforms.mjs";
+import { stanceOf } from "./stance.mjs";
 
 /**
  * May this item move from one unit to another?
@@ -153,7 +154,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
-  "noAliveSummon", "withinPlatformCentre", "roundPhase", "fieldOpen",
+  "noAliveSummon", "withinPlatformCentre", "roundPhase", "fieldOpen", "stance",
 ]);
 
 /**
@@ -229,6 +230,14 @@ export function meetsRequirement(req, ctx) {
       return (unit?.abilities ?? []).some(
         (a) => (a.slug === req.mode || a.id === req.mode) && a.active,
       );
+
+    case "stance":
+      // Ch. 44 §44.1. Four of Achilles's abilities are *"can only be used when
+      // Unmounted"* and one is the mirror, so the gate is a requirement rather
+      // than a predicate on each of their rules: a predicate would let the
+      // ability be pressed and then quietly do nothing, and the sheet refuses
+      // the press.
+      return stanceOf(unit) === req.stance;
 
     case "modeInactive":
       // The mirror, and not the same as "does not have it". Penthesilea's

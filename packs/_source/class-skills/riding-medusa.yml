@@ -8,8 +8,10 @@
 #    ADDITIONALLY, 'Riding Attack', and 'Passenger Seat' CAN BE USED ON THIS
 #    TURN."
 #
-# Achilles's and Ozymandias's read the other way and keep `class-riding`, which
-# is why this is a separate document rather than a flag on the shared one.
+# Ozymandias's reads the other way and keeps `class-riding`, which is why this
+# is a separate document rather than a flag on the shared one. Achilles has a
+# third variant again (`riding-achilles.yml`): his passives are permanent but
+# gated on a STANCE, which is neither this shape nor the shared one.
 #
 # No new mechanism: a `GrantedAbility` element takes a `predicate` like any
 # other, `self:effect:<id>` is emitted for the owner's own effects, and

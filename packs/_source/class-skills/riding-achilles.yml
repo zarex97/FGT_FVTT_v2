@@ -1,0 +1,66 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+# Discussed: docs/44-case-expanded-roster.md §44.1
+#
+# The third Riding document, and the second whose passives are not simply
+# permanent:
+#
+#   "Mount: Troias Tragōidia. All effects/abilities related to Riding can only
+#    be used while Mounted EXCEPT Passive 1 (see Dromeus Komētēs)."
+#
+# Medusa's variant unlocks Riding Attack and Passenger Seat with its own Active;
+# his gates them on a STANCE. The exception is the interesting half: Double Move
+# survives dismounting because *Dromeus Komētēs* re-grants it on foot, and his
+# sheet says so by pointing at that Noble Phantasm rather than by repeating it.
+#
+# `class-riding.yml`'s own comment predicted Achilles would keep the shared
+# document. He does not, and `riding-medusa.yml` has been corrected to say so.
+schema: 1
+id: class-riding-achilles
+name: "Riding"
+source: class
+slug: riding
+parameterized: [rank]
+rank: "@rank"
+cooldown: "@cooldown"
+description: |
+  Mount: Troias Tragōidia. All effects and abilities related to Riding can only be used while
+  Mounted EXCEPT Passive 1.
+  (Passive 1) Double Move: can Move twice during its Turn, once before and once after Attacking;
+  total distance Moved cannot exceed the Unit's MOV.
+  (Passive 2) Riding Attack: can Attack all Units in its path while Moving in a straight line as
+  its Normal Attack during its Turn. Cannot Attack or Move after it has stopped. Can be combined
+  with Passenger Seat. If the Unit has already Moved this Turn, the panels it may Move for its
+  Riding Attack equal its MOV minus the panels already Moved.
+  (Passive 3) Passenger Seat: the Servant's Master can Move together with its Servant; after
+  Moving, both must be in the same relative position as before. Counts as only Moving one Unit.
+  (Active) Used during your Turn. Increases MOV by 5 panels for this Turn.
+
+  The @effect[movUp]{MOV Up} from the Active is NOT a buff: it cannot be removed by buff removal and is not
+  prevented by an effect that blocks buffs.
+# "...EXCEPT Passive 1." Mounting is not required to use the Active either --
+# but the Active IS a Riding effect, so it is gated with the other two.
+requirements:
+  - { kind: stance, stance: mounted }
+passiveRules:
+  # Passive 1, and the exception. Ungated: he keeps Double Move on foot, and
+  # `achilles-dromeus-kometes.yml` grants it there as well so that the clause
+  # survives even if this Skill is Sealed.
+  - key: GrantedAbility
+    abilities: [doubleMove]
+  # Passives 2 and 3, gated on the stance rather than on a marker effect. A
+  # predicate, not a requirement: these are grants that other machinery asks
+  # about (`rules/movement.mjs`, `engine/riding.mjs`), so they have to be absent
+  # from the projection while he is on foot rather than merely unusable.
+  - key: GrantedAbility
+    abilities: [ridingAttack, passengerSeat]
+    predicate: ["self:stance:mounted"]
+# A mode, the same shape the shared document uses (`activeRules` and no phases
+# -- see `tools/lib/content.mjs#activeRulesAreReachable`). The MOV is predicated
+# as well as required, so a stance forced back to Dismounted at the Turn
+# boundary takes the +5 with it rather than leaving it standing on foot.
+activeRules:
+  - key: MovDelta
+    table: ridingMov
+    duration: "this turn"
+    isBuff: false
+    predicate: ["self:stance:mounted"]
