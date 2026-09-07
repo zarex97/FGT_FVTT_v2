@@ -453,12 +453,15 @@ async function runPhases(ability, actor, targets, board, only = null) {
           // Once per use, from the caster: a bounded field is one area, and
           // looping it over a target list would create one per Unit caught.
           if (target.unitId !== actor.id) break;
-          const field = await createField(ability, actor, board);
+          // The Unit being challenged, for a field that asks its permission.
+          // The caster is dropped: he is not the one consenting.
+          const challenged = targets.units.find((t) => t.unitId !== actor.id)?.unitId ?? null;
+          const field = await createField(ability, actor, board, { targetId: challenged });
           applied.push({
             summary: {
               id: "field", name: ability.name,
               outcome: field ? "applied" : "failed",
-              reason: field ? null : "noScene",
+              reason: field ? null : (ability.system?.field?.requiresConsent ? "declined" : "noScene"),
             },
           });
           break;

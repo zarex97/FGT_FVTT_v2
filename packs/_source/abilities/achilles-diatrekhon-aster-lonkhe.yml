@@ -1,0 +1,116 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+# Discussed: docs/43-bounded-fields.md, docs/D-servant-data-sheets.md §D.23
+#
+# The duel, and the only bounded field in the game that blocks Command Spells --
+# `rules/bounded-fields.mjs#isolationBlocks` has carried `blocksCommandSpells`
+# as its own axis since it was written, in a comment naming "the duel field" as
+# the reason it exists. This is that field.
+#
+# One clause is deliberately NOT modelled. *"All conditions of the duel
+# (including defeat) must be decided and agreed on by the two involved
+# parties"* is a table negotiation rather than a rule, so the engine enforces
+# every mechanical clause and a GM control ends the duel. Encoding a terms
+# vocabulary would be inventing rules the sheet does not have.
+schema: 1
+id: achilles-diatrekhon-aster-lonkhe
+name: "Diatrekhōn Astēr Lonkhē: Spear-tip of the Star Traversing the Skies"
+isNP: true
+rank: "B+"
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: diatrekhonAsterLonkhe
+cooldown: "6◈+⅓◈"
+timing: { window: ownTurn }
+# Non-damaging, but it still spends his Attack for the Turn: §15.4's
+# *"non-damaging NPs count as the Unit's Attack for that Turn"*.
+description: |
+  Meteor Spear (Non-damaging) Duel Field. Can only be used when Unmounted. Range=2. Used on an
+  enemy Unit. Achilles challenges the targeted Unit to a duel. The Noble Phantasm is only
+  activated if the opposing Unit (player) agrees to the duel, and all conditions of the duel
+  (including defeat) must be decided and agreed on by the two involved parties.
+  When this Noble Phantasm is activated, Achilles and the opposing Unit are enclosed within a 5x5
+  panel area where they are standing on the game board. Then, both Units will continuously duel
+  (Combat) until one Unit is 'defeated' as per the terms of the duel; and when the 'defeat'
+  occurs, the NP is deactivated.
+  No Units can enter the NP area or interfere with the duel, even with Command Spells; the
+  involved Units are not allowed to leave the NP area until the defeat occurs as well. Also,
+  Luck Check cannot be used by the involved Units; and all buffs and debuffs that were caused by
+  Units not involved in the duel are negated for the duration of the duel.
+  This Noble Phantasm cannot be used on Female Units and/or Units with at least 3 Parameters one
+  Rank lower than Achilles'. Additionally, this Noble Phantasm cannot be used on the following 3
+  Servants: Hector, Chiron, Penthesilea.
+  Cooldown: 6◈+⅓◈ Turns.
+requirements:
+  - { kind: stance, stance: dismounted }
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection:
+    relations: [enemy]
+    chooser: chosen
+    count: 1
+    # The refusals, as a target predicate -- the vocabulary `selection.attributes`
+    # already is, rather than a second exclusion mechanism beside it.
+    #
+    # "Cannot be used on Female Units" is an attribute; "cannot be used on the
+    # following 3 Servants" names them, because the sheet names them: they are
+    # the three he will not duel for reasons that are not mechanical.
+    attributes:
+      - not:
+          or:
+            - "target:attribute:female"
+            - "target:contentId:hector"
+            - "target:contentId:chiron"
+            - "target:contentId:penthesilea"
+    # "...and/or Units with at least 3 Parameters one Rank lower than Achilles'."
+    # A comparison against the CASTER over a COUNT of parameters, which no
+    # predicate can express: "three of the five, each at least one Rank down"
+    # is an aggregate, and the predicate language has no aggregate form
+    # (Ch. 24 §24.5 says so of `@` expressions for the same reason).
+    parametersBelow: { count: 3, steps: 1 }
+field:
+  # Axis 1 -- geometry. "Achilles and the opposing Unit are enclosed within a
+  # 5x5 panel area WHERE THEY ARE STANDING", so it opens around the pair rather
+  # than around him.
+  # Anchored on Achilles, and that is not a simplification: a 5x5 is radius 2
+  # and his Range for this NP is 2, so the square around him contains every
+  # panel the target could be standing on. *"Where they are standing"* and
+  # "around Achilles" describe the same area here.
+  geometry:
+    kind: fixed
+    shape: { kind: square, size: 5 }
+  # Axis 2 -- membership. Sealed in both directions and for everyone: "No Units
+  # can enter the NP area ... the involved Units are not allowed to leave."
+  # This is the only field in the game that refuses ENTRY to allies as well.
+  membership:
+    allyEntry: sealed
+    enemyEntry: sealed
+    allyExit: sealed
+    enemyExit: sealed
+    trappedAtActivation: true
+  # Axis 3 -- isolation. "...or interfere with the duel, even with Command
+  # Spells."
+  isolation:
+    outsideCanTargetInside: false
+    insideCanTargetOutside: false
+    blocksCommandSpells: true
+  # Axis 4 -- interior. Two rules, and both are about what the duellists may
+  # bring to it rather than about damage.
+  interior:
+    # "Luck Check cannot be used by the involved Units."
+    - key: BlockLuckChecks
+      relations: [ally, enemy, self]
+    # "All buffs and debuffs that were caused by Units not involved in the duel
+    # are negated for the duration of the duel." Not removed -- negated -- so
+    # they are still there when the field comes down.
+    - key: SuppressForeignEffects
+      relations: [ally, enemy, self]
+  # The duel ends when the table says it does. *"Both Units will continuously
+  # duel until one Unit is 'defeated' AS PER THE TERMS OF THE DUEL"* -- and the
+  # terms are the one clause the sheet leaves to the two players, so there is
+  # no condition here to watch. `byOwner` is the control that closes it.
+  deactivation: { byOwner: true }
+  # "The Noble Phantasm is only activated if the opposing Unit (player) agrees
+  # to the duel." A consent gate, and the only one in the game: every other
+  # field opens whether or not anyone inside wants it.
+  requiresConsent: true

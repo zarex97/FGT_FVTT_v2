@@ -17,6 +17,7 @@ import { test as testPredicate } from "../predicate.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
 import { relationOf, guardsOf } from "../relations.mjs";
+import { Rank } from "../../domain/rank.mjs";
 import { facingAllows, pathClear } from "./facing.mjs";
 
 /**
@@ -223,6 +224,21 @@ export function resolveTargets(spec, caster, board, placement = {}) {
         refs: { self: caster, target: u, board },
       }) || drop(u, "excluded by this ability's target predicate"),
     );
+  }
+
+  // 6b. PARAMETER COMPARISON — a refusal keyed on how the target measures up
+  //     to the CASTER, over a count of Parameters.
+  //
+  //     Achilles's duel: *"cannot be used on ... Units with at least 3
+  //     Parameters one Rank lower than Achilles'."* No predicate can say this:
+  //     "three of the five, each at least one Rank down" is an aggregate, and
+  //     the predicate language deliberately has no aggregate form. It is a
+  //     refusal rather than a modifier, so it drops the unit with a reason.
+  if (sel.parametersBelow) {
+    const { count = 1, steps = 1 } = sel.parametersBelow;
+    survivors = survivors.filter((u) =>
+      parametersBelowBy(caster, u, steps) < count
+      || drop(u, `has ${count} or more Parameters at least ${steps} Rank lower`));
   }
 
   // 7. VISIBILITY — concealment blocks *targeting*, but an AoE still catches
@@ -826,6 +842,37 @@ function toTargeted(u, caster, bands) {
     concealedAoE: Boolean(u.concealed),
     relation: u.id === caster.id ? "self" : (u.relation ?? "enemy"),
   };
+}
+
+/**
+ * How many of a Unit's five Parameters sit at least `steps` Ranks below the
+ * caster's own.
+ *
+ * Achilles's duel: *"cannot be used on ... Units with at least 3 Parameters one
+ * Rank lower than Achilles'."* No predicate can say this — "three of the five,
+ * each at least one Rank down" is an aggregate, and the predicate language
+ * deliberately has no aggregate form.
+ *
+ * A Parameter one of them does not have is skipped rather than counted: it
+ * cannot be lower than something that is not there.
+ *
+ * @param {object} caster
+ * @param {object} target
+ * @param {number} steps
+ * @returns {number}
+ */
+function parametersBelowBy(caster, target, steps) {
+  let below = 0;
+  for (const key of ["str", "end", "agi", "mag", "luc"]) {
+    const mine = Rank.parseOrNull(caster?.parameters?.[key] ?? null);
+    const theirs = Rank.parseOrNull(target?.parameters?.[key] ?? null);
+    if (!mine || !theirs) continue;
+    // "One Rank lower" is one letter GRADE, not one `+`/`−` step: Ch. 05 §5.3
+    // keeps the two scales apart, and `stepGrade` is the one that moves
+    // grades. B+ against an A is not "one Rank lower"; a B is.
+    if (Rank.compare(theirs, mine.stepGrade(-steps)) <= 0) below += 1;
+  }
+  return below;
 }
 
 /**

@@ -24,6 +24,8 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { resolveValue } from "../../module/rules/elements.mjs";
 import { ridingAttackPath, knockbackPanel } from "../../module/rules/movement.mjs";
 import { allyReactions } from "../../module/rules/reactions.mjs";
+import { luckChecksBlocked, withoutForeignEffects } from "../../module/rules/bounded-fields.mjs";
+import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 
 /** @param {string} dir @param {string} id @returns {object} */
 const doc = (dir, id) => parse(readFileSync(join("packs/_source", dir, `${id}.yml`), "utf8"));
@@ -618,5 +620,105 @@ describe("Akhilleus Kosmos — the barrier", () => {
   it("is spent for the rest of the game rather than put on a cooldown", () => {
     expect(np.expendsPermanently).toBe(true);
     expect(np.cooldown).toBeUndefined();
+  });
+});
+
+/* ========================================================================== */
+/*  Diatrekhōn Astēr Lonkhē — the duel                                        */
+/* ========================================================================== */
+
+describe("the duel field", () => {
+  const np = ability("achilles-diatrekhon-aster-lonkhe");
+
+  it("seals in both directions, for everyone", () => {
+    // The only field in the game that refuses ENTRY to allies as well: "No
+    // Units can enter the NP area ... the involved Units are not allowed to
+    // leave."
+    expect(np.field.membership).toEqual({
+      allyEntry: "sealed", enemyEntry: "sealed",
+      allyExit: "sealed", enemyExit: "sealed",
+      trappedAtActivation: true,
+    });
+  });
+
+  it("blocks Command Spells, which nothing else in the game does", () => {
+    expect(np.field.isolation).toEqual({
+      outsideCanTargetInside: false,
+      insideCanTargetOutside: false,
+      blocksCommandSpells: true,
+    });
+  });
+
+  it("takes the Luck Check away rather than making it harder", () => {
+    const unit = { suppressions: [{ scope: "luckCheck", source: "Diatrekhōn Astēr Lonkhē" }] };
+    expect(luckChecksBlocked(unit)).toBe(true);
+    expect(luckChecksBlocked({ suppressions: [] })).toBe(false);
+  });
+
+  it("negates an outsider's effects without removing them", () => {
+    const inside = { id: "achilles", fields: ["duel"], suppressions: [{ scope: "foreignEffects" }] };
+    const foe = { id: "foe", fields: ["duel"] };
+    const board = { units: [inside, foe, { id: "meddler", fields: [] }] };
+    const held = [
+      { defId: "atkUp", sourceUnitId: "achilles" },   // his own
+      { defId: "defUp", sourceUnitId: "foe" },        // the other duellist's
+      { defId: "burn", sourceUnitId: "meddler" },     // from outside
+      { defId: "heelWounded", sourceUnitId: null },   // no source at all
+    ];
+    const kept = withoutForeignEffects(inside, held, board);
+    expect(kept.map((e) => e.defId)).toEqual(["atkUp", "defUp", "heelWounded"]);
+    // The instance list itself is untouched — negated, not removed.
+    expect(held).toHaveLength(4);
+  });
+
+  it("leaves everyone else's effects alone", () => {
+    const outside = { id: "bystander", fields: [], suppressions: [] };
+    const held = [{ defId: "burn", sourceUnitId: "meddler" }];
+    expect(withoutForeignEffects(outside, held, { units: [] })).toEqual(held);
+  });
+
+  it("refuses a Female target and the three Servants his sheet names", () => {
+    const sel = np.targeting.selection;
+    expect(sel.attributes[0].not.or).toEqual([
+      "target:attribute:female",
+      "target:contentId:hector",
+      "target:contentId:chiron",
+      "target:contentId:penthesilea",
+    ]);
+  });
+
+  it("refuses a target three Parameters below him", () => {
+    const caster = {
+      id: "achilles", panel: { i: 5, j: 5 }, faction: "a", kind: "servant",
+      parameters: { str: "B+", end: "A", agi: "A+", mag: "C", luc: "D" },
+    };
+    /** @param {object} parameters */
+    const foe = (parameters) => ({
+      id: "foe", name: "Foe", panel: { i: 5, j: 6 }, faction: "b",
+      kind: "servant", parameters, effects: [],
+    });
+    /** @param {object} target */
+    const hits = (target) => resolveTargets(
+      np.targeting,
+      caster,
+      {
+        units: [caster, target],
+        alliances: { a: ["a"], b: ["b"] },
+        bounds: { iMin: 0, iMax: 12, jMin: 0, jMax: 12 },
+      },
+      { unitId: target.id, chosenIds: [target.id] },
+    ).units.length;
+
+    // Three or more at least a grade below: refused.
+    expect(hits(foe({ str: "C", end: "B", agi: "B", mag: "C", luc: "D" }))).toBe(0);
+    // Only two below: allowed.
+    expect(hits(foe({ str: "C", end: "B", agi: "A+", mag: "C", luc: "D" }))).toBe(1);
+    // A `+` is not a Rank: B+ against his B+ is level, not lower.
+    expect(hits(foe({ str: "B+", end: "A", agi: "A+", mag: "C", luc: "D" }))).toBe(1);
+  });
+
+  it("asks the challenged Unit before it opens, and ends when the table says", () => {
+    expect(np.field.requiresConsent).toBe(true);
+    expect(np.field.deactivation).toEqual({ byOwner: true });
   });
 });

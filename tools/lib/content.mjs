@@ -62,6 +62,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   "BuffRemovalResist",
   "AttackerPropertyTier",
   "Knockback",
+  "BlockLuckChecks",
+  "SuppressForeignEffects",
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta
