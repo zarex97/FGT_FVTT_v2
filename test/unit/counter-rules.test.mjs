@@ -69,6 +69,15 @@ describe("mayCounterAgain", () => {
     expect(mayCounterAgain(counter(), "A", "strict")).toBe(false);
   });
 
+  it("refuses a bystander when the mode is missing or unknown", () => {
+    // The fail-safe direction, and the reason the default is `strict`: only an
+    // exact "collateral" opens the bystander case, so a setting that has not
+    // been registered yet, or a caller that forgot to read it, closes the
+    // chain rather than opening it.
+    expect(mayCounterAgain(counter(), "C", undefined)).toBe(false);
+    expect(mayCounterAgain(counter(), "C", "Collateral")).toBe(false);
+  });
+
   it("lets a bystander answer in collateral mode", () => {
     // C was caught in B's area Counter aimed at A. C was not being countered,
     // so C keeps its own right to counter B.
@@ -87,8 +96,10 @@ describe("mayCounterAgain", () => {
 });
 
 describe("the constants", () => {
-  it("names both chain modes", () => {
-    expect(COUNTER_CHAIN_MODES).toEqual(["collateral", "strict"]);
+  it("names both chain modes, the default first", () => {
+    // The order is the order of the settings dropdown, and the first entry is
+    // what a world gets without touching anything: no Counter may be Countered.
+    expect(COUNTER_CHAIN_MODES).toEqual(["strict", "collateral"]);
   });
 
   it("caps the depth", () => {

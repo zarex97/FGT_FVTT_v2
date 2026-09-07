@@ -410,7 +410,7 @@ story, and it is deliberately the same mechanism the system itself uses.
 | `difficulty` | world | `expert` | Ch. 14 §14.10 |
 | `region` | world | `null` | The war's region |
 | `grailThreshold` | world | 9 | Servants defeated before materialization |
-| `counterChain` | world | `collateral` | Whether a bystander caught by an area Counter may counter back (§12.8). The unit it was *aimed* at never can. |
+| `counterChain` | world | `strict` | Whether a Counter may be Countered (§12.8). Default `strict`: it may not, by anybody. `collateral` lets a bystander an area Counter merely caught answer back. The unit it was *aimed* at never can, either way. |
 | `closedInfo` | world | `true` | Redact chat cards per viewer (§26.7): own modifiers, own effects, own exchanges |
 | `diceFormulas` | world | `{}` | Overrides for the dice registry |
 | `masterMode` | world | `essences` | `essences` / `coinFlip` / `rankless` |

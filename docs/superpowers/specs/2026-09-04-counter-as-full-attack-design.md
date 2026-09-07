@@ -272,7 +272,7 @@ in `strict`, and Player2 is refused a counter on the counter in both.
 | D2 | The ability pays its own cost; no turn budget is spent. |
 | D3 | An area Counter fans out normally; the original attacker must be among the resolved units. |
 | D4 | Rule 1 is absolute: the unit a Counter was aimed at never counters it back. |
-| D5 | `fgt.counterChain` defaults to `collateral`; `strict` forbids every counter-of-a-counter. |
+| D5 | ~~`fgt.counterChain` defaults to `collateral`; `strict` forbids every counter-of-a-counter.~~ **Superseded:** the default is now `strict`, and `collateral` is opt-in. Both modes still behave as described here; only which one ships changed. See CHANGELOG, *Changed*. |
 | D6 | The chain terminates on resources; `MAX_COUNTER_DEPTH = 8` is a backstop, not a rule. |
 | D7 | Automatic counters (Auto/Dodge/Guard, Fragarach) keep firing a fixed attack with no prompt. |
 | D8 | The choice is made on the token's action bar, armed automatically, not on the card. |

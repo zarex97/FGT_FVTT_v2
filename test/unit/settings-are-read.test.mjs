@@ -75,3 +75,18 @@ describe("registered settings", () => {
     expect(settingsFile).toMatch(/"closedInfo"[\s\S]{0,400}?default: true/);
   });
 });
+
+/**
+ * A default that is itself a rule.
+ *
+ * `counterChain` decides whether an area Counter can start further Counters,
+ * which is the difference between an exchange that ends and one that branches.
+ * Flipping the default is a rules change and reads as a one-word diff, so it is
+ * pinned here where the change has to be deliberate.
+ */
+describe("defaults that are rules", () => {
+  it("ships counterChain as strict, so no Counter may be Countered", () => {
+    const block = settingsFile.slice(settingsFile.indexOf('s("counterChain"'));
+    expect(block.slice(0, 220)).toMatch(/default:\s*"strict"/);
+  });
+});
