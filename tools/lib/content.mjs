@@ -60,6 +60,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   "AutoCounter", "ForbidReaction", "DurationExtension", "OptionalCost",
   // Kingprotea — how hard her buffs are to take off (`rules/removal.mjs`).
   "BuffRemovalResist",
+  "AttackerPropertyTier",
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta

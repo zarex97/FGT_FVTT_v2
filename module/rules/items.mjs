@@ -13,6 +13,7 @@
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
+import { Rank } from "../domain/rank.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { withinPlatformCentre } from "./platforms.mjs";
 import { stanceOf } from "./stance.mjs";
@@ -149,6 +150,33 @@ export function consumeItem(item, unit) {
  * reason: an unrecognised kind refuses, which makes the ability compile, load
  * and never work.
  */
+/**
+ * The highest Rank this Unit holds in an ability CATEGORY, or `null`.
+ *
+ * A category rather than a slug, because more than one document can be the same
+ * thing: `divinity` is the shared class skill eleven Servants carry AND
+ * Kingprotea's *Goddess's Divine Core*, which is categorised as one. Asking for
+ * the slug would find the first and miss the second.
+ *
+ * `categorizedWhile` is honoured the same way `hasCategory` honours it: a
+ * conditional categorisation counts only while its gate holds.
+ *
+ * @param {object} unit a Unit projection
+ * @param {string} category
+ * @returns {Rank|null}
+ */
+export function categoryRankOf(unit, category) {
+  let best = null;
+  for (const ability of unit?.abilities ?? []) {
+    if (!(ability.categorizedAs ?? []).includes(category)) continue;
+    const gate = ability.categorizedWhile ?? [];
+    if (gate.length > 0 && !gate.some((id) => (unit?.effects ?? []).includes(id))) continue;
+    const rank = ability.rank instanceof Rank ? ability.rank : Rank.parseOrNull(ability.rank ?? null);
+    if (rank && (!best || Rank.compare(rank, best) > 0)) best = rank;
+  }
+  return best;
+}
+
 export const REQUIREMENT_KINDS = Object.freeze([
   "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill",
   "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",

@@ -7,6 +7,12 @@ source: passive
 parameterized: [rank]
 rank: "@rank"
 description: "All damage dealt is increased by the table value, including NP."
+# Categorised as what it is. `hasCategory(unit, "divinity")` and Achilles's
+# *Andreias Amarantos* both ask "does this Unit have Divinity, and at what
+# Rank" -- and this document, the one eleven Servants carry, answered no.
+# Kingprotea's *Goddess's Divine Core* has said `categorizedAs: [divinity]`
+# since it was written, so the exception was categorised and the rule was not.
+categorizedAs: [divinity]
 passiveRules:
   - key: FlatDamage
     table: divinity
