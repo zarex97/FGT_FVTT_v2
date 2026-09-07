@@ -1,0 +1,46 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+# Discussed: docs/44-case-expanded-roster.md §44.2
+#
+# The second of his two purely passive Noble Phantasms, and the one that makes
+# Divinity a targeting consideration for the whole roster:
+#
+#   1. Unit without Divinity: receives 0 damage
+#   2. Unit with E-Rank Divinity: all Total Damage received is halved
+#   3. Unit with D-Rank Divinity: all Total Damage received is reduced by 25%
+#   4. Unit with C-Rank Divinity and above: receives normal damage
+#
+# Total immunity as the DEFAULT case is the point rather than an oversight:
+# against the ten Divinity-bearing Servants in the roster he is merely tough,
+# and against everyone else he cannot be hurt at all. Achilles' Heel is the
+# counter-play, and the only route through it.
+schema: 1
+id: achilles-andreias-amarantos
+name: "Andreias Amarantos: Amaranth of the Brave"
+isNP: true
+rank: B
+npTags: [antiUnitSelf]
+kind: noblePhantasm
+slug: andreiasAmarantos
+passive: true
+description: |
+  (Passive/Non-damaging) Heroism's Eternal Man. All damage received is reduced as follows-
+  1. Unit without @ability[divinity]{Divinity}: Receives 0 damage
+  2. Unit with E-Rank Divinity: All Total Damage received is reduced by 50% (halved).
+  3. Unit with D-Rank Divinity: All Total Damage received is reduced by 25%.
+  4. Unit with C-Rank Divinity and above: Receives normal damage.
+  The effect of Andreias Amarantos is lost if Achilles' Heel is damaged (see below).
+passiveRules:
+  # `andreiasAmarantosByAttackerDivinity` has been in `domain/tables.mjs` since
+  # the tables were transcribed, written for this ability by name, and read by
+  # nothing. So had the `AttackerPropertyTier` element -- the third time in
+  # three Servants that the vocabulary preceded its reader.
+  #
+  # The table returns the PERCENTAGE that gets through (0 / 50 / 75 / 100), not
+  # the reduction, so its `default` of 0 is the "no Divinity at all" case.
+  #
+  # Suppressed by `heelWounded`, which is authored from that effect's side: the
+  # wound is what rewrites his abilities, and keeping the rewrite there means
+  # this document says only what the ability does.
+  - key: AttackerPropertyTier
+    property: divinity
+    table: andreiasAmarantosByAttackerDivinity

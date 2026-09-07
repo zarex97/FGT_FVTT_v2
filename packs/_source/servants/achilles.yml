@@ -72,6 +72,7 @@ abilities:
   # Shared with Heracles, minus the two Mad Enhancement clauses that are his.
   - { ref: class-bravery, rank: "A+", cooldown: "4◈-⅓◈" }
   - { ref: achilles-affections-of-the-goddess }
+  - { ref: achilles-andreias-amarantos }
   - { ref: achilles-dromeus-kometes }
   - { ref: achilles-runner-comet }
 

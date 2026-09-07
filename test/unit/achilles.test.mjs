@@ -19,6 +19,8 @@ import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { meetsRequirements } from "../../module/rules/items.mjs";
 import { checkPlan, evade } from "../../module/rules/checks.mjs";
+import { categoryRankOf } from "../../module/rules/items.mjs";
+import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 
 /** @param {string} dir @param {string} id @returns {object} */
 const doc = (dir, id) => parse(readFileSync(join("packs/_source", dir, `${id}.yml`), "utf8"));
@@ -249,5 +251,67 @@ describe("Runner Comet", () => {
       { id: "nAtkUp", magnitude: 30, duration: "this turn" },
       { id: "critDmUp", magnitude: 30, duration: "this turn" },
     ]);
+  });
+});
+
+/* ========================================================================== */
+/*  Andreias Amarantos                                                        */
+/* ========================================================================== */
+
+describe("Andreias Amarantos", () => {
+  const np = ability("achilles-andreias-amarantos");
+
+  it("reads the table that was written for it and never read", () => {
+    const rule = np.passiveRules[0];
+    expect(rule).toEqual({
+      key: "AttackerPropertyTier",
+      property: "divinity",
+      table: "andreiasAmarantosByAttackerDivinity",
+    });
+  });
+
+  it("returns the percentage that gets through, not the reduction", () => {
+    const at = (r) => lookup("andreiasAmarantosByAttackerDivinity", r === null ? null : Rank.parse(r));
+    expect(at(null)).toBe(0);   // no Divinity at all: nothing gets through
+    expect(at("E")).toBe(50);   // "reduced by 50% (halved)"
+    expect(at("D")).toBe(75);   // "reduced by 25%"
+    expect(at("C")).toBe(100);  // "receives normal damage"
+    expect(at("A")).toBe(100);
+    expect(at("EX")).toBe(100);
+  });
+
+  it("finds Divinity through the category, so a Divine Core counts too", () => {
+    const shared = { abilities: [{ slug: "divinity", categorizedAs: ["divinity"], rank: "C" }] };
+    const core = { abilities: [{ slug: "goddessesDivineCore", categorizedAs: ["divinity"], rank: "A" }] };
+    expect(categoryRankOf(shared, "divinity").toString()).toBe("C");
+    expect(categoryRankOf(core, "divinity").toString()).toBe("A");
+    expect(categoryRankOf({ abilities: [] }, "divinity")).toBe(null);
+  });
+
+  it("scales the whole Total Damage by the attacker's tier", () => {
+    const defender = {
+      id: "achilles",
+      modifiers: [{
+        key: "attackerPropertyTier", property: "divinity",
+        table: "andreiasAmarantosByAttackerDivinity", source: "Andreias Amarantos",
+      }],
+    };
+    /** @param {string|null} rank the ATTACKER's Divinity */
+    const dealt = (rank) => computeDamage({
+      attacker: {
+        id: "foe",
+        baseAttack: { str: 1000, mag: 1000 },
+        abilities: rank ? [{ slug: "divinity", categorizedAs: ["divinity"], rank }] : [],
+      },
+      defender,
+      base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+      component: "str",
+      rolls: { attackMinus: 0 },
+    }).total;
+
+    expect(dealt(null)).toBe(0);
+    expect(dealt("E")).toBe(500);
+    expect(dealt("D")).toBe(750);
+    expect(dealt("C")).toBe(1000);
   });
 });

@@ -22,7 +22,8 @@
  */
 
 import { Rank } from "../../domain/rank.mjs";
-import { lookupNumber } from "../../domain/tables.mjs";
+import { lookupNumber, lookup } from "../../domain/tables.mjs";
+import { categoryRankOf } from "../items.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 
 /** Block's base percentage. A constant, not a dice entry (Ch. 41 Q1). */
@@ -565,6 +566,25 @@ function stage15TotalDamageModifiers(s) {
     s.scale(m.factor);
     s.contribute(m.key ?? "totalDamage", m.factor, m.source);
   }
+
+  // A defence whose magnitude is the ATTACKER's property (Ch. 44 §44.2).
+  // *Andreias Amarantos* is the only one: what it reads is the attacker's
+  // Divinity Rank, and the table it reads it through returns the PERCENTAGE of
+  // damage that gets through — 0 for an attacker with no Divinity at all.
+  //
+  // Here rather than at stage 4 because the sheet says *"all TOTAL Damage
+  // received is reduced"*, and because a factor of zero at stage 4 would be
+  // undone by every flat bonus that follows it.
+  for (const tier of activeMods(s, s.ctx.defender, new Set(["attackerPropertyTier"]))) {
+    const category = tier.property ?? "divinity";
+    const rank = categoryRankOf(s.ctx.attacker, category);
+    const percent = lookup(tier.table, rank);
+    if (typeof percent !== "number" || percent === 100) continue;
+    s.scale(percent / 100);
+    const against = `${tier.source} vs ${rank ? rank.toString() : "no"} ${category}`;
+    s.contribute("attackerPropertyTier", percent / 100, against, "defender");
+  }
+
   s.end(15);
 }
 
