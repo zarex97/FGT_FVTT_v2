@@ -585,6 +585,7 @@
   "FGT.Ability.Refused.noAliveSummon": "Its summon is still alive.",
   "FGT.Ability.Refused.roundPhase": "Wrong phase of the Round.",
   "FGT.Ability.Refused.fieldOpen": "Requires its bounded field to be open.",
+  "FGT.Ability.Refused.stance": "Not in this stance.",
   "FGT.Ability.Refused.predicate": "Its conditions are not met right now.",
   "FGT.Ability.Refused.itemAtLeast": "Not enough of the item it spends.",
   "FGT.Ability.Refused.withinPlatformCentre": "Must be on its Platform's centre.",

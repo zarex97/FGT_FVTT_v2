@@ -1,0 +1,40 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+#
+# Three clauses, one Turn, one cooldown. The plainest ability on a sheet that is
+# otherwise all gating -- and the only one of his actives that works in either
+# stance, which is why it carries no `requirements` at all.
+schema: 1
+id: achilles-affections-of-the-goddess
+name: "Affections of the Goddess"
+rank: EX
+kind: skill
+slug: affectionsOfTheGoddess
+cooldown: "4◈"
+timing: { window: ownTurn }
+# Applying three buffs to himself deals no damage, so this is not an Attack
+# Skill and must not spend his Attack for the Turn (§15.1).
+countsAsAttack: false
+copyable: { allowed: false, reason: rankEX }
+description: |
+  (Active) Used during your Turn. Applies the following effects on Achilles-
+  1. Applies @effect[defUp]{Def Up} for 1◈ Turns, all damage received is reduced by 50%; if NP, 25%.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 20%; if NP, 10%.
+  3. Applies @effect[debuffResUp]{Debuff ResUp} for 1◈ Turns, chance of being inflicted by debuffs is
+  reduced by 50%.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  # `includeSelf: true` is what makes a self-cast resolve against himself rather
+  # than against nobody: `resolveTargets` drops the caster from its own target
+  # list otherwise.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: defUp, magnitude: 50, npMagnitude: 25, duration: "1◈" }
+      - { id: atkUp, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+      # No `npMagnitude`: a debuff-resistance figure has no NP half, because
+      # what it resists is an application rather than damage.
+      - { id: debuffResUp, magnitude: 50, duration: "1◈" }

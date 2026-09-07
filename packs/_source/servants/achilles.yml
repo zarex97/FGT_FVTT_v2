@@ -1,0 +1,97 @@
+# packs/_source/servants/achilles.yml
+# Conversion source: char_orig_sheets/Copia de Achilles.md
+# Discussed: docs/44-case-expanded-roster.md §44.1–44.3, docs/D-servant-data-sheets.md §D.23
+#
+# The reference set's acceptance test for GATING. Karna is the benchmark for the
+# predicate machinery and Kingprotea for stack economies; almost every clause on
+# Achilles's sheet is switched on or off by a stance he declares each time he
+# acts, and the five Noble Phantasms -- three of them non-damaging and two
+# purely passive, both corpus records -- are mostly conditions rather than
+# damage.
+schema: 1
+id: achilles
+name: Achilles
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Achilles
+servantClasses: [rider]
+classContainer: rider
+alignment: { order: lawful, morality: neutral }
+region: [greece]
+# Nothing withheld and nothing implied beyond the closure's own rules
+# (Ch. 02 §2.10): `Servant => Spirit` and `Servant => Hominidae` both hold, so
+# neither is authored here.
+attributes: [male, servant, earth, humanoid]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: "B+", end: A, agi: "A+", mag: C, luc: D }
+# STR B+ => 135, MAG C => 150, END A => 1500. All three straight off
+# `domain/tables.mjs`. BA(MAG) exceeding BA(STR) is unusual and is NOT a
+# transcription slip -- the tables give it, and nothing on his sheet draws on
+# BA(MAG) anyway. Recorded so a later reader does not "fix" it.
+baseHealth: 1500
+# "MOV: 7 (Dismounted); 8 (Mounted)". Authored as the dismounted number with a
+# `+1 while Mounted` contribution rather than as two statlines, so that
+# everything else which moves MOV -- Riding's Active, the Heel's penalty --
+# composes with it instead of racing it.
+mov: 7
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 135, mag: 150 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# ─── The stance (Ch. 44 §44.1) ─────────────────────────────────────────
+#
+#   "When Achilles Acts, the player must state whether he is Mounted, or
+#    Dismounted. Achilles is always Dismounted when it is not his Turn. If
+#    Mounted at the start of a Combat Phase, Achilles can Dismount at the start
+#    of the Combat Phase; but he cannot Mount his chariot when he initiates
+#    Combat while Dismounted."
+#
+# Three sentences and three different kinds of rule: a declaration, a forced
+# default, and one asymmetric transition. There is deliberately no
+# mounted-entry transition -- his sheet offers none, and the absence is the
+# rule rather than an omission.
+stance:
+  states: [mounted, dismounted]
+  default: dismounted
+  forcedOutsideOwnTurn: dismounted
+  transitions:
+    - { from: mounted, to: dismounted, at: combatPhaseStart }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # Riding A+, gated on the stance except for Double Move. `3◈-⅓◈` is passed
+  # explicitly the same way Medusa's A+ passes hers: `ridingCooldown` is banded
+  # and does not itself apply the `+`.
+  - { ref: class-riding-achilles, rank: "A+", cooldown: "3◈-⅓◈" }
+  - { ref: class-magic-resistance, rank: C }
+  - { ref: divinity, rank: C }
+  - { ref: class-battle-continuation, rank: A }
+  # Shared with Heracles, minus the two Mad Enhancement clauses that are his.
+  - { ref: class-bravery, rank: "A+", cooldown: "4◈-⅓◈" }
+  - { ref: achilles-affections-of-the-goddess }
+
+# "MOV: 7 (Dismounted); 8 (Mounted)" -- the second number, as a contribution.
+passiveRules:
+  - key: MovDelta
+    value: 1
+    isBuff: false
+    predicate: ["self:stance:mounted"]
+
+notes: |
+  The fifteenth Servant, and §D.23's *"benchmark for the ability model's gating machinery"*.
+
+  **The stance is the spine.** Riding's Attack and Passenger Seat, *Troias Tragōidia* and its
+  Master upkeep are Mounted; *Dromeus Komētēs*, *Runner Comet*, *Akhilleus Kosmos*, the duel and
+  Achilles' Heel are Dismounted. He is forced Dismounted the moment his Turn ends, so he always
+  defends on foot — which is what makes the Heel a threat rather than a curiosity.
+
+  **Five Noble Phantasms**, tying Nursery Rhyme and EMIYA for the corpus record. *Andreias
+  Amarantos* and *Dromeus Komētēs* are purely passive; *Diatrekhōn Astēr Lonkhē* and *Akhilleus
+  Kosmos* deal no damage; only *Troias Tragōidia* is an attack.
+
+  **Andreias Amarantos makes Divinity a targeting consideration.** Against an attacker with no
+  Divinity he takes nothing at all, and against the ten Divinity-bearing Servants in the roster
+  he is merely tough. Achilles' Heel is the counter-play, and the only route through it.

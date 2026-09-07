@@ -1,0 +1,49 @@
+# docs/B-rank-tables.md §B.3
+#
+# Shared, the same way `class-riding` is shared: Heracles and Achilles both
+# carry Bravery at A+ with identical numbers, and Heracles's sheet adds two
+# clauses that are his alone -- *"cannot be used and has no effects when Mad
+# Enhancement is Active"*. Those live on `abilities/heracles-bravery.yml`, which
+# stays; this is the skill without them.
+#
+# The magnitudes are stated rather than tabled because no Bravery in either
+# roster is at any other rank. If a second one ever appears at B, this gains a
+# `braveryOffence` table and the numbers move there.
+schema: 1
+id: class-bravery
+name: "Bravery"
+source: class
+slug: bravery
+kind: skill
+parameterized: [rank]
+rank: "@rank"
+cooldown: "@cooldown"
+description: |
+  (Passive) Chance of being inflicted with Mental Debuffs is reduced by 50%.
+  (Active) Used during your Turn. Applies @effect[atkUpStr]{Atk Up (STR)} for 1◈ Turns, STR damage
+  dealt is increased by 25%; if NP, 15%.
+# A self-buff deals no damage, so it is not an Attack Skill and must not spend
+# the Unit's Attack for the Turn (§15.1).
+countsAsAttack: false
+timing: { window: ownTurn }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+passiveRules:
+  # `volatility: mental` is Appendix A's own classification rather than a list
+  # of ids, so a mental debuff written after this file is covered without it
+  # changing -- the same reading Heracles's copy makes.
+  - key: ApplicationChance
+    direction: incoming
+    volatility: mental
+    value: -50
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      # Atk Up (STR), not Atk Up. "STR damage dealt" is explicit, and a blanket
+      # Atk Up would buff the MAG half of a combined attack the sheet does not
+      # touch. Achilles's own BA(MAG) is higher than his BA(STR), which makes
+      # the distinction load-bearing for him in a way it never was for Heracles.
+      - { id: atkUpStr, magnitude: 25, npMagnitude: 15, duration: "1◈" }

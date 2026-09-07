@@ -322,6 +322,11 @@ describe("meetsRequirement", () => {
       // gated on the area standing rather than granted and revoked as the
       // field comes and goes -- there is then nothing to forget to take away.
       "fieldOpen",
+      // "Can only be used when Unmounted" -- Achilles, and four of his
+      // abilities say it. A requirement rather than a predicate on each of
+      // their rules: a predicate would let the ability be pressed and then
+      // quietly do nothing, and his sheet refuses the press.
+      "stance",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });
