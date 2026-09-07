@@ -28,7 +28,7 @@ description: |
   2. Unit with E-Rank Divinity: All Total Damage received is reduced by 50% (halved).
   3. Unit with D-Rank Divinity: All Total Damage received is reduced by 25%.
   4. Unit with C-Rank Divinity and above: Receives normal damage.
-  The effect of Andreias Amarantos is lost if Achilles' Heel is damaged (see below).
+  The effect of Andreias Amarantos is lost if @ability[achilles-heel]{Achilles' Heel} is damaged.
 passiveRules:
   # `andreiasAmarantosByAttackerDivinity` has been in `domain/tables.mjs` since
   # the tables were transcribed, written for this ability by name, and read by
@@ -44,3 +44,8 @@ passiveRules:
   - key: AttackerPropertyTier
     property: divinity
     table: andreiasAmarantosByAttackerDivinity
+    # "The effect of Andreias Amarantos is lost if Achilles' Heel is damaged."
+    # Said here rather than as a suppression list on the wound, so a reader who
+    # opens this document finds out that it can stop working. Same shape as
+    # Heracles's Bravery and its Mad Enhancement clause.
+    predicate: [{ not: "self:effect:heelWounded" }]

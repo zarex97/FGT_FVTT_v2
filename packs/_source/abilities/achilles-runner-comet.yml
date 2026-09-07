@@ -39,14 +39,23 @@ phases:
     target: self
     changes:
       - { key: agility, delta: 3 }
+  # Two phases, one predicate apart. "The magnitude of Runner Comet is reduced
+  # to 10% for both buffs" once his Heel is damaged -- a magnitude that depends
+  # on a condition, which `phase.predicate` already expresses. A single phase
+  # with a scaled magnitude would need a per-effect conditional the effect spec
+  # does not have, and a second document would be a copy nobody updates.
+  #
+  # "for that Turn" is `this turn`: it expires at the end of the Turn it was
+  # used in rather than surviving into the next (Ch. 07 §7.5).
   - kind: applyEffects
     target: self
+    predicate: [{ not: "self:effect:heelWounded" }]
     effects:
-      # "for that Turn", which is `this turn` -- expiring at the end of the
-      # Turn it was used in rather than surviving into the next (Ch. 07 §7.5).
-      #
-      # Both magnitudes are 30 here and 10 once his Heel has been damaged; the
-      # reduction is authored on `heel-wounded.yml`'s side as a predicate pair
-      # rather than as a second copy of this document.
       - { id: nAtkUp, magnitude: 30, duration: "this turn" }
       - { id: critDmUp, magnitude: 30, duration: "this turn" }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:effect:heelWounded"]
+    effects:
+      - { id: nAtkUp, magnitude: 10, duration: "this turn" }
+      - { id: critDmUp, magnitude: 10, duration: "this turn" }
