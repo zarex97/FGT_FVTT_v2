@@ -1,0 +1,41 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+#
+# A Noble Phantasm that is purely passive and deals nothing — one of two on his
+# sheet, which is a corpus record. It is also the reason his Riding leaves
+# Double Move ungated: the clause is granted twice, once by each, so Sealing
+# either one leaves him with it.
+schema: 1
+id: achilles-dromeus-kometes
+name: "Dromeus Komētēs: Comet Form"
+isNP: true
+rank: "A+"
+npTags: [antiUnitSelf]
+kind: noblePhantasm
+slug: dromeusKometes
+passive: true
+description: |
+  (Passive) @ability[achilles-runner-comet]{Runner Comet}. Is only in effect when Unmounted. Has the following effects-
+  1. Has the effects of Passive 1 of @ability[class-riding-achilles]{Riding} (Double Move).
+  2. The value of @effect[evade]{Evade} rolls are reduced by 4.
+passiveRules:
+  # Clause 1. Granted rather than referenced: his Riding grants Double Move too,
+  # and a grant collected twice is still one grant -- so Skill Seal on either
+  # document leaves the other's standing, which is what "has the effects of
+  # Passive 1" means when the two abilities are separately sealable.
+  - key: GrantedAbility
+    abilities: [doubleMove]
+    predicate: ["self:stance:dismounted"]
+
+  # Clause 2. A `CheckModifier` and not a new element: `rules/checks.mjs`
+  # already folds numeric modifiers into an Evade through `checkPlan`, which is
+  # how Jack's Mist raises the value of everyone else's. This is the same field
+  # on his own side -- `direction: outgoing` is the roller's own roll, where
+  # `imposed` is a table forced on somebody else's.
+  #
+  # NEGATIVE, because "the value of Evade rolls are REDUCED" and a lower roll
+  # is a better one: the check succeeds when the roll comes in under Agility.
+  - key: CheckModifier
+    check: evade
+    direction: outgoing
+    value: -4
+    predicate: ["self:stance:dismounted"]

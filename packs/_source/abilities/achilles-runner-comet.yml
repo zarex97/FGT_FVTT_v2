@@ -1,0 +1,52 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+#
+# The only ability in either roster refused by BOTH a Skill Seal and an NP Seal.
+# That reads like a contradiction in the vocabulary -- a Skill is not a Noble
+# Phantasm -- until you notice it is the Active half of `Dromeus Komētēs`, which
+# is one. His sheet lists it separately and gates it on both, so both are here.
+schema: 1
+id: achilles-runner-comet
+name: "Runner Comet"
+rank: "A+"
+kind: skill
+slug: runnerComet
+cooldown: "3◈-⅓◈"
+# "at the start of a Combat Phase" -- not his Turn. `combatPhaseStart` is the
+# same window `Riding`'s dismount transition uses, and the only other thing in
+# the corpus that opens there.
+timing: { window: combatPhaseStart }
+countsAsAttack: false
+description: |
+  (Active) Can only be used when Unmounted and at the start of a Combat Phase. Restore 3 Agility,
+  then applies @effect[nAtkUp]{N.Atk Up} for that Turn, Normal Attack damage dealt is increased
+  by 30%; and @effect[critDmUp]{Crit DmUp} for that Turn, Crit Damage dealt is increased by 30%.
+  Cannot be used if Achilles is affected by @effect[skillSeal]{Skill Seal} or
+  @effect[npSeal]{NP Seal}. Cooldown: 3◈-⅓◈ Turns.
+requirements:
+  - { kind: stance, stance: dismounted }
+  # Both Seals, because his sheet names both. `notHasEffect` refuses the press
+  # rather than letting it be pressed and do nothing.
+  - { kind: notHasEffect, effectId: skillSeal }
+  - { kind: notHasEffect, effectId: npSeal }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # The Agility first, and the buffs after: the restore is not conditional on
+  # them and the sheet's "then" puts them second.
+  - kind: resource
+    target: self
+    changes:
+      - { key: agility, delta: 3 }
+  - kind: applyEffects
+    target: self
+    effects:
+      # "for that Turn", which is `this turn` -- expiring at the end of the
+      # Turn it was used in rather than surviving into the next (Ch. 07 §7.5).
+      #
+      # Both magnitudes are 30 here and 10 once his Heel has been damaged; the
+      # reduction is authored on `heel-wounded.yml`'s side as a predicate pair
+      # rather than as a second copy of this document.
+      - { id: nAtkUp, magnitude: 30, duration: "this turn" }
+      - { id: critDmUp, magnitude: 30, duration: "this turn" }
