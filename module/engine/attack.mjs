@@ -43,7 +43,7 @@ import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
-import { offerWeakPoint, resolveWeakPoint } from "./weak-point.mjs";
+import { offerWeakPoint, resolveWeakPoint, weakPointIntents } from "./weak-point.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
@@ -1514,6 +1514,11 @@ async function runAutomaticStep(state, message) {
       // outcomes are terminal for the attack, which is what makes declaring it
       // a gamble rather than a free extra.
       const out = await resolveWeakPoint(state, { board: boardSnapshot() });
+      // The permanent mark, before the damage it accompanies: `heelWounded`
+      // takes Andreias Amarantos away, and the attack that struck the Heel
+      // should not still be measured against it.
+      const marks = weakPointIntents(state, out.onSuccess);
+      if (marks.length > 0) await applyBatch(marks, "weakPoint");
       const next = process.advance(state, out.event, out.detail);
       // A successful Heel Attack goes through every defence he has. The flag
       // travels on the attack, so the pipeline reads it the same way it reads
