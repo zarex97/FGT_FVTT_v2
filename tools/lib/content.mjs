@@ -1446,6 +1446,10 @@ function itemSystem(doc) {
     // and her sheet then lists five other skills that count as Instinct --
     // a list that lives on the sheets asserting it, not in code.
     categorizedAs: doc.categorizedAs ?? [],
+    // A weak point (Ch. 44 §44.2). Compiled whole: `rules/weak-point.mjs` is
+    // its only reader and the schema lives there, in prose, beside the clause
+    // it came from.
+    weakPoint: doc.weakPoint ?? null,
     // "Eye of the Mind (only when Active/its buffs are in effect)": the effect
     // ids whose presence makes the tag above count.
     categorizedWhile: doc.categorizedWhile ?? [],

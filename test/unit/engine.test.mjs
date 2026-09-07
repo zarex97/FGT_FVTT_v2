@@ -481,6 +481,40 @@ describe("the transition table has no dead ends", () => {
 const sctx = { tick: 10, round: 4, turnsPerRound: 3, activeFactionId: "a" };
 const board = (units) => ({ units });
 
+describe("the weak-point rung", () => {
+  const declared = (over = {}) => ({
+    state: "react", attackerId: "foe", defenderId: "achilles",
+    attack: {}, history: [], heel: { declared: true, chance: 15 }, ...over,
+  });
+
+  it("redirects into the rung from whatever rung would have dealt the damage", () => {
+    // Five edges into `damage`, and the Heel replaces all of them equally.
+    expect(advance(declared(), "nothing").state).toBe("heelResolve");
+    expect(advance(declared({ state: "s23_acceptOrEscape" }), "accept").state).toBe("heelResolve");
+  });
+
+  it("leaves an undeclared attack alone", () => {
+    expect(advance({ ...declared(), heel: null }, "nothing").state).toBe("damage");
+  });
+
+  it("deals the damage on a success, and only once", () => {
+    const hit = advance(advance(declared(), "nothing"), "success");
+    expect(hit.state).toBe("damage");
+    expect(hit.heel).toMatchObject({ resolved: true, succeeded: true });
+    // The redirect must not fire again on the way out.
+    expect(advance(hit, "done").state).toBe("injury");
+  });
+
+  it("turns a failure into an Evade, which is the clause's whole point", () => {
+    // "If the AU's Heel Attack fails, Achilles successfully Evades the Attack"
+    // — the only place in the game where losing a roll beats not rolling.
+    const missed = advance(advance(declared(), "nothing"), "fail");
+    expect(missed.state).toBe("noDamage");
+    expect(missed.evaded).toBe(true);
+    expect(missed.heel).toMatchObject({ resolved: true, succeeded: false });
+  });
+});
+
 describe("endTurn ordering", () => {
   it("ticks a periodic before expiring it, so the last tick still lands", () => {
     const u = {

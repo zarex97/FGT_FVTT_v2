@@ -25,6 +25,7 @@ export const STATES = Object.freeze([
   "declare", "react", "evadeRoll",
   "s21_luckyHit", "s22_duContest", "s23_acceptOrEscape",
   "s24_luckyEvasion", "s25_auContest",
+  "heelResolve",
   "damage", "noDamage", "injury", "facing", "counter", "done",
 ]);
 
@@ -63,6 +64,20 @@ export const TRANSITIONS = Object.freeze({
   "s23_acceptOrEscape:accept": "damage",
   "s23_acceptOrEscape:cs": "noDamage",
 
+  // The weak-point rung (Ch. 44 §44.2). It is not reached by an event of its
+  // own: `advance` redirects into it from whatever would have gone to `damage`,
+  // because a declared Heel Attack resolves IN PLACE OF the damage rather than
+  // beside it. Both outcomes are terminal for the attack —
+  //
+  //   "If the AU's Heel Attack fails, Achilles successfully Evades the Attack.
+  //    If the AU's Heel Attack succeeded, Achilles receives damage that ignores
+  //    all Defensive Buffs and damage reducing effects."
+  //
+  // — which is the only place in the game where LOSING a roll is better for the
+  // roller than never having rolled it.
+  "heelResolve:success": "damage",
+  "heelResolve:fail": "noDamage",
+
   "damage:done": "injury",
   "injury:done": "facing",
   "noDamage:done": "facing",
@@ -85,6 +100,7 @@ export const PROMPTS = Object.freeze({
   s24_luckyEvasion: { side: "defender", kind: "luckCheck", check: "luckyEvasion", cost: 1 },
   s25_auContest: { side: "attacker", kind: "luckCheck", check: "counterContest", cost: 1 },
   counter: { side: "defender", kind: "counter", options: ["counter", "declined"] },
+  heelResolve: { side: "attacker", kind: "weakPoint", options: ["success", "fail"] },
 });
 
 /**
@@ -223,7 +239,20 @@ export function advance(s, event, detail = undefined) {
   }
 
   const key = `${s.state}:${normalized}`;
-  const next = TRANSITIONS[key];
+  let next = TRANSITIONS[key];
+
+  // A declared weak-point attack resolves in place of the damage it would
+  // otherwise have dealt, whichever rung the ladder ended on. Routed here
+  // rather than as a transition of its own because the ladder has FIVE edges
+  // into `damage` — an accepted hit, a declined Luck Check, a Block, taking
+  // nothing — and the Heel replaces all of them equally.
+  //
+  // Guarded on the SOURCE state, not on `heel.resolved`: the flag is written
+  // into the outgoing state below, so at this point leaving `heelResolve` still
+  // reads as unresolved and the rung would redirect into itself for ever.
+  if (next === "damage" && s.state !== "heelResolve" && s.heel?.declared && !s.heel?.resolved) {
+    next = "heelResolve";
+  }
   if (!next) {
     throw new RangeError(
       `FGT | Illegal Combat Process transition "${key}". ` +
@@ -241,6 +270,12 @@ export function advance(s, event, detail = undefined) {
   if (detail?.rollRecord) out.rolls = appendRoll(s.rolls ?? [], detail.rollRecord);
   if (s.state === "react") out.reaction = event;
   if (s.state === "evadeRoll") out.evaded = event === "success";
+  if (s.state === "heelResolve") {
+    out.heel = { ...s.heel, resolved: true, succeeded: normalized === "success" };
+    // A failed Heel Attack is an Evade, and says so: the card, the log and the
+    // counter rung all read `evaded` rather than re-deriving it.
+    if (normalized === "fail") out.evaded = true;
+  }
   return out;
 }
 

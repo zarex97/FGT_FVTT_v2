@@ -43,6 +43,7 @@ import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
+import { offerWeakPoint, resolveWeakPoint } from "./weak-point.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
@@ -590,7 +591,12 @@ async function declareProcesses({
         ])],
       }
       : state;
-    const advanced = process.advance(withReactions, "done");
+    // A weak point the attacker may aim at (Ch. 44 §44.2). Offered here, at
+    // declaration, because the sheet says the attacker states it "during its
+    // Attack" -- and because what it forbids (a Block) has to be settled before
+    // the defender is shown their rung.
+    const aimed = await offerWeakPoint(withReactions, { board });
+    const advanced = process.advance(aimed, "done");
     const target = targets.units.find((t) => t.unitId === advanced.defenderId);
     const message = await renderAttackCard({
       state: advanced,
@@ -1503,6 +1509,19 @@ async function fireCombatPhaseEnd(state) {
  */
 async function runAutomaticStep(state, message) {
   switch (state.state) {
+    case "heelResolve": {
+      // The declared weak-point attack, rolled in place of the damage. Both
+      // outcomes are terminal for the attack, which is what makes declaring it
+      // a gamble rather than a free extra.
+      const out = await resolveWeakPoint(state, { board: boardSnapshot() });
+      const next = process.advance(state, out.event, out.detail);
+      // A successful Heel Attack goes through every defence he has. The flag
+      // travels on the attack, so the pipeline reads it the same way it reads
+      // `pierce` (`rules/damage/pipeline.mjs#bypassesDefence`).
+      return out.event === "success"
+        ? { ...next, attack: { ...next.attack, ignoresDefensiveBuffs: true } }
+        : next;
+    }
     case "damage": {
       // "Used at the start of a Damage Step when performing an Attack" -- the
       // attacker's own window, asked before anything is computed, because what

@@ -262,6 +262,10 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // effect ids whose presence makes the tag above count.
       categorizedWhile: new fields.SetField(new fields.StringField({ blank: false })),
 
+      // A weak point the ATTACKER may aim at (Ch. 44 §44.2). Achilles' Heel is
+      // the only one; `rules/weak-point.mjs` holds the schema in prose.
+      weakPoint: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
       // Effect-definition fields. Present only on documents in the effects
       // pack; null elsewhere.
       polarity: new fields.StringField({ required: false, nullable: true, initial: null }),
@@ -370,6 +374,10 @@ export class NoblePhantasmData extends foundry.abstract.TypeDataModel {
       // "Eye of the Mind (only when Active/its buffs are in effect)" — the
       // effect ids whose presence makes the tag above count.
       categorizedWhile: new fields.SetField(new fields.StringField({ blank: false })),
+
+      // A weak point the ATTACKER may aim at (Ch. 44 §44.2). Achilles' Heel is
+      // the only one; `rules/weak-point.mjs` holds the schema in prose.
+      weakPoint: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       /**
        * A bounded field this Noble Phantasm creates (Ch. 43). Untyped for the
        * same reason rule elements are: ten fields are points in one six-axis
