@@ -31,6 +31,7 @@ import { annotateCompulsions } from "./compulsion.mjs";
 import { annotateControl } from "./control.mjs";
 import { tierOf } from "./master-rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
+import { closeAttributes } from "../domain/attributes.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, crossLevelRulesFor } from "./platforms.mjs";
 import { annotateFields } from "./bounded-fields.mjs";
@@ -189,7 +190,18 @@ export function snapshotUnit(actor, {
     baseAttack: { str: sys.baseAttack?.str ?? 0, mag: sys.baseAttack?.mag ?? 0 },
     // Abilities can grant attributes -- Divinity grants `divine`, which is what
     // Karna's Vasavi Shakti and Scathach's God Slayer key on.
-    attributes: [...new Set([...(sys.attributes ?? []), ...contributions.attributes])],
+    //
+    // Then CLOSED over Ch. 02 §2.10's implication table (`domain/attributes.mjs`),
+    // which had never been applied anywhere: `Servant => Spirit` unless the
+    // Servant is a Demi- or Pseudo-Servant, `Human => Humanoid, Living Human`,
+    // and the derived `Magus` that Mannanan's Sealing Designation Enforcer
+    // defines. Closed HERE rather than at authoring time so `Pseudo Servant`
+    // means something -- it is the only attribute in the game whose whole job
+    // is to withhold an implication.
+    attributes: closeAttributes(
+      [...(sys.attributes ?? []), ...contributions.attributes],
+      { kind: actor.type, servantClasses: sys.servantClasses ?? [], normalAttack: sys.normalAttack ?? null },
+    ),
     // Where the unit is from. Predicates name it -- "damage dealt to Male Units
     // from the Greece region" -- and nothing carried it before.
     region: [...(sys.region ?? [])],
@@ -208,6 +220,19 @@ export function snapshotUnit(actor, {
     // Read by `engine/attack.mjs` before the Combat Processes are built, to
     // ask whether this unit may swing first at whoever just declared on it.
     preemptions: contributions.preemptions ?? [],
+    // Adjustments to the clock of an effect being applied TO this Unit, read at
+    // step 6 of the application pipeline (`engine/effect-applier.mjs`).
+    durationExtensions: contributions.durationExtensions ?? [],
+    // Spends this Unit may be OFFERED at a timing window, rather than charged
+    // (`engine/optional-costs.mjs`).
+    optionalCosts: contributions.optionalCosts ?? [],
+    // Counters this Unit performs without being asked, and what provokes each
+    // (`engine/auto-counter.mjs`). Mannanán's `Fragarach` is the only holder.
+    autoCounters: contributions.autoCounters ?? [],
+    // Rungs of the reaction ladder something has taken away. `canCounter` had
+    // one of these as a named special case (`defenderHasFragarach`); the
+    // general list is what lets the ladder say WHICH effect refused.
+    forbiddenReactions: [...new Set(contributions.forbiddenReactions ?? [])],
     alignment: sys.alignment ?? null,
     // A Master's stored letter (Ch. 04 §4.5). `masterTier` is derived from it
     // by `annotateMasterRank`, which needs the board: a Servant's tier is its
@@ -1037,7 +1062,11 @@ export function contributionsOf(actor) {
       // `rollOptionsFor` only iterates today, so this is consistency rather
       // than a fix -- but the next reader who reaches for `.includes` should
       // not have to check.
-      attributes: [...(sys.attributes ?? [])],
+      // Closed, for the same reason the unit projection above is: a predicate
+      // naming `self:attribute:spirit` must see the same set the board does.
+      attributes: closeAttributes(sys.attributes ?? [], {
+        kind: actor.type, servantClasses: sys.servantClasses ?? [], normalAttack: sys.normalAttack ?? null,
+      }),
       effects: [...(actor.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
       region: [...(sys.region ?? [])],
       variant: sys.variant ?? null,
@@ -1057,7 +1086,38 @@ export function contributionsOf(actor) {
     defender: null,
   });
 
-  return collectContributions(abilities, { options, refs: { self: actor } });
+  return collectContributions(abilities, { options, refs: expressionRefs(actor) });
+}
+
+/**
+ * What an `@` expression resolves against (`rules/elements.mjs`).
+ *
+ * A facade rather than the raw document, so content can write
+ * `@self.resources.fragarachTokens.value` -- the form Ch. 24 §24.5 documents
+ * and the form a unit SNAPSHOT already has -- instead of threading `.system`
+ * through every path and being wrong on the projections that flatten it.
+ *
+ * Exported because the two places that resolve an authored magnitude are the
+ * contribution pass and the effect-application phase, and a second, subtly
+ * different facade in the second is how the same expression comes to mean two
+ * numbers.
+ *
+ * @param {object} actor
+ * @returns {object}
+ */
+export function expressionRefs(actor) {
+  const sys = actor?.system ?? {};
+  return {
+    self: {
+      document: actor,
+      system: sys,
+      resources: sys.resources ?? {},
+      health: sys.health ?? null,
+      agility: sys.agility ?? null,
+      luck: sys.luck ?? null,
+      parameters: sys.parameters ?? {},
+    },
+  };
 }
 
 /**

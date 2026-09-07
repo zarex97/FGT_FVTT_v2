@@ -1,0 +1,48 @@
+# Mannanán mac Lir — the `Fragarach` status.
+# docs/24-rules-engine.md §24.8, docs/33-case-mannanan.md §33.3.
+#
+# The reference set's most mechanically unusual effect, and the one that
+# justifies both `OnEvent`'s event LIST and the automatic-counter machinery:
+#
+#   1. When Mannanán is Attacked, she cannot perform a normal Counter.
+#   2. When Mannanán is Attacked OR inflicted with a debuff, at the end of the
+#      Combat Process (if Attacked), she automatically performs a Fragarach
+#      Counter on the DU.
+#   3. Fragarach Counters deal NP Damage; however they are not affected by NP Seal.
+#   4. The Fragarach buff is Unremovable.
+#
+# Clause 2's second trigger is what makes her unusual. Every other counter in
+# the game keys on damage; this one fires on `effectApplied` as well, so a pure
+# control ability -- a Stun, a Def Dwn -- provokes a 2.5× retaliation.
+schema: 1
+id: fragarach
+name: "Fragarach"
+description: |
+  Mannanán cannot perform a normal Counter. When she is Attacked or inflicted with a debuff by
+  an enemy, she automatically performs a Fragarach Counter on that Unit at the end of the
+  Combat Process. Neither a buff nor a debuff, and Unremovable.
+# Neither a buff nor a debuff: the sheet says so, and it is what keeps buff
+# removal, Debuff Immune and `No Buff` from touching it.
+polarity: status
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+# Clause 4, stated on the sheet twice.
+unremovable: true
+rules:
+  # Clause 1. `ForbidReaction` is the general form of what `canCounter` used to
+  # hard-code as `defenderHasFragarach`: she trades the option for a stronger
+  # fixed one, and the trade has to be visible at the rung rather than as a
+  # named special case inside the engine.
+  - key: ForbidReaction
+    reactions: [counter]
+
+  # Clause 2. `on:` is a SET of provocations, not one event -- being attacked
+  # and being debuffed are two firings of one trigger, and a Combat Process
+  # that does both pays exactly one counter
+  # (`engine/auto-counter.mjs` dedupes by process).
+  - key: AutoCounter
+    on: [attacked, debuffed]
+    ability: mannanan-fragarach-counter
+    source: "Fragarach"

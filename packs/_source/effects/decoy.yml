@@ -1,0 +1,35 @@
+# Appendix A §A.10, docs/10-effects-taxonomy.md §10.4 Group D6.
+#
+# > "That enemy Unit cannot Move away from the Unit with Decoy, and can only
+# > Move in its direction; and can only Attack and use enemy-Unit-affecting
+# > Skills on the Unit with Decoy; and HAS to Attack the Unit with Decoy if it
+# > is able to."
+#
+# The effect sits on the DECOY and constrains everybody else, which is the
+# inverse of every other debuff in the catalogue -- `Compulsion` describes a
+# rule the compelled unit carries, and nothing carried this one. The board pass
+# (`rules/compulsion.mjs#annotateCompulsions`) reads it off the bearer and
+# writes the compulsion onto the enemies it catches.
+schema: 1
+id: decoy
+name: "Decoy"
+description: |
+  Enemy Units within 3 panels (or their own Range, whichever is greater) cannot Move away from
+  this Unit, may only Attack and target this Unit, and must Attack it if able.
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+# "Not stacked."
+stacking: noneRefresh
+baseChance: 100
+# "Bypasses resistance when self- or ally-applied." Decoy is used DEFENSIVELY --
+# Mannanán puts it on herself to feed the Fragarach Counter, Kiritsugu's
+# Scapegoat puts it on an ally -- so the debuff machinery that exists to refuse
+# an enemy's debuff must not refuse your own side's (Ch. 10 §10.6).
+allySelfBypassesResistance: true
+rules:
+  # "Within max(3, their Range)" -- the floor is authored and the Range half is
+  # read per enemy by the board pass, because it is a different number for each
+  # of them.
+  - key: Decoy
+    radius: 3

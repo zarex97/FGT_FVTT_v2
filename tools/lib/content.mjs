@@ -55,6 +55,9 @@ export const RULE_ELEMENT_KEYS = new Set([
   "AttackFirst", "DetectOverride",
   // Group 4 — targeting contributors
   "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion", "TargetabilityModifier",
+  // Mannanán — the automatic Counter, the rung it trades away, the buff-clock
+  // extension and the spend she is OFFERED at a timing window.
+  "AutoCounter", "ForbidReaction", "DurationExtension", "OptionalCost",
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta
@@ -468,6 +471,25 @@ export function validateAll(files, assets = null) {
 
   // -- Cross-references ----------------------------------------------------
   validateReferences(files, problems, warnings);
+
+  // -- Declared forward references -----------------------------------------
+  //
+  // A clause that names a Servant nobody has authored yet is legitimate
+  // (§36.1's DECISION) and is exactly the kind of debt that goes quiet. Warned
+  // once per entry, and cleared the moment the named slug exists.
+  const slugs = new Set(
+    files.filter((f) => f.doc?.id)
+      .map((f) => f.doc.slug ?? String(f.doc.id).replace(/^class-/, "")),
+  );
+  for (const { path, doc } of files) {
+    for (const name of doc?.forwardReferences ?? []) {
+      if (slugs.has(name)) {
+        warnings.push(`${path}: forwardReferences names "${name}", which now exists — remove the declaration`);
+      } else {
+        warnings.push(`${path}: references "${name}", which no authored document provides yet (declared, inert)`);
+      }
+    }
+  }
 
   return { problems, warnings };
 }
@@ -1487,6 +1509,13 @@ function itemSystem(doc) {
     // 'Kanshou & Bakuya' is negated while 'Overedge' is on Cooldown". A
     // `negatedBy` cannot say it: a cooldown is not something anybody carries.
     negatedWhile: doc.negatedWhile ?? null,
+    // What an ability does to an incoming Noble Phantasm it cancels (§33.4).
+    cancelsNP: doc.cancelsNP ?? null,
+    // Ch. 10 §10.6: "Decoy is not affected by Debuff Resist or Immune effects
+    // when a Unit applies it on itself or on another allied Unit." An effect
+    // property rather than an application argument, because it is true of the
+    // effect wherever it comes from.
+    allySelfBypassesResistance: Boolean(doc.allySelfBypassesResistance),
     nonStacking: doc.nonStacking ?? null,
     damage: doc.damage ?? null,
     element: doc.element ?? null,

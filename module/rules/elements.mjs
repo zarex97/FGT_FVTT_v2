@@ -40,6 +40,10 @@ import { orderElements } from "./ordering.mjs";
  * @property {object[]} applicationChances  shifts to how likely an effect is to land
  * @property {object[]} compulsions       forced targets, expanded by rules/compulsion.mjs
  * @property {object[]} eventHandlers
+ * @property {object[]} autoCounters  automatic counters, by provocation
+ * @property {object[]} durationExtensions  adjustments to an incoming effect's clock
+ * @property {object[]} optionalCosts  spends this unit may OFFER at a timing window
+ * @property {string[]} forbiddenReactions  rungs this unit may not take
  * @property {string[]} attributes       attributes granted by an ability
  * @property {object|null} magicResistance
  * @property {string|null} variantOverride
@@ -67,6 +71,7 @@ export function empty() {
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], unhandled: [],
+    autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
   };
 }
 
@@ -118,7 +123,7 @@ export function collectContributions(abilities, ctx = {}) {
       // A deferred predicate travels ON the modifier instead. The damage
       // pipeline re-tests it with the full option set, which is what the
       // comment on `contributionsOf` has always claimed happened.
-      const deferred = deferredPredicate(el.predicate);
+      const deferred = deferredPredicate(el.predicate, el.defer);
       if (el.predicate && !deferred && !testPredicate(el.predicate, predicateCtx)) continue;
 
       const execute = EXECUTORS[el.key];
@@ -170,11 +175,25 @@ const DEFERRED_PREFIXES = Object.freeze([
  * the owner's options too -- and splitting would need the two halves to stay in
  * step through every executor.
  *
+ * **`defer: true` on the element forces it.** {@link DEFERRED_PREFIXES} answers
+ * "can this pass answer the clause", which is the right question for a
+ * `direction: dealt` modifier and the wrong one for a `direction: taken` one:
+ * in the damage pipeline `self:` is the **attacker**, so a defensive clause
+ * that asks about whoever is hitting its bearer -- Mannanán's *Alter Ego*,
+ * *"all damage received from Units with the 'Outsider' Attribute ... is reduced
+ * by 50%"* -- names `self:attribute:outsider` and means somebody else. Answered
+ * at collection time against the bearer's own options that reads "false" for
+ * ever, which is this codebase's signature defect and the reason the flag is
+ * explicit rather than inferred from `direction`: `direction` belongs to two
+ * elements and the deferral question belongs to all of them.
+ *
  * @param {unknown} predicate
+ * @param {boolean} [force] the element's own `defer:`
  * @returns {unknown|null}
  */
-export function deferredPredicate(predicate) {
+export function deferredPredicate(predicate, force = false) {
   if (!predicate) return null;
+  if (force) return predicate;
   const options = referencedOptions(predicate);
   const later = [...options].some((o) => DEFERRED_PREFIXES.some((p) => o.startsWith(p)));
   return later ? predicate : null;
@@ -283,24 +302,45 @@ export function resolveValue(el, rank, ctx, field = "value") {
   }
   const raw = el[field];
   if (typeof raw === "number") return raw;
-  if (typeof raw === "string" && raw.startsWith("@")) return resolveExpression(raw, ctx);
+  if (typeof raw === "string" && raw.includes("@")) return resolveExpression(raw, ctx);
   if (raw === undefined || raw === null) return null;
   return raw;
 }
 
 /**
- * Resolve an `@a.b.c` path against the context refs.
+ * A single multiplication around one `@` path: `"5 * @a.b"` or `"@a.b * 5"`.
+ *
+ * Deliberately the smallest possible grammar. Ch. 24 §24.5's own worked example
+ * is `"5 * @self.resources.fragarachTokens.value"` -- Mannanán's *"Crit Damage
+ * dealt is increased by 5% for every Fragarach Token"* -- and a per-unit scaling
+ * of one pool is every expression the corpus has ever wanted. A general
+ * arithmetic evaluator here would be an expression language nobody asked for,
+ * running on data from a shared compendium.
+ */
+const SCALED_PATH = /^\s*(?:(-?\d+(?:\.\d+)?)\s*\*\s*)?(@[\w.]+)(?:\s*\*\s*(-?\d+(?:\.\d+)?))?\s*$/;
+
+/**
+ * Resolve an `@a.b.c` path against the context refs, with an optional scalar.
  * @param {string} expr
  * @param {object} ctx
  * @returns {number|null}
  */
 function resolveExpression(expr, ctx) {
+  const match = SCALED_PATH.exec(expr);
+  // Not a shape this resolver understands. `null` rather than a throw, for the
+  // same reason a missing table entry is: content lives in a compendium and a
+  // malformed magnitude must not take the whole projection down with it.
+  if (!match) return null;
+  const [, before, path, after] = match;
+
   let cur = /** @type {any} */ (ctx?.refs ?? {});
-  for (const part of expr.slice(1).split(".")) {
+  for (const part of path.slice(1).split(".")) {
     if (cur === null || cur === undefined) return null;
     cur = cur[part];
   }
-  return typeof cur === "number" ? cur : (cur ?? null);
+  const factor = Number(before ?? after ?? 1);
+  if (typeof cur !== "number") return cur ?? null;
+  return cur * (Number.isFinite(factor) ? factor : 1);
 }
 
 /**
@@ -986,6 +1026,89 @@ export const EXECUTORS = Object.freeze({
     out.suppressions.push({ scope: "targeting", forceTarget: el.target, source });
   },
 
+  /**
+   * A Counter this Unit performs **automatically**, and what provokes it.
+   *
+   * Mannanán's `Fragarach` is the only holder in the reference set and it is
+   * the reason this is a *set* of provocations rather than an event name:
+   * *"When Mannanán is Attacked **or inflicted with a debuff** ... she
+   * automatically performs a Fragarach Counter on the DU."* Two firings of one
+   * trigger, and a Combat Process that does both owes one counter.
+   *
+   * The counter is named as an ABILITY rather than described here, because
+   * §12.8's ruling is that a Counter is a full declaration -- its own reaction
+   * ladder, its own damage pipeline, its own riders. Describing it inline would
+   * be a second, weaker damage path that no ladder reaches.
+   */
+  /**
+   * A modifier on the effect APPLICATION pipeline rather than on a stat.
+   *
+   * *"The duration of buffs are extended by ⅓◈ extra Turns when applied to
+   * Mannanán."* It slots into step 6 of Ch. 11 §11.2, adjusting the resolved
+   * tick count before the expiry is stamped — which is the only place it can
+   * go: durations are stored as ABSOLUTE expiry ticks (Ch. 07 §7.5), so an
+   * extension applied anywhere later would be arithmetic on a clock that has
+   * already started.
+   *
+   * `direction: incoming` is the only direction any content has wanted, and it
+   * is stated rather than assumed so the mirror ("effects this Unit APPLIES
+   * last longer") can be written without re-reading this comment.
+   */
+  DurationExtension(el, { rank, source, out, ctx }) {
+    out.durationExtensions.push({
+      amount: el.amount ?? null,
+      appliesTo: el.appliesTo ?? "buffs",
+      direction: el.direction ?? "incoming",
+      value: el.value !== undefined ? scalar(resolveValue(el, rank, ctx)) : null,
+      source,
+    });
+  },
+
+  /**
+   * A passive that OFFERS a spend at a timing window.
+   *
+   * *"At the start of a Combat Phase, Mannanán can remove 1 Fragarach Token
+   * from herself, her Crit Chance is increased by 30% for that Combat Phase."*
+   * Not a cost of using anything — she may be the defender — and not automatic,
+   * because holding tokens is itself worth 5% crit damage each. So it is a
+   * question, asked at a moment, that the player answers.
+   *
+   * The `then:` list is the same effect vocabulary a phase authors, applied by
+   * `engine/optional-costs.mjs` once the spend is accepted.
+   */
+  OptionalCost(el, { source, out }) {
+    out.optionalCosts.push({
+      timing: el.timing ?? "combatPhaseStart",
+      cost: el.cost ?? null,
+      effects: [...(el.effects ?? [])],
+      label: el.label ?? null,
+      source,
+    });
+  },
+
+  AutoCounter(el, { source, out }) {
+    out.autoCounters.push({
+      on: [el.on ?? "attacked"].flat(),
+      ability: el.ability ?? null,
+      source: el.source ?? source,
+    });
+  },
+
+  /**
+   * Rungs of the reaction ladder this Unit may not take.
+   *
+   * `canCounter` has refused a defender holding `fragarach` by name since the
+   * Combat Process was written, which is a rule about one effect living inside
+   * the engine. Declared here it is a property of whatever is doing the
+   * forbidding, and the ladder can say *which* effect took the option away.
+   */
+  ForbidReaction(el, { source, out }) {
+    for (const r of [el.reactions ?? el.reaction ?? []].flat()) {
+      out.forbiddenReactions.push(r);
+    }
+    out.suppressions.push({ scope: "reaction", reactions: [el.reactions ?? el.reaction ?? []].flat(), source });
+  },
+
   Decoy(el, { source, out }) {
     out.suppressions.push({ scope: "targeting", decoy: true, radius: el.radius ?? null, source });
   },
@@ -1145,6 +1268,39 @@ export const EXECUTORS = Object.freeze({
       cooldown: reviveCooldown(el, rank, ctx),
       consumesOnUse: el.consumesOnUse !== false,
       requiresHealthRestoredSince: el.requiresHealthRestoredSince ?? null,
+      // A revival the player CHOOSES rather than one that simply happens.
+      //
+      // Every other source in the corpus is automatic: Guts fires, God Hand
+      // spends a charge, Battle Continuation rolls. Mannanán's *God's Holder:
+      // Possession* is not -- it costs every Fragarach Token she holds and
+      // transforms her permanently, so a Servant with one token and a Noble
+      // Phantasm coming off cooldown may rationally prefer to die. `resolveDefeat`
+      // stays pure; the orchestrator asks and drops the source if the answer is
+      // no (`engine/attack.mjs#resolveDefeatOf`).
+      optional: el.optional === true,
+      // Whether the excess damage that killed the bearer eats into what this
+      // restores. `false` by default, which is God Hand's stated behaviour and
+      // what every source in the corpus had until Mannanán; `true` for a source
+      // that names a DESTINATION rather than an amount.
+      ignoresOverkill: el.ignoresOverkill === true,
+      // Gates beyond charges and cooldown, in the ordinary requirement
+      // vocabulary (`rules/items.mjs`). *"...and while she has at least 1
+      // Fragarach Token."*
+      requires: [...(el.requires ?? [])],
+      // What the revival TURNS HER INTO. A revival that also transforms its
+      // bearer is a fifth shape (§31.2 has four), and the transformation is a
+      // mode rather than an effect because that is what the Skills gated on
+      // Holder Mode ask about.
+      enterMode: el.enterMode ?? null,
+      // Ancillary writes the entry pays for -- *"Remove all Fragarach Counters
+      // from Mannanán"*, and the raised ceiling. In the `then:` action
+      // vocabulary the scheduler already dispatches.
+      // NORMALIZED here, where the owning ability's rank is still in scope.
+      // `dispatch` reads `action.kind`, and an action left as authored carries
+      // `key` -- so a raw list is a `then:` that logs `unhandledAction` and
+      // does nothing, which is exactly the defect `normalizeHandler` exists to
+      // have fixed once.
+      then: (el.then ?? []).map((a) => normalizeAction(a, rank, ctx)),
       // Exactly one of these. An effect-borne source is spent by consuming a
       // charge of the effect; an ability-borne one by turning its own clock.
       defId: ability?.fromEffect ? (ability.defId ?? ability.id) : null,

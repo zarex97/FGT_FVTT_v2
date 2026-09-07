@@ -61,7 +61,10 @@ export class MasterData extends foundry.abstract.TypeDataModel {
     // Master-protection rule load-bearing.
     if (this.health.max === null || this.health.max === 0) {
       this.health.max = 250;
-      if (!this.health.value) this.health.value = 250;
+      // `=== null`, not falsy: a Master at zero has been defeated, and refilling
+      // it because zero is falsy is the same defect the Servant's own
+      // derivation carried.
+      if (this.health.value === null) this.health.value = 250;
     }
   }
 }

@@ -66,8 +66,23 @@ export function applyEffect({
   const held = target.effects ?? [];
   const instances = target.effectInstances ?? [];
 
+  // Ch. 10 §10.6 / Ch. 11 §11.2: *"Decoy is not affected by Debuff Resist or
+  // Immune effects when a Unit applies it on itself or on another allied
+  // Unit."* Two effects in the corpus need it -- `Decoy` and Kiritsugu's
+  // `Decoy (Scapegoat)` -- and both are debuffs used DEFENSIVELY, which is the
+  // whole reason the exemption exists: Mannanán puts Decoy on herself to feed
+  // the Fragarach Counter, and her own Debuff Immune would otherwise refuse it.
+  //
+  // Steps 1 and 3 are the ones skipped, exactly as §11.2 says. Exclusivity
+  // (step 2) and stacking (step 5) still run: they are about what the Unit is
+  // already carrying, not about whether it wants this.
+  const friendly = Boolean(def.allySelfBypassesResistance) && (
+    source?.unitId === target.id
+    || (ctx.sourceFactionId != null && ctx.sourceFactionId === target.factionId)
+  );
+
   // ── 1. IMMUNITY GATE ─────────────────────────────────────────────────────
-  const immunity = findImmunity(def, target, held);
+  const immunity = friendly ? null : findImmunity(def, target, held);
   // Sikera Ušum clause d: "the Poison Immune effect is reduced to a Poison
   // Resist effect" -- a downgrade FROM immune TO merely resistant, not a
   // second, separate refusal. The gate still runs; it just does not block
@@ -80,7 +95,9 @@ export function applyEffect({
   trace.push({
     step: "immunity",
     outcome: "passed",
-    detail: downgrade ? `${immunity} downgraded to ${downgrade.resistPercent}% resist` : undefined,
+    detail: friendly
+      ? "self/ally application bypasses resistance"
+      : (downgrade ? `${immunity} downgraded to ${downgrade.resistPercent}% resist` : undefined),
   });
 
   // ── 2. REPLACEMENT / EXCLUSIVITY GATE ────────────────────────────────────
@@ -106,7 +123,7 @@ export function applyEffect({
   // extra Stage is "a flat 50% chance ... not affected by debuff chance
   // increasing/reducing effects", and `matched`/`declared` are themselves
   // debuff-chance modifiers the ability declares.
-  const matched = bypassChanceModifiers ? [] : (chanceModifiers ?? []).filter(
+  const matched = (bypassChanceModifiers || friendly) ? [] : (chanceModifiers ?? []).filter(
     (m) => !m.predicate || test(m.predicate, { options: ctx.options ?? new Set() }),
   );
   const declared = matched.reduce((sum, m) => sum + (m.value ?? 0), 0);
@@ -119,12 +136,12 @@ export function applyEffect({
     // made every stated chance in the game inert -- Stun's own 100 would have
     // applied to both.
     base: (chance ?? def.baseChance ?? 100) + declared,
-    inflictBonus: bypassChanceModifiers ? 0 : (ctx.inflictBonus ?? 0),
+    inflictBonus: (bypassChanceModifiers || friendly) ? 0 : (ctx.inflictBonus ?? 0),
     // The target's own resistance, from its `ApplicationChance` contributions.
     // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
     // the target here closes the loop without every caller having to know.
-    resist: bypassChanceModifiers ? 0
+    resist: (bypassChanceModifiers || friendly) ? 0
       : (ctx.resist ?? resistanceOf(target, def, ctx.options, ctx.ignoresResistanceFrom))
         + (downgrade?.resistPercent ?? 0),
     immune: false,
@@ -180,7 +197,13 @@ export function applyEffect({
   // applied, staged to 1, and removed at the end of the same Round having dealt
   // nothing.
   const authored = duration ?? def.defaultDuration ?? null;
-  const ticks = authored === null ? INFINITE : resolveTicks(parseTick(authored), ctx);
+  const base = authored === null ? INFINITE : resolveTicks(parseTick(authored), ctx);
+  // Mannanán's *Tradition Carrier*: *"the duration of buffs are extended by ⅓◈
+  // extra Turns when applied to Mannanán."* Applied HERE, to the resolved tick
+  // count, before the expiry is stamped -- durations are stored as absolute
+  // ticks (Ch. 07 §7.5), so an extension anywhere later would be arithmetic on
+  // a clock that has already started. An effect with no clock is not given one.
+  const ticks = base === INFINITE ? base : base + durationBonus(def, target, ctx);
   const expiry = ticks === INFINITE ? null : (ctx.currentTick ?? 0) + ticks;
 
   const effect = {
@@ -240,6 +263,44 @@ export function applyEffect({
   // stacking, and the scheduler's `ApplyEffect` action emits exactly that.
   intents.push({ ...I.applyEffect(target.id, effect, source?.unitId ?? null), resolved: true });
   return { outcome: "applied", reason: null, intents, trace };
+}
+
+/**
+ * Extra turns this target's own contributions add to an incoming effect.
+ *
+ * `appliesTo` is matched against the effect's POLARITY, so *"the duration of
+ * buffs"* does not quietly extend a debuff somebody just landed on her.
+ *
+ * @param {object} def
+ * @param {object} target
+ * @param {object} ctx
+ * @returns {number}
+ */
+function durationBonus(def, target, ctx) {
+  let bonus = 0;
+  for (const ext of target?.durationExtensions ?? []) {
+    if ((ext.direction ?? "incoming") !== "incoming") continue;
+    if (!extensionCovers(ext.appliesTo, def)) continue;
+    bonus += ext.amount
+      ? resolveTicks(parseTick(ext.amount), ctx)
+      : (ext.value ?? 0);
+  }
+  return bonus;
+}
+
+/**
+ * Does an extension's scope cover this effect?
+ * @param {string} appliesTo `buffs`, `debuffs`, `all`, or one effect id
+ * @param {object} def
+ * @returns {boolean}
+ */
+function extensionCovers(appliesTo, def) {
+  switch (appliesTo ?? "buffs") {
+    case "all": return true;
+    case "buffs": return def.polarity === "buff";
+    case "debuffs": return def.polarity === "debuff";
+    default: return appliesTo === def.id;
+  }
 }
 
 /**

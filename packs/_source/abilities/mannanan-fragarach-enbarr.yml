@@ -1,0 +1,60 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+# Discussed: docs/33-case-mannanan.md §33.6
+#
+# The design's centrepiece, and it is not the damage. Applying `Decoy` to
+# herself forces nearby enemies to attack *her*, and the `Fragarach` status
+# turns every such attack into a 2.5× unblockable counter that generates a token
+# and pulls this Noble Phantasm's own cooldown forward. The Servant makes
+# attacking her a mistake and then insists on it.
+schema: 1
+id: mannanan-fragarach-enbarr
+name: "Fragarach Enbarr: Wildly Running Sword of the War God"
+isNP: true
+rank: EX
+kind: noblePhantasm
+slug: fragarachEnbarr
+npTags: [counter]
+category: mannananNP
+cooldown: "8◈"
+timing: { window: ownTurn }
+description: |
+  (Non-damaging) Has the following effects-
+  1. Applies @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage dealt is increased by 5% for each
+     Fragarach Token on herself; the magnitude of which is halved for NP.
+  2. Applies @effect[decoy]{Decoy} for ⅓◈ Turns.
+  3. Applies the @effect[fragarach]{Fragarach} effect for ⅓◈ Turns to herself. The 'Fragarach'
+     effect is neither a buff or a debuff and is Unremovable.
+  Cooldown: 8◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  # `includeSelf: true` is what makes a self-cast resolve against herself
+  # rather than against nobody: `resolveTargets` drops the caster from its own
+  # target list otherwise, and an ability with an empty target list opens a
+  # Combat Process with no defender that nothing can advance.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      # "5% for each Fragarach Counter on herself; the magnitude of which is
+      # halved for NP." The magnitude is a FUNCTION of a pool she spends three
+      # other ways, so it is an `@` expression resolved at the moment of
+      # application -- which is when the sheet counts them.
+      #
+      # The sheet says "Counter" here and "Token" in Tradition Carrier and
+      # "Counters" again in Possession. Ch. 33 §33.6's DECISION: they are the
+      # same resource, `fragarachTokens` is canonical.
+      - id: atkUp
+        magnitude: "5 * @self.resources.fragarachTokens.value"
+        npMagnitude: "2.5 * @self.resources.fragarachTokens.value"
+        duration: "⅓◈"
+      # Ch. 10 §10.6: *"Decoy is not affected by Debuff Resist or Immune effects
+      # when a Unit applies it on itself or on another allied Unit."* Without
+      # that exemption her own `Debuff Immune` -- from Successor of the Red
+      # Branch, which she wants up at the same time -- would refuse it.
+      - { id: decoy, duration: "⅓◈" }
+      # "Neither a buff or a debuff, and Unremovable": both are properties of
+      # the effect definition (`polarity: status`, `unremovable: true`), not of
+      # this application, so nothing here restates them.
+      - { id: fragarach, duration: "⅓◈" }

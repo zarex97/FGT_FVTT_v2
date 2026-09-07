@@ -147,7 +147,8 @@ applyEffect(def, target, magnitude, duration, source, context) → ApplicationRe
     → produces zero or one create/update operation.
 
  6. CONSTRUCT
-    Resolve duration TickExpr → absolute expiry using the target's local clock.
+    Resolve duration TickExpr → absolute expiry using the target's local clock,
+    PLUS whatever the target's own `DurationExtension` contributions add.
     Build the EffectInstance.
 
  7. EMIT INTENT
@@ -156,6 +157,23 @@ applyEffect(def, target, magnitude, duration, source, context) → ApplicationRe
 
 Every step is logged with its outcome, so the chat card can say *"Curse resisted (rolled 78 vs
 65%)"* or *"Charm blocked by Berserk"*.
+
+### Two ways past steps 1 and 3
+
+**`allySelfBypassesResistance`** is a property of the *definition*, and §10.6 states it of exactly
+two effects: *"Decoy is not affected by Debuff Resist or Immune effects when a Unit applies it on
+itself or on another allied Unit."* Steps 1 and 3 are skipped when the source is the target or
+shares its faction; steps 2 and 5 still run, because those are about what the Unit is already
+carrying rather than about whether it wants this. Mannanán is the case that needed it — she
+applies `Decoy` to **herself** while her own `Debuff Immune` is up, and without the exemption her
+Noble Phantasm would refuse its own centrepiece.
+
+**`DurationExtension`** is the mirror: a contribution the *target* carries that lengthens what
+lands on it. *"The duration of buffs are extended by ⅓◈ extra Turns when applied to Mannanán"*
+(Ch. 33 §33.2). It slots into step 6 and nowhere else, because durations are stored as absolute
+expiry ticks (Ch. 07 §7.5) — an extension applied any later would be arithmetic on a clock that
+has already started. `appliesTo` is matched against the effect's polarity, so *"the duration of
+buffs"* does not quietly extend a debuff somebody just landed on her.
 
 ### Buff application chance
 

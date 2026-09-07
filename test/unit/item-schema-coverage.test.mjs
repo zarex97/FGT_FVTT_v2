@@ -87,7 +87,16 @@ describe("an authored ability's keys survive its DataModel", () => {
     // Not exhaustive over the vocabulary — exhaustive over what is AUTHORED,
     // which is the same discipline `registry-fields.test.mjs` applies to
     // effects: check the projection against real content, not a second list.
-    const SKIP = new Set(["schema", "id", "name", "description", "notes", "ref", "kind", "type"]);
+    //
+    // `forwardReferences` is AUTHORING metadata rather than runtime data: it
+    // declares that a clause names a slug nobody has built yet, so
+    // `skill-references.test.mjs` can tell a promise from a typo and
+    // `validate-content` can keep warning until the promise is kept. Nothing
+    // reads it at runtime, so no model should declare it.
+    const SKIP = new Set([
+      "schema", "id", "name", "description", "notes", "ref", "kind", "type",
+      "forwardReferences",
+    ]);
     const missing = [];
     for (const { path, doc, model } of authored) {
       for (const key of Object.keys(doc)) {

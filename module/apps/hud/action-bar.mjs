@@ -23,6 +23,7 @@ import { currentBoard, unitSnapshot, unitFrom } from "../../engine/board.mjs";
 import { mayDeactivate } from "../../engine/fields.mjs";
 import { mayReshape } from "../../rules/bounded-fields.mjs";
 import { FACINGS } from "../../domain/enums.mjs";
+import { resourceLabel } from "../../domain/resources.mjs";
 import { turnContext, TURN_ACTIONS } from "./turn-panel.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -564,22 +565,14 @@ function poolsFor(resources) {
     const translation = `FGT.Pool.${key}`;
     return {
       key,
-      label: game.i18n.has(translation) ? game.i18n.localize(translation) : humanise(key),
+      label: game.i18n.has(translation) ? game.i18n.localize(translation) : resourceLabel(key),
       value: pool?.value ?? 0,
       max: pool?.max ?? null,
     };
   });
 }
 
-/**
- * `hgobConstruction` → `Hgob Construction`.
- * @param {string} key
- * @returns {string}
- */
-function humanise(key) {
-  const spaced = String(key).replace(/([a-z0-9])([A-Z])/g, "$1 $2");
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
+
 
 /**
  * The ability's own name, so the slot says what it will close rather than

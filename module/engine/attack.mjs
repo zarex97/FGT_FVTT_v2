@@ -28,13 +28,15 @@ import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
-import { collectContributions } from "../rules/elements.mjs";
+import { collectContributions, resolveValue } from "../rules/elements.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
+import { expressionRefs } from "../rules/snapshot.mjs";
+import { isStrongestNP, isDamagingNP, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
@@ -46,6 +48,7 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
+import { meetsRequirement } from "../rules/items.mjs";
 import { canUseAbility, resolveCosts, npCostAt } from "../rules/costs.mjs";
 import {
   reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow,
@@ -304,6 +307,22 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     if (preempted) return { preempted: true, messageId: preempted.messageId };
   }
 
+  // "Can be used when a Noble Phantasm is used against Mannanán." The one
+  // ability in the corpus that CANCELS another Unit's resolution rather than
+  // answering it, and the reason the interrupt machinery had to be generalised
+  // past Command Spells (§17.1).
+  //
+  // Offered at the same moment a pre-emption is, and for the same reason: after
+  // the attacker has paid in full, before any Combat Process exists. The
+  // attacker still spent its Noble Phantasm — that is what "cancelled" means
+  // here, and it is the whole cost of walking into her.
+  if (!resume && targetIds.length > 0 && isDamagingNP(ability)) {
+    const cancelled = await offerNPCancellation({
+      attackerId, attacker, ability, targetIds, board, self, options,
+    });
+    if (cancelled) return { cancelled: true, ...cancelled };
+  }
+
   // The rest of a declaration -- the fan-out, the cards, the events -- is
   // shared with the §12.8 Counter path, which needs every step of it.
   return declareProcesses({
@@ -430,6 +449,23 @@ function buildAttackSpec({ attacker, ability, abilityId, options }) {
       ignoresMagicResistance: Boolean(
         resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
       ),
+      // Per-attack RESTRICTIONS on the reaction ladder. Appendix A treats the
+      // ladder as a fixed three, and Mannanán's Fragarach Counter is the first
+      // attack in the corpus that narrows it: *"A Fragarach Counter cannot be
+      // Blocked, and cannot be Evaded except with Dodge."* Both are properties
+      // of the ATTACK, so they travel with it -- `unblockable` removes Block
+      // from the rung at declaration and `evadableOnlyBy` makes the Evade roll
+      // fail automatically unless the defender holds one of the named effects.
+      unblockable: Boolean(resolvedDamage(ability, options)?.unblockable),
+      evadableOnlyBy: [...(resolvedDamage(ability, options)?.evadableOnlyBy ?? [])],
+      // *"If the DU Evades, its Evade Roll is increased by 3."* A penalty the
+      // ability imposes, alongside the ones the attack's kind and the
+      // defender's own effects impose (`evadeModifiers`).
+      evadeModifier: resolvedDamage(ability, options)?.evadeModifier ?? 0,
+      // *"If any Evade fails, the remaining hits cannot be Evaded."* A property
+      // that spans the SIBLING Processes of one multi-hit declaration, which is
+      // why it is on the attack rather than on any one Process.
+      noEvadeAfterFail: Boolean(resolvedDamage(ability, options)?.noEvadeAfterFail),
       // The SCALE, carried on the attack for exactly the reasons `element` and
       // `pierce` are: three separate rules ask about it and none of them can
       // reach the ability document. Doomsday Come's isolation opens for an
@@ -510,6 +546,23 @@ async function declareProcesses({
       isCounter, requiredTargetId, counterDepth,
     })];
 
+  // "At the start of a Combat Phase, Mannanán can remove 1 Fragarach Token from
+  // herself, her Crit Chance is increased by 30% for that Combat Phase."
+  //
+  // Offered to BOTH sides and before any card exists, because the buff has to
+  // be standing when the crit coin is flipped -- and because the window is "a
+  // Combat Phase", not "a Combat Phase you declared": she crits when she
+  // counters too. `offerOptionalCosts` is idempotent per `groupId`, so the
+  // §12.8 Counter that shares this group does not ask again.
+  {
+    const { offerOptionalCosts } = await import("./optional-costs.mjs");
+    await offerOptionalCosts({
+      unitIds: [attackerId, ...states.map((s2) => s2.defenderId)],
+      timing: "combatPhaseStart",
+      groupId: states[0]?.groupId ?? null,
+    });
+  }
+
   /** @type {Array<{messageId: string, state: object}>} */
   const processes = [];
   for (const state of states) {
@@ -525,7 +578,15 @@ async function declareProcesses({
         // Blocked or Countered unless the DU's current AGI Rank is equal to or
         // higher than it."* Decided once, at declaration, alongside the offer --
         // the same moment and for the same reason.
-        forbiddenReactions: concealmentRefusals(attackerId, state.defenderId),
+        //
+        // Plus whatever the ATTACK itself forbids. A Fragarach Counter *"cannot
+        // be Blocked"*, and the rung is where that has to be said: the card
+        // filters the buttons, and `process.advance` refuses the event, so a
+        // stale card or a macro cannot Block one anyway.
+        forbiddenReactions: [...new Set([
+          ...concealmentRefusals(attackerId, state.defenderId),
+          ...(state.attack?.unblockable ? ["block"] : []),
+        ])],
       }
       : state;
     const advanced = process.advance(withReactions, "done");
@@ -715,12 +776,117 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     await endConcealmentAfterAttack(state);
     await closeFieldsPiercedBy(state);
     await fireCombatProcessEnd(state);
+    // *"When Mannanán is Attacked ... at the end of the Combat Process ... she
+    // automatically performs a Fragarach Counter on the DU."* At the end of the
+    // PROCESS, not the Phase: an area attack that caught her once owes one
+    // counter per Process it opened against her, which is what the sheet says
+    // and what makes standing under a Decoy so expensive for the attacker.
+    await noteAttackProvocation(state);
+    await flushAutoCounters(state.groupId);
     await fireCombatPhaseEnd(state);
     // Last, so the deferred half sees a board on which this Process has fully
     // settled -- including a defeat it caused.
     await resumeDeferredAttack(state, message);
   }
   return state;
+}
+
+/**
+ * Queue this Process's own provocation, if the defender answers being attacked.
+ *
+ * "Attacked" is the declaration, not the hit. The sheet says *"when Mannanán is
+ * Attacked"* and then *"at the end of the Combat Process (if Attacked)"* --
+ * which is a statement about *when*, not a second condition -- so an Evade or a
+ * fully-absorbed Block still provokes. That is deliberate on the sheet: the
+ * whole point of the `Decoy` pairing is that attacking her at all is a mistake.
+ *
+ * A Process that is itself a counter does not provoke another one (§12.8).
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function noteAttackProvocation(state) {
+  if (state.isCounter || !state.defenderId || !state.attackerId) return;
+  const board = boardSnapshot();
+  const bearer = (board.units ?? []).find((u) => u.id === state.defenderId);
+  if (!bearer || !(bearer.autoCounters ?? []).length) return;
+
+  const { provoke } = await import("./auto-counter.mjs");
+  provoke({ bearer, provokerId: state.attackerId, cause: "attacked" });
+}
+
+/**
+ * Declare every automatic counter that has been provoked.
+ *
+ * Exported because the Skill path needs it too: a debuff inflicted by a Skill
+ * opens no Combat Process, so there is no `combatProcessEnd` for its
+ * provocation to wait for.
+ *
+ * GM-only. This declares an attack on somebody else's behalf, and two clients
+ * each declaring it would resolve the counter twice.
+ *
+ * @param {string|null} [groupId] the Combat Phase the provocation happened in
+ * @returns {Promise<Array<{messageId: string}>>}
+ */
+export async function flushAutoCounters(groupId = null) {
+  const { takePending, whileDraining, pendingCount } = await import("./auto-counter.mjs");
+  if (pendingCount() === 0) return [];
+  if (!game.user?.isGM) return [];
+
+  return whileDraining(async () => {
+    /** @type {Array<{messageId: string}>} */
+    const opened = [];
+
+    for (const p of takePending()) {
+      const bearer = game.actors.get(p.bearerId);
+      const provoker = game.actors.get(p.provokerId);
+      const ability = bearer?.items?.get?.(p.abilityId)
+        ?? [...(bearer?.items ?? [])].find((i) => i.system?.contentId === p.abilityId);
+      if (!bearer || !provoker || !ability) {
+        console.warn(`FGT | ${p.source} could not counter: missing bearer, target or "${p.abilityId}".`);
+        continue;
+      }
+      // A defeated Unit does not counter, and neither does one that cannot act.
+      const board = boardSnapshot();
+      const self = unitFrom(board, bearer) ?? unitSnapshot(bearer);
+      if (self.defeated || currentHealth(self) <= 0 || self.canAct === false) continue;
+
+      const options = rollOptionsFor({ attacker: self });
+      const attackSpec = buildAttackSpec({ attacker: bearer, ability, abilityId: ability.id, options });
+
+      // `isCounter`, so §12.8's *"Counters cannot be Countered again"* closes
+      // the chain -- and so the counter does not spend a Turn, which it never
+      // had: this is a reaction, and `declareProcesses` sits below the budget.
+      const out = await declareProcesses({
+        attackerId: bearer.id,
+        attacker: bearer,
+        ability,
+        attackSpec,
+        targetIds: [provoker.id],
+        targets: { units: [{ unitId: provoker.id }] },
+        placement: null,
+        board,
+        isCounter: true,
+        requiredTargetId: provoker.id,
+        counterDepth: 1,
+        // The PARENT's group, when there is one. §12.1: a Combat Phase is the
+        // declaration plus its Counters, and `runCounter` inherits it for
+        // exactly this reason -- `fireCombatPhaseEnd` counts unfinished
+        // siblings by group, and a counter with a group of its own would end
+        // the Phase while it was still resolving and offer every
+        // once-per-Phase decision a second time. `null` on the Skill path,
+        // where the debuff that provoked this opened no Phase at all.
+        groupId,
+      });
+      await ChatMessage.create({
+        content: `<p><strong>${p.source}</strong> — ${bearer.name} counters `
+          + `${provoker.name} (${p.cause}).</p>`,
+        speaker: publicSpeakerFor(bearer),
+      });
+      opened.push({ messageId: out.messageId });
+    }
+    return opened;
+  });
 }
 
 /**
@@ -1103,6 +1269,40 @@ async function fireDamageDealt(state, result) {
 }
 
 /**
+ * Raise `damageTaken` on the DEFENDER, once the damage has landed.
+ *
+ * The mirror of `damageDealt`, and §E has listed it since the reference was
+ * written with nothing raising it — so every clause in the catalogue that pays
+ * out for *receiving* damage had no rung at all. `Def Dwn (C)` is the first
+ * content to need it: *"all damage taken is increased by 10%; **and Agility is
+ * reduced by 1 when damage is received**"*, which is a handler on the bearer
+ * and not on whoever hit them.
+ *
+ * The attacker travels as `ctx.victim` — the field names the OTHER party, and
+ * on this side of the exchange that is the attacker. Naming it something else
+ * would give the action vocabulary two words for one idea.
+ *
+ * @param {object} state
+ * @param {object} result the finished damage result
+ * @returns {Promise<void>}
+ */
+async function fireDamageTaken(state, result) {
+  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  if (!attacker || !defender) return;
+
+  const intents = fireEvent("damageTaken", [defender], {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board: currentBoard(),
+    options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
+    victim: { unitId: state.attackerId },
+    rolls: {},
+  });
+  if (intents.length > 0) await applyBatch(intents, "damageTaken");
+}
+
+/**
  * Presence Concealment clause 5, at the end of the Combat Process.
  *
  * > *"After performing an Attack while PC is Active, PC is deactivated at the
@@ -1286,6 +1486,12 @@ async function fireCombatPhaseEnd(state) {
     rolls: {},
   });
   if (intents.length > 0) await applyBatch(intents, "combatPhaseEnd");
+
+  // The Phase is over, so the once-per-Phase optional spend may be offered
+  // again next time. Cleared here rather than left to expire, because the guard
+  // is keyed by `groupId` and a match is thousands of them.
+  const { clearOptionalCostOffers } = await import("./optional-costs.mjs");
+  clearOptionalCostOffers(state.groupId);
 }
 
 /**
@@ -1345,6 +1551,8 @@ async function runAutomaticStep(state, message) {
       if (!skipped && result.total > 0) await fireDamageStepEnd(state);
       // Riders, which need the victim as well as the fact that it landed.
       if (!skipped && result.total > 0) await fireDamageDealt(state, result);
+      // ...and the mirror, on the Unit that took it.
+      if (!skipped && result.total > 0) await fireDamageTaken(state, result);
 
       await message.setFlag("fgt", "damage", result.total);
       await message.setFlag("fgt", "effects", [...before, ...applied].map((a) => a.summary));
@@ -1448,6 +1656,11 @@ async function rollEvade(state) {
         plan.forceTable === "unfavourable" || defender.agility < attacker.agility,
       autoSucceed: plan.autoSucceed,
       attackProperties,
+      // "Cannot be Evaded except with Dodge", and "if any Evade fails, the
+      // remaining hits cannot be Evaded". The second is the same rule with an
+      // empty permit list -- nothing gets through -- so one field says both.
+      evadableOnlyBy: evadePermit(state),
+      held: defender.effects ?? [],
       modifiers: [...evadeModifiers(state, attacker, defender), ...plan.modifiers],
   });
 
@@ -1468,6 +1681,50 @@ async function rollEvade(state) {
 }
 
 /**
+ * Which effects, if any, are the ONLY things that may evade this attack.
+ *
+ * `null` means the ordinary ladder. A list means the attack narrows it, and an
+ * **empty** list means nothing evades at all — which is how *"if any Evade
+ * fails, the remaining hits cannot be Evaded"* is expressed: the permit exists
+ * and admits nobody.
+ *
+ * The multi-hit half is read off the SIBLING Processes, because that is where
+ * the earlier hits are. Each hit of a `repeat` attack is its own Combat Process
+ * (`resolveAttack`), so "the remaining hits" is a question about the group.
+ *
+ * @param {object} state
+ * @returns {string[]|null}
+ */
+function evadePermit(state) {
+  const declared = state.attack?.evadableOnlyBy ?? [];
+  if (state.attack?.noEvadeAfterFail && siblingEvadeFailed(state)) return [];
+  return declared.length > 0 ? declared : null;
+}
+
+/**
+ * Has an earlier hit of this same declaration already failed to be evaded?
+ *
+ * Same `groupId`, same attacker, same defender — the three keys every other
+ * cross-sibling question in this file uses (`alreadyInjuryRolled`), and for the
+ * same reason: a Counter shares the parent's group, and one Unit can be caught
+ * by two different attackers inside one Combat Phase.
+ *
+ * @param {object} state
+ * @returns {boolean}
+ */
+function siblingEvadeFailed(state) {
+  return game.messages.some((m) => {
+    const raw = m.getFlag("fgt", "process");
+    if (!raw) return false;
+    const sibling = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (sibling.groupId !== state.groupId) return false;
+    if (sibling.attackerId !== state.attackerId) return false;
+    if (sibling.defenderId !== state.defenderId) return false;
+    return (sibling.history ?? []).some((h) => h.state === "evadeRoll" && h.event === "fail");
+  });
+}
+
+/**
  * @param {object} state
  * @param {object} attacker
  * @param {object} defender
@@ -1475,6 +1732,20 @@ async function rollEvade(state) {
  */
 function evadeModifiers(state, attacker, defender) {
   const mods = [];
+  // What the ABILITY imposes. "If the DU Evades, its Evade Roll is increased by
+  // 3" -- Toole Fragarach and Hallowed Sea God's Sword both say it, and there
+  // was no way to author it: every entry below is a property of the attack's
+  // KIND or of the defender's own effects.
+  if (state.attack?.evadeModifier) {
+    // Named, not "the attack": a roll log that says why a die was three higher
+    // is the difference between a rule the table can check and a number that
+    // appeared. `abilityId` is on the state; the document may be gone by the
+    // time a log is read, so the fallback is honest rather than absent.
+    const source = state.attack.abilityId
+      ? (game.actors.get(state.attackerId)?.items?.get(state.attack.abilityId)?.name ?? "the attack")
+      : "the attack";
+    mods.push({ source, value: state.attack.evadeModifier });
+  }
   if (state.attack?.kind === "np") mods.push({ source: "attack is an NP", value: 3 });
   if (state.isAoE) mods.push({ source: "attack is AoE", value: 2 });
   if ((defender.effects ?? []).includes("slow")) mods.push({ source: "Slow", value: 2 });
@@ -1754,6 +2025,9 @@ function counterAvailable(state) {
     defenderCanAct: defender.canAct !== false,
     defenderHasBerserk: held.includes("berserk"),
     defenderHasFragarach: held.includes("fragarach"),
+    // The general form: whatever the defender is carrying that says which rungs
+    // it may not take (`ForbidReaction`).
+    defenderForbids: defender.forbiddenReactions ?? [],
     // AGI **Rank**, not the Agility pool. The pool is a spendable resource that
     // two Servants of the same Rank disagree about constantly, so a Servant who
     // had paid for a few Evades became blockable mid-match for no stated reason.
@@ -2067,9 +2341,56 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   // survived, and he survives this one or he does not.
   const recording = recordIntents(defender, state);
 
+  // A revival the player CHOOSES. Asked here, because `resolveDefeat` is pure
+  // and this is a question about somebody's intentions rather than about the
+  // board: *God's Holder: Possession* costs every Fragarach Token she holds and
+  // transforms her permanently, so dying is a legitimate answer.
+  const accepted = await acceptedOptionalRevivals({ ...defender, health: remaining });
+
   // Rebuilt in the SNAPSHOT's shape -- a flat number -- because that is what
   // `resolveDefeat` is given everywhere else and what `currentHealth` reads.
-  return [...recording, ...resolveDefeat({ ...defender, health: remaining }, ctx)];
+  return [
+    ...recording,
+    ...resolveDefeat({ ...defender, health: remaining, acceptedRevivals: accepted }, ctx),
+  ];
+}
+
+/**
+ * Ask about every optional revival this Unit could take, and return the ids of
+ * the ones it wants.
+ *
+ * Silence is **no**. A revival that transforms its bearer and spends a whole
+ * resource pool must not fire because a prompt timed out on a disconnected
+ * client — and unlike a reaction, declining costs the Unit nothing it had.
+ *
+ * @param {object} unit the defender's snapshot, at zero Health
+ * @returns {Promise<string[]>}
+ */
+async function acceptedOptionalRevivals(unit) {
+  const optional = (unit.revivals ?? []).filter((r) => r.optional);
+  if (optional.length === 0) return [];
+
+  const actor = game.actors.get(unit.id);
+  if (!actor) return [];
+
+  /** @type {string[]} */
+  const accepted = [];
+  for (const source of optional) {
+    // Its own gates first, so a Unit with no tokens left is not offered a
+    // transformation it cannot pay for (§17.6).
+    if ((source.requires ?? []).some((req) => !meetsRequirement(req, { unit }))) continue;
+
+    const picked = await askOwner(actor, {
+      kind: "choose",
+      title: source.source,
+      hint: game.i18n.format("FGT.Revival.OptionalHint", { name: actor.name, source: source.source }),
+      min: 0,
+      count: 1,
+      options: [{ id: source.id, name: game.i18n.localize("FGT.Revival.Take"), detail: source.source }],
+    });
+    if ((picked ?? []).includes(source.id)) accepted.push(source.id);
+  }
+  return accepted;
 }
 
 /**
@@ -2514,6 +2835,22 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
       ));
       continue;
     }
+    // A rider that reaches a DIFFERENT set of Units from the one this attack
+    // hit. The Skill path has honoured a phase's own `targeting:` since EMIYA's
+    // Eye of the Mind (True) EX needed it (`skill-use.mjs#phaseTargets`); the
+    // attack path never has, so the same clause on a Noble Phantasm or an
+    // Attack Skill landed on the defender instead.
+    //
+    // Mannanán's Fragarach Counter is the case that found it: *"apply S.Crit Up
+    // to all allied Units within a 2 panel area of MANNANÁN"* -- her allies, in
+    // the middle of a Process aimed at somebody else. Once per Combat Phase for
+    // the same reason `target: self` is: an area attack fans out into a Process
+    // each, and a magnitude-stacking buff applied per Process would multiply.
+    if (phase.targeting) {
+      if (!isFirstOfGroup(state)) continue;
+      applied.push(...await applyTargetedRider(phase, ability, state, attackerDoc));
+      continue;
+    }
     // Both authored shapes. §15.2's own is `effects: [{id, ...}]`; the earlier
     // content wrapped each in an `OnEvent` rule element, and both still ship.
     // Reading only `rules` silently dropped every rider on the newer shape --
@@ -2538,8 +2875,14 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
         chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
         // The ability's own stated chance, overriding the effect's default.
         chance: spec.chance ?? rule.chance ?? null,
-        magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
-        npMagnitude: spec.npMagnitude ?? rule.npMagnitude ?? null,
+        // An authored magnitude may be an `@` EXPRESSION rather than a number
+        // (`rules/elements.mjs#resolveValue`), resolved against the CASTER at
+        // the moment of application. One rule for both use paths: the Skill
+        // path already did this, and an ability that resolves through the
+        // attack path instead -- every Noble Phantasm -- would otherwise apply
+        // the string itself as a magnitude and land nothing at all.
+        magnitude: authoredMagnitude(spec.magnitude, attackerDoc) ?? def.defaultMagnitude ?? 0,
+        npMagnitude: authoredMagnitude(spec.npMagnitude ?? rule.npMagnitude, attackerDoc),
         // How many stages one application is worth. *"Inflicts Stage 3 Poison
         // on the DU"* is one application, not three -- three would roll the
         // chance three times and be improved three times by a Debuff ChUp.
@@ -2573,6 +2916,61 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     }
   }
   return applied;
+}
+
+/**
+ * An authored magnitude, which may be a number or an `@` expression.
+ *
+ * The same helper `engine/skill-use.mjs` uses, for the same reason and against
+ * the same facade — a magnitude that means two numbers depending on which path
+ * resolved the ability would be worse than one that means nothing.
+ *
+ * `null` passes through: `npMagnitude` uses it to mean *"this effect has no
+ * reduced NP magnitude"*, and coercing that to 0 would make every buff worth
+ * nothing against a Noble Phantasm.
+ *
+ * @param {number|string|null|undefined} raw
+ * @param {object} actor the caster
+ * @returns {number|null}
+ */
+function authoredMagnitude(raw, actor) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === "number") return raw;
+  const value = resolveValue({ magnitude: raw }, null, { refs: expressionRefs(actor) }, "magnitude");
+  return typeof value === "number" ? value : null;
+}
+
+/**
+ * Apply one rider phase to whatever its own `targeting:` resolves to.
+ *
+ * Anchored on the ATTACKER, because that is what a phase-level targeting block
+ * on an attacker's ability means everywhere it is already used — *"all allied
+ * Units within a 2 panel area of himself"*.
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} state
+ * @param {object} attackerDoc
+ * @returns {Promise<object[]>}
+ */
+async function applyTargetedRider(phase, ability, state, attackerDoc) {
+  const board = boardSnapshot();
+  const caster = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
+  const resolved = resolveTargets(phase.targeting, caster, board, { unitId: caster.id, panel: caster.panel });
+
+  /** @type {object[]} */
+  const out = [];
+  for (const target of resolved.units ?? []) {
+    const doc = game.actors.get(target.unitId);
+    if (!doc) continue;
+    out.push(...await applyDeclaredEffects(
+      (phase.rules ?? phase.effects ?? []).map((r) => r.effect ?? r),
+      ability,
+      { ...state, defenderId: target.unitId },
+      board.units.find((u) => u.id === target.unitId) ?? unitSnapshot(doc),
+    ));
+  }
+  return out;
 }
 
 /**
@@ -2763,8 +3161,12 @@ async function applyDeclaredEffects(specs, ability, state, defender, { ignoresRe
     const outcome = applyEffect({
       def,
       target: defender,
-      magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
-      npMagnitude: spec.npMagnitude ?? null,
+      // Resolved the same way the rider path resolves it, from the same
+      // helper -- `target: self` effects come through here (Bellerophon's own
+      // Crit Up, Mannanán's token-scaled Atk Up) and an authored expression
+      // must mean the same number on both.
+      magnitude: authoredMagnitude(spec.magnitude, game.actors.get(state.attackerId)) ?? def.defaultMagnitude ?? 0,
+      npMagnitude: authoredMagnitude(spec.npMagnitude, game.actors.get(state.attackerId)),
       duration: spec.duration ?? def.defaultDuration,
       chanceModifiers: spec.chanceModifiers ?? [],
       chance: spec.chance ?? null,
@@ -2864,10 +3266,21 @@ function boardSnapshot() {
  * @returns {object}
  */
 function targetSpecFor(attacker, ability, options = null) {
-  // The ATTACKER travels through so a bare Normal Attack can carry a shape of
-  // its own -- Kagome: Famine's "3x3 panel area". `attacker.system` rather
-  // than a snapshot, because that is what this function is handed.
-  return specForAbility(ability, attacker.system.range?.panels ?? 1, options, attacker.system);
+  // The PROJECTION, not the document. A Unit's Range is not always the one its
+  // sheet was written with -- `rules/snapshot.mjs` folds in `RangeDelta`
+  // contributions and a variant override, and Mannanán's Holder Mode uses the
+  // second: *"Range is increased to 3 panels."* Reading `attacker.system.range`
+  // here refused her own Normal Attack at 2 panels while every other consumer
+  // agreed she reached 3, and it would have done the same to any Servant
+  // carrying a `Range Up`.
+  //
+  // The attacker still travels through so a bare Normal Attack can carry a
+  // shape of its own -- Kagome: Famine's "3x3 panel area".
+  const projected = unitFrom(boardSnapshot(), attacker) ?? unitSnapshot(attacker);
+  const range = typeof projected.range === "number"
+    ? projected.range
+    : (attacker.system.range?.panels ?? 1);
+  return specForAbility(ability, range, options, projected);
 }
 
 /**
@@ -2912,7 +3325,18 @@ function baseSpecFor(attacker, ability, range = null, options = null) {
 
   // Through the same rule the option set used, so the number the pipeline adds
   // up and the component a predicate tests cannot disagree.
-  return { sources: normalAttackAt({ normalAttack: attacker.system.normalAttack }, range).sources };
+  //
+  // Off the PROJECTION, not the document. A Unit's normal attack is not always
+  // the one its sheet was written with: `rules/snapshot.mjs` folds in a variant
+  // override, and Mannanán's Holder Mode uses one -- *"Normal Attacks at a
+  // Range of 1 to 2 use Base Attack (STR) and 30% of Base Attack (MAG)
+  // combined"*. Reading `attacker.system.normalAttack` here took the sheet's
+  // flat STR while `attackFacts` (which reads the projection) correctly
+  // reported the band's `ignoresMagicResistance`, so the attack bypassed Magic
+  // Resistance and then dealt the wrong number -- the two halves of one band
+  // answered from two different places.
+  const projected = unitFrom(boardSnapshot(), attacker) ?? unitSnapshot(attacker);
+  return { sources: normalAttackAt(projected, range).sources };
 }
 
 /**
@@ -3474,6 +3898,17 @@ function autoEvadeFrom(state, defender) {
   const auto = plan.autoSucceed;
   if (!auto) return { applies: false };
 
+  // An attack that narrows the ladder narrows this rung too. A Fragarach
+  // Counter *"cannot be Evaded except with Dodge"*, and an automatic evasion
+  // granted by anything else -- the `Evade` buff, Medea's Trofa -- is exactly
+  // what the clause is refusing. Without this the shortcut would let through
+  // what the roll itself would have failed, which is the worst kind of bug: it
+  // fires only when the defender happens to be buffed.
+  const permit = evadePermit(state);
+  if (permit && !permit.some((id) => (unitSnapshot(defender).effects ?? []).includes(id))) {
+    return { applies: false };
+  }
+
   const attackProperties = [];
   if (state.attack?.aim) attackProperties.push("aim");
   if (state.attack?.kind === "np") attackProperties.push("np");
@@ -3709,4 +4144,273 @@ async function resumeDeferredAttack(state, message) {
     console.error("FGT | The attack a pre-emption deferred could not resume:", err);
     ui.notifications?.warn(game.i18n.localize("FGT.Preempt.ResumeFailed"));
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Cancelling a Noble Phantasm (Ch. 33 §33.4)                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Offer every defender who can cancel this Noble Phantasm the chance to do so.
+ *
+ * > *"Can only be used by removing 5 Fragarach Tokens from herself. Can be used
+ * > when a Noble Phantasm is used against Mannanán. Cannot be used against
+ * > (Passive) or (Non-damaging) Noble Phantasms. ... Both versions of this NP
+ * > are effective at any Range. Fragarach cannot be responded to (Block, Evade,
+ * > Luck Check, Counter, etc)."*
+ *
+ * This is the hardest single ability in the reference set (§33.4) and four
+ * things make it so. Three are handled here:
+ *
+ *   1. **It interrupts another resolution.** Only Command Spells otherwise do
+ *      (§17.1), so the offer sits exactly where `offerPreemption` sits: after
+ *      the attacker has paid, before any Combat Process exists. The attacker
+ *      still spent the Noble Phantasm; nothing is refunded, which is what
+ *      "cancelled" means and what makes walking into her expensive.
+ *   2. **It compares abilities.** `rules/np-strength.mjs` ranks the attacker's
+ *      damaging Noble Phantasms against a synthetic neutral defender.
+ *   3. **It cannot be responded to.** There is no ladder at all — no Combat
+ *      Process is opened for the reflection, so there is nothing to Block,
+ *      Evade or contest.
+ *
+ * The fourth, the counterfactual damage, is free: the pipeline is pure, so
+ * "what would it have dealt" is the same call with the dice pinned.
+ *
+ * **One canceller.** A Noble Phantasm over seven Units that caught two of them
+ * would otherwise open two cancellations the sheet never describes, with no
+ * stated order between them — the same argument `offerPreemption` makes.
+ *
+ * @param {object} args
+ * @returns {Promise<{cancelledBy: string, messageId: string|null}|null>}
+ */
+async function offerNPCancellation({ attackerId, attacker, ability, targetIds, board, self, options }) {
+  for (const defenderId of new Set(targetIds)) {
+    if (defenderId === attackerId) continue;
+    const defenderDoc = game.actors.get(defenderId);
+    if (!defenderDoc) continue;
+
+    const defender = unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc);
+    // Everything that would refuse it is checked BEFORE it is offered (§17.6):
+    // the window, the cooldown, the tokens, the Turn record.
+    const held = [...(defenderDoc.effects ?? [])].map((e) => e.system?.defId).filter(Boolean);
+    const usable = abilitiesAtWindow(
+      { items: defenderDoc.items, turnState: defenderDoc.system?.turnState ?? {}, effects: held },
+      "whenTargetedByNP",
+    ).filter((item) => {
+      if (!item.system?.cancelsNP) return false;
+      const usage = canUseAbility({
+        ability: abilityUsageSpec(item),
+        unit: defender,
+        master: defender.masterId ? unitFrom(board, game.actors.get(defender.masterId)) : null,
+        round: game.combats.active?.round ?? 1,
+        board,
+        target: self,
+      });
+      return usage.ok;
+    });
+    if (usable.length === 0) continue;
+
+    const item = usable[0];
+    const picked = await askOwner(defenderDoc, {
+      kind: "choose",
+      title: item.name,
+      hint: game.i18n.format("FGT.CancelNP.Hint", {
+        name: defenderDoc.name, attacker: attacker.name, np: ability.name,
+      }),
+      min: 0,
+      count: 1,
+      options: [{ id: "cancel", name: game.i18n.localize("FGT.CancelNP.Take"), detail: item.name }],
+    });
+    if (!(picked ?? []).includes("cancel")) continue;
+
+    return resolveNPCancellation({
+      cancellerDoc: defenderDoc, canceller: defender, cancelling: item,
+      attackerId, attacker, ability, board, options,
+    });
+  }
+  return null;
+}
+
+/**
+ * Cancel the Noble Phantasm, and pay both prices.
+ *
+ * @param {object} args
+ * @returns {Promise<{cancelledBy: string, messageId: string|null}>}
+ */
+async function resolveNPCancellation({
+  cancellerDoc, canceller, cancelling, attackerId, attacker, ability, board, options,
+}) {
+  // The canceller's own price — its five tokens, its 8◈, its use record. Paid
+  // through the same path a declaration pays, because it is one.
+  // The Master, resolved ONCE and passed to both. `canUseAbility` prices a
+  // Noble Phantasm against whoever is paying for it, and handing it `null`
+  // while `payAbilityPrice` was given the real Master produced a cost with no
+  // `unitId` -- an intent the applier refuses, which took the whole
+  // cancellation down with it.
+  const cancellerMaster = canceller.masterId
+    ? unitFrom(board, game.actors.get(canceller.masterId))
+    : null;
+
+  await payAbilityPrice({
+    ability: cancelling,
+    attackerId: cancellerDoc.id,
+    attacker: cancellerDoc,
+    self: canceller,
+    master: cancellerMaster,
+    usage: canUseAbility({
+      ability: abilityUsageSpec(cancelling), unit: canceller, master: cancellerMaster,
+      round: game.combats.active?.round ?? 1, board,
+      target: unitFrom(board, attacker) ?? unitSnapshot(attacker),
+    }),
+    board,
+    resume: false,
+  });
+  // ...and everything the ability does to its USER. `payAbilityPrice` charges
+  // the cooldown and the use record; the five Fragarach Tokens are a `resource`
+  // phase, and the only other path that runs those is `declareProcesses` --
+  // which this resolution deliberately never reaches, because the whole point
+  // is that no Combat Process happens.
+  {
+    const { runCasterPhases } = await import("./skill-use.mjs");
+    await runCasterPhases(cancelling, cancellerDoc, board);
+  }
+
+  const spec = cancelling.system.cancelsNP ?? {};
+  const attackerUnit = unitFrom(board, attacker) ?? unitSnapshot(attacker);
+  const { strongest, ranked } = isStrongestNP([...attacker.items], attackerUnit, ability.id);
+
+  /** @type {object[]} */
+  const intents = [I.log({
+    kind: "npCancelled", unitId: attackerId, by: cancellerDoc.id,
+    ability: ability.name, source: cancelling.name, strongest,
+  })];
+  let outcome = "";
+
+  if (strongest && spec.againstStrongest?.effect) {
+    // "The NP is canceled and the Servant/Unit who used the NP is inflicted
+    // with Instakill." Through the effect applier, so the target's own Magic
+    // Resistance Instakill ladder still gets its say — and note that this
+    // source deals no STR damage at all, which is exactly the case that ladder
+    // is written to cover.
+    const def = EffectRegistry.get(spec.againstStrongest.effect);
+    if (def) {
+      const roll = await new Roll("1d100").evaluate();
+      const applied = applyEffect({
+        def,
+        target: attackerUnit,
+        chance: spec.againstStrongest.chance ?? null,
+        duration: null,
+        source: { unitId: cancellerDoc.id, abilityId: cancelling.id },
+        ctx: {
+          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          currentTick: game.combat?.system?.globalTurn ?? 0,
+          roll: roll.total,
+          inflictBonus: inflictBonusOf(canceller, def),
+          options: rollOptionsFor({ attacker: canceller, defender: attackerUnit }),
+        },
+      });
+      intents.push(...applied.intents);
+      outcome = game.i18n.format("FGT.CancelNP.Instakill", { name: attacker.name, effect: def.name });
+    }
+  } else if (spec.otherwise?.reflect) {
+    // "The equivalent amount of damage that NP would have dealt is dealt to the
+    // NP's user instead (only affects the user if it was an AoE NP)."
+    //
+    // Against the CANCELLER for a single-target Noble Phantasm — "the damage
+    // that NP would have dealt" is the damage it would have dealt to her — and
+    // against the USER for an AoE one, which is the distinction the
+    // parenthesis is drawing: an area Noble Phantasm has several would-be
+    // victims and only its user is reflected onto.
+    const aoe = Boolean(ability.system?.targeting?.isDamagingAoE || ability.system?.damage?.isAoE);
+    const amount = counterfactualDamage({
+      attackerDoc: attacker, ability, board, options,
+      defenderUnit: aoe ? attackerUnit : canceller,
+    });
+    if (amount > 0) intents.push(I.damage(attackerId, amount, cancellerDoc.id, { reflected: true }));
+    outcome = game.i18n.format("FGT.CancelNP.Reflected", { name: attacker.name, amount });
+  }
+
+  await applyBatch(intents, "npCancelled");
+
+  // The user's Health may now be empty, and nothing else is going to notice: no
+  // Combat Process was opened, so no damage step runs the defeat chain.
+  await resolveEmptiedUnit(attackerId);
+
+  const message = await ChatMessage.create({
+    content: `<p><strong>${cancelling.name}</strong> — ${cancellerDoc.name} cancels `
+      + `<em>${ability.name}</em>.</p><p>${outcome}</p>`
+      + `<p>${ranked.length} damaging Noble Phantasm(s) ranked; `
+      + `${strongest ? "this was the strongest" : "this was not the strongest"}.</p>`,
+    speaker: publicSpeakerFor(cancellerDoc),
+  });
+  return { cancelledBy: cancellerDoc.id, messageId: message?.id ?? null };
+}
+
+/**
+ * What an ability WOULD have dealt, with every die at its expected value.
+ *
+ * The pipeline is pure and takes its randomness through `ctx.rolls`, so this is
+ * the same computation the resolution would have made rather than an
+ * approximation of it. Pinning `5d10` to its expected 27.5 instead of rolling
+ * is what makes two clients agree about a number nobody rolled.
+ *
+ * @param {object} args
+ * @returns {number}
+ */
+function counterfactualDamage({ attackerDoc, ability, board, options, defenderUnit }) {
+  const attackerUnit = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
+  const range = attackDistance(attackerUnit, defenderUnit);
+  const damage = resolvedDamage(ability, options);
+
+  return computeDamage({
+    attacker: attackerUnit,
+    defender: defenderUnit,
+    board,
+    attack: {
+      kind: "np",
+      abilityId: ability.id,
+      rank: Rank.parseOrNull(ability.system?.rank),
+      component: componentOf(attackerDoc, ability, options),
+      categorizedAsNP: Boolean(ability.system?.categorizedAsNP),
+      element: damage?.element ?? ability.system?.element ?? null,
+      ignoresMagicResistance: Boolean(damage?.ignoresMagicResistance),
+      pierce: Boolean(damage?.pierce),
+      aim: Boolean(damage?.aim),
+      isFixedDamage: Boolean(damage?.fixed),
+      range,
+      npTags: [...(ability.system?.npTags ?? [])],
+    },
+    base: baseSpecFor(attackerDoc, ability, range, options),
+    multiplier: damage?.multiplier ?? 1,
+    flatBonus: damage?.flatBonus ?? 0,
+    conditionalMultipliers: damage?.conditionalMultipliers ?? [],
+    // No crit. The coin was never flipped — the resolution did not happen — and
+    // assuming one would hand the reflection a bonus the sheet does not mention.
+    crit: { isCrit: false, chanceUsed: 0 },
+    reaction: { kind: "none" },
+    totalDamageModifiers: [],
+    luckChecks: {},
+    rolls: { attackMinus: EXPECTED_ATTACK_ROLL, negation: [] },
+    options: rollOptionsFor({ attacker: attackerUnit, defender: defenderUnit, attack: { kind: "np", range } }),
+  }).total;
+}
+
+/**
+ * Run the defeat chain for a Unit whose Health was emptied outside a Process.
+ *
+ * A cancelled Noble Phantasm opens none, so nothing else would notice that its
+ * user is now at zero — the reflection and the Instakill would each leave a
+ * corpse standing.
+ *
+ * @param {string} unitId
+ * @returns {Promise<void>}
+ */
+async function resolveEmptiedUnit(unitId) {
+  const doc = game.actors.get(unitId);
+  if (!doc) return;
+  const unit = unitFrom(boardSnapshot(), doc) ?? unitSnapshot(doc);
+  if (currentHealth(unit) > 0) return;
+
+  const intents = await resolveDefeatOf(unit, 0, {});
+  if (intents.length > 0) await applyBatch(intents, "npCancelled:defeat");
 }

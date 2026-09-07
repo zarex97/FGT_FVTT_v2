@@ -1,0 +1,59 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+# Discussed: docs/33-case-mannanan.md
+schema: 1
+id: mannanan-alter-ego
+name: "Alter Ego"
+kind: classSkill
+slug: alterEgo
+passive: true
+copyable: { allowed: false, reason: classSkill }
+# `existenceOutsideTheDomain` is Van Gogh's Class Skill (Ch. 35), who is not in
+# the authored corpus yet. Declared rather than silently dangling: the clause is
+# real and inert until she is built, exactly as Karna's *Fated Rivals of the
+# Mahabharata* names an Arjuna nobody has built (§36.1's DECISION -- a
+# cross-Servant reference resolves by slug and warns rather than erroring).
+forwardReferences: [existenceOutsideTheDomain]
+description: |
+  (Passive) All damage dealt to Units with the 'Outsider' Attribute and/or the
+  'Existence Outside the Domain' Skill is increased by 50% including NP. All damage received
+  from Units with the 'Outsider' Attribute and/or the 'Existence Outside the Domain' Skill is
+  reduced by 50% including NP.
+passiveRules:
+  # OUTGOING. The clause names the DEFENDER, so `target:` puts it in
+  # `DEFERRED_PREFIXES` and the pipeline answers it with the target in scope.
+  #
+  # "including NP" is `npValue` equal to `value`: the default for a percentage
+  # buff is a reduced magnitude against a Noble Phantasm, and this clause says
+  # otherwise in as many words.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 50
+    npValue: 50
+    predicate:
+      - { or: ["target:attribute:outsider", "target:skill:existenceOutsideTheDomain"] }
+
+  # INCOMING, and this is the half that needed a new mechanism.
+  #
+  # In the damage pipeline `self:` is the ATTACKER and `target:` is the
+  # defender, whichever side of the exchange contributed the modifier -- so a
+  # defensive clause asking about "Units I am receiving damage from" names
+  # `self:`. That is not in `DEFERRED_PREFIXES`, because for every other
+  # element `self:` is a question about the owner that collection can answer;
+  # answered there it reads "is Mannanán herself an Outsider", which is false
+  # for ever. `defer: true` is the author saying the clause is about somebody
+  # who does not exist yet (`rules/elements.mjs#deferredPredicate`).
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 50
+    npValue: 50
+    defer: true
+    predicate:
+      - { or: ["self:attribute:outsider", "self:skill:existenceOutsideTheDomain"] }
+
+# `existenceOutsideTheDomain` is Van Gogh's Skill (Ch. 35), who is not in the
+# authored corpus yet. Authored and inert by design, exactly as Karna's *Fated
+# Rivals of the Mahabharata* names an Arjuna nobody has built: a cross-Servant
+# reference resolves by slug and warns rather than erroring, because a match
+# legitimately may not include the Servant named.

@@ -317,7 +317,7 @@ export function isComplete(s) {
 export function canCounter(s, {
   defenderAlive, attackerInRange, attackerHasAccel = false, defenderCanAct = true,
   defenderHasBerserk = false, defenderHasFragarach = false, attackerConcealedAndFaster = false,
-  chainMode = "strict",
+  defenderForbids = [], chainMode = "strict",
 }) {
   // "Counters cannot be Countered again." First, because without it two
   // Servants in range of each other counter one another until something gives
@@ -343,7 +343,13 @@ export function canCounter(s, {
   if (defenderHasBerserk) return false;
   // Mannanán trades the normal counter for an automatic Fragarach counter
   // (Ch. 24 §24.8): "cannot perform a normal Counter".
-  if (defenderHasFragarach) return false;
+  //
+  // `defenderForbids` is the general form -- a `ForbidReaction` element, from
+  // whatever is doing the forbidding -- and `defenderHasFragarach` is the named
+  // special case it grew out of. Both are kept: the flag is what the callers
+  // and the tests written before the element existed still pass, and answering
+  // "yes" to either is the same refusal.
+  if (defenderHasFragarach || defenderForbids.includes("counter")) return false;
   // Presence Concealment: a defender slower than a concealed attacker never
   // located it to counter.
   if (attackerConcealedAndFaster) return false;

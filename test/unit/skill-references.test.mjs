@@ -47,12 +47,28 @@ function slugOf(doc) {
   return doc.slug ?? String(doc.id ?? "").replace(/^class-/, "");
 }
 
-/** Every slug any authored ability, class skill or effect will carry. */
-const SLUGS = new Set(
-  SOURCE.map((p) => parse(readFileSync(p, "utf8")))
-    .filter((d) => d?.id)
-    .map(slugOf),
-);
+const DOCS = SOURCE.map((p) => parse(readFileSync(p, "utf8")));
+
+/**
+ * Every slug any authored ability, class skill or effect will carry, plus
+ * every slug a document has **declared** it is referring to ahead of time.
+ *
+ * A forward reference is legitimate and the corpus already contains one: Karna's
+ * *Fated Rivals of the Mahabharata* names an Arjuna nobody has built, and §36.1's
+ * DECISION is that a cross-Servant reference resolves by slug and warns rather
+ * than erroring, *"because a match legitimately may not include the Servant
+ * named"*. Mannanán's *Alter Ego* is the second: it pays double against the
+ * `Existence Outside The Domain` Skill, which belongs to Van Gogh (Ch. 35).
+ *
+ * `forwardReferences:` is how the author says so out loud. It is deliberately
+ * not an allowlist inside this test: a typo would then be indistinguishable
+ * from a promise, and the promise belongs beside the clause that makes it.
+ * `validate-content` prints one warning per entry so the debt stays visible.
+ */
+const SLUGS = new Set([
+  ...DOCS.filter((d) => d?.id).map(slugOf),
+  ...DOCS.flatMap((d) => d?.forwardReferences ?? []),
+]);
 
 /** Every skill name referenced anywhere, with where it came from. */
 function references() {

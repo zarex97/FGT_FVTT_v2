@@ -1,5 +1,9 @@
 # 33 — Case Study: Mannanán mac Lir
 
+**Built.** Fourteen abilities, every clause running in a live world; the tally in §33.8 records
+what each one cost. This chapter was written as a design and is kept as one — where the build
+departed from it, §33.9 says so and why.
+
 Mannanán is the acceptance test for **reactive mechanics**. She has a counter that fires on
 being attacked *or debuffed*, a Noble Phantasm that cancels an incoming Noble Phantasm and
 retaliates, a token economy feeding three different consumers, and a mode switch triggered by
@@ -399,6 +403,76 @@ reference set is mostly ordinary cases.
 
 **Script elements: one** — and it is the one ability in the entire reference set that genuinely
 requires cross-ability reasoning.
+
+---
+
+## 33.9 What the build changed
+
+Fourteen of the fifteen mechanisms above were built as specified. The rest of this section is the
+list of places where the design and the engine disagreed, and which one won.
+
+**No script.** §33.4 budgets the reference set's one `Script` element for *Fragarach*, and it
+turned out not to need one. The genuinely computational part is *"was it their strongest"*, and
+that belongs in `rules/np-strength.mjs` — pure, testable, and rankable against a synthetic
+neutral defender — rather than inside a registered function content cannot inspect. What is left
+is a two-branch declaration on the ability itself:
+
+```yaml
+cancelsNP:
+  againstStrongest: { effect: instakill }
+  otherwise: { reflect: true }
+```
+
+The reference set's script count is therefore **zero**, and the `Script` element remains an
+escape hatch nothing has yet needed.
+
+**`ResourceMax` was not built.** §33.2 proposes a rule element that raises the pool's ceiling
+while a predicate holds. Holder Mode is permanent and one-way, so the ceiling is raised by
+**writing the field once**, at entry — a derived cap maintained for a state that never reverts is
+machinery with no second case. The clause is a `StatDelta` in the revival's `then:` and a
+`statChange` phase on the button.
+
+**`ReplaceAbility` was not built either.** §33.5 describes an element that hides one ability and
+reveals another while a predicate holds, sharing the cooldown. Expressed as the two gates that
+already exist — `requirements: [{kind: modeInactive, mode: godsHolderPossession}]` on *Toole
+Fragarach* and `modeActive` on *Hallowed Sea God's Sword*, plus `alsoTriggers` in both directions
+— it is the same rule with the same two properties, in vocabulary the validator already checks.
+Drake's normal-attack replacement is a different shape (a Unit's attack, not an ability slot) and
+will need its own answer.
+
+**A mode may have an entry price.** Mad Enhancement, Presence Concealment and Riding's Active are
+all free switches, so the toggle was a bare write with no gates and no phases. *God's Holder:
+Possession* is the first that is not — three gates and three writes — so `onToggleMode` now runs
+the ability's `phases` and its requirements on the way **on**. Switching a mode off still pays
+nothing: no sheet in the corpus states an exit price.
+
+**`ignoresOverkill`.** §31.2's revival machinery subtracts the excess damage that killed the
+bearer from whatever the source restores — God Hand's own clause, generalised because every
+source in the corpus had it. Possession is *"restoring her Health **to** 50% of its maximum
+value"*, a destination rather than an amount, so it opts out. The same distinction appears on the
+button as `heal: {toPercentOfMax: 50}` beside the existing `percentOfMax`.
+
+**`rangeBonus`.** *"Range+2 for the Combat Process"* is a **relative** reach and the anchor
+vocabulary had only an absolute one. Authored as the 3 it works out to today it would have been
+wrong the moment anything moved her Range — which Holder Mode does, and which is the whole reason
+her second sword exists.
+
+**Three defects in shipped machinery**, none of them hers, each found by a clause of hers landing
+on it:
+
+- A Unit reduced to **zero Health came back at maximum**. Each actor type's `prepareBaseData`
+  backfills an unset Health pool and recognised "unset" as *zero* — which is also what a Unit
+  that has just been killed looks like. Every Servant in the game was unkillable by damage unless
+  something had happened to persist its `max`. The initial is `null` now, and zero is a value.
+- **`min: 0` on a choice prompt was ignored.** Four call sites have passed it since they were
+  written and `ChoiceDialog` enforced an exact count, so declining was only possible by dismissing
+  the window; Confirm warned and refused. Jack's pre-emption, the attacker's timing window and
+  both of Mannanán's own offers were all affected.
+- **The attack path read the document where it should have read the projection.** `baseSpecFor`
+  and `targetSpecFor` took `attacker.system.normalAttack` and `attacker.system.range`, so Holder
+  Mode's banded attack bypassed Magic Resistance (from the projection) and then dealt the sheet's
+  flat STR (from the document), and her own Normal Attack was refused at 2 panels while every
+  other consumer agreed she reached 3. A `Range Up` on any Servant had the same effect.
 
 ---
 

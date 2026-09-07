@@ -1,0 +1,105 @@
+# Mannanán mac Lir — the Fragarach Counter.
+# docs/24-rules-engine.md §24.8, docs/33-case-mannanan.md §33.3
+#
+# > "When Mannanán is Attacked or inflicted with a debuff, at the end of the
+# >  Combat Process (if Attacked), she automatically performs a Fragarach
+# >  Counter on the DU, which deals 2.5x damage using her Base Attack (STR). A
+# >  Fragarach Counter cannot be Blocked, and cannot be Evaded except with
+# >  Dodge. Then, apply the following effects-
+# >  a. The DU is inflicted with Def Dwn (C) for 1◈ Turns, all damage taken is
+# >     increased by 10%; and Agility is reduced by 1 when damage is received.
+# >  b. Apply S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area
+# >     of Mannanán, Crit Chance is increased by 10%.
+# >  c. Mannanán's NP Cooldown is reduced by ⅓◈ Turns.
+# >  d. Gain 1 Fragarach Token."
+#
+# NOT A BUTTON. `engine/auto-counter.mjs` queues the provocation and
+# `engine/attack.mjs#flushAutoCounters` declares this on her behalf. It is
+# authored as an ability rather than described inline on the effect because
+# §12.8's ruling is that a Counter is a full declaration -- its own reaction
+# ladder, its own damage pipeline, its own riders -- and describing it inline
+# would be a second, weaker damage path that no ladder reaches.
+schema: 1
+id: mannanan-fragarach-counter
+name: "Fragarach Counter"
+kind: skill
+slug: fragarachCounter
+isAttackSkill: true
+# Clause 3: *"Fragarach Counters deal NP Damage; however they are not affected
+# by NP Seal."* The three scoping flags of §15.5 pulled apart, and this is the
+# clearest justification for their being independent:
+#
+#   damage   -> NP, so `NP DmUp`, `NP DmDwn` and every NP-scoped modifier see it
+#   seal     -> none, which is what `isNP: false` buys: NP Seal suppresses
+#               actions of kind `np` (`rules/budget.mjs`), and this is neither
+#               an action nor kind `np`
+#   cooldown -> none of its own; it is free, because the `fragarach` status it
+#               comes from already has one
+#
+# A single derived predicate would have made this inexpressible.
+categorizedAsNP: true
+# It is a reaction, so it never costs her a Turn and never opens a window of its
+# own. `declareProcesses` sits below the budget spend, which is what makes that
+# true rather than something this file has to assert.
+countsAsAttack: false
+description: |
+  The automatic Counter the @effect[fragarach]{Fragarach} status performs. Deals 2.5x damage
+  using Base Attack (STR), cannot be Blocked, and cannot be Evaded except with
+  @effect[dodge]{Dodge}. Deals NP Damage, and is not affected by NP Seal.
+targeting:
+  # "On the DU" -- whoever provoked it, at whatever distance. The engine names
+  # the target when it declares the counter; the anchor is here so the
+  # declaration has a shape at all.
+  anchor: { kind: targetUnit, range: 99 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  # "2.5x damage using her Base Attack (STR)."
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+  component: str
+  multiplier: 2.5
+  # "A Fragarach Counter cannot be Blocked, and cannot be Evaded except with
+  # Dodge." Two per-attack restrictions on the reaction ladder, and the first
+  # in the corpus: `unblockable` removes Block from the rung at declaration and
+  # `evadableOnlyBy` makes the Evade fail without rolling unless she is looking
+  # at a Dodge (`rules/checks.mjs#evade`).
+  #
+  # `Evade` -- the buff Successor of the Red Branch applies -- is deliberately
+  # NOT on the list. That is the whole reason `evade` and `dodge` are two
+  # effects rather than one.
+  unblockable: true
+  evadableOnlyBy: [dodge]
+phases:
+  - kind: damage
+  # The riders, which land after the damage. An `applyEffects` phase with no
+  # `target` lands on the Unit this Process is against -- the DU, which is
+  # exactly who provoked the counter.
+  - kind: applyEffects
+    effects:
+      # a. Def Dwn (C), whose second clause -- "Agility is reduced by 1 when
+      # damage is received" -- is an `OnEvent damageTaken` on the effect itself.
+      - { id: defDwnC, magnitude: 10, npMagnitude: 10, duration: "1◈" }
+  # b. S.Crit Up to allies within 2 panels of MANNANÁN, not of the victim, so
+  # this phase carries its own targeting.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      - { id: sCritUp, magnitude: 10, duration: "⅓◈" }
+  # c. "Mannanán's NP Cooldown is reduced by ⅓◈ Turns." `scope: np` -- the
+  # clause names no Noble Phantasm and she has three.
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, ticks: "⅓◈", direction: down }
+  # d. "Gain 1 Fragarach Token." Clamped by the pool's own `max`, which is what
+  # makes the counter's payout stop at 5 -- or at 7 in Holder Mode -- without
+  # this clause knowing either number.
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.fragarachTokens.value, delta: 1 }

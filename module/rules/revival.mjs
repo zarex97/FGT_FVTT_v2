@@ -23,6 +23,8 @@
  * burning a God Hand charge while `Undying` sits unused.
  */
 
+import { meetsRequirement } from "./items.mjs";
+
 /**
  * @typedef {object} RevivalSource
  * @property {string} id
@@ -71,6 +73,19 @@ export function availableRevivals(unit) {
 function isAvailable(source, unit) {
   if (source.charges !== null && source.charges !== undefined && source.charges <= 0) return false;
 
+  // A source that has been declined. `resolveDefeat` is pure and cannot ask a
+  // question, so the orchestrator asks first and stamps the answer on the unit
+  // it hands in (`engine/attack.mjs#resolveDefeatOf`). An optional source that
+  // nobody was asked about is NOT available: a transformation that spends every
+  // token the Servant holds must not happen because a prompt timed out.
+  if (source.optional && !(unit.acceptedRevivals ?? []).includes(source.id)) return false;
+
+  // Gates the source states in the ordinary requirement vocabulary. *"...and
+  // while she has at least 1 Fragarach Token."*
+  for (const req of source.requires ?? []) {
+    if (!meetsRequirement(req, { unit })) return false;
+  }
+
   // The source's OWN cooldown, read off the ability list. That reuses the clock
   // `advanceCooldowns` already turns rather than inventing a second one, and it
   // means the window is visible on the sheet where a player can see why the
@@ -118,7 +133,19 @@ export function resolveRevival({ unit, overkill = 0, rolls = {} }) {
     ? Math.floor(max * (source.percentOfMax / 100))
     : (rolls[`revival:${source.id}:${n}`] ?? 0));
 
-  let remaining = Math.max(0, overkill);
+  // Overkill is subtracted from what the source restores, which is God Hand's
+  // own clause -- *"if the damage of the Attack that defeated Heracles exceeds
+  // his current Health, the excess damage is reduced from his newly restored
+  // Health"* -- generalised to every source because every source in the corpus
+  // had it until now.
+  //
+  // Mannanán's *God's Holder: Possession* is the first that does not: it is
+  // *"restoring her Health **to** 50% of its maximum value"*, a destination
+  // rather than an amount, and a Servant killed by a big enough hit would
+  // otherwise enter Holder Mode at less than the half her sheet promises. A
+  // cascading source cannot opt out — spending several charges against the
+  // excess is the only thing cascading means.
+  let remaining = source.ignoresOverkill && !source.cascading ? 0 : Math.max(0, overkill);
   let restored = 0;
   let used = 0;
   const limit = source.charges ?? 1;

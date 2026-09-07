@@ -1,0 +1,32 @@
+# Appendix A §A.9 / docs/10-effects-taxonomy.md §10.4 — the third Def Dwn variant.
+#
+# "Def Dwn (C) | Agility −1 at end of Damage Step whenever successfully Attacked."
+# A distinct effect and not a stronger Def Dwn: the extra clause is what the
+# letter names, and content that strips "one Def Dwn" must not take this instead.
+schema: 1
+id: defDwnC
+name: "Def Dwn (C)"
+description: "All damage taken is increased by X%; Agility is reduced by 1 whenever damage is received."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+families: [defDwn]
+rules:
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: "@magnitude"
+    # "All damage taken is increased by 10%" with no NP clause, so the NP
+    # magnitude is the same number rather than the usual halving.
+    npValue: "@magnitude"
+
+  # The second clause. `damageTaken` fires on the Unit that RECEIVED the damage
+  # -- the mirror of `damageDealt`, and the reason it had to start firing: every
+  # rider in the catalogue that pays out for being hit had no rung at all.
+  - key: OnEvent
+    event: damageTaken
+    automatic: true
+    then:
+      - { key: StatDelta, stat: "agility.value", delta: -1 }

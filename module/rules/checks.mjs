@@ -209,7 +209,37 @@ export function resolveCheck({ roll, target, table, modifiers = [] }) {
  * @see docs/14-checks-and-randomness.md §14.5
  */
 export function evade({ roll, agility, hasDodge = false, attackHasAim = false,
-  forceUnfavourable = false, modifiers = [], autoSucceed = null, attackProperties = [] }) {
+  forceUnfavourable = false, modifiers = [], autoSucceed = null, attackProperties = [],
+  evadableOnlyBy = null, held = [] }) {
+  // An attack that narrows the ladder. Mannanán's Fragarach Counter is the
+  // first: *"cannot be Blocked, and cannot be Evaded except with Dodge."*
+  //
+  // Checked BEFORE the Dodge and auto-succeed branches, and it decides both:
+  // a defender holding one of the named effects falls through to the ordinary
+  // automatic evasion, and one holding none of them fails without rolling.
+  // Reading it as a modifier instead would let a big enough Agility beat a
+  // clause that is not about Agility.
+  //
+  // `null` means no restriction; an ARRAY means one, and an **empty** array
+  // means nothing evades at all. That is not an edge case to be tidied away --
+  // it is how *"if any Evade fails, the remaining hits cannot be Evaded"* is
+  // expressed (Toole Fragarach): a permit that exists and admits nobody.
+  if (Array.isArray(evadableOnlyBy)) {
+    const permitted = evadableOnlyBy.some((id) => held.includes(id));
+    if (!permitted) {
+      return {
+        success: false, roll, total: 0, target: agility, table: null,
+        modifiers: [{
+          source: evadableOnlyBy.length > 0
+            ? `cannot be Evaded except with ${evadableOnlyBy.join(" or ")}`
+            : "this hit cannot be Evaded",
+          value: 0,
+        }],
+        automatic: true,
+      };
+    }
+  }
+
   if (hasDodge && !attackHasAim) {
     return {
       success: true, roll, total: 0, target: agility,

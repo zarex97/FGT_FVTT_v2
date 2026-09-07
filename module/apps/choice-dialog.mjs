@@ -45,7 +45,8 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {object} spec
    * @param {string} spec.title
    * @param {string} [spec.hint]
-   * @param {number} spec.count how many must be picked, exactly
+   * @param {number} spec.count the most that may be picked
+   * @param {number} [spec.min] the fewest; defaults to `count`, i.e. "exactly"
    * @param {Array<{id: string, name: string, subtitle?: string, detail?: string}>} spec.options
    * @returns {Promise<string[]|null>}
    */
@@ -66,14 +67,40 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#resolve = resolve;
   }
 
+  /**
+   * The fewest picks this question accepts.
+   *
+   * `min` has been passed by four call sites since they were written and this
+   * dialog never read it, so every one of them was an **exactly-N** question:
+   * Jack's pre-emption, the attacker's timing window, Mannanán's optional token
+   * spend and her optional revival all say `min: 0`, and all four could only be
+   * declined by dismissing the window. Confirm warned and refused.
+   *
+   * That is not a cosmetic defect. Declining is a legitimate answer to all four
+   * -- an `OptionalCost` is a trade the player is meant to weigh -- and a
+   * dialog whose only "no" is the X teaches that pressing the obvious button
+   * does nothing.
+   *
+   * Defaults to `count`, so Scáthach's "pick exactly two" is unchanged.
+   *
+   * @returns {number}
+   */
+  get #min() {
+    const count = this.#spec.count ?? 1;
+    return Math.min(this.#spec.min ?? count, count);
+  }
+
   /** @inheritdoc */
   async _prepareContext() {
     const count = this.#spec.count ?? 1;
+    const min = this.#min;
     return {
       hint: this.#spec.hint ?? "",
       count,
-      remaining: count - this.#picked.size,
-      complete: this.#picked.size === count,
+      min,
+      optional: min === 0,
+      remaining: Math.max(0, min - this.#picked.size),
+      complete: this.#picked.size >= min,
       options: (this.#spec.options ?? []).map((o) => ({ ...o, picked: this.#picked.has(o.id) })),
     };
   }
@@ -115,8 +142,11 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onConfirm() {
     const count = this.#spec.count ?? 1;
-    if (this.#picked.size !== count) {
-      ui.notifications.warn(game.i18n.format("FGT.Choice.PickExactly", { count }));
+    const min = this.#min;
+    if (this.#picked.size < min) {
+      ui.notifications.warn(min === count
+        ? game.i18n.format("FGT.Choice.PickExactly", { count })
+        : game.i18n.format("FGT.Choice.PickAtLeast", { count: min }));
       return;
     }
     const picked = [...this.#picked];

@@ -109,3 +109,28 @@ export function resourcePathFor(key, unit = null) {
   if (unit?.resources && key in unit.resources) return resourcePath(key);
   return `${key}.value`;
 }
+
+/**
+ * A pool's name as a person reads it.
+ *
+ * Content names pools in camelCase — `fragarachTokens`, `prs`, `construction` —
+ * and until now that is what the sheet printed and what every prompt said, so
+ * *God's Holder: Tradition Carrier* offered to *"spend 1 fragarachTokens"*.
+ * The camelCase is the write path's business and not the player's.
+ *
+ * An acronym stays an acronym: `prs` is PRS Tokens on Scáthach's sheet, and
+ * "Prs" would be a different word. Any all-lowercase key of three letters or
+ * fewer is upper-cased whole, which covers the corpus and errs toward leaving
+ * a short name alone rather than title-casing it into something else.
+ *
+ * @param {string} key
+ * @returns {string}
+ */
+export function resourceLabel(key) {
+  const raw = String(key ?? "").split(".").filter(Boolean).at(-1) ?? "";
+  if (raw === "") return "";
+  if (raw.length <= 3 && raw === raw.toLowerCase()) return raw.toUpperCase();
+  return raw
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/^./, (c) => c.toUpperCase());
+}

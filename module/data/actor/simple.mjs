@@ -70,7 +70,9 @@ export class SummonData extends foundry.abstract.TypeDataModel {
     }
     if ((this.health.max === null || this.health.max === 0) && this.baseHealth) {
       this.health.max = this.baseHealth;
-      if (this.health.value === null || this.health.value === 0) this.health.value = this.baseHealth;
+      // `=== null`, not zero: a Summon or a Platform at zero has been
+      // destroyed. See `data/actor/servant.mjs` for the defect this closes.
+      if (this.health.value === null) this.health.value = this.baseHealth;
     }
   }
 }
@@ -143,7 +145,9 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
   prepareBaseData() {
     if ((this.health.max === null || this.health.max === 0) && this.baseHealth) {
       this.health.max = this.baseHealth;
-      if (this.health.value === null || this.health.value === 0) this.health.value = this.baseHealth;
+      // `=== null`, not zero: a Summon or a Platform at zero has been
+      // destroyed. See `data/actor/servant.mjs` for the defect this closes.
+      if (this.health.value === null) this.health.value = this.baseHealth;
     }
   }
 }

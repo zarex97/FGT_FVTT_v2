@@ -1,0 +1,136 @@
+# packs/_source/servants/mannanan.yml
+# Conversion source: char_orig_sheets/Copia de Mannanán mac Lir.md
+# Discussed: docs/33-case-mannanan.md
+#
+# The reference set's acceptance test for REACTIVE mechanics: a counter that
+# fires on being attacked *or debuffed*, a Noble Phantasm that cancels an
+# incoming Noble Phantasm, and a mode entered on her own defeat.
+schema: 1
+id: mannanan
+name: "Mannanán mac Lir"
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Mannanán mac Lir"
+# "(Bazett Fraga McRemitz)" -- the vessel. A Pseudo Servant is the god riding
+# a living magus, which is what the attribute line below is about.
+servantClasses: [alterEgo]
+classContainer: alterEgo
+alignment: { order: neutral, morality: good }
+region: [ireland]
+# `pseudoServant` and `livingHuman` are BOTH load-bearing, and they pull in
+# opposite directions (Ch. 02 §2.10, `domain/attributes.mjs`):
+#
+#   Servant => Spirit   UNLESS Demi-Servant or Pseudo-Servant
+#
+# so `pseudoServant` withholds `spirit` -- effects keying on Spirit miss her --
+# while `livingHuman` is stated outright and effects keying on it hit her. She
+# is the Servant that made the closure worth building; before it, `Pseudo
+# Servant` was a word with no consequence.
+attributes: [female, servant, pseudoServant, sky, king, humanoid, livingHuman]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: A, end: B, agi: B, mag: EX, luc: D }
+baseHealth: 1250
+mov: 6
+range: { panels: 1, targets: 1 }
+# STR A => 150 and MAG EX => 250 both come straight off `domain/tables.mjs`,
+# so the sheet and the table agree (Ch. 41 Q50 does not have to arbitrate).
+baseAttack: { str: 150, mag: 250 }
+# Range 1, sword in hand. Holder Mode rewrites this into a range-banded attack
+# through `summonVariant.holder` below.
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# ─── Resources (§6.10) ─────────────────────────────────────────────────
+# The third Resource pool in the system, and the first with FOUR producers and
+# THREE consumers: +1 at the end of every Round, +1 per Fragarach Counter, +1
+# per acted Turn in Holder Mode; 1 for the Combat-Phase crit offer, 3 for Toole
+# Fragarach, 5 for Fragarach itself.
+#
+# The ceiling is load-bearing in both directions: it is what makes holding
+# tokens a decision (Tradition Carrier pays 5% crit damage per token held), and
+# Holder Mode raises it by writing `max` once, at activation, because the mode
+# is permanent and one-way.
+resources:
+  fragarachTokens: { value: 5, max: 5 }
+
+# ─── Holder Mode's rewrite (Ch. 33 §33.5) ──────────────────────────────
+# Clauses 3 and 4 of God's Holder: Possession change the SHAPE of her data
+# rather than layering a conditional on a fixed shape -- which is exactly what
+# `summonVariant` was built for (`rules/summon-variant.mjs`), and the reason
+# `VariantOverride` names a BRANCH rather than restating the numbers. The
+# branch is entered by a mode rather than by a coin, which the mechanism does
+# not care about: nothing in the snapshot's variant lookup asks how the branch
+# was chosen.
+summonVariant:
+  holder:
+    id: holder
+    overrides:
+      # 3. "Range is increased to 3 panels."
+      range: { panels: 3, targets: 1 }
+      # 4. "Normal Attacks at a Range of 1 to 2 use Base Attack (STR) and 30% of
+      #     Base Attack (MAG) combined (e.g. 150+75=225), not affected by Magic
+      #     Resistance. Normal Attacks at a Range of 3 or higher use Base
+      #     Attack (MAG)."
+      normalAttack:
+        mode: rangeBanded
+        component: str
+        bands:
+          - from: 1
+            to: 2
+            component: str
+            ignoresMagicResistance: true
+            sources:
+              - { component: str, factor: 1 }
+              - { component: mag, factor: 0.3 }
+          - from: 3
+            component: mag
+            sources:
+              - { component: mag, factor: 1 }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: mannanan-alter-ego }
+  - { ref: class-magic-resistance, rank: B }
+  # "Fragarach Enbarr." Riding A is MOV +5 for the Turn on a 3◈ cooldown, which
+  # is what `ridingMov`/`ridingCooldown` already give at that rank.
+  - { ref: class-riding, rank: A, cooldown: "3◈" }
+  - { ref: divinity, rank: B }
+  - { ref: mannanan-tradition-carrier }
+  - { ref: mannanan-sealing-designation-enforcer }
+  - { ref: mannanan-sea-gods-rune }
+  - { ref: mannanan-successor-of-the-red-branch }
+  - { ref: mannanan-toole-fragarach }
+  - { ref: mannanan-fragarach-enbarr }
+  - { ref: mannanan-fragarach }
+  - { ref: mannanan-gods-holder-possession }
+  - { ref: mannanan-hallowed-sea-gods-sword }
+  # The Fragarach Counter. Not a button: it is declared by the engine on her
+  # behalf whenever the `fragarach` status provokes, and it is authored as an
+  # ability so that the counter is a full Combat Process (§12.8) with a real
+  # reaction ladder rather than a second, weaker damage path.
+  - { ref: mannanan-fragarach-counter }
+
+notes: |
+  The thirteenth Servant, and the one Ch. 33 calls the acceptance test for reactive mechanics.
+
+  **`Pseudo Servant` finally means something.** Ch. 02 §2.10's implication table had never been
+  built: `spirit` appeared nowhere in the corpus, so `Servant => Spirit` had no effect and the
+  exemption that Pseudo-Servants carry had nothing to exempt them from. `domain/attributes.mjs`
+  closes the table for every Unit, which gives every other Servant `spirit` and `hominidae` and
+  gives her neither the first nor a reason to want it. `Magus` is closed there too, because her
+  own *Sealing Designation Enforcer* is what defines it -- *"Masters, Casters, all Units whose
+  Normal Attacks use Base Attack (MAG)"* -- and a definition that reads three fields cannot live
+  in a tag-to-tag table.
+
+  **Her token economy is the first with tension in it.** Scáthach's PRS Tokens and EMIYA's Aria
+  are both spend-or-waste; hers pays 5% crit damage for every token *held*, so the Combat-Phase
+  offer, Toole Fragarach and Fragarach are three consumers competing with a passive that rewards
+  spending none of them.
+
+  **The Fragarach Counter is the reason `OnEvent` takes a list of events.** *"When Mannanán is
+  Attacked OR inflicted with a debuff"* is one trigger with two firings, and a control ability --
+  a Stun, a Def Dwn -- provokes a 2.5× unblockable retaliation that generates a token and pulls
+  her Noble Phantasm forward. Applying `Decoy` to herself is the centrepiece rather than a
+  defensive option: it forces enemies to attack the one Unit answering every attack.

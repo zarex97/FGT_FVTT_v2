@@ -1,0 +1,48 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+# Discussed: docs/33-case-mannanan.md §33.7
+schema: 1
+id: mannanan-successor-of-the-red-branch
+name: "Successor of the Red Branch"
+rank: B
+kind: skill
+slug: successorOfTheRedBranch
+cooldown: "3◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[evade]{Evade} for ⅓◈ Turns.
+  2. Applies @effect[debuffImmune]{Debuff Immune} for ⅓◈ Turns.
+  3. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area
+     of herself, Crit Chance is increased by 20%.
+  Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  # `includeSelf: true` is what makes a self-cast resolve against herself
+  # rather than against nobody: `resolveTargets` drops the caster from its own
+  # target list otherwise, and an ability with an empty target list opens a
+  # Combat Process with no defender that nothing can advance.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      # `evade`, NOT `dodge`. Her own Fragarach Counter is *"cannot be Evaded
+      # except with Dodge"*, so the two have to be distinguishable -- and she is
+      # not the only Servant who will ever stand in front of one.
+      - { id: evade, duration: "⅓◈" }
+      - { id: debuffImmune, duration: "⅓◈" }
+
+  # Clause 3 reaches a different set of Units from the first two, so it carries
+  # its own targeting rather than reusing the Skill's.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      # S.Crit Up, as the sheet says: "application cannot be prevented and it is
+      # Unremovable" (§A.4), so an opponent cannot strip the half of this clause
+      # that reaches her allies.
+      - { id: sCritUp, magnitude: 20, duration: "⅓◈" }

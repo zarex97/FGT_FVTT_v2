@@ -475,11 +475,31 @@ type TimingWindow =
   | "combatProcessStart"        // Heracles's Eye of the Mind (False)
   | "damageStepStart"           // Kingprotea's Monstrous Strength
   | "whenAttacking"             // Mana Burst skills
-  | "whenAttacked"              // Fragarach NP
+  | "whenAttacked"              // Medea's Argos and Trofa
+  | "whenTargetedByNP"          // Mannanán's Fragarach NP — offered at the DECLARATION
   | "whenAllyAttacked"          // Kiritsugu's Scapegoat
-  | "onDefeat"                  // Mannanán's God's Holder: Possession
+  | "onDefeat"                  // Mannanán's God's Holder: Possession — a RevivalSource, not a window
   | "reaction";                 // generic
 ```
+
+`whenTargetedByNP` is the only window that answers a **declaration** rather than a moment inside
+somebody else's Combat Process, and it has to be: what *Fragarach* does is stop the Process from
+happening at all. It is offered exactly where Jack's pre-emption is — after the attacker has paid
+in full, before any Process exists — because the attacker still spent its Noble Phantasm, which
+is what "cancelled" means and the whole cost of walking into her (Ch. 33 §33.4).
+
+### A mode may have an entry price
+
+Mad Enhancement, Presence Concealment and Riding's Active are all free switches, so the toggle
+was a bare write: no requirements, no cooldown, no phases. *God's Holder: Possession* is the
+first that is not — *"can only be used when Mannanán's Health is less than 30% of its maximum
+value OR when she is defeated, and while she has at least 1 Fragarach Token. Remove all Fragarach
+Counters from Mannanán and she enters Holder Mode, restoring her Health to 50% of its maximum
+value."* Three gates and three writes, none of which a boolean flip performs.
+
+A mode with `phases` now runs them, through the ordinary Skill path, on the way **on**. Switching
+a mode **off** still pays nothing: no sheet in the corpus states an exit price, and charging one
+would be inventing a rule.
 
 The default and its two important qualifiers:
 

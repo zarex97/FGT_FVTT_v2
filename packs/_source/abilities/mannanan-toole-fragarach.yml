@@ -1,0 +1,78 @@
+# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
+#
+# "Attack Skill. Can only be used by removing 3 Fragarach Tokens from herself.
+#  Range+2 for the Combat Process. Deals normal damage three times; if the DU
+#  Evades, its Evade Roll is increased by 3 and if any Evade fails, the remaining
+#  hits cannot be Evaded; if the DU Blocks, damage is reduced from the Total
+#  Damage taken. Cooldown: 3◈ Turns."
+schema: 1
+id: mannanan-toole-fragarach
+name: "Toole Fragarach: Gouging Greatsword of the War God"
+kind: skill
+slug: tooleFragarach
+isAttackSkill: true
+# Both swords share one clock. Holder Mode replaces this Skill with `Hallowed
+# Sea God's Sword` (§33.5), and *"sharing the cooldown state so a player cannot
+# reset a cooldown by switching modes"* is the whole reason the replacement is a
+# gate on two documents rather than one document with a branch.
+category: fragarachSword
+cooldown: "3◈"
+timing: { window: ownTurn }
+alsoTriggers:
+  - { ability: mannanan-hallowed-sea-gods-sword }
+requirements:
+  # The gate. Checked before the button is offered (§17.6), so a Mannanán with
+  # two tokens is not invited to press it.
+  - { kind: resourceAtLeast, key: fragarachTokens, amount: 3 }
+  # Replaced by `Hallowed Sea God's Sword` in Holder Mode. Ch. 33 §33.5 calls
+  # this `ReplaceAbility`; expressed as the two gates that already exist, it is
+  # the same rule with the same two properties -- one is hidden while the other
+  # shows, and the shared `alsoTriggers` clock means switching modes does not
+  # reset anything.
+  - { kind: modeInactive, mode: godsHolderPossession }
+description: |
+  Attack Skill. Can only be used by removing 3 Fragarach Tokens from herself. Range+2 for the
+  Combat Process. Deals normal damage three times; if the DU @effect[evade]{Evades}, its Evade Roll is
+  increased by 3 and if any Evade fails, the remaining hits cannot be Evaded; if the DU Blocks,
+  damage is reduced from the Total Damage taken. Cooldown: 3◈ Turns.
+targeting:
+  # "Range+2 for the Combat Process", RELATIVE. Not the absolute 3 it works out
+  # to today: Holder Mode moves her Range from 1 to 3, and this Skill is
+  # replaced there rather than rewritten, so a hard 3 would be wrong the moment
+  # anything else moved her Range (Riding's Active does not, but `Range Up`
+  # does).
+  anchor: { kind: targetUnit, rangeBonus: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  # Her Normal Attack, three times. `repeat` makes each hit its own Combat
+  # Process, which is what gives each one its own reaction ladder -- Appendix
+  # A's `Multihit`: *"the DU can separately Evade or Block each hit."*
+  repeat: 3
+  # "Damaged Units only perform an Injury Roll once regardless of number of hits
+  # taken" -- §12.6 names this Skill while saying so. The roll is made on the
+  # TOTAL, by whichever sibling Process is last to settle its damage.
+  singleInjuryRoll: true
+  # "If the DU Evades, its Evade Roll is increased by 3."
+  evadeModifier: 3
+  # "If any Evade fails, the remaining hits cannot be Evaded." Read across the
+  # sibling Processes of this declaration (`engine/attack.mjs#evadePermit`),
+  # because that is where the earlier hits are.
+  noEvadeAfterFail: true
+  # "If the DU Blocks, damage is reduced from the Total Damage taken."
+  #
+  # NO flag. Block is a flat 25% of each finished number (§13 stage 14, Q1), and
+  # 25% of each of three hits is 25% of their sum -- so per-hit Block already IS
+  # "reduced from the Total Damage taken". What the clause is ruling out is a
+  # Block that only answers one of the three, which is not what this engine
+  # does. Recorded rather than left silent: the sentence looks like it needs a
+  # mechanism and does not.
+phases:
+  # The tokens, spent. A `resource` phase runs in `runCasterPhases`, which the
+  # attack flow calls once per declaration rather than once per hit -- so the
+  # three-Process fan-out costs three tokens in total and not nine.
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.fragarachTokens.value, delta: -3 }
+  - kind: damage

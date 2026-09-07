@@ -44,6 +44,8 @@ import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { expressionRefs } from "../rules/snapshot.mjs";
+import { resolveValue } from "../rules/elements.mjs";
 import { createField } from "./fields.mjs";
 import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
@@ -139,6 +141,13 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
   await fireAbilityUsed(actor, ability);
   await rollConcealmentBreak(actor, ability, self);
   await postCard(actor, ability, targets.units, applied);
+
+  // A debuff this Skill inflicted may have provoked an automatic counter, and a
+  // Skill opens no Combat Process -- so there is no `combatProcessEnd` for the
+  // provocation to wait for. Drained here, after the card, so the counter reads
+  // as an answer to something the table has already seen.
+  const { flushAutoCounters } = await import("./attack.mjs");
+  await flushAutoCounters();
 
   return { ok: true, applied };
 }
@@ -326,9 +335,18 @@ async function runPhases(ability, actor, targets, board, only = null) {
           // Health is a rounding error, and the sheet says "of its maximum
           // value" for exactly that reason.
           const max = doc.system?.health?.max ?? 0;
-          const amount = phase.percentOfMax
-            ? Math.floor(max * (phase.percentOfMax / 100))
-            : (phase.amount ?? 0);
+          // "Restoring her Health **to** 50% of its maximum value" is a
+          // different sentence from "restores 50% of its maximum value", and
+          // Mannanán's *God's Holder: Possession* is the first content to say
+          // the first one. It sets a floor rather than adding: she enters
+          // Holder Mode at exactly half, whether she pressed the button at 29%
+          // or came back from zero. Adding would pay her more for having been
+          // healthier, which is the opposite of what a last-stand clause means.
+          const amount = phase.toPercentOfMax !== undefined
+            ? Math.max(0, Math.floor(max * (phase.toPercentOfMax / 100)) - (doc.system?.health?.value ?? 0))
+            : (phase.percentOfMax
+              ? Math.floor(max * (phase.percentOfMax / 100))
+              : (phase.amount ?? 0));
           if (amount > 0) {
             await applyWorldIntents([I.heal(target.unitId, amount, ability.id)], `skill:${ability.id}:heal`);
           }
@@ -344,13 +362,20 @@ async function runPhases(ability, actor, targets, board, only = null) {
 
         case "resource":
           await applyWorldIntents(
-            (phase.changes ?? []).map((c) =>
+            (phase.changes ?? []).map((c) => {
+              // An ABSOLUTE write, for a clause that names the resulting number
+              // rather than a change. *"Remove all Fragarach Counters from
+              // Mannanán"* is `set: 0`; expressing it as a very large negative
+              // delta would work by accident and read as a bug -- the same
+              // argument `cooldownChanges` already makes for its own `set`.
+              if (c.set !== undefined) return I.setResource(target.unitId, c.key, c.set);
               // `clampToMax` is the difference between "restores 3 Agility" and
               // "grants 3 Agility": Golden Fleece restores, so it cannot push a
               // Servant above the maximum it rolled at summon.
-              (c.clampToMax
+              return c.clampToMax
                 ? I.statDelta(target.unitId, c.key, c.delta, true)
-                : I.resource(target.unitId, c.key, c.delta))),
+                : I.resource(target.unitId, c.key, c.delta);
+            }),
             `skill:${ability.id}:resource`,
           );
           break;
@@ -689,6 +714,24 @@ async function postRollCard(actor, ability, target, results) {
 }
 
 /**
+ * An authored magnitude, which may be a number or an `@` expression.
+ *
+ * `null` is passed through unchanged, because `npMagnitude` uses it to mean
+ * "this effect has no reduced NP magnitude" and coercing that to 0 would make
+ * every buff worth nothing against a Noble Phantasm.
+ *
+ * @param {number|string|null|undefined} raw
+ * @param {object} actor the caster, which the expression resolves against
+ * @returns {number|null}
+ */
+function authoredMagnitude(raw, actor) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === "number") return raw;
+  const value = resolveValue({ magnitude: raw }, null, { refs: expressionRefs(actor) }, "magnitude");
+  return typeof value === "number" ? value : null;
+}
+
+/**
  * @param {object} phase
  * @param {object} ability
  * @param {object} actor
@@ -716,11 +759,17 @@ async function applyPhaseEffects(phase, ability, actor, target) {
     const outcome = applyEffect({
       def,
       target,
-      magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
+      // An authored magnitude may be an `@` EXPRESSION rather than a number.
+      // Mannanán's Fragarach Enbarr is *"all damage dealt is increased by 5%
+      // for each Fragarach Counter on herself"* -- a magnitude that is a
+      // function of a pool she spends three other ways, so it cannot be a
+      // literal and cannot be a rank table. Resolved against the CASTER, at the
+      // moment of application, which is when the sheet counts them.
+      magnitude: authoredMagnitude(spec.magnitude, actor) ?? def.defaultMagnitude ?? 0,
       // The "if NP" half of Appendix A's damage family. Referenced by every
       // such effect definition as `@npMagnitude`, against an instance that
       // never carried it.
-      npMagnitude: spec.npMagnitude ?? rule.npMagnitude ?? null,
+      npMagnitude: authoredMagnitude(spec.npMagnitude ?? rule.npMagnitude, actor),
       // See `applyAbilityEffects`: one application worth N stages.
       stages: spec.stages ?? rule.stages ?? 1,
       duration: rule.duration ?? spec.duration ?? def.defaultDuration,
@@ -744,6 +793,12 @@ async function applyPhaseEffects(phase, ability, actor, target) {
         // codebase has produced more than once.
         options: rollOptionsFor({ attacker: unitSnapshot(actor), defender: target }),
         resist: 0,
+        // Whose side applied it, for the self/ally exemption an effect may
+        // declare (`allySelfBypassesResistance`). A faction id rather than a
+        // relation, because this layer has the two documents and not the
+        // alliance table -- and the two effects that need it are both
+        // *"itself or another allied Unit"*, which is what a shared faction is.
+        sourceFactionId: actor.system?.factionId ?? unitSnapshot(actor).factionId ?? null,
       },
     });
 

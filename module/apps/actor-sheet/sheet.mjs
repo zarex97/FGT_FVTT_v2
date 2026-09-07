@@ -105,6 +105,30 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
+    // A mode may have an ENTRY PRICE, and until Mannanán none did. Mad
+    // Enhancement, Presence Concealment and Riding's Active are all free
+    // switches, so the toggle was a bare write and every gate an ordinary
+    // ability is checked against -- its requirements, its cooldown, its
+    // whole-match budget -- was simply absent from this path.
+    //
+    // *God's Holder: Possession* is the first that is not: *"can only be used
+    // when Mannanán's Health is less than 30% of its maximum value OR when she
+    // is defeated, and while she has at least 1 Fragarach Token. Remove all
+    // Fragarach Counters from Mannanán and she enters Holder Mode, restoring
+    // her Health to 50% of its maximum value."* Three gates and three writes,
+    // none of which a boolean flip performs.
+    //
+    // Switching a mode OFF never pays: an exit price is not a thing any sheet
+    // in the corpus states, and charging one would be inventing a rule.
+    if (active && (item.system?.phases ?? []).length > 0) {
+      const { useSkill } = await import("../../engine/skill-use.mjs");
+      const out = await useSkill({ actorId: this.document.id, abilityId: item.id });
+      if (!out.ok) {
+        ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: out.reason }));
+        return;
+      }
+    }
+
     // Stamped on the way ON only: the lockout runs from the activation, and
     // "vice versa" means the same clock is then consulted for switching off.
     await item.update({
