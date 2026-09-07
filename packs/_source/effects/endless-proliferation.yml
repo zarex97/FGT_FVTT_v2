@@ -1,0 +1,40 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+#
+# "At the end of the Turn after every ⅓◈ Turns, Kingprotea gains 1 Proliferation
+#  stock."
+#
+# ⅓◈ is one Turn in a three-Turn Round, so in the Great Holy Grail War this is
+# "at the end of every Turn" and in the eight-Turn variant it is every second.
+# The handler fires on the boundary and the ◈ arithmetic is the scheduler's --
+# which is the whole point of authoring durations in ◈ rather than in turns.
+schema: 1
+id: endlessProliferation
+name: "Endless Proliferation"
+description: |
+  At the end of the Turn after every ⅓◈ Turns, Kingprotea gains 1 @effect[proliferationStock]{Proliferation} stock.
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # `anyTurnEnd` and not `turnEnd`: the handler vocabulary's `turnEnd` is the
+  # OWNER's Turn (§7.4's `unitTurnEnd`), and this clause is every Turn. The
+  # arithmetic settles it -- ten Turns of buff, ten stocks, which is the maximum
+  # her sheet prints. Her own Turns alone would reach three.
+  - key: OnEvent
+    event: anyTurnEnd
+    automatic: true
+    then:
+      # The stock itself. `magnitudeStacks`, so this is a new document every
+      # time and ten of them are ten buffs.
+      - { key: ApplyEffect, effect: { id: proliferationStock } }
+      # "Max AND CURRENT Health is increased by 20% of Kingprotea's ORIGINAL Max
+      # Health." The maximum is derived from the stock count (`Huge Scale`'s
+      # `MaxDelta`); the current has to be paid once, here, because a derived
+      # `alsoCurrent` would refill her on every data preparation.
+      #
+      # `percentOfBase`, not `percentOfMax`: her maximum has already grown by
+      # the time the second stock lands, and a fifth of 2800 is not the 400 her
+      # sheet pays.
+      - { key: Heal, percentOfBase: 20 }

@@ -52,6 +52,20 @@ export const GRANTS = Object.freeze({
    * `engine/attack.mjs#offeredReactions`.
    */
   noReactions: "noReactions",
+
+  /**
+   * Kingprotea's *Huge Scale*: *"With the 'Giant' Attribute, Kingprotea can
+   * Move to any panel regardless of whether it is occupied or not; if the
+   * panel(s) is(are) occupied, all Units occupying said panels will be knocked
+   * back by 1 panel until Kingprotea has space to stand on."*
+   *
+   * A GRANT rather than the `movesOntoOccupiedPanels` field Bašmu carries,
+   * because for Bašmu it is a property of the summon and for her it is a
+   * property of a **Skill** — Skill Seal takes it away, and a field on the
+   * sheet would not notice. Read by `rules/movement.mjs#ignoresBlocking`,
+   * which is the one place the question is asked.
+   */
+  ignoresOccupancy: "ignoresOccupancy",
 });
 
 /**

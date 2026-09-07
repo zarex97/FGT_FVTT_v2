@@ -507,6 +507,27 @@ describe("endTurn ordering", () => {
     expect(hit).not.toContain("mine");
   });
 
+  it("fires `anyTurnEnd` for every unit, whoever is acting", () => {
+    // §7.4's `turnEnd` -- *"every turn, any player's"*. The handler vocabulary
+    // spends that name on the owner's Turn, so the pass that matches the
+    // documented meaning is a second one. Kingprotea's Proliferation is what
+    // needs it: ten Turns of Endless Proliferation, ten stocks.
+    const grow = () => [{ events: ["anyTurnEnd"], actions: [{ kind: "Damage", amount: 1 }] }];
+    const mine = { id: "mine", factionId: "a", acted: false, eventHandlers: grow() };
+    const theirs = { id: "theirs", factionId: "b", acted: false, eventHandlers: grow() };
+    const hit = endTurn(board([mine, theirs]), sctx).filter((i) => i.t === "damage").map((i) => i.unitId);
+    expect(hit).toEqual(["mine", "theirs"]);
+  });
+
+  it("leaves `turnEnd` scoped to the active faction", () => {
+    // Serenity's Zabaniya and Medusa's Blood Fort are authored against this.
+    const upkeep = () => [{ events: ["turnEnd"], actions: [{ kind: "Damage", amount: 1 }] }];
+    const mine = { id: "mine", factionId: "a", acted: false, eventHandlers: upkeep() };
+    const theirs = { id: "theirs", factionId: "b", acted: false, eventHandlers: upkeep() };
+    const hit = endTurn(board([mine, theirs]), sctx).filter((i) => i.t === "damage").map((i) => i.unitId);
+    expect(hit).toEqual(["mine"]);
+  });
+
   it("threads ctx.board through to a fired handler (Ch. 32, HGoB Construction's Region multiplier)", () => {
     // `endTurn`/`beginTurn`/`endRound`/`beginRound` receive `board` as their
     // own parameter, separate from `ctx` -- and never merged it in, so

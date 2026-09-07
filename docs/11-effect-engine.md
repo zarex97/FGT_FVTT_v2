@@ -524,6 +524,23 @@ type RemovalReason = "expire" | "cure" | "dispel" | "replace" | "consume" | "man
 | `consume` (uses exhausted, Guts triggered) | No | No |
 | `manual` (GM) | No | No |
 
+> **Implementation note (Ch. 45).** `rules/removal.mjs` is the whole of this table's second
+> column, built with Kingprotea and reached from both removal paths
+> (`engine/skill-use.mjs#resolveRemoval`, `engine/attack.mjs#removalIntents`). Its shape follows
+> the table: only a **buff** is protected, an `unremovable` effect is skipped before any roll is
+> made, and the roll is **one per `defId`** rather than one per instance — ten Proliferation
+> stocks are ten buffs, and rolling ten times would make her ten times as hard to strip as her
+> sheet says.
+>
+> The magnitude comes from a `BuffRemovalResist` element; her *Huge Scale* contributes
+> `30 + 5n`, which is *"35% at one stock, +5% per additional"* written once. Measured live: 65 at
+> seven stocks.
+>
+> `ignoresRemovalProtection` is a property of the **removal**, not of the effect — which is
+> exactly the case `Infantile Regression` needs, since the protection it is dispelling through is
+> the one those very stocks granted her. Measured live: seven stocks removed against a standing
+> 65% resistance.
+
 ### Which effect gets removed?
 
 > *"Whenever an effect removes buff or debuff from a Unit, and the effect specifies the number

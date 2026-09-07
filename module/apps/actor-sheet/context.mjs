@@ -363,6 +363,12 @@ function overviewContext(actor, snapshot) {
     // the number", and unread by any sheet until now.
     deltas: (snapshot.statDeltas ?? [])
       .filter((d) => !d.target || d.target === "self")
+      // A delta of zero explains nothing, and `rules/derived.mjs` skips it for
+      // the same reason. Kingprotea's `Huge Scale` contributes six of them
+      // whenever she holds no Proliferation stocks, so her sheet opened on
+      // "health.max 0 — Huge Scale, range.panels 0 — Huge Scale, mov 0 —
+      // Huge Scale" under a statline none of them had touched.
+      .filter((d) => d.rankShift || d.value !== 0)
       .map((d) => ({
         stat: d.stat,
         source: d.source ?? game.i18n.localize("FGT.Sheet.UnknownSource"),

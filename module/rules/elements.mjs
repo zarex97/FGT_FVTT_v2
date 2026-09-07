@@ -42,6 +42,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {object[]} eventHandlers
  * @property {object[]} autoCounters  automatic counters, by provocation
  * @property {object[]} durationExtensions  adjustments to an incoming effect's clock
+ * @property {object[]} buffRemovalResist  how hard this unit's buffs are to dispel
  * @property {object[]} optionalCosts  spends this unit may OFFER at a timing window
  * @property {string[]} forbiddenReactions  rungs this unit may not take
  * @property {string[]} attributes       attributes granted by an ability
@@ -72,6 +73,7 @@ export function empty() {
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], unhandled: [],
     autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
+    buffRemovalResist: [],
   };
 }
 
@@ -294,6 +296,78 @@ export function abilityRankShifts(abilities, predicateCtx) {
  * @returns {number|number[]|string|null}
  */
 export function resolveValue(el, rank, ctx, field = "value") {
+  return stackScaled(el, rawValue(el, rank, ctx, field), ctx);
+}
+
+/**
+ * A magnitude that scales with how many of an effect the bearer holds.
+ *
+ * `perStack: {effect, each = 1, base = 0}` resolves to
+ * `base + value × floor(count / each)` while the bearer holds at least one, and
+ * to **0** while it holds none — a clause that pays "for every stock" pays
+ * nothing at zero, including its `base`. `max` clamps the result.
+ *
+ * Kingprotea is what it is for, and it is one field covering six clauses of one
+ * Skill (Ch. 36 §36.7): Max Health per stock, NP damage taken per stock with a
+ * cap, buff-removal resistance at 35 then +5, and a size/Range/MOV step every
+ * third stock. Written as six bespoke readers they would be six places for the
+ * count to be read differently.
+ *
+ * Applied HERE rather than in each executor because this is the single funnel
+ * every element already reads its magnitude through — a `table:`, a literal and
+ * an `@` expression all arrive at the same place — so every element gains it at
+ * once and none of them has to know.
+ *
+ * **The element must live on something collected once.** An effect's rules are
+ * collected per INSTANCE, so a `perStack` element authored on the stock itself
+ * would be collected `n` times and scaled by `n` each time.
+ *
+ * @param {object} el
+ * @param {number|number[]|string|null} value
+ * @param {object} ctx
+ * @returns {number|number[]|string|null}
+ */
+function stackScaled(el, value, ctx) {
+  const spec = el.perStack ?? null;
+  if (!spec) return clampMax(value, el.max);
+  if (typeof value !== "number" && !Array.isArray(value)) return value;
+
+  const count = ctx?.stacks?.[spec.effect] ?? 0;
+  const steps = count > 0 ? Math.floor(count / (spec.each ?? 1)) : 0;
+  const scale = (v) => (count > 0 ? (spec.base ?? 0) + v * steps : 0);
+
+  return clampMax(Array.isArray(value) ? value.map(scale) : scale(value), el.max);
+}
+
+/**
+ * Clamp a magnitude to the ceiling its own clause states.
+ *
+ * *"NP damage received is reduced by 10% per stock (maximum cap of this effect
+ * is 80%)"* — a cap on the clause rather than on the pipeline's bucket, which
+ * is where it belongs: two different sources of `defUp` are not one another's
+ * ceiling.
+ *
+ * @param {number|number[]|string|null} value
+ * @param {number|undefined} max
+ * @returns {number|number[]|string|null}
+ */
+function clampMax(value, max) {
+  if (typeof max !== "number") return value;
+  if (typeof value === "number") return Math.min(value, max);
+  if (Array.isArray(value)) return value.map((v) => (typeof v === "number" ? Math.min(v, max) : v));
+  return value;
+}
+
+/**
+ * The element's magnitude before any stack scaling.
+ *
+ * @param {object} el
+ * @param {Rank|null} rank
+ * @param {object} ctx
+ * @param {string} field
+ * @returns {number|number[]|string|null}
+ */
+function rawValue(el, rank, ctx, field) {
   if (el.table) {
     const v = lookup(el.table, rank);
     // A dice-formula table with a per-step delta returns `{formula, bonus}`;
@@ -420,6 +494,11 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     excludeContentId: el.excludeContentId === undefined
       ? null
       : (Array.isArray(el.excludeContentId) ? [...el.excludeContentId] : [el.excludeContentId]),
+    // The include-list, for a handler about ONE named ability rather than a
+    // family of them.
+    ofContentId: el.ofContentId === undefined
+      ? null
+      : (Array.isArray(el.ofContentId) ? [...el.ofContentId] : [el.ofContentId]),
     excludeNP: el.excludeNP ?? false,
     // A standing upkeep this Turn's bigger charge has already replaced --
     // Karna's Note 2. `{category}` or `{contentId}`, tested against the
@@ -444,6 +523,12 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     // `periodic`, would have paid out one extra tick on its way off the unit.
     // `null` for an ability's own handler, which never expires.
     expiry: ability?.fromEffect ? (ability.expiry ?? null) : null,
+    // The mirror. *"At the end of this Unit's Turn EXCEPT the Turn this Skill
+    // was activated"* -- Kingprotea's `NP DmUp (GAO)`, whose whole point is
+    // that the buffs she just gained survive to be spent. `null` for an
+    // ability's own handler, which has no arrival.
+    appliedAt: ability?.fromEffect ? (ability.appliedTick ?? null) : null,
+    notOnApplyTurn: el.notOnApplyTurn ?? false,
     source,
   };
 }
@@ -617,6 +702,16 @@ export const EXECUTORS = Object.freeze({
     // field meaning two things in one vocabulary is the defect
     // `revivalPriority` exists to avoid.
     const f = typeof el.magnitudeFactor === "number" ? el.magnitudeFactor : 1;
+    // The author's own rounding, stated once rather than tabulated six times.
+    // *"This effect is halved for Attacks which use Base Attack (MAG)"* is
+    // exact at every rank whose figure is even -- 60→30, 100→50 -- and
+    // Kingprotea's A+ is the first that is not: her sheet writes the halved
+    // magnitude out in a parenthesis, *"(40%)"*, where half of 85 is 42.5.
+    // Rounding DOWN to a multiple of 5 reproduces all three, and it is the same
+    // operation the NP column of `madEnhancementDefence` describes.
+    const round = (n) => (typeof el.magnitudeRoundTo === "number" && el.magnitudeRoundTo > 0
+      ? Math.floor(n / el.magnitudeRoundTo) * el.magnitudeRoundTo
+      : n);
     out.modifiers.push({
       key: el.modifierKey ?? (el.direction === "taken" ? "defUp" : "atkUp"),
       // A magnitude rolled per damage event rather than fixed before the
@@ -624,8 +719,8 @@ export const EXECUTORS = Object.freeze({
       // out of `ctx.rolls`, so the dice stay with the caller like every other
       // roll in the system.
       ...(el.roll ? { roll: { ...el.roll } } : {}),
-      value: scalar(v) * f,
-      ...(np !== null && np !== undefined ? { npValue: scalar(np) * f } : {}),
+      value: round(scalar(v) * f),
+      ...(np !== null && np !== undefined ? { npValue: round(scalar(np) * f) } : {}),
       component: el.component ?? null,
       // `null` when the collection pass answered it; the clause itself when it
       // could not, for the pipeline to answer with the attack in scope.
@@ -905,8 +1000,25 @@ export const EXECUTORS = Object.freeze({
     });
   },
 
-  SizeStep(el, { source, out }) {
-    out.statDeltas.push({ stat: "size", value: el.steps ?? 1, every: el.every ?? null, source });
+  /**
+   * A change to how many panels the Unit stands on (Ch. 04 §4.12).
+   *
+   * Pushed as deltas on `footprint.w`/`footprint.h` rather than as an abstract
+   * `size`, which is what it used to be: nothing read `size`, so the element
+   * authored cleanly and grew nobody. The footprint is what
+   * `rules/snapshot.mjs#gridFootprint`, `rules/platforms.mjs` and
+   * `engine/token-footprint.mjs` all already speak.
+   *
+   * Square, because every growth clause in the corpus is: Kingprotea's *Huge
+   * Scale* is *"scaled up from 1x1 panels to 2x2 panels, from 2x2 to 3x3 and so
+   * on"*. A rectangular step would need two magnitudes and no sheet states one.
+   */
+  SizeStep(el, { rank, source, out, ctx }) {
+    const steps = scalar(resolveValue(el, rank, ctx, el.value !== undefined ? "value" : "steps"));
+    if (steps === 0) return;
+    for (const axis of ["w", "h"]) {
+      out.statDeltas.push({ stat: `footprint.${axis}`, value: steps, floor: 1, source });
+    }
   },
 
   /* ── Group 3 — check contributors ─────────────────────────────────────── */
@@ -1040,6 +1152,22 @@ export const EXECUTORS = Object.freeze({
    * ladder, its own damage pipeline, its own riders. Describing it inline would
    * be a second, weaker damage path that no ladder reaches.
    */
+  /**
+   * `Buff Removal ResUp` — how hard this Unit's buffs are to take off.
+   *
+   * Appendix A has listed it since the catalogue was written and no content
+   * could carry it, because removal was unconditional and there was no roll for
+   * a resistance to modify (`rules/removal.mjs`). Kingprotea's *Huge Scale* is
+   * the first: *"the chance of buffs being removed from herself is reduced by
+   * 35%. For every additional stock, the magnitude is increased by 5%"* — which
+   * is `perStack` with a `base`, one element for both halves of the sentence.
+   */
+  BuffRemovalResist(el, { rank, source, out, ctx }) {
+    const value = scalar(resolveValue(el, rank, ctx));
+    if (value === 0) return;
+    out.buffRemovalResist.push({ value, source });
+  },
+
   /**
    * A modifier on the effect APPLICATION pipeline rather than on a stat.
    *

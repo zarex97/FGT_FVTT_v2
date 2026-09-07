@@ -91,7 +91,9 @@ summonVariant:
 
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
-  - { ref: mannanan-alter-ego }
+  # The class's own skill, shared with Kingprotea (`class-skills/alter-ego.yml`).
+  # It was authored here first and moved the moment a second Alter Ego arrived.
+  - { ref: class-alter-ego }
   - { ref: class-magic-resistance, rank: B }
   # "Fragarach Enbarr." Riding A is MOV +5 for the Turn on a 3◈ cooldown, which
   # is what `ridingMov`/`ridingCooldown` already give at that rank.

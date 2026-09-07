@@ -305,6 +305,11 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // did not declare it -- so `def.uses` was always undefined and every
       // count-limited effect fell back to 1.
       uses: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      // A ceiling on how many instances of a `magnitudeStacks` effect one Unit
+      // may hold. §36.7 sketches it beside the stacking rule and Kingprotea's
+      // Proliferation is the first to state one: *"Kingprotea can only have a
+      // maximum of 10 Proliferation stocks."*
+      maxStacks: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true, min: 1 }),
       // What a barrier effect absorbs, and where its pool lives (§A.3's
       // barrier tier). EMIYA's Rho Aias is the only instance.
       absorbs: new fields.ObjectField({ required: false, nullable: true, initial: null }),

@@ -304,6 +304,17 @@ effect definition rather than in a table, because it does not vary by rank.
 Verification against sheets:
 - Kingprotea `A+`: 50+5 = 55% taken (sheet: 55% ✓); 80+5 = 85% dealt (sheet: 85% ✓);
   Master drain 25 (sheet: 25 ✓ — banded, so `+` does not change it).
+  **Her NP column does not follow the per-step rule.** 25+5 = 30% and her sheet says **25%**.
+  Read across the whole column, the NP value is the normal value **halved and floored to a
+  multiple of 5** at every rank but `EX`: 50→25, 40→20, 30→15, 20→10, 10→5, and at `A+`
+  55→27.5→**25**, which is the figure she prints. `EX` is the documented exception (75→30, not
+  35). Built as an `overrides: { "A+": [55, 25] }` entry on the scaled table rather than as a
+  second formula, because one sheet is not enough evidence to replace a table that six sheets
+  reproduce — and `test/unit/tables.test.mjs` asserts the halving across all eight ranks with
+  `EX` named as the exception, so a later `A+` or `B-` sheet will either confirm it or fail
+  loudly.
+  The same halving explains her damage-dealt gloss: 85% dealt, *"40% for MAG"* — 42.5 floored to
+  40, which is `magnitudeRoundTo: 5` on the MAG clause rather than a second authored number.
 - Castor `B-`: 40−5 = 35% taken (sheet: 35% ✓); 60−5 = 55% dealt (sheet: 55% ✓).
 - Penthesilea `EX`: 75% taken (sheet: 75% ✓); 100% dealt (sheet: 100% ✓); drain 30 (sheet: 30 ✓).
 - Heracles `B`: 40% / 60% / 20 (sheet: 40% / 60% / 20 ✓).

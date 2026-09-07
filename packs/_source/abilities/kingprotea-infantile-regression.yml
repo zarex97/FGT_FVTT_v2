@@ -1,0 +1,63 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+# Discussed: docs/36-case-remaining.md §36.7
+#
+# "Removes the 'Endless Proliferation' buff and all Proliferation stocks from
+#  Kingprotea. Then, reduce Kingprotea's NP Cooldown by ⅓◈ Turns x number of
+#  Proliferation stocks removed in this way. Ignores effects that prevent buffs
+#  from being removed. Then reduce the Cooldown of Kingprotea's Skills by 1◈
+#  excluding this Skill. Cooldown: 2◈ Turns"
+#
+# The whole stock, converted into tempo. It is also the only ability in the set
+# that dispels **through** `Buff Removal ResUp` -- and the protection it is
+# dispelling through is the one those very stocks granted her, which is why the
+# bypass is a property of the REMOVAL rather than of the effect
+# (`rules/removal.mjs`).
+schema: 1
+id: kingprotea-infantile-regression
+name: "Infantile Regression"
+rank: C
+kind: skill
+slug: infantileRegression
+cooldown: "2◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Removes the @effect[endlessProliferation]{Endless Proliferation}
+  buff and all @effect[proliferationStock]{Proliferation} stocks from Kingprotea. Then, reduce
+  Kingprotea's NP Cooldown by ⅓◈ Turns × the number of Proliferation stocks removed in this way.
+  Ignores effects that prevent buffs from being removed. Then reduce the Cooldown of
+  Kingprotea's Skills by 1◈ excluding this Skill. Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # The cooldowns are turned FIRST, and the order is the one thing here that
+  # departs from the sheet's sentence order.
+  #
+  # *"⅓◈ x number of Proliferation stocks removed in this way"* is a count of
+  # what the removal below takes, and the removal below takes all of them:
+  # `ignoresRemovalProtection` means none can resist, so the count before and
+  # the count removed are the same number. Reading it before is the only way to
+  # read it at all -- afterwards there is nothing left to count.
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, ticks: "⅓◈", direction: down, perStack: { effect: proliferationStock } }
+      # "...excluding this Skill." `scope: skills` is every ability that is not
+      # a Noble Phantasm; `excludeSelf` is the exclusion, which a category
+      # selector could only express by inventing a category for everything else.
+      - { scope: skills, excludeSelf: true, ticks: "1◈", direction: down }
+
+  # "Removes the Endless Proliferation buff and all Proliferation stocks."
+  # Named rather than selected by polarity: this is not a cleanse, it is a
+  # specific pair, and a blanket "remove all buffs" would take the Atk Up her
+  # own Noble Phantasm just gave her.
+  - kind: removeEffect
+    target: self
+    effects: [endlessProliferation, proliferationStock]
+    # "Ignores effects that prevent buffs from being removed." The bypass is on
+    # the removal, so the same buffs resist one remover and not another --
+    # which is exactly the case here, since the resistance came from the stocks
+    # being removed.
+    ignoresRemovalProtection: true

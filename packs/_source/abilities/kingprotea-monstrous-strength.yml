@@ -1,0 +1,25 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+#
+# Asterios's ability at EX, with the same reasoning behind every field -- see
+# `asterios-monstrous-strength.yml` for why the window is the Damage Step and
+# why the modifier is component-scoped rather than a blanket halving.
+schema: 1
+id: kingprotea-monstrous-strength
+name: "Monstrous Strength"
+rank: EX
+slug: monstrousStrength
+cooldown: "4◈"
+isAttackSkill: false
+description: |
+  (Active) Used at the start of a Damage Step when performing an Attack. STR Damage dealt by
+  that Attack is increased by 150%; if NP, 75%. Cooldown: 4◈ Turns.
+timing: { window: [damageStep] }
+activeRules:
+  # *"STR Damage dealt"* names one component and gives no magnitude for the
+  # other, so this is stage 5's component-scoped lift rather than stage 4's
+  # bucket: against a combined STR+MAG attack only the STR half moves.
+  - key: DamageModifier
+    modifierKey: atkUp
+    component: str
+    value: 150
+    npValue: 75

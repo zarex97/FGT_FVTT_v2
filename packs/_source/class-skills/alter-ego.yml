@@ -1,10 +1,15 @@
-# Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
-# Discussed: docs/33-case-mannanan.md
+# The Alter Ego class's own skill, shared by every Alter Ego in the corpus.
+#
+# Mannanán and Kingprotea carry it word for word, which is what the `{ref: …}`
+# indirection exists for: it was authored on Mannanán first and moved here the
+# moment a second Alter Ego arrived, so the third is free and a correction is
+# one edit.
 schema: 1
-id: mannanan-alter-ego
+id: class-alter-ego
 name: "Alter Ego"
-kind: classSkill
+source: class
 slug: alterEgo
+kind: classSkill
 passive: true
 copyable: { allowed: false, reason: classSkill }
 # `existenceOutsideTheDomain` is Van Gogh's Class Skill (Ch. 35), who is not in
@@ -40,9 +45,9 @@ passiveRules:
   # defensive clause asking about "Units I am receiving damage from" names
   # `self:`. That is not in `DEFERRED_PREFIXES`, because for every other
   # element `self:` is a question about the owner that collection can answer;
-  # answered there it reads "is Mannanán herself an Outsider", which is false
-  # for ever. `defer: true` is the author saying the clause is about somebody
-  # who does not exist yet (`rules/elements.mjs#deferredPredicate`).
+  # answered there it reads "is this Servant herself an Outsider", which is
+  # false for ever. `defer: true` is the author saying the clause is about
+  # somebody who does not exist yet (`rules/elements.mjs#deferredPredicate`).
   - key: DamageModifier
     modifierKey: defUp
     direction: taken
@@ -51,9 +56,3 @@ passiveRules:
     defer: true
     predicate:
       - { or: ["self:attribute:outsider", "self:skill:existenceOutsideTheDomain"] }
-
-# `existenceOutsideTheDomain` is Van Gogh's Skill (Ch. 35), who is not in the
-# authored corpus yet. Authored and inert by design, exactly as Karna's *Fated
-# Rivals of the Mahabharata* names an Arjuna nobody has built: a cross-Servant
-# reference resolves by slug and warns rather than erroring, because a match
-# legitimately may not include the Servant named.

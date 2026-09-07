@@ -529,6 +529,43 @@ unit, which is why the `groupKey` field exists on effect instances (Ch. 11 §11.
 Karna's Kavacha and Kundala, combined with `Territory Creation EX` (6d20 offence,
 3d10+30 defence) and `Independent Action B`. She is a fortress that grows.
 
+### What was built — and where it departed from the sketch above
+
+Twelve abilities, every clause exercised in `fgt2026`; Ch. 45 has the measurements. The sketch
+above is a design and the build is not it, in four places worth naming.
+
+1. **The per-stock clauses live on `Huge Scale`, not on `proliferationStock`.** An effect's
+   rules are collected once per *instance*, so a `perStack` element on the stock would be
+   collected n times and scaled by n each time — ten stocks would pay a hundredfold. The Skill
+   is collected once. The stock itself carries `rules: []` and is nothing but a countable buff.
+
+2. **One field replaced eight.** `alsoRestore`, `cap`, `cumulative`, `every`, `footprintDelta`,
+   `rangeDelta`, `movDelta` and the `@stackIndex == 1 ? 35 : 5` ternary all became
+   `perStack: { effect, each, base }` on ordinary elements, with `max` for the cap. Ch. 24 §24.3
+   has the shape. `groupKey` was not needed either: `stacksHeld` counts by `defId`.
+
+3. **Current Health is paid by the handler, not derived.** *"Max **and current** Health"* cannot
+   both be derived — a derived `alsoRestore` refills her on every data preparation — so the
+   maximum is a `MaxDelta` off her stock count and the current is a `Heal percentOfBase: 20` in
+   the turn-end handler that grants the stock. That heal has to be **ordered after** the stock,
+   or it clamps to the maximum the stock is about to raise; `intents.mjs#rankOf` grew an
+   `afterEffects` rank for it, beside the one `revival` already had.
+
+4. **`SizeStep` emits footprint deltas and nothing else.** Range `+1` and MOV `−1` are their own
+   elements sharing the same `each: 3`, because they are separate sentences that happen to share
+   a trigger — and because a `SizeStep` that also moved MOV would be the only element in the
+   catalogue writing three unrelated stats.
+
+Two clauses needed vocabulary that did not exist at all: `BuffRemovalResist` with
+`rules/removal.mjs` behind it (Ch. 11 §11.7 named `Buff Removal ResUp` and nothing read it), and
+`anyTurnEnd` (Ch. 07 §7.4 names the event and the handler vocabulary had spent the name on the
+owner's Turn). Mad Enhancement `A+` needed a table override: her NP column says 25% where the
+per-step rule gives 30 — see Appendix B, where the whole column turns out to be the normal value
+halved and floored to 5.
+
+**Script elements: zero.** The stack economy that §36.8 lists as her requirement is a field on
+`resolveValue`.
+
 ---
 
 ## 36.8 Cross-cutting findings

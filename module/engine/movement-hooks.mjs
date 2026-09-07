@@ -217,7 +217,7 @@ async function onMove(document, movement, operation) {
   // FRESH board, taken after the write above, so `occupantAt` sees whoever
   // is actually standing on Bašmu's new panel rather than where they were
   // before this move.
-  if (unit.ignoresOccupancy) await knockBackOccupants(actor.id, unit.panel);
+  if (ignoresOccupancy(unit)) await knockBackOccupants(actor.id);
 
   // Presence Concealment clause 6: *"When This Unit Moves into an enemy
   // Servant's Range (or Detect, if in use), it has a 5% chance of being
@@ -240,34 +240,88 @@ async function onMove(document, movement, operation) {
 }
 
 /**
- * Push every OTHER unit standing on `panel` one panel further away from
- * `origin` (Bašmu's own new position), repeating until each lands on a free
- * one.
+ * May this Unit walk into occupied panels?
+ *
+ * Two sources and one question: the summon's own field (Bašmu) and the grant a
+ * Skill can hand out (Kingprotea's *Huge Scale*). `rules/movement.mjs` asks the
+ * same question the same way when it decides whether the step is legal at all.
+ *
+ * @param {object} unit
+ * @returns {boolean}
+ */
+function ignoresOccupancy(unit) {
+  return Boolean(unit?.ignoresOccupancy)
+    || (unit?.grantedAbilities ?? []).includes("ignoresOccupancy");
+}
+
+/**
+ * Push every OTHER unit standing where the mover now stands one panel further
+ * away, repeating until each lands on a free one.
+ *
+ * > Bašmu: *"when it Moves to any occupied panels, all Units occupying said
+ * > panels are knocked back by 1 panel until the space is free."*
+ * > Kingprotea: *"if the panel(s) is(are) occupied, all Units occupying said
+ * > panels will be knocked back by 1 panel until Kingprotea has space to stand
+ * > on."*
+ *
+ * **Every panel of the mover's footprint**, not just its origin. Bašmu is 1×1
+ * and the two readings are the same for it; a grown Kingprotea is 3×3, and
+ * clearing one of nine panels leaves her standing on eight Units — which is the
+ * cascade Ch. 08 §8.3 describes and the single-panel version silently was not.
  *
  * @param {string} moverId the unit that just arrived (never knocks itself back)
- * @param {object} origin the mover's own panel
  * @returns {Promise<void>}
  */
-async function knockBackOccupants(moverId, origin) {
+async function knockBackOccupants(moverId) {
   const { knockbackPanel, occupantAt } = await import("../rules/movement.mjs");
   const board = boardSnapshot(game.combats.active);
 
-  // On the MOVER's own level: Bašmu knocks aside whoever it walks into, and it
+  // On the MOVER's own level: it knocks aside whoever it walks into, and it
   // cannot walk into somebody standing twenty feet above it.
   const mover = board.units.find((u) => u.id === moverId) ?? null;
-  const occupant = occupantAt(origin, board, mover?.level);
-  if (!occupant || occupant.id === moverId) return;
+  if (!mover) return;
 
-  const landing = knockbackPanel(origin, occupant, board);
-  // "Until the space is free" -- when no free panel exists within range, the
-  // occupant simply stays: there is nowhere the sheet's own rule can send it.
-  if (!landing) return;
+  // The whole footprint. `panels` is what the projection derives from the
+  // token's occupied grid spaces; `panel` is its anchor, and for a 1×1 the two
+  // lists are the same one entry.
+  const occupied = (mover.panels ?? []).length > 0 ? mover.panels : [mover.panel].filter(Boolean);
+  // Away from the mover's CENTRE, so a Unit under her north-west corner is
+  // shoved north-west rather than toward her middle. Passing the panel being
+  // cleared instead would name the occupant's own panel, and "away from where
+  // you already are" has no direction at all.
+  const centre = centreOf(occupied);
 
-  const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
-  if (!token) return;
+  for (const panel of occupied) {
+    const occupant = occupantAt(panel, board, mover.level);
+    if (!occupant || occupant.id === moverId) continue;
 
-  const point = canvas.grid.getTopLeftPoint(landing);
-  await token.document.update({ x: point.x, y: point.y }, { fgtForced: true });
+    const landing = knockbackPanel(centre, occupant, board);
+    // "Until the space is free" -- when no free panel exists within range, the
+    // occupant simply stays: there is nowhere the sheet's own rule can send it.
+    if (!landing) continue;
+
+    const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
+    if (!token) continue;
+
+    const point = canvas.grid.getTopLeftPoint(landing);
+    // `animate: false`: a knockback is displacement, not a walk -- and it is
+    // what makes the write LAND. See `engine/io.mjs#move`.
+    await token.document.update({ x: point.x, y: point.y }, { fgtForced: true, animate: false });
+  }
+}
+
+/**
+ * The middle of a footprint, rounded to a panel.
+ *
+ * For a 1×1 it is the panel itself, which leaves `knockbackPanel` to fan out —
+ * a mover that stands ON its victim has no direction to push it.
+ *
+ * @param {Array<{i: number, j: number}>} panels
+ * @returns {{i: number, j: number}}
+ */
+function centreOf(panels) {
+  const total = panels.reduce((acc, p) => ({ i: acc.i + p.i, j: acc.j + p.j }), { i: 0, j: 0 });
+  return { i: Math.round(total.i / panels.length), j: Math.round(total.j / panels.length) };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -296,7 +350,14 @@ function isLevelOnlyChange(document, movement) {
   const path = pathOf(movement);
   if (path.length === 0) return true;
 
-  const here = canvas?.grid?.getOffset?.({ x: document.x, y: document.y });
+  // The movement's OWN origin, not the document's current position. Whether
+  // `document.x` still reports the origin when this is asked depends on
+  // whether the move was animated -- an un-animated one has already committed
+  // -- and a real step measured against itself looks like no step at all. The
+  // whole of `onMove` then returned early: no budget, no turn state, and no
+  // knockback for a Unit that walked onto somebody.
+  const from = movement?.origin ?? { x: document.x, y: document.y };
+  const here = canvas?.grid?.getOffset?.(from);
   if (!here) return false;
   return path.every((p) => p.i === here.i && p.j === here.j);
 }

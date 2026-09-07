@@ -1,0 +1,46 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+#
+# "NP Damage dealt is increased by 10%; at the end of this Unit's Turn except
+#  the Turn this Skill was activated and at the end of any Turn she Acts, remove
+#  one 'NP DmUp (GAO)' buff from herself."
+#
+# `stacking: count` rather than `magnitudeStacks`, and the difference is the
+# second half of that sentence: *"remove ONE ... buff"*. A count keeps one
+# document and spends a charge, which `consumeUse` already does exactly once; a
+# removal by definition id takes every instance at once.
+schema: 1
+id: npDmUpGao
+name: "NP DmUp (GAO)"
+description: |
+  Noble Phantasm damage dealt is increased by 10% per stack. One stack is removed at the end of
+  this Unit's Turn and at the end of any Turn it Acts.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: count
+baseChance: 100
+rules:
+  # Scaled by the charges the instance is carrying. This is the one place a
+  # `perStack` element may live on the effect itself: `count` keeps a SINGLE
+  # document, so the rule is collected once however many charges it holds.
+  - key: DamageModifier
+    modifierKey: npDmUp
+    direction: dealt
+    value: 10
+    npValue: 10
+    perStack: { effect: npDmUpGao }
+    predicate: ["attack:kind:np"]
+
+  # The decay. Two boundaries on one handler, as Regen's are: they are one
+  # clause, and §E.2's deduplication is what stops a Unit that Acted on its own
+  # Turn spending two charges for one sentence.
+  #
+  # `notOnApplyTurn` is *"except the Turn this Skill was activated"* -- without
+  # it the buffs she gained a moment ago would each lose a charge before she had
+  # swung once.
+  - key: OnEvent
+    event: [turnEnd, actedTurnEnd]
+    automatic: true
+    notOnApplyTurn: true
+    consumesUse: true
+    then: []

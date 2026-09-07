@@ -158,6 +158,57 @@ export function writeDerived(system, result) {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * The stored fields a rule element may modify.
+ *
+ * Everything `normalise` can name, in the shape the schema stores. Kept beside
+ * it, because the two lists answer the same question from opposite ends: one
+ * maps an authored stat to a path, this one says which paths a preparation has
+ * to put back.
+ *
+ * @type {readonly string[]}
+ */
+export const MODIFIABLE_PATHS = Object.freeze([
+  "mov", "detect", "sustainability",
+  "range.panels", "range.targets",
+  "footprint.w", "footprint.h",
+  "agility.value", "agility.max",
+  "luck.value", "luck.max",
+  "health.value", "health.max",
+  "parameters.str", "parameters.end", "parameters.agi", "parameters.mag", "parameters.luc",
+]);
+
+/**
+ * Put every stat a rule element may modify back to its stored value.
+ *
+ * Foundry prepares data **in place**, and `prepareDerivedData` reads the field
+ * it is about to write. A field that nothing recomputes at base time therefore
+ * carries the previous preparation's answer into the next one, and the delta
+ * lands again — Mad Enhancement's `MOV +2` took Heracles from 6 to 8 to 10 to
+ * 12 across four preparations, and his sheet read whatever the last one reached.
+ * Max Health never drifted, because a Servant's is derived from `baseHealth`
+ * every time; this is that same treatment for the fields that are stored.
+ *
+ * A `null` or absent stored value is left alone: that is the case where the
+ * model derives the field itself (`health.max` from the END table, a summon's
+ * MOV from its variant), and overwriting it with nothing would undo the
+ * derivation this runs beside.
+ *
+ * @param {object} system the actor's live `system`
+ * @param {object} source the actor's `_source.system`
+ * @returns {object} `system`
+ */
+export function restoreModifiable(system, source) {
+  if (!source) return system;
+  for (const path of MODIFIABLE_PATHS) {
+    const stored = getPath(source, path);
+    if (stored === null || stored === undefined) continue;
+    if (getPath(system, path) === undefined) continue;
+    setPath(system, path, stored);
+  }
+  return system;
+}
+
+/**
  * `agility` and `agility.value` name the same thing on different sheets; the
  * schema stores the latter.
  * @param {string} stat

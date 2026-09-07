@@ -1,0 +1,45 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+#
+# "This Skill counts as 'Divinity'" is the load-bearing line: it is a `Divinity`
+# for every clause in the game that asks -- Karna's Vasavi Shakti pays a
+# different bonus against *"the Divine Attribute but no Divinity Skill"*, and
+# Scáthach's God Slayer keys on the Attribute -- so it grants the attribute the
+# same way `divinity.yml` does and carries the category tag as well.
+schema: 1
+id: kingprotea-divine-core
+name: "Goddess's Divine Core"
+rank: A
+kind: skill
+slug: goddessesDivineCore
+passive: true
+# What a clause naming "the Divinity Skill" matches on
+# (`rules/bounded-fields.mjs#hasCategory`). The tag is what the sheet's own
+# sentence asks for; the attribute below is what an `attribute:divine` predicate
+# reads.
+categorizedAs: [divinity]
+description: |
+  (Passive 1) All damage dealt is increased by 100 including NP.
+  (Passive 2) Chance of being inflicted by debuffs is decreased by 30%.
+  This Skill counts as '@ability[divinity]{Divinity}'.
+passiveRules:
+  # `divineCore` is EXACTLY twice `divinity` at every observed rank, and the
+  # table is derived from it rather than duplicated so a correction propagates
+  # (`domain/tables.mjs`). A => 100, which is what her sheet prints.
+  - key: FlatDamage
+    table: divineCore
+    includesNP: true
+
+  # Passive 2. An `ApplicationChance` rather than a `CheckModifier`, for the
+  # reason Magic Resistance's own clause 2 records: the effect applier reads
+  # resistance off `applicationChances`, and a `CheckModifier` lands in a bucket
+  # it never consults.
+  - key: ApplicationChance
+    direction: incoming
+    value: 30
+
+  # "Counts as Divinity" -- the ATTRIBUTE half. Divinity grants `divine` and
+  # this Skill is one, so a Servant carrying it is Divine even though her
+  # Attributes line does not say so.
+  - key: StatDelta
+    stat: attributes
+    add: [divine]

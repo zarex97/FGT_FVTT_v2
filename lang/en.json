@@ -399,6 +399,7 @@
   "FGT.OptionalCost.Spend": "Spend",
   "FGT.Revival.OptionalHint": "{name} has been defeated. {source} can bring them back — it is optional, and declining means the defeat stands.",
   "FGT.Revival.Take": "Take it",
+  "FGT.Removal.Resisted": "{name} kept {effect} — rolled {roll} against a {chance}% chance of removal.",
   "FGT.CancelNP.Hint": "{attacker} has used {np} against {name}. It can be cancelled outright.",
   "FGT.CancelNP.Take": "Cancel it",
   "FGT.CancelNP.Instakill": "{name}'s Noble Phantasm was their strongest — {effect} is inflicted on them.",

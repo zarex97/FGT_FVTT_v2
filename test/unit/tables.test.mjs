@@ -42,11 +42,14 @@ describe("divineCore", () => {
 });
 
 describe("madEnhancement", () => {
-  it("reproduces all six sheets across two independently-authored rosters", () => {
-    // docs/B-rank-tables.md §B.3 verification block.
+  it("reproduces all seven sheets across two independently-authored rosters", () => {
+    // docs/B-rank-tables.md §B.3 verification block. Every figure here is read
+    // off a character sheet, not derived from the table -- which is the point:
+    // A+'s NP figure is 25 on Kingprotea's sheet and 30 by the per-step
+    // arithmetic, and the table carries it as an override for that reason.
     const cases = [
       // rank, [taken, takenNP], dealt, drain
-      ["A+", [55, 30], 85, 25],   // Kingprotea
+      ["A+", [55, 25], 85, 25],   // Kingprotea
       ["B-", [35, 15], 55, 20],   // Castor
       ["EX", [75, 30], 100, 30],  // Penthesilea, Raikou
       ["B", [40, 20], 60, 20],    // Heracles, Asterios
@@ -61,6 +64,20 @@ describe("madEnhancement", () => {
   it("keeps the Master drain banded, so a + does not change it", () => {
     expect(lookupNumber("madEnhancementDrain", R("A+"))).toBe(25);
     expect(lookupNumber("madEnhancementDrain", R("A"))).toBe(25);
+  });
+
+  it("has an NP column that is the normal one halved and floored to 5", () => {
+    // The observation the A+ override is drawn from, checked at every rank the
+    // corpus states. EX is the exception and is also the only rank whose
+    // NORMAL figure leaves the ladder (50 -> 75 rather than 60), so it is
+    // published as a pair rather than derived.
+    for (const rank of ["E", "D", "C", "B-", "B", "A", "A+"]) {
+      const [normal, np] = lookup("madEnhancementDefence", R(rank));
+      expect(np, `${rank}`).toBe(Math.floor(normal / 2 / 5) * 5);
+    }
+    const [exNormal, exNp] = lookup("madEnhancementDefence", R("EX"));
+    expect(exNormal).toBe(75);
+    expect(exNp).toBe(30);
   });
 });
 

@@ -1,0 +1,47 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+schema: 1
+id: kingprotea-self-suggestion
+name: "Self-Suggestion"
+rank: EX
+kind: skill
+slug: selfSuggestion
+cooldown: "4◈"
+timing: { window: ownTurn }
+# A cleanse and a self-buff deal no damage, so this is not an Attack Skill and
+# must not spend her Attack for the Turn (§15.1).
+countsAsAttack: false
+copyable: { allowed: false, reason: rankEX }
+description: |
+  (Passive) Chance of being inflicted with nvDebuffs is reduced by 60%.
+  (Active) Used during your Turn. Removes all debuffs from Kingprotea, then applies
+  @effect[nvDebuffResUp]{nvDebuff ResUp} for 1◈ Turns, chance of being inflicted by non-volatile
+  debuffs is further reduced by 60%. Cooldown: 4◈ Turns.
+passiveRules:
+  # The standing half. `volatility` is Appendix A's own classification rather
+  # than a list of ids, so a non-volatile debuff written later is covered
+  # without this file changing (`engine/effect-applier.mjs#chanceContribution`).
+  - key: ApplicationChance
+    direction: incoming
+    volatility: nonVolatile
+    value: 60
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  # `includeSelf: true` is what makes a self-cast resolve against herself rather
+  # than against nobody: `resolveTargets` drops the caster from its own target
+  # list otherwise.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # "Removes ALL debuffs" -- a selector rather than a list, so a debuff written
+  # tomorrow is covered. `removals` already refuses to touch an Unremovable one,
+  # which is the right reading: Appendix A marks a few that no cleanse reaches.
+  - kind: removeEffect
+    target: self
+    selector: { polarity: debuff }
+  # "...then applies nvDebuff ResUp". The order is the sheet's and it matters:
+  # cleansing first means the buff is not spent resisting what she is already
+  # carrying.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: nvDebuffResUp, magnitude: 60, duration: "1◈" }

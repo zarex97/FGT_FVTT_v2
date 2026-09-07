@@ -469,7 +469,16 @@ export function inEnemyMasterProtection(panel, unit, board) {
  * direction, and "until the space is free" is why this steps repeatedly along
  * that one line rather than stopping after a single panel.
  *
- * @param {GridOffset} origin what the knockback is FROM (Bašmu's own panel)
+ * **When `origin` is the panel the unit is already standing on** there is no
+ * direction to push along — `cardinalToward` returns `{0, 0}` — and the search
+ * fans out over the four cardinals instead, nearest panel first. That is the
+ * ordinary case rather than a corner one: a 1×1 mover walks ONTO its victim, so
+ * the mover's panel and the victim's are the same panel, and the directional
+ * branch returned `null` every time. Bašmu never knocked anybody back.
+ * Kingprotea's caller passes the CENTRE of her footprint, so a Unit under her
+ * edge is shoved outward and only one under her middle fans out.
+ *
+ * @param {GridOffset} origin what the knockback is FROM
  * @param {object} unit the unit being knocked back
  * @param {object} board
  * @param {object} [opts]
@@ -477,14 +486,19 @@ export function inEnemyMasterProtection(panel, unit, board) {
  * @returns {GridOffset|null} `null` when no free panel was found within range
  */
 export function knockbackPanel(origin, unit, board, { maxSteps = 5 } = {}) {
-  const dir = geo.cardinalToward(origin, unit.panel);
-  if (dir.i === 0 && dir.j === 0) return null;
+  const toward = geo.cardinalToward(origin, unit.panel);
+  const directions = (toward.i === 0 && toward.j === 0)
+    ? [{ i: -1, j: 0 }, { i: 1, j: 0 }, { i: 0, j: -1 }, { i: 0, j: 1 }]
+    : [toward];
 
-  let panel = unit.panel;
-  for (let i = 0; i < maxSteps; i++) {
-    panel = { i: panel.i + dir.i, j: panel.j + dir.j };
-    if (!geo.inBounds(panel, board.bounds ?? null)) return null;
-    if (!occupantAt(panel, board, unit.level)) return panel;
+  // Step by step rather than direction by direction, so a fanned-out search
+  // returns the NEAREST free panel rather than the first direction's.
+  for (let step = 1; step <= maxSteps; step++) {
+    for (const dir of directions) {
+      const panel = { i: unit.panel.i + dir.i * step, j: unit.panel.j + dir.j * step };
+      if (!geo.inBounds(panel, board.bounds ?? null)) continue;
+      if (!occupantAt(panel, board, unit.level)) return panel;
+    }
   }
   return null;
 }
@@ -538,5 +552,9 @@ function isEnemy(unit, other, board) {
  */
 function ignoresBlocking(unit) {
   const held = unit?.effects ?? [];
-  return IGNORES_BLOCKING.some((id) => held.includes(id)) || Boolean(unit?.ignoresOccupancy);
+  if (IGNORES_BLOCKING.some((id) => held.includes(id))) return true;
+  // The summon's own field (Bašmu), or a Skill that grants the capability
+  // (Kingprotea's *Huge Scale*). The second is a grant rather than a field
+  // because a Skill can be sealed and a sheet cannot.
+  return Boolean(unit?.ignoresOccupancy) || hasGranted(unit, GRANTS.ignoresOccupancy);
 }

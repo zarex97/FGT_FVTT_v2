@@ -138,7 +138,7 @@ Discussed: Ch. 36 §36.7.
 | Independent Action (B) | Class, passive | RE (Sustainability 7◈, ZON +2, 3 contract rolls) |
 | Goddess's Divine Core (A) | Passive, `countsAs: divinity` | RE (`FlatDamage` 100, debuff resist −30%) |
 | Self-Suggestion (EX) | Passive + active | RE (nvDebuff resist −60%, cleanse + further −60%) |
-| Huge Scale (B) | Passive + active | **RE+** `SizeStep` with `every: 3`; cascading knockback |
+| Huge Scale (B) | Passive + active | **RE+** `SizeStep` with `perStack: {each: 3}`; cascading knockback |
 | Infantile Regression (C) | Active | **RE+** `ignoresRemovalProtection` on a self-targeted removal |
 | Monstrous Strength (EX) | Active, `damageStepStart` | RE (`DamageModifier` +150%/+75% NP) |
 | Giant Monster of the Great River (B) | Passive | RE (`NP DmUp (GAO)` stacks with per-turn decay) |
@@ -147,7 +147,8 @@ Discussed: Ch. 36 §36.7.
 
 **Exercises:** growing multi-panel units, two independent stack economies, self-dispel through
 one's own removal protection, size-scaled damage.
-**Scripts: 0.**
+**Scripts: 0.** **Built** — every clause exercised in `fgt2026`; Ch. 45 has the measurements and
+Ch. 36 §36.7 the departures from the design.
 
 **Note the NP rank:** `Airavata King Size` is **Rank E**, so its Master cost is only 10/20 —
 the cheapest NP in the set, on the highest-END Servant. Deliberate.

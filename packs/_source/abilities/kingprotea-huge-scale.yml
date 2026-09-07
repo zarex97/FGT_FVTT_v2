@@ -1,0 +1,138 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+# Discussed: docs/36-case-remaining.md §36.7
+#
+# The Skill §36.7 calls "a unit whose physical size changes mid-match", and the
+# reason `perStack` exists. Six of her clauses are one sentence with different
+# nouns -- "for each Proliferation stock, X" -- so they are six elements sharing
+# one field rather than six readers each counting stocks their own way.
+#
+# **They live here and not on the stock.** An effect's rules are collected once
+# per INSTANCE, so a `perStack` element authored on `proliferationStock` would
+# be collected n times and scaled by n each time: ten stocks would pay a
+# hundredfold. This Skill is collected once.
+#
+# The sheet says "Endless Proliferation stock" in Passives 2 and 3 and
+# "Proliferation stock" everywhere else. They are the same thing --
+# `Endless Proliferation` is the buff that PRODUCES them and is never itself
+# stacked -- and `proliferationStock` is canonical, the same call Ch. 33 §33.6
+# made for Mannanán's Tokens and Counters.
+schema: 1
+id: kingprotea-huge-scale
+name: "Huge Scale"
+rank: B
+kind: skill
+slug: hugeScale
+cooldown: "6◈"
+timing: { window: ownTurn }
+# Applying a buff to herself and turning a cooldown deals no damage, so this is
+# not an Attack Skill and must not spend her Attack for the Turn (§15.1).
+countsAsAttack: false
+description: |
+  (Passive 1) With the 'Giant' Attribute, Kingprotea can Move to any panel regardless of whether
+  it is occupied or not; if the panel(s) is(are) occupied, all Units occupying said panels will
+  be knocked back by 1 panel until Kingprotea has space to stand on.
+  (Active) Used during your Turn. Applies the @effect[endlessProliferation]{Endless Proliferation}
+  buff to herself for 3◈+⅓◈ Turns and reduces her NP Cooldown by 1◈ Turns. At the end of the Turn
+  after every ⅓◈ Turns, Kingprotea gains 1 @effect[proliferationStock]{Proliferation} stock.
+  For each stock, Max and current Health is increased by 20% of her original Max Health. For
+  every 3 stocks her size grows by 1 panel; each growth gives Range +1 and MOV −1. Maximum 10
+  stocks; they are not lost when Endless Proliferation ends.
+  (Passive 2) For every Proliferation stock, NP damage received is reduced by 10% (maximum 80%).
+  (Passive 3) If Kingprotea has 1 Proliferation stock, the chance of buffs being removed from
+  herself is reduced by 35%. For every additional stock, the magnitude is increased by 5%.
+  Cooldown: 6◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+
+passiveRules:
+  # ── Passive 1 ────────────────────────────────────────────────────────
+  #
+  # A GRANT rather than the `movesOntoOccupiedPanels` field Bašmu carries: for
+  # the summon it is a property of the creature and for her it is a property of
+  # a Skill, so Skill Seal takes it away and a field on the sheet would not
+  # notice. `rules/movement.mjs#ignoresBlocking` is the one place the question
+  # is asked, and the knockback cascade that follows walks her WHOLE footprint
+  # (`engine/movement-hooks.mjs`) -- at 3×3 hers is nine panels, where Bašmu's
+  # was one.
+  #
+  # "With the 'Giant' Attribute" is a real condition, not scene-setting: the
+  # closure gives her `large` from `giant` (Ch. 02 §2.10), and a clause that
+  # names the attribute should stop if something ever takes it.
+  - key: GrantedAbility
+    abilities: [ignoresOccupancy]
+    predicate: ["self:attribute:giant"]
+
+  # ── What a Proliferation stock is worth ──────────────────────────────
+
+  # "Max and current Health is increased by 20% of Kingprotea's ORIGINAL Max
+  # Health." The maximum is this, derived and recomputed from the stock count on
+  # every preparation; the CURRENT is paid once by the handler that grants the
+  # stock (`effects/endless-proliferation.yml`), because a derived `alsoCurrent`
+  # would refill her every frame.
+  #
+  # `@self.baseHealth` and not `health.max`: her maximum has already grown by
+  # the time the second stock lands.
+  - key: MaxDelta
+    stat: health
+    value: "0.2 * @self.baseHealth"
+    perStack: { effect: proliferationStock }
+
+  # "For every 3 Proliferation stocks, Kingprotea's size will grow by 1 panel."
+  # `each: 3` is the whole clause; `SizeStep` turns it into deltas on
+  # `footprint.w`/`footprint.h`, which is what the token, the board's occupancy
+  # and the platform rules all already speak.
+  - key: SizeStep
+    value: 1
+    perStack: { effect: proliferationStock, each: 3 }
+
+  # "Each time Kingprotea grows, her Range is increased by 1 panel and her MOV
+  # is decreased by 1." Per GROWTH, so they share the `each: 3`.
+  - key: RangeDelta
+    value: 1
+    isBuff: false
+    perStack: { effect: proliferationStock, each: 3 }
+  - key: MovDelta
+    value: -1
+    isBuff: false
+    perStack: { effect: proliferationStock, each: 3 }
+
+  # ── Passive 2 ────────────────────────────────────────────────────────
+  #
+  # "NP damage received is reduced by 10% per stock (maximum cap of this effect
+  # is 80%)." The cap is on THIS clause rather than on the pipeline's bucket,
+  # which is where it belongs: two different sources of `defUp` are not one
+  # another's ceiling, and at ten stocks this one alone would otherwise reach
+  # 100% and make her immune.
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 10
+    npValue: 10
+    predicate: ["attack:kind:np"]
+    perStack: { effect: proliferationStock }
+    max: 80
+
+  # ── Passive 3 ────────────────────────────────────────────────────────
+  #
+  # "If Kingprotea has 1 Proliferation stock, the chance of buffs being removed
+  # from herself is reduced by 35%. For every additional stock, the magnitude is
+  # increased by 5%." One element: `base` is the 30 that turns the first stock's
+  # 5 into 35, and it is paid only while she holds at least one -- which is what
+  # "if Kingprotea has 1" says.
+  - key: BuffRemovalResist
+    value: 5
+    perStack: { effect: proliferationStock, base: 30 }
+
+phases:
+  # "...and reduce her NP Cooldown by 1◈ Turns." `scope: np` rather than an
+  # ability id: the clause names no Noble Phantasm.
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, ticks: "1◈", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: endlessProliferation, duration: "3◈+⅓◈" }

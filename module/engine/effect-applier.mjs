@@ -59,7 +59,7 @@ const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
 export function applyEffect({
   def, target, magnitude = 0, npMagnitude = null, duration = null, source, ctx,
   chanceModifiers = [], chance = null, stages = 1, bypassChanceModifiers = false,
-  visibility = "public", attributionHidden = false,
+  visibility = "public", attributionHidden = false, uses = null,
 }) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
   const trace = [];
@@ -177,7 +177,7 @@ export function applyEffect({
 
   // ── 5. STACKING RESOLUTION ───────────────────────────────────────────────
   const existing = instances.filter((e) => e.defId === def.id);
-  const stack = resolveStacking(def, existing, magnitude, stages);
+  const stack = resolveStacking(def, existing, magnitude, stages, uses);
   trace.push({ step: "stacking", outcome: stack.action, detail: stack.detail });
   if (stack.action === "noop") {
     return { outcome: "noop", reason: "already present, does not refresh", intents: [], trace };
@@ -216,6 +216,9 @@ export function applyEffect({
     stage: stack.stage,
     uses: stack.uses,
     expiry,
+    // The mirror of `expiry`: the tick it arrived on, for a handler that must
+    // not act on the Turn it was applied (Ch. 11 §11.9's other end).
+    appliedTick: ctx.currentTick ?? 0,
     sourceUnitId: source?.unitId ?? null,
     sourceAbilityId: source?.abilityId ?? null,
     polarity: def.polarity,
@@ -493,7 +496,7 @@ function findExclusion(def, held) {
  * @param {number} [stages] how many stages this application is worth
  * @returns {{action: string, magnitude: number, stage: number, uses: number, detail?: string}}
  */
-function resolveStacking(def, existing, magnitude, stages = 1) {
+function resolveStacking(def, existing, magnitude, stages = 1, uses = null) {
   const current = existing[0];
   switch (def.stacking ?? "noneNoRefresh") {
     case "noneNoRefresh":
@@ -516,6 +519,15 @@ function resolveStacking(def, existing, magnitude, stages = 1) {
     }
 
     case "magnitudeStacks":
+      // A ceiling the definition may state. §36.7 sketches it as
+      // `stacking: {rule: magnitudeStacks, max: 10}` and Kingprotea's
+      // Proliferation is the first that needs one: *"Kingprotea can only have a
+      // maximum of 10 Proliferation stocks."* A `noop` rather than a refusal,
+      // because the eleventh application is not an error -- it is a Turn on
+      // which Endless Proliferation had nothing left to give.
+      if (typeof def.maxStacks === "number" && existing.length >= def.maxStacks) {
+        return { action: "noop", magnitude, stage: 0, uses: 0, detail: `at ${def.maxStacks}` };
+      }
       // A second instance, not a bigger one — magnitudes sum at read time, and
       // each keeps its own duration and source.
       return { action: "create", magnitude, stage: 0, uses: def.uses ?? 0, detail: `instance ${existing.length + 1}` };
@@ -527,8 +539,15 @@ function resolveStacking(def, existing, magnitude, stages = 1) {
       return { action: current ? "replace" : "create", magnitude, stage: 0, uses: 0 };
 
     case "count": {
-      const uses = (current?.uses ?? 0) + (def.uses ?? 1);
-      return { action: current ? "count" : "create", magnitude, stage: 0, uses, detail: `${uses} uses` };
+      // The APPLICATION may state how many charges it is worth. Kingprotea's
+      // *Giant Monster of the Great River* is *"apply NP DmUp (GAO) to herself
+      // X times, where X = the number of Proliferation Stocks she has"* -- one
+      // application worth X, not X applications, for the same reason Serenity's
+      // *"inflicts Stage 3 Poison"* is one application worth three stages:
+      // rolling the chance X times is a different sentence.
+      const gained = uses ?? def.uses ?? 1;
+      const total = (current?.uses ?? 0) + gained;
+      return { action: current ? "count" : "create", magnitude, stage: 0, uses: total, detail: `${total} uses` };
     }
 
     default:

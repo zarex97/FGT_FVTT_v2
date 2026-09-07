@@ -58,6 +58,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Mannanán — the automatic Counter, the rung it trades away, the buff-clock
   // extension and the spend she is OFFERED at a timing window.
   "AutoCounter", "ForbidReaction", "DurationExtension", "OptionalCost",
+  // Kingprotea — how hard her buffs are to take off (`rules/removal.mjs`).
+  "BuffRemovalResist",
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta
@@ -1556,6 +1558,8 @@ function itemSystem(doc) {
     defaultMagnitude: doc.defaultMagnitude ?? null,
     // Charges a count-stacked effect starts with.
     uses: doc.uses ?? null,
+    // How many instances of a `magnitudeStacks` effect one Unit may hold.
+    maxStacks: doc.maxStacks ?? null,
     // What a barrier effect absorbs, and where its pool lives (EMIYA's Rho
     // Aias). Null on every other effect.
     absorbs: doc.absorbs ?? null,

@@ -134,6 +134,25 @@ Actor.prepareData()
        • turn-budget consumption state
 ```
 
+> **Implementation note (Ch. 45) — preparation must be idempotent.** Foundry prepares data **in
+> place**, and this pipeline may run more than once between two resets. `prepareDerivedData`
+> reads the field it is about to write, so any stat that nothing recomputes at base time carries
+> the previous run's answer into the next one and the delta lands **again**.
+>
+> Mad Enhancement's `MOV +2` took Heracles from 6 to 8 to 10 to 12 across four preparations, and
+> his sheet showed whichever number the last one reached. Max Health never drifted, because a
+> Servant's is derived from `baseHealth` and the END table every time — which is the shape the
+> rest of them needed: `rules/derived.mjs#restoreModifiable` puts every stored stat a rule
+> element may modify back to its `_source` value at the start of `prepareBaseData`, leaving
+> alone the ones the model derives for itself (a `null` stored value).
+>
+> The rule to write content and code against: **a field written by `prepareDerivedData` must be
+> restored or recomputed in `prepareBaseData`.** `test/unit/derived.test.mjs` holds both halves —
+> that five preparations give the same answer as one, and that without the restore three of them
+> compound.
+>
+> Found live on Kingprotea, whose sheet opened on MOV 11 over a stored 7.
+
 ### Why rule elements run inside `applyActiveEffects`
 
 Because that is the hook Foundry provides between base and derived data, and it is where core

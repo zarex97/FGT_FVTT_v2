@@ -214,6 +214,7 @@ export function worldIO() {
           npMagnitude: e.npMagnitude ?? null,
           stage: e.stage ?? 0,
           uses: e.uses ?? 0, expiry: e.expiry ?? null,
+          appliedTick: e.appliedTick ?? null,
           sourceUnitId: e.sourceUnitId ?? null, sourceAbilityId: e.sourceAbilityId ?? null,
           unremovable: Boolean(e.unremovable),
           // §11.10 / Appendix A §A.18. Both have been on the instance schema
@@ -405,7 +406,19 @@ export function worldIO() {
       const token = resolveToken(unitId);
       const destination = path.at(-1);
       if (!token || !destination) return;
-      await token.update({ x: destination.j, y: destination.i });
+      // A move intent's path carries GRID OFFSETS -- `{i, j}` -- and a token's
+      // `x`/`y` are PIXELS. Writing `j` and `i` straight through put a carried
+      // passenger at pixel (8, 3) instead of panel (3, 8): every platform
+      // passenger and every Gather target landed in the scene's top-left
+      // corner. `engine/movement-hooks.mjs` converts the same way.
+      const point = canvas.grid.getTopLeftPoint(destination);
+      // Forced displacement is instantaneous (Ch. 08 §8.3), so it is not
+      // animated as a walk -- and `animate: false` is also the only option that
+      // COMMITS a programmatic move: Foundry v14 counts `x`/`y` among its
+      // MOVEMENT_FIELDS and holds the document at the movement's origin until
+      // the animation finishes, which for an update nobody is watching never
+      // happens. Found live: the token's `_source` moved and the board did not.
+      await token.update({ x: point.x, y: point.y }, { fgtForced: true, animate: false });
     },
 
     /**
