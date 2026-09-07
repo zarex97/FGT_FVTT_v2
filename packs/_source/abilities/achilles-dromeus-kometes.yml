@@ -24,7 +24,7 @@ passiveRules:
   # Passive 1" means when the two abilities are separately sealable.
   - key: GrantedAbility
     abilities: [doubleMove]
-    predicate: ["self:stance:dismounted"]
+    predicate: ["self:stance:dismounted", { not: "self:effect:heelWounded" }]
 
   # Clause 2. A `CheckModifier` and not a new element: `rules/checks.mjs`
   # already folds numeric modifiers into an Evade through `checkPlan`, which is
@@ -34,8 +34,11 @@ passiveRules:
   #
   # NEGATIVE, because "the value of Evade rolls are REDUCED" and a lower roll
   # is a better one: the check succeeds when the roll comes in under Agility.
+  # "The Passive effects of Dromeus Komētēs are lost" once his Heel is damaged,
+  # and `heel-wounded.yml` then imposes +1 in its place -- so the swing is five
+  # points of Evade on one wound.
   - key: CheckModifier
     check: evade
     direction: outgoing
     value: -4
-    predicate: ["self:stance:dismounted"]
+    predicate: ["self:stance:dismounted", { not: "self:effect:heelWounded" }]

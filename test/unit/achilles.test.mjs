@@ -25,6 +25,7 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 /** @param {string} dir @param {string} id @returns {object} */
 const doc = (dir, id) => parse(readFileSync(join("packs/_source", dir, `${id}.yml`), "utf8"));
 const ability = (id) => doc("abilities", id);
+const effectDoc = (id) => doc("effects", id);
 const classSkill = (id) => doc("class-skills", id);
 
 const SHEET = doc("servants", "achilles");
@@ -194,7 +195,7 @@ describe("Dromeus Komētēs", () => {
   it("re-grants Double Move on foot, so a Seal on either document leaves it standing", () => {
     const grant = np.passiveRules.find((r) => r.key === "GrantedAbility");
     expect(grant.abilities).toEqual(["doubleMove"]);
-    expect(grant.predicate).toEqual(["self:stance:dismounted"]);
+    expect(grant.predicate).toContain("self:stance:dismounted");
   });
 
   it("lowers the value of his Evade rolls by 4, and only on foot", () => {
@@ -202,7 +203,7 @@ describe("Dromeus Komētēs", () => {
     // modifiers into an Evade, which is how Jack's Mist raises everyone else's.
     const mod = np.passiveRules.find((r) => r.key === "CheckModifier");
     expect(mod).toMatchObject({ check: "evade", direction: "outgoing", value: -4 });
-    expect(mod.predicate).toEqual(["self:stance:dismounted"]);
+    expect(mod.predicate).toContain("self:stance:dismounted");
   });
 
   it("turns a failed Evade into a successful one at the margin", () => {
@@ -242,11 +243,12 @@ describe("Runner Comet", () => {
   });
 
   it("restores 3 Agility before it buffs, in the sheet's order", () => {
-    expect(skill.phases.map((p) => p.kind)).toEqual(["resource", "applyEffects"]);
+    expect(skill.phases[0].kind).toBe("resource");
     expect(skill.phases[0].changes).toEqual([{ key: "agility", delta: 3 }]);
+    expect(skill.phases.slice(1).every((p) => p.kind === "applyEffects")).toBe(true);
   });
 
-  it("applies both buffs at 30 for that Turn only", () => {
+  it("applies both buffs at 30 for that Turn only, while his Heel is whole", () => {
     expect(skill.phases[1].effects).toEqual([
       { id: "nAtkUp", magnitude: 30, duration: "this turn" },
       { id: "critDmUp", magnitude: 30, duration: "this turn" },
@@ -262,8 +264,7 @@ describe("Andreias Amarantos", () => {
   const np = ability("achilles-andreias-amarantos");
 
   it("reads the table that was written for it and never read", () => {
-    const rule = np.passiveRules[0];
-    expect(rule).toEqual({
+    expect(np.passiveRules[0]).toMatchObject({
       key: "AttackerPropertyTier",
       property: "divinity",
       table: "andreiasAmarantosByAttackerDivinity",
@@ -364,5 +365,88 @@ describe("ignoresDefensiveBuffs", () => {
     for (const source of ["Affections of the Goddess", "Dmg Cut", "Battle Continuation", "Andreias Amarantos"]) {
       expect(labels.some((l) => l.includes(source) && l.includes("bypassed")), source).toBe(true);
     }
+  });
+});
+
+/* ========================================================================== */
+/*  Achilles' Heel, and the wound                                             */
+/* ========================================================================== */
+
+describe("Achilles' Heel", () => {
+  const heel = ability("achilles-heel").weakPoint;
+
+  it("carries his sheet's table exactly", () => {
+    expect(heel.baseChanceBySide).toEqual({ front: 0, left: 5, right: 5, back: 10 });
+    expect(heel.agilityBonus).toBe(5);
+    expect(heel.rangeBonus).toEqual({ atLeast: 3, value: 5 });
+    expect(heel.initiatorBonus).toBe(5);
+    expect(heel.aoePenalty).toBe(-10);
+    expect(heel.fogOfWarBonus).toBe(10);
+    // His sheet prints "25%(?)" — the author's own uncertainty, taken as 25.
+    expect(heel.luckCheckBonus).toBe(25);
+  });
+
+  it("is available only while he is Unmounted, and cannot be Blocked", () => {
+    expect(heel.availableWhen).toEqual(["self:stance:dismounted"]);
+    expect(heel.blockable).toBe(false);
+  });
+
+  it("goes through every defence and wounds him permanently", () => {
+    expect(heel.onSuccess).toEqual({ ignoresDefensiveBuffs: true, applies: "heelWounded" });
+  });
+});
+
+describe("heelWounded", () => {
+  const wound = effectDoc("heel-wounded");
+  /** @param {boolean} wounded */
+  const options = (wounded) => new Set([
+    "self:stance:dismounted", ...(wounded ? ["self:effect:heelWounded"] : []),
+  ]);
+
+  it("is a permanent status rather than a debuff, and nothing lifts it", () => {
+    expect(wound.polarity).toBe("status");
+    expect(wound.unremovable).toBe(true);
+    expect(wound.defaultDuration).toBeUndefined();
+  });
+
+  it("takes Andreias Amarantos away", () => {
+    const np = ability("achilles-andreias-amarantos");
+    const tiers = (wounded) => collectContributions(
+      [{ id: "aa", name: "Andreias Amarantos", rank: "B", passiveRules: np.passiveRules }],
+      { options: options(wounded) },
+    ).modifiers.filter((m) => m.key === "attackerPropertyTier");
+    expect(tiers(false)).toHaveLength(1);
+    expect(tiers(true)).toHaveLength(0);
+  });
+
+  it("swings his Evade by five points: −4 lost, +1 imposed", () => {
+    const np = ability("achilles-dromeus-kometes");
+    const value = (rules, wounded) => collectContributions(
+      [{ id: "x", name: "x", rank: "A+", passiveRules: rules }],
+      { options: options(wounded) },
+    ).checkModifiers.filter((m) => m.check === "evade").reduce((a, m) => a + m.value, 0);
+
+    expect(value(np.passiveRules, false)).toBe(-4);
+    expect(value(np.passiveRules, true)).toBe(0);
+    expect(value(wound.rules, true)).toBe(1);
+  });
+
+  it("costs him a panel of MOV on foot, and nothing while Mounted", () => {
+    const mov = (opts) => collectContributions(
+      [{ id: "w", name: "Heel Wounded", rules: wound.rules }],
+      { options: opts },
+    ).statDeltas.filter((d) => d.stat === "mov").reduce((a, d) => a + d.value, 0);
+    expect(mov(options(true))).toBe(-1);
+    expect(mov(new Set(["self:stance:mounted", "self:effect:heelWounded"]))).toBe(0);
+  });
+
+  it("halves Runner Comet's buffs to 10, through two predicated phases", () => {
+    const comet = ability("achilles-runner-comet");
+    const phases = comet.phases.filter((p) => p.kind === "applyEffects");
+    expect(phases).toHaveLength(2);
+    expect(phases[0].predicate).toEqual([{ not: "self:effect:heelWounded" }]);
+    expect(phases[0].effects.map((e) => e.magnitude)).toEqual([30, 30]);
+    expect(phases[1].predicate).toEqual(["self:effect:heelWounded"]);
+    expect(phases[1].effects.map((e) => e.magnitude)).toEqual([10, 10]);
   });
 });

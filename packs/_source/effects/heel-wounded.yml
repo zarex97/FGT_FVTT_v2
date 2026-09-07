@@ -1,0 +1,51 @@
+# Achilles, char_orig_sheets/Copia de Achilles.md
+# Discussed: docs/44-case-expanded-roster.md §44.2
+#
+# A permanent, irreversible state change on the defender -- not a debuff. It
+# cannot be cured, it has no duration, and it REWRITES THREE ABILITIES:
+#
+#   1. The effect of Andreias Amarantos is lost.
+#   2. The Passive effects of Dromeus Komētēs are lost and it is penalized:
+#      a) MOV is now reduced by 1 when Unmounted.
+#      b) Evade rolls when Unmounted now have their value increased by 1.
+#      c) The magnitude of Runner Comet is reduced to 10% for both buffs.
+#
+# Only (a) and (b) live here. The two LOSSES and the reduced magnitude are
+# authored as predicates on the abilities they change, which is the shape
+# Heracles's Bravery already uses for its Mad Enhancement clause: an ability
+# that stops working says so on its own document, where a reader looking at it
+# will find out. A suppression list here would be a second place to look.
+schema: 1
+id: heelWounded
+name: "Heel Wounded"
+# A `status`, not a debuff: `Debuff ResUp` does not resist it, a cleanse does
+# not lift it, and Self-Suggestion-style sweeps by polarity leave it alone.
+polarity: status
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+# Nothing removes it. There is no clause anywhere on his sheet that heals a
+# damaged Heel, and Appendix A's `unremovable` is how that is said.
+unremovable: true
+description: |
+  @ability[achilles-heel]{Achilles' Heel} has been damaged. @np[achilles-andreias-amarantos]{Andreias Amarantos} is
+  lost, and the passives of @np[achilles-dromeus-kometes]{Dromeus Komētēs} are lost and
+  penalized: MOV −1 when Unmounted, @effect[evade]{Evade} rolls +1 when Unmounted, and
+  @ability[achilles-runner-comet]{Runner Comet}'s buffs reduced to 10%.
+rules:
+  # (a) "MOV is now reduced by 1 when Unmounted." Not a buff, so nothing removes
+  # it independently of the wound that caused it.
+  - key: MovDelta
+    value: -1
+    isBuff: false
+    predicate: ["self:stance:dismounted"]
+
+  # (b) "Now when performing Evade rolls when Unmounted, increase the value
+  # rolled by 1." POSITIVE, and the mirror of Dromeus Komētēs' −4: a check
+  # succeeds on `total <= target`, so a higher roll is a worse one.
+  - key: CheckModifier
+    check: evade
+    direction: outgoing
+    value: 1
+    predicate: ["self:stance:dismounted"]
