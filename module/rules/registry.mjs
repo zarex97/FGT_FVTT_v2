@@ -51,6 +51,9 @@ export const EffectRegistry = {
         // Ch. 10 §10.6's self/ally exemption, read by `engine/effect-applier`
         // at steps 1 and 3. `Decoy` is the only holder today.
         allySelfBypassesResistance: Boolean(sys.allySelfBypassesResistance),
+        // The ceiling on how many instances one Unit may hold, read by
+        // `resolveStacking`'s `magnitudeStacks` branch.
+        maxStacks: sys.maxStacks ?? null,
         blocks: sys.blocks ?? [],
         blockedBy: sys.blockedBy ?? [],
         // Exclusion that resolves by replacement rather than by refusal.

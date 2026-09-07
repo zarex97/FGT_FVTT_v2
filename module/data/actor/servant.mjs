@@ -19,6 +19,24 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       ...combatantCommon(),
       trueName: new fields.StringField({ required: false, blank: true }),
 
+      /**
+       * How many panels this Servant stands on (Ch. 04 §4.12).
+       *
+       * `1x1` for every Servant in the corpus but one. Kingprotea's *Huge
+       * Scale* grows her from 1x1 to 4x4 as Proliferation stocks accumulate, and
+       * the growth is a DERIVED delta (`SizeStep`, `rules/derived.mjs`) rather
+       * than a write — so the stored value is the size she starts at and the
+       * live one is the size she is.
+       *
+       * A Summon or a Platform has carried this field since they existed
+       * (`data/actor/simple.mjs`); a Servant could not, which is why she is the
+       * first Servant a token has ever had to resize for.
+       */
+      footprint: new fields.SchemaField({
+        w: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
+        h: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
+      }),
+
       // Every class this Servant qualifies for -- Semiramis is Assassin AND
       // Caster -- kept as a set because content and rules both ask "is it a X".
       servantClasses: new fields.SetField(new fields.StringField({ blank: false })),

@@ -44,7 +44,8 @@ import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
-import { expressionRefs } from "../rules/snapshot.mjs";
+import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
+import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField } from "./fields.mjs";
 import { fireEvent, regionScale } from "./scheduler.mjs";
@@ -382,14 +383,17 @@ async function runPhases(ability, actor, targets, board, only = null) {
 
         case "cooldown":
           await applyWorldIntents(
-            phase.choose ? await chosenCooldowns(phase, ability, doc) : cooldownChanges(phase, doc, board),
+            phase.choose
+              ? await chosenCooldowns(phase, ability, doc)
+              : cooldownChanges(phase, doc, board, ability),
             `skill:${ability.id}:cooldown`,
           );
           break;
 
         case "removeEffect":
           await applyWorldIntents(
-            removals(phase, doc).map((id) => I.removeEffect(target.unitId, id, "skill")),
+            (await resolveRemoval(phase, doc, snapshot))
+              .map((id) => I.removeEffect(target.unitId, id, "skill")),
             `skill:${ability.id}:remove`,
           );
           break;
@@ -714,6 +718,27 @@ async function postRollCard(actor, ability, target, results) {
 }
 
 /**
+ * How many charges an application is worth.
+ *
+ * A literal, or a count of what the caster is carrying:
+ * `times: {perStack: {effect: proliferationStock}}`. The second is Kingprotea's
+ * *Giant Monster of the Great River*, whose X is *"the number of Proliferation
+ * Stocks she has"* — and where the answer is zero the application does not
+ * happen at all, which is what "X times" means at X = 0.
+ *
+ * @param {number|object} raw
+ * @param {object} actor the caster
+ * @returns {number}
+ */
+function resolveTimes(raw, actor) {
+  if (typeof raw === "number") return raw;
+  const spec = raw?.perStack ?? null;
+  if (!spec?.effect) return 1;
+  const held = stacksHeld(actor)[spec.effect] ?? 0;
+  return Math.floor(held / (spec.each ?? 1));
+}
+
+/**
  * An authored magnitude, which may be a number or an `@` expression.
  *
  * `null` is passed through unchanged, because `npMagnitude` uses it to mean
@@ -724,10 +749,22 @@ async function postRollCard(actor, ability, target, results) {
  * @param {object} actor the caster, which the expression resolves against
  * @returns {number|null}
  */
-function authoredMagnitude(raw, actor) {
+function authoredMagnitude(spec, actor, field = "magnitude") {
+  const raw = spec?.[field];
   if (raw === null || raw === undefined) return null;
-  if (typeof raw === "number") return raw;
-  const value = resolveValue({ magnitude: raw }, null, { refs: expressionRefs(actor) }, "magnitude");
+  // Straight through unless the SPEC asks for more than a number: a literal
+  // with no `perStack` and no `max` cannot mean anything else.
+  if (typeof raw === "number" && !spec.perStack && spec.max === undefined) return raw;
+
+  const value = resolveValue(spec, null, {
+    refs: expressionRefs(actor),
+    // `perStack` on an effect spec, so a magnitude may scale with what the
+    // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
+    // is increased by X%"* where X is her size, and her size is one step per
+    // three Proliferation stocks -- the same count her growth reads, rather
+    // than a second reader of the footprint it produced.
+    stacks: stacksHeld(actor),
+  }, field);
   return typeof value === "number" ? value : null;
 }
 
@@ -755,6 +792,12 @@ async function applyPhaseEffects(phase, ability, actor, target) {
       continue;
     }
 
+    // "X times, where X = ..." -- resolved before the application, because a
+    // count of zero is not an application at all. `null` means the effect
+    // states no count and the definition's own `uses` stands.
+    const times = spec.times === undefined ? null : resolveTimes(spec.times, actor);
+    if (times !== null && times <= 0) continue;
+
     const roll = await new Roll("1d100").evaluate();
     const outcome = applyEffect({
       def,
@@ -765,13 +808,18 @@ async function applyPhaseEffects(phase, ability, actor, target) {
       // function of a pool she spends three other ways, so it cannot be a
       // literal and cannot be a rank table. Resolved against the CASTER, at the
       // moment of application, which is when the sheet counts them.
-      magnitude: authoredMagnitude(spec.magnitude, actor) ?? def.defaultMagnitude ?? 0,
+      magnitude: authoredMagnitude(spec, actor) ?? def.defaultMagnitude ?? 0,
       // The "if NP" half of Appendix A's damage family. Referenced by every
       // such effect definition as `@npMagnitude`, against an instance that
       // never carried it.
-      npMagnitude: authoredMagnitude(spec.npMagnitude ?? rule.npMagnitude, actor),
+      npMagnitude: authoredMagnitude(spec, actor, "npMagnitude")
+        ?? authoredMagnitude(rule, actor, "npMagnitude"),
       // See `applyAbilityEffects`: one application worth N stages.
       stages: spec.stages ?? rule.stages ?? 1,
+      // ...and one application worth N CHARGES, for a `count`-stacked effect
+      // whose count the sheet states. *"Apply NP DmUp (GAO) to herself X times,
+      // where X = the number of Proliferation Stocks she has"* (Kingprotea).
+      uses: times,
       duration: rule.duration ?? spec.duration ?? def.defaultDuration,
       source: { unitId: actor.id, abilityId: ability.id },
       // Declared per effect by the ability (§15.2). Atlas's two reductions
@@ -972,12 +1020,12 @@ async function postCard(actor, ability, targets, applied) {
  * @param {object} [board] needed only by a `countMatching` change
  * @returns {object[]}
  */
-function cooldownChanges(phase, doc, board = null) {
+function cooldownChanges(phase, doc, board = null, self = null) {
   /** @type {object[]} */
   const out = [];
 
   for (const change of phase.changes ?? []) {
-    const targets = selectAbilities(change, doc);
+    const targets = selectAbilities(change, doc, self);
 
     for (const item of targets) {
       // `set: 0` is "completely reduce", which is a set rather than a subtract:
@@ -990,11 +1038,14 @@ function cooldownChanges(phase, doc, board = null) {
       // prints is in ◈ -- *"increase its NP Cooldown by 1◈ Turns"* -- and
       // reading that as one turn would make Shapeshift a third as strong in a
       // three-turn Round.
-      const turns = change.ticks !== undefined
+      const perStack = change.perStack
+        ? Math.floor((stacksHeld(doc)[change.perStack.effect] ?? 0) / (change.perStack.each ?? 1))
+        : 1;
+      const turns = perStack * (change.ticks !== undefined
         ? resolveTicks(parseTick(change.ticks), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") })
         : change.countMatching
           ? countMatchingTurns(change, doc, board)
-          : Math.abs(change.delta ?? 0);
+          : Math.abs(change.delta ?? 0));
       const down = change.ticks !== undefined ? (change.direction === "down")
         : change.countMatching ? true : (change.delta ?? 0) < 0;
       out.push(I.cooldown(doc.id, item.id, turns, down ? "reduce" : "increase"));
@@ -1043,16 +1094,34 @@ function countMatchingTurns(change, doc, board) {
  * Noble Phantasm, which is what a sheet means by *"its NP Cooldown"* when the
  * Unit it is aimed at is somebody else's and may have two.
  *
+ * A fourth, `scope: "skills"`, names every ability that is not a Noble
+ * Phantasm, and `excludeSelf` drops the ability doing the asking -- both for
+ * Kingprotea's *Infantile Regression*, *"reduce the Cooldown of Kingprotea's
+ * Skills by 1◈ excluding this Skill"*.
+ *
  * @param {object} change
  * @param {object} doc the target's actor document
+ * @param {object|null} [self] the ability being used, for `excludeSelf`
  * @returns {object[]}
  */
-function selectAbilities(change, doc) {
+function selectAbilities(change, doc, self = null) {
+  const notSelf = (i) => !(change.excludeSelf && self && i.id === self.id);
+
   if (change.scope === "np") {
-    return doc.items.filter((i) => i.type === "noblePhantasm" || i.system?.categorizedAsNP);
+    return doc.items.filter((i) => (i.type === "noblePhantasm" || i.system?.categorizedAsNP) && notSelf(i));
   }
-  if (change.category) return doc.items.filter((i) => i.system?.category === change.category);
-  return [doc.items.get(change.abilityId)].filter(Boolean);
+  // Every ability that is NOT a Noble Phantasm. Kingprotea's *Infantile
+  // Regression* is *"reduce the Cooldown of Kingprotea's Skills by 1◈
+  // **excluding this Skill**"*, which names a scope the vocabulary had no word
+  // for and an exclusion the `category` selector could only express by giving
+  // every other Skill a shared category it has no other use for.
+  if (change.scope === "skills") {
+    return doc.items.filter((i) => i.type === "ability" && !i.system?.isNP && notSelf(i));
+  }
+  if (change.category) {
+    return doc.items.filter((i) => i.system?.category === change.category && notSelf(i));
+  }
+  return [doc.items.get(change.abilityId)].filter(Boolean).filter(notSelf);
 }
 
 /**
@@ -1240,6 +1309,69 @@ async function chosenCooldowns(phase, ability, doc) {
  * @param {object} doc
  * @returns {string[]}
  */
+/**
+ * Which of a removal phase's candidates actually come off.
+ *
+ * `removals` picks them; `rules/removal.mjs` decides. Buff removal is the one
+ * effect operation with a resistance on the receiving end — *"the chance of
+ * buffs being removed from herself is reduced by 35%"* — and until Kingprotea
+ * there was no roll for it to modify, so `Buff Removal ResUp` was authorable
+ * and inert.
+ *
+ * The dice are rolled HERE, per definition id, because the rules layer is pure.
+ * Two instances of one effect share one roll: the clause is about the buff, and
+ * rolling per document would let a ten-stack effect lose four and keep six from
+ * a single dispel.
+ *
+ * @param {object} phase
+ * @param {object} doc the bearer's actor document
+ * @param {object} bearer the bearer's unit snapshot
+ * @returns {Promise<string[]>} the definition ids to remove
+ */
+async function resolveRemoval(phase, doc, bearer) {
+  const candidates = removalCandidates(phase, doc);
+  const ignoresProtection = Boolean(phase.ignoresRemovalProtection);
+
+  /** @type {Record<string, number>} */
+  const rolls = {};
+  for (const defId of pendingRemovalRolls({ candidates, bearer, ignoresProtection })) {
+    rolls[defId] = (await new Roll("1d100").evaluate()).total;
+  }
+
+  const plan = removalPlan({ candidates, bearer, rolls, ignoresProtection });
+  for (const r of plan.resisted) {
+    // Loud, because a dispel that silently did nothing is indistinguishable
+    // from a dispel that was never wired up -- which is what this whole path
+    // was until now.
+    ui.notifications?.info(game.i18n.format("FGT.Removal.Resisted", {
+      name: doc.name, effect: EffectRegistry.get(r.defId)?.name ?? r.defId,
+      chance: r.chance, roll: r.roll,
+    }));
+  }
+  return plan.removed;
+}
+
+/**
+ * The effects a removal phase names, as removal candidates.
+ *
+ * @param {object} phase
+ * @param {object} doc
+ * @returns {Array<{defId: string, polarity: string|undefined, unremovable: boolean}>}
+ */
+function removalCandidates(phase, doc) {
+  const named = new Set(removals(phase, doc));
+  return doc.effects
+    .filter((e) => named.has(e.system?.defId))
+    .map((e) => {
+      const def = EffectRegistry.get(e.system?.defId);
+      return {
+        defId: e.system.defId,
+        polarity: def?.polarity,
+        unremovable: Boolean(def?.unremovable ?? e.system?.unremovable),
+      };
+    });
+}
+
 function removals(phase, doc) {
   const named = (phase.effects ?? [phase.effect]).filter(Boolean).map((e) => e.id ?? e);
   if (named.length > 0) return named;

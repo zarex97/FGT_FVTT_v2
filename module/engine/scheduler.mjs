@@ -67,10 +67,23 @@ export function endTurn(board, ctx) {
   //    Acts", which is why this pass is not scoped to the active player.
   intents.push(...fireEvent("actedTurnEnd", units.filter((u) => u.acted), ctx));
 
-  // 3. Cooldowns advance at each ability's own rate.
+  // 3. ...and for every unit, whoever is acting. §7.4's table calls this one
+  //    `turnEnd` -- *"every turn, any player's"* -- and calls the pass above it
+  //    `unitTurnEnd`; the handler vocabulary grew the other way round, and the
+  //    authored content (Serenity's Zabaniya, Medusa's Blood Fort) says
+  //    `turnEnd` and means the owner's. Renaming is not worth what it would
+  //    break, so the missing half gets the name that is still free.
+  //
+  //    Kingprotea's Endless Proliferation is the clause that needs it: a stock
+  //    "at the end of the Turn after every ⅓◈ Turns" for the 3◈+⅓◈ the buff
+  //    lasts is ten Turns and ten stocks, which is exactly the cap her sheet
+  //    prints. Scoped to her own Turns it would reach three.
+  intents.push(...fireEvent("anyTurnEnd", units, ctx));
+
+  // 4. Cooldowns advance at each ability's own rate.
   intents.push(...advanceCooldowns(units, ctx));
 
-  // 4. Periodic effects due at turn end.
+  // 5. Periodic effects due at turn end.
   intents.push(...tickPeriodics(units, "turnEnd", ctx));
   // Same boundary, the ACTED half: only a `PeriodicOverride`-widened instance
   // (Sikera Ušum clause c) answers "turnEnd" to this, ever -- no periodic in
@@ -78,20 +91,20 @@ export function endTurn(board, ctx) {
   // is a no-op everywhere the widening does not apply.
   intents.push(...tickPeriodics(units.filter((u) => u.acted), "actedTurnEnd", ctx));
 
-  // 5. Expiry — after the final tick, so an effect ending now still ticks.
+  // 6. Expiry — after the final tick, so an effect ending now still ticks.
   intents.push(...expireEffects(units, ctx));
 
-  // 6. Terrain's own boundary clauses -- Burning's inescapable Burn, Poison
+  // 7. Terrain's own boundary clauses -- Burning's inescapable Burn, Poison
   //    Swamp's stage roll. After the periodics above, because a terrain that
   //    inflicts Poison should not also tick it in the same breath.
   intents.push(...terrainIntents(terrainPeriodics(units, board, "turnEnd"), ctx));
 
-  // 7. The multi-Servant tax (§16.7). Flat 25 Health per Master whose Servants
+  // 8. The multi-Servant tax (§16.7). Flat 25 Health per Master whose Servants
   //    acted more than once this Turn, and a LOSS rather than damage, so
   //    nothing reduces it.
   intents.push(...multiServantIntents(units, ctx));
 
-  // 8. Sustainability and removal checks.
+  // 9. Sustainability and removal checks.
   intents.push(...checkRemovals(units, ctx));
 
   return intents;
@@ -205,6 +218,13 @@ export function fireEvent(event, units, ctx) {
       if (handler.expiry !== null && handler.expiry !== undefined
         && handler.expiry <= (ctx.tick ?? 0)) continue;
 
+      // ...and the mirror. *"At the end of this Unit's Turn EXCEPT the Turn
+      // this Skill was activated"* -- Kingprotea's `NP DmUp (GAO)` decays one
+      // buff per Turn, and without this the ones she gained a moment ago would
+      // each lose a charge before she had swung once.
+      if (handler.notOnApplyTurn && handler.appliedAt !== null && handler.appliedAt !== undefined
+        && handler.appliedAt >= (ctx.tick ?? 0)) continue;
+
       // Charm: "removed at the end of the Combat Phase if the unit takes
       // damage from an attack." The caller reports who the phase actually
       // damaged; an untracked phase damages nobody, so the clause cannot fire
@@ -229,6 +249,11 @@ export function fireEvent(event, units, ctx) {
       // include-list can express.
       if (handler.excludeCategory?.includes(ctx.subject?.category ?? null)) continue;
       if (handler.excludeContentId?.includes(ctx.subject?.contentId ?? null)) continue;
+      // The include-list of ONE. Kingprotea's *Giant Monster of the Great
+      // River* fires *"whenever Kingprotea uses the 'Monstrous Strength'
+      // Skill"* -- a single named ability, which `ofCategory` could only
+      // express by giving Monstrous Strength a category nothing else reads.
+      if (handler.ofContentId && !handler.ofContentId.includes(ctx.subject?.contentId ?? null)) continue;
       // "A non-Spell SKILL" is this game's own vocabulary for a category
       // distinct from both Spells and Noble Phantasms (every other clause in
       // the corpus keeps the three apart, e.g. Presence Concealment's "Active
@@ -488,6 +513,18 @@ const ACTIONS = Object.freeze({
       const amount = Math.floor(maxHealth(u) * (a.percentOfMax / 100));
       return amount > 0 ? [I.heal(u.id, amount, h.source)] : [];
     }
+    // Of the ORIGINAL maximum -- the number the sheet was written with, before
+    // anything grew it. Kingprotea's Proliferation is *"Max and current Health
+    // is increased by 20% of Kingprotea's ORIGINAL Max Health"*, and reading
+    // `percentOfMax` there would compound: at two stocks her maximum is already
+    // 2800, and a fifth of that is 560 rather than the 400 her sheet pays.
+    if (typeof a.percentOfBase === "number") {
+      const base = u.baseHealth ?? maxHealth(u);
+      const amount = Math.floor(base * (a.percentOfBase / 100));
+      // `afterEffects` because the maximum this restore is measured against is
+      // usually being raised in the same batch -- see `intents.mjs#rankOf`.
+      return amount > 0 ? [I.heal(u.id, amount, h.source, false, { afterEffects: true })] : [];
+    }
     const amount = rolled(a, c);
     return amount === null ? [] : [I.heal(u.id, amount, h.source)];
   },
@@ -579,6 +616,11 @@ const ACTIONS = Object.freeze({
    * absolute one, and would expire immediately or never.
    */
   ApplyEffect: (a, u, h, c) => {
+    // "X times, where X = ...". Resolved before anything is built, because a
+    // count of zero is not an application at all.
+    const applyTimes = a.times === undefined ? null : stackTimes(a.times, u);
+    if (applyTimes !== null && applyTimes <= 0) return [];
+
     const ticks = a.duration ? resolveTicks(parseTick(a.duration), c) : null;
     const effect = {
       ...(a.effect ?? {}),
@@ -601,6 +643,11 @@ const ACTIONS = Object.freeze({
       // "Inflicts Stage 3 Poison": one application worth three stages, not
       // three applications each rolling their own chance.
       ...(a.stages !== undefined ? { stages: a.stages } : {}),
+      // ...and the same reading for CHARGES. *"Apply NP DmUp (GAO) to herself X
+      // times, where X = the number of Proliferation Stocks she has"* -- one
+      // application worth X, resolved here because only this pass can see how
+      // many she holds.
+      ...(applyTimes !== null ? { applyUses: applyTimes } : {}),
       // Secret Poison. Hidden only while there is something to hide behind:
       // the disclosure trigger is the inflicter's concealment ending, so an
       // unconcealed inflicter poisons openly and the clause is self-limiting.
@@ -706,6 +753,30 @@ const ACTIONS = Object.freeze({
     ];
   },
 });
+
+/**
+ * How many charges an `ApplyEffect` action is worth.
+ *
+ * A literal, or a count of what the bearer is carrying:
+ * `times: {perStack: {effect: proliferationStock}}`. The snapshot already
+ * counts instances and uses the same way for `perStack` magnitudes
+ * (`rules/snapshot.mjs#stacksHeld`); this reads the projection's own
+ * `effectInstances`, because the scheduler is handed a snapshot rather than a
+ * document.
+ *
+ * @param {number|object} raw
+ * @param {object} unit a unit snapshot
+ * @returns {number}
+ */
+function stackTimes(raw, unit) {
+  if (typeof raw === "number") return raw;
+  const spec = raw?.perStack ?? null;
+  if (!spec?.effect) return 1;
+  const held = (unit?.effectInstances ?? [])
+    .filter((e) => e.defId === spec.effect)
+    .reduce((n, e) => n + Math.max(1, e.uses ?? 0), 0);
+  return Math.floor(held / (spec.each ?? 1));
+}
 
 /**
  * Which Units an action lands on.

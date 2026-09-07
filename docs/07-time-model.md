@@ -261,6 +261,21 @@ Note `on` has four values and they are genuinely different:
 - `unitTurnEnd` — end of the *owner's* turn only.
 - `actedTurnEnd` — end of any turn in which the unit Acted.
 
+> **Implementation note (Ch. 45).** The **handler** vocabulary grew the other way round from this
+> table, and the difference is load-bearing. `engine/scheduler.mjs#endTurn` fires `turnEnd` for
+> the ACTIVE faction's units only — what this table calls `unitTurnEnd` — and the authored
+> content says `turnEnd` and means the owner's Turn (Serenity's *Zabaniya*, Medusa's *Blood
+> Fort*, Kingprotea's own `NP DmUp (GAO)` decay). The half this table calls `turnEnd` was
+> missing entirely and arrived with Kingprotea as **`anyTurnEnd`**, fired for every unit
+> whoever is acting.
+>
+> Her *Endless Proliferation* is what needed it: *"at the end of the Turn after every ⅓◈ Turns"*
+> over the 3◈+⅓◈ the buff lasts is ten Turns and ten stocks, which is exactly the maximum her
+> sheet prints. Scoped to her own Turns it reaches three. Renaming the pair to match this table
+> was not worth what it would break; the periodic pass (`tickPeriodics`) already reads `turnEnd`
+> as *this* table means it, so the two vocabularies still disagree and the disagreement is now
+> written down.
+
 Van Gogh's Regen fires on *all three of* "end of the Unit's Turn, end of a Turn the Unit Acts,
 and end of the Round" — so `on` is a **set**, not a scalar. And when both `unitTurnEnd` and
 `actedTurnEnd` would fire on the same turn (the owner acted on their own turn), it must fire

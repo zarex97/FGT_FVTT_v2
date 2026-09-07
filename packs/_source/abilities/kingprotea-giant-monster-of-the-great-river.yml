@@ -1,0 +1,39 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+#
+# "(Passive) Whenever Kingprotea uses the 'Monstrous Strength' Skill, apply
+#  NP DmUp (GAO) to herself X times, where X = the number of Proliferation
+#  Stocks she has."
+#
+# Her second stack economy, and the one that feeds off the first: Monstrous
+# Strength is a Damage-Step window she spends on an ordinary attack, and this
+# turns that spend into Noble Phantasm damage she has to use before it decays.
+schema: 1
+id: kingprotea-giant-monster-of-the-great-river
+name: "Giant Monster of the Great River"
+rank: B
+kind: skill
+slug: giantMonsterOfTheGreatRiver
+passive: true
+description: |
+  (Passive) Whenever Kingprotea uses the @ability[kingprotea-monstrous-strength]{Monstrous Strength}
+  Skill, apply @effect[npDmUpGao]{NP DmUp (GAO)} to herself X times, where X = the number of
+  Proliferation Stocks she has.
+passiveRules:
+  # `abilityUsed` with `excludeContentId` inverted -- an include-list of one.
+  # `ofCategory` would need Monstrous Strength to carry a category nothing else
+  # reads, so the handler names the ability it is about.
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    ofContentId: [kingprotea-monstrous-strength]
+    then:
+      # "X times, where X = the number of Proliferation Stocks she has." One
+      # application worth X charges rather than X applications: `npDmUpGao` is
+      # `stacking: count`, and rolling its chance X times would be a different
+      # sentence (the same reading Serenity's *"inflicts Stage 3 Poison"* gets).
+      #
+      # At zero stocks nothing is applied at all, which is what "X times" means
+      # at X = 0.
+      - key: ApplyEffect
+        effect: { id: npDmUpGao }
+        times: { perStack: { effect: proliferationStock } }

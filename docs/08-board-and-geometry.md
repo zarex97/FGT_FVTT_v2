@@ -364,6 +364,29 @@ breadth-first displacement that can chain. The algorithm:
 construction; it is deterministic and terminating, which is what matters for multiplayer
 consistency. Flagged in Ch. 41.
 
+> **Implementation note (Ch. 45).** Built with Kingprotea, in
+> `engine/movement-hooks.mjs#knockBackOccupants` and `rules/movement.mjs#knockbackPanel`. The
+> cascade walks the mover's **whole footprint** — nine panels at 3×3, where Bašmu's was one —
+> and each occupant is pushed away from the mover's **centre**, so a Unit under her north-west
+> corner goes north-west rather than toward her middle. "Until the space is free" is a repeated
+> step along that one line rather than a single panel.
+>
+> The centre is what makes the direction exist at all, and this is where the shipped version was
+> wrong. It passed the panel being cleared, which is the panel the occupant is *already standing
+> on*, so `cardinalToward` returned `{0, 0}` and the function returned `null`. That is the
+> ordinary case for a 1×1 mover — it walks ONTO its victim — so **Bašmu had never knocked
+> anybody back**. A degenerate direction now fans out over the four cardinals, nearest free
+> panel first.
+>
+> Two other things had to be true before any of it reached the board. `onMove` judged whether a
+> movement was a real step by measuring the path against `document.x`/`y`, which reports the
+> ORIGIN only while the move is animating — so an un-animated move looked like a level change
+> and skipped the mover's whole bookkeeping; it now measures against `movement.origin`. And the
+> displacement write itself needs `animate: false`, for the reason Ch. 04 §4.12 records.
+>
+> Measured in `fgt2026`: a 3×3 Kingprotea steps one panel east onto Heracles and the enemy
+> Master, and they end the move one panel north and one panel south of her, clear of all nine.
+
 ### Riding Attack — a Move that is also an Attack
 
 > *"Can Attack all Units in its path while Moving in a straight line as its Normal Attack during

@@ -1,0 +1,90 @@
+# packs/_source/servants/kingprotea.yml
+# Conversion source: char_orig_sheets/Copia de Kingprotea.md
+# Discussed: docs/36-case-remaining.md §36.7
+#
+# The reference set's acceptance test for a Unit whose PHYSICAL SIZE changes
+# mid-match. Everything else on her sheet is a fortress: the highest Mad
+# Enhancement in the corpus, Territory Creation EX on both sides, Independent
+# Action B, and two independent stack economies feeding each other.
+schema: 1
+id: kingprotea
+name: Kingprotea
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Kingprotea
+servantClasses: [alterEgo]
+classContainer: alterEgo
+alignment: { order: lawful, morality: good }
+region: [moon]
+# `Non-Hominidae` is the one that matters, and it matters through the closure
+# rather than on its own (Ch. 02 §2.10): `Servant => Hominidae` holds *unless*
+# the Unit is Non-Hominidae, so stating it is what withholds the implication --
+# the same shape as Mannanán's `pseudoServant` withholding `spirit`.
+#
+# `Giant => Large` is the closure's own rule and is what her *Huge Scale*
+# passive keys on, so `large` is deliberately NOT authored here.
+attributes: [female, servant, earth, giant, humanoid, nonHominidae, mechanical, animalistic]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: EX, end: EX, agi: A, mag: D, luc: B }
+# END EX => 2000, STR EX => 200, MAG D => 125. All three come straight off
+# `domain/tables.mjs`, so the sheet and the tables agree.
+baseHealth: 2000
+mov: 7
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 200, mag: 125 }
+normalAttack: { mode: fixed, component: str }
+# Independent Action B's Passive 1 is the REASON this number is high; the skill
+# does not add to it (see `class-skills/independent-action.yml`).
+sustainability: "7◈"
+
+# The 1×1 she starts at. Declared rather than left implicit because *Huge
+# Scale* grows it -- `SizeStep` adds to `footprint.w`/`footprint.h` in derived
+# data, and a delta needs a base to add to.
+footprint: { w: 1, h: 1 }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # The class's own skill, shared with Mannanán.
+  - { ref: class-alter-ego }
+  # A+ is the highest Mad Enhancement any sheet in the corpus carries: 55% of
+  # all damage taken, 85% of all damage dealt.
+  - { ref: class-mad-enhancement, rank: "A+" }
+  - { ref: kingprotea-territory-creation }
+  - { ref: class-independent-action, rank: B }
+  - { ref: kingprotea-divine-core }
+  - { ref: kingprotea-self-suggestion }
+  - { ref: kingprotea-huge-scale }
+  - { ref: kingprotea-infantile-regression }
+  - { ref: kingprotea-monstrous-strength }
+  - { ref: kingprotea-giant-monster-of-the-great-river }
+  - { ref: kingprotea-earth-mothers-wail }
+  - { ref: kingprotea-airavata-king-size }
+
+notes: |
+  The fourteenth Servant, and §36.7's *"a unit whose physical size changes mid-match"*.
+
+  **Proliferation is one mechanism doing six jobs.** Each stock is worth +20% of her original
+  Max Health, −10% NP damage taken (capped at 80%), +5% buff-removal resistance on top of a
+  base 35, and — every third stock — one more panel of footprint, one more panel of Range and
+  one less MOV. Five of those six are "a magnitude that scales with how many of an effect the
+  bearer holds", which is `perStack` (`rules/elements.mjs`): one field, applied inside the
+  single funnel every element already reads its magnitude through.
+
+  The clauses live on *Huge Scale* rather than on the stock, and that is not a style choice: an
+  effect's rules are collected once per INSTANCE, so a `perStack` element on the stock itself
+  would be collected `n` times and scaled by `n` each time.
+
+  **She is the first Servant with a footprint.** `system.footprint` was a Summon and Platform
+  field; `engine/token-footprint.mjs` already sized a token from it and already re-synced on
+  change, and only had to be told that a Servant can have one and that the value may be derived
+  rather than stored. Growing into occupied panels is Ch. 08 §8.3's cascade, which
+  `knockBackOccupants` already performed for Bašmu — over one panel, where hers is a 3×3.
+
+  **Mad Enhancement A+ states two numbers the shared table does not produce**, and both fall out
+  of one observation: the author halves and rounds down to the nearest 5. That reproduces her
+  NP figure (55 → 25, where the table's per-step arithmetic gives 30) and her own parenthetical
+  gloss on the MAG half (85 → 40, where halving gives 42.5). See
+  `docs/superpowers/specs/2026-09-07-kingprotea-design.md` §4 for the eight ranks it was checked
+  against.

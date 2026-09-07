@@ -1,0 +1,47 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+#
+# The same two clauses Medea and Semiramis carry, at EX: 6d20 offence in her own
+# Home Base, 3d10+30 defence for allies in theirs. Both are ROLLED rather than
+# averaged, which is why they carry `roll:` -- 6d20 is 6-120, and a Servant in
+# her own territory is not meant to be predictable.
+schema: 1
+id: kingprotea-territory-creation
+name: "Territory Creation"
+rank: EX
+kind: classSkill
+slug: territoryCreation
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive 1) When this Unit is in its Home Base, all damage dealt by it is increased by 6d20
+  including NP.
+  (Passive 2) While this Unit is on the field, all damage taken by allied Units who are in their
+  Home Base is further reduced by (3d10+30) including NP.
+  Note: If there are multiple allied Units with this Skill, only the Territory Creation with the
+  highest Rank takes effect.
+passiveRules:
+  # Clause 1 is about KINGPROTEA, so an ordinary predicate on her own options
+  # works. "including NP" is why there is no `attack:kind` predicate: the
+  # default would have been to exempt Noble Phantasms.
+  - key: DamageModifier
+    stage: flat
+    predicate: ["self:inHomeBase"]
+    roll: { key: territoryCreationBonus, formula: "6d20" }
+
+  # Clause 2 is about EVERYONE ELSE, so it is an aura -- and one with no radius,
+  # because "while this Unit is on the field" is not a distance. Its condition
+  # is on the RECIPIENT ("allied Units who are in THEIR Home Base"), which a
+  # predicate cannot say: contributions are evaluated against the source.
+  #
+  # `group` + `stacking: highestOnly` is the Note: two allied Territory
+  # Creations do not add, and hers is the higher Rank wherever Medea's A or
+  # Semiramis's is also on the field.
+  - key: Aura
+    scope: field
+    relations: [ally, self]
+    stacking: highestOnly
+    group: territoryCreation
+    requiresRecipient: { inHomeBase: true }
+    elements:
+      - key: DamageNegation
+        roll: { key: territoryCreationWard, formula: "3d10+30" }

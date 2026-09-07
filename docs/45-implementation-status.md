@@ -1364,6 +1364,92 @@ specification and implemented by nothing.
 | Hallowed Sea God's Sword | 150 + 125 = 275, ×1.3, Magic Resistance bypassed, both swords on one 3◈ clock |
 | Token producers | +1 at round end always; +1 at acted-turn end **only** in Holder Mode; clamped at 7 |
 
+### Kingprotea is complete — and five defects in shipped movement
+
+Twelve abilities, every clause exercised in `fgt2026`. Ch. 36 §36.7 was the design and now
+carries the record of where the build departed from it; the short version is that **eight
+proposed per-element fields became one**, `perStack`, and the Script count is again **zero**.
+
+**Thirteen general features arrived with her**, and the pattern holds for the third Servant
+running: the ones the specification named are the ones nothing had implemented.
+
+| Feature | Where | Named in the spec? |
+|---|---|---|
+| `perStack: {effect, each, base}` on any element | `rules/elements.mjs` | Ch. 36 §36.7 — as eight different per-element inventions |
+| `BuffRemovalResist` and the removal it feeds | `rules/removal.mjs` | Ch. 11 §11.7 named the effect and nothing read it |
+| `SizeStep` → a derived footprint | `rules/elements.mjs`, `data/actor/servant.mjs` | Ch. 04 §4.12 |
+| A token that follows a derived footprint | `engine/token-footprint.mjs` | Ch. 04 §4.12 — for platforms only |
+| `anyTurnEnd` | `engine/scheduler.mjs` | Ch. 07 §7.4 — under the name the handlers had taken |
+| `GRANTS.ignoresOccupancy` | `rules/granted.mjs`, `rules/movement.mjs` | no — Bašmu had a field, a Skill needs a grant |
+| A knockback cascade over a whole footprint | `engine/movement-hooks.mjs` | Ch. 08 §8.3 |
+| `ofContentId` on `OnEvent` | `rules/elements.mjs` | §E — `excludeContentId` existed, the include form did not |
+| `notOnApplyTurn` | `rules/elements.mjs`, `engine/scheduler.mjs` | no |
+| `times: {perStack}` on `ApplyEffect` | `engine/scheduler.mjs` | no |
+| `Heal percentOfBase`, and an `afterEffects` intent rank | `engine/scheduler.mjs`, `engine/intents.mjs` | no |
+| cooldown `scope: skills` with `excludeSelf`, and `perStack` ticks | `engine/skill-use.mjs` | no |
+| `magnitudeRoundTo`, and `overrides` on a scaled table | `rules/elements.mjs`, `domain/tables.mjs` | no |
+
+**And six defects, five of them in machinery that had nothing to do with her:**
+
+1. **Bašmu's knockback had never fired.** `knockbackPanel` took its direction from the mover's
+   panel to the victim's — the *same* panel, because a mover walks onto its victim — so
+   `cardinalToward` returned `{0, 0}` and the function returned `null` every time it was called.
+   The clause has been in the corpus since Ch. 32 and had never once displaced anybody. A
+   degenerate direction now fans out over the four cardinals, nearest free panel first; a
+   multi-panel mover pushes outward from its centre.
+2. **An un-animated move was read as a level change.** `isLevelOnlyChange` measured the movement
+   path against `document.x`/`y`, which reports the ORIGIN only while the move is animating. So
+   any move that had already committed looked like a step to the panel it was already on, and
+   `onMove` returned before the budget, the turn state, the platform carry, the sighting check
+   and the knockback. It measures `movement.origin` now.
+3. **A move intent wrote grid offsets into pixel coordinates.** `io.move` did
+   `{x: destination.j, y: destination.i}` — every platform passenger and every Gather target
+   landed at pixel `(j, i)`, in the scene's top-left corner. Four call sites produce these
+   intents and all four pass panels.
+4. **A programmatic token write never reached the board.** Foundry v14 counts `x`, `y`, `width`
+   and `height` among `MOVEMENT_FIELDS` and holds the document at the movement's origin until the
+   animation completes — which, for an update nobody is watching, never happens: `_source` moved
+   and `TokenDocument#x` did not. Forced displacement and footprint resizes now pass
+   `animate: false`, which is also the honest reading (Ch. 08 §8.3: displacement is not a walk),
+   and `updateToken` repairs any size that drifts from its source.
+5. **A `percentOfBase` heal was clamped to the maximum it was about to raise.** `heal` ranks
+   before `applyEffect`, so *"Max **and current** Health +20%"* raised the maximum and left the
+   current where it was. Found at her first stock: 2000/2400.
+6. **Data preparation was not idempotent, and every derived stat drifted.** `prepareDerivedData`
+   folds stat deltas into `system` in place and reads the field it is about to write, so a stat
+   that nothing recomputes at base time took the same delta again on every preparation. Mad
+   Enhancement's `MOV +2` had **Heracles at MOV 10 over a stored 6** in the live world before
+   anything was done to him, and three more preparations took him to 14. Max Health was immune
+   only because a Servant's is derived from the END table every time. `restoreModifiable` gives
+   the stored stats that same treatment; Ch. 23 §23.2 states the rule.
+
+**And one piece of sheet polish**: the "why is this number what it is" list printed every
+contribution including the ones worth nothing, so her sheet opened on *"health.max 0 — Huge
+Scale, range.panels 0 — Huge Scale, mov 0 — Huge Scale"* under a statline none of them had
+touched. `rules/derived.mjs` had skipped zero-valued deltas since it was written; the sheet now
+does too.
+
+**Measured live**, each figure read off a chat card or the board in `fgt2026`:
+
+| Clause | Measured |
+|---|---|
+| Proliferation | +1 stock at every Turn end, any faction's; 2000 → 2400 → … → 4400 max **and** current at six |
+| Size | 1×1 at two stocks, 2×2 at three, 3×3 at six — token document and canvas placeable at 100 / 200 / 300 px |
+| Range and MOV | 1 → 2 → 3 and 7 → 6 → 5, one step per growth, back in one step on regression |
+| NP damage taken | `Def Up` 70 at seven stocks, against a `max: 80` the eighth would have passed |
+| Buff removal resistance | 65 at seven stocks — 30 + 5n, one roll per `defId` |
+| Huge Scale's grant | `ignoresOccupancy` while Giant; all nine panels of a 3×3 checked for occupants |
+| Knockback cascade | one step east onto Heracles and the enemy Master; both end the move clear of her nine panels, north and south |
+| Infantile Regression | seven stocks through a standing 65% resistance; NP cooldown 9 → 2 (7 × ⅓◈); Self-Suggestion 12 → 9, Huge Scale 9 → 6, Monstrous Strength 12 → 9; itself set to 6 and **not** reduced |
+| Airavata King Size | 914 = (200 − 23 crit) × 2 × 2.30 + 100 Divinity, the 2.30 including `NP DmUp` 20 for her 3×3 |
+| Giant Monster of the Great River | `NP DmUp (GAO)` ×7 on a `Monstrous Strength` used at seven stocks; **nothing** at zero |
+| GAO decay | 7 → 4 across six Turns — her own, and never the Turn it landed |
+| Mad Enhancement A+ | +85% dealt, +40% on the MAG half, 55/25 taken, MOV +2, Range +1, ZON +2 (not stacking with Independent Action's), Master at 805/900 |
+| Monstrous Strength | offered by name at the Start of the Damage Step, taken, and then listed as `(STR only)` and **not applied** to a MAG attack |
+| Earth Mother's Wail | 125 MAG +40% +100 Divinity, negated outright by Karna's Magic Resistance C ≥ D |
+| Self-Suggestion | non-volatile debuff chance at −170% with the passive and the buff both standing |
+| Airavata's ZON gate | refused with `zon` at 13 panels from her Master, allowed at one |
+
 ---
 
 ## 45.5 The completion plan

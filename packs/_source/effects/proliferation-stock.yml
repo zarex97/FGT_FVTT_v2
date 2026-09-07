@@ -1,0 +1,33 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md · docs/36-case-remaining.md §36.7
+#
+# A MARKER, deliberately carrying no rules of its own.
+#
+# Everything a stock is worth -- Max Health, NP damage taken, buff-removal
+# resistance, size, Range, MOV -- lives on `Huge Scale` as a `perStack` element
+# (`rules/elements.mjs`). It has to: an effect's rules are collected once per
+# INSTANCE, so a `perStack` element authored here would be collected n times and
+# scaled by n each time, and ten stocks would pay a hundredfold.
+#
+# `magnitudeStacks` is what makes each application its own document, which is
+# the sheet's *"each Proliferation stock counts as a separate buff"* -- and what
+# lets `Infantile Regression` remove them and `stacksHeld` count them.
+#
+# No duration: *"Proliferation stocks are not lost when Endless Proliferation
+# ends."* They go when something takes them.
+schema: 1
+id: proliferationStock
+name: "Proliferation"
+description: |
+  A Proliferation stock. Each is worth +20% of Kingprotea's original Max Health, −10% NP damage
+  taken (to a maximum of 80%) and +5% buff-removal resistance; every third also grows her by one
+  panel, which is +1 Range and −1 MOV.
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+# "Kingprotea can only have a maximum of 10 Proliferation stocks." A `noop` at
+# the ceiling rather than a refusal: the eleventh Turn of Endless Proliferation
+# is not an error, it simply has nothing left to give.
+maxStacks: 10
+baseChance: 100
+rules: []

@@ -237,6 +237,12 @@ async function resolveEffects(intents) {
       chance: intent.effect.chance ?? null,
       bypassChanceModifiers: Boolean(intent.effect.bypassChanceModifiers),
       stages: intent.effect.stages ?? 1,
+      // How many CHARGES this one application is worth, for a `count`-stacked
+      // effect whose count the clause states. Kingprotea's *Giant Monster of
+      // the Great River* applies `NP DmUp (GAO)` *"X times, where X = the
+      // number of Proliferation Stocks she has"*, and the scheduler resolves X
+      // before the intent is emitted.
+      uses: intent.effect.applyUses ?? null,
       visibility: intent.effect.visibility ?? "public",
       attributionHidden: Boolean(intent.effect.attributionHidden),
       // The effect's own `sourceUnitId` FIRST. The scheduler's `ApplyEffect`

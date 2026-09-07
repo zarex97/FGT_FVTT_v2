@@ -320,9 +320,30 @@ describe("knockbackPanel (Ch. 32, Bašmu)", () => {
     expect(knockbackPanel(basmu, edge, board([edge]))).toBe(null);
   });
 
-  it("returns null when the origin and the victim share a panel", () => {
-    // No direction to push along.
-    expect(knockbackPanel(basmu, other("v", 6, 6, {}), board([]))).toBe(null);
+  it("fans out when the origin and the victim share a panel", () => {
+    // Which is the ORDINARY case for a 1x1 mover: Bašmu walks ONTO its victim,
+    // so "away from the mover" has no direction at all. This branch returned
+    // `null`, and Bašmu therefore never knocked anybody back in its own right.
+    expect(knockbackPanel(basmu, other("v", 6, 6, {}), board([]))).toEqual(at(5, 6));
+  });
+
+  it("takes the NEAREST free panel when it fans out, not the first direction's", () => {
+    const victim = other("v", 6, 6, {});
+    const north = other("n", 5, 6, {});
+    const south = other("s", 7, 6, {});
+    // North and south are taken at one step, so west at one step wins over
+    // north at two.
+    expect(knockbackPanel(basmu, victim, board([victim, north, south]))).toEqual(at(6, 5));
+  });
+
+  it("pushes outward from a multi-panel mover's centre (Kingprotea, 3x3)", () => {
+    // Her centre is (6, 6); a Unit under her western edge goes west, one under
+    // her eastern edge goes east. Both are "away from her", and neither is the
+    // direction the panel-by-panel reading would give.
+    const west = other("w", 6, 5, {});
+    const east = other("e", 6, 7, {});
+    expect(knockbackPanel(at(6, 6), west, board([west]))).toEqual(at(6, 4));
+    expect(knockbackPanel(at(6, 6), east, board([east]))).toEqual(at(6, 8));
   });
 
   it("picks the axis the mover actually approached from", () => {

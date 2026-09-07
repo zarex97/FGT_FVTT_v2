@@ -8,7 +8,7 @@
  */
 
 import { snapshotUnit, contributionsOf } from "../rules/snapshot.mjs";
-import { applyStatDeltas, writeDerived } from "../rules/derived.mjs";
+import { applyStatDeltas, writeDerived, restoreModifiable } from "../rules/derived.mjs";
 
 export { FGTCombat } from "./combat.mjs";
 
@@ -67,6 +67,17 @@ export class FGTActor extends Actor {
       }
     }
     return out;
+  }
+
+  /** @inheritdoc */
+  prepareBaseData() {
+    // BEFORE the model's own derivations, so they run on stored values rather
+    // than on what the last preparation left behind. `prepareDerivedData` below
+    // writes MOV, Range and the rest in place, and nothing put them back --
+    // every preparation therefore applied the same deltas again. See
+    // `rules/derived.mjs#restoreModifiable`.
+    restoreModifiable(this.system, this._source?.system);
+    super.prepareBaseData();
   }
 
   /** @inheritdoc */

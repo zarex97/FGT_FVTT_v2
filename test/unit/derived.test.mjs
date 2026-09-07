@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { applyStatDeltas, writeDerived } from "../../module/rules/derived.mjs";
+import { applyStatDeltas, writeDerived, restoreModifiable } from "../../module/rules/derived.mjs";
 
 /** A Servant-shaped `system` object. */
 function servant(overrides = {}) {
@@ -156,5 +156,60 @@ describe("writeDerived", () => {
     const sys = {};
     writeDerived(sys, { changes: { "a.b.c": 3 }, trace: [] });
     expect(sys.a.b.c).toBe(3);
+  });
+});
+
+describe("restoreModifiable — preparation is idempotent", () => {
+  // Foundry prepares data in place, and `prepareDerivedData` reads the field it
+  // is about to write. Nothing put MOV or Range back, so every preparation
+  // applied the same delta again: Mad Enhancement's `MOV +2` had Heracles at 6,
+  // 8, 10 and 12 across four of them, and the number on his sheet was whichever
+  // one the last preparation reached. Found live, on Kingprotea's sheet reading
+  // MOV 11 over a stored 7.
+  const deltas = [
+    { stat: "mov", value: 2, source: "Mad Enhancement" },
+    { stat: "range", value: 1, source: "Mad Enhancement" },
+  ];
+
+  /** One preparation: restore the stored values, then fold the deltas in. */
+  function prepare(system, source) {
+    restoreModifiable(system, source);
+    writeDerived(system, applyStatDeltas(system, deltas));
+    return system;
+  }
+
+  it("gives the same answer however many times it runs", () => {
+    const source = servant();
+    const system = servant();
+    for (let k = 0; k < 5; k++) prepare(system, source);
+    expect(system.mov).toBe(6);
+    expect(system.range.panels).toBe(2);
+  });
+
+  it("compounds without the restore, which is the defect", () => {
+    const system = servant();
+    for (let k = 0; k < 3; k++) writeDerived(system, applyStatDeltas(system, deltas));
+    expect(system.mov).toBe(10);
+  });
+
+  it("leaves a field the model derives for itself alone", () => {
+    // A Servant with no stated Max Health has `null` stored and the END table
+    // fills it in at base time. Restoring "nothing" over that would undo it.
+    const system = servant({ health: { value: 1500, max: 1500 } });
+    restoreModifiable(system, servant({ health: { value: null, max: null } }));
+    expect(system.health.max).toBe(1500);
+  });
+
+  it("restores a stated one", () => {
+    const system = servant({ health: { value: 400, max: 900 } });
+    restoreModifiable(system, servant());
+    expect(system.health.max).toBe(400);
+  });
+
+  it("ignores a field this actor type does not have", () => {
+    const system = { mov: 9 };
+    expect(() => restoreModifiable(system, servant())).not.toThrow();
+    expect(system.mov).toBe(4);
+    expect(system.range).toBeUndefined();
   });
 });

@@ -34,6 +34,105 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+> **Kingprotea is complete.** Twelve abilities, every clause exercised in a live world. Ch. 36
+> §36.7 was the design and now records where the build departed from it: **eight proposed
+> per-element fields became one**, `perStack`, and the reference set's `Script` count is again
+> **zero** — the stack economy §36.8 lists as her requirement turned out to be a field on
+> `resolveValue`.
+>
+> She is the first Unit in the corpus whose **physical size changes mid-match**. Every third
+> Proliferation stock grows her a panel, and the growth is derived — the footprint moves with the
+> stock count, the token follows it onto the board, her Range rises, her MOV falls, and walking
+> into somebody knocks them clear of all nine panels she now stands on.
+>
+> Building her found **six defects in shipped machinery**, five of which have nothing to do with
+> her. The oldest: **Bašmu's knockback had never once fired**, because the direction was measured
+> from the mover's own panel to a victim standing on it. The widest: **data preparation was not
+> idempotent**, so every derived stat drifted upward — Heracles was standing in the live world at
+> MOV 10 over a stored 6.
+
+### Added
+
+- **Kingprotea** (`packs/_source/servants/kingprotea.yml`), the fourteenth Servant: twelve
+  abilities, four new effects (`proliferationStock`, `endlessProliferation`, `npDmUpGao`,
+  `nvDebuffResUp`), a shared `Alter Ego` class skill, and two independent stack economies on one
+  sheet.
+- **`perStack` on any element** (Ch. 24 §24.3) — `{effect, each, base}`, composing with `max`.
+  Six of her `Huge Scale` clauses are *"for each Proliferation stock, X"* with different nouns,
+  so they are six elements sharing one field rather than six readers each counting stocks their
+  own way. `each` steps every N (her size, every third), `base` is paid once from the first
+  stack (*"35% at one stock, +5% per additional"*), and at zero stacks even the base pays
+  nothing.
+- **`BuffRemovalResist` and `module/rules/removal.mjs`** (Ch. 11 §11.7). The table has had a
+  "blocked by `Buff Removal ResUp`?" column since it was written and nothing read it. Only buffs
+  are protected, an `unremovable` effect is skipped before any roll, and the roll is **one per
+  `defId`** — ten stocks are ten buffs, and rolling ten times would make her ten times harder to
+  strip than her sheet says. `ignoresRemovalProtection` belongs to the *removal*, which is what
+  lets `Infantile Regression` dispel through the protection those very stocks granted her.
+- **`SizeStep`, a derived footprint, and a token that follows it** (Ch. 04 §4.12).
+  `system.footprint` moves with her stock count, and `engine/token-footprint.mjs` pushes it onto
+  the prototype and every placed token — a stock arriving or leaving is the only signal, since
+  the actor document itself is untouched.
+- **`GRANTS.ignoresOccupancy`** and a knockback cascade over a **whole footprint** (Ch. 08 §8.3).
+  Bašmu carried occupancy bypass as a field on the creature; hers is a property of a Skill, so
+  Skill Seal can take it away. The cascade pushes each occupant away from the mover's centre,
+  which is why a Unit under her north-west corner goes north-west.
+- **`anyTurnEnd`** (§E). §7.4 names this event and the handler vocabulary had spent the name on
+  the owner's Turn. *Endless Proliferation* is the clause that needs the difference: a stock at
+  every Turn end for the 3◈+⅓◈ the buff lasts is ten Turns and ten stocks, which is the maximum
+  her sheet prints.
+- **`ofContentId` on `OnEvent`, and `times: {perStack}` on `ApplyEffect`** (§E.9a). *"Whenever
+  Kingprotea uses the Monstrous Strength Skill, apply NP DmUp (GAO) X times, where X = her
+  Proliferation stocks"* — an include-list of one, because a category for a set of one is an
+  invention; and one application worth X charges, because rolling its chance X times is a
+  different sentence.
+- **`Heal percentOfBase`, and an `afterEffects` intent rank.** *"Max **and** current Health +20%
+  of her ORIGINAL maximum"* cannot both be derived, so the current is paid by the handler that
+  grants the stock — ordered after the effect that raises the ceiling it would otherwise clamp
+  to.
+- **`notOnApplyTurn`, cooldown `scope: skills` with `excludeSelf`, `perStack` cooldown ticks,
+  `magnitudeRoundTo`, `maxStacks`, and `overrides` on a scaled rank table** — the small
+  vocabulary the rest of her sheet needed, each named where its clause is.
+
+### Fixed
+
+- **Bašmu's knockback had never fired.** `knockbackPanel` took its direction from the mover's
+  panel to the victim's — the *same* panel, because a mover walks onto its victim — so
+  `cardinalToward` returned `{0, 0}` and it returned `null` every time. A degenerate direction
+  now fans out over the four cardinals, nearest free panel first.
+- **An un-animated move was read as a change of level.** `isLevelOnlyChange` measured the path
+  against `document.x`/`y`, which reports the movement's origin only while it is animating, so a
+  move that had already committed looked like a step onto the panel it was already on — and
+  `onMove` returned before the budget, the turn state, the platform carry, the sighting check and
+  the knockback. It reads `movement.origin` now.
+- **A move intent wrote grid offsets into pixel coordinates.** `io.move` did
+  `{x: destination.j, y: destination.i}`: every platform passenger and every Gather target landed
+  in the scene's top-left corner. All four callers pass panels.
+- **A programmatic token write never reached the board.** Foundry v14 counts `x`, `y`, `width`
+  and `height` among `MOVEMENT_FIELDS` and holds the document at the movement's origin until the
+  animation completes, which for an update nobody is watching never happens. Forced displacement
+  and footprint resizes pass `animate: false` — displacement is not a walk (§8.3) — and
+  `updateToken` repairs a size that has drifted from its source.
+- **Data preparation was not idempotent, and every derived stat drifted upward.**
+  `prepareDerivedData` folds stat deltas into `system` in place and reads the field it is about
+  to write, so a stat nothing recomputes at base time took the same delta again on every
+  preparation: Mad Enhancement's `MOV +2` had Heracles at 10 over a stored 6, and three more
+  preparations took him to 14. Max Health was immune only because a Servant's is derived from the
+  END table every time. `rules/derived.mjs#restoreModifiable` gives the stored stats the same
+  treatment, and Ch. 23 §23.2 now states the rule: a field written by `prepareDerivedData` must
+  be restored or recomputed in `prepareBaseData`.
+- **The sheet's "why is this number what it is" list printed contributions worth nothing.** Her
+  sheet opened on *"health.max 0 — Huge Scale, range.panels 0 — Huge Scale, mov 0 — Huge Scale"*
+  under a statline none of them had touched. `rules/derived.mjs` has skipped zero-valued deltas
+  since it was written; the sheet does too now.
+- **Mad Enhancement `A+` reduced NP damage by 30% where the sheet says 25%.** Read across the
+  column, the NP value is the normal value halved and floored to 5 at every rank but `EX`; the
+  table carries an `A+` override and `test/unit/tables.test.mjs` asserts the halving everywhere,
+  so the next `+` or `−` sheet will confirm it or fail loudly. The same halving is why her
+  damage-dealt gloss is *"85%, 40% for MAG"* rather than 42.5.
+
+---
+
 > **Mannanán mac Lir is complete.** Fourteen abilities, every clause exercised in a live world.
 > Ch. 33 was written as a design and §33.9 now records where the build departed from it: the
 > reference set's **`Script` count is zero** — §33.4 budgeted the one script in the game for

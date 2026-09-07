@@ -1,0 +1,69 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+# Targeting shape T8 in docs/09-targeting.md §9.13.
+#
+# Rank E and an [Anti-Unit] scale, which is the joke: the cheapest Noble
+# Phantasm in the corpus on the largest Servant in it. What makes it hurt is
+# everything else on her sheet arriving at once -- Mad Enhancement's +85%,
+# Monstrous Strength's +150% STR, the GAO stacks that bought, Territory
+# Creation's 6d20, and this NP's own size bonus.
+schema: 1
+id: kingprotea-airavata-king-size
+name: "Airavata King Size: Colossal Silhouette Emerging From The Ocean of Life"
+isNP: true
+rank: E
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: airavataKingSize
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  Base Attack (STR) is used. First, apply @effect[npDmUp]{NP DmUp} to Kingprotea for this Turn,
+  NP damage dealt is increased by X%, as follows-
+  1. If Kingprotea's size is 1x1 panels, no increase
+  2. If Kingprotea's size is 2x2 panels, X=10%
+  3. If Kingprotea's size is 3x3 panels, X=20%
+  4. If Kingprotea's size is 4x4 panels, X=30%
+  Hits a 3x3 panel area in any non-diagonal direction next to herself for 2x damage. Then, apply
+  @effect[atkUp]{Atk Up} to Kingprotea for 1◈ Turns, all damage dealt is increased by 40%; if NP,
+  20%. Cooldown: 3◈ Turns.
+targeting:
+  # "In any non-diagonal direction NEXT TO herself" -- the four cardinal
+  # placements of a block adjacent to the caster, which is what
+  # `selfEdgeAdjacent` offers and what §9.13's shape T8 names.
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy], chooser: all }
+  isDamagingAoE: true
+damage:
+  # "Base Attack (STR) is used" -- which is also her Normal Attack's component,
+  # but stated because the sheet states it and because `componentOf` should not
+  # have to infer it.
+  component: str
+  multiplier: 2
+phases:
+  # Clause 1, BEFORE the damage, because it is a bonus to this very NP: *"First,
+  # apply NP DmUp ... Hits a 3x3 panel area ... for 2x damage."* A rider would
+  # fire after the damage step and boost nothing.
+  #
+  # The magnitude is her SIZE, and her size is `floor(stocks / 3)` panels above
+  # 1x1 -- so 10% per size step is exactly the sheet's 0 / 10 / 20 / 30 for
+  # 1x1 / 2x2 / 3x3 / 4x4, from the same `perStack` her growth uses. Stating it
+  # as a footprint lookup would be a second reader of the same number.
+  - kind: applyEffects
+    when: beforeDamage
+    target: self
+    effects:
+      - id: npDmUp
+        magnitude: 10
+        perStack: { effect: proliferationStock, each: 3 }
+        duration: "this turn"
+
+  - kind: damage
+
+  # "Then, apply Atk Up to Kingprotea for 1◈ Turns." After the damage, so it is
+  # for the next swing rather than this one -- which is what "then" means and
+  # what the 40/20 split is priced for.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 20, duration: "1◈" }

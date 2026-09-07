@@ -127,6 +127,41 @@ Roughly 30 elements cover the entire reference set. Grouped by contribution poin
 | `ElementTag` | 0 | Tag a portion of damage with an element |
 | `Multihit` | — | Declare an attack hits N times |
 
+> **Implementation note (Ch. 45) — `perStack`, and the elements Kingprotea added.** Six of her
+> `Huge Scale` clauses are one sentence with different nouns — *"for each Proliferation stock,
+> X"* — so they are six elements sharing **one field** rather than six readers each counting
+> stocks their own way. `perStack` is a modifier on `resolveValue`, available to every element
+> that has a value at all:
+>
+> ```yaml
+> perStack: { effect: proliferationStock, each: 3, base: 30 }
+> ```
+>
+> `each` steps every N stacks (her size grows every third), `base` is paid once from the first
+> stack (*"35% at one stock, +5% for every additional"* is `value: 5, base: 30`), and at zero
+> stacks the whole thing including the base contributes nothing. It composes with `max`, which is
+> how *"NP damage received reduced by 10% per stock, maximum 80%"* caps **this clause** rather
+> than the pipeline's bucket — two sources of `Def Up` are not one another's ceiling.
+>
+> **The clauses live on the Skill, not on the stock.** An effect's rules are collected once per
+> INSTANCE, so a `perStack` element authored on `proliferationStock` would be collected n times
+> and scaled by n each time: ten stocks would pay a hundredfold.
+>
+> Three new keys arrived with her, and one modifier:
+>
+> | Key | Purpose |
+> |---|---|
+> | `SizeStep` | Contribute deltas to `footprint.w`/`.h`; Ch. 04 §4.12 has the token half |
+> | `BuffRemovalResist` | The magnitude `rules/removal.mjs` rolls against; Ch. 11 §11.7 |
+> | `GrantedAbility: [ignoresOccupancy]` | A grant rather than the summon's own field, so Skill Seal can take it away |
+> | `magnitudeRoundTo` | Round a scaled magnitude to a multiple — Mad Enhancement's MAG half is 42.5 → 40 |
+>
+> §36.7's sketch proposed `alsoRestore`, `cap`, `cumulative`, `every`, `footprintDelta`,
+> `rangeDelta`, `movDelta`, `groupKey` and a `@stackIndex == 1 ? 35 : 5` ternary. None were
+> built: `perStack` plus the vocabulary that already existed says all of it, `stacksHeld` counts
+> by `defId` so no group key is needed, and Range and MOV are their own elements sharing the same
+> `each: 3`.
+
 `DamageModifier` alone covers perhaps 60% of the reference set's content. Its schema:
 
 ```yaml

@@ -1,0 +1,33 @@
+# Kingprotea, char_orig_sheets/Copia de Kingprotea.md
+#
+# "Attack Skill. Range+2 for the Combat Process. Deals normal damage which uses
+#  Base Attack (MAG). Cooldown: 2◈ Turns"
+#
+# Two mechanisms, both built for Mannanán: `rangeBonus` for a reach stated
+# relative to her own Range (Ch. 09), and `damage.component` for an Attack Skill
+# that draws on the Base Attack her Normal Attack does not.
+schema: 1
+id: kingprotea-earth-mothers-wail
+name: "Earth Mother's Wail"
+kind: skill
+slug: earthMothersWail
+isAttackSkill: true
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  Attack Skill. Range+2 for the Combat Process. Deals normal damage which uses Base Attack (MAG).
+  Cooldown: 2◈ Turns.
+targeting:
+  # RELATIVE, and for her it moves twice over: Mad Enhancement adds 1 to her
+  # Range and every third Proliferation stock adds another, so an absolute
+  # number would be wrong in almost every state she is ever in.
+  anchor: { kind: targetUnit, rangeBonus: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  # "Normal damage which uses Base Attack (MAG)" -- her Normal Attack is STR, so
+  # this states the component and `baseSpecFor` builds the number from it.
+  # No multiplier: *normal* damage is 1x.
+  component: mag
+phases:
+  - kind: damage

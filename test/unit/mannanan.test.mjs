@@ -456,6 +456,13 @@ describe("her sheet", () => {
     }
   });
 
+  it("takes Alter Ego from the shared class skill, not a copy of its own", () => {
+    // It was authored on her first and moved to `class-skills/alter-ego.yml`
+    // when Kingprotea arrived with the same passive word for word.
+    expect(SHEET.abilities.map((a) => a.ref)).toContain("class-alter-ego");
+    expect(ABILITIES.has("mannanan-alter-ego")).toBe(false);
+  });
+
   it("takes Magic Resistance B, Riding A and Divinity B from the shared tables", () => {
     const byRef = Object.fromEntries(SHEET.abilities.map((a) => [a.ref, a]));
     expect(byRef["class-magic-resistance"].rank).toBe("B");

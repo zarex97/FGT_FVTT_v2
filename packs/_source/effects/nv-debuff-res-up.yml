@@ -1,0 +1,26 @@
+# Appendix A §A.2 — the non-volatile member of the `Debuff ResUp` family.
+#
+# `debuffResUp` carries no scope and covers every debuff; `offDebuffResUp`
+# narrows by valence. This one narrows by **volatility**, which is Appendix A's
+# own classification (`nonVolatile` / `volatile` / `mental` / `terminal`) — so a
+# volatile debuff written tomorrow is outside it without this file changing.
+#
+# Kingprotea's *Self-Suggestion* is the first content to need it, and it needs
+# it twice: 60% standing, and another 60% for 1◈ from the Active.
+schema: 1
+id: nvDebuffResUp
+name: "nvDebuff ResUp"
+description: "Chance of being inflicted by non-volatile debuffs is reduced by X%."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # POSITIVE, and subtracted by `applicationChance`, which takes `resist` as a
+  # positive quantity. Storing it negative and adding reads the same on the
+  # sheet and inverts on the second reader.
+  - key: ApplicationChance
+    direction: incoming
+    volatility: nonVolatile
+    value: "@magnitude"

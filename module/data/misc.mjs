@@ -49,6 +49,15 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       // corrupting every duration on the board (Ch. 07 §7.5).
       expiry: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
+      // The tick this instance ARRIVED on, which is the mirror of `expiry` and
+      // answers the mirror question. Ch. 11 §11.9's rule -- an effect does not
+      // act on the Turn it ends -- has always been enforced from `expiry`;
+      // Kingprotea's `NP DmUp (GAO)` is the first clause that states the other
+      // end: *"at the end of this Unit's Turn **except the Turn this Skill was
+      // activated**"*. Without this, the buffs she gained this Turn would each
+      // lose a charge before she had used any of them.
+      appliedTick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
       sourceUnitId: new fields.DocumentIdField({ required: false, nullable: true, initial: null }),
       sourceAbilityId: new fields.StringField({ required: false, nullable: true, initial: null }),
       unremovable: new fields.BooleanField({ initial: false }),

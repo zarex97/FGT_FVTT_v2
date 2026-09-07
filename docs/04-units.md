@@ -692,6 +692,24 @@ Consequences that must be handled everywhere:
 Foundry's `TokenDocument.width`/`height` handle rendering and `getOccupiedGridSpaceOffsets()`
 gives the panel set natively. `token.resize()` is the v14 API for growth.
 
+> **Implementation note (Ch. 45).** Built with Kingprotea. Growth is **derived**: `SizeStep`
+> contributes deltas to `system.footprint.w`/`.h` from her stock count, so the number on the
+> sheet changes with nothing written to the actor. `engine/token-footprint.mjs` follows it onto
+> the prototype token and every placed token — a `createActiveEffect`/`deleteActiveEffect` pair
+> is the only signal that her size moved, since the actor document itself is untouched, and a
+> burst of stocks is coalesced into one resize.
+>
+> Two things about the write. Foundry v14 counts `width` and `height` among
+> `TokenDocument.MOVEMENT_FIELDS`, so a resize is routed through the movement pipeline: it needs
+> `fgtForced` to pass `preMoveToken`, and `animate: false` to **commit** — an animated resize
+> holds the document at the size it started from until the animation ends, which for an update
+> nobody is watching never happens. Growth looked correct and shrinking did not, because a
+> shrink left a 3×3 token standing over a 1×1 footprint.
+>
+> Measured in `fgt2026`: 1×1 at two stocks, 2×2 at three, 3×3 at six, with the canvas placeable
+> at 100, 200 and 300 pixels on a 100-pixel grid, and the whole thing collapsing back to 1×1 in
+> one step when `Infantile Regression` takes the stocks away.
+
 ---
 
 ## 4.13 Unit lifecycle

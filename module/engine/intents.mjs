@@ -91,10 +91,12 @@ export const damage = (unitId, amount, breakdown = null, meta = {}) =>
  * Restore Health.
  *
  * `revival` marks the heal that brings a Unit back from zero, which has to be
- * applied **after** the damage that emptied it — see {@link order}.
+ * applied **after** the damage that emptied it — see {@link order}. `meta` is
+ * how a caller passes `afterEffects`, the other departure from the ordinary
+ * rank: a heal whose maximum is raised by an effect in the same batch.
  */
-export const heal = (unitId, amount, source, revival = false) =>
-  ({ t: "heal", unitId, amount, source, ...(revival ? { revival: true } : {}) });
+export const heal = (unitId, amount, source, revival = false, meta = {}) =>
+  ({ t: "heal", unitId, amount, source, ...(revival ? { revival: true } : {}), ...meta });
 
 /**
  * A change to a stat's current value.
@@ -333,6 +335,12 @@ export function order(intents) {
  */
 function rankOf(intent) {
   if (intent.t === "heal" && intent.revival) return ORDER.damage + 0.5;
+  // ...and a heal whose CEILING is being raised in the same batch. Kingprotea's
+  // Proliferation grants a stock and restores 20% of her Health in one turn-end
+  // handler; the stock is what lifts her maximum, so at the ordinary `heal`
+  // rank the restore was clamped to the maximum she had a moment ago and the
+  // "and current Health" half of her sheet did nothing. Found live.
+  if (intent.t === "heal" && intent.afterEffects) return ORDER.applyEffect + 0.5;
   return ORDER[intent.t];
 }
 

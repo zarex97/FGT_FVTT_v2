@@ -188,6 +188,10 @@ export function snapshotUnit(actor, {
     // labelled it as the Master's on a sheet.
     parameters: applyGrantedSteps(parseParameters(sys.parameters), sys.grantedSteps),
     baseAttack: { str: sys.baseAttack?.str ?? 0, mag: sys.baseAttack?.mag ?? 0 },
+    // The AUTHORED maximum Health, which is not `health.max` once anything has
+    // grown it. Kingprotea's Proliferation pays *"20% of Kingprotea's ORIGINAL
+    // Max Health"* per stock, and reading the live maximum there compounds.
+    baseHealth: sys.baseHealth ?? null,
     // Abilities can grant attributes -- Divinity grants `divine`, which is what
     // Karna's Vasavi Shakti and Scathach's God Slayer key on.
     //
@@ -226,6 +230,8 @@ export function snapshotUnit(actor, {
     // Spends this Unit may be OFFERED at a timing window, rather than charged
     // (`engine/optional-costs.mjs`).
     optionalCosts: contributions.optionalCosts ?? [],
+    // How hard this Unit's buffs are to dispel (`rules/removal.mjs`).
+    buffRemovalResist: contributions.buffRemovalResist ?? [],
     // Counters this Unit performs without being asked, and what provokes each
     // (`engine/auto-counter.mjs`). Mannanán's `Fragarach` is the only holder.
     autoCounters: contributions.autoCounters ?? [],
@@ -1036,6 +1042,10 @@ export function contributionsOf(actor) {
       // only thing that knows: the definition has no clock, and the handler is
       // built from the definition's rules.
       expiry: effect.system?.expiry ?? null,
+      // ...and when it ARRIVED, for a handler that must not act on the Turn it
+      // was applied. Kingprotea's `NP DmUp (GAO)` is the only clause that
+      // states it, and it is the exact mirror of the line above.
+      appliedTick: effect.system?.appliedTick ?? null,
       // The INSTANCE's remaining charges. A count-limited effect's rule
       // elements have to know how many uses are left, or the consumer cannot
       // tell a spent Trofa from a fresh one.
@@ -1086,7 +1096,44 @@ export function contributionsOf(actor) {
     defender: null,
   });
 
-  return collectContributions(abilities, { options, refs: expressionRefs(actor) });
+  return collectContributions(abilities, {
+    options,
+    refs: expressionRefs(actor),
+    // How many of each effect the Unit holds, for `perStack` magnitudes
+    // (`rules/elements.mjs`). Kingprotea's Proliferation is the reason it
+    // exists and her NP DmUp (GAO) is the reason it counts two shapes.
+    stacks: stacksHeld(actor),
+  });
+}
+
+/**
+ * How many of each effect this Unit holds, by definition id.
+ *
+ * Two shapes count the same way, and both are on Kingprotea:
+ *
+ *   - `magnitudeStacks` puts each application in its **own document**, so ten
+ *     Proliferation stocks are ten instances. That is what *"each Proliferation
+ *     stock counts as a separate buff"* means, and what makes a dispel able to
+ *     take one.
+ *   - `count` keeps **one** document and accumulates `uses`, which is what
+ *     *"remove one NP DmUp (GAO) buff from herself"* needs — `consumeUse`
+ *     already spends exactly one.
+ *
+ * `max(1, uses)` reads both: an instance with no use counter is worth one.
+ *
+ * @param {object} actor
+ * @returns {Record<string, number>}
+ */
+export function stacksHeld(actor) {
+  /** @type {Record<string, number>} */
+  const out = {};
+  for (const effect of actor?.effects ?? []) {
+    if (effect.disabled || effect.isSuppressed) continue;
+    const id = effect.system?.defId;
+    if (!id) continue;
+    out[id] = (out[id] ?? 0) + Math.max(1, effect.system?.uses ?? 0);
+  }
+  return out;
 }
 
 /**
@@ -1113,6 +1160,10 @@ export function expressionRefs(actor) {
       system: sys,
       resources: sys.resources ?? {},
       health: sys.health ?? null,
+      // The AUTHORED maximum, before anything grew it. Kingprotea's
+      // Proliferation pays *"20% of Kingprotea's original Max Health"* per
+      // stock, and `health.max` is not that number once she has one.
+      baseHealth: sys.baseHealth ?? null,
       agility: sys.agility ?? null,
       luck: sys.luck ?? null,
       parameters: sys.parameters ?? {},

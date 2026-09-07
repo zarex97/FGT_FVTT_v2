@@ -67,6 +67,11 @@ activeRules:
     # in `rules/elements.mjs`: a `madEnhancementOffenceMag` table would be six
     # numbers obliged to stay exactly half of six others.
     magnitudeFactor: 0.5
+    # ...rounded DOWN to a multiple of 5, which is the author's own arithmetic.
+    # Every even rank is unaffected (60→30, 100→50); Kingprotea's A+ is the
+    # first odd one and her sheet writes the answer out: *"halved for Attacks
+    # which use Base Attack (MAG) **(40%)**"*, where 85/2 is 42.5.
+    magnitudeRoundTo: 5
     predicate: [attack:component:mag]
   # Clause 2. `madEnhancementDefence` is an `[normal, vsNP]` PAIR -- B is
   # `[40, 20]` -- and the second half is picked up by `DamageModifier` as the

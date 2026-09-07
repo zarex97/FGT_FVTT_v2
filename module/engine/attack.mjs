@@ -35,7 +35,8 @@ import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
-import { expressionRefs } from "../rules/snapshot.mjs";
+import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
+import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
@@ -2786,7 +2787,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // Medea's Rule Breaker: "removes all buffs from the DU", and then cuts the
     // Contract if the DU is a Servant that FAILED to Evade.
     if (phase.kind === "removeEffect") {
-      await applyBatch(removalIntents(phase, defenderDoc), "np:removeEffect");
+      await applyBatch(await removalIntents(phase, defenderDoc, defender), "np:removeEffect");
       continue;
     }
     if (phase.kind === "cutContract") {
@@ -2881,8 +2882,9 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
         // path already did this, and an ability that resolves through the
         // attack path instead -- every Noble Phantasm -- would otherwise apply
         // the string itself as a magnitude and land nothing at all.
-        magnitude: authoredMagnitude(spec.magnitude, attackerDoc) ?? def.defaultMagnitude ?? 0,
-        npMagnitude: authoredMagnitude(spec.npMagnitude ?? rule.npMagnitude, attackerDoc),
+        magnitude: authoredMagnitude(spec, attackerDoc) ?? def.defaultMagnitude ?? 0,
+        npMagnitude: authoredMagnitude(spec, attackerDoc, "npMagnitude")
+          ?? authoredMagnitude(rule, attackerDoc, "npMagnitude"),
         // How many stages one application is worth. *"Inflicts Stage 3 Poison
         // on the DU"* is one application, not three -- three would roll the
         // chance three times and be improved three times by a Debuff ChUp.
@@ -2933,10 +2935,22 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
  * @param {object} actor the caster
  * @returns {number|null}
  */
-function authoredMagnitude(raw, actor) {
+function authoredMagnitude(spec, actor, field = "magnitude") {
+  const raw = spec?.[field];
   if (raw === null || raw === undefined) return null;
-  if (typeof raw === "number") return raw;
-  const value = resolveValue({ magnitude: raw }, null, { refs: expressionRefs(actor) }, "magnitude");
+  // Straight through unless the SPEC asks for more than a number: a literal
+  // with no `perStack` and no `max` cannot mean anything else.
+  if (typeof raw === "number" && !spec.perStack && spec.max === undefined) return raw;
+
+  const value = resolveValue(spec, null, {
+    refs: expressionRefs(actor),
+    // `perStack` on an effect spec, so a magnitude may scale with what the
+    // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
+    // is increased by X%"* where X is her size, and her size is one step per
+    // three Proliferation stocks -- the same count her growth reads, rather
+    // than a second reader of the footprint it produced.
+    stacks: stacksHeld(actor),
+  }, field);
   return typeof value === "number" ? value : null;
 }
 
@@ -3165,8 +3179,8 @@ async function applyDeclaredEffects(specs, ability, state, defender, { ignoresRe
       // helper -- `target: self` effects come through here (Bellerophon's own
       // Crit Up, Mannanán's token-scaled Atk Up) and an authored expression
       // must mean the same number on both.
-      magnitude: authoredMagnitude(spec.magnitude, game.actors.get(state.attackerId)) ?? def.defaultMagnitude ?? 0,
-      npMagnitude: authoredMagnitude(spec.npMagnitude, game.actors.get(state.attackerId)),
+      magnitude: authoredMagnitude(spec, game.actors.get(state.attackerId)) ?? def.defaultMagnitude ?? 0,
+      npMagnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "npMagnitude"),
       duration: spec.duration ?? def.defaultDuration,
       chanceModifiers: spec.chanceModifiers ?? [],
       chance: spec.chance ?? null,
@@ -3559,7 +3573,7 @@ function resolveAbilitySource(contentId) {
  * @param {object} doc the defender
  * @returns {object[]}
  */
-function removalIntents(phase, doc) {
+async function removalIntents(phase, doc, bearer) {
   const named = (phase.effects ?? [phase.effect]).filter(Boolean).map((e) => e.id ?? e);
   const selector = phase.selector ?? null;
 
@@ -3574,7 +3588,31 @@ function removalIntents(phase, doc) {
       })
       .map((e) => e.system.defId);
 
-  return ids.map((id) => I.removeEffect(doc.id, id, "ruleBreaker"));
+  // Buff removal has a resistance on the receiving end (`rules/removal.mjs`),
+  // and this path is where an ATTACK dispels -- Medea's Rule Breaker *"removes
+  // all buffs from the DU"*, straight into whatever `Buff Removal ResUp` the
+  // defender is carrying. Rolled here, per definition id, because the rules
+  // layer is pure.
+  const candidates = doc.effects
+    .filter((e) => ids.includes(e.system?.defId))
+    .map((e) => {
+      const def = EffectRegistry.get(e.system?.defId);
+      return {
+        defId: e.system.defId,
+        polarity: def?.polarity,
+        unremovable: Boolean(def?.unremovable ?? e.system?.unremovable),
+      };
+    });
+  const ignoresProtection = Boolean(phase.ignoresRemovalProtection);
+
+  /** @type {Record<string, number>} */
+  const rolls = {};
+  for (const defId of pendingRemovalRolls({ candidates, bearer, ignoresProtection })) {
+    rolls[defId] = (await new Roll("1d100").evaluate()).total;
+  }
+
+  const plan = removalPlan({ candidates, bearer, rolls, ignoresProtection });
+  return plan.removed.map((id) => I.removeEffect(doc.id, id, "ruleBreaker"));
 }
 
 /**

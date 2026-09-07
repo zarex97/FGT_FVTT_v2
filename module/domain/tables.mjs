@@ -24,7 +24,8 @@
 import { Rank } from "./rank.mjs";
 
 /**
- * @typedef {{kind: "scaled", byGrade: Record<string, number|string>, perStep: number}} ScaledTable
+ * @typedef {{kind: "scaled", byGrade: Record<string, number|string>, perStep: number,
+ *            overrides?: Record<string, unknown>}} ScaledTable
  * @typedef {{kind: "banded", bands: Array<{grades: string[], value: unknown}>, fallback?: unknown}} BandedTable
  * @typedef {{kind: "threshold", thresholds: Array<{minOrdinal: number, value: unknown}>,
  *            overrides?: Array<{predicate: string[], value: unknown}>, default?: unknown}} ThresholdTable
@@ -247,11 +248,26 @@ export const TABLES = Object.freeze({
     ],
   },
 
-  /** `[normal, vsNP]` damage-taken reduction. Verified across six sheets. */
+  /**
+   * `[normal, vsNP]` damage-taken reduction. Verified across seven sheets.
+   *
+   * The NP column is the normal one **halved and rounded down to the nearest
+   * 5**, at every rank the corpus states: E 10→5, D 20→10, C 30→15, B− 35→15
+   * (Castor), B 40→20 (Asterios, Heracles), A 50→25, A+ 55→25 (Kingprotea).
+   * `perStep: 5` reproduces all of them except A+, where stepping the pair
+   * gives 30 and the sheet says 25 — so A+ is carried as an override rather
+   * than as a rounding rule bolted onto `applyStep`.
+   *
+   * EX is the other end of the same story: half of 75 is 35 and both EX sheets
+   * (Penthesilea, Raikou) say 30. EX is also the only rank whose *normal*
+   * figure leaves the ladder — 50 → 75 rather than 60 — so the pair is
+   * published as-is and the halving is a description rather than a mechanism.
+   */
   madEnhancementDefence: {
     kind: "scaled",
     byGrade: { EX: [75, 30], A: [50, 25], B: [40, 20], C: [30, 15], D: [20, 10], E: [10, 5] },
     perStep: 5,
+    overrides: { "A+": [55, 25] },
   },
 
   /** Damage dealt increase; halved for the BA(MAG) portion at stage 5. */
@@ -361,6 +377,15 @@ export function lookup(id, rank) {
 
   switch (table.kind) {
     case "scaled": {
+      // A published exception, consulted before the arithmetic and matched on
+      // the EXACT rank. Data rather than a special case in the lookup, the same
+      // way `TICK_OVERRIDES` carries the source's own fraction table
+      // (`domain/tick.mjs`): a ladder that is right at six ranks and wrong at a
+      // seventh is still the ladder, and hiding the seventh inside a rounding
+      // rule is how it stops being checkable.
+      const override = table.overrides?.[rank.toString()];
+      if (override !== undefined) return override;
+
       const base = table.byGrade[rank.grade];
       if (base === undefined) return undefined;
       return applyStep(base, table.perStep, rank.steps);

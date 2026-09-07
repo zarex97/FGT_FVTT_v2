@@ -251,6 +251,38 @@ a list goes stale the moment an eighth Spell is written. Both handlers in the re
 EMIYA's — *Magecraft* widens his Range on any Thaumaturgy Spell, and *Atk Up (Trace)* lengthens
 itself on a Thaumaturgy **or** Projection.
 
+> **Implementation note (Ch. 45).** A third handler arrived with Kingprotea, and it names one
+> ability rather than a family: *"Whenever Kingprotea uses the **Monstrous Strength** Skill…"*.
+> `ofContentId` is the include-list form of the existing `excludeContentId`, and it is the honest
+> reading — a category would have to be invented for a set of one, and `Monstrous Strength`
+> shares nothing with anything.
+>
+> ```yaml
+> - key: OnEvent
+>   event: abilityUsed
+>   ofContentId: [kingprotea-monstrous-strength]
+>   then:
+>     - key: ApplyEffect
+>       effect: { id: npDmUpGao }
+>       times: { perStack: { effect: proliferationStock } }
+> ```
+>
+> `times` is the other half: *"apply it X times, where X = the number of Proliferation Stocks she
+> has"* is one application worth X charges, not X applications, because rolling its chance X
+> times would be a different sentence. At X = 0 nothing is applied at all — measured live, on a
+> `Monstrous Strength` used with no stocks in hand.
+
+### `anyTurnEnd`
+
+| Event | When | Payload |
+|---|---|---|
+| `fgt.anyTurnEnd` | Every Turn end, for every Unit, whoever is acting | `{unitId}` |
+
+The handler vocabulary's `turnEnd` is the **owner's** Turn (§7.4 calls that `unitTurnEnd`), and
+this is the other half of that table's `turnEnd`. Only Kingprotea's *Endless Proliferation* reads
+it: a stock *"at the end of the Turn after every ⅓◈ Turns"* for the 3◈+⅓◈ the buff lasts is ten
+Turns and ten stocks, which is the maximum her sheet prints.
+
 ---
 
 ## E.9b `damageDealt` and the on-hit rider
