@@ -220,3 +220,25 @@ describe("selectAbilities", () => {
     expect(picked).toEqual([]);
   });
 });
+
+describe("a clock that does not start at the use", () => {
+  it("sets nothing for countFrom: deactivation", () => {
+    // Presence Concealment, Jack's Mist, Piedra Del Sol.
+    expect(cooldownFor(ability({ cooldown: { max: "5◈", countFrom: "deactivation" } }), "u1"))
+      .toEqual({ cooldowns: [], spends: [] });
+  });
+
+  it("sets nothing for countFrom: destroyed", () => {
+    // Quetzalcoatl: Winged Serpent — "7◈ Turns AFTER Quetzalcoatlus is
+    // defeated". The mount may stand for twenty Turns and the clock has not
+    // begun; starting it here would run the cooldown out underneath a platform
+    // that is still flying. Found live: 21 ticks remaining while it was on the
+    // board.
+    expect(cooldownFor(ability({ cooldown: { max: "7◈", countFrom: "destroyed" } }), "u1"))
+      .toEqual({ cooldowns: [], spends: [] });
+  });
+
+  it("still sets an ordinary cooldown when countFrom is absent", () => {
+    expect(cooldownFor(ability({ cooldown: { max: "7◈" } }), "u1").cooldowns[0].ticks).toBe(21);
+  });
+});

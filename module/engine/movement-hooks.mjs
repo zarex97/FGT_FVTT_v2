@@ -166,6 +166,18 @@ async function onMove(document, movement, operation) {
   // die if they are CAUGHT IN the Mist" does not ask whose move it was.
   if (document.actor) await runContactEvents([document.actor.id], enteredFields(document, movement));
 
+  // A FOLLOWING terrain area goes where its source goes, and is above the
+  // forced-move return for the same reason contact is: *"the 5x5 panel area
+  // around Quetz"* is around her wherever she ends up, and a Quetzalcoatl who
+  // was knocked back or carried would otherwise leave her daylight behind.
+  //
+  // `movement.destination` is a canvas POINT, not a panel -- the same trap
+  // `platformDelta` below documents.
+  if (document.actor) {
+    const landed = movement?.destination ? canvas.grid.getOffset(movement.destination) : null;
+    await repaintFollowing(document.actor.id, landed ? { i: landed.i, j: landed.j } : null);
+  }
+
   // `operation`, not `movement.options` -- see `onPreMove`. A forced
   // displacement must not spend the mover's budget, and this read never
   // resolved, so `carryPassengers` could recurse into its own carried
@@ -219,18 +231,6 @@ async function onMove(document, movement, operation) {
   // is actually standing on Bašmu's new panel rather than where they were
   // before this move.
   if (ignoresOccupancy(unit)) await knockBackOccupants(actor.id, movement);
-
-  // A FOLLOWING terrain area arrives with its source rather than a step behind.
-  // *"The created Terrain Effect area will not follow its user unless stated"*
-  // -- Quetzalcoatl's `Sol` is the exception, and the only content that sets
-  // the flag. Read off the destination, after the write above, for the same
-  // reason the knock-back is.
-  // `movement.destination` is a canvas POINT, not a panel -- the same trap
-  // `platformDelta` below documents. Converted here rather than passed raw.
-  const landedAt = movement?.destination
-    ? canvas.grid.getOffset(movement.destination)
-    : unit.panel;
-  await repaintFollowing(actor.id, landedAt ? { i: landedAt.i, j: landedAt.j } : null);
 
   // Presence Concealment clause 6: *"When This Unit Moves into an enemy
   // Servant's Range (or Detect, if in use), it has a 5% chance of being

@@ -553,7 +553,20 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     // ever supplied one, so the whole cross-level rule was inert.
     fields: settings.fields ?? [],
     crossLevel: settings.crossLevel ?? null,
-    terrain: scene?.terrain ?? {},
+    // `terrainAreasOf` (engine/board.mjs) computes this into `settings.terrain`,
+    // exactly as `homeBaseZonesOf` does for `zones` immediately above -- and
+    // this line read `scene.terrain`, a property no Scene document has, so
+    // `board.terrain` was ALWAYS `{}` in a live world.
+    //
+    // The same bug as `zones`, in the same object, missed when that one was
+    // fixed. Everything downstream is affected: `terrainAt` found no areas, so
+    // every standing modifier, every periodic, `phaseAt` and the whole Ch. 42
+    // catalogue answered for empty ground. A GM's hand-drawn terrain has never
+    // done anything, and Ch. 45 has recorded terrain as **Done** throughout.
+    //
+    // Found live, painting Quetzalcoatl's `Sol`: the Region existed with 25
+    // shapes and the right tag, and `phaseAt` reported Night standing in it.
+    terrain: settings.terrain ?? scene?.terrain ?? {},
     // OPTIONAL RULES the table has switched off. A block rather than loose
     // fields, so the next one is a line of data instead of a new board
     // property every consumer has to learn about.

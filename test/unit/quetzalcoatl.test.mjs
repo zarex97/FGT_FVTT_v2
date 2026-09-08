@@ -428,3 +428,75 @@ describe("Piedra Del Sol", () => {
     expect(np.cooldown).toEqual({ max: "8◈", countFrom: "deactivation" });
   });
 });
+
+/**
+ * A guard for the failure that has now cost this codebase six authored keys:
+ * the compiler emits a value and the DataModel has no field to receive it, so
+ * the document builds, the pack builds, the validator passes, the sheet loads,
+ * and the clause does nothing.
+ *
+ * `tools/validate-content.mjs`'s `unitKeyCoverage` checks the COMPILER; this
+ * checks the schema on the other side of it. Found live: the Quetzalcoatlus
+ * placed at Luck 0 while Quetzalcoatl stood beside it with 20.
+ */
+describe("the platform's authored keys survive its DataModel", () => {
+  // Read as TEXT, not by importing the model, which needs Foundry's global
+  // `fields` — the same choice `item-schema-coverage.test.mjs` makes and for
+  // the same reason.
+  const SOURCE = readFileSync("module/data/actor/simple.mjs", "utf8");
+  const COMMON = readFileSync("module/data/actor/_shared.mjs", "utf8");
+  const platformBody = SOURCE.slice(
+    SOURCE.indexOf("export class PlatformData "),
+    SOURCE.indexOf("export class StructureData "),
+  );
+  const declares = (key) => new RegExp(`^\\s+${key}:\\s`, "m").test(platformBody)
+    || new RegExp(`^\\s+${key}:\\s`, "m").test(COMMON);
+
+  it("declares every key quetzalcoatlus.yml authors", () => {
+    const notSystem = new Set([
+      "schema", "id", "name", "type", "img", "description", "notes", "source", "abilities",
+    ]);
+    const missing = Object.keys(load("platforms", "quetzalcoatlus"))
+      .filter((k) => !notSystem.has(k) && !declares(k));
+    expect(missing).toEqual([]);
+  });
+
+  it("declares every key piedra-del-sol.yml authors", () => {
+    const structureBody = SOURCE.slice(SOURCE.indexOf("export class StructureData "));
+    const declaresStructure = (key) => new RegExp(`^\\s+${key}:\\s`, "m").test(structureBody)
+      || new RegExp(`^\\s+${key}:\\s`, "m").test(COMMON);
+    const notSystem = new Set([
+      "schema", "id", "name", "type", "img", "description", "notes", "source", "abilities",
+    ]);
+    const missing = Object.keys(load("structures", "piedra-del-sol"))
+      .filter((k) => !notSystem.has(k) && !declaresStructure(k));
+    expect(missing).toEqual([]);
+  });
+});
+
+/**
+ * The two ends of a painted area's tag must agree.
+ *
+ * A `zone` phase writes the ground under `spec.tag`; the field's `onEnd`
+ * `ClearTerrain` erases it by the same string. Both carry placeholders, and if
+ * only one side resolves them the area is painted under a literal
+ * `piedra:@field.id` while the closure looks for `piedra:quetz-piedra-del-sol`.
+ * They never meet, and the Burning outlives the field forever.
+ *
+ * Found live: exactly that, on the first activation.
+ */
+describe("a painted area's tag resolves the same on both sides", () => {
+  it("uses matching placeholders in the zone and the onEnd", () => {
+    const np = ability("quetz-piedra-del-sol");
+    const zone = np.phases.find((p) => p.kind === "zone");
+    const onEnd = np.field.onEnd.find((a) => a.key === "ClearTerrain");
+    expect(zone.spec.tag).toBe(onEnd.tag);
+    expect(zone.spec.tag).toContain("@field.id");
+  });
+
+  it("Sol's tag names the unit, which is what its remover resolves", () => {
+    const zone = ability("quetz-charisma-of-the-sun").phases.find((p) => p.kind === "zone");
+    // `Terrain.attach`'s deleteActiveEffect hook clears `${defId}:${unitId}`.
+    expect(zone.spec.tag).toBe("sol:@self.id");
+  });
+});

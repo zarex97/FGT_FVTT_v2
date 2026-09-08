@@ -50,7 +50,17 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
   // 2◈ more, which starting the clock here would collapse into one window
   // running under the Skill's own duration. `countFrom` has been on the schema
   // since it was written and nothing has ever read it.
-  if (cd.countFrom === "deactivation") return { cooldowns: [], spends: [] };
+  // `destroyed` is the same shape with a different trigger: Quetzalcoatl's
+  // *"Cooldown: 7◈ Turns AFTER Quetzalcoatlus is defeated"* starts on the
+  // mount's death, so the mount may stand for twenty Turns and the clock has
+  // not begun. Starting it here would run the cooldown out underneath a
+  // platform that is still flying, and she could re-summon the moment it died.
+  //
+  // Found live: the mount was summoned, and the Noble Phantasm reported 21
+  // ticks remaining while its platform was on the board.
+  if (cd.countFrom === "deactivation" || cd.countFrom === "destroyed") {
+    return { cooldowns: [], spends: [] };
+  }
 
   const waiver = ability?.system?.cooldownWaiver ?? null;
   if (waiver && unit && canSpend(unit, waiver.resource, waiver.amount ?? 1)) {

@@ -14,6 +14,7 @@
 import { describe, it, expect } from "vitest";
 import { TERRAIN, terrainAt, terrainEffects, annotateTerrain } from "../../module/rules/terrain.mjs";
 import { phaseAt } from "../../module/rules/environment.mjs";
+import { snapshotBoard } from "../../module/rules/snapshot.mjs";
 
 const at = (i, j) => ({ i, j });
 
@@ -222,5 +223,37 @@ describe("phaseAt", () => {
     for (const type of ["sunlight", "darkness", "indoors"]) {
       expect(TERRAIN[type].effects).toEqual([]);
     }
+  });
+});
+
+/**
+ * The read path from `engine/board.mjs`'s projection into `board.terrain`.
+ *
+ * `terrainAreasOf` computes the areas into `settings.terrain`; this line read
+ * `scene.terrain`, a property no Scene document has, so `board.terrain` was
+ * always `{}` in a live world and the whole of Ch. 42 answered for empty
+ * ground. The identical bug had already been found and fixed for `zones` in the
+ * same object. Found live, painting Quetzalcoatl's `Sol`.
+ */
+describe("snapshotBoard wires the terrain projection", () => {
+  const areas = [{ id: "t1", type: "forest", panels: [at(1, 1)] }];
+
+  it("reads terrain from settings, where board.mjs actually puts it", () => {
+    const board = snapshotBoard({
+      scene: { grid: { size: 100 } },     // a real Scene has no `.terrain`
+      actors: [],
+      settings: { terrain: { areas } },
+    });
+    expect(board.terrain.areas).toHaveLength(1);
+    expect(terrainAt(at(1, 1), board)).toEqual(["forest"]);
+  });
+
+  it("still accepts a scene-shaped fixture, so older callers keep working", () => {
+    const board = snapshotBoard({
+      scene: { grid: { size: 100 }, terrain: { areas } },
+      actors: [],
+      settings: {},
+    });
+    expect(board.terrain.areas).toHaveLength(1);
   });
 });
