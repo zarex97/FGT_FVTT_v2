@@ -523,6 +523,57 @@ export function validateAll(files, assets = null) {
  * @param {string} path
  * @param {string[]} problems
  */
+/**
+ * The geometry kinds `rules/bounded-fields.mjs#panelsOf` knows how to compute.
+ * @type {ReadonlySet<string>}
+ */
+const FIELD_GEOMETRY_KINDS = new Set([
+  "fixedArea", "followsUnit", "freeform", "markDefined", "enclosing",
+]);
+
+/**
+ * A `field:` block nothing ever opens.
+ *
+ * `engine/skill-use.mjs` opens a bounded field from a `createField` PHASE and
+ * from nowhere else, so an ability that declares a field and no such phase
+ * compiles, validates, loads, spends its cooldown and does nothing — which is
+ * exactly what Achilles's duel did until a live test noticed the Noble Phantasm
+ * reporting "No effects were applied".
+ *
+ * Two kinds of field are raised by something other than a cast and are exempt:
+ * a `field.passive` one, which `ensurePassiveFields` opens for as long as its
+ * owner stands (Pale Rider's Contagion), and an `isPassive` ability that is
+ * BUILT rather than cast — Medusa's Blood Fort Andromeda, opened from its four
+ * Bloodmarks by `openFieldFromMarks`. Neither can carry a cast-time phase,
+ * because neither is cast.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function fieldIsOpenable(doc, path, problems) {
+  if (!doc?.field) return;
+
+  // An unrecognised geometry kind computes ZERO panels, and `openField` then
+  // returns null — the field compiles, validates, opens nothing, and the
+  // ability reports success. Achilles's duel said `fixed` where the vocabulary
+  // is `fixedArea`, and nothing said so until a live test looked for the area.
+  const kind = doc.field.geometry?.kind ?? null;
+  if (kind && !FIELD_GEOMETRY_KINDS.has(kind)) {
+    problems.push(
+      `${path}: field.geometry.kind is "${kind}" — expected one of ` +
+      `${[...FIELD_GEOMETRY_KINDS].join(", ")}. An unknown kind computes no panels.`,
+    );
+  }
+
+  if (doc.field.passive || doc.isPassive) return;
+  if ((doc.phases ?? []).some((p) => p.kind === "createField")) return;
+  problems.push(
+    `${path}: declares a "field:" block but no "createField" phase, so nothing would ever open ` +
+    `it. Add the phase, or declare "passiveField: true" if something else raises it.`,
+  );
+}
+
 function activeRulesAreReachable(doc, path, problems) {
   if (!(doc?.activeRules ?? []).length) return;
   const { kind } = classifyAbility({ type: doc.type, system: doc });
@@ -723,6 +774,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     baseAttackAgreesWithTable(doc, path, warnings);
   } else {
     activeRulesAreReachable(doc, path, problems);
+    fieldIsOpenable(doc, path, problems);
   }
 
   // Ranks

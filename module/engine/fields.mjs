@@ -85,7 +85,13 @@ export async function createField(ability, actor, board = null, { targetId = nul
   // to the duel."* The only consent gate in the game -- every other field opens
   // whether or not anyone inside wants it -- and a refusal means the NP was
   // never activated at all, so nothing is spent.
-  if (spec.requiresConsent && !(await agreesToField(ability, actor, targetId))) return null;
+  if (spec.requiresConsent && !(await agreesToField(ability, actor, targetId))) {
+    // Distinguished from every other failure, because the caller reports it to
+    // the table: "declined" and "the area computed no panels" are different
+    // things, and reading the second as the first hid a geometry typo behind a
+    // plausible message until a live test looked for the field itself.
+    return { declined: true };
+  }
 
   return openField(ability, actor, board ?? currentBoard(), spec);
 }

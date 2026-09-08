@@ -290,6 +290,9 @@ describe("a non-damaging Noble Phantasm", () => {
       // Phantasm for everyone in a 5x5 and then the ability is spent for the
       // rest of the game.
       "achilles-akhilleus-kosmos",
+      // The duel, the thirteenth. Its one phase opens a bounded field, and
+      // everything the Noble Phantasm does is that area's doing.
+      "achilles-diatrekhon-aster-lonkhe",
       "asterios-chaos-labyrinthos",
       "emiya-rho-aias",
       "emiya-unlimited-blade-works",

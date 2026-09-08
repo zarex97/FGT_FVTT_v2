@@ -273,7 +273,7 @@ function ignoresOccupancy(unit) {
  * @returns {Promise<void>}
  */
 async function knockBackOccupants(moverId, movement = null) {
-  const { knockbackPanel, occupantAt } = await import("../rules/movement.mjs");
+  const { knockbackPanel, occupantsAt } = await import("../rules/movement.mjs");
   const board = boardSnapshot(game.combats.active);
 
   // On the MOVER's own level: it knocks aside whoever it walks into, and it
@@ -305,35 +305,41 @@ async function knockBackOccupants(moverId, movement = null) {
   const along = push.direction === "travel" ? travelDirection(movement) : null;
 
   for (const panel of occupied) {
-    const occupant = occupantAt(panel, board, mover.level);
-    if (!occupant || occupant.id === moverId) continue;
+    // EVERY other Unit on the panel, not the first one found. A mover that
+    // walks onto somebody shares their panel, so `occupantAt` may return the
+    // mover itself and the Unit it is standing on is never pushed — which is
+    // exactly what happened when Achilles walked onto Karna and the board
+    // listed Achilles first.
+    for (const occupant of occupantsAt(panel, board, mover.level)) {
+      if (occupant.id === moverId) continue;
 
-    const landing = knockbackPanel(centre, occupant, board, {
-      preferredDirection: along,
-      allowSidestep: Boolean(push.sidestepDamages),
-    });
-    // "Until the space is free" -- when no free panel exists within range, the
-    // occupant simply stays: there is nowhere the sheet's own rule can send it.
-    if (!landing) continue;
-
-    const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
-    if (!token) continue;
-
-    const point = canvas.grid.getTopLeftPoint(landing.panel);
-    // `animate: false`: a knockback is displacement, not a walk -- and it is
-    // what makes the write LAND. See `engine/io.mjs#move`.
-    await token.document.update({ x: point.x, y: point.y }, { fgtForced: true, animate: false });
-
-    // "...and receives damage equivalent to a Normal Attack from Achilles."
-    // Only on the SIDESTEP: a Unit that got out of the way in time is merely
-    // displaced, and the damage is the price of not having room.
-    if (landing.sidestepped && push.sidestepDamages) {
-      const { resolveAttack } = await import("./attack.mjs");
-      await resolveAttack({
-        attackerId: moverId,
-        abilityId: null,
-        placement: { pathTargets: [occupant.id] },
+      const landing = knockbackPanel(centre, occupant, board, {
+        preferredDirection: along,
+        allowSidestep: Boolean(push.sidestepDamages),
       });
+      // "Until the space is free" -- when no free panel exists within range, the
+      // occupant simply stays: there is nowhere the sheet's own rule can send it.
+      if (!landing) continue;
+
+      const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
+      if (!token) continue;
+
+      const point = canvas.grid.getTopLeftPoint(landing.panel);
+      // `animate: false`: a knockback is displacement, not a walk -- and it is
+      // what makes the write LAND. See `engine/io.mjs#move`.
+      await token.document.update({ x: point.x, y: point.y }, { fgtForced: true, animate: false });
+
+      // "...and receives damage equivalent to a Normal Attack from Achilles."
+      // Only on the SIDESTEP: a Unit that got out of the way in time is merely
+      // displaced, and the damage is the price of not having room.
+      if (landing.sidestepped && push.sidestepDamages) {
+        const { resolveAttack } = await import("./attack.mjs");
+        await resolveAttack({
+          attackerId: moverId,
+          abilityId: null,
+          placement: { pathTargets: [occupant.id] },
+        });
+      }
     }
   }
 }

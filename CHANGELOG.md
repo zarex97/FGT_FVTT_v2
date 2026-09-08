@@ -51,10 +51,11 @@ coincide by accident; the headings say which is which.
 > transcribed. That is the third Servant running whose vocabulary preceded its reader, and the
 > first where the element did too.
 >
-> **Seven defects surfaced only in the live world**, with the unit suite green for every one. The
+> **Eleven defects surfaced only in the live world**, with the unit suite green for every one. The
 > widest: the stance never reached contribution collection, so every clause gated on it was
 > unsatisfiable from his own contributions — MOV stayed 7 while Mounted and Riding Attack was
-> never granted.
+> never granted. The quietest: his duel Noble Phantasm compiled, validated, spent its cooldown and
+> opened no field at all, because a `field:` block is only a description until a phase calls it.
 
 ### Added
 
@@ -109,6 +110,20 @@ coincide by accident; the headings say which is which.
   restores were affected.
 - **A Riding Attack that reached nobody skipped the ability's own phases**, so a Noble Phantasm
   spent on an empty line granted its user nothing.
+- **A `field:` block with no `createField` phase did nothing, silently.** Achilles's duel
+  compiled, validated, spent its 6◈+⅓◈ cooldown and opened no area. `tools/lib/content.mjs` now
+  refuses one, exempting the two fields raised elsewhere — Contagion's passive one and Blood Fort
+  Andromeda, which is built from its Bloodmarks rather than cast.
+- **An unrecognised `field.geometry.kind` computed zero panels**, which made `openField` return
+  null. The vocabulary is `fixedArea` / `followsUnit` / `freeform` / `markDefined` / `enclosing`,
+  and the validator now checks against it.
+- **Every bounded-field failure was reported as "declined"**, so a refused duel and a field that
+  could not open read identically — which is what hid both defects above behind a plausible
+  message.
+- **A Unit that walked onto another pushed nobody.** `occupantAt` returns the FIRST Unit on a
+  panel, and a mover standing on its victim is one of them, so the knockback found the mover,
+  skipped it, and never saw the Unit underneath. Ordering-dependent, which means Kingprotea's
+  cascade was one board ordering away from the same silence; `occupantsAt` returns them all.
 - **`class-skills/divinity.yml` was not `categorizedAs: [divinity]`** — the document eleven
   Servants carry — so any rule asking "does this Unit have Divinity" found Kingprotea's *Divine
   Core* and missed the rule it is an exception to. The category vocabulary now has one
