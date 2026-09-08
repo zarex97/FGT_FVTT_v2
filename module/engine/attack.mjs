@@ -31,6 +31,7 @@ import { rollOptionsFor } from "../rules/options.mjs";
 import { collectContributions, resolveValue } from "../rules/elements.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
+import { actionSourceFor } from "../rules/platforms.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield } from "./shield.mjs";
@@ -2523,6 +2524,26 @@ function recordIntents(defender, state) {
 }
 
 /**
+ * The named units a base-attack source may refer to.
+ *
+ * One entry today: `mount`, for a rider whose platform replaces her Normal
+ * Attack. Stage 1 of the pipeline has resolved `ctx.units[src.unit]` since it
+ * was written, and this is the first thing to supply the map.
+ *
+ * Empty when the attacker is not riding such a platform, which is every
+ * attacker in the game except Quetzalcoatl aboard her Quetzalcoatlus — and an
+ * empty map is safe, because stage 1 falls back to the attacker.
+ *
+ * @param {object} attacker the attacker's snapshot
+ * @param {object} board
+ * @returns {Record<string, object>}
+ */
+function mountUnits(attacker, board) {
+  const { platform, attacksAsPlatform } = actionSourceFor(attacker, board);
+  return attacksAsPlatform && platform ? { mount: platform } : {};
+}
+
+/**
  * Build the damage context, run the pure pipeline, and apply the result.
  * @param {object} state
  * @param {object} message
@@ -2593,6 +2614,11 @@ async function applyDamage(state, message) {
     base: dealsNoDamage(ability)
       ? { fixedValue: 0 }
       : baseSpecFor(attackerDoc, ability, facts.range, options),
+    // Named base-attack sources. Stage 1 has resolved `ctx.units[src.unit]`
+    // since the pipeline was written and nothing has ever supplied the map:
+    // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
+    // by her platform's swings the platform's 150 rather than her own 125.
+    units: mountUnits(attacker, board),
     multiplier: resolvedDamage(ability, options)?.multiplier ?? 1,
     flatBonus: resolvedDamage(ability, options)?.flatBonus ?? 0,
     conditionalMultipliers: resolvedDamage(ability, options)?.conditionalMultipliers ?? [],
@@ -3511,8 +3537,17 @@ function baseSpecFor(attacker, ability, range = null, options = null) {
   // reported the band's `ignoresMagicResistance`, so the attack bypassed Magic
   // Resistance and then dealt the wrong number -- the two halves of one band
   // answered from two different places.
-  const projected = unitFrom(boardSnapshot(), attacker) ?? unitSnapshot(attacker);
-  return { sources: normalAttackAt(projected, range).sources };
+  const board = boardSnapshot();
+  const projected = unitFrom(board, attacker) ?? unitSnapshot(attacker);
+  // A mount that replaces its rider's Normal Attack supplies the whole spec,
+  // and its sources name `unit: "mount"` — which stage 1 resolves through
+  // `ctx.units`, populated beside this by `damageContext`.
+  const { platform, attacksAsPlatform } = actionSourceFor(projected, board);
+  return {
+    sources: normalAttackAt(projected, range, {
+      platform: attacksAsPlatform ? platform : null,
+    }).sources,
+  };
 }
 
 /**
@@ -3557,7 +3592,10 @@ export function attackFacts(attacker, defender, state) {
   // combined STR/MAG shot that Magic Resistance does not see; at Range 2 the
   // same button is a plain STR attack.
   if (kind !== "normal") return facts;
-  const normal = normalAttackAt(attacker, range);
+  const source = actionSourceFor(attacker, currentBoard());
+  const normal = normalAttackAt(attacker, range, {
+    platform: source.attacksAsPlatform ? source.platform : null,
+  });
   return {
     ...facts,
     component: normal.component,

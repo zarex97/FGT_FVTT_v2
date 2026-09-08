@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
 import {
   platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
   boardingTarget, fallOff, destructionSequence, aoePassengerFactor,
-  platformCentre, withinPlatformCentre, deactivationVerdict,
+  platformCentre, withinPlatformCentre, deactivationVerdict, actionSourceFor,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
 
@@ -419,5 +419,63 @@ describe("deactivationVerdict", () => {
 
   it("refuses on a missing spec rather than defaulting to permissive", () => {
     expect(deactivationVerdict(null, { ...base, tick: 99 }).ok).toBe(false);
+  });
+});
+
+/* ========================================================================== */
+/*  A mount its rider drives                                                  */
+/* ========================================================================== */
+
+/**
+ * > *"While Quetz is Riding the Quetzalcoatlus, Quetz's Move and Normal Attack
+ * > is replaced with Quetzalcoatlus'."*
+ *
+ * Every other platform in the set carries its passengers: they ride, and their
+ * own action is unchanged. Quetzalcoatlus is the first that a passenger DRIVES
+ * — and the substitution is the owner's alone, because her Master is cargo.
+ */
+describe("actionSourceFor", () => {
+  const mount = {
+    id: "mount", kind: "platform", ownerId: "quetz", panel: at(5, 5),
+    mov: 7, baseAttack: { str: 150, mag: 0 }, range: { panels: 2, targets: 1 },
+    replacesRiderAction: { roles: ["owner"], move: true, normalAttack: true },
+  };
+  const quetz = { id: "quetz", kind: "servant", mov: 7, platformId: "mount", panel: at(5, 5) };
+  const master = { id: "master", kind: "master", mov: 5, platformId: "mount", panel: at(5, 5) };
+  const b = { units: [mount, quetz, master] };
+
+  it("gives the owner the mount as her action source", () => {
+    const src = actionSourceFor(quetz, b);
+    expect(src.movesAsPlatform).toBe(true);
+    expect(src.attacksAsPlatform).toBe(true);
+    expect(src.platform.id).toBe("mount");
+  });
+
+  it("does not give the Master the mount's action — she drives, he rides", () => {
+    const src = actionSourceFor(master, b);
+    expect(src.movesAsPlatform).toBe(false);
+    expect(src.attacksAsPlatform).toBe(false);
+    expect(src.platform.id).toBe("mount");
+  });
+
+  it("gives a unit on no platform its own action, and no platform", () => {
+    const afoot = { id: "x", kind: "servant", mov: 6, panel: at(0, 0) };
+    const src = actionSourceFor(afoot, { units: [afoot] });
+    expect(src.movesAsPlatform).toBe(false);
+    expect(src.platform).toBe(null);
+  });
+
+  it("is inert on a platform that does not declare it — every existing one", () => {
+    const plain = { ...mount, replacesRiderAction: null };
+    const src = actionSourceFor(quetz, { units: [plain, quetz] });
+    expect(src.movesAsPlatform).toBe(false);
+    expect(src.attacksAsPlatform).toBe(false);
+  });
+
+  it("honours the two halves separately", () => {
+    const moveOnly = { ...mount, replacesRiderAction: { roles: ["owner"], move: true } };
+    const src = actionSourceFor(quetz, { units: [moveOnly, quetz] });
+    expect(src.movesAsPlatform).toBe(true);
+    expect(src.attacksAsPlatform).toBe(false);
   });
 });

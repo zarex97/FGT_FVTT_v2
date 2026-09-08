@@ -194,6 +194,12 @@ export function canConsume(budget, unit, action) {
   // is not a combatant taking a slot; it is equipment its owner operates, so
   // it spends nothing -- but "spends nothing" is not "acts without limit",
   // which the unconditional `free: true` this replaced could not tell apart.
+  // A mount its RIDER drives (`replacesRiderAction`) needs nothing here, and
+  // the absence is deliberate rather than missing. Quetzalcoatl is a Servant,
+  // so she takes her own pool slot down this function's ordinary path; the
+  // Quetzalcoatlus is carried by `movePlatform` as a forced displacement, which
+  // returns before any budget is spent. One action, charged once, with no
+  // special case -- and adding one would bill her twice.
   if (unit?.kind === "platform" || unit?.actsOncePerTurn) {
     const already = isAttack ? state.attacked : (action === "move" ? state.moved : false);
     if (already) {
