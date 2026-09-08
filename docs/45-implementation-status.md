@@ -1504,6 +1504,25 @@ did too.
 Plus one gap in the ride: a Riding Attack that reaches nobody returned before the ability's own
 phases, so a Noble Phantasm spent on an empty line granted its user nothing.
 
+**And four more when the duel and the barrier were driven through the interface**, which is why
+they were:
+
+8. **The duel field was authored and inert.** A `field:` block is only a description until a
+   `createField` phase calls it, and the document had none — so the Noble Phantasm compiled,
+   validated, spent its 6◈+⅓◈ cooldown and did nothing. `tools/lib/content.mjs` now refuses a
+   field with no way to open it, exempting the two that are raised elsewhere (Contagion's passive
+   one and Blood Fort Andromeda, which is built from its Bloodmarks).
+9. **`geometry.kind: fixed` is not a word.** The vocabulary is `fixedArea` / `followsUnit` /
+   `freeform` / `markDefined` / `enclosing`, and an unrecognised kind computes **zero panels**, so
+   `openField` returned null. The validator now checks the kind against the set `panelsOf` knows.
+10. **"declined" was reported for every field failure.** The caller could not tell a refused duel
+    from one that failed to open, which is what hid (8) and (9) behind a plausible message.
+    `createField` now says which.
+11. **A mover that walked onto somebody pushed nobody.** `occupantAt` returns the FIRST Unit on a
+    panel, and a mover standing on its victim is one of them — so the loop found the mover, skipped
+    it, and never saw the Unit underneath. Ordering-dependent, which means Kingprotea's cascade was
+    one board ordering away from the same silence. `occupantsAt` returns them all.
+
 **And one defect in shipped content**, found on the way: `class-skills/divinity.yml` — the
 document eleven Servants carry — was not `categorizedAs: [divinity]`, so any rule asking "does
 this Unit have Divinity" found Kingprotea's *Divine Core* and missed the rule it is an exception
@@ -1528,6 +1547,14 @@ to. Andreias Amarantos is the first thing that asks.
 | ...its X | Agility 10 → 14 and `Atk Up 40/30` — X = ⌊8 ÷ 2⌋ = 4, so X0% and (X−1)0% |
 | ...its Y | `Crit DmUp 30` on three Units hit; nothing at zero |
 | An empty ride | still restores the Agility and applies the Atk Up; no Crit DmUp, because Y is zero |
+| The duel's consent | prompts the challenged player by name, listing what accepting costs; declining leaves the NP unactivated |
+| ...the field | 25 panels, sealed in all four directions, `blocksCommandSpells`, and both duellists inside |
+| ...its Luck block | refused for both duellists and **not** for a Unit outside the area |
+| ...its foreign effects | a `Def Up` cast from outside is on the document and absent from the projection — negated, not removed |
+| Akhilleus Kosmos' push | Karna shoved 600 → 700 along Achilles's travel |
+| ...its sidestep | with the line walled, Karna went sideways instead and took a Normal Attack for 236 |
+| ...the barrier | offered to all four Units caught in an A+ AoE, and to none of them once spent |
+| ...its negation | Brahmastra Kundala (A+) dealt **0** — "negated by Anti-Purge" at stage 0, so its riders never fired |
 
 ---
 

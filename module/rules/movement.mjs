@@ -546,6 +546,29 @@ function perpendicular(dir) {
  * @param {object} board
  * @returns {object|null}
  */
+export function occupantsAt(panel, board, level = 0) {
+  const here = level ?? 0;
+  return (board.units ?? []).filter((u) => {
+    if ((u.level ?? 0) !== here) return false;
+    const footprint = u.panels ?? (u.panel ? [u.panel] : []);
+    return footprint.some((p) => p.i === panel.i && p.j === panel.j);
+  });
+}
+
+/**
+ * The FIRST unit standing on a panel, or `null`.
+ *
+ * Every caller that asks "is this panel free" wants this. A caller that has to
+ * act on whoever is there wants {@link occupantsAt} instead: a mover that walks
+ * ONTO somebody shares their panel, so "the occupant" may be the mover itself
+ * and the Unit it is standing on goes unseen. Found live — Achilles walked onto
+ * Karna and pushed nobody, because the board listed him first.
+ *
+ * @param {GridOffset} panel
+ * @param {object} board
+ * @param {number} [level]
+ * @returns {object|null}
+ */
 export function occupantAt(panel, board, level = 0) {
   // Per LEVEL, not per panel. §20.2 gives each platform its own Scene Level for
   // "separate occupancy" among four reasons, and this function -- the only

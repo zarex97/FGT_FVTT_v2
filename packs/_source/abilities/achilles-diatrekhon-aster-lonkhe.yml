@@ -68,6 +68,13 @@ targeting:
     # is an aggregate, and the predicate language has no aggregate form
     # (Ch. 24 §24.5 says so of `@` expressions for the same reason).
     parametersBelow: { count: 3, steps: 1 }
+# The phase that OPENS it. A `field:` block is only a description until
+# something calls `createField`, and without this the whole Noble Phantasm
+# compiled, validated, spent its cooldown and did nothing at all -- found by a
+# live test reporting "no effects were applied".
+phases:
+  - kind: createField
+    target: self
 field:
   # Axis 1 -- geometry. "Achilles and the opposing Unit are enclosed within a
   # 5x5 panel area WHERE THEY ARE STANDING", so it opens around the pair rather
@@ -76,8 +83,13 @@ field:
   # and his Range for this NP is 2, so the square around him contains every
   # panel the target could be standing on. *"Where they are standing"* and
   # "around Achilles" describe the same area here.
+  # `fixedArea`, not `fixed`: the vocabulary is `fixedArea` / `followsUnit` /
+  # `freeform` / `markDefined` / `enclosing`, and an unrecognised kind computes
+  # ZERO panels, which makes `openField` return null and the whole Noble
+  # Phantasm do nothing. `enclosing` reads stored panels rather than a shape, so
+  # it is not this. Found live.
   geometry:
-    kind: fixed
+    kind: fixedArea
     shape: { kind: square, size: 5 }
   # Axis 2 -- membership. Sealed in both directions and for everyone: "No Units
   # can enter the NP area ... the involved Units are not allowed to leave."

@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   planMovement, validatePath, remainingMovement, effectiveMov, segmentCheck,
-  canPassThrough, canStopOn, inEnemyMasterProtection, knockbackPanel, occupantAt,
+  canPassThrough, canStopOn, inEnemyMasterProtection, knockbackPanel, occupantAt, occupantsAt,
 } from "../../module/rules/movement.mjs";
 import { squareBounds, key } from "../../module/domain/geometry.mjs";
 
@@ -297,6 +297,27 @@ describe("moving repeatedly, and what stops it", () => {
     const plan = planMovement(mover(), board(), { hasRiding: true });
     expect(plan.maxSegments).toBe(2);
     expect(planMovement(mover(), board()).maxSegments).toBe(1);
+  });
+});
+
+describe("occupantsAt", () => {
+  it("returns EVERY Unit on the panel, not the first one found", () => {
+    // A mover that walks onto somebody shares their panel, so `occupantAt` may
+    // return the mover itself and the Unit it is standing on goes unseen —
+    // which is exactly why Achilles walked onto Karna and pushed nobody. Found
+    // live, and ordering-dependent, so Kingprotea's cascade was one board
+    // ordering away from the same silence.
+    const mover = other("mover", 6, 6, {});
+    const victim = other("victim", 6, 6, {});
+    const board2 = board([mover, victim]);
+    expect(occupantAt(at(6, 6), board2).id).toBe("mover");
+    expect(occupantsAt(at(6, 6), board2).map((u) => u.id)).toEqual(["mover", "victim"]);
+  });
+
+  it("respects the level, like its singular sibling", () => {
+    const above = other("above", 6, 6, { level: 3 });
+    expect(occupantsAt(at(6, 6), board([above]), 0)).toEqual([]);
+    expect(occupantsAt(at(6, 6), board([above]), 3).map((u) => u.id)).toEqual(["above"]);
   });
 });
 

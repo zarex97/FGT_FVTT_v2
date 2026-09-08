@@ -463,13 +463,16 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           if (target.unitId !== actor.id) break;
           // The Unit being challenged, for a field that asks its permission.
           // The caster is dropped: he is not the one consenting.
-          const challenged = targets.units.find((t) => t.unitId !== actor.id)?.unitId ?? null;
+          const challenged = targets.find((t) => t.unitId !== actor.id)?.unitId ?? null;
           const field = await createField(ability, actor, board, { targetId: challenged });
+          const opened = Boolean(field?.fieldId ?? field?.id);
           applied.push({
             summary: {
               id: "field", name: ability.name,
-              outcome: field ? "applied" : "failed",
-              reason: field ? null : (ability.system?.field?.requiresConsent ? "declined" : "noScene"),
+              outcome: opened ? "applied" : "failed",
+              // `declined` only when it really was: anything else is the field
+              // failing to open, and saying "declined" for that hides it.
+              reason: opened ? null : (field?.declined ? "declined" : "couldNotOpen"),
             },
           });
           break;
