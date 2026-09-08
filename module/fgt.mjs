@@ -44,6 +44,7 @@ import { LogViewer } from "./apps/log-viewer.mjs";
 import { AbilityEditor } from "./apps/ability-editor.mjs";
 import { ContractDialog } from "./apps/contract-dialog.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
+import { Terrain } from "./engine/terrain.mjs";
 import { FactionOwnership } from "./engine/faction-ownership.mjs";
 import { TokenImage } from "./engine/token-image.mjs";
 import { TokenFootprint } from "./engine/token-footprint.mjs";
@@ -239,6 +240,9 @@ Hooks.once("ready", () => {
   Hgob.attach();
   // Every client validates its own movement; the write is proxied as usual.
   Movement.attach();
+  // Erases a painted terrain area when the effect that painted it ends --
+  // Quetzalcoatl's Sol. GM client only, internally gated.
+  Terrain.attach();
   // §26.1: "a player owns their own Servants and Master." Keeps that true —
   // GM client only, like the faction roster it reads.
   FactionOwnership.attach();

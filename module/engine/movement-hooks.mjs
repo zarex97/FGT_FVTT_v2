@@ -27,6 +27,7 @@ import { worldIO } from "./io.mjs";
 import { movePlatform } from "../rules/platforms.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
+import { repaintFollowing } from "./terrain.mjs";
 
 export const Movement = {
   /** Register the hooks. */
@@ -218,6 +219,18 @@ async function onMove(document, movement, operation) {
   // is actually standing on Bašmu's new panel rather than where they were
   // before this move.
   if (ignoresOccupancy(unit)) await knockBackOccupants(actor.id, movement);
+
+  // A FOLLOWING terrain area arrives with its source rather than a step behind.
+  // *"The created Terrain Effect area will not follow its user unless stated"*
+  // -- Quetzalcoatl's `Sol` is the exception, and the only content that sets
+  // the flag. Read off the destination, after the write above, for the same
+  // reason the knock-back is.
+  // `movement.destination` is a canvas POINT, not a panel -- the same trap
+  // `platformDelta` below documents. Converted here rather than passed raw.
+  const landedAt = movement?.destination
+    ? canvas.grid.getOffset(movement.destination)
+    : unit.panel;
+  await repaintFollowing(actor.id, landedAt ? { i: landedAt.i, j: landedAt.j } : null);
 
   // Presence Concealment clause 6: *"When This Unit Moves into an enemy
   // Servant's Range (or Detect, if in use), it has a 5% chance of being

@@ -26,6 +26,28 @@
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { chebyshevDisc } from "../domain/geometry.mjs";
 
+export const Terrain = {
+  /** Register the hooks. Idempotent per Foundry session; GM-gated internally. */
+  attach() {
+    // An area an EFFECT painted dies with that effect. `Sol`'s daylight is the
+    // first: a 5x5 patch of Day outliving the buff that made it would be
+    // permanent, because nothing else knows to remove it.
+    //
+    // On the delete hook rather than in the scheduler's expiry sweep, so that
+    // every removal route is covered at once -- expiry, a Dispel, a Cure, a GM
+    // deleting it by hand. There is no route by which the buff goes and the
+    // ground stays.
+    Hooks.on("deleteActiveEffect", async (effect) => {
+      if (!game.users.activeGM?.isSelf) return;
+      const defId = effect?.system?.defId;
+      const unitId = effect?.parent?.id;
+      if (!defId || !unitId) return;
+      await clearTerrain(`${defId}:${unitId}`);
+    });
+    console.log("FGT | Terrain writer attached");
+  },
+};
+
 /**
  * The terrain behaviours on this scene, with their Regions.
  *
