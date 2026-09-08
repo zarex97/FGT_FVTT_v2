@@ -203,7 +203,7 @@ All five are `nnr` (no stack, no refresh).
 | `Curse` | st | Stage N deals **25 × N** Curse damage at the end of the turn, every ⅓◈. Reapplication adds a stage. |
 | `Poison` | st | Stage N deals **20 × 2^(N−1)** Poison damage at the end of the Round. **Stage increments at Round start if still poisoned.** Reapplication adds a stage. |
 | `Burn` | nnr | Lasts 2◈ default. BA(STR & MAG) −30 (Q4). 50 Burn damage at the end of every Round. |
-| `Sap` / `Bleed` | nnr | −50 Health at the end of the unit's turn **and** at the end of any turn it Acts. Chance of inflicting on `Mechanical` units −50%. |
+| `Sap` / `Bleed` | nnr | −50 Health at the end of the unit's turn **and** at the end of any turn it Acts. Chance of inflicting on `Mechanical` units −50%. Two names, one rule, and now two documents — `sap` had a periodic entry in `engine/scheduler.mjs` from the day the scheduler was written and **no effect document at all**, so anything inflicting it inflicted nothing. Quetzalcoatl's *Ehecatle* is what noticed. The `Mechanical` clause is unmodelled on **both**, for want of a per-attribute application-chance vocabulary. |
 | `Nightmare` | nnr | Sleep effects, plus −10% of **current** Health at the end of its turn. |
 | `Drowning` | nnr | Health cannot be restored; −50 Health per own/acted turn end; 80% chance of attacks and enemy-affecting abilities failing (no cooldown on failure); MOV −1. `Swimsuit` reduces the inflict chance by 20%. |
 | `Crystallize` | nnr | MOV −3; Agility Checks +1d6; 50 Fixed damage at the end of any turn it Acts; **all damage taken −10%** including NP. |
@@ -313,7 +313,7 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Raikou` | B | O | cnt | — | Count-limited (3): Normal Attacks deal +40 Lightning, 40% `Shock`, and reduce NP cooldown by ⅓◈. | Raikou |
 | `Enigma` | B | O | nr | — | When the bearer's ally performs a **STR-component** Normal Attack, the DU gains `Def Dwn (MAG)`. Gated on which base attack the attack used. | Nursery Rhyme |
 | `Espionage` | B | — | nr | — | Raises the bearer's own `Presence Concealment` rank. A `RankShift` delivered as a buff. | Yan Qing |
-| `Sol` | B | — | nr | — | The 5×5 around the bearer counts as **Day** regardless of the Round's phase (Ch. 42 §42.3). | Quetzalcoatl |
+| `Sol` | B | — | nr | — | The 5×5 around the bearer counts as **Day** regardless of the Round's phase (Ch. 42 §42.6). **Built**, and the document carries `rules: []` — which is the finished state, not an unfinished one. Terrain is not an effect (§42.1), so every mechanical consequence of `Sol` is `phaseAt` reading the ground its ability painted; the buff is the marker whose expiry erases that ground. The first content to set `followsSource`. | Quetzalcoatl |
 | `Charity`-style named `Atk Up` variants | B | O | mag | 4 | `Atk Up (Trace)`, `Atk Up (MS)`, `Atk Up (Demonic)`, `Atk Up (Charisma)` — all `atkUp` family members with predicates. | several |
 | `Crit Up (Viy)` | B | O | mag | — | Crit chance +X% **scoped to attacks that use BA(MAG)**, with a separate NP magnitude. The first component-scoped crit buff. | Anastasia |
 | `Crit Up (Hawkeye)` / `Crit DmUp (Hawkeye)` | B | O | mag | — / 2 | Crit chance / crit damage +X% **at Range 3 or higher**. Range-predicated. | EMIYA |

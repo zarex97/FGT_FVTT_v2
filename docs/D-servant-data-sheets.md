@@ -1112,7 +1112,23 @@ Terrain: Ch. 42 (Burning, Sunlight).
 resolution, NPs that create terrain conditioned on *another* NP being present, mounts that
 substitute a unit's whole action set, three-tier AoE protection, and fields that occupy a level
 above the board.
-**Scripts: 0.**
+**Scripts: 0.** — every clause of hers is authored content over general engine.
+
+**Built.** The seven mechanisms she needed, and what each turned up:
+
+| Mechanism | Where | Note |
+|---|---|---|
+| `sharesPanel` | Ch. 08 | Co-location, distinct from Bašmu's displacement. Half of it already worked; the mover's side did not. |
+| `zone` phase + `engine/terrain.mjs` | Ch. 42 §42.7 | Terrain's whole **write** half, which did not exist. |
+| `phaseAt` | Ch. 42 §42.6 | The chapter had already written the function out, naming `Sol` as its case. |
+| `elementFraction` | Ch. 13 §13 stage 4b | Needed the element modifiers to be **readable** first — six terrain types had emitted them into a void since terrain shipped. |
+| `aftermath` | Ch. 12 | A second unconditional resolution with its own damage and riders. |
+| `replacesRiderAction` | Ch. 20 | First platform a passenger drives. Its base attack is `ctx.units.mount` — stage 1's named-source lookup, which nothing had ever supplied. |
+| Platform upkeep / `lockout` / `countFrom: destroyed` | Ch. 20 | Shared with a bounded field, because two of her NPs carry the same blocks. |
+
+**Not demonstrable.** Xiuhcoatl's `[Fortress]` clause is built and unit-tested, and **cannot fire
+in a real match**: the only `[Fortress]` NP in either roster is Ozymandias's *Ramesseum Tentyris*,
+which is unauthored. Recorded rather than left to look exercised.
 
 **Note.** `Sol`, `Xiuhcoatl`'s Burning conversion, and `Piedra Del Sol` are three different
 routes to the same outcome — changing the terrain a panel has. Chapter 42's overlap matrix is

@@ -571,7 +571,63 @@ The reference platforms, and the new ones from the expanded roster:
 
 Quetzalcoatlus is the first platform in the set where the *mount itself* takes full AoE damage
 while its riders are partially shielded — a third point in the model that the Golden Hind's
-rule alone would not have surfaced.
+rule alone would not have surfaced. **Built.** It needs two authored numbers and not three:
+`aoePassengerFactor` returns `1` when the unit *is* the platform, so the mount's own tier falls
+out of the function rather than being stated.
+
+### A mount its rider drives
+
+> *"While Quetz is Riding the Quetzalcoatlus, Quetz's Move and Normal Attack is replaced with
+> Quetzalcoatlus'."*
+
+Every other platform in the set **carries** its passengers: they ride, their own action is
+unchanged, and the platform acts separately on its owner's Turn. Quetzalcoatlus is the first that
+a passenger **drives**, so the capability is authored rather than inferred from riding:
+
+```yaml
+replacesRiderAction: { roles: [owner], move: true, normalAttack: true }
+```
+
+`roles` is what keeps her Master cargo — Passenger Seat lets him come along, it does not hand him
+the reins. `rules/platforms.mjs#actionSourceFor` answers *"whose Move and Normal Attack is this"*,
+and three readers consult it: movement plans from the mount's MOV and panel, the Normal Attack
+resolves to the mount's base attack, and the damage pipeline resolves that base attack through
+`ctx.units.mount`.
+
+That last one is worth naming. Stage 1 has resolved **named** base-attack sources through
+`ctx.units[src.unit]` since it was written, and nothing had ever supplied the map. Resolving the
+mount's attack as `"self"` instead would have swung Quetzalcoatl's own 125 while reporting the
+mount's reach — a result that looks entirely correct.
+
+**The budget needs nothing**, and the absence is deliberate. She is a Servant and takes her own
+pool slot down the ordinary path; the mount is carried by `movePlatform` as a forced displacement,
+which returns before spending anything. One action, charged once — a special case here would bill
+her twice.
+
+### Upkeep, and switching a platform off
+
+Three axes a platform shares with a bounded field, because two of Quetzalcoatl's Noble Phantasms
+carry the same authored blocks — one on a platform, one on a field.
+
+**A recurring toll.** `{every, cost: {kind, amount, payer}, endWhenUnaffordable}`, swept by
+`engine/fields.mjs#runUpkeep`, which now walks platforms beside fields. `upkeep.every` is what
+tells this apart from the Hanging Gardens' `{amount, supersedes}` — an NP **cost replacement**,
+which has no period and is a different rule wearing the same field name.
+
+> Both readers were broken. `upkeep` was never projected onto a unit snapshot, so the cost
+> replacement — `units.find(u => u.kind === "platform" && u.upkeep)` — could not match a platform
+> in any world. The Hanging Gardens' clause overwriting a Servant's NP Master-Health cost has been
+> inert since it was written.
+
+**A deactivation lockout.** `deactivation: {byOwner, window, lockout}`, read through
+`rules/platforms.mjs#deactivationVerdict`, which keeps the *reason* so a player told "no" learns
+when it lifts rather than concluding the button is broken. `lockout` is optional because Piedra
+Del Sol carries the identical block without one, and that absence is the entire difference between
+the two sheets' final paragraphs.
+
+**A third cooldown clock.** `cooldown: {max, countFrom: destroyed}`, joining `activation` and
+`deactivation`. *"7◈ Turns after Quetzalcoatlus is defeated"* starts on the mount's death: a Noble
+Phantasm that stands until something kills it has no "use" moment worth counting from.
 
 Ramesseum Tentyris is the first "platform" that is not a level at all: it is a ground-level
 **bounded field** with fortress semantics. Chapter 43 covers that family separately, because

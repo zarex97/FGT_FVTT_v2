@@ -34,6 +34,47 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+> **Quetzalcoatl is complete.** Twelve entries, **three Noble Phantasms**, and the reference set's
+> acceptance test for **the field**: almost everything on her sheet is about the panels
+> themselves. Ch. 42, 20 and 43 had predicted six of the seven mechanisms she needed and written
+> two of them out in full; the seventh — panel sharing — is the one the chapters missed.
+> **Script count: 0**, against §D.28's budgeted 0.
+>
+> **Five rules that were right, collected and never read** were closed on the way, which is the
+> defect shape this project keeps finding:
+>
+> - **Element-scoped modifiers were in no bucket.** `elementAtkUp`, `elementDefUp` and
+>   `elementDefDwn` are emitted by six terrain types, and by the damage pipeline's own rule —
+>   *"a modifier whose key is not in one is collected onto the unit, carried through the snapshot,
+>   and never read"* — every one was inert from the day terrain shipped. `(half)` had nothing to
+>   halve until they were live, so `elementFraction` and its readers arrived together.
+> - **`terrainConversions` had no caller anywhere.** Fire in a Forest has never made Burning.
+> - **`upkeep` was never projected onto a unit snapshot**, so the Hanging Gardens' clause
+>   overwriting a Servant's NP Master-Health cost could not match a platform in any world.
+> - **`ctx.units[src.unit]`** has resolved named base-attack sources since the pipeline was
+>   written, with nothing ever supplying the map. `mount` is its first entry — without it a mount
+>   that replaces its rider's attack would swing *her* base attack while reporting *its* reach.
+> - **`selectAbilities`' single-ability branch took an embedded Foundry item id**, which no
+>   content file can know, so a clause naming one ability by name would compile, validate, match
+>   nothing and reduce no cooldown.
+>
+> And one effect that never existed at all: **`Sap`** has had a periodic entry in
+> `engine/scheduler.mjs` since the scheduler was written and no effect document to resolve
+> against, so anything in the corpus inflicting it inflicted nothing. Her *Ehecatle* noticed.
+>
+> **Terrain got its write half.** Ch. 42 shipped complete and read-only: every area in the game had
+> to be drawn by hand, and `TerrainBehavior`'s `duration`, `sourceUnitId`, `followsSource` and
+> `createdOnTurn` were inert from the day the model was written. `engine/terrain.mjs` creates the
+> same Regions the board already reads, keyed on a new `tag` so an effect can erase the ground it
+> painted. `followsSource` was declared naming her `Sol` as the case it existed for; this is its
+> reader.
+>
+> **What is deliberately not demonstrable:** Xiuhcoatl's `[Fortress]` clause is built and
+> unit-tested and cannot fire in a real match, because the only `[Fortress]` NP in either roster is
+> Ozymandias's *Ramesseum Tentyris* and he is unauthored. Said out loud rather than left to look
+> exercised.
+>
+
 > **Achilles is complete.** Thirteen entries and **five Noble Phantasms** — three non-damaging and
 > two purely passive, both corpus records — every clause exercised in a live world. Ch. 44
 > §44.1–44.2 were the design and now carry the build records. **Script count: 0**, against
