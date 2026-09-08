@@ -162,6 +162,22 @@ Roughly 30 elements cover the entire reference set. Grouped by contribution poin
 > by `defId` so no group key is needed, and Range and MOV are their own elements sharing the same
 > `each: 3`.
 
+> **Implementation note (Ch. 45) — the elements Achilles added.** Five, and two of them were
+> already in `EXECUTORS` with no reader:
+>
+> | Key | Purpose |
+> |---|---|
+> | `AttackerPropertyTier` | A defence whose magnitude is the ATTACKER's property — Andreias Amarantos reads their Divinity Rank. **Already written**, named after him in a comment, and read by nothing until stage 15 asked. |
+> | `WeakPoint` | The spec `rules/weak-point.mjs` consumes. **Already written**, likewise unread. |
+> | `Knockback` | How a Unit shoves whoever it walks into: `direction: travel` and a damaging `sidestep` are his, and the default is Kingprotea's outward push. |
+> | `BlockLuckChecks` | A field interior rule that removes the Luck Check OPTION (Ch. 43). |
+> | `SuppressForeignEffects` | A field interior rule that negates effects from outside it (Ch. 43). |
+>
+> And one element the plan budgeted and did **not** need: an `EvadeRollModifier` for *"the value
+> of Evade rolls are reduced by 4"*. `CheckModifier` with `check: evade` already folds a numeric
+> modifier into the roll — it is how Jack's Mist raises everyone else's — and `direction:
+> outgoing` is the roller's own side. A synonym would have been a second way to say one thing.
+
 `DamageModifier` alone covers perhaps 60% of the reference set's content. Its schema:
 
 ```yaml

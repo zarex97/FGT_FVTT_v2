@@ -1450,6 +1450,85 @@ does too.
 | Self-Suggestion | non-volatile debuff chance at −170% with the passive and the buff both standing |
 | Airavata's ZON gate | refused with `zon` at 13 panels from her Master, allowed at one |
 
+### Achilles is complete — and seven defects the unit tests could not see
+
+Thirteen entries and **five Noble Phantasms** — three non-damaging, two purely passive, both
+corpus records — every clause exercised in `fgt2026`. Ch. 44 §44.1–44.2 were the design and now
+carry the build records. **Script count: 0**, against §D.23's budgeted 1: the Heel's six
+modifiers turned out to be data.
+
+He is the acceptance test for **gating**, and the shape of the work says so — almost nothing here
+is a magnitude, and almost everything is a question of when a clause is allowed to apply.
+
+**Twelve features arrived with him, and two of them were already written and unread:**
+
+| Feature | Where | Named in the spec? |
+|---|---|---|
+| `stance` — states, windows, forced default, roll options | `rules/stance.mjs` | Ch. 44 §44.1 |
+| The `stance` requirement kind | `rules/items.mjs` | no |
+| `weakPoint` — a declared sub-attack with its own hit table | `rules/weak-point.mjs`, `engine/weak-point.mjs` | Ch. 44 §44.2 |
+| The `heelResolve` rung | `engine/combat-process.mjs` | Ch. 44 §44.2 |
+| `damage.ignoresDefensiveBuffs` | `rules/damage/pipeline.mjs` | Ch. 44 §44.2 |
+| `AttackerPropertyTier` | `rules/elements.mjs` | **already in `EXECUTORS`, named after him, unread** |
+| `WeakPoint` element | `rules/elements.mjs` | **already in `EXECUTORS`, unread** |
+| `Knockback` — a directional push with a damaging sidestep | `rules/movement.mjs`, `engine/movement-hooks.mjs` | Ch. 43 |
+| `ridingAttack.distance`, and a ride that carries an ability | `engine/riding.mjs` | no |
+| `@ride.x` / `@hitCount` — magnitudes from the action's own result | `engine/attack.mjs` | no |
+| `expendsPermanently` | `rules/reactions.mjs`, `engine/io.mjs` | no |
+| Three duel-field axes and `selection.parametersBelow` | `rules/bounded-fields.mjs`, `rules/targeting/resolve.mjs` | Ch. 43, partly |
+
+`andreiasAmarantosByAttackerDivinity` was likewise already in `domain/tables.mjs`. That is the
+third Servant running whose vocabulary preceded its reader, and the first where the **element**
+did too.
+
+**Seven defects, and the unit suite was green for every one of them:**
+
+1. **The stance never reached contribution collection.** `snapshot.mjs` builds the self-option set
+   field by field and did not carry it, so every gated clause was unsatisfiable from his own
+   contributions — MOV stayed 7 while Mounted and Riding Attack was never granted. That object's
+   own comments already record two earlier fields this happened to.
+2. **He could mount on somebody else's Turn.** The forced default fires at his Turn end, which is
+   not the same as forbidding the change; he would have defended Mounted with the Heel off.
+3. **The Heel's Agility bonus was awarded every time.** The board projection carries `agility` as
+   a number and the unit projection as `{value, max}`; reading only the second compared two
+   `undefined`s as zeroes. The Luck opt-in was missing from the offer for the same reason.
+4. **The rung stalled**, because it had a `PROMPTS` entry for a question already asked.
+5. **The Luck was not spent**, though the offer's own hint promises it.
+6. **A timing window ignored the ability's requirements**, offering Runner Comet while he was
+   Mounted — the refusal-when-pressed §17.6 forbids, and the argument `abilitiesAtWindow` already
+   makes about cooldowns.
+7. **Both Agility restores landed nowhere.** *"Restores X Agility"* needs `clampToMax`, which is
+   also what routes the write to the stat rather than to a §6.10 pool named `agility` that does
+   not exist.
+
+Plus one gap in the ride: a Riding Attack that reaches nobody returned before the ability's own
+phases, so a Noble Phantasm spent on an empty line granted its user nothing.
+
+**And one defect in shipped content**, found on the way: `class-skills/divinity.yml` — the
+document eleven Servants carry — was not `categorizedAs: [divinity]`, so any rule asking "does
+this Unit have Divinity" found Kingprotea's *Divine Core* and missed the rule it is an exception
+to. Andreias Amarantos is the first thing that asks.
+
+**Measured live**, each figure read off a chat card or the sheet in `fgt2026`:
+
+| Clause | Measured |
+|---|---|
+| Statline | 1500 Health, BA 135/150, Range 2, Sustainability 2◈ — all from the tables |
+| Stance | MOV 7 Dismounted / 8 Mounted; forced back to Dismounted at his Turn end; mounting refused off his own Turn |
+| Riding, gated | Mounted: `doubleMove`, `ridingAttack`, `passengerSeat`. Dismounted: `doubleMove` alone, plus `ignoresOccupancy` |
+| The gates | Mounted allows Riding and Troias Tragōidia and refuses the duel, Akhilleus Kosmos and Runner Comet; Dismounted the exact inverse |
+| Andreias Amarantos | **0 damage** from an attacker with no Divinity |
+| Achilles' Heel | offered at 15% from behind with the breakdown shown (back +10, initiated +5); 5% from the front once the facing rung turned him |
+| The Luck opt-in | offered at 30% "on a successful Luck Check (+25%)"; rolled 4, passed, rolled 21 against 30 — struck |
+| The bypass | the card reads "Magic Resistance (bypassed) 0%" and 145 damage lands |
+| `heelWounded` | permanent and unremovable; MOV 7 → 6, Evade −4 → +1 (a five-point swing), Andreias Amarantos gone |
+| Dromeus Komētēs | −4 on his Evade, dismounted only |
+| Runner Comet | offered at the Combat Phase start on foot, and **not** offered Mounted or under either Seal |
+| Troias Tragōidia | rode 10 panels on a 13-panel allowance his MOV of 8 could not have paid for; hit 3 Units on the line |
+| ...its X | Agility 10 → 14 and `Atk Up 40/30` — X = ⌊8 ÷ 2⌋ = 4, so X0% and (X−1)0% |
+| ...its Y | `Crit DmUp 30` on three Units hit; nothing at zero |
+| An empty ride | still restores the Agility and applies the Atk Up; no Crit DmUp, because Y is zero |
+
 ---
 
 ## 45.5 The completion plan

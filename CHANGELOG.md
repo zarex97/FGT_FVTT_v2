@@ -34,6 +34,88 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+> **Achilles is complete.** Thirteen entries and **five Noble Phantasms** — three non-damaging and
+> two purely passive, both corpus records — every clause exercised in a live world. Ch. 44
+> §44.1–44.2 were the design and now carry the build records. **Script count: 0**, against
+> §D.23's budgeted 1: Achilles' Heel's six modifiers turned out to be data.
+>
+> He is the acceptance test for **gating**. Almost nothing on his sheet is a magnitude and almost
+> everything is a question of *when* a clause applies, so the spine of the build is a `stance` —
+> free to change, but only at the moments his sheet names, and forced back to Dismounted the
+> moment his Turn ends. That last rule is what makes Achilles' Heel a threat rather than a
+> curiosity: whatever he attacked in, he defends on foot.
+>
+> **Two of the twelve features it needed were already written and unread** — `AttackerPropertyTier`
+> was in `EXECUTORS` with a comment naming him, and so was `WeakPoint`; the table
+> `andreiasAmarantosByAttackerDivinity` had been in `domain/tables.mjs` since the tables were
+> transcribed. That is the third Servant running whose vocabulary preceded its reader, and the
+> first where the element did too.
+>
+> **Seven defects surfaced only in the live world**, with the unit suite green for every one. The
+> widest: the stance never reached contribution collection, so every clause gated on it was
+> unsatisfiable from his own contributions — MOV stayed 7 while Mounted and Riding Attack was
+> never granted.
+
+### Added
+
+- **Achilles** (`packs/_source/servants/achilles.yml`), the fifteenth Servant: thirteen entries,
+  a shared `bravery.yml`, a third Riding variant, `heelWounded`, and `anti-purge.yml`.
+- **`stance`** (Ch. 44 §44.1) — a construct distinct from a mode, and the decision holds up in
+  code: a mode carries a duration, a cooldown and a toggle lock and may be forced on by a
+  compulsion, so building the stance as one would have meant three null fields and still no home
+  for *"always Dismounted when it is not his Turn"*. It emits `self:stance:<state>`, which makes
+  every "while Mounted" clause one predicate; the `stance` requirement kind is how four of his
+  abilities say *"can only be used when Unmounted"*.
+- **The weak-point rung** (Ch. 44 §44.2) — `rules/weak-point.mjs` for the chance and one new
+  Combat Process state for the resolution. Reached by a **redirect**, because five rungs lead to
+  the damage and a declared Heel Attack replaces all of them; carrying no prompt, because the
+  attacker was asked at declaration. Both outcomes are terminal, which makes it the only place in
+  the game where losing a roll beats never having rolled.
+- **`damage.ignoresDefensiveBuffs`** — wider than `Ignore Def` and wider than `Pierce`: stage 4's
+  reducing bucket, Magic Resistance, every flat reduction including Battle Continuation's dice,
+  and Andreias Amarantos itself. Every bypassed source contributes a visible zero naming itself.
+- **`AttackerPropertyTier` gets a reader**, at pipeline stage 15 — a defence whose magnitude is
+  the *attacker's* Divinity Rank, with total immunity as the default case.
+- **`Knockback`** — how a Unit shoves whoever it walks into. Kingprotea pushes outward from her
+  centre; Achilles pushes along his travel and, when the line is full, shoves them aside and hits
+  them for a Normal Attack.
+- **A Noble Phantasm that IS a Riding Attack** — `ridingAttack.distance` overrides the rider's
+  MOV, and two magnitudes are read from the action's own result: `@ride.x` (what was left of his
+  movement, captured *before* the ride) and `@hitCount`.
+- **`expendsPermanently`** — spent for the rest of the game rather than cooled down. Akhilleus
+  Kosmos is the only one, and there is no number of Turns after which it returns.
+- **Three duel-field axes** — `BlockLuckChecks`, `SuppressForeignEffects` and
+  `field.requiresConsent`, the last being the only consent gate in the game — plus
+  `selection.parametersBelow`, the one refusal no predicate could express.
+- **`Anti-Purge` as authored content.** It has been in Appendix A §A.2 and read by the damage
+  pipeline at stage 0 since the pipeline was written, and nothing had ever applied it.
+
+### Fixed
+
+- **The stance never reached contribution collection.** `rules/snapshot.mjs` builds the
+  self-option set field by field and did not carry `stance`/`stanceSpec`. Its own comments already
+  record two earlier fields this happened to; this is the third.
+- **A Servant could change stance on somebody else's Turn.** The forced default fires at his Turn
+  end, which is not the same as forbidding the change.
+- **A weak point's Agility clause compared two `undefined`s as zeroes**, awarding its bonus every
+  time: the board projection carries `agility` as a number and the unit projection as
+  `{value, max}`. The Luck opt-in was missing from the offer for the same reason.
+- **The Luck spent on a weak-point attack was never deducted**, though the offer promises it.
+- **A timing window ignored the ability's own requirements**, offering Runner Comet while its
+  owner was Mounted — the refusal-when-pressed §17.6 forbids, and the argument
+  `abilitiesAtWindow` already makes about cooldowns.
+- **`restores X Agility` landed nowhere** without `clampToMax`, which is also what routes the
+  write to the stat rather than to a §6.10 resource pool of that name. Both of Achilles's
+  restores were affected.
+- **A Riding Attack that reached nobody skipped the ability's own phases**, so a Noble Phantasm
+  spent on an empty line granted its user nothing.
+- **`class-skills/divinity.yml` was not `categorizedAs: [divinity]`** — the document eleven
+  Servants carry — so any rule asking "does this Unit have Divinity" found Kingprotea's *Divine
+  Core* and missed the rule it is an exception to. The category vocabulary now has one
+  implementation, `rules/items.mjs#categoryRankOf`, which answers the Rank as well as membership.
+
+---
+
 > **Kingprotea is complete.** Twelve abilities, every clause exercised in a live world. Ch. 36
 > §36.7 was the design and now records where the build departed from it: **eight proposed
 > per-element fields became one**, `perStack`, and the reference set's `Script` count is again

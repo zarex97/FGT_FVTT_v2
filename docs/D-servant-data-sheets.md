@@ -901,7 +901,9 @@ Novel mechanisms: Ch. 44 §44.1 (stance), §44.2 (the Heel), §44.3 (bidirection
 **Exercises:** stances, defensive tiers keyed on an attacker property, permanent irreversible
 self-damage states, magnitudes computed from the result of the ability's own targeting, duels
 with negotiated terms, and abilities that are permanently expended.
-**Scripts: 1.**
+**Scripts: 0** — the budgeted `achilles.heel` was not needed: the six modifiers are data, and
+`rules/weak-point.mjs` reads them. **Built** — every clause exercised in `fgt2026`; Ch. 45 has
+the measurements and Ch. 44 §44.1–44.2 the build records.
 
 **Note.** Five Noble Phantasms — tying Nursery Rhyme and EMIYA for the corpus record, and
 displacing Karna's four. Three of the five are non-damaging and two are passive. He is the

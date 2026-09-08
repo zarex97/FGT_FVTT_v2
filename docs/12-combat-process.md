@@ -504,6 +504,17 @@ For a multi-panel AU, "the direction it was attacked from" uses the nearest occu
 
 ---
 
+> **Implementation note (Ch. 45) — the weak-point rung.** The ladder gained one optional state,
+> `heelResolve`, with Achilles. It is reached by a **redirect** rather than by an event of its
+> own: five rungs lead to `damage` and a declared weak-point attack replaces all of them, because
+> it resolves in place of the damage rather than beside it. Both its outcomes are terminal —
+> *"if the AU's Heel Attack fails, Achilles successfully Evades the Attack"* — which makes it the
+> only place in the game where losing a roll is better for the roller than never having rolled.
+>
+> It carries no prompt. The attacker is asked at declaration, where the sheet puts the choice,
+> and the rung itself is a roll resolved automatically like the damage step. Ch. 44 §44.2 has the
+> chance table and the reasoning.
+
 ## 12.8 Step 6 — the Counter
 
 > *"If the DU successfully Evaded the Attack **or survives** the Attack and the AU is within the

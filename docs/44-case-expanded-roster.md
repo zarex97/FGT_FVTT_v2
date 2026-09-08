@@ -166,6 +166,27 @@ Amarantos` and `Achilles' Heel` only matter Dismounted.
 **DECISION.** `stance` is a new ability-adjacent construct distinct from `mode`: modes have
 durations and cooldowns, stances are free but constrained by *when* they may change.
 
+> **Implementation note (Ch. 45).** Built as `module/rules/stance.mjs`, and the decision holds
+> up: a mode carries a duration, a cooldown and a toggle lock and may be forced on by a
+> compulsion, so building the stance as one would have meant inventing three null fields and
+> then still having nowhere to put *"always Dismounted when it is not his Turn"*.
+>
+> The projection emits `self:stance:<state>` as a roll option, which is what makes the rest of
+> his sheet ordinary — every "while Mounted" and "when Unmounted" clause is one predicate rather
+> than a special case wherever it is asked. Two things that only the live world revealed:
+>
+> - `rules/snapshot.mjs` builds the **self**-option set field by field, and it did not carry the
+>   stance. Every gated clause was therefore unsatisfiable from his own contributions: MOV stayed
+>   7 while Mounted and Riding Attack was never granted. That object's own comments already
+>   record two earlier fields this happened to.
+> - The forced default fires at his Turn end, which is not the same as forbidding the change.
+>   Nothing stopped a player toggling him back up during an enemy's Turn, and he would then have
+>   defended Mounted with the Heel switched off. The declaration is now refused off his own Turn.
+>
+> The `stance` requirement kind is what four of his abilities use to say *"can only be used when
+> Unmounted"* — a requirement rather than a predicate, so the ability is refused when pressed
+> instead of being pressed and quietly doing nothing.
+
 ---
 
 ## 44.2 Damage and defence mechanisms
@@ -267,6 +288,35 @@ weakPoint:
 ```
 
 The construct is general enough that any future "aim for the weak spot" content reuses it.
+
+> **Implementation note (Ch. 45).** Built as `rules/weak-point.mjs` (the chance) and
+> `engine/weak-point.mjs` (the offer and the roll), with one new state in the Combat Process.
+>
+> **The rung is reached by a redirect, not by an event.** There are five edges into `damage` — an
+> accepted hit, a declined Luck Check, taking nothing, a Block, a failed automatic evasion — and a
+> declared Heel Attack replaces all of them equally, because it resolves *in place of* the damage.
+> It has no `PROMPTS` entry: the question was asked at declaration, and giving the rung a prompt
+> stopped the ladder to ask one nobody had an answer to.
+>
+> **The offer is made only when the chance exceeds zero**, and deliberately does not count the
+> Luck Check when deciding that: +25 over a base of zero is still 25, so counting it would put a
+> prompt in front of every ordinary frontal attack on him. The Luck Check is an opt-in inside an
+> offer already worth making.
+>
+> `domain/geometry.mjs#coneOf` names Achilles' Heel in its own docstring and had one caller that
+> was not it; this is the one it was written for. "Fog of War" — *"a place where he had no vision
+> of"* — reads as his own Detect range, which is what vision means everywhere else on this board.
+>
+> `damage.ignoresDefensiveBuffs` is wider than `Ignore Def` (which reaches `defUp` alone) and
+> wider than `Pierce` (Invuln and Block): it reaches stage 4's reducing bucket, Magic Resistance,
+> every flat reduction including Battle Continuation's dice, and Andreias Amarantos itself. Every
+> bypassed source contributes a visible zero naming itself.
+>
+> `heelWounded` is a permanent `status` and `unremovable`. Two of its three rewrites are authored
+> as predicates on the abilities they change rather than as a suppression list on the wound, so a
+> reader who opens Andreias Amarantos learns there that it can stop working. Measured live: the
+> wound moves his Evade five points the wrong way, because Dromeus Komētēs' −4 is lost and +1 is
+> imposed in its place.
 
 ### EMIYA — Rho Aias, a shared absorbing barrier
 
