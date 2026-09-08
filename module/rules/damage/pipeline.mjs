@@ -86,6 +86,7 @@ export function computeDamage(ctx) {
   stage2Crit(state);
   stage3AbilityMultiplier(state);
   stage4CombinedPercent(state);
+  stage4bElements(state);
   stage5ComponentAmplification(state);
   stage6Band(state);
   stage7FlatAttackBonuses(state);
@@ -298,6 +299,82 @@ function stage4CombinedPercent(s) {
   s.scale(factor);
   s.note("bucket", `${bucket >= 0 ? "+" : ""}${bucket}% → ×${factor.toFixed(2)}`);
   s.end(4);
+}
+
+/**
+ * Stage 4b — element-scoped percentages, applied to the element's own share.
+ *
+ * Two rules in one stage, because neither is any use without the other.
+ *
+ * **The keys are read at all.** Six terrain types have emitted them into a void
+ * since terrain shipped; see `ELEMENT_ATTACK_KEYS` above.
+ *
+ * **Only the element's share moves.** *"Fire damage (half)"* — on Karna,
+ * Dioscuri, Raikou and Quetzalcoatl — means half the damage carries the
+ * element, so a defender resisting Fire resists that half and not the rest.
+ * `karna-mana-burst-flames.yml` recorded the whole-attack approximation as a
+ * known simplification; this is what replaces it.
+ *
+ * Separate from stage 4's bucket rather than folded into it: that bucket is one
+ * additive expression scaled once (*"(100+30−100)% deals 30%"*), and an element
+ * percentage that applies to a FRACTION of the total cannot join a sum that
+ * applies to all of it.
+ *
+ * @param {PipelineState} s
+ */
+function stage4bElements(s) {
+  const element = s.ctx.attack?.element ?? null;
+  if (!element) return;
+  const fraction = elementFractionOf(s);
+  if (fraction <= 0) return;
+
+  s.begin(4.5);
+  let pct = 0;
+
+  for (const m of activeMods(s, s.ctx.attacker, ELEMENT_ATTACK_KEYS)) {
+    if (m.element !== element) continue;
+    const v = magnitudeOf(m, s.isNP, s.ctx) * (ELEMENT_NEGATIVE_KEYS.has(m.key) ? -1 : 1);
+    pct += v;
+    s.contribute(m.key, v, `${m.source} (${element})`, "attacker");
+  }
+
+  for (const m of activeMods(s, s.ctx.defender, ELEMENT_DEFENCE_KEYS)) {
+    if (m.element !== element) continue;
+    // A Heel Attack ignores the defender's reducing half, the same way stage 4
+    // treats its own bucket. An `elementDefDwn` helping the attacker survives.
+    if (bypassesDefence(s) && ELEMENT_NEGATIVE_KEYS.has(m.key)) {
+      s.contribute(m.key, 0, `${m.source} (bypassed)`, "defender");
+      continue;
+    }
+    const v = magnitudeOf(m, s.isNP, s.ctx) * (ELEMENT_NEGATIVE_KEYS.has(m.key) ? -1 : 1);
+    pct += v;
+    s.contribute(m.key, v, `${m.source} (${element})`, "defender");
+  }
+
+  if (pct !== 0) {
+    const scaled = pct * fraction;
+    const factor = Math.max(0, 1 + scaled / 100);
+    s.scale(factor);
+    const share = fraction < 1 ? ` ×${fraction}` : "";
+    s.note("element", `${element}${share}: ${scaled >= 0 ? "+" : ""}${scaled}% → ×${factor.toFixed(2)}`);
+  }
+  s.end(4.5);
+}
+
+/**
+ * How much of this attack carries its element — `1` unless the sheet says
+ * "(half)".
+ *
+ * Anything outside `[0, 1]` is treated as a whole-element attack rather than
+ * trusted: a fraction of 7 would multiply a resistance sevenfold, and silently
+ * inventing that from a typo is worse than ignoring it.
+ *
+ * @param {PipelineState} s
+ * @returns {number}
+ */
+function elementFractionOf(s) {
+  const f = s.ctx.attack?.elementFraction;
+  return typeof f === "number" && f >= 0 && f <= 1 ? f : 1;
 }
 
 /**
@@ -702,6 +779,22 @@ const FLAT_ATTACK_KEYS = new Set(["divinity", "dmgBoost", "avengerCounter", "fla
 const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
 
 /**
+ * Element-scoped percentage keys, read only when the attack carries that
+ * element and applied only to the share of it that does.
+ *
+ * `rules/terrain.mjs` has emitted all three from six terrain types since terrain
+ * shipped — Waterside's water offence and lightning vulnerability, Snowfield's
+ * ice vulnerability and fire resistance, Burning's water resistance, Lava's
+ * fire vulnerability — and **none of them was in a bucket**, so every one was
+ * collected onto the unit, carried through the snapshot and never read. Exactly
+ * the failure this file's own note above describes for `doomsdayShelter`.
+ */
+const ELEMENT_ATTACK_KEYS = new Set(["elementAtkUp", "elementAtkDwn"]);
+const ELEMENT_DEFENCE_KEYS = new Set(["elementDefUp", "elementDefDwn"]);
+/** Element keys whose magnitude *reduces* the damage. */
+const ELEMENT_NEGATIVE_KEYS = new Set(["elementAtkDwn", "elementDefUp"]);
+
+/**
  * Every `modifierKey` this pipeline actually consults.
  *
  * The buckets above are **closed sets**: a modifier whose key is not in one is
@@ -717,6 +810,7 @@ const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
 export const MODIFIER_KEYS = Object.freeze([
   ...ATTACKER_BUCKET_KEYS, ...DEFENDER_BUCKET_KEYS,
   ...FLAT_ATTACK_KEYS, ...FLAT_REDUCTION_KEYS,
+  ...ELEMENT_ATTACK_KEYS, ...ELEMENT_DEFENCE_KEYS,
   // Read by their own single-key lookups rather than through a bucket.
   "critDmUp", "critDmDwn", "critResUp", "critResDwn", "blockUp", "defCrk",
 ]);

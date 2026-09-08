@@ -43,13 +43,19 @@ damage:
   # Dragonblight all see it, and so his OWN fire resistance below can be
   # predicated on it.
   #
-  # KNOWN SIMPLIFICATION: the "(half)" is not modelled. An `element` is a single
-  # value on the attack, and every reader of it (stage 0's conversion, the
-  # Freeze break, Dragonblight) is all-or-nothing -- so a target with `flamHeal`
-  # heals from all of this rather than from half. Recorded here and in Ch. 45
-  # rather than faked, which is the same choice `basmu.yml` makes about the
-  # Injury Roll. It is the only clause on Karna's sheet that is not exact.
+  # The "(half)" is now MODELLED, and this file previously recorded it as a
+  # known simplification. `elementFraction` is read by the pipeline's stage 4b:
+  # element-scoped modifiers -- a defender's `elementDefUp(fire)`, an attacker's
+  # `elementAtkUp` -- reach only the half of the total that carries the element.
+  # Built for Quetzalcoatl's Xiuhcoatl, which uses the identical idiom, and
+  # retrofitted here in the same pass.
+  #
+  # STILL all-or-nothing, and correctly so: stage 0's conversion, the Freeze
+  # break and Dragonblight are keyed on the DAMAGE-OVER-TIME KIND
+  # (`poison`/`curse`/`burn`), not on an attack element, so a Fire attack never
+  # reaches `flamHeal` at all and there is no half of it to take.
   element: fire
+  elementFraction: 0.5
 phases:
   - kind: damage
   - kind: applyEffects

@@ -486,6 +486,12 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // only through `damageContext` and never through the predicate vocabulary.
       // Karna's Mana Burst (Flames) resists by type in both directions.
       element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? null,
+      // "Fire damage (half)": how much of the total carries that element, which
+      // the pipeline's stage 4b scales element-scoped modifiers by. Travels
+      // BESIDE `element` at all three spec-building sites, because an element
+      // that arrives without its fraction is silently a whole-element attack.
+      elementFraction: resolvedDamage(ability, options)?.elementFraction
+        ?? ability?.system?.damage?.elementFraction ?? undefined,
       ignoresMagicResistance: Boolean(
         resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
       ),
@@ -2561,6 +2567,10 @@ async function applyDamage(state, message) {
       // Brahmastra Kundala is Fire and his Brahmastra is not, and both are the
       // same Servant's Noble Phantasms.
       element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? facts.element ?? null,
+      // See the note at the first spec-building site: the fraction travels with
+      // the element or the attack silently becomes whole-element.
+      elementFraction: resolvedDamage(ability, options)?.elementFraction
+        ?? ability?.system?.damage?.elementFraction ?? facts.elementFraction ?? undefined,
       // Dragon Wing Warriors: "50 Fixed STR damage". The pipeline has read
       // `ctx.attack.isFixedDamage` (stages 1 and 2, `rules/damage/pipeline.mjs`)
       // since it was written; nothing ever set it from content, so an authored
@@ -4502,6 +4512,8 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
       component: componentOf(attackerDoc, ability, options),
       categorizedAsNP: Boolean(ability.system?.categorizedAsNP),
       element: damage?.element ?? ability.system?.element ?? null,
+      // See the note at the first spec-building site.
+      elementFraction: damage?.elementFraction ?? undefined,
       ignoresMagicResistance: Boolean(damage?.ignoresMagicResistance),
       pierce: Boolean(damage?.pierce),
       aim: Boolean(damage?.aim),
