@@ -1,0 +1,27 @@
+# Appendix A §A.12 — periodic damage. The catalogue files `Sap` and `Bleed` as
+# ONE row because they are one rule with two names, so this is `bleed.yml`'s
+# twin and deliberately not a variation on it.
+#
+# `engine/scheduler.mjs` has carried the periodic half since the scheduler was
+# written -- `sap: { when: "turnEnd", amount: () => 50, actedOnly: true }` -- and
+# this document has not existed, so anything that inflicted Sap inflicted
+# nothing at all. The applier resolves an effect by its definition, and there
+# was none to find. Quetzalcoatl's *Ehecatle* is what noticed.
+#
+# NOT MODELLED, exactly as `bleed.yml` leaves it: *"chance of inflicting on
+# Mechanical units −50%"*. There is no per-attribute application-chance
+# vocabulary -- `effect-applier.mjs` reads `baseChance` plus the caller's
+# declared modifiers and nothing keyed on the target's Attributes -- and
+# inventing one for a clause the identical effect already goes without would
+# make the two documents disagree about the same sentence.
+schema: 1
+id: sap
+name: "Sap"
+description: "Takes 50 Fixed damage at the end of its Turn and at the end of any Turn it Acts."
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+periodic: { when: turnEnd, amount: 50, actedOnly: true }
+rules: []

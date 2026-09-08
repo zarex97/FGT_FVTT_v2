@@ -1,0 +1,31 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md — Charisma of the Sun,
+# clause 3. Catalogue row: docs/A-effect-catalogue.md §A.17.1.
+#
+#   "Applies the 'Sol' buff to herself for 1◈ Turns, its effects are as
+#    follows- The 5x5 panel area around Quetz is 'Day', even if it is during a
+#    Night Round."
+#
+# This document is only the MARKER. The daylight itself is a `sunlight` terrain
+# area painted by the ability's own `zone` phase with `followsSource: true` --
+# the one flag `data/regions.mjs` declared specifically for this clause
+# (*"Quetzalcoatl's Sol is one of the few that does"*).
+#
+# Putting the area on the effect instead would make it an aura, and Ch. 42 §42.1
+# is explicit that terrain is NOT an effect: a unit is not carrying a Sunlight
+# status, it is standing in daylight, which is why leaving the area ends it with
+# no removal step and why no Dispel can touch it.
+#
+# `rules: []` is therefore correct rather than unfinished: every mechanical
+# consequence of Sol is `phaseAt` reading the ground, not this buff modifying
+# its bearer.
+schema: 1
+id: sol
+name: "Sol"
+description: |
+  The 5x5 panel area around the bearer is 'Day', even during a Night Round.
+polarity: buff
+volatility: volatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+rules: []
