@@ -1151,7 +1151,8 @@ function countMatchingTurns(change, doc, board) {
  * @param {object|null} [self] the ability being used, for `excludeSelf`
  * @returns {object[]}
  */
-function selectAbilities(change, doc, self = null) {
+/** Exported for `test/unit/cooldown.test.mjs`; not part of any external flow. */
+export function selectAbilities(change, doc, self = null) {
   const notSelf = (i) => !(change.excludeSelf && self && i.id === self.id);
 
   if (change.scope === "np") {
@@ -1168,7 +1169,22 @@ function selectAbilities(change, doc, self = null) {
   if (change.category) {
     return doc.items.filter((i) => i.system?.category === change.category && notSelf(i));
   }
-  return [doc.items.get(change.abilityId)].filter(Boolean).filter(notSelf);
+  // By CONTENT id, which is what every other ability selector in the system
+  // names: `abilityOffCooldown`'s `abilityIds`, `sameTurnExclusive`, and the
+  // turn-use record in `engine/io.mjs` (*"`abilityOffCooldown` requirement
+  // name"*). This branch took an embedded Foundry item id, which no content
+  // file can know -- so a clause naming one ability by name would compile,
+  // validate, match nothing, and reduce no cooldown at all.
+  //
+  // Quetzalcoatl's *Lucha Libre* is the first content to name one: *"reduces
+  // the Cooldown of Xiuhcoatl by 1◈ Turns."*
+  //
+  // The raw item id is still accepted, for any caller that really holds one.
+  const wanted = new Set(change.abilityIds ?? (change.abilityId ? [change.abilityId] : []));
+  if (wanted.size === 0) return [];
+  return doc.items.filter(
+    (i) => (wanted.has(i.system?.contentId) || wanted.has(i.id)) && notSelf(i),
+  );
 }
 
 /**
