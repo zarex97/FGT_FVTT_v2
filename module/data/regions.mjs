@@ -32,6 +32,24 @@ export class TerrainBehavior extends Base {
       sourceUnitId: new fields.StringField({ required: false, nullable: true, initial: null }),
       followsSource: new fields.BooleanField({ initial: false }),
       createdOnTurn: new fields.NumberField({ required: false, nullable: true, initial: null }),
+
+      // How a PAINTED area is found again -- `sol:<unitId>`,
+      // `piedra:<fieldId>`. An area an effect created has to be erasable when
+      // that effect ends, and a Region carries no other handle back to its
+      // cause. A GM's hand-drawn terrain has no tag, which is exactly what
+      // keeps it out of every automatic sweep below.
+      tag: new fields.StringField({ required: false, nullable: true, initial: null }),
+
+      // The ABSOLUTE tick it disappears on, resolved when it is painted.
+      // Durations are stored as expiry ticks everywhere else in this system
+      // (§7.5) for the same reason: a countdown needs a hook that can fail to
+      // fire, and an expiry cannot.
+      expiry: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
+      // The Chebyshev radius a FOLLOWING area was painted at, so it can be
+      // redrawn around its source's new panel without the ability that created
+      // it being consulted again. Meaningless unless `followsSource`.
+      radius: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     };
   }
 }

@@ -48,6 +48,8 @@ import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField } from "./fields.mjs";
+import { paintTerrain } from "./terrain.mjs";
+import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
@@ -292,7 +294,11 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
   // `self:onPlatform:hanging-gardens-of-babylon` could never be true here.
   // Found live authoring Summoning: Bašmu's summon-branch phase, which needs
   // exactly that predicate. Same fallback `phaseTargets` (below) already uses.
-  const selfOptions = rollOptionsFor({ attacker: board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor) });
+  // Named rather than inlined: a `zone` phase needs the caster's PANEL to
+  // expand its shape around, and the board-derived unit is the only projection
+  // that carries one.
+  const self = board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+  const selfOptions = rollOptionsFor({ attacker: self });
 
   for (const phase of effectivePhases(ability.system ?? {}, resolveSource)) {
     // "If this is NOT THE FIRST TIME EMIYA has used this Skill in this game,
@@ -473,6 +479,33 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // `declined` only when it really was: anything else is the field
               // failing to open, and saying "declined" for that hides it.
               reason: opened ? null : (field?.declined ? "declined" : "couldNotOpen"),
+            },
+          });
+          break;
+        }
+
+        case "zone": {
+          // §42.7's authored shape for ability-created terrain. Once per use,
+          // from the caster: an area is one area, and looping it over a target
+          // list would paint one per Unit caught. Same guard `createField` uses
+          // one case above, for the same reason.
+          if (target.unitId !== actor.id) break;
+          const spec = phase.spec ?? {};
+          const painted = await paintTerrain({
+            types: spec.terrain ?? [],
+            panels: zonePanels(spec, self, board),
+            tag: zoneTag(spec, ability, actor),
+            duration: spec.duration ?? null,
+            sourceUnitId: actor.id,
+            followsSource: Boolean(spec.followsSource),
+            radius: zoneRadius(spec),
+          });
+          applied.push({
+            summary: {
+              id: "zone",
+              name: (spec.terrain ?? []).join("/"),
+              outcome: painted.ok ? "applied" : "failed",
+              reason: painted.ok ? null : painted.reason,
             },
           });
           break;
@@ -1580,8 +1613,65 @@ export async function runCasterPhases(ability, actor, board, extras = {}) {
  * Process itself and the second is its rider step, which resolves per defender
  * and after the damage has landed.
  */
+/**
+ * The panels a `zone` phase covers.
+ *
+ * Three forms. An explicit `shape` anchored on the caster is the ordinary case
+ * (Charisma of the Sun's 5×5, Piedra Del Sol's 7×7). `shape: "reuse"` is
+ * §42.7's other spelling — *"the NP's own blast area"* — and
+ * `shape: "fortressNearby"` is Xiuhcoatl's, which Task 13 fills in.
+ *
+ * @param {object} spec the phase's `spec` block
+ * @param {object} self the caster's snapshot
+ * @param {object} board
+ * @returns {Array<{i: number, j: number}>}
+ */
+function zonePanels(spec, self, board) {
+  if (!self?.panel) return [];
+  if (typeof spec.shape === "string") return [];
+  return expand(spec.shape, { panel: self.panel }, { bounds: board?.bounds ?? null }).panels ?? [];
+}
+
+/**
+ * How a painted area is found again.
+ *
+ * Authored explicitly where something else has to erase it — `sol:<unitId>` is
+ * cleared when the buff expires — and derived from the ability otherwise, so a
+ * second use of the same Skill moves its area rather than leaving the first one
+ * standing.
+ *
+ * @param {object} spec
+ * @param {object} ability
+ * @param {object} actor
+ * @returns {string}
+ */
+function zoneTag(spec, ability, actor) {
+  if (spec.tag) return spec.tag.replace("@self.id", actor.id);
+  return `${ability.system?.contentId ?? ability.id}:${actor.id}`;
+}
+
+/**
+ * The Chebyshev radius a FOLLOWING area is redrawn at.
+ *
+ * Only a square shape has one, which is every following area in the corpus:
+ * *"the 5x5 panel area around Quetz"* is radius 2.
+ *
+ * @param {object} spec
+ * @returns {number|null}
+ */
+function zoneRadius(spec) {
+  if (!spec.followsSource) return null;
+  const size = spec.shape?.size ?? spec.shape?.w ?? null;
+  return typeof size === "number" ? Math.floor(size / 2) : null;
+}
+
 const CASTER_PHASES = new Set([
   "resource", "statChange", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
+  // Terrain an attacking NP paints. Xiuhcoatl's Fortress clause is the first:
+  // it depends on where Quetzalcoatl is standing when she uses it, not on
+  // anything the attack achieves, so running it here -- before the fan-out,
+  // from the caster -- is both correct and the only place it would run at all.
+  "zone",
 ]);
 
 /**
