@@ -542,3 +542,121 @@ describe("an event handler gated on the attack", () => {
     expect(out.eventHandlers[0].excludeContentId).toEqual(["semiramis-item-construction"]);
   });
 });
+
+/* ========================================================================== */
+/*  Element-scoped modifiers, and "(half)"                                    */
+/* ========================================================================== */
+
+/**
+ * `rules/terrain.mjs` has emitted `elementAtkUp`/`elementDefUp`/`elementDefDwn`
+ * from six terrain types since terrain shipped, and none of the three was in a
+ * bucket in `pipeline.mjs` — so every one was collected onto the unit, carried
+ * through the snapshot, and never read. Quetzalcoatl's Xiuhcoatl is what
+ * noticed, because "(half)" has nothing to halve until they are live.
+ */
+describe("element-scoped modifiers", () => {
+  const unit = (o = {}) => ({
+    baseAttack: { str: 0, mag: 0 }, parameters: {}, effects: [], modifiers: [],
+    health: 1000, shield: 0, magicResistance: null, outsideZon: false, ...o,
+  });
+
+  const hit = ({ element = null, elementFraction, defenderMods = [], defenderEffects = [] } = {}) =>
+    computeDamage({
+      attacker: unit({ baseAttack: { str: 100, mag: 0 } }),
+      defender: unit({ modifiers: defenderMods, effects: defenderEffects }),
+      board: {},
+      attack: {
+        kind: "normal", rank: null, categorizedAsNP: false, element,
+        ...(elementFraction === undefined ? {} : { elementFraction }),
+      },
+      base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+      multiplier: 1, flatBonus: 0,
+      crit: { isCrit: false, chanceUsed: 0 },
+      reaction: { kind: "none" }, luckChecks: {}, rolls: {}, options: new Set(),
+    });
+
+  const waterWard = { key: "elementDefUp", element: "water", value: 50, source: "Burning", predicate: null };
+
+  it("applies an element modifier to an attack of that element", () => {
+    expect(hit({ element: "water", defenderMods: [waterWard] }).total).toBe(50);
+  });
+
+  it("leaves an attack of a different element alone", () => {
+    expect(hit({ element: "fire", defenderMods: [waterWard] }).total).toBe(100);
+  });
+
+  it("ignores an element modifier on an attack with no element at all", () => {
+    expect(hit({ element: null, defenderMods: [waterWard] }).total).toBe(100);
+  });
+
+  it("elementDefDwn increases damage taken, the mirror of elementDefUp", () => {
+    const frail = { key: "elementDefDwn", element: "ice", value: 50, source: "Snowfield", predicate: null };
+    expect(hit({ element: "ice", defenderMods: [frail] }).total).toBe(150);
+  });
+
+  it("elementAtkUp is read off the attacker", () => {
+    const result = computeDamage({
+      attacker: unit({
+        baseAttack: { str: 100, mag: 0 },
+        modifiers: [{ key: "elementAtkUp", element: "nature", value: 25, source: "Forest", predicate: null }],
+      }),
+      defender: unit(),
+      board: {},
+      attack: { kind: "normal", rank: null, categorizedAsNP: false, element: "nature" },
+      base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+      multiplier: 1, flatBonus: 0,
+      crit: { isCrit: false, chanceUsed: 0 },
+      reaction: { kind: "none" }, luckChecks: {}, rolls: {}, options: new Set(),
+    });
+    expect(result.total).toBe(125);
+  });
+});
+
+describe("elementFraction — 'Fire damage (half)'", () => {
+  const unit = (o = {}) => ({
+    baseAttack: { str: 0, mag: 0 }, parameters: {}, effects: [], modifiers: [],
+    health: 1000, shield: 0, magicResistance: null, outsideZon: false, ...o,
+  });
+
+  const hit = ({ elementFraction, defenderMods = [], defenderEffects = [] } = {}) =>
+    computeDamage({
+      attacker: unit({ baseAttack: { str: 100, mag: 0 } }),
+      defender: unit({ modifiers: defenderMods, effects: defenderEffects }),
+      board: {},
+      attack: {
+        kind: "normal", rank: null, categorizedAsNP: false, element: "fire",
+        ...(elementFraction === undefined ? {} : { elementFraction }),
+      },
+      base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+      multiplier: 1, flatBonus: 0,
+      crit: { isCrit: false, chanceUsed: 0 },
+      reaction: { kind: "none" }, luckChecks: {}, rolls: {}, options: new Set(),
+    });
+
+  const fireWard = { key: "elementDefUp", element: "fire", value: 50, source: "Snowfield", predicate: null };
+
+  it("halves the resistance's reach when half the damage is Fire", () => {
+    // Full: −50% → 50. Half: −25% → 75. None: 100.
+    expect(hit({ elementFraction: 1, defenderMods: [fireWard] }).total).toBe(50);
+    expect(hit({ elementFraction: 0.5, defenderMods: [fireWard] }).total).toBe(75);
+    expect(hit({ defenderMods: [] }).total).toBe(100);
+  });
+
+  it("defaults to 1, so every ability authored before this is unchanged", () => {
+    expect(hit({ defenderMods: [fireWard] }).total)
+      .toBe(hit({ elementFraction: 1, defenderMods: [fireWard] }).total);
+  });
+
+  it("clamps a nonsensical fraction to 1 rather than inventing a number", () => {
+    expect(hit({ elementFraction: 7, defenderMods: [fireWard] }).total).toBe(50);
+    expect(hit({ elementFraction: -3, defenderMods: [fireWard] }).total).toBe(50);
+  });
+
+  it("does not touch the heal conversion, which is keyed on a different axis", () => {
+    // Stage 0's `{poison: poisHeal, curse: cursHeal, burn: flamHeal}` is keyed
+    // on the DAMAGE-OVER-TIME KIND, not on an attack element: a Fire attack
+    // never matches `burn`, so "Fire damage (half)" and `flamHeal` do not meet.
+    // Asserted so a later reader does not "fix" the fraction to reach it.
+    expect(hit({ elementFraction: 0.5, defenderEffects: ["flamHeal"] }).flags.converted).toBe(false);
+  });
+});
