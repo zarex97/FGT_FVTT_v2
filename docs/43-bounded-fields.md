@@ -521,6 +521,27 @@ The distance to the field owner's Master is emitted as `self:withinOfOwnerMaster
 like `attack:range:gte`. `annotateFields` stamps `ownerMasterPanel` from the field the unit is
 standing in, because only the field knows who that Master is.
 
+> **Implementation note (Ch. 45) — the duel field, built.** Achilles's *Diatrekhōn Astēr Lonkhē*
+> is the field `isolation.blocksCommandSpells` was written for, in a comment naming it, and it is
+> still the only thing in the game that blocks a Command Spell.
+>
+> Three axes it needed that did not exist:
+>
+> - **`BlockLuckChecks`** — *"Luck Check cannot be used by the involved Units."* A suppression
+>   rather than a check modifier, because it removes the OPTION: the ladder declines those rungs
+>   automatically instead of offering a question with one answer.
+> - **`SuppressForeignEffects`** — *"all buffs and debuffs that were caused by Units not involved
+>   in the duel are negated for the duration."* NEGATED, not removed, so it filters the projection
+>   and the effects are still there when the field comes down. "Not involved" means not inside the
+>   field, which is exactly the two duellists, because nobody may enter.
+> - **`field.requiresConsent`** — the only consent gate in the game. Every other field opens
+>   whether or not anyone inside wants it.
+>
+> One clause is deliberately not modelled: *"all conditions of the duel (including defeat) must be
+> decided and agreed on by the two involved parties"* is a table negotiation, so `deactivation.byOwner`
+> closes the field and the victory condition stays with the players. Encoding a terms vocabulary
+> would be inventing rules the sheet does not have.
+
 #### `unitTurnEnd` — the owner's own Turn
 
 Contagion's first trigger is *"at the end of Pale Rider's Turn: affects all enemy Units within
