@@ -315,6 +315,10 @@ describe("a non-damaging Noble Phantasm", () => {
       // too. Its one phase conjures a platform; everything the Noble Phantasm
       // does afterwards is the MOUNT's doing, including the Normal Attack it
       // lends her.
+      // Piedra Del Sol, the fifteenth. Its phases place an object and open the
+      // area that object anchors; every number on its sheet belongs to the
+      // field's interior rules or to its turn-end toll.
+      "quetz-piedra-del-sol",
       "quetz-winged-serpent",
       "semiramis-hanging-gardens-of-babylon",
       "semiramis-sikera-usum",

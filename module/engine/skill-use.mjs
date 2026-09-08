@@ -486,6 +486,20 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
+        case "createStructure": {
+          // Once per use, from the caster: one object, not one per target.
+          if (target.unitId !== actor.id) break;
+          const placed = await createStructure(phase, ability, actor, board);
+          applied.push({
+            summary: {
+              id: "createStructure", name: phase.structureId,
+              outcome: placed ? "applied" : "failed",
+              reason: placed ? null : "couldNotPlace",
+            },
+          });
+          break;
+        }
+
         case "summonPlatform": {
           // Once per use, from the caster: one mount, not one per target.
           if (target.unitId !== actor.id) break;
@@ -1645,6 +1659,57 @@ export async function runCasterPhases(ability, actor, board, extras = {}) {
  * Process itself and the second is its rider step, which resolves per defender
  * and after the damage has landed.
  */
+/**
+ * Place a Structure actor at the caster's panel.
+ *
+ * > *"When this NP is used, the Piedra Del Sol appears where Quetz is."*
+ *
+ * The second Structure in the corpus, after Medusa's Bloodmark, and the general
+ * form of what `engine/marks.mjs#createMark` does for her — the Mark Action
+ * keeps its own home because it is an ACTION with a budget cost, a
+ * four-corner rule and a visibility sweep, none of which a placed object needs.
+ *
+ * `fieldId` is stamped so that closing the field takes the object with it, the
+ * same link a Bloodmark carries.
+ *
+ * @param {object} phase the `createStructure` phase
+ * @param {object} ability the ability declaring it
+ * @param {object} actor the caster
+ * @param {object} board
+ * @returns {Promise<object|null>} the created Actor, or null
+ */
+async function createStructure(phase, ability, actor, board) {
+  const scene = canvas?.scene;
+  const self = board.units.find((u) => u.id === actor.id);
+  if (!self?.panel || !scene) return null;
+
+  const source = await actorFromPacks(phase.structureId);
+  if (!source) {
+    console.error(`FGT | ${ability.name} places unknown structure "${phase.structureId}".`);
+    return null;
+  }
+
+  const data = source.toObject();
+  data.system = {
+    ...data.system,
+    placedById: actor.id,
+    factionId: actor.system?.factionId ?? null,
+    // Where it stands, WRITTEN rather than derived: the object never moves, and
+    // the token index lags its own creation -- the lag `placeMark` records
+    // having landed a Bloodmark one panel behind Medusa.
+    panel: { i: self.panel.i, j: self.panel.j },
+    fieldId: ability.system?.contentId ?? ability.id,
+  };
+  const [structure] = await Actor.createDocuments([data]);
+
+  const size = scene.grid.size;
+  const token = (await structure.getTokenDocument()).toObject();
+  token.x = self.panel.j * size;
+  token.y = self.panel.i * size;
+  await scene.createEmbeddedDocuments("Token", [token]);
+  return structure;
+}
+
 /**
  * Conjure a platform at the caster's panel and put her aboard.
  *
