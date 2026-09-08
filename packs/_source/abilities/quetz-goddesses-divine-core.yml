@@ -1,0 +1,50 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+# Data sheet: docs/D-servant-data-sheets.md §D.28
+#
+# The SECOND instantiation of `Goddess's Divine Core`, at EX where Kingprotea's
+# is A. A per-Servant file rather than a shared parameterized document, which is
+# the corpus convention for a named (non-class) Skill -- see
+# `asterios-monstrous-strength.yml` and `kingprotea-monstrous-strength.yml`,
+# which are the same Skill twice for the same reason.
+#
+# `divineCore` is EXACTLY twice `divinity` at every observed rank and the table
+# is derived from it rather than duplicated, so EX => 120: the number her sheet
+# prints, not one authored here.
+schema: 1
+id: quetz-goddesses-divine-core
+name: "Goddess's Divine Core"
+rank: EX
+kind: skill
+slug: goddessesDivineCore
+passive: true
+# What a clause naming "the Divinity Skill" matches on
+# (`rules/bounded-fields.mjs#hasCategory`).
+categorizedAs: [divinity]
+description: |
+  (Passive 1) All damage dealt is increased by 120 including NP.
+  (Passive 2) Chance of being inflicted by debuffs is decreased by 50%.
+  This Skill counts as '@ability[divinity]{Divinity}'.
+passiveRules:
+  - key: FlatDamage
+    table: divineCore
+    includesNP: true
+
+  # An `ApplicationChance`, NOT a `CheckModifier`: the effect applier reads
+  # resistance off `applicationChances`, and a `CheckModifier` lands in a bucket
+  # it never consults. Magic Resistance's own clause 2 records the same defect,
+  # which made the most common defensive Skill in the game reduce nothing.
+  #
+  # A literal 50 rather than a table: two data points (Kingprotea's 30 at A and
+  # this 50 at EX) are two data points, not a scale, and deriving a table from
+  # them would invent five rows nobody has seen.
+  - key: ApplicationChance
+    direction: incoming
+    value: 50
+
+  # "This Skill counts as 'Divinity'" -- the ATTRIBUTE half, which an
+  # `attribute:divine` predicate reads. Karna's Vasavi Shakti pays a different
+  # bonus against the Divine Attribute and Scáthach's God Slayer keys on it, so
+  # a Servant carrying this is Divine even though her Attributes line is silent.
+  - key: StatDelta
+    stat: attributes
+    add: [divine]

@@ -1,0 +1,40 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+#
+# The first content in the corpus to name ONE ability by name for a cooldown
+# reduction. `selectAbilities`' single-ability branch took an embedded Foundry
+# item id, which no content file can know -- so this clause would have compiled,
+# validated, matched nothing and reduced nothing. `abilityIds` is the contentId
+# form every other ability selector in the system already uses
+# (`abilityOffCooldown`, `sameTurnExclusive`, the turn-use record).
+schema: 1
+id: quetz-lucha-libre
+name: "Lucha Libre"
+rank: EX
+kind: skill
+slug: luchaLibre
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[critUp]{Crit Up} for ⅓◈, Crit Chance is increased by 60%.
+  2. Applies @effect[critDmUp]{Crit DmUp} for ⅓◈, Crit Damage dealt is increased by 50%.
+  3. Reduces the Cooldown of @np[quetz-xiuhcoatl]{Xiuhcoatl} by 1◈ Turns.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  # `includeSelf: true` is what makes a self-cast resolve against herself rather
+  # than against nobody -- `resolveTargets` drops the caster from its own target
+  # list otherwise, and an ability with an empty list opens a Combat Process
+  # with no defender that nothing can advance.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, magnitude: 60, duration: "⅓◈" }
+      - { id: critDmUp, magnitude: 50, duration: "⅓◈" }
+  - kind: cooldown
+    target: self
+    changes:
+      - { abilityIds: [quetz-xiuhcoatl], ticks: "1◈", direction: down }

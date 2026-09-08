@@ -1,0 +1,125 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+# Data sheet: docs/D-servant-data-sheets.md §D.28
+#
+# Two resolutions and a fraction.
+#
+# The splash is NOT an area attack with a hole in it: different anchor (her, not
+# the target), different base attack (MAG alone, not the combined 250),
+# different multiplier (1x, not 4x) and a different rider set (Burn 1◈ and NP
+# Seal at 25%, against Burn 2◈ and NP Seal outright). The sheet gives four
+# numbers and shares none of them, which is why this is an `aftermath` block
+# rather than a wider `shape`.
+schema: 1
+id: quetz-xiuhcoatl
+name: "Xiuhcoatl: O Flame, Burn the Gods Themselves"
+isNP: true
+rank: A
+npTags: [antiUnit, antiFortress]
+kind: noblePhantasm
+slug: xiuhcoatl
+category: quetzNP
+cooldown: "7◈"
+element: fire
+timing: { window: ownTurn }
+# "Xiuhcoatl cannot be used if Quetz is Riding the Quetzalcoatlus." Declared on
+# BOTH sides -- the three Spells carry the mirror -- the way Karna's two
+# Brahmastras do, so neither reads as a rule with a missing half.
+requirements:
+  - { kind: predicate, predicate: [{ not: "self:onPlatform:quetzalcoatlus" }] }
+description: |
+  Base Attack (STR) and half of Base Attack (MAG) is used (BA=250), not affected by Magic
+  Resistance. Deals 4x damage and inflicts @effect[npSeal]{NP Seal} for 1◈ Turns, and inflicts
+  @effect[burn]{Burn} for 2◈ Turns. Fire damage (half).
+  Then (regardless of whether the NP hits the DU or not), deals normal damage to all Units within
+  a 2 panel area of Quetzalcoatl except herself and the previously targeted Unit (Base Attack
+  (MAG) is used) with a 25% chance of inflicting NP Seal for 1◈ Turns and inflicts Burn for 1◈
+  Turns. Fire damage.
+  Xiuhcoatl cannot be used if Quetz is Riding the Quetzalcoatlus.
+  If this NP is used within or directly next to a [Fortress] NP (regardless of ally's or enemy's),
+  that NP area and the panels directly outside/next to the NP area are now 'Burning' until the
+  Fortress NP is deactivated.
+  Cooldown: 7◈ Turns.
+targeting:
+  anchor: { kind: withinRange, range: 2, metric: chebyshev }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  # "Base Attack (STR) and half of Base Attack (MAG) is used (BA=250)" --
+  # 125 + (250 / 2). Authored as TWO SOURCES rather than as the literal 250, so
+  # a buff to either Parameter moves the half it should and no more.
+  sources:
+    - { unit: self, component: str, factor: 1 }
+    - { unit: self, component: mag, factor: 0.5 }
+  # What the attack counts AS for a predicate. STR, because the sheet's framing
+  # is her Base Attack (STR) with half her MAG added -- the same shape EMIYA's
+  # ranged band uses.
+  component: str
+  multiplier: 4
+  # "not affected by Magic Resistance." Stage 11 is skipped entirely rather than
+  # reduced; without it, a Rank A Magic Resistance would negate the MAG half
+  # outright.
+  ignoresMagicResistance: true
+  element: fire
+  # "Fire damage (half)." Half the total carries the element, so a defender
+  # resisting Fire resists that half and no more. Modelled rather than
+  # approximated -- see the pipeline's stage 4b.
+  elementFraction: 0.5
+aftermath:
+  # "regardless of whether the NP hits the DU or not" -- the load-bearing
+  # clause. It fires on a miss, on an Evade and on a Block, so it is declared
+  # alongside the primary rather than sequenced behind its outcome.
+  unconditional: true
+  targeting:
+    anchor: { kind: self }
+    shape: { kind: square, size: 5 }
+    selection:
+      relations: [enemy, ally, neutral]
+      # "except herself..."
+      includeSelf: false
+      # "...and the previously targeted Unit."
+      excludePrimaryTarget: true
+      chooser: all
+  damage:
+    # "Base Attack (MAG) is used" -- MAG ALONE, not the combined figure, and at
+    # "normal damage", which is 1x. The same number as the primary by
+    # coincidence and from a different source, so a buff to her STR moves one
+    # and not the other.
+    sources:
+      - { unit: self, component: mag, factor: 1 }
+    component: mag
+    multiplier: 1
+    ignoresMagicResistance: true
+    # Plain "Fire damage." here, with no "(half)": the sheet distinguishes its
+    # two sentences and so does this.
+    element: fire
+  effects:
+    - { id: npSeal, duration: "1◈", chance: 25 }
+    - { id: burn, duration: "1◈" }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      # The PRIMARY's riders: NP Seal unconditionally and Burn for 2◈, against
+      # the aftermath's 25% and 1◈ above.
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: npSeal }
+        duration: "1◈"
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: burn }
+        duration: "2◈"
+  # "That NP area and the panels directly outside/next to the NP area are now
+  # 'Burning' until the Fortress NP is deactivated."
+  #
+  # NO LIVE REFERENT: the only [Fortress] NP in either roster is Ozymandias's
+  # Ramesseum Tentyris, which is unauthored. Built because the sheet says it,
+  # unit-tested against a synthetic field, and NOT demonstrable in a live world
+  # until he exists. Recorded here rather than left to look exercised.
+  - kind: zone
+    target: self
+    spec:
+      terrain: [burning]
+      shape: fortressNearby
+      duration: null

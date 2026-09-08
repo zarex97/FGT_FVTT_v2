@@ -1,0 +1,65 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+# Terrain: docs/42-terrain.md §42.6, §42.7
+#
+# The first content in the corpus to PAINT TERRAIN, and the first to set
+# `followsSource` -- the flag `data/regions.mjs` declared for this clause by
+# name (*"Quetzalcoatl's Sol is one of the few that does"*).
+schema: 1
+id: quetz-charisma-of-the-sun
+name: "Charisma of the Sun"
+rank: EX
+kind: skill
+slug: charismaOfTheSun
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[atkUp]{Atk Up} for 1◈ Turns to all allied Units within a 2 panel area of herself, all
+     damage dealt is increased by 30%; if NP, 15%.
+  2. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of herself,
+     Crit Chance is increased by 25%.
+  3. Applies the @effect[sol]{Sol} buff to herself for 1◈ Turns, its effects are as follows- The 5x5 panel
+     area around Quetz is 'Day', even if it is during a Night Round.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  # "within a 2 panel area of herself" -- a 5x5 block, which is how every other
+  # 2-panel area in the corpus is expressed.
+  shape: { kind: square, size: 5 }
+  # `includeSelf: true` because in F/GT "all allied Units" includes the caster
+  # unless the text says otherwise -- the ruling Ch. 45's aura finding settled,
+  # where the Servants who exclude themselves (Penthesilea, Kiritsugu) say so.
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    # "reuse" -- the allies the targeting resolved, not the caster. Stated
+    # explicitly because clauses 1-2 reach outward and clause 3 does not, and
+    # an unstated target on an outward-reaching ability is the shape that made
+    # Unlimited Blade Works spend its Aria and create no Reality Marble.
+    target: reuse
+    effects:
+      - { id: atkUp, magnitude: 30, npMagnitude: 15, duration: "1◈" }
+      - { id: sCritUp, magnitude: 25, duration: "⅓◈" }
+
+  # Clause 3 is HERS ALONE, so it is a separate phase targeting self rather than
+  # a third entry in the list above -- which would hand every ally in range a
+  # personal patch of daylight.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: sol, duration: "1◈" }
+
+  # ...and the daylight itself. Terrain is NOT an effect (§42.1): a unit does
+  # not carry a Sunlight status, it stands in daylight, which is why this is
+  # painted rather than applied and why leaving the area ends it with no removal
+  # step. `followsSource` is what makes the 5x5 stay "around Quetz" as she
+  # moves, and `tag` is how it is erased when the buff above expires.
+  - kind: zone
+    target: self
+    spec:
+      terrain: [sunlight]
+      shape: { kind: square, size: 5 }
+      anchor: { kind: self }
+      followsSource: true
+      duration: "1◈"
+      tag: "sol:@self.id"
