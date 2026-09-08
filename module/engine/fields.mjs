@@ -29,7 +29,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan, chance } from "../rules/checks.mjs";
 import { applyWorldIntents } from "./applier.mjs";
-import { platformCentre } from "../rules/platforms.mjs";
+import { platformCentre, deactivationVerdict } from "../rules/platforms.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
@@ -1035,13 +1035,29 @@ export async function runUpkeep(tick) {
   const board = currentBoard();
   const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
 
-  for (const field of board.fields ?? []) {
+  // Fields AND platforms. A platform's `upkeep` was read in exactly one place
+  // -- `engine/attack.mjs`, as an NP COST REPLACEMENT -- which is a different
+  // rule from a recurring toll, and could not fire anyway because `upkeep` was
+  // never projected onto a unit snapshot. Quetzalcoatl's Quetzalcoatlus charges
+  // her Master 25 Health per 1◈ exactly the way Jack's Mist charges 15, so it
+  // is this sweep and not a second one.
+  //
+  // `upkeep.every` is what tells the two apart: the Hanging Gardens' block has
+  // an `amount` and no period, and is skipped here.
+  const upkept = [
+    ...(board.fields ?? []),
+    ...(board.units ?? []).filter((u) => u.kind === "platform" && u.upkeep?.every),
+  ];
+
+  for (const field of upkept) {
     const upkeep = field.upkeep;
     if (!upkeep?.every) continue;
 
     const period = resolveTicks(parseTick(upkeep.every), { turnsPerRound });
     if (!(period > 0)) continue;
-    const since = tick - (field.lastUpkeepAt ?? field.createdAt ?? tick);
+    // `activatedAt` is a platform's `createdAt`; the two names are the same
+    // fact on two document types.
+    const since = tick - (field.lastUpkeepAt ?? field.createdAt ?? field.activatedAt ?? tick);
     if (since < period) continue;
 
     // Who pays. `ownerMaster` is the only payer any sheet names, but the field
@@ -1061,7 +1077,7 @@ export async function runUpkeep(tick) {
         })],
         "field:upkeep",
       );
-      await deactivateField(field.id, "upkeep");
+      await deactivateUpkept(field, "upkeep");
       continue;
     }
 
@@ -1085,9 +1101,35 @@ export async function runUpkeep(tick) {
  * @returns {Promise<void>}
  */
 async function stampUpkeep(field, tick) {
+  // A platform's clock lives on the ACTOR; a field's lives on the Region
+  // behaviour that backs it. Same fact, two document types.
+  if (field.kind === "platform") {
+    await game.actors.get(field.id)?.update({ "system.lastUpkeepAt": tick });
+    return;
+  }
   const behavior = behaviorFor(field.id);
   if (!behavior) return;
   await behavior.update({ "system.state": { ...(behavior.system?.state ?? {}), lastUpkeepAt: tick } });
+}
+
+/**
+ * Close whatever could not pay.
+ *
+ * A field is deactivated; a platform is destroyed, which is what "forcefully
+ * deactivated" means for a mount — Quetzalcoatl's Quetzalcoatlus does not
+ * linger riderless when her Master runs out of Health.
+ *
+ * @param {object} field a field OR a platform snapshot
+ * @param {string} reason
+ * @returns {Promise<void>}
+ */
+async function deactivateUpkept(field, reason) {
+  if (field.kind !== "platform") {
+    await deactivateField(field.id, reason);
+    return;
+  }
+  const { destroyPlatform } = await import("./platforms.mjs");
+  await destroyPlatform({ platformId: field.id });
 }
 
 /**
@@ -1149,8 +1191,34 @@ export async function deactivateField(fieldId, reason = "manual") {
  * @returns {boolean}
  */
 export function mayDeactivate(field, unitId) {
-  if (!field?.deactivation?.byOwner) return false;
-  return field.ownerId === unitId;
+  return deactivationVerdict(field?.deactivation, {
+    createdAt: field?.createdAt ?? field?.activatedAt ?? 0,
+    tick: game.combat?.system?.globalTurn ?? 0,
+    unitId,
+    ownerId: field?.ownerId,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+  }).ok;
+}
+
+/**
+ * The same question, with the reason kept.
+ *
+ * A player told "no" deserves to learn that it unlocks in N turns rather than
+ * that the button is broken — which is the whole point of Quetzalcoatl's
+ * lockout being a rule instead of a refusal.
+ *
+ * @param {object} field a field OR a platform snapshot
+ * @param {string} unitId
+ * @returns {{ok: boolean, reason?: string, unlocksAt?: number}}
+ */
+export function deactivationReason(field, unitId) {
+  return deactivationVerdict(field?.deactivation, {
+    createdAt: field?.createdAt ?? field?.activatedAt ?? 0,
+    tick: game.combat?.system?.globalTurn ?? 0,
+    unitId,
+    ownerId: field?.ownerId,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+  });
 }
 
 /**

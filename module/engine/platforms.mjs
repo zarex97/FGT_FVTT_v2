@@ -12,6 +12,7 @@ import { currentBoard } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { createLevel, moveToLevel, teardown } from "./scene-levels.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /**
  * Attempt to board a platform.
@@ -117,7 +118,48 @@ export async function destroyPlatform({ platformId, saves = {} }) {
     }
   }
 
+  // "Cooldown: 7◈ Turns AFTER Quetzalcoatlus is defeated." A third `countFrom`
+  // beside `activation` and `deactivation`: the clock starts on the MOUNT'S
+  // DEATH, so a Servant whose platform is killed early waits from that moment
+  // rather than from the cast.
+  await setCooldownOnDestruction(platform);
+
   Hooks.callAll("fgtPlatformDestroyed", platform);
+}
+
+/**
+ * Start the owning ability's cooldown, for an NP whose clock counts from its
+ * platform being destroyed.
+ *
+ * The mirror of `engine/fields.mjs#setCooldownOnDeactivation`, and it exists
+ * for the same reason that one does: a Noble Phantasm that stands until
+ * something kills it has no "use" moment worth counting from.
+ *
+ * @param {object} platform the platform's snapshot
+ * @returns {Promise<void>}
+ */
+async function setCooldownOnDestruction(platform) {
+  const owner = platform?.ownerId ? game.actors.get(platform.ownerId) : null;
+  if (!owner) return;
+
+  // The ability whose `summonPlatform` phase named this platform's content id.
+  const ability = owner.items?.find?.(
+    (i) => (i.system?.phases ?? []).some(
+      (p) => p.kind === "summonPlatform" && p.platformId === platform.contentId,
+    ),
+  );
+  const cd = ability?.system?.cooldown ?? null;
+  if (!cd || cd.countFrom !== "destroyed" || !cd.max) return;
+
+  const ticks = resolveTicks(parseTick(String(cd.max)), {
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+  });
+  if (ticks <= 0) return;
+
+  await applyWorldIntents(
+    [I.cooldown(owner.id, ability.id, ticks, "set")],
+    `platform:destructionCooldown:${platform.id}`,
+  );
 }
 
 /**

@@ -18,6 +18,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /**
  * The default protection model. A platform that says nothing is transparent —
@@ -216,6 +217,43 @@ export function withinPlatformCentre(unit, platform, radius = 2) {
   const centre = platformCentre(platform);
   if (!centre || !unit?.panel) return false;
   return Math.max(Math.abs(unit.panel.i - centre.i), Math.abs(unit.panel.j - centre.j)) <= radius;
+}
+
+/**
+ * May this unit switch the thing off, and if not, why not.
+ *
+ * Shared by bounded fields and platform Noble Phantasms because they carry the
+ * same authored block. Quetzalcoatl is the reason the `lockout` axis exists:
+ *
+ * > *"This NP can be deactivated during Quetz's Turn or at the start or end of
+ * > any Round or Turn, **but cannot be deactivated for 2◈ Turns after it was
+ * > activated**."* — Quetzalcoatl: Winged Serpent
+ *
+ * Her Piedra Del Sol carries the identical block **without** a lockout, which
+ * is exactly the difference between the two sheets' final paragraphs. So the
+ * absence has to be expressible, and `lockout` is optional rather than a number
+ * that defaults to something.
+ *
+ * A missing spec refuses. Most things in this game cannot be switched off — a
+ * Reality Marble runs its clock out — so silence means no.
+ *
+ * @param {object|null} spec the authored `deactivation` block
+ * @param {object} ctx
+ * @param {number} ctx.createdAt the tick it opened on
+ * @param {number} ctx.tick now
+ * @param {string} ctx.unitId who is asking
+ * @param {string} ctx.ownerId
+ * @param {number} ctx.turnsPerRound
+ * @returns {{ok: boolean, reason?: string, unlocksAt?: number}}
+ */
+export function deactivationVerdict(spec, { createdAt, tick, unitId, ownerId, turnsPerRound }) {
+  if (!spec?.byOwner) return { ok: false, reason: "notAllowed" };
+  if (unitId !== ownerId) return { ok: false, reason: "notOwner" };
+  if (!spec.lockout) return { ok: true };
+
+  const unlocksAt = (createdAt ?? 0) + resolveTicks(parseTick(spec.lockout), { turnsPerRound });
+  if (tick < unlocksAt) return { ok: false, reason: "locked", unlocksAt };
+  return { ok: true };
 }
 
 /**
