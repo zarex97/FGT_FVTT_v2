@@ -4163,6 +4163,11 @@ async function offerPreemption({ attackerId, abilityId, placement, targetIds, bo
     // Successful Luck Check. Luck Check is not required during Night Rounds."
     // The Round phase is a COST modifier here rather than a damage one: the
     // same clause costs a point of Luck and a die by day, and nothing at night.
+    //
+    // `board.phase` and deliberately NOT `phaseAt` (§42.6): the sentence names
+    // a "Day ROUND", which a 5x5 pocket of Quetzalcoatl's daylight does not
+    // change. The two positional readers -- the Dark modifiers and the item
+    // phase requirement -- were repointed; this one is about the clock.
     if ((rule.requiresLuckCheckIn ?? []).includes(board.phase)) {
       const ok = await preemptionLuckCheck(defenderDoc, attackerId);
       if (!ok) continue;

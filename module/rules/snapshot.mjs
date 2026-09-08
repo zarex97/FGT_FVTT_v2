@@ -25,7 +25,7 @@ import { familiesPresent } from "./effects/families.mjs";
 import { buildAuraIndex } from "./aura-index.mjs";
 import { annotateTerrain } from "./terrain.mjs";
 import {
-  phase, darkModifiers, homeBaseModifiers, regionBonusFor, inOwnHomeBase,
+  phase, phaseAt, darkModifiers, homeBaseModifiers, regionBonusFor, inOwnHomeBase,
 } from "./environment.mjs";
 import { annotateCompulsions } from "./compulsion.mjs";
 import { annotateControl } from "./control.mjs";
@@ -781,7 +781,13 @@ function annotateEnvironment(units, board) {
     // Recorded on the unit as well as folded into modifiers: Medea's Territory
     // Creation predicates on it, and a predicate cannot read a modifier list.
     u.inHomeBase = inOwnHomeBase(u, board);
-    const mods = [...darkModifiers(u, board.phase), ...homeBaseModifiers(u, board)];
+    // `phaseAt(u.panel)`, not `board.phase`: a Dark unit standing inside
+    // Quetzalcoatl's `Sol` is in daylight while the rest of the board is at
+    // Night (§42.6). Reading it at this unit's OWN panel satisfies decision Q43
+    // in both directions at once -- `darkModifiers` returns a dealt modifier
+    // and a taken one, and Q43 wants the attacker's panel for the first and the
+    // defender's for the second, which for this unit is the same panel.
+    const mods = [...darkModifiers(u, phaseAt(u.panel, board)), ...homeBaseModifiers(u, board)];
     if (mods.length > 0) u.modifiers = [...(u.modifiers ?? []), ...mods];
   }
 }
