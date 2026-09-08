@@ -148,6 +148,26 @@ export const TERRAIN = Object.freeze({
   universe: { name: "Universe", effects: [] },
   halloween: { name: "Halloween", effects: [] },
   labyrinth: { name: "Labyrinth", effects: [] },
+
+  // §42.6's three phase-override types. They carry NO standing effects, and the
+  // empty list is the finished state rather than an unfinished one: they do not
+  // modify the unit standing on them, they change which PHASE the panel is in,
+  // and every Day/Night clause in the game then reads that instead of the
+  // Round's. `rules/environment.mjs#phaseAt` is the whole of their behaviour.
+  //
+  //   "Sunlight: during a Day Round the whole field is treated as Sunlight.
+  //    Sunlight areas created by effects are categorized as Day."
+  //   "Darkness: ... categorized as Night."
+  //   "Indoors: there is no Day or Night when Indoors."
+  //
+  // Authored as a set of three because the chapter defines them as one
+  // mechanism. Quetzalcoatl's `Sol` needs only `sunlight`; building that branch
+  // alone would leave `phaseAt` a partial copy of a function §42.6 wrote out
+  // whole, and a phase override that works in only one direction is a rule
+  // shaped around one Servant rather than around the game.
+  sunlight: { name: "Sunlight", effects: [] },
+  darkness: { name: "Darkness", effects: [] },
+  indoors: { name: "Indoors", effects: [] },
 });
 
 /**

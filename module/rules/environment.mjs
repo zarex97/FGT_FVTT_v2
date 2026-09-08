@@ -14,6 +14,7 @@
 
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth } from "../domain/health.mjs";
+import { terrainAt } from "./terrain.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  19.2 — the Day/Night cycle                                                */
@@ -34,6 +35,42 @@ import { currentHealth } from "../domain/health.mjs";
 export function phase(round, startedAtDay) {
   const isOdd = round % 2 === 1;
   return isOdd === Boolean(startedAtDay) ? "day" : "night";
+}
+
+/**
+ * Which phase a **panel** is in — §42.6, verbatim.
+ *
+ * The function above is a property of the Round. This one is a property of the
+ * ground, and the chapter changed the model for exactly one reason:
+ *
+ * > *"Applies the 'Sol' buff to herself ... The 5x5 panel area around Quetz is
+ * > 'Day', even if it is during a Night Round."* — Quetzalcoatl
+ *
+ * Ozymandias's *Pyramid Drop* leaves its blast area as Day for the same reason,
+ * and the three terrain types are one mechanism rather than her special case.
+ *
+ * Precedence is the chapter's, and the order matters: **Indoors first**,
+ * because *"there is no Day or Night when Indoors"* is an absence rather than a
+ * value and has to beat both overrides rather than lose to whichever was
+ * painted last.
+ *
+ * **Decision Q43** governs which panel a caller passes: the DEFENDER's for
+ * damage-taken modifiers and the ATTACKER's for damage-dealt, since the clause
+ * is phrased as two separate sentences about the `Dark` unit itself.
+ * `darkModifiers` returns both from one unit's own panel, which satisfies both
+ * halves at once — the dealt modifier belongs to that unit as attacker and the
+ * taken modifier to the same unit as defender.
+ *
+ * @param {{i: number, j: number}} panel
+ * @param {object} board
+ * @returns {"day"|"night"|"none"}
+ */
+export function phaseAt(panel, board) {
+  const here = terrainAt(panel, board);
+  if (here.includes("indoors")) return "none";
+  if (here.includes("sunlight")) return "day";
+  if (here.includes("darkness")) return "night";
+  return board?.phase ?? "day";
 }
 
 /**

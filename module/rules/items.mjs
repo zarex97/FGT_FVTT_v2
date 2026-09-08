@@ -17,6 +17,7 @@ import { Rank } from "../domain/rank.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { withinPlatformCentre } from "./platforms.mjs";
 import { stanceOf } from "./stance.mjs";
+import { phaseAt } from "./environment.mjs";
 
 /**
  * May this item move from one unit to another?
@@ -237,9 +238,13 @@ export function meetsRequirement(req, ctx) {
     // The parenthesis is honoured by `board.dayNightCycle === false`: with the
     // cycle switched off there is no Night to wait for, so the condition is
     // satisfied rather than permanently unsatisfiable.
+    //
+    // Read at the UNIT'S PANEL rather than off the board (§42.6): a Servant
+    // standing inside Quetzalcoatl's `Sol` is in daylight while the Round is at
+    // Night, and an item gated on Night should not fire for her there.
     case "roundPhase":
       if (board?.dayNightCycle === false) return true;
-      return (board?.phase ?? "day") === (req.is ?? "night");
+      return phaseAt(unit?.panel ?? { i: -1, j: -1 }, board) === (req.is ?? "night");
 
     case "inZone":
       return (unit?.zones ?? []).includes(req.zoneId);

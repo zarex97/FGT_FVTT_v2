@@ -13,6 +13,7 @@
 
 import { describe, it, expect } from "vitest";
 import { TERRAIN, terrainAt, terrainEffects, annotateTerrain } from "../../module/rules/terrain.mjs";
+import { phaseAt } from "../../module/rules/environment.mjs";
 
 const at = (i, j) => ({ i, j });
 
@@ -161,6 +162,65 @@ describe("the catalogue itself", () => {
     // it, which is this project's recurring defect.
     for (const [id, entry] of Object.entries(TERRAIN)) {
       expect(entry, `${id} has no effects`).toHaveProperty("effects");
+    }
+  });
+});
+
+/* ========================================================================== */
+/*  §42.6 — the per-panel day/night override                                  */
+/* ========================================================================== */
+
+/**
+ * Ch. 19 §19.2 treated the phase as a global property of the Round. §42.6 makes
+ * it a property of the PANEL, and names Quetzalcoatl's `Sol` as the reason:
+ * *"the 5x5 panel area around Quetz is 'Day', even if it is during a Night
+ * Round."*
+ */
+describe("phaseAt", () => {
+  const areas = (...entries) => ({
+    bounds: { rows: 13, columns: 13 },
+    units: [],
+    terrain: { areas: entries.map((e, n) => ({ id: `t${n}`, ...e })) },
+  });
+
+  it("reports Day inside a sunlight area during a Night round", () => {
+    const b = { ...areas({ type: "sunlight", panels: [at(1, 1), at(1, 2)] }), phase: "night" };
+    expect(phaseAt(at(1, 1), b)).toBe("day");
+  });
+
+  it("reports the round's own phase outside the area", () => {
+    const b = { ...areas({ type: "sunlight", panels: [at(1, 1)] }), phase: "night" };
+    expect(phaseAt(at(9, 9), b)).toBe("night");
+  });
+
+  it("reports Night inside a darkness area during a Day round", () => {
+    const b = { ...areas({ type: "darkness", panels: [at(2, 2)] }), phase: "day" };
+    expect(phaseAt(at(2, 2), b)).toBe("night");
+  });
+
+  it("reports neither when Indoors — 'there is no Day or Night when Indoors'", () => {
+    const b = { ...areas({ type: "indoors", panels: [at(3, 3)] }), phase: "day" };
+    expect(phaseAt(at(3, 3), b)).toBe("none");
+  });
+
+  it("lets Indoors beat Sunlight, because an absence is not a value", () => {
+    const b = {
+      ...areas(
+        { type: "sunlight", panels: [at(3, 3)] },
+        { type: "indoors", panels: [at(3, 3)] },
+      ),
+      phase: "night",
+    };
+    expect(phaseAt(at(3, 3), b)).toBe("none");
+  });
+
+  it("defaults to day for a board carrying no phase at all", () => {
+    expect(phaseAt(at(0, 0), areas())).toBe("day");
+  });
+
+  it("carries no standing effects — it changes the phase, it is not a modifier", () => {
+    for (const type of ["sunlight", "darkness", "indoors"]) {
+      expect(TERRAIN[type].effects).toEqual([]);
     }
   });
 });
