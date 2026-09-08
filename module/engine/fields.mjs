@@ -34,6 +34,7 @@ import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 import { distributePool } from "../rules/fields/pool.mjs";
+import { clearTerrain } from "./terrain.mjs";
 
 /**
  * A field's shape, grown or shrunk by the war Region it is cast in.
@@ -460,6 +461,22 @@ export async function endField(fieldId) {
   for (const summon of game.actors?.filter?.((a) => a.system?.boundToFieldId === fieldId) ?? []) {
     for (const token of summon.getActiveTokens?.() ?? []) await token.document.delete();
     await summon.delete();
+  }
+
+  // ...and the OBJECT a field is anchored to, on the same principle. Medusa's
+  // Bloodmarks and Quetzalcoatl's Piedra Del Sol both carry `fieldId`; a stone
+  // that outlived the area it defines would be scenery nothing could remove.
+  for (const object of game.actors?.filter?.((a) => a.type === "structure" && a.system?.fieldId === fieldId) ?? []) {
+    for (const token of object.getActiveTokens?.() ?? []) await token.document.delete();
+    await object.delete();
+  }
+
+  // The ground the field painted goes with it. Authored as an `onEnd` action so
+  // the tag is stated beside the `zone` phase that wrote it, rather than
+  // reconstructed here from a naming convention two files apart.
+  for (const action of (region.behaviors?.find((b) => b.type === "npField")?.system?.onEnd ?? [])) {
+    if (action.key !== "ClearTerrain" || !action.tag) continue;
+    await clearTerrain(String(action.tag).replace("@field.id", fieldId));
   }
 
   await region.delete();

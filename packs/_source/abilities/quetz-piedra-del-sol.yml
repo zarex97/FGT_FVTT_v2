@@ -1,0 +1,128 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+# The bounded-field model is Ch. 43; this is a point in its six axes, and it is
+# structurally Jack's Mist with a placed object for an anchor.
+schema: 1
+id: quetz-piedra-del-sol
+name: "Piedra Del Sol: The Sun Stone"
+isNP: true
+rank: EX
+npTags: [antiArmy, antiFortress, boundedField]
+kind: noblePhantasm
+slug: piedraDelSol
+category: quetzNP
+# "Cooldown: 8◈ Turns AFTER Piedra Del Sol was deactivated" -- the clock starts
+# at the field's closure, which `countFrom: deactivation` says and Jack's Mist
+# already established.
+cooldown: { max: "8◈", countFrom: deactivation }
+timing: { window: ownTurn }
+description: |
+  (Non-damaging) When this NP is used, the Piedra Del Sol appears where Quetz is. While the Piedra
+  Del Sol is above the field, it has the following effects-
+  1. Goddess' Divine Core: All damage dealt is increased by 180; and all damage taken by Quetz is
+     reduced by 50% including NP.
+  2. When an enemy Unit ends its Turn within the 7x7 panel area around the Piedra Del Sol, it
+     receives 50 Fire damage and is inflicted with @effect[burn]{Burn}; this Burn debuff is
+     permanent as long as the Unit is within the Piedra Del Sol area. (The Piedra Del Sol area is
+     categorized as 'Burning'.)
+  Quetz can Move out of the Piedra Del Sol area, and the panel occupied by Piedra Del Sol can
+  still be Moved onto (replace the Piedra Del Sol on top of any Units which Move onto that panel).
+  After every 1◈ Turns, Quetz's Master's Health is reduced by 50 at the end of the Turn if this NP
+  is Active unless the NP was deactivated during this Round. If her Master's Health drops to/is 50
+  or less at any time, this NP is forcefully deactivated at the end of the Turn. This NP can be
+  deactivated during Quetz's Turn or at the start or end of any Round or Turn.
+  Cooldown: 8◈ Turns after Piedra Del Sol was deactivated.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+  limits: { requiresZon: true }
+field:
+  # Axis 1 -- geometry. `fixedArea`, so it does NOT follow her: the stone is
+  # placed and stays there, which is what makes *"Quetz can Move out of the
+  # Piedra Del Sol area"* a sentence worth writing. The anchor is her panel at
+  # cast time, which is the stone's panel, because the stone appears where she
+  # is -- no `anchorRef` needed, and adding one would claim a distinction the
+  # sheet does not draw.
+  geometry:
+    kind: fixedArea
+    shape: { kind: square, size: 7 }
+  # Axis 2 -- membership. Free in both directions: a hazard, not a prison.
+  membership: { allyEntry: free, allyExit: free, enemyEntry: free, enemyExit: free }
+  # Axis 3 -- isolation. None. It burns what stands in it; it does not cut the
+  # board in two.
+  isolation:
+    outsideCanTargetInside: true
+    insideCanTargetOutside: true
+    outsideCanApplyEffectsInside: true
+    visibilityAcrossBoundary: full
+  # Axis 4 -- interior rules. Clause 1, and both halves are HERS: the sheet's
+  # subject throughout clause 1 is Quetz, which is `relations: [self]`.
+  interior:
+    # "Goddess' Divine Core: All damage dealt is increased by 180."
+    #
+    # DECISION: this OVERRIDES her Skill's +120 rather than stacking to +300.
+    # The clause is headed with the Skill's own name and gives a different
+    # number, which reads as the stone raising the Skill's value while it
+    # stands. `supersedes` is §15.4's mechanism for exactly that, so the two
+    # cannot both apply and the reason is legible where it applies rather than
+    # being a subtraction somebody has to remember. If play proves the other
+    # reading, deleting the `supersedes` line is the whole fix.
+    - key: FlatDamage
+      value: 180
+      includesNP: true
+      relations: [self]
+      supersedes: [quetz-goddesses-divine-core]
+    # "...and all damage taken by Quetz is reduced by 50% including NP."
+    # `npValue` equal to `value` IS "including NP": most defensive percentages
+    # are halved against a Noble Phantasm, and this one is not.
+    - key: Ward
+      value: 50
+      npValue: 50
+      relations: [self]
+  # Clause 2. The generic `burning` terrain entry already inflicts an
+  # unremovable, non-expiring Burn at turn end and deals fixed Fire damage
+  # there; this area differs in exactly two ways -- 50 rather than 25, and
+  # ENEMIES rather than everyone -- so those two are stated here and the terrain
+  # does the rest.
+  interiorEvents:
+    - event: turnEnd
+      relations: [enemy]
+      onFail:
+        - { key: Damage, amount: 50, element: fire, fixed: true }
+        # "permanent as long as the Unit is within the area": no duration and
+        # unremovable, which is also what the Burning terrain's own clause says.
+        - { key: ApplyEffect, effect: { id: burn }, duration: null, unremovable: true }
+  # Axis 5 -- duration. There is none; the upkeep is what limits it.
+  upkeep:
+    every: "1◈"
+    cost: { kind: health, amount: 50, payer: ownerMaster }
+    endWhenUnaffordable: true
+  # Axis 6 -- vulnerability.
+  vulnerabilities:
+    - { kind: ownerDefeat, result: end }
+  # NO `lockout`, unlike the Quetzalcoatlus. That is the entire difference
+  # between the two sheets' final paragraphs, and it is authored rather than
+  # inferred so the absence cannot read as an oversight.
+  deactivation: { byOwner: true, window: any }
+  onEnd:
+    # The ground it painted goes with it.
+    - { key: ClearTerrain, tag: "piedra:@field.id" }
+phases:
+  - kind: createStructure
+    target: self
+    structureId: piedra-del-sol
+    at: caster
+  - kind: createField
+    target: self
+  # "(The Piedra Del Sol area is categorized as 'Burning'.)" Painted rather than
+  # implied, because the terrain is what gives the panels their fire and water
+  # interactions -- the field's own turn-end clause is only the toll.
+  - kind: zone
+    target: self
+    spec:
+      terrain: [burning]
+      shape: { kind: square, size: 7 }
+      anchor: { kind: self }
+      followsSource: false
+      duration: null
+      tag: "piedra:@field.id"

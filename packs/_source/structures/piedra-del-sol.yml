@@ -1,0 +1,31 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+# Discussed: docs/43-bounded-fields.md §43.10 -- "fields that are objects"
+#
+# The SECOND `Structure` actor, after Medusa's Bloodmark, and the first that
+# levitates. §43.10's decision is why it is a unit at all: modelling it as one
+# gives targeting, destruction, visibility and Health for free rather than
+# building a bespoke object layer for one Noble Phantasm.
+#
+# `undamageable`, NOT Bloodmark's 1 Health. Bloodmark got a single point because
+# its own sheet says *"only Masters can destroy a Bloodmark, and it is done by
+# simply Attacking it"* -- a destruction clause needs something to spend. This
+# sheet contains NO destruction clause at all: the stone ends on her word, on
+# the upkeep going unpaid, and on nothing else. Giving it Health would invent a
+# way to remove it that her sheet does not offer.
+schema: 1
+id: piedra-del-sol
+name: "Piedra Del Sol"
+type: structure
+# `levitating` is the Attribute the boarding table already reads (a levitating
+# Unit rolls 1d8 rather than 1d12); here it is simply true of the object --
+# *"the Piedra Del Sol appears where Quetz is... you can move the figurine into
+# the air and Lock it in place"*.
+attributes: [structure, levitating]
+baseHealth: null
+undamageable: true
+mov: 0
+range: { panels: 0, targets: 0 }
+baseAttack: { str: 0, mag: 0 }
+# "The panel occupied by Piedra Del Sol can still be Moved onto (replace the
+# Piedra Del Sol on top of any Units which Move onto that panel)."
+sharesPanel: true

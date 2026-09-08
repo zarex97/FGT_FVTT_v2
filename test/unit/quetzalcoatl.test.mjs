@@ -348,3 +348,83 @@ describe("the three Quetzalcoatlus Spells", () => {
     }
   });
 });
+
+describe("Piedra Del Sol", () => {
+  const np = ability("quetz-piedra-del-sol");
+  const stone = load("structures", "piedra-del-sol");
+
+  it("is undamageable — her sheet gives it no destruction clause", () => {
+    // Bloodmark got 1 Health because its sheet says a Master destroys it by
+    // attacking it. This sheet says nothing of the kind, so Health would
+    // invent a way to remove it that the sheet does not offer.
+    expect(stone.undamageable).toBe(true);
+    expect(stone.baseHealth).toBe(null);
+  });
+
+  it("shares its panel, so a Unit may walk under it", () => {
+    expect(stone.sharesPanel).toBe(true);
+  });
+
+  it("OVERRIDES the Divine Core rather than stacking with it", () => {
+    const flat = np.field.interior.find((r) => r.key === "FlatDamage");
+    expect(flat.value).toBe(180);
+    expect(flat.supersedes).toEqual(["quetz-goddesses-divine-core"]);
+    // The Skill it supersedes gives 120, so the reading is 180 and not 300.
+    expect(lookupNumber("divineCore", R("EX"))).toBe(120);
+  });
+
+  it("reduces her damage taken by 50% INCLUDING NP", () => {
+    const ward = np.field.interior.find((r) => r.key === "Ward");
+    // `npValue` equal to `value` is what "including NP" means: most defensive
+    // percentages are halved against a Noble Phantasm and this one is not.
+    expect(ward.value).toBe(50);
+    expect(ward.npValue).toBe(50);
+    expect(ward.relations).toEqual(["self"]);
+  });
+
+  it("burns enemies for 50 at their turn end, permanently while inside", () => {
+    const clause = np.field.interiorEvents.find((e) => e.event === "turnEnd");
+    expect(clause.relations).toEqual(["enemy"]);
+    const dmg = clause.onFail.find((a) => a.key === "Damage");
+    expect(dmg).toMatchObject({ amount: 50, element: "fire", fixed: true });
+    const burn = clause.onFail.find((a) => a.key === "ApplyEffect");
+    expect(burn.duration).toBe(null);
+    expect(burn.unremovable).toBe(true);
+  });
+
+  it("charges her Master 50 — twice the mount's toll", () => {
+    expect(np.field.upkeep.cost.amount).toBe(50);
+    expect(np.field.upkeep.cost.payer).toBe("ownerMaster");
+    expect(np.field.upkeep.endWhenUnaffordable).toBe(true);
+  });
+
+  it("has NO deactivation lockout, unlike the Quetzalcoatlus", () => {
+    // The entire difference between the two sheets' final paragraphs.
+    expect(np.field.deactivation).toEqual({ byOwner: true, window: "any" });
+    expect(np.field.deactivation.lockout).toBeUndefined();
+  });
+
+  it("is a fixed area, so she may Move out of her own", () => {
+    expect(np.field.geometry.kind).toBe("fixedArea");
+    expect(np.field.geometry.shape).toEqual({ kind: "square", size: 7 });
+  });
+
+  it("paints Burning that does not follow her, and erases it on close", () => {
+    const zone = np.phases.find((p) => p.kind === "zone");
+    expect(zone.spec.terrain).toEqual(["burning"]);
+    expect(zone.spec.followsSource).toBe(false);
+    expect(zone.spec.duration).toBe(null);
+    // The tag the `onEnd` clears must be the one the zone wrote.
+    const onEnd = np.field.onEnd.find((a) => a.key === "ClearTerrain");
+    expect(onEnd.tag).toBe(zone.spec.tag);
+  });
+
+  it("places the stone before opening the field it anchors", () => {
+    const kinds = np.phases.map((p) => p.kind);
+    expect(kinds.indexOf("createStructure")).toBeLessThan(kinds.indexOf("createField"));
+  });
+
+  it("counts its cooldown from deactivation, like Jack's Mist", () => {
+    expect(np.cooldown).toEqual({ max: "8◈", countFrom: "deactivation" });
+  });
+});
