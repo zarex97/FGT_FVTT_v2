@@ -1,0 +1,56 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+# Platform: packs/_source/platforms/quetzalcoatlus.yml, docs/20-platforms-and-levels.md §20.7
+schema: 1
+id: quetz-winged-serpent
+name: "Quetzalcoatl: Winged Serpent"
+isNP: true
+rank: A
+npTags: [antiUnit, antiArmy]
+kind: noblePhantasm
+slug: wingedSerpent
+category: quetzNP
+# "Cooldown: 7◈ Turns AFTER Quetzalcoatlus is defeated" -- the clock starts on
+# the MOUNT'S DEATH, not on the cast and not on a dismissal. A third `countFrom`
+# beside `activation` and `deactivation`, and it exists for the same reason the
+# second does: a Noble Phantasm that stands until something kills it has no
+# "use" moment worth counting from.
+cooldown: { max: "7◈", countFrom: destroyed }
+timing: { window: ownTurn }
+description: |
+  (Non-damaging) When this NP is used, Quetz summons a Quetzalcoatlus at her position, and she is
+  Moved onto the Quetzalcoatlus together with her Master (if her Master is next to the
+  Quetzalcoatlus; otherwise her Master can get on the Quetzalcoatlus at any time).
+  While Quetz is Riding the Quetzalcoatlus, Quetz's Move and Normal Attack is replaced with
+  Quetzalcoatlus'. Quetz or her Master cannot be targeted for an Attack while they are Riding the
+  Quetzalcoatlus. If they are hit with an AoE Attack, the Quetzalcoatlus receives full damage,
+  Quetz receives 50% Total Damage while her Master receives no damage and effects.
+  The Quetzalcoatlus ignores obstacles while Moving, and can Move onto occupied panels (place the
+  Quetzalcoatlus on top of anything occupying said panels). While Quetz is Riding the
+  Quetzalcoatlus, she is able to use the three Spells listed below.
+  After every 1◈ Turns, Quetz's Master's Health is reduced by 25 at the end of the Turn if this NP
+  is Active unless the NP was deactivated during this Round. If her Master's Health is 25 or less,
+  this NP is forcefully deactivated at the end of the Round. This NP can be deactivated during
+  Quetz's Turn or at the start or end of any Round or Turn, but cannot be deactivated for 2◈ Turns
+  after it was activated.
+  Cooldown: 7◈ Turns after Quetzalcoatlus is defeated.
+# "(Non-damaging)". An ability with phases and no `damage` phase deals none
+# (`engine/attack.mjs#dealsNoDamage`) -- the hole five authored Noble Phantasms
+# shipped with, where the Combat Process fell back to the caster's Normal Attack
+# and a "non-damaging" NP measured 203.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+  limits: { requiresZon: true }
+phases:
+  - kind: summonPlatform
+    target: self
+    platformId: quetzalcoatlus
+    # "at her position", and she boards it -- and so does her Master if he is
+    # adjacent. `boardingTarget`'s existing adjacency path with no roll, because
+    # the sheet grants the seat rather than offering a chance at it. A Master
+    # who is not adjacent "can get on at any time", which is the ordinary
+    # boarding flow and needs nothing here.
+    at: caster
+    board: [owner, ownerMaster]
+    boardMasterIfAdjacent: true

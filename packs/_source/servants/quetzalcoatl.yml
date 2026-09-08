@@ -55,6 +55,10 @@ abilities:
   - { ref: quetz-good-gods-wisdom }
   - { ref: quetz-lucha-libre }
   - { ref: quetz-xiuhcoatl }
+  - { ref: quetz-winged-serpent }
+  - { ref: quetz-tlahuitequiliztli }
+  - { ref: quetz-ehecatle }
+  - { ref: quetz-tlaelquiyahuitl }
 
 notes: |
   The sixteenth Servant, and §D.28's exercise list in one sheet: per-panel Day overrides from a

@@ -311,6 +311,11 @@ describe("a non-damaging Noble Phantasm", () => {
       // Doomsday Come: "(Non-damaging)" and its only phase opens a field.
       // Everything it does to a Unit is the AREA's doing.
       "pale-rider-doomsday-come",
+      // Winged Serpent, the fourteenth, and "(Non-damaging)" is its first word
+      // too. Its one phase conjures a platform; everything the Noble Phantasm
+      // does afterwards is the MOUNT's doing, including the Normal Attack it
+      // lends her.
+      "quetz-winged-serpent",
       "semiramis-hanging-gardens-of-babylon",
       "semiramis-sikera-usum",
     ]);

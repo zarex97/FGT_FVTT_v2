@@ -1,0 +1,53 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+#
+# The third of three Spells sharing one cooldown -- see
+# `quetz-tlahuitequiliztli.yml` for why the pairing is an `exclusionSet` plus an
+# `alsoTriggers`. Written out in full rather than cross-referenced: a file that
+# says "as the other one, but Wind" cannot be read on its own.
+schema: 1
+id: quetz-tlaelquiyahuitl
+name: "Tlaelquiyahuitl"
+kind: spell
+slug: tlaelquiyahuitl
+cooldown: "2◈"
+# "All of Quetz's Quetzalcoatlus Spells share the same Cooldown (Cooldown: 2◈
+# Turns), when one is used the other 2 cannot be used until Cooldown ends."
+exclusionSet: quetzalcoatlusSpells
+alsoTriggers:
+  - { exclusionSet: quetzalcoatlusSpells }
+element: water
+timing: { window: ownTurn }
+# "Counts as Quetz's & Quetzalcoatlus' Attack for the Turn." The second half --
+# "cannot be used as a Counter" -- is `timing.window: ownTurn`, which refuses a
+# reaction window outright.
+countsAsAttack: true
+requirements:
+  # "Can only be used while Riding Quetzalcoatlus."
+  - { kind: predicate, predicate: ["self:onPlatform:quetzalcoatlus"] }
+  # "Quetzalcoatlus Spells cannot be used if Piedra Del Sol is Active."
+  - { kind: predicate, predicate: [{ not: "self:fieldActive:quetz-piedra-del-sol" }] }
+description: |
+  Damage Spell. Can only be used while Riding Quetzalcoatlus. Range=4. Hits a 3x3 panel area
+  within Range for 2x damage and inflicts @effect[slow]{Slow} for 2◈ Turns.
+  Water damage. Counts as Quetz's & Quetzalcoatlus' Attack for the Turn. Cannot be used as
+  a Counter.
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  # Her own BA(MAG). `replacesRiderAction` takes her Normal Attack and gives her
+  # the mount's; a Spell is CAST rather than swung, so it draws on the stat the
+  # substitution leaves her.
+  component: mag
+  multiplier: 2
+  element: water
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: slow }
+        duration: "2◈"

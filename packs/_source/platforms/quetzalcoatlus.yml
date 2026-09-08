@@ -1,0 +1,80 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+# Platform model: docs/20-platforms-and-levels.md §20.7
+#
+# §20.7 built the per-role AoE axis specifically because this mount is *"the
+# first platform in the set where the mount itself takes full AoE damage while
+# its riders are partially shielded"*. It has been waiting for her: the three
+# tiers her sheet states fall straight out of `aoePassengerFactor` unchanged --
+# the function returns 1 when the unit IS the platform, 0 for a Master when
+# `aoeMastersImmune`, and 0.5 for everyone else.
+schema: 1
+id: quetzalcoatlus
+name: "Quetzalcoatlus"
+type: platform
+attributes: [giant, beast]
+baseHealth: 1000
+agility: 16
+# "Luck: Shared with Quetz's" -- a number that is not a number, resolved at
+# placement from the summoner's live value, the way the Kagome Spirits' are.
+inherit:
+  luck: { from: summoner }
+mov: 7
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 150, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+# A one-panel mount, not a fortress. Every other platform in the set is 3x3 or
+# larger, and the schema's default would have made this one 3x3 silently.
+footprint: { w: 1, h: 1 }
+# Quetz and her Master, and nobody else.
+capacity: 2
+level: 1
+# "The Quetzalcoatlus ignores obstacles while Moving, and can Move onto occupied
+# panels (place the Quetzalcoatlus on top of anything occupying said panels)."
+#
+# `sharesPanel`, NOT `movesOntoOccupiedPanels`: the second is Bašmu's and means
+# *"all Units occupying said panels will be knocked back"*. This one co-locates
+# and displaces nobody, which is what "place it on top of" says.
+sharesPanel: true
+# "While Quetz is Riding the Quetzalcoatlus, Quetz's Move and Normal Attack is
+# replaced with Quetzalcoatlus'." Her Master rides as cargo -- Passenger Seat
+# lets him come along, it does not hand him the reins -- which is `roles`.
+replacesRiderAction: { roles: [owner], move: true, normalAttack: true }
+# "After every 1◈ Turns, Quetz's Master's Health is reduced by 25 at the end of
+# the Turn if this NP is Active... If her Master's Health is 25 or less, this NP
+# is forcefully deactivated."
+#
+# The same block Jack's Mist carries at 15, swept by the same `runUpkeep`.
+# `endWhenUnaffordable` is the "or less" half: the mount closes INSTEAD of
+# charging, rather than charging him to death.
+upkeep:
+  every: "1◈"
+  cost: { kind: health, amount: 25, payer: ownerMaster }
+  endWhenUnaffordable: true
+# "This NP can be deactivated during Quetz's Turn or at the start or end of any
+# Round or Turn, BUT CANNOT BE DEACTIVATED FOR 2◈ TURNS after it was activated."
+#
+# Piedra Del Sol carries the identical block WITHOUT the lockout, which is
+# exactly the difference between the two sheets' final paragraphs.
+deactivation: { byOwner: true, window: any, lockout: "2◈" }
+crossLevel:
+  # "Quetz or her Master cannot be targeted for an Attack while they are Riding
+  # the Quetzalcoatlus."
+  occupantTargeting: forbidden
+  requiresBoarding: true
+  # "If they are hit with an AoE Attack, the Quetzalcoatlus receives full damage,
+  # Quetz receives 50% Total Damage while her Master receives no damage and
+  # effects." Three tiers, TWO authored values -- the third is the function's
+  # own `unit.id === platform.id` branch, which is why §20.7 needed this mount
+  # to discover the axis.
+  aoePassengerFactor: 0.5
+  aoeMastersImmune: true
+  # Nothing stops her Spells reaching the ground, and they are her whole reason
+  # to be up there.
+  outboundTargeting: free
+  forbidDirectlyBelow: false
+notes: |
+  The fifth platform, and the first a passenger drives rather than rides.
+
+  Its three AoE tiers are the reason Ch. 20 §20.7 has a per-role protection model instead of a
+  single number: the Hanging Gardens and the Golden Hind both shelter everyone aboard, and this
+  one shelters its riders while taking the blast in full.
