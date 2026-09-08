@@ -241,6 +241,39 @@ ground blocked it (Ch. 20 §20.2 gives each platform its own Scene Level for "se
 which was the one thing it did not buy). An absent level reads as the ground, so a scene with no
 platforms behaves exactly as before.
 
+### Two ways to enter an occupied panel, and they are not the same rule
+
+The board has **two** occupancy exceptions, and reading them as one produces a rule that looks
+right and displaces the wrong people.
+
+| | `ignoresOccupancy` | `sharesPanel` |
+|---|---|---|
+| May enter an occupied panel | yes | yes |
+| What happens to the occupant | **knocked back** | nothing; both stand there |
+| Blocks others from entering | yes | no |
+| Blocked by | nothing | another Platform or Structure |
+| Carried by | Bašmu, Kingprotea (*Huge Scale*) | Quetzalcoatlus, Piedra Del Sol |
+
+Bašmu's sheet is explicit that it **displaces**: *"when it Moves to any occupied panels, all Units
+occupying said panels will be knocked back by 1 panel until the space is free."*
+Quetzalcoatl's two objects do not: *"place the Quetzalcoatlus on top of anything occupying said
+panels"*, and *"the panel occupied by Piedra Del Sol can still be Moved onto"*. One shoves; the
+other co-locates. `engine/movement-hooks.mjs` knocks units back off the first flag and must never
+see the second.
+
+**Half of this was already true.** `canPassThrough` and `canStopOn` have exempted `platform` and
+`structure` occupants since they were written, so an ordinary Servant could always walk under a
+placed object. What `sharesPanel` adds is the **mover's** side — an object landing on a Servant —
+and the one restriction that follows from it: two objects may not share a panel, which was
+silently permitted while objects were unconditionally non-blocking.
+
+**Sharing implies passing.** A Unit that may *end* its move on an occupied panel must be able to
+cross one; the alternative is a destination it cannot reach. The Quetzalcoatlus's sheet says both
+halves in one sentence — *"ignores obstacles while Moving, and can Move onto occupied panels"*.
+
+**Rendering.** A sharing token takes a raised `sort` so it draws above whoever is under it, which
+is what *"place it on top of"* asks for and the only visible half of the rule.
+
 ### Clause 4 is OPTIONAL (`fgt.masterProtection`)
 
 It is the one clause here that refuses a step onto a panel which *looks* empty, and a refusal

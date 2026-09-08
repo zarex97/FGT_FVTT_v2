@@ -508,7 +508,44 @@ Ability-created terrain is a `zone` phase (Ch. 15 §15.2) with a terrain payload
 
 The GM's terrain palette is a canvas tool: pick a type, draw a region, set a duration. Overlap
 resolution runs automatically and the result is previewed before commit — important, because
-dropping Burning on a Forest is irreversible.
+dropping Burning on a Forest is irreversible. **Not built** — the writer below is the
+programmatic half only.
+
+### The write half (built)
+
+Everything above shipped as a **read** system. `board.terrain.areas` was populated exclusively
+from Regions a GM had drawn by hand, `TerrainBehavior`'s `duration`, `sourceUnitId`,
+`followsSource` and `createdOnTurn` were inert from the day the model was written, and
+`terrainConversions` — the function answering *"what ground does this attack change"* —
+**had no caller anywhere in the codebase**. Quetzalcoatl needs three separate terrain writes,
+which is why she is the Servant who built it.
+
+`module/engine/terrain.mjs` (layer 3) creates and deletes the same `fgt.terrain` Regions
+`engine/board.mjs#terrainAreasOf` already reads, so nothing on the read side changed and a painted
+area is indistinguishable from a hand-drawn one:
+
+| Function | Does |
+|---|---|
+| `paintTerrain({types, panels, tag, duration, sourceUnitId, followsSource, radius})` | Creates the area. Re-painting a tag **moves** it rather than adding a second. |
+| `clearTerrain(tag)` | Erases every area a tag created. |
+| `repaintFollowing(unitId, panel)` | Moves a following area to its source's new panel. |
+| `expireTerrain(tick)` | Sweeps areas whose expiry has passed, on the Turn boundary. |
+| `removeTerrainType(type, panels)` | Strips one type from panels, tag or no tag — the Meadow clause. |
+
+**`tag` is the whole design.** A painted area has to be findable when its cause ends — `Sol`
+erases its daylight when the buff expires, Piedra Del Sol erases its Burning when the field closes
+— and a Region carries no other handle back to what made it. A GM's own terrain has **no tag**,
+which is exactly what keeps it out of every automatic sweep.
+
+Three readers close the loop: a following area is repainted after a move **commits** (so the
+daylight arrives with Quetzalcoatl rather than a step behind, and carries its original expiry
+rather than renewing it — renewing would make a 1◈ buff permanent for as long as she walks);
+expiry is swept beside the fields; and `deleteActiveEffect` clears an effect's area, which covers
+a Dispel and a GM's manual removal with the same line as the timeout.
+
+**A `zone` naming terrain outside the catalogue now fails the build.** An unknown type paints a
+Region that `terrainAt` reports and `TERRAIN[type]` does not recognise, so the area exists, does
+nothing, and looks applied.
 
 ---
 
@@ -525,6 +562,8 @@ dropping Burning on a Forest is irreversible.
 | D42.7 | Underworld's `Near-Death` is a pre-revival intercept in the defeat chain. |
 | D42.8 | Magnetic's Lightning redirect is a targeting-stage forced retarget. |
 | D42.9 | Eldritch's Horrors are hostile to every faction — `relation()` returns `enemy` for all observers. |
+| D42.10 | A painted area carries a **`tag`** and an absolute **`expiry`**; a hand-drawn one carries neither, which is what exempts a GM's own terrain from every automatic sweep. |
+| D42.11 | A **following** area is repainted after a move commits and keeps its original expiry. A repaint moves it; it does not renew it. |
 
 ---
 

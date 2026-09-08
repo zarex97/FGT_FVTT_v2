@@ -710,7 +710,27 @@ Two fields are anchored to a **placed object** rather than to a unit or a panel 
 
 **Quetzalcoatl's `Piedra Del Sol`** places a figurine *above* the field. Its 7×7 area is
 `Burning`; units may still move onto the panel beneath it; Quetz may leave her own area. It costs
-her Master 50 Health per 1◈.
+her Master 50 Health per 1◈. **Built**, and it needed less machinery than expected:
+
+- **No `anchorRef`.** A `fixedArea` anchors at the caster's panel *at cast time*, which **is** the
+  stone's panel because the stone appears where she is — and a fixed area does not follow her
+  afterwards, which is precisely what makes *"Quetz can Move out of the Piedra Del Sol area"* a
+  sentence worth writing. An anchor ref would have claimed a distinction the sheet does not draw.
+- **`sharesPanel`** (Ch. 08) is what lets a unit walk under it, and a raised token `sort` is what
+  makes *"place the Piedra Del Sol on top of"* visible.
+- **`undamageable`, not Bloodmark's 1 Health.** Bloodmark got a point to lose because its sheet
+  says *"only Masters can destroy a Bloodmark, and it is done by simply Attacking it"*. This sheet
+  has **no destruction clause at all** — the stone ends on her word or on the upkeep going unpaid
+  — so giving it Health would invent a removal the sheet does not offer.
+- **`endField` takes the object and the ground with it.** A stone outliving the area it defines
+  would be scenery nothing could remove; the painted Burning is erased by an `onEnd`
+  `ClearTerrain` naming the same tag the `zone` phase wrote.
+
+Its clause 1 — *"Goddess' Divine Core: all damage dealt is increased by 180"* — **overrides** her
+Skill of that name rather than stacking with its +120. The clause is headed with the Skill's own
+name and gives a different number, so it reads as the stone raising that value while it stands.
+Implemented as `supersedes: [quetz-goddesses-divine-core]` (§15.4), which keeps the reason legible
+where it applies; if play proves the other reading, deleting one line is the whole fix.
 
 **Medusa's Bloodmarks** are four destructible objects that define a field only when all four are
 placed. **Built** — `StructureData` was a registered actor type with no content, and this is its

@@ -114,6 +114,7 @@ Sixteen stages. The numbering is stable and referenced from effect definitions
 | 2 | **Crit** | `± 5d10`, applied to Base Attack; the `+` branch scaled by crit-damage % |
 | 3 | **Ability multiplier** | `× multiplier × conditionalMultipliers`, `+ flatBonus` |
 | 4 | **Combined percent** | ΣAtk Up − ΣDef Up, applied once (see §13.4) |
+| 4b | **Element scope** | Element-keyed percentages, applied to the element's own share |
 | 5 | **Component amplification** | STR-only / MAG-only percentage modifiers |
 | 6 | **Band** | Distance-band multiplier for banded AoE |
 | 7 | **Flat attack bonuses** | Divinity, Dmg Boost, Avenger's counter bonus |
@@ -355,6 +356,42 @@ multiplying to +900% is a large balance difference. The rulebook's Def Up exampl
 the bucket, per the one worked example we have. Flagged in Ch. 41 as the second-most-important
 open question after the Attack+ tables.
 
+### Stage 4b — Element scope
+
+Two rules that are useless apart, so they arrived together.
+
+**Element-keyed percentages are read at all.** `elementAtkUp`, `elementDefUp` and
+`elementDefDwn` are emitted by six terrain types — Waterside's water offence and lightning
+vulnerability, Snowfield's ice vulnerability and fire resistance, Burning's water resistance,
+Lava's fire vulnerability — and none of the three was in a bucket, so by this pipeline's own rule
+(*"a modifier whose key is not in one is collected onto the unit, carried through the snapshot,
+and never read"*) every one of them was inert from the day terrain shipped.
+
+**`elementFraction` makes "(half)" real.** Four sheets use the idiom — Karna's *Mana Burst
+(Flames)*, both Dioscuri Actives, Raikou's several, and Quetzalcoatl's *Xiuhcoatl* — and it means
+that half the damage carries the element. So a defender resisting Fire resists that half:
+
+```yaml
+damage:
+  element: fire
+  elementFraction: 0.5      # default 1; every ability authored before this is unchanged
+```
+
+The element percentage is summed and then scaled by the fraction before it is applied. It is a
+separate stage rather than part of stage 4's bucket because that bucket is **one additive
+expression applied once** (§13.4), and a percentage that reaches only part of the total cannot
+join a sum that reaches all of it.
+
+**Still all-or-nothing, and correctly so.** Stage 0's element-to-heal conversion, the
+Fire-breaks-Freeze branch and Dragonblight are keyed on the **damage-over-time kind**
+(`poison` / `curse` / `burn`), not on an attack element — so a Fire attack never reaches
+`flamHeal` at all and there is no half of it to split. Karna's file previously recorded the
+opposite as its own known simplification, and was wrong about which axis it was on.
+
+> **Open.** `flags.converted` has no consumer anywhere in the codebase, so an element-to-heal
+> conversion currently heals nobody. Recorded here rather than papered over; building its reader
+> belongs to whichever Servant needs the healing.
+
 ### Stage 5 — Component amplification
 
 Modifiers that apply to only one component:
@@ -394,9 +431,6 @@ Attack is increased by 100%"* — one component named, no magnitude given for th
 is no second magnitude for the bucket to hold. Against Karna's *Mana Burst (Flames)*, whose Base
 Attack is STR and MAG combined, it lifts the STR half and leaves the MAG half alone. Measured
 live: 100 STR + 100 MAG becomes 300, not 400.
-
-Also here: Karna's *Mana Burst (Flames)* declaring `Fire Damage (half)` — an element applying
-to half the damage. **Not implemented** — see §13.9.
 
 ### Stage 6 — Band
 
