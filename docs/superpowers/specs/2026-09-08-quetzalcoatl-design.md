@@ -76,6 +76,16 @@ The engine has **one** occupancy exception today, and it is the wrong one.
 will be knocked back"*. It **displaces**. Quetzalcoatl's two objects do not displace anybody;
 they co-locate.
 
+**Corrected while planning: half of this already works.** `canPassThrough` (`movement.mjs:308`)
+and `canStopOn` (`:351`) already exempt `platform` and `structure` occupants, so an ordinary
+Servant can walk onto Piedra Del Sol's panel today. Two things are actually missing, and they are
+both narrower than this section first claimed:
+
+1. **The mover side.** `canStopOn` asks `ignoresBlocking(unit)` of the *mover*, so the
+   Quetzalcoatlus cannot land on a Servant.
+2. **Structure-vs-structure.** Because objects are unconditionally non-blocking, two Bloodmarks
+   may already share a panel. They must not.
+
 So a second, distinct capability:
 
 ```yaml
@@ -307,6 +317,18 @@ damage:
 *damage* rather than a rider — to `total * elementFraction`, and the remainder as untyped.
 Default `1`, so every existing ability is unchanged. Karna's file is retrofitted in the same pass
 and its simplification note deleted rather than left to mislead.
+
+**Corrected while planning: this is bigger than a fraction, because there is nothing to halve.**
+`elementAtkUp`, `elementDefUp` and `elementDefDwn` are **in no bucket** in `pipeline.mjs` —
+`ATTACKER_BUCKET_KEYS` is `["atkUp", "atkDwn", "dmgUp", "npDmUp", "npDmDwn"]` and
+`DEFENDER_BUCKET_KEYS` is `["defUp", "defDwn", "ward"]`. Per that file's own comment, a key in no
+bucket is *"collected onto the unit, carried through the snapshot, and never read"*. So the six
+terrain types that emit element interactions — Waterside, Forest, Snowfield, Burning, Lava — have
+emitted them into a void since terrain shipped.
+
+Making `(half)` mean anything therefore means making elements mean anything first, and both halves
+land together. This is also what Piedra Del Sol's Burning area needs to have any mechanical
+effect beyond its own turn-end clause.
 
 The **splash** is plain `Fire damage.` — fraction 1. The sheet distinguishes them and so does the
 content.
