@@ -100,7 +100,11 @@ export const PROMPTS = Object.freeze({
   s24_luckyEvasion: { side: "defender", kind: "luckCheck", check: "luckyEvasion", cost: 1 },
   s25_auContest: { side: "attacker", kind: "luckCheck", check: "counterContest", cost: 1 },
   counter: { side: "defender", kind: "counter", options: ["counter", "declined"] },
-  heelResolve: { side: "attacker", kind: "weakPoint", options: ["success", "fail"] },
+  // NO entry for `heelResolve`. The question was asked at declaration — "the
+  // player states whether the AU performs a Heel Attack or not" — and the rung
+  // itself is a ROLL, resolved automatically like the damage step. Giving it a
+  // prompt stopped the ladder to ask a question nobody had an answer to, and
+  // the attack sat at the rung for ever. Found live.
 });
 
 /**

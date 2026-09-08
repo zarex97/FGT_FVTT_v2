@@ -75,6 +75,16 @@ describe("mayChangeStance", () => {
     expect(mayChangeStance(achilles({ stance: "mounted" }), "dismounted", { at: "declare", acted: false }).ok).toBe(true);
   });
 
+  it("refuses the declaration when it is not his Turn", () => {
+    // "Achilles is always Dismounted when it is not his Turn." The Turn
+    // boundary puts him back on foot, and nothing stopped a player toggling him
+    // up again during an enemy's Turn — he would then have defended Mounted,
+    // with the Heel switched off. Found live, on the first toggle.
+    expect(mayChangeStance(achilles(), "mounted", { at: "declare", isOwnTurn: false }))
+      .toMatchObject({ ok: false, reason: "notYourTurn" });
+    expect(mayChangeStance(achilles(), "mounted", { at: "declare", isOwnTurn: true }).ok).toBe(true);
+  });
+
   it("refuses the declaration once he has already acted this Turn", () => {
     const out = mayChangeStance(achilles(), "mounted", { at: "declare", acted: true });
     expect(out).toMatchObject({ ok: false, reason: "acted" });

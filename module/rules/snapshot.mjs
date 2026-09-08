@@ -1113,6 +1113,13 @@ export function contributionsOf(actor) {
       // once collected; Medusa's narrower version of it is the second.
       contract: sys.contract ?? null,
       parameters: sys.parameters ?? {},
+      // The stance, and the third entry in this comment's own list of fields
+      // this object did not carry. Achilles's whole sheet is gated on it, so
+      // without these two every "while Mounted" clause was unsatisfiable from
+      // his own contributions: MOV stayed 7 while Mounted and Riding Attack was
+      // never granted. Found live, on the first toggle.
+      stance: sys.stance ?? "",
+      stanceSpec: sys.stanceSpec ?? null,
       abilities: [...(actor.items ?? [])].map((i) => ({
         id: i.id, slug: i.system?.slug ?? i.id, active: Boolean(i.system?.active),
       })),

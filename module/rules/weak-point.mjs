@@ -75,10 +75,19 @@ export function weakPointChance(spec, { defender, attacker, state, board = null,
   };
 
   // (a) "if the AU's Agility is equal to or higher than Achilles'."
+  //
+  // Both readings of the field, because the two projections disagree:
+  // `snapshotUnit` carries `{value, max}` and the BOARD carries a plain number.
+  // Reading only the first gave `undefined` on both sides, compared them as
+  // zeroes, and awarded the bonus every time — found live, on a board where
+  // Achilles's Agility is 19 and his attacker's is 14.
   if (typeof spec.agilityBonus === "number") {
-    const mine = attacker?.agility?.value ?? 0;
-    const theirs = defender?.agility?.value ?? 0;
-    add("agility", mine >= theirs ? spec.agilityBonus : 0);
+    const mine = agilityOf(attacker);
+    const theirs = agilityOf(defender);
+    // Unknowable on either side is not "equal": the clause compares two numbers
+    // and a missing one is not a number.
+    const applies = mine !== null && theirs !== null && mine >= theirs;
+    add("agility", applies ? spec.agilityBonus : 0);
   }
 
   // (b) "if the Attack was performed at a Range of 3 or higher." Chebyshev, the
@@ -138,6 +147,19 @@ export function weakPointChance(spec, { defender, attacker, state, board = null,
 export function weakPointOffered(spec, ctx) {
   const out = weakPointChance(spec, { ...ctx, luckCheckPassed: false });
   return out.available && out.chance > 0;
+}
+
+/**
+ * A Unit's current Agility, however its projection spells it.
+ *
+ * @param {object} unit
+ * @returns {number|null}
+ */
+function agilityOf(unit) {
+  const raw = unit?.agility;
+  if (typeof raw === "number") return raw;
+  if (typeof raw?.value === "number") return raw.value;
+  return null;
 }
 
 /**

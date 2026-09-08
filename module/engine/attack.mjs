@@ -679,7 +679,10 @@ async function declareProcesses({
   // charging its Master in full.
   if (ability) {
     const { runCasterPhases } = await import("./skill-use.mjs");
-    await runCasterPhases(ability, attacker, board);
+    // The ride's own facts travel with the caster phases, because Troias
+    // Tragōidia's Agility restore is "X" and X is how much movement he had
+    // left -- a number that does not exist on any document.
+    await runCasterPhases(ability, attacker, board, attackSpec.ride ? { ride: attackSpec.ride } : {});
   }
 
   // The event two of EMIYA's passives listen for. On the ATTACK path as well as
@@ -1573,7 +1576,7 @@ async function runAutomaticStep(state, message) {
       // The permanent mark, before the damage it accompanies: `heelWounded`
       // takes Andreias Amarantos away, and the attack that struck the Heel
       // should not still be measured against it.
-      const marks = weakPointIntents(state, out.onSuccess);
+      const marks = [...(out.spends ?? []), ...weakPointIntents(state, out.onSuccess)];
       if (marks.length > 0) await applyBatch(marks, "weakPoint");
       const next = process.advance(state, out.event, out.detail);
       // A successful Heel Attack goes through every defence he has. The flag

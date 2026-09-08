@@ -69,7 +69,11 @@ export async function offerWeakPoint(state, { board = null } = {}) {
     name: game.i18n.format("FGT.WeakPoint.Aim", { name: defenderDoc.name, chance: plain.chance }),
     detail: describe(plain),
   }];
-  if (spec.luckCheckBonus && (attacker.luck?.value ?? 0) > 0) {
+  // `luck` is a number on the board projection and `{value, max}` on the unit
+  // one -- the same disagreement that made the Agility clause award itself
+  // every time. Read both ways, and the offer's second option appears.
+  const luck = typeof attacker.luck === "number" ? attacker.luck : (attacker.luck?.value ?? 0);
+  if (spec.luckCheckBonus && luck > 0) {
     options.push({
       id: "heelLuck",
       name: game.i18n.format("FGT.WeakPoint.AimWithLuck", {
@@ -133,8 +137,8 @@ export async function resolveWeakPoint(state, { board = null } = {}) {
     luckRoll = (await new Roll("1d20").evaluate()).total;
     luckPassed = luckCheck({
       roll: luckRoll,
-      luck: attacker.luck?.value ?? 0,
-      opposingLuck: defender.luck?.value ?? null,
+      luck: typeof attacker.luck === "number" ? attacker.luck : (attacker.luck?.value ?? 0),
+      opposingLuck: typeof defender.luck === "number" ? defender.luck : (defender.luck?.value ?? null),
     }).success;
   }
 
@@ -147,6 +151,10 @@ export async function resolveWeakPoint(state, { board = null } = {}) {
   return {
     event: succeeded ? "success" : "fail",
     detail: { chance, roll, breakdown, luckRoll, luckPassed, specId: spec.id },
+    // Luck is spent whether or not the check succeeded -- the rule everywhere
+    // else in the ladder, and what this offer's own hint promises. Returned as
+    // an intent so the caller writes it in the same batch as the wound.
+    spends: state.heel?.usesLuck ? [I.statDelta(state.attackerId, "luck.value", -1)] : [],
     // What a success leaves behind. Returned rather than applied here so that
     // the caller writes it in the same batch as everything else the rung does,
     // and so this function stays a roll rather than a write.

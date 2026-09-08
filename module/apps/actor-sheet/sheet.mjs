@@ -102,7 +102,13 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const to = target.dataset.stance;
     const unit = unitSnapshot(this.document);
     const at = game.combat?.started ? "declare" : "free";
-    const verdict = mayChangeStance(unit, to, { at, acted: Boolean(unit.turnState?.acted) });
+    const acting = game.combats?.active?.actingFactionId ?? null;
+    const verdict = mayChangeStance(unit, to, {
+      at,
+      acted: Boolean(unit.turnState?.acted),
+      // Out of combat there is no Turn to be out of, so the declaration is free.
+      isOwnTurn: !acting || (unit.actingFactionId ?? unit.factionId) === acting,
+    });
     if (!verdict.ok) {
       ui.notifications.warn(game.i18n.format(`FGT.Stance.Refused.${verdict.reason}`, {
         name: this.document.name,

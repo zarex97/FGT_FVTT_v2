@@ -93,6 +93,24 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
     // A ride that reached nobody still spends the action.
     await budget.spend({ combat: game.combats.active, unit, action: "ridingAttack" });
     await applyWorldIntents([I.markTurn(unitId, { attacked: true })], "ridingAttack:spent");
+    // ...and a Noble Phantasm used as one still does what it does to its user.
+    // Troias Tragōidia *"first restores X Agility and applies Atk Up ... Deals
+    // 4x damage"* -- the restore and the buff are not conditional on reaching
+    // anybody, and only the Crit DmUp is (Y = the number hit, so zero).
+    // Without this the whole NP was spent for nothing on an empty line.
+    if (ability) {
+      const x = Math.floor(remainingMov / 2);
+      const ride = { panels: plan.distance, hitCount: 0, remainingMov, x, xLessOne: Math.max(0, x - 1) };
+      const { runCasterPhases, applySelfRiders } = await import("./skill-use.mjs");
+      await runCasterPhases(ability, actor, board, { ride });
+      // ...and the self-targeted riders it would have applied at the damage
+      // step. They are `applyEffects` phases, which the Combat Process resolves
+      // per DEFENDER -- so with nobody on the line they would never run, and a
+      // Noble Phantasm spent on an empty ride would grant its user nothing at
+      // all. Only the `beforeDamage` ones: the Crit DmUp is "Y = number of
+      // Units successfully hit", which is zero, and a 0% buff is not a buff.
+      await applySelfRiders(ability, actor, { ride, when: "beforeDamage" });
+    }
     return { ok: true, hit: [] };
   }
 
