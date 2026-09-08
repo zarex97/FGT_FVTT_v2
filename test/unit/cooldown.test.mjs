@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeAll } from "vitest";
 import { cooldownFor, alsoTriggered } from "../../module/engine/cooldown.mjs";
+import { selectAbilities } from "../../module/engine/skill-use.mjs";
 
 const ability = (system = {}) => ({ id: "abil", name: "Ability", system });
 
@@ -176,5 +177,46 @@ describe("alsoTriggers", () => {
 
   it("produces nothing when the ability triggers none", () => {
     expect(alsoTriggered(ability({}), actor([]))).toEqual([]);
+  });
+});
+
+/* ========================================================================== */
+/*  Naming one ability by name                                                */
+/* ========================================================================== */
+
+/**
+ * Quetzalcoatl's *Lucha Libre* — *"reduces the Cooldown of Xiuhcoatl by 1◈
+ * Turns"* — is the first content in the corpus to name a single ability. The
+ * branch that served it took an embedded Foundry item id, which no content file
+ * can know, so the clause would have compiled, validated and reduced nothing.
+ */
+describe("selectAbilities", () => {
+  const items = [
+    { id: "AbCdEf123", type: "noblePhantasm", system: { contentId: "quetz-xiuhcoatl", isNP: true } },
+    { id: "GhIjKl456", type: "ability", system: { contentId: "quetz-lucha-libre" } },
+  ];
+  // `doc.items` is a Foundry collection; `filter` is all this code uses of it.
+  const doc = { items: Object.assign(items, { get: (id) => items.find((i) => i.id === id) }) };
+
+  it("matches on system.contentId, which is what content can name", () => {
+    const picked = selectAbilities({ abilityIds: ["quetz-xiuhcoatl"] }, doc, null);
+    expect(picked.map((i) => i.system.contentId)).toEqual(["quetz-xiuhcoatl"]);
+  });
+
+  it("returns nothing for a name no item carries, rather than everything", () => {
+    expect(selectAbilities({ abilityIds: ["not-a-thing"] }, doc, null)).toEqual([]);
+  });
+
+  it("still accepts a raw embedded id, for a caller that holds one", () => {
+    const picked = selectAbilities({ abilityId: "GhIjKl456" }, doc, null);
+    expect(picked.map((i) => i.system.contentId)).toEqual(["quetz-lucha-libre"]);
+  });
+
+  it("honours excludeSelf, so a Skill does not refresh itself", () => {
+    const self = { id: "GhIjKl456" };
+    const picked = selectAbilities(
+      { abilityIds: ["quetz-lucha-libre"], excludeSelf: true }, doc, self,
+    );
+    expect(picked).toEqual([]);
   });
 });
