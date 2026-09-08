@@ -1,0 +1,38 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+#
+# The plainest entry on her sheet, and deliberately so: it is the control group
+# proving the new machinery elsewhere is not being reached for out of habit.
+schema: 1
+id: quetz-good-gods-wisdom
+name: "Good God's Wisdom"
+rank: "A+"
+kind: skill
+slug: goodGodsWisdom
+# Banded, the same notation Achilles's Bravery and Heracles's use. At 3 turns
+# per Round this is 12 - 1 = 11 ticks.
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Used on an allied Unit within a 2 panel area of Quetz. Has the
+  following effects-
+  1. Applies @effect[guts]{Guts} for 1◈ Turns, when the Unit is defeated it is revived with 10% of its
+     Max Health.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 40%; if NP, 30%.
+  Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 5 }
+  # "Used on AN allied Unit" -- one, chosen, and it may be herself: "allied" in
+  # this corpus includes the caster unless the text excludes her.
+  selection: { relations: [ally, self], includeSelf: true, chooser: chosen, count: 1 }
+phases:
+  - kind: applyEffects
+    # The one ally the targeting resolved, not the caster.
+    target: reuse
+    effects:
+      # "revived with 10% of its Max Health." A FRACTION, not a number -- the
+      # Unit is chosen at cast time and every Servant's maximum differs.
+      # `guts.yml` already reads its magnitude as `restore: {percentOfMax:
+      # "@magnitude"}`, so 10 here is 10% and nothing further is needed.
+      - { id: guts, magnitude: 10, duration: "1◈" }
+      - { id: atkUp, magnitude: 40, npMagnitude: 30, duration: "1◈" }

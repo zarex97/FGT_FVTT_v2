@@ -1,0 +1,70 @@
+# packs/_source/servants/quetzalcoatl.yml
+# Conversion source: char_orig_sheets/Copia de Quetzalcoatl.md
+# Discussed: docs/D-servant-data-sheets.md §D.28, docs/44-case-expanded-roster.md §44.2
+#
+# The reference set's acceptance test for THE FIELD. Karna is the benchmark for
+# the predicate machinery, Kingprotea for stack economies and Achilles for
+# gating; almost everything on Quetzalcoatl's sheet is about the panels
+# themselves -- three separate routes to changing the ground a Unit stands on, a
+# mount that substitutes her whole action set, and a levitating object that
+# shares a panel with whoever walks under it.
+schema: 1
+id: quetzalcoatl
+name: Quetzalcoatl
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+# "True Name: Quetzalcoatl, Kukulkan". The second is the same god's name in
+# Maya rather than a second identity, and no rule reads an alias.
+trueName: Quetzalcoatl
+servantClasses: [rider]
+classContainer: rider
+alignment: { order: lawful, morality: good }
+region: [centralAmerica, southAmerica]
+# Nothing withheld and nothing implied beyond the closure's own rules (Ch. 02
+# §2.10): `Servant => Spirit` and `Servant => Hominidae` both hold, so neither
+# is authored here. `divine` is NOT authored either -- her Divine Core grants
+# it, which is what "this Skill counts as Divinity" means.
+attributes: [female, servant, king, sky, humanoid]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: B, end: B, agi: "B+", mag: EX, luc: "A+" }
+# B => 125, B => 1250, EX => 250, all straight off `domain/tables.mjs`. She is
+# the highest BA(MAG) in either roster and the first MAG: EX outside Mannanán,
+# which is what lets Xiuhcoatl reach 250 on HALF her MAG.
+baseHealth: 1250
+mov: 7
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 125, mag: 250 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # The SHARED Riding document, unchanged. Her three passives and her Active are
+  # word-for-word `class-riding.yml`, and `ridingMov` already gives EX => +6 --
+  # the number her sheet prints, not one authored here. She is the first Rider
+  # since Ozymandias to need no variant of it.
+  - { ref: class-riding, rank: EX, cooldown: "3◈" }
+  # Likewise unchanged, including the Instakill/Death/Erase paragraph, which the
+  # shared document already carries verbatim. A => negates up to A, 50% off the
+  # rest, 25% debuff resistance.
+  - { ref: class-magic-resistance, rank: A }
+  - { ref: quetz-goddesses-divine-core }
+  - { ref: quetz-charisma-of-the-sun }
+  - { ref: quetz-good-gods-wisdom }
+  - { ref: quetz-lucha-libre }
+  - { ref: quetz-xiuhcoatl }
+
+notes: |
+  The sixteenth Servant, and §D.28's exercise list in one sheet: per-panel Day overrides from a
+  buff, splash damage decoupled from the primary resolution, a mount that substitutes a Unit's
+  whole action set, three-tier AoE protection, and a field anchored to an object above the board.
+
+  **Three routes to one outcome.** `Sol`, Xiuhcoatl's Burning conversion and Piedra Del Sol all
+  change what terrain a panel has, by three different mechanisms. Ch. 42's overlap matrix is what
+  keeps them from contradicting one another when two of them cover the same panel.
+
+  **Her Master is a resource she spends.** Both standing Noble Phantasms charge him — 25 per 1◈
+  for the Quetzalcoatlus and 50 for Piedra Del Sol — and each is forcefully deactivated when he
+  can no longer pay. She is the first Servant whose Master is a cost rather than a liability.

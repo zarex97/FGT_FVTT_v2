@@ -156,6 +156,17 @@ function abilityCommon() {
     // "Only the highest Rank takes effect" (§10.6): a group and what to compare.
     nonStacking: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     damage: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // A second, UNCONDITIONAL resolution the same ability declares, with its own
+    // targeting, damage and riders. Quetzalcoatl's Xiuhcoatl is the first:
+    // *"then (regardless of whether the NP hits the DU or not), deals normal
+    // damage to all Units within a 2 panel area of Quetzalcoatl except herself
+    // and the previously targeted Unit."*
+    //
+    // Untyped for the same reason `damage` above is: the content validator
+    // checks its shape at build time (it must carry a `targeting` and a
+    // `damage`, or it catches nobody / inherits the primary's numbers), and a
+    // rigid schema would reject a shape a module introduces.
+    aftermath: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
 
     // Whether Scáthach may copy this (§15.7). Authored per ability because

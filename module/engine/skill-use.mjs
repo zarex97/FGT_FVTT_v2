@@ -37,7 +37,8 @@ import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
-import { randomFreePanelIn } from "../rules/bounded-fields.mjs";
+import { randomFreePanelIn, panelsOf } from "../rules/bounded-fields.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 import { runContactEvents } from "./movement-hooks.mjs";
 import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -1644,8 +1645,63 @@ export async function runCasterPhases(ability, actor, board, extras = {}) {
  */
 function zonePanels(spec, self, board) {
   if (!self?.panel) return [];
+  if (spec.shape === "fortressNearby") return fortressPanels(self, board);
   if (typeof spec.shape === "string") return [];
   return expand(spec.shape, { panel: self.panel }, { bounds: board?.bounds ?? null }).panels ?? [];
+}
+
+/**
+ * Every `[Fortress]` field the caster is standing in or beside, plus its border.
+ *
+ * > *"If this NP is used within or directly next to a [Fortress] NP (regardless
+ * > of ally's or enemy's), that NP area and the panels directly outside/next to
+ * > the NP area are now 'Burning' until the Fortress NP is deactivated."*
+ * > — Xiuhcoatl
+ *
+ * `rules/np-scale.mjs` has held the `fortress` qualifier and the `antiFortress`
+ * scale comparison since it was written; this is the first reader for either.
+ *
+ * **There is no live referent.** The only `[Fortress]` Noble Phantasm in either
+ * roster is Ozymandias's *Ramesseum Tentyris*, which is unauthored, so this
+ * cannot fire in a real match yet. Built anyway, because the sheet says it and
+ * a clause left out is a clause a reader assumes works.
+ *
+ * "Directly next to" is Chebyshev 1 in both directions — the caster's proximity
+ * to the field, and the border's proximity to the area.
+ *
+ * @param {object} self the caster's snapshot
+ * @param {object} board
+ * @returns {Array<{i: number, j: number}>}
+ */
+function fortressPanels(self, board) {
+  const seen = new Set();
+  /** @type {Array<{i: number, j: number}>} */
+  const out = [];
+  const add = (p) => {
+    const k = `${p.i},${p.j}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push({ i: p.i, j: p.j });
+  };
+
+  for (const field of board?.fields ?? []) {
+    const tags = field.npTags ?? [];
+    if (!tags.includes("fortress") && !tags.includes("antiFortress")) continue;
+
+    const panels = panelsOf(field, board) ?? [];
+    if (!panels.some((p) => chebyshev(p, self.panel) <= 1)) continue;
+
+    for (const p of panels) {
+      add(p);
+      // "the panels directly outside/next to the NP area" -- the ring around
+      // it, diagonals included, added whether or not they are inside another
+      // part of the same field (`add` dedupes).
+      for (let di = -1; di <= 1; di++) {
+        for (let dj = -1; dj <= 1; dj++) add({ i: p.i + di, j: p.j + dj });
+      }
+    }
+  }
+  return out;
 }
 
 /**
