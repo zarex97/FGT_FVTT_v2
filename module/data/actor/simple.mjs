@@ -97,6 +97,18 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       capacity: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       /** The Servant that created it, whose effects are reversed on destruction. */
       ownerId: new fields.StringField({ required: false, nullable: true, initial: null }),
+
+      // Stats stated RELATIVE to the summoner, resolved at placement from that
+      // Servant's live values. `SummonData` has declared this since the Kagome
+      // Spirits (*"Agility: Pale Rider's plus 2"*) and a Platform could not,
+      // so `tools/lib/content.mjs` compiled the authored value and the
+      // DataModel dropped it on load.
+      //
+      // Found live: the Quetzalcoatlus's *"Luck: Shared with Quetz's"* placed
+      // it at 0 while she stood next to it with 20. The sixth authored key to
+      // be lost this way -- `itemCost`, `summonVariant`, `rules`,
+      // `itemHandling` and `aftermath` were the others.
+      inherit: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn."
       // `rules/budget.mjs#canConsume` reads this the same way `SummonData`'s
       // own field of the same name is meant to -- a platform is exempt from

@@ -1884,8 +1884,18 @@ function fortressPanels(self, board) {
  * @returns {string}
  */
 function zoneTag(spec, ability, actor) {
-  if (spec.tag) return spec.tag.replace("@self.id", actor.id);
-  return `${ability.system?.contentId ?? ability.id}:${actor.id}`;
+  // `@field.id` is the id `createField` stamps -- the ability's content id --
+  // and it MUST resolve here, because the matching `onEnd: ClearTerrain` on the
+  // field resolves it too. An unresolved placeholder paints under the literal
+  // string `piedra:@field.id` while the closure looks for
+  // `piedra:quetz-piedra-del-sol`, so the two never meet and the ground the
+  // field painted outlives the field forever.
+  //
+  // Found live: Piedra Del Sol's 49 Burning panels were tagged with the
+  // placeholder.
+  const fieldId = ability.system?.contentId ?? ability.id;
+  if (spec.tag) return spec.tag.replace("@self.id", actor.id).replace("@field.id", fieldId);
+  return `${fieldId}:${actor.id}`;
 }
 
 /**
