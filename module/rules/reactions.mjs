@@ -17,6 +17,7 @@
  */
 
 import { blockedThisTurn, isNegated } from "./ability-use.mjs";
+import { meetsRequirements } from "./items.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { relationOf } from "./relations.mjs";
@@ -53,6 +54,21 @@ export const ATTACKER_WINDOWS = Object.freeze(["damageStep", "combatPhaseStart"]
  * the defender, which no other ability in the game is true of.
  */
 const ALLY_WINDOW = "whenAllyAttacked";
+
+/**
+ * Requirements answerable from the bearer alone.
+ *
+ * A window offer has no target and no attack, so a gate that needs one cannot
+ * be judged here and must not refuse for lack of it — the offer would then be
+ * silently missing rather than honestly refused.
+ *
+ * @type {ReadonlySet<string>}
+ */
+const SELF_REQUIREMENTS = new Set([
+  "stance", "modeActive", "modeInactive", "notHasEffect", "hasSkill",
+  "healthAbove", "healthBelow", "resourceAtLeast", "itemAtLeast",
+  "roundAtLeast", "roundPhase", "inZon", "healthRestoredSince",
+]);
 
 /**
  * The abilities this unit could use in response to being attacked.
@@ -109,6 +125,17 @@ export function abilitiesAtWindow(unit, window) {
 
     // Already spent for good.
     if (sys.expended) return false;
+
+    // ...and everything the ability's own `requirements` say. Offered without
+    // them, a window put Achilles's Runner Comet in front of him while he was
+    // MOUNTED -- and his sheet says "can only be used when Unmounted". That is
+    // the refusal-when-pressed §17.6 forbids, and the same argument this
+    // function's own docstring makes about cooldowns. Found live.
+    //
+    // Only the requirements answerable from the Unit alone: a `targetHasEffect`
+    // has no target at a window and must not refuse for lack of one.
+    const gates = (sys.requirements ?? []).filter((r) => SELF_REQUIREMENTS.has(r.kind));
+    if (gates.length > 0 && !meetsRequirements(gates, { unit }).ok) return false;
 
     return true;
   });

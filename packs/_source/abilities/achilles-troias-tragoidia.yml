@@ -92,11 +92,19 @@ phases:
   # the sheet's own "X0%" stays here as the multiplication.
   #
   # `@ride.xLessOne` is `(X−1)` floored at zero, for the "if NP (X−1)0%" half.
+  # No `when:` -- a caster phase runs once, at declaration, which is already
+  # before the damage. Writing one here would read as a promise the phase
+  # runner does not keep.
+  #
+  # `clampToMax` is the difference between "RESTORES X Agility" and "grants X":
+  # his sheet says restores, so it cannot push him past the maximum he rolled
+  # at summon — and it is also what routes the write to the STAT rather than to
+  # a §6.10 resource pool named `agility`, which does not exist. Without it the
+  # restore landed nowhere at all.
   - kind: resource
-    when: beforeDamage
     target: self
     changes:
-      - { key: agility, delta: "@ride.x" }
+      - { key: agility.value, delta: "@ride.x", clampToMax: true }
   - kind: applyEffects
     when: beforeDamage
     target: self

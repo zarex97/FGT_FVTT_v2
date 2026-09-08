@@ -23,7 +23,7 @@ import { categoryRankOf } from "../../module/rules/items.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { resolveValue } from "../../module/rules/elements.mjs";
 import { ridingAttackPath, knockbackPanel } from "../../module/rules/movement.mjs";
-import { allyReactions } from "../../module/rules/reactions.mjs";
+import { allyReactions, abilitiesAtWindow } from "../../module/rules/reactions.mjs";
 import { luckChecksBlocked, withoutForeignEffects } from "../../module/rules/bounded-fields.mjs";
 import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 
@@ -249,7 +249,11 @@ describe("Runner Comet", () => {
 
   it("restores 3 Agility before it buffs, in the sheet's order", () => {
     expect(skill.phases[0].kind).toBe("resource");
-    expect(skill.phases[0].changes).toEqual([{ key: "agility", delta: 3 }]);
+    // `clampToMax` and `agility.value`: "RESTORE 3 Agility" cannot exceed his
+    // summon maximum, and the flag is what routes the write to the stat rather
+    // than to a resource pool of that name — without it the restore landed
+    // nowhere at all. Found live.
+    expect(skill.phases[0].changes).toEqual([{ key: "agility.value", delta: 3, clampToMax: true }]);
     expect(skill.phases.slice(1).every((p) => p.kind === "applyEffects")).toBe(true);
   });
 
@@ -504,8 +508,10 @@ describe("Troias Tragōidia", () => {
 
   it("restores the same X in Agility, not a second number", () => {
     const restore = np.phases.find((p) => p.kind === "resource");
-    expect(restore.changes).toEqual([{ key: "agility", delta: "@ride.x" }]);
-    expect(restore.when).toBe("beforeDamage");
+    expect(restore.changes).toEqual([{ key: "agility.value", delta: "@ride.x", clampToMax: true }]);
+    // No `when:` — a caster phase runs once, at declaration, which is already
+    // before the damage; writing one would read as a promise nothing keeps.
+    expect(restore.when).toBeUndefined();
   });
 
   it("computes Y from the Units it actually reached, after the damage", () => {
@@ -720,5 +726,32 @@ describe("the duel field", () => {
   it("asks the challenged Unit before it opens, and ends when the table says", () => {
     expect(np.field.requiresConsent).toBe(true);
     expect(np.field.deactivation).toEqual({ byOwner: true });
+  });
+});
+
+describe("a timing window honours the ability's own requirements", () => {
+  // Found live: the Combat-Phase-start window offered Runner Comet while he was
+  // MOUNTED, and his sheet says "can only be used when Unmounted". A window
+  // that offers what the ability will refuse is the refusal-when-pressed §17.6
+  // forbids — the same argument `abilitiesAtWindow` already makes for cooldowns.
+  const comet = ability("achilles-runner-comet");
+  const item = { id: "rc", name: "Runner Comet", system: { ...comet, cooldown: {} } };
+  /** @param {string} stance */
+  const unit = (stance, effects = []) => ({
+    id: "achilles", stance, stanceSpec: STANCE, effects,
+    items: [item], turnState: {}, roundState: {},
+  });
+
+  it("offers it on foot", () => {
+    expect(abilitiesAtWindow(unit("dismounted"), "combatPhaseStart")).toHaveLength(1);
+  });
+
+  it("stays silent while he is Mounted", () => {
+    expect(abilitiesAtWindow(unit("mounted"), "combatPhaseStart")).toEqual([]);
+  });
+
+  it("stays silent under either Seal", () => {
+    expect(abilitiesAtWindow(unit("dismounted", ["skillSeal"]), "combatPhaseStart")).toEqual([]);
+    expect(abilitiesAtWindow(unit("dismounted", ["npSeal"]), "combatPhaseStart")).toEqual([]);
   });
 });

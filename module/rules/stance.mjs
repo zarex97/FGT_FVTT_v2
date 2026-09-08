@@ -67,9 +67,10 @@ export function stanceOf(unit) {
  * @param {object} [ctx]
  * @param {string} [ctx.at] one of {@link STANCE_WINDOWS}
  * @param {boolean} [ctx.acted] has the Unit already acted this Turn?
+ * @param {boolean} [ctx.isOwnTurn] is it this Unit's faction's Turn?
  * @returns {{ok: boolean, reason?: string}}
  */
-export function mayChangeStance(unit, to, { at = "declare", acted = false } = {}) {
+export function mayChangeStance(unit, to, { at = "declare", acted = false, isOwnTurn = true } = {}) {
   const spec = unit?.stanceSpec ?? null;
   if (!spec?.states?.length) return { ok: true };
   if (!spec.states.includes(to)) return { ok: false, reason: "unknownState" };
@@ -77,12 +78,21 @@ export function mayChangeStance(unit, to, { at = "declare", acted = false } = {}
   const from = stanceOf(unit);
   if (from === to) return { ok: true };
 
-  // The declaration. *"When Achilles Acts, the player must state whether he is
+  // The declaration. *"WHEN ACHILLES ACTS, the player must state whether he is
   // Mounted, or Dismounted"* -- the one moment both states are reachable,
   // because it is not a transition at all: it is choosing the stance the action
   // is taken in. Once he has acted the Turn's stance is settled, and the
   // asymmetric transitions below are the only way out of it.
-  if (at === "declare") return acted ? { ok: false, reason: "acted" } : { ok: true };
+  //
+  // And only on his own Turn. *"Achilles is always Dismounted when it is not
+  // his Turn"* is enforced at the Turn boundary, which puts him back on foot --
+  // but nothing stopped a player toggling him up again during an enemy's Turn,
+  // and he would then have defended Mounted with the Heel switched off. Found
+  // live, on the first toggle.
+  if (at === "declare") {
+    if (!isOwnTurn) return { ok: false, reason: "notYourTurn" };
+    return acted ? { ok: false, reason: "acted" } : { ok: true };
+  }
 
   const allowed = (spec.transitions ?? []).some((t) => t.from === from && t.to === to && t.at === at);
   return allowed ? { ok: true } : { ok: false, reason: "window" };

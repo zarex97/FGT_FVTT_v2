@@ -35,10 +35,13 @@ targeting:
 phases:
   # The Agility first, and the buffs after: the restore is not conditional on
   # them and the sheet's "then" puts them second.
+  # `clampToMax`, and `agility.value` rather than `agility`: "RESTORE 3
+  # Agility" cannot push him past his summon maximum, and the flag is what
+  # routes the write to the stat instead of to a resource pool of that name.
   - kind: resource
     target: self
     changes:
-      - { key: agility, delta: 3 }
+      - { key: agility.value, delta: 3, clampToMax: true }
   # Two phases, one predicate apart. "The magnitude of Runner Comet is reduced
   # to 10% for both buffs" once his Heel is damaged -- a magnitude that depends
   # on a condition, which `phase.predicate` already expresses. A single phase

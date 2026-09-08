@@ -85,6 +85,26 @@ describe("the six modifiers", () => {
     expect(chanceOf({ attacker: { panel: behind, agility: { value: 17, max: 17 } }, state: counter })).toBe(10);
   });
 
+  it("reads Agility however the projection spells it, and not at all when missing", () => {
+    // `snapshotUnit` carries `{value, max}` and the BOARD carries a plain
+    // number. Reading only the first gave `undefined` on both sides, compared
+    // them as zeroes, and awarded the bonus every time. Found live.
+    const counter = { isCounter: true };
+    const plain = chanceOf({
+      defender: { agility: 18 },
+      attacker: { panel: behind, agility: 20 },
+      state: counter,
+    });
+    expect(plain).toBe(15);
+
+    // Neither side known: not "equal", because the clause compares two numbers.
+    expect(chanceOf({
+      defender: { agility: undefined },
+      attacker: { panel: behind, agility: undefined },
+      state: counter,
+    })).toBe(10);
+  });
+
   it("adds 5 at a Range of 3 or higher", () => {
     const counter = { isCounter: true };
     expect(chanceOf({ attacker: { panel: { i: 8, j: 5 } }, state: counter })).toBe(15);

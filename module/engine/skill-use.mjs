@@ -266,7 +266,7 @@ function targetsSelfOnly(spec) {
  * @param {object} board
  * @returns {Promise<object[]>}
  */
-async function runPhases(ability, actor, targets, board, only = null) {
+async function runPhases(ability, actor, targets, board, only = null, extras = {}) {
   /** @type {object[]} */
   const applied = [];
   // How many were conjured, for a cooldown that scales with the roll that just
@@ -370,12 +370,20 @@ async function runPhases(ability, actor, targets, board, only = null) {
               // delta would work by accident and read as a bug -- the same
               // argument `cooldownChanges` already makes for its own `set`.
               if (c.set !== undefined) return I.setResource(target.unitId, c.key, c.set);
+              // A delta may be an `@` expression, and Troias Tragōidia is the
+              // first: *"First restores X Agility"* where X is the ride's own
+              // number. Resolved here rather than left as a string -- the
+              // applier refuses a non-finite delta outright, which is how this
+              // was found rather than silently restoring nothing.
+              const delta = typeof c.delta === "string"
+                ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, extras) })
+                : c.delta;
               // `clampToMax` is the difference between "restores 3 Agility" and
               // "grants 3 Agility": Golden Fleece restores, so it cannot push a
               // Servant above the maximum it rolled at summon.
               return c.clampToMax
-                ? I.statDelta(target.unitId, c.key, c.delta, true)
-                : I.resource(target.unitId, c.key, c.delta);
+                ? I.statDelta(target.unitId, c.key, delta, true)
+                : I.resource(target.unitId, c.key, delta);
             }),
             `skill:${ability.id}:resource`,
           );
@@ -1469,6 +1477,72 @@ export async function fireAbilityUsed(actor, ability) {
 }
 
 /**
+ * Apply an ability's own self-targeted `applyEffects` riders, with no defender.
+ *
+ * The Combat Process resolves riders per DEFENDER, which is right for every
+ * ability that hits somebody. Troias Tragōidia is the exception: it is a ride,
+ * and a ride can reach nobody — *"First restores X Agility and applies Atk Up
+ * ... Deals 4x damage"* is not conditional on the line being occupied, so with
+ * no defender those clauses would simply never run and the Noble Phantasm would
+ * be spent for nothing.
+ *
+ * Only the phases whose `when` matches, and only `target: self` ones: a rider
+ * aimed at a defender who does not exist has nobody to land on.
+ *
+ * @param {object} ability
+ * @param {object} actor the caster
+ * @param {object} [ctx]
+ * @param {object} [ctx.ride] the ride's own facts, for an `@` magnitude
+ * @param {string} [ctx.when]
+ * @returns {Promise<void>}
+ */
+export async function applySelfRiders(ability, actor, { ride = null, when = "beforeDamage" } = {}) {
+  const phases = (ability.system?.phases ?? [])
+    .filter((p) => p.kind === "applyEffects" && (p.when ?? "afterDamage") === when)
+    .filter((p) => (p.target ?? "reuse") === "self");
+  if (phases.length === 0) return;
+
+  const specs = phases.flatMap((p) => p.effects ?? []);
+  const out = applyBatchOfEffects(specs, actor, ride);
+  if (out.length > 0) await applyWorldIntents(out, `ride:${ability.id}:self`);
+}
+
+/**
+ * Turn a list of authored effect specs into intents on the caster.
+ *
+ * @param {object[]} specs
+ * @param {object} actor
+ * @param {object|null} ride
+ * @returns {import("./intents.mjs").Intent[]}
+ */
+function applyBatchOfEffects(specs, actor, ride) {
+  const refs = expressionRefs(actor, ride ? { ride, hitCount: ride.hitCount } : {});
+  const magnitude = (spec, field) => {
+    const raw = spec?.[field];
+    if (raw === null || raw === undefined) return null;
+    if (typeof raw === "number") return raw;
+    const value = resolveValue(spec, null, { refs }, field);
+    return typeof value === "number" ? value : null;
+  };
+  const tick = game.combat?.system?.globalTurn ?? 0;
+  return specs.map((spec) => I.applyEffect(actor.id, {
+    defId: spec.id,
+    magnitude: magnitude(spec, "magnitude") ?? 0,
+    npMagnitude: magnitude(spec, "npMagnitude"),
+    stage: 0,
+    uses: spec.uses ?? 0,
+    // `resolveTicks` takes a PARSED expression, not the "⅓◈" the sheet writes.
+    expiry: spec.duration
+      ? tick + resolveTicks(parseTick(spec.duration), {
+        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      })
+      : null,
+    sourceUnitId: actor.id,
+    visibility: "public",
+  }, actor.id));
+}
+
+/**
  * Run the phases a Combat Process has no rung for.
  *
  * A Noble Phantasm resolves through `resolveAttack`, which knows about damage
@@ -1488,12 +1562,12 @@ export async function fireAbilityUsed(actor, ability) {
  * @param {object} board
  * @returns {Promise<object[]>}
  */
-export async function runCasterPhases(ability, actor, board) {
+export async function runCasterPhases(ability, actor, board, extras = {}) {
   // The caster IS the resolved target list here. Passing an empty one made
   // every phase that had not written `target: self` resolve to `reuse` and then
   // to nobody, so the loop body never ran -- Unlimited Blade Works spent its
   // Aria (a `target: self` phase) and created no Reality Marble (which is not).
-  return runPhases(ability, actor, [{ unitId: actor.id }], board, (phase) => CASTER_PHASES.has(phase.kind));
+  return runPhases(ability, actor, [{ unitId: actor.id }], board, (phase) => CASTER_PHASES.has(phase.kind), extras);
 }
 
 /**
