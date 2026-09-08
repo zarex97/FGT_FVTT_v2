@@ -220,6 +220,51 @@ export function withinPlatformCentre(unit, platform, radius = 2) {
 }
 
 /**
+ * Whose Move and Normal Attack this unit actually uses.
+ *
+ * > *"While Quetz is Riding the Quetzalcoatlus, Quetz's Move and Normal Attack
+ * > is replaced with Quetzalcoatlus'."*
+ *
+ * Not a buff and not a stat override: while she is aboard, her Move **is** the
+ * mount's move and her Normal Attack **is** the mount's attack, spending *her*
+ * action rather than the platform's own.
+ *
+ * Every other platform in the reference set carries its passengers — the
+ * Hanging Gardens, the Golden Hind, the Storm Border — and a passenger's own
+ * action is untouched. This is the first that a passenger DRIVES, which is why
+ * it is an authored capability rather than a property of riding.
+ *
+ * `roles` exists because the substitution is the **owner's** alone. Her Master
+ * rides as cargo: *"the Servant's Master can Move together with its Servant"*
+ * is Passenger Seat, and it does not hand him the reins.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {{unit: object, platform: object|null,
+ *            movesAsPlatform: boolean, attacksAsPlatform: boolean}}
+ */
+export function actionSourceFor(unit, board) {
+  const none = { unit, platform: null, movesAsPlatform: false, attacksAsPlatform: false };
+  if (!unit?.platformId) return none;
+
+  const platform = (board?.units ?? []).find((u) => u.id === unit.platformId) ?? null;
+  const spec = platform?.replacesRiderAction;
+  if (!platform || !spec) return { ...none, platform };
+
+  // "owner" is a role in its own right, not a unit kind: the mount belongs to
+  // one Servant, and every other passenger is identified by what it is.
+  const role = platform.ownerId === unit.id ? "owner" : unit.kind;
+  if (!(spec.roles ?? ["owner"]).includes(role)) return { ...none, platform };
+
+  return {
+    unit,
+    platform,
+    movesAsPlatform: Boolean(spec.move),
+    attacksAsPlatform: Boolean(spec.normalAttack),
+  };
+}
+
+/**
  * May this unit switch the thing off, and if not, why not.
  *
  * Shared by bounded fields and platform Noble Phantasms because they carry the

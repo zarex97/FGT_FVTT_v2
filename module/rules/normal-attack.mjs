@@ -37,11 +37,24 @@
  * @param {number|null} [range] panels between attacker and defender
  * @returns {NormalAttackSpec}
  */
-export function normalAttackAt(unit, range = null) {
-  const spec = unit?.normalAttack ?? {};
+export function normalAttackAt(unit, range = null, { platform = null } = {}) {
+  // A rider whose mount replaces her Normal Attack swings the MOUNT'S, not her
+  // own: *"Quetz's Move and Normal Attack is replaced with Quetzalcoatlus'."*
+  // The whole spec comes from the platform, not just the number, because a
+  // mount could be range-banded too.
+  //
+  // `unit: "mount"` rather than `"self"` is what makes the base attack come off
+  // the right actor -- stage 1 of the pipeline has resolved named sources
+  // through `ctx.units[...]` since it was written, and this is its first
+  // caller. Resolving it as "self" would have swung Quetzalcoatl's own 125
+  // while reporting the mount's reach.
+  const from = platform ?? unit;
+  const named = platform ? "mount" : "self";
+
+  const spec = from?.normalAttack ?? {};
   const component = spec.component ?? "str";
   const flat = {
-    sources: [{ unit: "self", component, factor: 1 }],
+    sources: [{ unit: named, component, factor: 1 }],
     component,
     ignoresMagicResistance: false,
   };
@@ -56,7 +69,7 @@ export function normalAttackAt(unit, range = null) {
   if (!band) return flat;
 
   const sources = (band.sources ?? []).map((s) => ({
-    unit: "self", component: s.component ?? component, factor: s.factor ?? 1,
+    unit: named, component: s.component ?? component, factor: s.factor ?? 1,
   }));
 
   return {

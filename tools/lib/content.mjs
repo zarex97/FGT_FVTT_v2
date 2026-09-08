@@ -1430,6 +1430,12 @@ function actorSystem(doc) {
     // and her Quetzalcoatlus. See `data/actor/_shared.mjs` for why this is a
     // second flag rather than a reuse of the one above.
     sharesPanel: Boolean(doc.sharesPanel),
+    // A mount whose rider drives it, and whether its owner may switch it off.
+    // Both are the platform-side halves of rules a bounded field already
+    // carries; see `rules/platforms.mjs#actionSourceFor` and
+    // `#deactivationVerdict`.
+    replacesRiderAction: doc.replacesRiderAction ?? null,
+    deactivation: doc.deactivation ?? null,
     // Pale Rider and the Kagome Spirits: "Base Health: -", "cannot be
     // damaged". Without this the flag compiled to its schema default and each
     // type's `prepareBaseData` backfilled a Health the sheet does not state.

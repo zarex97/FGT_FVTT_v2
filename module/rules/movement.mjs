@@ -16,6 +16,7 @@ import * as geo from "../domain/geometry.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { contains, membershipVerdict } from "./bounded-fields.mjs";
 import { guardsOf, relationOf } from "./relations.mjs";
+import { actionSourceFor } from "./platforms.mjs";
 
 /** Effects that let a unit ignore occupancy and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
@@ -59,19 +60,29 @@ export function planMovement(unit, board, { hasRiding = undefined } = {}) {
   // callers that already computed it, but a unit that carries the capability
   // needs no help from its caller to be believed.
   const canDoubleMove = hasGranted(unit, GRANTS.doubleMove) || hasRiding === true;
-  const budget = remainingMovement(unit);
+
+  // A rider whose mount replaces her Move plans from THE MOUNT: its MOV, its
+  // panel, and its own obstacle rules -- *"the Quetzalcoatlus ignores obstacles
+  // while Moving, and can Move onto occupied panels"*. Her turn state comes
+  // with her, because the segments and the panels already spent are hers.
+  const source = actionSourceFor(unit, board);
+  const mover = source.movesAsPlatform
+    ? { ...source.platform, turnState: unit.turnState, level: source.platform.level ?? unit.level }
+    : unit;
+
+  const budget = remainingMovement(mover);
   const bounds = board.bounds ?? null;
 
   const passable = geo.reachablePanels(
-    unit.panel,
+    mover.panel,
     budget,
-    (panel) => !canPassThrough(panel, unit, board),
+    (panel) => !canPassThrough(panel, mover, board),
     bounds,
   );
 
   const reachable = new Map();
   for (const [k, steps] of passable) {
-    if (canStopOn(geo.unkey(k), unit, board)) reachable.set(k, steps);
+    if (canStopOn(geo.unkey(k), mover, board)) reachable.set(k, steps);
   }
 
   return {
