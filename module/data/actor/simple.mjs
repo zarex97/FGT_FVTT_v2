@@ -110,14 +110,46 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // almost the same name, so: this one is what `scene.levels.get()` takes.
       levelId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
-      // A per-round charge on the owner's Master, which may REPLACE another
-      // cost rather than add to it (§15.4's `supersedes`). The Hanging Gardens
-      // is the case: "This effect overwrites the normal Master Health loss when
-      // a Servant uses its NP."
-      upkeep: new fields.SchemaField({
-        amount: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
-        supersedes: new fields.ArrayField(new fields.StringField({ blank: false })),
-      }, { required: false, nullable: true, initial: null }),
+      // What a platform costs to keep, in EITHER of the two senses a sheet
+      // uses, which is why this is untyped the way `NPFieldBehavior.upkeep` and
+      // every rule element are:
+      //
+      //   `{amount, supersedes}` -- a charge on the owner's Master that REPLACES
+      //   another cost rather than adding to it (§15.4). The Hanging Gardens:
+      //   *"this effect overwrites the normal Master Health loss when a Servant
+      //   uses its NP."* Read by `engine/attack.mjs` when an NP is paid for.
+      //
+      //   `{every, cost: {kind, amount, payer}, endWhenUnaffordable}` -- a
+      //   RECURRING toll, identical in shape to a bounded field's and swept by
+      //   the same `engine/fields.mjs#runUpkeep`. Quetzalcoatl's Quetzalcoatlus:
+      //   *"after every 1◈ Turns, Quetz's Master's Health is reduced by 25 at
+      //   the end of the Turn."*
+      //
+      // A SchemaField of the first shape could not carry the second, and two
+      // fields would let a sheet declare a toll under the name the cost reader
+      // watches.
+      upkeep: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+      // Whether the owner may switch it off, and when. Identical in shape and
+      // meaning to a bounded field's, and read through the same
+      // `rules/platforms.mjs#deactivationVerdict`, because Quetzalcoatl's two
+      // Noble Phantasms carry the same block -- one platform, one field -- and
+      // differ only in whether it has a `lockout`.
+      deactivation: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+      // The tick it was activated on, which a `lockout` counts from, and the
+      // tick its upkeep last charged, which a `every` period counts from. Both
+      // are stamped at runtime, never authored -- and both must survive a
+      // reload, which a counter held by whichever client happens to be the
+      // scheduler does not.
+      activatedAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      lastUpkeepAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
+      // A mount whose RIDER drives it: while aboard, the rider's Move and
+      // Normal Attack are the platform's, spending the rider's action rather
+      // than the platform's own. Every other platform in the set carries its
+      // passengers passively. See `rules/platforms.mjs#actionSourceFor`.
+      replacesRiderAction: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // Cross-level rules are per-platform, not global (Ch. 20 §20.7): the
       // author confirmed protection is decided case by case, so there is no

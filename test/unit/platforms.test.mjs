@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
 import {
   platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
   boardingTarget, fallOff, destructionSequence, aoePassengerFactor,
-  platformCentre, withinPlatformCentre,
+  platformCentre, withinPlatformCentre, deactivationVerdict,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
 
@@ -360,5 +360,64 @@ describe("nextBand", () => {
 
   it("copes with a scene that has no levels at all", () => {
     expect(nextBand([])).toEqual({ bottom: 0, top: 10 });
+  });
+});
+
+/* ========================================================================== */
+/*  Deactivation, and the lockout axis                                        */
+/* ========================================================================== */
+
+/**
+ * Quetzalcoatl's two Noble Phantasms carry the same authored block -- one on a
+ * platform, one on a bounded field -- and differ in one word:
+ *
+ *   Winged Serpent: "...but cannot be deactivated for 2◈ Turns after it was
+ *   activated."
+ *   Piedra Del Sol: "...can be deactivated during Quetz's Turn or at the start
+ *   or end of any Round or Turn." (and nothing further)
+ *
+ * So the absence has to be expressible, which is why `lockout` is optional
+ * rather than a number defaulting to something.
+ */
+describe("deactivationVerdict", () => {
+  const locked = { byOwner: true, window: "any", lockout: "2◈" };
+  const free = { byOwner: true, window: "any" };
+  // The Great Holy Grail War runs at 3 turns per Round, so 2◈ is 6 ticks.
+  const base = { createdAt: 0, unitId: "quetz", ownerId: "quetz", turnsPerRound: 3 };
+
+  it("refuses the owner inside the lockout, and says when it lifts", () => {
+    const v = deactivationVerdict(locked, { ...base, tick: 3 });
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe("locked");
+    expect(v.unlocksAt).toBe(6);
+  });
+
+  it("allows the owner on the exact tick it lifts", () => {
+    expect(deactivationVerdict(locked, { ...base, tick: 6 }).ok).toBe(true);
+  });
+
+  it("counts the lockout from activation, not from the start of the match", () => {
+    const v = deactivationVerdict(locked, { ...base, createdAt: 10, tick: 12 });
+    expect(v.ok).toBe(false);
+    expect(v.unlocksAt).toBe(16);
+  });
+
+  it("allows the owner immediately when there is no lockout", () => {
+    expect(deactivationVerdict(free, { ...base, tick: 0 }).ok).toBe(true);
+  });
+
+  it("refuses anyone who is not the owner, however long it has stood", () => {
+    const v = deactivationVerdict(free, { ...base, tick: 99, unitId: "somebody-else" });
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe("notOwner");
+  });
+
+  it("refuses when the spec forbids owner deactivation at all", () => {
+    // Most fields cannot be switched off: a Reality Marble runs its clock out.
+    expect(deactivationVerdict({ byOwner: false }, { ...base, tick: 99 }).reason).toBe("notAllowed");
+  });
+
+  it("refuses on a missing spec rather than defaulting to permissive", () => {
+    expect(deactivationVerdict(null, { ...base, tick: 99 }).ok).toBe(false);
   });
 });

@@ -344,6 +344,17 @@ export function snapshotUnit(actor, {
     capacity: sys.capacity ?? null,
     ownerId: sys.ownerId ?? null,
     crossLevel: sys.crossLevel ?? null,
+    // `upkeep` was NEVER PROJECTED, so `engine/attack.mjs`'s platform cost
+    // replacement -- `units.find(u => u.kind === "platform" && u.upkeep)` --
+    // could not match a platform in any world: the Hanging Gardens' clause
+    // overwriting a Servant's NP Master-Health cost has been inert since it was
+    // written. The recurring-toll reader (`fields.mjs#runUpkeep`) needs the
+    // same field, so both are fixed by projecting it once.
+    upkeep: sys.upkeep ?? null,
+    deactivation: sys.deactivation ?? null,
+    activatedAt: sys.activatedAt ?? null,
+    lastUpkeepAt: sys.lastUpkeepAt ?? null,
+    replacesRiderAction: sys.replacesRiderAction ?? null,
     // Concealment is a STATE, and until now nothing produced it. `sys.concealed`
     // was projected here, consulted by targeting, by the counter gate, by
     // movement legality and by the Evade ladder -- and written by no code and
