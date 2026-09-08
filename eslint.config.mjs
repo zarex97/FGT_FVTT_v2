@@ -92,7 +92,7 @@ export default [
       "module/engine/scheduler-hooks.mjs", "module/engine/movement-hooks.mjs",
       "module/engine/faction-ownership.mjs", "module/engine/token-image.mjs",
       "module/engine/token-footprint.mjs", "module/engine/token-rotation.mjs",
-      "module/engine/token-vision.mjs",
+      "module/engine/token-vision.mjs", "module/engine/terrain.mjs",
       "module/apps/canvas/target-region.mjs", "module/apps/hud/action-bar.mjs",
       "module/apps/hud/pending-panel.mjs",
     ],

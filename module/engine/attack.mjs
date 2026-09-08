@@ -50,6 +50,8 @@ import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
+import { terrainConversions } from "../rules/terrain.mjs";
+import { paintTerrain, removeTerrainType } from "./terrain.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { meetsRequirement } from "../rules/items.mjs";
 import { canUseAbility, resolveCosts, npCostAt } from "../rules/costs.mjs";
@@ -1639,6 +1641,12 @@ async function runAutomaticStep(state, message) {
       // the first: *"NP Cooldown is reduced by ½◈ Turns at the end of the
       // Damage Step when a successful Attack is performed."*
       if (!skipped && result.total > 0) await fireDamageStepEnd(state);
+      // Terrain the attack itself changes (§42.2): Fire in a Forest makes
+      // Burning on Tails, and a Meadow is consumed by the attack that used it.
+      // `rules/terrain.mjs#terrainConversions` has computed both since terrain
+      // shipped and NOTHING HAS EVER ASKED IT -- the same collected-and-inert
+      // shape as `fireEvent`, the ZON tables and the element modifiers.
+      if (!skipped) await applyTerrainConversions(state, result);
       // Riders, which need the victim as well as the fact that it landed.
       if (!skipped && result.total > 0) await fireDamageDealt(state, result);
       // ...and the mirror, on the Unit that took it.
@@ -3101,6 +3109,62 @@ async function resolveEmptiedDefender(state) {
   // "take this much more".
   const intents = await resolveDefeatOf(defender, 0, state);
   if (intents.length > 0) await applyBatch(intents, "terminal");
+}
+
+/**
+ * Terrain the attack just changed.
+ *
+ * Two clauses, and they are opposites (§42.2): Fire **creates** Burning out of
+ * a Forest permanently, and **consumes** a Meadow at the end of the Damage
+ * Step. `rules/terrain.mjs#terrainConversions` decides both; this is the caller
+ * it never had.
+ *
+ * The coin is flipped HERE and passed in, keeping the rules layer pure — the
+ * same "caller rolls" contract the crit, negation and Injury rolls use.
+ *
+ * Fired whether or not the damage landed: a Forest catches fire from a Fire
+ * attack that was Blocked, and the Meadow clause is *"at the end of the Damage
+ * Step"* rather than "on a hit".
+ *
+ * @param {object} state
+ * @param {object} result
+ * @returns {Promise<void>}
+ */
+async function applyTerrainConversions(state, result) {
+  if (!state.defenderId) return;
+  const element = state.attack?.element ?? null;
+  // The rules function refuses anything but Fire; asked here too, so a
+  // non-Fire attack does not roll a coin it can never read.
+  if (element !== "fire") return;
+
+  const board = currentBoard();
+  const defender = board.units.find((u) => u.id === state.defenderId);
+  if (!defender?.panel) return;
+
+  const coin = (await new Roll("1d2").evaluate()).total === 1 ? "heads" : "tails";
+  const changes = terrainConversions({
+    defender, board, element, coin,
+    areaPanels: state.attack?.areaPanels ?? null,
+  });
+  if (changes.length === 0) return;
+
+  for (const change of changes) {
+    if (change.kind === "convertTerrain") {
+      await paintTerrain({
+        types: [change.to],
+        panels: change.panels,
+        // "does not revert to Forest afterwards" — a conversion that does not
+        // revert is PERMANENT, so it carries no expiry even though the sheet
+        // states a duration for the fire itself.
+        duration: change.reverts ? change.duration : null,
+        tag: `conversion:${change.to}:${state.defenderId}:${result.total}`,
+      });
+    } else if (change.kind === "removeTerrain") {
+      // A Meadow is map terrain a GM drew, so it carries no tag and is
+      // addressed by type and panel instead.
+      await removeTerrainType(change.type, change.panels);
+    }
+  }
 }
 
 /**

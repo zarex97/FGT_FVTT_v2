@@ -21,6 +21,7 @@ import * as I from "./intents.mjs";
 import { grailContest, checkVictory } from "../rules/environment.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as fields from "./fields.mjs";
+import { expireTerrain } from "./terrain.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -153,6 +154,10 @@ async function onTurnChange(combat, prior, current) {
   // field and nothing ending one, so a `duration` was decoration -- which for a
   // total-isolation Reality Marble means the match never ends.
   await fields.expireFields(nextTick);
+  // Terrain a `zone` phase painted, on the same boundary and for the same
+  // reason: a `duration` nothing sweeps is decoration. Only PAINTED areas
+  // carry an expiry, so a GM's hand-drawn terrain is never touched.
+  await expireTerrain(nextTick);
   // A passive field has no cast to open it and no expiry to close it, so the
   // Turn boundary is where it is reconciled with the board: a Servant summoned
   // mid-match gets his area, one who left the board loses it. Idempotent, and
