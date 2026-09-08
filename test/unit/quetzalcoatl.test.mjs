@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { lookupNumber } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+import { aoePassengerFactor } from "../../module/rules/platforms.mjs";
 
 const R = (s) => Rank.parse(s);
 
@@ -221,5 +222,129 @@ describe("Xiuhcoatl", () => {
     expect(zone.spec.shape).toBe("fortressNearby");
     // "until the Fortress NP is deactivated" -- not a duration.
     expect(zone.spec.duration).toBe(null);
+  });
+});
+
+describe("the Quetzalcoatlus", () => {
+  const mount = load("platforms", "quetzalcoatlus");
+
+  it("shares panels rather than displacing — not Bašmu's flag", () => {
+    expect(mount.sharesPanel).toBe(true);
+    expect(mount.movesOntoOccupiedPanels).toBeUndefined();
+  });
+
+  it("gives the three AoE tiers her sheet states", () => {
+    const platform = { id: "m", crossLevel: mount.crossLevel };
+    // "the Quetzalcoatlus receives full damage" — the function's own
+    // `unit.id === platform.id` branch, which is the third tier and is not
+    // authored anywhere.
+    expect(aoePassengerFactor({ id: "m", kind: "platform" }, platform)).toBe(1);
+    // "Quetz receives 50% Total Damage"
+    expect(aoePassengerFactor({ id: "q", kind: "servant" }, platform)).toBe(0.5);
+    // "her Master receives no damage and effects"
+    expect(aoePassengerFactor({ id: "k", kind: "master" }, platform)).toBe(0);
+  });
+
+  it("cannot be targeted at all from outside", () => {
+    expect(mount.crossLevel.occupantTargeting).toBe("forbidden");
+  });
+
+  it("lets its riders shoot out, which is her whole reason to be up there", () => {
+    expect(mount.crossLevel.outboundTargeting).toBe("free");
+  });
+
+  it("is driven by its owner and not by her Master", () => {
+    expect(mount.replacesRiderAction).toEqual({
+      roles: ["owner"], move: true, normalAttack: true,
+    });
+  });
+
+  it("charges her Master 25 per period and closes rather than overdrawing", () => {
+    expect(mount.upkeep.every).toBe("1◈");
+    expect(mount.upkeep.cost.amount).toBe(25);
+    expect(mount.upkeep.cost.payer).toBe("ownerMaster");
+    expect(mount.upkeep.endWhenUnaffordable).toBe(true);
+  });
+
+  it("cannot be switched off for 2 Rounds' worth of Turns", () => {
+    expect(mount.deactivation).toEqual({ byOwner: true, window: "any", lockout: "2◈" });
+  });
+
+  it("shares Quetz's Luck rather than stating a number", () => {
+    expect(mount.inherit.luck).toEqual({ from: "summoner" });
+  });
+
+  it("is one panel, not the schema's default 3x3", () => {
+    expect(mount.footprint).toEqual({ w: 1, h: 1 });
+  });
+});
+
+describe("Quetzalcoatl: Winged Serpent", () => {
+  const np = ability("quetz-winged-serpent");
+
+  it("is non-damaging: phases, and no damage phase among them", () => {
+    expect(np.phases.some((p) => p.kind === "damage")).toBe(false);
+    expect(np.damage).toBeUndefined();
+  });
+
+  it("counts its cooldown from the mount's DEATH, not from the cast", () => {
+    expect(np.cooldown).toEqual({ max: "7◈", countFrom: "destroyed" });
+  });
+
+  it("boards her Master only if he is already adjacent", () => {
+    const phase = np.phases.find((p) => p.kind === "summonPlatform");
+    expect(phase.platformId).toBe("quetzalcoatlus");
+    expect(phase.boardMasterIfAdjacent).toBe(true);
+  });
+});
+
+describe("the three Quetzalcoatlus Spells", () => {
+  const ids = ["quetz-tlahuitequiliztli", "quetz-ehecatle", "quetz-tlaelquiyahuitl"];
+  const spells = ids.map(ability);
+
+  it("share one cooldown, and each starts the others' clocks", () => {
+    for (const s of spells) {
+      expect(s.exclusionSet).toBe("quetzalcoatlusSpells");
+      // The set alone would gate nothing: something has to START the other two.
+      expect(s.alsoTriggers).toEqual([{ exclusionSet: "quetzalcoatlusSpells" }]);
+      expect(s.cooldown).toBe("2◈");
+    }
+  });
+
+  it("each hits a 3x3 within Range 4 for 2x", () => {
+    for (const s of spells) {
+      expect(s.targeting.anchor.range).toBe(4);
+      expect(s.targeting.shape).toEqual({ kind: "square", size: 3 });
+      expect(s.damage.multiplier).toBe(2);
+    }
+  });
+
+  it("carry three different elements and three different riders", () => {
+    expect(spells.map((s) => s.element)).toEqual(["lightning", "wind", "water"]);
+    expect(spells.map((s) => s.phases.find((p) => p.kind === "applyEffects").rules[0].effect.id))
+      .toEqual(["shock", "sap", "slow"]);
+  });
+
+  it("inflict for the durations the sheet states, which are not uniform", () => {
+    const durations = spells.map(
+      (s) => s.phases.find((p) => p.kind === "applyEffects").rules[0].duration,
+    );
+    expect(durations).toEqual(["2◈", "1◈", "2◈"]);
+  });
+
+  it("require the mount and refuse while Piedra Del Sol stands", () => {
+    for (const s of spells) {
+      const preds = s.requirements.map((r) => r.predicate);
+      expect(preds).toContainEqual(["self:onPlatform:quetzalcoatlus"]);
+      expect(preds).toContainEqual([{ not: "self:fieldActive:quetz-piedra-del-sol" }]);
+    }
+  });
+
+  it("count as her Attack and cannot be used as a Counter", () => {
+    for (const s of spells) {
+      expect(s.countsAsAttack).toBe(true);
+      // A reaction window is what a Counter needs; `ownTurn` refuses one.
+      expect(s.timing.window).toBe("ownTurn");
+    }
   });
 });

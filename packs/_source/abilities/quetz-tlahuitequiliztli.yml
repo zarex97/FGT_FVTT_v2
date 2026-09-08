@@ -1,0 +1,55 @@
+# Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
+#
+# One of three Spells that are identical but for their element and their rider.
+# They share ONE cooldown -- "when one is used the other 2 cannot be used until
+# Cooldown ends" -- which is an `exclusionSet` plus an `alsoTriggers` naming it:
+# the set is what a gate reads, and the trigger is what actually puts the other
+# two down. Declaring only the set would gate nothing, because nothing would
+# have started their clocks.
+schema: 1
+id: quetz-tlahuitequiliztli
+name: "Tlahuitequiliztli"
+kind: spell
+slug: tlahuitequiliztli
+cooldown: "2◈"
+# "All of Quetz's Quetzalcoatlus Spells share the same Cooldown (Cooldown: 2◈
+# Turns), when one is used the other 2 cannot be used until Cooldown ends."
+exclusionSet: quetzalcoatlusSpells
+alsoTriggers:
+  - { exclusionSet: quetzalcoatlusSpells }
+element: lightning
+timing: { window: ownTurn }
+# "Counts as Quetz's & Quetzalcoatlus' Attack for the Turn." The second half --
+# "cannot be used as a Counter" -- is `timing.window: ownTurn`, which refuses a
+# reaction window outright.
+countsAsAttack: true
+requirements:
+  # "Can only be used while Riding Quetzalcoatlus."
+  - { kind: predicate, predicate: ["self:onPlatform:quetzalcoatlus"] }
+  # "Quetzalcoatlus Spells cannot be used if Piedra Del Sol is Active."
+  - { kind: predicate, predicate: [{ not: "self:fieldActive:quetz-piedra-del-sol" }] }
+description: |
+  Damage Spell. Can only be used while Riding Quetzalcoatlus. Range=4. Hits a 3x3 panel area
+  within Range for 2x damage and inflicts @effect[shock]{Shock} for 2◈ Turns.
+  Lightning damage. Counts as Quetz's & Quetzalcoatlus' Attack for the Turn. Cannot be used as
+  a Counter.
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  # Her own BA(MAG). `replacesRiderAction` takes her Normal Attack and gives her
+  # the mount's; a Spell is CAST rather than swung, so it draws on the stat the
+  # substitution leaves her.
+  component: mag
+  multiplier: 2
+  element: lightning
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: shock }
+        duration: "2◈"

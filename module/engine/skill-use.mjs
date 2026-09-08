@@ -50,6 +50,7 @@ import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField } from "./fields.mjs";
 import { paintTerrain } from "./terrain.mjs";
+import { activatePlatform } from "./platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
@@ -480,6 +481,20 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // `declined` only when it really was: anything else is the field
               // failing to open, and saying "declined" for that hides it.
               reason: opened ? null : (field?.declined ? "declined" : "couldNotOpen"),
+            },
+          });
+          break;
+        }
+
+        case "summonPlatform": {
+          // Once per use, from the caster: one mount, not one per target.
+          if (target.unitId !== actor.id) break;
+          const out = await summonPlatform(phase, actor, board);
+          applied.push({
+            summary: {
+              id: "summonPlatform", name: phase.platformId,
+              outcome: out.ok ? "applied" : "failed",
+              reason: out.ok ? null : out.reason,
             },
           });
           break;
@@ -1631,6 +1646,92 @@ export async function runCasterPhases(ability, actor, board, extras = {}) {
  * and after the damage has landed.
  */
 /**
+ * Conjure a platform at the caster's panel and put her aboard.
+ *
+ * > *"When this NP is used, Quetz summons a Quetzalcoatlus at her position, and
+ * > she is Moved onto the Quetzalcoatlus together with her Master (if her Master
+ * > is next to the Quetzalcoatlus; otherwise her Master can get on the
+ * > Quetzalcoatlus at any time)."*
+ *
+ * `engine/hgob.mjs` does this for Semiramis and stays hers: it also applies an
+ * owner buff, a ZON exemption and a Sustainability bump, none of which are
+ * general. What IS general — find the document, stamp its owner, resolve its
+ * `inherit`, place the token, hand it to `activatePlatform` — is here, so the
+ * next mount needs no third copy.
+ *
+ * A Master who is not adjacent is not an error: his sheet says he *"can get on
+ * at any time"*, which is the ordinary boarding flow and needs nothing here.
+ *
+ * @param {object} phase the `summonPlatform` phase
+ * @param {object} actor the caster
+ * @param {object} board
+ * @returns {Promise<{ok: boolean, reason?: string, platformId?: string}>}
+ */
+async function summonPlatform(phase, actor, board) {
+  const scene = canvas?.scene;
+  const self = board.units.find((u) => u.id === actor.id);
+  if (!self?.panel || !scene) return { ok: false, reason: "notOnBoard" };
+
+  const source = await actorFromPacks(phase.platformId);
+  if (!source) return { ok: false, reason: "unknownPlatform" };
+
+  const data = source.toObject();
+  data.system.ownerId = actor.id;
+  data.system.factionId = actor.system?.factionId ?? null;
+  // The lockout and the upkeep period both count from here, and neither can be
+  // recovered afterwards -- a platform that forgot when it was raised could be
+  // switched off immediately or charge its Master on the wrong beat.
+  data.system.activatedAt = game.combat?.system?.globalTurn ?? 0;
+
+  // "Luck: Shared with Quetz's" -- resolved from the summoner's LIVE values,
+  // the same rule and the same moment `engine/summoning.mjs` uses for the
+  // Kagome Spirits' relative stats.
+  for (const [stat, rule] of Object.entries(data.system.inherit ?? {})) {
+    if (rule?.from !== "summoner") continue;
+    const base = actor.system?.[stat]?.max ?? actor.system?.[stat]?.value ?? 0;
+    const value = Math.max(0, base + (rule.delta ?? 0));
+    data.system[stat] = { value, max: value };
+  }
+
+  const platform = await Actor.create(data);
+  const footprint = platform.system?.footprint ?? { w: 1, h: 1 };
+  const token = await platform.getTokenDocument({
+    x: self.panel.j * scene.grid.size,
+    y: self.panel.i * scene.grid.size,
+    width: footprint.w,
+    height: footprint.h,
+  });
+  await scene.createEmbeddedDocuments("Token", [token.toObject()]);
+
+  // Who rides. The owner always; her Master only if he is standing next to it,
+  // which is the sheet's own condition and is measured from where he is now.
+  const riders = [actor.id];
+  if (phase.boardMasterIfAdjacent && self.masterId) {
+    const master = board.units.find((u) => u.id === self.masterId);
+    if (master?.panel && chebyshev(master.panel, self.panel) <= 1) riders.push(master.id);
+  }
+
+  const activated = await activatePlatform({ platformId: platform.id, initialUnitIds: riders });
+  if (!activated.ok) return activated;
+  return { ok: true, platformId: platform.id };
+}
+
+/**
+ * An Actor document in the compendia, by its content id.
+ *
+ * @param {string} contentId
+ * @returns {Promise<object|null>}
+ */
+async function actorFromPacks(contentId) {
+  for (const pack of game.packs.filter((p) => p.metadata.type === "Actor")) {
+    const index = await pack.getIndex({ fields: ["system.contentId"] });
+    const entry = index.find((e) => e.system?.contentId === contentId);
+    if (entry) return pack.getDocument(entry._id);
+  }
+  return null;
+}
+
+/**
  * The panels a `zone` phase covers.
  *
  * Three forms. An explicit `shape` anchored on the caster is the ordinary case
@@ -1739,6 +1840,7 @@ function zoneRadius(spec) {
 
 const CASTER_PHASES = new Set([
   "resource", "statChange", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
+  "summonPlatform",
   // Terrain an attacking NP paints. Xiuhcoatl's Fortress clause is the first:
   // it depends on where Quetzalcoatl is standing when she uses it, not on
   // anything the attack achieves, so running it here -- before the fan-out,
