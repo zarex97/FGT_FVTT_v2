@@ -420,3 +420,48 @@ describe("knockbackPanel (Ch. 32, Bašmu)", () => {
     expect(knockbackPanel(basmu, below, board([below])).panel).toEqual(at(9, 6));
   });
 });
+
+describe("sharesPanel — co-location without displacement", () => {
+  const stone = (over = {}) => mover({
+    id: "stone", kind: "structure", factionId: "a", sharesPanel: true, mov: 0, ...over,
+  });
+
+  it("lets a sharing unit stop on a panel a Servant occupies", () => {
+    const b = board([other("enemy", 6, 7)]);
+    expect(canStopOn(at(6, 7), stone(), b)).toBe(true);
+  });
+
+  it("does not let an ordinary unit stop on a Servant, sharing or not", () => {
+    const b = board([other("enemy", 6, 7)]);
+    expect(canStopOn(at(6, 7), mover(), b)).toBe(false);
+  });
+
+  it("refuses a sharing unit a panel another structure occupies", () => {
+    const mark = other("mark", 6, 7, { kind: "structure" });
+    expect(canStopOn(at(6, 7), stone(), board([mark]))).toBe(false);
+  });
+
+  it("refuses a sharing unit a panel a platform occupies", () => {
+    const pad = other("pad", 6, 7, { kind: "platform" });
+    expect(canStopOn(at(6, 7), stone(), board([pad]))).toBe(false);
+  });
+
+  it("still lets an ordinary unit walk onto a structure — unchanged", () => {
+    const mark = other("mark", 6, 7, { kind: "structure" });
+    expect(canStopOn(at(6, 7), mover(), board([mark]))).toBe(true);
+  });
+
+  it("may cross what it may stand on — stopping without passing is incoherent", () => {
+    const b = board([other("enemy", 6, 7)]);
+    expect(canPassThrough(at(6, 7), stone(), b)).toBe(true);
+  });
+
+  it("does not displace: sharing is not the flag movement-hooks knocks back on", () => {
+    // `engine/movement-hooks.mjs` reads `ignoresOccupancy`, which Bašmu and
+    // Kingprotea carry and this does not. Two capabilities, and the whole
+    // difference is what happens to whoever was already standing there.
+    const s = stone();
+    expect(s.ignoresOccupancy).toBeUndefined();
+    expect(s.sharesPanel).toBe(true);
+  });
+});

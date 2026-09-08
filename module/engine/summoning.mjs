@@ -109,7 +109,13 @@ export function freePanels(summoner, placement, needed) {
   // A 5x5 "around" the caster is a Chebyshev radius of 2.
   const radius = Math.floor((placement.size ?? 5) / 2);
   const occupied = new Set(
-    board.units.flatMap((u) => (u.panels ?? [u.panel]).filter(Boolean).map((p) => `${p.i},${p.j}`)),
+    board.units
+      // A Unit that shares panels does not make a panel unavailable -- that is
+      // what sharing means, and a summon refused the only free square because
+      // Piedra Del Sol was standing on it would be the same defect from the
+      // other side.
+      .filter((u) => !u.sharesPanel)
+      .flatMap((u) => (u.panels ?? [u.panel]).filter(Boolean).map((p) => `${p.i},${p.j}`)),
   );
 
   return chebyshevDisc(origin, radius, board.bounds ?? null)

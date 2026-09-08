@@ -68,6 +68,17 @@ export function unitCommon() {
     // states no Health, quietly giving him 1600 and a health bar.
     undamageable: new fields.BooleanField({ initial: false }),
 
+    // Quetzalcoatl's Piedra Del Sol and her Quetzalcoatlus: *"the panel occupied
+    // by Piedra Del Sol can still be Moved onto (replace the Piedra Del Sol on
+    // top of any Units which Move onto that panel)"*.
+    //
+    // NOT `movesOntoOccupiedPanels`, which is Bašmu's and Kingprotea's and means
+    // *"all Units occupying said panels will be knocked back"*. That one
+    // DISPLACES; this one co-locates and displaces nobody. Two sheets, two
+    // sentences, two capabilities -- `engine/movement-hooks.mjs` knocks units
+    // back off the first flag and must never see this one.
+    sharesPanel: new fields.BooleanField({ initial: false }),
+
     // A summon that hunts ONE enemy, and one that lives only while a field
     // stands. The Kagome Spirits are both: *"the Kagome Spirit summoned for
     // each enemy Unit will constantly Move towards that Unit and Attack it"*,
