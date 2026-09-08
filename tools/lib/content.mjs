@@ -605,6 +605,37 @@ function zonePhasesNameRealTerrain(doc, path, problems) {
   }
 }
 
+/**
+ * An `aftermath` block is a whole second resolution and must carry one.
+ *
+ * Xiuhcoatl's splash fires from a different anchor, on a different base attack,
+ * at a different multiplier: without `targeting` it catches nobody, and without
+ * `damage` it silently inherits the primary's numbers — 4× the combined 250
+ * instead of 1× BA(MAG). Both failures resolve, report success, and are wrong.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function aftermathIsComplete(doc, path, problems) {
+  const after = doc?.aftermath;
+  if (!after) return;
+  if (!after.targeting) {
+    problems.push(`${path}: aftermath has no "targeting", so its second resolution would catch nobody.`);
+  }
+  if (!after.damage) {
+    problems.push(
+      `${path}: aftermath has no "damage". It would silently inherit the primary resolution's ` +
+      `base attack and multiplier, which is never what a "then, also" clause means.`,
+    );
+  }
+  const component = after.damage?.component
+    ?? (after.damage?.sources ?? []).map((s) => s.component).find(Boolean);
+  if (after.damage && !component) {
+    problems.push(`${path}: aftermath.damage names no component — expected "str" or "mag".`);
+  }
+}
+
 function activeRulesAreReachable(doc, path, problems) {
   if (!(doc?.activeRules ?? []).length) return;
   const { kind } = classifyAbility({ type: doc.type, system: doc });
@@ -807,6 +838,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     activeRulesAreReachable(doc, path, problems);
     fieldIsOpenable(doc, path, problems);
     zonePhasesNameRealTerrain(doc, path, problems);
+    aftermathIsComplete(doc, path, problems);
   }
 
   // Ranks
@@ -1630,6 +1662,10 @@ function itemSystem(doc) {
     allySelfBypassesResistance: Boolean(doc.allySelfBypassesResistance),
     nonStacking: doc.nonStacking ?? null,
     damage: doc.damage ?? null,
+    // A second, unconditional resolution the same ability declares -- Xiuhcoatl's
+    // splash. Compiled whole, the way `damage` is, because it carries its own
+    // targeting, damage and riders rather than patching the primary's.
+    aftermath: doc.aftermath ?? null,
     element: doc.element ?? null,
     rules: doc.rules ?? [],
     passiveRules: doc.passiveRules ?? [],
