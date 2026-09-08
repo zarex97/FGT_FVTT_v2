@@ -22,6 +22,7 @@ import { TABLES, lookup } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS } from "../../module/rules/targeting/vocabulary.mjs";
 import { MODIFIER_KEYS } from "../../module/rules/damage/pipeline.mjs";
+import { TERRAIN } from "../../module/rules/terrain.mjs";
 // The list `meetsRequirement` itself exports, not a second copy of it. A
 // hand-maintained duplicate is what `RULE_ELEMENT_KEYS` has to be held
 // against `EXECUTORS` by a test; where the reader already exports its own
@@ -574,6 +575,36 @@ function fieldIsOpenable(doc, path, problems) {
   );
 }
 
+/**
+ * A `zone` phase must name terrain that exists.
+ *
+ * Same failure shape as the geometry check above: an unknown type paints a
+ * Region that `terrainAt` will happily report and `TERRAIN[type]` will not
+ * recognise, so the area exists, does nothing, and looks applied. Cheaper to
+ * refuse at build time than to find on a table.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function zonePhasesNameRealTerrain(doc, path, problems) {
+  for (const [index, phase] of (doc?.phases ?? []).entries()) {
+    if (phase?.kind !== "zone") continue;
+    const types = phase.spec?.terrain ?? [];
+    if (types.length === 0) {
+      problems.push(`${path}: phases[${index}] is a "zone" with no "spec.terrain", so it paints nothing.`);
+      continue;
+    }
+    for (const type of types) {
+      if (TERRAIN[type]) continue;
+      problems.push(
+        `${path}: phases[${index}] paints terrain "${type}", which is not in the catalogue — ` +
+        `expected one of ${Object.keys(TERRAIN).join(", ")}.`,
+      );
+    }
+  }
+}
+
 function activeRulesAreReachable(doc, path, problems) {
   if (!(doc?.activeRules ?? []).length) return;
   const { kind } = classifyAbility({ type: doc.type, system: doc });
@@ -775,6 +806,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   } else {
     activeRulesAreReachable(doc, path, problems);
     fieldIsOpenable(doc, path, problems);
+    zonePhasesNameRealTerrain(doc, path, problems);
   }
 
   // Ranks
