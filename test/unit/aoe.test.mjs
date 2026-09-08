@@ -10,6 +10,8 @@
 
 import { describe, it, expect } from "vitest";
 import { beginFanOut, advance, shouldUpdateFacing } from "../../module/engine/combat-process.mjs";
+import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
+import { squareBounds } from "../../module/domain/geometry.mjs";
 
 const attack = { abilityId: "np", kind: "np" };
 const fanOf = (...ids) => beginFanOut({ attackerId: "atk", targetIds: ids, attack });
@@ -72,5 +74,62 @@ describe("beginFanOut", () => {
 
     expect(shouldUpdateFacing(aoe)).toBe(false);
     expect(shouldUpdateFacing(single)).toBe(true);
+  });
+});
+
+/* ========================================================================== */
+/*  Xiuhcoatl's second resolution                                             */
+/* ========================================================================== */
+
+/**
+ * > *"Then (regardless of whether the NP hits the DU or not), deals normal
+ * > damage to all Units within a 2 panel area of Quetzalcoatl **except herself
+ * > and the previously targeted Unit**..."*
+ *
+ * Not an area attack with a hole in it: a separate resolution, from a different
+ * anchor, on a different base attack, at a different multiplier. `includeSelf:
+ * false` already drops the caster; this drops the anchor of the resolution that
+ * came first, which only a second resolution has.
+ */
+describe("excludePrimaryTarget", () => {
+  const at = (i, j) => ({ i, j });
+  const quetz = { id: "quetz", name: "Quetzalcoatl", kind: "servant", factionId: "a", panel: at(6, 6) };
+  const primary = { id: "primary", name: "Primary", kind: "servant", factionId: "b", panel: at(6, 7) };
+  const bystander = { id: "bystander", name: "Bystander", kind: "servant", factionId: "b", panel: at(5, 6) };
+  const board = {
+    bounds: squareBounds(13),
+    units: [quetz, primary, bystander],
+    alliances: { a: ["a"], b: ["b"] },
+  };
+  const splash = (over = {}) => ({
+    anchor: { kind: "self" },
+    shape: { kind: "square", size: 5 },
+    selection: {
+      relations: ["enemy", "ally", "neutral"], includeSelf: false, chooser: "all", ...over,
+    },
+  });
+
+  it("drops the anchor of the first resolution from the second", () => {
+    const out = resolveTargets(splash({ excludePrimaryTarget: true }), quetz, board, {
+      primaryTargetId: "primary",
+    });
+    expect(out.units.map((t) => t.unitId)).toEqual(["bystander"]);
+  });
+
+  it("keeps the primary when the filter is absent", () => {
+    const out = resolveTargets(splash(), quetz, board, { primaryTargetId: "primary" });
+    expect(out.units.map((t) => t.unitId).sort()).toEqual(["bystander", "primary"]);
+  });
+
+  it("is inert when no primary was recorded", () => {
+    const out = resolveTargets(splash({ excludePrimaryTarget: true }), quetz, board, {});
+    expect(out.units.map((t) => t.unitId).sort()).toEqual(["bystander", "primary"]);
+  });
+
+  it("never catches the caster, primary or not", () => {
+    const out = resolveTargets(splash({ excludePrimaryTarget: true }), quetz, board, {
+      primaryTargetId: "primary",
+    });
+    expect(out.units.map((t) => t.unitId)).not.toContain("quetz");
   });
 });

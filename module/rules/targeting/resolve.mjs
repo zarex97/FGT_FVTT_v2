@@ -129,6 +129,13 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   const includeSelf = resolveIncludeSelf(sel, spec);
   survivors = survivors.filter((u) => {
     if (u.id === caster.id) return includeSelf || drop(u, "the attacker itself");
+    // *"...except herself AND THE PREVIOUSLY TARGETED UNIT"* -- Xiuhcoatl's
+    // splash. `includeSelf: false` above is the first half; this is the second,
+    // and only a SECOND resolution has a first one to exclude. Inert without a
+    // `primaryTargetId`, which every ordinary resolution is.
+    if (sel.excludePrimaryTarget && placement?.primaryTargetId === u.id) {
+      return drop(u, "the Unit this Noble Phantasm already targeted");
+    }
     const relation = relationOf(caster, u, board);
     return relations.has(relation) || drop(u, relationReason(relation, caster, u, relations));
   });

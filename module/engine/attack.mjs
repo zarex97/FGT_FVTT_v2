@@ -331,8 +331,70 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
 
   // The rest of a declaration -- the fan-out, the cards, the events -- is
   // shared with the §12.8 Counter path, which needs every step of it.
-  return declareProcesses({
+  const primary = await declareProcesses({
     attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
+  });
+
+  await declareAftermath({
+    attackerId, attacker, ability, attackSpec, board, placement, targetIds,
+    groupId: primary.groupId,
+  });
+
+  return primary;
+}
+
+/**
+ * A second, unconditional resolution the same ability declares.
+ *
+ * > *"Then (regardless of whether the NP hits the DU or not), deals normal
+ * > damage to all Units within a 2 panel area of Quetzalcoatl except herself and
+ * > the previously targeted Unit (Base Attack (MAG) is used)..."*
+ * > — Xiuhcoatl
+ *
+ * **Not an area attack with a hole in it.** It fires from a different anchor
+ * (her, not the target), on a different base attack (MAG alone, not the
+ * combined 250), at a different multiplier (1×, not 4×), and carries different
+ * riders — Burn for 1◈ and NP Seal at 25%, against the primary's Burn for 2◈
+ * and NP Seal outright. Four numbers, none of them shared.
+ *
+ * Declared BESIDE the primary rather than chained behind it, and
+ * `unconditional` is why: the sheet does not wait to see what the first
+ * resolution achieved, so there is nothing to wait for. Sequencing it after the
+ * group would also mean holding it across every defender's reaction ladder, and
+ * a splash that lands several player decisions later is not what "then" means.
+ *
+ * It shares the primary's `groupId`, so the two are one Combat Phase.
+ *
+ * @param {object} args
+ * @returns {Promise<void>}
+ */
+async function declareAftermath({
+  attackerId, attacker, ability, attackSpec, board, placement, targetIds, groupId,
+}) {
+  const spec = ability?.system?.aftermath ?? null;
+  if (!spec?.unconditional) return;
+
+  const self = board.units.find((u) => u.id === attackerId);
+  if (!self) return;
+
+  // The anchor of the resolution that just happened, which the splash excludes.
+  const primaryTargetId = placement?.unitId ?? placement?.targetId ?? targetIds[0] ?? null;
+  const caught = resolveTargets(spec.targeting, self, board, { primaryTargetId });
+  if ((caught.units ?? []).length === 0) return;
+
+  await declareProcesses({
+    attackerId,
+    attacker,
+    ability,
+    // The primary's flags (`ignoresMagicResistance`, the NP kind, the rank)
+    // still describe the same Noble Phantasm; only the damage differs, so the
+    // spec is overlaid rather than rebuilt.
+    attackSpec: { ...attackSpec, ...(spec.damage ?? {}), isAftermath: true },
+    targetIds: caught.units.map((t) => t.unitId),
+    targets: caught,
+    placement: null,
+    board,
+    groupId,
   });
 }
 
@@ -2611,17 +2673,29 @@ async function applyDamage(state, message) {
       // defender -- deals nothing rather than her own Base Attack.
       isFixedDamage: Boolean(resolvedDamage(ability, options)?.fixed) || dealsNoDamage(ability),
     },
+    // An AFTERMATH resolution carries its own damage, spread onto the attack
+    // spec when it was declared. Xiuhcoatl's splash uses BA(MAG) alone at 1x
+    // where the primary uses the combined 250 at 4x, so reading the ability's
+    // `damage` block here would give the splash the primary's numbers -- which
+    // is precisely the "looks resolved, is wrong" failure the two-resolution
+    // design exists to avoid.
     base: dealsNoDamage(ability)
       ? { fixedValue: 0 }
-      : baseSpecFor(attackerDoc, ability, facts.range, options),
+      : (facts.isAftermath && facts.sources)
+        ? { sources: facts.sources }
+        : baseSpecFor(attackerDoc, ability, facts.range, options),
     // Named base-attack sources. Stage 1 has resolved `ctx.units[src.unit]`
     // since the pipeline was written and nothing has ever supplied the map:
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
     // by her platform's swings the platform's 150 rather than her own 125.
     units: mountUnits(attacker, board),
-    multiplier: resolvedDamage(ability, options)?.multiplier ?? 1,
-    flatBonus: resolvedDamage(ability, options)?.flatBonus ?? 0,
-    conditionalMultipliers: resolvedDamage(ability, options)?.conditionalMultipliers ?? [],
+    // Same reason as `base` above: the splash's own multiplier, or the
+    // ability's when this is the ordinary resolution.
+    multiplier: (facts.isAftermath ? facts.multiplier : resolvedDamage(ability, options)?.multiplier) ?? 1,
+    flatBonus: (facts.isAftermath ? facts.flatBonus : resolvedDamage(ability, options)?.flatBonus) ?? 0,
+    conditionalMultipliers: (facts.isAftermath
+      ? facts.conditionalMultipliers
+      : resolvedDamage(ability, options)?.conditionalMultipliers) ?? [],
     crit: { isCrit, chanceUsed: critSpec.percent },
     reaction: { kind: state.reaction ?? "none" },
     // §16.4 rule 4, both halves. The Master its Servants covered *"receives no
@@ -2896,6 +2970,46 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
 
   const defender = unitSnapshot(defenderDoc);
   const applied = [];
+
+  // An AFTERMATH resolution carries its own riders and NOT the ability's
+  // phases. Xiuhcoatl's splash inflicts Burn for 1◈ and NP Seal at 25%, where
+  // the primary inflicts Burn for 2◈ and NP Seal outright -- the sheet states
+  // four numbers and shares none of them, so running the phases here would
+  // hand the splash the primary's riders and look entirely correct.
+  if (state.attack?.isAftermath) {
+    for (const rider of ability.system?.aftermath?.effects ?? []) {
+      const def = EffectRegistry.get(rider.id);
+      if (!def) {
+        console.error(`FGT | ${ability.name}'s aftermath names unknown effect "${rider.id}".`);
+        continue;
+      }
+      const roll = await new Roll("1d100").evaluate();
+      const outcome = applyEffect({
+        def,
+        target: defender,
+        // "with a 25% chance of inflicting NP Seal for 1◈ Turns" -- the
+        // rider's own stated chance, which the applier folds in with the
+        // target's resistances rather than rolling separately from them.
+        chance: rider.chance ?? null,
+        magnitude: rider.magnitude ?? def.defaultMagnitude ?? 0,
+        duration: rider.duration ?? def.defaultDuration,
+        source: { unitId: state.attackerId, abilityId: ability.id },
+        ctx: {
+          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          currentTick: game.combat?.system?.globalTurn ?? 0,
+          roll: roll.total,
+          inflictBonus: inflictBonusOf(unitSnapshot(game.actors.get(state.attackerId)), def),
+          options: rollOptions(unitSnapshot(game.actors.get(state.attackerId)), defender, state),
+        },
+      });
+      if (outcome.intents.length > 0) await applyBatch(outcome.intents, "aftermathEffect");
+      applied.push({
+        summary: { id: rider.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason },
+        result: outcome,
+      });
+    }
+    return applied;
+  }
 
   // The CASTER's own options, for a phase-level `predicate:` -- the same
   // vocabulary `engine/skill-use.mjs#runPhases` already reads, extended to
