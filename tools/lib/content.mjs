@@ -1394,6 +1394,10 @@ function actorSystem(doc) {
     // into. Absent from every other summon and cheap to carry.
     boundToPlatformId: doc.boundToPlatformId ?? null,
     movesOntoOccupiedPanels: Boolean(doc.movesOntoOccupiedPanels),
+    // Co-location, as opposed to displacement -- Quetzalcoatl's Piedra Del Sol
+    // and her Quetzalcoatlus. See `data/actor/_shared.mjs` for why this is a
+    // second flag rather than a reuse of the one above.
+    sharesPanel: Boolean(doc.sharesPanel),
     // Pale Rider and the Kagome Spirits: "Base Health: -", "cannot be
     // damaged". Without this the flag compiled to its schema default and each
     // type's `prepareBaseData` backfilled a Health the sheet does not state.

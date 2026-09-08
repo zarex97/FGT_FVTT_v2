@@ -21,6 +21,16 @@ import { guardsOf, relationOf } from "./relations.mjs";
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
 
 /**
+ * Unit kinds that are scenery rather than combatants for occupancy.
+ *
+ * Clause 3 of §8.3 is about *Units*: a Platform is stood on and a Structure is
+ * an object lying on the panel, so neither blocks a step. Two of them on ONE
+ * panel is a different question — Quetzalcoatl's Piedra Del Sol may share with
+ * anything except another object — and `canStopOn` answers it.
+ */
+const OBJECT_KINDS = new Set(["platform", "structure"]);
+
+/**
  * @typedef {import("../domain/geometry.mjs").GridOffset} GridOffset
  */
 
@@ -301,11 +311,20 @@ export function segmentCheck(unit, hasRiding = unit?.hasRiding ?? false) {
  */
 export function canPassThrough(panel, unit, board) {
   if (ignoresBlocking(unit)) return true;
+  // A Unit that may STOP on an occupied panel must be able to cross one:
+  // ending a move somewhere it could not pass through is incoherent, and the
+  // Quetzalcoatlus's own sheet says both halves -- *"ignores obstacles while
+  // Moving, and can Move onto occupied panels"*.
+  //
+  // This is still not `ignoresBlocking`: that flag makes
+  // `engine/movement-hooks.mjs` knock the occupant off the panel, and a sharing
+  // Unit displaces nobody.
+  if (unit?.sharesPanel) return !inEnemyMasterProtection(panel, unit, board);
 
   const occupant = occupantAt(panel, board, unit.level);
   // Platforms and structures are terrain, not Units: a Platform is stood on,
   // and clause 3 is about *Units*, so neither blocks a step.
-  const blocking = occupant && !["platform", "structure"].includes(occupant.kind);
+  const blocking = occupant && !OBJECT_KINDS.has(occupant.kind);
   if (blocking && isEnemy(unit, occupant, board)) return false;
   if (inEnemyMasterProtection(panel, unit, board)) return false;
   if (blockedByFieldExit(panel, unit, board)) return false;
@@ -345,10 +364,22 @@ function blockedByFieldExit(panel, unit, board) {
  */
 export function canStopOn(panel, unit, board) {
   if (!canPassThrough(panel, unit, board)) return false;
-  const occupant = occupantAt(panel, board, unit.level);
-  // Platforms are stood on, not blocked by, and Huge Scale overlaps by design.
-  if (!occupant) return true;
-  if (["platform", "structure"].includes(occupant.kind)) return true;
+  const here = occupantsAt(panel, board, unit.level).filter((u) => u.id !== unit.id);
+  if (here.length === 0) return true;
+
+  // A Unit that SHARES panels is stopped only by another object. Two figurines
+  // cannot stand on the same square; a figurine and a Servant can.
+  //
+  //   "The Quetzalcoatlus ... can Move onto occupied panels (place the
+  //    Quetzalcoatlus on top of anything occupying said panels)."
+  //
+  // Distinct from `ignoresBlocking` below, which is Bašmu's and Kingprotea's
+  // and knocks the occupant off the panel instead of standing on it.
+  if (unit?.sharesPanel) return !here.some((u) => OBJECT_KINDS.has(u.kind));
+
+  // Platforms and Structures are stood on, not blocked by, and Huge Scale
+  // overlaps by design.
+  if (here.every((u) => OBJECT_KINDS.has(u.kind))) return true;
   return ignoresBlocking(unit);
 }
 

@@ -283,6 +283,7 @@ export function snapshotUnit(actor, {
     // knocked back" -- `rules/movement.mjs`'s `ignoresBlocking` already reads
     // this generic flag, unset until now because nothing needed it.
     ignoresOccupancy: Boolean(sys.movesOntoOccupiedPanels),
+    sharesPanel: Boolean(sys.sharesPanel),
     eventHandlers: contributions.eventHandlers,
     immunities: contributions.immunities,
     grantedAbilities: contributions.grantedAbilities,

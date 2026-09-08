@@ -119,6 +119,14 @@ export function footprintSize(actor) {
  * @param {object} document the pending `TokenDocument`
  */
 function onPreCreateToken(document) {
+  // A Unit that co-occupies a panel has to draw ABOVE whoever is under it, or
+  // *"place the Piedra Del Sol on top of any Units which Move onto that panel"*
+  // is a rule with no visible half. Set before the size return below, because a
+  // sharing token is usually 1x1 and would otherwise never reach this.
+  if (document.actor?.system?.sharesPanel && document.sort === 0) {
+    document.updateSource({ sort: 100 });
+  }
+
   const size = footprintSize(document.actor);
   if (!size) return;
   if (document.width === size.width && document.height === size.height) return;
