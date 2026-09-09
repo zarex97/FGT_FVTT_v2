@@ -58,6 +58,19 @@ function onRenderDirectory(_app, html) {
     LogViewer.open();
   });
   header.append(log);
+
+  // The third button on this header, for the reason the first two are here:
+  // the Actors sidebar is where the match's units already are, and the wizard
+  // is what makes most of them.
+  const setup = document.createElement("button");
+  setup.type = "button";
+  setup.dataset.fgtSetup = "";
+  setup.innerHTML = `<i class="fa-solid fa-chess-board"></i> ${game.i18n.localize("FGT.Setup.Button")}`;
+  setup.addEventListener("click", async () => {
+    const { SetupWizard } = await import("./setup-wizard.mjs");
+    SetupWizard.open();
+  });
+  header.append(setup);
 }
 
 /**

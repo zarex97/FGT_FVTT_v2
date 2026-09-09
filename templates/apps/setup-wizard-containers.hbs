@@ -1,0 +1,46 @@
+<section class="tab fgt-setup__tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  {{#each factions as |faction|}}
+    <fieldset class="fgt-setup__faction" data-faction-id="{{faction.id}}">
+      <legend>
+        <span class="fgt-factions__swatch" style="background: {{faction.color}}"></span>
+        {{faction.name}}
+      </legend>
+
+      {{#each @root.containers as |row|}}
+        {{#if (eq row.factionId faction.id)}}
+          <div class="fgt-setup__container {{#if row.empty}}is-empty{{/if}}" data-container-id="{{row.id}}">
+            <select name="container.{{row.id}}.classContainer">
+              {{selectOptions @root.classChoices selected=row.classContainer localize=true}}
+            </select>
+            <select name="container.{{row.id}}.fill">
+              {{selectOptions @root.fillChoices selected=row.fill localize=true}}
+            </select>
+
+            {{#if (eq row.fill "fixed")}}
+              <input type="search" name="container.{{row.id}}.query" value="{{row.query}}"
+                     placeholder="{{localize 'FGT.Setup.SearchPlaceholder'}}" {{disabled row.empty}}>
+              <select name="container.{{row.id}}.contentId" {{disabled row.empty}}>
+                <option value="">{{localize "FGT.Setup.PickServant"}}</option>
+                {{#each row.options as |option|}}
+                  <option value="{{option.contentId}}" {{#if option.chosen}}selected{{/if}}>{{option.name}}</option>
+                {{/each}}
+              </select>
+            {{else}}
+              <span class="fgt-setup__count">{{localize "FGT.Setup.Candidates"}}: {{row.candidateCount}}</span>
+            {{/if}}
+
+            <button type="button" data-action="deleteContainer"
+                    data-tooltip="{{localize 'FGT.Setup.DeleteContainer'}}"
+                    aria-label="{{localize 'FGT.Setup.DeleteContainer'}}">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            {{#if row.empty}}<span class="fgt-setup__reason">{{row.emptyReason}}</span>{{/if}}
+          </div>
+        {{/if}}
+      {{/each}}
+
+      <button type="button" data-action="addContainer">{{localize "FGT.Setup.AddContainer"}}</button>
+    </fieldset>
+  {{/each}}
+</section>

@@ -43,6 +43,7 @@ import { ChoiceDialog } from "./apps/choice-dialog.mjs";
 import { LogViewer } from "./apps/log-viewer.mjs";
 import { AbilityEditor } from "./apps/ability-editor.mjs";
 import { ContractDialog } from "./apps/contract-dialog.mjs";
+import { SetupWizard } from "./apps/setup-wizard.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
 import { Terrain } from "./engine/terrain.mjs";
 import { FactionOwnership } from "./engine/faction-ownership.mjs";
@@ -376,7 +377,10 @@ function buildPublicAPI() {
     // The forced half of a compulsion (Penthesilea). Exposed because a GM who
     // has hand-placed tokens may want to reconcile without waiting for a move.
     forcedModes: reconcileForcedModes,
-    dialogs: { SummonDialog, CopyDialog, ChoiceDialog, LogViewer, AbilityEditor, ContractDialog },
+    dialogs: {
+      SummonDialog, CopyDialog, ChoiceDialog, LogViewer, AbilityEditor, ContractDialog,
+      SetupWizard,
+    },
     effects: EffectRegistry,
     commandSpells: CommandSpellRegistry,
     collectContributions,
