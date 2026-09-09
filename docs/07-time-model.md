@@ -653,15 +653,27 @@ And there is an interaction the source calls out explicitly:
 > Rounds have passed), then its NP would only be usable X Turns after its NP would be
 > available, X being the number of Turns its NP Cooldown was increased by."*
 
-So the gate and the cooldown compose additively rather than the gate simply overriding:
+So the gate and the cooldown compose **additively** rather than the gate simply overriding:
 
 ```ts
-function npAvailableOnTurn(unit, np): number {
-  const gateRound = baseGateRound(unit) + essenceShift(unit);
+function npAvailableTurn(unit, np): number {
+  const gateRound = baseGateRound(unit) - essenceShift(unit.master);
   const gateTurn  = (gateRound - 1) * turnsPerRound + 1;
-  return Math.max(gateTurn, np.cooldown.readyOnTurn);
+  return gateTurn + np.cooldown.gatedDelay;   // NOT max(gateTurn, readyOnTurn)
 }
 ```
+
+**This chapter printed `Math.max(gateTurn, np.cooldown.readyOnTurn)` and it was wrong.** Under
+`max()` an NP Lock spent while the target's Noble Phantasm was gated anyway costs its caster a
+Skill and buys nothing — which is precisely the outcome the clause above exists to prevent. The
+prose and the pseudocode disagreed for as long as both were unimplemented; the prose is the rule.
+
+`cooldown.gatedDelay` is the running total of increases taken *before* the gate opened, written by
+`engine/io.mjs`'s cooldown setter — the only place in the system where a cooldown increase is
+applied. It is never decremented and never reset: a permanent shift of the availability turn, for
+the same reason every duration here is an absolute expiry rather than a countdown (D7.3). Measured
+live: an increase of 5 in Round 2 raises both `remaining` and `gatedDelay`; the same increase in
+Round 9 raises only `remaining`.
 
 `Force Noble Phantasm` (2 Command Spells) overrides cooldown but explicitly **not** the gate:
 *"Cannot be used to force NP usage before 5 Rounds (or 3 Rounds for Assassin) have passed."*
