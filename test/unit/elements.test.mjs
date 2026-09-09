@@ -660,3 +660,55 @@ describe("elementFraction — 'Fire damage (half)'", () => {
     expect(hit({ elementFraction: 0.5, defenderEffects: ["flamHeal"] }).flags.converted).toBe(false);
   });
 });
+
+describe("an attack that ignores the attacker's own increases", () => {
+  // > "Damage dealt is not affected by Atk Up or other damage increasing
+  // > effects on Ozymandias." -- Dendera Electric Bulb
+  //
+  // "Other damage increasing effects" is a CATEGORY, not a list of one:
+  // Divinity's flat +50 raises damage exactly as Atk Up does. The percentage
+  // half of this was wired and the flat half was declared and never applied --
+  // caught by lint, not by a test, because a constant assigned and never read
+  // is invisible to a test that does not know to look for it.
+  const unit = (o = {}) => ({
+    baseAttack: { str: 0, mag: 0 }, parameters: {}, effects: [], modifiers: [],
+    health: 1000, shield: 0, magicResistance: null, outsideZon: false, ...o,
+  });
+
+  const swing = (ignores) => computeDamage({
+    attacker: unit({
+      baseAttack: { str: 100, mag: 0 },
+      modifiers: [
+        { key: "divinity", value: 50, source: "Divinity" },
+        { key: "atkUp", value: 100, source: "Atk Up" },
+      ],
+    }),
+    defender: unit(),
+    board: {},
+    attack: {
+      kind: "normal", rank: null, categorizedAsNP: false, element: null,
+      ignoresAttackerIncreases: ignores,
+    },
+    base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+    multiplier: 1, flatBonus: 0,
+    crit: { isCrit: false, chanceUsed: 0 },
+    reaction: { kind: "none" }, luckChecks: {}, rolls: {}, options: new Set(),
+  });
+
+  it("applies both an Atk Up and a flat bonus ordinarily", () => {
+    // 100 doubled by Atk Up 100%, then +50 flat.
+    expect(swing(false).total).toBe(250);
+  });
+
+  it("drops the percentage AND the flat bonus", () => {
+    expect(swing(true).total).toBe(100);
+  });
+
+  it("still LISTS what it dropped, at zero", () => {
+    // A modifier that vanishes from the breakdown is indistinguishable from one
+    // that was never collected.
+    const stage7 = swing(true).breakdown.find((s) => s.index === 7);
+    expect(stage7.contributors[0]).toMatchObject({ source: "divinity", value: 0 });
+    expect(stage7.contributors[0].note).toMatch(/ignored by this attack/);
+  });
+});
