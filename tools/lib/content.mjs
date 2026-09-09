@@ -150,6 +150,10 @@ export const PACKS = Object.freeze({
   "command-spells": { pack: "command-spells", documentType: "Item", itemType: "commandSpell" },
   abilities: { pack: "class-skills", documentType: "Item", itemType: "ability" },
   servants: { pack: "servants", documentType: "Actor", actorType: "servant" },
+  // A pack BOUNDARY rather than a flag on each document: the setup wizard
+  // must filter Servants by ruleset, and a boundary cannot be got wrong by a
+  // typo in an id. `engine/summon.mjs#rulesetOfPack` is the single reader.
+  "servants-normal": { pack: "servants-normal", documentType: "Actor", actorType: "servant" },
   masters: { pack: "masters", documentType: "Actor", actorType: "master" },
   platforms: { pack: "servants", documentType: "Actor", actorType: "platform" },
   summons: { pack: "servants", documentType: "Actor", actorType: "summon" },
