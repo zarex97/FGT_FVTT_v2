@@ -1,0 +1,29 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Rider) Noble Phantasm — Hits a 1x6 or 6x1 panel area in a straight line in
+# > both directions (front and back) for 5x damage; if diagonal, 1x5 or 5x1
+# > panel area. Can only be used once."
+#
+# `selfEdgeAdjacent`, not `self`: the line needs a DIRECTION, and `self`
+# supplies none -- `shapes.mjs` falls back to `DELTA.n` and the Noble Phantasm
+# would fire north for ever. The line still runs through Rider's own panel,
+# because `line` measures from `anchor.casterPanel`, which is what
+# `bidirectional` then extends in both directions.
+schema: 1
+id: normal-rider-np
+name: "Noble Phantasm"
+isNP: true
+kind: noblePhantasm
+slug: normalRiderNP
+maxUses: 1
+description: |
+  (Active) Hits a 1x6 or 6x1 panel area in a straight line in both directions (front and back)
+  for 5x damage; if diagonal, 1x5 or 5x1 panel area. Can only be used once.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: line, length: 6, diagonalLength: 5, bidirectional: true }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage: { component: str, multiplier: 5 }
+phases:
+  - kind: damage

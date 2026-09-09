@@ -1,0 +1,40 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Assassin) Class Skill: Presence Concealment — (Active) Used during your
+# > Turn. Effects last 2◈ Turns. Cooldown: 1◈ Turns after deactivation. When
+# > Active, Assassin cannot be targeted for an attack..."
+# > "- Hidden Strike — cannot be Blocked or Countered; if Evaded, the Evade roll
+# > is increased by 4."
+# > "- Assassination — may Attack Masters and Move anywhere regardless of their
+# > Servant's position; an Attack deactivates it at the end of the Combat
+# > Process."
+# > "- Sneak Attack — deals 2x damage to Servants including NP."
+#
+# The Advanced Skill's shape: a phase that applies the status effect, which
+# carries the mechanics. Its own effect rather than the shared
+# `presenceConcealment`, because Normal's numbers differ -- 2x damage to
+# SERVANTS *including NP*, where Advanced is +100%/+50% against anything that is
+# not a Master.
+schema: 1
+id: normal-presence-concealment
+name: "Presence Concealment"
+source: class
+slug: presenceConcealment
+kind: skill
+copyable: { allowed: false, reason: classSkill }
+cooldown: { max: "1◈", countFrom: deactivation }
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn; the effects last 2◈ Turns. Cooldown 1◈ Turns after deactivation.
+  While Active, Assassin cannot be targeted for an Attack; caught in an AoE Attack and failing to
+  Evade, Flip a Coin — Heads, no damage or effects; Tails, Total Damage is reduced by 50% including
+  NP and Presence Concealment deactivates.
+  (Passive) Attacks while Active cannot be Blocked or Countered; if Evaded, the Evade roll is
+  increased by 4.
+  (Passive) While Active, Assassin may Attack Masters and Move anywhere regardless of their
+  Servant's position; an Attack deactivates it at the end of the Combat Process.
+  (Passive) While Active, Assassin deals 2x damage to Servants including NP.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: normalPresenceConcealment }

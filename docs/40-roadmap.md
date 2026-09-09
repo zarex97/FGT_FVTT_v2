@@ -118,10 +118,10 @@ everything after is scope.
 |---|---|
 | Platforms and Scene Levels | 20 |
 | The Hanging Gardens, Golden Hind, Storm Border | 20, 32 |
-| Home bases, day/night, regions, terrain tags | 19 |
+| ~~Home bases~~ **DONE** (created by the wizard, painted as Regions); day/night, regions, terrain tags | 19 |
 | The Holy Grail: materialization, contest, destruction | 19 |
 | Civilians and random events | 19 |
-| Setup: summon rolls, deployment, turn-order roll | 19, 37 |
+| ~~Setup: summon rolls, deployment, turn-order roll~~ **DONE** — `apps/setup-wizard.mjs` | 19, 37 |
 | Victory conditions and match lifecycle | 19, 25 |
 | The game log and export | 30 |
 | Undo journal | 18 |
@@ -143,7 +143,7 @@ platforms deployed and destroyed, without the GM touching a rulebook.
 | Localization: Spanish | 29 |
 | Performance tuning against the budgets | 23, 38 |
 | Migration infrastructure | 39 |
-| The 8-turns-per-round (Holy Grail War) variant | 07 |
+| ~~The 8-turns-per-round (Holy Grail War) variant~~ **DONE** — `MatchData.warType` | 07 |
 | Master essences and the draft | 04, 19 |
 | Documentation for GMs and content authors | — |
 

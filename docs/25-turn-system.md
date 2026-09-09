@@ -429,6 +429,29 @@ Only the current player (or the GM) may end the turn. The button is hidden for e
   └────────────┘
 ```
 
+> **`engine/war-setup.mjs#commitWar` performs the whole SETUP box**: the scene and its grid, the
+> home-base Regions, the Masters, the Servants, the contracts, the faction ids, the Combat and its
+> combatants, the match fields, and deployment. Each step logs before it acts, so a commit that
+> fails halfway says where it stopped — a line written afterwards is exactly the one you do not get.
+>
+> Two orderings in it are load-bearing:
+>
+> - **The Combat is created second, not last.** `game-log.mjs#record` takes a combat and writes
+>   nothing without one, so building it at the end would leave no record of the steps before it.
+>   The Scene still comes first, because the Combat is scene-linked.
+> - **The Combat is `activate()`d.** `currentBoard()` reads `game.combats.active` and
+>   `Combat.create` leaves `active: false` — `game.combat` is only the combat being *viewed*.
+>   Without it the board is match-blind: no phase, no tick, no difficulty, no war type, no Grail.
+>
+> Deployment places each **pair** together, and the Master goes on the free panel nearest its own
+> Servant rather than the next one in the list. Walking the list in order straddles the end of a
+> row: on a 13-wide base the seventh pair landed twelve panels apart and both Servants began the
+> war outside their Master's ZON, at −5d10 on every attack. Measured — `outsideZon: 2` on the first
+> war this built, `0` after.
+>
+> The day/night opening flip stays in `startMatch`: commit builds the board, starting the match
+> starts the clock.
+
 `startMatch()` locks the ruleset settings (Ch. 21 §21.5), because changing ◈ after any effect
 has been applied would invalidate every stored expiry turn.
 

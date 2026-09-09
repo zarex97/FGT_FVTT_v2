@@ -238,6 +238,27 @@ any other Region it is 9×9 / 81.
 
 ## 19.4 The Holy Grail
 
+> **Implemented, and it had never once run.** `grailPanelCandidates` (pure) lists every in-bounds
+> panel lying in no home-base zone, and `scheduler-hooks` rolls over it at the round boundary the
+> Grail materializes on, writing `MatchData.grailPosition` through `io.setGrailPosition`. That field
+> had been declared and read and **written by nothing** since the schema existed, so `grailContest`
+> returned early on `!state.position` for the whole of every match: the Holy Grail has never been
+> obtainable in this system. The blocker was §19.4's own wording — *"a random panel excluding Home
+> Bases"* cannot be evaluated on a board with none, and nothing created one until `paintHomeBases`.
+>
+> Every zone is excluded, not only the enemy's: a Grail inside your own base is one you win with by
+> standing still, which is not a contest.
+>
+> **A match must be `active`, not merely created.** `currentBoard()` reads `game.combats.active`,
+> and `Combat.create` leaves `active: false` — `game.combat` is only the combat being *viewed*.
+> Found live: a match carrying `grailMaterialized: true` projected `materialized: false` onto the
+> board, so nothing downstream could see the match at all — not the phase, the tick, the difficulty,
+> the war type, or the Grail. `commitWar` activates.
+>
+> Measured live in `fgt2026`: 91 candidate panels on a 13 × 13 board with two three-row bases
+> (169 − 78), and the Grail materializing at `(4, 9)`.
+
+
 ### Materialization
 
 > *"After a certain number of Servants are defeated (recommended number is nine, or at least
@@ -445,6 +466,38 @@ directly.
 > and step 12's attack gate (`attacksPermitted`, refused at declaration with the rule named
 > rather than surfacing as an unexplained targeting error). Difficulty is on `MatchData` and
 > drives the Lunatic Civilian invariant.
+>
+> **Steps 1–3 are now data.** `MatchData.warType` and `MatchData.ruleset` exist beside
+> `boardSize`, all three rule-locked once the match starts, with world settings as their defaults —
+> the `region`/`difficulty` shape, where the setting is the world's default and the match holds this
+> match's copy. `MatchData.containers` carries the class-container roster the wizard fills; a
+> `warType` and a `ruleset` had no representation at all before this, and the Great Holy Grail War
+> was distinguishable from the Holy Grail War only by `turnsPerRound` being 3 or 8, in a hint string.
+>
+> **The container roster is `rules/war-setup.mjs`.** `EXTRA` is a container rather than a class —
+> nothing is ever *of* class `extra`, and it matches the **complement** of the seven, so a Servant
+> holding no core class (Kingprotea, Mannanán) is a candidate for it and for nothing else. A Servant
+> that states no class at all is likewise an `EXTRA` candidate, which is the right reading of a
+> sheet that names none.
+>
+> An unfillable container is a refusal **with its reason** rather than a silent skip, which is Ch. 29
+> §29's rule and the case it was written for: the reference roster holds **no Saber at all** — four
+> Rider, three Berserker, two each of Lancer, Caster, Assassin and AlterEgo, one Archer — so this is
+> not a corner case, it is every Advanced war built today. `validateRoster` returns every complaint
+> at once rather than the first, because a GM fixing a war wants the whole list, not one per attempt.
+>
+> Measured against the live catalogue in `fgt2026`: a Saber container has **no candidates at all**,
+> a Rider container has four (Achilles, Medusa, Pale Rider, Quetzalcoatl), and an `EXTRA` container
+> has two (Kingprotea, Mannanán) — the only two Servants in the corpus holding no core class.
+>
+> **Step 2's vocabulary had three readings and none of them met.** The setting offered
+> `beginner | standard | expert`; `MatchData` accepted `beginner | intermediate | expert | lunatic`;
+> and `engine/board.mjs` defaulted to `"intermediate"` **without consulting the setting at all**, so
+> the registered control was read by nothing and changing it did nothing. Measured live in `fgt2026`:
+> a world storing `expert` reported `intermediate` on the board. The rulebook's four win in both
+> places, the board reads the setting as its fallback, and `snapshotBoard` normalizes anything
+> unrecognised — a world still holding `standard` reads as Intermediate rather than as a difficulty
+> no rule matches.
 
 Step 12's restriction — *"During the first Round, neither Player/Faction is allowed to Attack"* —
 is a hard gate on all attack declarations, enforced by the ability validator with a clear

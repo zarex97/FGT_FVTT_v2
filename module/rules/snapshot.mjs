@@ -531,6 +531,9 @@ export function roundStateAt(raw, round) {
  * @param {object} [args.settings]
  * @returns {object}
  */
+/** The four the rulebook names (Ch. 19). Anything else reads as Intermediate. */
+const DIFFICULTIES = Object.freeze(["beginner", "intermediate", "expert", "lunatic"]);
+
 export function snapshotBoard({ scene, actors, settings = {} }) {
   // A caller that has a canvas resolves each unit's panel first and passes the
   // finished snapshot; anything else is projected here.
@@ -563,7 +566,19 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     tick: settings.tick ?? 0,
     region: settings.region ?? null,
     warRegion: settings.warRegion ?? null,
-    difficulty: settings.difficulty ?? "intermediate",
+    // Normalized, not taken as given. The setting offered "standard" for the
+    // whole of this system's life and `MatchData` never accepted it, so a
+    // world that ran on the old vocabulary would otherwise carry a
+    // difficulty no rule matches -- silently switching nothing off and
+    // nothing on. Anything unrecognised reads as Intermediate, the schema's
+    // own initial.
+    difficulty: DIFFICULTIES.includes(settings.difficulty) ? settings.difficulty : "intermediate",
+    // The war's shape, chosen once at setup and read for the rest of the
+    // match -- the same argument `region` above carries.
+    warType: settings.warType ?? "greatHolyGrailWar",
+    ruleset: settings.ruleset ?? "advanced",
+    drawPolicy: settings.drawPolicy ?? "duplicates",
+    homeBaseDepth: settings.homeBaseDepth ?? 3,
     grail: settings.grail ?? null,
     // Overwritten by `annotatePlatforms` below when the board has any. The
     // targeting resolver has read this map since it was written and nothing

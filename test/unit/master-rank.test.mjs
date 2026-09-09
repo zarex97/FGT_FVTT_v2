@@ -160,12 +160,20 @@ describe("High Rank Master grants — ZON", () => {
       .toBe(zonRadius(saber, { id: "m", rank: "C", zon: 0 }));
   });
 
-  it("lands on the derived radius, not the Master's stated-ZON floor", () => {
-    // `Math.max(derived, master.zon)` exists so a Master sheet that states a
-    // ZON is believed. A rank bonus is a different thing: added to `derived`,
-    // it survives; folded into the floor, a stated ZON would swallow it.
-    const stated = zonRadius(saber, { id: "m", rank: "A", zon: 99 });
-    expect(stated).toBe(99);
+  it("applies over a stated-ZON floor as well as over the derivation", () => {
+    // REVERSED. This asserted 99, on a comment reading "added to `derived`, it
+    // survives; folded into the floor, a stated ZON would swallow it" -- which
+    // is the right intent and the wrong arithmetic: `max(derived, floor)`
+    // swallows the bonus precisely when the floor wins, which is what the old
+    // assertion locked in. The floor exists so a stated ZON is believed; the
+    // rank grant is a separate, unconditional "+1 panel" (Ch. 04 §4.5), and it
+    // belongs on both sides of the comparison.
+    //
+    // Inert in Advanced, where almost no Master states a ZON. Total in Normal,
+    // where all seven do (Caster 5, Archer and Assassin 4, the rest 2), so a
+    // High Rank Master bought nothing with the coin that made them one.
+    expect(zonRadius(saber, { id: "m", rank: "A", zon: 99 })).toBe(100);
+    expect(zonRadius(saber, { id: "m", rank: "C", zon: 99 })).toBe(99);
     expect(zonRadius(saber, { id: "m", rank: "A", zon: 0 }))
       .toBeGreaterThan(zonRadius(saber, { id: "m", rank: "D", zon: 0 }));
   });

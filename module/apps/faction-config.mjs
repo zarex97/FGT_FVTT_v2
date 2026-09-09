@@ -38,17 +38,22 @@ export class FactionConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @inheritdoc */
   async _prepareContext() {
     const factions = board.factions();
+    const players = game.users.filter((u) => !u.isGM).map((u) => ({ id: u.id, name: u.name }));
     return {
       factions: factions.map((f) => ({
         ...f,
+        // Ticked per faction rather than shared, because a player's state
+        // differs per row and one shared list would render every row alike.
+        players: players.map((p) => ({ ...p, assigned: f.userIds.includes(p.id) })),
         // Every other faction, so alliances can be ticked off. A faction is
         // never offered as its own ally.
         others: factions.filter((o) => o.id !== f.id)
           .map((o) => ({ ...o, allied: f.allies.includes(o.id) })),
       })),
-      players: game.users.filter((u) => !u.isGM).map((u) => ({ id: u.id, name: u.name })),
+      players,
       colors: FACTION_COLORS,
       isEmpty: factions.length === 0,
+      hasPlayers: players.length > 0,
     };
   }
 
@@ -71,7 +76,7 @@ export class FactionConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       id,
       name: row.name,
       color: row.color,
-      userId: row.userId || null,
+      userIds: Object.entries(row.userIds ?? {}).filter(([, on]) => on).map(([uid]) => uid),
       allies: Object.entries(row.allies ?? {}).filter(([, on]) => on).map(([ally]) => ally),
     }));
     await board.setFactions(rows);

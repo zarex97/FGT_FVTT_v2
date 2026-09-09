@@ -20,7 +20,7 @@ describe("normalizeFactions", () => {
     const [f] = normalizeFactions([{ id: "red" }]);
     expect(f.name).toBe("red");
     expect(f.color).toBe(FACTION_COLORS[0]);
-    expect(f.userId).toBeNull();
+    expect(f.userIds).toEqual([]);
     expect(f.allies).toEqual([]);
   });
 
@@ -142,5 +142,32 @@ describe("factionForUser", () => {
 
   it("returns null for a user with no faction", () => {
     expect(factionForUser(roster, "u9")).toBeNull();
+  });
+});
+
+describe("userIds", () => {
+  it("migrates a stored singular userId into the array", () => {
+    expect(normalizeFactions([{ id: "red", userId: "u1" }])[0].userIds).toEqual(["u1"]);
+  });
+
+  it("reads userIds when both are present, ignoring the legacy field", () => {
+    const [f] = normalizeFactions([{ id: "red", userId: "old", userIds: ["u1", "u2"] }]);
+    expect(f.userIds).toEqual(["u1", "u2"]);
+  });
+
+  it("defaults to an empty array and drops blanks and duplicates", () => {
+    expect(normalizeFactions([{ id: "red" }])[0].userIds).toEqual([]);
+    expect(normalizeFactions([{ id: "red", userIds: ["u1", "", "u1", null] }])[0].userIds)
+      .toEqual(["u1"]);
+  });
+
+  it("gives a new faction no players", () => {
+    expect(createFaction("Red").userIds).toEqual([]);
+  });
+
+  it("finds a faction by any of its players, not only the first", () => {
+    const rows = normalizeFactions([{ id: "red", userIds: ["u1", "u2"] }, { id: "blue" }]);
+    expect(factionForUser(rows, "u2")?.id).toBe("red");
+    expect(factionForUser(rows, "u9")).toBeNull();
   });
 });

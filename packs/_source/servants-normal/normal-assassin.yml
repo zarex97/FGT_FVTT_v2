@@ -1,0 +1,24 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# "Assassin of Blue"
+schema: 1
+id: normal-assassin
+name: Assassin
+type: servant
+
+servantClasses: [assassin]
+classContainer: assassin
+baseHealth: 500
+mov: 6
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 50, mag: 100 }
+normalAttack: { mode: fixed, component: str }
+# The shortest clock in the game: one Turn as a Free Servant.
+sustainability: "1◈"
+
+abilities:
+  - { ref: normal-presence-concealment }
+  - { ref: normal-assassin-np }
+
+notes: |
+  Agility +3 and Luck +2 at setup -- the largest deltas of the seven, and the
+  reason the lowest Base Health in the set is survivable.

@@ -1,0 +1,19 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# "Rider of Blue"
+schema: 1
+id: normal-rider
+name: Rider
+type: servant
+
+servantClasses: [rider]
+classContainer: rider
+baseHealth: 1000
+mov: 8
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 100, mag: 150 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: normal-riding }
+  - { ref: normal-rider-np }

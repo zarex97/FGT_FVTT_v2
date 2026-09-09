@@ -119,11 +119,11 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
-| 04 | Units | **Done** | Six actor types, schemas, multi-panel footprints read by targeting, and the identity fields — `classContainer`, `concealedIdentity`, `identityRevealed`, `detect`, `defaultImage`. A Servant is publicly its class until revealed. |
+| 04 | Units | **Done** | Six actor types, schemas, multi-panel footprints read by targeting, and the identity fields — `classContainer`, `concealedIdentity`, `identityRevealed`, `detect`, `defaultImage`. A Servant is publicly its class until revealed. **§4.10's `Faction` now holds `userIds: string[]`** — the interface has specified a list since it was written and the code carried a singular `userId`, so on a cooperating faction only one player could open their own Servant's sheet or drag its token. |
 | 05 | Ranks and parameters | **Done** | Grade-major ordinals, step arithmetic, `RankField`. |
 | 06 | Stats and resources | **Done** | Including derived stat deltas as of `0.2.0`, and **every stat now derives from its parameter** (Ch. 41 Q50): Health from END, Agility and Luck from AGI and LUC with their coin and `1d4`, and **Base Attack from STR and MAG** — the last of the five, where the table overrides four figures the sheets stated. |
 | 07 | Time model (◈) | **Done** | `parseTick`/`resolveTicks`/overrides, and **Delay (§7.8)** — which was already implemented in `computeTurnOrder` when this row was written. The one clause that genuinely was not: a Delay declared against a faction that had already acted was **discarded** rather than deferred to the next round. `carryDelaysForward` fixes it. |
-| 08 | Board and geometry | **Done** | **Riding Attack and Passenger Seat** are built — both had been in `GRANTS` since grants were written with no engine reading either. A Riding Attack is a Move that is also an Attack; Passenger Seat displaces the Master by the Servant's own delta. Metrics, reachability, movement legality, and **Detect (§8.7)** — range with its 2-panel floor, the Discover chance from the concealed unit's Presence Concealment rank, and attempts marked GM-only and silent so the socket layer cannot leak them. **§8.6 was never a gap:** the chapter's own DECISION is *not* to implement line of sight, because F/GT has no such rule. **Fog of war (§8.7) is now built** — `engine/token-vision.mjs` writes a unit's Detect radius onto `TokenDocument.sight`, which this chapter and `data/actor/_shared.mjs` had both said was the plan while nothing did it; every token sat at Foundry's `range: 0`, so a player with token vision on saw a black canvas. Found in play. |
+| 08 | Board and geometry | **Done** | **Riding Attack and Passenger Seat** are built — both had been in `GRANTS` since grants were written with no engine reading either. A Riding Attack is a Move that is also an Attack; Passenger Seat displaces the Master by the Servant's own delta. Metrics, reachability, movement legality, and **Detect (§8.7)** — range with its 2-panel floor, the Discover chance from the concealed unit's Presence Concealment rank, and attempts marked GM-only and silent so the socket layer cannot leak them. **§8.6 was never a gap:** the chapter's own DECISION is *not* to implement line of sight, because F/GT has no such rule. **Fog of war (§8.7) is now built** — `engine/token-vision.mjs` writes a unit's Detect radius onto `TokenDocument.sight`, which this chapter and `data/actor/_shared.mjs` had both said was the plan while nothing did it; every token sat at Foundry's `range: 0`, so a player with token vision on saw a black canvas. Found in play. **Home-base geometry is `rules/home-base.mjs`** — §8.1's "2 rows (inferred) / 3 rows (inferred)" is settled at **3 on both boards**, and the Holy Grail War's perimeter division is a stated house rule the chapter labels as one. |
 | 09 | Targeting | **Done** | Eleven-step resolver, four anchors interactive, `legalPlacements`. **`requiresFacing` and `requiresClearPath`** are the game's only sight rules, per-ability and opt-in (D44.8), and `coneOf`'s first readers. The direction picker offers eight for a shape that asks (`directions: "all"`), which is all a diagonal line ever needed. |
 | 10 | Effect taxonomy | **Done** | Classification vocabularies enforced by the content validator. |
 | 11 | Effect engine | **Done** | Application, stacking, suppression, expiry, periodics, auras (§11.6), **Transfer (§11.8)** — a move that keeps the absolute expiry, rebased when one side has been Stopped — and **visibility (§11.10)**, where a debuff is also visible to whoever inflicted it. |
@@ -635,6 +635,140 @@ a point of Luck by day and none at night.
   dropdown, one unit at a time — the same defect as a stat with no display. `FGTToken` now draws
   a chevron on the token itself, sized so its tip lands on the token's own boundary and never
   crosses into the next panel.
+
+### The Normal submode — **built**
+
+A stat layer plus a content pack, not a second engine. Read against this chapter, most of the Normal
+rulebook was **already running**, because the Advanced ruleset shares it: contracts clause for
+clause, ZON and its 5d10 penalty, the Master cover-and-redirect ladder, Sustainability, the
+day/night cycle, home base E1–E5, the Grail's contest, Civilians, the three-turn round. Four things
+differed, and only four.
+
+1. **Different dice.** `rules/setup-rolls-normal.mjs`, and it needed **no new line vocabulary** —
+   `signCoin`, `map` and `derivedFrom` all existed, because the Advanced Master's Health is itself a
+   coin-signed `2d100`. The line **ids** are shared too, so `sheetPatch` and `SETUP_PATHS` consume a
+   Normal plan without knowing it is one. `plansFor(ruleset)` is the single dispatcher.
+2. **Flat statblocks.** Seven Servants with **no `parameters` block at all**, which is what makes
+   `baseAttackFor` keep the authored figure and `prepareBaseData` fill `health.max` from
+   `baseHealth`. No schema change was needed for any of it.
+3. **Fixed dice in place of rank tables.** Every one of these was authored data and **no engine
+   work**: `Resistance` and `DamageNegation` already carry `mode: "dice"`, wired from `elements.mjs`
+   through `attack.mjs`'s NP dice-doubling to the pipeline's *"never negates"*. Territory Creation
+   mirrors Medea's shape exactly — modifiers carrying `roll:`, which `rollModifierDice` and
+   `magnitudeOf` already handle.
+4. **The difficulty levels** now remove what they name (`rules/difficulty.mjs`).
+
+**Measured live in `fgt2026`, built through the wizard**: a two-faction Normal Great Holy Grail War;
+28 units, all 28 in their own base; `outsideZon: 0`; 14 Masters with Base Attacks of **100 and 125**,
+which is the optional High/Low Rank coin landing; Berserker reading **MOV 3 and Range 2** rather than
+5 and 3, so Berserk Rage's bracketed numbers land once; and the ZON table applying — Caster 5 + 1 =
+**6**, Archer **4**, Saber 2 + 1 = **3**.
+
+**Two defects repaired**, both invisible in Advanced:
+
+- **A stated ZON swallowed High Rank's `+1`.** `zonRadius` put the bonus inside `derived` and then
+  took `max()` against the Master's stated floor. The test covering it asserted exactly that, on a
+  comment reading *"added to `derived`, it survives; folded into the floor, a stated ZON would
+  swallow it"* — the right intent and the wrong arithmetic. Inert in Advanced, where almost no
+  Master states a ZON; **total** in Normal, where all seven do.
+- **`SETUP_PATHS` wrote Command Spells to `system.commandSpells.value`** on a plain `NumberField`,
+  so Foundry dropped it. Harmless only while the line's answer and the schema's initial were both 3.
+
+**Four more invented vocabulary values the tooling refused** before they could ship: `chooser:
+attacker` (it is `all | nearest | random | chosen`), the modifier key `territoryCreationAtk`, the
+roll option `target:kind:servant` (it is `target:type:`), and `npChoice` missing from
+`actorSystem()`'s allowlist — the sixth field that list has silently dropped, and the reason
+`validate-content.mjs` refuses it at build time.
+
+**And two ordering bugs the live build caught**, both introduced by this branch: the wizard's blank
+draft hardcoded `ruleset: "advanced"` instead of seeding from the world settings; and `commitWar`
+wrote the match's fields *after* the summon loop, so a freshly-created Combat's schema defaults
+shadowed those settings and the ruleset refusal rejected the war's own Servants. The match now
+describes itself before anything is built into it.
+
+### Setting up a war — **built**
+
+Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
+**three** of them existed: the Region's parameter grant, the day/night opening flip, and Round 1's
+attack ban. The other nine were a GM with a rulebook and a mouse. The pieces were never missing,
+only unassembled — `prepareSummon` already rolled a Servant with every line re-rollable,
+`syncFactions` already built the combatants, `HomeBaseBehavior` already turned a Region into a base
+five rules read. `apps/setup-wizard.mjs` is the thing that calls them in order, over two pure
+Layer-2 modules (`rules/war-setup.mjs`, `rules/home-base.mjs`) and one Layer-3 performer
+(`engine/war-setup.mjs`).
+
+**Measured live in `fgt2026`, built through the interface**: a two-faction Great Holy Grail War on a
+fresh 13 × 13 scene; two home-base Regions of 39 panels; 28 tokens, **all 28** inside their own base;
+`outsideZon: 0`; 14 Masters with a Base Attack that is not zero; 14 contracts; three combatants with
+the GM last; 18 `setup` log lines; and the Holy Grail materializing at `(3, 0)`, outside both bases.
+
+**Five defects it uncovered**, each of which had been inert for want of anything exercising it:
+
+| Defect | Consequence |
+|---|---|
+| `Faction.userId` was singular | Six of seven cooperating players could not open their own Servant's sheet or drag its token — Foundry's own permission check, a separate gate from this system's MOV and budget legality, which still ran and still looked satisfied |
+| The `difficulty` setting was read by nothing | `board.mjs` read `?? "intermediate"` with **no setting fallback**, and the setting could not produce that value anyway. A world storing `expert` reported `intermediate` |
+| `MasterData` declared no `baseAttack` | Every Master in the game attacked for `{str: 0, mag: 0}`, because `summon.mjs` wrote to an undeclared path and Foundry drops those silently |
+| `Combat.create` leaves `active: false` | `currentBoard()` reads `game.combats.active`, so a match that was created but not activated was invisible to the board — no phase, no tick, no difficulty, no Grail |
+| `grailPosition` had no writer | `grailContest` returned early on `!state.position` for the whole of every match. The Holy Grail had never been obtainable |
+
+Two more were found only by **looking at the screen**, and no test could have seen either: `.fgt-nav`
+is the actor sheet's *vertical* rail and rendered as six icons stacked down the middle of the wizard;
+and deployment walking the panel list in order straddled the end of a row, landing the seventh pair
+twelve panels apart so both Servants began the war outside their Master's ZON at −5d10 on every
+attack (`outsideZon: 2`, then `0`).
+
+Three things the tooling caught that would otherwise have shipped silent: the layer checker refused
+`engine/` importing `gridShape` from `apps/` (moved to `domain/`); the content validator refused
+`rank`, `commandSpells` and `zon` missing from `actorSystem()`'s allowlist; and
+`settings-are-read.test.mjs` refused `setupDraft` registered a task before its reader existed. And
+one that only reading the source caught: a `RegionBehavior` passed **inline** in a Region's creation
+data is accepted without complaint and silently produces an empty `behaviors` collection — a home
+base with no `factionId`, which is the exact failure the whole flow exists to end.
+
+Deferred by design: the Master Essence draft (§19.7 steps 6–8, a declared non-goal), the Random
+Event table (§19.5 asks for tooling, not automation), and any player-facing setup phase — every
+choice is the GM's, in one window, which works with nobody else logged in.
+
+### The Servant catalogue fetched classes and threw them away — **repaired**
+
+`servantCatalogue` has asked its compendium index for `system.servantClasses` since it was written
+and never put the field in what it returned, so nothing downstream could tell a Saber from a Caster
+without loading every document. The container roster is the first caller that needed to, and the
+field was already being paid for.
+
+It also now reports `packId` and accepts `{ruleset}`, because the ruleset is a **pack boundary**
+(`rulesetOfPack`) rather than a per-document flag: the setup wizard filters by it, and a boundary
+cannot be got wrong by a typo in an id.
+
+Beside it, `describe`/`describeStep` moved out of `apps/summon-dialog.mjs` into a pure
+`apps/summon-present.mjs` with tests — the split `actor-sheet/present.mjs` and `hud/present.mjs`
+already use, and for the same reason: two dialogs now render a plan line and they must render it
+identically.
+
+### The difficulty setting was read by nothing — **repaired**
+
+Three vocabularies for one rule, none of which met. `settings.mjs` offered
+`beginner | standard | expert`; `MatchData.difficulty` accepted
+`beginner | intermediate | expert | lunatic`; and `engine/board.mjs` read
+`combat?.system?.difficulty ?? "intermediate"` — **no setting fallback at all**, so the registered
+control was consulted by nothing in the system and changing it did nothing. `"standard"` was a value
+the schema would not accept and `"intermediate"` was one the control could not produce.
+
+Measured live in `fgt2026` before the change: a world storing `expert` reported `intermediate` on
+the board.
+
+The rulebook's four win in both places (*"Beginner: Damage modifiers & Luck Check removed.
+Intermediate: Luck Check removed. Expert: Nothing removed. Lunatic: Random Event rate up."*), the
+board takes the setting as its fallback, and `snapshotBoard` normalizes anything unrecognised to
+Intermediate — so a world still holding `standard` reads as a difficulty the rules match rather than
+as one none of them do. `civiliansNeeded`'s Lunatic ≥2 invariant had been implemented since it was
+written against a value nothing could set; it is now reachable.
+
+Beside it, the war's shape gained a representation: `MatchData.warType`, `ruleset`, `homeBaseDepth`
+and `containers`, with `warType` and `ruleset` rule-locked. Before this, a Great Holy Grail War and
+a Holy Grail War were distinguishable only by `turnsPerRound` being 3 or 8, and only in a hint
+string.
 
 ### Master rank, and painting a bounded field — **built**
 

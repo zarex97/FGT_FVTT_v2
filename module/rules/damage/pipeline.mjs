@@ -22,6 +22,7 @@
  */
 
 import { Rank } from "../../domain/rank.mjs";
+import { damageModifiersApply } from "../difficulty.mjs";
 import { lookupNumber, lookup } from "../../domain/tables.mjs";
 import { categoryRankOf } from "../items.mjs";
 import { test as testPredicate } from "../predicate.mjs";
@@ -191,6 +192,17 @@ function stage1Base(s) {
  */
 function stage2Crit(s) {
   s.begin(2);
+
+  // *"To play without damage modifiers, just use Base Attack for damage
+  // calculation instead of Attack+/Attack-."* Contributed as an explicit ZERO
+  // with its reason rather than skipped, so the explainer says the roll was
+  // removed instead of leaving a gap a reader has to account for.
+  if (!damageModifiersApply(s.ctx.difficulty)) {
+    s.contribute("attack+", 0, "removed on Beginner", "attacker");
+    s.end(2);
+    return;
+  }
+
   const isCrit = s.ctx.crit?.isCrit ?? false;
   const roll = s.ctx.rolls?.[isCrit ? "attackPlus" : "attackMinus"] ?? 0;
 

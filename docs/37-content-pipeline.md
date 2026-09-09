@@ -55,6 +55,23 @@ specifies the authoring format, the build, validation, and the tooling that keep
 
 ---
 
+> **Two source directories that had never existed** now do. `packs/_source/masters/` backs the
+> `masters` pack, which had been declared in `system.json`, mapped in `PACKS` and given a full
+> `MasterData` schema since all three were written — and shipped as an empty LevelDB directory,
+> so there was nothing in any world to summon a Master *from*. `packs/_source/servants-normal/`
+> backs a new `fgt.servants-normal` pack.
+>
+> **The ruleset is a pack boundary**, not a flag on each document: the setup wizard filters Servants
+> by it (`servantCatalogue({ruleset})`), and a boundary cannot be got wrong by a typo in an id.
+> `engine/summon.mjs#rulesetOfPack` is the single reader, and anything that is not the Normal pack
+> is Advanced — a module's own pack included, so a third-party Servant is Advanced unless it says
+> otherwise.
+>
+> Authoring the first Master caught `rank`, `commandSpells` and `zon` missing from `actorSystem()`'s
+> allowlist — the fifth time that list has silently dropped an authored field, and the reason
+> `validate-content.mjs` refuses it at build time rather than letting it compile to a default.
+
+
 ## 37.1 Source of truth: YAML in the repository
 
 Compendium packs in Foundry v14 are LevelDB directories — binary, unmergeable, undiffable. That

@@ -1,0 +1,43 @@
+<section class="tab fgt-setup__tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  <div class="fgt-setup__grid">
+    <label>
+      <span>{{localize "FGT.Setup.Scene"}}</span>
+      <select name="draft.sceneId">
+        <option value="">{{localize "FGT.Setup.NewScene"}}</option>
+        {{selectOptions @root.scenes selected=draft.sceneId}}
+      </select>
+    </label>
+    <label>
+      <span>{{localize "FGT.Setup.HomeBaseDepth"}}</span>
+      <input type="number" name="draft.homeBaseDepth" min="1" value="{{draft.homeBaseDepth}}">
+    </label>
+  </div>
+
+  {{#if gridProblems.length}}
+    <p class="fgt-setup__reason">{{localize "FGT.Setup.GridWillChange"}}</p>
+    <ul class="fgt-setup__lines">
+      {{#each gridProblems as |problem|}}
+        <li><code>{{problem.key}}</code>: {{problem.got}} → {{problem.want}}</li>
+      {{/each}}
+    </ul>
+  {{/if}}
+
+  {{#if baseError}}
+    <p class="fgt-setup__reason">{{baseError}}</p>
+  {{else}}
+    <table class="fgt-setup__bases">
+      <thead>
+        <tr>
+          <th>{{localize "FGT.Setup.Faction"}}</th>
+          <th>{{localize "FGT.Setup.Rows"}}</th>
+          <th>{{localize "FGT.Setup.Panels"}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each bases as |base|}}
+          <tr><td>{{base.factionName}}</td><td>{{base.rows}}</td><td>{{base.panels}}</td></tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{/if}}
+</section>

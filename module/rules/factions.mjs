@@ -23,7 +23,7 @@
  * @property {string} id stable, machine-generated, never edited
  * @property {string} name what the GM typed
  * @property {string} color a CSS colour for the board and the HUD
- * @property {string|null} userId the player who controls it, if assigned
+ * @property {string[]} userIds the players who control it
  * @property {string[]} allies other faction ids
  */
 
@@ -58,7 +58,22 @@ export function normalizeFactions(raw) {
       id,
       name: String(entry.name ?? id),
       color: String(entry.color ?? FACTION_COLORS[index % FACTION_COLORS.length]),
-      userId: entry.userId ? String(entry.userId) : null,
+      // A LIST, because a Great Holy Grail War is *"7 players cooperating as
+      // one Faction"* -- or *"2 Players cooperating on each Faction"* -- and a
+      // singular field could express neither. Ch. 04 §4.10 has specified a list
+      // since it was written; the code was the half that drifted.
+      //
+      // Migrated here rather than by a migration runner, which does not exist
+      // (Ch. 39): this normalizer runs on every read, so it is the one place a
+      // shape change cannot be missed. A stored singular `userId` becomes a
+      // one-element list, and `userIds` wins in a world that has both.
+      // `filter` BEFORE `map`, not after: `String(null)` is `"null"`, a
+      // perfectly truthy string that then survives the filter and becomes a
+      // user id nobody has.
+      userIds: [...new Set(
+        (Array.isArray(entry.userIds) ? entry.userIds : (entry.userId ? [entry.userId] : []))
+          .filter(Boolean).map(String),
+      )],
       allies: [...new Set((entry.allies ?? []).map(String))].filter((a) => a !== id),
     });
   }
@@ -128,7 +143,7 @@ export function createFaction(name, existing = []) {
     id,
     name: String(name ?? "").trim() || id,
     color: FACTION_COLORS[existing.length % FACTION_COLORS.length],
-    userId: null,
+    userIds: [],
     allies: [],
   };
 }
@@ -141,5 +156,5 @@ export function createFaction(name, existing = []) {
  * @returns {Faction|null}
  */
 export function factionForUser(factions, userId) {
-  return factions.find((f) => f.userId === userId) ?? null;
+  return factions.find((f) => f.userIds.includes(userId)) ?? null;
 }

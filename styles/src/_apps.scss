@@ -934,3 +934,127 @@
   0% { box-shadow: 0 0 0 2px rgba(255, 214, 128, 0.9); }
   100% { box-shadow: 0 0 0 2px rgba(255, 214, 128, 0); }
 }
+
+/* A faction holds a list of players, not one (Ch. 04 §4.10). */
+.fgt-factions__players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  margin-block: 0.35rem;
+}
+.fgt-factions__players-label { font-weight: 600; opacity: 0.8; }
+.fgt-factions__player { display: inline-flex; gap: 0.25rem; align-items: center; }
+.fgt-factions__none { opacity: 0.6; font-style: italic; }
+
+/* The war setup wizard (docs/19-environment.md §19.7). */
+.fgt-setup__tab { padding: 0.5rem 0.25rem; }
+.fgt-setup__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+
+  label { display: flex; flex-direction: column; gap: 0.15rem; }
+  > label > span { font-weight: 600; opacity: 0.85; }
+}
+.fgt-setup__locked {
+  border-left: 3px solid var(--fgt-gold);
+  padding-left: 0.5rem;
+  opacity: 0.85;
+}
+.fgt-setup__empty, .fgt-setup__hint, .fgt-setup__none { opacity: 0.7; font-style: italic; }
+.fgt-setup__faction { margin-block: 0.5rem; }
+.fgt-setup__footer { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.75rem; }
+.fgt-setup__actions { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem; }
+
+.fgt-setup__container {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &.is-empty { opacity: 0.75; }
+  select, input[type="search"] { flex: 0 1 11rem; }
+  button { flex: 0 0 auto; }
+}
+.fgt-setup__reason { flex: 1 1 100%; font-size: 0.85em; color: var(--fgt-gold); }
+.fgt-setup__count { opacity: 0.7; font-size: 0.9em; }
+
+.fgt-setup__card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--fgt-radius);
+  padding: 0.4rem 0.6rem;
+  margin-block: 0.4rem;
+
+  > header { display: flex; gap: 0.5rem; align-items: center; }
+}
+.fgt-setup__card-slot { opacity: 0.7; font-size: 0.9em; }
+.fgt-setup__card-img { width: 28px; height: 28px; object-fit: cover; border-radius: 4px; }
+.fgt-setup__lines {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+
+  /* Packed left, not stretched: with a `1fr` workings column the re-roll die
+     sat at the far right edge of an 800px window, half a screen from the line
+     it re-rolls. */
+  li {
+    display: grid;
+    grid-template-columns: 8rem 4rem max-content max-content;
+    justify-content: start;
+    gap: 0.4rem;
+    align-items: center;
+  }
+}
+.fgt-setup__line-workings { opacity: 0.75; font-size: 0.9em; }
+.fgt-setup__line-note { grid-column: 1 / -1; opacity: 0.6; font-size: 0.85em; }
+
+.fgt-setup__summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 1rem;
+
+  dt { font-weight: 600; opacity: 0.85; }
+  dd { margin: 0; }
+}
+.fgt-setup__bases {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td { text-align: left; padding: 0.15rem 0.4rem; }
+}
+.fgt-setup__refusals { margin: 0.35rem 0 0 1rem; }
+.fgt-setup__ready { color: var(--fgt-gold); }
+
+/* The wizard's tab rail runs ACROSS THE TOP, not down the side.
+   `.fgt-nav` is the actor sheet's vertical rail, sized by `grid-area: nav`
+   inside that sheet's grid; the wizard has no such grid, so the rail rendered
+   as six icons stacked down the middle of the window and swallowed the top
+   third of it. Overridden here rather than parameterized in `_shell.scss`,
+   because the sheet's rail is right as it is and only its container differs. */
+.setup-wizard {
+  .fgt-nav {
+    grid-area: auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.5rem;
+    border-right: none;
+    border-bottom: var(--fgt-border);
+  }
+
+  .fgt-nav__item { width: 2.25rem; }
+
+  /* One scroll container per tab, not one for the window: ApplicationV2
+     restores scroll position per part, and `.window-content` has a fixed
+     height with no overflow of its own. */
+  .fgt-setup__tab { padding: 0.6rem 0.75rem; }
+}
+
+/* "Before play, select only one Noble Phantasm, either (a) or (b)." */
+.fgt-setup__np { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: center; margin-top: 0.35rem; }
+.fgt-setup__np-label { font-weight: 600; opacity: 0.85; }
+.fgt-setup__np-option { display: inline-flex; gap: 0.25rem; align-items: center; }

@@ -47,6 +47,7 @@ import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { offerWeakPoint, resolveWeakPoint, weakPointIntents } from "./weak-point.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
+import { luckChecksApply } from "../rules/difficulty.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
@@ -1633,6 +1634,13 @@ async function runAutomaticStep(state, message) {
   // because Luck is finite and a player may rationally refuse.
   const prompt = process.pendingPrompt(state);
   if (prompt?.kind === "luckCheck") {
+    // Beginner and Intermediate remove the Luck Check entirely (Ch. 19).
+    // Declined with a reason on the same path `luckChecksBlocked` uses, rather
+    // than the prompt being suppressed silently -- a player who expected the
+    // option is owed the sentence saying why it is gone.
+    if (!luckChecksApply(boardSnapshot()?.difficulty)) {
+      return process.advance(state, "declined", { reason: "luckChecksRemoved" });
+    }
     const asked = game.actors.get(prompt.unitId);
     if (asked && luckChecksBlocked(unitFrom(boardSnapshot(), asked) ?? unitSnapshot(asked))) {
       return process.advance(state, "declined", { reason: "luckChecksBlocked" });
@@ -2698,6 +2706,9 @@ async function applyDamage(state, message) {
       ? facts.conditionalMultipliers
       : resolvedDamage(ability, options)?.conditionalMultipliers) ?? [],
     crit: { isCrit, chanceUsed: critSpec.percent },
+    // Which rolls this table plays with (Ch. 19). Threaded into ctx the way
+    // `grandOrder` is, because a pure pipeline stage may not read a setting.
+    difficulty: board?.difficulty,
     reaction: { kind: state.reaction ?? "none" },
     // §16.4 rule 4, both halves. The Master its Servants covered *"receives no
     // damage and effects"*; each covering Servant's *"Total Damage ... is
@@ -4750,6 +4761,9 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     // No crit. The coin was never flipped — the resolution did not happen — and
     // assuming one would hand the reflection a bonus the sheet does not mention.
     crit: { isCrit: false, chanceUsed: 0 },
+    // Which rolls this table plays with (Ch. 19). Threaded into ctx the way
+    // `grandOrder` is, because a pure pipeline stage may not read a setting.
+    difficulty: board?.difficulty,
     reaction: { kind: "none" },
     totalDamageModifiers: [],
     luckChecks: {},

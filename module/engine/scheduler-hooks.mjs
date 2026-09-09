@@ -18,7 +18,9 @@ import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
-import { grailContest, checkVictory } from "../rules/environment.mjs";
+import {
+  grailContest, checkVictory, grailPanelCandidates,
+} from "../rules/environment.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as fields from "./fields.mjs";
 import { expireTerrain } from "./terrain.mjs";
@@ -328,6 +330,26 @@ async function run(intents, source) {
  */
 async function advanceGrail(combat, board) {
   if (!game.user.isGM) return;
+
+  // The Grail materialized and has nowhere to stand. Rolled HERE, by the
+  // caller, because `grailPanelCandidates` is pure -- the same contract every
+  // other roll in this system keeps. Before the position exists, `grailContest`
+  // below returns early on `!state.position`, which is what it did for the
+  // whole of every match ever played.
+  if (board.grail?.materialized && !board.grail?.position) {
+    const candidates = grailPanelCandidates(board);
+    if (candidates.length === 0) {
+      ui.notifications.warn(game.i18n.localize("FGT.Grail.NoPanel"));
+    } else {
+      const roll = await new Roll(`1d${candidates.length}`).evaluate();
+      const panel = candidates[roll.total - 1];
+      await worldIO().setGrailPosition(panel);
+      board.grail = { ...board.grail, position: panel };
+      await ChatMessage.create({
+        content: `<p>${game.i18n.format("FGT.Grail.Materialized", { i: panel.i, j: panel.j })}</p>`,
+      });
+    }
+  }
 
   const result = grailContest(board.grail ?? {}, board.units ?? []);
   if (JSON.stringify(result.contest) !== JSON.stringify(board.grail?.contest ?? {})) {

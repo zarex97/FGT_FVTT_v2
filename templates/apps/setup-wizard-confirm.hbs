@@ -1,0 +1,31 @@
+<section class="tab fgt-setup__tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  <dl class="fgt-setup__summary">
+    <dt>{{localize "FGT.Settings.WarType"}}</dt><dd>{{draft.warType}}</dd>
+    <dt>{{localize "FGT.Settings.Ruleset"}}</dt><dd>{{draft.ruleset}}</dd>
+    <dt>{{localize "FGT.Settings.BoardSize"}}</dt><dd>{{draft.boardSize}} × {{draft.boardSize}}</dd>
+    <dt>{{localize "FGT.Settings.TurnsPerRound"}}</dt><dd>{{draft.turnsPerRound}}</dd>
+    <dt>{{localize "FGT.Settings.Difficulty"}}</dt><dd>{{draft.difficulty}}</dd>
+    {{!-- Read-only: the rank mode is a world setting, and this is the last
+          place a GM can notice which of the three is in force before every
+          Master in the war is rolled under it. --}}
+    <dt>{{localize "FGT.Settings.MasterMode"}}</dt><dd>{{masterMode}}</dd>
+  </dl>
+
+  {{#if refusals.length}}
+    <p class="fgt-setup__reason">{{localize "FGT.Setup.RefusalsHeading"}}</p>
+    <ul class="fgt-setup__refusals">
+      {{#each refusals as |refusal|}}<li>{{refusal.text}}</li>{{/each}}
+    </ul>
+  {{else}}
+    <p class="fgt-setup__ready">{{localize "FGT.Setup.Ready"}}</p>
+  {{/if}}
+
+  <footer class="fgt-setup__footer">
+    <button type="button" data-action="commit" {{disabled refusals.length}}>
+      {{localize "FGT.Setup.Commit"}}
+    </button>
+    {{#if refusals.length}}
+      <span class="fgt-setup__reason">{{localize "FGT.Setup.CommitBlocked"}}</span>
+    {{/if}}
+  </footer>
+</section>
