@@ -564,6 +564,28 @@ so the Grail's destruction check is wired into the damage application step with 
 
 ---
 
+> **Repaired: every Master in the game attacked for zero.** `MasterData` declared no `baseAttack`.
+> `engine/summon.mjs` has mapped a Master's rolled figure to `system.baseAttack.mag` since it was
+> written, Foundry drops a write to an undeclared path without complaint, and `rules/snapshot.mjs`
+> reads `sys.baseAttack?.str ?? 0` — so the value vanished on every write and every read.
+> Measured live in `fgt2026` before the fix: `{str: 0, mag: 0}` and `mov: 0` on every Master in the
+> world.
+>
+> Unfindable until now only because nothing in the Advanced corpus depends on a Master's own attack
+> being non-zero. The field is **borrowed from `combatantCommon()`** rather than restated, the way
+> `turnState` and `roundState` already are, so the two definitions cannot drift; a unit test holds
+> the three names.
+>
+> **`packs/_source/masters/` now exists too.** The `masters` pack has been declared in
+> `system.json`, mapped in `PACKS` and backed by this schema since all three were written, with no
+> source directory behind it — so it shipped as an empty LevelDB directory and there was nothing in
+> any world to summon a Master *from*. `master-advanced.yml` is the generic Master the setup wizard
+> copies. Authoring it also caught `rank`, `commandSpells` and `zon` missing from `actorSystem()`'s
+> allowlist in `tools/lib/content.mjs`, which the content validator refuses at build time.
+>
+> A Master created **before** this repair still reads `{str: 0, mag: 0}`: the schema can now hold the
+> figure, and nothing retro-fits one. Re-roll its setup, or set the figure on the sheet.
+
 ## 4.10 Factions and disposition
 
 ```ts
@@ -571,11 +593,28 @@ interface Faction {
   id: string;
   name: string;
   colour: string;
-  homeBaseRegionId: string;
-  playerIds: string[];             // 1..7 users cooperating
-  turnSlot: number;                // position in the round
+  userIds: string[];               // 1..7 users cooperating
+  allies: string[];                // other faction ids, symmetric
 }
 ```
+
+> **Implemented, and the list is the half that had drifted.** `rules/factions.mjs` carries
+> `userIds: string[]`; `normalizeFactions` migrates a stored singular `userId` into a one-element
+> list, because there is no migration runner (Ch. 39) and that normalizer already runs on every
+> read. `engine/faction-ownership.mjs` grants Foundry OWNER to **every** listed player.
+>
+> While it read one id, a Great Holy Grail War's *"7 players cooperating as one Faction"* was not
+> expressible: six of the seven could not open their own Servant's sheet or drag its token, because
+> Foundry's own permission check refuses the write — a separate gate from this system's MOV and
+> budget legality in `movement-hooks.mjs`, which still ran and still looked satisfied. They also saw
+> the standard class image on their own sheet, since `context.mjs`'s concealment exemption reads
+> `actor.isOwner`.
+>
+> Two fields of the original interface are **not** here, deliberately. `homeBaseRegionId` runs the
+> other way: a Region carries `HomeBaseBehavior.factionId`, so a faction may own several — which is
+> what Semiramis's Hanging Gardens *"counts as a second Home Base"* requires. `turnSlot` lives on
+> the Combatant (`PlayerCombatantData`), because turn order is re-rolled every Round (§25.3) and a
+> position stored on the roster would be a second copy of it.
 
 Foundry's `TOKEN_DISPOSITIONS` (`FRIENDLY 1`, `NEUTRAL 0`, `HOSTILE -1`, `SECRET -2`) is
 *relative to the viewer* and only supports two sides. F/GT supports up to 7 factions plus

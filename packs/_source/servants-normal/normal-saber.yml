@@ -1,0 +1,29 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# "Saber of Blue"
+#
+# NO `parameters` block, and that absence is load-bearing: `baseAttackFor` keeps
+# an authored Base Attack only where there is no rank to derive from, and
+# `prepareBaseData` fills `health.max` from `baseHealth` only where no END rank
+# is stated. A rank here would silently replace every number below with a
+# table's.
+schema: 1
+id: normal-saber
+name: Saber
+type: servant
+
+servantClasses: [saber]
+classContainer: saber
+baseHealth: 1250
+mov: 4
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 200, mag: 150 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: normal-magic-resistance }
+  - { ref: normal-saber-np }
+
+notes: |
+  The setup wizard renames each copy `Saber of <Faction>`; the source sheets
+  differ across factions only in that word.

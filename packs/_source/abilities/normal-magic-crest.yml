@@ -1,0 +1,30 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+#
+# > "(Master) Magic Crest — Damage Spell. Deals 2x damage. *Categorized as Noble
+# > Phantasm.* Cooldown: 2◈ Turns"
+#
+# `categorizedAsNP` rather than `isNP`: it COUNTS as a Noble Phantasm for every
+# rule that asks -- Magic Resistance's doubled dice, the "including NP"
+# reductions, `CS: Force Noble Phantasm` -- without being one for the purposes
+# of a Servant's NP uses, which a Master does not have.
+schema: 1
+id: normal-magic-crest
+name: "Magic Crest"
+source: class
+slug: magicCrest
+kind: skill
+categorizedAsNP: true
+cooldown: { max: "2◈" }
+description: |
+  (Active) Damage Spell. Deals 2x damage. Categorized as Noble Phantasm.
+  Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: withinRange, range: 2, metric: chebyshev }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, includeSelf: false }
+damage:
+  component: mag
+  multiplier: 2
+phases:
+  - kind: damage
+  - kind: cooldown

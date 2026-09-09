@@ -187,6 +187,21 @@ transaction so no intermediate state is observable.
 
 ---
 
+> **Corrected: a stated ZON swallowed High Rank's +1.** `zonRadius` ends
+> `Math.max(derived, floor)` where the floor is the Master's own `system.zon`, and the rank bonus
+> sat only inside `derived` — so the grant vanished whenever the stated figure was the larger one.
+> The test that covered it asserted exactly that outcome, on a comment reading *"added to `derived`,
+> it survives; folded into the floor, a stated ZON would swallow it"*: the right intent and the
+> wrong arithmetic, since `max` swallows the bonus precisely when the floor wins.
+>
+> The bonus is now on **both sides** of the comparison. The floor exists so a Master sheet stating a
+> ZON is believed; *"High Rank Masters: ZON+1 panel"* (Ch. 04 §4.5) is a separate and unconditional
+> grant. Inert in Advanced, where almost no Master states a ZON at all — and total in Normal, where
+> all seven do (Caster 5, Archer and Assassin 4, the rest 2), so a High Rank Master bought nothing
+> with the coin that made them one. Measured live: a High Rank Archer's Master reads 5 against a
+> stated 4, and a Low Rank one reads 4.
+
+
 ## 16.3 ZON — the Effective Servant Zone
 
 Specified numerically in Ch. 06 §6.9. Here, the *behavioural* consequences.

@@ -1,0 +1,24 @@
+<section class="tab fgt-setup__tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  {{#unless hasFactions}}<p class="fgt-setup__empty">{{localize "FGT.Setup.NoFactions"}}</p>{{/unless}}
+
+  {{#each factions as |faction|}}
+    <fieldset class="fgt-setup__faction">
+      <legend>
+        <span class="fgt-factions__swatch" style="background: {{faction.color}}"></span>
+        {{faction.name}}
+      </legend>
+      <div class="fgt-factions__players">
+        <span class="fgt-factions__players-label">{{localize "FGT.Factions.Players"}}</span>
+        {{#each faction.userIds as |uid|}}<span class="fgt-setup__player">{{uid}}</span>{{/each}}
+        {{#unless faction.userIds.length}}
+          <span class="fgt-setup__none">{{localize "FGT.Setup.NoPlayersAssigned"}}</span>
+        {{/unless}}
+      </div>
+    </fieldset>
+  {{/each}}
+
+  <footer class="fgt-setup__footer">
+    <button type="button" data-action="addFaction">{{localize "FGT.Factions.Add"}}</button>
+    <p class="fgt-setup__hint">{{localize "FGT.Setup.FactionsHint"}}</p>
+  </footer>
+</section>

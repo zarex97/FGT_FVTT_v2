@@ -1,0 +1,28 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Rider) Class Skill: Riding - Double Move / Riding Attack / Passenger Seat"
+#
+# All three clauses are ALREADY IMPLEMENTED: `engine/riding.mjs` performs the
+# carry and the straight-line attack, `turnState.mayMoveAgain` and
+# `turnState.usedRidingAttack` hold the mutual exclusion, and `movedPanels` is a
+# running total precisely because Riding's two moves share one MOV allowance
+# (Ch. 18 §18.4). What this document does is turn them on for a Servant with no
+# Riding rank -- Normal's Riding has no rank, and no Active.
+schema: 1
+id: normal-riding
+name: "Riding"
+source: class
+slug: riding
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive) Rider is able to Move twice during your Turn if it Attacks in that Turn. The total
+  number of panels Moved during both times cannot exceed Rider's MOV.
+  (Passive) As Rider's Normal Attack, Rider is able to Attack all enemies in its path while Moving
+  in a straight line. Rider cannot Attack after it has stopped, and cannot Move a second time after
+  using a Riding Attack.
+  (Passive) When Rider Moves, Rider's Master is able to Move together with Rider. This counts as
+  only Moving one Servant Unit.
+passiveRules:
+  - key: GrantedAbility
+    abilities: [doubleMove, ridingAttack, passengerSeat]

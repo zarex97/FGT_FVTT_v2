@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  servantSetupPlan, masterSetupPlan, resolveSetupPlan, baseAttackAdjustment, summonPlan,
+  servantSetupPlan, masterSetupPlan, resolveSetupPlan, baseAttackAdjustment, summonPlan, plansFor, needsSetupRolls,
 } from "../../module/rules/setup-rolls.mjs";
 
 const karna = {
@@ -255,5 +255,43 @@ describe("summonPlan", () => {
     // Nothing is written until every line has been shown.
     expect(summonPlan({ sheet: karna }).at(-1))
       .toMatchObject({ kind: "confirm", rerollable: true, locksAtMatchStart: true });
+  });
+});
+
+describe("plansFor", () => {
+  it("hands back the Advanced plans by default and for an unknown ruleset", () => {
+    expect(plansFor("advanced").servant).toBe(plansFor(undefined).servant);
+    expect(plansFor("nonsense").servant).toBe(plansFor("advanced").servant);
+    expect(plansFor("advanced").master).toBe(plansFor("nonsense").master);
+  });
+
+  it("hands back the Normal plans for the Normal ruleset", () => {
+    const plan = plansFor("normal").servant({ baseHealth: 750, classContainer: "saber" });
+    expect(plan.lines.find((l) => l.id === "maxHealth").roll.formula).toBe("10d20");
+  });
+
+  it("keeps the Advanced Servant's Health unrolled — Health(S) is not used", () => {
+    const plan = plansFor("advanced").servant({ parameters: { end: "B", agi: "B", luc: "C" } });
+    expect(plan.lines.find((l) => l.id === "maxHealth").roll).toBeNull();
+  });
+});
+
+describe("needsSetupRolls under Normal", () => {
+  it("flags a rankless Normal Servant whose maxima are zero", () => {
+    const sheet = { baseHealth: 750, agility: { max: 0 }, luck: { max: 0 }, parameters: {} };
+    // The Advanced test keys on a STATED rank, which a Normal sheet never has —
+    // so the same Servant reads as fine under Advanced and broken under Normal.
+    expect(needsSetupRolls(sheet, "advanced")).toBe(false);
+    expect(needsSetupRolls(sheet, "normal")).toBe(true);
+  });
+
+  it("leaves a rolled Normal Servant alone", () => {
+    const sheet = { baseHealth: 750, agility: { max: 14 }, luck: { max: 9 }, parameters: {} };
+    expect(needsSetupRolls(sheet, "normal")).toBe(false);
+  });
+
+  it("flags a Normal Servant missing either maximum, not only both", () => {
+    expect(needsSetupRolls({ agility: { max: 14 }, luck: { max: 0 } }, "normal")).toBe(true);
+    expect(needsSetupRolls({ agility: { max: 0 }, luck: { max: 9 } }, "normal")).toBe(true);
   });
 });

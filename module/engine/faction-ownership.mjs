@@ -78,14 +78,19 @@ export async function syncAll(rows = factions()) {
 export async function syncOne(actor, rows = factions()) {
   if (!game.user.isGM) return;
 
-  const desiredUserId = rows.find((f) => f.id === actor.system?.factionId)?.userId ?? null;
+  // A SET of owners, not one id. While this read a singular field, six of the
+  // seven players cooperating on a faction could not open their own Servant's
+  // sheet or drag its token -- Foundry's own permission check refuses the
+  // write, which is a separate gate from this system's MOV and budget legality
+  // in `movement-hooks.mjs`, and that one still ran and still looked satisfied.
+  const owners = new Set(rows.find((f) => f.id === actor.system?.factionId)?.userIds ?? []);
   const { NONE, OWNER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
 
   const patch = {};
   let dirty = false;
   for (const user of game.users) {
     if (user.isGM) continue;
-    const want = user.id === desiredUserId ? OWNER : NONE;
+    const want = owners.has(user.id) ? OWNER : NONE;
     if ((actor.ownership?.[user.id] ?? NONE) !== want) {
       patch[user.id] = want;
       dirty = true;

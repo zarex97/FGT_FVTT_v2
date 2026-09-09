@@ -277,7 +277,14 @@ export function currentBoard(overrides = {}) {
       // Optional rules the table has switched off (§8.3 clause 4 today).
       rules: { masterProtection: setting("masterProtection", true) !== false },
       warRegion: currentWarRegion(),
-      difficulty: combat?.system?.difficulty ?? "intermediate",
+      warType: combat?.system?.warType ?? setting("warType", "greatHolyGrailWar"),
+      ruleset: combat?.system?.ruleset ?? setting("ruleset", "advanced"),
+      drawPolicy: setting("drawPolicy", "duplicates"),
+      homeBaseDepth: combat?.system?.homeBaseDepth ?? 3,
+      // The SETTING as the fallback, which it never was: this read
+      // `?? "intermediate"` outright, so the registered `fgt.difficulty`
+      // control was consulted by nothing at all and changing it did nothing.
+      difficulty: combat?.system?.difficulty ?? setting("difficulty", "intermediate"),
       grail: {
         threshold: combat?.system?.grailThreshold ?? 9,
         defeatedCount: combat?.system?.grailCounter ?? 0,

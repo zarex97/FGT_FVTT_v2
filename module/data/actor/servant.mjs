@@ -105,6 +105,13 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       zonExempt: new fields.BooleanField({ initial: false }),
       zonPartnerIds: new fields.SetField(new fields.DocumentIdField()),
 
+      // "Before play, select only one Noble Phantasm, either (a) or (b). The
+      // unselected Noble Phantasm is unusable." Normal's Archer, Caster and
+      // Berserker each offer two; the setup wizard writes the GM's pick and
+      // marks the loser `expended`, which is what "unusable" already means.
+      // Empty for every Servant that offers no such choice.
+      npChoice: new fields.ArrayField(new fields.StringField({ blank: false })),
+
       classSkills: new fields.SchemaField({
         magicResistance: new fields.SchemaField({
           rank: new RankField(),

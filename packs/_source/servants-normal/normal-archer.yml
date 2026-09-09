@@ -1,0 +1,31 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# "Archer of Blue"
+#
+# > "Note: Before play, select only one Noble Phantasm, either (a) or (b). The
+# > unselected Noble Phantasm is unusable."
+#
+# BOTH are authored and both sit on the sheet. The choice is the setup wizard's
+# `npChoice`, committed by marking the unselected one `expended` -- "unusable"
+# is what `expended` already means, and a rejected option left visible and
+# greyed out is one a player can check.
+schema: 1
+id: normal-archer
+name: Archer
+type: servant
+
+servantClasses: [archer]
+classContainer: archer
+baseHealth: 750
+mov: 4
+range: { panels: 4, targets: 1 }
+baseAttack: { str: 100, mag: 125 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "5◈"
+
+npChoice: [normal-archer-np-a, normal-archer-np-b]
+
+abilities:
+  - { ref: normal-independent-action }
+  - { ref: normal-close-combat-penalty }
+  - { ref: normal-archer-np-a }
+  - { ref: normal-archer-np-b }

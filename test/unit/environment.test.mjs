@@ -5,8 +5,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  phase, darkModifiers, homeBaseModifiers, endOfRoundHomeBase,
-  grailState, registerDefeat, grailContest, grailDestructionChance, ownBaseOf,
+  phase, darkModifiers, homeBaseModifiers, endOfRoundHomeBase, grailState, registerDefeat, grailContest, grailDestructionChance, ownBaseOf, grailPanelCandidates,
 } from "../../module/rules/environment.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -292,5 +291,37 @@ describe("a platform that counts as a Home Base", () => {
   it("is not a base at all for a platform that does not claim to be one", () => {
     const plain = { ...hgob, countsAsHomeBase: false };
     expect(ownBaseOf(aboard(), { ...board, units: [plain, aboard()] })).toBeNull();
+  });
+});
+
+describe("grailPanelCandidates", () => {
+  const board = (zones) => ({ bounds: { iMin: 0, jMin: 0, iMax: 2, jMax: 2 }, zones });
+
+  it("offers every in-bounds panel when there are no home bases", () => {
+    expect(grailPanelCandidates(board({}))).toHaveLength(9);
+  });
+
+  it("excludes every home base, whoever owns it", () => {
+    // "A random panel on the field EXCLUDING Home Bases" — every zone, not only
+    // the enemy's. A Grail in your own base is one you win with by standing
+    // still, which is not a contest.
+    const zones = {
+      r1: { faction: "red", panels: [{ i: 0, j: 0 }, { i: 0, j: 1 }] },
+      r2: { faction: "blue", panels: [{ i: 2, j: 2 }] },
+    };
+    const out = grailPanelCandidates(board(zones));
+    expect(out).toHaveLength(6);
+    expect(out.some((p) => p.i === 0 && p.j === 0)).toBe(false);
+    expect(out.some((p) => p.i === 2 && p.j === 2)).toBe(false);
+  });
+
+  it("returns nothing when every panel is somebody's base", () => {
+    const panels = [];
+    for (let i = 0; i <= 2; i++) for (let j = 0; j <= 2; j++) panels.push({ i, j });
+    expect(grailPanelCandidates(board({ r1: { faction: "red", panels } }))).toEqual([]);
+  });
+
+  it("tolerates a board with no bounds rather than looping forever", () => {
+    expect(grailPanelCandidates({})).toEqual([]);
   });
 });

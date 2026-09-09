@@ -39,7 +39,7 @@ describe("entry", () => {
   it("lists every kind §30.8 enumerates", () => {
     expect([...LOG_KINDS].sort()).toEqual([
       "ability", "attack", "commandSpell", "contract", "defeat", "effect",
-      "gmOverride", "grail", "movement", "scheduler",
+      "gmOverride", "grail", "movement", "scheduler", "setup",
     ].sort());
   });
 });

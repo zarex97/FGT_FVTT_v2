@@ -24,16 +24,24 @@
           <input type="color" name="factions.{{faction.id}}.color" value="{{faction.color}}">
         </label>
 
-        <label>
-          <span>{{localize "FGT.Factions.Player"}}</span>
-          <select name="factions.{{faction.id}}.userId">
-            <option value="">{{localize "FGT.Factions.Unassigned"}}</option>
-            {{!-- @root, because a bare name inside {{#each}} resolves against
-                  the ITEM, not the template context, and selectOptions throws
-                  on undefined rather than rendering nothing. --}}
-            {{selectOptions @root.players selected=faction.userId valueAttr="id" labelAttr="name"}}
-          </select>
-        </label>
+      </div>
+
+      {{!-- Checkboxes rather than a select: a faction holds a LIST of players.
+            `faction.players` is built per row so each carries its own ticked
+            state; a shared list would render every row identically. --}}
+      <div class="fgt-factions__players">
+        <span class="fgt-factions__players-label">{{localize "FGT.Factions.Players"}}</span>
+        {{#if @root.hasPlayers}}
+          {{#each faction.players as |player|}}
+            <label class="fgt-factions__player">
+              <input type="checkbox" name="factions.{{faction.id}}.userIds.{{player.id}}"
+                     {{checked player.assigned}}>
+              <span>{{player.name}}</span>
+            </label>
+          {{/each}}
+        {{else}}
+          <span class="fgt-factions__none">{{localize "FGT.Factions.NoPlayers"}}</span>
+        {{/if}}
       </div>
 
       {{#if faction.others.length}}

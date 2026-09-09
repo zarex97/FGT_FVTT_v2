@@ -99,6 +99,24 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // parameter step, which is why it lives on the match rather than on a
       // setting: it is chosen once, at setup, and never changes mid-war.
       region: new fields.StringField({ required: false, nullable: true, initial: null }),
+
+      // The war being fought. `turnsPerRound` being 3 or 8 was the only trace
+      // of this distinction anywhere in the system, and only in a hint string.
+      warType: new fields.StringField({
+        initial: "greatHolyGrailWar",
+        choices: ["greatHolyGrailWar", "holyGrailWar", "custom"],
+      }),
+      // Advanced Servants carry parameter ranks and derive their numbers from
+      // tables; Normal ones state flat numbers. Two stat scales, and a board
+      // holds one.
+      ruleset: new fields.StringField({ initial: "advanced", choices: ["advanced", "normal"] }),
+      homeBaseDepth: new fields.NumberField({ required: true, integer: true, initial: 3, min: 1 }),
+      // The war's slot roster: which containers exist, who owns them, and what
+      // is in each. An ObjectField for the same reason `resources` is one --
+      // this is a shape the setup wizard owns, and a typed schema would have to
+      // name every future field before the wizard could write one.
+      containers: new fields.ArrayField(new fields.ObjectField()),
+
       difficulty: new fields.StringField({ initial: "intermediate",
         choices: ["beginner", "intermediate", "expert", "lunatic"] }),
 

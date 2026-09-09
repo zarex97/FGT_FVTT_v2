@@ -1,0 +1,34 @@
+# packs/_source/masters/master-advanced.yml
+# The generic Master the setup wizard summons under the Advanced ruleset.
+#
+# The `masters` pack has been declared in system.json, mapped in PACKS and
+# backed by a full MasterData schema since all three were written, and
+# `packs/_source/masters/` did not exist -- so the pack shipped as an empty
+# LevelDB directory and there was nothing in any world to summon a Master FROM.
+#
+# > "Base Health: 250" -- flat, regardless of rank or essence (Ch. 41 Q1),
+# before the coin-flipped roll of `masterSetupPlan`. That is between a sixth and
+# an eighth of a Servant's, and it is the numerical statement of how fragile
+# Masters are: the reason Overpower, ZON and every Master-protection rule in the
+# game are load-bearing.
+schema: 1
+id: master-advanced
+name: Master
+type: master
+
+baseHealth: 250
+mov: 2
+range: { panels: 2, targets: 1 }
+# Rankless until an Essence or the coin says otherwise -- a real state with
+# rules of its own, not a missing value: Ch. 17 prices an all-Rankless table
+# differently, and `rules/costs.mjs` treats an unset rank as the CHEAPER column
+# deliberately. `masterSetupPlan` writes the rolled figure over the MAG value.
+baseAttack: { str: 50, mag: 100 }
+rank: ""
+commandSpells: 3
+zon: 2
+
+notes: |
+  Named `Master` rather than `Master of X`: the setup wizard renames each copy
+  after the container it is assigned to, because a Master's public identity is
+  its Servant's container (Ch. 04 §4.2) and the container is not known here.

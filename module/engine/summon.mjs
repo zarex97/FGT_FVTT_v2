@@ -17,7 +17,7 @@
  */
 
 import {
-  servantSetupPlan, masterSetupPlan, resolveSetupPlan, summonPlan, needsSetupRolls,
+  resolveSetupPlan, summonPlan, needsSetupRolls, plansFor,
 } from "../rules/setup-rolls.mjs";
 import { regionsAdjacent } from "../rules/environment.mjs";
 
@@ -98,7 +98,7 @@ export async function prepareSummon({ contentId, masterId = null, region = null,
   const warRegion = region ?? (game.settings.get("fgt", "region") || null);
   const master = masterId ? game.actors.get(masterId) : null;
 
-  const plan = servantSetupPlan(sheet);
+  const plan = plansFor(warRuleset()).servant(sheet);
   const { totals, signs, rolls } = await rollSetupPlan(plan);
 
   return refresh({
@@ -168,6 +168,26 @@ export function reviseSummon(prepared, { masterId, warRegion, masterGrants }) {
  * @returns {Promise<object>} the created actor
  */
 export async function commitSummon(prepared) {
+  // The wizard filters its catalogue by ruleset; a STALE DRAFT is the case a
+  // filter alone does not cover -- a GM who rolled fourteen Advanced Servants
+  // and then switched the war to Normal has a draft the filter stopped looking
+  // at.
+  //
+  // Refused rather than converted. A Normal Saber's flat 1250 Health and an
+  // Advanced Servant's rank-derived Health are two different scales, and a
+  // board holding both is a fight in which neither number means what the other
+  // one means.
+  const wanted = warRuleset();
+  // A Servant built some other way carries no pack, and `rulesetOfPack("")`
+  // answers Advanced -- the right default for a hand-made one.
+  const actual = rulesetOfPack(prepared.source.pack ?? "");
+  if (actual !== wanted) {
+    const label = (r) => game.i18n.localize(`FGT.Ruleset.${r === "normal" ? "Normal" : "Advanced"}`);
+    throw new Error(game.i18n.format("FGT.Summon.RulesetMismatch", {
+      name: prepared.source.name, servant: label(actual), war: label(wanted),
+    }));
+  }
+
   const data = prepared.source.toObject();
   data.system = {
     ...data.system,
@@ -277,9 +297,9 @@ export async function ensureSetupRolls() {
   const done = [];
   for (const actor of game.actors) {
     if (actor.type !== "servant") continue;
-    if (!needsSetupRolls(actor.system)) continue;
+    if (!needsSetupRolls(actor.system, warRuleset())) continue;
 
-    const { lines } = await rollSetupPlan(servantSetupPlan(sheetSnapshot(actor)));
+    const { lines } = await rollSetupPlan(plansFor(warRuleset()).servant(sheetSnapshot(actor)));
     const value = (id) => lines.find((l) => l.id === id)?.value ?? 0;
     const agility = value("maxAgility");
     const luck = value("maxLuck");
@@ -314,7 +334,7 @@ export async function rollMasterSetup({ masterId, confirm = true }) {
   // written and nothing read it, so every Master was ranked by essence
   // whatever the world was configured for.
   const mode = game.settings.get("fgt", "masterMode") ?? "essences";
-  const { lines } = await rollSetupPlan(masterSetupPlan(actor.system, { mode }));
+  const { lines } = await rollSetupPlan(plansFor(warRuleset()).master(actor.system, { mode }));
   if (!confirm) return { ok: true, lines };
 
   const patch = {};
@@ -336,10 +356,15 @@ export async function rollMasterSetup({ masterId, confirm = true }) {
  * Every Servant in the content packs, for a picker.
  * @returns {Promise<Array<{contentId: string, name: string, img: string, pack: string}>>}
  */
-export async function servantCatalogue() {
-  /** @type {Array<{contentId: string, name: string, img: string, pack: string}>} */
+export async function servantCatalogue({ ruleset = null } = {}) {
+  /** @type {Array<{contentId: string, name: string, img: string, pack: string,
+   *                packId: string, servantClasses: string[]}>} */
   const out = [];
+  // The index has always FETCHED `system.servantClasses` and never returned it,
+  // so nothing downstream could tell a Saber from a Caster without loading every
+  // document. The container roster is the first caller that needs to.
   for (const pack of game.packs.filter((p) => p.metadata.type === "Actor")) {
+    if (ruleset && rulesetOfPack(pack.collection) !== ruleset) continue;
     const index = await pack.getIndex({ fields: ["system.contentId", "type", "system.servantClasses"] });
     for (const entry of index) {
       if (entry.type !== "servant") continue;
@@ -348,15 +373,52 @@ export async function servantCatalogue() {
         name: entry.name,
         img: entry.img,
         pack: pack.metadata.label,
+        packId: pack.collection,
+        // A `SetField` arrives from the index as an array already, but a
+        // document that never stated any arrives as `undefined`.
+        servantClasses: [...(entry.system?.servantClasses ?? [])],
       });
     }
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/**
+ * Which ruleset a Servant pack belongs to.
+ *
+ * A pack boundary rather than a per-document flag, because the setup wizard
+ * must filter by ruleset and a boundary cannot be got wrong by a typo in an id.
+ * Anything that is not the Normal pack is Advanced, a module's own pack
+ * included — a third-party Servant is an Advanced one unless it says otherwise.
+ *
+ * @param {string} collection
+ * @returns {"advanced"|"normal"}
+ */
+export function rulesetOfPack(collection) {
+  return collection === "fgt.servants-normal" ? "normal" : "advanced";
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Internals                                                                 */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Which ruleset this war is fought under.
+ *
+ * The MATCH first, the setting as its default -- the shape `region` and
+ * `difficulty` already use. A Servant does not carry its own ruleset: it is one
+ * drawn from the Normal pack, and the pack boundary is the discriminator
+ * (`rulesetOfPack`).
+ *
+ * @returns {"advanced"|"normal"}
+ */
+function warRuleset() {
+  try {
+    return game.combat?.system?.ruleset ?? game.settings.get("fgt", "ruleset") ?? "advanced";
+  } catch {
+    return "advanced";
+  }
+}
 
 /** §14.9: Max Health moves by this much per END step, in either direction. */
 const HEALTH_PER_END_STEP = 100;
@@ -371,7 +433,12 @@ const SETUP_PATHS = Object.freeze({
   // Base Attack (MAG) and throw it away, leaving a Master who flipped Heads
   // Rankless for ZON, Sustainability, the parameter grant and Kill Yourself.
   rank: "system.rank",
-  commandSpells: "system.commandSpells.value",
+  // `system.commandSpells`, NOT `.value`. The field is a plain NumberField
+  // and Foundry drops a write to a subfield of one -- measured live in
+  // fgt2026: setting `system.commandSpells.value` to 1 left the Master at 3.
+  // Inert until now only because the line's value and the schema's initial
+  // are both 3, so any OTHER answer has been silently discarded.
+  commandSpells: "system.commandSpells",
 });
 
 /**
@@ -464,7 +531,7 @@ function healthAt(sheet, steps) {
   // the stated figure, so the shifted lookup returned the SAME number and the
   // granted step vanished. Medea is the first Servant to state one (750), and
   // her Greece Region grant silently did nothing to her Health.
-  const base = Number(servantSetupPlan(sheet).lines.find((l) => l.id === "maxHealth").base);
+  const base = Number(plansFor(warRuleset()).servant(sheet).lines.find((l) => l.id === "maxHealth").base);
   return base + HEALTH_PER_END_STEP * steps;
 }
 

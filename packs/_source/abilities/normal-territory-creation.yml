@@ -1,0 +1,53 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Caster) Class Skill: Territory Creation - Damage Boost — (Passive) When
+# > Caster is within its Home Base, all damage dealt by Caster is increased by
+# > 5d20 including NP."
+# > "(Caster) Class Skill: Territory Creation - Bounded Field — (Passive) When an
+# > allied Master or Servant is Attacked while within Caster's Home Base, all
+# > damage taken is reduced by (3d10+20). This effect is lost if Caster is
+# > defeated."
+#
+# `self:inHomeBase` is a board annotation `rules/snapshot.mjs` already sets from
+# `inOwnHomeBase`, and the offensive clause keys on where the OWNER stands
+# rather than the target -- Ch. 19 E5 is explicit that the bonus applies even to
+# attacks OUT of the base. The defensive clause is an Aura, which is what makes
+# "lost if Caster is defeated" free: an aura with no source contributes nothing.
+schema: 1
+id: normal-territory-creation
+name: "Territory Creation"
+source: class
+slug: territoryCreation
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive) When Caster is within its Home Base, all damage dealt by Caster is increased by 5d20
+  including NP.
+  (Passive) When an allied Master or Servant is Attacked while within Caster's Home Base, all damage
+  taken is reduced by (3d10+20). This effect is lost if Caster is defeated.
+passiveRules:
+  # Clause 1 is about CASTER, so an ordinary predicate on its own options works,
+  # and it keys on where the OWNER stands rather than the target: Ch. 19 E5 is
+  # explicit that the bonus applies even to attacks OUT of the base.
+  # "including NP" is why there is no `attack:kind` predicate -- the default
+  # would exempt Noble Phantasms.
+  - key: DamageModifier
+    stage: flat
+    predicate: ["self:inHomeBase"]
+    roll: { key: territoryCreationBonus, formula: "5d20" }
+
+  # Clause 2 is about EVERYONE ELSE, so it is an aura -- and one with no radius,
+  # because "while Caster is on the field" is not a distance. Its condition is
+  # on the RECIPIENT ("an allied Master or Servant ... within Caster's Home
+  # Base"), which a predicate cannot say: contributions are evaluated against
+  # the source. An aura with no source contributes nothing, which is what makes
+  # "this effect is lost if Caster is defeated" free.
+  - key: Aura
+    scope: field
+    relations: [ally, self]
+    stacking: highestOnly
+    group: territoryCreation
+    requiresRecipient: { inHomeBase: true }
+    elements:
+      - key: DamageNegation
+        roll: { key: territoryCreationWard, formula: "3d10+20" }

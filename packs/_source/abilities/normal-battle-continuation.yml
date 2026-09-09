@@ -1,0 +1,33 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Lancer) Class Skill: Battle Continuation - Damage Reduction — (Passive)
+# > All damage taken is reduced by 2d20; if NP, double the number of dice
+# > rolled."
+# > "(Lancer) Class Skill: Battle Continuation - Survival — (Passive) When
+# > Health is reduced to 0, roll 5d20 and restore Lancer's Health by that
+# > amount. This Skill can only be used once."
+#
+# Two clauses, ONE document, because they are one Skill on the sheet and a Skill
+# Seal has to take both. The Advanced version's shape with fixed values in place
+# of its rank tables.
+schema: 1
+id: normal-battle-continuation
+name: "Battle Continuation"
+source: class
+slug: battleContinuation
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive) All damage taken is reduced by 2d20; if NP, double the number of dice rolled.
+  (Passive) When Health is reduced to 0, roll 5d20 and restore Lancer's Health by that amount.
+  This Skill can only be used once.
+passiveRules:
+  - key: DamageNegation
+    mode: dice
+    value: "2d20"
+    npDiceDoubled: true
+  - key: RevivalSource
+    id: normalBattleContinuation
+    revivalPriority: 100
+    restore: { formula: "5d20" }
+    uses: 1

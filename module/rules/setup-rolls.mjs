@@ -20,6 +20,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { normalServantSetupPlan, normalMasterSetupPlan } from "./setup-rolls-normal.mjs";
 import { lookup } from "../domain/tables.mjs";
 // Re-exported so the summon machinery and its tests keep one import site, while
 // the definition lives in `domain/` -- `data/actor/servant.mjs` derives Base
@@ -52,10 +53,36 @@ const BA_COMPONENT = Object.freeze({ str: "str", mag: "mag" });
  * @param {object} sheet a Servant's system data
  * @returns {boolean}
  */
-export function needsSetupRolls(sheet) {
-  const stated = (parameter) => Rank.parseOrNull(sheet?.parameters?.[parameter]) !== null;
+export function needsSetupRolls(sheet, ruleset = "advanced") {
   const unrolled = (stat) => !(sheet?.[stat]?.max > 0);
+
+  // Normal states NO parameter ranks -- that absence is what makes
+  // `baseAttackFor` keep the authored figure -- so the Advanced test below is
+  // false for every Normal Servant that will ever exist, and `ensureSetupRolls`
+  // would never flag one. Agility is the number you must roll UNDER, so a
+  // maximum of 0 auto-fails every Evade: exactly the silent, total failure this
+  // function was written to catch.
+  if (ruleset === "normal") return unrolled("agility") || unrolled("luck");
+
+  const stated = (parameter) => Rank.parseOrNull(sheet?.parameters?.[parameter]) !== null;
   return (stated("agi") && unrolled("agility")) || (stated("luc") && unrolled("luck"));
+}
+
+/**
+ * The setup-roll plans a ruleset uses.
+ *
+ * One import site for both callers, so `engine/summon.mjs` never has to know
+ * which ruleset it is in beyond passing the name through. An unknown ruleset
+ * reads as Advanced: a world with a corrupt setting must roll SOMETHING sane
+ * rather than nothing at all.
+ *
+ * @param {string} ruleset
+ * @returns {{servant: Function, master: Function}}
+ */
+export function plansFor(ruleset) {
+  return ruleset === "normal"
+    ? { servant: normalServantSetupPlan, master: normalMasterSetupPlan }
+    : { servant: servantSetupPlan, master: masterSetupPlan };
 }
 
 /**
