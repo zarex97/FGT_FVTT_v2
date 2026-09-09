@@ -342,8 +342,20 @@ async function assignLevel(tokenIds, level, scene) {
   // check (`engine/movement-hooks.mjs`). Belt and braces with the level-only
   // test that hook now makes: this says what the operation *is*, that says what
   // it *looks like*, and either alone would be enough.
-  if (updates.length > 0) {
-    await scene.updateEmbeddedDocuments("Token", updates, { fgtForced: true });
+  // One at a time rather than one batched call, because `level` and
+  // `elevation` are MOVEMENT_FIELDS in v14 and a batch of movement updates is
+  // not obviously atomic. Cheap insurance: a platform's passengers are the only
+  // case where more than one token changes level at once, and that is a handful.
+  //
+  // NOT a fix for anything measured. Raising Quetzalcoatl's Quetzalcoatlus with
+  // her Master aboard, only her Master reached the Scene Level; making these
+  // serial changed nothing, and the same tokens then refused an INDIVIDUAL
+  // upward assignment while accepting a downward one, with `preMoveToken` and
+  // `moveToken` both firing and no refusal from our own hooks. Whatever drops
+  // the upward write is below this function. Recorded here rather than left as
+  // a confident story about batching that the evidence does not support.
+  for (const update of updates) {
+    await scene.updateEmbeddedDocuments("Token", [update], { fgtForced: true });
   }
 }
 
