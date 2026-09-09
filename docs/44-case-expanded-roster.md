@@ -600,6 +600,17 @@ Every other NP uses the global gate (Round 6, or 4 for Assassin). This is a **pe
 override**, and it composes with the global one by `max()` — the same rule as the cooldown
 interaction in Ch. 07 §7.9. `npGateRound: 8` on the ability.
 
+**Built, and the field was unreadable.** `npGateRound` was declared in the ability schema when this
+was written and never added to the content pipeline's allowlist, which silently drops what it does
+not name — so every document read `null` and the gate opened in Round 1. It is folded into
+`requiresRound` by `max()` now (Ch. 07 §7.9). Measured live: refused at Round 7 naming the Round,
+opened at Round 8.
+
+Note that the **global** gate this composes with is itself unimplemented: `CONFIG.FGT.gates.npRound`
+is read by nobody and no content authors `targeting.limits.requiresRound`. Ozymandias's clause is
+correct without it — `max(6, 8)` is 8 either way — but the Round-6 rule (Round 4 for Assassin), the
+Master-essence shifts and Force Noble Phantasm's explicit refusal to bypass it are all still owed.
+
 ---
 
 ## 44.6 Aggregate: what the expanded roster demanded
