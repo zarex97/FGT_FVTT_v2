@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from "vitest";
 import { npCost, npCostAt, canUseAbility, resolveCosts } from "../../module/rules/costs.mjs";
+import { usageSpecFor } from "../../module/rules/ability-use.mjs";
 
 const master = (over = {}) => ({ id: "m", rank: "A", health: { value: 500, max: 500 }, ...over });
 const servant = (over = {}) => ({ id: "s", kind: "servant", contract: "contracted", masterId: "m", ...over });
@@ -259,5 +260,34 @@ describe("a Noble Phantasm charged at a Rank it does not have", () => {
 
     expect(out.kind).toBe("sustainability");
     expect(out.unitId).toBe("s");
+  });
+});
+
+describe("npGateRound", () => {
+  // Ch. 44 §44.5: a per-ability Round gate that composes with the global one by
+  // `max()`. The field was declared in the ability schema when it was written,
+  // authored on two abilities, and read by NOBODY -- it was not in the content
+  // pipeline's allowlist either, so every document read `null` and Ozymandias's
+  // "after 7 full Rounds have passed" opened in Round 1.
+  const spec = (over) => usageSpecFor({ id: "np", type: "noblePhantasm", system: over });
+
+  it("gates on the ability's own field", () => {
+    expect(spec({ npGateRound: 8 }).requiresRound).toBe(8);
+  });
+
+  it("takes the LATER of the two gates an ability may state", () => {
+    expect(spec({ npGateRound: 8, targeting: { limits: { requiresRound: 3 } } }).requiresRound).toBe(8);
+    expect(spec({ npGateRound: 3, targeting: { limits: { requiresRound: 9 } } }).requiresRound).toBe(9);
+  });
+
+  it("is null when neither is stated", () => {
+    expect(spec({}).requiresRound).toBe(null);
+  });
+
+  it("refuses a ◈ expression rather than gating on NaN", () => {
+    // `npGateRound` is an integer field and `"3◈"` -- which is what the
+    // Normal-mode Assassin NP first said -- would coerce to NaN and gate
+    // nothing while looking authored.
+    expect(spec({ npGateRound: "3◈" }).requiresRound).toBe(null);
   });
 });

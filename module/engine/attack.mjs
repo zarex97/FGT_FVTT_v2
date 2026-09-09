@@ -2030,6 +2030,22 @@ function pendingCosts({ usage, ability, self, master, board }) {
     // rather than at the ability's own, and through the same rule `npCost`
     // uses -- so a Free Servant pays in Sustainability instead of producing an
     // intent aimed at a Master who does not exist.
+    // A FRACTION of the Master's maximum rather than a stated number.
+    // *"The Master's Health is reduced by 50% of its maximum value"* -- the
+    // first cost in the corpus whose size is not on the sheet, because it
+    // depends on whose Master it is.
+    if (extra.kind === "masterHealthFractionOfMax") {
+      const max = master?.maxHealth ?? master?.health?.max ?? 0;
+      out.push({
+        kind: "masterHealth",
+        amount: Math.floor(max * (extra.fraction ?? 0)),
+        unitId: master?.id ?? null,
+        id: extra.id,
+        supersedes: extra.supersedes ?? [],
+      });
+      continue;
+    }
+
     if (extra.kind === "masterHealthByNPRank") {
       out.push({ ...npCostAt({ rank: extra.rank, unit: self, master }), id: extra.id, supersedes: extra.supersedes ?? [] });
       continue;

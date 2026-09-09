@@ -1629,6 +1629,12 @@ function itemSystem(doc) {
     opensDialog: doc.opensDialog ?? null,
     // §15.4's supersession, as authored data.
     additionalCosts: doc.additionalCosts ?? [],
+    // A per-ability Round gate (Ch. 44 §44.5). Declared in the ability schema
+    // when it was written, authored on two abilities, and NOT LISTED HERE --
+    // so it was dropped by this allowlist on the way into the pack and every
+    // document read `null`. Ozymandias's *"can only be used after 7 full
+    // Rounds have passed"* opened in Round 1.
+    npGateRound: doc.npGateRound ?? null,
     // Arrogant King's Poison: "Requires 3 [Semiramis' Poison] to use" -- an
     // item-quantity cost spent at use time (`engine/skill-use.mjs`'s
     // `itemCostIntents`), distinct from `additionalCosts` (health/

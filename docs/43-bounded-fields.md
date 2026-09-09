@@ -223,6 +223,22 @@ painter stays the only thing that reshapes it.
 
 ---
 
+### 43.3a Ground a field may not cover
+
+> *"The Complex cannot intersect the Home Base of enemy Players."*
+
+`cannotIntersect: enemyHomeBase` on the geometry. **Clipped, not refused** — casting near an enemy
+base gives a smaller Complex rather than nothing at all. This costs nothing to do, because a
+field's Region has always been a set of panels and never a bounding rectangle: a clipped field is
+not a special shape, it is a shorter list.
+
+Allied bases are left alone. "Enemy Players" is the clause, and a war with an alliance in it has
+bases that are neither the owner's nor an enemy's.
+
+Measured live: Ozymandias standing at row 6 of a 13 × 13 board with an enemy base across rows 0–2
+opened a Complex of **99** panels — the full 121 minus the 22 that fell inside the base — with rows
+3–11 and columns 0–10, and none of the base covered.
+
 ## 43.4 Axis 2 — Membership: entry and exit
 
 The defining axis. Six distinct policies appear.
@@ -744,6 +760,13 @@ them as units gives targeting, destruction, visibility rules, and health for fre
 already established the pattern.
 
 ---
+
+### 43.10a `onEnd` had no way to reach its reader
+
+`openField` writes the field's `onEnd` actions onto the Region behaviour and `deactivateField`
+reads them off the **board projection** — which never carried the field. So every field's on-end
+actions were silently empty. The terrain-clearing path escaped it by reading the Region behaviour
+directly, which is why the gap looked as though it could not exist.
 
 ## 43.11 State history — the hardest new requirement
 

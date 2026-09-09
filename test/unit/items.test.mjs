@@ -327,6 +327,11 @@ describe("meetsRequirement", () => {
       // their rules: a predicate would let the ability be pressed and then
       // quietly do nothing, and his sheet refuses the press.
       "stance",
+      // "Cannot be used if his Master's Health is less than [50% of its
+      // maximum value]" -- Ramesseum Tentyris, the first gate in the corpus
+      // stated as a fraction of a maximum rather than as a number, and the
+      // first stated as a refusal rather than as a permission.
+      "masterHealthFraction",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });
@@ -533,5 +538,24 @@ describe("resourceAtLeast", () => {
 
   it("refuses a pool the unit does not have at all", () => {
     expect(meetsRequirement({ kind: "resourceAtLeast", key: "aria", amount: 1 }, { unit: unit() })).toBe(false);
+  });
+});
+
+describe("masterHealthFraction", () => {
+  // > "cannot be used if his Master's Health is less than that" -- where "that"
+  // is 50% of the Master's MAXIMUM. `>=`, because the sheet states the refusal
+  // rather than the permission, and a Master at exactly half may still cast.
+  const req = { kind: "masterHealthFraction", atLeast: 0.5 };
+
+  it("passes at exactly the fraction", () => {
+    expect(meetsRequirement(req, { unit: {}, master: { health: 125, maxHealth: 250 } })).toBe(true);
+  });
+
+  it("fails just below it", () => {
+    expect(meetsRequirement(req, { unit: {}, master: { health: 124, maxHealth: 250 } })).toBe(false);
+  });
+
+  it("reads a document's shape as well as a snapshot's", () => {
+    expect(meetsRequirement(req, { unit: {}, master: { health: { value: 200, max: 250 } } })).toBe(true);
   });
 });
