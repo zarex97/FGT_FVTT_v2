@@ -453,6 +453,18 @@ directly.
 > `warType` and a `ruleset` had no representation at all before this, and the Great Holy Grail War
 > was distinguishable from the Holy Grail War only by `turnsPerRound` being 3 or 8, in a hint string.
 >
+> **The container roster is `rules/war-setup.mjs`.** `EXTRA` is a container rather than a class —
+> nothing is ever *of* class `extra`, and it matches the **complement** of the seven, so a Servant
+> holding no core class (Kingprotea, Mannanán) is a candidate for it and for nothing else. A Servant
+> that states no class at all is likewise an `EXTRA` candidate, which is the right reading of a
+> sheet that names none.
+>
+> An unfillable container is a refusal **with its reason** rather than a silent skip, which is Ch. 29
+> §29's rule and the case it was written for: the reference roster holds **no Saber at all** — four
+> Rider, three Berserker, two each of Lancer, Caster, Assassin and AlterEgo, one Archer — so this is
+> not a corner case, it is every Advanced war built today. `validateRoster` returns every complaint
+> at once rather than the first, because a GM fixing a war wants the whole list, not one per attempt.
+>
 > **Step 2's vocabulary had three readings and none of them met.** The setting offered
 > `beginner | standard | expert`; `MatchData` accepted `beginner | intermediate | expert | lunatic`;
 > and `engine/board.mjs` defaulted to `"intermediate"` **without consulting the setting at all**, so
