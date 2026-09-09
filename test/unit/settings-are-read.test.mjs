@@ -46,13 +46,6 @@ const NOT_READ_BY_CODE = new Set([
   // changes nothing is worse than no switch at all.
   "activeSkillBudget",
   "diceFormulas",
-  // TEMPORARY, and this comment is the removal instruction: both are registered
-  // by the Round-gate work and read by `rules/costs.mjs` one commit later, when
-  // the gate itself lands. If you are reading this and `canUseAbility` consults
-  // the gate, DELETE THESE TWO LINES -- leaving them here is exactly the defect
-  // the gate was built to close.
-  "npGateRound",
-  "npGateRoundAssassin",
 ]);
 
 describe("registered settings", () => {

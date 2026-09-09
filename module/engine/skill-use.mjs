@@ -33,7 +33,7 @@ import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { currentBoard, unitFrom, unitSnapshot } from "./board.mjs";
+import { currentBoard, unitFrom, unitSnapshot, gateContext } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -86,6 +86,8 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
     master,
     round: combat?.round ?? 1,
     board,
+    // §7.9's Round gate, whose numbers are world settings Layer 2 cannot read.
+    ...gateContext(),
     // The `predicate` requirement kind (`rules/items.mjs`) has been in
     // `meetsRequirement` since §15.4 was implemented and refused every use
     // that named it: `ctx.testPredicate` had no supplier here, so

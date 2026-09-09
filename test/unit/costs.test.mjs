@@ -13,7 +13,11 @@ import { npCost, npCostAt, canUseAbility, resolveCosts } from "../../module/rule
 import { usageSpecFor } from "../../module/rules/ability-use.mjs";
 
 const master = (over = {}) => ({ id: "m", rank: "A", health: { value: 500, max: 500 }, ...over });
-const servant = (over = {}) => ({ id: "s", kind: "servant", contract: "contracted", masterId: "m", ...over });
+const servant = (over = {}) => ({
+  id: "s", kind: "servant", contract: "contracted", masterId: "m",
+  // The Round gate reads the class: Assassin opens two Rounds early.
+  servantClasses: ["saber"], ...over,
+});
 const np = (over = {}) => ({ id: "np", rank: "A", isNP: true, cooldown: { remaining: 0 }, ...over });
 
 describe("npCost", () => {
@@ -59,7 +63,12 @@ describe("npCost", () => {
 
 describe("canUseAbility", () => {
   const ok = (over = {}) => ({
-    ability: np(), unit: servant(), master: master(), round: 3, ...over,
+    // Round 6, because §7.9's global gate is live: these assertions are about
+    // Master Health, ZON, Sustainability and the requirement list, and the
+    // Round they run in was only ever "some Round". The two tests below that
+    // ARE about Rounds state their own `requiresRound`, which overrides the
+    // global gate, so they say what they mean without this number.
+    ability: np(), unit: servant(), master: master(), round: 6, ...over,
   });
 
   it("allows a Noble Phantasm the Master can pay for", () => {
@@ -152,28 +161,31 @@ describe("the shape the SNAPSHOT actually provides", () => {
   });
   const snapshotMaster = (health) => ({ id: "m", kind: "master", rank: "A", health });
 
+  // Round 6 throughout, because §7.9's global gate is live and these assertions
+  // are about the SHAPE of the health field rather than about any Round.
+
   it("accepts a Master whose health is a bare number", () => {
     expect(canUseAbility({
-      ability: np(), unit: snapshotServant(), master: snapshotMaster(250), round: 3,
+      ability: np(), unit: snapshotServant(), master: snapshotMaster(250), round: 6,
     })).toMatchObject({ ok: true });
   });
 
   it("still refuses when that number is at or below the cost", () => {
     expect(canUseAbility({
-      ability: np(), unit: snapshotServant(), master: snapshotMaster(50), round: 3,
+      ability: np(), unit: snapshotServant(), master: snapshotMaster(50), round: 6,
     })).toMatchObject({ ok: false, reason: "masterHealth" });
   });
 
   it("accepts the document shape too, because both reach this function", () => {
     expect(canUseAbility({
-      ability: np(), unit: snapshotServant(), master: snapshotMaster({ value: 250, max: 250 }), round: 3,
+      ability: np(), unit: snapshotServant(), master: snapshotMaster({ value: 250, max: 250 }), round: 6,
     })).toMatchObject({ ok: true });
   });
 
   it("reads a Free Servant's own health the same way", () => {
     expect(canUseAbility({
       ability: np(), unit: snapshotServant({ contract: "free", sustainability: null, health: 500 }),
-      master: null, round: 3,
+      master: null, round: 6,
     })).toMatchObject({ ok: true });
   });
 });
@@ -294,7 +306,12 @@ describe("npGateRound", () => {
 
 describe("an ability spent for the rest of the game", () => {
   const ok = (over = {}) => ({
-    ability: np(), unit: servant(), master: master(), round: 3, ...over,
+    // Round 6, because §7.9's global gate is live: these assertions are about
+    // Master Health, ZON, Sustainability and the requirement list, and the
+    // Round they run in was only ever "some Round". The two tests below that
+    // ARE about Rounds state their own `requiresRound`, which overrides the
+    // global gate, so they say what they mean without this number.
+    ability: np(), unit: servant(), master: master(), round: 6, ...over,
   });
 
   // `expended` has been written since Akhilleus Kosmos was authored and read
@@ -330,5 +347,73 @@ describe("the usage spec carries what the gate reads", () => {
 
   it("projects the gated cooldown delay", () => {
     expect(spec({ cooldown: { remaining: 0, gatedDelay: 5 } }).cooldown.gatedDelay).toBe(5);
+  });
+});
+
+describe("the global Noble Phantasm gate", () => {
+  const ok = (over = {}) => ({
+    ability: np(), unit: servant(), master: master(), round: 6, ...over,
+  });
+
+  it("refuses a Noble Phantasm before Round 6", () => {
+    const verdict = canUseAbility(ok({ round: 5 }));
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toBe("round");
+    expect(verdict.detail).toMatchObject({ requiresRound: 6, round: 5 });
+  });
+
+  it("...and allows it at Round 6", () => {
+    expect(canUseAbility(ok({ round: 6 })).ok).toBe(true);
+  });
+
+  it("opens two Rounds early for an Assassin", () => {
+    const assassin = servant({ servantClasses: ["assassin"] });
+    expect(canUseAbility(ok({ unit: assassin, round: 4 })).ok).toBe(true);
+    expect(canUseAbility(ok({ unit: assassin, round: 3 })).ok).toBe(false);
+  });
+
+  it("covers an ability that is only CATEGORIZED as a Noble Phantasm", () => {
+    const crest = { id: "c", categorizedAsNP: true, cooldown: { remaining: 0 } };
+    expect(canUseAbility(ok({ ability: crest, round: 5 })).ok).toBe(false);
+  });
+
+  it("leaves an ordinary Skill alone", () => {
+    const skill = { id: "s", cooldown: { remaining: 0 } };
+    expect(canUseAbility(ok({ ability: skill, round: 1 })).ok).toBe(true);
+  });
+
+  it("lets a stated gate override the global one -- LATER", () => {
+    // Ozymandias: "can only be used after 7 full Rounds have passed."
+    const late = np({ requiresRound: 8 });
+    expect(canUseAbility(ok({ ability: late, round: 7 })).ok).toBe(false);
+    expect(canUseAbility(ok({ ability: late, round: 8 })).ok).toBe(true);
+  });
+
+  it("...and EARLIER, which is what keeps the Magic Crest's own row alive", () => {
+    // Spec R3. This is the direction `max()` could not express, and it is why
+    // the composition rule Ch. 44 recorded is replaced.
+    const crest = { id: "c", categorizedAsNP: true, requiresRound: 3, cooldown: { remaining: 0 } };
+    expect(canUseAbility(ok({ ability: crest, round: 2 })).ok).toBe(false);
+    expect(canUseAbility(ok({ ability: crest, round: 3 })).ok).toBe(true);
+  });
+
+  it("takes the gate numbers it is handed", () => {
+    expect(canUseAbility(ok({ round: 3, gates: { round: 3, assassinRound: 2 } })).ok).toBe(true);
+  });
+
+  it("defaults to the published gate when handed none", () => {
+    // The failure mode this whole change exists to close: a call site that
+    // forgets must get the RULE, never no rule.
+    expect(canUseAbility(ok({ round: 5 })).ok).toBe(false);
+  });
+
+  it("adds a cooldown increase taken while gated", () => {
+    // Gate turn for Round 6 at three Turns to the Round is 16; a delay of 5
+    // pushes availability to turn 21, which is Round 7.
+    const locked = np({ cooldown: { remaining: 0, gatedDelay: 5 } });
+    expect(canUseAbility(ok({ ability: locked, round: 6, turn: 16, turnsPerRound: 3 })).ok)
+      .toBe(false);
+    expect(canUseAbility(ok({ ability: locked, round: 7, turn: 21, turnsPerRound: 3 })).ok)
+      .toBe(true);
   });
 });
