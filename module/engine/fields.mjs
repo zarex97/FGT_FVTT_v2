@@ -21,6 +21,7 @@
  */
 
 import { currentBoard, unitSnapshot } from "./board.mjs";
+import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
   panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
@@ -380,11 +381,14 @@ export async function returnBanished(tick) {
       // the width of the board since it was banished.
       const panel = randomFreePanelIn(field, board);
       if (token && panel) {
-        await token.update({
-          hidden: false,
+        // Two writes, because they are two different things: `hidden` is an
+        // ordinary field and the position is a DISPLACEMENT, which has to be
+        // submitted as one or Foundry drops it in silence (`io.mjs`).
+        await token.update({ hidden: false });
+        await displaceToken(token, {
           x: panel.j * canvas.scene.grid.size,
           y: panel.i * canvas.scene.grid.size,
-        }, { fgtForced: true });
+        });
       } else if (token) {
         // Nowhere free inside. Better back on the board where it was than
         // hidden for ever.

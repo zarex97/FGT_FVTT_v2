@@ -16,6 +16,7 @@
  */
 
 import { ridingAttackPath, effectiveMov } from "../rules/movement.mjs";
+import { displaceToken } from "./io.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
@@ -68,10 +69,10 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   const token = actor.getActiveTokens?.()[0]?.document;
   if (!token) return { ok: false, reason: "unplaced" };
   const size = canvas.scene.grid.size;
-  await token.update(
-    { x: destination.j * size, y: destination.i * size },
-    { fgtForced: true },
-  );
+  // `ridingAttackPath` has already judged the legality, so this is the engine
+  // placing the Unit rather than the Unit walking -- and it must be submitted
+  // as a displacement or Foundry constrains it away without a word (`io.mjs`).
+  await displaceToken(token, { x: destination.j * size, y: destination.i * size });
 
   // The MOVEMENT half of the bookkeeping, now. NOT `attacked` -- the attack
   // has not happened yet, and stamping it here makes `resolveAttack` refuse

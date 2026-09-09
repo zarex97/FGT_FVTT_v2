@@ -88,3 +88,7 @@ phases:
       # "On a panel directly next to her" -- Chebyshev radius 1, which
       # `freePanels` (engine/summoning.mjs) derives from `floor(size / 2)`.
       placement: { size: 3 }
+      # "Bašmu cannot leave the HGoB. If HGoB is removed from the field while
+      # Bašmu is summoned, it disappears." The id is a Foundry document id and
+      # is stamped at summon time from the platform she is standing on.
+      boundToPlatform: true

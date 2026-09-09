@@ -61,7 +61,24 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
   }
 
   const panels = freePanels(summoner, spec.placement ?? {}, contentIds.length);
-  const created = await placeSummons(contentIds, panels, summoner, scene, spec);
+
+  // A summon tied to the platform its summoner is standing on.
+  //
+  // > *"Bašmu cannot leave the HGoB. If HGoB is removed from the field while
+  // > Bašmu is summoned, it disappears."*
+  //
+  // `boundToPlatformId` is a Foundry DOCUMENT id, so it can only be written
+  // here — content cannot name one. `engine/scene-levels.mjs` dismisses bound
+  // summons when a platform is torn down, and with the field never stamped it
+  // matched nobody: a destroyed Hanging Gardens left its Bašmu on the board.
+  // Found live.
+  const stamps = {};
+  if (spec.boundToPlatform) {
+    const platformId = currentBoard().units.find((u) => u.id === summoner.id)?.platformId ?? null;
+    if (platformId) stamps.boundToPlatformId = platformId;
+  }
+
+  const created = await placeSummons(contentIds, panels, summoner, scene, spec, stamps);
 
   return { count: created.length, created, rolls };
 }
