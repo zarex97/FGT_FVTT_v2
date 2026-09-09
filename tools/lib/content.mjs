@@ -1581,6 +1581,10 @@ function itemSystem(doc) {
     isNP: Boolean(doc.isNP),
     isMode: Boolean(doc.isMode),
     isAttackSkill: Boolean(doc.isAttackSkill),
+    // *"Can be used by Ozymandias as his Normal Attack while within Ramesseum
+    // Tentyris."* Named here as well as in the schema, because this allowlist
+    // silently drops what it does not name -- the way `npGateRound` was lost.
+    replacesNormalAttack: doc.replacesNormalAttack ?? null,
     isSpell: Boolean(doc.isSpell),
     // A Noble Phantasm with no active form -- Penthesilea's Goddess of War.
     // Read by `classifyAbility`; without it every NP is a button.

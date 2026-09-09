@@ -675,6 +675,20 @@ The practical consequence for content authors is a simple rule:
 
 ---
 
+### 13.4a Ignoring the attacker's own increases
+
+> *"Damage dealt is not affected by Atk Up or other damage increasing effects on Ozymandias."*
+
+`attack.ignoresAttackerIncreases` drops the attacker's positive contributions in stage 4 and its
+flat bonuses in stage 7, and nothing else. It is deliberately narrower than `bypassModifiers`, which
+skips stages 2-15 for **both** sides: a Def Up on the target still protects them, an Atk Dwn on the
+attacker still costs it, and the crit still happens -- which is what a clause about *"damage
+increasing effects on Ozymandias"* says and what "fixed damage" does not.
+
+The ignored modifier is still listed in the breakdown, at 0% and labelled, rather than dropped:
+`Atk Up | Atk Up (ignored by this attack) | 0%`. A modifier that vanishes from the audit trail is
+indistinguishable from one that was never collected.
+
 ## 13.5 Worked example 1 — Penthesilea normal-attacks Heracles
 
 **Setup.** Penthesilea: `STR A+`, BA(STR) 160, Divinity B (+40), Mad Enhancement EX active

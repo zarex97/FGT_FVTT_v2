@@ -1353,6 +1353,14 @@ function collectAbilities(actor) {
       // name a content id, a whole category, or a copy's exclusion set --
       // which is all three of the ways her sheet groups abilities.
       contentId: i.system?.contentId ?? null,
+      // An ability that IS this Unit's Normal Attack while its condition holds
+      // (`rules/platforms.mjs#actionSourceFor`). Projected because the
+      // substitution is decided from the BOARD -- the condition is *"while
+      // within Ramesseum Tentyris"*, and only the board knows where anybody is.
+      replacesNormalAttack: i.system?.replacesNormalAttack ?? null,
+      // What that substitution swings with, since the ability's own damage
+      // block is the Normal Attack's for as long as it stands in for one.
+      damage: i.system?.damage ?? null,
       // The geometry of the field this ability BUILDS, if any. `rules/actions.mjs`
       // offers the Mark action from the snapshot alone and cannot reach the item
       // document to ask -- and "markDefined" is the whole test for whether this
