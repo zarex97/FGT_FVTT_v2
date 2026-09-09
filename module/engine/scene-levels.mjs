@@ -285,8 +285,40 @@ export async function teardown(platform, scene = canvas.scene) {
   await reverseOwnerEffects(platform);
   const scattered = await scatterToGround(platform, scene);
   const deleted = await destroyLevel(platform, scene);
+  if (deleted.ok) await removePlatform(platform, scene);
 
   return { ...deleted, scattered };
+}
+
+/**
+ * Take the platform itself off the board.
+ *
+ * §20.9's written sequence stops at "delete the Scene Level" and says nothing
+ * about the platform, so nothing removed it: `scatterToGround` moves EVERY
+ * token on the level to the ground, the platform's own included, and a
+ * destroyed Hanging Gardens was therefore left lying on the board as a 9x9
+ * token with a live actor behind it. Measured live — tear it down twice and
+ * two gardens are parked on the ground.
+ *
+ * The actor goes with the token, for the reason `reverseOwnerEffects` gives
+ * about Bašmu: a destroyed thing is gone, not hidden, and a per-match document
+ * that outlives its own destruction accumulates. Semiramis's own rebuild path
+ * is unaffected — `engine/hgob.mjs` creates a fresh actor from the packs each
+ * time she activates.
+ *
+ * Last, because everything above still needs the platform document to say what
+ * it granted, whom it carried, and which level was its own.
+ *
+ * @param {object} platform
+ * @param {object} [scene]
+ * @returns {Promise<void>}
+ */
+async function removePlatform(platform, scene = canvas.scene) {
+  const tokens = (scene?.tokens?.contents ?? []).filter((t) => t.actorId === platform.id);
+  if (tokens.length > 0) {
+    await scene.deleteEmbeddedDocuments("Token", tokens.map((t) => t.id));
+  }
+  await platform.delete();
 }
 
 /**
@@ -311,10 +343,19 @@ export async function reverseOwnerEffects(platform) {
 
   // Step 7: a summon bound to the platform goes with it. Bašmu is the case --
   // "if HGoB is removed from the field while Bašmu is summoned, it disappears."
+  //
+  // The ACTOR goes too, not only its token, which is what
+  // `engine/fields.mjs#endField` already does for a field's bound summons. A
+  // token-only removal leaves a Bašmu document behind on every activation, and
+  // "it disappears" is about the creature rather than about its image. It does
+  // not break the once-only rule -- `noAliveSummon` reads `board.units`, which
+  // is built from placed tokens -- but the documents accumulate, which is how
+  // this scene collected three orphaned Hanging Gardens levels before
+  // `sweepOrphanLevels` existed. Measured live tearing the garden down.
   const bound = game.actors.filter((a) => a.system?.boundToPlatformId === platform.id);
   for (const summon of bound) {
-    const token = summon.getActiveTokens?.()[0];
-    if (token) await token.document.delete();
+    for (const token of summon.getActiveTokens?.() ?? []) await token.document.delete();
+    await summon.delete();
   }
 }
 

@@ -44,6 +44,11 @@ level: 4
 # `initial: true` only covers a platform actor built by hand, not one compiled
 # from content -- `tools/lib/content.mjs`'s allowlist reads it with `Boolean()`).
 actsOncePerTurn: true
+# "The HGoB counts as a second Home Base for Semiramis' Faction." Read by
+# `rules/environment.mjs#ownBaseOf`, which treats standing on it as membership
+# rather than painting a zone that would have to be repainted every time the
+# garden moves.
+countsAsHomeBase: true
 abilities:
   - { ref: semiramis-hgob-dragon-wing-warriors }
   - { ref: semiramis-hgob-aerial-garden-of-vanity }

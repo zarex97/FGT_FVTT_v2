@@ -207,7 +207,14 @@ for each combination; flags compose.
 >
 > `summon` is the most structurally demanding (Medea's Dragon Tooth Warriors): two nested rolls,
 > one for how many and one for what each is, placement restricted to **free** panels in the
-> declared area, and a cooldown scaled by the first roll. `cutContract` is the only phase that
+> declared area, and a cooldown scaled by the first roll.
+>
+> "Free" means what `rules/movement.mjs#canStopOn` means by it, in the same words: a **platform
+> or structure is stood on, not blocked by**, and only what stands on the summoner's own **level**
+> is beside it at all. `freePanels` had its own naive occupancy test and knew neither. The moment
+> the Hanging Gardens first occupied its own footprint correctly, Bašmu — whose whole placement is
+> *"on a panel directly next to her"* while she stands in the Throne Room — reported "0 summoned",
+> with all nine candidate panels taken by the garden underneath her. `cutContract` is the only phase that
 > rewrites the relationship graph, and it reads the ladder's outcome — a successful Evade keeps
 > the Contract, so it cannot be an unconditional rider after damage.
 

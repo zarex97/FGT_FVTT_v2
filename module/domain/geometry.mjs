@@ -50,6 +50,45 @@ export function chebyshev(a, b) {
 }
 
 /**
+ * The shortest Chebyshev distance from **any panel a unit occupies**.
+ *
+ * A one-panel unit and a nine-panel platform measure Range from the same
+ * place in the rulebook — the thing itself — but a snapshot stores a
+ * multi-panel unit as an anchor panel plus a footprint, and measuring from the
+ * anchor alone measures from one CORNER. The Hanging Gardens' own Dragon Wing
+ * Warriors is *"Range=4 plus the area under the HGoB and the area of the
+ * HGoB"*; measured from its top-left corner, Range 4 did not even cover its
+ * own deck, and the far half of the garden could not be targeted at all.
+ * Found live, driving the ability through its own targeting overlay.
+ *
+ * @param {GridOffset[]} from every panel the unit occupies
+ * @param {GridOffset} to
+ * @returns {number} `Infinity` if the unit occupies nothing
+ */
+export function chebyshevFromAny(from, to) {
+  let best = Infinity;
+  for (const p of from ?? []) best = Math.min(best, chebyshev(p, to));
+  return best;
+}
+
+/**
+ * {@link inAttackRange} from any panel a unit occupies — see
+ * {@link chebyshevFromAny} for why the whole footprint is the measuring point.
+ *
+ * `some`, not the minimum distance fed back through `inAttackRange`: the
+ * Range shape clips its outer corners, so "the nearest panel" and "a panel
+ * that can reach" are not the same question.
+ *
+ * @param {GridOffset[]} from
+ * @param {GridOffset} to
+ * @param {number} R
+ * @returns {boolean}
+ */
+export function inAttackRangeFromAny(from, to, R) {
+  return (from ?? []).some((p) => inAttackRange(p, to, R));
+}
+
+/**
  * Manhattan distance — orthogonal steps only.
  *
  * Movement uses this: *"Units are not allowed to Move diagonally."* Note this

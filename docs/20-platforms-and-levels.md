@@ -352,8 +352,21 @@ Moves/attacks once per turn on Semiramis's turn. Does not count toward the turn 
 | **Aerial Garden of Vanity** | Range 7. **Cannot hit under or above the HGoB.** Hits 7×7 within range. BA(MAG), 2× damage. Cooldown 2◈. |
 
 Note the two attacks have *complementary* range rules — one explicitly includes the area under
-the platform, the other explicitly excludes it. This is why `AnchorSpec` supports a compound
-range (Ch. 09 §9.8, T20).
+the platform, the other explicitly excludes it. That asymmetry is not a compound anchor in the
+end: the platform's own `crossLevel.forbidDirectlyBelow` states the exclusion once, for
+everything fired from the garden, and Dragon Wing Warriors opts out of that one axis with
+`targeting.allowDirectlyBelow` (§20.7). Both halves are live and both were verified through the
+targeting overlay — Aerial Garden of Vanity refuses a Unit under the garden by name, Dragon Wing
+Warriors reaches the same Unit.
+
+**Placement is a write, not a note.** *"She is Moved to the middle panel of HGoB, and all allied
+Units of your choice are transported to any panel within the HGoB"* — neither half happened.
+Activation put its riders on the platform's **level** and never touched their x/y, so Semiramis
+stayed on the panel the garden's top-left corner was anchored to: outside the Throne Room, and
+on the one panel of the footprint guaranteed to be its edge. Foundry anchors a 9×9 token at its
+top-left, so the middle is `origin + 4`; `engine/hgob.mjs#seatRiders` puts her there and seats
+chosen allies on their chosen panels, or on the free panel nearest the middle if the caller
+named none. Measured live: activated at (11,11), she was still at (11,11) afterwards.
 
 ### Boarding
 
@@ -700,6 +713,30 @@ function crossLevelLegal(attacker, target, board): LegalityResult {
 }
 ```
 
+### Who calls it
+
+`rules/targeting/resolve.mjs` step 4d, once per candidate target, dropping the ones it refuses
+with a reason the player can read.
+
+That sentence is here because for a long time the answer was **nobody**. `crossLevelLegal` was
+written, documented in this section, and unit-tested from both directions, and no production
+call site ever consulted it — so every axis above, and every `crossLevel` block authored on a
+platform, was inert in play. Measured by aiming the Hanging Gardens' own *Aerial Garden of
+Vanity* — *"Cannot hit under or above the HGoB"* — straight down at a Unit standing under it,
+and watching it land. It is the same defect this codebase keeps producing: a rule that is right,
+collected, and never read.
+
+Two things the call site has to pass, neither of which is a property of the attacker:
+
+- **The attack's reach, not the unit's Range.** The Hanging Gardens *"does not Normal Attack"*
+  and carries `range: 0`, while both of its own Skills are Range 4 and Range 7. Reading the
+  unit's Range refuses them as melee, so `withinRange`'s own `range` is passed instead.
+- **A per-ability override of `forbidDirectlyBelow`.** One ability in the reference set
+  contradicts its own platform in as many words: *Dragon Wing Warriors* is *"Range=4 plus the
+  area UNDER the HGoB"*, fired from the platform that forbids exactly that for everything else.
+  `targeting.allowDirectlyBelow` is that opt-out, and it is deliberately the only axis an
+  ability may overrule — the other three are the platform's own protection model.
+
 ---
 
 ## 20.8 Movement linkage
@@ -760,12 +797,21 @@ two-unit platform in all but name.
         │  6. remove sub-zones                                     │
         │  7. dismiss bound summons (Bašmu)                        │
         │  8. delete the Scene Level                               │
+        │  8b. remove the platform itself                          │
         │  9. start the rebuild cooldown                           │
         └──────────────────────────────────────────────────────────┘
 ```
 
 Step 5's reversal is why rank-shift effects declare explicit stat deltas (Ch. 05 §5.6) — they
 must be subtractable without re-rolling.
+
+Step 8b was not in the written sequence, and so nothing did it. Step 4 scatters **every** token
+on the level to the ground — the platform's own token included, since it stands on its own level
+by construction — and a destroyed Hanging Gardens was therefore left lying on the board as a 9×9
+token with a live actor behind it. Tear one down twice and two gardens are parked on the ground.
+The actor goes with the token, for the same reason step 7 takes Bašmu's: a destroyed thing is
+gone, not hidden. Semiramis's rebuild path is unaffected — activation creates a fresh actor from
+the packs every time.
 
 Step 7 matters for Semiramis: *"Bašmu cannot leave the HGoB. If HGoB is removed from the field
 while Bašmu is summoned, it disappears."*

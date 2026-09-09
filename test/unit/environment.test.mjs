@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   phase, darkModifiers, homeBaseModifiers, endOfRoundHomeBase,
-  grailState, registerDefeat, grailContest, grailDestructionChance,
+  grailState, registerDefeat, grailContest, grailDestructionChance, ownBaseOf,
 } from "../../module/rules/environment.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -248,5 +248,49 @@ describe("Grail destruction", () => {
 
   it("is nothing at no damage", () => {
     expect(grailDestructionChance(0)).toBe(0);
+  });
+});
+
+/* ========================================================================== */
+/*  19.1 — a Home Base that moves                                             */
+/* ========================================================================== */
+
+describe("a platform that counts as a Home Base", () => {
+  const hgob = {
+    id: "hgob", kind: "platform", factionId: "red", faction: "red",
+    countsAsHomeBase: true, panels: [at(10, 10), at(10, 11), at(11, 10), at(11, 11)],
+  };
+  const aboard = (over) => ({
+    id: "u", factionId: "red", faction: "red", panel: at(11, 11),
+    platformId: "hgob", ...over,
+  });
+  // No drawn zones anywhere: the ground base is elsewhere, which is the whole
+  // point -- this is the case that reported `inHomeBase: false` live.
+  const board = { zones: {}, units: [hgob] };
+
+  it("is her own base while she stands on it", () => {
+    expect(ownBaseOf(aboard(), { ...board, units: [hgob, aboard()] })).toMatchObject({
+      faction: "red", secondary: true, platformId: "hgob",
+    });
+  });
+
+  it("is her allies' base too", () => {
+    const ally = aboard({ id: "ally" });
+    expect(ownBaseOf(ally, { ...board, units: [hgob, ally] })?.secondary).toBe(true);
+  });
+
+  it("is nobody's base for an enemy who boards it", () => {
+    const foe = aboard({ id: "foe", factionId: "blue", faction: "blue" });
+    expect(ownBaseOf(foe, { ...board, units: [hgob, foe] })).toBeNull();
+  });
+
+  it("is not a base for a unit standing beside it on the ground", () => {
+    const beside = aboard({ platformId: null });
+    expect(ownBaseOf(beside, { ...board, units: [hgob, beside] })).toBeNull();
+  });
+
+  it("is not a base at all for a platform that does not claim to be one", () => {
+    const plain = { ...hgob, countsAsHomeBase: false };
+    expect(ownBaseOf(aboard(), { ...board, units: [plain, aboard()] })).toBeNull();
   });
 });

@@ -163,6 +163,12 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // passengers passively. See `rules/platforms.mjs#actionSourceFor`.
       replacesRiderAction: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
+      // "The HGoB counts as a second Home Base for Semiramis' Faction."
+      // `HomeBaseBehavior.isSecondary` was declared for this clause and nothing
+      // ever created such a Region; standing on the platform is the membership
+      // test instead, because the base moves.
+      countsAsHomeBase: new fields.BooleanField({ initial: false }),
+
       // Cross-level rules are per-platform, not global (Ch. 20 §20.7): the
       // author confirmed protection is decided case by case, so there is no
       // global rule to derive -- only a four-axis model each platform picks a

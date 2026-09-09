@@ -180,6 +180,27 @@ describe("crossLevelLegal", () => {
     expect(crossLevelLegal({ ...rider(), range: 4 }, below, board))
       .toMatchObject({ ok: false, reason: "directlyBelow" });
   });
+
+  it("measures the ATTACK's reach when one is given, not the attacker's", () => {
+    // The Hanging Gardens "does not Normal Attack" and carries Range 0, while
+    // both of its own Skills are Range 4 and Range 7. Reading the unit's Range
+    // refused them as melee.
+    const open = platform({ crossLevel: { ...platform().crossLevel, occupantTargeting: "rangedOnly" } });
+    const b = boardOf([open, rider(), grounded()]);
+    const gun = { ...grounded(), range: 0 };
+
+    expect(crossLevelLegal(gun, rider(), b)).toMatchObject({ ok: false, reason: "requiresRanged" });
+    expect(crossLevelLegal(gun, rider(), b, { range: 4 })).toMatchObject({ ok: true });
+  });
+
+  it("lets one ability overrule the directly-below refusal", () => {
+    // Dragon Wing Warriors: "Range=4 plus the area UNDER the HGoB", fired from
+    // the platform that forbids exactly that for everything else.
+    const below = { ...grounded(), panel: at(5, 5), range: 4 };
+
+    expect(crossLevelLegal({ ...rider(), range: 4 }, below, board, { allowDirectlyBelow: true }))
+      .toMatchObject({ ok: true });
+  });
 });
 
 describe("aoePassengerFactor", () => {

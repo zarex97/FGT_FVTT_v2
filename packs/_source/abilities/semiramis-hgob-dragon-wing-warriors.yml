@@ -33,9 +33,21 @@ description: |
   six-sided die plus 4. Each instance of damage can be separately Evaded or Blocked. Damaged Units
   only perform an Injury Roll once regardless of number of hits taken. Cooldown: 1◈ Turns.
 targeting:
-  # Measured from the HGoB's own panel(s). "Plus the area under the HGoB and
-  # the area of the HGoB" is not separately modelled: Range 4 from a 9x9
-  # platform's own edge already overlaps both regions in every practical case.
+  # "Plus the area UNDER the HGoB" -- the one clause in the reference set that
+  # overrules its own platform's `crossLevel.forbidDirectlyBelow`, which the
+  # HGoB sets for Aerial Garden of Vanity's sake ("Cannot hit under or above
+  # the HGoB"). Read by `rules/targeting/resolve.mjs` step 4d.
+  allowDirectlyBelow: true
+  # Measured from the HGoB's own panelS. "Plus the area under the HGoB and the
+  # area of the HGoB" is not separately modelled: Range 4 from a 9x9 platform's
+  # own edge already covers both regions.
+  #
+  # That sentence was written before it was true. `resolveAnchor` measured
+  # every Range from `caster.panel`, which for a multi-panel unit is the
+  # anchor -- the TOP-LEFT corner -- so Range 4 from a 9x9 garden reached
+  # neither its own far half nor the ground under it. Found by driving this
+  # ability through its own targeting overlay: the blue area stopped in the
+  # middle of the deck. Fixed in `domain/geometry.mjs#chebyshevFromAny`.
   anchor: { kind: withinRange, range: 4, metric: chebyshev }
   shape: { kind: square, size: 5 }
   selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }

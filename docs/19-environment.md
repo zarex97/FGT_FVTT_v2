@@ -104,6 +104,22 @@ defensive dice reduction for allies in the base.
 The HGoB clause means home-base membership is `unit is inside ANY region tagged homeBase and
 owned by unit's faction`, not a single-region test.
 
+**...and the second base is not a region at all.** The Hanging Gardens *moves*. A drawn Region
+would have to be repainted on every step of the garden, which is the following-terrain problem
+again with worse consequences when it drifts, so **standing on the platform is the membership
+test**: a platform whose content sets `countsAsHomeBase` is a Home Base for its own faction, and
+`ownBaseOf` (`rules/environment.mjs`) reads `unit.platformId` to decide who is aboard. Faction-
+scoped like the region loop above — an enemy who boards it is standing in somebody else's base
+and gets nothing, which is what "its OWN" means.
+
+`HomeBaseBehavior.isSecondary` was declared for this clause **by name**, and nothing anywhere
+ever created such a Region, so the clause did nothing. Measured live with Semiramis aboard her
+own garden, well outside her ground base, reporting `inHomeBase: false` — which silently cost
+her Territory Creation's `6d20` home-base dice and the `(3d10+30)` reduction it gives allies,
+the whole point of a fortress you can fly. Two things had to change: `ownBaseOf` had to consult
+the platform, and `annotatePlatforms` had to run **before** `annotateEnvironment` in
+`snapshotBoard`, because the membership test reads `platformId` and that is where it is written.
+
 ### Implementation
 
 Foundry `Region` documents with a `fgt.homeBase` behaviour carrying `factionId`. Region
