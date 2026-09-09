@@ -1,0 +1,69 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md:93-94
+#
+# > "Base Attack (MAG) is used. Range=5. Hits a 5x5 panel area within Range for
+# > 5x damage; then inflicts NP Seal for 3◈ Turns; and inflicts Def Dwn for 3◈
+# > Turns, all damage received is increased by 50%. After that, the NP area
+# > becomes 'Day' for 2◈ Turns and Ozymandias' Skill Cooldown is reduced by 1◈
+# > Turns. Can only be used once during the entire game. After this NP is used,
+# > Ramesseum Tentyris: The Shining Great Temple Complex can no longer be used
+# > for the rest of the game."
+schema: 1
+id: ozymandias-pyramid-drop
+name: "Ramesseum Tentyris: Pyramid Drop"
+isNP: true
+rank: EX
+kind: noblePhantasm
+slug: pyramidDrop
+npTags: [antiFortress]
+# "Can only be used once during the entire game." Both halves: `maxUses` refuses
+# the second press, and `expendsPermanently` marks it spent on the sheet rather
+# than leaving it looking merely on cooldown.
+maxUses: 1
+expendsPermanently: true
+timing: { window: ownTurn }
+description: |
+  (Active) Range 5. Hits a 5x5 panel area for 5x damage using Base Attack (MAG), then inflicts
+  @effect[npSeal]{NP Seal} for 3◈ Turns and @effect[defDwn]{Def Dwn} for 3◈ Turns (all damage
+  received is increased by 50%). The area then becomes Day for 2◈ Turns, and Ozymandias' Skill
+  Cooldowns are reduced by 1◈ Turns. Usable once per game; Ramesseum Tentyris can no longer be
+  used afterwards.
+targeting:
+  anchor: { kind: withinRange, range: 5, metric: chebyshev }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+damage: { component: mag, multiplier: 5 }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: npSeal, duration: "3◈" }
+      - { id: defDwn, magnitude: 50, duration: "3◈" }
+  # "The NP area becomes 'Day' for 2◈ Turns." `sunlight` is what `phaseAt`
+  # reads as Day (Ch. 42 §42.6), and `shape: reuse` is the 5x5 the damage just
+  # went through -- wherever the player put it, which for a Range-5 strike is
+  # not a square around him.
+  - kind: zone
+    spec:
+      terrain: [sunlight]
+      shape: reuse
+      duration: "2◈"
+      followsSource: false
+      tag: "pyramidDrop:@self.id"
+  # R4: his SKILLS, not his Noble Phantasms. The sheet uses "Skill" precisely
+  # elsewhere -- Pharaoh of the Hot Sands, Imperial Privilege and Protection
+  # from Ra each drop 1◈; Mesektet and Ramesseum are untouched.
+  # "After this NP is used, Ramesseum Tentyris: The Shining Great Temple Complex
+  # can no longer be used for the rest of the game" -- and, from Ramesseum's own
+  # termination list, "in this case Ramesseum Tentyris ends first, then the
+  # Pyramid Drop occurs". The phase closes the field before marking it spent.
+  #
+  # BEFORE the cooldown reduction below and after the damage above, which is the
+  # order the two sheets state between them.
+  - kind: expend
+    target: self
+    abilities: [ozymandias-ramesseum-tentyris]
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: skills, ticks: "1◈", direction: down }

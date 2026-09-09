@@ -785,7 +785,16 @@ async function declareProcesses({
     // The ride's own facts travel with the caster phases, because Troias
     // Tragōidia's Agility restore is "X" and X is how much movement he had
     // left -- a number that does not exist on any document.
-    await runCasterPhases(ability, attacker, board, attackSpec.ride ? { ride: attackSpec.ride } : {});
+    await runCasterPhases(ability, attacker, board, {
+      ...(attackSpec.ride ? { ride: attackSpec.ride } : {}),
+      // The panels this attack actually resolved against, for a `zone` phase
+      // that paints *"the NP area"* rather than a shape of its own. Pyramid
+      // Drop is the first: *"the NP area becomes 'Day' for 2 ticks"* -- the
+      // same 5x5 the damage just went through, wherever the player put it.
+      // Recomputing it from the caster would paint a square around HIM, which
+      // for a Range-5 strike is the wrong square.
+      areaPanels: targets.panels ?? [],
+    });
   }
 
   // The event two of EMIYA's passives listen for. On the ATTACK path as well as

@@ -48,6 +48,7 @@ abilities:
   - { ref: ozymandias-ramesseum-tentyris }
   - { ref: ozymandias-dendera-electric-bulb }
   - { ref: ozymandias-dendera-electric-bulb-area }
+  - { ref: ozymandias-pyramid-drop }
 
 notes: |
   Ramesseum Tentyris is the only [Fortress] Noble Phantasm in either roster,
