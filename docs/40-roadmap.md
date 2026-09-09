@@ -118,10 +118,10 @@ everything after is scope.
 |---|---|
 | Platforms and Scene Levels | 20 |
 | The Hanging Gardens, Golden Hind, Storm Border | 20, 32 |
-| Home bases, day/night, regions, terrain tags | 19 |
+| ~~Home bases~~ **DONE** (created by the wizard, painted as Regions); day/night, regions, terrain tags | 19 |
 | The Holy Grail: materialization, contest, destruction | 19 |
 | Civilians and random events | 19 |
-| Setup: summon rolls, deployment, turn-order roll | 19, 37 |
+| ~~Setup: summon rolls, deployment, turn-order roll~~ **DONE** — `apps/setup-wizard.mjs` | 19, 37 |
 | Victory conditions and match lifecycle | 19, 25 |
 | The game log and export | 30 |
 | Undo journal | 18 |
