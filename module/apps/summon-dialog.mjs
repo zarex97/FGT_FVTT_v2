@@ -23,6 +23,7 @@ import {
 import { grantBudget } from "../rules/master-rank.mjs";
 import { REGION_ADJACENCY } from "../rules/environment.mjs";
 import { currentWarRegion } from "../engine/board.mjs";
+import { describe, describeStep } from "./summon-present.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -228,75 +229,5 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     // to look at the sheet they just made.
     actor.sheet?.render(true);
     await this.close();
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-
-/**
- * One resolved line, for display.
- *
- * The arithmetic is shown, not just the result: "1000" tells a GM nothing about
- * whether to re-roll, and "18 + 2 (coin) = 20" tells them everything.
- *
- * @param {object} line
- * @returns {object}
- */
-function describe(line) {
-  // A summon variant's `applied` is a BRANCH ID (`rules/summon-variant.mjs`),
-  // not a number added to a base — "null + NaN" is what the arithmetic below
-  // would otherwise render for it, since there is no base to add it to.
-  if (typeof line.applied === "string") {
-    return {
-      id: line.id, label: line.label, value: line.value,
-      workings: `${line.roll.formula} → ${line.applied}`,
-      rollable: Boolean(line.roll), note: line.note ?? null, unrolled: Boolean(line.unrolled),
-    };
-  }
-
-  const parts = [String(line.base)];
-  if (line.applied !== null && line.applied !== undefined) {
-    // `applied`, not `rolled`: a tails 2d100 of 87 contributes −87, and showing
-    // the unsigned die would render 250 − 87 = 163 as "250 + 87".
-    parts.push(`${line.applied < 0 ? "−" : "+"} ${Math.abs(line.applied)} (${line.roll.formula})`);
-  }
-  if (line.granted) parts.push(`+ ${line.granted} granted`);
-
-  return {
-    id: line.id,
-    label: line.label,
-    value: line.value,
-    workings: parts.join(" "),
-    rollable: Boolean(line.roll),
-    note: line.note ?? null,
-    // A line nobody rolled resolves to its base rather than to NaN, and says
-    // so — otherwise an unrolled line is indistinguishable from a rolled zero.
-    unrolled: Boolean(line.unrolled),
-  };
-}
-
-/**
- * One plan step, for display. The tree in §37.6, in order.
- * @param {object} step
- * @returns {object}
- */
-function describeStep(step) {
-  switch (step.kind) {
-    case "rolls":
-      return { label: game.i18n.localize("FGT.Summon.StepRolls"), detail: null };
-    case "grant": {
-      const steps = Object.entries(step.steps).map(([p, n]) => `${p.toUpperCase()} +${n}`).join(", ");
-      const ba = [step.baseAttack?.str, step.baseAttack?.mag].some(Boolean)
-        ? ` (BA +${step.baseAttack.str}/+${step.baseAttack.mag})`
-        : ` (${game.i18n.localize("FGT.Summon.NoBA")})`;
-      return { label: game.i18n.format("FGT.Summon.StepGrant", { source: step.source }), detail: steps + ba };
-    }
-    case "contract":
-      return {
-        label: game.i18n.localize("FGT.Summon.StepContract"),
-        detail: game.actors.get(step.masterId)?.name ?? step.masterId,
-      };
-    default:
-      return { label: game.i18n.localize("FGT.Summon.StepConfirm"), detail: null };
   }
 }

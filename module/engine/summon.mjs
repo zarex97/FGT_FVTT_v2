@@ -336,10 +336,15 @@ export async function rollMasterSetup({ masterId, confirm = true }) {
  * Every Servant in the content packs, for a picker.
  * @returns {Promise<Array<{contentId: string, name: string, img: string, pack: string}>>}
  */
-export async function servantCatalogue() {
-  /** @type {Array<{contentId: string, name: string, img: string, pack: string}>} */
+export async function servantCatalogue({ ruleset = null } = {}) {
+  /** @type {Array<{contentId: string, name: string, img: string, pack: string,
+   *                packId: string, servantClasses: string[]}>} */
   const out = [];
+  // The index has always FETCHED `system.servantClasses` and never returned it,
+  // so nothing downstream could tell a Saber from a Caster without loading every
+  // document. The container roster is the first caller that needs to.
   for (const pack of game.packs.filter((p) => p.metadata.type === "Actor")) {
+    if (ruleset && rulesetOfPack(pack.collection) !== ruleset) continue;
     const index = await pack.getIndex({ fields: ["system.contentId", "type", "system.servantClasses"] });
     for (const entry of index) {
       if (entry.type !== "servant") continue;
@@ -348,10 +353,29 @@ export async function servantCatalogue() {
         name: entry.name,
         img: entry.img,
         pack: pack.metadata.label,
+        packId: pack.collection,
+        // A `SetField` arrives from the index as an array already, but a
+        // document that never stated any arrives as `undefined`.
+        servantClasses: [...(entry.system?.servantClasses ?? [])],
       });
     }
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Which ruleset a Servant pack belongs to.
+ *
+ * A pack boundary rather than a per-document flag, because the setup wizard
+ * must filter by ruleset and a boundary cannot be got wrong by a typo in an id.
+ * Anything that is not the Normal pack is Advanced, a module's own pack
+ * included — a third-party Servant is an Advanced one unless it says otherwise.
+ *
+ * @param {string} collection
+ * @returns {"advanced"|"normal"}
+ */
+export function rulesetOfPack(collection) {
+  return collection === "fgt.servants-normal" ? "normal" : "advanced";
 }
 
 /* -------------------------------------------------------------------------- */

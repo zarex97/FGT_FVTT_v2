@@ -465,6 +465,10 @@ directly.
 > not a corner case, it is every Advanced war built today. `validateRoster` returns every complaint
 > at once rather than the first, because a GM fixing a war wants the whole list, not one per attempt.
 >
+> Measured against the live catalogue in `fgt2026`: a Saber container has **no candidates at all**,
+> a Rider container has four (Achilles, Medusa, Pale Rider, Quetzalcoatl), and an `EXTRA` container
+> has two (Kingprotea, Mannanán) — the only two Servants in the corpus holding no core class.
+>
 > **Step 2's vocabulary had three readings and none of them met.** The setting offered
 > `beginner | standard | expert`; `MatchData` accepted `beginner | intermediate | expert | lunatic`;
 > and `engine/board.mjs` defaulted to `"intermediate"` **without consulting the setting at all**, so
