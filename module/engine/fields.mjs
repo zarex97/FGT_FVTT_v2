@@ -25,6 +25,7 @@ import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
   panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
+  vulnerabilityTriggered,
 } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -664,6 +665,10 @@ export async function expireFields(tick) {
   const scene = canvas?.scene ?? null;
   if (!scene) return [];
 
+  // Before anything is tested: a Master who fell this Turn starts a clock, and
+  // the clock has to exist before `shouldClose` can read it.
+  await stampForcedEnds(tick);
+
   /** @type {string[]} */
   const closed = [];
   for (const field of currentBoard().fields ?? []) {
@@ -792,6 +797,12 @@ async function offerExtension(field, tick) {
  */
 function shouldClose(field, tick) {
   if (field.expiry !== null && field.expiry !== undefined && field.expiry <= tick) return true;
+
+  // A forced end that was SCHEDULED rather than immediate -- the Master's
+  // defeat, two ticks ago. An absolute tick, stamped once by `stampForcedEnds`,
+  // for the same reason every duration in this system is one.
+  const forced = field.state?.forcedEnd ?? null;
+  if (forced !== null && forced !== undefined && forced <= tick) return true;
 
   // Axis 6. "Owner defeat ends it" is the only vulnerability in the reference
   // set that resolves without a roll, and both authored fields carry it.
@@ -1237,6 +1248,48 @@ async function deactivateUpkept(field, reason) {
  * @param {string} fieldId
  * @returns {object|null}
  */
+/**
+ * Start the clock on every field whose owner's Master has fallen.
+ *
+ * > *"When Ozymandias' Master is defeated, Ramesseum Tentyris will be
+ * > forcefully ended after 2 ticks, at the end of the Turn."*
+ *
+ * Stamped ONCE, as an absolute tick. A field whose stamp already exists is left
+ * alone -- restamping every pass would push the end back for ever, which is the
+ * same trap `stampFieldEntries` records.
+ *
+ * A delay of nothing closes it on this pass, which is what a `masterDefeat`
+ * vulnerability with no `delay` means.
+ *
+ * @param {number} tick
+ * @returns {Promise<void>}
+ */
+async function stampForcedEnds(tick) {
+  for (const field of currentBoard().fields ?? []) {
+    if (field.state?.forcedEnd !== null && field.state?.forcedEnd !== undefined) continue;
+
+    const hit = vulnerabilityTriggered(field, { kind: "masterDefeat" });
+    if (!hit.triggered) continue;
+
+    const master = field.ownerMasterId ? game.actors.get(field.ownerMasterId) : null;
+    if (!master?.system?.defeated) continue;
+
+    const ticks = hit.delay
+      ? resolveTicks(parseTick(String(hit.delay)), {
+        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      })
+      : 0;
+    await behaviorFor(field.id)?.update({ "system.state.forcedEnd": tick + ticks });
+    await applyWorldIntents(
+      [I.log({
+        kind: "field", event: "forcedEnd", unitId: field.ownerId, field: field.id,
+        detail: { at: tick + ticks, cause: "masterDefeat" },
+      })],
+      "field:forcedEnd",
+    );
+  }
+}
+
 /**
  * Tally a Noble Phantasm use or a chunk of damage against a field, this Round.
  *

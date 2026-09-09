@@ -753,6 +753,21 @@ export function vulnerabilityTriggered(field, event) {
         }
         break;
 
+      // *"When Ozymandias' Master is defeated, Ramesseum Tentyris will be
+      // forcefully ended after 2 ticks, at the end of the Turn."* The DELAY
+      // travels with the verdict; the caller resolves it to an absolute tick,
+      // because a countdown needs a hook that can fail to fire and an expiry
+      // cannot.
+      //
+      // Distinct from `ownerDefeat`, which is the same sheet's other half and
+      // is immediate: *"if Ozymandias is defeated, Ramesseum Tentyris is
+      // forcibly ended at the end of the Turn."*
+      case "masterDefeat":
+        if (event.kind === "masterDefeat") {
+          return { triggered: true, result: v.result ?? "end", delay: v.delay ?? null };
+        }
+        break;
+
       case "markDestruction":
         if (event.kind === "markDestroyed" && (event.marksRemaining ?? 1) <= 0) {
           return { triggered: true, result: v.result ?? "end" };

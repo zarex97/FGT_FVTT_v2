@@ -936,6 +936,16 @@ carrying the window 202 -> 2992 -> past 3000 close it the same way.
 either roster is Ozymandias's"*, so her `[Fortress]` clause had never had a live referent; it is
 what broke the Complex in the measurement above.
 
+
+#### Commit 13 -- the end that arrives two Turns late
+
+`masterDefeat`, the third of the Complex's four termination paths and the only one that waits. The
+delay travels with the verdict because `vulnerabilityTriggered` is pure, and the caller resolves it
+to an absolute tick (`state.forcedEnd`) -- stamped once, never refreshed.
+
+Live at three Turns to the Round: his Master falls on tick 15, the stamp reads 21, the Complex
+stands through 15 to 20 and closes on 21.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and

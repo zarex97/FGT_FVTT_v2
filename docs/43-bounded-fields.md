@@ -830,6 +830,25 @@ the **same** Round closes it and marks it expended, and pressing it again is ref
 *"expended"*; a second in a **different** Round does not, because the window rolls over; and sixteen
 ordinary Normal Attacks taking the window 202 -> 2992 -> past 3000 close it the same way.
 
+### 43.8b An end that arrives late
+
+> *"When Ozymandias' Master is defeated, Ramesseum Tentyris will be forcefully ended after 2 ticks,
+> at the end of the Turn. If Ozymandias is defeated, Ramesseum Tentyris is forcibly ended at the end
+> of the Turn."*
+
+Two clauses in one paragraph meaning two different things. `ownerDefeat` is immediate and already
+existed; `masterDefeat` carries a `delay`, and the delay travels with the verdict rather than being
+acted on inside the predicate -- `vulnerabilityTriggered` is pure, and the caller is what can
+resolve a tick expression against the world's Turns per Round.
+
+Resolved to an **absolute tick** (`state.forcedEnd`), stamped once, for the reason every duration
+in this system is absolute: a countdown needs a hook that can fail to fire. Stamped once and never
+refreshed, the same trap `state.enteredAt` records -- restamping each pass would push the end back
+for ever.
+
+Measured live at three Turns to the Round: his Master falls on tick 15, `forcedEnd` stamps **21**,
+the Complex stands through ticks 15 to 20 and closes on 21.
+
 ## 43.9 Delayed and scheduled fields
 
 Two abilities introduce **scheduled detonation**, which the time model (Ch. 07) supports but
