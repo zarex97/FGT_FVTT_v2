@@ -59,9 +59,25 @@ knockback. Chapter 09 builds the targeting type system on top of this.
 | Property | Regular | Large |
 |---|---|---|
 | Dimensions | 13 × 13 | 25 × 25 |
-| Home base depth | 2 rows (inferred) | 3 rows (inferred) |
+| Home base depth | 3 rows | 3 rows |
 | HGoB footprint | 9 × 9 | 11 × 11 |
 | HGoB MOV | 2 | 3 |
+
+> **Settled.** The depth was guessed here as *"2 rows (inferred) / 3 rows (inferred)"*. The author
+> has stated **3 on both boards**, it is `MatchData.homeBaseDepth`, and `rules/home-base.mjs`
+> computes the panels from it: the top `depth` rows for one faction and the bottom `depth` for the
+> other. A Great Holy Grail War that declares other than two factions **throws**, because there is
+> no third edge the rulebook names and a guess would put somebody's base somewhere nobody agreed to.
+>
+> The **Holy Grail War's** geometry is a stated **house rule**: the rulebook specifies home bases
+> for the two-sided war and says nothing at all about an all-versus-all. The perimeter band of
+> `depth` panels is divided into N contiguous blocks, walked ring by ring inward — ring order rather
+> than four full sides at a time, so each faction's share is connected instead of four disconnected
+> slivers, and the walk visits each corner once so no faction is handed the same panel twice. The
+> remainder goes to the earliest blocks, one panel each, so no two differ by more than one. It is
+> offered rather than omitted because five implemented rules (E1–E5), `CS: Escape` and the Grail's
+> exclusion zone all go dark without a base, and silently disabling seven rules is worse than a
+> stated convention.
 
 Gameplay is identical on both. Board size is a `Scene` property; a handful of abilities
 declare board-size-dependent values (HGoB above), read from `board.size`.
