@@ -870,6 +870,20 @@ targeting is already resolved. So the methods are two abilities that share a cos
 bypass; the single-target one carries `replacesNormalAttack`, so the Normal Attack button fires it
 and the 2x2 is pressed by name.
 
+### 15.4d One ability spending another
+
+`kind: expend` with a list of content ids. Pyramid Drop is the only clause in the corpus that needs
+it:
+
+> *"After this NP is used, Ramesseum Tentyris: The Shining Great Temple Complex can no longer be
+> used for the rest of the game."* — and, from Ramesseum's own termination list, *"in this case
+> Ramesseum Tentyris ends first, then the Pyramid Drop occurs."*
+
+It closes the named ability's field if one is open, then writes `expended` -- the same flag
+Akhilleus Kosmos uses and that the use gate now refuses on (SS15.4b), rather than a second kind of
+permanence. A caster phase, because it is a fact about the user's own sheet and not about any
+defender.
+
 ## 15.5 Categorization: the three scoping questions
 
 Three flags decide which effects touch an ability. They are the most bug-prone part of the

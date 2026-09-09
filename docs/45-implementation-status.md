@@ -968,6 +968,20 @@ Live: outside the Complex he has no replacement and swings his ordinary Normal A
 Master pays exactly 10 a use, the attack is refused at 9 Master Health and allowed at 10, and an
 Atk Up 100 standing on him contributes `0%` under the label *"ignored by this attack"*.
 
+
+#### Commit 15 -- Pyramid Drop
+
+Two small pieces of vocabulary. `shape: reuse` paints the panels the attack resolved against rather
+than a shape computed from the caster -- for a Range-5 strike those are different squares. And
+`kind: expend` is one ability spending another: it closes the named field first and then writes
+`expended`, which is the order Ramesseum's own termination list states.
+
+Live, during a Night Round: 804 damage from BA(MAG) 200 at 5x; NP Seal and Def Dwn 50 on the
+target; a panel inside the blast reads **day** while one outside reads **night**; his three Skills
+and both Dendera methods drop from 9 to 6 (1 tick at three Turns to the Round) while **Mesektet
+stays at 9**, which is ruling R4 -- his Skills, not his Noble Phantasms; and the Complex closes and
+is marked expended alongside Pyramid Drop itself.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
