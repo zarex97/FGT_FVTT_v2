@@ -1,0 +1,25 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Caster) Noble Phantasm (a) — Hits a 5x5 panel area within a 3 panel area
+# > of Caster for 3x damage. Can be used twice. Cooldown: 2◈ Turns."
+schema: 1
+id: normal-caster-np-a
+name: "Noble Phantasm (a)"
+isNP: true
+kind: noblePhantasm
+slug: normalCasterNPA
+maxUses: 2
+cooldown: { max: "2◈" }
+description: |
+  (Active) Hits a 5x5 panel area within a 3 panel area of Caster for 3x damage.
+  Can be used twice. Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: withinRange, range: 3, metric: chebyshev }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+# MAG, not STR: "Only Caster uses Base Attack (MAG) for its Attacks."
+damage: { component: mag, multiplier: 3 }
+phases:
+  - kind: damage
+  - kind: cooldown

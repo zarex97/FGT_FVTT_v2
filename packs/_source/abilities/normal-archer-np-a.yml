@@ -1,0 +1,24 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Archer) Noble Phantasm (a) — Range=2 to 5 panels. Hits a 3x3 panel area
+# > within Range for 3x damage. Can only be used twice. Cooldown: 2◈ Turns."
+schema: 1
+id: normal-archer-np-a
+name: "Noble Phantasm (a)"
+isNP: true
+kind: noblePhantasm
+slug: normalArcherNPA
+maxUses: 2
+cooldown: { max: "2◈" }
+description: |
+  (Active) Range=2 to 5 panels. Hits a 3x3 panel area within Range for 3x damage.
+  Can only be used twice. Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: withinRange, range: 5, minRange: 2, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage: { component: str, multiplier: 3 }
+phases:
+  - kind: damage
+  - kind: cooldown

@@ -1,0 +1,22 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Archer) Noble Phantasm (b) — Range=3 to 5 panels. Hits a 5x5 panel area
+# > within Range for 5x damage after calculation. Can only be used once."
+schema: 1
+id: normal-archer-np-b
+name: "Noble Phantasm (b)"
+isNP: true
+kind: noblePhantasm
+slug: normalArcherNPB
+maxUses: 1
+description: |
+  (Active) Range=3 to 5 panels. Hits a 5x5 panel area within Range for 5x damage.
+  Can only be used once.
+targeting:
+  anchor: { kind: withinRange, range: 5, minRange: 3, metric: chebyshev }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage: { component: str, multiplier: 5 }
+phases:
+  - kind: damage

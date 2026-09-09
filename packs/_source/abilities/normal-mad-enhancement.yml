@@ -1,0 +1,71 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Berserker) Class Skill: Mad Enhancement — (Active) Toggles during your
+# > Turn; 2◈ Turns must pass before it can be used again. While Active,
+# > Berserker's Master loses 15 Health at the end of each Turn Berserker Acts.
+# > When Berserker's Master is left with 15 Health or less, Mad Enhancement is
+# > forcibly deactivated at the end of the Turn. While deactivated,
+# > Sustainability is 2◈; when activated, 1◈."
+# > "- Berserk Rage — 1. damage taken -50% including NP. 2. STR damage dealt
+# > +100%, halved for MAG. 3. Move +2, Range +1. 4. Master's Servant Range +2.
+# > 5. Berserker can only Evade with Evade-."
+#
+# The Advanced Skill's shape with fixed values in place of its rank tables.
+# Clause 4 is a ZonBonus that STACKS: Ch. 16's own formula comment lists
+# madEnhancement as additive rather than in the max-not-sum channel.
+schema: 1
+id: normal-mad-enhancement
+name: "Mad Enhancement"
+source: class
+slug: madEnhancement
+kind: classSkill
+copyable: { allowed: false, reason: classSkill }
+isMode: true
+toggleLock: "2◈"
+description: |
+  (Active) Toggles during your Turn; 2◈ Turns must pass before it can be used again.
+  While Active, Berserker's Master loses 15 Health at the end of each Turn Berserker Acts, and Mad
+  Enhancement is forcibly deactivated at the end of the Turn when that Master has 15 Health or less.
+  Sustainability is 2◈ while deactivated and 1◈ while Active.
+  (Passive) While Active: damage taken reduced by 50% including NP; STR damage dealt increased by
+  100% and MAG by 50%; Move +2 and Range +1; the Master's Servant Range +2; and Berserker may only
+  Evade with Evade-.
+activeRules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 100
+    npValue: 100
+    predicate: [not:attack:component:mag]
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 50
+    npValue: 50
+    predicate: [attack:component:mag]
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 50
+    npValue: 50
+  - key: MovDelta
+    value: 2
+    isBuff: false
+  - key: RangeDelta
+    value: 1
+    isBuff: false
+  - key: ZonBonus
+    value: 2
+    stacks: true
+  - key: TableOverride
+    check: evade
+    forceTable: unfavourable
+  - key: OnEvent
+    event: actedTurnEnd
+    automatic: true
+    then:
+      - key: StatDelta
+        subject: master
+        stat: health.value
+        value: 15
+        direction: down
+        floor: 15

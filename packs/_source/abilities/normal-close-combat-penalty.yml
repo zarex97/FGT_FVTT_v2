@@ -1,0 +1,23 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Archer) Close Combat Penalty — (Passive) When Archer performs an Attack at
+# > a Range of 1 panel, his Base Attack is halved. This penalty can be negated
+# > if Archer receives an Item from Random Events."
+#
+# A separate document from Independent Action because it is a separate heading
+# on the sheet and is NOT a Class Skill -- a Skill Seal must not take it.
+schema: 1
+id: normal-close-combat-penalty
+name: "Close Combat Penalty"
+slug: closeCombatPenalty
+kind: skill
+passive: true
+description: |
+  (Passive) When Archer performs an Attack at a Range of 1 panel, his Base Attack is halved.
+  This penalty can be negated if Archer receives an Item from Random Events.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: atkDwn
+    direction: dealt
+    value: -50
+    npValue: -50
+    predicate: ["attack:range:1"]

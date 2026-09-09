@@ -1,0 +1,36 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Archer) Class Skill: Independent Action - Improved Sustainability —
+# > (Passive) When Archer's Master is defeated, Flip a Coin. If Heads, Archer's
+# > Sustainability is increased by 3◈ Turns."
+# > "(Archer) Class Skill: Independent Action - Contract Denial — (Passive) When
+# > an enemy Master or Caster tries to contract Archer, the 'Contract Servant'
+# > roll is performed twice. Archer can only be contracted if both rolls are
+# > successful."
+#
+# Contract Denial is implemented by NOT overriding it: `rules/contract.mjs`'s
+# `rollsRequired` already returns 2 for a Servant with no Independent Action
+# rank, and `contractPlan` already requires ALL rolls to succeed. Advanced's
+# ranks raise that to 3, 4 or Infinity; Normal's flat "twice" is the default the
+# function already has. Stated in the description so a player reading the sheet
+# sees the rule, and implemented by leaving it alone.
+schema: 1
+id: normal-independent-action
+name: "Independent Action"
+source: class
+slug: independentAction
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive) When Archer's Master is defeated, Flip a Coin. If Heads, Archer's Sustainability is
+  increased by 3◈ Turns.
+  (Passive) When an enemy Master or Caster tries to contract Archer, the 'Contract Servant' roll is
+  performed twice. Archer can only be contracted if both rolls are successful.
+passiveRules:
+  - key: OnEvent
+    event: masterDefeated
+    automatic: true
+    chance: { formula: "1d2", success: [1] }
+    then:
+      - key: SustainabilityGain
+        amount: "3◈"

@@ -1,0 +1,28 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# "Berserker of Blue"
+#
+# "MOV: 3[+2]" and "Range: 2[+1]" -- the bracketed figures are Berserk Rage's
+# deltas and belong to the Skill, not to the sheet. State the base only, or the
+# bonus lands twice.
+schema: 1
+id: normal-berserker
+name: Berserker
+type: servant
+
+servantClasses: [berserker]
+classContainer: berserker
+baseHealth: 750
+mov: 3
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 100, mag: 125 }
+normalAttack: { mode: fixed, component: str }
+# "Sustainability: Varies" -- 2◈ deactivated, 1◈ Active. The base is the
+# deactivated figure; Mad Enhancement's own clause moves it.
+sustainability: "2◈"
+
+npChoice: [normal-berserker-np-a, normal-berserker-np-b]
+
+abilities:
+  - { ref: normal-mad-enhancement }
+  - { ref: normal-berserker-np-a }
+  - { ref: normal-berserker-np-b }

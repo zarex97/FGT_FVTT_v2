@@ -1,0 +1,33 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Assassin) Noble Phantasm — Assassin's Noble Phantasm is usable after 3◈
+# > Turns have passed. Range=2 panels. Hits 1 Unit for 3x damage and inflicts
+# > Curse on the DU. Cooldown: 3◈ Turns."
+#
+# The Assassin statblock reads "NP: N/A" for uses and the NP text states a
+# COOLDOWN rather than a use count -- so it repeats on the clock rather than
+# being limited. `npGateRound` carries the "after 3◈ Turns have passed" opening.
+schema: 1
+id: normal-assassin-np
+name: "Noble Phantasm"
+isNP: true
+kind: noblePhantasm
+slug: normalAssassinNP
+npGateRound: "3◈"
+cooldown: { max: "3◈" }
+description: |
+  (Active) Usable after 3◈ Turns have passed. Range=2 panels. Hits 1 Unit for 3x damage and
+  inflicts @effect[curse]{Curse} on the target. Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: withinRange, range: 2, metric: chebyshev }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, includeSelf: false }
+  limits: { requiresZon: true }
+damage: { component: str, multiplier: 3 }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: curse }
+  - kind: cooldown

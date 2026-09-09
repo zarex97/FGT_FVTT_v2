@@ -1,0 +1,38 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# The status Normal's Presence Concealment applies.
+#
+# Its OWN effect rather than the shared `presenceConcealment`, because the
+# numbers differ: Normal is *"2x damage to Servants including NP"*, where
+# Advanced is +100%/+50% against anything that is not a Master.
+schema: 1
+id: normalPresenceConcealment
+name: "Presence Concealment"
+description: |
+  This Unit cannot be targeted directly, its Attacks cannot be Blocked or Countered, an Evade
+  against it is rolled at +4, and its damage against Servants is doubled including NP. Neither a
+  buff nor a debuff, and Unremovable.
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+defaultDuration: "2◈"
+rules:
+  - key: DamageModifier
+    value: 100
+    npValue: 100
+    predicate:
+      - "target:type:servant"
+  - key: ForbidReaction
+    reactions: [block, counter]
+    direction: incoming
+  - key: CheckModifier
+    check: evade
+    direction: incoming
+    value: 4
+  # "Assassin is able to Attack Masters and Move anywhere regardless of their
+  # Servant's position" -- the Master-protection exception Ch. 16 names Presence
+  # Concealment by.
+  - key: Suppress
+    scope: masterProtection

@@ -1,0 +1,28 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# "Lancer of Blue"
+#
+# Lancer keeps BOTH Noble Phantasms. Only Archer, Caster and Berserker carry the
+# "before play, select only one" note; Lancer's sheet does not.
+schema: 1
+id: normal-lancer
+name: Lancer
+type: servant
+
+servantClasses: [lancer]
+classContainer: lancer
+baseHealth: 1000
+mov: 5
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 125, mag: 125 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: normal-battle-continuation }
+  - { ref: normal-lancer-np-a }
+  - { ref: normal-lancer-np-b }
+
+notes: |
+  Agility +2 and Luck -2 at setup (`NORMAL_AGILITY_BY_CLASS`,
+  `NORMAL_LUCK_BY_CLASS`) -- applied by the setup plan from the container, not
+  stated here.

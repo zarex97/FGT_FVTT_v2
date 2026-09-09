@@ -1,0 +1,30 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Berserker) Noble Phantasm (a) — Hits a 3x2 or 2x3 panel area in any
+# > non-diagonal direction next to Berserker for 3x damage. Can be used twice.
+# > Cooldown: 2◈ Turns. Only usable when Mad Enhancement is deactivated."
+#
+# `orientedRect` takes `short`/`long`, not `w`/`h`: the direction decides which
+# is which, which is exactly what "3x2 or 2x3" means.
+schema: 1
+id: normal-berserker-np-a
+name: "Noble Phantasm (a)"
+isNP: true
+kind: noblePhantasm
+slug: normalBerserkerNPA
+maxUses: 2
+cooldown: { max: "2◈" }
+description: |
+  (Active) Hits a 3x2 or 2x3 panel area in any non-diagonal direction next to Berserker for 3x
+  damage. Can be used twice. Cooldown: 2◈ Turns. Only usable when Mad Enhancement is deactivated.
+requirements:
+  - { kind: predicate, predicate: [{ not: "self:skillActive:madEnhancement" }] }
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 2, long: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage: { component: str, multiplier: 3 }
+phases:
+  - kind: damage
+  - kind: cooldown

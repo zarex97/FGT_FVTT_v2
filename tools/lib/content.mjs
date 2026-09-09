@@ -1460,6 +1460,8 @@ function actorSystem(doc) {
     //
     // `rank` is "" for Rankless, a real state with rules of its own rather than
     // a missing value: Ch. 17 prices an all-Rankless table differently.
+    // Normal's "select only one Noble Phantasm" (Ch. 15). Servants only.
+    npChoice: doc.npChoice ?? undefined,
     rank: doc.rank ?? undefined,
     commandSpells: doc.commandSpells ?? undefined,
     // The STATED ZON, which `zonRadius` reads as a floor under its class-based
