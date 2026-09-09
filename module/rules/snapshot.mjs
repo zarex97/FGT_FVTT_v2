@@ -328,6 +328,13 @@ export function snapshotUnit(actor, {
     normalAttack: {
       mode: variantOverride?.normalAttack?.mode ?? sys.normalAttack?.mode ?? "fixed",
       component: variantOverride?.normalAttack?.component ?? sys.normalAttack?.component ?? "str",
+      // The damage TYPE. Declared on the schema, authored on the sheet, stored
+      // on the document -- and dropped HERE, because this projection rebuilds
+      // `normalAttack` field by field rather than spreading it. Ozymandias's
+      // Mesektet is *"Light damage"* on every Normal Attack he makes, and the
+      // pipeline reads the element off the projection, so it arrived as `null`
+      // and the swing had no type at all. Found live, one field after adding it.
+      element: variantOverride?.normalAttack?.element ?? sys.normalAttack?.element ?? null,
       // EMIYA's Normal Attack changes what it is made of at Range 3. Without
       // the bands here the projection reports the flat component, so the
       // preview and the resolution would disagree about his damage at every

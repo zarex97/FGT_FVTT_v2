@@ -55,6 +55,24 @@ it testable and what makes the targeting preview possible.
 > rules, because a missing rule is invisible and an extra one is not.
 
 
+> **A Normal Attack may carry an element.** Every element in the engine was sourced from an
+> *ability* document (`engine/attack.mjs`'s three spec sites), and stage 0 returns immediately
+> without one — so a Servant whose ordinary swing has a damage type had nowhere to state it.
+> Ozymandias's Mesektet is the first: *"All Normal Attacks use Base Attack (MAG) … Light damage."*
+> `normalAttack.element` is declared on the schema, returned by `normalAttackAt` (a band may retype
+> as well as re-source), and folded into `facts` at the one site that already folds `component`.
+>
+> **And the projection dropped it on the first try.** `rules/snapshot.mjs` rebuilds `normalAttack`
+> field by field rather than spreading it, so a newly declared field is discarded silently — the
+> document held `element: "light"` and the snapshot read `null`. Found live, one field after adding
+> it, and now held by a test.
+>
+> Measured live, with the dice pinned: **240** against a plain target (Base Attack MAG 200 +
+> Divinity 40) and **440** against a `Dark` one (the 200 doubled, then Divinity's flat 40) — which
+> is also a clean demonstration of stage ordering, since a proportional modifier doubles the base
+> and a flat one is added afterwards.
+
+
 ## 13.1 The signature
 
 ```ts

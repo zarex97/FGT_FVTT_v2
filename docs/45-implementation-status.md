@@ -703,6 +703,18 @@ variant, because R1 settled that he has all three Riding passives.
 `region: [egypt]` matched no war and §19.3's grant could never fire for him. Measured live:
 `regionBonusFor` returns 1 in an Egypt war and returned 0 before.
 
+#### Commit 2 — Mesektet, and an element on a Normal Attack
+
+`normalAttack` gained an `element`, because every element in the engine came from an ability
+document and a Normal Attack has none. **The projection dropped it immediately**: `snapshot.mjs`
+rebuilds `normalAttack` field by field rather than spreading, so the document held `light` and the
+board read `null` — found live one field after adding it, and now held by a test.
+
+Measured with the dice pinned: a Normal Attack deals **240** to a plain target and **440** to a
+`Dark` one; Mesektet's active deals **940** and **1740**. Both pairs are the sheet exactly, and the
+first pair also shows the pipeline's stage ordering — the proportional bonus doubles the base and
+Divinity's flat +40 lands after it.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and

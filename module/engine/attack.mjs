@@ -552,7 +552,10 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // carried one, so `element:` on an ability document reached the pipeline
       // only through `damageContext` and never through the predicate vocabulary.
       // Karna's Mana Burst (Flames) resists by type in both directions.
-      element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? null,
+      // A Normal Attack has no ability document; its element comes from the
+      // unit's own `normalAttack` spec, which `normalAttackAt` resolves.
+      element: resolvedDamage(ability, options)?.element ?? ability?.system?.element
+        ?? (ability ? null : normalAttackAt(attacker, null)?.element) ?? null,
       // "Fire damage (half)": how much of the total carries that element, which
       // the pipeline's stage 4b scales element-scoped modifiers by. Travels
       // BESIDE `element` at all three spec-building sites, because an element
@@ -3725,6 +3728,12 @@ export function attackFacts(attacker, defender, state) {
   return {
     ...facts,
     component: normal.component,
+    // The damage TYPE, from the same spec as the component. A Normal Attack has
+    // no ability document, so this is the only place its element can come from
+    // -- `facts.element` is what the two spec-building sites above fall through
+    // to. Mesektet is *"All Normal Attacks ... Light damage"*, and without this
+    // the pipeline's element stage returned at once and the type was lost.
+    element: normal.element ?? facts.element ?? null,
     ignoresMagicResistance: facts.ignoresMagicResistance || normal.ignoresMagicResistance,
   };
 }
