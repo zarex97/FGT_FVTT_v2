@@ -725,7 +725,7 @@ In `module/engine/io.mjs#setCooldown`, replace the write:
       if (mode === "increase" && ticks > 0) {
         const { gateTurnFor, isGated } = await import("../rules/np-gate.mjs");
         const gateTurn = isGated(item.system)
-          ? gateTurnFor(unitSnapshot(actor), masterOf(actor), {
+          ? gateTurnFor(snapshotUnit(actor), masterOf(actor), {
             gates: gateSettings(),
             turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
           })
@@ -768,11 +768,11 @@ function gateSettings() {
 function masterOf(actor) {
   const id = actor?.system?.masterId ?? null;
   const master = id ? game.actors.get(id) : null;
-  return master ? unitSnapshot(master) : null;
+  return master ? snapshotUnit(master) : null;
 }
 ```
 
-`unitSnapshot` is already imported by `io.mjs`; if it is not, import it from `./board.mjs`.
+`io.mjs` already imports `snapshotUnit` from `../rules/snapshot.mjs` (line 18) — **use that name**, not `unitSnapshot`, and do **not** import from `./board.mjs`: `board.mjs` is the higher-level module here and pulling it in from `io.mjs` would invert the dependency.
 
 - [ ] **Step 6: Run the tests and the layer check**
 
