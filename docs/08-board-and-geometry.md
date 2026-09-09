@@ -378,6 +378,14 @@ bounds (a unit knocked into a wall stops and takes the collision damage) and doe
 movement-based effects (`onUnitMoved` fires with `forced: true`, and region `tokenMoveIn` is
 distinguished from `tokenEnter`, which v14 gives us natively).
 
+**"Displacement, not movement" has to be said to Foundry as well as to us.** `fgtForced` is our
+own option: it makes `engine/movement-hooks.mjs` skip *our* legality check and means nothing to
+Foundry, which reads any position update as a **walk** and silently discards the ones its own
+constraint solver cannot route. Every forced displacement in this system — knockback, Gather,
+scatter, carrying passengers, boarding — goes through `engine/io.mjs#displaceToken`, which says
+`action: "displace"` and returns whether the token arrived. Ch. 20 has the mechanism and the
+evidence.
+
 Kingprotea's `Huge Scale` produces **cascading** knockback: she moves onto occupied panels and
 occupants are pushed 1 panel "until Kingprotea has space to stand on". This is a
 breadth-first displacement that can chain. The algorithm:

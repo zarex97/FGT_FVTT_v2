@@ -69,10 +69,34 @@ coincide by accident; the headings say which is which.
 > painted. `followsSource` was declared naming her `Sol` as the case it existed for; this is its
 > reader.
 >
+> **Every forced displacement in the system was being submitted to Foundry as a walk.** This is
+> the largest single defect the build turned up and it is not Quetzalcoatl's: knockback, Gather,
+> scatter-on-destruction, a platform carrying its passengers, boarding and Scene Level assignment
+> all went through the same door. `fgtForced` is *our* option — it makes `movement-hooks.mjs` stand
+> aside and means nothing to Foundry. `TokenDocument##inferMovementWaypoints` marks a waypoint
+> `action: "displace"` only for `teleport`/`isUndo`/`isPaste`; everything else is a walk, and
+> `##preUpdateMovement` hands it to `constrainMovementPath` and then **deletes every movement field
+> from the update** on the branch commented *"Movement was constrained and impossible entirely"* —
+> with no error, no notification and no rejected promise.
+>
+> The visible symptom was a token that could be assigned **down** to the ground level and never
+> back **up**, so no Servant could board any platform: the three Spells' gate, the AoE tiers and
+> `replacesRiderAction` all answered "not aboard". It was diagnosed by reading Foundry's own source
+> after a run of experiments produced a confident and wrong explanation about update batching.
+>
+> `engine/io.mjs#displaceToken` is now the only way to place a token. Two options, two jobs:
+> `action: "displace"` decides whether Foundry **accepts** the move, `animate: false` decides
+> whether it **commits** it (Foundry holds the document at the origin until an animation nobody is
+> watching finishes), and it returns whether the token actually arrived.
+>
+> §20.8's movement linkage now runs **both ways**: a rider who *drives* takes the mount with her,
+> and does not carry her Master twice.
+>
 > **What is deliberately not demonstrable:** Xiuhcoatl's `[Fortress]` clause is built and
 > unit-tested and cannot fire in a real match, because the only `[Fortress]` NP in either roster is
-> Ozymandias's *Ramesseum Tentyris* and he is unauthored. Said out loud rather than left to look
-> exercised.
+> Ozymandias's *Ramesseum Tentyris* and he is unauthored. It is now the only clause of hers in that
+> state — boarding, the three Spells and mount movement were all exercised live once the
+> displacement defect was fixed. Said out loud rather than left to look exercised.
 >
 
 > **Achilles is complete.** Thirteen entries and **five Noble Phantasms** — three non-damaging and
