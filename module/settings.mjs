@@ -10,7 +10,8 @@
 
 import { registerFactionMenu } from "./apps/faction-config.mjs";
 
-const RULE_SETTINGS = ["turnsPerRound", "difficulty", "activeSkillBudget", "boardSize"];
+const RULE_SETTINGS = ["turnsPerRound", "difficulty", "activeSkillBudget", "boardSize",
+                       "warType", "ruleset"];
 
 export function registerSettings() {
   const s = (key, data) => game.settings.register("fgt", key, { scope: "world", config: true, ...data });
@@ -40,10 +41,44 @@ export function registerSettings() {
     choices: { 13: "13 × 13", 25: "25 × 25" },
     onChange: () => guardRuleChange("boardSize"),
   });
+  // The rulebook's four, and only these four. This offered
+  // `beginner | standard | expert` while `MatchData` accepted
+  // `beginner | intermediate | expert | lunatic` and `engine/board.mjs`
+  // defaulted to "intermediate" WITHOUT consulting the setting at all -- so
+  // this control could not produce the value the board assumed, and the board
+  // never read the control. Three vocabularies, none of which met.
+  //
+  // A world holding "standard" reads as "intermediate".
   s("difficulty", {
-    name: "FGT.Settings.Difficulty", type: String, default: "expert",
-    choices: { beginner: "FGT.Difficulty.Beginner", standard: "FGT.Difficulty.Standard", expert: "FGT.Difficulty.Expert" },
+    name: "FGT.Settings.Difficulty", type: String, default: "intermediate",
+    choices: {
+      beginner: "FGT.Difficulty.Beginner",
+      intermediate: "FGT.Difficulty.Intermediate",
+      expert: "FGT.Difficulty.Expert",
+      lunatic: "FGT.Difficulty.Lunatic",
+    },
     onChange: () => guardRuleChange("difficulty"),
+  });
+  s("warType", {
+    name: "FGT.Settings.WarType", hint: "FGT.Settings.WarTypeHint",
+    type: String, default: "greatHolyGrailWar",
+    choices: {
+      greatHolyGrailWar: "FGT.WarType.Great",
+      holyGrailWar: "FGT.WarType.Regular",
+      custom: "FGT.WarType.Custom",
+    },
+    onChange: () => guardRuleChange("warType"),
+  });
+  s("ruleset", {
+    name: "FGT.Settings.Ruleset", hint: "FGT.Settings.RulesetHint",
+    type: String, default: "advanced",
+    choices: { advanced: "FGT.Ruleset.Advanced", normal: "FGT.Ruleset.Normal" },
+    onChange: () => guardRuleChange("ruleset"),
+  });
+  s("drawPolicy", {
+    name: "FGT.Settings.DrawPolicy", hint: "FGT.Settings.DrawPolicyHint",
+    type: String, default: "duplicates",
+    choices: { duplicates: "FGT.DrawPolicy.Duplicates", unique: "FGT.DrawPolicy.Unique" },
   });
   // §8.3 clause 4, as an OPTIONAL rule. It is the one movement clause that
   // refuses a step onto a panel that looks empty, so a table that finds it more

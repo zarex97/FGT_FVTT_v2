@@ -1651,7 +1651,7 @@ notes: |
 - [ ] **Step 4: Validate, rebuild, summon and look**
 
 Shared verification block with `<the id>` = `normal-caster`. Then place Caster inside its own home
-base and confirm through `buildBoard()` that `inHomeBase` is `true` and that the damage preview for
+base and confirm through `currentBoard()` that `inHomeBase` is `true` and that the damage preview for
 its Normal Attack shows the `territoryCreationAtk` contribution.
 
 - [ ] **Step 5: Commit**
@@ -2058,7 +2058,7 @@ Shared verification block with `<the id>` = `normal-berserker`.
 Expected: `mov: 3` and `range.panels: 2` — **not** 5 and 3, which would mean Berserk Rage's deltas
 were authored on the sheet as well as on the Skill.
 
-Then, in the live world, toggle Mad Enhancement on and confirm through `buildBoard()` that `mov`
+Then, in the live world, toggle Mad Enhancement on and confirm through `currentBoard()` that `mov`
 becomes 5, `range.panels` 3, and the Master's ZON grows by 2; end a Turn Berserker acted on and
 confirm the Master lost 15 Health.
 
@@ -2524,8 +2524,8 @@ pick a Noble Phantasm for each Archer, Caster and Berserker, build.
 
 ```bash
 node tools/fgt-eval.mjs "
-const { buildBoard } = await import('/systems/fgt/module/engine/board.mjs');
-const b = buildBoard();
+const { currentBoard } = await import('/systems/fgt/module/engine/board.mjs');
+const b = currentBoard();
 const s = b.units.filter(u => u.kind === 'servant');
 const m = b.units.filter(u => u.kind === 'master');
 return JSON.stringify({
@@ -2550,8 +2550,8 @@ in the ruleset that needed it.
 ```bash
 node tools/fgt-eval.mjs "
 await game.settings.set('fgt', 'masterMode', 'coinFlip');
-const { buildBoard } = await import('/systems/fgt/module/engine/board.mjs');
-const b = buildBoard();
+const { currentBoard } = await import('/systems/fgt/module/engine/board.mjs');
+const b = currentBoard();
 const archers = b.units.filter(u => u.kind === 'servant' && u.classContainer === 'archer');
 return JSON.stringify(archers.map(a => {
   const m = b.units.find(u => u.id === a.masterId);

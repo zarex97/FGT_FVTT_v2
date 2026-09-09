@@ -636,6 +636,30 @@ a point of Luck by day and none at night.
   a chevron on the token itself, sized so its tip lands on the token's own boundary and never
   crosses into the next panel.
 
+### The difficulty setting was read by nothing — **repaired**
+
+Three vocabularies for one rule, none of which met. `settings.mjs` offered
+`beginner | standard | expert`; `MatchData.difficulty` accepted
+`beginner | intermediate | expert | lunatic`; and `engine/board.mjs` read
+`combat?.system?.difficulty ?? "intermediate"` — **no setting fallback at all**, so the registered
+control was consulted by nothing in the system and changing it did nothing. `"standard"` was a value
+the schema would not accept and `"intermediate"` was one the control could not produce.
+
+Measured live in `fgt2026` before the change: a world storing `expert` reported `intermediate` on
+the board.
+
+The rulebook's four win in both places (*"Beginner: Damage modifiers & Luck Check removed.
+Intermediate: Luck Check removed. Expert: Nothing removed. Lunatic: Random Event rate up."*), the
+board takes the setting as its fallback, and `snapshotBoard` normalizes anything unrecognised to
+Intermediate — so a world still holding `standard` reads as a difficulty the rules match rather than
+as one none of them do. `civiliansNeeded`'s Lunatic ≥2 invariant had been implemented since it was
+written against a value nothing could set; it is now reachable.
+
+Beside it, the war's shape gained a representation: `MatchData.warType`, `ruleset`, `homeBaseDepth`
+and `containers`, with `warType` and `ruleset` rule-locked. Before this, a Great Holy Grail War and
+a Holy Grail War were distinguishable only by `turnsPerRound` being 3 or 8, and only in a hint
+string.
+
 ### Master rank, and painting a bounded field — **built**
 
 Spec: `docs/superpowers/specs/2026-09-02-master-rank-and-field-painting-design.md`. Four commits,
