@@ -16,8 +16,8 @@ MOV: 7
 Range: 2 panels, 1 target  
 Base Attack (STR): 125  
 Base Attack (MAG): 250  
-Sustainability: 2◈ Turns  
-   
+Sustainability: 2◈ Turns
+
 Health: XXX/XXX  
 Agility: XX/XX  
 Luck: XX/XX
@@ -46,7 +46,7 @@ This Skill counts as ‘Divinity’.
 (Active) Used during your Turn. Has the following effects-  
 1\. Applies Atk Up for 1◈ Turns to all allied Units within a 2 panel area of herself, all damage dealt is increased by 30%; if NP, 15%.  
 2\. Applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of herself, Crit Chance is increased by 25%.  
-3\. Applies the ‘Sol’ buff to herself for 1◈ Turns, its effects are as follows- The 5x5 panel area around Quetz is  ‘Day’, even if it is during a Night Round.  
+3\. Applies the ‘Sol’ buff to herself for 1◈ Turns, its effects are as follows- The 5x5 panel area around Quetz is ‘Day’, even if it is during a Night Round.  
 Cooldown: 4◈ Turns.
 
 (Quetz) Good God’s Wisdom — Rank: A+  
@@ -63,14 +63,14 @@ Cooldown: 4◈-⅓◈ Turns.
 Cooldown: 4◈ Turns.
 
 (Quetz) Xiuhcoatl: O Flame, Burn the Gods Themselves — Rank: A (NP) \[Anti-Unit\~Anti-Fortress\]  
-Base Attack (STR) and half of Base Attack (MAG) is used (BA=250), not affected by Magic Resistance. Deals 4x damage and inflicts NP Seal for 1◈ Turns, and inflicts Burn for 2◈ Turns. Fire damage (half).   
+Base Attack (STR) and half of Base Attack (MAG) is used (BA=250), not affected by Magic Resistance. Deals 4x damage and inflicts NP Seal for 1◈ Turns, and inflicts Burn for 2◈ Turns. Fire damage (half).  
 Then (regardless of whether the NP hits the DU or not), deals normal damage to all Units within a 2 panel area of Quetzalcoatl except herself and the previously targeted Unit (Base Attack (MAG) is used) with a 25% chance of inflicting NP Seal for 1◈ Turns and inflicts Burn for 1◈ Turns. Fire damage.  
 Xiuhcoatl cannot be used if Quetz is Riding the Quetzalcoatlus.  
 If this NP is used within or directly next to a \[Fortress\] NP (regardless of ally’s or enemy’s), that NP area and the panels directly outside/next to the NP area are now ‘Burning’ until the Fortress NP is deactivated.  
 Cooldown: 7◈ Turns.
 
 (Quetz) Quetzalcoatl: Winged Serpent — Rank: A (NP) \[Anti-Unit\~Anti-Army\]  
-(Non-damaging) When this NP is used, Quetz summons a Quezalcoatlus at her position, and she is Moved onto the Quetzalcoatlus together with her Master (if her Master is next to the Quetzalcoatlus; otherwise her Master can get on the Quetzalcoatlus at any time). The Quetzalcoatlus’ Stats are as follows-  
+(Non-damaging) When this NP is used, Quetz summons a Quetzalcoatlus at her position, and she is Moved onto the Quetzalcoatlus together with her Master (if her Master is next to the Quetzalcoatlus; otherwise her Master can get on the Quetzalcoatlus at any time). The Quetzalcoatlus’ Stats are as follows-  
 Health: 1000  
 Agility: 16  
 Luck: Shared with Quetz’s  
@@ -95,7 +95,7 @@ Damage Spell. Can only be used while Riding Quetzalcoatlus. Range=4. Hits a 3x3 
 All of Quetz’s Quetzalcoatlus Spells share the same Cooldown (Cooldown: 2◈ Turns), when one is used the other 2 cannot be used until Cooldown ends. Quetzalcoatlus Spells cannot be used if Piedra Del Sol is Active.
 
 (Quetz) Piedra Del Sol: The Sun Stone — Rank: EX (NP) \[Anti-Army\~Anti-Fortress\]  
-(Non-damaging) When this NP is used, the Piedra Del Sol appears above Quetz (place its figurine above her). While the Piedra Del Sol is above the field, it has the following effects-  
+(Non-damaging) When this NP is used, the Piedra Del Sol appears where Quetz currently is. While the Piedra Del Sol is on the field, it has the following effects-  
 1\. Goddess’ Divine Core: All damage dealt is increased by 180; and all damage taken by Quetz is reduced by 50% including NP.  
 2\. When an enemy Unit ends its Turn within the 7x7 panel area around the Piedra Del Sol, it receives 50 Fire damage and is inflicted with Burn; this Burn debuff is permanent as long as the Unit is within the Piedra Del Sol area. (The Piedra Del Sol area is categorized as 'Burning’'.)  
 Quetz can Move out of the Piedra Del Sol area, and the panel occupied by Piedra Del Sol can still be Moved onto (replace the Piedra Del Sol on top of any Units which Move onto that panel). (Tabletop Simulator: You can move the Piedra Del Sol figurine into the air and Lock it in place instead.)  
