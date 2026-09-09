@@ -100,6 +100,52 @@ function watchedFractions(actor) {
   return [...out];
 }
 
+/**
+ * Put a token somewhere, as a **displacement** rather than as a walk.
+ *
+ * Every forced move this system performs — knockback, Gather, a platform
+ * carrying its passengers, scatter-on-destruction, boarding, assigning a Scene
+ * Level — is a displacement: the Unit did not walk there, and §8.3's legality
+ * rules do not apply to it. `fgtForced` says exactly that, but it is **our**
+ * option and Foundry has never heard of it: it makes `movement-hooks.mjs` skip
+ * *our* legality check and does nothing about Foundry's own.
+ *
+ * And Foundry's own is decisive. `TokenDocument##inferMovementWaypoints` marks
+ * a waypoint `action: "displace"` only when the operation carries `teleport`,
+ * `isUndo` or `isPaste`; otherwise the action is the token's ordinary movement
+ * action — a **walk**. `##preUpdateMovement` then hands that walk to
+ * `Token#constrainMovementPath`, and when the walk is impossible it takes the
+ * branch commented *"Movement was constrained and impossible entirely"* and
+ * **deletes every movement field from the update**. No error, no notification,
+ * no rejected promise: `preMoveToken` and `moveToken` both fire and the
+ * document simply does not change.
+ *
+ * Found live: a Servant could be assigned *down* to the ground level and not
+ * back *up* to her mount's, so Quetzalcoatl could never board the
+ * Quetzalcoatlus — and the same silence applies to every displacement above.
+ *
+ * `TokenDocument#move` is the API that takes an explicit action, and it
+ * **returns whether the movement completed**, which is the whole point: a
+ * displacement that does not happen now says so.
+ *
+ * @param {object} token the `TokenDocument`
+ * @param {object} position any of `{x, y, elevation, level, width, height}`
+ * @returns {Promise<boolean>} whether the token actually arrived
+ */
+export async function displaceToken(token, position) {
+  if (!token) return false;
+  const completed = await token.move(
+    { ...position, action: "displace", snapped: false, explicit: false, checkpoint: true },
+    // `api` is the method for an engine-driven move; no ruler and no rotation,
+    // because a displacement is not something a player is aiming.
+    { method: "api", autoRotate: false, showRuler: false, animate: false, fgtForced: true },
+  );
+  if (completed === false) {
+    console.warn(`FGT | Displacement of ${token.name} to`, position, "did not complete.");
+  }
+  return completed !== false;
+}
+
 export function worldIO() {
   return {
     /**
@@ -412,13 +458,7 @@ export function worldIO() {
       // passenger and every Gather target landed in the scene's top-left
       // corner. `engine/movement-hooks.mjs` converts the same way.
       const point = canvas.grid.getTopLeftPoint(destination);
-      // Forced displacement is instantaneous (Ch. 08 §8.3), so it is not
-      // animated as a walk -- and `animate: false` is also the only option that
-      // COMMITS a programmatic move: Foundry v14 counts `x`/`y` among its
-      // MOVEMENT_FIELDS and holds the document at the movement's origin until
-      // the animation finishes, which for an update nobody is watching never
-      // happens. Found live: the token's `_source` moved and the board did not.
-      await token.update({ x: point.x, y: point.y }, { fgtForced: true, animate: false });
+      await displaceToken(token, { x: point.x, y: point.y });
     },
 
     /**

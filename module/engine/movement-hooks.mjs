@@ -24,10 +24,11 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
-import { movePlatform } from "../rules/platforms.mjs";
+import { movePlatform, actionSourceFor } from "../rules/platforms.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
 import { repaintFollowing } from "./terrain.mjs";
+import { displaceToken } from "./io.mjs";
 
 export const Movement = {
   /** Register the hooks. */
@@ -191,7 +192,32 @@ async function onMove(document, movement, operation) {
   // A platform carries everyone aboard it (§20.8). Done before the mover's own
   // bookkeeping, so a passenger is already where it belongs by the time
   // anything reads the board.
+  // Whether the mount was dragged along by its driver, which already carried
+  // everyone else aboard it -- so Passenger Seat below must not carry her
+  // Master a second time. He is both her passenger and the platform's, and
+  // measured live he moved twice the distance she did.
+  let drovePlatform = false;
+
   if (actor.type === "platform") await carryPassengers(actor, document, movement);
+  // ...and the inverse: a rider who DRIVES takes the mount with her
+  // (`replacesRiderAction`). Same moment and same reason as the line above.
+  //
+  // Its own snapshot rather than the `unit` declared below: that `const` is in
+  // its temporal dead zone here, and reading it threw a ReferenceError that
+  // Foundry's hook dispatch swallowed -- so the move committed and the whole
+  // tail of this function (the carry, the Passenger Seat, the budget, the turn
+  // state, the knockback) was skipped in silence. Measured: Quetzalcoatl walked
+  // three panels off her own mount with `movedPanels` still 0.
+  else {
+    // The BOARD-derived unit, not a bare `unitSnapshot`: `platformId` is
+    // stamped by `annotatePlatforms` during the full projection, and a bare
+    // snapshot never carries one -- so `actionSourceFor` saw a rider on no
+    // platform and returned before moving anything. The same trap
+    // `engine/skill-use.mjs` records for `self:onPlatform:`.
+    const board = currentBoard();
+    const mover = board.units.find((u) => u.id === actor.id);
+    if (mover) drovePlatform = await carryDrivenPlatform(mover, board, movement);
+  }
 
   // Riding's Passenger Seat: *"The Servant's Master can Move together with its
   // Servant; after Moving, both Servant and Master must be in the same
@@ -201,7 +227,7 @@ async function onMove(document, movement, operation) {
   // delta comes from the MOVEMENT, because at `moveToken` the document still
   // reports the origin. `GRANTS.passengerSeat` has existed with no reader
   // since grants were written; this is it.
-  await carryMaster(actor, movement);
+  if (!drovePlatform) await carryMaster(actor, movement);
 
   const unit = unitSnapshot(actor, document);
   const spent = panelsMoved(movement);
@@ -558,16 +584,72 @@ async function carryPassengers(actor, document, movement) {
     : null;
   if (!delta || (delta.i === 0 && delta.j === 0)) return;
 
+  await shiftPlatform(platform, delta, board, [platform.id]);
+  void document;
+}
+
+/**
+ * Move a platform and everyone aboard it by one delta.
+ *
+ * `skip` is who has already arrived: the PLATFORM when it was dragged itself
+ * and its passengers are following, or the DRIVER when she was dragged and the
+ * platform is following her.
+ *
+ * @param {object} platform the platform's snapshot
+ * @param {{i: number, j: number}} delta
+ * @param {object} board
+ * @param {string[]} skip unit ids already at their destination
+ * @returns {Promise<void>}
+ */
+async function shiftPlatform(platform, delta, board, skip = []) {
+  const skipped = new Set(skip);
   for (const descriptor of movePlatform(platform, delta, board)) {
-    if (descriptor.unitId === platform.id) continue;
+    if (skipped.has(descriptor.unitId)) continue;
     const token = canvas.tokens.placeables.find((t) => t.actor?.id === descriptor.unitId)?.document;
     if (!token) continue;
     const point = canvas.grid.getCenterPoint({ i: descriptor.to.i, j: descriptor.to.j });
-    await token.update({ x: point.x - canvas.grid.sizeX / 2, y: point.y - canvas.grid.sizeY / 2 },
-      { fgtForced: true });
+    // Through `displaceToken`: being carried is a displacement, and submitting
+    // it as a walk let Foundry constrain it away in silence (see `io.mjs`).
+    await displaceToken(token, {
+      x: point.x - canvas.grid.sizeX / 2,
+      y: point.y - canvas.grid.sizeY / 2,
+    });
   }
+}
 
-  void document;
+/**
+ * A rider who DRIVES takes the mount, and everyone else aboard it, with her.
+ *
+ * > *"While Quetz is Riding the Quetzalcoatlus, Quetz's Move and Normal Attack
+ * > is replaced with Quetzalcoatlus'."*
+ *
+ * The mirror of {@link carryPassengers}, and the half that was missing.
+ * §20.8's linkage was written for a platform that moves *itself* and carries
+ * its passengers along; `replacesRiderAction` inverts that — the passenger is
+ * the one being dragged, and the platform under her has to follow, or she flies
+ * off her own mount and leaves it behind with her Master still on it.
+ *
+ * @param {object} unit the mover's snapshot
+ * @param {object} board
+ * @param {object} movement the movement operation
+ * @returns {Promise<boolean>} whether the mount was carried, so Passenger Seat
+ *   does not move her Master a second time
+ */
+async function carryDrivenPlatform(unit, board, movement) {
+  const { platform, movesAsPlatform } = actionSourceFor(unit, board);
+  if (!movesAsPlatform || !platform) return false;
+
+  const from = movement?.origin;
+  const to = movement?.destination;
+  const delta = from && to && canvas?.grid
+    ? offsetDelta(canvas.grid.getOffset(from), canvas.grid.getOffset(to))
+    : null;
+  if (!delta || (delta.i === 0 && delta.j === 0)) return false;
+
+  // The driver has already arrived; the platform and any other passenger have
+  // not.
+  await shiftPlatform(platform, delta, board, [unit.id]);
+  return true;
 }
 
 /**
