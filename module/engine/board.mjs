@@ -231,6 +231,32 @@ export function unitFrom(board, actor) {
  * @param {object} [overrides] extra `settings` for the snapshot
  * @returns {object}
  */
+/**
+ * The Round-gate context every `canUseAbility` call site needs.
+ *
+ * §7.9's gate is arithmetic in Layer 2 (`rules/np-gate.mjs`) and its numbers are
+ * world settings, which Layer 2 may not read — so they are fetched here and
+ * handed down. Factored into one helper rather than repeated at seven call
+ * sites: seven copies of a settings read are seven chances for one of them to
+ * drift, and a call site that quietly disagrees with the others is precisely
+ * the failure this gate was built to end.
+ *
+ * `canUseAbility` defaults every one of these to the published constants, so a
+ * caller that omits the whole object still gets the rule.
+ *
+ * @returns {{gates: {round: number, assassinRound: number}, turnsPerRound: number, turn: number|null}}
+ */
+export function gateContext() {
+  return {
+    gates: {
+      round: setting("npGateRound", 6),
+      assassinRound: setting("npGateRoundAssassin", 4),
+    },
+    turnsPerRound: setting("turnsPerRound", 3),
+    turn: game.combat?.system?.globalTurn ?? null,
+  };
+}
+
 export function currentBoard(overrides = {}) {
   const combat = game.combats?.active ?? null;
   const scene = canvas?.scene ?? null;

@@ -12,7 +12,10 @@ import { registerFactionMenu } from "./apps/faction-config.mjs";
 import { SetupWizard } from "./apps/setup-wizard.mjs";
 
 const RULE_SETTINGS = ["turnsPerRound", "difficulty", "activeSkillBudget", "boardSize",
-                       "warType", "ruleset"];
+                       "warType", "ruleset",
+                       // Moving a Round gate mid-match changes when every Noble
+                       // Phantasm in the world becomes usable.
+                       "npGateRound", "npGateRoundAssassin", "noAttackRound"];
 
 export function registerSettings() {
   const s = (key, data) => game.settings.register("fgt", key, { scope: "world", config: true, ...data });
@@ -21,6 +24,31 @@ export function registerSettings() {
     name: "FGT.Settings.TurnsPerRound", hint: "FGT.Settings.TurnsPerRoundHint",
     type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 2, initial: 3 }),
     default: 3, requiresReload: false, onChange: () => guardRuleChange("turnsPerRound"),
+  });
+  // §7.9's round-indexed gates. All four numbers have been in
+  // `CONFIG.FGT.gates` since that file was written and NOTHING read the object
+  // -- so a Noble Phantasm was usable in Round 1 in every world. Settings
+  // rather than constants so `settings-are-read.test.mjs` holds each of them to
+  // having a reader, which is the guard that would have caught this.
+  s("npGateRound", {
+    name: "FGT.Settings.NpGateRound", hint: "FGT.Settings.NpGateRoundHint",
+    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 1, initial: 6 }),
+    default: CONFIG.FGT?.gates?.npRound ?? 6, requiresReload: false,
+    onChange: () => guardRuleChange("npGateRound"),
+  });
+  // "Assassin: after 3 -- from Round 4."
+  s("npGateRoundAssassin", {
+    name: "FGT.Settings.NpGateRoundAssassin", hint: "FGT.Settings.NpGateRoundAssassinHint",
+    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 1, initial: 4 }),
+    default: CONFIG.FGT?.gates?.npRoundAssassin ?? 4, requiresReload: false,
+    onChange: () => guardRuleChange("npGateRoundAssassin"),
+  });
+  // "Neither faction may Attack during Round 1." `0` switches the ban off.
+  s("noAttackRound", {
+    name: "FGT.Settings.NoAttackRound", hint: "FGT.Settings.NoAttackRoundHint",
+    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, initial: 1 }),
+    default: CONFIG.FGT?.gates?.noAttackRound ?? 1, requiresReload: false,
+    onChange: () => guardRuleChange("noAttackRound"),
   });
   // §17.4: "An offer that blocks resolution indefinitely is unacceptable in a
   // game with seven players." After this many seconds the ladder continues as

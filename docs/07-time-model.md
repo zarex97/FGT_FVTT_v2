@@ -627,13 +627,30 @@ Not durations, but round-indexed gates that live in this subsystem:
 | Magic Crest | Usable after 2 full Rounds — **from Round 3**. |
 | First-round attacks | Neither faction may Attack during Round 1. |
 
-A Noble Phantasm may also state a gate of its **own**, which composes with the table above by
-`max()`: `npGateRound: 8` on Ozymandias's Ramesseum Tentyris is *"can only be used after 7 full
+**All four numbers are world settings**, seeded from `CONFIG.FGT.gates` and guarded by
+`guardRuleChange`, because moving one mid-match changes when every Noble Phantasm in the world
+becomes usable. They are settings rather than constants for a second reason: `settings-are-read.test.mjs`
+then holds each of them to having a reader — which is the guard that would have caught the state
+this table was in. `CONFIG.FGT.gates` held all four since the file was written and **nothing read
+the object**; `attacksPermitted` implemented the first-round ban correctly and hardcoded its `> 1`,
+so even the gate that worked did not read its own number.
+
+**The gate is `rules/np-gate.mjs`**, read by `rules/costs.mjs#canUseAbility` where it already read
+`requiresRound`. Its numbers arrive as an argument that defaults to the published constants, so a
+call site that forgets to pass them gets the Round-6 rule rather than no rule — with seven call
+sites, "silently skipped" is the failure this gate exists to end. Measured live: Mesektet refused at
+Rounds 4 and 5 with *"it cannot be used before Round 6"* and allowed at Round 6, its cooldown clear
+throughout.
+
+A Noble Phantasm may also state a gate of its **own**, which **overrides** the table above: `npGateRound: 8` on Ozymandias's Ramesseum Tentyris is *"can only be used after 7 full
 Rounds have passed"*. The field was declared in the ability schema when it was written, authored on
 two abilities, **and dropped by the content pipeline's allowlist on the way into the pack** — so
 every document read `null` and the gate opened in Round 1. `rules/ability-use.mjs#usageSpecFor`
-folds it into `requiresRound`, the one gate `costs.mjs` reads, taking whichever of the two is
-later. A ◈ expression there is refused rather than coerced: `npGateRound` is an integer field, and
+folds it into `requiresRound`, the one gate `costs.mjs` reads, taking whichever of the two is later
+— `max()` still applies *between an ability's own two ways of stating a gate*, because both are the
+ability speaking. What it no longer does is compose with the GLOBAL gate by `max()`: a stated gate
+replaces it outright, which is the only way the Magic Crest's own row in the table above stays
+reachable (`max(6, 3)` is 6). A ◈ expression there is refused rather than coerced: `npGateRound` is an integer field, and
 `"3◈"` would become `NaN` and gate nothing while looking authored.
 
 Master essences shift the NP gate: `Kaleidoscope` −4 rounds (from Round 2),
@@ -645,15 +662,27 @@ And there is an interaction the source calls out explicitly:
 > Rounds have passed), then its NP would only be usable X Turns after its NP would be
 > available, X being the number of Turns its NP Cooldown was increased by."*
 
-So the gate and the cooldown compose additively rather than the gate simply overriding:
+So the gate and the cooldown compose **additively** rather than the gate simply overriding:
 
 ```ts
-function npAvailableOnTurn(unit, np): number {
-  const gateRound = baseGateRound(unit) + essenceShift(unit);
+function npAvailableTurn(unit, np): number {
+  const gateRound = baseGateRound(unit) - essenceShift(unit.master);
   const gateTurn  = (gateRound - 1) * turnsPerRound + 1;
-  return Math.max(gateTurn, np.cooldown.readyOnTurn);
+  return gateTurn + np.cooldown.gatedDelay;   // NOT max(gateTurn, readyOnTurn)
 }
 ```
+
+**This chapter printed `Math.max(gateTurn, np.cooldown.readyOnTurn)` and it was wrong.** Under
+`max()` an NP Lock spent while the target's Noble Phantasm was gated anyway costs its caster a
+Skill and buys nothing — which is precisely the outcome the clause above exists to prevent. The
+prose and the pseudocode disagreed for as long as both were unimplemented; the prose is the rule.
+
+`cooldown.gatedDelay` is the running total of increases taken *before* the gate opened, written by
+`engine/io.mjs`'s cooldown setter — the only place in the system where a cooldown increase is
+applied. It is never decremented and never reset: a permanent shift of the availability turn, for
+the same reason every duration here is an absolute expiry rather than a countdown (D7.3). Measured
+live: an increase of 5 in Round 2 raises both `remaining` and `gatedDelay`; the same increase in
+Round 9 raises only `remaining`.
 
 `Force Noble Phantasm` (2 Command Spells) overrides cooldown but explicitly **not** the gate:
 *"Cannot be used to force NP usage before 5 Rounds (or 3 Rounds for Assassin) have passed."*

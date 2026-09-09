@@ -18,6 +18,7 @@ import { lookup } from "../domain/tables.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { meetsRequirements } from "./items.mjs";
+import { isGated, gateRoundFor, npAvailableTurn, NP_GATE } from "./np-gate.mjs";
 import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 
@@ -99,7 +100,10 @@ export function npCostAt({ rank, unit, master }) {
  * @param {number} [args.round]
  * @returns {{ok: boolean, reason?: string, detail?: object, cost: object|null}}
  */
-export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx }) {
+export function canUseAbility({
+  ability, unit, master = null, round = 1, turn = null,
+  gates = NP_GATE, turnsPerRound = 3, ...ctx
+}) {
   const cost = npCost({ ability, unit, master });
 
   // Spent for the rest of the game, and ABOVE the cooldown gate rather than
@@ -129,9 +133,52 @@ export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx 
     return { ok: false, reason: "exhausted", detail: { maxUses, timesUsed: ability.timesUsed ?? 0 }, cost };
   }
 
-  const requiresRound = ability?.requiresRound ?? null;
+  // §7.9's availability gate. An ability's OWN gate wins outright -- Ozymandias
+  // states Round 8 and the Magic Crest states Round 3, and BOTH must hold. The
+  // global gate covers only abilities that state neither.
+  //
+  // This replaces the `max()` composition Ch. 44 §44.5 recorded: `max()` cannot
+  // express a stated gate EARLIER than the global one, which is exactly what the
+  // Magic Crest's own row in §7.9's table is. `max()` still applies BETWEEN an
+  // ability's two ways of stating a gate (`npGateRound` and
+  // `targeting.limits.requiresRound`, folded by `usageSpecFor`), because both
+  // are the ability speaking.
+  //
+  // `gates` defaults to the published numbers rather than to nothing, because
+  // there are seven call sites and "silently skipped" is precisely the defect
+  // this gate was built to close.
+  const stated = ability?.requiresRound ?? null;
+  const requiresRound = stated !== null
+    ? stated
+    : (isGated(ability) ? gateRoundFor(unit, master, gates) : null);
+
   if (requiresRound !== null && round < requiresRound) {
     return { ok: false, reason: "round", detail: { requiresRound, round }, cost };
+  }
+
+  // ...and the Turn-level half, which only a cooldown increase taken before the
+  // gate opened can trigger. Skipped entirely when nothing has delayed this
+  // ability, which is every ability in every world until one does -- so the
+  // common path never needs the turn plumbing.
+  //
+  // `turn` falls back to the FIRST turn of the current Round. Every call site
+  // passes the real one; the fallback is for a console query, and erring to the
+  // start of the Round errs towards refusing, which is the safe direction for a
+  // gate.
+  const delay = ability?.cooldown?.gatedDelay ?? 0;
+  if (delay > 0 && stated === null && isGated(ability)) {
+    const availableTurn = npAvailableTurn(unit, ability, master, { gates, turnsPerRound });
+    const now = turn ?? ((round - 1) * turnsPerRound + 1);
+    if (now < availableTurn) {
+      return {
+        ok: false,
+        reason: "round",
+        detail: {
+          requiresRound: Math.ceil(availableTurn / turnsPerRound), round, delayedBy: delay,
+        },
+        cost,
+      };
+    }
   }
 
   // "Can only be used once per Turn." A field on the ability rather than a

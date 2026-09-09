@@ -597,8 +597,14 @@ Reuses: the `copyable` flag system, `GrantedAbility`, and the Item model. Adds:
 > *"Can only be used after **7 full Rounds** have passed."*
 
 Every other NP uses the global gate (Round 6, or 4 for Assassin). This is a **per-ability gate
-override**, and it composes with the global one by `max()` — the same rule as the cooldown
-interaction in Ch. 07 §7.9. `npGateRound: 8` on the ability.
+override**: a stated gate **replaces** the global one. `npGateRound: 8` on the ability.
+
+**This paragraph used to say the two compose by `max()`, and that was wrong.** `max()` cannot
+express a stated gate *earlier* than the global one, and §7.9's own table gives the Magic Crest
+exactly that — "usable after 2 full Rounds, from Round 3", on an ability that is `categorizedAsNP`
+and therefore inside the global gate's scope. Under `max()` that row is dead and a Normal-ruleset
+Master has no offensive option before Round 6. Ozymandias is unaffected either way, because 8 is
+later than 6 under both rules.
 
 **Built, and the field was unreadable.** `npGateRound` was declared in the ability schema when this
 was written and never added to the content pipeline's allowlist, which silently drops what it does

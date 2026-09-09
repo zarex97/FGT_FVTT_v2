@@ -49,6 +49,19 @@ function abilityCommon() {
       countFrom: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       remaining: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       regen: new fields.NumberField({ required: true, integer: true, initial: 0 }),
+      // How much this ability's cooldown was increased WHILE ITS NOBLE
+      // PHANTASM GATE WAS STILL SHUT.
+      //
+      // > "If a Unit has its NP Cooldown increased before its NP would be
+      // > available, then its NP would only be usable X Turns after its NP
+      // > would be available, X being the number of Turns its NP Cooldown was
+      // > increased by." (§7.9)
+      //
+      // A permanent shift of the availability turn, never a countdown and never
+      // reset -- the same argument every duration in this system makes. Zero
+      // for every ability in every world until something increases a cooldown
+      // early.
+      gatedDelay: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       // A cooldown decided by WHICH BEHAVIOUR of a multi-branch ability fired
       // -- Summoning: Bašmu is 2◈ for its damage-spell branch, 4◈ for its
       // summon branch (`engine/cooldown.mjs#cooldownFor`). Untyped for the
@@ -266,6 +279,12 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // (`replacesRiderAction`), minus the mount and plus a predicate --
       // `{predicate: [...]}`, answered against the board by `actionSourceFor`.
       replacesNormalAttack: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // A per-ability Round gate, which OVERRIDES the global one (Ch. 07 §7.9).
+      // Declared here as well as on `NoblePhantasmData` because a SKILL may be
+      // `categorizedAsNP` and therefore inside the gate's scope -- the Magic
+      // Crest is exactly that, and its own "from Round 3" is the row that keeps
+      // a Master usable before Round 6.
+      npGateRound: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       // "Categorized as NP" is the mechanical dividing line for NP Seal, NP
       // DmUp and the Luck Check exclusions -- distinct from actually being one.
       categorizedAsNP: new fields.BooleanField({ initial: false }),
