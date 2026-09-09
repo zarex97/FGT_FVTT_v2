@@ -284,6 +284,11 @@ field:
     # `endPermanently` is the harsher of the two outcomes and had never been
     # honoured anywhere -- the branch that read it tested `=== "end"` and
     # dropped the rest.
+    # Path 3, the other half. "When Ozymandias' Master is defeated, Ramesseum
+    # Tentyris will be forcefully ended after 2◈ Turns, at the end of the Turn."
+    # A DELAYED end, where `ownerDefeat` above it is immediate -- the sheet
+    # states both in one paragraph and means two different things by them.
+    - { kind: masterDefeat, delay: "2◈", result: end }
     - { kind: npCount, tag: antiFortress, threshold: 2, window: round, result: endPermanently }
     - { kind: damageThreshold, threshold: 3000, window: round, result: endPermanently }
 phases:

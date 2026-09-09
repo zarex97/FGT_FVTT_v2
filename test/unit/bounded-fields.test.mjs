@@ -884,3 +884,33 @@ describe("breaking a field permanently", () => {
       .toEqual({ triggered: true, result: "end" });
   });
 });
+
+describe("masterDefeat", () => {
+  // > "When Ozymandias' Master is defeated, Ramesseum Tentyris will be
+  // > forcefully ended after 2◈ Turns, at the end of the Turn. If Ozymandias is
+  // > defeated, Ramesseum Tentyris is forcibly ended at the end of the Turn."
+  //
+  // Two clauses in one paragraph meaning two different things: the owner's own
+  // defeat is immediate, his Master's is delayed.
+  const complex = {
+    vulnerabilities: [
+      { kind: "ownerDefeat", result: "end" },
+      { kind: "masterDefeat", delay: "2◈", result: "end" },
+    ],
+  };
+
+  it("triggers on the Master falling, and carries the delay", () => {
+    expect(vulnerabilityTriggered(complex, { kind: "masterDefeat" }))
+      .toEqual({ triggered: true, result: "end", delay: "2◈" });
+  });
+
+  it("leaves the owner's own defeat immediate", () => {
+    expect(vulnerabilityTriggered(complex, { kind: "ownerDefeat" }))
+      .toEqual({ triggered: true, result: "end" });
+  });
+
+  it("does not fire for a field that does not state it", () => {
+    expect(vulnerabilityTriggered({ vulnerabilities: [{ kind: "ownerDefeat", result: "end" }] },
+      { kind: "masterDefeat" }).triggered).toBe(false);
+  });
+});
