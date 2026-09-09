@@ -30,7 +30,7 @@ baseAttack: { str: 100, mag: 200 }
 # > "(Passive) The source of Ozymandias' Normal Attacks. All Normal Attacks use
 # > Base Attack (MAG) ... Light damage."
 # The element rides here; the ×2 against `Dark` is on the Mesektet document.
-normalAttack: { mode: fixed, component: mag }
+normalAttack: { mode: fixed, component: mag, element: light }
 sustainability: "2◈"
 
 abilities:
@@ -41,6 +41,7 @@ abilities:
   - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
   - { ref: class-magic-resistance, rank: B }
   - { ref: divinity, rank: B }
+  - { ref: ozymandias-mesektet }
 
 notes: |
   Ramesseum Tentyris is the only [Fortress] Noble Phantasm in either roster,
