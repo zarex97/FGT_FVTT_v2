@@ -635,13 +635,22 @@ this table was in. `CONFIG.FGT.gates` held all four since the file was written a
 the object**; `attacksPermitted` implemented the first-round ban correctly and hardcoded its `> 1`,
 so even the gate that worked did not read its own number.
 
-A Noble Phantasm may also state a gate of its **own**, which composes with the table above by
-`max()`: `npGateRound: 8` on Ozymandias's Ramesseum Tentyris is *"can only be used after 7 full
+**The gate is `rules/np-gate.mjs`**, read by `rules/costs.mjs#canUseAbility` where it already read
+`requiresRound`. Its numbers arrive as an argument that defaults to the published constants, so a
+call site that forgets to pass them gets the Round-6 rule rather than no rule — with seven call
+sites, "silently skipped" is the failure this gate exists to end. Measured live: Mesektet refused at
+Rounds 4 and 5 with *"it cannot be used before Round 6"* and allowed at Round 6, its cooldown clear
+throughout.
+
+A Noble Phantasm may also state a gate of its **own**, which **overrides** the table above: `npGateRound: 8` on Ozymandias's Ramesseum Tentyris is *"can only be used after 7 full
 Rounds have passed"*. The field was declared in the ability schema when it was written, authored on
 two abilities, **and dropped by the content pipeline's allowlist on the way into the pack** — so
 every document read `null` and the gate opened in Round 1. `rules/ability-use.mjs#usageSpecFor`
-folds it into `requiresRound`, the one gate `costs.mjs` reads, taking whichever of the two is
-later. A ◈ expression there is refused rather than coerced: `npGateRound` is an integer field, and
+folds it into `requiresRound`, the one gate `costs.mjs` reads, taking whichever of the two is later
+— `max()` still applies *between an ability's own two ways of stating a gate*, because both are the
+ability speaking. What it no longer does is compose with the GLOBAL gate by `max()`: a stated gate
+replaces it outright, which is the only way the Magic Crest's own row in the table above stays
+reachable (`max(6, 3)` is 6). A ◈ expression there is refused rather than coerced: `npGateRound` is an integer field, and
 `"3◈"` would become `NaN` and gate nothing while looking authored.
 
 Master essences shift the NP gate: `Kaleidoscope` −4 rounds (from Round 2),
