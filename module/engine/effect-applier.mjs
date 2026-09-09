@@ -136,7 +136,12 @@ export function applyEffect({
     // made every stated chance in the game inert -- Stun's own 100 would have
     // applied to both.
     base: (chance ?? def.baseChance ?? 100) + declared,
-    inflictBonus: (bypassChanceModifiers || friendly) ? 0 : (ctx.inflictBonus ?? 0),
+    // `friendly` skips the TARGET's resistance (§11.2), which is the whole of
+    // what that clause is about. It must not also discard the APPLIER's own
+    // outgoing bonus: Buff ChUp is applied by an ally, to an ally, and zeroing
+    // it here made the only buff-chance effect in the game inert in exactly
+    // the case it exists for.
+    inflictBonus: bypassChanceModifiers ? 0 : (ctx.inflictBonus ?? 0),
     // The target's own resistance, from its `ApplicationChance` contributions.
     // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
@@ -633,7 +638,10 @@ function chanceContribution(unit, def, direction, options = null, ignoreSources 
     // Without the filter, Serenity's Silent Dance raised the application chance
     // of her own self-buffs: Presence Concealment went on at "110% (automatic)",
     // which is harmless at 100 and would not have been on anything resistible.
-    if (def.polarity !== "debuff") continue;
+    // A contribution that NAMES a polarity is about that one; an unqualified
+    // one still means debuffs. `Buff ChUp` is the first that says otherwise,
+    // and it says so outright.
+    if (def.polarity !== (c.polarity ?? "debuff")) continue;
     if (c.valence && c.valence !== def.valence) continue;
     // Appendix A's classification, which is what "Mental Debuffs" names.
     // Heracles's Bravery is the only content that uses it, and naming the

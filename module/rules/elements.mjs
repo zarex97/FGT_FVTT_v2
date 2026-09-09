@@ -1377,6 +1377,12 @@ export const EXECUTORS = Object.freeze({
   ApplicationChance(el, { rank, source, ability, out, ctx }) {
     out.applicationChances.push({
       direction: el.direction ?? "incoming",
+      // WHICH polarity this contribution is about. Absent means "debuffs",
+      // which is what every clause of this shape in the corpus was until
+      // Ozymandias's Protection from Ra: *"chance of applying buffs is
+      // increased by 40%"*. Named rather than defaulted so an unqualified
+      // Debuff ChUp cannot start improving its bearer's own self-buffs.
+      polarity: el.polarity ?? null,
       valence: el.valence ?? null,
       // Appendix A's own classification, so "Mental Debuffs" covers one written
       // after the clause was. Heracles's Bravery is the only content that needs

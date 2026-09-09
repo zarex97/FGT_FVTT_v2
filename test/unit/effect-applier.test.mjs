@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { applyEffect } from "../../module/engine/effect-applier.mjs";
+import { applyEffect, inflictBonusOf } from "../../module/engine/effect-applier.mjs";
 
 describe("bypassChanceModifiers (Queen's Poison's extra Stage)", () => {
   // Poison-like, non-terminal, so the chance path is exercised without the
@@ -215,5 +215,47 @@ describe("the reduced NP magnitude", () => {
     });
 
     expect(out.intents.find((i) => i.t === "applyEffect").effect.npMagnitude).toBe(null);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Buff ChUp — the first contribution that is about a buff                     */
+/* -------------------------------------------------------------------------- */
+
+describe("buff chance", () => {
+  const atkUp = { id: "atkUp", name: "Atk Up", polarity: "buff", volatility: "nonVolatile", baseChance: 60 };
+
+  it("lets a contribution raise the chance of a BUFF landing", () => {
+    // `chanceContribution` refused every non-debuff, on a comment reading
+    // "nothing anywhere modifies how likely a buff is to land". Ozymandias's
+    // Protection from Ra is the first thing that does.
+    const unit = { applicationChances: [{ direction: "outgoing", polarity: "buff", value: 40 }] };
+    expect(inflictBonusOf(unit, atkUp)).toBe(40);
+  });
+
+  it("still refuses a generic contribution against a buff", () => {
+    // Serenity's Silent Dance must not raise her own self-buffs' chance, which
+    // is the defect the filter was added for. An unqualified contribution
+    // still means "debuffs".
+    const unit = { applicationChances: [{ direction: "outgoing", value: 40 }] };
+    expect(inflictBonusOf(unit, atkUp)).toBe(0);
+  });
+
+  it("does not let a buff contribution reach a debuff", () => {
+    const unit = { applicationChances: [{ direction: "outgoing", polarity: "buff", value: 40 }] };
+    expect(inflictBonusOf(unit, { id: "poison", polarity: "debuff", severity: "normal" })).toBe(0);
+  });
+
+  it("keeps the applier's outgoing bonus on a FRIENDLY application", () => {
+    // `friendly` skips the TARGET's resistance, which is what §11.2 is about.
+    // Zeroing the applier's own bonus too made Buff ChUp inert in the only
+    // case it exists for: a buff, put on an ally, by an ally.
+    const out = applyEffect({
+      def: atkUp, magnitude: 20, friendly: true,
+      target: { id: "t", effects: [], effectInstances: [] },
+      source: {}, ctx: { roll: 100, currentTick: 0, turnsPerRound: 3, inflictBonus: 40 },
+    });
+    // 60 base + 40 = 100, so a roll of 100 lands. Without the bonus it is 60.
+    expect(out.outcome).toBe("applied");
   });
 });

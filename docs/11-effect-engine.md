@@ -124,6 +124,7 @@ applyEffect(def, target, magnitude, duration, source, context) → ApplicationRe
  3. CHANCE ROLL
     finalChance = base
                 + inflicter modifiers (Debuff ChUp, Item Construction, Queen's Poison…)
+                  — which are about DEBUFFS unless the contribution names a polarity
                 − target modifiers (Debuff ResUp, Magic Resistance, Item Construction,
                                     Master essence, Self-Suggestion…)
     terminal ladder applied if def is Instakill/Death/Erase
@@ -227,6 +228,34 @@ the step in one of them would leave the other two applying bare intents, which i
 "two implementations of one rule" defect that produced this one.
 
 ---
+
+### 11.2.1 A contribution says which polarity it is about
+
+An `ApplicationChance` carries an optional `polarity`, and an absent one means **debuffs**. That
+default is not tidiness: every clause of this shape in the corpus is *"chance of inflicting
+debuffs"* or *"chance of being inflicted by debuffs"*, and without the filter Serenity's *Silent
+Dance* raised the application chance of her own self-buffs — Presence Concealment went on at
+"110% (automatic)", which is harmless at 100 and would not have been on anything resistible.
+
+`Buff ChUp` is the first contribution that is about buffs, and it says so:
+
+```yaml
+rules:
+  - key: ApplicationChance
+    direction: outgoing
+    polarity: buff          # without this line the effect is collected and read by nobody
+    value: "@magnitude"
+```
+
+**`friendly` skips the target's resistance, not the applier's bonus.** §11.2's friendly clause is
+about not making an ally roll against a gift. It used to zero `inflictBonus` as well, which made
+Buff ChUp inert in exactly the case it exists for: a buff, put on an ally, by an ally. The two
+numbers are now separate — a friendly application still reads the applier's own outgoing
+contribution, and still ignores the target's resistance.
+
+Verified live: Imperial Privilege's two 60% buffs land erratically on their own (none / atkUp /
+both / both / atkUp across five uses) and land on **all five** once Protection from Ra has put
+Buff ChUp 40 on the caster, which is 60 + 40 = automatic.
 
 ## 11.3 Stacking rules
 
