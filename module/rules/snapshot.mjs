@@ -1026,6 +1026,10 @@ function effectInstances(actor) {
       expiry: e.system?.expiry ?? null,
       sourceUnitId: e.system?.sourceUnitId ?? null,
       sourceAbilityId: e.system?.sourceAbilityId ?? null,
+      // What `annotateFields`' sweep reads. Declared on `EffectData` and
+      // projected here, because a field-tied effect that the board cannot see
+      // as field-tied is an ordinary permanent debuff.
+      sourceFieldId: e.system?.sourceFieldId ?? null,
       // Deferred disclosure. Projected because the periodic tick has to know
       // that this instance's damage is not to be attributed -- the tally it
       // feeds is the "total Poison Damage taken" Serenity's sheet reveals when

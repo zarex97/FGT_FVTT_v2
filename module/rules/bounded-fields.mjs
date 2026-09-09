@@ -865,6 +865,49 @@ export function annotateFields(units, board) {
       u.immunities = [...(u.immunities ?? []), ...out.immunities];
     }
   }
+
+  sweepFieldEffects(units, fields);
+}
+
+/**
+ * Remove every effect whose field the bearer is no longer inside.
+ *
+ * > *"All Units are inflicted with permanent Stage 1 Curse as long as they are
+ * > within the Complex. It is automatically removed after leaving the Complex."*
+ *
+ * Swept on **membership**, not fired on an exit event. A unit teleported out,
+ * knocked back out, or standing still while the field closes under it would
+ * otherwise keep the Curse for ever -- and this codebase's own rule about
+ * clocks applies to boundaries too: an exit hook can fail to fire, and a
+ * membership test cannot.
+ *
+ * A field that no longer exists sweeps for the same reason: the Complex
+ * closing under somebody's feet is the same question as their walking out of
+ * it, and it has the same answer.
+ *
+ * The snapshot half only. The matching document deletion lives in
+ * `engine/fields.mjs`, so storage does not accumulate what the board already
+ * refuses to read.
+ *
+ * @param {object[]} units
+ * @param {object[]} fields
+ * @returns {void}
+ */
+function sweepFieldEffects(units, fields) {
+  const open = new Set(fields.map((f) => f.id));
+
+  for (const u of units ?? []) {
+    const instances = u.effectInstances ?? [];
+    if (instances.length === 0) continue;
+    const inside = new Set(u.fields ?? []);
+
+    const kept = instances.filter(
+      (e) => !e?.sourceFieldId || (open.has(e.sourceFieldId) && inside.has(e.sourceFieldId)),
+    );
+    if (kept.length === instances.length) continue;
+    u.effectInstances = kept;
+    u.effects = kept.map((e) => e.defId ?? e);
+  }
 }
 
 /**

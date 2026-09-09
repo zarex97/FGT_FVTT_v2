@@ -276,6 +276,11 @@ export function worldIO() {
           uses: e.uses ?? 0, expiry: e.expiry ?? null,
           appliedTick: e.appliedTick ?? null,
           sourceUnitId: e.sourceUnitId ?? null, sourceAbilityId: e.sourceAbilityId ?? null,
+          // The field this instance dies with. Declared, projected, applied --
+          // and this writer is the one place it could still have been dropped,
+          // which is exactly how `visibility` and `attributionHidden` were lost
+          // for three versions.
+          sourceFieldId: e.sourceFieldId ?? null,
           unremovable: Boolean(e.unremovable),
           // §11.10 / Appendix A §A.18. Both have been on the instance schema
           // since `0.2.0` and this writer dropped both, so an effect could be

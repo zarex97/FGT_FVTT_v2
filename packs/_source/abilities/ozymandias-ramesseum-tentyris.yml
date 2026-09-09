@@ -164,6 +164,45 @@ field:
       relations: [self, ally, enemy]
       kinds: [servant]
       exemptIf: { categorizedAs: divinity, minRank: B }
+  interiorEvents:
+    # 3d. "All Units are inflicted with permanent Stage 1 Curse as long as they
+    # are within the Complex. It is automatically removed after leaving the
+    # Complex."
+    #
+    # `tiedToField: true` is what stamps `sourceFieldId` on the instance, and
+    # that is what `annotateFields` sweeps on. MEMBERSHIP, not an exit event: a
+    # Unit teleported out, knocked back out, or standing still while the Complex
+    # closes under it would otherwise carry the Curse for the rest of the match.
+    #
+    # "All Units" here means the enemy ones -- clause 3 is *"a curse that
+    # affects all enemy Units within the Complex"* and 3d is one of its four
+    # lettered halves, so its "all Units" is that sentence's set, not the
+    # board's.
+    - event: contact
+      relations: [enemy]
+      onFail:
+        - key: ApplyEffect
+          effect: { id: curse, stage: 1 }
+          tiedToField: true
+
+    # 3. Divine Curse, the Normal Human tier: "Dies at the end of the Turn
+    # after entering the Complex."
+    #
+    # `afterTurnsInside: 1` is the word "after", and it is the first clause in
+    # the corpus that waits: a `turnEnd` event alone fires every Turn and would
+    # kill on the first. The field records `enteredAt` per Unit for it.
+    #
+    # Every relation, not `[enemy]`: `relationOf` answers **neutral** for a
+    # Civilian -- *"a Civilian belongs to nobody"* -- so an enemy-only list
+    # matches no Normal Human at all. Measured live: the Civilian survived the
+    # Turn it should have died on. `kinds: [civilian]` is what narrows it, and
+    # Jack's Mist states the same clause the same way.
+    - event: turnEnd
+      relations: [neutral, ally, enemy, self]
+      kinds: [civilian]
+      afterTurnsInside: 1
+      onFail:
+        - { key: Defeat, cause: divineCurse, creditOwner: true }
   # Axis 6 -- vulnerability. Path 3's first half: "If Ozymandias is defeated,
   # Ramesseum Tentyris is forcibly ended at the end of the Turn." The Master's
   # 2◈ delay and the 2-[Anti-Fortress]/3000-damage break are separate paths.

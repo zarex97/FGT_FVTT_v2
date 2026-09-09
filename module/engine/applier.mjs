@@ -236,7 +236,7 @@ async function resolveEffects(intents) {
       // on the instance because that is the only thing an intent has room for.
       chance: intent.effect.chance ?? null,
       bypassChanceModifiers: Boolean(intent.effect.bypassChanceModifiers),
-      stages: intent.effect.stages ?? 1,
+      stages: intent.effect.stages ?? intent.effect.stage ?? 1,
       // How many CHARGES this one application is worth, for a `count`-stacked
       // effect whose count the clause states. Kingprotea's *Giant Monster of
       // the Great River* applies `NP DmUp (GAO)` *"X times, where X = the
@@ -253,6 +253,12 @@ async function resolveEffects(intents) {
       source: {
         unitId: intent.effect.sourceUnitId ?? intent.sourceId ?? null,
         abilityId: intent.effect.sourceAbilityId ?? null,
+        // The bounded field that applied it, carried on the intent because a
+        // field is not a Unit and not an ability. `applyEffect` rebuilds the
+        // instance field by field, so anything the intent knows and this
+        // object does not is dropped here -- which is exactly what happened to
+        // the Complex's Curse the first time it was fired live.
+        fieldId: intent.effect.sourceFieldId ?? null,
       },
       ctx: {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
