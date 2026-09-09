@@ -833,6 +833,30 @@ Overedge classifying as `attack`/`isNP: false` while his real Noble Phantasms an
 which is the sheet's *"does not affect Attacks/Skills/Spells that are only Categorized as Noble
 Phantasms"*, still right by the accident the spec recorded.
 
+#### Commit 8 — the Curse that leaves when he does
+
+`EffectData.sourceFieldId` ties an instance to a field, and `annotateFields` sweeps on
+**membership** rather than on an exit event — a Unit teleported out, knocked back out, or standing
+still while the Complex closes under it would otherwise carry the Curse for the rest of the match.
+Two writers keep the documents in step: `endField` and the movement hook, the latter reading
+membership from the movement payload's **destination** because at `moveToken` the board still
+places the mover on the panel it left. That correction was measured: the board stopped reading the
+Curse the instant the Unit stepped out, and the ActiveEffect stayed on its sheet.
+
+Three things were dropping data on the way in. `applyEffect` rebuilds the instance field by field,
+so `source.fieldId` had to be named there or the tie was lost; the field-event writer never carried
+`stage`, so every field-applied Poison or Curse arrived at **stage 0**; and the applier read
+`intent.effect.stages` and not the `stage` a field states.
+
+`afterTurnsInside` is the first interior clause that waits, and it needed the first per-unit entry
+record any field has kept (`state.enteredAt`). **A Civilian is `neutral`, not `enemy`** — the tier
+authored `relations: [enemy]` matched no Normal Human at all, measured live as a Civilian surviving
+the Turn it should have died on.
+
+Live: Curse Stage 1 tied to the field on contact, gone from board *and* sheet after a four-panel
+walk out of it; a Civilian inside survives the end of the Turn it entered on and is defeated at the
+end of the next.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and

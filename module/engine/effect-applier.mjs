@@ -45,7 +45,8 @@ const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
  * @param {number} [args.magnitude]
  * @param {number|null} [args.npMagnitude] the reduced magnitude against an NP
  * @param {string|number|null} [args.duration] a ◈ expression
- * @param {object} args.source `{unitId, abilityId}`
+ * @param {object} args.source `{unitId, abilityId, fieldId}` -- `fieldId` ties
+ *   the instance to a bounded field, which `annotateFields` sweeps on
  * @param {object} args.ctx `{turnsPerRound, currentTick, roll, inflictBonus, resist}`
  * @param {object[]} [args.chanceModifiers] per-effect modifiers the ability declares
  * @param {number|null} [args.chance] the ability's own stated chance, which
@@ -226,6 +227,12 @@ export function applyEffect({
     appliedTick: ctx.currentTick ?? 0,
     sourceUnitId: source?.unitId ?? null,
     sourceAbilityId: source?.abilityId ?? null,
+    // The bounded field that put this here, if one did. `annotateFields` sweeps
+    // on it: an effect whose field the bearer has left, or whose field has
+    // closed, goes. Carried from the source rather than inferred from where the
+    // bearer happens to be standing -- an ordinary debuff applied inside a
+    // field is not the field's.
+    sourceFieldId: source?.fieldId ?? null,
     polarity: def.polarity,
     volatility: def.volatility,
     unremovable: Boolean(def.unremovable),

@@ -582,6 +582,29 @@ carries `Def Dwn … +20%` in the chat card's own stage-4 list, an enemy's outgo
 `preventedBy(unit, "np")` answers `npSeal` for a Servant inside and nothing for one with Divinity
 at or above the rank the clause names.
 
+### 43.6b Two things an interior EVENT could not say
+
+`tiedToField: true` on an `ApplyEffect` action stamps `sourceFieldId`, which is what makes an effect
+end when its field does or when its bearer leaves (Ch. 11 §11.7a). Without it a field-applied Curse
+is an ordinary permanent debuff that outlives the area that imposed it.
+
+`afterTurnsInside: N` is a clause that **waits**:
+
+> *"Normal Human: Dies at the end of the Turn **after** entering the Complex."*
+
+A `turnEnd` event alone fires every Turn and would kill on the first. So a field now records
+`state.enteredAt[unitId]` — stamped at open for whoever it opens over, and on the contact path for
+whoever walks in later, written once per unit and never refreshed (a Unit walking around *inside*
+the Complex has not re-entered it, and restamping would push its execution back for ever). No field
+had ever recorded a per-unit entry time.
+
+**A Civilian is `neutral`, not `enemy`.** `relationOf` answers neutral for one — *"a Civilian
+belongs to nobody"* — so a Normal Human tier authored `relations: [enemy]` matches nobody at all.
+Measured live exactly that way before the list was widened; `kinds: [civilian]` is what narrows it.
+
+Measured live: a Civilian standing in the Complex survives the end of the Turn it entered on and is
+defeated at the end of the next.
+
 ## 43.7 Axis 5 — Duration and extension
 
 ```ts

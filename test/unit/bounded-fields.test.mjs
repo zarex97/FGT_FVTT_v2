@@ -790,3 +790,50 @@ describe("cannotIntersect: enemyHomeBase", () => {
     expect(panelsOf(plain, board())).toHaveLength(9);
   });
 });
+
+describe("effects tied to a field", () => {
+  // > "All Units are inflicted with permanent Stage 1 Curse as long as they are
+  // > within the Complex. It is automatically removed after leaving."
+  //
+  // Swept on MEMBERSHIP rather than fired on an exit event: a unit teleported
+  // out, knocked back out, or standing still while the field closes under it
+  // would otherwise keep the Curse for ever. An exit hook can fail to fire;
+  // a membership test cannot.
+  const complex = {
+    id: "tentyris",
+    geometry: { kind: "fixedArea", shape: { kind: "square", size: 3 }, anchor: at(0, 0) },
+  };
+  const bearer = (panel, fieldId) => ({
+    id: "u", panel, faction: "red",
+    effects: ["curse"],
+    effectInstances: [{ defId: "curse", stage: 1, sourceFieldId: fieldId }],
+  });
+
+  it("keeps it while the bearer is still inside", () => {
+    const u = bearer(at(0, 0), "tentyris");
+    annotateFields([u], { fields: [complex] });
+    expect(u.effectInstances).toHaveLength(1);
+    expect(u.effects).toEqual(["curse"]);
+  });
+
+  it("strips an effect whose field the bearer has left", () => {
+    const u = bearer(at(9, 9), "tentyris");
+    annotateFields([u], { fields: [complex] });
+    expect(u.effectInstances).toHaveLength(0);
+    expect(u.effects).toEqual([]);
+  });
+
+  it("strips it when the field no longer exists at all", () => {
+    // The Complex closing under somebody's feet is the same question as their
+    // walking out of it, and the same answer.
+    const u = bearer(at(0, 0), "tentyris");
+    annotateFields([u], { fields: [] });
+    expect(u.effectInstances).toHaveLength(0);
+  });
+
+  it("leaves an ordinary effect alone wherever the bearer stands", () => {
+    const u = bearer(at(9, 9), null);
+    annotateFields([u], { fields: [complex] });
+    expect(u.effectInstances).toHaveLength(1);
+  });
+});

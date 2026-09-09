@@ -266,6 +266,20 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   // The membership snapshot itself, taken at the same moment the panels are
   // -- "Units within the Throne Room WHEN THE NP WAS ACTIVATED", not
   // whoever happens to be standing there the instant something asks.
+  // WHEN each unit came to be inside, for a clause that waits. Ozymandias's
+  // Complex kills a Normal Human *"at the end of the Turn AFTER entering"* --
+  // a `turnEnd` event alone fires every Turn and would kill on the first, so
+  // the field has to remember. No field had ever recorded a per-unit entry
+  // time. Stamped at open for whoever it opens OVER, and on the contact path
+  // for whoever walks in later.
+  {
+    const panelKeys = new Set(panels.map((p) => `${p.i},${p.j}`));
+    const tick = game.combat?.system?.globalTurn ?? 0;
+    field.state.enteredAt = Object.fromEntries((snapshot.units ?? [])
+      .filter((u) => u.panel && panelKeys.has(`${u.panel.i},${u.panel.j}`))
+      .map((u) => [u.id, tick]));
+  }
+
   if (specMembership?.trappedAtActivation) {
     const panelKeys = new Set(panels.map((p) => `${p.i},${p.j}`));
     field.state.trappedUnitIds = (snapshot.units ?? [])
@@ -481,6 +495,16 @@ export async function endField(fieldId) {
   for (const action of (region.behaviors?.find((b) => b.type === "npField")?.system?.onEnd ?? [])) {
     if (action.key !== "ClearTerrain" || !action.tag) continue;
     await clearTerrain(String(action.tag).replace("@field.id", fieldId));
+  }
+
+  // Every effect the field granted goes with it. `annotateFields` already
+  // refuses to read one whose field has closed, so this is storage hygiene
+  // rather than a rule -- but an ActiveEffect nobody can remove, sitting on a
+  // sheet for the rest of the match, is exactly the kind of debris that makes
+  // a live world unusable.
+  for (const actor of game.actors ?? []) {
+    const stale = actor.effects?.filter?.((e) => e.system?.sourceFieldId === fieldId) ?? [];
+    if (stale.length > 0) await actor.deleteEmbeddedDocuments("ActiveEffect", stale.map((e) => e.id));
   }
 
   await region.delete();
@@ -799,6 +823,13 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     // "Acts then ends its Turn within the NP area" -- a Unit that never Acted
     // this Turn has nothing to trigger the clause with.
     && (!spec.requiresActed || u.acted)
+    // A tier that WAITS. *"Dies at the end of the Turn after entering the
+    // Complex"* -- one Turn after the field's own `enteredAt` record, which
+    // is why that record exists. Absent means the clause fires on the first
+    // qualifying Turn, which is every other interior event in the corpus.
+    && (!spec.afterTurnsInside
+      || ((game.combat?.system?.globalTurn ?? 0) - (field.state?.enteredAt?.[u.id] ?? 0))
+        >= spec.afterTurnsInside)
     && (!kinds || kinds.has(u.kind))
     // An interior EVENT may be exempted the same way an interior RULE is.
     // `isExempt` was wired into `interiorModifiers` alone, so a clause like
@@ -1008,8 +1039,17 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         out.push(I.applyEffect(unit.id, {
           defId: action.effect?.id ?? action.effect?.defId,
           magnitude: action.effect?.magnitude ?? 0,
+          // *"…inflicted with permanent Stage 1 Curse."* A staged effect
+          // applied by a field states its stage the way an ability's rider
+          // does, and this writer did not carry it -- so every field-applied
+          // Poison and Curse arrived at stage 0.
+          stage: action.effect?.stage ?? 0,
           expiry: ticks === null ? null : (game.combat?.system?.globalTurn ?? 0) + ticks,
           sourceUnitId: field.ownerId,
+          // *"It is automatically removed after leaving the Complex."* The tie
+          // that `annotateFields`' sweep reads: this instance lives exactly as
+          // long as its bearer stands in this field.
+          sourceFieldId: action.tiedToField ? field.id : null,
         }, field.ownerId));
       }
     }
@@ -1155,6 +1195,44 @@ async function deactivateUpkept(field, reason) {
 
 /**
  * The `npField` behaviour document backing a field id.
+ *
+ * @param {string} fieldId
+ * @returns {object|null}
+ */
+/**
+ * Record WHEN these units came to be inside these fields.
+ *
+ * Written once per unit per field and never refreshed: a unit walking around
+ * inside the Complex has not re-entered it, and restamping would push a
+ * waiting clause back for ever.
+ *
+ * @param {string[]} unitIds
+ * @param {string[]|null} [fieldIds] only these fields
+ * @returns {Promise<void>}
+ */
+export async function stampFieldEntries(unitIds, fieldIds = null) {
+  const board = currentBoard();
+  const tick = game.combat?.system?.globalTurn ?? 0;
+
+  for (const field of board.fields ?? []) {
+    if (fieldIds && !fieldIds.includes(field.id)) continue;
+    const behavior = behaviorFor(field.id);
+    if (!behavior) continue;
+
+    /** @type {Record<string, number>} */
+    const update = {};
+    for (const id of unitIds ?? []) {
+      // Already recorded: a unit that walks around INSIDE the Complex has not
+      // re-entered it, and restamping would push its execution back for ever.
+      if (field.state?.enteredAt?.[id] !== undefined) continue;
+      update[`system.state.enteredAt.${id}`] = tick;
+    }
+    if (Object.keys(update).length > 0) await behavior.update(update);
+  }
+}
+
+/**
+ * The `npField` behaviour carrying this field.
  *
  * @param {string} fieldId
  * @returns {object|null}
