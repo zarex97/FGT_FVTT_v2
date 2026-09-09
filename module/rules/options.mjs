@@ -238,6 +238,18 @@ function add(options, side, unit) {
   // over ten effects, which naming each of them could not keep current.
   for (const f of unit.effectFamilies ?? []) options.add(`${side}:effectFamily:${f}`);
 
+  // Day or Night AT THIS UNIT'S PANEL. There was no day/night option in the
+  // vocabulary at all, so Ozymandias's *"If used during a Day Round"* clauses
+  // -- two of Pharaoh of the Hot Sands' three -- could not be written.
+  //
+  // Per panel rather than per Round, because `phaseAt` already makes it a
+  // positional question: a unit inside Quetzalcoatl's `Sol`, or inside
+  // Pyramid Drop's own daylight, is in Day while the Round is Night.
+  //
+  // `"none"` -- the cycle switched off -- emits NOTHING rather than a third
+  // value. There is no Day to be in, and a clause gated on one should not fire.
+  if (unit.phase === "day" || unit.phase === "night") options.add(`${side}:phase:${unit.phase}`);
+
   // Region, so a clause can name where a unit is from.
   for (const r of unit.region ?? []) options.add(`${side}:region:${r}`);
 
@@ -428,6 +440,7 @@ const EMITTABLE = Object.freeze([
   /^(self|target):variant:[A-Za-z][\w-]*$/,
   /^(self|target):stance:[A-Za-z][\w-]*$/,
   /^(self|target):inHomeBase$/,
+  /^(self|target):phase:(day|night)$/,
   /^(self|target):free$/,
   /^(self|target):masterTier:(high|low|rankless)$/,
   /^(self|target):inField:[A-Za-z][\w-]*$/,

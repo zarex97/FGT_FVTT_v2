@@ -141,6 +141,18 @@ the canvas placeable (`region.object`), not the document. Both fixed; see
 
 ## 19.2 The Day/Night cycle
 
+> **The phase is now a roll option.** There was no day/night option in the predicate vocabulary at
+> all, so *"if used during a Day Round"* could not be written — Ozymandias's Pharaoh of the Hot
+> Sands has two such clauses. `self:phase:day` / `:night` is stamped in `annotateEnvironment` from
+> **`phaseAt(u.panel, board)`**, not from `board.phase`: a unit inside Quetzalcoatl's `Sol`, or
+> inside Pyramid Drop's own daylight, is in Day while the Round is Night, and the same reasoning
+> `darkModifiers` already used. With the cycle switched off (`"none"`) it emits **nothing** — the
+> absence of the axis, not a third value, so a clause gated on Day does not fire.
+>
+> Measured live: at Day all three of Pharaoh's clauses land on Ozymandias and his ally; at Night
+> only `Atk Up` does.
+
+
 > *"When the game starts, Flip a Coin. If Heads, the first Round is 'Day'. The next Round will
 > be 'Night' and so on."*
 > *"During a Day Round, all damage received by Units with the '**Dark**' Attribute is increased

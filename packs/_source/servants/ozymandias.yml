@@ -41,6 +41,7 @@ abilities:
   - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
   - { ref: class-magic-resistance, rank: B }
   - { ref: divinity, rank: B }
+  - { ref: ozymandias-pharaoh-of-the-hot-sands }
   - { ref: ozymandias-mesektet }
 
 notes: |
