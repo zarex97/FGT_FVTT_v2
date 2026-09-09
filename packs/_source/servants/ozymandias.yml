@@ -42,6 +42,7 @@ abilities:
   - { ref: class-magic-resistance, rank: B }
   - { ref: divinity, rank: B }
   - { ref: ozymandias-pharaoh-of-the-hot-sands }
+  - { ref: ozymandias-imperial-privilege }
   - { ref: ozymandias-mesektet }
 
 notes: |
