@@ -686,7 +686,7 @@ wrote the match's fields *after* the summon loop, so a freshly-created Combat's 
 shadowed those settings and the ruleset refusal rejected the war's own Servants. The match now
 describes itself before anything is built into it.
 
-### Ozymandias — **in progress**
+### Ozymandias — **built**
 
 Unauthored until now, and load-bearing for somebody else: `quetz-xiuhcoatl.yml:116` records that
 *"the only [Fortress] NP in either roster is Ozymandias's"*, so that clause has never had a live
@@ -981,6 +981,55 @@ target; a panel inside the blast reads **day** while one outside reads **night**
 and both Dendera methods drop from 9 to 6 (1 tick at three Turns to the Round) while **Mesektet
 stays at 9**, which is ruling R4 -- his Skills, not his Noble Phantasms; and the Complex closes and
 is marked expended alongside Pyramid Drop itself.
+
+#### The whole kit, in one match
+
+Fifteen commits, and the acceptance is the point of all of them: **green tests are not evidence for
+any of this**. Every clause below was measured in `fgt2026`, most of them off the chat card's own
+breakdown or the combat log rather than off a number this code chose to print.
+
+| Clause | Measured |
+|---|---|
+| The Complex clips an enemy Home Base | **99** panels of 121, **0** inside the base, screenshotted and looked at |
+| His Master pays 50% of maximum | 250 → **125**, once, with `npCost` superseded |
+| Gated on Round 8 | refused at Round 7 naming the Round; opened at 8 |
+| Refused below half Master Health | refused at 124/250, allowed at 125 |
+| Divine Protection | `Def Up ozymandias-ramesseum-tentyris −50%` in stage 4's own list |
+| Divine Curse a–c | `Atk Dwn −20%`, `Def Dwn +20%`, and `+2` on the Evade card and the Luck plan |
+| Divine Curse d | Curse Stage 1 tied to the field, gone from board **and** sheet on walking out |
+| Normal Human | survives the end of the Turn it entered; defeated at the end of the next |
+| God's Curse | the Servant without Divinity sealed; Heracles (A), Quetzalcoatl (EX) and Ozymandias himself (B) not; the summons, the Master and the Civilian untouched |
+| …and its `categorizedAs` escape | EMIYA's Overedge classifies `attack`/`isNP: false` while his real NPs answer `npSeal` |
+| A second Home Base | `inHomeBase` true for him and his Master, false for the ally, the Sphinx and the enemy in the same area |
+| Sustainability paused | the removal pass produces nothing inside; ticks 6 → 5 with it closed |
+| ZON ignored | stage 9 reads `ZON penalty —` inside (151) and `outside the Master's ZON` outside (114), `outsideZon` true in both |
+| Revival at 20% / 10% | `revive · ozymandias-ramesseum-tentyris · 90` in the log after a 170 hit at 40 Health; a Sphinx back at 90 of 1000 |
+| The three Sphinxes | spawn inside at 1000 / 1500 / 2000 with Luck 20 inherited; shield him and his Master and nobody else; spend no Unit budget and refuse a second action |
+| …and remember | Queen wounded to 777, deactivate, reactivate, **777** |
+| Broken by two [Anti-Fortress] NPs | one leaves it standing, a second in the same Round closes it permanently, a second in a *different* Round does not |
+| Broken by 3000 damage | sixteen **ordinary** Normal Attacks, 202 → 2992 → past 3000 |
+| …and stays broken | re-press refused with `expended`, not with a cooldown |
+| His Master's defeat | falls on tick 15, stamp reads 21, stands through 15–20, closes on 21 |
+| Dendera Electric Bulb | BA(MAG) 200 doubled, Master pays 10 a use, refused at 9 and allowed at 10, and an Atk Up 100 contributes `0%` |
+| Pyramid Drop | 804 damage, NP Seal and Def Dwn 50, the blast reads **day** while a panel outside reads **night**, his Skills drop 9 → 6 and Mesektet stays at 9 |
+
+**Xiuhcoatl's `[Fortress]` clause fired for the first time.** `quetz-xiuhcoatl.yml` recorded that it
+had no live referent because the only `[Fortress]` Noble Phantasm in either roster was unauthored.
+With the Complex open: all **99** of its panels Burning, all **33** of the ring directly outside it
+Burning, and **0** of the 37 beyond — *"that NP area and the panels directly outside/next to the NP
+area"*, exactly.
+
+**Eleven collected-and-inert rules were closed on the way**, which is this project's dominant defect
+and now its eleventh through fifteenth recorded instances: `npGateRound` was dropped by the content
+pipeline's allowlist; `onEnd` was never projected onto the board its reader consults;
+`actsOncePerTurn` was never projected, so the once-per-Turn cap applied to platforms and nothing
+else; `countsTowardBudget` had no reader; `revivals` was collected by the field executor and dropped
+by the merge; `fieldOpen` returned an object from a function consumed as a boolean, so that gate had
+always passed; `result: "endPermanently"` was authored, validated and never honoured; `expended` was
+written and never read by the use gate; the field-event writer never carried an effect's `stage`;
+`Buff ChUp` had a catalogue row and no document; and **no aura or bounded field had ever moved a
+check roll**, because four call sites built their units with a bare projection against
+`unitFrom`'s own docstring.
 
 ### Setting up a war — **built**
 
