@@ -21,6 +21,8 @@
  * caller to have done it.
  */
 
+import { displaceToken } from "./io.mjs";
+
 /** The elevation band each platform level occupies, above the ground. */
 const LEVEL_HEIGHT = 10;
 
@@ -342,20 +344,27 @@ async function assignLevel(tokenIds, level, scene) {
   // check (`engine/movement-hooks.mjs`). Belt and braces with the level-only
   // test that hook now makes: this says what the operation *is*, that says what
   // it *looks like*, and either alone would be enough.
-  // One at a time rather than one batched call, because `level` and
-  // `elevation` are MOVEMENT_FIELDS in v14 and a batch of movement updates is
-  // not obviously atomic. Cheap insurance: a platform's passengers are the only
-  // case where more than one token changes level at once, and that is a handful.
+  // Through `displaceToken`, which submits an explicit `action: "displace"`.
   //
-  // NOT a fix for anything measured. Raising Quetzalcoatl's Quetzalcoatlus with
-  // her Master aboard, only her Master reached the Scene Level; making these
-  // serial changed nothing, and the same tokens then refused an INDIVIDUAL
-  // upward assignment while accepting a downward one, with `preMoveToken` and
-  // `moveToken` both firing and no refusal from our own hooks. Whatever drops
-  // the upward write is below this function. Recorded here rather than left as
-  // a confident story about batching that the evidence does not support.
+  // These used to be one `updateEmbeddedDocuments` call carrying `fgtForced`,
+  // and `fgtForced` is OUR option: it makes our own legality hook stand aside
+  // and means nothing to Foundry. Foundry read a level assignment as a WALK to
+  // the new elevation, handed it to `Token#constrainMovementPath`, found the
+  // walk impossible and deleted every movement field from the update without a
+  // word (`TokenDocument##preUpdateMovement`, *"Movement was constrained and
+  // impossible entirely"*).
+  //
+  // Measured: a token could be assigned DOWN to the ground level and not back
+  // UP to a platform's, with `preMoveToken` and `moveToken` both firing and
+  // nothing refusing. So Quetzalcoatl could never board her own Quetzalcoatlus
+  // -- `platformId` resolved for nobody, and the three Spells' gate, the AoE
+  // tiers and `replacesRiderAction` all answered no.
+  //
+  // One at a time because `move` is per token, and awaited so a caller that
+  // checks the result gets a settled answer.
   for (const update of updates) {
-    await scene.updateEmbeddedDocuments("Token", [update], { fgtForced: true });
+    const token = scene.tokens.get(update._id);
+    await displaceToken(token, { level: update.level, elevation: update.elevation });
   }
 }
 
