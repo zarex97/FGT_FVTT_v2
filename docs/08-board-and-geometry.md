@@ -79,6 +79,22 @@ knockback. Chapter 09 builds the targeting type system on top of this.
 > exclusion zone all go dark without a base, and silently disabling seven rules is worse than a
 > stated convention.
 
+> **The grid table is enforced.** `engine/war-setup.mjs#GRID_REQUIREMENTS` is §8.9's table as data
+> and `gridMismatches` reports every disagreement; `ensureScene` creates a conforming scene, or
+> corrects an existing one after saying what it is changing — a silent rewrite of someone's map
+> configuration is help nobody asked for. Until this existed there was no `Scene.create` anywhere in
+> `module/` and nothing checked a grid, so a war fought on a hex scene would have misreported every
+> range in the game without a word.
+>
+> `paintHomeBases` creates the Region and its behaviour in **two calls**. A behaviour passed inline
+> in a Region's creation data is accepted without complaint and silently produces a Region with an
+> empty `behaviors` collection — `engine/fields.mjs` records the same discovery about bounded
+> fields — and a home base carrying no `factionId` is invisible to `homeBaseZonesOf`, which is
+> precisely the failure this flow exists to end.
+>
+> Measured live in `fgt2026`: a 13 × 13 scene, two Regions, `board.zones` reporting 39 panels each,
+> and a unit at `(1,2)` reading `inHomeBase: true` while one at `(6,6)` reads `false`.
+
 Gameplay is identical on both. Board size is a `Scene` property; a handful of abilities
 declare board-size-dependent values (HGoB above), read from `board.size`.
 

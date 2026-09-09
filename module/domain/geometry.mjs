@@ -522,3 +522,29 @@ export function cardinalToward(from, to) {
   if (Math.abs(di) >= Math.abs(dj)) return { i: Math.sign(di) || 0, j: 0 };
   return { i: 0, j: Math.sign(dj) };
 }
+
+/**
+ * The `shapes` payload for a set of panels, as v14's `GridShapeData`.
+ *
+ * Here in `domain` rather than beside one caller because **three layers** need
+ * it and none may import the others: `apps/canvas/target-region.mjs` draws a
+ * resolved area, `engine/war-setup.mjs` paints a Home Base, and both must
+ * produce the same shape or a Region's panels and the rules' `panelsOf` will
+ * disagree. A plain object literal, so this stays a data shape rather than a
+ * Foundry call.
+ *
+ * Offsets are `{i, j}` **objects**, which is what `GridShapeData` validates
+ * against — an `[i, j]` pair is rejected with *"i: may not be undefined"*.
+ *
+ * @param {Array<{i: number, j: number}>} panels
+ * @returns {object[]}
+ */
+export function gridShape(panels) {
+  return [{
+    type: "grid",
+    offsets: (panels ?? []).map((p) => ({ i: p.i, j: p.j })),
+    // Null anchors the shape at the first offset, which is already an absolute
+    // board position -- the resolver works in absolute panels, not in deltas.
+    origin: null,
+  }];
+}
