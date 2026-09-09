@@ -1031,6 +1031,61 @@ written and never read by the use gate; the field-event writer never carried an 
 check roll**, because four call sites built their units with a bare projection against
 `unitFrom`'s own docstring.
 
+### The Noble Phantasm round gate — **built**
+
+Ch. 07 §7.9 states four round-indexed gates and `CONFIG.FGT.gates` has held all four numbers since
+that file was written. **Nothing read the object.** Three were unimplemented outright; the fourth —
+the first-round attack ban — worked and hardcoded its `> 1`, so even the gate that fired did not
+read its own number. Measured before any of this: a Noble Phantasm fires in Round 1, in every
+world, on Turn one.
+
+`rules/np-gate.mjs` holds the arithmetic, pure and testable without a world. `canUseAbility` reads
+it where it already read `requiresRound`. The numbers are world settings seeded from CONFIG, and
+`gateContext()` is the single place they are fetched — seven call sites reading settings
+independently are seven chances for one to drift.
+
+**Three rulings, all recorded in the spec:**
+
+| # | Ruling |
+|---|---|
+| The cooldown interaction is **additive** | §7.9 printed prose saying additive and pseudocode saying `max()`. Under `max()` an NP Lock spent while the target's NP was gated anyway costs its caster a Skill and buys nothing, which is the outcome the clause exists to prevent. The pseudocode is corrected. |
+| The gate covers `isNP \|\| categorizedAsNP` | The same predicate §15.5's other three scoping questions use. Availability is a fourth question that chapter never asked. |
+| A stated gate **overrides** the global one | This replaces the `max()` composition Ch. 44 §44.5 recorded. `max()` cannot express a stated gate *earlier* than the global one, and §7.9's own table gives the Magic Crest exactly that — under `max()` its Round-3 row is dead and a Normal-ruleset Master has no offensive option before Round 6. |
+
+**Two defects closed on the way.** `usageSpecFor` projected `isNP` and not `categorizedAsNP`, so the
+gate would have missed precisely the four abilities the second ruling put in scope — EMIYA's
+Overedge, Bašmu's Dragonfire, Mannanán's Fragarach Counter and the Hanging Gardens. And
+`npGateRound` was declared on `NoblePhantasmData` alone, so the Magic Crest — a *skill* that is
+categorized as a Noble Phantasm — could not state its own Round at all.
+
+**Measured live in `fgt2026`, through real declarations rather than through `canUseAbility` alone:**
+
+| Scenario | Measured |
+|---|---|
+| The global gate | Mesektet refused at Rounds 4 and 5 with *"it cannot be used before Round 6"*, allowed at Round 6 — with its cooldown verified clear, so the refusal is the gate and not the clock |
+| Assassin | refused at Round 3 naming Round 4, allowed at Round 4 |
+| A stated gate, later | Ramesseum Tentyris refused at Round 7, open at Round 8 |
+| A stated gate, earlier | the Magic Crest refused at Round 2, allowed at Round 3, while a Servant's NP on the same board still waits for Round 6 |
+| `CS: Force Noble Phantasm` | `overridesValidation` omits `round`; a declaration passing `[cooldown, usesExhausted]` is still refused by the gate |
+| The additive delay | an increase of 5 in Round 2 records `gatedDelay: 5`; the same increase in Round 9 records nothing. Undelayed, the NP opens on turn 16; delayed, it is refused at turns 16 and 20 and opens at **21** |
+| The attack ban | unchanged: refused in Round 1, permitted in Round 2 |
+
+**Looked at.** At Round 3 the sheet reads *"Ready from Round 6 (3 away)"* against Mesektet, *"Ready
+from Round 8 (5 away)"* against Ramesseum Tentyris, and **Ready** against Protection from Ra and
+both Dendera methods — the whole ruling in one frame, and every refusal naming a Round and a
+distance rather than presenting a dead button.
+
+**Not built:** the Master Essence subsystem. Twenty-eight essences across four ranks, of which four
+shift this gate (`Kaleidoscope` −4, `Imaginary Number` −3, `Leyline` −2, `Harvest` −1).
+`MasterData.essences` is a `SetField` that nothing writes and nothing reads, and there is no content
+pack. `np-gate.mjs#essenceShift` is the seam: a real function reading a real table, returning 0
+because the set is empty in every world.
+
+**One thing a live world needs.** A Master actor created before this rebuild keeps its old embedded
+Magic Crest, which reads `npGateRound: null` and therefore takes the global Round-6 gate. Embedded
+items are copies, so an existing world needs a migration or a re-summon before the crest gets its
+own Round back.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
