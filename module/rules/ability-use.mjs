@@ -407,6 +407,10 @@ export function usageSpecFor(ability) {
     sameRoundExclusive: [...(sys.sameRoundExclusive ?? [])],
     timesUsed: sys.timesUsed ?? 0,
     maxUses: sys.maxUses ?? null,
+    // Spent permanently -- Akhilleus Kosmos when it breaks, Ramesseum Tentyris
+    // when the Complex is broken from outside. Read by the use gate, which
+    // could not see it before this line.
+    expended: Boolean(sys.expended),
     // What `healthRestoredSince` compares "since" against.
     lastUsedTick: sys.lastUsedTick ?? null,
     // What an `abilityUsed` handler filters on.

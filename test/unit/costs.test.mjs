@@ -291,3 +291,28 @@ describe("npGateRound", () => {
     expect(spec({ npGateRound: "3◈" }).requiresRound).toBe(null);
   });
 });
+
+describe("an ability spent for the rest of the game", () => {
+  const ok = (over = {}) => ({
+    ability: np(), unit: servant(), master: master(), round: 3, ...over,
+  });
+
+  // `expended` has been written since Akhilleus Kosmos was authored and read
+  // only by `rules/reactions.mjs`, so the ORDINARY use route never refused one:
+  // a Noble Phantasm broken for the rest of the match was still on the sheet
+  // and still pressable.
+  it("is refused, and says why", () => {
+    const verdict = canUseAbility(ok({ ability: np({ expended: true }) }));
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toBe("expended");
+  });
+
+  it("is refused even with the cooldown clear and the Round past", () => {
+    expect(canUseAbility(ok({ ability: np({ expended: true, cooldown: { remaining: 0 } }), round: 99 })).ok)
+      .toBe(false);
+  });
+
+  it("leaves an unspent ability alone", () => {
+    expect(canUseAbility(ok({ ability: np({}) })).ok).toBe(true);
+  });
+});
