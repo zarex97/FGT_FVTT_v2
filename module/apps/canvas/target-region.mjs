@@ -30,26 +30,14 @@
 
 const TRANSIENT_FLAG = "transientTarget";
 
-/**
- * The `shapes` payload for a set of panels.
- *
- * Offsets are `{i, j}` **objects**, which is what `GridShapeData` validates
- * against — a `[i, j]` pair is rejected with *"i: may not be undefined"*. Handy,
- * because that is already the shape a `GridOffset` has everywhere else here, so
- * the panels go through unchanged.
- *
- * @param {Array<{i: number, j: number}>} panels
- * @returns {object[]}
- */
-export function gridShape(panels) {
-  return [{
-    type: "grid",
-    offsets: panels.map((p) => ({ i: p.i, j: p.j })),
-    // Null anchors the shape at the first offset, which is already an absolute
-    // board position — the resolver works in absolute panels, not in deltas.
-    origin: null,
-  }];
-}
+// Moved to `domain/geometry.mjs`: `engine/war-setup.mjs` needs the same shape
+// to paint a Home Base, and `engine` may not import from `apps`. Re-exported
+// here so this module's own callers and tests are unchanged.
+import { gridShape } from "../../domain/geometry.mjs";
+// Re-exported, because `#drawRegion` below calls it and callers and tests
+// import it from here.
+export { gridShape };
+
 
 /**
  * Put the resolved area on the scene.
