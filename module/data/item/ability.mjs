@@ -279,6 +279,12 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // (`replacesRiderAction`), minus the mount and plus a predicate --
       // `{predicate: [...]}`, answered against the board by `actionSourceFor`.
       replacesNormalAttack: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // A per-ability Round gate, which OVERRIDES the global one (Ch. 07 §7.9).
+      // Declared here as well as on `NoblePhantasmData` because a SKILL may be
+      // `categorizedAsNP` and therefore inside the gate's scope -- the Magic
+      // Crest is exactly that, and its own "from Round 3" is the row that keeps
+      // a Master usable before Round 6.
+      npGateRound: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       // "Categorized as NP" is the mechanical dividing line for NP Seal, NP
       // DmUp and the Luck Check exclusions -- distinct from actually being one.
       categorizedAsNP: new fields.BooleanField({ initial: false }),
