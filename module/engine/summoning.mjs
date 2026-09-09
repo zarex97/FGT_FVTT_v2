@@ -216,7 +216,20 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     // Whatever the caller needs stamped on every summon it is placing --
     // `pursuitTargetId` and `boundToFieldId` for a Kagome Spirit. Foundry
     // document ids, so they can only be written here and never authored.
-    Object.assign(data.system, stamps);
+    const { rememberedStats, ...plain } = stamps;
+    Object.assign(data.system, plain);
+
+    // *"…but with the same Stats as when they disappeared."* Applied AFTER the
+    // `inherit` pass above, because a remembered figure is what the Unit had
+    // when it left and must not be recomputed from its summoner: a Sphinx that
+    // came back at its inherited Luck would also come back at full Health.
+    //
+    // Only the stats that were actually recorded, and only when they hold a
+    // number -- a partial record must not blank the rest of the sheet.
+    for (const [stat, value] of Object.entries(rememberedStats ?? {})) {
+      if (typeof value?.value !== "number") continue;
+      data.system[stat] = { value: value.value, max: value.max ?? value.value };
+    }
 
     const actor = await Actor.create(data);
     const token = await actor.getTokenDocument({

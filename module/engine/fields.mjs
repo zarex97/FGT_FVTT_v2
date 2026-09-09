@@ -346,6 +346,27 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     if (intents.length > 0) await applyWorldIntents(intents, "field:contact");
   }
 
+  // *"When Ramesseum Tentyris is activated, three additional Units allied with
+  // Ozymandias are spawned within the Complex."* A flat list on the field
+  // itself: `SummonBound` is per-contacting-enemy (Kagome Kagome) and has no
+  // way to say "these three, when it opens".
+  //
+  // After the Region exists, because `boundToFieldId` names it and because a
+  // summon placed before the area does is a summon standing outside it.
+  for (const entry of spec.onOpen ?? []) {
+    if (entry.key !== "Summon" || !entry.contentId) continue;
+    const { placeSummons, freePanels } = await import("./summoning.mjs");
+    const panelsFor = freePanels(self, entry.placement ?? { adjacentTo: "self" }, 1);
+    // *"...but with the same Stats as when they disappeared."* Read off the
+    // owner, written there by `endField`.
+    const remembered = actor.system?.fieldSummonStats?.[entry.contentId] ?? null;
+    await placeSummons([entry.contentId], panelsFor, actor, scene, {}, {
+      boundToFieldId: field.fieldId,
+      factionId: actor.system?.factionId ?? null,
+      ...(remembered ? { rememberedStats: remembered } : {}),
+    });
+  }
+
   // The bar's Fields row, and anything else that cares that the board's field
   // set changed. Explicit rather than listening to Region documents, which
   // would also fire for terrain and home bases.
@@ -478,6 +499,22 @@ export async function endField(fieldId) {
   // (`engine/scene-levels.mjs`), keyed on the field instead. Before the Region
   // goes, so a teardown that fails leaves something to retry against.
   for (const summon of game.actors?.filter?.((a) => a.system?.boundToFieldId === fieldId) ?? []) {
+    // *"When Ramesseum Tentyris ends or is deactivated, all Sphinxes disappear
+    // regardless of position. Then if Ramesseum Tentyris is reactivated, the
+    // Sphinxes will respawn within the Complex, but with the same Stats as when
+    // they disappeared."*
+    //
+    // Remembered on the OWNER, which is the only place that outlives the field.
+    // Keyed by content id, so the Queen's Health comes back to the Queen.
+    const owner = game.actors.get(summon.system?.summonerId);
+    if (owner && summon.system?.contentId) {
+      await owner.update({
+        [`system.fieldSummonStats.${summon.system.contentId}`]: {
+          health: { value: summon.system.health?.value ?? null, max: summon.system.health?.max ?? null },
+          agility: { value: summon.system.agility?.value ?? null, max: summon.system.agility?.max ?? null },
+        },
+      });
+    }
     for (const token of summon.getActiveTokens?.() ?? []) await token.document.delete();
     await summon.delete();
   }
