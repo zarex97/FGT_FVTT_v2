@@ -445,6 +445,22 @@ directly.
 > and step 12's attack gate (`attacksPermitted`, refused at declaration with the rule named
 > rather than surfacing as an unexplained targeting error). Difficulty is on `MatchData` and
 > drives the Lunatic Civilian invariant.
+>
+> **Steps 1–3 are now data.** `MatchData.warType` and `MatchData.ruleset` exist beside
+> `boardSize`, all three rule-locked once the match starts, with world settings as their defaults —
+> the `region`/`difficulty` shape, where the setting is the world's default and the match holds this
+> match's copy. `MatchData.containers` carries the class-container roster the wizard fills; a
+> `warType` and a `ruleset` had no representation at all before this, and the Great Holy Grail War
+> was distinguishable from the Holy Grail War only by `turnsPerRound` being 3 or 8, in a hint string.
+>
+> **Step 2's vocabulary had three readings and none of them met.** The setting offered
+> `beginner | standard | expert`; `MatchData` accepted `beginner | intermediate | expert | lunatic`;
+> and `engine/board.mjs` defaulted to `"intermediate"` **without consulting the setting at all**, so
+> the registered control was read by nothing and changing it did nothing. Measured live in `fgt2026`:
+> a world storing `expert` reported `intermediate` on the board. The rulebook's four win in both
+> places, the board reads the setting as its fallback, and `snapshotBoard` normalizes anything
+> unrecognised — a world still holding `standard` reads as Intermediate rather than as a difficulty
+> no rule matches.
 
 Step 12's restriction — *"During the first Round, neither Player/Faction is allowed to Attack"* —
 is a hard gate on all attack declarations, enforced by the ability validator with a clear

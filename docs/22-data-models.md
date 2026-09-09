@@ -592,6 +592,20 @@ suppression change.
 
 ## 22.8 `MatchData` (on `Combat`)
 
+> **As built, the schema is flat**, and the sketch below groups fields this chapter never
+> implemented. Three differences worth naming, because a reader comparing the two will otherwise
+> assume the code is behind:
+>
+> | Sketch | Built | Why |
+> |---|---|---|
+> | `ruleset: { turnsPerRound, boardSize, difficulty, region, variant, locked }` | `region`, `difficulty`, `warType`, `ruleset`, `homeBaseDepth`, `containers` — all flat; `turnsPerRound` and `boardSize` are world settings; `locked` is `game.combat.started` | The setting is the world's default and the match holds this match's copy (`engine/board.mjs` reads the match first). A second `locked` flag would be a copy of a fact the Combat already carries. |
+> | `variant` | `warType` | `ruleset` was needed for a different axis: **Advanced versus Normal**, which is a stat scale rather than a war shape. |
+> | `factions: [...]` on the match | the `fgt.factions` world setting | A roster outlives one match, and every actor stores a faction id that must survive between them. |
+>
+> `containers` is new and has no counterpart above: the war's class-container roster (Ch. 19 §19.7),
+> an `ArrayField(ObjectField)` for the reason `resources` is untyped — the setup wizard owns the
+> shape, and a rigid schema would have to name every future field first.
+
 ```js
 export class MatchData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
