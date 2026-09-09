@@ -22,6 +22,7 @@
  */
 
 import { canUseAbility } from "../rules/costs.mjs";
+import { displaceToken } from "./io.mjs";
 import {
   targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
   usageSpecFor,
@@ -585,10 +586,10 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // must not spend the victim's own move budget or be re-validated as
           // a voluntary step, and `x`/`y` are movement fields the pre-move hook
           // would otherwise refuse outright.
-          await token.update(
-            { x: panel.j * canvas.scene.grid.size, y: panel.i * canvas.scene.grid.size },
-            { fgtForced: true },
-          );
+          await displaceToken(token, {
+            x: panel.j * canvas.scene.grid.size,
+            y: panel.i * canvas.scene.grid.size,
+          });
           // Being swept into an area is contact with it, the same reading
           // `createField` makes for whoever a field opens around.
           await runContactEvents([doc.id], [field.id]);

@@ -13,6 +13,7 @@
  */
 
 import { computeDamage, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
+import { displaceToken } from "./io.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
 import {
@@ -1126,10 +1127,10 @@ async function resolveCover(state, message) {
     if (!token) break;
     // Displacement, not movement: it spends none of the Master's own budget
     // and is not re-validated as a voluntary step.
-    await token.update(
-      { x: panel.j * canvas.scene.grid.size, y: panel.i * canvas.scene.grid.size },
-      { fgtForced: true },
-    );
+    await displaceToken(token, {
+      x: panel.j * canvas.scene.grid.size,
+      y: panel.i * canvas.scene.grid.size,
+    });
     // A shoved Master is OUT of the area, so this Noble Phantasm no longer
     // reaches it — recorded on the group with nobody covering, which is exactly
     // the state the rest of this file already reads: `coverModifiersFor` zeroes

@@ -211,7 +211,23 @@ export function snapshotUnit(actor, {
     region: [...(sys.region ?? [])],
     // A resolved summon-time variant (`rules/summon-variant.mjs`) -- `null` for
     // every Servant but the ones authored with a `summonVariant` block.
-    variant: sys.variant ?? null,
+    //
+    // It read `sys.variant`, and the resolved branch is written to
+    // `sys.summonVariant.variant` (`engine/summon.mjs`, at commit). There is no
+    // `system.variant` field on any schema, so this projected `null` for
+    // everybody and **`self:variant:` was never true for anyone.**
+    //
+    // That is the spine of Semiramis's sheet, the way the stance is Achilles's.
+    // Six of her abilities fork on it: the Hanging Gardens' own requirement
+    // (`self:variant:dsc`), both Sikera Ušum branches, Summoning: Bašmu,
+    // Territory Creation's EX-versus-C rank, and Double Summon's clause 3. With
+    // every branch false her signature Noble Phantasm refused itself, and the
+    // Double Summon: Caster fork resolved to *neither* side rather than one.
+    //
+    // Distinct from `variantOverride` above, which is a runtime CONTRIBUTION
+    // that swaps a Unit's numbers for a while (her `DSC` buff); this is the
+    // record of the coin flip. Found live driving Semiramis.
+    variant: sys.summonVariant?.variant ?? null,
     // The stance and the rules for changing it (Ch. 44 §44.1). Both travel,
     // because `rules/stance.mjs` answers "may this change now" from the
     // projection and never from the document.

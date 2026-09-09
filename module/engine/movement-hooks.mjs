@@ -364,9 +364,10 @@ async function knockBackOccupants(moverId, movement = null) {
       if (!token) continue;
 
       const point = canvas.grid.getTopLeftPoint(landing.panel);
-      // `animate: false`: a knockback is displacement, not a walk -- and it is
-      // what makes the write LAND. See `engine/io.mjs#move`.
-      await token.document.update({ x: point.x, y: point.y }, { fgtForced: true, animate: false });
+      // A knockback is displacement, not a walk, and it has to be submitted as
+      // one: `displaceToken` says `action: "displace"` so Foundry accepts it
+      // and `animate: false` so it commits. See `engine/io.mjs`.
+      await displaceToken(token.document, { x: point.x, y: point.y });
 
       // "...and receives damage equivalent to a Normal Attack from Achilles."
       // Only on the SIDESTEP: a Unit that got out of the way in time is merely
@@ -548,8 +549,9 @@ async function carryMaster(actor, movement) {
   if (!token) return;
   const size = canvas.scene.grid.size;
   // Displacement, not a Move of its own -- *"counts as only Moving one Unit"*,
-  // so it spends nothing and is not re-validated as a voluntary step.
-  await token.update({ x: landing.j * size, y: landing.i * size }, { fgtForced: true });
+  // so it spends nothing and is not re-validated as a voluntary step. Said to
+  // Foundry as well as to us, or the carry is silently dropped (`io.mjs`).
+  await displaceToken(token, { x: landing.j * size, y: landing.i * size });
 }
 
 /**
