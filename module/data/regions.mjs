@@ -98,6 +98,11 @@ export class NPFieldBehavior extends Base {
       extension: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       vulnerabilities: new fields.ArrayField(new fields.ObjectField()),
       onEnd: new fields.ArrayField(new fields.ObjectField()),
+      // *"The Complex functions as a second Home Base for Ozymandias and his
+      // Master only."* `{units: [owner, ownerMaster]}` -- UNIT-scoped, which is
+      // the difference from the platform version (`countsAsHomeBase` on a
+      // platform is faction-scoped). Read by `rules/environment.mjs#ownBaseOf`.
+      countsAsHomeBase: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // Rules the AREA runs at a time boundary, as opposed to `interior`,
       // which are standing contributions. EMIYA's Unlimited Blade Works is the
       // first: "at the start of every Turn, all enemy Servants within perform

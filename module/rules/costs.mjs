@@ -102,6 +102,21 @@ export function npCostAt({ rank, unit, master }) {
 export function canUseAbility({ ability, unit, master = null, round = 1, ...ctx }) {
   const cost = npCost({ ability, unit, master });
 
+  // Spent for the rest of the game, and ABOVE the cooldown gate rather than
+  // beside `maxUses`. `expended` has been written since Akhilleus Kosmos was
+  // authored and read only by `rules/reactions.mjs`, so the ordinary use route
+  // never refused one -- an NP broken for the rest of the match was still on
+  // the sheet and still pressable.
+  //
+  // First because the cooldown underneath is not merely a lesser refusal here,
+  // it is a WRONG one: breaking Ramesseum Tentyris also starts its 8◈
+  // deactivation clock, so a player pressing it would be told to wait
+  // twenty-four Turns for something that is never coming back. Measured
+  // exactly that way before this moved.
+  if (ability?.expended) {
+    return { ok: false, reason: "expended", detail: {}, cost };
+  }
+
   // Cooldown first: it is the most common refusal and the easiest to
   // understand, and every other gate is irrelevant while it is running.
   const remaining = ability?.cooldown?.remaining ?? 0;

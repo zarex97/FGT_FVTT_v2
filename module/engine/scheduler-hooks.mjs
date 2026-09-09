@@ -204,6 +204,13 @@ async function onRoundChange(combat, updateData, options) {
   // incrementing or reading it.
   await advanceGrail(combat, board);
 
+  // Every field's Round window. *"Two [Anti-Fortress] or higher Noble Phantasms
+  // in the same Round"* and *"more than 3000 damage on the same round"* are
+  // windows, and a counter nobody clears is a threshold every field eventually
+  // crosses. Hygiene rather than the mechanism -- `tallyAgainstField` compares
+  // the Round it recorded and ignores a stale window on its own.
+  await fields.resetFieldWindows();
+
   // Turn order is re-rolled every Round (Ch. 41 Q32), before the new Round's
   // start-of-round effects fire.
   if (typeof combat.rollTurnOrder === "function") await combat.rollTurnOrder();

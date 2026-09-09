@@ -1362,6 +1362,14 @@ export const EXECUTORS = Object.freeze({
     out.auras.push({
       key: "untargetable", radius: el.radius ?? 1,
       relations: el.relations ?? ["ally", "self"],
+      // WHO exactly, when the relation is too wide. Bašmu shields *"Semiramis
+      // or her allied Units"* and `relations: [ally, self]` says that
+      // precisely; Ozymandias's Sphinxes shield *"Ozymandias or his Master"*,
+      // and nothing narrower than "every ally" existed. Named ROLES rather
+      // than ids, resolved against the aura's own source, because no content
+      // file can know a document id. Absent means every unit the relation
+      // admits, which is what Bašmu wants.
+      recipientRoles: el.recipientRoles ?? null,
       value: true, stacking: "noneRefresh", source,
     });
   },
@@ -1377,6 +1385,12 @@ export const EXECUTORS = Object.freeze({
   ApplicationChance(el, { rank, source, ability, out, ctx }) {
     out.applicationChances.push({
       direction: el.direction ?? "incoming",
+      // WHICH polarity this contribution is about. Absent means "debuffs",
+      // which is what every clause of this shape in the corpus was until
+      // Ozymandias's Protection from Ra: *"chance of applying buffs is
+      // increased by 40%"*. Named rather than defaulted so an unqualified
+      // Debuff ChUp cannot start improving its bearer's own self-buffs.
+      polarity: el.polarity ?? null,
       valence: el.valence ?? null,
       // Appendix A's own classification, so "Mental Debuffs" covers one written
       // after the clause was. Heracles's Bravery is the only content that needs
@@ -1412,9 +1426,15 @@ export const EXECUTORS = Object.freeze({
    * indistinguishable from correct and with four spends whichever happened to
    * be listed first, burning a God Hand charge while `Undying` sits unused.
    */
-  RevivalSource(el, { rank, source, ability, out, ctx }) {
+  RevivalSource(el, { rank, source, ability, out, ctx, deferred = null }) {
     out.revivals.push({
       id: el.id ?? ability?.id ?? source,
+      // A revival conditioned on something this pass cannot answer --
+      // *"whenever Ozymandias is defeated WHILE WITHIN the Complex"*. Field
+      // membership is a board annotation settled after collection, so the
+      // clause travels on the source and `isAvailable` tests it at the moment
+      // of defeat, which is the only moment it means anything.
+      predicate: deferred ?? el.predicate ?? null,
       // `revivalPriority`, NOT `priority`. `priority` on a rule element already
       // means "reorder me within my ordering band" (§24.6) and `orderElements`
       // sorts on it -- so §31.2's `priority: 300` for Undying would have moved

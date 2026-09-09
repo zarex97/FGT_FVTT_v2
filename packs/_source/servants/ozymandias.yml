@@ -1,0 +1,56 @@
+# packs/_source/servants/ozymandias.yml
+# Conversion source: char_orig_sheets/Copia de Ozymandias.md
+# Data sheet: docs/D-servant-data-sheets.md §D.24 · the Complex: docs/43-bounded-fields.md
+#
+# Every stated figure agrees with the table it derives from, which is not always
+# true in this corpus: STR C -> 100, MAG A -> 200, END C -> 1000, Divinity B ->
+# +40, Magic Resistance B -> 40% and 20%, Riding A+ -> +5 MOV.
+schema: 1
+id: ozymandias
+name: Ozymandias
+type: servant
+
+trueName: "Ozymandias, Ramesses II"
+servantClasses: [rider]
+classContainer: rider
+alignment: { order: chaotic, morality: neutral }
+region: [egypt]
+# NO `divine` here. The sheet's Attributes line is "Male, Servant, [Sky], King,
+# Humanoid", and the Divine attribute comes from his Divinity Skill, which
+# grants it (`class-skills/divinity.yml`'s `StatDelta stat: attributes`).
+# Authoring it in both places would leave the attribute standing if Divinity
+# were ever Sealed -- the argument Karna's file already records.
+attributes: [male, servant, sky, king, humanoid]
+
+parameters: { str: C, end: C, agi: B, mag: A, luc: "A+" }
+baseHealth: 1000
+mov: 6
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 100, mag: 200 }
+# > "(Passive) The source of Ozymandias' Normal Attacks. All Normal Attacks use
+# > Base Attack (MAG) ... Light damage."
+# The element rides here; the ×2 against `Dark` is on the Mesektet document.
+normalAttack: { mode: fixed, component: mag, element: light }
+sustainability: "2◈"
+
+abilities:
+  # R1: all three Riding passives. The sheet lists two and Passive 2 says "can
+  # be combined with Passenger Seat", which he could not do without having it.
+  # `3◈-⅓◈` is passed literally because `ridingCooldown` has no A+ band --
+  # the same reason Achilles and Medusa pass theirs.
+  - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
+  - { ref: class-magic-resistance, rank: B }
+  - { ref: divinity, rank: B }
+  - { ref: ozymandias-pharaoh-of-the-hot-sands }
+  - { ref: ozymandias-imperial-privilege }
+  - { ref: ozymandias-protection-from-ra }
+  - { ref: ozymandias-mesektet }
+  - { ref: ozymandias-ramesseum-tentyris }
+  - { ref: ozymandias-dendera-electric-bulb }
+  - { ref: ozymandias-dendera-electric-bulb-area }
+  - { ref: ozymandias-pyramid-drop }
+
+notes: |
+  Ramesseum Tentyris is the only [Fortress] Noble Phantasm in either roster,
+  which is why Quetzalcoatl's Xiuhcoatl carried a clause with no live referent
+  until he was authored (`packs/_source/abilities/quetz-xiuhcoatl.yml`).

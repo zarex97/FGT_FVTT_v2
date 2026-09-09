@@ -278,6 +278,16 @@ function stage4CombinedPercent(s) {
   let bucket = 0;
 
   for (const m of activeMods(s, s.ctx.attacker, ATTACKER_BUCKET_KEYS)) {
+    // *"Damage dealt is not affected by Atk Up or other damage increasing
+    // effects on Ozymandias."* Narrower than `bypassModifiers`, which skips
+    // stages 2-15 for BOTH sides: this drops the attacker's own increases and
+    // leaves its decreases, the defender's whole side, and the crit alone --
+    // a Def Up on the target still protects them, and an Atk Dwn on him still
+    // costs him, which is what "damage INCREASING effects on Ozymandias" says.
+    if (s.ctx.attack?.ignoresAttackerIncreases && !NEGATIVE_KEYS.has(m.key)) {
+      s.contribute(m.key, 0, `${m.source} (ignored by this attack)`, "attacker");
+      continue;
+    }
     const v = magnitudeOf(m, isNP, s.ctx);
     // Asymmetric (component-scoped) modifiers contribute their *shared* part
     // here; the differential goes to stage 5.
@@ -440,6 +450,18 @@ function stage7FlatAttackBonuses(s) {
   s.begin(7);
   let flat = 0;
   for (const m of activeMods(s, s.ctx.attacker, FLAT_ATTACK_KEYS)) {
+    // *"Damage dealt is not affected by Atk Up or OTHER DAMAGE INCREASING
+    // EFFECTS on Ozymandias."* That is a category, not a list of one: Divinity's
+    // flat +40 raises damage exactly as Atk Up does, so an attack that drops the
+    // percentage bucket's positive half must drop these too.
+    //
+    // Listed at 0 rather than skipped, for the reason stage 4 lists its own: a
+    // modifier that vanishes from the breakdown is indistinguishable from one
+    // that was never collected.
+    if (s.ctx.attack?.ignoresAttackerIncreases) {
+      s.contribute(m.key, 0, `${m.source} (ignored by this attack)`, "attacker");
+      continue;
+    }
     const value = magnitudeOf(m, s.isNP, s.ctx);
     flat += value;
     s.contribute(m.key, value, m.source, "attacker");
@@ -485,7 +507,13 @@ function stage8Environment(s) {
  */
 function stage9ZonPenalty(s) {
   s.begin(9);
-  if (s.ctx.attacker?.outsideZon) {
+  // A field may waive the PENALTY without waiving the ZON requirement itself.
+  // Ozymandias's clause is *"his Master's ZON is ignored when he Attacks (no
+  // damage reduction)"* -- about damage, and only about damage. `zonExempt`
+  // is the blunt instrument that would also lift the `requiresZon` gate his
+  // own Noble Phantasms honour, which the sheet does not say.
+  const waived = (s.ctx.attacker?.suppressions ?? []).some((x) => x.scope === "zonPenalty");
+  if (s.ctx.attacker?.outsideZon && !waived) {
     const roll = s.ctx.rolls?.zonPenalty ?? 0;
     s.addProportional(-roll);
     s.contribute("zonPenalty", -roll, "outside the Master's ZON", "attacker");

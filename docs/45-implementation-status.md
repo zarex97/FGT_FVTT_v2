@@ -174,7 +174,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 | — | Content (Mad Enhancement) | — | Three wrong numbers in the commonest class skill in the game, all reaching Penthesilea too. `madEnhancementDefence` is an `[normal, vsNP]` **pair** and `scalar()` took index 0, so every Mad Enhancement reduced Noble Phantasm damage by its full normal figure — 40% instead of 20% at B. *"Halved for Attacks which use Base Attack (MAG)"* was **not implemented at all**; it is now a predicated pair in the additive bucket rather than Ch. 13 §13.5's stage-4/5 split, which gets the STR case wrong whenever anything else is in the bucket (×0.60 by §13.4's own worked form, ×0.39 by the split). And the drain floor and the forced-deactivation threshold were both the literal `30` — `madEnhancementDrain`'s **EX** value — at every rank; Asterios's Rank B is 20 in all three places, as his sheet says three times. Clause 5 read `servant.modes`, a field **nothing has ever written**, and its unit test passed because the fixture supplied it by hand. |
 | — | Content (Karna) | — | **Karna is finished** — thirteen abilities, four Noble Phantasms, the most of the original twelve, and nine of the thirteen were unauthored (including both that define him). All thirteen resolve end to end in a live world. **Six clauses could not be written at all** before this pass, and each needed something general: `target:paramVsSelf:` for *Brahmastra*'s 4×/2× fork (the existing rank ladder is grade-coarse and would have mis-paid the 4× branch to any `+`-stepped defender — measured, the `+` step decides three of six matchups on the authored roster); `attack:element:` for *"All Total Fire Damage taken is reduced by 50%"*, which the pipeline had read as `ctx.attack.element` since stage 0 was written while no predicate could ask; §E's **`combatProcessEnd`**, listed since the reference was written and never raised, for *Vasavi Shakti*'s per-Process upkeep; `unlessUsedThisTurn` for Note 2, which is §15.4's supersession in the wrong scope; `target:contentId:` for *Fated Rivals*, backing §36.1's own DECISION that nothing emitted; and `oncePerRound`, the only limit on *Uncrowned Arms Mastership*, which has no cooldown. **Vasavi Shakti is two documents**, not §36.1's proposed `modes:` schema — an `isNP` document cannot be free, and `canUseAbility` would have gated a free activation behind 75 Master Health the sheet says it does not cost. |
 | — | Content (Medea) | — | **Medea**, the first Caster, and the densest sheet at thirteen abilities. **All thirteen** resolve end to end in a live world -- verified individually, including Dragon Tooth Warriors (two nested rolls, 5×5 placement, count-scaled cooldown), Rule Breaker (cuts the Contract, strips the Master's Command Spells, grants three namespaced ones), Rain of Light (a 3×3 AoE that proved the targeting system), Atlas (base 100 reduced to 75 by `target MAG B+ -25`), and Argos and Trofa offered **at the reaction rung** because "used when Attacked" cannot be reached from a sheet button. 21 effects of ~152. 5 class skills. 16 of 16 Command Spells. 3 platforms, 3 summons. |
-| — | Content (Quetzalcoatl) | — | **Quetzalcoatl**, the acceptance test for **the field**: three routes to changing what ground a panel has, a mount that substitutes her whole action set, and a levitating object that shares a panel. Twelve entries, three Noble Phantasms, **Script count: 0**. Ch. 42/20/43 predicted six of the seven mechanisms she needed and wrote two out in full; the seventh — `sharesPanel`, co-location as against Bašmu's **displacement** — is the one the chapters missed. **Five collected-and-inert rules were closed on the way**, which is this project's dominant defect and now its tenth recorded instance: element-scoped modifiers were in **no bucket**, so six terrain types had emitted them into a void since terrain shipped (and `(half)` had nothing to halve until they were live); `terrainConversions` had **no caller anywhere**, so Fire in a Forest had never made Burning; `upkeep` was **never projected onto a unit snapshot**, so the Hanging Gardens' NP-cost-replacement clause could not match a platform in any world; `ctx.units[src.unit]` had resolved named base-attack sources since the pipeline was written with **nothing supplying the map** (`mount` is its first entry, and without it a driven mount swings its rider's base attack while reporting its own reach); and `selectAbilities`' single-ability branch took an **embedded Foundry item id**, which no content file can know. Plus one effect that never existed at all: `Sap` had a scheduler entry from the day the scheduler was written and no document to resolve against, so every sheet inflicting it inflicted nothing. **Every clause exercised in a live world**, including the three that were blocked longest — boarding with her Master, all three Spells behind `self:onPlatform:` (Ehecatle lands `Sap`; using one puts all three on 2◈), and driving the mount three panels so the platform moves and her Master is carried exactly three. Unblocking them meant reading Foundry's own source: the obstacle was not environmental, it was every forced displacement in this system being sent as a walk (see Ch. 20). Three further defects surfaced only by driving the thing rather than testing the rules under it: a bare `unitSnapshot` carries no `platformId`, so the carry returned having moved nothing; the carry was called before its `unit` was declared and the ReferenceError was swallowed by Foundry's hook dispatch, so the whole tail of `onMove` was skipped in silence; and her Master was carried twice, once by Passenger Seat and once as a platform passenger. **Not demonstrable:** Xiuhcoatl's `[Fortress]` clause alone, because Ozymandias is unauthored. |
+| — | Content (Quetzalcoatl) | — | **Quetzalcoatl**, the acceptance test for **the field**: three routes to changing what ground a panel has, a mount that substitutes her whole action set, and a levitating object that shares a panel. Twelve entries, three Noble Phantasms, **Script count: 0**. Ch. 42/20/43 predicted six of the seven mechanisms she needed and wrote two out in full; the seventh — `sharesPanel`, co-location as against Bašmu's **displacement** — is the one the chapters missed. **Five collected-and-inert rules were closed on the way**, which is this project's dominant defect and now its tenth recorded instance: element-scoped modifiers were in **no bucket**, so six terrain types had emitted them into a void since terrain shipped (and `(half)` had nothing to halve until they were live); `terrainConversions` had **no caller anywhere**, so Fire in a Forest had never made Burning; `upkeep` was **never projected onto a unit snapshot**, so the Hanging Gardens' NP-cost-replacement clause could not match a platform in any world; `ctx.units[src.unit]` had resolved named base-attack sources since the pipeline was written with **nothing supplying the map** (`mount` is its first entry, and without it a driven mount swings its rider's base attack while reporting its own reach); and `selectAbilities`' single-ability branch took an **embedded Foundry item id**, which no content file can know. Plus one effect that never existed at all: `Sap` had a scheduler entry from the day the scheduler was written and no document to resolve against, so every sheet inflicting it inflicted nothing. **Every clause exercised in a live world**, including the three that were blocked longest — boarding with her Master, all three Spells behind `self:onPlatform:` (Ehecatle lands `Sap`; using one puts all three on 2◈), and driving the mount three panels so the platform moves and her Master is carried exactly three. Unblocking them meant reading Foundry's own source: the obstacle was not environmental, it was every forced displacement in this system being sent as a walk (see Ch. 20). Three further defects surfaced only by driving the thing rather than testing the rules under it: a bare `unitSnapshot` carries no `platformId`, so the carry returned having moved nothing; the carry was called before its `unit` was declared and the ReferenceError was swallowed by Foundry's hook dispatch, so the whole tail of `onMove` was skipped in silence; and her Master was carried twice, once by Passenger Seat and once as a platform passenger. **Was not demonstrable:** Xiuhcoatl's `[Fortress]` clause alone, because Ozymandias was unauthored. It is now -- two Xiuhcoatl uses in one Round break Ramesseum Tentyris permanently, measured live. |
 
 ---
 
@@ -685,6 +685,351 @@ draft hardcoded `ruleset: "advanced"` instead of seeding from the world settings
 wrote the match's fields *after* the summon loop, so a freshly-created Combat's schema defaults
 shadowed those settings and the ruleset refusal rejected the war's own Servants. The match now
 describes itself before anything is built into it.
+
+### Ozymandias — **built**
+
+Unauthored until now, and load-bearing for somebody else: `quetz-xiuhcoatl.yml:116` records that
+*"the only [Fortress] NP in either roster is Ozymandias's"*, so that clause has never had a live
+referent.
+
+#### Commit 1 — the Servant, and a region that was not in the graph
+
+Every stated figure agrees with the table it derives from, which is not always true in this corpus:
+STR C → 100, MAG A → 200, END C → 1000, Divinity B → +40, Magic Resistance B → 40% and 20%, Riding
+A+ → +5 MOV. All three class skills resolve from the existing parameterized documents; he needed no
+variant, because R1 settled that he has all three Riding passives.
+
+**`egypt` was not in `REGION_ADJACENCY` at all** — thirteen entries and his was not one — so
+`region: [egypt]` matched no war and §19.3's grant could never fire for him. Measured live:
+`regionBonusFor` returns 1 in an Egypt war and returned 0 before.
+
+#### Commit 2 — Mesektet, and an element on a Normal Attack
+
+`normalAttack` gained an `element`, because every element in the engine came from an ability
+document and a Normal Attack has none. **The projection dropped it immediately**: `snapshot.mjs`
+rebuilds `normalAttack` field by field rather than spreading, so the document held `light` and the
+board read `null` — found live one field after adding it, and now held by a test.
+
+Measured with the dice pinned: a Normal Attack deals **240** to a plain target and **440** to a
+`Dark` one; Mesektet's active deals **940** and **1740**. Both pairs are the sheet exactly, and the
+first pair also shows the pipeline's stage ordering — the proportional bonus doubles the base and
+Divinity's flat +40 lands after it.
+
+#### Commit 3 — Pharaoh of the Hot Sands, and the first day/night roll option
+
+`self:phase:day` / `:night`, stamped per **panel** from `phaseAt(u.panel, board)` in
+`annotateEnvironment` rather than off the Round, so his own Pyramid Drop daylight will count when
+it exists. Verified live: at Day all three effects reach him and his ally; at Night only `atkUp`.
+
+#### Commit 4 — Imperial Privilege, and Protection from Ra
+
+Imperial Privilege is pure content — `percentOfMax` and per-effect `chance` both existed. Its two
+60% chances are authored as **separate entries** so they roll independently: 36% of uses give both
+and 16% give neither, where one shared chance would make the Skill all-or-nothing. Live over six
+uses: 300 healed every time (exactly 30% of maximum), buffs both / defUp / neither.
+
+Protection from Ra needed one thing built and one defect closed.
+
+**`Buff ChUp` had a catalogue row, no document, and no reader.** Appendix A has listed it since it
+was written; `chanceContribution` refused every non-debuff outright, on a comment reading *"nothing
+anywhere modifies how likely a buff is to land"*. That default was right and had to survive — it is
+there because Serenity's *Silent Dance* would otherwise raise the chance of her own self-buffs — so
+an `ApplicationChance` now carries an optional `polarity`, absent still meaning debuffs.
+
+**`friendly` was zeroing the applier's own outgoing bonus.** §11.2's friendly clause is about not
+making an ally roll against a gift; it also discarded `inflictBonus`, which would have made the
+only buff-chance effect in the game inert in exactly the case it exists for — a buff, put on an
+ally, by an ally. Found by authoring the first content that noticed.
+
+The plan called for a third change, removing `cooldown` from `CASTER_PHASES` so the phase could
+reach somebody other than the caster. **It was already reaching them**: `runPhases` fans a
+`cooldown` phase out to every resolved target and hands `cooldownChanges` that target's own actor.
+`CASTER_PHASES` is read only by `runCasterPhases`, the *attack* path, so the edit would have
+silently stopped every Noble Phantasm's cooldown phase from running at all. Every existing cooldown
+phase writes `target: self`, which is why one aimed outward had never been seen.
+
+Measured live, with an ally two panels away: the ally's Noble Phantasm cooldown fell 6 → 4 (⅔◈ at
+three Turns to the Round), Buff ChUp 40 landed on both of them, and the contribution reads +40
+against a buff and 0 against a debuff. End to end: Imperial Privilege's two 60% buffs landed
+none / atkUp / both / both / atkUp across five uses on their own, and on **all five** once Buff ChUp
+was up — 60 + 40 is automatic.
+
+#### Commit 5 — the three Sphinxes, and two flags nobody read
+
+Sphinx, Sphinx Queen and Sphinx Wehem-Mesut, every stated figure as printed, Luck inherited from
+Ozymandias at summon time, and Wehem-Mesut on EMIYA's `rangeBanded` Normal Attack (*"at a Range of
+2 or higher, Attack deals MAG damage"*).
+
+**`actsOncePerTurn` was projected by nobody.** `canConsume` has tested it on the board unit since
+the platform cap was written, and `snapshot.mjs` never carried it — so it read `undefined` for
+every summon in every world, and *"can only Move/Attack once per Turn"* applied to platforms (which
+are caught by their `kind`) and to nothing else. **`countsTowardBudget` had no reader at all**:
+`poolFor` exempted every summon unconditionally, so the flag could only have gone wrong on a summon
+that counts, and one could not have been authored.
+
+**`TargetabilityModifier` could not name a unit.** Bašmu shields *"Semiramis or her allied Units"*
+and `relations` says that; the Sphinxes shield *"Ozymandias or his Master"*, which is narrower than
+any relation. `recipientRoles: [summoner, summonerMaster]` resolves both against the aura's own
+source; an aura naming none behaves exactly as before.
+
+Measured live: Ozymandias and his Master each carry one `untargetableBy` with a Sphinx adjacent and
+are absent from an enemy's resolved target list, while an allied Servant three panels off is not
+shielded; a Sphinx's Move leaves `servantMove` at 0 where a Servant's takes it to 1; and having
+moved, the Sphinx refuses a second Move.
+
+#### Commit 6 — the Complex opens
+
+Geometry, cost and gate; the interior and the four termination paths follow.
+
+**`npGateRound` was dropped by the content pipeline.** Declared in the ability schema when it was
+written, named by Ch. 44 §44.5 for exactly this clause, authored on two abilities — and not listed
+in `itemSystem()`'s allowlist, which silently drops what it does not name. Every document read
+`null`, so *"can only be used after 7 full Rounds have passed"* opened in Round 1. It is folded
+into `requiresRound` — the one gate `costs.mjs` reads — by `max()`, and a ◈ expression in it is
+refused rather than coerced to `NaN`. The Normal-mode Assassin NP had authored exactly that
+(`"3◈"`); it is `4` now, three Rounds' worth of Turns whatever `turnsPerRound` says.
+
+**`onEnd` was never projected**: `openField` writes it onto the Region and `deactivateField` reads
+it off the board, so every field's on-end actions were empty. The terrain-clearing path reads the
+Region directly, which is why the gap looked impossible.
+
+Two new vocabulary entries, both first-of-kind: `masterHealthFraction`, the first requirement
+stated as a fraction of a maximum *and* as a refusal rather than a permission (so the comparison is
+`>=`, and it is a separate kind rather than a field on `masterHealthAbove`, whose every clause
+reads "above X"); and `masterHealthFractionOfMax`, the first cost whose size is not on the sheet
+because it depends on whose Master it is. The cost `supersedes: [npCost]` — the 50% *is* the price,
+not a surcharge, since the sheet states one cost and states its refusal against that one cost.
+Measured before that line: 250 → 50, which is 125 plus the 75 the EX row charges.
+
+`cannotIntersect: enemyHomeBase` clips rather than refuses (R2). Measured live at Round 8, with an
+enemy base across rows 0–2 of a 13 × 13 board: refused at Round 7 with *"cannot be used before
+Round 8"*; refused at 124/250 Master Health with `masterHealthFraction`; and at 250, opened for
+**99** panels — 121 minus the 22 inside the base — with the Master's Health at exactly 125.
+Screenshotted and looked at: the blue Complex butts against the orange base with no overlap.
+
+#### Commit 7 — the Complex's interior, and a roll nothing could reach
+
+Divine Protection, Divine Curse a–c and God's Curse, authored as interior rules on the field.
+
+**No aura and no bounded field had ever moved a check roll.** `rollEvade`, `rollLuck`,
+`preemptionLuckCheck` and `autoEvadeFrom` all built their units with a bare `unitSnapshot` —
+against `unitFrom`'s own docstring, which argues in as many words that a re-projected unit carries
+none of the auras or interior rules it is standing in. Doomsday Come's Innocent World has said
+*"+4 to Evade rolls"* since Pale Rider was written and it never reached a die. Found by reading the
+Evade card inside the Complex and seeing only Mad Enhancement's table penalty; it now prints
+`ozymandias-ramesseum-tentyris +2` beside it.
+
+**God's Curse reads "Servants", not "enemy Servants".** Clause 3 above it says *"all enemy Units
+within the Complex"* in as many words and clause 4 does not — the sheet had the narrowing words one
+line earlier and did not use them. It is also the only reading under which the exemption's wording
+makes sense: *"Divinity equal to Ozymandias or higher"* is written relative to his own rank because
+he is himself subject to it. Measured live: his ally is sealed, Heracles (Divinity A) is not,
+Ozymandias (Divinity B) is not, and the Master is untouched (`kinds: [servant]`).
+
+Every clause read off the live chat card: an ally's `Def Up ozymandias-ramesseum-tentyris −50%` and
+an enemy's `Def Dwn … +20%` in stage 4's own list, an enemy's `Atk Dwn … −20%` beside Mad
+Enhancement's +60%, `+2` on the Evade card and in the Luck plan, and EMIYA's `categorizedAsNP`
+Overedge classifying as `attack`/`isNP: false` while his real Noble Phantasms answer `npSeal` —
+which is the sheet's *"does not affect Attacks/Skills/Spells that are only Categorized as Noble
+Phantasms"*, still right by the accident the spec recorded.
+
+#### Commit 8 — the Curse that leaves when he does
+
+`EffectData.sourceFieldId` ties an instance to a field, and `annotateFields` sweeps on
+**membership** rather than on an exit event — a Unit teleported out, knocked back out, or standing
+still while the Complex closes under it would otherwise carry the Curse for the rest of the match.
+Two writers keep the documents in step: `endField` and the movement hook, the latter reading
+membership from the movement payload's **destination** because at `moveToken` the board still
+places the mover on the panel it left. That correction was measured: the board stopped reading the
+Curse the instant the Unit stepped out, and the ActiveEffect stayed on its sheet.
+
+Three things were dropping data on the way in. `applyEffect` rebuilds the instance field by field,
+so `source.fieldId` had to be named there or the tie was lost; the field-event writer never carried
+`stage`, so every field-applied Poison or Curse arrived at **stage 0**; and the applier read
+`intent.effect.stages` and not the `stage` a field states.
+
+`afterTurnsInside` is the first interior clause that waits, and it needed the first per-unit entry
+record any field has kept (`state.enteredAt`). **A Civilian is `neutral`, not `enemy`** — the tier
+authored `relations: [enemy]` matched no Normal Human at all, measured live as a Civilian surviving
+the Turn it should have died on.
+
+Live: Curse Stage 1 tied to the field on contact, gone from board *and* sheet after a four-panel
+walk out of it; a Civilian inside survives the end of the Turn it entered on and is defeated at the
+end of the next.
+
+#### Commit 9 — a second Home Base, a paused clock, and a waived penalty
+
+`ownBaseOf` gained a third branch. The Complex is a Home Base for **two named Units**, not for a
+faction — the platform branch beside it is faction-scoped, and "only" is the word that separates
+them. `annotateFields` moved above `annotateEnvironment` for it, which is the third time this
+ordering has bitten (platforms, terrain, now fields): `ownBaseOf` reads membership, and the field
+pass is what settles membership.
+
+The declaration had to be named in four places before it arrived — `openField`'s spec write, the
+Region behaviour schema, and `boundedFieldsOf`'s projection each list their keys, and a key none of
+them lists is dropped in silence. Measured that way twice on this task alone.
+
+`Suppress scope: zonPenalty` waives the damage reduction without waiving the zone: `zonExempt`
+would also lift the `requiresZon` gate his Noble Phantasms honour, which the sheet does not say.
+`Suppress scope: sustainabilityDecay` pauses the Free-Servant clock rather than refunding it.
+
+Live: `inHomeBase` true for Ozymandias and his Master and false for the ally, the Sphinx and the
+enemy in the same area; the removal pass produces nothing inside and ticks 6 → 5 outside; and at
+ZON 2 with the Master five panels away, stage 9 reads `ZON penalty — ` inside (151 damage) and
+`ZON penalty · outside the Master's ZON` outside (114), with `outsideZon` true throughout.
+
+#### Commit 10 — revival inside the Complex
+
+An **interior** `RevivalSource`, which is what makes *"while within"* free: the source is collected
+only onto a Unit standing inside. Two defects on the way: `annotateFields`' merge lists its buckets
+by hand and `revivals` was not among them, so an interior revival was collected and dropped; and
+**`fieldOpen` returned an object from a function consumed as a boolean**, so that gate has passed
+unconditionally since it was written.
+
+Overkill applies by default — Ozymandias's clause is phrased as an amount (*"revived **with** 20%"*)
+rather than as a destination, so it takes the same treatment God Hand states. Measured both ways:
+a Sphinx at 40 Health hit for 224 stays down (184 of overkill against 100 restored); at 210 hit for
+220 it comes back at 90.
+
+Live, from the combat log: Ozymandias at 40 Health hit for 170 inside the Complex logs
+`revive · ozymandias-ramesseum-tentyris · 90` and survives; with the Complex closed the same
+Servant on the same panel is defeated outright. The allied Servant and the enemy in the same area
+carry no such source, and Heracles keeps his own two.
+
+#### Commit 11 — the Sphinxes spawn with the Complex, and remember their Health
+
+`onOpen` is a flat summon list on the field, which `SummonBound` could not express: that one is
+per-contacting-enemy, and this is *"these three, when it opens"*. `ServantData.fieldSummonStats`
+carries what they looked like when their field last closed — on the **owner**, the only thing that
+outlives the area — applied after the `inherit` pass so a remembered Sphinx does not come back at
+full Health along with its inherited Luck.
+
+Live, over a full round trip: three Sphinxes at 1000 / 1500 / 2000 with Luck 20 inherited, all
+inside; the Queen wounded to 900; deactivation leaves no summons and a record of all three;
+reactivation brings the Queen back at **900** and the other two at full.
+
+
+#### Commit 12 -- breaking the Complex
+
+The Round window (`state.window`) lives on the field, because `vulnerabilityTriggered` is pure and
+cannot remember. Compared against the Round rather than cleared by a hook, for the reason every
+expiry here is absolute.
+
+**The damage emitter is on the ordinary damage path, not on the Noble Phantasm one.** The plan put
+it in `closeFieldsPiercedBy`, which runs for NPs only -- and *"more than 3000 damage on the same
+round"* plainly covers every attack. Which damage counts is a reading, recorded in Ch. 43 SS43.8a:
+what the area failed to protect, not what it hurt.
+
+**`result: "endPermanently"` had never been honoured anywhere** -- the branch reading it tested
+`=== "end"` and dropped the rest, so the harsher outcome was authored, validated and
+indistinguishable from the mild one. And **`expended` was written but never read by the use gate**:
+read only by `rules/reactions.mjs` since Akhilleus Kosmos was authored, so an NP broken for the rest
+of the match stayed pressable. It is checked above the cooldown gate, because breaking the Complex
+also starts its 8-tick clock and *"wait twenty-four Turns"* is a wrong answer, not a lesser one.
+
+Live, all four cases: one [Anti-Fortress] NP leaves it standing; a second in the same Round closes
+it, marks it expended, and a re-press is refused with *"expended"*; a second in a different Round
+does not, the window rolling over from 204 to a fresh 192; and sixteen ordinary Normal Attacks
+carrying the window 202 -> 2992 -> past 3000 close it the same way.
+
+**This unblocks Quetzalcoatl.** `quetz-xiuhcoatl.yml` recorded that *"the only [Fortress] NP in
+either roster is Ozymandias's"*, so her `[Fortress]` clause had never had a live referent; it is
+what broke the Complex in the measurement above.
+
+
+#### Commit 13 -- the end that arrives two Turns late
+
+`masterDefeat`, the third of the Complex's four termination paths and the only one that waits. The
+delay travels with the verdict because `vulnerabilityTriggered` is pure, and the caller resolves it
+to an absolute tick (`state.forcedEnd`) -- stamped once, never refreshed.
+
+Live at three Turns to the Round: his Master falls on tick 15, the stamp reads 21, the Complex
+stands through 15 to 20 and closes on 21.
+
+
+#### Commit 14 -- Dendera Electric Bulb
+
+`replacesNormalAttack` generalises what `actionSourceFor` already did for a driven mount: an ability
+that IS this Unit's Normal Attack while its predicate holds. Substituted at the DECLARATION, so the
+cost, targeting, multiplier and card all run through the ordinary ability machinery.
+
+Three things had to be named before it worked. The substituted ability's own id has to reach the
+attack spec -- passing the declared `null` through left `applyDamage` with no ability and the 2x
+multiplier silently 1x. `fieldEdge` had to learn `allowInside` (Doomsday Come's drag-in refuses a
+target already inside; this one reaches *"any panel within"*) and `diagonalRange`, because Chebyshev
+counts a diagonal step as one and the sheet gives 4 orthogonal and 3 diagonal. And
+`ignoresAttackerIncreases` is a new, narrower bypass than `bypassModifiers`.
+
+Two documents for the sheet's two methods: this system has no per-use targeting choice, so they are
+two buttons, one of which is also what the Normal Attack button does.
+
+Live: outside the Complex he has no replacement and swings his ordinary Normal Attack; inside,
+`actionSourceFor` names Dendera, the card is titled with it, the base is BA(MAG) 200 doubled, his
+Master pays exactly 10 a use, the attack is refused at 9 Master Health and allowed at 10, and an
+Atk Up 100 standing on him contributes `0%` under the label *"ignored by this attack"*.
+
+
+#### Commit 15 -- Pyramid Drop
+
+Two small pieces of vocabulary. `shape: reuse` paints the panels the attack resolved against rather
+than a shape computed from the caster -- for a Range-5 strike those are different squares. And
+`kind: expend` is one ability spending another: it closes the named field first and then writes
+`expended`, which is the order Ramesseum's own termination list states.
+
+Live, during a Night Round: 804 damage from BA(MAG) 200 at 5x; NP Seal and Def Dwn 50 on the
+target; a panel inside the blast reads **day** while one outside reads **night**; his three Skills
+and both Dendera methods drop from 9 to 6 (1 tick at three Turns to the Round) while **Mesektet
+stays at 9**, which is ruling R4 -- his Skills, not his Noble Phantasms; and the Complex closes and
+is marked expended alongside Pyramid Drop itself.
+
+#### The whole kit, in one match
+
+Fifteen commits, and the acceptance is the point of all of them: **green tests are not evidence for
+any of this**. Every clause below was measured in `fgt2026`, most of them off the chat card's own
+breakdown or the combat log rather than off a number this code chose to print.
+
+| Clause | Measured |
+|---|---|
+| The Complex clips an enemy Home Base | **99** panels of 121, **0** inside the base, screenshotted and looked at |
+| His Master pays 50% of maximum | 250 → **125**, once, with `npCost` superseded |
+| Gated on Round 8 | refused at Round 7 naming the Round; opened at 8 |
+| Refused below half Master Health | refused at 124/250, allowed at 125 |
+| Divine Protection | `Def Up ozymandias-ramesseum-tentyris −50%` in stage 4's own list |
+| Divine Curse a–c | `Atk Dwn −20%`, `Def Dwn +20%`, and `+2` on the Evade card and the Luck plan |
+| Divine Curse d | Curse Stage 1 tied to the field, gone from board **and** sheet on walking out |
+| Normal Human | survives the end of the Turn it entered; defeated at the end of the next |
+| God's Curse | the Servant without Divinity sealed; Heracles (A), Quetzalcoatl (EX) and Ozymandias himself (B) not; the summons, the Master and the Civilian untouched |
+| …and its `categorizedAs` escape | EMIYA's Overedge classifies `attack`/`isNP: false` while his real NPs answer `npSeal` |
+| A second Home Base | `inHomeBase` true for him and his Master, false for the ally, the Sphinx and the enemy in the same area |
+| Sustainability paused | the removal pass produces nothing inside; ticks 6 → 5 with it closed |
+| ZON ignored | stage 9 reads `ZON penalty —` inside (151) and `outside the Master's ZON` outside (114), `outsideZon` true in both |
+| Revival at 20% / 10% | `revive · ozymandias-ramesseum-tentyris · 90` in the log after a 170 hit at 40 Health; a Sphinx back at 90 of 1000 |
+| The three Sphinxes | spawn inside at 1000 / 1500 / 2000 with Luck 20 inherited; shield him and his Master and nobody else; spend no Unit budget and refuse a second action |
+| …and remember | Queen wounded to 777, deactivate, reactivate, **777** |
+| Broken by two [Anti-Fortress] NPs | one leaves it standing, a second in the same Round closes it permanently, a second in a *different* Round does not |
+| Broken by 3000 damage | sixteen **ordinary** Normal Attacks, 202 → 2992 → past 3000 |
+| …and stays broken | re-press refused with `expended`, not with a cooldown |
+| His Master's defeat | falls on tick 15, stamp reads 21, stands through 15–20, closes on 21 |
+| Dendera Electric Bulb | BA(MAG) 200 doubled, Master pays 10 a use, refused at 9 and allowed at 10, and an Atk Up 100 contributes `0%` |
+| Pyramid Drop | 804 damage, NP Seal and Def Dwn 50, the blast reads **day** while a panel outside reads **night**, his Skills drop 9 → 6 and Mesektet stays at 9 |
+
+**Xiuhcoatl's `[Fortress]` clause fired for the first time.** `quetz-xiuhcoatl.yml` recorded that it
+had no live referent because the only `[Fortress]` Noble Phantasm in either roster was unauthored.
+With the Complex open: all **99** of its panels Burning, all **33** of the ring directly outside it
+Burning, and **0** of the 37 beyond — *"that NP area and the panels directly outside/next to the NP
+area"*, exactly.
+
+**Eleven collected-and-inert rules were closed on the way**, which is this project's dominant defect
+and now its eleventh through fifteenth recorded instances: `npGateRound` was dropped by the content
+pipeline's allowlist; `onEnd` was never projected onto the board its reader consults;
+`actsOncePerTurn` was never projected, so the once-per-Turn cap applied to platforms and nothing
+else; `countsTowardBudget` had no reader; `revivals` was collected by the field executor and dropped
+by the merge; `fieldOpen` returned an object from a function consumed as a boolean, so that gate had
+always passed; `result: "endPermanently"` was authored, validated and never honoured; `expended` was
+written and never read by the use gate; the field-event writer never carried an effect's `stage`;
+`Buff ChUp` had a catalogue row and no document; and **no aura or bounded field had ever moved a
+check roll**, because four call sites built their units with a bare projection against
+`unitFrom`'s own docstring.
 
 ### Setting up a war — **built**
 

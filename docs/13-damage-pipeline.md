@@ -55,6 +55,24 @@ it testable and what makes the targeting preview possible.
 > rules, because a missing rule is invisible and an extra one is not.
 
 
+> **A Normal Attack may carry an element.** Every element in the engine was sourced from an
+> *ability* document (`engine/attack.mjs`'s three spec sites), and stage 0 returns immediately
+> without one — so a Servant whose ordinary swing has a damage type had nowhere to state it.
+> Ozymandias's Mesektet is the first: *"All Normal Attacks use Base Attack (MAG) … Light damage."*
+> `normalAttack.element` is declared on the schema, returned by `normalAttackAt` (a band may retype
+> as well as re-source), and folded into `facts` at the one site that already folds `component`.
+>
+> **And the projection dropped it on the first try.** `rules/snapshot.mjs` rebuilds `normalAttack`
+> field by field rather than spreading it, so a newly declared field is discarded silently — the
+> document held `element: "light"` and the snapshot read `null`. Found live, one field after adding
+> it, and now held by a test.
+>
+> Measured live, with the dice pinned: **240** against a plain target (Base Attack MAG 200 +
+> Divinity 40) and **440** against a `Dark` one (the 200 doubled, then Divinity's flat 40) — which
+> is also a clean demonstration of stage ordering, since a proportional modifier doubles the base
+> and a flat one is added afterwards.
+
+
 ## 13.1 The signature
 
 ```ts
@@ -656,6 +674,20 @@ The practical consequence for content authors is a simple rule:
 > If the card says *"**Total Damage** is increased/reduced by X%"* → stage 15.
 
 ---
+
+### 13.4a Ignoring the attacker's own increases
+
+> *"Damage dealt is not affected by Atk Up or other damage increasing effects on Ozymandias."*
+
+`attack.ignoresAttackerIncreases` drops the attacker's positive contributions in stage 4 and its
+flat bonuses in stage 7, and nothing else. It is deliberately narrower than `bypassModifiers`, which
+skips stages 2-15 for **both** sides: a Def Up on the target still protects them, an Atk Dwn on the
+attacker still costs it, and the crit still happens -- which is what a clause about *"damage
+increasing effects on Ozymandias"* says and what "fixed damage" does not.
+
+The ignored modifier is still listed in the breakdown, at 0% and labelled, rather than dropped:
+`Atk Up | Atk Up (ignored by this attack) | 0%`. A modifier that vanishes from the audit trail is
+indistinguishable from one that was never collected.
 
 ## 13.5 Worked example 1 — Penthesilea normal-attacks Heracles
 

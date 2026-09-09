@@ -59,6 +59,17 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       appliedTick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
       sourceUnitId: new fields.DocumentIdField({ required: false, nullable: true, initial: null }),
+      // The bounded field this instance belongs to, if any. Ozymandias's
+      // Complex is *"permanent Stage 1 Curse as long as they are within ...
+      // automatically removed after leaving"*, and the removal is swept on
+      // MEMBERSHIP rather than fired on an exit event -- a unit teleported out,
+      // knocked back out, or standing still while the field closes under it
+      // would otherwise carry it for ever.
+      //
+      // A plain `StringField`, not a `DocumentIdField`: a field's id is its
+      // ability's CONTENT id (`engine/fields.mjs` stamps `fieldId` from
+      // `system.contentId`), which is a slug and not a Foundry id.
+      sourceFieldId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       sourceAbilityId: new fields.StringField({ required: false, nullable: true, initial: null }),
       unremovable: new fields.BooleanField({ initial: false }),
       visibility: new fields.StringField({ initial: "public", choices: ["public", "ownerOnly", "gmOnly"] }),

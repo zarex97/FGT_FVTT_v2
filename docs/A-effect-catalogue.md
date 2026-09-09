@@ -117,7 +117,7 @@ All are `automatic: true` and therefore negated by `Addle`.
 | `Debuff ResUp` | B | D | mag | Chance of being inflicted with debuffs −X%. |
 | `Debuff ChUp` | B | O | mag | Chance of inflicting debuffs +X%. Does not affect Instakill/Death/Erase unless stated. |
 | `Death ChUp` | B | O | mag | Chance of inflicting **Instakill and Death** +X%. The counterpart the exclusion above requires: one modifier cannot do both jobs, and Serenity states both at every size — 10% each from Silent Dance, 40% each from Danse Macabre. |
-| `Buff ChUp` | B | — | mag | Chance of applying buffs to others +X%. |
+| `Buff ChUp` | B | S | mag | Chance of applying buffs to others +X%. **The only entry in this table whose contribution is about buffs**, which the document has to say outright: an `ApplicationChance` that names no polarity means debuffs (§11.3). Ozymandias's *Protection from Ra* is the first content to apply it. |
 | `Buff Up` | B | — | mag | Chance of receiving buffs +X%. |
 | `Debuff Immune` | B | D | nr | Immune to debuffs. Excludes Instakill/Death/Erase unless stated. |
 | `nvDebuff Immune` | B | D | nr | Immune to non-volatile debuffs. |

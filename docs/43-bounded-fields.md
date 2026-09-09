@@ -223,6 +223,22 @@ painter stays the only thing that reshapes it.
 
 ---
 
+### 43.3a Ground a field may not cover
+
+> *"The Complex cannot intersect the Home Base of enemy Players."*
+
+`cannotIntersect: enemyHomeBase` on the geometry. **Clipped, not refused** — casting near an enemy
+base gives a smaller Complex rather than nothing at all. This costs nothing to do, because a
+field's Region has always been a set of panels and never a bounding rectangle: a clipped field is
+not a special shape, it is a shorter list.
+
+Allied bases are left alone. "Enemy Players" is the clause, and a war with an alliance in it has
+bases that are neither the owner's nor an enemy's.
+
+Measured live: Ozymandias standing at row 6 of a 13 × 13 board with an enemy base across rows 0–2
+opened a Complex of **99** panels — the full 121 minus the 22 that fell inside the base — with rows
+3–11 and columns 0–10, and none of the base covered.
+
 ## 43.4 Axis 2 — Membership: entry and exit
 
 The defining axis. Six distinct policies appear.
@@ -552,6 +568,120 @@ charge Contagion on every faction's Turn and triple the toll.
 
 ---
 
+### 43.6a What an interior rule could not reach
+
+An interior rule routes through the same executor table an ability's `passiveRules` do, so a
+`CheckModifier` lands in `checkModifiers` and a `Suppress` in `suppressions`. Both were landing.
+Only one of them was being read: the damage pipeline takes its modifiers from the board, and the
+check rolls did not — see Ch. 14 §14.5a.
+
+Ozymandias's Complex is the first field to state all four kinds at once, and measured live inside
+it: an ally's damage taken carries `Def Up ozymandias-ramesseum-tentyris −50%` and an enemy's
+carries `Def Dwn … +20%` in the chat card's own stage-4 list, an enemy's outgoing damage carries
+`Atk Dwn … −20%`, an enemy's Evade card reads `ozymandias-ramesseum-tentyris +2`, and
+`preventedBy(unit, "np")` answers `npSeal` for a Servant inside and nothing for one with Divinity
+at or above the rank the clause names.
+
+### 43.6b Two things an interior EVENT could not say
+
+`tiedToField: true` on an `ApplyEffect` action stamps `sourceFieldId`, which is what makes an effect
+end when its field does or when its bearer leaves (Ch. 11 §11.7a). Without it a field-applied Curse
+is an ordinary permanent debuff that outlives the area that imposed it.
+
+`afterTurnsInside: N` is a clause that **waits**:
+
+> *"Normal Human: Dies at the end of the Turn **after** entering the Complex."*
+
+A `turnEnd` event alone fires every Turn and would kill on the first. So a field now records
+`state.enteredAt[unitId]` — stamped at open for whoever it opens over, and on the contact path for
+whoever walks in later, written once per unit and never refreshed (a Unit walking around *inside*
+the Complex has not re-entered it, and restamping would push its execution back for ever). No field
+had ever recorded a per-unit entry time.
+
+**A Civilian is `neutral`, not `enemy`.** `relationOf` answers neutral for one — *"a Civilian
+belongs to nobody"* — so a Normal Human tier authored `relations: [enemy]` matches nobody at all.
+Measured live exactly that way before the list was widened; `kinds: [civilian]` is what narrows it.
+
+Measured live: a Civilian standing in the Complex survives the end of the Turn it entered on and is
+defeated at the end of the next.
+
+### 43.6c A field that is a Home Base
+
+> *"The Complex functions as a second Home Base for Ozymandias and his Master only."*
+
+`countsAsHomeBase: {units: [owner, ownerMaster]}` on the field, read by `ownBaseOf`'s third branch.
+**Unit-scoped**, which is the whole difference from the platform version beside it: Semiramis's
+Hanging Gardens is a second base for her *faction*, and this is a base for exactly two Units. The
+word doing the work is "only", and an allied Servant sheltering in the Complex gets none of the
+five home-base effects.
+
+Roles rather than ids, for the same reason `recipientRoles` uses them (Ch. 09): no content file can
+know a document id, and the Master is not known until the contract exists.
+
+**`annotateFields` now runs before `annotateEnvironment`.** `ownBaseOf` reads `board.fields` and
+each unit's membership, and the field pass is what settles membership — run the other way round it
+reads an empty list for everybody and the clause is silently dead. That is the third time this
+ordering has bitten: platforms first, then terrain, now fields.
+
+The declaration had to be added in four places before it arrived — the ability schema's `field`
+block passes through whole, but `openField`'s spec write, the Region behaviour schema and
+`boundedFieldsOf`'s projection each name their keys, and a key none of them names is dropped in
+silence.
+
+Measured live: with the Complex open away from his ground base, `inHomeBase` is **true** for
+Ozymandias and his Master and **false** for the allied Servant, the Sphinx and the enemy standing
+in the same area.
+
+### 43.6d A field that gives a way back from zero
+
+> *"Whenever Ozymandias is defeated while within the Complex, he is revived with 20% of his Max
+> Health. When any of the Sphinxes are defeated within the Complex, it is revived with 10% of its
+> Max Health."*
+
+An **interior** `RevivalSource`, which is what makes *"while within"* free: the source is collected
+only onto a Unit standing inside, so a Unit that died elsewhere never had it. No charges and no
+cooldown — the sheet states neither, and "whenever" refuses both; `consumesOnUse: false` for the
+same reason.
+
+The merge in `annotateFields` lists its buckets by hand, and `revivals` was not among them, so an
+interior revival was collected by the executor and dropped — the same shape as the `checkModifiers`
+gap above it. `RevivalSource` also gained a `predicate`, carried from `deferred`, for the general
+case where the clause cannot be answered at collection time.
+
+**Overkill applies, and that is the default rather than an oversight.** The excess damage past zero
+is subtracted from what a source restores (God Hand's own clause, generalised); `ignoresOverkill`
+is the opt-out, and it belongs to a clause phrased as a *destination* — Mannanán's *"restoring her
+Health **to** 50%"*. Ozymandias's is phrased as an **amount**, *"revived **with** 20%"*, so it takes
+the default. Measured live both ways: a Sphinx at 40 Health hit for 224 stays down, because 184 of
+overkill exceeds the 100 it would restore; the same Sphinx at 210 hit for 220 comes back at **90**.
+
+Measured live: Ozymandias at 40 Health, hit for 170 inside the Complex, logs
+`revive · ozymandias-ramesseum-tentyris · 90` — 200 less 130 of overkill — and survives; the same
+Servant on the same panel with the Complex closed is defeated outright. The allied Servant and the
+enemy standing in the same area get nothing from it, which is what the clause names.
+
+### 43.6e A field that brings its own Units, and remembers them
+
+> *"When Ramesseum Tentyris is activated, three additional Units allied with Ozymandias are spawned
+> within the Complex… When Ramesseum Tentyris ends or is deactivated, all Sphinxes disappear
+> regardless of position. Then if Ramesseum Tentyris is reactivated, the Sphinxes will respawn
+> within the Complex, but with the same Stats as when they disappeared."*
+
+`onOpen: [{key: Summon, contentId, placement}]` — a flat list on the field. `SummonBound` cannot say
+this: it is per-contacting-enemy (Kagome Kagome), and this is "these three, when it opens". They
+carry `boundToFieldId`, so `endField` already takes them with it.
+
+The memory lives on the **owner** (`ServantData.fieldSummonStats`, keyed by content id), because it
+has to outlive the field — `summonAssignments` beside it already sets that precedent. It is written
+by `endField` just before each summon is deleted, and read by `openField` and applied **after** the
+`inherit` pass: a remembered figure is what the Unit had when it left, and recomputing it from the
+summoner would bring a wounded Sphinx back at full Health along with its inherited Luck.
+
+Measured live over a full round trip: three Sphinxes at 1000 / 1500 / 2000 with Luck 20 inherited
+from Ozymandias, all inside the Complex; the Queen wounded to 900; deactivation leaves **no** summons
+and a record of all three; reactivation brings the Queen back at **900** of 1500 and the other two
+at full.
+
 ## 43.7 Axis 5 — Duration and extension
 
 ```ts
@@ -666,6 +796,59 @@ not a stated rule.
 
 ---
 
+### 43.8a The Round window, and the harsher outcome
+
+> *"It is Attacked with 2 [Anti-Fortress] or higher Noble Phantasms in the same Round from outside,
+> or they are used by enemy Units within the Complex, or would receive more than 3000 damage on the
+> same round. In this case, Ramesseum Tentyris cannot be used again for the rest of the game."*
+
+`vulnerabilityTriggered` is pure and cannot remember, so the window lives on the field:
+`state.window = {round, damage, tags}`, written by `tallyAgainstField`. It is **compared** against
+the current Round rather than cleared by a hook, for the reason every expiry in this system is
+absolute -- a reset that fails to fire would leave a stale count that eventually crosses the
+threshold on its own. The Round-boundary reset is hygiene, not the mechanism.
+
+Every Noble Phantasm is recorded with its tags and the threshold comparison is left to the
+vulnerability. Counting only qualifying uses in the accumulator would hard-code one field's tag
+into it.
+
+**The damage half lives on the ordinary damage path, not on the NP path.** `closeFieldsPiercedBy`
+runs for Noble Phantasms only, and three thousand damage is three thousand damage however it was
+dealt. Which damage counts is a **reading**, and it is this: damage taken by a Unit inside the field
+that is not an enemy of the owner, dealt by one that is. The clause's subject is the Complex
+("it ... would receive") and a bounded field has no Health; the nearest measurable thing is what the
+area failed to protect. Counting every hit inside would let his own Sphinxes break his Complex by
+beating on an intruder.
+
+**`result: "endPermanently"` had never been honoured.** The branch that read a vulnerability's
+result tested `=== "end"` and dropped everything else, so the harsher of the two outcomes was
+authored, validated, and indistinguishable from the mild one. It now writes `expended` on the
+owning ability -- the same flag Akhilleus Kosmos uses, rather than a second kind of permanence.
+
+Measured live, all four cases: one [Anti-Fortress] Noble Phantasm leaves it standing; a second in
+the **same** Round closes it and marks it expended, and pressing it again is refused with
+*"expended"*; a second in a **different** Round does not, because the window rolls over; and sixteen
+ordinary Normal Attacks taking the window 202 -> 2992 -> past 3000 close it the same way.
+
+### 43.8b An end that arrives late
+
+> *"When Ozymandias' Master is defeated, Ramesseum Tentyris will be forcefully ended after 2 ticks,
+> at the end of the Turn. If Ozymandias is defeated, Ramesseum Tentyris is forcibly ended at the end
+> of the Turn."*
+
+Two clauses in one paragraph meaning two different things. `ownerDefeat` is immediate and already
+existed; `masterDefeat` carries a `delay`, and the delay travels with the verdict rather than being
+acted on inside the predicate -- `vulnerabilityTriggered` is pure, and the caller is what can
+resolve a tick expression against the world's Turns per Round.
+
+Resolved to an **absolute tick** (`state.forcedEnd`), stamped once, for the reason every duration
+in this system is absolute: a countdown needs a hook that can fail to fire. Stamped once and never
+refreshed, the same trap `state.enteredAt` records -- restamping each pass would push the end back
+for ever.
+
+Measured live at three Turns to the Round: his Master falls on tick 15, `forcedEnd` stamps **21**,
+the Complex stands through ticks 15 to 20 and closes on 21.
+
 ## 43.9 Delayed and scheduled fields
 
 Two abilities introduce **scheduled detonation**, which the time model (Ch. 07) supports but
@@ -744,6 +927,13 @@ them as units gives targeting, destruction, visibility rules, and health for fre
 already established the pattern.
 
 ---
+
+### 43.10a `onEnd` had no way to reach its reader
+
+`openField` writes the field's `onEnd` actions onto the Region behaviour and `deactivateField`
+reads them off the **board projection** — which never carried the field. So every field's on-end
+actions were silently empty. The terrain-clearing path escaped it by reading the Region behaviour
+directly, which is why the gap looked as though it could not exist.
 
 ## 43.11 State history — the hardest new requirement
 

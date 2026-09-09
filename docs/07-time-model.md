@@ -627,6 +627,15 @@ Not durations, but round-indexed gates that live in this subsystem:
 | Magic Crest | Usable after 2 full Rounds — **from Round 3**. |
 | First-round attacks | Neither faction may Attack during Round 1. |
 
+A Noble Phantasm may also state a gate of its **own**, which composes with the table above by
+`max()`: `npGateRound: 8` on Ozymandias's Ramesseum Tentyris is *"can only be used after 7 full
+Rounds have passed"*. The field was declared in the ability schema when it was written, authored on
+two abilities, **and dropped by the content pipeline's allowlist on the way into the pack** — so
+every document read `null` and the gate opened in Round 1. `rules/ability-use.mjs#usageSpecFor`
+folds it into `requiresRound`, the one gate `costs.mjs` reads, taking whichever of the two is
+later. A ◈ expression there is refused rather than coerced: `npGateRound` is an integer field, and
+`"3◈"` would become `NaN` and gate nothing while looking authored.
+
 Master essences shift the NP gate: `Kaleidoscope` −4 rounds (from Round 2),
 `Imaginary Number` −3 (Round 3), `Leyline` −2 (Round 4), `Harvest` −1 (Round 5).
 

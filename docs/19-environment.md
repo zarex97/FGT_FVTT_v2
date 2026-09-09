@@ -141,6 +141,18 @@ the canvas placeable (`region.object`), not the document. Both fixed; see
 
 ## 19.2 The Day/Night cycle
 
+> **The phase is now a roll option.** There was no day/night option in the predicate vocabulary at
+> all, so *"if used during a Day Round"* could not be written — Ozymandias's Pharaoh of the Hot
+> Sands has two such clauses. `self:phase:day` / `:night` is stamped in `annotateEnvironment` from
+> **`phaseAt(u.panel, board)`**, not from `board.phase`: a unit inside Quetzalcoatl's `Sol`, or
+> inside Pyramid Drop's own daylight, is in Day while the Round is Night, and the same reasoning
+> `darkModifiers` already used. With the cycle switched off (`"none"`) it emits **nothing** — the
+> absence of the axis, not a third value, so a clause gated on Day does not fire.
+>
+> Measured live: at Day all three of Pharaoh's clauses land on Ozymandias and his ally; at Night
+> only `Atk Up` does.
+
+
 > *"When the game starts, Flip a Coin. If Heads, the first Round is 'Day'. The next Round will
 > be 'Night' and so on."*
 > *"During a Day Round, all damage received by Units with the '**Dark**' Attribute is increased
@@ -175,6 +187,14 @@ A `Light` counterpart is not defined in the source. Not implemented.
 ---
 
 ## 19.3 Region
+
+> **Egypt was missing.** The curated graph held thirteen regions and Ozymandias's was not one, so
+> `region: [egypt]` matched no war and this section's parameter grant silently never fired for him.
+> Added with its three edges — Middle East, Mesopotamia, Greece — in the same change, because the
+> graph is symmetric and `test/unit/environment-rest.test.mjs` enforces it: a one-way edge would
+> make Semiramis's Construction counter depend on the order the two regions were compared in.
+> Measured live: `regionBonusFor` returns 1 in an Egypt war, and returned 0 before.
+
 
 > *"Before starting the game, if all players agree, the GM can (randomly) select a country/region
 > the war would take place in. In this case, all Servants from the corresponding Region selected

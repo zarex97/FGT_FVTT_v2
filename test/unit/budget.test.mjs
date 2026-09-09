@@ -287,3 +287,25 @@ describe("a standing NP Seal", () => {
     expect(preventedBy(other, "np").prevented).toBe(false);
   });
 });
+
+describe("a summon that counts", () => {
+  it("takes a pool slot when its sheet says it does", () => {
+    // `countsTowardBudget` has been declared on `SimpleActorData`, authored on
+    // four summons and stamped by `summoning.mjs` since summons shipped, and
+    // read by NOBODY: `poolFor` exempted every summon unconditionally. The
+    // exemption is what all four of them ask for, so nothing changes today --
+    // but a summon whose sheet said it counted could not have been written.
+    expect(poolFor({ id: "s", kind: "summon", countsTowardBudget: true }, "attack"))
+      .toBe("servantAttack");
+    expect(poolFor({ id: "s", kind: "summon", countsTowardBudget: true }, "move"))
+      .toBe("servantMove");
+  });
+
+  it("stays exempt when it does not, and a platform always is", () => {
+    expect(poolFor({ id: "b", kind: "summon", countsTowardBudget: false }, "attack")).toBeNull();
+    expect(poolFor({ id: "b", kind: "summon" }, "attack")).toBeNull();
+    // A platform is equipment its owner operates, not a combatant taking a
+    // slot -- there is no clause anywhere that makes one count.
+    expect(poolFor({ id: "p", kind: "platform", countsTowardBudget: true }, "move")).toBeNull();
+  });
+});

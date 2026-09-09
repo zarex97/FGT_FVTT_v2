@@ -196,3 +196,19 @@ describe("Territory Creation amplification", () => {
     expect(territoryCreationAmplified({ id: "u", faction: "a", panel: at(9, 9) }, board)).toBe(false);
   });
 });
+
+describe("egypt", () => {
+  it("is in the graph, because Ozymandias is from there", () => {
+    // A Servant's `region` is matched against this curated list; a region with
+    // no entry matches no war, so §19.3's parameter grant silently never fires.
+    expect(REGION_ADJACENCY.egypt).toBeDefined();
+  });
+
+  it("neighbours the Middle East, Mesopotamia and Greece, both ways", () => {
+    // The symmetry test above covers the general rule; this names the edges.
+    for (const other of ["middleEast", "mesopotamia", "greece"]) {
+      expect(REGION_ADJACENCY.egypt.adjacent).toContain(other);
+      expect(REGION_ADJACENCY[other].adjacent).toContain("egypt");
+    }
+  });
+});

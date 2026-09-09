@@ -251,3 +251,33 @@ describe("what a spent source costs", () => {
     expect(godHand.abilityId).toBe("gh");
   });
 });
+
+describe("a revival conditioned on where you died", () => {
+  // > "Whenever Ozymandias is defeated WHILE WITHIN the Complex, he is revived
+  // > with 20% of his Max Health."
+  //
+  // Field membership is a board annotation, so the clause cannot be answered
+  // where the rule element is collected -- it travels on the source and is
+  // tested at the moment of defeat.
+  const divineProtection = {
+    id: "divineProtection", priority: 50, charges: null, cascading: false,
+    formula: null, percentOfMax: 20, consumesOnUse: false,
+    defId: null, abilityId: null, source: "Divine Protection",
+    predicate: ["self:inField:ozymandias-ramesseum-tentyris"],
+  };
+
+  it("is unavailable when its predicate fails", () => {
+    const unit = { id: "u", fields: [], revivals: [divineProtection] };
+    expect(availableRevivals(unit)).toHaveLength(0);
+  });
+
+  it("is available inside the field", () => {
+    const unit = { id: "u", fields: ["ozymandias-ramesseum-tentyris"], revivals: [divineProtection] };
+    expect(availableRevivals(unit)).toHaveLength(1);
+  });
+
+  it("leaves an unconditioned source alone", () => {
+    const unit = { id: "u", fields: [], revivals: [undying] };
+    expect(availableRevivals(unit)).toHaveLength(1);
+  });
+});

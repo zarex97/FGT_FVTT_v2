@@ -29,6 +29,7 @@
  * @typedef {object} NormalAttackSpec
  * @property {Array<{unit: string, component: string, factor: number}>} sources
  * @property {"str"|"mag"} component what the attack counts AS, for predicates
+ * @property {string|null} element the damage type, or null
  * @property {boolean} ignoresMagicResistance
  */
 
@@ -56,6 +57,9 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
   const flat = {
     sources: [{ unit: named, component, factor: 1 }],
     component,
+    // From `from`, not from `unit`: a rider whose mount replaces her Normal
+    // Attack swings the mount's, and the damage type comes with it.
+    element: spec.element ?? null,
     ignoresMagicResistance: false,
   };
 
@@ -80,6 +84,8 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     // what Magic Resistance's Instakill exemption reads. Stated explicitly
     // when the author means otherwise.
     component: band.component ?? sources[0]?.component ?? component,
+    // A band may RETYPE the damage as well as re-source it.
+    element: band.element ?? spec.element ?? null,
     ignoresMagicResistance: Boolean(band.ignoresMagicResistance),
   };
 }

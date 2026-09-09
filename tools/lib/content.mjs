@@ -1581,6 +1581,10 @@ function itemSystem(doc) {
     isNP: Boolean(doc.isNP),
     isMode: Boolean(doc.isMode),
     isAttackSkill: Boolean(doc.isAttackSkill),
+    // *"Can be used by Ozymandias as his Normal Attack while within Ramesseum
+    // Tentyris."* Named here as well as in the schema, because this allowlist
+    // silently drops what it does not name -- the way `npGateRound` was lost.
+    replacesNormalAttack: doc.replacesNormalAttack ?? null,
     isSpell: Boolean(doc.isSpell),
     // A Noble Phantasm with no active form -- Penthesilea's Goddess of War.
     // Read by `classifyAbility`; without it every NP is a button.
@@ -1629,6 +1633,12 @@ function itemSystem(doc) {
     opensDialog: doc.opensDialog ?? null,
     // §15.4's supersession, as authored data.
     additionalCosts: doc.additionalCosts ?? [],
+    // A per-ability Round gate (Ch. 44 §44.5). Declared in the ability schema
+    // when it was written, authored on two abilities, and NOT LISTED HERE --
+    // so it was dropped by this allowlist on the way into the pack and every
+    // document read `null`. Ozymandias's *"can only be used after 7 full
+    // Rounds have passed"* opened in Round 1.
+    npGateRound: doc.npGateRound ?? null,
     // Arrogant King's Poison: "Requires 3 [Semiramis' Poison] to use" -- an
     // item-quantity cost spent at use time (`engine/skill-use.mjs`'s
     // `itemCostIntents`), distinct from `additionalCosts` (health/

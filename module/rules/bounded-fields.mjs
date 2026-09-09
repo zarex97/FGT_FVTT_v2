@@ -45,7 +45,7 @@ export function panelsOf(field, board) {
 
   switch (geometry.kind) {
     case "fixedArea":
-      return square(geometry.anchor, geometry.shape?.size ?? 1);
+      return clip(square(geometry.anchor, geometry.shape?.size ?? 1), field, board);
 
     case "followsUnit": {
       // Doomsday Come tracks Pale Rider's *Master*, not its creator: the field
@@ -82,6 +82,40 @@ export function panelsOf(field, board) {
     default:
       return field.panels ?? [];
   }
+}
+
+/**
+ * Remove the panels a field is forbidden to cover.
+ *
+ * > *"The Complex cannot intersect the Home Base of enemy Players."*
+ *
+ * CLIPPED rather than refused (the author's ruling): the Complex opens as its
+ * full square minus whatever falls inside an enemy base, so casting near one
+ * gives a smaller Complex rather than nothing at all. Free to do, because a
+ * field's Region has always been a set of panels and never a bounding
+ * rectangle -- a clipped field is not a special shape, it is a shorter list.
+ *
+ * Allied bases are left alone: "enemy Players" is the clause, and a war with
+ * an alliance in it has bases that are neither the owner's nor an enemy's.
+ *
+ * @param {Array<{i: number, j: number}>} panels
+ * @param {object} field
+ * @param {object} board
+ * @returns {Array<{i: number, j: number}>}
+ */
+function clip(panels, field, board) {
+  if (field?.geometry?.cannotIntersect !== "enemyHomeBase") return panels;
+
+  const owner = field.ownerFaction ?? null;
+  const allied = new Set(board?.alliances?.[owner] ?? (owner ? [owner] : []));
+  /** @type {Set<string>} */
+  const forbidden = new Set();
+  for (const zone of Object.values(board?.zones ?? {})) {
+    if (!zone?.faction || allied.has(zone.faction)) continue;
+    for (const p of zone.panels ?? []) forbidden.add(`${p.i},${p.j}`);
+  }
+  if (forbidden.size === 0) return panels;
+  return panels.filter((p) => !forbidden.has(`${p.i},${p.j}`));
 }
 
 /**
@@ -719,6 +753,21 @@ export function vulnerabilityTriggered(field, event) {
         }
         break;
 
+      // *"When Ozymandias' Master is defeated, Ramesseum Tentyris will be
+      // forcefully ended after 2 ticks, at the end of the Turn."* The DELAY
+      // travels with the verdict; the caller resolves it to an absolute tick,
+      // because a countdown needs a hook that can fail to fire and an expiry
+      // cannot.
+      //
+      // Distinct from `ownerDefeat`, which is the same sheet's other half and
+      // is immediate: *"if Ozymandias is defeated, Ramesseum Tentyris is
+      // forcibly ended at the end of the Turn."*
+      case "masterDefeat":
+        if (event.kind === "masterDefeat") {
+          return { triggered: true, result: v.result ?? "end", delay: v.delay ?? null };
+        }
+        break;
+
       case "markDestruction":
         if (event.kind === "markDestroyed" && (event.marksRemaining ?? 1) <= 0) {
           return { triggered: true, result: v.result ?? "end" };
@@ -830,6 +879,56 @@ export function annotateFields(units, board) {
     if (out.immunities.length > 0) {
       u.immunities = [...(u.immunities ?? []), ...out.immunities];
     }
+    // An interior `RevivalSource` was collected by the executor and then
+    // DROPPED here, the same way `checkModifiers` was until Jack's Mist needed
+    // it: this merge lists its buckets by hand. Ozymandias's Divine Protection
+    // is the first field to grant a way back from zero.
+    if (out.revivals.length > 0) {
+      u.revivals = [...(u.revivals ?? []), ...out.revivals];
+    }
+  }
+
+  sweepFieldEffects(units, fields);
+}
+
+/**
+ * Remove every effect whose field the bearer is no longer inside.
+ *
+ * > *"All Units are inflicted with permanent Stage 1 Curse as long as they are
+ * > within the Complex. It is automatically removed after leaving the Complex."*
+ *
+ * Swept on **membership**, not fired on an exit event. A unit teleported out,
+ * knocked back out, or standing still while the field closes under it would
+ * otherwise keep the Curse for ever -- and this codebase's own rule about
+ * clocks applies to boundaries too: an exit hook can fail to fire, and a
+ * membership test cannot.
+ *
+ * A field that no longer exists sweeps for the same reason: the Complex
+ * closing under somebody's feet is the same question as their walking out of
+ * it, and it has the same answer.
+ *
+ * The snapshot half only. The matching document deletion lives in
+ * `engine/fields.mjs`, so storage does not accumulate what the board already
+ * refuses to read.
+ *
+ * @param {object[]} units
+ * @param {object[]} fields
+ * @returns {void}
+ */
+function sweepFieldEffects(units, fields) {
+  const open = new Set(fields.map((f) => f.id));
+
+  for (const u of units ?? []) {
+    const instances = u.effectInstances ?? [];
+    if (instances.length === 0) continue;
+    const inside = new Set(u.fields ?? []);
+
+    const kept = instances.filter(
+      (e) => !e?.sourceFieldId || (open.has(e.sourceFieldId) && inside.has(e.sourceFieldId)),
+    );
+    if (kept.length === instances.length) continue;
+    u.effectInstances = kept;
+    u.effects = kept.map((e) => e.defId ?? e);
   }
 }
 

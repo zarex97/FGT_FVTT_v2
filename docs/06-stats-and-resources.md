@@ -395,6 +395,18 @@ adjust the remaining value by the same delta.
 
 ---
 
+### 6.8a A clock that can be paused
+
+> *"Ozymandias' Sustainability does not decrease while he is within the Complex."*
+
+`Suppress scope: sustainabilityDecay`, read by `checkRemovals`. **Paused, not refunded**: leaving
+resumes the clock where it was rather than showing as churn every Turn he stands inside. Inert
+while he is contracted — only a Free Servant has a clock running at all — and exactly the clause
+that matters after his Master dies.
+
+Measured live with him made Free at 6◈: inside the Complex the removal pass produces **nothing**;
+with the Complex closed, the same Servant on the same panel ticks 6 → 5.
+
 ## 6.9 ZON
 
 ```ts

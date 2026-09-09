@@ -86,7 +86,18 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // knows whether this Servant is inside its Master's zone -- and that is what
   // `limits.requiresZon` on every Noble Phantasm turns on.
   const self = unitFrom(board, attacker);
-  const ability = abilityId ? attacker.items.get(abilityId) : null;
+  // A Normal Attack this Unit's own ability STANDS IN FOR. *"Can be used by
+  // Ozymandias as his Normal Attack while within Ramesseum Tentyris."*
+  //
+  // Substituted at the DECLARATION, which is the one place that makes the rest
+  // of the flow correct for free: the cost, the targeting, the multiplier, the
+  // choice of method and the chat card all then run through the ordinary
+  // ability machinery instead of through a second, parallel Normal Attack path.
+  // The alternative -- teaching `baseSpecFor`, `attackFacts`, the multiplier
+  // stage and the cost gate about it one at a time -- is four chances to
+  // disagree with each other.
+  const substituted = abilityId ? null : replacingNormalAttack(self, attacker);
+  const ability = abilityId ? attacker.items.get(abilityId) : substituted;
   // The caster's own options, for `targeting.branches`/`cooldown.branches`/
   // `damage.branches` (Summoning: Bašmu) -- computed once here rather than
   // per call site, since `self` does not change across this declaration.
@@ -272,7 +283,14 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
   // the rest, so a Noble Phantasm over seven units damaged one of them.
-  const attackSpec = buildAttackSpec({ attacker, ability, abilityId, options, placement });
+  // `ability.id`, not the declared `abilityId`: a Normal Attack that an ability
+  // stands in for has no declared id, and passing the null through left
+  // `state.attack.abilityId` empty -- so `applyDamage` looked up no ability,
+  // found no `damage` block, and Dendera Electric Bulb's 2x multiplier was
+  // silently 1x. Measured that way: stage 3 read "Ability multiplier --".
+  const attackSpec = buildAttackSpec({
+    attacker, ability, abilityId: ability?.id ?? null, options, placement,
+  });
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
   // the same defender, inside ONE Combat Phase -- which is the distinction that
   // matters, because a Combat Phase is what pays him his Aria and two phases
@@ -552,7 +570,10 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // carried one, so `element:` on an ability document reached the pipeline
       // only through `damageContext` and never through the predicate vocabulary.
       // Karna's Mana Burst (Flames) resists by type in both directions.
-      element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? null,
+      // A Normal Attack has no ability document; its element comes from the
+      // unit's own `normalAttack` spec, which `normalAttackAt` resolves.
+      element: resolvedDamage(ability, options)?.element ?? ability?.system?.element
+        ?? (ability ? null : normalAttackAt(attacker, null)?.element) ?? null,
       // "Fire damage (half)": how much of the total carries that element, which
       // the pipeline's stage 4b scales element-scoped modifiers by. Travels
       // BESIDE `element` at all three spec-building sites, because an element
@@ -561,6 +582,15 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
         ?? ability?.system?.damage?.elementFraction ?? undefined,
       ignoresMagicResistance: Boolean(
         resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
+      ),
+      // *"Damage dealt is not affected by Atk Up or other damage increasing
+      // effects on Ozymandias."* Narrower than `bypassModifiers`, which skips
+      // the whole middle of the pipeline for both sides: this drops the
+      // ATTACKER's increases and nothing else, so a Def Up on the target still
+      // protects them and an Atk Dwn on him still costs him.
+      ignoresAttackerIncreases: Boolean(
+        resolvedDamage(ability, options)?.ignoresAttackerIncreases
+        ?? ability?.system?.damage?.ignoresAttackerIncreases,
       ),
       // Per-attack RESTRICTIONS on the reaction ladder. Appendix A treats the
       // ladder as a fixed three, and Mannanán's Fragarach Counter is the first
@@ -755,7 +785,16 @@ async function declareProcesses({
     // The ride's own facts travel with the caster phases, because Troias
     // Tragōidia's Agility restore is "X" and X is how much movement he had
     // left -- a number that does not exist on any document.
-    await runCasterPhases(ability, attacker, board, attackSpec.ride ? { ride: attackSpec.ride } : {});
+    await runCasterPhases(ability, attacker, board, {
+      ...(attackSpec.ride ? { ride: attackSpec.ride } : {}),
+      // The panels this attack actually resolved against, for a `zone` phase
+      // that paints *"the NP area"* rather than a shape of its own. Pyramid
+      // Drop is the first: *"the NP area becomes 'Day' for 2 ticks"* -- the
+      // same 5x5 the damage just went through, wherever the player put it.
+      // Recomputing it from the caster would paint a square around HIM, which
+      // for a Range-5 strike is the wrong square.
+      areaPanels: targets.panels ?? [],
+    });
   }
 
   // The event two of EMIYA's passives listen for. On the ATTACK path as well as
@@ -1464,8 +1503,8 @@ async function closeFieldsPiercedBy(state) {
   const npTags = state.attack?.npTags ?? [];
   if (state.attack?.kind !== "np" || npTags.length === 0) return;
 
-  const { vulnerabilityTriggered } = await import("../rules/bounded-fields.mjs");
-  const { deactivateField } = await import("./fields.mjs");
+  const { vulnerabilityTriggered, meetsTagThreshold } = await import("../rules/bounded-fields.mjs");
+  const { deactivateField, tallyAgainstField, lockOutField } = await import("./fields.mjs");
 
   // From the BOARD, not `unitSnapshot`. Which fields a unit stands in is a
   // board-wide annotation (`annotateFields`) and a unit projected alone does
@@ -1483,9 +1522,53 @@ async function closeFieldsPiercedBy(state) {
     const touched = [attacker, defender].some((u) => (u?.fields ?? []).includes(field.id));
     if (!touched) continue;
 
-    const hit = vulnerabilityTriggered(field, { kind: "npUsedOn", npTags });
-    if (hit.triggered && hit.result === "end") await deactivateField(field.id, "vulnerability");
+    // Recorded before it is tested: *"two … in the same Round"* counts THIS
+    // use as well as the earlier ones, and a tally taken afterwards would need
+    // the second NP to be the third.
+    const window = await tallyAgainstField(field.id, { npTags });
+
+    for (const event of [
+      { kind: "npUsedOn", npTags },
+      // How many of this Round's Noble Phantasms met THIS vulnerability's tag
+      // is a question only the vulnerability can answer, so the count is
+      // recomputed per clause rather than kept by the accumulator.
+      { kind: "npUsed", npTags, countThisWindow: null },
+    ]) {
+      const hit = event.countThisWindow === null && event.kind === "npUsed"
+        ? countedHit(field, npTags, window, vulnerabilityTriggered, meetsTagThreshold)
+        : vulnerabilityTriggered(field, event);
+      if (!hit.triggered) continue;
+
+      // *"In this case, Ramesseum Tentyris cannot be used again for the rest of
+      // the game."* `result: "endPermanently"` appeared nowhere outside the
+      // unit tests: this branch tested `=== "end"` and dropped everything else,
+      // so the harsher outcome was authored, validated and indistinguishable
+      // from the mild one.
+      if (hit.result === "endPermanently") await lockOutField(field);
+      await deactivateField(field.id, "vulnerability");
+      break;
+    }
   }
+}
+
+/**
+ * Test a count-window vulnerability against this Round's recorded uses.
+ *
+ * @param {object} field
+ * @param {string[]} npTags
+ * @param {{tags: string[][]}} window
+ * @param {Function} triggered
+ * @param {Function} meets
+ * @returns {{triggered: boolean, result?: string}}
+ */
+function countedHit(field, npTags, window, triggered, meets) {
+  for (const v of field.vulnerabilities ?? []) {
+    if (v.kind !== "npCount") continue;
+    const qualifying = (window.tags ?? []).filter((t) => meets(t, v.tag)).length;
+    const hit = triggered(field, { kind: "npUsed", npTags, countThisWindow: qualifying });
+    if (hit.triggered) return hit;
+  }
+  return { triggered: false };
 }
 
 async function endConcealmentAfterAttack(state) {
@@ -1795,8 +1878,17 @@ async function rollCheckChances(unit, check) {
  * @returns {Promise<object>}
  */
 async function rollEvade(state) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = unitSnapshot(game.actors.get(state.defenderId));
+  // From the BOARD, not a bare `unitSnapshot`. `unitFrom`'s own docstring
+  // makes the argument -- a re-projected unit carries none of the auras or
+  // field interior rules it is standing in -- and this rung took the bare
+  // projection anyway, so no aura and no bounded field has ever moved an Evade
+  // roll. Ozymandias's Complex is *"when performing Evade and Luck Check
+  // Rolls, the number rolled is increased by 2"*; Doomsday Come's Innocent
+  // World says +4 on two of its six branches. All of it landed on the
+  // snapshot and none of it on the die.
+  const board = currentBoard();
+  const attacker = unitFrom(board, game.actors.get(state.attackerId));
+  const defender = unitFrom(board, game.actors.get(state.defenderId));
   const roll = await new Roll("1d20").evaluate();
 
   // Everything the defender's own abilities have to say about Evade -- Mad
@@ -1941,9 +2033,11 @@ function evadeModifiers(state, attacker, defender) {
  */
 async function rollLuck(state) {
   const prompt = process.pendingPrompt(state);
-  const unit = unitSnapshot(game.actors.get(prompt.unitId));
+  // From the board, for the reason `rollEvade` records above.
+  const board = currentBoard();
+  const unit = unitFrom(board, game.actors.get(prompt.unitId));
   const opponentId = prompt.side === "attacker" ? state.defenderId : state.attackerId;
-  const opponent = unitSnapshot(game.actors.get(opponentId));
+  const opponent = unitFrom(board, game.actors.get(opponentId));
   const roll = await new Roll("1d20").evaluate();
 
   const plan = checkPlan(unit, "luck");
@@ -2027,6 +2121,22 @@ function pendingCosts({ usage, ability, self, master, board }) {
     // rather than at the ability's own, and through the same rule `npCost`
     // uses -- so a Free Servant pays in Sustainability instead of producing an
     // intent aimed at a Master who does not exist.
+    // A FRACTION of the Master's maximum rather than a stated number.
+    // *"The Master's Health is reduced by 50% of its maximum value"* -- the
+    // first cost in the corpus whose size is not on the sheet, because it
+    // depends on whose Master it is.
+    if (extra.kind === "masterHealthFractionOfMax") {
+      const max = master?.maxHealth ?? master?.health?.max ?? 0;
+      out.push({
+        kind: "masterHealth",
+        amount: Math.floor(max * (extra.fraction ?? 0)),
+        unitId: master?.id ?? null,
+        id: extra.id,
+        supersedes: extra.supersedes ?? [],
+      });
+      continue;
+    }
+
     if (extra.kind === "masterHealthByNPRank") {
       out.push({ ...npCostAt({ rank: extra.rank, unit: self, master }), id: extra.id, supersedes: extra.supersedes ?? [] });
       continue;
@@ -2877,7 +2987,59 @@ async function applyDamage(state, message) {
     breakdown: result.breakdown, flags: result.flags, isCrit,
   });
 
+  await tallyDamageAgainstFields(defender, attacker, result.total, board);
+
   return result;
+}
+
+/**
+ * Count this hit against the Round window of every field it damaged.
+ *
+ * > *"…or would receive more than 3000 damage on the same round. In this case,
+ * > Ramesseum Tentyris cannot be used again for the rest of the game."*
+ *
+ * On the ORDINARY damage path, not on `closeFieldsPiercedBy`. That function
+ * runs for Noble Phantasms only, and this clause plainly covers every attack —
+ * three thousand damage is three thousand damage however it was dealt.
+ *
+ * **Which damage counts is a reading**, and it is this: damage taken by a Unit
+ * standing inside the field that is NOT an enemy of the field's owner. The
+ * clause's subject is the Complex ("it … would receive"), and a bounded field
+ * has no Health of its own; the nearest thing this system can measure is what
+ * the area fails to protect. Counting every hit inside would let Ozymandias's
+ * own Sphinxes break his Complex by beating on an intruder, which no reading
+ * of the sentence supports.
+ *
+ * @param {object} defender the defender's board unit
+ * @param {object} attacker the attacker's board unit
+ * @param {number} total
+ * @param {object} board
+ * @returns {Promise<void>}
+ */
+async function tallyDamageAgainstFields(defender, attacker, total, board) {
+  if (!(total > 0) || !defender) return;
+  const inside = defender.fields ?? [];
+  if (inside.length === 0) return;
+
+  const { vulnerabilityTriggered } = await import("../rules/bounded-fields.mjs");
+  const { deactivateField, tallyAgainstField, lockOutField } = await import("./fields.mjs");
+  const { relationOf } = await import("../rules/relations.mjs");
+
+  for (const fieldId of inside) {
+    const field = (board.fields ?? []).find((f) => f.id === fieldId);
+    if (!field) continue;
+    const owner = (board.units ?? []).find((u) => u.id === field.ownerId) ?? null;
+    // What the area failed to protect, not what it hurt.
+    if (relationOf(owner, defender, board) === "enemy") continue;
+    // ...and not a Unit hitting its own side inside its own area.
+    if (attacker && relationOf(owner, attacker, board) !== "enemy") continue;
+
+    const window = await tallyAgainstField(fieldId, { damage: total });
+    const hit = vulnerabilityTriggered(field, { kind: "damage", damageThisWindow: window.damage });
+    if (!hit.triggered) continue;
+    if (hit.result === "endPermanently") await lockOutField(field);
+    await deactivateField(fieldId, "vulnerability");
+  }
 }
 
 /**
@@ -3725,8 +3887,32 @@ export function attackFacts(attacker, defender, state) {
   return {
     ...facts,
     component: normal.component,
+    // The damage TYPE, from the same spec as the component. A Normal Attack has
+    // no ability document, so this is the only place its element can come from
+    // -- `facts.element` is what the two spec-building sites above fall through
+    // to. Mesektet is *"All Normal Attacks ... Light damage"*, and without this
+    // the pipeline's element stage returned at once and the type was lost.
+    element: normal.element ?? facts.element ?? null,
     ignoresMagicResistance: facts.ignoresMagicResistance || normal.ignoresMagicResistance,
   };
+}
+
+/**
+ * The ability that IS this Unit's Normal Attack right now, if one is.
+ *
+ * `actionSourceFor` answers the question against the board -- the condition is
+ * *"while within Ramesseum Tentyris"*, and only the board knows where anybody
+ * is standing -- and this maps its answer back onto the item document, because
+ * that is what the declaration path needs.
+ *
+ * @param {object} self the attacker's board unit
+ * @param {object} actor
+ * @returns {object|null} the ability Item, or `null`
+ */
+function replacingNormalAttack(self, actor) {
+  const source = actionSourceFor(self, boardSnapshot());
+  if (!source.ability) return null;
+  return actor.items.get(source.ability.id) ?? null;
 }
 
 /**
@@ -4261,7 +4447,9 @@ function offeredReactions(defenderId, attack = null, isAoE = false) {
 function autoEvadeFrom(state, defender) {
   if (!defender) return { applies: false };
 
-  const plan = checkPlan(unitSnapshot(defender), "evade");
+  // Same reason as `rollEvade`: an auto-evasion granted by an aura or by a
+  // field's interior rules is invisible to a bare projection.
+  const plan = checkPlan(unitFrom(currentBoard(), defender), "evade");
   const auto = plan.autoSucceed;
   if (!auto) return { applies: false };
 
@@ -4418,7 +4606,7 @@ async function offerPreemption({ attackerId, abilityId, placement, targetIds, bo
  * @returns {Promise<boolean>}
  */
 async function preemptionLuckCheck(defenderDoc, attackerId) {
-  const unit = unitSnapshot(defenderDoc);
+  const unit = unitFrom(currentBoard(), defenderDoc);
   const roll = await new Roll("1d20").evaluate();
   const plan = checkPlan(unit, "luck");
   const outcome = luckCheck({

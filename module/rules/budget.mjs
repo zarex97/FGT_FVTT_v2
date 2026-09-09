@@ -104,7 +104,15 @@ export function emptyBudget(maxima = {}) {
  * @returns {string|null}
  */
 export function poolFor(unit, action) {
-  if (unit?.exemptFromBudget || ["summon", "platform"].includes(unit?.kind)) return null;
+  if (unit?.exemptFromBudget) return null;
+  // A PLATFORM is never a combatant taking a slot; it is equipment its owner
+  // operates, and no clause anywhere makes one count. A summon usually is not
+  // either -- but `countsTowardBudget` is a field its sheet may set, and this
+  // was an unconditional `kind` test, so the field had no reader and a summon
+  // that counted could not have been authored. All four summons in the corpus
+  // say `false`, so nothing changes for them.
+  if (unit?.kind === "platform") return null;
+  if (unit?.kind === "summon" && unit?.countsTowardBudget !== true) return null;
   const master = unit?.kind === "master";
 
   switch (action) {

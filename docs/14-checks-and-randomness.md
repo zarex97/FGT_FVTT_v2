@@ -387,6 +387,33 @@ the sign is derived from it, so authors never write a sign.
 
 ---
 
+### 14.5a A roll must be made from the BOARD unit
+
+`checkPlan` folds a unit's collected `checkModifiers` into the arguments a check takes, and it can
+only fold what the unit it is handed carries. Every check-rolling site in `engine/attack.mjs` —
+`rollEvade`, `rollLuck`, `preemptionLuckCheck`, `autoEvadeFrom` — built its units with a bare
+`unitSnapshot`, which is a projection of one actor and nothing around it.
+
+`unitFrom`'s own docstring makes the argument this violated: *"re-projecting a unit that the board
+already has is not a shortcut, it is a wrong answer"* — a re-projected unit carries none of the
+auras it stands in and none of the interior rules of the bounded field it stands inside. So **no
+aura and no field has ever moved a check roll**. Ozymandias's Complex says *"when performing Evade
+and Luck Check Rolls, the number rolled is increased by 2"*; Doomsday Come's Innocent World says
++4 on two of its six branches. All of it was collected onto the snapshot and none of it reached a
+die.
+
+Found by authoring the Complex and reading the Evade card, which showed only Mad Enhancement's
+unfavourable-table penalty. It now reads:
+
+```
+evade- 1d20 → 10 | unfavourable table +4 | ozymandias-ramesseum-tentyris +2 | total 16
+```
+
+The same bare-projection pattern appears at other sites in the attack flow (event firing, reaction
+legality). Those read only what the actor's own items supply, so they are correct for their
+purpose — but the pattern is worth suspicion wherever a rule can come from somewhere other than
+the unit itself.
+
 ## 14.6 Chance rolls
 
 ```ts

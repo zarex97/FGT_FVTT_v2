@@ -329,3 +329,45 @@ describe("aura-delivered contributions reach their readers", () => {
     expect(units[0].modifiers).toHaveLength(2);
   });
 });
+
+describe("an aura addressed to named roles", () => {
+  // Bašmu shields "Semiramis or her allied Units" and `relations` says that
+  // exactly. The Sphinxes shield "Ozymandias or his Master" -- two units, not
+  // every ally standing next to one.
+  const board = (over = {}) => ({
+    units: [
+      { id: "ozy", kind: "servant", faction: "red", masterId: "m", panel: { i: 0, j: 0 } },
+      { id: "m", kind: "master", faction: "red", panel: { i: 0, j: 1 } },
+      { id: "ally", kind: "servant", faction: "red", panel: { i: 1, j: 0 } },
+      {
+        id: "sphinx", kind: "summon", faction: "red", summonerId: "ozy", panel: { i: 0, j: 0 },
+        auras: [{
+          key: "untargetable", radius: 1, relations: ["ally", "self"],
+          recipientRoles: ["summoner", "summonerMaster"], value: true, stacking: "noneRefresh",
+          source: "Sphinx",
+        }],
+      },
+    ],
+    ...over,
+  });
+
+  it("reaches the summoner and the summoner's Master", () => {
+    const b = board();
+    annotateAuras(b.units, b);
+    expect(b.units.find((u) => u.id === "ozy").untargetableBy).toHaveLength(1);
+    expect(b.units.find((u) => u.id === "m").untargetableBy).toHaveLength(1);
+  });
+
+  it("does not reach an ally standing just as close", () => {
+    const b = board();
+    annotateAuras(b.units, b);
+    expect(b.units.find((u) => u.id === "ally").untargetableBy ?? []).toHaveLength(0);
+  });
+
+  it("leaves an aura naming no roles reaching every ally, as Bašmu's does", () => {
+    const b = board();
+    for (const a of b.units.find((u) => u.id === "sphinx").auras) delete a.recipientRoles;
+    annotateAuras(b.units, b);
+    expect(b.units.find((u) => u.id === "ally").untargetableBy).toHaveLength(1);
+  });
+});
