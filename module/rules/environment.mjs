@@ -383,13 +383,18 @@ export function grailDestructionChance(damage) {
  * @type {Readonly<Record<string, {adjacent: string[]}>>}
  */
 export const REGION_ADJACENCY = Object.freeze({
-  greece: { adjacent: ["europe", "middleEast", "mesopotamia"] },
+  greece: { adjacent: ["europe", "middleEast", "mesopotamia", "egypt"] },
   europe: { adjacent: ["greece", "netherlands", "england", "middleEast"] },
   netherlands: { adjacent: ["europe", "england"] },
   england: { adjacent: ["europe", "netherlands", "ireland"] },
   ireland: { adjacent: ["england"] },
-  middleEast: { adjacent: ["greece", "europe", "mesopotamia", "india"] },
-  mesopotamia: { adjacent: ["greece", "middleEast", "india"] },
+  middleEast: { adjacent: ["greece", "europe", "mesopotamia", "india", "egypt"] },
+  mesopotamia: { adjacent: ["greece", "middleEast", "india", "egypt"] },
+  // Ozymandias. Added together with its three edges, because the graph is
+  // symmetric and `test/unit/environment-rest.test.mjs` enforces it -- a
+  // one-way edge would make Semiramis's Construction counter depend on the
+  // order the two regions happened to be compared in.
+  egypt: { adjacent: ["middleEast", "mesopotamia", "greece"] },
   india: { adjacent: ["middleEast", "mesopotamia", "eastIndia", "farEast"] },
   eastIndia: { adjacent: ["india", "farEast"] },
   farEast: { adjacent: ["india", "eastIndia", "japan"] },

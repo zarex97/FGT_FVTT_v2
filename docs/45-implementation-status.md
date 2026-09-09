@@ -686,6 +686,23 @@ wrote the match's fields *after* the summon loop, so a freshly-created Combat's 
 shadowed those settings and the ruleset refusal rejected the war's own Servants. The match now
 describes itself before anything is built into it.
 
+### Ozymandias — **in progress**
+
+Unauthored until now, and load-bearing for somebody else: `quetz-xiuhcoatl.yml:116` records that
+*"the only [Fortress] NP in either roster is Ozymandias's"*, so that clause has never had a live
+referent.
+
+#### Commit 1 — the Servant, and a region that was not in the graph
+
+Every stated figure agrees with the table it derives from, which is not always true in this corpus:
+STR C → 100, MAG A → 200, END C → 1000, Divinity B → +40, Magic Resistance B → 40% and 20%, Riding
+A+ → +5 MOV. All three class skills resolve from the existing parameterized documents; he needed no
+variant, because R1 settled that he has all three Riding passives.
+
+**`egypt` was not in `REGION_ADJACENCY` at all** — thirteen entries and his was not one — so
+`region: [egypt]` matched no war and §19.3's grant could never fire for him. Measured live:
+`regionBonusFor` returns 1 in an Egypt war and returned 0 before.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
