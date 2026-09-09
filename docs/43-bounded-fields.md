@@ -605,6 +605,33 @@ Measured live exactly that way before the list was widened; `kinds: [civilian]` 
 Measured live: a Civilian standing in the Complex survives the end of the Turn it entered on and is
 defeated at the end of the next.
 
+### 43.6c A field that is a Home Base
+
+> *"The Complex functions as a second Home Base for Ozymandias and his Master only."*
+
+`countsAsHomeBase: {units: [owner, ownerMaster]}` on the field, read by `ownBaseOf`'s third branch.
+**Unit-scoped**, which is the whole difference from the platform version beside it: Semiramis's
+Hanging Gardens is a second base for her *faction*, and this is a base for exactly two Units. The
+word doing the work is "only", and an allied Servant sheltering in the Complex gets none of the
+five home-base effects.
+
+Roles rather than ids, for the same reason `recipientRoles` uses them (Ch. 09): no content file can
+know a document id, and the Master is not known until the contract exists.
+
+**`annotateFields` now runs before `annotateEnvironment`.** `ownBaseOf` reads `board.fields` and
+each unit's membership, and the field pass is what settles membership — run the other way round it
+reads an empty list for everybody and the clause is silently dead. That is the third time this
+ordering has bitten: platforms first, then terrain, now fields.
+
+The declaration had to be added in four places before it arrived — the ability schema's `field`
+block passes through whole, but `openField`'s spec write, the Region behaviour schema and
+`boundedFieldsOf`'s projection each name their keys, and a key none of them names is dropped in
+silence.
+
+Measured live: with the Complex open away from his ground base, `inHomeBase` is **true** for
+Ozymandias and his Master and **false** for the allied Servant, the Sphinx and the enemy standing
+in the same area.
+
 ## 43.7 Axis 5 — Duration and extension
 
 ```ts

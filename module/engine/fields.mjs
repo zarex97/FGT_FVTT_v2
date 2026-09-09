@@ -222,6 +222,7 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     extension: spec.extension ?? null,
     vulnerabilities: spec.vulnerabilities ?? [],
     onEnd: spec.onEnd ?? [],
+    countsAsHomeBase: spec.countsAsHomeBase ?? null,
     createdAt: game.combat?.system?.globalTurn ?? 0,
     upkeep: spec.upkeep ?? null,
     deactivation: spec.deactivation ?? null,

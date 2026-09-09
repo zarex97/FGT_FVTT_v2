@@ -67,6 +67,13 @@ field:
     kind: fixedArea
     shape: { kind: square, size: 11 }
     cannotIntersect: enemyHomeBase
+  # 5. "The Complex functions as a second Home Base for Ozymandias and his
+  # Master only." UNIT-scoped, which is what "only" means and what nothing
+  # before this could say: Semiramis's Hanging Gardens is a second base for her
+  # whole FACTION, so an allied Servant sheltering in the Complex gets none of
+  # the five home-base effects.
+  countsAsHomeBase:
+    units: [owner, ownerMaster]
   # "Once activated, Ramesseum Tentyris remains constantly Active." No duration
   # and no upkeep: it ends only by its four stated paths.
   duration: null
@@ -159,6 +166,24 @@ field:
     # The "only Categorized as" escape is free today -- `abilityKind` returns
     # "np" for a real Noble Phantasm only -- and the spec records the dependency
     # rather than relying on the accident silently.
+    # 6, first half. "Ozymandias' Sustainability does not decrease while he is
+    # within the Complex." A standing suppression rather than a refund: the
+    # clock is PAUSED, so leaving resumes it where it was.
+    #
+    # Inert while he is contracted -- only a Free Servant has a clock running
+    # at all -- and exactly the clause that matters after his Master dies.
+    - key: Suppress
+      scope: sustainabilityDecay
+      relations: [self]
+
+    # 6, second half. "His Master's ZON is ignored when he Attacks (no damage
+    # reduction)." A waiver of the PENALTY, not of the requirement: `zonExempt`
+    # would also lift the `requiresZon` gate his own Noble Phantasms honour, and
+    # the sheet says nothing about that. Stage 9 of the pipeline reads it.
+    - key: Suppress
+      scope: zonPenalty
+      relations: [self]
+
     - key: Suppress
       scope: npSeal
       relations: [self, ally, enemy]

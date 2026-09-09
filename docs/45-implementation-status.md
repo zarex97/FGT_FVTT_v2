@@ -857,6 +857,27 @@ Live: Curse Stage 1 tied to the field on contact, gone from board *and* sheet af
 walk out of it; a Civilian inside survives the end of the Turn it entered on and is defeated at the
 end of the next.
 
+#### Commit 9 — a second Home Base, a paused clock, and a waived penalty
+
+`ownBaseOf` gained a third branch. The Complex is a Home Base for **two named Units**, not for a
+faction — the platform branch beside it is faction-scoped, and "only" is the word that separates
+them. `annotateFields` moved above `annotateEnvironment` for it, which is the third time this
+ordering has bitten (platforms, terrain, now fields): `ownBaseOf` reads membership, and the field
+pass is what settles membership.
+
+The declaration had to be named in four places before it arrived — `openField`'s spec write, the
+Region behaviour schema, and `boundedFieldsOf`'s projection each list their keys, and a key none of
+them lists is dropped in silence. Measured that way twice on this task alone.
+
+`Suppress scope: zonPenalty` waives the damage reduction without waiving the zone: `zonExempt`
+would also lift the `requiresZon` gate his Noble Phantasms honour, which the sheet does not say.
+`Suppress scope: sustainabilityDecay` pauses the Free-Servant clock rather than refunding it.
+
+Live: `inHomeBase` true for Ozymandias and his Master and false for the ally, the Sphinx and the
+enemy in the same area; the removal pass produces nothing inside and ticks 6 → 5 outside; and at
+ZON 2 with the Master five panels away, stage 9 reads `ZON penalty — ` inside (151 damage) and
+`ZON penalty · outside the Master's ZON` outside (114), with `outsideZon` true throughout.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
