@@ -450,6 +450,18 @@ function stage7FlatAttackBonuses(s) {
   s.begin(7);
   let flat = 0;
   for (const m of activeMods(s, s.ctx.attacker, FLAT_ATTACK_KEYS)) {
+    // *"Damage dealt is not affected by Atk Up or OTHER DAMAGE INCREASING
+    // EFFECTS on Ozymandias."* That is a category, not a list of one: Divinity's
+    // flat +40 raises damage exactly as Atk Up does, so an attack that drops the
+    // percentage bucket's positive half must drop these too.
+    //
+    // Listed at 0 rather than skipped, for the reason stage 4 lists its own: a
+    // modifier that vanishes from the breakdown is indistinguishable from one
+    // that was never collected.
+    if (s.ctx.attack?.ignoresAttackerIncreases) {
+      s.contribute(m.key, 0, `${m.source} (ignored by this attack)`, "attacker");
+      continue;
+    }
     const value = magnitudeOf(m, s.isNP, s.ctx);
     flat += value;
     s.contribute(m.key, value, m.source, "attacker");
@@ -804,14 +816,6 @@ const NEGATIVE_KEYS = new Set(["atkDwn", "npDmDwn"]);
 /** Defender-side keys that *increase* damage taken. */
 const DEFENDER_POSITIVE_KEYS = new Set(["defDwn"]);
 const FLAT_ATTACK_KEYS = new Set(["divinity", "dmgBoost", "avengerCounter", "flatDamage"]);
-/**
- * Attacker-side keys an `ignoresAttackerIncreases` attack drops.
- *
- * Both the percentage bucket's positive half and the flat bonuses: *"Atk Up or
- * other damage increasing effects"* is a description of a category, not a list
- * of one, and Divinity's flat +40 raises damage exactly as Atk Up does.
- */
-const ATTACKER_INCREASE_FLAT_KEYS = FLAT_ATTACK_KEYS;
 const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
 
 /**
