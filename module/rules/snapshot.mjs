@@ -857,7 +857,14 @@ function annotateEnvironment(units, board) {
     // in both directions at once -- `darkModifiers` returns a dealt modifier
     // and a taken one, and Q43 wants the attacker's panel for the first and the
     // defender's for the second, which for this unit is the same panel.
-    const mods = [...darkModifiers(u, phaseAt(u.panel, board)), ...homeBaseModifiers(u, board)];
+    // The phase AT THIS UNIT'S PANEL, recorded so a predicate can ask. There
+    // was no day/night roll option at all, so Ozymandias's *"If used during a
+    // Day Round"* clauses could not be written -- and per panel rather than per
+    // Round for the same reason `darkModifiers` reads it that way below: a unit
+    // inside Quetzalcoatl's `Sol`, or inside Pyramid Drop's own daylight, is in
+    // Day while the Round is Night.
+    u.phase = board.dayNightCycle ? phaseAt(u.panel, board) : "none";
+    const mods = [...darkModifiers(u, u.phase), ...homeBaseModifiers(u, board)];
     if (mods.length > 0) u.modifiers = [...(u.modifiers ?? []), ...mods];
   }
 }
