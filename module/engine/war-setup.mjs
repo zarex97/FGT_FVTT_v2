@@ -12,6 +12,14 @@
 
 import { homeBaseRects } from "../rules/home-base.mjs";
 import { gridShape } from "../domain/geometry.mjs";
+import { validateRoster } from "../rules/war-setup.mjs";
+import { masterSetupPlan, resolveSetupPlan } from "../rules/setup-rolls.mjs";
+import {
+  prepareSummon, commitSummon, servantCatalogue, rollSetupPlan,
+} from "./summon.mjs";
+import { factions } from "./board.mjs";
+import { worldIO } from "./io.mjs";
+import { record } from "./game-log.mjs";
 
 /**
  * Ch. 08 §8.9, as data.
@@ -164,4 +172,250 @@ export function plannedBases(draft, factions) {
     columns: draft.boardSize,
     depth: draft.homeBaseDepth,
   });
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Committing a war                                                          */
+/* -------------------------------------------------------------------------- */
+
+/** The content id of the generic Master for each ruleset. */
+const MASTER_CONTENT = Object.freeze({ advanced: "master-advanced", normal: "master-normal" });
+
+/**
+ * The ZON each Normal Master states, keyed on its Servant's container.
+ *
+ * Written onto `system.zon`, which needs no rule change: `zonRadius` already
+ * reads the stored value as a floor under its class-based derivation. An
+ * Advanced Master takes the template's 2 and lets the derivation do the work.
+ */
+const NORMAL_ZON = Object.freeze({
+  saber: 2, lancer: 2, rider: 2, berserker: 2, archer: 4, assassin: 4, caster: 5,
+});
+
+/**
+ * Write one line of the war's record.
+ *
+ * `kind: "setup"` rather than `scheduler`: these entries answer *"what was this
+ * war made of"*, which is the first thing anyone reads when a commit stops
+ * halfway.
+ *
+ * @param {object} combat
+ * @param {string} summary
+ * @param {object} [detail]
+ * @returns {Promise<void>}
+ */
+async function note(combat, summary, detail = null) {
+  await record({ kind: "setup", summary, detail }, combat);
+}
+
+/**
+ * One Master, rolled, named after the container it will hold.
+ *
+ * @param {object} container
+ * @param {object} draft
+ * @param {Array<{id: string, name: string}>} [roster]
+ * @returns {Promise<object>} the Actor
+ */
+export async function createMasterFor(container, draft, roster = []) {
+  const contentId = MASTER_CONTENT[draft.ruleset] ?? MASTER_CONTENT.advanced;
+  const pack = game.packs.get("fgt.masters");
+  if (!pack) throw new Error("The fgt.masters compendium is missing.");
+
+  const index = await pack.getIndex({ fields: ["system.contentId"] });
+  const entry = [...index].find((e) => e.system?.contentId === contentId);
+  if (!entry) throw new Error(`No Master template "${contentId}" in fgt.masters.`);
+
+  const source = await pack.getDocument(entry._id);
+  const data = source.toObject();
+  delete data._id;
+
+  const mode = game.settings.get("fgt", "masterMode");
+  const plan = masterSetupPlan(data.system, { mode });
+  const { totals, signs } = await rollSetupPlan(plan);
+  const lines = resolveSetupPlan(plan, totals, signs);
+  const value = (id) => lines.find((l) => l.id === id)?.value;
+
+  const factionName = roster.find((f) => f.id === container.factionId)?.name ?? container.factionId;
+  data.name = game.i18n.format("FGT.Setup.MasterName", {
+    container: game.i18n.localize(`FGT.Class.${container.classContainer}`),
+    faction: factionName,
+  });
+  data.system = {
+    ...data.system,
+    factionId: container.factionId,
+    health: { value: value("maxHealth"), max: value("maxHealth") },
+    agility: { value: value("maxAgility"), max: value("maxAgility") },
+    luck: { value: value("maxLuck"), max: value("maxLuck") },
+    commandSpells: value("commandSpells") ?? 3,
+    rank: value("rank") ?? data.system.rank ?? "",
+    baseAttack: {
+      str: data.system.baseAttack?.str ?? 50,
+      mag: value("baseAttackMag") ?? data.system.baseAttack?.mag ?? 100,
+    },
+    zon: draft.ruleset === "normal"
+      ? (NORMAL_ZON[container.classContainer] ?? 2)
+      : (data.system.zon ?? 2),
+  };
+
+  return Actor.implementation.create(data);
+}
+
+/**
+ * Build the whole war.
+ *
+ * **The Combat is created second, not last.** The log lives on it
+ * (`engine/game-log.mjs#record` takes a combat and writes nothing without one),
+ * so a sequence that built it at the end would carry no record of the steps
+ * before it — precisely the ones a half-failed commit needs to name. The Scene
+ * still comes first, because the Combat is scene-linked.
+ *
+ * Every step logs BEFORE it acts. A line written afterwards is exactly the one
+ * you do not get when the step throws.
+ *
+ * @param {object} draft
+ * @returns {Promise<{scene: object, masters: object[], servants: object[], combat: object}>}
+ */
+export async function commitWar(draft) {
+  const roster = factions();
+  const catalogue = await servantCatalogue({ ruleset: draft.ruleset });
+  const refusals = validateRoster(draft.containers, roster, catalogue, { policy: draft.drawPolicy });
+  if (refusals.length > 0) {
+    throw new Error(`The roster is not ready: ${refusals.map((r) => r.code).join(", ")}`);
+  }
+
+  const scene = await ensureScene({
+    size: draft.boardSize,
+    name: draft.sceneName || game.i18n.localize("FGT.Setup.SceneName"),
+    sceneId: draft.sceneId || null,
+  });
+
+  const combat = await Combat.implementation.create({ type: "match", scene: scene.id });
+  // ACTIVATE it. `currentBoard()` reads `game.combats.active`, and
+  // `Combat.create` leaves `active: false` -- `game.combat` is only the combat
+  // being VIEWED. Without this the board is match-blind: no phase, no tick, no
+  // difficulty, no war type and no Grail, all silently at their defaults. Found
+  // live, where a match carrying `grailMaterialized: true` projected
+  // `materialized: false` and the Grail could not appear.
+  await combat.activate();
+  await combat.syncFactions({ withGM: true });
+
+  await note(combat, `War setup began: ${draft.warType}, ${draft.ruleset} ruleset`, {
+    warType: draft.warType, ruleset: draft.ruleset,
+    boardSize: draft.boardSize, containers: draft.containers.length,
+  });
+
+  await note(combat, `Painting ${roster.length} home base(s)`);
+  await paintHomeBases(scene, plannedBases(draft, roster), roster);
+
+  /** @type {object[]} */ const masters = [];
+  /** @type {object[]} */ const servants = [];
+
+  for (const container of draft.containers) {
+    await note(combat, `Filling ${container.factionId} / ${container.classContainer}`,
+      { container: container.id, contentId: container.contentId });
+
+    const master = await createMasterFor(container, draft, roster);
+    masters.push(master);
+
+    // The plan the wizard already rolled and the GM already approved.
+    // Re-preparing here would throw those dice away and hand the table numbers
+    // nobody looked at.
+    const prepared = draft.prepared?.[container.id]
+      ?? await prepareSummon({ contentId: container.contentId, region: draft.region || null });
+    if (!prepared) throw new Error(`Cannot summon "${container.contentId}".`);
+
+    const servant = await commitSummon(prepared);
+    servants.push(servant);
+
+    await servant.update({
+      "system.factionId": container.factionId,
+      "system.classContainer": container.classContainer,
+    });
+    // `setContract` is the ONE place that keeps `Servant.masterId` and
+    // `Master.servantIds` reciprocal; writing either directly desynchronizes
+    // them, and §16.9's per-Servant Command Spell pools are keyed off the
+    // Master's roster.
+    await worldIO().setContract(servant.id, "contracted", master.id);
+  }
+
+  await combat.update({
+    "system.warType": draft.warType,
+    "system.ruleset": draft.ruleset,
+    "system.homeBaseDepth": draft.homeBaseDepth,
+    "system.region": draft.region || null,
+    "system.difficulty": draft.difficulty,
+    "system.grailThreshold": draft.grailThreshold,
+    "system.containers": draft.containers.map((c, i) => ({
+      ...c, servantId: servants[i]?.id ?? null, masterId: masters[i]?.id ?? null,
+    })),
+  });
+
+  await note(combat, "Deploying units into their home bases");
+  await deployTokens(scene, draft, roster, masters, servants);
+
+  await note(combat, `War built: ${servants.length} Servants, ${masters.length} Masters`);
+  return { scene, masters, servants, combat };
+}
+
+/**
+ * Drop every unit inside its own faction's base.
+ *
+ * Placed rather than left in the sidebar, because §19.7 step 10 is *"both
+ * players are allowed to freely arrange their Units within their Home Base"* —
+ * and a rearrangement needs something to rearrange.
+ *
+ * Each pair is placed together, Servant then Master, because ZON is a property
+ * of the **pair**: a deployment that scatters them starts every Servant outside
+ * its Master's zone and every attack at −5d10.
+ *
+ * @param {object} scene
+ * @param {object} draft
+ * @param {Array<{id: string}>} roster
+ * @param {object[]} masters
+ * @param {object[]} servants
+ * @returns {Promise<void>}
+ */
+async function deployTokens(scene, draft, roster, masters, servants) {
+  const free = new Map(plannedBases(draft, roster).map((r) => [r.factionId, [...r.offsets]]));
+  const size = scene.grid.size;
+
+  /** Take the free panel nearest `to`, or the first free one if `to` is null. */
+  const take = (panels, to) => {
+    if (!panels || panels.length === 0) return null;
+    if (!to) return panels.shift();
+    let best = 0;
+    let bestDistance = Infinity;
+    for (let k = 0; k < panels.length; k++) {
+      const d = Math.max(Math.abs(panels[k].i - to.i), Math.abs(panels[k].j - to.j));
+      if (d < bestDistance) { bestDistance = d; best = k; }
+    }
+    return panels.splice(best, 1)[0];
+  };
+
+  /** @type {object[]} */
+  const data = [];
+  for (let n = 0; n < servants.length; n++) {
+    const servant = servants[n];
+    const master = masters[n];
+    const panels = free.get(servant?.system?.factionId);
+    // A faction with no base -- a `custom` war -- gets no automatic placement
+    // rather than a token dropped at the origin on top of every other one.
+    if (!servant || !panels || panels.length === 0) continue;
+
+    const here = take(panels, null);
+    const servantToken = await servant.getTokenDocument({ x: here.j * size, y: here.i * size });
+    data.push(servantToken.toObject());
+
+    // The Master goes on the free panel NEAREST its own Servant, not on the
+    // next one in the list. Walking the list in order straddles the end of a
+    // row: on a 13-wide base the seventh pair landed at (0,12) and (1,0),
+    // twelve panels apart, and both Servants started the war outside their
+    // Master's ZON and every attack at -5d10. Measured — `outsideZon: 2` on the
+    // first war this built.
+    const beside = take(panels, here);
+    if (!master || !beside) continue;
+    const masterToken = await master.getTokenDocument({ x: beside.j * size, y: beside.i * size });
+    data.push(masterToken.toObject());
+  }
+  if (data.length > 0) await scene.createEmbeddedDocuments("Token", data);
 }
