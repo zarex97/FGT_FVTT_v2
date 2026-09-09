@@ -140,6 +140,34 @@ export function ownBaseOf(unit, board) {
   if (platform?.countsAsHomeBase && platform.factionId === unit?.faction) {
     return { faction: unit.faction, panels: platform.panels ?? [], secondary: true, platformId: platform.id };
   }
+
+  // ...and a FIELD that is one.
+  //
+  // > *"The Complex functions as a second Home Base for Ozymandias and his
+  // > Master only."*
+  //
+  // UNIT-scoped, not faction-scoped, which is the whole difference from the
+  // platform branch above: the Hanging Gardens is a base for Semiramis's
+  // faction, and this is a base for exactly two Units. An allied Servant
+  // sheltering in the Complex gets none of the five home-base effects, because
+  // the sheet says "only".
+  //
+  // Roles rather than ids, for the same reason `recipientRoles` uses them: no
+  // content file can know a document id, and the Master is not known until the
+  // contract exists.
+  for (const field of board?.fields ?? []) {
+    const spec = field.countsAsHomeBase;
+    if (!spec) continue;
+    if (!(field.panels ?? []).some((p) => chebyshev(p, unit?.panel ?? {}) === 0)) continue;
+
+    const roles = spec.units ?? ["owner"];
+    const isOwner = roles.includes("owner") && unit?.id === field.ownerId;
+    const isMaster = roles.includes("ownerMaster") && unit?.id === field.ownerMasterId;
+    if (isOwner || isMaster) {
+      return { faction: unit.faction, panels: field.panels ?? [], secondary: true, fieldId: field.id };
+    }
+  }
+
   return null;
 }
 

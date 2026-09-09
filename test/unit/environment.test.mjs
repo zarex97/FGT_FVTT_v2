@@ -325,3 +325,42 @@ describe("grailPanelCandidates", () => {
     expect(grailPanelCandidates({})).toEqual([]);
   });
 });
+
+describe("a field that is a Home Base", () => {
+  // > "The Complex functions as a second Home Base for Ozymandias and his
+  // > Master only."
+  //
+  // UNIT-scoped, which is the difference from the platform branch beside it:
+  // Semiramis's Hanging Gardens is a base for her whole faction, and this one
+  // is for exactly two units. "Only" is the word doing the work.
+  const board = () => ({
+    zones: {},
+    units: [],
+    fields: [{
+      id: "tentyris", ownerId: "ozy", ownerMasterId: "m",
+      countsAsHomeBase: { units: ["owner", "ownerMaster"] },
+      panels: [{ i: 5, j: 5 }, { i: 5, j: 6 }],
+    }],
+  });
+
+  it("is a Home Base for its owner", () => {
+    expect(ownBaseOf({ id: "ozy", faction: "red", panel: { i: 5, j: 5 } }, board())).not.toBeNull();
+  });
+
+  it("...and for his Master", () => {
+    expect(ownBaseOf({ id: "m", faction: "red", panel: { i: 5, j: 6 } }, board())).not.toBeNull();
+  });
+
+  it("but not for a mere ally standing on the same panel", () => {
+    expect(ownBaseOf({ id: "ally", faction: "red", panel: { i: 5, j: 5 } }, board())).toBeNull();
+  });
+
+  it("and not for the owner standing outside it", () => {
+    expect(ownBaseOf({ id: "ozy", faction: "red", panel: { i: 9, j: 9 } }, board())).toBeNull();
+  });
+
+  it("says which field it is, so the reason is readable", () => {
+    expect(ownBaseOf({ id: "ozy", faction: "red", panel: { i: 5, j: 5 } }, board()))
+      .toMatchObject({ secondary: true, fieldId: "tentyris" });
+  });
+});

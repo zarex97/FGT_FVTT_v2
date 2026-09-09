@@ -485,7 +485,13 @@ function stage8Environment(s) {
  */
 function stage9ZonPenalty(s) {
   s.begin(9);
-  if (s.ctx.attacker?.outsideZon) {
+  // A field may waive the PENALTY without waiving the ZON requirement itself.
+  // Ozymandias's clause is *"his Master's ZON is ignored when he Attacks (no
+  // damage reduction)"* -- about damage, and only about damage. `zonExempt`
+  // is the blunt instrument that would also lift the `requiresZon` gate his
+  // own Noble Phantasms honour, which the sheet does not say.
+  const waived = (s.ctx.attacker?.suppressions ?? []).some((x) => x.scope === "zonPenalty");
+  if (s.ctx.attacker?.outsideZon && !waived) {
     const roll = s.ctx.rolls?.zonPenalty ?? 0;
     s.addProportional(-roll);
     s.contribute("zonPenalty", -roll, "outside the Master's ZON", "attacker");

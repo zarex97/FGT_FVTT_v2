@@ -670,6 +670,18 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // dead. Measured live: Semiramis on the middle panel of her own garden,
   // `platformId` correctly stamped, `inHomeBase: false`.
   annotatePlatforms(units, board);
+  // Bounded fields, and BEFORE `annotateEnvironment` for exactly the reason
+  // `annotatePlatforms` is: one of the Home Bases is a FIELD. *"The Complex
+  // functions as a second Home Base for Ozymandias and his Master only."*
+  // `ownBaseOf` reads `board.fields` and each unit's membership, and this pass
+  // is what settles membership -- run the other way round it reads an empty
+  // list for everybody and the clause is silently dead, which is the third
+  // time this ordering has bitten (platforms, then terrain, now fields).
+  //
+  // Nothing this pass needs comes from the two below it: interior rules are
+  // addressed by relation and by kind, both of which `annotateControl` has
+  // already settled.
+  annotateFields(units, board);
   // Day/Night and Home Base are facts about the FIELD, so they settle here for
   // the same reason terrain and auras do: a unit projected alone cannot know
   // which Round it is or whose ground it is standing on.
@@ -678,9 +690,6 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // (§19.3). Applied here rather than at setup so that changing the region
   // mid-configuration does not need every sheet rewritten.
   annotateRegionBonus(units, board);
-  // Bounded fields, last of the positional passes: their interior rules sit
-  // after the ground and the auras in the explainer's reading order.
-  annotateFields(units, board);
   // ...and the one interior rule that takes something AWAY. Achilles's duel
   // negates "all buffs and debuffs that were caused by Units not involved" for
   // as long as it stands, so the projection is filtered after the fields have
