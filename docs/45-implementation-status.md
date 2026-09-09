@@ -754,6 +754,29 @@ against a buff and 0 against a debuff. End to end: Imperial Privilege's two 60% 
 none / atkUp / both / both / atkUp across five uses on their own, and on **all five** once Buff ChUp
 was up — 60 + 40 is automatic.
 
+#### Commit 5 — the three Sphinxes, and two flags nobody read
+
+Sphinx, Sphinx Queen and Sphinx Wehem-Mesut, every stated figure as printed, Luck inherited from
+Ozymandias at summon time, and Wehem-Mesut on EMIYA's `rangeBanded` Normal Attack (*"at a Range of
+2 or higher, Attack deals MAG damage"*).
+
+**`actsOncePerTurn` was projected by nobody.** `canConsume` has tested it on the board unit since
+the platform cap was written, and `snapshot.mjs` never carried it — so it read `undefined` for
+every summon in every world, and *"can only Move/Attack once per Turn"* applied to platforms (which
+are caught by their `kind`) and to nothing else. **`countsTowardBudget` had no reader at all**:
+`poolFor` exempted every summon unconditionally, so the flag could only have gone wrong on a summon
+that counts, and one could not have been authored.
+
+**`TargetabilityModifier` could not name a unit.** Bašmu shields *"Semiramis or her allied Units"*
+and `relations` says that; the Sphinxes shield *"Ozymandias or his Master"*, which is narrower than
+any relation. `recipientRoles: [summoner, summonerMaster]` resolves both against the aura's own
+source; an aura naming none behaves exactly as before.
+
+Measured live: Ozymandias and his Master each carry one `untargetableBy` with a Sphinx adjacent and
+are absent from an enemy's resolved target list, while an allied Servant three panels off is not
+shielded; a Sphinx's Move leaves `servantMove` at 0 where a Servant's takes it to 1; and having
+moved, the Sphinx refuses a second Move.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and

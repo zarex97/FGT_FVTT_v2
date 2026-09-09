@@ -602,3 +602,25 @@ describe("abilities carry the geometry of the field they build", () => {
     expect(u.abilities[0].fieldGeometryKind).toBeNull();
   });
 });
+
+describe("a summon's action economy", () => {
+  // `budget.mjs:203` has tested `actsOncePerTurn` on the BOARD unit since the
+  // platform cap was written, and the projection never carried it -- so it read
+  // `undefined` for every summon in every world and Bašmu's *"can only
+  // Move/Attack once per Turn"* has never applied to anything but a platform,
+  // which is caught by `kind` instead.
+  it("projects actsOncePerTurn", () => {
+    const summon = actor({ type: "summon", system: { actsOncePerTurn: true, range: { panels: 1, targets: 1 } } });
+    expect(snapshotUnit(summon, {}).actsOncePerTurn).toBe(true);
+  });
+
+  it("leaves it false for a summon whose sheet does not say it", () => {
+    expect(snapshotUnit(actor({ type: "summon" }), {}).actsOncePerTurn).toBe(false);
+  });
+
+  it("projects countsTowardBudget only when the sheet declares it", () => {
+    expect(snapshotUnit(actor({ type: "summon" }), {}).countsTowardBudget).toBe(false);
+    const counts = actor({ type: "summon", system: { countsTowardBudget: true } });
+    expect(snapshotUnit(counts, {}).countsTowardBudget).toBe(true);
+  });
+});

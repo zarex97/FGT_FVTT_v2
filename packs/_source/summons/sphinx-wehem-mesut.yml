@@ -1,0 +1,43 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md:115-123
+#
+# > "Sphinx Wehem-Mesut — Health: 2000, Agility: 12, Luck: Same as Ozymandias',
+# > MOV: 4, Range: 3 panels, 1 target, Base Attack (STR/MAG): 200 (At a Range
+# > of 2 or higher, Attack deals MAG damage), Attributes: Male, [Sky],
+# > Divinity, Large, Detect: 3 panels."
+schema: 1
+id: sphinx-wehem-mesut
+name: "Sphinx Wehem-Mesut"
+type: summon
+# `divine`, not `divinity`: `domain/tables.mjs` predicates on
+# `target:attribute:divine`, and the Sphinxes have no Divinity SKILL for a
+# `StatDelta` to grant it through -- their sheet lists it as an attribute and
+# states no rank or damage clause, so there is nothing to seal and nothing to
+# scale. Written where it is read.
+attributes: [summon, male, sky, divine, large]
+baseHealth: 2000
+agility: 12
+inherit:
+  luck: { from: summoner }
+mov: 4
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 200, mag: 200 }
+# "At a Range of 2 or higher, Attack deals MAG damage" -- EMIYA's `rangeBanded`,
+# which is the only mode that can say "this attack changes component with
+# distance". One band, from 2 outward; below it the flat `component` stands.
+normalAttack:
+  mode: rangeBanded
+  component: str
+  bands:
+    - from: 2
+      component: mag
+detect: 3
+countsTowardBudget: false
+actsOncePerTurn: true
+passiveRules:
+  - key: TargetabilityModifier
+    radius: 1
+    relations: [ally, self]
+    recipientRoles: [summoner, summonerMaster]
+notes: |
+  Spawned inside Ramesseum Tentyris by The Sphinx of Abu el-Hol. Able to leave the Complex, but
+  disappears when it ends or is deactivated, and respawns with the same Stats if it reopens.

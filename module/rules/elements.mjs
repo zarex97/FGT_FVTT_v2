@@ -1362,6 +1362,14 @@ export const EXECUTORS = Object.freeze({
     out.auras.push({
       key: "untargetable", radius: el.radius ?? 1,
       relations: el.relations ?? ["ally", "self"],
+      // WHO exactly, when the relation is too wide. Bašmu shields *"Semiramis
+      // or her allied Units"* and `relations: [ally, self]` says that
+      // precisely; Ozymandias's Sphinxes shield *"Ozymandias or his Master"*,
+      // and nothing narrower than "every ally" existed. Named ROLES rather
+      // than ids, resolved against the aura's own source, because no content
+      // file can know a document id. Absent means every unit the relation
+      // admits, which is what Bašmu wants.
+      recipientRoles: el.recipientRoles ?? null,
       value: true, stacking: "noneRefresh", source,
     });
   },

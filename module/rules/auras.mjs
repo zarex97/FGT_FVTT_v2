@@ -62,6 +62,11 @@ export function collectAuras(unit, board, index = null) {
     // contributions are collected on the bearer and delivered to somebody else.
     if (!recipientQualifies(aura.requiresRecipient, unit)) continue;
 
+    // A named ROLE on the recipient, relative to the aura's source. A
+    // `relations` list is the widest this could be said before: the Sphinxes
+    // shield two units, not every ally within a panel of one.
+    if (aura.recipientRoles && !inRecipientRoles(aura.recipientRoles, source, unit, board)) continue;
+
     // An aura may carry SEVERAL modifiers. Medea's Item Construction is six --
     // three outgoing and three incoming, one per severity tier -- and they are
     // the ability: collapsing them to one number keeps the 50% and silently
@@ -159,10 +164,41 @@ const ROUTES = Object.freeze({
  * @returns {object}
  */
 function bind(a, source) {
-  const { radius, relations, elements, ...modifier } = a;
+  const { radius, relations, elements, recipientRoles, ...modifier } = a;
   void relations;
   void elements;
+  // Addressing, like `relations` -- answered by the time we get here, and a
+  // field the reader does not understand is how the original defect hid.
+  void recipientRoles;
   return { ...modifier, aura: { sourceUnitId: source.id, radius } };
+}
+
+/**
+ * Is the recipient one of the roles this aura names, relative to its source?
+ *
+ * Roles rather than ids: a content file cannot know a document id, and the
+ * summoner is only known once the summon exists. `summonerMaster` is the
+ * Master of whoever conjured the aura's source -- Ozymandias's, for a Sphinx.
+ *
+ * @param {string[]} roles
+ * @param {object} source the unit the aura radiates from
+ * @param {object} recipient
+ * @param {object} board
+ * @returns {boolean}
+ */
+function inRecipientRoles(roles, source, recipient, board) {
+  const summonerId = source?.summonerId ?? null;
+  const summoner = summonerId ? (board?.units ?? []).find((u) => u.id === summonerId) : null;
+
+  for (const role of roles) {
+    if (role === "self" && recipient.id === source?.id) return true;
+    if (role === "summoner" && summonerId && recipient.id === summonerId) return true;
+    // The summoner's Master, read off the summoner rather than off the summon:
+    // a summon has no contract of its own, and `masterId` is the link the ZON
+    // rules already use.
+    if (role === "summonerMaster" && summoner?.masterId && recipient.id === summoner.masterId) return true;
+  }
+  return false;
 }
 
 /**

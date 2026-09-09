@@ -1,0 +1,47 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md:97-105
+#
+# > "Sphinx — Health: 1000, Agility: 14, Luck: Same as Ozymandias', MOV: 5,
+# > Range: 1 panel, 1 target, Base Attack (STR): 125, Attributes: Male,
+# > [Earth], Divinity, Detect: 2 panels."
+#
+# Spawned by The Sphinx of Abu el-Hol, which is Passive and fires with Ramesseum
+# Tentyris rather than on its own -- so all three of these exist only while the
+# Complex is open, and vanish with it (Task 12's `onOpen`/`onEnd`).
+schema: 1
+id: sphinx
+name: "Sphinx"
+type: summon
+# `divine`, not `divinity`: `domain/tables.mjs` predicates on
+# `target:attribute:divine`, and the Sphinxes have no Divinity SKILL for a
+# `StatDelta` to grant it through -- their sheet lists it as an attribute and
+# states no rank or damage clause, so there is nothing to seal and nothing to
+# scale. Written where it is read.
+attributes: [summon, male, earth, divine]
+baseHealth: 1000
+agility: 14
+# "Same as Ozymandias'" -- read at summon time, the shape the Kagome spirits use.
+inherit:
+  luck: { from: summoner }
+mov: 5
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 125, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+# An explicit override (Ch. 08 §8.7).
+detect: 2
+# "The Sphinxes do not count towards the number of Units that Move/Attack in a
+# Turn. The same Sphinx can only Move/Attack once per Turn." Two clauses, and
+# the second is why this is not simply "free": exempt from the POOL, still
+# capped per Unit.
+countsTowardBudget: false
+actsOncePerTurn: true
+passiveRules:
+  # "Enemy Units cannot Attack Ozymandias or his Master if any Sphinxes are next
+  # to them." Bašmu's element, addressed to two units instead of every ally --
+  # `recipientRoles` resolves both against this summon's own summoner.
+  - key: TargetabilityModifier
+    radius: 1
+    relations: [ally, self]
+    recipientRoles: [summoner, summonerMaster]
+notes: |
+  Spawned inside Ramesseum Tentyris by The Sphinx of Abu el-Hol. Able to leave the Complex, but
+  disappears when it ends or is deactivated, and respawns with the same Stats if it reopens.
