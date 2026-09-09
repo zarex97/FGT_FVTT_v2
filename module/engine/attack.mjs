@@ -1467,8 +1467,8 @@ async function closeFieldsPiercedBy(state) {
   const npTags = state.attack?.npTags ?? [];
   if (state.attack?.kind !== "np" || npTags.length === 0) return;
 
-  const { vulnerabilityTriggered } = await import("../rules/bounded-fields.mjs");
-  const { deactivateField } = await import("./fields.mjs");
+  const { vulnerabilityTriggered, meetsTagThreshold } = await import("../rules/bounded-fields.mjs");
+  const { deactivateField, tallyAgainstField, lockOutField } = await import("./fields.mjs");
 
   // From the BOARD, not `unitSnapshot`. Which fields a unit stands in is a
   // board-wide annotation (`annotateFields`) and a unit projected alone does
@@ -1486,9 +1486,53 @@ async function closeFieldsPiercedBy(state) {
     const touched = [attacker, defender].some((u) => (u?.fields ?? []).includes(field.id));
     if (!touched) continue;
 
-    const hit = vulnerabilityTriggered(field, { kind: "npUsedOn", npTags });
-    if (hit.triggered && hit.result === "end") await deactivateField(field.id, "vulnerability");
+    // Recorded before it is tested: *"two … in the same Round"* counts THIS
+    // use as well as the earlier ones, and a tally taken afterwards would need
+    // the second NP to be the third.
+    const window = await tallyAgainstField(field.id, { npTags });
+
+    for (const event of [
+      { kind: "npUsedOn", npTags },
+      // How many of this Round's Noble Phantasms met THIS vulnerability's tag
+      // is a question only the vulnerability can answer, so the count is
+      // recomputed per clause rather than kept by the accumulator.
+      { kind: "npUsed", npTags, countThisWindow: null },
+    ]) {
+      const hit = event.countThisWindow === null && event.kind === "npUsed"
+        ? countedHit(field, npTags, window, vulnerabilityTriggered, meetsTagThreshold)
+        : vulnerabilityTriggered(field, event);
+      if (!hit.triggered) continue;
+
+      // *"In this case, Ramesseum Tentyris cannot be used again for the rest of
+      // the game."* `result: "endPermanently"` appeared nowhere outside the
+      // unit tests: this branch tested `=== "end"` and dropped everything else,
+      // so the harsher outcome was authored, validated and indistinguishable
+      // from the mild one.
+      if (hit.result === "endPermanently") await lockOutField(field);
+      await deactivateField(field.id, "vulnerability");
+      break;
+    }
   }
+}
+
+/**
+ * Test a count-window vulnerability against this Round's recorded uses.
+ *
+ * @param {object} field
+ * @param {string[]} npTags
+ * @param {{tags: string[][]}} window
+ * @param {Function} triggered
+ * @param {Function} meets
+ * @returns {{triggered: boolean, result?: string}}
+ */
+function countedHit(field, npTags, window, triggered, meets) {
+  for (const v of field.vulnerabilities ?? []) {
+    if (v.kind !== "npCount") continue;
+    const qualifying = (window.tags ?? []).filter((t) => meets(t, v.tag)).length;
+    const hit = triggered(field, { kind: "npUsed", npTags, countThisWindow: qualifying });
+    if (hit.triggered) return hit;
+  }
+  return { triggered: false };
 }
 
 async function endConcealmentAfterAttack(state) {
@@ -2907,7 +2951,59 @@ async function applyDamage(state, message) {
     breakdown: result.breakdown, flags: result.flags, isCrit,
   });
 
+  await tallyDamageAgainstFields(defender, attacker, result.total, board);
+
   return result;
+}
+
+/**
+ * Count this hit against the Round window of every field it damaged.
+ *
+ * > *"…or would receive more than 3000 damage on the same round. In this case,
+ * > Ramesseum Tentyris cannot be used again for the rest of the game."*
+ *
+ * On the ORDINARY damage path, not on `closeFieldsPiercedBy`. That function
+ * runs for Noble Phantasms only, and this clause plainly covers every attack —
+ * three thousand damage is three thousand damage however it was dealt.
+ *
+ * **Which damage counts is a reading**, and it is this: damage taken by a Unit
+ * standing inside the field that is NOT an enemy of the field's owner. The
+ * clause's subject is the Complex ("it … would receive"), and a bounded field
+ * has no Health of its own; the nearest thing this system can measure is what
+ * the area fails to protect. Counting every hit inside would let Ozymandias's
+ * own Sphinxes break his Complex by beating on an intruder, which no reading
+ * of the sentence supports.
+ *
+ * @param {object} defender the defender's board unit
+ * @param {object} attacker the attacker's board unit
+ * @param {number} total
+ * @param {object} board
+ * @returns {Promise<void>}
+ */
+async function tallyDamageAgainstFields(defender, attacker, total, board) {
+  if (!(total > 0) || !defender) return;
+  const inside = defender.fields ?? [];
+  if (inside.length === 0) return;
+
+  const { vulnerabilityTriggered } = await import("../rules/bounded-fields.mjs");
+  const { deactivateField, tallyAgainstField, lockOutField } = await import("./fields.mjs");
+  const { relationOf } = await import("../rules/relations.mjs");
+
+  for (const fieldId of inside) {
+    const field = (board.fields ?? []).find((f) => f.id === fieldId);
+    if (!field) continue;
+    const owner = (board.units ?? []).find((u) => u.id === field.ownerId) ?? null;
+    // What the area failed to protect, not what it hurt.
+    if (relationOf(owner, defender, board) === "enemy") continue;
+    // ...and not a Unit hitting its own side inside its own area.
+    if (attacker && relationOf(owner, attacker, board) !== "enemy") continue;
+
+    const window = await tallyAgainstField(fieldId, { damage: total });
+    const hit = vulnerabilityTriggered(field, { kind: "damage", damageThisWindow: window.damage });
+    if (!hit.triggered) continue;
+    if (hit.result === "endPermanently") await lockOutField(field);
+    await deactivateField(fieldId, "vulnerability");
+  }
 }
 
 /**

@@ -1238,6 +1238,84 @@ async function deactivateUpkept(field, reason) {
  * @returns {object|null}
  */
 /**
+ * Tally a Noble Phantasm use or a chunk of damage against a field, this Round.
+ *
+ * > *"It is Attacked with 2 [Anti-Fortress] or higher Noble Phantasms in the
+ * > same Round … or would receive more than 3000 damage on the same round."*
+ *
+ * The window is a property of the MATCH, which is why `vulnerabilityTriggered`
+ * takes the count rather than keeping it: a pure predicate cannot remember.
+ *
+ * Compared against the Round rather than cleared by a hook, for the reason
+ * every expiry in this system is absolute: a reset that fails to fire would
+ * leave a stale count that eventually crosses the threshold on its own. The
+ * Round-boundary reset beside it is hygiene, not the mechanism.
+ *
+ * Every NP is recorded with its tags and the THRESHOLD comparison is left to
+ * the vulnerability — counting only qualifying ones here would hard-code one
+ * field's tag into the accumulator.
+ *
+ * @param {string} fieldId
+ * @param {{npTags?: string[], damage?: number}} event
+ * @returns {Promise<{tags: string[][], damage: number}>}
+ */
+export async function tallyAgainstField(fieldId, { npTags = null, damage = 0 } = {}) {
+  const behavior = behaviorFor(fieldId);
+  if (!behavior) return { tags: [], damage: 0 };
+
+  const round = game.combat?.round ?? 0;
+  const held = behavior.system?.state?.window ?? {};
+  const fresh = held.round === round ? held : { round, damage: 0, tags: [] };
+
+  const next = {
+    round,
+    damage: (fresh.damage ?? 0) + Math.max(0, damage),
+    tags: [...(fresh.tags ?? []), ...(npTags && npTags.length > 0 ? [npTags] : [])],
+  };
+  await behavior.update({ "system.state.window": next });
+  return next;
+}
+
+/**
+ * Clear every open field's Round window.
+ *
+ * Hygiene rather than the mechanism -- `tallyAgainstField` compares the Round
+ * it recorded and ignores a stale window on its own, so a reset that does not
+ * run costs nothing.
+ *
+ * @returns {Promise<void>}
+ */
+export async function resetFieldWindows() {
+  const round = game.combat?.round ?? 0;
+  for (const field of currentBoard().fields ?? []) {
+    await behaviorFor(field.id)?.update({ "system.state.window": { round, damage: 0, tags: [] } });
+  }
+}
+
+/**
+ * Spend a field's ability for the rest of the game.
+ *
+ * > *"In this case, Ramesseum Tentyris cannot be used again for the rest of the
+ * > game."*
+ *
+ * `expendsPermanently`/`expended` already exist for Akhilleus Kosmos, so this
+ * writes the same flag rather than inventing a second kind of permanence.
+ *
+ * @param {object} field a field snapshot
+ * @returns {Promise<void>}
+ */
+export async function lockOutField(field) {
+  const owner = game.actors.get(field.ownerId);
+  const ability = owner?.items?.find?.((i) => i.system?.contentId === field.id);
+  if (!ability) return;
+  await ability.update({ "system.expended": true });
+  await applyWorldIntents(
+    [I.log({ kind: "field", event: "expended", unitId: field.ownerId, field: field.id })],
+    "field:expended",
+  );
+}
+
+/**
  * Record WHEN these units came to be inside these fields.
  *
  * Written once per unit per field and never refreshed: a unit walking around

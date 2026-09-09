@@ -831,6 +831,19 @@ treats the result as a **boolean** — and both objects are truthy, so the gate 
 Doomsday Come's drag-in, the only clause that uses it, was offered whether or not the area stood,
 which is why nobody noticed: it reads as available in exactly the situation a player would try it.
 
+### 15.4b `expended` was written and never read by the use gate
+
+`expendsPermanently`/`expended` have existed since Akhilleus Kosmos was authored -- *"after that,
+Akhilleus Kosmos is broken; all its effects are lost and cannot be used for the rest of the game"* --
+and `expended` was read only by `rules/reactions.mjs`. The ordinary `canUseAbility` route never
+consulted it, so a Noble Phantasm broken for the rest of the match was still on the sheet and still
+pressable.
+
+It is checked **above** the cooldown gate, which is the one place this file's "fixable by waiting
+first" ordering does not apply: breaking Ramesseum Tentyris also starts its 8-tick deactivation
+clock, so a player pressing it would be told to wait twenty-four Turns for something that is never
+coming back. Measured exactly that way before the check moved.
+
 ## 15.5 Categorization: the three scoping questions
 
 Three flags decide which effects touch an ability. They are the most bug-prone part of the

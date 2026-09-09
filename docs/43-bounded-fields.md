@@ -796,6 +796,40 @@ not a stated rule.
 
 ---
 
+### 43.8a The Round window, and the harsher outcome
+
+> *"It is Attacked with 2 [Anti-Fortress] or higher Noble Phantasms in the same Round from outside,
+> or they are used by enemy Units within the Complex, or would receive more than 3000 damage on the
+> same round. In this case, Ramesseum Tentyris cannot be used again for the rest of the game."*
+
+`vulnerabilityTriggered` is pure and cannot remember, so the window lives on the field:
+`state.window = {round, damage, tags}`, written by `tallyAgainstField`. It is **compared** against
+the current Round rather than cleared by a hook, for the reason every expiry in this system is
+absolute -- a reset that fails to fire would leave a stale count that eventually crosses the
+threshold on its own. The Round-boundary reset is hygiene, not the mechanism.
+
+Every Noble Phantasm is recorded with its tags and the threshold comparison is left to the
+vulnerability. Counting only qualifying uses in the accumulator would hard-code one field's tag
+into it.
+
+**The damage half lives on the ordinary damage path, not on the NP path.** `closeFieldsPiercedBy`
+runs for Noble Phantasms only, and three thousand damage is three thousand damage however it was
+dealt. Which damage counts is a **reading**, and it is this: damage taken by a Unit inside the field
+that is not an enemy of the owner, dealt by one that is. The clause's subject is the Complex
+("it ... would receive") and a bounded field has no Health; the nearest measurable thing is what the
+area failed to protect. Counting every hit inside would let his own Sphinxes break his Complex by
+beating on an intruder.
+
+**`result: "endPermanently"` had never been honoured.** The branch that read a vulnerability's
+result tested `=== "end"` and dropped everything else, so the harsher of the two outcomes was
+authored, validated, and indistinguishable from the mild one. It now writes `expended` on the
+owning ability -- the same flag Akhilleus Kosmos uses, rather than a second kind of permanence.
+
+Measured live, all four cases: one [Anti-Fortress] Noble Phantasm leaves it standing; a second in
+the **same** Round closes it and marks it expended, and pressing it again is refused with
+*"expended"*; a second in a **different** Round does not, because the window rolls over; and sixteen
+ordinary Normal Attacks taking the window 202 -> 2992 -> past 3000 close it the same way.
+
 ## 43.9 Delayed and scheduled fields
 
 Two abilities introduce **scheduled detonation**, which the time model (Ch. 07) supports but

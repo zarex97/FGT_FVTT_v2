@@ -837,3 +837,50 @@ describe("effects tied to a field", () => {
     expect(u.effectInstances).toHaveLength(1);
   });
 });
+
+describe("breaking a field permanently", () => {
+  // > "It is Attacked with 2 [Anti-Fortress] or higher Noble Phantasms in the
+  // > same Round … or would receive more than 3000 damage on the same round.
+  // > In this case, Ramesseum Tentyris cannot be used again for the rest of
+  // > the game."
+  const complex = {
+    id: "tentyris",
+    vulnerabilities: [
+      { kind: "ownerDefeat", result: "end" },
+      { kind: "npCount", tag: "antiFortress", threshold: 2, window: "round", result: "endPermanently" },
+      { kind: "damageThreshold", threshold: 3000, window: "round", result: "endPermanently" },
+    ],
+  };
+
+  it("survives one [Anti-Fortress] Noble Phantasm", () => {
+    expect(vulnerabilityTriggered(complex, {
+      kind: "npUsed", npTags: ["antiFortress"], countThisWindow: 1,
+    }).triggered).toBe(false);
+  });
+
+  it("breaks on the second in the same Round, permanently", () => {
+    expect(vulnerabilityTriggered(complex, {
+      kind: "npUsed", npTags: ["antiFortress"], countThisWindow: 2,
+    })).toEqual({ triggered: true, result: "endPermanently" });
+  });
+
+  it("ignores two Noble Phantasms below the tag threshold", () => {
+    expect(vulnerabilityTriggered(complex, {
+      kind: "npUsed", npTags: ["antiUnit"], countThisWindow: 2,
+    }).triggered).toBe(false);
+  });
+
+  it("breaks above 3000 damage and not at exactly 3000", () => {
+    // "MORE than 3000" -- the boundary belongs to the defender.
+    expect(vulnerabilityTriggered(complex, { kind: "damage", damageThisWindow: 3000 }).triggered)
+      .toBe(false);
+    expect(vulnerabilityTriggered(complex, { kind: "damage", damageThisWindow: 3001 }))
+      .toEqual({ triggered: true, result: "endPermanently" });
+  });
+
+  it("still ends mildly when its owner falls", () => {
+    // Path 3 is not path 2: he may open it again.
+    expect(vulnerabilityTriggered(complex, { kind: "ownerDefeat" }))
+      .toEqual({ triggered: true, result: "end" });
+  });
+});
