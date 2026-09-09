@@ -98,6 +98,15 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // within Doomsday Come."* The memory outlives the field, so it lives on
       // the Servant rather than on the area.
       summonAssignments: new fields.ObjectField({ required: false, initial: () => ({}) }),
+      // What a field's own summons looked like when their field last closed.
+      // *"If Ramesseum Tentyris is reactivated, the Sphinxes will respawn
+      // within the Complex, but with the same Stats as when they disappeared."*
+      //
+      // Written on the OWNER because that is where the memory has to live: the
+      // field is about to stop existing, and `summonAssignments` beside it
+      // already sets the precedent for a summon fact that outlives its area.
+      // Runtime state, never authored, so it is not in `actorSystem()`.
+      fieldSummonStats: new fields.ObjectField({ required: false, initial: () => ({}) }),
 
       // ZON exceptions, both from the reference set (Ch. 16 §16.3). Semiramis
       // aboard the Hanging Gardens is exempt outright; the Dioscuri satisfy ZON

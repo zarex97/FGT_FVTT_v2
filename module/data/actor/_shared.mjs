@@ -227,6 +227,12 @@ export function combatantCommon() {
     normalAttack: new fields.SchemaField({
       mode: new fields.StringField({ initial: "fixed", choices: ["fixed", "combined", "rangeBanded"] }),
       component: new fields.StringField({ initial: "str", choices: ["str", "mag"] }),
+      // What a Normal Attack's damage IS. Every element in the engine is
+      // sourced from an ABILITY document, and the pipeline's element stage
+      // returns immediately without one -- so a Servant whose ordinary swing
+      // has a type had nowhere to state it. Ozymandias's Mesektet is the first:
+      // *"All Normal Attacks use Base Attack (MAG) ... Light damage."*
+      element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       // What `rangeBanded` bands ON. The mode has been a declared choice since
       // this schema was written with nothing to configure it and nothing
       // reading it, so a Servant authored `rangeBanded` attacked with its flat

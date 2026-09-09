@@ -515,6 +515,32 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
+        case "expend": {
+          // *"After this NP is used, Ramesseum Tentyris: The Shining Great
+          // Temple Complex can no longer be used for the rest of the game."*
+          //
+          // One ability spending ANOTHER, which nothing in the corpus needed
+          // until an NP whose whole point is that it replaces the thing it
+          // destroys. `expended` is the flag Akhilleus Kosmos already uses and
+          // that `canUseAbility` now refuses on, so this writes that rather
+          // than inventing a second kind of permanence.
+          //
+          // Once, from the caster: it is a fact about his own sheet.
+          if (target.unitId !== actor.id) break;
+          for (const contentId of phase.abilities ?? []) {
+            const item = actor.items.find((i) => i.system?.contentId === contentId);
+            if (!item) continue;
+            // *"...in this case Ramesseum Tentyris ends first, then the Pyramid
+            // Drop occurs."* The ORDER is the sheet's, and it matters: the
+            // Complex's own interior rules must not be standing over the blast.
+            const { endField } = await import("./fields.mjs");
+            if ((board.fields ?? []).some((f) => f.id === contentId)) await endField(contentId);
+            await item.update({ "system.expended": true });
+            applied.push({ summary: { id: "expend", name: item.name, outcome: "applied", reason: null } });
+          }
+          break;
+        }
+
         case "zone": {
           // §42.7's authored shape for ability-created terrain. Once per use,
           // from the caster: an area is one area, and looping it over a target
@@ -524,7 +550,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const spec = phase.spec ?? {};
           const painted = await paintTerrain({
             types: spec.terrain ?? [],
-            panels: zonePanels(spec, self, board),
+            panels: zonePanels(spec, self, board, extras),
             tag: zoneTag(spec, ability, actor),
             duration: spec.duration ?? null,
             sourceUnitId: actor.id,
@@ -1810,7 +1836,12 @@ async function actorFromPacks(contentId) {
  * @param {object} board
  * @returns {Array<{i: number, j: number}>}
  */
-function zonePanels(spec, self, board) {
+function zonePanels(spec, self, board, extras = {}) {
+  // *"After that, the NP area becomes 'Day' for 2 ticks."* The area the attack
+  // just resolved against, handed in by the attack flow -- not a shape this
+  // phase computes, because the shape was placed by the player and the caster
+  // is standing up to five panels away from it.
+  if (spec.shape === "reuse") return extras.areaPanels ?? [];
   if (!self?.panel) return [];
   if (spec.shape === "fortressNearby") return fortressPanels(self, board);
   if (typeof spec.shape === "string") return [];
@@ -1917,6 +1948,10 @@ function zoneRadius(spec) {
 const CASTER_PHASES = new Set([
   "resource", "statChange", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
   "summonPlatform",
+  // One ability spending another. Pyramid Drop ends and locks out Ramesseum
+  // Tentyris, which is something it does to its USER's sheet rather than to
+  // any defender -- so it belongs in the caster pass, like `createField`.
+  "expend",
   // Terrain an attacking NP paints. Xiuhcoatl's Fortress clause is the first:
   // it depends on where Quetzalcoatl is standing when she uses it, not on
   // anything the attack achieves, so running it here -- before the fan-out,

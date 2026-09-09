@@ -930,6 +930,14 @@ Bounded field: **Ramesseum Tentyris** (Ch. 43). Terrain: Ch. 42 (Sunlight, Day c
 | Pyramid Drop (EX, NP) | Once-per-game NP | RE (5×5, 5×, `NP Seal` 3◈, `Def Dwn` 3◈; converts the area to **Day** for 2◈; consumes Ramesseum Tentyris permanently) |
 | The Sphinx of Abu el-Hol (A, NP) | Summon NP | RE (three distinct statlines; `Luck: shared` with Ozymandias; **stat persistence across field deactivation and reactivation**) |
 
+**All of it is built and measured live** (Ch. 45). The three clauses that needed new vocabulary were
+the ones this table flagged: the Complex's clip against an enemy Home Base
+(`geometry.cannotIntersect`), Dendera's substitution for his Normal Attack
+(`replacesNormalAttack`, plus a `fieldEdge` anchor that reaches inside and shortens on the
+diagonal), and Pyramid Drop repainting the area it just hit (`shape: reuse`). The Sphinxes' stat
+persistence is `ServantData.fieldSummonStats`, written on the owner because it has to outlive the
+field.
+
 **Exercises:** per-ability NP round gates, fields that grant Home Base status, curses tiered by
 unit class, normal attacks replaced by a field, compound anchors combining "inside X" with
 "within N of X's border", summons that survive their field's deactivation as saved state, and

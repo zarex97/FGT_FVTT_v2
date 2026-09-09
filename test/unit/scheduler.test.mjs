@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { dispatch } from "../../module/engine/scheduler.mjs";
+import { dispatch, checkRemovals } from "../../module/engine/scheduler.mjs";
 import { resourcePathFor } from "../../module/domain/resources.mjs";
 
 const handler = { source: "Unlimited Blade Works", abilityId: "ubw" };
@@ -72,5 +72,31 @@ describe("resourcePathFor", () => {
     expect(resourcePathFor("aria", { resources: { aria: { value: 0 } } })).toBe("resources.aria.value");
     expect(resourcePathFor("aria", { resources: {} })).toBe("aria.value");
     expect(resourcePathFor("agility", null)).toBe("agility.value");
+  });
+});
+
+describe("Sustainability that does not decrease", () => {
+  // > "Ozymandias' Sustainability does not decrease while he is within the
+  // > Complex."
+  //
+  // Paused, not refunded: leaving resumes the clock where it was rather than
+  // showing as churn every Turn he stands inside.
+  const free = (over = {}) => ({
+    id: "s", kind: "servant", contract: "free", sustainability: 4, ...over,
+  });
+
+  it("still runs down for an ordinary Free Servant", () => {
+    const intents = checkRemovals([free()], { tick: 3 });
+    expect(intents.find((i) => i.t === "resource" && i.absolute)?.delta).toBe(3);
+  });
+
+  it("stops while the suppression stands", () => {
+    const inside = free({ suppressions: [{ scope: "sustainabilityDecay", source: "tentyris" }] });
+    expect(checkRemovals([inside], { tick: 3 })).toEqual([]);
+  });
+
+  it("does not disappear a Servant whose last tick was suppressed", () => {
+    const last = free({ sustainability: 1, suppressions: [{ scope: "sustainabilityDecay" }] });
+    expect(checkRemovals([last], { tick: 3 }).some((i) => i.t === "defeat")).toBe(false);
   });
 });

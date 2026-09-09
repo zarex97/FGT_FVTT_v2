@@ -1359,6 +1359,11 @@ export function checkRemovals(units, ctx) {
     if (u.kind !== "servant") continue;
     if (u.contract !== "free" && u.contract !== "unbound") continue;
     if (u.sustainability === null || u.sustainability === undefined) continue;
+    // *"Ozymandias' Sustainability does not decrease while he is within the
+    // Complex."* A standing suppression, like the ZON waiver beside it: the
+    // clock is PAUSED rather than refunded, so leaving resumes it where it was
+    // instead of showing as churn every Turn he stands inside.
+    if ((u.suppressions ?? []).some((x) => x.scope === "sustainabilityDecay")) continue;
 
     out.push(I.setResource(u.id, "sustainabilityRemaining", u.sustainability - 1));
     if (u.sustainability - 1 <= 0) {

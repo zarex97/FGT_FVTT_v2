@@ -463,6 +463,20 @@ check families. The `direction` convention from Ch. 14 §14.5 applies — author
 
 ---
 
+### 42.5a Painting the area an attack just used
+
+`shape: reuse` on a `zone` phase paints **the panels the attack resolved against**, handed to the
+caster pass by the attack flow. Pyramid Drop is the first clause that needs it:
+
+> *"After that, the NP area becomes 'Day' for 2 ticks."*
+
+Recomputing the square from the caster would paint it around *him*, and for a Range-5 strike that is
+the wrong square entirely -- the player placed the blast up to five panels away.
+
+`sunlight` is what makes `phaseAt` answer "day" (SS42.6), so the clause needs no new terrain type.
+Measured live during a **Night** Round: a panel inside the blast reads `day` and a panel outside it
+reads `night`.
+
 ## 42.6 New vocabulary introduced by terrain
 
 Terrain pulls in a substantial amount of new content vocabulary. All of it is added to the

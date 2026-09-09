@@ -167,6 +167,14 @@ async function onMove(document, movement, operation) {
   // die if they are CAUGHT IN the Mist" does not ask whose move it was.
   if (document.actor) await runContactEvents([document.actor.id], enteredFields(document, movement));
 
+  // ...and the mirror. *"It is automatically removed after leaving the
+  // Complex."* `annotateFields` stops READING a field-tied effect the moment
+  // its bearer is outside, so the rule is already right; this takes the
+  // document away too, so the sheet agrees with the board. Above the
+  // forced-move return for the same reason contact is: a Unit knocked back out
+  // of the Complex has still left it.
+  if (document.actor) await dropLeftFieldEffects(document.actor, document, movement);
+
   // A FOLLOWING terrain area goes where its source goes, and is above the
   // forced-move return for the same reason contact is: *"the 5x5 panel area
   // around Quetz"* is around her wherever she ends up, and a Quetzalcoatl who
@@ -685,12 +693,68 @@ function offsetDelta(from, to) {
 export async function runContactEvents(unitIds, fieldIds = null) {
   if (!game.users.activeGM?.isSelf) return;
   if (fieldIds && fieldIds.length === 0) return;
-  const { runFieldEvents } = await import("./fields.mjs");
+  const { runFieldEvents, stampFieldEntries } = await import("./fields.mjs");
+  // WHEN they came in, before anything asks how long they have been here.
+  // Ozymandias's Complex kills a Normal Human at the end of the Turn AFTER
+  // entering, and only the field knows when that was.
+  await stampFieldEntries(unitIds, fieldIds);
   const intents = await runFieldEvents("contact", { unitIds, fieldIds, assumeInside: Boolean(fieldIds) });
   if (intents.length === 0) return;
   await applyIntents(intents, {
     io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "field:contact",
   });
+}
+
+/**
+ * Remove the field-tied effects whose field this actor is no longer inside.
+ *
+ * Membership, not an exit event: the same argument `annotateFields`' sweep
+ * makes. This runs on movement because that is when the answer changes for a
+ * unit that walks; a field closing under a unit that has not moved is handled
+ * by `endField`.
+ *
+ * @param {object} actor
+ * @returns {Promise<void>}
+ */
+async function dropLeftFieldEffects(actor, document, movement) {
+  const tied = actor.effects?.filter?.((e) => e.system?.sourceFieldId) ?? [];
+  if (tied.length === 0) return;
+
+  // Membership at the DESTINATION, off the movement payload -- the same
+  // correction `enteredFields` records: at `moveToken` the board still places
+  // the mover on the panel it left, so asking `currentBoard()` where this unit
+  // is standing answers "where it was" and nothing is ever seen to leave.
+  // Measured exactly that way: the board stopped reading the Curse the moment
+  // the unit stepped out, and the ActiveEffect document stayed on its sheet.
+  const board = currentBoard();
+  const inside = new Set(fieldsAt(document, movement, board) ?? unitFieldsFrom(board, actor));
+
+  const gone = tied.filter((e) => !inside.has(e.system.sourceFieldId));
+  if (gone.length > 0) await actor.deleteEmbeddedDocuments("ActiveEffect", gone.map((e) => e.id));
+}
+
+/**
+ * The fields this move ENDS inside, from the movement payload.
+ *
+ * @param {object} document
+ * @param {object} movement
+ * @param {object} board
+ * @returns {string[]|null} `null` when the payload cannot say
+ */
+function fieldsAt(document, movement, board) {
+  const destination = movement?.destination;
+  if (!destination || !canvas?.grid) return null;
+  const to = canvas.grid.getOffset({ x: destination.x, y: destination.y });
+  return (board.fields ?? []).filter((f) => fieldContains(f, to, board)).map((f) => f.id);
+}
+
+/**
+ * @param {object} board
+ * @param {object} actor
+ * @returns {string[]}
+ */
+function unitFieldsFrom(board, actor) {
+  return board.units.find((u) => u.id === actor.id)?.fields ?? [];
 }
 
 /**

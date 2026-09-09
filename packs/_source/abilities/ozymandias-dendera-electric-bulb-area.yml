@@ -1,0 +1,60 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md:87-92
+#
+# > "Can be used by Ozymandias as his Normal Attack while within Ramesseum
+# > Tentyris. Base Attack (MAG) is used. Range is any panel within Ramesseum
+# > Tentyris, and also has a Range of 4 panels away from the border of Ramesseum
+# > Tentyris (if diagonal, 3 panels). Can be used in 2 methods-
+# > 1. Hits 1 Unit within Range for 2x damage.
+# > 2. Hits a 2x2 panel area within Range for 1.5x damage.
+# > Counts as Ozymandias' Attack for the Turn. Damage dealt is not affected by
+# > Atk Up or other damage increasing effects on Ozymandias. Every time the
+# > Dendera Electric Bulb is used to Attack, his Master's Health is reduced by
+# > 10. Cannot be used if his Master's Health is less than 10."
+#
+# TWO documents for the two methods, and the reading is deliberate: this system
+# has no per-use targeting choice -- `targeting.branches` picks by predicate and
+# a `choose` phase runs after the targeting is already resolved -- so "2
+# methods" becomes two buttons, which is what it is at the table anyway. This
+# one carries `replacesNormalAttack`, so pressing Normal Attack inside the
+# Complex fires it; the area method is its sibling file.
+schema: 1
+id: ozymandias-dendera-electric-bulb-area
+name: "Ramesseum Tentyris: Dendera Electric Bulb (Area)"
+kind: skill
+isAttackSkill: true
+slug: denderaElectricBulbArea
+# *"…while within Ramesseum Tentyris."* Answered against the BOARD, which is the
+# only thing that knows where he is standing (`rules/platforms.mjs`).
+timing: { window: ownTurn }
+description: |
+  Method 2 of the Dendera Electric Bulb. Hits a 2x2 panel area within Range for 1.5x damage,
+  using Base Attack (MAG). Range is any panel within the Complex, and 4 panels beyond its
+  border (3 if diagonal). Damage dealt is not affected by @effect[atkUp]{Atk Up} or other damage increasing
+  effects on Ozymandias. His Master loses 10 Health per use.
+requirements:
+  # "Cannot be used if his Master's Health is less than 10."
+  - { kind: masterHealthAbove, amount: 9 }
+additionalCosts:
+  - { id: denderaMasterHealth, kind: masterHealth, amount: 10 }
+targeting:
+  # Measured from the field's BORDER, not from him: the sheet gives the Complex
+  # as the reach and adds a margin beyond it, so where he stands inside is
+  # irrelevant. `allowInside` is the difference from Doomsday Come's drag-in,
+  # which uses the same anchor to reach only what is still outside.
+  anchor:
+    kind: fieldEdge
+    fieldId: ozymandias-ramesseum-tentyris
+    range: 4
+    diagonalRange: 3
+    allowInside: true
+  shape: { kind: rect, w: 2, h: 2 }
+  selection: { relations: [enemy, ally, self], chooser: all, includeSelf: true }
+damage:
+  component: mag
+  multiplier: 1.5
+  # "Damage dealt is not affected by @effect[atkUp]{Atk Up} or other damage increasing effects
+  # on Ozymandias." Narrower than `bypassModifiers`, which would also throw away
+  # the crit and the defender's whole side.
+  ignoresAttackerIncreases: true
+phases:
+  - kind: damage

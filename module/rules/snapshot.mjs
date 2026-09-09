@@ -113,6 +113,19 @@ export function snapshotUnit(actor, {
     // First real consumer: Bašmu's "only one summoned by this Spell can exist
     // on the field" (`noAliveSummon` requirement, rules/items.mjs).
     summonerId: sys.summonerId ?? null,
+    // Both halves of a summon's action economy, and neither was projected.
+    // `budget.mjs` tests `actsOncePerTurn` on the BOARD unit, so it read
+    // `undefined` for every summon in every world and Bašmu's *"can only
+    // Move/Attack once per Turn"* never applied -- a platform is caught by its
+    // `kind` instead, which is why the cap looked implemented.
+    //
+    // `countsTowardBudget` had no reader at all. Its effect was the
+    // unconditional one -- `poolFor` exempted every summon whatever its sheet
+    // said -- so the flag could only ever have gone wrong in the other
+    // direction, on a summon that counts. Projected as `=== true` so an absent
+    // field keeps today's exemption.
+    actsOncePerTurn: sys.actsOncePerTurn === true,
+    countsTowardBudget: sys.countsTowardBudget === true,
     // Which enemy this summon hunts, and which field it dies with. Both are
     // Kagome Spirit clauses and both are read by rules that cannot reach the
     // document: the movement constraint and the field teardown.
@@ -328,6 +341,13 @@ export function snapshotUnit(actor, {
     normalAttack: {
       mode: variantOverride?.normalAttack?.mode ?? sys.normalAttack?.mode ?? "fixed",
       component: variantOverride?.normalAttack?.component ?? sys.normalAttack?.component ?? "str",
+      // The damage TYPE. Declared on the schema, authored on the sheet, stored
+      // on the document -- and dropped HERE, because this projection rebuilds
+      // `normalAttack` field by field rather than spreading it. Ozymandias's
+      // Mesektet is *"Light damage"* on every Normal Attack he makes, and the
+      // pipeline reads the element off the projection, so it arrived as `null`
+      // and the swing had no type at all. Found live, one field after adding it.
+      element: variantOverride?.normalAttack?.element ?? sys.normalAttack?.element ?? null,
       // EMIYA's Normal Attack changes what it is made of at Range 3. Without
       // the bands here the projection reports the flat component, so the
       // preview and the resolution would disagree about his damage at every
@@ -650,6 +670,18 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // dead. Measured live: Semiramis on the middle panel of her own garden,
   // `platformId` correctly stamped, `inHomeBase: false`.
   annotatePlatforms(units, board);
+  // Bounded fields, and BEFORE `annotateEnvironment` for exactly the reason
+  // `annotatePlatforms` is: one of the Home Bases is a FIELD. *"The Complex
+  // functions as a second Home Base for Ozymandias and his Master only."*
+  // `ownBaseOf` reads `board.fields` and each unit's membership, and this pass
+  // is what settles membership -- run the other way round it reads an empty
+  // list for everybody and the clause is silently dead, which is the third
+  // time this ordering has bitten (platforms, then terrain, now fields).
+  //
+  // Nothing this pass needs comes from the two below it: interior rules are
+  // addressed by relation and by kind, both of which `annotateControl` has
+  // already settled.
+  annotateFields(units, board);
   // Day/Night and Home Base are facts about the FIELD, so they settle here for
   // the same reason terrain and auras do: a unit projected alone cannot know
   // which Round it is or whose ground it is standing on.
@@ -658,9 +690,6 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // (§19.3). Applied here rather than at setup so that changing the region
   // mid-configuration does not need every sheet rewritten.
   annotateRegionBonus(units, board);
-  // Bounded fields, last of the positional passes: their interior rules sit
-  // after the ground and the auras in the explainer's reading order.
-  annotateFields(units, board);
   // ...and the one interior rule that takes something AWAY. Achilles's duel
   // negates "all buffs and debuffs that were caused by Units not involved" for
   // as long as it stands, so the projection is filtered after the fields have
@@ -850,7 +879,14 @@ function annotateEnvironment(units, board) {
     // in both directions at once -- `darkModifiers` returns a dealt modifier
     // and a taken one, and Q43 wants the attacker's panel for the first and the
     // defender's for the second, which for this unit is the same panel.
-    const mods = [...darkModifiers(u, phaseAt(u.panel, board)), ...homeBaseModifiers(u, board)];
+    // The phase AT THIS UNIT'S PANEL, recorded so a predicate can ask. There
+    // was no day/night roll option at all, so Ozymandias's *"If used during a
+    // Day Round"* clauses could not be written -- and per panel rather than per
+    // Round for the same reason `darkModifiers` reads it that way below: a unit
+    // inside Quetzalcoatl's `Sol`, or inside Pyramid Drop's own daylight, is in
+    // Day while the Round is Night.
+    u.phase = board.dayNightCycle ? phaseAt(u.panel, board) : "none";
+    const mods = [...darkModifiers(u, u.phase), ...homeBaseModifiers(u, board)];
     if (mods.length > 0) u.modifiers = [...(u.modifiers ?? []), ...mods];
   }
 }
@@ -999,6 +1035,10 @@ function effectInstances(actor) {
       expiry: e.system?.expiry ?? null,
       sourceUnitId: e.system?.sourceUnitId ?? null,
       sourceAbilityId: e.system?.sourceAbilityId ?? null,
+      // What `annotateFields`' sweep reads. Declared on `EffectData` and
+      // projected here, because a field-tied effect that the board cannot see
+      // as field-tied is an ordinary permanent debuff.
+      sourceFieldId: e.system?.sourceFieldId ?? null,
       // Deferred disclosure. Projected because the periodic tick has to know
       // that this instance's damage is not to be attributed -- the tally it
       // feeds is the "total Poison Damage taken" Serenity's sheet reveals when
@@ -1313,6 +1353,14 @@ function collectAbilities(actor) {
       // name a content id, a whole category, or a copy's exclusion set --
       // which is all three of the ways her sheet groups abilities.
       contentId: i.system?.contentId ?? null,
+      // An ability that IS this Unit's Normal Attack while its condition holds
+      // (`rules/platforms.mjs#actionSourceFor`). Projected because the
+      // substitution is decided from the BOARD -- the condition is *"while
+      // within Ramesseum Tentyris"*, and only the board knows where anybody is.
+      replacesNormalAttack: i.system?.replacesNormalAttack ?? null,
+      // What that substitution swings with, since the ability's own damage
+      // block is the Normal Attack's for as long as it stands in for one.
+      damage: i.system?.damage ?? null,
       // The geometry of the field this ability BUILDS, if any. `rules/actions.mjs`
       // offers the Mark action from the snapshot alone and cannot reach the item
       // document to ask -- and "markDefined" is the whole test for whether this

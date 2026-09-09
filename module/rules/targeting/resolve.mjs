@@ -600,15 +600,35 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         return { ...base, panel: casterPanel };
       }
       const panels = panelsOf(field, board);
-      const edge = panels.length > 0
-        ? Math.min(...panels.map((p) => geo.chebyshev(p, unit.panel)))
-        : Infinity;
+      const nearest = panels.length > 0
+        ? panels.reduce((best, p) => (
+          geo.chebyshev(p, unit.panel) < geo.chebyshev(best, unit.panel) ? p : best))
+        : null;
+      const edge = nearest ? geo.chebyshev(nearest, unit.panel) : Infinity;
       const r = spec.range ?? 1;
-      // Already inside: there is nothing to drag them into.
-      if (edge === 0) {
+
+      // Already inside. Doomsday Come's drag-in has nothing to drag, so it
+      // refuses; Dendera Electric Bulb reaches *"any panel within Ramesseum
+      // Tentyris, AND ALSO 4 panels away from the border"*, so it does not.
+      // The anchor says which it is rather than assuming the older one.
+      if (edge === 0 && !spec.allowInside) {
         errors.push(`${unit.name ?? "That Unit"} is already inside.`);
-      } else if (edge > r) {
-        errors.push(`${unit.name ?? "Target"} is ${edge} panels from the area; Range is ${r}.`);
+      } else if (edge > 0) {
+        // *"…and also has a Range of 4 panels away from the border of Ramesseum
+        // Tentyris (if diagonal, 3 panels)."* A shorter reach on the diagonal,
+        // which Chebyshev alone cannot express -- it counts a diagonal step as
+        // one, so a plain radius of 4 would give four in every direction.
+        // "Diagonal" is an offset with both components non-zero.
+        const di = Math.abs(nearest.i - unit.panel.i);
+        const dj = Math.abs(nearest.j - unit.panel.j);
+        const diagonal = di > 0 && dj > 0;
+        const limit = diagonal ? (spec.diagonalRange ?? r) : r;
+        if (edge > limit) {
+          errors.push(
+            `${unit.name ?? "Target"} is ${edge} panels from the area; `
+            + `Range is ${limit}${diagonal ? " on the diagonal" : ""}.`,
+          );
+        }
       }
       return { ...base, panel: unit.panel, panels: unit.panels ?? [unit.panel], unitId: unit.id };
     }

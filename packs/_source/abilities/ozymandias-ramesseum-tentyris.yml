@@ -1,0 +1,296 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md:65-84
+#
+# > "Used during your Turn. Can only be used after 7 full Rounds have passed.
+# > First, the Master's Health is reduced by 50% of its maximum value (cannot be
+# > used if his Master's Health is less than that), then the NP affects an 11x11
+# > panel area around Ozymandias. This area will now be termed as the 'Complex'.
+# > The Complex cannot intersect the Home Base of enemy Players."
+#
+# The largest bounded field in the corpus, and the only one that is a HOME BASE,
+# a curse, an NP seal and a summon platform at once. This file is built in
+# stages: the geometry, the cost and the gate here; the interior (Divine
+# Protection, Divine Curse, God's Curse) and the four termination paths follow.
+#
+# `npGateRound: 8` -- "after 7 full Rounds have passed" is Round 8. The field
+# existed in the ability schema with NO READER; it is folded into `requiresRound`
+# by `rules/ability-use.mjs#usageSpecFor` now, taking whichever of the two gates
+# is later.
+schema: 1
+id: ozymandias-ramesseum-tentyris
+name: "Ramesseum Tentyris: The Shining Great Temple Complex"
+isNP: true
+rank: EX
+kind: noblePhantasm
+slug: ramesseumTentyris
+npTags: [antiFortress, fortress, antiUnit, boundedField]
+npGateRound: 8
+timing: { window: ownTurn }
+# "In this case, the Cooldown for it is 8◈ Turns AFTER IT ENDS" -- the same
+# distinction Chaos Labyrinthos records: eight Turns after it closed, not after
+# it opened.
+cooldown: { max: "8◈", countFrom: deactivation }
+description: |
+  (Active) Usable after 7 full Rounds have passed. First his Master's Health is reduced by 50% of
+  its maximum value; then an 11x11 panel area around Ozymandias becomes the Complex, clipped where
+  it would cover an enemy Home Base.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 11 }
+  # The Complex is not an attack: it opens around him and its clauses are the
+  # field's, not a Combat Process's. `createField` names `target: self` below.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+  limits:
+    requirements:
+      # "Cannot be used if his Master's Health is less than that" -- a FRACTION
+      # of the maximum, and stated as a refusal, so the comparison is `>=`.
+      - { kind: masterHealthFraction, atLeast: 0.5 }
+# "First, the Master's Health is reduced by 50% of its maximum value." The first
+# cost in the corpus whose size is not on the sheet, because it depends on whose
+# Master it is.
+#
+# `supersedes: [npCost]` -- the 50% IS the price, not a surcharge on top of the
+# Rank table's. The sheet states one cost and states its refusal against that
+# one cost ("cannot be used if his Master's Health is less than THAT"), and a
+# Master at exactly half would otherwise pass the gate and then be billed a
+# second time for the EX row. Measured live: 250 -> 50 before this line, which
+# is 125 + the 75 the table charges, and 250 -> 125 after.
+additionalCosts:
+  - id: ramesseumMasterHealth
+    kind: masterHealthFractionOfMax
+    fraction: 0.5
+    supersedes: [npCost]
+field:
+  # Axis 1 -- geometry. Anchored where it was cast, 11x11, and CLIPPED where it
+  # would cover an enemy Home Base rather than refused outright: casting near
+  # one gives a smaller Complex, which is the author's ruling (R2).
+  geometry:
+    kind: fixedArea
+    shape: { kind: square, size: 11 }
+    cannotIntersect: enemyHomeBase
+  # 5. "The Complex functions as a second Home Base for Ozymandias and his
+  # Master only." UNIT-scoped, which is what "only" means and what nothing
+  # before this could say: Semiramis's Hanging Gardens is a second base for her
+  # whole FACTION, so an allied Servant sheltering in the Complex gets none of
+  # the five home-base effects.
+  countsAsHomeBase:
+    units: [owner, ownerMaster]
+  # "Once activated, Ramesseum Tentyris remains constantly Active." No duration
+  # and no upkeep: it ends only by its four stated paths.
+  duration: null
+  # Path 1: "willingly deactivated by Ozymandias himself during his Turn, or at
+  # the start or end of any Turn or Round."
+  deactivation: { byOwner: true, window: any }
+  # Axis 2 -- membership. Nothing traps anybody; the Complex is a place, not a
+  # cage, and its enemies suffer for standing in it rather than for leaving.
+  membership:
+    enemyEntry: free
+    enemyExit: free
+    allyEntry: free
+    allyExit: free
+  # Axis 3 -- isolation. None at all. Every clause of the sheet is about what
+  # happens to Units INSIDE; nothing says the boundary blocks anything, and
+  # Dendera Electric Bulb explicitly reaches four panels PAST it.
+  isolation:
+    outsideCanTargetInside: true
+    insideCanTargetOutside: true
+    outsideCanApplyEffectsInside: true
+    visibilityAcrossBoundary: full
+  # Axis 4 -- interior rules. Clauses 2, 3a-c and 4 of the sheet; clause 3d
+  # (the permanent Stage 1 Curse) is an applied effect rather than a modifier
+  # and comes with the membership sweep, and clause 5 (a second Home Base) and
+  # clause 6 (Sustainability, ZON) are not modifiers either.
+  interior:
+    # 2. Divine Protection. "All damage received by Ozymandias and his allied
+    # Units while within the Complex is reduced by 50% including NP."
+    #
+    # POSITIVE on the `taken` side is a REDUCTION -- Def Up 50 is "damage taken
+    # -50%" -- and Doomsday Come's file records the trap: a -50 here would have
+    # meant the shelter increased the damage by half.
+    - key: DamageModifier
+      modifierKey: defUp
+      direction: taken
+      value: 50
+      npValue: 50
+      relations: [self, ally]
+
+    # 3a. "All damage dealt is reduced by 20% including Noble Phantasm."
+    - key: DamageModifier
+      modifierKey: atkDwn
+      direction: dealt
+      value: 20
+      npValue: 20
+      relations: [enemy]
+
+    # 3b. "All damage received is increased by 20%."
+    - key: DamageModifier
+      modifierKey: defDwn
+      direction: taken
+      value: 20
+      npValue: 20
+      relations: [enemy]
+
+    # 3c. "When performing Evade and Luck Check Rolls, the number rolled is
+    # increased by 2." A POSITIVE value makes the check HARDER, which is this
+    # system's convention and the sheet's own phrasing.
+    - key: CheckModifier
+      check: evade
+      direction: outgoing
+      value: 2
+      relations: [enemy]
+    - key: CheckModifier
+      check: luck
+      direction: outgoing
+      value: 2
+      relations: [enemy]
+
+    # 4. God's Curse. "Servants cannot use their Noble Phantasms. Units with
+    # Divinity equal to Ozymandias or higher ignores this effect. Does not
+    # affect Attacks/Skills/Spells that are only *Categorized as* Noble
+    # Phantasms."
+    #
+    # EVERY Servant inside, not only the enemy ones. Clause 3 above says "all
+    # enemy Units within the Complex" in as many words and this one says
+    # "Servants" -- the sheet had the narrowing words one line earlier and did
+    # not use them. It is also the only reading under which the exemption's
+    # phrasing makes sense: "Divinity EQUAL TO OZYMANDIAS or higher" is written
+    # relative to his own rank because he is himself subject to the curse and
+    # is the benchmark for who escapes it. He has Divinity B, so he escapes.
+    #
+    # A standing SUPPRESSION rather than an applied NP Seal, which is what makes
+    # it unremovable for free: it is present exactly while the Unit stands
+    # inside, and there is nothing for a Dispel to find.
+    #
+    # `minRank: B` is literal (spec §7): that is his rank, and nothing in the
+    # corpus can change a Servant's Divinity.
+    #
+    # The "only Categorized as" escape is free today -- `abilityKind` returns
+    # "np" for a real Noble Phantasm only -- and the spec records the dependency
+    # rather than relying on the accident silently.
+    # 6, first half. "Ozymandias' Sustainability does not decrease while he is
+    # within the Complex." A standing suppression rather than a refund: the
+    # clock is PAUSED, so leaving resumes it where it was.
+    #
+    # Inert while he is contracted -- only a Free Servant has a clock running
+    # at all -- and exactly the clause that matters after his Master dies.
+    # 2, second half. "Whenever Ozymandias is defeated while within the Complex,
+    # he is revived with 20% of his Max Health. When any of the Sphinxes are
+    # defeated within the Complex, it is revived with 10% of its Max Health."
+    #
+    # An INTERIOR revival, which is what makes "while within" free: the source
+    # is only collected onto a Unit standing inside, so a Unit that died
+    # elsewhere never had it. No charges and no cooldown -- the sheet states
+    # neither, and "whenever" is the word that refuses both.
+    #
+    # `consumesOnUse: false` for the same reason: a source that spent itself
+    # would revive him once and then not again, which "whenever" also refuses.
+    - key: RevivalSource
+      id: divineProtection
+      revivalPriority: 50
+      percentOfMax: 20
+      charges: null
+      consumesOnUse: false
+      relations: [self]
+    - key: RevivalSource
+      id: divineProtectionSphinx
+      revivalPriority: 50
+      percentOfMax: 10
+      charges: null
+      consumesOnUse: false
+      relations: [ally]
+      kinds: [summon]
+
+    - key: Suppress
+      scope: sustainabilityDecay
+      relations: [self]
+
+    # 6, second half. "His Master's ZON is ignored when he Attacks (no damage
+    # reduction)." A waiver of the PENALTY, not of the requirement: `zonExempt`
+    # would also lift the `requiresZon` gate his own Noble Phantasms honour, and
+    # the sheet says nothing about that. Stage 9 of the pipeline reads it.
+    - key: Suppress
+      scope: zonPenalty
+      relations: [self]
+
+    - key: Suppress
+      scope: npSeal
+      relations: [self, ally, enemy]
+      kinds: [servant]
+      exemptIf: { categorizedAs: divinity, minRank: B }
+  # 1. "When Ramesseum Tentyris is activated, three additional Units allied with
+  # Ozymandias are spawned within the Complex: Sphinx, Sphinx Queen, and Sphinx
+  # Wehem-Mesut."
+  #
+  # A flat list on the field, because `SummonBound` is per-contacting-enemy
+  # (Kagome Kagome) and has no way to say "these three, when it opens". They
+  # carry `boundToFieldId`, so `endField` takes them with it -- *"all Sphinxes
+  # disappear regardless of position"* -- after recording what they looked like.
+  onOpen:
+    - { key: Summon, contentId: sphinx, placement: { adjacentTo: self } }
+    - { key: Summon, contentId: sphinx-queen, placement: { adjacentTo: self } }
+    - { key: Summon, contentId: sphinx-wehem-mesut, placement: { adjacentTo: self } }
+  interiorEvents:
+    # 3d. "All Units are inflicted with permanent Stage 1 Curse as long as they
+    # are within the Complex. It is automatically removed after leaving the
+    # Complex."
+    #
+    # `tiedToField: true` is what stamps `sourceFieldId` on the instance, and
+    # that is what `annotateFields` sweeps on. MEMBERSHIP, not an exit event: a
+    # Unit teleported out, knocked back out, or standing still while the Complex
+    # closes under it would otherwise carry the Curse for the rest of the match.
+    #
+    # "All Units" here means the enemy ones -- clause 3 is *"a curse that
+    # affects all enemy Units within the Complex"* and 3d is one of its four
+    # lettered halves, so its "all Units" is that sentence's set, not the
+    # board's.
+    - event: contact
+      relations: [enemy]
+      onFail:
+        - key: ApplyEffect
+          effect: { id: curse, stage: 1 }
+          tiedToField: true
+
+    # 3. Divine Curse, the Normal Human tier: "Dies at the end of the Turn
+    # after entering the Complex."
+    #
+    # `afterTurnsInside: 1` is the word "after", and it is the first clause in
+    # the corpus that waits: a `turnEnd` event alone fires every Turn and would
+    # kill on the first. The field records `enteredAt` per Unit for it.
+    #
+    # Every relation, not `[enemy]`: `relationOf` answers **neutral** for a
+    # Civilian -- *"a Civilian belongs to nobody"* -- so an enemy-only list
+    # matches no Normal Human at all. Measured live: the Civilian survived the
+    # Turn it should have died on. `kinds: [civilian]` is what narrows it, and
+    # Jack's Mist states the same clause the same way.
+    - event: turnEnd
+      relations: [neutral, ally, enemy, self]
+      kinds: [civilian]
+      afterTurnsInside: 1
+      onFail:
+        - { key: Defeat, cause: divineCurse, creditOwner: true }
+  # Axis 6 -- vulnerability. Path 3's first half: "If Ozymandias is defeated,
+  # Ramesseum Tentyris is forcibly ended at the end of the Turn." The Master's
+  # 2◈ delay and the 2-[Anti-Fortress]/3000-damage break are separate paths.
+  vulnerabilities:
+    - { kind: ownerDefeat, result: end }
+    # Path 2. "It is Attacked with 2 [Anti-Fortress] or higher Noble Phantasms
+    # in the same Round from outside, or they are used by enemy Units within the
+    # Complex, or would receive more than 3000 damage on the same round. In this
+    # case, Ramesseum Tentyris cannot be used again for the rest of the game."
+    #
+    # `closeFieldsPiercedBy` already reads "used on OR within" as one question:
+    # the field is touched if either party to the Process stands in it, which is
+    # exactly the sheet's two clauses in one test.
+    #
+    # `endPermanently` is the harsher of the two outcomes and had never been
+    # honoured anywhere -- the branch that read it tested `=== "end"` and
+    # dropped the rest.
+    # Path 3, the other half. "When Ozymandias' Master is defeated, Ramesseum
+    # Tentyris will be forcefully ended after 2◈ Turns, at the end of the Turn."
+    # A DELAYED end, where `ownerDefeat` above it is immediate -- the sheet
+    # states both in one paragraph and means two different things by them.
+    - { kind: masterDefeat, delay: "2◈", result: end }
+    - { kind: npCount, tag: antiFortress, threshold: 2, window: round, result: endPermanently }
+    - { kind: damageThreshold, threshold: 3000, window: round, result: endPermanently }
+phases:
+  - kind: createField
+    target: self

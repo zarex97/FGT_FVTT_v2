@@ -434,6 +434,16 @@ function boundedFieldsOf(scene) {
         lastExtendedAt: sys.lastExtendedAt ?? null,
         extension: sys.extension ?? null,
         vulnerabilities: sys.vulnerabilities ?? [],
+        // Written by `openField` and read by `deactivateField` off the BOARD
+        // projection, and never projected -- so every field's on-end actions
+        // were silently empty. The terrain-clearing path escaped it by reading
+        // the Region behaviour directly (`fields.mjs:481`), which is why the
+        // gap looked like it could not exist.
+        onEnd: sys.onEnd ?? [],
+        // *"The Complex functions as a second Home Base for Ozymandias and his
+        // Master only."* Read by `ownBaseOf` (rules/environment.mjs), which is
+        // the third branch of a question that already had two answers.
+        countsAsHomeBase: sys.countsAsHomeBase ?? null,
         duration: sys.duration ?? null,
         upkeep: sys.upkeep ?? null,
         deactivation: sys.deactivation ?? null,

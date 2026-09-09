@@ -437,3 +437,22 @@ describe("self:stableDie", () => {
     expect([...o].some((x) => x.startsWith("self:stableDie:"))).toBe(false);
   });
 });
+
+describe("phase", () => {
+  it("emits the phase at the unit's own panel", () => {
+    // PER PANEL, not per Round: a unit inside Quetzalcoatl's Sol — or inside
+    // Pyramid Drop's own daylight — is in Day while the Round is Night, and
+    // Pharaoh of the Hot Sands' two conditional clauses must see that.
+    const day = rollOptionsFor({ attacker: { phase: "day" }, defender: { phase: "night" } });
+    expect(day.has("self:phase:day")).toBe(true);
+    expect(day.has("self:phase:night")).toBe(false);
+    expect(day.has("target:phase:night")).toBe(true);
+  });
+
+  it("emits nothing when the cycle is switched off", () => {
+    // "none" is the absence of the axis, not a third lighting condition.
+    const off = rollOptionsFor({ attacker: { phase: "none" }, defender: null });
+    expect(off.has("self:phase:day")).toBe(false);
+    expect(off.has("self:phase:night")).toBe(false);
+  });
+});

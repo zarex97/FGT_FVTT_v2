@@ -1,0 +1,55 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md
+#
+# > "(Active) Used during your Turn. Affects all allied Units within a 2 panel
+# > area of himself. Has the following effects-
+# > 1. Applies Atk Up for 1◈ Turns, all damage dealt is increased by 20%; if NP,
+# >    10%.
+# > 2. If used during a Day Round, applies Crit Up for ⅓◈ Turns, Crit Chance is
+# >    increased by 10%.
+# > 3. If used during a Day Round, applies Crit DmUp for 1◈ Turns, Crit Damage
+# >    dealt is increased by 30%.
+# > Cooldown: 4◈ Turns. This Skill is categorized as 'Charisma'."
+#
+# `applyEffects`, NOT an `Aura`: the ally keeps the buff after walking out of
+# the 2-panel area, which is the distinction Penthesilea's own Howl of the War
+# God spells out in the same shape.
+#
+# The two Day clauses are a PHASE-level predicate, tested against the caster's
+# own options -- `runPhases` builds `selfOptions` from the board-derived unit,
+# which is right: the sheet asks whether HE used it during a Day Round. Read at
+# his panel rather than off the Round, so his own Pyramid Drop daylight counts.
+schema: 1
+id: ozymandias-pharaoh-of-the-hot-sands
+name: "Pharaoh of the Hot Sands"
+rank: A
+kind: skill
+slug: pharaohOfTheHotSands
+categorizedAs: [charisma]
+cooldown: { max: "4◈" }
+timing: { window: ownTurn }
+description: |
+  (Active) Affects all allied Units within a 2 panel area of himself.
+  1. @effect[atkUp]{Atk Up} for 1◈ Turns: all damage dealt is increased by 20%; if NP, 10%.
+  2. If used during a Day Round, @effect[critUp]{Crit Up} for ⅓◈ Turns: Crit Chance +10%.
+  3. If used during a Day Round, @effect[critDmUp]{Crit DmUp} for 1◈ Turns: Crit Damage +30%.
+targeting:
+  anchor: { kind: self }
+  # "Within a 2 panel area of himself" is the 5x5 centred on him, by the
+  # corpus's own convention -- Contagion's "2 panel area" is its 5x5.
+  shape: { kind: square, size: 5 }
+  selection: { relations: [ally, self], chooser: all, includeSelf: true }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUp, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+  - kind: applyEffects
+    target: reuse
+    predicate: ["self:phase:day"]
+    effects:
+      - { id: critUp, magnitude: 10, duration: "⅓◈" }
+      - { id: critDmUp, magnitude: 30, duration: "1◈" }
+  # Explicit, because the ability targets outward: `test/unit/phase-targets.test.mjs`
+  # refuses an untargeted phase on one, and this clock is HIS.
+  - kind: cooldown
+    target: self

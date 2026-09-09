@@ -25,6 +25,7 @@ import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
   panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
+  vulnerabilityTriggered,
 } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -222,6 +223,7 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     extension: spec.extension ?? null,
     vulnerabilities: spec.vulnerabilities ?? [],
     onEnd: spec.onEnd ?? [],
+    countsAsHomeBase: spec.countsAsHomeBase ?? null,
     createdAt: game.combat?.system?.globalTurn ?? 0,
     upkeep: spec.upkeep ?? null,
     deactivation: spec.deactivation ?? null,
@@ -266,6 +268,20 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   // The membership snapshot itself, taken at the same moment the panels are
   // -- "Units within the Throne Room WHEN THE NP WAS ACTIVATED", not
   // whoever happens to be standing there the instant something asks.
+  // WHEN each unit came to be inside, for a clause that waits. Ozymandias's
+  // Complex kills a Normal Human *"at the end of the Turn AFTER entering"* --
+  // a `turnEnd` event alone fires every Turn and would kill on the first, so
+  // the field has to remember. No field had ever recorded a per-unit entry
+  // time. Stamped at open for whoever it opens OVER, and on the contact path
+  // for whoever walks in later.
+  {
+    const panelKeys = new Set(panels.map((p) => `${p.i},${p.j}`));
+    const tick = game.combat?.system?.globalTurn ?? 0;
+    field.state.enteredAt = Object.fromEntries((snapshot.units ?? [])
+      .filter((u) => u.panel && panelKeys.has(`${u.panel.i},${u.panel.j}`))
+      .map((u) => [u.id, tick]));
+  }
+
   if (specMembership?.trappedAtActivation) {
     const panelKeys = new Set(panels.map((p) => `${p.i},${p.j}`));
     field.state.trappedUnitIds = (snapshot.units ?? [])
@@ -329,6 +345,27 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   if (caught.length > 0) {
     const intents = await runFieldEvents("contact", { unitIds: caught });
     if (intents.length > 0) await applyWorldIntents(intents, "field:contact");
+  }
+
+  // *"When Ramesseum Tentyris is activated, three additional Units allied with
+  // Ozymandias are spawned within the Complex."* A flat list on the field
+  // itself: `SummonBound` is per-contacting-enemy (Kagome Kagome) and has no
+  // way to say "these three, when it opens".
+  //
+  // After the Region exists, because `boundToFieldId` names it and because a
+  // summon placed before the area does is a summon standing outside it.
+  for (const entry of spec.onOpen ?? []) {
+    if (entry.key !== "Summon" || !entry.contentId) continue;
+    const { placeSummons, freePanels } = await import("./summoning.mjs");
+    const panelsFor = freePanels(self, entry.placement ?? { adjacentTo: "self" }, 1);
+    // *"...but with the same Stats as when they disappeared."* Read off the
+    // owner, written there by `endField`.
+    const remembered = actor.system?.fieldSummonStats?.[entry.contentId] ?? null;
+    await placeSummons([entry.contentId], panelsFor, actor, scene, {}, {
+      boundToFieldId: field.fieldId,
+      factionId: actor.system?.factionId ?? null,
+      ...(remembered ? { rememberedStats: remembered } : {}),
+    });
   }
 
   // The bar's Fields row, and anything else that cares that the board's field
@@ -463,6 +500,22 @@ export async function endField(fieldId) {
   // (`engine/scene-levels.mjs`), keyed on the field instead. Before the Region
   // goes, so a teardown that fails leaves something to retry against.
   for (const summon of game.actors?.filter?.((a) => a.system?.boundToFieldId === fieldId) ?? []) {
+    // *"When Ramesseum Tentyris ends or is deactivated, all Sphinxes disappear
+    // regardless of position. Then if Ramesseum Tentyris is reactivated, the
+    // Sphinxes will respawn within the Complex, but with the same Stats as when
+    // they disappeared."*
+    //
+    // Remembered on the OWNER, which is the only place that outlives the field.
+    // Keyed by content id, so the Queen's Health comes back to the Queen.
+    const owner = game.actors.get(summon.system?.summonerId);
+    if (owner && summon.system?.contentId) {
+      await owner.update({
+        [`system.fieldSummonStats.${summon.system.contentId}`]: {
+          health: { value: summon.system.health?.value ?? null, max: summon.system.health?.max ?? null },
+          agility: { value: summon.system.agility?.value ?? null, max: summon.system.agility?.max ?? null },
+        },
+      });
+    }
     for (const token of summon.getActiveTokens?.() ?? []) await token.document.delete();
     await summon.delete();
   }
@@ -481,6 +534,16 @@ export async function endField(fieldId) {
   for (const action of (region.behaviors?.find((b) => b.type === "npField")?.system?.onEnd ?? [])) {
     if (action.key !== "ClearTerrain" || !action.tag) continue;
     await clearTerrain(String(action.tag).replace("@field.id", fieldId));
+  }
+
+  // Every effect the field granted goes with it. `annotateFields` already
+  // refuses to read one whose field has closed, so this is storage hygiene
+  // rather than a rule -- but an ActiveEffect nobody can remove, sitting on a
+  // sheet for the rest of the match, is exactly the kind of debris that makes
+  // a live world unusable.
+  for (const actor of game.actors ?? []) {
+    const stale = actor.effects?.filter?.((e) => e.system?.sourceFieldId === fieldId) ?? [];
+    if (stale.length > 0) await actor.deleteEmbeddedDocuments("ActiveEffect", stale.map((e) => e.id));
   }
 
   await region.delete();
@@ -601,6 +664,10 @@ export async function openFieldFromMarks(ability, actor, square) {
 export async function expireFields(tick) {
   const scene = canvas?.scene ?? null;
   if (!scene) return [];
+
+  // Before anything is tested: a Master who fell this Turn starts a clock, and
+  // the clock has to exist before `shouldClose` can read it.
+  await stampForcedEnds(tick);
 
   /** @type {string[]} */
   const closed = [];
@@ -731,6 +798,12 @@ async function offerExtension(field, tick) {
 function shouldClose(field, tick) {
   if (field.expiry !== null && field.expiry !== undefined && field.expiry <= tick) return true;
 
+  // A forced end that was SCHEDULED rather than immediate -- the Master's
+  // defeat, two ticks ago. An absolute tick, stamped once by `stampForcedEnds`,
+  // for the same reason every duration in this system is one.
+  const forced = field.state?.forcedEnd ?? null;
+  if (forced !== null && forced !== undefined && forced <= tick) return true;
+
   // Axis 6. "Owner defeat ends it" is the only vulnerability in the reference
   // set that resolves without a roll, and both authored fields carry it.
   const onOwnerDefeat = (field.vulnerabilities ?? []).some(
@@ -799,6 +872,13 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     // "Acts then ends its Turn within the NP area" -- a Unit that never Acted
     // this Turn has nothing to trigger the clause with.
     && (!spec.requiresActed || u.acted)
+    // A tier that WAITS. *"Dies at the end of the Turn after entering the
+    // Complex"* -- one Turn after the field's own `enteredAt` record, which
+    // is why that record exists. Absent means the clause fires on the first
+    // qualifying Turn, which is every other interior event in the corpus.
+    && (!spec.afterTurnsInside
+      || ((game.combat?.system?.globalTurn ?? 0) - (field.state?.enteredAt?.[u.id] ?? 0))
+        >= spec.afterTurnsInside)
     && (!kinds || kinds.has(u.kind))
     // An interior EVENT may be exempted the same way an interior RULE is.
     // `isExempt` was wired into `interiorModifiers` alone, so a clause like
@@ -1008,8 +1088,17 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         out.push(I.applyEffect(unit.id, {
           defId: action.effect?.id ?? action.effect?.defId,
           magnitude: action.effect?.magnitude ?? 0,
+          // *"…inflicted with permanent Stage 1 Curse."* A staged effect
+          // applied by a field states its stage the way an ability's rider
+          // does, and this writer did not carry it -- so every field-applied
+          // Poison and Curse arrived at stage 0.
+          stage: action.effect?.stage ?? 0,
           expiry: ticks === null ? null : (game.combat?.system?.globalTurn ?? 0) + ticks,
           sourceUnitId: field.ownerId,
+          // *"It is automatically removed after leaving the Complex."* The tie
+          // that `annotateFields`' sweep reads: this instance lives exactly as
+          // long as its bearer stands in this field.
+          sourceFieldId: action.tiedToField ? field.id : null,
         }, field.ownerId));
       }
     }
@@ -1155,6 +1244,164 @@ async function deactivateUpkept(field, reason) {
 
 /**
  * The `npField` behaviour document backing a field id.
+ *
+ * @param {string} fieldId
+ * @returns {object|null}
+ */
+/**
+ * Start the clock on every field whose owner's Master has fallen.
+ *
+ * > *"When Ozymandias' Master is defeated, Ramesseum Tentyris will be
+ * > forcefully ended after 2 ticks, at the end of the Turn."*
+ *
+ * Stamped ONCE, as an absolute tick. A field whose stamp already exists is left
+ * alone -- restamping every pass would push the end back for ever, which is the
+ * same trap `stampFieldEntries` records.
+ *
+ * A delay of nothing closes it on this pass, which is what a `masterDefeat`
+ * vulnerability with no `delay` means.
+ *
+ * @param {number} tick
+ * @returns {Promise<void>}
+ */
+async function stampForcedEnds(tick) {
+  for (const field of currentBoard().fields ?? []) {
+    if (field.state?.forcedEnd !== null && field.state?.forcedEnd !== undefined) continue;
+
+    const hit = vulnerabilityTriggered(field, { kind: "masterDefeat" });
+    if (!hit.triggered) continue;
+
+    const master = field.ownerMasterId ? game.actors.get(field.ownerMasterId) : null;
+    if (!master?.system?.defeated) continue;
+
+    const ticks = hit.delay
+      ? resolveTicks(parseTick(String(hit.delay)), {
+        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      })
+      : 0;
+    await behaviorFor(field.id)?.update({ "system.state.forcedEnd": tick + ticks });
+    await applyWorldIntents(
+      [I.log({
+        kind: "field", event: "forcedEnd", unitId: field.ownerId, field: field.id,
+        detail: { at: tick + ticks, cause: "masterDefeat" },
+      })],
+      "field:forcedEnd",
+    );
+  }
+}
+
+/**
+ * Tally a Noble Phantasm use or a chunk of damage against a field, this Round.
+ *
+ * > *"It is Attacked with 2 [Anti-Fortress] or higher Noble Phantasms in the
+ * > same Round … or would receive more than 3000 damage on the same round."*
+ *
+ * The window is a property of the MATCH, which is why `vulnerabilityTriggered`
+ * takes the count rather than keeping it: a pure predicate cannot remember.
+ *
+ * Compared against the Round rather than cleared by a hook, for the reason
+ * every expiry in this system is absolute: a reset that fails to fire would
+ * leave a stale count that eventually crosses the threshold on its own. The
+ * Round-boundary reset beside it is hygiene, not the mechanism.
+ *
+ * Every NP is recorded with its tags and the THRESHOLD comparison is left to
+ * the vulnerability — counting only qualifying ones here would hard-code one
+ * field's tag into the accumulator.
+ *
+ * @param {string} fieldId
+ * @param {{npTags?: string[], damage?: number}} event
+ * @returns {Promise<{tags: string[][], damage: number}>}
+ */
+export async function tallyAgainstField(fieldId, { npTags = null, damage = 0 } = {}) {
+  const behavior = behaviorFor(fieldId);
+  if (!behavior) return { tags: [], damage: 0 };
+
+  const round = game.combat?.round ?? 0;
+  const held = behavior.system?.state?.window ?? {};
+  const fresh = held.round === round ? held : { round, damage: 0, tags: [] };
+
+  const next = {
+    round,
+    damage: (fresh.damage ?? 0) + Math.max(0, damage),
+    tags: [...(fresh.tags ?? []), ...(npTags && npTags.length > 0 ? [npTags] : [])],
+  };
+  await behavior.update({ "system.state.window": next });
+  return next;
+}
+
+/**
+ * Clear every open field's Round window.
+ *
+ * Hygiene rather than the mechanism -- `tallyAgainstField` compares the Round
+ * it recorded and ignores a stale window on its own, so a reset that does not
+ * run costs nothing.
+ *
+ * @returns {Promise<void>}
+ */
+export async function resetFieldWindows() {
+  const round = game.combat?.round ?? 0;
+  for (const field of currentBoard().fields ?? []) {
+    await behaviorFor(field.id)?.update({ "system.state.window": { round, damage: 0, tags: [] } });
+  }
+}
+
+/**
+ * Spend a field's ability for the rest of the game.
+ *
+ * > *"In this case, Ramesseum Tentyris cannot be used again for the rest of the
+ * > game."*
+ *
+ * `expendsPermanently`/`expended` already exist for Akhilleus Kosmos, so this
+ * writes the same flag rather than inventing a second kind of permanence.
+ *
+ * @param {object} field a field snapshot
+ * @returns {Promise<void>}
+ */
+export async function lockOutField(field) {
+  const owner = game.actors.get(field.ownerId);
+  const ability = owner?.items?.find?.((i) => i.system?.contentId === field.id);
+  if (!ability) return;
+  await ability.update({ "system.expended": true });
+  await applyWorldIntents(
+    [I.log({ kind: "field", event: "expended", unitId: field.ownerId, field: field.id })],
+    "field:expended",
+  );
+}
+
+/**
+ * Record WHEN these units came to be inside these fields.
+ *
+ * Written once per unit per field and never refreshed: a unit walking around
+ * inside the Complex has not re-entered it, and restamping would push a
+ * waiting clause back for ever.
+ *
+ * @param {string[]} unitIds
+ * @param {string[]|null} [fieldIds] only these fields
+ * @returns {Promise<void>}
+ */
+export async function stampFieldEntries(unitIds, fieldIds = null) {
+  const board = currentBoard();
+  const tick = game.combat?.system?.globalTurn ?? 0;
+
+  for (const field of board.fields ?? []) {
+    if (fieldIds && !fieldIds.includes(field.id)) continue;
+    const behavior = behaviorFor(field.id);
+    if (!behavior) continue;
+
+    /** @type {Record<string, number>} */
+    const update = {};
+    for (const id of unitIds ?? []) {
+      // Already recorded: a unit that walks around INSIDE the Complex has not
+      // re-entered it, and restamping would push its execution back for ever.
+      if (field.state?.enteredAt?.[id] !== undefined) continue;
+      update[`system.state.enteredAt.${id}`] = tick;
+    }
+    if (Object.keys(update).length > 0) await behavior.update(update);
+  }
+}
+
+/**
+ * The `npField` behaviour carrying this field.
  *
  * @param {string} fieldId
  * @returns {object|null}

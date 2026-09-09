@@ -876,3 +876,27 @@ selection is explicit where Note 11 would otherwise apply.
 ---
 
 **Next:** [10 — Effects Taxonomy](10-effects-taxonomy.md)
+
+## An aura addressed to named roles
+
+`TargetabilityModifier` is the element behind *"Enemy Units cannot Attack Semiramis or her allied
+Units if a Bašmu is next to them"*. Its `relations` list says exactly that: every ally within a
+panel of the Bašmu, plus the Bašmu itself.
+
+Ozymandias's Sphinxes shield *"Ozymandias or his Master"* — two named units, not every ally
+standing as close. Nothing narrower than a relation existed, so the element gained
+`recipientRoles`, resolved against the aura's **own source**:
+
+| Role | The recipient must be |
+|---|---|
+| `self` | the unit the aura radiates from |
+| `summoner` | whoever conjured that unit |
+| `summonerMaster` | that summoner's Master (`masterId`, the same link ZON reads) |
+
+Roles rather than document ids, because no content file can know an id, and a summon's summoner is
+not known until it exists. An aura naming no roles reaches everything its `relations` admit, which
+is what Bašmu's does — so this is additive and nothing existing changed.
+
+Measured live: with a Sphinx beside him, Ozymandias and his Master each carry one `untargetableBy`
+and neither appears in an enemy's resolved target list; an allied Servant three panels from the
+Sphinx carries none and stays targetable; the Sphinx itself is targetable throughout.

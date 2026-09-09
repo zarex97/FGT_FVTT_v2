@@ -824,6 +824,66 @@ nothing. This is friendlier and no rule requires otherwise.
 
 ---
 
+### 15.4a `fieldOpen` was truthy either way
+
+The requirement returned `{ok: true}` or `{ok: false, reason}` from a function whose every caller
+treats the result as a **boolean** — and both objects are truthy, so the gate has always passed.
+Doomsday Come's drag-in, the only clause that uses it, was offered whether or not the area stood,
+which is why nobody noticed: it reads as available in exactly the situation a player would try it.
+
+### 15.4b `expended` was written and never read by the use gate
+
+`expendsPermanently`/`expended` have existed since Akhilleus Kosmos was authored -- *"after that,
+Akhilleus Kosmos is broken; all its effects are lost and cannot be used for the rest of the game"* --
+and `expended` was read only by `rules/reactions.mjs`. The ordinary `canUseAbility` route never
+consulted it, so a Noble Phantasm broken for the rest of the match was still on the sheet and still
+pressable.
+
+It is checked **above** the cooldown gate, which is the one place this file's "fixable by waiting
+first" ordering does not apply: breaking Ramesseum Tentyris also starts its 8-tick deactivation
+clock, so a player pressing it would be told to wait twenty-four Turns for something that is never
+coming back. Measured exactly that way before the check moved.
+
+### 15.4c An ability that IS the Normal Attack
+
+> *"Can be used by Ozymandias as his Normal Attack while within Ramesseum Tentyris."*
+
+`replacesNormalAttack: {predicate: [...]}` on the ability. `actionSourceFor` already answered
+exactly this question for a driven mount -- *"Quetz's Move and Normal Attack is replaced with
+Quetzalcoatlus'"* -- so it gained a second kind of source rather than a second function: an ability
+the Unit carries, gated on a predicate it answers against the board, tested before the platform
+because an ability a Unit carries is its own and a platform is something it stands on.
+
+**The substitution happens at the declaration.** `resolveAttack` swaps the ability in when no id was
+given, and everything downstream -- the cost, the targeting, the multiplier, the chat card -- then
+runs through the ordinary ability machinery. Teaching `baseSpecFor`, `attackFacts`, the multiplier
+stage and the cost gate about it one at a time would have been four chances for them to disagree.
+
+The substituted ability's **own id** must go into the attack spec. Passing the declared `abilityId`
+through (which is `null` for a Normal Attack) left `state.attack.abilityId` empty, so `applyDamage`
+looked up no ability, found no `damage` block, and the 2x multiplier was silently 1x -- measured
+that way, with stage 3 reading *"Ability multiplier --"*.
+
+**Two documents for two methods.** The sheet offers *"2 methods"*, and this system has no per-use
+targeting choice: `targeting.branches` picks by predicate, and a `choose` phase runs after the
+targeting is already resolved. So the methods are two abilities that share a cost, a range and a
+bypass; the single-target one carries `replacesNormalAttack`, so the Normal Attack button fires it
+and the 2x2 is pressed by name.
+
+### 15.4d One ability spending another
+
+`kind: expend` with a list of content ids. Pyramid Drop is the only clause in the corpus that needs
+it:
+
+> *"After this NP is used, Ramesseum Tentyris: The Shining Great Temple Complex can no longer be
+> used for the rest of the game."* — and, from Ramesseum's own termination list, *"in this case
+> Ramesseum Tentyris ends first, then the Pyramid Drop occurs."*
+
+It closes the named ability's field if one is open, then writes `expended` -- the same flag
+Akhilleus Kosmos uses and that the use gate now refuses on (SS15.4b), rather than a second kind of
+permanence. A caster phase, because it is a fact about the user's own sheet and not about any
+defender.
+
 ## 15.5 Categorization: the three scoping questions
 
 Three flags decide which effects touch an ability. They are the most bug-prone part of the

@@ -23,6 +23,18 @@
 > `turnState.moved`/`.attacked` the same way an ordinary unit's per-unit limit (§18.4) is, just
 > without touching a pool.
 >
+> **Both flags were unreadable, in opposite ways.** `canConsume` tested `actsOncePerTurn` on the
+> BOARD unit and the snapshot never projected it, so it read `undefined` for every summon in every
+> world: the paired cap above applied to platforms (caught by their `kind`) and to nothing else.
+> Bašmu, the three Dragon Tooth Warriors and the three Sphinxes could act without limit.
+> `countsTowardBudget` had no reader at all — `poolFor` exempted every summon unconditionally,
+> which is what all seven of them ask for, so the flag could only ever have gone wrong on a summon
+> that *counts*, and one could not have been authored. `poolFor` now consults it and the projection
+> carries both, defaulting to today's behaviour for a sheet that states neither.
+>
+> Measured live: a Sphinx's Move left `servantMove` at 0 while a Servant's took it to 1, and the
+> Sphinx refused a second Move in the same Turn.
+>
 > Riding's double move reads the **grant** rather than a name-match on the skill, so anything
 > that grants `doubleMove` confers it.
 >
@@ -111,7 +123,7 @@ type BudgetConsumer =
 | Evade / Block | nothing |
 | Riding Attack | `servantAttack` (*"Counts as a Normal Attack"*) plus the movement it consumes |
 | `Gather` (Semiramis) | `servantMove` (*"Using 'Gather' counts as a Unit's 'Move' for that Turn"*) |
-| Summon acting (Bašmu) | **nothing** (*"Bašmu do not count towards the number of Units who Move/Attack in a Turn"*) |
+| Summon acting (Bašmu, a Sphinx) | **nothing** (*"Bašmu do not count towards the number of Units who Move/Attack in a Turn"*), unless its own sheet sets `countsTowardBudget: true` |
 | Platform acting (HGoB) | **nothing** (*"does not count towards number of Units who Move or Act in a Turn"*) |
 
 Note the non-damaging NP clause: using a purely supportive NP like Van Gogh's *De Sterrennacht*

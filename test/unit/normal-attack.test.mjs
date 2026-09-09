@@ -98,3 +98,52 @@ describe("a range-banded normal attack", () => {
     expect(normalAttackAt(layered, 3).sources[0].component).toBe("mag");
   });
 });
+
+describe("element", () => {
+  it("carries the element a Normal Attack is authored with", () => {
+    // Mesektet: "All Normal Attacks use Base Attack (MAG) ... Light damage."
+    // Every element in the engine came from an ABILITY document, and the
+    // pipeline's element stage returns immediately without one — so a Servant
+    // whose ordinary swing has a type had nowhere to say so.
+    const unit = { normalAttack: { mode: "fixed", component: "mag", element: "light" } };
+    expect(normalAttackAt(unit, 1).element).toBe("light");
+  });
+
+  it("is null when unstated, rather than undefined", () => {
+    expect(normalAttackAt({ normalAttack: { mode: "fixed", component: "str" } }, 1).element)
+      .toBeNull();
+  });
+
+  it("lets a band retype the damage as well as re-source it", () => {
+    const unit = {
+      normalAttack: {
+        mode: "rangeBanded", component: "str", element: "fire",
+        bands: [{ from: 3, component: "mag", element: "light" }],
+      },
+    };
+    expect(normalAttackAt(unit, 1).element).toBe("fire");
+    expect(normalAttackAt(unit, 3).element).toBe("light");
+  });
+
+  it("takes the MOUNT's element when a mount replaces the attack", () => {
+    // The whole spec comes from the platform, which is the existing rule --
+    // the element is one more field that must come with it.
+    const rider = { normalAttack: { mode: "fixed", component: "str", element: "fire" } };
+    const mount = { normalAttack: { mode: "fixed", component: "mag", element: "light" } };
+    expect(normalAttackAt(rider, 1, { platform: mount }).element).toBe("light");
+  });
+});
+
+describe("the projection", () => {
+  it("carries the element onto the snapshot", async () => {
+    // `snapshotUnit` rebuilds `normalAttack` field by field rather than
+    // spreading it, so a newly declared field is dropped silently — which is
+    // exactly what happened to `element` the first time it was authored.
+    const { snapshotUnit } = await import("../../module/rules/snapshot.mjs");
+    const actor = {
+      id: "o", name: "O", type: "servant", items: [], effects: [],
+      system: { normalAttack: { mode: "fixed", component: "mag", element: "light" } },
+    };
+    expect(snapshotUnit(actor).normalAttack.element).toBe("light");
+  });
+});

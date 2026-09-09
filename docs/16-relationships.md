@@ -235,6 +235,22 @@ per-Servant colour coding when the Master is selected.
 
 ---
 
+### 16.3a Waiving the penalty without waiving the zone
+
+Being outside the ZON costs exactly two things: 5d10 off attack damage, and no Noble Phantasms.
+Ozymandias's Complex waives the **first only**:
+
+> *"His Master's ZON is ignored when he Attacks (no damage reduction)."*
+
+`zonExempt` — the flag Semiramis carries aboard her Hanging Gardens — is the blunt instrument that
+lifts both, and it would silently hand him Noble Phantasms his sheet never granted. So the field
+declares `Suppress scope: zonPenalty` instead, which stage 9 of the damage pipeline reads. The unit
+is still `outsideZon` for every other reader, which is what keeps the second cost intact.
+
+Measured live, same panel and same distance throughout (ZON 2, distance 5, `outsideZon: true`):
+inside the Complex the chat card's stage 9 reads `ZON penalty — ` and the attack deals 151; with
+the Complex closed it reads `ZON penalty · outside the Master's ZON` and the same attack deals 114.
+
 ## 16.4 Master protection
 
 Four rules, all keyed on "the Master's Servant is within 2 panels of it".

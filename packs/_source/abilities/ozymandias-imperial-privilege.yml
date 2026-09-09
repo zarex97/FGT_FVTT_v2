@@ -1,0 +1,40 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md
+#
+# > "(Active) Used during your Turn. Has the following effects-
+# > 1. Restores his Health by 30% of its maximum value.
+# > 2. 60% chance of applying Atk Up for 1◈ Turns, all damage dealt is increased
+# >    by 40%; if NP, 20%.
+# > 3. 60% chance of applying Def Up for 1◈ Turns, all damage received is
+# >    reduced by 40%; if NP, 20%.
+# > Cooldown: 4◈ Turns."
+#
+# The two chances are INDEPENDENT -- `effect-applier.mjs` rolls each entry
+# separately -- so 36% of uses give both and 16% give neither. Authoring them as
+# one chance would make the Skill all-or-nothing, which is a different Skill.
+#
+# `percentOfMax`, not a flat number: "30% of its MAXIMUM value" is the same
+# clause Medea's Golden Fleece states, and `skill-use.mjs` reads it off the
+# maximum rather than the current bar.
+schema: 1
+id: ozymandias-imperial-privilege
+name: "Imperial Privilege"
+rank: A
+kind: skill
+slug: imperialPrivilege
+cooldown: { max: "4◈" }
+timing: { window: ownTurn }
+description: |
+  (Active) Restores his Health by 30% of its maximum value.
+  60% chance of @effect[atkUp]{Atk Up} for 1◈ Turns: all damage dealt is increased by 40%; if NP, 20%.
+  60% chance of @effect[defUp]{Def Up} for 1◈ Turns: all damage received is reduced by 40%; if NP, 20%.
+phases:
+  - kind: heal
+    target: self
+    percentOfMax: 30
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 20, duration: "1◈", chance: 60 }
+      - { id: defUp, magnitude: 40, npMagnitude: 20, duration: "1◈", chance: 60 }
+  - kind: cooldown
+    target: self

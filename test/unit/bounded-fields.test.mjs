@@ -744,3 +744,173 @@ describe("interiorModifiers — a predicate about the UNIT", () => {
     expect(rule.predicate).toEqual(["attack:npScale:gte:antiWorld"]);
   });
 });
+
+describe("cannotIntersect: enemyHomeBase", () => {
+  // > "The Complex cannot intersect the Home Base of enemy Players."
+  //
+  // CLIPPED rather than refused (the author's ruling, R2): casting near an
+  // enemy base gives a smaller Complex rather than nothing. Free, because a
+  // field's Region has always been a set of panels and never a rectangle.
+  const board = (over = {}) => ({
+    zones: {
+      red: { faction: "red", panels: [at(0, 0), at(0, 1), at(1, 0)] },
+    },
+    alliances: {},
+    ...over,
+  });
+
+  const field = (ownerFaction) => ({
+    id: "complex", ownerFaction,
+    geometry: {
+      kind: "fixedArea", shape: { kind: "square", size: 3 }, anchor: at(1, 1),
+      cannotIntersect: "enemyHomeBase",
+    },
+  });
+
+  it("drops the panels that fall in an enemy Home Base", () => {
+    const panels = panelsOf(field("blue"), board());
+    expect(panels.some((p) => p.i === 0 && p.j === 0)).toBe(false);
+    expect(panels.some((p) => p.i === 1 && p.j === 0)).toBe(false);
+    expect(panels.some((p) => p.i === 1 && p.j === 1)).toBe(true);
+    expect(panels).toHaveLength(9 - 3);
+  });
+
+  it("leaves its OWN faction's base alone", () => {
+    expect(panelsOf(field("red"), board()).some((p) => p.i === 0 && p.j === 0)).toBe(true);
+  });
+
+  it("leaves an ALLIED faction's base alone", () => {
+    const b = board({ alliances: { blue: ["blue", "red"] } });
+    expect(panelsOf(field("blue"), b).some((p) => p.i === 0 && p.j === 0)).toBe(true);
+  });
+
+  it("changes nothing for a field that does not state the constraint", () => {
+    const plain = field("blue");
+    delete plain.geometry.cannotIntersect;
+    expect(panelsOf(plain, board())).toHaveLength(9);
+  });
+});
+
+describe("effects tied to a field", () => {
+  // > "All Units are inflicted with permanent Stage 1 Curse as long as they are
+  // > within the Complex. It is automatically removed after leaving."
+  //
+  // Swept on MEMBERSHIP rather than fired on an exit event: a unit teleported
+  // out, knocked back out, or standing still while the field closes under it
+  // would otherwise keep the Curse for ever. An exit hook can fail to fire;
+  // a membership test cannot.
+  const complex = {
+    id: "tentyris",
+    geometry: { kind: "fixedArea", shape: { kind: "square", size: 3 }, anchor: at(0, 0) },
+  };
+  const bearer = (panel, fieldId) => ({
+    id: "u", panel, faction: "red",
+    effects: ["curse"],
+    effectInstances: [{ defId: "curse", stage: 1, sourceFieldId: fieldId }],
+  });
+
+  it("keeps it while the bearer is still inside", () => {
+    const u = bearer(at(0, 0), "tentyris");
+    annotateFields([u], { fields: [complex] });
+    expect(u.effectInstances).toHaveLength(1);
+    expect(u.effects).toEqual(["curse"]);
+  });
+
+  it("strips an effect whose field the bearer has left", () => {
+    const u = bearer(at(9, 9), "tentyris");
+    annotateFields([u], { fields: [complex] });
+    expect(u.effectInstances).toHaveLength(0);
+    expect(u.effects).toEqual([]);
+  });
+
+  it("strips it when the field no longer exists at all", () => {
+    // The Complex closing under somebody's feet is the same question as their
+    // walking out of it, and the same answer.
+    const u = bearer(at(0, 0), "tentyris");
+    annotateFields([u], { fields: [] });
+    expect(u.effectInstances).toHaveLength(0);
+  });
+
+  it("leaves an ordinary effect alone wherever the bearer stands", () => {
+    const u = bearer(at(9, 9), null);
+    annotateFields([u], { fields: [complex] });
+    expect(u.effectInstances).toHaveLength(1);
+  });
+});
+
+describe("breaking a field permanently", () => {
+  // > "It is Attacked with 2 [Anti-Fortress] or higher Noble Phantasms in the
+  // > same Round … or would receive more than 3000 damage on the same round.
+  // > In this case, Ramesseum Tentyris cannot be used again for the rest of
+  // > the game."
+  const complex = {
+    id: "tentyris",
+    vulnerabilities: [
+      { kind: "ownerDefeat", result: "end" },
+      { kind: "npCount", tag: "antiFortress", threshold: 2, window: "round", result: "endPermanently" },
+      { kind: "damageThreshold", threshold: 3000, window: "round", result: "endPermanently" },
+    ],
+  };
+
+  it("survives one [Anti-Fortress] Noble Phantasm", () => {
+    expect(vulnerabilityTriggered(complex, {
+      kind: "npUsed", npTags: ["antiFortress"], countThisWindow: 1,
+    }).triggered).toBe(false);
+  });
+
+  it("breaks on the second in the same Round, permanently", () => {
+    expect(vulnerabilityTriggered(complex, {
+      kind: "npUsed", npTags: ["antiFortress"], countThisWindow: 2,
+    })).toEqual({ triggered: true, result: "endPermanently" });
+  });
+
+  it("ignores two Noble Phantasms below the tag threshold", () => {
+    expect(vulnerabilityTriggered(complex, {
+      kind: "npUsed", npTags: ["antiUnit"], countThisWindow: 2,
+    }).triggered).toBe(false);
+  });
+
+  it("breaks above 3000 damage and not at exactly 3000", () => {
+    // "MORE than 3000" -- the boundary belongs to the defender.
+    expect(vulnerabilityTriggered(complex, { kind: "damage", damageThisWindow: 3000 }).triggered)
+      .toBe(false);
+    expect(vulnerabilityTriggered(complex, { kind: "damage", damageThisWindow: 3001 }))
+      .toEqual({ triggered: true, result: "endPermanently" });
+  });
+
+  it("still ends mildly when its owner falls", () => {
+    // Path 3 is not path 2: he may open it again.
+    expect(vulnerabilityTriggered(complex, { kind: "ownerDefeat" }))
+      .toEqual({ triggered: true, result: "end" });
+  });
+});
+
+describe("masterDefeat", () => {
+  // > "When Ozymandias' Master is defeated, Ramesseum Tentyris will be
+  // > forcefully ended after 2◈ Turns, at the end of the Turn. If Ozymandias is
+  // > defeated, Ramesseum Tentyris is forcibly ended at the end of the Turn."
+  //
+  // Two clauses in one paragraph meaning two different things: the owner's own
+  // defeat is immediate, his Master's is delayed.
+  const complex = {
+    vulnerabilities: [
+      { kind: "ownerDefeat", result: "end" },
+      { kind: "masterDefeat", delay: "2◈", result: "end" },
+    ],
+  };
+
+  it("triggers on the Master falling, and carries the delay", () => {
+    expect(vulnerabilityTriggered(complex, { kind: "masterDefeat" }))
+      .toEqual({ triggered: true, result: "end", delay: "2◈" });
+  });
+
+  it("leaves the owner's own defeat immediate", () => {
+    expect(vulnerabilityTriggered(complex, { kind: "ownerDefeat" }))
+      .toEqual({ triggered: true, result: "end" });
+  });
+
+  it("does not fire for a field that does not state it", () => {
+    expect(vulnerabilityTriggered({ vulnerabilities: [{ kind: "ownerDefeat", result: "end" }] },
+      { kind: "masterDefeat" }).triggered).toBe(false);
+  });
+});
