@@ -88,6 +88,82 @@ field:
     insideCanTargetOutside: true
     outsideCanApplyEffectsInside: true
     visibilityAcrossBoundary: full
+  # Axis 4 -- interior rules. Clauses 2, 3a-c and 4 of the sheet; clause 3d
+  # (the permanent Stage 1 Curse) is an applied effect rather than a modifier
+  # and comes with the membership sweep, and clause 5 (a second Home Base) and
+  # clause 6 (Sustainability, ZON) are not modifiers either.
+  interior:
+    # 2. Divine Protection. "All damage received by Ozymandias and his allied
+    # Units while within the Complex is reduced by 50% including NP."
+    #
+    # POSITIVE on the `taken` side is a REDUCTION -- Def Up 50 is "damage taken
+    # -50%" -- and Doomsday Come's file records the trap: a -50 here would have
+    # meant the shelter increased the damage by half.
+    - key: DamageModifier
+      modifierKey: defUp
+      direction: taken
+      value: 50
+      npValue: 50
+      relations: [self, ally]
+
+    # 3a. "All damage dealt is reduced by 20% including Noble Phantasm."
+    - key: DamageModifier
+      modifierKey: atkDwn
+      direction: dealt
+      value: 20
+      npValue: 20
+      relations: [enemy]
+
+    # 3b. "All damage received is increased by 20%."
+    - key: DamageModifier
+      modifierKey: defDwn
+      direction: taken
+      value: 20
+      npValue: 20
+      relations: [enemy]
+
+    # 3c. "When performing Evade and Luck Check Rolls, the number rolled is
+    # increased by 2." A POSITIVE value makes the check HARDER, which is this
+    # system's convention and the sheet's own phrasing.
+    - key: CheckModifier
+      check: evade
+      direction: outgoing
+      value: 2
+      relations: [enemy]
+    - key: CheckModifier
+      check: luck
+      direction: outgoing
+      value: 2
+      relations: [enemy]
+
+    # 4. God's Curse. "Servants cannot use their Noble Phantasms. Units with
+    # Divinity equal to Ozymandias or higher ignores this effect. Does not
+    # affect Attacks/Skills/Spells that are only *Categorized as* Noble
+    # Phantasms."
+    #
+    # EVERY Servant inside, not only the enemy ones. Clause 3 above says "all
+    # enemy Units within the Complex" in as many words and this one says
+    # "Servants" -- the sheet had the narrowing words one line earlier and did
+    # not use them. It is also the only reading under which the exemption's
+    # phrasing makes sense: "Divinity EQUAL TO OZYMANDIAS or higher" is written
+    # relative to his own rank because he is himself subject to the curse and
+    # is the benchmark for who escapes it. He has Divinity B, so he escapes.
+    #
+    # A standing SUPPRESSION rather than an applied NP Seal, which is what makes
+    # it unremovable for free: it is present exactly while the Unit stands
+    # inside, and there is nothing for a Dispel to find.
+    #
+    # `minRank: B` is literal (spec §7): that is his rank, and nothing in the
+    # corpus can change a Servant's Divinity.
+    #
+    # The "only Categorized as" escape is free today -- `abilityKind` returns
+    # "np" for a real Noble Phantasm only -- and the spec records the dependency
+    # rather than relying on the accident silently.
+    - key: Suppress
+      scope: npSeal
+      relations: [self, ally, enemy]
+      kinds: [servant]
+      exemptIf: { categorizedAs: divinity, minRank: B }
   # Axis 6 -- vulnerability. Path 3's first half: "If Ozymandias is defeated,
   # Ramesseum Tentyris is forcibly ended at the end of the Turn." The Master's
   # 2◈ delay and the 2-[Anti-Fortress]/3000-damage break are separate paths.

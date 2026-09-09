@@ -568,6 +568,20 @@ charge Contagion on every faction's Turn and triple the toll.
 
 ---
 
+### 43.6a What an interior rule could not reach
+
+An interior rule routes through the same executor table an ability's `passiveRules` do, so a
+`CheckModifier` lands in `checkModifiers` and a `Suppress` in `suppressions`. Both were landing.
+Only one of them was being read: the damage pipeline takes its modifiers from the board, and the
+check rolls did not — see Ch. 14 §14.5a.
+
+Ozymandias's Complex is the first field to state all four kinds at once, and measured live inside
+it: an ally's damage taken carries `Def Up ozymandias-ramesseum-tentyris −50%` and an enemy's
+carries `Def Dwn … +20%` in the chat card's own stage-4 list, an enemy's outgoing damage carries
+`Atk Dwn … −20%`, an enemy's Evade card reads `ozymandias-ramesseum-tentyris +2`, and
+`preventedBy(unit, "np")` answers `npSeal` for a Servant inside and nothing for one with Divinity
+at or above the rank the clause names.
+
 ## 43.7 Axis 5 — Duration and extension
 
 ```ts

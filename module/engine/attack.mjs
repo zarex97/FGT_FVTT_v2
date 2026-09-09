@@ -1798,8 +1798,17 @@ async function rollCheckChances(unit, check) {
  * @returns {Promise<object>}
  */
 async function rollEvade(state) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = unitSnapshot(game.actors.get(state.defenderId));
+  // From the BOARD, not a bare `unitSnapshot`. `unitFrom`'s own docstring
+  // makes the argument -- a re-projected unit carries none of the auras or
+  // field interior rules it is standing in -- and this rung took the bare
+  // projection anyway, so no aura and no bounded field has ever moved an Evade
+  // roll. Ozymandias's Complex is *"when performing Evade and Luck Check
+  // Rolls, the number rolled is increased by 2"*; Doomsday Come's Innocent
+  // World says +4 on two of its six branches. All of it landed on the
+  // snapshot and none of it on the die.
+  const board = currentBoard();
+  const attacker = unitFrom(board, game.actors.get(state.attackerId));
+  const defender = unitFrom(board, game.actors.get(state.defenderId));
   const roll = await new Roll("1d20").evaluate();
 
   // Everything the defender's own abilities have to say about Evade -- Mad
@@ -1944,9 +1953,11 @@ function evadeModifiers(state, attacker, defender) {
  */
 async function rollLuck(state) {
   const prompt = process.pendingPrompt(state);
-  const unit = unitSnapshot(game.actors.get(prompt.unitId));
+  // From the board, for the reason `rollEvade` records above.
+  const board = currentBoard();
+  const unit = unitFrom(board, game.actors.get(prompt.unitId));
   const opponentId = prompt.side === "attacker" ? state.defenderId : state.attackerId;
-  const opponent = unitSnapshot(game.actors.get(opponentId));
+  const opponent = unitFrom(board, game.actors.get(opponentId));
   const roll = await new Roll("1d20").evaluate();
 
   const plan = checkPlan(unit, "luck");
@@ -4286,7 +4297,9 @@ function offeredReactions(defenderId, attack = null, isAoE = false) {
 function autoEvadeFrom(state, defender) {
   if (!defender) return { applies: false };
 
-  const plan = checkPlan(unitSnapshot(defender), "evade");
+  // Same reason as `rollEvade`: an auto-evasion granted by an aura or by a
+  // field's interior rules is invisible to a bare projection.
+  const plan = checkPlan(unitFrom(currentBoard(), defender), "evade");
   const auto = plan.autoSucceed;
   if (!auto) return { applies: false };
 
@@ -4443,7 +4456,7 @@ async function offerPreemption({ attackerId, abilityId, placement, targetIds, bo
  * @returns {Promise<boolean>}
  */
 async function preemptionLuckCheck(defenderDoc, attackerId) {
-  const unit = unitSnapshot(defenderDoc);
+  const unit = unitFrom(currentBoard(), defenderDoc);
   const roll = await new Roll("1d20").evaluate();
   const plan = checkPlan(unit, "luck");
   const outcome = luckCheck({
