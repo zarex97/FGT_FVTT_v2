@@ -1,0 +1,40 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md
+#
+# > "(Active) Used during your Turn. Affects all allied Units within a 2 panel
+# > area of Ozymandias. Has the following effects-
+# > 1. Reduce their NP Cooldown by ⅔◈ Turns.
+# > 2. Applies Buff ChUp for 1◈ Turns, chance of applying buffs is increased by
+# >    40%.
+# > Cooldown: 4◈-⅓◈ Turns."
+#
+# "Reduce THEIR NP Cooldown" -- the first cooldown clause in the corpus aimed at
+# somebody other than the caster. It needed no executor change: `runPhases`
+# already fans a `cooldown` phase out to every resolved target and hands
+# `cooldownChanges` that target's own actor. Every existing cooldown phase
+# writes `target: self`, which is why one aimed outward had never been seen.
+schema: 1
+id: ozymandias-protection-from-ra
+name: "Protection from Ra"
+rank: "A+"
+kind: skill
+slug: protectionFromRa
+cooldown: { max: "4◈-⅓◈" }
+timing: { window: ownTurn }
+description: |
+  (Active) Affects all allied Units within a 2 panel area.
+  1. Reduces their Noble Phantasm Cooldown by ⅔◈ Turns.
+  2. Applies @effect[buffChUp]{Buff ChUp} for 1◈ Turns: the chance of applying buffs is increased by 40%.
+targeting:
+  anchor: { kind: self }
+  # The 5x5 centred on him, by the corpus's convention for "a 2 panel area".
+  shape: { kind: square, size: 5 }
+  selection: { relations: [ally, self], chooser: all, includeSelf: true }
+phases:
+  - kind: cooldown
+    target: reuse
+    changes:
+      - { scope: np, ticks: "⅔◈", direction: down }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: buffChUp, magnitude: 40, duration: "1◈" }

@@ -43,6 +43,7 @@ abilities:
   - { ref: divinity, rank: B }
   - { ref: ozymandias-pharaoh-of-the-hot-sands }
   - { ref: ozymandias-imperial-privilege }
+  - { ref: ozymandias-protection-from-ra }
   - { ref: ozymandias-mesektet }
 
 notes: |

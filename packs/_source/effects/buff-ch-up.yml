@@ -1,0 +1,22 @@
+# Appendix A §A.2 — "Buff ChUp | Chance of applying buffs to others +X%."
+# Catalogued from the beginning with no document and no reader; Ozymandias's
+# Protection from Ra is the first content that applies it.
+#
+# `polarity: buff` on the contribution is the whole difference from Debuff ChUp
+# beside it. `chanceContribution` treats an unqualified contribution as being
+# about debuffs -- it must, or Serenity's Silent Dance would raise the chance of
+# her own self-buffs landing -- so this one has to say what it is about.
+schema: 1
+id: buffChUp
+name: "Buff ChUp"
+description: "The chance of buffs this Unit applies landing is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: supportive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: ApplicationChance
+    direction: outgoing
+    polarity: buff
+    value: "@magnitude"

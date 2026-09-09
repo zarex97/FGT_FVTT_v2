@@ -715,6 +715,45 @@ Measured with the dice pinned: a Normal Attack deals **240** to a plain target a
 first pair also shows the pipeline's stage ordering — the proportional bonus doubles the base and
 Divinity's flat +40 lands after it.
 
+#### Commit 3 — Pharaoh of the Hot Sands, and the first day/night roll option
+
+`self:phase:day` / `:night`, stamped per **panel** from `phaseAt(u.panel, board)` in
+`annotateEnvironment` rather than off the Round, so his own Pyramid Drop daylight will count when
+it exists. Verified live: at Day all three effects reach him and his ally; at Night only `atkUp`.
+
+#### Commit 4 — Imperial Privilege, and Protection from Ra
+
+Imperial Privilege is pure content — `percentOfMax` and per-effect `chance` both existed. Its two
+60% chances are authored as **separate entries** so they roll independently: 36% of uses give both
+and 16% give neither, where one shared chance would make the Skill all-or-nothing. Live over six
+uses: 300 healed every time (exactly 30% of maximum), buffs both / defUp / neither.
+
+Protection from Ra needed one thing built and one defect closed.
+
+**`Buff ChUp` had a catalogue row, no document, and no reader.** Appendix A has listed it since it
+was written; `chanceContribution` refused every non-debuff outright, on a comment reading *"nothing
+anywhere modifies how likely a buff is to land"*. That default was right and had to survive — it is
+there because Serenity's *Silent Dance* would otherwise raise the chance of her own self-buffs — so
+an `ApplicationChance` now carries an optional `polarity`, absent still meaning debuffs.
+
+**`friendly` was zeroing the applier's own outgoing bonus.** §11.2's friendly clause is about not
+making an ally roll against a gift; it also discarded `inflictBonus`, which would have made the
+only buff-chance effect in the game inert in exactly the case it exists for — a buff, put on an
+ally, by an ally. Found by authoring the first content that noticed.
+
+The plan called for a third change, removing `cooldown` from `CASTER_PHASES` so the phase could
+reach somebody other than the caster. **It was already reaching them**: `runPhases` fans a
+`cooldown` phase out to every resolved target and hands `cooldownChanges` that target's own actor.
+`CASTER_PHASES` is read only by `runCasterPhases`, the *attack* path, so the edit would have
+silently stopped every Noble Phantasm's cooldown phase from running at all. Every existing cooldown
+phase writes `target: self`, which is why one aimed outward had never been seen.
+
+Measured live, with an ally two panels away: the ally's Noble Phantasm cooldown fell 6 → 4 (⅔◈ at
+three Turns to the Round), Buff ChUp 40 landed on both of them, and the contribution reads +40
+against a buff and 0 against a debuff. End to end: Imperial Privilege's two 60% buffs landed
+none / atkUp / both / both / atkUp across five uses on their own, and on **all five** once Buff ChUp
+was up — 60 + 40 is automatic.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
