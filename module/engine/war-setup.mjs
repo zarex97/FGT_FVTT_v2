@@ -13,7 +13,7 @@
 import { homeBaseRects } from "../rules/home-base.mjs";
 import { gridShape } from "../domain/geometry.mjs";
 import { validateRoster } from "../rules/war-setup.mjs";
-import { masterSetupPlan, resolveSetupPlan } from "../rules/setup-rolls.mjs";
+import { plansFor, resolveSetupPlan } from "../rules/setup-rolls.mjs";
 import {
   prepareSummon, commitSummon, servantCatalogue, rollSetupPlan,
 } from "./summon.mjs";
@@ -230,7 +230,9 @@ export async function createMasterFor(container, draft, roster = []) {
   delete data._id;
 
   const mode = game.settings.get("fgt", "masterMode");
-  const plan = masterSetupPlan(data.system, { mode });
+  // The DRAFT's ruleset, not the world's: the wizard has not committed it to
+  // the match yet, so `warRuleset()` would still read the previous war's.
+  const plan = plansFor(draft.ruleset).master(data.system, { mode });
   const { totals, signs } = await rollSetupPlan(plan);
   const lines = resolveSetupPlan(plan, totals, signs);
   const value = (id) => lines.find((l) => l.id === id)?.value;

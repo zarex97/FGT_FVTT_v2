@@ -17,7 +17,7 @@
  */
 
 import {
-  servantSetupPlan, masterSetupPlan, resolveSetupPlan, summonPlan, needsSetupRolls,
+  resolveSetupPlan, summonPlan, needsSetupRolls, plansFor,
 } from "../rules/setup-rolls.mjs";
 import { regionsAdjacent } from "../rules/environment.mjs";
 
@@ -98,7 +98,7 @@ export async function prepareSummon({ contentId, masterId = null, region = null,
   const warRegion = region ?? (game.settings.get("fgt", "region") || null);
   const master = masterId ? game.actors.get(masterId) : null;
 
-  const plan = servantSetupPlan(sheet);
+  const plan = plansFor(warRuleset()).servant(sheet);
   const { totals, signs, rolls } = await rollSetupPlan(plan);
 
   return refresh({
@@ -277,9 +277,9 @@ export async function ensureSetupRolls() {
   const done = [];
   for (const actor of game.actors) {
     if (actor.type !== "servant") continue;
-    if (!needsSetupRolls(actor.system)) continue;
+    if (!needsSetupRolls(actor.system, warRuleset())) continue;
 
-    const { lines } = await rollSetupPlan(servantSetupPlan(sheetSnapshot(actor)));
+    const { lines } = await rollSetupPlan(plansFor(warRuleset()).servant(sheetSnapshot(actor)));
     const value = (id) => lines.find((l) => l.id === id)?.value ?? 0;
     const agility = value("maxAgility");
     const luck = value("maxLuck");
@@ -314,7 +314,7 @@ export async function rollMasterSetup({ masterId, confirm = true }) {
   // written and nothing read it, so every Master was ranked by essence
   // whatever the world was configured for.
   const mode = game.settings.get("fgt", "masterMode") ?? "essences";
-  const { lines } = await rollSetupPlan(masterSetupPlan(actor.system, { mode }));
+  const { lines } = await rollSetupPlan(plansFor(warRuleset()).master(actor.system, { mode }));
   if (!confirm) return { ok: true, lines };
 
   const patch = {};
@@ -381,6 +381,24 @@ export function rulesetOfPack(collection) {
 /* -------------------------------------------------------------------------- */
 /*  Internals                                                                 */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Which ruleset this war is fought under.
+ *
+ * The MATCH first, the setting as its default -- the shape `region` and
+ * `difficulty` already use. A Servant does not carry its own ruleset: it is one
+ * drawn from the Normal pack, and the pack boundary is the discriminator
+ * (`rulesetOfPack`).
+ *
+ * @returns {"advanced"|"normal"}
+ */
+function warRuleset() {
+  try {
+    return game.combat?.system?.ruleset ?? game.settings.get("fgt", "ruleset") ?? "advanced";
+  } catch {
+    return "advanced";
+  }
+}
 
 /** §14.9: Max Health moves by this much per END step, in either direction. */
 const HEALTH_PER_END_STEP = 100;
@@ -488,7 +506,7 @@ function healthAt(sheet, steps) {
   // the stated figure, so the shifted lookup returned the SAME number and the
   // granted step vanished. Medea is the first Servant to state one (750), and
   // her Greece Region grant silently did nothing to her Health.
-  const base = Number(servantSetupPlan(sheet).lines.find((l) => l.id === "maxHealth").base);
+  const base = Number(plansFor(warRuleset()).servant(sheet).lines.find((l) => l.id === "maxHealth").base);
   return base + HEALTH_PER_END_STEP * steps;
 }
 
