@@ -117,6 +117,29 @@ export function ownBaseOf(unit, board) {
     if (zone.faction !== unit?.faction) continue;
     if ((zone.panels ?? []).some((p) => chebyshev(p, unit.panel) === 0)) return zone;
   }
+
+  // ...and a PLATFORM that is one.
+  //
+  // > *"The HGoB counts as a second Home Base for Semiramis' Faction."*
+  //
+  // A platform rather than a Region, because the base MOVES: a drawn zone would
+  // have to be repainted on every step of the garden, which is the following-
+  // terrain problem again and with worse consequences when it drifts. Standing
+  // on the thing is the membership test.
+  //
+  // `HomeBaseBehavior.isSecondary` was declared for this clause by name and
+  // nothing ever created such a Region, so the clause did nothing: measured
+  // live with Semiramis aboard her own Hanging Gardens, outside her ground
+  // base, reporting `inHomeBase: false`. That silently cost her Territory
+  // Creation's `6d20` home-base damage bonus and the `(3d10+30)` reduction it
+  // gives allies -- the whole point of a fortress you can fly.
+  //
+  // Faction-scoped, like the loop above: an enemy who boards it is standing in
+  // somebody else's base and gets nothing, which is what "its OWN" means.
+  const platform = (board?.units ?? []).find((u) => u.id === unit?.platformId);
+  if (platform?.countsAsHomeBase && platform.factionId === unit?.faction) {
+    return { faction: unit.faction, panels: platform.panels ?? [], secondary: true, platformId: platform.id };
+  }
   return null;
 }
 

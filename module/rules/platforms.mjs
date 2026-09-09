@@ -139,16 +139,32 @@ function platformOf(unit, board) {
  * The platform **itself** is always a legal target: the protection is for its
  * occupants, and a vehicle nobody can shoot at is not a vehicle.
  *
+ * This function was written, documented and unit-tested, and **no caller ever
+ * consulted it** — so every axis below, and every `crossLevel` block authored
+ * on a platform, was inert in play. `rules/targeting/resolve.mjs` step 4d is
+ * the reader. Found by aiming the Hanging Gardens' own Aerial Garden of Vanity
+ * — *"Cannot hit under or above the HGoB"* — straight down at a Unit standing
+ * under it, and watching it land.
+ *
  * @param {object} attacker
  * @param {object} target
  * @param {object} board
+ * @param {object} [options]
+ * @param {number|null} [options.range] the reach of the ATTACK, when that is
+ *   not the attacker's own Range. The Hanging Gardens *"does not Normal
+ *   Attack"* and carries `range: 0`, while both of its Skills are Range 4 and
+ *   Range 7 — reading the unit's Range would refuse them as melee.
+ * @param {boolean} [options.allowDirectlyBelow] the one axis an ability may
+ *   overrule, because one in the reference set says so in as many words:
+ *   Dragon Wing Warriors is *"Range=4 plus the area UNDER the HGoB"* while the
+ *   platform it is fired from forbids exactly that for everything else.
  * @returns {{ok: boolean, reason?: string}}
  */
-export function crossLevelLegal(attacker, target, board) {
+export function crossLevelLegal(attacker, target, board, { range = null, allowDirectlyBelow = false } = {}) {
   if ((attacker?.level ?? 0) === (target?.level ?? 0)) return { ok: true };
   if (target?.kind === "platform") return { ok: true };
 
-  const ranged = (attacker?.range ?? 1) >= 2;
+  const ranged = (range ?? attacker?.range ?? 1) >= 2;
 
   // Shooting IN: the target's platform decides.
   const inbound = platformOf(target, board);
@@ -166,7 +182,7 @@ export function crossLevelLegal(attacker, target, board) {
     const rules = outbound.crossLevel ?? OPEN_PLATFORM;
     if (rules.outboundTargeting === "forbidden") return { ok: false, reason: "outboundForbidden" };
     if (rules.outboundTargeting === "rangedOnly" && !ranged) return { ok: false, reason: "requiresRanged" };
-    if (rules.forbidDirectlyBelow && isDirectlyBelow(target, outbound)) {
+    if (rules.forbidDirectlyBelow && !allowDirectlyBelow && isDirectlyBelow(target, outbound)) {
       return { ok: false, reason: "directlyBelow" };
     }
   }

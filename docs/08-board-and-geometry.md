@@ -207,6 +207,24 @@ unaffected. See the [changelog](../CHANGELOG.md) entry for `0.2.0`.
 **Implementation note.** The shape is memoized per `(R, boundsHash)` and, for `R ≤ 8`, read from
 a precomputed lookup table so a future correction remains a data edit.
 
+### Range from a unit that occupies more than one panel
+
+Every metric above takes two panels. A Servant is one panel and the question does not arise; a
+9×9 platform is eighty-one, and then it does. **Range is measured from the nearest panel the
+unit occupies** — `chebyshevFromAny` and `inAttackRangeFromAny` (`domain/geometry.mjs`), which
+the targeting resolver's `withinRange` and `targetUnit` anchors both use.
+
+A snapshot stores a multi-panel unit as an anchor panel (`panel`) plus a footprint (`panels`),
+and the anchor is the **top-left corner**, not the middle. Measuring from it measured from a
+corner: the Hanging Gardens' own *Dragon Wing Warriors* is *"Range=4 plus the area under the
+HGoB and the area of the HGoB"*, and from the corner of a 9×9 deck, Range 4 did not reach the
+garden's own far half — never mind the ground beneath it. Found by driving the ability through
+its own targeting overlay and watching the highlight stop in the middle of the platform.
+
+The overlay is generated from the same set, deduplicated: an overlay drawn around the corner
+offers panels the resolver refuses and hides panels it would allow, and the two disagreeing is
+worse than either being wrong.
+
 ---
 
 ## 8.3 Movement

@@ -1467,6 +1467,8 @@ function actorSystem(doc) {
     // carries; see `rules/platforms.mjs#actionSourceFor` and
     // `#deactivationVerdict`.
     replacesRiderAction: doc.replacesRiderAction ?? null,
+    // "The HGoB counts as a second Home Base for Semiramis' Faction."
+    countsAsHomeBase: Boolean(doc.countsAsHomeBase),
     deactivation: doc.deactivation ?? null,
     // Pale Rider and the Kagome Spirits: "Base Health: -", "cannot be
     // damaged". Without this the flag compiled to its schema default and each

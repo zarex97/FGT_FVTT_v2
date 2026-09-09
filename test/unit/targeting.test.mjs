@@ -745,3 +745,101 @@ describe("limits.excludeUnitIds", () => {
     expect(out.units.map((u) => u.unitId)).toEqual(["guard"]);
   });
 });
+
+/* -------------------------------------------------------------------------- */
+
+describe("Range from a multi-panel unit (§8.2)", () => {
+  // The Hanging Gardens: a 9x9 platform anchored at (2,2), so its deck runs
+  // (2,2)..(10,10). Its own Dragon Wing Warriors is Range 4.
+  const deck = [];
+  for (let i = 2; i <= 10; i++) for (let j = 2; j <= 10; j++) deck.push(at(i, j));
+  const garden = {
+    id: "hgob", kind: "platform", faction: "a", panel: at(2, 2), panels: deck, range: 4,
+  };
+  const spec = {
+    anchor: { kind: "withinRange", range: 4, metric: "chebyshev" },
+    shape: { kind: "square", size: 5 },
+    selection: { relations: ["enemy"] },
+  };
+  // Wide enough that four panels past the deck's far edge is still on the
+  // board, and seeded with enemies so the shape always has something to hit --
+  // an empty area is refused for a reason that has nothing to do with Range.
+  const wide = squareBounds(21);
+  const board = boardWith([unit("far", 10, 10), unit("beyond", 10, 14)], { bounds: wide });
+
+  it("reaches its own far corner, which its anchor panel cannot", () => {
+    // (10,10) is 8 panels from the anchor at (2,2) and 0 from the deck.
+    expect(validate(spec, garden, board, { panel: at(10, 10) }).ok).toBe(true);
+  });
+
+  it("reaches four panels beyond its far edge", () => {
+    expect(validate(spec, garden, board, { panel: at(10, 14) }).ok).toBe(true);
+  });
+
+  it("still refuses a panel beyond that", () => {
+    const verdict = validate(spec, garden, board, { panel: at(10, 15) });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reasons.join(" ")).toContain("Range is 4");
+  });
+
+  it("offers those panels in the overlay, without repeating any", () => {
+    const options = legalPlacements(spec, garden, board, { max: 10000 });
+    const keys = options.map((o) => key(o.placement.panel));
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys).toContain("10,14");
+  });
+
+  it("measures a one-panel unit from where it stands, as before", () => {
+    const lone = { ...caster, range: 4 };
+    expect(validate(spec, lone, board, { panel: at(9, 9) }).ok).toBe(true);
+    expect(validate(spec, lone, board, { panel: at(10, 14) }).ok).toBe(false);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+
+describe("cross-level protection in the target ladder (§20.7)", () => {
+  // A 3x3 platform at level 2 anchored at (5,5), forbidding attacks straight
+  // down — the Hanging Gardens' own configuration, in miniature.
+  const deck = [at(5, 5), at(5, 6), at(5, 7), at(6, 5), at(6, 6), at(6, 7), at(7, 5), at(7, 6), at(7, 7)];
+  const hgob = {
+    id: "hgob", kind: "platform", faction: "a", panel: at(5, 5), panels: deck, level: 2,
+    footprint: { w: 3, h: 3 },
+    crossLevel: {
+      occupantTargeting: "forbidden", requiresBoarding: true, aoePassengerFactor: 0,
+      aoeMastersImmune: false, outboundTargeting: "rangedOnly", forbidDirectlyBelow: true,
+    },
+  };
+  // The platform firing its own Skill. `range: 0` is the sheet's "does not
+  // Normal Attack", which is exactly what must NOT be used as the reach.
+  const gunner = { ...hgob, range: 0 };
+  const below = unit("below", 6, 6, { level: 0 });
+  const board = boardWith([hgob, below]);
+  const spec = (over = {}) => ({
+    anchor: { kind: "withinRange", range: 4, metric: "chebyshev" },
+    shape: { kind: "square", size: 3 },
+    selection: { relations: ["enemy"] },
+    ...over,
+  });
+
+  it("refuses a target directly below the platform", () => {
+    const v = validate(spec(), gunner, board, { panel: at(6, 6) });
+    expect(v.ok).toBe(false);
+    expect(v.reasons.join(" ")).toMatch(/directly below/);
+  });
+
+  it("allows it for the one ability whose sheet says it reaches under", () => {
+    expect(validate(spec({ allowDirectlyBelow: true }), gunner, board, { panel: at(6, 6) }).ok).toBe(true);
+  });
+
+  it("measures the ability's Range, not the platform's own", () => {
+    // `gunner.range` is 0 — "does not Normal Attack" — so reading it would
+    // refuse every cross-level shot as melee, including this one.
+    expect(validate(spec({ allowDirectlyBelow: true }), gunner, board, { panel: at(6, 6) }).ok).toBe(true);
+  });
+
+  it("leaves same-level targeting untouched", () => {
+    const ground = boardWith([unit("foe", 6, 6)]);
+    expect(validate(spec(), { ...caster, range: 4 }, ground, { panel: at(6, 6) }).ok).toBe(true);
+  });
+});

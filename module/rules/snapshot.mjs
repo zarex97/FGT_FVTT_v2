@@ -371,6 +371,7 @@ export function snapshotUnit(actor, {
     activatedAt: sys.activatedAt ?? null,
     lastUpkeepAt: sys.lastUpkeepAt ?? null,
     replacesRiderAction: sys.replacesRiderAction ?? null,
+    countsAsHomeBase: Boolean(sys.countsAsHomeBase),
     // Concealment is a STATE, and until now nothing produced it. `sys.concealed`
     // was projected here, consulted by targeting, by the counter gate, by
     // movement legality and by the Evade ladder -- and written by no code and
@@ -624,6 +625,16 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // an aura's own modifiers should sit after the ground the unit stands on in
   // the explainer's reading order.
   annotateTerrain(units, board);
+  // Which platform each unit is aboard, and the protection model the targeting
+  // resolver enforces. Positional, so it settles here with the other passes.
+  //
+  // BEFORE `annotateEnvironment`, because one of the Home Bases is a platform:
+  // *"The HGoB counts as a second Home Base for Semiramis' Faction."*
+  // `ownBaseOf` reads `unit.platformId`, which is written here — run the other
+  // way round it read `undefined` for everybody and the clause was silently
+  // dead. Measured live: Semiramis on the middle panel of her own garden,
+  // `platformId` correctly stamped, `inHomeBase: false`.
+  annotatePlatforms(units, board);
   // Day/Night and Home Base are facts about the FIELD, so they settle here for
   // the same reason terrain and auras do: a unit projected alone cannot know
   // which Round it is or whose ground it is standing on.
@@ -632,9 +643,6 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // (§19.3). Applied here rather than at setup so that changing the region
   // mid-configuration does not need every sheet rewritten.
   annotateRegionBonus(units, board);
-  // Which platform each unit is aboard, and the protection model the targeting
-  // resolver enforces. Positional, so it settles here with the other passes.
-  annotatePlatforms(units, board);
   // Bounded fields, last of the positional passes: their interior rules sit
   // after the ground and the auras in the explainer's reading order.
   annotateFields(units, board);

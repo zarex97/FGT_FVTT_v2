@@ -17,6 +17,7 @@ import { test as testPredicate } from "../predicate.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
 import { relationOf, guardsOf } from "../relations.mjs";
+import { crossLevelLegal } from "../platforms.mjs";
 import { Rank } from "../../domain/rank.mjs";
 import { facingAllows, pathClear } from "./facing.mjs";
 
@@ -199,6 +200,30 @@ export function resolveTargets(spec, caster, board, placement = {}) {
       return !verdict.blocked || drop(u, `separated by ${field.id}`);
     });
   }
+
+  // 4d. CROSS-LEVEL PROTECTION (Ch. 20 §20.7). A platform states, in its own
+  //     `crossLevel` block, who may shoot into it, who may shoot out of it,
+  //     and whether the ground directly underneath is reachable at all.
+  //
+  //     `crossLevelLegal` has existed, documented and unit-tested, since the
+  //     platform rules were written, and until now **nothing called it** — so
+  //     every one of those axes was inert. The Hanging Gardens' Aerial Garden
+  //     of Vanity, whose sheet says *"Cannot hit under or above the HGoB"*,
+  //     hit a Unit standing directly under it. Measured live.
+  //
+  //     The ATTACK's reach is passed in, not the caster's: the Hanging Gardens
+  //     *"does not Normal Attack"* and carries Range 0, and reading that would
+  //     refuse both of its own Skills as melee. `allowDirectlyBelow` is the
+  //     one axis an ability may overrule — Dragon Wing Warriors is *"Range=4
+  //     plus the area under the HGoB"*.
+  const crossLevelOptions = {
+    range: typeof spec.anchor?.range === "number" ? spec.anchor.range : null,
+    allowDirectlyBelow: Boolean(spec.allowDirectlyBelow),
+  };
+  survivors = survivors.filter((u) => {
+    const verdict = crossLevelLegal(caster, u, board, crossLevelOptions);
+    return verdict.ok || drop(u, crossLevelReason(verdict.reason));
+  });
 
   // 5. KIND FILTER — platforms and structures are excluded unless asked for.
   const kinds = sel.kinds ?? null;
@@ -479,8 +504,27 @@ export function resolveTargets(spec, caster, board, placement = {}) {
  * @param {string[]} errors
  * @returns {object}
  */
+/**
+ * A cross-level refusal in words a player can act on.
+ * @param {string|undefined} reason
+ * @returns {string}
+ */
+function crossLevelReason(reason) {
+  switch (reason) {
+    case "occupantsForbidden": return "aboard a platform that cannot be attacked into";
+    case "requiresRanged": return "on another level; this reach is too short to attack across";
+    case "outboundForbidden": return "on another level; this platform cannot attack off it";
+    case "directlyBelow": return "directly below this platform, which cannot attack straight down";
+    default: return "on another level";
+  }
+}
+
 function resolveAnchor(spec, caster, board, placement, errors) {
   const casterPanel = caster.panel;
+  // Range is measured from the WHOLE unit, not from the anchor panel a
+  // multi-panel footprint is stored under -- see
+  // `domain/geometry.mjs#chebyshevFromAny` for the case that found it.
+  const casterPanels = caster.panels?.length ? caster.panels : [casterPanel];
   const base = { casterPanel };
 
   switch (spec.kind) {
@@ -502,13 +546,14 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         return { ...base, panel: casterPanel };
       }
       const r = anchorRange(spec, caster);
+      const reach = geo.chebyshevFromAny(casterPanels, panel);
       const inRange = spec.metric === "chebyshev"
-        ? geo.chebyshev(casterPanel, panel) <= r
-        : geo.inAttackRange(casterPanel, panel, r);
+        ? reach <= r
+        : geo.inAttackRangeFromAny(casterPanels, panel, r);
       if (!inRange) {
-        errors.push(`Anchor panel is ${geo.chebyshev(casterPanel, panel)} panels away; Range is ${r}.`);
+        errors.push(`Anchor panel is ${reach} panels away; Range is ${r}.`);
       }
-      if (spec.minRange && geo.chebyshev(casterPanel, panel) < spec.minRange) {
+      if (spec.minRange && reach < spec.minRange) {
         errors.push(`This ability has a minimum Range of ${spec.minRange}.`);
       }
       return { ...base, panel };
@@ -525,14 +570,14 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         return { ...base, panel: casterPanel };
       }
       const r = anchorRange(spec, caster);
-      if (!geo.inAttackRange(casterPanel, unit.panel, r)) {
+      if (!geo.inAttackRangeFromAny(casterPanels, unit.panel, r)) {
         errors.push(`${unit.name ?? "Target"} is out of Range (${r}).`);
       }
       // A minimum, which only the `withinRange` anchor honoured. EMIYA's
       // Hrunting "cannot be used on a Unit directly next to EMIYA" and picks a
       // UNIT, so the one anchor that could express the rule was the one it
       // could not use.
-      if (spec.minRange && geo.chebyshev(casterPanel, unit.panel) < spec.minRange) {
+      if (spec.minRange && geo.chebyshevFromAny(casterPanels, unit.panel) < spec.minRange) {
         errors.push(`${unit.name ?? "Target"} is too close; this ability has a minimum Range of ${spec.minRange}.`);
       }
       return { ...base, panel: unit.panel, panels: unit.panels ?? [unit.panel], unitId: unit.id };
@@ -698,13 +743,24 @@ function candidatePlacements(spec, caster, board, max) {
     // outside it -- the overlay needs to draw the boundary, not only its inside.
     case "withinRange": {
       const out = [];
-      const { i, j } = caster.panel;
+      const seen = new Set();
+      // Around every panel the caster occupies, for the reason
+      // `resolveAnchor` measures from all of them: an overlay drawn around a
+      // 9x9 platform's top-left corner offers panels the resolver refuses and
+      // hides panels it would allow. Deduplicated, because the discs around
+      // neighbouring panels overlap almost entirely.
+      const from = caster.panels?.length ? caster.panels : [caster.panel];
       const reach = range + 1;
-      for (let di = -reach; di <= reach && out.length < max; di++) {
-        for (let dj = -reach; dj <= reach && out.length < max; dj++) {
-          const panel = { i: i + di, j: j + dj };
-          if (!inBounds(panel, board)) continue;
-          out.push({ panel });
+      for (const origin of from) {
+        for (let di = -reach; di <= reach && out.length < max; di++) {
+          for (let dj = -reach; dj <= reach && out.length < max; dj++) {
+            const panel = { i: origin.i + di, j: origin.j + dj };
+            if (!inBounds(panel, board)) continue;
+            const at = `${panel.i},${panel.j}`;
+            if (seen.has(at)) continue;
+            seen.add(at);
+            out.push({ panel });
+          }
         }
       }
       return out;

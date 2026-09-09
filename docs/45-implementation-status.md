@@ -1559,6 +1559,58 @@ to. Andreias Amarantos is the first thing that asks.
 
 ---
 
+### The Hanging Gardens, flown for an afternoon — six defects, four of them inert rules
+
+Three checks were asked for and all three passed in the end: Bašmu's binding to the platform, the
+garden counting as a second Home Base for Semiramis **and her allies**, and both of its Attacks
+driven from the action bar rather than from a console. Getting there cost six repairs, and the
+pattern is by now familiar enough to be depressing — **four of the six were rules that were
+already written, already tested, and read by nobody.**
+
+| Defect | Where it hid | How it showed |
+|---|---|---|
+| `countsAsHomeBase` had no field, no projection and no reader | `data/actor/simple.mjs`, `tools/lib/content.mjs`, `rules/environment.mjs` | Semiramis on the middle panel of her own garden, outside her ground base, reporting `inHomeBase: false` |
+| `annotatePlatforms` ran **after** `annotateEnvironment` | `rules/snapshot.mjs` | with the reader written, membership still answered `false`: it reads `platformId`, which had not been stamped yet |
+| Range measured from a multi-panel unit's **top-left corner** | `rules/targeting/resolve.mjs` | Dragon Wing Warriors' overlay stopped in the middle of the garden's own deck |
+| `crossLevelLegal` had **no caller anywhere** | `rules/platforms.mjs` | Aerial Garden of Vanity — *"Cannot hit under or above the HGoB"* — hit a Unit standing directly under it |
+| `freePanels` blocked on the platform being stood on | `engine/summoning.mjs` | *"a panel directly next to her"* found none: all nine were the garden |
+| §20.9 never removed the platform itself | `engine/scene-levels.mjs` | a destroyed 9×9 garden left lying on the ground with a live actor behind it |
+
+A seventh is a plain omission rather than an inert rule: *"she is Moved to the middle panel of
+HGoB, and all allied Units of your choice are transported to any panel within the HGoB"* was
+never carried out. Activation moved its riders to the platform's **level** and never touched
+their x/y, so Semiramis stayed anchored to the garden's top-left corner — outside her own Throne
+Room. `engine/hgob.mjs#seatRiders` is the write.
+
+Two of these are worth separating out, because they are the same mistake told from two sides.
+`crossLevelLegal`'s whole four-axis protection model existed as data that platforms authored and
+nothing consulted; when it was finally wired into the target ladder it immediately refused both
+of the garden's own Skills, because it read the **unit's** Range — and the Hanging Gardens *"does
+not Normal Attack"* and carries Range 0. A rule with no reader cannot be wrong. It also cannot be
+right, and it drifts from the thing it is supposed to gate until somebody points it at reality.
+
+**Measured in `fgt2026`, through the interface:**
+
+| Check | Result |
+|---|---|
+| Bašmu's binding | `boundToPlatformId` matched the garden's id exactly, and the token was created **on its level**, not the ground |
+| ...its teardown | destroying the garden removed Bašmu's token *and* actor, scattered the passengers, deleted the level and reset Construction to 0 |
+| ...the garden's own teardown | no platform actor, no token, no level left behind |
+| The second Home Base | Semiramis **and** her allied Servant aboard both `inHomeBase: true`, both carrying the home-base `defUp`; the enemy on the ground below, `false` |
+| ...its faction scope | an enemy who boards it gets nothing — `ownBaseOf` returns `null` |
+| Activation seating | placed at (15,15), she ends on (19,19), the middle panel; the chosen ally at (18,18), inside the Throne Room |
+| Dragon Wing Warriors' reach | the whole 9×9 deck and four panels past its far edge are in Range; five past is refused, *"5 panels away"* |
+| ...its repeat | `1d6+4` rolled 8, and eight separate reaction ladders were offered |
+| ...its damage | 8 × 50 Fixed = **400** off a 1000-Health Karna |
+| ...its single Injury Roll | seven instances deferred `singleInjuryRollPending`; the eighth rolled once, on the total, for −2 Agility |
+| ...its cooldown | 1◈ → 3 ticks |
+| Aerial Garden of Vanity, aimed under the garden | *"SM Foe — directly below this platform, which cannot attack straight down"*, and the attack refused as illegal |
+| Dragon Wing Warriors, aimed at the same panel | legal, 3 targets — *"plus the area UNDER the HGoB"* |
+| ...its damage | BA(MAG) 300 → +27 crit dice → **×2** → Karna's Kavacha and Kundala → MR −30% → 45 |
+| ...its cooldown | 2◈ → 6 ticks |
+
+---
+
 ## 45.5 The completion plan
 
 Ordered so that **each step is independently testable and leaves the system working**. Steps

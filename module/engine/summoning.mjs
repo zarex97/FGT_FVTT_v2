@@ -120,11 +120,13 @@ export function scaledCooldown(cooldown, count, turnsPerRound) {
  */
 export function freePanels(summoner, placement, needed) {
   const board = currentBoard();
-  const origin = board.units.find((u) => u.id === summoner.id)?.panel;
+  const self = board.units.find((u) => u.id === summoner.id);
+  const origin = self?.panel;
   if (!origin) return [];
 
   // A 5x5 "around" the caster is a Chebyshev radius of 2.
   const radius = Math.floor((placement.size ?? 5) / 2);
+  const level = self.level ?? 0;
   const occupied = new Set(
     board.units
       // A Unit that shares panels does not make a panel unavailable -- that is
@@ -132,6 +134,19 @@ export function freePanels(summoner, placement, needed) {
       // Piedra Del Sol was standing on it would be the same defect from the
       // other side.
       .filter((u) => !u.sharesPanel)
+      // Nor does a PLATFORM or a STRUCTURE, for the reason
+      // `rules/movement.mjs#canStopOn` gives in the same words: they are stood
+      // on, not blocked by. A platform's footprint covers every panel of its
+      // own deck, so this filter is what decides whether anything can be
+      // summoned aboard one at all. Found live the moment the Hanging Gardens
+      // first occupied its own footprint correctly: Bašmu, whose whole placement
+      // is *"on a panel directly next to her"* while she stands in the Throne
+      // Room, reported "0 summoned" with all nine candidate panels taken by the
+      // garden underneath her.
+      .filter((u) => u.kind !== "platform" && u.kind !== "structure")
+      // Only what is on the same level. A summon appears beside its summoner,
+      // and a Unit on the ground twenty feet below is not beside anybody.
+      .filter((u) => (u.level ?? 0) === level)
       .flatMap((u) => (u.panels ?? [u.panel]).filter(Boolean).map((p) => `${p.i},${p.j}`)),
   );
 
@@ -151,6 +166,13 @@ export function freePanels(summoner, placement, needed) {
  * @returns {Promise<object[]>}
  */
 export async function placeSummons(contentIds, panels, summoner, scene, spec, stamps = {}) {
+  // Where the summoner is standing, for a summon that belongs beside it rather
+  // than on the ground beneath it. Read once: every summon in one call lands on
+  // the same level.
+  const summonerToken = summoner.getActiveTokens?.()[0]?.document ?? null;
+  const summonerLevel = stamps.boundToPlatformId ? summonerToken?.level ?? null : null;
+  const summonerElevation = summonerToken?.elevation ?? 0;
+
   /** @type {object[]} */
   const created = [];
 
@@ -200,6 +222,13 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     const token = await actor.getTokenDocument({
       x: panel.j * scene.grid.size,
       y: panel.i * scene.grid.size,
+      // A summon bound to a platform is summoned ONTO it. Bašmu is placed *"on
+      // a panel directly next to her"* while she is aboard the Hanging Gardens,
+      // and *"cannot leave the HGoB"* -- so the ground level is the one place
+      // it must not appear. Set at creation rather than moved afterwards: a
+      // token created on the ground and then displaced upward is two writes and
+      // a frame of it standing under the garden.
+      ...(summonerLevel ? { level: summonerLevel, elevation: summonerElevation } : {}),
     });
     await scene.createEmbeddedDocuments("Token", [token.toObject()]);
     created.push(actor);

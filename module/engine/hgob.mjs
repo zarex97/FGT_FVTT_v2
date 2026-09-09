@@ -12,6 +12,7 @@
 
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import { activatePlatform } from "./platforms.mjs";
+import { displaceToken } from "./io.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -46,9 +47,16 @@ async function onChannelComplete({ actorId, onComplete }) {
  * increased by 2◈."
  *
  * @param {string} semiramisId
+ * @param {object} [options]
+ * @param {string[]} [options.allyIds] *"all allied Units of your choice are
+ *   transported to any panel within the HGoB"* — the choice is the caller's;
+ *   this only carries it out.
+ * @param {Record<string, {i: number, j: number}>} [options.allyPanels] where
+ *   each of those allies lands, by unit id. Any ally without an entry is given
+ *   a free panel inside the footprint.
  * @returns {Promise<{ok: boolean, reason?: string, platformId?: string}>}
  */
-export async function activateHangingGardens(semiramisId) {
+export async function activateHangingGardens(semiramisId, { allyIds = [], allyPanels = {} } = {}) {
   const owner = game.actors.get(semiramisId);
   if (!owner) return { ok: false, reason: "notFound" };
 
@@ -84,11 +92,73 @@ export async function activateHangingGardens(semiramisId) {
   });
   await scene.createEmbeddedDocuments("Token", [token.toObject()]);
 
-  const activated = await activatePlatform({ platformId: platform.id, initialUnitIds: [owner.id] });
+  const riders = [owner.id, ...allyIds.filter((id) => id !== owner.id)];
+  const activated = await activatePlatform({ platformId: platform.id, initialUnitIds: riders });
   if (!activated.ok) return activated;
+
+  // *"...and she is Moved to the middle panel of HGoB, and all allied Units of
+  // your choice are transported to any panel within the HGoB."*
+  //
+  // Neither half happened. `activatePlatform` puts a rider on the platform's
+  // LEVEL and never touches its x/y, so Semiramis stayed on the panel the
+  // garden's top-left corner was anchored to — outside the Throne Room, and on
+  // the one panel of the footprint that is guaranteed to be its edge. Found
+  // live: activated at (11,11), she was still at (11,11) afterwards.
+  await seatRiders(platform, self.panel, riders, allyPanels);
 
   return { ok: true, platformId: platform.id };
 }
+
+/**
+ * Put the riders on their panels inside the footprint.
+ *
+ * The owner takes the middle panel, which the sheet names; everyone else takes
+ * the panel the caller chose, or the nearest free one to the middle if it did
+ * not choose. Foundry anchors a token at its TOP-LEFT, so the middle of a `w x
+ * h` footprint anchored at `origin` is `origin + floor(size / 2)`.
+ *
+ * @param {object} platform
+ * @param {{i: number, j: number}} origin the panel the token was anchored to
+ * @param {string[]} riders owner first
+ * @param {Record<string, {i: number, j: number}>} chosen
+ * @returns {Promise<void>}
+ */
+async function seatRiders(platform, origin, riders, chosen) {
+  const scene = canvas.scene;
+  const { w = 9, h = 9 } = platform.system?.footprint ?? {};
+  const middle = { i: origin.i + Math.floor(h / 2), j: origin.j + Math.floor(w / 2) };
+
+  // Ordered by distance from the middle, so an ally with no chosen panel lands
+  // in the Throne Room rather than on the rim.
+  const inside = [];
+  for (let i = origin.i; i < origin.i + h; i++) {
+    for (let j = origin.j; j < origin.j + w; j++) inside.push({ i, j });
+  }
+  inside.sort((a, b) => reach(a, middle) - reach(b, middle));
+
+  const taken = new Set();
+  for (const [index, unitId] of riders.entries()) {
+    const want = index === 0 ? middle : chosen[unitId] ?? null;
+    const panel = want && !taken.has(key(want)) && contains(want, origin, w, h)
+      ? want
+      : inside.find((p) => !taken.has(key(p))) ?? null;
+    if (!panel) continue;
+    taken.add(key(panel));
+
+    const token = game.actors.get(unitId)?.getActiveTokens?.()[0]?.document ?? null;
+    // Through `displaceToken` for the reason `engine/io.mjs` records: a rider
+    // set down inside a 9x9 platform is not walking there.
+    if (token) await displaceToken(token, { x: panel.j * scene.grid.size, y: panel.i * scene.grid.size });
+  }
+}
+
+/** @param {{i: number, j: number}} p */
+const key = (p) => `${p.i},${p.j}`;
+/** @param {{i: number, j: number}} a @param {{i: number, j: number}} b */
+const reach = (a, b) => Math.max(Math.abs(a.i - b.i), Math.abs(a.j - b.j));
+/** Is this panel inside the footprint anchored at `origin`? */
+const contains = (p, origin, w, h) =>
+  p.i >= origin.i && p.i < origin.i + h && p.j >= origin.j && p.j < origin.j + w;
 
 /**
  * The owner-side writes: the buff effect, the ZON exemption, and the
