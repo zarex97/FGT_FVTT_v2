@@ -660,6 +660,28 @@ Measured live: Ozymandias at 40 Health, hit for 170 inside the Complex, logs
 Servant on the same panel with the Complex closed is defeated outright. The allied Servant and the
 enemy standing in the same area get nothing from it, which is what the clause names.
 
+### 43.6e A field that brings its own Units, and remembers them
+
+> *"When Ramesseum Tentyris is activated, three additional Units allied with Ozymandias are spawned
+> within the Complex… When Ramesseum Tentyris ends or is deactivated, all Sphinxes disappear
+> regardless of position. Then if Ramesseum Tentyris is reactivated, the Sphinxes will respawn
+> within the Complex, but with the same Stats as when they disappeared."*
+
+`onOpen: [{key: Summon, contentId, placement}]` — a flat list on the field. `SummonBound` cannot say
+this: it is per-contacting-enemy (Kagome Kagome), and this is "these three, when it opens". They
+carry `boundToFieldId`, so `endField` already takes them with it.
+
+The memory lives on the **owner** (`ServantData.fieldSummonStats`, keyed by content id), because it
+has to outlive the field — `summonAssignments` beside it already sets that precedent. It is written
+by `endField` just before each summon is deleted, and read by `openField` and applied **after** the
+`inherit` pass: a remembered figure is what the Unit had when it left, and recomputing it from the
+summoner would bring a wounded Sphinx back at full Health along with its inherited Luck.
+
+Measured live over a full round trip: three Sphinxes at 1000 / 1500 / 2000 with Luck 20 inherited
+from Ozymandias, all inside the Complex; the Queen wounded to 900; deactivation leaves **no** summons
+and a record of all three; reactivation brings the Queen back at **900** of 1500 and the other two
+at full.
+
 ## 43.7 Axis 5 — Duration and extension
 
 ```ts

@@ -896,6 +896,18 @@ Live, from the combat log: Ozymandias at 40 Health hit for 170 inside the Comple
 Servant on the same panel is defeated outright. The allied Servant and the enemy in the same area
 carry no such source, and Heracles keeps his own two.
 
+#### Commit 11 — the Sphinxes spawn with the Complex, and remember their Health
+
+`onOpen` is a flat summon list on the field, which `SummonBound` could not express: that one is
+per-contacting-enemy, and this is *"these three, when it opens"*. `ServantData.fieldSummonStats`
+carries what they looked like when their field last closed — on the **owner**, the only thing that
+outlives the area — applied after the `inherit` pass so a remembered Sphinx does not come back at
+full Health along with its inherited Luck.
+
+Live, over a full round trip: three Sphinxes at 1000 / 1500 / 2000 with Luck 20 inherited, all
+inside; the Queen wounded to 900; deactivation leaves no summons and a record of all three;
+reactivation brings the Queen back at **900** and the other two at full.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and

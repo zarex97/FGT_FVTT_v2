@@ -216,6 +216,18 @@ field:
       relations: [self, ally, enemy]
       kinds: [servant]
       exemptIf: { categorizedAs: divinity, minRank: B }
+  # 1. "When Ramesseum Tentyris is activated, three additional Units allied with
+  # Ozymandias are spawned within the Complex: Sphinx, Sphinx Queen, and Sphinx
+  # Wehem-Mesut."
+  #
+  # A flat list on the field, because `SummonBound` is per-contacting-enemy
+  # (Kagome Kagome) and has no way to say "these three, when it opens". They
+  # carry `boundToFieldId`, so `endField` takes them with it -- *"all Sphinxes
+  # disappear regardless of position"* -- after recording what they looked like.
+  onOpen:
+    - { key: Summon, contentId: sphinx, placement: { adjacentTo: self } }
+    - { key: Summon, contentId: sphinx-queen, placement: { adjacentTo: self } }
+    - { key: Summon, contentId: sphinx-wehem-mesut, placement: { adjacentTo: self } }
   interiorEvents:
     # 3d. "All Units are inflicted with permanent Stage 1 Curse as long as they
     # are within the Complex. It is automatically removed after leaving the
