@@ -109,8 +109,15 @@ export function zonRadius(servant, master, config = {}) {
   // different thing, and a stated ZON would swallow it whole.
   const rankBonus = isHighRank(master) ? 1 : 0;
 
+  // The rank bonus is added to BOTH sides of the comparison. It used to sit
+  // only inside `derived`, on the reasoning above that a stated ZON should not
+  // swallow it -- which is exactly what happened whenever the stated figure was
+  // the larger one. Inert in Advanced, where almost no Master states a ZON at
+  // all; total in Normal, where EVERY Master does (Caster 5, Archer and
+  // Assassin 4, the rest 2), so a High Rank Normal Master bought nothing at all
+  // with the coin that made them one.
   const derived = radius + exclusive + stacking + rankBonus;
-  return Math.max(derived, master?.zon ?? 0);
+  return Math.max(derived, (master?.zon ?? 0) + rankBonus);
 }
 
 /**

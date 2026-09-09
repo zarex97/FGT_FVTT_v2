@@ -214,3 +214,34 @@ describe("annotateZon writes the fields both consumers read", () => {
     expect(resolveTargets(spec, caster, board, { unitId: "foe" }).errors).toEqual([]);
   });
 });
+
+describe("a stated ZON and a rank bonus", () => {
+  const archer = { kind: "servant", servantClasses: ["archer"] };
+  const caster = { kind: "servant", servantClasses: ["caster"] };
+
+  it("keeps the stated floor when the derivation is smaller", () => {
+    expect(zonRadius(archer, { zon: 4, rank: "" })).toBe(4);
+  });
+
+  it("adds High Rank's +1 on top of a stated ZON, not inside it", () => {
+    // Derived is 2 (archer base) + 1 (rank) = 3; the stated floor is 4. With
+    // the bonus only inside `derived`, `max(3, 4)` returned 4 and the rank
+    // bought nothing. Inert in Advanced, where almost no Master states a ZON;
+    // total in Normal, where every one of the seven does.
+    expect(zonRadius(archer, { zon: 4, rank: "A" })).toBe(5);
+  });
+
+  it("still applies the rank bonus when nothing is stated", () => {
+    expect(zonRadius(archer, { zon: 0, rank: "A" })).toBe(3);
+  });
+
+  it("gives a Low Rank Master no bonus over the stated figure", () => {
+    expect(zonRadius(archer, { zon: 4, rank: "C" })).toBe(4);
+  });
+
+  it("leaves a derivation that already beats the floor alone", () => {
+    // Caster derives 3 + 2 = 5, which equals the stated 5.
+    expect(zonRadius(caster, { zon: 5, rank: "" })).toBe(5);
+    expect(zonRadius(caster, { zon: 5, rank: "A" })).toBe(6);
+  });
+});
