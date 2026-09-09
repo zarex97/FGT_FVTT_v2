@@ -636,6 +636,56 @@ a point of Luck by day and none at night.
   a chevron on the token itself, sized so its tip lands on the token's own boundary and never
   crosses into the next panel.
 
+### The Normal submode — **built**
+
+A stat layer plus a content pack, not a second engine. Read against this chapter, most of the Normal
+rulebook was **already running**, because the Advanced ruleset shares it: contracts clause for
+clause, ZON and its 5d10 penalty, the Master cover-and-redirect ladder, Sustainability, the
+day/night cycle, home base E1–E5, the Grail's contest, Civilians, the three-turn round. Four things
+differed, and only four.
+
+1. **Different dice.** `rules/setup-rolls-normal.mjs`, and it needed **no new line vocabulary** —
+   `signCoin`, `map` and `derivedFrom` all existed, because the Advanced Master's Health is itself a
+   coin-signed `2d100`. The line **ids** are shared too, so `sheetPatch` and `SETUP_PATHS` consume a
+   Normal plan without knowing it is one. `plansFor(ruleset)` is the single dispatcher.
+2. **Flat statblocks.** Seven Servants with **no `parameters` block at all**, which is what makes
+   `baseAttackFor` keep the authored figure and `prepareBaseData` fill `health.max` from
+   `baseHealth`. No schema change was needed for any of it.
+3. **Fixed dice in place of rank tables.** Every one of these was authored data and **no engine
+   work**: `Resistance` and `DamageNegation` already carry `mode: "dice"`, wired from `elements.mjs`
+   through `attack.mjs`'s NP dice-doubling to the pipeline's *"never negates"*. Territory Creation
+   mirrors Medea's shape exactly — modifiers carrying `roll:`, which `rollModifierDice` and
+   `magnitudeOf` already handle.
+4. **The difficulty levels** now remove what they name (`rules/difficulty.mjs`).
+
+**Measured live in `fgt2026`, built through the wizard**: a two-faction Normal Great Holy Grail War;
+28 units, all 28 in their own base; `outsideZon: 0`; 14 Masters with Base Attacks of **100 and 125**,
+which is the optional High/Low Rank coin landing; Berserker reading **MOV 3 and Range 2** rather than
+5 and 3, so Berserk Rage's bracketed numbers land once; and the ZON table applying — Caster 5 + 1 =
+**6**, Archer **4**, Saber 2 + 1 = **3**.
+
+**Two defects repaired**, both invisible in Advanced:
+
+- **A stated ZON swallowed High Rank's `+1`.** `zonRadius` put the bonus inside `derived` and then
+  took `max()` against the Master's stated floor. The test covering it asserted exactly that, on a
+  comment reading *"added to `derived`, it survives; folded into the floor, a stated ZON would
+  swallow it"* — the right intent and the wrong arithmetic. Inert in Advanced, where almost no
+  Master states a ZON; **total** in Normal, where all seven do.
+- **`SETUP_PATHS` wrote Command Spells to `system.commandSpells.value`** on a plain `NumberField`,
+  so Foundry dropped it. Harmless only while the line's answer and the schema's initial were both 3.
+
+**Four more invented vocabulary values the tooling refused** before they could ship: `chooser:
+attacker` (it is `all | nearest | random | chosen`), the modifier key `territoryCreationAtk`, the
+roll option `target:kind:servant` (it is `target:type:`), and `npChoice` missing from
+`actorSystem()`'s allowlist — the sixth field that list has silently dropped, and the reason
+`validate-content.mjs` refuses it at build time.
+
+**And two ordering bugs the live build caught**, both introduced by this branch: the wizard's blank
+draft hardcoded `ruleset: "advanced"` instead of seeding from the world settings; and `commitWar`
+wrote the match's fields *after* the summon loop, so a freshly-created Combat's schema defaults
+shadowed those settings and the ruleset refusal rejected the war's own Servants. The match now
+describes itself before anything is built into it.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
