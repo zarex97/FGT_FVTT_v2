@@ -946,6 +946,28 @@ to an absolute tick (`state.forcedEnd`) -- stamped once, never refreshed.
 Live at three Turns to the Round: his Master falls on tick 15, the stamp reads 21, the Complex
 stands through 15 to 20 and closes on 21.
 
+
+#### Commit 14 -- Dendera Electric Bulb
+
+`replacesNormalAttack` generalises what `actionSourceFor` already did for a driven mount: an ability
+that IS this Unit's Normal Attack while its predicate holds. Substituted at the DECLARATION, so the
+cost, targeting, multiplier and card all run through the ordinary ability machinery.
+
+Three things had to be named before it worked. The substituted ability's own id has to reach the
+attack spec -- passing the declared `null` through left `applyDamage` with no ability and the 2x
+multiplier silently 1x. `fieldEdge` had to learn `allowInside` (Doomsday Come's drag-in refuses a
+target already inside; this one reaches *"any panel within"*) and `diagonalRange`, because Chebyshev
+counts a diagonal step as one and the sheet gives 4 orthogonal and 3 diagonal. And
+`ignoresAttackerIncreases` is a new, narrower bypass than `bypassModifiers`.
+
+Two documents for the sheet's two methods: this system has no per-use targeting choice, so they are
+two buttons, one of which is also what the Normal Attack button does.
+
+Live: outside the Complex he has no replacement and swings his ordinary Normal Attack; inside,
+`actionSourceFor` names Dendera, the card is titled with it, the base is BA(MAG) 200 doubled, his
+Master pays exactly 10 a use, the attack is refused at 9 Master Health and allowed at 10, and an
+Atk Up 100 standing on him contributes `0%` under the label *"ignored by this attack"*.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and

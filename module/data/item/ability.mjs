@@ -260,6 +260,12 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
     return {
       ...abilityCommon(),
       isNP: new fields.BooleanField({ initial: false }),
+      // An ability that IS this Unit's Normal Attack while some condition
+      // holds. *"Can be used by Ozymandias as his Normal Attack while within
+      // Ramesseum Tentyris."* The same substitution a driven mount performs
+      // (`replacesRiderAction`), minus the mount and plus a predicate --
+      // `{predicate: [...]}`, answered against the board by `actionSourceFor`.
+      replacesNormalAttack: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // "Categorized as NP" is the mechanical dividing line for NP Seal, NP
       // DmUp and the Luck Check exclusions -- distinct from actually being one.
       categorizedAsNP: new fields.BooleanField({ initial: false }),
@@ -435,6 +441,12 @@ export class NoblePhantasmData extends foundry.abstract.TypeDataModel {
       // A per-ability round gate composes with the global one by max():
       // Ozymandias's Ramesseum Tentyris needs 7 full Rounds.
       npGateRound: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      // An ability that IS this Unit's Normal Attack while some condition
+      // holds. *"Can be used by Ozymandias as his Normal Attack while within
+      // Ramesseum Tentyris."* The same substitution a driven mount performs
+      // (`replacesRiderAction`), minus the mount and plus a predicate --
+      // `{predicate: [...]}`.
+      replacesNormalAttack: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       isPassive: new fields.BooleanField({ initial: false }),
     };
   }

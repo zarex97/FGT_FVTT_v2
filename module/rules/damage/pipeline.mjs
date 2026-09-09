@@ -278,6 +278,16 @@ function stage4CombinedPercent(s) {
   let bucket = 0;
 
   for (const m of activeMods(s, s.ctx.attacker, ATTACKER_BUCKET_KEYS)) {
+    // *"Damage dealt is not affected by Atk Up or other damage increasing
+    // effects on Ozymandias."* Narrower than `bypassModifiers`, which skips
+    // stages 2-15 for BOTH sides: this drops the attacker's own increases and
+    // leaves its decreases, the defender's whole side, and the crit alone --
+    // a Def Up on the target still protects them, and an Atk Dwn on him still
+    // costs him, which is what "damage INCREASING effects on Ozymandias" says.
+    if (s.ctx.attack?.ignoresAttackerIncreases && !NEGATIVE_KEYS.has(m.key)) {
+      s.contribute(m.key, 0, `${m.source} (ignored by this attack)`, "attacker");
+      continue;
+    }
     const v = magnitudeOf(m, isNP, s.ctx);
     // Asymmetric (component-scoped) modifiers contribute their *shared* part
     // here; the differential goes to stage 5.
@@ -794,6 +804,14 @@ const NEGATIVE_KEYS = new Set(["atkDwn", "npDmDwn"]);
 /** Defender-side keys that *increase* damage taken. */
 const DEFENDER_POSITIVE_KEYS = new Set(["defDwn"]);
 const FLAT_ATTACK_KEYS = new Set(["divinity", "dmgBoost", "avengerCounter", "flatDamage"]);
+/**
+ * Attacker-side keys an `ignoresAttackerIncreases` attack drops.
+ *
+ * Both the percentage bucket's positive half and the flat bonuses: *"Atk Up or
+ * other damage increasing effects"* is a description of a category, not a list
+ * of one, and Divinity's flat +40 raises damage exactly as Atk Up does.
+ */
+const ATTACKER_INCREASE_FLAT_KEYS = FLAT_ATTACK_KEYS;
 const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
 
 /**

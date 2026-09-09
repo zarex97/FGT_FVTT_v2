@@ -86,7 +86,18 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // knows whether this Servant is inside its Master's zone -- and that is what
   // `limits.requiresZon` on every Noble Phantasm turns on.
   const self = unitFrom(board, attacker);
-  const ability = abilityId ? attacker.items.get(abilityId) : null;
+  // A Normal Attack this Unit's own ability STANDS IN FOR. *"Can be used by
+  // Ozymandias as his Normal Attack while within Ramesseum Tentyris."*
+  //
+  // Substituted at the DECLARATION, which is the one place that makes the rest
+  // of the flow correct for free: the cost, the targeting, the multiplier, the
+  // choice of method and the chat card all then run through the ordinary
+  // ability machinery instead of through a second, parallel Normal Attack path.
+  // The alternative -- teaching `baseSpecFor`, `attackFacts`, the multiplier
+  // stage and the cost gate about it one at a time -- is four chances to
+  // disagree with each other.
+  const substituted = abilityId ? null : replacingNormalAttack(self, attacker);
+  const ability = abilityId ? attacker.items.get(abilityId) : substituted;
   // The caster's own options, for `targeting.branches`/`cooldown.branches`/
   // `damage.branches` (Summoning: Bašmu) -- computed once here rather than
   // per call site, since `self` does not change across this declaration.
@@ -272,7 +283,14 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
   // the rest, so a Noble Phantasm over seven units damaged one of them.
-  const attackSpec = buildAttackSpec({ attacker, ability, abilityId, options, placement });
+  // `ability.id`, not the declared `abilityId`: a Normal Attack that an ability
+  // stands in for has no declared id, and passing the null through left
+  // `state.attack.abilityId` empty -- so `applyDamage` looked up no ability,
+  // found no `damage` block, and Dendera Electric Bulb's 2x multiplier was
+  // silently 1x. Measured that way: stage 3 read "Ability multiplier --".
+  const attackSpec = buildAttackSpec({
+    attacker, ability, abilityId: ability?.id ?? null, options, placement,
+  });
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
   // the same defender, inside ONE Combat Phase -- which is the distinction that
   // matters, because a Combat Phase is what pays him his Aria and two phases
@@ -564,6 +582,15 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
         ?? ability?.system?.damage?.elementFraction ?? undefined,
       ignoresMagicResistance: Boolean(
         resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
+      ),
+      // *"Damage dealt is not affected by Atk Up or other damage increasing
+      // effects on Ozymandias."* Narrower than `bypassModifiers`, which skips
+      // the whole middle of the pipeline for both sides: this drops the
+      // ATTACKER's increases and nothing else, so a Def Up on the target still
+      // protects them and an Atk Dwn on him still costs him.
+      ignoresAttackerIncreases: Boolean(
+        resolvedDamage(ability, options)?.ignoresAttackerIncreases
+        ?? ability?.system?.damage?.ignoresAttackerIncreases,
       ),
       // Per-attack RESTRICTIONS on the reaction ladder. Appendix A treats the
       // ladder as a fixed three, and Mannanán's Fragarach Counter is the first
@@ -3859,6 +3886,38 @@ export function attackFacts(attacker, defender, state) {
     element: normal.element ?? facts.element ?? null,
     ignoresMagicResistance: facts.ignoresMagicResistance || normal.ignoresMagicResistance,
   };
+}
+
+/**
+ * Does this attack ignore the attacker's own damage-increasing effects?
+ *
+ * *"Damage dealt is not affected by Atk Up or other damage increasing effects
+ * on Ozymandias."* Read off the ability's `damage` block, where the clause is
+ * authored beside the multiplier it qualifies.
+ *
+ * @param {object|null} ability
+ * @returns {boolean}
+ */
+function ignoresAttackerIncreases(ability) {
+  return Boolean(ability?.system?.damage?.ignoresAttackerIncreases);
+}
+
+/**
+ * The ability that IS this Unit's Normal Attack right now, if one is.
+ *
+ * `actionSourceFor` answers the question against the board -- the condition is
+ * *"while within Ramesseum Tentyris"*, and only the board knows where anybody
+ * is standing -- and this maps its answer back onto the item document, because
+ * that is what the declaration path needs.
+ *
+ * @param {object} self the attacker's board unit
+ * @param {object} actor
+ * @returns {object|null} the ability Item, or `null`
+ */
+function replacingNormalAttack(self, actor) {
+  const source = actionSourceFor(self, boardSnapshot());
+  if (!source.ability) return null;
+  return actor.items.get(source.ability.id) ?? null;
 }
 
 /**

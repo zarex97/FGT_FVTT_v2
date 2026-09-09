@@ -19,6 +19,8 @@
 
 import { Rank } from "../domain/rank.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { test as testPredicate } from "./predicate.mjs";
+import { rollOptionsFor } from "./options.mjs";
 
 /**
  * The default protection model. A platform that says nothing is transparent —
@@ -260,7 +262,19 @@ export function withinPlatformCentre(unit, platform, radius = 2) {
  *            movesAsPlatform: boolean, attacksAsPlatform: boolean}}
  */
 export function actionSourceFor(unit, board) {
-  const none = { unit, platform: null, movesAsPlatform: false, attacksAsPlatform: false };
+  const none = { unit, platform: null, ability: null, movesAsPlatform: false, attacksAsPlatform: false };
+
+  // An ABILITY the unit carries that replaces its own Normal Attack, gated on
+  // a predicate it answers itself. Dendera Electric Bulb is *"can be used by
+  // Ozymandias as his Normal Attack while within Ramesseum Tentyris"* -- the
+  // same substitution a driven mount performs, with a condition instead of a
+  // mount. Tested before the platform, because an ability a Unit carries is
+  // its own and a platform is something it is standing on.
+  const replacing = (unit?.abilities ?? []).find((a) => a.replacesNormalAttack
+    && (!a.replacesNormalAttack.predicate
+      || testPredicate(a.replacesNormalAttack.predicate, { options: rollOptionsFor({ attacker: unit }) })));
+  if (replacing) return { ...none, ability: replacing, attacksAsAbility: true };
+
   if (!unit?.platformId) return none;
 
   const platform = (board?.units ?? []).find((u) => u.id === unit.platformId) ?? null;
