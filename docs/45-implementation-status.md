@@ -119,7 +119,7 @@ correct and fully audited**. It is not yet at the point where a match can be pla
 
 | Ch. | Subsystem | Status | Notes |
 |---|---|---|---|
-| 04 | Units | **Done** | Six actor types, schemas, multi-panel footprints read by targeting, and the identity fields — `classContainer`, `concealedIdentity`, `identityRevealed`, `detect`, `defaultImage`. A Servant is publicly its class until revealed. |
+| 04 | Units | **Done** | Six actor types, schemas, multi-panel footprints read by targeting, and the identity fields — `classContainer`, `concealedIdentity`, `identityRevealed`, `detect`, `defaultImage`. A Servant is publicly its class until revealed. **§4.10's `Faction` now holds `userIds: string[]`** — the interface has specified a list since it was written and the code carried a singular `userId`, so on a cooperating faction only one player could open their own Servant's sheet or drag its token. |
 | 05 | Ranks and parameters | **Done** | Grade-major ordinals, step arithmetic, `RankField`. |
 | 06 | Stats and resources | **Done** | Including derived stat deltas as of `0.2.0`, and **every stat now derives from its parameter** (Ch. 41 Q50): Health from END, Agility and Luck from AGI and LUC with their coin and `1d4`, and **Base Attack from STR and MAG** — the last of the five, where the table overrides four figures the sheets stated. |
 | 07 | Time model (◈) | **Done** | `parseTick`/`resolveTicks`/overrides, and **Delay (§7.8)** — which was already implemented in `computeTurnOrder` when this row was written. The one clause that genuinely was not: a Delay declared against a faction that had already acted was **discarded** rather than deferred to the next round. `carryDelaysForward` fixes it. |
