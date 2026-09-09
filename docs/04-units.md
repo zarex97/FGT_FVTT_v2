@@ -564,6 +564,28 @@ so the Grail's destruction check is wired into the damage application step with 
 
 ---
 
+> **Repaired: every Master in the game attacked for zero.** `MasterData` declared no `baseAttack`.
+> `engine/summon.mjs` has mapped a Master's rolled figure to `system.baseAttack.mag` since it was
+> written, Foundry drops a write to an undeclared path without complaint, and `rules/snapshot.mjs`
+> reads `sys.baseAttack?.str ?? 0` — so the value vanished on every write and every read.
+> Measured live in `fgt2026` before the fix: `{str: 0, mag: 0}` and `mov: 0` on every Master in the
+> world.
+>
+> Unfindable until now only because nothing in the Advanced corpus depends on a Master's own attack
+> being non-zero. The field is **borrowed from `combatantCommon()`** rather than restated, the way
+> `turnState` and `roundState` already are, so the two definitions cannot drift; a unit test holds
+> the three names.
+>
+> **`packs/_source/masters/` now exists too.** The `masters` pack has been declared in
+> `system.json`, mapped in `PACKS` and backed by this schema since all three were written, with no
+> source directory behind it — so it shipped as an empty LevelDB directory and there was nothing in
+> any world to summon a Master *from*. `master-advanced.yml` is the generic Master the setup wizard
+> copies. Authoring it also caught `rank`, `commandSpells` and `zon` missing from `actorSystem()`'s
+> allowlist in `tools/lib/content.mjs`, which the content validator refuses at build time.
+>
+> A Master created **before** this repair still reads `{str: 0, mag: 0}`: the schema can now hold the
+> figure, and nothing retro-fits one. Re-roll its setup, or set the figure on the sheet.
+
 ## 4.10 Factions and disposition
 
 ```ts
