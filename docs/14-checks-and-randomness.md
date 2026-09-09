@@ -36,6 +36,35 @@ modifier rules, and how randomness is generated, logged, and made auditable acro
 
 ---
 
+> **The Normal ruleset rolls different dice** (`rules/setup-rolls-normal.mjs`), and needs **no new
+> line vocabulary**: `signCoin`, `map`, `derivedFrom`, `base` and `roll.formula` all existed
+> already, because the Advanced Master's Max Health is itself a coin-signed `2d100` and its rank
+> line already maps a `1d2` onto letters. The line **ids** are shared too, so `sheetPatch` and
+> `SETUP_PATHS` consume a Normal plan without knowing it is one.
+>
+> | Line | Advanced | Normal |
+> |---|---|---|
+> | Servant Max Health | END table, **no roll** (*"Health(S) is not used"*) | `baseHealth ± 10d20`, coin-signed |
+> | Servant Max Agility | AGI table + `1d2`/`1d4` | `10 + Δclass`, then `1d10` |
+> | Servant Max Luck | LUC table + `1d4` | `Δclass`, then `1d20` |
+> | Master Max Health | `250 ± 2d100` | `250 ± 5d20` |
+> | Master Max Agility | `4 + 1d8` | `1d12` |
+> | Master Max Luck | `8 + 1d12` | `1d20` |
+>
+> The class deltas — *"Lancer +2, Rider +1, Caster −2, Assassin +3"* for Agility, *"Lancer −2,
+> Assassin +2"* for Luck — are plain frozen objects in that module rather than entries in
+> `domain/tables.mjs`, because `lookup()` is keyed on a **Rank** and these are keyed on a class.
+> That is the shape and the reason `ZON_BASE` already uses.
+>
+> `plansFor(ruleset)` is the single dispatcher, and an unknown ruleset reads as Advanced: a world
+> with a corrupt setting must roll something sane rather than nothing.
+>
+> **`needsSetupRolls` gained the ruleset**, because its Advanced test — *a rank is stated and the
+> stat is unrolled* — is false for every Normal Servant that will ever exist, so `ensureSetupRolls`
+> would never flag one. Agility is the number you must roll **under**, so a maximum of 0 auto-fails
+> every Evade: the silent, total failure that function exists to catch.
+
+
 ## 14.1 The three kinds of randomness
 
 | Kind | Mechanism | Examples |
