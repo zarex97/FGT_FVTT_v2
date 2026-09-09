@@ -636,6 +636,50 @@ a point of Luck by day and none at night.
   a chevron on the token itself, sized so its tip lands on the token's own boundary and never
   crosses into the next panel.
 
+### Setting up a war — **built**
+
+Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
+**three** of them existed: the Region's parameter grant, the day/night opening flip, and Round 1's
+attack ban. The other nine were a GM with a rulebook and a mouse. The pieces were never missing,
+only unassembled — `prepareSummon` already rolled a Servant with every line re-rollable,
+`syncFactions` already built the combatants, `HomeBaseBehavior` already turned a Region into a base
+five rules read. `apps/setup-wizard.mjs` is the thing that calls them in order, over two pure
+Layer-2 modules (`rules/war-setup.mjs`, `rules/home-base.mjs`) and one Layer-3 performer
+(`engine/war-setup.mjs`).
+
+**Measured live in `fgt2026`, built through the interface**: a two-faction Great Holy Grail War on a
+fresh 13 × 13 scene; two home-base Regions of 39 panels; 28 tokens, **all 28** inside their own base;
+`outsideZon: 0`; 14 Masters with a Base Attack that is not zero; 14 contracts; three combatants with
+the GM last; 18 `setup` log lines; and the Holy Grail materializing at `(3, 0)`, outside both bases.
+
+**Five defects it uncovered**, each of which had been inert for want of anything exercising it:
+
+| Defect | Consequence |
+|---|---|
+| `Faction.userId` was singular | Six of seven cooperating players could not open their own Servant's sheet or drag its token — Foundry's own permission check, a separate gate from this system's MOV and budget legality, which still ran and still looked satisfied |
+| The `difficulty` setting was read by nothing | `board.mjs` read `?? "intermediate"` with **no setting fallback**, and the setting could not produce that value anyway. A world storing `expert` reported `intermediate` |
+| `MasterData` declared no `baseAttack` | Every Master in the game attacked for `{str: 0, mag: 0}`, because `summon.mjs` wrote to an undeclared path and Foundry drops those silently |
+| `Combat.create` leaves `active: false` | `currentBoard()` reads `game.combats.active`, so a match that was created but not activated was invisible to the board — no phase, no tick, no difficulty, no Grail |
+| `grailPosition` had no writer | `grailContest` returned early on `!state.position` for the whole of every match. The Holy Grail had never been obtainable |
+
+Two more were found only by **looking at the screen**, and no test could have seen either: `.fgt-nav`
+is the actor sheet's *vertical* rail and rendered as six icons stacked down the middle of the wizard;
+and deployment walking the panel list in order straddled the end of a row, landing the seventh pair
+twelve panels apart so both Servants began the war outside their Master's ZON at −5d10 on every
+attack (`outsideZon: 2`, then `0`).
+
+Three things the tooling caught that would otherwise have shipped silent: the layer checker refused
+`engine/` importing `gridShape` from `apps/` (moved to `domain/`); the content validator refused
+`rank`, `commandSpells` and `zon` missing from `actorSystem()`'s allowlist; and
+`settings-are-read.test.mjs` refused `setupDraft` registered a task before its reader existed. And
+one that only reading the source caught: a `RegionBehavior` passed **inline** in a Region's creation
+data is accepted without complaint and silently produces an empty `behaviors` collection — a home
+base with no `factionId`, which is the exact failure the whole flow exists to end.
+
+Deferred by design: the Master Essence draft (§19.7 steps 6–8, a declared non-goal), the Random
+Event table (§19.5 asks for tooling, not automation), and any player-facing setup phase — every
+choice is the GM's, in one window, which works with nobody else logged in.
+
 ### The Servant catalogue fetched classes and threw them away — **repaired**
 
 `servantCatalogue` has asked its compendium index for `system.servantClasses` since it was written
