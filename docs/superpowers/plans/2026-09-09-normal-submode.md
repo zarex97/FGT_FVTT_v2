@@ -39,6 +39,8 @@
 
   `line` already carries `diagonalLength` and `bidirectional`, so Lancer's *"if diagonal, 1x3"* and Rider's *"in both directions (front and back)"* need no new machinery.
 
+  **`selection.chooser` is `all | nearest | random | chosen`** — `chosen` is the player picking one target; there is no `attacker`. `resolveTargets` throws a `RangeError` on anything else and `validate-content` refuses it at build time.
+
 ---
 
 ### Task 1: The Normal setup rolls
@@ -728,7 +730,7 @@ description: |
 targeting:
   anchor: { kind: withinRange, range: 2, metric: chebyshev }
   shape: { kind: unit }
-  selection: { relations: [enemy], chooser: attacker, includeSelf: false }
+  selection: { relations: [enemy], chooser: chosen, includeSelf: false }
 damage:
   component: mag
   multiplier: 2
@@ -1783,7 +1785,7 @@ description: |
 targeting:
   anchor: { kind: withinRange, range: 2, metric: chebyshev }
   shape: { kind: unit }
-  selection: { relations: [enemy], chooser: attacker, includeSelf: false }
+  selection: { relations: [enemy], chooser: chosen, includeSelf: false }
   limits: { requiresZon: true }
 damage: { component: str, multiplier: 3 }
 phases:

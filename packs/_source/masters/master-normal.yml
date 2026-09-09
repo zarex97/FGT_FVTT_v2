@@ -1,0 +1,35 @@
+# packs/_source/masters/master-normal.yml
+# Conversion source: char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+#
+# The seven Normal Master sheets are identical but for ZON, which varies with
+# the Servant they are contracted to (Caster 5, Archer and Assassin 4, the rest
+# 2). ONE template, and `engine/war-setup.mjs#createMasterFor` writes the
+# container's figure onto `system.zon` -- which needs no rule change at all,
+# because `zonRadius` already reads the stored value as a floor under its
+# class-based derivation.
+schema: 1
+id: master-normal
+name: Master
+type: master
+
+# > "Base Health: 250" -- the same flat figure the Advanced Master carries,
+# before the coin-flipped 5d20 of `normalMasterSetupPlan`.
+baseHealth: 250
+mov: 2
+range: { panels: 2, targets: 1 }
+# > "Base Attack (STR): 50, Base Attack (MAG): 100"
+# > "Note: All Masters use Base Attack (MAG) to Attack."
+# The MAG figure is overwritten by the setup plan when the table has opted into
+# the optional High/Low Rank coin.
+baseAttack: { str: 50, mag: 100 }
+rank: ""
+commandSpells: 3
+# The template's floor. Overwritten per container at commit.
+zon: 2
+
+abilities:
+  - { ref: normal-magic-crest }
+
+notes: |
+  Named `Master` rather than `Master of X`: the setup wizard renames each copy
+  after the container it is assigned to.

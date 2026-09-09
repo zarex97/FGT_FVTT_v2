@@ -110,6 +110,12 @@
       "system": "fgt"
     },
     {
+      "name": "servants-normal",
+      "label": "F/GT Servants (Normal)",
+      "type": "Actor",
+      "system": "fgt"
+    },
+    {
       "name": "masters",
       "label": "F/GT Masters",
       "type": "Actor",
