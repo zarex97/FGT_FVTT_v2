@@ -24,6 +24,8 @@
  */
 
 import { meetsRequirement } from "./items.mjs";
+import { test } from "./predicate.mjs";
+import { rollOptionsFor } from "./options.mjs";
 
 /**
  * @typedef {object} RevivalSource
@@ -79,6 +81,14 @@ function isAvailable(source, unit) {
   // nobody was asked about is NOT available: a transformation that spends every
   // token the Servant holds must not happen because a prompt timed out.
   if (source.optional && !(unit.acceptedRevivals ?? []).includes(source.id)) return false;
+
+  // A clause about where the bearer is STANDING, answered against its own roll
+  // options at the moment of defeat. Divine Protection revives him only inside
+  // the Complex, and where he died is not knowable when the rule element is
+  // collected.
+  if (source.predicate && !test(source.predicate, { options: rollOptionsFor({ attacker: unit }) })) {
+    return false;
+  }
 
   // Gates the source states in the ordinary requirement vocabulary. *"...and
   // while she has at least 1 Fragarach Token."*

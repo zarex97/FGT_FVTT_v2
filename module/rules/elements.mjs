@@ -1426,9 +1426,15 @@ export const EXECUTORS = Object.freeze({
    * indistinguishable from correct and with four spends whichever happened to
    * be listed first, burning a God Hand charge while `Undying` sits unused.
    */
-  RevivalSource(el, { rank, source, ability, out, ctx }) {
+  RevivalSource(el, { rank, source, ability, out, ctx, deferred = null }) {
     out.revivals.push({
       id: el.id ?? ability?.id ?? source,
+      // A revival conditioned on something this pass cannot answer --
+      // *"whenever Ozymandias is defeated WHILE WITHIN the Complex"*. Field
+      // membership is a board annotation settled after collection, so the
+      // clause travels on the source and `isAvailable` tests it at the moment
+      // of defeat, which is the only moment it means anything.
+      predicate: deferred ?? el.predicate ?? null,
       // `revivalPriority`, NOT `priority`. `priority` on a rule element already
       // means "reorder me within my ordering band" (§24.6) and `orderElements`
       // sorts on it -- so §31.2's `priority: 300` for Undying would have moved

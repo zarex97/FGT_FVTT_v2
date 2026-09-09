@@ -878,6 +878,24 @@ enemy in the same area; the removal pass produces nothing inside and ticks 6 →
 ZON 2 with the Master five panels away, stage 9 reads `ZON penalty — ` inside (151 damage) and
 `ZON penalty · outside the Master's ZON` outside (114), with `outsideZon` true throughout.
 
+#### Commit 10 — revival inside the Complex
+
+An **interior** `RevivalSource`, which is what makes *"while within"* free: the source is collected
+only onto a Unit standing inside. Two defects on the way: `annotateFields`' merge lists its buckets
+by hand and `revivals` was not among them, so an interior revival was collected and dropped; and
+**`fieldOpen` returned an object from a function consumed as a boolean**, so that gate has passed
+unconditionally since it was written.
+
+Overkill applies by default — Ozymandias's clause is phrased as an amount (*"revived **with** 20%"*)
+rather than as a destination, so it takes the same treatment God Hand states. Measured both ways:
+a Sphinx at 40 Health hit for 224 stays down (184 of overkill against 100 restored); at 210 hit for
+220 it comes back at 90.
+
+Live, from the combat log: Ozymandias at 40 Health hit for 170 inside the Complex logs
+`revive · ozymandias-ramesseum-tentyris · 90` and survives; with the Complex closed the same
+Servant on the same panel is defeated outright. The allied Servant and the enemy in the same area
+carry no such source, and Heracles keeps his own two.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and

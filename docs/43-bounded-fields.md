@@ -632,6 +632,34 @@ Measured live: with the Complex open away from his ground base, `inHomeBase` is 
 Ozymandias and his Master and **false** for the allied Servant, the Sphinx and the enemy standing
 in the same area.
 
+### 43.6d A field that gives a way back from zero
+
+> *"Whenever Ozymandias is defeated while within the Complex, he is revived with 20% of his Max
+> Health. When any of the Sphinxes are defeated within the Complex, it is revived with 10% of its
+> Max Health."*
+
+An **interior** `RevivalSource`, which is what makes *"while within"* free: the source is collected
+only onto a Unit standing inside, so a Unit that died elsewhere never had it. No charges and no
+cooldown — the sheet states neither, and "whenever" refuses both; `consumesOnUse: false` for the
+same reason.
+
+The merge in `annotateFields` lists its buckets by hand, and `revivals` was not among them, so an
+interior revival was collected by the executor and dropped — the same shape as the `checkModifiers`
+gap above it. `RevivalSource` also gained a `predicate`, carried from `deferred`, for the general
+case where the clause cannot be answered at collection time.
+
+**Overkill applies, and that is the default rather than an oversight.** The excess damage past zero
+is subtracted from what a source restores (God Hand's own clause, generalised); `ignoresOverkill`
+is the opt-out, and it belongs to a clause phrased as a *destination* — Mannanán's *"restoring her
+Health **to** 50%"*. Ozymandias's is phrased as an **amount**, *"revived **with** 20%"*, so it takes
+the default. Measured live both ways: a Sphinx at 40 Health hit for 224 stays down, because 184 of
+overkill exceeds the 100 it would restore; the same Sphinx at 210 hit for 220 comes back at **90**.
+
+Measured live: Ozymandias at 40 Health, hit for 170 inside the Complex, logs
+`revive · ozymandias-ramesseum-tentyris · 90` — 200 less 130 of overkill — and survives; the same
+Servant on the same panel with the Complex closed is defeated outright. The allied Servant and the
+enemy standing in the same area get nothing from it, which is what the clause names.
+
 ## 43.7 Axis 5 — Duration and extension
 
 ```ts

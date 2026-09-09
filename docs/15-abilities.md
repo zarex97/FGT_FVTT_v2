@@ -824,6 +824,13 @@ nothing. This is friendlier and no rule requires otherwise.
 
 ---
 
+### 15.4a `fieldOpen` was truthy either way
+
+The requirement returned `{ok: true}` or `{ok: false, reason}` from a function whose every caller
+treats the result as a **boolean** — and both objects are truthy, so the gate has always passed.
+Doomsday Come's drag-in, the only clause that uses it, was offered whether or not the area stood,
+which is why nobody noticed: it reads as available in exactly the situation a player would try it.
+
 ## 15.5 Categorization: the three scoping questions
 
 Three flags decide which effects touch an ability. They are the most bug-prone part of the

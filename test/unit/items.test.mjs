@@ -559,3 +559,19 @@ describe("masterHealthFraction", () => {
     expect(meetsRequirement(req, { unit: {}, master: { health: { value: 200, max: 250 } } })).toBe(true);
   });
 });
+
+describe("fieldOpen", () => {
+  // It returned `{ok: true}` / `{ok: false, reason}` from a function whose
+  // every caller treats the result as a boolean -- and BOTH objects are truthy,
+  // so the gate has always passed. Doomsday Come's drag-in was offered whether
+  // or not the area stood.
+  it("returns a boolean, so a closed field actually refuses", () => {
+    expect(meetsRequirement({ kind: "fieldOpen", field: "nope" }, { unit: {}, board: { fields: [] } }))
+      .toBe(false);
+  });
+
+  it("...and an open one passes", () => {
+    expect(meetsRequirement({ kind: "fieldOpen", field: "x" }, { unit: {}, board: { fields: [{ id: "x" }] } }))
+      .toBe(true);
+  });
+});

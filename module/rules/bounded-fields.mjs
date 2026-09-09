@@ -864,6 +864,13 @@ export function annotateFields(units, board) {
     if (out.immunities.length > 0) {
       u.immunities = [...(u.immunities ?? []), ...out.immunities];
     }
+    // An interior `RevivalSource` was collected by the executor and then
+    // DROPPED here, the same way `checkModifiers` was until Jack's Mist needed
+    // it: this merge lists its buckets by hand. Ozymandias's Divine Protection
+    // is the first field to grant a way back from zero.
+    if (out.revivals.length > 0) {
+      u.revivals = [...(u.revivals ?? []), ...out.revivals];
+    }
   }
 
   sweepFieldEffects(units, fields);
