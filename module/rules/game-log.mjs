@@ -29,6 +29,12 @@
 export const LOG_KINDS = Object.freeze([
   "attack", "ability", "effect", "movement", "contract",
   "commandSpell", "defeat", "scheduler", "grail", "gmOverride",
+  // Building the war itself (Ch. 19 §19.7): the scene, the home bases, each
+  // container filled. Its own kind rather than `scheduler`, because these
+  // entries answer a different question -- not "what happened this Turn" but
+  // "what was this war made of", which is the first thing anyone reads when a
+  // setup goes wrong halfway.
+  "setup",
 ]);
 
 const KINDS = new Set(LOG_KINDS);
