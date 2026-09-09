@@ -394,7 +394,13 @@ export function usageSpecFor(ability) {
     contentId: sys.contentId ?? null,
     rank: sys.rank ?? null,
     isNP: ability.type === "noblePhantasm" || Boolean(sys.isNP),
-    cooldown: sys.cooldown ?? { remaining: 0 },
+    // The availability gate covers `isNP || categorizedAsNP` (Ch. 07 §7.9,
+    // Ch. 15 §15.5), and this projection carried only the first -- so the gate
+    // would have missed EMIYA's Overedge, Bašmu's Dragonfire, Mannanán's
+    // Fragarach Counter and the Hanging Gardens, which is exactly the set the
+    // ruling put in scope.
+    categorizedAsNP: Boolean(sys.categorizedAsNP),
+    cooldown: sys.cooldown ?? { remaining: 0, gatedDelay: 0 },
     // "Can only be used once per Turn" — Scáthach's Ár, whose 3◈ cooldown a
     // PRS Token skips entirely, leaving this as the only limit on it.
     oncePerTurn: Boolean(sys.oncePerTurn),

@@ -316,3 +316,19 @@ describe("an ability spent for the rest of the game", () => {
     expect(canUseAbility(ok({ ability: np({}) })).ok).toBe(true);
   });
 });
+
+describe("the usage spec carries what the gate reads", () => {
+  const spec = (over) => usageSpecFor({ id: "np", type: "ability", system: over });
+
+  it("projects categorizedAsNP", () => {
+    // The gate covers `isNP || categorizedAsNP` (spec R2) and this projection
+    // carried only `isNP` -- so the gate would have missed exactly the four
+    // abilities the ruling put in scope.
+    expect(spec({ categorizedAsNP: true }).categorizedAsNP).toBe(true);
+    expect(spec({}).categorizedAsNP).toBe(false);
+  });
+
+  it("projects the gated cooldown delay", () => {
+    expect(spec({ cooldown: { remaining: 0, gatedDelay: 5 } }).cooldown.gatedDelay).toBe(5);
+  });
+});
