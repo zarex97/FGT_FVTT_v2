@@ -627,6 +627,14 @@ Not durations, but round-indexed gates that live in this subsystem:
 | Magic Crest | Usable after 2 full Rounds — **from Round 3**. |
 | First-round attacks | Neither faction may Attack during Round 1. |
 
+**All four numbers are world settings**, seeded from `CONFIG.FGT.gates` and guarded by
+`guardRuleChange`, because moving one mid-match changes when every Noble Phantasm in the world
+becomes usable. They are settings rather than constants for a second reason: `settings-are-read.test.mjs`
+then holds each of them to having a reader — which is the guard that would have caught the state
+this table was in. `CONFIG.FGT.gates` held all four since the file was written and **nothing read
+the object**; `attacksPermitted` implemented the first-round ban correctly and hardcoded its `> 1`,
+so even the gate that worked did not read its own number.
+
 A Noble Phantasm may also state a gate of its **own**, which composes with the table above by
 `max()`: `npGateRound: 8` on Ozymandias's Ramesseum Tentyris is *"can only be used after 7 full
 Rounds have passed"*. The field was declared in the ability schema when it was written, authored on
