@@ -636,6 +636,22 @@ a point of Luck by day and none at night.
   a chevron on the token itself, sized so its tip lands on the token's own boundary and never
   crosses into the next panel.
 
+### The Servant catalogue fetched classes and threw them away — **repaired**
+
+`servantCatalogue` has asked its compendium index for `system.servantClasses` since it was written
+and never put the field in what it returned, so nothing downstream could tell a Saber from a Caster
+without loading every document. The container roster is the first caller that needed to, and the
+field was already being paid for.
+
+It also now reports `packId` and accepts `{ruleset}`, because the ruleset is a **pack boundary**
+(`rulesetOfPack`) rather than a per-document flag: the setup wizard filters by it, and a boundary
+cannot be got wrong by a typo in an id.
+
+Beside it, `describe`/`describeStep` moved out of `apps/summon-dialog.mjs` into a pure
+`apps/summon-present.mjs` with tests — the split `actor-sheet/present.mjs` and `hud/present.mjs`
+already use, and for the same reason: two dialogs now render a plan line and they must render it
+identically.
+
 ### The difficulty setting was read by nothing — **repaired**
 
 Three vocabularies for one rule, none of which met. `settings.mjs` offered
