@@ -45,7 +45,7 @@ export function panelsOf(field, board) {
 
   switch (geometry.kind) {
     case "fixedArea":
-      return square(geometry.anchor, geometry.shape?.size ?? 1);
+      return clip(square(geometry.anchor, geometry.shape?.size ?? 1), field, board);
 
     case "followsUnit": {
       // Doomsday Come tracks Pale Rider's *Master*, not its creator: the field
@@ -82,6 +82,40 @@ export function panelsOf(field, board) {
     default:
       return field.panels ?? [];
   }
+}
+
+/**
+ * Remove the panels a field is forbidden to cover.
+ *
+ * > *"The Complex cannot intersect the Home Base of enemy Players."*
+ *
+ * CLIPPED rather than refused (the author's ruling): the Complex opens as its
+ * full square minus whatever falls inside an enemy base, so casting near one
+ * gives a smaller Complex rather than nothing at all. Free to do, because a
+ * field's Region has always been a set of panels and never a bounding
+ * rectangle -- a clipped field is not a special shape, it is a shorter list.
+ *
+ * Allied bases are left alone: "enemy Players" is the clause, and a war with
+ * an alliance in it has bases that are neither the owner's nor an enemy's.
+ *
+ * @param {Array<{i: number, j: number}>} panels
+ * @param {object} field
+ * @param {object} board
+ * @returns {Array<{i: number, j: number}>}
+ */
+function clip(panels, field, board) {
+  if (field?.geometry?.cannotIntersect !== "enemyHomeBase") return panels;
+
+  const owner = field.ownerFaction ?? null;
+  const allied = new Set(board?.alliances?.[owner] ?? (owner ? [owner] : []));
+  /** @type {Set<string>} */
+  const forbidden = new Set();
+  for (const zone of Object.values(board?.zones ?? {})) {
+    if (!zone?.faction || allied.has(zone.faction)) continue;
+    for (const p of zone.panels ?? []) forbidden.add(`${p.i},${p.j}`);
+  }
+  if (forbidden.size === 0) return panels;
+  return panels.filter((p) => !forbidden.has(`${p.i},${p.j}`));
 }
 
 /**

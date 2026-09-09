@@ -184,6 +184,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
   "noAliveSummon", "withinPlatformCentre", "roundPhase", "fieldOpen", "stance",
+  "masterHealthFraction",
 ]);
 
 /**
@@ -326,6 +327,17 @@ export function meetsRequirement(req, ctx) {
 
     case "masterHealthAbove":
       return currentHealth(master) > (req.amount ?? 0);
+
+    // A FRACTION of the Master's maximum, and a separate kind rather than a
+    // field on the one above, because the comparison differs and one operator
+    // cannot say both. Every `masterHealthAbove` clause in the corpus reads
+    // "above X"; Ramesseum Tentyris reads *"cannot be used if his Master's
+    // Health is less than that"*, whose negation is `>=`. Folding them would
+    // misstate one of the two.
+    case "masterHealthFraction": {
+      const max = master?.maxHealth ?? master?.health?.max ?? 0;
+      return currentHealth(master) >= Math.ceil(max * (req.atLeast ?? 0));
+    }
 
     case "counterpartAdjacent": {
       // The Dioscuri's Noble Phantasm needs the other twin beside it.

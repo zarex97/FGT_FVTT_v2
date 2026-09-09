@@ -45,6 +45,7 @@ abilities:
   - { ref: ozymandias-imperial-privilege }
   - { ref: ozymandias-protection-from-ra }
   - { ref: ozymandias-mesektet }
+  - { ref: ozymandias-ramesseum-tentyris }
 
 notes: |
   Ramesseum Tentyris is the only [Fortress] Noble Phantasm in either roster,

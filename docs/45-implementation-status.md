@@ -777,6 +777,36 @@ are absent from an enemy's resolved target list, while an allied Servant three p
 shielded; a Sphinx's Move leaves `servantMove` at 0 where a Servant's takes it to 1; and having
 moved, the Sphinx refuses a second Move.
 
+#### Commit 6 — the Complex opens
+
+Geometry, cost and gate; the interior and the four termination paths follow.
+
+**`npGateRound` was dropped by the content pipeline.** Declared in the ability schema when it was
+written, named by Ch. 44 §44.5 for exactly this clause, authored on two abilities — and not listed
+in `itemSystem()`'s allowlist, which silently drops what it does not name. Every document read
+`null`, so *"can only be used after 7 full Rounds have passed"* opened in Round 1. It is folded
+into `requiresRound` — the one gate `costs.mjs` reads — by `max()`, and a ◈ expression in it is
+refused rather than coerced to `NaN`. The Normal-mode Assassin NP had authored exactly that
+(`"3◈"`); it is `4` now, three Rounds' worth of Turns whatever `turnsPerRound` says.
+
+**`onEnd` was never projected**: `openField` writes it onto the Region and `deactivateField` reads
+it off the board, so every field's on-end actions were empty. The terrain-clearing path reads the
+Region directly, which is why the gap looked impossible.
+
+Two new vocabulary entries, both first-of-kind: `masterHealthFraction`, the first requirement
+stated as a fraction of a maximum *and* as a refusal rather than a permission (so the comparison is
+`>=`, and it is a separate kind rather than a field on `masterHealthAbove`, whose every clause
+reads "above X"); and `masterHealthFractionOfMax`, the first cost whose size is not on the sheet
+because it depends on whose Master it is. The cost `supersedes: [npCost]` — the 50% *is* the price,
+not a surcharge, since the sheet states one cost and states its refusal against that one cost.
+Measured before that line: 250 → 50, which is 125 plus the 75 the EX row charges.
+
+`cannotIntersect: enemyHomeBase` clips rather than refuses (R2). Measured live at Round 8, with an
+enemy base across rows 0–2 of a 13 × 13 board: refused at Round 7 with *"cannot be used before
+Round 8"*; refused at 124/250 Master Health with `masterHealthFraction`; and at 250, opened for
+**99** panels — 121 minus the 22 inside the base — with the Master's Health at exactly 125.
+Screenshotted and looked at: the blue Complex butts against the orange base with no overlap.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and

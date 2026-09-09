@@ -744,3 +744,49 @@ describe("interiorModifiers — a predicate about the UNIT", () => {
     expect(rule.predicate).toEqual(["attack:npScale:gte:antiWorld"]);
   });
 });
+
+describe("cannotIntersect: enemyHomeBase", () => {
+  // > "The Complex cannot intersect the Home Base of enemy Players."
+  //
+  // CLIPPED rather than refused (the author's ruling, R2): casting near an
+  // enemy base gives a smaller Complex rather than nothing. Free, because a
+  // field's Region has always been a set of panels and never a rectangle.
+  const board = (over = {}) => ({
+    zones: {
+      red: { faction: "red", panels: [at(0, 0), at(0, 1), at(1, 0)] },
+    },
+    alliances: {},
+    ...over,
+  });
+
+  const field = (ownerFaction) => ({
+    id: "complex", ownerFaction,
+    geometry: {
+      kind: "fixedArea", shape: { kind: "square", size: 3 }, anchor: at(1, 1),
+      cannotIntersect: "enemyHomeBase",
+    },
+  });
+
+  it("drops the panels that fall in an enemy Home Base", () => {
+    const panels = panelsOf(field("blue"), board());
+    expect(panels.some((p) => p.i === 0 && p.j === 0)).toBe(false);
+    expect(panels.some((p) => p.i === 1 && p.j === 0)).toBe(false);
+    expect(panels.some((p) => p.i === 1 && p.j === 1)).toBe(true);
+    expect(panels).toHaveLength(9 - 3);
+  });
+
+  it("leaves its OWN faction's base alone", () => {
+    expect(panelsOf(field("red"), board()).some((p) => p.i === 0 && p.j === 0)).toBe(true);
+  });
+
+  it("leaves an ALLIED faction's base alone", () => {
+    const b = board({ alliances: { blue: ["blue", "red"] } });
+    expect(panelsOf(field("blue"), b).some((p) => p.i === 0 && p.j === 0)).toBe(true);
+  });
+
+  it("changes nothing for a field that does not state the constraint", () => {
+    const plain = field("blue");
+    delete plain.geometry.cannotIntersect;
+    expect(panelsOf(plain, board())).toHaveLength(9);
+  });
+});

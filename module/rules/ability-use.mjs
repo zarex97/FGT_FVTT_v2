@@ -352,6 +352,22 @@ export function isNegated(item, effects) {
 }
 
 /**
+ * The later of two Round gates, or `null` when neither is stated.
+ *
+ * A string is refused rather than coerced: `npGateRound` is an integer field,
+ * and `"3◈"` -- which is what a ◈ expression looks like and what
+ * `normal-assassin-np.yml` first said -- would become `NaN` and gate nothing.
+ *
+ * @param {number|null|undefined} a
+ * @param {number|null|undefined} b
+ * @returns {number|null}
+ */
+function maxRound(a, b) {
+  const rounds = [a, b].filter((r) => Number.isFinite(r));
+  return rounds.length > 0 ? Math.max(...rounds) : null;
+}
+
+/**
  * The ability as `canUseAbility` wants to see it.
  *
  * **One implementation for both use paths.** `resolveAttack` and `useSkill`
@@ -395,7 +411,18 @@ export function usageSpecFor(ability) {
     lastUsedTick: sys.lastUsedTick ?? null,
     // What an `abilityUsed` handler filters on.
     category: sys.category ?? null,
-    requiresRound: sys.targeting?.limits?.requiresRound ?? null,
+    // The Round gate, from either of the two places an ability may state one,
+    // composed by `max()`.
+    //
+    // `npGateRound` has been in the ability schema since it was written and was
+    // read by NOBODY -- Ch. 44 §44.5 names it for Ozymandias's *"can only be
+    // used after 7 full Rounds have passed"* and the field went straight into
+    // the document and stopped there. `targeting.limits.requiresRound` is the
+    // one with a reader (`costs.mjs`), so the two are folded here rather than
+    // teaching the gate about a second field.
+    //
+    // Max, not first-wins: two gates on one ability both have to be past.
+    requiresRound: maxRound(sys.targeting?.limits?.requiresRound, sys.npGateRound),
     requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
     // Presence Concealment clause 7 needs all four: whether the ability is
     // aimed at an enemy, and the three escapes the clause itself names --

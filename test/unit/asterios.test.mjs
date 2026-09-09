@@ -308,6 +308,10 @@ describe("a non-damaging Noble Phantasm", () => {
       // "(Non-damaging)". Its three effects are what make attacking her
       // expensive; it never swings.
       "mannanan-fragarach-enbarr",
+      // Ramesseum Tentyris, the sixteenth. It opens the Complex and does
+      // nothing else itself: every clause on its sheet -- the halved damage,
+      // the curse, the NP seal, the second Home Base -- is the field's.
+      "ozymandias-ramesseum-tentyris",
       // Doomsday Come: "(Non-damaging)" and its only phase opens a field.
       // Everything it does to a Unit is the AREA's doing.
       "pale-rider-doomsday-come",

@@ -6,13 +6,19 @@
 # The Assassin statblock reads "NP: N/A" for uses and the NP text states a
 # COOLDOWN rather than a use count -- so it repeats on the clock rather than
 # being limited. `npGateRound` carries the "after 3◈ Turns have passed" opening.
+#
+# FOUR, not "3◈". `npGateRound` is an integer field and a ◈ expression in it
+# parses to nothing at all -- the gate was authored, stored as null and read by
+# nobody. "After 3◈ Turns have passed" is three Rounds' worth of Turns whatever
+# `turnsPerRound` is set to, so the ability opens in Round 4 -- which is the
+# standard Assassin gate (Ch. 07 §7.9) restated on the Normal sheet.
 schema: 1
 id: normal-assassin-np
 name: "Noble Phantasm"
 isNP: true
 kind: noblePhantasm
 slug: normalAssassinNP
-npGateRound: "3◈"
+npGateRound: 4
 cooldown: { max: "3◈" }
 description: |
   (Active) Usable after 3◈ Turns have passed. Range=2 panels. Hits 1 Unit for 3x damage and

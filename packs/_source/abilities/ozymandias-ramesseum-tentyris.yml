@@ -1,0 +1,98 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md:65-84
+#
+# > "Used during your Turn. Can only be used after 7 full Rounds have passed.
+# > First, the Master's Health is reduced by 50% of its maximum value (cannot be
+# > used if his Master's Health is less than that), then the NP affects an 11x11
+# > panel area around Ozymandias. This area will now be termed as the 'Complex'.
+# > The Complex cannot intersect the Home Base of enemy Players."
+#
+# The largest bounded field in the corpus, and the only one that is a HOME BASE,
+# a curse, an NP seal and a summon platform at once. This file is built in
+# stages: the geometry, the cost and the gate here; the interior (Divine
+# Protection, Divine Curse, God's Curse) and the four termination paths follow.
+#
+# `npGateRound: 8` -- "after 7 full Rounds have passed" is Round 8. The field
+# existed in the ability schema with NO READER; it is folded into `requiresRound`
+# by `rules/ability-use.mjs#usageSpecFor` now, taking whichever of the two gates
+# is later.
+schema: 1
+id: ozymandias-ramesseum-tentyris
+name: "Ramesseum Tentyris: The Shining Great Temple Complex"
+isNP: true
+rank: EX
+kind: noblePhantasm
+slug: ramesseumTentyris
+npTags: [antiFortress, fortress, antiUnit, boundedField]
+npGateRound: 8
+timing: { window: ownTurn }
+# "In this case, the Cooldown for it is 8◈ Turns AFTER IT ENDS" -- the same
+# distinction Chaos Labyrinthos records: eight Turns after it closed, not after
+# it opened.
+cooldown: { max: "8◈", countFrom: deactivation }
+description: |
+  (Active) Usable after 7 full Rounds have passed. First his Master's Health is reduced by 50% of
+  its maximum value; then an 11x11 panel area around Ozymandias becomes the Complex, clipped where
+  it would cover an enemy Home Base.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 11 }
+  # The Complex is not an attack: it opens around him and its clauses are the
+  # field's, not a Combat Process's. `createField` names `target: self` below.
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+  limits:
+    requirements:
+      # "Cannot be used if his Master's Health is less than that" -- a FRACTION
+      # of the maximum, and stated as a refusal, so the comparison is `>=`.
+      - { kind: masterHealthFraction, atLeast: 0.5 }
+# "First, the Master's Health is reduced by 50% of its maximum value." The first
+# cost in the corpus whose size is not on the sheet, because it depends on whose
+# Master it is.
+#
+# `supersedes: [npCost]` -- the 50% IS the price, not a surcharge on top of the
+# Rank table's. The sheet states one cost and states its refusal against that
+# one cost ("cannot be used if his Master's Health is less than THAT"), and a
+# Master at exactly half would otherwise pass the gate and then be billed a
+# second time for the EX row. Measured live: 250 -> 50 before this line, which
+# is 125 + the 75 the table charges, and 250 -> 125 after.
+additionalCosts:
+  - id: ramesseumMasterHealth
+    kind: masterHealthFractionOfMax
+    fraction: 0.5
+    supersedes: [npCost]
+field:
+  # Axis 1 -- geometry. Anchored where it was cast, 11x11, and CLIPPED where it
+  # would cover an enemy Home Base rather than refused outright: casting near
+  # one gives a smaller Complex, which is the author's ruling (R2).
+  geometry:
+    kind: fixedArea
+    shape: { kind: square, size: 11 }
+    cannotIntersect: enemyHomeBase
+  # "Once activated, Ramesseum Tentyris remains constantly Active." No duration
+  # and no upkeep: it ends only by its four stated paths.
+  duration: null
+  # Path 1: "willingly deactivated by Ozymandias himself during his Turn, or at
+  # the start or end of any Turn or Round."
+  deactivation: { byOwner: true, window: any }
+  # Axis 2 -- membership. Nothing traps anybody; the Complex is a place, not a
+  # cage, and its enemies suffer for standing in it rather than for leaving.
+  membership:
+    enemyEntry: free
+    enemyExit: free
+    allyEntry: free
+    allyExit: free
+  # Axis 3 -- isolation. None at all. Every clause of the sheet is about what
+  # happens to Units INSIDE; nothing says the boundary blocks anything, and
+  # Dendera Electric Bulb explicitly reaches four panels PAST it.
+  isolation:
+    outsideCanTargetInside: true
+    insideCanTargetOutside: true
+    outsideCanApplyEffectsInside: true
+    visibilityAcrossBoundary: full
+  # Axis 6 -- vulnerability. Path 3's first half: "If Ozymandias is defeated,
+  # Ramesseum Tentyris is forcibly ended at the end of the Turn." The Master's
+  # 2◈ delay and the 2-[Anti-Fortress]/3000-damage break are separate paths.
+  vulnerabilities:
+    - { kind: ownerDefeat, result: end }
+phases:
+  - kind: createField
+    target: self

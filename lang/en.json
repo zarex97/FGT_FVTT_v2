@@ -655,6 +655,7 @@
   "FGT.Ability.Refused.modeActive": "Requires a mode that is switched on.",
   "FGT.Ability.Refused.counterpartAdjacent": "Its counterpart is not next to it.",
   "FGT.Ability.Refused.masterHealthAbove": "The Master's Health is too low.",
+  "FGT.Ability.Refused.masterHealthFraction": "The Master's Health is below the fraction of its maximum this requires.",
   "FGT.Ability.Refused.targetHasEffect": "The target does not carry the effect it needs.",
   "FGT.Ability.Refused.notHasEffect": "Blocked by an effect already in force.",
   "FGT.Ability.Refused.abilityOffCooldown": "An ability it depends on is still cooling.",
