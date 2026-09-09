@@ -143,7 +143,7 @@ platforms deployed and destroyed, without the GM touching a rulebook.
 | Localization: Spanish | 29 |
 | Performance tuning against the budgets | 23, 38 |
 | Migration infrastructure | 39 |
-| The 8-turns-per-round (Holy Grail War) variant | 07 |
+| ~~The 8-turns-per-round (Holy Grail War) variant~~ **DONE** — `MatchData.warType` | 07 |
 | Master essences and the draft | 04, 19 |
 | Documentation for GMs and content authors | — |
 
