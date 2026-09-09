@@ -113,6 +113,19 @@ export function snapshotUnit(actor, {
     // First real consumer: Bašmu's "only one summoned by this Spell can exist
     // on the field" (`noAliveSummon` requirement, rules/items.mjs).
     summonerId: sys.summonerId ?? null,
+    // Both halves of a summon's action economy, and neither was projected.
+    // `budget.mjs` tests `actsOncePerTurn` on the BOARD unit, so it read
+    // `undefined` for every summon in every world and Bašmu's *"can only
+    // Move/Attack once per Turn"* never applied -- a platform is caught by its
+    // `kind` instead, which is why the cap looked implemented.
+    //
+    // `countsTowardBudget` had no reader at all. Its effect was the
+    // unconditional one -- `poolFor` exempted every summon whatever its sheet
+    // said -- so the flag could only ever have gone wrong in the other
+    // direction, on a summon that counts. Projected as `=== true` so an absent
+    // field keeps today's exemption.
+    actsOncePerTurn: sys.actsOncePerTurn === true,
+    countsTowardBudget: sys.countsTowardBudget === true,
     // Which enemy this summon hunts, and which field it dies with. Both are
     // Kagome Spirit clauses and both are read by rules that cannot reach the
     // document: the movement constraint and the field teardown.
