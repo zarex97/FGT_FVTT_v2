@@ -807,6 +807,32 @@ Round 8"*; refused at 124/250 Master Health with `masterHealthFraction`; and at 
 **99** panels — 121 minus the 22 inside the base — with the Master's Health at exactly 125.
 Screenshotted and looked at: the blue Complex butts against the orange base with no overlap.
 
+#### Commit 7 — the Complex's interior, and a roll nothing could reach
+
+Divine Protection, Divine Curse a–c and God's Curse, authored as interior rules on the field.
+
+**No aura and no bounded field had ever moved a check roll.** `rollEvade`, `rollLuck`,
+`preemptionLuckCheck` and `autoEvadeFrom` all built their units with a bare `unitSnapshot` —
+against `unitFrom`'s own docstring, which argues in as many words that a re-projected unit carries
+none of the auras or interior rules it is standing in. Doomsday Come's Innocent World has said
+*"+4 to Evade rolls"* since Pale Rider was written and it never reached a die. Found by reading the
+Evade card inside the Complex and seeing only Mad Enhancement's table penalty; it now prints
+`ozymandias-ramesseum-tentyris +2` beside it.
+
+**God's Curse reads "Servants", not "enemy Servants".** Clause 3 above it says *"all enemy Units
+within the Complex"* in as many words and clause 4 does not — the sheet had the narrowing words one
+line earlier and did not use them. It is also the only reading under which the exemption's wording
+makes sense: *"Divinity equal to Ozymandias or higher"* is written relative to his own rank because
+he is himself subject to it. Measured live: his ally is sealed, Heracles (Divinity A) is not,
+Ozymandias (Divinity B) is not, and the Master is untouched (`kinds: [servant]`).
+
+Every clause read off the live chat card: an ally's `Def Up ozymandias-ramesseum-tentyris −50%` and
+an enemy's `Def Dwn … +20%` in stage 4's own list, an enemy's `Atk Dwn … −20%` beside Mad
+Enhancement's +60%, `+2` on the Evade card and in the Luck plan, and EMIYA's `categorizedAsNP`
+Overedge classifying as `attack`/`isNP: false` while his real Noble Phantasms answer `npSeal` —
+which is the sheet's *"does not affect Attacks/Skills/Spells that are only Categorized as Noble
+Phantasms"*, still right by the accident the spec recorded.
+
 ### Setting up a war — **built**
 
 Ch. 19 §19.7 has listed twelve procedures that happen before a war begins since it was written, and
