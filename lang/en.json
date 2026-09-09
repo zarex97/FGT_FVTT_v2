@@ -145,6 +145,7 @@
   "FGT.Setup.CannotCommit": "{n} problem(s) remain on the Confirm tab.",
   "FGT.Setup.Committed": "War built: {servants} Servants summoned.",
   "FGT.Setup.CommitFailed": "War setup stopped: {error}",
+  "FGT.Summon.RulesetMismatch": "{name} belongs to the {servant} ruleset and this war is {war}. A board holds one ruleset: the two use different stat scales.",
   "FGT.Setup.MasterName": "Master of {container} of {faction}",
   "FGT.Setup.SceneName": "The Field",
   "FGT.Class.saber": "Saber",

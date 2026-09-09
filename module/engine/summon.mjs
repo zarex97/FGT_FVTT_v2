@@ -168,6 +168,26 @@ export function reviseSummon(prepared, { masterId, warRegion, masterGrants }) {
  * @returns {Promise<object>} the created actor
  */
 export async function commitSummon(prepared) {
+  // The wizard filters its catalogue by ruleset; a STALE DRAFT is the case a
+  // filter alone does not cover -- a GM who rolled fourteen Advanced Servants
+  // and then switched the war to Normal has a draft the filter stopped looking
+  // at.
+  //
+  // Refused rather than converted. A Normal Saber's flat 1250 Health and an
+  // Advanced Servant's rank-derived Health are two different scales, and a
+  // board holding both is a fight in which neither number means what the other
+  // one means.
+  const wanted = warRuleset();
+  // A Servant built some other way carries no pack, and `rulesetOfPack("")`
+  // answers Advanced -- the right default for a hand-made one.
+  const actual = rulesetOfPack(prepared.source.pack ?? "");
+  if (actual !== wanted) {
+    const label = (r) => game.i18n.localize(`FGT.Ruleset.${r === "normal" ? "Normal" : "Advanced"}`);
+    throw new Error(game.i18n.format("FGT.Summon.RulesetMismatch", {
+      name: prepared.source.name, servant: label(actual), war: label(wanted),
+    }));
+  }
+
   const data = prepared.source.toObject();
   data.system = {
     ...data.system,
