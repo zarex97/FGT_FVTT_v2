@@ -177,7 +177,9 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // "During the first Round, neither Player/Faction is allowed to Attack"
   // (§19.7 step 12). A hard gate at declaration, so the refusal names the rule
   // instead of letting a player discover it as an unexplained targeting error.
-  if (combat?.started && !attacksPermitted(combat.round ?? 1) && actionKind !== "skill") {
+  if (combat?.started
+    && !attacksPermitted(combat.round ?? 1, game.settings.get("fgt", "noAttackRound"))
+    && actionKind !== "skill") {
     throw new Error("FGT | No attacks are permitted during the first Round.");
   }
 

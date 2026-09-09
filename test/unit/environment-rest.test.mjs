@@ -212,3 +212,27 @@ describe("egypt", () => {
     }
   });
 });
+
+describe("the first-round attack ban reads its Round", () => {
+  // §7.9's fourth gate. The rule was right and its number was hardcoded, so
+  // `CONFIG.FGT.gates.noAttackRound` sat beside it unread -- the same shape as
+  // the other three, one step further along.
+  it("bans attacks through the Round it is given", () => {
+    expect(attacksPermitted(1, 1)).toBe(false);
+    expect(attacksPermitted(2, 1)).toBe(true);
+  });
+
+  it("moves with the setting", () => {
+    expect(attacksPermitted(2, 2)).toBe(false);
+    expect(attacksPermitted(3, 2)).toBe(true);
+  });
+
+  it("defaults to banning Round 1, which is what it hardcoded", () => {
+    expect(attacksPermitted(1)).toBe(false);
+    expect(attacksPermitted(2)).toBe(true);
+  });
+
+  it("permits everything when the ban is switched off", () => {
+    expect(attacksPermitted(1, 0)).toBe(true);
+  });
+});

@@ -562,11 +562,17 @@ export function checkVictory(board) {
  * A hard gate on declaration, so the refusal names the rule rather than letting
  * a player discover it by having their targeting rejected for no visible reason.
  *
+ * The Round comes in as an ARGUMENT rather than off `CONFIG`, because this is
+ * Layer 2 and may not reach it -- and it was hardcoded as `> 1`, which left
+ * `CONFIG.FGT.gates.noAttackRound` sitting beside the three other numbers §7.9
+ * states and nothing reads. `0` switches the ban off.
+ *
  * @param {number} round
+ * @param {number} [noAttackRound] the last Round in which nobody may Attack
  * @returns {boolean}
  */
-export function attacksPermitted(round) {
-  return (round ?? 1) > 1;
+export function attacksPermitted(round, noAttackRound = 1) {
+  return (round ?? 1) > noAttackRound;
 }
 
 /**
