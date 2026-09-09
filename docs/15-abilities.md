@@ -75,6 +75,15 @@ categorization rules that decide which effects apply to which abilities.
 
 ---
 
+> **"Before play, select only one Noble Phantasm."** Normal's Archer, Caster and Berserker each
+> offer two, and the sheet says the unselected one *"is unusable"*. Both are authored and both stay
+> on the sheet; the setup wizard records the GM's pick in `container.npChoice` and `commitWar` marks
+> the loser **`expended`** — which is what "unusable" already means, and leaves the rejected option
+> visible and greyed out so a player can check afterwards that the war was set up the way the table
+> agreed. A Servant that offers the choice and was given none is a **refusal**, not a default:
+> it would otherwise reach the board with both usable.
+
+
 ## 15.1 The taxonomy
 
 ```

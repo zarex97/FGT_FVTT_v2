@@ -35,6 +35,21 @@
             </li>
           {{/each}}
         </ul>
+        {{#if card.npOptions.length}}
+          <div class="fgt-setup__np">
+            <span class="fgt-setup__np-label">{{localize "FGT.Setup.NPChoice"}}</span>
+            {{#each card.npOptions as |option|}}
+              <label class="fgt-setup__np-option">
+                <input type="radio" name="container.{{card.containerId}}.npChoice"
+                       value="{{option.id}}" {{checked option.chosen}}>
+                <span>{{option.name}}</span>
+              </label>
+            {{/each}}
+            {{#if card.npUnchosen}}
+              <span class="fgt-setup__reason">{{localize "FGT.Setup.NPUnchosen"}}</span>
+            {{/if}}
+          </div>
+        {{/if}}
       {{/if}}
     </article>
   {{/each}}

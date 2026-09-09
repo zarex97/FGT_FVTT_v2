@@ -51,6 +51,40 @@ const BLANK_DRAFT = Object.freeze({
 /** Turns per round, defaulted from the war type (Ch. 07 §7.2). */
 const TURNS_BY_WAR = Object.freeze({ greatHolyGrailWar: 3, holyGrailWar: 8, custom: 3 });
 
+/**
+ * The world settings, as the draft's opening values.
+ *
+ * The settings ARE the world's defaults -- that is the whole shape `region` and
+ * `difficulty` already use, where the setting is the default and the match
+ * holds this match's copy. Without this the wizard opened on Advanced in a
+ * world whose ruleset setting said Normal, and the GM had to notice and change
+ * a control that already had the right answer somewhere else.
+ *
+ * @returns {object}
+ */
+function worldDefaults() {
+  const get = (key, fallback) => {
+    try {
+      const v = game.settings.get("fgt", key);
+      return v === undefined || v === null || v === "" ? fallback : v;
+    } catch {
+      return fallback;
+    }
+  };
+  const warType = get("warType", BLANK_DRAFT.warType);
+  return {
+    warType,
+    ruleset: get("ruleset", BLANK_DRAFT.ruleset),
+    boardSize: Number(get("boardSize", BLANK_DRAFT.boardSize)),
+    difficulty: get("difficulty", BLANK_DRAFT.difficulty),
+    region: get("region", ""),
+    grailThreshold: Number(get("grailThreshold", BLANK_DRAFT.grailThreshold)),
+    drawPolicy: get("drawPolicy", BLANK_DRAFT.drawPolicy),
+    turnsPerRound: Number(get("turnsPerRound", TURNS_BY_WAR[warType] ?? 3)),
+  };
+}
+
+
 export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "fgt-setup-wizard",
@@ -123,7 +157,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     // never to close it. `prepared` is dropped: a summon plan holds live
     // document references that do not survive a round trip through a setting.
     const saved = game.settings.get("fgt", "setupDraft") ?? {};
-    app.draft = { ...foundry.utils.deepClone(BLANK_DRAFT), ...saved, prepared: {} };
+    app.draft = { ...foundry.utils.deepClone(BLANK_DRAFT), ...worldDefaults(), ...saved, prepared: {} };
     app.render(true);
     return app;
   }
@@ -257,6 +291,15 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         // nothing about whether to re-roll; "1250 - 87 (10d20)" tells them
         // everything.
         lines: prepared ? prepared.lines.map(describe) : [],
+        // "Before play, select only one Noble Phantasm, either (a) or (b)."
+        // Archer, Caster and Berserker only; every other Servant's list is
+        // empty and the control does not render at all.
+        npOptions: (c.npOptions ?? []).map((id) => ({
+          id,
+          name: prepared?.source?.items?.find?.((i) => i.system?.contentId === id)?.name ?? id,
+          chosen: c.npChoice === id,
+        })),
+        npUnchosen: (c.npOptions ?? []).length > 0 && !c.npChoice,
       };
     });
   }
@@ -345,6 +388,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       if (row.fill !== undefined) container.fill = row.fill;
       if (row.contentId !== undefined) container.contentId = row.contentId || null;
       if (row.query !== undefined) this.#queries[id] = row.query;
+      if (row.npChoice !== undefined) container.npChoice = row.npChoice || null;
     }
 
     // A ruleset change invalidates every draw: the two catalogues are disjoint,
@@ -504,7 +548,14 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     // grant applies AFTER the rolls, so nothing about it can change a die
     // already thrown. That is the summon dialog's rule, for its reason.
     const prepared = await prepareSummon({ contentId, region: this.draft.region || null });
-    if (prepared) this.draft.prepared[container.id] = prepared;
+    if (!prepared) return;
+    this.draft.prepared[container.id] = prepared;
+
+    // Recorded on the CONTAINER so `validateRoster` -- which is pure and takes
+    // no documents -- can refuse a war whose choice was never made.
+    const offered = [...(prepared.sheet?.npChoice ?? [])];
+    container.npOptions = offered;
+    if (!offered.includes(container.npChoice)) container.npChoice = null;
   }
 
   /**
