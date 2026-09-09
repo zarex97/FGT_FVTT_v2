@@ -1053,3 +1053,8 @@
      height with no overflow of its own. */
   .fgt-setup__tab { padding: 0.6rem 0.75rem; }
 }
+
+/* "Before play, select only one Noble Phantasm, either (a) or (b)." */
+.fgt-setup__np { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: center; margin-top: 0.35rem; }
+.fgt-setup__np-label { font-weight: 600; opacity: 0.85; }
+.fgt-setup__np-option { display: inline-flex; gap: 0.25rem; align-items: center; }

@@ -301,6 +301,22 @@ export async function commitWar(draft) {
   await combat.activate();
   await combat.syncFactions({ withGM: true });
 
+  // The match describes itself BEFORE anything is built into it. Everything
+  // downstream reads the war's shape off `game.combat` -- `warRuleset()` most
+  // of all -- and a Combat created with the schema's defaults SHADOWS the world
+  // settings the wizard was seeded from. Writing these after the summon loop
+  // meant `commitSummon` saw `ruleset: "advanced"` on a Normal war and refused
+  // every one of its own Servants. `containers` still comes last: it carries
+  // the actor ids, which do not exist yet.
+  await combat.update({
+    "system.warType": draft.warType,
+    "system.ruleset": draft.ruleset,
+    "system.homeBaseDepth": draft.homeBaseDepth,
+    "system.region": draft.region || null,
+    "system.difficulty": draft.difficulty,
+    "system.grailThreshold": draft.grailThreshold,
+  });
+
   await note(combat, `War setup began: ${draft.warType}, ${draft.ruleset} ruleset`, {
     warType: draft.warType, ruleset: draft.ruleset,
     boardSize: draft.boardSize, containers: draft.containers.length,
@@ -333,6 +349,19 @@ export async function commitWar(draft) {
       "system.factionId": container.factionId,
       "system.classContainer": container.classContainer,
     });
+    // "The unselected Noble Phantasm is unusable." `expended` is the existing
+    // way to say that, and the rejected option stays ON the sheet greyed out
+    // rather than being deleted -- so a player can check afterwards that the
+    // war was set up the way the table agreed.
+    const offered = [...(servant.system.npChoice ?? [])];
+    if (offered.length > 0 && container.npChoice) {
+      const losers = servant.items
+        .filter((i) => offered.includes(i.system?.contentId)
+          && i.system?.contentId !== container.npChoice)
+        .map((i) => ({ _id: i.id, "system.expended": true }));
+      if (losers.length > 0) await servant.updateEmbeddedDocuments("Item", losers);
+    }
+
     // `setContract` is the ONE place that keeps `Servant.masterId` and
     // `Master.servantIds` reciprocal; writing either directly desynchronizes
     // them, and §16.9's per-Servant Command Spell pools are keyed off the
@@ -341,12 +370,6 @@ export async function commitWar(draft) {
   }
 
   await combat.update({
-    "system.warType": draft.warType,
-    "system.ruleset": draft.ruleset,
-    "system.homeBaseDepth": draft.homeBaseDepth,
-    "system.region": draft.region || null,
-    "system.difficulty": draft.difficulty,
-    "system.grailThreshold": draft.grailThreshold,
     "system.containers": draft.containers.map((c, i) => ({
       ...c, servantId: servants[i]?.id ?? null, masterId: masters[i]?.id ?? null,
     })),
