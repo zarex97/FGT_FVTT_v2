@@ -16,6 +16,7 @@ import { onMasterDefeated } from "../rules/relationships.mjs";
 import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
+import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -37,6 +38,36 @@ import { snapshotUnit } from "../rules/snapshot.mjs";
  * @param {number} value the Health it is about to have
  * @returns {object} an update patch, empty when nothing crossed
  */
+/**
+ * The Round-gate numbers, read where Layer 3 may read them.
+ *
+ * `rules/np-gate.mjs` is Layer 2 and may not touch `game`, so the settings are
+ * fetched here and handed down as plain values.
+ *
+ * @returns {{round: number, assassinRound: number}}
+ */
+function gateSettings() {
+  return {
+    round: game.settings.get("fgt", "npGateRound"),
+    assassinRound: game.settings.get("fgt", "npGateRoundAssassin"),
+  };
+}
+
+/**
+ * The Master this actor is contracted to, as a snapshot, or `null`.
+ *
+ * Only the essence shift needs it, and no Master carries an essence yet -- but
+ * reading it now is what makes that seam real rather than notional.
+ *
+ * @param {object} actor
+ * @returns {object|null}
+ */
+function masterSnapshotOf(actor) {
+  const id = actor?.system?.masterId ?? null;
+  const master = id ? game.actors.get(id) : null;
+  return master ? snapshotUnit(master) : null;
+}
+
 function watermarks(actor, value) {
   const max = actor.system?.health?.max ?? 0;
   if (max <= 0) return {};
@@ -460,7 +491,28 @@ export function worldIO() {
       const next = mode === "set"
         ? ticks
         : (mode === "increase" ? current + ticks : Math.max(0, current - ticks));
-      await item.update({ "system.cooldown.remaining": next });
+
+      // §7.9's cooldown interaction: an increase taken BEFORE the Noble
+      // Phantasm gate opens pushes the availability turn out by that much, on
+      // top of the gate. Recorded here because this is the only place in the
+      // system where a cooldown increase is applied, and read by
+      // `rules/np-gate.mjs#npAvailableTurn`.
+      //
+      // Additive rather than `max()` (§7.9's prose against its own pseudocode):
+      // under `max()` an NP Lock spent while the target's NP was gated anyway
+      // costs its caster a Skill and buys nothing, which is the outcome the
+      // clause exists to prevent.
+      const update = { "system.cooldown.remaining": next };
+      if (mode === "increase" && ticks > 0 && isGated(item.system)) {
+        const gateTurn = gateTurnFor(snapshotUnit(actor), masterSnapshotOf(actor), {
+          gates: gateSettings(),
+          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+        });
+        if ((game.combat?.system?.globalTurn ?? 0) < gateTurn) {
+          update["system.cooldown.gatedDelay"] = (item.system.cooldown?.gatedDelay ?? 0) + ticks;
+        }
+      }
+      await item.update(update);
     },
 
     /**

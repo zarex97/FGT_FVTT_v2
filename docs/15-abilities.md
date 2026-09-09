@@ -889,6 +889,13 @@ defender.
 Three flags decide which effects touch an ability. They are the most bug-prone part of the
 content model, so they get their own section.
 
+**And a fourth question this section did not ask.** Ch. 07 §7.9's availability gate — no Noble
+Phantasm before Round 6 — is scoped by the same predicate as Q1 and Q3: `isNP || categorizedAsNP`.
+An ability that is only *categorized* as a Noble Phantasm waits like one. That was not obvious
+enough to leave implicit: `usageSpecFor` projected `isNP` and not `categorizedAsNP`, so the gate
+would have missed precisely the abilities this section is about — EMIYA's Overedge, Bašmu's
+Dragonfire, Mannanán's Fragarach Counter and the Hanging Gardens.
+
 ### Q1 — Is it an NP for cooldown purposes?
 
 > *"Any Skill/Spell that is 'Categorized as Noble Phantasm' is affected by effects that affect

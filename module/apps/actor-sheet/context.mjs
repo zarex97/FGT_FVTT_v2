@@ -12,7 +12,7 @@
  */
 
 import * as board from "../../engine/board.mjs";
-import { currentBoard, unitSnapshot, currentTick, currentRound } from "../../engine/board.mjs";
+import { currentBoard, unitSnapshot, currentTick, currentRound, gateContext } from "../../engine/board.mjs";
 import { poolsOf, isUnbound } from "../../rules/cs-namespacing.mjs";
 import { chebyshev } from "../../domain/geometry.mjs";
 import { resourceLabel } from "../../domain/resources.mjs";
@@ -606,7 +606,10 @@ function abilitiesContext(actor, snapshot, turnsPerRound) {
 function abilityCard(item, { actor, unit, master, round, turnsPerRound, board }) {
   const use = classifyAbility(item);
   const spec = usageSpecFor(item);
-  const verdict = canUseAbility({ ability: spec, unit, master, round, board });
+  // `gateContext()` carries §7.9's Round gate: without it the sheet would show
+  // a Noble Phantasm as usable that the declaration path then refuses, which is
+  // worse than showing it locked.
+  const verdict = canUseAbility({ ability: spec, unit, master, round, board, ...gateContext() });
 
   return {
     id: item.id,

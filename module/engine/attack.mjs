@@ -15,7 +15,7 @@
 import { computeDamage, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
 import { displaceToken } from "./io.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { currentBoard, unitSnapshot, unitFrom } from "./board.mjs";
+import { currentBoard, unitSnapshot, unitFrom, gateContext } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -134,6 +134,9 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     unit: self,
     master,
     round: combat?.round ?? 1,
+    // §7.9's Round gate: its numbers are world settings, which Layer 2 may not
+    // read, so they travel with the call.
+    ...gateContext(),
     // The rest of §15.4's requirement kinds need more than the unit: a
     // counterpart check reads the board, and a target-effect check reads the
     // target. Passing neither made those two kinds silently unsatisfiable.
@@ -177,7 +180,9 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // "During the first Round, neither Player/Faction is allowed to Attack"
   // (§19.7 step 12). A hard gate at declaration, so the refusal names the rule
   // instead of letting a player discover it as an unexplained targeting error.
-  if (combat?.started && !attacksPermitted(combat.round ?? 1) && actionKind !== "skill") {
+  if (combat?.started
+    && !attacksPermitted(combat.round ?? 1, game.settings.get("fgt", "noAttackRound"))
+    && actionKind !== "skill") {
     throw new Error("FGT | No attacks are permitted during the first Round.");
   }
 
@@ -2393,7 +2398,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
     // the slot was offered at all; this is the record of what it costs.
     usage: canUseAbility({
       ability: abilityUsageSpec(ability), unit: self, master,
-      round: game.combats.active?.round ?? 1, board,
+      round: game.combats.active?.round ?? 1, board, ...gateContext(),
       target: unitFrom(board, required),
     }),
     board,
@@ -4764,6 +4769,7 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
         master: defender.masterId ? unitFrom(board, game.actors.get(defender.masterId)) : null,
         round: game.combats.active?.round ?? 1,
         board,
+        ...gateContext(),
         target: self,
       });
       return usage.ok;
@@ -4819,7 +4825,7 @@ async function resolveNPCancellation({
     master: cancellerMaster,
     usage: canUseAbility({
       ability: abilityUsageSpec(cancelling), unit: canceller, master: cancellerMaster,
-      round: game.combats.active?.round ?? 1, board,
+      round: game.combats.active?.round ?? 1, board, ...gateContext(),
       target: unitFrom(board, attacker) ?? unitSnapshot(attacker),
     }),
     board,

@@ -19,7 +19,7 @@ import { classifyAbility } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost, abilityState } from "../actor-sheet/present.mjs";
-import { currentBoard, unitSnapshot, unitFrom } from "../../engine/board.mjs";
+import { currentBoard, unitSnapshot, unitFrom, gateContext } from "../../engine/board.mjs";
 import { mayDeactivate } from "../../engine/fields.mjs";
 import { mayReshape } from "../../rules/bounded-fields.mjs";
 import { FACINGS } from "../../domain/enums.mjs";
@@ -160,7 +160,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         const use = classifyAbility(item);
         if (!use.clickable) return null;
         const entry = (snapshot.abilities ?? []).find((a) => a.id === item.id) ?? {};
-        const verdict = canUseAbility({ ability: item.system, unit: snapshot });
+        // Same reason as the sheet's: a button that offers what the
+        // declaration refuses is a worse affordance than a disabled one.
+        const verdict = canUseAbility({ ability: item.system, unit: snapshot, ...gateContext() });
         const slot = slotFor({
           ...entry,
           img: item.img,
