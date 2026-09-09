@@ -391,9 +391,13 @@ export function meetsRequirement(req, ctx) {
       // area" -- so it is offered while the area stands and refused otherwise,
       // rather than being a grant something has to remember to give and take
       // away.
-      return (board?.fields ?? []).some((f) => f.id === req.field)
-        ? { ok: true }
-        : { ok: false, reason: `${req.field} is not open` };
+      // A BOOLEAN. This returned `{ok: true}` / `{ok: false, reason}` from a
+      // function whose every caller treats the result as a boolean -- and both
+      // objects are truthy, so the gate has always PASSED. Doomsday Come's
+      // drag-in was offered whether or not the area stood, which is the only
+      // clause that uses it and the reason nobody noticed: it reads as
+      // available in exactly the situation a player would try it.
+      return (board?.fields ?? []).some((f) => f.id === req.field);
 
     case "noAliveSummon":
       // "Only one Bašmu summoned by this Spell can exist on the field."

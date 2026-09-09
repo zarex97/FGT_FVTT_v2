@@ -172,6 +172,33 @@ field:
     #
     # Inert while he is contracted -- only a Free Servant has a clock running
     # at all -- and exactly the clause that matters after his Master dies.
+    # 2, second half. "Whenever Ozymandias is defeated while within the Complex,
+    # he is revived with 20% of his Max Health. When any of the Sphinxes are
+    # defeated within the Complex, it is revived with 10% of its Max Health."
+    #
+    # An INTERIOR revival, which is what makes "while within" free: the source
+    # is only collected onto a Unit standing inside, so a Unit that died
+    # elsewhere never had it. No charges and no cooldown -- the sheet states
+    # neither, and "whenever" is the word that refuses both.
+    #
+    # `consumesOnUse: false` for the same reason: a source that spent itself
+    # would revive him once and then not again, which "whenever" also refuses.
+    - key: RevivalSource
+      id: divineProtection
+      revivalPriority: 50
+      percentOfMax: 20
+      charges: null
+      consumesOnUse: false
+      relations: [self]
+    - key: RevivalSource
+      id: divineProtectionSphinx
+      revivalPriority: 50
+      percentOfMax: 10
+      charges: null
+      consumesOnUse: false
+      relations: [ally]
+      kinds: [summon]
+
     - key: Suppress
       scope: sustainabilityDecay
       relations: [self]
