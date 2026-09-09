@@ -238,6 +238,27 @@ any other Region it is 9×9 / 81.
 
 ## 19.4 The Holy Grail
 
+> **Implemented, and it had never once run.** `grailPanelCandidates` (pure) lists every in-bounds
+> panel lying in no home-base zone, and `scheduler-hooks` rolls over it at the round boundary the
+> Grail materializes on, writing `MatchData.grailPosition` through `io.setGrailPosition`. That field
+> had been declared and read and **written by nothing** since the schema existed, so `grailContest`
+> returned early on `!state.position` for the whole of every match: the Holy Grail has never been
+> obtainable in this system. The blocker was §19.4's own wording — *"a random panel excluding Home
+> Bases"* cannot be evaluated on a board with none, and nothing created one until `paintHomeBases`.
+>
+> Every zone is excluded, not only the enemy's: a Grail inside your own base is one you win with by
+> standing still, which is not a contest.
+>
+> **A match must be `active`, not merely created.** `currentBoard()` reads `game.combats.active`,
+> and `Combat.create` leaves `active: false` — `game.combat` is only the combat being *viewed*.
+> Found live: a match carrying `grailMaterialized: true` projected `materialized: false` onto the
+> board, so nothing downstream could see the match at all — not the phase, the tick, the difficulty,
+> the war type, or the Grail. `commitWar` activates.
+>
+> Measured live in `fgt2026`: 91 candidate panels on a 13 × 13 board with two three-row bases
+> (169 − 78), and the Grail materializing at `(4, 9)`.
+
+
 ### Materialization
 
 > *"After a certain number of Servants are defeated (recommended number is nine, or at least
