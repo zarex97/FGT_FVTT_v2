@@ -3898,20 +3898,6 @@ export function attackFacts(attacker, defender, state) {
 }
 
 /**
- * Does this attack ignore the attacker's own damage-increasing effects?
- *
- * *"Damage dealt is not affected by Atk Up or other damage increasing effects
- * on Ozymandias."* Read off the ability's `damage` block, where the clause is
- * authored beside the multiplier it qualifies.
- *
- * @param {object|null} ability
- * @returns {boolean}
- */
-function ignoresAttackerIncreases(ability) {
-  return Boolean(ability?.system?.damage?.ignoresAttackerIncreases);
-}
-
-/**
  * The ability that IS this Unit's Normal Attack right now, if one is.
  *
  * `actionSourceFor` answers the question against the board -- the condition is
