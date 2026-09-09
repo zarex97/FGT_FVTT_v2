@@ -65,6 +65,11 @@ modifier rules, and how randomness is generated, logged, and made auditable acro
 > every Evade: the silent, total failure that function exists to catch.
 
 
+> **The Luck Check is removed on Beginner and Intermediate.** Declined on the same path
+> `luckChecksBlocked` already uses, with a reason — not suppressed silently, because a player who
+> expected the option is owed the sentence saying why it is gone.
+
+
 ## 14.1 The three kinds of randomness
 
 | Kind | Mechanism | Examples |

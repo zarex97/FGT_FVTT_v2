@@ -41,6 +41,20 @@ it testable and what makes the targeting preview possible.
 > seventh.
 
 
+> **Stage 2 is switched off on Beginner.** *"To play without damage modifiers, just use Base Attack
+> for damage calculation instead of Attack+/Attack−."* `rules/difficulty.mjs#damageModifiersApply`
+> decides it and `stage2Crit` contributes an explicit **zero with its reason** rather than skipping
+> the stage, so the explainer says the roll was removed instead of leaving a gap a reader has to
+> account for.
+>
+> `ctx.difficulty` is threaded in at **both** damage-context sites in `engine/attack.mjs` — the
+> ordinary resolution and the reflection. Gating only the first would leave a reflected attack
+> rolling a `5d10` on Beginner, which is the harder of the two to notice.
+>
+> An unknown level reads as **Expert**, not Beginner: a corrupt setting must fail towards the full
+> rules, because a missing rule is invisible and an extra one is not.
+
+
 ## 13.1 The signature
 
 ```ts
