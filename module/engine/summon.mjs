@@ -413,7 +413,12 @@ const SETUP_PATHS = Object.freeze({
   // Base Attack (MAG) and throw it away, leaving a Master who flipped Heads
   // Rankless for ZON, Sustainability, the parameter grant and Kill Yourself.
   rank: "system.rank",
-  commandSpells: "system.commandSpells.value",
+  // `system.commandSpells`, NOT `.value`. The field is a plain NumberField
+  // and Foundry drops a write to a subfield of one -- measured live in
+  // fgt2026: setting `system.commandSpells.value` to 1 left the Master at 3.
+  // Inert until now only because the line's value and the schema's initial
+  // are both 3, so any OTHER answer has been silently discarded.
+  commandSpells: "system.commandSpells",
 });
 
 /**
