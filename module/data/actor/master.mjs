@@ -21,12 +21,24 @@ export class MasterData extends foundry.abstract.TypeDataModel {
     // of every Turn it ACTS within Bloodfort Andromeda"*, and it could never
     // have fired. Taken from the one definition rather than restated, so the
     // two records cannot drift.
-    const { turnState, roundState } = combatantCommon();
+    // `baseAttack` was NOT among them, and `engine/summon.mjs` has mapped a
+    // Master's rolled figure to `system.baseAttack.mag` since it was written.
+    // Foundry drops a write to an undeclared path without complaint, so the
+    // value vanished and `rules/snapshot.mjs` read `sys.baseAttack?.str ?? 0`.
+    // Measured live in fgt2026: every Master on the board reported
+    // `{str: 0, mag: 0}`. Every Master in the game has attacked for nothing
+    // since this schema was written.
+    //
+    // Unfindable until now only because nothing in the Advanced corpus depends
+    // on a Master's own attack being non-zero; Normal states one on every
+    // Master sheet and gives each of them a Magic Crest.
+    const { turnState, roundState, baseAttack } = combatantCommon();
 
     return {
       ...unitCommon(),
       turnState,
       roundState,
+      baseAttack,
       // A–D (Ch. 04 §4.5), or blank for Rankless — a real state with rules of
       // its own (Ch. 17 prices an all-Rankless table differently), not a
       // missing value.

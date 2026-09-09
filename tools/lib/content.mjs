@@ -1447,6 +1447,20 @@ function resourceOf(authored) {
  */
 function actorSystem(doc) {
   return {
+    // Master fields (Ch. 04 §4.5, Ch. 16, Ch. 17). Absent from every other
+    // actor type, and `packs/_source/masters/` did not exist until the setup
+    // wizard needed something to summon a Master FROM -- so these three had
+    // never had a document to be dropped from. The validator's
+    // `unitKeyCoverage` is what caught them on the first build, which is what
+    // it was added for.
+    //
+    // `rank` is "" for Rankless, a real state with rules of its own rather than
+    // a missing value: Ch. 17 prices an all-Rankless table differently.
+    rank: doc.rank ?? undefined,
+    commandSpells: doc.commandSpells ?? undefined,
+    // The STATED ZON, which `zonRadius` reads as a floor under its class-based
+    // derivation. Normal's seven Master sheets each state one.
+    zon: doc.zon ?? undefined,
     // Platform fields (Ch. 20). Absent from every other actor type and cheap
     // to carry; without them a platform compiles into an actor that knows its
     // Health and nothing about who it shields or how it moves.
