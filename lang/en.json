@@ -100,6 +100,8 @@
   "FGT.Settings.RulesetHint": "Advanced Servants carry parameter ranks; Normal ones state flat numbers. A board holds one. Locked once the match starts.",
   "FGT.Settings.DrawPolicy": "Random draw",
   "FGT.Settings.DrawPolicyHint": "Whether the same Servant may be drawn into containers in more than one faction.",
+  "FGT.Grail.NoPanel": "The Holy Grail has nowhere to appear — every panel on the board is a Home Base.",
+  "FGT.Grail.Materialized": "The Holy Grail has appeared at panel {i}, {j}.",
   "FGT.WarType.Great": "Great Holy Grail War",
   "FGT.WarType.Regular": "Holy Grail War",
   "FGT.WarType.Custom": "Custom",

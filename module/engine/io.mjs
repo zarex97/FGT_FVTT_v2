@@ -664,6 +664,19 @@ export function worldIO() {
     },
 
     /**
+     * Where the Holy Grail is standing (§19.4).
+     *
+     * `MatchData.grailPosition` was declared and read and written by nothing,
+     * so `grailContest` short-circuited on `!state.position` for the whole of
+     * every match. This is the writer it never had.
+     *
+     * @param {{i: number, j: number}|null} panel
+     */
+    async setGrailPosition(panel) {
+      await game.combat?.update({ "system.grailPosition": panel });
+    },
+
+    /**
      * Set a Servant's contract and its Master (§16.2).
      *
      * The Master's roster is updated in the same call. Keeping only the

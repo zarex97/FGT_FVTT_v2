@@ -276,6 +276,42 @@ export function registerDefeat(state, unit, cause = "damage") {
 }
 
 /**
+ * Every panel the Holy Grail may appear on.
+ *
+ * > *"the Holy Grail will appear on a random panel on the field **excluding
+ * > Home Bases**."*
+ *
+ * `MatchData.grailPosition` has been declared and read since the schema was
+ * written and **written by nothing**, so `grailContest` short-circuited on
+ * `!state.position` for the whole of every match and the Grail could not be
+ * obtained. The blocker was this clause itself: a board with no home bases
+ * cannot evaluate "excluding Home Bases", and until the setup wizard existed
+ * nothing had ever created one.
+ *
+ * Every zone is excluded, not only the enemy's. A Grail inside your own base is
+ * a Grail you win with by standing still, which is not a contest.
+ *
+ * @param {object} board
+ * @returns {Array<{i: number, j: number}>}
+ */
+export function grailPanelCandidates(board) {
+  const bounds = board?.bounds ?? {};
+  const excluded = new Set();
+  for (const zone of Object.values(board?.zones ?? {})) {
+    for (const panel of zone?.panels ?? []) excluded.add(`${panel.i},${panel.j}`);
+  }
+
+  /** @type {Array<{i: number, j: number}>} */
+  const out = [];
+  for (let i = bounds.iMin ?? 0; i <= (bounds.iMax ?? -1); i++) {
+    for (let j = bounds.jMin ?? 0; j <= (bounds.jMax ?? -1); j++) {
+      if (!excluded.has(`${i},${j}`)) out.push({ i, j });
+    }
+  }
+  return out;
+}
+
+/**
  * Advance the acquisition contest by one Round.
  *
  * Two positions matter and they are **different distances**: a claimant must be
