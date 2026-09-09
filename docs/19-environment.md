@@ -176,6 +176,14 @@ A `Light` counterpart is not defined in the source. Not implemented.
 
 ## 19.3 Region
 
+> **Egypt was missing.** The curated graph held thirteen regions and Ozymandias's was not one, so
+> `region: [egypt]` matched no war and this section's parameter grant silently never fired for him.
+> Added with its three edges — Middle East, Mesopotamia, Greece — in the same change, because the
+> graph is symmetric and `test/unit/environment-rest.test.mjs` enforces it: a one-way edge would
+> make Semiramis's Construction counter depend on the order the two regions were compared in.
+> Measured live: `regionBonusFor` returns 1 in an Egypt war, and returned 0 before.
+
+
 > *"Before starting the game, if all players agree, the GM can (randomly) select a country/region
 > the war would take place in. In this case, all Servants from the corresponding Region selected
 > receives a **+ to all Parameters** (D to D+, B- to B, C+ to C++, etc)."*
