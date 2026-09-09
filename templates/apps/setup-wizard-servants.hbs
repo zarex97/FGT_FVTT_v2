@@ -1,0 +1,41 @@
+<section class="tab fgt-setup__tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  <header class="fgt-setup__actions">
+    <button type="button" data-action="rollAll" {{disabled locked}}>{{localize "FGT.Setup.RollAll"}}</button>
+    {{#if locked}}<span class="fgt-setup__reason">{{lockedReason}}</span>{{/if}}
+  </header>
+
+  {{#each cards as |card|}}
+    <article class="fgt-setup__card" data-container-id="{{card.containerId}}">
+      <header>
+        <span class="fgt-setup__card-slot">{{card.factionName}} · {{card.classLabel}}</span>
+        {{#if card.rolled}}
+          <img src="{{card.img}}" alt="" class="fgt-setup__card-img">
+          <strong>{{card.name}}</strong>
+          <button type="button" data-action="redraw" {{disabled @root.locked}}>{{localize "FGT.Setup.Redraw"}}</button>
+        {{else}}
+          <em>{{localize "FGT.Setup.NotRolled"}}</em>
+        {{/if}}
+      </header>
+
+      {{#if card.rolled}}
+        <ul class="fgt-setup__lines">
+          {{#each card.lines as |line|}}
+            <li data-line-id="{{line.id}}">
+              <span class="fgt-setup__line-label">{{line.label}}</span>
+              <span class="fgt-setup__line-value">{{line.value}}</span>
+              <span class="fgt-setup__line-workings">{{line.workings}}</span>
+              {{#if line.rollable}}
+                <button type="button" data-action="reroll" {{disabled @root.locked}}
+                        data-tooltip="{{localize 'FGT.Setup.Reroll'}}"
+                        aria-label="{{localize 'FGT.Setup.Reroll'}}">
+                  <i class="fa-solid fa-dice"></i>
+                </button>
+              {{/if}}
+              {{#if line.note}}<span class="fgt-setup__line-note">{{line.note}}</span>{{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      {{/if}}
+    </article>
+  {{/each}}
+</section>

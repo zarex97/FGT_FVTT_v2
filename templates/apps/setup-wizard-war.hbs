@@ -1,0 +1,48 @@
+<section class="tab fgt-setup__tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  {{#if locked}}<p class="fgt-setup__locked">{{lockedReason}}</p>{{/if}}
+
+  <div class="fgt-setup__grid">
+    <label>
+      <span>{{localize "FGT.Settings.WarType"}}</span>
+      <select name="draft.warType" {{disabled locked}}>
+        {{selectOptions @root.warTypes selected=draft.warType localize=true}}
+      </select>
+    </label>
+    <label>
+      <span>{{localize "FGT.Settings.Ruleset"}}</span>
+      <select name="draft.ruleset" {{disabled locked}}>
+        {{selectOptions @root.rulesets selected=draft.ruleset localize=true}}
+      </select>
+    </label>
+    <label>
+      <span>{{localize "FGT.Settings.BoardSize"}}</span>
+      <select name="draft.boardSize" {{disabled locked}}>
+        {{selectOptions @root.boardSizes selected=draft.boardSize}}
+      </select>
+    </label>
+    <label>
+      <span>{{localize "FGT.Settings.TurnsPerRound"}}</span>
+      <input type="number" name="draft.turnsPerRound" min="2" value="{{draft.turnsPerRound}}" {{disabled locked}}>
+    </label>
+    <label>
+      <span>{{localize "FGT.Settings.Difficulty"}}</span>
+      <select name="draft.difficulty" {{disabled locked}}>
+        {{selectOptions @root.difficulties selected=draft.difficulty localize=true}}
+      </select>
+    </label>
+    <label>
+      <span>{{localize "FGT.Settings.Region"}}</span>
+      <input type="text" name="draft.region" value="{{draft.region}}" {{disabled locked}}>
+    </label>
+    <label>
+      <span>{{localize "FGT.Settings.GrailThreshold"}}</span>
+      <input type="number" name="draft.grailThreshold" min="1" value="{{draft.grailThreshold}}" {{disabled locked}}>
+    </label>
+    <label>
+      <span>{{localize "FGT.Settings.DrawPolicy"}}</span>
+      <select name="draft.drawPolicy" {{disabled locked}}>
+        {{selectOptions @root.drawPolicies selected=draft.drawPolicy localize=true}}
+      </select>
+    </label>
+  </div>
+</section>

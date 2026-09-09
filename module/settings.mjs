@@ -9,6 +9,7 @@
  */
 
 import { registerFactionMenu } from "./apps/faction-config.mjs";
+import { SetupWizard } from "./apps/setup-wizard.mjs";
 
 const RULE_SETTINGS = ["turnsPerRound", "difficulty", "activeSkillBudget", "boardSize",
                        "warType", "ruleset"];
@@ -142,6 +143,23 @@ export function registerSettings() {
     },
   });
   registerFactionMenu();
+
+  // The setup wizard's in-progress draft, so a GM may close the window, go
+  // and read a rulebook, and come back to fourteen rolled Servants rather
+  // than to nothing. Cleared on commit. Registered HERE, beside the menu
+  // that opens its reader: `test/unit/settings-are-read.test.mjs` fails any
+  // setting nothing reads, which is the guard that exists because
+  // `closedInfo` and `difficulty` both spent their lives that way.
+  s("setupDraft", { config: false, type: Object, default: {} });
+
+  game.settings.registerMenu("fgt", "setupWizard", {
+    name: "FGT.Setup.MenuName",
+    label: "FGT.Setup.MenuLabel",
+    hint: "FGT.Setup.MenuHint",
+    icon: "fa-solid fa-chess-board",
+    type: SetupWizard,
+    restricted: true,
+  });
 
   s("diceFormulas", { config: false, type: Object, default: {} });
   s("schemaVersion", { config: false, type: String, default: "" });

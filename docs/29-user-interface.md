@@ -45,6 +45,36 @@ legible. Every screen in this chapter is justified by a specific class of mistak
 
 ---
 
+> **The war setup wizard is built** (`apps/setup-wizard.mjs`, six tabs). Ch. 19 §19.7 has listed
+> twelve procedures that happen before a war begins since it was written, and three of them existed;
+> this is the window that runs the rest. Two entry points, for the reason `summon-entry.mjs` gives
+> for having two: a `restricted` settings menu, and a third button in the Actors sidebar header
+> beside Summon and Game Log.
+>
+> Both of this chapter's standing rules are load-bearing here, and both are exercised by the real
+> corpus rather than by a contrived case:
+>
+> - **Disabled with its reason, never hidden.** The reference roster holds **no Saber**, so on every
+>   Advanced war two container rows dim and print *"No Saber exists in this ruleset's compendium.
+>   Choose a Servant for this slot, change its class, or remove it."* Commit stays disabled with the
+>   refusal list beside it until they are resolved.
+> - **The arithmetic is shown, not the answer.** A rolled line reads `14 + 1 (1d2)` above `15`, an
+>   unrolled one says *"no roll — Health(S) is not used for a Servant"* rather than showing a bare
+>   figure, and a summon variant reads `1d2 → dsc`. `describe` moved into a pure
+>   `apps/summon-present.mjs` so the summon dialog and the wizard cannot render the same line
+>   differently.
+>
+> A fixed container is chosen through a **filtering combobox** — prefix matches ranked above
+> substring ones, so typing `EM` surfaces EMIYA first. A `<select>` of a hundred Servants is not a
+> control anyone can use at a table, and the roster only grows.
+>
+> **`.fgt-nav` is the actor sheet's *vertical* rail**, sized by `grid-area: nav` inside that sheet's
+> grid. Reused unchanged in a window with no such grid it rendered as six icons stacked down the
+> middle, swallowing the top third of the wizard — found by looking at it, not by any test. The
+> override lives in `_apps.scss` under `.setup-wizard`, because the sheet's rail is right as it is
+> and only its container differs.
+
+
 ## 29.1 ApplicationV2
 
 All UI is `ApplicationV2` with `HandlebarsApplicationMixin`. V1 `Application` and `FormApplication`
