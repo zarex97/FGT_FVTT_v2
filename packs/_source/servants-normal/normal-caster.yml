@@ -1,0 +1,27 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# "Caster of Blue"
+schema: 1
+id: normal-caster
+name: Caster
+type: servant
+
+servantClasses: [caster]
+classContainer: caster
+baseHealth: 750
+mov: 5
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 50, mag: 150 }
+# The one Servant that attacks with MAG.
+normalAttack: { mode: fixed, component: mag }
+sustainability: "4◈"
+
+npChoice: [normal-caster-np-a, normal-caster-np-b]
+
+abilities:
+  - { ref: normal-territory-creation }
+  - { ref: normal-caster-np-a }
+  - { ref: normal-caster-np-b }
+
+notes: |
+  Agility -2 at setup. Caster's Master states ZON 5, the largest in the game,
+  written per container by the setup wizard.

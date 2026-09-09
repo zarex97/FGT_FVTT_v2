@@ -1,0 +1,26 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Saber) Class Skill: Magic Resistance — (Passive) All MAG damage taken is
+# > reduced by 5d20; if NP, double the number of dice rolled.
+# > <Magic Resistance: 5d20>"
+#
+# `mode: dice` on a `Resistance` rule element, which is wired end to end
+# already: `elements.mjs` projects it, `attack.mjs` doubles the formula when the
+# incoming attack is a Noble Phantasm, and `pipeline.mjs` subtracts the rolled
+# total and labels it "never negates". Normal's Magic Resistance is a flat pool
+# rather than Advanced's rank comparison, so it CANNOT negate -- which is the
+# behaviour that path already has.
+schema: 1
+id: normal-magic-resistance
+name: "Magic Resistance"
+source: class
+slug: magicResistance
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive) All MAG damage taken is reduced by 5d20; if NP, double the number of dice rolled.
+passiveRules:
+  - key: Resistance
+    mode: dice
+    formula: "5d20"
+    npDiceDoubled: true

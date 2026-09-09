@@ -1,0 +1,37 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Berserker) Noble Phantasm (b) — Hits a 7x7 panel area around Berserker for
+# > 4x damage. Can only be used once. Only usable when Mad Enhancement is Active
+# > and Berserker's Master has more than 100 Health remaining. After this Noble
+# > Phantasm is used, decrease Berserker's Master's Health by 100."
+#
+# The sheet's formula block DOUBLES its own result -- `[((BA+5d10)*4)*2]` --
+# which is Berserk Rage's +100% STR already folded in. Authored as 4x, not 8x:
+# the Rage modifier applies through the damage pipeline, and writing it here as
+# well would pay for it twice. That is the same double-count `engine/summon.mjs`
+# once made with granted parameter steps.
+schema: 1
+id: normal-berserker-np-b
+name: "Noble Phantasm (b)"
+isNP: true
+kind: noblePhantasm
+slug: normalBerserkerNPB
+maxUses: 1
+description: |
+  (Active) Hits a 7x7 panel area around Berserker for 4x damage. Can only be used once.
+  Only usable when Mad Enhancement is Active and Berserker's Master has more than 100 Health
+  remaining. After use, decrease Berserker's Master's Health by 100.
+requirements:
+  - { kind: predicate, predicate: ["self:skillActive:madEnhancement"] }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 7 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage: { component: str, multiplier: 4 }
+additionalCosts:
+  - id: berserkerNPBMasterHealth
+    kind: masterHealth
+    amount: 100
+phases:
+  - kind: damage

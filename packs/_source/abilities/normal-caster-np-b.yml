@@ -1,0 +1,25 @@
+# char_orig_sheets/extra docs/Character Sheet - Blue Faction (Normal).md
+# > "(Caster) Noble Phantasm (b) — Hits a 7x7 panel area within a 4 panel area
+# > of Caster for 5x damage. Can only be used once."
+#
+# The sheet's formula block for (b) is mislabelled "(a+)/(a-)". The prose is
+# unambiguous -- 7x7, range 4, 5x -- and the multiplier below follows the prose.
+schema: 1
+id: normal-caster-np-b
+name: "Noble Phantasm (b)"
+isNP: true
+kind: noblePhantasm
+slug: normalCasterNPB
+maxUses: 1
+description: |
+  (Active) Hits a 7x7 panel area within a 4 panel area of Caster for 5x damage.
+  Can only be used once.
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 7 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage: { component: mag, multiplier: 5 }
+phases:
+  - kind: damage
