@@ -128,6 +128,20 @@ function watchedFractions(actor) {
  * **returns whether the movement completed**, which is the whole point: a
  * displacement that does not happen now says so.
  *
+ * **`animate: false` is load-bearing, and it is the second half of the same
+ * trap.** Foundry holds the document at the movement's ORIGIN until the
+ * animation finishes, and an animation nobody is watching — an engine-driven
+ * move on a backgrounded tab, a headless check, a batch of scattered
+ * passengers — never finishes. Measured twice: the token's `_source` moved and
+ * the board did not, and later a `move()` that reported `completed: true` while
+ * every read still showed the old panel. Anything written here that submits a
+ * position without it will look intermittently broken and be very hard to
+ * explain, because the failure depends on whether anyone was looking.
+ *
+ * So the two options do different jobs and both are required: `action:
+ * "displace"` decides whether Foundry ACCEPTS the move, `animate: false`
+ * decides whether it COMMITS it.
+ *
  * @param {object} token the `TokenDocument`
  * @param {object} position any of `{x, y, elevation, level, width, height}`
  * @returns {Promise<boolean>} whether the token actually arrived

@@ -1126,9 +1126,22 @@ above the board.
 | `replacesRiderAction` | Ch. 20 | First platform a passenger drives. Its base attack is `ctx.units.mount` — stage 1's named-source lookup, which nothing had ever supplied. |
 | Platform upkeep / `lockout` / `countFrom: destroyed` | Ch. 20 | Shared with a bounded field, because two of her NPs carry the same blocks. |
 
+**Exercised in a live world**, individually: her statline off the tables; `Sol` making a 5×5 of
+Day inside a Night Round; Xiuhcoatl's two resolutions with their four different rider numbers;
+Piedra Del Sol's whole lifecycle, closing takes the stone and the ground with it; the
+Quetzalcoatlus summoned with her Luck and no cooldown until it dies; **boarding with her Master**;
+**all three Spells gated on `self:onPlatform:` — Ehecatle lands `Sap`, and using one puts all three
+on 2◈**; and **driving the mount three panels, which moves the platform and carries her Master
+exactly three**.
+
+The last three were blocked for a while by something that looked environmental and was not: every
+forced displacement in the system was submitted to Foundry as a *walk* and silently discarded.
+See Ch. 20's *"Boarding: how a token actually reaches a Scene Level"*.
+
 **Not demonstrable.** Xiuhcoatl's `[Fortress]` clause is built and unit-tested, and **cannot fire
 in a real match**: the only `[Fortress]` NP in either roster is Ozymandias's *Ramesseum Tentyris*,
-which is unauthored. Recorded rather than left to look exercised.
+which is unauthored. It is now the only clause of hers in that state, and it is recorded rather
+than left to look exercised.
 
 **Note.** `Sol`, `Xiuhcoatl`'s Burning conversion, and `Piedra Del Sol` are three different
 routes to the same outcome — changing the terrain a panel has. Chapter 42's overlap matrix is

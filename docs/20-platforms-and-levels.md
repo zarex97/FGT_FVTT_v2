@@ -629,6 +629,56 @@ the two sheets' final paragraphs.
 `deactivation`. *"7◈ Turns after Quetzalcoatlus is defeated"* starts on the mount's death: a Noble
 Phantasm that stands until something kills it has no "use" moment worth counting from.
 
+### Boarding: how a token actually reaches a Scene Level
+
+Everything above went in believing it worked, and none of it did, because **assigning a token to a
+level was submitted to Foundry as a walk**.
+
+`fgtForced` is *our* option. It tells `engine/movement-hooks.mjs` to stand aside and means nothing
+to Foundry. In `TokenDocument`, `#inferMovementWaypoints` marks a waypoint `action: "displace"`
+only when the operation carries `teleport`, `isUndo` or `isPaste`; otherwise the action is the
+token's ordinary movement action — a walk. `#preUpdateMovement` hands that walk to
+`Token#constrainMovementPath` and, on the branch commented *"Movement was constrained and
+impossible entirely"*, **deletes every movement field from the update**. No error, no
+notification, no rejected promise: `preMoveToken` and `moveToken` both fire and the document does
+not change.
+
+The symptom was a token that could be assigned **down** to the ground and not back **up** to a
+platform, so no Servant could board anything. It is not specific to Quetzalcoatl: every forced
+displacement in this system — knockback, Gather, scatter-on-destruction, a platform carrying its
+passengers, `boardPlatform` — went through the same door.
+
+**`engine/io.mjs#displaceToken` is the only correct way to put a token somewhere**, and it needs
+two options that do different jobs:
+
+| Option | Decides |
+|---|---|
+| `action: "displace"` (in the waypoint) | whether Foundry **accepts** the move |
+| `animate: false` | whether Foundry **commits** it |
+
+The second is as load-bearing as the first: Foundry holds the document at the movement's origin
+until the animation finishes, and an animation nobody is watching never finishes. A move without
+it reports `completed: true` and leaves the token where it was.
+
+`displaceToken` returns whether the token actually arrived, so a displacement that fails says so
+rather than vanishing.
+
+### Movement linkage runs both ways
+
+§20.8 was written for a platform that moves itself and carries its passengers. `replacesRiderAction`
+inverts it: the **passenger** is dragged and the platform under her has to follow, or she flies off
+her own mount and leaves it behind with her Master still aboard.
+
+`carryDrivenPlatform` is that mirror, and two things about it are easy to get wrong — both were,
+and both were found by driving the mount rather than by testing the rules underneath it:
+
+- It needs the **board-derived** unit. `platformId` is stamped by `annotatePlatforms` during the
+  full projection and a bare `unitSnapshot` never carries one, so `actionSourceFor` sees a rider on
+  no platform and returns having moved nothing. The same trap `engine/skill-use.mjs` records for
+  `self:onPlatform:`.
+- Her Master must not be carried **twice**. He is both her Passenger Seat rider and one of the
+  platform's passengers; with both handlers live he travels double the distance she does.
+
 Ramesseum Tentyris is the first "platform" that is not a level at all: it is a ground-level
 **bounded field** with fortress semantics. Chapter 43 covers that family separately, because
 their rules are about *entry, exit and suppression* rather than about elevation.
