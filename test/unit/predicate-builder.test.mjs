@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  builderRows, toPredicate, refChoicesFor,
+  builderRows, toPredicate, refChoicesFor, patchRows,
 } from "../../module/apps/ability-editor/predicate-builder.mjs";
 
 describe("builderRows", () => {
@@ -25,9 +25,19 @@ describe("builderRows", () => {
     expect(row.facet).toBe("free");
   });
 
-  it("offers the closed values a segment admits", () => {
+  it("offers the closed values a segment admits, as an OBJECT", () => {
+    // An array is treated as index-keyed by Foundry's `selectOptions` and
+    // emits value="0"/value="1" -- the subject picker offered `0` and `1`
+    // instead of `self` and `target`. Found live, twice, because no unit test
+    // renders a Handlebars helper.
     const [row] = builderRows(["self:phase:day"], "ownerOnly");
-    expect(row.segments[0].choices).toEqual(["day", "night", "none"]);
+    expect(row.segments[0].choices).toEqual({ day: "day", night: "night", none: "none" });
+  });
+
+  it("offers subjects and facets as objects too", () => {
+    const [row] = builderRows(["self:phase:day"], "ownerOnly");
+    expect(row.subjectChoices).toEqual({ self: "self", target: "target" });
+    expect(row.facetChoices.stance).toBe("stance");
   });
 
   it("says when a segment is unchecked, rather than pretending", () => {
@@ -157,5 +167,52 @@ describe("toPredicate is the inverse of builderRows", () => {
     for (const p of seen) {
       expect(toPredicate(builderRows(p, "exchange")), JSON.stringify(p)).toEqual(p);
     }
+  });
+});
+
+describe("patchRows", () => {
+  it("changes a value and gives back a predicate", () => {
+    const rows = builderRows(["self:stance:dismounted"], "ownerOnly");
+    expect(patchRows(rows, { "0.seg0": "mounted" })).toEqual(["self:stance:mounted"]);
+  });
+
+  it("changes the subject", () => {
+    const rows = builderRows(["self:free"], "exchange");
+    expect(patchRows(rows, { "0.subject": "target" })).toEqual(["target:free"]);
+  });
+
+  it("toggles negation", () => {
+    const rows = builderRows(["self:free"], "ownerOnly");
+    expect(patchRows(rows, { "0.negated": "on" })).toEqual(["not:self:free"]);
+  });
+
+  it("reaches into a nested group", () => {
+    const rows = builderRows([{ or: ["self:free", "target:free"] }], "exchange");
+    expect(patchRows(rows, { "0.rows.1.subject": "self" }))
+      .toEqual([{ or: ["self:free", "self:free"] }]);
+  });
+
+  it("keeps a number a number", () => {
+    // `{gte: ["@x", "100"]}` and `{gte: ["@x", 100]}` are not the same
+    // document, and a form gives back strings.
+    const rows = builderRows([{ gte: ["@self.health.value", 100] }], "ownerOnly");
+    expect(patchRows(rows, { "0.right": "250" })).toEqual([{ gte: ["@self.health.value", 250] }]);
+  });
+
+  it("leaves an @path alone rather than coercing it", () => {
+    const rows = builderRows([{ gte: ["@self.health.value", 1] }], "ownerOnly");
+    expect(patchRows(rows, { "0.left": "@self.baseHealth" }))
+      .toEqual([{ gte: ["@self.baseHealth", 1] }]);
+  });
+
+  it("carries a raw row through untouched when nothing patches it", () => {
+    const rows = builderRows([{ someModuleOp: ["x"] }, "self:free"], "ownerOnly");
+    expect(patchRows(rows, { "1.subject": "self" }))
+      .toEqual([{ someModuleOp: ["x"] }, "self:free"]);
+  });
+
+  it("ignores a path that names no row", () => {
+    const rows = builderRows(["self:free"], "ownerOnly");
+    expect(patchRows(rows, { "7.subject": "target" })).toEqual(["self:free"]);
   });
 });

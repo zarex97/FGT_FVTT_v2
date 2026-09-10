@@ -86,8 +86,8 @@ export function refChoicesFor(scope) {
  * @param {string} scope
  * @returns {object[]}
  */
-export function builderRows(predicate, scope = "ownerOnly") {
-  return (predicate ?? []).map((s) => rowFor(s, scope));
+export function builderRows(predicate, scope = "ownerOnly", base = "") {
+  return (predicate ?? []).map((s, i) => rowFor(s, scope, base ? `${base}.rows.${i}` : String(i)));
 }
 
 /**
@@ -107,8 +107,8 @@ export function toPredicate(rows) {
  * @param {string} scope
  * @returns {object}
  */
-function rowFor(s, scope) {
-  if (typeof s === "string") return termRow(s, scope);
+function rowFor(s, scope, path) {
+  if (typeof s === "string") return termRow(s, scope, path);
 
   if (s && typeof s === "object") {
     for (const op of GROUPS) {
@@ -116,15 +116,16 @@ function rowFor(s, scope) {
         return {
           kind: "group",
           op,
-          rows: (s[op] ?? []).map((x) => rowFor(x, scope)),
+          rows: (s[op] ?? []).map((x, i) => rowFor(x, scope, `${path}.rows.${i}`)),
           scope,
+          path,
         };
       }
     }
     if ("not" in s) {
       // `{not: …}` around a whole statement, distinct from the `not:` prefix
       // on one option. Both exist in the grammar and both are preserved.
-      return { kind: "group", op: "not", rows: [rowFor(s.not, scope)], scope };
+      return { kind: "group", op: "not", rows: [rowFor(s.not, scope, `${path}.rows.0`)], scope, path };
     }
     for (const op of Object.keys(COMPARISONS)) {
       if (op in s) {
@@ -135,13 +136,14 @@ function rowFor(s, scope) {
           left: s[op][0],
           right: s[op][1],
           refChoices: refChoicesFor(scope).filter((r) => r.type === COMPARISONS[op]),
-          opChoices: Object.keys(COMPARISONS),
+          opChoices: asChoices(Object.keys(COMPARISONS)),
           scope,
+          path,
         };
       }
     }
   }
-  return { kind: "raw", raw: JSON.stringify(s, null, 2), scope };
+  return { kind: "raw", raw: JSON.stringify(s, null, 2), scope, path };
 }
 
 /**
@@ -149,13 +151,13 @@ function rowFor(s, scope) {
  * @param {string} scope
  * @returns {object}
  */
-function termRow(option, scope) {
+function termRow(option, scope, path) {
   const negated = option.startsWith(NEGATION);
   const bare = negated ? option.slice(NEGATION.length) : option;
   const parsed = parseOption(bare);
   // An option no facet admits stays raw rather than being reshaped into
   // something the engine would read differently.
-  if (!parsed) return { kind: "raw", raw: JSON.stringify(option), scope };
+  if (!parsed) return { kind: "raw", raw: JSON.stringify(option), scope, path };
 
   const f = FACETS.find((x) => x.id === parsed.facet);
   // The form whose segments EXACTLY match what was parsed, not merely one
@@ -172,9 +174,11 @@ function termRow(option, scope) {
     kind: "term",
     negated,
     subject: parsed.subject,
-    subjectChoices: [...f.subjects],
+    subjectChoices: asChoices(f.subjects),
     facet: parsed.facet,
-    facetChoices: FACETS.filter((x) => x.subjects.includes(parsed.subject)).map((x) => x.id),
+    facetChoices: asChoices(
+      FACETS.filter((x) => x.subjects.includes(parsed.subject)).map((x) => x.id),
+    ),
     label: f.label,
     hint: f.hint,
     segments: form.filter((seg) => seg.value.kind !== "literal").map((seg) => ({
@@ -186,16 +190,32 @@ function termRow(option, scope) {
       registry: seg.value.kind === "registry" ? seg.value.from : null,
     })),
     scope,
+    path,
   };
 }
 
 /**
  * @param {object} seg
- * @returns {string[]|null}
+ * @returns {Record<string, string>|null}
  */
 function choicesFor(seg) {
   if (seg.value.kind !== "closed") return null;
-  return [...(seg.value.list ?? ENUMS[seg.value.from])];
+  return asChoices(seg.value.list ?? ENUMS[seg.value.from]);
+}
+
+/**
+ * A list as Foundry's `selectOptions` needs it.
+ *
+ * An ARRAY is treated as index-keyed and emits `value="0"`, `value="1"` — so a
+ * subject picker offered `0` and `1` instead of `self` and `target`. The same
+ * trap `formRows` was fixed for; found live both times, because no unit test
+ * renders a Handlebars helper.
+ *
+ * @param {readonly string[]} list
+ * @returns {Record<string, string>}
+ */
+function asChoices(list) {
+  return Object.fromEntries([...list].map((v) => [v, v]));
 }
 
 /**
@@ -229,4 +249,48 @@ function statementFor(row) {
     default:
       return JSON.parse(row.raw);
   }
+}
+
+/**
+ * Write form values back into a row tree, then rebuild the predicate.
+ *
+ * Controls name themselves by their row's `path` — `0.subject`,
+ * `1.rows.0.segments.0` — so a nested group patches without the form needing
+ * to know the tree's shape.
+ *
+ * The rows are rebuilt from the **draft** first, so anything the builder does
+ * not render is still carried: a raw row's JSON survives untouched.
+ *
+ * @param {object[]} rows
+ * @param {Record<string, string>} inputs keyed by `<path>.<field>`
+ * @returns {unknown[]} the new predicate
+ */
+export function patchRows(rows, inputs) {
+  const at = (path) => path.split(".").reduce((node, part) => (
+    Array.isArray(node) ? node[Number(part)] : node?.[part]
+  ), { rows });
+
+  for (const [key, value] of Object.entries(inputs)) {
+    const dot = key.lastIndexOf(".");
+    const row = at(`rows.${key.slice(0, dot)}`);
+    const field = key.slice(dot + 1);
+    if (!row) continue;
+
+    if (field === "negated") { row.negated = Boolean(value); continue; }
+    if (field.startsWith("seg")) {
+      const i = Number(field.slice(3));
+      if (row.segments?.[i]) row.segments[i].value = value;
+      continue;
+    }
+    if (field === "subject" || field === "facet" || field === "op") { row[field] = value; continue; }
+    if (field === "left" || field === "right") {
+      // A number stays a number: `{gte: ["@x", "100"]}` and
+      // `{gte: ["@x", 100]}` are not the same document.
+      row[field] = value !== "" && Number.isFinite(Number(value)) && !String(value).startsWith("@")
+        ? Number(value) : value;
+      continue;
+    }
+    if (field === "raw") row.raw = value;
+  }
+  return toPredicate(rows);
 }
