@@ -18,12 +18,16 @@
 
 import { blockedThisTurn, isNegated } from "./ability-use.mjs";
 import { meetsRequirements } from "./items.mjs";
+// The windows themselves live in `rules/windows.mjs` -- one list, held against
+// these dispatchers by a drift test in both directions. `ATTACKER_WINDOWS` is
+// re-exported below because it was exported from here first, and an importer
+// should not have to care that it moved.
+import {
+  REACTION_WINDOW, ALLY_WINDOW, ATTACKER_WINDOWS, windowsOf,
+} from "./windows.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { relationOf } from "./relations.mjs";
-
-/** The window an ability must name to be offered as a reaction. */
-const REACTION_WINDOW = "whenAttacked";
 
 /**
  * The windows the **attacker's own** abilities may name.
@@ -43,7 +47,7 @@ const REACTION_WINDOW = "whenAttacked";
  *   - Karna's *Uncrowned Arms Mastership* — *"used during your Turn **or at the
  *     start of a Combat Phase**"*.
  */
-export const ATTACKER_WINDOWS = Object.freeze(["damageStep", "combatPhaseStart"]);
+export { ATTACKER_WINDOWS };
 
 /**
  * The window for an ability somebody ELSE's peril triggers.
@@ -53,7 +57,8 @@ export const ATTACKER_WINDOWS = Object.freeze(["damageStep", "combatPhaseStart"]
  * hit by a Noble Phantasm."* The Unit that may act is neither the attacker nor
  * the defender, which no other ability in the game is true of.
  */
-const ALLY_WINDOW = "whenAllyAttacked";
+/* `ALLY_WINDOW` is imported above; the note stands because it explains the
+   call site below rather than the window itself. */
 
 /**
  * Requirements answerable from the bearer alone.
@@ -110,8 +115,7 @@ export function abilitiesAtWindow(unit, window) {
     // Medea has one of each. Karna's Uncrowned Arms Mastership has two, and
     // they are not both reaction windows: *"during your Turn OR at the start of
     // a Combat Phase"* is the sheet button and this offer, one ability.
-    const windows = [sys.timing?.window ?? []].flat();
-    if (!windows.includes(window)) return false;
+    if (!windowsOf(sys.timing).includes(window)) return false;
 
     if ((sys.cooldown?.remaining ?? 0) > 0) return false;
     if (blockedThisTurn(item, used)) return false;
@@ -205,7 +209,7 @@ export function allyReactions({ defender, board, attack, actorFor }) {
     for (const item of doc.items ?? []) {
       const sys = item.system ?? {};
       const timing = sys.timing ?? {};
-      if (![timing.window ?? []].flat().includes(ALLY_WINDOW)) continue;
+      if (!windowsOf(timing).includes(ALLY_WINDOW)) continue;
 
       // Reach, measured from the PROJECTOR to the Unit in peril.
       const radius = timing.radius ?? 0;
