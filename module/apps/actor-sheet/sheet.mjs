@@ -14,7 +14,7 @@
 import { classifyAbility, needsTargeting } from "../../rules/ability-use.mjs";
 import { canToggleMode } from "../../rules/modes.mjs";
 import { mayChangeStance } from "../../rules/stance.mjs";
-import { unitSnapshot } from "../../engine/board.mjs";
+import { unitSnapshot, currentTick, clockRunning } from "../../engine/board.mjs";
 import { attackFacts } from "../../engine/attack.mjs";
 import { normalAttackAt } from "../../rules/normal-attack.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
@@ -125,7 +125,10 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!item) return;
 
     const active = !item.system.active;
-    const tick = game.combat?.system?.globalTurn ?? 0;
+    // `currentTick`, NOT `game.combat` -- the latter is the combat being
+    // VIEWED, so this stamped the lockout against whatever tracker happened to
+    // be on screen.
+    const tick = currentTick() ?? 0;
 
     // Every rule about WHEN a mode may be switched, in one place
     // (`rules/modes.mjs`). This was a bare write, so Heracles's clause was the
@@ -133,6 +136,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // compulsion holding the mode on -- had nowhere to live.
     const verdict = canToggleMode(item, unitSnapshot(this.document), {
       active, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      // A lockout is measured against the match's clock, so it cannot be
+      // stamped when there is no match to measure it against.
+      clockRunning: clockRunning(),
     });
     if (!verdict.ok) {
       ui.notifications.warn(game.i18n.format(`FGT.Mode.${verdict.reason}`, {

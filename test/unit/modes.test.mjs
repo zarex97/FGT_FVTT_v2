@@ -28,6 +28,28 @@ describe("cannotDeactivate", () => {
   });
 });
 
+describe("no match running", () => {
+  it("refuses a locked mode, whose window would be measured against no clock", () => {
+    // `toggledAt` is written as the current tick, and out of a match every
+    // reader of the tick falls back to 0. A lockout stamped against a clock
+    // that does not exist is measured against whatever the next match happens
+    // to be reading when the player tries to switch back.
+    expect(canToggleMode(mode({ toggleLock: "2◈" }), unit(), { active: true, clockRunning: false }))
+      .toMatchObject({ ok: false, reason: "noMatch" });
+  });
+
+  it("allows a mode with no lockout, which writes no clock at all", () => {
+    // Precise rather than blanket: a mode without `toggleLock` stamps nothing,
+    // so there is no clock to get wrong and no reason to stop a GM arranging
+    // the board before the match begins.
+    expect(canToggleMode(mode(), unit(), { active: true, clockRunning: false }).ok).toBe(true);
+  });
+
+  it("assumes a running clock when nothing says otherwise", () => {
+    expect(canToggleMode(mode({ toggleLock: "2◈" }), unit(), { active: true }).ok).toBe(true);
+  });
+});
+
 describe("the two-way lockout", () => {
   const locked = mode({ toggleLock: "2◈", toggledAt: 10 });
 
