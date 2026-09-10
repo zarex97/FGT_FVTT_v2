@@ -16,6 +16,10 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { ELEMENT_DESCRIPTORS, ELEMENT_IDS } from "../../module/rules/authoring/elements.mjs";
 import { PHASE_DESCRIPTORS, PHASE_IDS } from "../../module/rules/authoring/phases.mjs";
+import {
+  REQUIREMENT_DESCRIPTORS, REQUIREMENT_IDS,
+  CS_REQUIREMENT_DESCRIPTORS, CS_REQUIREMENT_IDS,
+} from "../../module/rules/authoring/requirements.mjs";
 
 const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
 
@@ -65,6 +69,35 @@ describe("every phase key resolves", () => {
     for (const id of PHASE_IDS) {
       const d = PHASE_DESCRIPTORS[id];
       expect(lang[d.hint], `${id}: lang/en.json disagrees with the table`).toBe(d.english);
+    }
+  });
+});
+
+describe("every requirement key resolves", () => {
+  const tables = [
+    ["ability", REQUIREMENT_IDS, REQUIREMENT_DESCRIPTORS],
+    ["command spell", CS_REQUIREMENT_IDS, CS_REQUIREMENT_DESCRIPTORS],
+  ];
+
+  it("defines a label and a hint for every requirement kind", () => {
+    for (const [which, ids, table] of tables) {
+      for (const id of ids) {
+        const d = table[id];
+        expect(lang[d.label], `${which} ${d.label} is not in lang/en.json`).toBeTruthy();
+        expect(lang[d.hint], `${which} ${d.hint} is not in lang/en.json`).toBeTruthy();
+      }
+    }
+  });
+
+  it("keeps the source sentence and the shipped sentence identical", () => {
+    // `inZone` exists in BOTH vocabularies with different fields. They share a
+    // localization key, so the two English sentences have to agree -- and this
+    // is what notices if someone edits one of them.
+    for (const [which, ids, table] of tables) {
+      for (const id of ids) {
+        const d = table[id];
+        expect(lang[d.hint], `${which} ${id}: lang/en.json disagrees with the table`).toBe(d.english);
+      }
     }
   });
 });
