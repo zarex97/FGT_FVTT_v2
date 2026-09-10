@@ -294,12 +294,10 @@
             <button type="button" data-action="removePhase">✕</button>
           </header>
 
-          {{#each p.fields as |f|}}
-            <label class="fgt-editor__field">
-              <span>{{localize f.label}}</span>
-              <input type="{{f.type}}" name="phase.{{p.index}}.{{f.key}}" value="{{f.value}}">
-            </label>
-          {{/each}}
+          {{!-- The same partial every other descriptor field uses, so a phase
+                kind gains a typed control by being described rather than by
+                anyone editing this file. --}}
+          {{#each p.fields as |row|}}{{> fgt-editor-field row}}{{/each}}
 
           {{#each p.rules as |r|}}
             {{!-- The effect id is the field that decides whether an
