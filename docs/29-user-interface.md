@@ -623,6 +623,49 @@ four Servants every turn.
 
 Colour is never the only signal. Every colour-coded state also has a shape, an icon, or text.
 
+### Export to pack source — the way home
+
+Ch. 39 makes the compendium the whole source of truth: a world copy is reconciled to its pack
+document on every load. That would make SC-6 meaningless on its own — an hour authoring a
+Karna-complexity Servant would live in one world until the next pack rebuild silently discarded it.
+So the editor has a second button beside Save.
+
+**Two steps, not one.** Nothing under `module/` imports an npm package — there are zero
+bare-specifier imports and no bundler — so the browser cannot reach the `yaml` library, and
+hand-rolling an emitter for a format this full of edge cases would be a bug generator. The browser
+writes the authored *shape* as JSON to `packs/_staged/`; `npm run stage:yaml` turns it into the
+`.yml` the loader reads, on the side where `yaml` already lives.
+
+```
+edit in the editor → Export → packs/_staged/<id>.export.json
+  → npm run stage:yaml → packs/_source/abilities/<id>.yml
+  → npm run validate:content → node tools/fgt-rebuild.mjs
+  → the sync brings it back to every world copy
+```
+
+It exports the **draft**, not the stored item: a GM who had to save first would be saving into a
+world copy the next sync overwrites. And it is not gated on the validator, because half-finished
+work is exactly what a GM most wants to keep.
+
+What it refuses to write matters as much as what it writes. A cooldown with four Turns left on it
+is not content — authoring it would ship a Servant that starts the game part-way into its own
+clock — so `SEEDED_THEN_OWNED.item` is applied in reverse: what the pack must not overwrite is
+exactly what the export must not write. Provenance goes too; a template claiming to be somebody's
+copy is nonsense. Empty arrays and nulls are dropped, because in YAML they read as a statement
+("this ability has no tags") where absence reads as silence, and the loader treats them alike.
+
+**Two things the round trip does not preserve**, measured on Ozymandias's Imperial Privilege:
+
+- **Comments.** A hand-authored file's header — the conversion source, the table each figure
+  derives from — is not in the data and does not come back.
+- **`@effect[...]` shorthand**, which the loader expands to `@UUID[Compendium...]`. The export
+  writes the expanded form. It is valid and stable, but two link-hint warnings appear where the
+  shorthand used to satisfy them.
+
+So the export is the right tool for an ability *authored in the editor*, and a lossy one for a file
+written by hand. Diff before committing what it produces.
+
+
 ### Theme
 
 The system respects Foundry's light/dark themes. All colours are CSS custom properties defined
