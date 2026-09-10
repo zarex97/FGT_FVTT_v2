@@ -2983,7 +2983,7 @@ phase and pressing Save wrote all of it to the document correctly. It was **unre
 |---|---|---|
 | Schema fields exposed | **12 of 90** | every field in 2+ shipped abilities |
 | Rule elements | *validated*, unauthorable | all **54**, in three buckets |
-| Phase kinds typed | 11, of which **4 appear in zero abilities** | all **19**, from the corpus |
+| Phase kinds typed | 11, of which **4 appear in zero abilities** | all **20**, from the corpus |
 | Requirement kinds | none | **24**, plus the 9 command spells keep separately |
 | Timing windows | none | all **6**, with the four against-modifiers |
 | Reachable from Items → Create Item | **no** | yes — it is the default sheet |

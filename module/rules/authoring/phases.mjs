@@ -1,5 +1,5 @@
 /**
- * @file Every phase kind `runPhases` dispatches, in the words a GM uses.
+ * @file Every phase kind the engine dispatches, in the words a GM uses.
  * @see docs/15-abilities.md §15.2, docs/29-user-interface.md §29.6
  *
  * Layer 2 (rules). Pure data.
@@ -17,6 +17,12 @@
  * phase actually *carries* is best evidenced by what 195 authored abilities
  * write. `test/unit/authoring-phases.test.mjs` holds the ids against
  * `runPhases`; the fields are held against the content by the golden test.
+ *
+ * **Twenty, not nineteen.** `runPhases` has 20 cases of which `applyEffect` is
+ * an alias for `applyEffects` — and `cutContract` (Medea's Rule Breaker) is
+ * dispatched only by the attack pipeline, because it happens relative to the
+ * damage rather than instead of it. Reading one runner and calling it the
+ * authority is how a picker ends up missing a kind that works.
  *
  * `order` is a presentation weight, not a rule: `applyEffects` is 95 of the
  * phases in the corpus, and a picker that buries it under `channel` makes the

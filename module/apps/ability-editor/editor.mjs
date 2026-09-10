@@ -28,8 +28,9 @@ import { TARGET_ANCHORS, TARGET_SHAPES, SHAPE_IDS, ANCHOR_IDS } from "../../rule
 import { EffectRegistry } from "../../rules/registry.mjs";
 import { parseTick, resolveTicks } from "../../domain/tick.mjs";
 import {
-  railRows, elementRows, requirementRows, timingRow, selectionRow,
+  railRows, elementRows, requirementRows, timingRow, selectionRow, formRows,
 } from "./present.mjs";
+import { PHASE_DESCRIPTORS, phasesByUsage } from "../../rules/authoring/phases.mjs";
 import { sheetFor } from "../sheet-choice.mjs";
 import { coerceFieldValue } from "../../rules/authoring/fields.mjs";
 import { ELEMENT_DESCRIPTORS } from "../../rules/authoring/elements.mjs";
@@ -57,56 +58,6 @@ const RANK_CHOICES = Object.freeze([
   "C++", "C+", "C", "C-", "D++", "D+", "D", "D-", "E++", "E+", "E", "E-",
 ]);
 
-/**
- * The phase kinds the content packs actually use, each with the fields that
- * are safe to type.
- *
- * A phase is an `ObjectField` and a module may add a kind (§21.4), so this is
- * a list of what is **known**, never a list of what is allowed. A kind absent
- * from here falls through to the JSON editor rather than being lost — see
- * `#applyPhasePatch`, where the same rule is enforced on the way back in.
- *
- * @type {Readonly<Record<string, Array<{key: string, type: string}>>>}
- */
-const PHASE_FIELDS = Object.freeze({
-  damage: [
-    { key: "target", type: "text" },
-    { key: "multiplier", type: "number" },
-    { key: "flatBonus", type: "number" },
-    { key: "component", type: "text" },
-  ],
-  heal: [
-    { key: "target", type: "text" },
-    { key: "amount", type: "number" },
-    // Of MAXIMUM, not of current, which is why it is its own field.
-    { key: "percentOfMax", type: "number" },
-  ],
-  modifyDamage: [
-    { key: "factor", type: "number" },
-    { key: "normalAttackFactor", type: "number" },
-    { key: "otherFactor", type: "number" },
-    { key: "side", type: "text" },
-  ],
-  cooldownDelta: [
-    { key: "target", type: "text" },
-    { key: "scope", type: "text" },
-    { key: "delta", type: "text" },
-  ],
-  teleport: [{ key: "target", type: "text" }, { key: "anchor", type: "text" }],
-  overrideValidation: [{ key: "reason", type: "text" }],
-
-  // These four carry their payload in a nested `changes` array, a `selector`
-  // or a `choose` object -- structure, not scalars. Typing `target` alone and
-  // leaving the rest to the JSON editor is honest; inventing flat fields for
-  // them would offer a form that cannot express what the phase does.
-  resource: [{ key: "target", type: "text" }],
-  statChange: [{ key: "target", type: "text" }],
-  removeEffect: [{ key: "target", type: "text" }],
-  cooldown: [{ key: "target", type: "text" }],
-
-  // Its payload lives on `rules`, which gets its own editor below.
-  applyEffects: [],
-});
 
 /**
  * **An `ItemSheetV2`, not a bare `ApplicationV2`.**
@@ -383,7 +334,8 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
    * @returns {object}
    */
   #phaseContext(phase, index) {
-    const known = Object.hasOwn(PHASE_FIELDS, phase.kind);
+    const descriptor = PHASE_DESCRIPTORS[phase.kind] ?? null;
+    const known = Boolean(descriptor);
 
     return {
       index,
@@ -400,16 +352,19 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
       //
       // An unrecognised kind is included so it stays selectable: dropping it
       // from the list would rewrite the phase on the next render.
+      // Commonest first, from the corpus measurement -- `applyEffects` is 95
+      // of the phases in `packs/_source`, and a picker that buries it under
+      // `channel` makes the common case the slowest one.
       kindChoices: {
-        ...Object.fromEntries(Object.keys(PHASE_FIELDS).sort().map((k) => [k, k])),
+        ...Object.fromEntries(phasesByUsage().map((d) => [d.id, game.i18n.localize(d.label)])),
         ...(known || !phase.kind ? {} : { [phase.kind]: `${phase.kind} (unrecognised)` }),
       },
 
-      fields: (PHASE_FIELDS[phase.kind] ?? []).map((field) => ({
-        ...field,
-        label: `FGT.Editor.Field.${field.key}`,
-        value: phase[field.key] ?? "",
-      })),
+      // From the descriptor table, not from a hand-written list beside it.
+      // The old `PHASE_FIELDS` typed four kinds that appear in ZERO authored
+      // abilities and left nine that content does use -- `createField` (8),
+      // `zone` (4) -- to the raw pane.
+      fields: descriptor ? formRows(descriptor, phase, `phase.${index}`) : [],
 
       // `applyEffects` carries rule elements, and the effect id is the field
       // that decides whether the phase does anything at all.

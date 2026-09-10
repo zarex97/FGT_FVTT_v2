@@ -572,7 +572,7 @@ estimated: `Items → Create Item → Ability` opened the read sheet, and Achill
 was unauthorable.
 
 **Every keyword is a table entry, never markup.** `module/rules/authoring/` describes each of the
-54 rule elements, 19 phase kinds, 24 requirement kinds and 6 timing windows the engine implements:
+54 rule elements, 20 phase kinds, 24 requirement kinds and 6 timing windows the engine implements:
 `{id, label, hint, doc, fields}`. `apps/ability-editor/present.mjs#formRows` turns any descriptor
 plus its current value into rows that **one** Handlebars partial renders. Adding an executor to the
 engine now means adding a table entry, and a drift test fails until someone does.
@@ -583,7 +583,7 @@ drift tests run in **both directions** for the reason `targeting.test.mjs` gives
 | Table | Held against | Count |
 |---|---|---|
 | `elements.mjs` | `rules/elements.mjs#EXECUTORS` | 54 |
-| `phases.mjs` | `runPhases` **and** the attack pipeline | 19 |
+| `phases.mjs` | `runPhases` **and** the attack pipeline | 20 |
 | `requirements.mjs` | `rules/items.mjs`; command spells keep their own list | 24 + 9 |
 | `timing.mjs` | `rules/windows.mjs` | 6 |
 
