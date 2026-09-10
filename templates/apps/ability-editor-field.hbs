@@ -48,11 +48,17 @@
            placeholder="{{localize 'FGT.Authoring.Placeholder.tokenList'}}">
 
   {{else if (eq type "predicateList")}}
-    {{!-- Validated free text until the predicate grammar gets its own
-          descriptor vocabulary and its own spec. Still a large improvement on
-          the JSON blob these lived in. --}}
-    <input type="text" name="{{name}}" value="{{value}}"
-           placeholder="{{localize 'FGT.Authoring.Placeholder.predicate'}}">
+    {{!-- Built, not typed. The grammar now has its own descriptor vocabulary
+          (`rules/facets.mjs`), so a GM picks a subject, a facet and a value
+          rather than knowing that `self:stance:dismounted` is the spelling. --}}
+    <div class="fgt-pred" data-predicate="{{name}}">
+      {{#each builder as |row|}}
+        {{> fgt-predicate-row row prefix=../name groupOps=@root.groupOps}}
+      {{/each}}
+      {{#unless builder.length}}
+        <p class="fgt-pred__empty">{{localize "FGT.Predicate.Empty"}}</p>
+      {{/unless}}
+    </div>
 
   {{else}}
     <input type="text" name="{{name}}" value="{{value}}">

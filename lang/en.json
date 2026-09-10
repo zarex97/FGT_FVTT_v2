@@ -1318,5 +1318,10 @@
   "FGT.Predicate.Facet.crit": "Crit",
   "FGT.Predicate.Facet.critHint": "The attack critically hit.",
   "FGT.Predicate.Facet.range": "Range",
-  "FGT.Predicate.Facet.rangeHint": "How far away the target is, exactly or as a threshold."
+  "FGT.Predicate.Facet.rangeHint": "How far away the target is, exactly or as a threshold.",
+  "FGT.Predicate.Not": "not",
+  "FGT.Predicate.Negate": "Negate this term — writes the not: prefix.",
+  "FGT.Predicate.Unchecked": "Nothing checks this value. A typo here authors cleanly and never matches.",
+  "FGT.Predicate.FromContent": "Drawn from loaded content. A name nothing defines yet is a warning, not an error.",
+  "FGT.Predicate.Empty": "No conditions — this applies always."
 }

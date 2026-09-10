@@ -385,3 +385,53 @@
     &:disabled { opacity: 0.45; cursor: not-allowed; border-color: var(--fgt-line); color: var(--fgt-ink-dim); }
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*  §24.4 — the predicate row builder                                          */
+/* -------------------------------------------------------------------------- */
+
+.fgt-pred {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+
+  &__row {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    flex-wrap: wrap;
+
+    select, input[type="text"] { flex: 1 1 6rem; min-width: 4rem; font-size: 0.85em; }
+  }
+
+  &__not {
+    display: flex;
+    gap: 0.15rem;
+    align-items: center;
+    flex: 0 0 auto;
+    font-size: 0.8em;
+    opacity: 0.8;
+  }
+
+  // A group nests, and the indent is what makes "or inside anyOf" readable
+  // without the template drawing brackets.
+  &__group {
+    padding-left: 0.5rem;
+    border-left: 2px solid rgba(255, 255, 255, 0.18);
+  }
+
+  &__grouphead select {
+    width: auto;
+    font-size: 0.78em;
+    text-transform: lowercase;
+  }
+
+  // A value nothing checks. Dotted rather than coloured, because colour is
+  // never the only signal (D29.7) and this is information, not an error.
+  &__open { border-style: dotted; }
+
+  &__row--raw textarea { width: 100%; font-family: monospace; font-size: 0.8em; }
+
+  &__empty { margin: 0; font-size: 0.82em; font-style: italic; opacity: 0.6; }
+}
