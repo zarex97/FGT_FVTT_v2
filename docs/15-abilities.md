@@ -485,18 +485,35 @@ When may an ability be used?
 
 ```ts
 type TimingWindow =
-  | "ownTurn"                   // default
-  | "anyTime"                   // Command Spells only
-  | "combatPhaseStart"          // Semiramis's Scales of the Sacred Fish; Karna's UAM switch
-  | "combatProcessStart"        // Heracles's Eye of the Mind (False)
-  | "damageStepStart"           // Kingprotea's Monstrous Strength
-  | "whenAttacking"             // Mana Burst skills
-  | "whenAttacked"              // Medea's Argos and Trofa
-  | "whenTargetedByNP"          // Mannanán's Fragarach NP — offered at the DECLARATION
-  | "whenAllyAttacked"          // Kiritsugu's Scapegoat
-  | "onDefeat"                  // Mannanán's God's Holder: Possession — a RevivalSource, not a window
-  | "reaction";                 // generic
+  | "ownTurn"            // default — the sheet button; NOTHING dispatches it
+  | "whenAttacked"       // Medea's Argos and Trofa — a defender's reaction
+  | "whenAllyAttacked"   // EMIYA's Rho Aias; Achilles's Akhilleus Kosmos
+  | "damageStep"         // Asterios's Monstrous Strength — on your OWN attack
+  | "combatPhaseStart"   // Semiramis's Scales of the Sacred Fish; Karna's UAM
+  | "whenTargetedByNP";  // Mannanán's Fragarach — offered at the DECLARATION
 ```
+
+> **Corrected 2026-09-10.** This union previously listed eleven values, and it was the **third
+> disagreeing list** in the system — the engine dispatched one set, the content authored another,
+> and this chapter published a third.
+>
+> It said `damageStepStart`. The engine and every one of the 195 authored abilities say
+> **`damageStep`**, so a GM authoring from this chapter wrote a window that could never fire. It
+> also listed `anyTime`, `combatProcessStart`, `whenAttacking`, `onDefeat` and `reaction`, none of
+> which any dispatcher offers abilities at — `anyTime`, `react` and `onDefeat` belong to the
+> **command spell** vocabulary (`rules/command-spells.mjs#WINDOWS`), which is a separate list and
+> stays separate for the same reason `CS_REQUIREMENT_KINDS` does.
+>
+> The authority is now `module/rules/windows.mjs`. `tools/lib/content.mjs` rejects anything else,
+> and a drift test fails if a dispatcher goes back to naming a window as a bare string literal.
+
+**`ownTurn` is dispatched by nothing.** It is documentary — *"usable during your Turn"*, which is
+the sheet button rather than an offer — and `rules/ability-use.mjs` reads it only to classify the
+ability as `windowed`. 89 of the 117 abilities that carry a window carry this one.
+
+A window may be a **string or a list**: Karna's *Uncrowned Arms Mastership* is *"used during your
+Turn or at the start of a Combat Phase"*, so every consumer reads it through `windowsOf()` rather
+than flattening for itself.
 
 `whenTargetedByNP` is the only window that answers a **declaration** rather than a moment inside
 somebody else's Combat Process, and it has to be: what *Fragarach* does is stop the Process from

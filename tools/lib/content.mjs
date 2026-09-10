@@ -28,6 +28,7 @@ import { TERRAIN } from "../../module/rules/terrain.mjs";
 // against `EXECUTORS` by a test; where the reader already exports its own
 // vocabulary there is no reason to have two.
 import { REQUIREMENT_KINDS as ABILITY_REQUIREMENT_KINDS } from "../../module/rules/items.mjs";
+import { ABILITY_WINDOW_IDS, windowsOf } from "../../module/rules/windows.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -652,6 +653,36 @@ function activeRulesAreReachable(doc, path, problems) {
 }
 
 /**
+ * Every `timing.window` names a window the engine dispatches.
+ *
+ * The field 117 of 195 abilities author, and until `rules/windows.mjs` there
+ * was nothing to hold it against. The failure it prevents is silent: a window
+ * nothing matches produces an ability that authors cleanly, validates, passes
+ * CI, and is simply never offered.
+ *
+ * **Command spells are judged by their own list, so they are skipped here.**
+ * `anyTime`, `react`, `beforeAttack`, `beforeDamage`, `onDefeat` and
+ * `validationFailure` are authored by shipped command spells and describe
+ * moments an ability has no way to be offered at -- the same argument that
+ * keeps `CS_REQUIREMENT_KINDS` separate from the ability list. Judging all
+ * sixteen by the ability vocabulary would fail every one of them.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function timingWindowsAreKnown(doc, path, problems) {
+  for (const window of windowsOf(doc?.timing)) {
+    if (ABILITY_WINDOW_IDS.includes(window)) continue;
+    problems.push(
+      `${path}: timing.window "${window}" is not a window the engine dispatches. `
+      + `Expected one of: ${ABILITY_WINDOW_IDS.join(", ")}. `
+      + `An unknown window authors cleanly and is never offered.`,
+    );
+  }
+}
+
+/**
  * Every marker resolves, and every unmarked mention is listed.
  *
  * The error half is the point of explicit markers: a typo is a link that would
@@ -840,6 +871,9 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     baseAttackAgreesWithTable(doc, path, warnings);
   } else {
     activeRulesAreReachable(doc, path, problems);
+    // Scoped by itemType: command spells carry `timing.window` too, from a
+    // vocabulary of their own.
+    if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);
     fieldIsOpenable(doc, path, problems);
     zonePhasesNameRealTerrain(doc, path, problems);
     aftermathIsComplete(doc, path, problems);
