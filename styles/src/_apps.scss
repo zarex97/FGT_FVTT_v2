@@ -1137,6 +1137,22 @@
 
   &__empty { margin: 0; font-style: italic; opacity: 0.7; }
 
+  // The leftovers of deletions made before this tool existed. Warning-coloured
+  // because it names damage already done, not damage about to be done.
+  &__orphans {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    margin: 0;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid rgba(204, 122, 0, 0.5);
+    border-radius: 4px;
+    background: rgba(204, 122, 0, 0.12);
+    font-size: 0.85em;
+
+    span { flex: 1 1 auto; }
+  }
+
   &__footer {
     display: flex;
     flex-wrap: wrap;

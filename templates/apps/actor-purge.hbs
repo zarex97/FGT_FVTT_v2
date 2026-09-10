@@ -58,6 +58,17 @@
     </span>
   </section>
 
+  {{#if orphans}}
+    {{!-- Tokens no row below can reach, because their actor is gone. Its own
+          control for exactly that reason: without it, "delete everything"
+          quietly means "everything except the mess already made". --}}
+    <p class="fgt-purge__orphans">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>{{localize "FGT.Purge.Orphans" count=orphans}}</span>
+      <button type="button" data-action="sweepOrphans">{{localize "FGT.Purge.SweepOrphans"}}</button>
+    </p>
+  {{/if}}
+
   {{#if filteredToNothing}}
     <p class="fgt-purge__empty">{{localize "FGT.Purge.NoMatches"}}</p>
   {{/if}}

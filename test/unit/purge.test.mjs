@@ -10,7 +10,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { filterCandidates, purgePlan, danglingReferences } from "../../module/rules/purge.mjs";
+import {
+  filterCandidates, purgePlan, danglingReferences, orphanTokens,
+} from "../../module/rules/purge.mjs";
 
 const at = (sceneId, sceneName, ...tokenIds) => ({ sceneId, sceneName, tokenIds });
 
@@ -196,5 +198,55 @@ describe("danglingReferences — the match roster", () => {
   it("says nothing when no slot names a deleted actor", () => {
     const containers = [{ id: "c1", servantId: "medea", masterId: "kotomine" }];
     expect(danglingReferences([], ["spare"], { containers })).toEqual([]);
+  });
+});
+
+describe("orphanTokens", () => {
+  // What the tool exists to prevent, found already done. A world that has been
+  // tidied through Foundry's own sidebar carries these: `Actor._onDelete` takes
+  // the actor and leaves the token, and no actor row can ever select it because
+  // there is no actor.
+  const scenes = [
+    {
+      id: "board",
+      name: "The Board",
+      tokens: [
+        { id: "t1", name: "Heracles", actorId: "heracles" },
+        { id: "t2", name: "Achilles", actorId: "deleted-long-ago" },
+      ],
+    },
+    {
+      id: "interior",
+      name: "Interior",
+      tokens: [
+        { id: "t3", name: "Archer", actorId: "also-gone" },
+        { id: "t4", name: "Assassin", actorId: null },
+      ],
+    },
+  ];
+
+  it("finds the tokens whose actor no longer resolves", () => {
+    expect(orphanTokens(scenes, ["heracles"])).toEqual([
+      { sceneId: "board", sceneName: "The Board", tokenIds: ["t2"], names: ["Achilles"] },
+      { sceneId: "interior", sceneName: "Interior", tokenIds: ["t3", "t4"], names: ["Archer", "Assassin"] },
+    ]);
+  });
+
+  it("counts a token with no actorId at all as orphaned", () => {
+    // A token that never had an actor is as unreachable from the actor list as
+    // one whose actor was deleted, and just as much a leftover.
+    const only = [{ id: "s", name: "S", tokens: [{ id: "t", name: "X", actorId: null }] }];
+    expect(orphanTokens(only, [])).toEqual([
+      { sceneId: "s", sceneName: "S", tokenIds: ["t"], names: ["X"] },
+    ]);
+  });
+
+  it("says nothing about a scene where every token resolves", () => {
+    const clean = [{ id: "s", name: "S", tokens: [{ id: "t", name: "X", actorId: "a" }] }];
+    expect(orphanTokens(clean, ["a"])).toEqual([]);
+  });
+
+  it("survives a world with no scenes", () => {
+    expect(orphanTokens(undefined, undefined)).toEqual([]);
   });
 });

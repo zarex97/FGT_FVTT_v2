@@ -2893,6 +2893,21 @@ confirmation is allowed to promise. The dialog renders that plan and then perfor
 sentence a GM approves and the documents that go cannot disagree — the same argument D29.13
 already makes about reading ability state from `canUseAbility` rather than from a copy.
 
+Two things the live run turned up, neither of them in the new code:
+
+- **11 orphaned tokens were already in `fgt2026`** — an Achilles, two Archers, two Assassins, five
+  Dragon Tooth Warriors and an Ally Dummy, across three scenes, every one pointing at an actor id
+  that no longer resolved. The defect this tool prevents, found already done. They have their own
+  banner and their own sweep, because no row in the actor list can reach a token with no actor,
+  and without that "delete everything" means "everything except the mess already made".
+- **None of the four sidebar buttons appeared on a fresh load.** `attachSummonEntries` runs at
+  `ready` and the sidebar renders before it, so `renderActorDirectory` fired for every render
+  except the first. Measured: `["Create Actor", "Create Folder"]` on load, all six after a forced
+  `ui.actors.render()`. Summon, the game log and the war setup have been missing from a freshly
+  loaded world since that hook was written — they came back whenever anything re-rendered the
+  directory, which is why it read as flakiness. The hook now also runs once against the directory
+  that already exists.
+
 Three decisions the tests pin (Ch. 29 §29.13):
 
 - The scene filter narrows what is **shown**, never what a delete takes. A token left in a scene
@@ -2902,6 +2917,17 @@ Three decisions the tests pin (Ch. 29 §29.13):
 - Selection survives a filter change and the footer names the hidden count, because both the
   alternatives are wrong: reading the checkboxes alone drops what was picked before narrowing, and
   carrying it silently lets a GM approve rows they cannot see.
+
+**Verified live.** `fgt2026` went from 102 actors and 70 tokens across 5 scenes to **0 and 0**, in
+two presses: 102 actors with 59 tokens, then the 11 orphans. The Combat, its three combatants and
+every home-base and level Region survived, which is what "the Combat is the match, not the units"
+means. One harmless error during the sweep, from Foundry rather than from here: a Region attached
+to a token (`attachment.token`, `engine/fields.mjs`) is cascade-deleted by core when its token
+goes, and a batch delete that still named it reported `Region "…" does not exist!`. Every token
+delete succeeded.
+
+**Not swept:** three NP *field* Regions whose casters are now gone (Ramesseum Tentyris, The Mist,
+Diatrekhōn Astēr Lonkhē). A third category of leftover, and not what this tool was asked for.
 
 ---
 

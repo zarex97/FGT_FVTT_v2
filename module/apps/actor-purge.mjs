@@ -18,7 +18,9 @@
  * them across a delete.
  */
 
-import { filterCandidates, purgePlan, danglingReferences, NO_SCENE } from "../rules/purge.mjs";
+import {
+  filterCandidates, purgePlan, danglingReferences, orphanTokens, NO_SCENE,
+} from "../rules/purge.mjs";
 import { factions as rosterFactions } from "../engine/board.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
@@ -36,6 +38,7 @@ export class ActorPurge extends HandlebarsApplicationMixin(ApplicationV2) {
       selectNone: ActorPurge.#onSelectNone,
       clearFilters: ActorPurge.#onClear,
       purge: ActorPurge.#onPurge,
+      sweepOrphans: ActorPurge.#onSweepOrphans,
     },
   };
 
@@ -115,6 +118,12 @@ export class ActorPurge extends HandlebarsApplicationMixin(ApplicationV2) {
       filteredToNothing: candidates.length > 0 && shown.length === 0,
       selectedCount: this.#selected.size,
       hiddenCount: hidden,
+
+      // Tokens no row on this list can reach, because their actor is gone.
+      // Its own control rather than a row, for exactly that reason -- and
+      // without it "delete everything" quietly means "everything except the
+      // mess already made".
+      orphans: orphanCount(),
 
       plan,
       // The sentence the GM approves, built from the SAME plan the delete
@@ -236,9 +245,66 @@ export class ActorPurge extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#selected.clear();
     this.render();
   }
+
+  /**
+   * Delete every token whose actor no longer exists.
+   *
+   * Separate from the plan, and deliberately: the plan is about a *selection*,
+   * and there is nothing here to select. This is a sweep.
+   *
+   * @this {ActorPurge}
+   */
+  static async #onSweepOrphans() {
+    const found = orphanTokens(sceneShapes(), game.actors.map((a) => a.id));
+    const total = found.reduce((n, s) => n + s.tokenIds.length, 0);
+    if (total === 0) return;
+
+    const confirmed = await DialogV2.confirm({
+      window: { title: game.i18n.localize("FGT.Purge.ConfirmTitle") },
+      content: `<p>${game.i18n.format("FGT.Purge.OrphansSummary", { count: total })}</p>`
+        + `<ul>${found.map((s) =>
+          `<li>${foundry.utils.escapeHTML(s.sceneName)}: `
+          + `${s.names.map((n) => foundry.utils.escapeHTML(n)).join(", ")}</li>`).join("")}</ul>`
+        + `<p class="notification warning">${game.i18n.localize("FGT.Purge.ConfirmWarning")}</p>`,
+      yes: { label: game.i18n.localize("FGT.Purge.ConfirmYes"), icon: "fa-solid fa-trash" },
+      no: { default: true },
+    });
+    if (!confirmed) return;
+
+    let removed = 0;
+    for (const entry of found) {
+      const scene = game.scenes.get(entry.sceneId);
+      if (!scene) continue;
+      const ids = entry.tokenIds.filter((id) => scene.tokens.has(id));
+      if (ids.length === 0) continue;
+      await scene.deleteEmbeddedDocuments("Token", ids);
+      removed += ids.length;
+    }
+    ui.notifications.info(game.i18n.format("FGT.Purge.Done", { actors: 0, tokens: removed }));
+    this.render();
+  }
 }
 
 /* -------------------------------------------------------------------------- */
+
+/**
+ * The scenes, in the shape `orphanTokens` reads.
+ * @returns {Array<{id: string, name: string, tokens: object[]}>}
+ */
+function sceneShapes() {
+  return game.scenes.map((scene) => ({
+    id: scene.id,
+    name: scene.name,
+    tokens: [...scene.tokens].map((t) => ({ id: t.id, name: t.name, actorId: t.actorId })),
+  }));
+}
+
+/** @returns {number} how many tokens in the world have no actor */
+function orphanCount() {
+  return orphanTokens(sceneShapes(), game.actors.map((a) => a.id))
+    .reduce((n, s) => n + s.tokenIds.length, 0);
+}
+
 
 /**
  * Every world actor, with where its tokens stand.

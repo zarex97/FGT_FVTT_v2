@@ -182,6 +182,44 @@ export function danglingReferences(actors, deletedIds, { containers = null } = {
   return out;
 }
 
+/**
+ * Tokens that no actor can ever select, because their actor is gone.
+ *
+ * This is what the tool prevents, found already done. A world tidied through
+ * Foundry's own sidebar accumulates them — `Actor._onDelete` takes the actor
+ * and leaves the token — and no row in the actor list can reach one, because
+ * there is no row. So they need their own sweep or "delete everything" quietly
+ * means "everything except the mess already made".
+ *
+ * Measured in `fgt2026` on the day this was written: **11 of them**, across
+ * three scenes — an Achilles, two Archers, two Assassins, five Dragon Tooth
+ * Warriors and an Ally Dummy, all pointing at ids that no longer resolve.
+ *
+ * A token with **no `actorId` at all** counts too: it is exactly as
+ * unreachable from the actor list, and just as much a leftover.
+ *
+ * @param {Array<{id: string, name: string, tokens: Array<{id: string, name?: string, actorId?: string|null}>}>} scenes
+ * @param {string[]} actorIds every actor that still exists
+ * @returns {Array<{sceneId: string, sceneName: string, tokenIds: string[], names: string[]}>}
+ */
+export function orphanTokens(scenes, actorIds) {
+  const live = new Set(actorIds ?? []);
+  /** @type {Array<{sceneId: string, sceneName: string, tokenIds: string[], names: string[]}>} */
+  const out = [];
+
+  for (const scene of scenes ?? []) {
+    const lost = (scene.tokens ?? []).filter((t) => !t.actorId || !live.has(t.actorId));
+    if (lost.length === 0) continue;
+    out.push({
+      sceneId: scene.id,
+      sceneName: scene.name,
+      tokenIds: lost.map((t) => t.id),
+      names: lost.map((t) => t.name ?? ""),
+    });
+  }
+  return out;
+}
+
 /* -------------------------------------------------------------------------- */
 
 /**
