@@ -7,6 +7,7 @@ import {
   validateAll, resolveRef, substitute, documentId, ruleElements, compileDocument,
   indexAssets, unitImages, ASSET_ROOT, referenceIndex, referenceNames,
 } from "../../tools/lib/content.mjs";
+import { ABILITY_WINDOW_IDS } from "../../module/rules/windows.mjs";
 
 const file = (doc, path = "test.yml", dir = "effects") => ({ path, dir, doc });
 const ok = (over = {}) => ({ schema: 1, id: "thing", name: "Thing", ...over });
@@ -751,5 +752,47 @@ describe("markers reach a Servant's EMBEDDED abilities", () => {
     const doc = { schema: 1, id: "karna", name: "Karna", abilities: [{ ref: "karna-mana-burst" }] };
     expect(compileDocument(doc, "servants", library).items[0].system.description)
       .toBe("inflicts @effect[burn] on the DU");
+  });
+});
+
+describe("timing windows are validated", () => {
+  const ability = (timing) => file({ ...ok(), timing }, "abilities/x.yml", "abilities");
+
+  it("refuses a window the engine does not dispatch", () => {
+    // The spelling docs/15-abilities.md §15.3 published for years. An ability
+    // naming it authors cleanly and its window never fires.
+    const problems = errorsFor([ability({ window: "damageStepStart" })]);
+    expect(problems.join(" ")).toMatch(/damageStepStart/);
+    expect(problems.join(" ")).toMatch(/damageStep/);
+  });
+
+  it("refuses a command spell window on an ability", () => {
+    // The two vocabularies are deliberately separate: `anyTime` describes a
+    // moment an ability has no way to be offered at.
+    expect(errorsFor([ability({ window: "anyTime" })]).join(" ")).toMatch(/anyTime/);
+  });
+
+  it("accepts every window the engine dispatches", () => {
+    for (const id of ABILITY_WINDOW_IDS) {
+      expect(errorsFor([ability({ window: id })]), id).toEqual([]);
+    }
+  });
+
+  it("accepts a list of windows", () => {
+    expect(errorsFor([ability({ window: ["ownTurn", "combatPhaseStart"] })])).toEqual([]);
+  });
+
+  it("says nothing about a document with no timing at all", () => {
+    expect(errorsFor([file(ok(), "abilities/x.yml", "abilities")])).toEqual([]);
+  });
+
+  it("leaves command spells to their own vocabulary", () => {
+    // `react`, `beforeAttack`, `beforeDamage`, `onDefeat`, `validationFailure`
+    // and `anyTime` are all authored by shipped command spells. Judging them
+    // by the ability list would fail sixteen valid documents.
+    const cs = (window) => file({ ...ok(), timing: { window } }, "command-spells/x.yml", "command-spells");
+    for (const window of ["anyTime", "react", "beforeAttack", "beforeDamage", "onDefeat"]) {
+      expect(errorsFor([cs(window)]), window).toEqual([]);
+    }
   });
 });
