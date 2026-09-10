@@ -171,7 +171,11 @@ One shared collector, `predicateSitesIn(doc)`, listing every field that **is** a
   `chanceWhen[].predicate` — **excluded, see §1.3**
 - `requirements[]` of `kind: predicate`, and the `predicate` on any other requirement kind
 - `phases[].predicate`, and `phases[].rules[].predicate`
-- `timing`-level and `blockedWhen` predicates where they exist
+- **`targeting.selection.attributes`** — a predicate despite its name, evaluated by
+  `testPredicate` at `rules/targeting/resolve.mjs:252`. Achilles's *Diatrekhōn Astēr Lonkhē* uses
+  it for *"cannot be used on Female Units"* and the three Servants he will not duel. Found while
+  writing this spec; it is not in the existing guard either.
+- **`blockedWhen` is excluded** — see §10.2. It is not a predicate.
 
 `test/unit/options.test.mjs`'s existing guard moves onto this collector, so its coverage goes from
 147 to 236 references in one change and cannot silently miss a new site: a companion test asserts
@@ -222,9 +226,61 @@ A `predicateList` field type today renders one text input. It becomes a row buil
   nested group, because a predicate is already an implicit AND.
 - **A live sentence** under the rows, from the same `prose` templates `explain()` uses. An author
   reads back what they built in the words the audit trail will use.
-- **Raw stays** (D6 of the editor spec). The comparison operators — `gte`, `rankGte` and the rest,
-  which take `@`-paths rather than option strings — are **not** in the builder: they are 0 of 236
-  uses in the corpus, and inventing a path picker for them would be building for nobody.
+- **Raw stays** (D6 of the editor spec).
+- **The comparison operators are in the builder**, as a second row shape: `[ref][op][ref]`. See
+  §5.2 — they are 0 of 236 uses today, but the corpus is 29 Servants short of finished and
+  "nothing uses it yet" is not evidence that nothing will.
+
+### 5.2 Comparison rows, and the reference problem they expose
+
+`gte`/`gt`/`lte`/`lt`/`eq` take two `ValueRef`s — a number or an `@`-path — and `rankGte`/`rankEq`
+take `RankRef`s, which additionally accept a `+n`/`-n` step suffix (`"@target.parameters.str+1"` is
+one step above). A comparison row is therefore `[ref or number][operator][ref or number]`.
+
+**The obstacle is that `@`-paths do not mean one thing.** `ctx.refs` is built differently at every
+call site:
+
+| Call site | `refs` |
+|---|---|
+| `rules/elements.mjs` (most elements) | `expressionRefs(actor)` → `{self: {document, system, resources, health, baseHealth, agility, luck, parameters, remainingMov}}` — **no `target`** |
+| `rules/damage/pipeline.mjs` | `{self: attackerSnapshot, target: defenderSnapshot, attack, board}` |
+| `rules/targeting/resolve.mjs` | `{self: caster, target: unit, board}` |
+| `engine/attack.mjs:4247` | `{self: attackerDoc}` — a raw **Document** |
+
+And the two `self` shapes disagree on the same path:
+
+| Path | Under `expressionRefs` | Under a unit snapshot |
+|---|---|---|
+| `@self.health` | `{value, max}` | a **number** (`snapshot.mjs:159`) |
+| `@self.health.value` | the number | `undefined` |
+| `@self.agility` | `{value, …}` | a **number** |
+
+`num()` throws on a non-finite value, so a predicate written against the wrong shape does not fail
+quietly — it raises *"Predicate reference did not resolve to a number"* mid-resolution. That is
+better than silence and worse than a build error.
+
+**DECISION.** The builder offers a **scoped** reference picker rather than one flat list. Each
+predicate site declares which refs are in scope and which shape they take, in the same
+`facets.mjs` table:
+
+```js
+export const REF_SCOPES = Object.freeze({
+  // Where `expressionRefs` supplies the root: rule element magnitudes and
+  // most element predicates.
+  ownerOnly: { roots: ["self"], shape: "document" },
+  // The damage pipeline and targeting resolution.
+  exchange:  { roots: ["self", "target", "attack", "board"], shape: "snapshot" },
+});
+```
+
+…and each ref path declares its type (`number`, `rank`, `object`) so the picker only offers paths
+that can answer the operator being built. A `rankGte` row offers only rank-typed paths.
+
+**This design does not unify the two shapes.** That is a real inconsistency in the engine and
+fixing it means touching `expressionRefs`, four call sites and every magnitude that reads
+`@self.health.value` — a change with its own blast radius that deserves its own decision. What this
+design does is **stop the editor from producing a path that cannot resolve where it sits**, and
+record the divergence where the next person will find it. Recorded in Ch. 41 as an open question.
 
 ### 5.1 Reuse
 
@@ -263,7 +319,8 @@ actually says is *"target attribute = large"*.
 
 ## 8. Non-goals
 
-- **Not** a picker for the comparison operators (`gte`, `rankGte`, …). Zero uses in 336 files.
+- **Not** unifying the two `refs` shapes (§5.2, §11.1). The builder is scoped so it cannot emit
+  an unresolvable path; making `@self.health.value` mean one thing everywhere is its own change.
 - **Not** closing the `open` value kinds. Field ids, regions, variants and attributes are authored
   data with no registry; the design *declares* them unchecked rather than pretending.
 - **Not** fixing `chanceWhen`. Its field is misnamed and its evaluator is bespoke; renaming it is a
@@ -284,11 +341,66 @@ actually says is *"target attribute = large"*.
 
 ---
 
-## 10. Open questions
+## 10. Resolved questions
 
-1. **Should `attribute` be a `registry` rather than `open`?** Attributes are granted by content
-   (`Divinity` grants `divine`) and closed over an implication table in `domain/attributes.mjs`. A
-   registry built from the packs may be feasible; it was not investigated.
-2. **Does `blockedWhen` carry real predicates?** It has a `condition` vocabulary of its own
-   (`damageWouldDefeatServant`), evaluated by a different switch in `rules/command-spells.mjs`. It
-   is excluded from the collector pending a look.
+### 10.1 `attribute` stays `open` — and this is load-bearing
+
+**The question.** Attributes are granted by content and closed over an implication table
+(`domain/attributes.mjs`), so a registry built from the packs looked feasible: enumerate every
+attribute any unit declares, plus the implications, plus the derived `magus`.
+
+**The answer is no, and the evidence is decisive.** Measured across `packs/_source`: **30 distinct
+attributes** are authored on units. Predicates reference two that are **not among them**:
+
+| Attribute | Referenced by | Granted by |
+|---|---|---|
+| `outsider` | `class-skills/alter-ego.yml` (×2) | nothing |
+| `undead` | `scathach-god-slayer.yml`, `effects/alpi.yml` (×2), `effects/dmg-up-gods.yml` | nothing |
+
+These are **forward references to Servants that have not been built yet** — the corpus is 29 test
+Servants short. A `registry` kind that *errored* would fail the build on six legitimate clauses in
+four files.
+
+The build already has the precedent and gets it right: it emits
+*`alter-ego.yml: references "existenceOutsideTheDomain", which no authored document provides yet
+(declared, inert)`* as a **warning**. That is the correct treatment, and it generalises.
+
+**DECISION.** `attribute` is `open`. More broadly, **`registry` warns, it never errors** — a
+content vocabulary that is still being written must be able to name what is coming. Only `closed`
+kinds error, because an enum in `domain/enums.mjs` is not going to gain a member because somebody
+authored a typo.
+
+*Advantage of the rejected approach:* a registry would have caught a genuine typo like
+`target:attribute:femail`. *Cost:* it would have blocked authoring forward, which is exactly what
+this project is doing right now. The warning keeps most of the benefit — an author who mistypes
+gets told — without the block.
+
+### 10.2 `blockedWhen` is not a predicate
+
+**The question.** `blockedWhen` sits beside `requirements` on a command spell and looked like it
+might carry predicates.
+
+**The answer is no.** It is `{state, condition}`, and `rules/command-spells.mjs:86` matches `state`
+against `ctx.state` and hands `condition` to `conditionHolds` — a switch with **exactly one case**
+(`damageWouldDefeatServant`) and `default: false`. No roll options, no operators, no predicate
+evaluator. It is a third mini-vocabulary beside predicates and requirement kinds.
+
+**DECISION.** Excluded from the collector, with a comment saying why, exactly as `chanceWhen` is.
+
+**Noted in passing, not fixed here:** `conditionHolds`'s `default: false` means any condition string
+other than the single implemented one silently never blocks — the same defect shape as
+`meetsRequirement`'s default, and the reason both requirement vocabularies are drift-tested. There
+are two authored uses and both name the implemented condition, so nothing is broken today. A
+two-line guard would close it; it belongs to the command-spell vocabulary, not this one.
+
+---
+
+## 11. Open questions
+
+1. **The two `refs` shapes should probably be unified.** `@self.health.value` resolves under
+   `expressionRefs` and is `undefined` under a unit snapshot (§5.2). This design routes around it
+   with scoped ref pickers rather than fixing it, because unifying touches `expressionRefs`, four
+   call sites and every authored magnitude that reads a path. Recorded for Ch. 41.
+2. **Should `chanceWhen[].predicate` be renamed?** It is not a predicate (§1.3) and its name is the
+   only reason anyone would think so. A rename is a content migration across the effects pack;
+   cheap, but out of scope here.
