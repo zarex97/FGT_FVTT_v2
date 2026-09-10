@@ -36,9 +36,6 @@ const registered = [...settingsFile.matchAll(/\bs\(\s*"([a-zA-Z0-9]+)"/g)].map((
  * reason; "we will use it later" is not one.
  */
 const NOT_READ_BY_CODE = new Set([
-  // Written by the release stamper and read by the migration guard on load,
-  // which reaches it through a variable rather than a literal.
-  "schemaVersion",
   // KNOWN INERT. Both are registered, translated and shown in the settings
   // window, and nothing reads either one. Listed rather than deleted because
   // removing a setting is a world-data decision; listed rather than silently

@@ -217,6 +217,12 @@
   </section>
 
   <footer class="fgt-editor__footer">
+    {{!-- Ch. 39: the pack is the truth, so an edit worth keeping needs a way
+          back to `packs/_source/`. Not gated on `valid` -- half-finished work
+          is exactly what a GM most wants to keep. --}}
+    <button type="button" class="fgt-editor__export" data-action="exportSource">
+      {{localize "FGT.Export.Action"}}
+    </button>
     <button type="button" class="fgt-editor__save" data-action="save" {{disabled (not valid)}}>
       {{localize "FGT.Editor.Save"}}
     </button>

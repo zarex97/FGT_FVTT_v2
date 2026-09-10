@@ -25,5 +25,5 @@ abilities:
   - { ref: normal-saber-np }
 
 notes: |
-  The setup wizard renames each copy `Saber of <Faction>`; the source sheets
+  The setup wizard renames each copy `Saber of [Faction]`; the source sheets
   differ across factions only in that word.

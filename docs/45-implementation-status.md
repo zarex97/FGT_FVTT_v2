@@ -2772,4 +2772,67 @@ when every clause on its sheet has been *measured*, individually, in `fgt2026`.
 
 ---
 
+## Migration and content sync (Ch. 39)
+
+Built and live in `fgt2026`. `module/migration/` holds the version axis (`migrations.mjs`, empty
+list, `SCHEMA_VERSION = 1`), the mandatory backup (`backup.mjs`), the pure reconcile
+(`content-sync.mjs`) and the Layer-4 runner (`runner.mjs`), called first in `ready`.
+
+D39.6 is **replaced**: the compendium is the whole source of truth. The vocabulary that makes that
+safe is `module/content/authored-fields.mjs`, held against the pack builder in both directions by
+`test/unit/authored-fields.test.mjs`.
+
+Everything below was found by the **first dry run against a world with real data in it**, and
+nothing below was found by reasoning about the allowlist. This is the entry that argues for the
+rule: never let a sync write until every line of its dry run is explicable.
+
+| What the dry run reported | What it actually was |
+|---|---|
+| 66 Servants "changed" | key order — `{element, bands}` vs `{bands, element}` |
+| 17 more, on the second run | HTML entity escaping; `&` is stored `&amp;` and never converges |
+| Two Sabers, for ever | a bare `<Faction>` in a note, *stripped* by the sanitizer |
+| 3 summons losing `summonerId` | orphaning every summon on the board |
+| Medusa re-concealed | `identityRevealed` reset; her war slot `saber` reset to `rider` |
+| 14 Masters reset | `rank`, `zon`, `baseAttack` — a war's setup ROLLS, on a blank template |
+| Semiramis losing her Poison | `semiramis-poison` is crafted by Item Construction, on no template |
+
+The last one changed a rule rather than a list: an item is removed only if its `contentId` is in
+**no pack at all**. `copiedFrom`/`grantedBy` was too narrow — crafted items carry neither.
+
+Verified live: sync converges to zero on the second pass, 67 contracts intact, Masters' rolled
+stats intact, summons still linked, Medusa still revealed, Semiramis still holding her Poison.
+
+`contentVersion` now travels the pipeline (§39.6), declared on every model that declares
+`contentId` — three item models declare theirs independently of `abilityCommon()`, and a model that
+could not hold the field would make the sync non-convergent in exactly the way the escaping did.
+
+The way home is `module/apps/yaml-export.mjs` plus `tools/stage-to-yaml.mjs`: the editor's Export
+button writes the authored shape as JSON (the browser has no `yaml`), `npm run stage:yaml` turns it
+into pack source. Verified live as a full loop — edit Imperial Privilege's cooldown to `5◈`, export,
+stage, validate (0 errors), rebuild, and the world copy reads `5◈` while its `remaining: 4`,
+`timesUsed: 7` and Ozymandias's Health are untouched. Lossy on comments and `@effect[]` shorthand
+(§29.6).
+
+### Measured in a live world
+
+§39.9 step 7 — *"the one teams skip and regret"* — is testing migration against a real world rather
+than a fixture. Run in `fgt2026` with a match in progress (Round 8, Turn 9, night phase), 114
+actors, 67 contracts:
+
+| What was proved | How |
+|---|---|
+| **The Master case is closed** | A word added to `normal-magic-crest.yml`, rebuilt, reloaded: 14 of 14 Masters carried it. No script. |
+| **A match survives a content change** | 106 pack-derived actors snapshotted before and after a rebuild — Health, Agility, Luck, Resources, `masterId`, `summonerId`, `identityRevealed`, `classContainer`, Master `rank`/`zon`, item counts and every cooldown remainder, `active` toggle and quantity. **Zero differences**, and the combat's turn, round and phase identical — while the content change arrived on all 14 Crests in the same reload. |
+| **Provenance survives** | A Noble Phantasm copied onto Scáthach with `copiedFrom`/`grantedBy` was still there after a sync, with both fields intact, and the sync did not even count it as a change. |
+| **The backup is real** | 6.8 MB at `worlds/fgt2026/fgt-backups/…-acceptance.json`, parsing as JSON, holding 114 actors / 5 scenes / 1 combat — matching the world — as **source** data, with no derived values. |
+| **Quiet when there is nothing to do** | A reload with no pack change: no notification, no write, and one console line naming the single document whose content was deleted (`Dummy (test)`). |
+
+That last line is reported rather than mutated, which is the intended behaviour for a missing
+template: a GM's problem, not a thing to guess about.
+
+**Not done:** rule-version pinning, so the sync can change a Servant mid-match — rebuild packs
+between sessions (§39.3).
+
+---
+
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)

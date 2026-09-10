@@ -12,3 +12,7 @@ dist/
 
 # graphify build output: a local knowledge-graph cache, not project source.
 graphify-out/
+
+# Staging for the ability editor's export. A `.export.json` here is one
+# `npm run stage:yaml` away from being content; it is never content itself.
+packs/_staged/

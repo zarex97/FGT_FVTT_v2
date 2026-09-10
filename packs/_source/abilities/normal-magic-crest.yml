@@ -25,7 +25,7 @@ npGateRound: 3
 cooldown: { max: "2◈" }
 description: |
   (Active) Damage Spell. Deals 2x damage. Categorized as Noble Phantasm.
-  Cooldown: 2◈ Turns.
+  Cooldown: 2◈ Turns. Usable from Round 3 onward.
 targeting:
   anchor: { kind: withinRange, range: 2, metric: chebyshev }
   shape: { kind: unit }
