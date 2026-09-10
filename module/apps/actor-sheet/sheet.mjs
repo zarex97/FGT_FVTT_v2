@@ -366,7 +366,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // writes rule elements, and a player who reorders a phase has changed the
     // ability for the whole table.
     if (game.user.isGM) {
-      const { AbilityEditor } = await import("../ability-editor.mjs");
+      const { AbilityEditor } = await import("../ability-editor/index.mjs");
       AbilityEditor.open(item);
       return;
     }

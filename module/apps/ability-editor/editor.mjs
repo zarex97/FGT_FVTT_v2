@@ -23,10 +23,10 @@
  * two vocabularies together in both directions.
  */
 
-import { handledKeys } from "../rules/elements.mjs";
-import { TARGET_ANCHORS, TARGET_SHAPES, SHAPE_IDS, ANCHOR_IDS } from "../rules/targeting/vocabulary.mjs";
-import { EffectRegistry } from "../rules/registry.mjs";
-import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { handledKeys } from "../../rules/elements.mjs";
+import { TARGET_ANCHORS, TARGET_SHAPES, SHAPE_IDS, ANCHOR_IDS } from "../../rules/targeting/vocabulary.mjs";
+import { EffectRegistry } from "../../rules/registry.mjs";
+import { parseTick, resolveTicks } from "../../domain/tick.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -605,7 +605,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
    * @this {AbilityEditor}
    */
   static async #onExportSource() {
-    const { exportItem } = await import("./yaml-export.mjs");
+    const { exportItem } = await import("../yaml-export.mjs");
     // The DRAFT, not the stored item: exporting what is on screen is the whole
     // point, and a GM who has to save first in order to export would be saving
     // into a world copy the next sync overwrites.
