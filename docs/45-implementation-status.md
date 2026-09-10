@@ -2973,4 +2973,72 @@ against future drift rather than a repair of existing content.
 
 ---
 
+## The ability editor — **rebuilt**
+
+Reported as *"the ability creator is not working"*. It was not broken: filling a rank, adding a
+phase and pressing Save wrote all of it to the document correctly. It was **unreachable** and
+**radically incomplete**.
+
+| | Before | After |
+|---|---|---|
+| Schema fields exposed | **12 of 90** | every field in 2+ shipped abilities |
+| Rule elements | *validated*, unauthorable | all **54**, in three buckets |
+| Phase kinds typed | 11, of which **4 appear in zero abilities** | all **19**, from the corpus |
+| Requirement kinds | none | **24**, plus the 9 command spells keep separately |
+| Timing windows | none | all **6**, with the four against-modifiers |
+| Reachable from Items → Create Item | **no** | yes — it is the default sheet |
+| Hints | 5 tooltips across 23 controls | every keyword, enforced by test |
+
+**The architecture.** A pure Layer-2 vocabulary in `module/rules/authoring/` describes each
+keyword, and one Handlebars partial renders any descriptor field. Adding an executor to the engine
+means adding a table entry; a drift test in both directions fails until someone does. That is the
+`rules/targeting/vocabulary.mjs` pattern extended from validation to authoring.
+
+**What the work turned up, none of it in the new code:**
+
+- **There are two phase runners.** `runPhases` in `skill-use.mjs`, and three kinds handled inside
+  the attack pipeline because they happen relative to the damage — `removeEffect`, `check`, and
+  `cutContract` (Medea's Rule Breaker), which exists **only** there. Reading one runner and calling
+  it the authority is how a picker ends up missing a kind that works.
+- **`inZone`/`notInZone` spell the same question two ways.** `zoneId` for an ability
+  (`rules/items.mjs`), `zone` for a command spell (`rules/command-spells.mjs`). One kind name, two
+  field names, and nothing but the descriptor table to warn an author which they are writing.
+- **`buckets` cannot filter the picker.** The design assumed the three rule-element buckets took
+  different elements. `collectContributions` splats all three into one list and only gates
+  `activeRules` on `active` — they differ in *when* they apply, not in which elements are legal, so
+  filtering would invent a restriction the engine does not have.
+- **`CS_REQUIREMENT_KINDS` in `tools/lib/content.mjs` is not the requirement vocabulary.** It is a
+  validation allowlist covering requirement kinds *and* `blockedWhen` conditions in one set;
+  `damageWouldDefeatServant` is in it and is a condition.
+
+**Four defects found only by looking at it in a live world:**
+
+- `EDITOR_TYPES` listed `classSkill`, which is **not an Item type** — class skills are `ability`
+  documents in the class-skills pack. Registering a sheet for a type `system.json` does not declare
+  **threw during `init`** and took settings registration with it; the world came up complaining that
+  `fgt.schemaVersion` was not a registered setting. A test now holds the list against `system.json`.
+- `ItemSheetV2` lays `.window-content` out as a two-column grid, so the editor rendered inside the
+  **44px sidebar track** with the whole form squeezed into a column narrower than one of its labels.
+- `closest("[data-bucket]")` matched the Add button itself, so the picker was never found and Add
+  silently did nothing.
+- Foundry's `selectOptions` treats a plain **array** as index-keyed and emits `value="0"`. Setting a
+  select to `"travel"` silently kept `""`, and Achilles's Knockback saved with no direction.
+
+And one the schema would have caught later: `tokenList` and `predicateList` are **arrays** in every
+authored document, and a text control produces a string. Saving the string authors an element that
+reads a character at a time — it validates, and does nothing.
+
+**Acceptance, verified live.** Both halves of *Akhilleus Kosmos* — the `GrantedAbility` +
+`Knockback` passive and the `whenAllyAttacked` window with all four against-modifiers — authored
+through the UI from an empty Item, saved, and read back **byte-for-byte equal to the shipped
+YAML**. Neither half was authorable before. `test/golden/akhilleus-kosmos-authoring.test.mjs` holds
+the vocabulary against that file so it cannot regress.
+
+**Not done:** the predicate grammar's own descriptor vocabulary, which needs its own spec;
+`predicateList` is validated free text until then.
+
+---
+
+---
+
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)

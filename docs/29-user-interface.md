@@ -564,6 +564,62 @@ the caster" — they should see four little diagrams and click one.
 
 ---
 
+### The authoring vocabulary — **rebuilt 2026-09-10**
+
+The editor exposed **12 of `AbilityData`'s 90 fields**, was registered as **no Item sheet at all**,
+and *validated* rule elements while offering no control that could add one. Measured, not
+estimated: `Items → Create Item → Ability` opened the read sheet, and Achilles's whole passive half
+was unauthorable.
+
+**Every keyword is a table entry, never markup.** `module/rules/authoring/` describes each of the
+54 rule elements, 19 phase kinds, 24 requirement kinds and 6 timing windows the engine implements:
+`{id, label, hint, doc, fields}`. `apps/ability-editor/present.mjs#formRows` turns any descriptor
+plus its current value into rows that **one** Handlebars partial renders. Adding an executor to the
+engine now means adding a table entry, and a drift test fails until someone does.
+
+The pattern is `rules/targeting/vocabulary.mjs`, extended from validation to authoring, and the
+drift tests run in **both directions** for the reason `targeting.test.mjs` gives.
+
+| Table | Held against | Count |
+|---|---|---|
+| `elements.mjs` | `rules/elements.mjs#EXECUTORS` | 54 |
+| `phases.mjs` | `runPhases` **and** the attack pipeline | 19 |
+| `requirements.mjs` | `rules/items.mjs`; command spells keep their own list | 24 + 9 |
+| `timing.mjs` | `rules/windows.mjs` | 6 |
+
+**D5 — every descriptor must carry a hint**, enforced by `descriptorProblems`. The hints are the
+point of the vocabulary; optional ones rot into decoration on the half of the table nobody got to.
+`label` and `hint` are localization keys and the English lives beside the executor as `english`,
+with `authoring-i18n` holding the two together in both directions — so the sentence a maintainer
+reads next to the code is the sentence a GM reads in the tooltip.
+
+**The rail** (D3) lists every section with its state — done, partial, empty — and how much a list
+section holds. Ordered top-to-bottom for a first author working through a sheet; every row is a
+jump, for someone fixing one cooldown on a shipped Servant. The dot differs in **shape** as well as
+colour (D29.7).
+
+**Reach.** `AbilityEditor` is an `ItemSheetV2` and is the default ability sheet.
+`DocumentSheetConfig.registerSheet` refuses anything that is not a `DocumentSheetV2`, which is
+exactly why a bare `ApplicationV2` could never be registered. `makeDefault` is world-wide — Foundry
+has no per-permission default — so the GM/player split happens inside the editor, which hands a
+non-GM straight back to the read sheet. The predicate lives once, in `apps/sheet-choice.mjs`,
+because there are two entry points and they must not disagree.
+
+**Runtime state is never editable.** `timesUsed`, `toggledAt`, `lastUsedTick`, `expended` and
+`active` are written by the engine during a match; a GM typing one is a GM corrupting the match
+record. They appear in no group and get no input, and remain visible in the raw pane — the
+difference between *not offered* and *hidden*.
+
+**The raw pane stays** (D6). A module may add a rule element or a phase kind (§21.4), and an
+ability carrying one still opens: the entry keeps its row and renders as JSON. An editor that
+dropped it on Save would be silently deleting another package's content.
+
+**Not covered.** The predicate grammar gets its own descriptor vocabulary and its own spec; until
+then `predicateList` is validated free text, which is still a large improvement on the JSON blob
+predicates lived in.
+
+---
+
 ## 29.7 Chat cards
 
 Specified in Ch. 30. From the UI's perspective: one card per Combat Phase, collapsed by default,
@@ -846,6 +902,10 @@ moment where a surviving document names a deleted one.
 | D29.16 | A scene filter narrows what is *shown*; it never narrows a delete. Deleting an actor takes its tokens in every scene. |
 | D29.17 | Selection survives a filter change, and the count of hidden-but-selected rows is stated rather than carried silently. |
 | D29.18 | The confirmation and the deletion read the same pure plan, re-computed at the moment of the press. |
+| D29.19 | Every authoring keyword is a descriptor in a pure Layer-2 table, held against the engine's own dispatcher in both directions. Adding markup per keyword is forbidden. |
+| D29.20 | A descriptor with no hint is a hard error. Hints are localization keys; the English lives beside the executor and a test holds the two together. |
+| D29.21 | Runtime state the engine writes is never rendered as an input. |
+| D29.22 | An unknown keyword keeps its row and renders raw. The editor never drops content it does not understand. |
 
 ---
 
