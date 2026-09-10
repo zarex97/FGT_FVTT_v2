@@ -337,16 +337,61 @@ A golden test authors this ability from descriptors and asserts the result equal
 
 ---
 
-## 11. Open questions
+## 11. Resolved questions
 
-1. **Predicate authoring.** `predicateList` assumes a term picker over the predicate grammar. That
-   grammar has its own vocabulary (`self:stance:dismounted`) that may deserve the same descriptor
-   treatment — possibly its own spec. Until then the predicate rows are validated free text, which is
-   still better than the JSON blob they live in today.
-2. **Class skills and command spells** share this editor's shape but have different field sets. The
-   design assumes one editor branching on item type; a second opinion is worth having before the
-   plan commits to it.
-3. **Should §3.4 ship first and separately?** The window authority is a content-correctness fix that
-   stands on its own and is worth having whether or not the editor is ever rebuilt. The
-   recommendation is yes — it is one commit, it is independently testable, and it removes a live
-   silent-failure mode from 60% of the corpus.
+All three were settled at review on 2026-09-10.
+
+### 11.1 The window authority ships first, on its own — **resolved: yes**
+
+§3.4 becomes **Stage 0** of the implementation plan, merged before any editor work starts. It is a
+content-correctness fix that stands alone: `rules/windows.mjs`, the four partial lists re-derived
+from it, `tools/lib/content.mjs` validating `timing.window` against it, and a test asserting every
+window in `packs/_source` is known. Whether or not the editor is ever rebuilt, 60% of the corpus
+stops carrying an unchecked string.
+
+Expect it to find things. A field nothing has ever validated, across 117 files, is unlikely to be
+uniformly correct — and any window it rejects is an ability whose reaction has never fired.
+
+### 11.2 Predicate authoring gets its own descriptor treatment and its own spec — **resolved: yes**
+
+The predicate grammar (`self:stance:dismounted`, and the `rollOptionsFor` vocabulary behind it) is
+its own family with its own authority, and folding it into this design would have made one spec
+carry two subsystems.
+
+**Out of scope here. A follow-up spec, to be written before the predicate rows are upgraded.**
+
+Until it exists, `predicateList` renders **validated free-text rows** — each row checked against
+`rules/predicate.mjs`'s parser, with the term shown as valid or not. That is a strictly smaller
+promise than a term picker, and still a large improvement on the JSON blob predicates live in
+today. The plan must not quietly grow a picker; the field type stays free text until that spec
+lands.
+
+### 11.3 One editor, branching on item type — **resolved: yes**
+
+**Interpretation, flagged for cheap correction:** the answer is read as confirming the design's
+assumption — a single `AbilityEditor` that branches on item type rather than four separate editors.
+Scope is therefore `ability`, `noblePhantasm`, `classSkill` and `commandSpell`.
+
+What branches, concretely:
+
+| | ability / noblePhantasm | classSkill | commandSpell |
+|---|---|---|---|
+| Requirement vocabulary | `rules/items.mjs` (24 kinds) | same | `rules/command-spells.mjs` — **different list** |
+| Timing windows | `rules/windows.mjs` (§3.4) | same | `rules/command-spells.mjs#WINDOWS` — **different list** |
+| Field groups | full | no `npTags`, no NP scoping | `blockedWhen`, `permanentConsequence`, `effect` |
+| Phases | all 19 | all 19 | all 19 |
+| Rule elements | all 54 | all 54 | `rules` bucket only |
+
+`tools/lib/content.mjs:83` is explicit that the two requirement lists must not merge — `servantInZon`
+asks about somebody else's Servant and `attackIsNotNP` about an attack already being resolved, so an
+ability authoring either would be asking a question with no answer. The branch is therefore a
+**vocabulary selection**, not a different editor: one shell, one renderer, different descriptor
+tables passed in. If that turns out to be wrong, it is wrong in one function.
+
+---
+
+## 12. Deferred
+
+- **Predicate descriptor vocabulary** — §11.2, its own spec.
+- **Compendium-derived warning.** A GM editing an ability with a `contentId` set will have it
+  overwritten by the next content sync (Ch. 39). The editor should say so. Noted, not solved here.
