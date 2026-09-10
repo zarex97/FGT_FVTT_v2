@@ -15,6 +15,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { ELEMENT_DESCRIPTORS, ELEMENT_IDS } from "../../module/rules/authoring/elements.mjs";
+import { PHASE_DESCRIPTORS, PHASE_IDS } from "../../module/rules/authoring/phases.mjs";
 
 const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
 
@@ -47,6 +48,23 @@ describe("every authoring key resolves", () => {
     // over this, so the bar catches a placeholder rather than a terse entry.
     for (const id of ELEMENT_IDS) {
       expect(ELEMENT_DESCRIPTORS[id].english.length, id).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe("every phase key resolves", () => {
+  it("defines a label and a hint for every phase kind", () => {
+    for (const id of PHASE_IDS) {
+      const d = PHASE_DESCRIPTORS[id];
+      expect(lang[d.label], `${d.label} is not in lang/en.json`).toBeTruthy();
+      expect(lang[d.hint], `${d.hint} is not in lang/en.json`).toBeTruthy();
+    }
+  });
+
+  it("keeps the source sentence and the shipped sentence identical", () => {
+    for (const id of PHASE_IDS) {
+      const d = PHASE_DESCRIPTORS[id];
+      expect(lang[d.hint], `${id}: lang/en.json disagrees with the table`).toBe(d.english);
     }
   });
 });
