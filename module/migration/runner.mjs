@@ -288,7 +288,13 @@ export async function onReady() {
       ui.notifications.info(game.i18n.format("FGT.Migration.Synced", { n: synced.changed.length }));
       console.warn("FGT | Content sync:", synced.changed);
     }
-    if (synced.skipped.length > 0) console.warn("FGT | Content sync skipped:", synced.skipped);
+    // Named inline rather than only in the object: this fires on every load
+    // until someone acts on it, and a first line that says nothing is a line a
+    // GM learns to scroll past.
+    if (synced.skipped.length > 0) {
+      const names = synced.skipped.map((s) => `${s.name} (${s.contentId})`).join(", ");
+      console.warn(`FGT | Content sync found no template for: ${names}`, synced.skipped);
+    }
   } catch (err) {
     // Loud. A half-migrated world that boots quietly is worse than one that
     // refuses to, and the backup path is in the log above.

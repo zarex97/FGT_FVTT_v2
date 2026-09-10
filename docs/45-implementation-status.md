@@ -2813,6 +2813,23 @@ stage, validate (0 errors), rebuild, and the world copy reads `5◈` while its `
 `timesUsed: 7` and Ozymandias's Health are untouched. Lossy on comments and `@effect[]` shorthand
 (§29.6).
 
+### Measured in a live world
+
+§39.9 step 7 — *"the one teams skip and regret"* — is testing migration against a real world rather
+than a fixture. Run in `fgt2026` with a match in progress (Round 8, Turn 9, night phase), 114
+actors, 67 contracts:
+
+| What was proved | How |
+|---|---|
+| **The Master case is closed** | A word added to `normal-magic-crest.yml`, rebuilt, reloaded: 14 of 14 Masters carried it. No script. |
+| **A match survives a content change** | 106 pack-derived actors snapshotted before and after a rebuild — Health, Agility, Luck, Resources, `masterId`, `summonerId`, `identityRevealed`, `classContainer`, Master `rank`/`zon`, item counts and every cooldown remainder, `active` toggle and quantity. **Zero differences**, and the combat's turn, round and phase identical — while the content change arrived on all 14 Crests in the same reload. |
+| **Provenance survives** | A Noble Phantasm copied onto Scáthach with `copiedFrom`/`grantedBy` was still there after a sync, with both fields intact, and the sync did not even count it as a change. |
+| **The backup is real** | 6.8 MB at `worlds/fgt2026/fgt-backups/…-acceptance.json`, parsing as JSON, holding 114 actors / 5 scenes / 1 combat — matching the world — as **source** data, with no derived values. |
+| **Quiet when there is nothing to do** | A reload with no pack change: no notification, no write, and one console line naming the single document whose content was deleted (`Dummy (test)`). |
+
+That last line is reported rather than mutated, which is the intended behaviour for a missing
+template: a GM's problem, not a thing to guess about.
+
 **Not done:** rule-version pinning, so the sync can change a Servant mid-match — rebuild packs
 between sessions (§39.3).
 
