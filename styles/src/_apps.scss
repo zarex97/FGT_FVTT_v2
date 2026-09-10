@@ -835,6 +835,23 @@
     border-left: 1px solid rgba(255, 255, 255, 0.15);
     font-size: 0.8em;
   }
+
+  // The turn panel's slot when there is no match to fill it. Same border and
+  // the same padding, so the bar keeps its shape rather than reflowing the
+  // moment a match begins.
+  &__nomatch {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 22rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.8em;
+    // Muted rather than alarming: nothing is broken, the match has simply not
+    // been begun, and the fix is one click away in the tracker.
+    color: rgba(255, 255, 255, 0.55);
+  }
 }
 
 .fgt-slot {

@@ -40,10 +40,25 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
  * @param {boolean} ctx.active the state being switched TO
  * @param {number} [ctx.tick] the current global turn
  * @param {number} [ctx.turnsPerRound]
+ * @param {boolean} [ctx.clockRunning] whether a started match is keeping time
  * @returns {ToggleVerdict}
  */
-export function canToggleMode(item, unit, { active, tick = 0, turnsPerRound = 3 } = {}) {
+export function canToggleMode(
+  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true } = {},
+) {
   const sys = item?.system ?? {};
+
+  // A lockout stamped against a clock that does not exist. `toggledAt` is
+  // written as the current tick, and out of a match every reader of the tick
+  // falls back to 0 -- so the window is measured against whatever the *next*
+  // match is reading by the time the player tries to switch back.
+  //
+  // Scoped to modes that actually carry a lockout, not to every mode: one
+  // without `toggleLock` stamps nothing, so there is no clock to get wrong
+  // and no reason to stop a GM arranging the board before the match begins.
+  if (clockRunning === false && sys.toggleLock) {
+    return { ok: false, reason: "noMatch" };
+  }
 
   // Switching OFF something that never switches off.
   if (!active && sys.cannotDeactivate) return { ok: false, reason: "cannotDeactivate" };

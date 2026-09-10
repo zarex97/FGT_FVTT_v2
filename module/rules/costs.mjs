@@ -98,13 +98,36 @@ export function npCostAt({ rank, unit, master }) {
  * @param {object} args.unit
  * @param {object|null} [args.master]
  * @param {number} [args.round]
+ * @param {boolean} [args.clockRunning] whether a started match is keeping time
  * @returns {{ok: boolean, reason?: string, detail?: object, cost: object|null}}
  */
 export function canUseAbility({
   ability, unit, master = null, round = 1, turn = null,
-  gates = NP_GATE, turnsPerRound = 3, ...ctx
+  gates = NP_GATE, turnsPerRound = 3, clockRunning = true, ...ctx
 }) {
   const cost = npCost({ ability, unit, master });
+
+  // No match, no clock -- and therefore no use. Every duration and every
+  // cooldown in this game is measured against the match's tick, and the tick
+  // only moves inside a started Combat: `engine/scheduler-hooks.mjs` bails on
+  // `!combat.started`, and every reader falls back to `?? 0`. So a use out of
+  // a match WRITES a cooldown that nothing can ever count down, and the
+  // ability is gone for the life of the world.
+  //
+  // Found live: abilities used before the match was begun sat at their full
+  // clock forever, which reads as the cooldown being broken rather than as
+  // the match not having started.
+  //
+  // FIRST, above `expended`, for the reason `expended` is above cooldown: the
+  // refusal underneath is not merely a lesser one, it is a WRONG one. "On
+  // cooldown for 22 Turns" invites a player to wait for a Turn that is never
+  // coming, when what they need to do is start the match.
+  //
+  // Defaults to `true`: this layer cannot read `game`, and the seven call
+  // sites all spread `engine/board.mjs#gateContext`, which supplies it.
+  if (clockRunning === false) {
+    return { ok: false, reason: "noMatch", detail: {}, cost };
+  }
 
   // Spent for the rest of the game, and ABOVE the cooldown gate rather than
   // beside `maxUses`. `expended` has been written since Akhilleus Kosmos was

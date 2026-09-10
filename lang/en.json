@@ -355,6 +355,7 @@
   "FGT.Mode.cannotDeactivate": "{name} cannot be deactivated.",
   "FGT.Mode.compelled": "{name} cannot be deactivated while the Unit is compelled.",
   "FGT.Mode.toggleLock": "{name} was switched too recently — {remaining} more turn(s).",
+  "FGT.Mode.noMatch": "{name} has a switching lockout, which needs a running match to measure. Begin the match first.",
 
   "FGT.Sheet.Stance": "Stance",
   "FGT.Stance.mounted": "Mounted",
@@ -668,6 +669,9 @@
   "FGT.Ability.Refused.counterpartAdjacent": "Its counterpart is not next to it.",
   "FGT.Ability.Refused.masterHealthAbove": "The Master's Health is too low.",
   "FGT.Ability.Refused.expended": "Spent for the rest of the game.",
+  "FGT.Ability.Refused.noMatch": "No match is running — begin the match before using abilities.",
+  "FGT.HUD.NoMatch": "No match running",
+  "FGT.HUD.NoMatchHint": "Rounds, Turns and the ◈ tick only advance inside a started match, so cooldowns and durations are not ticking. Begin the match from the combat tracker.",
   "FGT.Ability.Refused.masterHealthFraction": "The Master's Health is below the fraction of its maximum this requires.",
   "FGT.Ability.Refused.targetHasEffect": "The target does not carry the effect it needs.",
   "FGT.Ability.Refused.notHasEffect": "Blocked by an effect already in force.",

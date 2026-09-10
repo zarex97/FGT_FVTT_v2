@@ -102,6 +102,33 @@ describe("canUseAbility", () => {
       .toMatchObject({ ok: true });
   });
 
+  it("refuses every ability while no match is running", () => {
+    // Every clock in this game is measured against the match's tick, and the
+    // tick only advances inside a started Combat. Out of one, a use would
+    // write a cooldown nothing can ever count down (`engine/scheduler-hooks.mjs`
+    // bails on `!combat.started`), so the ability is gone for the life of the
+    // world. Refusing is the only honest answer.
+    expect(canUseAbility(ok({ clockRunning: false })))
+      .toMatchObject({ ok: false, reason: "noMatch" });
+  });
+
+  it("reports noMatch above every other refusal", () => {
+    // ABOVE cooldown and `expended`, for the reason `expended` is above
+    // cooldown: with no clock, the cooldown reading is frozen rather than
+    // running, and "wait 2 more Turns" is a refusal the player cannot act on
+    // because no Turn is ever coming.
+    expect(canUseAbility(ok({
+      clockRunning: false,
+      ability: np({ expended: true, cooldown: { remaining: 2 } }),
+    }))).toMatchObject({ ok: false, reason: "noMatch" });
+  });
+
+  it("assumes a running clock when nothing says otherwise", () => {
+    // Seven call sites and a pure rules layer that cannot read `game`. A
+    // default of `false` would refuse every ability in every unit test.
+    expect(canUseAbility(ok())).toMatchObject({ ok: true });
+  });
+
   it("refuses a Servant outside its Master's ZON", () => {
     // The check ZON already had, now on the same path as every other gate so
     // one call answers "can this be used" completely.
