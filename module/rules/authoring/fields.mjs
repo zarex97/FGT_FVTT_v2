@@ -85,3 +85,40 @@ export function validateFieldValue(type, value) {
       return { ok: true };
   }
 }
+
+/**
+ * Turn what a form control produced into what the schema stores.
+ *
+ * `tokenList` and `predicateList` are **arrays** in every authored document —
+ * `abilities: [ignoresOccupancy]`, `predicate: ["self:stance:dismounted"]` —
+ * and a text input produces a string. Saving the string authors an ability
+ * whose element reads a character at a time, which validates and does nothing.
+ *
+ * @param {string} type
+ * @param {unknown} value
+ * @returns {unknown}
+ */
+export function coerceFieldValue(type, value) {
+  if (type !== "tokenList" && type !== "predicateList") return value;
+  if (Array.isArray(value)) return value;
+  const text = String(value ?? "").trim();
+  if (text === "") return [];
+  return text.split(",").map((part) => part.trim()).filter(Boolean);
+}
+
+/**
+ * Turn an authored value back into what a text control shows.
+ *
+ * The inverse of {@link coerceFieldValue}, so a list round-trips through the
+ * form without gaining brackets or quotes.
+ *
+ * @param {string} type
+ * @param {unknown} value
+ * @returns {unknown}
+ */
+export function displayFieldValue(type, value) {
+  if ((type === "tokenList" || type === "predicateList") && Array.isArray(value)) {
+    return value.join(", ");
+  }
+  return value;
+}

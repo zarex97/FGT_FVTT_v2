@@ -13,7 +13,7 @@
  * engine means adding a table entry, never touching a `.hbs`.
  */
 
-import { validateFieldValue } from "../../rules/authoring/fields.mjs";
+import { validateFieldValue, displayFieldValue } from "../../rules/authoring/fields.mjs";
 import { elementsForBucket } from "../../rules/authoring/elements.mjs";
 import { PHASE_DESCRIPTORS, phasesByUsage } from "../../rules/authoring/phases.mjs";
 import { requirementsFor, REQUIREMENT_DESCRIPTORS, CS_REQUIREMENT_DESCRIPTORS } from "../../rules/authoring/requirements.mjs";
@@ -44,9 +44,13 @@ export function formRows(descriptor, value, prefix = "") {
       type: field.type,
       label: field.label ?? field.key,
       hint: field.hint ?? "",
-      choices: field.choices ?? null,
+      // An OBJECT, never the descriptor's array. Foundry's `selectOptions`
+      // helper treats an array as index-keyed and emits `value="0"`,
+      // `value="1"` -- so setting the control to "travel" silently failed and
+      // Achilles's Knockback saved with no direction at all. Found live.
+      choices: field.choices ? Object.fromEntries(field.choices.map((c) => [c, c])) : null,
       of: field.of ?? null,
-      value: held,
+      value: displayFieldValue(field.type, held),
       name: prefix ? `${prefix}.${field.key}` : field.key,
       problem: verdict.ok ? null : verdict.reason,
     };
@@ -163,9 +167,15 @@ export function requirementRows(draft, itemType) {
  */
 export function timingRow(draft) {
   const timing = draft?.timing ?? null;
+  const chosen = windowsOf(timing);
   return {
-    windows: windowsOf(timing),
-    choices: TIMING_IDS.map((id) => TIMING_DESCRIPTORS[id]),
+    windows: chosen,
+    // `chosen` per choice, because the template renders a CHECKBOX each: an
+    // ability may name two windows, so a dropdown cannot say what this does.
+    choices: TIMING_IDS.map((id) => ({
+      ...TIMING_DESCRIPTORS[id],
+      chosen: chosen.includes(id),
+    })),
     fields: formRows({ fields: AGAINST_FIELDS }, timing ?? {}, "timing"),
   };
 }
