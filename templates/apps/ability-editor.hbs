@@ -9,6 +9,23 @@
       and landed on the labels of the row beneath. --}}
 <div class="fgt-editor">
 
+  {{!-- The rail. Ordered top-to-bottom for a first author working through a
+        sheet; every row is a jump, for someone fixing one cooldown on a
+        shipped Servant. `state` says done / partial / empty and `count` says
+        how much a list section holds, so a GM can see there is something in
+        a section without opening it. --}}
+  <nav class="fgt-editor__rail">
+    {{#each rail as |row|}}
+      <button type="button" class="fgt-editor__railrow fgt-editor__railrow--{{row.state}} {{#if row.current}}fgt-editor__railrow--current{{/if}}"
+              data-action="jumpTo" data-section="{{row.id}}"
+              data-tooltip="{{localize row.hint}}">
+        <span class="fgt-editor__railmark"></span>
+        <span class="fgt-editor__raillabel">{{localize row.label}}</span>
+        {{#if row.count}}<span class="fgt-editor__railcount">{{row.count}}</span>{{/if}}
+      </button>
+    {{/each}}
+  </nav>
+
   <div class="fgt-editor__body">
 
     <section class="fgt-editor__section">
@@ -101,8 +118,125 @@
       </div>
     </details>
 
+    {{!-- WHEN IT FIRES. `timing.window` is authored by 117 of 195 abilities
+          and had no control at all. --}}
+    <section class="fgt-editor__section" data-section-body="whenItFires">
+      <h3 class="fgt-editor__heading">{{localize "FGT.Authoring.Section.whenItFires"}}</h3>
+      <p class="fgt-editor__hint">{{localize "FGT.Authoring.Section.whenItFiresHint"}}</p>
+
+      <div class="fgt-editor__windows">
+        {{#each timing.choices as |w|}}
+          <label class="fgt-editor__window" data-tooltip="{{localize w.hint}}">
+            {{!-- Checkboxes, not a dropdown: an ability may name TWO windows.
+                  Karna's Uncrowned Arms Mastership is "during your Turn or at
+                  the start of a Combat Phase". --}}
+            <input type="checkbox" name="window.{{w.id}}" {{#if w.chosen}}checked{{/if}}>
+            <span>{{localize w.label}}</span>
+            {{#unless w.dispatched}}
+              <em class="fgt-editor__note">{{localize "FGT.Authoring.Window.documentary"}}</em>
+            {{/unless}}
+          </label>
+        {{/each}}
+      </div>
+
+      <div class="fgt-editor__grid">
+        {{#each timing.fields as |row|}}{{> fgt-editor-field row}}{{/each}}
+      </div>
+    </section>
+
+    {{!-- REQUIREMENTS. An unmet one refuses; an UNKNOWN one always refuses,
+          which is why the picker only offers what the dispatcher answers. --}}
+    <section class="fgt-editor__section" data-section-body="requirements" data-requirements>
+      <h3 class="fgt-editor__heading">{{localize "FGT.Authoring.Section.requirements"}}</h3>
+      <p class="fgt-editor__hint">{{localize "FGT.Authoring.Section.requirementsHint"}}</p>
+
+      {{#each requirements.rows as |r|}}
+        <div class="fgt-editor__entry {{#if r.unknown}}fgt-editor__entry--unknown{{/if}}">
+          <header class="fgt-editor__entryhead">
+            <span class="fgt-editor__entryname" data-tooltip="{{localize r.hint}}">
+              {{#if r.unknown}}{{r.kind}}{{else}}{{localize r.label}}{{/if}}
+            </span>
+            <button type="button" data-action="removeRequirement" data-index="{{r.index}}">✕</button>
+          </header>
+          {{#if r.unknown}}
+            <textarea name="requirements.{{r.index}}.raw" rows="3">{{r.raw}}</textarea>
+          {{else}}
+            <div class="fgt-editor__grid">
+              {{#each r.fields as |row|}}{{> fgt-editor-field row}}{{/each}}
+            </div>
+          {{/if}}
+        </div>
+      {{/each}}
+
+      <div class="fgt-editor__add">
+        <select data-picker>
+          {{#each requirements.choices as |c|}}
+            <option value="{{c.id}}">{{localize c.label}}</option>
+          {{/each}}
+        </select>
+        <button type="button" data-action="addRequirement">
+          {{localize "FGT.Authoring.Add"}}
+        </button>
+      </div>
+    </section>
+
+    {{!-- RULE ELEMENTS. The section that has never existed: the editor
+          VALIDATED these three buckets and offered no control that could add
+          one. Achilles's whole passive half was unauthorable. --}}
+    <section class="fgt-editor__section" data-section-body="ruleElements">
+      <h3 class="fgt-editor__heading">{{localize "FGT.Authoring.Section.ruleElements"}}</h3>
+      <p class="fgt-editor__hint">{{localize "FGT.Authoring.Section.ruleElementsHint"}}</p>
+
+      {{#each buckets as |b|}}
+        <div class="fgt-editor__bucket" data-bucket="{{b.id}}">
+          <h4 class="fgt-editor__subheading" data-tooltip="{{localize b.hint}}">
+            {{localize b.label}}
+          </h4>
+
+          {{#each b.rows as |e|}}
+            <div class="fgt-editor__entry {{#if e.unknown}}fgt-editor__entry--unknown{{/if}}">
+              <header class="fgt-editor__entryhead">
+                <span class="fgt-editor__entryname" data-tooltip="{{localize e.hint}}">
+                  {{#if e.unknown}}{{e.key}}{{else}}{{localize e.label}}{{/if}}
+                </span>
+                <button type="button" data-action="moveElement" data-bucket="{{b.id}}"
+                        data-index="{{e.index}}" data-direction="up">↑</button>
+                <button type="button" data-action="moveElement" data-bucket="{{b.id}}"
+                        data-index="{{e.index}}" data-direction="down">↓</button>
+                <button type="button" data-action="removeElement" data-bucket="{{b.id}}"
+                        data-index="{{e.index}}">✕</button>
+              </header>
+
+              {{#if e.unknown}}
+                {{!-- §21.4: a module may add a rule element. Keeping it raw is
+                      what stops the editor deleting another package's content
+                      on the next Save. --}}
+                <p class="fgt-editor__note">{{localize "FGT.Authoring.UnknownElement"}}</p>
+                <textarea name="{{b.id}}.{{e.index}}.raw" rows="4">{{e.raw}}</textarea>
+              {{else}}
+                <div class="fgt-editor__grid">
+                  {{#each e.fields as |row|}}{{> fgt-editor-field row}}{{/each}}
+                </div>
+              {{/if}}
+            </div>
+          {{/each}}
+
+          <div class="fgt-editor__add">
+            <select data-picker>
+              {{#each b.choices as |c|}}
+                <option value="{{c.id}}">{{localize c.label}}</option>
+              {{/each}}
+            </select>
+            <button type="button" data-action="addElement" data-bucket="{{b.id}}">
+              {{localize "FGT.Authoring.Add"}}
+            </button>
+          </div>
+        </div>
+      {{/each}}
+    </section>
+
     {{!-- The piece §29.6 says matters most: diagrams, not internal names. --}}
-    <section class="fgt-editor__section">
+    <section class="fgt-editor__section" data-section-body="whereItLands">
       <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Anchor"}}</h3>
       <div class="fgt-editor__picker">
         {{#each anchors as |a|}}
@@ -126,9 +260,17 @@
           </button>
         {{/each}}
       </div>
+
+      {{!-- WHO inside the area is caught. The anchor and the shape had a
+            picker and this had nothing, so Akhilleus Kosmos's "allied Units,
+            including himself" could not be said. --}}
+      <h3 class="fgt-editor__heading">{{localize "FGT.Authoring.Selection.heading"}}</h3>
+      <div class="fgt-editor__grid">
+        {{#each selection.fields as |row|}}{{> fgt-editor-field row}}{{/each}}
+      </div>
     </section>
 
-    <section class="fgt-editor__section">
+    <section class="fgt-editor__section" data-section-body="whatItDoes">
       <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Phases"}}</h3>
       <p class="fgt-editor__hint">{{localize "FGT.Editor.PhasesHint"}}</p>
 
@@ -152,12 +294,10 @@
             <button type="button" data-action="removePhase">✕</button>
           </header>
 
-          {{#each p.fields as |f|}}
-            <label class="fgt-editor__field">
-              <span>{{localize f.label}}</span>
-              <input type="{{f.type}}" name="phase.{{p.index}}.{{f.key}}" value="{{f.value}}">
-            </label>
-          {{/each}}
+          {{!-- The same partial every other descriptor field uses, so a phase
+                kind gains a typed control by being described rather than by
+                anyone editing this file. --}}
+          {{#each p.fields as |row|}}{{> fgt-editor-field row}}{{/each}}
 
           {{#each p.rules as |r|}}
             {{!-- The effect id is the field that decides whether an
