@@ -12,6 +12,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { parseOption, FACETS } from "./facets.mjs";
 
 /** The prefix that negates a bare option string. */
 const NEGATION = "not:";
@@ -211,11 +212,28 @@ const COMPARATORS = Object.freeze({
 });
 
 /**
- * `target:attribute:large` → `target has attribute "large"`.
+ * `target:attribute:large` → `target has the large attribute`.
+ *
+ * Reads the facet table's own `prose`, which is why §24.4's argument for
+ * predicates being data finally pays: a failed statement can be read as the
+ * sentence its author meant, rather than as a mechanical split of the string
+ * they typed.
+ *
+ * An option no facet admits falls back to that split rather than throwing — a
+ * module's compendium may name anything, and rendering beats refusing.
+ *
  * @param {string} option
  * @returns {string}
  */
 function humanize(option) {
+  const parsed = parseOption(option);
+  if (parsed) {
+    const f = FACETS.find((x) => x.id === parsed.facet);
+    return f.prose.replace(/\{(\w+)\}/g, (whole, token) => (
+      token === "subject" ? parsed.subject : (parsed.segments[token] ?? whole)
+    ));
+  }
+
   const parts = option.split(":");
   if (parts.length < 2) return option;
   const [subject, facet, ...rest] = parts;
