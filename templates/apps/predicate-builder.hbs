@@ -1,0 +1,80 @@
+{{!-- One predicate row (docs/29 §29.6, docs/24 §24.4).
+
+      Recursive: a group renders this partial again for each of its children,
+      so `or` inside `anyOf` inside the top-level AND all work without the
+      template knowing how deep it goes.
+
+      Every control names itself by the row's `path`, which is why a nested
+      group can be patched without the form knowing the tree's shape. --}}
+
+{{#if (eq kind "term")}}
+  <div class="fgt-pred__row fgt-pred__row--term">
+    <label class="fgt-pred__not" data-tooltip="{{localize 'FGT.Predicate.Negate'}}">
+      <input type="checkbox" name="{{prefix}}::{{path}}.negated" {{checked negated}}>
+      <span>{{localize "FGT.Predicate.Not"}}</span>
+    </label>
+
+    <select name="{{prefix}}::{{path}}.subject">
+      {{selectOptions subjectChoices selected=subject}}
+    </select>
+
+    <select name="{{prefix}}::{{path}}.facet" data-tooltip="{{localize hint}}">
+      {{selectOptions facetChoices selected=facet}}
+    </select>
+
+    {{#each segments as |seg i|}}
+      {{#if seg.choices}}
+        <select name="{{../prefix}}::{{../path}}.seg{{i}}">
+          <option value="">—</option>
+          {{selectOptions seg.choices selected=seg.value}}
+        </select>
+      {{else}}
+        {{!-- 21 of 37 facets end in a free identifier. The tooltip says so
+              rather than leaving an author to assume it is checked. --}}
+        <input type="text" name="{{../prefix}}::{{../path}}.seg{{i}}"
+               value="{{seg.value}}"
+               data-tooltip="{{#if seg.unchecked}}{{localize 'FGT.Predicate.Unchecked'}}{{else}}{{localize 'FGT.Predicate.FromContent'}}{{/if}}"
+               class="{{#if seg.unchecked}}fgt-pred__open{{/if}}">
+      {{/if}}
+    {{/each}}
+  </div>
+
+{{else if (eq kind "group")}}
+  <div class="fgt-pred__group">
+    <header class="fgt-pred__grouphead">
+      <select name="{{prefix}}::{{path}}.op">
+        {{selectOptions groupOps selected=op}}
+      </select>
+    </header>
+    {{#each rows as |child|}}
+      {{> fgt-predicate-row child prefix=../prefix groupOps=../groupOps}}
+    {{/each}}
+  </div>
+
+{{else if (eq kind "comparison")}}
+  <div class="fgt-pred__row fgt-pred__row--comparison">
+    {{!-- The ref lists are SCOPED. `expressionRefs` supplies no `target` at
+          all, so offering one here would emit a path that cannot resolve --
+          and `predicate.mjs#num` throws on that rather than failing quietly. --}}
+    <input type="text" name="{{prefix}}::{{path}}.left" value="{{left}}"
+           list="fgt-pred-refs-{{path}}">
+    <datalist id="fgt-pred-refs-{{path}}">
+      {{#each refChoices as |ref|}}<option value="{{ref.path}}"></option>{{/each}}
+    </datalist>
+
+    <select name="{{prefix}}::{{path}}.op">
+      {{selectOptions opChoices selected=op}}
+    </select>
+
+    <input type="text" name="{{prefix}}::{{path}}.right" value="{{right}}"
+           list="fgt-pred-refs-{{path}}">
+  </div>
+
+{{else}}
+  <div class="fgt-pred__row fgt-pred__row--raw">
+    {{!-- A module's operator, or an option no facet admits. Kept verbatim: an
+          editor that silently discarded what it does not understand would be
+          deleting somebody else's content. --}}
+    <textarea name="{{prefix}}::{{path}}.raw" rows="2" spellcheck="false">{{raw}}</textarea>
+  </div>
+{{/if}}
