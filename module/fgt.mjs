@@ -41,7 +41,7 @@ import { SummonDialog } from "./apps/summon-dialog.mjs";
 import { CopyDialog } from "./apps/copy-dialog.mjs";
 import { ChoiceDialog } from "./apps/choice-dialog.mjs";
 import { LogViewer } from "./apps/log-viewer.mjs";
-import { AbilityEditor } from "./apps/ability-editor.mjs";
+import { AbilityEditor } from "./apps/ability-editor/index.mjs";
 import { ContractDialog } from "./apps/contract-dialog.mjs";
 import { SetupWizard } from "./apps/setup-wizard.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
@@ -153,6 +153,9 @@ Hooks.once("setup", async () => {
     // The turn panel, rendered inside the action bar rather than in a
     // window of its own.
     "fgt-turn-panel": "systems/fgt/templates/hud/turn.hbs",
+    // The one partial that renders ANY authoring descriptor field. Adding a
+    // rule element to the engine means adding a table entry, never markup.
+    "fgt-editor-field": "systems/fgt/templates/apps/ability-editor-field.hbs",
   });
 
   // Packs are not readable during `init`; `setup` runs after they are indexed

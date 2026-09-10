@@ -23,12 +23,23 @@
  * two vocabularies together in both directions.
  */
 
-import { handledKeys } from "../rules/elements.mjs";
-import { TARGET_ANCHORS, TARGET_SHAPES, SHAPE_IDS, ANCHOR_IDS } from "../rules/targeting/vocabulary.mjs";
-import { EffectRegistry } from "../rules/registry.mjs";
-import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { handledKeys } from "../../rules/elements.mjs";
+import { TARGET_ANCHORS, TARGET_SHAPES, SHAPE_IDS, ANCHOR_IDS } from "../../rules/targeting/vocabulary.mjs";
+import { EffectRegistry } from "../../rules/registry.mjs";
+import { parseTick, resolveTicks } from "../../domain/tick.mjs";
+import {
+  railRows, elementRows, requirementRows, timingRow, selectionRow, formRows,
+} from "./present.mjs";
+import { PHASE_DESCRIPTORS, phasesByUsage } from "../../rules/authoring/phases.mjs";
+import { sheetFor } from "../sheet-choice.mjs";
+import { coerceFieldValue } from "../../rules/authoring/fields.mjs";
+import { ELEMENT_DESCRIPTORS } from "../../rules/authoring/elements.mjs";
+import {
+  REQUIREMENT_DESCRIPTORS, CS_REQUIREMENT_DESCRIPTORS,
+} from "../../rules/authoring/requirements.mjs";
 
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+const { HandlebarsApplicationMixin } = foundry.applications.api;
+const { ItemSheetV2 } = foundry.applications.sheets;
 
 /**
  * What an ability IS. Content uses exactly these three.
@@ -36,57 +47,33 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const ABILITY_KINDS = Object.freeze(["classSkill", "skill", "noblePhantasm"]);
 
 /**
- * The phase kinds the content packs actually use, each with the fields that
- * are safe to type.
+ * The Rank ladder, for every `rank`-typed descriptor field.
  *
- * A phase is an `ObjectField` and a module may add a kind (§21.4), so this is
- * a list of what is **known**, never a list of what is allowed. A kind absent
- * from here falls through to the JSON editor rather than being lost — see
- * `#applyPhasePatch`, where the same rule is enforced on the way back in.
- *
- * @type {Readonly<Record<string, Array<{key: string, type: string}>>>}
+ * Written out rather than derived from `domain/rank.mjs`, which parses ranks
+ * rather than enumerating them — and a picker needs the list in ladder order,
+ * which parsing cannot give.
  */
-const PHASE_FIELDS = Object.freeze({
-  damage: [
-    { key: "target", type: "text" },
-    { key: "multiplier", type: "number" },
-    { key: "flatBonus", type: "number" },
-    { key: "component", type: "text" },
-  ],
-  heal: [
-    { key: "target", type: "text" },
-    { key: "amount", type: "number" },
-    // Of MAXIMUM, not of current, which is why it is its own field.
-    { key: "percentOfMax", type: "number" },
-  ],
-  modifyDamage: [
-    { key: "factor", type: "number" },
-    { key: "normalAttackFactor", type: "number" },
-    { key: "otherFactor", type: "number" },
-    { key: "side", type: "text" },
-  ],
-  cooldownDelta: [
-    { key: "target", type: "text" },
-    { key: "scope", type: "text" },
-    { key: "delta", type: "text" },
-  ],
-  teleport: [{ key: "target", type: "text" }, { key: "anchor", type: "text" }],
-  overrideValidation: [{ key: "reason", type: "text" }],
+const RANK_CHOICES = Object.freeze([
+  "EX", "A++", "A+", "A", "A-", "B++", "B+", "B", "B-",
+  "C++", "C+", "C", "C-", "D++", "D+", "D", "D-", "E++", "E+", "E", "E-",
+]);
 
-  // These four carry their payload in a nested `changes` array, a `selector`
-  // or a `choose` object -- structure, not scalars. Typing `target` alone and
-  // leaving the rest to the JSON editor is honest; inventing flat fields for
-  // them would offer a form that cannot express what the phase does.
-  resource: [{ key: "target", type: "text" }],
-  statChange: [{ key: "target", type: "text" }],
-  removeEffect: [{ key: "target", type: "text" }],
-  cooldown: [{ key: "target", type: "text" }],
 
-  // Its payload lives on `rules`, which gets its own editor below.
-  applyEffects: [],
-});
-
-export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
+/**
+ * **An `ItemSheetV2`, not a bare `ApplicationV2`.**
+ *
+ * It was the latter, and that is precisely why it could never be reached from
+ * the Items directory: `DocumentSheetConfig.registerSheet` refuses anything
+ * that is not a `DocumentSheetV2`, so the editor was registered as no sheet at
+ * all and Create Item → Ability opened the read-only one.
+ *
+ * The base class brings `document`, `isEditable` and the close-on-delete
+ * behaviour a sheet needs. It does **not** bring its form handling: this
+ * editor keeps its own `form.handler`, because nothing here is written to the
+ * Item until Save — a rule-element form that wrote on every keystroke would
+ * put half-typed content in front of the whole table.
+ */
+export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
   static DEFAULT_OPTIONS = {
     id: "fgt-ability-editor",
     classes: ["fgt", "ability-editor"],
@@ -103,6 +90,14 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       editImage: AbilityEditor.#onEditImage,
       exportSource: AbilityEditor.#onExportSource,
       save: AbilityEditor.#onSave,
+      // The section that has never existed: rule elements were VALIDATED and
+      // unauthorable.
+      addElement: AbilityEditor.#onAddElement,
+      removeElement: AbilityEditor.#onRemoveElement,
+      moveElement: AbilityEditor.#onMoveElement,
+      addRequirement: AbilityEditor.#onAddRequirement,
+      removeRequirement: AbilityEditor.#onRemoveRequirement,
+      jumpTo: AbilityEditor.#onJumpTo,
     },
   };
 
@@ -125,11 +120,26 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {Record<number, boolean>} phases whose raw JSON did not parse */
   #rawErrors = {};
 
-  /** @param {object} item */
-  constructor(item) {
-    super();
+  /** @type {string|null} the rail row the GM last jumped to */
+  #current = null;
+
+  /**
+   * @param {object} item an Item, or Foundry's `{document}` sheet options
+   *
+   * Two shapes, because there are two callers. `AbilityEditor.open(item)`
+   * passes the Item directly, and Foundry's sheet registration constructs
+   * `new cls({document, ...options})` — so accepting only the first is what
+   * kept this class from ever being registerable as a sheet, which is why
+   * Items → Create Item → Ability opened the plain one.
+   */
+  constructor(options = {}) {
+    // Two shapes, because there are two callers. `AbilityEditor.open(item)`
+    // passes the Item directly; Foundry's sheet registration constructs
+    // `new cls({document, ...options})`.
+    const item = options?.documentName ? options : options?.document;
+    super(options?.documentName ? { document: options } : options);
     this.#item = item;
-    this.#draft = foundry.utils.deepClone(item.system ?? {});
+    this.#draft = foundry.utils.deepClone(item?.system ?? {});
   }
 
   /**
@@ -193,8 +203,42 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
         ...sh, svg: schematicSvg(sh.schematic), selected: this.#draft.targeting?.shape === sh.id,
       })),
 
+      // The rail: every section, whether it is done, and how much it holds.
+      // Ordered for a first author; jumpable for someone fixing one cooldown
+      // on a shipped Servant.
+      rail: railRows(this.#draft, this.#itemType(), { current: this.#current }),
+
+      // The section this whole rebuild exists for. Three buckets, because an
+      // element applies at a different TIME in each -- `activeRules` only
+      // while a mode is switched on.
+      buckets: ["passiveRules", "activeRules", "rules"].map((bucket) => {
+        const rows = elementRows(this.#draft, bucket);
+        return {
+          id: bucket,
+          label: `FGT.Authoring.Bucket.${bucket}`,
+          hint: `FGT.Authoring.Bucket.${bucket}Hint`,
+          rows: [...rows],
+          choices: rows.choices,
+        };
+      }),
+
+      requirements: (() => {
+        const rows = requirementRows(this.#draft, this.#itemType());
+        return { rows: [...rows], choices: rows.choices };
+      })(),
+
+      timing: timingRow(this.#draft),
+      selection: selectionRow(this.#draft),
+
       elementKeys: handledKeys().sort(),
       effects: EffectRegistry.all().map((d) => ({ id: d.id, name: d.name })),
+
+      // Read through `@root` by the field partial, which may be invoked from
+      // three loops deep -- `../` would depend on how far.
+      ranks: Object.fromEntries(RANK_CHOICES.map((r) => [r, r])),
+      effectChoices: Object.fromEntries(
+        EffectRegistry.all().map((d) => [d.id, d.name ?? d.id]),
+      ),
 
       // "1◈+⅔◈ shows = 5 turns at 3 turns/round" — the duration field explains
       // itself as you type, because tick arithmetic is the thing authors get
@@ -290,7 +334,8 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {object}
    */
   #phaseContext(phase, index) {
-    const known = Object.hasOwn(PHASE_FIELDS, phase.kind);
+    const descriptor = PHASE_DESCRIPTORS[phase.kind] ?? null;
+    const known = Boolean(descriptor);
 
     return {
       index,
@@ -307,16 +352,19 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       //
       // An unrecognised kind is included so it stays selectable: dropping it
       // from the list would rewrite the phase on the next render.
+      // Commonest first, from the corpus measurement -- `applyEffects` is 95
+      // of the phases in `packs/_source`, and a picker that buries it under
+      // `channel` makes the common case the slowest one.
       kindChoices: {
-        ...Object.fromEntries(Object.keys(PHASE_FIELDS).sort().map((k) => [k, k])),
+        ...Object.fromEntries(phasesByUsage().map((d) => [d.id, game.i18n.localize(d.label)])),
         ...(known || !phase.kind ? {} : { [phase.kind]: `${phase.kind} (unrecognised)` }),
       },
 
-      fields: (PHASE_FIELDS[phase.kind] ?? []).map((field) => ({
-        ...field,
-        label: `FGT.Editor.Field.${field.key}`,
-        value: phase[field.key] ?? "",
-      })),
+      // From the descriptor table, not from a hand-written list beside it.
+      // The old `PHASE_FIELDS` typed four kinds that appear in ZERO authored
+      // abilities and left nine that content does use -- `createField` (8),
+      // `zone` (4) -- to the raw pane.
+      fields: descriptor ? formRows(descriptor, phase, `phase.${index}`) : [],
 
       // `applyEffects` carries rule elements, and the effect id is the field
       // that decides whether the phase does anything at all.
@@ -395,6 +443,148 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {HTMLFormElement} _form
    * @param {object} formData
    */
+  /**
+   * Hand a non-GM back to the read sheet.
+   *
+   * `makeDefault` is world-wide — Foundry has no per-permission default — so
+   * registering the editor as the default ability sheet points **everyone** at
+   * it. The split has to happen somewhere, and here is the one place that sees
+   * both the document and the user.
+   *
+   * The reason is `actor-sheet/sheet.mjs`'s: the editor writes rule elements,
+   * and a player who reorders a phase has changed the ability for the whole
+   * table.
+   *
+   * @inheritdoc
+   */
+  async _onFirstRender(context, options) {
+    await super._onFirstRender(context, options);
+    if (sheetFor(this.#item?.type, game.user) === "editor") return;
+
+    await this.close();
+    // Found by class rather than imported: `apps/index.mjs` imports this
+    // module, so importing it back would close the graph.
+    const entry = Object.values(CONFIG.Item.sheetClasses?.[this.#item.type] ?? {})
+      .find((e) => e.cls?.name === "FGTItemSheet");
+    if (entry) new entry.cls({ document: this.#item }).render(true);
+  }
+
+  /**
+   * Which vocabulary this Item authors from.
+   *
+   * The branch is a **vocabulary selection**, not a second editor: a command
+   * spell's requirement list and an ability's must never merge, because
+   * `servantInZon` asks about somebody else's Servant.
+   *
+   * @returns {string}
+   */
+  #itemType() {
+    return this.#item?.type ?? "ability";
+  }
+
+  /**
+   * Add a rule element to a bucket.
+   *
+   * @this {AbilityEditor}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onAddElement(_event, target) {
+    const bucket = target.dataset.bucket;
+    // `.fgt-editor__bucket`, NOT `[data-bucket]`: the button carries
+    // `data-bucket` itself, so `closest` returns the button and the picker is
+    // never found. The add silently did nothing.
+    const key = target.closest(".fgt-editor__bucket")?.querySelector("select[data-picker]")?.value;
+    if (!bucket || !key || !ELEMENT_DESCRIPTORS[key]) return;
+
+    this.#draft[bucket] = [...(this.#draft[bucket] ?? []), { key }];
+    this.#current = "ruleElements";
+    this.render();
+  }
+
+  /**
+   * @this {AbilityEditor}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onRemoveElement(_event, target) {
+    const bucket = target.dataset.bucket;
+    const index = Number(target.dataset.index);
+    if (!bucket || !Number.isInteger(index)) return;
+
+    const held = [...(this.#draft[bucket] ?? [])];
+    held.splice(index, 1);
+    this.#draft[bucket] = held;
+    this.#current = "ruleElements";
+    this.render();
+  }
+
+  /**
+   * @this {AbilityEditor}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onMoveElement(_event, target) {
+    const bucket = target.dataset.bucket;
+    const index = Number(target.dataset.index);
+    const to = index + (target.dataset.direction === "up" ? -1 : 1);
+    const held = [...(this.#draft[bucket] ?? [])];
+    if (!bucket || to < 0 || to >= held.length) return;
+
+    [held[index], held[to]] = [held[to], held[index]];
+    this.#draft[bucket] = held;
+    this.#current = "ruleElements";
+    this.render();
+  }
+
+  /**
+   * @this {AbilityEditor}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onAddRequirement(_event, target) {
+    const kind = target.closest("[data-requirements]")?.querySelector("select[data-picker]")?.value;
+    const table = this.#itemType() === "commandSpell"
+      ? CS_REQUIREMENT_DESCRIPTORS : REQUIREMENT_DESCRIPTORS;
+    if (!kind || !table[kind]) return;
+
+    this.#draft.requirements = [...(this.#draft.requirements ?? []), { kind }];
+    this.#current = "requirements";
+    this.render();
+  }
+
+  /**
+   * @this {AbilityEditor}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onRemoveRequirement(_event, target) {
+    const index = Number(target.dataset.index);
+    if (!Number.isInteger(index)) return;
+
+    const held = [...(this.#draft.requirements ?? [])];
+    held.splice(index, 1);
+    this.#draft.requirements = held;
+    this.#current = "requirements";
+    this.render();
+  }
+
+  /**
+   * Scroll to a section and mark it current on the rail.
+   *
+   * @this {AbilityEditor}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onJumpTo(_event, target) {
+    const id = target.dataset.section;
+    if (!id) return;
+    this.#current = id;
+    this.element?.querySelector(`[data-section-body="${id}"]`)
+      ?.scrollIntoView({ block: "start", behavior: "smooth" });
+    this.render();
+  }
+
   static async #onChange(_event, _form, formData) {
     const raw = { ...formData.object };
 
@@ -410,6 +600,43 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!key.startsWith("phase.")) continue;
       phaseInputs[key] = value;
       delete raw[key];
+    }
+
+    // The same trap, for every other indexed list. `expandObject` turns
+    // `passiveRules.0.direction` into an OBJECT with a numeric key, and
+    // `mergeObject` then replaces the whole array -- so an element's
+    // `predicate`, or any property this editor has no field for, would be
+    // dropped on the next keystroke. Exactly the failure the phase patcher
+    // above was written to avoid, and there are now four more lists that
+    // could suffer it.
+    /** @type {Record<string, Record<string, string>>} */
+    const listInputs = {};
+    for (const list of ["passiveRules", "activeRules", "rules", "requirements"]) {
+      for (const [key, value] of Object.entries(raw)) {
+        if (!key.startsWith(`${list}.`)) continue;
+        (listInputs[list] ??= {})[key] = value;
+        delete raw[key];
+      }
+    }
+
+    // The timing windows come in as one checkbox each, because an ability may
+    // name two -- Karna's Uncrowned Arms Mastership is "during your Turn OR at
+    // the start of a Combat Phase". Collected into the list `windowsOf` reads,
+    // and written as a bare STRING when there is exactly one, which is the
+    // shape 116 of the 117 authored abilities use.
+    const picked = [];
+    let sawWindowInput = false;
+    for (const [key, value] of Object.entries(raw)) {
+      if (!key.startsWith("window.")) continue;
+      sawWindowInput = true;
+      if (value) picked.push(key.slice("window.".length));
+      delete raw[key];
+    }
+    if (sawWindowInput) {
+      const timing = { ...(this.#draft.timing ?? {}) };
+      if (picked.length === 0) delete timing.window;
+      else timing.window = picked.length === 1 ? picked[0] : picked;
+      this.#draft.timing = Object.keys(timing).length > 0 ? timing : null;
     }
 
     // `name` and `img` belong to the Item, not to `system`.
@@ -430,6 +657,9 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 
     foundry.utils.mergeObject(this.#draft, foundry.utils.expandObject(raw));
     this.#applyPhasePatch(phaseInputs);
+    for (const [list, inputs] of Object.entries(listInputs)) {
+      this.#applyListPatch(list, inputs);
+    }
     this.render();
   }
 
@@ -444,6 +674,60 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {Record<string, string>} inputs keyed `phase.<i>.<field>`
    * @returns {void}
    */
+  /**
+   * Write indexed list inputs back onto the entries they came from.
+   *
+   * **Merges, never replaces**, for the reason `#applyPhasePatch` does: the
+   * descriptor knows the fields it named, and the authored entry may carry
+   * others — a `predicate`, a `defer`, anything a module added. Building a
+   * fresh object from the form would lose them silently, which is the precise
+   * failure this editor exists to catch in other people's content.
+   *
+   * @param {string} list `passiveRules`, `requirements`, …
+   * @param {Record<string, string>} inputs keyed `<list>.<i>.<field>`
+   * @returns {void}
+   */
+  #applyListPatch(list, inputs) {
+    const held = [...(this.#draft[list] ?? [])];
+
+    for (const [key, value] of Object.entries(inputs)) {
+      const [, rawIndex, ...rest] = key.split(".");
+      const index = Number(rawIndex);
+      const field = rest.join(".");
+      if (!Number.isInteger(index) || !held[index] || !field) continue;
+
+      // A blank does not erase a value that was never set, for the same
+      // reason it does not at the top level: every input is submitted on
+      // every change.
+      const existing = foundry.utils.getProperty(held[index], field);
+      if (String(value).trim() === "" && (existing === null || existing === undefined)) continue;
+
+      held[index] = { ...held[index] };
+      // A `tokenList` or `predicateList` is an ARRAY in every authored
+      // document. Storing the raw string authors an element that reads a
+      // character at a time: it validates, and does nothing.
+      const type = this.#fieldType(list, held[index], field);
+      foundry.utils.setProperty(held[index], field, coerceFieldValue(type, value));
+    }
+    this.#draft[list] = held;
+  }
+
+  /**
+   * The declared type of one field on one authored entry.
+   *
+   * @param {string} list
+   * @param {object} entry
+   * @param {string} field
+   * @returns {string} a `FIELD_TYPES` member, or `"text"` when undescribed
+   */
+  #fieldType(list, entry, field) {
+    const table = list === "requirements"
+      ? (this.#itemType() === "commandSpell" ? CS_REQUIREMENT_DESCRIPTORS : REQUIREMENT_DESCRIPTORS)
+      : ELEMENT_DESCRIPTORS;
+    const descriptor = table[entry?.kind ?? entry?.key];
+    return descriptor?.fields?.find((f) => f.key === field)?.type ?? "text";
+  }
+
   #applyPhasePatch(inputs) {
     const phases = [...(this.#draft.phases ?? [])];
     const entries = Object.entries(inputs);
@@ -605,7 +889,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
    * @this {AbilityEditor}
    */
   static async #onExportSource() {
-    const { exportItem } = await import("./yaml-export.mjs");
+    const { exportItem } = await import("../yaml-export.mjs");
     // The DRAFT, not the stored item: exporting what is on screen is the whole
     // point, and a GM who has to save first in order to export would be saving
     // into a world copy the next sync overwrites.

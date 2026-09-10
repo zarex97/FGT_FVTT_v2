@@ -1,0 +1,65 @@
+{{!-- One partial renders ANY descriptor field (docs/29 §29.6).
+
+      This is what makes 54 rule elements, 19 phase kinds and 24 requirement
+      kinds a data problem rather than a hundred pieces of markup: adding a
+      keyword to the engine means adding a table entry in
+      `module/rules/authoring/`, never touching a template.
+
+      The branches are the closed `FIELD_TYPES` set, and a descriptor asking
+      for a type that is not here fails `authoring-contract.test.mjs` rather
+      than rendering nothing. --}}
+<label class="fgt-editor__field fgt-editor__field--{{type}}"
+       data-tooltip="{{localize hint}}">
+  <span class="fgt-editor__label">{{localize label}}</span>
+
+  {{#if (eq type "checkbox")}}
+    <input type="checkbox" name="{{name}}" {{checked value}}>
+
+  {{else if (eq type "select")}}
+    <select name="{{name}}">
+      <option value="">—</option>
+      {{selectOptions choices selected=value}}
+    </select>
+
+  {{else if (eq type "rank")}}
+    <select name="{{name}}">
+      <option value="">—</option>
+      {{selectOptions @root.ranks selected=value}}
+    </select>
+
+  {{else if (eq type "effectId")}}
+    <select name="{{name}}">
+      <option value="">—</option>
+      {{selectOptions @root.effectChoices selected=value}}
+    </select>
+
+  {{else if (eq type "number")}}
+    <input type="number" name="{{name}}" value="{{value}}">
+
+  {{else if (eq type "raw")}}
+    {{!-- The escape hatch D6 keeps: anything the descriptor does not cover
+          stays editable rather than being hidden. --}}
+    <textarea name="{{name}}" rows="3" spellcheck="false">{{value}}</textarea>
+
+  {{else if (eq type "tokenList")}}
+    {{!-- A comma-separated list, because a repeatable row per token costs more
+          clicks than it saves for two or three short strings. --}}
+    <input type="text" name="{{name}}" value="{{value}}"
+           placeholder="{{localize 'FGT.Authoring.Placeholder.tokenList'}}">
+
+  {{else if (eq type "predicateList")}}
+    {{!-- Validated free text until the predicate grammar gets its own
+          descriptor vocabulary and its own spec. Still a large improvement on
+          the JSON blob these lived in. --}}
+    <input type="text" name="{{name}}" value="{{value}}"
+           placeholder="{{localize 'FGT.Authoring.Placeholder.predicate'}}">
+
+  {{else}}
+    <input type="text" name="{{name}}" value="{{value}}">
+  {{/if}}
+
+  {{#if problem}}
+    {{!-- D29.2: never a control that is wrong without saying why. --}}
+    <span class="fgt-editor__problem">{{problem}}</span>
+  {{/if}}
+</label>
