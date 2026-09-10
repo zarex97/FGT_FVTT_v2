@@ -781,6 +781,27 @@ is deleted cannot disagree (the same argument D29.13 makes for `canUseAbility`).
 from the world at the moment the button is pressed, not from the render, so a dialog left open
 while actors changed elsewhere does not delete against a list that no longer exists.
 
+### The tokens no row can reach
+
+A world tidied through Foundry's own sidebar accumulates **orphaned tokens** — the actor gone, the
+token still standing, and no row in the actor list able to select it because there is no actor.
+They get their own banner and their own sweep, above the list, because "delete everything"
+otherwise quietly means *"everything except the mess already made"*. A token with no `actorId` at
+all counts as one: equally unreachable, equally a leftover.
+
+Measured in `fgt2026` the day this shipped: **11 of them** across three scenes — an Achilles, two
+Archers, two Assassins, five Dragon Tooth Warriors and an Ally Dummy, every one pointing at an id
+that no longer resolved.
+
+### Reaching the tool at all
+
+`attachSummonEntries` is called from `ready`, and the sidebar renders **before** it. So
+`renderActorDirectory` fired for every render except the first, and on a freshly loaded world the
+Actors header carried none of these buttons — Summon, the game log and the war setup included,
+since the day that hook was written. They appeared the moment anything re-rendered the directory,
+which is why it read as the buttons being flaky rather than as missing. The hook now also runs
+once against the directory that has already rendered.
+
 ### What goes with them
 
 Five fields name an actor by id and none is maintained across a delete: a Servant's `masterId`, a

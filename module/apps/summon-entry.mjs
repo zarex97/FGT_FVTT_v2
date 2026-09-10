@@ -32,6 +32,20 @@ export function attachSummonEntries() {
   Hooks.on("renderActorDirectory", onRenderDirectory);
   Hooks.on("getCompendiumEntryContext", onCompendiumContext);
   Hooks.on("dropCanvasData", onDropCanvasData);
+
+  // ...and the directory that has ALREADY rendered.
+  //
+  // This is called from `ready`, and the sidebar renders before it. So the
+  // hook above fires for every render EXCEPT the first, and on a freshly
+  // loaded world the header carried none of these buttons at all -- Summon,
+  // the game log and the war setup included, since the day the hook was
+  // written. They appeared the moment anything re-rendered the directory
+  // (creating an actor, deleting one, switching tabs), which is why it read
+  // as the buttons being flaky rather than as missing.
+  //
+  // Measured live: `["Create Actor", "Create Folder"]` on load, all six after
+  // a forced `ui.actors.render()`.
+  if (ui.actors?.rendered && ui.actors.element) onRenderDirectory(ui.actors, ui.actors.element);
 }
 
 /**
