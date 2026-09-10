@@ -13,7 +13,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   AUTHORED_ACTOR_KEYS, AUTHORED_ITEM_KEYS,
-  SEEDED_THEN_OWNED, COOLDOWN_OWNED_BY_WORLD, ownedByWorld,
+  SEEDED_THEN_OWNED, COOLDOWN_OWNED_BY_WORLD, SUMMON_VARIANT_OWNED_BY_WORLD,
+  SEEDED_BY_TYPE, ownedByWorld,
 } from "../../module/content/authored-fields.mjs";
 
 describe("the authored vocabulary", () => {
@@ -116,5 +117,71 @@ describe("the pipeline and the vocabulary agree", () => {
 
   it("itemSystem emits exactly AUTHORED_ITEM_KEYS", () => {
     expect([...emitted("itemSystem")].sort()).toEqual([...AUTHORED_ITEM_KEYS].sort());
+  });
+});
+
+/**
+ * Everything below was found by the FIRST dry run of the content sync against
+ * the live world, not by reasoning about the allowlist. Each one would have
+ * been silently reset on the next load, and each is pinned here by the actual
+ * value the world held.
+ */
+describe("fields the engine writes during play", () => {
+  it("keeps a summon's summoner", () => {
+    // `summoning.mjs` writes `summonerId`. The Sphinx held `ha6OpDqFBWndMfZp`
+    // and the pack template holds null: syncing would orphan every summon on
+    // the board, and `fields.mjs` looks its owner up by exactly this id.
+    expect(ownedByWorld("actor", "summonerId")).toBe(true);
+  });
+
+  it("keeps a platform's owner", () => {
+    // `hgob.mjs` writes `ownerId` when the Hanging Gardens are placed.
+    expect(ownedByWorld("actor", "ownerId")).toBe(true);
+  });
+
+  it("keeps a Servant revealed once she has been revealed", () => {
+    // §4.2. Medusa had been revealed in the live world and the sync would have
+    // put her mask back on.
+    expect(ownedByWorld("actor", "identityRevealed")).toBe(true);
+  });
+
+  it("keeps the class slot war setup placed a Servant in", () => {
+    // `war-setup.mjs` writes `classContainer` after `commitSummon`. It is the
+    // slot this war put her in, not the class her sheet names: Medusa sat in
+    // `saber` while the pack says `rider`.
+    expect(ownedByWorld("actor", "classContainer")).toBe(true);
+  });
+});
+
+describe("a Master's rolled stats", () => {
+  // `war-setup.mjs` rolls these through `rollSetupPlan` onto a BLANK pack
+  // template whose rank is "" and whose zon is 2. Syncing them back throws away
+  // the war's setup rolls -- the live world had Masters at rank C and A, zon 4,
+  // and baseAttack.mag 125.
+  it("stays with the world, for a master", () => {
+    for (const key of ["rank", "zon", "baseAttack", "commandSpells"]) {
+      expect(ownedByWorld("actor", key, "master")).toBe(true);
+    }
+  });
+
+  it("still follows the pack for a servant", () => {
+    // A Servant's rank and attack come from her sheet. This is why the
+    // exemption is keyed on type rather than added to SEEDED_THEN_OWNED.
+    for (const key of ["rank", "baseAttack"]) {
+      expect(ownedByWorld("actor", key, "servant")).toBe(false);
+    }
+  });
+
+  it("names only types the system actually has", () => {
+    const types = new Set(["servant", "master", "summon", "structure", "civilian"]);
+    for (const type of Object.keys(SEEDED_BY_TYPE)) expect(types).toContain(type);
+  });
+});
+
+describe("the summonVariant split", () => {
+  it("leaves the flip with the world and the two forms with the pack", () => {
+    // The same shape as `cooldown`: SM Semiramis had come up `dsc`, and the
+    // pack states only what heads and tails are.
+    expect(SUMMON_VARIANT_OWNED_BY_WORLD).toEqual(["variant"]);
   });
 });

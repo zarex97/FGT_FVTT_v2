@@ -2772,4 +2772,39 @@ when every clause on its sheet has been *measured*, individually, in `fgt2026`.
 
 ---
 
+## Migration and content sync (Ch. 39)
+
+Built and live in `fgt2026`. `module/migration/` holds the version axis (`migrations.mjs`, empty
+list, `SCHEMA_VERSION = 1`), the mandatory backup (`backup.mjs`), the pure reconcile
+(`content-sync.mjs`) and the Layer-4 runner (`runner.mjs`), called first in `ready`.
+
+D39.6 is **replaced**: the compendium is the whole source of truth. The vocabulary that makes that
+safe is `module/content/authored-fields.mjs`, held against the pack builder in both directions by
+`test/unit/authored-fields.test.mjs`.
+
+Everything below was found by the **first dry run against a world with real data in it**, and
+nothing below was found by reasoning about the allowlist. This is the entry that argues for the
+rule: never let a sync write until every line of its dry run is explicable.
+
+| What the dry run reported | What it actually was |
+|---|---|
+| 66 Servants "changed" | key order — `{element, bands}` vs `{bands, element}` |
+| 17 more, on the second run | HTML entity escaping; `&` is stored `&amp;` and never converges |
+| Two Sabers, for ever | a bare `<Faction>` in a note, *stripped* by the sanitizer |
+| 3 summons losing `summonerId` | orphaning every summon on the board |
+| Medusa re-concealed | `identityRevealed` reset; her war slot `saber` reset to `rider` |
+| 14 Masters reset | `rank`, `zon`, `baseAttack` — a war's setup ROLLS, on a blank template |
+| Semiramis losing her Poison | `semiramis-poison` is crafted by Item Construction, on no template |
+
+The last one changed a rule rather than a list: an item is removed only if its `contentId` is in
+**no pack at all**. `copiedFrom`/`grantedBy` was too narrow — crafted items carry neither.
+
+Verified live: sync converges to zero on the second pass, 67 contracts intact, Masters' rolled
+stats intact, summons still linked, Medusa still revealed, Semiramis still holding her Poison.
+
+**Not done:** rule-version pinning, so the sync can change a Servant mid-match — rebuild packs
+between sessions (§39.3).
+
+---
+
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)

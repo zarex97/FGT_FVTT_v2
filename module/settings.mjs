@@ -191,6 +191,18 @@ export function registerSettings() {
 
   s("diceFormulas", { config: false, type: Object, default: {} });
 
+  // Ch. 39 §39.1's schema version. §39.1 put it on `world.flags.fgt`, which is
+  // not a place: `game.world` is a World *package*, not a Document -- no
+  // `flags`, no `setFlag` -- and Foundry ships no migration version of its own.
+  // A world-scoped setting is the only durable per-world store the API offers.
+  // `0` means "never recorded", which `runner.mjs` reads as "current" rather
+  // than replaying every migration against data that never needed them.
+  s("schemaVersion", {
+    config: false, type: new foundry.data.fields.NumberField({
+      required: true, integer: true, min: 0, initial: 0,
+    }), default: 0,
+  });
+
   game.settings.register("fgt", "showDamagePreview", {
     scope: "client", config: true, name: "FGT.Settings.ShowDamagePreview", type: Boolean, default: true,
   });

@@ -83,9 +83,23 @@ describe("reconcileItems", () => {
     expect(out.create.map((i) => i.system.contentId)).toEqual(["crest"]);
   });
 
-  it("removes an item the template lost", () => {
-    const out = reconcileItems([item("old-skill")], []);
+  it("removes an item content has forgotten entirely", () => {
+    // Not in the template AND in no pack: a rename left it behind.
+    const out = reconcileItems([item("old-skill")], [], { knownContentIds: new Set() });
     expect(out.remove).toEqual(["old-skill-id"]);
+  });
+
+  it("NEVER removes an item that is still real content", () => {
+    // `semiramis-poison` is an ability Semiramis MAKES with Item Construction.
+    // It is on no actor template and carries neither `copiedFrom` nor
+    // `grantedBy`, so the provenance check alone would have swept every Poison
+    // she had crafted -- found by the first live dry run, not by reasoning.
+    const crafted = item("semiramis-poison", { quantity: 3 });
+    const out = reconcileItems([crafted], [], {
+      knownContentIds: new Set(["semiramis-poison"]),
+    });
+    expect(out.remove).toEqual([]);
+    expect(out.kept).toEqual(["semiramis-poison-id"]);
   });
 
   it("NEVER removes an item granted during play", () => {
@@ -109,5 +123,52 @@ describe("reconcileItems", () => {
 describe("PROVENANCE_KEYS", () => {
   it("is the pair that marks a runtime grant", () => {
     expect(PROVENANCE_KEYS).toEqual(["copiedFrom", "grantedBy"]);
+  });
+});
+
+describe("the summonVariant split", () => {
+  it("takes the two forms from the pack and the flip from the world", () => {
+    // SM Semiramis had come up `dsc`. The pack states heads and tails; which
+    // one the coin landed on is the match's, and re-flipping a summon already
+    // on the board is not a content update.
+    const world = { contentId: "sm", summonVariant: { heads: { id: "old" }, tails: { id: "noDsc" }, variant: "dsc" } };
+    const pack = { contentId: "sm", summonVariant: { heads: { id: "dsc" }, tails: { id: "noDsc" } } };
+    const out = reconcileSystem("actor", world, pack).summonVariant;
+    expect(out.heads).toEqual({ id: "dsc" });   // the pack's shape
+    expect(out.variant).toBe("dsc");            // the match's flip
+  });
+});
+
+describe("a document's type", () => {
+  it("leaves a Master's rolled stats alone", () => {
+    // war-setup rolls these onto a blank template. The live world held rank C
+    // and zon 4 against a template of "" and 2.
+    const world = { contentId: "master", rank: "C", zon: 4, baseAttack: { str: 50, mag: 125 } };
+    const pack = { contentId: "master", rank: "", zon: 2, baseAttack: { str: 50, mag: 100 } };
+    const out = reconcileSystem("actor", world, pack, { type: "master" });
+    expect(out.rank).toBe("C");
+    expect(out.zon).toBe(4);
+    expect(out.baseAttack.mag).toBe(125);
+  });
+
+  it("still updates a Servant's rank from the pack", () => {
+    const out = reconcileSystem("actor", { contentId: "s", rank: "C" }, { contentId: "s", rank: "A" }, { type: "servant" });
+    expect(out.rank).toBe("A");
+  });
+});
+
+describe("fields the engine writes during play", () => {
+  it("keeps a summon pointed at its summoner", () => {
+    const world = { contentId: "sphinx", summonerId: "ha6OpDqFBWndMfZp" };
+    const out = reconcileSystem("actor", world, { contentId: "sphinx", summonerId: null });
+    expect(out.summonerId).toBe("ha6OpDqFBWndMfZp");
+  });
+
+  it("keeps a revealed Servant revealed, and her war's class slot", () => {
+    const world = { contentId: "medusa", identityRevealed: true, classContainer: "saber" };
+    const pack = { contentId: "medusa", identityRevealed: false, classContainer: "rider" };
+    const out = reconcileSystem("actor", world, pack);
+    expect(out.identityRevealed).toBe(true);
+    expect(out.classContainer).toBe("saber");
   });
 });
