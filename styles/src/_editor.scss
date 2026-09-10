@@ -7,13 +7,142 @@
 // instead of being however many characters wide they were authored.
 
 .fgt-editor {
-  display: flex;
-  flex-direction: column;
+  // A rail beside the body, not above it: the rail is a persistent map of the
+  // whole document and has to stay visible while the body scrolls.
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  // `ItemSheetV2` lays its `.window-content` out as a TWO-column grid -- a
+  // narrow sidebar track and a main one -- because a document sheet normally
+  // supplies a `sidebar` part and a `main` part. This editor is one part, so
+  // it landed in the sidebar track: measured at 44px, with the whole form
+  // squeezed into a column narrower than one of its labels.
+  //
+  // Spanning both tracks is the fix. `width: 100%` alone cannot help, because
+  // the containing block IS the 44px track.
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: 100%;
   height: 100%;
   gap: 0.5rem;
   color: var(--fgt-ink);
 
+  /* -- the rail (docs/29 §29.6 D3) ------------------------------------- */
+  &__rail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    overflow-y: auto;
+    padding-right: 0.4rem;
+    border-right: 1px solid var(--color-border-light-tertiary, #7a7971);
+  }
+
+  &__railrow {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.25rem 0.35rem;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    font-size: 0.82em;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: rgba(255, 255, 255, 0.06); }
+    &--current { background: rgba(255, 255, 255, 0.12); font-weight: 600; }
+  }
+
+  &__raillabel { flex: 1 1 auto; }
+
+  // Done / partial / empty, as a dot. Colour is never the only signal (D29.7):
+  // a filled dot, a half-filled ring and an empty ring differ in SHAPE.
+  &__railmark {
+    flex: 0 0 auto;
+    width: 0.55rem;
+    height: 0.55rem;
+    border: 1px solid currentcolor;
+    border-radius: 50%;
+  }
+
+  &__railrow--done &__railmark,
+  &__railrow--done .fgt-editor__railmark { background: currentcolor; }
+  &__railrow--partial .fgt-editor__railmark {
+    background: linear-gradient(to right, currentcolor 50%, transparent 50%);
+  }
+  &__railrow--empty .fgt-editor__railmark { opacity: 0.4; }
+
+  &__railcount {
+    flex: 0 0 auto;
+    padding: 0 0.25rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    font-size: 0.85em;
+  }
+
+  /* -- authored list entries ------------------------------------------- */
+  &__bucket { margin-bottom: 0.6rem; }
+
+  &__subheading {
+    margin: 0.3rem 0 0.2rem;
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.75;
+  }
+
+  &__entry {
+    margin-bottom: 0.35rem;
+    padding: 0.35rem;
+    border: 1px solid var(--color-border-light-tertiary, #7a7971);
+    border-radius: 4px;
+
+    // A key no descriptor knows -- probably a module's. Marked, because the
+    // raw pane is a fallback rather than the intended way to edit.
+    &--unknown { border-style: dashed; opacity: 0.9; }
+  }
+
+  &__entryhead {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    margin-bottom: 0.25rem;
+
+    button { flex: 0 0 auto; width: 1.6rem; padding: 0; }
+  }
+
+  &__entryname { flex: 1 1 auto; font-weight: 600; font-size: 0.9em; }
+
+  &__add {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+
+    select { flex: 1 1 auto; }
+  }
+
+  &__windows {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.2rem 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+
+  &__window { display: flex; gap: 0.35rem; align-items: center; font-size: 0.88em; }
+
+  &__note { font-size: 0.85em; font-style: italic; opacity: 0.65; }
+
+  // D29.2: a control that is wrong says why, next to itself.
+  &__problem {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--color-level-error, #c53030);
+    font-size: 0.82em;
+  }
+
   &__body {
+    // A grid child with content wider than its track pushes the track out
+    // unless it may shrink below its intrinsic width.
+    min-width: 0;
     flex: 1;
     min-height: 0;
     overflow-y: auto;

@@ -1233,5 +1233,18 @@
   "FGT.Authoring.Selection.includeSelf": "Include Self",
   "FGT.Authoring.Selection.includeSelfHint": "Whether the caster is caught by its own area.",
   "FGT.Authoring.Selection.chooser": "Chooser",
-  "FGT.Authoring.Selection.chooserHint": "Who decides which of the caught Units are affected — everyone, or a pick."
+  "FGT.Authoring.Selection.chooserHint": "Who decides which of the caught Units are affected — everyone, or a pick.",
+  "FGT.Authoring.Add": "Add",
+  "FGT.Authoring.UnknownElement": "No descriptor for this key — it may come from a module. Edited as raw JSON so it is never lost.",
+  "FGT.Authoring.Window.documentary": "nothing offers at this window",
+  "FGT.Authoring.Selection.heading": "Who is caught",
+  "FGT.Authoring.Placeholder.tokenList": "comma separated",
+  "FGT.Authoring.Placeholder.predicate": "e.g. self:stance:dismounted",
+  "FGT.Authoring.Bucket.passiveRules": "Always in effect",
+  "FGT.Authoring.Bucket.passiveRulesHint": "Applies whenever the Unit has this ability at all.",
+  "FGT.Authoring.Bucket.activeRules": "While switched on",
+  "FGT.Authoring.Bucket.activeRulesHint": "Applies only while this is an active mode. Collected only when the ability is switched on.",
+  "FGT.Authoring.Bucket.rules": "General",
+  "FGT.Authoring.Bucket.rulesHint": "Collected alongside the passive list; use it when neither of the other two reads more clearly.",
+  "FGT.Sheet.AbilityEditor": "Ability editor"
 }

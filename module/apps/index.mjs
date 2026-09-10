@@ -8,6 +8,8 @@
  */
 
 import { FGTActorSheet } from "./actor-sheet/sheet.mjs";
+import { AbilityEditor } from "./ability-editor/index.mjs";
+import { EDITOR_TYPES } from "./sheet-choice.mjs";
 import { editImage } from "./image-edit.mjs";
 import { enrichText, effectFacts } from "./enrich.mjs";
 
@@ -72,7 +74,23 @@ export function registerSheets() {
   });
   DocumentSheetConfig.registerSheet(Item, "fgt", FGTItemSheet, {
     types: ["ability", "noblePhantasm", "commandSpell", "masterEssence", "equipment"],
+    // Default only for the types the editor cannot author. It stays REGISTERED
+    // for the others so a player -- and a `@UUID` link -- still lands on a
+    // readable sheet rather than on a rule-element form.
     makeDefault: true, label: "FGT.Sheet.Ability",
+  });
+
+  // §29.6's editor as the default for a GM. Without this, Items -> Create Item
+  // -> Ability opened the display sheet and there was no route from a new Item
+  // to the editor at all: an ability had to be OWNED by a Servant before it
+  // could be authored.
+  DocumentSheetConfig.registerSheet(Item, "fgt", AbilityEditor, {
+    types: [...EDITOR_TYPES],
+    // World-wide, because `makeDefault` is: Foundry has no per-permission
+    // default. The GM/player split therefore happens inside the editor, which
+    // hands a non-GM straight back to the read sheet -- see `_onFirstRender`.
+    makeDefault: true,
+    label: "FGT.Sheet.AbilityEditor",
   });
 }
 

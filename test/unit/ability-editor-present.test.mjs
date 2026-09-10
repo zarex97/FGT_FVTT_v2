@@ -24,7 +24,10 @@ describe("formRows", () => {
     const rows = formRows(descriptor, { direction: "travel" });
     expect(rows.map((r) => r.key)).toEqual(["direction", "predicate"]);
     expect(rows[0].value).toBe("travel");
-    expect(rows[0].choices).toEqual(["travel", "outward"]);
+    // An OBJECT, not the descriptor's array: Foundry's `selectOptions` treats
+    // an array as index-keyed and emits value="0"/value="1", so a control set
+    // to "travel" silently keeps "". Found live, on Achilles's Knockback.
+    expect(rows[0].choices).toEqual({ travel: "travel", outward: "outward" });
   });
 
   it("carries an empty value rather than dropping the row", () => {
@@ -146,7 +149,7 @@ describe("elementRows", () => {
 describe("requirementRows", () => {
   it("renders a stance requirement with its descriptor's choices", () => {
     const rows = requirementRows({ requirements: [{ kind: "stance", stance: "dismounted" }] }, "ability");
-    expect(rows[0].fields[0].choices).toEqual(["mounted", "dismounted"]);
+    expect(rows[0].fields[0].choices).toEqual({ mounted: "mounted", dismounted: "dismounted" });
     expect(rows[0].fields[0].value).toBe("dismounted");
   });
 
@@ -186,7 +189,10 @@ describe("selectionRow", () => {
     const row = selectionRow({ targeting: { selection: {
       relations: ["ally", "self"], includeSelf: true, chooser: "all",
     } } });
-    expect(row.fields.find((f) => f.key === "relations").value).toEqual(["ally", "self"]);
+    // A list shows as text and saves as an array -- `displayFieldValue` and
+    // `coerceFieldValue` are inverses, so it round-trips without gaining
+    // brackets or quotes.
+    expect(row.fields.find((f) => f.key === "relations").value).toBe("ally, self");
     expect(row.fields.find((f) => f.key === "chooser").value).toBe("all");
   });
 
@@ -212,5 +218,34 @@ describe("phaseRows", () => {
     const rows = phaseRows({ phases: [{ kind: "moduleKind", x: 1 }] });
     expect(rows[0].unknown).toBe(true);
     expect(rows[0].raw).toContain("moduleKind");
+  });
+});
+
+describe("list fields round-trip", () => {
+  it("shows an authored array as text and takes text back as an array", async () => {
+    const { coerceFieldValue, displayFieldValue } =
+      await import("../../module/rules/authoring/fields.mjs");
+
+    // `abilities: [ignoresOccupancy]` and `predicate: ["self:stance:dismounted"]`
+    // are arrays in every authored document. Saving the raw string authors an
+    // element that reads a character at a time -- it validates and does nothing.
+    expect(displayFieldValue("tokenList", ["a", "b"])).toBe("a, b");
+    expect(coerceFieldValue("tokenList", "a, b")).toEqual(["a", "b"]);
+    expect(coerceFieldValue("predicateList", "self:stance:dismounted"))
+      .toEqual(["self:stance:dismounted"]);
+  });
+
+  it("reads an empty list as empty rather than as one blank entry", () => {
+    return import("../../module/rules/authoring/fields.mjs").then(({ coerceFieldValue }) => {
+      expect(coerceFieldValue("tokenList", "")).toEqual([]);
+      expect(coerceFieldValue("tokenList", "  ,  ")).toEqual([]);
+    });
+  });
+
+  it("leaves every other type alone", () => {
+    return import("../../module/rules/authoring/fields.mjs").then(({ coerceFieldValue }) => {
+      expect(coerceFieldValue("text", "a, b")).toBe("a, b");
+      expect(coerceFieldValue("number", "3")).toBe("3");
+    });
   });
 });
