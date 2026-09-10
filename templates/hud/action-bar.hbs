@@ -53,5 +53,17 @@
 
   {{!-- The partial is handed `turn` as its context, so `turn.hbs` keeps
         reading its own fields at the top level and needed no edits. --}}
-  {{#if turn.active}}<div class="fgt-actionbar__turn">{{> fgt-turn-panel turn}}</div>{{/if}}
+  {{#if turn.active}}
+    <div class="fgt-actionbar__turn">{{> fgt-turn-panel turn}}</div>
+  {{else}}
+    {{!-- Out of a match every ability on this bar is refused with `noMatch`
+          (`rules/costs.mjs`), because a use would write a cooldown nothing can
+          ever count down. A row of dead buttons with no explanation is the one
+          thing D29.2 forbids, so the panel's slot says why rather than being
+          empty. --}}
+    <div class="fgt-actionbar__nomatch" data-tooltip="{{localize 'FGT.HUD.NoMatchHint'}}">
+      <i class="fa-solid fa-hourglass-half"></i>
+      <span>{{localize "FGT.HUD.NoMatch"}}</span>
+    </div>
+  {{/if}}
 </div>

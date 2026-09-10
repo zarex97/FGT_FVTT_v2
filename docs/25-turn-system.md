@@ -438,10 +438,18 @@ Only the current player (or the GM) may end the turn. The button is hidden for e
 >
 > - **The Combat is created second, not last.** `game-log.mjs#record` takes a combat and writes
 >   nothing without one, so building it at the end would leave no record of the steps before it.
->   The Scene still comes first, because the Combat is scene-linked.
+>   The Scene still comes first, because everything painted onto it is.
 > - **The Combat is `activate()`d.** `currentBoard()` reads `game.combats.active` and
 >   `Combat.create` leaves `active: false` — `game.combat` is only the combat being *viewed*.
 >   Without it the board is match-blind: no phase, no tick, no difficulty, no war type, no Grail.
+> - **The Combat is created with `scene: null`.** Foundry's `CombatEncounters#active` returns the
+>   active combat only when its scene is the one currently being *viewed*
+>   (`client/documents/collections/combat-encounters.mjs`). A match bound to the board's scene
+>   therefore vanishes the instant the GM looks at any other scene — and `activate()` above does
+>   not save it, because the filter is applied before `active` is read. The board goes match-blind
+>   and `clockRunning()` (Ch. 07 §7.7) reports that the match has not started, so every ability in
+>   the game is refused. A null scene is global, which is what "the Combat is the whole match"
+>   (§25.1) means: the war is not an encounter on one map.
 >
 > Deployment places each **pair** together, and the Master goes on the free panel nearest its own
 > Servant rather than the next one in the list. Walking the list in order straddles the end of a

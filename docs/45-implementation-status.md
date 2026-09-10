@@ -2835,4 +2835,43 @@ between sessions (§39.3).
 
 ---
 
+## Clocks that could never run — **repaired**
+
+An ability used with no match running entered cooldown and stayed there. Not for `5◈+⅓◈` — for the
+life of the world.
+
+The two halves of the time model were bound to Foundry's `Combat` in **one direction only**. The
+scheduler that counts a cooldown down runs from `combatTurnChange`/`combatRound` and bails on
+`!combat.started` (`engine/scheduler-hooks.mjs`). Nothing gated the code that *writes* one.
+`engine/skill-use.mjs` even shows the asymmetry in eleven lines: the budget is guarded with
+`if (combat?.started)`, and then `cooldownIntents(...)` runs unconditionally.
+
+It was invisible because every reader of the tick was spelled `game.combat?.system?.globalTurn ?? 0`.
+That fallback makes *"no match"* and *"turn zero of a running match"* the same number, so the clock
+did not look absent — it looked stopped at the start.
+
+| Repaired | Where |
+|---|---|
+| `clockRunning()`, the question asked on its own | `engine/board.mjs` — beside `currentTick`/`currentRound`, which answer `null` and leave the caller to infer |
+| `canUseAbility` refuses `noMatch`, **first** | `rules/costs.mjs` — above `expended` and `cooldown`, because *"22 Turns remaining"* is not a lesser refusal here, it is a wrong one |
+| `canToggleMode` refuses `noMatch` for a locked mode | `rules/modes.mjs` — scoped to `toggleLock`, since a mode without one stamps no clock |
+| Supplied to all seven call sites | `gateContext()`, the same way §7.9's gate numbers already were |
+| "No match running" in the turn panel's slot | `templates/hud/action-bar.hbs` — D29.2 forbids a dead button with no explanation |
+
+Two clock readers were reading the **wrong combat** as well. `gateContext().turn` and the mode
+toggle's `tick` both used `game.combat`, which is the combat being *viewed*, not the active match;
+both now go through `currentTick()`.
+
+And the reason a match could go missing at all: `commitWar` created it with `scene: scene.id`.
+Foundry's `CombatEncounters#active` filters on the **currently viewed** scene before it reads
+`active`, so looking at any other scene took the whole match away — no tick, no phase, no
+difficulty, no Grail, and now every ability refused. The match is created `scene: null`, which is
+what Ch. 25 §25.1's *"Combat = the whole match"* has always meant.
+
+**The answer to "should the Round depend on Foundry's Combat?"** — yes, and it already did. What
+was missing was the other half of the dependency, not the dependency. See Ch. 07 §7.7 for why
+owning the clock elsewhere would buy a tick with no turn order, no budget and no Grail.
+
+---
+
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)
