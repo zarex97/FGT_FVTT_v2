@@ -190,7 +190,6 @@ export function registerSettings() {
   });
 
   s("diceFormulas", { config: false, type: Object, default: {} });
-  s("schemaVersion", { config: false, type: String, default: "" });
 
   game.settings.register("fgt", "showDamagePreview", {
     scope: "client", config: true, name: "FGT.Settings.ShowDamagePreview", type: Boolean, default: true,
