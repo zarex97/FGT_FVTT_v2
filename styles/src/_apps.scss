@@ -1075,3 +1075,96 @@
 .fgt-setup__np { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: center; margin-top: 0.35rem; }
 .fgt-setup__np-label { font-weight: 600; opacity: 0.85; }
 .fgt-setup__np-option { display: inline-flex; gap: 0.25rem; align-items: center; }
+
+/* -------------------------------------------------------------------------- */
+/*  §29.13 — clean up actors and tokens                                        */
+/* -------------------------------------------------------------------------- */
+
+.fgt-purge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+
+  &__filters,
+  &__selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: end;
+
+    label { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.85em; }
+    span { opacity: 0.8; }
+  }
+
+  &__selection { align-items: center; font-size: 0.85em; }
+  &__search { flex: 1 1 10rem; }
+
+  // The one number in this dialog that can surprise a GM: rows still selected
+  // that the filter is no longer showing.
+  &__hidden { color: var(--color-level-warning, #cc7a00); }
+
+  &__list {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--color-border-light-tertiary, #7a7971);
+    border-radius: 4px;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1.5rem 1.8rem 1fr 5rem 5rem 12rem;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.2rem 0.35rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 0.85em;
+
+    &--selected { background: rgba(200, 40, 40, 0.12); }
+  }
+
+  &__art { width: 1.8rem; height: 1.8rem; object-fit: cover; border: 0; border-radius: 3px; }
+  &__name { font-weight: 600; }
+  &__type,
+  &__faction { opacity: 0.7; }
+  &__where { opacity: 0.85; text-align: right; }
+  // An actor standing nowhere is the sweepable case, so it reads as absence
+  // rather than as a scene list that happens to be short.
+  &__where--none { font-style: italic; opacity: 0.45; }
+
+  &__empty { margin: 0; font-style: italic; opacity: 0.7; }
+
+  &__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--color-border-light-tertiary, #7a7971);
+  }
+
+  &__modes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.85em;
+
+    label { display: flex; gap: 0.35rem; align-items: center; }
+  }
+
+  &__summary { flex: 1 1 12rem; margin: 0; font-size: 0.85em; }
+  &__summary--refused { font-style: italic; opacity: 0.7; }
+
+  // Destructive, and coloured like it. The button is the last thing read
+  // before an irreversible delete, so it does not look like Save.
+  &__go {
+    flex: 0 0 auto;
+    border-color: rgba(160, 30, 30, 0.7);
+    background: rgba(160, 30, 30, 0.15);
+
+    &[disabled] { opacity: 0.45; }
+  }
+}

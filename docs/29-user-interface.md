@@ -739,6 +739,62 @@ and pluralization through `game.i18n.format` with explicit plural keys.
 
 ---
 
+## 29.13 Cleaning up a world
+
+> **Built.** `module/apps/actor-purge.mjs`, `module/rules/purge.mjs`, and a fourth button on the
+> Actors sidebar header beside Summon, Game log and Configure War.
+
+Foundry does not clean up after a deleted Actor. `Actor._onDelete`
+(`client/documents/actor.mjs`) removes the actor's ActiveEffects and **nothing else** — every
+token of that actor stays in its scene, pointing at an id that no longer resolves. The sidebar
+shows none of them, so the only way to find out is to open each scene and look. Clearing a world
+by hand is therefore dozens of deletions across two sidebars with no way to check you are done.
+
+The tool lists every world Actor with **where its tokens stand** — scene names and counts —
+filtered by scene, type, faction and name. One filter value is not a scene: *"placed in no
+scene"*, the actors nothing shows because nothing holds them, which are exactly the ones left over
+from a test or a half-finished setup.
+
+### Two modes, because the scene picker means two things
+
+| Mode | Deletes | The scene picker |
+|---|---|---|
+| **Delete actors** | the selected actors **and every token of theirs, in every scene** | narrows the list only |
+| **Remove tokens from scene** | only those actors' tokens in the chosen scene; the actors survive | **required** |
+
+**DECISION.** The scene filter is a *view*, never a scope on "Delete actors". A token left behind
+in a scene nobody was looking at is precisely the orphan this tool exists to prevent, so narrowing
+the list must not narrow the delete. "Remove tokens" refuses outright without a scene rather than
+reading the empty picker as *every* scene — one keystroke from clearing the board.
+
+**DECISION.** Selection survives a filter change, and the footer says how many of it are hidden.
+Reading the selection off the checkboxes alone would silently drop everything picked before
+narrowing; carrying it silently would let a GM approve a count they cannot see. Both are refused
+by saying it out loud. **Select all** means *all shown* — a button that also picked up rows a
+filter had deliberately hidden would be the most dangerous control in the dialog.
+
+### The plan is the sentence
+
+`rules/purge.mjs#purgePlan` is pure and returns `{actorIds, scenes, counts, refusal}`. The
+confirmation renders that plan, and the delete performs that plan — so what a GM approves and what
+is deleted cannot disagree (the same argument D29.13 makes for `canUseAbility`). It is re-planned
+from the world at the moment the button is pressed, not from the render, so a dialog left open
+while actors changed elsewhere does not delete against a list that no longer exists.
+
+### What goes with them
+
+Five fields name an actor by id and none is maintained across a delete: a Servant's `masterId`, a
+Master's `servantIds`, a summon's `summonerId`, a platform's `ownerId`, and the
+`servantId`/`masterId` on every slot of `MatchData.containers` (`engine/war-setup.mjs`).
+`danglingReferences` returns one update per surviving document — never for a document that is
+itself about to be deleted, which is wasted work at best and a failed update at worst.
+
+Order is load-bearing: **tokens, then references, then actors.** Tokens first so no scene renders
+a token whose actor has gone; references before the actors they point at, so there is never a
+moment where a surviving document names a deleted one.
+
+---
+
 ## 29.12 Summary of decisions
 
 | # | Decision |
@@ -766,6 +822,9 @@ and pluralization through `game.i18n.format` with explicit plural keys.
 | D29.13 | Ability state and cost are read from `canUseAbility` / `npCost` — the engine's own gate — never from a copy. |
 | D29.14 | Derived values render as text; only what a GM legitimately changes is an input. |
 | D29.15 | No localization key may be the prefix of another: one collision silently voids the whole file. |
+| D29.16 | A scene filter narrows what is *shown*; it never narrows a delete. Deleting an actor takes its tokens in every scene. |
+| D29.17 | Selection survives a filter change, and the count of hidden-but-selected rows is stated rather than carried silently. |
+| D29.18 | The confirmation and the deletion read the same pure plan, re-computed at the moment of the press. |
 
 ---
 

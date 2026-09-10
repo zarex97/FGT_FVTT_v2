@@ -9,6 +9,11 @@
  *   - A **Summon** context entry in the Servant compendium, for "I want *this*
  *     Servant" — pre-selected, so the dialog opens one step further along.
  *
+ * The header has since grown the two other things a GM does to a world from
+ * here — the game log and the war setup — and the one that undoes them all:
+ * **Clean up**, which is the only place that knows a deleted actor's tokens
+ * are still standing in the scenes (§29.13).
+ *
  * Dragging a compendium Servant onto the canvas still works and still produces
  * an actor with **no setup rolls**, which is the trap: the numbers on the sheet
  * would be the template's, not this Servant's. So the drop is intercepted and
@@ -71,6 +76,22 @@ function onRenderDirectory(_app, html) {
     SetupWizard.open();
   });
   header.append(setup);
+
+  // The fourth, and the counterpart of the first three: this header is where
+  // the match's units are MADE, so it is where they are unmade. Foundry's own
+  // delete takes the actor and leaves every token of it standing in every
+  // scene (`client/documents/actor.mjs#_onDelete`), which the sidebar shows
+  // you none of -- so clearing a world by hand is dozens of deletions across
+  // two sidebars with no way to check you are done.
+  const purge = document.createElement("button");
+  purge.type = "button";
+  purge.dataset.fgtPurge = "";
+  purge.innerHTML = `<i class="fa-solid fa-broom"></i> ${game.i18n.localize("FGT.Purge.Button")}`;
+  purge.addEventListener("click", async () => {
+    const { ActorPurge } = await import("./actor-purge.mjs");
+    ActorPurge.open();
+  });
+  header.append(purge);
 }
 
 /**

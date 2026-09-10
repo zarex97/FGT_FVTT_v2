@@ -1,0 +1,107 @@
+{{!-- Deleting actors and the tokens Foundry leaves behind (docs/29 §29.13). --}}
+<div class="fgt-purge">
+
+  <section class="fgt-purge__filters">
+    <label class="fgt-purge__search">
+      <span>{{localize "FGT.Purge.Search"}}</span>
+      <input type="search" name="search" value="{{filter.search}}">
+    </label>
+
+    <label>
+      <span>{{localize "FGT.Purge.Scene"}}</span>
+      <select name="sceneId">
+        <option value="">{{localize "FGT.Purge.AnyScene"}}</option>
+        {{#each scenes as |s|}}
+          <option value="{{s.id}}" {{#if (eq s.id ../filter.sceneId)}}selected{{/if}}>{{s.name}}</option>
+        {{/each}}
+        {{!-- The filter that cannot be expressed by naming a scene, and the
+              hardest to find by hand: nothing shows an actor nobody placed. --}}
+        <option value="{{noSceneValue}}" {{#if (eq noSceneValue filter.sceneId)}}selected{{/if}}>
+          {{localize "FGT.Purge.NoScene"}}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      <span>{{localize "FGT.Purge.Type"}}</span>
+      <select name="type">
+        <option value="">{{localize "FGT.Purge.AnyType"}}</option>
+        {{#each types as |t|}}
+          <option value="{{t}}" {{#if (eq t ../filter.type)}}selected{{/if}}>{{t}}</option>
+        {{/each}}
+      </select>
+    </label>
+
+    <label>
+      <span>{{localize "FGT.Purge.Faction"}}</span>
+      <select name="factionId">
+        <option value="">{{localize "FGT.Purge.AnyFaction"}}</option>
+        {{#each factions as |f|}}
+          <option value="{{f.id}}" {{#if (eq f.id ../filter.factionId)}}selected{{/if}}>{{f.name}}</option>
+        {{/each}}
+      </select>
+    </label>
+
+    <button type="button" data-action="clearFilters">{{localize "FGT.Purge.Clear"}}</button>
+  </section>
+
+  <section class="fgt-purge__selection">
+    <button type="button" data-action="selectAll">{{localize "FGT.Purge.SelectAll"}}</button>
+    <button type="button" data-action="selectNone">{{localize "FGT.Purge.SelectNone"}}</button>
+    <span class="fgt-purge__count">
+      {{localize "FGT.Purge.Selected" selected=selectedCount total=total}}
+      {{#if hiddenCount}}
+        {{!-- The selection outlives the filter, so the count the GM approves
+              includes rows they cannot currently see. Said out loud. --}}
+        <strong class="fgt-purge__hidden">{{localize "FGT.Purge.Hidden" count=hiddenCount}}</strong>
+      {{/if}}
+    </span>
+  </section>
+
+  {{#if filteredToNothing}}
+    <p class="fgt-purge__empty">{{localize "FGT.Purge.NoMatches"}}</p>
+  {{/if}}
+
+  <ol class="fgt-purge__list">
+    {{#each rows as |row|}}
+      <li class="fgt-purge__row {{#if row.selected}}fgt-purge__row--selected{{/if}}">
+        <label class="fgt-purge__pick">
+          <input type="checkbox" name="select.{{row.id}}" {{#if row.selected}}checked{{/if}}>
+        </label>
+        {{#if row.img}}<img class="fgt-purge__art" src="{{row.img}}" alt="">{{/if}}
+        <span class="fgt-purge__name">{{row.name}}</span>
+        <span class="fgt-purge__type">{{row.type}}</span>
+        <span class="fgt-purge__faction">{{row.factionId}}</span>
+        <span class="fgt-purge__where {{#unless row.tokenCount}}fgt-purge__where--none{{/unless}}">
+          {{row.where}}
+        </span>
+      </li>
+    {{/each}}
+  </ol>
+
+  <footer class="fgt-purge__footer">
+    <div class="fgt-purge__modes">
+      <label>
+        <input type="radio" name="mode" value="actors" {{#unless isTokenMode}}checked{{/unless}}>
+        <span>{{localize "FGT.Purge.ModeActors"}}</span>
+      </label>
+      <label>
+        <input type="radio" name="mode" value="tokens" {{#if isTokenMode}}checked{{/if}}>
+        <span>{{localize "FGT.Purge.ModeTokens"}}</span>
+      </label>
+    </div>
+
+    <p class="fgt-purge__summary {{#unless canPurge}}fgt-purge__summary--refused{{/unless}}">
+      {{summary}}
+    </p>
+
+    <button type="button" class="fgt-purge__go" data-action="purge" {{#unless canPurge}}disabled{{/unless}}>
+      <i class="fa-solid fa-trash"></i>
+      {{#if isTokenMode}}
+        {{localize "FGT.Purge.GoTokens"}}
+      {{else}}
+        {{localize "FGT.Purge.GoActors"}}
+      {{/if}}
+    </button>
+  </footer>
+</div>

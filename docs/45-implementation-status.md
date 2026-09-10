@@ -2874,4 +2874,35 @@ owning the clock elsewhere would buy a tick with no turn order, no budget and no
 
 ---
 
+## Clearing a world — **built**
+
+Deleting an Actor from Foundry's sidebar leaves every token of it standing in every scene.
+`Actor._onDelete` (`client/documents/actor.mjs`) removes the actor's ActiveEffects and nothing
+else, and the sidebar shows you none of the orphans — so the only way to know a world is clean is
+to open each scene and look.
+
+`module/apps/actor-purge.mjs` is the fourth button on the Actors sidebar header, beside the three
+that make what it unmakes. It lists every actor with **where its tokens stand**, filtered by
+scene, type, faction and name — plus the filter no scene can express, *"placed in no scene"*, which
+is where a half-finished setup's leftovers hide.
+
+`module/rules/purge.mjs` holds the arithmetic, pure and unit-tested at 23 cases: which tokens go
+with which actor, which of the five cross-actor reference fields dangle afterwards
+(`masterId`, `servantIds`, `summonerId`, `ownerId`, and `MatchData.containers`), and what the
+confirmation is allowed to promise. The dialog renders that plan and then performs it, so the
+sentence a GM approves and the documents that go cannot disagree — the same argument D29.13
+already makes about reading ability state from `canUseAbility` rather than from a copy.
+
+Three decisions the tests pin (Ch. 29 §29.13):
+
+- The scene filter narrows what is **shown**, never what a delete takes. A token left in a scene
+  nobody was looking at is the orphan the tool exists to prevent.
+- "Remove tokens from scene" refuses without a scene rather than reading the empty picker as
+  *every* scene.
+- Selection survives a filter change and the footer names the hidden count, because both the
+  alternatives are wrong: reading the checkboxes alone drops what was picked before narrowing, and
+  carrying it silently lets a GM approve rows they cannot see.
+
+---
+
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)
