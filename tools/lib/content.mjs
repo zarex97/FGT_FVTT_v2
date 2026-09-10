@@ -1530,6 +1530,7 @@ function actorSystem(doc) {
     level: doc.level ?? undefined,
     crossLevel: doc.crossLevel ?? undefined,
     contentId: doc.id,
+    contentVersion: doc.contentVersion ?? null,
     trueName: doc.trueName ?? doc.name,
     servantClasses: doc.servantClasses ?? [],
     // The container defaults to the first declared class, so a single-class
@@ -1572,6 +1573,7 @@ function actorSystem(doc) {
 function itemSystem(doc) {
   return {
     contentId: doc.id,
+    contentVersion: doc.contentVersion ?? null,
     description: doc.description ?? "",
     source: doc.source ?? null,
     rank: doc.rank ?? null,

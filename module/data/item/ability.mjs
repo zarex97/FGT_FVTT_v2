@@ -11,6 +11,12 @@ const fields = foundry.data.fields;
 function abilityCommon() {
   return {
     contentId: new fields.StringField({ required: false, blank: true }),
+    // Which revision of the authored content this document came from
+    // (Ch. 39 §39.6). Written by the pack builder and read by the content
+    // sync's report, so it can say what a document moved FROM rather than only
+    // that it moved. The pack's entirely and never seeded: a world copy
+    // claiming a version the pack never issued is the confusion it exists to end.
+    contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     description: new fields.HTMLField({ required: false, blank: true }),
     source: new fields.StringField({ required: false, nullable: true, initial: null }),
     rank: new RankField(),
@@ -475,6 +481,11 @@ export class CommandSpellData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       contentId: new fields.StringField({ required: false, blank: true }),
+      // Ch. 39 §39.6, and it must be here rather than only on `abilityCommon`:
+      // the pack builder emits `contentVersion` for EVERY item, and a model
+      // that cannot hold it makes the content sync non-convergent -- it would
+      // rewrite the document on every world load, for ever.
+      contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       description: new fields.HTMLField({ required: false, blank: true }),
       cost: new fields.NumberField({ required: true, integer: true, initial: 1, min: 1 }),
       /**
@@ -507,6 +518,11 @@ export class MasterEssenceData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       contentId: new fields.StringField({ required: false, blank: true }),
+      // Ch. 39 §39.6, and it must be here rather than only on `abilityCommon`:
+      // the pack builder emits `contentVersion` for EVERY item, and a model
+      // that cannot hold it makes the content sync non-convergent -- it would
+      // rewrite the document on every world load, for ever.
+      contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       description: new fields.HTMLField({ required: false, blank: true }),
       rank: new RankField(),
       oneUse: new fields.BooleanField({ initial: false }),
@@ -519,6 +535,11 @@ export class EquipmentData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       contentId: new fields.StringField({ required: false, blank: true }),
+      // Ch. 39 §39.6, and it must be here rather than only on `abilityCommon`:
+      // the pack builder emits `contentVersion` for EVERY item, and a model
+      // that cannot hold it makes the content sync non-convergent -- it would
+      // rewrite the document on every world load, for ever.
+      contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       description: new fields.HTMLField({ required: false, blank: true }),
       equipped: new fields.BooleanField({ initial: false }),
 

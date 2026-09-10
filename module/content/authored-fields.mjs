@@ -20,7 +20,8 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "countsAsHomeBase", "deactivation", "undamageable", "cannotHoldItems",
   "itemHandling", "destroyableBy", "visibleWithin", "agility", "luck",
   "inherit", "rules", "passiveRules", "activeRules", "summonerId", "capacity",
-  "ownerId", "level", "crossLevel", "contentId", "trueName", "servantClasses",
+  "ownerId", "level", "crossLevel", "contentId", "contentVersion", "trueName",
+  "servantClasses",
   "classContainer", "concealedIdentity", "identityRevealed", "detect",
   "defaultImage", "alignment", "region", "attributes", "parameters",
   "baseHealth", "mov", "range", "baseAttack", "normalAttack", "sustainability",
@@ -29,7 +30,7 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
 
 /** Item fields a pack document may state. */
 export const AUTHORED_ITEM_KEYS = Object.freeze([
-  "contentId", "description", "source", "rank", "slug", "isNP", "isMode",
+  "contentId", "contentVersion", "description", "source", "rank", "slug", "isNP", "isMode",
   "isAttackSkill", "replacesNormalAttack", "isSpell", "isPassive", "active",
   "cannotDeactivate", "toggleLock", "categorizedAsNP", "categorizedAs",
   "weakPoint", "ridingAttack", "expendsPermanently", "categorizedWhile",
