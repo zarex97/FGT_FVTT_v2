@@ -572,6 +572,48 @@ interface HomeBaseResidency {
 `combatThisRound` is set by the combat engine whenever the unit participates in a Combat
 Process inside its home base, and cleared at round start.
 
+### No match, no clock
+
+The scheduler runs from Foundry's `combatTurnChange` and `combatRound`, and `scheduler-hooks.mjs`
+bails on `!combat.started`. Nothing else in the system advances the ◈ tick. So **outside a started
+match there is no time at all** — and the chapter has to say what that means, because the code
+originally answered it by accident.
+
+Every reader of the tick was written as `game.combat?.system?.globalTurn ?? 0`. That `?? 0` makes
+"no match" and "turn zero of a running match" the same value, which is why the hole was invisible:
+using an ability with no match running wrote its cooldown, in full, against a clock that was never
+going to move. The ability was then unusable **for the life of the world** — not for `5◈+⅓◈`, but
+permanently. It read as the cooldown being broken.
+
+**DECISION.** A clock may only be *started* where a clock is *running*.
+
+- `rules/costs.mjs#canUseAbility` refuses with `noMatch` when `clockRunning` is false, and refuses
+  it **first** — above `expended` and above `cooldown`. The refusal underneath is not merely a
+  lesser one, it is a wrong one: *"on cooldown, 22 Turns remaining"* invites a player to wait for a
+  Turn that is never coming, when what they need is to begin the match.
+- `rules/modes.mjs#canToggleMode` refuses the same way, but **only for a mode that carries a
+  `toggleLock`**. A mode without one stamps no `toggledAt` and therefore has no clock to get wrong,
+  so there is no reason to stop a GM arranging the board before the match begins.
+- `engine/board.mjs#clockRunning()` is the one place that answers the question, and
+  `gateContext()` hands it to all seven `canUseAbility` call sites — the same reason the ◈ gate's
+  numbers are fetched there rather than at each site.
+- The action bar shows **"No match running"** in the turn panel's slot whenever there is no clock,
+  so the refusal is predicted rather than discovered (D29.2: never a dead button with no
+  explanation).
+
+`clockRunning` **defaults to `true`** in both rules. Layer 2 cannot read `game`, and a default of
+`false` would refuse every ability in every unit test — the failure mode where a safety gate is so
+loud it gets removed.
+
+This is the answer to *"should Rounds depend on Foundry's Combat?"* — they should, and they
+already did; what was missing was the other half of the dependency. The Combat document is not an
+encounter in this system, it **is** the match (Ch. 25 §25.1): `globalTurn`, `turnOrder`, `delays`,
+the war type, the ruleset, the Region, the difficulty and the whole Grail runtime all live on
+`MatchData`. A clock owned anywhere else would be a tick with no turn order, no budget and no
+Grail — half of `SchedulerContext` null — and would reimplement the tracker, the `combatRound`
+hook and the GM-ownership model that Foundry supplies. F/GT has no non-combat mode: the war *is*
+Rounds and Turns.
+
 ---
 
 ## 7.8 Delay — the turn-order mutation

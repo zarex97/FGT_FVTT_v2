@@ -2835,4 +2835,100 @@ between sessions (§39.3).
 
 ---
 
+## Clocks that could never run — **repaired**
+
+An ability used with no match running entered cooldown and stayed there. Not for `5◈+⅓◈` — for the
+life of the world.
+
+The two halves of the time model were bound to Foundry's `Combat` in **one direction only**. The
+scheduler that counts a cooldown down runs from `combatTurnChange`/`combatRound` and bails on
+`!combat.started` (`engine/scheduler-hooks.mjs`). Nothing gated the code that *writes* one.
+`engine/skill-use.mjs` even shows the asymmetry in eleven lines: the budget is guarded with
+`if (combat?.started)`, and then `cooldownIntents(...)` runs unconditionally.
+
+It was invisible because every reader of the tick was spelled `game.combat?.system?.globalTurn ?? 0`.
+That fallback makes *"no match"* and *"turn zero of a running match"* the same number, so the clock
+did not look absent — it looked stopped at the start.
+
+| Repaired | Where |
+|---|---|
+| `clockRunning()`, the question asked on its own | `engine/board.mjs` — beside `currentTick`/`currentRound`, which answer `null` and leave the caller to infer |
+| `canUseAbility` refuses `noMatch`, **first** | `rules/costs.mjs` — above `expended` and `cooldown`, because *"22 Turns remaining"* is not a lesser refusal here, it is a wrong one |
+| `canToggleMode` refuses `noMatch` for a locked mode | `rules/modes.mjs` — scoped to `toggleLock`, since a mode without one stamps no clock |
+| Supplied to all seven call sites | `gateContext()`, the same way §7.9's gate numbers already were |
+| "No match running" in the turn panel's slot | `templates/hud/action-bar.hbs` — D29.2 forbids a dead button with no explanation |
+
+Two clock readers were reading the **wrong combat** as well. `gateContext().turn` and the mode
+toggle's `tick` both used `game.combat`, which is the combat being *viewed*, not the active match;
+both now go through `currentTick()`.
+
+And the reason a match could go missing at all: `commitWar` created it with `scene: scene.id`.
+Foundry's `CombatEncounters#active` filters on the **currently viewed** scene before it reads
+`active`, so looking at any other scene took the whole match away — no tick, no phase, no
+difficulty, no Grail, and now every ability refused. The match is created `scene: null`, which is
+what Ch. 25 §25.1's *"Combat = the whole match"* has always meant.
+
+**The answer to "should the Round depend on Foundry's Combat?"** — yes, and it already did. What
+was missing was the other half of the dependency, not the dependency. See Ch. 07 §7.7 for why
+owning the clock elsewhere would buy a tick with no turn order, no budget and no Grail.
+
+---
+
+## Clearing a world — **built**
+
+Deleting an Actor from Foundry's sidebar leaves every token of it standing in every scene.
+`Actor._onDelete` (`client/documents/actor.mjs`) removes the actor's ActiveEffects and nothing
+else, and the sidebar shows you none of the orphans — so the only way to know a world is clean is
+to open each scene and look.
+
+`module/apps/actor-purge.mjs` is the fourth button on the Actors sidebar header, beside the three
+that make what it unmakes. It lists every actor with **where its tokens stand**, filtered by
+scene, type, faction and name — plus the filter no scene can express, *"placed in no scene"*, which
+is where a half-finished setup's leftovers hide.
+
+`module/rules/purge.mjs` holds the arithmetic, pure and unit-tested at 23 cases: which tokens go
+with which actor, which of the five cross-actor reference fields dangle afterwards
+(`masterId`, `servantIds`, `summonerId`, `ownerId`, and `MatchData.containers`), and what the
+confirmation is allowed to promise. The dialog renders that plan and then performs it, so the
+sentence a GM approves and the documents that go cannot disagree — the same argument D29.13
+already makes about reading ability state from `canUseAbility` rather than from a copy.
+
+Two things the live run turned up, neither of them in the new code:
+
+- **11 orphaned tokens were already in `fgt2026`** — an Achilles, two Archers, two Assassins, five
+  Dragon Tooth Warriors and an Ally Dummy, across three scenes, every one pointing at an actor id
+  that no longer resolved. The defect this tool prevents, found already done. They have their own
+  banner and their own sweep, because no row in the actor list can reach a token with no actor,
+  and without that "delete everything" means "everything except the mess already made".
+- **None of the four sidebar buttons appeared on a fresh load.** `attachSummonEntries` runs at
+  `ready` and the sidebar renders before it, so `renderActorDirectory` fired for every render
+  except the first. Measured: `["Create Actor", "Create Folder"]` on load, all six after a forced
+  `ui.actors.render()`. Summon, the game log and the war setup have been missing from a freshly
+  loaded world since that hook was written — they came back whenever anything re-rendered the
+  directory, which is why it read as flakiness. The hook now also runs once against the directory
+  that already exists.
+
+Three decisions the tests pin (Ch. 29 §29.13):
+
+- The scene filter narrows what is **shown**, never what a delete takes. A token left in a scene
+  nobody was looking at is the orphan the tool exists to prevent.
+- "Remove tokens from scene" refuses without a scene rather than reading the empty picker as
+  *every* scene.
+- Selection survives a filter change and the footer names the hidden count, because both the
+  alternatives are wrong: reading the checkboxes alone drops what was picked before narrowing, and
+  carrying it silently lets a GM approve rows they cannot see.
+
+**Verified live.** `fgt2026` went from 102 actors and 70 tokens across 5 scenes to **0 and 0**, in
+two presses: 102 actors with 59 tokens, then the 11 orphans. The Combat, its three combatants and
+every home-base and level Region survived, which is what "the Combat is the match, not the units"
+means. One harmless error during the sweep, from Foundry rather than from here: a Region attached
+to a token (`attachment.token`, `engine/fields.mjs`) is cascade-deleted by core when its token
+goes, and a batch delete that still named it reported `Region "…" does not exist!`. Every token
+delete succeeded.
+
+**Not swept:** three NP *field* Regions whose casters are now gone (Ramesseum Tentyris, The Mist,
+Diatrekhōn Astēr Lonkhē). A third category of leftover, and not what this tool was asked for.
+
+---
+
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)

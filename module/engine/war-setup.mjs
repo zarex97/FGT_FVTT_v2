@@ -269,7 +269,7 @@ export async function createMasterFor(container, draft, roster = []) {
  * (`engine/game-log.mjs#record` takes a combat and writes nothing without one),
  * so a sequence that built it at the end would carry no record of the steps
  * before it — precisely the ones a half-failed commit needs to name. The Scene
- * still comes first, because the Combat is scene-linked.
+ * still comes first, because everything painted onto it is.
  *
  * Every step logs BEFORE it acts. A line written afterwards is exactly the one
  * you do not get when the step throws.
@@ -291,7 +291,15 @@ export async function commitWar(draft) {
     sceneId: draft.sceneId || null,
   });
 
-  const combat = await Combat.implementation.create({ type: "match", scene: scene.id });
+  // `scene: null`, NOT the board's scene. Foundry's `CombatEncounters#active`
+  // only returns a combat whose scene is the one currently being VIEWED
+  // (`client/documents/collections/combat-encounters.mjs`), so a match bound to
+  // the board scene DISAPPEARS the moment the GM looks at any other scene:
+  // `currentBoard` then reads no phase, no tick, no difficulty, no war type
+  // and no Grail, and `clockRunning` says the match has not started. A null
+  // scene makes it global, which is what "the Combat is the whole match"
+  // (Ch. 25 §25.1) means -- the war is not an encounter on one map.
+  const combat = await Combat.implementation.create({ type: "match", scene: null });
   // ACTIVATE it. `currentBoard()` reads `game.combats.active`, and
   // `Combat.create` leaves `active: false` -- `game.combat` is only the combat
   // being VIEWED. Without this the board is match-blind: no phase, no tick, no

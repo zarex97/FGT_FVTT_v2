@@ -152,6 +152,25 @@ export function currentRound() {
 }
 
 /**
+ * Whether a started match is keeping time.
+ *
+ * The question `currentTick` and `currentRound` both answer with `null`, asked
+ * on its own — because the callers that need it are asking whether a *clock
+ * exists*, not what it reads, and `tick === null` is an inference rather than
+ * an answer.
+ *
+ * Every duration and cooldown in the game is counted down by the scheduler,
+ * and the scheduler only runs inside a started match
+ * (`engine/scheduler-hooks.mjs`). Anything that WRITES such a clock has to ask
+ * this first, or it writes one that can never run out.
+ *
+ * @returns {boolean}
+ */
+export function clockRunning() {
+  return Boolean(game.combats?.active?.started);
+}
+
+/**
  * The ◈ tick a turn state must carry to still be in force.
  *
  * `null` out of combat: with no turns there is nothing for state to be stale
@@ -244,7 +263,8 @@ export function unitFrom(board, actor) {
  * `canUseAbility` defaults every one of these to the published constants, so a
  * caller that omits the whole object still gets the rule.
  *
- * @returns {{gates: {round: number, assassinRound: number}, turnsPerRound: number, turn: number|null}}
+ * @returns {{gates: {round: number, assassinRound: number}, turnsPerRound: number,
+ *            turn: number|null, clockRunning: boolean}}
  */
 export function gateContext() {
   return {
@@ -253,7 +273,14 @@ export function gateContext() {
       assassinRound: setting("npGateRoundAssassin", 4),
     },
     turnsPerRound: setting("turnsPerRound", 3),
-    turn: game.combat?.system?.globalTurn ?? null,
+    // `currentTick`, NOT `game.combat` -- `game.combat` is the combat being
+    // VIEWED, so this read the tick of whatever tracker happened to be on
+    // screen and disagreed with every other clock reader in the system.
+    turn: currentTick(),
+    // Whether there is a clock at all. `canUseAbility` refuses outright
+    // without one: a use out of a match writes a cooldown nothing will ever
+    // count down.
+    clockRunning: clockRunning(),
   };
 }
 
