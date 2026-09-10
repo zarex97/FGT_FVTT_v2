@@ -134,11 +134,14 @@ describe("domain validation", () => {
     expect(warnings).toEqual([]);
   });
 
-  it("warns on a malformed roll option in a predicate", () => {
-    const warnings = warningsFor([
+  it("ERRORS on a malformed roll option in a predicate", () => {
+    // Was a warning, against a shape regex. Promoted deliberately: a warning
+    // among 64 others is one nobody reads, which is how `not:` survived as a
+    // permanently-false prefix. It is now held against the facet table.
+    const problems = errorsFor([
       file(ok({ rules: [{ key: "FlatDamage", predicate: ["targetattributedivine"] }] })),
     ]);
-    expect(warnings[0]).toMatch(/does not match the expected shape/);
+    expect(problems.join(" ")).toMatch(/no predicate facet admits/);
   });
 
   it("accepts a well-formed roll option", () => {
