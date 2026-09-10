@@ -185,3 +185,33 @@ describe("the summonVariant split", () => {
     expect(SUMMON_VARIANT_OWNED_BY_WORLD).toEqual(["variant"]);
   });
 });
+
+describe("contentVersion", () => {
+  it("is authored on both sides", () => {
+    expect(AUTHORED_ACTOR_KEYS).toContain("contentVersion");
+    expect(AUTHORED_ITEM_KEYS).toContain("contentVersion");
+  });
+
+  it("is the pack's entirely, never seeded", () => {
+    // A world copy claiming a version the pack never issued is exactly the
+    // confusion this field exists to end.
+    expect(ownedByWorld("actor", "contentVersion")).toBe(false);
+    expect(ownedByWorld("item", "contentVersion")).toBe(false);
+    expect(ownedByWorld("actor", "contentVersion", "master")).toBe(false);
+  });
+
+  it("is declared by every data model that declares contentId", () => {
+    // The builder emits `contentVersion` for EVERY document. A model that
+    // cannot hold it makes the sync non-convergent: the field is written, the
+    // schema drops it, and the next load finds the document changed again --
+    // the same defect shape as the entity escaping that cost 17 actors a
+    // rewrite on every single load. Three item models declare `contentId`
+    // independently of `abilityCommon()` and each needed this separately.
+    for (const file of ["module/data/item/ability.mjs", "module/data/actor/_shared.mjs"]) {
+      const source = readFileSync(file, "utf8");
+      const ids = (source.match(/^\s*contentId: new fields\./gm) ?? []).length;
+      const versions = (source.match(/^\s*contentVersion: new fields\./gm) ?? []).length;
+      expect(versions, `${file} declares ${ids} contentId and ${versions} contentVersion`).toBe(ids);
+    }
+  });
+});

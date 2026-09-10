@@ -119,11 +119,27 @@ great deal during review.
 
 ## 37.2 The Servant authoring format
 
+### `schema` and `contentVersion` are different axes
+
+`schema` versions the **authoring format** — what keys a file may use and what
+they mean. `contentVersion` versions **this document's content** — the numbers
+and clauses on this Servant's sheet. They move for different reasons: correcting
+Brahmastra's multiplier bumps `contentVersion` and leaves `schema` alone.
+
+`contentVersion` is optional and defaults to `null`. It is carried into the pack
+by `actorSystem()`/`itemSystem()` and declared on every data model that declares
+`contentId` — a model that cannot hold it would make the content sync
+non-convergent, rewriting the document on every world load. It is the pack's
+entirely and is never seeded (`module/content/authored-fields.mjs`): a world copy
+claiming a version the pack never issued is the confusion the field exists to end.
+
+
 A complete Servant file, showing the structure a content author actually writes:
 
 ```yaml
 # packs/_source/servants/karna.yml
-schema: 1
+schema: 1                   # the AUTHORING format's version
+contentVersion: 3           # this document's revision (Ch. 39 §39.6); optional
 id: karna
 name: Karna
 img: systems/fgt/assets/servants/karna.webp
