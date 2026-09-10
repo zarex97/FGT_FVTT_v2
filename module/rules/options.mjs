@@ -22,6 +22,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { GENERATED_EMITTABLE } from "./facets.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
 import { referencedOptions } from "./predicate.mjs";
@@ -418,57 +419,19 @@ function gradesClearedBy(raw) {
 const GRADE_LADDER = Object.freeze(["E", "D", "C", "B", "A", "EX"]);
 
 /**
- * Every shape `rollOptionsFor` can produce.
+ * Every option shape this file can emit.
  *
- * A predicate is a set-membership test, so an option nobody emits is a clause
- * that is false for ever — it authors cleanly, compiles cleanly, loads cleanly
- * and never fires. Two shipped effects were written against
- * `self:attack:normal`, which is not a string this file has ever produced;
- * `N.Atk Up` therefore raised no Normal Attack's damage and `Bleed Atk` was
- * inert. Held against the content by `test/unit/options.test.mjs`.
+ * **Generated**, not declared. `rules/facets.mjs` describes each facet once —
+ * its subjects, its segments and where each value comes from — and the
+ * patterns are derived. Before, this was 37 hand-written regexes beside a
+ * vocabulary that did not exist, so nothing could offer a GM a picker and
+ * nothing could say what `self:phase:tuesday` was wrong about.
  *
- * Patterns rather than a literal set, because most of the vocabulary is
- * open-ended: any effect id, any region, any skill slug.
+ * The swap is proved behaviour-neutral by `test/unit/facets.test.mjs`, which
+ * holds the generated set against a captured fixture of the regexes it
+ * replaces and against every option the shipped corpus names.
  */
-const EMITTABLE = Object.freeze([
-  /^(self|target):type:[A-Za-z][\w-]*$/,
-  /^(self|target):contentId:[A-Za-z][\w-]*$/,
-  /^(self|target):attribute:[A-Za-z][\w-]*$/,
-  /^(self|target):effect:[A-Za-z][\w-]*$/,
-  /^(self|target):effectFamily:[A-Za-z][\w-]*$/,
-  /^(self|target):region:[A-Za-z][\w-]*$/,
-  /^(self|target):variant:[A-Za-z][\w-]*$/,
-  /^(self|target):stance:[A-Za-z][\w-]*$/,
-  /^(self|target):inHomeBase$/,
-  /^(self|target):phase:(day|night)$/,
-  /^(self|target):free$/,
-  /^(self|target):masterTier:(high|low|rankless)$/,
-  /^(self|target):inField:[A-Za-z][\w-]*$/,
-  /^(self|target):fieldActive:[A-Za-z][\w-]*$/,
-  /^(self|target):withinOfOwnerMaster:[1-6]$/,
-  /^(self|target):highestParameter:[a-z]+$/,
-  /^(self|target):npAboveAllParameters$/,
-  /^(self|target):stableDie:d6:[1-6]$/,
-  /^(self|target):onPlatform:[A-Za-z][\w-]*$/,
-  /^(self|target):rank:[A-Za-z]+:gte:(E|D|C|B|A|EX)$/,
-  /^target:paramVsSelf:[A-Za-z]+:(gt|eq|lt)$/,
-  /^(self|target):skill:[A-Za-z][\w-]*$/,
-  /^(self|target):skillRank:[A-Za-z][\w-]*:gte:(E|D|C|B|A|EX)$/,
-  /^(self|target):skillActive:[A-Za-z][\w-]*$/,
-  /^attack:kind:[A-Za-z][\w-]*$/,
-  /^attack:isAoE$/,
-  /^attack:component:(str|mag)$/,
-  /^attack:element:[A-Za-z][\w-]*$/,
-  /^attack:npScale:gte:[A-Za-z][\w-]*$/,
-  /^attack:vsAttribute:[A-Za-z][\w-]*$/,
-  /^attack:ignoresMagicResistance$/,
-  /^attack:aim$/,
-  /^attack:pierce$/,
-  /^attack:thrownWeapon$/,
-  /^attack:crit$/,
-  /^attack:range:\d+$/,
-  /^attack:range:(gte|lte):\d+$/,
-]);
+const EMITTABLE = GENERATED_EMITTABLE;
 
 /**
  * Could this option ever be in the set?
