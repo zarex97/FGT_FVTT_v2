@@ -1227,5 +1227,11 @@
   "FGT.Authoring.Section.whereItLands": "Where It Lands",
   "FGT.Authoring.Section.whereItLandsHint": "Where the area is placed, what shape it is, and who inside it is caught.",
   "FGT.Authoring.Section.whatItDoes": "What It Does",
-  "FGT.Authoring.Section.whatItDoesHint": "The phases that run when it is used, in order."
+  "FGT.Authoring.Section.whatItDoesHint": "The phases that run when it is used, in order.",
+  "FGT.Authoring.Selection.relations": "Relations",
+  "FGT.Authoring.Selection.relationsHint": "Which Units in the area are caught — allies, enemies, or both.",
+  "FGT.Authoring.Selection.includeSelf": "Include Self",
+  "FGT.Authoring.Selection.includeSelfHint": "Whether the caster is caught by its own area.",
+  "FGT.Authoring.Selection.chooser": "Chooser",
+  "FGT.Authoring.Selection.chooserHint": "Who decides which of the caught Units are affected — everyone, or a pick."
 }
