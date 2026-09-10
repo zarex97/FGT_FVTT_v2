@@ -1161,7 +1161,7 @@
   "FGT.Authoring.Section.limits": "Limits",
   "FGT.Authoring.Section.limitsHint": "Everything that stops this being used again immediately, or at all.",
   "FGT.Authoring.Field.cooldown.max": "Max",
-  "FGT.Authoring.Field.cooldown.maxHint": "How long before it can be used again — 3◈, 5◈+⅓◈, 2 turns.",
+  "FGT.Authoring.Field.cooldown.maxHint": "How long before it can be used again.",
   "FGT.Authoring.Field.duration": "Duration",
   "FGT.Authoring.Field.durationHint": "How long what it does lasts, when the ability itself carries the clock.",
   "FGT.Authoring.Field.cost": "Cost",

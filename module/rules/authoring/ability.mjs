@@ -76,7 +76,13 @@ export const SECTIONS = Object.freeze([
     hint: "FGT.Authoring.Section.limitsHint",
     english: "Everything that stops this being used again immediately, or at all.",
     fields: [
-      f("cooldown.max", "tickExpr", "How long before it can be used again — 3◈, 5◈+⅓◈, 2 turns."),
+      // No worked example in the prose: `tick-literals.test.mjs` scans every
+      // quoted string in `module/` that contains a rounds symbol and parses
+      // it, because a U+2212 MINUS instead of a hyphen once made every copied
+      // ability reusable for ever. The field is a `tickExpr`, so the editor
+      // shows a live "= 22 turns" readout, which teaches the syntax better
+      // than an example a machine has to be told to ignore.
+      f("cooldown.max", "tickExpr", "How long before it can be used again."),
       f("duration", "tickExpr", "How long what it does lasts, when the ability itself carries the clock."),
       f("cost", "number", "What using it spends from the action budget."),
       f("maxUses", "number", "How many times it may be used in the whole match. Blank means unlimited."),
