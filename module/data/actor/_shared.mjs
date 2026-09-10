@@ -15,6 +15,12 @@ const fields = foundry.data.fields;
 export function unitCommon() {
   return {
     contentId: new fields.StringField({ required: false, blank: true }),
+    // Which revision of the authored content this document came from
+    // (Ch. 39 §39.6). Written by the pack builder and read by the content
+    // sync's report, so it can say what a document moved FROM rather than only
+    // that it moved. The pack's entirely and never seeded: a world copy
+    // claiming a version the pack never issued is the confusion it exists to end.
+    contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     factionId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
     // Standing rule elements authored directly on the UNIT rather than on an

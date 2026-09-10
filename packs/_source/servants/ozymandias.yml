@@ -6,6 +6,9 @@
 # true in this corpus: STR C -> 100, MAG A -> 200, END C -> 1000, Divinity B ->
 # +40, Magic Resistance B -> 40% and 20%, Riding A+ -> +5 MOV.
 schema: 1
+# Ch. 39 §39.6. Revision 1 is the Ozymandias/Sphinx pass: the Round-6 gate, the
+# three Sphinx summons, Dendera's flat-bonus exclusion and the field windows.
+contentVersion: 1
 id: ozymandias
 name: Ozymandias
 type: servant
