@@ -41,7 +41,7 @@ import { SummonDialog } from "./apps/summon-dialog.mjs";
 import { CopyDialog } from "./apps/copy-dialog.mjs";
 import { ChoiceDialog } from "./apps/choice-dialog.mjs";
 import { LogViewer } from "./apps/log-viewer.mjs";
-import { AbilityEditor } from "./apps/ability-editor.mjs";
+import { AbilityEditor } from "./apps/ability-editor/index.mjs";
 import { ContractDialog } from "./apps/contract-dialog.mjs";
 import { SetupWizard } from "./apps/setup-wizard.mjs";
 import { Movement } from "./engine/movement-hooks.mjs";
