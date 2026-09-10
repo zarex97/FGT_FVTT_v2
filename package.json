@@ -15,6 +15,7 @@
     "test:golden": "vitest run test/golden",
     "lint": "eslint module tools test && node tools/check-layers.mjs",
     "typecheck": "tsc -p jsconfig.json",
+    "stage:yaml": "node tools/stage-to-yaml.mjs",
     "validate:content": "node tools/validate-content.mjs",
     "check:templates": "node tools/check-templates.mjs",
     "build:packs": "node tools/build-packs.mjs",

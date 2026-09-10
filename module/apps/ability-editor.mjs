@@ -101,6 +101,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       pickAnchor: AbilityEditor.#onPickAnchor,
       pickShape: AbilityEditor.#onPickShape,
       editImage: AbilityEditor.#onEditImage,
+      exportSource: AbilityEditor.#onExportSource,
       save: AbilityEditor.#onSave,
     },
   };
@@ -587,6 +588,28 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       },
     });
     return picker.browse();
+  }
+
+  /**
+   * Write the ability back to `packs/_source/`, where it becomes content.
+   *
+   * Ch. 39: the compendium is the whole source of truth, so a world copy is
+   * reconciled to the pack on every load. That is only safe because an edit
+   * worth keeping has this way home -- without it an hour's authoring lives in
+   * one world until the next rebuild silently discards it.
+   *
+   * Two steps rather than one: nothing under `module/` imports an npm package,
+   * so the browser writes the authored shape as JSON and `npm run stage:yaml`
+   * turns it into the `.yml` the loader reads.
+   *
+   * @this {AbilityEditor}
+   */
+  static async #onExportSource() {
+    const { exportItem } = await import("./yaml-export.mjs");
+    // The DRAFT, not the stored item: exporting what is on screen is the whole
+    // point, and a GM who has to save first in order to export would be saving
+    // into a world copy the next sync overwrites.
+    await exportItem({ name: this.#pendingName ?? this.#item.name, system: this.#draft });
   }
 
   /**

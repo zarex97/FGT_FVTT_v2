@@ -2802,6 +2802,17 @@ The last one changed a rule rather than a list: an item is removed only if its `
 Verified live: sync converges to zero on the second pass, 67 contracts intact, Masters' rolled
 stats intact, summons still linked, Medusa still revealed, Semiramis still holding her Poison.
 
+`contentVersion` now travels the pipeline (§39.6), declared on every model that declares
+`contentId` — three item models declare theirs independently of `abilityCommon()`, and a model that
+could not hold the field would make the sync non-convergent in exactly the way the escaping did.
+
+The way home is `module/apps/yaml-export.mjs` plus `tools/stage-to-yaml.mjs`: the editor's Export
+button writes the authored shape as JSON (the browser has no `yaml`), `npm run stage:yaml` turns it
+into pack source. Verified live as a full loop — edit Imperial Privilege's cooldown to `5◈`, export,
+stage, validate (0 errors), rebuild, and the world copy reads `5◈` while its `remaining: 4`,
+`timesUsed: 7` and Ozymandias's Health are untouched. Lossy on comments and `@effect[]` shorthand
+(§29.6).
+
 **Not done:** rule-version pinning, so the sync can change a Servant mid-match — rebuild packs
 between sessions (§39.3).
 
