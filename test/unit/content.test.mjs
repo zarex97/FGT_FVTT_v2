@@ -796,3 +796,61 @@ describe("timing windows are validated", () => {
     }
   });
 });
+
+describe("predicate options are validated against the facets", () => {
+  const ability = (predicate) =>
+    file({ ...ok(), rules: [{ key: "Aura", predicate }] }, "abilities/x.yml", "abilities");
+
+  it("errors on a facet no table admits", () => {
+    // The shape regex this replaces accepted anything colon-separated, which
+    // is how `not:` survived as a permanently-false prefix for so long.
+    expect(errorsFor([ability(["self:stanse:dismounted"])]).join(" ")).toMatch(/stanse/);
+  });
+
+  it("errors on a closed value that is not a member", () => {
+    // PHASES is day/night/none. This passed the old shape regex.
+    expect(errorsFor([ability(["self:phase:tuesday"])]).join(" ")).toMatch(/tuesday/);
+  });
+
+  it("errors on the parameter typo that used to author cleanly", () => {
+    // `self:highestParameter:strength` matched `[a-z]+` and could never match,
+    // because the parameter is `str`.
+    expect(errorsFor([ability(["self:highestParameter:strength"])]).join(" ")).toMatch(/strength/);
+  });
+
+  it("still accepts a registry value nothing defines yet", () => {
+    // `outsider` is named by alter-ego and granted by no unit, because it is a
+    // forward reference to a Servant not yet built. Erroring would fail the
+    // build on legitimate content.
+    expect(errorsFor([ability(["self:attribute:outsider"])])).toEqual([]);
+  });
+
+  it("reads through the not: prefix", () => {
+    expect(errorsFor([ability(["not:self:stanse:x"])]).join(" ")).toMatch(/stanse/);
+  });
+
+  it("checks a requirement's predicate, not only a rule element's", () => {
+    // 89 of the 236 references live outside rule elements and nothing has
+    // ever looked at them.
+    const doc = file(
+      { ...ok(), requirements: [{ kind: "predicate", predicate: ["self:stanse:x"] }] },
+      "abilities/x.yml", "abilities",
+    );
+    expect(errorsFor([doc]).join(" ")).toMatch(/stanse/);
+  });
+
+  it("checks a phase's predicate", () => {
+    const doc = file(
+      { ...ok(), phases: [{ kind: "damage", predicate: ["self:stanse:x"] }] },
+      "abilities/x.yml", "abilities",
+    );
+    expect(errorsFor([doc]).join(" ")).toMatch(/stanse/);
+  });
+
+  it("accepts every option the shipped corpus names", async () => {
+    const { corpusOptions } = await import("./helpers/corpus.mjs");
+    for (const o of corpusOptions()) {
+      expect(errorsFor([ability([o])]), o).toEqual([]);
+    }
+  });
+});

@@ -17,7 +17,6 @@ import { SERVANT_CLASSES } from "../../module/domain/enums.mjs";
 import { classifyAbility } from "../../module/rules/ability-use.mjs";
 import { rewriteReferences, parseMarkers, mentionsWithoutMarkers } from "./references.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
-import { referencedOptions } from "../../module/rules/predicate.mjs";
 import { TABLES, lookup } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS } from "../../module/rules/targeting/vocabulary.mjs";
@@ -29,6 +28,8 @@ import { TERRAIN } from "../../module/rules/terrain.mjs";
 // vocabulary there is no reason to have two.
 import { REQUIREMENT_KINDS as ABILITY_REQUIREMENT_KINDS } from "../../module/rules/items.mjs";
 import { ABILITY_WINDOW_IDS, windowsOf } from "../../module/rules/windows.mjs";
+import { isEmittableOption } from "../../module/rules/options.mjs";
+import { predicateSitesIn } from "../../module/rules/authoring/predicates.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -683,6 +684,41 @@ function timingWindowsAreKnown(doc, path, problems) {
 }
 
 /**
+ * Every predicate option names a facet the vocabulary admits.
+ *
+ * Replaces a shape regex that accepted anything colon-separated, and only
+ * warned. That regex is how `not:` survived as a permanently-false prefix:
+ * `rules/predicate.mjs`'s own header records that *"the validator's own
+ * `looksLikeRollOption` accepts the prefixed form as well-formed, which is
+ * exactly why nobody noticed"* — at the cost of Penthesilea's signature aura
+ * and Karna's divinity override.
+ *
+ * Reads every predicate site through `predicateSitesIn`, not only a rule
+ * element's own: 89 of the 236 references in `packs/_source` sit on
+ * requirements and phases, where nothing had ever looked.
+ *
+ * A `registry` value nothing defines yet is **not** an error — see
+ * `rules/facets.mjs`. `isEmittableOption` only asks whether a facet admits the
+ * shape, which is the strict half.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function predicateOptionsExist(doc, path, problems) {
+  for (const site of predicateSitesIn(doc)) {
+    for (const option of site.options) {
+      if (isEmittableOption(option)) continue;
+      problems.push(
+        `${path}: ${site.where} names "${option}", which no predicate facet admits. `
+        + "An option rollOptionsFor cannot emit is never in the set, so the clause is "
+        + "permanently false and the rule silently never fires.",
+      );
+    }
+  }
+}
+
+/**
  * Every marker resolves, and every unmarked mention is listed.
  *
  * The error half is the point of explicit markers: a typo is a link that would
@@ -871,6 +907,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     baseAttackAgreesWithTable(doc, path, warnings);
   } else {
     activeRulesAreReachable(doc, path, problems);
+    predicateOptionsExist(doc, path, problems);
     // Scoped by itemType: command spells carry `timing.window` too, from a
     // vocabulary of their own.
     if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);
@@ -989,11 +1026,9 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
         + `the damage pipeline reads only ${MODIFIER_KEYS.join(", ")}`,
       );
     }
-    for (const option of referencedOptions(el.predicate)) {
-      if (!looksLikeRollOption(option)) {
-        warnings.push(`${path}: ${where} predicate option "${option}" does not match the expected shape`);
-      }
-    }
+    // Predicate options are checked document-wide by `predicateOptionsExist`,
+    // which reads EVERY site rather than only a rule element's own -- 89 of
+    // the 236 references in the corpus live on requirements and phases.
   }
 
   // Effect definitions
@@ -1223,14 +1258,6 @@ function actionTables(el) {
   return out;
 }
 
-/**
- * A roll option is `subject:facet[:value…]`, all lowercase-ish.
- * @param {string} option
- * @returns {boolean}
- */
-function looksLikeRollOption(option) {
-  return /^[a-z]+:[a-zA-Z]+(:[\w+-]+)*$/.test(option);
-}
 
 /** @param {object} doc @returns {Array<[string, unknown]>} */
 function rankFields(doc) {
