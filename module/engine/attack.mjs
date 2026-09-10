@@ -59,6 +59,9 @@ import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { meetsRequirement } from "../rules/items.mjs";
 import { canUseAbility, resolveCosts, npCostAt } from "../rules/costs.mjs";
 import {
+  NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW,
+} from "../rules/windows.mjs";
+import {
   reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow,
 } from "../rules/reactions.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
@@ -254,7 +257,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // crit coin it is about to change.
   const phaseWindow = resume
     ? { windowAbilities: [] }
-    : await offerAttackerWindow({ attackerId }, "combatPhaseStart", null);
+    : await offerAttackerWindow({ attackerId }, COMBAT_PHASE_START_WINDOW, null);
   if ((phaseWindow.windowAbilities ?? []).length > 0) {
     // Loud, because the alternative is this project's signature defect. A
     // non-mode ability at this window would contribute rules that only
@@ -711,7 +714,7 @@ async function declareProcesses({
     const { offerOptionalCosts } = await import("./optional-costs.mjs");
     await offerOptionalCosts({
       unitIds: [attackerId, ...states.map((s2) => s2.defenderId)],
-      timing: "combatPhaseStart",
+      timing: COMBAT_PHASE_START_WINDOW,
       groupId: states[0]?.groupId ?? null,
     });
   }
@@ -1760,7 +1763,7 @@ async function runAutomaticStep(state, message) {
       // it grants is an input to the computation. Recorded on the state so
       // `applyDamage` can fold the chosen abilities' rules into this one
       // attack and nothing else (§15.3).
-      state = await offerAttackerWindow(state, "damageStep", message);
+      state = await offerAttackerWindow(state, DAMAGE_STEP_WINDOW, message);
 
       // Phases that resolve BEFORE the damage, because the damage depends on
       // them. Scáthach's Gáe Bolg Alternative is the case: *"has a 75% chance
@@ -4760,7 +4763,7 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
     const held = [...(defenderDoc.effects ?? [])].map((e) => e.system?.defId).filter(Boolean);
     const usable = abilitiesAtWindow(
       { items: defenderDoc.items, turnState: defenderDoc.system?.turnState ?? {}, effects: held },
-      "whenTargetedByNP",
+      NP_DECLARATION_WINDOW,
     ).filter((item) => {
       if (!item.system?.cancelsNP) return false;
       const usage = canUseAbility({

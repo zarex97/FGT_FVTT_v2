@@ -2931,4 +2931,46 @@ Diatrekhōn Astēr Lonkhē). A third category of leftover, and not what this too
 
 ---
 
+## The window nothing checked — **repaired**
+
+`timing.window` is authored by **117 of the 195** abilities in `packs/_source` — the most-used
+structured field in the content — and had no enumeration anywhere. Windows were matched by string
+comparison at six places: two module-local constants in `rules/reactions.mjs`, an exported
+`ATTACKER_WINDOWS` holding two entries, a bare `"whenTargetedByNP"` literal in `engine/attack.mjs`,
+and three more literals passed straight to `offerAttackerWindow`. The content build checked none of
+it.
+
+So a typo authored cleanly, validated, passed CI, and produced an ability whose reaction window was
+never offered. Exactly the failure `test/unit/targeting.test.mjs` was written after — when the
+picker offered `point` and the resolver only knew `withinRange` — on a far more used field.
+
+**There were three disagreeing lists.**
+
+| | Said |
+|---|---|
+| The engine | five dispatched windows, plus `ownTurn`, which nothing matches |
+| The content | exactly those six |
+| **Ch. 15 §15.3** | **eleven**, including `damageStepStart` — which the engine spells `damageStep` |
+
+The chapter had been instructing authors to write a window that could never fire, and listing five
+more that no dispatcher offers abilities at (three of them the *command spell* vocabulary, which
+must stay separate for the same reason `CS_REQUIREMENT_KINDS` does).
+
+`module/rules/windows.mjs` is now the single list. The six partial lists derive from it,
+`windowsOf()` replaces the `[timing?.window ?? []].flat()` every consumer needed — a window may
+legitimately be a string or a list, since Karna's *Uncrowned Arms Mastership* names two — the
+content build rejects an unknown window, and a drift test fails if any dispatcher goes back to a
+string literal. That guard strips comments before it searches: these files explain themselves at
+length, and one that read prose would fail on its own documentation.
+
+`ownTurn` carries `dispatched: false` rather than being left to look like an oversight. 89 of the
+117 uses are that one.
+
+**336 source files, 0 errors** when the guard went in — the corpus was clean, so this is protection
+against future drift rather than a repair of existing content.
+
+---
+
+---
+
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)
