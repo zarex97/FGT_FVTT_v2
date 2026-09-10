@@ -11,7 +11,9 @@
  * is that judgement, and this file applies it.
  */
 
-import { ownedByWorld, COOLDOWN_OWNED_BY_WORLD } from "../content/authored-fields.mjs";
+import {
+  ownedByWorld, COOLDOWN_OWNED_BY_WORLD, SUMMON_VARIANT_OWNED_BY_WORLD,
+} from "../content/authored-fields.mjs";
 
 /**
  * Fields that mark an item as granted during play rather than authored.
@@ -31,23 +33,29 @@ export const PROVENANCE_KEYS = Object.freeze(["copiedFrom", "grantedBy"]);
  * @param {"actor"|"item"} kind
  * @param {object} worldSystem the world document's system source
  * @param {object} packSystem the pack document's system source
+ * @param {{type?: string|null}} [options] the document's type, for `SEEDED_BY_TYPE`
  * @returns {object} the merged system data
  */
-export function reconcileSystem(kind, worldSystem, packSystem) {
+export function reconcileSystem(kind, worldSystem, packSystem, { type = null } = {}) {
   const out = { ...(worldSystem ?? {}) };
 
   for (const [key, value] of Object.entries(packSystem ?? {})) {
-    if (ownedByWorld(kind, key)) continue;
+    if (ownedByWorld(kind, key, type)) continue;
 
-    // `cooldown` is the one key that is half each: the pack states the clock's
-    // SHAPE and the match spends it (Ch. 39, spec R2).
-    if (key === "cooldown") {
-      const world = worldSystem?.cooldown ?? {};
+    // Two keys are half the pack's and half the world's: the pack states the
+    // SHAPE and the match states what it has done with it (Ch. 39, spec R2).
+    // `cooldown`'s clock is what the match has spent, and `summonVariant`'s
+    // `variant` is how the coin actually came up.
+    const split = key === "cooldown" ? COOLDOWN_OWNED_BY_WORLD
+      : key === "summonVariant" ? SUMMON_VARIANT_OWNED_BY_WORLD
+        : null;
+    if (split) {
+      const world = worldSystem?.[key] ?? {};
       const merged = { ...(value ?? {}) };
-      for (const owned of COOLDOWN_OWNED_BY_WORLD) {
+      for (const owned of split) {
         if (world[owned] !== undefined) merged[owned] = world[owned];
       }
-      out.cooldown = merged;
+      out[key] = merged;
       continue;
     }
 
@@ -64,11 +72,21 @@ export function reconcileSystem(kind, worldSystem, packSystem) {
  * a Foundry id is not: a world copy has its own ids, and they must survive so
  * that anything referencing an item by id keeps working.
  *
+ * An item on the world copy that the template does not list is removed only if
+ * its `contentId` is in NO pack at all. If the ability still exists as content,
+ * its presence here is something play did -- crafted, granted, transferred --
+ * and deleting it destroys a match. The first live dry run caught exactly this:
+ * `semiramis-poison` is an ability Semiramis MAKES with Item Construction, it is
+ * on no actor template, and it carries neither `copiedFrom` nor `grantedBy`, so
+ * the provenance check alone would have swept every Poison she had crafted.
+ *
  * @param {object[]} worldItems the world document's items, as source objects
  * @param {object[]} packItems the pack template's items, as source objects
+ * @param {{knownContentIds?: Set<string>|null}} [options] every contentId any
+ *   pack defines; without it, nothing outside the template is protected
  * @returns {{update: object[], create: object[], remove: string[], kept: string[]}}
  */
-export function reconcileItems(worldItems, packItems) {
+export function reconcileItems(worldItems, packItems, { knownContentIds = null } = {}) {
   const byContent = new Map();
   for (const item of packItems ?? []) {
     const id = item?.system?.contentId;
@@ -90,7 +108,12 @@ export function reconcileItems(worldItems, packItems) {
     if (PROVENANCE_KEYS.some((k) => held.system?.[k])) { kept.push(held._id); continue; }
 
     const template = byContent.get(contentId);
-    if (!template) { remove.push(held._id); continue; }
+    if (!template) {
+      // Still real content, just not on this template: play put it here.
+      if (knownContentIds?.has(contentId)) kept.push(held._id);
+      else remove.push(held._id);
+      continue;
+    }
 
     seen.add(contentId);
     update.push({

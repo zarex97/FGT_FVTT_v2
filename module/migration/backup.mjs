@@ -27,7 +27,7 @@ export function collectWorldDocuments() {
     takenAt: new Date().toISOString(),
     world: game.world.id,
     systemVersion: game.system.version,
-    schemaVersion: game.world.flags?.fgt?.schemaVersion ?? null,
+    schemaVersion: game.settings.get("fgt", "schemaVersion") ?? null,
     actors: game.actors.map((a) => a.toObject()),
     items: game.items.map((i) => i.toObject()),
     scenes: game.scenes.map((s) => s.toObject()),

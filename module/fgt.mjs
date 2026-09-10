@@ -233,7 +233,13 @@ function reprepareUnits() {
   return count;
 }
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
+  // Ch. 39, and FIRST in this callback: the shape of stored data, then its
+  // content, before anything below reads either. GM-only and single-client,
+  // because two clients migrating one world is a corrupted world.
+  const { onReady: migrateOnReady } = await import("./migration/runner.mjs");
+  await migrateOnReady();
+
   // GM client only; a no-op everywhere else.
   Scheduler.attach();
   // Semiramis's Hanging Gardens: listens for `channel.mjs`'s completion hook

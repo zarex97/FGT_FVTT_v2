@@ -68,7 +68,19 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
  * Ch. 39 opens by promising to prevent.
  */
 export const SEEDED_THEN_OWNED = Object.freeze({
-  actor: Object.freeze(["agility", "luck", "resources", "stance"]),
+  actor: Object.freeze([
+    "agility", "luck", "resources", "stance",
+    // Written by the engine during play, and found by the first dry run of the
+    // content sync against a real world -- every one of these would have been
+    // reset on the next load. `summonerId` is written by `summoning.mjs` and
+    // nulling it orphans every summon on the board; `ownerId` is the same for
+    // `hgob.mjs`'s Hanging Gardens. `identityRevealed` is §4.2's whole point --
+    // Medusa had been revealed and would have been re-concealed. And
+    // `classContainer` is the slot war setup PLACED a Servant in, which is not
+    // the class her sheet names: Medusa sat in `saber` and the pack says
+    // `rider`.
+    "summonerId", "ownerId", "identityRevealed", "classContainer",
+  ]),
   item: Object.freeze([
     "active", "timesUsed", "lastUsedTick", "recordedAttacks", "quantity",
     "copiedFrom", "grantedBy",
@@ -87,6 +99,29 @@ export const COOLDOWN_OWNED_BY_WORLD = Object.freeze([
 ]);
 
 /**
+ * The halves of `summonVariant` a match owns.
+ *
+ * The same shape as `cooldown`. `heads` and `tails` are the two forms the
+ * content declares; `variant` is which one the coin actually came up as, and a
+ * content update re-flipping a summon already on the board is not an update.
+ */
+export const SUMMON_VARIANT_OWNED_BY_WORLD = Object.freeze(["variant"]);
+
+/**
+ * Authored keys a given actor **type** only seeds, on top of `SEEDED_THEN_OWNED`.
+ *
+ * A Master's stats are not authored at all: `war-setup.mjs` rolls them through
+ * `rollSetupPlan` and writes them onto a blank pack template whose `rank` is
+ * `""` and whose `zon` is `2`. Syncing those back would throw away a war's
+ * setup rolls. A Servant's `rank` and `baseAttack` come from her sheet and must
+ * still follow the pack, which is why this is keyed by type rather than added
+ * to the list above.
+ */
+export const SEEDED_BY_TYPE = Object.freeze({
+  master: Object.freeze(["rank", "zon", "baseAttack", "commandSpells"]),
+});
+
+/**
  * Is this field the world's to keep?
  *
  * True for anything outside the authored list -- Health, `turnState`,
@@ -94,10 +129,12 @@ export const COOLDOWN_OWNED_BY_WORLD = Object.freeze([
  *
  * @param {"actor"|"item"} kind
  * @param {string} key
+ * @param {string|null} [type] the document's type, for `SEEDED_BY_TYPE`
  * @returns {boolean}
  */
-export function ownedByWorld(kind, key) {
+export function ownedByWorld(kind, key, type = null) {
   const authored = kind === "actor" ? AUTHORED_ACTOR_KEYS : AUTHORED_ITEM_KEYS;
   if (!authored.includes(key)) return true;
-  return (SEEDED_THEN_OWNED[kind] ?? []).includes(key);
+  if ((SEEDED_THEN_OWNED[kind] ?? []).includes(key)) return true;
+  return (SEEDED_BY_TYPE[type] ?? []).includes(key);
 }
