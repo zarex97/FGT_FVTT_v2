@@ -33,6 +33,7 @@ import {
 import { PHASE_DESCRIPTORS, phasesByUsage } from "../../rules/authoring/phases.mjs";
 import { sheetFor } from "../sheet-choice.mjs";
 import { coerceFieldValue } from "../../rules/authoring/fields.mjs";
+import { builderRows, patchRows } from "./predicate-builder.mjs";
 import { ELEMENT_DESCRIPTORS } from "../../rules/authoring/elements.mjs";
 import {
   REQUIREMENT_DESCRIPTORS, CS_REQUIREMENT_DESCRIPTORS,
@@ -235,6 +236,11 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
 
       // Read through `@root` by the field partial, which may be invoked from
       // three loops deep -- `../` would depend on how far.
+      // The group operators a predicate may nest. `and` is the implicit top
+      // level and is offered only for an explicitly nested block.
+      groupOps: Object.fromEntries(
+        ["and", "or", "anyOf", "nand", "nor", "not"].map((o) => [o, o]),
+      ),
       ranks: Object.fromEntries(RANK_CHOICES.map((r) => [r, r])),
       effectChoices: Object.fromEntries(
         EffectRegistry.all().map((d) => [d.id, d.name ?? d.id]),
@@ -587,6 +593,33 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
 
   static async #onChange(_event, _form, formData) {
     const raw = { ...formData.object };
+
+    // FIRST, before any other extraction. A builder control is named
+    // `passiveRules.0.predicate::0.negated` -- which starts with
+    // `passiveRules.`, so `#applyListPatch` claimed it and wrote the raw form
+    // object onto the element as a field called `predicate::0`. Found live:
+    // the saved rule element grew a `predicate::0` key beside its predicate,
+    // and the edit did nothing.
+    // Predicate builder controls, named `<fieldName>::<rowPath>.<field>`.
+    // The `::` separates the field from the path INSIDE it, because a field
+    // name is itself dotted (`passiveRules.0.predicate`) and one separator
+    // could not tell the two apart.
+    /** @type {Record<string, Record<string, string>>} */
+    const predicateInputs = {};
+    for (const [key, value] of Object.entries(raw)) {
+      const at = key.indexOf("::");
+      if (at === -1) continue;
+      (predicateInputs[key.slice(0, at)] ??= {})[key.slice(at + 2)] = value;
+      delete raw[key];
+    }
+    for (const [field, inputs] of Object.entries(predicateInputs)) {
+      // Rebuilt from the DRAFT, so a raw row the builder cannot model is
+      // carried through rather than dropped on the next keystroke.
+      const held = foundry.utils.getProperty(this.#draft, field) ?? [];
+      const next = patchRows(builderRows(held, "ownerOnly", ""), inputs);
+      foundry.utils.setProperty(this.#draft, field, next);
+    }
+
 
     // Phase inputs are named `phase.<i>.<field>` and handled separately,
     // because `expandObject` turns an indexed path into an OBJECT with numeric

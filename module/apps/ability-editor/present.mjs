@@ -14,6 +14,7 @@
  */
 
 import { validateFieldValue, displayFieldValue } from "../../rules/authoring/fields.mjs";
+import { builderRows } from "./predicate-builder.mjs";
 import { elementsForBucket } from "../../rules/authoring/elements.mjs";
 import { PHASE_DESCRIPTORS, phasesByUsage } from "../../rules/authoring/phases.mjs";
 import { requirementsFor, REQUIREMENT_DESCRIPTORS, CS_REQUIREMENT_DESCRIPTORS } from "../../rules/authoring/requirements.mjs";
@@ -51,6 +52,12 @@ export function formRows(descriptor, value, prefix = "") {
       choices: field.choices ? Object.fromEntries(field.choices.map((c) => [c, c])) : null,
       of: field.of ?? null,
       value: displayFieldValue(field.type, held),
+      // A predicate is not text. The rows the builder renders travel with the
+      // field so one partial can draw subject / facet / value dropdowns
+      // instead of an input a GM has to know the grammar to fill.
+      builder: field.type === "predicateList"
+        ? builderRows(held, field.scope ?? "ownerOnly", "")
+        : null,
       name: prefix ? `${prefix}.${field.key}` : field.key,
       problem: verdict.ok ? null : verdict.reason,
     };

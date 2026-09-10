@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { test, referencedOptions } from "../../module/rules/predicate.mjs";
+import { test, referencedOptions, explain } from "../../module/rules/predicate.mjs";
 
 
 describe("the `not:` prefix", () => {
@@ -59,5 +59,59 @@ describe("referencedOptions and the `not:` prefix", () => {
   it("looks inside anyOf too", () => {
     expect([...referencedOptions([{ anyOf: ["not:target:attribute:divine", "self:acted"] }])])
       .toEqual(["target:attribute:divine", "self:acted"]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Prose — the reason predicates are data at all                              */
+/* -------------------------------------------------------------------------- */
+
+describe("prose from the facet table", () => {
+  // §24.4's whole argument for predicates being data rather than functions is
+  // that a failed one can be READ: "requires: target has the Large attribute
+  // (target does not)". What it said was "target attribute = large", by
+  // mechanical split -- and `explain` had no test of its own.
+
+  it("says what a failed option means, not how it is spelled", () => {
+    const [line] = explain(["target:attribute:large"], { options: new Set() });
+    expect(line.text).toBe("target has the large attribute");
+    expect(line.passed).toBe(false);
+  });
+
+  it("marks a passing statement as passed", () => {
+    const [line] = explain(["self:free"], { options: new Set(["self:free"]) });
+    expect(line.text).toBe("self is a Free Servant");
+    expect(line.passed).toBe(true);
+  });
+
+  it("interpolates every segment a facet declares", () => {
+    const [line] = explain(["self:skillRank:divinity:gte:B"], { options: new Set() });
+    expect(line.text).toContain("divinity");
+    expect(line.text).toContain("B");
+  });
+
+  it("reads a facet whose subject is the attack", () => {
+    const [line] = explain(["attack:component:mag"], { options: new Set() });
+    expect(line.text).toBe("the attack uses Base Attack (mag)");
+  });
+
+  it("falls back to the mechanical split for an option no facet knows", () => {
+    // A module's compendium may name anything. Rendering beats throwing.
+    const [line] = explain(["mod:something:odd"], { options: new Set() });
+    expect(line.text).toBe("mod something = odd");
+  });
+
+  it("still negates", () => {
+    const [line] = explain(["not:self:free"], { options: new Set() });
+    expect(line.text).toMatch(/not/);
+    expect(line.passed).toBe(true);
+  });
+
+  it("renders every option the shipped corpus names without throwing", async () => {
+    const { corpusOptions } = await import("./helpers/corpus.mjs");
+    for (const o of corpusOptions()) {
+      const [line] = explain([o], { options: new Set() });
+      expect(line.text.length, o).toBeGreaterThan(0);
+    }
   });
 });

@@ -156,6 +156,8 @@ Hooks.once("setup", async () => {
     // The one partial that renders ANY authoring descriptor field. Adding a
     // rule element to the engine means adding a table entry, never markup.
     "fgt-editor-field": "systems/fgt/templates/apps/ability-editor-field.hbs",
+    // Recursive: a predicate group renders it again for each child.
+    "fgt-predicate-row": "systems/fgt/templates/apps/predicate-builder.hbs",
   });
 
   // Packs are not readable during `init`; `setup` runs after they are indexed
