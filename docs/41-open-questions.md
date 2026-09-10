@@ -462,3 +462,42 @@ rather than deriving.
 [C — Dice Registry](C-dice-registry.md) ·
 [D — Servant Data Sheets](D-servant-data-sheets.md) ·
 [E — Event Reference](E-event-reference.md)
+
+---
+
+## The two `refs` shapes disagree
+
+**Raised 2026-09-10, while building the predicate vocabulary.**
+
+`ctx.refs` — the root an `@`-path resolves against — is built four different ways, and two of them
+disagree about the same path:
+
+| Path | Under `expressionRefs` | Under a unit snapshot |
+|---|---|---|
+| `@self.health` | `{value, max}` | a **number** (`rules/snapshot.mjs`) |
+| `@self.health.value` | the number | `undefined` |
+| `@self.agility` | `{value, …}` | a **number** |
+
+`rules/elements.mjs` supplies `expressionRefs(actor)`, which has **no `target` at all**;
+`rules/damage/pipeline.mjs` supplies four snapshot roots; `engine/attack.mjs` supplies a raw
+Document. So `@target.parameters.str` is meaningful in the damage pipeline and meaningless in most
+element predicates, and `predicate.mjs#num` **throws** on the mismatch rather than failing quietly.
+
+The predicate builder routes around this with `REF_SCOPES` — each site declares which roots it can
+resolve and what shape they take, so the editor cannot emit a path that will not resolve where it
+sits. **It does not fix it.** Unifying the two shapes touches `expressionRefs`, four call sites and
+every authored magnitude that reads a path (`@self.baseHealth`,
+`@self.resources.fragarachTokens.value`), which is a change with its own blast radius.
+
+**Question:** should `expressionRefs` return a unit snapshot, or should the pipeline pass documents?
+Nothing in the corpus depends on the divergence today — no authored predicate uses a comparison
+operator at all — which makes now the cheap moment to decide.
+
+## `chanceWhen[].predicate` is not a predicate
+
+Its field is named `predicate` and `engine/attack.mjs#chanceFor` evaluates it with a bespoke string
+compare that strips `attack:kind:`. `effects/auto-evade.yml` correctly authors the bare term
+`"np"`, which `rollOptionsFor` never emits. Nothing is broken; the name is simply wrong, and it has
+already misled one collector into looking at it. A rename is a content migration across the effects
+pack. **Question:** rename it to `whenKind`, or leave it and keep the exclusion documented?
+

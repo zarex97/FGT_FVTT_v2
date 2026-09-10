@@ -716,6 +716,66 @@ Three reasons, in order of importance:
 
 ---
 
+### The facet vocabulary — **built 2026-09-10**
+
+A predicate option is not a string. It is `subject : facet : value`, and
+`module/rules/facets.mjs` describes each of the **36 facets** the engine can emit: its subjects,
+its segments, where each value comes from, and one sentence of prose.
+
+**The table is the authority; `options.mjs#EMITTABLE` is generated from it.** That is a departure
+from the four authoring vocabularies in Ch. 29 §29.6, which are held against a *dispatcher* by a
+drift test because a dispatcher is code. `EMITTABLE` was 37 regexes describing a string shape —
+which is exactly what a descriptor with typed segments is — so keeping both would have been two
+spellings of one fact, tested to agree.
+
+The swap was proved behaviour-neutral before anything was built on it: the 37 regexes were captured
+to a fixture *first*, and `test/unit/facets.test.mjs` holds the generated set against that fixture
+and against every option the shipped corpus names. The whole suite then passed with **no test
+edited**.
+
+#### The three value kinds, and why they are not treated alike
+
+| Kind | Example | Build |
+|---|---|---|
+| `closed` | `phase:(day\|night\|none)`, `rank:…:gte:(E…EX)` | **errors** |
+| `registry` | effect ids, ability slugs, content ids | **warns** |
+| `open` | field ids, regions, variants, attributes | shape only, **and says so** |
+
+The asymmetry is load-bearing. `outsider` and `undead` are named by six authored clauses and
+granted by no unit — they are forward references to Servants not yet built — so a registry that
+errored would fail the build on legitimate content. An enum in `domain/enums.mjs`, by contrast,
+does not gain a member because somebody mistyped, so `closed` can be strict.
+
+**Five facets were tightened**, having had an enum available and not used it:
+`highestParameter`, `rank`'s parameter, `paramVsSelf`'s parameter, `attack:element` and
+`attack:npScale`. `self:highestParameter:strength` passed validation for the whole life of the
+field and could never match, because the parameter is `str`.
+
+#### The guard, and where it used to stop
+
+`tools/lib/content.mjs` now **errors** through `isEmittableOption`, reading every predicate site via
+`rules/authoring/predicates.mjs#predicateSitesIn`. The check it replaces was
+`^[a-z]+:[a-zA-Z]+(:[\w+-]+)*$` — pure shape, and only a warning. That regex is how the `not:`
+prefix survived unimplemented long enough to cost Penthesilea her signature aura and Karna his
+divinity override.
+
+Coverage went from **147 references to 239**. The 92 that were never checked sit on
+`requirements[].predicate`, `phases[].predicate`, and `targeting.selection.attributes` — the last
+being a predicate despite its name (`rules/targeting/resolve.mjs`), which Achilles uses for
+*"cannot be used on Female Units"*.
+
+**Two fields named like predicates are not**, and are excluded with stated reasons:
+`chanceWhen[].predicate`, matched by a bespoke string compare in `engine/attack.mjs`; and
+`blockedWhen`, which is `{state, condition}` matched by its own one-case switch.
+
+#### Prose
+
+`explain()` reads the same table. A failed `target:attribute:large` now reads *"target has the
+large attribute"* rather than *"target attribute = large"* — which is the half of this section's
+own argument that had been half-delivered since it was written, and had no test at all.
+
+---
+
 ## 24.5 The expression language
 
 Rule element values may be expressions rather than literals:

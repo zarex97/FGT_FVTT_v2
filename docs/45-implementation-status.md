@@ -3041,4 +3041,64 @@ the vocabulary against that file so it cannot regress.
 
 ---
 
+## The predicate vocabulary — **built**
+
+Predicates gate rule elements, requirements and phases, and the grammar was a free string. What
+guarded it was a shape regex in the content build — `^[a-z]+:[a-zA-Z]+(:[\w+-]+)*$`, a **warning** —
+and a unit test that read rule elements only.
+
+| | Before | After |
+|---|---|---|
+| Option references guarded | 147 | **239** |
+| The build's verdict | warning, on shape | **error**, on facet |
+| Facets with a label, hint and prose | 0 | **36** |
+| Value segments checked at all | ~16 of 37 | 21, and the rest **declared unchecked** |
+| Authoring | a text field | subject / facet / value dropdowns |
+| A failed predicate reads as | `target attribute = large` | `target has the large attribute` |
+
+**The architecture is a departure, for a reason.** The four vocabularies in §29.6 are held against a
+dispatcher by a drift test, because a dispatcher is functions. `EMITTABLE` was pure data, so the
+facet table **generates** it — one declaration instead of two spellings tested to agree. Proved safe
+by capturing the 37 regexes to a fixture *before* writing the table, then passing the entire suite
+with no test edited.
+
+**Five facets had an enum available and were not using it.** `self:highestParameter:strength`
+passed validation for the life of the field and could never match, because the parameter is `str`.
+Now closed over `PARAMETERS`, `ELEMENTS` and `NP_TAG_SCALE`.
+
+**What the audit turned up:**
+
+- **An eighth predicate site.** `targeting.selection.attributes` is a predicate despite its name
+  (`resolve.mjs`), and neither the old guard nor the first draft of this design knew about it.
+  Achilles's *Diatrekhōn Astēr Lonkhē* uses it for *"cannot be used on Female Units"*.
+- **`attribute` cannot be a registry.** `outsider` and `undead` are named by six clauses in four
+  files and granted by no authored unit — forward references to the 29 Servants still to come. A
+  registry that errored would have failed the build on legitimate content. Hence: `registry` warns,
+  only `closed` errors.
+- **`blockedWhen` is a third mini-vocabulary**, not a predicate: `{state, condition}` matched by a
+  switch with one case and `default: false`.
+
+**Three defects only the live check could find**, all in the builder's wiring: a Handlebars partial
+reading `{{../prefix}}` where its own context is `{{prefix}}`, so every control was named `::0.…`
+with no field in front of it; `subjectChoices` passed as an **array**, which Foundry's
+`selectOptions` treats as index-keyed, so the subject picker offered `0` and `1` — the same trap as
+the ability editor's, in a second place, because no unit test renders a Handlebars helper; and
+extraction **order**, where a control named `passiveRules.0.predicate::0.negated` was claimed by
+`#applyListPatch` first and written onto the element as a field called `predicate::0`.
+
+**Verified live:** `self:stance:dismounted` became `not:self:stance:mounted` through one dropdown
+and one checkbox, and the document round-tripped exactly. A nested `or` group and a comparison row
+render with the scoped ref list.
+
+**Also found, not fixed:** the editor's `#draft` is cloned in its constructor and `item.sheet` is a
+cached instance, so an ability changed elsewhere — a migration, a content sync — shows stale in a
+reopened editor and would be overwritten on Save. Recorded here; it predates this work.
+
+**Open:** the two `refs` shapes disagree (Ch. 41). The builder is scoped so it cannot emit an
+unresolvable path, but `@self.health` still means two things.
+
+---
+
+---
+
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)
