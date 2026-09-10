@@ -43,7 +43,7 @@ recorded in §7 below.
 | # | Question | Ruling |
 |---|---|---|
 | R1 | Ch. 39 D39.6 says a world copy is **never** auto-updated — the GM's edits win. | **Replaced.** The compendium is the whole source of truth; world copies are reconciled to it on load. D39.6 was written to protect homebrew, and R3 protects it better by giving it somewhere real to live. The chapter is amended, not contradicted. |
-| R2 | What separates a field the sync may overwrite from one it must preserve? | **The authored-field list already in `tools/lib/content.mjs`.** `actorSystem()`/`itemSystem()` decide what enters a pack; anything they do not name is runtime by definition. That list moves to a module both the pack builder and the sync import, so there is one vocabulary rather than a second, hand-maintained "runtime fields" list that would drift out of step. |
+| R2 | What separates a field the sync may overwrite from one it must preserve? | **The authored-field list, minus the fields the pack only *seeds*.** `actorSystem()`/`itemSystem()` decide what enters a pack, so anything they do not name is runtime by definition and is preserved for free. But the list is not a clean discriminator on its own: `timesUsed`, `lastUsedTick` and `recordedAttacks` are in it and authored by **no** content, while `active`, `quantity`, `stance` and `resources` are authored as *starting* values that play then owns, and `cooldown` mixes the two — `max` is the pack's, `remaining` is the world's. So the sync overwrites the authored list **except** an explicit `SEEDED_THEN_OWNED` set, enumerated in §4.1 and held by a test. |
 | R3 | If world copies are overwritten, where does a GM's ability-editor work live? | **It round-trips.** `AbilityEditor` gains an export that writes the document back to `packs/_source/**.yml`. Authoring becomes a pack change, so nothing of value lives only in a world copy — which is what makes R1 safe rather than lossy. |
 | R4 | May the sync delete an item the pack no longer has? | **Only if the item has no runtime provenance.** An item carrying `copiedFrom` or `grantedBy` was granted during play — Wisdom of Dún Scáith's copied Noble Phantasms are the reference case — and must never be swept by a content update. Everything else with a `contentId` absent from the template is removed. |
 | R5 | Where does the backup go? | **A real file**, `worlds/<id>/fgt-backups/<ISO timestamp>.json`, via `FilePicker.upload`. D39.3 calls the backup non-negotiable and a browser download is not a backup — it is a prompt the GM can dismiss. |
@@ -67,6 +67,27 @@ are touched.
 (lines 15–19), so the direction is established. A drift test holds the key sets and the builder
 functions against each other in **both** directions, the same guard `RULE_ELEMENT_KEYS` and
 `EXECUTORS` already have.
+
+**Not every authored key is the pack's to overwrite.** Some carry a *starting* value that play then
+owns, and one mixes both:
+
+```js
+export const SEEDED_THEN_OWNED = Object.freeze({
+  // Authored as an opening value; mutated for the rest of the match.
+  actor: ["agility", "luck", "resources", "stance"],
+  // `timesUsed`, `lastUsedTick` and `recordedAttacks` are in the allowlist and
+  // authored by NO content -- they are runtime that the list happens to name.
+  // `active` is a toggle, `quantity` is spent, and provenance is the world's.
+  item: ["active", "timesUsed", "lastUsedTick", "recordedAttacks", "quantity",
+         "copiedFrom", "grantedBy"],
+});
+
+// `cooldown` is the one key that is half the pack's and half the world's.
+export const COOLDOWN_OWNED_BY_WORLD = Object.freeze(["remaining", "regen", "gatedDelay"]);
+```
+
+Overwriting any of these would reset a Servant's Resources, un-toggle a mode, or refill a spent
+cooldown **mid-match** — the exact corruption Ch. 39 opens by promising to prevent.
 
 ### 4.2 A — schema migration
 
@@ -114,7 +135,9 @@ For each world document carrying a `contentId`:
 
 1. Find its pack document. Absent → leave it alone entirely and report it; a world document whose
    content has been deleted is a GM's problem, not a thing to silently mutate.
-2. Overwrite every **authored** field from the pack (R2). Leave everything else.
+2. Overwrite every **authored** field from the pack except those in `SEEDED_THEN_OWNED` (R2), and
+   merge `cooldown` field by field so `max` follows the pack while `remaining`, `regen` and
+   `gatedDelay` stay with the world. Leave everything else untouched.
 3. Reconcile embedded items by `contentId`: refresh those that match, add those the template gained,
    remove those it lost **unless** the item carries `copiedFrom` or `grantedBy` (R4).
 4. Preserve each surviving item's runtime state across the refresh — cooldown remaining, regen,
@@ -148,8 +171,9 @@ order and idempotently — applying a migration twice must equal applying it onc
 that fails halfway will be re-run.
 
 **Sync** (`test/unit/content-sync.test.mjs`): the authored/runtime split against fixtures — an
-authored field changes, a runtime field survives, an item with `copiedFrom` survives a template that
-dropped it, a document with no `contentId` is untouched.
+authored field changes; a runtime field survives; every `SEEDED_THEN_OWNED` key survives even though
+it is in the allowlist; `cooldown.max` follows the pack while `cooldown.remaining` does not; an item
+with `copiedFrom` survives a template that dropped it; a document with no `contentId` is untouched.
 
 **Drift** (`test/unit/authored-fields.test.mjs`): the key sets and the pack builders hold each other
 in both directions.
