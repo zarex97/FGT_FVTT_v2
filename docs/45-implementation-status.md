@@ -2694,7 +2694,32 @@ No new `LOG_KINDS` entry: `rules/roll-log.mjs#record` is generic and already tak
 `{source, delta}` modifiers, and Appendix C had registered `quickfire` (`6d6`, count dice at or
 above threshold) since the registry was written.
 
-**Still open:** six Skills (Quickfire's own content is next), three effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
+**Commit 7 - Quickfire, and a reaction rung that answers differently.**
+
+Three mechanisms, and the second and third were both found by the first refusing to compile.
+
+1. **`reactionOverride`.** *"The enemy Unit Evades (instead of performing an Evade roll)"* - the
+   rung stays on the ladder, the defender chooses it freely, and choosing it raises Nemo's
+   threshold instead of avoiding the attack. Not `ForbidReaction`, which removes the rung: a
+   defender who *could not* evade also could not worsen the threshold, so the difference is a
+   rule. The field needed the schema, the compiler allowlist AND `AUTHORED_ITEM_KEYS` - all three,
+   or it compiles to `null` and the ladder rolls an Evade the sheet says is not rolled.
+2. **A `reaction` facet.** `npm run validate:content` **refused the ability outright**:
+   *"names `defender:reaction:evade`, which no predicate facet admits ... the clause is
+   permanently false and the rule silently never fires."* Exactly the guard doing its job on
+   exactly the defect it was built for. Added `REACTIONS` to `domain/enums.mjs` and a `closed`
+   facet over it, spelled `target:` because that is what the defender is called throughout the
+   vocabulary. `none` is emitted as a real answer, because *"does not perform a Counter"* is a
+   clause about an absence.
+3. **`when: afterProcess`.** The cooldown refund could not be an ordinary `cooldown` phase: those
+   are caster phases and run at **declaration**, before anybody has decided whether to counter, so
+   the refund would have been paid every time. `runAfterProcessPhases` runs once the Process
+   closes and before `combatProcessEnd`, so a handler on that event sees the refunded clock.
+
+The dice are rolled in `applyDamage` beside every other roll the pipeline consumes, and the
+threshold's four modifiers - **fired or not** - reach the roll log before the total does.
+
+**Still open:** five Skills, three effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 

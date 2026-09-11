@@ -42,7 +42,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",
-  "cancelsNP", "allySelfBypassesResistance", "nonStacking", "damage",
+  "cancelsNP", "allySelfBypassesResistance", "nonStacking", "damage", "reactionOverride",
   "aftermath", "element", "rules", "passiveRules", "activeRules", "cost",
   "costByMasterRank", "requirements", "timing", "blockedWhen", "effect",
   "permanentConsequence", "overridesValidation", "parameterized", "polarity",

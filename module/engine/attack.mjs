@@ -26,11 +26,13 @@ import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
+import { resolveTicks } from "../domain/tick.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { collectContributions, resolveValue } from "../rules/elements.mjs";
-import { test as testPredicate } from "../rules/predicate.mjs";
+import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
+import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
 import { actionSourceFor } from "../rules/platforms.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
@@ -912,8 +914,28 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     return state;
   }
 
-  // A reaction choice resolves into a roll before the machine moves on.
-  if (state.state === "react" && event === "evade") {
+  // A reaction choice resolves into a roll before the machine moves on --
+  // unless the ATTACK redefines what that rung means.
+  //
+  // Nemo's Quickfire: *"The enemy Unit Evades **(instead of performing an
+  // Evade roll)**"*. The rung stays on the ladder and the defender chooses it
+  // freely; choosing it does not roll and does not avoid the attack, it raises
+  // Nemo's dice threshold by one and the attack proceeds.
+  //
+  // Distinct from `ForbidReaction` and from `evadableOnlyBy`, which take the
+  // rung away or narrow who may use it. Here the rung is offered and answers
+  // differently -- a defender who *could not* evade would also not worsen the
+  // threshold, and the sheet pays Nemo for the choice rather than forbidding
+  // it.
+  if (state.state === "react" && event === "evade"
+    && reactionOverrideFor(state, "evade")?.kind === "noRoll") {
+    state = process.advance(state, "evade");
+    state = process.advance(state, "fail", {
+      success: false,
+      overridden: true,
+      note: game.i18n.localize("FGT.Reaction.EvadeNoRoll"),
+    });
+  } else if (state.state === "react" && event === "evade") {
     state = process.advance(state, "evade");
     const outcome = await rollEvade(state);
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
@@ -964,6 +986,7 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
   if (process.isComplete(state)) {
     await endConcealmentAfterAttack(state);
     await closeFieldsPiercedBy(state);
+    await runAfterProcessPhases(state);
     await fireCombatProcessEnd(state);
     // *"When Mannanán is Attacked ... at the end of the Combat Process ... she
     // automatically performs a Fragarach Counter on the DU."* At the end of the
@@ -1076,6 +1099,117 @@ export async function flushAutoCounters(groupId = null) {
     }
     return opened;
   });
+}
+
+/**
+ * Roll a `diceCount` formula, if this ability has one.
+ *
+ * Returns the `base` spec stage 1 expects, or `null` for every other ability
+ * in the game.
+ *
+ * The threshold is computed against the same options and refs the pipeline
+ * will read, so a modifier cannot be true for the damage and false for the
+ * log. `@distance` is supplied explicitly because the predicate's `@`
+ * resolution reads `ctx.refs` and the distance lives on the attack facts.
+ *
+ * @param {object|null} ability
+ * @param {Set<string>} options
+ * @param {{attacker: object, defender: object, facts: object}} units
+ * @param {object} state
+ * @returns {Promise<object|null>}
+ */
+async function rollDiceCount(ability, options, { attacker, defender, facts }, state) {
+  const formula = ability?.system?.damage?.formula;
+  if (formula?.kind !== "diceCount") return null;
+
+  const ctx = {
+    options,
+    refs: { self: attacker, target: defender, attack: facts, distance: facts.range },
+  };
+  const threshold = thresholdFor(formula, ctx);
+  const roll = await new Roll(formula.dice).evaluate();
+  const faces = roll.dice.flatMap((d) => d.results.map((r) => r.result));
+  const counted = damageFromDice(formula, faces, threshold.threshold);
+
+  state.rollLog = [
+    ...(state.rollLog ?? []),
+    rollLog.record({
+      id: `${state.attackerId}:${state.defenderId}:diceCount:${game.combat?.system?.globalTurn ?? 0}`,
+      globalTurn: game.combat?.system?.globalTurn ?? 0,
+      entryId: "threshold",
+      formula: formula.dice,
+      raw: faces.join(", "),
+      total: threshold.threshold,
+      modifiers: thresholdModifiers(threshold, ctx, explainPredicate),
+      purpose: `${ability.name}: ${counted.successes} of ${faces.length} dice at ${threshold.threshold}+`,
+      actorId: state.attackerId,
+    }),
+  ];
+
+  return {
+    diceTotal: counted.total,
+    successes: counted.successes,
+    diceRolled: faces.length,
+    threshold: threshold.threshold,
+  };
+}
+
+/**
+ * Phases that can only be answered once the reaction ladder has closed.
+ *
+ * One clause in the corpus needs this rung, and it is the reason the rung
+ * exists. Nemo's *Quickfire*:
+ *
+ * > *"After performing this Attack Skill, **if the enemy Unit does not perform
+ * > a Counter on Nemo**, reduce the Cooldown of Quickfire by 1◈ Turns."*
+ *
+ * A `cooldown` phase is otherwise a CASTER phase and runs at declaration
+ * (`CASTER_PHASES`, `engine/skill-use.mjs`) -- which is several rungs too
+ * early: at declaration nobody has decided whether to counter, so the
+ * predicate would read an option set that could never contain the answer and
+ * the refund would be paid every time.
+ *
+ * Runs before `combatProcessEnd` fires, so a handler on that event sees the
+ * refunded clock rather than the old one.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function runAfterProcessPhases(state) {
+  const abilityId = state.attack?.abilityId;
+  if (!abilityId) return;
+  const attackerDoc = game.actors.get(state.attackerId);
+  const ability = attackerDoc?.items.get(abilityId);
+  if (!ability) return;
+
+  const phases = effectivePhases(ability.system ?? {}, resolveAbilitySource)
+    .filter((p) => p.kind === "cooldown" && (p.when ?? "afterProcess") === "afterProcess");
+  if (phases.length === 0) return;
+
+  const board = currentBoard();
+  const attacker = unitFrom(board, attackerDoc);
+  const defender = unitFrom(board, game.actors.get(state.defenderId));
+  // The reaction is in this set and in no earlier one -- `attackFacts` carries
+  // `state.reaction`, which is null until the ladder resolves it.
+  const options = rollOptions(attacker, defender, state);
+
+  /** @type {object[]} */
+  const intents = [];
+  for (const phase of phases) {
+    if (!testPredicate(phase.predicate, { options })) continue;
+    for (const change of phase.changes ?? []) {
+      // `ability: self` is this ability's own clock. Named rather than implied,
+      // because a `cooldown` phase may equally name a category or another
+      // ability, and "self" reading as "the caster" instead of "this ability"
+      // is a mistake that would silently reset his whole kit.
+      const targetId = change.ability === "self" ? ability.id : change.ability;
+      const ticks = resolveTicks(change.delta, {
+        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      });
+      intents.push(I.cooldown(state.attackerId, targetId, ticks, "delta"));
+    }
+  }
+  if (intents.length > 0) await applyBatch(intents, "afterProcessCooldown");
 }
 
 /**
@@ -1967,6 +2101,26 @@ async function rollEvade(state) {
 }
 
 /**
+ * What this attack says a reaction rung MEANS, if it says anything.
+ *
+ * One ability in the corpus declares one: Nemo's *Quickfire*, whose Evade rung
+ * resolves to an emitted option rather than to a die. Read off the attacking
+ * ability rather than off the attack spec, because it changes the ladder's
+ * behaviour rather than the damage, and the ladder already has the ability to
+ * hand.
+ *
+ * @param {object} state
+ * @param {string} rung `"evade"`, `"block"` or `"counter"`
+ * @returns {object|null}
+ */
+function reactionOverrideFor(state, rung) {
+  const abilityId = state.attack?.abilityId;
+  if (!abilityId) return null;
+  const ability = game.actors.get(state.attackerId)?.items.get(abilityId);
+  return ability?.system?.reactionOverride?.[rung] ?? null;
+}
+
+/**
  * Which effects, if any, are the ONLY things that may evade this attack.
  *
  * `null` means the ordinary ladder. A list means the attack narrows it, and an
@@ -2769,6 +2923,18 @@ async function applyDamage(state, message) {
   const facts = attackFacts(attacker, defender, state);
   const options = rollOptionsFor({ attacker, defender, attack: facts });
 
+  // A formula that produces its own total, rolled HERE for the same reason
+  // every other roll in this function is: the pipeline is pure and dice are
+  // not. Nemo's Quickfire is the only one.
+  //
+  // The threshold's four modifiers are evaluated against the SAME option set
+  // and refs the pipeline will use, and every one of them -- fired or not --
+  // goes to the roll log before the total does. A player handed "you dealt 75"
+  // cannot check a threshold that moves by four points for reasons spread
+  // across the board, the target's status, both Agilities and a reaction that
+  // had not happened when the attack was declared.
+  const diceBase = await rollDiceCount(ability, options, { attacker, defender, facts }, state);
+
   // The crit roll, then every roll the pipeline will consume — rolled HERE so
   // the pipeline itself stays pure and reproducible.
   //
@@ -2824,9 +2990,13 @@ async function applyDamage(state, message) {
     // design exists to avoid.
     base: dealsNoDamage(ability)
       ? { fixedValue: 0 }
-      : (facts.isAftermath && facts.sources)
-        ? { sources: facts.sources }
-        : baseSpecFor(attackerDoc, ability, facts.range, options),
+      // A `diceCount` formula IS the base -- stage 1 takes the counted figure
+      // and returns, so nothing looks for Base Attack sources at all.
+      : diceBase
+        ? diceBase
+        : (facts.isAftermath && facts.sources)
+          ? { sources: facts.sources }
+          : baseSpecFor(attackerDoc, ability, facts.range, options),
     // Named base-attack sources. Stage 1 has resolved `ctx.units[src.unit]`
     // since the pipeline was written and nothing has ever supplied the map:
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
@@ -3923,7 +4093,18 @@ function rollOptions(attacker, defender, state, extra = {}) {
 export function attackFacts(attacker, defender, state) {
   const range = attackDistance(attacker, defender);
   const kind = state.attack?.kind ?? "normal";
-  const facts = { ...(state.attack ?? {}), kind, isAoE: Boolean(state.isAoE), range };
+  // HOW THE DEFENDER REACTED, so a predicate can ask. `state.reaction` is set
+  // as the ladder resolves; before it does, it is null and nothing is emitted
+  // -- which is correct, because a clause about the reaction is by definition
+  // asking about a closed ladder.
+  //
+  // Nemo's Quickfire reads it twice: once for "+1 if the enemy Unit Evades",
+  // and once for the cooldown refund "if the enemy Unit does not perform a
+  // Counter".
+  const facts = {
+    ...(state.attack ?? {}), kind, isAoE: Boolean(state.isAoE), range,
+    reaction: state.reaction ?? null,
+  };
 
   // A Normal Attack that changes shape with distance decides two of these
   // fields itself, and only here -- the declaration cannot, because the

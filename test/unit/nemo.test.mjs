@@ -371,3 +371,66 @@ describe("Barrel Bombing", () => {
     expect(A.isAttackSkill).toBe(true);
   });
 });
+
+/* ========================================================================== */
+/*  Quickfire                                                                 */
+/* ========================================================================== */
+
+describe("Quickfire", () => {
+  const A = ability("nemo-quickfire");
+
+  it("reaches 3 panels and rolls six six-sided dice at a base of 5", () => {
+    expect(A.targeting.anchor).toEqual({ kind: "targetUnit", range: 3 });
+    expect(A.damage.formula.kind).toBe("diceCount");
+    expect(A.damage.formula.dice).toBe("6d6");
+    expect(A.damage.formula.threshold.base).toBe(5);
+    expect(A.damage.formula.perSuccess).toEqual({ amount: 25, component: "str" });
+  });
+
+  it("carries all four threshold modifiers, in the sheet's own signs", () => {
+    const mods = A.damage.formula.threshold.modifiers;
+    expect(mods).toHaveLength(4);
+    // One "Plus 1 if", three "Minus 1 if".
+    expect(mods.filter((m) => m.delta === 1)).toHaveLength(1);
+    expect(mods.filter((m) => m.delta === -1)).toHaveLength(3);
+  });
+
+  it("makes Evade replace its own roll rather than avoid the attack", () => {
+    // "(instead of performing an Evade roll)" -- the defender may still CHOOSE
+    // Evade, and choosing it costs Nemo a point of threshold and nothing else.
+    //
+    // NOT ForbidReaction, which removes the rung: a defender who cannot evade
+    // also cannot worsen the threshold, and the sheet pays Nemo for the choice
+    // rather than forbidding it.
+    expect(A.reactionOverride.evade).toEqual({
+      kind: "noRoll", emits: "target:reaction:evade",
+    });
+  });
+
+  it("emits the option its own first modifier tests", () => {
+    // The override and the modifier are two halves of one clause, so they must
+    // name the same string. Held together here because nothing else would
+    // notice them drifting.
+    const plus = A.damage.formula.threshold.modifiers.find((m) => m.delta === 1);
+    expect(plus.predicate).toContain(A.reactionOverride.evade.emits);
+  });
+
+  it("skips Nemo's own damage modifiers and none of the defender's", () => {
+    expect(A.damage.bypassModifiers).toEqual({ attacker: true, defender: false });
+  });
+
+  it("rolls one Injury Roll however many dice land", () => {
+    expect(A.damage.singleInjuryRoll).toBe(true);
+  });
+
+  it("refunds 1◈ of its own cooldown when the defender does not Counter", () => {
+    const phase = A.phases.find((p) => p.kind === "cooldown");
+    expect(phase.predicate).toContain("not:target:reaction:counter");
+    expect(phase.changes).toEqual([{ ability: "self", delta: "-1◈" }]);
+  });
+
+  it("runs on a 2◈ cooldown as an Attack Skill", () => {
+    expect(A.cooldown).toBe("2◈");
+    expect(A.isAttackSkill).toBe(true);
+  });
+});
