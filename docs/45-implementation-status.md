@@ -2553,6 +2553,39 @@ the general log.
 
 ---
 
+### Nemo — in progress
+
+The eighteenth Servant, and the first with a **pocket dimension**. Design:
+`docs/superpowers/specs/2026-09-11-nemo-design.md`; plan:
+`docs/superpowers/plans/2026-09-11-nemo.md`.
+
+**Commit 1 — the statline, two class skills, and a Normal Attack that rides a debuff.**
+
+Authored: `packs/_source/servants/nemo.yml`. Every figure his sheet states is one
+`domain/tables.mjs` independently derives — STR C → 100, MAG A → 200, END B → 1250, Divinity A
+→ +50, Riding A+ → MOV +5 — so nothing is an override and `test/unit/nemo.test.mjs` holds the
+agreement rather than restating the numbers. Two findings while writing it:
+
+- **`eastIndia` is a distinct node from `india`** in `REGION_ADJACENCY`. His sheet says *"East
+  India"*, and the two regions have different neighbours, so a war Region bonus would have gone
+  to the wrong Servants.
+- **Nemo adds nothing to Riding.** His sheet spends five lines restating Double Move, Riding
+  Attack, Passenger Seat and the not-a-buff MOV Up — including the arithmetic for a Riding
+  Attack made after a Move — and every one of them was already built and already shared. The
+  longest block on the sheet costs one line of content, because `class-riding` was written
+  parameterized rather than copied.
+
+The Normal Attack's *"10% chance of inflicting Slow"* lives in the **Servant's own `rules:`**,
+not in an ability file: the sheet states it as a Note under the statline with no name, no rank
+and no cooldown, and authoring it as a Skill would put a row on his sheet that his sheet does
+not have. Pale Rider's `RelationshipProxy` sits there for the same reason.
+
+**Still open:** nine Skills, four effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
+six engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
+`bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
+
+---
+
 ### Asterios and Karna — and the argument for live testing, made twice
 
 Both were on the "authored" list before this pass. Asterios had all five abilities and Karna had
