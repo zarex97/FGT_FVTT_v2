@@ -114,6 +114,15 @@ async function onTurnChange(combat, prior, current) {
   // may close the field, so it is not folded into the `run` above.
   await fields.runUpkeep(tick);
 
+  // A pocket dimension's clock, and its owner's chance to leave.
+  //
+  // *"At the end of ANY Turn, Nemo can choose to resurface"* -- any Turn, not
+  // only his own, so this sits on the global boundary rather than inside the
+  // active faction's block above. *"Nemo is forced to resurface after 2◈ Turns
+  // have passed"* is the other half, and it fires here too.
+  const { runDimensionClock } = await import("./dimension.mjs");
+  await runDimensionClock(tick);
+
   // A channelling unit's own Turn ending, uninterrupted -- the Hanging
   // Gardens' "cannot Act for 3◈ Turns." Scoped to the active faction's units
   // for the same reason `turnEnd` handlers are: this counts THIS unit's own

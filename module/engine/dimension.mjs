@@ -299,3 +299,60 @@ export async function resurface({ platformId, at, forced = false }) {
   Hooks.callAll("fgtDimensionSurfaced", platform, { distance, forced });
   return { ok: true, distance, moved: occupants.map((u) => u.id) };
 }
+
+/**
+ * Every open dimension's clock, run at the Turn boundary.
+ *
+ * Two clauses, and they are deliberately in this order:
+ *
+ * > *"At the end of **any** Turn, Nemo can choose to resurface the Storm
+ * > Border."*
+ * > *"The maximum time the Storm Border can spend within Imaginary Numbers
+ * > Space is 2◈ Turns, Nemo is forced to resurface after 2◈ Turns have
+ * > passed."*
+ *
+ * **Any** Turn, not only his own -- which is why this runs on the global
+ * boundary rather than inside the active faction's block. A dimension entered
+ * on the enemy's Turn can be left at the end of it.
+ *
+ * The forced exit still lets him choose WHERE. Nothing in the sheet hands that
+ * choice to anybody else, and the cap is on the time rather than the travel --
+ * the distance is already bounded by `turnsInside` having reached its ceiling.
+ *
+ * @param {number} tick the global turn
+ * @returns {Promise<void>}
+ */
+export async function runDimensionClock(tick) {
+  if (!game.users?.activeGM?.isSelf) return;
+
+  const open = (game.actors?.contents ?? []).filter(
+    (a) => a.type === "platform" && a.system?.dimension && a.system?.activatedAt !== null,
+  );
+  if (open.length === 0) return;
+
+  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+
+  for (const platform of open) {
+    const spec = platform.system.dimension;
+    const turnsInside = Math.max(0, tick - (platform.system.activatedAt ?? tick));
+    const ceiling = resolveTicks(
+      { kind: "rounds", whole: 2, frac: null, sign: 1 },
+      { turnsPerRound },
+    );
+
+    const forced = spec.forceExitAt === "maxDuration" && turnsInside >= ceiling;
+    const owner = game.actors.get(platform.system.ownerId);
+    if (!owner) continue;
+
+    // Raised as a hook rather than opening the placement layer from here: this
+    // is layer 3 and the targeting layer is layer 4, and the GM client running
+    // the scheduler is not necessarily the client that will answer.
+    Hooks.callAll("fgtDimensionExitOffer", {
+      platformId: platform.id,
+      ownerId: owner.id,
+      forced,
+      turnsInside,
+      distance: travelDistance(spec, { turnsInside, turnsPerRound }),
+    });
+  }
+}
