@@ -86,6 +86,7 @@ abilities:
   # Rider's other class skill, Magic Resistance, is DELIBERATELY ABSENT: the
   # sheet does not grant it (R4).
   - { ref: nemo-poseidons-protection }
+  - { ref: nemo-tritons-conch }
 
 notes: |
   The eighteenth Servant, and the first with a pocket dimension.

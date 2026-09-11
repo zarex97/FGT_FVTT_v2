@@ -242,12 +242,36 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 |---|---|
 | `Blind` | (1) 80% chance of Missing on attacks and enemy-affecting abilities. (2) Evade rolls +3. (3) `Mystic Eye` and `Glam Sight` skills cannot be used. (4) With `Clairvoyance`: 40% miss, +2 Evade. (5) Effects 1, 2 and 4 do not apply to units with `Eye of the Mind` active. |
 | `Silence` | Cannot use Spells or perform BA(MAG) attacks/skills/NPs. A MAG-only attacker drops to Range 1 and BA(STR). A dual attacker keeps BA(STR) at full range. A combined attacker loses the MAG portion. |
-| `Deafen(Y)` | Own Evade rolls +Y; enemies evading **this unit's** attacks roll −Y. |
+| `Deafen(Y)` | Own Evade rolls +Y; enemies evading **this unit's** attacks roll −Y. **See the note below — the one Servant who inflicts it states something else.** |
 | `Gashed` | Health **and Agility** cannot be restored. |
 | `Addle` | (1) Cannot use Active Skills or Spells. (2) **Negates all automatically-activating skills and effects.** |
 | `Dragonblight` | (1) All Elemental damage dealt reduced to 0. (2) Cannot inflict volatile debuffs. |
 | `Pigify` | MOV → 2; BA(STR & MAG) → 10%; Range → 1; Evade only with Evade−, cannot Block; damage taken +50% including NP; cannot use Skills/Spells/NP; **passive Skill/NP effects negated**. |
 | `Toad` | MOV → 1; BA → 5%; Range → 1; Evade rolls −3, cannot Block; damage taken +50%; cannot use Skills or NP (**Spells remain usable**); passive effects negated. |
+
+> **`Deafen` — built 2026-09-11, and the catalogue and the sheet disagree.**
+>
+> Nemo's *Triton's Conch* is the only source of `Deafen` in either roster, and it defines the
+> debuff inline as *"all Evade rolls are increased by 2, MOV is reduced by 1, and Detect is
+> reduced by 1 panel."* That is **not** the row above: it drops the "enemies evading this unit's
+> attacks roll −Y" clause and adds two the row does not have.
+>
+> **The engine had already sided with the sheet.** `rules/identity.mjs#detectRangeOf` has
+> subtracted exactly one panel for an effect literally called `deafen` since it was written —
+> "Class container first, then an explicit sheet value, then Deafen" — and the catalogue row has
+> no Detect clause at all for that to have come from. The hard-wiring anticipated this Servant.
+>
+> So `packs/_source/effects/deafen.yml` is authored **as the sheet states it**, with a fixed
+> magnitude rather than the row's `(Y)`. The row stays as written because nothing has been
+> checked against its second clause and silently rewriting a catalogue entry to match the first
+> content that arrives is how a reference stops being one. If a Servant is ever written who
+> inflicts the parameterized form, the two are different effects and want different ids — the
+> same call `Indomitable`/`Indomited` makes.
+>
+> Note also that the Detect clause carries **no rule element**: the −1 arrives by name from
+> `detectRangeOf`, and a `DetectOverride` beside it would both double-count and be the wrong
+> element, since that one pushes a `{scope: "detect", maximum}` **cap** (Jack's Mist reducing
+> Detect *"to 1 panel"*) rather than a delta.
 
 ## A.15 Debuffs — terminal
 
