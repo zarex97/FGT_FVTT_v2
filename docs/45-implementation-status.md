@@ -2808,7 +2808,27 @@ The Luck Check is wired into `resolveDefeatOf` **before** the revival chain, and
 defeated)"* - registered as a revival it would compete with his own Guts for priority and, on a
 success, leave him alive, which the sheet denies in the same sentence that grants the check.
 
-**Still open:** the Noble Phantasm, `aim`, and the live pass. (`deafen`, `aim`, `indomited`, `erase`) and
+**Commit 14 - Great Ram Nautilus, and Aim finally has a definition.**
+
+Nemo is content-complete: eleven abilities, four effect definitions.
+
+`Aim` was catalogued in Appendix A SS A.3 and never built. `rules/checks.mjs#evade` has taken an
+`attackHasAim` parameter all along, and `dodge.yml` has declared `beatenBy: [aim]` since it was
+authored - so the Dodge/Aim/Substitution ladder had one rung missing and the two that existed
+could never meet. The effect carries **no rule elements**, which is its finished state: `Aim` is
+a property of the ATTACK, and `buildAttackSpec` now reads it off its bearer exactly as
+`rollEvade` reads the defender's `dodge`. A rule element would be a second path to one fact.
+
+`blockedBy: [substitution]` is deliberately absent and commented as such: `substitution` is not
+an authored effect, the build correctly refuses a reference to an id no document provides, and
+the relationship is already enforced elsewhere - stage 0 of the pipeline halts on a defender
+holding it before anything about the attack is consulted.
+
+The NP's phase order is the sheet's own and load-bearing: *"FIRST apply the following effects to
+Nemo ... THEN, deals 4x damage."* All three are NP-damage buffs on the Unit about to swing an NP,
+so a damage phase ahead of them would collect none of them.
+
+**Still open:** the live pass. (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 

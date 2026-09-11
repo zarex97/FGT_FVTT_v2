@@ -588,7 +588,15 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // `evade`/the pipeline have read both by name since they were written --
       // against a spec that carried neither, so no authored Noble Phantasm could
       // ever have one. EMIYA's Hrunting is Aim and his Caladbolg II is Pierce.
-      aim: Boolean(resolvedDamage(ability, options)?.aim),
+      // Declared by the ATTACK (EMIYA's Hrunting is Aim outright) or carried
+      // by the ATTACKER as a buff. Appendix A §A.3 makes `Aim` an effect --
+      // *"ignores Dodge and the Evade action"* -- and Nemo's Great Ram
+      // Nautilus applies it to himself before swinging, so an attack spec that
+      // only read the ability's own flag would have thrown the buff away.
+      //
+      // Read by name, exactly as `rollEvade` reads the defender's `dodge`.
+      aim: Boolean(resolvedDamage(ability, options)?.aim)
+        || (attacker?.effects ?? []).includes("aim"),
       pierce: Boolean(resolvedDamage(ability, options)?.pierce),
       // The damage TYPE, carried on the attack for the same reason `component` is.
       // The pipeline has read `ctx.attack.element` at stage 0 since it was written
