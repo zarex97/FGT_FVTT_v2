@@ -503,6 +503,33 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
+        case "enterDimension": {
+          // A POCKET DIMENSION, not a platform on the board -- so this is a
+          // separate case rather than a flag on `summonPlatform`.
+          //
+          // `summonPlatform` builds a token from `platform.system.footprint`
+          // and passes `footprint.w`/`.h` to `getTokenDocument`. The Storm
+          // Border's footprint is `null` by construction (Ch. 20 §20.6: *"it is
+          // not on the board at all"*), so reusing that path would either
+          // crash on the null or fall back to 1x1 and put a submarine token on
+          // the board -- the one thing a pocket dimension must not do.
+          if (target.unitId !== actor.id) break;
+          const { enterDimension } = await import("./dimension.mjs");
+          const entered = await enterDimension({
+            ownerId: actor.id,
+            platformId: phase.platformId,
+            chosenAllyIds: phase.chosenAllyIds ?? [],
+          });
+          applied.push({
+            summary: {
+              id: "enterDimension", name: phase.platformId,
+              outcome: entered.ok ? "applied" : "failed",
+              reason: entered.ok ? null : entered.reason,
+            },
+          });
+          break;
+        }
+
         case "summonPlatform": {
           // Once per use, from the caster: one mount, not one per target.
           if (target.unitId !== actor.id) break;
@@ -1950,6 +1977,9 @@ function zoneRadius(spec) {
 const CASTER_PHASES = new Set([
   "resource", "statChange", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
   "summonPlatform",
+  // Opening a pocket dimension is something the caster does once, from where
+  // he is standing, exactly as raising a platform is.
+  "enterDimension",
   // One ability spending another. Pyramid Drop ends and locks out Ramesseum
   // Tentyris, which is something it does to its USER's sheet rather than to
   // any defender -- so it belongs in the caster pass, like `createField`.

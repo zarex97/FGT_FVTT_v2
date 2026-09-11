@@ -60,7 +60,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion", "TargetabilityModifier",
   // Mannanán — the automatic Counter, the rung it trades away, the buff-clock
   // extension and the spend she is OFFERED at a timing window.
-  "AutoCounter", "ForbidReaction", "DurationExtension", "OptionalCost",
+  "AutoCounter", "ForbidReaction", "ForbidCreating", "DurationExtension", "OptionalCost",
   // Kingprotea — how hard her buffs are to take off (`rules/removal.mjs`).
   "BuffRemovalResist",
   "AttackerPropertyTier",
@@ -1624,6 +1624,11 @@ function actorSystem(doc) {
     ownerId: doc.ownerId ?? null,
     level: doc.level ?? undefined,
     crossLevel: doc.crossLevel ?? undefined,
+    // A pocket dimension's own rules (Ch. 20 §20.6). An authored field absent
+    // from this allowlist compiles to its schema default -- null -- so the
+    // Storm Border would have arrived as an ordinary platform with no entry
+    // roll, no clock and no way out.
+    dimension: doc.dimension ?? null,
     contentId: doc.id,
     contentVersion: doc.contentVersion ?? null,
     trueName: doc.trueName ?? doc.name,
@@ -1796,6 +1801,9 @@ function itemSystem(doc) {
     // which for an ObjectField is null -- so the ladder would have found no
     // override and rolled an Evade the sheet says is not rolled.
     reactionOverride: doc.reactionOverride ?? null,
+    // What this ability creates, by Attribute -- what a `ForbidCreating`
+    // suppression is matched against.
+    creates: doc.creates ?? [],
     // A second, unconditional resolution the same ability declares -- Xiuhcoatl's
     // splash. Compiled whole, the way `damage` is, because it carries its own
     // targeting, damage and riders rather than patching the primary's.

@@ -2746,7 +2746,54 @@ spellings of one field is how a clause ends up matching nothing while reading pe
 
 No new scheduler action was needed: `CooldownDelta` with `scope: "np"` already did exactly this.
 
-**Still open:** four Skills, two effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
+**Commits 9-11 - the conditional anchor, the two support Skills, and the dimension.**
+
+Committed together because the two Skills predicate on `self:skillActive:zeroSail`, and
+`test/unit/skill-references.test.mjs` correctly refuses a slug no authored document has. The
+plan had them three commits apart; the build would have been red in between.
+
+**The conditional anchor.** Both support Skills read *"all allied Units within a 2 panel area of
+himself, **or if Zero Sail is activated**, all allied Units within the Storm Border"* - one
+sentence, two geometries, and the anchor and the shape change **together**, which is why it is an
+anchor kind rather than a predicate on a shape. Branches are tested in order, first match wins,
+the same precedence `damage.branches` uses. A `conditional` reaching `resolveAnchor` now throws:
+it means a caller resolved an anchor without going through `resolveTargets`, so the branch was
+never chosen and the shape about to be expanded is the wrong one.
+
+Three findings while authoring the Skills, each from a guard:
+
+- **`target: each` is not a phase target.** The executor implements `self` and `reuse`; `each`
+  reads perfectly and matches nothing.
+- **A Skill reaching other Units must state a target per phase.** `phase-targets.test.mjs` says
+  so as a rule rather than as one file - defaulting is what once sent Scathach's tokens to Medea.
+- **`footprint` was a non-nullable SchemaField.** Ch. 20 SS20.6 says the Storm Border has none
+  *"it is not on the board at all"* - and an authored `footprint: null` became the 3x3 default,
+  which is a submarine-shaped hole in the middle of the board.
+
+**The Storm Border lost the statistics it was never granted** (R2): 3000 Health, MOV 8, Range 6,
+Base Attack 220, a 5x3 footprint, all taken from SS20.5's general platform model before Nemo's
+sheet was read against it.
+
+**`enterDimension` is its own phase kind, not a flag on `summonPlatform`.** That executor passes
+`platform.system.footprint.w` to `getTokenDocument`; with a null footprint it would crash or fall
+back to 1x1 and put a submarine token on the board, which is the one thing a pocket dimension
+must not do.
+
+**`ForbidCreating` and `creates`.** The restriction needed something to test against, and what a
+summon's own document says about itself is not reachable from the ability at gate time - a gate
+that loads another document to decide whether a button is pressable runs on every render. So
+abilities declare what they make: `semiramis-summoning-basmu` and the Hanging Gardens are
+`[large]`, `quetz-winged-serpent` is `[giant]`, Zero Sail is `[large]`. Refused in
+`canUseAbility`, so the button greys out with a reason.
+
+**`erase`, and a third terminal kind.** `registerDefeat` has exempted `cause === "erase"` from the
+Grail counter since the counter was built, and **nothing could produce that cause**. Stated as
+its own terminal kind rather than relying on `defeat` being handed an effect whose id happens to
+be the string "erase": a rule that works because two unrelated names coincide breaks silently
+when one is renamed. Authoring it also made three long-standing warnings actionable - Penthesilea,
+Magic Resistance and `Debuff Immune` all carve out an Erase that until now did not exist.
+
+**Still open:** the resurface affordance and clock, Nemo's Luck Check on defeat, the NP, `aim`. (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 

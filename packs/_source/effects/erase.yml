@@ -1,0 +1,31 @@
+# Appendix A §A.16 — the terminal tier, above Death.
+#
+# "Unit is removed from the game. Does NOT count towards the Grail counter."
+# That second half is the whole reason Erase is not simply a stronger Death:
+# a Grail that counted erasures could end a match on Units nobody defeated, and
+# Ch. 20 §20.6 names the consequence outright -- the Storm Border's failure
+# mode "can make the Grail unreachable".
+#
+# Named by six authored clauses before this file existed. `debuff-immune.yml`
+# has listed `erase` in its `except:` since it was written, and Penthesilea's
+# Golden Rule (Beauty), Serenity's Silent Dance, Medea's Item Construction and
+# Magic Resistance all carve it out -- every one of them an exemption from an
+# effect nothing in the game could apply.
+schema: 1
+id: erase
+name: "Erase"
+description: "The Unit is removed from the game. Revival effects do not apply, and it does not count towards the Grail."
+polarity: debuff
+volatility: terminal
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+# Keeps it out of every ordinary chance modifier: Appendix A's `Debuff ChUp`
+# and `Debuff Immune` both "do not affect Instakill/Death/Erase unless stated".
+severity: erase
+# `erase`, not `defeat`: Death's terminal action routes through the defeat
+# resolution with the effect's own id as the cause, and `registerDefeat` only
+# exempts the literal cause "erase". Stated as its own kind so the exemption
+# does not depend on two unrelated names coinciding.
+terminal: { kind: erase }
+rules: []

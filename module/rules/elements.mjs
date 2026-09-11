@@ -1292,6 +1292,29 @@ export const EXECUTORS = Object.freeze({
     out.suppressions.push({ scope: "reaction", reactions: [el.reactions ?? el.reaction ?? []].flat(), source });
   },
 
+  /**
+   * Refuse an ability that would bring a Unit, Item or object carrying a named
+   * Attribute into existence.
+   *
+   * Nemo's Storm Border is the only source, and it is the WHOLE of its
+   * restriction (ruling R1): *"Units within the Storm Border cannot use
+   * Skills, NP, or any other ability that creates a Unit/Item/object that has
+   * the 'Large' or 'Giant' Attribute."* One restriction with three subjects,
+   * not three restrictions -- the Storm Border is itself `large`, and what the
+   * clause guards against is nesting one Large object inside another.
+   *
+   * Distinct from `negatedBy`, which switches an ability off entirely wherever
+   * its bearer stands: this refuses it only while they are somewhere that says
+   * so, and the same ability is fine the moment they surface.
+   */
+  ForbidCreating(el, { source, out }) {
+    out.suppressions.push({
+      scope: "creating",
+      attributes: [el.attributes ?? el.attribute ?? []].flat(),
+      source,
+    });
+  },
+
   Decoy(el, { source, out }) {
     out.suppressions.push({ scope: "targeting", decoy: true, radius: el.radius ?? null, source });
   },

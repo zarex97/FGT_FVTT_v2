@@ -16,6 +16,10 @@ category: quetzNP
 # "use" moment worth counting from.
 cooldown: { max: "7◈", countFrom: destroyed }
 timing: { window: ownTurn }
+# What this ability brings into existence, by Attribute. The Quetzalcoatlus is `[giant, beast]`.
+# Read only by a `ForbidCreating` suppression -- Nemo's Storm Border is the
+# only one in the game -- so declaring it changes nothing anywhere else.
+creates: [giant]
 description: |
   (Non-damaging) When this NP is used, Quetz summons a Quetzalcoatlus at her position, and she is
   Moved onto the Quetzalcoatlus together with her Master (if her Master is next to the

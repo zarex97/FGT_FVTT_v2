@@ -1,0 +1,56 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md ("Storm Border: Zero Sail")
+# Discussed: docs/20-platforms-and-levels.md §20.6
+#
+# The dimension's own rules -- who may enter, how long, how far, what is barred
+# inside, what happens if Nemo dies -- live on the PLATFORM
+# (`platforms/storm-border.yml`), not here. This file is the button.
+schema: 1
+id: nemo-zero-sail
+name: "Storm Border: Zero Sail"
+kind: skill
+slug: zeroSail
+# A MODE, not a one-shot: it is "activated", things are true "while Zero Sail
+# is Active", and two of his other Skills predicate on
+# `self:skillActive:zeroSail`. Without `isMode` the DataModel leaves
+# `system.active` undefined and both of those branches silently never fire.
+isMode: true
+# What it brings into existence, for the restriction it imposes on everyone
+# else: the Storm Border is `[large, mechanical]`, so a second Zero Sail from
+# inside the first is exactly what `ForbidCreating` refuses.
+creates: [large]
+# "Cooldown: 5◈ Turns AFTER NEMO RESURFACES." Not from the activation -- the
+# clock cannot start until the mode ends, which is precisely what
+# `countFrom: "deactivation"` already means for Jack's Mist and Presence
+# Concealment. Zero Sail is its third user, not a new mechanism.
+cooldown:
+  max: "5◈"
+  countFrom: deactivation
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. When this Skill is used, Nemo and any number of allied Units
+  within a 2 panel area of himself enters the Storm Border and warps into the Imaginary Numbers
+  Space. Enemy Units within a 3 panel area of Nemo when Zero Sail is activated can attempt to
+  enter the Storm Border as well, roll a twenty-sided die; the enemy Unit only successfully
+  enters if it rolls 18 or higher.
+  While within the Storm Border, all Units still take their Turn normally. At the end of any
+  Turn, Nemo can choose to resurface the Storm Border, which places all Units within the Storm
+  Border onto a 5x5 panel area on the board excluding enemy Home Bases, in any orientation. The
+  maximum distance at which Nemo can travel depends on how much time was spent in Imaginary
+  Numbers Space. This distance is 2+X panels, where X=1 for every ⅓◈ Turns spent within
+  Imaginary Numbers Space.
+  The maximum time the Storm Border can spend within Imaginary Numbers Space is 2◈ Turns, Nemo
+  is forced to resurface after 2◈ Turns have passed since using Zero Sail.
+  If Nemo is defeated while Zero Sail is Active, he performs a Luck Check before dying. If
+  successful, the Storm Border immediately resurfaces (but he is still defeated); if failed, all
+  Units within the Storm Border are inflicted with @effect[erase]{Erase}.
+  Units within the Storm Border cannot use Skills, NP, or any other ability that creates a
+  Unit/Item/object that has the 'Large' or 'Giant' Attribute.
+  Cooldown: 5◈ Turns after Nemo resurfaces.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: enterDimension
+    target: self
+    platformId: platform-storm-border
