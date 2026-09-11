@@ -23,10 +23,10 @@ import {
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
+import { cooldownChanges } from "./skill-use.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
-import { resolveTicks } from "../domain/tick.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
@@ -1183,31 +1183,27 @@ async function runAfterProcessPhases(state) {
   if (!ability) return;
 
   const phases = effectivePhases(ability.system ?? {}, resolveAbilitySource)
-    .filter((p) => p.kind === "cooldown" && (p.when ?? "afterProcess") === "afterProcess");
+    .filter((p) => p.kind === "cooldown" && p.when === "afterProcess");
   if (phases.length === 0) return;
 
   const board = currentBoard();
   const attacker = unitFrom(board, attackerDoc);
   const defender = unitFrom(board, game.actors.get(state.defenderId));
-  // The reaction is in this set and in no earlier one -- `attackFacts` carries
-  // `state.reaction`, which is null until the ladder resolves it.
+  // The reaction is in THIS option set and in no earlier one -- `attackFacts`
+  // carries `state.reaction`, which is null until the ladder resolves it.
   const options = rollOptions(attacker, defender, state);
 
   /** @type {object[]} */
   const intents = [];
   for (const phase of phases) {
     if (!testPredicate(phase.predicate, { options })) continue;
-    for (const change of phase.changes ?? []) {
-      // `ability: self` is this ability's own clock. Named rather than implied,
-      // because a `cooldown` phase may equally name a category or another
-      // ability, and "self" reading as "the caster" instead of "this ability"
-      // is a mistake that would silently reset his whole kit.
-      const targetId = change.ability === "self" ? ability.id : change.ability;
-      const ticks = resolveTicks(change.delta, {
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-      });
-      intents.push(I.cooldown(state.attackerId, targetId, ticks, "delta"));
-    }
+    // THROUGH `cooldownChanges`, not a second implementation of it. That
+    // function owns the `changes` vocabulary -- `scope`, `category`,
+    // `abilityIds`, `ticks`/`direction`/`set`, `perStack`, `excludeSelf` -- and
+    // a private reading of `change.ability` here would be a second grammar for
+    // one field, silently matching nothing for every spelling it did not
+    // happen to implement.
+    intents.push(...cooldownChanges(phase, attackerDoc, board, ability));
   }
   if (intents.length > 0) await applyBatch(intents, "afterProcessCooldown");
 }

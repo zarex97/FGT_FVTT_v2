@@ -1293,6 +1293,8 @@
   "FGT.Predicate.Facet.fieldActiveHint": "A named bounded field is open somewhere on the board.",
   "FGT.Predicate.Facet.onPlatform": "On Platform",
   "FGT.Predicate.Facet.onPlatformHint": "Is aboard a named Platform.",
+  "FGT.Predicate.Facet.source": "Revival Source",
+  "FGT.Predicate.Facet.sourceHint": "The revival that just fired came from a named source.",
   "FGT.Predicate.Facet.reaction": "Reaction",
   "FGT.Predicate.Facet.reactionHint": "Reacted to this attack in a named way, or declined to react.",
   "FGT.Reaction.EvadeNoRoll": "Evade is declared but not rolled: this attack is worsened instead.",

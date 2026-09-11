@@ -16,6 +16,7 @@ import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { detectRangeOf } from "../../module/rules/identity.mjs";
+import { isEmittableOption } from "../../module/rules/options.mjs";
 
 /** `lookup` takes a Rank, never a string. @param {string} s @returns {Rank} */
 const R = (s) => Rank.parse(s);
@@ -426,11 +427,101 @@ describe("Quickfire", () => {
   it("refunds 1◈ of its own cooldown when the defender does not Counter", () => {
     const phase = A.phases.find((p) => p.kind === "cooldown");
     expect(phase.predicate).toContain("not:target:reaction:counter");
-    expect(phase.changes).toEqual([{ ability: "self", delta: "-1◈" }]);
+    // The `changes` vocabulary `selectAbilities`/`cooldownChanges` own: a
+    // content id, a tick expression and a direction. Named here because a
+    // spelling they do not implement matches nothing and refunds nothing.
+    expect(phase.changes).toEqual([
+      { abilityIds: ["nemo-quickfire"], ticks: "1◈", direction: "down" },
+    ]);
+  });
+
+  it("runs that refund AFTER the Process, not at declaration", () => {
+    // A `cooldown` phase is a caster phase and runs when the Skill is used --
+    // before anybody has decided whether to counter. Authored without this
+    // the refund is unconditional in practice.
+    const phase = A.phases.find((p) => p.kind === "cooldown");
+    expect(phase.when).toBe("afterProcess");
   });
 
   it("runs on a 2◈ cooldown as an Attack Skill", () => {
     expect(A.cooldown).toBe("2◈");
     expect(A.isAttackSkill).toBe(true);
+  });
+});
+
+/* ========================================================================== */
+/*  Indomitable — Rank B+                                                     */
+/* ========================================================================== */
+
+describe("Indomitable (Rank B+)", () => {
+  const A = ability("nemo-indomitable");
+
+  it("reduces his NP cooldown BEFORE applying anything", () => {
+    // "FIRST reduce Nemo's NP Cooldown by 1◈ Turns, THEN apply Guts". The
+    // order is the sheet's own and it matters: Indomited's payout below is a
+    // SECOND, later reduction of the same clock, and a single combined figure
+    // would hide that the Skill pays once on use and again on revival.
+    expect(A.phases[0].kind).toBe("cooldown");
+    // `scope: np` is `selectAbilities`'s own word for "every Noble Phantasm
+    // and NP-categorized ability", and `ticks`/`direction` is how
+    // `cooldownChanges` reads a ◈ expression. Named in the vocabulary those
+    // two functions own, because a spelling they do not implement selects
+    // nothing and reduces nothing.
+    expect(A.phases[0].changes).toEqual([{ scope: "np", ticks: "1◈", direction: "down" }]);
+    expect(A.phases[1].kind).toBe("applyEffects");
+  });
+
+  it("applies Guts at 20% of Max Health for 1◈+⅔◈", () => {
+    const guts = A.phases[1].effects.find((e) => e.id === "guts");
+    expect(guts.duration).toBe("1◈+⅔◈");
+    expect(guts.magnitude).toBe(20);
+  });
+
+  it("applies Indomited alongside it, on the same clock and once only", () => {
+    const indomited = A.phases[1].effects.find((e) => e.id === "indomited");
+    expect(indomited.duration).toBe("1◈+⅔◈");
+    expect(indomited.uses).toBe(1);
+  });
+
+  it("runs on 4◈ regenerating ⅓◈", () => {
+    expect(A.cooldown).toBe("4◈-⅓◈");
+  });
+});
+
+describe("the Indomited buff", () => {
+  const E = effect("indomited");
+
+  it("pays out only for a revival due to Guts", () => {
+    // Heracles's `indomitable` pays for a revival through ANY effect and is
+    // authored `automatic: true` with no predicate. Nemo's says "due to Guts",
+    // so it is a different rule and a different effect, not a rename.
+    const handler = E.rules.find((r) => r.key === "OnEvent");
+    expect(handler.event).toBe("unitRevived");
+    expect(handler.predicate).toContain("revival:source:guts");
+  });
+
+  it("reduces his NP cooldown by 1◈+⅔◈, once", () => {
+    const handler = E.rules.find((r) => r.key === "OnEvent");
+    expect(handler.then).toHaveLength(1);
+    // `CooldownDelta` with `ticks` negates and reduces -- the scheduler's own
+    // action table, which already covered this and needed nothing new.
+    expect(handler.then[0]).toMatchObject({
+      kind: "CooldownDelta", scope: "np", ticks: "1◈+⅔◈",
+    });
+    expect(E.uses).toBe(1);
+  });
+
+  it("is a buff that refreshes rather than stacking", () => {
+    expect(E.polarity).toBe("buff");
+    expect(E.stacking).toBe("noneRefresh");
+  });
+
+  it("names an option the scheduler actually emits", () => {
+    // `resolveDefeat` fires `unitRevived` with `revival:source:<id>` in the
+    // option set, and that shape was NOT in the facet vocabulary -- so any
+    // predicate naming it would have failed the build, and nothing had ever
+    // tried. Heracles's Indomitable is `automatic: true` with no predicate,
+    // which is why the gap survived.
+    expect(isEmittableOption("revival:source:guts")).toBe(true);
   });
 });

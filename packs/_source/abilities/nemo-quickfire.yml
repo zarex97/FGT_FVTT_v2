@@ -82,6 +82,14 @@ phases:
   # the reaction ladder has closed -- which is why this is a phase and not a
   # `cooldownWaiver`. `ability: self` is Quickfire's own clock.
   - kind: cooldown
+    # AFTER THE PROCESS, not at declaration. A `cooldown` phase is otherwise a
+    # caster phase and runs when the Skill is used -- several rungs before
+    # anybody has decided whether to counter -- so the refund would be paid
+    # every single time.
+    when: afterProcess
     predicate: ["not:target:reaction:counter"]
     changes:
-      - { ability: self, delta: "-1◈" }
+      # Quickfire's own clock, named by content id: `selectAbilities` matches
+      # `abilityIds` against content ids, which is what every other ability
+      # selector in the system names.
+      - { abilityIds: [nemo-quickfire], ticks: "1◈", direction: down }

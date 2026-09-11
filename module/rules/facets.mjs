@@ -266,6 +266,17 @@ export const FACETS = Object.freeze([
     prose: "{subject} is within {panels} panels of its Master",
   }),
 
+  facet({
+    id: "source",
+    subjects: ["revival"],
+    // OPEN: a revival source is a `RevivalSource` element's own `id`, authored
+    // per ability (`guts`, `undying`, `godHand`, `battleContinuation`), so the
+    // set grows with content the way `attribute` does.
+    segments: [{ name: "source", value: open() }],
+    english: "The revival that just fired came from a named source.",
+    prose: "revived by {source}",
+  }),
+
   /* ── the attack being resolved ───────────────────────────────────────── */
   facet({
     id: "kind",

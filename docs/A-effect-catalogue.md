@@ -273,6 +273,16 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 > element, since that one pushes a `{scope: "detect", maximum}` **cap** (Jack's Mist reducing
 > Detect *"to 1 panel"*) rather than a delta.
 
+> **`Indomited` — built 2026-09-11.** Nemo's, and a near-twin of Heracles's `Indomitable` that is
+> deliberately a **separate effect**: his pays out for a revival *"through any effect"* and grants
+> `Atk Up`; Nemo's pays out only for one *"due to Guts"* and reduces his Noble Phantasm's Cooldown.
+> Same shape, different rule, and collapsing them would make one of the two sheets wrong.
+>
+> Building it found that `revival:source:<id>` — emitted by `resolveDefeat` since revival
+> priorities were built — was **not in the facet vocabulary**, so no predicate could have named it
+> without failing the build. Heracles's is `automatic: true` with no predicate, which is why
+> nothing had ever tried.
+
 ## A.15 Debuffs — terminal
 
 | Effect | Resistible by | Semantics |
