@@ -1126,7 +1126,7 @@ async function postCard(actor, ability, targets, applied) {
  * @param {object} [board] needed only by a `countMatching` change
  * @returns {object[]}
  */
-function cooldownChanges(phase, doc, board = null, self = null) {
+export function cooldownChanges(phase, doc, board = null, self = null) {
   /** @type {object[]} */
   const out = [];
 

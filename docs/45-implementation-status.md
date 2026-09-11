@@ -2719,7 +2719,34 @@ Three mechanisms, and the second and third were both found by the first refusing
 The dice are rolled in `applyDamage` beside every other roll the pipeline consumes, and the
 threshold's four modifiers - **fired or not** - reach the roll log before the total does.
 
-**Still open:** five Skills, three effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
+**Commit 8 - Indomitable, and an option nothing could name.**
+
+A cooldown paid **twice** from one press: 1 once now, and 1 more if the Guts it grants ever
+fires. The sheet states the order outright - *"FIRST reduce Nemo's NP Cooldown ... THEN apply
+Guts"* - and it is load-bearing, because collapsing the two into one figure would hide that the
+second reduction can land many Turns later or never.
+
+**The finding: `revival:source:<id>` was emitted and undeclared.** `resolveDefeat` has fired
+`unitRevived` with that option in the set since revival priorities were built, and the facet
+vocabulary had no shape admitting it - so any predicate naming it would have **failed the build**,
+and nothing had ever tried. Heracles's `Indomitable` is the reason the gap survived: his sheet
+says *"revived through **any** effect"*, so it is authored `automatic: true` with no predicate and
+never asked. Nemo's says *"due to Guts"* and does.
+
+Nemo has exactly one revival source today, so the predicate is currently equivalent to Heracles's
+unconditional form. Written as the sheet states it anyway, so that granting him a second source
+later does not silently widen the clause.
+
+**Also repaired: a second cooldown grammar I had just introduced.** Commit 7's
+`runAfterProcessPhases` read `change.ability`, a spelling `selectAbilities` does not implement -
+so Quickfire's refund would have selected no ability and reduced nothing. It now goes through
+`cooldownChanges`, which owns that vocabulary (`scope`, `category`, `abilityIds`,
+`ticks`/`direction`/`set`, `perStack`, `excludeSelf`), and Quickfire is re-authored in it. Two
+spellings of one field is how a clause ends up matching nothing while reading perfectly.
+
+No new scheduler action was needed: `CooldownDelta` with `scope: "np"` already did exactly this.
+
+**Still open:** four Skills, two effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 

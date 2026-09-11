@@ -1,0 +1,41 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+#
+# Heracles's `indomitable` is the same SHAPE and a different RULE, which is why
+# this is a second effect rather than a parameter on his:
+#
+#   his:  "revived through ANY effect"      -> applies Atk Up
+#   this: "revived due to GUTS"             -> reduces his NP Cooldown
+#
+# Collapsing them would make one of the two sheets wrong. His is authored
+# `automatic: true` with no predicate, which is exactly why the option this one
+# needs -- `revival:source:<id>`, emitted by `resolveDefeat` since revival
+# priorities were built -- had never been named by any content and was missing
+# from the facet vocabulary entirely.
+schema: 1
+id: indomited
+name: "Indomited"
+description: "When this Unit is revived due to @effect[guts]{Guts}, its Noble Phantasm's Cooldown is reduced by 1◈+⅔◈ Turns."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+# "1 time". The handler pays out once and the buff is spent, even though its
+# 1◈+⅔◈ duration may still be running.
+uses: 1
+rules:
+  # `unitRevived` is fired ONCE from the defeat resolution -- the only place
+  # that knows a revival happened AND which of the sources paid for it -- and
+  # it carries that source in the option set, which is what the predicate
+  # reads. Nemo has exactly one revival source, so today this is equivalent to
+  # Heracles's unconditional form; it is written as the sheet states it so that
+  # granting him a second source later does not silently widen the clause.
+  - key: OnEvent
+    event: unitRevived
+    automatic: true
+    predicate: ["revival:source:guts"]
+    consumesUse: true
+    then:
+      # `scope: np` selects every Noble Phantasm and NP-categorized ability he
+      # holds, which is the same selector Indomitable's own first phase uses.
+      - { kind: CooldownDelta, scope: np, ticks: "1◈+⅔◈" }

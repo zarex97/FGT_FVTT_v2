@@ -87,6 +87,7 @@ abilities:
   # sheet does not grant it (R4).
   - { ref: nemo-poseidons-protection }
   - { ref: nemo-tritons-conch }
+  - { ref: nemo-indomitable }
   - { ref: nemo-quickfire }
   - { ref: nemo-barrel-bombing }
 
