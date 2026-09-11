@@ -6,6 +6,19 @@
 // tiles cannot do that, and the diagrams are SVG now, which scale to their box
 // instead of being however many characters wide they were authored.
 
+// `ItemSheetV2` lays `.window-content` out as a grid with AUTO rows, and an
+// auto track sizes to its content. So the editor grew to its full height --
+// measured at 2070px inside a 682px window -- `.window-content`'s own
+// `overflow: hidden` clipped everything below the fold, and the body's
+// `overflow-y: auto` never engaged because the body was never shorter than
+// what it held. Requirements, phases and the Check footer were unreachable.
+//
+// Scoped to this sheet: `.window-content` belongs to Foundry, and every other
+// sheet in the system wants its default behaviour.
+.application.ability-editor .window-content {
+  grid-template-rows: minmax(0, 1fr);
+}
+
 .fgt-editor {
   // A rail beside the body, not above it: the rail is a persistent map of the
   // whole document and has to stay visible while the body scrolls.
@@ -22,6 +35,10 @@
   grid-column: 1 / -1;
   grid-row: 1;
   width: 100%;
+  // Allows the editor to be SHORTER than its content, which is what lets the
+  // body scroll instead of the window clipping. Without it a grid item's
+  // floor is its intrinsic height.
+  min-height: 0;
   height: 100%;
   gap: 0.5rem;
   color: var(--fgt-ink);
