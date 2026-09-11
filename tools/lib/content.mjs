@@ -1791,6 +1791,11 @@ function itemSystem(doc) {
     allySelfBypassesResistance: Boolean(doc.allySelfBypassesResistance),
     nonStacking: doc.nonStacking ?? null,
     damage: doc.damage ?? null,
+    // What a reaction rung means against this attack (Nemo's Quickfire). An
+    // authored field absent from this allowlist compiles to its schema default,
+    // which for an ObjectField is null -- so the ladder would have found no
+    // override and rolled an Evade the sheet says is not rolled.
+    reactionOverride: doc.reactionOverride ?? null,
     // A second, unconditional resolution the same ability declares -- Xiuhcoatl's
     // splash. Compiled whole, the way `damage` is, because it carries its own
     // targeting, damage and riders rather than patching the primary's.

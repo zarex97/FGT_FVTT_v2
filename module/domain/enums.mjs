@@ -125,6 +125,14 @@ export const NP_TAG_ORDINAL = Object.freeze(
 );
 
 /** Contract states. @see docs/16-relationships.md §16.2 */
+/**
+ * The rungs of the reaction ladder (Ch. 12 §12.8), plus the choice to take it.
+ *
+ * `none` is a real answer and not an absence: Nemo's Quickfire pays him for
+ * the DU *declining* to Counter, so "did not react" has to be sayable.
+ */
+export const REACTIONS = Object.freeze(["evade", "block", "counter", "none"]);
+
 export const CONTRACT_STATES = Object.freeze(["contracted", "free", "unbound"]);
 
 /** Sentinel for a duration that never counts down. @see docs/07-time-model.md §7.3 */

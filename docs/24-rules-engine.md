@@ -719,7 +719,7 @@ Three reasons, in order of importance:
 ### The facet vocabulary — **built 2026-09-10**
 
 A predicate option is not a string. It is `subject : facet : value`, and
-`module/rules/facets.mjs` describes each of the **37 facets** the engine can emit: its subjects,
+`module/rules/facets.mjs` describes each of the **38 facets** the engine can emit: its subjects,
 its segments, where each value comes from, and one sentence of prose.
 
 **The table is the authority; `options.mjs#EMITTABLE` is generated from it.** That is a departure

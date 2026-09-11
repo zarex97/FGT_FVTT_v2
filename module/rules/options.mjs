@@ -48,6 +48,16 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
   options.add(`attack:kind:${attack.kind ?? "normal"}`);
   if (attack.isAoE) options.add("attack:isAoE");
 
+  // HOW THE DEFENDER REACTED, once the ladder has closed. Emitted on `target`
+  // because that is what the defender is called throughout this vocabulary.
+  //
+  // `none` is emitted as a real answer rather than left absent: Nemo's
+  // Quickfire pays him *"if the enemy Unit does not perform a Counter"*, which
+  // is a clause about an absence, and `not:target:reaction:counter` can only be
+  // false-by-default unless something says what DID happen. Two of his clauses
+  // read this and nothing emitted it.
+  if (attack.reaction) options.add(`target:reaction:${attack.reaction}`);
+
   // WHICH Base Attack, and whether the attack is one Magic Resistance sees.
   // Magic Resistance's Instakill/Death ladder turns on both: it covers those
   // two tiers *"unless the Instakill or Death debuffs are from an Attack /

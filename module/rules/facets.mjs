@@ -236,6 +236,19 @@ export const FACETS = Object.freeze([
     prose: "{subject} is aboard {platform}",
   }),
   facet({
+    id: "reaction",
+    // CLOSED: the ladder's rungs are a fixed three plus "none", and an enum in
+    // `domain/enums.mjs` does not gain a member because somebody mistyped.
+    //
+    // `none` is a real answer rather than an absence, which is what Nemo's
+    // Quickfire needs twice over: it pays him for the defender DECLINING to
+    // Counter, and it emits `target:reaction:evade` for a rung that resolves
+    // to no roll at all.
+    segments: [{ name: "reaction", value: closed("REACTIONS") }],
+    english: "Reacted to this attack in a named way, or declined to react.",
+    prose: "{subject} reacted with {reaction}",
+  }),
+  facet({
     id: "terrain",
     // `registry`, not `closed`: `rules/terrain.mjs`'s TERRAIN table is
     // content-adjacent and grows -- Imaginary Numbers Space was added for one
