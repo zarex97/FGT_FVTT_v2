@@ -20,12 +20,35 @@
  */
 
 import * as I from "./intents.mjs";
-import { applyBatch } from "./io.mjs";
+import { worldIO } from "./io.mjs";
+import { applyIntents } from "./applier.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { resolveTicks } from "../domain/tick.mjs";
 import { currentBoard } from "./board.mjs";
 import { activatePlatform } from "./platforms.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
+
+/**
+ * Apply a batch of intents as this client.
+ *
+ * A local copy of the two-line wrapper `engine/attack.mjs` keeps privately --
+ * the same shape, because both are "apply these intents through the world IO
+ * with the usual ownership gate". Importing that one is not an option: it is
+ * not exported, and `attack.mjs` already imports this file's `onOwnerDefeat`,
+ * so reaching back would close a cycle.
+ *
+ * @param {object[]} intents
+ * @param {string} source
+ * @returns {Promise<unknown>}
+ */
+async function applyBatch(intents, source) {
+  return applyIntents(intents, {
+    io: worldIO(),
+    canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
+    isGM: game.user.isGM,
+    source,
+  });
+}
 
 /**
  * @typedef {object} Manifest
@@ -200,8 +223,25 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
   const owner = (board.units ?? []).find((u) => u.id === ownerId);
   if (!owner) return { ok: false, reason: "ownerNotOnBoard" };
 
-  const platform = game.actors.get(platformId)
-    ?? game.actors.find((a) => a.system?.contentId === platformId);
+  // The platform lives in a PACK, not in the world -- `platformId` here is a
+  // content id, the same thing `summonPlatform`'s phase names. Looking only for
+  // an existing world actor found nothing on the first use in a fresh world and
+  // the Skill silently did nothing. Found live.
+  //
+  // A previous submersion leaves its actor behind, so an existing one is
+  // reused rather than duplicated.
+  let platform = game.actors.find((a) => a.system?.contentId === platformId && a.system?.ownerId === ownerId)
+    ?? game.actors.get(platformId);
+  if (!platform) {
+    const { actorFromPacks } = await import("./skill-use.mjs");
+    const source = await actorFromPacks(platformId);
+    if (!source) return { ok: false, reason: "unknownPlatform" };
+    const data = source.toObject();
+    delete data._id;
+    data.system.ownerId = ownerId;
+    data.system.factionId = owner.factionId ?? null;
+    platform = await Actor.create(data);
+  }
   const spec = platform?.system?.dimension;
   if (!spec) return { ok: false, reason: "notADimension" };
 
@@ -234,6 +274,11 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
   await platform.update({
     "system.activatedAt": game.combat?.system?.globalTurn ?? 0,
     "system.ownerId": ownerId,
+    // WHERE IT SUBMERGED. The travel allowance is measured from here, and
+    // `resurface` read a field nothing wrote -- so it fell back to the owner's
+    // current panel, which a submerged Unit does not have, and then to the
+    // destination itself, which makes every placement trivially legal.
+    "system.submergedFrom": { i: owner.panel.i, j: owner.panel.j },
   });
 
   await applyBatch(
@@ -274,24 +319,46 @@ export async function resurface({ platformId, at, forced = false }) {
   const turnsInside = Math.max(0, now - (platform.system?.activatedAt ?? now));
   const distance = travelDistance(spec, { turnsInside, turnsPerRound });
 
-  const owner = (board.units ?? []).find((u) => u.id === platform.system?.ownerId);
-  const from = platform.system?.submergedFrom ?? owner?.panel ?? at;
+  // Stamped at entry. A submerged Unit is on the dimension's Scene Level and
+  // is not in the ground board's unit list at all, so `owner?.panel` is not a
+  // fallback -- it is undefined, and the one after it (`at`) would make every
+  // destination legal by measuring the distance from itself.
+  const from = platform.system?.submergedFrom;
+  if (!from) return { ok: false, reason: "noSubmergePoint" };
 
-  if (!placementIsLegal(spec, { at, from, distance, board, factionId: owner?.factionId })) {
+  if (!placementIsLegal(spec, { at, from, distance, board, factionId: platform.system?.factionId })) {
     return { ok: false, reason: "illegalPlacement", distance };
   }
 
-  // Everybody on the dimension's level. The formation is preserved and offset
-  // as a group (ruling R3): the sheet says "in any orientation", which is a
-  // rotation of a formation and not free placement of each Unit.
-  const occupants = (board.units ?? []).filter((u) => u.platformContentId === platform.system?.contentId);
+  // Everybody on the dimension's SCENE LEVEL.
+  //
+  // NOT `u.platformContentId`: `annotatePlatforms` derives that from footprint
+  // overlap -- "which platform each unit is standing on" -- and a dimension has
+  // no footprint by construction, so it marks nobody as aboard and this moved
+  // an empty list. Found live: entry worked, the level was created, and the
+  // resurface reported `moved: 0`.
+  //
+  // The level is the only record of who is inside, which is also what makes it
+  // correct: it is what `moveToLevel` wrote at entry.
+  const { levelOf } = await import("./scene-levels.mjs");
+  const level = levelOf(platform);
+  const aboard = (canvas?.scene?.tokens?.contents ?? [])
+    .filter((t) => t.level === level?.id && t.actorId !== platform.id);
+
+  // The formation is preserved and offset as a group (ruling R3): the sheet
+  // says "in any orientation", which is a rotation of a formation rather than
+  // free placement of each Unit.
   const di = at.i - from.i;
   const dj = at.j - from.j;
 
   await applyBatch(
-    occupants.map((u) => I.move(u.id, [{ i: u.panel.i + di, j: u.panel.j + dj }], true)),
+    aboard
+      .map((t) => (board.units ?? []).find((u) => u.id === t.actorId))
+      .filter((u) => u?.panel)
+      .map((u) => I.move(u.id, [{ i: u.panel.i + di, j: u.panel.j + dj }], true)),
     "stormBorderResurface",
   );
+  const occupants = aboard.map((t) => ({ id: t.actorId }));
 
   const { teardown } = await import("./scene-levels.mjs");
   await teardown(platform);

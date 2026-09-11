@@ -1843,7 +1843,7 @@ async function summonPlatform(phase, actor, board) {
  * @param {string} contentId
  * @returns {Promise<object|null>}
  */
-async function actorFromPacks(contentId) {
+export async function actorFromPacks(contentId) {
   for (const pack of game.packs.filter((p) => p.metadata.type === "Actor")) {
     const index = await pack.getIndex({ fields: ["system.contentId"] });
     const entry = index.find((e) => e.system?.contentId === contentId);
