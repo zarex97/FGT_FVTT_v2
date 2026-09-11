@@ -75,15 +75,30 @@ export function computeDamage(ctx) {
   if (state.halted) return state.finish();
 
   stage1Base(state);
-  if (ctx.attack?.isFixedDamage || ctx.attack?.bypassModifiers) {
-    // Fixed damage and volatile-debuff damage skip stages 2-15 entirely.
-    // "Fixed damage is not affected by any damage modifying effect on both the
-    // AU and DU including Block ... However, Fixed damage IS affected by Invuln."
+
+  // Fixed damage still leaves here: its own definition is "not affected by any
+  // damage modifying effect on **both** the AU and DU including Block", which
+  // is both sides by construction.
+  //
+  // `bypassModifiers` is now TWO-SIDED (§13.8). Nemo says something narrower
+  // twice -- Quickfire and Barrel Bombing are each *"not affected by damaging
+  // modifying effects **on Nemo**"* -- and the Defending Unit's Def Up, Dmg
+  // Cut, Magic Resistance and Block all still apply to both. A bare `true`
+  // keeps its original meaning, so nothing already authored changes.
+  const bypass = normalizeBypass(ctx.attack?.bypassModifiers);
+  state.bypass = bypass;
+  if (ctx.attack?.isFixedDamage || (bypass.attacker && bypass.defender)) {
     state.note("fixedDamage", "skipped stages 2-15");
     stage16AbsorptionAndClamp(state);
     return state.finish();
   }
 
+  // EVERY STAGE STILL RUNS. A one-sided bypass zeroes that side's modifiers
+  // where they are collected and says so in the breakdown, rather than
+  // skipping the stage -- the rule stages 4, 7 and 12 already follow for
+  // `ignoresAttackerIncreases`, `Ignore Def` and a Heel Attack, and for the
+  // reason each of them states: a modifier that vanishes from the breakdown is
+  // indistinguishable from one that was never collected.
   stage2Crit(state);
   stage3AbilityMultiplier(state);
   stage4CombinedPercent(state);
@@ -102,6 +117,28 @@ export function computeDamage(ctx) {
   stage16AbsorptionAndClamp(state);
 
   return state.finish();
+}
+
+/**
+ * `bypassModifiers` in both its spellings.
+ *
+ * A boolean is the original, all-or-nothing form and keeps its meaning: every
+ * `bypassModifiers` authored before Nemo is bare, and `engine/fields.mjs` and
+ * `engine/scheduler.mjs` both pass one for volatile-debuff damage.
+ *
+ * The object form is §13.8's. Nemo's Quickfire and Barrel Bombing are its two
+ * users, and the distinction is not cosmetic: *"not affected by damaging
+ * modifying effects **on Nemo**"* leaves the Defending Unit's own reductions
+ * entirely alone, where the boolean would silently have discarded her Def Up,
+ * her Dmg Cut, her Magic Resistance and her Block along with his Divinity.
+ *
+ * @param {boolean|{attacker?: boolean, defender?: boolean}|null|undefined} raw
+ * @returns {{attacker: boolean, defender: boolean}}
+ */
+function normalizeBypass(raw) {
+  if (raw === true) return { attacker: true, defender: true };
+  if (!raw || typeof raw !== "object") return { attacker: false, defender: false };
+  return { attacker: Boolean(raw.attacker), defender: Boolean(raw.defender) };
 }
 
 /* ========================================================================== */
@@ -157,7 +194,36 @@ function stage1Base(s) {
   s.begin(1);
   const spec = s.ctx.base ?? { sources: [] };
 
-  if (s.ctx.attack?.isFixedDamage) {
+  // A formula that produces its own total: `diceCount` (Nemo's Quickfire).
+  // The caller has already rolled and counted, because this pipeline is pure
+  // and dice are not -- the same bargain `ctx.rolls` makes everywhere else.
+  //
+  // Checked BEFORE `isFixedDamage`, because Quickfire is both: its damage is a
+  // figure rather than a multiple of a Base Attack, and its own clause exempts
+  // it from the attacker's modifiers. Reading the fixed branch first would
+  // take `spec.fixedValue`, find nothing, and deal zero.
+  if (spec.diceTotal !== undefined) {
+    s.phys = spec.diceTotal;
+    s.fixed = s.phys;
+    const counted = `${spec.successes} of ${spec.diceRolled} dice at ${spec.threshold}+`;
+    s.contribute("diceCount", s.phys, counted, "attacker");
+    return s.end(1);
+  }
+
+  // A FLAT BASE AMOUNT, which is not the same thing as "Fixed damage".
+  //
+  // *Fixed damage* is a defined term about MODIFIERS -- "not affected by any
+  // damage modifying effect on both the AU and DU" -- and this branch was
+  // gated on it, so a stated number could only be used by an attack that also
+  // discarded both sides of the pipeline. Nemo's Barrel Bombing is *"150 Fire
+  // damage"* and *"not affected by damaging modifying effects **on Nemo**"*:
+  // a flat base, a one-sided bypass, and a defender whose Def Up still counts.
+  // Authored that way it dealt ZERO, because stage 1 fell through to a
+  // `sources` list it does not have. Found in a live world.
+  //
+  // The two are now independent: `base.fixedValue` says where the number comes
+  // from, `attack.isFixedDamage` says who may modify it.
+  if (spec.fixedValue !== undefined) {
     s.phys = spec.fixedValue ?? 0;
     s.fixed = s.phys;
     s.contribute("fixed", s.phys, "fixed damage", "attacker");
@@ -207,11 +273,18 @@ function stage2Crit(s) {
   const roll = s.ctx.rolls?.[isCrit ? "attackPlus" : "attackMinus"] ?? 0;
 
   if (isCrit) {
+    // Component-scoped where the clause says so. Nemo's Poseidon's Protection
+    // is *"Crit Damage of Attacks which use Base Attack (MAG)"*, and this sum
+    // took every `critDmUp` its bearer held regardless -- so carrying the
+    // component through the executor was necessary and not sufficient.
+    //
+    // A modifier with no `component` applies to either, which is every other
+    // crit clause in the corpus.
     const pct =
-      sumMods(s, s.ctx.attacker, "critDmUp") -
-      sumMods(s, s.ctx.attacker, "critDmDwn") -
-      sumMods(s, s.ctx.defender, "critResUp") +
-      sumMods(s, s.ctx.defender, "critResDwn") +
+      sumCritMods(s, s.ctx.attacker, "critDmUp") -
+      sumCritMods(s, s.ctx.attacker, "critDmDwn") -
+      sumCritMods(s, s.ctx.defender, "critResUp") +
+      sumCritMods(s, s.ctx.defender, "critResDwn") +
       overCritBonus(s);
     const factor = Math.max(0, 1 + pct / 100);
     const applied = roll * factor;
@@ -288,6 +361,14 @@ function stage4CombinedPercent(s) {
       s.contribute(m.key, 0, `${m.source} (ignored by this attack)`, "attacker");
       continue;
     }
+    // *"Damage of this Attack Skill is not affected by damaging modifying
+    // effects ON NEMO."* Broader than Ozymandias's clause above -- it drops
+    // his decreases as well as his increases -- and narrower than a bare
+    // `bypassModifiers`, which would take the defender's whole side with it.
+    if (s.bypass?.attacker) {
+      s.contribute(m.key, 0, `${m.source} (bypassed by this attack)`, "attacker");
+      continue;
+    }
     const v = magnitudeOf(m, isNP, s.ctx);
     // Asymmetric (component-scoped) modifiers contribute their *shared* part
     // here; the differential goes to stage 5.
@@ -300,6 +381,14 @@ function stage4CombinedPercent(s) {
   for (const m of activeMods(s, s.ctx.defender, DEFENDER_BUCKET_KEYS)) {
     if (m.key === "defUp" && s.ctx.attack?.ignoresDefUp) {
       s.contribute("defUp", 0, `${m.source} (ignored by Ignore Def)`, "defender");
+      continue;
+    }
+    // The mirror of the attacker's clause above. No content uses it today --
+    // Nemo's two Attack Skills are both `{attacker: true, defender: false}` --
+    // but a one-sided flag with only one side built is a flag that reads as
+    // symmetric and is not.
+    if (s.bypass?.defender) {
+      s.contribute(m.key, 0, `${m.source} (bypassed by this attack)`, "defender");
       continue;
     }
     // A successful Heel Attack: *"receives damage that ignores all Defensive
@@ -417,6 +506,10 @@ function stage5ComponentAmplification(s) {
 
   for (const m of activeMods(s, s.ctx.attacker, ATTACKER_BUCKET_KEYS)) {
     if (!m.component) continue;
+    if (s.bypass?.attacker) {
+      s.contribute(m.key, 0, `${m.source} (bypassed by this attack)`, "attacker");
+      continue;
+    }
     const v = magnitudeOf(m, isNP, s.ctx) * (NEGATIVE_KEYS.has(m.key) ? -1 : 1);
     if (m.component === "str") strPct += v;
     else magPct += v;
@@ -458,8 +551,9 @@ function stage7FlatAttackBonuses(s) {
     // Listed at 0 rather than skipped, for the reason stage 4 lists its own: a
     // modifier that vanishes from the breakdown is indistinguishable from one
     // that was never collected.
-    if (s.ctx.attack?.ignoresAttackerIncreases) {
-      s.contribute(m.key, 0, `${m.source} (ignored by this attack)`, "attacker");
+    if (s.ctx.attack?.ignoresAttackerIncreases || s.bypass?.attacker) {
+      const why = s.bypass?.attacker ? "bypassed by" : "ignored by";
+      s.contribute(m.key, 0, `${m.source} (${why} this attack)`, "attacker");
       continue;
     }
     const value = magnitudeOf(m, s.isNP, s.ctx);
@@ -903,13 +997,28 @@ function activeMods(s, unit, keys) {
 }
 
 /**
+ * Sum one modifier key off a unit, restricted to modifiers that apply to THIS
+ * attack's component.
+ *
+ * The crit band is the only caller, and the only place a component-scoped
+ * modifier is simply in or out. Stages 4 and 5 treat one differently -- the
+ * shared part goes to 4 and the differential to 5 -- so this filter belongs
+ * here rather than inside `activeMods`, which both of those also use.
+ *
+ * Nemo's Poseidon's Protection is the clause that needed it: *"Crit Damage of
+ * Attacks which use Base Attack (MAG)"*, against a sum that took every
+ * `critDmUp` its bearer held.
+ *
  * @param {PipelineState} s
  * @param {object|null|undefined} unit
  * @param {string} key
  * @returns {number}
  */
-function sumMods(s, unit, key) {
-  return activeMods(s, unit, new Set([key])).reduce((acc, m) => acc + magnitudeOf(m, s.isNP, s.ctx), 0);
+function sumCritMods(s, unit, key) {
+  const component = s.ctx.attack?.component ?? s.ctx.component ?? null;
+  return activeMods(s, unit, new Set([key]))
+    .filter((m) => !m.component || m.component === component)
+    .reduce((acc, m) => acc + magnitudeOf(m, s.isNP, s.ctx), 0);
 }
 
 /**

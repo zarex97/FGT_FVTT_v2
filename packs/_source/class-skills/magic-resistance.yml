@@ -21,7 +21,7 @@ description: |
   (Passive 2) Chance of being inflicted by debuffs is reduced.
 
   Also affects @effect[instakill]{Instakill} and @effect[death]{Death} UNLESS the source deals STR damage or is otherwise
-  unaffected by Magic Resistance. Erase is completely unaffected.
+  unaffected by Magic Resistance. @effect[erase]{Erase} is completely unaffected.
 passiveRules:
   # The negated rank is the skill's own rank, extended by each +, which is why
   # Magic Resistance A+ negates up to A+ and not up to A.

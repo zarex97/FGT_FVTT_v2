@@ -1,0 +1,67 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+#
+# "(Passive) Sails on the Imaginary Numbers Submersible - Storm Border" is
+# FLAVOUR with its mechanical consequence living on Zero Sail, not here: the
+# passive names the vessel and modifies no Unit. Recorded rather than invented
+# into a rule element that would do nothing.
+schema: 1
+id: nemo-voyager-of-the-storm
+name: "Voyager of the Storm"
+rank: C++
+kind: skill
+slug: voyagerOfTheStorm
+# "Cooldown: 2◈-⅔◈ Turns; if Effect 3 is applied, 3◈-⅔◈ Turns." A cooldown
+# decided by WHICH BEHAVIOUR fired, which is what `cooldown.branches` is for
+# (Summoning: Bašmu is the other user).
+cooldown:
+  branches:
+    - predicate: [{ anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }]
+      max: "3◈-⅔◈"
+    - max: "2◈-⅔◈"
+timing: { window: ownTurn }
+description: |
+  (Passive) Sails on the Imaginary Numbers Submersible - Storm Border.
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel area of himself, or
+  if Zero Sail is activated, affects all allied Units within the Storm Border. Has the following
+  effects-
+  1. Applies @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage dealt is increased by 10%; if NP, 5%.
+  2. Applies @effect[npDmUp]{NP DmUp} for ⅓◈ Turns, NP damage dealt is increased by 10%.
+  3. If Nemo is within a 'Waterside' or 'Imaginary Numbers Space' area, apply Atk Up for 1◈
+     Turns, all damage dealt is increased by 20%; if NP, 10%.
+  Cooldown: 2◈-⅔◈ Turns; if Effect 3 is applied, 3◈-⅔◈ Turns.
+targeting:
+  anchor:
+    kind: conditional
+    branches:
+      # Ruling R1: Skills ARE usable inside the Storm Border, so this branch is
+      # a live rule. Under the alternative reading of Zero Sail's restriction
+      # it could never fire -- which is the argument that settled the reading.
+      - predicate: ["self:skillActive:zeroSail"]
+        anchor: { kind: platform, platformId: platform-storm-border }
+        shape: { kind: zone }
+    otherwise:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+  # "all allied Units" includes himself -- F/GT's default, and the Skills that
+  # exclude their bearer say so explicitly.
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    # Everyone the Skill's own targeting caught. A Skill whose reach
+    # includes other Units must say per phase which of them each phase is
+    # for; defaulting is what once sent Scathach's tokens to Medea.
+    target: reuse
+    effects:
+      # 1. "all damage dealt is increased by 10%; if NP, 5%."
+      - { id: atkUp, duration: "⅓◈", magnitude: 10, npMagnitude: 5 }
+      # 2.
+      - { id: npDmUp, duration: "⅓◈", magnitude: 10 }
+      # 3. A SECOND Atk Up, not an upgrade of the first: a different magnitude
+      # and a different duration, and `atkUp` stacks by magnitude -- so a Nemo
+      # standing on Waterside hands out 30% for ⅓◈ and 20% for the rest of 1◈.
+      - id: atkUp
+        duration: "1◈"
+        magnitude: 20
+        npMagnitude: 10
+        predicate:
+          - { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }

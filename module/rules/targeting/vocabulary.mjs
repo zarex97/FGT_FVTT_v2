@@ -25,6 +25,19 @@
 /** Where a shape is placed from. */
 export const TARGET_ANCHORS = Object.freeze([
   {
+    // A targeting sentence with an "or if" in it: several `{predicate, anchor,
+    // shape}` branches and an `otherwise`. Nemo's Voyager of the Storm and
+    // Journey's Guidance both read *"all allied Units within a 2 panel area of
+    // himself, or if Zero Sail is activated, all allied Units within the Storm
+    // Border"* -- the anchor and the shape change TOGETHER, which is why this
+    // is an anchor kind and not a predicate on a shape.
+    id: "conditional",
+    label: "FGT.Anchor.conditional",
+    hint: "FGT.Anchor.conditionalHint",
+    needs: ["branches"],
+    schematic: ["..... ", ".?.?. ", "..@.. ", ".?.?. ", "....."],
+  },
+  {
     id: "self",
     label: "FGT.Anchor.self",
     hint: "FGT.Anchor.selfHint",

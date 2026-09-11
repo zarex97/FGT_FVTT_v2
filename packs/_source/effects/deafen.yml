@@ -1,0 +1,35 @@
+# Appendix A. Nemo's Triton's Conch is the only source in the reference set.
+#
+# `rules/identity.mjs#detectRangeOf` has subtracted 1 for an effect called
+# `deafen` since it was written -- "Class container first, then an explicit
+# sheet value, then Deafen" -- against a game in which nothing could apply one.
+# This file is the other half of a rule that has been half-present since
+# identity was built.
+schema: 1
+id: deafen
+name: "Deafen"
+description: "All @effect[evade]{Evade} rolls are increased by 2, MOV is reduced by 1, and Detect is reduced by 1 panel."
+polarity: debuff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules:
+  # "all Evade rolls are increased by 2" -- higher is worse, the same direction
+  # Slow's own +2 runs in.
+  - key: CheckModifier
+    check: evade
+    value: 2
+  # "MOV is reduced by 1". ADDITIVE, so it lands before Slow's halving if a
+  # Unit carries both, which is the order `MovDelta` already imposes.
+  - key: MovDelta
+    value: -1
+  # "Detect is reduced by 1 panel" has NO RULE ELEMENT, and must not have one.
+  # `detectRangeOf` applies the -1 by NAME, so a second source here would take
+  # two panels off.
+  #
+  # `DetectOverride` would be the wrong element even so: it pushes a
+  # `{scope: "detect", maximum}` CAP -- Jack's Mist reducing Detect *"to 1
+  # panel"* for everyone inside -- which would clamp Nemo's victims to 1 rather
+  # than costing them one.

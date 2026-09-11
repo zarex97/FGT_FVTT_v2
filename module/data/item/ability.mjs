@@ -172,6 +172,27 @@ function abilityCommon() {
     // the window and the DataModel dropped it on load, leaving the reaction
     // rung with nothing to offer.
     timing: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // What a reaction rung MEANS against this attack, when the attack redefines
+    // one. Nemo's Quickfire is the only holder: *"The enemy Unit Evades
+    // (instead of performing an Evade roll)"* -- the rung stays on the ladder,
+    // the defender still chooses it, and choosing it raises his dice threshold
+    // rather than avoiding the attack.
+    //
+    // Distinct from `ForbidReaction` and `evadableOnlyBy`, which remove the
+    // rung or narrow who may use it. A defender who COULD NOT evade would also
+    // not worsen the threshold, so the difference is a rule and not a nicety.
+    // WHAT this ability brings into existence, by Attribute. Read by
+    // `rules/costs.mjs#canUseAbility` against a `ForbidCreating` suppression --
+    // Nemo's Storm Border refuses *"any ability that creates a Unit/Item/object
+    // that has the 'Large' or 'Giant' Attribute"* while its passengers are
+    // inside.
+    //
+    // DECLARED rather than derived: what a summon's own content document says
+    // about itself is not reachable from the ability at gate time, and a gate
+    // that has to load another document to decide whether a button is pressable
+    // is a gate that runs on every render.
+    creates: new fields.SetField(new fields.StringField({ blank: false })),
+    reactionOverride: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // "Only the highest Rank takes effect" (§10.6): a group and what to compare.
     nonStacking: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     damage: new fields.ObjectField({ required: false, nullable: true, initial: null }),

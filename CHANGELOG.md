@@ -34,6 +34,24 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+> **Nemo is complete.** Eleven abilities, four effect definitions, and the reference set's
+> acceptance test for **a pocket dimension** — a level with no ground footprint at all, entered
+> on a 1d20, held on a clock, and left at a distance that grows with the time spent inside.
+> **Script count: 0.**
+>
+> Six of his thirteen clauses needed mechanisms that did not exist: a `terrain:` predicate facet
+> (`annotateTerrain` had written `u.terrain` since terrain shipped and **nothing had ever read
+> it**), the band→pipeline plumbing (stage 6 is *named after* Triton's Conch and had no input),
+> a two-sided `bypassModifiers`, a `diceCount` damage formula, a reaction rung that **answers
+> differently** rather than being removed, and `ForbidCreating`.
+>
+> The live pass found **ten** defects with the unit suite green at 3,676 throughout, **six of
+> them in shipped machinery** — `CritModifier` silently dropping its `component`, `footprint:
+> null` compiling to a 3×3 hull, terrain missing from the collection-time option set, and a flat
+> base amount that could only be used by an attack which also discarded both sides of the
+> pipeline. See Ch. 45.
+
+
 > **Quetzalcoatl is complete.** Twelve entries, **three Noble Phantasms**, and the reference set's
 > acceptance test for **the field**: almost everything on her sheet is about the panels
 > themselves. Ch. 42, 20 and 43 had predicted six of the seven mechanisms she needed and written

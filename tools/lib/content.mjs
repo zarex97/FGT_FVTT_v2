@@ -60,7 +60,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion", "TargetabilityModifier",
   // Mannanán — the automatic Counter, the rung it trades away, the buff-clock
   // extension and the spend she is OFFERED at a timing window.
-  "AutoCounter", "ForbidReaction", "DurationExtension", "OptionalCost",
+  "AutoCounter", "ForbidReaction", "ForbidCreating", "DurationExtension", "OptionalCost",
   // Kingprotea — how hard her buffs are to take off (`rules/removal.mjs`).
   "BuffRemovalResist",
   "AttackerPropertyTier",
@@ -713,6 +713,40 @@ function predicateOptionsExist(doc, path, problems) {
         `${path}: ${site.where} names "${option}", which no predicate facet admits. `
         + "An option rollOptionsFor cannot emit is never in the set, so the clause is "
         + "permanently false and the rule silently never fires.",
+      );
+    }
+  }
+  terrainTypesExist(doc, path, problems);
+}
+
+/**
+ * Every `terrain:` option names a type the catalogue actually has.
+ *
+ * The facet is declared `registry`, which is shape-checked and never errors --
+ * correct for `attribute` and `contentId`, whose vocabularies are still being
+ * written and legitimately carry forward references. **Terrain is not like
+ * that.** `rules/terrain.mjs`'s TERRAIN is a closed table in code; a type it
+ * does not have cannot appear later because a Servant gets authored, and
+ * `terrainAt` will simply never return it.
+ *
+ * So `self:terrain:watersyde` passes the shape check, emits nothing, matches
+ * nothing, and silently makes its clause permanently false -- which is this
+ * project's dominant defect wearing a spelling mistake. Four of Nemo's
+ * thirteen clauses are gated on this facet and every one of them would fail
+ * silently.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function terrainTypesExist(doc, path, problems) {
+  for (const site of predicateSitesIn(doc)) {
+    for (const option of site.options) {
+      const type = /^(?:not:)?(?:self|target):terrain:(.+)$/.exec(option)?.[1];
+      if (type === undefined || type in TERRAIN) continue;
+      problems.push(
+        `${path}: ${site.where} names terrain "${type}", which rules/terrain.mjs does not `
+        + `define. Known types: ${Object.keys(TERRAIN).sort().join(", ")}.`,
       );
     }
   }
@@ -1531,7 +1565,14 @@ function actorSystem(doc) {
     // Platform fields (Ch. 20). Absent from every other actor type and cheap
     // to carry; without them a platform compiles into an actor that knows its
     // Health and nothing about who it shields or how it moves.
-    footprint: doc.footprint ?? undefined,
+    // `=== null` FIRST, because `?? undefined` collapses an authored null into
+    // "field absent" and the schema then applies its 3x3 initial. The Storm
+    // Border states `footprint: null` deliberately -- Ch. 20 §20.6, *"it is not
+    // on the board at all while it is submerged"* -- and it arrived in a live
+    // world as a 3x3 hull, which is a submarine-shaped hole in the middle of
+    // the board. Making the schema field nullable was necessary and not
+    // sufficient; this is the other half.
+    footprint: doc.footprint === null ? null : (doc.footprint ?? undefined),
     upkeep: doc.upkeep ?? null,
     countsTowardBudget: doc.countsTowardBudget ?? undefined,
     actsOncePerTurn: Boolean(doc.actsOncePerTurn),
@@ -1590,6 +1631,11 @@ function actorSystem(doc) {
     ownerId: doc.ownerId ?? null,
     level: doc.level ?? undefined,
     crossLevel: doc.crossLevel ?? undefined,
+    // A pocket dimension's own rules (Ch. 20 §20.6). An authored field absent
+    // from this allowlist compiles to its schema default -- null -- so the
+    // Storm Border would have arrived as an ordinary platform with no entry
+    // roll, no clock and no way out.
+    dimension: doc.dimension ?? null,
     contentId: doc.id,
     contentVersion: doc.contentVersion ?? null,
     trueName: doc.trueName ?? doc.name,
@@ -1757,6 +1803,14 @@ function itemSystem(doc) {
     allySelfBypassesResistance: Boolean(doc.allySelfBypassesResistance),
     nonStacking: doc.nonStacking ?? null,
     damage: doc.damage ?? null,
+    // What a reaction rung means against this attack (Nemo's Quickfire). An
+    // authored field absent from this allowlist compiles to its schema default,
+    // which for an ObjectField is null -- so the ladder would have found no
+    // override and rolled an Evade the sheet says is not rolled.
+    reactionOverride: doc.reactionOverride ?? null,
+    // What this ability creates, by Attribute -- what a `ForbidCreating`
+    // suppression is matched against.
+    creates: doc.creates ?? [],
     // A second, unconditional resolution the same ability declares -- Xiuhcoatl's
     // splash. Compiled whole, the way `damage` is, because it carries its own
     // targeting, damage and riders rather than patching the primary's.

@@ -90,10 +90,38 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
         str: new fields.NumberField({ required: true, integer: true, initial: 0 }),
         mag: new fields.NumberField({ required: true, integer: true, initial: 0 }),
       }),
+      // NULLABLE, because a pocket dimension has no ground presence at all.
+      // Ch. 20 §20.6 says so of the Storm Border outright -- *"it is not on the
+      // board at all while it is submerged"* -- and a non-nullable SchemaField
+      // turned an authored `footprint: null` into the 3x3 default, which is a
+      // submarine-shaped hole in the middle of the board.
       footprint: new fields.SchemaField({
         w: new fields.NumberField({ integer: true, initial: 3, min: 1 }),
         h: new fields.NumberField({ integer: true, initial: 3, min: 1 }),
-      }),
+      }, { required: false, nullable: true, initial: { w: 3, h: 3 } }),
+
+      /**
+       * A POCKET DIMENSION this platform is, rather than a place on the board
+       * (Ch. 20 §20.6). Nemo's Storm Border is the only one.
+       *
+       * Untyped for the same reason rule elements are: the content validator
+       * checks its shape at build time, and a rigid schema here would refuse a
+       * dimension a module introduces. It carries who may enter and how, the
+       * clock, where it puts everybody on the way out, what its occupants may
+       * not do, and what happens if its owner dies inside it.
+       */
+      dimension: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+      /**
+       * The panel a dimension submerged FROM, stamped at entry.
+       *
+       * Its travel allowance is measured from here, and a submerged Unit is on
+       * the dimension's own Scene Level rather than in the ground board's unit
+       * list -- so there is no live panel to fall back on. Not authored; written
+       * once by `engine/dimension.mjs#enterDimension` and read once on the way
+       * out.
+       */
+      submergedFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       capacity: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       /** The Servant that created it, whose effects are reversed on destruction. */
       ownerId: new fields.StringField({ required: false, nullable: true, initial: null }),

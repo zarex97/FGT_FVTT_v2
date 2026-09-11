@@ -456,3 +456,31 @@ describe("phase", () => {
     expect(off.has("self:phase:night")).toBe(false);
   });
 });
+
+/* ========================================================================== */
+/*  The terrain facet — Nemo's Waterside gating                               */
+/* ========================================================================== */
+
+describe("the terrain facet (Nemo's Waterside gating)", () => {
+  it("emits one option per terrain type the unit is standing in", () => {
+    const out = optionsFor(
+      unit({ terrain: ["waterside", "city"] }),
+      unit({ id: "d", terrain: ["imaginaryNumbers"] }),
+    );
+    expect(out).toContain("self:terrain:waterside");
+    expect(out).toContain("self:terrain:city");
+    expect(out).toContain("target:terrain:imaginaryNumbers");
+  });
+
+  it("emits nothing for a unit on open ground", () => {
+    const out = optionsFor(unit({ terrain: [] }), unit({ id: "d" }));
+    expect(out.some((o) => o.startsWith("self:terrain:"))).toBe(false);
+  });
+
+  it("emits only options the facet vocabulary declares", () => {
+    // `rollOptionsFor` emits through the facet table and therefore CANNOT
+    // produce an undeclared option; this is that guarantee, for the new facet.
+    expect(isEmittableOption("self:terrain:waterside")).toBe(true);
+    expect(isEmittableOption("target:terrain:imaginaryNumbers")).toBe(true);
+  });
+});

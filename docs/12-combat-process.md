@@ -398,6 +398,49 @@ Skips to Step 3. Chosen when the defender wants to preserve Luck/Agility, or whe
 
 ---
 
+## 12.4a An attack that redefines a rung — **built 2026-09-11**
+
+`ForbidReaction` removes a rung from the ladder and `evadableOnlyBy` narrows who may use it. One
+ability in the corpus does neither: it leaves the rung on the ladder, lets the defender choose it
+freely, and changes **what choosing it means**.
+
+> Nemo's *Quickfire*: *"Plus 1 if — 1. The enemy Unit Evades **(instead of performing an Evade
+> roll)**."*
+
+Choosing Evade against Quickfire does not roll and does not avoid the attack. It raises Nemo's
+dice threshold by one, and the attack proceeds.
+
+```yaml
+reactionOverride:
+  evade: { kind: noRoll, emits: "target:reaction:evade" }
+```
+
+**The distinction is a rule, not a nicety.** A defender who *could not* evade — one under
+`ForbidReaction`, or facing an `evadableOnlyBy` they cannot satisfy — also could not worsen the
+threshold. The sheet pays Nemo for a choice the defender is free to decline, so the rung has to
+stay offered.
+
+### `target:reaction:` — the ladder's outcome as an option
+
+The override's other half is a new facet (Ch. 24 §24.4), `closed` over `REACTIONS`
+(`evade`, `block`, `counter`, `none`). `attackFacts` carries `state.reaction`, which is null until
+the ladder resolves it — so a clause reading it is by construction asking about a *closed* ladder.
+
+`none` is emitted as a real answer rather than left absent, and Quickfire needs that too:
+*"if the enemy Unit does not perform a Counter on Nemo, reduce the Cooldown of Quickfire by 1◈"*
+is a clause about an absence, and `not:target:reaction:counter` cannot be distinguished from
+"the ladder has not run yet" unless something says what *did* happen.
+
+### `when: afterProcess` — a phase the ladder has to close first
+
+That refund could not be a `cooldown` phase as they existed: those are **caster** phases
+(`CASTER_PHASES`, `engine/skill-use.mjs`) and run at declaration, several rungs too early. At
+declaration nobody has decided whether to counter, so the predicate would read an option set that
+could never contain the answer and the refund would be paid every single time.
+
+`runAfterProcessPhases` runs them once the Process is complete and **before** `combatProcessEnd`
+fires, so a handler on that event sees the refunded clock rather than the old one.
+
 ## 12.5 Step 3 — the Damage Step
 
 Full pipeline in Chapter 13. Here, its boundaries, because a large number of effects trigger

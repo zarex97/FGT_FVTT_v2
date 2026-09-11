@@ -1,0 +1,50 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+#
+# The first content to read the `terrain:` predicate facet, and the reason it
+# was built: *"when Nemo is within a 'Waterside' or 'Imaginary Numbers Space'
+# area"* could not be written at all before it.
+schema: 1
+id: nemo-poseidons-protection
+name: "Poseidon's Protection"
+rank: B
+kind: skill
+slug: poseidonsProtection
+passive: true
+description: |
+  (Passive) Has the following effects-
+  1. Crit Damage of Attacks which use Base Attack (MAG) is increased by 10%. Does not affect NP.
+  2. When Nemo is within a 'Waterside' or 'Imaginary Numbers Space' area, all damage taken is
+     reduced by 50; if NP, 100.
+passiveRules:
+  # Clause 1. `component: mag` is load-bearing: Quickfire and the Noble
+  # Phantasm both swing STR, so two of his four damage sources get nothing from
+  # this, and that is correct rather than an oversight.
+  #
+  # Crit-damage modifiers act at stage 2, on the 5d10 roll only -- never on the
+  # attack -- which is Appendix A's rule for the whole family.
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critDmUp
+    value: 10
+    component: mag
+    # "Does not affect NP." Stated rather than left to the default. Appendix A
+    # already excludes crit-damage effects from Noble Phantasms "unless
+    # stated", but a reader checking this clause against the sheet should find
+    # the sheet's own words here and not have to know what the catalogue
+    # assumes.
+    predicate: ["not:attack:kind:np"]
+
+  # Clause 2. A flat reduction at stage 12, and the ONLY one in the corpus that
+  # is LARGER against a Noble Phantasm -- every other `npValue` in the
+  # catalogue is the reduced magnitude, not the raised one.
+  #
+  # Written as ONE element carrying both figures rather than as two predicated
+  # elements, so a single attack can never collect both. Two elements would
+  # each be true against an NP on Waterside and stack to 150.
+  - key: DamageNegation
+    mode: flat
+    value: 50
+    npValue: 100
+    includesNP: true
+    predicate:
+      - { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }

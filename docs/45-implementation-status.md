@@ -2553,6 +2553,354 @@ the general log.
 
 ---
 
+### Nemo — in progress
+
+The eighteenth Servant, and the first with a **pocket dimension**. Design:
+`docs/superpowers/specs/2026-09-11-nemo-design.md`; plan:
+`docs/superpowers/plans/2026-09-11-nemo.md`.
+
+**Commit 1 — the statline, two class skills, and a Normal Attack that rides a debuff.**
+
+Authored: `packs/_source/servants/nemo.yml`. Every figure his sheet states is one
+`domain/tables.mjs` independently derives — STR C → 100, MAG A → 200, END B → 1250, Divinity A
+→ +50, Riding A+ → MOV +5 — so nothing is an override and `test/unit/nemo.test.mjs` holds the
+agreement rather than restating the numbers. Two findings while writing it:
+
+- **`eastIndia` is a distinct node from `india`** in `REGION_ADJACENCY`. His sheet says *"East
+  India"*, and the two regions have different neighbours, so a war Region bonus would have gone
+  to the wrong Servants.
+- **Nemo adds nothing to Riding.** His sheet spends five lines restating Double Move, Riding
+  Attack, Passenger Seat and the not-a-buff MOV Up — including the arithmetic for a Riding
+  Attack made after a Move — and every one of them was already built and already shared. The
+  longest block on the sheet costs one line of content, because `class-riding` was written
+  parameterized rather than copied.
+
+The Normal Attack's *"10% chance of inflicting Slow"* lives in the **Servant's own `rules:`**,
+not in an ability file: the sheet states it as a Note under the statline with no name, no rank
+and no cooldown, and authoring it as a Skill would put a row on his sheet that his sheet does
+not have. Pale Rider's `RelationshipProxy` sits there for the same reason.
+
+**Commit 2 — a predicate can ask what a Unit is standing in.**
+
+`rules/terrain.mjs#annotateTerrain` has written `u.terrain` onto every unit in the snapshot
+since terrain shipped, and **nothing had ever read it.** The facet vocabulary held 36 facets and
+not one could ask what a Unit was standing in — so Nemo's *"when Nemo is within a 'Waterside' or
+'Imaginary Numbers Space' area"*, which gates four of his thirteen clauses, was unsayable. The
+37th facet is pure exposure: nothing new computes the answer.
+
+Added `imaginaryNumbers` to the TERRAIN catalogue, carrying **no standing effects** — the empty
+list is its finished state, as it is for `sunlight`/`darkness`/`indoors`. It is the first terrain
+type whose entire purpose is to be *asked about* rather than to modify whoever stands in it,
+which is why terrain needed a predicate facet before it could exist at all.
+
+**One thing tightened beyond the plan.** The facet is `registry`, which is shape-checked and
+never errors — right for `attribute` and `contentId`, whose vocabularies carry legitimate forward
+references to Servants not yet built. Terrain is not like that: `TERRAIN` is a closed table in
+code, and a type it lacks cannot arrive later. So `self:terrain:watersyde` would have passed the
+shape check, emitted nothing, matched nothing, and made its clause **permanently false** — this
+project's dominant defect wearing a spelling mistake, across four clauses of one Servant.
+`tools/lib/content.mjs` now carries `terrainTypesExist` beside `predicateOptionsExist` and
+errors on it.
+
+**Commit 3 — Poseidon's Protection, and a reduction that grows against a Noble Phantasm.**
+
+His first authored Skill, and the terrain facet's first reader. Two findings:
+
+- **`DamageNegation` could not say `npValue`.** Clause 2 is *"all damage taken is reduced by 50;
+  **if NP, 100**"* — the only flat reduction in the catalogue that gets **larger** against the
+  thing it defends from. Every other `npValue` in the corpus is the *reduced* magnitude, and
+  `npDiceDoubled` (the dice-mode equivalent) cannot express it because there are no dice. Added
+  to the executor, to `rollNegation`'s flat branch, and to the authoring descriptor; it falls
+  back to the base figure when unstated, which is every other flat negation.
+- **The facet equivalence test asserted two-way equality.** `test/unit/facets.test.mjs`'s
+  *"rejects nothing the old list accepted"* compared the generated table against a fixture of the
+  37 pre-swap regexes with `toBe(oldAccepts(o))` — stronger than its own title, and a guard that
+  fails on **every new facet**. `terrain:` was the first to trip it. The guard exists to prove
+  the swap to a generated table lost nothing; it was never meant to freeze a vocabulary
+  `facets.mjs` itself describes as still being written. Made one-directional, with a second test
+  taking over the half the equality was really providing: an option the old regexes refused must
+  resolve to a **declared facet**, so a typo still fails and a new facet does not.
+
+Clause 1 is component-scoped — *"Crit Damage of Attacks which use Base Attack (MAG)"* — so two of
+his four damage sources (Quickfire and the Noble Phantasm, both STR) get nothing from it.
+
+**Commit 4 - the band reaches stage 6, and Triton's Conch.**
+
+Stage 6 of the damage pipeline is called *"banded AoE. Nemo's Triton's Conch"*, reads
+`ctx.bandMultiplier`, and **nothing in the repository has ever written that field** - right and
+inert since the pipeline was written, and named after the ability that would eventually need it.
+
+The band index existed all along. `targeting/shapes.mjs`'s `banded` case builds a panel-to-band
+map and `toTargeted` hands each target its index; the AoE fan-out then reduced every resolved
+target to its `unitId` alone and dropped it. The fan-out now carries a `unitId -> band` map on
+the attack spec.
+
+**The band decides the effect chance too**, which is the half the design nearly missed:
+*"if the Unit was 2 panels away from Nemo, the chance of being inflicted with Deafen is 50%
+instead."* `applyDeclaredEffects` reads the same map rather than re-deriving the ring from the
+distance - the two would agree today, but they are two answers to a question the targeting pass
+already answered.
+
+Two findings while authoring `Deafen`:
+
+- **It needs no Detect rule element, and must not have one.** `identity.mjs#detectRangeOf` has
+  subtracted a panel for an effect called `deafen` since it was written, against a game where
+  nothing could apply one. A `DetectOverride` beside it would double-count - and would be the
+  wrong element anyway, since that one pushes a `{scope: "detect", maximum}` **cap** (Jack's
+  Mist) rather than a delta.
+- **Appendix A's `Deafen(Y)` and Nemo's sheet disagree.** The catalogue says *"own Evade rolls
+  +Y; enemies evading this unit's attacks roll -Y"*; the sheet says *"Evade rolls +2, MOV -1,
+  Detect -1"*. The engine had already sided with the sheet - the catalogue row has no Detect
+  clause for `detectRangeOf`'s hard-wired -1 to have come from. Authored as the sheet states it,
+  with the discrepancy recorded in Appendix A rather than the row silently rewritten.
+
+**Commit 5 - bypassModifiers takes a side, and Barrel Bombing.**
+
+`bypassModifiers` was all-or-nothing, skipping stages 2-15 for both combatants. That is right for
+Fixed damage, whose own definition is *"not affected by any damage modifying effect on **both**
+the AU and DU"*. It is wrong for Nemo, who says something narrower **twice** - Quickfire and
+Barrel Bombing are each *"not affected by damaging modifying effects **on Nemo**"* - so authoring
+either with the boolean would have silently handed him a defence-piercing attack his sheet never
+grants. Ch. 36 SS36.6 predicted one user for the two-sided form; there are two.
+
+Every stage still runs: a one-sided bypass zeroes that side's modifiers where they are collected
+and names them in the breakdown as bypassed, which is the rule `Ignore Def` and
+`ignoresAttackerIncreases` already follow. The defender half is built too, though no content uses
+it - a one-sided flag with only one side implemented reads as symmetric and is not.
+
+A bare `true` keeps its meaning, and the whole suite passed with **no damage test edited**.
+
+**Commit 6 - a damage formula that counts dice over a threshold.**
+
+`module/rules/damage/dice-count.mjs`, pure and rolling nothing: the caller evaluates the dice and
+passes the faces in, so the whole shape is testable without a world and a logged roll replays to
+the same number.
+
+The counting is trivial. The **threshold** is why this is a file rather than a branch - it moves
+by up to four points, for reasons spread across the board state, the target's status effects,
+both Units' Agility, and a reaction that had not happened when the attack was declared. So
+`thresholdFor` returns every modifier it considered, fired or not, and `thresholdModifiers`
+translates them into the roll log's `{source, delta}` shape with each predicate rendered as prose
+by `explain`. An unfired modifier is recorded at `delta: 0`: *"why was it 5 and not 4?"* is
+exactly the question this ability provokes, and a log that omits the near-misses cannot answer it.
+
+Two things the build insisted on, both correctly. The `diceCount` branch has to be checked
+**before** `isFixedDamage` - Quickfire is both, and reading the fixed branch first takes
+`spec.fixedValue`, finds nothing and deals zero. And `test/unit/card-visibility.test.mjs` scans
+the pipeline source for `s.contribute(` lines that do not name a side; a multi-line call failed
+it, which is a guard doing its job.
+
+No new `LOG_KINDS` entry: `rules/roll-log.mjs#record` is generic and already takes
+`{source, delta}` modifiers, and Appendix C had registered `quickfire` (`6d6`, count dice at or
+above threshold) since the registry was written.
+
+**Commit 7 - Quickfire, and a reaction rung that answers differently.**
+
+Three mechanisms, and the second and third were both found by the first refusing to compile.
+
+1. **`reactionOverride`.** *"The enemy Unit Evades (instead of performing an Evade roll)"* - the
+   rung stays on the ladder, the defender chooses it freely, and choosing it raises Nemo's
+   threshold instead of avoiding the attack. Not `ForbidReaction`, which removes the rung: a
+   defender who *could not* evade also could not worsen the threshold, so the difference is a
+   rule. The field needed the schema, the compiler allowlist AND `AUTHORED_ITEM_KEYS` - all three,
+   or it compiles to `null` and the ladder rolls an Evade the sheet says is not rolled.
+2. **A `reaction` facet.** `npm run validate:content` **refused the ability outright**:
+   *"names `defender:reaction:evade`, which no predicate facet admits ... the clause is
+   permanently false and the rule silently never fires."* Exactly the guard doing its job on
+   exactly the defect it was built for. Added `REACTIONS` to `domain/enums.mjs` and a `closed`
+   facet over it, spelled `target:` because that is what the defender is called throughout the
+   vocabulary. `none` is emitted as a real answer, because *"does not perform a Counter"* is a
+   clause about an absence.
+3. **`when: afterProcess`.** The cooldown refund could not be an ordinary `cooldown` phase: those
+   are caster phases and run at **declaration**, before anybody has decided whether to counter, so
+   the refund would have been paid every time. `runAfterProcessPhases` runs once the Process
+   closes and before `combatProcessEnd`, so a handler on that event sees the refunded clock.
+
+The dice are rolled in `applyDamage` beside every other roll the pipeline consumes, and the
+threshold's four modifiers - **fired or not** - reach the roll log before the total does.
+
+**Commit 8 - Indomitable, and an option nothing could name.**
+
+A cooldown paid **twice** from one press: 1 once now, and 1 more if the Guts it grants ever
+fires. The sheet states the order outright - *"FIRST reduce Nemo's NP Cooldown ... THEN apply
+Guts"* - and it is load-bearing, because collapsing the two into one figure would hide that the
+second reduction can land many Turns later or never.
+
+**The finding: `revival:source:<id>` was emitted and undeclared.** `resolveDefeat` has fired
+`unitRevived` with that option in the set since revival priorities were built, and the facet
+vocabulary had no shape admitting it - so any predicate naming it would have **failed the build**,
+and nothing had ever tried. Heracles's `Indomitable` is the reason the gap survived: his sheet
+says *"revived through **any** effect"*, so it is authored `automatic: true` with no predicate and
+never asked. Nemo's says *"due to Guts"* and does.
+
+Nemo has exactly one revival source today, so the predicate is currently equivalent to Heracles's
+unconditional form. Written as the sheet states it anyway, so that granting him a second source
+later does not silently widen the clause.
+
+**Also repaired: a second cooldown grammar I had just introduced.** Commit 7's
+`runAfterProcessPhases` read `change.ability`, a spelling `selectAbilities` does not implement -
+so Quickfire's refund would have selected no ability and reduced nothing. It now goes through
+`cooldownChanges`, which owns that vocabulary (`scope`, `category`, `abilityIds`,
+`ticks`/`direction`/`set`, `perStack`, `excludeSelf`), and Quickfire is re-authored in it. Two
+spellings of one field is how a clause ends up matching nothing while reading perfectly.
+
+No new scheduler action was needed: `CooldownDelta` with `scope: "np"` already did exactly this.
+
+**Commits 9-11 - the conditional anchor, the two support Skills, and the dimension.**
+
+Committed together because the two Skills predicate on `self:skillActive:zeroSail`, and
+`test/unit/skill-references.test.mjs` correctly refuses a slug no authored document has. The
+plan had them three commits apart; the build would have been red in between.
+
+**The conditional anchor.** Both support Skills read *"all allied Units within a 2 panel area of
+himself, **or if Zero Sail is activated**, all allied Units within the Storm Border"* - one
+sentence, two geometries, and the anchor and the shape change **together**, which is why it is an
+anchor kind rather than a predicate on a shape. Branches are tested in order, first match wins,
+the same precedence `damage.branches` uses. A `conditional` reaching `resolveAnchor` now throws:
+it means a caller resolved an anchor without going through `resolveTargets`, so the branch was
+never chosen and the shape about to be expanded is the wrong one.
+
+Three findings while authoring the Skills, each from a guard:
+
+- **`target: each` is not a phase target.** The executor implements `self` and `reuse`; `each`
+  reads perfectly and matches nothing.
+- **A Skill reaching other Units must state a target per phase.** `phase-targets.test.mjs` says
+  so as a rule rather than as one file - defaulting is what once sent Scathach's tokens to Medea.
+- **`footprint` was a non-nullable SchemaField.** Ch. 20 SS20.6 says the Storm Border has none
+  *"it is not on the board at all"* - and an authored `footprint: null` became the 3x3 default,
+  which is a submarine-shaped hole in the middle of the board.
+
+**The Storm Border lost the statistics it was never granted** (R2): 3000 Health, MOV 8, Range 6,
+Base Attack 220, a 5x3 footprint, all taken from SS20.5's general platform model before Nemo's
+sheet was read against it.
+
+**`enterDimension` is its own phase kind, not a flag on `summonPlatform`.** That executor passes
+`platform.system.footprint.w` to `getTokenDocument`; with a null footprint it would crash or fall
+back to 1x1 and put a submarine token on the board, which is the one thing a pocket dimension
+must not do.
+
+**`ForbidCreating` and `creates`.** The restriction needed something to test against, and what a
+summon's own document says about itself is not reachable from the ability at gate time - a gate
+that loads another document to decide whether a button is pressable runs on every render. So
+abilities declare what they make: `semiramis-summoning-basmu` and the Hanging Gardens are
+`[large]`, `quetz-winged-serpent` is `[giant]`, Zero Sail is `[large]`. Refused in
+`canUseAbility`, so the button greys out with a reason.
+
+**`erase`, and a third terminal kind.** `registerDefeat` has exempted `cause === "erase"` from the
+Grail counter since the counter was built, and **nothing could produce that cause**. Stated as
+its own terminal kind rather than relying on `defeat` being handed an effect whose id happens to
+be the string "erase": a rule that works because two unrelated names coincide breaks silently
+when one is renamed. Authoring it also made three long-standing warnings actionable - Penthesilea,
+Magic Resistance and `Debuff Immune` all carve out an Erase that until now did not exist.
+
+**Commits 12-13 - the clock, the exit offer, and Nemo's last Luck Check.**
+
+*"At the end of **any** Turn, Nemo can choose to resurface"* - any Turn, not only his own, so
+`runDimensionClock` sits on the **global** boundary rather than inside the active faction's
+block. The forced exit at 2◈ fires from the same place, and still lets him choose *where*:
+nothing in the sheet hands that choice to anybody else, and the cap is on the time rather than
+the travel. Both raise `fgtDimensionExitOffer` rather than opening the canvas layer directly -
+this is layer 3, the placement layer is layer 4, and the GM client running the scheduler is not
+necessarily the client that answers.
+
+The Luck Check is wired into `resolveDefeatOf` **before** the revival chain, and is deliberately
+**not** a `RevivalSource`. *"He performs a Luck Check before dying ... (but he is still
+defeated)"* - registered as a revival it would compete with his own Guts for priority and, on a
+success, leave him alive, which the sheet denies in the same sentence that grants the check.
+
+**Commit 14 - Great Ram Nautilus, and Aim finally has a definition.**
+
+Nemo is content-complete: eleven abilities, four effect definitions.
+
+`Aim` was catalogued in Appendix A SS A.3 and never built. `rules/checks.mjs#evade` has taken an
+`attackHasAim` parameter all along, and `dodge.yml` has declared `beatenBy: [aim]` since it was
+authored - so the Dodge/Aim/Substitution ladder had one rung missing and the two that existed
+could never meet. The effect carries **no rule elements**, which is its finished state: `Aim` is
+a property of the ATTACK, and `buildAttackSpec` now reads it off its bearer exactly as
+`rollEvade` reads the defender's `dodge`. A rule element would be a second path to one fact.
+
+`blockedBy: [substitution]` is deliberately absent and commented as such: `substitution` is not
+an authored effect, the build correctly refuses a reference to an id no document provides, and
+the relationship is already enforced elsewhere - stage 0 of the pipeline halts on a defender
+holding it before anything about the attack is consulted.
+
+The NP's phase order is the sheet's own and load-bearing: *"FIRST apply the following effects to
+Nemo ... THEN, deals 4x damage."* All three are NP-damage buffs on the Unit about to swing an NP,
+so a damage phase ahead of them would collect none of them.
+
+### Nemo is complete - and ten defects, six of them in shipped machinery
+
+The live pass in `fgt2026` found **ten** defects. The unit suite was green at 3,676 tests
+throughout, and six of the ten were in code that had shipped before this Servant existed.
+
+**In shipped machinery.**
+
+1. **`CritModifier` dropped `component`.** The executor pushed `{key, value, predicate, source}`
+   and nothing else, so Poseidon's *"Crit Damage of Attacks which use Base Attack (MAG)"* reached
+   no reader and raised his two **STR** attacks as well. The YAML was right and inert.
+2. **Stage 2 could not have honoured it anyway.** `sumMods` took every `critDmUp` its bearer held
+   regardless of component, so carrying the field through was necessary and not sufficient.
+   `sumCritMods` replaces it; the crit band is the only place a component-scoped modifier is
+   simply in or out, since stages 4 and 5 split one deliberately.
+3. **`footprint: null` compiled to a 3x3 hull.** `doc.footprint ?? undefined` collapsed an
+   authored null into "field absent", and the schema's initial won. Making the schema field
+   nullable was half the fix; distinguishing null from absent in the compiler was the other.
+   A submarine-shaped hole in the middle of the board.
+4. **`@target.agility.value` does not resolve.** The unit **snapshot** flattens Agility to a
+   number; `.value` is the Actor document's spelling, which is what Ch. 36 SS36.6's sketch used.
+   `predicate.mjs` threw on the comparison the first time Quickfire was aimed. `dice-count.test.mjs`
+   had hand-copied the formula and agreed with itself, so it now **reads the authored file**.
+5. **Terrain was absent from the collection-time option set.** `contributionsOf` runs per-actor
+   inside `snapshotUnit`, before the board's `annotateTerrain` pass exists - so Poseidon's
+   *"reduced by 50; if NP, 100"* was evaluated against options that could not contain the answer
+   and was dropped for good. It cannot simply be deferred like `self:inHomeBase`: this is a
+   `direction: taken` clause, and in the damage pipeline `self:` is the **attacker**, so a
+   deferred `self:terrain:waterside` would ask whether whoever is hitting Nemo is standing in
+   water - and `rollNegation` does not test predicates at all, so it would always apply. Terrain
+   is threaded into the projection and the pass is re-run for the few units standing in any.
+6. **A flat base amount was gated on "Fixed damage".** Those are different things: *Fixed damage*
+   is a defined term about **modifiers** (both sides), and `base.fixedValue` says where the number
+   comes from. Barrel Bombing is *"150 Fire damage"* with a **one-sided** exemption, and authored
+   correctly it dealt **zero** - stage 1 fell through to a `sources` list it does not have.
+
+**In this Servant's own new code**, all four in the dimension and all four fatal to it:
+
+7. `dimension.mjs` imported `applyBatch` from `io.mjs`, which does not export it - Zero Sail threw
+   on use. It is a private helper in `attack.mjs`, and that file already imports this one, so the
+   wrapper is duplicated rather than closing a cycle.
+8. `enterDimension` looked for an existing **world** actor; the platform lives in a **pack**, so
+   the Skill silently did nothing in a fresh world. It now creates one the way `summonPlatform`
+   does.
+9. `submergedFrom` was read and never written, so the travel allowance was measured from the
+   destination - making every placement trivially legal.
+10. `resurface` identified its occupants by `platformContentId`, which `annotatePlatforms` derives
+    from **footprint overlap**. A dimension has no footprint by construction, so it marked nobody
+    aboard and moved an empty list. Occupants are the tokens on the dimension's **Scene Level**,
+    which is what `moveToLevel` wrote at entry.
+
+**What the live board showed, clause by clause.** Rider - Chaotic Neutral - East India, Greece;
+1250 Health; C/B/C/A/A; BA 100/200; MOV 6; Range 3; Sustainability 2◈; Normal Attack **fixed
+component MAG**, element Water, with the 10% Slow rider on the Servant's own `rules`. Divinity's
+**+50 at stage 7** in the breakdown. Poseidon's crit clause collected with its NP exclusion, and
+its reduction reading **-50 against a Skill and -100 against a Noble Phantasm** - the only flat
+reduction in the catalogue that grows against the thing it defends from. Triton's Conch at
+**239 adjacent and 113 at two panels** (210 x 1.5 and x 0.5, both before Divinity's flat +50).
+Quickfire's threshold landing on **3** against a slower target at Range 2, with all four modifiers
+reported and two of them unfired. Barrel Bombing's 150 becoming **90** through the defender's Def
+Up while Divinity is named as bypassed. The NP at **402**, and **930** against a `Large` target -
+exactly 2.5x on the damage above the flat, at stage 3. Journey's Guidance resolving its
+conditional anchor's ground branch to Nemo and his ally. And Zero Sail end to end: the
+**"The Storm Border" Scene Level** created, Nemo and his chosen ally aboard, **both enemy 1d20
+rolls made and reported** (13 and 7, both refused at 18+), `ForbidCreating` refusing a second
+Zero Sail from inside the first, a resurface allowance of **5 panels after 1◈** - the sheet's own
+worked example - a 9-panel destination refused as `illegalPlacement`, and both occupants moved.
+
+**Nemo is complete**: eleven abilities, four effect definitions, six engine mechanisms. (`deafen`, `aim`, `indomited`, `erase`) and
+five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
+`bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
+
+---
+
 ### Asterios and Karna — and the argument for live testing, made twice
 
 Both were on the "authored" list before this pass. Asterios had all five abilities and Karna had
