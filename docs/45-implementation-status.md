@@ -2670,7 +2670,31 @@ it - a one-sided flag with only one side implemented reads as symmetric and is n
 
 A bare `true` keeps its meaning, and the whole suite passed with **no damage test edited**.
 
-**Still open:** six Skills, three effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
+**Commit 6 - a damage formula that counts dice over a threshold.**
+
+`module/rules/damage/dice-count.mjs`, pure and rolling nothing: the caller evaluates the dice and
+passes the faces in, so the whole shape is testable without a world and a logged roll replays to
+the same number.
+
+The counting is trivial. The **threshold** is why this is a file rather than a branch - it moves
+by up to four points, for reasons spread across the board state, the target's status effects,
+both Units' Agility, and a reaction that had not happened when the attack was declared. So
+`thresholdFor` returns every modifier it considered, fired or not, and `thresholdModifiers`
+translates them into the roll log's `{source, delta}` shape with each predicate rendered as prose
+by `explain`. An unfired modifier is recorded at `delta: 0`: *"why was it 5 and not 4?"* is
+exactly the question this ability provokes, and a log that omits the near-misses cannot answer it.
+
+Two things the build insisted on, both correctly. The `diceCount` branch has to be checked
+**before** `isFixedDamage` - Quickfire is both, and reading the fixed branch first takes
+`spec.fixedValue`, finds nothing and deals zero. And `test/unit/card-visibility.test.mjs` scans
+the pipeline source for `s.contribute(` lines that do not name a side; a multi-line call failed
+it, which is a guard doing its job.
+
+No new `LOG_KINDS` entry: `rules/roll-log.mjs#record` is generic and already takes
+`{source, delta}` modifiers, and Appendix C had registered `quickfire` (`6d6`, count dice at or
+above threshold) since the registry was written.
+
+**Still open:** six Skills (Quickfire's own content is next), three effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 
