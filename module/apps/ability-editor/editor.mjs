@@ -476,6 +476,30 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
   }
 
   /**
+   * Keep the add-pickers out of the form's change stream.
+   *
+   * The whole editor is a `<form>` with `submitOnChange`, so changing ANY
+   * control submits and re-renders. The Add pickers carry no `name` and write
+   * nothing — but the re-render rebuilds them with no selection, so they fall
+   * back to their first option. Choosing `stance` and pressing Add therefore
+   * added `inZon`, every time, for every picker in the window.
+   *
+   * That is the reported bug: *"on requirements I can only select inZon"*.
+   *
+   * Stopping the event here is narrower than exempting the form: the picker is
+   * a control that chooses what to ADD, not a field of the document, so its
+   * change is genuinely not a form change.
+   *
+   * @inheritdoc
+   */
+  _onRender(context, options) {
+    super._onRender(context, options);
+    for (const picker of this.element.querySelectorAll("select[data-picker]")) {
+      picker.addEventListener("change", (event) => event.stopPropagation());
+    }
+  }
+
+  /**
    * Which vocabulary this Item authors from.
    *
    * The branch is a **vocabulary selection**, not a second editor: a command
@@ -586,9 +610,27 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
     const id = target.dataset.section;
     if (!id) return;
     this.#current = id;
-    this.element?.querySelector(`[data-section-body="${id}"]`)
-      ?.scrollIntoView({ block: "start", behavior: "smooth" });
-    this.render();
+
+    // **No re-render.** Rebuilding the body resets its scroll to the top, so
+    // scrolling first was undone immediately; scrolling after `await render()`
+    // fired before the replaced body had laid out, so it did nothing either.
+    // The only thing a render would change here is which rail row is
+    // highlighted, and that is one class.
+    for (const row of this.element?.querySelectorAll(".fgt-editor__railrow") ?? []) {
+      row.classList.toggle("fgt-editor__railrow--current", row.dataset.section === id);
+    }
+
+    const section = this.element?.querySelector(`[data-section-body="${id}"]`);
+    // `open` first: a collapsed <details> has no height to scroll to. Tested
+    // by tag rather than by constructor -- `HTMLDetailsElement` is a browser
+    // global the lint config does not know.
+    if (section?.tagName === "DETAILS") section.open = true;
+    // Instant, NOT smooth. Measured in the live world: with
+    // `behavior: "smooth"` this container does not scroll at all -- 0 of 870
+    // pixels, for both `scrollIntoView` and `scrollTo` -- while the default
+    // behaviour lands exactly. A jump on a navigation rail wants to be
+    // immediate anyway.
+    section?.scrollIntoView({ block: "start" });
   }
 
   static async #onChange(_event, _form, formData) {

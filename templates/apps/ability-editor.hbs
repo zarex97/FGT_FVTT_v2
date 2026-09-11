@@ -28,7 +28,7 @@
 
   <div class="fgt-editor__body">
 
-    <section class="fgt-editor__section">
+    <section class="fgt-editor__section" data-section-body="whatItIs">
       <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Identity"}}</h3>
       <div class="fgt-editor__grid">
         <img class="fgt-editor__icon" src="{{identity.img}}" alt="{{identity.name}}"
@@ -55,7 +55,7 @@
       </label>
     </section>
 
-    <section class="fgt-editor__section">
+    <section class="fgt-editor__section" data-section-body="limits">
       <h3 class="fgt-editor__heading">{{localize "FGT.Editor.Limits"}}</h3>
       <div class="fgt-editor__grid">
         <label class="fgt-editor__field">
@@ -105,7 +105,7 @@
       </div>
     </section>
 
-    <details class="fgt-editor__advanced">
+    <details class="fgt-editor__advanced" data-section-body="npScoping">
       <summary>{{localize "FGT.Editor.Advanced"}}</summary>
       <p class="fgt-editor__hint">{{localize "FGT.Editor.AdvancedHint"}}</p>
       <div class="fgt-editor__flags">
