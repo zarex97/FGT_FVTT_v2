@@ -900,6 +900,44 @@ must not be the strongest debuff delivery in the game.
 
 ---
 
+## 13.7a `bypassModifiers` takes a side — **built 2026-09-11**
+
+Fixed damage is defined as *"not affected by any damage modifying effect on **both** the AU and
+DU including Block"* — both sides, by construction. `bypassModifiers` was implemented as the same
+all-or-nothing thing, skipping stages 2–15 outright, and every use of it in the corpus is that
+bare boolean.
+
+Nemo says something narrower, twice. **Quickfire** and **Barrel Bombing** are each *"not affected
+by damaging modifying effects **on Nemo**"* — so the Defending Unit's `Def Up`, `Dmg Cut`, Magic
+Resistance and Block all still apply, and authoring either with the boolean would have silently
+handed him a defence-piercing attack the sheet never grants.
+
+```yaml
+bypassModifiers: { attacker: true, defender: false }
+```
+
+A bare `true` keeps its original meaning, so nothing already authored changes — and the whole
+suite passed with no damage test edited.
+
+**Every stage still runs.** A one-sided bypass zeroes that side's modifiers *where they are
+collected* and names them in the breakdown as bypassed, rather than skipping the stage. That is
+the rule stages 4, 7 and 12 already follow for `ignoresAttackerIncreases`, `Ignore Def` and a
+Heel Attack, and for the reason each of them gives: a modifier that vanishes from the breakdown
+is indistinguishable from one that was never collected.
+
+Note how this sits beside the two narrower flags already present:
+
+| Flag | Drops | Leaves |
+|---|---|---|
+| `isFixedDamage` | everything, both sides | stage 0 and stage 16 |
+| `bypassModifiers: true` | everything, both sides | stage 0 and stage 16 |
+| `bypassModifiers: {attacker: true}` | the attacker's increases **and** decreases | the defender's whole side, the crit, the ability multiplier |
+| `ignoresAttackerIncreases` (Ozymandias) | the attacker's **increases** only | his decreases, the defender's side, the crit |
+| `ignoresDefUp` (`Ignore Def`) | the defender's `Def Up` only | her `Dmg Cut`, everything else |
+
+§36.6 predicted `bypassModifiers`' two-sided form would have *"its only user"* in Quickfire.
+It has two.
+
 ## 13.8 Multi-hit
 
 Attacks that hit N times run the pipeline N times, with these shared elements:

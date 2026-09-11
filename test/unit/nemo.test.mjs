@@ -265,3 +265,109 @@ describe("the Deafen debuff", () => {
     expect(deaf).toBe(base - 1);
   });
 });
+
+/* ========================================================================== */
+/*  Two-sided bypassModifiers (Ch. 13 §13.8)                                  */
+/* ========================================================================== */
+
+describe("two-sided bypassModifiers", () => {
+  const attacker = {
+    id: "a", baseAttack: { str: 100 }, abilities: [],
+    modifiers: [{
+      key: "atkUp", value: 100, direction: "dealt", source: "Atk Up",
+    }],
+  };
+  const defender = {
+    id: "d", abilities: [],
+    modifiers: [{
+      key: "defUp", value: 50, direction: "taken", source: "Def Up",
+    }],
+  };
+  const base = { sources: [{ unit: "self", component: "str", factor: 1 }] };
+
+  /** @param {boolean|object|undefined} bypassModifiers */
+  const hit = (bypassModifiers) => computeDamage({
+    attacker, defender, base, component: "str",
+    attack: { kind: "skill", component: "str", bypassModifiers },
+    rolls: { attackMinus: 0 },
+  });
+
+  /** @param {object} r @param {string} key */
+  const contributor = (r, key) =>
+    r.breakdown.flatMap((b) => b.contributors ?? []).find((c) => c.source === key);
+
+  it("attacker-only bypass zeroes his Atk Up and leaves her Def Up alone", () => {
+    // "Damage of this Attack Skill is not affected by damaging modifying
+    // effects ON NEMO" -- his own go, hers stay.
+    //
+    // Zeroed and NAMED, not removed: a modifier that vanishes from the
+    // breakdown is indistinguishable from one that was never collected, which
+    // is the rule `Ignore Def`, `ignoresAttackerIncreases` and a Heel Attack
+    // all already follow.
+    const out = hit({ attacker: true, defender: false });
+    expect(contributor(out, "atkUp").value).toBe(0);
+    expect(contributor(out, "atkUp").note).toContain("bypassed");
+    expect(contributor(out, "defUp").value).not.toBe(0);
+  });
+
+  it("a bare true still skips both sides, so nothing already authored changes", () => {
+    const out = hit(true);
+    expect(contributor(out, "atkUp")).toBeUndefined();
+    expect(contributor(out, "defUp")).toBeUndefined();
+    // 100 base, untouched by either side.
+    expect(out.total).toBe(100);
+  });
+
+  it("leaves an ordinary attack collecting both", () => {
+    const out = hit(undefined);
+    expect(contributor(out, "atkUp").value).not.toBe(0);
+    expect(contributor(out, "defUp").value).not.toBe(0);
+  });
+
+  it("costs the attacker his increase and nothing else, numerically", () => {
+    // 100 base. Ordinary: +100% and -50% sum in one additive bucket to +50%.
+    // Attacker-bypassed: only the -50% survives.
+    expect(hit(undefined).total).toBe(150);
+    expect(hit({ attacker: true, defender: false }).total).toBe(50);
+  });
+
+  it("leaves Fixed damage exactly as it was — 'both the AU and DU' by definition", () => {
+    const out = computeDamage({
+      attacker, defender, base: { fixedValue: 150 }, component: "str",
+      attack: { kind: "skill", component: "str", isFixedDamage: true },
+      rolls: { attackMinus: 0 },
+    });
+    expect(out.total).toBe(150);
+  });
+});
+
+/* ========================================================================== */
+/*  Barrel Bombing                                                            */
+/* ========================================================================== */
+
+describe("Barrel Bombing", () => {
+  const A = ability("nemo-barrel-bombing");
+
+  it("hits a 3x3 block flush against him on one cardinal side", () => {
+    // "in any non-diagonal direction next to Nemo" -- he is NOT inside it.
+    expect(A.targeting.anchor).toEqual({ kind: "selfEdgeAdjacent" });
+    expect(A.targeting.shape).toEqual({ kind: "orientedRect", short: 3, long: 3 });
+  });
+
+  it("deals a flat 150 of Fire and burns for 2◈", () => {
+    expect(A.damage.fixed).toBe(true);
+    expect(A.damage.base).toEqual({ fixedValue: 150 });
+    expect(A.damage.element).toBe("fire");
+    const burn = A.phases.find((p) => p.kind === "applyEffects").effects.find((e) => e.id === "burn");
+    expect(burn.duration).toBe("2◈");
+  });
+
+  it("skips Nemo's own damage modifiers and none of the defender's", () => {
+    expect(A.damage.bypassModifiers).toEqual({ attacker: true, defender: false });
+  });
+
+  it("runs on a 3◈ cooldown", () => {
+    expect(A.cooldown).toBe("3◈");
+    expect(A.isAttackSkill).toBe(true);
+  });
+});

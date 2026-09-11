@@ -2654,7 +2654,23 @@ Two findings while authoring `Deafen`:
   clause for `detectRangeOf`'s hard-wired -1 to have come from. Authored as the sheet states it,
   with the discrepancy recorded in Appendix A rather than the row silently rewritten.
 
-**Still open:** seven Skills, three effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
+**Commit 5 - bypassModifiers takes a side, and Barrel Bombing.**
+
+`bypassModifiers` was all-or-nothing, skipping stages 2-15 for both combatants. That is right for
+Fixed damage, whose own definition is *"not affected by any damage modifying effect on **both**
+the AU and DU"*. It is wrong for Nemo, who says something narrower **twice** - Quickfire and
+Barrel Bombing are each *"not affected by damaging modifying effects **on Nemo**"* - so authoring
+either with the boolean would have silently handed him a defence-piercing attack his sheet never
+grants. Ch. 36 SS36.6 predicted one user for the two-sided form; there are two.
+
+Every stage still runs: a one-sided bypass zeroes that side's modifiers where they are collected
+and names them in the breakdown as bypassed, which is the rule `Ignore Def` and
+`ignoresAttackerIncreases` already follow. The defender half is built too, though no content uses
+it - a one-sided flag with only one side implemented reads as symmetric and is not.
+
+A bare `true` keeps its meaning, and the whole suite passed with **no damage test edited**.
+
+**Still open:** six Skills, three effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 
