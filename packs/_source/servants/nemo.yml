@@ -1,0 +1,96 @@
+# packs/_source/servants/nemo.yml
+# Conversion source: char_orig_sheets/Copia de Nemo.md
+# Design: docs/superpowers/specs/2026-09-11-nemo-design.md
+# Discussed: docs/20-platforms-and-levels.md §20.6, docs/36-case-remaining.md §36.6
+#
+# The reference set's acceptance test for a POCKET DIMENSION, and for two
+# damage shapes nothing else in the corpus needs: an Attack Skill whose output
+# is a count of dice over a threshold, and an area attack whose multiplier is a
+# function of distance.
+schema: 1
+id: nemo
+name: "Nemo"
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Captain Nemo"
+# "True Name: Captain Nemo, Triton". Triton is the divine half -- it is what
+# Divinity A and Poseidon's Protection are about -- and it is carried as the
+# `divine` attribute that `divinity`'s own StatDelta adds, not as a second name.
+#
+# The sheet states NO CLASS (R4). Riding is the Rider container's class skill
+# and is the only class skill he carries, so Rider is the derivation. It is not
+# cosmetic: the container decides base Detect (`rules/identity.mjs`) and which
+# column of `npCostByRank` his Master pays.
+servantClasses: [rider]
+classContainer: rider
+alignment: { order: chaotic, morality: neutral }
+# "Region: East India, Greece". `eastIndia` is a DISTINCT node from `india` in
+# `REGION_ADJACENCY` and the sheet says East India, so it is the former.
+region: [eastIndia, greece]
+# "Attributes: Male, Servant, [Sky], Humanoid". `spirit` and `hominidae` are
+# NOT listed here: `domain/attributes.mjs` closes the implication table for
+# every Unit, and stating a derived attribute by hand is how the two spellings
+# drift apart.
+attributes: [male, servant, sky, humanoid]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: C, end: B, agi: C, mag: A, luc: A }
+baseHealth: 1250
+mov: 6
+range: { panels: 3, targets: 1 }
+# STR C => 100 and MAG A => 200 both come straight off `domain/tables.mjs`, and
+# END B => 1250 off the Health table, so the sheet and the tables agree at
+# every point and nothing here is an override. `test/unit/nemo.test.mjs` holds
+# the agreement rather than restating the numbers.
+baseAttack: { str: 100, mag: 200 }
+# "Nemo's Normal Attacks use Base Attack (MAG) and deal Water damage."
+normalAttack: { mode: fixed, component: mag, element: water }
+sustainability: "2◈"
+
+# ─── The Normal Attack's rider ─────────────────────────────────────────
+# "...with a 10% chance of inflicting Slow for 1◈ Turns."
+#
+# On the SERVANT, not on a skill file. The sheet states it as a Note under the
+# statline and gives it no name, no rank and no cooldown; authoring it as an
+# ability would put a row on his sheet that his sheet does not have. Pale
+# Rider's `RelationshipProxy` sits here for the same reason.
+#
+# `automatic: true` because nothing declares it -- it fires whenever a Normal
+# Attack of his lands. The 10% is the handler's own chance, not the effect's:
+# `slow` has `baseChance: 100` and Scáthach's Úr depends on that staying 100.
+rules:
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    target: victim
+    chance: 10
+    duration: "1◈"
+    effect: { id: slow }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # "Class Skill: Riding — Rank: A+ / Storm Border." All three passives and the
+  # Active are already `class-riding`'s, and `engine/riding.mjs` already
+  # performs them -- including the clause the sheet restates at length, that a
+  # Riding Attack after a Move gets MOV minus the panels already spent
+  # (`turnState.movedPanels` is a running total for exactly this reason).
+  #
+  # "The Move Up effect from Riding's Active usage is not a buff" is already
+  # `isBuff: false` on the shared file. Nemo adds NOTHING to Riding.
+  - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
+  # "Divinity — Rank: A / All damage dealt is increased by 50 including NP."
+  # The table prices A at exactly 50.
+  - { ref: divinity, rank: A }
+  # Rider's other class skill, Magic Resistance, is DELIBERATELY ABSENT: the
+  # sheet does not grant it (R4).
+
+notes: |
+  The eighteenth Servant, and the first with a pocket dimension.
+
+  **Nemo adds nothing to Riding.** His sheet spends five lines restating Double Move, Riding
+  Attack, Passenger Seat and the not-a-buff MOV Up, and every one of them was already built and
+  already shared. That is worth recording: the longest block on the sheet costs one line of
+  content, and the reason is that `class-riding` was written to be parameterized rather than
+  copied.

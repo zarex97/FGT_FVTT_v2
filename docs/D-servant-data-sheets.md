@@ -4,7 +4,7 @@ The **twenty-nine** reference Servants as system data. This is the acceptance co
 **SC-7**: if all of them are playable with full automation, the system is done.
 
 The appendix is in two halves. **D.1–D.14** cover the original twelve (the acceptance set the
-architecture was designed against). **D.15–D.33** cover the seventeen added in `0.2.0`, whose
+architecture was designed against). **D.15–D.33** cover the eighteen added in `0.2.0`, whose
 bounded fields are specified in Chapter 43, whose terrain interactions are in Chapter 42, and
 whose other novel mechanisms are in Chapter 44.
 
@@ -497,7 +497,7 @@ point of doing the conversions before building the engine rather than after.
 ### The mechanisms the twelve do *not* exercise
 
 Worth recording, because they are the gaps a thirteenth Servant might expose. **Struck entries
-were closed by the expanded roster** — see §D.33.
+were closed by the expanded roster** — see §D.34.
 
 - ~~No Servant has the `Dark` attribute (day/night is untested by content).~~
 - ~~No Servant uses `Charm`, `Petrify`, `Drowning`.~~ No Servant uses `Confuse`, `Webbed`,
@@ -1328,7 +1328,43 @@ two others is the strongest validation any of the rank tables has received.
 
 ---
 
-## D.33 Aggregate — both rosters
+## D.33 Nemo
+
+Pocket dimension: **the Storm Border** (Ch. 20 §20.6). Terrain: Ch. 42 (Waterside, Imaginary
+Numbers Space). Data sheet: `char_orig_sheets/Copia de Nemo.md`.
+
+| Ability | Type | Mapping |
+|---|---|---|
+| Riding (A+) | Class | RE (MOV +5 active, not-a-buff) — **adds nothing**; `class-riding` already carried all four clauses |
+| Divinity (A) | Passive | RE (+50 flat, including NP) |
+| Poseidon's Protection (B) | Passive | **RE+** a component-scoped crit-damage buff (MAG attacks only, never NP), and a flat reduction that is **larger against an NP** (50 / 100) gated on terrain |
+| Voyager of the Storm (C++) | Active | **RE+** a targeting sentence with an "or if" in it, and a cooldown decided by which branch fired (2◈-⅔◈ / 3◈-⅔◈) |
+| Indomitable (B+) | Active | RE (`Guts` 20% + `Indomited`) — a cooldown paid **twice**, once on use and once on revival |
+| Journey's Guidance (C++) | Active | RE; Effect 1 applied **twice** on Waterside — two stacked instances, not one doubled buff |
+| Storm Border: Zero Sail | Mode | **RE+** a **pocket dimension**: entry roll, a 2◈ clock, relocation at a distance that grows with time inside, a creation restriction, and a Luck Check on Nemo's death that saves the passengers and never him |
+| Quickfire | Attack Skill | **RE+** `kind: diceCount` — 6d6 against a threshold moved by four conditions, one of which is a **choice the defender makes** |
+| Triton's Conch | Attack Skill | **RE+** banded AoE: 1.5× / 0.5× by ring, and the ring decides the **Deafen chance** too |
+| Barrel Bombing | Attack Skill | RE (3×3 orthogonal block, 150 Fire, Burn 2◈), attacker-side bypass |
+| Great Ram Nautilus (A, NP) | Damaging NP | RE (4×, +150% vs `Large`), with three self-buffs applied **before** the swing |
+
+**Exercises:** damage as a count of dice over a movable threshold; a reaction rung *redefined*
+rather than removed; area damage and area effect-chance keyed to the same distance band; a level
+with no ground footprint at all; and terrain as a **predicate** rather than as a modifier
+source.
+**Scripts: 0.** — every clause of his is authored content over general engine.
+
+**Built.** The six mechanisms he needed:
+
+| Mechanism | Where | Note |
+|---|---|---|
+| `terrain:` predicate facet | Ch. 24 §24.4 | `annotateTerrain` had written `u.terrain` since terrain shipped and **nothing ever read it**. Four of his clauses gate on it. |
+| Band → `ctx.bandMultiplier` | Ch. 13 stage 6 | The stage is *named after Triton's Conch*, reads the field, and nothing wrote it. Right and inert since the pipeline was written. |
+| Two-sided `bypassModifiers` | Ch. 13 §13.8 | "Not affected by damaging modifying effects **on Nemo**" is narrower than Fixed damage's "on both the AU and DU". §36.6 predicted one user; there are two. |
+| `kind: diceCount` | Ch. 13 | The threshold and every modifier's verdict go to the roll log — a four-modifier threshold that arrives unexplained is a number nobody can check. |
+| `reactionOverride` | Ch. 12 | An ability that changes what a rung *means*. Distinct from `ForbidReaction`, which takes the rung away. |
+| `ForbidCreating` | Ch. 20 §20.6 | The whole of Zero Sail's restriction, under the reading that makes two of his own Skills' Storm Border branches reachable. |
+
+## D.34 Aggregate — both rosters
 
 | Metric | Original twelve | Expanded seventeen | Total |
 |---|---|---|---|
