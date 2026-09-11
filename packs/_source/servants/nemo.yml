@@ -87,6 +87,7 @@ abilities:
   # sheet does not grant it (R4).
   - { ref: nemo-poseidons-protection }
   - { ref: nemo-tritons-conch }
+  - { ref: nemo-barrel-bombing }
 
 notes: |
   The eighteenth Servant, and the first with a pocket dimension.
