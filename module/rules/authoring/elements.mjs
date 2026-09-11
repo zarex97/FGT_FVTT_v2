@@ -109,6 +109,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("DamageNegation", "Reduces the damage dice themselves — Battle Continuation's clause.", [
     ...SCALED,
     { key: "mode", type: "select", choices: ["dice", "flat"] },
+    { key: "npValue", type: "text" },
     { key: "npDiceDoubled", type: "checkbox" },
     { key: "includesNP", type: "checkbox" },
     { key: "consumesUse", type: "checkbox" },

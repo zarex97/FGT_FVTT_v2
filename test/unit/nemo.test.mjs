@@ -118,3 +118,48 @@ describe("the two class skills", () => {
     expect(SHEET.abilities.some((a) => a.ref === "class-magic-resistance")).toBe(false);
   });
 });
+
+/* ========================================================================== */
+/*  Poseidon's Protection — Rank B                                            */
+/* ========================================================================== */
+
+describe("Poseidon's Protection (Rank B)", () => {
+  const A = ability("nemo-poseidons-protection");
+
+  it("is a passive that never enters a cooldown", () => {
+    expect(A.passive).toBe(true);
+    expect(A.cooldown).toBeUndefined();
+  });
+
+  it("raises crit damage only for MAG attacks, and never for an NP", () => {
+    const clause = A.passiveRules.find((r) => r.key === "CritModifier");
+    expect(clause.aspect).toBe("damage");
+    expect(clause.value).toBe(10);
+    // "Attacks which use Base Attack (MAG)" -- component-scoped, so a STR
+    // attack of his (Quickfire, the NP) gets nothing.
+    expect(clause.component).toBe("mag");
+    // "Does not affect NP." Crit-damage modifiers are already not-NP by
+    // default in Appendix A, but the exclusion is stated here because the
+    // sheet states it and a reader should not have to know the default.
+    expect(clause.predicate).toContain("not:attack:kind:np");
+  });
+
+  it("cuts 50 off any damage taken on Waterside or in Imaginary Numbers Space", () => {
+    const clause = A.passiveRules.find((r) => r.key === "DamageNegation");
+    expect(clause.mode).toBe("flat");
+    expect(clause.value).toBe(50);
+    // "if NP, 100" -- the ONLY flat reduction in the corpus that is LARGER
+    // against a Noble Phantasm. Every other npValue in the catalogue is
+    // smaller, so this is worth a test of its own rather than a shared one.
+    expect(clause.npValue).toBe(100);
+    expect(clause.includesNP).toBe(true);
+    expect(clause.predicate).toEqual([
+      { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] },
+    ]);
+  });
+
+  it("has no uses limit — it is standing ground, not a charge", () => {
+    const clause = A.passiveRules.find((r) => r.key === "DamageNegation");
+    expect(clause.uses).toBeUndefined();
+  });
+});

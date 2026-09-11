@@ -3094,7 +3094,12 @@ async function rollNegation(defender, isNP) {
     // authored cleanly, collected cleanly and reduced nothing. There is no
     // roll to make; the value is the value.
     if (n.mode === "flat") {
-      const value = Number(n.formula) || 0;
+      // Nemo's Poseidon's Protection is *"reduced by 50; if NP, 100"* -- so
+      // the Noble Phantasm figure REPLACES the base one rather than adding to
+      // it, and it is larger rather than smaller, which is the opposite of
+      // every other npValue in the corpus. Falls back to the base figure when
+      // unstated, which is every other flat negation.
+      const value = Number((isNP && n.npFormula != null) ? n.npFormula : n.formula) || 0;
       if (value <= 0) continue;
       if (isNP && n.includesNP === false) continue;
       // Spent only when it is about to apply. A charge burned on an attack

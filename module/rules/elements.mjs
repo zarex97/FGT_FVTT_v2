@@ -827,9 +827,20 @@ export const EXECUTORS = Object.freeze({
   /** Battle Continuation's dice reduction at stage 12. */
   DamageNegation(el, { rank, source, ability, out, ctx }) {
     const v = resolveValue(el, rank, ctx);
+    // A separate figure against a Noble Phantasm, for the same reason
+    // `DamageModifier` and `Ward` carry one -- except that every OTHER
+    // `npValue` in the corpus is the *reduced* magnitude, and this one is the
+    // raised one. Nemo's Poseidon's Protection is *"all damage taken is
+    // reduced by 50; **if NP, 100**"*, which is the only flat reduction in the
+    // catalogue that gets BIGGER against the thing it is defending from. It
+    // cannot be inferred from the base figure in either direction, so it is
+    // stated, and `npDiceDoubled` (the dice-mode equivalent) cannot express it
+    // because there are no dice.
+    const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.damageNegation.push({
       mode: el.mode ?? "flat",
       formula: typeof v === "object" && v?.formula ? v.formula : v,
+      npFormula: np === undefined ? null : (typeof np === "object" && np?.formula ? np.formula : np),
       bonus: typeof v === "object" && v?.bonus ? v.bonus : 0,
       npDiceDoubled: el.npDiceDoubled ?? false,
       includesNP: el.includesNP !== false,

@@ -2602,7 +2602,29 @@ project's dominant defect wearing a spelling mistake, across four clauses of one
 `tools/lib/content.mjs` now carries `terrainTypesExist` beside `predicateOptionsExist` and
 errors on it.
 
-**Still open:** nine Skills, four effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
+**Commit 3 — Poseidon's Protection, and a reduction that grows against a Noble Phantasm.**
+
+His first authored Skill, and the terrain facet's first reader. Two findings:
+
+- **`DamageNegation` could not say `npValue`.** Clause 2 is *"all damage taken is reduced by 50;
+  **if NP, 100**"* — the only flat reduction in the catalogue that gets **larger** against the
+  thing it defends from. Every other `npValue` in the corpus is the *reduced* magnitude, and
+  `npDiceDoubled` (the dice-mode equivalent) cannot express it because there are no dice. Added
+  to the executor, to `rollNegation`'s flat branch, and to the authoring descriptor; it falls
+  back to the base figure when unstated, which is every other flat negation.
+- **The facet equivalence test asserted two-way equality.** `test/unit/facets.test.mjs`'s
+  *"rejects nothing the old list accepted"* compared the generated table against a fixture of the
+  37 pre-swap regexes with `toBe(oldAccepts(o))` — stronger than its own title, and a guard that
+  fails on **every new facet**. `terrain:` was the first to trip it. The guard exists to prove
+  the swap to a generated table lost nothing; it was never meant to freeze a vocabulary
+  `facets.mjs` itself describes as still being written. Made one-directional, with a second test
+  taking over the half the equality was really providing: an option the old regexes refused must
+  resolve to a **declared facet**, so a typo still fails and a new facet does not.
+
+Clause 1 is component-scoped — *"Crit Damage of Attacks which use Base Attack (MAG)"* — so two of
+his four damage sources (Quickfire and the Noble Phantasm, both STR) get nothing from it.
+
+**Still open:** eight Skills, four effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 
