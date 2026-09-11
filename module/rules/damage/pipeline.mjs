@@ -194,6 +194,22 @@ function stage1Base(s) {
   s.begin(1);
   const spec = s.ctx.base ?? { sources: [] };
 
+  // A formula that produces its own total: `diceCount` (Nemo's Quickfire).
+  // The caller has already rolled and counted, because this pipeline is pure
+  // and dice are not -- the same bargain `ctx.rolls` makes everywhere else.
+  //
+  // Checked BEFORE `isFixedDamage`, because Quickfire is both: its damage is a
+  // figure rather than a multiple of a Base Attack, and its own clause exempts
+  // it from the attacker's modifiers. Reading the fixed branch first would
+  // take `spec.fixedValue`, find nothing, and deal zero.
+  if (spec.diceTotal !== undefined) {
+    s.phys = spec.diceTotal;
+    s.fixed = s.phys;
+    const counted = `${spec.successes} of ${spec.diceRolled} dice at ${spec.threshold}+`;
+    s.contribute("diceCount", s.phys, counted, "attacker");
+    return s.end(1);
+  }
+
   if (s.ctx.attack?.isFixedDamage) {
     s.phys = spec.fixedValue ?? 0;
     s.fixed = s.phys;

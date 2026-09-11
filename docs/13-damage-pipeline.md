@@ -900,6 +900,47 @@ must not be the strongest debuff delivery in the game.
 
 ---
 
+## 13.6a `diceCount` — damage as a count of dice — **built 2026-09-11**
+
+Stage 1 normally selects Base Attacks and scales them. One ability in the corpus produces its own
+total instead: Nemo's **Quickfire**.
+
+> *"Roll 6 six-sided die, this Attack Skill deals 25 STR damage for each die that rolls X or
+> higher, where X=5."*
+
+```yaml
+damage:
+  formula:
+    kind: diceCount
+    dice: "6d6"
+    threshold:
+      base: 5
+      modifiers:
+        - { delta: +1, predicate: ["defender:reaction:evade"] }
+        - { delta: -1, predicate: [{ lte: ["@distance", 2] }] }
+        - { delta: -1, predicate: [{ anyOf: ["target:effect:slow", "target:effect:immobilize",
+                                             "target:effect:stun"] }] }
+        - { delta: -1, predicate: [{ lte: ["@target.agility.value", "@self.agility.value"] }] }
+    perSuccess: { amount: 25, component: str }
+```
+
+`module/rules/damage/dice-count.mjs` is pure and rolls nothing — the caller evaluates the dice and
+passes the faces in, the same bargain `ctx.rolls` makes everywhere else, so the shape is testable
+without a world and a logged roll replays to the same number. Stage 1 receives `{diceTotal,
+successes, diceRolled, threshold}` on `ctx.base` and contributes the figure with the count named.
+
+**The threshold is the reason this is a file and not a branch.** It moves by up to four points, for
+reasons spread across the board state, the target's status effects, both Units' Agility, and a
+reaction that had not happened when the attack was declared. So `thresholdFor` returns **every**
+modifier it considered — fired or not — and `thresholdModifiers` translates them into the roll
+log's own `{source, delta}` shape with each predicate rendered as prose. An unfired modifier is
+recorded at `delta: 0`, because *"why was it 5 and not 4?"* is exactly the question this ability
+provokes and a log that omits the near-misses cannot answer it.
+
+Checked **before** `isFixedDamage`, because Quickfire is both: its damage is a figure rather than
+a multiple of a Base Attack, and its own clause exempts it from the attacker's modifiers. Reading
+the fixed branch first would take `spec.fixedValue`, find nothing, and deal zero.
+
 ## 13.7a `bypassModifiers` takes a side — **built 2026-09-11**
 
 Fixed damage is defined as *"not affected by any damage modifying effect on **both** the AU and
