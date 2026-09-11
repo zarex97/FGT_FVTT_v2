@@ -1,0 +1,58 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+#
+# The same targeting sentence as Voyager of the Storm, word for word, so the
+# two anchors are held equal by `test/unit/nemo.test.mjs` -- one of them
+# drifting is a defect neither file would show on its own.
+schema: 1
+id: nemo-journeys-guidance
+name: "Journey's Guidance"
+rank: C++
+kind: skill
+slug: journeysGuidance
+cooldown: "3◈-⅔◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel area of himself, or
+  if Zero Sail is activated, affects all allied Units within the Storm Border. Has the following
+  effects-
+  1. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 20%; if NP, 15%.
+  2. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns, Crit Chance is increased by 15%.
+  3. If Nemo is within a 'Waterside' or 'Imaginary Numbers Space' area, apply Effect 1 twice.
+  Cooldown: 3◈-⅔◈ Turns.
+targeting:
+  anchor:
+    kind: conditional
+    branches:
+      - predicate: ["self:skillActive:zeroSail"]
+        anchor: { kind: platform, platformId: platform-storm-border }
+        shape: { kind: zone }
+    otherwise:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    # Everyone the Skill's own targeting caught. A Skill whose reach
+    # includes other Units must say per phase which of them each phase is
+    # for; defaulting is what once sent Scathach's tokens to Medea.
+    target: reuse
+    effects:
+      - { id: atkUp, duration: "1◈", magnitude: 20, npMagnitude: 15 }
+      # "Crit Chance is increased by 15%." S.Crit Up rather than Crit Up: its
+      # application cannot be prevented and it is Unremovable, which is the
+      # whole difference between the two and the reason the sheet names it.
+      - { id: sCritUp, duration: "⅓◈", magnitude: 15 }
+  # 3. "apply Effect 1 TWICE" -- a SECOND INSTANCE of the same magnitudeStacks
+  # buff, so 40% in total. NOT one buff at 40: the difference shows the moment
+  # anything removes one of them, and the sheet says "twice" rather than
+  # "doubled".
+  #
+  # A separate phase rather than a second entry in the list above, because the
+  # applier resolves stacking per phase and two identical entries in one list
+  # would refresh rather than stack.
+  - kind: applyEffects
+    target: reuse
+    predicate:
+      - { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }
+    effects:
+      - { id: atkUp, duration: "1◈", magnitude: 20, npMagnitude: 15 }

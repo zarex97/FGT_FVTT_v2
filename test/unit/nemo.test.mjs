@@ -17,6 +17,7 @@ import { Rank } from "../../module/domain/rank.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { detectRangeOf } from "../../module/rules/identity.mjs";
 import { isEmittableOption } from "../../module/rules/options.mjs";
+import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 
 /** `lookup` takes a Rank, never a string. @param {string} s @returns {Rank} */
 const R = (s) => Rank.parse(s);
@@ -523,5 +524,151 @@ describe("the Indomited buff", () => {
     // tried. Heracles's Indomitable is `automatic: true` with no predicate,
     // which is why the gap survived.
     expect(isEmittableOption("revival:source:guts")).toBe(true);
+  });
+});
+
+/* ========================================================================== */
+/*  The conditional anchor, shared by his two support Skills                  */
+/* ========================================================================== */
+
+describe("a conditional anchor", () => {
+  const at = (i, j) => ({ i, j });
+  const SPEC = {
+    anchor: {
+      kind: "conditional",
+      branches: [{
+        predicate: ["self:skillActive:zeroSail"],
+        anchor: { kind: "platform", platformId: "platform-storm-border" },
+        shape: { kind: "zone" },
+      }],
+      otherwise: { anchor: { kind: "self" }, shape: { kind: "chebyshevRadius", r: 2 } },
+    },
+    selection: { relations: ["ally", "self"], includeSelf: true, chooser: "all" },
+  };
+
+  const NEMO = { id: "nemo", name: "Nemo", panel: at(5, 5), factionId: "red", kind: "servant" };
+  const NEAR = { id: "near", name: "Near", panel: at(6, 5), factionId: "red", kind: "servant" };
+  const FAR = { id: "far", name: "Far", panel: at(11, 11), factionId: "red", kind: "servant" };
+  // `inBounds` reads `{iMin, iMax, jMin, jMax}` -- not rows/columns, which
+  // silently bounds everything out and yields an empty area.
+  const BOARD = {
+    bounds: { iMin: 0, iMax: 12, jMin: 0, jMax: 12 },
+    units: [NEMO, NEAR, FAR],
+  };
+
+  it("takes the 2 panel area when Zero Sail is not up", () => {
+    const out = resolveTargets(SPEC, NEMO, BOARD, { options: new Set() });
+    expect(out.errors).toEqual([]);
+    expect(out.units.map((u) => u.unitId).sort()).toEqual(["near", "nemo"]);
+  });
+
+  it("takes the whole Storm Border when it is", () => {
+    // The far ally is aboard, so distance stops mattering -- which is the
+    // entire point of the branch.
+    const border = {
+      id: "platform-storm-border", name: "Storm Border", kind: "platform",
+      panel: at(5, 5), panels: [at(5, 5), at(6, 5), at(11, 11)],
+    };
+    const out = resolveTargets(
+      SPEC, NEMO,
+      { ...BOARD, units: [...BOARD.units, border] },
+      { options: new Set(["self:skillActive:zeroSail"]), platformId: "platform-storm-border" },
+    );
+    expect(out.errors).toEqual([]);
+    expect(out.units.map((u) => u.unitId).sort()).toEqual(["far", "near", "nemo"]);
+  });
+});
+
+/* ========================================================================== */
+/*  Voyager of the Storm — Rank C++                                           */
+/* ========================================================================== */
+
+describe("Voyager of the Storm (Rank C++)", () => {
+  const A = ability("nemo-voyager-of-the-storm");
+
+  it("reaches 2 panels, or the whole Storm Border while Zero Sail is up", () => {
+    expect(A.targeting.anchor.kind).toBe("conditional");
+    expect(A.targeting.anchor.branches[0].predicate).toContain("self:skillActive:zeroSail");
+    expect(A.targeting.anchor.otherwise.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
+  });
+
+  it("applies Atk Up at 10%, reduced to 5% for an NP", () => {
+    const atk = A.phases[0].effects.find((e) => e.id === "atkUp" && e.duration === "⅓◈");
+    expect(atk.magnitude).toBe(10);
+    expect(atk.npMagnitude).toBe(5);
+  });
+
+  it("applies NP DmUp at 10% for ⅓◈", () => {
+    const np = A.phases[0].effects.find((e) => e.id === "npDmUp");
+    expect(np.magnitude).toBe(10);
+    expect(np.duration).toBe("⅓◈");
+  });
+
+  it("adds a SECOND, longer Atk Up on Waterside or in Imaginary Numbers", () => {
+    // Effect 3 is an ADDITIONAL buff at a different magnitude and a different
+    // duration (1◈, not ⅓◈), not an upgrade of Effect 1 -- and `atkUp` stacks
+    // by magnitude, so a Nemo on Waterside hands out 30% and not 20%.
+    const third = A.phases[0].effects.find((e) => e.id === "atkUp" && e.duration === "1◈");
+    expect(third.magnitude).toBe(20);
+    expect(third.npMagnitude).toBe(10);
+    expect(third.predicate).toEqual([
+      { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] },
+    ]);
+  });
+
+  it("costs 2◈ normally and 3◈ when Effect 3 fired", () => {
+    // "Cooldown: 2◈-⅔◈ Turns; if Effect 3 is applied, 3◈-⅔◈ Turns."
+    expect(A.cooldown.branches).toEqual([
+      {
+        predicate: [{ anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }],
+        max: "3◈-⅔◈",
+      },
+      { max: "2◈-⅔◈" },
+    ]);
+  });
+});
+
+/* ========================================================================== */
+/*  Journey's Guidance — Rank C++                                             */
+/* ========================================================================== */
+
+describe("Journey's Guidance (Rank C++)", () => {
+  const A = ability("nemo-journeys-guidance");
+
+  it("shares Voyager's conditional anchor exactly", () => {
+    const V = ability("nemo-voyager-of-the-storm");
+    expect(A.targeting.anchor).toEqual(V.targeting.anchor);
+  });
+
+  it("applies Atk Up at 20%, reduced to 15% for an NP, for 1◈", () => {
+    const atk = A.phases[0].effects.find((e) => e.id === "atkUp");
+    expect(atk.magnitude).toBe(20);
+    expect(atk.npMagnitude).toBe(15);
+    expect(atk.duration).toBe("1◈");
+  });
+
+  it("applies S.Crit Up at 15% for ⅓◈", () => {
+    const crit = A.phases[0].effects.find((e) => e.id === "sCritUp");
+    expect(crit.magnitude).toBe(15);
+    expect(crit.duration).toBe("⅓◈");
+  });
+
+  it("applies Effect 1 TWICE on Waterside or in Imaginary Numbers", () => {
+    // "apply Effect 1 twice" -- two instances of the same magnitudeStacks
+    // buff, which is 40% total, and NOT one buff at double magnitude. The
+    // difference shows the moment anything removes one of them, and the sheet
+    // says "twice" rather than "doubled".
+    const second = A.phases.find((p) => p.kind === "applyEffects" && p.predicate);
+    expect(second.predicate).toEqual([
+      { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] },
+    ]);
+    const again = second.effects.find((e) => e.id === "atkUp");
+    expect(again.magnitude).toBe(20);
+    expect(again.npMagnitude).toBe(15);
+    expect(again.duration).toBe("1◈");
+  });
+
+  it("runs on 3◈ regenerating ⅔◈", () => {
+    expect(A.cooldown).toBe("3◈-⅔◈");
   });
 });

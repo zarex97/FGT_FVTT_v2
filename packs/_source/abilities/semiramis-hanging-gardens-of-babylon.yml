@@ -33,6 +33,10 @@ timing: { window: ownTurn }
 requirements:
   - { kind: predicate, predicate: ["self:inHomeBase", "self:variant:dsc"] }
   - { kind: resourceAtLeast, key: hgobConstruction, amount: 100 }
+# What this ability brings into existence, by Attribute. The Hanging Gardens are `[large, mechanical]`.
+# Read only by a `ForbidCreating` suppression -- Nemo's Storm Border is the
+# only one in the game -- so declaring it changes nothing anywhere else.
+creates: [large]
 description: |
   (Activation) Only in effect and usable if Semiramis was summoned with the '@ability[semiramis-double-summon]{Double Summon}:
   Caster' Skill. Hanging Gardens of Babylon (HGoB) can only be used when the HGoB @effect[construction]{Construction}

@@ -224,6 +224,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("ForceTarget", "Forces an attack onto a particular Unit.", [
     { key: "target", type: "text" },
   ]),
+  entry("ForbidCreating", "Refuses abilities that would create something with a named Attribute.", [
+    { key: "attributes", type: "tokenList" },
+  ]),
   entry("Decoy", "Pulls attacks meant for others onto this Unit, within a radius.", [
     { key: "radius", type: "number" },
   ]),

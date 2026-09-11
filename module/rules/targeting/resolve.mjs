@@ -93,6 +93,27 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     return { units: [], panels: [], anchor: {}, warnings, errors, needsChoice: false, candidates: [], excluded };
   }
 
+  // 0b. A targeting sentence with an "or if" in it, resolved BEFORE anything is
+  //     expanded. Nemo's two support Skills both read *"all allied Units within
+  //     a 2 panel area of himself, **or if Zero Sail is activated**, all allied
+  //     Units within the Storm Border"* -- one sentence describing two
+  //     GEOMETRIES, and the anchor and the shape change together, so a
+  //     predicate on a single shape cannot say it.
+  //
+  //     Branches are tested in order and the first match wins, which is the
+  //     same precedence `damage.branches` uses.
+  if (spec.anchor?.kind === "conditional") {
+    const opts = placement.options ?? new Set();
+    const branch = (spec.anchor.branches ?? [])
+      .find((b) => testPredicate(b.predicate, { options: opts, refs: placement.refs ?? {} }))
+      ?? spec.anchor.otherwise;
+    if (!branch) {
+      errors.push("No branch of this conditional anchor matched, and it declares no fallback.");
+      return { units: [], panels: [], anchor: {}, warnings, errors, needsChoice: false, candidates: [], excluded };
+    }
+    spec = { ...spec, anchor: branch.anchor, shape: branch.shape ?? spec.shape };
+  }
+
   // 1. ANCHOR
   const anchor = resolveAnchor(spec.anchor, caster, board, placement, errors);
 
@@ -646,6 +667,20 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       const platform = (board.units ?? []).find((u) => u.id === (placement.platformId ?? spec.platformId));
       return { ...base, panel: platform?.panel ?? casterPanel, panels: platform?.panels ?? [] };
     }
+
+    case "conditional":
+      // Flattened at step 0b of `resolveTargets`, before anything is expanded,
+      // because a conditional swaps the SHAPE as well as the anchor and this
+      // function only returns an anchor.
+      //
+      // Reaching here means a caller resolved an anchor without going through
+      // `resolveTargets` -- so the branch was never chosen and whatever shape
+      // it would have selected is not the one about to be expanded. Loud,
+      // because the alternative is a Skill quietly targeting the wrong area.
+      throw new RangeError(
+        "FGT | A conditional anchor reached resolveAnchor. It must be flattened by "
+        + "resolveTargets first -- see step 0b.",
+      );
 
     case "global":
       return { ...base, panel: casterPanel, panels: allPanels(board) };

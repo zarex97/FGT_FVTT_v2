@@ -35,6 +35,10 @@ name: "Summoning: Bašmu"
 rank: null
 isSpell: true
 category: spell
+# What this ability brings into existence, by Attribute. Basmu is `[summon, earth, large, dragon]`.
+# Read only by a `ForbidCreating` suppression -- Nemo's Storm Border is the
+# only one in the game -- so declaring it changes nothing anywhere else.
+creates: [large]
 description: |
   Spell. Can only be used when Semiramis has the '@ability[semiramis-double-summon-caster]{Double Summon: Caster}' Skill. Has different
   effects depending on whether Semiramis is within her 'Hanging Gardens of Babylon' or not.
