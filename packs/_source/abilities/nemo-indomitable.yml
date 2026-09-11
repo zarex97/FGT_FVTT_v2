@@ -1,0 +1,41 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+#
+# A cooldown paid TWICE from one press: once now, and once more if the Guts it
+# grants ever fires.
+schema: 1
+id: nemo-indomitable
+name: "Indomitable"
+rank: B+
+kind: skill
+slug: indomitable
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. First reduce Nemo's NP Cooldown by 1◈ Turns, then apply
+  @effect[guts]{Guts} for 1◈+⅔◈ Turns, when Nemo is defeated he is revived with 20% of his Max Health. Also
+  applies the '@effect[indomited]{Indomited}' buff 1◈+⅔◈ Turns, 1 time, when Nemo is revived due to Guts, reduce
+  his NP Cooldown by 1◈+⅔◈ Turns.
+  Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  # "FIRST reduce Nemo's NP Cooldown by 1◈ Turns, THEN apply Guts."
+  #
+  # The order is the sheet's own and it is load-bearing: Indomited's payout is
+  # a SECOND, later reduction of the same clock, and stating one combined
+  # figure would hide that the Skill pays once on use and again on revival --
+  # two separate reductions that can land many Turns apart, or never.
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, ticks: "1◈", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      # "revived with 20% of his Max Health" -- the generic Guts, whose
+      # `RevivalSource` restores `percentOfMax: "@magnitude"`.
+      - { id: guts, duration: "1◈+⅔◈", magnitude: 20 }
+      # Two buffs, one press, exactly as Heracles's Indomitable does it.
+      - { id: indomited, duration: "1◈+⅔◈", uses: 1 }

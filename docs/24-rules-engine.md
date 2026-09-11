@@ -719,7 +719,7 @@ Three reasons, in order of importance:
 ### The facet vocabulary — **built 2026-09-10**
 
 A predicate option is not a string. It is `subject : facet : value`, and
-`module/rules/facets.mjs` describes each of the **36 facets** the engine can emit: its subjects,
+`module/rules/facets.mjs` describes each of the **39 facets** the engine can emit: its subjects,
 its segments, where each value comes from, and one sentence of prose.
 
 **The table is the authority; `options.mjs#EMITTABLE` is generated from it.** That is a departure
@@ -750,6 +750,24 @@ does not gain a member because somebody mistyped, so `closed` can be strict.
 `highestParameter`, `rank`'s parameter, `paramVsSelf`'s parameter, `attack:element` and
 `attack:npScale`. `self:highestParameter:strength` passed validation for the whole life of the
 field and could never match, because the parameter is `str`.
+
+#### `terrain:` — a registry the build checks anyway — **added 2026-09-11**
+
+`self:terrain:<type>` / `target:terrain:<type>` (Ch. 42) is the 37th facet, and it was added for
+Nemo, four of whose thirteen clauses read *"when Nemo is within a 'Waterside' or 'Imaginary
+Numbers Space' area"*. Until it existed that sentence was **unsayable** in the whole vocabulary.
+
+Nothing new computes the answer. `rules/terrain.mjs#annotateTerrain` has written `u.terrain` onto
+every unit in the snapshot since terrain shipped, and **nothing had ever read it** — the facet is
+pure exposure.
+
+It is declared `registry` rather than `closed`, because `TERRAIN` lives in `rules/terrain.mjs`
+and not in `domain/enums.mjs`, which is where `closed` reads from. But the asymmetry above does
+**not** apply to it: terrain types are not forward references to content that might arrive later,
+they are a closed table in code, and a type the table lacks can never appear. So
+`tools/lib/content.mjs` carries a **targeted error** for this one facet — `terrainTypesExist`,
+beside `predicateOptionsExist` — and `self:terrain:watersyde` fails the build instead of
+emitting nothing, matching nothing, and silently making its clause permanently false.
 
 #### The guard, and where it used to stop
 

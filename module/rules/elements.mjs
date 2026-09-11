@@ -827,9 +827,20 @@ export const EXECUTORS = Object.freeze({
   /** Battle Continuation's dice reduction at stage 12. */
   DamageNegation(el, { rank, source, ability, out, ctx }) {
     const v = resolveValue(el, rank, ctx);
+    // A separate figure against a Noble Phantasm, for the same reason
+    // `DamageModifier` and `Ward` carry one -- except that every OTHER
+    // `npValue` in the corpus is the *reduced* magnitude, and this one is the
+    // raised one. Nemo's Poseidon's Protection is *"all damage taken is
+    // reduced by 50; **if NP, 100**"*, which is the only flat reduction in the
+    // catalogue that gets BIGGER against the thing it is defending from. It
+    // cannot be inferred from the base figure in either direction, so it is
+    // stated, and `npDiceDoubled` (the dice-mode equivalent) cannot express it
+    // because there are no dice.
+    const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.damageNegation.push({
       mode: el.mode ?? "flat",
       formula: typeof v === "object" && v?.formula ? v.formula : v,
+      npFormula: np === undefined ? null : (typeof np === "object" && np?.formula ? np.formula : np),
       bonus: typeof v === "object" && v?.bonus ? v.bonus : 0,
       npDiceDoubled: el.npDiceDoubled ?? false,
       includesNP: el.includesNP !== false,
@@ -866,6 +877,17 @@ export const EXECUTORS = Object.freeze({
     out.modifiers.push({
       key: el.modifierKey ?? (el.aspect === "damage" ? "critDmUp" : "critUp"),
       value: scalar(resolveValue(el, rank, ctx)),
+      // WHICH Base Attack this crit clause applies to, when it names one.
+      // Nemo's Poseidon's Protection is *"Crit Damage of Attacks which use
+      // Base Attack (MAG) is increased by 10%"* -- and this executor dropped
+      // the field entirely, so the authored `mag` reached no reader and the
+      // buff also raised his two STR attacks (Quickfire and the Noble
+      // Phantasm). Found in a live world, not by a unit test: the YAML was
+      // right and inert.
+      //
+      // `undefined` for every other crit clause in the corpus, which is all of
+      // them, and stage 2 reads that as "any component".
+      ...(el.component ? { component: el.component } : {}),
       // Crit damage modifiers land in the same bag the pipeline filters, so a
       // deferred clause reaches the same reader.
       predicate: deferred,
@@ -1279,6 +1301,29 @@ export const EXECUTORS = Object.freeze({
       out.forbiddenReactions.push(r);
     }
     out.suppressions.push({ scope: "reaction", reactions: [el.reactions ?? el.reaction ?? []].flat(), source });
+  },
+
+  /**
+   * Refuse an ability that would bring a Unit, Item or object carrying a named
+   * Attribute into existence.
+   *
+   * Nemo's Storm Border is the only source, and it is the WHOLE of its
+   * restriction (ruling R1): *"Units within the Storm Border cannot use
+   * Skills, NP, or any other ability that creates a Unit/Item/object that has
+   * the 'Large' or 'Giant' Attribute."* One restriction with three subjects,
+   * not three restrictions -- the Storm Border is itself `large`, and what the
+   * clause guards against is nesting one Large object inside another.
+   *
+   * Distinct from `negatedBy`, which switches an ability off entirely wherever
+   * its bearer stands: this refuses it only while they are somewhere that says
+   * so, and the same ability is fine the moment they surface.
+   */
+  ForbidCreating(el, { source, out }) {
+    out.suppressions.push({
+      scope: "creating",
+      attributes: [el.attributes ?? el.attribute ?? []].flat(),
+      source,
+    });
   },
 
   Decoy(el, { source, out }) {

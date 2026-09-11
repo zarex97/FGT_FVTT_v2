@@ -468,6 +468,22 @@ live: 100 STR + 100 MAG becomes 300, not 400.
 
 `× bandMultiplier` for banded AoE (Nemo's *Triton's Conch*: 1.5× adjacent, 0.5× at range 2).
 
+> **Given an input (2026-09-11).** This stage was written with the ability that needs it named in
+> its own doc-comment, read `ctx.bandMultiplier`, and **nothing in the repository ever wrote that
+> field** — so it was right and inert from the day the pipeline was written until Nemo arrived.
+>
+> The band index existed all along: `targeting/shapes.mjs`'s `banded` case builds a panel→band
+> map and `toTargeted` hands each target its index. It was dropped in the AoE fan-out
+> (`engine/attack.mjs`), which reduced each resolved target to its `unitId` alone. The fan-out now
+> carries a `unitId → band` map on the attack spec, and the damage context reads its multiplier
+> out of the ability's own `damage.bands`, **index-aligned** with `targeting.shape.bands` so the
+> author writes one order and no third key has to agree with both.
+>
+> **The band decides more than damage.** *"If the Unit was 2 panels away from Nemo, the chance of
+> being inflicted with Deafen is 50% instead"* — so `applyDeclaredEffects` reads the same map for
+> a per-band `chance`. Deriving the ring a second time from the distance would be a second answer
+> to a question the targeting pass already answered, and the two could drift.
+
 ### Stage 7 — Flat attack bonuses
 
 ```
@@ -883,6 +899,85 @@ the attack's riders, because the clause is *"no damage **and effects**"* and a c
 must not be the strongest debuff delivery in the game.
 
 ---
+
+## 13.6a `diceCount` — damage as a count of dice — **built 2026-09-11**
+
+Stage 1 normally selects Base Attacks and scales them. One ability in the corpus produces its own
+total instead: Nemo's **Quickfire**.
+
+> *"Roll 6 six-sided die, this Attack Skill deals 25 STR damage for each die that rolls X or
+> higher, where X=5."*
+
+```yaml
+damage:
+  formula:
+    kind: diceCount
+    dice: "6d6"
+    threshold:
+      base: 5
+      modifiers:
+        - { delta: +1, predicate: ["defender:reaction:evade"] }
+        - { delta: -1, predicate: [{ lte: ["@distance", 2] }] }
+        - { delta: -1, predicate: [{ anyOf: ["target:effect:slow", "target:effect:immobilize",
+                                             "target:effect:stun"] }] }
+        - { delta: -1, predicate: [{ lte: ["@target.agility.value", "@self.agility.value"] }] }
+    perSuccess: { amount: 25, component: str }
+```
+
+`module/rules/damage/dice-count.mjs` is pure and rolls nothing — the caller evaluates the dice and
+passes the faces in, the same bargain `ctx.rolls` makes everywhere else, so the shape is testable
+without a world and a logged roll replays to the same number. Stage 1 receives `{diceTotal,
+successes, diceRolled, threshold}` on `ctx.base` and contributes the figure with the count named.
+
+**The threshold is the reason this is a file and not a branch.** It moves by up to four points, for
+reasons spread across the board state, the target's status effects, both Units' Agility, and a
+reaction that had not happened when the attack was declared. So `thresholdFor` returns **every**
+modifier it considered — fired or not — and `thresholdModifiers` translates them into the roll
+log's own `{source, delta}` shape with each predicate rendered as prose. An unfired modifier is
+recorded at `delta: 0`, because *"why was it 5 and not 4?"* is exactly the question this ability
+provokes and a log that omits the near-misses cannot answer it.
+
+Checked **before** `isFixedDamage`, because Quickfire is both: its damage is a figure rather than
+a multiple of a Base Attack, and its own clause exempts it from the attacker's modifiers. Reading
+the fixed branch first would take `spec.fixedValue`, find nothing, and deal zero.
+
+## 13.7a `bypassModifiers` takes a side — **built 2026-09-11**
+
+Fixed damage is defined as *"not affected by any damage modifying effect on **both** the AU and
+DU including Block"* — both sides, by construction. `bypassModifiers` was implemented as the same
+all-or-nothing thing, skipping stages 2–15 outright, and every use of it in the corpus is that
+bare boolean.
+
+Nemo says something narrower, twice. **Quickfire** and **Barrel Bombing** are each *"not affected
+by damaging modifying effects **on Nemo**"* — so the Defending Unit's `Def Up`, `Dmg Cut`, Magic
+Resistance and Block all still apply, and authoring either with the boolean would have silently
+handed him a defence-piercing attack the sheet never grants.
+
+```yaml
+bypassModifiers: { attacker: true, defender: false }
+```
+
+A bare `true` keeps its original meaning, so nothing already authored changes — and the whole
+suite passed with no damage test edited.
+
+**Every stage still runs.** A one-sided bypass zeroes that side's modifiers *where they are
+collected* and names them in the breakdown as bypassed, rather than skipping the stage. That is
+the rule stages 4, 7 and 12 already follow for `ignoresAttackerIncreases`, `Ignore Def` and a
+Heel Attack, and for the reason each of them gives: a modifier that vanishes from the breakdown
+is indistinguishable from one that was never collected.
+
+Note how this sits beside the two narrower flags already present:
+
+| Flag | Drops | Leaves |
+|---|---|---|
+| `isFixedDamage` | everything, both sides | stage 0 and stage 16 |
+| `bypassModifiers: true` | everything, both sides | stage 0 and stage 16 |
+| `bypassModifiers: {attacker: true}` | the attacker's increases **and** decreases | the defender's whole side, the crit, the ability multiplier |
+| `ignoresAttackerIncreases` (Ozymandias) | the attacker's **increases** only | his decreases, the defender's side, the crit |
+| `ignoresDefUp` (`Ignore Def`) | the defender's `Def Up` only | her `Dmg Cut`, everything else |
+
+§36.6 predicted `bypassModifiers`' two-sided form would have *"its only user"* in Quickfire.
+It has two.
 
 ## 13.8 Multi-hit
 

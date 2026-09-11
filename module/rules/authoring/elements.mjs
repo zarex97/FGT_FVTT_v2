@@ -109,6 +109,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("DamageNegation", "Reduces the damage dice themselves — Battle Continuation's clause.", [
     ...SCALED,
     { key: "mode", type: "select", choices: ["dice", "flat"] },
+    { key: "npValue", type: "text" },
     { key: "npDiceDoubled", type: "checkbox" },
     { key: "includesNP", type: "checkbox" },
     { key: "consumesUse", type: "checkbox" },
@@ -132,6 +133,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     ...SCALED,
     { key: "modifierKey", type: "text" },
     { key: "aspect", type: "select", choices: ["chance", "damage"] },
+    { key: "component", type: "select", choices: ["str", "mag"] },
   ]),
   entry("BlockModifier", "Percentage points onto the flat 25% a Block removes.", [...SCALED]),
 
@@ -222,6 +224,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   ]),
   entry("ForceTarget", "Forces an attack onto a particular Unit.", [
     { key: "target", type: "text" },
+  ]),
+  entry("ForbidCreating", "Refuses abilities that would create something with a named Attribute.", [
+    { key: "attributes", type: "tokenList" },
   ]),
   entry("Decoy", "Pulls attacks meant for others onto this Unit, within a radius.", [
     { key: "radius", type: "number" },

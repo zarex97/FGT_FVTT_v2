@@ -1,22 +1,31 @@
 # docs/20-platforms-and-levels.md §20.6
+# Nemo, char_orig_sheets/Copia de Nemo.md ("Storm Border: Zero Sail")
+# Design: docs/superpowers/specs/2026-09-11-nemo-design.md §5
+#
+# **This file used to carry combat statistics it was never granted** -- 3000
+# Health, MOV 8, Range 6, Base Attack (MAG) 220 and a 5x3 footprint -- taken
+# from Ch. 20 §20.5's GENERAL platform model before Nemo's own sheet was read
+# against it. The sheet gives the Storm Border no Health line, no attack and no
+# movement of its own: units inside *"still take their Turn normally"*, and
+# where it surfaces is Nemo's decision rather than a move. They are recorded
+# here as removed rather than silently dropped (ruling R2).
+#
+# It is a POCKET DIMENSION, not an elevation. Nothing crosses in either
+# direction while it is submerged, and it has no ground presence at all.
 schema: 1
 id: platform-storm-border
 name: "The Storm Border"
 type: platform
 description: |
-  Nemo's vessel, in Imaginary Numbers Space. It is a DIFFERENT DIMENSION rather than an
-  elevation, so nothing crosses in either direction while it is submerged.
+  Nemo's vessel, in Imaginary Numbers Space. A DIFFERENT DIMENSION rather than an elevation, so
+  nothing crosses in either direction while it is submerged.
 attributes: [large, mechanical]
-baseHealth: 3000
-mov: 8
-range: { panels: 6, targets: 1 }
-baseAttack: { str: 0, mag: 220 }
-# "footprint: null" in the model (D20.5): it is not on the board at all while
-# submerged. Carried here as its surfaced size, for the moment it relocates.
-footprint: { w: 5, h: 3 }
+# `null`, per §20.6 and D20.5: it is not on the board at all. The surfaced size
+# is not a separate number -- resurfacing places the UNITS onto a 5x5, which is
+# `relocateOnExit.shape` below and not a hull.
+footprint: null
 capacity: null
 level: 3
-# Sealed both ways: a different dimension is not a high place.
 crossLevel:
   occupantTargeting: forbidden
   requiresBoarding: true
@@ -24,3 +33,62 @@ crossLevel:
   aoeMastersImmune: true
   outboundTargeting: forbidden
   forbidDirectlyBelow: false
+
+dimension:
+  levelName: "Imaginary Numbers Space"
+  # Painted for everyone aboard, which is what makes Nemo's four "'Waterside'
+  # or 'Imaginary Numbers Space'" clauses fire while he is submerged.
+  terrainTags: [imaginaryNumbers]
+  entry:
+    # "Nemo and any number of allied Units within a 2 panel area of himself"
+    # -- ANY number, so the chooser is uncapped.
+    allies: { range: 2, automatic: true, chooser: chosen }
+    # "Enemy Units within a 3 panel area ... can ATTEMPT to enter ... roll a
+    # twenty-sided die; the enemy Unit only successfully enters if it rolls 18
+    # or higher." A 15% opt-in, and it is the enemy's choice to try.
+    enemies: { range: 3, roll: "1d20", successOn: 18 }
+  # "The maximum time the Storm Border can spend within Imaginary Numbers Space
+  # is 2◈ Turns, Nemo is forced to resurface after 2◈ Turns have passed."
+  maxDuration: "2◈"
+  forceExitAt: maxDuration
+  relocateOnExit:
+    shape: { kind: rect, w: 5, h: 5 }
+    # "2+X panels, where X=1 for every ⅓◈ Turns spent within Imaginary Numbers
+    # Space (e.g. 1◈ Turns spent, Nemo can travel 2+3=5 panels)."
+    #
+    # AUTHORED AS THE EXPRESSION, not as the 5. ◈ is turns-per-Round and varies
+    # by war variant -- 3 for the Great Holy Grail War, 8 for the Holy Grail
+    # War, 15 for Snowfield -- so the worked example holds only at 3. At 8, ⅓◈
+    # is 2 turns and a full 1◈ inside gives X=4 and a distance of 6. Content is
+    # authored once and resolves per variant (SC-3), which is the whole reason
+    # the tick model exists.
+    maxDistance: "2 + floor(turnsInside / ⅓◈)"
+    # "excluding enemy Home Bases" -- the 5x5 may not OVERLAP one, not merely
+    # may not be centred on one (ruling R3).
+    forbidZones: [enemyHomeBase]
+  # "Units within the Storm Border cannot use Skills, NP, or any other ability
+  # that creates a Unit/Item/object that has the 'Large' or 'Giant' Attribute."
+  #
+  # ONE restriction with three subjects, not three restrictions (ruling R1):
+  # *cannot use [Skills, NPs, or any other ability] THAT CREATE a Large/Giant
+  # thing*. The argument is on the sheet itself -- Voyager of the Storm and
+  # Journey's Guidance each carry an "or if Zero Sail is activated, affects all
+  # allied Units within the Storm Border" branch, which requires Skills to work
+  # inside. And the Storm Border is itself `large`: what this guards against is
+  # nesting one Large object inside another.
+  #
+  # docs/20 §20.6 previously read this the other way and is corrected in the
+  # same commit that builds it.
+  restrictions:
+    - { key: ForbidCreating, attributes: [large, giant] }
+  # "If Nemo is defeated while Zero Sail is Active, he performs a Luck Check
+  # BEFORE dying. If successful, the Storm Border immediately resurfaces (but
+  # he is STILL DEFEATED); if failed, all Units within are inflicted with
+  # Erase."
+  #
+  # `ownerStillDefeated` is the parenthesis, and it is the whole reason this is
+  # not a revival: the check saves the passengers, never him.
+  onOwnerDefeat:
+    check: luck
+    onSuccess: { action: resurface, ownerStillDefeated: true }
+    onFailure: { action: applyToAll, effect: erase }

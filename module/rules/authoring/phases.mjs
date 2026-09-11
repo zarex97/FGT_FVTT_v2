@@ -136,6 +136,9 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "structureId", type: "text" },
     { key: "at", type: "text" },
   ]),
+  entry("enterDimension", 20, "Opens a pocket dimension and moves a manifest of Units into it.", [
+    { key: "platformId", type: "text" },
+  ]),
   entry("summonPlatform", 20, "Brings a platform out, with its own Scene Level.", [
     { key: "platformId", type: "text" },
     { key: "at", type: "text" },

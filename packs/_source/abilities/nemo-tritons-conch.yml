@@ -1,0 +1,62 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+# Discussed: docs/36-case-remaining.md §36.6 ("Banded AoE with per-band effect
+# chances"), docs/09-targeting.md §9.4
+#
+# The ability stage 6 of the damage pipeline was NAMED AFTER, arriving some
+# months after the stage did. It read `ctx.bandMultiplier` the whole time and
+# nothing in the repository wrote that field.
+schema: 1
+id: nemo-tritons-conch
+name: "Triton's Conch"
+kind: skill
+isAttackSkill: true
+slug: tritonsConch
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  Attack Skill. Base Attack (MAG) is used. Hits a 5x5 panel area around Nemo. Deals 1.5x damage
+  to Units directly next to Nemo, while Units at a 2 panel distance receive 0.5x damage. Then,
+  inflicts the '@effect[deafen]{Deafen}' debuff to all affected Units for 1◈ Turn, all @effect[evade]{Evade} rolls are
+  increased by 2, MOV is reduced by 1, and Detect is reduced by 1 panel.
+  If the Unit was 2 panels away from Nemo, the chance of being inflicted with Deafen is 50%
+  instead.
+  Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: self }
+  # "Hits a 5x5 panel area around Nemo" is everything within Chebyshev 2, and
+  # the two multipliers make it two RINGS rather than one area. `banded` sorts
+  # them and hands each target its index, which is the number both the damage
+  # and the rider below read.
+  shape:
+    kind: banded
+    bands:
+      - { maxDistance: 1 }
+      - { maxDistance: 2 }
+  # Every Unit in the area, not only enemies: the sheet says "all affected
+  # Units" and names no relation. Nemo himself is excluded because he is the
+  # centre, not a ring -- band 0 starts at distance 1.
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+damage:
+  sources:
+    - { unit: self, component: mag, factor: 1 }
+  component: mag
+  # INDEX-ALIGNED with `targeting.shape.bands` above. Written as a list rather
+  # than as two predicated branches because the geometry has ALREADY decided
+  # which ring each target is in; re-deriving it from `@distance` here would be
+  # a second answer to a question the targeting pass answered.
+  bands:
+    - { multiplier: 1.5 }
+    - { multiplier: 0.5 }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      # The same index again. "Inflicts ... to all affected Units" at the inner
+      # ring, "the chance ... is 50% instead" at the outer one -- so the band
+      # decides the CHANCE as well as the multiplier, and both read one map.
+      - id: deafen
+        duration: "1◈"
+        bands:
+          - { chance: 100 }
+          - { chance: 50 }

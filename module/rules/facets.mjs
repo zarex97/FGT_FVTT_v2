@@ -236,10 +236,45 @@ export const FACETS = Object.freeze([
     prose: "{subject} is aboard {platform}",
   }),
   facet({
+    id: "reaction",
+    // CLOSED: the ladder's rungs are a fixed three plus "none", and an enum in
+    // `domain/enums.mjs` does not gain a member because somebody mistyped.
+    //
+    // `none` is a real answer rather than an absence, which is what Nemo's
+    // Quickfire needs twice over: it pays him for the defender DECLINING to
+    // Counter, and it emits `target:reaction:evade` for a rung that resolves
+    // to no roll at all.
+    segments: [{ name: "reaction", value: closed("REACTIONS") }],
+    english: "Reacted to this attack in a named way, or declined to react.",
+    prose: "{subject} reacted with {reaction}",
+  }),
+  facet({
+    id: "terrain",
+    // `registry`, not `closed`: `rules/terrain.mjs`'s TERRAIN table is
+    // content-adjacent and grows -- Imaginary Numbers Space was added for one
+    // Servant -- and a build that errored on a type a later chapter introduces
+    // would be refusing legitimate content. It warns instead, which is the
+    // rule this file's header sets out for exactly this case.
+    segments: [{ name: "type", value: registry("terrainTypes") }],
+    english: "Is standing in a named type of Terrain.",
+    prose: "{subject} is in {type} terrain",
+  }),
+  facet({
     id: "withinOfOwnerMaster",
     segments: [{ name: "panels", value: number(1, 6) }],
     english: "Is within a number of panels of its own Master.",
     prose: "{subject} is within {panels} panels of its Master",
+  }),
+
+  facet({
+    id: "source",
+    subjects: ["revival"],
+    // OPEN: a revival source is a `RevivalSource` element's own `id`, authored
+    // per ability (`guts`, `undying`, `godHand`, `battleContinuation`), so the
+    // set grows with content the way `attribute` does.
+    segments: [{ name: "source", value: open() }],
+    english: "The revival that just fired came from a named source.",
+    prose: "revived by {source}",
   }),
 
   /* ── the attack being resolved ───────────────────────────────────────── */

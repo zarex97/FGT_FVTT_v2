@@ -328,6 +328,11 @@ function extensionCovers(appliesTo, def) {
  * amount of damage -- damage would be caught by `Endure`, and Endure has no
  * business surviving Death.
  *
+ * **Erase** is a third tier above Death, and what separates it is not degree
+ * either: an erased Servant does **not** count towards the Grail. Nemo's Zero
+ * Sail is the only source, and its own chapter notes the consequence -- a
+ * failed Luck Check can make the Grail unreachable for the rest of the match.
+ *
  * Neither is `damage`: Health *loss* must not feed damage-keyed triggers
  * (Ch. 06), so an Instakill cannot pay out a `Dmged NP Regen`.
  *
@@ -344,6 +349,18 @@ function terminalIntents(def, target) {
       ];
     case "defeat":
       return [I.defeat(target.id, def.id)];
+    // ERASE is a third tier above Death, and the difference is the Grail.
+    // *"A disappeared Servant counts towards the number of Servants needed for
+    // the Grail to materialize (but **not** if inflicted with Erase)"* --
+    // `rules/environment.mjs#registerDefeat` has exempted `cause === "erase"`
+    // since the counter was built, and nothing could produce that cause.
+    //
+    // Stated as its own kind rather than left to `defeat` happening to be
+    // passed an effect whose id is the string "erase": a rule that works
+    // because two unrelated names coincide is a rule that breaks silently when
+    // one is renamed.
+    case "erase":
+      return [I.defeat(target.id, "erase")];
     default:
       // Loud rather than silent: an unrecognised terminal kind means the most
       // consequential effect in the game did nothing at all.

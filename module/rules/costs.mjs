@@ -218,6 +218,23 @@ export function canUseAbility({
     return { ok: false, reason: "oncePerTurn", cost };
   }
 
+  // A capability the Unit's SURROUNDINGS refuse, rather than one its own state
+  // does. Nemo's Storm Border is the only source: *"Units within the Storm
+  // Border cannot use ... any ability that creates a Unit/Item/object that has
+  // the 'Large' or 'Giant' Attribute."*
+  //
+  // Refused HERE, so the button greys out with a reason, rather than at
+  // resolution -- a player who presses a Noble Phantasm and watches it summon
+  // nothing has been told the rule by its absence.
+  //
+  // Read off `suppressions`, which is where every other positional refusal in
+  // the game already lives (Decoy's targeting, Jack's Mist capping Detect,
+  // `ForbidReaction`'s rungs).
+  const forbidden = forbiddenCreation(ability, unit);
+  if (forbidden) {
+    return { ok: false, reason: "forbidCreating", detail: { attribute: forbidden }, cost };
+  }
+
   // The same question one scale up, and for the same reason `sameRoundExclusive`
   // exists beside `sameTurnExclusive`: a Servant acts up to three times in a
   // Round. Karna's Uncrowned Arms Mastership is *"can only be used once per
@@ -400,4 +417,32 @@ export function resolveCosts(costs) {
   }
 
   return { charged: all.filter((c) => !dropped.has(c.id)), superseded };
+}
+
+/**
+ * The Attribute, if any, that this Unit's surroundings refuse to let it create.
+ *
+ * Reads what the ABILITY would bring into existence -- a `summon` phase, a
+ * `summonPlatform`, a `createStructure` -- against the `ForbidCreating`
+ * suppressions the Unit is standing under.
+ *
+ * The attributes of the thing being created are not knowable from the ability
+ * alone (they live on the summon's own content document), so the ability
+ * declares them: `creates: [large]`. An ability that creates nothing declares
+ * nothing and is never refused, which is every ability in the corpus but a
+ * handful.
+ *
+ * @param {object} ability
+ * @param {object} unit
+ * @returns {string|null} the offending attribute, or null
+ */
+function forbiddenCreation(ability, unit) {
+  const declared = ability?.creates ?? ability?.system?.creates ?? [];
+  if (declared.length === 0) return null;
+  for (const s of unit?.suppressions ?? []) {
+    if (s.scope !== "creating") continue;
+    const hit = declared.find((a) => (s.attributes ?? []).includes(a));
+    if (hit) return hit;
+  }
+  return null;
 }

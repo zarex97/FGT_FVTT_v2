@@ -290,6 +290,20 @@ describe("other executors", () => {
     expect(out.damageNegation[0]).toMatchObject({ mode: "dice", formula: "2d10+20", bonus: 2 });
   });
 
+  it("DamageNegation carries a separate figure for Noble Phantasms", () => {
+    // Nemo's Poseidon's Protection: "all damage taken is reduced by 50; if NP,
+    // 100." The ONLY flat reduction in the catalogue that is LARGER against a
+    // Noble Phantasm -- every other npValue in the corpus is the reduced
+    // magnitude -- so it cannot be inferred and has to be stated.
+    const out = collectContributions([
+      ability({
+        name: "Poseidon's Protection",
+        passiveRules: [{ key: "DamageNegation", mode: "flat", value: 50, npValue: 100 }],
+      }),
+    ]);
+    expect(out.damageNegation[0]).toMatchObject({ mode: "flat", formula: 50, npFormula: 100 });
+  });
+
   it("StatDelta carries a negative literal, as Burn's Base Attack penalty does", () => {
     const out = collectContributions([
       ability({ name: "Burn", passiveRules: [{ key: "StatDelta", stat: "baseAttack.str", value: -30 }] }),

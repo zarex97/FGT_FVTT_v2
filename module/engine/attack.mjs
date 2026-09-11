@@ -23,6 +23,7 @@ import {
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
+import { cooldownChanges } from "./skill-use.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -30,7 +31,8 @@ import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { collectContributions, resolveValue } from "../rules/elements.mjs";
-import { test as testPredicate } from "../rules/predicate.mjs";
+import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
+import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
 import { actionSourceFor } from "../rules/platforms.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
@@ -319,6 +321,22 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   );
   const targetIds = targets.units.flatMap((t) => Array.from({ length: repeat }, () => t.unitId));
 
+  // WHICH RING each target stands in, carried forward from the geometry pass.
+  //
+  // `resolveTargets` computes a band index per target -- `shapes.mjs`'s
+  // `banded` case builds a panel→band map and `toTargeted` reads it -- and
+  // this line is where it used to be dropped, along with `distance` and
+  // `relation`. Stage 6 of the damage pipeline is *named after* the ability
+  // that needs it ("banded AoE. Nemo's Triton's Conch"), reads
+  // `ctx.bandMultiplier`, and nothing in the repository has ever written that
+  // field.
+  //
+  // Carried as a MAP rather than re-derived from the distance at the damage
+  // site. The two would agree today -- both are Chebyshev from the caster --
+  // but they are two answers to one question, and the geometry pass is the one
+  // that actually chose these targets.
+  attackSpec.bands = Object.fromEntries(targets.units.map((t) => [t.unitId, t.band ?? 0]));
+
   // The Hanging Gardens' activation: "If Semiramis is Attacked during this
   // period, the period... is interrupted." Declared against, not necessarily
   // hit -- fired here, at declaration, rather than after the damage step.
@@ -570,7 +588,15 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // `evade`/the pipeline have read both by name since they were written --
       // against a spec that carried neither, so no authored Noble Phantasm could
       // ever have one. EMIYA's Hrunting is Aim and his Caladbolg II is Pierce.
-      aim: Boolean(resolvedDamage(ability, options)?.aim),
+      // Declared by the ATTACK (EMIYA's Hrunting is Aim outright) or carried
+      // by the ATTACKER as a buff. Appendix A §A.3 makes `Aim` an effect --
+      // *"ignores Dodge and the Evade action"* -- and Nemo's Great Ram
+      // Nautilus applies it to himself before swinging, so an attack spec that
+      // only read the ability's own flag would have thrown the buff away.
+      //
+      // Read by name, exactly as `rollEvade` reads the defender's `dodge`.
+      aim: Boolean(resolvedDamage(ability, options)?.aim)
+        || (attacker?.effects ?? []).includes("aim"),
       pierce: Boolean(resolvedDamage(ability, options)?.pierce),
       // The damage TYPE, carried on the attack for the same reason `component` is.
       // The pipeline has read `ctx.attack.element` at stage 0 since it was written
@@ -896,8 +922,28 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     return state;
   }
 
-  // A reaction choice resolves into a roll before the machine moves on.
-  if (state.state === "react" && event === "evade") {
+  // A reaction choice resolves into a roll before the machine moves on --
+  // unless the ATTACK redefines what that rung means.
+  //
+  // Nemo's Quickfire: *"The enemy Unit Evades **(instead of performing an
+  // Evade roll)**"*. The rung stays on the ladder and the defender chooses it
+  // freely; choosing it does not roll and does not avoid the attack, it raises
+  // Nemo's dice threshold by one and the attack proceeds.
+  //
+  // Distinct from `ForbidReaction` and from `evadableOnlyBy`, which take the
+  // rung away or narrow who may use it. Here the rung is offered and answers
+  // differently -- a defender who *could not* evade would also not worsen the
+  // threshold, and the sheet pays Nemo for the choice rather than forbidding
+  // it.
+  if (state.state === "react" && event === "evade"
+    && reactionOverrideFor(state, "evade")?.kind === "noRoll") {
+    state = process.advance(state, "evade");
+    state = process.advance(state, "fail", {
+      success: false,
+      overridden: true,
+      note: game.i18n.localize("FGT.Reaction.EvadeNoRoll"),
+    });
+  } else if (state.state === "react" && event === "evade") {
     state = process.advance(state, "evade");
     const outcome = await rollEvade(state);
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
@@ -948,6 +994,7 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
   if (process.isComplete(state)) {
     await endConcealmentAfterAttack(state);
     await closeFieldsPiercedBy(state);
+    await runAfterProcessPhases(state);
     await fireCombatProcessEnd(state);
     // *"When Mannanán is Attacked ... at the end of the Combat Process ... she
     // automatically performs a Fragarach Counter on the DU."* At the end of the
@@ -1060,6 +1107,113 @@ export async function flushAutoCounters(groupId = null) {
     }
     return opened;
   });
+}
+
+/**
+ * Roll a `diceCount` formula, if this ability has one.
+ *
+ * Returns the `base` spec stage 1 expects, or `null` for every other ability
+ * in the game.
+ *
+ * The threshold is computed against the same options and refs the pipeline
+ * will read, so a modifier cannot be true for the damage and false for the
+ * log. `@distance` is supplied explicitly because the predicate's `@`
+ * resolution reads `ctx.refs` and the distance lives on the attack facts.
+ *
+ * @param {object|null} ability
+ * @param {Set<string>} options
+ * @param {{attacker: object, defender: object, facts: object}} units
+ * @param {object} state
+ * @returns {Promise<object|null>}
+ */
+async function rollDiceCount(ability, options, { attacker, defender, facts }, state) {
+  const formula = ability?.system?.damage?.formula;
+  if (formula?.kind !== "diceCount") return null;
+
+  const ctx = {
+    options,
+    refs: { self: attacker, target: defender, attack: facts, distance: facts.range },
+  };
+  const threshold = thresholdFor(formula, ctx);
+  const roll = await new Roll(formula.dice).evaluate();
+  const faces = roll.dice.flatMap((d) => d.results.map((r) => r.result));
+  const counted = damageFromDice(formula, faces, threshold.threshold);
+
+  state.rollLog = [
+    ...(state.rollLog ?? []),
+    rollLog.record({
+      id: `${state.attackerId}:${state.defenderId}:diceCount:${game.combat?.system?.globalTurn ?? 0}`,
+      globalTurn: game.combat?.system?.globalTurn ?? 0,
+      entryId: "threshold",
+      formula: formula.dice,
+      raw: faces.join(", "),
+      total: threshold.threshold,
+      modifiers: thresholdModifiers(threshold, ctx, explainPredicate),
+      purpose: `${ability.name}: ${counted.successes} of ${faces.length} dice at ${threshold.threshold}+`,
+      actorId: state.attackerId,
+    }),
+  ];
+
+  return {
+    diceTotal: counted.total,
+    successes: counted.successes,
+    diceRolled: faces.length,
+    threshold: threshold.threshold,
+  };
+}
+
+/**
+ * Phases that can only be answered once the reaction ladder has closed.
+ *
+ * One clause in the corpus needs this rung, and it is the reason the rung
+ * exists. Nemo's *Quickfire*:
+ *
+ * > *"After performing this Attack Skill, **if the enemy Unit does not perform
+ * > a Counter on Nemo**, reduce the Cooldown of Quickfire by 1◈ Turns."*
+ *
+ * A `cooldown` phase is otherwise a CASTER phase and runs at declaration
+ * (`CASTER_PHASES`, `engine/skill-use.mjs`) -- which is several rungs too
+ * early: at declaration nobody has decided whether to counter, so the
+ * predicate would read an option set that could never contain the answer and
+ * the refund would be paid every time.
+ *
+ * Runs before `combatProcessEnd` fires, so a handler on that event sees the
+ * refunded clock rather than the old one.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function runAfterProcessPhases(state) {
+  const abilityId = state.attack?.abilityId;
+  if (!abilityId) return;
+  const attackerDoc = game.actors.get(state.attackerId);
+  const ability = attackerDoc?.items.get(abilityId);
+  if (!ability) return;
+
+  const phases = effectivePhases(ability.system ?? {}, resolveAbilitySource)
+    .filter((p) => p.kind === "cooldown" && p.when === "afterProcess");
+  if (phases.length === 0) return;
+
+  const board = currentBoard();
+  const attacker = unitFrom(board, attackerDoc);
+  const defender = unitFrom(board, game.actors.get(state.defenderId));
+  // The reaction is in THIS option set and in no earlier one -- `attackFacts`
+  // carries `state.reaction`, which is null until the ladder resolves it.
+  const options = rollOptions(attacker, defender, state);
+
+  /** @type {object[]} */
+  const intents = [];
+  for (const phase of phases) {
+    if (!testPredicate(phase.predicate, { options })) continue;
+    // THROUGH `cooldownChanges`, not a second implementation of it. That
+    // function owns the `changes` vocabulary -- `scope`, `category`,
+    // `abilityIds`, `ticks`/`direction`/`set`, `perStack`, `excludeSelf` -- and
+    // a private reading of `change.ability` here would be a second grammar for
+    // one field, silently matching nothing for every spelling it did not
+    // happen to implement.
+    intents.push(...cooldownChanges(phase, attackerDoc, board, ability));
+  }
+  if (intents.length > 0) await applyBatch(intents, "afterProcessCooldown");
 }
 
 /**
@@ -1951,6 +2105,26 @@ async function rollEvade(state) {
 }
 
 /**
+ * What this attack says a reaction rung MEANS, if it says anything.
+ *
+ * One ability in the corpus declares one: Nemo's *Quickfire*, whose Evade rung
+ * resolves to an emitted option rather than to a die. Read off the attacking
+ * ability rather than off the attack spec, because it changes the ladder's
+ * behaviour rather than the damage, and the ladder already has the ability to
+ * hand.
+ *
+ * @param {object} state
+ * @param {string} rung `"evade"`, `"block"` or `"counter"`
+ * @returns {object|null}
+ */
+function reactionOverrideFor(state, rung) {
+  const abilityId = state.attack?.abilityId;
+  if (!abilityId) return null;
+  const ability = game.actors.get(state.attackerId)?.items.get(abilityId);
+  return ability?.system?.reactionOverride?.[rung] ?? null;
+}
+
+/**
  * Which effects, if any, are the ONLY things that may evade this attack.
  *
  * `null` means the ordinary ladder. A list means the attack narrows it, and an
@@ -2629,6 +2803,16 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   // survived, and he survives this one or he does not.
   const recording = recordIntents(defender, state);
 
+  // Nemo's Zero Sail: *"If Nemo is defeated while Zero Sail is Active, he
+  // performs a Luck Check BEFORE dying."*
+  //
+  // Before the revival chain, and NOT a revival: the parenthesis that follows
+  // -- *"(but he is still defeated)"* -- is the whole point. Registered as a
+  // `RevivalSource` it would compete with his own Guts for priority and, on a
+  // success, leave him alive, which the sheet denies in the same sentence that
+  // grants the check.
+  const dimensional = await resolveDimensionalDefeat(defender, ctx);
+
   // A revival the player CHOOSES. Asked here, because `resolveDefeat` is pure
   // and this is a question about somebody's intentions rather than about the
   // board: *God's Holder: Possession* costs every Fragarach Token she holds and
@@ -2639,7 +2823,62 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   // `resolveDefeat` is given everywhere else and what `currentHealth` reads.
   return [
     ...recording,
+    ...dimensional,
     ...resolveDefeat({ ...defender, health: remaining, acceptedRevivals: accepted }, ctx),
+  ];
+}
+
+/**
+ * The Luck Check a dimension's owner makes before dying inside it.
+ *
+ * Returns the intents the failure branch owes -- `Erase` on everybody aboard --
+ * and performs the resurface itself, because surfacing is a placement rather
+ * than a state change and there is no intent for it.
+ *
+ * Everyone else's defeat returns an empty list without rolling anything: the
+ * clause belongs to the Unit that opened the dimension.
+ *
+ * @param {object} defender the defender's snapshot
+ * @param {object} ctx the defeat context
+ * @returns {Promise<object[]>}
+ */
+async function resolveDimensionalDefeat(defender, ctx) {
+  const platform = game.actors?.find(
+    (a) => a.type === "platform" && a.system?.dimension && a.system?.ownerId === defender.id,
+  );
+  const spec = platform?.system?.dimension;
+  if (!spec?.onOwnerDefeat) return [];
+
+  const { onOwnerDefeat, resurface } = await import("./dimension.mjs");
+  const board = currentBoard();
+  const occupants = (board.units ?? [])
+    .filter((u) => u.platformContentId === platform.system?.contentId)
+    .map((u) => u.id);
+
+  const roll = await new Roll("1d20").evaluate();
+  const check = luckCheck({ roll: roll.total, luck: defender.luck ?? 0 });
+  const verdict = onOwnerDefeat(spec, {
+    owner: defender, succeeded: check.success, occupants,
+  });
+  if (!verdict) return [];
+
+  if (verdict.resurfaces) {
+    // "The Storm Border IMMEDIATELY resurfaces" -- at the owner's own panel,
+    // because he is not alive to choose a destination and the sheet gives the
+    // choice to nobody else.
+    await resurface({ platformId: platform.id, at: defender.panel, forced: true });
+    return [I.log({
+      kind: "ability", unitId: defender.id, tick: ctx.tick,
+      detail: `Zero Sail: Luck Check passed (${roll.total}) -- the Storm Border surfaces, Nemo is still defeated.`,
+    })];
+  }
+
+  return [
+    ...verdict.erased.map((id) => I.applyEffect(id, { defId: "erase", sourceUnitId: defender.id })),
+    I.log({
+      kind: "ability", unitId: defender.id, tick: ctx.tick,
+      detail: `Zero Sail: Luck Check failed (${roll.total}) -- everyone aboard is Erased.`,
+    }),
   ];
 }
 
@@ -2753,6 +2992,18 @@ async function applyDamage(state, message) {
   const facts = attackFacts(attacker, defender, state);
   const options = rollOptionsFor({ attacker, defender, attack: facts });
 
+  // A formula that produces its own total, rolled HERE for the same reason
+  // every other roll in this function is: the pipeline is pure and dice are
+  // not. Nemo's Quickfire is the only one.
+  //
+  // The threshold's four modifiers are evaluated against the SAME option set
+  // and refs the pipeline will use, and every one of them -- fired or not --
+  // goes to the roll log before the total does. A player handed "you dealt 75"
+  // cannot check a threshold that moves by four points for reasons spread
+  // across the board, the target's status, both Agilities and a reaction that
+  // had not happened when the attack was declared.
+  const diceBase = await rollDiceCount(ability, options, { attacker, defender, facts }, state);
+
   // The crit roll, then every roll the pipeline will consume — rolled HERE so
   // the pipeline itself stays pure and reproducible.
   //
@@ -2808,14 +3059,30 @@ async function applyDamage(state, message) {
     // design exists to avoid.
     base: dealsNoDamage(ability)
       ? { fixedValue: 0 }
-      : (facts.isAftermath && facts.sources)
-        ? { sources: facts.sources }
-        : baseSpecFor(attackerDoc, ability, facts.range, options),
+      // A `diceCount` formula IS the base -- stage 1 takes the counted figure
+      // and returns, so nothing looks for Base Attack sources at all.
+      : diceBase
+        ? diceBase
+        : (facts.isAftermath && facts.sources)
+          ? { sources: facts.sources }
+          : baseSpecFor(attackerDoc, ability, facts.range, options),
     // Named base-attack sources. Stage 1 has resolved `ctx.units[src.unit]`
     // since the pipeline was written and nothing has ever supplied the map:
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
     // by her platform's swings the platform's 150 rather than her own 125.
     units: mountUnits(attacker, board),
+    // Which ring this defender stands in, and what that ring multiplies by.
+    //
+    // Triton's Conch: *"Deals 1.5x damage to Units directly next to Nemo,
+    // while Units at a 2 panel distance receive 0.5x damage."* `damage.bands`
+    // is INDEX-ALIGNED with `targeting.shape.bands`, so the author writes the
+    // two lists in the same order and no third key has to agree with both.
+    //
+    // Absent for every other ability in the corpus, where the map is empty and
+    // the multiplier is 1 -- which is what stage 6 already did with nothing.
+    band: state.attack?.bands?.[defender.id] ?? 0,
+    bandMultiplier: resolvedDamage(ability, options)
+      ?.bands?.[state.attack?.bands?.[defender.id] ?? 0]?.multiplier ?? 1,
     // Same reason as `base` above: the splash's own multiplier, or the
     // ability's when this is the ordinary resolution.
     multiplier: (facts.isAftermath ? facts.multiplier : resolvedDamage(ability, options)?.multiplier) ?? 1,
@@ -3094,7 +3361,12 @@ async function rollNegation(defender, isNP) {
     // authored cleanly, collected cleanly and reduced nothing. There is no
     // roll to make; the value is the value.
     if (n.mode === "flat") {
-      const value = Number(n.formula) || 0;
+      // Nemo's Poseidon's Protection is *"reduced by 50; if NP, 100"* -- so
+      // the Noble Phantasm figure REPLACES the base one rather than adding to
+      // it, and it is larger rather than smaller, which is the opposite of
+      // every other npValue in the corpus. Falls back to the base figure when
+      // unstated, which is every other flat negation.
+      const value = Number((isNP && n.npFormula != null) ? n.npFormula : n.formula) || 0;
       if (value <= 0) continue;
       if (isNP && n.includesNP === false) continue;
       // Spent only when it is about to apply. A charge burned on an attack
@@ -3667,7 +3939,17 @@ async function applyDeclaredEffects(specs, ability, state, defender, { ignoresRe
       npMagnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "npMagnitude", state.attack?.ride),
       duration: spec.duration ?? def.defaultDuration,
       chanceModifiers: spec.chanceModifiers ?? [],
-      chance: spec.chance ?? null,
+      // A chance that depends on WHICH RING the target stands in. Triton's
+      // Conch: *"If the Unit was 2 panels away from Nemo, the chance of being
+      // inflicted with Deafen is 50% instead."*
+      //
+      // The band decides the effect chance as well as the damage multiplier,
+      // and it is read from the SAME map stage 6 reads -- a second geometry
+      // pass here could disagree with the one that chose these targets. Falls
+      // through to the flat `chance` for every other ability, which is all of
+      // them.
+      chance: spec.bands?.[state.attack?.bands?.[defender?.id] ?? 0]?.chance
+        ?? spec.chance ?? null,
       source: { unitId: state.attackerId, abilityId: ability.id },
       ctx: {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
@@ -3880,7 +4162,18 @@ function rollOptions(attacker, defender, state, extra = {}) {
 export function attackFacts(attacker, defender, state) {
   const range = attackDistance(attacker, defender);
   const kind = state.attack?.kind ?? "normal";
-  const facts = { ...(state.attack ?? {}), kind, isAoE: Boolean(state.isAoE), range };
+  // HOW THE DEFENDER REACTED, so a predicate can ask. `state.reaction` is set
+  // as the ladder resolves; before it does, it is null and nothing is emitted
+  // -- which is correct, because a clause about the reaction is by definition
+  // asking about a closed ladder.
+  //
+  // Nemo's Quickfire reads it twice: once for "+1 if the enemy Unit Evades",
+  // and once for the cooldown refund "if the enemy Unit does not perform a
+  // Counter".
+  const facts = {
+    ...(state.attack ?? {}), kind, isAoE: Boolean(state.isAoE), range,
+    reaction: state.reaction ?? null,
+  };
 
   // A Normal Attack that changes shape with distance decides two of these
   // fields itself, and only here -- the declaration cannot, because the

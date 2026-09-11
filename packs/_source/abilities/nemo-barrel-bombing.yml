@@ -1,0 +1,49 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+#
+# One of the two users of §13.8's two-sided `bypassModifiers`. The other is
+# Quickfire, and Ch. 36 §36.6 predicted exactly one.
+schema: 1
+id: nemo-barrel-bombing
+name: "Barrel Bombing"
+kind: skill
+isAttackSkill: true
+slug: barrelBombing
+cooldown: "3◈"
+element: fire
+timing: { window: ownTurn }
+description: |
+  Attack Skill. Hits a 3x3 panel area in any non-diagonal direction next to Nemo for 150 Fire
+  damage and inflicts @effect[burn]{Burn} for 2◈ Turns. Damage of this Attack Skill is not affected by damaging
+  modifying effects on Nemo. Cooldown: 3◈ Turns.
+targeting:
+  # "in any non-diagonal direction next to Nemo" -- the block is flush against
+  # him on one cardinal side and HE IS NOT INSIDE IT, which is exactly what
+  # `selfEdgeAdjacent` plus `orientedRect` mean (`shapes.mjs`'s
+  # `orthogonalAdjacentRect`, whose own doc-comment says "the caster is not
+  # inside it").
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3 }
+  # No relation named on the sheet, so everybody in the blast. A barrel bomb
+  # does not check tabards.
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+damage:
+  # "for 150 Fire damage" -- a flat figure, not a multiple of a Base Attack.
+  #
+  # `base.fixedValue` alone, and deliberately NOT `fixed: true`. *Fixed damage*
+  # is a defined term about MODIFIERS -- "not affected by any damage modifying
+  # effect on **both** the AU and DU including Block" -- and the sheet exempts
+  # only Nemo's side. A defender's Def Up, Dmg Cut, Block and Fire resistance
+  # all still apply to this.
+  base: { fixedValue: 150 }
+  component: str
+  element: fire
+  # "not affected by damaging modifying effects ON NEMO." ATTACKER-SIDE ONLY.
+  # A bare `bypassModifiers: true` would have silently discarded the
+  # defender's whole half of the pipeline along with his Divinity.
+  bypassModifiers: { attacker: true, defender: false }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: burn, duration: "2◈" }

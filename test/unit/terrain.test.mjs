@@ -257,3 +257,29 @@ describe("snapshotBoard wires the terrain projection", () => {
     expect(board.terrain.areas).toHaveLength(1);
   });
 });
+
+/* ========================================================================== */
+/*  Imaginary Numbers Space — Nemo's Storm Border (Ch. 20 §20.6)              */
+/* ========================================================================== */
+
+describe("Imaginary Numbers Space (Nemo, Ch. 20 §20.6)", () => {
+  it("is in the catalogue", () => {
+    expect(TERRAIN.imaginaryNumbers).toBeDefined();
+    expect(TERRAIN.imaginaryNumbers.name).toBe("Imaginary Numbers Space");
+  });
+
+  it("carries no standing effects, and that is its finished state", () => {
+    // Like `sunlight`/`darkness`/`indoors`: the space modifies nobody. Every
+    // Imaginary Numbers clause in the game is on Nemo's own abilities, which
+    // read it as a PREDICATE rather than receiving a modifier from it.
+    expect(TERRAIN.imaginaryNumbers.effects).toEqual([]);
+  });
+
+  it("leaves a unit standing in it otherwise unmodified", () => {
+    const out = terrainEffects({ panel: at(0, 0), attributes: [] }, boardWith("imaginaryNumbers"));
+    expect(out.types).toEqual(["imaginaryNumbers"]);
+    expect(out.movDelta).toBe(0);
+    expect(out.evadeDelta).toBe(0);
+    expect(out.modifiers).toEqual([]);
+  });
+});
