@@ -1,0 +1,33 @@
+# Appendix A §A.3.
+# "Ignores `Dodge` and the Evade action. Beaten by `Substitution`."
+#
+# Catalogued since Appendix A was written and never defined. `rules/checks.mjs
+# #evade` has taken an `attackHasAim` parameter all along, and `dodge.yml` has
+# declared `beatenBy: [aim]` since it was authored -- so the whole
+# Dodge/Aim/Substitution ladder had one rung missing and the two that existed
+# could never meet.
+#
+# NO RULE ELEMENTS, and that is the finished state. `Aim` is a property of the
+# ATTACK, and the attack spec reads it off its bearer by name, exactly as
+# `rollEvade` reads the defender's `dodge`. A rule element would be a second
+# path to the same fact.
+schema: 1
+id: aim
+name: "Aim"
+description: "Attacks ignore @effect[dodge]{Dodge} and the @effect[evade]{Evade} action. Beaten by Substitution."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+# `blockedBy: [substitution]` is DELIBERATELY ABSENT. Appendix A's ladder puts
+# Substitution above Aim -- "cannot be hit by anything, including NP and Fixed,
+# EVEN AGAINST Aim" -- but `substitution` is not an authored effect, and a
+# reference to an id no document provides is a dangling link the build refuses
+# (correctly: it would read as implemented and match nothing).
+#
+# The relationship is already enforced anyway, and not by this file: stage 0 of
+# the damage pipeline halts on a defender holding `substitution` before
+# anything about the attack is consulted. When Substitution is authored, this
+# line becomes a record of an existing rule rather than a new one.
+rules: []

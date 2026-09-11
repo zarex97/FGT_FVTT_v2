@@ -672,3 +672,84 @@ describe("Journey's Guidance (Rank C++)", () => {
     expect(A.cooldown).toBe("3◈-⅔◈");
   });
 });
+
+/* ========================================================================== */
+/*  Great Ram Nautilus — Rank A, Anti-Unit                                    */
+/* ========================================================================== */
+
+describe("Great Ram Nautilus (NP)", () => {
+  const A = ability("nemo-great-ram-nautilus");
+
+  it("reaches 7 panels and swings STR alone", () => {
+    expect(A.isNP).toBe(true);
+    expect(A.npTags).toEqual(["antiUnit"]);
+    expect(A.targeting.anchor).toEqual({ kind: "targetUnit", range: 7 });
+    expect(A.damage.sources).toEqual([{ unit: "self", component: "str", factor: 1 }]);
+    expect(A.damage.component).toBe("str");
+  });
+
+  it("buffs himself BEFORE dealing damage", () => {
+    // "When this NP is used, FIRST apply the following effects to Nemo ...
+    // THEN, deals 4x damage." The order decides whether the NP DmUp reaches
+    // its own damage. It must: all three are NP-damage buffs on the Unit about
+    // to swing an NP.
+    expect(A.phases[0].kind).toBe("applyEffects");
+    expect(A.phases[0].target).toBe("self");
+    expect(A.phases[1].kind).toBe("damage");
+  });
+
+  it("applies NP DmUp 30% unconditionally, for this Turn", () => {
+    const np = A.phases[0].effects.find((e) => e.id === "npDmUp" && !e.predicate);
+    expect(np.magnitude).toBe(30);
+    expect(np.duration).toBe("this turn");
+  });
+
+  it("adds Aim and a SECOND NP DmUp on Waterside or in Imaginary Numbers", () => {
+    const gate = [{ anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }];
+    const aim = A.phases[0].effects.find((e) => e.id === "aim");
+    expect(aim.predicate).toEqual(gate);
+    expect(aim.duration).toBe("this turn");
+    // Not an upgrade of clause 1 -- `npDmUp` stacks by magnitude, so on
+    // Waterside he swings at 50%.
+    const second = A.phases[0].effects.find((e) => e.id === "npDmUp" && e.predicate);
+    expect(second.magnitude).toBe(20);
+    expect(second.predicate).toEqual(gate);
+  });
+
+  it("deals 4x, and 150% more again against a Large target", () => {
+    expect(A.damage.multiplier).toBe(4);
+    const vsLarge = A.damage.conditionalMultipliers
+      .find((m) => m.predicate.includes("target:attribute:large"));
+    // "damage dealt is FURTHER INCREASED BY 150%" -- 2.5x on top of the 4x,
+    // for 10x in total. Not 1.5, and not a replacement of the 4.
+    expect(vsLarge.factor).toBe(2.5);
+  });
+
+  it("runs on a 7◈ cooldown and needs ZON", () => {
+    expect(A.cooldown).toBe("7◈");
+    expect(A.targeting.limits.requiresZon).toBe(true);
+  });
+});
+
+describe("the Aim buff", () => {
+  const E = effect("aim");
+
+  it("is an offensive buff that refreshes rather than stacking", () => {
+    expect(E.polarity).toBe("buff");
+    expect(E.valence).toBe("offensive");
+    expect(E.stacking).toBe("noneRefresh");
+  });
+
+  it("carries no rule elements, because the attack spec reads it by name", () => {
+    // `Aim` is a property of the ATTACK. `buildAttackSpec` reads it off its
+    // bearer exactly as `rollEvade` reads the defender's `dodge`; a rule
+    // element would be a second path to one fact.
+    expect(E.rules).toEqual([]);
+  });
+
+  it("is the rung `dodge` has always named", () => {
+    // `dodge.yml` has declared `beatenBy: [aim]` since it was authored, against
+    // an effect nothing could apply.
+    expect(effect("dodge").rules.find((r) => r.key === "AutoSucceed").beatenBy).toContain("aim");
+  });
+});

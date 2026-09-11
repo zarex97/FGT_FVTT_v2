@@ -91,6 +91,7 @@ abilities:
   - { ref: nemo-indomitable }
   - { ref: nemo-journeys-guidance }
   - { ref: nemo-zero-sail }
+  - { ref: nemo-great-ram-nautilus }
   - { ref: nemo-quickfire }
   - { ref: nemo-barrel-bombing }
 

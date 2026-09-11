@@ -1,0 +1,70 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+schema: 1
+id: nemo-great-ram-nautilus
+name: "Great Ram Nautilus: I Conquer, with Nautilus' Great Naval Ram"
+isNP: true
+rank: A
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: greatRamNautilus
+cooldown: "7◈"
+timing: { window: ownTurn }
+description: |
+  Range=7. Base Attack (STR) is used. When this NP is used, first apply the following effects to
+  Nemo-
+  1. Applies @effect[npDmUp]{NP DmUp} for this Turn to Nemo, NP damage dealt is increased by 30%.
+  2. If Nemo is within a 'Waterside' or 'Imaginary Numbers Space' area, apply @effect[aim]{Aim} to himself for
+     this Turn.
+  3. If Nemo is within a 'Waterside' or 'Imaginary Numbers Space' area, apply NP DmUp to himself
+     for this Turn, NP damage dealt is increased by 20%.
+  Then, deals 4x damage. If the DU has the 'Large' Attribute, damage dealt is further increased
+  by 150%.
+  Cooldown: 7◈ Turns.
+targeting:
+  # "Range=7" -- more than twice his printed 3.
+  anchor: { kind: targetUnit, range: 7 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], includeSelf: false, chooser: chosen, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  # "Base Attack (STR) is used" -- STR alone, and his is 100, the lowest STR of
+  # any authored Servant. The multiplier is where this NP's damage lives.
+  sources:
+    - { unit: self, component: str, factor: 1 }
+  component: str
+  multiplier: 4
+  conditionalMultipliers:
+    # "If the DU has the 'Large' Attribute, damage dealt is FURTHER INCREASED
+    # BY 150%" -- 2.5x ON TOP of the 4x, for 10x in total. Not a multiplier of
+    # 1.5, and not a replacement of the 4.
+    #
+    # Live rather than hypothetical: the Storm Border is itself `large`, and so
+    # are the Hanging Gardens, the Golden Hind and Basmu.
+    - { factor: 2.5, predicate: ["target:attribute:large"], source: "Large target (+150%)" }
+phases:
+  # "When this NP is used, FIRST apply the following effects to Nemo ... THEN,
+  # deals 4x damage."
+  #
+  # The order is stated and it is load-bearing: all three buffs are NP-damage
+  # buffs applied to the Unit about to swing an NP, so a damage phase ahead of
+  # them would collect none of them and the Skill would do nothing at all.
+  - kind: applyEffects
+    target: self
+    effects:
+      # 1. Unconditional.
+      - { id: npDmUp, duration: "this turn", magnitude: 30 }
+      # 2. The Aim. `this turn` rather than a tick expression, because the
+      # sheet says "for this Turn" and the two are not the same thing.
+      - id: aim
+        duration: "this turn"
+        predicate:
+          - { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }
+      # 3. A SECOND NP DmUp, not an upgrade of clause 1: `npDmUp` stacks by
+      # magnitude, so on Waterside he swings at 50% and not at 20%.
+      - id: npDmUp
+        duration: "this turn"
+        magnitude: 20
+        predicate:
+          - { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }
+  - kind: damage
+    target: reuse
