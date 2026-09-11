@@ -2624,7 +2624,37 @@ His first authored Skill, and the terrain facet's first reader. Two findings:
 Clause 1 is component-scoped — *"Crit Damage of Attacks which use Base Attack (MAG)"* — so two of
 his four damage sources (Quickfire and the Noble Phantasm, both STR) get nothing from it.
 
-**Still open:** eight Skills, four effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
+**Commit 4 - the band reaches stage 6, and Triton's Conch.**
+
+Stage 6 of the damage pipeline is called *"banded AoE. Nemo's Triton's Conch"*, reads
+`ctx.bandMultiplier`, and **nothing in the repository has ever written that field** - right and
+inert since the pipeline was written, and named after the ability that would eventually need it.
+
+The band index existed all along. `targeting/shapes.mjs`'s `banded` case builds a panel-to-band
+map and `toTargeted` hands each target its index; the AoE fan-out then reduced every resolved
+target to its `unitId` alone and dropped it. The fan-out now carries a `unitId -> band` map on
+the attack spec.
+
+**The band decides the effect chance too**, which is the half the design nearly missed:
+*"if the Unit was 2 panels away from Nemo, the chance of being inflicted with Deafen is 50%
+instead."* `applyDeclaredEffects` reads the same map rather than re-deriving the ring from the
+distance - the two would agree today, but they are two answers to a question the targeting pass
+already answered.
+
+Two findings while authoring `Deafen`:
+
+- **It needs no Detect rule element, and must not have one.** `identity.mjs#detectRangeOf` has
+  subtracted a panel for an effect called `deafen` since it was written, against a game where
+  nothing could apply one. A `DetectOverride` beside it would double-count - and would be the
+  wrong element anyway, since that one pushes a `{scope: "detect", maximum}` **cap** (Jack's
+  Mist) rather than a delta.
+- **Appendix A's `Deafen(Y)` and Nemo's sheet disagree.** The catalogue says *"own Evade rolls
+  +Y; enemies evading this unit's attacks roll -Y"*; the sheet says *"Evade rolls +2, MOV -1,
+  Detect -1"*. The engine had already sided with the sheet - the catalogue row has no Detect
+  clause for `detectRangeOf`'s hard-wired -1 to have come from. Authored as the sheet states it,
+  with the discrepancy recorded in Appendix A rather than the row silently rewritten.
+
+**Still open:** seven Skills, three effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 

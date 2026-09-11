@@ -468,6 +468,22 @@ live: 100 STR + 100 MAG becomes 300, not 400.
 
 `× bandMultiplier` for banded AoE (Nemo's *Triton's Conch*: 1.5× adjacent, 0.5× at range 2).
 
+> **Given an input (2026-09-11).** This stage was written with the ability that needs it named in
+> its own doc-comment, read `ctx.bandMultiplier`, and **nothing in the repository ever wrote that
+> field** — so it was right and inert from the day the pipeline was written until Nemo arrived.
+>
+> The band index existed all along: `targeting/shapes.mjs`'s `banded` case builds a panel→band
+> map and `toTargeted` hands each target its index. It was dropped in the AoE fan-out
+> (`engine/attack.mjs`), which reduced each resolved target to its `unitId` alone. The fan-out now
+> carries a `unitId → band` map on the attack spec, and the damage context reads its multiplier
+> out of the ability's own `damage.bands`, **index-aligned** with `targeting.shape.bands` so the
+> author writes one order and no third key has to agree with both.
+>
+> **The band decides more than damage.** *"If the Unit was 2 panels away from Nemo, the chance of
+> being inflicted with Deafen is 50% instead"* — so `applyDeclaredEffects` reads the same map for
+> a per-band `chance`. Deriving the ring a second time from the distance would be a second answer
+> to a question the targeting pass already answered, and the two could drift.
+
 ### Stage 7 — Flat attack bonuses
 
 ```

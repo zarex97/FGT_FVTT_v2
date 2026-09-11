@@ -319,6 +319,22 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   );
   const targetIds = targets.units.flatMap((t) => Array.from({ length: repeat }, () => t.unitId));
 
+  // WHICH RING each target stands in, carried forward from the geometry pass.
+  //
+  // `resolveTargets` computes a band index per target -- `shapes.mjs`'s
+  // `banded` case builds a panel→band map and `toTargeted` reads it -- and
+  // this line is where it used to be dropped, along with `distance` and
+  // `relation`. Stage 6 of the damage pipeline is *named after* the ability
+  // that needs it ("banded AoE. Nemo's Triton's Conch"), reads
+  // `ctx.bandMultiplier`, and nothing in the repository has ever written that
+  // field.
+  //
+  // Carried as a MAP rather than re-derived from the distance at the damage
+  // site. The two would agree today -- both are Chebyshev from the caster --
+  // but they are two answers to one question, and the geometry pass is the one
+  // that actually chose these targets.
+  attackSpec.bands = Object.fromEntries(targets.units.map((t) => [t.unitId, t.band ?? 0]));
+
   // The Hanging Gardens' activation: "If Semiramis is Attacked during this
   // period, the period... is interrupted." Declared against, not necessarily
   // hit -- fired here, at declaration, rather than after the damage step.
@@ -2816,6 +2832,18 @@ async function applyDamage(state, message) {
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
     // by her platform's swings the platform's 150 rather than her own 125.
     units: mountUnits(attacker, board),
+    // Which ring this defender stands in, and what that ring multiplies by.
+    //
+    // Triton's Conch: *"Deals 1.5x damage to Units directly next to Nemo,
+    // while Units at a 2 panel distance receive 0.5x damage."* `damage.bands`
+    // is INDEX-ALIGNED with `targeting.shape.bands`, so the author writes the
+    // two lists in the same order and no third key has to agree with both.
+    //
+    // Absent for every other ability in the corpus, where the map is empty and
+    // the multiplier is 1 -- which is what stage 6 already did with nothing.
+    band: state.attack?.bands?.[defender.id] ?? 0,
+    bandMultiplier: resolvedDamage(ability, options)
+      ?.bands?.[state.attack?.bands?.[defender.id] ?? 0]?.multiplier ?? 1,
     // Same reason as `base` above: the splash's own multiplier, or the
     // ability's when this is the ordinary resolution.
     multiplier: (facts.isAftermath ? facts.multiplier : resolvedDamage(ability, options)?.multiplier) ?? 1,
@@ -3672,7 +3700,17 @@ async function applyDeclaredEffects(specs, ability, state, defender, { ignoresRe
       npMagnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "npMagnitude", state.attack?.ride),
       duration: spec.duration ?? def.defaultDuration,
       chanceModifiers: spec.chanceModifiers ?? [],
-      chance: spec.chance ?? null,
+      // A chance that depends on WHICH RING the target stands in. Triton's
+      // Conch: *"If the Unit was 2 panels away from Nemo, the chance of being
+      // inflicted with Deafen is 50% instead."*
+      //
+      // The band decides the effect chance as well as the damage multiplier,
+      // and it is read from the SAME map stage 6 reads -- a second geometry
+      // pass here could disagree with the one that chose these targets. Falls
+      // through to the flat `chance` for every other ability, which is all of
+      // them.
+      chance: spec.bands?.[state.attack?.bands?.[defender?.id] ?? 0]?.chance
+        ?? spec.chance ?? null,
       source: { unitId: state.attackerId, abilityId: ability.id },
       ctx: {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),

@@ -14,6 +14,8 @@ import { parse } from "yaml";
 
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
+import { detectRangeOf } from "../../module/rules/identity.mjs";
 
 /** `lookup` takes a Rank, never a string. @param {string} s @returns {Rank} */
 const R = (s) => Rank.parse(s);
@@ -161,5 +163,105 @@ describe("Poseidon's Protection (Rank B)", () => {
   it("has no uses limit — it is standing ground, not a charge", () => {
     const clause = A.passiveRules.find((r) => r.key === "DamageNegation");
     expect(clause.uses).toBeUndefined();
+  });
+});
+
+/* ========================================================================== */
+/*  Stage 6 — banded AoE. The stage is named after Triton's Conch and had     */
+/*  no input at all: nothing in the repository wrote `ctx.bandMultiplier`.    */
+/* ========================================================================== */
+
+describe("stage 6 — banded AoE", () => {
+  /** @param {number|undefined} bandMultiplier @param {number} [band] */
+  const hit = (bandMultiplier, band = 0) => computeDamage({
+    attacker: { id: "a", baseAttack: { mag: 200 }, abilities: [] },
+    defender: { id: "d", abilities: [] },
+    base: { sources: [{ unit: "self", component: "mag", factor: 1 }] },
+    component: "mag",
+    attack: { kind: "skill", component: "mag" },
+    rolls: { attackMinus: 0 },
+    bandMultiplier,
+    band,
+  });
+
+  it("scales the adjacent band up and the outer band down", () => {
+    const flat = hit(undefined).total;
+    expect(flat).toBeGreaterThan(0);
+    expect(hit(1.5, 0).total).toBeCloseTo(flat * 1.5, 5);
+    expect(hit(0.5, 1).total).toBeCloseTo(flat * 0.5, 5);
+  });
+
+  it("names the band in the breakdown rather than folding it into the total", () => {
+    const contributors = hit(1.5, 0).breakdown.flatMap((b) => b.contributors ?? []);
+    const band = contributors.find((c) => c.source === "band");
+    expect(band, "stage 6 contributed nothing the card could show").toBeDefined();
+    expect(band.value).toBe(1.5);
+    // Which ring, in words. A multiplier with no ring named is a number the
+    // player cannot check against the sheet.
+    expect(band.note).toContain("band 0");
+  });
+});
+
+/* ========================================================================== */
+/*  Triton's Conch                                                            */
+/* ========================================================================== */
+
+describe("Triton's Conch", () => {
+  const A = ability("nemo-tritons-conch");
+
+  it("hits a 5x5 around Nemo as two distance bands", () => {
+    expect(A.targeting.anchor).toEqual({ kind: "self" });
+    expect(A.targeting.shape.kind).toBe("banded");
+    // A 5x5 centred on him is everything within Chebyshev 2.
+    expect(A.targeting.shape.bands).toEqual([{ maxDistance: 1 }, { maxDistance: 2 }]);
+  });
+
+  it("deals 1.5x directly next to him and 0.5x at two panels", () => {
+    expect(A.damage.bands).toEqual([{ multiplier: 1.5 }, { multiplier: 0.5 }]);
+    expect(A.damage.sources).toEqual([{ unit: "self", component: "mag", factor: 1 }]);
+    expect(A.damage.component).toBe("mag");
+  });
+
+  it("inflicts Deafen outright adjacent and on a coin at two panels", () => {
+    const phase = A.phases.find((p) => p.kind === "applyEffects");
+    const deafen = phase.effects.find((e) => e.id === "deafen");
+    expect(deafen.duration).toBe("1◈");
+    // "If the Unit was 2 panels away from Nemo, the chance of being inflicted
+    // with Deafen is 50% instead." The SAME band index the multiplier uses.
+    expect(deafen.bands).toEqual([{ chance: 100 }, { chance: 50 }]);
+  });
+
+  it("runs on a 2◈ cooldown as an Attack Skill", () => {
+    expect(A.isAttackSkill).toBe(true);
+    expect(A.cooldown).toBe("2◈");
+  });
+});
+
+describe("the Deafen debuff", () => {
+  const E = effect("deafen");
+
+  it("raises Evade rolls by 2 and drops MOV by 1", () => {
+    expect(E.polarity).toBe("debuff");
+    const evade = E.rules.find((r) => r.key === "CheckModifier" && r.check === "evade");
+    expect(evade.value).toBe(2);
+    expect(E.rules.find((r) => r.key === "MovDelta").value).toBe(-1);
+  });
+
+  it("drops Detect by 1 WITHOUT a rule element, because identity.mjs hard-wires it", () => {
+    // `detectRangeOf` subtracts 1 for an effect literally called `deafen` --
+    // it has since it was written, against a game in which nothing could apply
+    // one. So the -1 arrives by NAME and the effect must not also carry a
+    // rule for it.
+    //
+    // `DetectOverride` would be the wrong element in any case: it pushes a
+    // `{scope: "detect", maximum}` CAP, which is Jack's Mist reducing Detect
+    // "to 1 panel". Authored here it would cap Nemo's victims at 1 rather than
+    // costing them one panel, and then identity.mjs would take another off.
+    expect(E.rules.some((r) => r.key === "DetectOverride")).toBe(false);
+    expect(E.id).toBe("deafen");
+
+    const base = detectRangeOf({ kind: "servant", servantClasses: ["rider"], effects: [] });
+    const deaf = detectRangeOf({ kind: "servant", servantClasses: ["rider"], effects: ["deafen"] });
+    expect(deaf).toBe(base - 1);
   });
 });
