@@ -2793,7 +2793,22 @@ be the string "erase": a rule that works because two unrelated names coincide br
 when one is renamed. Authoring it also made three long-standing warnings actionable - Penthesilea,
 Magic Resistance and `Debuff Immune` all carve out an Erase that until now did not exist.
 
-**Still open:** the resurface affordance and clock, Nemo's Luck Check on defeat, the NP, `aim`. (`deafen`, `aim`, `indomited`, `erase`) and
+**Commits 12-13 - the clock, the exit offer, and Nemo's last Luck Check.**
+
+*"At the end of **any** Turn, Nemo can choose to resurface"* - any Turn, not only his own, so
+`runDimensionClock` sits on the **global** boundary rather than inside the active faction's
+block. The forced exit at 2◈ fires from the same place, and still lets him choose *where*:
+nothing in the sheet hands that choice to anybody else, and the cap is on the time rather than
+the travel. Both raise `fgtDimensionExitOffer` rather than opening the canvas layer directly -
+this is layer 3, the placement layer is layer 4, and the GM client running the scheduler is not
+necessarily the client that answers.
+
+The Luck Check is wired into `resolveDefeatOf` **before** the revival chain, and is deliberately
+**not** a `RevivalSource`. *"He performs a Luck Check before dying ... (but he is still
+defeated)"* - registered as a revival it would compete with his own Guts for priority and, on a
+success, leave him alive, which the sheet denies in the same sentence that grants the check.
+
+**Still open:** the Noble Phantasm, `aim`, and the live pass. (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 

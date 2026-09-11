@@ -2795,6 +2795,16 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   // survived, and he survives this one or he does not.
   const recording = recordIntents(defender, state);
 
+  // Nemo's Zero Sail: *"If Nemo is defeated while Zero Sail is Active, he
+  // performs a Luck Check BEFORE dying."*
+  //
+  // Before the revival chain, and NOT a revival: the parenthesis that follows
+  // -- *"(but he is still defeated)"* -- is the whole point. Registered as a
+  // `RevivalSource` it would compete with his own Guts for priority and, on a
+  // success, leave him alive, which the sheet denies in the same sentence that
+  // grants the check.
+  const dimensional = await resolveDimensionalDefeat(defender, ctx);
+
   // A revival the player CHOOSES. Asked here, because `resolveDefeat` is pure
   // and this is a question about somebody's intentions rather than about the
   // board: *God's Holder: Possession* costs every Fragarach Token she holds and
@@ -2805,7 +2815,62 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   // `resolveDefeat` is given everywhere else and what `currentHealth` reads.
   return [
     ...recording,
+    ...dimensional,
     ...resolveDefeat({ ...defender, health: remaining, acceptedRevivals: accepted }, ctx),
+  ];
+}
+
+/**
+ * The Luck Check a dimension's owner makes before dying inside it.
+ *
+ * Returns the intents the failure branch owes -- `Erase` on everybody aboard --
+ * and performs the resurface itself, because surfacing is a placement rather
+ * than a state change and there is no intent for it.
+ *
+ * Everyone else's defeat returns an empty list without rolling anything: the
+ * clause belongs to the Unit that opened the dimension.
+ *
+ * @param {object} defender the defender's snapshot
+ * @param {object} ctx the defeat context
+ * @returns {Promise<object[]>}
+ */
+async function resolveDimensionalDefeat(defender, ctx) {
+  const platform = game.actors?.find(
+    (a) => a.type === "platform" && a.system?.dimension && a.system?.ownerId === defender.id,
+  );
+  const spec = platform?.system?.dimension;
+  if (!spec?.onOwnerDefeat) return [];
+
+  const { onOwnerDefeat, resurface } = await import("./dimension.mjs");
+  const board = currentBoard();
+  const occupants = (board.units ?? [])
+    .filter((u) => u.platformContentId === platform.system?.contentId)
+    .map((u) => u.id);
+
+  const roll = await new Roll("1d20").evaluate();
+  const check = luckCheck({ roll: roll.total, luck: defender.luck ?? 0 });
+  const verdict = onOwnerDefeat(spec, {
+    owner: defender, succeeded: check.success, occupants,
+  });
+  if (!verdict) return [];
+
+  if (verdict.resurfaces) {
+    // "The Storm Border IMMEDIATELY resurfaces" -- at the owner's own panel,
+    // because he is not alive to choose a destination and the sheet gives the
+    // choice to nobody else.
+    await resurface({ platformId: platform.id, at: defender.panel, forced: true });
+    return [I.log({
+      kind: "ability", unitId: defender.id, tick: ctx.tick,
+      detail: `Zero Sail: Luck Check passed (${roll.total}) -- the Storm Border surfaces, Nemo is still defeated.`,
+    })];
+  }
+
+  return [
+    ...verdict.erased.map((id) => I.applyEffect(id, { defId: "erase", sourceUnitId: defender.id })),
+    I.log({
+      kind: "ability", unitId: defender.id, tick: ctx.tick,
+      detail: `Zero Sail: Luck Check failed (${roll.total}) -- everyone aboard is Erased.`,
+    }),
   ];
 }
 
