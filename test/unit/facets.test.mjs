@@ -69,8 +69,27 @@ describe("equivalence with the regexes it replaces", () => {
   });
 
   it("rejects nothing the old list accepted, across the corpus", () => {
+    // ONE-DIRECTIONAL, as the title says. This guard exists to prove the swap
+    // to a generated table lost nothing; it was never meant to freeze the
+    // vocabulary, which `facets.mjs`'s own header describes as still being
+    // written. A two-way equality would make every NEW facet fail here --
+    // `terrain:` was the first to do so -- and the fixture is a snapshot of
+    // what the regexes accepted in September 2026, not a specification.
     for (const o of corpusOptions()) {
-      expect(newAccepts(o), `disagreement on ${o}`).toBe(oldAccepts(o));
+      if (!oldAccepts(o)) continue;
+      expect(newAccepts(o), `the old list accepted ${o} and the table refuses it`).toBe(true);
+    }
+  });
+
+  it("accepts corpus options the old list could not, only through a declared facet", () => {
+    // The other half of the guard the equality used to provide: an option the
+    // old regexes refused is either a facet added since (fine) or a typo that
+    // slipped past (not). `parseOption` answering with a known facet id is
+    // what separates the two.
+    const added = corpusOptions().filter((o) => !oldAccepts(o));
+    for (const o of added) {
+      const facet = parseOption(o)?.facet;
+      expect(FACETS.some((f) => f.id === facet), `${o} matches no declared facet`).toBe(true);
     }
   });
 });
