@@ -301,6 +301,16 @@ function add(options, side, unit) {
   // different Ranks.
   if (unit.platformContentId) options.add(`${side}:onPlatform:${unit.platformContentId}`);
 
+  // WHICH TERRAIN the unit is standing in (Ch. 42). `annotateTerrain` has
+  // written `u.terrain` onto every unit in the snapshot since terrain shipped
+  // and NOTHING has ever read it -- so a clause like Nemo's *"when Nemo is
+  // within a 'Waterside' or 'Imaginary Numbers Space' area"*, which gates four
+  // of his clauses, could not be written at all in 35 facets.
+  //
+  // Overlapping areas each emit, because `terrainAt` returns all of them and a
+  // unit standing in two is in both.
+  for (const type of unit.terrain ?? []) options.add(`${side}:terrain:${type}`);
+
   // A Servant with no Master. §16.6's state, and the one this system already
   // charges differently for (`rules/costs.mjs`'s `freeServantNPSustainability
   // Cost`) — but the cost path asked the question privately, so no clause could

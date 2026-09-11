@@ -1293,6 +1293,8 @@
   "FGT.Predicate.Facet.fieldActiveHint": "A named bounded field is open somewhere on the board.",
   "FGT.Predicate.Facet.onPlatform": "On Platform",
   "FGT.Predicate.Facet.onPlatformHint": "Is aboard a named Platform.",
+  "FGT.Predicate.Facet.terrain": "In Terrain",
+  "FGT.Predicate.Facet.terrainHint": "Is standing in a named type of Terrain.",
   "FGT.Predicate.Facet.withinOfOwnerMaster": "Within Of Owner Master",
   "FGT.Predicate.Facet.withinOfOwnerMasterHint": "Is within a number of panels of its own Master.",
   "FGT.Predicate.Facet.kind": "Kind",

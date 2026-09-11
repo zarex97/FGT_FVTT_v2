@@ -716,6 +716,40 @@ function predicateOptionsExist(doc, path, problems) {
       );
     }
   }
+  terrainTypesExist(doc, path, problems);
+}
+
+/**
+ * Every `terrain:` option names a type the catalogue actually has.
+ *
+ * The facet is declared `registry`, which is shape-checked and never errors --
+ * correct for `attribute` and `contentId`, whose vocabularies are still being
+ * written and legitimately carry forward references. **Terrain is not like
+ * that.** `rules/terrain.mjs`'s TERRAIN is a closed table in code; a type it
+ * does not have cannot appear later because a Servant gets authored, and
+ * `terrainAt` will simply never return it.
+ *
+ * So `self:terrain:watersyde` passes the shape check, emits nothing, matches
+ * nothing, and silently makes its clause permanently false -- which is this
+ * project's dominant defect wearing a spelling mistake. Four of Nemo's
+ * thirteen clauses are gated on this facet and every one of them would fail
+ * silently.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function terrainTypesExist(doc, path, problems) {
+  for (const site of predicateSitesIn(doc)) {
+    for (const option of site.options) {
+      const type = /^(?:not:)?(?:self|target):terrain:(.+)$/.exec(option)?.[1];
+      if (type === undefined || type in TERRAIN) continue;
+      problems.push(
+        `${path}: ${site.where} names terrain "${type}", which rules/terrain.mjs does not `
+        + `define. Known types: ${Object.keys(TERRAIN).sort().join(", ")}.`,
+      );
+    }
+  }
 }
 
 /**

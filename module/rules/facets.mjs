@@ -236,6 +236,17 @@ export const FACETS = Object.freeze([
     prose: "{subject} is aboard {platform}",
   }),
   facet({
+    id: "terrain",
+    // `registry`, not `closed`: `rules/terrain.mjs`'s TERRAIN table is
+    // content-adjacent and grows -- Imaginary Numbers Space was added for one
+    // Servant -- and a build that errored on a type a later chapter introduces
+    // would be refusing legitimate content. It warns instead, which is the
+    // rule this file's header sets out for exactly this case.
+    segments: [{ name: "type", value: registry("terrainTypes") }],
+    english: "Is standing in a named type of Terrain.",
+    prose: "{subject} is in {type} terrain",
+  }),
+  facet({
     id: "withinOfOwnerMaster",
     segments: [{ name: "panels", value: number(1, 6) }],
     english: "Is within a number of panels of its own Master.",

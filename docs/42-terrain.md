@@ -300,6 +300,20 @@ The first terrain keyed on a **region** rather than an attribute or skill.
    effect.)
 2. Chance of inflicting debuffs +5%. Mental debuffs a further +5%.
 
+### Imaginary Numbers Space — **added 2026-09-11**
+
+Nemo's Storm Border (Ch. 20 §20.6). A **different dimension** rather than an elevation, which is
+why nothing crosses into or out of it and why it has no ground footprint at all.
+
+It carries **no standing effects**, and — as with the three phase overrides below — the empty
+list is its finished state rather than an unfinished one. Every Imaginary Numbers clause in the
+game sits on Nemo's own abilities (Poseidon's Protection, Voyager of the Storm, Journey's
+Guidance, Great Ram Nautilus), and every one of them reads the type as a **predicate**. The space
+modifies nobody standing in it; it only tells his own kit where he is.
+
+That is what the `terrain:` predicate facet is for (Ch. 24 §24.4): terrain had until now been a
+source of *modifiers* only, and a terrain type that grants nothing was therefore inexpressible.
+
 ### Sunlight / Darkness / Indoors
 
 The three terrain types that interact with the day/night cycle:
