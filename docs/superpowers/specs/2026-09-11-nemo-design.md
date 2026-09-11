@@ -85,15 +85,15 @@ decision, not a move.
 The actor is kept as the dimension's carrier and the unsourced statistics are removed, with the
 removal recorded in the file's header comment rather than silently dropped.
 
-### R4 — Nemo's Class is derived, not stated — **needs confirmation**
+### R4 — Nemo's Class is derived, not stated — **confirmed: Rider**
 
 The sheet has no Class line. Every other conversion source states one; this one gives only
 *"(Nemo) Class Skill: **Riding** — Rank: A+"*, and Riding is the Rider container's class skill,
 so `servantClasses: [rider]`.
 
 This is not cosmetic. The Class container decides base Detect (`rules/identity.mjs`), which
-column of `npCostByRank` his Master pays, and which class-skill grants he is eligible for. It is
-recorded here as an assumption to be confirmed before Task 1 rather than discovered later.
+column of `npCostByRank` his Master pays, and which class-skill grants he is eligible for — so
+it was put to the author rather than assumed, and **Rider** is the answer.
 
 Note also that the sheet grants him **Riding alone** — no Magic Resistance, which Rider normally
 carries. Authored as written: one class-skill ref, not two.
