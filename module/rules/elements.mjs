@@ -877,6 +877,17 @@ export const EXECUTORS = Object.freeze({
     out.modifiers.push({
       key: el.modifierKey ?? (el.aspect === "damage" ? "critDmUp" : "critUp"),
       value: scalar(resolveValue(el, rank, ctx)),
+      // WHICH Base Attack this crit clause applies to, when it names one.
+      // Nemo's Poseidon's Protection is *"Crit Damage of Attacks which use
+      // Base Attack (MAG) is increased by 10%"* -- and this executor dropped
+      // the field entirely, so the authored `mag` reached no reader and the
+      // buff also raised his two STR attacks (Quickfire and the Noble
+      // Phantasm). Found in a live world, not by a unit test: the YAML was
+      // right and inert.
+      //
+      // `undefined` for every other crit clause in the corpus, which is all of
+      // them, and stage 2 reads that as "any component".
+      ...(el.component ? { component: el.component } : {}),
       // Crit damage modifiers land in the same bag the pipeline filters, so a
       // deferred clause reaches the same reader.
       predicate: deferred,

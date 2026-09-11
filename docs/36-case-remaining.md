@@ -434,6 +434,18 @@ than on in a typical roster. That is the character.
 
 ## 36.6 Nemo — a pocket dimension and a dice-counting attack
 
+> **Built 2026-09-11.** All thirteen clauses, live-tested in `fgt2026`. Two corrections to what
+> this section sketched:
+>
+> - The threshold's Agility clause is `@target.agility`, **not** `@target.agility.value`. The
+>   sketch used the Actor document's spelling; the unit *snapshot* flattens Agility to a number,
+>   and `.value` made `predicate.mjs` throw the first time Quickfire was aimed.
+> - The Evade modifier's option is `target:reaction:evade`. `defender:` is not a subject this
+>   vocabulary has — the defender is `target:` throughout — and the build refused it outright.
+>
+> `bypassModifiers`' two-sided form was predicted to have *"its only user here"*. It has two:
+> Barrel Bombing carries the identical sentence.
+
 Structurally covered in Ch. 20 §20.6. Two additional demands:
 
 **A dice-counting attack skill with five conditional modifiers.**

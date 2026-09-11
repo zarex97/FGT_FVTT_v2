@@ -16,6 +16,7 @@ import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { detectRangeOf } from "../../module/rules/identity.mjs";
+import { collectContributions } from "../../module/rules/elements.mjs";
 import { isEmittableOption } from "../../module/rules/options.mjs";
 import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 
@@ -160,6 +161,43 @@ describe("Poseidon's Protection (Rank B)", () => {
     expect(clause.predicate).toEqual([
       { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] },
     ]);
+  });
+
+  it("carries the component through the executor, not only the YAML", () => {
+    // FOUND IN THE LIVE WORLD. `CritModifier` pushed `{key, value, predicate,
+    // source}` and dropped `component` entirely, so the authored `mag` never
+    // reached a reader and the buff applied to his STR attacks -- Quickfire and
+    // the Noble Phantasm -- as well as his MAG ones.
+    const out = collectContributions([{
+      id: "a", name: "Poseidon's Protection", rank: null, active: true,
+      passiveRules: [{
+        key: "CritModifier", aspect: "damage", modifierKey: "critDmUp", value: 10, component: "mag",
+      }],
+    }]);
+    expect(out.modifiers[0]).toMatchObject({ key: "critDmUp", value: 10, component: "mag" });
+  });
+
+  it("raises crit damage on a MAG attack and not on a STR one", () => {
+    // The other half: stage 2 summed every `critDmUp` the attacker held
+    // without looking at the component either, so carrying it was necessary
+    // and not sufficient.
+    const attacker = {
+      id: "a", baseAttack: { str: 100, mag: 200 }, abilities: [],
+      modifiers: [{ key: "critDmUp", value: 100, component: "mag", source: "Poseidon's Protection" }],
+    };
+    const crit = (component) => computeDamage({
+      attacker, defender: { id: "d", abilities: [] },
+      base: { sources: [{ unit: "self", component, factor: 1 }] },
+      component,
+      attack: { kind: "skill", component },
+      crit: { isCrit: true },
+      rolls: { attackPlus: 100 },
+    });
+    // The 5d10 of 100 is doubled on the MAG attack and untouched on the STR one.
+    const magRoll = crit("mag").breakdown.flatMap((b) => b.contributors ?? []).find((c) => c.source === "attack+");
+    const strRoll = crit("str").breakdown.flatMap((b) => b.contributors ?? []).find((c) => c.source === "attack+");
+    expect(magRoll.value).toBe(200);
+    expect(strRoll.value).toBe(100);
   });
 
   it("has no uses limit — it is standing ground, not a charge", () => {
@@ -357,8 +395,11 @@ describe("Barrel Bombing", () => {
   });
 
   it("deals a flat 150 of Fire and burns for 2◈", () => {
-    expect(A.damage.fixed).toBe(true);
     expect(A.damage.base).toEqual({ fixedValue: 150 });
+    // NOT `fixed: true`. "Fixed damage" is a defined term about MODIFIERS --
+    // both sides -- and the sheet exempts only Nemo's. Authored with it, the
+    // defender's Def Up and Block would vanish too.
+    expect(A.damage.fixed).toBeUndefined();
     expect(A.damage.element).toBe("fire");
     const burn = A.phases.find((p) => p.kind === "applyEffects").effects.find((e) => e.id === "burn");
     expect(burn.duration).toBe("2◈");
@@ -366,6 +407,22 @@ describe("Barrel Bombing", () => {
 
   it("skips Nemo's own damage modifiers and none of the defender's", () => {
     expect(A.damage.bypassModifiers).toEqual({ attacker: true, defender: false });
+  });
+
+  it("actually deals its 150 through the pipeline", () => {
+    // FOUND IN A LIVE WORLD: stage 1 read `base.fixedValue` only under
+    // `isFixedDamage`, so a flat base with a one-sided bypass fell through to
+    // a `sources` list it does not have and dealt ZERO.
+    const out = computeDamage({
+      attacker: { id: "a", baseAttack: { str: 100 }, abilities: [] },
+      defender: { id: "d", abilities: [] },
+      base: { fixedValue: 150 },
+      component: "str",
+      attack: { kind: "skill", component: "str", element: "fire",
+        bypassModifiers: { attacker: true, defender: false } },
+      rolls: { attackMinus: 0 },
+    });
+    expect(out.total).toBe(150);
   });
 
   it("runs on a 3◈ cooldown", () => {

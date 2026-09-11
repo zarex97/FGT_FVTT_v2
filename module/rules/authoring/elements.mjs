@@ -133,6 +133,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     ...SCALED,
     { key: "modifierKey", type: "text" },
     { key: "aspect", type: "select", choices: ["chance", "damage"] },
+    { key: "component", type: "select", choices: ["str", "mag"] },
   ]),
   entry("BlockModifier", "Percentage points onto the flat 25% a Block removes.", [...SCALED]),
 

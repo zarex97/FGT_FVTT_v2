@@ -8,31 +8,25 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { parse } from "yaml";
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../../module/rules/damage/dice-count.mjs";
 import { explain } from "../../module/rules/predicate.mjs";
 import { record, renderBreakdown } from "../../module/rules/roll-log.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 
-/** Quickfire's own formula block, copied from the sheet. */
-const SPEC = {
-  kind: "diceCount",
-  dice: "6d6",
-  threshold: {
-    base: 5,
-    modifiers: [
-      { delta: +1, predicate: ["defender:reaction:evade"] },
-      { delta: -1, predicate: [{ lte: ["@distance", 2] }] },
-      {
-        delta: -1,
-        predicate: [{
-          anyOf: ["target:effect:slow", "target:effect:immobilize", "target:effect:stun"],
-        }],
-      },
-      { delta: -1, predicate: [{ lte: ["@target.agility.value", "@self.agility.value"] }] },
-    ],
-  },
-  perSuccess: { amount: 25, component: "str" },
-};
+/**
+ * Quickfire's own formula block, **read from the authored file** rather than
+ * copied here.
+ *
+ * Copied, it drifted: this test hand-wrote `@target.agility.value`, which is
+ * the Actor document's spelling. The unit SNAPSHOT flattens Agility to a
+ * number, so the real ability threw in a live world while this file stayed
+ * green against a fixture that agreed with it and with nothing else.
+ */
+const SPEC = parse(
+  readFileSync("packs/_source/abilities/nemo-quickfire.yml", "utf8"),
+).damage.formula;
 
 /**
  * A context in which NO modifier fires unless the caller asks for it: far away,
@@ -44,8 +38,8 @@ const SPEC = {
 const ctx = (opts = [], refs = {}) => ({
   options: new Set(opts),
   refs: {
-    self: { agility: { value: 10 } },
-    target: { agility: { value: 99 } },
+    self: { agility: 10 },
+    target: { agility: 99 },
     distance: 5,
     ...refs,
   },
@@ -57,7 +51,7 @@ describe("Quickfire's threshold", () => {
   });
 
   it("worsens to 6 when the defender chooses to Evade", () => {
-    expect(thresholdFor(SPEC, ctx(["defender:reaction:evade"])).threshold).toBe(6);
+    expect(thresholdFor(SPEC, ctx(["target:reaction:evade"])).threshold).toBe(6);
   });
 
   it("improves to 4 at a Range of 2 or lower", () => {
@@ -75,15 +69,15 @@ describe("Quickfire's threshold", () => {
   it("improves when the target's Agility is EQUAL to or lower than Nemo's", () => {
     // "equal or lower". An off-by-one here silently costs a die on every even
     // match-up, so both edges are named.
-    expect(thresholdFor(SPEC, ctx([], { target: { agility: { value: 10 } } })).threshold).toBe(4);
-    expect(thresholdFor(SPEC, ctx([], { target: { agility: { value: 9 } } })).threshold).toBe(4);
-    expect(thresholdFor(SPEC, ctx([], { target: { agility: { value: 11 } } })).threshold).toBe(5);
+    expect(thresholdFor(SPEC, ctx([], { target: { agility: 10 } })).threshold).toBe(4);
+    expect(thresholdFor(SPEC, ctx([], { target: { agility: 9 } })).threshold).toBe(4);
+    expect(thresholdFor(SPEC, ctx([], { target: { agility: 11 } })).threshold).toBe(5);
   });
 
   it("compounds every modifier that applies", () => {
     const out = thresholdFor(SPEC, ctx(
       ["target:effect:stun"],
-      { distance: 1, target: { agility: { value: 1 } } },
+      { distance: 1, target: { agility: 1 } },
     ));
     expect(out.threshold).toBe(2);
   });
@@ -91,7 +85,7 @@ describe("Quickfire's threshold", () => {
   it("lets the Evade penalty cancel an improvement rather than overriding it", () => {
     // +1 and -1 in the same use: the sheet gives one plus-clause and three
     // minus-clauses and no precedence between them, so they simply sum.
-    const out = thresholdFor(SPEC, ctx(["defender:reaction:evade"], { distance: 2 }));
+    const out = thresholdFor(SPEC, ctx(["target:reaction:evade"], { distance: 2 }));
     expect(out.threshold).toBe(5);
   });
 

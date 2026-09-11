@@ -61,7 +61,13 @@ damage:
             - { anyOf: ["target:effect:slow", "target:effect:immobilize", "target:effect:stun"] }
         # Minus 1, clause 3. "EQUAL or lower" -- the boundary is inclusive, and
         # an off-by-one here silently costs a die on every even match-up.
-        - { delta: -1, predicate: [{ lte: ["@target.agility.value", "@self.agility.value"] }] }
+        #
+        # `@target.agility`, NOT `@target.agility.value`: the unit SNAPSHOT
+        # flattens Agility to a number (`rules/snapshot.mjs`), and the `.value`
+        # spelling -- which is what the Actor document uses -- resolves to
+        # undefined and makes `predicate.mjs` throw on the comparison. Found in
+        # a live world; the sketch in Ch. 36 §36.6 had the document's spelling.
+        - { delta: -1, predicate: [{ lte: ["@target.agility", "@self.agility"] }] }
     perSuccess: { amount: 25, component: str }
   component: str
   # "not affected by damaging modifying effects ON NEMO" -- attacker-side only.

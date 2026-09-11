@@ -1565,7 +1565,14 @@ function actorSystem(doc) {
     // Platform fields (Ch. 20). Absent from every other actor type and cheap
     // to carry; without them a platform compiles into an actor that knows its
     // Health and nothing about who it shields or how it moves.
-    footprint: doc.footprint ?? undefined,
+    // `=== null` FIRST, because `?? undefined` collapses an authored null into
+    // "field absent" and the schema then applies its 3x3 initial. The Storm
+    // Border states `footprint: null` deliberately -- Ch. 20 §20.6, *"it is not
+    // on the board at all while it is submerged"* -- and it arrived in a live
+    // world as a 3x3 hull, which is a submarine-shaped hole in the middle of
+    // the board. Making the schema field nullable was necessary and not
+    // sufficient; this is the other half.
+    footprint: doc.footprint === null ? null : (doc.footprint ?? undefined),
     upkeep: doc.upkeep ?? null,
     countsTowardBudget: doc.countsTowardBudget ?? undefined,
     actsOncePerTurn: Boolean(doc.actsOncePerTurn),

@@ -28,11 +28,12 @@ targeting:
   selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
 damage:
   # "for 150 Fire damage" -- a flat figure, not a multiple of a Base Attack.
-  # Note this is NOT `isFixedDamage`: Fixed damage is a defined term meaning
-  # "not affected by any damage modifying effect on BOTH the AU and DU", and
-  # the sheet only exempts Nemo's side. A defender's Def Up, Dmg Cut, Block and
-  # Fire resistance all still apply.
-  fixed: true
+  #
+  # `base.fixedValue` alone, and deliberately NOT `fixed: true`. *Fixed damage*
+  # is a defined term about MODIFIERS -- "not affected by any damage modifying
+  # effect on **both** the AU and DU including Block" -- and the sheet exempts
+  # only Nemo's side. A defender's Def Up, Dmg Cut, Block and Fire resistance
+  # all still apply to this.
   base: { fixedValue: 150 }
   component: str
   element: fire

@@ -2828,7 +2828,74 @@ The NP's phase order is the sheet's own and load-bearing: *"FIRST apply the foll
 Nemo ... THEN, deals 4x damage."* All three are NP-damage buffs on the Unit about to swing an NP,
 so a damage phase ahead of them would collect none of them.
 
-**Still open:** the live pass. (`deafen`, `aim`, `indomited`, `erase`) and
+### Nemo is complete - and ten defects, six of them in shipped machinery
+
+The live pass in `fgt2026` found **ten** defects. The unit suite was green at 3,676 tests
+throughout, and six of the ten were in code that had shipped before this Servant existed.
+
+**In shipped machinery.**
+
+1. **`CritModifier` dropped `component`.** The executor pushed `{key, value, predicate, source}`
+   and nothing else, so Poseidon's *"Crit Damage of Attacks which use Base Attack (MAG)"* reached
+   no reader and raised his two **STR** attacks as well. The YAML was right and inert.
+2. **Stage 2 could not have honoured it anyway.** `sumMods` took every `critDmUp` its bearer held
+   regardless of component, so carrying the field through was necessary and not sufficient.
+   `sumCritMods` replaces it; the crit band is the only place a component-scoped modifier is
+   simply in or out, since stages 4 and 5 split one deliberately.
+3. **`footprint: null` compiled to a 3x3 hull.** `doc.footprint ?? undefined` collapsed an
+   authored null into "field absent", and the schema's initial won. Making the schema field
+   nullable was half the fix; distinguishing null from absent in the compiler was the other.
+   A submarine-shaped hole in the middle of the board.
+4. **`@target.agility.value` does not resolve.** The unit **snapshot** flattens Agility to a
+   number; `.value` is the Actor document's spelling, which is what Ch. 36 SS36.6's sketch used.
+   `predicate.mjs` threw on the comparison the first time Quickfire was aimed. `dice-count.test.mjs`
+   had hand-copied the formula and agreed with itself, so it now **reads the authored file**.
+5. **Terrain was absent from the collection-time option set.** `contributionsOf` runs per-actor
+   inside `snapshotUnit`, before the board's `annotateTerrain` pass exists - so Poseidon's
+   *"reduced by 50; if NP, 100"* was evaluated against options that could not contain the answer
+   and was dropped for good. It cannot simply be deferred like `self:inHomeBase`: this is a
+   `direction: taken` clause, and in the damage pipeline `self:` is the **attacker**, so a
+   deferred `self:terrain:waterside` would ask whether whoever is hitting Nemo is standing in
+   water - and `rollNegation` does not test predicates at all, so it would always apply. Terrain
+   is threaded into the projection and the pass is re-run for the few units standing in any.
+6. **A flat base amount was gated on "Fixed damage".** Those are different things: *Fixed damage*
+   is a defined term about **modifiers** (both sides), and `base.fixedValue` says where the number
+   comes from. Barrel Bombing is *"150 Fire damage"* with a **one-sided** exemption, and authored
+   correctly it dealt **zero** - stage 1 fell through to a `sources` list it does not have.
+
+**In this Servant's own new code**, all four in the dimension and all four fatal to it:
+
+7. `dimension.mjs` imported `applyBatch` from `io.mjs`, which does not export it - Zero Sail threw
+   on use. It is a private helper in `attack.mjs`, and that file already imports this one, so the
+   wrapper is duplicated rather than closing a cycle.
+8. `enterDimension` looked for an existing **world** actor; the platform lives in a **pack**, so
+   the Skill silently did nothing in a fresh world. It now creates one the way `summonPlatform`
+   does.
+9. `submergedFrom` was read and never written, so the travel allowance was measured from the
+   destination - making every placement trivially legal.
+10. `resurface` identified its occupants by `platformContentId`, which `annotatePlatforms` derives
+    from **footprint overlap**. A dimension has no footprint by construction, so it marked nobody
+    aboard and moved an empty list. Occupants are the tokens on the dimension's **Scene Level**,
+    which is what `moveToLevel` wrote at entry.
+
+**What the live board showed, clause by clause.** Rider - Chaotic Neutral - East India, Greece;
+1250 Health; C/B/C/A/A; BA 100/200; MOV 6; Range 3; Sustainability 2◈; Normal Attack **fixed
+component MAG**, element Water, with the 10% Slow rider on the Servant's own `rules`. Divinity's
+**+50 at stage 7** in the breakdown. Poseidon's crit clause collected with its NP exclusion, and
+its reduction reading **-50 against a Skill and -100 against a Noble Phantasm** - the only flat
+reduction in the catalogue that grows against the thing it defends from. Triton's Conch at
+**239 adjacent and 113 at two panels** (210 x 1.5 and x 0.5, both before Divinity's flat +50).
+Quickfire's threshold landing on **3** against a slower target at Range 2, with all four modifiers
+reported and two of them unfired. Barrel Bombing's 150 becoming **90** through the defender's Def
+Up while Divinity is named as bypassed. The NP at **402**, and **930** against a `Large` target -
+exactly 2.5x on the damage above the flat, at stage 3. Journey's Guidance resolving its
+conditional anchor's ground branch to Nemo and his ally. And Zero Sail end to end: the
+**"The Storm Border" Scene Level** created, Nemo and his chosen ally aboard, **both enemy 1d20
+rolls made and reported** (13 and 7, both refused at 18+), `ForbidCreating` refusing a second
+Zero Sail from inside the first, a resurface allowance of **5 panels after 1◈** - the sheet's own
+worked example - a 9-panel destination refused as `illegalPlacement`, and both occupants moved.
+
+**Nemo is complete**: eleven abilities, four effect definitions, six engine mechanisms. (`deafen`, `aim`, `indomited`, `erase`) and
 five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 

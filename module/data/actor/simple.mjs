@@ -111,6 +111,17 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
        * not do, and what happens if its owner dies inside it.
        */
       dimension: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+      /**
+       * The panel a dimension submerged FROM, stamped at entry.
+       *
+       * Its travel allowance is measured from here, and a submerged Unit is on
+       * the dimension's own Scene Level rather than in the ground board's unit
+       * list -- so there is no live panel to fall back on. Not authored; written
+       * once by `engine/dimension.mjs#enterDimension` and read once on the way
+       * out.
+       */
+      submergedFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       capacity: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       /** The Servant that created it, whose effects are reversed on destruction. */
       ownerId: new fields.StringField({ required: false, nullable: true, initial: null }),

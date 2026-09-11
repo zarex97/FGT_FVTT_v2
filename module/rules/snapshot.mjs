@@ -59,11 +59,11 @@ import { CONCEALMENT } from "./concealment.mjs";
  */
 export function snapshotUnit(actor, {
   token = null, panel = null, tick = null, turnsPerRound = 3, round = null, ownerUserId = null,
-  warRegion = null,
+  warRegion = null, terrain = [],
 } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
-  const contributions = contributionsOf(actor);
+  const contributions = contributionsOf(actor, { terrain });
   const footprint = gridFootprint(doc, panel);
   const turnState = turnStateAt(sys.turnState, tick);
   const effectIds = activeEffectIds(actor);
@@ -660,6 +660,17 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // an aura's own modifiers should sit after the ground the unit stands on in
   // the explainer's reading order.
   annotateTerrain(units, board);
+  // RE-COLLECT for anybody now standing in terrain.
+  //
+  // `contributionsOf` runs inside `snapshotUnit`, per actor, before this board
+  // pass exists -- so a clause gated on `self:terrain:` was answered against an
+  // option set that could not contain the answer, and was dropped for good.
+  // Only units actually in terrain pay for this, which is nobody on open
+  // ground.
+  //
+  // Nemo's *Poseidon's Protection* is the clause that found it: its 50/100
+  // reduction is collected only while he is in water, and it never was.
+  recollectForTerrain(units, actors);
   // Which platform each unit is aboard, and the protection model the targeting
   // resolver enforces. Positional, so it settles here with the other passes.
   //
@@ -721,7 +732,47 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
  * @param {object} board
  * @returns {void}
  */
+/**
+ * Re-run the contribution pass for units whose terrain is now known.
+ *
+ * A positional clause cannot be answered by the per-actor pass that runs before
+ * any unit has been placed against the board's terrain areas. Deferring it is
+ * not an option for defensive clauses -- see the note in `contributionsOf` --
+ * so the pass is simply run again, for the few units it can change.
+ *
+ * Only the buckets a terrain-gated element can write are replaced; everything
+ * already annotated onto the unit by earlier passes is left alone.
+ *
+ * @param {object[]} units
+ * @param {object[]} actors
+ * @returns {void}
+ */
+function recollectForTerrain(units, actors) {
+  for (const u of units) {
+    if ((u.terrain ?? []).length === 0) continue;
+    // `actors` entries are `{actor, token, snapshot?}` wrappers, not Actors --
+    // `currentBoard` hands finished snapshots through the same list. Matching
+    // on the wrapper's own `id` found nothing at all, which is how this pass
+    // came to run and change nothing.
+    const entry = actors.find((a) => (a.actor ?? a)?.id === u.id) ?? null;
+    const actor = entry?.actor ?? entry ?? null;
+    if (!actor?.items) continue;
+
+    const again = contributionsOf(actor, { terrain: u.terrain });
+    // The terrain pass has already pushed its own modifiers onto `u.modifiers`
+    // (Waterside's element bonuses), so the re-collected list is merged rather
+    // than assigned -- assigning would drop the ground the unit is standing on
+    // in favour of what its abilities say about standing there.
+    const fromTerrain = (u.terrainEffects?.modifiers ?? []);
+    u.modifiers = [...again.modifiers, ...fromTerrain];
+    u.damageNegation = again.damageNegation;
+    u.eventHandlers = again.eventHandlers;
+    u.suppressions = again.suppressions;
+  }
+}
+
 function annotatePlatforms(units, board) {
+
   const platforms = platformsOn(board);
   if (platforms.length === 0) return;
 
@@ -1118,7 +1169,7 @@ function instanceValue(raw, ref, value) {
  * @param {object} actor
  * @returns {object}
  */
-export function contributionsOf(actor) {
+export function contributionsOf(actor, { terrain = [] } = {}) {
   const sys = actor.system ?? {};
   const abilities = [...(actor.items ?? [])].filter((item) => !negated(item, actor)).map((item) => ({
     id: item.id,
@@ -1230,6 +1281,22 @@ export function contributionsOf(actor) {
       // never granted. Found live, on the first toggle.
       stance: sys.stance ?? "",
       stanceSpec: sys.stanceSpec ?? null,
+      // WHICH TERRAIN the bearer is standing in, threaded in by the board pass.
+      //
+      // The fourth entry in this comment's own list of fields this projection
+      // did not carry, and it arrives the same way the other three did: a
+      // clause that could never be satisfied from a Unit's own contributions.
+      // Nemo's *Poseidon's Protection* is *"when Nemo is within a 'Waterside'
+      // or 'Imaginary Numbers Space' area, all damage taken is reduced by 50;
+      // if NP, 100"* -- collected against an option set with no terrain in it,
+      // so the reduction was never collected at all.
+      //
+      // It cannot simply be DEFERRED like `self:inHomeBase`: this is a
+      // `direction: taken` clause, and in the damage pipeline `self:` is the
+      // ATTACKER -- so a deferred `self:terrain:waterside` would ask whether
+      // whoever is hitting Nemo is standing in water. `rollNegation` does not
+      // test predicates at all, so it would simply always apply.
+      terrain: [...terrain],
       abilities: [...(actor.items ?? [])].map((i) => ({
         id: i.id, slug: i.system?.slug ?? i.id, active: Boolean(i.system?.active),
       })),
