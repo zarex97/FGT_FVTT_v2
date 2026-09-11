@@ -168,6 +168,19 @@ export const TERRAIN = Object.freeze({
   sunlight: { name: "Sunlight", effects: [] },
   darkness: { name: "Darkness", effects: [] },
   indoors: { name: "Indoors", effects: [] },
+
+  // Nemo's Storm Border (Ch. 20 §20.6). A DIFFERENT DIMENSION rather than an
+  // elevation, which is why nothing crosses into or out of it and why it has
+  // no ground footprint at all.
+  //
+  // Like the three phase overrides above, it carries NO standing effects and
+  // the empty list is its finished state rather than an unfinished one. Every
+  // Imaginary Numbers clause in the game is on Nemo's own abilities --
+  // Poseidon's Protection, Voyager of the Storm, Journey's Guidance and the
+  // Noble Phantasm all read *"within a 'Waterside' or 'Imaginary Numbers
+  // Space' area"* -- and every one of them reads it as a PREDICATE. The space
+  // modifies nobody who stands in it; it only tells his own kit where he is.
+  imaginaryNumbers: { name: "Imaginary Numbers Space", effects: [] },
 });
 
 /**

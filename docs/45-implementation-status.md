@@ -2580,8 +2580,30 @@ not in an ability file: the sheet states it as a Note under the statline with no
 and no cooldown, and authoring it as a Skill would put a row on his sheet that his sheet does
 not have. Pale Rider's `RelationshipProxy` sits there for the same reason.
 
+**Commit 2 — a predicate can ask what a Unit is standing in.**
+
+`rules/terrain.mjs#annotateTerrain` has written `u.terrain` onto every unit in the snapshot
+since terrain shipped, and **nothing had ever read it.** The facet vocabulary held 36 facets and
+not one could ask what a Unit was standing in — so Nemo's *"when Nemo is within a 'Waterside' or
+'Imaginary Numbers Space' area"*, which gates four of his thirteen clauses, was unsayable. The
+37th facet is pure exposure: nothing new computes the answer.
+
+Added `imaginaryNumbers` to the TERRAIN catalogue, carrying **no standing effects** — the empty
+list is its finished state, as it is for `sunlight`/`darkness`/`indoors`. It is the first terrain
+type whose entire purpose is to be *asked about* rather than to modify whoever stands in it,
+which is why terrain needed a predicate facet before it could exist at all.
+
+**One thing tightened beyond the plan.** The facet is `registry`, which is shape-checked and
+never errors — right for `attribute` and `contentId`, whose vocabularies carry legitimate forward
+references to Servants not yet built. Terrain is not like that: `TERRAIN` is a closed table in
+code, and a type it lacks cannot arrive later. So `self:terrain:watersyde` would have passed the
+shape check, emitted nothing, matched nothing, and made its clause **permanently false** — this
+project's dominant defect wearing a spelling mistake, across four clauses of one Servant.
+`tools/lib/content.mjs` now carries `terrainTypesExist` beside `predicateOptionsExist` and
+errors on it.
+
 **Still open:** nine Skills, four effect definitions (`deafen`, `aim`, `indomited`, `erase`) and
-six engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
+five engine mechanisms — the `terrain:` predicate facet, the band→pipeline plumbing, two-sided
 `bypassModifiers`, `kind: diceCount`, the reaction override, and the dimension itself.
 
 ---
