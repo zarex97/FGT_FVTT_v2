@@ -85,6 +85,37 @@ the two boundaries would erase it.
 
 ---
 
+### One declaration, N differently-shaped attacks
+
+A declaration may resolve as several Combat Processes, each with its own reaction ladder — each
+separately Evadable, separately Blockable, and each its own Injury Roll.
+
+- **`repeat: N`** gives N **identical** ones. EMIYA's *Overedge* (*"2 Normal Attacks in a row"*)
+  and Mannanán's *Tóole Fragarach* (*"deals normal damage three times"*) are its holders, and
+  Bašmu's Dragon Wing Warriors gives it a rolled count.
+- **`instances: [...]`** gives one per entry, each carrying its own `multiplier`, `flatBonus`,
+  `component`, `element`, `elementFraction` and — the field that costs something — **`kind`**.
+
+Raikou's *Goō Shōriki・Dohatsu Tenshou* is why the second exists: *"deal 0.5x damage four times
+using Base Attack (STR), each instance of damage respectively being Lightning damage (half), Fire
+damage (half), Ice damage (half) and Wind damage (half)… Then, deals 3.5x damage plus 200 using
+Base Attack (MAG)."* Five instances, two components, five elements, two `kind`s — from one
+button.
+
+`kind` per instance decides whether the `Raikou` buff pays out four times or none, whether Magic
+Resistance reads the MAG portion as a Noble Phantasm, and which half of every `[normal, vsNP]`
+table pair the defender gets. It is the whole mechanical weight of *"treat these Attacks as
+Normal Attacks"*.
+
+**`repeat` is expanded into `instances`, not kept beside it**, so there is one path through the
+fan-out; the golden breakdowns hold Overedge and Tóole Fragarach byte-identical, which is what
+makes that a generalisation rather than a rewrite. Declaring **both** is refused at build time
+rather than given a precedence rule: two spellings of one thing in one block is a content error,
+and a silent precedence is how a five-hit Noble Phantasm quietly becomes a fifteen-hit one.
+
+Processes are fanned out **instance-major within each target**, so the declared order reads down
+the chat log and a player matching five cards to five sentences finds them in the sheet's order.
+
 ## 12.2 The step list
 
 Transcribed from *Rules — Combat*, with our numbering additions marked:
