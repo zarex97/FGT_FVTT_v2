@@ -390,11 +390,18 @@ function overviewContext(actor, snapshot) {
       // whenever she holds no Proliferation stocks, so her sheet opened on
       // "health.max 0 — Huge Scale, range.panels 0 — Huge Scale, mov 0 —
       // Huge Scale" under a statline none of them had touched.
-      .filter((d) => d.rankShift || d.value !== 0)
+      // `RankShift` records THREE forms and this knew only one. `rankTo` names
+      // a destination and `rankGrades` moves whole letter grades; both fell
+      // through to `signed(undefined)` and were filtered out or printed as
+      // nothing. Kiritsugu's *"Luck is increased from Rank E to Rank EX"* read
+      // as `parameters.luc 0 — Affection of the Holy Grail` on his own sheet:
+      // the panel that exists to answer "why is my Rank this?" answering
+      // "because of a shift of zero".
+      .filter((d) => d.rankShift || d.rankTo || d.rankGrades || d.value !== 0)
       .map((d) => ({
         stat: d.stat,
         source: d.source ?? game.i18n.localize("FGT.Sheet.UnknownSource"),
-        amount: d.rankShift ? `${d.rankShift > 0 ? "+" : ""}${d.rankShift} rank` : signed(d.value),
+        amount: rankAmount(d),
       })),
 
     // The stance and its two buttons (Ch. 44 §44.1). `null` for every Unit but
@@ -810,3 +817,26 @@ function rows(state) {
       value: Array.isArray(value) ? (value.join(", ") || "—") : String(value),
     }));
 }
+
+
+/**
+ * How a stat delta reads on the sheet's derivation list.
+ *
+ * `RankShift` has three authored forms and they say different things: `to:`
+ * names a destination outright, `grades:` moves whole letter grades, `steps:`
+ * walks the dense +/- ladder. A reader that knew only the last printed the
+ * other two as `0`.
+ *
+ * @param {object} d a statDelta
+ * @returns {string}
+ */
+function rankAmount(d) {
+  if (d.rankTo) return `→ ${d.rankTo}`;
+  if (d.rankGrades) {
+    const n = d.rankGrades;
+    return `${n > 0 ? "+" : ""}${n} grade${Math.abs(n) === 1 ? "" : "s"}`;
+  }
+  if (d.rankShift) return `${d.rankShift > 0 ? "+" : ""}${d.rankShift} rank`;
+  return signed(d.value);
+}
+
