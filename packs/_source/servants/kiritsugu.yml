@@ -1,0 +1,49 @@
+# Emiya Kiritsugu, char_orig_sheets/Copia de Kiritsugu.md
+#
+# The most REACTIVE Servant in the set. Every other Servant built so far acts on
+# their own Turn or answers an attack aimed at themselves; his signature skill
+# fires a Normal Attack on somebody else's Turn, triggered by a THIRD PARTY
+# being attacked, and lets him cast a Spell inside the trigger.
+#
+# Three of his eleven sheet entries cost nothing but a `ref:` line. Presence
+# Concealment A+ and Independent Action A between them supply eight numbers --
+# 5% discovery, +4 Evade, 2◈ cooldown, 8◈ Sustainability, +3 ZON, 4 contract
+# rolls -- and not one is authored here. See the spec §1.1.
+schema: 1
+id: kiritsugu
+name: "Kiritsugu"
+trueName: "Emiya Kiritsugu"
+# Spec R8. He carries an Assassin class skill AND an Archer one, so this is a
+# choice: Presence Concealment is eight clauses that rewrite targeting, the
+# reaction ladder, the damage pipeline and movement legality, where Independent
+# Action is three passives. `classContainer` is presentational and the setup
+# wizard's slot -- no class bonus rests on it.
+classContainer: assassin
+region: japan
+alignment: { order: chaotic, morality: evil }
+attributes: [male, servant, man, humanoid, antiHero]
+# LUC is written **E**, not EX. Affection of the Holy Grail contributes the
+# RankShift, so that Skill Seal has something to take away (spec R2). Authoring
+# EX here would make the whole clause unobservable.
+parameters: { str: D, end: C, agi: "A+", mag: B, luc: E }
+baseHealth: 1000
+mov: 7
+range: { panels: 3, targets: 1 }
+# 65, not the STR D table's 75. The sheet's own figure, and Serenity -- also
+# STR D, also a Presence Concealment user -- is authored at 65 too, so it is a
+# consistent authorial choice for the set's two Assassins rather than a
+# transcription slip.
+baseAttack: { str: 65, mag: 175 }
+# Spec R7. His sheet names no component; Semiramis is the precedent (STR 45 /
+# MAG 200 and she still swings with STR because her sheet is silent). Both his
+# NPs say "Base Attack (STR) is used", and Reinforcement and Lethal Gunfire
+# Suppression are both about NORMAL Attacks -- a gunman's identity.
+normalAttack: { mode: fixed, component: str }
+# Independent Action A's own table value, stated here because the skill does not
+# GRANT turns -- it is the reason the number is high.
+sustainability: "8◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: class-presence-concealment, rank: "A+" }
+  - { ref: class-independent-action, rank: A }
