@@ -929,6 +929,8 @@
   "FGT.Authoring.Element.BlockModifierHint": "Percentage points onto the flat 25% a Block removes.",
   "FGT.Authoring.Element.CategoryUseLimit": "Category Use Limit",
   "FGT.Authoring.Element.CategoryUseLimitHint": "Caps how many abilities of one category may be used per Turn.",
+  "FGT.Authoring.Element.BaseAttackModifier": "Base Attack Modifier",
+  "FGT.Authoring.Element.BaseAttackModifierHint": "Multiplies a Unit's Base Attack, per component.",
   "FGT.Authoring.Element.AttackProperty": "Attack Property",
   "FGT.Authoring.Element.AttackPropertyHint": "A property of the attack, granted by a buff on the attacker.",
   "FGT.Authoring.Element.StatDelta": "Stat Delta",

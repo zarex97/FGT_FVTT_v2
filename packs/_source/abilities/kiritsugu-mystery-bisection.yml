@@ -1,0 +1,43 @@
+# Kiritsugu, char_orig_sheets/Copia de Kiritsugu.md
+#
+# Range 1 -- the only melee thing he does, and two panels shorter than anything
+# else on his sheet. A gunman's execution, taken standing over them.
+#
+# The Instakill fires AFTER the damage and is gated on damage having been dealt,
+# which is the opposite of Scathach's Gae Bolg Alternative: hers rolls FIRST and
+# a success SUPPRESSES the damage. Here the damage is the precondition.
+schema: 1
+id: kiritsugu-mystery-bisection
+name: "Phantasm Punishment: Mystery Bisection"
+rank: "C+"
+isNP: true
+kind: noblePhantasm
+npTags: [antiUnit]
+cooldown: "5◈+⅓◈"
+timing: { window: ownTurn }
+description: |
+  Range 1. Base Attack (STR) is used. Deals 3x damage plus 100 with a 35% chance of inflicting
+  @effect[instakill]{Instakill} if damage was dealt. Then, applies the
+  @effect[kiritsuguMark]{Kiritsugu} debuff to the Defending Unit: the Unit's Base Attack (both
+  STR and MAG) are reduced by half of their original value; this effect ignores Debuff Resist
+  and Debuff Immune effects, and the debuff is Unremovable. It does not stack.
+  Cooldown: 5◈+⅓◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 3
+  flatBonus: 100
+  component: str
+phases:
+  - kind: applyEffects
+    # AFTER the damage, and gated on it: "if damage was dealt".
+    when: afterDamage
+    target: reuse
+    effects:
+      - { id: instakill, chance: 35 }
+      # "this effect ignores Debuff Resist and Debuff Immune effects" -- the
+      # immunity half rides the effect (`bypassesImmunity`), the resistance half
+      # is named here, because resistance is a property of the APPLICATION.
+      - { id: kiritsuguMark, duration: permanent, ignoresResistanceFrom: [debuffResUp] }

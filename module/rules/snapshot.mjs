@@ -84,7 +84,11 @@ export function snapshotUnit(actor, {
   // refuses to fire twice on one unit -- a caller with a canvas
   // (`engine/board.mjs#unitSnapshot`) projects with the Region already known so
   // the SHEET can show it, and hands that finished snapshot to the board.
-  return applyRegionBonus({
+  // Nested rather than sequenced, and the ORDER is the rule: the Region's ±10
+  // is part of the "original value" Kiritsugu's mark halves, so the bonus lands
+  // first and the halving takes the total. Both are idempotent, so the board
+  // pass re-running them on a pre-projected unit changes nothing.
+  return applyBaseAttackModifiers(applyRegionBonus({
     id: actor.id,
     uuid: actor.uuid,
     name: actor.name,
@@ -346,6 +350,10 @@ export function snapshotUnit(actor, {
     // categories themselves are already on `abilities` above, so the gate can
     // tell what a recorded use WAS without any further projection.
     categoryUseLimits: contributions.categoryUseLimits ?? [],
+    // Multipliers on Base Attack itself, folded in by
+    // `applyBaseAttackModifiers` below rather than read by the pipeline: BOTH
+    // components have to move, and an attack only ever reads one of them.
+    baseAttackModifiers: contributions.baseAttackModifiers ?? [],
     damageNegation: contributions.damageNegation,
     // `contributions.statDeltas` is informational: `FGTActor#prepareDerivedData`
     // has ALREADY folded those into `mov`, `range`, `agility` and friends above
@@ -492,7 +500,7 @@ export function snapshotUnit(actor, {
     acted: turnState.acted,
     turnState,
     roundState,
-  }, warRegion);
+  }, warRegion));
 }
 
 /**
@@ -865,6 +873,48 @@ function annotateRegionBonus(units, board) {
  * @param {string|null} warRegion
  * @returns {object} the same unit, mutated
  */
+/**
+ * Fold every Base Attack multiplier into the projection.
+ *
+ * Kiritsugu's Mystery Bisection is the only source: *"the Unit's Base Attack
+ * (both STR and MAG) are reduced by half of their original value."*
+ *
+ * **In the projection, not in damage pipeline stage 1.** Stage 1 reads
+ * `unit.baseAttack[src.component]` — the one component the current attack uses
+ * — so a hook there would never apply the MAG half against a STR attacker, and
+ * would pass every single-attack test while being half wrong. Here, the
+ * pipeline reads the snapshot and gets both for free, and
+ * `present.mjs#baseAttackTiles` renders written-against-effective so the marked
+ * Unit's own sheet shows `175 → 87`. For a mark that is permanent and
+ * unremovable, being legible is most of the point.
+ *
+ * Idempotent, with the same guard and for the same reason as
+ * `applyRegionBonus`: two callers legitimately project the same unit — the
+ * actor sheet before any board exists, and the board pass for units nobody
+ * pre-projected — and without the flag a marked Servant would be halved twice.
+ * The sheet says so outright too: *"half of their ORIGINAL value"*, and *"the
+ * 'Kiritsugu' debuff does not stack."*
+ *
+ * Runs AFTER `applyRegionBonus`, because the Region's ±10 is part of the
+ * original value the mark halves.
+ *
+ * @param {object} unit
+ * @returns {object} the same unit, mutated
+ */
+export function applyBaseAttackModifiers(unit) {
+  const mods = unit?.baseAttackModifiers ?? [];
+  if (mods.length === 0 || unit.baseAttackModifiersApplied) return unit;
+
+  for (const m of mods) {
+    for (const c of m.components ?? []) {
+      if (typeof unit.baseAttack?.[c] !== "number") continue;
+      unit.baseAttack[c] = Math.floor(unit.baseAttack[c] * (m.factor ?? 1));
+    }
+  }
+  unit.baseAttackModifiersApplied = true;
+  return unit;
+}
+
 export function applyRegionBonus(unit, warRegion) {
   if (!warRegion || !unit || unit.regionBonusApplied) return unit;
   const steps = regionBonusFor(unit, warRegion);

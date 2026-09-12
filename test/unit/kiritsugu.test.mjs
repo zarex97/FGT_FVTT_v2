@@ -801,3 +801,103 @@ describe("Chronos Rose — the Noble Phantasm", () => {
 
   it("costs 6◈+⅓◈", () => expect(a.cooldown).toBe("6◈+⅓◈"));
 });
+
+import { applyBaseAttackModifiers } from "../../module/rules/snapshot.mjs";
+
+describe("The Kiritsugu mark — both Base Attack components (R4)", () => {
+  const marked = (baseAttack) => ({
+    id: "victim",
+    baseAttack: { ...baseAttack },
+    baseAttackModifiers: [
+      { factor: 0.5, components: ["str", "mag"], source: "Kiritsugu" },
+    ],
+  });
+
+  it("halves BOTH components, not just the one the attack uses", () => {
+    const u = marked({ str: 50, mag: 210 });
+    applyBaseAttackModifiers(u);
+    expect(u.baseAttack).toEqual({ str: 25, mag: 105 });
+  });
+
+  it("hurts a MAG attacker far more, which is the sheet's design", () => {
+    // Medea 50/210 loses 105 off the number she actually attacks with; a STR
+    // attacker loses the smaller half of theirs. A pipeline hook keyed on the
+    // attack's own component would have missed whichever half was not in use
+    // and passed every single-attack test.
+    const caster = marked({ str: 50, mag: 210 });
+    const swordsman = marked({ str: 150, mag: 100 });
+    applyBaseAttackModifiers(caster);
+    applyBaseAttackModifiers(swordsman);
+    expect(210 - caster.baseAttack.mag).toBe(105);
+    expect(150 - swordsman.baseAttack.str).toBe(75);
+  });
+
+  it("is idempotent — 'half of their ORIGINAL value', and it does not stack", () => {
+    const u = marked({ str: 50, mag: 210 });
+    applyBaseAttackModifiers(u);
+    applyBaseAttackModifiers(u);
+    expect(u.baseAttack).toEqual({ str: 25, mag: 105 });
+  });
+
+  it("leaves an unmarked Unit alone", () => {
+    const u = { id: "x", baseAttack: { str: 65, mag: 175 }, baseAttackModifiers: [] };
+    applyBaseAttackModifiers(u);
+    expect(u.baseAttack).toEqual({ str: 65, mag: 175 });
+  });
+
+  it("floors rather than leaving a fraction on the sheet", () => {
+    const u = marked({ str: 65, mag: 175 });
+    applyBaseAttackModifiers(u);
+    expect(u.baseAttack).toEqual({ str: 32, mag: 87 });
+  });
+});
+
+describe("Mystery Bisection", () => {
+  const a = src("abilities", "kiritsugu-mystery-bisection.yml");
+  const e = src("effects", "kiritsugu-mark.yml");
+
+  it("is 3x + 100 with BA(STR) at Range 1", () => {
+    expect(a.damage.multiplier).toBe(3);
+    expect(a.damage.flatBonus).toBe(100);
+    expect(a.damage.component).toBe("str");
+    expect(a.targeting.anchor.range).toBe(1);
+  });
+
+  it("rolls Instakill at 35% AFTER the damage, not before", () => {
+    // The opposite of Scáthach's Gáe Bolg Alternative, which rolls first and
+    // lets a success SUPPRESS the damage. Here the damage is the precondition.
+    const phase = a.phases.find((p) => (p.effects ?? []).some((x) => x.id === "instakill"));
+    expect(phase.when).toBe("afterDamage");
+    expect(phase.effects.find((x) => x.id === "instakill").chance).toBe(35);
+    expect(src("abilities", "scathach-gae-bolg-alternative.yml")
+      .phases[0].when).toBe("beforeDamage");
+  });
+
+  it("marks with kiritsuguMark — never `kiritsugu` (R9)", () => {
+    // An effect sharing a content id with its Servant is a build-breaking
+    // collision; `raikou` hit it and had to become `raikouBuff`.
+    expect(e.id).toBe("kiritsuguMark");
+    expect(e.id).not.toBe(src("servants", "kiritsugu.yml").id);
+  });
+
+  it("is unremovable, non-stacking, and past BOTH protections", () => {
+    expect(e.unremovable).toBe(true);
+    expect(e.stacking).toBe("noneNoRefresh");
+    // The immunity half rides the effect; the resistance half is a property of
+    // the application, so it is named on the phase.
+    expect(e.bypassesImmunity).toBe(true);
+    const spec = a.phases.flatMap((p) => p.effects ?? [])
+      .find((x) => x.id === "kiritsuguMark");
+    expect(spec.ignoresResistanceFrom).toContain("debuffResUp");
+    expect(spec.duration).toBe("permanent");
+  });
+
+  it("halves both components in the effect's own rule", () => {
+    const [rule] = e.rules;
+    expect(rule.key).toBe("BaseAttackModifier");
+    expect(rule.factor).toBe(0.5);
+    expect(rule.components).toEqual(["str", "mag"]);
+  });
+
+  it("costs 5◈+⅓◈", () => expect(a.cooldown).toBe("5◈+⅓◈"));
+});

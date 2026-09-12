@@ -75,7 +75,7 @@ export function empty() {
     autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [],
-    categoryUseLimits: [],
+    categoryUseLimits: [], baseAttackModifiers: [],
   };
 }
 
@@ -1651,6 +1651,36 @@ export const EXECUTORS = Object.freeze({
   },
 
   /* ── Group 6 — suppression and meta ───────────────────────────────────── */
+
+  /**
+   * A multiplier on a Unit's Base Attack, per component.
+   *
+   * Kiritsugu's Mystery Bisection: *"the Unit's Base Attack (both STR and MAG)
+   * are reduced by half of their original value."*
+   *
+   * **Both components, which is why this cannot live in the damage pipeline.**
+   * Stage 1 reads `unit.baseAttack[src.component]` — the ONE component the
+   * current attack happens to use — so a hook there would never apply the MAG
+   * half against a STR attacker or the STR half against a MAG one, and would
+   * look entirely correct in every single-attack test.
+   *
+   * Applied in the SNAPSHOT instead (`snapshot.mjs#applyBaseAttackModifiers`),
+   * beside `applyRegionBonus`, which already adjusts both components at once.
+   * Three things follow: the pipeline reads the snapshot, so damage is covered
+   * for free; `present.mjs#baseAttackTiles` already renders written-against-
+   * effective, so the victim SEES `175 → 87` on their own sheet with no UI
+   * work; and there is one site rather than two.
+   *
+   * For a mark that is permanent, unremovable and unresistable, being legible
+   * is most of the point.
+   */
+  BaseAttackModifier(el, { source, out }) {
+    out.baseAttackModifiers.push({
+      factor: el.factor ?? 1,
+      components: el.components ?? ["str", "mag"],
+      source,
+    });
+  },
 
   /**
    * A cap on how many abilities of one CATEGORY may be used per Turn.
