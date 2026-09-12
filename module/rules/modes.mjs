@@ -17,12 +17,25 @@
  *      cannot be deactivated until there are no Greek Male Units within a 4
  *      panel area"*, and it is *"immediately activated regardless of Cooldown
  *      or any other factors"* while one is.
+ *   4. **Held on by a condition** — Raikou: *"When Raikou's Master is within a
+ *      2 panel area of herself, her Mad Enhancement is constantly Active and
+ *      cannot be deactivated."*
  *
- * The third is the interesting one, because it forces the mode **on** as well
- * as refusing to let it off — so this file answers two questions, not one.
+ * The last two are the interesting ones, because they force the mode **on** as
+ * well as refusing to let it off — so this file answers two questions, not one.
+ *
+ * They are also not the same mechanism, though they read alike. A compulsion is
+ * evaluated per OTHER UNIT and its relation vocabulary is `ally`/`enemy`, which
+ * cannot say *her own Master* as against *any allied Master*; and Penthesilea's
+ * forces a target where Raikou's forces nothing. A `ForceMode` rule states the
+ * condition directly instead, and {@link forcedOn} answers it LATE — every
+ * time it is asked — so it lifts the instant the Master steps away, with no
+ * cleanup step to forget.
  */
 
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { test as testPredicate } from "./predicate.mjs";
+import { rollOptionsFor } from "./options.mjs";
 
 /**
  * @typedef {object} ToggleVerdict
@@ -67,6 +80,10 @@ export function canToggleMode(
   // long as the compulsion stands, which is a positional question and
   // therefore re-answered every time it is asked.
   if (!active && compelledOn(item, unit)) return { ok: false, reason: "compelled" };
+
+  // Held on by a condition rather than by a neighbour. Positional like a
+  // compulsion, and re-answered every time it is asked for the same reason.
+  if (!active && forcedOn(item, unit)) return { ok: false, reason: "forced" };
 
   // The two-way lockout. "And vice versa" in the source: it governs switching
   // on just as much as switching off, so one clock answers both.
@@ -115,16 +132,44 @@ export function compelledOn(item, unit) {
  * @returns {object[]} the abilities that should be switched on
  */
 export function forcedModes(unit, items) {
-  const forced = new Set(
+  const compelled = new Set(
     (unit?.compulsions ?? [])
       .filter((c) => c.forcesSkill && (c.targetIds ?? []).length > 0)
       .map((c) => c.forcesSkill),
   );
-  if (forced.size === 0) return [];
 
   return [...(items ?? [])].filter((i) => {
     const sys = i.system ?? {};
     if (!sys.isMode || sys.active) return false;
-    return forced.has(sys.slug ?? i.id);
+    // Either source switches it on. `forcedOn` is asked per item because its
+    // rule names the mode's own slug.
+    return compelled.has(sys.slug ?? i.id) || forcedOn(i, unit);
   });
+}
+
+/**
+ * Is a `ForceMode` rule currently holding this mode on?
+ *
+ * Matched on the ability's **slug**, which is what the rule names and what a
+ * display name is not — the same key {@link compelledOn} matches, and the same
+ * reason `class-mad-enhancement` states `slug: madEnhancement` by hand.
+ *
+ * The condition is tested HERE rather than at collection time, and that is the
+ * whole point of the element: it is positional, so an answer frozen into the
+ * snapshot would leave Mad Enhancement stuck on or stuck off depending on where
+ * the Master happened to be standing when the board was built.
+ *
+ * @param {object} item the ability, or any `{system}` shape
+ * @param {object} unit the owner's snapshot, carrying `forcedModeRules`
+ * @returns {boolean}
+ */
+export function forcedOn(item, unit) {
+  const slug = item?.system?.slug ?? item?.id ?? null;
+  if (!slug) return false;
+
+  const rules = (unit?.forcedModeRules ?? []).filter((r) => r.mode === slug);
+  if (rules.length === 0) return false;
+
+  const options = rollOptionsFor({ attacker: unit, defender: null });
+  return rules.some((r) => testPredicate(r.when, { options }));
 }

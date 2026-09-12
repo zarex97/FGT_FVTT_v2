@@ -64,8 +64,31 @@ abilities:
   # already `class-mad-enhancement`'s and every magnitude is already in the
   # tables. The two clauses NO OTHER BEARER HAS -- the positional forcing and
   # the Command Spell override -- are authored on this entry rather than on the
-  # shared file, and arrive in the next two commits.
-  - { ref: class-mad-enhancement, rank: EX }
+  # shared file, which four other Servants take and none of whose sheets grant
+  # either clause.
+  - ref: class-mad-enhancement
+    rank: EX
+    passiveRules:
+      # "(Passive) When Raikou's Master is within a 2 panel area of herself, her
+      # Mad Enhancement is constantly Active and cannot be deactivated."
+      #
+      # Positional, so it is a condition re-answered on every move rather than
+      # an applied effect with a position-watcher. `engine/modes.mjs` already
+      # rides the aura index's invalidation and already writes -- this is a
+      # second SOURCE for it, not a second mechanism.
+      #
+      # `when`, not `predicate`: every element may carry a `predicate` and
+      # `collectContributions` tests it at COLLECTION time, which would freeze
+      # a positional answer into the snapshot and leave her stuck mad or stuck
+      # calm depending on where her Master happened to be standing.
+      #
+      # Nothing switches it back off when the condition lapses. The sheet says
+      # it "cannot be deactivated" while the Master is close, which frees the
+      # player's hand rather than moving it -- the ruling `engine/modes.mjs`
+      # already records for Penthesilea.
+      - key: ForceMode
+        mode: madEnhancement
+        when: ["self:withinOfMaster:2"]
   # "Class Skill: Riding — Rank: A+". All three passives and the Active are
   # already shared, and `engine/riding.mjs` already performs them -- including
   # the clause her sheet restates at length, that a Riding Attack after a Move

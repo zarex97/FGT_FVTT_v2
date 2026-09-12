@@ -217,6 +217,19 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("TargetingModifier", "Changes what this Unit may legally target.", [
     { key: "spec", type: "raw" },
   ]),
+  entry("ForceMode", "Holds a mode switched on while a condition holds, and refuses it off.", [
+    { key: "mode", type: "text" },
+    // `when`, not `predicate`. The gate every element carries is tested at
+    // COLLECTION time; a positional condition needs re-testing when the button
+    // is pressed, so it travels with the rule under its own name.
+    { key: "when", type: "predicateList" },
+  ]),
+  entry("EffectMagnitudeScale", "Scales the magnitude of named effects landing on this Unit.", [
+    { key: "direction", type: "select", choices: ["incoming", "outgoing"] },
+    { key: "effects", type: "tokenList" },
+    { key: "family", type: "text" },
+    { key: "factor", type: "number" },
+  ]),
   entry("TargetabilityModifier", "Changes who may legally target the Units around this one.", [
     { key: "radius", type: "number" },
     { key: "relations", type: "tokenList" },

@@ -3531,6 +3531,34 @@ resolves the pair through `masterOf`, rather than read off the `zonDistance` bes
 disagree for a Free Servant, for a Master off the board, and for a `zonExempt` Servant
 (Semiramis aboard the Hanging Gardens) whose distance to her Master still exists.
 
+#### Commit 3 — a mode nobody presses, and a third vocabulary nobody held
+
+`ForceMode` is the fourth mode-activation policy (Ch. 15 §15.3) and it exists because the third
+cannot be stretched to cover it: a `Compulsion` is evaluated per other unit with an `ally`/`enemy`
+relation list, so it cannot say *her own Master* as against *any allied Master*, and Penthesilea's
+also forces a target where Raikou's forces nothing.
+
+**The condition is `when`, not `predicate`, and that is the whole design.** Every element may
+carry a `predicate`, and `collectContributions` tests it at line 129 — at *collection* time,
+against the bearer's standing options. A positional condition written there is answered once and
+frozen into the snapshot: Mad Enhancement stuck on or stuck off depending on where her Master
+happened to be standing when the board was built. Authored as `predicate` this clause would have
+compiled, validated, loaded, and been wrong in a way that only shows after somebody moves.
+
+**A third authority, found by a drift test rather than by the build.**
+`tools/lib/content.mjs#RULE_ELEMENT_KEYS` is a hand-maintained copy of `EXECUTORS`, and
+`npm run validate:content` reported **0 errors** with both new keys missing from it — because
+the clause is nested under a `ref` entry on a Servant, which the validator's element walk does
+not reach. `test/unit/elements.test.mjs` caught it in the other direction. Two lessons, both
+already this chapter's refrain: a vocabulary maintained in three places drifts in whichever one
+has no test, and a validator that passes is not the same as a validator that looked.
+
+**`resolveRef` replaces, it does not merge.** `{...substitute(template), _ref, ...params}` spreads
+the entry's own keys last, so a ref override of a key the template also declares deletes the
+template's. Safe here — `class-mad-enhancement` declares `activeRules` and no `passiveRules` —
+and now held by a test that asserts all seven shared clauses survive beside her `ForceMode`,
+because the day that file grows a `passiveRules` block is the day her override silently eats it.
+
 ---
 
 ---

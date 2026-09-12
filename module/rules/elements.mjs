@@ -74,6 +74,7 @@ export function empty() {
     auras: [], applicationChances: [], compulsions: [], preemptions: [], unhandled: [],
     autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
+    forcedModeRules: [], magnitudeScales: [],
   };
 }
 
@@ -1377,6 +1378,63 @@ export const EXECUTORS = Object.freeze({
    * and lifts the moment they are not, which no stored effect could track
    * without a write on every move.
    */
+  /**
+   * A mode held **on** by a condition, and refused off while it holds.
+   *
+   * Raikou: *"When Raikou's Master is within a 2 panel area of herself, her Mad
+   * Enhancement is constantly Active and cannot be deactivated."*
+   *
+   * Penthesilea's *Hatred of Achilles* is the same shape and is a
+   * `Compulsion`, which is right for her and wrong for this. A compulsion is
+   * evaluated **per other unit on the board** with a relation vocabulary of
+   * `ally`/`enemy`, so it cannot say *her own Master* as against *any allied
+   * Master* — and hers also forces a TARGET, which this does not. A
+   * `Compulsion` with `forcesTarget: false` would be an element doing one of
+   * its two jobs.
+   *
+   * **`when`, not `predicate`, and the name is load-bearing.** Every element
+   * may carry `predicate`, and `collectContributions` tests it *here*, at
+   * collection time, against the bearer's standing options — so a positional
+   * condition written as `predicate` is answered once and frozen, which for
+   * this clause means a Mad Enhancement stuck on or stuck off depending on
+   * where the Master happened to be standing when the snapshot was built. The
+   * condition has to travel with the rule and be re-tested when the button is
+   * pressed, exactly as `rules/compulsion.mjs` recomputes rather than stamps.
+   */
+  ForceMode(el, { source, out }) {
+    out.forcedModeRules.push({
+      mode: el.mode,
+      when: el.when ?? [],
+      source,
+    });
+  },
+
+  /**
+   * A modifier whose subject is **another modifier's magnitude**.
+   *
+   * Raikou's Genji-clan Martial Arts Discipline: *"The magnitude of all Atk Dwn
+   * effects on Raikou is halved."* The first clause in either roster to scale
+   * an effect rather than resist it, refuse it or shorten it — and the three
+   * neighbours it is easy to mistake it for all do something else.
+   * `ApplicationChance` changes how likely it is to land; `DurationExtension`
+   * changes how long it lasts; `Immunity` refuses it outright. None of them
+   * makes a landed debuff smaller.
+   *
+   * `effects` names ids; `family` names a family. Both are offered and Raikou
+   * uses the first, because `atkDwn` and a negative `atkUp` are DIFFERENT
+   * FAMILIES on purpose — `effects/atk-dwn.yml` records why, and buff removal
+   * strips one and cannot touch the other — and her sheet names Atk Dwn.
+   */
+  EffectMagnitudeScale(el, { source, out }) {
+    out.magnitudeScales.push({
+      direction: el.direction ?? "incoming",
+      effects: el.effects ?? null,
+      family: el.family ?? null,
+      factor: typeof el.factor === "number" ? el.factor : 1,
+      source,
+    });
+  },
+
   Compulsion(el, { source, out }) {
     out.compulsions.push({
       id: el.id ?? "compulsion",
