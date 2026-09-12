@@ -187,10 +187,13 @@ export function abilityFromOption(event) {
  * @param {object} args.defender the defender's snapshot
  * @param {object} args.board
  * @param {object} args.attack `{kind}`
+ * @param {object|null} [args.attacker] the attacking unit's snapshot, for the
+ *   abilities whose reach is measured to the ATTACKER rather than to the Unit
+ *   in peril — Kiritsugu's Lethal Gunfire Suppression is the first
  * @param {(id: string) => object|null} args.actorFor resolves a unit id to a document
  * @returns {Array<{ability: object, ownerId: string, ownerName: string}>}
  */
-export function allyReactions({ defender, board, attack, actorFor }) {
+export function allyReactions({ defender, board, attack, attacker = null, actorFor }) {
   /** @type {Array<{ability: object, ownerId: string, ownerName: string}>} */
   const out = [];
   if (!defender?.panel) return out;
@@ -211,9 +214,30 @@ export function allyReactions({ defender, board, attack, actorFor }) {
       const timing = sys.timing ?? {};
       if (!windowsOf(timing).includes(ALLY_WINDOW)) continue;
 
-      // Reach, measured from the PROJECTOR to the Unit in peril.
-      const radius = timing.radius ?? 0;
-      if (chebyshev(unit.panel, defender.panel) > radius) continue;
+      // Reach, measured from the PROJECTOR to the Unit in peril -- or to the
+      // ATTACKER, for a clause that shoots back rather than interposing.
+      //
+      // EMIYA's Rho Aias and Achilles's barrier both put something between an
+      // ally and a blow, so the distance that matters is to the ally. Kiritsugu
+      // answers by shooting: *"if that AU is within Kiritsugu's Range"* -- the
+      // ally could be anywhere, and what has to be reachable is the shooter's
+      // target. Measuring that to the defender offers the shot when he cannot
+      // take it and withholds it when he can.
+      const measureTo = timing.radiusTo === "attacker" ? attacker : defender;
+      if (!measureTo?.panel) continue;
+      // A reach stated as the owner's own Range rather than as a number, so
+      // Familiars' +2 widens it. `range.panels` is the projection every other
+      // reach in the game reads.
+      const radius = timing.radius === "@self.range.panels"
+        ? (unit.range?.panels ?? 0)
+        : (timing.radius ?? 0);
+      if (chebyshev(unit.panel, measureTo.panel) > radius) continue;
+
+      // What must be true of the Unit in peril. Lethal Gunfire Suppression
+      // fires for a Unit carrying HIS decoy and for nobody else -- without
+      // this the passive answers every attack on every ally in range.
+      if (timing.requiresDefenderEffect
+        && !(defender.effects ?? []).includes(timing.requiresDefenderEffect)) continue;
 
       // What it answers. "About to be hit by a Noble Phantasm" is a
       // restriction, not a note: a barrier offered against every Normal Attack

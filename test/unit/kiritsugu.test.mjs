@@ -505,3 +505,138 @@ describe("Scapegoat — the ally window needs a radius to fire at all", () => {
     expect(src("abilities", "kiritsugu-scapegoat.yml").timing.radius).toBe(2);
   });
 });
+
+import { reactionsRefused, reactionRefusedByAgility }
+  from "../../module/rules/concealment.mjs";
+
+describe("Lethal Gunfire Suppression — the reaction boundary", () => {
+  const u = (agi) => ({ parameters: { agi }, effects: [] });
+
+  it("refuses the whole ladder unless the AU's AGI is STRICTLY higher", () => {
+    // "cannot be Reacted to unless the AU's AGI Rank is HIGHER than
+    // Kiritsugu's." He is A+, so only EX escapes.
+    expect(reactionRefusedByAgility(u("A+"), u("A"))).toEqual(["block", "counter", "evade"]);
+    expect(reactionRefusedByAgility(u("A+"), u("A+"))).toEqual(["block", "counter", "evade"]);
+    expect(reactionRefusedByAgility(u("A+"), u("EX"))).toEqual([]);
+  });
+
+  it("is ONE BOUNDARY apart from Presence Concealment's, deliberately", () => {
+    // PC escapes on "equal to or higher" and names only Block and Counter,
+    // leaving Evade open at +4. This escapes only on "higher" and names the
+    // whole ladder. An equal-AGI defender keeps its reactions against PC and
+    // loses them against the shot -- which is why the two comparisons live in
+    // one file: two copies that must differ by exactly one step end up
+    // differing by two.
+    const concealed = { ...u("A+"), effects: ["presenceConcealment"] };
+    expect(reactionsRefused(concealed, u("A+"))).toEqual([]);
+    expect(reactionRefusedByAgility(u("A+"), u("A+"))).not.toEqual([]);
+    expect(reactionsRefused(concealed, u("A"))).toEqual(["block", "counter"]);
+    expect(reactionRefusedByAgility(u("A+"), u("A"))).toContain("evade");
+  });
+
+  it("refuses nothing when the shooter has no AGI Rank to compare", () => {
+    expect(reactionRefusedByAgility(u(null), u("A"))).toEqual([]);
+  });
+});
+
+import { allyReactions } from "../../module/rules/reactions.mjs";
+
+describe("Lethal Gunfire Suppression — when the shot is offered", () => {
+  const shot = {
+    id: "shot", name: "Lethal Gunfire Suppression",
+    system: {
+      timing: {
+        window: "whenAllyAttacked",
+        radius: "@self.range.panels",
+        radiusTo: "attacker",
+        requiresDefenderEffect: "decoyScapegoat",
+      },
+      cooldown: { remaining: 0 },
+    },
+  };
+  // Kiritsugu at (5,5) with Range 3; the bait ally far away at (5,12); the
+  // attacker where the shooter can or cannot reach.
+  const setup = ({ attackerPanel, defenderEffects = ["decoyScapegoat"], range = 3 }) => {
+    const kiritsugu = {
+      id: "kiritsugu", name: "Kiritsugu", panel: { i: 5, j: 5 },
+      factionId: "red", range: { panels: range }, effects: [], turnState: {},
+    };
+    const bait = {
+      id: "bait", panel: { i: 5, j: 12 }, factionId: "red",
+      effects: defenderEffects, turnState: {},
+    };
+    const foe = { id: "foe", panel: attackerPanel, factionId: "blue", effects: [] };
+    const board = { units: [kiritsugu, bait, foe] };
+    return allyReactions({
+      defender: bait, attacker: foe, board, attack: { kind: "normal" },
+      actorFor: (id) => (id === "kiritsugu" ? { items: [shot] } : { items: [] }),
+    });
+  };
+
+  it("offers the shot when the ATTACKER is inside his Range", () => {
+    // The bait is 7 panels away and that is irrelevant: he is shooting the foe.
+    expect(setup({ attackerPanel: { i: 5, j: 8 } })).toHaveLength(1);
+  });
+
+  it("withholds it when the attacker is out of his Range", () => {
+    expect(setup({ attackerPanel: { i: 5, j: 9 } })).toHaveLength(0);
+  });
+
+  it("widens with his Range, so Familiars' +2 reaches further", () => {
+    expect(setup({ attackerPanel: { i: 5, j: 10 }, range: 3 })).toHaveLength(0);
+    expect(setup({ attackerPanel: { i: 5, j: 10 }, range: 5 })).toHaveLength(1);
+  });
+
+  it("fires only for a Unit carrying HIS decoy", () => {
+    // Without this the passive answers every attack on every ally in range,
+    // and Scapegoat -- which is what pays for it -- stops mattering.
+    expect(setup({ attackerPanel: { i: 5, j: 8 }, defenderEffects: [] })).toHaveLength(0);
+    expect(setup({ attackerPanel: { i: 5, j: 8 }, defenderEffects: ["decoy"] })).toHaveLength(0);
+  });
+});
+
+import { countsAsAttack, classifyAbility } from "../../module/rules/ability-use.mjs";
+
+describe("The suppression shot is a NORMAL Attack, not an Attack Skill", () => {
+  const doc = { system: src("abilities", "kiritsugu-suppression-shot.yml") };
+
+  it("classifies as an attack, so it actually resolves damage", () => {
+    expect(classifyAbility(doc).isAttack).toBe(true);
+  });
+
+  it("is NOT an Attack Skill or a Spell", () => {
+    // The sheet says "perform a NORMAL Attack", and two of his own clauses read
+    // that word: Reinforcement buffs `nAtkUp`, and Suppression's strip fires on
+    // "Successful Normal Attacks". `isAttackSkill: true` would classify this as
+    // `attackSkill` and quietly exclude it from both.
+    expect(doc.system.isAttackSkill).toBeUndefined();
+    expect(doc.system.isSpell).toBeUndefined();
+    expect(doc.system.isNP).toBeUndefined();
+    // A bare `damage` phase is what makes `abilityKind` answer "normal".
+    expect(doc.system.phases.some((p) => p.kind === "damage")).toBe(true);
+  });
+
+  it("does not spend his Attack — spec R1", () => {
+    expect(countsAsAttack(doc)).toBe(false);
+  });
+
+  it("has no cooldown of its own; Scapegoat is what it costs", () => {
+    // Decoy (Scapegoat) lasts 1◈ behind a 3◈ cooldown and the attacker must be
+    // in Range. That is the limiter, paid in advance.
+    expect(doc.system.cooldown).toBeNull();
+  });
+
+  it("swings with his Base Attack once, no multiplier and no bonus", () => {
+    expect(doc.system.damage).toEqual({ multiplier: 1, component: "str" });
+  });
+
+  it("aims at whoever swung", () => {
+    expect(doc.system.targeting.anchor.kind).toBe("sourceOfAttack");
+    expect(doc.system.targeting.selection.relations).toEqual(["enemy"]);
+  });
+
+  it("declares both the refusal and the free Spell it grants", () => {
+    expect(doc.system.refusesReactionsUnlessFaster).toBe(true);
+    expect(doc.system.offersSpellCategory).toBe("thaumaturgy");
+  });
+});

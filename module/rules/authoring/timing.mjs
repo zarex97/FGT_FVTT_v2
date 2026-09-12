@@ -73,6 +73,27 @@ export const AGAINST_FIELDS = Object.freeze([
     english: "Only against an attack that covers an area, rather than one target.",
   },
   {
+    key: "radiusTo",
+    // WHO the reach is measured to. Every ally-window ability in the game until
+    // now interposes -- Rho Aias goes in front of the Unit about to be hit --
+    // so the distance that matters is to the defender, and that is the default.
+    // Kiritsugu's Lethal Gunfire Suppression shoots back instead: *"if that AU
+    // is within Kiritsugu's Range"*, where the ally may be anywhere and what
+    // must be reachable is his target.
+    type: "select",
+    choices: ["defender", "attacker"],
+    label: "FGT.Authoring.Timing.radiusTo",
+    hint: "FGT.Authoring.Timing.radiusToHint",
+    english: "Whether the reach is measured to the Unit in peril or to its attacker.",
+  },
+  {
+    key: "requiresDefenderEffect",
+    type: "effectId",
+    label: "FGT.Authoring.Timing.requiresDefenderEffect",
+    hint: "FGT.Authoring.Timing.requiresDefenderEffectHint",
+    english: "Only when the Unit in peril carries this effect.",
+  },
+  {
     key: "radius",
     type: "number",
     label: "FGT.Authoring.Timing.radius",

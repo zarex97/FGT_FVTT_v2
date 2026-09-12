@@ -290,6 +290,21 @@ function abilityCommon() {
     // count, not from the consequence.
     bypassesCategoryLimit: new fields.BooleanField({ initial: false }),
 
+    // "…which cannot be Reacted to unless the AU's AGI Rank is higher than
+    // Kiritsugu's." A narrowing of the reaction ladder decided by a RANK
+    // COMPARISON rather than by a fixed list, which is why it is a flag here
+    // and not a `ForbidReaction` on an effect: the rungs it removes depend on
+    // who is being shot at.
+    refusesReactionsUnlessFaster: new fields.BooleanField({ initial: false }),
+
+    // A category of ability the owner is OFFERED before this one resolves.
+    // Kiritsugu's Lethal Gunfire Suppression: *"Kiritsugu can use a Thaumaturgy
+    // Spell once before performing this Normal Attack."* The offered use is
+    // exempt from its category's per-Turn cap and still enters Cooldown.
+    offersSpellCategory: new fields.StringField({
+      required: false, nullable: true, initial: null, blank: false,
+    }),
+
     // The same limit one scale up, and the same argument `sameRoundExclusive`
     // makes against `sameTurnExclusive`: a Servant acts up to three times in a
     // Round, so a per-Turn cap forbids almost nothing. Karna's *Uncrowned Arms
