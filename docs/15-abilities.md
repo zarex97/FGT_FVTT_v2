@@ -1320,3 +1320,54 @@ Three things it needed beyond the arithmetic, and they generalise to any grant o
 
 The action bills **nothing** (`kind: null`, like `facing`): *"Counts as only Moving one Unit"* is
 the Servant's own Move, and the switch only decides whether the Master comes along.
+
+### A per-Turn limit scoped to a category
+
+*"Only one Thaumaturgy Spell can be used per Turn"* (Kiritsugu's Magecraft) is not expressible
+with `sameTurnExclusive`, for two reasons. It names ability **ids**, so three Spells need six
+cross-references that go stale the moment a fourth is authored — and, decisively, it has nowhere
+to put an **exemption**, which the same sheet grants outright: Lethal Gunfire Suppression allows
+a cast that *"does not count towards the one Thaumaturgy Spell usage per Turn, but it will still
+enter Cooldown."* Exempt from the count, not from the consequence.
+
+`CategoryUseLimit` is declared by the skill that **states** the rule rather than by each ability
+the rule catches, so a fourth Spell is caught by being a Spell. The gate lives in
+`rules/costs.mjs#canUseAbility` beside `oncePerTurn`, so the button greys with a reason rather
+than failing after the click, and `bypassesCategoryLimit` rides the **use** rather than the
+ability — the same Spell cast on his own Turn still counts.
+
+### An attack that costs nothing
+
+`countsAsAttack` answers two different questions with one flag: *does this bill an Attack*, and
+*does this resolve through the attack flow*. Kiritsugu's Lethal Gunfire Suppression needs
+opposite answers — *"instantly perform a Normal Attack"*, free and uncapped, but a real Normal
+Attack that deals damage and that his own `nAtkUp` and Suppression clauses can see.
+
+Setting `countsAsAttack: false` to make it free routes it to `useSkill`, which refuses a `damage`
+phase outright. So the two are separate: `freeAction` bills nobody, `countsAsAttack` routes it.
+
+**`freeAction` skips two ledgers, not one.** The faction budget caps attacks for the Turn, and
+the Servant's own `attacked`/`acted` record is what stops them swinging again. Excusing one and
+not the other silently costs the Servant the attack they had not taken yet.
+
+### A reaction that shoots back
+
+Every ally-window ability in the corpus before Kiritsugu **interposes** — Rho Aias goes in front
+of the Unit about to be hit — so the reach that matters is to the ally. His shoots instead: *"if
+that AU is within Kiritsugu's Range"*, where the bait may be anywhere and what must be reachable
+is his target. `timing.radiusTo: attacker` says which, and `radius: "@self.range.panels"` states
+the reach as the owner's own Range so Familiars' +2 widens it.
+
+`timing.requiresDefenderEffect` is what keeps the Skill that pays for it meaningful: without it
+the passive answers every attack on every ally in range, and Scapegoat stops mattering.
+
+Two structural notes for anything built on this path:
+
+- **A rung with no options is not a rung.** An attack that forbids every reaction leaves a prompt
+  with an empty button row, which no player can dismiss. `advanceAttack` drives through states
+  needing no human input, but only *after* an event — a Process that arrives at its first rung
+  already unanswerable never gets one, and must kick itself.
+- **The card must draw what the prompt carries.** `pendingPrompt` assembles reaction abilities
+  onto the prompt; a renderer that rebuilds a fixed rung list makes every one of them
+  unreachable. See Ch. 45.
+

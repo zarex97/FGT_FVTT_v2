@@ -1228,3 +1228,43 @@ does nothing is the failure mode principle P4 exists to prevent, and this test e
 ---
 
 **Next:** [14 — Checks and Randomness](14-checks-and-randomness.md)
+
+### A Base Attack modifier belongs in the projection, not in stage 1
+
+*"The Unit's Base Attack (both STR and MAG) are reduced by half of their original value"*
+(Kiritsugu's *Mystery Bisection*) cannot be a pipeline hook, and the reason is the word **both**.
+
+Stage 1 reads `unit.baseAttack[src.component]` — the one component the current attack happens to
+use — so a hook there would never apply the MAG half against a STR attacker or the STR half
+against a MAG one. It would pass every single-attack test while being exactly half wrong.
+
+`rules/snapshot.mjs#applyBaseAttackModifiers` applies it in the **projection** instead, beside
+`applyRegionBonus`, which already adjusts both components at once. Three things follow:
+
+- the pipeline reads the snapshot, so damage is covered with no further work;
+- `present.mjs#baseAttackTiles` renders written-against-effective, so the marked Unit's own sheet
+  shows **`210 → 110`** — and for a mark that is permanent, unremovable and unresistable, being
+  legible is most of the point;
+- the ORDER is explicit: the Region's ±10 is part of the "original value" the mark halves, so the
+  bonus lands first and the halving takes the total.
+
+Idempotent, with the same guard as `applyRegionBonus` and for the same reason — two callers
+legitimately project the same unit, and the sheet says *"does not stack"* independently.
+
+### An attack property may come from the attacker, not only from the swing
+
+`attack.pierce` has always been read from `resolvedDamage(ability, options)` — the **ability's
+own** damage block. So `Pierce` was in Appendix A, consulted by this pipeline in three places,
+and had **no effect document in the corpus**, because no content could produce one.
+
+`AttackProperty` is the general answer, and `buildAttackSpec` folds the attacker's contributions
+in beside the ability's. Note that `attacker` there is an Actor **document**: `componentOf` reads
+`attacker.system.normalAttack` and the `aim` clause reads raw ActiveEffect documents, so a
+projected field must be reached through `unitSnapshot` rather than off the parameter.
+
+**Penetration sits between negation and bypass.** *"Halves the effect of Invuln"* is the first
+clause that weakens a defence rather than passing through it, so `invulnFactor` says how much
+damage **survives** — `0`, the default, reproduces total negation exactly. It must not set
+`flags.negatedBy` (nothing was negated, and the card would be lying) and must not return early,
+or the Shield and clamp below never run on what survived.
+

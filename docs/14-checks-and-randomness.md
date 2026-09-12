@@ -631,3 +631,25 @@ path exists for each difficulty.
 ---
 
 **Next:** [15 — Abilities](15-abilities.md)
+
+### The sign of a check modifier
+
+`resolveCheck` returns `success: total <= target`. A **positive** `CheckModifier` therefore makes
+a check **harder**, and this is the single easiest thing in the system to implement backwards.
+
+Two clauses on Kiritsugu's sheet turn on it, in opposite directions from what their wording
+suggests:
+
+- *"The Luck Check rolls of all Units within a 2 panel area of Kiritsugu are increased by 4
+  except himself"* is a **penalty** on everyone nearby — his own allies included. The Grail's
+  affection is not a blessing he shares.
+- *"All of his Luck Check rolls are increased by 20"* is the substitute penalty Skill Seal
+  imposes, not compensation for it.
+
+Presence Concealment's clause 2 reads the same way and always has: *"the Evade Roll is increased
+by 4"* is a penalty on the defender.
+
+Tests for these should assert the arithmetic rather than the field — a Luck of 12 that passed on
+a roll of 10 must fail once the modifier applies — because an inverted sign reads perfectly
+plausibly in a diff.
+
