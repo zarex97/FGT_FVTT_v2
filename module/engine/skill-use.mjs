@@ -223,7 +223,13 @@ async function rollConcealmentBreak(actor, ability, self) {
  * @returns {{units: object[], errors: string[]}}
  */
 function resolveSkillTargets(ability, self, board, placement) {
-  const spec = targetSpecFor(ability, self.range?.panels ?? 1, rollOptionsFor({ attacker: self }));
+  // `self` is a SNAPSHOT, where `snapshotBoard` has flattened `range` to a
+  // number -- so `.panels` was `undefined` and every Skill whose targeting
+  // falls back to its caster's Range reached exactly ONE panel, whatever the
+  // Servant's Range actually was. The same confusion `engine/attack.mjs`
+  // records for its pre-emption reach, on a line nobody had looked at since.
+  const reach = typeof self.range === "number" ? self.range : (self.range?.panels ?? 1);
+  const spec = targetSpecFor(ability, reach, rollOptionsFor({ attacker: self }));
 
   // A skill that targets only its caster resolves to the caster **without
   // consulting geometry at all**. Running it through the targeting resolver
