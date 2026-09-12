@@ -281,6 +281,17 @@ export function gateContext() {
     // without one: a use out of a match writes a cooldown nothing will ever
     // count down.
     clockRunning: clockRunning(),
+    // The ROUND, for §7.9's Noble Phantasm gate. `canUseAbility` defaults it to
+    // 1, and the action bar was the one caller that never passed it -- so every
+    // Noble Phantasm in the game was measured against Round 1 for the whole
+    // match. Its tooltip read "Ready from Round 6 (5 away)" in Round 6: the
+    // right gate, the wrong distance, and a button greyed out for ever while
+    // the SHEET showed the same ability as available, because `context.mjs`
+    // does pass it.
+    //
+    // Carried here rather than fixed at that one call site, so the omission
+    // cannot recur. Every other caller passes the same value explicitly.
+    round: game.combats?.active?.round ?? 1,
   };
 }
 
