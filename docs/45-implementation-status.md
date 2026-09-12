@@ -3559,6 +3559,35 @@ template's. Safe here — `class-mad-enhancement` declares `activeRules` and no 
 and now held by a test that asserts all seven shared clauses survive beside her `ForceMode`,
 because the day that file grows a `passiveRules` block is the day her override silently eats it.
 
+#### Commit 4 — a Command Spell spent to stop being mad, and a reconciler that could not see her
+
+`cs-suspend-skill` is the first catalogue entry added from a **Servant's sheet** rather than
+from §17.2's reference list, which the rulebook explicitly invites. Two sheets carry the clause
+in the same words and both were prose: Raikou's Mad Enhancement and Penthesilea's Hatred of
+Achilles.
+
+**The defect this commit found is the one that mattered.** `engine/modes.mjs#reconcileForcedModes`
+— the half of the mode machinery that *writes* — opened with:
+
+```js
+if (!(unit.compulsions ?? []).length) continue;
+```
+
+Complete while Penthesilea was the only clause of this shape, and silently wrong for every
+Servant held on by a `ForceMode` rule instead: Raikou carries no compulsions at all. The element
+would have collected, `canToggleMode` would have refused deactivation correctly, and the writer
+would never have run — a Mad Enhancement that refuses to switch off and refuses to switch itself
+on. Exactly the half-built shape §45.4 was written to catch, and it survived four green test
+runs because every test of the writer used Penthesilea.
+
+`compulsionSource` had the same blind spot one function down, so a mode that *did* switch itself
+on would have announced itself with no reason attached — and the announcement exists precisely
+because a mode switching itself on with no explanation is indistinguishable from a bug.
+
+**`test/unit/command-spells.test.mjs` pinned the catalogue at 16 by length.** The right assertion
+for an explicitly open list is that the reference set ships *complete*, not that nothing else
+exists; it is now a subset check plus a named list of the additions.
+
 ---
 
 ---

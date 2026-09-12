@@ -44,6 +44,13 @@ function abilityCommon() {
     // so the clause had nowhere to live.
     toggleLock: new TickField(),
     toggledAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // The tick a Command-Spell suspension lifts at; null when nothing has
+    // suspended this ability. Read by `rules/modes.mjs#canToggleMode`, which
+    // gives it precedence over `ForceMode` -- and that precedence IS Raikou's
+    // clause: *"Mad Enhancement can be deactivated for 1◈ Turns by spending a
+    // Command Spell"*. Read the two the other way round and the most expensive
+    // resource in the game buys nothing.
+    suspendedUntil: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
     cooldown: new fields.SchemaField({
       max: new TickField(),

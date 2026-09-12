@@ -73,6 +73,21 @@ export function canToggleMode(
     return { ok: false, reason: "noMatch" };
   }
 
+  // A Command-Spell suspension, which OUTRANKS every refusal below it except
+  // the toggle lock. Raikou: *"Mad Enhancement can be deactivated for 1◈ Turns
+  // by spending a Command Spell"* -- the spell is bought precisely to defeat
+  // `ForceMode`, so reading them in the other order would sell the most
+  // expensive resource in the game for nothing.
+  //
+  // It does NOT buy out `toggleLock`, which is checked below and still bites:
+  // the sheet names one refusal and says nothing about the other, and a
+  // lockout a Command Spell defeats is a different rule from the one on the
+  // page.
+  const suspended = typeof sys.suspendedUntil === "number" && tick < sys.suspendedUntil;
+  // "Deactivated FOR 1◈ Turns" is a span during which it is off, not a single
+  // permission to press the button once -- so the bar is on switching back ON.
+  if (suspended && active) return { ok: false, reason: "suspended" };
+
   // Switching OFF something that never switches off.
   if (!active && sys.cannotDeactivate) return { ok: false, reason: "cannotDeactivate" };
 
@@ -83,7 +98,7 @@ export function canToggleMode(
 
   // Held on by a condition rather than by a neighbour. Positional like a
   // compulsion, and re-answered every time it is asked for the same reason.
-  if (!active && forcedOn(item, unit)) return { ok: false, reason: "forced" };
+  if (!active && !suspended && forcedOn(item, unit)) return { ok: false, reason: "forced" };
 
   // The two-way lockout. "And vice versa" in the source: it governs switching
   // on just as much as switching off, so one clock answers both.
@@ -127,11 +142,13 @@ export function compelledOn(item, unit) {
  * write. Returned as a list rather than performed, because this layer does not
  * write.
  *
- * @param {object} unit a snapshot carrying `compulsions`
+ * @param {object} unit a snapshot carrying `compulsions` and `forcedModeRules`
  * @param {object[]} items the unit's abilities
+ * @param {object} [ctx]
+ * @param {number} [ctx.tick] the current global turn, for a live suspension
  * @returns {object[]} the abilities that should be switched on
  */
-export function forcedModes(unit, items) {
+export function forcedModes(unit, items, { tick = 0 } = {}) {
   const compelled = new Set(
     (unit?.compulsions ?? [])
       .filter((c) => c.forcesSkill && (c.targetIds ?? []).length > 0)
@@ -141,6 +158,10 @@ export function forcedModes(unit, items) {
   return [...(items ?? [])].filter((i) => {
     const sys = i.system ?? {};
     if (!sys.isMode || sys.active) return false;
+    // Bought off for a span. Switching it back on here is precisely what the
+    // Command Spell was spent to prevent, and this is the half that would
+    // undo it: `reconcileForcedModes` runs on every invalidation.
+    if (typeof sys.suspendedUntil === "number" && tick < sys.suspendedUntil) return false;
     // Either source switches it on. `forcedOn` is asked per item because its
     // rule names the mode's own slug.
     return compelled.has(sys.slug ?? i.id) || forcedOn(i, unit);

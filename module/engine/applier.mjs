@@ -376,6 +376,10 @@ async function writeGroup(group, io) {
     case "consumeUse":
       for (const i of intents) await io.consumeUse(unitId, i.defId, i.count);
       break;
+    case "suspendSkill":
+      for (const i of intents) await io.suspendSkill(unitId, i.abilityId, i.untilTick);
+      break;
+
     case "setMode":
       for (const i of intents) await io.setMode(unitId, i.abilityId, i.active);
       break;

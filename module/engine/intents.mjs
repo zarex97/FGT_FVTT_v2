@@ -25,6 +25,7 @@ export const INTENT_TYPES = Object.freeze([
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
+  "suspendSkill",
 ]);
 
 /**
@@ -67,6 +68,10 @@ const ORDER = Object.freeze({
   // Enhancement's forced deactivation has to land before the next pass
   // collects its active rules.
   setMode: 2,
+  // Beside `setMode`, and for exactly its reason: a suspension switches a mode
+  // off AND bars it from returning, so it has to land before the next pass
+  // collects the ability's rules or asks whether it may be toggled.
+  suspendSkill: 2,
   // Beside `setMode`, and bookkeeping for the same reason: a stance decides
   // which of a Unit's clauses are collected at all, so it must land before
   // anything reads them back.
@@ -199,6 +204,26 @@ export const consumeUse = (unitId, defId, count = 1) =>
  */
 export const setMode = (unitId, abilityId, active, source = null) =>
   ({ t: "setMode", unitId, abilityId, active, source });
+
+/**
+ * Switch a mode off and bar it from returning until a tick.
+ *
+ * Two sheets carry the clause in the same words -- Raikou's Mad Enhancement
+ * *"can be deactivated for 1◈ Turns by spending a Command Spell"*, and
+ * Penthesilea's Hatred of Achilles *"can be disabled for 1◈ Turns by spending
+ * one Command Spell"* -- and both were prose until this existed.
+ *
+ * Distinct from `setMode(…, false)`, which a forced mode undoes on the next
+ * invalidation: the bar is the point, not the switch.
+ *
+ * @param {string} unitId
+ * @param {string} abilityId a slug or a content id
+ * @param {number} untilTick the global turn the suspension lifts at
+ * @param {string|null} [source]
+ * @returns {object}
+ */
+export const suspendSkill = (unitId, abilityId, untilTick, source = null) =>
+  ({ t: "suspendSkill", unitId, abilityId, untilTick, source });
 
 /**
  * Put a Unit into a stance (Ch. 44 §44.1).

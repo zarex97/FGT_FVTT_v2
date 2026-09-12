@@ -1,0 +1,40 @@
+# docs/17-command-spells.md §17.2 — cost 1
+#
+# The catalogue is explicitly OPEN: "if you can think of any other use for
+# Command Spells, feel free to mention it and use it if the GM/majority of
+# players approve." This is the first entry added from a Servant's sheet rather
+# than from the reference list, and TWO sheets carry it in the same words:
+#
+#   Raikou      -- "Mad Enhancement can be deactivated for 1◈ Turns by spending
+#                   a Command Spell (it will reactivate if the aforementioned
+#                   conditions are still met after those 1◈ Turns)."
+#   Penthesilea -- "Can be disabled for 1◈ Turns by spending one Command Spell
+#                   — which does NOT deactivate Mad Enhancement."
+#
+# Note the two are not the same USE: Raikou's suspends the MODE, Penthesilea's
+# suspends the SKILL THAT FORCES IT and explicitly leaves the mode running. One
+# effect kind serves both, because both name an ability and a span.
+#
+# The LAPSE BACK needs no timer of its own. When the span passes, `forcedModes`
+# sees the condition still holding and `reconcileForcedModes` switches the mode
+# on again -- which is exactly what Raikou's parenthesis describes.
+schema: 1
+id: cs-suspend-skill
+name: "Suspend Skill"
+type: commandSpell
+cost: 1
+description: |
+  Switches one of the contracted Servant's Skills off for a span, and refuses to let it come
+  back on until the span has passed. A Skill held on by a positional condition stays off for the
+  whole span, and returns by itself afterwards if the condition still holds.
+requirements:
+  - { kind: servantInZon }
+timing: { window: ownTurn }
+effect:
+  - kind: suspendSkill
+    target: contractedServant
+    # The player says which, the way `cs-reduce-cooldown` does. Without a
+    # choice this reports rather than guessing -- the rule this catalogue
+    # follows for the most expensive resource in the game.
+    scope: oneSkill
+    duration: "1◈"
