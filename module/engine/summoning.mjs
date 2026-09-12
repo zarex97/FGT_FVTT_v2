@@ -39,26 +39,43 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
   /** @type {object[]} */
   const rolls = [];
 
-  const countRoll = await new Roll(spec.countRoll ?? "1").evaluate();
-  rolls.push({ id: "summonCount", formula: countRoll.formula, total: countRoll.total });
-  const count = Math.max(0, countRoll.total);
-  if (count === 0) return { count: 0, created: [], rolls };
-
-  // Types first, so a "your choice" entry can be answered before anything is
-  // placed -- a half-built squad on the board while a dialog waits is a state
-  // no rule describes.
   /** @type {string[]} */
-  const contentIds = [];
-  for (let k = 0; k < count; k++) {
-    const typeRoll = await new Roll(spec.typeRoll ?? "1").evaluate();
-    rolls.push({ id: `summonType:${k}`, formula: typeRoll.formula, total: typeRoll.total });
+  let contentIds = [];
 
-    const chosen = (spec.choiceOn ?? []).includes(typeRoll.total)
-      ? await resolveChoice(spec, choose)
-      : spec.types?.[typeRoll.total] ?? spec.types?.[String(typeRoll.total)] ?? null;
+  if (Array.isArray(spec.contentIds) && spec.contentIds.length > 0) {
+    // A FIXED ROSTER: named summons, all of them, in a stated order.
+    //
+    // Every summon in the corpus before Raikou was rolled (Medea's 1d6 Warriors
+    // of 1d4 types, Bašmu's Dragon Wing Warriors) or singular (the Sphinxes,
+    // the Kagome Spirits, one per enemy). Tenmōkaikai is the first that names
+    // its squad: *"Raikou summons four extra clones of herself"*, and the four
+    // differ in Range, element and rider -- so there is nothing to roll and the
+    // ORDER matters, because it pairs with the placement's own order.
+    //
+    // Without this branch `countRoll ?? "1"` rolled 1, `typeRoll ?? "1"` rolled
+    // 1, `spec.types[1]` was undefined, and the Noble Phantasm reported
+    // "0 summoned" -- which is what it did, measured live.
+    contentIds = [...spec.contentIds];
+  } else {
+    const countRoll = await new Roll(spec.countRoll ?? "1").evaluate();
+    rolls.push({ id: "summonCount", formula: countRoll.formula, total: countRoll.total });
+    const count = Math.max(0, countRoll.total);
+    if (count === 0) return { count: 0, created: [], rolls };
 
-    if (chosen) contentIds.push(chosen);
-    else console.warn(`FGT | Summon type ${typeRoll.total} has no entry; that Warrior did not appear.`);
+    // Types first, so a "your choice" entry can be answered before anything is
+    // placed -- a half-built squad on the board while a dialog waits is a state
+    // no rule describes.
+    for (let k = 0; k < count; k++) {
+      const typeRoll = await new Roll(spec.typeRoll ?? "1").evaluate();
+      rolls.push({ id: `summonType:${k}`, formula: typeRoll.formula, total: typeRoll.total });
+
+      const chosen = (spec.choiceOn ?? []).includes(typeRoll.total)
+        ? await resolveChoice(spec, choose)
+        : spec.types?.[typeRoll.total] ?? spec.types?.[String(typeRoll.total)] ?? null;
+
+      if (chosen) contentIds.push(chosen);
+      else console.warn(`FGT | Summon type ${typeRoll.total} has no entry; that Warrior did not appear.`);
+    }
   }
 
   const panels = freePanels(summoner, spec.placement ?? {}, contentIds.length);
