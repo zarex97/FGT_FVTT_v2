@@ -1268,3 +1268,14 @@ damage **survives** — `0`, the default, reproduces total negation exactly. It 
 `flags.negatedBy` (nothing was negated, and the card would be lying) and must not return early,
 or the Shield and clamp below never run on what survived.
 
+### Invuln does not zero a Noble Phantasm
+
+The stage-16 `invuln` branch is guarded by `if (!s.isNP)`: a Noble Phantasm was already halved
+at stage 15, and what remains at 16 is negation for everything else. So an NP against an
+`invuln` defender still lands — measured at **131** for Kiritsugu'''s Mystery Bisection — and its
+riders legitimately apply.
+
+`antiPurge` is the one that stops an NP outright, and it halts at **stage 0**: *"damage AND
+effects"*, which is the distinction Appendix A draws between the two and the reason a rider gate
+cannot be tested with Invuln.
+
