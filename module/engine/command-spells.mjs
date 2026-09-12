@@ -127,6 +127,15 @@ function contextFor(masterId, window, context) {
     servant,
     board,
     window,
+    // The match clock. Every duration in this game is stored as an ABSOLUTE
+    // expiry tick (Ch. 07 §7.5), so a command that lasts a span needs to know
+    // where "now" is -- and this context did not carry it. `cs-suspend-skill`
+    // is the first command whose effect has a duration at all; without this it
+    // stamped `0 + ticks`, which on any tick past the third is a suspension
+    // that expired before it was bought. Measured live at tick 4: the Command
+    // Spell was spent, the mode switched off, and the reconciler switched it
+    // straight back on.
+    tick: game.combat?.system?.globalTurn ?? 0,
     settings: { allMastersRankless: allMastersRankless(board) },
     ...context,
   };

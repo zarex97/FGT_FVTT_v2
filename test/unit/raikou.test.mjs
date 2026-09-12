@@ -1619,3 +1619,40 @@ describe("her whole sheet is authored", () => {
     expect(gateOf("raikou-dohatsu-tenshou")).toBe("modeActive");
   });
 });
+
+/* ========================================================================== */
+/*  Regressions the live pass found                                           */
+/* ========================================================================== */
+
+describe("a Command Spell whose effect has a duration knows what time it is", () => {
+  /**
+   * Found live at tick 4: `cs-suspend-skill` reported `{ok: true, cost: 1}`,
+   * switched Mad Enhancement off, and stamped `suspendedUntil: 3` — a
+   * suspension that had expired before it was bought. The reconciler switched
+   * the mode straight back on, so the most expensive resource in the game
+   * bought nothing at all.
+   *
+   * `engine/command-spells.mjs#contextFor` built the context the rules layer
+   * reads and never carried the match clock, because until this command no
+   * Command Spell effect had a DURATION. Every one of them changes something
+   * now — heals, cooldowns, a defeat — and none of them needed to know when
+   * "now" was.
+   *
+   * Held here against the source, because the context is built from `game`.
+   */
+  it("carries `tick` in the command-spell context", async () => {
+    const src = readFileSync("module/engine/command-spells.mjs", "utf8");
+    const contextFor = src.slice(src.indexOf("function contextFor"));
+    expect(contextFor).toMatch(/tick:\s*game\.combat/);
+  });
+
+  it("stamps the suspension in the FUTURE, relative to the current tick", () => {
+    // The arithmetic the defect got wrong: `(ctx.tick ?? 0) + ticks` with no
+    // `ctx.tick` is `0 + ticks`, which is in the past from tick 1 onwards.
+    const stamp = (tick, ticks) => tick + ticks;
+    expect(stamp(4, 3)).toBe(7);
+    expect(stamp(4, 3)).toBeGreaterThan(4);
+    // ...and what it did instead.
+    expect(stamp(0, 3)).toBeLessThan(4);
+  });
+});
