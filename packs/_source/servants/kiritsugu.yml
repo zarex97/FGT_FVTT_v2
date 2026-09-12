@@ -48,3 +48,5 @@ abilities:
   - { ref: class-presence-concealment, rank: "A+" }
   - { ref: class-independent-action, rank: A }
   - { ref: kiritsugu-affection-of-the-holy-grail }
+  - { ref: kiritsugu-reinforcement }
+  - { ref: kiritsugu-familiars }
