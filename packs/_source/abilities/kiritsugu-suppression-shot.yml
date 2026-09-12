@@ -1,0 +1,66 @@
+# Kiritsugu's Lethal Gunfire Suppression, the (Passive) half.
+#
+# ITS OWN DOCUMENT, and the split is Karna's. His Vasavi Shakti is a free
+# activation and a Noble Phantasm in one sheet entry, and became two files
+# because one document cannot hold two behaviours with different costs, windows
+# and phases. This is the same shape: the Active below buffs him on his own
+# Turn, and this shoots somebody on theirs.
+#
+# NOT an Attack Skill, and that is the load-bearing line of the file. The sheet
+# says *"perform a NORMAL Attack"*, and two of his own clauses read that word --
+# Reinforcement buffs `nAtkUp`, and Suppression's strip fires on "Successful
+# Normal Attacks". `isAttackSkill: true` would classify this as `attackSkill`
+# and quietly exclude it from both. A bare `damage` PHASE with no
+# `isAttackSkill`/`isSpell`/`isNP` is what `abilityKind` answers "normal" for,
+# so this is a Normal Attack in the only sense the engine has.
+schema: 1
+id: kiritsugu-suppression-shot
+name: "Lethal Gunfire Suppression"
+rank: "B+"
+kind: skill
+slug: suppressionShot
+copyable: { allowed: false, reason: unique }
+# Free and uncapped (spec R1). The cost was paid when Scapegoat was spent --
+# Decoy (Scapegoat) lasts 1◈ behind a 3◈ cooldown, and the attacker has to be
+# inside his Range. That is the limiter; a cooldown here would be a second one
+# the sheet does not charge.
+cooldown: null
+countsAsAttack: false
+timing:
+  window: whenAllyAttacked
+  # His own Range, not a literal -- so Familiars' +2 widens the net.
+  radius: "@self.range.panels"
+  # Measured to the ATTACKER. Every other ally-window ability in the game
+  # interposes, so its reach is to the Unit in peril; this one shoots back, and
+  # what has to be reachable is its target. The bait may be anywhere.
+  radiusTo: attacker
+  # Only for a Unit carrying HIS decoy. Without this the passive answers every
+  # attack on every ally in range, and Scapegoat -- which is what pays for it --
+  # stops mattering.
+  requiresDefenderEffect: decoyScapegoat
+description: |
+  (Passive) Whenever a Unit inflicted with @effect[decoyScapegoat]{Decoy (Scapegoat)} is Attacked,
+  if that Attacking Unit is within Kiritsugu's Range, Kiritsugu can instantly perform a Normal
+  Attack on it which cannot be Reacted to unless that Unit's AGI Rank is higher than Kiritsugu's.
+  Additionally, Kiritsugu can use a Thaumaturgy Spell once before performing this Normal Attack;
+  it does not count towards his one Thaumaturgy Spell per Turn, but it will still enter Cooldown.
+targeting:
+  # Whoever swung. The same anchor Mannanán's Fragarach answers a declaration
+  # with, and the reason it exists.
+  anchor: { kind: sourceOfAttack }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  # A Normal Attack: his Base Attack once, no multiplier and no bonus.
+  multiplier: 1
+  component: str
+# "cannot be Reacted to unless the AU's AGI Rank is higher than Kiritsugu's."
+# One boundary apart from Presence Concealment's clause 2, which escapes on
+# "equal to or higher" -- see `rules/concealment.mjs#reactionRefusedByAgility`.
+refusesReactionsUnlessFaster: true
+# "Kiritsugu can use a Thaumaturgy Spell once before performing this Normal
+# Attack." Offered before the shot resolves, and exempt from Magecraft's cap.
+offersSpellCategory: thaumaturgy
+phases:
+  - kind: damage
+    target: reuse

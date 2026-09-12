@@ -70,7 +70,9 @@ import {
 } from "../rules/reactions.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
-import { reactionsRefused, aoeOutcome, isConcealed } from "../rules/concealment.mjs";
+import {
+  reactionsRefused, reactionRefusedByAgility, aoeOutcome, isConcealed,
+} from "../rules/concealment.mjs";
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
 
@@ -872,7 +874,7 @@ async function declareProcesses({
     const withReactions = state.defenderId
       ? {
         ...state,
-        reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId, state.attack, state.isAoE) },
+        reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId, state.attack, state.isAoE, state.attackerId) },
         // Presence Concealment clause 2: *"This Unit's Attacks cannot be
         // Blocked or Countered unless the DU's current AGI Rank is equal to or
         // higher than it."* Decided once, at declaration, alongside the offer --
@@ -884,6 +886,12 @@ async function declareProcesses({
         // stale card or a macro cannot Block one anyway.
         forbiddenReactions: [...new Set([
           ...concealmentRefusals(attackerId, state.defenderId),
+          // An ABILITY that narrows the ladder by a rank comparison rather than
+          // by naming rungs. Kiritsugu's Lethal Gunfire Suppression: *"cannot
+          // be Reacted to unless the AU's AGI Rank is higher than Kiritsugu's."*
+          // One boundary apart from concealment's, which is why both live in
+          // `rules/concealment.mjs` rather than one being reimplemented here.
+          ...agilityRefusals(ability, attackerId, state.defenderId),
           ...(state.attack?.unblockable ? ["block"] : []),
         ])],
       }
@@ -996,13 +1004,27 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     const used = owner?.items?.get(reactionAbilityId);
     if (used) {
       const { useSkill } = await import("./skill-use.mjs");
+
+      // "Kiritsugu can use a Thaumaturgy Spell once BEFORE performing this
+      // Normal Attack." Offered here, between accepting the shot and resolving
+      // it, because that is the only moment the sheet's word "before" can mean
+      // -- and the offered use is exempt from Magecraft's one-a-Turn cap while
+      // still entering its own Cooldown.
+      if (used.system?.offersSpellCategory) {
+        await offerPreAttackSpell(owner, used.system.offersSpellCategory);
+      }
+
+      // The Unit in peril is what a third-party reaction points at: Rho Aias is
+      // projected in front of the ally who is about to be hit, not in front of
+      // its projector. An ability that SHOOTS BACK points the other way --
+      // Kiritsugu's target is whoever swung -- and says so with the same field
+      // its reach is measured by.
+      const pointsAtAttacker = used.system?.timing?.radiusTo === "attacker";
+      const aimedAt = pointsAtAttacker ? state.attackerId : state.defenderId;
       const out = await useSkill({
         actorId: owner.id,
         abilityId: used.id,
-        // The Unit in peril is what a third-party reaction points at: Rho Aias
-        // is projected in front of the ally who is about to be hit, not in
-        // front of its projector.
-        placement: owner.id === state.defenderId ? undefined : { unitId: state.defenderId },
+        placement: owner.id === aimedAt ? undefined : { unitId: aimedAt },
       });
       if (!out.ok) ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", { name: used.name, reason: out.reason }));
     }
@@ -1665,6 +1687,52 @@ async function fireAttackDeclared(state) {
 
 /**
  * Reactions a concealed attacker denies this defender.
+ *
+ * @param {string} attackerId
+ * @param {string} defenderId
+ * @returns {string[]}
+ */
+function agilityRefusals(ability, attackerId, defenderId) {
+  if (!ability?.system?.refusesReactionsUnlessFaster) return [];
+  const attacker = game.actors.get(attackerId);
+  const defender = game.actors.get(defenderId);
+  if (!attacker || !defender) return [];
+  return reactionRefusedByAgility(unitSnapshot(attacker), unitSnapshot(defender));
+}
+
+/**
+ * Offer the owner one ability of a named category before their own resolves.
+ *
+ * Kiritsugu's Lethal Gunfire Suppression is the only source: *"Kiritsugu can
+ * use a Thaumaturgy Spell once before performing this Normal Attack (Note:
+ * This does not count towards the one Thaumaturgy Spell usage per Turn, but it
+ * will still enter Cooldown)."*
+ *
+ * **Exempt from the count, not from the consequence**, which is why the
+ * exemption is a flag on the USE rather than a property of the ability: the
+ * same Spell cast on his own Turn does count.
+ *
+ * @param {object} owner the Actor taking the shot
+ * @param {string} category
+ * @returns {Promise<void>}
+ */
+async function offerPreAttackSpell(owner, category) {
+  const candidates = [...(owner.items ?? [])].filter((i) => i.system?.category === category
+    && (i.system?.cooldown?.remaining ?? 0) === 0);
+  if (candidates.length === 0) return;
+
+  const chosen = await askOwner(owner, {
+    title: game.i18n.localize("FGT.Kiritsugu.PreShotSpell"),
+    options: candidates.map((i) => ({ id: i.id, name: i.name })),
+  });
+  if (!chosen) return;
+
+  const { useSkill } = await import("./skill-use.mjs");
+  await useSkill({ actorId: owner.id, abilityId: chosen, bypassesCategoryLimit: true });
+}
+
+/**
+ * Rungs Presence Concealment takes off the ladder.
  *
  * @param {string} attackerId
  * @param {string} defenderId
@@ -4852,7 +4920,7 @@ async function askOwner(actor, spec) {
  * @param {string} defenderId
  * @returns {Array<{id: string, name: string}>}
  */
-function offeredReactions(defenderId, attack = null, isAoE = false) {
+function offeredReactions(defenderId, attack = null, isAoE = false, attackerId = null) {
   const actor = game.actors.get(defenderId);
   if (!actor) return [];
 
@@ -4884,6 +4952,10 @@ function offeredReactions(defenderId, attack = null, isAoE = false) {
     // Akhilleus Kosmos gates on it, so it is folded in here where both are in
     // scope.
     attack: { ...(attack ?? {}), isAoE: Boolean(isAoE) },
+    // For the offers whose reach is measured to the ATTACKER -- Kiritsugu
+    // shoots the Unit that swung, so what must be in his Range is the shooter's
+    // target and not the ally he is protecting.
+    attacker: attackerId ? (board.units.find((u) => u.id === attackerId) ?? null) : null,
     actorFor: (id) => game.actors.get(id),
   }).map((a) => ({
     id: a.ability.id,

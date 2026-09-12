@@ -52,4 +52,5 @@ abilities:
   - { ref: kiritsugu-reinforcement }
   - { ref: kiritsugu-penetration }
   - { ref: kiritsugu-scapegoat }
+  - { ref: kiritsugu-suppression-shot }
   - { ref: kiritsugu-familiars }

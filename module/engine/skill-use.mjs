@@ -67,7 +67,14 @@ import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
  * @param {object} [args.placement] only when the skill needed targeting
  * @returns {Promise<{ok: boolean, reason?: string, applied?: object[]}>}
  */
-export async function useSkill({ actorId, abilityId, placement = {} }) {
+export async function useSkill({
+  actorId, abilityId, placement = {},
+  // A use that does not count towards its CATEGORY's per-Turn cap. The flag
+  // rides the USE rather than the ability, because the same Spell cast on the
+  // owner's own Turn does count -- Kiritsugu's Lethal Gunfire Suppression
+  // grants one free Thaumaturgy cast inside its own trigger and nowhere else.
+  bypassesCategoryLimit = false,
+}) {
   const actor = game.actors.get(actorId);
   const ability = actor?.items?.get(abilityId);
   if (!actor || !ability) return { ok: false, reason: "notFound" };
@@ -81,7 +88,13 @@ export async function useSkill({ actorId, abilityId, placement = {} }) {
   // ability* rather than on attacking: cooldown, round, cost, and §15.4's
   // requirement list.
   const usage = canUseAbility({
-    ability: usageSpec(ability),
+    // Spread FIRST, then OR: an ability may carry the flag on its own document,
+    // and writing `bypassesCategoryLimit` unconditionally would overwrite that
+    // with `false` on every ordinary call.
+    ability: (() => {
+      const spec = usageSpec(ability);
+      return bypassesCategoryLimit ? { ...spec, bypassesCategoryLimit: true } : spec;
+    })(),
     unit: self,
     master,
     round: combat?.round ?? 1,

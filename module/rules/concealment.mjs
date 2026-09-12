@@ -73,6 +73,41 @@ export function reactionsRefused(attacker, defender) {
 }
 
 /**
+ * Reactions refused against an attack that lands before the ladder opens.
+ *
+ * Kiritsugu's Lethal Gunfire Suppression: *"…which cannot be Reacted to unless
+ * the AU's AGI Rank is higher than Kiritsugu's."*
+ *
+ * **One boundary apart from `reactionsRefused` above, and in this file on
+ * purpose.** Presence Concealment escapes on *"equal to or higher"* and names
+ * two rungs, leaving Evade open at +4; this escapes only on *"higher"* and
+ * names the whole ladder, because the sheet says *"cannot be Reacted to"*
+ * without qualification. Two copies of rank arithmetic that must differ by
+ * exactly one step are how they end up differing by two, so they sit together.
+ *
+ * `Rank.gte(theirs, ours, false)` plus an inequality rather than a `gt` helper:
+ * `Rank` exports `compare`, `gte` and `equals`, and inventing a fourth spelling
+ * of the same comparison is how the two above would drift.
+ *
+ * @param {object} attacker the Unit taking the shot
+ * @param {object} defender the Unit being shot at
+ * @returns {string[]} reaction ids to forbid — `[]` when nothing is refused
+ */
+export function reactionRefusedByAgility(attacker, defender) {
+  const ours = rankOf(attacker, "agi");
+  // A shooter with no AGI Rank refuses nothing: the comparison has no answer,
+  // and the safe direction is to leave the defender its ladder — the same
+  // ruling `reactionsRefused` makes for the same reason.
+  if (ours === null) return [];
+
+  const theirs = rankOf(defender, "agi");
+  const strictlyHigher = theirs !== null
+    && Rank.gte(theirs, ours, false)
+    && !Rank.equals(theirs, ours);
+  return strictlyHigher ? [] : ["block", "counter", "evade"];
+}
+
+/**
  * @param {object} unit
  * @param {string} parameter
  * @returns {Rank|null}
