@@ -1,0 +1,46 @@
+# Raikou's Mystery Slayer, Active clause 1.
+#
+# A named variant rather than a generic `atkUp` with a predicate, for the reason
+# every named variant in this catalogue exists: the sheet names it, and a named
+# buff is one a later clause can remove, resist or count separately.
+#
+# The exclusion (R2) is spelled out HERE as well as on the two passives. Four
+# copies of one predicate fragment, deliberately: a reader checking the sheet
+# against this file should find the exclusion in it, not by following a
+# reference to somewhere else.
+schema: 1
+id: atkUpMs
+name: "Atk Up (MS)"
+description: |
+  All damage dealt to Units with the [Earth] or [Sky] Attribute is increased by X% including NP.
+  No effect on Demi-Servants or Pseudo-Servants except Sitonai.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    # "including NP" rather than a reduced NP figure, so the two are equal.
+    npValue: "@magnitude"
+    # DEFERRED, necessarily: the target does not exist at collection time, so
+    # answering `target:attribute:` there answers it wrong and drops the
+    # modifier for ever. The damage pipeline re-tests it with the attack in
+    # scope -- the defect `critUpHawkeye`'s file records in the same words.
+    defer: attack
+    predicate:
+      - { anyOf: ["target:attribute:earth", "target:attribute:sky"] }
+      # R2, and see the note on `atk-up-demonic.yml`: the sheet's exclusion
+      # names the SKILL, so it rides on all four of its clauses.
+      # `or`, NOT `anyOf`. `anyOf` takes bare option STRINGS and tests set
+      # membership directly (`ctx.options.has(o)`); this branch holds a
+      # statement object, so `anyOf` would ask whether the set contains an
+      # object, get false, and make the whole clause permanently unsatisfiable
+      # -- Mystery Slayer silently doing nothing to anybody. `or` takes
+      # statements. The inner `anyOf` above is strings and is correct.
+      - or:
+          - { nor: ["target:attribute:demiServant", "target:attribute:pseudoServant"] }
+          - "target:contentId:sitonai"

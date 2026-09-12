@@ -106,6 +106,7 @@ abilities:
   - { ref: raikou-genji-clan-martial-arts-discipline }
   - { ref: raikou-mana-burst-lightning }
   - { ref: raikou-thunder-gods-embodiment }
+  - { ref: raikou-mystery-slayer }
 
 notes: |
   The nineteenth Servant, and the first whose hardest class skill cost nothing at all.

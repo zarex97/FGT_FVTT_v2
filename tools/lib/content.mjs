@@ -709,6 +709,13 @@ function timingWindowsAreKnown(doc, path, problems) {
  * @param {string[]} problems
  */
 function predicateOptionsExist(doc, path, problems) {
+  // FIRST, and it returns early: a malformed `anyOf` makes `referencedOptions`
+  // throw (`o.startsWith is not a function`) rather than report, which is a
+  // stack trace with no file name in place of a diagnosis.
+  const before = problems.length;
+  anyOfHoldsOnlyOptions(doc, path, problems);
+  if (problems.length > before) return;
+
   for (const site of predicateSitesIn(doc)) {
     for (const option of site.options) {
       if (isEmittableOption(option)) continue;
@@ -720,6 +727,52 @@ function predicateOptionsExist(doc, path, problems) {
     }
   }
   terrainTypesExist(doc, path, problems);
+}
+
+/**
+ * Every `anyOf` holds bare option STRINGS, and nothing else.
+ *
+ * `rules/predicate.mjs` gives `anyOf` a different contract from its
+ * neighbours: `and`, `or`, `nand` and `nor` take **statements** and recurse,
+ * while `anyOf` is the shorthand for set membership and tests
+ * `ctx.options.has(o)` directly. Put a statement object inside one and the
+ * engine asks whether a `Set<string>` contains an object, gets `false`, and the
+ * clause is **permanently unsatisfiable** — authored cleanly, compiled, loaded,
+ * and silently doing nothing for ever.
+ *
+ * Found writing Raikou's Mystery Slayer, whose Demi-/Pseudo-Servant exclusion
+ * is a `{nor}` beside a bare option: spelled `anyOf` it made all four clauses of
+ * the skill false against everybody, and only a test that exercised the
+ * predicate caught it. The distinction is invisible at review — the two keys
+ * read as synonyms — which is precisely what makes it worth a build error.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function anyOfHoldsOnlyOptions(doc, path, problems) {
+  /**
+   * @param {unknown} node
+   * @param {string} where
+   */
+  const walk = (node, where) => {
+    if (Array.isArray(node)) return node.forEach((n, i) => walk(n, `${where}[${i}]`));
+    if (!node || typeof node !== "object") return;
+    for (const [key, value] of Object.entries(node)) {
+      if (key === "anyOf" && Array.isArray(value)) {
+        for (const entry of value) {
+          if (typeof entry === "string") continue;
+          problems.push(
+            `${path}: ${where}.anyOf holds ${JSON.stringify(entry)}, which is not an option `
+            + "string. `anyOf` tests set membership directly, so a nested statement is never "
+            + "matched and the clause is permanently false. Use `or`, which takes statements.",
+          );
+        }
+      }
+      walk(value, where ? `${where}.${key}` : key);
+    }
+  };
+  walk(doc, "");
 }
 
 /**
