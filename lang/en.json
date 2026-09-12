@@ -753,6 +753,7 @@
   "FGT.Ability.Refused.withinPlatformCentre": "Must be on its Platform's centre.",
   "FGT.Ability.Refused.oncePerTurn": "Already used this Turn",
   "FGT.Kiritsugu.PreShotSpell": "Use a Thaumaturgy Spell before the shot?",
+  "FGT.Ability.Refused.prevented": "Prevented",
   "FGT.Ability.Refused.categoryUseLimit": "Already used a Spell of this kind this Turn",
   "FGT.Ability.Refused.sameTurnExclusive": "Cannot be used on the same Turn as {partner}",
   "FGT.Ability.Refused.sameRoundExclusive": "Cannot be used on the same Round as {partner}",

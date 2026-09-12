@@ -22,6 +22,7 @@ import { meetsRequirements } from "./items.mjs";
 import { isGated, gateRoundFor, npAvailableTurn, NP_GATE } from "./np-gate.mjs";
 import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
+import { preventedBy } from "./budget.mjs";
 
 /**
  * What using this ability costs, or `null` when it is free.
@@ -236,6 +237,23 @@ export function canUseAbility({
     return { ok: false, reason: "oncePerTurn", cost };
   }
 
+  // A Seal. `rules/budget.mjs`'s prevention table has gated Skills, Spells and
+  // Noble Phantasms since it was written, and `canConsume` honours it -- but
+  // only at the moment an action is BILLED, which is after the player has
+  // committed. So a Skill-Sealed Servant's buttons all read as available, and
+  // pressing one opened a targeting session that said "Legal -- click to
+  // confirm" for an ability the rules forbid.
+  //
+  // Six effects reach this table -- Stun and its blanket kin, Disable, Seal,
+  // Silence, Skill Seal, NP Seal -- and none of them were visible on a button
+  // before this. Asked HERE for the reason the block below already gives: a
+  // player who presses something and watches nothing happen has been shown a
+  // bug, not told a rule.
+  const sealed = preventedBy(unit, preventionActionFor(ability));
+  if (sealed.prevented) {
+    return { ok: false, reason: "prevented", detail: { by: sealed.by }, cost };
+  }
+
   // The same question one scale WIDER: a cap on a whole CATEGORY rather than on
   // one ability. Kiritsugu's Magecraft is *"Only one Thaumaturgy Spell can be
   // used per Turn"*, which no per-ability field can say -- and which
@@ -385,6 +403,23 @@ function categoryLimitFor(ability, unit) {
   const used = usedThisTurn(unit).filter((id) => sameFamily.has(id));
 
   return used.length >= limit.perTurn ? limit : null;
+}
+
+/**
+ * Which entry of the prevention table an ability answers to.
+ *
+ * The three the table separates, and it separates them on purpose: `Seal`
+ * spares Spells, `Silence` hits only them, and `Skill Seal` takes both while
+ * leaving Noble Phantasms alone. Collapsing any two makes a different effect
+ * wrong in each direction.
+ *
+ * @param {object} ability
+ * @returns {string} `"np"`, `"spell"` or `"skill"`
+ */
+function preventionActionFor(ability) {
+  if (ability?.isNP || ability?.categorizedAsNP) return "np";
+  if (ability?.isSpell) return "spell";
+  return "skill";
 }
 
 /**
