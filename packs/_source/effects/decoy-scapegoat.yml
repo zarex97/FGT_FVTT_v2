@@ -1,0 +1,30 @@
+# Kiritsugu's Scapegoat.
+#
+# Its OWN document rather than the shared `decoy`, because Lethal Gunfire
+# Suppression triggers on THIS one specifically. Sharing `decoy` would make
+# Mannanan's self-applied Decoy fire Kiritsugu's gun from across the board --
+# a rule nobody wrote, arriving for free.
+#
+# A debuff applied to an ALLY, which is the whole point of the name: the ally is
+# bait, and the shot Kiritsugu takes in answer is what the bait buys.
+# `allySelfBypassesResistance` is what stops your own side's debuff machinery
+# from refusing it (Ch. 10 §10.6) -- without it a high-Debuff-Resist ally would
+# shrug off the protection his own Master is trying to give him.
+schema: 1
+id: decoyScapegoat
+name: "Decoy (Scapegoat)"
+description: |
+  Enemy Units within 3 panels (or their own Range, whichever is greater) cannot Move away from
+  this Unit, may only Attack and target this Unit, and must Attack it if able. While a Unit with
+  this effect is Attacked, Kiritsugu may answer with a Normal Attack.
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+allySelfBypassesResistance: true
+rules:
+  # "Within max(3, their Range)" -- the floor is authored and the Range half is
+  # read per enemy by the board pass, because it is a different number for each.
+  - key: Decoy
+    radius: 3

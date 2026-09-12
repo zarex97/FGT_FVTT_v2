@@ -68,8 +68,22 @@ export function expand(shape, anchor, opts = {}) {
       return flat(geo.rect(origin, shape.w, shape.h, bounds));
     }
 
-    case "chebyshevRadius":
-      return flat(geo.chebyshevDisc(origin, shape.r, bounds));
+    case "chebyshevRadius": {
+      const disc = geo.chebyshevDisc(origin, shape.r, bounds);
+      // *"…within a 2 panel area of Kiritsugu OR THE TARGET"* (Scapegoat) — a
+      // UNION of two discs, which is ONE area and not two applications.
+      //
+      // The distinction is load-bearing rather than tidy. Running the phase
+      // twice, once anchored on each, would apply the effect twice to everybody
+      // standing in the overlap — and `sCritUp` is `magnitudeStacks`, so the
+      // units closest to both would silently get 30% where the sheet says 15.
+      // `normalize` dedupes, so the union cannot do that.
+      if (!shape.alsoAroundCaster || !anchor.casterPanel) return flat(disc);
+      return flat(geo.normalize(
+        [...disc, ...geo.chebyshevDisc(anchor.casterPanel, shape.r, bounds)],
+        bounds,
+      ));
+    }
 
     case "attackRange":
       return flat(geo.attackRangePanels(origin, shape.r, bounds));

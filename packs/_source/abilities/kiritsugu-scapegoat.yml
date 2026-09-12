@@ -1,0 +1,50 @@
+# Kiritsugu, char_orig_sheets/Copia de Kiritsugu.md
+#
+# Offered at TWO windows, and the second is what makes it a Skill rather than a
+# setup: *"Used during your Turn OR when an allied Unit within a 2 panel area of
+# Kiritsugu is Attacked."* So it can be played as a save -- the attack is
+# already declared, and he answers by making somebody else the better target.
+schema: 1
+id: kiritsugu-scapegoat
+name: "Scapegoat"
+rank: C
+kind: skill
+slug: scapegoat
+cooldown: "3◈"
+timing: { window: [ownTurn, whenAllyAttacked] }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn or when an allied Unit within a 2 panel area of Kiritsugu is
+  Attacked. Used on an allied Unit within a 2 panel area of Kiritsugu. Applies
+  @effect[decoyScapegoat]{Decoy (Scapegoat)} to that Unit for 1◈ Turns, then applies
+  @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of Kiritsugu
+  or the target, Crit Chance is increased by 15%. Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [ally], chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: decoyScapegoat, duration: "1◈" }
+
+  # "to all allied Units within a 2 panel area of Kiritsugu OR THE TARGET."
+  #
+  # A UNION of two discs, expressed as ONE area -- `alsoAroundCaster` on the
+  # shape. Two phases, one anchored on each, would apply `sCritUp` twice to
+  # anybody standing in the overlap, and it is `magnitudeStacks`: the allies
+  # closest to both would quietly get 30% where the sheet says 15.
+  #
+  # Anchored on the TARGET -- `phaseTargets` hands a phase the placement the
+  # ability already resolved, so this re-uses the ally the player chose rather
+  # than asking again -- with the caster's own disc unioned in by the shape.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: targetUnit, range: 2 }
+      shape: { kind: chebyshevRadius, r: 2, alsoAroundCaster: true }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      # S.Crit Up, not Crit Up: "application cannot be prevented and it is
+      # Unremovable" (§A.4), which is right for a buff your own side hands out.
+      - { id: sCritUp, magnitude: 15, duration: "⅓◈" }

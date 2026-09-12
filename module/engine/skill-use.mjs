@@ -242,7 +242,24 @@ function phaseTargets(phase, resolved, actor, board) {
   // his neighbours a fourth, in one use.
   if (phase.targeting) {
     const self = board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
-    const out = resolveTargets(phase.targeting, self, board, {});
+    // The placement the ABILITY already resolved, so a phase may anchor on the
+    // unit the player CHOSE rather than asking them to choose again.
+    //
+    // `{}` was passed here before, which quietly restricted phase targeting to
+    // anchors needing no panel: a `targetUnit` or `withinRange` anchor pushed
+    // "Choose a panel." and resolved to nobody. Every authored phase targeting
+    // so far anchors on `self`, so nothing had noticed.
+    //
+    // Kiritsugu's Scapegoat is the first that cannot: *"all allied Units within
+    // a 2 panel area of Kiritsugu OR THE TARGET"* is a disc around the chosen
+    // ally unioned with one around him, and the chosen ally is exactly what
+    // this placement carries.
+    const first = resolved?.[0]
+      ? board.units.find((u) => u.id === resolved[0].unitId)
+      : null;
+    const out = resolveTargets(
+      phase.targeting, self, board, first?.panel ? { panel: first.panel } : {},
+    );
     return out.units;
   }
   return (phase.target ?? "reuse") === "self" ? [{ unitId: actor.id }] : resolved;
