@@ -948,3 +948,50 @@ describe("Setup rolls read the Rank in force, not the one on paper", () => {
     expect(shift.to).toBe("EX");
   });
 });
+
+describe("A Seal is visible on the button, not only at the bill (R2)", () => {
+  const unit = (effects) => ({
+    id: "kiritsugu", effects, abilities: [], modifiers: [], suppressions: [],
+    turnState: { abilitiesUsed: [] }, categoryUseLimits: [],
+    health: { value: 1000, max: 1000 },
+  });
+  const use = (ability, effects) => canUseAbility({
+    ability: { cooldown: { remaining: 0, gatedDelay: 0 }, ...ability },
+    // Round 6: a Noble Phantasm is gated until then, and that refusal lands
+    // BEFORE this one -- so a round-1 fixture would test the gate, not the seal.
+    unit: unit(effects), round: 6, turn: 18,
+  });
+
+  it("refuses a Skill under Skill Seal", () => {
+    const r = use({ id: "s", contentId: "s" }, ["skillSeal"]);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("prevented");
+    expect(r.detail.by).toBe("skillSeal");
+  });
+
+  it("refuses a Spell under Skill Seal, and under Silence", () => {
+    for (const seal of ["skillSeal", "silence"]) {
+      const r = use({ id: "p", contentId: "p", isSpell: true }, [seal]);
+      expect(r.ok, seal).toBe(false);
+      expect(r.detail.by).toBe(seal);
+    }
+  });
+
+  it("leaves Noble Phantasms alone under Skill Seal — Appendix A's own split", () => {
+    // `Seal` spares Spells, `Silence` hits only them, `Skill Seal` takes both
+    // and leaves NPs. Collapsing any two makes a different effect wrong.
+    expect(use({ id: "np", contentId: "np", isNP: true }, ["skillSeal"]).reason)
+      .not.toBe("prevented");
+    expect(use({ id: "np", contentId: "np", isNP: true }, ["npSeal"]).detail?.by)
+      .toBe("npSeal");
+  });
+
+  it("does not refuse a Spell under NP Seal", () => {
+    expect(use({ id: "p", contentId: "p", isSpell: true }, ["npSeal"]).reason)
+      .not.toBe("prevented");
+  });
+
+  it("refuses nothing when the Unit holds none of them", () => {
+    expect(use({ id: "s", contentId: "s" }, []).ok).toBe(true);
+  });
+});
