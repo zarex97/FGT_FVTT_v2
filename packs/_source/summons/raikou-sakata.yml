@@ -1,0 +1,104 @@
+# Raikou -- Goō Shōrai・Tenmōkaikai, the Raikou (Sakata) copy.
+# Conversion source: char_orig_sheets/Copia de Raikou.md
+# Data sheet: docs/D-servant-data-sheets.md §D.32
+#
+# One of four, and the four differ in exactly THREE fields: Range, element and
+# the 50% rider. Everything else is shared, which is why these are four short
+# files rather than one parameterized one -- the sheet prints four statblocks
+# and a reader checking it should find four.
+#
+# The mirror of Raikou's own element: Lightning, Shock, Range 1.
+#
+# She is immune to Shock and halves Lightning taken, so a Sakata facing a
+# Raikou is the clause that proves the element plumbing works in BOTH
+# directions -- the `Raikou` buff's +40 Lightning and this copy's half-element
+# Normal Attack both have to land on the right side of her own resistance.
+schema: 1
+id: raikou-sakata
+name: "Raikou (Sakata)"
+type: summon
+# `summon` plus what she is. `spirit` and `hominidae` are CLOSED from
+# `servant` by `domain/attributes.mjs`; a copy is not a Servant and does not
+# get them.
+attributes: [summon, female, sky, humanoid]
+range: { panels: 1, targets: 1 }
+# The copies have no Base Attack of their own on the sheet; they swing with
+# hers. `component: str` is her Normal Attack (R8), and the ELEMENT is one of
+# the three fields that make this copy different from its sisters.
+baseAttack: { str: 150, mag: 0 }
+normalAttack: { mode: fixed, component: str, element: lightning, elementFraction: 0.5 }
+# Nothing here is a number of its own: every one is read off Raikou at
+# placement, because "the same Max Agility, Max Luck and MOV as Raikou" are not
+# numbers a sheet can carry.
+baseHealth: null
+inherit:
+  agility: { from: summoner }
+  luck: { from: summoner }
+  mov: { from: summoner }
+  # "...but Max Health is halved." 1250 -> 625. MAX, not current: a wounded
+  # Raikou still spawns copies at half of her maximum, because the sheet halves
+  # her Max Health and says nothing about her wounds.
+  health: { from: summoner, factor: 0.5 }
+  # "(Passive effects are still present.)" Her passives arrive as ability
+  # DOCUMENTS with their Actives stripped, so each rule keeps its owning
+  # ability's rank -- Divinity C is +30 on a copy, not the table's fallback.
+  #
+  # The two named Skills are named because the sheet names them. The Actives go
+  # by construction.
+  passives:
+    from: summoner
+    excludeAbilities: [class-mad-enhancement, class-riding]
+# "Raikou's copies do not count towards the number of Units that Move and/or
+# Attack during your Turn. The same copy can only Move/Attack once per Turn."
+# Two different rules, and the second is why this is not simply "free": exempt
+# from the POOL, still capped per Unit.
+countsTowardBudget: false
+actsOncePerTurn: true
+passiveRules:
+  # "...and can only perform Normal Attacks." A grant, so the Skill and NP
+  # buttons are withheld rather than refused on click -- which matters
+  # precisely because `inherit.passives` hands the copy real ability documents.
+  - key: GrantedAbility
+    abilities: [normalAttacksOnly]
+
+  # "Also, Raikou's Crit Chance is increased by 30%; while the Crit Chance of
+  # the Raikou copies are increased by 15%." THEIRS, so it lives on them: an
+  # aura from the Noble Phantasm would have to name four units whose document
+  # ids no content file can know.
+  - key: CheckModifier
+    check: crit
+    value: 15
+
+  # "Normal Attacks deal ELEMENT damage (half) with a 50% chance of inflicting
+  # RIDER for 1◈ Turns."
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: shock }, chance: 50, duration: "1◈" }
+
+  # "Enemy Units cannot Attack Raikou or her Master if any Raikou copies are
+  # next to them." Bašmu's element addressed to two units instead of every ally
+  # -- `recipientRoles` resolves both against this summon's own summoner,
+  # exactly as Ozymandias's Sphinxes do.
+  - key: TargetabilityModifier
+    radius: 1
+    relations: [ally, self]
+    recipientRoles: [summoner, summonerMaster]
+
+  # "Cooldown: 7◈+⅓◈ Turns after this NP is deactivated / AFTER THE LAST RAIKOU
+  # COPY IS DEFEATED." The last copy dying ENDS the Noble Phantasm -- which is
+  # not the same as the NP merely having no copies left -- and that is what
+  # starts the clock. Fired from the copy, because the copy is the unit that
+  # died, and `subject: summoner` is the hop back.
+  - key: OnEvent
+    event: unitDefeated
+    automatic: true
+    predicate: ["self:lastOfSummonGroup"]
+    then:
+      - { key: SetMode, subject: summoner, ability: tenmokaikai, active: false }
+notes: |
+  Spawned by Goō Shōrai・Tenmōkaikai on the panel BEHIND her (R4: facing-relative, displaced
+  outward along the same axis when the panel is blocked). Disappears when the Noble Phantasm
+  ends; the last copy to die ends it, and starts its 7◈+⅓◈ cooldown.

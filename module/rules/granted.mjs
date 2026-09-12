@@ -45,6 +45,21 @@ export const GRANTS = Object.freeze({
   noNormalAttack: "noNormalAttack",
 
   /**
+   * Raikou's copies: *"can only perform Normal Attacks."*
+   *
+   * The inverse of `noNormalAttack` above, and a grant for the same reason his
+   * is one rather than an empty ability list: the copies INHERIT her passives
+   * as real ability documents (`inherit.passives`), several of which have
+   * Actives on her sheet. Withholding the buttons is what the sheet says;
+   * refusing them on click would be offering something the rules have already
+   * taken away.
+   *
+   * Read by `rules/ability-use.mjs#canUseAbility`, which is the one gate every
+   * Skill and Noble Phantasm passes through.
+   */
+  normalAttacksOnly: "normalAttacksOnly",
+
+  /**
    * Pale Rider and the Kagome Spirits: *"cannot Evade, Block, or Counter."*
    *
    * The defender's rung of the ladder (Ch. 27) still happens -- the Process

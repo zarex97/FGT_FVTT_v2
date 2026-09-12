@@ -288,6 +288,13 @@ function add(options, side, unit) {
   // and `inField` cannot answer it.
   for (const f of unit.ownedFields ?? []) options.add(`${side}:fieldActive:${f}`);
 
+  // The LAST summon of its summoner's group still standing. Raikou's copies:
+  // the one that dies last is what ends Tenmōkaikai and starts its cooldown,
+  // and it has to know that about itself because the handler fires from the
+  // unit that died. Annotated by `snapshotBoard`, like ZON and the auras,
+  // because it is a fact about everybody else's existence.
+  if (unit.lastOfSummonGroup) options.add(`${side}:lastOfSummonGroup`);
+
   // How close this Servant stands to its OWN Master. Distinct from
   // `withinOfOwnerMaster` below, which measures to the Master of whoever owns
   // the FIELD the unit is standing in and is absent on open ground.

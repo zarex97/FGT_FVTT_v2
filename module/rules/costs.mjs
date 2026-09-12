@@ -14,6 +14,7 @@
  * problem is actionable and a refusal that names four is a wall of text.
  */
 
+import { hasGranted, GRANTS } from "./granted.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -127,6 +128,18 @@ export function canUseAbility({
   // sites all spread `engine/board.mjs#gateContext`, which supplies it.
   if (clockRunning === false) {
     return { ok: false, reason: "noMatch", detail: {}, cost };
+  }
+
+  // *"The clones ... can only perform Normal Attacks."* Raikou's copies inherit
+  // her passives as real ability documents, several of which have Actives on
+  // her own sheet, so the refusal has to be here and not in the authoring: the
+  // documents exist on the copy and would otherwise be pressable.
+  //
+  // The mirror of `noNormalAttack` (Pale Rider), and in the same spirit --
+  // `rules/actions.mjs` withholds the button and this refuses the use, so a
+  // player is never offered something the rules have already taken away.
+  if (hasGranted(unit, GRANTS.normalAttacksOnly)) {
+    return { ok: false, reason: "normalAttacksOnly", detail: {}, cost };
   }
 
   // Spent for the rest of the game, and ABOVE the cooldown gate rather than

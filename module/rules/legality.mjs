@@ -51,6 +51,9 @@ export const REFUSALS = Object.freeze({
   crossLevelMelee: { kind: "hard", i18n: "FGT.Legality.crossLevelMelee", params: [] },
   noTargets: { kind: "hard", i18n: "FGT.Legality.noTargets", params: [] },
   cooldown: { kind: "hard", i18n: "FGT.Legality.cooldown", params: ["remaining"] },
+  // Raikou's copies: *"can only perform Normal Attacks."* Hard -- no Command
+  // Spell in the catalogue buys a summon a Skill it was never given.
+  normalAttacksOnly: { kind: "hard", i18n: "FGT.Legality.normalAttacksOnly", params: [] },
   round: { kind: "hard", i18n: "FGT.Legality.round", params: ["requiresRound", "round"] },
   // Legal, and the worst thing on the board. ALL factions lose if it breaks.
   grailAtRisk: { kind: "confirm", i18n: "FGT.Legality.grailAtRisk", params: ["chance"] },

@@ -208,9 +208,81 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     // that is the only moment they are both known and fixed.
     for (const [stat, rule] of Object.entries(data.system.inherit ?? {})) {
       if (rule?.from !== "summoner") continue;
-      const base = summoner.system?.[stat]?.max ?? summoner.system?.[stat]?.value ?? 0;
-      const value = Math.max(0, base + (rule.delta ?? 0));
-      data.system[stat] = { value, max: value };
+      if (stat === "passives") continue;   // not a stat -- handled below
+
+      const raw = summoner.system?.[stat];
+      // A RESOURCE (`{value, max}`) or a plain number. `health`, `agility` and
+      // `luck` are resources; `mov` is a bare integer, and writing `{value,
+      // max}` into it would hand the schema an object where it wants a number
+      // and silently leave the summon on MOV 0.
+      const scalar = typeof raw === "number";
+      const base = scalar ? raw : (raw?.max ?? raw?.value ?? 0);
+
+      // A FACTOR beside the existing delta. Raikou's copies are *"the same Max
+      // Agility, Max Luck and MOV as Raikou, but Max Health is halved"* -- 1250
+      // to 625. Read off `.max`, not `.value`, so a wounded Raikou still spawns
+      // copies at half of her MAXIMUM: the sheet halves her Max Health and says
+      // nothing about her wounds.
+      //
+      // Rounded DOWN, and applied before the delta, so `{factor, delta}`
+      // together read as "half, then plus two" rather than the reverse.
+      const scaled = Math.floor(base * (rule.factor ?? 1));
+      const value = Math.max(0, scaled + (rule.delta ?? 0));
+
+      data.system[stat] = scalar ? value : { value, max: value };
+    }
+
+    // *"(Passive effects are still present.)"* Raikou's copies carry HER
+    // passive rule elements -- Divinity's +30, both Mystery Slayer passives,
+    // Magic Resistance, Mana Burst's Shock immunity and Lightning halving --
+    // without carrying her Skills.
+    //
+    // Copied as ABILITY DOCUMENTS with their Actives stripped, not as loose
+    // rule elements onto the summon's own `passiveRules`. The reason is
+    // `rank`: a unit-level `passiveRules` block is collected as ONE
+    // pseudo-ability with `rank: null` (`rules/snapshot.mjs#contributionsOf`),
+    // and every table-driven magnitude Raikou owns is resolved against its
+    // OWNING ability's rank -- Divinity C, Magic Resistance D. Flattened, her
+    // Divinity's `table: divinity` would have looked up a null rank and handed
+    // the copies the table's fallback instead of +30.
+    //
+    // It also means the copy's sheet SHOWS what it inherited, which is what
+    // makes the clause checkable on a live board rather than only in a test.
+    //
+    // `excludeAbilities` is the sheet's own list: *"unable to use Mad
+    // Enhancement, Riding and the Active effects of Raikou's Skills"*. The
+    // Actives go by construction -- `activeRules`, `phases`, `timing` and the
+    // cooldown are dropped from every copy -- and the two named Skills have to
+    // be named, because Riding's grants live in `passiveRules` and would
+    // otherwise hand a copy Double Move and a Riding Attack.
+    const passiveSpec = data.system.inherit?.passives;
+    if (passiveSpec?.from === "summoner") {
+      const exclude = new Set(passiveSpec.excludeAbilities ?? []);
+      data.items = [
+        ...(data.items ?? []),
+        ...[...(summoner.items ?? [])]
+          .filter((i) => i.type === "ability")
+          .filter((i) => !exclude.has(i.system?.contentId ?? i.id))
+          .filter((i) => (i.system?.passiveRules ?? []).length > 0)
+          .map((i) => {
+            const copy = i.toObject();
+            copy.system = {
+              ...copy.system,
+              activeRules: [],
+              phases: [],
+              timing: null,
+              cooldown: null,
+              isMode: false,
+              active: false,
+              // It is a passive on the copy whatever it was on her, so the
+              // sheet does not offer a button the grant would refuse anyway.
+              passive: true,
+              inheritedFrom: summoner.id,
+            };
+            delete copy._id;
+            return copy;
+          }),
+      ];
     }
 
     // Whatever the caller needs stamped on every summon it is placing --

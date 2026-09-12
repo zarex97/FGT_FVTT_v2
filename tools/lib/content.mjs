@@ -992,12 +992,21 @@ function unitKeyCoverage(doc, path, problems) {
  * @param {string} [dir] the source directory, which selects the requirement vocabulary
  */
 function validateDocument(doc, path, library, problems, warnings, dir = "") {
+  // Predicates are checked on BOTH branches. An Actor carries rule elements
+  // too -- Bašmu's Normal Attack rider, the Kagome Spirits' Light/Dark banish,
+  // the Sphinxes' targetability aura, Nemo's unnamed `Slow`, every one of
+  // Raikou's four copies -- and this dispatch ran the check only on the Item
+  // branch, so an actor-level predicate naming an option no facet admits was
+  // authored, compiled, loaded and permanently false with nothing to say so.
+  // Found authoring Raikou's copies: `self:lastOfSummonGroup` passed a clean
+  // build before the facet that admits it existed.
+  predicateOptionsExist(doc, path, problems);
+
   if (PACKS[dir]?.documentType === "Actor") {
     unitKeyCoverage(doc, path, problems);
     baseAttackAgreesWithTable(doc, path, warnings);
   } else {
     activeRulesAreReachable(doc, path, problems);
-    predicateOptionsExist(doc, path, problems);
     // Scoped by itemType: command spells carry `timing.window` too, from a
     // vocabulary of their own.
     if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);

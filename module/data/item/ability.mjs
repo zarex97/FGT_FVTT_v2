@@ -238,6 +238,15 @@ function abilityCommon() {
     copiedFrom: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
     // The grant that produced it, and the set every copy from one grant shares.
     grantedBy: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // Set on a copy a SUMMON inherited from its summoner (`inherit.passives`).
+    // Raikou's clones are *"unable to use Mad Enhancement, Riding and the
+    // Active effects of Raikou's Skills (Passive effects are still present)"*,
+    // and the copies arrive as documents with their Actives stripped so each
+    // rule keeps its owning ability's RANK -- a flattened `passiveRules` block
+    // collects at `rank: null` and would resolve Divinity C to the table's
+    // fallback. Documentary: it is what lets the copy's sheet say where the
+    // row came from.
+    inheritedFrom: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
     exclusionSet: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
 
     // What KIND of ability this is, and whether it is always on. Both are read
