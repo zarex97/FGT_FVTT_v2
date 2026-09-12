@@ -4065,7 +4065,7 @@ Nothing on her sheet is now unwitnessed.
 
 ---
 
-### Kiritsugu — the live pass, and twenty-one defects, sixteen in shipped machinery
+### Kiritsugu — the live pass, and twenty-three defects, eighteen in shipped machinery
 
 Eleven sheet entries, and **three of them cost nothing but a `ref:` line**. Presence Concealment
 A+ and Independent Action A between them supply eight numbers his sheet states — 5% discovery,
@@ -4078,7 +4078,7 @@ What was **not** built is reactivity. His signature skill fires a Normal Attack 
 else's Turn, triggered by a **third party** being attacked, and lets him cast a Spell inside the
 trigger. Nothing in the corpus had that shape: `AutoCounter` fires on its own bearer.
 
-The pass found **twenty-one defects**, sixteen of them in machinery that shipped before he
+The pass found **twenty-three defects**, eighteen of them in machinery that shipped before he
 existed. Five were mine. The count is high because his sheet is the first to press on the
 *reaction* path end to end, and almost nothing on that path had ever been driven by a player.
 
@@ -4185,5 +4185,42 @@ their fixtures from the content files through the real collectors, and the third
 | Chronos Rose | the **defender's** Rule Breaker goes **0 → 3** ticks (1◈); his own Chronos Rose stays at 0 |
 | Mystery Bisection's mark (R4) | the victim's own sheet reads **BA (STR) 50 → 30** and **BA (MAG) 210 → 110** — both components, on a MAG attacker, halved after the Region's +1 per parameter |
 
+| Penetration | against the same `invuln` that negated the attack outright: `base:str=75` + `attack+=26` = 101, then **`invuln = −50.5 [Invuln (halved)]`** → **50**. Exactly half removed, exactly half surviving, and `negatedBy` stays **null** because nothing was negated |
+| Mystery Bisection | 30 uses: **12 Instakills (40%)** against an authored 35%, and **30 marks** — the debuff lands on every use, including all twelve that killed |
+| …and its gate | against `antiPurge`, which halts the pipeline at stage 0: 8 uses, `total: 0`, `negatedBy: "Anti-Purge"`, **0 Instakills and 0 marks** — where ~3 Instakills would be expected if *"if damage was dealt"* were not honoured |
+| …and its arithmetic | the marked Demi-Servant's Base Attack **170/185 → 85/92**: both components, halved after the Region's +1 per parameter, floored |
+
 Nothing on his sheet is unwitnessed.
+
+#### Two more the last two clauses turned up
+
+##### 22. The action bar measured every Noble Phantasm against Round 1
+
+`canUseAbility` defaults `round` to 1, and `module/apps/hud/action-bar.mjs` was the **one caller
+in the codebase** that never passed it — `context.mjs`, three sites in `attack.mjs` and
+`skill-use.mjs` all do.
+
+So the bar computed §7.9's Noble Phantasm gate against Round 1 for the whole match. Kiritsugu's
+read *"Ready from Round 6 (5 away)"* while the combat **was** in Round 6: the right gate, a
+distance that could never decrease, and a button greyed out permanently — while his **sheet**
+showed the same Noble Phantasm as available. Two surfaces, one ability, opposite answers.
+
+`round` now rides `gateContext()` beside `turn` and `clockRunning`, which are the same kind of
+ambient clock fact and already travel that way, so the omission cannot recur.
+
+##### 23. A disarmed Counter rung kept the bar
+
+`armForCounter` rebinds `bar.token` to whoever is being offered the Counter; `disarmCounter`
+cleared the rung and left the token bound there. The bar went on showing that Unit's whole kit
+regardless of who the player selected, until some later `controlToken` happened to fire. Found
+with Kiritsugu selected and the defending Caster's abilities on his bar.
+
+#### A note on Invuln and Noble Phantasms
+
+Worth recording because it surprised me mid-test: `Invuln` does **not** zero a Noble Phantasm.
+The stage-16 branch is guarded by `if (!s.isNP)` — an NP was already halved at stage 15, and
+what remains at 16 is negation for everything else. So Mystery Bisection against an `invuln`
+defender deals **131**, not 0, and its riders legitimately apply. Getting a genuinely
+zero-damage NP for the gate test needed `antiPurge`, which halts at stage 0 — *"damage AND
+effects"*, which is exactly the distinction Appendix A draws between the two.
 

@@ -1053,3 +1053,36 @@ describe("An OnEvent's interior actions are `kind` once normalized", () => {
     for (const action of h.actions) expect(action.kind).toBeTruthy();
   });
 });
+
+describe("Mystery Bisection — 'if damage was dealt' is inherited, not authored", () => {
+  const a = src("abilities", "kiritsugu-mystery-bisection.yml");
+
+  it("puts both riders AFTER the damage", () => {
+    // The opposite of Scáthach's Gáe Bolg Alternative, which rolls first and
+    // lets a success SUPPRESS the damage. Here the damage is the precondition.
+    const phase = a.phases.find((p) => (p.effects ?? []).some((x) => x.id === "instakill"));
+    expect(phase.when).toBe("afterDamage");
+    expect(phase.effects.map((e) => e.id)).toEqual(["instakill", "kiritsuguMark"]);
+  });
+
+  it("relies on the rider gate rather than restating it", () => {
+    // `applyAbilityEffects` already refuses every rider on a negated attack --
+    // "Nothing rides on an attack that dealt nothing" -- so the clause needs no
+    // `requiresDamage` of its own, and authoring one would be a second place
+    // for the same rule to be wrong.
+    //
+    // Measured live: against `antiPurge`, which halts the pipeline at stage 0,
+    // eight uses produced 0 Instakills and 0 marks where ~3 Instakills would be
+    // expected at 35%. Against an ordinary target, 30 uses produced 12
+    // Instakills (40%) and 30 marks.
+    const phase = a.phases.find((p) => (p.effects ?? []).some((x) => x.id === "instakill"));
+    expect(phase.requiresDamage).toBeUndefined();
+  });
+
+  it("does not let a successful Instakill suppress the mark", () => {
+    // Both riders sit in one `afterDamage` phase with no `skipIf` between them,
+    // so a landed Instakill does not stop the debuff. Measured: the mark landed
+    // on all 30 uses, including all 12 that killed.
+    expect(a.damage.skipIf).toBeUndefined();
+  });
+});
