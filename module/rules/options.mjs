@@ -288,6 +288,23 @@ function add(options, side, unit) {
   // and `inField` cannot answer it.
   for (const f of unit.ownedFields ?? []) options.add(`${side}:fieldActive:${f}`);
 
+  // How close this Servant stands to its OWN Master. Distinct from
+  // `withinOfOwnerMaster` below, which measures to the Master of whoever owns
+  // the FIELD the unit is standing in and is absent on open ground.
+  //
+  // Raikou's Mad Enhancement is the first clause to ask: *"when Raikou's
+  // Master is within a 2 panel area of herself, her Mad Enhancement is
+  // constantly Active and cannot be deactivated."*
+  //
+  // A LADDER, like `attack:range:gte`, and capped at 6 for the same reason
+  // the neighbour below is: a predicate can only test set membership, so
+  // "within 3" has to already be a member for a Master standing 2 away.
+  if (typeof unit.masterDistance === "number") {
+    for (let n = Math.max(1, unit.masterDistance); n <= 6; n++) {
+      options.add(`${side}:withinOfMaster:${n}`);
+    }
+  }
+
   // How close this unit is standing to the MASTER of whoever owns the field it
   // is in. Contagion under Doomsday: *"if the enemy Unit is within a 3 panel
   // area of Pale Rider's Master, Health is reduced by 150 instead of 100"* --

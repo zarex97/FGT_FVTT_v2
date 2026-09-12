@@ -719,7 +719,7 @@ Three reasons, in order of importance:
 ### The facet vocabulary — **built 2026-09-10**
 
 A predicate option is not a string. It is `subject : facet : value`, and
-`module/rules/facets.mjs` describes each of the **39 facets** the engine can emit: its subjects,
+`module/rules/facets.mjs` describes each of the **40 facets** the engine can emit: its subjects,
 its segments, where each value comes from, and one sentence of prose.
 
 **The table is the authority; `options.mjs#EMITTABLE` is generated from it.** That is a departure
@@ -768,6 +768,29 @@ they are a closed table in code, and a type the table lacks can never appear. So
 `tools/lib/content.mjs` carries a **targeted error** for this one facet — `terrainTypesExist`,
 beside `predicateOptionsExist` — and `self:terrain:watersyde` fails the build instead of
 emitting nothing, matching nothing, and silently making its clause permanently false.
+
+#### `self:withinOfMaster:<n>` — the 40th facet, and the neighbour it was mistaken for
+
+Raikou's Mad Enhancement is *"constantly Active while her Master is within a 2 panel area of
+herself"*, and the vocabulary appeared to have that already: `withinOfOwnerMaster:<n>` had been
+there since Pale Rider's Contagion, and both its hint and its `lang/en.json` string read *"is
+within a number of panels of its own Master."*
+
+**It does not mean that.** It measures to the Master of whoever **owns the bounded field the
+unit is standing in** — `annotateFields` stamps `ownerMasterPanel`, so the option is absent
+entirely on open ground. Contagion asks it of an enemy standing *inside* Doomsday Come: *"if the
+enemy Unit is within a 3 panel area of Pale Rider's Master."* A Servant's distance to her own
+Master was unsayable, and the facet that looked like it said so was mis-described in two places.
+
+Both are now named for what they do, and the two English sentences no longer collide.
+
+`withinOfMaster` is annotated in `rules/zon.mjs#annotateZon` — which already resolves the pair
+through `masterOf` — rather than read off the `zonDistance` it stamps beside it. The three cases
+where the two disagree are exactly the ones that matter: `zonStatus` returns nothing for a Free
+Servant, for a Servant whose Master is off the board, and for a `zonExempt` one (Semiramis
+aboard the Hanging Gardens), and in that last case the distance still exists. A ladder capped at
+6, for the reason every ladder in this vocabulary is one: a predicate can only test set
+membership, so "within 3" has to already be a member for a Master standing 2 away.
 
 #### The guard, and where it used to stop
 
