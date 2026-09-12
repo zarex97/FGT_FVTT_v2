@@ -21,6 +21,7 @@ import { TABLES, lookup } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS } from "../../module/rules/targeting/vocabulary.mjs";
 import { MODIFIER_KEYS } from "../../module/rules/damage/pipeline.mjs";
+import { ROUTES as AURA_ROUTES } from "../../module/rules/auras.mjs";
 import { TERRAIN } from "../../module/rules/terrain.mjs";
 // The list `meetsRequirement` itself exports, not a second copy of it. A
 // hand-maintained duplicate is what `RULE_ELEMENT_KEYS` has to be held
@@ -1163,10 +1164,21 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // A `DamageModifier`'s bucket. The pipeline reads a CLOSED set of keys, so
     // one outside it is collected onto the Unit and never consulted -- a
     // percentage that authors cleanly and does nothing.
-    if (el.modifierKey && !MODIFIER_KEYS.includes(el.modifierKey)) {
+    //
+    // The pipeline is not the ONLY reader, though, and this check used to
+    // assume it was. `rules/auras.mjs#ROUTES` is the registry of aura keys
+    // whose consumer is somewhere else -- `ApplicationChance` on the effect
+    // applier, `Compulsion` on the board pass, `checkModifier` on
+    // `checks.mjs#checkPlan` -- so a key it routes IS read, just not here.
+    // Unioned rather than special-cased, so a future route is accepted by
+    // being registered rather than by editing this list.
+    if (el.modifierKey
+      && !MODIFIER_KEYS.includes(el.modifierKey)
+      && !Object.hasOwn(AURA_ROUTES, el.modifierKey)) {
       problems.push(
         `${path}: ${where} uses unknown modifierKey "${el.modifierKey}" — `
-        + `the damage pipeline reads only ${MODIFIER_KEYS.join(", ")}`,
+        + `nothing reads it. The damage pipeline reads ${MODIFIER_KEYS.join(", ")}; `
+        + `rules/auras.mjs routes ${Object.keys(AURA_ROUTES).join(", ")}`,
       );
     }
     // Predicate options are checked document-wide by `predicateOptionsExist`,

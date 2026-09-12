@@ -1,0 +1,72 @@
+# Kiritsugu, char_orig_sheets/Copia de Kiritsugu.md
+#
+# The passive is three clauses that all hinge on ONE question -- is he under
+# Skill Seal? -- and the spec's R2 answers it: Skill Seal is a HARD COUNTER,
+# not a trade. Under it the rank shift stops, the aura stops, his Skills stay
+# sealed, and he additionally takes +20 to his own Luck Checks.
+#
+# THE SIGN IS THE CLAUSE. `checks.mjs#resolveCheck` succeeds on
+# `total <= target`, so a POSITIVE CheckModifier makes a check HARDER. "Luck
+# Check rolls are increased by 4" is therefore a penalty on everyone standing
+# near him, allies included -- the Grail's affection is not a blessing he
+# shares, it is something that spills out of him and lands on whoever is close.
+schema: 1
+id: kiritsugu-affection-of-the-holy-grail
+name: "Affection of the Holy Grail"
+rank: "A+"
+kind: skill
+slug: affectionOfTheHolyGrail
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Passive) Kiritsugu's Luck is increased from Rank E to Rank EX; the Luck Check rolls of all
+  Units within a 2 panel area of Kiritsugu are increased by 4 except himself.
+  If Kiritsugu is inflicted with @effect[skillSeal]{Skill Seal}, instead of reducing his Max Luck,
+  all of his Luck Check rolls are increased by 20; and the original effect is negated. These
+  effects only last for the duration of Skill Seal.
+  Cooldown: 4◈-⅓◈ Turns.
+passiveRules:
+  # "Kiritsugu's Luck is increased from Rank E to Rank EX."
+  #
+  # `to:`, not `steps:` -- the sheet names the DESTINATION rank, and walking the
+  # dense +/- ladder from E would land on E+ rather than EX.
+  - key: RankShift
+    parameter: luc
+    to: EX
+    predicate:
+      - { not: "self:effect:skillSeal" }
+
+  # "the Luck Check rolls of all Units within a 2 panel area ... except himself"
+  #
+  # `relations: [ally, enemy]` is the whole of "all Units", and `self` is
+  # OMITTED rather than excluded -- the addressing `rules/auras.mjs` documents
+  # in its own header, naming this skill.
+  #
+  # `modifierKey: checkModifier` is what routes this to `unit.checkModifiers`,
+  # where `checkPlan` reads it. Without that route it lands in `modifiers` and
+  # is read by nobody.
+  - key: Aura
+    modifierKey: checkModifier
+    check: luck
+    radius: 2
+    relations: [ally, enemy]
+    value: 4
+    stacking: highestOnly
+    predicate:
+      - { not: "self:effect:skillSeal" }
+
+  # "all of his Luck Check rolls are increased by 20"
+  #
+  # A SUBSTITUTE PENALTY, not compensation (spec R2). +20 against a Luck pool
+  # that tops out in the low twenties is close to guaranteed failure, which is
+  # what makes Skill Seal the designed answer to him.
+  #
+  # Nothing here Suppresses the skill/spell prevention `rules/budget.mjs`
+  # applies: under R2 his Skills stay sealed, and "the original effect is
+  # negated" is read against the aura above.
+  - key: CheckModifier
+    check: luck
+    value: 20
+    predicate:
+      - "self:effect:skillSeal"
