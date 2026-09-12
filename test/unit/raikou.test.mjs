@@ -1656,3 +1656,73 @@ describe("a Command Spell whose effect has a duration knows what time it is", ()
     expect(stamp(0, 3)).toBeLessThan(4);
   });
 });
+
+describe("the upkeep predicate must be DEFERRED, not answered at collection", () => {
+  /**
+   * Found live. `collectContributions` answers an element's `predicate` at
+   * COLLECTION time, and `selfOrSummonsActed` is annotated by `snapshotBoard`
+   * **after** `contributionsOf` has run for each unit — so the option is never
+   * in the collection-time set, and the handler was dropped every single time.
+   * Measured on a live board: with the Noble Phantasm active and a copy having
+   * acted, her `eventHandlers` held the Shock rider and the defeat handler and
+   * no upkeep at all.
+   *
+   * `defer: true` makes the predicate travel with the handler, where
+   * `normalizeHandler` merges it into `targetPredicate` and `fireEvent` tests
+   * it when the event fires — the only moment the answer exists.
+   */
+  it("marks the turn-end upkeep deferred", () => {
+    const A = ability("raikou-tenmokaikai");
+    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "turnEnd");
+    expect(upkeep.defer).toBe(true);
+    expect(upkeep.predicate).toEqual(["self:selfOrSummonsActed"]);
+  });
+
+  it("puts a deferred predicate where fireEvent will look for it", () => {
+    const out = collectContributions([{
+      id: "np",
+      active: true,
+      activeRules: [{
+        key: "OnEvent", event: "turnEnd", automatic: true,
+        defer: true, predicate: ["self:selfOrSummonsActed"], then: [],
+      }],
+    }], {});
+    // `normalizeHandler` merges a deferred predicate into `targetPredicate`,
+    // which is the field `fireEvent` re-tests at fire time.
+    expect(out.eventHandlers[0].targetPredicate).toEqual(["self:selfOrSummonsActed"]);
+  });
+
+  it("charges the Master ONCE however many copies acted", () => {
+    // Verified live: three copies acted, Raikou did not, and the Master lost
+    // exactly -25. A handler per copy would have produced -75.
+    const units = [
+      { id: "r", kind: "servant", acted: false },
+      { id: "c1", kind: "summon", summonerId: "r", acted: true },
+      { id: "c2", kind: "summon", summonerId: "r", acted: true },
+      { id: "c3", kind: "summon", summonerId: "r", acted: true },
+    ];
+    annotateSummonsActed(units);
+    expect(units.filter((u) => u.selfOrSummonsActed)).toHaveLength(1);
+    expect(units[0].selfOrSummonsActed).toBe(true);
+  });
+});
+
+describe("a fixed roster of summons", () => {
+  /**
+   * Found live: Tenmōkaikai reported **"0 summoned"**. `summonPhase` knew only
+   * the ROLLED shape — `countRoll`, `typeRoll`, `types` — because every summon
+   * before Raikou was rolled (Medea's 1d6 Warriors of 1d4 types, Bašmu's Dragon
+   * Wing Warriors) or singular (the Sphinxes, one Kagome per enemy). A fixed
+   * list was silently ignored: `countRoll ?? "1"` rolled 1, `typeRoll ?? "1"`
+   * rolled 1, `types[1]` was undefined, and nothing appeared.
+   */
+  it("names its four copies rather than rolling for them", () => {
+    const phase = ability("raikou-tenmokaikai").phases.find((p) => p.kind === "summon");
+    expect(phase.spec.contentIds).toHaveLength(4);
+    // Nothing to roll: the four differ in Range, element and rider, and the
+    // ORDER pairs with the placement's own order.
+    expect(phase.spec.countRoll).toBeUndefined();
+    expect(phase.spec.typeRoll).toBeUndefined();
+    expect(phase.spec.types).toBeUndefined();
+  });
+});

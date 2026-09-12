@@ -119,6 +119,18 @@ activeRules:
   - key: OnEvent
     event: turnEnd
     automatic: true
+    # DEFERRED, and it has to be. `collectContributions` answers an element's
+    # `predicate` at COLLECTION time, and `selfOrSummonsActed` is annotated by
+    # `snapshotBoard` AFTER `contributionsOf` has run for each unit -- so the
+    # option is never in the collection-time set and the handler was dropped
+    # every single time. Measured live: her upkeep handler was simply absent
+    # from the snapshot while the Noble Phantasm was active.
+    #
+    # `defer` makes the predicate travel with the handler, where
+    # `normalizeHandler` merges it into `targetPredicate` and `fireEvent` tests
+    # it when the event actually fires -- which is the only moment the answer
+    # exists.
+    defer: true
     predicate: ["self:selfOrSummonsActed"]
     then:
       # ORDERED THE OTHER WAY ROUND FROM MAD ENHANCEMENT, and the sheet is why.

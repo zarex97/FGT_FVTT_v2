@@ -25,6 +25,7 @@ import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
+import { rollOptionsFor } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
@@ -242,12 +243,29 @@ export function fireEvent(event, units, ctx) {
       // on an event that never measured it.
       if (handler.requiresDamagedThisPhase && !(ctx.damagedIds ?? []).includes(u.id)) continue;
 
-      // A condition on somebody OTHER than the owner, evaluated now because
-      // the event carries them. Scáthach's Alpi pays double against an Undead
-      // or Divine Defending Unit, and the Defending Unit does not exist when
-      // the contribution is collected.
-      if (handler.targetPredicate
-        && !testPredicate(handler.targetPredicate, { options: ctx.options ?? new Set() })) continue;
+      // A condition evaluated NOW rather than at collection: on somebody other
+      // than the owner (Scáthach's Alpi pays double against an Undead or Divine
+      // Defending Unit, who does not exist when the contribution is collected),
+      // or on the owner itself when the element deferred its own predicate --
+      // `normalizeHandler` merges the two into this one field.
+      //
+      // The option set is the caller's PLUS the owner's own. A Turn boundary
+      // passes no options at all (`scheduler-hooks.mjs` builds a ctx with none),
+      // so a handler asking anything about its own bearer was tested against an
+      // empty set and silently never fired. Raikou's Tenmōkaikai upkeep is the
+      // clause that found it: *"at the end of any Turn Raikou or any of her
+      // copies Acts"* is a question about her, asked at `turnEnd`, and there was
+      // nowhere for the answer to come from.
+      //
+      // Built per handler rather than per unit because most handlers carry no
+      // predicate at all, and `rollOptionsFor` is not free.
+      if (handler.targetPredicate) {
+        const options = new Set([
+          ...(ctx.options ?? []),
+          ...rollOptionsFor({ attacker: u, defender: null }),
+        ]);
+        if (!testPredicate(handler.targetPredicate, { options })) continue;
+      }
 
       // The event's SUBJECT, for events that have one. `abilityUsed` fires for
       // every ability; a handler that names a category only wants to hear
