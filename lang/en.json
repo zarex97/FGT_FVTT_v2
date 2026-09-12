@@ -1026,6 +1026,8 @@
   "FGT.Authoring.Phase.createFieldHint": "Opens the bounded field this ability declares, once, from the caster.",
   "FGT.Authoring.Phase.statChange": "Stat Change",
   "FGT.Authoring.Phase.statChangeHint": "Changes a stat directly, rather than through an effect.",
+  "FGT.Authoring.Phase.setMode": "Set Mode",
+  "FGT.Authoring.Phase.setModeHint": "Switches a mode on or off - one ability ending another.",
   "FGT.Authoring.Phase.removeEffect": "Remove Effect",
   "FGT.Authoring.Phase.removeEffectHint": "Strips effects off whoever this ability caught.",
   "FGT.Authoring.Phase.heal": "Heal",

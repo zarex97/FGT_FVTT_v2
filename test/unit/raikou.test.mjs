@@ -1574,9 +1574,21 @@ describe("Goō Shōriki・Dohatsu Tenshou", () => {
     // matters, because ending the clone NP mid-resolution would strip its +50%
     // and its Shock rider from instances that have not resolved yet, and this
     // ability is five instances long.
-    const end = A.phases.find((p) => p.when === "combatPhaseEnd");
-    expect(end.predicate).toEqual(["self:skillActive:tenmokaikai"]);
-    expect(end.changes[0]).toEqual({ key: "SetMode", ability: "tenmokaikai", active: false });
+    // This assertion used to read `when: "combatPhaseEnd"` on a `statChange`
+    // phase carrying a `SetMode` change, and it PASSED -- while the clause did
+    // nothing at all. Both halves were dead: the phase runner knows only
+    // `beforeDamage` and `afterDamage` (`combatPhaseEnd` is an EVENT), and
+    // `statChanges` knows `stat`/`delta`/`percentOfMax` and silently skips
+    // anything else. A test that checks authored shape rather than behaviour
+    // is worth exactly this much, which is why the live pass exists.
+    const end = A.phases.find((p) => p.kind === "setMode");
+    expect(end.ability).toBe("tenmokaikai");
+    expect(end.active).toBe(false);
+    // Gated on the FIFTH instance -- the only one of the five that emits
+    // `attack:kind:np` -- so the clone NP survives until the other four have
+    // resolved. Ending it earlier strips its +50% and Shock rider from
+    // instances that have not swung yet.
+    expect(end.predicate).toEqual(["attack:kind:np", "self:skillActive:tenmokaikai"]);
   });
 
   it("is mutually exclusive with Tenmōkaikai at the point of USE", () => {

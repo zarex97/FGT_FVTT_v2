@@ -130,11 +130,23 @@ phases:
   # wins, which matters: ending the clone Noble Phantasm mid-resolution would
   # strip its +50% and its Shock rider from instances that have not resolved
   # yet -- and this ability is five instances long.
-  - kind: statChange
-    when: combatPhaseEnd
-    predicate: ["self:skillActive:tenmokaikai"]
-    changes:
-      - { key: SetMode, ability: tenmokaikai, active: false }
+  # A `setMode` PHASE, not a `statChange` one. `statChanges` knows
+  # `stat`/`delta`/`percentOfMax` and silently skips anything else, so a
+  # `SetMode` authored there compiled, loaded and did nothing -- and `when:
+  # combatPhaseEnd` was wrong as well, because the phase runner knows only
+  # `beforeDamage` and `afterDamage`; `combatPhaseEnd` is an EVENT. Both found
+  # live: the Noble Phantasm resolved all five instances and Tenmokaikai was
+  # still running.
+  #
+  # Gated on `attack:kind:np` -- the FIFTH instance, the only one of the five
+  # that emits it -- so the clone Noble Phantasm survives until the other four
+  # have resolved. That is what "at the end of that Combat Phase" is protecting:
+  # ending it earlier would strip its +50% and its Shock rider from instances
+  # that had not swung yet.
+  - kind: setMode
+    ability: tenmokaikai
+    active: false
+    predicate: ["attack:kind:np", "self:skillActive:tenmokaikai"]
 notes: |
   **Five cards under one parent id** (Ch. 30). Four Normal Attacks, each showing Mad Enhancement
   excluded BY NAME in its breakdown while Divinity is still listed, and one Noble Phantasm

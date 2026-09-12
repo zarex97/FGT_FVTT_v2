@@ -95,6 +95,14 @@ passiveRules:
   - key: OnEvent
     event: unitDefeated
     automatic: true
+    # DEFERRED, for the same reason the Noble Phantasm's upkeep is:
+    # `collectContributions` answers an element's `predicate` at COLLECTION
+    # time, and `lastOfSummonGroup` is annotated by `snapshotBoard` AFTER
+    # `contributionsOf` has run per unit -- so the option is never in the
+    # collection-time set and this handler was dropped every time. Measured
+    # live: the flag read `true` on the last copy standing and no `SetMode`
+    # intent was produced, so killing all four left the Noble Phantasm running.
+    defer: true
     predicate: ["self:lastOfSummonGroup"]
     then:
       - { key: SetMode, subject: summoner, ability: tenmokaikai, active: false }
