@@ -3533,7 +3533,25 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   // this loop for Summoning: Bašmu's summon branch (a `summon` phase gated
   // off from the damage-spell branch's `damage`/`applyEffects` pair).
   const attackerUnit = unitFrom(boardSnapshot(), attackerDoc);
-  const casterOptions = rollOptionsFor({ attacker: attackerUnit });
+  // ...WITH THE ATTACK IN SCOPE. This built caster-only options, so a phase
+  // predicate could ask about the caster and about nothing else -- and this
+  // loop runs once per Combat Process, where the attack is precisely the thing
+  // that distinguishes one run from the next.
+  //
+  // Raikou's Dohatsu Tenshou is the clause that needed it: its `setMode` phase
+  // is gated on `attack:kind:np`, the one instance of five that emits it, so
+  // the clone Noble Phantasm survives until the other four have swung. Tested
+  // against a set with no `attack:` options at all, it could never match, and
+  // the Noble Phantasm resolved all five instances with Tenmōkaikai still
+  // running. Found live.
+  //
+  // Adding options only ever ADDS, so every phase predicate that passed before
+  // passes now.
+  const casterOptions = rollOptionsFor({
+    attacker: attackerUnit,
+    defender,
+    attack: state.attack ?? {},
+  });
 
   // Through `effectivePhases`, because a copy (§15.7) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
@@ -3558,6 +3576,27 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // Unit's Luck Check Succeeds, it receives 4x damage plus 100."*
     if (phase.kind === "check") {
       applied.push(...await runCheckPhase(phase, ability, state, defender));
+      continue;
+    }
+    // One ability ENDING ANOTHER, on the caster, once per Combat Phase.
+    //
+    // Raikou's Dohatsu Tenshou: *"If used while Goō Shōrai・Tenmōkaikai is
+    // Active, it is immediately ended at the end of that Combat Phase."* The
+    // two halves of that sentence pull against each other and the second wins:
+    // ending the clone Noble Phantasm mid-resolution would strip its +50% and
+    // its Shock rider from instances that have not resolved yet, and this
+    // ability is five instances long.
+    //
+    // So it is gated on `attack:kind:np` -- the fifth and last instance, the
+    // only one of the five that emits it. A fan-out over several defenders
+    // reaches this once per Unit, which needs no guard: `io.setMode` returns
+    // early when the mode is already in the state asked for, so the second and
+    // later calls are no-ops rather than a flicker.
+    if (phase.kind === "setMode") {
+      await applyBatch(
+        [I.setMode(state.attackerId, phase.ability, phase.active === true, `np:${ability.id}`)],
+        `np:setMode:${phase.ability}`,
+      );
       continue;
     }
     // NOT `summon` (nor `resource`/`statChange`/etc): those are "everything

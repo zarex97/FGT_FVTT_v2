@@ -89,6 +89,10 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "changes", type: "raw" },
     { key: "afterFirstUse", type: "checkbox" },
   ]),
+  entry("setMode", 50, "Switches a mode on or off - one ability ending another.", [
+    { key: "ability", type: "text" },
+    { key: "active", type: "checkbox" },
+  ]),
   entry("removeEffect", 50, "Strips effects off whoever this ability caught.", [
     { key: "effects", type: "tokenList" },
     { key: "selector", type: "raw" },

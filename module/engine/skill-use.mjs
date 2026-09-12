@@ -372,6 +372,21 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           );
           break;
 
+        // Switch a mode off (or on) as a PHASE, rather than from an event.
+        //
+        // Raikou's Dohatsu Tenshou: *"If used while Goō Shōrai・Tenmōkaikai is
+        // Active, it is immediately ended..."* -- one ability ending another,
+        // which nothing could express. `statChange` looks like the place and is
+        // not: `statChanges` knows `stat`/`delta`/`percentOfMax` and silently
+        // skips anything else, so a `SetMode` authored there compiled, loaded
+        // and did nothing. Found live, twice over -- the `when` was wrong too.
+        case "setMode":
+          await applyWorldIntents(
+            [I.setMode(target.unitId, phase.ability, phase.active === true, `phase:${ability.id}`)],
+            `skill:${ability.id}:setMode`,
+          );
+          break;
+
         case "resource":
           await applyWorldIntents(
             (phase.changes ?? []).map((c) => {
@@ -1975,7 +1990,7 @@ function zoneRadius(spec) {
 }
 
 const CASTER_PHASES = new Set([
-  "resource", "statChange", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
+  "resource", "statChange", "setMode", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
   "summonPlatform",
   // Opening a pocket dimension is something the caster does once, from where
   // he is standing, exactly as raising a platform is.
