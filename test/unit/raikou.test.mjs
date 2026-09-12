@@ -1702,8 +1702,19 @@ describe("the upkeep predicate must be DEFERRED, not answered at collection", ()
       { id: "c3", kind: "summon", summonerId: "r", acted: true },
     ];
     annotateSummonsActed(units);
-    expect(units.filter((u) => u.selfOrSummonsActed)).toHaveLength(1);
+    // SHE carries the flag because a copy acted, which is the whole point.
     expect(units[0].selfOrSummonsActed).toBe(true);
+    // The copies carry it too -- they acted -- and that is correct and
+    // harmless: the UPKEEP HANDLER lives on the Noble Phantasm, which only she
+    // has. The copies inherit `passiveRules` alone (`inherit.passives`), so
+    // there is exactly one handler on the board however many of them swung.
+    const A = ability("raikou-tenmokaikai");
+    expect(A.activeRules.filter((r) => r.key === "OnEvent" && r.event === "turnEnd")).toHaveLength(1);
+    for (const id of ["raikou-watanabe", "raikou-sakata", "raikou-urabe", "raikou-usui"]) {
+      const onTurnEnd = summon(id).passiveRules
+        .filter((r) => r.key === "OnEvent" && String(r.event).includes("urnEnd"));
+      expect(onTurnEnd).toHaveLength(0);
+    }
   });
 });
 
@@ -1724,5 +1735,26 @@ describe("a fixed roster of summons", () => {
     expect(phase.spec.countRoll).toBeUndefined();
     expect(phase.spec.typeRoll).toBeUndefined();
     expect(phase.spec.types).toBeUndefined();
+  });
+});
+
+describe("buildAttackSpec reads the attacker's effects as a collection", () => {
+  /**
+   * Found live, and it had nothing to do with Raikou: **every attack in the
+   * game threw**. A plain Heracles Normal Attack failed identically.
+   *
+   * `buildAttackSpec` receives the ACTOR DOCUMENT, whose `.effects` is
+   * Foundry's `EmbeddedCollection` — a Map subclass with no `.includes` — and
+   * the `Aim`-from-a-buff clause called `.includes("aim")` on it. It throws
+   * before any target is resolved, so it is not a clause that fails only when
+   * somebody carries `Aim`; it is the whole attack flow.
+   *
+   * Held against the source, because the call site needs a world.
+   */
+  it("does not call Array.includes on an EmbeddedCollection", () => {
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(src).not.toMatch(/\(attacker\?\.effects \?\? \[\]\)\.includes/);
+    // ...and reads the definition id the way `activeEffectIds` does.
+    expect(src).toMatch(/\[\.\.\.\(attacker\?\.effects \?\? \[\]\)\]/);
   });
 });
