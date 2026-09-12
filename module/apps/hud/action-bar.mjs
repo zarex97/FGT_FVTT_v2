@@ -403,6 +403,15 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const bar = ActionBar.instance;
     if (!bar?.counter) return;
     bar.counter = null;
+    // Give the bar back to the SELECTION. `armForCounter` above rebinds
+    // `bar.token` to whoever is being offered the Counter, and clearing the
+    // rung alone left it bound there -- so the bar went on showing that Unit's
+    // abilities no matter who the player selected, until some later
+    // `controlToken` happened to fire. Found with Kiritsugu selected and the
+    // defending Caster's whole kit on his bar.
+    const controlled = canvas.tokens?.controlled?.[0] ?? null;
+    bar.token = controlled?.actor?.isOwner ? controlled : null;
+    if (!bar.token) { if (bar.rendered) bar.close(); return; }
     if (bar.rendered) bar.render({ force: true });
   }
 
