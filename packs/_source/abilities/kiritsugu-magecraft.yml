@@ -12,8 +12,8 @@ passive: true
 slug: magecraft
 description: |
   (Passive 1) Allows the use of Thaumaturgy. Only one Thaumaturgy Spell can be used per Turn.
-  (Passive 2) Whenever a Thaumaturgy Spell is used, extend the duration of the 'Suppression'
-  buff by 1◈ Turns.
+  (Passive 2) Whenever a Thaumaturgy Spell is used, extend the duration of the
+  @effect[suppression]{Suppression} buff by 1◈ Turns.
 passiveRules:
   # Passive 1's SECOND half. The first half -- "allows the use of Thaumaturgy" --
   # is not a rule element: `isSpell` on each Thaumaturgy document is what routes
@@ -28,7 +28,20 @@ passiveRules:
     category: thaumaturgy
     perTurn: 1
 
-  # Passive 2 lands with the `suppression` effect it names. Authoring it here
-  # would be a `DurationExtension` pointing at an effect id that does not exist
-  # yet -- `validate:content` would refuse it, and if it did not, the rule would
-  # sit in the compendium extending nothing.
+  # Passive 2. `ofCategory` rather than a list of the three Spell ids, for the
+  # same reason the cap above is declared on the category: a fourth Spell should
+  # be caught by being a Spell.
+  #
+  # EXTENDS rather than reapplies, and the distinction is the whole reason
+  # `DurationExtension` exists: Suppression carries five USES as well as a
+  # clock, and reapplying it would refill them. The sheet extends the clock
+  # only -- so casting Spells keeps the strip alive longer without giving him
+  # more strips than the five he paid for.
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    ofCategory: thaumaturgy
+    then:
+      - key: DurationExtension
+        effect: suppression
+        ticks: "1◈"
