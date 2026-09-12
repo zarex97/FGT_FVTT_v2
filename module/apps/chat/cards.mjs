@@ -329,11 +329,31 @@ function promptOptions(prompt, state = null) {
     // attack it never saw coming could still Block and Evade it -- §27.9's own
     // rule, inert. Presence Concealment writes the same field.
     const refused = state?.forbiddenReactions ?? [];
-    return [
+    const rungs = [
       { event: "nothing", label: game.i18n.localize("FGT.Reaction.Nothing"), hint: null },
       { event: "block", label: game.i18n.localize("FGT.Reaction.Block"), hint: game.i18n.localize("FGT.Reaction.BlockHint") },
       { event: "evade", label: game.i18n.localize("FGT.Reaction.Evade"), hint: null },
     ].filter((o) => !refused.includes(o.event));
+
+    // The reaction ABILITIES, beside the three standing rungs. `pendingPrompt`
+    // has assembled them onto the prompt since the Combat Process was written
+    // -- *"Reaction abilities are offered BESIDE Block and Evade (§15.3). Medea's
+    // Trofa is 'used when Attacked' and there is no other moment it can be
+    // reached"* -- and this function rebuilt a fixed three and threw them away.
+    //
+    // So EVERY reaction ability in the game was unreachable from the card:
+    // Trofa, both Eyes of the Mind, Rho Aias, Akhilleus Kosmos, Semiramis's
+    // Scales, and Kiritsugu's Lethal Gunfire Suppression. The rule was
+    // computed, carried in the state, and never drawn.
+    //
+    // The names arrive already qualified with their owner where that owner is
+    // somebody else -- "Rho Aias (EMIYA)" -- because a third party's offer on
+    // your rung is otherwise indistinguishable from your own.
+    return [...rungs, ...(prompt.abilities ?? []).map((a) => ({
+      event: `ability:${a.id}`,
+      label: a.name,
+      hint: null,
+    }))];
   }
   if (prompt.kind === "acceptOrEscape") {
     return [
