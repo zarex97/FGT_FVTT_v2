@@ -1,0 +1,44 @@
+# Raikou's Genji-clan Martial Arts Discipline, Active clause 2.
+#
+# "Applies Crit DmUp (Martial) to Raikou for 1◈ Turns, 3 TIMES" -- a count and a
+# duration in one sentence, so both apply and the buff ends on whichever comes
+# first (R1). The shape Scáthach's `alpi` carries, and the same reading.
+schema: 1
+id: critDmUpMartial
+name: "Crit DmUp (Martial)"
+description: |
+  Crit Damage is increased by X%. Three uses, or 1◈ Turns, whichever ends first.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: count
+uses: 3
+defaultDuration: "1◈"
+baseChance: 100
+rules:
+  # `critDmUp` is read BY NAME in stage 2 of the damage pipeline, which is why
+  # this is a CritModifier and not a DamageModifier: crit damage scales the
+  # Attack+ roll and never touches the Attack− branch.
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critDmUp
+    value: "@magnitude"
+
+  # The spender, and it has to be a SEPARATE element: a `CritModifier` fires
+  # inside the damage pipeline, where there is no event rung to hang
+  # `consumesUse` from. `attack:crit` is in the option set ONLY at
+  # `damageDealt` -- `engine/attack.mjs` notes that a clause asking whether the
+  # attack crit is by definition asking about a resolved one -- so the charge is
+  # spent by the one event that proves the crit happened.
+  #
+  # `then: []` because the spending IS the action. Kingprotea's `npDmUpGao`
+  # decays the same way.
+  #
+  # `test/unit/raikou.test.mjs` holds the pairing: a count-limited CritModifier
+  # without its spender is an infinite buff.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:crit"]
+    consumesUse: true
+    then: []

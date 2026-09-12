@@ -1,0 +1,23 @@
+# Raikou's Genji-clan Martial Arts Discipline, Active clause 1.
+#
+# A NAMED VARIANT rather than plain `critUp`, for the reason every named variant
+# in this catalogue exists: the sheet names it, and a named buff is one a later
+# clause can remove, resist or count separately from the generic one. Unlike
+# `critUpHawkeye` it carries NO predicate -- EMIYA's is "at a Range of 3 or
+# higher" and hers names no condition at all.
+#
+# No `uses`. The sheet gives Crit Up a duration and gives Crit DmUp a count, one
+# sentence apart, so the difference is deliberate (R1).
+schema: 1
+id: critUpMartial
+name: "Crit Up (Martial)"
+description: "Crit Chance is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: CheckModifier
+    check: crit
+    value: "@magnitude"

@@ -351,6 +351,8 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Charity`-style named `Atk Up` variants | B | O | mag | 4 | `Atk Up (Trace)`, `Atk Up (MS)`, `Atk Up (Demonic)`, `Atk Up (Charisma)` — all `atkUp` family members with predicates. | several |
 | `Crit Up (Viy)` | B | O | mag | — | Crit chance +X% **scoped to attacks that use BA(MAG)**, with a separate NP magnitude. The first component-scoped crit buff. | Anastasia |
 | `Crit Up (Hawkeye)` / `Crit DmUp (Hawkeye)` | B | O | mag | — / 2 | Crit chance / crit damage +X% **at Range 3 or higher**. Range-predicated. | EMIYA |
+| `Crit Up (Martial)` | B | O | mag | — | Crit Chance +X%, **unconditionally** — unlike the Hawkeye pair it carries no predicate, because the sheet names no condition. Magnitude is inverted against Mad Enhancement: 30% with it, 60% without. | Raikou |
+| `Crit DmUp (Martial)` | B | O | cnt | 2 | Crit Damage +X%, **three uses or 1◈ Turns, whichever ends first** (R1). The first count-limited modifier in the corpus that fires inside the damage pipeline rather than on an event rung, so its charge is spent by a paired `damageDealt` handler predicated on `attack:crit` — the one moment that option is in the set. A `CritModifier` without that twin is an infinite buff. | Raikou |
 | `Dmg Up (Gods)` | B | O | mag | 4 | Damage dealt to Units with the `Undead` or `Divine` Attribute +X%, **including NP** — `dmgUp`, not `atkUp`, precisely because it takes no reduced NP magnitude. | Scáthach |
 | `Alpi` | B | O | cnt | — | Count-limited (3): at the **end of the Damage Step** of a successful Attack, NP cooldown −½◈ — or −1◈ if the DU is `Undead` or `Divine`. The first content to use §E's `damageStepEnd`, and the first handler with a `targetPredicate`. | Scáthach |
 
