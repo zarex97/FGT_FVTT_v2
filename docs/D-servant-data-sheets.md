@@ -1314,7 +1314,8 @@ are per-clause rather than per-ability.
 another modifier's magnitude, mutual exclusion between a class skill and an ordinary skill,
 count-limited attack riders, clone summons with per-clone parameterization, and a single ability
 that resolves as five separate attacks under two different rule sets.
-**Scripts: 0.**
+**Scripts: 0.** Statline and four class skills authored in `0.3.6`; the named clauses land
+commit by commit below, and the live pass in Ch. 45 is what closes them.
 
 **Note.** `Dohatsu Tenshou` is the hardest single ability in either roster to log legibly. Five
 damage instances, four of which can be independently Blocked or Evaded and none of which use
