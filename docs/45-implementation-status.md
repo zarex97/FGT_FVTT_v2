@@ -3650,6 +3650,35 @@ One difference from Karna's worth recording because it looks like an omission: h
 *"if the Attack is not Evaded, Burn is inflicted"* and hers states the Shock unconditionally.
 Both compile to the same `damageDealt` rung, because an evaded attack never reaches it.
 
+#### Commit 8 — a flat bonus made of different stuff
+
+*"Normal Attacks deal 40 bonus **Lightning** damage"* rides on a Normal Attack of hers that is
+BA(STR) with no element at all. Stage 7 added every flat bonus to the whole total, so the 40
+would have been indistinguishable from Divinity's +30 — unresisted by a Lightning ward, and
+dragging her ordinary STR damage into that ward whenever one applied.
+
+Routed through the element's own share instead, reusing stage 4b's arithmetic via an extracted
+`elementPercent`. The refactor was verified behaviour-neutral against the golden breakdowns
+before the new branch was added, which is the only way to tell a generalisation from a rewrite.
+
+**Her own kit is what makes it more than theoretical.** She takes half from Lightning, is immune
+to Shock, and her Sakata copy attacks with Lightning and a 50% `Shock` rider — so a Raikou facing
+a Raikou resolves wrongly in both directions under the simpler shape.
+
+**Three drift tests fired, and all three were right.**
+
+- `validate:content` refused **`id: raikou`** on the effect: content ids are one namespace, and
+  `target:contentId:raikou` names the *Servant*. An effect sharing that string would have made
+  every `contentId` predicate about her ambiguous. Renamed `raikouBuff`; the display name is
+  still `Raikou`, because that is what her sheet calls it.
+- `test/unit/card-visibility.test.mjs` caught the new `s.note("elementFlat")` as an
+  **unattributed contribution**. It is arithmetic rather than a modifier and belongs on that
+  file's hand-kept allowlist, which is exactly the decision the test exists to force.
+- `test/unit/elements.test.mjs` caught `element: null` joining `FlatDamage`'s output shape.
+
+`A-effect-catalogue.md` has carried the `Raikou` row since the catalogue was transcribed, with no
+file behind it. It has one now.
+
 ---
 
 ---

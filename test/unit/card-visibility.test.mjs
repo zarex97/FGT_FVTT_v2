@@ -299,6 +299,7 @@ describe("the pipeline attributes every contribution", () => {
     'state.note("fixedDamage"',       // arithmetic: which stages were skipped
     's.note("bucket"',                // arithmetic: the summed percentage
     's.note("element"',               // arithmetic: the element share's percentage
+    's.note("elementFlat"',            // arithmetic: an elemental flat bonus's own share
     's.contribute("band"',            // the board: an AoE's distance band
     's.contribute("dayNight"',        // the board: the panel's phase
     's.contribute("homeBaseAttack"',  // the board: both units in a home base

@@ -440,27 +440,7 @@ function stage4bElements(s) {
   if (fraction <= 0) return;
 
   s.begin(4.5);
-  let pct = 0;
-
-  for (const m of activeMods(s, s.ctx.attacker, ELEMENT_ATTACK_KEYS)) {
-    if (m.element !== element) continue;
-    const v = magnitudeOf(m, s.isNP, s.ctx) * (ELEMENT_NEGATIVE_KEYS.has(m.key) ? -1 : 1);
-    pct += v;
-    s.contribute(m.key, v, `${m.source} (${element})`, "attacker");
-  }
-
-  for (const m of activeMods(s, s.ctx.defender, ELEMENT_DEFENCE_KEYS)) {
-    if (m.element !== element) continue;
-    // A Heel Attack ignores the defender's reducing half, the same way stage 4
-    // treats its own bucket. An `elementDefDwn` helping the attacker survives.
-    if (bypassesDefence(s) && ELEMENT_NEGATIVE_KEYS.has(m.key)) {
-      s.contribute(m.key, 0, `${m.source} (bypassed)`, "defender");
-      continue;
-    }
-    const v = magnitudeOf(m, s.isNP, s.ctx) * (ELEMENT_NEGATIVE_KEYS.has(m.key) ? -1 : 1);
-    pct += v;
-    s.contribute(m.key, v, `${m.source} (${element})`, "defender");
-  }
+  const pct = elementPercent(s, element, true);
 
   if (pct !== 0) {
     const scaled = pct * fraction;
@@ -486,6 +466,50 @@ function stage4bElements(s) {
 function elementFractionOf(s) {
   const f = s.ctx.attack?.elementFraction;
   return typeof f === "number" && f >= 0 && f <= 1 ? f : 1;
+}
+
+/**
+ * The net percentage both sides carry **for one named element**.
+ *
+ * Extracted from stage 4b so stage 7 can ask the same question about a flat
+ * bonus that carries its own element — Raikou's `Raikou` buff, *"Normal
+ * Attacks deal 40 bonus **Lightning** damage"*, riding on a Normal Attack of
+ * hers that is BA(STR) and has no element at all.
+ *
+ * `contribute` is false at the stage-7 call site: stage 4b has already listed
+ * these modifiers in the breakdown, and listing them twice for one collection
+ * would read as two separate resistances in the one audit (Ch. 30) that has to
+ * stay legible at five cards.
+ *
+ * @param {PipelineState} s
+ * @param {string} element
+ * @param {boolean} contribute whether to write the modifiers into the breakdown
+ * @returns {number} a percentage, positive for the attacker
+ */
+function elementPercent(s, element, contribute) {
+  let pct = 0;
+
+  for (const m of activeMods(s, s.ctx.attacker, ELEMENT_ATTACK_KEYS)) {
+    if (m.element !== element) continue;
+    const v = magnitudeOf(m, s.isNP, s.ctx) * (ELEMENT_NEGATIVE_KEYS.has(m.key) ? -1 : 1);
+    pct += v;
+    if (contribute) s.contribute(m.key, v, `${m.source} (${element})`, "attacker");
+  }
+
+  for (const m of activeMods(s, s.ctx.defender, ELEMENT_DEFENCE_KEYS)) {
+    if (m.element !== element) continue;
+    // A Heel Attack ignores the defender's reducing half, the same way stage 4
+    // treats its own bucket. An `elementDefDwn` helping the attacker survives.
+    if (bypassesDefence(s) && ELEMENT_NEGATIVE_KEYS.has(m.key)) {
+      if (contribute) s.contribute(m.key, 0, `${m.source} (bypassed)`, "defender");
+      continue;
+    }
+    const v = magnitudeOf(m, s.isNP, s.ctx) * (ELEMENT_NEGATIVE_KEYS.has(m.key) ? -1 : 1);
+    pct += v;
+    if (contribute) s.contribute(m.key, v, `${m.source} (${element})`, "defender");
+  }
+
+  return pct;
 }
 
 /**
@@ -542,6 +566,8 @@ function stage6Band(s) {
 function stage7FlatAttackBonuses(s) {
   s.begin(7);
   let flat = 0;
+  /** Flat bonuses that carry an element of their OWN, keyed by it. */
+  const elemental = new Map();
   for (const m of activeMods(s, s.ctx.attacker, FLAT_ATTACK_KEYS)) {
     // *"Damage dealt is not affected by Atk Up or OTHER DAMAGE INCREASING
     // EFFECTS on Ozymandias."* That is a category, not a list of one: Divinity's
@@ -557,10 +583,41 @@ function stage7FlatAttackBonuses(s) {
       continue;
     }
     const value = magnitudeOf(m, s.isNP, s.ctx);
+    // A flat bonus made of DIFFERENT STUFF from the attack it rides on.
+    // Raikou's `Raikou` buff is *"Normal Attacks deal 40 bonus LIGHTNING
+    // damage"*, and her Normal Attack is BA(STR) with no element at all.
+    //
+    // Added through the element's own share rather than into the general
+    // total, so that a defender who resists Lightning meets the 40 and
+    // nothing else -- and so the 40 does not drag the rest of the attack into
+    // a resistance it never had. Her own clause is what proves it matters in
+    // both directions: she takes half from Lightning, so a mirror match
+    // resolves wrongly under the simpler shape either way round.
+    if (m.element) {
+      elemental.set(m.element, (elemental.get(m.element) ?? 0) + value);
+      s.contribute(m.key, value, `${m.source} (${m.element})`, "attacker");
+      continue;
+    }
     flat += value;
     s.contribute(m.key, value, m.source, "attacker");
   }
   if (flat !== 0) s.addProportional(flat);
+
+  for (const [element, value] of elemental) {
+    // The same percentage stage 4b computed for this element, applied to the
+    // bonus alone. Not re-contributed: those modifiers are already in the
+    // breakdown, and listing them twice for one collection would read as two
+    // separate resistances.
+    //
+    // The attack's own `elementFraction` does NOT apply. That fraction says how
+    // much of the ATTACK carries the element; this bonus is entirely made of it.
+    const pct = elementPercent(s, element, false);
+    const scaled = value * Math.max(0, 1 + pct / 100);
+    s.addProportional(scaled);
+    if (pct !== 0) {
+      s.note("elementFlat", `${element} +${value} → ${scaled.toFixed(1)} (${pct >= 0 ? "+" : ""}${pct}%)`);
+    }
+  }
   s.end(7);
 }
 

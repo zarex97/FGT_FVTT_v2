@@ -19,7 +19,11 @@ describe("table-driven values resolve against the owning ability's rank", () => 
     expect(out.modifiers).toEqual([
       // `predicate: null` means "collection answered it" -- as opposed to a
       // deferred clause, which travels to the damage pipeline.
-      { key: "divinity", value: 50, component: null, predicate: null, source: "Divinity" },
+      // `element: null` beside `component: null` for the same reason: a flat
+      // bonus may be scoped to one Base Attack component, and (since Raikou's
+      // `Raikou` buff) may be made of a damage type the attack itself is not.
+      // Divinity is scoped to neither.
+      { key: "divinity", value: 50, component: null, element: null, predicate: null, source: "Divinity" },
     ]);
   });
 

@@ -736,6 +736,13 @@ export const EXECUTORS = Object.freeze({
       key: el.modifierKey ?? "divinity",
       value: scalar(resolveValue(el, rank, ctx)),
       component: el.component ?? null,
+      // WHICH ELEMENT the addition is made of, when it is made of one.
+      // Raikou's `Raikou` buff -- *"Normal Attacks deal 40 bonus LIGHTNING
+      // damage"* -- is the first flat bonus in the corpus that is a different
+      // damage type from the attack carrying it: her Normal Attack is BA(STR)
+      // with no element at all. Stage 7 routes it through the element's own
+      // share so a Lightning ward meets the 40 and nothing else.
+      element: el.element ?? null,
       predicate: deferred,
       source,
     });

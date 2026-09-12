@@ -96,6 +96,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     ...SCALED,
     { key: "modifierKey", type: "text" },
     { key: "component", type: "select", choices: ["str", "mag"] },
+    // A bonus made of a different damage type from the attack it rides on.
+    { key: "element", type: "text" },
   ]),
   entry("Resistance", "Magic Resistance. The rank mode can negate outright; the dice mode never can.", [
     ...SCALED,
