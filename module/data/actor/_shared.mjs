@@ -111,6 +111,16 @@ export function unitCommon() {
     boundToFieldId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
     mov: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+    // Riding's Passenger Seat: *"The Servant's Master CAN Move together with
+    // its Servant."* "Can", so it is a choice -- and defaulting to ON, because
+    // carrying is the whole point of the clause and a skill that does nothing
+    // until you find a switch is a skill nobody uses.
+    //
+    // A flag rather than a prompt per move: a Servant with Riding up moves
+    // several times a Turn, and asking each time would make the grant a
+    // nuisance instead of a benefit. `rules/actions.mjs` puts it on the action
+    // bar, where its mere presence is what tells a player the skill exists.
+    carriesMaster: new fields.BooleanField({ initial: true }),
     range: new fields.SchemaField({
       panels: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),
       targets: new fields.NumberField({ required: true, integer: true, initial: 1, min: 1 }),

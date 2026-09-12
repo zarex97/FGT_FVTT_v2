@@ -30,7 +30,7 @@
  * `engine/summoning.mjs#placeSummons` already made for Medea's Warriors.
  */
 
-import { FACING_OFFSETS, rotateFacing } from "../../domain/geometry.mjs";
+import { FACING_OFFSETS, rotateFacing, inBounds } from "../../domain/geometry.mjs";
 
 /**
  * How far clockwise from the Unit's own facing each named direction lies.
@@ -49,7 +49,7 @@ export const SHEET_ORDER = Object.freeze(["front", "back", "left", "right"]);
  * @param {string} facing one of `domain/enums.mjs#FACINGS`
  * @param {readonly string[]} order which directions, and in which order
  * @param {object} opts
- * @param {{width: number, height: number}|null} [opts.bounds] the board, if it has edges
+ * @param {{iMin: number, iMax: number, jMin: number, jMax: number}|null} [opts.bounds] the board, if it has edges
  * @param {ReadonlySet<string>} [opts.occupied] `"i,j"` keys already taken
  * @param {number} [opts.maxDistance] how far out to search before giving up
  * @returns {Array<{i: number, j: number}|null>} one entry per `order` entry;
@@ -72,8 +72,12 @@ export function orthogonalPanels(origin, facing, order = SHEET_ORDER, {
       const panel = { i: origin.i + step.i * d, j: origin.j + step.j * d };
       // Off the board ends the search on this axis rather than skipping past
       // it: there is nothing further out in that direction.
-      if (bounds && (panel.i < 0 || panel.j < 0
-        || panel.i >= bounds.height || panel.j >= bounds.width)) break;
+      // `{iMin, iMax, jMin, jMax}` -- the shape `snapshotBoard#boundsFor`
+      // produces and every other consumer reads (`geometry.mjs#inBounds`,
+      // `cover.mjs`, `movement.mjs#passengerDestination`). Written against a
+      // `{width, height}` board first, which compares against `undefined`,
+      // is always false, and silently placed a clone off the edge.
+      if (bounds && !inBounds(panel, bounds)) break;
 
       const key = `${panel.i},${panel.j}`;
       if (taken.has(key)) continue;

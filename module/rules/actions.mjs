@@ -129,6 +129,30 @@ export const UNIT_ACTIONS = Object.freeze([
     },
   },
   {
+    id: "carryMaster",
+    // Bills NOTHING. *"Counts as only Moving one Unit"* -- the Servant's own
+    // Move is the one that is paid for, and this button only decides whether
+    // the Master comes with her.
+    kind: null,
+    icon: "fa-solid fa-person-walking-with-cane",
+    label: "FGT.Action.CarryMaster",
+    mode: "immediate",
+    // Offered only when Riding's Passenger Seat is granted AND there is a
+    // Master on the board to carry. The button's PRESENCE is the whole of the
+    // skill's discoverability: nothing else on the sheet mentions it, and a
+    // grant with no affordance is a rule players never learn they have.
+    available: (unit, board) => {
+      if (!acts(unit) || !hasGranted(unit, GRANTS.passengerSeat)) return null;
+      const master = (board?.units ?? []).find(
+        (u) => u.id === unit.masterId && u.kind === "master" && !u.defeated,
+      );
+      if (!master) return null;
+      // `on` drives the button's pressed state, so the player can see at a
+      // glance whether their Master is about to be taken along.
+      return { on: unit.carriesMaster !== false, masterId: master.id };
+    },
+  },
+  {
     id: "facing",
     kind: null,
     icon: "fa-solid fa-location-arrow",

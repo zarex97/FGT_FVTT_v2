@@ -43,6 +43,19 @@ export const ACTION_HANDLERS = Object.freeze({
 
   gather: async ({ actor }) => gather({ actorId: actor.id }),
 
+  // Riding's Passenger Seat, as a switch rather than a prompt. Flips whether
+  // this Servant takes her Master along on every Move she makes; the carry
+  // itself is `engine/movement-hooks.mjs#carryMaster`, on the `moveToken` hook.
+  carryMaster: async ({ actor }) => {
+    const on = actor.system?.carriesMaster !== false;
+    await actor.update({ "system.carriesMaster": !on });
+    ui.notifications?.info(game.i18n.format(
+      on ? "FGT.Action.CarryMasterOff" : "FGT.Action.CarryMasterOn",
+      { name: actor.name },
+    ));
+    return { ok: true };
+  },
+
   facing: async ({ actor, context }) => {
     await actor.update({ "system.facing": context.facing });
     return { ok: true };

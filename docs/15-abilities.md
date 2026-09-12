@@ -1295,3 +1295,28 @@ one that frustrates.
 ---
 
 **Next:** [16 — Relationships](16-relationships.md)
+
+### A granted passive may still need an affordance
+
+Riding grants three passives, and two of them are self-evident in play: Double Move shows up as
+being allowed to move again, and Riding Attack as a button on the action bar. **Passenger Seat is
+neither.** *"The Servant's Master **can** Move together with its Servant"* is a standing option
+with no moment attached — there is nothing to press and nothing to decline, so a correct
+implementation of the rule alone is a rule no player knows they have.
+
+Three things it needed beyond the arithmetic, and they generalise to any grant of this shape:
+
+- **A switch, defaulted to the useful state.** *"Can"* makes it a choice, so it is
+  `system.carriesMaster`; carrying is the point of the skill, so it starts **on**. A per-move
+  prompt was rejected: a Servant with Riding up moves several times a Turn, and asking each time
+  turns a benefit into a nuisance.
+- **A button whose mere presence teaches the rule.** `rules/actions.mjs` offers `carryMaster`
+  only when the grant is live *and* there is a Master on the board. Nothing else in the interface
+  mentions Passenger Seat, so the button is the documentation.
+- **Both outcomes spoken.** A token that moves without being dragged reads as a bug, so the carry
+  says so; and a carry that is *refused* — an occupied landing panel, the board's edge — must say
+  so loudest, because the failure leaves the Master standing where the Servant left him, which is
+  the exact situation the skill exists to prevent.
+
+The action bills **nothing** (`kind: null`, like `facing`): *"Counts as only Moving one Unit"* is
+the Servant's own Move, and the switch only decides whether the Master comes along.
