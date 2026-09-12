@@ -416,3 +416,81 @@ describe("Penetration — Invuln halves instead of negating", () => {
     expect(a.category).toBe("thaumaturgy");
   });
 });
+
+import { expand } from "../../module/rules/targeting/shapes.mjs";
+import { ALLY_WINDOW } from "../../module/rules/windows.mjs";
+
+describe("Scapegoat", () => {
+  const a = src("abilities", "kiritsugu-scapegoat.yml");
+
+  it("is offered on his own Turn AND when an ally is attacked", () => {
+    expect(a.timing.window).toContain("ownTurn");
+    expect(a.timing.window).toContain(ALLY_WINDOW);
+  });
+
+  it("applies its own Decoy variant, not the shared one", () => {
+    // Lethal Gunfire Suppression triggers on THIS decoy specifically, so
+    // sharing `decoy` would make Mannanán's self-applied Decoy fire his gun.
+    expect(a.phases[0].effects[0].id).toBe("decoyScapegoat");
+    expect(a.phases[0].effects[0].duration).toBe("1◈");
+  });
+
+  it("bypasses resistance, because it is applied to an ALLY", () => {
+    // Without this a high-Debuff-Resist ally shrugs off the protection his own
+    // side is trying to give him.
+    expect(src("effects", "decoy-scapegoat.yml").allySelfBypassesResistance).toBe(true);
+  });
+
+  it("grants S.Crit Up at 15% for ⅓◈, unpreventable and unremovable", () => {
+    const crit = a.phases[1].effects.find((e) => e.id === "sCritUp");
+    expect(crit.magnitude).toBe(15);
+    expect(crit.duration).toBe("⅓◈");
+    const e = src("effects", "s-crit-up.yml");
+    expect(e.unremovable).toBe(true);
+    expect(e.baseChance).toBe(500);
+  });
+
+  it("costs 3◈ and spends no Attack", () => {
+    expect(a.cooldown).toBe("3◈");
+    expect(a.countsAsAttack).toBe(false);
+  });
+});
+
+describe("Scapegoat — 'Kiritsugu OR the target' is one area, not two", () => {
+  const disc = (origin, casterPanel, alsoAroundCaster) =>
+    expand(
+      { kind: "chebyshevRadius", r: 2, ...(alsoAroundCaster ? { alsoAroundCaster: true } : {}) },
+      { panel: origin, casterPanel },
+      {},
+    ).panels;
+  const keys = (panels) => panels.map((p) => `${p.i},${p.j}`);
+
+  it("unions the caster's disc into the target's", () => {
+    // Kiritsugu at (5,5), the chosen ally at (5,7) — two panels apart, the
+    // farthest Scapegoat can reach.
+    const both = disc({ i: 5, j: 7 }, { i: 5, j: 5 }, true);
+    expect(keys(both)).toContain("5,9");   // the far edge of the target's disc
+    expect(keys(both)).toContain("5,3");   // the far edge of Kiritsugu's
+  });
+
+  it("never lists a panel twice, so the overlap is buffed ONCE", () => {
+    // `sCritUp` is `magnitudeStacks`. Two phases, one anchored on each, would
+    // give everybody in the overlap 30% where the sheet says 15 — and it would
+    // be the allies standing closest to both, which is most of them.
+    const both = disc({ i: 5, j: 7 }, { i: 5, j: 5 }, true);
+    expect(new Set(keys(both)).size).toBe(both.length);
+  });
+
+  it("is a strict superset of either disc alone", () => {
+    const both = new Set(keys(disc({ i: 5, j: 7 }, { i: 5, j: 5 }, true)));
+    const targetOnly = keys(disc({ i: 5, j: 7 }, { i: 5, j: 5 }, false));
+    expect(targetOnly.every((k) => both.has(k))).toBe(true);
+    expect(both.size).toBeGreaterThan(targetOnly.length);
+  });
+
+  it("leaves every other chebyshevRadius in the game untouched", () => {
+    // The option is opt-in; without it the shape is exactly what it always was.
+    const plain = disc({ i: 5, j: 7 }, { i: 5, j: 5 }, false);
+    expect(plain).toHaveLength(25);
+  });
+});
