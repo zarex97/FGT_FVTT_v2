@@ -138,6 +138,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "component", type: "select", choices: ["str", "mag"] },
   ]),
   entry("BlockModifier", "Percentage points onto the flat 25% a Block removes.", [...SCALED]),
+  entry("BaseAttackModifier", "Multiplies a Unit's Base Attack, per component.", [
+    { key: "factor", type: "number" },
+    { key: "components", type: "tokenList" },
+  ]),
   entry("AttackProperty", "A property of the attack, granted by a buff on the attacker.", [
     { key: "property", type: "text" },
     // Boolean for `pierce` / `ignoresDefUp`; a fraction for `invulnFactor`,

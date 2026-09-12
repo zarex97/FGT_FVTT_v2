@@ -1,0 +1,33 @@
+# Kiritsugu's Phantasm Punishment: Mystery Bisection.
+#
+# The id is `kiritsuguMark`, NOT `kiritsugu` -- an effect sharing a content id
+# with its Servant is a build-breaking collision, and `raikou` hit exactly that
+# and had to become `raikouBuff`. Named correctly from the start this time.
+#
+# Halves BOTH Base Attack components, which makes it strictly worse for a Caster
+# than for a Saber: Medea (50/210) loses 105 off the number she actually attacks
+# with, where a STR attacker loses the smaller half of theirs. That asymmetry is
+# the design -- it is what makes this a CRIPPLE rather than a finisher, and it
+# is why the live test has to hit a MAG attacker and not only a STR one.
+#
+# Three protections at once, all stated on the sheet: unremovable, non-stacking,
+# and past both Debuff Resist and Debuff Immune. There is no way out of it.
+schema: 1
+id: kiritsuguMark
+name: "Kiritsugu"
+description: |
+  This Unit's Base Attack (STR and MAG) are reduced by half of their original value. Ignores
+  Debuff Resist and Debuff Immune. Unremovable, and does not stack.
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+# `noneNoRefresh` -- "does not stack", and re-applying must not re-halve. The
+# projection's own idempotence guard is the second line of defence.
+stacking: noneNoRefresh
+baseChance: 100
+unremovable: true
+bypassesImmunity: true
+rules:
+  - key: BaseAttackModifier
+    factor: 0.5
+    components: [str, mag]

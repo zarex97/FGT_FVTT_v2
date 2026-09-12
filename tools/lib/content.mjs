@@ -57,6 +57,9 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Until now `attack.pierce` could only come from an ability's own damage
   // block, so `Pierce` had no effect document despite being in Appendix A.
   "AttackProperty",
+  // Kiritsugu -- a multiplier on Base Attack itself, applied in the projection
+  // so BOTH components move and the victim's own sheet shows it.
+  "BaseAttackModifier",
   // Group 3 — check contributors
   "CheckModifier", "AutoSucceed", "TableOverride", "RollAdjustment",
   // Jack the Ripper — pre-emption, and a Detect ceiling a bounded field imposes.
