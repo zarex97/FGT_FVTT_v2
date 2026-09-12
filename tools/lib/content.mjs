@@ -1904,6 +1904,7 @@ function itemSystem(doc) {
     countsAsAct: doc.countsAsAct ?? undefined,
     oncePerTurn: Boolean(doc.oncePerTurn),
     bypassesCategoryLimit: Boolean(doc.bypassesCategoryLimit),
+    freeAction: Boolean(doc.freeAction),
     refusesReactionsUnlessFaster: Boolean(doc.refusesReactionsUnlessFaster),
     offersSpellCategory: doc.offersSpellCategory ?? null,
     // The Round-scale cap. Karna's Uncrowned Arms Mastership has no cooldown,

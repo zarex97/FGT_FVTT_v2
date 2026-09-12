@@ -129,7 +129,13 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // out of range. Refusals are cheap; a half-resolved attack is not.
   const combat = game.combats.active;
   const actionKind = budgetActionFor(ability ? abilityKind(ability) : "normal");
-  if (combat?.started) {
+  // An attack the sheet says costs nothing. Kiritsugu's Lethal Gunfire
+  // Suppression is *"instantly perform a Normal Attack"* on somebody else's
+  // Turn: a real Normal Attack, dealing real damage, billed to nobody -- so it
+  // skips the budget on BOTH sides, the check here and the spend below, rather
+  // than being excused one and refused by the other.
+  const free = Boolean(ability?.system?.freeAction);
+  if (combat?.started && !free) {
     const verdict = budget.affordable(combat, self, actionKind);
     if (!verdict.ok) throw new Error(`FGT | Cannot attack: ${verdict.reason}`);
   }
@@ -235,7 +241,13 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // `offerPreemption`): the budget, the costs and the cooldown were all paid
   // when the attack was first declared, before the defender swung first.
   // Charging them again would bill a Servant twice for one attack.
-  if (combat?.started && !resume) {
+  // A free attack skips the TURN RECORD as well as the budget. The two are
+  // separate ledgers and both would refuse him: the budget caps the faction's
+  // attacks for the Turn, and `attacked`/`acted` is what stops the Servant
+  // attacking again on their own. *"Kiritsugu can INSTANTLY perform a Normal
+  // Attack"* on somebody else's Turn has to survive both, or it silently costs
+  // him the swing he had not taken yet.
+  if (combat?.started && !resume && !free) {
     await budget.spend({ combat, unit: self, action: actionKind });
     const isAttack = actionKind !== "skill";
     await applyBatch(
@@ -921,6 +933,24 @@ async function declareProcesses({
     await message.setFlag("fgt", "collapse", collapse);
     processes.push({ messageId: message.id, state: advanced });
 
+    // A rung with no options on it cannot be answered, so nobody would ever
+    // advance this Process. `advanceAttack` has a loop that drives through
+    // every state needing no human input, but it only runs AFTER an event --
+    // and a Process that arrives at its first rung already unanswerable never
+    // gets one.
+    //
+    // Reachable for the first time with Kiritsugu's Lethal Gunfire Suppression:
+    // *"cannot be Reacted to unless the AU's AGI Rank is higher than
+    // Kiritsugu's"* refuses Block, Counter AND Evade together, where every
+    // earlier `ForbidReaction` in the corpus took at most two of the three. The
+    // shot's card appeared with an empty button row and sat there for ever.
+    //
+    // `nothing` rather than a bespoke event: no reaction WAS taken, which is
+    // precisely what that rung's "Do nothing" means.
+    if (!process.pendingPrompt(advanced)) {
+      await advanceAttack({ messageId: message.id, event: "nothing" });
+    }
+
     // §E.3's `attackDeclared`, raised for the first time. It is the moment
     // EMIYA's Kanshou & Bakuya asks about -- "used when EMIYA performs a Normal
     // Attack at a Range of 2 or lower" -- which is a question about the SWING
@@ -1021,10 +1051,42 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
       // its reach is measured by.
       const pointsAtAttacker = used.system?.timing?.radiusTo === "attacker";
       const aimedAt = pointsAtAttacker ? state.attackerId : state.defenderId;
+      // An ability that ATTACKS resolves through the attack flow, not through
+      // `useSkill` -- which refuses a `damage` phase outright and says so in
+      // the console: *"countsAsAttack should have routed this to
+      // resolveAttack."* Kiritsugu's shot is the first reaction in the corpus
+      // that deals damage rather than shielding, buffing or cancelling, so
+      // this branch had never been needed.
+      if ((used.system?.phases ?? []).some((p2) => p2.kind === "damage")) {
+        await resolveAttack({
+          attackerId: owner.id,
+          abilityId: used.id,
+          placement: { sourceUnitId: state.attackerId, unitId: aimedAt, targetId: aimedAt },
+        }).catch((err) => {
+          console.error("FGT | Triggered attack refused:", err);
+          ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", {
+            name: used.name, reason: String(err?.message ?? err),
+          }));
+        });
+        return state;
+      }
+
       const out = await useSkill({
         actorId: owner.id,
         abilityId: used.id,
-        placement: owner.id === aimedAt ? undefined : { unitId: aimedAt },
+        // `sourceUnitId` is what the `sourceOfAttack` ANCHOR resolves against,
+        // and no caller in the codebase had ever set it -- so an ability
+        // anchored on "whoever just attacked" failed with "No attacking unit in
+        // context" wherever it was used through ordinary targeting. Mannanán's
+        // Fragarach declares the same anchor and never reached this path,
+        // because a cancelled NP resolves through `cancelsNP` instead.
+        //
+        // Always supplied here: inside a reaction there is exactly one attack
+        // in flight, and its attacker is what the anchor names.
+        placement: {
+          sourceUnitId: state.attackerId,
+          ...(owner.id === aimedAt ? {} : { unitId: aimedAt }),
+        },
       });
       if (!out.ok) ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", { name: used.name, reason: out.reason }));
     }

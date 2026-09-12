@@ -317,6 +317,19 @@ export function pendingPrompt(s) {
   const extra = s.reactionAbilities?.[unitId] ?? [];
   const options = p.options ? [...p.options, ...extra.map((a2) => `ability:${a2.id}`)] : p.options;
 
+  // A rung with nothing left on it is not a rung. The same argument the counter
+  // guard above makes -- *"offering it to a defender who cannot counter would
+  // stop the ladder to ask a question with one answer"* -- and here there is
+  // not even one answer: an attack that forbids every reaction leaves a prompt
+  // with an empty button row, which no player can dismiss and no timeout
+  // resolves.
+  //
+  // Reachable for the first time with Kiritsugu's Lethal Gunfire Suppression:
+  // *"cannot be Reacted to unless the AU's AGI Rank is higher"* refuses Block,
+  // Counter AND Evade together, where every earlier `ForbidReaction` in the
+  // corpus took at most two of the three.
+  if (s.state === "react" && options?.length === 0) return null;
+
   return { ...p, options, unitId, abilities: extra };
 }
 
