@@ -103,6 +103,7 @@ abilities:
   # "Divinity — Rank: C / All damage dealt is increased by 30 including NP."
   # The table prices C at exactly 30.
   - { ref: divinity, rank: C }
+  - { ref: raikou-genji-clan-martial-arts-discipline }
 
 notes: |
   The nineteenth Servant, and the first whose hardest class skill cost nothing at all.

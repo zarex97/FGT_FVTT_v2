@@ -181,9 +181,48 @@ export function applyEffect({
     };
   }
 
+  // ── 4b. MAGNITUDE SCALE ──────────────────────────────────────────────────
+  //
+  // Raikou's Genji-clan Martial Arts Discipline: *"The magnitude of all Atk Dwn
+  // effects on Raikou is halved."* The first clause in either roster whose
+  // subject is another modifier's MAGNITUDE, as against its chance to land
+  // (`ApplicationChance`), its duration (`DurationExtension`) or its right to
+  // land at all (`Immunity`).
+  //
+  // Applied HERE, at application time, rather than read at damage time in the
+  // pipeline. The passive is permanent, so the two are arithmetically
+  // equivalent -- and stamping means the effect chip and the audit card show
+  // the number the Unit is actually carrying instead of one the reader has to
+  // halve in their head.
+  //
+  // `npMagnitude` scales with it. The clause is about *the magnitude*, and the
+  // NP figure is that same magnitude read against a Noble Phantasm -- not a
+  // second, unscaled one.
+  //
+  // Rounded DOWN, the direction that favours the bearer: this is a defence,
+  // and 35 halving to 18 would let an attacker round their own debuff up.
+  let scaledMagnitude = magnitude;
+  let scaledNpMagnitude = npMagnitude;
+  for (const scale of target.magnitudeScales ?? []) {
+    if ((scale.direction ?? "incoming") !== "incoming") continue;
+    const named = scale.effects
+      ? scale.effects.includes(def.id)
+      : Boolean(scale.family) && scale.family === def.family;
+    if (!named) continue;
+    scaledMagnitude = Math.floor(scaledMagnitude * scale.factor);
+    if (typeof scaledNpMagnitude === "number") {
+      scaledNpMagnitude = Math.floor(scaledNpMagnitude * scale.factor);
+    }
+    trace.push({
+      step: "magnitudeScale",
+      outcome: "scaled",
+      detail: `${scale.source} x${scale.factor}`,
+    });
+  }
+
   // ── 5. STACKING RESOLUTION ───────────────────────────────────────────────
   const existing = instances.filter((e) => e.defId === def.id);
-  const stack = resolveStacking(def, existing, magnitude, stages, uses);
+  const stack = resolveStacking(def, existing, scaledMagnitude, stages, uses);
   trace.push({ step: "stacking", outcome: stack.action, detail: stack.detail });
   if (stack.action === "noop") {
     return { outcome: "noop", reason: "already present, does not refresh", intents: [], trace };
@@ -218,7 +257,7 @@ export function applyEffect({
     // Carried separately, because it is a second magnitude and not a scaling
     // of the first: Appendix A's pairs are 25/15 and 50/30, neither of which
     // is a fixed ratio of the other.
-    npMagnitude: npMagnitude ?? def.defaultNpMagnitude ?? null,
+    npMagnitude: scaledNpMagnitude ?? def.defaultNpMagnitude ?? null,
     stage: stack.stage,
     uses: stack.uses,
     expiry,
