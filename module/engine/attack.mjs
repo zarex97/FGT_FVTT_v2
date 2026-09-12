@@ -13,6 +13,7 @@
  */
 
 import { computeDamage, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
+import { ridersFire } from "../rules/damage/riders.mjs";
 import { displaceToken } from "./io.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom, gateContext } from "./board.mjs";
@@ -1965,9 +1966,17 @@ async function runAutomaticStep(state, message) {
       // shape as `fireEvent`, the ZON tables and the element modifiers.
       if (!skipped) await applyTerrainConversions(state, result);
       // Riders, which need the victim as well as the fact that it landed.
-      if (!skipped && result.total > 0) await fireDamageDealt(state, result);
+      //
+      // HIT, NOT HURT. This pair read `!skipped && result.total > 0` from the
+      // day it was written, while `applyAbilityEffects` eleven lines above ran
+      // on `!(skipped || veiled)` -- so the two halves of "riders" disagreed
+      // about a defender whose reductions reached zero, and every on-hit rider
+      // in Appendix A was silent against exactly the targets worth riding.
+      // `rules/damage/riders.mjs` is now the single decision, with the reasons.
+      const riders = ridersFire({ skipped, result });
+      if (riders) await fireDamageDealt(state, result);
       // ...and the mirror, on the Unit that took it.
-      if (!skipped && result.total > 0) await fireDamageTaken(state, result);
+      if (riders) await fireDamageTaken(state, result);
 
       await message.setFlag("fgt", "damage", result.total);
       await message.setFlag("fgt", "effects", [...before, ...applied].map((a) => a.summary));
