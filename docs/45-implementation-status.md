@@ -3741,6 +3741,25 @@ false with nothing to say so. Found because `self:lastOfSummonGroup` passed a **
 before the facet that admits it existed. The check now runs on both branches; the rest of the
 corpus was already clean, which is the only reason this is a near-miss rather than a list.
 
+#### Commit 11 — the four panels around a Unit, read off its facing
+
+Every placement in the corpus until now was a **disc** — *"within a 5x5 area"*, *"on a panel
+directly next to her"* — and took the first N free panels in whatever order `chebyshevDisc`
+produced. That is right when the summons are interchangeable. Raikou's four are not: they differ
+in Range, element and rider, so which one is in front is part of what the Noble Phantasm does.
+
+Derived from `FACING_DEGREES` by rotation rather than tabulated, because four of the eight
+facings are diagonals and *"in front of"* a Servant facing `ne` is `(i−1, j+1)`. `geometry.mjs`
+gained `FACING_OFFSETS` and `rotateFacing`; an 8×4 table would have been 32 entries obliged to
+agree with `coneOf` for ever, and the test that guards it simply checks every 90° step from
+every facing lands on a facing.
+
+Two rulings are in the code rather than in a comment. **Displacement is outward along the same
+axis** — sliding a blocked clone sideways would put two copies on one side and none on another.
+And a clone with nowhere to go **keeps its index** as `null` rather than shortening the list, so
+`placeSummons` reports *"Raikou (Urabe) had nowhere to appear"* rather than *"3 of 4 summoned"*.
+The first is a rule a player can act on; the second is a shrug.
+
 ---
 
 ---

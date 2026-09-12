@@ -19,6 +19,7 @@
 
 import { chebyshevDisc } from "../domain/geometry.mjs";
 import { currentBoard } from "./board.mjs";
+import { orthogonalPanels, SHEET_ORDER } from "../rules/targeting/orthogonal.mjs";
 
 /**
  * Run a `summon` phase.
@@ -150,6 +151,24 @@ export function freePanels(summoner, placement, needed) {
       .flatMap((u) => (u.panels ?? [u.panel]).filter(Boolean).map((p) => `${p.i},${p.j}`)),
   );
 
+  // *"...on the panels in front of her, behind her, and her left and right."*
+  //
+  // An ORDERED formation rather than a disc, and the distinction is the clause:
+  // Raikou's four copies differ in Range, element and rider, so which one is in
+  // front is part of what the Noble Phantasm does. `chebyshevDisc` returns
+  // panels in its own order and would scatter them.
+  //
+  // Returns `null` for a direction with no free panel on its axis -- kept in
+  // place rather than filtered out, so `placeSummons` can name the copy that
+  // had nowhere to go instead of reporting a count.
+  if (placement.shape === "orthogonal") {
+    return orthogonalPanels(origin, self.facing ?? "n", placement.order ?? SHEET_ORDER, {
+      bounds: board.bounds ?? null,
+      occupied,
+      maxDistance: placement.maxDistance ?? 6,
+    });
+  }
+
   return chebyshevDisc(origin, radius, board.bounds ?? null)
     .filter((p) => !occupied.has(`${p.i},${p.j}`))
     .slice(0, needed);
@@ -179,6 +198,18 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
   for (const [index, contentId] of contentIds.entries()) {
     const panel = panels[index];
     if (!panel) {
+      // An ORDERED placement leaves a hole rather than running out: Raikou's
+      // copy with a wall in front of it gets `null` at its own index while its
+      // three sisters appear. So this CONTINUES rather than breaking, and names
+      // the one that could not appear -- "Raikou (Urabe) had nowhere to appear"
+      // is a rule a player can act on; "3 of 4 summoned" is not.
+      if (panels.length === contentIds.length) {
+        const named = await fromPacks(contentId);
+        ui.notifications?.warn(game.i18n.format("FGT.Summon.NoPanel", {
+          name: named?.name ?? contentId,
+        }));
+        continue;
+      }
       // Ran out of room. Reported rather than dropped: a player who rolled six
       // and got four needs to know which rule took the other two.
       ui.notifications?.warn(game.i18n.format("FGT.Summon.NoRoom", { count: contentIds.length - index }));
