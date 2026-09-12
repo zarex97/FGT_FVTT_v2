@@ -336,6 +336,12 @@ export function snapshotUnit(actor, {
       charges: chargesLeft(actor, r),
     })),
     checkModifiers: contributions.checkModifiers,
+    // Properties of the ATTACK contributed by the attacker's own buffs, folded
+    // into the spec by `engine/attack.mjs#buildAttackSpec`. Projected here
+    // because a contribution the snapshot does not carry is one the engine
+    // cannot read -- which is how `system.concealed` sat unanswered through
+    // four subsystems that all consulted it.
+    attackProperties: contributions.attackProperties ?? [],
     damageNegation: contributions.damageNegation,
     // `contributions.statDeltas` is informational: `FGTActor#prepareDerivedData`
     // has ALREADY folded those into `mov`, `range`, `agility` and friends above

@@ -580,6 +580,56 @@ function rideFacts(placement) {
   };
 }
 
+/**
+ * The attack properties the attacker's own buffs contribute.
+ *
+ * **`attacker` here is an Actor DOCUMENT, not a snapshot.** `componentOf` eight
+ * lines below reads `attacker.system.normalAttack.component`, and the `aim`
+ * clause reads raw ActiveEffect documents off `attacker.effects` -- so reading
+ * a projected field like `attacker.attackProperties` would find `undefined`
+ * every single time and silently grant nothing. That is precisely the
+ * document-for-snapshot mix-up that made `normalAttackAt` return a null element
+ * for every Servant in the game, from a call site in this same function.
+ *
+ * @param {object} attacker an Actor document
+ * @returns {Array<{property: string, value: number|boolean}>}
+ */
+function attackerProperties(attacker) {
+  if (!attacker) return [];
+  return unitSnapshot(attacker)?.attackProperties ?? [];
+}
+
+/**
+ * Does a buff on the attacker grant this boolean attack property?
+ *
+ * @param {object} attacker an Actor document
+ * @param {string} property
+ * @returns {boolean}
+ */
+function attackerGrants(attacker, property) {
+  return attackerProperties(attacker).some(
+    (p) => p.property === property && p.value !== false && p.value !== 0,
+  );
+}
+
+/**
+ * The strongest numeric value any buff contributes for this property.
+ *
+ * `Math.max`, because these all say "how much of the defence gets through" and
+ * two sources must not multiply into near-total bypass by accident.
+ *
+ * @param {object} attacker an Actor document
+ * @param {string} property
+ * @param {number} fallback
+ * @returns {number}
+ */
+function attackerProperty(attacker, property, fallback) {
+  const values = attackerProperties(attacker)
+    .filter((p) => p.property === property && typeof p.value === "number")
+    .map((p) => p.value);
+  return values.length > 0 ? Math.max(...values) : fallback;
+}
+
 function buildAttackSpec({ attacker, ability, abilityId, options, placement = null }) {
   return {
       abilityId,
@@ -621,7 +671,19 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
         || [...(attacker?.effects ?? [])].some(
           (e) => !e.disabled && !e.isSuppressed && (e.system?.defId ?? e.name) === "aim",
         ),
-      pierce: Boolean(resolvedDamage(ability, options)?.pierce),
+      // The ability's own damage block OR a buff on the attacker. Kiritsugu's
+      // Affection of the Holy Grail (*"Applies Pierce to himself"*) and
+      // Penetration (*"the Ignore Def effect and halves the effect of Invuln"*)
+      // are the first buffs in the game to grant an attack property, and until
+      // `AttackProperty` existed there was nowhere for them to put it -- which
+      // is why the corpus had no Pierce document at all.
+      pierce: Boolean(resolvedDamage(ability, options)?.pierce)
+        || attackerGrants(attacker, "pierce"),
+      ignoresDefUp: Boolean(resolvedDamage(ability, options)?.ignoresDefUp)
+        || attackerGrants(attacker, "ignoresDefUp"),
+      // How much damage SURVIVES an Invuln, for a clause that weakens it rather
+      // than bypassing it. 0 is the default and reproduces total negation.
+      invulnFactor: attackerProperty(attacker, "invulnFactor", 0),
       // The damage TYPE, carried on the attack for the same reason `component` is.
       // The pipeline has read `ctx.attack.element` at stage 0 since it was written
       // -- Fire breaks Freeze, `flamHeal` converts it -- and the attack spec never

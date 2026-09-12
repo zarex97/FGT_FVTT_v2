@@ -22,7 +22,7 @@ valence: defensive
 stacking: noneRefresh
 baseChance: 100
 description: |
-  No damage from anything, including NP and Fixed damage, even against Pierce.
+  No damage from anything, including NP and Fixed damage, even against @effect[pierce]{Pierce}.
   Beats Invuln.
 # No rules of its own: the pipeline recognises it by id at stage 0, the same way
 # it recognises `substitution` and `invuln`. A `DamageNegation` element here

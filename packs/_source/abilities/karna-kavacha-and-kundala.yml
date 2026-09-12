@@ -30,7 +30,7 @@ negatedBy: [vasaviActivated]
 # Seal, and `npSeal` is deliberately absent from `negatedBy` above.
 description: |
   (Passive) All damage received by Karna is reduced by 90% including NP; this effect is ignored
-  by Attacks which have the Pierce effect. While Kavacha and Kundala is in effect, Karna's
+  by Attacks which have the @effect[pierce]{Pierce} effect. While Kavacha and Kundala is in effect, Karna's
   Master loses 20 Health at the end of every Turn that Karna is involved in a Combat Phase;
   his Master's Health cannot drop below 1 in this way. The effect of Kavacha and Kundala is
   lost when Vasavi Shakti is used/Activated.

@@ -74,7 +74,7 @@ export function empty() {
     auras: [], applicationChances: [], compulsions: [], preemptions: [], unhandled: [],
     autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
-    forcedModeRules: [], magnitudeScales: [],
+    forcedModeRules: [], magnitudeScales: [], attackProperties: [],
   };
 }
 
@@ -908,6 +908,34 @@ export const EXECUTORS = Object.freeze({
     out.modifiers.push({
       key: "blockUp", value: scalar(resolveValue(el, rank, ctx)), predicate: deferred, source,
     });
+  },
+
+  /**
+   * A property of the ATTACK, contributed by a buff on the attacker.
+   *
+   * `attack.pierce` has always come from `resolvedDamage(ability, options)` —
+   * the ability's OWN damage block — and `ignoresDefensiveBuffs` is set by the
+   * Heel resolver. So an effect that grants one had no path at all, which is
+   * why there was no `pierce` effect document in the corpus despite `Pierce`
+   * being in Appendix A and read by the pipeline in three separate places.
+   *
+   * Kiritsugu needs two: *"Applies Pierce to himself"* (Affection of the Holy
+   * Grail) and *"the Ignore Def effect and halves the effect of Invuln"*
+   * (Penetration). The second is why the value is not simply a boolean — an
+   * `invulnFactor` of 0.5 is how much damage SURVIVES a defence that ordinarily
+   * negates outright.
+   *
+   * `predicate` is deferred like `CheckModifier`'s above: a property
+   * conditioned on the attack cannot be answered when the buff is applied.
+   */
+  AttackProperty(el, { rank, source, out, ctx, deferred = null }) {
+    // A bare `property:` means "grant it", so the default is `true`. A number
+    // resolves through the `@` machinery like any other magnitude; a boolean
+    // must survive intact, and `scalar()` would flatten it.
+    const value = el.value === undefined
+      ? true
+      : (typeof el.value === "boolean" ? el.value : scalar(resolveValue(el, rank, ctx)));
+    out.attackProperties.push({ property: el.property, value, predicate: deferred, source });
   },
 
   /** Achilles's Andreias Amarantos: a tier keyed on an attacker property. */

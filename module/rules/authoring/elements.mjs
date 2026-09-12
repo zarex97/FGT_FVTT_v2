@@ -138,6 +138,12 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "component", type: "select", choices: ["str", "mag"] },
   ]),
   entry("BlockModifier", "Percentage points onto the flat 25% a Block removes.", [...SCALED]),
+  entry("AttackProperty", "A property of the attack, granted by a buff on the attacker.", [
+    { key: "property", type: "text" },
+    // Boolean for `pierce` / `ignoresDefUp`; a fraction for `invulnFactor`,
+    // which is how much damage survives a defence that ordinarily negates.
+    { key: "value", type: "text" },
+  ]),
 
   /* ── Stats and shape ─────────────────────────────────────────────────── */
   entry("StatDelta", "Adds to or multiplies a stat, with an optional floor.", [
