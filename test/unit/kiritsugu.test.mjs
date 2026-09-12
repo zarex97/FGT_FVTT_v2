@@ -901,3 +901,36 @@ describe("Mystery Bisection", () => {
 
   it("costs 5◈+⅓◈", () => expect(a.cooldown).toBe("5◈+⅓◈"));
 });
+
+describe("Lethal Gunfire Suppression — a player can tell its two halves apart", () => {
+  it("gives the shot a name distinct from the Active's", () => {
+    // Both halves are one sheet entry, and both carried the same name -- two
+    // identical rows on his sheet, and "Lethal Gunfire Suppression (Kiritsugu)"
+    // twice in a reaction prompt. Found by looking at the live actor, not by
+    // any test: nothing here compares two documents' names.
+    const active = src("abilities", "kiritsugu-lethal-gunfire-suppression.yml").name;
+    const shot = src("abilities", "kiritsugu-suppression-shot.yml").name;
+    expect(shot).not.toBe(active);
+    expect(shot.startsWith(active)).toBe(true);   // still recognisably the skill
+  });
+});
+
+describe("Setup rolls read the Rank in force, not the one on paper", () => {
+  it("rolls Max Luck from EX, which is what the passive grants", () => {
+    // `sheetSnapshot` returned `toObject().system` -- the WRITTEN rank -- so
+    // Kiritsugu was summoned with Max Luck off `E` (0 + 1d4) instead of `EX`
+    // (20 + 1d4): FOUR Luck where he should have had twenty-odd, making an A+
+    // rank Skill worth nothing at all. Measured live: 4, then 23.
+    //
+    // The clause that reverses it reads "instead of REDUCING his Max Luck",
+    // which only means anything if the Rank was raising it to begin with.
+    expect(lookup("baseLuckByLuc", Rank.parse("E"))).not.toEqual(
+      lookup("baseLuckByLuc", Rank.parse("EX")),
+    );
+    // His written LUC is E precisely so the passive has something to raise.
+    expect(src("servants", "kiritsugu.yml").parameters.luc).toBe("E");
+    const shift = src("abilities", "kiritsugu-affection-of-the-holy-grail.yml")
+      .passiveRules.find((r) => r.key === "RankShift");
+    expect(shift.to).toBe("EX");
+  });
+});
