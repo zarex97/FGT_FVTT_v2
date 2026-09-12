@@ -1,0 +1,86 @@
+# Raikou, char_orig_sheets/Copia de Raikou.md
+#
+# Four clauses and ONE predicate fragment repeated on all four (R2). The sheet's
+# note reads:
+#
+#   "Mystery Slayer and Atk Up (MS) have no effect on 'Demi-Servants' and
+#    'Pseudo-Servants' except Sitonai."
+#
+# Read as the WHOLE SKILL rather than as the two [Earth]/[Sky] halves, because
+# the sentence names the skill, and a Demi-Servant who is also Demonic would
+# otherwise be a hole in it.
+#
+# Sitonai is named by CONTENT ID -- the one name of a Servant's that a world
+# cannot rename. She is in neither roster, so `validate:content` warns and is
+# right to: the `registry` kind warns rather than errors precisely so a clause
+# can name what is coming, which is what `outsider` and `undead` have always
+# been.
+schema: 1
+id: raikou-mystery-slayer
+name: "Mystery Slayer"
+rank: A
+kind: skill
+slug: mysterySlayer
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Passive 1) All damage dealt to Units with the '[Earth]' or '[Sky]' Attribute is increased by
+  20% including NP.
+  (Passive 2) All damage dealt to Units with the 'Demonic' Attribute is increased by 20%
+  including NP.
+  (Active) Used during your Turn. Applies @effect[atkUpMs]{Atk Up (MS)} for 1◈ Turns, all damage dealt to Units
+  with the '[Earth]' or '[Sky]' Attribute is increased by 30% including NP; and applies
+  @effect[atkUpDemonic]{Atk Up (Demonic)} for 1◈ Turns, all damage dealt to Units with the 'Demonic' Attribute is
+  increased by 30% including NP.
+  Note: Mystery Slayer and Atk Up (MS) have no effect on 'Demi-Servants' and 'Pseudo-Servants'
+  except Sitonai.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # Both buffs reach HER and nobody else -- they are damage she deals, not
+  # damage her allies deal -- so one phase carries them.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUpMs, magnitude: 30, npMagnitude: 30, duration: "1◈" }
+      - { id: atkUpDemonic, magnitude: 30, npMagnitude: 30, duration: "1◈" }
+passiveRules:
+  # Passive 1. "[Earth]' or '[Sky]'" -- she is [Sky] herself, which is worth
+  # noticing: this is a mirror-match bonus as well as an anti-Divine one.
+  #
+  # `defer: attack` on both, necessarily: the target does not exist at
+  # collection time, so answering `target:attribute:` there answers it wrong
+  # and drops the modifier for ever.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 20
+    npValue: 20
+    defer: attack
+    predicate:
+      - { anyOf: ["target:attribute:earth", "target:attribute:sky"] }
+      # `or`, NOT `anyOf`. `anyOf` takes bare option STRINGS and tests set
+      # membership directly (`ctx.options.has(o)`); this branch holds a
+      # statement object, so `anyOf` would ask whether the set contains an
+      # object, get false, and make the whole clause permanently unsatisfiable
+      # -- Mystery Slayer silently doing nothing to anybody. `or` takes
+      # statements. The inner `anyOf` above is strings and is correct.
+      - or:
+          - { nor: ["target:attribute:demiServant", "target:attribute:pseudoServant"] }
+          - "target:contentId:sitonai"
+
+  # Passive 2. The exclusion rides on this one too (R2).
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 20
+    npValue: 20
+    defer: attack
+    predicate:
+      - "target:attribute:demonic"
+      - or:
+          - { nor: ["target:attribute:demiServant", "target:attribute:pseudoServant"] }
+          - "target:contentId:sitonai"

@@ -23,6 +23,7 @@ import { collectContributions } from "../../module/rules/elements.mjs";
 import { resolveRef } from "../../tools/lib/content.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
+import { test as testPredicate } from "../../module/rules/predicate.mjs";
 
 /** @param {string} id @returns {object} */
 export function ability(id) {
@@ -807,5 +808,105 @@ describe("Thunder God's Embodiment", () => {
       { element: "fire", elementFraction: 0.5 },
     );
     expect(out.total).toBe(240);
+  });
+});
+
+/* ========================================================================== */
+/*  Mystery Slayer                                                            */
+/* ========================================================================== */
+
+describe("Mystery Slayer", () => {
+  const A = ability("raikou-mystery-slayer");
+  const MS = effect("atk-up-ms");
+  const DEM = effect("atk-up-demonic");
+
+  /** The exclusion, as every one of the four clauses must spell it (R2). */
+  const EXCLUSION = {
+    // `or`, not `anyOf`: `anyOf` takes bare option strings and tests set
+    // membership, so a statement object inside one is permanently false.
+    or: [
+      { nor: ["target:attribute:demiServant", "target:attribute:pseudoServant"] },
+      "target:contentId:sitonai",
+    ],
+  };
+
+  /** @param {object[]} predicate @param {string[]} options */
+  const holds = (predicate, options) => testPredicate(predicate, { options: new Set(options) });
+
+  const passives = A.passiveRules.filter((r) => r.key === "DamageModifier");
+
+  it("has two passives, each +20% including NP", () => {
+    expect(passives).toHaveLength(2);
+    for (const p of passives) {
+      expect(p.value).toBe(20);
+      expect(p.npValue).toBe(20);
+      expect(p.direction).toBe("dealt");
+    }
+  });
+
+  it("targets [Earth] or [Sky] with the first passive, Demonic with the second", () => {
+    expect(passives[0].predicate[0]).toEqual({
+      anyOf: ["target:attribute:earth", "target:attribute:sky"],
+    });
+    expect(passives[1].predicate[0]).toBe("target:attribute:demonic");
+  });
+
+  it("defers every clause, because the target does not exist at collection time", () => {
+    // Answering `target:attribute:` at collection time answers it wrong and
+    // drops the modifier for ever -- the defect `critUpHawkeye`'s file records
+    // in the same words, and the one that made Scáthach's God Slayer add
+    // nothing against a Divine Unit.
+    for (const p of [...passives, MS.rules[0], DEM.rules[0]]) {
+      expect(p.defer).toBe("attack");
+    }
+  });
+
+  it("carries the exclusion on ALL FOUR clauses (R2)", () => {
+    // The note names "Mystery Slayer and Atk Up (MS)", and the ruling reads
+    // that as the whole skill: a Demi-Servant who is also Demonic would
+    // otherwise be a hole in a sentence that names the skill by name.
+    for (const rule of passives) expect(rule.predicate).toContainEqual(EXCLUSION);
+    expect(MS.rules[0].predicate).toContainEqual(EXCLUSION);
+    expect(DEM.rules[0].predicate).toContainEqual(EXCLUSION);
+  });
+
+  it("the exclusion admits an ordinary Servant", () => {
+    expect(holds([EXCLUSION], ["target:attribute:servant", "target:attribute:sky"])).toBe(true);
+  });
+
+  it("the exclusion refuses a Demi-Servant and a Pseudo-Servant", () => {
+    expect(holds([EXCLUSION], ["target:attribute:demiServant"])).toBe(false);
+    expect(holds([EXCLUSION], ["target:attribute:pseudoServant"])).toBe(false);
+  });
+
+  it("...and admits Sitonai, who is one", () => {
+    // The one stated exception, named by CONTENT ID rather than by an
+    // attribute -- the one name of a Servant's a world cannot rename. She is
+    // in neither roster, so this is a forward reference, which the facet
+    // supports on purpose (the same thing `outsider` and `undead` are).
+    expect(holds([EXCLUSION], ["target:attribute:pseudoServant", "target:contentId:sitonai"]))
+      .toBe(true);
+  });
+
+  it("applies both Atk Ups for 1◈ on a 4◈ cooldown", () => {
+    expect(A.cooldown).toBe("4◈");
+    const phase = A.phases.find((p) => p.kind === "applyEffects");
+    expect(phase.target).toBe("self");
+    expect(phase.effects).toEqual([
+      { id: "atkUpMs", magnitude: 30, npMagnitude: 30, duration: "1◈" },
+      { id: "atkUpDemonic", magnitude: 30, npMagnitude: 30, duration: "1◈" },
+    ]);
+  });
+
+  it("gives a [Sky] Demi-Servant nothing at all, passive or active", () => {
+    // The whole point of R2, end to end. Raikou is [Sky] herself, so the
+    // target here is a plausible one: a Demi-Servant who would otherwise take
+    // +20% from the passive and +30% from the buff.
+    const options = new Set([
+      "target:attribute:sky", "target:attribute:demiServant", "target:attribute:demonic",
+    ]);
+    for (const rule of [...passives, MS.rules[0], DEM.rules[0]]) {
+      expect(testPredicate(rule.predicate, { options })).toBe(false);
+    }
   });
 });

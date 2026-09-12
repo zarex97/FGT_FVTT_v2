@@ -1,0 +1,39 @@
+# Raikou's Mystery Slayer, Active clause 2.
+#
+# The twin of `atk-up-ms.yml`, and it carries the SAME exclusion (R2) even
+# though the sheet's note names only "Mystery Slayer and Atk Up (MS)". The note
+# names the SKILL, and a Demi-Servant who is also Demonic would otherwise be a
+# hole in a sentence that names the skill by name.
+#
+# Repeated rather than shared through a YAML anchor on purpose: the build
+# flattens anchors away, and a reader checking the sheet against the Demonic
+# clause should find the exclusion IN the Demonic clause.
+schema: 1
+id: atkUpDemonic
+name: "Atk Up (Demonic)"
+description: |
+  All damage dealt to Units with the Demonic Attribute is increased by X% including NP.
+  No effect on Demi-Servants or Pseudo-Servants except Sitonai.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@magnitude"
+    defer: attack
+    predicate:
+      - "target:attribute:demonic"
+      # `or`, NOT `anyOf`. `anyOf` takes bare option STRINGS and tests set
+      # membership directly (`ctx.options.has(o)`); this branch holds a
+      # statement object, so `anyOf` would ask whether the set contains an
+      # object, get false, and make the whole clause permanently unsatisfiable
+      # -- Mystery Slayer silently doing nothing to anybody. `or` takes
+      # statements. The inner `anyOf` above is strings and is correct.
+      - or:
+          - { nor: ["target:attribute:demiServant", "target:attribute:pseudoServant"] }
+          - "target:contentId:sitonai"

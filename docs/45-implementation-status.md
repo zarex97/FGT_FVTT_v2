@@ -3679,6 +3679,31 @@ a Raikou resolves wrongly in both directions under the simpler shape.
 `A-effect-catalogue.md` has carried the `Raikou` row since the catalogue was transcribed, with no
 file behind it. It has one now.
 
+#### Commit 9 — an exclusion that names a Servant who does not exist, and `anyOf` vs `or`
+
+Four clauses and one predicate fragment repeated on all four (R2). The sheet's note names
+*"Mystery Slayer and Atk Up (MS)"*, read as the **whole skill** rather than as its two
+`[Earth]`/`[Sky]` halves: a Demi-Servant who is also Demonic would otherwise be a hole in a
+sentence that names the skill by name. Repeated rather than shared through a YAML anchor, because
+the build flattens anchors away and a reader checking the sheet against the Demonic clause should
+find the exclusion *in* the Demonic clause.
+
+Sitonai is named by **content id** — the one name of a Servant's a world cannot rename — and she
+is in neither roster, so `validate:content` warns and is right to. The `registry` kind warns
+rather than errors precisely so a clause can name what is coming.
+
+**`anyOf` is not a synonym for `or`, and it cost a silent skill.** `and`, `or`, `nand` and `nor`
+take statements and recurse; `anyOf` tests `ctx.options.has(o)` directly on bare strings. The
+exclusion is a `{nor}` beside a bare option, and spelled `anyOf` it asked whether a
+`Set<string>` contained an object — `false`, always, so **all four clauses of Mystery Slayer were
+permanently unsatisfiable**. It authored cleanly and validated cleanly. Only a test that
+exercised the predicate against real option sets found it.
+
+`tools/lib/content.mjs#anyOfHoldsOnlyOptions` now errors on it, verified by deliberately
+reintroducing the mistake and reading the message. It runs **before** the option walk, because a
+malformed `anyOf` makes `referencedOptions` throw `o.startsWith is not a function` — a stack
+trace with no file name, which is worse than the silence it replaced.
+
 ---
 
 ---

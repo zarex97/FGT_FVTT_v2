@@ -792,6 +792,23 @@ aboard the Hanging Gardens), and in that last case the distance still exists. A 
 6, for the reason every ladder in this vocabulary is one: a predicate can only test set
 membership, so "within 3" has to already be a member for a Master standing 2 away.
 
+#### `anyOf` is not a synonym for `or`, and the build now says so
+
+`rules/predicate.mjs` gives `anyOf` a different contract from its neighbours. `and`, `or`,
+`nand` and `nor` take **statements** and recurse; `anyOf` is the shorthand for set membership and
+tests `ctx.options.has(o)` directly. Put a statement object inside one and the engine asks
+whether a `Set<string>` contains an object, gets `false`, and the clause is **permanently
+unsatisfiable** — authored cleanly, validated, compiled, loaded, and doing nothing for ever.
+
+The two keys read as synonyms, which is exactly what makes the mistake invisible at review. It
+was made writing Raikou's Mystery Slayer, whose Demi-/Pseudo-Servant exclusion is a `{nor}`
+beside a bare option: spelled `anyOf`, all four clauses of the skill were false against
+everybody, and only a test that exercised the predicate caught it.
+
+`tools/lib/content.mjs#anyOfHoldsOnlyOptions` now errors on it, and runs **before** the option
+walk — a malformed `anyOf` makes `referencedOptions` throw `o.startsWith is not a function`,
+which is a stack trace with no file name in place of a diagnosis.
+
 #### The guard, and where it used to stop
 
 `tools/lib/content.mjs` now **errors** through `isEmittableOption`, reading every predicate site via
