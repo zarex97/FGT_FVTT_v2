@@ -630,14 +630,28 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // Karna's Mana Burst (Flames) resists by type in both directions.
       // A Normal Attack has no ability document; its element comes from the
       // unit's own `normalAttack` spec, which `normalAttackAt` resolves.
+      // `attacker` is the ACTOR DOCUMENT and `normalAttackAt` reads the SYSTEM
+      // shape, so this handed it a document whose `.normalAttack` is undefined
+      // and got `null` back every time. Every Servant whose ordinary swing has
+      // a type has therefore been swinging with NO element: Ozymandias's Light,
+      // Nemo's Water, and all four of Raikou's copies -- so no Freeze break, no
+      // `flamHeal` conversion, no element-scoped resistance and no
+      // `attack:element:` predicate. The same document-for-snapshot mix-up as
+      // the `.effects` read above, eight lines away.
       element: resolvedDamage(ability, options)?.element ?? ability?.system?.element
-        ?? (ability ? null : normalAttackAt(attacker, null)?.element) ?? null,
+        ?? (ability ? null : normalAttackAt(attacker?.system ?? attacker, null)?.element) ?? null,
       // "Fire damage (half)": how much of the total carries that element, which
       // the pipeline's stage 4b scales element-scoped modifiers by. Travels
       // BESIDE `element` at all three spec-building sites, because an element
       // that arrives without its fraction is silently a whole-element attack.
       elementFraction: resolvedDamage(ability, options)?.elementFraction
-        ?? ability?.system?.damage?.elementFraction ?? undefined,
+        ?? ability?.system?.damage?.elementFraction
+        // ...and a Normal Attack's own "(half)", from the same spec its element
+        // comes from. Without it an element arrives unfractioned, which stage 4b
+        // reads as a whole-element attack -- the exact silent widening the
+        // comment above warns about.
+        ?? (ability ? undefined : normalAttackAt(attacker?.system ?? attacker, null)?.elementFraction)
+        ?? undefined,
       ignoresMagicResistance: Boolean(
         resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
       ),
