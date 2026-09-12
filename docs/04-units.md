@@ -802,6 +802,33 @@ revival source for its priority, picks the highest, consumes it, and re-runs the
 health check. Chapter 31 walks through Heracles in detail, including the interaction where
 God Hand *records* the attack that killed him so that attack can never kill him again.
 
+### A summon may inherit more than a number
+
+`inherit` states a stat **relative to the summoner** — *"Agility: Pale Rider's plus 2"*, *"Luck:
+Same as Ozymandias'"* — resolved at placement, because that is the only moment both values are
+known and fixed. Raikou's four Tenmōkaikai copies extend it twice:
+
+- **`factor`**, beside the existing `delta`. *"Max Health is halved"* is `{from: summoner,
+  factor: 0.5}`, read off `.max` so a wounded summoner still spawns copies at half of her
+  **maximum**. Rounded down, and applied before any delta.
+- **`passives: {from, excludeAbilities}`**, which inherits *rules* rather than a number.
+  *"(Passive effects are still present.)"* The summoner's ability documents are copied onto the
+  summon with `activeRules`, `phases`, `timing` and `cooldown` stripped.
+
+  Documents rather than flattened rule elements, and the reason is `rank`: a unit-level
+  `passiveRules` block collects as one pseudo-ability at `rank: null`, so every table-driven
+  magnitude would resolve against nothing. Divinity C is +30 on a copy only because the copy
+  carries a document that still says `C`.
+
+  `excludeAbilities` names what the sheet withholds. Actives go by construction; a Skill whose
+  *passives* must not travel has to be named, which is why Raikou's list says `class-riding` —
+  without it a copy would inherit Double Move, Riding Attack and Passenger Seat.
+
+Note that stat inheritance handles two shapes: `health`, `agility` and `luck` are `{value, max}`
+resources, and `mov` is a bare integer. Writing a resource object into the latter hands the
+schema an object where it wants a number and leaves the summon on MOV 0.
+
+
 ---
 
 **Next:** [05 — Ranks and Parameters](05-ranks-and-parameters.md)

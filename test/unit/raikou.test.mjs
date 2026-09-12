@@ -17,6 +17,7 @@ import { parse } from "yaml";
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { annotateZon } from "../../module/rules/zon.mjs";
+import { annotateLastOfSummonGroup } from "../../module/rules/snapshot.mjs";
 import { rollOptionsFor, isEmittableOption } from "../../module/rules/options.mjs";
 import { canToggleMode, forcedModes } from "../../module/rules/modes.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
@@ -908,5 +909,140 @@ describe("Mystery Slayer", () => {
     for (const rule of [...passives, MS.rules[0], DEM.rules[0]]) {
       expect(testPredicate(rule.predicate, { options })).toBe(false);
     }
+  });
+});
+
+/* ========================================================================== */
+/*  The four copies                                                           */
+/* ========================================================================== */
+
+describe("the four copies", () => {
+  /** Range, element, rider — the only three fields that differ. */
+  const COPIES = {
+    "raikou-watanabe": { range: 1, element: "fire", rider: "burn" },
+    "raikou-sakata": { range: 1, element: "lightning", rider: "shock" },
+    "raikou-urabe": { range: 3, element: "wind", rider: "bleed" },
+    "raikou-usui": { range: 2, element: "ice", rider: "disable" },
+  };
+  const IDS = Object.keys(COPIES);
+
+  it.each(Object.entries(COPIES))("%s has its own Range, element and rider", (id, spec) => {
+    const S = summon(id);
+    expect(S.range).toEqual({ panels: spec.range, targets: 1 });
+    expect(S.normalAttack.element).toBe(spec.element);
+    // "(half)" on every one of the four.
+    expect(S.normalAttack.elementFraction).toBe(0.5);
+    const rider = S.passiveRules.find((r) => r.key === "OnEvent" && r.event === "damageDealt");
+    expect(rider.predicate).toEqual(["attack:kind:normal"]);
+    expect(rider.then[0].effect.id).toBe(spec.rider);
+    expect(rider.then[0].chance).toBe(50);
+    expect(rider.then[0].duration).toBe("1◈");
+  });
+
+  it("gives the four FOUR different elements and four different riders", () => {
+    // The whole point of the clause: it is not one summon printed four times.
+    expect(new Set(IDS.map((id) => COPIES[id].element)).size).toBe(4);
+    expect(new Set(IDS.map((id) => COPIES[id].rider)).size).toBe(4);
+  });
+
+  it.each(IDS)("%s inherits her Agility, Luck and MOV, and HALF her Max Health", (id) => {
+    const S = summon(id);
+    expect(S.inherit.agility).toEqual({ from: "summoner" });
+    expect(S.inherit.luck).toEqual({ from: "summoner" });
+    expect(S.inherit.mov).toEqual({ from: "summoner" });
+    // MAX, not current: a wounded Raikou still spawns copies at half of 1250.
+    expect(S.inherit.health).toEqual({ from: "summoner", factor: 0.5 });
+    // No number of its own -- every one is read off her at placement.
+    expect(S.baseHealth).toBeNull();
+  });
+
+  it.each(IDS)("%s inherits her PASSIVES but not the two named Skills", (id) => {
+    const S = summon(id);
+    // "(Passive effects are still present)" -- Divinity's +30, both Mystery
+    // Slayer passives, Magic Resistance, Mana Burst's Shock immunity and
+    // Lightning halving all reach the copies. Mad Enhancement's magnitudes are
+    // `activeRules` and are excluded by construction; Riding's grants are
+    // `passiveRules` and have to be named, or a copy would get Double Move.
+    expect(S.inherit.passives).toEqual({
+      from: "summoner",
+      excludeAbilities: ["class-mad-enhancement", "class-riding"],
+    });
+  });
+
+  it.each(IDS)("%s can only perform Normal Attacks, and is free of the budget", (id) => {
+    const S = summon(id);
+    expect(S.passiveRules).toContainEqual({
+      key: "GrantedAbility", abilities: ["normalAttacksOnly"],
+    });
+    // Two different rules, both stated: exempt from the POOL, still capped per
+    // Unit. "Raikou's copies do not count towards the number of Units that
+    // Move and/or Attack during your Turn. The same copy can only Move/Attack
+    // once per Turn."
+    expect(S.countsTowardBudget).toBe(false);
+    expect(S.actsOncePerTurn).toBe(true);
+  });
+
+  it.each(IDS)("%s carries the copies' +15%% Crit, not Raikou's +30%%", (id) => {
+    // Theirs, so it lives on them: an aura from the Noble Phantasm would have
+    // to name four units whose document ids no content file can know.
+    const crit = summon(id).passiveRules.find((r) => r.key === "CheckModifier");
+    expect(crit.check).toBe("crit");
+    expect(crit.value).toBe(15);
+  });
+
+  it.each(IDS)("%s shields Raikou and her Master from anyone beside it", (id) => {
+    expect(summon(id).passiveRules).toContainEqual({
+      key: "TargetabilityModifier",
+      radius: 1,
+      relations: ["ally", "self"],
+      recipientRoles: ["summoner", "summonerMaster"],
+    });
+  });
+
+  it.each(IDS)("%s ends the Noble Phantasm if it is the last one standing", (id) => {
+    const end = summon(id).passiveRules.find(
+      (r) => r.key === "OnEvent" && r.event === "unitDefeated",
+    );
+    // The last copy dying ENDS the NP -- not the same as the NP merely having
+    // no copies left -- and that is what starts the 7◈+⅓◈. Fired from the copy
+    // because the copy is the unit that died.
+    expect(end.predicate).toEqual(["self:lastOfSummonGroup"]);
+    expect(end.then[0]).toEqual({
+      key: "SetMode", subject: "summoner", ability: "tenmokaikai", active: false,
+    });
+  });
+
+  it("emits `self:lastOfSummonGroup` only for a lone summon", () => {
+    const board = (n) => ({
+      units: [
+        { id: "r1", kind: "servant" },
+        ...Array.from({ length: n }, (_, i) => ({
+          id: `c${i}`, kind: "summon", summonerId: "r1",
+        })),
+      ],
+    });
+    const lastOf = (n) => {
+      const b = board(n);
+      annotateLastOfSummonGroup(b.units);
+      return b.units.filter((u) => u.lastOfSummonGroup).length;
+    };
+    expect(lastOf(4)).toBe(0);
+    expect(lastOf(2)).toBe(0);
+    expect(lastOf(1)).toBe(1);
+  });
+
+  it("is not confused by another Servant's summons", () => {
+    const units = [
+      { id: "r1", kind: "servant" },
+      { id: "c1", kind: "summon", summonerId: "r1" },
+      { id: "m1", kind: "servant" },
+      { id: "d1", kind: "summon", summonerId: "m1" },
+      { id: "d2", kind: "summon", summonerId: "m1" },
+    ];
+    annotateLastOfSummonGroup(units);
+    // Raikou's one copy is her last; Medea's two are neither.
+    expect(units.find((u) => u.id === "c1").lastOfSummonGroup).toBe(true);
+    expect(units.find((u) => u.id === "d1").lastOfSummonGroup).toBe(false);
+    expect(units.find((u) => u.id === "d2").lastOfSummonGroup).toBe(false);
   });
 });

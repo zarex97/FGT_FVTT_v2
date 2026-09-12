@@ -260,6 +260,11 @@ export const FACETS = Object.freeze([
     prose: "{subject} is in {type} terrain",
   }),
   facet({
+    id: "lastOfSummonGroup",
+    english: "Is the only summon of its summoner still on the board.",
+    prose: "{subject} is the last of its summoner's summons",
+  }),
+  facet({
     id: "withinOfMaster",
     segments: [{ name: "panels", value: number(1, 6) }],
     english: "Is within a number of panels of its OWN contracted Master.",

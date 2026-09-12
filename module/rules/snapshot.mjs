@@ -721,6 +721,8 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   }
   // Positional, like auras: it holds while somebody is standing nearby.
   annotateCompulsions(units, board);
+
+  annotateLastOfSummonGroup(units);
   // Built here rather than cached across calls: `snapshotBoard` is where the
   // board's positions are already in hand, and an index built anywhere else
   // would need the invalidation table (§23.9) to keep it honest. The engine
@@ -1565,4 +1567,38 @@ function magicResistanceOf(actor) {
   if (!mr) return null;
   if (mr.mode === "dice") return { mode: "dice", formula: mr.formula, npDiceDoubled: mr.npDiceDoubled ?? true };
   return { mode: "rank", rank: Rank.parseOrNull(mr.rank), percent: mr.percent };
+}
+
+/**
+ * Mark the summons that are the **last** of their summoner's group standing.
+ *
+ * Raikou's Tenmōkaikai: *"Cooldown: 7◈+⅓◈ Turns after this NP is deactivated
+ * **or after the last Raikou copy is defeated**."* The last copy dying ENDS the
+ * Noble Phantasm — which is not the same as the Noble Phantasm merely having no
+ * copies left — so the clause fires from the copy that died, and that copy has
+ * to know it was the last one.
+ *
+ * A board fact, computed here beside ZON and the auras rather than in the
+ * defeat path, for the reason those two are: whether a Unit is the last of its
+ * group is a property of everybody else's existence, and the defeat handler
+ * reads the board it is handed.
+ *
+ * Grouped by `summonerId`, so two Servants' summons never count each other.
+ *
+ * @param {object[]} units
+ * @returns {object[]} the same units, annotated
+ */
+export function annotateLastOfSummonGroup(units) {
+  /** @type {Map<unknown, number>} */
+  const alive = new Map();
+  for (const u of units ?? []) {
+    if (u.kind !== "summon" || !u.summonerId) continue;
+    alive.set(u.summonerId, (alive.get(u.summonerId) ?? 0) + 1);
+  }
+  for (const u of units ?? []) {
+    u.lastOfSummonGroup = u.kind === "summon"
+      && Boolean(u.summonerId)
+      && alive.get(u.summonerId) === 1;
+  }
+  return units;
 }

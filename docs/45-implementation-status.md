@@ -3704,6 +3704,43 @@ reintroducing the mistake and reading the message. It runs **before** the option
 malformed `anyOf` makes `referencedOptions` throw `o.startsWith is not a function` — a stack
 trace with no file name, which is worse than the silence it replaced.
 
+#### Commit 10 — four copies, two new kinds of inheritance, and a validator blind in one eye
+
+*"(Passive effects are still present.)"* is the clause that costs something. A summon could
+inherit a **stat** from its summoner — the Kagome Spirits and the Sphinxes both do — and could
+not inherit a **rule**. So the copies would have swung without Divinity's +30, without either
+Mystery Slayer passive, without Magic Resistance, and without Mana Burst's Shock immunity, which
+is most of what makes a Raikou a Raikou.
+
+**They inherit ability DOCUMENTS, not loose rule elements, and `rank` is why.** A unit-level
+`passiveRules` block is collected as one pseudo-ability at `rank: null`
+(`snapshot.mjs#contributionsOf`), and every table-driven magnitude she owns resolves against its
+*owning* ability's rank — Divinity C, Magic Resistance D. Flattened, her Divinity's
+`table: divinity` would have looked up a null rank and handed the copies the table's fallback
+instead of +30. Copied as documents with `activeRules`, `phases`, `timing` and `cooldown`
+stripped, each keeps its rank — and the copy's sheet *shows* what it inherited, which is what
+makes the clause checkable on a board rather than only in a test.
+
+`inherit` also gained a **factor** (`health: {from: summoner, factor: 0.5}` — MAX, so a wounded
+Raikou still spawns copies at 625) and a **scalar branch**: `mov` is a bare integer where
+`health`, `agility` and `luck` are `{value, max}` resources, and writing a resource object into
+it would have handed the schema an object and left every copy on MOV 0.
+
+`normalAttacksOnly` is the inverse of Pale Rider's `noNormalAttack` and exists for the same
+reason his does — the buttons are withheld *and* the use is refused, so a player is never offered
+something the rules have already taken away. It matters more here than it would have as
+authoring, because `inherit.passives` hands the copy real ability documents, several of which
+have Actives on her own sheet.
+
+**And the validator was blind in one eye.** `validateDocument` dispatches on
+`documentType === "Actor"` and ran `predicateOptionsExist` **only on the Item branch**. Actors
+carry rule elements too — Bašmu's Normal Attack rider, the Kagome Spirits' Light/Dark banish, the
+Sphinxes' targetability aura, Nemo's unnamed `Slow`, all four of these copies — so an
+actor-level predicate naming an option no facet admits compiled, loaded and was permanently
+false with nothing to say so. Found because `self:lastOfSummonGroup` passed a **clean build**
+before the facet that admits it existed. The check now runs on both branches; the rest of the
+corpus was already clean, which is the only reason this is a near-miss rather than a list.
+
 ---
 
 ---
