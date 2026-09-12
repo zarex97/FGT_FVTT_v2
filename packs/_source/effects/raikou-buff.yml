@@ -1,0 +1,57 @@
+# Raikou's Thunder God's Embodiment, clause 3.
+#
+# `docs/A-effect-catalogue.md` has carried the `Raikou` row since the catalogue
+# was transcribed -- "B / O / cnt / Count-limited (3): Normal Attacks deal +40
+# Lightning, 40% Shock, and reduce NP cooldown by 1/3 turn" -- with no file
+# behind it. This is that file.
+#
+# "Applies the 'Raikou' buff FOR 3 TIMES" -- a count and NO duration (R1). Every
+# other count-limited buff on her sheet states both; this one does not, so it
+# stands until it is spent.
+#
+# The ID IS `raikouBuff`, not `raikou`. Content ids are one namespace across the
+# whole corpus -- `validate:content` refuses a duplicate, and it is right to:
+# `target:contentId:raikou` names the SERVANT, and an effect sharing that string
+# would make every `contentId` predicate about her ambiguous. The DISPLAY NAME
+# stays "Raikou", because that is what her sheet calls the buff.
+schema: 1
+id: raikouBuff
+name: "Raikou"
+description: |
+  Normal Attacks deal 40 bonus Lightning damage, have a 40% chance of inflicting @effect[shock]{Shock} for
+  ⅔◈ Turns, and reduce Noble Phantasm cooldowns by ⅓◈ Turns. Three uses.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: count
+uses: 3
+baseChance: 100
+rules:
+  # "Normal Attacks deal 40 bonus LIGHTNING damage." The first flat bonus in
+  # the corpus made of a different damage type from the attack carrying it: her
+  # Normal Attack is BA(STR) with no element at all. Stage 7 routes it through
+  # the element's own share, so a Lightning ward meets the 40 and nothing else
+  # -- and the 40 does not drag her ordinary STR damage into that ward.
+  - key: FlatDamage
+    value: 40
+    element: lightning
+    predicate: ["attack:kind:normal"]
+
+  # "...with a 40% chance of inflicting Shock for ⅔◈ Turns and reduce her NP
+  # Cooldown by ⅓◈ Turns."
+  #
+  # ONE handler for both, and `consumesUse` on the handler rather than on each
+  # action: the sheet describes one payout with two parts, so a Normal Attack
+  # that rolls badly for Shock still spends the charge and still takes ⅓◈ off
+  # the clocks. Three attacks, three charges, whatever the dice say.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    consumesUse: true
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: shock }, chance: 40, duration: "⅔◈" }
+      # R3 -- BOTH Noble Phantasms. `scope: np` reaches every NP on cooldown,
+      # the reading Scáthach's `alpi` already takes and for the same reason:
+      # the sheet names no ability and she has two.
+      - { key: CooldownDelta, scope: np, ticks: "-⅓◈" }

@@ -22,6 +22,7 @@ import { canToggleMode, forcedModes } from "../../module/rules/modes.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { resolveRef } from "../../tools/lib/content.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
+import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 
 /** @param {string} id @returns {object} */
 export function ability(id) {
@@ -678,5 +679,133 @@ describe("Mana Burst (Lightning)", () => {
     // file. The second user of a shape is where that investment pays.
     const karna = ability("karna-mana-burst-flames");
     expect(Object.keys(A.damage).sort()).toEqual(Object.keys(karna.damage).sort());
+  });
+});
+
+/* ========================================================================== */
+/*  Thunder God's Embodiment                                                  */
+/* ========================================================================== */
+
+describe("Thunder God's Embodiment", () => {
+  const A = ability("raikou-thunder-gods-embodiment");
+  const BUFF = effect("raikou-buff");
+
+  it("refuses while Mad Enhancement is off, and costs 4◈-⅓◈", () => {
+    expect(A.requirements).toEqual([{ kind: "modeActive", mode: "madEnhancement" }]);
+    expect(A.cooldown).toBe("4◈-⅓◈");
+  });
+
+  it("applies all three clauses to herself in one phase", () => {
+    const phase = A.phases.find((p) => p.kind === "applyEffects");
+    expect(phase.target).toBe("self");
+    expect(phase.effects).toEqual([
+      { id: "atkUp", magnitude: 40, npMagnitude: 30, duration: "1◈" },
+      { id: "dodge", duration: "⅓◈" },
+      { id: "raikouBuff", uses: 3 },
+    ]);
+  });
+
+  it("gives the Raikou buff three uses and NO duration (R1)", () => {
+    // "Applies the 'Raikou' buff FOR 3 TIMES" -- a count and nothing else.
+    // Every other count-limited buff on this sheet also states a duration;
+    // this one does not, so it stands until it is spent.
+    expect(BUFF.stacking).toBe("count");
+    expect(BUFF.uses).toBe(3);
+    expect(BUFF.defaultDuration).toBeUndefined();
+  });
+
+  it("adds 40 bonus LIGHTNING damage to a Normal Attack", () => {
+    const flat = BUFF.rules.find((r) => r.key === "FlatDamage");
+    expect(flat.value).toBe(40);
+    // The element is the point. A defender with Lightning resistance resists
+    // it, and Raikou herself takes half from Lightning -- so a mirror match
+    // has to land on the right side of that arithmetic.
+    expect(flat.element).toBe("lightning");
+    expect(flat.predicate).toEqual(["attack:kind:normal"]);
+  });
+
+  it("rolls 40% Shock and takes ⅓◈ off BOTH Noble Phantasms, spending one use", () => {
+    const rider = BUFF.rules.find((r) => r.key === "OnEvent");
+    expect(rider.event).toBe("damageDealt");
+    expect(rider.predicate).toEqual(["attack:kind:normal"]);
+    // ONE handler for both payouts, so a Normal Attack that rolls badly for
+    // Shock still spends the charge and still takes ⅓◈ off the clocks.
+    expect(rider.consumesUse).toBe(true);
+    const shock = rider.then.find((t) => t.key === "ApplyEffect");
+    expect(shock.target).toBe("victim");
+    expect(shock.chance).toBe(40);
+    expect(shock.duration).toBe("⅔◈");
+    const cd = rider.then.find((t) => t.key === "CooldownDelta");
+    // R3: BOTH Noble Phantasms. `scope: np` reaches every NP on cooldown --
+    // the reading Scáthach's `alpi` already takes, and for the same reason:
+    // the sheet names no ability and she has two.
+    expect(cd.scope).toBe("np");
+    expect(cd.ticks).toBe("-⅓◈");
+  });
+
+  /**
+   * The pipeline's own context shape, as `test/golden/damage.test.mjs` builds
+   * it: the base is a SPEC resolved against the attacker's `baseAttack`, not a
+   * bare number.
+   *
+   * @param {object} attacker @param {object} defender @param {object} attack
+   */
+  const damage = (attacker, defender, attack = {}) => computeDamage({
+    attacker: {
+      baseAttack: { str: 200, mag: 0 }, parameters: {}, effects: [],
+      health: 1000, shield: 0, magicResistance: null, outsideZon: false,
+      ...attacker,
+    },
+    defender: {
+      baseAttack: { str: 0, mag: 0 }, parameters: {}, effects: [], modifiers: [],
+      health: 1000, shield: 0, magicResistance: null, outsideZon: false,
+      ...defender,
+    },
+    board: {},
+    attack: { kind: "normal", rank: null, categorizedAsNP: false, element: null, ...attack },
+    base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+    multiplier: 1,
+    flatBonus: 0,
+    crit: { isCrit: false, chanceUsed: 0 },
+    reaction: { kind: "none" },
+    luckChecks: {},
+    rolls: {},
+    options: new Set(),
+  });
+
+  /** The `Raikou` buff's bonus, as the collector would emit it. */
+  const LIGHTNING_40 = { key: "divinity", value: 40, element: "lightning", source: "Raikou" };
+
+  it("routes the elemental bonus through the element's own share", () => {
+    // 200 base, +40 Lightning, against a defender who halves Lightning.
+    //
+    // WRONG, and what the old stage 7 would have done: 240 with the ward
+    // meeting nothing, because a flat bonus had no element for stage 4b to
+    // see. Also wrong: 240 halved, which drags her ordinary STR damage into a
+    // resistance it never had.
+    //
+    // RIGHT: 200 + (40 x 0.5) = 220. The bonus is entirely Lightning, so the
+    // ward takes half of IT and nothing else.
+    const out = damage(
+      { modifiers: [LIGHTNING_40] },
+      { modifiers: [{ key: "elementDefUp", value: 50, element: "lightning", source: "ward" }] },
+    );
+    expect(out.total).toBe(220);
+  });
+
+  it("adds an unresisted elemental bonus at face value", () => {
+    const out = damage({ modifiers: [LIGHTNING_40] }, {});
+    expect(out.total).toBe(240);
+  });
+
+  it("does NOT let the attack's own elementFraction shrink the bonus", () => {
+    // `elementFraction` says how much of the ATTACK carries the element. This
+    // bonus is entirely made of it, so the fraction is none of its business --
+    // and applying it would silently halve a number the sheet states flat.
+    const out = damage(
+      { modifiers: [LIGHTNING_40] }, {},
+      { element: "fire", elementFraction: 0.5 },
+    );
+    expect(out.total).toBe(240);
   });
 });

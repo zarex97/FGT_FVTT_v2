@@ -1,0 +1,41 @@
+# Raikou, char_orig_sheets/Copia de Raikou.md
+#
+# The mad half's buff skill. Its mirror is Mana Burst (Lightning), which
+# refuses in exactly the opposite state.
+schema: 1
+id: raikou-thunder-gods-embodiment
+name: "Thunder God's Embodiment"
+rank: "A+"
+kind: skill
+slug: thunderGodsEmbodiment
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Can only be used when @ability[class-mad-enhancement]{Mad Enhancement} is Active.
+  1. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 40%; if NP, 30%.
+  2. Applies @effect[dodge]{Dodge} for ⅓◈ Turns.
+  3. Applies the @effect[raikouBuff]{Raikou} buff for 3 times: Normal Attacks deal 40 bonus Lightning damage with a
+     40% chance of inflicting @effect[shock]{Shock} for ⅔◈ Turns, and reduce her NP Cooldown by ⅓◈ Turns.
+  Cooldown: 4◈-⅓◈ Turns.
+requirements:
+  # The mad half of the kit. Stated rather than trusted to the player, for the
+  # reason Mana Burst's mirror gate is stated: an unauthored gate is a Skill
+  # usable in either state.
+  - { kind: modeActive, mode: madEnhancement }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # All three clauses reach HER and nobody else, so one phase carries them --
+  # unlike Quetzalcoatl's Charisma of the Sun, where clauses 1-2 reach outward
+  # and clause 3 does not, and where splitting them is what stops every ally in
+  # range getting a personal patch of daylight.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 30, duration: "1◈" }
+      - { id: dodge, duration: "⅓◈" }
+      # NO duration: the sheet gives this one a count alone (R1). Every other
+      # count-limited buff on her sheet states both.
+      - { id: raikouBuff, uses: 3 }

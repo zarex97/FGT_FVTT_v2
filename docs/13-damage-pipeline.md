@@ -499,6 +499,33 @@ increased by N including NP"*, so it is not NP-reduced.
 
 Distribution across components is proportional, same as stage 2.
 
+#### A flat bonus may be made of a different damage type
+
+Raikou's `Raikou` buff is *"Normal Attacks deal 40 bonus **Lightning** damage"*, and the Normal
+Attack it rides on is BA(STR) with **no element at all**. It is the first bonus in the corpus
+that is not the same stuff as the attack carrying it, and a plain `+40` gets it wrong in two
+directions at once:
+
+- against a defender with a Lightning ward, the 40 would arrive **unresisted**, because stage 4b
+  only ever saw the attack's own element and a flat bonus had none;
+- against the same defender on an attack that *did* carry Lightning, the whole total would meet
+  the ward, dragging her ordinary STR damage into a resistance it never had.
+
+So a `FlatDamage` element may declare an `element`, and stage 7 adds it through **that element's
+own share** — the percentage `elementPercent` computes, the same function stage 4b uses. The
+modifiers are not re-listed in the breakdown, because stage 4b has already listed them and one
+collection shown twice reads as two separate resistances in the one audit (Ch. 30) that has to
+stay legible at five cards.
+
+**The attack's own `elementFraction` does not apply to it.** That fraction says how much of the
+*attack* carries the element; this bonus is entirely made of it. Halving a `(half)` attack's
+elemental bonus would silently shrink a number the sheet states flat.
+
+Her own kit is what proves the care is warranted rather than theoretical: she takes **half** from
+Lightning and is **immune** to Shock, and her Sakata copy attacks with Lightning and a 50% Shock
+rider — so a Raikou facing a Raikou resolves wrongly, in both directions, under the simpler
+shape.
+
 ### Stage 8 — Environment
 
 ```
