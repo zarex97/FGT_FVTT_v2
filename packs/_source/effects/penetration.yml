@@ -1,0 +1,31 @@
+# Kiritsugu's Thaumaturgy: Penetration.
+#
+# Two attack properties on one buff, and the pairing is the clause: Ignore Def
+# gets him past the ordinary defensive buffs, and the halved Invuln gets him
+# half-way past the one defence that ordinarily cannot be got past at all.
+#
+# `invulnFactor` is what SURVIVES, not what is removed -- 0.5 leaves half the
+# damage standing, and the pipeline's default of 0 reproduces total negation.
+#
+# NOT `pierce`. Pierce means "Invuln does not apply"; this means "Invuln applies
+# at half strength", and giving Penetration the former would hand it a total
+# bypass the sheet does not grant. He has Pierce too -- from Affection of the
+# Holy Grail -- and holding both is meant to be a decision, not a redundancy.
+schema: 1
+id: penetration
+name: "Penetration"
+description: |
+  When this Unit deals damage with an Attack, it has the Ignore Def effect and halves the
+  effect of Invuln.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: AttackProperty
+    property: ignoresDefUp
+    value: true
+  - key: AttackProperty
+    property: invulnFactor
+    value: 0.5

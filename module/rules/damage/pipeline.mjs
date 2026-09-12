@@ -946,10 +946,29 @@ function stage16AbsorptionAndClamp(s) {
   if (has(d, "invuln") && !s.ctx.attack?.pierce) {
     // The NP halving already happened at stage 15; what remains is negation.
     if (!s.isNP) {
-      s.contribute("invuln", -s.total, "Invuln", "defender");
-      s.zero();
-      s.flags.negatedBy = "Invuln";
-      return s.end(16);
+      // Ordinarily total. Kiritsugu's Penetration is the first clause in the
+      // game that WEAKENS Invuln rather than bypassing it -- *"halves the
+      // effect of Invuln"* -- so `invulnFactor` is how much damage SURVIVES,
+      // and the default of 0 reproduces the negation exactly.
+      //
+      // Distinct from `pierce` above, which skips the branch entirely. Pierce
+      // is "Invuln does not apply"; this is "Invuln applies at half strength",
+      // and collapsing the two would hand Penetration a total bypass the sheet
+      // does not give it.
+      const survives = s.ctx.attack?.invulnFactor ?? 0;
+      if (survives > 0) {
+        const removed = -s.total * (1 - survives);
+        s.contribute("invuln", removed, "Invuln (halved)", "defender");
+        s.addProportional(removed);
+        // No `negatedBy`, and no early `end(16)`: nothing was negated, so the
+        // card must not say it was, and the Shield and clamp below still have
+        // a non-zero total to act on.
+      } else {
+        s.contribute("invuln", -s.total, "Invuln", "defender");
+        s.zero();
+        s.flags.negatedBy = "Invuln";
+        return s.end(16);
+      }
     }
   }
 
