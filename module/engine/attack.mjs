@@ -1806,14 +1806,20 @@ async function runDamageStepStartHandlers(state) {
 
     let removed = false;
     for (const action of handler.actions ?? []) {
-      if (action.key === "StripBuff") {
+      // `normalizeActions` renames the authored `key` to `kind`. Reading `key`
+      // here found `undefined` on every action, so the handler fired, matched
+      // its predicate, iterated its two actions and did nothing with either --
+      // the strip silently never happened and the follow-on never fired.
+      // Both spellings accepted, because the authored documents say `key`.
+      const kind = action.kind ?? action.key;
+      if (kind === "StripBuff") {
         removed = await stripOneBuff(action, defender, defenderDoc);
         continue;
       }
       // "IF a buff was successfully removed." Against a target with nothing
       // left to take, the shot still lands and this pays nothing.
       if (action.requiresRemoval && !removed) continue;
-      if (action.key === "ApplyEffect") {
+      if (kind === "ApplyEffect") {
         // The applier takes a SNAPSHOT and returns intents; it does not write.
         // Passing the Actor document would hand it `target.effects` as an
         // EmbeddedCollection of documents where it expects a list of ids --

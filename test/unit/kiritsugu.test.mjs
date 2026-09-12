@@ -215,6 +215,7 @@ describe("Affection of the Holy Grail — Skill Seal is a hard counter (R2)", ()
 });
 
 import { collectContributions } from "../../module/rules/elements.mjs";
+import * as normalizeMod from "../../module/rules/elements.mjs";
 
 describe("AttackProperty — a buff that grants an attack property", () => {
   const collect = (rules) =>
@@ -1033,5 +1034,22 @@ describe("A Seal is visible on the button, not only at the bill (R2)", () => {
 
   it("refuses nothing when the Unit holds none of them", () => {
     expect(use({ id: "s", contentId: "s" }, []).ok).toBe(true);
+  });
+});
+
+describe("An OnEvent's interior actions are `kind` once normalized", () => {
+  it("authors `key` and normalizes to `kind` — a reader must accept both", () => {
+    // `runDamageStepStartHandlers` read `action.key`, which is what the YAML
+    // says. `normalizeActions` renames it to `kind`, so every action compared
+    // `undefined` and the handler fired, matched its predicate, iterated its
+    // two actions and did nothing with either. The strip silently never
+    // happened; measured on the board as a Def Up that survived an attack it
+    // should have been torn off before.
+    const rule = src("effects", "suppression.yml").rules
+      .find((r) => r.key === "OnEvent");
+    for (const action of rule.then) expect(action.key).toBeTruthy();
+    const { normalizeHandler } = normalizeMod;
+    const h = normalizeHandler(rule, { rank: null, source: "suppression", ability: null, ctx: {} });
+    for (const action of h.actions) expect(action.kind).toBeTruthy();
   });
 });
