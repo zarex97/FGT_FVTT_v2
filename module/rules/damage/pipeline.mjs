@@ -87,6 +87,7 @@ export function computeDamage(ctx) {
   // keeps its original meaning, so nothing already authored changes.
   const bypass = normalizeBypass(ctx.attack?.bypassModifiers);
   state.bypass = bypass;
+
   if (ctx.attack?.isFixedDamage || (bypass.attacker && bypass.defender)) {
     state.note("fixedDamage", "skipped stages 2-15");
     stage16AbsorptionAndClamp(state);
@@ -192,6 +193,21 @@ function stage0Precondition(s) {
  */
 function stage1Base(s) {
   s.begin(1);
+
+  // Named ONCE, in the first stage that opens, rather than listed at zero by
+  // every stage that would have read the excluded modifier. One exclusion is
+  // one fact, and six zero rows for it is noise in the one audit that has to
+  // stay readable at five cards (Ch. 30, Dohatsu Tenshou). The rule the other
+  // bypasses follow -- a modifier that vanishes from the breakdown is
+  // indistinguishable from one that was never collected -- is honoured by
+  // naming the SOURCE instead.
+  //
+  // Inside a stage, because `note` writes to the CURRENT one and there is none
+  // before `begin`. Written above `stage1Base` first, where it silently went
+  // nowhere.
+  if (s.ctx.attack?.excludeModifierSources?.length) {
+    s.note("excluded", `not affected by: ${s.ctx.attack.excludeModifierSources.join(", ")}`);
+  }
   const spec = s.ctx.base ?? { sources: [] };
 
   // A formula that produces its own total: `diceCount` (Nemo's Quickfire).
@@ -1048,8 +1064,23 @@ function bypassesDefence(s) {
  * @returns {Modifier[]}
  */
 function activeMods(s, unit, keys) {
+  const excluded = s.ctx.attack?.excludeModifierSources ?? null;
   return (unit?.modifiers ?? []).filter(
-    (m) => keys.has(m.key) && testPredicate(m.predicate, s.predicateCtx),
+    (m) => keys.has(m.key)
+      // NAMED SOURCES, dropped from BOTH bags. Raikou's Dohatsu Tenshou:
+      // *"These 4 Attacks are not affected by Mad Enhancement."*
+      //
+      // Not `bypassModifiers`, which is all-or-nothing per side (§13.8). Her
+      // Divinity, both Mystery Slayer passives, her Atk Up from Thunder God's
+      // Embodiment and every one of the defender's own reductions still apply
+      // to those four attacks -- only the one named Skill does not, and the
+      // sentence names exactly one.
+      //
+      // Filtered HERE because this is the single place every stage reads a
+      // modifier bag, so one line covers stages 2, 4, 4b, 5, 7 and 12 and
+      // cannot fall out of step with any of them.
+      && !(excluded && excluded.includes(m.source))
+      && testPredicate(m.predicate, s.predicateCtx),
   );
 }
 

@@ -3817,6 +3817,25 @@ reason, which is a small argument that the attack engine has pure decisions in i
 Declaring both spellings is refused at **build** time as well as at runtime. A Noble Phantasm
 that throws the first time it is used is one nobody finds until a match.
 
+#### Commit 14 — dropping a named modifier source, not a whole side
+
+§13.8's `bypassModifiers` is all-or-nothing per side: `true` drops everything on both bags, and
+Nemo's `{attacker: true}` drops everything on his. *"These 4 Attacks are not affected by Mad
+Enhancement"* names one Skill, and authoring it as a bypass would have silently discarded
+Divinity, both Mystery Slayer passives, Thunder God's `Atk Up` and every reduction the defender
+was standing behind.
+
+Filtered in `activeMods` — the one place every stage reads a modifier bag — so a single line
+covers stages 2, 4, 4b, 5, 7 and 12 and cannot fall out of step with any of them. Symmetrical by
+construction, because that function does not care whose bag it is.
+
+**And a note that said nothing.** The exclusion is named once rather than listed at zero by every
+stage, and the first attempt put `state.note("excluded", …)` above `stage1Base` — where `note`
+writes to the *current* stage and there is none before the first `begin()`. It compiled, ran, and
+appended to nothing. Caught by the test asserting the phrase appears **exactly once**, which
+would have passed just as happily at zero had it only asserted "at most once". Worth recording:
+the assertion that catches a silent write is the one with a lower bound.
+
 ---
 
 ---
