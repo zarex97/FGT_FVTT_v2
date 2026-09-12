@@ -1,0 +1,149 @@
+# Raikou -- Goō Shōriki・Dohatsu Tenshou (Ox King's Power: Rising Fury).
+# Rank B++ (NP) [Anti-Army].
+# Conversion source: char_orig_sheets/Copia de Raikou.md
+# Data sheet: docs/D-servant-data-sheets.md §D.32
+#
+# §D.32 calls this "the hardest single ability in either roster to log legibly",
+# and says Ch. 30's audit format was designed around it: five damage instances,
+# four of which can be independently Blocked or Evaded, and NONE of which uses
+# the mode that is definitionally active while the ability is usable.
+schema: 1
+id: raikou-dohatsu-tenshou
+name: "Goō Shōriki・Dohatsu Tenshou"
+rank: "B++"
+kind: noblePhantasm
+slug: dohatsuTenshou
+isNP: true
+npTags: [antiArmy]
+timing: { window: ownTurn }
+cooldown:
+  max: "6◈+⅔◈"
+  # "If used while Goō Shōrai・Tenmōkaikai is Active ... ITS COOLDOWN IS
+  # INCREASED BY 2◈ TURNS (in addition to its original Cooldown)." 6◈+⅔◈
+  # becomes 8◈+⅔◈.
+  #
+  # WHOSE cooldown is the thing to get right. "It is immediately ended" is
+  # TENMŌKAIKAI; "its Cooldown" is THIS ability's own. Read the other way round
+  # the clause would extend the cooldown of something that has already ended,
+  # which is a penalty on nothing at all.
+  #
+  # "In addition to its original Cooldown" is a parenthesis the sheet did not
+  # have to write, and it is why this is additive rather than a replacement.
+  conditionalBonus:
+    - predicate: ["self:skillActive:tenmokaikai"]
+      ticks: "2◈"
+description: |
+  Ox King's Power: Rising Fury. Can only be used when @ability[class-mad-enhancement]{Mad Enhancement} is Active. Range=3.
+  Hits a 3x3 panel area within Range.
+  First, deal 0.5x damage four times using Base Attack (STR), each instance of damage
+  respectively being Lightning damage (half), Fire damage (half), Ice damage (half) and Wind
+  damage (half). Each of these four Attacks can be separately Blocked or Evaded; treat these
+  Attacks as Normal Attacks. These 4 Attacks are not affected by Mad Enhancement.
+  Then, deals 3.5x damage plus 200 using Base Attack (MAG) and inflicts @effect[shock]{Shock} for 2◈ Turns.
+  Lightning damage. Treat this part as the Noble Phantasm. Then, inflict @effect[critDwn]{Crit Dwn} on all
+  affected Units for 1◈ Turns, Crit Chance is reduced by 20%.
+  Cooldown: 6◈+⅔◈ Turns. If used while @np[raikou-tenmokaikai]{Goō Shōrai・Tenmōkaikai} is Active, it is immediately
+  ended at the end of that Combat Phase, and its Cooldown is increased by 2◈ Turns.
+requirements:
+  # The mad half. Its mirror is Tenmōkaikai, which refuses in exactly the
+  # opposite state -- so the two Noble Phantasms can never be used on the same
+  # Turn, and the interaction clause below is about one being ACTIVE while the
+  # other is used, which is a different thing.
+  - { kind: modeActive, mode: madEnhancement }
+targeting:
+  # "Range=3. Hits a 3x3 panel area within Range."
+  anchor: { kind: withinRange, range: 3 }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy], chooser: all }
+damage:
+  # FIVE INSTANCES, each its own Combat Process and therefore its own reaction
+  # ladder -- which is exactly what "each of these four Attacks can be
+  # separately Blocked or Evaded" asks for.
+  #
+  # `component: str` is stated per instance rather than once at the block level,
+  # because the fifth overrides it and a block-level default that four of five
+  # share reads as though the fifth were the exception rather than the point.
+  instances:
+    # "...each instance of damage respectively being Lightning damage (half),
+    # Fire damage (half), Ice damage (half) and Wind damage (half)."
+    #
+    # `kind: normal` is R6 taken at its word: "treat these Attacks as Normal
+    # Attacks". Each emits `attack:kind:normal`, so every rider predicated on a
+    # Normal Attack fires on each of the four -- the `Raikou` buff's +40
+    # Lightning and 40% Shock and ⅓◈, Mana Burst's passives, Tenmōkaikai's own
+    # Shock rider. Only Mad Enhancement is exempt, because only Mad Enhancement
+    # is named as exempt.
+    #
+    # `excludeModifierSources` on EACH of the four rather than once at the
+    # block level with an opt-out on the fifth. "These 4 Attacks" is a sentence
+    # about four things, and the block-level spelling is the same rule written
+    # so it can be misread.
+    - { multiplier: 0.5, component: str, kind: normal, element: lightning, elementFraction: 0.5, excludeModifierSources: [Mad Enhancement] }
+    - { multiplier: 0.5, component: str, kind: normal, element: fire, elementFraction: 0.5, excludeModifierSources: [Mad Enhancement] }
+    - { multiplier: 0.5, component: str, kind: normal, element: ice, elementFraction: 0.5, excludeModifierSources: [Mad Enhancement] }
+    - { multiplier: 0.5, component: str, kind: normal, element: wind, elementFraction: 0.5, excludeModifierSources: [Mad Enhancement] }
+    # "Then, deals 3.5x damage plus 200 using Base Attack (MAG)... Lightning
+    # damage. Treat this part as the Noble Phantasm."
+    #
+    # NOTE THE ASYMMETRY THE SHEET DRAWS. The four above are each "(half)"; this
+    # one is "Lightning damage" with NO parenthesis, so it carries no
+    # `elementFraction` and the whole of it meets a Lightning ward. A defender
+    # who resists Lightning therefore takes the full reduction on the Noble
+    # Phantasm portion and half of it on the first instance -- which is the
+    # sheet's arithmetic, and easy to smooth away by making all five alike.
+    #
+    # No `excludeModifierSources`: Mad Enhancement DOES reach this one, at its
+    # halved BA(MAG) magnitude (EX 100 -> 50).
+    - { multiplier: 3.5, flatBonus: 200, component: mag, kind: np, element: lightning }
+phases:
+  - kind: damage
+
+  # "...and inflicts Shock for 2◈ Turns." Predicated on the NP instance,
+  # because the sheet attaches it to that sentence and not to the four.
+  - kind: applyEffects
+    predicate: ["attack:kind:np"]
+    effects:
+      - { id: shock, duration: "2◈" }
+
+  # "Then, inflict Crit Dwn on all affected Units for 1◈ Turns, Crit Chance is
+  # reduced by 20%."
+  #
+  # NO predicate, and `target: reuse` -- the Units the targeting resolved, which
+  # is what "all affected Units" IS. (`each` reads more naturally and the phase
+  # picker offers it; `engine/skill-use.mjs` implements `self` and `reuse` and
+  # nothing else, so `each` would have been a typo that landed wrongly and
+  # said nothing.)
+  #
+  # Everyone the 3x3 caught who was HIT (R7), including a Unit whose total was
+  # reduced to zero: an ability-declared rider already runs on `!skipped`, which
+  # is what R7 made the event-declared ones do as well. "Affected" means the
+  # attack connected, not that it hurt.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: critDwn, magnitude: 20, duration: "1◈" }
+
+  # "If used while Goō Shōrai・Tenmōkaikai is Active, it is IMMEDIATELY ended AT
+  # THE END OF THAT COMBAT PHASE."
+  #
+  # The two halves of that sentence pull against each other and the second
+  # wins, which matters: ending the clone Noble Phantasm mid-resolution would
+  # strip its +50% and its Shock rider from instances that have not resolved
+  # yet -- and this ability is five instances long.
+  - kind: statChange
+    when: combatPhaseEnd
+    predicate: ["self:skillActive:tenmokaikai"]
+    changes:
+      - { key: SetMode, ability: tenmokaikai, active: false }
+notes: |
+  **Five cards under one parent id** (Ch. 30). Four Normal Attacks, each showing Mad Enhancement
+  excluded BY NAME in its breakdown while Divinity is still listed, and one Noble Phantasm
+  showing Mad Enhancement's halved BA(MAG) figure present. That is the only way the exemption
+  can be checked on a live board, which is why §13.7a names the source rather than silently
+  dropping it.
+
+  The cooldown interaction and the mode requirement are about different things and are easy to
+  conflate. `modeActive: madEnhancement` means this cannot be used unless she is raging;
+  Tenmōkaikai requires she is NOT, so the two Noble Phantasms can never be *used* on the same
+  Turn. The `conditionalBonus` is about Tenmōkaikai being *already active* when this is used,
+  which is reachable because Mad Enhancement may be switched back on after the clone NP opens.

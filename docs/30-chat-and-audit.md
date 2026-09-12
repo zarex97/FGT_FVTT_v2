@@ -330,3 +330,43 @@ own attempted input, it is a notification.
 ---
 
 **Part III complete.** Next: [31 — Case Study: Heracles](31-case-heracles.md)
+
+## 30.11 The worked case the format was designed for
+
+§D.32 calls *Goō Shōriki・Dohatsu Tenshou* *"the hardest single ability in either roster to log
+legibly"* and says this chapter's audit format was designed around it. It is:
+
+```
+Combat Phase  ▸ groupId g7
+ ├─ card 1  Normal Attack · 0.5× BA(STR) · Lightning (half)
+ │            stage 1  not affected by: Mad Enhancement
+ │            stage 7  + Divinity 30
+ ├─ card 2  Normal Attack · 0.5× BA(STR) · Fire (half)        [Blocked]
+ ├─ card 3  Normal Attack · 0.5× BA(STR) · Ice (half)         [Evaded]
+ ├─ card 4  Normal Attack · 0.5× BA(STR) · Wind (half)
+ └─ card 5  Noble Phantasm · 3.5× BA(MAG) + 200 · Lightning
+              stage 4  + Mad Enhancement 50  (BA(MAG), halved)
+              stage 7  + Divinity 30
+```
+
+Five cards under one `groupId`, because it is **one Combat Phase**. Four of them can be Blocked
+or Evaded independently — cards 2 and 3 above are — because each is its own Combat Process with
+its own reaction ladder.
+
+Three things the format has to make visible, and each of them is a rule that would otherwise be
+uncheckable on a live board:
+
+1. **Mad Enhancement is excluded by name on the four, and present on the fifth.** *"These 4
+   Attacks are not affected by Mad Enhancement"* is a per-instance exclusion (§13.7a), and the
+   only way to see it working is to read the four breakdowns that lack it beside the one that
+   has it. Note the fifth shows **50**, not 100: the halved BA(MAG) figure.
+2. **Divinity survives on all five.** The exclusion names one Skill, not a side. A reader who
+   sees Divinity missing from a card is looking at a `bypassModifiers` where the sheet asked for
+   something narrower.
+3. **The elements differ card by card, and the fifth is not "(half)".** A defender with a
+   Lightning ward takes the reduction on half of card 1 and on the whole of card 5.
+
+The exclusion is noted **once per card**, at stage 1, rather than listed at zero in each of the
+six stages that would have read it. Six rows for one fact is what makes a five-card audit
+unreadable, and the point of the format is that a player can check the sheet against it.
+

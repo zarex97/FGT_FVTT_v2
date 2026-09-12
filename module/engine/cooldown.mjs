@@ -112,7 +112,29 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
   if (!cd.max) return { cooldowns: [], spends: [] };
 
   try {
-    const ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: turnsPerRound() });
+    let ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: turnsPerRound() });
+
+    // A cooldown that is LONGER in a stated circumstance. Raikou's Dohatsu
+    // Tenshou: *"If used while Goō Shōrai・Tenmōkaikai is Active, it is
+    // immediately ended at the end of that Combat Phase, and **its Cooldown is
+    // increased by 2◈ Turns (in addition to its original Cooldown)**."*
+    //
+    // ADDITIVE on top of the base rather than a replacement, because the sheet
+    // says so in a parenthesis it did not have to write. 6◈+⅔◈ becomes 8◈+⅔◈.
+    //
+    // Note which ability is charged: *"it"* is Tenmōkaikai (ended) and *"its
+    // Cooldown"* is THIS ability's own. Read the other way the clause would
+    // extend the cooldown of something that has already ended, which is a
+    // penalty on nothing.
+    //
+    // Distinct from `branches` above, which SELECTS one cooldown from several;
+    // this adds to whichever one was chosen.
+    for (const bonus of cd.conditionalBonus ?? []) {
+      const options = unit ? rollOptionsFor({ attacker: unit }) : new Set();
+      if (!testPredicate(bonus.predicate, { options })) continue;
+      ticks += resolveTicks(parseTick(String(bonus.ticks)), { turnsPerRound: turnsPerRound() });
+    }
+
     return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
   } catch (err) {
     // Loud: an unreadable cooldown means the ability is reusable immediately,

@@ -33,7 +33,13 @@ import { describeTable } from "./contract.mjs";
 
 /** On every phase: who it lands on, and the gate that decides whether it runs. */
 const COMMON = Object.freeze([
-  { key: "target", type: "select", choices: ["reuse", "self", "each", "chosen", "caster"] },
+  // TWO, not five. `engine/skill-use.mjs` implements `self` and `reuse`; the
+  // picker offered `each`, `chosen` and `caster` as well, and no executor has
+  // ever read one -- so choosing any of the three authored cleanly and landed
+  // on whatever `reuse` would have caught, silently. `test/unit/phase-targets`
+  // holds the content against the executor from the other side; this is the
+  // door, and it was open onto nothing.
+  { key: "target", type: "select", choices: ["reuse", "self"] },
   { key: "predicate", type: "predicateList" },
   { key: "when", type: "text" },
 ]);
