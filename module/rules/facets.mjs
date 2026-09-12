@@ -260,10 +260,21 @@ export const FACETS = Object.freeze([
     prose: "{subject} is in {type} terrain",
   }),
   facet({
+    id: "withinOfMaster",
+    segments: [{ name: "panels", value: number(1, 6) }],
+    english: "Is within a number of panels of its OWN contracted Master.",
+    prose: "{subject} is within {panels} panels of its own Master",
+  }),
+  facet({
     id: "withinOfOwnerMaster",
     segments: [{ name: "panels", value: number(1, 6) }],
-    english: "Is within a number of panels of its own Master.",
-    prose: "{subject} is within {panels} panels of its Master",
+    // NOT the unit's own Master -- that is `withinOfMaster` above. This is the
+    // Master of whoever OWNS THE FIELD the unit is standing in, stamped by
+    // `annotateFields` and absent on open ground. Pale Rider's Contagion:
+    // *"if the enemy Unit is within a 3 panel area of Pale Rider's Master"*,
+    // asked of a Unit standing inside Doomsday Come.
+    english: "Is within a number of panels of the Master of whoever owns the field it is standing in.",
+    prose: "{subject} is within {panels} panels of the field owner's Master",
   }),
 
   facet({

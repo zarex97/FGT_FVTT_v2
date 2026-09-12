@@ -193,6 +193,24 @@ export function annotateZon(units, board, config = {}) {
     unit.zonDistance = status.distance;
     unit.zonMasterId = status.master?.id ?? null;
     unit.outsideZon = status.outside;
+
+    // How far this Servant stands from its OWN Master, independently of the
+    // ZON question. Raikou's Mad Enhancement is *"constantly Active while her
+    // Master is within a 2 panel area of herself"* -- a distance, not a zone.
+    //
+    // `zonDistance` cannot stand in for it, and the three cases where they
+    // disagree are exactly the ones that matter: `zonStatus` returns nothing
+    // for a Free Servant, for a Servant whose Master is off the board, and for
+    // a `zonExempt` one (Semiramis aboard the Hanging Gardens) -- and in that
+    // last case the distance still exists and could still be asked about.
+    //
+    // `null` when there is nobody to measure to, which emits no option at all,
+    // so `self:withinOfMaster:2` is false and its negation is true. Both are
+    // the right answer for a Servant with no Master.
+    const own = masterOf(unit, board);
+    unit.masterDistance = (unit.kind === "servant" && own?.panel && unit.panel)
+      ? geo.chebyshev(unit.panel, own.panel)
+      : null;
   }
   return units;
 }

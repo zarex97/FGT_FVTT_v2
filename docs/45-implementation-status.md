@@ -3513,6 +3513,24 @@ says which the Normal Attack uses. STR, on Karna's precedent. Had it been MAG,
 Attacks use Base Attack (MAG)"* — and Mad Enhancement's +100% would have been halved to +50% on
 every ordinary swing she makes.
 
+#### Commit 2 — a distance nothing could measure, behind a facet that claimed it could
+
+Raikou's Mad Enhancement needs *"her Master is within a 2 panel area of herself"*, and the
+vocabulary looked like it had that already: `withinOfOwnerMaster:<n>`, whose hint in
+`rules/facets.mjs` **and** whose string in `lang/en.json` both read *"is within a number of
+panels of its own Master."*
+
+It measures something else — the distance to the Master of whoever **owns the bounded field the
+unit is standing in**, stamped by `annotateFields` and therefore absent on open ground. Pale
+Rider's Contagion is its only user and asks it of an enemy standing inside Doomsday Come. So a
+Servant's distance to her own Master was unsayable, and the facet that appeared to say it was
+mis-described in two places at once.
+
+Both are renamed for what they do. `withinOfMaster` is annotated in `annotateZon`, which already
+resolves the pair through `masterOf`, rather than read off the `zonDistance` beside it: the two
+disagree for a Free Servant, for a Master off the board, and for a `zonExempt` Servant
+(Semiramis aboard the Hanging Gardens) whose distance to her Master still exists.
+
 ---
 
 ---
