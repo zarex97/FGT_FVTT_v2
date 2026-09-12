@@ -1758,3 +1758,46 @@ describe("buildAttackSpec reads the attacker's effects as a collection", () => {
     expect(src).toMatch(/\[\.\.\.\(attacker\?\.effects \?\? \[\]\)\]/);
   });
 });
+
+describe("the upkeep's drain is gated, not merely ordered", () => {
+  /**
+   * *"This NP is forcefully deactivated if Raikou's Master has 25 Health or
+   * less and would lose Health due to this effect. **Her Master does not lose
+   * Health on the same Turn this NP is deactivated.**"*
+   *
+   * Found live: ordering the `SetMode` before the `StatDelta` is **not enough**.
+   * The two actions are independent, so the drain fired anyway and a Master on
+   * 20 was taken to −5 by the very effect that had just switched itself off.
+   *
+   * `gte: 26` is the exact complement of the `SetMode`'s `lte: 25`, so the two
+   * can neither both fire nor both decline.
+   *
+   * And NOT a `floor: 25`, which is Mad Enhancement's shape: a floor clamps the
+   * deduction, so a Master on 30 would lose 5 instead of 25. Mad Enhancement
+   * wants that — *"cannot drop below 30 IN THIS WAY"* — and this clause does
+   * not. Verified live at 400 (−25), at 20 (deactivate, no drain) and at 30
+   * (−25 in full).
+   */
+  const upkeep = ability("raikou-tenmokaikai").activeRules
+    .find((r) => r.key === "OnEvent" && r.event === "turnEnd");
+
+  it("deactivates at 25 or below", () => {
+    const setMode = upkeep.then.find((t) => t.key === "SetMode");
+    expect(setMode.whenValue).toEqual({ subject: "master", stat: "health.value", lte: 25 });
+  });
+
+  it("drains only above 25, and drains in FULL when it does", () => {
+    const drain = upkeep.then.find((t) => t.key === "StatDelta");
+    expect(drain.whenValue).toEqual({ subject: "master", stat: "health.value", gte: 26 });
+    expect(drain.amount).toBe(25);
+    // A floor would clamp the deduction and is deliberately absent.
+    expect(drain.floor).toBeUndefined();
+    expect(drain.floorTable).toBeUndefined();
+  });
+
+  it("gates the two as exact complements, so neither both nor neither fires", () => {
+    const setMode = upkeep.then.find((t) => t.key === "SetMode");
+    const drain = upkeep.then.find((t) => t.key === "StatDelta");
+    expect(setMode.whenValue.lte + 1).toBe(drain.whenValue.gte);
+  });
+});

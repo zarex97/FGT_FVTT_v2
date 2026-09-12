@@ -152,6 +152,21 @@ activeRules:
         stat: health.value
         amount: 25
         direction: down
+        # "HER MASTER DOES NOT LOSE HEALTH ON THE SAME TURN THIS NP IS
+        # DEACTIVATED." Ordering the `SetMode` first is not enough on its own:
+        # the two actions are independent, so the drain fired anyway and a
+        # Master on 20 was taken to -5 by the very effect that had just switched
+        # itself off. Measured live.
+        #
+        # `gte: 26` is the exact complement of the `SetMode` gate above -- above
+        # 25 it drains, at 25 or below it deactivates and takes nothing -- so
+        # the two cannot both fire and cannot both decline.
+        #
+        # NOT a `floor: 25`, which is Mad Enhancement's shape and the wrong one
+        # here: a floor clamps the deduction, so a Master on 30 would lose 5
+        # instead of 25. Mad Enhancement wants that ("its Master's Health cannot
+        # drop below 30 IN THIS WAY"); this clause does not.
+        whenValue: { subject: master, stat: health.value, gte: 26 }
 
   # "This NP is forcefully deactivated at the end of a Turn Raikou is defeated."
   #
