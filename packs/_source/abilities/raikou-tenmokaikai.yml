@@ -1,0 +1,162 @@
+# Raikou -- Goō Shōrai・Tenmōkaikai (Ox-King Storm Call: The Inescapable Net of
+# Heaven). Rank A+ (NP) [Anti-Army].
+# Conversion source: char_orig_sheets/Copia de Raikou.md
+# Data sheet: docs/D-servant-data-sheets.md §D.32
+#
+# A MODE Noble Phantasm, like Nemo's Zero Sail: it is activated, things are true
+# "during the NP duration", and it ends by four different paths. Non-damaging --
+# it opens no Combat Process of its own; what it does is put four differently
+# armed copies of her on the board and start a clock her Master pays for.
+schema: 1
+id: raikou-tenmokaikai
+name: "Goō Shōrai・Tenmōkaikai"
+rank: "A+"
+kind: noblePhantasm
+slug: tenmokaikai
+isNP: true
+isMode: true
+npTags: [antiArmy]
+timing: { window: ownTurn }
+# "Cooldown: 7◈+⅓◈ Turns AFTER THIS NP IS DEACTIVATED / after the last Raikou
+# copy is defeated." Not from the activation -- the clock cannot start until the
+# mode ends, which is exactly what `countFrom: deactivation` already means for
+# Jack's Mist, Presence Concealment and Zero Sail. The second half of the
+# sentence is handled by the copies: the last one to die switches the mode off
+# (`self:lastOfSummonGroup`), and switching it off is what starts this clock.
+cooldown:
+  max: "7◈+⅓◈"
+  countFrom: deactivation
+# "Raikou can deactivate this NP during her Turn and at the start or end of any
+# Turn or Round."
+deactivation: { byOwner: true, window: any }
+description: |
+  (Non-damaging/Passive) Ox-King Storm Call: The Inescapable Net of Heaven. Can only be used when
+  @ability[class-mad-enhancement]{Mad Enhancement} is deactivated (Mad Enhancement can be reactivated after this NP is
+  activated). Raikou summons four extra clones of herself on the panels in front of her, behind
+  her, and her left and right. The clones have the same Max Agility, Max Luck and MOV as Raikou,
+  but half her Max Health; they cannot use Mad Enhancement, Riding or the Active effects of
+  Raikou's Skills (Passive effects are still present), and can only perform Normal Attacks.
+  During the NP duration, Raikou's Attacks deal 50% extra damage and inflict @effect[shock]{Shock} for 2◈ Turns,
+  Lightning damage (half). Raikou's Crit Chance is increased by 30%, the copies' by 15%.
+  At the end of Raikou's Turn and at the end of any Turn Raikou or any of her copies Acts,
+  Raikou's Master loses 25 Health. This NP is forcefully deactivated if Raikou's Master has 25
+  Health or less and would lose Health due to this effect; her Master does not lose Health on the
+  same Turn this NP is deactivated. It is also forcefully deactivated at the end of a Turn Raikou
+  is defeated.
+  Raikou's copies do not count towards the number of Units that Move and/or Attack during your
+  Turn, and the same copy can only Move/Attack once per Turn. Enemy Units cannot Attack Raikou or
+  her Master if any Raikou copies are next to them.
+  Cooldown: 7◈+⅓◈ Turns after this NP is deactivated or after the last Raikou copy is defeated.
+requirements:
+  # "Can only be used when Mad Enhancement is deactivated."
+  #
+  # "(Note: Mad Enhancement can be reactivated after this NP is activated.)" --
+  # which costs NOTHING to honour, because a requirement is checked at USE and
+  # never maintained. Worth saying out loud: the obvious wrong reading is a
+  # standing gate that switches the Noble Phantasm off the moment she rages,
+  # and the sheet goes out of its way to rule that out.
+  - { kind: modeInactive, mode: madEnhancement }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: summon
+    spec:
+      # Fixed, in the sheet's own order -- no roll. `orthogonal` places them
+      # front / back / left / right relative to her FACING (R4), displacing
+      # outward along the same axis when a panel is blocked, and reporting by
+      # name any copy with nowhere to go.
+      contentIds: [raikou-watanabe, raikou-sakata, raikou-urabe, raikou-usui]
+      placement:
+        shape: orthogonal
+        anchor: self
+        order: [front, back, left, right]
+      # Both stated on the copies themselves as well, because they are
+      # properties of the summons rather than of this Noble Phantasm -- but
+      # repeated here because the summon phase is what writes them.
+      countsTowardBudget: false
+      actsOncePerTurn: true
+activeRules:
+  # "During the NP duration, Raikou's Attacks deal 50% extra damage..."
+  #
+  # NO `attack:kind` predicate (R5). The sheet narrows to "Normal Attacks" in
+  # the very next clause -- on the copies -- and in three other places on this
+  # sheet, so "Raikou's Attacks" unqualified is unqualified: Normal Attacks,
+  # Attack Skills and Dohatsu Tenshou alike.
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 50
+    npValue: 50
+
+  # "...and inflict Shock for 2◈ Turns, Lightning damage (half)."
+  #
+  # The element rides on the ATTACK rather than here: an element is a property
+  # of a damage instance, and this rule has no instance to attach one to. What
+  # this can do is the Shock, which is the half with a reader.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: shock }, duration: "2◈" }
+
+  # "Also, Raikou's Crit Chance is increased by 30%..." The copies' +15% is
+  # THEIRS and lives on their own files: an aura from here would have to name
+  # four units whose document ids no content file can know.
+  - key: CheckModifier
+    check: crit
+    value: 30
+
+  # "At the end of Raikou's Turn AND at the end of any Turn Raikou or any of her
+  # copies Acts, Raikou's Master loses 25 Health."
+  #
+  # ONE handler, on HER, at `turnEnd`, gated on `self:selfOrSummonsActed`. Her
+  # Turn ends once, so the Master is charged ONCE -- whether she acted, one copy
+  # acted, or all five did. 25 per TURN, not per copy: four copies at 25 each is
+  # 125 a Round, which makes the Noble Phantasm unusable and is the reading
+  # easiest to write by accident (a handler on each copy).
+  - key: OnEvent
+    event: turnEnd
+    automatic: true
+    predicate: ["self:selfOrSummonsActed"]
+    then:
+      # ORDERED THE OTHER WAY ROUND FROM MAD ENHANCEMENT, and the sheet is why.
+      # Mad Enhancement drains and THEN tests what is left; this one reads:
+      #
+      #   "This NP is forcefully deactivated if Raikou's Master has 25 Health or
+      #    less and would lose Health due to this effect. HER MASTER DOES NOT
+      #    LOSE HEALTH ON THE SAME TURN THIS NP IS DEACTIVATED."
+      #
+      # So the test comes first and the drain does not happen at all when it
+      # fires. `SetMode` lands at intent order 2 and `statDelta` later, which is
+      # the same ordering for the same reason.
+      - key: SetMode
+        ability: tenmokaikai
+        active: false
+        whenValue: { subject: master, stat: health.value, lte: 25 }
+      - key: StatDelta
+        subject: master
+        stat: health.value
+        amount: 25
+        direction: down
+
+  # "This NP is forcefully deactivated at the end of a Turn Raikou is defeated."
+  #
+  # At the END of that Turn, not immediately -- so the copies get their last
+  # Turn out, which is the only reason the clause specifies a moment at all.
+  - key: OnEvent
+    event: unitDefeated
+    automatic: true
+    at: turnEnd
+    then:
+      - { key: SetMode, ability: tenmokaikai, active: false }
+notes: |
+  The "Enemy Units cannot Attack Raikou or her Master if any Raikou copies are next to them"
+  clause is NOT here: it belongs to the copies, and each of them carries the `TargetabilityModifier`
+  that says so. Ozymandias's Sphinxes are the same element addressed to the same two roles.
+
+  The copies' half Health, inherited passives, +15% Crit, per-copy element and rider, budget
+  exemption and once-per-Turn cap are all on their own files for the same reason. What is left
+  here is exactly what belongs to the Noble Phantasm: the gate, the summon, her own buffs, the
+  clock her Master pays, and the two forced endings.

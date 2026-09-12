@@ -1769,6 +1769,12 @@ function itemSystem(doc) {
     cannotDeactivate: Boolean(doc.cannotDeactivate),
     // §15.3's two-way toggle lockout.
     toggleLock: doc.toggleLock ?? null,
+    // WHEN a mode may be switched off, for a mode with no bounded field of its
+    // own to carry it. Raikou's Tenmōkaikai is the first: *"Raikou can
+    // deactivate this NP during her Turn and at the start or end of any Turn or
+    // Round."* Absent from this allowlist it would compile to the schema
+    // default and the wider window would silently not exist.
+    deactivation: doc.deactivation ?? null,
     categorizedAsNP: Boolean(doc.categorizedAsNP),
     // An open tag set naming CATEGORIES this ability also counts as. Jack's
     // Mist exempts anyone holding "the Instinct Skill of Rank B or higher",

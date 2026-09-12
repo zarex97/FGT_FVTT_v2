@@ -43,6 +43,16 @@ function abilityCommon() {
     // tick it last flipped on. The toggle was a bare write until this existed,
     // so the clause had nowhere to live.
     toggleLock: new TickField(),
+    // WHO may switch this mode off, and WHEN. Distinct from `toggleLock`, which
+    // says how long they must wait, and from `cannotDeactivate`, which says
+    // never: this says at which moments the offer exists at all.
+    //
+    // Raikou's Tenmōkaikai: *"Raikou can deactivate this NP during her Turn and
+    // at the start or end of any Turn or Round"* -- a wider window than the
+    // sheet button alone, and one a mode with no bounded field had no way to
+    // state. Ozymandias's Complex says the same thing about a FIELD
+    // (`field.deactivation`), which is where the shape comes from.
+    deactivation: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     toggledAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     // The tick a Command-Spell suspension lifts at; null when nothing has
     // suspended this ability. Read by `rules/modes.mjs#canToggleMode`, which

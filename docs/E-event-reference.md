@@ -451,3 +451,36 @@ by event name so an event with no subscribers costs one map lookup.
 ---
 
 **End of appendices.** Back to the [index](00-index.md).
+
+## E.13 Whose Health a handler spends — `subject`
+
+An `OnEvent` action acts on the handler's own bearer unless it names a `subject`. Four values:
+
+| `subject` | Resolves to | First clause that needed it |
+|---|---|---|
+| `self` (default) | the handler's bearer | — |
+| `master` | the bearer's contracted Master | Mad Enhancement's drain: *"This Servant's Master loses 30 Health"* |
+| `summoner` | the Unit that summoned the bearer | Tenmōkaikai: the last copy to die ends **her** Noble Phantasm |
+| `summonerMaster` | that summoner's Master | Tenmōkaikai's upkeep, before it was rewritten — see below |
+
+The last two are **hops the acting unit cannot make for itself**. A summon has no Master of its
+own, and its summoner is not the Unit the event fired for.
+
+### One charge per Turn, not one per copy
+
+Tenmōkaikai's upkeep reads *"At the end of Raikou's Turn **and** at the end of any Turn Raikou
+**or any of her copies** Acts, Raikou's Master loses 25 Health."*
+
+The obvious authoring is a handler on each copy charging `summonerMaster`. It is wrong, and
+expensively: four copies acting is **100 a Turn, 300 a Round**, against a Master who starts on a
+few hundred Health. The clause charges 25 for *the Turn*, however many of the five acted in it.
+
+`fireEvent` runs a handler on the unit the event fired for, so a handler on **her** Noble
+Phantasm cannot see a copy's `actedTurnEnd` — which is what pushes an author toward the wrong
+shape. The answer is to move the question instead of the handler: `snapshotBoard` annotates
+`selfOrSummonsActed`, and the Noble Phantasm carries **one** handler, on her, at `turnEnd`,
+gated on it. Her Turn ends once, so the Master is charged once.
+
+`subject: summonerMaster` stays, because the resolution is right and the next clause of this
+shape will want it; it simply is not what this one needed.
+
