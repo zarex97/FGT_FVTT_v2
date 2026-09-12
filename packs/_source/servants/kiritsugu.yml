@@ -54,4 +54,5 @@ abilities:
   - { ref: kiritsugu-scapegoat }
   - { ref: kiritsugu-lethal-gunfire-suppression }
   - { ref: kiritsugu-suppression-shot }
+  - { ref: kiritsugu-chronos-rose }
   - { ref: kiritsugu-familiars }

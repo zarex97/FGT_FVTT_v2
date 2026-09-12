@@ -1,0 +1,46 @@
+# Kiritsugu, char_orig_sheets/Copia de Kiritsugu.md
+#
+# Time Alter. The only Noble Phantasm in the corpus that attacks somebody else's
+# CLOCK: 1◈ added to the defender's NP Cooldown is a Turn of a Noble Phantasm
+# they were about to have and now do not.
+#
+# `scope: np` reaches every Noble Phantasm the target carries, because a sheet
+# saying "its NP Cooldown" about somebody else cannot know how many they have --
+# which is the reason that selector was written, years before anything used it
+# against a unit other than the caster.
+schema: 1
+id: kiritsugu-chronos-rose
+name: "Chronos Rose: Pick Ye Rosebuds While Ye May"
+rank: "B+"
+isNP: true
+kind: noblePhantasm
+npTags: [antiUnit]
+cooldown: "6◈+⅓◈"
+timing: { window: ownTurn }
+description: |
+  Time Alter. Range 3. Base Attack (STR) is used. Deals 3.5x damage plus 100 that has the Ignore
+  Def effect, then inflicts @effect[critDwn]{Crit Dwn} for 1◈ Turns, Crit Chance is reduced by
+  30%, and increases the Defending Unit's NP Cooldown by 1◈ Turns. Cooldown: 6◈+⅓◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 3.5
+  flatBonus: 100
+  # Stated on the sheet, and worth stating: his BA(MAG) is far higher. It also
+  # decides the Magic Resistance question -- a STR-damage source is exempt from
+  # its Instakill/Death clause.
+  component: str
+  # "damage ... that has the Ignore Def effect." On the NP's own damage block
+  # rather than as a buff, because it belongs to this swing and not to him.
+  ignoresDefUp: true
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: critDwn, magnitude: 30, duration: "1◈" }
+  # "increase the DU's NP Cooldown by 1◈ Turns" -- the DEFENDER's.
+  - kind: cooldown
+    changes:
+      - { unit: target, scope: np, ticks: "1◈", direction: up }

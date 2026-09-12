@@ -449,7 +449,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           await applyWorldIntents(
             phase.choose
               ? await chosenCooldowns(phase, ability, doc)
-              : cooldownChanges(phase, doc, board, ability),
+              : cooldownChanges(phase, actor, board, ability, doc),
             `skill:${ability.id}:cooldown`,
           );
           break;
@@ -1194,22 +1194,33 @@ async function postCard(actor, ability, targets, applied) {
  * that made `category` a field rather than a list in the ability.
  *
  * @param {object} phase
- * @param {object} doc the actor whose abilities are affected
+ * @param {object} doc the CASTER — whose abilities are affected by default
  * @param {object} [board] needed only by a `countMatching` change
  * @returns {object[]}
  */
-export function cooldownChanges(phase, doc, board = null, self = null) {
+export function cooldownChanges(phase, doc, board = null, self = null, target = null) {
   /** @type {object[]} */
   const out = [];
 
   for (const change of phase.changes ?? []) {
-    const targets = selectAbilities(change, doc, self);
+    // WHOSE abilities this change reaches. `doc` -- the caster -- for
+    // everything authored until now, and the TARGET for Kiritsugu's Chronos
+    // Rose: *"increase the DU's NP Cooldown by 1◈ Turns."*
+    //
+    // `selectAbilities`'s own comment has anticipated this since it was
+    // written -- `scope: np` is *"what a sheet means by 'its NP Cooldown' when
+    // the Unit it is aimed at is somebody else's and may have two"* -- so the
+    // SELECTOR was ready all along and only the subject was hard-wired.
+    const subject = change.unit === "target" ? (target ?? doc) : doc;
+    if (!subject?.items) continue;
+    const subjectId = subject.id;
+    const targets = selectAbilities(change, subject, self);
 
     for (const item of targets) {
       // `set: 0` is "completely reduce", which is a set rather than a subtract:
       // a reduce of some large number would work by accident and read as a bug.
       if (change.set !== undefined) {
-        out.push(I.cooldown(doc.id, item.id, change.set, "set"));
+        out.push(I.cooldown(subjectId, item.id, change.set, "set"));
         continue;
       }
       // A ◈ EXPRESSION as well as a raw turn count. Every cooldown a sheet
@@ -1226,7 +1237,7 @@ export function cooldownChanges(phase, doc, board = null, self = null) {
           : Math.abs(change.delta ?? 0));
       const down = change.ticks !== undefined ? (change.direction === "down")
         : change.countMatching ? true : (change.delta ?? 0) < 0;
-      out.push(I.cooldown(doc.id, item.id, turns, down ? "reduce" : "increase"));
+      out.push(I.cooldown(subjectId, item.id, turns, down ? "reduce" : "increase"));
     }
   }
   return out;
