@@ -1,0 +1,26 @@
+# Kiritsugu's Thaumaturgy: Familiars.
+#
+# The same shape as EMIYA's `critUpHawkeye` and its own document for the same
+# reason: a plain `critUp` would raise his crit rate in melee, where the clause
+# gives him nothing at all. The whole clause is "at a Range of 3 or higher".
+#
+# Which is exactly his own Range -- so the familiars sharpen shots he could
+# already take, and Familiars' other half (+2 Range) widens the band they apply
+# to. The two buffs on that Spell only make sense together.
+schema: 1
+id: critUpFamiliar
+name: "Crit Up (Familiar)"
+description: "Crit Chance is increased by X% for Attacks at a Range of 3 or higher."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: CheckModifier
+    check: crit
+    value: "@magnitude"
+    # DEFERRED. The distance does not exist when the buff is applied, so
+    # answering it at collection time answers it wrong and drops the modifier
+    # for ever. `critChance` re-tests it with the attack in scope.
+    predicate: ["attack:range:gte:3"]

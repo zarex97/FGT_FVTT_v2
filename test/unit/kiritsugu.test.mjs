@@ -232,3 +232,67 @@ describe("AttackProperty — a buff that grants an attack property", () => {
       .unhandled).toEqual([]);
   });
 });
+
+describe("The Thaumaturgy Spells share a shape", () => {
+  const ids = ["kiritsugu-reinforcement", "kiritsugu-familiars"];
+
+  it.each(ids)("%s is a Spell of category thaumaturgy that is not an Attack", (id) => {
+    const a = src("abilities", `${id}.yml`);
+    expect(a.category).toBe("thaumaturgy");
+    expect(a.isSpell).toBe(true);
+    // `isSpell` is one of the three things that make an ability count as an
+    // Attack, so leaving this unset would spend his Attack for the Turn.
+    expect(a.countsAsAttack).toBe(false);
+    expect(a.negatedBy).toContain("silence");
+  });
+
+  it("Reinforcement buffs NORMAL attacks only, for one Combat Phase", () => {
+    const a = src("abilities", "kiritsugu-reinforcement.yml");
+    const [eff] = a.phases[0].effects;
+    // nAtkUp, not atkUp -- "Normal Attack damage" is explicit and a blanket
+    // Atk Up would quietly buff both his Noble Phantasms.
+    expect(eff.id).toBe("nAtkUp");
+    expect(eff.magnitude).toBe(40);
+    expect(eff.duration).toBe("⅓◈");
+    expect(a.cooldown).toBe("2◈");
+    expect(a.timing.window).toContain("combatPhaseStart");
+  });
+
+  it("is EMIYA's Reinforcement at a higher number", () => {
+    const k = src("abilities", "kiritsugu-reinforcement.yml");
+    const e = src("abilities", "emiya-reinforcement.yml");
+    expect(k.phases[0].effects[0].id).toBe(e.phases[0].effects[0].id);
+    expect(k.phases[0].effects[0].magnitude).toBeGreaterThan(e.phases[0].effects[0].magnitude);
+  });
+
+  it("Familiars grants both its buffs for 1◈", () => {
+    const a = src("abilities", "kiritsugu-familiars.yml");
+    const byId = Object.fromEntries(a.phases[0].effects.map((e) => [e.id, e]));
+    expect(byId.rangeUp.magnitude).toBe(2);
+    expect(byId.critUpFamiliar.magnitude).toBe(30);
+    expect(byId.rangeUp.duration).toBe("1◈");
+    expect(byId.critUpFamiliar.duration).toBe("1◈");
+    expect(a.cooldown).toBe("4◈");
+  });
+
+  it("Crit Up (Familiar) is range-conditional and DEFERRED", () => {
+    const [rule] = src("effects", "crit-up-familiar.yml").rules;
+    expect(rule.check).toBe("crit");
+    // The distance does not exist when the buff is applied, so answering the
+    // predicate at collection time answers it wrong and drops the modifier.
+    expect(rule.predicate).toEqual(["attack:range:gte:3"]);
+  });
+
+  it("Familiars' +2 Range widens the band its Crit Up applies to", () => {
+    // His Range is 3, the Crit Up starts at 3, and the Range Up takes him to 5.
+    // If the two numbers ever drift apart the Spell stops making sense.
+    const k = src("servants", "kiritsugu.yml");
+    const a = src("abilities", "kiritsugu-familiars.yml");
+    const rangeUp = a.phases[0].effects.find((e) => e.id === "rangeUp");
+    const critBand = Number(
+      src("effects", "crit-up-familiar.yml").rules[0].predicate[0].split(":").pop(),
+    );
+    expect(critBand).toBe(k.range.panels);
+    expect(k.range.panels + rangeUp.magnitude).toBe(5);
+  });
+});
