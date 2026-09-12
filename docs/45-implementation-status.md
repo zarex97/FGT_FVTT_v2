@@ -3479,6 +3479,40 @@ Damage Step when a successful Attack is performed"* — a clause about the attac
 rather than about delivering an effect. Widening it would extend the rule rather than apply it,
 so the asymmetry is recorded here as a decision.
 
+### Raikou — **in progress**
+
+#### Commit 1 — the statline, and four class skills that cost one line each
+
+Every number on her sheet reproduces from `domain/tables.mjs` with **no override anywhere**:
+
+| Sheet | Table | Rank | Value |
+|---|---|---|---|
+| BA(STR) 150 | `baseAttackStrByStr` | A | 150 ✔ |
+| BA(MAG) 200 | `baseAttackMagByMag` | A | 200 ✔ |
+| Health 1250 | `baseHealthByEnd` | B | 1250 ✔ |
+| Divinity +30 | `divinity` | C | 30 ✔ |
+| MR 20% / 10% | `magicResistancePercent` / `…DebuffResist` | D | 20 / 10 ✔ |
+| ME 75/30 taken, 100 dealt, drain 30 | `madEnhancement{Defence,Offence,Drain}` | EX | ✔ |
+| Riding MOV +5, 3◈ | `ridingMov` / `ridingCooldown` | A+ | 5 / 3◈ ✔ |
+
+So `test/unit/raikou.test.mjs` asserts the **agreement** rather than restating the numbers —
+which is what makes a corrected table propagate instead of drifting away from the sheet.
+
+**Mad Enhancement EX is the longest single block on any sheet in either roster — seven numbered
+effects — and it costs one line.** `class-mad-enhancement` was written to be parameterized, and
+`domain/tables.mjs` cites her `EX` row *by name*; Appendix B §B.3 calls the agreement between
+her sheet and Penthesilea's "the strongest validation any table in this appendix has received".
+Riding A+, Magic Resistance D and Divinity C are one line each for the same reason: her sheet
+spends five paragraphs restating Double Move, Riding Attack, Passenger Seat, the not-a-buff MOV
+Up, the Instakill/Death ladder and *"Erase is completely unaffected"*, and every one of them was
+already built and already shared.
+
+**R8 settles the one thing her sheet leaves unstated.** It gives both Base Attacks and never
+says which the Normal Attack uses. STR, on Karna's precedent. Had it been MAG,
+`domain/attributes.mjs#isMagus` would have made her a **Magus** — *"all Units whose Normal
+Attacks use Base Attack (MAG)"* — and Mad Enhancement's +100% would have been halved to +50% on
+every ordinary swing she makes.
+
 ---
 
 ---

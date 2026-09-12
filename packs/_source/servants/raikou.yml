@@ -1,0 +1,90 @@
+# packs/_source/servants/raikou.yml
+# Conversion source: char_orig_sheets/Copia de Raikou.md
+# Design: docs/superpowers/specs/2026-09-12-raikou-design.md
+# Data sheet: docs/D-servant-data-sheets.md §D.32
+#
+# The reference set's acceptance test for a MODE HELD ON BY POSITION, for a
+# modifier whose subject is another modifier's magnitude, and for a single
+# ability that resolves as five attacks under two different rule sets.
+#
+# She is also the cheapest Servant in the corpus per clause, and the reason is
+# worth recording: her Mad Enhancement EX -- seven numbered effects, the longest
+# single block on any sheet in either roster -- costs ONE LINE, because
+# `class-mad-enhancement` was written to be parameterized and `domain/tables.mjs`
+# cites her EX row by name. Appendix B §B.3 calls the agreement between her
+# sheet and Penthesilea's "the strongest validation any table in this appendix
+# has received".
+schema: 1
+id: raikou
+name: "Raikou"
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Minamoto no Yorimitsu"
+# "True Name: Minamoto no Yorimitsu, Ushi Gozen". Ushi Gozen is the aspect --
+# the Ox-King both Noble Phantasms are named for -- not a second name and not a
+# second statline, so it is carried in `notes` rather than in a field.
+servantClasses: [berserker]
+# The container it is summoned into, and the name opponents see until its true
+# name is revealed (Ch. 04 §4.2). The sheet states no Class and lists three
+# class skills; Mad Enhancement is Berserker's and is the one that decides her
+# (R9). Not cosmetic: the container sets base Detect (`rules/identity.mjs`), her
+# ZON base and which column of `npCostByRank` her Master pays.
+classContainer: berserker
+alignment: { order: chaotic, morality: good }
+region: [japan]
+# "Attributes: Female, Servant, [Sky], Humanoid". `spirit` and `hominidae` are
+# NOT listed: `domain/attributes.mjs` closes the implication table for every
+# Unit, and stating a derived attribute by hand is how the two spellings drift.
+attributes: [female, servant, sky, humanoid]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: A, end: B, agi: D, mag: A, luc: C }
+baseHealth: 1250
+mov: 4
+range: { panels: 4, targets: 1 }
+# STR A => 150, MAG A => 200 and END B => 1250 all come straight off
+# `domain/tables.mjs`, so nothing here is an override.
+# `test/unit/raikou.test.mjs` holds the agreement rather than restating it.
+baseAttack: { str: 150, mag: 200 }
+# R8. The sheet gives both Base Attacks and never says which the Normal Attack
+# uses; STR, on Karna's precedent -- his Mana Burst (Flames) carries the
+# identical sentence ("the Base Attack used is his BA(STR) and BA(MAG)
+# combined") and reads as a departure from a STR default.
+#
+# Had it been MAG, `domain/attributes.mjs#isMagus` would have made her a MAGUS
+# ("all Units whose Normal Attacks use Base Attack (MAG)") and Mad
+# Enhancement's +100% would have been halved to +50% on every ordinary swing.
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # "Class Skill: Mad Enhancement — Rank: EX". All seven numbered effects are
+  # already `class-mad-enhancement`'s and every magnitude is already in the
+  # tables. The two clauses NO OTHER BEARER HAS -- the positional forcing and
+  # the Command Spell override -- are authored on this entry rather than on the
+  # shared file, and arrive in the next two commits.
+  - { ref: class-mad-enhancement, rank: EX }
+  # "Class Skill: Riding — Rank: A+". All three passives and the Active are
+  # already shared, and `engine/riding.mjs` already performs them -- including
+  # the clause her sheet restates at length, that a Riding Attack after a Move
+  # gets MOV minus the panels already spent. "The Move Up effect ... is not a
+  # buff" is already `isBuff: false`. She adds NOTHING to Riding.
+  - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
+  # "Class Skill: Magic Resistance — Rank: D". Her three paragraphs -- the rank
+  # negation, the 20%, the 10% debuff resistance, the Instakill/Death ladder
+  # with both its exemptions, and "Erase is completely unaffected" -- are the
+  # shared file clause for clause. She adds NOTHING.
+  - { ref: class-magic-resistance, rank: D }
+  # "Divinity — Rank: C / All damage dealt is increased by 30 including NP."
+  # The table prices C at exactly 30.
+  - { ref: divinity, rank: C }
+
+notes: |
+  The nineteenth Servant, and the first whose hardest class skill cost nothing at all.
+
+  **Ushi Gozen is not a second form.** The sheet gives one statline and one ability list; the
+  ox-demon aspect is what both Noble Phantasms are named for (Goō = Ox King) and what the
+  Genji-clan Discipline is about. Carried here rather than as a `variant`, which would promise a
+  second sheet that does not exist.
