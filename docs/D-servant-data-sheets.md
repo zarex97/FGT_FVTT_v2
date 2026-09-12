@@ -1314,9 +1314,10 @@ are per-clause rather than per-ability.
 another modifier's magnitude, mutual exclusion between a class skill and an ordinary skill,
 count-limited attack riders, clone summons with per-clone parameterization, and a single ability
 that resolves as five separate attacks under two different rule sets.
-**Scripts: 0.** Fully authored in `0.3.6` and taken onto a live board. Ch. 45 records the pass,
-the six defects it found -- three of them in shipped machinery, two of those breaking every
-attack and every timed Command Spell in the game -- and the clauses that remain unwitnessed.
+**Scripts: 0.** Fully authored in `0.3.6`, and **every clause on this sheet has been seen working
+on a live board**. Ch. 45 records the two passes and the ten defects they found -- six in shipped
+machinery, three of those breaking every attack, every timed Command Spell, and every elemental
+Normal Attack in the game.
 
 **Note.** `Dohatsu Tenshou` is the hardest single ability in either roster to log legibly. Five
 damage instances, four of which can be independently Blocked or Evaded and none of which use
