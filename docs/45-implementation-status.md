@@ -3863,7 +3863,7 @@ caught it; the picker has been narrowed to the two that exist, because a door on
 worse than no door. The correct value was `reuse` all along — the Units the targeting resolved,
 which is exactly what *"all affected Units"* means.
 
-### Raikou — the live pass, and six defects, three of them in shipped machinery
+### Raikou — the live pass, and ten defects, six of them in shipped machinery
 
 Every clause below was **read off a live board in `fgt2026`**, not inferred from a green test.
 The two most serious findings had nothing to do with her.
@@ -3952,14 +3952,74 @@ drop below 30 in this way"* — and this clause does not.
 | Forced deactivation | at 400 → −25; at 20 → deactivate with **no drain**; at 30 → −25 in full |
 | Dohatsu Tenshou | **five Combat Processes under one `groupId`**, each with its own reaction ladder; four `kind: normal` at 0.5× BA(STR) in lightning/fire/ice/wind, each at half element share and each excluding Mad Enhancement **by name**; a fifth `kind: np` at 3.5× BA(MAG) + 200 carrying **full** Lightning and no exclusion |
 
-#### What was not driven live
+#### The second pass: the eight clauses the first one left unwitnessed
 
-Recorded rather than implied. These are authored, unit-tested and **unwitnessed on a board**:
-Riding's three Actives, Magic Resistance's rank negation and its Instakill/Death ladder, the Mad
-Enhancement drain actually firing, the Sustainability penalty on a Master's death, the clone
-riders (`Burn` / `Shock` / `Bleed` / `Disable`) landing on a defender, the last-copy-ends-the-NP
-path, the NP1→NP2 cooldown becoming 8◈+⅔◈, and R7's zero-damage rider end to end. The next pass
-starts there.
+Driven through the interface rather than the console where the interface reaches them — her
+sheet's own toggles, the action bar, the **End Turn** button. **Four more defects, three of them
+in shipped machinery**, and every one of them invisible to a green test.
+
+##### 7. A Normal Attack's element never reached the attack spec — **shipped machinery**
+
+`buildAttackSpec` receives the Actor document; `normalAttackAt` reads the **system** shape. So it
+was handed a document whose `.normalAttack` is `undefined` and got `element: null` back every
+time. **Every Servant whose ordinary swing has a damage type has been swinging with none** —
+Ozymandias's Light, Nemo's Water, all four of Raikou's copies. No Freeze break, no `flamHeal`
+conversion, no element-scoped resistance, no `attack:element:` predicate could ever match.
+
+It is the *same document-for-snapshot mix-up* as the `.effects` read eight lines away in the same
+function, which says something about that function's parameter rather than about either clause.
+
+The schema had also dropped the *"(half)"*: `normalAttack` carried `element` and no
+`elementFraction`, so a copy's *"Lightning damage (half)"* compiled to a whole-element attack.
+
+##### 8. `statChange` cannot express a mode change, and said nothing
+
+*"If used while Goō Shōrai・Tenmōkaikai is Active, it is immediately ended"* was authored as a
+`statChange` phase carrying a `SetMode`. `statChanges` knows `stat` / `delta` / `percentOfMax`
+and **silently skips anything else**, so it compiled, loaded and did nothing — and `when:
+combatPhaseEnd` was wrong as well, because the phase runner knows only `beforeDamage` and
+`afterDamage`. There is now a real `setMode` phase kind in both runners.
+
+The unit test for this clause **passed the whole time**, because it asserted the authored shape
+rather than the behaviour. That is the cleanest example in this chapter of why the live pass
+exists.
+
+##### 9. Phase predicates could not see the attack
+
+`applyAbilityEffects` built **caster-only** options, in a loop that runs once per Combat Process —
+where the attack is the only thing that differs between runs. So `attack:kind:np`, which is how
+Dohatsu Tenshou's `setMode` phase waits for the fifth instance, could never match. Fixed by
+passing the defender and the attack; adding options only ever adds, so every predicate that
+passed before passes now.
+
+##### 10. `normalAttacksOnly` refused Normal Attacks
+
+Mine. A Normal Attack reaches `canUseAbility` with `ability: null`, and the guard refused
+unconditionally — so a copy could not attack **at all**, which is the one thing the grant exists
+to permit.
+
+##### What the second pass saw working
+
+| Clause | Evidence |
+|---|---|
+| Riding, Active | clicked ON from her sheet: MOV **4 → 9**, the sheet's own derivation line reading *"mov +5 — Riding"*, and "Moved 0 of 9 panels" |
+| Riding, Double Move | after attacking she may move again with **6 of 9 panels** left; an identical Servant without the grant is refused *"this unit has attacked and cannot move again"* |
+| Riding, Riding Attack | a **horse icon appears on the action bar** that is absent with Riding off — the player can actually reach it |
+| Riding, Passenger Seat | granted alongside the other two |
+| Mad Enhancement, toggle lock | a click refused with `toggleLock`, 1 tick remaining — *"and vice versa"*, as a player-visible refusal |
+| Mad Enhancement, drain | **End Turn** clicked: Master 400 → **370**, exactly the EX figure of 30 |
+| Mad Enhancement, floor | Master at 25: mode **forcibly deactivates and the drain takes nothing** |
+| Magic Resistance, negation | vs MAG Rank D the card reads `negated: MR D ≥ attack D`, total **0** |
+| Magic Resistance, reduction | vs MAG Rank A it reads `−20% MAG (MR D < attack A)`, 200 → **160** |
+| Magic Resistance, ladder | `Death` from a MAG source rolls `1 vs 90%`; from a **STR** source `100% (automatic)`; **`Erase` `100% (automatic)`** |
+| Clone riders | all four landed on a defender, each with its own element: Watanabe fire→`Burn`, Sakata lightning→`Shock`, Urabe wind→`Bleed`, Usui ice→`Disable` |
+| Last copy ends the NP | three deaths produce nothing; the fourth produces `tenmokaikai=false on Raikou` |
+| NP1→NP2, the cooldown | a real use with Tenmōkaikai active leaves Dohatsu Tenshou on **26 ticks** — 8◈+⅔◈ |
+| NP1→NP2, the ending | Tenmōkaikai stays on through **all four** Normal Attacks, so they keep its +50% and Shock rider, and switches off only after the **fifth** |
+| Sustainability | Master defeated with Mad Enhancement **on** charges `sustainability −2`; **off**, it does not. Both free the contract and lock her modes |
+| R7, zero-damage rider | of 14 attacks, **2 dealt exactly 0 and both still applied `Shock`**; the twelve non-zero hits shocked 6, against an authored 50% |
+
+Nothing on her sheet is now unwitnessed.
 
 ---
 
