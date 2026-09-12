@@ -1386,10 +1386,98 @@ describe("expanding a multi-instance declaration", () => {
     // expands to anything but N identical copies of its own block, the
     // generalisation changed the degenerate case and is wrong.
     for (const [id, n] of [["emiya-overedge", 2], ["mannanan-toole-fragarach", 3]]) {
-      const { repeat, ...rest } = ability(id).damage;
+      const { repeat: _repeat, ...rest } = ability(id).damage;
       const out = expandInstances(ability(id).damage);
       expect(out).toHaveLength(n);
       for (const spec of out) expect(spec).toEqual(rest);
     }
+  });
+});
+
+/* ========================================================================== */
+/*  Excluding one modifier source                                             */
+/* ========================================================================== */
+
+describe("excluding one modifier source", () => {
+  /** Her bag on a Dohatsu Tenshou sub-attack: Mad Enhancement, and Divinity C. */
+  const HER_BAG = [
+    { key: "atkUp", value: 100, source: "Mad Enhancement" },
+    { key: "divinity", value: 30, source: "Divinity" },
+  ];
+  const EXCLUDE = ["Mad Enhancement"];
+
+  /** @param {object} attack @param {object[]} [defenderMods] */
+  const swing = (attack, defenderMods = []) => computeDamage({
+    attacker: {
+      baseAttack: { str: 200, mag: 0 }, parameters: {}, effects: [],
+      modifiers: HER_BAG, health: 1000, shield: 0, magicResistance: null, outsideZon: false,
+    },
+    defender: {
+      baseAttack: { str: 0, mag: 0 }, parameters: {}, effects: [], modifiers: defenderMods,
+      health: 1000, shield: 0, magicResistance: null, outsideZon: false,
+    },
+    board: {},
+    attack: { kind: "normal", rank: null, categorizedAsNP: false, element: null, ...attack },
+    base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+    multiplier: 1,
+    flatBonus: 0,
+    crit: { isCrit: false, chanceUsed: 0 },
+    reaction: { kind: "none" },
+    luckChecks: {},
+    rolls: {},
+    options: new Set(),
+  });
+
+  it("drops only the named source, and keeps everything else", () => {
+    // 200 base. Without Mad Enhancement's +100%: 200 + Divinity's flat 30.
+    const out = swing({ excludeModifierSources: EXCLUDE });
+    expect(out.total).toBe(230);
+  });
+
+  it("leaves the same attack alone when nothing is excluded", () => {
+    // 200 x 2.00 from Mad Enhancement, then Divinity's +30.
+    expect(swing({}).total).toBe(430);
+  });
+
+  it("never removes a DEFENDER's reduction", () => {
+    // The whole reason this is not `bypassModifiers`. "These 4 Attacks are not
+    // affected by Mad Enhancement" says nothing about the target's Def Up, and
+    // an all-or-nothing bypass would have discarded it.
+    const guarded = swing(
+      { excludeModifierSources: EXCLUDE },
+      [{ key: "defUp", value: 50, source: "somebody else" }],
+    );
+    expect(guarded.total).toBeLessThan(230);
+  });
+
+  it("excludes the source on the DEFENDER's side too", () => {
+    // Symmetrical by construction: `activeMods` is the one place every stage
+    // reads a bag, and it does not care whose bag it is.
+    const bare = swing({ excludeModifierSources: EXCLUDE });
+    const warded = swing(
+      { excludeModifierSources: [...EXCLUDE, "Mad Enhancement (theirs)"] },
+      [{ key: "defUp", value: 50, source: "Mad Enhancement (theirs)" }],
+    );
+    expect(warded.total).toBe(bare.total);
+  });
+
+  it("SAYS SO in the breakdown rather than vanishing", () => {
+    // The rule stages 4, 7 and 12 already follow for `ignoresAttackerIncreases`
+    // and `Ignore Def`: a modifier that vanishes from the breakdown is
+    // indistinguishable from one that was never collected. Ch. 30's audit is
+    // the only way the live pass can check this clause at all.
+    const out = swing({ excludeModifierSources: EXCLUDE });
+    const text = JSON.stringify(out.breakdown ?? []);
+    expect(text).toMatch(/Mad Enhancement/);
+    expect(text).toMatch(/not affected by/i);
+  });
+
+  it("names the exclusion ONCE, not once per stage", () => {
+    // Six stages read a modifier bag. One exclusion is one fact, and six zero
+    // rows for it is noise in the one audit that has to stay legible at five
+    // cards.
+    const out = swing({ excludeModifierSources: EXCLUDE });
+    const mentions = JSON.stringify(out.breakdown ?? []).match(/not affected by/gi) ?? [];
+    expect(mentions).toHaveLength(1);
   });
 });

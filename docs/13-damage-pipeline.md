@@ -1002,9 +1002,35 @@ Note how this sits beside the two narrower flags already present:
 | `bypassModifiers: {attacker: true}` | the attacker's increases **and** decreases | the defender's whole side, the crit, the ability multiplier |
 | `ignoresAttackerIncreases` (Ozymandias) | the attacker's **increases** only | his decreases, the defender's side, the crit |
 | `ignoresDefUp` (`Ignore Def`) | the defender's `Def Up` only | her `Dmg Cut`, everything else |
+| `excludeModifierSources: [...]` | **named sources**, on both sides | every other modifier either side holds |
 
 §36.6 predicted `bypassModifiers`' two-sided form would have *"its only user"* in Quickfire.
 It has two.
+
+### `excludeModifierSources` — narrower again
+
+Raikou's *Goō Shōriki・Dohatsu Tenshou*: *"These 4 Attacks are **not affected by Mad
+Enhancement**."* Every flag above is about a **side** or a **direction**; this one names a
+**source**.
+
+Authoring it as a bypass would have been quietly enormous. Her Divinity, both Mystery Slayer
+passives, her `Atk Up` from Thunder God's Embodiment and **every reduction the defender was
+standing behind** all still apply to those four attacks. The sentence names exactly one Skill,
+and one Skill is what it drops.
+
+Filtered in `activeMods` — the single place every stage reads a modifier bag — so one line covers
+stages 2, 4, 4b, 5, 7 and 12 and cannot fall out of step with any of them. It is symmetrical by
+construction, because that function does not care whose bag it is.
+
+**Named once, not once per stage.** The other bypasses list a bypassed modifier at zero in each
+stage that would have read it, on the rule that a modifier vanishing from the breakdown is
+indistinguishable from one never collected. Six zero rows for one exclusion is noise in the one
+audit that has to stay legible at five cards (Ch. 30), so the *source* is named once at stage 1
+instead — which honours the same rule more cheaply.
+
+> A note is written to the breakdown's **current** stage, and there is none before the first
+> `begin()`. Written above `stage1Base`, this note went nowhere and said nothing — caught by the
+> test that asserts it appears exactly once.
 
 ## 13.8 Multi-hit
 

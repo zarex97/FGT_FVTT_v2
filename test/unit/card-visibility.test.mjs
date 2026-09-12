@@ -297,6 +297,7 @@ describe("the pipeline attributes every contribution", () => {
   // unattributed calls are listed here by hand, and a seventh fails this test.
   const UNATTRIBUTED = [
     'state.note("fixedDamage"',       // arithmetic: which stages were skipped
+    's.note("excluded"',              // arithmetic: which sources this attack drops
     's.note("bucket"',                // arithmetic: the summed percentage
     's.note("element"',               // arithmetic: the element share's percentage
     's.note("elementFlat"',            // arithmetic: an elemental flat bonus's own share
