@@ -4062,3 +4062,128 @@ Nothing on her sheet is now unwitnessed.
 ---
 
 **Previous:** [44 — Case Studies: the Expanded Roster](44-case-expanded-roster.md)
+
+---
+
+### Kiritsugu — the live pass, and twenty-one defects, sixteen in shipped machinery
+
+Eleven sheet entries, and **three of them cost nothing but a `ref:` line**. Presence Concealment
+A+ and Independent Action A between them supply eight numbers his sheet states — 5% discovery,
++4 Evade, 2◈ cooldown, 8◈ Sustainability, +3 ZON, 4 contract rolls — with not one authored as an
+override. `rules/auras.mjs` had cited *Affection of the Holy Grail* in its own header since it
+was written, as the example of an aura that excludes its bearer; the clause it was waiting for
+turned out to be his.
+
+What was **not** built is reactivity. His signature skill fires a Normal Attack on somebody
+else's Turn, triggered by a **third party** being attacked, and lets him cast a Spell inside the
+trigger. Nothing in the corpus had that shape: `AutoCounter` fires on its own bearer.
+
+The pass found **twenty-one defects**, sixteen of them in machinery that shipped before he
+existed. Five were mine. The count is high because his sheet is the first to press on the
+*reaction* path end to end, and almost nothing on that path had ever been driven by a player.
+
+#### Four that reached every Servant in the game
+
+##### 1. The attack card never drew the reaction abilities it was handed
+
+`pendingPrompt` has assembled them onto the prompt since the Combat Process was written, with a
+comment saying why it matters — *"Reaction abilities are offered BESIDE Block and Evade (§15.3).
+Medea's Trofa is 'used when Attacked' and there is no other moment it can be reached"*. It builds
+an `options` list including each `ability:<id>` and returns them as `prompt.abilities`.
+`promptOptions` then rebuilt a fixed three — nothing, block, evade — and threw the list away.
+
+So **every reaction ability in the game was unreachable**: Trofa, both Eyes of the Mind, Rho
+Aias, Akhilleus Kosmos, Semiramis's Scales of the Sacred Fish. Computed, carried in the state,
+never drawn. The fix paid for itself within the hour: the shot's own attack card offered the
+defending Caster *"Μαρδοξ (Argos)"* and *"Tροψα (Trofa)"*, reachable for the first time.
+
+##### 2. A Seal was invisible until the bill arrived
+
+`rules/budget.mjs` has gated Skills, Spells and Noble Phantasms since it was written, and
+`canConsume` honours it — but only when an action is **billed**, which is after the player has
+committed. `canUseAbility`, which greys a button and writes its tooltip, never asked.
+
+Kiritsugu under Skill Seal had every Skill button lit, and pressing one opened a targeting
+session that said **"✓ Legal — click to confirm"** for an ability the rules forbid. Six effects
+reach that table — the blanket ones, Disable, Seal, Silence, Skill Seal, NP Seal — and none were
+visible on a button. The action bar's own comment says a button that offers what the declaration
+refuses is a worse affordance than a disabled one; it was describing a case it did not cover.
+
+##### 3. Setup rolls read the Rank on paper, not the one in force
+
+`sheetSnapshot` returns `toObject().system` — `_source` — and the setup rolls read Ranks off it.
+A Servant whose own passive shifts a parameter was rolled against the printed Rank.
+
+*Affection of the Holy Grail* is *"Luck is increased from Rank E to Rank EX"*, and his written
+LUC is `E` precisely so the passive has something to raise. Max Luck is `0 + 1d4` at E against
+`20 + 1d4` at EX, so he was summoned with **4 Luck where he should have had twenty-odd** — an A+
+rank Skill worth nothing, and every Luck Check failing for the Servant whose sheet calls him the
+luckiest thing on the board. Measured: **4 before, 23 after**. The clause that reverses it reads
+*"instead of REDUCING his Max Luck"*, which only means anything if the Rank was raising it.
+
+##### 4. A Unit's Range arrives in two shapes, and readers assumed one
+
+`snapshotBoard` **flattens** `range` to a number; the document carries `{panels, targets}`.
+`resolveSkillTargets` passes `self.range?.panels ?? 1` where `self` is a snapshot — so **every
+Skill whose targeting falls back to its caster's Range reached exactly one panel**, whatever the
+Servant's Range actually was. `engine/attack.mjs` already carried the defensive form *and a
+comment recording the same bug* found in its pre-emption reach; `rules/compulsion.mjs` had
+settled on the idiom. I then wrote a third instance of it myself.
+
+#### The rest, in brief
+
+| # | Defect | Whose |
+|---|---|---|
+| 5 | `Aura` dropped the `check:` it modified, so it reached `checkModifiers` as a modifier to no check and was read by nobody | shipped |
+| 6 | An unanswerable rung stopped a Combat Process for ever — `advanceAttack`'s auto-advance loop runs only *after* an event | shipped |
+| 7 | `placement.sourceUnitId`, what the `sourceOfAttack` anchor resolves against, was set by **no caller anywhere** | shipped |
+| 8 | A phase carrying its own `targeting` was handed `{}` as its placement, so any anchor needing a panel resolved to nobody | shipped |
+| 9 | The sheet's derivation list knew one of `RankShift`'s three forms; `to:` and `grades:` printed as `0` | shipped |
+| 10 | `modifierKey` was validated against the damage pipeline alone, though `auras.mjs#ROUTES` routes three keys elsewhere | shipped |
+| 11 | Passenger Seat's log line passed a string where `applyIntents` wants an options object — threw on every carry | mine, prior session |
+| 12 | `countsAsAttack` answers two questions with one flag: "bills an Attack" and "resolves through the attack flow" | shipped |
+| 13 | `freeAction` had to skip the **turn record** as well as the budget — two ledgers, both of which refuse him | mine |
+| 14 | `runDamageStepStartHandlers` read `action.key`; `normalizeActions` renames it to `kind` | mine |
+| 15 | `bypassesCategoryLimit` was read by the gate and declared in no schema | mine |
+| 16 | `refusesReactionsUnlessFaster` and `offersSpellCategory` likewise | mine |
+| 17 | `timing.radiusTo` / `requiresDefenderEffect` were not in the authoring timing vocabulary | mine, caught by `authoring-timing` |
+| 18 | `state.attackerId` referenced inside `offeredReactions`, which has no `state` | mine, caught by reading |
+| 19 | Scapegoat named the ally window with no `timing.radius`, so it was offered only when *he* was the defender | mine |
+| 20 | Two abilities named "Lethal Gunfire Suppression" — one sheet entry, two documents, no way to tell them apart | mine |
+| 21 | His sheet's BA(STR) 65 is overruled by the table's 75 (Ch. 41 Q50) — the spec said the opposite | mine, in the spec |
+
+#### Three test fixtures that asserted my assumptions
+
+The same mistake hid three separate defects, and it is worth naming precisely because every one
+of those tests was green.
+
+- The **aura** test hand-wrote its fixture including `check: "luck"` — the post-executor shape as
+  I imagined it. It exercised `annotateAuras` and `checkPlan` faithfully and never ran the
+  executor that feeds them. It proved the route and asserted the bug into existence.
+- The **offer** test hand-wrote `range: { panels: 3 }`, the document's shape, and passed while
+  the real board withheld the shot at every distance.
+- The **Base Attack** test asserted `baseAttack.str === 65` and passed while the game played 75.
+
+A test whose fixture is my assumption can only ever confirm my assumption. All three now build
+their fixtures from the content files through the real collectors, and the third asserts
+`baseAttackFor` rather than the YAML.
+
+#### What the pass saw working
+
+| Clause | Evidence |
+|---|---|
+| Statline | his sheet: **LUC EX** from a written `E`, **Luck 23/23**, BA(STR) **75**, Sustainability **8◈ · 24 turns left** |
+| The rank shift, explained | `parameters.luc → EX — Affection of the Holy Grail` on the derivation list |
+| Magecraft's cap | after one Spell, all three Thaumaturgy buttons grey; the tooltip reads *"Thaumaturgy: Familiars — Already used a Spell of this kind this Turn"*, and nothing else on the bar is touched |
+| Reinforcement | `nAtkUp 40`, cooldown **6 ticks** (2◈ × 3) |
+| Affection, Active | `pierce` + `critDmUp 50` on him; `debuffResDwn 20` on both neighbours and **not** on him; cooldown **11** (4◈−⅓◈) |
+| Affection, the aura (R3) | enemy at 1 panel **+4**, his own ally at 2 **+4**, anyone at 3 **nothing**, himself **nothing** — a penalty on both sides, since checks succeed on `total <= target` |
+| Skill Seal (R2) | all four at once: LUC falls to **E**, the aura stops, his Skills read **"Prevented"** while both Noble Phantasms stay available, and his own Luck rolls take **+20** |
+| Scapegoat | `decoyScapegoat` on the bait; `sCritUp 15` on the bait **and** on Kiritsugu — **one each at 15, not 30**, so the union of the two radii applied once despite him standing in both |
+| The shot (R1) | offered on the **enemy's** Turn as *"Lethal Gunfire Suppression: Return Fire (Kiritsugu)"*; fires for **46** — `Base BA(STR) self BA(STR) × 1 = +75`, then a subtracted crit — with Block, Counter **and** Evade refused; and his own `attacked`/`acted` still **false** afterwards |
+| Suppression (R5, R6) | the defender's `Def Up` appears **nowhere in the damage breakdown**, where the same attack without Suppression carried it; a use spent **5 → 4**; the conditional `atkUp 15` granted. Against a target with nothing to strip: uses stay **4**, no Atk Up |
+| Chronos Rose | the **defender's** Rule Breaker goes **0 → 3** ticks (1◈); his own Chronos Rose stays at 0 |
+| Mystery Bisection's mark (R4) | the victim's own sheet reads **BA (STR) 50 → 30** and **BA (MAG) 210 → 110** — both components, on a MAG attacker, halved after the Region's +1 per parameter |
+
+Nothing on his sheet is unwitnessed.
+

@@ -31,13 +31,15 @@ Chapters 31–36; this appendix is the consolidated reference.
 | Semiramis | Caster/Assassin | E | D | D | A | A | 750 | 4 | 2 or 3² | 45 | 200 | 2◈/4◈² |
 | Scáthach | Lancer¹ | B | A | A | C | D | 1500 | 7 | 2 | 125 | 150 | 2◈ |
 | Karna | Lancer | B | C | A | B | D | 1000 | 7 | 2 | 125 | 175 | 2◈ |
-| Kiritsugu | Assassin¹ | D | C | A+ | B | EX (E)³ | 1000 | 7 | 3 | 65 | 175 | 8◈ |
+| Kiritsugu | Assassin¹ | D | C | A+ | B | EX (E)³ | 1000 | 7 | 3 | 65⁴ | 175 | 8◈ |
 | Francis Drake | Rider | D | C | B | E | EX | 1000 | 6 | 3 | 75 | 100 | 2◈ |
 | Penthesilea | Berserker¹ | A+ | B+ | C | A | D | 1250 | 4 | 2 | 160 | 200 | 2◈ |
 | Nemo | Rider¹ | C | B | C | A | A | 1250 | 6 | 3 | 100 | 200 | 2◈ |
 | Heracles | Berserker¹ | A+ | A | A | B | A | 1500 | 6 | 1 | 160 | 175 | 2◈ |
 
 ¹ Class inferred from the ability set; not stated on the sheet.
+
+⁴ The sheet's figure, and **overruled in play**: Ch. 41 Q50 settles that Base Attack is derived from the Rank, so his STR `D` gives **75**. Serenity's sheet prints 65 at the same Rank and is overruled the same way. The written value is kept so the deviation stays visible, and `validate:content` warns about it.
 ² Depends on the `Double Summon: Caster` coin flip.
 ³ Base E, raised to EX by *Affection of the Holy Grail* unless under Skill Seal.
 
@@ -1330,6 +1332,38 @@ table derived from Heracles (B) and Penthesilea (EX) **exactly** — 40%/20%/60%
 two others is the strongest validation any of the rank tables has received.
 
 ---
+
+## D.33a Kiritsugu
+
+**Scripts: 0.** Fully authored, and **every clause on this sheet has been seen working on a live
+board**. Ch. 45 records the pass and the twenty-one defects it found — sixteen in machinery that
+shipped before he existed, four of them reaching every Servant in the game.
+
+**Three of his eleven entries cost nothing but a `ref:` line.** Presence Concealment A+ and
+Independent Action A supply eight numbers between them — 5% discovery, +4 Evade, 2◈ cooldown, 8◈
+Sustainability, +3 ZON, 4 contract rolls — none authored as an override.
+
+**What he is for.** The first genuinely REACTIVE Servant in the set. Every other Servant acts on
+their own Turn or answers an attack aimed at themselves; Kiritsugu answers an attack aimed at
+somebody *else*, with a Normal Attack that costs him nothing and that the target usually cannot
+react to. Scapegoat makes the bait, Lethal Gunfire Suppression takes the shot, and Magecraft
+rations the three Spells that sharpen it to one a Turn.
+
+**LUC is written `E`.** The sheet prints `EX (E)` and the parenthetical is the real parameter:
+*Affection of the Holy Grail* contributes the shift, so that Skill Seal has something to take
+away. Authoring `EX` would make the whole clause — and its counter — unobservable.
+
+**His signature aura hinders his own side.** *"The Luck Check rolls of all Units within a 2 panel
+area … except himself are increased by 4"* is a **penalty**, because checks succeed on
+`total <= target`. Standing near him is bad for everyone but him.
+
+**Skill Seal is his designed counter** (spec R2), and it does four things at once: the rank shift
+stops, the aura stops, his Skills stay sealed, and his own Luck Checks take **+20**.
+
+**Mystery Bisection's mark is worse for a Caster than for a Saber.** Halving *both* Base Attack
+components costs Medea (50/210) a hundred off the number she actually attacks with, where a STR
+attacker loses the smaller half of theirs. That asymmetry is what makes it a cripple rather than
+a finisher.
 
 ## D.33 Nemo
 

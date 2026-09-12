@@ -507,3 +507,15 @@ which half of Appendix A is likely to keep growing.
 ---
 
 **Next:** [B — Rank Tables](B-rank-tables.md)
+
+### Six effects Kiritsugu added
+
+| Id | Polarity | Notes |
+|---|---|---|
+| `pierce` | buff | **The first Pierce document in the corpus.** `Pierce` was in this catalogue and read by the damage pipeline in three places, and no content could produce it: `attack.pierce` came only from an ability's own `damage:` block. It rides `AttackProperty` (Ch. 13). |
+| `penetration` | buff | Ignore Def **and** a halved Invuln. `invulnFactor: 0.5` is how much damage SURVIVES — the first clause that weakens a defence rather than bypassing it, and deliberately **not** Pierce, which would be a total bypass the sheet withholds. |
+| `critUpFamiliar` | buff | Range-conditional Crit Up, beside `critUpHawkeye` and for the same reason: a plain `critUp` would sharpen him in melee where the sheet gives him nothing. Its predicate is DEFERRED. |
+| `decoyScapegoat` | debuff | Its own document rather than the shared `decoy`, because Lethal Gunfire Suppression triggers on **this** one — sharing it would make Mannanán's self-applied Decoy fire Kiritsugu's gun from across the board. Keeps `allySelfBypassesResistance`: it is applied to an ally on purpose. |
+| `suppression` | buff | **Two clocks that are not the same clock**: `uses: 5` and a 1◈ duration, ending on whichever runs out first. A use is spent by a SUCCESSFUL strip only. `noneExtend`, so Magecraft's `DurationExtension` lengthens the clock without refilling the uses. |
+| `kiritsuguMark` | debuff | Halves BOTH Base Attack components; unremovable, non-stacking, past Debuff Resist *and* Debuff Immune. Named `kiritsuguMark`, never `kiritsugu` — an effect sharing a content id with its Servant is a build-breaking collision, which `raikou` hit. Its display NAME is still "Kiritsugu", as the sheet has it, which makes the content linter flag every mention of the man; those are incidental. |
+

@@ -906,3 +906,24 @@ Every number in that trace comes from data, not code. That is the target.
 ---
 
 **Next:** [12 — The Combat Process](12-combat-process.md)
+
+### An aura must carry what its reader filters on
+
+`annotateAuras` routes each contribution by `ROUTES[key] ?? "modifiers"`, and the route was the
+easy half. Kiritsugu's *Affection of the Holy Grail* is the first aura whose consumer is
+`checks.mjs#checkPlan` rather than the damage pipeline, and it needed **two** things that nothing
+had needed together:
+
+1. A route, so the contribution lands in `unit.checkModifiers` instead of `modifiers`.
+2. The `check:` field itself, because `checkPlan` filters on `m.check` — and the `Aura` executor
+   copies a **fixed field list** onto the contribution, which did not include it.
+
+With the route and without the field, the aura arrived at the right bucket as a modifier to *no
+check at all* and was read by nobody. The lesson generalises past auras: an executor that copies
+a named list of fields silently drops everything a future reader might need, and the failure is
+invisible because the contribution is present and plausible.
+
+`rules/auras.mjs`'s header had named this skill as its example of an aura that excludes its
+bearer since before the skill existed. `relations: [ally, enemy]` with `self` **omitted** is how
+*"all Units within a 2 panel area … except himself"* is said.
+

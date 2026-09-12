@@ -1122,3 +1122,35 @@ Distinct from its three neighbours, which each do something else to an incoming 
 ---
 
 **Next:** [25 — The Turn System](25-turn-system.md)
+
+### Three elements Kiritsugu added, and one he did not need
+
+| Key | Group | What it says |
+|---|---|---|
+| `AttackProperty` | 2, damage contributors | A property of the ATTACK, contributed by a buff on the attacker — `pierce`, `ignoresDefUp`, and the fractional `invulnFactor`. Until it existed, `Pierce` was in Appendix A, read by the pipeline in three places, and had no effect document, because only an ability's own `damage:` block could produce one. |
+| `BaseAttackModifier` | 1, stat modifiers | A multiplier on Base Attack, per component. Applied in the **projection** rather than the pipeline, because it names *both* components and an attack only ever reads one (Ch. 13). |
+| `CategoryUseLimit` | 6, suppression and meta | A per-Turn cap on a whole category, declared by the skill that states the rule and bypassable per use (Ch. 15). |
+
+
+A fourth, `TriggeredAttack`, was planned for the out-of-turn shot and **never written**. The
+ally window plus the `sourceOfAttack` anchor plus `freeAction` covered it with machinery that
+already existed; what it actually needed was two `timing` fields. Recorded because the instinct
+to reach for a new element was wrong, and reading the existing dispatcher was right.
+
+**On adding a key at all.** Three authorities have to agree — `EXECUTORS`,
+`rules/authoring/elements.mjs`, and `RULE_ELEMENT_KEYS` — and `test/unit/elements.test.mjs`
+holds them in both directions. There are two more the drift tests also cover and that are easy
+to miss: `lang/en.json` needs a label and a hint per element (`authoring-i18n`), and any new
+`timing` field needs an entry in `rules/authoring/timing.mjs` (`authoring-timing`). Both caught
+real omissions during this pass.
+
+**And a field a reader consults must be DECLARED.** `bypassesCategoryLimit`,
+`refusesReactionsUnlessFaster` and `offersSpellCategory` were each read by code and absent from
+the ability schema, so on a real document all three were `undefined` for ever. The pack compiler
+builds an explicit object; a field it does not name is dropped silently.
+
+**Interior `then:` actions are validated against no vocabulary at all**, and they are renamed:
+`normalizeActions` writes the authored `key` as `kind`. A reader that checks `action.key` finds
+`undefined` on every action and does nothing, with no error anywhere. Both facts cost a defect
+apiece on this pass.
+

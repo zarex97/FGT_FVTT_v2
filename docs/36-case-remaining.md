@@ -191,6 +191,54 @@ Brahmastra — 7×7 within Range 4
 
 ## 36.2 Kiritsugu — reactive support and buff stripping
 
+> **Implemented, and `TriggeredAttack` was not built.** All eleven sheet entries resolve on a
+> live board; Ch. 45 records the pass and the twenty-one defects it found, sixteen of them in
+> machinery that shipped before he existed.
+>
+> **DECISION — the out-of-turn shot is the ALLY WINDOW, not a new rule element.** The sketch
+> below proposes `OnEvent: attackDeclared` carrying a `key: Attack` action. Neither exists:
+> `Attack` is not a rule element, and `OfferAbilityUse` has a different shape entirely. What the
+> clause actually needed was machinery already present — the `whenAllyAttacked` window, which
+> `allyReactions` had been gating on cooldown, negation and reach since Rho Aias; the
+> `sourceOfAttack` anchor, which Fragarach declares; and two new `timing` fields, `radiusTo:
+> attacker` and `requiresDefenderEffect`. Every ally-window ability before this one INTERPOSES,
+> so its reach is measured to the Unit in peril; his shoots back, so what must be reachable is
+> his target.
+>
+> **DECISION — two documents, as Karna's Vasavi Shakti is.** One sheet entry with a (Passive)
+> and an (Active) half cannot be one document when the halves have different windows, costs and
+> phases. `kiritsugu-lethal-gunfire-suppression` is the Active;
+> `kiritsugu-suppression-shot` is the shot, and it carries a DIFFERENT NAME —
+> *"Lethal Gunfire Suppression: Return Fire"* — because two identically-named rows on a sheet,
+> and "Lethal Gunfire Suppression (Kiritsugu)" twice in one reaction prompt, is not something a
+> player can read.
+>
+> **DECISION — the shot is a NORMAL Attack, and that is the load-bearing line of its file.** The
+> sheet says so, and two of his own clauses read the word: Reinforcement buffs `nAtkUp`, and
+> Suppression's strip fires on *"Successful Normal Attacks"*. `isAttackSkill: true` classifies as
+> `attackSkill` and would have quietly excluded the shot from both. A bare `damage` phase with
+> none of `isAttackSkill`/`isSpell`/`isNP` is what `abilityKind` answers `"normal"` for.
+>
+> **DECISION — `freeAction`, separate from `countsAsAttack`.** The sketch does not address the
+> cost. `countsAsAttack` answers two questions at once — *does this bill an Attack* and *does
+> this resolve through the attack flow* — and R1 needs opposite answers. See Ch. 15.
+>
+> **The Skill Seal reading below is the one the author confirmed, and the sketch's YAML for it is
+> wrong.** Under Skill Seal the rank shift stops (LUC falls to E), the aura stops, his Skills
+> stay sealed, and he takes **+20 to his own Luck Check rolls** as a substitute penalty. The
+> sketch writes `direction: harder`, which is not a field: `resolveCheck` succeeds on
+> `total <= target`, so a positive value is already a penalty and no direction is needed
+> (Ch. 14). Its `aura: {…, excludeSelf: true}` is likewise not the shape — an aura excludes its
+> bearer by OMITTING `self` from `relations`, which `rules/auras.mjs` documents using this very
+> skill as the example.
+>
+> **The buff-stripping loop is real and needed two things the sketch does not mention.** The
+> strip must land at the START of the Damage Step, because the buff it takes may be the `Def Up`
+> that would otherwise reduce that very hit — so it cannot ride `fireEvent`, which returns
+> intents synchronously. And a use is spent by a SUCCESSFUL strip only, which no intent list can
+> express, because the answer does not exist until the removal has been decided.
+
+
 **The demand: a passive that fires an attack on someone else's turn.**
 
 > `Lethal Gunfire Suppression` (Passive): *"Whenever a Unit inflicted with Decoy (Scapegoat) is
