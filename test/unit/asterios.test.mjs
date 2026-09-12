@@ -324,6 +324,12 @@ describe("a non-damaging Noble Phantasm", () => {
       // field's interior rules or to its turn-end toll.
       "quetz-piedra-del-sol",
       "quetz-winged-serpent",
+      // Tenmōkaikai, the seventeenth, and its sheet calls it
+      // "(Non-damaging/Passive)" in as many words. Its one phase puts four
+      // differently armed copies of Raikou on the board; everything the Noble
+      // Phantasm does afterwards is theirs, her own buffs', or the clock her
+      // Master pays. It swings at nobody.
+      "raikou-tenmokaikai",
       "semiramis-hanging-gardens-of-babylon",
       "semiramis-sikera-usum",
     ]);

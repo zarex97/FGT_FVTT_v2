@@ -32,7 +32,13 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
 export const AUTHORED_ITEM_KEYS = Object.freeze([
   "contentId", "contentVersion", "description", "source", "rank", "slug", "isNP", "isMode",
   "isAttackSkill", "replacesNormalAttack", "isSpell", "isPassive", "active",
-  "cannotDeactivate", "toggleLock", "categorizedAsNP", "categorizedAs",
+  // `deactivation` beside its two neighbours, and they answer three different
+  // questions: `cannotDeactivate` says NEVER, `toggleLock` says HOW LONG YOU
+  // MUST WAIT, and `deactivation` says AT WHICH MOMENTS the offer exists at
+  // all. Raikou's Tenmokaikai is its first ability-level user -- "Raikou can
+  // deactivate this NP during her Turn and at the start or end of any Turn or
+  // Round" -- where a bounded field has carried the same shape since Ozymandias.
+  "cannotDeactivate", "toggleLock", "deactivation", "categorizedAsNP", "categorizedAs",
   "weakPoint", "ridingAttack", "expendsPermanently", "categorizedWhile",
   "npTags", "cooldown", "cooldownWaiver", "targeting", "field", "quantity",
   "transferable", "transferRange", "transfersPerTurn", "consumeEffect",

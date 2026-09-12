@@ -288,6 +288,11 @@ function add(options, side, unit) {
   // and `inField` cannot answer it.
   for (const f of unit.ownedFields ?? []) options.add(`${side}:fieldActive:${f}`);
 
+  // Acted this Turn, or one of its summons did. Raikou's Tenmōkaikai charges
+  // her Master 25 *per Turn* rather than per copy, and one handler on her
+  // gated on this is what makes that so -- see `annotateSummonsActed`.
+  if (unit.selfOrSummonsActed) options.add(`${side}:selfOrSummonsActed`);
+
   // The LAST summon of its summoner's group still standing. Raikou's copies:
   // the one that dies last is what ends Tenmōkaikai and starts its cooldown,
   // and it has to know that about itself because the handler fires from the

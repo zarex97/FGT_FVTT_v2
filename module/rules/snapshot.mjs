@@ -723,6 +723,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   annotateCompulsions(units, board);
 
   annotateLastOfSummonGroup(units);
+  annotateSummonsActed(units);
   // Built here rather than cached across calls: `snapshotBoard` is where the
   // board's positions are already in hand, and an index built anywhere else
   // would need the invalidation table (§23.9) to keep it honest. The engine
@@ -1584,6 +1585,46 @@ function magicResistanceOf(actor) {
  * reads the board it is handed.
  *
  * Grouped by `summonerId`, so two Servants' summons never count each other.
+ *
+ * @param {object[]} units
+ * @returns {object[]} the same units, annotated
+ */
+/**
+ * Mark every Unit that **acted this Turn, or whose summons did**.
+ *
+ * Raikou's Tenmōkaikai: *"At the end of Raikou's Turn and at the end of any
+ * Turn Raikou **or any of her copies** Acts, Raikou's Master loses 25 Health."*
+ *
+ * **25 per Turn, not per copy**, and this is what makes that true. `fireEvent`
+ * runs a handler on the unit the event fired for, so a handler on *her* Noble
+ * Phantasm cannot see a copy's `actedTurnEnd`, and one handler per copy would
+ * charge her Master 25 for every copy that swung — 125 a Round with four of
+ * them out, which makes the Noble Phantasm unusable and is the reading easiest
+ * to write by accident.
+ *
+ * So the clause is ONE handler, on her, listening at `turnEnd` and gated on
+ * this flag. Her Turn ends once, so the Master is charged once, whether she
+ * acted, one copy acted, or all five did.
+ *
+ * @param {object[]} units
+ * @returns {object[]} the same units, annotated
+ */
+export function annotateSummonsActed(units) {
+  /** @type {Set<unknown>} */
+  const actedSummoners = new Set();
+  for (const u of units ?? []) {
+    if (u.kind === "summon" && u.summonerId && u.acted) actedSummoners.add(u.summonerId);
+  }
+  for (const u of units ?? []) {
+    u.selfOrSummonsActed = Boolean(u.acted) || actedSummoners.has(u.id);
+  }
+  return units;
+}
+
+/**
+ * Mark the summons that are the **last** of their summoner's group standing.
+ *
+ * (See the block below; this JSDoc belongs to `annotateLastOfSummonGroup`.)
  *
  * @param {object[]} units
  * @returns {object[]} the same units, annotated

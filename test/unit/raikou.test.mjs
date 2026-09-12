@@ -17,7 +17,8 @@ import { parse } from "yaml";
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { annotateZon } from "../../module/rules/zon.mjs";
-import { annotateLastOfSummonGroup } from "../../module/rules/snapshot.mjs";
+import { annotateLastOfSummonGroup, annotateSummonsActed } from "../../module/rules/snapshot.mjs";
+import { subjectOf } from "../../module/engine/scheduler.mjs";
 import { orthogonalPanels } from "../../module/rules/targeting/orthogonal.mjs";
 import { FACING_OFFSETS, rotateFacing } from "../../module/domain/geometry.mjs";
 import { rollOptionsFor, isEmittableOption } from "../../module/rules/options.mjs";
@@ -1133,5 +1134,193 @@ describe("where the four copies appear (R4)", () => {
         expect(FACING_OFFSETS[rotateFacing(facing, deg)]).toBeDefined();
       }
     }
+  });
+});
+
+/* ========================================================================== */
+/*  Goō Shōrai・Tenmōkaikai                                                   */
+/* ========================================================================== */
+
+describe("Goō Shōrai・Tenmōkaikai", () => {
+  const A = ability("raikou-tenmokaikai");
+
+  it("is a mode NP, usable only while Mad Enhancement is OFF", () => {
+    expect(A.isNP).toBe(true);
+    expect(A.isMode).toBe(true);
+    expect(A.slug).toBe("tenmokaikai");
+    expect(A.rank).toBe("A+");
+    expect(A.npTags).toEqual(["antiArmy"]);
+    expect(A.requirements).toEqual([{ kind: "modeInactive", mode: "madEnhancement" }]);
+  });
+
+  it("says nothing about Mad Enhancement afterwards", () => {
+    // "(Note: Mad Enhancement can be reactivated after this NP is activated.)"
+    // A requirement is checked at USE and never maintained, so honouring this
+    // costs nothing -- but the obvious wrong reading is a standing gate that
+    // switches the NP off the moment she rages, and the sheet goes out of its
+    // way to rule that out. Worth an assertion for exactly that reason.
+    expect(A.negatedWhile ?? null).toBeNull();
+  });
+
+  it("starts its 7◈+⅓◈ clock at DEACTIVATION, not at use", () => {
+    expect(A.cooldown).toEqual({ max: "7◈+⅓◈", countFrom: "deactivation" });
+  });
+
+  it("may be switched off on her Turn or at the edge of any Turn or Round", () => {
+    expect(A.deactivation).toEqual({ byOwner: true, window: "any" });
+  });
+
+  it("summons the four copies on the four facing-relative panels, in sheet order", () => {
+    const phase = A.phases.find((p) => p.kind === "summon");
+    expect(phase.spec.contentIds).toEqual([
+      "raikou-watanabe", "raikou-sakata", "raikou-urabe", "raikou-usui",
+    ]);
+    expect(phase.spec.placement).toEqual({
+      shape: "orthogonal",
+      anchor: "self",
+      order: ["front", "back", "left", "right"],
+    });
+    expect(phase.spec.countsTowardBudget).toBe(false);
+    expect(phase.spec.actsOncePerTurn).toBe(true);
+  });
+
+  it("lifts EVERY attack she makes by 50%, not only Normal Attacks (R5)", () => {
+    const mod = A.activeRules.find((r) => r.key === "DamageModifier");
+    expect(mod.value).toBe(50);
+    expect(mod.npValue).toBe(50);
+    // No `attack:kind` predicate. The sheet narrows to "Normal Attacks" in the
+    // very next clause, on the copies, so "Raikou's Attacks" is unqualified.
+    expect(mod.predicate).toBeUndefined();
+  });
+
+  it("adds Shock 2◈ to her attacks, also unqualified", () => {
+    const rider = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "damageDealt");
+    expect(rider.then[0].effect.id).toBe("shock");
+    expect(rider.then[0].duration).toBe("2◈");
+    expect(rider.predicate).toBeUndefined();
+  });
+
+  it("gives her +30% Crit Chance; the copies' +15% lives on the copies", () => {
+    const crit = A.activeRules.find((r) => r.key === "CheckModifier");
+    expect(crit.check).toBe("crit");
+    expect(crit.value).toBe(30);
+    for (const id of ["raikou-watanabe", "raikou-sakata", "raikou-urabe", "raikou-usui"]) {
+      expect(summon(id).passiveRules.find((r) => r.key === "CheckModifier").value).toBe(15);
+    }
+  });
+
+  it("charges her Master 25 per TURN, not per copy", () => {
+    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "turnEnd");
+    // ONE handler, on HER, at her own turn end -- which happens once -- gated
+    // on whether she or any copy acted. Four handlers on four copies would be
+    // 125 a Round and would make the Noble Phantasm unusable.
+    expect(upkeep.predicate).toEqual(["self:selfOrSummonsActed"]);
+    const drain = upkeep.then.find((t) => t.key === "StatDelta");
+    expect(drain.subject).toBe("master");
+    expect(drain.amount).toBe(25);
+    expect(drain.direction).toBe("down");
+  });
+
+  it("deactivates BEFORE it would charge a Master at 25 or less", () => {
+    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "turnEnd");
+    const [first, second] = upkeep.then;
+    // ORDERED THE OTHER WAY ROUND FROM MAD ENHANCEMENT, and the sheet is why:
+    // "Her Master does not lose Health on the same Turn this NP is
+    // deactivated." Mad Enhancement drains and THEN tests what is left; this
+    // tests first and does not drain at all when the test fires.
+    expect(first.key).toBe("SetMode");
+    expect(first.ability).toBe("tenmokaikai");
+    expect(first.active).toBe(false);
+    expect(first.whenValue).toEqual({ subject: "master", stat: "health.value", lte: 25 });
+    expect(second.key).toBe("StatDelta");
+  });
+
+  it("ends at the end of a Turn in which Raikou is defeated", () => {
+    const onDefeat = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "unitDefeated");
+    // At the END of that Turn, not immediately -- so the copies get their last
+    // Turn out, which is the only reason the clause specifies a moment.
+    expect(onDefeat.at).toBe("turnEnd");
+    expect(onDefeat.then[0]).toEqual({ key: "SetMode", ability: "tenmokaikai", active: false });
+  });
+
+  it("leaves the targetability clause to the copies", () => {
+    // "Enemy Units cannot Attack Raikou or her Master if any Raikou copies are
+    // next to them" is a property of standing NEXT TO A COPY, so it belongs to
+    // the copy. An aura from the NP would have to name four document ids.
+    expect(A.activeRules.some((r) => r.key === "TargetabilityModifier")).toBe(false);
+  });
+});
+
+describe("a summon's turn charging its summoner's Master", () => {
+  const board = {
+    units: [
+      { id: "m1", kind: "master", health: { value: 200 } },
+      { id: "r1", kind: "servant", masterId: "m1" },
+      { id: "c1", kind: "summon", summonerId: "r1" },
+    ],
+  };
+  const copy = board.units[2];
+
+  it("resolves `summonerMaster` through the summoner", () => {
+    // TWO hops, and neither is available to the acting unit: a copy has no
+    // Master of its own, and its summoner is not the unit that acted.
+    expect(subjectOf({ subject: "summonerMaster" }, copy, { board }).id).toBe("m1");
+  });
+
+  it("resolves `summoner` in one hop", () => {
+    expect(subjectOf({ subject: "summoner" }, copy, { board }).id).toBe("r1");
+  });
+
+  it("resolves to null when the summoner is Free", () => {
+    const free = {
+      units: [
+        { id: "r1", kind: "servant", masterId: null },
+        { id: "c1", kind: "summon", summonerId: "r1" },
+      ],
+    };
+    expect(subjectOf({ subject: "summonerMaster" }, free.units[1], { board: free })).toBeNull();
+  });
+
+  it("still resolves `self` and `master` as it always did", () => {
+    expect(subjectOf({}, copy, { board }).id).toBe("c1");
+    expect(subjectOf({ subject: "master" }, board.units[1], { board }).id).toBe("m1");
+  });
+});
+
+describe("one charge per Turn, however many copies acted", () => {
+  /** @param {object[]} extra */
+  const units = (extra) => [
+    { id: "r1", kind: "servant", acted: false },
+    ...extra,
+  ];
+
+  it("fires for Raikou when a copy acted and she did not", () => {
+    const list = units([{ id: "c1", kind: "summon", summonerId: "r1", acted: true }]);
+    annotateSummonsActed(list);
+    expect(list[0].selfOrSummonsActed).toBe(true);
+  });
+
+  it("fires once when she AND three copies acted", () => {
+    const list = units([
+      { id: "c1", kind: "summon", summonerId: "r1", acted: true },
+      { id: "c2", kind: "summon", summonerId: "r1", acted: true },
+      { id: "c3", kind: "summon", summonerId: "r1", acted: true },
+    ]);
+    list[0].acted = true;
+    annotateSummonsActed(list);
+    // ONE flag, so one `turnEnd` handler, so one charge of 25 -- not 100.
+    expect(list.filter((u) => u.id === "r1" && u.selfOrSummonsActed)).toHaveLength(1);
+  });
+
+  it("does not fire when nobody acted", () => {
+    const list = units([{ id: "c1", kind: "summon", summonerId: "r1", acted: false }]);
+    annotateSummonsActed(list);
+    expect(list[0].selfOrSummonsActed).toBe(false);
+  });
+
+  it("is not triggered by another Servant's summons", () => {
+    const list = units([{ id: "d1", kind: "summon", summonerId: "other", acted: true }]);
+    annotateSummonsActed(list);
+    expect(list[0].selfOrSummonsActed).toBe(false);
   });
 });

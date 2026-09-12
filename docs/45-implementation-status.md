@@ -3760,6 +3760,38 @@ And a clone with nowhere to go **keeps its index** as `null` rather than shorten
 `placeSummons` reports *"Raikou (Urabe) had nowhere to appear"* rather than *"3 of 4 summoned"*.
 The first is a rule a player can act on; the second is a shrug.
 
+#### Commit 12 — Tenmōkaikai, and a clock somebody else pays for
+
+The upkeep is the clause worth the care, and the obvious authoring of it is wrong by a factor of
+four. *"At the end of Raikou's Turn **and** at the end of any Turn Raikou or any of her copies
+Acts, Raikou's Master loses 25 Health"* charges 25 for **the Turn**, however many of the five
+acted in it. A handler on each copy — which is where `fireEvent`'s shape pushes you, since a
+handler on *her* Noble Phantasm cannot see a copy's `actedTurnEnd` — is 100 a Turn and 300 a
+Round against a Master who starts on a few hundred Health, and makes the Noble Phantasm
+unusable.
+
+So the question moved instead of the handler. `snapshotBoard` annotates `selfOrSummonsActed`,
+and the Noble Phantasm carries **one** handler, on her, at `turnEnd`, gated on it. Her Turn ends
+once, so the Master is charged once.
+
+`subject: summoner` and `subject: summonerMaster` were built anyway and one of them is load-
+bearing: the last copy to die ends **her** mode, and that handler has to fire from the copy,
+because the copy is the unit that died. Both are hops the acting unit cannot make for itself.
+
+**The upkeep's two actions are ordered the opposite way round from Mad Enhancement's**, and the
+sheet is why. Mad Enhancement drains and *then* tests what is left; this one reads *"her Master
+does not lose Health on the same Turn this NP is deactivated"*, so the test comes first and the
+drain does not happen at all when it fires.
+
+**Two drift tests fired, and both were right.** `test/unit/asterios.test.mjs` keeps a census of
+non-damaging Noble Phantasms — *"if an eighth is authored it lands here, which is the point"* —
+and Tenmōkaikai is the seventeenth. And `test/unit/item-schema-coverage.test.mjs` caught
+`deactivation` as an **authored key with no schema field**: it would have compiled to nothing, so
+*"Raikou can deactivate this NP during her Turn and at the start or end of any Turn or Round"*
+would have been a sentence with no reader. It is now a field, an `itemSystem` entry and an
+`AUTHORED_ITEM_KEYS` member — three places, which is the cost of the allowlist and the reason
+the test exists.
+
 ---
 
 ---

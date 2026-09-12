@@ -420,10 +420,33 @@ export function dispatch(action, unit, handler, ctx) {
  * @param {SchedulerContext} ctx
  * @returns {object|null}
  */
-function subjectOf(action, unit, ctx) {
-  if ((action.subject ?? "self") !== "master") return unit;
+export function subjectOf(action, unit, ctx) {
+  const subject = action.subject ?? "self";
+  if (subject === "self") return unit;
+
+  const units = ctx?.board?.units ?? [];
+
+  // The Unit that summoned this one. Raikou's copies end her Noble Phantasm
+  // when the last of them dies -- *"after the last Raikou copy is defeated"* --
+  // and the handler has to fire from the copy, because the copy is the unit
+  // that died. One hop, and one a handler on the copy cannot make for itself.
+  if (subject === "summoner") {
+    return units.find((u) => u.id === unit?.summonerId) ?? null;
+  }
+
+  // TWO hops: the Master of whoever summoned this one. Tenmōkaikai's upkeep is
+  // *"at the end of any Turn Raikou OR ANY OF HER COPIES Acts, Raikou's Master
+  // loses 25 Health"* -- and neither hop is available to the acting unit. A
+  // copy has no Master of its own, and its summoner is not the unit that acted.
+  if (subject === "summonerMaster") {
+    const summoner = units.find((u) => u.id === unit?.summonerId);
+    if (!summoner?.masterId) return null;
+    return units.find((u) => u.id === summoner.masterId) ?? null;
+  }
+
+  if (subject !== "master") return unit;
   if (!unit?.masterId) return null;
-  return (ctx.board?.units ?? []).find((u) => u.id === unit.masterId) ?? null;
+  return units.find((u) => u.id === unit.masterId) ?? null;
 }
 
 /**
