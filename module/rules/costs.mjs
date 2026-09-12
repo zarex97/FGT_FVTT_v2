@@ -138,7 +138,12 @@ export function canUseAbility({
   // The mirror of `noNormalAttack` (Pale Rider), and in the same spirit --
   // `rules/actions.mjs` withholds the button and this refuses the use, so a
   // player is never offered something the rules have already taken away.
-  if (hasGranted(unit, GRANTS.normalAttacksOnly)) {
+  //
+  // **Only when there IS an ability.** A Normal Attack arrives here with
+  // `ability: null` -- `abilityUsageSpec(null)` is what `resolveAttack` passes
+  // for a bare swing -- and refusing that refuses the one thing the grant
+  // exists to permit. Measured live: a Sakata copy could not attack at all.
+  if (ability && hasGranted(unit, GRANTS.normalAttacksOnly)) {
     return { ok: false, reason: "normalAttacksOnly", detail: {}, cost };
   }
 

@@ -1801,3 +1801,68 @@ describe("the upkeep's drain is gated, not merely ordered", () => {
     expect(setMode.whenValue.lte + 1).toBe(drain.whenValue.gte);
   });
 });
+
+describe("a Normal Attack's element reaches the attack spec", () => {
+  /**
+   * Found live, and it was never Raikou's: **every Servant whose ordinary swing
+   * has a damage type had been swinging with none.**
+   *
+   * `buildAttackSpec` receives the ACTOR DOCUMENT and `normalAttackAt` reads
+   * the SYSTEM shape, so it was handed a document whose `.normalAttack` is
+   * `undefined` and got `element: null` back every time — Ozymandias's Light,
+   * Nemo's Water and all four of Raikou's copies. No Freeze break, no
+   * `flamHeal` conversion, no element-scoped resistance, no `attack:element:`
+   * predicate. The same document-for-snapshot mix-up as the `.effects` read
+   * eight lines away, in the same function.
+   *
+   * And the schema dropped the "(half)": `normalAttack` had no
+   * `elementFraction` field at all, so a copy's *"Lightning damage (half)"*
+   * compiled to a whole-element attack.
+   */
+  it("hands the helper the shape it reads", () => {
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(src).toMatch(/normalAttackAt\(attacker\?\.system \?\? attacker, null\)\?\.element/);
+    expect(src).toMatch(/normalAttackAt\(attacker\?\.system \?\? attacker, null\)\?\.elementFraction/);
+  });
+
+  it("carries elementFraction beside element out of normalAttackAt", () => {
+    const src = readFileSync("module/rules/normal-attack.mjs", "utf8");
+    expect(src).toMatch(/elementFraction: spec\.elementFraction/);
+  });
+
+  it("declares elementFraction on the normalAttack schema", () => {
+    const src = readFileSync("module/data/actor/_shared.mjs", "utf8");
+    const block = src.slice(src.indexOf("normalAttack: new fields.SchemaField"));
+    expect(block.slice(0, 1600)).toMatch(/elementFraction/);
+  });
+
+  it("gives each copy its own element and its own rider", () => {
+    // Verified live, each landing on a defender: fire→Burn, lightning→Shock,
+    // wind→Bleed, ice→Disable.
+    const pairs = {
+      "raikou-watanabe": ["fire", "burn"],
+      "raikou-sakata": ["lightning", "shock"],
+      "raikou-urabe": ["wind", "bleed"],
+      "raikou-usui": ["ice", "disable"],
+    };
+    for (const [id, [element, rider]] of Object.entries(pairs)) {
+      const S = summon(id);
+      expect(S.normalAttack.element).toBe(element);
+      expect(S.normalAttack.elementFraction).toBe(0.5);
+      const h = S.passiveRules.find((r) => r.key === "OnEvent" && r.event === "damageDealt");
+      expect(h.then[0].effect.id).toBe(rider);
+    }
+  });
+});
+
+describe("normalAttacksOnly permits a Normal Attack", () => {
+  /**
+   * Found live: a Sakata copy could not attack at all. The grant refused
+   * unconditionally, including the bare swing it exists to permit — a Normal
+   * Attack arrives at `canUseAbility` with `ability: null`.
+   */
+  it("only refuses when there IS an ability", () => {
+    const src = readFileSync("module/rules/costs.mjs", "utf8");
+    expect(src).toMatch(/if \(ability && hasGranted\(unit, GRANTS\.normalAttacksOnly\)\)/);
+  });
+});

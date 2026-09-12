@@ -60,6 +60,11 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     // From `from`, not from `unit`: a rider whose mount replaces her Normal
     // Attack swings the mount's, and the damage type comes with it.
     element: spec.element ?? null,
+    // "...Lightning damage (HALF)". Travels BESIDE the element for the reason
+    // `buildAttackSpec` gives at all three of its spec-building sites: an
+    // element that arrives without its fraction is silently a whole-element
+    // attack, which is a bigger number than the sheet prints.
+    elementFraction: spec.elementFraction ?? undefined,
     ignoresMagicResistance: false,
   };
 

@@ -239,6 +239,13 @@ export function combatantCommon() {
       // has a type had nowhere to state it. Ozymandias's Mesektet is the first:
       // *"All Normal Attacks use Base Attack (MAG) ... Light damage."*
       element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+      // "...Lightning damage (HALF)". How much of the swing carries that
+      // element, for the pipeline's stage 4b. Raikou's four Tenmokaikai copies
+      // are the first Normal Attacks in the corpus whose element is a FRACTION
+      // -- Ozymandias's Light and Nemo's Water are whole -- and without this
+      // field the parenthesis was dropped by the schema and every copy hit
+      // for full elemental damage.
+      elementFraction: new fields.NumberField({ required: false, nullable: true, initial: null }),
       // What `rangeBanded` bands ON. The mode has been a declared choice since
       // this schema was written with nothing to configure it and nothing
       // reading it, so a Servant authored `rangeBanded` attacked with its flat
