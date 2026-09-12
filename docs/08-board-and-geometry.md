@@ -689,6 +689,36 @@ correct 90° cone.
 
 ---
 
+### The four panels around a Unit, read off its facing
+
+`rules/targeting/orthogonal.mjs#orthogonalPanels` gives the panels **front / back / left /
+right** of a Unit. Raikou's Goō Shōrai・Tenmōkaikai is the clause that needed it: *"four extra
+clones of herself, which appear on the panels in front of her, behind her, and her left and
+right."*
+
+**An ordered formation, not a disc.** Every placement in the corpus until now took the first N
+free panels out of `chebyshevDisc` in whatever order it produced, which is right when the
+summons are interchangeable. Raikou's four differ in Range, element and rider, so *which one is
+in front* is part of what the Noble Phantasm does.
+
+**Derived by rotation, not tabulated.** Four of the eight facings are diagonals, so *"in front
+of"* a Servant facing `ne` is `(i−1, j+1)`. `geometry.mjs` exports `FACING_OFFSETS` and
+`rotateFacing`, and the four directions are the facing turned 0°, 90°, 180° and 270° — the same
+arithmetic `coneOf` performs from the other end. An 8×4 table would be 32 entries obliged to
+agree with that function for ever.
+
+**Displacement is outward along the same axis.** A blocked panel pushes that clone further out
+in the *same* direction, never onto a neighbouring one: sliding it sideways would put two copies
+on one side and none on another, which is a different formation from the one the sheet draws.
+Each placement joins the occupied set as it is decided, so a displaced clone can never land on a
+sibling that has not been placed yet.
+
+**A clone with nowhere to go does not appear, and is named.** The function returns `null` at
+that direction's index rather than shortening the list, so `placeSummons` can report *"Raikou
+(Urabe) had nowhere to appear"* instead of a count. A summon that quietly failed to exist is
+worse than one that appeared further out — the ruling `placeSummons` already made for Medea's
+Warriors — and one that silently appeared somewhere else is worse than both.
+
 ## 8.9 Grid configuration summary
 
 | Foundry setting | Value | Reason |

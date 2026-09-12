@@ -18,6 +18,8 @@ import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { annotateZon } from "../../module/rules/zon.mjs";
 import { annotateLastOfSummonGroup } from "../../module/rules/snapshot.mjs";
+import { orthogonalPanels } from "../../module/rules/targeting/orthogonal.mjs";
+import { FACING_OFFSETS, rotateFacing } from "../../module/domain/geometry.mjs";
 import { rollOptionsFor, isEmittableOption } from "../../module/rules/options.mjs";
 import { canToggleMode, forcedModes } from "../../module/rules/modes.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
@@ -1044,5 +1046,92 @@ describe("the four copies", () => {
     expect(units.find((u) => u.id === "c1").lastOfSummonGroup).toBe(true);
     expect(units.find((u) => u.id === "d1").lastOfSummonGroup).toBe(false);
     expect(units.find((u) => u.id === "d2").lastOfSummonGroup).toBe(false);
+  });
+});
+
+/* ========================================================================== */
+/*  Where the four copies appear (R4)                                         */
+/* ========================================================================== */
+
+describe("where the four copies appear (R4)", () => {
+  const ORDER = ["front", "back", "left", "right"];
+  const origin = { i: 5, j: 5 };
+  const bounds = { width: 11, height: 11 };
+
+  it("reads front/back/left/right off a cardinal facing", () => {
+    // Screen coordinates: +i is south, +j is east, bearing 0 is north.
+    expect(orthogonalPanels(origin, "n", ORDER, { bounds })).toEqual([
+      { i: 4, j: 5 },  // front — north
+      { i: 6, j: 5 },  // back  — south
+      { i: 5, j: 4 },  // left  — west
+      { i: 5, j: 6 },  // right — east
+    ]);
+  });
+
+  it("rotates with the facing", () => {
+    expect(orthogonalPanels(origin, "e", ORDER, { bounds })).toEqual([
+      { i: 5, j: 6 },  // front — east
+      { i: 5, j: 4 },  // back  — west
+      { i: 4, j: 5 },  // left  — north
+      { i: 6, j: 5 },  // right — south
+    ]);
+  });
+
+  it("handles a DIAGONAL facing, which four of the eight are", () => {
+    // "In front of" a Servant facing `ne` is (i−1, j+1). An 8×4 table would be
+    // 32 entries obliged to agree with `coneOf` for ever; this is derived.
+    expect(orthogonalPanels(origin, "ne", ORDER, { bounds })).toEqual([
+      { i: 4, j: 6 },  // front — north-east
+      { i: 6, j: 4 },  // back  — south-west
+      { i: 4, j: 4 },  // left  — north-west
+      { i: 6, j: 6 },  // right — south-east
+    ]);
+  });
+
+  it("displaces OUTWARD along the same axis when the panel is taken", () => {
+    // Not onto a neighbouring axis: "in front of her" stays in front of her,
+    // or two copies end up on one side and none on another.
+    const out = orthogonalPanels(origin, "n", ORDER, {
+      bounds, occupied: new Set(["4,5"]),
+    });
+    expect(out[0]).toEqual({ i: 3, j: 5 });
+  });
+
+  it("keeps displacing until it finds room", () => {
+    const out = orthogonalPanels(origin, "n", ORDER, {
+      bounds, occupied: new Set(["4,5", "3,5", "2,5"]),
+    });
+    expect(out[0]).toEqual({ i: 1, j: 5 });
+  });
+
+  it("gives up at the board edge and returns null for that copy", () => {
+    // A clone that quietly failed to exist is worse than one that appeared
+    // further out -- and one that silently appeared somewhere else is worse
+    // than both. `null` is reported by name on the chat card.
+    const out = orthogonalPanels({ i: 0, j: 5 }, "n", ORDER, { bounds });
+    expect(out[0]).toBeNull();
+    // ...and the other three are unaffected.
+    expect(out.slice(1).every(Boolean)).toBe(true);
+  });
+
+  it("never puts two copies on one panel", () => {
+    // Each placement joins the occupied set as it is decided, so a displaced
+    // clone cannot collide with a sibling that has not been placed yet.
+    const out = orthogonalPanels(origin, "n", ORDER, {
+      bounds, occupied: new Set(["4,5", "6,5"]),
+    });
+    const keys = out.filter(Boolean).map((p) => `${p.i},${p.j}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys).toHaveLength(4);
+  });
+
+  it("rotates a diagonal facing back onto a facing, never between two", () => {
+    // The guard on the derivation: every 90° step from any of the eight lands
+    // on one of the eight.
+    for (const facing of ["n", "ne", "e", "se", "s", "sw", "w", "nw"]) {
+      for (const deg of [0, 90, 180, 270]) {
+        expect(FACING_OFFSETS[rotateFacing(facing, deg)]).toBeDefined();
+      }
+    }
   });
 });

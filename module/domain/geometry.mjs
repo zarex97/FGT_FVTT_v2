@@ -509,6 +509,50 @@ const FACING_DEGREES = Object.freeze({
 });
 
 /**
+ * The unit step in each of the eight facings.
+ *
+ * Screen coordinates, the same convention {@link coneOf} uses: `+i` is south
+ * and `+j` is east, so `n` is `{i: -1, j: 0}`.
+ *
+ * Exported because a facing is not only a cone. Raikou's Goō Shōrai・
+ * Tenmōkaikai puts four clones *"on the panels in front of her, behind her, and
+ * her left and right"*, which is this table plus a rotation.
+ *
+ * @type {Readonly<Record<string, {i: number, j: number}>>}
+ */
+export const FACING_OFFSETS = Object.freeze({
+  n: Object.freeze({ i: -1, j: 0 }),
+  ne: Object.freeze({ i: -1, j: 1 }),
+  e: Object.freeze({ i: 0, j: 1 }),
+  se: Object.freeze({ i: 1, j: 1 }),
+  s: Object.freeze({ i: 1, j: 0 }),
+  sw: Object.freeze({ i: 1, j: -1 }),
+  w: Object.freeze({ i: 0, j: -1 }),
+  nw: Object.freeze({ i: -1, j: -1 }),
+});
+
+/**
+ * The facing you are looking at after turning `degrees` clockwise from `facing`.
+ *
+ * Derived from {@link FACING_DEGREES} rather than tabulated: four of the eight
+ * facings are diagonals, and an 8×4 table of "what is in front of / behind /
+ * left of / right of" would be 32 entries obliged to agree with {@link coneOf}
+ * for ever.
+ *
+ * @param {string} facing one of {@link import("./enums.mjs").FACINGS}
+ * @param {number} degrees clockwise, a multiple of 45
+ * @returns {string} a facing
+ */
+export function rotateFacing(facing, degrees) {
+  const from = FACING_DEGREES[facing];
+  if (from === undefined) throw new RangeError(`FGT | Unknown facing "${facing}".`);
+  const turned = ((from + degrees) % 360 + 360) % 360;
+  const found = Object.keys(FACING_DEGREES).find((f) => FACING_DEGREES[f] === turned);
+  if (!found) throw new RangeError(`FGT | Rotation of ${degrees}° does not land on a facing.`);
+  return found;
+}
+
+/**
  * The cardinal direction from `from` toward `to`, for knockback and forced
  * movement. Ties (perfect diagonals) resolve to the row axis, matching the
  * "no diagonal movement" rule.
