@@ -302,6 +302,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "direction", type: "select", choices: ["applied", "received"] },
   ]),
   entry("SuppressForeignEffects", "Negates effects caused by Units outside this fight — negated, not removed.", []),
+  entry("CategoryUseLimit", "Caps how many abilities of one category may be used per Turn.", [
+    { key: "category", type: "text" },
+    { key: "perTurn", type: "number" },
+  ]),
   entry("Suppress", "Switches off a named scope of effect while this applies.", [
     { key: "scope", type: "text" },
   ]),

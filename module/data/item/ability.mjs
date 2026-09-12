@@ -283,6 +283,13 @@ function abilityCommon() {
     // cooldown entirely, leaving this as the only limit on it.
     oncePerTurn: new fields.BooleanField({ initial: false }),
 
+    // Exempts this use from its CATEGORY's per-Turn cap (`CategoryUseLimit`).
+    // Kiritsugu's Lethal Gunfire Suppression grants a Thaumaturgy cast inside
+    // its trigger that *"does not count towards the one Thaumaturgy Spell
+    // usage per Turn, but it will still enter Cooldown"* -- exempt from the
+    // count, not from the consequence.
+    bypassesCategoryLimit: new fields.BooleanField({ initial: false }),
+
     // The same limit one scale up, and the same argument `sameRoundExclusive`
     // makes against `sameTurnExclusive`: a Servant acts up to three times in a
     // Round, so a per-Turn cap forbids almost nothing. Karna's *Uncrowned Arms

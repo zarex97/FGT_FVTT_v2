@@ -75,6 +75,7 @@ export function empty() {
     autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [],
+    categoryUseLimits: [],
   };
 }
 
@@ -1650,6 +1651,29 @@ export const EXECUTORS = Object.freeze({
   },
 
   /* ── Group 6 — suppression and meta ───────────────────────────────────── */
+
+  /**
+   * A cap on how many abilities of one CATEGORY may be used per Turn.
+   *
+   * Kiritsugu's Magecraft: *"Only one Thaumaturgy Spell can be used per Turn."*
+   *
+   * **Not `sameTurnExclusive`**, for two reasons. It names ability IDS, so three
+   * Spells need six cross-references that go stale the moment a fourth is
+   * authored. And -- decisively -- it has no way to express an EXEMPTION, which
+   * this sheet states outright: Lethal Gunfire Suppression lets him cast one
+   * *"[which] does not count towards the one Thaumaturgy Spell usage per Turn,
+   * but it will still enter Cooldown."*
+   *
+   * Declared by the skill that STATES the rule rather than by each ability the
+   * rule happens to catch, so a fourth Spell is caught by being a Spell.
+   */
+  CategoryUseLimit(el, { source, out }) {
+    out.categoryUseLimits.push({
+      category: el.category,
+      perTurn: el.perTurn ?? 1,
+      source,
+    });
+  },
 
   Suppress(el, { source, out }) {
     out.suppressions.push({ scope: el.scope, predicate: el.predicate ?? null, source });

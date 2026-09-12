@@ -342,6 +342,10 @@ export function snapshotUnit(actor, {
     // cannot read -- which is how `system.concealed` sat unanswered through
     // four subsystems that all consulted it.
     attackProperties: contributions.attackProperties ?? [],
+    // Per-category Turn caps, read by `rules/costs.mjs#canUseAbility`. The
+    // categories themselves are already on `abilities` above, so the gate can
+    // tell what a recorded use WAS without any further projection.
+    categoryUseLimits: contributions.categoryUseLimits ?? [],
     damageNegation: contributions.damageNegation,
     // `contributions.statDeltas` is informational: `FGTActor#prepareDerivedData`
     // has ALREADY folded those into `mov`, `range`, `agility` and friends above

@@ -236,6 +236,20 @@ export function canUseAbility({
     return { ok: false, reason: "oncePerTurn", cost };
   }
 
+  // The same question one scale WIDER: a cap on a whole CATEGORY rather than on
+  // one ability. Kiritsugu's Magecraft is *"Only one Thaumaturgy Spell can be
+  // used per Turn"*, which no per-ability field can say -- and which
+  // `sameTurnExclusive` cannot say either, because the sheet grants an
+  // exemption from it and an id list has nowhere to put one.
+  //
+  // Refused HERE rather than at resolution, so the button greys out with a
+  // reason: a player who presses a Spell and watches nothing happen has not
+  // been told the rule, they have been shown a bug.
+  const categoryLimit = categoryLimitFor(ability, unit);
+  if (categoryLimit) {
+    return { ok: false, reason: "categoryUseLimit", detail: categoryLimit, cost };
+  }
+
   // A capability the Unit's SURROUNDINGS refuse, rather than one its own state
   // does. Nemo's Storm Border is the only source: *"Units within the Storm
   // Border cannot use ... any ability that creates a Unit/Item/object that has
@@ -337,6 +351,40 @@ function usedThisTurn(unit) {
  */
 function usedThisRound(unit) {
   return unit?.roundState?.abilitiesUsed ?? [];
+}
+
+/**
+ * The per-category Turn cap this use would break, if any.
+ *
+ * `bypassesCategoryLimit` is the sheet's stated exemption and is checked FIRST:
+ * the free Spell inside Lethal Gunfire Suppression's trigger still enters
+ * Cooldown, so it is exempt from the COUNT and not from the consequence.
+ *
+ * The Turn record holds whatever `recordAbilityUse` stamped -- an Item id and a
+ * content id -- so both are matched against the Unit's own projected abilities,
+ * which already carry `category` (`snapshot.mjs#collectAbilities`). Matching
+ * only one of the two would count half the uses, which is the drift that made
+ * `oncePerTurn` silently ignore every Noble Phantasm before the record was
+ * unified.
+ *
+ * @param {object} ability
+ * @param {object} unit
+ * @returns {{category: string, perTurn: number, source: string}|null}
+ */
+function categoryLimitFor(ability, unit) {
+  if (!ability?.category || ability.bypassesCategoryLimit) return null;
+  const limit = (unit?.categoryUseLimits ?? []).find((l) => l.category === ability.category);
+  if (!limit) return null;
+
+  const sameFamily = new Set(
+    (unit?.abilities ?? [])
+      .filter((a) => a.category === ability.category)
+      .flatMap((a) => [a.id, a.contentId])
+      .filter(Boolean),
+  );
+  const used = usedThisTurn(unit).filter((id) => sameFamily.has(id));
+
+  return used.length >= limit.perTurn ? limit : null;
 }
 
 /**
