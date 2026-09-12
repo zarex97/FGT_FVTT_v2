@@ -573,7 +573,11 @@ describe("Lethal Gunfire Suppression — when the shot is offered", () => {
   const setup = ({ attackerPanel, defenderEffects = ["decoyScapegoat"], range = 3 }) => {
     const kiritsugu = {
       id: "kiritsugu", name: "Kiritsugu", panel: { i: 5, j: 5 },
-      factionId: "red", range: { panels: range }, effects: [], turnState: {},
+      // A NUMBER, which is what `snapshotBoard` flattens `range` to. The first
+      // version of this fixture wrote `{ panels: range }` -- the document's
+      // shape -- and passed while the real board withheld the offer at every
+      // distance, because `.panels` on a number is `undefined`.
+      factionId: "red", range, effects: [], turnState: {},
     };
     const bait = {
       id: "bait", panel: { i: 5, j: 12 }, factionId: "red",
@@ -585,6 +589,26 @@ describe("Lethal Gunfire Suppression — when the shot is offered", () => {
       defender: bait, attacker: foe, board, attack: { kind: "normal" },
       actorFor: (id) => (id === "kiritsugu" ? { items: [shot] } : { items: [] }),
     });
+  };
+
+  const setupUnits = ({ attackerPanel }) => {
+    const run = (rangeValue) => {
+      const kiritsugu = {
+        id: "kiritsugu", name: "Kiritsugu", panel: { i: 5, j: 5 },
+        factionId: "red", range: rangeValue, effects: [], turnState: {},
+      };
+      const bait = {
+        id: "bait", panel: { i: 5, j: 12 }, factionId: "red",
+        effects: ["decoyScapegoat"], turnState: {},
+      };
+      const foe = { id: "foe", panel: attackerPanel, factionId: "blue", effects: [] };
+      const board = { units: [kiritsugu, bait, foe] };
+      return allyReactions({
+        defender: bait, attacker: foe, board, attack: { kind: "normal" },
+        actorFor: (id) => (id === "kiritsugu" ? { items: [shot] } : { items: [] }),
+      }).length;
+    };
+    return { withNumber: run(3), withObject: run({ panels: 3, targets: 1 }) };
   };
 
   it("offers the shot when the ATTACKER is inside his Range", () => {
@@ -599,6 +623,15 @@ describe("Lethal Gunfire Suppression — when the shot is offered", () => {
   it("widens with his Range, so Familiars' +2 reaches further", () => {
     expect(setup({ attackerPanel: { i: 5, j: 10 }, range: 3 })).toHaveLength(0);
     expect(setup({ attackerPanel: { i: 5, j: 10 }, range: 5 })).toHaveLength(1);
+  });
+
+  it("reads the reach from either shape a Unit's range arrives in", () => {
+    // `snapshotBoard` flattens to a number; a document carries
+    // `{panels, targets}`. Three readers in the corpus have each been caught
+    // assuming one of the two.
+    const asObject = { ...setupUnits({ attackerPanel: { i: 5, j: 8 } }) };
+    expect(asObject.withNumber).toBe(1);
+    expect(asObject.withObject).toBe(1);
   });
 
   it("fires only for a Unit carrying HIS decoy", () => {

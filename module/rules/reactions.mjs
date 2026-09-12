@@ -161,6 +161,21 @@ export function reactionOptions(base, unit) {
 }
 
 /**
+ * A Unit's Range in panels, from either shape it may arrive in.
+ *
+ * `snapshotBoard` flattens `range` to a number and the document carries
+ * `{panels, targets}`. Three readers in the corpus have independently been
+ * caught assuming one or the other; `rules/compulsion.mjs` settled on this
+ * form, and it is the one to copy.
+ *
+ * @param {object} unit
+ * @returns {number}
+ */
+function reachOf(unit) {
+  return typeof unit?.range === "number" ? unit.range : (unit?.range?.panels ?? 0);
+}
+
+/**
  * The ability id behind a chosen reaction option, or `null`.
  * @param {string} event
  * @returns {string|null}
@@ -228,8 +243,13 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
       // A reach stated as the owner's own Range rather than as a number, so
       // Familiars' +2 widens it. `range.panels` is the projection every other
       // reach in the game reads.
+      // `snapshotBoard` FLATTENS `range` to a number; the `{panels, targets}`
+      // shape is the document's. Reading `.panels` off a snapshot gives
+      // `undefined`, falls to 0, and withholds the offer at every distance --
+      // which is exactly the bug `engine/attack.mjs`'s pre-emption reach
+      // carries a comment about, and which this line reproduced.
       const radius = timing.radius === "@self.range.panels"
-        ? (unit.range?.panels ?? 0)
+        ? reachOf(unit)
         : (timing.radius ?? 0);
       if (chebyshev(unit.panel, measureTo.panel) > radius) continue;
 
