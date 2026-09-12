@@ -484,6 +484,39 @@ describe("stage 16 — absorption and clamp", () => {
     expect(computeDamage(ctx).total).toBe(300);
   });
 
+  it("Penetration leaves exactly half standing where Invuln would zero it", () => {
+    // Kiritsugu's Penetration is the first clause that sits BETWEEN the two
+    // above: *"halves the effect of Invuln"* is neither negation nor bypass.
+    expect(computeDamage(mk(unit({ effects: ["invuln"] }))).total).toBe(0);
+
+    const halved = mk(unit({ effects: ["invuln"] }));
+    halved.attack.invulnFactor = 0.5;
+    expect(computeDamage(halved).total).toBe(150);
+
+    // Pierce still bypasses entirely. The two must not collapse into each
+    // other -- Penetration would otherwise be strictly better than the sheet.
+    const pierced = mk(unit({ effects: ["invuln"] }));
+    pierced.attack.pierce = true;
+    expect(computeDamage(pierced).total).toBe(300);
+  });
+
+  it("a halved Invuln did not NEGATE, and the card must not say it did", () => {
+    const halved = mk(unit({ effects: ["invuln"] }));
+    halved.attack.invulnFactor = 0.5;
+    expect(computeDamage(halved).flags.negatedBy).not.toBe("Invuln");
+    expect(computeDamage(mk(unit({ effects: ["invuln"] }))).flags.negatedBy).toBe("Invuln");
+  });
+
+  it("a halved Invuln still lets the Shield below it absorb", () => {
+    // The negation branch returns early; the halving branch must not, or the
+    // Shield and the clamp never run on what survived.
+    const halved = mk(unit({ effects: ["invuln"], shield: 100 }));
+    halved.attack.invulnFactor = 0.5;
+    const r = computeDamage(halved);
+    expect(r.flags.shieldAbsorbed).toBe(100);
+    expect(r.total).toBe(50);
+  });
+
   it("Shield absorbs up to its pool and passes the excess", () => {
     const r = computeDamage(mk(unit({ shield: 200 })));
     expect(r.total).toBe(100);

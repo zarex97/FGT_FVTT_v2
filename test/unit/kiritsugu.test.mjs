@@ -386,3 +386,33 @@ describe("Magecraft — the cap is declared on the category", () => {
     expect(a.passiveRules.some((r) => r.key === "GrantedAbility")).toBe(false);
   });
 });
+
+describe("Penetration — Invuln halves instead of negating", () => {
+  const e = src("effects", "penetration.yml");
+
+  it("grants both properties the sheet names", () => {
+    const props = Object.fromEntries(
+      e.rules.filter((r) => r.key === "AttackProperty").map((r) => [r.property, r.value]),
+    );
+    expect(props.ignoresDefUp).toBe(true);
+    // "halves the effect of Invuln" -- half the damage gets through, so the
+    // factor is what SURVIVES, not what is removed.
+    expect(props.invulnFactor).toBe(0.5);
+  });
+
+  it("is not Pierce, and must not become it", () => {
+    // Pierce is "Invuln does not apply"; this is "Invuln applies at half
+    // strength". Collapsing them hands Penetration a bypass the sheet withholds
+    // -- and he carries real Pierce separately, from Affection of the Holy Grail.
+    expect(e.rules.some((r) => r.property === "pierce")).toBe(false);
+  });
+
+  it("lasts ⅓◈ and costs 3◈", () => {
+    const a = src("abilities", "kiritsugu-penetration.yml");
+    expect(a.phases[0].effects[0]).toEqual(
+      expect.objectContaining({ id: "penetration", duration: "⅓◈" }),
+    );
+    expect(a.cooldown).toBe("3◈");
+    expect(a.category).toBe("thaumaturgy");
+  });
+});

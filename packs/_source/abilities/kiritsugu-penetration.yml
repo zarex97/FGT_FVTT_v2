@@ -1,0 +1,32 @@
+# Kiritsugu, char_orig_sheets/Copia de Kiritsugu.md
+#
+# ⅓◈ -- one Turn -- for a 3◈ cooldown. The shortest buff he has, and the reason
+# Lethal Gunfire Suppression's free cast matters: used on his own Turn it covers
+# his own attack, used inside the trigger it covers the shot.
+schema: 1
+id: kiritsugu-penetration
+name: "Thaumaturgy: Penetration"
+rank: null
+kind: skill
+slug: penetration
+category: thaumaturgy
+isSpell: true
+cooldown: "3◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+description: |
+  Spell. Used during your Turn. Applies the @effect[penetration]{Penetration} buff to Kiritsugu
+  for ⅓◈ Turns, its effects are as follows: when Kiritsugu deals damage with an Attack, it has
+  the Ignore Def effect and halves the effect of Invuln. Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: penetration, duration: "⅓◈" }
