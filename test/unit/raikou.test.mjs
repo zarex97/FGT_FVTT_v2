@@ -1481,3 +1481,141 @@ describe("excluding one modifier source", () => {
     expect(mentions).toHaveLength(1);
   });
 });
+
+/* ========================================================================== */
+/*  Goō Shōriki・Dohatsu Tenshou                                              */
+/* ========================================================================== */
+
+describe("Goō Shōriki・Dohatsu Tenshou", () => {
+  const A = ability("raikou-dohatsu-tenshou");
+  const instances = A.damage.instances;
+
+  it("refuses while Mad Enhancement is off, and hits a 3x3 within Range 3", () => {
+    expect(A.requirements).toEqual([{ kind: "modeActive", mode: "madEnhancement" }]);
+    expect(A.rank).toBe("B++");
+    expect(A.npTags).toEqual(["antiArmy"]);
+    expect(A.targeting.anchor).toEqual({ kind: "withinRange", range: 3 });
+    expect(A.targeting.shape).toEqual({ kind: "square", size: 3 });
+  });
+
+  it("resolves as five instances in the sheet's order", () => {
+    expect(instances).toHaveLength(5);
+    expect(instances.map((i) => i.element)).toEqual([
+      "lightning", "fire", "ice", "wind", "lightning",
+    ]);
+  });
+
+  it("makes the first four 0.5x BA(STR) Normal Attacks", () => {
+    for (const i of instances.slice(0, 4)) {
+      expect(i.multiplier).toBe(0.5);
+      expect(i.component).toBe("str");
+      // R6: "treat these Attacks as Normal Attacks", taken at its word. This
+      // one field decides whether the `Raikou` buff pays out four times or
+      // none, and which half of every [normal, vsNP] pair the defender gets.
+      expect(i.kind).toBe("normal");
+      // "(half)" on all four.
+      expect(i.elementFraction).toBe(0.5);
+      expect(i.excludeModifierSources).toEqual(["Mad Enhancement"]);
+    }
+  });
+
+  it("makes the fifth 3.5x + 200 BA(MAG), and FULL Lightning", () => {
+    const np = instances[4];
+    expect(np.multiplier).toBe(3.5);
+    expect(np.flatBonus).toBe(200);
+    expect(np.component).toBe("mag");
+    expect(np.kind).toBe("np");
+    // THE ASYMMETRY THE SHEET DRAWS. The four are each "(half)"; the fifth is
+    // "Lightning damage" with no parenthesis, so a Lightning ward bites the
+    // whole of this and half of the first instance. Easy to smooth away by
+    // making all five alike, and wrong.
+    expect(np.elementFraction).toBeUndefined();
+    // Mad Enhancement DOES reach this one, at its halved BA(MAG) magnitude.
+    expect(np.excludeModifierSources).toBeUndefined();
+  });
+
+  it("expands to five specs that keep those differences", () => {
+    const out = expandInstances(A.damage);
+    expect(out).toHaveLength(5);
+    expect(out.filter((i) => i.kind === "normal")).toHaveLength(4);
+    expect(out.filter((i) => i.kind === "np")).toHaveLength(1);
+    expect(new Set(out.map((i) => i.element)).size).toBe(4);
+  });
+
+  it("inflicts Shock 2◈ from the NP portion only", () => {
+    const shock = A.phases.find(
+      (p) => p.kind === "applyEffects" && p.predicate?.includes("attack:kind:np"),
+    );
+    expect(shock.effects).toEqual([{ id: "shock", duration: "2◈" }]);
+  });
+
+  it("inflicts Crit Dwn on everyone the area hit, damaged or not (R7)", () => {
+    const crit = A.phases.find((p) => p.kind === "applyEffects" && !p.predicate);
+    // `reuse` -- the Units the targeting resolved, which is what "all affected
+    // Units" is. `each` reads better and the phase picker offers it;
+    // `engine/skill-use.mjs` implements `self` and `reuse` and nothing else.
+    expect(crit.target).toBe("reuse");
+    expect(crit.effects).toEqual([{ id: "critDwn", magnitude: 20, duration: "1◈" }]);
+  });
+
+  it("costs 6◈+⅔◈, and 2◈ more when it ends Tenmōkaikai", () => {
+    expect(A.cooldown.max).toBe("6◈+⅔◈");
+    // "ITS Cooldown is increased by 2◈" -- THIS ability's own. Read as
+    // Tenmōkaikai's, the clause would extend the cooldown of something that
+    // has already ended, which is a penalty on nothing.
+    expect(A.cooldown.conditionalBonus).toEqual([
+      { predicate: ["self:skillActive:tenmokaikai"], ticks: "2◈" },
+    ]);
+  });
+
+  it("ends Tenmōkaikai at the END of the Combat Phase, not immediately", () => {
+    // "It is immediately ended AT THE END OF THAT COMBAT PHASE." The two halves
+    // of that sentence pull against each other and the second wins -- which
+    // matters, because ending the clone NP mid-resolution would strip its +50%
+    // and its Shock rider from instances that have not resolved yet, and this
+    // ability is five instances long.
+    const end = A.phases.find((p) => p.when === "combatPhaseEnd");
+    expect(end.predicate).toEqual(["self:skillActive:tenmokaikai"]);
+    expect(end.changes[0]).toEqual({ key: "SetMode", ability: "tenmokaikai", active: false });
+  });
+
+  it("is mutually exclusive with Tenmōkaikai at the point of USE", () => {
+    // One requires Mad Enhancement Active and the other requires it off, so
+    // they can never be used on the same Turn. The cooldown interaction is a
+    // different thing -- Tenmōkaikai being ALREADY active when this is used,
+    // which is reachable because ME may be switched back on after it opens.
+    const clone = ability("raikou-tenmokaikai");
+    expect(clone.requirements[0].kind).toBe("modeInactive");
+    expect(A.requirements[0].kind).toBe("modeActive");
+    expect(clone.requirements[0].mode).toBe(A.requirements[0].mode);
+  });
+});
+
+describe("her whole sheet is authored", () => {
+  it("carries all nine clauses and nothing else", () => {
+    const refs = SHEET.abilities.map((a) => a.ref);
+    expect(refs).toEqual([
+      "class-mad-enhancement",
+      "class-riding",
+      "class-magic-resistance",
+      "divinity",
+      "raikou-genji-clan-martial-arts-discipline",
+      "raikou-mana-burst-lightning",
+      "raikou-thunder-gods-embodiment",
+      "raikou-mystery-slayer",
+      "raikou-tenmokaikai",
+      "raikou-dohatsu-tenshou",
+    ]);
+  });
+
+  it("splits its kit down the middle on Mad Enhancement", () => {
+    // Mana Burst and Tenmokaikai are the calm half; Thunder God's Embodiment
+    // and Dohatsu Tenshou are the mad one. All four state their gate, because
+    // an unauthored gate is an ability usable in either state.
+    const gateOf = (id) => ability(id).requirements?.[0]?.kind ?? null;
+    expect(gateOf("raikou-mana-burst-lightning")).toBe("modeInactive");
+    expect(gateOf("raikou-tenmokaikai")).toBe("modeInactive");
+    expect(gateOf("raikou-thunder-gods-embodiment")).toBe("modeActive");
+    expect(gateOf("raikou-dohatsu-tenshou")).toBe("modeActive");
+  });
+});

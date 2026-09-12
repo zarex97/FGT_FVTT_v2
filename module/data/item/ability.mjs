@@ -90,6 +90,12 @@ function abilityCommon() {
       // summon branch (`engine/cooldown.mjs#cooldownFor`). Untyped for the
       // same reason a requirement is: the content validator checks the shape.
       branches: new fields.ArrayField(new fields.ObjectField()),
+      // A cooldown that is LONGER in a stated circumstance, ADDED to whichever
+      // one was chosen. Raikou's Dohatsu Tenshou: *"its Cooldown is increased
+      // by 2◈ Turns (in addition to its original Cooldown)"* when it is used
+      // while Tenmōkaikai is Active. Where `branches` selects one cooldown from
+      // several, this adds to the selected one.
+      conditionalBonus: new fields.ArrayField(new fields.ObjectField()),
     }),
 
     // Rule elements and targeting stay as authored data. Keeping them

@@ -3836,6 +3836,33 @@ appended to nothing. Caught by the test asserting the phrase appears **exactly o
 would have passed just as happily at zero had it only asserted "at most once". Worth recording:
 the assertion that catches a silent write is the one with a lower bound.
 
+#### Commit 15 — Dohatsu Tenshou: one ability, five attacks, two rule sets
+
+§D.32 called this *"the hardest single ability in either roster to log legibly"*. Five damage
+instances, four independently Blockable and Evadable, none of them using the mode that is
+definitionally active while the ability is usable.
+
+**Two readings the file records because both are easy to get backwards.** *"It is immediately
+ended"* is Tenmōkaikai; *"its Cooldown is increased by 2◈"* is **this** ability's own — read the
+other way it would extend the cooldown of something that has already ended, a penalty on
+nothing. And *"immediately ended **at the end of that Combat Phase**"* is one sentence pulling
+two ways: the second half wins, because ending the clone Noble Phantasm mid-resolution would
+strip its +50% and its Shock rider from instances that had not resolved yet, and this ability is
+five instances long.
+
+**The Lightning asymmetry is the sheet's and is preserved.** The four are each *"(half)"*; the
+fifth is *"Lightning damage"* with no parenthesis. A Lightning ward therefore bites half of the
+first instance and the whole of the Noble Phantasm portion. Making all five alike would have
+been tidier and wrong.
+
+**A phase target that would have landed wrongly.** `target: each` reads naturally for *"all
+affected Units"*, and `rules/authoring/phases.mjs` **offered it** — along with `chosen` and
+`caster`. `engine/skill-use.mjs` implements `self` and `reuse` and has never read any of the
+other three. `test/unit/phase-targets.test.mjs` holds the content against the executor and
+caught it; the picker has been narrowed to the two that exist, because a door onto nothing is
+worse than no door. The correct value was `reuse` all along — the Units the targeting resolved,
+which is exactly what *"all affected Units"* means.
+
 ---
 
 ---

@@ -2063,7 +2063,15 @@ function compileCooldown(cooldown) {
       // Summoning: Bašmu's own two-cooldown branches (`engine/cooldown.mjs`),
       // dropped by the same allowlist shape this file's `max` used to drop.
       branches: cooldown.branches ?? null,
+      // Raikou's Dohatsu Tenshou: *"its Cooldown is increased by 2◈ Turns (in
+      // addition to its original Cooldown)"* when it ends Tenmōkaikai.
+      // ADDITIVE on top of whichever cooldown was chosen, where `branches`
+      // SELECTS one from several.
+      conditionalBonus: cooldown.conditionalBonus ?? null,
     };
   }
-  return { max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null, countFrom: null, branches: null };
+  return {
+    max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null,
+    countFrom: null, branches: null, conditionalBonus: null,
+  };
 }
