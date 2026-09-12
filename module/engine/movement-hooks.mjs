@@ -589,7 +589,7 @@ async function carryMaster(actor, movement) {
       master: game.actors.get(master.id)?.name ?? "The Master",
       servant: actor.name,
     }),
-  })], "passengerSeat");
+  })], { io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "passengerSeat" });
 }
 
 /**
