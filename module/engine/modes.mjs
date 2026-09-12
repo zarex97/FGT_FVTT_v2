@@ -70,13 +70,23 @@ export async function reconcileForcedModes(board = null) {
     /** @type {Array<{unitId: string, ability: string}>} */
     const switched = [];
 
+    const tick = game.combat?.system?.globalTurn ?? 0;
+
     for (const unit of snapshot.units ?? []) {
-      if (!(unit.compulsions ?? []).length) continue;
+      // BOTH sources, not just the first. This read `unit.compulsions` alone,
+      // which was complete while Penthesilea was the only clause of this shape
+      // -- and silently skipped every Servant held on by a `ForceMode` rule
+      // instead, because Raikou carries no compulsions at all. The element
+      // would have collected, the refusal in `canToggleMode` would have
+      // worked, and the half that WRITES would never have run: her Mad
+      // Enhancement would refuse to switch off and refuse to switch itself on.
+      const forceable = (unit.compulsions ?? []).length || (unit.forcedModeRules ?? []).length;
+      if (!forceable) continue;
 
       const actor = game.actors.get(unit.id);
       if (!actor) continue;
 
-      for (const item of forcedModes(unit, [...actor.items])) {
+      for (const item of forcedModes(unit, [...actor.items], { tick })) {
         const slug = item.system?.slug ?? item.id;
         // `regardless of Cooldown or any other factors` -- no gate is
         // consulted, which is the whole point of the clause and the reason
@@ -104,7 +114,13 @@ export async function reconcileForcedModes(board = null) {
  * @returns {string|null}
  */
 function compulsionSource(unit, slug) {
-  return (unit.compulsions ?? []).find((c) => c.forcesSkill === slug)?.source ?? null;
+  return (unit.compulsions ?? []).find((c) => c.forcesSkill === slug)?.source
+    // ...or the `ForceMode` rule that named it, so the card can still say why.
+    // A mode that switches itself on with no explanation is indistinguishable
+    // from a bug, and this one takes control of the Servant away from its
+    // player -- the reason the announcement exists at all.
+    ?? (unit.forcedModeRules ?? []).find((r) => r.mode === slug)?.source
+    ?? null;
 }
 
 /**

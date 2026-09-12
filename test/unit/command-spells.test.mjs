@@ -183,9 +183,38 @@ describe("the authored catalogue", () => {
     .filter((f) => f.endsWith(".yml"))
     .map((f) => parse(readFileSync(`${dir}/${f}`, "utf8")));
 
+  /**
+   * §17.2's reference list, by id. The catalogue is explicitly OPEN -- *"if
+   * you can think of any other use for Command Spells, feel free to mention it
+   * and use it if the GM/majority of players approve"* -- so this is asserted
+   * as a SUBSET rather than as the whole directory. A bare length was the
+   * right test while the reference set was the only source; it started
+   * failing the moment a Servant's sheet bought a use of its own, which is a
+   * thing the source explicitly permits.
+   */
+  const REFERENCE_SET = [
+    "cs-all-cooldown", "cs-cure-servant", "cs-damage-block", "cs-damage-up",
+    "cs-escape", "cs-force-noble-phantasm", "cs-full-cooldown", "cs-full-heal",
+    "cs-half-heal", "cs-halve-noble-phantasm", "cs-kill-humans", "cs-kill-yourself",
+    "cs-noble-phantasm-max", "cs-reduce-cooldown", "cs-survive-kill",
+    "cs-teleport-servant",
+  ];
+
   it("ships the whole reference set", () => {
     // §17.2: nine at cost 1, seven at cost 2, one at cost 3.
-    expect(commands).toHaveLength(16);
+    const ids = new Set(commands.map((c) => c.id));
+    for (const id of REFERENCE_SET) expect(ids).toContain(id);
+    expect(REFERENCE_SET).toHaveLength(16);
+  });
+
+  it("carries the entries Servants' sheets buy, beside the reference set", () => {
+    // `cs-suspend-skill` is the first, and two sheets carry its clause in the
+    // same words: Raikou's Mad Enhancement "can be deactivated for 1◈ Turns by
+    // spending a Command Spell", and Penthesilea's Hatred of Achilles "can be
+    // disabled for 1◈ Turns by spending one Command Spell". Listed here so a
+    // reader can tell a deliberate addition from a stray file.
+    const extra = commands.map((c) => c.id).filter((id) => !REFERENCE_SET.includes(id));
+    expect(extra.sort()).toEqual(["cs-suspend-skill"]);
   });
 
   it("uses only requirement kinds the rules understand", () => {

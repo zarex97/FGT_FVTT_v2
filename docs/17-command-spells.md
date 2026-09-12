@@ -83,6 +83,39 @@ it and use it if the GM/majority of players approve"*).
 | **Reduce Cooldown** | Servant in ZON | Reduces one Skill's Cooldown by 1◈. **Not NP.** |
 | **Kill Humans** | — | A Good-aligned Servant will kill Civilians. **Permanent consequence:** if the Servant ever becomes Unbound it abandons the Master and refuses to re-contract. |
 
+### Beyond the reference list
+
+The catalogue is open by the rulebook's own words, and one entry has been added from a
+**Servant's sheet** rather than from §17.2's list. It is listed separately so a reader can tell
+a deliberate addition from a stray file, and `test/unit/command-spells.test.mjs` holds the
+reference set as a subset for the same reason.
+
+| Command | Cost | Requirement | Effect | Bought by |
+|---|---|---|---|---|
+| **Suspend Skill** | 1 | Servant in ZON | Switches one named Skill off and refuses to let it back on for 1◈ Turns. A Skill held on by a positional condition stays off for the whole span and returns by itself afterwards if the condition still holds. | Raikou's *Mad Enhancement*; Penthesilea's *Hatred of Achilles* |
+
+Two sheets carry the clause in the same words — Raikou's *"Mad Enhancement can be deactivated
+for 1◈ Turns by spending a Command Spell (it will reactivate if the aforementioned conditions
+are still met after those 1◈ Turns)"*, and Penthesilea's *"Can be disabled for 1◈ Turns by
+spending one Command Spell"* — and both were prose with no mechanism. They are not the same
+*use*: Raikou's suspends the mode, Penthesilea's suspends the skill that forces it and
+explicitly leaves the mode running. One effect kind serves both, because both name an ability
+and a span.
+
+**Two orderings are the clause, and both are easy to invert.**
+
+- It **defeats** a `ForceMode` refusal. The spell is bought precisely to switch off something a
+  condition is holding on; read the other way round, the most expensive resource in the game
+  buys nothing. `rules/modes.mjs#canToggleMode` reads the suspension first.
+- It does **not** defeat a `toggleLock`. The sheet names one refusal and says nothing about the
+  other, and a lockout a Command Spell defeats is a different rule from the one on the page.
+
+The **lapse back** needs no timer. When the span passes, `forcedModes` stops refusing, and the
+reconciliation pass that runs on every invalidation switches the mode on again — which is what
+Raikou's parenthesis describes. Its counterpart matters as much: while the suspension stands,
+`forcedModes` must refuse, or the reconciliation would switch the mode back on before the player
+let go of the mouse.
+
 ### Cost: 2 Command Spells
 
 | Command | Requirement | Effect |

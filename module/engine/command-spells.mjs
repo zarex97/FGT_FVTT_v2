@@ -194,6 +194,34 @@ function effectIntents(effects, ctx) {
         break;
       }
 
+      case "suspendSkill": {
+        // Switch one named Skill off and bar it from returning for a span.
+        //
+        // Two sheets buy this and both were prose: Raikou's Mad Enhancement
+        // *"can be deactivated for 1◈ Turns by spending a Command Spell (it
+        // will reactivate if the aforementioned conditions are still met after
+        // those 1◈ Turns)"*, and Penthesilea's Hatred of Achilles *"can be
+        // disabled for 1◈ Turns by spending one Command Spell"*.
+        //
+        // The LAPSE BACK needs no timer. When the span passes, `forcedModes`
+        // sees the condition still holding and `reconcileForcedModes` switches
+        // it on again -- which is exactly what Raikou's parenthesis describes.
+        //
+        // The ability is resolved the way `cooldownTargets` resolves
+        // `oneSkill`: the player has already named it on the context. Without
+        // one this reports rather than guessing, the rule this whole file
+        // follows for the most expensive resource in the game.
+        const chosen = (unit?.abilities ?? []).find((a) => a.id === ctx.abilityId);
+        if (!chosen) {
+          out.push(I.log({ kind: "commandNeedsAbility", effect: e.kind, unitId: e.unitId }));
+          break;
+        }
+        out.push(I.suspendSkill(
+          e.unitId, chosen.id, (ctx.tick ?? 0) + ticksFrom(e.duration, ctx), "commandSpell",
+        ));
+        break;
+      }
+
       // Interrupts change a Combat Process rather than the world, so they are
       // deliberately not intents -- `interruptProcess` applies them. Survive
       // Kill is in this group for a sharper reason: it is decided at the

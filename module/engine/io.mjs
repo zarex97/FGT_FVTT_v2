@@ -379,6 +379,33 @@ export function worldIO() {
     },
 
     /**
+     * Switch a mode off and bar it from coming back until a tick.
+     *
+     * TWO writes and not one. A suspension that only stamped `suspendedUntil`
+     * would leave a forced mode running for the span it was bought to stop;
+     * one that only cleared `active` would be switched straight back on by
+     * `reconcileForcedModes` on the very next invalidation. Raikou's clause
+     * needs both halves or it does nothing at all.
+     *
+     * Matched on slug / contentId / id, the same three spellings `setMode`
+     * accepts, because a Command Spell names the ability from a dialog and a
+     * rule element names it from a content file.
+     *
+     * @param {string} unitId @param {string} abilityId @param {number} untilTick
+     */
+    async suspendSkill(unitId, abilityId, untilTick) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+
+      const item = actor.items.find(
+        (i) => i.system?.slug === abilityId || i.system?.contentId === abilityId || i.id === abilityId,
+      );
+      if (!item) return;
+
+      await item.update({ "system.active": false, "system.suspendedUntil": untilTick });
+    },
+
+    /**
      * Push a held effect's expiry out by `turns`.
      *
      * Durations are stored as ABSOLUTE expiry ticks (§7.5), so extending is an

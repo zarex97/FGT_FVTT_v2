@@ -336,3 +336,80 @@ describe("her Mad Enhancement entry after the ref resolves", () => {
     expect(resolved.rank).toBe("EX");
   });
 });
+
+/* ========================================================================== */
+/*  The Command Spell that buys her 1◈ of sanity                              */
+/* ========================================================================== */
+
+describe("the Command Spell that suspends a forced mode", () => {
+  const CS = parse(readFileSync("packs/_source/command-spells/cs-suspend-skill.yml", "utf8"));
+
+  const me = (overrides = {}) => ({
+    id: "class-mad-enhancement",
+    system: {
+      slug: "madEnhancement", isMode: true, toggleLock: "2◈",
+      active: true, toggledAt: 0, suspendedUntil: null, ...overrides,
+    },
+  });
+  const raikou = (distance) => ({
+    id: "r1", kind: "servant", masterDistance: distance,
+    forcedModeRules: [
+      { mode: "madEnhancement", when: ["self:withinOfMaster:2"], source: "Mad Enhancement" },
+    ],
+    compulsions: [],
+  });
+
+  it("is a one-cost spell that names a skill and a span", () => {
+    expect(CS.cost).toBe(1);
+    const [e] = CS.effect;
+    expect(e.kind).toBe("suspendSkill");
+    expect(e.target).toBe("contractedServant");
+    expect(e.scope).toBe("oneSkill");
+    expect(e.duration).toBe("1◈");
+  });
+
+  it("beats ForceMode: the mode may be switched off while suspended", () => {
+    // The whole point of the clause, and the one thing about it that can be
+    // got wrong silently. Read the two refusals in the other order and the
+    // most expensive resource in the game buys nothing.
+    const verdict = canToggleMode(me({ suspendedUntil: 12 }), raikou(1), { active: false, tick: 6 });
+    expect(verdict.ok).toBe(true);
+  });
+
+  it("refuses REACTIVATION while the suspension stands", () => {
+    // "Can be deactivated FOR 1◈ Turns" is a span during which it is off, not
+    // a single permission to press the button once.
+    const verdict = canToggleMode(
+      me({ active: false, suspendedUntil: 12 }), raikou(1), { active: true, tick: 6 },
+    );
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toBe("suspended");
+  });
+
+  it("stops reconciliation switching it straight back on", () => {
+    // The half that would otherwise undo the purchase: `reconcileForcedModes`
+    // runs on every invalidation, so without this the Command Spell would be
+    // spent and the mode back on before the player let go of the mouse.
+    expect(forcedModes(raikou(1), [me({ active: false, suspendedUntil: 12 })], { tick: 6 }))
+      .toHaveLength(0);
+  });
+
+  it("lapses back to forced once the span passes", () => {
+    // "It will reactivate if the aforementioned conditions are still met after
+    // those 1◈ Turns." No extra machinery and no timer: `forcedModes` simply
+    // stops refusing.
+    expect(forcedModes(raikou(1), [me({ active: false, suspendedUntil: 5 })], { tick: 6 }))
+      .toHaveLength(1);
+  });
+
+  it("does NOT buy out the 2◈ toggle lock", () => {
+    // The sheet buys one refusal with a Command Spell and says nothing about
+    // the other. A lockout a Command Spell defeats is a different rule from
+    // the one on the page.
+    const verdict = canToggleMode(
+      me({ suspendedUntil: 99, toggledAt: 5 }), raikou(1), { active: false, tick: 6 },
+    );
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toBe("toggleLock");
+  });
+});
