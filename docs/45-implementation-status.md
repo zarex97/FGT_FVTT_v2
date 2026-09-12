@@ -3631,6 +3631,25 @@ because a clause asking whether the attack crit is by definition asking about a 
 The pairing is held by a test, because the failure mode is silent and permanent: a count-limited
 `CritModifier` with no spender is a buff that never runs out.
 
+#### Commit 7 — Mana Burst, and not one line of engine
+
+Karna's *Mana Burst (Flames)* clause for clause with four substitutions: fire→lightning,
+Burn→Shock, a self-`Dodge` tail, and a mode gate that is **inverted** — he has none, and hers
+refuses while Mad Enhancement is on. Every mechanism it needs was built for him and documented
+in his file: a two-source Base Attack, an attack that counts as STR while summing both,
+`ignoresMagicResistance`, `elementFraction`, an on-hit rider, and a `Ward` predicated on an
+element. **Zero new engine code.** The second user of a shape is where the investment in the
+first pays, and this is the cleanest instance of it in the corpus.
+
+It also fixes her kit in place. Mana Burst and Tenmōkaikai are the **calm** half; Thunder God's
+Embodiment and Dohatsu Tenshou are the **mad** half; and all four state their gate. An
+unauthored gate is a Skill usable in either state — which is what Penthesilea's Noble Phantasm
+silently was until §44 caught it.
+
+One difference from Karna's worth recording because it looks like an omission: his sheet says
+*"if the Attack is not Evaded, Burn is inflicted"* and hers states the Shock unconditionally.
+Both compile to the same `damageDealt` rung, because an evaded attack never reaches it.
+
 ---
 
 ---

@@ -606,3 +606,77 @@ describe("Genji-clan Martial Arts Discipline — the Active", () => {
     expect(isEmittableOption("attack:crit")).toBe(true);
   });
 });
+
+/* ========================================================================== */
+/*  Mana Burst (Lightning)                                                    */
+/* ========================================================================== */
+
+describe("Mana Burst (Lightning)", () => {
+  const A = ability("raikou-mana-burst-lightning");
+
+  it("is an Attack Skill on a 3◈ cooldown", () => {
+    // Its Active PERFORMS a Normal Attack, so it opens a Combat Process and
+    // spends her Attack for the Turn (§15.1).
+    expect(A.isAttackSkill).toBe(true);
+    expect(A.cooldown).toBe("3◈");
+    expect(A.element).toBe("lightning");
+  });
+
+  it("refuses while Mad Enhancement is Active", () => {
+    // The inverse of Penthesilea's Outrage Amazon, and the shape of the whole
+    // kit: this and Tenmōkaikai are the calm half, Thunder God's Embodiment
+    // and Dohatsu Tenshou the mad one.
+    expect(A.requirements).toEqual([{ kind: "modeInactive", mode: "madEnhancement" }]);
+  });
+
+  it("sums both Base Attacks at full weight — BA 350", () => {
+    expect(A.damage.base.sources).toEqual([
+      { unit: "self", component: "str", factor: 1 },
+      { unit: "self", component: "mag", factor: 1 },
+    ]);
+    // The sheet writes the answer out, as Karna's does.
+    expect(SHEET.baseAttack.str + SHEET.baseAttack.mag).toBe(350);
+  });
+
+  it("counts as a STR attack, and skips Magic Resistance outright", () => {
+    // The two must agree: Magic Resistance's own Instakill/Death exemption
+    // reads `attack:component`, and without stage 11 being skipped a Rank C
+    // Magic Resistance would negate the MAG half of a 350 Base Attack.
+    expect(A.damage.component).toBe("str");
+    expect(A.damage.ignoresMagicResistance).toBe(true);
+  });
+
+  it("carries Lightning on half the total", () => {
+    expect(A.damage.element).toBe("lightning");
+    expect(A.damage.elementFraction).toBe(0.5);
+  });
+
+  it("inflicts Shock for 2◈ on a landed hit, and Dodge on herself after", () => {
+    const shock = A.phases.find((p) => p.kind === "applyEffects" && p.target !== "self");
+    expect(shock.rules[0].event).toBe("damageDealt");
+    expect(shock.rules[0].effect.id).toBe("shock");
+    expect(shock.rules[0].duration).toBe("2◈");
+
+    const dodge = A.phases.find((p) => p.kind === "applyEffects" && p.target === "self");
+    expect(dodge.effects).toEqual([{ id: "dodge", duration: "⅓◈" }]);
+  });
+
+  it("makes her immune to Shock and halves Lightning taken, including NP", () => {
+    expect(A.passiveRules).toContainEqual({ key: "Immunity", effect: "shock" });
+    const ward = A.passiveRules.find((r) => r.key === "Ward");
+    expect(ward.value).toBe(50);
+    // "including NP" rather than a reduced NP figure, so the two are equal.
+    expect(ward.npValue).toBe(50);
+    expect(ward.predicate).toEqual(["attack:element:lightning"]);
+  });
+
+  it("needed no engine code that Karna had not already bought", () => {
+    // The interesting fact about this file. Every mechanism it uses -- a
+    // two-source Base Attack, an attack that counts as STR while summing both,
+    // `ignoresMagicResistance`, `elementFraction`, an on-hit rider, a Ward
+    // predicated on an element -- was built for Karna and documented in his
+    // file. The second user of a shape is where that investment pays.
+    const karna = ability("karna-mana-burst-flames");
+    expect(Object.keys(A.damage).sort()).toEqual(Object.keys(karna.damage).sort());
+  });
+});
