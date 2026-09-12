@@ -607,8 +607,20 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // only read the ability's own flag would have thrown the buff away.
       //
       // Read by name, exactly as `rollEvade` reads the defender's `dodge`.
+      // `attacker` here is the ACTOR DOCUMENT, so `.effects` is Foundry's
+      // `EmbeddedCollection` -- a Map subclass with no `.includes`. Calling it
+      // threw a TypeError, and it threw on EVERY attack in the game, not only
+      // one carrying `Aim`: `buildAttackSpec` runs before any target is
+      // resolved, so a plain Normal Attack died here too. Found live, on a
+      // Heracles swinging at nobody in particular.
+      //
+      // Read as effect DEFINITION ids, the way `rules/snapshot.mjs`'s
+      // `activeEffectIds` reads them -- an ActiveEffect's `system.defId` is the
+      // catalogue id, and the document's own `name` is the display string.
       aim: Boolean(resolvedDamage(ability, options)?.aim)
-        || (attacker?.effects ?? []).includes("aim"),
+        || [...(attacker?.effects ?? [])].some(
+          (e) => !e.disabled && !e.isSuppressed && (e.system?.defId ?? e.name) === "aim",
+        ),
       pierce: Boolean(resolvedDamage(ability, options)?.pierce),
       // The damage TYPE, carried on the attack for the same reason `component` is.
       // The pipeline has read `ctx.attack.element` at stage 0 since it was written
