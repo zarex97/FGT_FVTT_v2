@@ -110,16 +110,22 @@ import { annotateAuras } from "../../module/rules/auras.mjs";
 import { checkPlan } from "../../module/rules/checks.mjs";
 
 describe("Affection of the Holy Grail — the aura", () => {
+  // The aura is COLLECTED FROM THE ABILITY rather than hand-written here.
+  // The first version of this test built the post-executor shape by hand, and
+  // passed while `Aura` was dropping `check:` on the floor -- so `checkPlan`
+  // filtered the contribution out for being a modifier to no check at all, and
+  // nobody on a real board ever received it. A test that writes its own
+  // fixture can only prove the half of the path below the fixture.
+  const auraFromAbility = () => collectContributions([
+    src("abilities", "kiritsugu-affection-of-the-holy-grail.yml"),
+  ]).auras;
+
   // Two allies and an enemy, all within 2 panels of Kiritsugu.
   const board = () => ({
     units: [
       {
         id: "kiritsugu", panel: { i: 5, j: 5 }, factionId: "red",
-        auras: [{
-          key: "checkModifier", check: "luck", value: 4,
-          radius: 2, relations: ["ally", "enemy"], stacking: "highestOnly",
-          source: "Affection of the Holy Grail",
-        }],
+        auras: auraFromAbility(),
       },
       { id: "ally", panel: { i: 5, j: 6 }, factionId: "red", auras: [] },
       { id: "enemy", panel: { i: 6, j: 6 }, factionId: "blue", auras: [] },
@@ -128,6 +134,14 @@ describe("Affection of the Holy Grail — the aura", () => {
   });
   const annotated = () => { const b = board(); annotateAuras(b.units, b); return b; };
   const find = (b, id) => b.units.find((u) => u.id === id);
+
+  it("names the check it modifies, or checkPlan cannot match it", () => {
+    const [aura] = auraFromAbility();
+    expect(aura.key).toBe("checkModifier");
+    expect(aura.check).toBe("luck");
+    expect(aura.value).toBe(4);
+    expect(aura.radius).toBe(2);
+  });
 
   it("reaches an ALLY's checkModifiers, where checkPlan can read it", () => {
     // The whole defect this task fixes: without the route the contribution

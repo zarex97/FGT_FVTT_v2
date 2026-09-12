@@ -1402,6 +1402,16 @@ export const EXECUTORS = Object.freeze({
       rank: el.rank ?? (rank ? String(rank) : null),
       scope: el.scope ?? null,
       requiresRecipient: el.requiresRecipient ?? null,
+      // WHICH check, for an aura routed to `checkModifiers`. `checkPlan`
+      // filters on `m.check`, so an aura that dropped it arrived as a modifier
+      // for no check at all and was read by nobody -- collected, routed
+      // correctly, and still inert.
+      //
+      // Kiritsugu's Affection of the Holy Grail is the first aura to carry one.
+      // Its unit test passed while this was missing, because the test built the
+      // POST-EXECUTOR shape by hand and so never ran the executor: it proved
+      // the route and asserted the bug into existence.
+      ...(el.check ? { check: el.check } : {}),
     });
   },
 
