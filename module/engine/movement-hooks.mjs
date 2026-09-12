@@ -536,6 +536,11 @@ async function carryMaster(actor, movement) {
   const servant = board.units.find((u) => u.id === actor.id);
   if (!servant || !hasGranted(servant, GRANTS.passengerSeat)) return;
 
+  // *"The Servant's Master CAN Move together with its Servant."* "Can", so it
+  // is the player's choice, and `rules/actions.mjs` puts the switch on the
+  // action bar. Default ON: carrying is the point of the clause.
+  if (servant.carriesMaster === false) return;
+
   const master = board.units.find((u) => u.id === servant.masterId);
   if (!master?.panel || master.defeated) return;
 
@@ -549,9 +554,18 @@ async function carryMaster(actor, movement) {
     { i: origin.i, j: origin.j }, { i: destination.i, j: destination.j },
     master.panel, board.bounds ?? null,
   );
-  if (!landing || (landing.i === master.panel.i && landing.j === master.panel.j)) return;
-  // Somebody is standing there: the Master stays rather than being stacked.
-  if (occupantAt(landing, board, master.level ?? 0)) return;
+  // A carry that cannot happen is REPORTED, not dropped. Both refusals leave
+  // the Master standing where the Servant left him -- which is the correct
+  // outcome and a dangerous surprise, because the whole reason to carry a
+  // Master is to keep him inside the ZON and out of reach. Told once, in the
+  // words of the rule that refused.
+  const say = (reason) => ui.notifications?.warn(game.i18n.format("FGT.Movement.MasterNotCarried", {
+    master: game.actors.get(master.id)?.name ?? "The Master",
+    reason: game.i18n.localize(reason),
+  }));
+  if (!landing) return say("FGT.Movement.OffBoard");
+  if (landing.i === master.panel.i && landing.j === master.panel.j) return;
+  if (occupantAt(landing, board, master.level ?? 0)) return say("FGT.Movement.PanelOccupied");
 
   const token = game.actors.get(master.id)?.getActiveTokens?.()[0]?.document;
   if (!token) return;
@@ -560,6 +574,22 @@ async function carryMaster(actor, movement) {
   // so it spends nothing and is not re-validated as a voluntary step. Said to
   // Foundry as well as to us, or the carry is silently dropped (`io.mjs`).
   await displaceToken(token, { x: landing.j * size, y: landing.i * size });
+
+  // Said out loud, because a token that moves without being dragged reads as a
+  // bug. The audit gets it too: "counts as only Moving one Unit" means the
+  // Master's pool was NOT spent, and a reader checking the budget needs to know
+  // why he is somewhere else.
+  await applyIntents([I.log({
+    kind: "passengerSeat",
+    unitId: master.id,
+    carriedBy: servant.id,
+    from: { ...master.panel },
+    to: { ...landing },
+    text: game.i18n.format("FGT.Movement.MasterCarried", {
+      master: game.actors.get(master.id)?.name ?? "The Master",
+      servant: actor.name,
+    }),
+  })], "passengerSeat");
 }
 
 /**

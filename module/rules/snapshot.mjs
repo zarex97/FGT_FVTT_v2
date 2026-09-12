@@ -253,6 +253,10 @@ export function snapshotUnit(actor, {
     // How this Unit shoves whoever it walks into (Ch. 08 §8.3). `null` for
     // everyone but Achilles; Kingprotea's outward push is the default.
     knockback: contributions.knockback ?? null,
+    // Riding's Passenger Seat, as the player left it. Read by
+    // `engine/movement-hooks.mjs#carryMaster` and by the action bar's own
+    // button, which shows its state.
+    carriesMaster: sys.carriesMaster !== false,
     stance: sys.stance ?? "",
     stanceSpec: sys.stanceSpec ?? null,
     // The unit's OWN auras, unexpanded. `snapshotBoard` runs `annotateAuras`

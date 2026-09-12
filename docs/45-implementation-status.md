@@ -3863,7 +3863,7 @@ caught it; the picker has been narrowed to the two that exist, because a door on
 worse than no door. The correct value was `reuse` all along — the Units the targeting resolved,
 which is exactly what *"all affected Units"* means.
 
-### Raikou — the live pass, and ten defects, six of them in shipped machinery
+### Raikou — the live pass, and twelve defects, six of them in shipped machinery
 
 Every clause below was **read off a live board in `fgt2026`**, not inferred from a green test.
 The two most serious findings had nothing to do with her.
@@ -4018,6 +4018,42 @@ to permit.
 | NP1→NP2, the ending | Tenmōkaikai stays on through **all four** Normal Attacks, so they keep its +50% and Shock rider, and switches off only after the **fifth** |
 | Sustainability | Master defeated with Mad Enhancement **on** charges `sustainability −2`; **off**, it does not. Both free the contract and lock her modes |
 | R7, zero-damage rider | of 14 attacks, **2 dealt exactly 0 and both still applied `Shock`**; the twelve non-zero hits shocked 6, against an authored 50% |
+
+##### 11. Passenger Seat had a rule and no player
+
+The third of Riding's passives was the one clause the second pass reported as *"granted"* without
+checking that a **person** could use it. The rule was built and correct — `passengerDestination`
+for the relative delta, `displaceToken` so nothing is billed — and it had no affordance at all:
+
+- it carried the Master **always**, where the sheet says he *can* ride along;
+- it said **nothing** when it did, so a token moved on its own and read as a bug;
+- it said **nothing** when it *couldn't* — an occupied landing panel left the Master standing
+  in the open, which is precisely the situation carrying him exists to avoid.
+
+Now `system.carriesMaster` (default **on**, because carrying is the point), a **Carry Master**
+button on the action bar offered only when the grant is present *and* there is a Master to
+carry — its presence is the whole of the skill's discoverability, since nothing else in the
+interface mentions it — and both outcomes spoken aloud.
+
+**Verified through the interface.** The button appears as a fifth ACTIONS icon when Riding is
+switched on. Clicking it reports *"Raikou will leave her Master behind when she Moves."* With it
+**off** she moved and he stayed. With it **on** she moved (6,6)→(6,3) and he was carried
+(7,7)→(7,4) — the relative offset (1,1) preserved exactly, his own turn record untouched, and
+the faction panel still reading **Master moves 0/3**, which is *"counts as only Moving one
+Unit"* on screen. With the landing panel occupied: *"Raikou's Master could not ride along: the
+landing panel is occupied."*
+
+##### 12. A bounds check that never fired — mine
+
+`rules/targeting/orthogonal.mjs` tested `bounds.width` / `bounds.height`; every other consumer in
+the corpus — `geometry.mjs#inBounds`, `cover.mjs`, `movement.mjs#passengerDestination` — reads
+`{iMin, iMax, jMin, jMax}`, which is what `snapshotBoard#boundsFor` produces. Comparing against
+`undefined` is always false, so the clone placement's board-edge check did nothing and a copy
+could be placed off the map.
+
+Its unit test passed because **the test supplied the same wrong shape the implementation
+expected** — the pair agreed with each other and with nothing else. Found by reading
+`passengerDestination`, which does it correctly.
 
 Nothing on her sheet is now unwitnessed.
 

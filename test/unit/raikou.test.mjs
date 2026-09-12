@@ -20,6 +20,8 @@ import { annotateZon } from "../../module/rules/zon.mjs";
 import { annotateLastOfSummonGroup, annotateSummonsActed } from "../../module/rules/snapshot.mjs";
 import { subjectOf } from "../../module/engine/scheduler.mjs";
 import { orthogonalPanels } from "../../module/rules/targeting/orthogonal.mjs";
+import { passengerDestination } from "../../module/rules/movement.mjs";
+import { availableActions, UNIT_ACTIONS } from "../../module/rules/actions.mjs";
 import { FACING_OFFSETS, rotateFacing } from "../../module/domain/geometry.mjs";
 import { rollOptionsFor, isEmittableOption } from "../../module/rules/options.mjs";
 import { canToggleMode, forcedModes } from "../../module/rules/modes.mjs";
@@ -1058,7 +1060,12 @@ describe("the four copies", () => {
 describe("where the four copies appear (R4)", () => {
   const ORDER = ["front", "back", "left", "right"];
   const origin = { i: 5, j: 5 };
-  const bounds = { width: 11, height: 11 };
+  // `{iMin, iMax, jMin, jMax}` -- the shape `snapshotBoard#boundsFor` produces.
+  // This test first said `{width, height}`, which is what the implementation
+  // said too, so the pair agreed with each other and with nothing else: the
+  // edge check compared against `undefined`, was always false, and would have
+  // placed a clone off the board.
+  const bounds = { iMin: 0, jMin: 0, iMax: 10, jMax: 10 };
 
   it("reads front/back/left/right off a cardinal facing", () => {
     // Screen coordinates: +i is south, +j is east, bearing 0 is north.
@@ -1876,5 +1883,76 @@ describe("normalAttacksOnly permits a Normal Attack", () => {
   it("only refuses when there IS an ability", () => {
     const src = readFileSync("module/rules/costs.mjs", "utf8");
     expect(src).toMatch(/if \(ability && hasGranted\(unit, GRANTS\.normalAttacksOnly\)\)/);
+  });
+});
+
+/* ========================================================================== */
+/*  Riding — Passenger Seat                                                   */
+/* ========================================================================== */
+
+describe("Passenger Seat", () => {
+  /**
+   * *"The Servant's Master can Move together with its Servant; after Moving,
+   * both Servant and Master must be in the same orientation/position prior to
+   * the Move. Counts as only Moving one Unit."*
+   *
+   * The rule was already built and already correct — `passengerDestination`
+   * for the relative delta, `displaceToken` so nothing is billed. What it had
+   * no trace of was a PLAYER: it carried the Master always, said nothing when
+   * it did, and said nothing when it could not.
+   */
+  const raikou = (over = {}) => ({
+    id: "r", kind: "servant", masterId: "m", panel: { i: 6, j: 6 },
+    grantedAbilities: ["doubleMove", "ridingAttack", "passengerSeat"],
+    carriesMaster: true, ...over,
+  });
+  const board = (over = {}) => ({
+    units: [raikou(), { id: "m", kind: "master", panel: { i: 9, j: 9 } }], ...over,
+  });
+
+  it("keeps the Master's position RELATIVE to the Servant", () => {
+    // "the same orientation/position prior to the Move" -- the same RELATIVE
+    // one. The same absolute position would mean the Master does not move at
+    // all, and the clause would say nothing.
+    expect(passengerDestination({ i: 6, j: 6 }, { i: 6, j: 4 }, { i: 9, j: 9 }))
+      .toEqual({ i: 9, j: 7 });
+    expect(passengerDestination({ i: 6, j: 6 }, { i: 2, j: 6 }, { i: 7, j: 5 }))
+      .toEqual({ i: 3, j: 5 });
+  });
+
+  it("refuses to carry him off the board", () => {
+    // `{iMin, iMax, jMin, jMax}` -- the shape `boundsFor` produces.
+    expect(passengerDestination(
+      { i: 6, j: 6 }, { i: 1, j: 6 }, { i: 3, j: 5 },
+      { iMin: 0, jMin: 0, iMax: 12, jMax: 12 },
+    )).toBeNull();
+  });
+
+  it("offers the switch only with the grant AND a Master to carry", () => {
+    const ids = (u, b) => availableActions(u, b).map((a) => a.id);
+    expect(ids(raikou(), board())).toContain("carryMaster");
+    // No grant -- Riding is off, or she never had it.
+    expect(ids(raikou({ grantedAbilities: [] }), board())).not.toContain("carryMaster");
+    // No Master on the board: a Free Servant has nobody to carry.
+    expect(ids(raikou(), { units: [raikou()] })).not.toContain("carryMaster");
+    // A defeated Master is not carried either.
+    expect(ids(raikou(), {
+      units: [raikou(), { id: "m", kind: "master", panel: { i: 9, j: 9 }, defeated: true }],
+    })).not.toContain("carryMaster");
+  });
+
+  it("reports its own state, so the button can show it", () => {
+    const on = availableActions(raikou(), board()).find((a) => a.id === "carryMaster");
+    expect(on.context.on).toBe(true);
+    const off = availableActions(raikou({ carriesMaster: false }), board())
+      .find((a) => a.id === "carryMaster");
+    expect(off.context.on).toBe(false);
+  });
+
+  it("bills nothing — *counts as only Moving one Unit*", () => {
+    // `kind: null`, like `facing`: the Servant's own Move is the one that is
+    // paid for, and this button only decides whether the Master comes along.
+    const entry = UNIT_ACTIONS.find((a) => a.id === "carryMaster");
+    expect(entry.kind).toBeNull();
   });
 });
