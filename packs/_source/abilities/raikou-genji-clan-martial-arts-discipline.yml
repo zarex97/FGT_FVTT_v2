@@ -9,8 +9,14 @@ name: "Genji-clan Martial Arts Discipline"
 rank: EX
 kind: skill
 slug: genjiClanMartialArtsDiscipline
+cooldown: "4◈"
+timing: { window: ownTurn }
 description: |
   (Passive) The magnitude of all @effect[atkDwn]{Atk Dwn} effects on Raikou is halved.
+  (Active) Applies @effect[critUpMartial]{Crit Up (Martial)} to Raikou for 1◈ Turns; if @ability[class-mad-enhancement]{Mad Enhancement} is Active,
+  Crit Chance is increased by 30%, and if it is not, by 60%. Then applies @effect[critDmUpMartial]{Crit DmUp (Martial)}
+  to Raikou for 1◈ Turns, 3 times; if Mad Enhancement is Active, Crit Damage is increased by
+  30%, and if it is not, by 60%. Cooldown: 4◈ Turns.
 passiveRules:
   # BY ID rather than by family. `atkDwn` and a negative `atkUp` are different
   # families ON PURPOSE -- `effects/atk-dwn.yml` says so in as many words,
@@ -25,3 +31,29 @@ passiveRules:
     direction: incoming
     effects: [atkDwn]
     factor: 0.5
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # TWO PHASES, not one with a conditional magnitude. The magnitudes are
+  # INVERTED against the mode -- 30% with Mad Enhancement, 60% without -- which
+  # is the whole character of the skill: she is a better duellist when she is
+  # calm, and the Discipline pays her for it. A branch each keeps both numbers
+  # on the page where a reader can check them against the sheet.
+  #
+  # `self:skillActive:` is the option Penthesilea's Charisma needed for
+  # "negated when Mad Enhancement is activated"; this is its second user.
+  - kind: applyEffects
+    target: self
+    predicate: ["self:skillActive:madEnhancement"]
+    effects:
+      - { id: critUpMartial, magnitude: 30, duration: "1◈" }
+      - { id: critDmUpMartial, magnitude: 30, duration: "1◈", uses: 3 }
+
+  - kind: applyEffects
+    target: self
+    predicate: ["not:self:skillActive:madEnhancement"]
+    effects:
+      - { id: critUpMartial, magnitude: 60, duration: "1◈" }
+      - { id: critDmUpMartial, magnitude: 60, duration: "1◈", uses: 3 }

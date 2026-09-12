@@ -3613,6 +3613,24 @@ tested, and the wire between them is a line in a third file that nothing points 
 projection is now asserted directly by `test/unit/raikou.test.mjs`, against the source text of
 `snapshot.mjs`, because the failure mode is a missing line in a literal.
 
+#### Commit 6 — two buffs that are better when she is calm
+
+Two phases rather than one conditional magnitude, because the magnitudes are **inverted against
+the mode** — 30% with Mad Enhancement, 60% without. That is the character of the skill: she is a
+better duellist sane than mad, and the Discipline pays her for it. A branch each keeps both
+numbers on the page where a reader can check them against the sheet.
+
+`Crit DmUp (Martial)` is the first **count-limited modifier that fires inside the damage
+pipeline** rather than on an event rung. `consumesUse` already existed on `OnEvent`
+(Kingprotea's `npDmUpGao`) and on `DamageNegation` (Pale Rider's `dmgCut`), and a `CritModifier`
+has neither: stage 2 reads it and there is nothing there to spend a charge. So the effect
+carries **two** elements — the modifier, and a `damageDealt` handler predicated on `attack:crit`
+whose only job is `consumesUse`. `attack:crit` is in the option set at exactly that one moment,
+because a clause asking whether the attack crit is by definition asking about a resolved one.
+
+The pairing is held by a test, because the failure mode is silent and permanent: a count-limited
+`CritModifier` with no spender is a buff that never runs out.
+
 ---
 
 ---

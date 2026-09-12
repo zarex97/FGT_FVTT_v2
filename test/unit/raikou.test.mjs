@@ -17,7 +17,7 @@ import { parse } from "yaml";
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { annotateZon } from "../../module/rules/zon.mjs";
-import { rollOptionsFor } from "../../module/rules/options.mjs";
+import { rollOptionsFor, isEmittableOption } from "../../module/rules/options.mjs";
 import { canToggleMode, forcedModes } from "../../module/rules/modes.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { resolveRef } from "../../tools/lib/content.mjs";
@@ -522,5 +522,87 @@ describe("the two new contribution buckets reach the snapshot", () => {
     const projection = readFileSync("module/rules/snapshot.mjs", "utf8");
     expect(projection).toContain("forcedModeRules: contributions.forcedModeRules");
     expect(projection).toContain("magnitudeScales: contributions.magnitudeScales");
+  });
+});
+
+/* ========================================================================== */
+/*  Genji-clan Martial Arts Discipline — the Active                           */
+/* ========================================================================== */
+
+describe("Genji-clan Martial Arts Discipline — the Active", () => {
+  const A = ability("raikou-genji-clan-martial-arts-discipline");
+  const UP = effect("crit-up-martial");
+  const DM = effect("crit-dm-up-martial");
+
+  it("costs 4◈ and is used on her own Turn", () => {
+    expect(A.cooldown).toBe("4◈");
+    expect(A.timing.window).toBe("ownTurn");
+  });
+
+  it("is a passive AND an Active — the sheet gives it both halves", () => {
+    expect(A.passiveRules.some((r) => r.key === "EffectMagnitudeScale")).toBe(true);
+    expect(A.phases.length).toBeGreaterThan(0);
+  });
+
+  it("applies both buffs in each branch, at the branch's magnitude", () => {
+    const withMe = A.phases.filter((p) => p.predicate?.includes("self:skillActive:madEnhancement"));
+    const without = A.phases.filter((p) => p.predicate?.includes("not:self:skillActive:madEnhancement"));
+    expect(withMe).toHaveLength(1);
+    expect(without).toHaveLength(1);
+    expect(withMe[0].effects).toEqual([
+      { id: "critUpMartial", magnitude: 30, duration: "1◈" },
+      { id: "critDmUpMartial", magnitude: 30, duration: "1◈", uses: 3 },
+    ]);
+    // INVERTED against the mode: she crits better when she is calm.
+    expect(without[0].effects).toEqual([
+      { id: "critUpMartial", magnitude: 60, duration: "1◈" },
+      { id: "critDmUpMartial", magnitude: 60, duration: "1◈", uses: 3 },
+    ]);
+  });
+
+  it("Crit Up (Martial) carries NO count — the sheet gives it none", () => {
+    expect(UP.uses).toBeUndefined();
+    expect(UP.stacking).toBe("magnitudeStacks");
+    const rule = UP.rules.find((r) => r.key === "CheckModifier");
+    expect(rule.check).toBe("crit");
+    expect(rule.value).toBe("@magnitude");
+    // Unconditional. `critUpHawkeye` exists because EMIYA's is "at a Range of
+    // 3 or higher"; hers names no condition, so it carries no predicate.
+    expect(rule.predicate).toBeUndefined();
+  });
+
+  it("Crit DmUp (Martial) is three uses OR 1◈, whichever ends first (R1)", () => {
+    expect(DM.stacking).toBe("count");
+    expect(DM.uses).toBe(3);
+    expect(DM.defaultDuration).toBe("1◈");
+  });
+
+  it("spends a use on a crit, and only on a crit", () => {
+    const mod = DM.rules.find((r) => r.key === "CritModifier");
+    expect(mod.aspect).toBe("damage");
+    expect(mod.modifierKey).toBe("critDmUp");
+
+    const spend = DM.rules.find((r) => r.key === "OnEvent");
+    // `attack:crit` is in the option set ONLY at `damageDealt`, because a
+    // clause asking whether the attack crit is by definition asking about a
+    // resolved one. So the charge is spent by the event that proves it.
+    expect(spend.event).toBe("damageDealt");
+    expect(spend.predicate).toEqual(["attack:crit"]);
+    expect(spend.consumesUse).toBe(true);
+    expect(spend.then).toEqual([]);
+  });
+
+  it("pairs every CritModifier with a consumesUse twin", () => {
+    // A count-limited modifier without its spender is an infinite buff, and
+    // the two live in different halves of the file.
+    const mods = DM.rules.filter((r) => r.key === "CritModifier").length;
+    const spenders = DM.rules.filter((r) => r.key === "OnEvent" && r.consumesUse).length;
+    expect(spenders).toBeGreaterThanOrEqual(mods);
+  });
+
+  it("emits an option `attack:crit` that the vocabulary admits", () => {
+    // The guard that matters for a predicate authored against a rare option:
+    // one that matches no emittable pattern is permanently false and silent.
+    expect(isEmittableOption("attack:crit")).toBe(true);
   });
 });
