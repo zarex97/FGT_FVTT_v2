@@ -290,6 +290,15 @@ function abilityCommon() {
     // count, not from the consequence.
     bypassesCategoryLimit: new fields.BooleanField({ initial: false }),
 
+    // An attack that COSTS NOTHING. `countsAsAttack` conflates two questions --
+    // "does this bill an Attack" and "does this resolve through the attack
+    // flow" -- and Kiritsugu's Lethal Gunfire Suppression needs opposite
+    // answers: *"Kiritsugu can INSTANTLY perform a Normal Attack"*, free and
+    // uncapped, but still a Normal Attack that deals damage. Setting
+    // `countsAsAttack: false` to make it free routed it to `useSkill`, which
+    // refuses a `damage` phase outright and says so.
+    freeAction: new fields.BooleanField({ initial: false }),
+
     // "…which cannot be Reacted to unless the AU's AGI Rank is higher than
     // Kiritsugu's." A narrowing of the reaction ladder decided by a RANK
     // COMPARISON rather than by a fixed list, which is why it is a flag here

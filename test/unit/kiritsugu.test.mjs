@@ -663,8 +663,15 @@ describe("The suppression shot is a NORMAL Attack, not an Attack Skill", () => {
     expect(doc.system.phases.some((p) => p.kind === "damage")).toBe(true);
   });
 
-  it("does not spend his Attack — spec R1", () => {
-    expect(countsAsAttack(doc)).toBe(false);
+  it("costs him nothing, but still reaches the damage pipeline (R1)", () => {
+    // TWO separate fields, and the first draft used one. `countsAsAttack:
+    // false` is the obvious way to make an attack free and it is wrong: that
+    // flag also decides whether the ability resolves through the attack flow
+    // at all, so it made the shot free AND toothless -- `useSkill` refuses a
+    // `damage` phase outright. Found on the board: the button fired, the skill
+    // reported success, and the target's Health did not move.
+    expect(doc.system.freeAction).toBe(true);      // bills nobody
+    expect(countsAsAttack(doc)).toBe(true);        // and still an Attack
   });
 
   it("has no cooldown of its own; Scapegoat is what it costs", () => {

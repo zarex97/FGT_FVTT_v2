@@ -31,7 +31,14 @@ copyable: { allowed: false, reason: unique }
 # inside his Range. That is the limiter; a cooldown here would be a second one
 # the sheet does not charge.
 cooldown: null
-countsAsAttack: false
+# A real Normal Attack that costs NOTHING, and the two halves are separate
+# fields on purpose. `countsAsAttack: false` was the obvious way to make it
+# free and it is wrong: that flag also decides whether the ability resolves
+# through the attack flow at all, so it made the shot free AND toothless --
+# `useSkill` refuses a `damage` phase and says so. It bills nobody via
+# `freeAction`, and reaches the damage pipeline via `countsAsAttack`.
+countsAsAttack: true
+freeAction: true
 timing:
   window: whenAllyAttacked
   # His own Range, not a literal -- so Familiars' +2 widens the net.
