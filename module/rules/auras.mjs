@@ -138,13 +138,24 @@ export function annotateAuras(units, board, index = null) {
  * Only the kinds whose reader is somewhere other than `modifiers` need an
  * entry; everything else takes the default.
  */
-const ROUTES = Object.freeze({
+export const ROUTES = Object.freeze({
   ApplicationChance: "applicationChances",
   Compulsion: "compulsions",
   // Bašmu's protection (`TargetabilityModifier`, `rules/elements.mjs`) — read
   // by `rules/targeting/resolve.mjs`'s legality filter, not the damage
   // pipeline.
   untargetable: "untargetableBy",
+  // A check modifier is read from `unit.checkModifiers` by `checks.mjs#checkPlan`,
+  // so an aura carrying one landed in `modifiers` — where the damage pipeline
+  // ignores it and nothing else looks. Collected correctly and consulted by
+  // nobody, which is the same failure `ApplicationChance` above was given a
+  // route to fix, in this same object, for this same reason.
+  //
+  // Kiritsugu's Affection of the Holy Grail is the first source: *"the Luck
+  // Check rolls of all Units within a 2 panel area of Kiritsugu are increased
+  // by 4 except himself"* — a clause this file's own header already cites as
+  // the reason an aura may exclude its bearer.
+  checkModifier: "checkModifiers",
 });
 
 /* -------------------------------------------------------------------------- */

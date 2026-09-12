@@ -89,3 +89,97 @@ describe("Kiritsugu — the two class skills are a ref and nothing else", () => 
     expect(k.sustainability).toBe(`${lookup("independentActionSustainability", Rank.parse("A"))}◈`);
   });
 });
+
+import { annotateAuras } from "../../module/rules/auras.mjs";
+import { checkPlan } from "../../module/rules/checks.mjs";
+
+describe("Affection of the Holy Grail — the aura", () => {
+  // Two allies and an enemy, all within 2 panels of Kiritsugu.
+  const board = () => ({
+    units: [
+      {
+        id: "kiritsugu", panel: { i: 5, j: 5 }, factionId: "red",
+        auras: [{
+          key: "checkModifier", check: "luck", value: 4,
+          radius: 2, relations: ["ally", "enemy"], stacking: "highestOnly",
+          source: "Affection of the Holy Grail",
+        }],
+      },
+      { id: "ally", panel: { i: 5, j: 6 }, factionId: "red", auras: [] },
+      { id: "enemy", panel: { i: 6, j: 6 }, factionId: "blue", auras: [] },
+      { id: "distant", panel: { i: 5, j: 12 }, factionId: "red", auras: [] },
+    ],
+  });
+  const annotated = () => { const b = board(); annotateAuras(b.units, b); return b; };
+  const find = (b, id) => b.units.find((u) => u.id === id);
+
+  it("reaches an ALLY's checkModifiers, where checkPlan can read it", () => {
+    // The whole defect this task fixes: without the route the contribution
+    // lands in `modifiers` and `checkPlan` never sees it.
+    const ally = find(annotated(), "ally");
+    expect(ally.checkModifiers ?? []).toHaveLength(1);
+    expect(checkPlan(ally, "luck").modifiers.map((m) => m.value)).toEqual([4]);
+  });
+
+  it("reaches an ENEMY too — the sheet says 'all Units'", () => {
+    const enemy = find(annotated(), "enemy");
+    expect(checkPlan(enemy, "luck").modifiers.map((m) => m.value)).toEqual([4]);
+  });
+
+  it("never reaches Kiritsugu himself — 'except himself'", () => {
+    expect(checkPlan(find(annotated(), "kiritsugu"), "luck").modifiers).toEqual([]);
+  });
+
+  it("does not reach past 2 panels", () => {
+    expect(checkPlan(find(annotated(), "distant"), "luck").modifiers).toEqual([]);
+  });
+
+  it("HINDERS the recipient — a check that passed at 10 now fails (spec R3)", () => {
+    // `resolveCheck` succeeds on `total <= target`, so +4 moves a roll AWAY
+    // from success. If this ever reads as a benefit, the sign is inverted.
+    const mods = checkPlan(find(annotated(), "ally"), "luck").modifiers;
+    const total = 10 + mods.reduce((a, m) => a + m.value, 0);
+    expect(total).toBe(14);
+    expect(total <= 12).toBe(false);   // a Luck of 12: passed at 10, fails now
+  });
+});
+
+describe("Affection of the Holy Grail — Skill Seal is a hard counter (R2)", () => {
+  const a = src("abilities", "kiritsugu-affection-of-the-holy-grail.yml");
+  const rule = (key) => a.passiveRules.filter((r) => r.key === key);
+
+  it("shifts LUC to EX by naming the rank, not by stepping", () => {
+    const [shift] = rule("RankShift");
+    expect(shift.parameter).toBe("luc");
+    expect(shift.to).toBe("EX");
+    // Stepping the dense +/- ladder from E would land on E+, not EX.
+    expect(shift.steps).toBeUndefined();
+  });
+
+  it("turns the rank shift AND the aura off under Skill Seal", () => {
+    for (const r of [rule("RankShift")[0], rule("Aura")[0]]) {
+      expect(r.predicate).toContainEqual({ not: "self:effect:skillSeal" });
+    }
+  });
+
+  it("adds +20 to his own Luck Checks only under Skill Seal", () => {
+    const twenty = rule("CheckModifier").find((r) => r.value === 20);
+    expect(twenty.check).toBe("luck");
+    expect(twenty.predicate).toEqual(["self:effect:skillSeal"]);
+  });
+
+  it("never negates Skill Seal's own lockout", () => {
+    // R2: his Skills stay sealed. Nothing here may Suppress the skill/spell
+    // prevention `rules/budget.mjs` applies.
+    expect(a.passiveRules.some((r) => r.key === "Suppress")).toBe(false);
+  });
+
+  it("addresses allies and enemies but omits self", () => {
+    const [aura] = rule("Aura");
+    expect(aura.relations).toEqual(["ally", "enemy"]);
+    expect(aura.relations).not.toContain("self");
+    expect(aura.radius).toBe(2);
+    // The route added in this task — without it the contribution is inert.
+    expect(aura.modifierKey).toBe("checkModifier");
+  });
+});
