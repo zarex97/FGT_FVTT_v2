@@ -1,0 +1,27 @@
+# Raikou, char_orig_sheets/Copia de Raikou.md
+# Data sheet: docs/D-servant-data-sheets.md §D.32
+#
+# The passive is the first clause in either roster whose SUBJECT IS ANOTHER
+# MODIFIER'S MAGNITUDE. The Active arrives in the next commit.
+schema: 1
+id: raikou-genji-clan-martial-arts-discipline
+name: "Genji-clan Martial Arts Discipline"
+rank: EX
+kind: skill
+slug: genjiClanMartialArtsDiscipline
+description: |
+  (Passive) The magnitude of all @effect[atkDwn]{Atk Dwn} effects on Raikou is halved.
+passiveRules:
+  # BY ID rather than by family. `atkDwn` and a negative `atkUp` are different
+  # families ON PURPOSE -- `effects/atk-dwn.yml` says so in as many words,
+  # because buff removal strips the latter and cannot touch this -- and the
+  # sheet names Atk Dwn. A `family:` spelling exists on the element for a later
+  # clause that wants one.
+  #
+  # Three neighbours look like they cover this and none does: ApplicationChance
+  # changes how likely a debuff is to land, DurationExtension how long it
+  # lasts, Immunity refuses it outright. Nothing made a landed one smaller.
+  - key: EffectMagnitudeScale
+    direction: incoming
+    effects: [atkDwn]
+    factor: 0.5

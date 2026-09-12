@@ -3588,6 +3588,31 @@ because a mode switching itself on with no explanation is indistinguishable from
 for an explicitly open list is that the reference set ships *complete*, not that nothing else
 exists; it is now a subset check plus a named list of the additions.
 
+#### Commit 5 — a modifier that acts on other modifiers, and two buckets nothing projected
+
+*"The magnitude of all Atk Dwn effects on Raikou is halved"* is the first clause in either roster
+whose subject is another modifier's **magnitude**. Three elements look like they cover it and
+none does: `ApplicationChance` changes how likely a debuff is to land, `DurationExtension` how
+long it lasts, `Immunity` refuses it outright. Nothing made a landed debuff smaller.
+
+`EffectMagnitudeScale` is read at a new step **4b** of §11.2's application pipeline, between the
+chance roll and the stacking rule. Stamped rather than read at damage time: the two are
+equivalent while the source is a permanent passive, and stamping means the effect chip shows the
+number she is actually carrying. `npMagnitude` scales with it, rounded down.
+
+**And the defect: neither new bucket reached the unit.** `collectContributions` filled
+`out.forcedModeRules` and `out.magnitudeScales` correctly, and `rules/snapshot.mjs` — the
+literal that projects contributions onto a unit — named neither. So `forcedOn` read
+`unit.forcedModeRules` and always got `undefined`, and step 4b read `target.magnitudeScales` and
+always got `undefined`. Both elements would have collected, validated, compiled, loaded, passed
+their unit tests against hand-built snapshots, and done **nothing at all** on a board.
+
+That is this chapter's dominant defect shape arriving twice in one commit, and it is worth
+naming the reason it is so easy to hit: the executor and the reader are both correct and both
+tested, and the wire between them is a line in a third file that nothing points at. The
+projection is now asserted directly by `test/unit/raikou.test.mjs`, against the source text of
+`snapshot.mjs`, because the failure mode is a missing line in a literal.
+
 ---
 
 ---

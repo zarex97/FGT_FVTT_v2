@@ -137,6 +137,13 @@ applyEffect(def, target, magnitude, duration, source, context) → ApplicationRe
     offer it (once per Combat Process, not for terminal effects).
     → may convert FAIL into BLOCKED.
 
+ 4b. MAGNITUDE SCALE
+    Scalings the TARGET carries for this definition (or its family), applied to
+    the magnitude and to the NP magnitude alike, rounded DOWN.
+      - Raikou's Genji-clan Martial Arts Discipline: "the magnitude of all
+        Atk Dwn effects on Raikou is halved"
+    → a smaller effect, not a blocked or a shorter one.
+
  5. STACKING RESOLUTION
     Consult def.stacking against existing instances of the same defId:
       NONE_NO_REFRESH  → no-op if present
@@ -246,6 +253,33 @@ rules:
     polarity: buff          # without this line the effect is collected and read by nobody
     value: "@magnitude"
 ```
+
+### Step 4b — scaling a magnitude, as against refusing it
+
+Three steps of this pipeline already answer questions about an incoming effect, and none of them
+answers *how big is it*. Step 1 refuses it, step 3 makes it less likely to land, and step 6's
+`DurationExtension` changes how long it lasts. Raikou's Genji-clan Martial Arts Discipline —
+*"the magnitude of all `Atk Dwn` effects on Raikou is halved"* — is the first clause in either
+roster whose subject is another modifier's **magnitude**, and none of the three could express it.
+
+`EffectMagnitudeScale` is collected onto the *recipient* and read here.
+
+**Applied at application time, not at read time.** The two are arithmetically equivalent while
+the source is a permanent passive, which every instance in the corpus is; the difference is that
+stamping means the effect chip and the audit card show the number the Unit is actually carrying,
+instead of one the reader has to halve in their head.
+
+**`npMagnitude` scales with it.** The clause is about *the magnitude*, and the NP figure is that
+same magnitude read against a Noble Phantasm — not a second, unscaled one. Appendix A's pairs
+(25/15, 50/30) are not fixed ratios of each other, which is why `npMagnitude` is carried
+separately at all; that makes it a thing which can be forgotten here, so it is stated.
+
+**Rounded down**, the direction that favours the bearer. This is a defence, and letting 35 halve
+to 18 would let an attacker round their own debuff up.
+
+**By id or by family, and the difference is not cosmetic.** `atkDwn` and a negative `atkUp` are
+deliberately different families (§10.2) — buff removal strips one and cannot touch the other —
+so a clause naming `Atk Dwn` must not quietly catch both. Raikou's names the id.
 
 **`friendly` skips the target's resistance, not the applier's bonus.** §11.2's friendly clause is
 about not making an ally roll against a gift. It used to zero `inflictBonus` as well, which made

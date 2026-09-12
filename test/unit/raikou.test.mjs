@@ -21,6 +21,7 @@ import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { canToggleMode, forcedModes } from "../../module/rules/modes.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { resolveRef } from "../../tools/lib/content.mjs";
+import { applyEffect } from "../../module/engine/effect-applier.mjs";
 
 /** @param {string} id @returns {object} */
 export function ability(id) {
@@ -411,5 +412,115 @@ describe("the Command Spell that suspends a forced mode", () => {
     );
     expect(verdict.ok).toBe(false);
     expect(verdict.reason).toBe("toggleLock");
+  });
+});
+
+/* ========================================================================== */
+/*  Genji-clan Martial Arts Discipline — the passive                          */
+/* ========================================================================== */
+
+describe("Genji-clan Martial Arts Discipline — the passive", () => {
+  const A = ability("raikou-genji-clan-martial-arts-discipline");
+
+  /**
+   * Land an effect on a Raikou carrying the halving, and report what stuck.
+   *
+   * The built instance rides on the emitted `applyEffect` intent rather than on
+   * the result object -- `applyEffect` returns `{outcome, reason, intents,
+   * trace}` and the document is the intent's payload.
+   *
+   * @param {string} id @param {string} file @param {number} magnitude @param {number|null} np
+   */
+  const landed = (...args) => {
+    const out = land(...args);
+    return {
+      instance: out.intents.find((i) => i.t === "applyEffect")?.effect ?? null,
+      trace: out.trace,
+    };
+  };
+
+  const land = (id, file, magnitude, np = null) => applyEffect({
+    def: { ...effect(file), id },
+    target: {
+      id: "r1", effects: [], effectInstances: [],
+      magnitudeScales: [{
+        direction: "incoming", effects: ["atkDwn"], family: null,
+        factor: 0.5, source: "Genji-clan Martial Arts Discipline",
+      }],
+    },
+    magnitude,
+    npMagnitude: np,
+    duration: "1◈",
+    source: { unitId: "x" },
+    ctx: { options: new Set(), rolls: { chance: 1 }, currentTick: 0 },
+  });
+
+  it("names Atk Dwn by id, not by family", () => {
+    const rule = A.passiveRules.find((r) => r.key === "EffectMagnitudeScale");
+    expect(rule.direction).toBe("incoming");
+    // `atkDwn` and a negative `atkUp` are DIFFERENT FAMILIES on purpose --
+    // buff removal strips the latter and cannot touch this -- and the sheet
+    // names Atk Dwn.
+    expect(rule.effects).toEqual(["atkDwn"]);
+    expect(rule.family).toBeUndefined();
+    expect(rule.factor).toBe(0.5);
+  });
+
+  it("halves an incoming Atk Dwn at application time", () => {
+    expect(landed("atkDwn", "atk-dwn", 40, 20).instance.magnitude).toBe(20);
+  });
+
+  it("halves the NP magnitude with it", () => {
+    // "The magnitude of all Atk Dwn effects" is the effect's magnitude, and
+    // `npMagnitude` is that same magnitude read against a Noble Phantasm --
+    // not a second, unscaled one.
+    expect(landed("atkDwn", "atk-dwn", 40, 20).instance.npMagnitude).toBe(10);
+  });
+
+  it("leaves an Atk Up alone", () => {
+    expect(landed("atkUp", "atk-up", 40).instance.magnitude).toBe(40);
+  });
+
+  it("rounds DOWN, the direction that favours the bearer", () => {
+    // 35 halving to 18 would let an attacker round their own debuff up.
+    expect(landed("atkDwn", "atk-dwn", 35).instance.magnitude).toBe(17);
+  });
+
+  it("says so in the trace, so the chip's number is explicable", () => {
+    const { trace } = landed("atkDwn", "atk-dwn", 40);
+    expect(trace.some((t) => t.step === "magnitudeScale")).toBe(true);
+  });
+});
+
+/* ========================================================================== */
+/*  Both new buckets survive the projection                                   */
+/* ========================================================================== */
+
+describe("the two new contribution buckets reach the snapshot", () => {
+  // The project's dominant defect, guarded in the one place it always
+  // reappears: a rule that collects correctly and is never projected onto the
+  // unit is a rule that compiles, validates, loads and does nothing. Both of
+  // these were exactly that until `rules/snapshot.mjs` carried them.
+  it("projects both keys named by the two elements Raikou needed", () => {
+    const out = collectContributions([
+      {
+        id: "a",
+        passiveRules: [
+          { key: "ForceMode", mode: "madEnhancement", when: ["self:withinOfMaster:2"] },
+          { key: "EffectMagnitudeScale", direction: "incoming", effects: ["atkDwn"], factor: 0.5 },
+        ],
+      },
+    ], {});
+
+    // The buckets exist on the contributions...
+    expect(out.forcedModeRules).toHaveLength(1);
+    expect(out.magnitudeScales).toHaveLength(1);
+
+    // ...and `rules/snapshot.mjs` names both. Asserted against the source
+    // rather than by building an actor, because the projection is a literal
+    // and the failure mode is a missing line in it.
+    const projection = readFileSync("module/rules/snapshot.mjs", "utf8");
+    expect(projection).toContain("forcedModeRules: contributions.forcedModeRules");
+    expect(projection).toContain("magnitudeScales: contributions.magnitudeScales");
   });
 });

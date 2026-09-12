@@ -264,6 +264,14 @@ export function snapshotUnit(actor, {
     applicationChances: contributions.applicationChances ?? [],
     // Expanded by `annotateCompulsions` once the board exists.
     compulsionRules: contributions.compulsions ?? [],
+    // Modes this Unit is HELD ON in, and the condition each waits on. Read by
+    // `rules/modes.mjs#forcedOn` -- late, every time the question is asked,
+    // because the conditions are positional (Ch. 15 §15.3).
+    forcedModeRules: contributions.forcedModeRules ?? [],
+    // Scalings applied to an incoming effect's MAGNITUDE, read at step 4b of
+    // the application pipeline (`engine/effect-applier.mjs`). Distinct from
+    // `applicationChances` above, which changes how likely it is to land at all.
+    magnitudeScales: contributions.magnitudeScales ?? [],
     // Read by `engine/attack.mjs` before the Combat Processes are built, to
     // ask whether this unit may swing first at whoever just declared on it.
     preemptions: contributions.preemptions ?? [],
