@@ -3863,6 +3863,104 @@ caught it; the picker has been narrowed to the two that exist, because a door on
 worse than no door. The correct value was `reuse` all along — the Units the targeting resolved,
 which is exactly what *"all affected Units"* means.
 
+### Raikou — the live pass, and six defects, three of them in shipped machinery
+
+Every clause below was **read off a live board in `fgt2026`**, not inferred from a green test.
+The two most serious findings had nothing to do with her.
+
+#### 1. Every attack in the game threw — **shipped machinery**
+
+```js
+aim: Boolean(resolvedDamage(ability, options)?.aim) || (attacker?.effects ?? []).includes("aim")
+```
+
+`buildAttackSpec` receives the **Actor document**, whose `.effects` is Foundry's
+`EmbeddedCollection` — a Map subclass with no `.includes`. It throws *before any target is
+resolved*, so this is not a clause that fails only when somebody carries `Aim`; it is the entire
+attack flow. Confirmed by swinging a plain **Heracles** Normal Attack, which failed with exactly
+the `TypeError` Raikou's Noble Phantasm did.
+
+The clause was added in Nemo's pass for *Great Ram Nautilus* — *"applies Aim to himself before
+swinging"*. Nothing since has attacked in a live world.
+
+#### 2. A Command Spell's context did not know what time it was — **shipped machinery**
+
+`cs-suspend-skill` reported `{ok: true, cost: 1}` at tick 4, switched Mad Enhancement off, and
+stamped `suspendedUntil: 3` — a suspension that had **expired before it was bought**. The
+reconciler switched the mode straight back on, so the most expensive resource in the game bought
+nothing at all.
+
+`contextFor` never carried the match clock, because until this command **no Command Spell effect
+had a duration**: the other sixteen heal, kill, teleport or clear a cooldown, and none needed to
+know when "now" was. `(ctx.tick ?? 0) + ticks` is correct-looking code over a field nobody
+supplied.
+
+#### 3. `reconcileForcedModes` could not see a `ForceMode` Servant
+
+It opened `if (!(unit.compulsions ?? []).length) continue;` — complete while Penthesilea was the
+only clause of this shape. Raikou carries no compulsions at all, so the **refusal** half of her
+Mad Enhancement worked and the **writing** half never ran.
+
+#### 4. A fixed summon roster was silently ignored
+
+Tenmōkaikai reported **"0 summoned."** `summonPhase` knew only the rolled shape — `countRoll`,
+`typeRoll`, `types` — because every summon before her was rolled (Medea's 1d6 Warriors of 1d4
+types) or singular (the Sphinxes, one Kagome per enemy). Hers is the first that *names* its
+squad: `countRoll ?? "1"` rolled 1, `types[1]` was undefined, and nothing appeared.
+
+#### 5. A Turn-boundary predicate nobody could answer
+
+The upkeep handler was **never collected**. `collectContributions` answers an element's
+`predicate` at collection time, and `selfOrSummonsActed` is annotated by `snapshotBoard` *after*
+`contributionsOf` has run per unit. `defer: true` makes it travel with the handler — which
+exposed the gap underneath: `fireEvent` tested `targetPredicate` against `ctx.options`, and **a
+Turn boundary passes no options at all**, so any handler asking about its own bearer was tested
+against an empty set. It now unions the owner's own options in.
+
+#### 6. Ordering two actions is not gating them
+
+In her own authoring, and only the board could show it: putting the `SetMode` before the
+`StatDelta` does not stop the drain. The two actions are independent, so a Master on 20 was
+deactivated **and** taken to −5 by the effect that had just switched itself off. The drain now
+carries `gte: 26`, the exact complement of the `SetMode`'s `lte: 25`.
+
+Deliberately **not** a `floor: 25`, which is Mad Enhancement's shape: a floor clamps the
+deduction, so a Master on 30 would lose 5 instead of 25. Mad Enhancement wants that — *"cannot
+drop below 30 in this way"* — and this clause does not.
+
+#### What was seen working
+
+| Clause | Evidence |
+|---|---|
+| Statline | 1250 / A B D A C / BA 150·200 / MOV 4 / Range 4 / Sustainability 2◈, read off her sheet |
+| Mad Enhancement EX | `defUp=75/30`, `atkUp=100` + `atkUp=50` (the MAG pair), MOV 4→6, Range 4→5, Master ZON 2→4, Evade forced to `unfavourable`, drain handler present |
+| ME forced by position | Master at 3 → free; at 2 → switches itself on and the toggle refuses `"forced"`; the reconciler re-arms it after a hand-forced off |
+| Command Spell override | mode off, `suspendedUntil` 7 against tick 4, re-activation refused `"suspended"`, reconciler held off for the span, forced back on at 7 |
+| Divinity C | `divinity=30` at stage 7 |
+| Mystery Slayer | +20% vs `[Sky]` (360) and vs `[Earth]` (300); **nothing at all** against a `[Sky]`+`Demonic` **Demi-Servant** (R2) |
+| `excludeModifierSources` | 330 with Mad Enhancement, **180** without it, Divinity still standing in the breakdown |
+| Genji-clan Active | 30/30 with ME, **60/60** without; `critDmUpMartial` at 3 uses, `critUpMartial` at none (R1) |
+| Thunder God's | refused while calm; Atk Up 40/30, Dodge, `raikouBuff` at 3 uses |
+| Elemental flat bonus | the breakdown reads `lightning +40 → 20.0 (-50%)` — the ward took half of **the 40**, not of the total |
+| Mana Burst | refused while mad; resolves `attackSkill` / STR / lightning at `elementFraction 0.5` / MR-exempt |
+| Tenmōkaikai | mode on, Master paid 53, **four clones**, two of them displaced outward along their own axis by occupied panels |
+| Clone statlines | 625 Health (half of 1250), her Agility 13 / Luck 11 / MOV 4, per-copy Range and element, budget-exempt, once-per-Turn, `normalAttacksOnly` |
+| Inherited passives | Divinity **+30** (rank preserved), Mana Burst's ward 50 and Shock immunity, both Mystery Slayer +20s — and no Mad Enhancement, no Riding |
+| Crit split | hers +30, every copy +15 |
+| Targetability | only Raikou carries `untargetable`, sourced from the two copies standing beside her |
+| Master upkeep | **three copies acted, Raikou did not, the Master lost exactly −25 once** — the ruling four per-copy handlers would have made −75 |
+| Forced deactivation | at 400 → −25; at 20 → deactivate with **no drain**; at 30 → −25 in full |
+| Dohatsu Tenshou | **five Combat Processes under one `groupId`**, each with its own reaction ladder; four `kind: normal` at 0.5× BA(STR) in lightning/fire/ice/wind, each at half element share and each excluding Mad Enhancement **by name**; a fifth `kind: np` at 3.5× BA(MAG) + 200 carrying **full** Lightning and no exclusion |
+
+#### What was not driven live
+
+Recorded rather than implied. These are authored, unit-tested and **unwitnessed on a board**:
+Riding's three Actives, Magic Resistance's rank negation and its Instakill/Death ladder, the Mad
+Enhancement drain actually firing, the Sustainability penalty on a Master's death, the clone
+riders (`Burn` / `Shock` / `Bleed` / `Disable`) landing on a defender, the last-copy-ends-the-NP
+path, the NP1→NP2 cooldown becoming 8◈+⅔◈, and R7's zero-damage rider end to end. The next pass
+starts there.
+
 ---
 
 ---
