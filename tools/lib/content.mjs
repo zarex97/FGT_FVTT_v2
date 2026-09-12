@@ -730,6 +730,49 @@ function predicateOptionsExist(doc, path, problems) {
 }
 
 /**
+ * A damage block declares `repeat` or `instances`, never both.
+ *
+ * They are one mechanism with two spellings — `repeat: N` is N identical
+ * instances — and `engine/attack.mjs#expandInstances` refuses the pair at
+ * runtime. Refused here too, because a Noble Phantasm that throws when it is
+ * first used is a Noble Phantasm nobody finds until a match.
+ *
+ * Also checks that `instances` is a list of objects: a bare number or string
+ * there would spread into a spec of indexed characters and resolve as one
+ * silent, shapeless attack.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function damageInstancesAreWellFormed(doc, path, problems) {
+  for (const [where, damage] of [["damage", doc.damage], ["aftermath.damage", doc.aftermath?.damage]]) {
+    if (!damage || typeof damage !== "object") continue;
+
+    if (damage.repeat !== undefined && damage.repeat !== null && Array.isArray(damage.instances)) {
+      problems.push(
+        `${path}: ${where} declares both "repeat" and "instances". They are one mechanism with `
+        + "two spellings; a silent precedence rule is how a five-hit Noble Phantasm quietly "
+        + "becomes a fifteen-hit one.",
+      );
+    }
+
+    if (damage.instances === undefined) continue;
+    if (!Array.isArray(damage.instances) || damage.instances.length === 0) {
+      problems.push(`${path}: ${where}.instances must be a non-empty list.`);
+      continue;
+    }
+    for (const [i, spec] of damage.instances.entries()) {
+      if (spec && typeof spec === "object" && !Array.isArray(spec)) continue;
+      problems.push(
+        `${path}: ${where}.instances[${i}] is ${JSON.stringify(spec)}, not an object. `
+        + "Each instance is a damage spec of its own.",
+      );
+    }
+  }
+}
+
+/**
  * Every `anyOf` holds bare option STRINGS, and nothing else.
  *
  * `rules/predicate.mjs` gives `anyOf` a different contract from its
@@ -1007,6 +1050,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     baseAttackAgreesWithTable(doc, path, warnings);
   } else {
     activeRulesAreReachable(doc, path, problems);
+    damageInstancesAreWellFormed(doc, path, problems);
     // Scoped by itemType: command spells carry `timing.window` too, from a
     // vocabulary of their own.
     if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);

@@ -14,6 +14,7 @@
 
 import { computeDamage, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
 import { ridersFire } from "../rules/damage/riders.mjs";
+import { expandInstances } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom, gateContext } from "./board.mjs";
@@ -313,14 +314,24 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // repeat is still its own Combat Process and so still its own Injury Roll;
   // "Damaged Units only perform an Injury Roll once regardless of number of
   // hits taken" is a known, unmodelled simplification -- see basmu.yml.
-  const repeatSpec = resolvedDamage(ability, options)?.repeat ?? 1;
-  const repeat = Math.max(
-    1,
-    repeatSpec && typeof repeatSpec === "object" && repeatSpec.roll
-      ? (await new Roll(repeatSpec.roll).evaluate()).total
-      : repeatSpec,
+  const resolved = resolvedDamage(ability, options) ?? {};
+  const repeatSpec = resolved.repeat ?? null;
+  // The `{roll}` form is evaluated BEFORE the expansion, because the expansion
+  // is pure and this needs an await. Bašmu's Dragon Wing Warriors is its only
+  // holder: *"X times, where X = a d6 roll + 4."*
+  const rolledRepeat = repeatSpec && typeof repeatSpec === "object" && repeatSpec.roll
+    ? (await new Roll(repeatSpec.roll).evaluate()).total
+    : null;
+  const instanceSpecs = expandInstances(
+    rolledRepeat === null ? resolved : { ...resolved, repeat: rolledRepeat },
   );
-  const targetIds = targets.units.flatMap((t) => Array.from({ length: repeat }, () => t.unitId));
+  // One Combat Process per instance per target, INSTANCE-MAJOR within each
+  // target, so the declared order reads down the chat log: a player matching
+  // five cards to five sentences of Dohatsu Tenshou should find them in the
+  // sheet's order.
+  const targetIds = targets.units.flatMap((t) => instanceSpecs.map(() => t.unitId));
+  // The spec each of those processes resolves under, in the same order.
+  const perProcess = targets.units.flatMap(() => instanceSpecs);
 
   // WHICH RING each target stands in, carried forward from the geometry pass.
   //
@@ -379,7 +390,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // The rest of a declaration -- the fan-out, the cards, the events -- is
   // shared with the §12.8 Counter path, which needs every step of it.
   const primary = await declareProcesses({
-    attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
+    attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board, perProcess,
   });
 
   await declareAftermath({
@@ -690,6 +701,7 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
 async function declareProcesses({
   attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
   isCounter = false, requiredTargetId = null, counterDepth = 0, groupId = null,
+  perProcess = null,
 }) {
   // A resolution that caught no units is still a resolution — a ground-placed
   // non-damaging NP has a shape and no defenders — so it keeps its single
@@ -721,9 +733,25 @@ async function declareProcesses({
       // Counter's fan-out, so a bystander it caught cannot counter it in turn
       // unless `fgt.counterChain` says so.
       isCounter, requiredTargetId, counterDepth,
-    }).map((state) => (primaryId === null
-      ? state
-      : { ...state, attack: { ...state.attack, pierce: state.defenderId === primaryId } }))
+    }).map((state, index) => {
+      // The per-instance overrides, folded into this process's own attack spec.
+      // `kind` is the field that costs something: the first four instances of
+      // Dohatsu Tenshou emit `attack:kind:normal` and the fifth
+      // `attack:kind:np`, from ONE declaration -- which decides whether the
+      // `Raikou` buff pays out four times or none, whether Magic Resistance
+      // reads the MAG portion as a Noble Phantasm, and which half of every
+      // `[normal, vsNP]` table pair the defender gets.
+      const instance = perProcess?.[index] ?? null;
+      const withInstance = instance
+        ? { ...state, attack: { ...state.attack, ...instance } }
+        : state;
+      return primaryId === null
+        ? withInstance
+        : {
+          ...withInstance,
+          attack: { ...withInstance.attack, pierce: withInstance.defenderId === primaryId },
+        };
+    })
     : [process.begin({
       attackerId, defenderId: null, attack: attackSpec,
       isCounter, requiredTargetId, counterDepth,

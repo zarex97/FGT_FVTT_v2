@@ -3792,6 +3792,31 @@ would have been a sentence with no reader. It is now a field, an `itemSystem` en
 `AUTHORED_ITEM_KEYS` member — three places, which is the cost of the allowlist and the reason
 the test exists.
 
+#### Commit 13 — a declaration that resolves as N differently-shaped attacks
+
+`repeat: N` has given each hit its own Combat Process — and therefore its own reaction ladder —
+since EMIYA's *Overedge*. What it cannot do is **vary** the hits, and Dohatsu Tenshou varies four
+of them in three fields each and then adds a fifth that is a different component, a different
+multiplier and a different **`kind`**.
+
+`kind` per instance is the whole mechanical weight of *"treat these Attacks as Normal Attacks"*
+(R6): the first four emit `attack:kind:normal` and the fifth `attack:kind:np`, so the `Raikou`
+buff pays out four times, Magic Resistance reads the MAG portion as a Noble Phantasm, and every
+`[normal, vsNP]` table pair picks the right half — all from one declaration.
+
+`repeat` is expanded **into** `instances` rather than kept beside it, and the golden breakdowns
+hold Overedge and Tóole Fragarach byte-identical. That is the difference between a
+generalisation and a rewrite, and it is worth doing in that order: the extraction was verified
+neutral before the new branch was written.
+
+`expandInstances` lives in `rules/damage/` rather than beside its caller, for the reason
+`ridersFire` does: it is pure, and `engine/attack.mjs` cannot be imported into a unit test
+without a Foundry global. Two pieces of this Servant's work have now moved down a layer for that
+reason, which is a small argument that the attack engine has pure decisions in it worth naming.
+
+Declaring both spellings is refused at **build** time as well as at runtime. A Noble Phantasm
+that throws the first time it is used is one nobody finds until a match.
+
 ---
 
 ---

@@ -27,6 +27,7 @@ import { collectContributions } from "../../module/rules/elements.mjs";
 import { resolveRef } from "../../tools/lib/content.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
+import { expandInstances } from "../../module/rules/damage/instances.mjs";
 import { test as testPredicate } from "../../module/rules/predicate.mjs";
 
 /** @param {string} id @returns {object} */
@@ -1322,5 +1323,73 @@ describe("one charge per Turn, however many copies acted", () => {
     const list = units([{ id: "d1", kind: "summon", summonerId: "other", acted: true }]);
     annotateSummonsActed(list);
     expect(list[0].selfOrSummonsActed).toBe(false);
+  });
+});
+
+/* ========================================================================== */
+/*  One declaration, N differently-shaped attacks                             */
+/* ========================================================================== */
+
+describe("expanding a multi-instance declaration", () => {
+  it("turns `repeat: 3` into three copies of one spec", () => {
+    // The degenerate case, and the reason `repeat` is not a second code path:
+    // Tóole Fragarach and Overedge must come out exactly as they did.
+    const out = expandInstances({ repeat: 3, multiplier: 1 });
+    expect(out).toHaveLength(3);
+    expect(new Set(out.map((i) => JSON.stringify(i))).size).toBe(1);
+    expect(out[0]).toEqual({ multiplier: 1 });
+  });
+
+  it("defaults to one instance when neither field is present", () => {
+    expect(expandInstances({ multiplier: 3.5 })).toEqual([{ multiplier: 3.5 }]);
+    expect(expandInstances(null)).toEqual([{}]);
+  });
+
+  it("keeps declared order, so the reader can match card to sentence", () => {
+    const out = expandInstances({
+      instances: [
+        { multiplier: 0.5, element: "lightning" },
+        { multiplier: 0.5, element: "fire" },
+        { multiplier: 3.5, flatBonus: 200, kind: "np" },
+      ],
+    });
+    expect(out.map((i) => i.element ?? i.kind)).toEqual(["lightning", "fire", "np"]);
+  });
+
+  it("inherits the block's own fields where an instance is silent", () => {
+    // `component: str` stated once for the four that use it, overridden to
+    // `mag` on the fifth.
+    const out = expandInstances({
+      component: "str",
+      instances: [{ multiplier: 0.5 }, { multiplier: 3.5, component: "mag" }],
+    });
+    expect(out[0].component).toBe("str");
+    expect(out[1].component).toBe("mag");
+  });
+
+  it("does not leak `repeat` or `instances` into the specs themselves", () => {
+    const out = expandInstances({ repeat: 2, multiplier: 1 });
+    expect(out[0].repeat).toBeUndefined();
+    expect(out[0].instances).toBeUndefined();
+  });
+
+  it("refuses `repeat` and `instances` together", () => {
+    // Two spellings of one thing in one block is a content error, not a
+    // precedence question -- and a silent precedence rule is how a five-hit
+    // Noble Phantasm quietly becomes a fifteen-hit one.
+    expect(() => expandInstances({ repeat: 2, instances: [{ multiplier: 1 }] }))
+      .toThrow(/repeat.*instances/i);
+  });
+
+  it("reproduces the two shipped `repeat` declarations unchanged", () => {
+    // Overedge (2) and Tóole Fragarach (3) are the only holders. If either
+    // expands to anything but N identical copies of its own block, the
+    // generalisation changed the degenerate case and is wrong.
+    for (const [id, n] of [["emiya-overedge", 2], ["mannanan-toole-fragarach", 3]]) {
+      const { repeat, ...rest } = ability(id).damage;
+      const out = expandInstances(ability(id).damage);
+      expect(out).toHaveLength(n);
+      for (const spec of out) expect(spec).toEqual(rest);
+    }
   });
 });
