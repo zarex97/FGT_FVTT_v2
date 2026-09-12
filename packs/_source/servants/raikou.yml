@@ -104,6 +104,7 @@ abilities:
   # The table prices C at exactly 30.
   - { ref: divinity, rank: C }
   - { ref: raikou-genji-clan-martial-arts-discipline }
+  - { ref: raikou-mana-burst-lightning }
 
 notes: |
   The nineteenth Servant, and the first whose hardest class skill cost nothing at all.
