@@ -476,6 +476,25 @@ The General Notes are explicit that this boundary is where post-hit effects land
 still inflicts its rider debuffs — and `Invuln`'s own text confirms it:
 *"Does not prevent debuffs from Attacks even if no damage was taken!"*
 
+**Riders fire on a hit, not on a wound** — and for a long time only half of them did. The
+Damage Step asks that question twice, eleven lines apart: `applyAbilityEffects` delivers the
+riders an *ability's phases* declare, and `damageDealt` / `damageTaken` deliver the riders an
+*effect or passive* declares. The first ran whenever the attack was neither suppressed nor
+veiled; the second additionally required `result.total > 0`. So against a defender whose Def
+Up, Dmg Cut or Ward reduced the total to zero, a Noble Phantasm's authored `Def Dwn` landed and
+`Bleed Atk`, `Queen's Poison`, Serenity's poisoned daggers, Nemo's `Slow` and Karna's `Burn`
+did not — the paragraph above was specified, documented, and contradicted by its own reader.
+
+`rules/damage/riders.mjs#ridersFire` is now the single decision both halves read, and it is
+layer 2 so a test can hold it without a world. Only a **suppressed** attack (a complete
+negation — *"no damage and effects are received"*) or one behind a **concealment veil** refuses
+the riders.
+
+`damageStepEnd` deliberately keeps the old gate. Scáthach's *Alpi* is *"at the end of the
+Damage Step when a successful Attack is performed"*, which is a clause about the attack
+succeeding rather than about delivering an effect; widening it would extend the rule above
+rather than apply it. The asymmetry is a decision, not an oversight.
+
 ### Crit determination
 
 Base 50% (a coin flip). Modified by:

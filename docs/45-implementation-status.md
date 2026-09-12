@@ -3445,6 +3445,40 @@ reopened editor and would be overwritten on Save. Recorded here; it predates thi
 **Open:** the two `refs` shapes disagree (Ch. 41). The builder is scoped so it cannot emit an
 unresolvable path, but `@self.health` still means two things.
 
+### On-hit riders fired only on a wound — **repaired**
+
+Ch. 12 §12.5 has said since it was written that *"the effect applies even at zero damage"*, and
+quotes `Invuln`'s own text confirming it: *"Does not prevent debuffs from Attacks even if no
+damage was taken!"* The Damage Step contradicted it, in half of the two places it decides.
+
+`engine/attack.mjs`'s `"damage"` case asks the question twice, eleven lines apart:
+
+```js
+const applied = (skipped || veiled) ? [] : await applyAbilityEffects(state, result);   // ability-declared
+...
+if (!skipped && result.total > 0) await fireDamageDealt(state, result);                // effect-declared
+if (!skipped && result.total > 0) await fireDamageTaken(state, result);
+```
+
+So against a defender whose `Def Up`, `Dmg Cut` or `Ward` reduced the total to zero, a Noble
+Phantasm's authored `Def Dwn` landed and **every on-hit rider in Appendix A did not** — `Bleed
+Atk`, `Queen's Poison`, both halves of Serenity's poisoned daggers, Nemo's `Slow`, Karna's
+`Burn`. Silent against precisely the targets worth riding, and invisible because it only shows
+when a defender's reductions happen to reach exactly zero.
+
+The same defect shape Ch. 45 keeps finding and naming: not a missing rule, but a rule that is
+right, documented, and has a reader that refuses it.
+
+**Repaired.** `rules/damage/riders.mjs#ridersFire` is one decision with one reader, in layer 2
+so `test/unit/zero-damage-riders.test.mjs` can hold it without a world. Only a **suppressed**
+attack (*"no damage and effects are received"*) or one behind a **concealment veil** refuses
+the riders now.
+
+**`damageStepEnd` deliberately keeps the old gate.** Scáthach's *Alpi* is *"at the end of the
+Damage Step when a successful Attack is performed"* — a clause about the attack succeeding
+rather than about delivering an effect. Widening it would extend the rule rather than apply it,
+so the asymmetry is recorded here as a decision.
+
 ---
 
 ---
