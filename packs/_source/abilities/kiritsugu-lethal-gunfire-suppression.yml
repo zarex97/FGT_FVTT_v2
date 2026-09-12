@@ -1,0 +1,36 @@
+# Kiritsugu, char_orig_sheets/Copia de Kiritsugu.md
+#
+# The (Active) half. The (Passive) is `kiritsugu-suppression-shot`, and the
+# split is Karna's Vasavi Shakti: one sheet entry, two behaviours with different
+# windows, costs and phases, and one document cannot hold both.
+schema: 1
+id: kiritsugu-lethal-gunfire-suppression
+name: "Lethal Gunfire Suppression"
+rank: "B+"
+kind: skill
+slug: lethalGunfireSuppression
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Restore 4 Luck; apply @effect[atkUp]{Atk Up} for 1◈ Turns, all
+  damage dealt is increased by 40%, if NP 30%; and apply the @effect[suppression]{Suppression}
+  buff for 1◈ Turns, 5 times. Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: resource
+    changes:
+      # "RESTORE 4 Luck", not "grant" -- `clampToMax` is the whole difference,
+      # and it is why Golden Fleece cannot push a Servant above what it rolled
+      # at summon.
+      - { key: luck, delta: 4, clampToMax: true }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 30, duration: "1◈" }
+      # The five uses come from the effect's own `uses: 5`, not from here: one
+      # place for one number.
+      - { id: suppression, duration: "1◈" }

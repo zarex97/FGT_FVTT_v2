@@ -1701,6 +1701,139 @@ function agilityRefusals(ability, attackerId, defenderId) {
 }
 
 /**
+ * Automatic rules that fire at the START of a Damage Step, before any number
+ * is computed.
+ *
+ * Distinct from `offerAttackerWindow`, which asks the player to spend
+ * something. This pays out a rule that needs no asking — and the ORDERING is
+ * the whole clause rather than a detail of it.
+ *
+ * Kiritsugu's Suppression is the only source: *"Successful Normal Attacks
+ * remove 1 buff from the DU at the start of the Damage Step and if a buff was
+ * successfully removed, apply Atk Up for 1◈ Turns to Kiritsugu."* Two things
+ * follow that nothing else in the corpus needed together:
+ *
+ * 1. The strip must land before the pipeline reads the defender's modifiers,
+ *    because the buff it takes may be the one that would have reduced this hit.
+ *    `fireEvent` could not do it: it returns intents synchronously, so the
+ *    strip would be applied after everything else the event produced.
+ * 2. The follow-on is conditional on the strip having SUCCEEDED, which no
+ *    intent list can express — the answer does not exist until the removal has
+ *    been decided.
+ *
+ * @param {object} state the Combat Process state
+ * @returns {Promise<void>}
+ */
+async function runDamageStepStartHandlers(state) {
+  const attackerDoc = game.actors.get(state.attackerId);
+  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  if (!attackerDoc || !defenderDoc) return;
+
+  const board = currentBoard();
+  const attacker = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
+  const defender = unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc);
+  // The live attack is in scope, so `attack:kind:normal` can actually be
+  // answered — the omission that made every phase predicate in the game blind
+  // to the attack until it was fixed for Raikou.
+  const options = rollOptionsFor({ attacker, defender, attack: state.attack ?? {} });
+
+  for (const handler of attacker.eventHandlers ?? []) {
+    if (!(handler.events ?? []).includes("damageStepStart")) continue;
+    if (handler.targetPredicate
+      && !testPredicate(handler.targetPredicate, { options })) continue;
+
+    let removed = false;
+    for (const action of handler.actions ?? []) {
+      if (action.key === "StripBuff") {
+        removed = await stripOneBuff(action, defender, defenderDoc);
+        continue;
+      }
+      // "IF a buff was successfully removed." Against a target with nothing
+      // left to take, the shot still lands and this pays nothing.
+      if (action.requiresRemoval && !removed) continue;
+      if (action.key === "ApplyEffect") {
+        // The applier takes a SNAPSHOT and returns intents; it does not write.
+        // Passing the Actor document would hand it `target.effects` as an
+        // EmbeddedCollection of documents where it expects a list of ids --
+        // the same document-for-snapshot confusion that made every attack in
+        // the game throw when `buildAttackSpec` called `.includes()` on one.
+        const onSelf = action.target === "self";
+        const def = EffectRegistry.get(action.effect?.id ?? action.effect);
+        if (!def) continue;
+        const outcome = applyEffect({
+          def,
+          target: onSelf ? attacker : defender,
+          magnitude: action.effect?.magnitude ?? def.defaultMagnitude ?? 0,
+          npMagnitude: action.effect?.npMagnitude ?? null,
+          duration: action.duration ?? def.defaultDuration ?? null,
+          source: { unitId: attacker.id, abilityId: handler.abilityId ?? null },
+          ctx: {
+            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+            currentTick: game.combat?.system?.globalTurn ?? 0,
+            options,
+          },
+        });
+        if (outcome.intents.length > 0) await applyBatch(outcome.intents, "suppression");
+      }
+    }
+
+    // A use is spent by a SUCCESSFUL strip, not by every attack — which is why
+    // this is here rather than in `fireEvent`, where `consumesUse` is spent
+    // unconditionally the moment a handler fires.
+    if (removed && handler.consumesUse && handler.defId) {
+      await applyBatch([I.consumeUse(attacker.id, handler.defId)], "suppression");
+    }
+  }
+}
+
+/**
+ * Take one buff off a Unit, and say whether anything came off.
+ *
+ * Not `RemoveEffect`, which names an effect and takes it off its own bearer.
+ * This takes whatever is there, off somebody else, and has to REPORT — the
+ * follow-on depends on the answer.
+ *
+ * `removalPlan` decides what survives, so `Buff Removal Resist` applies here
+ * exactly as it does to every other dispel in the game.
+ *
+ * @param {object} action `{count}`
+ * @param {object} bearer the defender's snapshot
+ * @param {object} bearerDoc the defender's Actor
+ * @returns {Promise<boolean>} whether at least one buff was removed
+ */
+async function stripOneBuff(action, bearer, bearerDoc) {
+  const candidates = [...(bearerDoc.effects ?? [])]
+    .filter((e) => !e.disabled && !e.isSuppressed)
+    .filter((e) => (e.system?.polarity ?? "buff") === "buff")
+    .filter((e) => !e.system?.unremovable)
+    .map((e) => ({
+      defId: e.system?.defId ?? e.name,
+      polarity: "buff",
+      unremovable: Boolean(e.system?.unremovable),
+      documentId: e.id,
+    }));
+  if (candidates.length === 0) return false;
+
+  // Newest first: a dispel that always took the oldest buff would be
+  // predictable in a way no clause asks for, and the most recently applied is
+  // the one most likely to be the reason this attack is being answered.
+  const take = candidates.slice(-(action.count ?? 1));
+  const rolls = Object.fromEntries(
+    pendingRemovalRolls({ candidates: take, bearer })
+      .map((defId) => [defId, Math.ceil(Math.random() * 100)]),
+  );
+  const { removed } = removalPlan({ candidates: take, bearer, rolls });
+  if (removed.length === 0) return false;
+
+  await applyBatch(
+    take.filter((c) => removed.includes(c.defId))
+      .map((c) => I.removeEffect(bearerDoc.id, c.defId, "suppression")),
+    "suppression",
+  );
+  return true;
+}
+
+/**
  * Offer the owner one ability of a named category before their own resolves.
  *
  * Kiritsugu's Lethal Gunfire Suppression is the only source: *"Kiritsugu can
@@ -2097,6 +2230,18 @@ async function runAutomaticStep(state, message) {
         : next;
     }
     case "damage": {
+      // AUTOMATIC handlers first, then the offer. The attacker's own window
+      // below asks the player for something; this pays out a rule that needs no
+      // asking, and it has to run before anything is computed for the same
+      // reason the window does -- what it changes is an INPUT to the
+      // computation, not a modifier on the result.
+      //
+      // Kiritsugu's Suppression is the only source: *"remove 1 buff from the DU
+      // at the start of the Damage Step"*. The buff it takes may be the Def Up
+      // that would otherwise reduce this very hit, so running it later leaves
+      // it correct-looking and inert.
+      await runDamageStepStartHandlers(state);
+
       // "Used at the start of a Damage Step when performing an Attack" -- the
       // attacker's own window, asked before anything is computed, because what
       // it grants is an input to the computation. Recorded on the state so

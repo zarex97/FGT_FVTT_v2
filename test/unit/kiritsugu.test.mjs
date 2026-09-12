@@ -640,3 +640,97 @@ describe("The suppression shot is a NORMAL Attack, not an Attack Skill", () => {
     expect(doc.system.offersSpellCategory).toBe("thaumaturgy");
   });
 });
+
+describe("Suppression — two clocks, and a use is a SUCCESSFUL strip (R5, R6)", () => {
+  const e = src("effects", "suppression.yml");
+  const handler = e.rules.find((r) => r.key === "OnEvent");
+
+  it("carries a use count AND a duration", () => {
+    expect(e.uses).toBe(5);
+    expect(e.defaultDuration).toBe("1◈");
+  });
+
+  it("fires at the START of the damage step, not the end (R6)", () => {
+    // If the strip lands late, a Def Up that should have been torn off still
+    // reduces the hit -- and a test asserting only "a buff was removed" passes
+    // anyway. The ordering IS the clause.
+    expect(handler.event).toBe("damageStepStart");
+  });
+
+  it("is restricted to Normal Attacks", () => {
+    expect(handler.predicate).toContain("attack:kind:normal");
+  });
+
+  it("strips from the DEFENDER, not from its own bearer", () => {
+    // `RemoveEffect` names an effect and takes it off the bearer; this takes
+    // whatever is there, off somebody else, and reports whether it managed it.
+    const strip = handler.then.find((t) => t.key === "StripBuff");
+    expect(strip.target).toBe("defender");
+    expect(strip.count).toBe(1);
+  });
+
+  it("pays the follow-on ONLY when a buff actually came off", () => {
+    const follow = handler.then.find((t) => t.key === "ApplyEffect");
+    expect(follow.requiresRemoval).toBe(true);
+    expect(follow.effect.id).toBe("atkUp");
+    expect(follow.effect.magnitude).toBe(15);
+    expect(follow.effect.npMagnitude).toBe(5);
+    expect(follow.duration).toBe("1◈");
+  });
+
+  it("spends a use only on success, via consumesUse", () => {
+    // `fireEvent` spends `consumesUse` the moment a handler fires;
+    // `runDamageStepStartHandlers` honours it only when a strip succeeded,
+    // which is what "SUCCESSFUL Normal Attacks" asks for.
+    expect(handler.consumesUse).toBe(true);
+  });
+
+  it("does not refresh its uses when reapplied", () => {
+    // `noneExtend`, so Magecraft's extension lengthens the clock without
+    // handing him more strips than the five he paid for.
+    expect(e.stacking).toBe("noneExtend");
+  });
+});
+
+describe("Magecraft — Passive 2 extends the clock, not the uses", () => {
+  const a = src("abilities", "kiritsugu-magecraft.yml");
+  const ev = a.passiveRules.find((r) => r.key === "OnEvent");
+
+  it("extends rather than reapplies", () => {
+    expect(ev.ofCategory).toBe("thaumaturgy");
+    const [then] = ev.then;
+    expect(then.key).toBe("DurationExtension");
+    expect(then.effect).toBe("suppression");
+    expect(then.ticks).toBe("1◈");
+    // A reapplication would refill the five uses.
+    expect(ev.then.some((t) => t.key === "ApplyEffect")).toBe(false);
+  });
+});
+
+describe("Lethal Gunfire Suppression — the Active", () => {
+  const a = src("abilities", "kiritsugu-lethal-gunfire-suppression.yml");
+
+  it("RESTORES 4 Luck without exceeding his maximum", () => {
+    const [change] = a.phases.find((p) => p.kind === "resource").changes;
+    expect(change.key).toBe("luck");
+    expect(change.delta).toBe(4);
+    expect(change.clampToMax).toBe(true);
+  });
+
+  it("applies Atk Up at 40%, or 30% for a Noble Phantasm", () => {
+    const eff = a.phases.flatMap((p) => p.effects ?? []).find((e) => e.id === "atkUp");
+    expect(eff.magnitude).toBe(40);
+    expect(eff.npMagnitude).toBe(30);
+  });
+
+  it("states the five uses in ONE place — the effect", () => {
+    const eff = a.phases.flatMap((p) => p.effects ?? []).find((e) => e.id === "suppression");
+    expect(eff.uses).toBeUndefined();
+    expect(src("effects", "suppression.yml").uses).toBe(5);
+  });
+
+  it("costs 4◈ and spends no Attack", () => {
+    expect(a.cooldown).toBe("4◈");
+    expect(a.countsAsAttack).toBe(false);
+  });
+});

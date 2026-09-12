@@ -1,0 +1,62 @@
+# Kiritsugu's Lethal Gunfire Suppression.
+#
+# TWO CLOCKS, and they are not the same clock. `uses: 5` is the sheet's "5
+# times" -- "N times" is a use count everywhere in this corpus -- and
+# `defaultDuration` is its 1◈. It ends on whichever runs out first, and
+# Magecraft's `DurationExtension` extends only the DURATION: a reapplication
+# would refill the uses, which is exactly why that passive extends rather than
+# reapplies.
+#
+# A use is spent by a SUCCESSFUL strip, not by every Normal Attack. The sheet
+# reads "SUCCESSFUL Normal Attacks remove 1 buff", so swinging at a target with
+# nothing left to take costs nothing -- which matters, because five uses against
+# a buff-light opponent would otherwise evaporate in one Combat Phase.
+#
+# `when: damageStepStart` is the clause, not a detail. The buff it tears off may
+# be the Def Up that would otherwise reduce this very hit, so a strip that lands
+# after the damage is computed is a strip that did nothing -- and a test
+# asserting only that a buff was removed would pass anyway.
+schema: 1
+id: suppression
+name: "Suppression"
+description: |
+  Successful Normal Attacks remove 1 buff from the Defending Unit at the start of the Damage
+  Step; if a buff was successfully removed, apply @effect[atkUp]{Atk Up} for 1◈ Turns to
+  Kiritsugu, all damage dealt is increased by 15%; if NP, 5%.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+# `noneExtend`: reapplying must not refill the five uses, and Magecraft's whole
+# second passive is about extending this clock.
+stacking: noneExtend
+baseChance: 100
+uses: 5
+defaultDuration: "1◈"
+rules:
+  - key: OnEvent
+    event: damageStepStart
+    automatic: true
+    # A use is spent by a SUCCESSFUL strip. `consumesUse` is the corpus
+    # convention, but `fireEvent` spends it the moment a handler FIRES --
+    # `runDamageStepStartHandlers` honours it only when a buff actually came
+    # off, which is what "SUCCESSFUL Normal Attacks" asks for.
+    consumesUse: true
+    # Normal Attacks only. His Noble Phantasms are not this, and the `npValue`
+    # below exists because the Atk Up it GRANTS applies to them.
+    predicate:
+      - "attack:kind:normal"
+    then:
+      # Any one buff, off the DEFENDER. Not `RemoveEffect`, which names an
+      # effect and takes it off its own bearer -- this takes whatever is there,
+      # off somebody else, and has to report whether it managed it.
+      - key: StripBuff
+        target: defender
+        count: 1
+
+      # "IF a buff was successfully removed." The gate is the clause: against a
+      # target with no buffs the shot still lands and this pays nothing.
+      - key: ApplyEffect
+        target: self
+        requiresRemoval: true
+        effect: { id: atkUp, magnitude: 15, npMagnitude: 5 }
+        duration: "1◈"
