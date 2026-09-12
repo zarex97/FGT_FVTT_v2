@@ -11,7 +11,10 @@ rank: C
 kind: skill
 slug: scapegoat
 cooldown: "3◈"
-timing: { window: [ownTurn, whenAllyAttacked] }
+# `radius` is not decoration: `reactions.mjs` gates the ally-window offer on
+# `timing.radius ?? 0`, so omitting it offers this ONLY when Kiritsugu is
+# himself the defender -- which is the one case the clause does not cover.
+timing: { window: [ownTurn, whenAllyAttacked], radius: 2 }
 countsAsAttack: false
 description: |
   (Active) Used during your Turn or when an allied Unit within a 2 panel area of Kiritsugu is

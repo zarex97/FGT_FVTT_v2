@@ -494,3 +494,14 @@ describe("Scapegoat — 'Kiritsugu OR the target' is one area, not two", () => {
     expect(plain).toHaveLength(25);
   });
 });
+
+describe("Scapegoat — the ally window needs a radius to fire at all", () => {
+  it("declares the 2-panel reach the sheet states", () => {
+    // `reactions.mjs` gates the ally-window offer on `timing.radius ?? 0`, so
+    // an ability that names the window and omits the radius is offered only
+    // when its owner is the defender -- the one case "an ALLIED Unit ... is
+    // Attacked" does not describe. Authored without it first; caught by reading
+    // the offer builder rather than by any test.
+    expect(src("abilities", "kiritsugu-scapegoat.yml").timing.radius).toBe(2);
+  });
+});
