@@ -25,6 +25,10 @@ description: |
   If Kiritsugu is inflicted with @effect[skillSeal]{Skill Seal}, instead of reducing his Max Luck,
   all of his Luck Check rolls are increased by 20; and the original effect is negated. These
   effects only last for the duration of Skill Seal.
+  (Active) Applies @effect[pierce]{Pierce} to himself for 1◈ Turns; applies @effect[critDmUp]{Crit DmUp}
+  to himself for 1◈ Turns, Crit Damage dealt is increased by 50%; and all Units within a 2 panel
+  area of Kiritsugu except himself are inflicted with @effect[debuffResDwn]{Debuff ResDwn} for 1◈
+  Turns, chance of being inflicted with debuffs is increased by 20%.
   Cooldown: 4◈-⅓◈ Turns.
 passiveRules:
   # "Kiritsugu's Luck is increased from Rank E to Rank EX."
@@ -70,3 +74,38 @@ passiveRules:
     value: 20
     predicate:
       - "self:effect:skillSeal"
+
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  # Clauses 1 and 2 -- both on himself.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: pierce, duration: "1◈" }
+      - { id: critDmUp, magnitude: 50, duration: "1◈" }
+
+  # Clause 3. "all Units within a 2 panel area of Kiritsugu EXCEPT HIMSELF are
+  # inflicted with Debuff ResDwn."
+  #
+  # Its own targeting, because it reaches a DIFFERENT set from the two above --
+  # the same reason EMIYA's Eye of the Mind (True) EX carries one on its fourth
+  # clause. `target: self` and `target: reuse` are the only answers
+  # `phaseTargets` has, and neither is "everybody within 2 panels but me".
+  #
+  # "All Units", so `relations` carries BOTH sides: this is a debuff he sprays
+  # over his own allies as readily as over the enemy, which is the same shape
+  # the passive aura takes and the same reading of the same phrase.
+  #
+  # INFLICTED, not radiated -- an aura would lift the moment he walked away.
+  # The sheet says "are inflicted with", which is a one-off application that
+  # outlives his position, so it is a phase rather than an `Aura`.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, enemy], includeSelf: false, chooser: all }
+    effects:
+      - { id: debuffResDwn, magnitude: 20, duration: "1◈" }

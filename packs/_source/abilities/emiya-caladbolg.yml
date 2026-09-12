@@ -21,7 +21,7 @@ requirements:
 sameRoundExclusive: [emiya-hrunting]
 description: |
   Range+2 for the Combat Process. Base Attack (MAG) is used. Target an enemy Unit. This NP hits
-  a 3x3 panel area around the targeted Unit for 4x damage, and has the Pierce effect on the
+  a 3x3 panel area around the targeted Unit for 4x damage, and has the @effect[pierce]{Pierce} effect on the
   targeted Unit. EMIYA cannot be within the NP area. Cooldown: 7◈ Turns.
 targeting:
   # Range 4 + 2 for the Combat Process = 6. Stated as the resolved number

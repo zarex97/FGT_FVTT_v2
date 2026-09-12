@@ -50,6 +50,7 @@ Measured against `domain/tables.mjs`:
 | Sheet says | Table | Rank | Value |
 |---|---|---|---|
 | Base Attack (MAG): 175 | `baseAttackMagByMag` | B | 175 ✔ |
+| Base Attack (STR): 65 | `baseAttackStrByStr` | D | **75 — the table wins, see below** |
 | Base Health: 1000 | `baseHealthByEnd` | C | 1000 ✔ |
 | PC *"5% chance of being discovered"* | `presenceConcealmentDiscover` | A+ | 10 + (−5) = 5 ✔ |
 | PC *"Evade Roll is increased by 4"* | `presenceConcealmentEvade` | A+ | 4 ✔ |
@@ -61,11 +62,22 @@ Measured against `domain/tables.mjs`:
 Eight figures across two class skills, and **not one is authored as an override**. Both class
 skills are a `ref:` line and nothing else.
 
-**One deviation, and it has a sibling.** `baseAttackStrByStr` puts STR D at **75**; his sheet says
-**65**. Serenity is also STR D, also a Presence Concealment user, and is authored at **65** as
-well — so the figure is the sheet's own, consistently applied to both Assassins in the set,
-rather than a transcription slip. The corpus already tolerates four such deviations (Jack,
-Penthesilea, Semiramis, Serenity). **The sheet is authoritative: 65 stands.**
+**One deviation, and the sheet loses it.** `baseAttackStrByStr` puts STR D at **75**; his sheet
+says **65**, and so does Serenity's — which looked like a deliberate figure for the set's two
+Assassins. **It is not.** Ch. 41 Q50 settles the general case in the author's own words:
+
+> *"If you find a value of Base attack that differs from this calculation choose the value of
+> this table instead of what is on the character sheet."*
+
+So `domain/base-attack.mjs#baseAttackFor` **derives** Base Attack from the rank and the authored
+65 is ignored: **he plays at 75.** The authored figure is kept anyway, as the other four
+deviations are (Jack, Penthesilea, Semiramis, Serenity), so the sheet's record survives and
+`validate:content` keeps warning that it is overruled.
+
+*Corrected during Task 3.* This section first claimed the opposite — *"the sheet is
+authoritative: 65 stands"* — and the Task 1 test asserted `baseAttack.str === 65` and passed
+while the game played 75. An assertion about the YAML rather than about the behaviour, which is
+the failure §5.1 warns about, caught by a validator warning rather than by any test.
 
 ---
 

@@ -20,6 +20,7 @@ import { parse } from "yaml";
 
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+import { baseAttackFor } from "../../module/domain/base-attack.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -47,12 +48,27 @@ describe("Kiritsugu — the statline", () => {
     expect(lookup("baseHealthByEnd", Rank.parse("C"))).toBe(1000);
   });
 
-  it("keeps the sheet's BA(STR) 65 over the table's 75, as Serenity does", () => {
-    // Both Assassins in the set are STR D and both are authored at 65, so the
-    // figure is a consistent authorial choice rather than a transcription slip.
-    expect(lookup("baseAttackStrByStr", Rank.parse("D"))).toBe(75);
-    expect(k.baseAttack.str).toBe(65);
-    expect(src("servants", "serenity.yml").baseAttack.str).toBe(65);
+  it("PLAYS at the table's BA(STR) 75, not the sheet's 65 (Ch. 41 Q50)", () => {
+    // The sheet prints 65 and Serenity's prints 65 too, so it looked like a
+    // deliberate authorial figure for the set's two Assassins. It is not: the
+    // author settled this generally --
+    //
+    //   "If you find a value of Base attack that differs from this calculation
+    //    choose the value of this table instead of what is on the character
+    //    sheet."
+    //
+    // So `baseAttackFor` DERIVES from the rank and the authored 65 is ignored.
+    // The first draft of this test asserted `k.baseAttack.str === 65` and
+    // passed while the game played 75 -- an assertion about the YAML rather
+    // than about the behaviour, which is the exact failure this file's header
+    // warns about. `validate:content` is what caught it.
+    expect(baseAttackFor(k)).toEqual({ str: 75, mag: 175 });
+    expect(k.baseAttack.str).toBe(65);   // what the sheet records, and is overruled
+  });
+
+  it("derives BA(MAG) to the same number the sheet prints", () => {
+    // MAG B agrees at 175, which is why only the STR half was ever in dispute.
+    expect(baseAttackFor(k).mag).toBe(k.baseAttack.mag);
   });
 
   it("swings with STR, as Semiramis does on the same silence (spec R7)", () => {
@@ -181,5 +197,38 @@ describe("Affection of the Holy Grail — Skill Seal is a hard counter (R2)", ()
     expect(aura.radius).toBe(2);
     // The route added in this task — without it the contribution is inert.
     expect(aura.modifierKey).toBe("checkModifier");
+  });
+});
+
+import { collectContributions } from "../../module/rules/elements.mjs";
+
+describe("AttackProperty — a buff that grants an attack property", () => {
+  const collect = (rules) =>
+    collectContributions([{ name: "test", rules }]);
+
+  it("collects onto attackProperties, not into modifiers", () => {
+    const out = collect([{ key: "AttackProperty", property: "pierce", value: true }]);
+    expect(out.attackProperties).toEqual([
+      expect.objectContaining({ property: "pierce", value: true }),
+    ]);
+    // The whole point: `modifiers` is where an unrouted contribution goes to die.
+    expect(out.modifiers).toEqual([]);
+  });
+
+  it("keeps a boolean boolean and a fraction numeric", () => {
+    expect(collect([{ key: "AttackProperty", property: "ignoresDefUp", value: true }])
+      .attackProperties[0].value).toBe(true);
+    expect(collect([{ key: "AttackProperty", property: "invulnFactor", value: 0.5 }])
+      .attackProperties[0].value).toBe(0.5);
+  });
+
+  it("defaults a bare property to true", () => {
+    expect(collect([{ key: "AttackProperty", property: "pierce" }])
+      .attackProperties[0].value).toBe(true);
+  });
+
+  it("is not silently dropped as an unknown key", () => {
+    expect(collect([{ key: "AttackProperty", property: "pierce", value: true }])
+      .unhandled).toEqual([]);
   });
 });

@@ -1,0 +1,27 @@
+# Appendix A -- and the FIRST Pierce document in the corpus.
+#
+# `Pierce` has been read by the damage pipeline since it was written -- three
+# separate places consult it (`bypassesDefence` at stage 4, the `invuln` branch
+# at stage 16, and the `Dmg Cut` exception that explicitly does NOT yield to
+# it) -- and it has always arrived from an ABILITY's own `damage:` block.
+# Nothing could grant it as a buff, so there was no effect document to grant:
+# a catalogue entry that three subsystems honoured and no content could produce.
+#
+# Kiritsugu's Affection of the Holy Grail is the first clause that needs one:
+# *"Applies Pierce to himself for 1◈ Turns."* It rides `AttackProperty`, which
+# is the general answer -- an attack property contributed by the attacker
+# rather than declared by the swing.
+schema: 1
+id: pierce
+name: "Pierce"
+description: |
+  This Unit's Attacks ignore Invuln and Block. Does not bypass Dmg Cut.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: AttackProperty
+    property: pierce
+    value: true

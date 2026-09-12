@@ -925,6 +925,8 @@
   "FGT.Authoring.Element.CritModifierHint": "Crit chance, or crit damage. Crit damage acts on the roll only.",
   "FGT.Authoring.Element.BlockModifier": "Block Modifier",
   "FGT.Authoring.Element.BlockModifierHint": "Percentage points onto the flat 25% a Block removes.",
+  "FGT.Authoring.Element.AttackProperty": "Attack Property",
+  "FGT.Authoring.Element.AttackPropertyHint": "A property of the attack, granted by a buff on the attacker.",
   "FGT.Authoring.Element.StatDelta": "Stat Delta",
   "FGT.Authoring.Element.StatDeltaHint": "Adds to or multiplies a stat, with an optional floor.",
   "FGT.Authoring.Element.MaxDelta": "Max Delta",

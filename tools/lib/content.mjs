@@ -53,6 +53,10 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Group 2 — damage contributors
   "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward",
   "CritModifier", "BlockModifier", "AttackerPropertyTier",
+  // Kiritsugu -- a property of the ATTACK granted by a buff on the attacker.
+  // Until now `attack.pierce` could only come from an ability's own damage
+  // block, so `Pierce` had no effect document despite being in Appendix A.
+  "AttackProperty",
   // Group 3 — check contributors
   "CheckModifier", "AutoSucceed", "TableOverride", "RollAdjustment",
   // Jack the Ripper — pre-emption, and a Detect ceiling a bounded field imposes.
