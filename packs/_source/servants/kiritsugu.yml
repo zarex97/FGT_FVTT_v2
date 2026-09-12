@@ -47,6 +47,7 @@ sustainability: "8◈"
 abilities:
   - { ref: class-presence-concealment, rank: "A+" }
   - { ref: class-independent-action, rank: A }
+  - { ref: kiritsugu-magecraft }
   - { ref: kiritsugu-affection-of-the-holy-grail }
   - { ref: kiritsugu-reinforcement }
   - { ref: kiritsugu-familiars }

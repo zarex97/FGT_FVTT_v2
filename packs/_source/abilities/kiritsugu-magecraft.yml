@@ -1,0 +1,34 @@
+# Kiritsugu, char_orig_sheets/Copia de Kiritsugu.md
+#
+# EMIYA's Magecraft is the same skill one rank lower with a different second
+# passive. Both allow Thaumaturgy; his father's also RATIONS it -- three Spells
+# on the sheet and one cast a Turn, so the choice between them is the skill.
+schema: 1
+id: kiritsugu-magecraft
+name: "Magecraft"
+rank: B
+kind: skill
+passive: true
+slug: magecraft
+description: |
+  (Passive 1) Allows the use of Thaumaturgy. Only one Thaumaturgy Spell can be used per Turn.
+  (Passive 2) Whenever a Thaumaturgy Spell is used, extend the duration of the 'Suppression'
+  buff by 1◈ Turns.
+passiveRules:
+  # Passive 1's SECOND half. The first half -- "allows the use of Thaumaturgy" --
+  # is not a rule element: `isSpell` on each Thaumaturgy document is what routes
+  # it, and a grant that added nothing would be a second, quieter place for the
+  # same fact to be wrong. That is EMIYA's Magecraft's own reasoning.
+  #
+  # Declared on the CATEGORY rather than as ids on each Spell, so a fourth Spell
+  # is caught by being a Spell -- and so that Lethal Gunfire Suppression's free
+  # cast has something to be exempt FROM. `sameTurnExclusive` could express
+  # neither.
+  - key: CategoryUseLimit
+    category: thaumaturgy
+    perTurn: 1
+
+  # Passive 2 lands with the `suppression` effect it names. Authoring it here
+  # would be a `DurationExtension` pointing at an effect id that does not exist
+  # yet -- `validate:content` would refuse it, and if it did not, the rule would
+  # sit in the compendium extending nothing.

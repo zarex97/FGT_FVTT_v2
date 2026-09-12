@@ -296,3 +296,93 @@ describe("The Thaumaturgy Spells share a shape", () => {
     expect(k.range.panels + rangeUp.magnitude).toBe(5);
   });
 });
+
+import { canUseAbility } from "../../module/rules/costs.mjs";
+
+describe("Magecraft — one Thaumaturgy Spell per Turn", () => {
+  const SPELLS = [
+    { id: "i1", contentId: "kiritsugu-reinforcement", category: "thaumaturgy" },
+    { id: "i2", contentId: "kiritsugu-familiars", category: "thaumaturgy" },
+    { id: "i3", contentId: "kiritsugu-penetration", category: "thaumaturgy" },
+    { id: "i4", contentId: "kiritsugu-scapegoat", category: null },
+  ];
+  const unit = (used) => ({
+    id: "kiritsugu",
+    abilities: SPELLS,
+    categoryUseLimits: [{ category: "thaumaturgy", perTurn: 1, source: "Magecraft" }],
+    turnState: { abilitiesUsed: used },
+    effects: [], modifiers: [], suppressions: [], health: { value: 1000, max: 1000 },
+  });
+  const ability = (contentId, extra = {}) => ({
+    id: SPELLS.find((s) => s.contentId === contentId).id,
+    contentId,
+    category: SPELLS.find((s) => s.contentId === contentId).category,
+    cooldown: { remaining: 0, gatedDelay: 0 },
+    ...extra,
+  });
+  const use = (a, u) => canUseAbility({ ability: a, unit: u, round: 1, turn: 1 });
+
+  it("allows the first Spell of the Turn", () => {
+    expect(use(ability("kiritsugu-reinforcement"), unit([])).ok).toBe(true);
+  });
+
+  it("refuses the SECOND, naming the category", () => {
+    const r = use(ability("kiritsugu-familiars"), unit(["kiritsugu-reinforcement"]));
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("categoryUseLimit");
+    expect(r.detail.category).toBe("thaumaturgy");
+  });
+
+  it("counts a use recorded by its ITEM id as well as its content id", () => {
+    // `recordAbilityUse` stamps both, and the two use paths had drifted before.
+    const r = use(ability("kiritsugu-familiars"), unit(["i1"]));
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("categoryUseLimit");
+  });
+
+  it("does not refuse an ability of a DIFFERENT category", () => {
+    expect(use(ability("kiritsugu-scapegoat"), unit(["kiritsugu-reinforcement"])).ok).toBe(true);
+  });
+
+  it("exempts a use flagged bypassesCategoryLimit — the LGS free Spell", () => {
+    // "This does not count towards the one Thaumaturgy Spell usage per Turn,
+    // but it will still enter Cooldown." The exemption is why this cannot be
+    // `sameTurnExclusive`, which names ids and has nowhere to put one.
+    const a = ability("kiritsugu-penetration", { bypassesCategoryLimit: true });
+    expect(use(a, unit(["kiritsugu-reinforcement"])).ok).toBe(true);
+  });
+
+  it("does not limit a Servant whose sheet declares no such rule", () => {
+    const emiya = { ...unit(["kiritsugu-reinforcement"]), categoryUseLimits: [] };
+    expect(use(ability("kiritsugu-familiars"), emiya).ok).toBe(true);
+  });
+});
+
+describe("Magecraft — the cap is declared on the category", () => {
+  const a = src("abilities", "kiritsugu-magecraft.yml");
+
+  it("caps thaumaturgy at one a Turn", () => {
+    const [rule] = a.passiveRules.filter((r) => r.key === "CategoryUseLimit");
+    expect(rule.category).toBe("thaumaturgy");
+    expect(rule.perTurn).toBe(1);
+  });
+
+  it("names a category rather than listing the Spells", () => {
+    // A list of ids goes stale the moment a fourth Spell is authored, and --
+    // decisively -- has nowhere to put the exemption the sheet grants.
+    expect(a.passiveRules.some((r) => r.key === "sameTurnExclusive")).toBe(false);
+    expect(JSON.stringify(a.passiveRules)).not.toMatch(/kiritsugu-reinforcement/);
+  });
+
+  it("catches every Spell he has by their own declared category", () => {
+    for (const id of ["kiritsugu-reinforcement", "kiritsugu-familiars"]) {
+      expect(src("abilities", `${id}.yml`).category).toBe("thaumaturgy");
+    }
+  });
+
+  it("does not grant Thaumaturgy as a rule — `isSpell` routes it", () => {
+    // A grant that added nothing would be a second, quieter place for the same
+    // fact to be wrong. EMIYA's Magecraft makes the same argument.
+    expect(a.passiveRules.some((r) => r.key === "GrantedAbility")).toBe(false);
+  });
+});

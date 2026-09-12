@@ -410,6 +410,13 @@ export function usageSpecFor(ability) {
     // Both exclusion scales, and the whole-match budget. A gate the attack path
     // could not see was a gate only half the abilities in the game obeyed.
     sameTurnExclusive: [...(sys.sameTurnExclusive ?? [])],
+    // Exempts a use from its category's per-Turn cap. Kiritsugu's Magecraft
+    // caps `thaumaturgy` at one a Turn and his Lethal Gunfire Suppression
+    // grants a cast that "does not count towards" it -- an exemption
+    // `sameTurnExclusive` has nowhere to put, which is most of why the cap is
+    // its own element. (`category` itself is already projected below, for the
+    // `abilityUsed` handlers; the gate reads the same field.)
+    bypassesCategoryLimit: Boolean(sys.bypassesCategoryLimit),
     sameRoundExclusive: [...(sys.sameRoundExclusive ?? [])],
     timesUsed: sys.timesUsed ?? 0,
     maxUses: sys.maxUses ?? null,

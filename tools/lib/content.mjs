@@ -79,6 +79,9 @@ export const RULE_ELEMENT_KEYS = new Set([
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta
   "Suppress", "Immunity", "ImmunityDowngrade", "ApplicationChance", "ReplaceAbility", "Disguise",
+  // Kiritsugu -- a per-Turn cap on a whole category, with an exemption an id
+  // list has nowhere to put.
+  "CategoryUseLimit",
   "EffectVisibility", "SustainabilityGain", "RelationshipProxy", "VariantOverride", "RevealPosition",
   "VulnerabilityAmplifier", "PeriodicOverride",
   // Group 7 — the escape hatch
@@ -1897,6 +1900,7 @@ function itemSystem(doc) {
     countsAsAttack: doc.countsAsAttack ?? undefined,
     countsAsAct: doc.countsAsAct ?? undefined,
     oncePerTurn: Boolean(doc.oncePerTurn),
+    bypassesCategoryLimit: Boolean(doc.bypassesCategoryLimit),
     // The Round-scale cap. Karna's Uncrowned Arms Mastership has no cooldown,
     // so this is the only thing limiting it.
     oncePerRound: Boolean(doc.oncePerRound),
