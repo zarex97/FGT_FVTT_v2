@@ -637,16 +637,17 @@ on and leaves it there.
 
 A mode is *switched* rather than used, and the toggle was a bare write — press the button, flip
 `system.active`, no questions asked. Every rule about **when** it may be switched therefore had
-nowhere to live, and there are three in the reference set:
+nowhere to live, and there are four in the reference set:
 
 | Rule | Source | Field |
 |---|---|---|
 | Never | Heracles: *"cannot deactivate Mad Enhancement"* | `cannotDeactivate` |
 | Not yet | *"it can only be deactivated 2◈ Turns after it was activated, **and vice versa**"* | `toggleLock`, with `toggledAt` stamped on the way on |
 | Not while | Penthesilea: *"Mad Enhancement cannot be deactivated until there are no Greek Male Units within a 4 panel area"* | a `Compulsion` naming the skill |
+| Held on | Raikou: *"When Raikou's Master is within a 2 panel area of herself, her Mad Enhancement is constantly Active and cannot be deactivated"* | a `ForceMode` element carrying the condition |
 
-The third is the interesting one, because it forces the mode **on** as well as refusing to let it
-off — *"her Mad Enhancement is immediately activated regardless of Cooldown or any other
+The last two are the interesting ones, because they force the mode **on** as well as refusing to
+let it off — *"her Mad Enhancement is immediately activated regardless of Cooldown or any other
 factors"*. So `rules/modes.mjs` answers two questions: `canToggleMode` for the refusal, and
 `forcedModes` for the write.
 
@@ -672,6 +673,41 @@ Three properties worth stating, because each is a decision:
 Note the asymmetry the source draws between a *player's* toggle and a *forced* one. Mad
 Enhancement's own first clause deactivates it when its Master runs low, and that is not subject to
 the 2◈ lockout; a player's click is.
+
+#### `ForceMode` — held on by a condition, not by a neighbour
+
+Raikou's is the fourth policy and it reads like the third, which is why it is worth saying how it
+differs. A `Compulsion` is evaluated **per other unit on the board**, and its relation vocabulary
+is `ally` / `enemy` — so it can say *any Greek Male within 4*, and it cannot say *her own Master*
+as against *any allied Master*. Penthesilea's also forces a **target**; Raikou's forces nothing
+but the switch, so authoring hers as a compulsion with `forcesTarget: false` would be an element
+doing one of its two jobs.
+
+`ForceMode` states the condition directly instead:
+
+```yaml
+- key: ForceMode
+  mode: madEnhancement
+  when: ["self:withinOfMaster:2"]
+```
+
+**`when`, not `predicate`, and the name is load-bearing.** Every rule element may carry a
+`predicate`, and `collectContributions` tests it at *collection* time against the bearer's
+standing options. A positional condition written there is answered once and frozen into the
+snapshot — which for this clause means a Mad Enhancement stuck on or stuck off depending on where
+the Master happened to be standing when the board was built. `rules/modes.mjs#forcedOn` answers
+`when` **late**, every time either question is asked, exactly as `rules/compulsion.mjs`
+recomputes rather than stamps.
+
+Everything else it shares with the compulsion: `engine/modes.mjs` is the writer, it rides the
+same invalidation, and it never switches the mode off when the condition lapses.
+
+**It is authored on the bearer's own ability entry, not on the shared class skill.** Four other
+Servants take `class-mad-enhancement` and none of their sheets grants this. `resolveRef` spreads
+an entry's own keys *after* the template's, so an override **replaces** a key rather than merging
+into it — safe here because the shared file declares `activeRules` and no `passiveRules`, and
+held by a test rather than by a reading, because the day that file grows one is the day her
+override silently eats it.
 
 ## 15.4 Requirements and costs
 

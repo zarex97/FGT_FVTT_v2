@@ -58,6 +58,9 @@ export const RULE_ELEMENT_KEYS = new Set([
   "AttackFirst", "DetectOverride",
   // Group 4 — targeting contributors
   "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion", "TargetabilityModifier",
+  // Raikou -- a mode held on by a condition rather than by a neighbour, and a
+  // modifier whose subject is another modifier's magnitude.
+  "ForceMode", "EffectMagnitudeScale",
   // Mannanán — the automatic Counter, the rung it trades away, the buff-clock
   // extension and the spend she is OFFERED at a timing window.
   "AutoCounter", "ForbidReaction", "ForbidCreating", "DurationExtension", "OptionalCost",

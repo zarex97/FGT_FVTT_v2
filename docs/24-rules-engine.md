@@ -1083,6 +1083,18 @@ Content then uses `key: MyElement`. Same mechanism the system itself uses; no pr
 | D24.1 | ~30 rule elements with five contribution points cover the entire reference set. |
 | D24.2 | Predicates are a data grammar over roll options, never functions — for compendium safety, explainability, and build-time validation. |
 | D24.3 | Scripts are entries in a closed registry; no `eval`, no `new Function`. |
+**`ForceMode`** (Group 4) holds a mode switched on while a condition holds and refuses it off —
+Raikou's Mad Enhancement, *"constantly Active while her Master is within a 2 panel area"*. Its
+condition is carried as **`when`** rather than as the `predicate` every element may take, because
+`collectContributions` tests `predicate` at collection time and a positional answer frozen there
+is wrong the moment anybody moves. `rules/modes.mjs#forcedOn` re-tests it every time.
+
+**`EffectMagnitudeScale`** (Group 2) scales the magnitude of a named effect landing on its bearer
+— Raikou's Genji-clan Discipline, *"the magnitude of all Atk Dwn effects on Raikou is halved"*.
+Distinct from its three neighbours, which each do something else to an incoming effect:
+`ApplicationChance` changes how likely it is to land, `DurationExtension` how long it lasts, and
+`Immunity` refuses it outright. Nothing made a landed debuff smaller.
+
 | D24.4 | `OnEvent` is the general trigger mechanism, with a small action vocabulary and nested `then` chaining. |
 | D24.5 | Values may be expressions in a tiny total language with `@`-path references. |
 | D24.6 | Priority bands with a stable secondary sort guarantee cross-client determinism. |
