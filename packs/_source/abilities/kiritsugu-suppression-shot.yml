@@ -6,6 +6,12 @@
 # and phases. This is the same shape: the Active below buffs him on his own
 # Turn, and this shoots somebody on theirs.
 #
+# The NAME differs from its Active half's on purpose. Both halves are one sheet
+# entry, and both were called "Lethal Gunfire Suppression" -- which put two
+# identically-named rows on his sheet with no way to tell which was which, and
+# would have read as "Lethal Gunfire Suppression (Kiritsugu)" twice in a
+# reaction prompt. The subtitle says what this one does.
+#
 # NOT an Attack Skill, and that is the load-bearing line of the file. The sheet
 # says *"perform a NORMAL Attack"*, and two of his own clauses read that word --
 # Reinforcement buffs `nAtkUp`, and Suppression's strip fires on "Successful
@@ -15,7 +21,7 @@
 # so this is a Normal Attack in the only sense the engine has.
 schema: 1
 id: kiritsugu-suppression-shot
-name: "Lethal Gunfire Suppression"
+name: "Lethal Gunfire Suppression: Return Fire"
 rank: "B+"
 kind: skill
 slug: suppressionShot

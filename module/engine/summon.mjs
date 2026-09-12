@@ -620,15 +620,35 @@ async function servantFromPacks(contentId) {
 }
 
 /**
- * A compendium Servant's system data as a plain snapshot.
+ * A Servant's system data as a plain snapshot, with the Ranks ACTUALLY IN FORCE.
  *
- * `toObject()` is what does the work: it converts every `SetField` to an array
+ * `toObject()` does most of the work: it converts every `SetField` to an array
  * and every nested model to plain data, which is exactly the shape the rules
  * layer documents itself as taking.
  *
- * @param {object} source the compendium Actor
+ * **But `toObject()` returns `_source`, and the setup rolls read Ranks.** A
+ * Servant whose own passive shifts a parameter was therefore rolled against the
+ * Rank on the paper sheet rather than the one they actually have.
+ *
+ * Kiritsugu is the case that found it, and it cost him his defining Skill.
+ * *Affection of the Holy Grail*: *"Kiritsugu's Luck is increased from Rank E to
+ * Rank EX."* His written LUC is `E` so the passive has something to raise, and
+ * Max Luck is `0 + 1d4` at E against `20 + 1d4` at EX — so he was summoned with
+ * **4 Luck instead of 21**, an A+ rank skill worth nothing at all. The clause
+ * that reverses it reads *"instead of REDUCING his Max Luck"*, which only means
+ * anything if the Rank was raising it in the first place.
+ *
+ * Safe to take the derived Ranks here: the only two sources in the corpus that
+ * shift a PARAMETER rank are this passive, which is permanent, and the Hanging
+ * Gardens owner buff, which exists only mid-match on a Servant already rolled —
+ * and `needsSetupRolls` only admits Servants who have not been.
+ *
+ * @param {object} source the Actor, from the compendium or the world
  * @returns {object}
  */
 function sheetSnapshot(source) {
-  return source.toObject().system;
+  const plain = source.toObject().system;
+  // The derived parameters, where a passive's `RankShift` has already landed.
+  // Falls back to the written ones for a source with no prepared data.
+  return { ...plain, parameters: { ...plain.parameters, ...(source.system?.parameters ?? {}) } };
 }
