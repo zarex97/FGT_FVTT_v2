@@ -734,3 +734,70 @@ describe("Lethal Gunfire Suppression — the Active", () => {
     expect(a.countsAsAttack).toBe(false);
   });
 });
+
+import { cooldownChanges } from "../../module/engine/skill-use.mjs";
+
+describe("Chronos Rose — the cooldown it imposes is the DEFENDER's", () => {
+  // `cooldownChanges` is layer 3: a ◈ expression is resolved against the
+  // world's turns-per-round, which only Foundry knows.
+  globalThis.game ??= { settings: { get: () => 3 } };
+
+  const np = (id) => ({ id, type: "noblePhantasm", system: {} });
+  const caster = { id: "kiritsugu", items: [np("k-np1"), np("k-np2")] };
+  caster.items.filter = Array.prototype.filter.bind(caster.items);
+  const victim = { id: "victim", items: [np("v-np1")] };
+  victim.items.filter = Array.prototype.filter.bind(victim.items);
+
+  it("emits the change against the target, not the caster", () => {
+    const phase = {
+      kind: "cooldown",
+      changes: [{ unit: "target", scope: "np", ticks: "1◈", direction: "up" }],
+    };
+    const out = cooldownChanges(phase, caster, null, null, victim);
+    expect(out).toHaveLength(1);
+    expect(JSON.stringify(out[0])).toContain("victim");
+    expect(JSON.stringify(out[0])).not.toContain("kiritsugu");
+  });
+
+  it("still defaults to the caster when no unit is named", () => {
+    // Every cooldown clause authored before this one is the caster's own, and
+    // must stay that way.
+    const phase = { kind: "cooldown", changes: [{ scope: "np", ticks: "1◈", direction: "down" }] };
+    const out = cooldownChanges(phase, caster, null, null, victim);
+    expect(out).toHaveLength(2);
+    expect(JSON.stringify(out)).toContain("kiritsugu");
+    expect(JSON.stringify(out)).not.toContain("victim");
+  });
+});
+
+describe("Chronos Rose — the Noble Phantasm", () => {
+  const a = src("abilities", "kiritsugu-chronos-rose.yml");
+
+  it("is 3.5x + 100 with BA(STR) at Range 3", () => {
+    expect(a.damage.multiplier).toBe(3.5);
+    expect(a.damage.flatBonus).toBe(100);
+    expect(a.damage.component).toBe("str");
+    expect(a.targeting.anchor.range).toBe(3);
+  });
+
+  it("ignores Def on its own damage block, not via a buff", () => {
+    // It belongs to this swing rather than to him; Penetration is the buff.
+    expect(a.damage.ignoresDefUp).toBe(true);
+  });
+
+  it("inflicts Crit Dwn at 30% for 1◈", () => {
+    const eff = a.phases.flatMap((p) => p.effects ?? []).find((e) => e.id === "critDwn");
+    expect(eff.magnitude).toBe(30);
+    expect(eff.duration).toBe("1◈");
+  });
+
+  it("pushes the DEFENDER's NP cooldown up by 1◈, not its own down", () => {
+    const [change] = a.phases.find((p) => p.kind === "cooldown").changes;
+    expect(change.unit).toBe("target");
+    expect(change.scope).toBe("np");
+    expect(change.ticks).toBe("1◈");
+    expect(change.direction).toBe("up");
+  });
+
+  it("costs 6◈+⅓◈", () => expect(a.cooldown).toBe("6◈+⅓◈"));
+});
