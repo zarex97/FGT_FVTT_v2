@@ -1,0 +1,52 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# The FIFTH platform owner, and the one whose ship does the most. Semiramis's
+# Hanging Gardens is a fortress she stands in; Quetzalcoatl's mount is a seat.
+# The Golden Hind replaces Drake's Normal Attack, charges her Master 50 Health
+# a Round, refuses to let her off, and carries eight other Units who cannot be
+# targeted while aboard.
+#
+# She is also the first Servant whose Base Health, BA(STR) and BA(MAG) are ALL
+# the rank tables' own values. Kiritsugu and Serenity each override BA(STR);
+# nothing here is authored that a table does not already say.
+#
+# Magic Resistance D costs one `ref:` line and supplies every word of her
+# first sheet entry -- the 20%, the negation up to D, the 10% debuff resist,
+# the Instakill/Death clause with its STR-damage exemption, and Erase left
+# untouched. See the spec §5.
+schema: 1
+id: drake
+name: "Francis Drake"
+trueName: "Francis Drake, El Draque"
+classContainer: rider
+region: [england]
+alignment: { order: chaotic, morality: evil }
+attributes: [female, servant, star, humanoid]
+parameters: { str: D, end: C, agi: B, mag: E, luc: EX }
+baseHealth: 1000
+mov: 6
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 75, mag: 100 }
+# Spec R3. Her sheet names no component; Semiramis is the precedent (silent,
+# authored STR). It reads right besides: her MAG is rank E, so a MAG Normal
+# Attack is negated outright by any Magic Resistance of D or better, and her
+# BA(MAG) 100 is never what her Noble Phantasm uses -- that is the ship's 200.
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+# Galleon Tokens. Uncapped (spec R9) -- her sheet states no maximum, unlike
+# EMIYA's Aria. `io.mjs#adjustResource` already floors at 0 and only applies a
+# ceiling when `max` is a number, so both halves of R9 need no code.
+resources:
+  galleonTokens: { value: 0, max: null }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: class-magic-resistance, rank: D }
+  - { ref: class-riding-drake, rank: B }
+  - { ref: drake-voyager-of-the-storm }
+  - { ref: drake-beyond-the-uncharted }
+  - { ref: drake-pioneer-of-the-stars }
+  - { ref: drake-blazing-golden-rule }
+  - { ref: drake-golden-hind-wild-hunt }
+  - { ref: drake-golden-wild-hunt }
