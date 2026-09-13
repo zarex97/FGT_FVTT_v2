@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { dispatch, checkRemovals } from "../../module/engine/scheduler.mjs";
+import { dispatch, checkRemovals, pendingRolls } from "../../module/engine/scheduler.mjs";
 import { resourcePathFor } from "../../module/domain/resources.mjs";
 
 const handler = { source: "Unlimited Blade Works", abilityId: "ubw" };
@@ -98,5 +98,87 @@ describe("Sustainability that does not decrease", () => {
   it("does not disappear a Servant whose last tick was suppressed", () => {
     const last = free({ sustainability: 1, suppressions: [{ scope: "sustainabilityDecay" }] });
     expect(checkRemovals([last], { tick: 3 }).some((i) => i.t === "defeat")).toBe(false);
+  });
+});
+
+/**
+ * A chance on the ACTION, as opposed to on the effect an action applies.
+ *
+ * Effect riders have stated their own `chance` since Serenity's poisoned
+ * daggers (`ApplyEffect` reads it off the instance), but the action table never
+ * could — and `roll` is not available as a gate, because `ResourceDelta` reads
+ * `roll` as *the amount*: `a.roll ? rolled(a, c) : (a.delta ?? 0)`. Drake's
+ * *"15% chance of gaining 1 Galleon Token"* would have granted 1d100 of them.
+ *
+ * Same contract as `rollGatePasses` and the terrain clauses: the sequence is
+ * pure, the caller rolls, and a die that never arrived refuses rather than
+ * firing.
+ */
+describe("a chance on an action", () => {
+  const drake = (over = {}) => ({
+    id: "drake",
+    resources: { galleonTokens: { value: 0, max: null } },
+    ...over,
+  });
+  const token = { kind: "ResourceDelta", resource: "galleonTokens", delta: 1, chance: 15 };
+  const key = "chance:drake:ResourceDelta:galleonTokens";
+
+  it("fires when the roll is at or under the stated chance", () => {
+    const out = dispatch(token, drake(), handler, { ...ctx, rolls: { [key]: 15 } });
+    expect(out).toEqual([
+      { t: "resource", unitId: "drake", key: "resources.galleonTokens.value", delta: 1 },
+    ]);
+  });
+
+  it("does not fire when the roll is over it", () => {
+    expect(dispatch(token, drake(), handler, { ...ctx, rolls: { [key]: 16 } })).toEqual([]);
+  });
+
+  it("refuses when the die never arrived, rather than firing", () => {
+    // The safe direction, and the one `rollGatePasses` already takes.
+    expect(dispatch(token, drake(), handler, { ...ctx, rolls: {} })).toEqual([]);
+  });
+
+  it("grants exactly the delta, never the roll", () => {
+    // The reason this is not `roll` + `when`: `ResourceDelta` reads a `roll`
+    // as the AMOUNT, so the gate has to be a separate field.
+    const out = dispatch(token, drake(), handler, { ...ctx, rolls: { [key]: 3 } });
+    expect(out[0].delta).toBe(1);
+  });
+
+  it("leaves an action with no chance alone", () => {
+    const certain = { kind: "ResourceDelta", resource: "galleonTokens", delta: 3 };
+    const out = dispatch(certain, drake(), handler, ctx);
+    expect(out[0].delta).toBe(3);
+  });
+});
+
+describe("pendingRolls — a chance needs a die gathered for it", () => {
+  const unit = {
+    id: "drake",
+    eventHandlers: [{
+      source: "Blazing Golden Rule",
+      events: ["damageDealt"],
+      actions: [
+        { kind: "CooldownDelta", scope: "np", delta: -1 },
+        { kind: "ResourceDelta", resource: "galleonTokens", delta: 1, chance: 15 },
+      ],
+    }],
+  };
+
+  it("asks for a 1d100 keyed to the unit and the action", () => {
+    const specs = pendingRolls(unit, "damageDealt");
+    expect(specs).toContainEqual(
+      expect.objectContaining({ key: "chance:drake:ResourceDelta:galleonTokens", formula: "1d100" }),
+    );
+  });
+
+  it("asks for nothing on an event the handler does not listen for", () => {
+    expect(pendingRolls(unit, "roundEnd")).toEqual([]);
+  });
+
+  it("asks for nothing for the action that has no chance", () => {
+    const keys = pendingRolls(unit, "damageDealt").map((s) => s.key);
+    expect(keys).toHaveLength(1);
   });
 });

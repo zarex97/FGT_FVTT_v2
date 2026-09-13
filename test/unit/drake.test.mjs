@@ -116,3 +116,44 @@ describe("Drake — Riding B (spec R2)", () => {
     expect(lookup("ridingCooldown", Rank.parse("B"))).toBe("2◈");
   });
 });
+
+describe("Drake — Galleon Tokens", () => {
+  const d = src("servants", "drake.yml");
+  const on = (event) => d.passiveRules.find((r) => r.key === "OnEvent" && r.event === event);
+
+  it("pays out on a Crit, off damageDealt, gated on attack:crit", () => {
+    expect(on("damageDealt").predicate).toEqual(["attack:crit"]);
+  });
+
+  it("reduces both NPs by a raw Turn, not by a ◈ (spec R4)", () => {
+    const cd = on("damageDealt").then.find((a) => a.key === "CooldownDelta");
+    expect(cd).toEqual({ key: "CooldownDelta", scope: "np", delta: -1 });
+    expect(cd.ticks).toBeUndefined();
+  });
+
+  it("gives the token a 15% chance, as a chance and not as a roll", () => {
+    // `ResourceDelta` reads a `roll` as the AMOUNT, so `roll` here would grant
+    // her 1d100 tokens rather than one of them 15% of the time.
+    const gain = on("damageDealt").then.find((a) => a.key === "ResourceDelta");
+    expect(gain).toEqual(
+      { key: "ResourceDelta", resource: "galleonTokens", delta: 1, chance: 15 },
+    );
+    expect(gain.roll).toBeUndefined();
+  });
+
+  it("loses exactly one at the end of every Round, unconditionally", () => {
+    const decay = on("roundEnd");
+    expect(decay.predicate).toBeUndefined();
+    expect(decay.then).toEqual([
+      { key: "ResourceDelta", resource: "galleonTokens", delta: -1 },
+    ]);
+  });
+
+  it("has the Active's tokens nowhere near the Crit passive's chance", () => {
+    // The Active grants 3 with certainty (Task 4); only the Crit rolls.
+    const chanced = d.passiveRules
+      .flatMap((r) => r.then ?? [])
+      .filter((a) => a.chance !== undefined);
+    expect(chanced).toHaveLength(1);
+  });
+});
