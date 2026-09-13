@@ -29,12 +29,19 @@ stacking: noneRefresh
 baseChance: 100
 unremovable: true
 rules:
-  # "Increases MOV by 5 panels for this Turn." A literal rather than the
-  # `ridingMov` table, on Pale Rider's precedent: an effect is collected with
-  # `rank: null`, so a table lookup here has no grade to read. Medusa's Riding
-  # is A+, and `ridingMov` at grade A is 5 -- the same number her sheet prints.
+  # "Increases MOV by N panels for this Turn." `@magnitude` rather than a
+  # literal, because the number is the SKILL's rank and an effect is collected
+  # with `rank: null` -- so a `table:` lookup here has no grade to read. That
+  # reasoning is Pale Rider's and is unchanged; what changed is the literal.
+  #
+  # It was `5` until Drake arrived at Riding B, whose `ridingMov` is 4. Five is
+  # Riding A's value -- Medusa's -- so reusing the effect unchanged would have
+  # given Drake Medusa's rank silently, and a MOV one too high looks exactly
+  # like a MOV.
+  #
+  # Each Riding variant now passes its own: Medusa 5, Drake 4.
   - key: MovDelta
-    value: 5
+    value: "@magnitude"
     # Not a buff: "cannot be removed by buff removal effects, or prevented by an
     # effect that prevents buffs from being applied." The effect's own
     # `unremovable` covers the instance; this covers the modifier it contributes.

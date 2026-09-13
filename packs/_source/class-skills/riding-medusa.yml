@@ -56,4 +56,7 @@ phases:
   - kind: applyEffects
     target: self
     rules:
-      - { effect: { id: ridingActive }, duration: "this turn" }
+      # 5 is `ridingMov` at grade A, which is her A+ rank's value and the
+      # number her sheet prints. Stated here rather than in the effect, which
+      # now serves Riding at any rank -- Drake's B passes 4.
+      - { effect: { id: ridingActive }, duration: "this turn", magnitude: 5 }
