@@ -1968,6 +1968,21 @@ async function fireDamageDealt(state, result) {
   const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
   if (!attacker || !defender) return;
 
+  // Whatever this attacker's `damageDealt` handlers need to roll, rolled here
+  // on the same "caller rolls" contract every other event honours: `fireEvent`
+  // is pure and reads totals out of `ctx.rolls`.
+  //
+  // This was `rolls: {}`, and the gates that read it refuse on a missing die --
+  // so a rolled or chance-gated action hung on `damageDealt` fired NEVER, and
+  // said nothing about it. Drake's *"15% chance of gaining 1 Galleon Token"* is
+  // the first content to hang one here.
+  /** @type {Record<string, number>} */
+  const rolls = {};
+  for (const spec of pendingRolls(attacker, "damageDealt")) {
+    if (!spec.formula || spec.key in rolls) continue;
+    rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
+  }
+
   const intents = fireEvent("damageDealt", [attacker], {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
@@ -1976,7 +1991,7 @@ async function fireDamageDealt(state, result) {
     // whether the attack crit is by definition asking about a resolved one.
     options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
     victim: { unitId: state.defenderId },
-    rolls: {},
+    rolls,
   });
   if (intents.length > 0) await applyBatch(intents, "damageDealt");
 }

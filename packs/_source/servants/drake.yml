@@ -40,6 +40,39 @@ sustainability: "2◈"
 resources:
   galleonTokens: { value: 0, max: null }
 
+# Blazing Golden Rule's two PASSIVES. They live on the Servant rather than on
+# the ability because the Round decay must keep running while the Skill is on
+# cooldown -- "at the end of every full Round" names no condition at all -- and
+# splitting the pair across two documents would hide that they are one economy.
+passiveRules:
+  # "Whenever this Unit performs a Crit, reduce its NP Cooldown by 1 Turn and
+  # she has a 15% chance of gaining 1 Galleon Token."
+  #
+  # `damageDealt` fires on the ATTACKER with `attack:crit` in the option set
+  # (`rules/options.mjs`), which is the rung Appendix A's on-hit riders already
+  # hang from -- so this needs no new event.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:crit"]
+    then:
+      # "by 1 Turn", not 1◈. A raw turn count is `delta`; `ticks` is the ◈ form
+      # and would be three times too long in a three-turn Round.
+      #
+      # `scope: np` reaches BOTH her Noble Phantasms (spec R4) -- the house
+      # answer to "its NP Cooldown" for a Servant with two.
+      - { key: CooldownDelta, scope: np, delta: -1 }
+      # `chance`, NOT `roll`: `ResourceDelta` reads a `roll` as the AMOUNT, so
+      # expressing this as one would grant her 1d100 tokens.
+      - { key: ResourceDelta, resource: galleonTokens, delta: 1, chance: 15 }
+  # "At the end of every full Round, lose 1 Galleon Token."
+  # Floored at 0 by `io.mjs#adjustResource` (spec R9).
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    then:
+      - { key: ResourceDelta, resource: galleonTokens, delta: -1 }
+
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
   - { ref: class-magic-resistance, rank: D }

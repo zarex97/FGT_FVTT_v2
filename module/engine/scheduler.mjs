@@ -421,8 +421,57 @@ export function dispatch(action, unit, handler, ctx) {
   // or 4 the unit cannot act."* That is not a chance-to-apply -- the effect it
   // applies has its own -- it is a face test on a die the handler rolled.
   if (!rollGatePasses(action, ctx)) return [];
+  // A chance on the ACTION, as opposed to on the effect an action applies.
+  // Drake: *"she has a 15% chance of gaining 1 Galleon Token."*
+  if (!chanceGatePasses(action, unit, ctx)) return [];
   if (!valueGatePasses(action, unit, ctx)) return [];
   return run(action, subject, handler, ctx);
+}
+
+/**
+ * The roll key an action's `chance` is answered by.
+ *
+ * Keyed on the BEARER as well as the action, so two units carrying the same
+ * clause do not share one die — `gatherRolls` de-duplicates by key, and a
+ * shared key would make one roll decide both.
+ *
+ * @param {object} action
+ * @param {object} unit the handler's bearer
+ * @returns {string}
+ */
+export function chanceKey(action, unit) {
+  const what = action.resource ?? action.ability ?? action.effect?.id ?? action.defId ?? "self";
+  return `chance:${unit.id}:${action.kind}:${what}`;
+}
+
+/**
+ * Does the action's `chance` let it through?
+ *
+ * **Why this is not `roll` + `when`.** `ResourceDelta` reads a `roll` as *the
+ * amount* — `a.roll ? rolled(a, c) : (a.delta ?? 0)` — which is what HGoB
+ * Construction's *"increase by 2 plus the number rolled"* needs. Drake's
+ * *"15% chance of gaining 1 Galleon Token"* is the other shape: a fixed
+ * amount behind a probability. Expressed as a `roll`, it would have granted
+ * her 1d100 tokens.
+ *
+ * Effect RIDERS have had their own `chance` since Serenity (`ApplyEffect`
+ * reads it off the instance). This is the same idea one level out, and it
+ * lives in `dispatch` so every action in the table gets it rather than one.
+ *
+ * A die that never arrived **refuses**, which is `rollGatePasses`'s direction
+ * and the safe one: an action whose chance was never rolled has not rolled
+ * under 15.
+ *
+ * @param {object} action
+ * @param {object} unit
+ * @param {SchedulerContext} ctx
+ * @returns {boolean}
+ */
+function chanceGatePasses(action, unit, ctx) {
+  if (action.chance === undefined) return true;
+  const total = ctx.rolls?.[chanceKey(action, unit)];
+  if (typeof total !== "number") return false;
+  return total <= action.chance;
 }
 
 /**
@@ -931,6 +980,12 @@ export function pendingRolls(unit, event) {
     if (!listensFor(handler, event)) continue;
     for (const action of handler.actions ?? []) {
       if (action.roll?.formula) out.push({ ...action.roll });
+      // A `chance` needs a die too, and it is a DIFFERENT die from `roll` --
+      // `roll` decides the amount, `chance` decides whether there is one at
+      // all. Drake's Crit passive carries only the second.
+      if (action.chance !== undefined) {
+        out.push({ key: chanceKey(action, unit), formula: "1d100", bonus: 0 });
+      }
     }
   }
   return out;
