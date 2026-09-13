@@ -1,0 +1,49 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# The ACTIVE only. Both of this Skill's passives live on `drake.yml`:
+#
+#   "(Passive) Whenever this Unit performs a Crit..."
+#   "(Passive) At the end of every full Round, lose 1 Galleon Token."
+#
+# The Round decay names no condition and must keep running while the Skill is
+# on cooldown, which an ability-borne passive would not -- and splitting the
+# pair across two documents would hide that they are one economy.
+schema: 1
+id: drake-blazing-golden-rule
+name: "Blazing Golden Rule"
+rank: A
+kind: skill
+slug: blazingGoldenRule
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Passive) Whenever this Unit performs a Crit, reduce its NP Cooldown by 1 Turn and she has a
+  15% chance of gaining 1 Galleon Token.
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30%; if NP, 20%.
+  3. Applies @effect[ignoreDef]{Ignore Def} for 1◈ Turns.
+  4. Gain 3 Galleon Tokens.
+  Cooldown: 4◈ Turns.
+  (Passive) At the end of every full Round, lose 1 Galleon Token.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: npRegen, duration: "1◈", magnitude: 1 }
+      # "all damage dealt is increased by 30%; if NP, 20%."
+      - { id: atkUp, duration: "1◈", magnitude: 30, npMagnitude: 20 }
+      - { id: ignoreDef, duration: "1◈" }
+  # Effect 4. A `resource` PHASE takes a full path, where the OnEvent action on
+  # `drake.yml` takes the bare pool name -- two readers, two shapes, and the
+  # bare name here would resolve to nothing and be dropped silently.
+  #
+  # Certain, unlike the Crit passive's 15%: no `chance` on this one.
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.galleonTokens.value, delta: 3 }

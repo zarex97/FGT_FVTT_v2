@@ -157,3 +157,47 @@ describe("Drake — Galleon Tokens", () => {
     expect(chanced).toHaveLength(1);
   });
 });
+
+describe("Drake — Blazing Golden Rule", () => {
+  const a = src("abilities", "drake-blazing-golden-rule.yml");
+  const ignoreDef = src("effects", "ignore-def.yml");
+  const effects = a.phases.find((p) => p.kind === "applyEffects").effects;
+  const byId = (id) => effects.find((e) => e.id === id);
+
+  it("is an A-rank Skill on a 4◈ cooldown, used on her own Turn", () => {
+    expect(a.rank).toBe("A");
+    expect(a.cooldown).toBe("4◈");
+    expect(a.timing).toEqual({ window: "ownTurn" });
+  });
+
+  it("applies NP Regen, Atk Up 30/20, and Ignore Def, each for 1◈", () => {
+    expect(byId("npRegen")).toMatchObject({ duration: "1◈" });
+    expect(byId("atkUp")).toMatchObject({ duration: "1◈", magnitude: 30, npMagnitude: 20 });
+    expect(byId("ignoreDef")).toMatchObject({ duration: "1◈" });
+  });
+
+  it("grants three Galleon Tokens, by path and with no chance attached", () => {
+    const phase = a.phases.find((p) => p.kind === "resource");
+    expect(phase.changes).toEqual([
+      { key: "resources.galleonTokens.value", delta: 3 },
+    ]);
+    // A `resource` PHASE takes a full path; the OnEvent action takes the bare
+    // name. Two readers, two shapes.
+    expect(JSON.stringify(a.phases)).not.toContain("chance");
+  });
+
+  it("carries Ignore Def alone, without Kiritsugu's halved Invuln", () => {
+    expect(ignoreDef.rules).toHaveLength(1);
+    expect(ignoreDef.rules[0]).toEqual(
+      { key: "AttackProperty", property: "ignoresDefUp", value: true },
+    );
+    // `penetration.yml` is the two-clause version and is NOT reusable here:
+    // reusing it would hand her a halved Invuln her sheet never grants.
+    expect(src("effects", "penetration.yml").rules).toHaveLength(2);
+  });
+
+  it("is a lasting buff, not a property of one attack", () => {
+    expect(ignoreDef.polarity).toBe("buff");
+    expect(ignoreDef.id).toBe("ignoreDef");
+  });
+});
