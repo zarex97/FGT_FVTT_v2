@@ -262,7 +262,7 @@ resources:
 | *"Whenever this Unit performs a Crit, reduce its NP Cooldown by 1 Turn and she has a 15% chance of gaining 1 Galleon Token"* | `OnEvent: damageDealt`, `predicate: ["attack:crit"]`, `then: [CooldownDelta {scope: np, delta: -1}, ResourceDelta {resource: galleonTokens, delta: 1, chance: 15}]` |
 | *"Gain 3 Galleon Tokens"* (Active, effect 4) | `ResourceDelta {delta: 3}` |
 | *"At the end of every full Round, lose 1 Galleon Token"* | `OnEvent: roundEnd`, `ResourceDelta {delta: -1}`, floored at 0 (R9) |
-| *"+10% Total per token; −15% Total at zero"* | two `DamageModifier`s at **stage 15** (R5), one scaled per token, one predicated on zero |
+| *"+10% Total per token; −15% Total at zero"* | two `DamageModifier`s at **stage 15** (R5), one scaled per token, one predicated on zero — see §4.1 |
 
 `damageDealt` fires **on the attacker** with `attack:crit` in the option set, and is the rung
 Appendix A's on-hit riders already hang from — so the Crit passive has a real trigger and needs
@@ -270,6 +270,28 @@ no new event.
 
 Note the sheet says *"reduce its NP Cooldown by **1 Turn**"*, not `1◈`. A raw turn count, which
 `CooldownDelta`'s `delta` is; `ticks` is the ◈ form and is wrong here.
+
+**Two cooldown readers, opposite conventions.** The OnEvent *action*
+`{key: CooldownDelta, ticks}` negates its own ticks, so a reduction needs no direction. An ability
+*phase* (`kind: cooldown`) goes through `skill-use.mjs#cooldownChanges`, where
+`const down = change.ticks !== undefined ? (change.direction === "down") : …` — so a `ticks` change
+with no `direction: down` counts **up**. Pioneer of the Stars is a phase and must state it;
+Kingprotea's *Huge Scale* is the precedent. Drake uses both readers, which is why this is written
+down rather than left to the implementer.
+
+### 4.1 Total Damage has no authoring channel yet
+
+Stage 15 reads `s.ctx.totalDamageModifiers` (`rules/damage/pipeline.mjs:875`), and that array has
+**exactly one producer in the codebase** — `coverModifiersFor` (`engine/attack.mjs:3512`). No
+authored content has ever contributed to it, and `DamageModifier` has no `stage` field at all:
+every authored modifier lands at stage 4.
+
+So R5 is not a field to set but a channel to open — `stage` on `DamageModifier`, defaulting to
+today's behaviour, routed into `totalDamageModifiers` for `stage: "total"`.
+
+It is worth the work rather than worth rounding away, because the two stages give different
+numbers: `(200 × 4 + 100) × 1.3 = 1170` at stage 15, against `200 × 1.3 × 4 + 100 = 1140` at
+stage 4. Authored at the wrong stage, Drake's broadside is wrong by 30 and looks right.
 
 ---
 
@@ -322,7 +344,15 @@ entries.
 editor prompts for two fields the shape never reads. Drake is its third user; the one-line fix
 belongs to this pass (§3.6).
 
-Damage is `4× + 100` off the Hind's BA(MAG) 200, then R5's two Total-Damage modifiers.
+Damage is `4× + 100` off the Hind's BA(MAG) 200 (`multiplier: 4`, `flatBonus: 100` — Heracles's
+*Nine Lives* is the precedent for the pairing), then R5's two Total-Damage modifiers.
+
+**And the Base Attack cannot be a board lookup.** `pipeline.mjs:249` resolves a damage source as
+`src.unit === "self" ? attacker : (ctx.units?.[src.unit] ?? attacker)` — against the board, falling
+back to the attacker. R1 says the ship's 200 is used *"even if the Golden Hind isn't
+present/activated"*, so there may be no such unit, and the fallback would silently substitute
+Drake's own 100 and halve the Noble Phantasm. A `contentId` source reads the platform's authored
+compendium value instead, where 200 is a constant.
 
 ### 6.1 The bow has to reach the shape
 
@@ -418,3 +448,10 @@ it.
 **Round-boundary upkeep and variable turns per Round.** `turnsPerRound` is a world setting; the
 Round branch must compare Rounds, not derive a tick count, or R6 silently becomes the reading its
 own sheet struck out.
+
+**Three of this Servant's defects are wrong numbers that look right,** which is the class of bug
+this project is least able to see: Riding's MOV Up hard-coded to Medusa's rank (+5 where Drake's
+sheet says +4), a Total Damage modifier authored at stage 4 (1140 where the sheet says 1170), and
+a shipless broadside falling back to her own Base Attack (500 where R1 says 900). None of the
+three throws, none fails a test that does not specifically look for it, and all three are
+plausible values for what they replace. Every one has a named test in §7.
