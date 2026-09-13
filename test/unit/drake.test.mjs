@@ -5,14 +5,12 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
-// Task 5 asserts against this; imported here so the file has one import block.
-import { MODIFIABLE_PATHS } from "../../module/rules/derived.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -64,5 +62,57 @@ describe("Drake — Magic Resistance D is a ref and nothing else", () => {
     // "MAG damage taken is reduced by 20%" and "debuffs reduced by 10%".
     expect(lookup("magicResistancePercent", Rank.parse("D"))).toBe(20);
     expect(lookup("magicResistanceDebuffResist", Rank.parse("D"))).toBe(10);
+  });
+});
+
+describe("Drake — Riding B (spec R2)", () => {
+  const drake = src("class-skills", "riding-drake.yml");
+  const medusa = src("class-skills", "riding-medusa.yml");
+  const active = src("effects", "riding-active.yml");
+  const grantsOf = (skill) =>
+    skill.passiveRules.filter((r) => r.key === "GrantedAbility");
+
+  it("gates ALL THREE grants on the Active, where Medusa gates only two", () => {
+    // Her Active names "'Double Move', 'Riding Attack', and 'Passenger Seat'";
+    // Medusa's names only the last two. The difference between the two sheets
+    // is the whole reason a Medusa variant exists, so it is honoured both ways.
+    const rules = grantsOf(drake);
+    expect(rules).toHaveLength(1);
+    expect(rules[0].abilities).toEqual(["doubleMove", "ridingAttack", "passengerSeat"]);
+    expect(rules[0].predicate).toEqual(["self:effect:ridingActive"]);
+  });
+
+  it("grants nothing at all without the Active — the negative is the ruling", () => {
+    // If any GrantedAbility rule on Drake's Riding lacks the predicate, one of
+    // the three is permanent and R2 is not implemented.
+    for (const rule of grantsOf(drake)) {
+      expect(rule.predicate).toContain("self:effect:ridingActive");
+    }
+  });
+
+  it("leaves Medusa's Double Move unconditional", () => {
+    const unconditional = grantsOf(medusa).filter((r) => !r.predicate);
+    expect(unconditional).toHaveLength(1);
+    expect(unconditional[0].abilities).toEqual(["doubleMove"]);
+  });
+
+  it("takes its MOV from the magnitude it passes, not from Medusa's literal", () => {
+    // `ridingMov` at B is 4 and at A is 5. The effect must carry neither.
+    expect(lookup("ridingMov", Rank.parse("B"))).toBe(4);
+    expect(lookup("ridingMov", Rank.parse("A"))).toBe(5);
+    const mov = active.rules.find((r) => r.key === "MovDelta");
+    expect(mov.value).toBe("@magnitude");
+    expect(mov.isBuff).toBe(false);
+  });
+
+  it("passes 4 for Drake and 5 for Medusa", () => {
+    const magnitudeOf = (skill) =>
+      skill.phases[0].rules.find((r) => r.effect?.id === "ridingActive").magnitude;
+    expect(magnitudeOf(drake)).toBe(lookup("ridingMov", Rank.parse("B")));
+    expect(magnitudeOf(medusa)).toBe(lookup("ridingMov", Rank.parse("A")));
+  });
+
+  it("reads its cooldown off the table the sheet agrees with", () => {
+    expect(lookup("ridingCooldown", Rank.parse("B"))).toBe("2◈");
   });
 });

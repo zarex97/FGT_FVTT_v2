@@ -1,0 +1,55 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# Riding B, and the THIRD instantiation shape in the corpus. Spec R2.
+#
+#   Ozymandias -- all three passives permanent             (`class-riding`)
+#   Medusa     -- Riding Attack + Passenger Seat unlocked  (`class-riding-medusa`)
+#   Achilles   -- permanent but gated on a STANCE          (`class-riding-achilles`)
+#   Drake      -- ALL THREE unlocked, this file
+#
+# Her Active names "'Double Move', 'Riding Attack', and 'Passenger Seat'".
+# Medusa's otherwise word-for-word Active names only the last two, and that
+# difference is the entire reason a Medusa variant exists -- so it is honoured
+# in both directions rather than in one.
+#
+# No new mechanism: a `GrantedAbility` element takes a `predicate` like any
+# other, and the Active applies the marker the predicate asks for.
+schema: 1
+id: class-riding-drake
+name: "Riding"
+source: class
+slug: riding
+parameterized: [rank]
+rank: "@rank"
+cooldown: "@cooldown"
+description: |
+  (Active) Used during your Turn. Increases MOV by 4 panels for this Turn. Additionally,
+  'Double Move', 'Riding Attack', and 'Passenger Seat' can be used on this Turn. Cooldown: 2◈ Turns
+  (Passive 1) Double Move: can Move twice during its Turn, once before and once after Attacking;
+  total distance Moved cannot exceed the Unit's MOV.
+  (Passive 2) Riding Attack: can Attack all Units in its path while Moving in a straight line as
+  its Normal Attack during its Turn. Cannot Attack or Move after it has stopped. Can be combined
+  with Passenger Seat. If the Unit has already Moved this Turn, the panels it may Move for its
+  Riding Attack equal its MOV minus the panels already Moved.
+  (Passive 3) Passenger Seat: the Servant's Master can Move together with its Servant; after
+  Moving, both must be in the same orientation/position prior to the Move. Counts as only Moving
+  one Unit. Can be combined with Riding Attack.
+
+  The @effect[movUp]{MOV Up} from the Active is NOT a buff: it cannot be removed by buff removal and is not
+  prevented by an effect that blocks buffs.
+passiveRules:
+  # ALL THREE gated. There is deliberately no unconditional grant on this file
+  # -- see spec R2, and `test/unit/drake.test.mjs`'s negative case, which is
+  # what actually holds the ruling.
+  - key: GrantedAbility
+    abilities: [doubleMove, ridingAttack, passengerSeat]
+    predicate: ["self:effect:ridingActive"]
+# NO `activeRules` -- this ability has phases, so it is USED rather than
+# toggled, and `contributionsOf` collects `activeRules` only for a mode. See
+# `riding-medusa.yml`'s note; `tools/lib/content.mjs` fails the build on it.
+phases:
+  - kind: applyEffects
+    target: self
+    rules:
+      # 4 is `ridingMov` at B, the number her sheet prints.
+      - { effect: { id: ridingActive }, duration: "this turn", magnitude: 4 }

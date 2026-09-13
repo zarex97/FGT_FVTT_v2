@@ -126,8 +126,19 @@ describe("Riding A+ Active — the authored content, not a stand-in", () => {
   it("puts the MOV Up on the effect the Active applies", () => {
     const mov = (marker.rules ?? []).find((r) => r.key === "MovDelta");
     expect(mov).toBeDefined();
-    expect(mov.value).toBe(5);
+    // `@magnitude`, not a literal. The effect was hard-coded to 5 until Drake
+    // arrived at Riding B, whose `ridingMov` is 4 -- and 5 is Riding A's
+    // value, so she would have ridden at Medusa's rank. The number moved to
+    // the skill that knows its own rank; see `riding-drake.yml`.
+    expect(mov.value).toBe("@magnitude");
     expect(mov.isBuff).toBe(false);
+  });
+
+  it("still passes 5 from Medusa's own skill, which is where her rank is", () => {
+    // The half the assertion above used to carry. Her sheet prints 5 and
+    // `ridingMov` at grade A is 5; this is the file that has to say so.
+    const applied = skill.phases[0].rules.find((r) => r.effect?.id === "ridingActive");
+    expect(applied.magnitude).toBe(5);
   });
 
   it("keeps no activeRules on the skill, where nothing would collect them", () => {
