@@ -1,0 +1,25 @@
+# Appendix A §A.2
+#
+# Ignore Def ALONE. `penetration.yml` is Kiritsugu's two-clause version --
+# Ignore Def *and* a halved Invuln, because his sheet states both in one
+# breath -- and reusing it here would hand Drake a clause her sheet does not
+# give her.
+#
+# `ignoresDefUp` reaches `defUp` and nothing else: `rules/damage/pipeline.mjs`
+# zeroes that one modifier and names it in the contribution log. The wider
+# `ignoresDefensiveBuffs` is Achilles's Heel Attack and is a different rule
+# again, so there are three strengths of "gets past defences" in the set and
+# this is the mildest.
+schema: 1
+id: ignoreDef
+name: "Ignore Def"
+description: "Attacks by this Unit ignore the target's @effect[defUp]{Def Up}."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: AttackProperty
+    property: ignoresDefUp
+    value: true

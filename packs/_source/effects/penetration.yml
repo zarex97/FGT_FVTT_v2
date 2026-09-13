@@ -15,7 +15,7 @@ schema: 1
 id: penetration
 name: "Penetration"
 description: |
-  When this Unit deals damage with an Attack, it has the Ignore Def effect and halves the
+  When this Unit deals damage with an Attack, it has the @effect[ignoreDef]{Ignore Def} effect and halves the
   effect of Invuln.
 polarity: buff
 volatility: nonVolatile
