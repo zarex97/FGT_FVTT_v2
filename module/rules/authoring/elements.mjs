@@ -91,11 +91,6 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "magnitudeRoundTo", type: "number" },
     { key: "component", type: "select", choices: ["str", "mag"] },
     { key: "roll", type: "text" },
-    // §13.4's dividing line. "Total Damage" is stage 15 and multiplies the
-    // finished number independently; everything else pools additively at
-    // stage 4. Omitted means stage 4, which is every modifier before Drake.
-    { key: "stage", type: "select", choices: ["attack", "total"] },
-    { key: "perResource", type: "raw" },
   ]),
   entry("FlatDamage", "A flat addition to damage — Divinity, Dmg Boost, Avenger's counter bonus.", [
     ...SCALED,

@@ -542,7 +542,11 @@ describe("Drake — Golden Wild Hunt (NP2)", () => {
     // The sheet exempts only the Range. `contentId`, not `unit`: a board
     // lookup cannot answer a Noble Phantasm that fires with no ship on the
     // board, and would fall back to her own 100.
-    expect(a.damage.sources).toEqual([
+    // `base.sources`, NOT a top-level `sources`: `baseSpecFor` reads
+    // `damage.base` and otherwise falls through to the caster's declared
+    // component. Found live -- the breakdown read "self BA(MAG) x 1" = 100.
+    expect(a.damage.sources).toBeUndefined();
+    expect(a.damage.base.sources).toEqual([
       { contentId: "platform-golden-hind", component: "mag", factor: 1 },
     ]);
     expect(a.damage.multiplier).toBe(4);
@@ -555,18 +559,30 @@ describe("Drake — Golden Wild Hunt (NP2)", () => {
     expect(hind.baseAttack.mag * a.damage.multiplier + a.damage.flatBonus).toBe(900);
   });
 
-  it("scales on Total damage, not on stage 4 (spec R5)", () => {
-    const mods = a.rules.filter((r) => r.key === "DamageModifier");
-    expect(mods).toHaveLength(2);
-    for (const rule of mods) expect(rule.stage).toBe("total");
+  it("scales on Total damage, on the NP's own damage block (spec R5)", () => {
+    // NOT a `DamageModifier` rule element on the ability: `contributionsOf`
+    // collects an ability's `rules` UNCONDITIONALLY, beside its passives, so
+    // authored there these would apply to every Normal Attack she makes.
+    // Found live, and her NP2 is the only ability in the corpus with a
+    // top-level `rules:` -- nothing had ever exercised the difference.
+    expect(a.rules).toBeUndefined();
+    expect(a.damage.totalModifiers).toHaveLength(2);
   });
 
   it("gives +10% per token and −15% at none", () => {
-    const per = a.rules.find((r) => r.perResource);
+    const [per, zero] = a.damage.totalModifiers;
     expect(per.value).toBe(10);
     expect(per.perResource).toEqual({ resource: "galleonTokens", each: 1 });
-    const zero = a.rules.find((r) => r.value === -15);
+    expect(zero.value).toBe(-15);
     expect(zero.predicate).toEqual(["self:resourceEmpty:galleonTokens"]);
+  });
+
+  it("keeps the two clauses mutually exclusive by arithmetic", () => {
+    // At zero tokens the per-token band contributes nothing and is dropped;
+    // the penalty's predicate is the only thing true there.
+    const [per, zero] = a.damage.totalModifiers;
+    expect(per.predicate).toBeUndefined();
+    expect(zero.perResource).toBeUndefined();
   });
 
   it("only targets enemies", () => {

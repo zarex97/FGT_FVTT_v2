@@ -173,6 +173,13 @@ Hooks.once("setup", async () => {
   const csDocs = csPack ? await csPack.getDocuments() : [];
   console.log(`FGT | Loaded ${CommandSpellRegistry.load(csDocs)} Command Spells`);
 
+  // Base Attacks a `damage.base.sources` entry may name by content id, so that
+  // *"The Golden Hind's Base Attack (MAG) is used"* survives the ship not being
+  // on the board. Cached here because stage 1 of the damage pipeline is pure
+  // and cannot await a pack.
+  const { primeContentBaseAttacks } = await import("./engine/attack.mjs");
+  console.log(`FGT | Cached ${await primeContentBaseAttacks()} content Base Attack(s)`);
+
   if (game.settings.get("fgt", "devMode")) {
     const report = EffectRegistry.validate();
     for (const w of report.warnings) console.warn(`FGT | ${w}`);
