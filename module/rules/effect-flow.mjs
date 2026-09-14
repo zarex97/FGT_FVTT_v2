@@ -230,3 +230,48 @@ export function canUndo(action, ctx) {
       return { ok: false, reason: "this action cannot be undone" };
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Stage removal                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Take stages off a staged instance without taking the instance off.
+ *
+ * Van Gogh's `Gogh` buff: *"Whenever Gogh performs a successful Attack, remove
+ * one stage of Curse from Gogh … If the Attack was a Crit, remove 2 stages."*
+ *
+ * `RemoveEffect` deletes the whole instance, which is the wrong shape twice
+ * over: it would take a Stage 7 Curse to nothing in one swing, and it would
+ * report one removal where the buff pays per stage.
+ *
+ * **It reports only what it actually took.** At Stage 1 a Crit asks for two
+ * and gets one, and the event says −1 — because the buff grants an Atk Up per
+ * stage removed, and claiming −2 would pay her for a stage that was never
+ * there. That is the same clause as *"apply Atk Up … **if a stage of Curse was
+ * removed**"*, answered with arithmetic instead of a condition.
+ *
+ * @param {object|null} instance the staged instance, or null if there is none
+ * @param {number} stages how many to take
+ * @param {string|null} cause who is taking them, for `curseStageChanged`
+ * @returns {{removed: boolean, stage: number, event: object|null}}
+ */
+export function removeStages(instance, stages = 1, cause = null) {
+  const held = instance?.stage ?? 0;
+  if (!instance || held <= 0) return { removed: false, stage: 0, event: null };
+
+  const taken = Math.min(Math.max(1, stages), held);
+  const stage = held - taken;
+
+  return {
+    removed: stage <= 0,
+    stage,
+    event: {
+      unitId: instance.unitId ?? null,
+      defId: instance.defId,
+      stageDelta: -taken,
+      newStage: stage,
+      cause,
+    },
+  };
+}

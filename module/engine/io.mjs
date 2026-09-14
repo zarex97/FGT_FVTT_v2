@@ -329,6 +329,25 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string[]} effectIds may be document ids or definition ids
      */
+    /**
+     * Move a staged effect's stage without removing or re-creating it.
+     *
+     * Van Gogh's `Gogh` buff eats a stage per attack: the instance stays, its
+     * expiry stays, and only the number changes. Re-applying instead would
+     * restart the clock, and removing would take the whole ladder.
+     *
+     * @param {string} unitId
+     * @param {string} defId
+     * @param {number} stage
+     */
+    async setStage(unitId, defId, stage) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      const effect = actor.effects.find((e) => e.system?.defId === defId);
+      if (!effect) return;
+      await effect.update({ "system.stage": Math.max(0, stage) });
+    },
+
     async deleteEffects(unitId, effectIds) {
       const actor = resolve(unitId);
       if (!actor) return;

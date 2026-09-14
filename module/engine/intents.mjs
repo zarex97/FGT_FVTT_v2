@@ -44,6 +44,7 @@ const ORDER = Object.freeze({
   // An event raised from inside a write is a CONSEQUENCE of it, so it sorts
   // after everything: a listener that reduces a cooldown must see the stage
   // that was actually written, not the one being written.
+  setStage: 5,
   event: 99,
   removeEffect: 1,
   // Beside `removeEffect`, because spending the last use IS a removal: an
@@ -359,6 +360,21 @@ export const grantCommandSpells = (masterId, servantId, count) =>
  * @param {object} payload
  * @returns {Intent}
  */
+/**
+ * Write a staged effect's stage directly.
+ *
+ * Van Gogh's `Gogh` buff eats one stage of her Curse per attack, which is
+ * neither a removal nor a fresh application: the instance stays, its clock
+ * stays, and only the number moves.
+ *
+ * @param {string} unitId
+ * @param {string} defId
+ * @param {number} stage
+ * @returns {Intent}
+ */
+export const setStage = (unitId, defId, stage) =>
+  ({ t: "setStage", unitId, defId, stage });
+
 export const event = (event_, payload) =>
   ({ t: "event", event: event_, payload });
 

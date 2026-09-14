@@ -1,0 +1,58 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# The buff that turns her Curse into damage. Whenever she lands an Attack it
+# eats a stage, and eating a stage grants her Atk Up -- but only IF a stage was
+# actually there to eat.
+#
+# That `if` is the whole clause, and it is answered with ARITHMETIC rather than
+# a condition: `RemoveEffect` with `stages` reports only what it actually took,
+# so at Stage 1 a Crit asks for two and the event says -1. The Atk Up rider
+# then fires off that event, once per stage removed, and cannot pay her for a
+# stage that was never there.
+#
+# `cause: gogh` is what lets Channel Marker Soul pay for the removal at all:
+# spec R2 gates that Skill's removal half to this buff specifically, so a Cure
+# stripping her Curse pays nothing.
+schema: 1
+id: gogh
+name: "Gogh"
+description: |
+  Whenever Gogh performs a successful Attack, remove one stage of @effect[curse]{Curse} from her
+  and apply @effect[atkUp]{Atk Up} for 1◈ Turns if a stage was removed, all damage dealt is
+  increased by 10%; if NP, 5%. If the Attack was a Crit, remove 2 stages and apply the buff twice.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+# "Does not stack, but reset its duration if used while she already has a
+# 'Gogh' buff."
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # The eating. ONE action, not two: `stages` carries the count, so a Crit
+  # takes two in a single decrement and reports -2 -- where two separate
+  # removals would raise two events and pay her twice for the same swing at
+  # Stage 1, once legitimately and once for a stage that was not there.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    then:
+      - { key: RemoveEffect, effect: curse, stages: 1, cause: gogh }
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:crit"]
+    then:
+      - { key: RemoveEffect, effect: curse, stages: 2, cause: gogh }
+
+  # The paying. Fires off the EVENT the removal raised, so it cannot grant a
+  # buff for a stage that was not there -- and `times` makes it one Atk Up per
+  # stage actually taken, which is how a Crit that ate two grants two.
+  - key: OnEvent
+    event: curseStageChanged
+    automatic: true
+    eventFilter: { cause: gogh }
+    then:
+      - key: ApplyEffect
+        effect: { id: atkUp, magnitude: 10, npMagnitude: 5 }
+        duration: "1◈"
+        times: "@stageDelta"
