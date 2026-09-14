@@ -84,6 +84,11 @@ export const PHASE_DESCRIPTORS = describeTable([
   entry("resource", 70, "Spends or grants a pool — tokens, counters, Sustainability.", [
     { key: "changes", type: "raw" },
   ]),
+  entry("transfer", 65, "Moves a named effect from a radius onto the caster, stages intact.", [
+    { key: "defId", type: "effectId" },
+    { key: "radius", type: "number" },
+    { key: "relations", type: "tokenList" },
+  ]),
   entry("createField", 60, "Opens the bounded field this ability declares, once, from the caster.", []),
   entry("statChange", 50, "Changes a stat directly, rather than through an effect.", [
     { key: "changes", type: "raw" },

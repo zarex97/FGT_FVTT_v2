@@ -741,3 +741,46 @@ describe("Van Gogh — the mirrored pair (spec R6)", () => {
     expect(np.phases.map((p) => p.kind)).not.toContain("damage");
   });
 });
+
+describe("Van Gogh — Shadow of Longing EX (spec R3)", () => {
+  const sol = src("abilities", "gogh-shadow-of-longing.yml");
+  const transfer = sol.phases.find((p) => p.kind === "transfer");
+
+  it("is EX on a 4◈ cooldown, used on ONE chosen ally within 2", () => {
+    expect(sol.rank).toBe("EX");
+    expect(sol.cooldown).toBe("4◈");
+    expect(sol.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
+    expect(sol.targeting.selection.relations).toEqual(["ally"]);
+    // `chosen`, not `all` -- "Used on an allied Unit", singular.
+    expect(sol.targeting.selection.chooser).toBe("chosen");
+    expect(sol.targeting.selection.count).toBe(1);
+  });
+
+  it("buffs the chosen ally with Atk Up 30/15 and Crit Up 60", () => {
+    const ally = sol.phases.find((p) => p.target === "reuse");
+    const by = (id) => ally.effects.find((e) => e.id === id);
+    expect(by("atkUp")).toMatchObject({ duration: "1◈", magnitude: 30, npMagnitude: 15 });
+    expect(by("critUp")).toMatchObject({ duration: "1◈", magnitude: 60 });
+  });
+
+  it("pulls Curse from ALL Units within 3, enemies included", () => {
+    // The sheet bolds "all". She cleanses her opponents to fuel herself, and
+    // that is a trade rather than an oversight.
+    expect(transfer.defId).toBe("curse");
+    expect(transfer.radius).toBe(3);
+    expect(transfer.relations).toEqual(["ally", "enemy", "self"]);
+  });
+
+  it("gathers onto HER, not onto the ally the ability targeted", () => {
+    // The default is `reuse`, which on an outward-targeting ability is the
+    // chosen ally -- so the Curse would land on the person she just buffed.
+    expect(transfer.target).toBe("self");
+  });
+
+  it("applies the `gogh` buff to herself for 1◈", () => {
+    const selfPhase = sol.phases.find(
+      (p) => p.kind === "applyEffects" && p.target === "self",
+    );
+    expect(selfPhase.effects.find((e) => e.id === "gogh")).toMatchObject({ duration: "1◈" });
+  });
+});

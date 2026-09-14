@@ -1,0 +1,60 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# Three things at once, and the third is the one that matters.
+#
+# It buffs one ally, it gives Gogh the `gogh` buff that lets her eat her own
+# Curse for Atk Up, and then it VACUUMS every Curse within 3 panels onto
+# herself -- from allies and enemies alike (spec R3; the sheet bolds "all").
+#
+# Through Channel Marker Soul that last clause is a cooldown reduction of one
+# Turn per stage moved, so a board she has been salting with Het Gele Huis pays
+# her back all at once.
+#
+# The transfer needed almost nothing new: `rules/effect-flow.mjs` has carried
+# `transferableFrom` and `transferEffect` since it was written, and the latter's
+# own comment names this Skill -- "Van Gogh's Shadow of Longing gathers Curse
+# from everyone nearby, and 'apply all stages accordingly' means the stages
+# arrive, not that the effect restarts at one."
+schema: 1
+id: gogh-shadow-of-longing
+name: "Shadow of Longing Falls Upon the Water in the Urn"
+rank: EX
+kind: skill
+slug: shadowOfLonging
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Used on an allied Unit within a 2 panel area of herself. Has the
+  following effects-
+  1. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30%; if NP, 15%.
+  2. Applies @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased by 60%.
+  Then, applies the following effects to Gogh-
+  1. Apply the '@effect[gogh]{Gogh}' buff to herself for 1◈ Turns.
+  2. Remove all @effect[curse]{Curse} debuffs from all Units within a 3 panel area of Gogh, then
+     apply them to herself.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  # ONE ally, chosen -- not the whole radius. "Used on an allied Unit."
+  # `chosen`, not `player`: the corpus has exactly two chooser values.
+  selection: { relations: [ally], chooser: chosen, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUp, duration: "1◈", magnitude: 30, npMagnitude: 15 }
+      - { id: critUp, duration: "1◈", magnitude: 60 }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: gogh, duration: "1◈" }
+  # Spec R3. ALL Units -- allies AND enemies -- and the stages travel intact.
+  - kind: transfer
+    # `target: self` explicitly: the ABILITY targets a chosen ally, and a phase
+    # on an outward-targeting ability that means the caster has to say so --
+    # the default is `reuse`, which would gather the Curse onto the ally.
+    target: self
+    defId: curse
+    radius: 3
+    relations: [ally, enemy, self]
