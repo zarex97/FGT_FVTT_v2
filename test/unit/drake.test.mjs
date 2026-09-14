@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
@@ -456,5 +456,63 @@ describe("The Golden Hind — the three small clauses", () => {
 
   it("is switched off the moment Drake is NP Sealed", () => {
     expect(h.deactivateOn).toEqual(["npSeal"]);
+  });
+});
+
+describe("Drake — Golden Hind: Wild Hunt (NP1)", () => {
+  const a = src("abilities", "drake-golden-hind-wild-hunt.yml");
+
+  it("is an A+ Anti-Army Noble Phantasm", () => {
+    expect(a.rank).toBe("A+");
+    expect(a.isNP).toBe(true);
+    expect(a.npTags).toEqual(["antiArmy"]);
+  });
+
+  it("deals no damage — it puts a ship on the board", () => {
+    const kinds = a.phases.map((p) => p.kind);
+    expect(kinds).toContain("summonPlatform");
+    expect(kinds).not.toContain("damage");
+  });
+
+  it("raises the Golden Hind, and does not board her Master", () => {
+    const phase = a.phases.find((p) => p.kind === "summonPlatform");
+    expect(phase.platformId).toBe("platform-golden-hind");
+    // Her sheet says "then place Drake upon it" and says nothing about her
+    // Master, unlike Quetzalcoatl's, which boards hers if adjacent.
+    expect(phase.boardMasterIfAdjacent).toBe(false);
+  });
+
+  it("counts its cooldown from deactivation, not from use (spec R10)", () => {
+    // "7◈+⅓◈ Turns AFTER the Golden Hind is destroyed/deactivated." A ship
+    // that stays up for six Rounds has not been counting down for six of them.
+    expect(a.cooldown).toEqual({ max: "7◈+⅓◈", countFrom: "deactivation" });
+  });
+
+  it("uses the same authored shape Jack's Mist and Zero Sail use", () => {
+    // `countFrom: deactivation` was built for Presence Concealment and is read
+    // by `engine/cooldown.mjs`; nothing new was needed for R10.
+    expect(src("abilities", "jack-the-mist.yml").cooldown.countFrom).toBe("deactivation");
+    expect(src("abilities", "nemo-zero-sail.yml").cooldown.countFrom).toBe("deactivation");
+  });
+});
+
+describe("Drake — every ability she names now exists", () => {
+  const d = src("servants", "drake.yml");
+
+  it("names exactly the eight entries on her sheet", () => {
+    expect(d.abilities).toHaveLength(8);
+  });
+
+  it("resolves all eight refs", () => {
+    for (const entry of d.abilities) {
+      // `class-magic-resistance` lives at class-skills/magic-resistance.yml and
+      // `class-riding-drake` at class-skills/riding-drake.yml -- the `class-`
+      // prefix names the FOLDER, and is stripped from the filename.
+      const isClass = entry.ref.startsWith("class-");
+      const dir = isClass ? "class-skills" : "abilities";
+      const base = isClass ? entry.ref.replace(/^class-/, "") : entry.ref;
+      const file = join(process.cwd(), "packs/_source", dir, `${base}.yml`);
+      expect(existsSync(file), `${entry.ref} is unresolved`).toBe(true);
+    }
   });
 });

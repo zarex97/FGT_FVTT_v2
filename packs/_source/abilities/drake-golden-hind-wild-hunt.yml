@@ -1,0 +1,65 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# "(Non-damaging/Passive/Activation)". This Noble Phantasm puts a ship on the
+# board and does nothing else -- every rule the sheet then states is a property
+# of the PLATFORM and is authored on `packs/_source/platforms/golden-hind.yml`:
+# the 50/Round toll, the flat 1d10 boarding, the NP-only Injury Roll, the lock
+# on Drake, the NP Seal deactivation, the three-tier AoE, the shared Luck and
+# the attack replacement.
+#
+# The phase is the generic `summonPlatform` written for Quetzalcoatl -- find the
+# document, stamp the owner, resolve `inherit`, place the footprint, hand it to
+# `activatePlatform`. No new engine.
+#
+# Her Master pays NOTHING here: the platform's `upkeep.supersedes: [npCost]`
+# replaces the normal Noble Phantasm Master-health loss (spec R11), which is the
+# sheet's own last sentence about the toll.
+schema: 1
+id: drake-golden-hind-wild-hunt
+name: "Golden Hind: Wild Hunt"
+rank: "A+"
+isNP: true
+categorizedAsNP: true
+npTags: [antiArmy]
+kind: noblePhantasm
+# Spec R10. NOT from use -- "7◈+⅓◈ Turns AFTER the Golden Hind is
+# destroyed/deactivated". A ship that stays up for six Rounds has not been
+# counting down for six of them.
+#
+# `countFrom: deactivation` is the shape Presence Concealment, Jack's Mist,
+# Chaos Labyrinthos, Zero Sail and Ramesseum Tentyris all use; `cooldownFor`
+# returns no clock at the use, and `destroyPlatform` starts it. The sheet's
+# "destroyed/deactivated" is one phrase because for a platform it is one
+# event -- every route off the board goes through `destroyPlatform`.
+cooldown: { max: "7◈+⅓◈", countFrom: deactivation }
+timing: { window: ownTurn }
+# What this brings into existence, by Attribute, for `ForbidCreating` to read.
+creates: [large]
+description: |
+  (Non-damaging/Passive/Activation) When the Golden Hind is activated, place the 'Golden Hind'
+  token on the field, then place Drake upon it. The Golden Hind's token size is 12 panels (4x3
+  panels). Enemy Units cannot target Units onboard the Golden Hind for Attacks/Skills/Spells/Noble
+  Phantasms. Drake's Normal Attacks are replaced with Attacks from the Golden Hind. Drake cannot
+  unboard the Golden Hind. Including Drake, it can hold a maximum of nine Units.
+
+  At the end of every full Round the Golden Hind is Active, Drake's Master loses 50 Health. The
+  Golden Hind is forcefully deactivated at the end of the Round if Drake's Master has 50 Health or
+  less; her Master does not lose Health at the end of the Round in this situation. This effect
+  overwrites the normal Master Health loss when a Servant uses its NP.
+
+  If an enemy Unit attempts to board the Golden Hind, it rolls a ten-sided die, and boards only on
+  a 10. When the Golden Hind is destroyed/deactivated, all Units onboard it are randomly scattered
+  below it. The Golden Hind cannot be affected by buffs and/or debuffs. If Drake is inflicted with
+  @effect[npSeal]{NP Seal}, the Golden Hind is immediately deactivated.
+
+  Cooldown: 7◈+⅓◈ Turns after the Golden Hind is destroyed/deactivated.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: summonPlatform
+    platformId: platform-golden-hind
+    # "then place Drake upon it" -- and her sheet says nothing about her Master,
+    # unlike Quetzalcoatl's, whose mount boards hers if she is adjacent.
+    boardMasterIfAdjacent: false
