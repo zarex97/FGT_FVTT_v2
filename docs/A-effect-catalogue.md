@@ -38,8 +38,9 @@ and its implementation note. This is the authoritative reference the compendium 
 | `Overcharge` | B | O | mag | — | Magnitude of all **non-damage** NP effects increased. Explicitly excludes direct damage. |
 | `Crit DmUp` | B | O | mag | 2 | Crit damage +X%. Not NP unless stated. |
 | `Over Crit` | B | O | nr | 2 | While crit chance > 100%, crit damage +（chance − 100)%. |
-| `Ignore Def` | B | O | nr | 4 | Attacks ignore `Def Up` on the DU. **Does not ignore `Dmg Cut`.** |
+| `Ignore Def` | B | O | nr | 4 | Attacks ignore `Def Up` on the DU. **Does not ignore `Dmg Cut`.** **Built** (`ignoreDef`, Drake) as `AttackProperty: ignoresDefUp` **alone**. Kiritsugu's `penetration` is the two-clause version — Ignore Def *and* a halved Invuln — and Achilles's `ignoresDefensiveBuffs` is wider still, so the set has three strengths of "gets past defences" and this is the mildest. |
 | `Break` | B | O | nr | 14 | Chance to ignore Block; extra damage if the attack was Blocked. Default chance 100% if unstated. |
+| `Uncharted` | B | — | nr | — | **Built** (`uncharted`, Drake). Detect +3 panels. Detect is **read-time**, not stored: `rules/identity.mjs#detectRangeOf` derives it from a class table whose Caster entry depends on where the unit is standing, so a Servant's stored `detect` is null. A delta written there starts from **zero** — throwing the class base away — and, because that null makes `restoreModifiable` skip the field, is never reset: Drake's read 6, 9, 12, 15, 18 across five preparations. So nothing writes it; `applyStatDeltas` skips `detect` and `detectRangeOf` sums the deltas onto the base it already resolves. |
 
 ## A.2 Buffs — damage intake
 

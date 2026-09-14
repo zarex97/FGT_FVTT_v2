@@ -320,38 +320,81 @@ nearby. The aura system does not care about polarity, which is why it generalize
 
 ---
 
-## 36.3 Francis Drake — a platform and a state-reading NP
+## 36.3 Francis Drake — a platform, a token economy, and a Base Attack that is not hers
 
-Covered structurally in Ch. 20 §20.5. The two novel demands:
+**Built.** `packs/_source/servants/drake.yml` and seven abilities; the spec is
+`docs/superpowers/specs/2026-09-13-drake-design.md`, whose twelve rulings the content cites by
+number. Structurally she is Ch. 20 §20.5.
 
-**An NP whose damage reads how long ago a skill was used.**
+> **This section used to describe a different Servant.** It specified her Noble Phantasm's damage
+> as four elapsed-time bands reading `@elapsedSince(drake-blazing-golden-rule)` against her
+> cooldown tracker. Her sheet was rewritten around a **token economy** and no longer asks that
+> question at all. The design was superseded by the source, not rejected by an implementer — and
+> `@elapsedSince` was never built, because nothing else needs it.
 
-```yaml
-- key: DamageModifier
-  direction: dealt
-  value: 30
-  predicate: [{ lt: ["@elapsedSince(drake-blazing-golden-rule)", "ticks('⅓◈')"] }]
-- key: DamageModifier
-  value: 20
-  predicate: [{ and: [
-      { gte: ["@elapsedSince(drake-blazing-golden-rule)", "ticks('⅓◈')"] },
-      { lt:  ["@elapsedSince(drake-blazing-golden-rule)", "ticks('⅔◈')"] }] }]
-# … and the +10% band, and the −15% Total Damage penalty while on cooldown
-```
+### The token economy
 
-`@elapsedSince(abilityId)` reads the cooldown tracker, which already stores `usedOnTurn`. Free.
+Four clauses across two documents, and they are one economy:
 
-Note the last band is *"Total Damage dealt is reduced by 15%"* — stage 15, not stage 4, per the
-Ch. 13 §13.4 rule. The four bonus bands say *"Damage dealt increased"* — stage 4. The source's
-wording is precise and the model reproduces it exactly.
+| Clause | Where |
+|---|---|
+| *"15% chance of gaining 1 Galleon Token"* on a Crit | `drake.yml`, `OnEvent: damageDealt` + `attack:crit` |
+| *"reduce its NP Cooldown by 1 Turn"* on the same Crit | the same handler, `CooldownDelta {scope: np, delta: -1}` |
+| *"Gain 3 Galleon Tokens"* | Blazing Golden Rule's Active, a `resource` phase |
+| *"At the end of every full Round, lose 1"* | `drake.yml`, `OnEvent: roundEnd` |
 
-**An NP usable with or without its platform.**
+The two passives live on the **Servant** rather than on Blazing Golden Rule, because the Round
+decay names no condition and must keep running while the Skill is on cooldown.
+
+**`chance`, not `roll`.** `ResourceDelta` reads a `roll` as *the amount* — which is what HGoB
+Construction's *"increase by 2 plus the number rolled"* needs — so her 15% authored as a `roll`
+would have granted **1d100 tokens**. `chance` is its own field, gated in `dispatch` so every
+action in the table gets it, and its die is gathered by `pendingRolls` at the `damageDealt` call
+site. That call site passed `rolls: {}` before her, so **any** rolled or chance-gated action hung
+on `damageDealt` fired never and said nothing about it.
+
+### The damage
+
+> *"Total damage dealt is further increased by 10% for every Galleon Token on herself; however,
+> if she has no Galleon Tokens, Total damage dealt is reduced by 15%."*
+
+Both are **Total Damage** — stage 15, not stage 4 (§13.4). Stage 15 had exactly one producer in
+the codebase, `coverModifiersFor`, and no authoring channel at all; abilities now declare
+`damage.totalModifiers`, which `engine/attack.mjs#totalModifiersFor` resolves and feeds into the
+same `ctx.totalDamageModifiers` array Cover uses.
+
+**Not a rule element.** The first attempt authored the two clauses as `DamageModifier`s on the
+ability's `rules:`. `contributionsOf` collects an ability's `rules` *unconditionally*, beside its
+`passiveRules` — so they would have applied to every Normal Attack she makes for the rest of the
+match. Her NP2 is the only ability in the corpus with a top-level `rules:`, so nothing had ever
+exercised the difference.
+
+The stage matters in a way a single test cannot show. Stage 3 applies the multiplier and the flat
+bonus together, so against a bare target stage 4 and stage 15 agree. They diverge because stage 4
+pools every percentage into **one additive bucket** eleven stages earlier, where stage 15
+multiplies each modifier independently on the finished number.
+
+### An NP usable with or without its platform
 
 > *"Can be used even if the Golden Hind isn't present/activated; in this case the Range is still
 > the same, just applied to Drake."*
 
-The conditional anchor (Ch. 09 §9.3), with `platform` as the preferred branch and `self` as the
-fallback.
+A conditional anchor (§9.3), `platform` preferred and `self` as the fallback. The clause exempts
+exactly one thing — the Range — so the **Base Attack is the ship's 200 either way** (spec R1),
+and that is why the damage source names a `contentId` rather than a `unit`: a `unit` source
+resolves against the board and falls back to the attacker, which would have substituted her own
+BA(MAG) 100 and halved the Noble Phantasm with no complaint. `damage.base.sources` may now name a
+compendium document, resolved from a cache primed at `ready`.
+
+Two things this turned up that were not hers:
+
+- **`damage.sources` was never read.** `baseSpecFor` reads `damage.**base**.sources`. Nemo's
+  Great Ram authors a top-level one and works only because it restates the fallback's own value.
+- **`orientedRect` reads `anchor.direction`, which only `selfEdgeAdjacent` supplied.** The
+  `platform` and `self` anchors carried none, so a 7×3 anchored on the ship fired due north
+  whichever way the bow pointed. They now carry `facing` — deliberately a different field, because
+  `shapes.mjs` turns a plain square into a forward-projected rect the moment `direction` exists,
+  and handing every `self` anchor a direction reshapes every square splash in the game.
 
 ---
 

@@ -580,7 +580,12 @@ Refinements:
   can see the whole sum (`engine/attack.mjs#applyInjury`).
 - `Luck Check: Light Wound` can cancel it entirely.
 - Golden Hind: *"Agility: 10 (Only performs Injury Roll when damaged by NP)"* — a per-unit
-  override.
+  override. **Built, and it always was**: `rules/injury.mjs#injuryCheck` has tested for an
+  `injuryOnlyFromNP` attribute since it was written — naming the Golden Hind in its own comment —
+  and `engine/attack.mjs` has passed it `isNP` all along. No content carried the attribute until
+  Drake, so the reader sat waiting for a writer. It is an **attribute**, not a schema field,
+  because `attributes` is an open tag set by design (§4.5) and a second mechanism would have left
+  the first inert for ever.
 
 ---
 

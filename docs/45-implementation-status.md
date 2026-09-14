@@ -4224,3 +4224,62 @@ defender deals **131**, not 0, and its riders legitimately apply. Getting a genu
 zero-damage NP for the gate test needed `antiPurge`, which halts at stage 0 — *"damage AND
 effects"*, which is exactly the distinction Appendix A draws between the two.
 
+
+---
+
+### Francis Drake — the live pass, and eight defects, seven in shipped machinery
+
+Eight sheet entries, and **two of them cost nothing but a `ref:` line** — Magic Resistance D
+supplies every word of her first entry from the rank tables, and Voyager of the Storm modifies
+nothing and is authored as nothing, on Nemo's precedent. She is also the first Servant in the set
+whose Base Health, BA(STR) and BA(MAG) are **all three** the tables' own values.
+
+Almost nothing about her ship was new. `packs/_source/platforms/golden-hind.yml` had existed since
+Ch. 20 was written, and `orientedRect`, conditional anchors, `scope: np`, `summonPlatform`,
+`supersedes`, `replacesRiderAction`, `sharesPanel` and `deactivationVerdict` were all built and had
+live callers. What was missing was five clauses the platform schema could not express, a resource,
+and — as usual — the readers nobody had ever handed a writer.
+
+**Seven of the eight defects were in machinery that shipped before she existed**, and the two with
+the widest blast radius could not have been found by a unit test at all.
+
+| # | Defect | Reach |
+|---|---|---|
+| 1 | **`gateContext()` supplies no `master`**, so `canUseAbility` read the Master's Health as 0 and the action bar refused *every* Noble Phantasm with a Master-Health cost — while the sheet offered the same ability, because `actor-sheet/context.mjs` resolves the master and passes it | **every contracted Servant in the game** |
+| 2 | **Detect could not be modified at all** — three ways at once: a `StatDelta` with a numeric `add` threw out of `contributionsOf` and took the whole board snapshot with it; a delta written to a Servant's null `detect` started from zero and threw the class base away; and because that null makes `restoreModifiable` skip the field, it was never reset — 6, 9, 12, 15, 18 across five preparations | every unit; Drake is the first content to modify Detect |
+| 3 | **A `magnitude` beside a nested `effect:` was dropped.** `applyPhaseEffects` reads it off `spec` alone, while `npMagnitude` on the very next line has always fallen back to the rule | every Riding variant; latent since they were written |
+| 4 | **`damage.sources` is not read.** `baseSpecFor` reads `damage.**base**.sources` and otherwise falls through to the caster's declared component | Nemo's Great Ram authors one and works only by restating the fallback's value |
+| 5 | **`fireDamageDealt` passed `rolls: {}`**, and both roll gates refuse on a missing die — so any rolled or chance-gated action hung on `damageDealt` fired never, silently | every on-hit rider that wants a die |
+| 6 | **`orientedRect`'s vocabulary declared `needs: ["w", "h"]`** where the shape reads `short`/`long`; and the `platform`/`self` anchors carried no bearing, so a directional rect fired due north | the ability editor, and every oriented shape not anchored on `selfEdgeAdjacent` |
+| 7 | **`setCooldownOnDestruction` accepted only `countFrom: "destroyed"`.** For a platform, destruction, the owner's at-will switch-off, an unaffordable toll and NP Seal all arrive at `destroyPlatform` — so three of four routes left the cooldown never starting | any platform NP counting from deactivation |
+| 8 | *Hers.* The two Galleon clauses were authored as `DamageModifier`s on the NP's `rules:`, which `contributionsOf` collects **unconditionally**, so they would have applied to every Normal Attack she makes | caught before it shipped |
+
+**What the live pass caught that the tests could not.** Defects 1, 2, 3, 4 and 8 all passed a green
+suite. Three of them are *wrong numbers that look right* — a MOV one too high, a Detect that grows
+by three a frame, a Noble Phantasm reading 100 where the sheet says 200 — and none throws. The
+fourth is a button that is simply never offered, which reads as a rule rather than a bug. Reading
+an actual chat card is what found the Base Attack: the breakdown said `self BA(MAG) × 1 = 100`
+where her sheet says the Golden Hind's 200.
+
+**One mechanism was removed again after being built.** `DamageModifier` briefly gained a `stage`
+field so an effect could contribute at stage 15. Once defect 8 moved the clause onto
+`damage.totalModifiers`, that field had no reader in content — which is the "right and inert"
+shape this chapter exists to refuse — so it came out.
+
+**New vocabulary, each with its reader and its test:** `boarding`, `lockAboard`, `deactivateOn`
+and `lastUpkeepRound` on `PlatformData`; `upkeep.every: "round"` and `rules/platforms.mjs#upkeepDue`;
+`canUnboard`; `deactivatedBy`; `chance` on OnEvent actions; `damage.base.sources[].contentId` with
+a cache primed at `ready`; `damage.totalModifiers`; the `resourceEmpty` predicate facet; and
+`facing` on the `platform` and `self` targeting anchors.
+
+**Verified on a live board**, clause by clause: the Riding gate in both directions with MOV 6 → 10;
+Galleon Tokens 0 → 3 on the Active; Beyond the Uncharted reaching the group with effects 1–3 and
+**Drake alone** with `Uncharted`; Detect 2 → 5 and stable across five preparations; the ship raised
+at 4×3 with 2500 Health, Luck 24 shared, its own Scene Level and Drake aboard, for **no Master
+Health**; the toll at 250 → 200 on the Round boundary and **nothing** across four turns inside one
+Round; forced deactivation at exactly 50 charging nothing and scattering her to the ground; the
+cooldown reading 22 ticks *at* deactivation after the ship had stood six turns; an enemy needing a
+flat 10 on 1d10 where the shared rule would have let an A/A Servant aboard on a 6; NP Seal sinking
+it on application; the broadside's arc following the bow east and south rather than always north;
+and a chat card reading `platform-golden-hind BA(MAG) × 1  +200` at stage 1 and
+`totalDamage "Galleon Tokens" × 1.30` at stage 15.

@@ -715,7 +715,7 @@ acceptance surface for the targeting engine.
 | T10 | "Range=5. Hits a 7×7 panel area within Range" | `withinRange(attackRange 5)` | `rect 7×7` | enemy, all, self-excluded | Karna *Brahmastra Kundala* |
 | T11 | "Range=3 to 4. Hits a 3×3 area within Range" | `withinRange(4, min 3)` | `rect 3×3` | enemy, all | Karna *Vasavi Shakti* |
 | T12 | "Hits a 5×5 panel area around Nemo" (banded) | `self` | `banded[1→1.5×, 2→0.5×]` | enemy, all | Nemo *Triton's Conch* |
-| T13 | "7×3 or 3×7 in the direction the bow faces" | `selfEdgeAdjacent(facing)` | `orientedRect 7×3` | enemy, all | Drake *Golden Wild Hunt* |
+| T13 | "7×3 or 3×7 in the direction the bow faces" | `platform` → `self`, conditional; each carries `facing` | `orientedRect short 3 long 7` | enemy, all | Drake *Golden Wild Hunt* |
 | T14 | "all enemies in his path while Moving in a straight line" | `movementPath` | `path` | enemy, all | Riding Attack |
 | T15 | "targets of choice within a 5×5 … non-diagonal direction" | `selfEdgeAdjacent(chosen)` | `rect 5×5` | enemy, **chosen subset** | Scáthach *Gate of Skye* |
 | T16 | "all Units within a 3 panel area of Gogh" | `self` | `chebyshevRadius 3` | **any relation**, all | Van Gogh *Shadow of Longing* |
@@ -724,6 +724,18 @@ acceptance surface for the targeting engine.
 | T19 | "all allied Units upon the Golden Hind" | `platform("own")` | `zone` | ally+self, all | Drake, Nemo |
 | T20 | "Range=7 plus the area under the HGoB and the area of the HGoB" | `withinRange(7) ∪ platform` | `rect 5×5` within | enemy, all | HGoB *Dragon Wing Warriors* |
 | T21 | "effective at any Range" | `global` | `unit` | the NP's user | Mannanán *Fragarach* |
+
+> **T13's two corrections.** The shape takes `short`/`long`, never `w`/`h` — the anchor's bearing
+> decides which becomes the width, which is what lets one entry describe both the 7×3 and the 3×7
+> the sheet names. `vocabulary.mjs` declared `needs: ["w", "h"]` and the ability editor prompted
+> for two fields nothing reads.
+>
+> And the bearing had to reach the shape at all: `orientedRect` reads `anchor.direction`, which
+> only `selfEdgeAdjacent` ever supplied, so a rect anchored on a platform or on the caster fired
+> due **north** regardless. Both anchors now carry `facing` — a separate field, because
+> `shapes.mjs` turns a plain `square` into a forward-projected rect the moment `direction` exists,
+> and giving every `self` anchor a direction reshapes every square splash in the game.
+> `orientedRect` reads `direction ?? facing`, so a player's chosen direction still wins.
 | T22 | "regardless of Range" | `sourceOfAttack` | `unit` | the AU | `Repel`, reflects, Fragarach Counter |
 | T23 | "self" (no target stated) | `self` | `unit` | self | most buff skills |
 | T24 | "Range=3" (single-target spell) | `withinRange(attackRange 3)` | `unit` | enemy, count 1 | Scáthach *Þurs*/*Úr*, Nemo *Quickfire* |
