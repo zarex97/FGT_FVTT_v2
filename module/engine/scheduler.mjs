@@ -243,6 +243,11 @@ export function fireEvent(event, units, ctx) {
       // on an event that never measured it.
       if (handler.requiresDamagedThisPhase && !(ctx.damagedIds ?? []).includes(u.id)) continue;
 
+      // A gate on the EVENT rather than on a unit. Channel Marker Soul pays
+      // for any Curse infliction but only for removals the `gogh` buff made,
+      // and those are the same event with a different sign and cause.
+      if (!eventFilterPasses(handler.eventFilter, ctx.event)) continue;
+
       // A condition evaluated NOW rather than at collection: on somebody other
       // than the owner (Scáthach's Alpi pays double against an Undead or Divine
       // Defending Unit, who does not exist when the contribution is collected),
@@ -560,6 +565,76 @@ function readStat(unit, path) {
   return typeof value?.value === "number" ? value.value : null;
 }
 
+
+/**
+ * An action magnitude that names a field of the event that fired it.
+ *
+ * `"-@stageDelta"` is Channel Marker Soul: *"reduce her NP Cooldown by 1 Turn
+ * for every Stage of Curse inflicted/removed."* The number is not on the
+ * ability and not on the unit — it is the size of the change that just
+ * happened, and only the event knows it.
+ *
+ * A reference to a field the event does not carry yields `null`, and the
+ * caller DROPS the action rather than treating it as zero: "the event had no
+ * stage delta" and "the stage moved by nothing" are different, and only one of
+ * them should be silent.
+ *
+ * **A leading `-` negates the MAGNITUDE, not the sign**, which looks like a
+ * quirk and is the clause: *"reduce her NP Cooldown by 1 Turn for every Stage
+ * of Curse **inflicted/removed**"* pays the same way in both directions, and
+ * `stageDelta` is +3 when she takes three stages on and −1 when the `gogh`
+ * buff eats one. Reading the sign through would turn the removal half into a
+ * cooldown INCREASE — the exact opposite of what the Skill is for.
+ *
+ * @param {string|number|undefined} raw
+ * @param {object} event
+ * @returns {number|null}
+ */
+function eventValue(raw, event) {
+  if (typeof raw === "number") return raw;
+  if (typeof raw !== "string" || !raw.includes("@")) return null;
+  const negate = raw.trim().startsWith("-");
+  const field = raw.replace("-", "").replace("@", "").trim();
+  const value = event?.[field];
+  if (typeof value !== "number") return null;
+  return negate ? -Math.abs(value) : value;
+}
+
+/**
+ * Does this handler care about the event that just fired?
+ *
+ * `targetPredicate` asks about a UNIT; this asks about the EVENT. Channel
+ * Marker Soul is the clause that needs the difference: *"inflicted with Curse
+ * **or has Curse removed from herself to the effects of the 'Gogh' buff**"* is
+ * one event, two directions, and only one of the directions is gated on a
+ * source.
+ *
+ * Two forms, both narrow on purpose — a general expression language here would
+ * be a second predicate grammar with none of the first one's tooling:
+ *   `{ cause: "gogh" }`           — the event names this cause
+ *   `{ stageDelta: "negative" }`  — a numeric field's sign
+ * and `anyOf: [...]` to disjoin them.
+ *
+ * A filter naming a field the event does not carry REFUSES, which is the safe
+ * direction: a handler that cannot tell what happened should not fire.
+ *
+ * @param {object|null|undefined} filter
+ * @param {object} event
+ * @returns {boolean}
+ */
+export function eventFilterPasses(filter, event) {
+  if (!filter) return true;
+  if (filter.anyOf) return filter.anyOf.some((f) => eventFilterPasses(f, event));
+
+  for (const [field, want] of Object.entries(filter)) {
+    const got = event?.[field];
+    if (want === "positive") { if (!(got > 0)) return false; continue; }
+    if (want === "negative") { if (!(got < 0)) return false; continue; }
+    if (got !== want) return false;
+  }
+  return true;
+}
+
 /**
  * Does the action's `when` gate let it through?
  *
@@ -697,9 +772,14 @@ const ACTIONS = Object.freeze({
    * `delta` stays for a raw turn count.
    */
   CooldownDelta: (a, u, h, c) => {
+    // A magnitude that names the event's own payload. Channel Marker Soul's
+    // number is the size of the stage change that just happened, which is
+    // neither on the ability nor on the unit.
+    const fromEvent = typeof a.delta === "string" ? eventValue(a.delta, c.event) : null;
+    if (typeof a.delta === "string" && fromEvent === null) return [];
     const amount = a.ticks !== undefined
       ? -resolveTicks(parseTick(a.ticks), c)
-      : (a.delta ?? 0);
+      : (fromEvent ?? a.delta ?? 0);
 
     const ids = a.scope === "np"
       ? (u.abilities ?? []).filter((x) => x.isNP || x.categorizedAsNP).map((x) => x.id)

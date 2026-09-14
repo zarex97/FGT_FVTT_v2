@@ -849,8 +849,12 @@ describe("stacking actions actually reach the intents", () => {
       magnitude: 0, duration: "1◈", source: { unitId: "medea" }, ctx,
     });
 
-    expect(out.intents.map((i) => i.t)).toEqual(["removeEffect", "applyEffect"]);
-    expect(out.intents[1].effect.stage).toBe(2);
+    // The `event` is `curseStageChanged`, raised wherever a STAGE moves --
+    // the one place that knows the jump rather than just the destination.
+    // Van Gogh's Channel Marker Soul is its only listener; it fires here for
+    // Medea's Poison too, and costs nothing when nobody is listening.
+    expect(out.intents.map((i) => i.t)).toEqual(["removeEffect", "event", "applyEffect"]);
+    expect(out.intents.at(-1).effect.stage).toBe(2);
   });
 });
 

@@ -123,7 +123,7 @@ the General Notes and `Invuln`'s own text.
 | `fgt.effectResisted` | The chance roll failed | `{unitId, defId, chance, roll}` |
 | `fgt.effectRemoved` | Removed by any means | `{unitId, effectId, defId, reason}` |
 | `fgt.effectSuppressed` / `fgt.effectUnsuppressed` | Suppression state changed | `{unitId, effectId, by}` |
-| `fgt.curseStageChanged` | Curse gained or lost stages | `{unitId, stageDelta, newStage}` |
+| `fgt.curseStageChanged` | Curse gained or lost stages | `{unitId, defId, stageDelta, newStage, cause}` — **fired**, from `engine/effect-applier.mjs` at the one place a stage is DECIDED (`resolveStacking`'s `stage` branch), for every `stacking: stage` definition rather than for Curse alone. Raised as an intent rather than by the caller, because only the write knows the JUMP: `stageDelta` is +3 when three land at once and −1 when one is eaten, and a listener paid per stage needs the size and not the destination. `cause` is what separates an infliction from a removal made by a particular source — Van Gogh's *Channel Marker Soul* pays for **any** infliction but only for removals her `Gogh` buff made, and without it those are one event apart only by sign. She is its first and only listener; it costs nothing when nobody is. See also `eventFilter`, the handler gate that asks about the EVENT where `targetPredicate` asks about a unit. |
 | `fgt.poisonStageChanged` | Poison staged | `{unitId, stageDelta, newStage}` |
 | `fgt.buffRemovedByEffect` | A dispel succeeded | `{unitId, effectId, byUnitId}` |
 

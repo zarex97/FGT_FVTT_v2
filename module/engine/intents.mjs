@@ -41,6 +41,10 @@ export const INTENT_TYPES = Object.freeze([
  */
 const ORDER = Object.freeze({
   log: 0,
+  // An event raised from inside a write is a CONSEQUENCE of it, so it sorts
+  // after everything: a listener that reduces a cooldown must see the stage
+  // that was actually written, not the one being written.
+  event: 99,
   removeEffect: 1,
   // Beside `removeEffect`, because spending the last use IS a removal: an
   // effect that fires and then hangs around with `uses: 0` is an effect that
@@ -338,6 +342,25 @@ export const markContract = (unitId, contract, masterId = null) =>
  */
 export const grantCommandSpells = (masterId, servantId, count) =>
   ({ t: "grantCommandSpells", masterId, servantId, count });
+
+/**
+ * Raise a named game event from inside a write.
+ *
+ * `fireEvent` is normally called by whoever is driving the turn, with the
+ * event's context in hand. Some events are only knowable at the moment of the
+ * write itself: `curseStageChanged` carries the SIZE of a stage jump, and only
+ * the stacking resolution knows the before and the after.
+ *
+ * So the write emits an intent and the applier dispatches it, the same way
+ * `noteDebuffs` turns landed debuffs into queued counters -- one new intent
+ * kind rather than a second event bus.
+ *
+ * @param {string} event
+ * @param {object} payload
+ * @returns {Intent}
+ */
+export const event = (event_, payload) =>
+  ({ t: "event", event: event_, payload });
 
 export const log = (entry) =>
   ({ t: "log", entry });

@@ -338,6 +338,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "automatic", type: "checkbox" },
     { key: "ofCategory", type: "text" },
     { key: "targetPredicate", type: "predicateList" },
+    // A gate on the EVENT rather than on a unit. `{cause: "gogh"}` or
+    // `{stageDelta: "negative"}`, with `anyOf: [...]` to disjoin them.
+    { key: "eventFilter", type: "raw" },
     { key: "then", type: "raw" },
   ]),
   entry("Aura", "A radius around this Unit that changes the Units inside it.", [

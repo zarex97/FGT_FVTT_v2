@@ -124,6 +124,30 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
  * @param {Intent[]} intents the intents that were actually written
  * @returns {Promise<void>}
  */
+async function fireWriteEvent(name, unitId, payload) {
+  if (typeof game === "undefined" || !game?.actors) return;
+  const { fireEvent } = await import("./scheduler.mjs");
+  const { currentBoard } = await import("./board.mjs");
+  const board = currentBoard();
+  const unit = (board.units ?? []).find((u) => u.id === unitId);
+  if (!unit) return;
+
+  const intents = fireEvent(name, [unit], {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board,
+    options: new Set(),
+    rolls: {},
+    // The payload IS the context for a handler that asks about the change
+    // rather than about a unit -- see `eventFilterPasses`.
+    event: payload,
+  });
+  if (intents.length > 0) await applyWorldIntents(intents, `event:${name}`);
+}
+
+/**
+ * Switch a platform off when its owner is hit by a named effect.
+ */
 async function notePlatformDeactivations(intents) {
   if (typeof game === "undefined" || !game?.actors) return;
   const applied = intents.filter((i) => i.t === "applyEffect" && i.effect?.defId);
@@ -487,6 +511,14 @@ async function writeGroup(group, io) {
     case "grantCommandSpells":
       for (const i of intents) await io.grantCommandSpells(i.masterId, i.servantId, i.count);
       break;
+    case "event":
+      // Raised from inside a write, because only the write knew the number --
+      // `curseStageChanged` carries the SIZE of a stage jump. Dispatched here
+      // rather than by the caller for the same reason `noteDebuffs` is:
+      // this is where every write path meets.
+      for (const i of intents) await fireWriteEvent(i.event, unitId, i.payload);
+      break;
+
     case "log":
       // A `banish` entry is a log line AND a world write: the Kagome Spirits'
       // *"disappears for 1◈ Turns ... then reappears on a random panel
