@@ -11,6 +11,7 @@ import { parse } from "yaml";
 
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+import { MODIFIABLE_PATHS } from "../../module/rules/derived.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -199,5 +200,128 @@ describe("Drake — Blazing Golden Rule", () => {
   it("is a lasting buff, not a property of one attack", () => {
     expect(ignoreDef.polarity).toBe("buff");
     expect(ignoreDef.id).toBe("ignoreDef");
+  });
+});
+
+describe("Drake — Beyond the Uncharted", () => {
+  const a = src("abilities", "drake-beyond-the-uncharted.yml");
+  const uncharted = src("effects", "uncharted.yml");
+  const group = a.phases.find((p) => p.target === "reuse");
+  const selfOnly = a.phases.find((p) => p.target === "self");
+
+  it("is an A-rank Skill on a 4◈ cooldown", () => {
+    expect(a.rank).toBe("A");
+    expect(a.cooldown).toBe("4◈");
+  });
+
+  it("prefers the ship and falls back to a 2-panel radius", () => {
+    const anchor = a.targeting.anchor;
+    expect(anchor.kind).toBe("conditional");
+    expect(anchor.branches[0].predicate).toEqual(["self:onPlatform:platform-golden-hind"]);
+    expect(anchor.branches[0].anchor).toEqual(
+      { kind: "platform", platformId: "platform-golden-hind" },
+    );
+    expect(anchor.branches[0].shape).toEqual({ kind: "zone" });
+    expect(anchor.otherwise.anchor).toEqual({ kind: "self" });
+    expect(anchor.otherwise.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
+  });
+
+  it("names the platform by its content id, not by its filename", () => {
+    // `golden-hind` is the file; `platform-golden-hind` is the id the
+    // `onPlatform` facet and the `platform` anchor both resolve against.
+    const hind = src("platforms", "golden-hind.yml");
+    expect(hind.id).toBe("platform-golden-hind");
+    expect(a.targeting.anchor.branches[0].anchor.platformId).toBe(hind.id);
+  });
+
+  it("reaches allies and herself", () => {
+    expect(a.targeting.selection.relations).toEqual(["ally", "self"]);
+    expect(a.targeting.selection.includeSelf).toBe(true);
+  });
+
+  it("gives the group NP DmUp 20, Atk Up 20/10 and NP Regen, each 1◈", () => {
+    const byId = (id) => group.effects.find((e) => e.id === id);
+    expect(byId("npDmUp")).toMatchObject({ duration: "1◈", magnitude: 20 });
+    expect(byId("atkUp")).toMatchObject({ duration: "1◈", magnitude: 20, npMagnitude: 10 });
+    expect(byId("npRegen")).toMatchObject({ duration: "1◈" });
+  });
+
+  it("gives Uncharted to DRAKE ALONE, not to the group", () => {
+    // "Applies the 'Uncharted' buff for 1◈ Turns TO DRAKE" -- where effects
+    // 1-3 say "affects all allied Units". A phase that defaulted to `reuse`
+    // would hand every ally +3 Detect and nothing would complain.
+    expect(selfOnly.effects).toHaveLength(1);
+    expect(selfOnly.effects[0]).toMatchObject({ id: "uncharted", duration: "1◈" });
+    expect(group.effects.map((e) => e.id)).not.toContain("uncharted");
+  });
+
+  it("increases Detect by 3", () => {
+    expect(uncharted.rules[0]).toMatchObject({ key: "StatDelta", stat: "detect", add: 3 });
+  });
+
+  it("writes a stat `restoreModifiable` puts back each preparation", () => {
+    // Without this the +3 lands again on every prepare and her Detect drifts --
+    // the defect Mad Enhancement's MOV +2 had, at 6 -> 8 -> 10 -> 12.
+    expect(MODIFIABLE_PATHS).toContain("detect");
+  });
+});
+
+describe("Drake — Pioneer of the Stars", () => {
+  const a = src("abilities", "drake-pioneer-of-the-stars.yml");
+  const selfPhase = a.phases.find((p) => p.kind === "applyEffects" && p.target === "self");
+  const groupPhase = a.phases.find((p) => p.kind === "applyEffects" && p.target === "reuse");
+
+  it("is EX rank on a 4◈ cooldown", () => {
+    expect(a.rank).toBe("EX");
+    expect(a.cooldown).toBe("4◈");
+  });
+
+  it("reduces BOTH Noble Phantasms by 1◈+⅔◈, DOWNWARDS (spec R4)", () => {
+    const phase = a.phases.find((p) => p.kind === "cooldown");
+    expect(phase.changes).toEqual([
+      { scope: "np", ticks: "1◈+⅔◈", direction: "down" },
+    ]);
+  });
+
+  it("states `direction: down`, without which the cooldown GOES UP", () => {
+    // `cooldownChanges`: const down = change.ticks !== undefined
+    //   ? (change.direction === "down") : ...
+    // With `ticks` and no direction, `down` is false and the reduction becomes
+    // an increase. Kingprotea's Huge Scale is the precedent and states it.
+    // The OnEvent ACTION of the same name is the opposite convention -- it
+    // negates `ticks` itself. Two readers, two rules; Drake uses both.
+    const phase = a.phases.find((p) => p.kind === "cooldown");
+    expect(phase.changes[0].direction).toBe("down");
+    const kingprotea = src("abilities", "kingprotea-huge-scale.yml");
+    const precedent = kingprotea.phases.find((p) => p.kind === "cooldown");
+    expect(precedent.changes[0].direction).toBe("down");
+  });
+
+  it("gives Drake Pierce for 1◈+½◈", () => {
+    expect(selfPhase.effects).toContainEqual(
+      expect.objectContaining({ id: "pierce", duration: "1◈+½◈" }),
+    );
+  });
+
+  it("gives allies within 2 panels S.Crit Up 10 for ⅓◈", () => {
+    expect(groupPhase.effects).toContainEqual(
+      expect.objectContaining({ id: "sCritUp", duration: "⅓◈", magnitude: 10 }),
+    );
+  });
+
+  it("uses two different durations across its two target sets", () => {
+    const durations = new Set(
+      [...selfPhase.effects, ...groupPhase.effects].map((e) => e.duration),
+    );
+    expect(durations).toEqual(new Set(["1◈+½◈", "⅓◈"]));
+  });
+
+  it("aims the S.Crit Up at a radius, and the Pierce at her alone", () => {
+    // "to all allied Units within a 2 panel area of herself" -- a different
+    // set from the self-only Pierce.
+    expect(a.targeting.anchor).toEqual({ kind: "self" });
+    expect(a.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
+    expect(a.targeting.selection.relations).toEqual(["ally", "self"]);
+    expect(selfPhase.effects.map((e) => e.id)).toEqual(["pierce"]);
   });
 });

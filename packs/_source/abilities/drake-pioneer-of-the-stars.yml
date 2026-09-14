@@ -1,0 +1,53 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# Three clauses, three durations -- 1◈+⅔◈, 1◈+½◈ and ⅓◈ -- and two target
+# sets. The Skill's own targeting is the 2-panel radius the S.Crit Up wants;
+# the Pierce is self-only and says so per phase.
+#
+# `scope: np` reaches BOTH her Noble Phantasms (spec R4). No clause of hers
+# names one, and `selectAbilities`' own comment is that `scope: np` is "what a
+# sheet means by 'its NP Cooldown' when the Unit may have two".
+schema: 1
+id: drake-pioneer-of-the-stars
+name: "Pioneer of the Stars"
+rank: EX
+kind: skill
+slug: pioneerOfTheStars
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Reduces Drake's NP Cooldown by 1◈+⅔◈ Turns; then applies
+  @effect[pierce]{Pierce} for 1◈+½◈ Turns; and applies @effect[sCritUp]{S.Crit Up} to all allied Units within a 2 panel
+  area of herself for ⅓◈ Turns, Crit Chance is increased by 10%. Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  # "Reduces Drake's NP Cooldown by 1◈+⅔◈ Turns" -- first, because the sheet
+  # says "then" about what follows it.
+  - kind: cooldown
+    target: self
+    changes:
+      # `direction: down` is REQUIRED. `cooldownChanges` reads
+      #   const down = change.ticks !== undefined
+      #     ? (change.direction === "down") : ...
+      # so a `ticks` change with no direction INCREASES the cooldown --
+      # silently, and by exactly the amount it was meant to remove.
+      # Kingprotea's Huge Scale carries the identical line.
+      #
+      # The OnEvent ACTION of the same name is the opposite convention: it
+      # negates `ticks` itself. Two readers, two rules, and Drake uses both --
+      # her Crit passive on `drake.yml` is the other.
+      - { scope: np, ticks: "1◈+⅔◈", direction: down }
+  # "then applies Pierce" -- to her, not to the radius.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: pierce, duration: "1◈+½◈" }
+  # "and applies S.Crit Up to all allied Units within a 2 panel area of
+  # herself" -- the Skill's own target list.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: sCritUp, duration: "⅓◈", magnitude: 10 }
