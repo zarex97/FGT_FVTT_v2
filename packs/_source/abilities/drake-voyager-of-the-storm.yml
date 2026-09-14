@@ -16,4 +16,4 @@ kind: skill
 slug: voyagerOfTheStorm
 passive: true
 description: |
-  (Passive) Sails on the @ability[drake-golden-hind-wild-hunt]{Golden Hind}.
+  (Passive) Sails on the @np[drake-golden-hind-wild-hunt]{Golden Hind}.

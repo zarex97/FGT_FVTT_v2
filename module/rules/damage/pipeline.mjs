@@ -247,12 +247,32 @@ function stage1Base(s) {
   }
 
   for (const src of spec.sources ?? []) {
-    const unit = src.unit === "self" ? s.ctx.attacker : (s.ctx.units?.[src.unit] ?? s.ctx.attacker);
+    // `contentId` reads a COMPENDIUM document's authored Base Attack rather
+    // than a unit on the board.
+    //
+    // Drake's broadside is the case that needs it: *"The Golden Hind's Base
+    // Attack (MAG) is used"* with no exemption, and *"can be used even if the
+    // Golden Hind isn't present/activated"* -- so there may be no such unit to
+    // look up, and the board fallback below would silently substitute HER
+    // BA(MAG) 100 for the ship's 200 and halve the Noble Phantasm.
+    const unit = src.contentId
+      ? (s.ctx.contentBaseAttack?.[src.contentId] ?? null)
+      : src.unit === "self" ? s.ctx.attacker : (s.ctx.units?.[src.unit] ?? s.ctx.attacker);
+    // A `contentId` that resolved to nothing contributes nothing and SAYS so.
+    // Falling through to the attacker is the defect this branch exists to stop.
+    if (src.contentId && !unit) {
+      s.contribute(`base:${src.component}`, 0, `unknown content ${src.contentId}`, "attacker");
+      continue;
+    }
     const base = unit?.baseAttack?.[src.component] ?? 0;
     const v = base * (src.factor ?? 1);
     if (src.component === "mag") s.mag += v;
     else s.phys += v;
-    s.contribute(`base:${src.component}`, v, `${src.unit} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`, "attacker");
+    // One line, deliberately: `card-visibility.test.mjs` scans this file
+    // line by line for a contribution with no explicit side, and a call split
+    // across lines reads as an unattributed one.
+    const label = `${src.contentId ?? src.unit} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`;
+    s.contribute(`base:${src.component}`, v, label, "attacker");
   }
   s.end(1);
 }
@@ -861,6 +881,47 @@ function stage14Block(s) {
   s.end(14);
 }
 
+
+/**
+ * The attacker's own Total Damage modifiers, filtered by stage rather than key.
+ *
+ * @param {PipelineState} s
+ * @param {object} unit
+ * @returns {object[]}
+ */
+function totalMods(s, unit) {
+  const excluded = s.ctx.attack?.excludeModifierSources ?? null;
+  return (unit?.modifiers ?? []).filter(
+    (m) => m.stage === "total"
+      && (m.direction ?? "dealt") === "dealt"
+      && !(excluded && excluded.includes(m.source))
+      && testPredicate(m.predicate, s.predicateCtx),
+  );
+}
+
+/**
+ * A Total modifier's magnitude, which may be counted off a pool.
+ *
+ * > *"Total damage dealt is further increased by 10% for every Galleon Token
+ * > on herself."*
+ *
+ * `perResource` is `perStack`'s shape from `cooldownChanges`, counting a
+ * RESOURCE rather than an effect. At zero it contributes nothing and the
+ * caller skips it — never a factor of zero, which would delete the attack
+ * rather than leave it unmodified.
+ *
+ * @param {object} m
+ * @param {object} unit
+ * @returns {number} percentage points
+ */
+function totalPercentOf(m, unit) {
+  const per = m.perResource ?? null;
+  if (!per) return m.value ?? 0;
+  const pool = unit?.resources?.[per.resource];
+  const held = typeof pool === "number" ? pool : (pool?.value ?? 0);
+  return (m.value ?? 0) * Math.floor(held / (per.each ?? 1));
+}
+
 /**
  * Stage 15 — modifiers whose text says **"Total Damage"**.
  *
@@ -876,6 +937,29 @@ function stage15TotalDamageModifiers(s) {
     if (!testPredicate(m.predicate, s.predicateCtx)) continue;
     s.scale(m.factor);
     s.contribute(m.key ?? "totalDamage", m.factor, m.source);
+  }
+
+  // Content-authored Total Damage, from the ATTACKER's own modifier bag.
+  //
+  // `ctx.totalDamageModifiers` above is the engine's channel and had exactly
+  // one producer -- Cover. A sheet that says *"**Total** Damage dealt is
+  // increased"* had no way in at all, because `DamageModifier` carried no
+  // stage and every authored one landed at stage 4.
+  //
+  // Read here rather than plumbed through `ctx` so the whole clause stays
+  // inside the pure pipeline, and read by STAGE rather than by key so the
+  // bucket sets at stages 4, 4b, 5, 7 and 12 never see it: a Total modifier
+  // that kept `DamageModifier`'s default `atkUp` key would be applied twice.
+  //
+  // Multiplicative and independent, like Cover's, because each such clause is
+  // stated as acting on the finished number -- where stage 4 pools every
+  // percentage into one additive bucket.
+  for (const m of totalMods(s, s.ctx.attacker)) {
+    const percent = totalPercentOf(m, s.ctx.attacker);
+    if (percent === 0) continue;
+    const factor = 1 + percent / 100;
+    s.scale(factor);
+    s.contribute(m.key ?? "totalDamage", factor, m.source);
   }
 
   // A defence whose magnitude is the ATTACKER's property (Ch. 44 §44.2).
@@ -1039,6 +1123,11 @@ export const MODIFIER_KEYS = Object.freeze([
   ...ELEMENT_ATTACK_KEYS, ...ELEMENT_DEFENCE_KEYS,
   // Read by their own single-key lookups rather than through a bucket.
   "critDmUp", "critDmDwn", "critResUp", "critResDwn", "blockUp", "defCrk",
+  // Stage 15's own bucket, read by STAGE rather than by key -- deliberately in
+  // neither `ATTACKER_BUCKET_KEYS` nor `DEFENDER_BUCKET_KEYS`, so a Total
+  // modifier is never also counted at stage 4. Listed here so the content
+  // validator accepts it as a key something reads.
+  "totalDamage",
 ]);
 
 /**

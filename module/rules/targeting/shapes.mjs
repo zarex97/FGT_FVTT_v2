@@ -132,7 +132,10 @@ export function expand(shape, anchor, opts = {}) {
     case "orientedRect": {
       // "7×3 or 3×7 in the direction the bow is facing" is one shape described
       // for both facings, projected forward from the front edge (Ch. 09 §9.4).
-      const d = anchor.direction ?? "n";
+      // `direction` is a PLAYER's choice (`selfEdgeAdjacent`'s four ghost
+      // previews); `facing` is a unit's own bearing, which for the Golden Hind
+      // is its bow. The choice wins where there is one.
+      const d = anchor.direction ?? anchor.facing ?? "n";
       const alongAxis = d === "n" || d === "s";
       const w = alongAxis ? shape.short : shape.long;
       const h = alongAxis ? shape.long : shape.short;

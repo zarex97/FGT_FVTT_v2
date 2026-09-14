@@ -715,7 +715,20 @@ export const EXECUTORS = Object.freeze({
       ? Math.floor(n / el.magnitudeRoundTo) * el.magnitudeRoundTo
       : n);
     out.modifiers.push({
-      key: el.modifierKey ?? (el.direction === "taken" ? "defUp" : "atkUp"),
+      // A `stage: total` modifier takes its OWN bucket key by default. The
+      // ordinary default is `atkUp`, which stages 4, 4b, 5 and 7 all read --
+      // so a Total modifier that inherited it would be applied twice, once in
+      // the stage-4 bucket and once at stage 15.
+      key: el.modifierKey
+        ?? (el.stage === "total" ? "totalDamage" : (el.direction === "taken" ? "defUp" : "atkUp")),
+      // *"**Total** damage dealt is increased"* -- §13.4's dividing line, and
+      // stage 15 rather than stage 4. Absent for every modifier authored
+      // before Drake, which is stage 4 and stays the default.
+      ...(el.stage ? { stage: el.stage } : {}),
+      // A magnitude counted off a pool: *"increased by 10% for every Galleon
+      // Token on herself."* `perStack`'s shape from `cooldownChanges`, reading
+      // a resource instead of an effect.
+      ...(el.perResource ? { perResource: { ...el.perResource } } : {}),
       // A magnitude rolled per damage event rather than fixed before the
       // attack -- Penthesilea's Goddess of War. The pipeline reads the total
       // out of `ctx.rolls`, so the dice stay with the caller like every other

@@ -550,7 +550,17 @@ function resolveAnchor(spec, caster, board, placement, errors) {
 
   switch (spec.kind) {
     case "self":
-      return { ...base, panel: casterPanel };
+      // `facing`, deliberately NOT `direction`. `shapes.mjs`'s `rect` case
+      // turns a plain square into a forward-projected edge-adjacent rect the
+      // moment `anchor.direction` is present, so handing every `self` anchor a
+      // direction silently reshapes every square splash in the game -- found
+      // by `aoe.test.mjs`, which lost its primary target.
+      //
+      // `orientedRect` reads `direction ?? facing`, so a player-chosen
+      // direction still wins and nothing else sees this field. Drake's
+      // broadside *"can be used even if the Golden Hind isn't present"*, and
+      // that branch anchors here.
+      return { ...base, panel: casterPanel, facing: caster.facing ?? "n" };
 
     case "selfEdgeAdjacent": {
       // Direction is a player choice, presented as four ghost previews. That
@@ -665,7 +675,17 @@ function resolveAnchor(spec, caster, board, placement, errors) {
 
     case "platform": {
       const platform = (board.units ?? []).find((u) => u.id === (placement.platformId ?? spec.platformId));
-      return { ...base, panel: platform?.panel ?? casterPanel, panels: platform?.panels ?? [] };
+      // *"in the direction the Golden Hind is facing (i.e. where the ship's
+      // bow is facing)"*. `PlatformData` spreads `unitCommon()`, so a platform
+      // has carried `facing` all along and `snapshot.mjs` projects it --
+      // nothing had ever asked the anchor for it, so the bow pointed one way
+      // and the broadside went another.
+      return {
+        ...base,
+        panel: platform?.panel ?? casterPanel,
+        panels: platform?.panels ?? [],
+        facing: platform?.facing ?? caster.facing ?? "n",
+      };
     }
 
     case "conditional":

@@ -368,6 +368,15 @@ function add(options, side, unit) {
   // which is why it is emitted for `self` and `target` alike.
   if (unit.inHomeBase) options.add(`${side}:inHomeBase`);
 
+  // An empty pool. Emitted only for pools the unit actually HAS, so that a
+  // clause about somebody else's resource is false rather than vacuously true
+  // -- "Drake has no Galleon Tokens" must not be satisfied by a Servant who
+  // has no Galleon Tokens because she is not Drake.
+  for (const [name, pool] of Object.entries(unit.resources ?? {})) {
+    const held = typeof pool === "number" ? pool : (pool?.value ?? 0);
+    if (held <= 0) options.add(`${side}:resourceEmpty:${name}`);
+  }
+
   // Rank COMPARISONS, emitted as one option per grade the unit clears.
   //
   // Medea's Atlas is "reduced by 25% on Units with a MAG Rank of B or higher",
