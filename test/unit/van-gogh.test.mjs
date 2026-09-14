@@ -15,7 +15,7 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { stacksHeld } from "../../module/rules/snapshot.mjs";
 import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
-import { removeStages, applicationsOf } from "../../module/rules/effect-flow.mjs";
+import { removeStages, applicationsOf, effectGatePasses } from "../../module/rules/effect-flow.mjs";
 import * as I from "../../module/engine/intents.mjs";
 import { mergeStages } from "../../module/engine/applier.mjs";
 
@@ -1139,5 +1139,59 @@ describe("a transfer of staged effects SUMS (spec R3)", () => {
     expect(t.relations).toContain("enemy");
     expect(t.relations).toContain("ally");
     expect(t.radius).toBe(3);
+  });
+});
+
+describe("a per-effect predicate inside an applyEffects phase (spec R7)", () => {
+  // FOUND LIVE, and the third key in this pass that was authored, tested and
+  // read by nothing.
+  //
+  // De Sterrennacht clause 2 is "Applies Crit DmUp ... AGAIN to all affected
+  // allied Units WITH the 'Existence Outside the Domain' Skill", so the second
+  // 100 lands on a subset of the first's recipients. `applyPhaseEffects`
+  // iterated the effect entries and applied every one of them to every
+  // recipient; `predicate` on an entry was inert.
+  //
+  // On the board: Van Gogh, an EOTD ally and a PLAIN ally all ended on Crit
+  // DmUp 200. The plain one should be on 100. Nothing errored and every number
+  // looked plausible, which is how a wrong number survives a green suite.
+  //
+  // The set-level count in clause 3 was right all along -- `countTargets`
+  // filters with the same predicate grammar and always had a reader. Only the
+  // per-recipient gate was missing.
+
+  it("passes an entry with no predicate", () => {
+    expect(effectGatePasses({ id: "critDmUp" }, null, { options: [] })).toBe(true);
+  });
+
+  it("passes when the recipient satisfies it", () => {
+    expect(effectGatePasses(
+      { id: "critDmUp", predicate: ["target:skill:existenceOutsideTheDomain"] },
+      null,
+      { options: ["target:skill:existenceOutsideTheDomain"] },
+    )).toBe(true);
+  });
+
+  it("REFUSES when the recipient does not", () => {
+    // The plain ally. This is the assertion the live board failed.
+    expect(effectGatePasses(
+      { id: "critDmUp", predicate: ["target:skill:existenceOutsideTheDomain"] },
+      null,
+      { options: ["target:skill:riding"] },
+    )).toBe(false);
+  });
+
+  it("reads it off the RULE when the effect is nested", () => {
+    expect(effectGatePasses({ id: "x" }, { predicate: ["target:attribute:female"] }, { options: [] }))
+      .toBe(false);
+  });
+
+  it("still authors the gate on clause 2 and not on clause 1", () => {
+    const ds = src("abilities", "gogh-de-sterrennacht.yml");
+    const ally = ds.phases.find((p) => p.targeting?.shape?.r === 3);
+    const crits = ally.effects.filter((e) => e.id === "critDmUp");
+    expect(crits).toHaveLength(2);
+    expect(crits[0].predicate).toBeUndefined();
+    expect(crits[1].predicate).toEqual(["target:skill:existenceOutsideTheDomain"]);
   });
 });

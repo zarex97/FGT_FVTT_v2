@@ -38,7 +38,7 @@ import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
-import { transferableFrom, transferEffect, applicationsOf } from "../rules/effect-flow.mjs";
+import { transferableFrom, transferEffect, applicationsOf, effectGatePasses } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
@@ -1063,6 +1063,18 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       continue;
     }
 
+    // The options this recipient is addressed by, built once: the per-effect
+    // gate below and the chance modifiers further down ask the same question
+    // of the same pair.
+    const options = rollOptionsFor({ attacker: unitSnapshot(actor), defender: target });
+
+    // A `predicate` on ONE ENTRY narrows that entry to a subset of the
+    // recipients the phase already resolved. De Sterrennacht clause 2 --
+    // "applies Crit DmUp AGAIN to all affected allied Units with the
+    // 'Existence Outside the Domain' Skill" -- is the first content to need
+    // it, and until it had a reader every ally took the second 100.
+    if (!effectGatePasses(spec, rule, { options })) continue;
+
     // "X times, where X = ..." -- resolved before the application, because a
     // count of zero is not an application at all. `null` means the effect
     // states no count and the definition's own `uses` stands.
@@ -1161,7 +1173,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         // The predicates those modifiers test against. Without the option set
         // every predicate is unsatisfiable, which is the shape of defect this
         // codebase has produced more than once.
-        options: rollOptionsFor({ attacker: unitSnapshot(actor), defender: target }),
+        options,
         resist: 0,
         // Whose side applied it, for the self/ally exemption an effect may
         // declare (`allySelfBypassesResistance`). A faction id rather than a
