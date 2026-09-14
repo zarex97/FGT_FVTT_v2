@@ -54,6 +54,30 @@ deactivation: { byOwner: true, window: any }
 # `byRelation: enemy` is the sheet's next sentence: "Other allied Units can
 # board and unboard the Golden Hind by Moving onto it normally."
 boarding: { die: 10, target: 10, byRelation: enemy }
+# "At the end of every ~~Round/1◈ Turns~~ full Round Golden Hind is Active,
+# Drake's Master loses 50 Health. The Golden Hind is forcefully deactivated at
+# the end of the Round if Drake's Master has 50 Health or less; her Master does
+# not lose Health at the end of the Round in this situation."
+#
+# `every: round` rather than `1◈` is the author's own strikethrough (spec R6):
+# `turnsPerRound` is a world setting, so the two are different moments.
+#
+# `endWhenUnaffordable` is the "or less" half, and already means "close INSTEAD
+# of charging" -- the sheet's exact clause, with no new semantics (spec R12).
+#
+# `supersedes: [npCost]` is the last sentence: "This effect overwrites the
+# normal Master Health loss when a Servant uses its NP." Not scoped to the
+# activation, so Golden Wild Hunt fired from the deck is covered too (spec
+# R11). The Hanging Gardens carry the identical sentence and
+# `engine/attack.mjs` has read this field for it since.
+#
+# The FIRST platform to carry both documented shapes of `upkeep` at once -- a
+# recurring toll AND a cost that replaces another.
+upkeep:
+  every: round
+  cost: { kind: health, amount: 50, payer: ownerMaster }
+  endWhenUnaffordable: true
+  supersedes: [npCost]
 # "Full damage to the ship, 50% to units aboard, Masters aboard take nothing."
 # Three target sets from one placement -- the only platform in the set where
 # the vehicle and its passengers take different fractions.
