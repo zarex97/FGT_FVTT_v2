@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
@@ -15,6 +15,7 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { stacksHeld } from "../../module/rules/snapshot.mjs";
 import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
+import { removeStages } from "../../module/rules/effect-flow.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -413,13 +414,13 @@ describe("Van Gogh — Channel Marker Soul EX (spec R1, R2)", () => {
   it("takes Curse from ANY source, including her own (spec R1)", () => {
     // The sentence names no source, and her own kit is the largest source
     // there is -- so the positive branch of the filter is unconditional.
-    expect(on.eventFilter.anyOf).toContainEqual({ stageDelta: "positive" });
+    expect(on.eventFilter.either).toContainEqual({ stageDelta: "positive" });
   });
 
   it("only pays for a removal the `gogh` buff made (spec R2)", () => {
     // "inflicted with Curse OR has Curse removed from herself TO THE EFFECTS
     // OF THE 'GOGH' BUFF" -- asymmetric on purpose. A Cure pays nothing.
-    expect(on.eventFilter.anyOf).toContainEqual({ cause: "gogh" });
+    expect(on.eventFilter.either).toContainEqual({ cause: "gogh" });
   });
 
   it("reduces in BOTH directions, which is what the leading minus means", () => {
@@ -782,5 +783,115 @@ describe("Van Gogh — Shadow of Longing EX (spec R3)", () => {
       (p) => p.kind === "applyEffects" && p.target === "self",
     );
     expect(selfPhase.effects.find((e) => e.id === "gogh")).toMatchObject({ duration: "1◈" });
+  });
+});
+
+describe("removeStages — taking a stage off without taking the effect off", () => {
+  // The `gogh` buff eats ONE stage of Curse per attack, not the whole
+  // instance. `RemoveEffect` deletes; this decrements, and raises
+  // `curseStageChanged` with a NEGATIVE delta so Channel Marker Soul is paid
+  // for the removal exactly as it is paid for the infliction.
+  it("decrements and reports a negative delta", () => {
+    const out = removeStages({ defId: "curse", stage: 4, id: "e1" }, 1, "gogh");
+    expect(out.stage).toBe(3);
+    expect(out.removed).toBe(false);
+    expect(out.event).toMatchObject({ stageDelta: -1, newStage: 3, cause: "gogh" });
+  });
+
+  it("takes two on a Crit", () => {
+    const out = removeStages({ defId: "curse", stage: 4, id: "e1" }, 2, "gogh");
+    expect(out.stage).toBe(2);
+    expect(out.event.stageDelta).toBe(-2);
+  });
+
+  it("removes the instance outright at zero", () => {
+    const out = removeStages({ defId: "curse", stage: 1, id: "e1" }, 1, "gogh");
+    expect(out.removed).toBe(true);
+    expect(out.event).toMatchObject({ stageDelta: -1, newStage: 0 });
+  });
+
+  it("never goes below zero, and reports only what it actually took", () => {
+    // At Stage 1 a Crit asks for two and gets one. The buff pays per stage
+    // REMOVED, so reporting -2 here would grant an Atk Up for a stage that
+    // was never there.
+    const out = removeStages({ defId: "curse", stage: 1, id: "e1" }, 2, "gogh");
+    expect(out.stage).toBe(0);
+    expect(out.event.stageDelta).toBe(-1);
+  });
+
+  it("does nothing at all when there is no stage to take", () => {
+    expect(removeStages(null, 1, "gogh")).toEqual({ removed: false, stage: 0, event: null });
+  });
+});
+
+describe("Van Gogh — the `gogh` buff", () => {
+  const gogh = src("effects", "gogh.yml");
+  const onAttack = gogh.rules.filter((r) => r.event === "damageDealt");
+  const onStage = gogh.rules.find((r) => r.event === "curseStageChanged");
+
+  it("eats one stage on an ordinary attack and two on a Crit", () => {
+    expect(onAttack).toHaveLength(2);
+    const plain = onAttack.find((r) => !r.predicate);
+    const crit = onAttack.find((r) => JSON.stringify(r.predicate ?? []).includes("attack:crit"));
+    expect(plain.then[0]).toMatchObject({ effect: "curse", stages: 1, cause: "gogh" });
+    expect(crit.then[0]).toMatchObject({ effect: "curse", stages: 2, cause: "gogh" });
+  });
+
+  it("takes the stages in ONE decrement, not two removals", () => {
+    // Two separate single removals would raise two events and, at Stage 1,
+    // pay her twice for one swing -- once legitimately and once for a stage
+    // that was not there.
+    for (const r of onAttack) expect(r.then).toHaveLength(1);
+  });
+
+  it("grants Atk Up only when a stage actually came off", () => {
+    // At Stage 0 the attack removes nothing and must grant nothing. The rider
+    // listens to the EVENT the removal raised rather than assuming it worked.
+    expect(onStage.event).toBe("curseStageChanged");
+    expect(JSON.stringify(onStage.then[0])).toContain("atkUp");
+  });
+
+  it("grants one Atk Up per stage actually taken", () => {
+    // `times: "@stageDelta"` -- a Crit that ate two grants two, and a Crit at
+    // Stage 1 that only managed one grants one.
+    expect(onStage.then[0].times).toBe("@stageDelta");
+  });
+
+  it("pays at 10% / 5%", () => {
+    expect(onStage.then[0].effect).toMatchObject({ id: "atkUp", magnitude: 10, npMagnitude: 5 });
+  });
+
+  it("gates on its own cause, which is what Channel Marker Soul reads", () => {
+    // Spec R2. A Cure stripping her Curse raises the same event with a
+    // different cause and pays nothing.
+    expect(onStage.eventFilter).toEqual({ cause: "gogh" });
+  });
+
+  it("does not stack, but refreshes", () => {
+    expect(gogh.stacking).toBe("noneRefresh");
+  });
+});
+
+describe("Van Gogh — every ability she names now exists", () => {
+  const g = src("servants", "van-gogh.yml");
+
+  it("names exactly the eleven entries on her sheet", () => {
+    expect(g.abilities).toHaveLength(11);
+  });
+
+  it("resolves all eleven refs", () => {
+    // A ref resolves by ID, not by path, so this checks both folders: the
+    // `class-` prefix usually names the folder AND is stripped from the
+    // filename, but `divinity` is a class skill whose ref carries no prefix
+    // at all.
+    const candidates = (ref) => [
+      join(process.cwd(), "packs/_source/abilities", `${ref}.yml`),
+      join(process.cwd(), "packs/_source/class-skills", `${ref}.yml`),
+      join(process.cwd(), "packs/_source/class-skills", `${ref.replace(/^class-/, "")}.yml`),
+    ];
+    for (const entry of g.abilities) {
+      expect(candidates(entry.ref).some(existsSync),
+        `${entry.ref} is unresolved`).toBe(true);
+    }
   });
 });

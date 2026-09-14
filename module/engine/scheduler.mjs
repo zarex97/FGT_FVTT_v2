@@ -20,7 +20,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { endOfRoundHomeBase, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
-import { transferEffect, transferableFrom } from "../rules/effect-flow.mjs";
+import { transferEffect, transferableFrom, removeStages } from "../rules/effect-flow.mjs";
 import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
@@ -613,7 +613,13 @@ function eventValue(raw, event) {
  * be a second predicate grammar with none of the first one's tooling:
  *   `{ cause: "gogh" }`           — the event names this cause
  *   `{ stageDelta: "negative" }`  — a numeric field's sign
- * and `anyOf: [...]` to disjoin them.
+ * and `either: [...]` to disjoin them.
+ *
+ * `either`, deliberately NOT `anyOf`: that name belongs to the predicate
+ * grammar, where it tests set membership against bare option STRINGS, and the
+ * content validator refuses a nested statement under it precisely because such
+ * a clause is permanently false. One name for two grammars would read as the
+ * same thing and behave as neither.
  *
  * A filter naming a field the event does not carry REFUSES, which is the safe
  * direction: a handler that cannot tell what happened should not fire.
@@ -624,7 +630,7 @@ function eventValue(raw, event) {
  */
 export function eventFilterPasses(filter, event) {
   if (!filter) return true;
-  if (filter.anyOf) return filter.anyOf.some((f) => eventFilterPasses(f, event));
+  if (filter.either) return filter.either.some((f) => eventFilterPasses(f, event));
 
   for (const [field, want] of Object.entries(filter)) {
     const got = event?.[field];
@@ -843,7 +849,33 @@ const ACTIONS = Object.freeze({
     return targetsOf(a, u, c).map((id) => I.applyEffect(id, { ...effect }, h.abilityId));
   },
 
-  RemoveEffect: (a, u) => [I.removeEffect(u.id, a.effect ?? a.defId, "event")],
+  /**
+   * Remove an effect — or, for a staged one, some of its stages.
+   *
+   * `stages` is Van Gogh's `Gogh` buff: *"remove one stage of Curse … if the
+   * Attack was a Crit, remove 2 stages."* Without it the first swing would
+   * take a Stage 7 Curse to nothing, and the buff that pays per stage removed
+   * would see one removal.
+   *
+   * It reports only what it ACTUALLY took: at Stage 1 a Crit asks for two and
+   * gets one, and the event says −1. That is the sheet's *"if a stage of Curse
+   * was removed"* answered with arithmetic rather than a condition.
+   */
+  RemoveEffect: (a, u, h, c) => {
+    const defId = a.effect ?? a.defId;
+    if (!a.stages) return [I.removeEffect(u.id, defId, "event")];
+
+    const instance = (u.effectInstances ?? []).find((e) => e.defId === defId);
+    const out = removeStages(instance, a.stages, a.cause ?? null);
+    if (!out.event) return [];
+
+    return [
+      out.removed
+        ? I.removeEffect(u.id, defId, a.cause ?? "event")
+        : I.setStage(u.id, defId, out.stage),
+      I.event("curseStageChanged", { ...out.event, unitId: u.id }),
+    ];
+  },
 
   /**
    * Take a Unit off the board for a span, and put it back.

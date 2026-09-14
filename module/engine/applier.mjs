@@ -511,6 +511,10 @@ async function writeGroup(group, io) {
     case "grantCommandSpells":
       for (const i of intents) await io.grantCommandSpells(i.masterId, i.servantId, i.count);
       break;
+    case "setStage":
+      for (const i of intents) await io.setStage(unitId, i.defId, i.stage);
+      break;
+
     case "event":
       // Raised from inside a write, because only the write knew the number --
       // `curseStageChanged` carries the SIZE of a stage jump. Dispatched here

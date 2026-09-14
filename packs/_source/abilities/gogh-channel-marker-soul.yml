@@ -41,6 +41,8 @@ passiveRules:
     event: curseStageChanged
     automatic: true
     # Any infliction; only removals the `gogh` buff made (spec R2).
-    eventFilter: { anyOf: [{ stageDelta: positive }, { cause: gogh }] }
+    # `either`, not `anyOf`: that name belongs to the predicate grammar and
+    # tests bare option strings, which a nested statement never matches.
+    eventFilter: { either: [{ stageDelta: positive }, { cause: gogh }] }
     then:
       - { key: CooldownDelta, scope: np, delta: "-@stageDelta" }
