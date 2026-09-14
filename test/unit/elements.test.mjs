@@ -8,6 +8,7 @@ import { collectContributions, resolveValue, EXECUTORS, handledKeys , deferredPr
 import { EffectRegistry } from "../../module/rules/registry.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+import { ELEMENT_DESCRIPTORS } from "../../module/rules/authoring/elements.mjs";
 
 const ability = (over = {}) => ({ id: "a", name: "Ability", rank: null, active: true, ...over });
 
@@ -728,5 +729,19 @@ describe("an attack that ignores the attacker's own increases", () => {
     const stage7 = swing(true).breakdown.find((s) => s.index === 7);
     expect(stage7.contributors[0]).toMatchObject({ source: "divinity", value: 0 });
     expect(stage7.contributors[0].note).toMatch(/ignored by this attack/);
+  });
+});
+
+describe("ApplicationChance — the vocabulary matches the executor", () => {
+  it("offers the direction values `chanceContribution` compares against", () => {
+    // `effect-applier.mjs` calls chanceContribution(target, def, "incoming", …)
+    // and (attacker, def, "outgoing", …), and every authored element in the
+    // corpus uses those two. The vocabulary offered "inflicting"/"receiving",
+    // so a GM picking from the editor authored a direction nothing matches --
+    // and the executor's `?? "incoming"` default then applied it inward,
+    // silently. Same class as orientedRect's `needs`.
+    const direction = ELEMENT_DESCRIPTORS.ApplicationChance.fields
+      .find((f) => f.key === "direction");
+    expect(direction.choices).toEqual(["incoming", "outgoing"]);
   });
 });
