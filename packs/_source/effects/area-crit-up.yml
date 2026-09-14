@@ -1,0 +1,21 @@
+# Appendix A §A.4
+#
+# A buff whose payload is an AURA: the Unit carrying it raises the Crit Chance
+# of everyone around it. `Aura` is an ordinary rule element, so an effect may
+# carry one the same way it carries a StatDelta -- and `annotateAuras` reads
+# it off the bearer wherever the bearer happens to be standing.
+schema: 1
+id: areaCritUp
+name: "Area CritUp"
+description: "Crit Chance of all allied Units within a 2 panel area of this Unit is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: supportive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: Aura
+    radius: 2
+    relations: [ally, self]
+    elements:
+      - { key: CritModifier, aspect: chance, value: "@magnitude" }

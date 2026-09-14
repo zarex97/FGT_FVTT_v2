@@ -34,6 +34,7 @@ import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitSnapshot, gateContext } from "./board.mjs";
+import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -361,7 +362,17 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
     // self-targeting ability, where the two lists are the same. Scáthach's
     // Primordial Rune is the first where they differ -- "Gain 2 PRS Tokens.
     // Then, ... on an allied Unit" -- and the tokens went to the ally.
-    for (const target of phaseTargets(phase, targets, actor, board)) {
+    // Resolved ONCE, because a `countTargets` magnitude is a property of the
+    // whole set rather than of each recipient -- De Sterrennacht's X is "the
+    // number of AFFECTED allied Units with the EOTD Skill", and computing it
+    // per target would give the same answer more expensively or, worse, a
+    // different one if the list were re-resolved mid-loop.
+    const phaseSet = phaseTargets(phase, targets, actor, board);
+    const phaseUnits = phaseSet
+      .map((t) => board.units.find((u) => u.id === t.unitId))
+      .filter(Boolean);
+
+    for (const target of phaseSet) {
       const doc = game.actors.get(target.unitId);
       if (!doc) continue;
       const snapshot = board.units.find((u) => u.id === target.unitId) ?? unitSnapshot(doc);
@@ -375,7 +386,9 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
       switch (phase.kind) {
         case "applyEffects":
         case "applyEffect":
-          applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot));
+          applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot, {
+            targets: phaseUnits,
+          }));
           break;
 
         case "heal": {
@@ -933,6 +946,42 @@ function resolveTimes(raw, actor) {
  * @param {object} actor the caster, which the expression resolves against
  * @returns {number|null}
  */
+/**
+ * A magnitude counted off the phase's own target set, or `null`.
+ *
+ * See `rules/effects/count-targets.mjs` for why this is not `perStack`,
+ * `countMatching` or the `@count(...)` expression that was rejected by name.
+ *
+ * @param {object} spec the effect spec or its rule
+ * @param {object} actor the caster
+ * @param {object} phaseCtx `{targets}` — the units this phase resolved to
+ * @returns {number|null}
+ */
+/**
+ * An NP magnitude expressed as a FRACTION of the ordinary one.
+ *
+ * *"all damage dealt is increased by X0%; if NP, the value is halved"* —
+ * where X is counted off the target set, so the halved figure cannot be
+ * authored as an absolute. `DamageModifier.magnitudeFactor` is the same
+ * relationship for Mad Enhancement's MAG halving.
+ *
+ * @param {object} spec
+ * @param {object} rule
+ * @param {number} magnitude the already-resolved ordinary magnitude
+ * @returns {number|null}
+ */
+function npFactorOf(spec, rule, magnitude) {
+  const factor = spec?.npMagnitudeFactor ?? rule?.npMagnitudeFactor ?? null;
+  if (typeof factor !== "number") return null;
+  return Math.floor(magnitude * factor);
+}
+
+function countTargetsOf(spec, actor, phaseCtx) {
+  const raw = spec?.magnitude;
+  if (!raw || typeof raw !== "object" || !raw.countTargets) return null;
+  return countTargetsMagnitude(raw.countTargets, phaseCtx?.targets ?? [], actor.id);
+}
+
 function authoredMagnitude(spec, actor, field = "magnitude") {
   const raw = spec?.[field];
   if (raw === null || raw === undefined) return null;
@@ -959,7 +1008,7 @@ function authoredMagnitude(spec, actor, field = "magnitude") {
  * @param {object} target
  * @returns {Promise<object[]>}
  */
-async function applyPhaseEffects(phase, ability, actor, target) {
+async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
   /** @type {object[]} */
   const out = [];
 
@@ -982,6 +1031,14 @@ async function applyPhaseEffects(phase, ability, actor, target) {
     const times = spec.times === undefined ? null : resolveTimes(spec.times, actor);
     if (times !== null && times <= 0) continue;
 
+    // Resolved once and named, because `npMagnitudeFactor` below is a factor
+    // OF it -- see the note there.
+    const resolvedMagnitude = countTargetsOf(spec, actor, phaseCtx)
+      ?? countTargetsOf(rule, actor, phaseCtx)
+      ?? authoredMagnitude(spec, actor)
+      ?? authoredMagnitude(rule, actor)
+      ?? def.defaultMagnitude ?? 0;
+
     const roll = await new Roll("1d100").evaluate();
     const outcome = applyEffect({
       def,
@@ -1002,14 +1059,25 @@ async function applyPhaseEffects(phase, ability, actor, target) {
       // 4` and the instance carried 0, so her MOV Up was nothing at all. Note
       // `npMagnitude` below has ALWAYS had this fallback; the asymmetry was
       // the defect, not the fallback.
-      magnitude: authoredMagnitude(spec, actor)
-        ?? authoredMagnitude(rule, actor)
-        ?? def.defaultMagnitude ?? 0,
+      // `countTargets` first, because it is the only form whose answer no
+      // other resolver can reach: it is a property of the SET this phase is
+      // affecting, and `authoredMagnitude` sees one recipient at a time.
+      magnitude: resolvedMagnitude,
       // The "if NP" half of Appendix A's damage family. Referenced by every
       // such effect definition as `@npMagnitude`, against an instance that
       // never carried it.
+      // An absolute `npMagnitude` first, then a FACTOR of whatever the
+      // magnitude resolved to.
+      //
+      // The factor exists because De Sterrennacht's base is COMPUTED --
+      // "increased by X0%, where X = 3 + the affected EOTD allies" -- and
+      // "if NP, the value is halved" cannot be written as an absolute when
+      // nobody knows the value until the targets resolve. `DamageModifier`
+      // already carries `magnitudeFactor` for Mad Enhancement's halving, which
+      // is the same relationship said the same way.
       npMagnitude: authoredMagnitude(spec, actor, "npMagnitude")
-        ?? authoredMagnitude(rule, actor, "npMagnitude"),
+        ?? authoredMagnitude(rule, actor, "npMagnitude")
+        ?? npFactorOf(spec, rule, resolvedMagnitude),
       // See `applyAbilityEffects`: one application worth N stages.
       stages: spec.stages ?? rule.stages ?? 1,
       // ...and one application worth N CHARGES, for a `count`-stacked effect

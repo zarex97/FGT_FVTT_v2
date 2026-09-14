@@ -300,6 +300,10 @@ describe("a non-damaging Noble Phantasm", () => {
       "drake-golden-hind-wild-hunt",
       "emiya-rho-aias",
       "emiya-unlimited-blade-works",
+      // De Sterrennacht. "(Non-damaging)" is the first word of its entry, and
+      // it covers a 5x5 of enemies without dealing any: everything it does is
+      // Terror on one side and buffs on the other.
+      "gogh-de-sterrennacht",
       // Jack's Mist: "(Non-damaging)" is the first word of its description,
       // and it needs no `damage:` block to say so.
       "jack-the-mist",
