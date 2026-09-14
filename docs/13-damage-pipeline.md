@@ -158,7 +158,7 @@ Sixteen stages. The numbering is stable and referenced from effect definitions
 | 13 | **Luck: Reduced Damage** | −Damage Modifier roll if the DU's Luck Check succeeded |
 | 14 | **Block** | ×(1 − blockPercent); 25% base, same value vs NP |
 | 15 | **Total-damage modifiers** | Effects that explicitly say "Total Damage": Underpower, Cover, CS Halve NP, PC AoE tails, Mad Enhancement NP reduction |
-| 16 | **Absorption and clamp** | Invuln, Endure, Def Crk addition, floor at 0, integer floor |
+| 16 | **Absorption and clamp** | Invuln, Endure, `DamageFloor`, Def Crk addition, floor at 0, integer floor |
 | — | **Barrier** | A second Health pool in front of the defender; **after** every stage and every Command Spell interrupt (see §13.8a) |
 
 Stages 0 and 16 are bookends. Stages 1–3 build the bracketed term of the author's formula
@@ -688,9 +688,34 @@ Servant undoubled, because nobody covered. See Ch. 16 §16.4.
 5. Invuln: → 0 (unless Pierce; NP already halved at stage 15)
 6. Shield: absorb up to the shield's remaining HP; the excess passes through
 7. Endure: if lethal and health > 1 → reduce total so health lands at exactly 1
+7a. DamageFloor: the same arithmetic, but only against a NAMED damage source
 8. Guts/Battle Continuation/God Hand: evaluated by the defeat handler, not here
 9. floor(total), clamp ≥ 0
 ```
+
+**`DamageFloor` — a floor scoped to one source.** Three mechanisms in this game already mean
+"does not die" and this is none of them:
+
+- **Guts** revives *after* defeat.
+- **Invuln** stops the damage.
+- **Endure** leaves the unit at 1 Health — this arithmetic exactly, but **unconditional**.
+
+Van Gogh's *Sunflower's Curse* is *"Health cannot drop below 1 due to the effects of Curse"*:
+Endure with a source on it. Curse takes her from 1250 to 1 and never further, while a Normal
+Attack at 1 Health kills her normally. That asymmetry is the whole point of a Servant who runs
+herself to Stage 9 on purpose, and an unconditional Endure would delete it.
+
+```yaml
+- { key: DamageFloor, floor: 1, defId: curse }
+```
+
+Projected onto the defender as `damageFloors`, and matched against `ctx.attack.defId` — the
+packet already knows which effect it came from, so no `damage:source:*` predicate scope was
+needed. A floor with no `defId` applies to everything, which is Endure said a second way.
+
+Here rather than earlier because it is a statement about the **result** — "cannot drop below 1"
+— rather than a reduction any earlier stage could express. Measured live at 40 Health: Curse
+deals 39, Poison deals 500, a sword deals 500.
 
 The **injury-threshold snapshot** is taken before step 1: `exceededInjuryThreshold = total > 100`
 *before* Def Crk's addition, per *"Additional damage taken from an Attack due to the Def Crk

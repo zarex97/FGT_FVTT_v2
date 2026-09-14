@@ -214,6 +214,14 @@ for each combination; flags compose.
 > An `applyEffects` phase carries **`effects:`**, not `rules:` — `phases[].rules` is walked by the
 > validator as *rule elements* and each entry must have a `key`.
 >
+> `transfer` strips a named effect from a radius and re-applies it to the caster with its stages
+> and durations intact — Van Gogh's *Shadow of Longing*, *"remove all Curse debuffs from all
+> Units within a 3 panel area, then apply them to herself"*. It takes `defId`, `radius` and
+> `relations`, and it needs **`target: self` stated explicitly**: the default is `reuse`, which
+> on an outward-targeting ability would gather the effects onto the chosen ally instead. The
+> mechanism underneath (`rules/effect-flow.mjs`) predates it; this is the spelling that lets an
+> active Skill reach it.
+>
 > `summon` is the most structurally demanding (Medea's Dragon Tooth Warriors): two nested rolls,
 > one for how many and one for what each is, placement restricted to **free** panels in the
 > declared area, and a cooldown scaled by the first roll.
@@ -302,6 +310,49 @@ other:
   effects:
     - { id: sCritUp, magnitude: 30, duration: "⅓◈" }
 ```
+
+### An effect entry may name who it is for, and how many times
+
+A phase resolves its recipients once and then applies each of its entries to all of them. Two
+fields narrow that, and they answer different questions.
+
+**`predicate` — about each recipient.** De Sterrennacht clause 2 is *"Applies Crit DmUp **again**
+to all affected allied Units **with** the 'Existence Outside the Domain' Skill"*: the same effect
+a second time, to a subset of the recipients the phase already resolved.
+
+```yaml
+effects:
+  - { id: critDmUp, duration: "1◈", magnitude: 100 }
+  - { id: critDmUp, duration: "1◈", magnitude: 100,
+      predicate: ["target:skill:existenceOutsideTheDomain"] }
+```
+
+Tested against the same option set the phase builds for its chance modifiers, so the recipient is
+`target:` and the caster is `self:` — the spelling every other predicate in the corpus uses.
+
+This is deliberately **not** `countTargets`, which may sit three lines below it in the same
+phase. That asks a question about the **set** — *"how many of the Units I am about to buff carry
+the Skill"* — and answers with one number they all share. This asks about each recipient and
+answers yes or no. De Sterrennacht needs both, and conflating them would make clause 3's count
+depend on clause 2's filter.
+
+**`applications` — how many separate times.** Three counts exist and they are different
+statements:
+
+| Field | Means | Rolls |
+|---|---|---|
+| `stages: N` | one application worth N stages | one |
+| `times: N` | one application worth N charges | one |
+| `applications: N` | N separate applications | **N** |
+
+*"Has a 500% chance of inflicting Curse on herself, **3 times**"* is the third: a chance is
+rolled per application. At 500% all three land and the readings coincide; below 100% they are
+different abilities. The loop re-reads the recipient between applications, because `applyEffect`
+decides the new stage from what the target is already carrying.
+
+> Both fields were authored, validated and asserted by content tests **before anything read
+> them**, and both were found by a live pass rather than by the suite. A content test proves the
+> content is right; it cannot prove a reader exists.
 
 ### `choose`: a phase that asks
 

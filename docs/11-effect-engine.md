@@ -318,6 +318,26 @@ curseDamage  = (stage) => 25 * stage;                 // linear
 poisonDamage = (stage) => 20 * Math.pow(2, stage-1);  // exponential
 ```
 
+**A stage change raises an event** — `curseStageChanged` (App. E §E.4), from `resolveStacking`'s
+`stage` branch, for every `stacking: stage` definition rather than for Curse alone. It is raised
+at the one place a stage is *decided*, and as an intent rather than by the caller, because only
+the write knows the **jump**: `stageDelta` is +3 when three land at once and −1 when one is eaten.
+A listener paid per stage needs the size, not the destination.
+
+`cause` separates an infliction from a removal made by a *particular* source. Van Gogh's *Channel
+Marker Soul* pays for any infliction but only for removals her `Gogh` buff made, and without
+`cause` those two are one event apart only by sign.
+
+**Three counts exist and they are different statements.** `stages: N` is one application worth N
+stages — Serenity's Zabaniya *"inflicts Stage 3 Poison"*, and reading that as three applications
+would roll its chance three times. `applications: N` is N applications with N rolls, which is what
+a clause stating a chance beside a count means. `times: N` is one application worth N charges, for
+a `count`-stacked effect.
+
+**Whatever carries a depth, every reader must read both spellings.** `stages` is what an ability
+*states*; `stage` is the depth an instance *already has*, which is what a transfer carries
+(§11.8). A reader that knows only one of them silently counts a Stage 3 arrival as one.
+
 Van Gogh's *Imaginary Numbers Arts* inflicts *"Curse on herself, 3 times"* — three separate
 stage increments in one application, so the application loop runs three times with three
 independent resistance rolls (which for a self-application at 500% chance always succeed).
@@ -686,6 +706,21 @@ buffs:
 
 So stages sum. If three units carry Curse stages 2, 1, and 4, Van Gogh gains 7 stages. Transfer
 of a `stage`-stacking effect adds stages rather than creating multiple instances.
+
+There is **no `stageMode: sum` field**, and there does not need to be. Summing is what
+`resolveStacking` already does for a staged effect, and the depth travels on the instance — the
+transfer emits one application per instance moved and the ordinary stacking rule adds them up.
+
+> **It did not sum, and the reason generalises.** `mergeStages` collapses repeated applications of
+> one staged effect inside a batch, and it summed `effect.stages`. A transferred instance carries
+> **`stage`**, not `stages`. The merge counted each arrival as one and wrote that count over the
+> real depths, so an ally at Stage 2 and an enemy at Stage 3 gave her Stage 2 — the more she
+> gathered, the less arrived. Both readers now use one chain, `stages ?? stage ?? 1`. Anything
+> that reads a depth has to read both spellings (§11.3).
+
+Reached from content as a **phase** (`kind: transfer`, Ch. 15 §15.2) as well as from the
+scheduler's `Transfer` action. The phase must state `target: self` explicitly: the default is
+`reuse`, and on an ability that targets a chosen ally that would gather the Curse onto the ally.
 
 ---
 
