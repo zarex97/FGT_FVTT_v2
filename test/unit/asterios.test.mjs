@@ -294,6 +294,10 @@ describe("a non-damaging Noble Phantasm", () => {
       // everything the Noble Phantasm does is that area's doing.
       "achilles-diatrekhon-aster-lonkhe",
       "asterios-chaos-labyrinthos",
+      // Golden Hind: Wild Hunt. "(Non-damaging/Passive/Activation)" is the
+      // first thing its sheet entry says, and its one phase puts a ship on the
+      // board -- every rule that follows is the platform's, not the NP's.
+      "drake-golden-hind-wild-hunt",
       "emiya-rho-aias",
       "emiya-unlimited-blade-works",
       // Jack's Mist: "(Non-damaging)" is the first word of its description,

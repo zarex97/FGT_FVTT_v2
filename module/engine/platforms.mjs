@@ -140,10 +140,11 @@ export async function destroyPlatform({ platformId, saves = {} }) {
     }
   }
 
-  // "Cooldown: 7◈ Turns AFTER Quetzalcoatlus is defeated." A third `countFrom`
-  // beside `activation` and `deactivation`: the clock starts on the MOUNT'S
-  // DEATH, so a Servant whose platform is killed early waits from that moment
-  // rather than from the cast.
+  // "Cooldown: 7◈ Turns AFTER Quetzalcoatlus is defeated", and Drake's
+  // "7◈+⅓◈ Turns after the Golden Hind is destroyed/deactivated": the clock
+  // starts when the platform leaves the board, so a Servant whose platform is
+  // killed early waits from that moment rather than from the cast, and one
+  // that stands for twenty Turns has not been counting down for twenty.
   await setCooldownOnDestruction(platform);
 
   Hooks.callAll("fgtPlatformDestroyed", platform);
@@ -171,7 +172,14 @@ async function setCooldownOnDestruction(platform) {
     ),
   );
   const cd = ability?.system?.cooldown ?? null;
-  if (!cd || cd.countFrom !== "destroyed" || !cd.max) return;
+  // BOTH triggers, because for a platform they are one event. Quetzalcoatl's
+  // sheet says *"7◈ Turns AFTER Quetzalcoatlus is defeated"* and Drake's says
+  // *"7◈+⅓◈ Turns after the Golden Hind is destroyed/deactivated"* -- one
+  // phrase, because every route off the board (destruction, the owner's
+  // at-will switch-off, an unaffordable toll, NP Seal) arrives at
+  // `destroyPlatform`. Accepting only `destroyed` would have left the Hind's
+  // cooldown never starting at all for three of those four routes.
+  if (!cd || !["destroyed", "deactivation"].includes(cd.countFrom) || !cd.max) return;
 
   const ticks = resolveTicks(parseTick(String(cd.max)), {
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
