@@ -1040,6 +1040,8 @@
   "FGT.Authoring.Phase.damageHint": "Deals damage to whoever this ability caught.",
   "FGT.Authoring.Phase.cooldown": "Cooldown",
   "FGT.Authoring.Phase.cooldownHint": "Changes a cooldown clock — its own, or somebody else's.",
+  "FGT.Authoring.Phase.transfer": "Transfer",
+  "FGT.Authoring.Phase.transferHint": "Moves a named effect from a radius onto the caster, stages intact.",
   "FGT.Authoring.Phase.resource": "Resource",
   "FGT.Authoring.Phase.resourceHint": "Spends or grants a pool — tokens, counters, Sustainability.",
   "FGT.Authoring.Phase.createField": "Create Field",

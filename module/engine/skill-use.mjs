@@ -38,6 +38,7 @@ import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
+import { transferableFrom, transferEffect } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
@@ -384,6 +385,43 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
       const from = applied.length;
 
       switch (phase.kind) {
+        case "transfer": {
+          // Strip a named effect from a radius and re-apply it to the caster,
+          // stages and durations intact.
+          //
+          // > *"Remove all Curse debuffs from **all** Units within a 3 panel
+          // > area of Gogh, then apply them to herself (apply all stages of
+          // > Curse accordingly)."*
+          //
+          // Every part of this already existed and was built FOR her:
+          // `rules/effect-flow.mjs#transferableFrom` selects, `#transferEffect`
+          // moves one while keeping its stage -- its own comment says "Van
+          // Gogh's Shadow of Longing gathers Curse from everyone nearby" --
+          // and the scheduler's `Transfer` action drives the same pair from an
+          // event. This is the phase spelling, so an ACTIVE skill can reach it.
+          //
+          // Spec R3: `relations` includes `enemy`, because the sheet bolds
+          // "all". She cleanses her opponents to fuel herself, and that is a
+          // trade rather than an oversight.
+          const self = board.units.find((u) => u.id === actor.id);
+          const wanted = new Set(phase.relations ?? ["ally", "enemy", "self"]);
+          const from = (board.units ?? []).filter((other) => {
+            if (other.id === actor.id) return false;
+            if (!self?.panel || !other.panel) return false;
+            if (chebyshev(self.panel, other.panel) > (phase.radius ?? 0)) return false;
+            return wanted.has(relationOf(self, other, board));
+          });
+          const moves = transferableFrom(from, { defId: phase.defId ?? null })
+            .flatMap(({ unit: owner, instance }) => transferEffect(instance, owner, self));
+          await applyWorldIntents(
+            moves.map((d) => (d.kind === "removeEffect"
+              ? I.removeEffect(d.unitId, d.effectId, d.reason)
+              : I.applyEffect(d.unitId, d.effect, ability.id))),
+            `skill:${ability.id}:transfer`,
+          );
+          break;
+        }
+
         case "applyEffects":
         case "applyEffect":
           applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot, {
