@@ -293,3 +293,52 @@ describe("Van Gogh — Item Construction B− (spec R10)", () => {
     for (const e of aura.elements) expect(["incoming", "outgoing"]).toContain(e.direction);
   });
 });
+
+describe("Van Gogh — Insanity C", () => {
+  const ins = src("abilities", "gogh-insanity.yml");
+
+  it("is a flat 6% including NP", () => {
+    const mod = ins.passiveRules.find((r) => r.key === "DamageModifier");
+    expect(mod.direction).toBe("dealt");
+    expect(mod.value).toBe(6);
+    // "including NP" -- npValue equal to value, not the usual halving.
+    expect(mod.npValue).toBe(6);
+  });
+});
+
+describe("Van Gogh — Sunflower's Curse, passive 1", () => {
+  const sc = src("abilities", "gogh-sunflowers-curse.yml");
+
+  it("grants the attribute the Command Spell already refuses on", () => {
+    // `cs-kill-yourself.yml` carries
+    //   { kind: targetNotImmune, attribute: immuneToKillYourself }
+    // and its comment names THIS Skill as the only stated immunity. Checked at
+    // OFFER time, so the option never appears rather than being refused after
+    // a Master has committed a Command Spell to it.
+    expect(JSON.stringify(sc.passiveRules)).toContain("immuneToKillYourself");
+  });
+
+  it("is the reader's named writer", () => {
+    const cs = src("command-spells", "cs-kill-yourself.yml");
+    const req = cs.requirements.find((r) => r.kind === "targetNotImmune");
+    expect(req.attribute).toBe("immuneToKillYourself");
+  });
+
+  it("grants it as a tag LIST, which is what `add` means", () => {
+    // `StatDelta.add` is the attribute-tag list. A number there is iterated as
+    // a set and throws out of `contributionsOf`, taking the board snapshot
+    // with it -- the defect Drake's `uncharted` found.
+    const grant = sc.passiveRules.find((r) => r.key === "StatDelta");
+    expect(Array.isArray(grant.add)).toBe(true);
+    expect(grant.add).toEqual(["immuneToKillYourself"]);
+  });
+
+  it("does not make her immune to Command Spells generally", () => {
+    // "cannot be ordered to commit suicide/kill herself" names ONE order. A
+    // blanket immunity would also stop Escape, Full Heal and Cure Servant,
+    // none of which her sheet mentions.
+    const json = JSON.stringify(sc.passiveRules);
+    expect(json).not.toContain("commandSpell");
+    expect(json).not.toContain("allCommands");
+  });
+});
