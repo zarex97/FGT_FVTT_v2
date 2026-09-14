@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import {
   platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
-  boardingTarget, canUnboard, upkeepDue, fallOff, destructionSequence, aoePassengerFactor,
+  boardingTarget, canUnboard, upkeepDue, deactivatedBy, fallOff, destructionSequence, aoePassengerFactor,
   platformCentre, withinPlatformCentre, deactivationVerdict, actionSourceFor,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
@@ -607,5 +607,29 @@ describe("upkeepDue — a tick period and a Round boundary", () => {
     // A ship raised mid-Round pays at the end of that Round, which is what
     // "at the end of every full Round Golden Hind is Active" says.
     expect(upkeepDue(rounded, { ...base, tick: 2, round: 1, atRoundBoundary: true }).due).toBe(true);
+  });
+});
+
+describe("deactivatedBy — an effect on the owner switches the ship off", () => {
+  const hind = { id: "hind", kind: "platform", ownerId: "drake", deactivateOn: ["npSeal"] };
+  const hgob = { id: "hgob", kind: "platform", ownerId: "semiramis", deactivateOn: [] };
+
+  it("switches off the owner's platform when the named effect lands on HER", () => {
+    // "If Drake is inflicted with NP Seal, Golden Hind is immediately
+    // deactivated." Keyed on the owner, because the ship itself "cannot be
+    // affected by buffs and/or debuffs" -- an NP Seal can never land on it.
+    expect(deactivatedBy([hind, hgob], "drake", "npSeal")).toEqual(["hind"]);
+  });
+
+  it("ignores an effect it does not name", () => {
+    expect(deactivatedBy([hind], "drake", "skillSeal")).toEqual([]);
+  });
+
+  it("ignores the same effect landing on somebody else", () => {
+    expect(deactivatedBy([hind], "semiramis", "npSeal")).toEqual([]);
+  });
+
+  it("leaves a platform that authored nothing alone", () => {
+    expect(deactivatedBy([hgob], "semiramis", "npSeal")).toEqual([]);
   });
 });

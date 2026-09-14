@@ -183,11 +183,6 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // everyone rolls -- the Hanging Gardens' behaviour, and still the default.
       boarding: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
-      // When this unit rolls an Injury Roll at all. The Golden Hind: *"Agility:
-      // 10 (Only performs Injury Roll when damaged by NP)."* Ch. 12 named this
-      // per-unit shape when it was written and nothing ever read it.
-      injuryRoll: new fields.ObjectField({ required: false, nullable: true, initial: null }),
-
       // Roles that may not step off. *"Drake cannot unboard the Golden Hind."*
       // A role list rather than a unit id, because the platform document is
       // authored long before it has an owner.

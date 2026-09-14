@@ -6,7 +6,12 @@ type: platform
 description: |
   Francis Drake's ship. Activated directly as a Noble Phantasm, with an upkeep of 50 Master
   Health per Round that REPLACES the normal Noble Phantasm cost rather than stacking with it.
-attributes: [large, mechanical]
+# "Only performs Injury Roll when damaged by NP" -- the parenthesis beside its
+# Agility, and already a reader rather than a new one: `rules/injury.mjs` has
+# tested for this attribute since it was written, naming the Golden Hind in its
+# own comment, and no content had ever carried it. The `attributes` set is open
+# by design (Ch. 04 §4.5), which is why the clause needs no schema field.
+attributes: [large, mechanical, injuryOnlyFromNP]
 baseHealth: 2500
 # "Agility: 10 (Only performs Injury Roll when damaged by NP)". The
 # parenthesis is the `injuryRoll` block below.
@@ -54,6 +59,11 @@ deactivation: { byOwner: true, window: any }
 # `byRelation: enemy` is the sheet's next sentence: "Other allied Units can
 # board and unboard the Golden Hind by Moving onto it normally."
 boarding: { die: 10, target: 10, byRelation: enemy }
+# "Drake cannot unboard the Golden Hind." Her allies can -- they "board and
+# unboard by Moving onto it normally" -- so this is the owner alone.
+lockAboard: [owner]
+# "If Drake is inflicted with NP Seal, Golden Hind is immediately deactivated."
+deactivateOn: [npSeal]
 # "At the end of every ~~Round/1◈ Turns~~ full Round Golden Hind is Active,
 # Drake's Master loses 50 Health. The Golden Hind is forcefully deactivated at
 # the end of the Round if Drake's Master has 50 Health or less; her Master does

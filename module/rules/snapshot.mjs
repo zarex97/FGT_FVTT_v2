@@ -421,12 +421,11 @@ export function snapshotUnit(actor, {
     activatedAt: sys.activatedAt ?? null,
     lastUpkeepAt: sys.lastUpkeepAt ?? null,
     lastUpkeepRound: sys.lastUpkeepRound ?? null,
-    // The four per-platform rules Drake's ship is the first to state. Projected
+    // The three per-platform rules Drake's ship is the first to state. Projected
     // here because a field the snapshot does not carry cannot be read by the
     // board, however carefully it is authored -- which is how the Hanging
     // Gardens' own `upkeep` sat inert until it was added two lines above.
     boarding: sys.boarding ?? null,
-    injuryRoll: sys.injuryRoll ?? null,
     lockAboard: sys.lockAboard ?? [],
     deactivateOn: sys.deactivateOn ?? [],
     replacesRiderAction: sys.replacesRiderAction ?? null,

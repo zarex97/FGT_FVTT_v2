@@ -337,7 +337,9 @@ describe("The Golden Hind — the statline her sheet prints", () => {
     expect(h.detect).toBe(4);
     expect(h.footprint).toEqual({ w: 4, h: 3 });
     expect(h.capacity).toBe(9);
-    expect(h.attributes).toEqual(["large", "mechanical"]);
+    // `injuryOnlyFromNP` joins them in the three-clauses describe below.
+    expect(h.attributes).toContain("large");
+    expect(h.attributes).toContain("mechanical");
   });
 
   it("has an Agility of 10", () => {
@@ -434,5 +436,25 @@ describe("The Golden Hind — the toll (spec R6, R11, R12)", () => {
     // the two readers apart, so this is the test that holds it.
     expect(h.upkeep.every).toBeDefined();
     expect(h.upkeep.supersedes).toBeDefined();
+  });
+});
+
+describe("The Golden Hind — the three small clauses", () => {
+  const h = src("platforms", "golden-hind.yml");
+
+  it("only rolls an Injury Roll against a Noble Phantasm", () => {
+    // Carried as an ATTRIBUTE, not a schema field: `rules/injury.mjs` has
+    // tested for `injuryOnlyFromNP` since it was written -- naming the Golden
+    // Hind in its own comment -- and no content ever carried it. Adding a
+    // second mechanism would have left the first one inert for ever.
+    expect(h.attributes).toContain("injuryOnlyFromNP");
+  });
+
+  it("locks its owner aboard, and nobody else", () => {
+    expect(h.lockAboard).toEqual(["owner"]);
+  });
+
+  it("is switched off the moment Drake is NP Sealed", () => {
+    expect(h.deactivateOn).toEqual(["npSeal"]);
   });
 });
