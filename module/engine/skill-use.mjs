@@ -992,7 +992,19 @@ async function applyPhaseEffects(phase, ability, actor, target) {
       // function of a pool she spends three other ways, so it cannot be a
       // literal and cannot be a rank table. Resolved against the CASTER, at the
       // moment of application, which is when the sheet counts them.
-      magnitude: authoredMagnitude(spec, actor) ?? def.defaultMagnitude ?? 0,
+      // `spec` first, then the RULE it sits on. The two shapes in the corpus
+      // are `{id, magnitude}` (Nemo's Voyager) and `{effect: {id}, magnitude}`
+      // (every Riding variant), and only the first was read -- so a magnitude
+      // authored beside a nested `effect:` was silently dropped and the
+      // definition's default stood.
+      //
+      // Found live: Drake's Riding B applied `ridingActive` with `magnitude:
+      // 4` and the instance carried 0, so her MOV Up was nothing at all. Note
+      // `npMagnitude` below has ALWAYS had this fallback; the asymmetry was
+      // the defect, not the fallback.
+      magnitude: authoredMagnitude(spec, actor)
+        ?? authoredMagnitude(rule, actor)
+        ?? def.defaultMagnitude ?? 0,
       // The "if NP" half of Appendix A's damage family. Referenced by every
       // such effect definition as `@npMagnitude`, against an instance that
       // never carried it.
