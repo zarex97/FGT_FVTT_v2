@@ -154,6 +154,26 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     });
 
+    // The Master who pays for a Noble Phantasm. Resolved the same way the
+    // SHEET resolves it (`actor-sheet/context.mjs#abilitiesContext`), because
+    // this bar was the one caller that did not: `gateContext()` carries the
+    // Round gate and the clock but has no unit, so it cannot carry a master,
+    // and `canUseAbility` defaults it to `null` -- which reads as a Master
+    // with 0 Health and refuses every Master-Health cost there is.
+    //
+    // Found live: Drake's two Noble Phantasms were greyed with "The Master
+    // cannot pay the Health cost" while her Master sat at 250 of 250 and the
+    // sheet offered the same abilities happily. It reaches every contracted
+    // Servant in the game; it stayed hidden because a Servant with no Master
+    // pays nothing, and a Free Servant is what most test boards carry.
+    //
+    // Exactly the shape of the `round` omission recorded in `gateContext`
+    // itself -- same caller, same asymmetry with the sheet, same symptom of a
+    // button greyed for ever while the sheet disagreed.
+    const master = snapshot.masterId
+      ? (board.units.find((u) => u.id === snapshot.masterId) ?? null)
+      : null;
+
     const abilities = [...actor.items]
       .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
       .map((item) => {
@@ -162,7 +182,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         const entry = (snapshot.abilities ?? []).find((a) => a.id === item.id) ?? {};
         // Same reason as the sheet's: a button that offers what the
         // declaration refuses is a worse affordance than a disabled one.
-        const verdict = canUseAbility({ ability: item.system, unit: snapshot, ...gateContext() });
+        const verdict = canUseAbility({
+          ability: item.system, unit: snapshot, master, board, ...gateContext(),
+        });
         const slot = slotFor({
           ...entry,
           img: item.img,
