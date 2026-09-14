@@ -1,0 +1,59 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# The clearest statement of what she is: a Servant who hurts herself on purpose
+# because being hurt is how her Noble Phantasm comes back.
+#
+# ONE PRESS PAYS TWICE (spec R1). Effect 2 inflicts three stages of Curse, and
+# Channel Marker Soul pays 1 Turn for each of them as they land. Effect 3 then
+# separately reduces the cooldown by ⅓◈ per stage she is NOW holding. From
+# Stage 0 that is 3 Turns AND 1◈ from a single use. The doubling is the engine
+# rather than a bug in it.
+#
+# Phase order is the sheet's: the curses land before the cooldown reads the
+# stage. Measuring first would read Stage 0 on her opening use and reduce
+# nothing at all.
+schema: 1
+id: gogh-imaginary-numbers-arts
+name: "Imaginary Numbers Arts"
+rank: "B+"
+kind: skill
+slug: imaginaryNumbersArts
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[guts]{Guts} to self for 1◈+⅔◈ Turns, when Gogh is defeated she is revived
+     with 20% of her Max Health.
+  2. Has a 500% chance of inflicting @effect[curse]{Curse} on herself, 3 times.
+  3. Reduce Gogh's NP Cooldown by X Turns, where X=(⅓◈ * the stage of the Curse debuff on Gogh;
+     e.g. Gogh has Stage 7 Curse, so NP Cooldown is reduced by 2◈+⅓◈ Turns).
+  Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: guts, duration: "1◈+⅔◈", magnitude: 20 }
+      # THREE separate applications, not one worth three stages: each raises
+      # the stage by one and each fires `curseStageChanged` on its own, which
+      # is what Channel Marker Soul is paid for.
+      #
+      # 500% is not a typo and is not clamped here (spec R8). Her own Item
+      # Construction reduces her incoming debuff chance by 35%, and the excess
+      # is exactly what survives it.
+      - { id: curse, applications: 3, chance: 500 }
+  # Effect 3, AFTER the curses above -- the sheet's own order, and measuring
+  # first would read Stage 0 on her opening use.
+  - kind: cooldown
+    target: self
+    changes:
+      # `direction: down` is REQUIRED with `ticks`: `cooldownChanges` reads
+      #   const down = change.ticks !== undefined ? (change.direction === "down") : ...
+      # so a ticks change with no direction INCREASES the cooldown.
+      #
+      # `perStack` on a STAGED effect counts the stage (`stacksHeld`), which is
+      # what makes the sheet's worked example come out: Stage 7 x ⅓◈ = 2◈+⅓◈.
+      - { scope: np, ticks: "⅓◈", perStack: { effect: curse, each: 1 }, direction: down }
