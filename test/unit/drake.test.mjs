@@ -572,3 +572,35 @@ describe("Drake — Golden Wild Hunt (NP2)", () => {
     expect(a.cooldown).toBe("7◈+⅓◈");
   });
 });
+
+describe("Riding's MOV Up reaches the effect it is applied with", () => {
+  // FOUND LIVE. Drake used Riding, gained all three grants -- and her MOV
+  // stayed 6 where her sheet says 10. The phase carried `magnitude: 4` and the
+  // applied instance carried 0.
+  //
+  // `applyPhaseEffects` does `const spec = rule.effect ?? rule`, then reads the
+  // magnitude off `spec` ALONE. The corpus has two authored shapes:
+  //
+  //   { id: atkUp, magnitude: 10 }                  -- Nemo's Voyager
+  //   { effect: { id: ridingActive }, magnitude: 4 } -- every Riding variant
+  //
+  // Only the first was read. `npMagnitude` on the very next line has always
+  // fallen back to the rule, so the asymmetry was the defect rather than the
+  // fallback -- and it made Medusa's +5 work only because her number was the
+  // effect's own hard-coded literal until this pass moved it out.
+  const drake = src("class-skills", "riding-drake.yml");
+  const medusa = src("class-skills", "riding-medusa.yml");
+  const rule = (skill) => skill.phases[0].rules.find((r) => r.effect?.id === "ridingActive");
+
+  it("authors the magnitude beside a nested effect, the shape that was dropped", () => {
+    expect(rule(drake).effect.magnitude).toBeUndefined();
+    expect(rule(drake).magnitude).toBe(4);
+    expect(rule(medusa).magnitude).toBe(5);
+  });
+
+  it("keeps the effect itself parameterized, so neither rank is hard-coded", () => {
+    const active = src("effects", "riding-active.yml");
+    const mov = active.rules.find((r) => r.key === "MovDelta");
+    expect(mov.value).toBe("@magnitude");
+  });
+});
