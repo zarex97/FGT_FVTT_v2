@@ -1,0 +1,72 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# The NOBLE PHANTASM half of the mirrored pair. Its twin is
+# `gogh-het-gele-huis.yml` -- a Skill with almost the same name, a 5x5 instead
+# of a 7x7, and every duration halved.
+#
+# "(Non-damaging)" despite covering a 7x7 of enemies: an ability with phases
+# and no `damage` phase deals none (`engine/attack.mjs#dealsNoDamage`).
+#
+# Spec R6, and the DIRECTION of `blockedBy` is the trap: pointing this at
+# itself makes it permanently usable, and pointing the Skill at itself makes
+# the Skill permanently dead. Both read plausibly from a sheet whose two
+# entries differ by a subtitle.
+schema: 1
+id: gogh-the-yellow-house
+name: "Het Gele Huis: The Yellow House"
+rank: "A+"
+isNP: true
+categorizedAsNP: true
+npTags: [antiArmy]
+kind: noblePhantasm
+cooldown: "7◈+⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Non-damaging) Used during your Turn. Affects all enemy Units within a 7x7 panel area in any
+  non-diagonal direction next to Gogh. Has the following effects-
+  1. Has a 150% chance of inflicting @effect[defDwn]{Def Dwn} for 2◈ Turns, all damage taken is
+     increased by 20%.
+  2. Inflicts @effect[defDwnC]{Def Dwn (C)} for 2◈ Turns, all damage taken is increased by 20%,
+     and Agility is reduced by 1 whenever this Unit is successfully Attacked.
+  Then, applies the following effects to all allied Units within a 2 panel area of herself-
+  1. Applies @effect[evade]{Evade} for 2◈ Turns, 2 times.
+  2. Applies @effect[regen]{Regen} for 3◈ Turns, Health is restored by 5% of its maximum value at
+     the end of the Unit's Turn, at the end of a Turn the Unit Acts, and at the end of the Round.
+  3. Has a 500% chance of inflicting @effect[curse]{Curse} twice on all affected allied Units.
+  Cooldown: 7◈+⅓◈ Turns. Cannot be used if 'Het Gele Huis' is on Cooldown.
+# "Cannot be used if 'Het Gele Huis' is on Cooldown."
+#
+# `requirements: abilityOffCooldown`, which is how Scathach's Gate of Skye
+# states the same thing -- NOT the `blockedBy` field, which is effect
+# exclusivity and belongs to a different question entirely.
+#
+# Spec R6: blocked by the other, and NOT triggering it. Gate of Skye is the
+# contrasting shape, blocked by three abilities and putting two of them on
+# cooldown, so the absence of that second half here is a reading of the sheet.
+requirements:
+  - kind: abilityOffCooldown
+    abilityIds: [gogh-het-gele-huis]
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: rect, w: 7, h: 7 }
+  selection: { relations: [enemy], chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      # 20%, where the Skill's is 10% -- the one number that is NOT simply
+      # doubled from its twin, because the Skill's own second clause is
+      # already 20% and this one matches it rather than exceeding it.
+      - { id: defDwn, duration: "2◈", magnitude: 20, chance: 150 }
+      - { id: defDwnC, duration: "2◈", magnitude: 20 }
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      - { id: evade, duration: "2◈", uses: 2 }
+      - { id: regen, duration: "3◈", magnitude: 5 }
+      # TWICE -- two stages per ally, and through Channel Marker Soul two Turns
+      # off her own Noble Phantasm per stage she later takes back.
+      - { id: curse, applications: 2, chance: 500 }
