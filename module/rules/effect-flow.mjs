@@ -275,3 +275,36 @@ export function removeStages(instance, stages = 1, cause = null) {
     },
   };
 }
+
+/**
+ * How many separate applications one authored effect entry is worth.
+ *
+ * *"Has a 500% chance of inflicting Curse on herself, **3 times**"* — Van
+ * Gogh's Imaginary Numbers Arts, and *The Yellow House* says the same thing
+ * twice over.
+ *
+ * This is the third of three counts an effect entry can carry, and they are
+ * genuinely different statements:
+ *
+ *   - `stages: N` — ONE application worth N stages. One roll, one
+ *     `curseStageChanged` carrying a delta of N.
+ *   - `uses: N` (authored as `times`) — ONE application worth N charges.
+ *     Kingprotea's Proliferation Stocks.
+ *   - `applications: N` — N applications. N rolls, N events.
+ *
+ * The chance is what forces the distinction: a chance is rolled per
+ * application, so "3 times at 500%" and "one application worth 3 stages" agree
+ * only while the chance cannot fail. Below 100% they are different abilities.
+ *
+ * Floors at one. A zero would silently delete an effect the ability's own text
+ * states, which reads exactly like the ability working.
+ *
+ * @param {object} spec the effect entry
+ * @param {object} [rule] the rule it sits on, for the nested `{effect: {...}}` shape
+ * @returns {number}
+ */
+export function applicationsOf(spec, rule = null) {
+  const authored = spec?.applications ?? rule?.applications ?? 1;
+  const n = Number(authored);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}

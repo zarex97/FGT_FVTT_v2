@@ -520,7 +520,10 @@ async function writeGroup(group, io) {
       // `curseStageChanged` carries the SIZE of a stage jump. Dispatched here
       // rather than by the caller for the same reason `noteDebuffs` is:
       // this is where every write path meets.
-      for (const i of intents) await fireWriteEvent(i.event, unitId, i.payload);
+      // `eventSubject`, not `unitId`: `batch()` files an addressless intent
+      // under `null`, so the group cannot say who this is about. The payload
+      // can.
+      for (const i of intents) await fireWriteEvent(i.event, I.eventSubject(i, unitId), i.payload);
       break;
 
     case "log":

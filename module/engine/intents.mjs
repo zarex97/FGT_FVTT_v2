@@ -25,7 +25,14 @@ export const INTENT_TYPES = Object.freeze([
   "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
-  "suspendSkill",
+  // `setStage` decrements a staged effect without deleting it, and `event`
+  // raises a write-time event so a listener can react to what just happened.
+  // Both are Van Gogh's -- her Curse is the first effect anything reads the
+  // STAGE of rather than merely the presence of.
+  //
+  // A type here, a constructor below, an ORDER rank, and an applier case: all
+  // four, or `applyIntents` throws the whole batch out. These two had three.
+  "suspendSkill", "setStage", "event",
 ]);
 
 /**
@@ -464,7 +471,12 @@ export function validate(intents) {
       problems.push(`${where}: unknown intent type`);
       return;
     }
-    if (intent.t !== "log" && intent.t !== "prompt" && !intent.unitId && !intent.masterId) {
+    // `event` joins `log` and `prompt` as an intent addressed to no one: its
+    // subject rides in the payload, because one raised event can concern the
+    // unit it happened to, the unit that caused it, and neither of them is
+    // "the unit being written to".
+    const addressless = intent.t === "log" || intent.t === "prompt" || intent.t === "event";
+    if (!addressless && !intent.unitId && !intent.masterId) {
       problems.push(`${where}: missing unitId`);
     }
     for (const field of NUMERIC_FIELDS[intent.t] ?? []) {
@@ -532,4 +544,25 @@ export function summarize(intents) {
     }
   }
   return out;
+}
+
+/**
+ * Who an `event` intent is about.
+ *
+ * An `event` is addressless — `batch()` files it under `null` because it is
+ * not a write to any one unit — so the dispatcher cannot take the subject from
+ * the group the way every other intent type does. It comes from the payload,
+ * which is where the write that raised it put the unit it happened to.
+ *
+ * The group is the fallback rather than the other way round: the unit a stage
+ * change HAPPENED to is not always the unit whose write raised it. Shadow of
+ * Longing takes stages off an enemy and gives them to Van Gogh, and both ends
+ * raise `curseStageChanged` about different Units inside one batch.
+ *
+ * @param {Intent} intent
+ * @param {string|null} groupUnitId
+ * @returns {string|null}
+ */
+export function eventSubject(intent, groupUnitId) {
+  return intent?.payload?.unitId ?? groupUnitId ?? null;
 }
