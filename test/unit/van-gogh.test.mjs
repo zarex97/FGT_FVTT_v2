@@ -17,6 +17,7 @@ import { stacksHeld } from "../../module/rules/snapshot.mjs";
 import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
 import { removeStages, applicationsOf } from "../../module/rules/effect-flow.mjs";
 import * as I from "../../module/engine/intents.mjs";
+import { mergeStages } from "../../module/engine/applier.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -1066,5 +1067,77 @@ describe("the `gogh` buff's Crit clause REPLACES its ordinary one", () => {
     const crit = onAttack.find((r) => r.then[0].stages === 2);
     expect(plain.predicate).toEqual([{ not: "attack:crit" }]);
     expect(crit.predicate).toEqual(["attack:crit"]);
+  });
+});
+
+describe("a transfer of staged effects SUMS (spec R3)", () => {
+  // FOUND LIVE. Shadow of Longing gathered Curse from an ally at Stage 2 and
+  // an enemy at Stage 3 -- stripping both, which is R3's own claim and worked
+  // -- and left Van Gogh holding Stage 2. Not 5, and not even the larger of
+  // the two.
+  //
+  // `mergeStages` folds repeated applications of one staged effect in a batch
+  // by summing `effect.stages`. A TRANSFERRED instance does not carry `stages`;
+  // it carries `stage`, the depth it had on its previous bearer.
+  // `resolveEffects` knows that and reads `stages ?? stage ?? 1` -- the merge
+  // read only `stages`, counted each arrival as one, and wrote `stages: 2` over
+  // the top of the real depths.
+  //
+  // So the bug scaled backwards: the more Curse she gathered, the less of it
+  // arrived. Two instances at 3 and 2 became 2; her sheet's "apply all stages
+  // of Curse accordingly" is 5.
+
+  const transferred = (unitId, defId, stage) => I.applyEffect(unitId, { defId, stage }, "shadow");
+
+  it("sums the depths two transferred instances arrive with", () => {
+    const [merged, ...rest] = mergeStages([
+      transferred("gogh", "curse", 3),
+      transferred("gogh", "curse", 2),
+    ]);
+    expect(rest).toHaveLength(0);
+    expect(merged.effect.stages).toBe(5);
+  });
+
+  it("still sums ordinary applications that state `stages`", () => {
+    // Serenity's crit: the Projectile's Poison and Macabre's additional stage.
+    const [merged] = mergeStages([
+      I.applyEffect("v", { defId: "poison", stages: 1 }, "a"),
+      I.applyEffect("v", { defId: "poison", stages: 1 }, "b"),
+    ]);
+    expect(merged.effect.stages).toBe(2);
+  });
+
+  it("counts a bare application as one", () => {
+    const [merged] = mergeStages([
+      I.applyEffect("v", { defId: "poison" }, "a"),
+      I.applyEffect("v", { defId: "poison" }, "b"),
+    ]);
+    expect(merged.effect.stages).toBe(2);
+  });
+
+  it("mixes a transfer with an ordinary application", () => {
+    const [merged] = mergeStages([
+      transferred("gogh", "curse", 4),
+      I.applyEffect("gogh", { defId: "curse", stages: 1 }, "b"),
+    ]);
+    expect(merged.effect.stages).toBe(5);
+  });
+
+  it("keeps different chances apart, as it always did", () => {
+    const out = mergeStages([
+      I.applyEffect("v", { defId: "poison", stage: 2, chance: 50 }, "a"),
+      I.applyEffect("v", { defId: "poison", stage: 3, chance: 80 }, "b"),
+    ]);
+    expect(out).toHaveLength(2);
+  });
+
+  it("takes from enemies as well as allies", () => {
+    // The other half of R3, and the half that already worked: the sheet bolds
+    // "all", so she cleanses her opponents to fuel herself.
+    const sol = src("abilities", "gogh-shadow-of-longing.yml");
+    const t = sol.phases.find((p) => p.kind === "transfer");
+    expect(t.relations).toContain("enemy");
+    expect(t.relations).toContain("ally");
+    expect(t.radius).toBe(3);
   });
 });

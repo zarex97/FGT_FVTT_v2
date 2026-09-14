@@ -367,7 +367,7 @@ async function resolveEffects(intents) {
  * @param {Intent[]} intents
  * @returns {Intent[]}
  */
-function mergeStages(intents) {
+export function mergeStages(intents) {
   /** @type {Map<string, number>} */
   const at = new Map();
   /** @type {Intent[]} */
@@ -390,13 +390,36 @@ function mergeStages(intents) {
     // definition; for anything else the extra `stages` is ignored by
     // `resolveStacking` and the merge is still right, because a second identical
     // application of a non-staged effect is a refresh, not a second instance.
+    // `stages ?? stage ?? 1`, the SAME chain `resolveEffects` reads below. A
+    // transferred instance carries no `stages` -- it carries `stage`, the depth
+    // it had on its previous bearer -- so reading only `stages` counted every
+    // arrival as one and then wrote that count over the real depths.
+    //
+    // Van Gogh's Shadow of Longing is where it shows: Curse gathered from an
+    // ally at Stage 2 and an enemy at Stage 3 arrived as Stage 2. The defect
+    // scaled backwards, so the more she gathered the less of it landed.
     const first = out[index];
     out[index] = {
       ...first,
-      effect: { ...first.effect, stages: (first.effect.stages ?? 1) + (intent.effect.stages ?? 1) },
+      effect: { ...first.effect, stages: depthOf(first.effect) + depthOf(intent.effect) },
     };
   }
   return out;
+}
+
+/**
+ * How many stages one application is worth.
+ *
+ * `stages` is what an ability STATES ("inflicts Stage 3 Poison"); `stage` is
+ * the depth an instance ALREADY HAS, which is what a transfer carries. Both
+ * mean "this many stages are arriving", and every reader of one has to read
+ * the other.
+ *
+ * @param {object} effect
+ * @returns {number}
+ */
+function depthOf(effect) {
+  return effect?.stages ?? effect?.stage ?? 1;
 }
 
 /**
