@@ -80,6 +80,12 @@ acceptance set.
 
 Full conversion: Ch. 35. **Built and live-tested.**
 
+**Foreigner**, and the pack agrees with this table now. She was first authored `caster` — her kit
+reads that way, with a fixed MAG Normal Attack, Item Construction and a support Noble Phantasm —
+and *Existence Outside The Domain* is the tell, a Foreigner class skill. Corrected by the game's
+author. `classContainer` is presentational, so nothing mechanical moved; what it drives is her
+class icon and the name every chat card prints her under.
+
 | Ability | Type | Mapping |
 |---|---|---|
 | Existence Outside The Domain (A) | Class, passive | RE (`ApplicationChance` ×3, `DamageModifier` ×3, `CritModifier`, `NegateOpponentSource`) — and the document `alter-ego.yml` had forward-referenced since it shipped |

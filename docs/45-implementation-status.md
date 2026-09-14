@@ -4355,3 +4355,26 @@ Crit Up 60 and then gathering Stage 2 from an ally **and Stage 3 from an enemy**
 DmUp **200 / 200 / 100**, Atk Up **40** across all three allies, and Area CritUp 10 reaching an
 ally one panel away but **not** one three panels away — who still takes that clause's own
 radius-3 buffs. Two reaches in one Noble Phantasm, each measuring its own.
+
+#### Van Gogh is a Foreigner, not a Caster
+
+Corrected by the game's author after the pass. I authored `classContainer: caster` from a kit
+that reads like one — a fixed MAG Normal Attack, Item Construction, a support Noble Phantasm —
+and **Appendix D had said Foreigner all along**, inferred from the ability set. *Existence Outside
+The Domain* is the tell: it is a Foreigner class skill, and Ch. 35's own tally calls her Base
+Attack clause *"BA(MAG) on a **non-Caster**"*. Two documents in the repo knew; the one I wrote did
+not.
+
+`classContainer` is presentational — `content/authored-fields.mjs` keeps it out of content sync
+precisely because it is *"the slot war setup PLACED a Servant in, which is not the class her sheet
+names"* — so nothing mechanical moved. What it drives is her class icon
+(`assets/classes/<classContainer>.webp`, derived into `defaultImage` and her token) and
+`publicNameOf`, the name every chat card prints her under. Every card of the live pass read
+`Caster ⚔ Servant`; they now read `Foreigner`.
+
+**And it exposed a gap.** `apps/setup-wizard.mjs` localises `FGT.Class.${classContainer}` — the
+**lowercase** value — and the lowercase keys in `lang/en.json` stopped at `berserker`. Everything
+from `ruler` onward rendered as a raw i18n key in the war-setup UI. Latent since the Extra classes
+entered the enum, and `alterEgo` was already hitting it: Kingprotea and Mannanán have carried that
+container since they were authored. Seven labels added, with a test that walks `SERVANT_CLASSES`
+rather than naming them, so the next class added to the enum without a label fails in the suite.
