@@ -53,6 +53,23 @@ description: |
   @effect[npSeal]{NP Seal}, the Golden Hind is immediately deactivated.
 
   Cooldown: 7◈+⅓◈ Turns after the Golden Hind is destroyed/deactivated.
+# "This effect overwrites the normal Master Health loss when a Servant uses its
+# NP." Spec R11, and its ACTIVATION half.
+#
+# The platform's own `upkeep.supersedes: [npCost]` covers every NP fired once
+# the ship is up -- `engine/attack.mjs` finds a platform on the board owned by
+# the caster and pushes its supersede. At the activation itself there is no
+# such platform yet, so the Rank table's cost was charged in full: measured
+# live at 250 -> 197 for a 53-point A+ Noble Phantasm.
+#
+# A zero-amount cost that supersedes `npCost` states the sheet exactly: raising
+# the ship costs her Master nothing, and the 50 a Round is the whole price.
+# Ozymandias's Ramesseum Tentyris is the precedent for the shape.
+additionalCosts:
+  - id: goldenHindUpkeep
+    kind: masterHealth
+    amount: 0
+    supersedes: [npCost]
 targeting:
   anchor: { kind: self }
   shape: { kind: unit }
