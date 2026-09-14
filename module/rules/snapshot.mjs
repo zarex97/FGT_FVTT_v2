@@ -274,6 +274,9 @@ export function snapshotUnit(actor, {
     // of the exchange it is on. A bag the snapshot does not carry cannot be
     // read by the pipeline, however carefully it is authored.
     excludesOpponentSources: contributions.excludesOpponentSources ?? [],
+    // Health floors scoped to one damage source. A bag the snapshot does not
+    // carry cannot be read by the pipeline, however carefully it is authored.
+    damageFloors: contributions.damageFloors ?? [],
     // Expanded by `annotateCompulsions` once the board exists.
     compulsionRules: contributions.compulsions ?? [],
     // Modes this Unit is HELD ON in, and the condition each waits on. Read by

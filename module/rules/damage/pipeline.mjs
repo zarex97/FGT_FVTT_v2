@@ -1007,6 +1007,30 @@ function stage16AbsorptionAndClamp(s) {
     s.contribute("endure", -reduced, "Endure: leaves the unit at 1 Health", "defender");
   }
 
+  // The same arithmetic as Endure above, with a SOURCE on it.
+  //
+  // > *"Gogh's Health cannot drop below 1 due to the effects of Curse (Gogh
+  // > cannot be defeated due to the effects of Curse)."*
+  //
+  // Three mechanisms already mean "does not die" and this is none of them:
+  // `Guts` revives after defeat, `Invuln` stops the damage, and `endure` leaves
+  // the unit at 1 against EVERYTHING. Scoping it to one source is what lets Van
+  // Gogh run herself to Stage 9 on purpose and still be killable by a sword.
+  //
+  // Here, with the other clamp, because it is a statement about the RESULT --
+  // "cannot drop below 1" -- rather than a reduction anything earlier could
+  // express.
+  const packetDefId = s.ctx.attack?.defId ?? null;
+  for (const f of d.damageFloors ?? []) {
+    if (f.defId && f.defId !== packetDefId) continue;
+    const floor = f.floor ?? 1;
+    const survivable = Math.max(0, (d.health ?? 0) - floor);
+    if (s.total <= survivable) continue;
+    const reduced = s.total - survivable;
+    s.addProportional(-reduced);
+    s.contribute("damageFloor", -reduced, `${f.source ?? "floor"}: leaves ${floor} Health`, "defender");
+  }
+
   s.clampNonNegative();
   s.floor();
   s.end(16);
