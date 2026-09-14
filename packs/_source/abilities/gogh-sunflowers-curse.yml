@@ -17,7 +17,10 @@
 # iterated as a set and throws out of `contributionsOf`, taking the whole board
 # snapshot with it. Drake's `uncharted` found that the hard way.
 #
-# Passive 2 -- the Curse floor -- is authored with its reader in Task 7.
+# Passive 2 is the same arithmetic `endure` already performs -- "leaves the
+# unit at 1 Health" -- with a SOURCE on it. Guts revives after defeat, Invuln
+# stops the damage, Endure floors against everything; scoping it to Curse is
+# what lets her run herself to Stage 9 on purpose and still die to a sword.
 schema: 1
 id: gogh-sunflowers-curse
 name: "Sunflower's Curse"
@@ -33,3 +36,6 @@ passiveRules:
   - key: StatDelta
     stat: attributes
     add: [immuneToKillYourself]
+
+  # Passive 2. Spec R9.
+  - { key: DamageFloor, floor: 1, defId: curse }

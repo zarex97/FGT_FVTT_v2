@@ -994,6 +994,8 @@
   "FGT.Authoring.Element.BuffRemovalResistHint": "Resists having buffs stripped off.",
   "FGT.Authoring.Element.DurationExtension": "Duration Extension",
   "FGT.Authoring.Element.DurationExtensionHint": "Lengthens or shortens the effects applied to or by this Unit.",
+  "FGT.Authoring.Element.DamageFloor": "Damage Floor",
+  "FGT.Authoring.Element.DamageFloorHint": "A Health floor this Unit cannot be taken below by one named damage source.",
   "FGT.Authoring.Element.NegateOpponentSource": "Negate Opponent Source",
   "FGT.Authoring.Element.NegateOpponentSourceHint": "Drops a named modifier source from whoever this Unit is fighting.",
   "FGT.Authoring.Element.SuppressForeignEffects": "Suppress Foreign Effects",

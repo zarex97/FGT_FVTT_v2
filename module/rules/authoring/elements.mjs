@@ -316,6 +316,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "appliesTo", type: "select", choices: ["buff", "debuff", "all"] },
     { key: "direction", type: "select", choices: ["applied", "received"] },
   ]),
+  entry("DamageFloor", "A Health floor this Unit cannot be taken below by one named damage source.", [
+    { key: "floor", type: "number" },
+    { key: "defId", type: "effectId" },
+  ]),
   entry("NegateOpponentSource", "Drops a named modifier source from whoever this Unit is fighting.", [
     { key: "sources", type: "tokenList" },
   ]),

@@ -39,6 +39,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {object[]} revivals         ways back from zero Health, priority-ordered
  * @property {object[]} applicationChances  shifts to how likely an effect is to land
  * @property {string[]} excludesOpponentSources  modifier sources dropped from the OPPONENT's bag
+ * @property {object[]} damageFloors  Health floors scoped to one damage source
  * @property {object[]} compulsions       forced targets, expanded by rules/compulsion.mjs
  * @property {object[]} eventHandlers
  * @property {object[]} autoCounters  automatic counters, by provocation
@@ -72,7 +73,7 @@ export function empty() {
     attributes: [], magicResistance: null, variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [],
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
-    auras: [], applicationChances: [], compulsions: [], preemptions: [],
+    auras: [], applicationChances: [], compulsions: [], preemptions: [], damageFloors: [],
     excludesOpponentSources: [], unhandled: [],
     autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
@@ -972,6 +973,19 @@ export const EXECUTORS = Object.freeze({
    * The opponent's list, never the bearer's own: a Unit does not exclude its
    * own modifiers, so a source name it happens to share cannot delete them.
    */
+  /**
+   * A Health floor this Unit cannot be taken below by ONE named damage source.
+   *
+   * > *"Gogh's Health cannot drop below 1 due to the effects of Curse."*
+   *
+   * Not `Guts`, which revives after defeat; not `Invuln`, which stops the
+   * damage; and not `Endure`, which is this arithmetic against everything.
+   * The source is the whole clause.
+   */
+  DamageFloor(el, { source, out }) {
+    out.damageFloors.push({ floor: el.floor ?? 1, defId: el.defId ?? null, source });
+  },
+
   NegateOpponentSource(el, { out }) {
     for (const name of el.sources ?? []) out.excludesOpponentSources.push(name);
   },

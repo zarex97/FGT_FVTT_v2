@@ -510,3 +510,58 @@ describe("Van Gogh — Imaginary Numbers Arts B+", () => {
     expect(ina.phases.find((p) => p.kind === "cooldown")).toBeDefined();
   });
 });
+
+describe("DamageFloor — a floor scoped to one damage source (spec R9)", () => {
+  // Three mechanisms in this game already mean "does not die" and this is none
+  // of them. Guts revives AFTER defeat. Invuln stops the damage. `Endure`
+  // leaves the unit at 1 Health -- which is this arithmetic exactly, but
+  // unconditional. Hers is Endure with a source on it: Curse takes her from
+  // 1250 to 1 and never further, while a Normal Attack at 1 Health kills her
+  // normally. That asymmetry is the whole point of a Servant who runs herself
+  // to Stage 9 on purpose.
+  const hit = (health, floors, packet) => computeDamage({
+    attacker: { id: "src", baseAttack: { mag: 0 }, abilities: [] },
+    defender: { id: "gogh", abilities: [], health, damageFloors: floors },
+    base: { fixedValue: 500 },
+    component: "mag",
+    attack: { kind: "skill", ...packet },
+    rolls: { attackMinus: 0 },
+  });
+  const curseFloor = [{ floor: 1, defId: "curse", source: "Sunflower's Curse" }];
+
+  it("leaves exactly 1 Health against the named source", () => {
+    expect(hit(300, curseFloor, { defId: "curse", periodic: true }).total).toBe(299);
+  });
+
+  it("does nothing at all against any other source", () => {
+    expect(hit(300, curseFloor, { defId: "poison", periodic: true }).total).toBe(500);
+  });
+
+  it("takes nothing when already at the floor, and does not heal", () => {
+    expect(hit(1, curseFloor, { defId: "curse", periodic: true }).total).toBe(0);
+  });
+
+  it("is not Guts and not Invuln — an ordinary attack still kills her", () => {
+    expect(hit(1, curseFloor, { kind: "normal" }).total).toBe(500);
+  });
+
+  it("leaves a defender with no floor alone", () => {
+    expect(hit(300, [], { defId: "curse", periodic: true }).total).toBe(500);
+  });
+});
+
+describe("Van Gogh — Sunflower's Curse, passive 2 (spec R9)", () => {
+  const sc = src("abilities", "gogh-sunflowers-curse.yml");
+
+  it("floors her at 1 against Curse and nothing else", () => {
+    expect(sc.passiveRules.find((r) => r.key === "DamageFloor"))
+      .toEqual({ key: "DamageFloor", floor: 1, defId: "curse" });
+  });
+
+  it("is not authored as Guts, Invuln or a blanket Endure", () => {
+    const json = JSON.stringify(sc.passiveRules);
+    expect(json).not.toContain("guts");
+    expect(json).not.toContain("invuln");
+    expect(json).not.toContain("endure");
+  });
+});
