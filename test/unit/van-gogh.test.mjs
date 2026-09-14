@@ -678,3 +678,66 @@ describe("Van Gogh — Terror, and De Sterrennacht EX (NP1)", () => {
     expect(areaCrit.rules[0]).toMatchObject({ key: "Aura", radius: 2 });
   });
 });
+
+describe("Van Gogh — the mirrored pair (spec R6)", () => {
+  const skill = src("abilities", "gogh-het-gele-huis.yml");
+  const np = src("abilities", "gogh-the-yellow-house.yml");
+
+  it("is a 5x5 Skill and a 7x7 Noble Phantasm", () => {
+    expect(skill.isNP).toBeUndefined();
+    expect(skill.targeting.shape).toEqual({ kind: "rect", w: 5, h: 5 });
+    expect(np.isNP).toBe(true);
+    expect(np.targeting.shape).toEqual({ kind: "rect", w: 7, h: 7 });
+  });
+
+  const offCooldown = (a) => a.requirements.find((r) => r.kind === "abilityOffCooldown");
+
+  it("each blocks the other, by the OTHER's id", () => {
+    // The trap: two abilities whose names differ by a subtitle. Pointing
+    // either at itself makes it permanently usable or permanently dead, and
+    // both read plausibly -- so the test asserts the DIRECTION.
+    expect(offCooldown(skill).abilityIds).toEqual(["gogh-the-yellow-house"]);
+    expect(offCooldown(np).abilityIds).toEqual(["gogh-het-gele-huis"]);
+    expect(offCooldown(skill).abilityIds).not.toContain(skill.id);
+    expect(offCooldown(np).abilityIds).not.toContain(np.id);
+  });
+
+  it("uses the requirement Gate of Skye uses, not effect exclusivity", () => {
+    // `blockedBy` is the EFFECT-exclusivity field and answers a different
+    // question; `NoblePhantasmData` does not even declare it, which is how
+    // this was caught.
+    expect(skill.blockedBy).toBeUndefined();
+    expect(np.blockedBy).toBeUndefined();
+    const skye = src("abilities", "scathach-gate-of-skye.yml");
+    expect(skye.requirements.find((r) => r.kind === "abilityOffCooldown")).toBeDefined();
+  });
+
+  it("neither puts the other on cooldown", () => {
+    // Her sheet says only "cannot be used if X is on Cooldown". Scathach's
+    // Gate of Skye says BOTH -- blocked by three, triggers two -- so the
+    // absence here is a reading rather than an omission.
+    expect(skill.alsoTriggers).toBeUndefined();
+    expect(np.alsoTriggers).toBeUndefined();
+    expect(src("abilities", "scathach-gate-of-skye.yml").alsoTriggers).toBeDefined();
+  });
+
+  it("doubles the durations on the NP half", () => {
+    expect(JSON.stringify(skill.phases)).toContain('"1◈"');
+    expect(JSON.stringify(np.phases)).toContain('"2◈"');
+  });
+
+  it("curses its own allies, twice on the NP", () => {
+    // The price of the Evade and the Regen -- and, through Channel Marker
+    // Soul, the reason she wants to pay it.
+    const c = (a) => a.phases.flatMap((p) => p.effects ?? []).find((e) => e.id === "curse");
+    expect(c(skill).applications ?? 1).toBe(1);
+    expect(c(np).applications).toBe(2);
+    expect(c(skill).chance).toBe(500);
+    expect(c(np).chance).toBe(500);
+  });
+
+  it("deals no damage despite covering a 7x7 of enemies", () => {
+    expect(np.damage).toBeUndefined();
+    expect(np.phases.map((p) => p.kind)).not.toContain("damage");
+  });
+});

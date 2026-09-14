@@ -304,6 +304,9 @@ describe("a non-damaging Noble Phantasm", () => {
       // it covers a 5x5 of enemies without dealing any: everything it does is
       // Terror on one side and buffs on the other.
       "gogh-de-sterrennacht",
+      // The Yellow House. "(Non-damaging)" despite covering a 7x7 of enemies:
+      // everything it does is Def Dwn on one side and buffs on the other.
+      "gogh-the-yellow-house",
       // Jack's Mist: "(Non-damaging)" is the first word of its description,
       // and it needs no `damage:` block to say so.
       "jack-the-mist",

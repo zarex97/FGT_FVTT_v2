@@ -1,0 +1,67 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# The SKILL half of a mirrored pair. Its twin is `gogh-the-yellow-house.yml` --
+# a Noble Phantasm with almost the same name, a 7x7 instead of a 5x5, and every
+# duration doubled.
+#
+# Spec R6: each refuses while the other is on cooldown, and NEITHER puts the
+# other there. Scathach's Gate of Skye is the contrasting shape -- blocked by
+# three abilities AND triggering two -- so the absence of `alsoTriggers` here
+# is a reading of the sheet rather than an omission.
+#
+# Note what it does to her own side: Evade and Regen, and then Curse. The Curse
+# is the price, and through Channel Marker Soul it is also the point.
+schema: 1
+id: gogh-het-gele-huis
+name: "Het Gele Huis"
+rank: "A+"
+kind: skill
+slug: hetGeleHuis
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all enemy Units within a 5x5 panel area in any
+  non-diagonal direction next to Gogh. Has the following effects-
+  1. Has a 150% chance of inflicting @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage taken is
+     increased by 10%.
+  2. Inflicts @effect[defDwnC]{Def Dwn (C)} for 1◈ Turns, all damage taken is increased by 20%,
+     and Agility is reduced by 1 whenever this Unit is successfully Attacked.
+  Then, applies the following effects to all allied Units within a 2 panel area of herself-
+  1. Applies @effect[evade]{Evade} for 1◈ Turns, 1 time.
+  2. Applies @effect[regen]{Regen} for 1◈+½◈ Turns, Health is restored by 5% of its maximum value
+     at the end of the Unit's Turn, at the end of a Turn the Unit Acts, and at the end of the Round.
+  3. Has a 500% chance of inflicting @effect[curse]{Curse} on all affected allied Units.
+  Cooldown: 4◈-⅓◈ Turns. Cannot be used if 'The Yellow House' is on Cooldown.
+# "Cannot be used if 'The Yellow House' is on Cooldown."
+#
+# `requirements: abilityOffCooldown`, which is how Scathach's Gate of Skye
+# states the same thing -- NOT the `blockedBy` field, which is effect
+# exclusivity and belongs to a different question entirely.
+#
+# Spec R6: blocked by the other, and NOT triggering it. Gate of Skye is the
+# contrasting shape, blocked by three abilities and putting two of them on
+# cooldown, so the absence of that second half here is a reading of the sheet.
+requirements:
+  - kind: abilityOffCooldown
+    abilityIds: [gogh-the-yellow-house]
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: rect, w: 5, h: 5 }
+  selection: { relations: [enemy], chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: defDwn, duration: "1◈", magnitude: 10, chance: 150 }
+      - { id: defDwnC, duration: "1◈", magnitude: 20 }
+  # A DIFFERENT reach from the ability's own -- allies around her, not enemies
+  # in the rectangle -- so the phase states it.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      - { id: evade, duration: "1◈", uses: 1 }
+      - { id: regen, duration: "1◈+½◈", magnitude: 5 }
+      - { id: curse, chance: 500 }
