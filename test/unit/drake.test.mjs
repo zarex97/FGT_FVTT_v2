@@ -713,3 +713,33 @@ describe("a detect delta is never written to the document", () => {
     expect(out.changes.mov).toBe(10);
   });
 });
+
+describe("Raising the Golden Hind costs her Master nothing (spec R11)", () => {
+  // FOUND LIVE: her Master went 250 -> 197 on activation, paying the A+ Rank
+  // table's 53. The platform's own `upkeep.supersedes: [npCost]` covers every
+  // Noble Phantasm fired once the ship is UP -- `pendingCosts` looks for a
+  // platform on the board owned by the caster -- but at the activation there
+  // is no such platform yet, so nothing superseded anything.
+  //
+  // Her sheet puts no condition on the sentence: "This effect overwrites the
+  // normal Master Health loss when a Servant uses its NP."
+  const np1 = src("abilities", "drake-golden-hind-wild-hunt.yml");
+  const hind = src("platforms", "golden-hind.yml");
+
+  it("declares a zero cost that supersedes the Rank table's", () => {
+    expect(np1.additionalCosts).toEqual([
+      { id: "goldenHindUpkeep", kind: "masterHealth", amount: 0, supersedes: ["npCost"] },
+    ]);
+  });
+
+  it("uses the same shape Ramesseum Tentyris does", () => {
+    const ozy = src("abilities", "ozymandias-ramesseum-tentyris.yml");
+    expect(ozy.additionalCosts[0].supersedes).toEqual(["npCost"]);
+  });
+
+  it("leaves the per-Round toll as the whole price", () => {
+    // Nothing here charges 50; `runUpkeep` does, once a Round.
+    expect(hind.upkeep.cost.amount).toBe(50);
+    expect(np1.additionalCosts[0].amount).toBe(0);
+  });
+});
