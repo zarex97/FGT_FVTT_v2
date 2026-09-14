@@ -1,0 +1,46 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# THE ENGINE. Everything else in her kit is a way of moving Curse stages
+# around; this is the clause that pays her for it.
+#
+# Spec R1: the sentence names no source, so her OWN self-inflictions count.
+# Imaginary Numbers Arts self-curses three times and separately reduces the
+# cooldown by ⅓◈ per stage held, so one press pays twice. That is the engine
+# rather than a bug in it, and the test says so, because nothing about the
+# number looks deliberate otherwise.
+#
+# Spec R2: the two halves are asymmetric on purpose. ANY infliction pays; only
+# a removal made by the 'Gogh' buff does. A Cure that strips her Curse pays
+# nothing, which is why `curseStageChanged` carries a `cause`.
+schema: 1
+id: gogh-channel-marker-soul
+name: "Channel Marker Soul"
+rank: EX
+kind: skill
+slug: channelMarkerSoul
+passive: true
+description: |
+  (Passive 1) @effect[curse]{Curse} Damage taken is halved.
+  (Passive 2) Whenever Gogh is inflicted with Curse or has Curse removed from herself due to the
+  effects of the '@effect[gogh]{Gogh}' buff, reduce her NP Cooldown by 1 Turn for every Stage of
+  Curse inflicted/removed in this way.
+passiveRules:
+  # Passive 1. Curse damage is periodic and carries `bypassModifiers: true`, so
+  # an ordinary Def Up would be skipped entirely. `VulnerabilityAmplifier`
+  # multiplies what one NAMED effect deals to this Unit, which is the only
+  # lever that reaches a bypassing packet.
+  - { key: VulnerabilityAmplifier, effectId: curse, factor: 0.5 }
+
+  # Passive 2. An ordinary handler on an ordinary event: no Servant-specific
+  # code anywhere in the write path.
+  #
+  # `-@stageDelta` reduces by however many stages MOVED -- the leading minus
+  # negates the magnitude rather than the sign, because the clause pays the
+  # same way for an infliction (+3) and a removal (-1).
+  - key: OnEvent
+    event: curseStageChanged
+    automatic: true
+    # Any infliction; only removals the `gogh` buff made (spec R2).
+    eventFilter: { anyOf: [{ stageDelta: positive }, { cause: gogh }] }
+    then:
+      - { key: CooldownDelta, scope: np, delta: "-@stageDelta" }

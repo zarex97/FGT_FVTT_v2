@@ -222,6 +222,9 @@ export function applyEffect({
 
   // ── 5. STACKING RESOLUTION ───────────────────────────────────────────────
   const existing = instances.filter((e) => e.defId === def.id);
+  // Captured BEFORE the resolution, because the event below needs the jump and
+  // not just the destination -- Channel Marker Soul is paid per stage.
+  const priorStage = existing[0]?.stage ?? 0;
   const stack = resolveStacking(def, existing, scaledMagnitude, stages, uses);
   trace.push({ step: "stacking", outcome: stack.action, detail: stack.detail });
   if (stack.action === "noop") {
@@ -315,7 +318,33 @@ export function applyEffect({
   // NOT been is expanded at the applier boundary -- see `resolveEffects` there
   // -- because a bare intent skips immunity, resistance, exclusivity and
   // stacking, and the scheduler's `ApplyEffect` action emits exactly that.
+  // Raised BEFORE the application is pushed, purely so the applied effect
+  // stays last in this array: `intents.order` sorts by kind when the batch is
+  // applied (an `event` is 99 and lands after every write), so position here
+  // carries no meaning -- but several suites read `intents.at(-1)` for the
+  // effect, and breaking that to no purpose would be a gratuitous change.
+  //
+  // The event itself is raised because `resolveStacking`'s `stage` branch is
+  // the ONE place a stage is decided. `engine/applier.mjs#noteDebuffs` makes
+  // exactly this argument two files away: "a hook fired from each of the four
+  // application paths would have been four chances to miss one."
+  //
+  // `cause` lets a listener tell an infliction from a removal made by a
+  // particular source: Channel Marker Soul pays for any infliction but only
+  // for removals the `gogh` buff made, and without a cause those are one event
+  // with a sign.
+  if (def.stacking === "stage" && stack.stage !== priorStage) {
+    intents.push(I.event("curseStageChanged", {
+      unitId: target.id,
+      defId: def.id,
+      stageDelta: stack.stage - priorStage,
+      newStage: stack.stage,
+      cause: ctx?.cause ?? null,
+    }));
+  }
+
   intents.push({ ...I.applyEffect(target.id, effect, source?.unitId ?? null), resolved: true });
+
   return { outcome: "applied", reason: null, intents, trace };
 }
 

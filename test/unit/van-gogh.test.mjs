@@ -12,6 +12,7 @@ import { parse } from "yaml";
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
+import { applyEffect } from "../../module/engine/effect-applier.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -340,5 +341,88 @@ describe("Van Gogh — Sunflower's Curse, passive 1", () => {
     const json = JSON.stringify(sc.passiveRules);
     expect(json).not.toContain("commandSpell");
     expect(json).not.toContain("allCommands");
+  });
+});
+
+describe("curseStageChanged — the event her whole kit runs on", () => {
+  // Raised where a stage is DECIDED -- `resolveStacking`'s `stage` branch --
+  // rather than from each of the paths that reach it. `engine/applier.mjs`'s
+  // `noteDebuffs` makes the same argument two files away: "a hook fired from
+  // each of the four application paths would have been four chances to miss
+  // one."
+  const def = {
+    id: "curse", stacking: "stage", polarity: "debuff", baseChance: 100,
+    valence: "offensive", volatility: "volatile",
+  };
+  const target = (stage) => ({
+    id: "gogh", unitId: "gogh", effects: [], effectInstances: stage
+      ? [{ id: "e1", defId: "curse", stage }]
+      : [],
+  });
+
+  it("fires on a first application, from 0 to 1", () => {
+    const out = applyEffect({ def, target: target(0), magnitude: 0, ctx: {} });
+    const ev = out.intents.find((i) => i.t === "event" && i.event === "curseStageChanged");
+    expect(ev).toBeDefined();
+    expect(ev.payload).toMatchObject({ unitId: "gogh", defId: "curse", stageDelta: 1, newStage: 1 });
+  });
+
+  it("carries the size of the jump, not just that one happened", () => {
+    // Imaginary Numbers Arts inflicts three at once; Channel Marker Soul is
+    // paid per stage, so the delta has to be the number.
+    const out = applyEffect({ def, target: target(2), magnitude: 0, stages: 3, ctx: {} });
+    const ev = out.intents.find((i) => i.t === "event");
+    expect(ev.payload.stageDelta).toBe(3);
+    expect(ev.payload.newStage).toBe(5);
+  });
+
+  it("carries a cause, so a listener can tell WHO moved it", () => {
+    // Spec R2: Channel Marker Soul pays for any infliction but only for
+    // removals the `gogh` buff made. Without a cause the two are one event.
+    const out = applyEffect({ def, target: target(0), magnitude: 0, ctx: { cause: "gogh" } });
+    expect(out.intents.find((i) => i.t === "event").payload.cause).toBe("gogh");
+  });
+
+  it("does not fire for a non-staged effect", () => {
+    const plain = { ...def, stacking: "noneRefresh", id: "atkUp" };
+    const out = applyEffect({ def: plain, target: target(0), magnitude: 10, ctx: {} });
+    expect(out.intents.find((i) => i.t === "event")).toBeUndefined();
+  });
+});
+
+describe("Van Gogh — Channel Marker Soul EX (spec R1, R2)", () => {
+  const cms = src("abilities", "gogh-channel-marker-soul.yml");
+  const on = cms.passiveRules.find((r) => r.key === "OnEvent");
+
+  it("halves Curse damage with the one lever that reaches a bypassing packet", () => {
+    // Curse damage is periodic and carries `bypassModifiers: true`, so a Def
+    // Up or a Ward would be skipped entirely.
+    const amp = cms.passiveRules.find((r) => r.key === "VulnerabilityAmplifier");
+    expect(amp).toEqual({ key: "VulnerabilityAmplifier", effectId: "curse", factor: 0.5 });
+  });
+
+  it("listens to curseStageChanged and pays per stage", () => {
+    expect(on.event).toBe("curseStageChanged");
+    expect(on.then).toEqual([
+      { key: "CooldownDelta", scope: "np", delta: "-@stageDelta" },
+    ]);
+  });
+
+  it("takes Curse from ANY source, including her own (spec R1)", () => {
+    // The sentence names no source, and her own kit is the largest source
+    // there is -- so the positive branch of the filter is unconditional.
+    expect(on.eventFilter.anyOf).toContainEqual({ stageDelta: "positive" });
+  });
+
+  it("only pays for a removal the `gogh` buff made (spec R2)", () => {
+    // "inflicted with Curse OR has Curse removed from herself TO THE EFFECTS
+    // OF THE 'GOGH' BUFF" -- asymmetric on purpose. A Cure pays nothing.
+    expect(on.eventFilter.anyOf).toContainEqual({ cause: "gogh" });
+  });
+
+  it("reduces in BOTH directions, which is what the leading minus means", () => {
+    // stageDelta is +3 when she takes three on and -1 when the buff eats one;
+    // reading the sign through would turn the removal half into an INCREASE.
+    expect(on.then[0].delta.startsWith("-@")).toBe(true);
   });
 });

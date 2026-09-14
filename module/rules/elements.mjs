@@ -461,6 +461,12 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     actions: normalizeActions(el, rank, ctx),
     // `automatic` marks a handler Addle can suppress (Ch. 11 §11.4).
     automatic: el.automatic ?? false,
+    // A gate on the EVENT rather than on a unit. `targetPredicate` below asks
+    // about somebody standing there; this asks about what just happened --
+    // Van Gogh's Channel Marker Soul pays for any Curse INFLICTION but only
+    // for removals the `gogh` buff made, and those are one event apart only by
+    // sign and cause. Read by `scheduler.mjs#eventFilterPasses`.
+    ...(el.eventFilter ? { eventFilter: el.eventFilter } : {}),
     abilityId: ability?.id ?? null,
     // Evaluated when the event FIRES, against the options the event carries --
     // as opposed to `predicate`, which gates the element at collection time

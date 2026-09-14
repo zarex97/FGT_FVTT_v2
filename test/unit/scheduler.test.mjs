@@ -182,3 +182,52 @@ describe("pendingRolls — a chance needs a die gathered for it", () => {
     expect(keys).toHaveLength(1);
   });
 });
+
+/**
+ * A handler that asks about the EVENT rather than about a unit.
+ *
+ * `targetPredicate` asks about a Unit. Van Gogh's Channel Marker Soul needs
+ * the other question: *"inflicted with Curse **or has Curse removed from
+ * herself to the effects of the 'Gogh' buff**"* is ONE event with two
+ * directions, and only one of the directions is gated on a source.
+ */
+describe("eventFilter", () => {
+  const gogh = () => ({ id: "gogh", abilities: [{ id: "np1", isNP: true }] });
+  const handler = { source: "Channel Marker Soul", abilityId: "cms" };
+  const base = { tick: 4, turnsPerRound: 3, board: { units: [] }, rolls: {} };
+
+  it("passes a handler with no filter at all", () => {
+    const out = dispatch(
+      { kind: "CooldownDelta", scope: "np", delta: -1 }, gogh(), handler,
+      { ...base, event: { stageDelta: 2 } },
+    );
+    expect(out).toHaveLength(1);
+  });
+
+  it("resolves @stageDelta from the event", () => {
+    const out = dispatch(
+      { kind: "CooldownDelta", scope: "np", delta: "-@stageDelta" }, gogh(), handler,
+      { ...base, event: { stageDelta: 3 } },
+    );
+    expect(out[0]).toMatchObject({ ticks: 3, mode: "reduce" });
+  });
+
+  it("pays for a REMOVAL too, which arrives negative", () => {
+    // The `gogh` buff eats a stage; stageDelta is -1 and the cooldown still
+    // falls by 1. "inflicted with Curse OR has Curse removed" -- both.
+    const out = dispatch(
+      { kind: "CooldownDelta", scope: "np", delta: "-@stageDelta" }, gogh(), handler,
+      { ...base, event: { stageDelta: -1 } },
+    );
+    expect(out[0]).toMatchObject({ ticks: 1, mode: "reduce" });
+  });
+
+  it("drops the action when the event cannot answer the reference", () => {
+    // "the event had no stage delta" and "the stage moved by nothing" are
+    // different, and only one of them should be silent.
+    expect(dispatch(
+      { kind: "CooldownDelta", scope: "np", delta: "-@stageDelta" }, gogh(), handler,
+      { ...base, event: {} },
+    )).toEqual([]);
+  });
+});
