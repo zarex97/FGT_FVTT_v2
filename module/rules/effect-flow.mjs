@@ -8,6 +8,8 @@
  * change what*, rather than about a number.
  */
 
+import { test as testPredicate } from "./predicate.mjs";
+
 /* -------------------------------------------------------------------------- */
 /*  §11.8 Transfer                                                            */
 /* -------------------------------------------------------------------------- */
@@ -307,4 +309,38 @@ export function applicationsOf(spec, rule = null) {
   const authored = spec?.applications ?? rule?.applications ?? 1;
   const n = Number(authored);
   return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+/**
+ * Whether one authored effect entry applies to THIS recipient.
+ *
+ * An `applyEffects` phase resolves a set of recipients once and then applies
+ * each of its entries to all of them. A `predicate` on an entry narrows that
+ * entry alone to a subset:
+ *
+ * > *"Applies Crit DmUp … **again** to all affected allied Units with the
+ * > 'Existence Outside the Domain' Skill."* — De Sterrennacht clause 2
+ *
+ * Note what this is NOT. `countTargets` asks a question about the SET ("how
+ * many of the Units I am about to buff carry the Skill") and answers with one
+ * number every recipient shares. This asks about each recipient in turn and
+ * answers yes or no. De Sterrennacht needs both, three lines apart, which is
+ * why the distinction is worth a function of its own.
+ *
+ * Tested against the same option set the phase already builds for its chance
+ * modifiers, so the recipient is addressed as `target:` and the caster as
+ * `self:` — the spelling every other predicate in the corpus uses.
+ *
+ * @param {object} spec the effect entry
+ * @param {object|null} rule the rule it sits on, for the nested shape
+ * @param {object} ctx `{options}`
+ * @returns {boolean}
+ */
+export function effectGatePasses(spec, rule, ctx) {
+  const predicate = spec?.predicate ?? rule?.predicate ?? null;
+  if (!predicate || predicate.length === 0) return true;
+  // `test` membership-checks a Set; the phase hands one over, but a caller with
+  // a plain array should not silently fail every predicate.
+  const options = ctx?.options instanceof Set ? ctx.options : new Set(ctx?.options ?? []);
+  return testPredicate(predicate, { options });
 }
