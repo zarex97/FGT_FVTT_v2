@@ -11,6 +11,7 @@ import { parse } from "yaml";
 
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -56,5 +57,185 @@ describe("Van Gogh — Divinity B+ is a ref and nothing else (spec R5)", () => {
   it("gets the sheet's 45 from the table", () => {
     // "All damage dealt is increased by 45 including NP" -- B is 40, perStep 5.
     expect(lookup("divinity", Rank.parse("B+"))).toBe(45);
+  });
+});
+
+describe("excludeModifierSources — it travels anonymously, and that is worth a test", () => {
+  // `excludeModifierSources` greps as though nothing populates it: the string
+  // appears in `rules/damage/pipeline.mjs` and in Raikou's content and nowhere
+  // between. It IS wired -- `withInstance` spreads the whole instance spec
+  // into `state.attack`, `attackFacts` spreads `state.attack` into `facts`,
+  // and `facts` is spread into `ctx.attack` -- so it arrives without ever
+  // being named.
+  //
+  // Recorded here because the next person to grep it will reach the same wrong
+  // conclusion this author did and "fix" working code. These tests pin the
+  // path end to end so a future spread that drops it fails loudly.
+  //
+  // Van Gogh needs the same filter from a PASSIVE rather than from an attack's
+  // damage block -- her Class Skill negates Mad Enhancement on whoever she is
+  // fighting, in either direction -- which is the part that is genuinely new.
+  it("reaches the pipeline from an authored damage variant", () => {
+    const raikou = src("abilities", "raikou-dohatsu-tenshou.yml");
+    const variant = (raikou.damage.instances ?? [])
+      .find((v) => v.excludeModifierSources);
+    expect(variant, "Raikou still authors it").toBeDefined();
+    expect(variant.excludeModifierSources).toContain("Mad Enhancement");
+  });
+
+  it("drops a named source from the attacker's bag", () => {
+    const out = computeDamage({
+      attacker: {
+        id: "a", baseAttack: { str: 100 }, abilities: [],
+        modifiers: [{ key: "atkUp", value: 50, direction: "dealt", source: "Mad Enhancement" }],
+      },
+      defender: { id: "d", abilities: [] },
+      base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+      component: "str",
+      attack: { kind: "normal", component: "str", excludeModifierSources: ["Mad Enhancement"] },
+      rolls: { attackMinus: 0 },
+    });
+    // 100 flat: the +50% is dropped rather than applied.
+    expect(out.total).toBe(100);
+  });
+
+  it("drops it from the DEFENDER's bag too, which is the half Van Gogh needs", () => {
+    const out = computeDamage({
+      attacker: { id: "a", baseAttack: { str: 100 }, abilities: [] },
+      defender: {
+        id: "d", abilities: [],
+        modifiers: [{ key: "defUp", value: 50, direction: "taken", source: "Mad Enhancement" }],
+      },
+      base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+      component: "str",
+      attack: { kind: "normal", component: "str", excludeModifierSources: ["Mad Enhancement"] },
+      rolls: { attackMinus: 0 },
+    });
+    expect(out.total).toBe(100);
+  });
+});
+
+describe("Van Gogh — negating Mad Enhancement from a passive, both ways", () => {
+  // EOTD passive 5 is not an attack's property -- it is hers, and it applies
+  // whether she is swinging or being swung at:
+  //
+  //   "When a Unit with Active Mad Enhancement Attacks this Unit, the damage
+  //    BOOSTING effect of Mad Enhancement is negated. When this Unit Attacks a
+  //    Unit with Active Mad Enhancement, the damage REDUCING effect is negated."
+  //
+  // One rule, stated twice: drop Mad Enhancement from the OPPONENT's bag
+  // whenever Van Gogh is one of the two parties. `excludeModifierSources` is
+  // per-attack; this is per-unit, so the pipeline unions the two.
+  const hit = ({ attacker = {}, defender = {} }) => computeDamage({
+    attacker: { id: "a", baseAttack: { str: 100 }, abilities: [], ...attacker },
+    defender: { id: "d", abilities: [], ...defender },
+    base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
+    component: "str",
+    attack: { kind: "normal", component: "str" },
+    rolls: { attackMinus: 0 },
+  });
+
+  it("drops the ATTACKER's Mad Enhancement when she is defending", () => {
+    const out = hit({
+      attacker: { modifiers: [{ key: "atkUp", value: 50, direction: "dealt", source: "Mad Enhancement" }] },
+      defender: { excludesOpponentSources: ["Mad Enhancement"] },
+    });
+    expect(out.total).toBe(100);
+  });
+
+  it("drops the DEFENDER's Mad Enhancement when she is attacking", () => {
+    const out = hit({
+      attacker: { excludesOpponentSources: ["Mad Enhancement"] },
+      defender: { modifiers: [{ key: "defUp", value: 50, direction: "taken", source: "Mad Enhancement" }] },
+    });
+    expect(out.total).toBe(100);
+  });
+
+  it("does not drop her OWN modifiers of that name", () => {
+    // "the damage boosting effect of Mad Enhancement is negated" is about the
+    // other Unit's Skill. If she somehow carried one it would still apply --
+    // and more importantly, dropping from her own bag would silently delete
+    // her Divinity if a source name ever collided.
+    const out = hit({
+      attacker: {
+        excludesOpponentSources: ["Mad Enhancement"],
+        modifiers: [{ key: "atkUp", value: 50, direction: "dealt", source: "Mad Enhancement" }],
+      },
+    });
+    expect(out.total).toBe(150);
+  });
+
+  it("leaves every other source alone on both sides", () => {
+    const out = hit({
+      attacker: { excludesOpponentSources: ["Mad Enhancement"] },
+      defender: { modifiers: [{ key: "defUp", value: 50, direction: "taken", source: "Divinity" }] },
+    });
+    expect(out.total).toBe(50);
+  });
+});
+
+describe("Van Gogh — Existence Outside The Domain A", () => {
+  const eotd = src("class-skills", "existence-outside-the-domain.yml");
+  const el = (key) => eotd.passiveRules.filter((r) => r.key === key);
+
+  it("uses the slug `alter-ego.yml` had been waiting for", () => {
+    // `alter-ego.yml` predicated on `target:skill:existenceOutsideTheDomain`
+    // and declared it as a forward reference; `validate:content` reported
+    // "declared, inert" from the day it shipped until this file existed.
+    const alterEgo = src("class-skills", "alter-ego.yml");
+    expect(eotd.slug).toBe("existenceOutsideTheDomain");
+    expect(JSON.stringify(alterEgo.passiveRules)).toContain("existenceOutsideTheDomain");
+  });
+
+  it("let Alter Ego drop the declaration, which is the half that fires once", () => {
+    // The validator flips from "declared, inert" to "now exists -- remove the
+    // declaration" the moment the target is authored. Both halves of that
+    // mechanism have now run, and only one of them can ever run again.
+    expect(src("class-skills", "alter-ego.yml").forwardReferences).toBeUndefined();
+  });
+
+  it("resists debuffs on a three-tier ladder: 25 / 10 / 5", () => {
+    const chances = el("ApplicationChance");
+    const at = (sev) => chances.find((c) => String(c.severity).includes(sev));
+    expect(at("normal").value).toBe(25);
+    expect(at("death").value).toBe(10);
+    expect(at("erase").value).toBe(5);
+    for (const c of chances) expect(c.direction).toBe("incoming");
+  });
+
+  it("puts Instakill on the FIRST tier, unlike Magic Resistance", () => {
+    // "including Instakill" -- it rides the 25, where Magic Resistance gives
+    // Instakill a tier of its own.
+    const first = el("ApplicationChance").find((c) => c.value === 25);
+    expect(first.severity).toEqual(["normal", "instakill"]);
+  });
+
+  it("trades 40% both ways with Mad Enhancement", () => {
+    const mods = el("DamageModifier");
+    const has = (dir) => mods.find(
+      (m) => m.direction === dir && JSON.stringify(m.predicate).includes("madEnhancement"),
+    );
+    expect(has("dealt")).toMatchObject({ value: 40, npValue: 40 });
+    expect(has("taken")).toMatchObject({ value: 40, npValue: 40 });
+  });
+
+  it("takes 40% more from her own kind", () => {
+    const outsider = el("DamageModifier")
+      .find((m) => JSON.stringify(m.predicate).includes("outsider"));
+    expect(outsider.direction).toBe("taken");
+    expect(outsider.value).toBe(40);
+  });
+
+  it("raises Crit Chance by 15", () => {
+    expect(el("CritModifier")[0]).toMatchObject({ aspect: "chance", value: 15 });
+  });
+
+  it("negates Mad Enhancement on the opponent, which STACKS with passive 2", () => {
+    // Passive 2 is a percentage she gains against Berserkers; passive 5
+    // removes the percentage the Berserker brings. Two clauses, both apply.
+    expect(el("NegateOpponentSource")[0]).toEqual(
+      { key: "NegateOpponentSource", sources: ["Mad Enhancement"] },
+    );
+    expect(el("DamageModifier").length).toBeGreaterThan(2);
   });
 });

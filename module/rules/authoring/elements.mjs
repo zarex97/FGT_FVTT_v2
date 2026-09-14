@@ -309,6 +309,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "appliesTo", type: "select", choices: ["buff", "debuff", "all"] },
     { key: "direction", type: "select", choices: ["applied", "received"] },
   ]),
+  entry("NegateOpponentSource", "Drops a named modifier source from whoever this Unit is fighting.", [
+    { key: "sources", type: "tokenList" },
+  ]),
   entry("SuppressForeignEffects", "Negates effects caused by Units outside this fight — negated, not removed.", []),
   entry("CategoryUseLimit", "Caps how many abilities of one category may be used per Turn.", [
     { key: "category", type: "text" },

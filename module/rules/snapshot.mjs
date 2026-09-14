@@ -270,6 +270,10 @@ export function snapshotUnit(actor, {
     auras: contributions.auras ?? [],
     // Read by `effect-applier` when it computes an incoming effect's chance.
     applicationChances: contributions.applicationChances ?? [],
+    // Modifier sources this Unit drops from its OPPONENT's bag, whichever side
+    // of the exchange it is on. A bag the snapshot does not carry cannot be
+    // read by the pipeline, however carefully it is authored.
+    excludesOpponentSources: contributions.excludesOpponentSources ?? [],
     // Expanded by `annotateCompulsions` once the board exists.
     compulsionRules: contributions.compulsions ?? [],
     // Modes this Unit is HELD ON in, and the condition each waits on. Read by

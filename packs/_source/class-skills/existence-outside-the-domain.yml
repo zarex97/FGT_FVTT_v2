@@ -1,0 +1,81 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# THE DOCUMENT ALTER EGO HAS BEEN WAITING FOR. `class-skills/alter-ego.yml`
+# carries `forwardReferences: [existenceOutsideTheDomain]` and predicates on
+# `target:skill:existenceOutsideTheDomain`; `validate:content` has reported it
+# as "declared, inert" since Alter Ego shipped. Authoring this slug closes it.
+#
+# Five passives, and only the last is interesting. Passive 5 -- "the damage
+# BOOSTING effect of Mad Enhancement is negated" when she is attacked, "the
+# damage REDUCING effect" when she attacks -- is one rule stated from both
+# ends: drop Mad Enhancement from the OPPONENT's bag whenever she is one of
+# the two parties. `NegateOpponentSource` is that; `excludeModifierSources` is
+# its per-attack cousin and belongs to a damage instance (Raikou's four).
+#
+# Passives 2 and 5 STACK rather than replacing each other: 2 is a percentage
+# she gains against Berserkers, 5 removes the percentage the Berserker brings.
+schema: 1
+id: class-existence-outside-the-domain
+name: "Existence Outside The Domain"
+source: class
+slug: existenceOutsideTheDomain
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive) Has the following effects on Van Gogh-
+  1. Chance of being inflicted by debuffs including @effect[instakill]{Instakill} is reduced by 25%,
+     this effect is halved for @effect[death]{Death} (10%) and further halved for @effect[erase]{Erase} (5%).
+  2. All damage received from Units with the '@ability[class-mad-enhancement]{Mad Enhancement}' Skill is reduced by 40%
+     including NP; all damage dealt to those Units is increased by 40% including NP.
+  3. All damage received from Units with the 'Existence Outside The Domain' Skill or the
+     'Outsider' Attribute is increased by 40% including NP.
+  4. Crit Chance is increased by 15%.
+  5. When a Unit with Active Mad Enhancement Attacks this Unit, the damage boosting effect of
+     Mad Enhancement is negated. When this Unit Attacks a Unit with Active Mad Enhancement, the
+     damage reducing effect of Mad Enhancement is negated.
+passiveRules:
+  # Passive 1. Three tiers, three numbers, all three stated by the sheet -- so
+  # none is computed. Instakill rides the FIRST tier ("including Instakill"),
+  # which is the opposite of Magic Resistance, where Instakill is its own.
+  - { key: ApplicationChance, direction: incoming, valence: offensive, severity: [normal, instakill], value: 25 }
+  - { key: ApplicationChance, direction: incoming, severity: death, value: 10 }
+  - { key: ApplicationChance, direction: incoming, severity: erase, value: 5 }
+
+  # Passive 2, both halves. The incoming half is `deferred`: in the pipeline
+  # `self:` is the ATTACKER for a `taken` modifier, and whoever is swinging
+  # does not exist at collection time.
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 40
+    npValue: 40
+    defer: true
+    predicate: ["self:skill:madEnhancement"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 40
+    npValue: 40
+    predicate: ["target:skill:madEnhancement"]
+
+  # Passive 3 -- the mirror of what Alter Ego does TO her, and the reason that
+  # Skill's forward reference existed.
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: 40
+    npValue: 40
+    defer: true
+    predicate:
+      - { or: ["self:attribute:outsider", "self:skill:existenceOutsideTheDomain"] }
+
+  # Passive 4.
+  - { key: CritModifier, aspect: chance, value: 15 }
+
+  # Passive 5. NOT a fifth percentage -- it removes Mad Enhancement's OWN
+  # contribution from the other Unit's bag, so it stacks with passive 2 rather
+  # than replacing it.
+  - { key: NegateOpponentSource, sources: ["Mad Enhancement"] }

@@ -12,12 +12,15 @@ slug: alterEgo
 kind: classSkill
 passive: true
 copyable: { allowed: false, reason: classSkill }
-# `existenceOutsideTheDomain` is Van Gogh's Class Skill (Ch. 35), who is not in
-# the authored corpus yet. Declared rather than silently dangling: the clause is
-# real and inert until she is built, exactly as Karna's *Fated Rivals of the
-# Mahabharata* names an Arjuna nobody has built (§36.1's DECISION -- a
-# cross-Servant reference resolves by slug and warns rather than erroring).
-forwardReferences: [existenceOutsideTheDomain]
+# `existenceOutsideTheDomain` WAS declared here as a forward reference: it is
+# Van Gogh's Class Skill (Ch. 35), and until she was authored the clause below
+# was real and inert -- exactly as Karna's *Fated Rivals of the Mahabharata*
+# names an Arjuna nobody has built (§36.1's DECISION).
+#
+# She is built now (`class-skills/existence-outside-the-domain.yml`), so the
+# predicate resolves against a real document and the declaration is gone. The
+# validator asks for its removal by name once the target exists, which is the
+# half of that mechanism that only fires once.
 description: |
   (Passive) All damage dealt to Units with the 'Outsider' Attribute and/or the
   'Existence Outside the Domain' Skill is increased by 50% including NP. All damage received

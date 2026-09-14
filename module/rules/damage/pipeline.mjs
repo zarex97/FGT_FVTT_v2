@@ -1109,7 +1109,27 @@ function bypassesDefence(s) {
  * @returns {Modifier[]}
  */
 function activeMods(s, unit, keys) {
-  const excluded = s.ctx.attack?.excludeModifierSources ?? null;
+  // Two sources of exclusion, unioned.
+  //
+  // `ctx.attack.excludeModifierSources` is the ATTACK's -- Raikou's *"These 4
+  // Attacks are not affected by Mad Enhancement"*, authored on the damage
+  // instance and arriving here by spread.
+  //
+  // `excludesOpponentSources` is the OPPONENT's, and it is a different claim:
+  // Van Gogh's Existence Outside The Domain negates Mad Enhancement on whoever
+  // she is fighting, whether she is swinging or being swung at. One rule her
+  // sheet states twice -- "the damage BOOSTING effect is negated" when she is
+  // attacked, "the damage REDUCING effect" when she attacks -- which is
+  // "drop it from the other Unit's bag" said from both ends.
+  //
+  // Deliberately the OPPONENT's list and not the unit's own: a Unit never
+  // excludes its own modifiers, so a source name shared with something it
+  // carries cannot silently delete that.
+  const opponent = unit === s.ctx.attacker ? s.ctx.defender : s.ctx.attacker;
+  const excluded = [
+    ...(s.ctx.attack?.excludeModifierSources ?? []),
+    ...(opponent?.excludesOpponentSources ?? []),
+  ];
   return (unit?.modifiers ?? []).filter(
     (m) => keys.has(m.key)
       // NAMED SOURCES, dropped from BOTH bags. Raikou's Dohatsu Tenshou:
@@ -1124,7 +1144,7 @@ function activeMods(s, unit, keys) {
       // Filtered HERE because this is the single place every stage reads a
       // modifier bag, so one line covers stages 2, 4, 4b, 5, 7 and 12 and
       // cannot fall out of step with any of them.
-      && !(excluded && excluded.includes(m.source))
+      && !(excluded.length > 0 && excluded.includes(m.source))
       && testPredicate(m.predicate, s.predicateCtx),
   );
 }

@@ -38,6 +38,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {object[]} auras            aura contributions, expanded by rules/auras.mjs
  * @property {object[]} revivals         ways back from zero Health, priority-ordered
  * @property {object[]} applicationChances  shifts to how likely an effect is to land
+ * @property {string[]} excludesOpponentSources  modifier sources dropped from the OPPONENT's bag
  * @property {object[]} compulsions       forced targets, expanded by rules/compulsion.mjs
  * @property {object[]} eventHandlers
  * @property {object[]} autoCounters  automatic counters, by provocation
@@ -71,7 +72,8 @@ export function empty() {
     attributes: [], magicResistance: null, variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [],
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
-    auras: [], applicationChances: [], compulsions: [], preemptions: [], unhandled: [],
+    auras: [], applicationChances: [], compulsions: [], preemptions: [],
+    excludesOpponentSources: [], unhandled: [],
     autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [],
@@ -945,6 +947,27 @@ export const EXECUTORS = Object.freeze({
       key: "attackerPropertyTier", table: el.table, property: el.property ?? "divinity",
       value: 0, predicate: deferred, source,
     });
+  },
+
+  /**
+   * Drop a named modifier source from the OPPONENT's contributions.
+   *
+   * > *"When a Unit with Active Mad Enhancement Attacks this Unit, the damage
+   * > boosting effect of Mad Enhancement is negated. When this Unit Attacks a
+   * > Unit with Active Mad Enhancement, the damage reducing effect of Mad
+   * > Enhancement is negated."* — Van Gogh
+   *
+   * One rule her sheet states twice, because "drop it from the other Unit's
+   * bag" reads differently from each end. `excludeModifierSources` is the
+   * ATTACK's version of this and belongs to a damage instance (Raikou's four);
+   * this one belongs to a UNIT and holds whichever side of the exchange it is
+   * on.
+   *
+   * The opponent's list, never the bearer's own: a Unit does not exclude its
+   * own modifiers, so a source name it happens to share cannot delete them.
+   */
+  NegateOpponentSource(el, { out }) {
+    for (const name of el.sources ?? []) out.excludesOpponentSources.push(name);
   },
 
   /* ── Group 1 — stat and derived-value modifiers ───────────────────────── */
