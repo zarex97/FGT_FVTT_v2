@@ -1,0 +1,22 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# "Applies the 'Uncharted' buff for 1◈ Turns to Drake, her Detect is increased
+# by 3 panels."
+#
+# `detect` is already in `rules/derived.mjs`'s `MODIFIABLE_PATHS`, so
+# `restoreModifiable` puts it back before each preparation and the +3 cannot
+# accumulate across prepares -- the drift Mad Enhancement's MOV +2 once had,
+# where Heracles went 6 -> 8 -> 10 -> 12 across four preparations.
+schema: 1
+id: uncharted
+name: "Uncharted"
+description: "Detect is increased by 3 panels."
+polarity: buff
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: StatDelta
+    stat: detect
+    add: 3

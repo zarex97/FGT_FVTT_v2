@@ -1,0 +1,56 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# The conditional anchor is Ch. 09 §9.3 and Nemo's Zero Sail shape exactly:
+# "Affects all allied Units within a 2 panel range of Drake; OR IF THE GOLDEN
+# HIND IS BOARDED, affects all allied Units upon the Golden Hind."
+#
+# TWO phases, not one, and that is the whole subtlety of this Skill. Effects
+# 1-3 say "affects all allied Units" and reuse the ability's own target list;
+# effect 4 says "TO DRAKE" and does not. A phase whose reach differs from its
+# ability's must state it -- defaulting is what once sent Scathach's tokens to
+# Medea, and here it would hand every ally +3 Detect.
+schema: 1
+id: drake-beyond-the-uncharted
+name: "Beyond the Uncharted"
+rank: A
+kind: skill
+slug: beyondTheUncharted
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel range of Drake; or if
+  the Golden Hind is boarded, affects all allied Units upon the Golden Hind. Has the following
+  effects-
+  1. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns, NP damage dealt is increased by 20%.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 20%; if NP, 10%.
+  3. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  4. Applies the @effect[uncharted]{Uncharted} buff for 1◈ Turns to Drake, her Detect is increased by 3 panels.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor:
+    kind: conditional
+    branches:
+      # The platform's CONTENT id, which is `platform-` prefixed.
+      # `golden-hind` is the filename and matches nothing.
+      - predicate: ["self:onPlatform:platform-golden-hind"]
+        anchor: { kind: platform, platformId: platform-golden-hind }
+        shape: { kind: zone }
+    otherwise:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+  # "all allied Units" includes herself -- F/GT's default, and the Skills that
+  # exclude their bearer say so explicitly.
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  # Effects 1-3: everyone the Skill's own targeting caught.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: npDmUp, duration: "1◈", magnitude: 20 }
+      - { id: atkUp, duration: "1◈", magnitude: 20, npMagnitude: 10 }
+      - { id: npRegen, duration: "1◈", magnitude: 1 }
+  # Effect 4: "to Drake". NOT `reuse`.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: uncharted, duration: "1◈" }
