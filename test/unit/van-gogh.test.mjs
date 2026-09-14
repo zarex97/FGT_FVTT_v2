@@ -832,8 +832,10 @@ describe("Van Gogh — the `gogh` buff", () => {
 
   it("eats one stage on an ordinary attack and two on a Crit", () => {
     expect(onAttack).toHaveLength(2);
-    const plain = onAttack.find((r) => !r.predicate);
-    const crit = onAttack.find((r) => JSON.stringify(r.predicate ?? []).includes("attack:crit"));
+    // Both now carry a predicate -- they partition on the Crit -- so they are
+    // told apart by what they take, not by which one is unguarded.
+    const plain = onAttack.find((r) => r.then[0].stages === 1);
+    const crit = onAttack.find((r) => r.then[0].stages === 2);
     expect(plain.then[0]).toMatchObject({ effect: "curse", stages: 1, cause: "gogh" });
     expect(crit.then[0]).toMatchObject({ effect: "curse", stages: 2, cause: "gogh" });
   });
@@ -1020,5 +1022,49 @@ describe("an addressless intent still has a subject (spec R1)", () => {
     // The unit a stage change HAPPENED to is not always the unit whose write
     // raised it -- Shadow of Longing takes stages off an enemy.
     expect(I.eventSubject(I.event("x", { unitId: "u1" }), "u2")).toBe("u1");
+  });
+});
+
+describe("the `gogh` buff's Crit clause REPLACES its ordinary one", () => {
+  // FOUND LIVE. Both `damageDealt` handlers are evaluated in one `fireEvent`
+  // pass against the same snapshot, so a Crit ran BOTH: the plain handler took
+  // one stage and the Crit handler took two, for three stages off one swing and
+  // three Atk Up where the sheet grants two.
+  //
+  // Measured on the board at Stage 1: one Crit, Curse gone, and TWO Atk Up on
+  // her -- one legitimate, one paid for a stage that was never there. Which is
+  // the exact failure my own comment in `gogh.yml` claimed the single-action
+  // `stages` shape had already prevented. It prevented it WITHIN one handler
+  // and said nothing about two.
+  //
+  // The sheet is an either/or: "remove one stage ... IF the Attack was a Crit,
+  // remove 2 stages", so the ordinary clause has to stand down on a Crit.
+  const gogh = src("effects", "gogh.yml");
+  const onAttack = gogh.rules.filter((r) => r.event === "damageDealt");
+  const asText = (r) => JSON.stringify(r.predicate ?? []);
+
+  it("has exactly the two halves", () => {
+    expect(onAttack).toHaveLength(2);
+  });
+
+  it("guards the ordinary half against a Crit", () => {
+    const plain = onAttack.find((r) => r.then[0].stages === 1);
+    expect(plain.predicate, "the one-stage removal must stand down on a Crit")
+      .toEqual([{ not: "attack:crit" }]);
+  });
+
+  it("fires the Crit half only on a Crit", () => {
+    const crit = onAttack.find((r) => r.then[0].stages === 2);
+    expect(asText(crit)).toContain("attack:crit");
+    expect(asText(crit)).not.toContain("not");
+  });
+
+  it("leaves exactly one half eligible for any given swing", () => {
+    // The invariant the defect broke: the two predicates must partition, so a
+    // swing matches one and only one.
+    const plain = onAttack.find((r) => r.then[0].stages === 1);
+    const crit = onAttack.find((r) => r.then[0].stages === 2);
+    expect(plain.predicate).toEqual([{ not: "attack:crit" }]);
+    expect(crit.predicate).toEqual(["attack:crit"]);
   });
 });

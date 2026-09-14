@@ -32,9 +32,17 @@ rules:
   # takes two in a single decrement and reports -2 -- where two separate
   # removals would raise two events and pay her twice for the same swing at
   # Stage 1, once legitimately and once for a stage that was not there.
+  #
+  # `not: attack:crit` is load-bearing and was MISSING. Both handlers are
+  # evaluated in one `fireEvent` pass against the same snapshot, so without it
+  # a Crit ran both -- one stage from here and two from below, three off a
+  # single swing where the sheet grants two. Found on the board: one Crit at
+  # Stage 1 left her holding TWO Atk Up. The sheet's "one stage ... IF a Crit,
+  # 2 stages" is an either/or, so this half stands down on a Crit.
   - key: OnEvent
     event: damageDealt
     automatic: true
+    predicate: [{ not: "attack:crit" }]
     then:
       - { key: RemoveEffect, effect: curse, stages: 1, cause: gogh }
   - key: OnEvent
