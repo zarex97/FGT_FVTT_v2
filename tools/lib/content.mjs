@@ -77,7 +77,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   "AttackerPropertyTier",
   "Knockback",
   "BlockLuckChecks",
-  "SuppressForeignEffects",
+  "SuppressForeignEffects", "NegateOpponentSource",
   // Group 5 — event handlers
   "OnEvent", "Aura", "GrantedAbility", "OfferAbilityUse", "RevivalSource",
   // Group 6 — suppression and meta
