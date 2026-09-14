@@ -516,3 +516,59 @@ describe("Drake — every ability she names now exists", () => {
     }
   });
 });
+
+describe("Drake — Golden Wild Hunt (NP2)", () => {
+  const a = src("abilities", "drake-golden-wild-hunt.yml");
+
+  it("hits 7x3 from whichever anchor applies, the same shape on both", () => {
+    const [ship] = a.targeting.anchor.branches;
+    expect(ship.shape).toEqual({ kind: "orientedRect", short: 3, long: 7 });
+    expect(a.targeting.anchor.otherwise.shape).toEqual(ship.shape);
+  });
+
+  it("uses short/long, never w/h", () => {
+    // The anchor's facing decides which becomes the width, which is what makes
+    // one entry describe both the 7x3 and the 3x7 the sheet names.
+    expect(a.targeting.anchor.branches[0].shape.w).toBeUndefined();
+  });
+
+  it("uses the ship's Base Attack even with no ship (spec R1)", () => {
+    // The sheet exempts only the Range. `contentId`, not `unit`: a board
+    // lookup cannot answer a Noble Phantasm that fires with no ship on the
+    // board, and would fall back to her own 100.
+    expect(a.damage.sources).toEqual([
+      { contentId: "platform-golden-hind", component: "mag", factor: 1 },
+    ]);
+    expect(a.damage.multiplier).toBe(4);
+    expect(a.damage.flatBonus).toBe(100);
+  });
+
+  it("reads 200 off the platform document, so the sum is 900", () => {
+    const hind = src("platforms", "golden-hind.yml");
+    expect(hind.baseAttack.mag).toBe(200);
+    expect(hind.baseAttack.mag * a.damage.multiplier + a.damage.flatBonus).toBe(900);
+  });
+
+  it("scales on Total damage, not on stage 4 (spec R5)", () => {
+    const mods = a.rules.filter((r) => r.key === "DamageModifier");
+    expect(mods).toHaveLength(2);
+    for (const rule of mods) expect(rule.stage).toBe("total");
+  });
+
+  it("gives +10% per token and −15% at none", () => {
+    const per = a.rules.find((r) => r.perResource);
+    expect(per.value).toBe(10);
+    expect(per.perResource).toEqual({ resource: "galleonTokens", each: 1 });
+    const zero = a.rules.find((r) => r.value === -15);
+    expect(zero.predicate).toEqual(["self:resourceEmpty:galleonTokens"]);
+  });
+
+  it("only targets enemies", () => {
+    expect(a.targeting.selection.relations).toEqual(["enemy"]);
+  });
+
+  it("keeps its own 7◈+⅓◈ cooldown, counted from use unlike NP1", () => {
+    // NP1's clock waits for the ship to go; this one is an ordinary attack.
+    expect(a.cooldown).toBe("7◈+⅓◈");
+  });
+});

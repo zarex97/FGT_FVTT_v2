@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { parse } from "yaml";
 import {
   TARGET_SHAPES, TARGET_ANCHORS, SHAPE_IDS, ANCHOR_IDS,
 } from "../../module/rules/targeting/vocabulary.mjs";
@@ -841,5 +842,36 @@ describe("cross-level protection in the target ladder (§20.7)", () => {
   it("leaves same-level targeting untouched", () => {
     const ground = boardWith([unit("foe", 6, 6)]);
     expect(validate(spec(), { ...caster, range: 4 }, ground, { panel: at(6, 6) }).ok).toBe(true);
+  });
+});
+
+/**
+ * A facing that reaches the shape.
+ *
+ * `orientedRect` reads `anchor.direction`, and until Drake only
+ * `selfEdgeAdjacent` ever supplied one -- which is why Nemo's Barrel Bombing
+ * pairs the two. The `platform` and `self` anchors returned no direction at
+ * all, so a 7x3 anchored on the Golden Hind would have fired due north
+ * whichever way the bow pointed, and the shipless branch the same.
+ *
+ * The facing itself was never missing: `PlatformData` spreads `unitCommon()`,
+ * so a platform has carried `system.facing` all along and `snapshot.mjs`
+ * projects it. Nothing had ever asked the anchor for it.
+ */
+describe("orientedRect — the vocabulary matches the shape", () => {
+  it("declares the fields the shape actually reads", () => {
+    // `shapes.mjs` reads `shape.short` and `shape.long`; the entry said w/h,
+    // so the ability editor prompted for two fields nothing reads.
+    const entry = TARGET_SHAPES.find((s) => s.id === "orientedRect");
+    expect(entry.needs).toEqual(["short", "long"]);
+  });
+
+  it("is authored as short/long by the content that already uses it", () => {
+    const berserker = parse(readFileSync(
+      "packs/_source/abilities/normal-berserker-np-a.yml", "utf8",
+    ));
+    expect(berserker.targeting.shape).toMatchObject({ kind: "orientedRect" });
+    expect(berserker.targeting.shape.short).toBeDefined();
+    expect(berserker.targeting.shape.w).toBeUndefined();
   });
 });

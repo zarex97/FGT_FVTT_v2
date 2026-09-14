@@ -230,6 +230,22 @@ export const FACETS = Object.freeze([
     prose: "{field} is open",
   }),
   facet({
+    // A pool that is EMPTY, rather than a threshold.
+    //
+    // Drake's broadside: *"if she has no Galleon Tokens, Total damage dealt is
+    // reduced by 15%."* The positive side of that clause is `perResource` on
+    // the modifier itself -- it scales with what she holds and contributes
+    // nothing at zero -- so the only thing a predicate has to answer is the
+    // penalty's condition, which is exactly "none".
+    //
+    // Emitted for every pool the unit carries, so a clause about a pool the
+    // unit does not have at all is false rather than accidentally true.
+    id: "resourceEmpty",
+    segments: [{ name: "resource", value: open() }],
+    english: "Holds none of a named resource.",
+    prose: "{subject} has no {resource}",
+  }),
+  facet({
     id: "onPlatform",
     segments: [{ name: "platform", value: registry("contentIds") }],
     english: "Is aboard a named Platform.",

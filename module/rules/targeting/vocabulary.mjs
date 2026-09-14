@@ -152,7 +152,14 @@ export const TARGET_SHAPES = Object.freeze([
     schematic: [".....", ".....", "@####", ".....", "....."],
   },
   {
-    id: "orientedRect", label: "FGT.Shape.orientedRect", hint: "FGT.Shape.orientedRectHint", needs: ["w", "h"],
+    // `short`/`long`, NOT `w`/`h`: the ANCHOR's direction decides which of the
+    // two becomes the width, so a width and a height cannot describe the shape
+    // at all. `shapes.mjs` has read `short`/`long` since it was written and
+    // this entry said otherwise, so the ability editor prompted for two fields
+    // nothing reads -- and `normal-berserker-np-a.yml` carried a comment
+    // warning about it rather than a fix.
+    id: "orientedRect", label: "FGT.Shape.orientedRect", hint: "FGT.Shape.orientedRectHint",
+    needs: ["short", "long"],
     schematic: [".....", ".....", "@###.", ".###.", "....."],
   },
   {

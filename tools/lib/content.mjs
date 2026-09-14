@@ -1723,6 +1723,13 @@ function actorSystem(doc) {
     // "The HGoB counts as a second Home Base for Semiramis' Faction."
     countsAsHomeBase: Boolean(doc.countsAsHomeBase),
     deactivation: doc.deactivation ?? null,
+    // The three per-platform rules the Golden Hind is the first to state: a
+    // boarding roll of its own (`rules/platforms.mjs#boardingTarget`), riders
+    // it will not let off (`#canUnboard`), and effects on its OWNER that
+    // switch it off (`#deactivatedBy`).
+    boarding: doc.boarding ?? null,
+    lockAboard: doc.lockAboard ?? [],
+    deactivateOn: doc.deactivateOn ?? [],
     // Pale Rider and the Kagome Spirits: "Base Health: -", "cannot be
     // damaged". Without this the flag compiled to its schema default and each
     // type's `prepareBaseData` backfilled a Health the sheet does not state.

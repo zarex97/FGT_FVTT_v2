@@ -1,0 +1,78 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# The broadside. Spec R1 and R5.
+#
+# "The Golden Hind's Base Attack (MAG) is used" -- flatly -- and the shipless
+# clause exempts exactly one thing: "in this case the RANGE is still the same,
+# just applied to Drake." So only the ANCHOR is conditional; the damage is
+# 4 x 200 + 100 = 900 either way (spec R1).
+#
+# That is why the source is a `contentId` rather than a `unit`: a `unit` source
+# resolves against the BOARD and falls back to the attacker, so with no ship on
+# the board it would quietly hand back her own BA(MAG) 100 and halve the Noble
+# Phantasm. The platform document's 200 is a constant, present or not.
+#
+# Both Galleon modifiers are TOTAL damage (stage 15), not stage 4 -- her sheet
+# says "Total damage dealt" in both directions, and §13.4 makes the distinction
+# real: stage 4 pools every percentage into one additive bucket before eleven
+# more stages run, where stage 15 multiplies the finished number.
+schema: 1
+id: drake-golden-wild-hunt
+name: "Golden Wild Hunt: The Night of the Golden Hind and the Storm"
+rank: "A+"
+isNP: true
+categorizedAsNP: true
+npTags: [antiArmy]
+kind: noblePhantasm
+cooldown: "7◈+⅓◈"
+timing: { window: ownTurn }
+description: |
+  The Golden Hind's Base Attack (MAG) is used. Hits a 7x3 or 3x7 panel area in the direction the
+  Golden Hind is facing (i.e. where the ship's bow is facing) for 4x damage plus 100. Additionally,
+  Total damage dealt is further increased by 10% for every Galleon Token on herself; however, if
+  she has no Galleon Tokens, Total damage dealt is reduced by 15%.
+
+  Note: Can be used even if the Golden Hind isn't present/activated; in this case the Range is
+  still the same, just applied to Drake. Cooldown: 7◈+⅓◈ Turns.
+targeting:
+  anchor:
+    kind: conditional
+    branches:
+      - predicate: ["self:onPlatform:platform-golden-hind"]
+        anchor: { kind: platform, platformId: platform-golden-hind }
+        # `short`/`long`, never `w`/`h`: the anchor's facing decides which of
+        # the two becomes the width, which is what makes one entry describe
+        # both the 7x3 and the 3x7 the sheet names.
+        shape: { kind: orientedRect, short: 3, long: 7 }
+    otherwise:
+      # "the Range is still the same, just applied to Drake" -- the same shape,
+      # a different origin, and her own facing decides the direction.
+      anchor: { kind: self }
+      shape: { kind: orientedRect, short: 3, long: 7 }
+  selection: { relations: [enemy], chooser: all }
+damage:
+  # "4x damage plus 100". Heracles's Nine Lives is the precedent for the
+  # pairing, and `flatBonus` is the field it uses.
+  multiplier: 4
+  flatBonus: 100
+  component: mag
+  sources:
+    # Spec R1: the SHIP's 200, present or not.
+    - { contentId: platform-golden-hind, component: mag, factor: 1 }
+rules:
+  # "Total damage dealt is further increased by 10% for every Galleon Token on
+  # herself" -- Total, so stage 15 (spec R5). At zero tokens it contributes
+  # nothing at all, which is why the penalty below is a separate clause rather
+  # than a floor on this one.
+  - key: DamageModifier
+    direction: dealt
+    stage: total
+    value: 10
+    perResource: { resource: galleonTokens, each: 1 }
+  # "however, if she has no Galleon Tokens, Total damage dealt is reduced by
+  # 15%." Also Total, and mutually exclusive with the band above by arithmetic.
+  - key: DamageModifier
+    direction: dealt
+    stage: total
+    value: -15
+    predicate: ["self:resourceEmpty:galleonTokens"]

@@ -1325,6 +1325,8 @@
   "FGT.Predicate.Facet.inFieldHint": "Is standing inside a named bounded field.",
   "FGT.Predicate.Facet.fieldActive": "Field Active",
   "FGT.Predicate.Facet.fieldActiveHint": "A named bounded field is open somewhere on the board.",
+  "FGT.Predicate.Facet.resourceEmpty": "Resource Empty",
+  "FGT.Predicate.Facet.resourceEmptyHint": "Holds none of a named resource.",
   "FGT.Predicate.Facet.onPlatform": "On Platform",
   "FGT.Predicate.Facet.onPlatformHint": "Is aboard a named Platform.",
   "FGT.Predicate.Facet.source": "Revival Source",
