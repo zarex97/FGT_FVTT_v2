@@ -1,0 +1,16 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# One line of sheet, one rule element. "All damage dealt is increased by 6%
+# including NP" -- `npValue` equal to `value` IS "including NP": most offensive
+# percentages carry a reduced NP magnitude and this one does not.
+schema: 1
+id: gogh-insanity
+name: "Insanity"
+rank: C
+kind: skill
+slug: insanity
+passive: true
+description: |
+  (Passive) All damage dealt is increased by 6% including NP.
+passiveRules:
+  - { key: DamageModifier, modifierKey: atkUp, direction: dealt, value: 6, npValue: 6 }

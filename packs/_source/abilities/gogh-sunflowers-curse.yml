@@ -1,0 +1,35 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# Passive 1's reader ALREADY EXISTS and already names this Skill.
+# `packs/_source/command-spells/cs-kill-yourself.yml` carries
+#
+#     - { kind: targetNotImmune, attribute: immuneToKillYourself }
+#
+# with the comment "Van Gogh's Sunflower's Curse is the only stated immunity to
+# a Command Spell, and it is checked at OFFER time so the option never
+# appears." `rules/command-spells.mjs` defaults the attribute name to the same
+# string. All this Skill has to do is grant the attribute.
+#
+# NOT a blanket Command Spell immunity: the sheet names one order. Escape,
+# Full Heal and Cure Servant still reach her, and none of them is mentioned.
+#
+# `add` takes a LIST -- it is the attribute-tag field, and a number there is
+# iterated as a set and throws out of `contributionsOf`, taking the whole board
+# snapshot with it. Drake's `uncharted` found that the hard way.
+#
+# Passive 2 -- the Curse floor -- is authored with its reader in Task 7.
+schema: 1
+id: gogh-sunflowers-curse
+name: "Sunflower's Curse"
+rank: A
+kind: skill
+slug: sunflowersCurse
+passive: true
+description: |
+  (Passive 1) Gogh cannot be ordered to commit suicide/kill herself, even with a Command Spell.
+  (Passive 2) Gogh's Health cannot drop below 1 due to the effects of @effect[curse]{Curse}
+  (Gogh cannot be defeated due to the effects of Curse).
+passiveRules:
+  - key: StatDelta
+    stat: attributes
+    add: [immuneToKillYourself]
