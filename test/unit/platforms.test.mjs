@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import {
   platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
-  boardingTarget, canUnboard, fallOff, destructionSequence, aoePassengerFactor,
+  boardingTarget, canUnboard, upkeepDue, fallOff, destructionSequence, aoePassengerFactor,
   platformCentre, withinPlatformCentre, deactivationVerdict, actionSourceFor,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
@@ -554,5 +554,58 @@ describe("canUnboard — a rider locked aboard", () => {
 
   it("allows the owner when nothing is locked", () => {
     expect(canUnboard({ id: "semiramis" }, { id: "hgob", ownerId: "semiramis" }).ok).toBe(true);
+  });
+});
+
+/**
+ * Two clocks, and the sheets distinguish them.
+ *
+ * Jack's Mist and the Quetzalcoatlus charge every N TICKS from when they
+ * opened. The Golden Hind charges *"at the end of every ~~Round/1◈ Turns~~
+ * full Round"* -- the author's own strikethrough rejecting the tick reading.
+ *
+ * With a variable `turnsPerRound` the two are different moments, which is why
+ * this is a branch rather than a conversion (spec R6).
+ */
+describe("upkeepDue — a tick period and a Round boundary", () => {
+  const ticked = { every: "1◈", cost: { kind: "health", amount: 25, payer: "ownerMaster" } };
+  const rounded = { every: "round", cost: { kind: "health", amount: 50, payer: "ownerMaster" } };
+  const base = { turnsPerRound: 3, createdAt: 0, lastUpkeepAt: null, lastUpkeepRound: null };
+
+  it("charges a tick period once its ticks have elapsed", () => {
+    expect(upkeepDue(ticked, { ...base, tick: 3, atRoundBoundary: false }).due).toBe(true);
+    expect(upkeepDue(ticked, { ...base, tick: 2, atRoundBoundary: false }).due).toBe(false);
+  });
+
+  it("never charges a Round toll away from the boundary", () => {
+    // The turn-end sweep must not touch it, however many ticks have passed.
+    expect(upkeepDue(rounded, { ...base, tick: 99, atRoundBoundary: false }).due).toBe(false);
+  });
+
+  it("charges a Round toll on the boundary", () => {
+    expect(upkeepDue(rounded, { ...base, tick: 3, round: 1, atRoundBoundary: true }).due).toBe(true);
+  });
+
+  it("does not charge twice in one Round", () => {
+    const paid = { ...base, lastUpkeepRound: 2 };
+    expect(upkeepDue(rounded, { ...paid, tick: 6, round: 2, atRoundBoundary: true }).due).toBe(false);
+    expect(upkeepDue(rounded, { ...paid, tick: 9, round: 3, atRoundBoundary: true }).due).toBe(true);
+  });
+
+  it("never charges a tick period at a Round boundary sweep", () => {
+    // The two call sites are disjoint: each handles exactly one clock, so a
+    // platform cannot be charged twice on a turn that also ends a Round.
+    expect(upkeepDue(ticked, { ...base, tick: 3, round: 1, atRoundBoundary: true }).due).toBe(false);
+  });
+
+  it("is not due at all when nothing is authored", () => {
+    expect(upkeepDue(null, { ...base, tick: 9, atRoundBoundary: true }).due).toBe(false);
+    expect(upkeepDue({ amount: 50, supersedes: ["npCost"] }, { ...base, tick: 9 }).due).toBe(false);
+  });
+
+  it("counts a Round toll from activation when it has never charged", () => {
+    // A ship raised mid-Round pays at the end of that Round, which is what
+    // "at the end of every full Round Golden Hind is Active" says.
+    expect(upkeepDue(rounded, { ...base, tick: 2, round: 1, atRoundBoundary: true }).due).toBe(true);
   });
 });

@@ -31,7 +31,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan, chance } from "../rules/checks.mjs";
 import { applyWorldIntents } from "./applier.mjs";
-import { platformCentre, deactivationVerdict } from "../rules/platforms.mjs";
+import { platformCentre, deactivationVerdict, upkeepDue } from "../rules/platforms.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
@@ -1138,10 +1138,19 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
  * **instead** of being charged — not charged and then closed, which would take
  * a Master to 0 and kill a Servant the sheet is protecting.
  *
+ * **Two sweeps, disjoint.** This runs at the end of every Turn for tick-period
+ * tolls, and again at the end of every Round -- with `round` set -- for the
+ * Golden Hind's *"at the end of every full Round"*. `rules/platforms.mjs#upkeepDue`
+ * decides which entries each sweep may touch, so no platform is charged twice
+ * on a Turn that also ends a Round.
+ *
  * @param {number} tick the global turn that just ended
+ * @param {object} [opts]
+ * @param {number|null} [opts.round] the Round that just ended, at a Round boundary
  * @returns {Promise<void>}
  */
-export async function runUpkeep(tick) {
+export async function runUpkeep(tick, { round = null } = {}) {
+  const atRoundBoundary = round !== null;
   const board = currentBoard();
   const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
 
@@ -1163,16 +1172,24 @@ export async function runUpkeep(tick) {
     const upkeep = field.upkeep;
     if (!upkeep?.every) continue;
 
-    const period = resolveTicks(parseTick(upkeep.every), { turnsPerRound });
-    if (!(period > 0)) continue;
     // `activatedAt` is a platform's `createdAt`; the two names are the same
     // fact on two document types.
-    const since = tick - (field.lastUpkeepAt ?? field.createdAt ?? field.activatedAt ?? tick);
-    if (since < period) continue;
+    const verdict = upkeepDue(upkeep, {
+      tick,
+      round,
+      atRoundBoundary,
+      lastUpkeepAt: field.lastUpkeepAt ?? null,
+      lastUpkeepRound: field.lastUpkeepRound ?? null,
+      createdAt: field.createdAt ?? field.activatedAt ?? tick,
+      turnsPerRound,
+    });
+    if (!verdict.due) continue;
 
-    // Who pays. `ownerMaster` is the only payer any sheet names, but the field
-    // is the wrong place to assume it: the Golden Hind's upkeep is Drake's own
-    // Health, and that is the same axis with a different payer.
+    // Who pays. `ownerMaster` is what every sheet in the set names, the Golden
+    // Hind included -- *"Drake's MASTER loses 50 Health"*. The `owner` branch
+    // stays because the axis is real and a sheet may yet use it, but nothing in
+    // the corpus does; the note that once claimed the Golden Hind did was
+    // simply wrong about her sheet.
     const payerId = upkeep.cost?.payer === "owner"
       ? field.ownerId
       : (field.ownerMasterId ?? game.actors.get(field.ownerId)?.system?.masterId ?? null);
@@ -1195,7 +1212,7 @@ export async function runUpkeep(tick) {
       [I.damage(payer.id, amount, null, { bypassModifiers: true, source: field.id })],
       "field:upkeep",
     );
-    await stampUpkeep(field, tick);
+    await stampUpkeep(field, tick, round);
   }
 }
 
@@ -1210,16 +1227,29 @@ export async function runUpkeep(tick) {
  * @param {number} tick
  * @returns {Promise<void>}
  */
-async function stampUpkeep(field, tick) {
+async function stampUpkeep(field, tick, round = null) {
+  // A Round toll records the ROUND it charged on, not the tick: comparing
+  // ticks would need `turnsPerRound` to derive a period, which is the reading
+  // the Golden Hind's sheet struck out.
+  const stamp = round === null
+    ? { "system.lastUpkeepAt": tick }
+    : { "system.lastUpkeepAt": tick, "system.lastUpkeepRound": round };
+
   // A platform's clock lives on the ACTOR; a field's lives on the Region
   // behaviour that backs it. Same fact, two document types.
   if (field.kind === "platform") {
-    await game.actors.get(field.id)?.update({ "system.lastUpkeepAt": tick });
+    await game.actors.get(field.id)?.update(stamp);
     return;
   }
   const behavior = behaviorFor(field.id);
   if (!behavior) return;
-  await behavior.update({ "system.state": { ...(behavior.system?.state ?? {}), lastUpkeepAt: tick } });
+  await behavior.update({
+    "system.state": {
+      ...(behavior.system?.state ?? {}),
+      lastUpkeepAt: tick,
+      ...(round === null ? {} : { lastUpkeepRound: round }),
+    },
+  });
 }
 
 /**

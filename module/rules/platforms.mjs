@@ -295,6 +295,68 @@ export function actionSourceFor(unit, board) {
 }
 
 /**
+ * Is a recurring toll due on this sweep?
+ *
+ * **Two clocks, and the sheets distinguish them.** Jack's Mist and
+ * Quetzalcoatl's mount charge every N *ticks* from when they opened:
+ * *"After every 1◈ Turns, Quetz's Master's Health is reduced by 25 at the end
+ * of the Turn."* The Golden Hind charges on the Round:
+ *
+ * > *"At the end of every ~~Round/1◈ Turns~~ **full Round** Golden Hind is
+ * > Active, Drake's Master loses 50 Health."*
+ *
+ * The strikethrough is the author's, and it is the whole reason this is a
+ * branch rather than a conversion: `turnsPerRound` is a world setting, so
+ * "1◈ since activation" and "the end of the Round" are different moments in
+ * every world where a Round is not exactly one turn long (spec R6).
+ *
+ * The two sweeps are **disjoint** — the turn-end call passes
+ * `atRoundBoundary: false` and never sees a Round toll, the round-end call
+ * passes `true` and never sees a tick period. So a platform cannot be charged
+ * twice on a turn that also happens to end a Round.
+ *
+ * A block with an `amount` and no `every` is the OTHER documented shape of
+ * `upkeep` — a cost that supersedes another (§15.4) rather than a recurring
+ * toll — and is not due here at any tick. The Golden Hind carries both at once
+ * and is the first platform to do so.
+ *
+ * @param {object|null} upkeep the authored block
+ * @param {object} ctx
+ * @param {number} ctx.tick now
+ * @param {number} [ctx.round] the Round now, for a Round toll
+ * @param {boolean} ctx.atRoundBoundary which sweep is asking
+ * @param {number|null} [ctx.lastUpkeepAt] the tick it last charged
+ * @param {number|null} [ctx.lastUpkeepRound] the Round it last charged
+ * @param {number} [ctx.createdAt] activation tick, which a period counts from
+ * @param {number} ctx.turnsPerRound
+ * @returns {{due: boolean, reason?: string}}
+ */
+export function upkeepDue(upkeep, {
+  tick, round = null, atRoundBoundary = false,
+  lastUpkeepAt = null, lastUpkeepRound = null, createdAt = 0, turnsPerRound = 3,
+} = {}) {
+  if (!upkeep?.every) return { due: false, reason: "noPeriod" };
+
+  if (upkeep.every === "round") {
+    if (!atRoundBoundary) return { due: false, reason: "notRoundBoundary" };
+    // Compare ROUNDS, never a derived tick count: deriving one would silently
+    // reinstate the reading the sheet struck out.
+    if (lastUpkeepRound !== null && lastUpkeepRound === round) {
+      return { due: false, reason: "alreadyThisRound" };
+    }
+    return { due: true };
+  }
+
+  // A tick period belongs to the turn-end sweep alone.
+  if (atRoundBoundary) return { due: false, reason: "tickPeriodAtRoundBoundary" };
+
+  const period = resolveTicks(parseTick(upkeep.every), { turnsPerRound });
+  if (!(period > 0)) return { due: false, reason: "unparseablePeriod" };
+  const since = tick - (lastUpkeepAt ?? createdAt ?? tick);
+  return since < period ? { due: false, reason: "tooSoon" } : { due: true };
+}
+
+/**
  * Whether a rider may step off.
  *
  * > *"Drake cannot unboard the Golden Hind."*

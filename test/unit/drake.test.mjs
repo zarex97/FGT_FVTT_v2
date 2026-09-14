@@ -403,3 +403,36 @@ describe("The Golden Hind — boarding (spec R7)", () => {
     expect(h.boarding.target).toBe(h.boarding.die);
   });
 });
+
+describe("The Golden Hind — the toll (spec R6, R11, R12)", () => {
+  const h = src("platforms", "golden-hind.yml");
+
+  it("charges her MASTER 50 on the Round boundary", () => {
+    expect(h.upkeep.every).toBe("round");
+    expect(h.upkeep.cost).toEqual({ kind: "health", amount: 50, payer: "ownerMaster" });
+  });
+
+  it("charges on the Round, not on a 1◈ period (spec R6)", () => {
+    // Her sheet strikes out "Round/1◈ Turns" in favour of "full Round", and
+    // with a variable turnsPerRound the two are different moments.
+    expect(h.upkeep.every).not.toBe("1◈");
+    // The Quetzalcoatlus is the tick-period platform, and stays one.
+    expect(src("platforms", "quetzalcoatlus.yml").upkeep.every).toBe("1◈");
+  });
+
+  it("closes instead of charging when he cannot pay (spec R12)", () => {
+    expect(h.upkeep.endWhenUnaffordable).toBe(true);
+  });
+
+  it("replaces the normal NP Master-health loss rather than stacking (R11)", () => {
+    expect(h.upkeep.supersedes).toEqual(["npCost"]);
+  });
+
+  it("carries BOTH documented shapes of `upkeep` at once", () => {
+    // The first platform to do so. `runUpkeep` filters on `every` and
+    // `attack.mjs` reads `supersedes`; the filter is the only thing keeping
+    // the two readers apart, so this is the test that holds it.
+    expect(h.upkeep.every).toBeDefined();
+    expect(h.upkeep.supersedes).toBeDefined();
+  });
+});

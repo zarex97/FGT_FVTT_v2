@@ -207,6 +207,16 @@ async function onRoundChange(combat, updateData, options) {
 
   await run(scheduler.endRound(board, ctx), "scheduler:endRound");
 
+  // The second upkeep sweep, for tolls charged on the ROUND rather than on a
+  // tick period. The Golden Hind is the only one: *"At the end of every
+  // ~~Round/1◈ Turns~~ full Round Golden Hind is Active, Drake's Master loses
+  // 50 Health."* The strikethrough is the author's.
+  //
+  // Disjoint from the turn-end sweep above -- `upkeepDue` lets each call see
+  // only its own clock -- so a Hind whose Round ends on its owner's Turn is
+  // charged once, not twice.
+  await fields.runUpkeep(ctx.tick, { round: ctx.round });
+
   // The Grail's contest and the victory check, both evaluated at round end
   // (§19.4). Written back to the match, which is the runtime owner the Grail
   // never had -- `grailCounter` sat on `MatchData` from the start with nothing
