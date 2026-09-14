@@ -239,3 +239,57 @@ describe("Van Gogh — Existence Outside The Domain A", () => {
     expect(el("DamageModifier").length).toBeGreaterThan(2);
   });
 });
+
+describe("Van Gogh — Item Construction B− (spec R10)", () => {
+  const ic = src("class-skills", "item-construction-gogh.yml");
+  const aura = ic.passiveRules.find((r) => r.key === "Aura");
+
+  it("is a third ability of this name, and not Medea's or Semiramis's", () => {
+    // Medea's is the same SHAPE at different numbers; Semiramis's creates
+    // Items and shares nothing but the title.
+    expect(src("abilities", "medea-item-construction.yml").rank).toBe("A");
+    expect(src("abilities", "semiramis-item-construction.yml").phases[0].kind).toBe("itemGrant");
+    // Hers is parameterized, so the rank lives on the Servant's ref -- which
+    // is also what lets it contest Medea's A by rank at all.
+    expect(ic.parameterized).toEqual(["rank"]);
+    expect(src("servants", "van-gogh.yml").abilities)
+      .toContainEqual({ ref: "class-item-construction-gogh", rank: "B-" });
+  });
+
+  it("reaches allies at radius 2", () => {
+    expect(aura.radius).toBe(2);
+    expect(aura.relations).toEqual(["ally", "self"]);
+  });
+
+  it("does not stack, and the whole Skill wins by rank", () => {
+    // `group` rather than per-element comparison: a C-rank instance winning
+    // one tier and losing another would blend two Skills that never existed.
+    // `rules/auras.mjs` resolves this already and quotes the clause verbatim.
+    expect(aura.stacking).toBe("highestOnly");
+    expect(aura.group).toBe("itemConstruction");
+  });
+
+  it("shares its group with Medea's, so the two contest by rank", () => {
+    const medea = src("abilities", "medea-item-construction.yml");
+    const theirs = medea.passiveRules.find((r) => r.key === "Aura");
+    expect(theirs.group).toBe(aura.group);
+  });
+
+  it("carries six elements on the sheet's ladder: 35 / 15 / 5, both ways", () => {
+    const by = (dir, sev) => aura.elements.find(
+      (e) => e.direction === dir && String(e.severity).includes(sev),
+    );
+    for (const dir of ["outgoing", "incoming"]) {
+      expect(by(dir, "normal").value).toBe(35);
+      expect(by(dir, "instakill").value).toBe(15);
+      expect(by(dir, "death").value).toBe(5);
+    }
+  });
+
+  it("uses the direction values the executor actually reads", () => {
+    // `effect-applier.mjs` calls chanceContribution(..., "incoming") and
+    // (..., "outgoing") and defaults to "incoming", so a wrong value applies
+    // silently in the wrong direction.
+    for (const e of aura.elements) expect(["incoming", "outgoing"]).toContain(e.direction);
+  });
+});

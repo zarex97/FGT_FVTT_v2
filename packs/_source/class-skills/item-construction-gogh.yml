@@ -1,0 +1,51 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# The THIRD ability called "Item Construction" in the corpus. Medea's
+# (`medea-item-construction.yml`) is the same shape at A rank with different
+# numbers; Semiramis's creates actual Items and shares nothing but the title.
+#
+# "Only the Item Construction with the highest Rank takes effect" is free:
+# `rules/auras.mjs` resolves `highestOnly`, makes it the default, and quotes
+# this exact clause in its own comment. `group` makes the whole Skill win as a
+# unit -- comparing element values instead would let a C-rank instance win one
+# tier and lose another, blending two Skills that never existed. Sharing the
+# group with Medea's is what makes the two contest at all.
+#
+# There is a real tension here the sheet creates deliberately: passive 2
+# reduces HER incoming debuff chance by 35%, and she spends the whole match
+# trying to land Curse on herself. Spec R8 resolves it -- a 500% chance is a
+# number meant to survive subtraction.
+schema: 1
+id: class-item-construction-gogh
+name: "Item Construction"
+source: class
+slug: itemConstruction
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive) Affects all allied Units within a 2 panel area of this Unit.
+  1. The chance of inflicting debuffs is increased by 35%; this effect is halved for
+     @effect[instakill]{Instakill} (15%), and further halved for @effect[death]{Death} (5%).
+  2. The chance of being inflicted by debuffs is reduced by 35%; Instakill 15%, Death 5%.
+  If a Unit is affected by multiple instances of this Skill, only the Item Construction with the
+  highest Rank takes effect.
+passiveRules:
+  - key: Aura
+    radius: 2
+    relations: [ally, self]
+    stacking: highestOnly
+    group: itemConstruction
+    rank: "@rank"
+    elements:
+      # Outgoing -- what the Unit inflicts.
+      - { key: ApplicationChance, direction: outgoing, valence: offensive, severity: normal, value: 35 }
+      - { key: ApplicationChance, direction: outgoing, severity: instakill, value: 15 }
+      - { key: ApplicationChance, direction: outgoing, severity: death, value: 5 }
+      # Incoming -- what it resists. A resistance is a POSITIVE value inward;
+      # the applier subtracts it.
+      - { key: ApplicationChance, direction: incoming, valence: offensive, severity: normal, value: 35 }
+      - { key: ApplicationChance, direction: incoming, severity: instakill, value: 15 }
+      - { key: ApplicationChance, direction: incoming, severity: death, value: 5 }

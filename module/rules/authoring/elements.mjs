@@ -285,7 +285,14 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   /* ── Effects, immunity and application ───────────────────────────────── */
   entry("ApplicationChance", "Shifts how likely an effect is to LAND, not what it does once it has.", [
     ...SCALED,
-    { key: "direction", type: "select", choices: ["inflicting", "receiving"] },
+    // `incoming` / `outgoing`, which is what `effect-applier.mjs` compares
+    // against -- `chanceContribution(target, def, "incoming", …)` and
+    // `(attacker, def, "outgoing", …)`, defaulting to `incoming`. This entry
+    // said `inflicting`/`receiving`, so a GM picking from the editor authored
+    // a direction nothing matches and the default applied it INWARD. Every
+    // authored element in the corpus already used the real pair, which is why
+    // no content ever showed it.
+    { key: "direction", type: "select", choices: ["incoming", "outgoing"] },
     { key: "polarity", type: "select", choices: ["buff", "debuff"] },
     { key: "valence", type: "text" },
     { key: "volatility", type: "text" },
