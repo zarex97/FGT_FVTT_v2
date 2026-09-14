@@ -11,7 +11,10 @@ import { parse } from "yaml";
 
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
-import { MODIFIABLE_PATHS } from "../../module/rules/derived.mjs";
+import { EXECUTORS } from "../../module/rules/elements.mjs";
+import { ELEMENT_DESCRIPTORS } from "../../module/rules/authoring/elements.mjs";
+import { MODIFIABLE_PATHS, applyStatDeltas } from "../../module/rules/derived.mjs";
+import { detectRangeOf } from "../../module/rules/identity.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -256,13 +259,16 @@ describe("Drake — Beyond the Uncharted", () => {
   });
 
   it("increases Detect by 3", () => {
-    expect(uncharted.rules[0]).toMatchObject({ key: "StatDelta", stat: "detect", add: 3 });
+    // `value`, not `add` -- see the Uncharted describe below for the live
+    // crash that distinction caused.
+    expect(uncharted.rules[0]).toMatchObject({ key: "StatDelta", stat: "detect", value: 3 });
   });
 
-  it("writes a stat `restoreModifiable` puts back each preparation", () => {
-    // Without this the +3 lands again on every prepare and her Detect drifts --
-    // the defect Mad Enhancement's MOV +2 had, at 6 -> 8 -> 10 -> 12.
-    expect(MODIFIABLE_PATHS).toContain("detect");
+  it("does NOT write the stat, which is what stops it drifting", () => {
+    // This asserted the opposite until the live pass: `detect` was in
+    // `MODIFIABLE_PATHS`, and because a Servant's stored Detect is null the
+    // reset skipped it and the +3 accumulated. See the Uncharted describe.
+    expect(MODIFIABLE_PATHS).not.toContain("detect");
   });
 });
 
@@ -602,5 +608,108 @@ describe("Riding's MOV Up reaches the effect it is applied with", () => {
     const active = src("effects", "riding-active.yml");
     const mov = active.rules.find((r) => r.key === "MovDelta");
     expect(mov.value).toBe("@magnitude");
+  });
+});
+
+describe("Uncharted raises Detect, and a bad magnitude cannot take the board down", () => {
+  // FOUND LIVE, as a thrown TypeError out of `currentBoard()`.
+  //
+  // `StatDelta`'s `add` is the ATTRIBUTE-tag list -- Divinity's `divine` --
+  // and `uncharted` authored `add: 3` against an authoring vocabulary that
+  // described the field as a number. The executor then did
+  // `for (const attribute of el.add)` over a 3 and threw, and the throw came
+  // out of `contributionsOf`, which every board snapshot runs.
+  //
+  // So one mistyped effect stopped the whole board being read, and
+  // `validate:content` passed it. Three things were wrong and all three are
+  // fixed: the content, the vocabulary that invited it, and an executor that
+  // escalated a bad clause into a dead match.
+  const uncharted = src("effects", "uncharted.yml");
+
+  it("uses `value` for the number, not `add`", () => {
+    const rule = uncharted.rules[0];
+    expect(rule).toEqual({ key: "StatDelta", stat: "detect", value: 3 });
+    expect(rule.add).toBeUndefined();
+  });
+
+  it("survives a `StatDelta` whose `add` is a number instead of a tag list", () => {
+    const out = { statDeltas: [], attributes: [], modifiers: [] };
+    expect(() => EXECUTORS.StatDelta(
+      { key: "StatDelta", stat: "detect", add: 3 },
+      { rank: null, source: "bad content", out, ctx: {} },
+    )).not.toThrow();
+  });
+
+  it("still grants attributes when `add` really is a list", () => {
+    // Divinity's own shape must keep working.
+    const out = { statDeltas: [], attributes: [], modifiers: [] };
+    EXECUTORS.StatDelta(
+      { key: "StatDelta", stat: "attributes", add: ["divine"] },
+      { rank: null, source: "Divinity", out, ctx: {} },
+    );
+    expect(out.attributes).toEqual(["divine"]);
+  });
+
+  it("advertises `add` as a tag list in the authoring vocabulary", () => {
+    const add = ELEMENT_DESCRIPTORS.StatDelta.fields.find((f) => f.key === "add");
+    expect(add.type).toBe("tokenList");
+  });
+});
+
+describe("Uncharted's +3 Detect — the base, and the drift", () => {
+  // FOUND LIVE, twice over, and neither showed in any unit test.
+  //
+  // 1. THE BASE. Drake's Detect read 2 (the Rider table) and Uncharted took it
+  //    to 3, not 5. `applyStatDeltas` wrote `system.detect`, whose stored
+  //    value is null for every Servant -- so the delta started from 0 and threw
+  //    the class base away.
+  //
+  // 2. THE DRIFT. `restoreModifiable` deliberately leaves a null stored value
+  //    alone, because that is the case where the model derives the field
+  //    itself. A Servant's Detect is NOT derived by the model -- it is derived
+  //    at read time by `detectRangeOf` -- so nothing reset it, and the +3
+  //    landed again on every preparation: 6, 9, 12, 15, 18 across five.
+  //
+  // Both are the same root cause, and both are fixed by never writing it:
+  // `detect` leaves `MODIFIABLE_PATHS`, and `detectRangeOf` adds the deltas to
+  // the base it already resolves.
+  const rider = (over = {}) => ({ kind: "servant", classContainer: "rider", ...over });
+  const uncharted = { stat: "detect", value: 3, source: "Uncharted" };
+
+  it("leaves a Rider at the class table with nothing applied", () => {
+    expect(detectRangeOf(rider(), null)).toBe(2);
+  });
+
+  it("adds to the class base rather than replacing it", () => {
+    expect(detectRangeOf(rider({ statDeltas: [uncharted] }), null)).toBe(5);
+  });
+
+  it("cannot drift, because nothing writes the stat", () => {
+    // The same unit read five times is the same number.
+    const u = rider({ statDeltas: [uncharted] });
+    expect([1, 2, 3, 4, 5].map(() => detectRangeOf(u, null))).toEqual([5, 5, 5, 5, 5]);
+    expect(MODIFIABLE_PATHS).not.toContain("detect");
+  });
+
+  it("still lets a platform state its own Detect outright", () => {
+    // The Golden Hind's `Detect: 4` must beat any class table.
+    const hind = { kind: "platform", detect: 4 };
+    expect(detectRangeOf(hind, null)).toBe(4);
+    expect(detectRangeOf({ ...hind, statDeltas: [uncharted] }, null)).toBe(7);
+  });
+});
+
+describe("a detect delta is never written to the document", () => {
+  // The half that removing it from `MODIFIABLE_PATHS` did not fix: the delta
+  // was still APPLIED, so it was written and then never reset. Nothing may
+  // write `detect` at all -- `detectRangeOf` sums the deltas at read time.
+  it("produces no `detect` change", () => {
+    const out = applyStatDeltas(
+      { detect: null, mov: 6 },
+      [{ stat: "detect", value: 3, source: "Uncharted" },
+       { stat: "mov", value: 4, source: "Riding" }],
+    );
+    expect(out.changes.detect).toBeUndefined();
+    expect(out.changes.mov).toBe(10);
   });
 });

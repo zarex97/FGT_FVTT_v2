@@ -158,7 +158,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("StatDelta", "Adds to or multiplies a stat, with an optional floor.", [
     ...SCALED,
     { key: "stat", type: "text" },
-    { key: "add", type: "number" },
+    // ATTRIBUTE TAGS, not a numeric addend -- Divinity's `divine`. The number
+    // is `value` (via `...SCALED`). Typed `number` here until Drake's
+    // `uncharted` authored `add: 3` against it and the executor tried to
+    // iterate a 3, which threw out of `currentBoard()`.
+    { key: "add", type: "tokenList" },
     { key: "factor", type: "number" },
     { key: "floor", type: "number" },
     { key: "alsoCurrent", type: "checkbox" },

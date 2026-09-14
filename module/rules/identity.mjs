@@ -121,7 +121,20 @@ function titleCase(raw) {
  * @returns {number}
  */
 export function detectRangeOf(unit, board = null) {
-  const base = unit?.detect ?? detectForClass(unit, board);
+  // The class table unless the sheet states a number -- the Golden Hind's
+  // `Detect: 4`, and nothing else in the corpus.
+  const stated = unit?.detect ?? detectForClass(unit, board);
+  // Then whatever is modifying it. Read HERE rather than written into
+  // `system.detect` by `applyStatDeltas`, for two reasons: a written value
+  // cannot be reset between preparations (a Servant's `_source.detect` is
+  // null, so `restoreModifiable` leaves it alone and the delta accumulates --
+  // Drake's Uncharted read 6, 9, 12, 15, 18 across five), and a delta applied
+  // to a null stored value starts from ZERO, which throws the class base away:
+  // her sheet says Detect "is increased by 3", from a Rider's 2 to 5, not to 3.
+  const delta = (unit?.statDeltas ?? [])
+    .filter((d) => d.stat === "detect" && typeof d.value === "number")
+    .reduce((n, d) => n + d.value, 0);
+  const base = stated + delta;
   const deafened = (unit?.effects ?? []).includes("deafen") ? 1 : 0;
   // A bounded field may cap it outright — Jack's Mist reduces Detect "to 1
   // panel" for every enemy inside. Applied to the DERIVED number, after the

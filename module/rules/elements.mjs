@@ -964,7 +964,14 @@ export const EXECUTORS = Object.freeze({
 
   StatDelta(el, { rank, source, out, ctx }) {
     // `attributes` is a set, not a number: Divinity grants the `divine` tag.
-    if (el.stat === "attributes" || el.add) {
+    //
+    // `Array.isArray`, not truthiness. `add: 3` -- a plausible reading of a
+    // field the authoring vocabulary described as a number -- made this
+    // iterate a 3 and throw, and the throw came out of `contributionsOf`,
+    // which every board snapshot runs: one mistyped effect took the WHOLE
+    // board down rather than doing nothing. A bad magnitude should cost its
+    // own clause, not the match.
+    if (el.stat === "attributes" || Array.isArray(el.add)) {
       for (const attribute of el.add ?? []) out.attributes.push(attribute);
       if (el.stat === "attributes") return;
     }

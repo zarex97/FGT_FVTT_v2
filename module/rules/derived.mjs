@@ -78,6 +78,20 @@ export function applyStatDeltas(system, statDeltas = []) {
   // ── 2. Numeric deltas ────────────────────────────────────────────────────
   for (const d of statDeltas) {
     if (d.rankShift || typeof d.value !== "number" || d.value === 0) continue;
+    // `detect` is READ-TIME, not stored. `rules/identity.mjs#detectRangeOf`
+    // resolves it from a class table whose Caster entry depends on where the
+    // unit is standing, so a Servant's `_source.detect` is null and there is
+    // nothing here to add to: a delta written here starts from 0 and throws
+    // the class base away (Drake's Uncharted took a Rider's 2 to 3, not 5).
+    //
+    // And because that null also makes `restoreModifiable` skip the field, a
+    // value written here is never put back -- her Detect read 6, 9, 12, 15, 18
+    // across five preparations. Removing it from `MODIFIABLE_PATHS` alone made
+    // that worse, not better: still written, and now not even reset.
+    //
+    // So it is skipped here and summed by `detectRangeOf` instead, which is
+    // the one place that knows the base.
+    if (normalise(d.stat) === "detect") continue;
     const path = normalise(d.stat);
     const before = numberAt(read(path));
     changes[path] = before + d.value;
@@ -168,7 +182,17 @@ export function writeDerived(system, result) {
  * @type {readonly string[]}
  */
 export const MODIFIABLE_PATHS = Object.freeze([
-  "mov", "detect", "sustainability",
+  // NOT `detect`. A Servant's Detect is not stored at all -- it is derived at
+  // READ time by `rules/identity.mjs#detectRangeOf`, from a class table whose
+  // Caster entry depends on where the unit is standing. So `_source.detect` is
+  // null for everyone except a platform that states one, and the null guard
+  // below therefore left a written value in place: Drake's `Uncharted` +3
+  // landed again on every preparation and her Detect read 6, 9, 12, 15, 18.
+  //
+  // Deltas for it are read by `detectRangeOf` off `unit.statDeltas` instead,
+  // which is also the only way the class base can be involved at all -- a
+  // delta written here starts from 0 and loses it.
+  "mov", "sustainability",
   "range.panels", "range.targets",
   "footprint.w", "footprint.h",
   "agility.value", "agility.max",

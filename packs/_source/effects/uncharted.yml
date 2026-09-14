@@ -17,6 +17,11 @@ valence: neutral
 stacking: noneRefresh
 baseChance: 100
 rules:
+  # `value`, NOT `add`. `StatDelta`'s `add` is the ATTRIBUTE-tag list -- the
+  # one Divinity uses to grant `divine` -- and a number there is iterated as a
+  # set. Found live: it threw out of `currentBoard()` and took the whole board
+  # snapshot with it. The authoring vocabulary said `add` was a number, which
+  # is what invited the mistake; both are fixed.
   - key: StatDelta
     stat: detect
-    add: 3
+    value: 3
