@@ -1426,7 +1426,21 @@ export function stacksHeld(actor) {
     if (effect.disabled || effect.isSuppressed) continue;
     const id = effect.system?.defId;
     if (!id) continue;
-    out[id] = (out[id] ?? 0) + Math.max(1, effect.system?.uses ?? 0);
+    // A STAGED instance counts its stage; a charge-based one counts its uses;
+    // anything else counts as one.
+    //
+    // Stages were not counted at all until Van Gogh: `uses` is 0 on a staged
+    // instance, so `Math.max(1, 0)` reported a Stage 7 Curse as ONE. Her
+    // Imaginary Numbers Arts reduces her Noble Phantasm's cooldown by
+    // *"⅓◈ * the stage of the Curse debuff on Gogh"* -- the sheet's own worked
+    // example is Stage 7 giving 2◈+⅓◈ -- which would have been a flat ⅓◈ for
+    // ever.
+    //
+    // Evade's "2 times" and Mannanán's Fragarach Counters are the `uses`
+    // shape and are untouched: nothing about either is staged.
+    const stage = effect.system?.stage ?? 0;
+    const uses = effect.system?.uses ?? 0;
+    out[id] = (out[id] ?? 0) + Math.max(1, stage > 0 ? stage : uses);
   }
   return out;
 }

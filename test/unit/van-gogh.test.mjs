@@ -13,6 +13,7 @@ import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
+import { stacksHeld } from "../../module/rules/snapshot.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -424,5 +425,88 @@ describe("Van Gogh — Channel Marker Soul EX (spec R1, R2)", () => {
     // stageDelta is +3 when she takes three on and -1 when the buff eats one;
     // reading the sign through would turn the removal half into an INCREASE.
     expect(on.then[0].delta.startsWith("-@")).toBe(true);
+  });
+});
+
+describe("stacksHeld — a staged effect counts its STAGE", () => {
+  // Imaginary Numbers Arts reduces the cooldown by "⅓◈ * the stage of the
+  // Curse debuff on Gogh", with the sheet's own worked example: Stage 7 gives
+  // 2◈+⅓◈. `stacksHeld` counted `uses`, which a staged instance leaves at 0 --
+  // so `Math.max(1, 0)` reported every Curse as ONE stage however deep it ran,
+  // and her signature clause would have been a flat ⅓◈ for ever.
+  const actor = (instances) => ({
+    effects: instances.map((i) => ({ system: { defId: i.defId, stage: i.stage, uses: i.uses } })),
+  });
+
+  it("reports the stage of a staged instance", () => {
+    expect(stacksHeld(actor([{ defId: "curse", stage: 7 }])).curse).toBe(7);
+  });
+
+  it("still counts uses for a charge-based effect", () => {
+    // Evade "2 times" is two uses of one instance, and nothing about it is
+    // staged. Mannanan's Fragarach Counters are the same shape.
+    expect(stacksHeld(actor([{ defId: "evade", uses: 2 }])).evade).toBe(2);
+  });
+
+  it("counts a plain instance as one", () => {
+    expect(stacksHeld(actor([{ defId: "atkUp" }])).atkUp).toBe(1);
+  });
+
+  it("sums across instances", () => {
+    const held = stacksHeld(actor([{ defId: "curse", stage: 3 }, { defId: "curse", stage: 2 }]));
+    expect(held.curse).toBe(5);
+  });
+});
+
+describe("Van Gogh — Imaginary Numbers Arts B+", () => {
+  const ina = src("abilities", "gogh-imaginary-numbers-arts.yml");
+  const effects = ina.phases.find((p) => p.kind === "applyEffects").effects;
+
+  it("is on a 4◈−⅓◈ cooldown", () => {
+    expect(ina.cooldown).toBe("4◈-⅓◈");
+  });
+
+  it("applies Guts for 1◈+⅔◈ at 20% of max Health", () => {
+    expect(effects.find((e) => e.id === "guts"))
+      .toMatchObject({ duration: "1◈+⅔◈", magnitude: 20 });
+  });
+
+  it("self-curses three times at 500%, unclamped (spec R8)", () => {
+    const curse = effects.find((e) => e.id === "curse");
+    expect(curse.applications).toBe(3);
+    expect(curse.chance).toBe(500);
+    // Her own Item Construction cuts incoming debuff chance by 35%; the excess
+    // is exactly what survives it, so clamping here deletes the clause.
+    expect(curse.chance).toBeGreaterThan(100);
+  });
+
+  it("reduces the NP cooldown by ⅓◈ per Curse STAGE", () => {
+    const cd = ina.phases.find((p) => p.kind === "cooldown");
+    expect(cd.changes[0]).toEqual({
+      scope: "np", ticks: "⅓◈", perStack: { effect: "curse", each: 1 }, direction: "down",
+    });
+  });
+
+  it("states `direction: down`, without which the cooldown GOES UP", () => {
+    // `cooldownChanges` reads `change.ticks !== undefined ? (direction ===
+    // "down") : ...`, so a ticks change with no direction increases it.
+    expect(ina.phases.find((p) => p.kind === "cooldown").changes[0].direction).toBe("down");
+  });
+
+  it("measures the stage AFTER the self-curses, per sheet order", () => {
+    // Effects are numbered 1, 2, 3 and the cooldown is 3. Measuring before
+    // would read Stage 0 on her opening use and reduce nothing.
+    const kinds = ina.phases.map((p) => p.kind);
+    expect(kinds.indexOf("applyEffects")).toBeLessThan(kinds.indexOf("cooldown"));
+  });
+
+  it("pays TWICE from one press, which is the engine (spec R1)", () => {
+    // Channel Marker Soul pays 1 Turn per stage INFLICTED (3 stages = 3
+    // Turns); this ability separately pays ⅓◈ per stage HELD (3 stages = 1◈).
+    // Both fire from one press. Anyone reading the drop without the ruling
+    // will read it as double-counting and "fix" it.
+    const cms = src("abilities", "gogh-channel-marker-soul.yml");
+    expect(cms.passiveRules.find((r) => r.event === "curseStageChanged")).toBeDefined();
+    expect(ina.phases.find((p) => p.kind === "cooldown")).toBeDefined();
   });
 });
