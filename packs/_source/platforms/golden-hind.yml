@@ -8,6 +8,14 @@ description: |
   Health per Round that REPLACES the normal Noble Phantasm cost rather than stacking with it.
 attributes: [large, mechanical]
 baseHealth: 2500
+# "Agility: 10 (Only performs Injury Roll when damaged by NP)". The
+# parenthesis is the `injuryRoll` block below.
+agility: 10
+# "Luck: Shared with Drake" -- a number that is not a number, resolved at
+# placement from the summoner's live value, the same rule and the same moment
+# the Quetzalcoatlus and the Kagome Spirits use.
+inherit:
+  luck: { from: summoner }
 mov: 6
 range: { panels: 5, targets: 1 }
 baseAttack: { str: 0, mag: 200 }
@@ -16,6 +24,26 @@ detect: 4
 footprint: { w: 4, h: 3 }
 capacity: 9
 level: 2
+# "The Golden Hind can Move onto occupied panels (when it does, place it on
+# top of the figurines)."
+#
+# `sharesPanel`, NOT `movesOntoOccupiedPanels`: the second is Basmu's and means
+# "all Units occupying said panels will be knocked back". This co-locates and
+# displaces nobody, which is what "place it on top of" says.
+sharesPanel: true
+# Its only Base Attack is MAG 200; there is no STR column to choose from.
+normalAttack: { mode: fixed, component: mag }
+# "Drake's Normal Attacks are replaced with Attacks from the Golden Hind."
+#
+# Spec R8. The Attack ONLY -- Quetzalcoatl's mount also takes `move: true`,
+# because her sheet says "Quetz's Move AND Normal Attack is replaced", and
+# Drake's says only the Attack. The ship keeps its own `actsOncePerTurn`
+# movement, as the Hanging Gardens do.
+replacesRiderAction: { roles: [owner], normalAttack: true }
+# "Drake can deactivate the Golden Hind during her Turn, or at the start or end
+# of any Turn or Round." Quetz's Piedra Del Sol carries the identical block
+# WITH a 2◈ lockout; Drake's sheet states none, so there is none.
+deactivation: { byOwner: true, window: any }
 # "Full damage to the ship, 50% to units aboard, Masters aboard take nothing."
 # Three target sets from one placement -- the only platform in the set where
 # the vehicle and its passengers take different fractions.

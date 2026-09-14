@@ -325,3 +325,67 @@ describe("Drake — Pioneer of the Stars", () => {
     expect(selfPhase.effects.map((e) => e.id)).toEqual(["pierce"]);
   });
 });
+
+describe("The Golden Hind — the statline her sheet prints", () => {
+  const h = src("platforms", "golden-hind.yml");
+
+  it("keeps what it already had", () => {
+    expect(h.baseHealth).toBe(2500);
+    expect(h.mov).toBe(6);
+    expect(h.range).toEqual({ panels: 5, targets: 1 });
+    expect(h.baseAttack).toEqual({ str: 0, mag: 200 });
+    expect(h.detect).toBe(4);
+    expect(h.footprint).toEqual({ w: 4, h: 3 });
+    expect(h.capacity).toBe(9);
+    expect(h.attributes).toEqual(["large", "mechanical"]);
+  });
+
+  it("has an Agility of 10", () => {
+    expect(h.agility).toBe(10);
+  });
+
+  it("shares Drake's Luck rather than carrying its own", () => {
+    expect(h.inherit).toEqual({ luck: { from: "summoner" } });
+  });
+
+  it("moves onto occupied panels and sits on top", () => {
+    // `sharesPanel`, NOT `movesOntoOccupiedPanels`: the second is Basmu's and
+    // knocks the occupants back. This co-locates and displaces nobody.
+    expect(h.sharesPanel).toBe(true);
+  });
+
+  it("attacks with MAG, its only Base Attack", () => {
+    expect(h.normalAttack).toEqual({ mode: "fixed", component: "mag" });
+  });
+
+  it("replaces Drake's Normal Attack but NOT her Move (spec R8)", () => {
+    // Quetzalcoatl's mount takes `move: true` because her sheet says "Quetz's
+    // Move AND Normal Attack is replaced". Drake's says only the Attack.
+    expect(h.replacesRiderAction).toEqual({ roles: ["owner"], normalAttack: true });
+    expect(h.replacesRiderAction.move).toBeUndefined();
+    const quetz = src("platforms", "quetzalcoatlus.yml");
+    expect(quetz.replacesRiderAction.move).toBe(true);
+  });
+
+  it("can be switched off by its owner at any window, with no lockout", () => {
+    // "Drake can deactivate the Golden Hind during her Turn, or at the start
+    // or end of any Turn or Round." Quetz's identical block adds a 2◈ lockout;
+    // Drake's sheet states none.
+    expect(h.deactivation).toEqual({ byOwner: true, window: "any" });
+    expect(h.deactivation.lockout).toBeUndefined();
+  });
+});
+
+describe("Drake — Voyager of the Storm", () => {
+  const a = src("abilities", "drake-voyager-of-the-storm.yml");
+
+  it("is an A+ passive that modifies nothing", () => {
+    // Flavour, with its mechanical consequence on the Noble Phantasm. Nemo's
+    // identically-named passive is recorded the same way and for the same
+    // reason: inventing a rule element here would author an inert one.
+    expect(a.rank).toBe("A+");
+    expect(a.passive).toBe(true);
+    expect(a.passiveRules).toBeUndefined();
+    expect(a.phases).toBeUndefined();
+  });
+});
