@@ -56,23 +56,33 @@ damage:
   multiplier: 4
   flatBonus: 100
   component: mag
-  sources:
-    # Spec R1: the SHIP's 200, present or not.
-    - { contentId: platform-golden-hind, component: mag, factor: 1 }
-rules:
+  # `base.sources`, NOT a top-level `sources`. `engine/attack.mjs#baseSpecFor`
+  # reads `damage.base` and falls through to "the caster's declared component"
+  # otherwise -- so a top-level `sources` is ignored. Nemo's Great Ram authors
+  # one and works only because it happens to restate the fallback's own value.
+  # Found live: this Noble Phantasm's breakdown read "self BA(MAG) x 1" = 100.
+  base:
+    sources:
+      # Spec R1: the SHIP's 200, present or not.
+      - { contentId: platform-golden-hind, component: mag, factor: 1 }
   # "Total damage dealt is further increased by 10% for every Galleon Token on
-  # herself" -- Total, so stage 15 (spec R5). At zero tokens it contributes
-  # nothing at all, which is why the penalty below is a separate clause rather
-  # than a floor on this one.
-  - key: DamageModifier
-    direction: dealt
-    stage: total
-    value: 10
-    perResource: { resource: galleonTokens, each: 1 }
-  # "however, if she has no Galleon Tokens, Total damage dealt is reduced by
-  # 15%." Also Total, and mutually exclusive with the band above by arithmetic.
-  - key: DamageModifier
-    direction: dealt
-    stage: total
-    value: -15
-    predicate: ["self:resourceEmpty:galleonTokens"]
+  # herself; however, if she has no Galleon Tokens, Total damage dealt is
+  # reduced by 15%." Spec R5, stage 15.
+  #
+  # On the DAMAGE BLOCK, not as a `DamageModifier` rule element on the ability.
+  # `contributionsOf` collects an ability's `rules` unconditionally, beside its
+  # `passiveRules` -- so authored there these would have applied to every Normal
+  # Attack she makes for the rest of the match. This clause belongs to one
+  # Noble Phantasm, and the damage block is what that Noble Phantasm is.
+  #
+  # Found live: her NP2 is the only ability in the corpus with a top-level
+  # `rules:`, so nothing had ever exercised the difference.
+  totalModifiers:
+    # At zero tokens this contributes nothing and is dropped, which is why the
+    # penalty below is a separate clause rather than a floor on this one.
+    - value: 10
+      perResource: { resource: galleonTokens, each: 1 }
+      source: "Galleon Tokens"
+    - value: -15
+      predicate: ["self:resourceEmpty:galleonTokens"]
+      source: "no Galleon Tokens"

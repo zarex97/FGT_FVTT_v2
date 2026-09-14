@@ -2770,6 +2770,48 @@ function pendingCosts({ usage, ability, self, master, board }) {
   return out;
 }
 
+
+/**
+ * An ability's own **Total Damage** modifiers, resolved against its user.
+ *
+ * Stage 15 multiplies the finished number, where stage 4 pools every
+ * percentage additively eleven stages earlier -- §13.4's dividing line, and
+ * the difference between "damage dealt is increased" and "TOTAL damage dealt
+ * is increased".
+ *
+ * `perResource` counts a pool: *"increased by 10% for every Galleon Token on
+ * herself"*. At zero it contributes nothing and is dropped, which is why the
+ * penalty band is a separate clause rather than a floor on this one.
+ *
+ * @param {object|null} ability
+ * @param {Set<string>} options the attack's roll options, for predicates
+ * @param {object} self the attacker's snapshot
+ * @returns {object[]} `{key, factor, source}` entries for stage 15
+ */
+function totalModifiersFor(ability, options, self) {
+  const authored = resolvedDamage(ability, options)?.totalModifiers ?? [];
+  /** @type {object[]} */
+  const out = [];
+
+  for (const m of authored) {
+    if (!testPredicate(m.predicate, { options })) continue;
+    const per = m.perResource ?? null;
+    let percent = m.value ?? 0;
+    if (per) {
+      const pool = self?.resources?.[per.resource];
+      const held = typeof pool === "number" ? pool : (pool?.value ?? 0);
+      percent *= Math.floor(held / (per.each ?? 1));
+    }
+    if (percent === 0) continue;
+    out.push({
+      key: m.key ?? "totalDamage",
+      factor: 1 + percent / 100,
+      source: m.source ?? ability?.name ?? "Total Damage",
+    });
+  }
+  return out;
+}
+
 /**
  * Turn a refusal into something a player can act on.
  * @param {object} usage
@@ -3392,6 +3434,48 @@ function mountUnits(attacker, board) {
   return attacksAsPlatform && platform ? { mount: platform } : {};
 }
 
+
+/**
+ * Base Attacks of the platform documents an ability may name by content id.
+ *
+ * A `damage.base.sources` entry may say `contentId` instead of `unit`, which
+ * is how *"The Golden Hind's Base Attack (MAG) is used"* survives the ship not
+ * being on the board. `ctx.units` is a board index and cannot answer that.
+ *
+ * Filled once from the compendia (`primeContentBaseAttacks`) because stage 1
+ * is a pure function and cannot await a pack lookup.
+ *
+ * @returns {Record<string, {baseAttack: object}>}
+ */
+function contentBaseAttacks() {
+  return CONTENT_BASE_ATTACKS;
+}
+
+/** @type {Record<string, {baseAttack: object}>} */
+const CONTENT_BASE_ATTACKS = {};
+
+/**
+ * Read every platform's Base Attack out of the compendia, once.
+ *
+ * Called at `ready`. A miss here is silent at load and loud at use: stage 1
+ * contributes zero and names the unresolved id in the breakdown rather than
+ * falling through to the attacker's own Base Attack, which is the substitution
+ * that would halve Drake's Noble Phantasm without saying anything.
+ *
+ * @returns {Promise<number>} how many were cached
+ */
+export async function primeContentBaseAttacks() {
+  for (const pack of game.packs.filter((p) => p.metadata.type === "Actor")) {
+    const index = await pack.getIndex({ fields: ["system.contentId", "system.baseAttack", "type"] });
+    for (const entry of index) {
+      const id = entry.system?.contentId;
+      if (!id || !entry.system?.baseAttack) continue;
+      CONTENT_BASE_ATTACKS[id] = { baseAttack: entry.system.baseAttack };
+    }
+  }
+  return Object.keys(CONTENT_BASE_ATTACKS).length;
+}
+
 /**
  * Build the damage context, run the pure pipeline, and apply the result.
  * @param {object} state
@@ -3492,6 +3576,14 @@ async function applyDamage(state, message) {
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
     // by her platform's swings the platform's 150 rather than her own 125.
     units: mountUnits(attacker, board),
+    // Base Attacks read off a COMPENDIUM document rather than off the board.
+    //
+    // Drake's broadside: *"The Golden Hind's Base Attack (MAG) is used"*, and
+    // *"can be used even if the Golden Hind isn't present/activated"* -- so
+    // there may be no such unit anywhere, and `ctx.units` cannot answer it.
+    // Cached at world ready by `engine/platforms.mjs`, because stage 1 is pure
+    // and cannot await a pack.
+    contentBaseAttack: contentBaseAttacks(),
     // Which ring this defender stands in, and what that ring multiplies by.
     //
     // Triton's Conch: *"Deals 1.5x damage to Units directly next to Nemo,
@@ -3524,7 +3616,20 @@ async function applyDamage(state, message) {
     // and **nothing had ever supplied one** -- so the whole "Total Damage"
     // family of clauses had a stage of its own and no way into it. This is its
     // first entry.
-    totalDamageModifiers: coverModifiersFor(state, defender),
+    totalDamageModifiers: [
+      ...coverModifiersFor(state, defender),
+      // The ATTACK's own "Total Damage" clauses. Drake's broadside: *"Total
+      // damage dealt is further increased by 10% for every Galleon Token on
+      // herself; however, if she has no Galleon Tokens, Total damage dealt is
+      // reduced by 15%."*
+      //
+      // On the `damage:` block rather than as a rule element on the ability,
+      // because `contributionsOf` collects an ability's `rules` UNCONDITIONALLY
+      // -- like a passive -- so a modifier authored there would apply to every
+      // Normal Attack she makes as well. This clause belongs to one Noble
+      // Phantasm, and the damage block is what that Noble Phantasm is.
+      ...totalModifiersFor(ability, options, attacker),
+    ],
     luckChecks: {},
     rolls: {
       [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
