@@ -34,6 +34,30 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+> **Van Gogh is complete.** Eleven entries, two Noble Phantasms, and a Servant whose own debuff is
+> her fuel. **Script count: 0.**
+>
+> The striking result is how little of her was new. **Five of the eleven mechanisms her own
+> chapter says need building already had a reader and no writer**, and two of them named her in
+> their own comments: `cs-kill-yourself.yml` has refused a `immuneToKillYourself` attribute nobody
+> granted since it was authored, and `transferEffect` keeps an instance's stage *"because Van
+> Gogh's Shadow of Longing gathers Curse from everyone nearby"* — written for a Skill that did not
+> exist. Two more proposals were rejected in favour of mechanisms already present under other
+> names. Ch. 35 §35.11's tally has been rewritten: a reader implementing from the original table
+> today builds five things that already exist.
+>
+> Four things were genuinely new — `applications`, the `curseStageChanged` event, `DamageFloor`,
+> and a per-effect `predicate` — and Divinity B+ cost nothing but a `ref:` line.
+>
+> The live pass found **eight** defects with the unit suite green at 4,196 throughout. **Five were
+> in machinery written for her in this same pass**, which inverts every previous live pass in Ch.
+> 45, and **four are wrong numbers that look right**. The one worth remembering: `applications: N`
+> was authored on two abilities, asserted by two content tests, named in her chapter — and read by
+> nothing, so her signature Skill inflicted no Curse at all. Both content tests passed, because
+> the content was right. See Ch. 45.
+
+### Previously
+
 > **Francis Drake is complete.** Eight entries, **two Noble Phantasms**, a **token economy**, and
 > the fifth platform owner. **Script count: 0.** She is also the first Servant in the set whose
 > Base Health, BA(STR) and BA(MAG) are all three the rank tables' own values, with no authorial
@@ -55,6 +79,21 @@ coincide by accident; the headings say which is which.
 
 ### Corrected
 
+- **Ch. 35 §35.11's tally was written before she was built and the engine grew past it.** It lists
+  eleven mechanisms as needing new support. Five already had a reader and no writer, two were
+  rejected in favour of mechanisms that already existed (`@count(targets where …)`, turned down by
+  name in `semiramis-familiar-doves.yml`, and `blockedBy`, which is not a field on
+  `NoblePhantasmData`), and four were genuinely new. The table is rewritten with what each turned
+  out to be, and §35.3–§35.10 are corrected clause by clause: the Command Spell immunity, the
+  source-scoped floor, the transfer, the `Gogh` buff's conditional chain, the mirrored pair and
+  the ally-counting magnitude all became something smaller than proposed.
+- **Ch. 35 §35.5 had *Channel Marker Soul* symmetric, and it is not.** The section reads the Skill
+  as `abs(@event.stageDelta)` — paying equally on gain and loss. The sheet gates only the
+  **removal** half to the `Gogh` buff; the infliction half is ungated. So any Curse from any source
+  shortens her NP, while a Cure stripping her Curse pays nothing.
+- **Ch. 35 §35.10 missed a mechanism entirely.** De Sterrennacht clause 2 narrows its second Crit
+  DmUp to allies carrying the Skill — a question about each recipient, not about the set, and a
+  different mechanism from the `countTargets` magnitude three lines below it.
 - **Ch. 36 §36.3 described a Servant who no longer exists.** It specified Drake's Noble Phantasm
   damage as four elapsed-time bands reading `@elapsedSince(drake-blazing-golden-rule)` against her
   cooldown tracker. Her sheet was rewritten around a **Galleon Token** economy and no longer asks
@@ -69,6 +108,38 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **`applications: N` had no reader.** Authored on two of Van Gogh's abilities, asserted by two
+  content tests and named in her chapter, while `applyPhaseEffects` applied each effect entry
+  exactly once — so *Imaginary Numbers Arts* applied Guts and no Curse at all. Three applications
+  rather than one worth three stages because the sheet states a chance beside the count, and a
+  chance is rolled per application. The loop re-reads the recipient between applications, or the
+  stacking resolves Stage 1 three times.
+- **`event` and `setStage` were missing from `INTENT_TYPES`.** Both had a constructor, an `ORDER`
+  rank and an applier case — three of the four authorities an intent needs. `applyIntents`
+  correctly refuses a batch containing an unknown type, so the Curse, the cooldown phase and the
+  usage marking all died behind one missing string. A new guard walks the intent factories rather
+  than naming them.
+- **An `event` intent reached no handler.** `batch()` files an addressless intent under
+  `unitId: null` and the dispatcher handed that null to the board lookup. The cooldown still fell
+  3 Turns from the ability's own phase, so a number moved and it looked like it worked; it was
+  half the clause. `eventSubject` takes the subject from the payload.
+- **A Crit ran both halves of the `gogh` buff.** The two `damageDealt` handlers are evaluated in
+  one pass against the same snapshot and did not partition, so a Crit removed three stages and
+  granted three Atk Up where the sheet grants two.
+- **Gathering more Curse gave Van Gogh less of it.** `mergeStages` summed `effect.stages`, and a
+  transferred instance carries `stage` — the depth it had on its previous bearer. Each arrival
+  counted as one and that count overwrote the real depths, so Stage 2 and Stage 3 became Stage 2.
+  The defect scaled backwards.
+- **A `predicate` on an effect entry was inert.** It narrows one entry to a subset of the
+  recipients a phase already resolved; every recipient took every entry.
+- **One unreadable rank on an aura blanked the whole board.** `Rank.parseOrNull` returns null for
+  empty and a dash and throws for anything else; the throw escaped `annotateAuras` and
+  `snapshotBoard`, taking every unit with it. A rank a comparison cannot read is now an unranked
+  instance. Needs two sources in one `group` to fire, which is why the corpus hid it until Van
+  Gogh became the third Item Construction in the game.
+- **`@magnitude` nested inside an aura's `elements` was never resolved.** The flat form Charisma
+  uses always worked; Area CritUp is the first nested aura to carry one, and it reached every
+  correct recipient carrying the literal string `"@magnitude"`.
 - **The action bar refused every Noble Phantasm a Master pays for.** `gateContext()` carries the
   Round gate and the clock but no `master`, so `canUseAbility` read the Master's Health as 0 and
   `cannotPay` refused — for every contracted Servant in the game, for the whole match, while the
@@ -112,6 +183,35 @@ coincide by accident; the headings say which is which.
 - **`damage.totalModifiers`**, feeding stage 15 through the same `ctx` array Cover uses. Stage 15
   had exactly one producer in the codebase and no authoring channel; abilities now have one.
 - **The `resourceEmpty` predicate facet**, emitted only for pools a unit actually has.
+
+For Van Gogh:
+
+- **`curseStageChanged`**, raised from `resolveStacking`'s `stage` branch — the one place a stage
+  is *decided* — for every `stacking: stage` definition rather than for Curse alone. Carries
+  `stageDelta`, `newStage` and `cause`, because a listener paid per stage needs the size of the
+  jump and not the destination. With it: the `event` and `setStage` intents, `eventSubject`, and
+  `eventFilter` on a handler — the gate that asks about the **change** where `predicate` asks
+  about a unit. Its disjunction is `either` and not `anyOf`, which the predicate grammar already
+  owns for option-string membership.
+- **`RemoveEffect` with `stages`**, and `removeStages`, which reports what it **actually took** —
+  so *"if a stage of Curse was removed"* is answered with arithmetic rather than with a condition,
+  and a Crit against Stage 1 takes one and says −1.
+- **`DamageFloor`** at stage 16, beside `endure`: Endure with a source on it. Curse takes Van Gogh
+  to 1 Health and never further while a Normal Attack kills her normally, and that asymmetry is
+  the point of a Servant who runs herself to Stage 9 on purpose. Matched on the packet's own
+  `defId`, so no `damage:source:*` predicate scope was needed.
+- **`applications: N`** on an effect entry — N applications, N chance rolls, as distinct from
+  `stages: N` (one application worth N stages) and `times: N` (one worth N charges).
+- **`predicate` on an effect entry**, narrowing one entry to a subset of a phase's recipients.
+  Deliberately not `countTargets`, which answers a question about the set.
+- **`countTargets`** as a magnitude — computed from the phase's own resolved target list, which is
+  the one question `perStack` (effects on the caster) and `countMatching` (the board) cannot ask.
+- **The `transfer` phase kind**, so an active Skill can reach the transfer machinery that
+  `rules/effect-flow.mjs` has carried since it was written.
+- **`NegateOpponentSource`**, which drops a named source from the *opponent's* modifier bag
+  whenever its bearer is one of the two parties — one rule stated from both ends.
+- **`terror`, `areaCritUp` and the `gogh` buff** (App. A), and `resolveRuleValues`, which resolves
+  `@magnitude` inside an aura's nested `elements` as well as at the top of a rule.
 
 
 > **Nemo is complete.** Eleven abilities, four effect definitions, and the reference set's

@@ -42,6 +42,12 @@ and its implementation note. This is the authoritative reference the compendium 
 | `Break` | B | O | nr | 14 | Chance to ignore Block; extra damage if the attack was Blocked. Default chance 100% if unstated. |
 | `Uncharted` | B | — | nr | — | **Built** (`uncharted`, Drake). Detect +3 panels. Detect is **read-time**, not stored: `rules/identity.mjs#detectRangeOf` derives it from a class table whose Caster entry depends on where the unit is standing, so a Servant's stored `detect` is null. A delta written there starts from **zero** — throwing the class base away — and, because that null makes `restoreModifiable` skip the field, is never reset: Drake's read 6, 9, 12, 15, 18 across five preparations. So nothing writes it; `applyStatDeltas` skips `detect` and `detectRangeOf` sums the deltas onto the base it already resolves. |
 
+### The `Gogh` buff
+
+| Effect | Pol | Val | Stack | Semantics |
+|---|---|---|---|---|
+| `Gogh` | B | O | nr | **Built**, and it belongs to one Servant. Whenever its bearer lands an Attack it removes one stage of `Curse` **from the bearer** and grants `Atk Up` (+10%, 5% NP) once per stage actually removed; a Crit removes two and grants two. `noneRefresh` — *"does not stack, but reset its duration"*. The conditional *"if a stage of Curse was removed"* is answered by arithmetic: `RemoveEffect` with `stages` reports what it **took**, so at Stage 0 it takes nothing and grants nothing, and at Stage 1 a Crit asks for two, gets one and grants one. Its two `damageDealt` handlers must **partition** on the Crit (`{not: "attack:crit"}` on the ordinary one), or both fire and a Crit pays three times. `cause: gogh` on the removal is what lets *Channel Marker Soul* pay for it (App. E, `curseStageChanged`) while a Cure pays nothing. |
+
 ## A.2 Buffs — damage intake
 
 | Effect | Pol | Val | Stack | Stage | Semantics |
@@ -82,7 +88,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | `Crit Up` | B | O | mag | Crit chance +X%. Not NP unless stated. |
 | `S.Crit Up` | B | O | mag | As `Crit Up`, but **application cannot be prevented** and it is **Unremovable**. |
 | `G.Crit` | B | O | nr | Attacks always crit. Not NP unless stated. |
-| `Area CritUp` | B | O | hi | **Aura.** Crit chance +X% for allies within range. Only while within range. |
+| `Area CritUp` | B | O | mag | **Aura.** Crit chance +X% for allies within range. Only while within range. **Built** (`areaCritUp`) for Van Gogh's *De Sterrennacht*, radius 2, `relations: [ally, self]` — the bearer benefits, because "all allied Units" includes itself unless the text says otherwise. Written in the aura's **nested** form (`elements:`), which is what made its `@magnitude` the first in the corpus to need resolving at that depth; before that it reached every correct recipient carrying the literal string. Resolution at evaluation time is what makes "only while within range" true without a position-watcher. |
 | `Clarity` | B | O | nr | Doubles the magnitude of `Area CritUp` buffs affecting this unit. Evaluated in the aura-consumer band. |
 
 ## A.5 Buffs — regeneration and economy
@@ -194,7 +200,7 @@ All five are `nnr` (no stack, no refresh).
 | `Charm` | Control switches to the inflicter's player for X turns. Removed at the end of the Combat Phase if the unit takes damage from an attack. **Immune to Confuse and Berserk while charmed.** **Built** (`charm`), `volatility: mental` — this appendix's own classification, so Heracles' Bravery and Jack's Mental Pollution already resist it without either sheet naming it. All three clauses hold. **Control transfer** is wired for the first time (Ch. 25 §25.7: `rules/control.mjs` had no consumer, and two defects underneath it). **Removal** is an `OnEvent combatPhaseEnd` with `requiresDamagedThisPhase` — the Phase, not the Process, so a Charm broken by the opening attack is not broken again by the counter it provoked, and an Evade or a fully-absorbed Block leaves it standing. **Immunity** to Berserk and Confuse is declared; neither of those two is authored yet (Ch. 18 §18.5 lists Confuse's random selector as open), so it is inert today and correct the moment either exists. |
 | `Berserk` | (1) Only moves toward and attacks the **nearest** enemy, only with BA(STR) Normal Attacks; a MAG-only attacker's Range drops to 1. (2) Damage dealt +50% including NP. (3) Cannot Block or Evade. (4) **Must** move and attack if able. (5) Immune to Charm and Confuse. |
 | `Confuse` | Cannot be controlled. Performs random actions at the end of its player's turn. Removed at the end of the Damage Step if it takes damage. Immune to Charm and Berserk. |
-| `Terror` | At the end of every turn, X% chance (default 50) of `Stun 1◈`, then Terror is removed. **The chance is not modified by debuff chance/resist effects.** |
+| `Terror` | At the end of every turn, X% chance (default 50) of `Stun 1◈`, then Terror is removed. **The chance is not modified by debuff chance/resist effects.** **Built** (`terror`) for Van Gogh's *De Sterrennacht*, which states its own 60. The chance rides `@magnitude` on a flat action roll and nothing shifts it — including her own Item Construction, which is exactly what the non-modifiable clause is protecting against. Both halves are one handler: the Stun attempt and the self-removal fire on the same `turnEnd`, so Terror cannot outlive the roll it exists to make. |
 | `Disorder` | At the start of every turn, X% chance (default 50) of `Skill Seal` for that turn. Same non-modifiable chance. |
 
 ## A.12 Debuffs — volatile, damage over time

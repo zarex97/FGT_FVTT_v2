@@ -78,26 +78,41 @@ acceptance set.
 
 ## D.2 Van Gogh
 
-Full conversion: Ch. 35.
+Full conversion: Ch. 35. **Built and live-tested.**
 
 | Ability | Type | Mapping |
 |---|---|---|
-| Existence Outside The Domain (A) | Class, passive | **RE+** `SuppressForeign` — negates Mad Enhancement's modifiers on the opponent |
-| Item Construction (B−) | Class, passive aura | RE (`ApplicationChance` + `Aura`, `highestOnly`) |
-| Divinity (B+) | Passive | RE (`FlatDamage` 45) |
+| Existence Outside The Domain (A) | Class, passive | RE (`ApplicationChance` ×3, `DamageModifier` ×3, `CritModifier`, `NegateOpponentSource`) — and the document `alter-ego.yml` had forward-referenced since it shipped |
+| Item Construction (B−) | Class, passive aura | RE (`Aura` r2 + six `ApplicationChance`, `stacking: highestOnly`, `group: itemConstruction`) |
+| Divinity (B+) | Passive | RE (`FlatDamage` 45 from the table) — **one `ref:` line**, no new content |
 | Insanity (C) | Passive | RE (`DamageModifier` +6% incl. NP) |
-| Sunflower's Curse (A) | Passive | **RE+** `Immunity` scoped to Command Spells; `DamageNegation` `floorAtOne` predicated on the Curse source |
-| Imaginary Numbers Arts (B+) | Active | RE (Guts, 3× Curse self-application, scaled cooldown reduction) |
+| Sunflower's Curse (A) | Passive | RE (`StatDelta` granting `immuneToKillYourself`; `DamageFloor` `{floor: 1, defId: curse}`) |
+| Imaginary Numbers Arts (B+) | Active | RE (Guts; `applications: 3` Curse at 500%; `perStack` cooldown reduction) |
 | Het Gele Huis (A+) | Active | RE (5×5 orthogonal-adjacent debuff, 2-panel ally buff) |
-| Channel Marker Soul (EX) | Passive | RE (`OnEvent: curseStageChanged`) |
-| Shadow of Longing… (EX) | Active | **RE+** `transferTo` + `stageMode: sum` on a removal phase |
-| De Sterrennacht (EX, NP) | Non-damaging NP | **RE+** `@count(targets where …)` in the expression language |
-| Het Gele Huis: The Yellow House (A+, NP) | Non-damaging NP | RE (mutual exclusion with the skill form) |
+| Channel Marker Soul (EX) | Passive | RE (`OnEvent: curseStageChanged` + `eventFilter`) |
+| Shadow of Longing… (EX) | Active | RE (`kind: transfer` phase; the mechanism underneath was written for her) |
+| De Sterrennacht (EX, NP) | Non-damaging NP | RE (`countTargets` magnitude, per-effect `predicate`, `areaCritUp`, `terror`) |
+| Het Gele Huis: The Yellow House (A+, NP) | Non-damaging NP | RE (`requirements: abilityOffCooldown`, mirrored with the skill form) |
 
 **Exercises:** self-harm as a resource, >100% application chance, stage stacking, mass transfer,
 source-scoped damage floors, Command Spell immunity, target-set-dependent magnitudes, mirrored
 skill/NP exclusion.
 **Scripts: 0.**
+
+**What she actually needed.** Four genuinely new mechanisms — `applications`, the
+`curseStageChanged` event, `DamageFloor`, and a per-effect `predicate`. Five more had a reader
+and no writer, two of which named her in their own comments. The `RE+` marks in the earlier
+version of this table were mostly wrong: `SuppressForeign`, `Immunity scope: commandSpell`,
+`transferTo` + `stageMode: sum` and `@count(targets where …)` were all proposals that turned out
+to be unnecessary or already present under another name.
+
+**Live-pass readings.** BA(MAG) 200 on the chat card's Base line; Divinity +45 at stage 7; one
+press of Imaginary Numbers Arts from Stage 0 taking two NPs from 20 Turns to 14; a Cure paying
+nothing; Curse dealing 39 against 40 Health while a sword deals 500; the mirrored pair refusing
+each other; Shadow of Longing gathering Stage 2 from an ally and Stage 3 from an **enemy** to
+leave her on Stage 5 with the cooldown down 5; De Sterrennacht reading Terror 60 / Crit DmUp
+200-200-100 / Atk Up 40 / Area CritUp 10; and *Kill Yourself* refused for her and offered for
+her Master's other Servant.
 
 ---
 

@@ -519,6 +519,33 @@ async function applyAll(intents) {
 Twelve defenders become at most 36 document operations issued in parallel, from one socket
 message.
 
+### 26.9.1 Four authorities, or the batch is refused
+
+`applyIntents` validates every batch before anything is written, including in production, and a
+type it does not recognise makes it throw the **whole batch** away. That is deliberate: a
+half-applied Noble Phantasm is worse than none.
+
+It also means adding an intent takes **four** agreeing edits, and three of them do not fail
+loudly:
+
+1. a constructor in `engine/intents.mjs`
+2. an entry in `INTENT_TYPES` — the validator's allowlist
+3. a rank in the `ORDER` table, which decides where it sorts within a batch
+4. a case in `engine/applier.mjs`, which performs it
+
+Van Gogh's `event` and `setStage` had 1, 3 and 4. Every unit test of their producers passed, and
+on the board her signature Skill applied Guts and then died: the Curse, the cooldown phase and
+the usage marking all went out with the batch, behind one missing string.
+
+`test/unit/van-gogh.test.mjs` now walks the exported factories rather than naming them, so the
+next intent added without a validator entry fails in the suite instead of in the world.
+
+**An intent addressed to no one still has a subject.** `batch()` groups by `intent.unitId`, and
+`log`, `prompt` and `event` deliberately have none — an `event` concerns the unit it happened
+to, which is not always the unit whose write raised it. The subject rides in the payload, and
+`eventSubject(intent, groupUnitId)` is the one reader. Handing the dispatcher the group's `null`
+instead made every raised event find no unit and return before reaching a single handler.
+
 ---
 
 ## 26.10 The `ActiveContext` lifetime

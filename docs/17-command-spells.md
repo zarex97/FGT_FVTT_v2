@@ -331,7 +331,22 @@ It costs 1 spell for a High Rank Master and 2 for a Low Rank Master (or 1 for al
 rankless game).
 
 Its interactions:
-- Van Gogh is immune (*Sunflower's Curse*) — the only Command Spell immunity in the game.
+- Van Gogh is immune (*Sunflower's Curse*) — the only Command Spell immunity in the game, and
+  **now written**. `cs-kill-yourself.yml` has carried its half since it was authored:
+
+  ```yaml
+  - { kind: targetNotImmune, attribute: immuneToKillYourself }
+  ```
+
+  That requirement named her in its own comment and refused nobody, because no content granted
+  the attribute. Sunflower's Curse passive 1 is the writer — one `StatDelta` line — and the gate
+  began working the moment it existed.
+
+  Keyed to **this command** rather than being a blanket Command-Spell immunity, so a future
+  exception can name its own. Checked at **offer** time, so the option never appears on her
+  Master's card rather than failing after the click. Confirmed live: under one Master, in one
+  window, *Kill Yourself* is refused for her with `targetNotImmune` and offered for her Master's
+  other Servant.
 - **It bypasses revival** (Ch. 41 Q35, answered). Guts, Battle Continuation, God Hand, and
   Holder Mode do not trigger. It is `Death`-semantics, not ordinary defeat — which is what makes
   it a reliable answer to a Charmed or contract-stolen Servant rather than a gamble.

@@ -4283,3 +4283,75 @@ flat 10 on 1d10 where the shared rule would have let an A/A Servant aboard on a 
 it on application; the broadside's arc following the bow east and south rather than always north;
 and a chat card reading `platform-golden-hind BA(MAG) × 1  +200` at stage 1 and
 `totalDamage "Galleon Tokens" × 1.30` at stage 15.
+
+### Van Gogh — the live pass, and eight defects, five of them in her own new machinery
+
+Eleven sheet entries, and the striking thing is how little of her was new. **Five mechanisms her
+own chapter (Ch. 35 §35.11) says need building already had a reader and no writer**, and two of
+those named her in their own comments:
+
+- `cs-kill-yourself.yml` has carried `{kind: targetNotImmune, attribute: immuneToKillYourself}`
+  since it was authored, refusing nobody because no content granted the attribute.
+- `rules/effect-flow.mjs#transferEffect` keeps an instance's stage *"because Van Gogh's Shadow of
+  Longing gathers Curse from everyone nearby"* — written for a Skill that did not exist.
+- `rules/auras.mjs` resolves `highestOnly` and quotes her non-stacking clause verbatim.
+- `class-skills/alter-ego.yml` has forward-referenced `existenceOutsideTheDomain` since Alter Ego
+  shipped, and `validate:content` has reported it *"declared, inert"* ever since.
+- `perStack` already counted — it just counted `uses`, which a staged instance leaves at 0.
+
+Two more proposals were **rejected in favour of mechanisms that already existed**: `@count(targets
+where …)` had been turned down by name in `semiramis-familiar-doves.yml`, and `blockedBy` is not a
+field on `NoblePhantasmData` at all — the mirrored pair uses `requirements: abilityOffCooldown`,
+which is Gate of Skye's shape.
+
+Four things were genuinely new: `applications`, `curseStageChanged`, `DamageFloor`, and a
+per-effect `predicate`. Ch. 35's tally has been rewritten to say so, because a reader implementing
+from the original table today builds five things that already exist.
+
+**Five of the eight defects were in machinery written for her in this same pass** — which is the
+inversion of every previous live pass in this chapter, and the more uncomfortable result. Drake's
+seven-of-eight were old. Hers were mostly hours old.
+
+| # | Defect | Reach |
+|---|---|---|
+| 1 | **`applications: N` had no reader.** Authored on two abilities, asserted by two content tests, named in Ch. 35 — and `applyPhaseEffects` applied each entry exactly once. Imaginary Numbers Arts applied Guts and **no Curse at all** | her, and any future "X times" clause |
+| 2 | **`event` and `setStage` were missing from `INTENT_TYPES`.** Both had a constructor, an `ORDER` rank and an applier case — three of the four authorities an intent needs. `applyIntents` correctly refuses a batch containing a type it does not know, so the Curse, the cooldown phase *and* the usage marking all died behind one missing string | any intent added without its validator entry |
+| 3 | **An addressless intent had no subject.** `batch()` files `event` under `unitId: null`; the dispatcher handed that null to the board lookup and returned before reaching a handler. The cooldown still fell 3 Turns from the ability's own phase, so **a number moved and it looked like it worked** | every raised event; latent from the moment `event` existed |
+| 4 | **A Crit ran BOTH halves of the `gogh` buff.** The two `damageDealt` handlers are evaluated in one `fireEvent` pass against the same snapshot and did not partition, so a Crit took three stages and paid three Atk Up where the sheet grants two | hers |
+| 5 | **`mergeStages` read `stages` and never `stage`.** A transferred instance carries the depth it *had*; the merge counted each arrival as one and wrote that count over the real depths. **The defect scaled backwards** — an ally at Stage 2 and an enemy at Stage 3 gave her Stage 2 | every transfer of a staged effect |
+| 6 | **A per-effect `predicate` had no reader.** De Sterrennacht clause 2 narrows the second Crit DmUp to EOTD allies; every ally took it, and all three ended on 200 | any entry narrowing to a subset |
+| 7 | **An unreadable rank on an aura threw out of `snapshotBoard`.** `Rank.parseOrNull` returns null for empty and a dash and *throws* for anything else; one bad value blanked **the whole board**, not the unit carrying it. Needs two sources in one `group` to fire at all, which is why the corpus hid it until she became the third Item Construction in the game | every unit on the field, whenever two grouped auras overlap |
+| 8 | **`@magnitude` nested inside an aura's `elements` was never resolved.** The flat form (`modifierKey` + `value`) that Charisma uses always worked; Area CritUp is the first nested aura to carry `@magnitude`, and it reached every correct recipient carrying the literal string | any nested aura with an instance-derived value |
+
+**What the live pass caught that the tests could not.** All eight passed a green suite of 4,196.
+**Four are wrong numbers that look right**: a cooldown falling 3 where the sheet says 6, a Crit
+granting two Atk Up where one stage existed, a gathered Stage 5 arriving as Stage 2, and three
+allies on Crit DmUp 200 where one should be on 100. None throws. Defect 1 is the one worth
+remembering — I wrote a key with no reader **while writing the Servant whose chapter is about
+writing keys with no readers**, and both its content tests passed, because the content was right.
+
+**New vocabulary, each with its reader and its test:** `applications` on an effect entry;
+`predicate` on an effect entry (`effectGatePasses`); the `curseStageChanged` event with
+`stageDelta`/`cause`, its `event` and `setStage` intents, and `eventSubject`; `eventFilter` with
+`either` (renamed from `anyOf`, which the predicate grammar already owns); `RemoveEffect` with
+`stages` and `removeStages`, which reports what it **took**; `DamageFloor` at stage 16;
+`countTargets` as a magnitude; the `transfer` phase kind; `NegateOpponentSource`; `depthOf` in
+`mergeStages`; and `resolveRuleValues`, which descends one level into an aura's `elements`.
+
+**Verified on a live board**, clause by clause: her statline and BA(MAG) **200** on the chat
+card's Base line, with Divinity **+45** at stage 7 of the same breakdown; Item Construction's
+radius-2 aura reaching three allies and neither enemy, and two overlapping instances leaving six
+entries rather than twelve, all six from the A-rank source; *Kill Yourself* refused for her with
+`targetNotImmune` and **offered** for her Master's other Servant, in the same window; one press of
+Imaginary Numbers Arts from Stage 0 putting her on Curse Stage 3 and taking two NPs from 20 Turns
+to **14** — 3 Turns from Channel Marker Soul and 1◈ from the ability's own clause, which is the
+double payment her spec rules as intended; a Cure stripping Stage 3 and paying **nothing**; Curse
+dealing 39 against 40 Health while Poison and a sword both deal 500; each half of the mirrored
+pair refusing the other with `abilityOffCooldown` and the refusal changing to a targeting one when
+both are free; the `gogh` buff's full matrix (Stage 0 nothing either way, Stage 1 −1 either way,
+Stage 2 and 3 −1 ordinary and −2 on a Crit); Shadow of Longing buffing a chosen ally Atk Up 30 /
+Crit Up 60 and then gathering Stage 2 from an ally **and Stage 3 from an enemy** to leave her on
+**Stage 5** with the cooldown down 5; and De Sterrennacht reading Terror 60 on both enemies, Crit
+DmUp **200 / 200 / 100**, Atk Up **40** across all three allies, and Area CritUp 10 reaching an
+ally one panel away but **not** one three panels away — who still takes that clause's own
+radius-3 buffs. Two reaches in one Noble Phantasm, each measuring its own.
