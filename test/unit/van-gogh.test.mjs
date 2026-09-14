@@ -15,6 +15,7 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { stacksHeld } from "../../module/rules/snapshot.mjs";
 import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
+import { outranks } from "../../module/rules/auras.mjs";
 import { removeStages, applicationsOf, effectGatePasses } from "../../module/rules/effect-flow.mjs";
 import * as I from "../../module/engine/intents.mjs";
 import { mergeStages } from "../../module/engine/applier.mjs";
@@ -1193,5 +1194,43 @@ describe("a per-effect predicate inside an applyEffects phase (spec R7)", () => 
     expect(crits).toHaveLength(2);
     expect(crits[0].predicate).toBeUndefined();
     expect(crits[1].predicate).toEqual(["target:skill:existenceOutsideTheDomain"]);
+  });
+});
+
+describe("a bad rank on an aura must not take the board down", () => {
+  // FOUND LIVE while testing R10. A second Item Construction overlapping hers
+  // made `resolveStacking` compare the two, `outranks` called
+  // `Rank.parseOrNull`, and that threw -- out of `annotateAuras`, out of
+  // `snapshotBoard`, out of `currentBoard()`. Every unit on the board went
+  // dark, not just the one with the bad rank.
+  //
+  // `parseOrNull` returns null for empty and for a dash and THROWS for anything
+  // else, which is not what its name promises at the call site. The trigger was
+  // a raw template with `rank: "@rank"` -- the substitution itself is fine, and
+  // her compiled aura correctly carries "B-". But a comparison losing its
+  // footing should make an instance unranked, not unmake the board: `highestOnly`
+  // exists to pick a winner, and "I cannot read this rank" is an answer it can
+  // work with.
+  //
+  // This only ever fires with TWO sources in one group, so the corpus hid it
+  // until she became the second Item Construction anyone stood next to.
+
+  it("treats an unreadable rank as unranked instead of throwing", () => {
+    expect(() => outranks("@rank", "B-")).not.toThrow();
+    expect(outranks("@rank", "B-")).toBe(false);
+  });
+
+  it("lets a real rank beat an unreadable one", () => {
+    expect(outranks("A", "@rank")).toBe(true);
+  });
+
+  it("still compares two real ranks", () => {
+    expect(outranks("A", "B-")).toBe(true);
+    expect(outranks("B-", "A")).toBe(false);
+  });
+
+  it("keeps an unranked instance from displacing a ranked one", () => {
+    expect(outranks(null, "C")).toBe(false);
+    expect(outranks("C", null)).toBe(true);
   });
 });

@@ -286,9 +286,16 @@ function resolveStacking(found) {
  * @param {string|null} b
  * @returns {boolean}
  */
-function outranks(a, b) {
-  const left = Rank.parseOrNull(a ?? null);
-  const right = Rank.parseOrNull(b ?? null);
+export function outranks(a, b) {
+  // `parseOrNull` returns null for empty and a dash, and THROWS for anything
+  // else -- which is not what the name promises here. A rank this function
+  // cannot read is an UNRANKED instance, not a reason to abandon the board:
+  // this runs inside `snapshotBoard`, so a throw here blanks every unit on the
+  // field rather than the one carrying the bad value. Found live, with two
+  // Item Constructions overlapping.
+  const read = (v) => { try { return Rank.parseOrNull(v ?? null); } catch { return null; } };
+  const left = read(a);
+  const right = read(b);
   if (!left) return false;
   if (!right) return true;
   return Rank.compare(left, right) > 0;
