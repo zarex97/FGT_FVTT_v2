@@ -1256,6 +1256,40 @@ function instanceValue(raw, ref, value) {
 }
 
 /**
+ * Resolve one effect rule's `@magnitude`/`@npMagnitude` against its instance.
+ *
+ * An `Aura` comes in two shapes and only one of them used to work. The FLAT
+ * form puts its payload on the rule itself (`modifierKey` + `value`), which is
+ * what Charisma uses; the NESTED form carries an `elements:` list, which is
+ * what Item Construction and Area CritUp use. Resolution read `rule.value`
+ * alone, so a nested element kept the literal string `"@magnitude"` and the
+ * aura reached every correct recipient carrying a value that was never a
+ * number.
+ *
+ * One level of nesting, deliberately: `elements` is the only nested carrier in
+ * the grammar, and a general deep walk would start rewriting predicates and
+ * effect ids that merely happen to contain the same text.
+ *
+ * @param {object} rule
+ * @param {number|undefined} magnitude
+ * @param {number|null|undefined} npMagnitude
+ * @returns {object}
+ */
+export function resolveRuleValues(rule, magnitude, npMagnitude) {
+  const one = (node) => ({
+    ...node,
+    value: instanceValue(node.value, "@magnitude", magnitude ?? 0),
+    npValue: instanceValue(node.npValue, "@npMagnitude", npMagnitude),
+  });
+
+  const out = one(rule);
+  // Only when there is something to descend into -- `one` would otherwise
+  // stamp `value: 0` onto a rule that never carried one.
+  if (Array.isArray(rule.elements)) out.elements = rule.elements.map(one);
+  return out;
+}
+
+/**
  * @param {object} actor
  * @returns {object}
  */
@@ -1325,13 +1359,13 @@ export function contributionsOf(actor, { terrain = [] } = {}) {
       // elements have to know how many uses are left, or the consumer cannot
       // tell a spent Trofa from a fresh one.
       uses: effect.system?.uses ?? 0,
-      rules: def.rules.map((r) => ({
-        ...r,
-        // "@magnitude" on an effect definition resolves against the instance,
-        // and "-@magnitude" against its negation.
-        value: instanceValue(r.value, "@magnitude", effect.system?.magnitude ?? 0),
-        npValue: instanceValue(r.npValue, "@npMagnitude", effect.system?.npMagnitude),
-      })),
+      // "@magnitude" on an effect definition resolves against the instance,
+      // and "-@magnitude" against its negation -- at the top level of a rule
+      // AND inside an Aura's nested `elements`, which is where Area CritUp
+      // puts its Crit Chance and where the resolution used not to reach.
+      rules: def.rules.map((r) => resolveRuleValues(
+        r, effect.system?.magnitude ?? 0, effect.system?.npMagnitude,
+      )),
     });
   }
 

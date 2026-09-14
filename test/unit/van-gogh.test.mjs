@@ -13,7 +13,7 @@ import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
-import { stacksHeld } from "../../module/rules/snapshot.mjs";
+import { stacksHeld, resolveRuleValues } from "../../module/rules/snapshot.mjs";
 import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
 import { outranks } from "../../module/rules/auras.mjs";
 import { removeStages, applicationsOf, effectGatePasses } from "../../module/rules/effect-flow.mjs";
@@ -1232,5 +1232,69 @@ describe("a bad rank on an aura must not take the board down", () => {
   it("keeps an unranked instance from displacing a ranked one", () => {
     expect(outranks(null, "C")).toBe(false);
     expect(outranks("C", null)).toBe(true);
+  });
+});
+
+describe("`@magnitude` inside an aura's nested elements (Area CritUp)", () => {
+  // FOUND LIVE, and it is Drake's MOV defect wearing a different hat.
+  //
+  // An effect's rules resolve `@magnitude` against the INSTANCE, so a buff
+  // whose strength the ability states arrives carrying it. That resolution
+  // read `rule.value` -- the TOP level of each rule -- and an `Aura` written
+  // in the nested form puts its payload in `elements:` instead:
+  //
+  //   - key: Aura
+  //     elements: [{ key: CritModifier, aspect: chance, value: "@magnitude" }]
+  //
+  // Charisma's aura uses the FLAT form (`modifierKey` + `value` on the rule
+  // itself) and always worked, which is why the corpus never noticed. Area
+  // CritUp is the first nested one carrying `@magnitude`, and it reached every
+  // ally in the radius carrying the literal string "@magnitude" as its value.
+  //
+  // Correct radius, correct relations, correct recipients -- and a value that
+  // was never a number. The aura did nothing and looked like it worked.
+
+  const rule = () => ({
+    key: "Aura",
+    radius: 2,
+    relations: ["ally", "self"],
+    elements: [{ key: "CritModifier", aspect: "chance", value: "@magnitude" }],
+  });
+
+  it("resolves a nested element's magnitude against the instance", () => {
+    const out = resolveRuleValues(rule(), 10, null);
+    expect(out.elements[0].value).toBe(10);
+  });
+
+  it("leaves the element's other fields alone", () => {
+    const out = resolveRuleValues(rule(), 10, null);
+    expect(out.elements[0]).toMatchObject({ key: "CritModifier", aspect: "chance" });
+    expect(out.radius).toBe(2);
+  });
+
+  it("still resolves the FLAT form Charisma uses", () => {
+    const out = resolveRuleValues(
+      { key: "Aura", modifierKey: "atkUp", value: "@magnitude", npValue: "@npMagnitude" }, 30, 15,
+    );
+    expect(out.value).toBe(30);
+    expect(out.npValue).toBe(15);
+  });
+
+  it("negates a nested `-@magnitude`", () => {
+    const out = resolveRuleValues(
+      { key: "Aura", elements: [{ key: "StatDelta", value: "-@magnitude" }] }, 4, null,
+    );
+    expect(out.elements[0].value).toBe(-4);
+  });
+
+  it("leaves a literal number alone at either depth", () => {
+    const out = resolveRuleValues({ key: "Aura", value: 7, elements: [{ value: 3 }] }, 99, null);
+    expect(out.value).toBe(7);
+    expect(out.elements[0].value).toBe(3);
+  });
+
+  it("handles a rule with no elements at all", () => {
+    expect(() => resolveRuleValues({ key: "CritModifier", value: "@magnitude" }, 5, null)).not.toThrow();
+    expect(resolveRuleValues({ key: "CritModifier", value: "@magnitude" }, 5, null).value).toBe(5);
   });
 });
