@@ -103,10 +103,44 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   // Queued, never resolved: a Counter is a full declaration (§12.8) and cannot
   // be opened from inside the write path (`engine/auto-counter.mjs`).
   await noteDebuffs(plan.local);
+  // *"If Drake is inflicted with NP Seal, Golden Hind is immediately
+  // deactivated."* Hung on the same convergence point the auto-counter uses,
+  // because it is the one place every effect application path meets -- four
+  // separate hooks would have been four chances to miss one.
+  await notePlatformDeactivations(plan.local);
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length };
+}
+
+/**
+ * Queue an automatic counter for every debuff this batch landed.
+ *
+ * Guarded on `game` rather than on the caller, because `applyIntents` is
+ * exercised by unit tests with an injected `io` and no Foundry globals at all.
+ * A batch that lands no debuffs costs one array scan.
+ *
+ * @param {Intent[]} intents the intents that were actually written
+ * @returns {Promise<void>}
+ */
+async function notePlatformDeactivations(intents) {
+  if (typeof game === "undefined" || !game?.actors) return;
+  const applied = intents.filter((i) => i.t === "applyEffect" && i.effect?.defId);
+  if (applied.length === 0) return;
+
+  const { currentBoard } = await import("./board.mjs");
+  const { deactivatedBy } = await import("../rules/platforms.mjs");
+  const board = currentBoard();
+  const platforms = (board.units ?? []).filter((u) => u.kind === "platform");
+  if (platforms.length === 0) return;
+
+  const { destroyPlatform } = await import("./platforms.mjs");
+  for (const intent of applied) {
+    for (const id of deactivatedBy(platforms, intent.unitId, intent.effect.defId)) {
+      await destroyPlatform({ platformId: id });
+    }
+  }
 }
 
 /**

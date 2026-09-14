@@ -357,6 +357,31 @@ export function upkeepDue(upkeep, {
 }
 
 /**
+ * Which platforms an effect landing on a unit switches off.
+ *
+ * > *"If Drake is inflicted with NP Seal, Golden Hind is immediately
+ * > deactivated."*
+ *
+ * Keyed on the OWNER, because the clause is about her rather than about the
+ * ship: the Hind itself *"cannot be affected by buffs and/or debuffs"* at all,
+ * so an NP Seal can never land on it and a rule watching the platform would
+ * never fire.
+ *
+ * Authored on the platform rather than on the effect, so a second platform may
+ * name a different effect without `npSeal` growing a list of ships.
+ *
+ * @param {object[]} platforms every platform on the board
+ * @param {string} unitId whoever was just affected
+ * @param {string} defId the effect that landed
+ * @returns {string[]} platform ids to deactivate
+ */
+export function deactivatedBy(platforms, unitId, defId) {
+  return (platforms ?? [])
+    .filter((p) => p.ownerId === unitId && (p.deactivateOn ?? []).includes(defId))
+    .map((p) => p.id);
+}
+
+/**
  * Whether a rider may step off.
  *
  * > *"Drake cannot unboard the Golden Hind."*
