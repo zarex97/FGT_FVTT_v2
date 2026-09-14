@@ -170,6 +170,34 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // watches.
       upkeep: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
+      // How an ENEMY gets aboard, when the platform states its own rule.
+      //
+      // `{die, target, byRelation}` -- the Golden Hind: *"If an enemy Unit
+      // attempts to board the Golden Hind, it rolls a ten-sided die. The enemy
+      // unit successfully boards if a 10 is rolled."* Flat: no rank relief and
+      // no Levitating branch, both of which the Hanging Gardens' shared rule
+      // has, and either of which would let an AGI-A LUC-A Servant aboard on a 6.
+      //
+      // `byRelation` names the relation that must ROLL; every other relation
+      // boards by Moving on, which is the Hind's very next sentence. Absent,
+      // everyone rolls -- the Hanging Gardens' behaviour, and still the default.
+      boarding: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+      // When this unit rolls an Injury Roll at all. The Golden Hind: *"Agility:
+      // 10 (Only performs Injury Roll when damaged by NP)."* Ch. 12 named this
+      // per-unit shape when it was written and nothing ever read it.
+      injuryRoll: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+      // Roles that may not step off. *"Drake cannot unboard the Golden Hind."*
+      // A role list rather than a unit id, because the platform document is
+      // authored long before it has an owner.
+      lockAboard: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: [] }),
+
+      // Effects on the OWNER that switch the platform off the moment they land.
+      // *"If Drake is inflicted with NP Seal, Golden Hind is immediately
+      // deactivated."*
+      deactivateOn: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: [] }),
+
       // Whether the owner may switch it off, and when. Identical in shape and
       // meaning to a bounded field's, and read through the same
       // `rules/platforms.mjs#deactivationVerdict`, because Quetzalcoatl's two
@@ -184,6 +212,10 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // scheduler does not.
       activatedAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       lastUpkeepAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      // The ROUND an `every: round` toll last charged on. A tick is the wrong
+      // unit for it: `turnsPerRound` is a world setting, so "one Round ago" and
+      // "turnsPerRound ticks ago" are different moments.
+      lastUpkeepRound: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
       // A mount whose RIDER drives it: while aboard, the rider's Move and
       // Normal Attack are the platform's, spending the rider's action rather

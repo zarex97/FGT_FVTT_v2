@@ -44,6 +44,16 @@ replacesRiderAction: { roles: [owner], normalAttack: true }
 # of any Turn or Round." Quetz's Piedra Del Sol carries the identical block
 # WITH a 2◈ lockout; Drake's sheet states none, so there is none.
 deactivation: { byOwner: true, window: any }
+# "If an enemy Unit attempts to board the Golden Hind, it rolls a ten-sided die.
+# The enemy unit successfully boards the Golden Hind if a 10 is rolled."
+#
+# Spec R7. Flat -- no rank relief, no Levitating branch. The Hanging Gardens'
+# shared rule has both, and lending them here would let an AGI-A LUC-A Servant
+# aboard on a 6 instead of a 10.
+#
+# `byRelation: enemy` is the sheet's next sentence: "Other allied Units can
+# board and unboard the Golden Hind by Moving onto it normally."
+boarding: { die: 10, target: 10, byRelation: enemy }
 # "Full damage to the ship, 50% to units aboard, Masters aboard take nothing."
 # Three target sets from one placement -- the only platform in the set where
 # the vehicle and its passengers take different fractions.

@@ -389,3 +389,17 @@ describe("Drake — Voyager of the Storm", () => {
     expect(a.phases).toBeUndefined();
   });
 });
+
+describe("The Golden Hind — boarding (spec R7)", () => {
+  const h = src("platforms", "golden-hind.yml");
+
+  it("is a flat 1d10 needing a 10, from enemies only", () => {
+    expect(h.boarding).toEqual({ die: 10, target: 10, byRelation: "enemy" });
+  });
+
+  it("states a target equal to its die, so only the top face boards", () => {
+    // "successfully boards if a 10 is rolled" -- one face in ten, and the
+    // comparison is `roll >= target`.
+    expect(h.boarding.target).toBe(h.boarding.die);
+  });
+});
