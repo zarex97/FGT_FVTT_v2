@@ -247,7 +247,7 @@ interface DiceEntry {
 | `coinFlip` | `1d2` | Ubiquitous |
 | `boardHGoB` | `1d12` | Semiramis |
 | `boardHGoBLevitating` | `1d8` | Semiramis |
-| `boardGoldenHind` | `1d10` | Drake |
+| `boardGoldenHind` | `1d10`, success **only on 10** | Drake — flat: no rank relief, no Levitating branch, and **enemies only** |
 | `enterStormBorder` | `1d20`, success on ≥18 | Nemo |
 | `hgobFallDamage` | `10×2d6` | Semiramis |
 | `knockbackCollision` | by END rank | Keyword table |

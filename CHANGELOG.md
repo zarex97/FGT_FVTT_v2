@@ -34,6 +34,86 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+> **Francis Drake is complete.** Eight entries, **two Noble Phantasms**, a **token economy**, and
+> the fifth platform owner. **Script count: 0.** She is also the first Servant in the set whose
+> Base Health, BA(STR) and BA(MAG) are all three the rank tables' own values, with no authorial
+> override anywhere — and two of her eight entries cost nothing but a `ref:` line.
+>
+> Almost nothing about her ship was new: `golden-hind.yml` had existed since Ch. 20 was written,
+> and `orientedRect`, conditional anchors, `scope: np`, `summonPlatform`, `supersedes` and
+> `replacesRiderAction` were all built with live callers. What was missing was five clauses the
+> platform schema could not express — a flat 1d10 boarding roll that ignores the rank relief every
+> other platform applies, a toll charged on the **Round** rather than on a tick period, a rider
+> locked aboard, NP Seal sinking the ship, and an Injury Roll only against Noble Phantasms.
+>
+> The last of those needed no new mechanism at all: `rules/injury.mjs` had tested for the
+> `injuryOnlyFromNP` attribute since it was written, naming the Golden Hind in its own comment,
+> and no content had ever carried it.
+>
+> The live pass found **eight** defects with the unit suite green at 4,093 throughout, **seven of
+> them in shipped machinery**, and the two widest could not have been found by a test. See Ch. 45.
+
+### Corrected
+
+- **Ch. 36 §36.3 described a Servant who no longer exists.** It specified Drake's Noble Phantasm
+  damage as four elapsed-time bands reading `@elapsedSince(drake-blazing-golden-rule)` against her
+  cooldown tracker. Her sheet was rewritten around a **Galleon Token** economy and no longer asks
+  that question; the section is rewritten, and `@elapsedSince` was never built because nothing
+  else needs it. Anyone who implemented from that chapter rather than from the sheet built the
+  wrong Servant.
+- **Ch. 09's T13 named the wrong anchor and the wrong fields.** `orientedRect` takes `short`/`long`
+  — the bearing decides which becomes the width — and the entry said `w`/`h`, which is also what
+  `vocabulary.mjs` declared, so the ability editor prompted for two fields nothing reads.
+- **`engine/fields.mjs` claimed the Golden Hind's upkeep is Drake's own Health.** Her sheet says
+  her **Master's**.
+
+### Fixed
+
+- **The action bar refused every Noble Phantasm a Master pays for.** `gateContext()` carries the
+  Round gate and the clock but no `master`, so `canUseAbility` read the Master's Health as 0 and
+  `cannotPay` refused — for every contracted Servant in the game, for the whole match, while the
+  *sheet* offered the same ability. It hid because a Free Servant pays nothing, and Free Servants
+  are what the test boards carried.
+- **Detect could not be modified at all**, in three ways at once: a `StatDelta` whose `add` was a
+  number (the field is the attribute-tag list, and the authoring vocabulary called it a number)
+  threw out of `contributionsOf` and took the whole board snapshot with it; a delta written to a
+  Servant's null `detect` started from zero and discarded the class base; and that same null makes
+  `restoreModifiable` skip the field, so nothing reset it — 6, 9, 12, 15, 18 across five
+  preparations. Nothing writes it now: `detectRangeOf` sums the deltas onto the base it resolves.
+- **A `magnitude` authored beside a nested `effect:` was silently dropped**, so every Riding
+  variant's MOV Up was whatever the effect happened to hard-code. `npMagnitude` on the very next
+  line had always had the fallback; the asymmetry was the defect.
+- **`damage.sources` was never read.** `baseSpecFor` reads `damage.base.sources` and otherwise
+  falls through to the caster's declared component. Nemo's Great Ram authors a top-level one and
+  works only because it restates the fallback's own value.
+- **`fireDamageDealt` passed no rolls**, and both roll gates refuse on a missing die — so any
+  rolled or chance-gated action hung on `damageDealt` fired never, and said nothing about it.
+- **The `platform` and `self` targeting anchors carried no bearing**, so a directional shape fired
+  due north regardless. They now carry `facing`, deliberately a different field from `direction`:
+  `shapes.mjs` turns a plain `square` into a forward-projected rect the moment `direction` exists.
+- **`setCooldownOnDestruction` accepted only `countFrom: "destroyed"`**, so a platform Noble
+  Phantasm counting from *deactivation* never started its clock down three of the four routes off
+  the board.
+
+### Added
+
+- **Content:** `drake.yml`, `class-riding-drake.yml`, seven abilities, and the effects `uncharted`
+  and `ignoreDef` (Ignore Def **alone** — Kiritsugu's `penetration` is the two-clause version, so
+  the set now has three strengths of "gets past defences").
+- **Platform vocabulary:** `boarding`, `lockAboard`, `deactivateOn`, `lastUpkeepRound`,
+  `upkeep.every: "round"`, `rules/platforms.mjs#upkeepDue`, `#canUnboard`, `#deactivatedBy`.
+  `runUpkeep` is now called from the round-end hook as well as turn-end; it had only ever been
+  called from turn-end, where a Round toll could not have fired at all.
+- **`chance` on OnEvent actions**, with its die gathered by `pendingRolls`. Not `roll`, which
+  `ResourceDelta` reads as *the amount* — her 15% authored that way would have granted 1d100
+  tokens.
+- **`damage.base.sources[].contentId`**, so *"The Golden Hind's Base Attack (MAG) is used"*
+  survives the ship not being on the board, with a cache primed at `ready`.
+- **`damage.totalModifiers`**, feeding stage 15 through the same `ctx` array Cover uses. Stage 15
+  had exactly one producer in the codebase and no authoring channel; abilities now have one.
+- **The `resourceEmpty` predicate facet**, emitted only for pools a unit actually has.
+
+
 > **Nemo is complete.** Eleven abilities, four effect definitions, and the reference set's
 > acceptance test for **a pocket dimension** — a level with no ground footprint at all, entered
 > on a 1d20, held on a clock, and left at a distance that grows with the time spent inside.

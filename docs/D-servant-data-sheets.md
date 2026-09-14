@@ -341,20 +341,22 @@ control and support. An unusual profile that the damage pipeline handles without
 
 ## D.10 Francis Drake
 
-Discussed: Ch. 36 §36.3.
+Discussed: Ch. 36 §36.3. **Built** — see §D.33b for the pass.
 
 | Ability | Type | Mapping |
 |---|---|---|
-| Magic Resistance (D) | Class, passive | RE |
-| Riding (B) | Class | RE (MOV +4) |
-| Voyager of the Storm (A+) | Passive + active | RE (conditional anchor: 2-panel radius **or** the whole ship) |
-| Pioneer of the Stars (EX) | Active | RE (NP cooldown −1◈+⅔◈, Pierce, ally `S.Crit Up`) |
-| Blazing Golden Rule (A) | Passive + active | RE (NP cooldown −1 per crit; NP Regen, Atk Up, Ignore Def) |
-| Golden Hind: Wild Hunt (A+, NP) | Platform NP | RE (platform model; per-round Master upkeep superseding the NP cost) |
-| Golden Wild Hunt (A+, NP) | Damaging NP | **RE+** `@elapsedSince(abilityId)`; conditional anchor with a no-platform fallback |
+| Magic Resistance (D) | Class, passive | RE — one `ref:` line; every number from the rank tables |
+| Riding (B) | Class | RE (MOV +4) — a third variant: the Active gates **all three** passives |
+| Voyager of the Storm (A+) | Passive | **Flavour.** Names the ship and modifies nothing, as Nemo's does |
+| Beyond the Uncharted (A) | Active | RE (conditional anchor: 2-panel radius **or** the whole ship). Effects 1–3 reach the group; effect 4 reaches **Drake alone** |
+| Pioneer of the Stars (EX) | Active | RE (NP cooldown −1◈+⅔◈, Pierce, ally `S.Crit Up`) — three durations, two target sets |
+| Blazing Golden Rule (A) | Passive + active | RE (NP cooldown −1 per crit, 15% for a token; NP Regen, Atk Up, Ignore Def, +3 tokens). Both passives live on the Servant, so the Round decay runs while the Skill is on cooldown |
+| Golden Hind: Wild Hunt (A+, NP) | Platform NP | RE (platform model; per-Round Master upkeep superseding the NP cost **including its own activation**) |
+| Golden Wild Hunt (A+, NP) | Damaging NP | RE — `damage.totalModifiers` counted off a resource; conditional anchor with a no-platform fallback, and the ship's Base Attack either way |
 
-**Exercises:** platforms with capacity and upkeep, damage modified by another ability's elapsed
-cooldown, conditional anchors, `Luck: shared` between a unit and its platform.
+**Exercises:** platforms with capacity and upkeep, a token economy, Total-Damage modifiers at
+stage 15, conditional anchors, a Base Attack read off a compendium document, and `Luck: shared`
+between a unit and its platform.
 **Scripts: 0.**
 
 **Note:** `LUC: EX` with `MAG: E`. She is the luckiest Servant in the set by a wide margin,
@@ -1400,6 +1402,50 @@ source.
 | `kind: diceCount` | Ch. 13 | The threshold and every modifier's verdict go to the roll log — a four-modifier threshold that arrives unexplained is a number nobody can check. |
 | `reactionOverride` | Ch. 12 | An ability that changes what a rung *means*. Distinct from `ForbidReaction`, which takes the rung away. |
 | `ForbidCreating` | Ch. 20 §20.6 | The whole of Zero Sail's restriction, under the reading that makes two of his own Skills' Storm Border branches reachable. |
+
+## D.33b Francis Drake
+
+`STR D / END C / AGI B / MAG E / LUC EX` · Health 1000 · MOV 6 · Range 3/1 · BA 75 STR, 100 MAG ·
+Sustainability 2◈ · Rider · Chaotic Evil · England · `[Female, Servant, Star, Humanoid]`
+
+**Scripts: 0.** Fully authored, and every clause below has been seen working on a live board.
+Ch. 45 records the pass and the eight defects it found — seven of them in machinery that shipped
+before she existed.
+
+**The first Servant whose combat numbers are all three the tables' own.** 1000 at END C, 75 at
+STR D, 100 at MAG E, with no authorial override anywhere. Kiritsugu and Serenity each deviate on
+BA(STR); she does not. The test states it positively, because "matches the table" is only
+interesting once somebody has checked.
+
+**Magic Resistance D costs one `ref:` line** and supplies every word of her first sheet entry:
+20% reduction, negation up to D, 10% debuff resistance, the Instakill/Death clause with its
+STR-damage exemption, and Erase left untouched.
+
+**Riding B is the corpus's third instantiation shape.** Ozymandias's three passives are
+permanent, Medusa's Active unlocks two of them, Achilles's are permanent but stance-gated — and
+Drake's Active unlocks **all three**, because her sheet names Double Move in the "additionally"
+list where Medusa's does not. The difference between two otherwise word-for-word Actives is the
+whole reason a Medusa variant exists, so it is honoured in both directions. The negative case —
+that she has none of the three *without* the Active — is the test that actually holds the ruling.
+
+**Galleon Tokens are a resource, not an effect** (Ch. 36 §36.3). Three sources and one sink, split
+across two documents because the Round decay must keep running while Blazing Golden Rule is on
+cooldown.
+
+**Her ship does more than any other platform.** The Golden Hind replaces her Normal Attack, charges
+her Master 50 Health a Round, refuses to let her off, carries eight others who cannot be targeted
+while aboard, and switches off the moment she is NP Sealed. It is also the first platform to carry
+both documented shapes of `upkeep` at once — a recurring toll and a cost that replaces another
+(Ch. 20 §20.5).
+
+**Her Master pays nothing to raise it.** *"This effect overwrites the normal Master Health loss
+when a Servant uses its NP"* has no condition on it, so the activation costs nothing and the 50 a
+Round is the whole price.
+
+**Her second Noble Phantasm is not hers.** *"The Golden Hind's Base Attack (MAG) is used"* — 200,
+with or without the ship, since the shipless clause exempts only the Range. `4 × 200 + 100 = 900`
+either way, and the two Galleon bands act on **Total Damage** at stage 15 rather than on stage 4's
+additive bucket.
 
 ## D.34 Aggregate — both rosters
 

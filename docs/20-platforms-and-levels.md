@@ -460,28 +460,77 @@ The upkeep clause has a precedence note: *"This effect overwrites the normal Mas
 when a Servant uses its NP"* — so the 50/round replaces, rather than stacks with, the NP cost.
 Same `supersedes` mechanism as Karna's (Ch. 15 §15.4).
 
+**It has two halves, and only one was covered.** `engine/attack.mjs#pendingCosts` finds a platform
+*on the board* owned by the caster and pushes its supersede, which covers every Noble Phantasm
+fired once the ship is up. At the **activation itself** there is no such platform yet, so the Rank
+table's cost was charged in full — measured live at 250 → 197. Her sheet puts no condition on the
+sentence, so the activation declares a zero-amount cost of its own that supersedes `npCost`, the
+shape Ozymandias's *Ramesseum Tentyris* already uses.
+
+### What the ship declares (§20.10)
+
+Five clauses the platform schema could not express before her, each an optional block that
+defaults to today's behaviour so the other four platforms are untouched:
+
+| Block | Reader | Clause |
+|---|---|---|
+| `boarding: {die, target, byRelation}` | `rules/platforms.mjs#boardingTarget` | *"an enemy Unit… rolls a ten-sided die… boards if a 10 is rolled"* |
+| `upkeep.every: round` | `engine/fields.mjs#runUpkeep` | *"at the end of every ~~Round/1◈ Turns~~ **full Round**"* |
+| `lockAboard: [owner]` | `rules/platforms.mjs#canUnboard` | *"Drake cannot unboard the Golden Hind"* |
+| `deactivateOn: [npSeal]` | `rules/platforms.mjs#deactivatedBy` | *"If Drake is inflicted with NP Seal, Golden Hind is immediately deactivated"* |
+| attribute `injuryOnlyFromNP` | `rules/injury.mjs#injuryCheck` | *"Only performs Injury Roll when damaged by NP"* |
+
+The last is **not** a new block. `injuryCheck` has tested for that attribute since it was written,
+naming the Golden Hind in its own comment, and no content had ever carried it — so the reader sat
+waiting for a writer. Authoring a schema field instead would have built a second mechanism and
+left the first inert for ever.
+
+**The boarding roll is flat.** `boardingTarget` had been the Hanging Gardens' rule for every
+platform — `1d12` (or `1d8` Levitating), less 1 at rank C–B and 2 at A or better on *both* Agility
+and Luck. Drake's sheet states a die and a number and nothing else; lending it the relief would
+put an AGI-A LUC-A Servant aboard on a 6 instead of a 10. `byRelation` is the sheet's next
+sentence: her allies *"board and unboard by Moving onto it normally"* and never roll at all.
+
+**Two clocks, and the sheets distinguish them.** Jack's Mist and the Quetzalcoatlus charge every
+N *ticks* from when they opened; the Golden Hind charges on the **Round**, and the strikethrough
+in her sheet is the author rejecting the tick reading explicitly. `turnsPerRound` is a world
+setting, so with a Round longer than one Turn the two are different moments.
+`rules/platforms.mjs#upkeepDue` decides which entries each sweep may touch, and `runUpkeep` is
+now called from both the turn-end and the round-end hook — it had only ever been called from
+turn-end, where a Round toll could not have fired at all. The two sweeps are disjoint, so a ship
+whose Round ends on its owner's Turn is charged once rather than twice.
+
+**The Golden Hind is the first platform to carry both documented shapes of `upkeep` at once** — a
+recurring toll *and* a cost that replaces another. `runUpkeep` filters on `every` and
+`attack.mjs` reads `supersedes`; that filter is the only thing keeping the two readers apart.
+
 ### Golden Wild Hunt
 
 Drake's second NP, fired from the ship:
 
-> *"Hits a 7×3 or 3×7 panel area in the direction the Golden Hind is facing for 4× damage plus
-> 100."*
+> *"The Golden Hind's Base Attack (MAG) is used. Hits a 7×3 or 3×7 panel area in the direction
+> the Golden Hind is facing for 4× damage plus 100. Additionally, Total damage dealt is further
+> increased by 10% for every Galleon Token on herself; however, if she has no Galleon Tokens,
+> Total damage dealt is reduced by 15%."*
 
-with a damage modifier keyed on the state of her *Blazing Golden Rule* skill:
+The token bands and the Total-Damage stage are Ch. 36 §36.3. Two things belong here:
 
-| Golden Rule state | Modifier |
-|---|---|
-| Not activated, not on cooldown | — |
-| Activated, <⅓◈ elapsed | +30% |
-| Activated, ⅓◈–⅔◈ elapsed | +20% |
-| Activated, >⅔◈ elapsed | +10% |
-| On cooldown | **−15% Total Damage** |
+**The bow has to reach the shape.** `orientedRect` reads `anchor.direction`, and only
+`selfEdgeAdjacent` ever supplied one — which is why Nemo's Barrel Bombing pairs the two. The
+`platform` anchor returned no direction at all, so a 7×3 anchored on the ship fired due **north**
+whichever way the bow pointed. The facing itself was never missing: `PlatformData` spreads
+`unitCommon()`, so a platform has carried `system.facing` all along and the snapshot projects it.
+Nothing had asked the anchor for it.
 
-A modifier that reads *how long ago another ability was used*. The ability model must expose
-`elapsedSince(abilityId)` as a predicate source. Cheap, since cooldown state already tracks it.
+The field is `facing`, not `direction`, and the distinction is load-bearing: `shapes.mjs` turns a
+plain `square` into a forward-projected edge-adjacent rect the moment `anchor.direction` exists,
+so handing every `self` anchor a direction silently reshapes every square splash in the game.
+`orientedRect` reads `direction ?? facing`, so a player's chosen direction still wins.
 
-And: *"Can be used even if the Golden Hind isn't present/activated; in this case the Range is
-still the same, just applied to Drake."* So the anchor is conditional (Ch. 09 §9.3).
+**And:** *"Can be used even if the Golden Hind isn't present/activated; in this case the Range is
+still the same, just applied to Drake."* The anchor is conditional (Ch. 09 §9.3) — and **only the
+anchor**. The Base Attack stays the ship's 200, which is why the damage source names the platform
+by `contentId`: a `unit` source resolves against the board and falls back to the attacker.
 
 ---
 

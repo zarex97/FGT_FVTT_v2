@@ -722,6 +722,21 @@ a subtype now.
 > `level`. The previous three-field version could not express the Golden Hind, whose Masters take
 > no area damage while its other passengers take half.
 
+> **Note (Drake).** `PlatformData` gains four more, each optional and each defaulting to the
+> behaviour every other platform already had: `boarding` (`{die, target, byRelation}`, a boarding
+> roll of the platform's own), `lockAboard` (roles that may not step off), `deactivateOn` (effects
+> on the OWNER that switch it off), and `lastUpkeepRound` beside `lastUpkeepAt`, because a
+> Round-boundary toll must compare Rounds and not derive a tick count.
+>
+> `lockAboard` and `deactivateOn` are **role and effect lists rather than unit ids**: a platform
+> document ships in the compendium and only learns whose it is when `summonPlatform` stamps
+> `ownerId` at activation.
+>
+> Six authorities have to agree before any of them is read: the schema here, `rules/snapshot.mjs`
+> (which projects platform fields one by one), `actorSystem()` in `tools/lib/content.mjs`,
+> `AUTHORED_ACTOR_KEYS`, and — for a new predicate — the facet table and `lang/en.json`. Four of
+> the six were caught by build checks rather than by review, which is what they are for.
+
 ## 22.10 Region behaviour schemas
 
 > **Implemented** in `module/data/regions.mjs` and registered in `fgt.mjs` as
