@@ -861,7 +861,7 @@ const ACTIONS = Object.freeze({
    * gets one, and the event says −1. That is the sheet's *"if a stage of Curse
    * was removed"* answered with arithmetic rather than a condition.
    */
-  RemoveEffect: (a, u, h, c) => {
+  RemoveEffect: (a, u, _h, _c) => {
     const defId = a.effect ?? a.defId;
     if (!a.stages) return [I.removeEffect(u.id, defId, "event")];
 

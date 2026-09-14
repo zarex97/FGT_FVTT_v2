@@ -15,7 +15,8 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { stacksHeld } from "../../module/rules/snapshot.mjs";
 import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
-import { removeStages } from "../../module/rules/effect-flow.mjs";
+import { removeStages, applicationsOf } from "../../module/rules/effect-flow.mjs";
+import * as I from "../../module/engine/intents.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -893,5 +894,131 @@ describe("Van Gogh — every ability she names now exists", () => {
       expect(candidates(entry.ref).some(existsSync),
         `${entry.ref} is unresolved`).toBe(true);
     }
+  });
+});
+
+describe("applications — \"3 times\" is three applications, not one worth three", () => {
+  // FOUND LIVE, and it is the defect this codebase is named for: `applications`
+  // was authored on two of her abilities, asserted by two content tests, listed
+  // in the spec -- and read by NOTHING. `applyPhaseEffects` looped over the
+  // effect entries and called `applyEffect` exactly once each, so Imaginary
+  // Numbers Arts applied Guts and no Curse at all. The content test passed
+  // because the content was right. It was the reader that did not exist.
+  //
+  // Three applications rather than `stages: 3` because the sheet states a
+  // CHANCE beside the count -- "a 500% chance of inflicting Curse on herself,
+  // 3 times" -- and a chance is rolled per application. At 500% all three land
+  // and the distinction is invisible; below 100% it is the whole clause.
+
+  it("reads the authored count", () => {
+    expect(applicationsOf({ id: "curse", applications: 3 })).toBe(3);
+  });
+
+  it("defaults to one, so every other effect in the corpus is unchanged", () => {
+    expect(applicationsOf({ id: "atkUp" })).toBe(1);
+  });
+
+  it("reads it off the RULE when the effect is nested", () => {
+    // The corpus carries both `{id, ...}` and `{effect: {id}, ...}`; the
+    // magnitude resolvers already check both and this must match them.
+    expect(applicationsOf({ id: "curse" }, { applications: 2 })).toBe(2);
+  });
+
+  it("never returns less than one", () => {
+    // A count of zero would silently delete an effect an ability states.
+    expect(applicationsOf({ id: "curse", applications: 0 })).toBe(1);
+    expect(applicationsOf({ id: "curse", applications: -4 })).toBe(1);
+  });
+
+  it("covers both abilities that state a count", () => {
+    const ina = src("abilities", "gogh-imaginary-numbers-arts.yml");
+    const tyh = src("abilities", "gogh-the-yellow-house.yml");
+    const curseOf = (a) => a.phases.flatMap((p) => p.effects ?? []).find((e) => e.id === "curse");
+    expect(applicationsOf(curseOf(ina))).toBe(3);
+    expect(applicationsOf(curseOf(tyh))).toBe(2);
+  });
+});
+
+describe("every intent a factory can build is one the validator knows", () => {
+  // FOUND LIVE, and it cost the whole ability. `applyIntents` refuses a batch
+  // containing an intent type it does not recognise -- correctly, because a
+  // half-applied Noble Phantasm is worse than none. But `event` and `setStage`
+  // were added with a constructor, an ORDER rank and an applier case, and NOT
+  // added to `INTENT_TYPES`. So Imaginary Numbers Arts applied Guts, built the
+  // Curse's `curseStageChanged`, and had the entire batch thrown out: no
+  // Curse, no cooldown reduction, and the skill not even marked used.
+  //
+  // Four authorities have to agree for an intent to exist, and unit tests that
+  // exercise the producer will pass with three of them. This test is the
+  // fourth: it walks the factories rather than naming them, so the next intent
+  // added without a validator entry fails here instead of in the world.
+
+  it("knows every type a factory produces", () => {
+    const built = [];
+    for (const [name, fn] of Object.entries(I)) {
+      if (typeof fn !== "function") continue;
+      let out;
+      try { out = fn("unit-1", "thing", 1, 1, 1); } catch { continue; }
+      if (!out || typeof out.t !== "string") continue;
+      built.push([name, out.t]);
+    }
+    // Guard the guard: if the probe stops constructing anything, this test
+    // would pass vacuously for ever.
+    expect(built.length).toBeGreaterThan(10);
+
+    const unknown = built.filter(([, t]) => !I.INTENT_TYPES.includes(t));
+    expect(unknown, `factories build intent types the validator rejects: ${JSON.stringify(unknown)}`)
+      .toEqual([]);
+  });
+
+  it("accepts the two her kit introduced", () => {
+    expect(I.INTENT_TYPES).toContain("event");
+    expect(I.INTENT_TYPES).toContain("setStage");
+  });
+
+  it("validates a real curseStageChanged batch", () => {
+    // The exact shape Imaginary Numbers Arts produced when it failed.
+    const batch = [
+      I.applyEffect("unit-1", "curse", {}),
+      I.event("curseStageChanged", { unitId: "unit-1", defId: "curse", stageDelta: 1 }),
+    ];
+    expect(I.validate(batch)).toEqual([]);
+  });
+
+  it("validates a setStage batch, which the `gogh` buff emits", () => {
+    expect(I.validate([I.setStage("unit-1", "curse", 2)])).toEqual([]);
+  });
+});
+
+describe("an addressless intent still has a subject (spec R1)", () => {
+  // FOUND LIVE, and it was the second half of the same wound. Once `event` was
+  // a type the validator knew, the batch applied -- and Channel Marker Soul
+  // still paid nothing, because `batch()` groups by `intent.unitId` and an
+  // `event` deliberately has none. The applier handed `fireWriteEvent` the
+  // group's `null`, the board lookup found no unit, and the function returned
+  // before dispatching to a single handler.
+  //
+  // So the event fired into nothing. Imaginary Numbers Arts still reduced the
+  // cooldown by 3 Turns from its own phase, which is exactly the shape of
+  // defect that survives a live pass: a number moved, so it looked like it
+  // worked. It was half the clause.
+
+  it("groups an event under no unit at all", () => {
+    const [group] = I.batch([I.event("curseStageChanged", { unitId: "u1", stageDelta: 1 })]);
+    expect(group.unitId).toBeNull();
+  });
+
+  it("takes the subject from the payload", () => {
+    expect(I.eventSubject(I.event("curseStageChanged", { unitId: "u1" }), null)).toBe("u1");
+  });
+
+  it("falls back to the group when the payload names no one", () => {
+    expect(I.eventSubject(I.event("x", {}), "u2")).toBe("u2");
+  });
+
+  it("prefers the payload over the group", () => {
+    // The unit a stage change HAPPENED to is not always the unit whose write
+    // raised it -- Shadow of Longing takes stages off an enemy.
+    expect(I.eventSubject(I.event("x", { unitId: "u1" }), "u2")).toBe("u1");
   });
 });

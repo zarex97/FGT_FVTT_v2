@@ -38,7 +38,7 @@ import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
-import { transferableFrom, transferEffect } from "../rules/effect-flow.mjs";
+import { transferableFrom, transferEffect, applicationsOf } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
@@ -1077,10 +1077,30 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       ?? authoredMagnitude(rule, actor)
       ?? def.defaultMagnitude ?? 0;
 
+    // "...3 times". N SEPARATE applications, each with its own chance roll and
+    // -- for a staged effect -- its own `curseStageChanged`, which is what
+    // Channel Marker Soul is paid per stage for. Defaults to one, so every
+    // effect entry in the corpus that states no count is untouched.
+    //
+    // Inside the loop and not outside it: a fresh `1d100` per application is
+    // the point. Rolling once and reusing it would make "3 times at 40%" an
+    // all-or-nothing gamble rather than three chances.
+    const applications = applicationsOf(spec, rule);
+    for (let application = 0; application < applications; application += 1) {
+    // RE-READ the recipient between applications. `applyEffect` decides the
+    // new stage from `target.effects`, so handing it the same snapshot three
+    // times computes Stage 1 three times and she ends on Stage 1 -- which is
+    // the failure this whole clause exists to avoid. Only for a repeat, and
+    // only when the snapshot names an actor we can find: the single-application
+    // path is byte-for-byte what it was.
+    const recipient = application === 0
+      ? target
+      : (unitSnapshot(game.actors?.get(target?.id)) ?? target);
+
     const roll = await new Roll("1d100").evaluate();
     const outcome = applyEffect({
       def,
-      target,
+      target: recipient,
       // An authored magnitude may be an `@` EXPRESSION rather than a number.
       // Mannanán's Fragarach Enbarr is *"all damage dealt is increased by 5%
       // for each Fragarach Counter on herself"* -- a magnitude that is a
@@ -1157,6 +1177,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason },
       result: outcome,
     });
+    }
   }
   return out;
 }
