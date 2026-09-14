@@ -1,0 +1,84 @@
+# Van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# "(Non-damaging)" is the first word of its entry, and an ability with phases
+# and no `damage` phase deals none -- `engine/attack.mjs#dealsNoDamage`, the
+# hole five authored Noble Phantasms shipped with.
+#
+# THREE different reaches in one Noble Phantasm, which is why two of the four
+# phases carry their own `targeting:` rather than reusing the ability's:
+#
+#   the ability      a 5x5 of ENEMIES in a chosen non-diagonal direction
+#   phases 2 and 3   every ALLY within 3 panels of her
+#   effect 4         her alone
+#
+# Defaulting any of them to `reuse` would Terror her own side.
+schema: 1
+id: gogh-de-sterrennacht
+name: "De Sterrennacht: The Starry Night"
+rank: EX
+isNP: true
+categorizedAsNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+cooldown: "8◈"
+timing: { window: ownTurn }
+description: |
+  (Non-damaging) Used during your Turn. First, inflicts @effect[terror]{Terror} for 1◈ Turns to all
+  enemy Units within a 5x5 panel area in any non-diagonal direction next to Gogh, chance of being
+  inflicted with @effect[stun]{Stun} from Terror is 60%. Then, apply the following effects to all
+  allied Units within a 3 panel area of Gogh-
+  1. Applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 100%.
+  2. Applies Crit DmUp for 1◈ Turns again to all affected allied Units with the 'Existence Outside
+     the Domain' Skill, Crit Damage dealt is increased by 100%.
+  3. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by X0%; if NP, the
+     value is halved. X=(3+the number of affected allied Units with the 'Existence Outside the
+     Domain' Skill excluding herself).
+  4. Applies @effect[areaCritUp]{Area CritUp} for 1◈ Turns to Gogh, Crit Chance of all allied Units
+     within a 2 panel area of the Unit with this buff is increased by 10%.
+  Cooldown: 8◈ Turns.
+targeting:
+  # "in any non-diagonal direction next to Gogh" -- the player picks one of
+  # four, presented as ghost previews (Ch. 09 §9.3).
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: rect, w: 5, h: 5 }
+  selection: { relations: [enemy], chooser: all }
+phases:
+  # The enemy half. `magnitude: 60` is Terror's own Stun chance, which the
+  # effect reads as `@magnitude` on a flat action roll -- nothing may shift it
+  # (§A.11), including her own Item Construction.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: terror, duration: "1◈", magnitude: 60 }
+  # The ally half -- a DIFFERENT reach, so it states its own.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 3 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      - { id: critDmUp, duration: "1◈", magnitude: 100 }
+      # Effect 2 -- the SAME effect again, to a subset. `critDmUp` stacks by
+      # magnitude, so an EOTD ally ends on 200 and everybody else on 100.
+      - { id: critDmUp, duration: "1◈", magnitude: 100,
+          predicate: ["target:skill:existenceOutsideTheDomain"] }
+      # Effect 3. X = 3 + the EOTD allies IN THIS SET, excluding her, and the
+      # buff is X x 10%. A property of the set rather than of any recipient,
+      # which is why it is `countTargets` and not `perStack` or `countMatching`.
+      - id: atkUp
+        duration: "1◈"
+        magnitude:
+          countTargets:
+            base: 30
+            each: 10
+            requires: ["self:skill:existenceOutsideTheDomain"]
+            excludeSelf: true
+        # "if NP, the value is halved" -- a FACTOR, because the base is
+        # computed and an absolute cannot express half of a number nobody
+        # knows until the targets resolve.
+        npMagnitudeFactor: 0.5
+  # Effect 4 -- her alone.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: areaCritUp, duration: "1◈", magnitude: 10 }

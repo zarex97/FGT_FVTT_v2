@@ -1,0 +1,38 @@
+# Appendix A §A.11
+#
+# The unusual half is the last sentence: "The chance is not modified by debuff
+# chance/resist effects." Every other probability in the game passes through
+# `ApplicationChance`; this one must not.
+#
+# Which is why it is an ACTION's `chance` rather than the Stun's own: an
+# action's chance is a flat 1d100 gathered by `pendingRolls` and tested in
+# `dispatch`, with nothing between it and the roll. Authoring it as
+# `ApplyEffect { effect: { id: stun, chance: 60 } }` would route it through the
+# applier, where Van Gogh's own Item Construction would sharpen it by 35%
+# against the enemies standing inside her aura.
+#
+# `PERIODICS` is the other thing this is not: that table is damage, and Terror
+# deals none.
+schema: 1
+id: terror
+name: "Terror"
+description: |
+  At the end of every Turn, X% chance of @effect[stun]{Stun} for 1◈ Turns, then Terror is removed.
+  The chance is not modified by debuff chance or resist effects.
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: turnEnd
+    automatic: true
+    then:
+      # The flat roll. `chance` on an ACTION is gathered as a 1d100 by
+      # `pendingRolls` and tested in `dispatch`; a die that never arrived
+      # refuses rather than firing.
+      - { key: ApplyEffect, effect: { id: stun }, duration: "1◈", chance: "@magnitude" }
+      # "then Terror is removed" -- whether or not the Stun landed. The sheet
+      # gives it one roll, not one per Turn until it works.
+      - { key: RemoveEffect, effect: terror }

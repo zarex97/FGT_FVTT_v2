@@ -14,6 +14,7 @@ import { Rank } from "../../module/domain/rank.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { stacksHeld } from "../../module/rules/snapshot.mjs";
+import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -563,5 +564,117 @@ describe("Van Gogh — Sunflower's Curse, passive 2 (spec R9)", () => {
     expect(json).not.toContain("guts");
     expect(json).not.toContain("invuln");
     expect(json).not.toContain("endure");
+  });
+});
+
+describe("countTargets — a magnitude computed from the phase's own target set", () => {
+  // De Sterrennacht effect 3: "damage dealt is increased by X0%, where X = 3 +
+  // the number of affected allied Units with the EOTD Skill EXCLUDING
+  // herself". The number is not on the ability, not on the caster, and not on
+  // the recipient -- it is a property of the SET, and only the phase knows it.
+  //
+  // `perStack` counts effects on the caster and `countMatching` counts the
+  // board; neither answers "how many of the units I am about to buff".
+  const spec = { base: 30, each: 10, requires: ["self:skill:existenceOutsideTheDomain"], excludeSelf: true };
+  const withSkill = (id) => ({ id, abilities: [{ slug: "existenceOutsideTheDomain" }] });
+
+  it("is the base alone when she is the only one", () => {
+    expect(countTargetsMagnitude(spec, [withSkill("gogh")], "gogh")).toBe(30);
+  });
+
+  it("adds ten per other ally carrying the Skill", () => {
+    const set = [withSkill("gogh"), withSkill("ally1"), withSkill("ally2")];
+    expect(countTargetsMagnitude(spec, set, "gogh")).toBe(50);
+  });
+
+  it("excludes herself even when she carries it", () => {
+    // "excluding herself" is stated, and she always carries EOTD -- so without
+    // the exclusion her floor would be 40, not 30.
+    const set = [withSkill("gogh"), withSkill("ally1")];
+    expect(countTargetsMagnitude(spec, set, "gogh")).toBe(40);
+  });
+
+  it("ignores allies who do not carry the Skill", () => {
+    const set = [withSkill("gogh"), { id: "plain", abilities: [] }];
+    expect(countTargetsMagnitude(spec, set, "gogh")).toBe(30);
+  });
+});
+
+describe("Van Gogh — Terror, and De Sterrennacht EX (NP1)", () => {
+  const terror = src("effects", "terror.yml");
+  const np = src("abilities", "gogh-de-sterrennacht.yml");
+
+  it("rolls Terror flat, where every other chance is shiftable", () => {
+    // Appendix A §A.11 states it outright. Authoring the 60% as the Stun's own
+    // application chance would route it through the applier, where her Item
+    // Construction would sharpen it by 35% against the enemies inside her aura.
+    const onTurnEnd = terror.rules.find((r) => r.event === "turnEnd");
+    const stun = onTurnEnd.then.find((a) => a.key === "ApplyEffect");
+    expect(stun.chance).toBe("@magnitude");
+    expect(JSON.stringify(stun)).toContain("stun");
+  });
+
+  it("removes itself whether or not the Stun landed", () => {
+    // "then Terror is removed" -- one roll, not one per Turn until it works.
+    const onTurnEnd = terror.rules.find((r) => r.event === "turnEnd");
+    const removal = onTurnEnd.then.find((a) => a.key === "RemoveEffect");
+    expect(removal.effect).toBe("terror");
+    expect(removal.predicate).toBeUndefined();
+  });
+
+  it("is an EX Anti-Unit Noble Phantasm on 8◈, dealing no damage", () => {
+    expect(np.rank).toBe("EX");
+    expect(np.npTags).toEqual(["antiUnit"]);
+    expect(np.cooldown).toBe("8◈");
+    expect(np.damage).toBeUndefined();
+    expect(np.phases.map((p) => p.kind)).not.toContain("damage");
+  });
+
+  it("Terrors a 5x5 of ENEMIES in a chosen direction, at 60%", () => {
+    expect(np.targeting.anchor.kind).toBe("selfEdgeAdjacent");
+    expect(np.targeting.shape).toEqual({ kind: "rect", w: 5, h: 5 });
+    expect(np.targeting.selection.relations).toEqual(["enemy"]);
+    const enemyPhase = np.phases.find((p) => p.target === "reuse");
+    expect(enemyPhase.effects[0]).toMatchObject({ id: "terror", magnitude: 60 });
+  });
+
+  it("buffs allies on a DIFFERENT reach, stated per phase", () => {
+    // Three reaches in one NP. Defaulting the ally half to `reuse` would
+    // Terror her own side.
+    const ally = np.phases.find((p) => p.targeting);
+    expect(ally.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 3 });
+    expect(ally.targeting.selection.relations).toEqual(["ally", "self"]);
+  });
+
+  it("gives Crit DmUp twice, the second only to EOTD Units", () => {
+    const ally = np.phases.find((p) => p.targeting);
+    const crits = ally.effects.filter((e) => e.id === "critDmUp");
+    expect(crits).toHaveLength(2);
+    expect(crits[0].predicate).toBeUndefined();
+    expect(crits[1].predicate).toEqual(["target:skill:existenceOutsideTheDomain"]);
+  });
+
+  it("scales Atk Up off its own target set, excluding her (spec R7)", () => {
+    const atk = np.phases.find((p) => p.targeting).effects.find((e) => e.id === "atkUp");
+    expect(atk.magnitude.countTargets).toEqual({
+      base: 30, each: 10,
+      requires: ["self:skill:existenceOutsideTheDomain"], excludeSelf: true,
+    });
+    // NOT the `@count(...)` expression Ch. 35 proposed -- this codebase
+    // rejected that by name in `semiramis-familiar-doves.yml`.
+    expect(JSON.stringify(np)).not.toContain("@count(");
+  });
+
+  it("halves the NP value by a FACTOR, since the base is computed", () => {
+    const atk = np.phases.find((p) => p.targeting).effects.find((e) => e.id === "atkUp");
+    expect(atk.npMagnitudeFactor).toBe(0.5);
+    expect(atk.npMagnitude).toBeUndefined();
+  });
+
+  it("gives the Area CritUp to Gogh alone", () => {
+    const selfPhase = np.phases.find((p) => p.target === "self");
+    expect(selfPhase.effects[0]).toMatchObject({ id: "areaCritUp", magnitude: 10 });
+    const areaCrit = src("effects", "area-crit-up.yml");
+    expect(areaCrit.rules[0]).toMatchObject({ key: "Aura", radius: 2 });
   });
 });
