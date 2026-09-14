@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import {
   platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
-  boardingTarget, fallOff, destructionSequence, aoePassengerFactor,
+  boardingTarget, canUnboard, fallOff, destructionSequence, aoePassengerFactor,
   platformCentre, withinPlatformCentre, deactivationVerdict, actionSourceFor,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
@@ -498,5 +498,61 @@ describe("actionSourceFor", () => {
     const src = actionSourceFor(quetz, { units: [moveOnly, quetz] });
     expect(src.movesAsPlatform).toBe(true);
     expect(src.attacksAsPlatform).toBe(false);
+  });
+});
+
+/**
+ * A platform that states its own boarding rule.
+ *
+ * `boardingTarget` has been the Hanging Gardens' rule for every platform in
+ * the game: 1d12 (1d8 Levitating), less 1 at rank C-B and 2 at A or better on
+ * both Agility and Luck. The Golden Hind's is a flat 1d10 needing a 10 --
+ * *"If an enemy Unit attempts to board the Golden Hind, it rolls a ten-sided
+ * die. The enemy unit successfully boards if a 10 is rolled."*
+ *
+ * Lending it the relief would let an AGI-A LUC-A Servant aboard on a 6.
+ */
+describe("boardingTarget — an authored boarding block", () => {
+  const hind = { boarding: { die: 10, target: 10, byRelation: "enemy" } };
+  const agile = { attributes: [], parameters: { agi: "A", luc: "A" } };
+  const weak = { attributes: [], parameters: { agi: "E", luc: "E" } };
+
+  it("uses the platform's own die and target when one is authored", () => {
+    expect(boardingTarget(agile, { platform: hind })).toEqual({ die: 10, target: 10 });
+  });
+
+  it("applies NO rank relief, however good the boarder is", () => {
+    // The Hanging Gardens' rule would take an A/A Servant from 12 to 8.
+    expect(boardingTarget(agile, { platform: hind }))
+      .toEqual(boardingTarget(weak, { platform: hind }));
+  });
+
+  it("ignores the Levitating branch too", () => {
+    const levitating = { attributes: ["levitating"], parameters: {} };
+    expect(boardingTarget(levitating, { platform: hind })).toEqual({ die: 10, target: 10 });
+  });
+
+  it("leaves the Hanging Gardens' rule untouched when nothing is authored", () => {
+    expect(boardingTarget(agile, {})).toMatchObject({ die: 12, target: 8 });
+    expect(boardingTarget({ parameters: {}, attributes: ["levitating"] }, {}))
+      .toMatchObject({ die: 8 });
+  });
+});
+
+describe("canUnboard — a rider locked aboard", () => {
+  const hind = { id: "hind", ownerId: "drake", lockAboard: ["owner"] };
+
+  it("refuses the owner", () => {
+    // "Drake cannot unboard the Golden Hind."
+    expect(canUnboard({ id: "drake" }, hind).ok).toBe(false);
+  });
+
+  it("allows everyone else", () => {
+    // "Other allied Units can board and unboard by Moving onto it normally."
+    expect(canUnboard({ id: "ally" }, hind).ok).toBe(true);
+  });
+
+  it("allows the owner when nothing is locked", () => {
+    expect(canUnboard({ id: "semiramis" }, { id: "hgob", ownerId: "semiramis" }).ok).toBe(true);
   });
 });

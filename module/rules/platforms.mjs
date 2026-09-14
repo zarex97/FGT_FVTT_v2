@@ -295,10 +295,40 @@ export function actionSourceFor(unit, board) {
 }
 
 /**
+ * Whether a rider may step off.
+ *
+ * > *"Drake cannot unboard the Golden Hind."*
+ *
+ * A ROLE list rather than a unit id, because a platform document is authored
+ * long before it has an owner -- `golden-hind.yml` ships in the compendium and
+ * only learns whose it is when `summonPlatform` stamps `ownerId` at activation.
+ *
+ * `owner` is the only role any sheet names so far. Every other rider on the
+ * Hind is free to go: *"Other allied Units can board and unboard the Golden
+ * Hind by Moving onto it normally."*
+ *
+ * A platform with no `lockAboard` holds nobody, which is every other platform
+ * in the game.
+ *
+ * @param {object} unit the rider asking to leave
+ * @param {object} platform
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function canUnboard(unit, platform) {
+  const locked = platform?.lockAboard ?? [];
+  if (locked.includes("owner") && unit?.id === platform?.ownerId) {
+    return { ok: false, reason: "lockedAboard" };
+  }
+  return { ok: true };
+}
+
+/**
  * May this unit switch the thing off, and if not, why not.
  *
  * Shared by bounded fields and platform Noble Phantasms because they carry the
  * same authored block. Quetzalcoatl is the reason the `lockout` axis exists:
+ *
+ * @see canUnboard — the other half: whether a rider may step off at all.
  *
  * > *"This NP can be deactivated during Quetz's Turn or at the start or end of
  * > any Round or Turn, **but cannot be deactivated for 2◈ Turns after it was
@@ -389,6 +419,16 @@ export function crossLevelRulesFor(board) {
  * @returns {{die: number, target: number}}
  */
 export function boardingTarget(unit, ctx = {}) {
+  // A platform that states its own roll states it COMPLETELY. The Golden
+  // Hind's *"rolls a ten-sided die… successfully boards if a 10 is rolled"*
+  // carries no relief clause and no Levitating branch, and lending it either
+  // would put an AGI-A LUC-A Servant aboard on a 6 instead of a 10.
+  //
+  // Everything below this line is the Hanging Gardens' rule, which stays the
+  // default for every platform that does not author one.
+  const authored = ctx.platform?.boarding ?? null;
+  if (authored) return { die: authored.die, target: authored.target };
+
   // "Has the Levitating attribute: roll 1d8 instead, base target 8."
   const levitating = (unit?.attributes ?? []).includes("levitating");
   const die = levitating ? 8 : 12;

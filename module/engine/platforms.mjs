@@ -8,6 +8,7 @@
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf,
 } from "../rules/platforms.mjs";
+import { relationOf } from "../rules/relations.mjs";
 import { currentBoard } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -43,7 +44,28 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
     return { ok: false, roll: 0, target: 0, reason: "full" };
   }
 
-  const { die, target } = boardingTarget(unit, { hitByDragonWingWarriors });
+  // Who has to roll at all. The Golden Hind's rule is aimed at ENEMIES --
+  // *"If an ENEMY Unit attempts to board the Golden Hind, it rolls a ten-sided
+  // die"* -- and its very next sentence lets everyone else walk on: *"Other
+  // allied Units can board and unboard the Golden Hind by Moving onto it
+  // normally."*
+  //
+  // Checked AFTER capacity, because a full ship is full for everybody, and a
+  // platform that authors no `byRelation` makes everyone roll, which is the
+  // Hanging Gardens' behaviour and stays the default.
+  const gate = platform.boarding?.byRelation ?? null;
+  if (gate && relationOf(unit, platform, board) !== gate) {
+    await applyWorldIntents(
+      [
+        I.log({ kind: "boarding", unitId, platformId, roll: 0, target: 0, die: 0, ok: true, free: true }),
+        I.move(unitId, [platform.panel], true),
+      ],
+      "platform:board",
+    );
+    return { ok: true, roll: 0, target: 0 };
+  }
+
+  const { die, target } = boardingTarget(unit, { hitByDragonWingWarriors, platform });
   const roll = (await new Roll(`1d${die}`).evaluate()).total;
   const ok = roll >= target;
 
