@@ -1,0 +1,53 @@
+# Vincent van Gogh, char_orig_sheets/Copia de Van Gogh.md
+#
+# The most mechanically inventive Servant in the set, and Ch. 35 says so: she
+# uses the effect system in a direction it was not designed for. Her own debuff
+# is her fuel -- Curse raises her Noble Phantasm's readiness rather than
+# threatening her, and Sunflower's Curse makes sure it can never kill her.
+#
+# FIVE of the eleven mechanisms Ch. 35 §35.11 says she needs already had a
+# reader and no writer, and two of them name her in their own comments:
+# `cs-kill-yourself.yml` refuses on `immuneToKillYourself` -- "Van Gogh's
+# Sunflower's Curse is the only stated immunity to a Command Spell" -- and
+# `rules/auras.mjs` quotes Item Construction's non-stacking clause while
+# resolving `highestOnly`.
+#
+# She also closes `alter-ego.yml`'s `forwardReferences:
+# [existenceOutsideTheDomain]`, which `validate:content` has warned about as
+# "declared, inert" since Alter Ego shipped.
+schema: 1
+id: van-gogh
+name: "Van Gogh"
+trueName: "Vincent van Gogh, Clytie, Clytie van Gogh, Vulthoom"
+classContainer: caster
+region: [netherlands, europe, greece]
+alignment: { order: chaotic, morality: neutral }
+# `[Man]` is the Nasuverse Attribute, as Kiritsugu's is. `threatToHumanity` and
+# `child` are new tags, and need no schema change: `attributes` is an open set
+# by design (Ch. 04 §4.5).
+attributes: [female, servant, man, humanoid, threatToHumanity, child]
+parameters: { str: E, end: B, agi: C, mag: A, luc: D }
+baseHealth: 1250
+mov: 5
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 50, mag: 200 }
+# Spec R4. "Note: Van Gogh's Normal Attacks uses her Base Attack (MAG)" -- the
+# sheet says so outright, which is unusual enough that the Note exists at all.
+# Reading the silent default would attack with 50 instead of 200.
+normalAttack: { mode: fixed, component: mag }
+sustainability: "2◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: class-existence-outside-the-domain, rank: A }
+  - { ref: class-item-construction-gogh, rank: "B-" }
+  # Spec R5: the table gives 45, which is the number her sheet prints.
+  - { ref: divinity, rank: "B+" }
+  - { ref: gogh-insanity }
+  - { ref: gogh-sunflowers-curse }
+  - { ref: gogh-imaginary-numbers-arts }
+  - { ref: gogh-het-gele-huis }
+  - { ref: gogh-channel-marker-soul }
+  - { ref: gogh-shadow-of-longing }
+  - { ref: gogh-de-sterrennacht }
+  - { ref: gogh-the-yellow-house }
