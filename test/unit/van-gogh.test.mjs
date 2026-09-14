@@ -11,6 +11,7 @@ import { parse } from "yaml";
 
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+import { SERVANT_CLASSES } from "../../module/domain/enums.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { stacksHeld, resolveRuleValues } from "../../module/rules/snapshot.mjs";
@@ -1296,5 +1297,59 @@ describe("`@magnitude` inside an aura's nested elements (Area CritUp)", () => {
   it("handles a rule with no elements at all", () => {
     expect(() => resolveRuleValues({ key: "CritModifier", value: "@magnitude" }, 5, null)).not.toThrow();
     expect(resolveRuleValues({ key: "CritModifier", value: "@magnitude" }, 5, null).value).toBe(5);
+  });
+});
+
+describe("Van Gogh is a Foreigner", () => {
+  // Corrected by the game's author. I authored `caster` from her Caster-ish
+  // kit -- fixed MAG normal attack, Item Construction, a support NP -- and
+  // Appendix D had said Foreigner all along, inferred from the ability set.
+  // `Existence Outside The Domain` is the tell: it is a Foreigner class skill,
+  // and Ch. 35's own tally calls her Base Attack clause "BA(MAG) on a
+  // NON-Caster".
+  //
+  // `classContainer` is presentational -- `authored-fields.mjs` keeps it out of
+  // content sync because it is the slot war setup PLACED a Servant in, not the
+  // class her sheet names -- so nothing mechanical moved. What it drives is her
+  // class icon (`assets/classes/<classContainer>.webp`) and the name every chat
+  // card prints her under, which had read "Caster" on every card of the live
+  // pass.
+  const g = src("servants", "van-gogh.yml");
+
+  it("is a Foreigner, not a Caster", () => {
+    expect(g.classContainer).toBe("foreigner");
+  });
+
+  it("names a class the enum knows", () => {
+    expect(SERVANT_CLASSES).toContain(g.classContainer);
+  });
+
+  it("has a class image to resolve", () => {
+    expect(existsSync(join(process.cwd(), "assets/classes", `${g.classContainer}.webp`))).toBe(true);
+  });
+
+  it("carries the class skill that gives her away", () => {
+    expect(g.abilities.map((a) => a.ref)).toContain("class-existence-outside-the-domain");
+  });
+});
+
+describe("every class the enum offers can be named on a sheet", () => {
+  // `setup-wizard.mjs` localises `FGT.Class.${classContainer}` -- the LOWERCASE
+  // value -- and the lowercase keys stopped at `berserker`. Everything from
+  // `ruler` onward fell through to a raw key on screen. Latent since the Extra
+  // classes were added to the enum, and `alterEgo` (Kingprotea, Mannanán) was
+  // already hitting it before Van Gogh moved to `foreigner`.
+  const lang = JSON.parse(readFileSync(join(process.cwd(), "lang/en.json"), "utf8"));
+
+  it("has a lowercase label for every enum member", () => {
+    const missing = SERVANT_CLASSES.filter((c) => !(`FGT.Class.${c}` in lang));
+    expect(missing, `no FGT.Class.<value> label for: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("has a class image for every enum member", () => {
+    const missing = SERVANT_CLASSES.filter(
+      (c) => !existsSync(join(process.cwd(), "assets/classes", `${c}.webp`)),
+    );
+    expect(missing, `no class image for: ${missing.join(", ")}`).toEqual([]);
   });
 });

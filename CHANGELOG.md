@@ -79,6 +79,13 @@ coincide by accident; the headings say which is which.
 
 ### Corrected
 
+- **Van Gogh is a Foreigner, not a Caster.** She was authored `classContainer: caster` from a kit
+  that reads like one — a fixed MAG Normal Attack, Item Construction, a support Noble Phantasm —
+  while Appendix D had said *Foreigner* since it was written, inferred from the ability set.
+  *Existence Outside The Domain* is a Foreigner class skill, and Ch. 35's own tally calls her Base
+  Attack clause "BA(MAG) on a **non-Caster**". The field is presentational, so nothing mechanical
+  moved; it drives her class icon and the name every chat card prints her under, which had read
+  `Caster` throughout the live pass.
 - **Ch. 35 §35.11's tally was written before she was built and the engine grew past it.** It lists
   eleven mechanisms as needing new support. Five already had a reader and no writer, two were
   rejected in favour of mechanisms that already existed (`@count(targets where …)`, turned down by
@@ -108,6 +115,12 @@ coincide by accident; the headings say which is which.
 
 ### Fixed
 
+- **Seven Servant classes had no lowercase i18n label.** `apps/setup-wizard.mjs` localises
+  `FGT.Class.${classContainer}` and the lowercase keys stopped at `berserker`, so everything from
+  `ruler` onward rendered as a raw key in the war-setup UI. Latent since the Extra classes entered
+  the enum, and `alterEgo` was already hitting it — Kingprotea and Mannanán have carried that
+  container since they were authored. The new test walks `SERVANT_CLASSES` rather than naming
+  them, and checks each has a class image too.
 - **`applications: N` had no reader.** Authored on two of Van Gogh's abilities, asserted by two
   content tests and named in her chapter, while `applyPhaseEffects` applied each effect entry
   exactly once — so *Imaginary Numbers Arts* applied Guts and no Curse at all. Three applications
