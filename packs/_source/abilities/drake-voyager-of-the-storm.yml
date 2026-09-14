@@ -1,0 +1,19 @@
+# Francis Drake, char_orig_sheets/Copia de Francis Drake.md
+#
+# "(Passive) Sails on the 'Golden Hind' (see below)." FLAVOUR, with its
+# mechanical consequence living on the Noble Phantasm rather than here: the
+# passive names the vessel and modifies no Unit.
+#
+# Recorded rather than invented into a rule element that would do nothing --
+# Nemo's identically-named passive is authored the same way, and for the same
+# reason. An A+ rank on a clause that grants nothing is the sheet's, not a
+# mistake.
+schema: 1
+id: drake-voyager-of-the-storm
+name: "Voyager of the Storm"
+rank: "A+"
+kind: skill
+slug: voyagerOfTheStorm
+passive: true
+description: |
+  (Passive) Sails on the @ability[drake-golden-hind-wild-hunt]{Golden Hind}.
