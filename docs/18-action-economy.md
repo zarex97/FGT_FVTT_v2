@@ -519,3 +519,38 @@ The GM's turn has no budget by default. It occupies the last turn slot in every 
 ---
 
 **Next:** [19 — Environment](19-environment.md)
+
+
+---
+
+## Fractional units
+
+> *"each one counts as 0.5 Units"*
+
+The clause qualifies nothing, so neither does the implementation: `unitWeight` is read by the four
+turn-budget pools, by §16.7's multi-Servant tax and by `mayOrderAnotherServant`. Both Dioscuri
+Acting is **one** Servant having Acted.
+
+**Pools store integer halves.** `usedHalves` against `maxHalves`, with `used` derived for display
+only. Ch. 34 §34.5 names floating-point accumulation as the risk of a 0.5-weight unit, and halves
+remove it rather than manage it — seven twins moving is `7`, not `3.4999999999999996`.
+
+The boundary case is exact, and surprising enough that the HUD explains it:
+
+| At 3.5 of 4 Servant moves | |
+|---|---|
+| a linked twin | `7 + 1 ≤ 8` — **allowed** |
+| an ordinary Servant | `7 + 2 > 8` — **refused** |
+
+**A pip has three states**, which a boolean could not express: a single moved twin is a half-pip.
+`summarize` stays pure and numeric (`1` / `0.5` / `0`); `engine/budget.mjs#rows` names
+`full`/`half`/`empty` for the view, because a CSS class is not a rule and Handlebars reads `0.5` as
+truthy.
+
+### One attack, two units
+
+An ability may declare `alsoCountsAsAttackFor: partner`. The joint Noble Phantasm does: *"Counts as
+both Castor and Pollux's Attack for the Turn"* charges `0.5 + 0.5` — one of the faction's two
+Servant attacks — and records both twins as having attacked, so neither swings again. It is read off
+the **ability**, because it is a property of that Noble Phantasm; the twins' other attacks charge one
+twin each.

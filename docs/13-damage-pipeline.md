@@ -1304,3 +1304,40 @@ riders legitimately apply.
 effects"*, which is the distinction Appendix A draws between the two and the reason a rider gate
 cannot be tested with Invuln.
 
+
+
+---
+
+## Combining two units' modifiers
+
+> *"The effects of all Skills, buffs and debuffs on **both** Castor and Pollux are combined when
+> calculating damage for this NP."*
+
+`damage.modifierSources: [partner]` is the **mirror of `excludeModifierSources`**, and lives in the
+same function — `activeMods`, which its own comment calls *"the single place every stage reads a
+modifier bag"*. One addition therefore covers stages 2, 4, 4b, 5, 7 and 12 and cannot fall out of
+step with any of them.
+
+Three rules govern it:
+
+- **Only onto the attacker.** It is the attacking ability that says so.
+- **Only from names `ctx.units` already resolves** — the same map stage 1 reads a Base Attack source
+  from, so `{unit: partner}` and `modifierSources: [partner]` mean the same unit by construction.
+- **A source resolving to the attacker itself is skipped.** Unioning a bag into itself would double
+  every modifier an ordinary attack already has.
+
+**The double-count is intended** (Ch. 41 Q12, answered by the game's author): one *Guardians of
+Navigation* cast that buffed both twins gives the joint Noble Phantasm **+30%, not +15%**. That
+reads as a bug in the explainer unless the breakdown says whose each modifier was, so every unioned
+modifier carries `sourceUnitName` and the audit line names them.
+
+### Stage 7 also reads the defender
+
+`FLAT_TAKEN_KEYS` is a flat **increase** to what the defender takes, and `avenger` is its only
+member: *"All damage taken by Castor is increased by 80 including NP."*
+
+Not a negative `flatReduction` at stage 12, which would have been arithmetically equivalent and
+wrong twice over: `bypassesDefence` drops stage 12 wholesale, and Pierce and Invuln read that set as
+things they beat — so a Heel Attack would have switched off the drawback its bearer is stuck with.
+**A vulnerability is not a negative resistance.** It sits at stage 7 beside the counter bonus that
+offsets it, so both halves of one Skill appear in one stage of the breakdown.

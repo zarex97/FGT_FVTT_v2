@@ -123,6 +123,7 @@ Transcribed from *Rules — Combat*, with our numbering additions marked:
 | Step | Name | Actor | Description |
 |---|---|---|---|
 | 1 | Declaration | AU | AU declares an Attack on DU |
+| 1.5 | **Miss** | AU | A source of Missing rolls before anyone reacts; a miss ends the Process (**our numbering**) |
 | 2 | Reaction | DU | Do nothing / Block / Evade |
 | 2.1 | Lucky Hit | AU | Luck Check to contest a successful Evade |
 | 2.2 | Counter-contest | DU | Luck Check to contest 2.1 |
@@ -133,6 +134,19 @@ Transcribed from *Rules — Combat*, with our numbering additions marked:
 | 4 | Injury | DU | Injury Roll if damage > 100 and DU survived |
 | 5 | Facing | DU | DU turns to face the AU (not for AoE) |
 | 6 | Counter | DU | If in range and eligible, declare a counter-attack |
+
+**Step 1.5 is ours, and it is not an Evade.** `Blind`'s first clause is *"80% chance of Missing
+on attacks and enemy-affecting abilities"*, and that has no home anywhere else in this Process: an
+Evade is the **defender's** roll answering a swing that happened, resolved at step 2 with a Luck
+ladder hanging off it, while a Miss is the swing **not happening at all**. So the rung is the
+attacker's, it sits before the reaction, and a miss is **terminal** — no reaction, no Luck ladder,
+no damage, no Injury Roll, no facing change, no Counter. The attack budget is still spent, because
+the swing was declared at step 1.
+
+It has no `PROMPTS` entry and opens no interrupt window, both deliberately: it is a roll resolved
+automatically, like the Damage Step, and a prompt there would stop the ladder to ask a question
+nobody has an answer to — which is how `heelResolve` hung in play. `beforeAttack` at `declare` is
+the Command Spell window that precedes it.
 
 Steps 2.1–2.5 are our numbering of the rulebook's own sub-steps; the rulebook labels them
 identically. Step 5 and 6 are numbered by us (the rulebook describes them as "5." and "6." in

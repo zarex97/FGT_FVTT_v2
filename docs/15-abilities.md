@@ -1422,3 +1422,45 @@ Two structural notes for anything built on this path:
   onto the prompt; a renderer that rebuilds a fixed rung list makes every one of them
   unreachable. See Ch. 45.
 
+
+
+---
+
+## A `choose` option may branch into phases
+
+`choose` has picked from a list of **effects** since EMIYA's *Trace On* was authored — *"apply ONE
+OF the following effects OF YOUR CHOICE"*. An option may now carry `phases:` instead:
+
+```yaml
+- kind: choose
+  prompt: "FGT.Dioscuri.ManaBurstChoice"
+  options:
+    - id: self
+      label: "FGT.Dioscuri.SelfRestore"
+      phases: [{ kind: statChange, target: self, changes: [...] }]
+    - id: both
+      label: "FGT.Dioscuri.SplitRestore"
+      phases: [{ kind: statChange, target: linkedGroup, changes: [...] }]
+```
+
+Mana Burst is why: *"either restore 2 Agility and 2 Luck to Castor; or restore 1 Agility and 1 Luck
+to both"* is two stat changes on **different targets**, which no effect id can say.
+
+Ch. 34 §34.10 asks for a separate `kind: choice` phase for exactly this. A `choice` beside `choose`
+would have been **two grammars for one question**, so the existing kind was extended instead.
+
+Both runners honour it. The Skill path (`engine/skill-use.mjs#runChoice`) builds a synthetic ability
+carrying the branch, so it runs through the same dispatcher as every other phase; the attack path
+(`engine/attack.mjs#resolveChoosePhases`) splices the branch into the phase list **in place**, so it
+keeps its position in the order and is read by the same `when` and `predicate` handling.
+
+**The USER chooses, not the target** — it is the attacker's ability and the attacker's resources —
+and a declined dialog runs **no branch at all**. That is not an error: a player who closed it chose
+neither, and applying one for them would be inventing the decision.
+
+### Suppressing a family of Skills
+
+`canUseAbility` refuses an ability whose `categorizedAs` tag names a scope in the unit's
+suppressions. `Blind`'s clause 3 is the first to need it — *"'Mystic Eye' and 'Glam Sight' Skills
+cannot be used"* — and it is keyed on the **family** rather than on named slugs, because the clause
+names one. A second Mystic Eye authored later is covered without touching the effect.
