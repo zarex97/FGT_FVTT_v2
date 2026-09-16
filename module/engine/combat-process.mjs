@@ -22,11 +22,11 @@ import { mayCounterAgain, MAX_COUNTER_DEPTH } from "../rules/counter.mjs";
 
 /** Every state the process can occupy. */
 export const STATES = Object.freeze([
-  "declare", "react", "evadeRoll",
+  "declare", "missCheck", "react", "evadeRoll",
   "s21_luckyHit", "s22_duContest", "s23_acceptOrEscape",
   "s24_luckyEvasion", "s25_auContest",
   "heelResolve",
-  "damage", "noDamage", "injury", "facing", "counter", "done",
+  "damage", "noDamage", "injury", "facing", "counter", "missed", "done",
 ]);
 
 /**
@@ -88,7 +88,25 @@ export const TRANSITIONS = Object.freeze({
   // nothing after this rung either way.
   "counter:counter": "done",
   "counter:declined": "done",
-  "declare:done": "react",
+  // Step 1.5 -- the MISS CHECK. Blind's *"80% chance of Missing on attacks"* is
+  // the only source, and it is the ATTACKER's roll: an Evade is the defender
+  // answering a swing that happened, where a Miss is the swing not happening.
+  //
+  // No `PROMPTS` entry below: it is a roll resolved automatically, like the
+  // damage step and `heelResolve`. Giving `heelResolve` a prompt once stopped
+  // the ladder to ask a question nobody had an answer to and the attack sat at
+  // the rung for ever -- found live, and not repeated here.
+  "declare:done": "missCheck",
+  "missCheck:hit": "react",
+  "missCheck:miss": "missed",
+
+  // A miss is TERMINAL and skips everything after it: no reaction, no Luck
+  // ladder, no damage, no Injury Roll, no facing change, and no Counter. The
+  // attack did not happen.
+  //
+  // The attack BUDGET is still spent, because the swing was declared -- that
+  // is charged at declaration, above this rung, and nothing here refunds it.
+  "missed:done": "done",
 });
 
 /** Which side answers each prompting state, and what it costs. */
@@ -531,6 +549,9 @@ export const INTERRUPT_WINDOWS = Object.freeze({
   s23_acceptOrEscape: "s23_acceptOrEscape",
   damage: "damage",
   injury: "beforeDamage",
+  // No `missCheck` and no `missed`. The miss is rolled and resolved in one
+  // step, so there is no in-flight resolution left for a Command Spell to
+  // rewrite -- `beforeAttack` at `declare` is the window that precedes it.
 });
 
 /**
