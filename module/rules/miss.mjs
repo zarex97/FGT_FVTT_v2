@@ -17,6 +17,8 @@
  * The step is 1.5, between Declaration and Reaction (`engine/combat-process.mjs`).
  */
 
+import { test as testPredicate } from "./predicate.mjs";
+
 /**
  * Effects that can make an attacker miss, and the chance each carries.
  *
@@ -59,6 +61,28 @@ export function missChance(attacker, options = new Set()) {
   const held = attacker?.effects ?? [];
   const source = Object.keys(MISS_SOURCES).find((id) => held.includes(id));
   if (!source) return 0;
+
+  // A suppression that switches the check off outright.
+  //
+  // Anastasia's *Watermelon Splitting Master*: *"When Anastasia performs a
+  // Normal Attack at a Range of 1 to 2 while inflicted with Blind, it does not
+  // have a chance of Missing."* A Servant who inflicts Blind on herself to turn
+  // it into an offensive buff -- Ch. 44 §44.3 calls the shape "self-harm as a
+  // resource", with Van Gogh's Curse economy as the precedent. The difference
+  // is that Gogh CONSUMES her debuff and Anastasia REINTERPRETS hers.
+  //
+  // The SAME `Suppress` element Blind's own clause 3 uses, rather than a second
+  // way to switch a rule off. The predicate is evaluated HERE rather than at
+  // collection time because it asks about the ATTACK -- `attack:range:lte:2` --
+  // and the range is not known when contributions are gathered.
+  //
+  // Scoped, deliberately: an unscoped version of this would stop every Blinded
+  // attacker in the game from ever missing.
+  const suppressed = (attacker?.suppressions ?? []).some(
+    (sup) => sup.scope === "miss"
+      && (!sup.predicate || testPredicate(sup.predicate, { options })),
+  );
+  if (suppressed) return 0;
 
   if (EXEMPT_SKILLS.some((slug) => options.has(`self:skillActive:${slug}`))) return 0;
   if (options.has("self:skill:clairvoyance")) return CLAIRVOYANCE_MISS;
