@@ -2045,14 +2045,30 @@ async function fireDamageDealt(state, result) {
  * @returns {Promise<void>}
  */
 async function fireDamageTaken(state, result) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  // Off the BOARD, not off `game.actors`.
+  //
+  // A summon's token is unlinked, so `game.actors.get(id)` and the token's own
+  // actor are two different documents with the same id -- and every write the
+  // engine makes goes to the token's, because `io.mjs#resolve` prefers it
+  // ("the engine read one actor and wrote to another", as its comment says).
+  //
+  // Reading the world actor here meant this event was built from state the
+  // engine had never written to. Measured live: the Vorpal Blade suppressed the
+  // Jabberwock's lifesteal, `contributionsOf` on the board reported zero
+  // handlers, and the monster healed 154 anyway -- because the handler that
+  // fired was the world actor's, which had never heard of the suppression.
+  //
+  // `unitFrom` takes the board's projection when there is one, which is built
+  // from `canvas.tokens.placeables` like everything else.
+  const board = currentBoard();
+  const attacker = unitFrom(board, game.actors.get(state.attackerId));
+  const defender = state.defenderId ? unitFrom(board, game.actors.get(state.defenderId)) : null;
   if (!attacker || !defender) return;
 
   const intents = fireEvent("damageTaken", [defender], {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board: currentBoard(),
+    board,
     options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
     victim: { unitId: state.attackerId },
     rolls: {},
