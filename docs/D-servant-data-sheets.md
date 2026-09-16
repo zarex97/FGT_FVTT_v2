@@ -1522,7 +1522,7 @@ additive bucket.
 Sustainability 4◈ · Caster · True Neutral · England ·
 `[Female, Servant, [Man], Humanoid, Fairytale, Non-Hominidae, Child]`
 
-**Scripts: 0 so far.** **Part 1 of 4 authored** — the core kit. Parts 2 (the summons and the
+**Scripts: 0 so far.** **Part 1 of 4 authored and verified on a live board** — the core kit. Parts 2 (the summons and the
 `[Vorpal Blade]`), 3 (Nameless Forest) and 4 (The Queen's Glass Game) are specified and planned and
 not yet built. Part 4 would be the corpus's **first `Script`**.
 
@@ -1553,6 +1553,14 @@ cooldown phase in the corpus to carry a `targeting` of its own.
 
 **`A Tale for Somebody's Sake` is the second clause in the corpus to turn an enemy's clock**, after
 Kiritsugu's *Chronos Rose* — and the first that works. The rider path it needs had never run.
+Measured live: a 3×3 caught two Servants for 1482 and 1876, and both of their Noble Phantasm
+cooldowns went **4 → 7** — increased by exactly 1◈, on them, while hers was untouched.
+
+**The live pass found two defects the suite did not.** A non-damaging Spell must declare
+`countsAsAttack: false`, or `classifyAbility` calls it an attack and the default targeting asks for
+a victim it does not have; *White Queen's Enigma* shipped without it and refused with *"Choose a
+target."* The corpus-wide guard written for that found a second instance on a Servant already marked
+fully authored — Semiramis's *Scales of the Sacred Fish*.
 
 ## D.34 Aggregate — both rosters
 
