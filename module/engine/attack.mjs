@@ -71,8 +71,7 @@ import {
   NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW,
 } from "../rules/windows.mjs";
 import {
-  reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow,
-} from "../rules/reactions.mjs";
+  reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow, windowSubject } from "../rules/reactions.mjs";
 import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 import {
@@ -5312,12 +5311,12 @@ async function offerAttackerWindow(state, window, message) {
   const actor = game.actors.get(state.attackerId);
   if (!actor) return { ...state, windowAbilities: [] };
 
-  const offers = abilitiesAtWindow({
-    items: actor.items,
-    effects: actor.effects.map((e) => e.system?.defId).filter(Boolean),
-    turnState: actor.system?.turnState ?? {},
-    roundState: actor.system?.roundState ?? {},
-  }, window);
+  // The SNAPSHOT, not a handful of loose fields. `abilitiesAtWindow` checks the
+  // ability's own `requirements`, and `stance` is one of them -- which
+  // `stance.mjs#stanceOf` can only answer from `stanceSpec`. Assembled by hand,
+  // the subject answered `null` and every *"can only be used when Unmounted"*
+  // ability was refused before it could be offered (Ch. 46 §46.4-V).
+  const offers = abilitiesAtWindow(windowSubject(unitSnapshot(actor), actor.items), window);
   if (offers.length === 0) return { ...state, windowAbilities: [] };
 
   const picked = await askOwner(actor, {

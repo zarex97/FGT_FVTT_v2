@@ -103,6 +103,33 @@ export function reactionAbilities(unit) {
  * @param {string} window
  * @returns {object[]}
  */
+/**
+ * The subject an attacker's timing window asks its questions of.
+ *
+ * `abilitiesAtWindow` filters on everything the Unit can answer alone, and
+ * `stance` is one of those questions — four of Achilles's abilities are *"can
+ * only be used when Unmounted"*. `rules/stance.mjs#stanceOf` reads
+ * `unit.stanceSpec` and returns **null** without it, so a subject assembled
+ * from loose fields answers `null === "dismounted"` and the requirement can
+ * never pass.
+ *
+ * `engine/attack.mjs` built exactly such a subject — `{ items, effects,
+ * turnState, roundState }` — so **Runner Comet was never offered at the only
+ * window its sheet gives it**. §46.4-P had just made an ability of that shape
+ * runnable when taken; this is what kept it from being offered at all
+ * (Ch. 46 §46.4-V).
+ *
+ * The snapshot is the answer to every such question, and the Items are what the
+ * filter reads `system` off, so the subject is both.
+ *
+ * @param {object} snapshot the unit's projection
+ * @param {Iterable<object>} items the actor's ability Items
+ * @returns {object} a unit the window's filters can interrogate
+ */
+export function windowSubject(snapshot, items) {
+  return { ...(snapshot ?? {}), items: [...(items ?? [])] };
+}
+
 export function abilitiesAtWindow(unit, window) {
   const used = unit?.turnState?.abilitiesUsed ?? [];
   const usedThisRound = unit?.roundState?.abilitiesUsed ?? [];
