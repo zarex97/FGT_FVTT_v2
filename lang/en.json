@@ -1353,6 +1353,8 @@
   "FGT.Predicate.Facet.selfOrSummonsActedHint": "Acted this Turn, or one of its summons did.",
   "FGT.Predicate.Facet.lastOfSummonGroup": "Last summon standing",
   "FGT.Predicate.Facet.lastOfSummonGroupHint": "Is the only summon of its summoner still on the board.",
+  "FGT.Predicate.Facet.withinOfPartner": "Within N of its linked partner",
+  "FGT.Predicate.Facet.withinOfPartnerHint": "Is within a number of panels of the other member of its linked group.",
   "FGT.Predicate.Facet.withinOfMaster": "Within N of its own Master",
   "FGT.Predicate.Facet.withinOfMasterHint": "Is within a number of panels of its OWN contracted Master.",
   "FGT.Predicate.Facet.withinOfOwnerMaster": "Within N of the field owner's Master",

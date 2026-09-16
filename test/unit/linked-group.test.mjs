@@ -15,6 +15,8 @@ import {
 } from "../../module/rules/linked-group.mjs";
 import { annotateZon } from "../../module/rules/zon.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
+import { rollOptionsFor } from "../../module/rules/options.mjs";
+import { collectContributions } from "../../module/rules/elements.mjs";
 
 const at = (i, j) => ({ i, j });
 
@@ -189,5 +191,81 @@ describe("D7 — either twin inside the Master's ZON satisfies it", () => {
     annotateZon([master, c, p], board, {});
 
     expect(c.outsideZon).toBe(true);
+  });
+});
+
+describe("self:withinOfPartner — how close the twins stand", () => {
+  it("emits a ladder from the actual distance up to 6", () => {
+    const options = rollOptionsFor({ attacker: { id: "castor", partnerDistance: 2 } });
+    expect(options.has("self:withinOfPartner:2")).toBe(true);
+    expect(options.has("self:withinOfPartner:3")).toBe(true);
+    expect(options.has("self:withinOfPartner:6")).toBe(true);
+    // A unit 2 away is NOT "within 1".
+    expect(options.has("self:withinOfPartner:1")).toBe(false);
+  });
+
+  it("emits adjacency as :1, with no special case", () => {
+    const options = rollOptionsFor({ attacker: { id: "castor", partnerDistance: 1 } });
+    expect(options.has("self:withinOfPartner:1")).toBe(true);
+  });
+
+  it("emits nothing when there is no partner to measure to", () => {
+    // `null` is the right answer for a twin standing alone, and it makes
+    // `self:withinOfPartner:1` false and its negation true -- both correct.
+    const options = rollOptionsFor({ attacker: { id: "castor", partnerDistance: null } });
+    expect([...options].some((o) => o.includes("withinOfPartner"))).toBe(false);
+  });
+});
+
+describe("R5 — Mad Enhancement's drain halves beside Pollux, and so do its floor and threshold", () => {
+  /** Mad Enhancement clause 1, as `mad-enhancement.yml` authors it plus R5. */
+  const clause = {
+    key: "OnEvent",
+    event: "actedTurnEnd",
+    automatic: true,
+    then: [
+      {
+        key: "StatDelta", subject: "master", stat: "health.value",
+        table: "madEnhancementDrain", direction: "down",
+        floorTable: "madEnhancementDrain",
+        tableFactor: { value: 0.5, predicate: ["self:withinOfPartner:1"] },
+      },
+      {
+        key: "SetMode", ability: "madEnhancement", active: false,
+        whenValue: { subject: "master", stat: "health.value", lteTable: "madEnhancementDrain" },
+        tableFactor: { value: 0.5, predicate: ["self:withinOfPartner:1"] },
+      },
+    ],
+  };
+
+  /** @param {number|null} distance @returns {object[]} */
+  const actionsAt = (distance) => {
+    const options = rollOptionsFor({ attacker: { id: "castor", partnerDistance: distance } });
+    return collectContributions(
+      [{ id: "me", name: "Mad Enhancement", rank: "B-", active: true, activeRules: [clause] }],
+      { options },
+    ).eventHandlers[0].actions;
+  };
+
+  it("drains 20 and deactivates at 20 when the twins are apart", () => {
+    const [drain, mode] = actionsAt(3);
+    expect(drain.amount).toBe(20);
+    expect(drain.floor).toBe(20);
+    expect(mode.whenValue.lte).toBe(20);
+  });
+
+  it("drains 10 and deactivates at 10 when Castor stands beside Pollux", () => {
+    const [drain, mode] = actionsAt(1);
+    expect(drain.amount).toBe(10);
+    // The floor and the threshold move WITH the drain. `madEnhancementDrain`
+    // is one number read three times, and halving only the drain would leave
+    // Mad Enhancement running until the Master was under 20.
+    expect(drain.floor).toBe(10);
+    expect(mode.whenValue.lte).toBe(10);
+  });
+
+  it("does not halve for a Castor with no partner on the board", () => {
+    const [drain] = actionsAt(null);
+    expect(drain.amount).toBe(20);
   });
 });
