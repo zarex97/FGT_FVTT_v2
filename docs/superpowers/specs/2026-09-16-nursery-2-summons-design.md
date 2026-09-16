@@ -41,7 +41,7 @@ need is in the schema because of Bašmu, the Sphinxes and the Warriors.
 | *"within a 2 panel area of herself"* | `spec.placement: {shape, size, anchor: self}` — the Warriors' own field. |
 | *"do not count towards the number of Units that Move and/or Attack"* | `countsTowardBudget: false`, on the summon's statblock. |
 | *"The same Trump Soldier can only Move/Attack once per Turn"* | `actsOncePerTurn: true`, likewise. |
-| *"Enemy Units cannot Attack Nursery or her Master if any Trump Soldiers are directly next to them"* | **`RelationshipProxy`** — D44.4, built for Pale Rider, read by `rules/relations.mjs#guardsOf`. It is *"Treats this Unit as somebody else for relationship questions"*, which is exactly the clause. Medea's Warriors carry the same sentence. |
+| *"Enemy Units cannot Attack Nursery or her Master if any Trump Soldiers are directly next to them"* | **`TargetingModifier {mode: protectSummoner, radius: 1, protects: [summoner, summonerMaster]}`** — on the SUMMON's own statblock. Medea's Dragon Tooth Warriors carry the identical sentence and this identical rule, and its comment says why it is not a Compulsion: *"a Decoy-shaped rule rather than a Compulsion: it removes targets rather than forcing one."* **(Corrected before planning — this spec first said `RelationshipProxy`, which is Pale Rider's redirect of Master-protection to summons and a different mechanism.)** |
 | *"Counts as Nursery's Attack for the Turn"* | `countsAsAttack: true`. |
 | *"Cooldown: ⅓◈ Turns for each Trump Soldier summoned"* | `cooldown: {perUnit: "⅓◈", countFrom: summonCount}` — Dragon Tooth Warriors, verbatim. |
 | *"if it Moves onto an occupied panel, all Units occupying said panels are knocked back by 1 panel"* | `movesOntoOccupiedPanels: true` (Bašmu) plus `Knockback`, both built. |
@@ -166,7 +166,7 @@ already passes through — so the pickup hook inherits the refusal rather than r
 | T5–T10 | Trump Soldier statblock: Health 200, Agility 10, Luck 6, MOV 4, Range 2/1, BA(STR) 75 | CONTENT — one summon file |
 | T11 | Do not count towards Units that Move and/or Attack | FREE — `countsTowardBudget: false` |
 | T12 | The same Trump Soldier may Move/Attack once per Turn | FREE — `actsOncePerTurn: true` |
-| T13 | Enemies cannot Attack Nursery or her Master if a Trump Soldier is next to them | FREE — `RelationshipProxy` (D44.4) |
+| T13 | Enemies cannot Attack Nursery or her Master if a Trump Soldier is next to them | FREE — `TargetingModifier {mode: protectSummoner}` on the summon |
 | T14 | Counts as Nursery's Attack for the Turn; cooldown ⅓◈ **per soldier** | FREE — `countsAsAttack`, `cooldown.perUnit` |
 
 **Trump Soldiers costs one statblock and one ability file.** Medea built it.
@@ -186,7 +186,7 @@ already passes through — so the pickup hook inherits the refusal rather than r
 | J14 | *Alice Eater*: `Atk Up` 1◈ at +50% / NP +25% | CONTENT |
 | J15 | *Alice Eater*: extends its stay by 3◈ **more** (R8); cooldown 4◈ | CONTENT |
 | J16 | Does not count towards Units that Move/Attack; once per Turn | FREE |
-| J17 | Enemies cannot Attack Nursery or her Master if it is next to them; summoning counts as her Attack (R6) | FREE — `RelationshipProxy` |
+| J17 | Enemies cannot Attack Nursery or her Master if it is next to them; summoning counts as her Attack (R6) | FREE — `TargetingModifier {mode: protectSummoner}` |
 | J18 | Re-summoned with the Stats it had when it disappeared; cooldown 5◈ **after it disappears** (R7) | FREE — `fieldSummonStats`, `countFrom: destroyed` |
 
 ### 5.3 `[Vorpal Blade]` — 8
