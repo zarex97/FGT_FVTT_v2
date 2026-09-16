@@ -25,9 +25,16 @@ passiveRules:
   # directly next to them." A Decoy-shaped rule rather than a Compulsion: it
   # removes targets rather than forcing one -- the reasoning Medea's Dragon
   # Tooth Warrior records in the same words.
-  - key: TargetingModifier
-    mode: protectSummoner
+  # `TargetabilityModifier`, NOT `TargetingModifier`. The second pushes into
+  # `modifiers` under a key the damage pipeline has no entry for and the
+  # targeting resolver never reads -- so the clause was collected, routed
+  # nowhere, and the protection had never once applied. Found on a live board.
+  - key: TargetabilityModifier
     radius: 1
-    protects: [summoner, summonerMaster]
+    relations: [ally, self]
+    # "Nursery or her Master" / "Medea or her Master" -- narrower than every
+    # ally, which is what `recipientRoles` is for. Its own comment names
+    # Ozymandias's Sphinxes shielding "Ozymandias or his Master".
+    recipientRoles: [summoner, summonerMaster]
 notes: |
   Conjured 1d8+4 at a time by Nursery Rhyme: Trump Soldiers, within a 2 panel area of Nursery.
