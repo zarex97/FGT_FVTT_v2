@@ -182,7 +182,32 @@ cooldown 5◈.
 
 ## 5. The engine work
 
-Six changes. Each lands with its reader in the same task — a rule that is right and inert is this
+> **Corrected 2026-09-16, before planning.** Reading the seams to write the plan
+> found **three of these six already built**, which makes it five discoveries on
+> this Servant rather than three:
+>
+> - **E2 (attacker raises the defender's Evade) is free.** `engine/attack.mjs:2515`
+>   already merges `checkPlan(attacker, "evade", {direction: "imposed"})` into the
+>   defender's plan — EMIYA's *Clairvoyance* forces the unfavourable table the
+>   same way. Her +4 is four authoring lines.
+> - **E3 (Soaked's additive Freeze chance) is free.** `applicationChance` computes
+>   `base + inflictBonus − resist`, and `chanceContribution` already scopes a
+>   contribution by `effectId`, by `direction: "incoming"` and by an attack-time
+>   predicate. A **negative** contribution is therefore a vulnerability:
+>   `ApplicationChance {direction: incoming, effectId: freeze, value: -25,
+>   predicate: [attack:element:ice]}` raises the chance by 25 and is additive to
+>   whatever the attack already carried, which is exactly the sheet's word.
+> - **E4's stage-0 carve-out is unnecessary, and R2 costs nothing.**
+>   `fireDamageTaken` fires `damageTaken` once the Damage Step has resolved
+>   *including at a total of zero*, so it fires even when stage 0 halted on
+>   *"Freeze broken by Fire"*. Soaked's own `OnEvent damageTaken` predicated on
+>   `attack:element:fire` therefore removes it on that very attack — your ruling,
+>   for free, and **the riskiest edit in the Servant disappears.**
+>
+> **What remains is two changes,** below as E1 and E6. §8's "stage 0 halts" risk
+> is withdrawn.
+
+Two changes. Each lands with its reader in the same task — a rule that is right and inert is this
 project's named dominant defect, and Ch. 45 classifies exactly that as **Collected**.
 
 ### E1 — `Suppress { scope: "miss" }`, read by `missChance`
