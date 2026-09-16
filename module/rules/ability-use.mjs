@@ -111,6 +111,38 @@ import { test as testPredicate } from "./predicate.mjs";
  * @param {object} item an ability Item
  * @returns {"mode"|"cast"|"contribute"}
  */
+/**
+ * The placement a REACTION is resolved with.
+ *
+ * Two fields, and both are needed:
+ *
+ * - `sourceUnitId` — whoever swung. A `sourceOfAttack` anchor resolves against
+ *   it; Kiritsugu's suppression shot points back at the attacker.
+ * - `unitId` — the unit in peril. A `targetUnit` anchor resolves against it;
+ *   EMIYA's *Rho Aias* is projected in front of the ally about to be hit.
+ *
+ * `unitId` used to be omitted whenever the reaction's owner WAS the unit in
+ * peril — which is the ordinary case for a self-protecting barrier. Rho Aias is
+ * anchored `{ kind: targetUnit, range: 3 }`, so with nothing to resolve the use
+ * was refused with *"Choose a target."*, the attack carried on, and the only
+ * second Health pool in the reference set never engaged. Measured live: offered,
+ * chosen, recorded as taken, `shieldHealth` still 1400 and EMIYA dead at 0
+ * against a clause reading *"EMIYA's Health cannot drop below 1"*
+ * (Ch. 46 §46.4-S).
+ *
+ * Naming the unit in peril is safe for every reaction: a `self` anchor resolves
+ * to the caster whatever is passed.
+ *
+ * @param {object} args
+ * @param {string} args.attackerId whoever swung
+ * @param {string} args.aimedAt the unit this reaction is pointed at
+ * @param {string} [args.ownerId] the reaction's owner — kept for callers' clarity
+ * @returns {{sourceUnitId: string, unitId: string}}
+ */
+export function reactionPlacement({ attackerId, aimedAt }) {
+  return { sourceUnitId: attackerId, unitId: aimedAt };
+}
+
 export function windowUseKind(item) {
   const sys = item?.system ?? {};
   if (sys.isMode) return "mode";

@@ -629,6 +629,75 @@ it does, and Overedge's explains why the negation is filed where it is; both wer
 window is also narrow in play: the guard lasts ⅓◈ and Overedge's Cooldown begins when Overedge is
 used. Worth a decision, not a patch at the end of an audit.
 
+### S. A reaction could never be aimed at the unit raising it — **fixed 2026-09-16**
+
+**Reached: EMIYA's Rho Aias**, and any reaction anchored on a target that its owner may itself be.
+
+When a defender takes a reaction, `engine/attack.mjs` resolves it through `useSkill` with a
+placement built from the attack in flight — and it omitted `unitId` whenever the reaction's owner
+**was** the unit in peril:
+
+```js
+...(owner.id === aimedAt ? {} : { unitId: aimedAt }),
+```
+
+Rho Aias is anchored `{ kind: targetUnit, range: 3 }` — *"EMIYA projects Rho Aias to protect the
+allied Unit(s)"* — and the ordinary case is EMIYA projecting it in front of himself. With no
+`unitId` the anchor had nothing to resolve, so the use was refused with *"Choose a target."*, the
+attack carried straight on, and the only second Health pool in the reference set never engaged.
+
+**Measured live**: Heracles's Nine Lives for 1406 against a full-Health EMIYA. Rho Aias was offered,
+chosen, and recorded in the Process history as taken — and its `shieldHealth` was still **1400**,
+its `timesUsed` still **0**, and EMIYA was dead at **0**, against a clause that reads *"EMIYA's
+Health cannot drop below 1"*.
+
+A `self` anchor ignores `unitId`, so naming the unit in peril is safe for every reaction and
+necessary for the ones that aim. `rules/ability-use.mjs#reactionPlacement` is the one builder now.
+
+**Verified live, after**: shield **1400 → 0**, `timesUsed: 1`, cooldown **24** (8◈), and EMIYA
+losing exactly **745** — **700** from *"for every 200 Health Rho Aias loses, EMIYA loses 100"* plus
+the **45** that got through once the 1400 pool was spent.
+
+### T. `additionalCosts` were paid only on the attack path — **fixed 2026-09-16**
+
+**Reached: four abilities across three Servants** — EMIYA's Rho Aias and Unlimited Blade Works,
+Drake's *Golden Hind: Wild Hunt*, and Ozymandias's *Ramesseum Tentyris*.
+
+An ability may declare standing per-use costs beyond its Noble Phantasm cost. The expansion lived
+inside `engine/attack.mjs`, so only abilities resolved through the attack flow ever paid them —
+and those four resolve through `useSkill`.
+
+Rho Aias states it plainly: *"EMIYA's Master loses Health equivalent to if an EX Rank NP is used."*
+**Measured live**: the cost log read `cost: Master of Archer of Faction 1 (0)` where
+`npCostAt({ rank: "EX" })` returns **100** for that Master.
+
+`rules/costs.mjs#additionalCostsFor` is the one expansion now, and both paths use it.
+
+**Honest limit on the evidence.** This one is unit-tested and the code path is shared, but the
+**live** re-verification did not complete: every subsequent use of Rho Aias was refused by its own
+recovery clause (*"Health must have been restored back to above half its maximum value since the
+last usage"*), so no board measurement of the Master actually paying was obtained. Recorded as
+fixed-and-tested rather than pressed.
+
+### U. A shield absorbs whether or not its ability was used — **open**
+
+**Reached: EMIYA's Rho Aias**, the only shield in the reference set.
+
+`engine/shield.mjs#absorb` finds a barrier by looking for any item carrying a `shield` spec with
+`shieldHealth > 0`. Nothing asks whether that ability was **used**. `refreshShield` initialises the
+pool when it is used, and nothing ever disarms it.
+
+**Measured live**: with the pool standing at 1400 and the reaction **refused** — `timesUsed: 0`,
+cooldown 0, the refusal notification reading *"cannot be used: healthRestoredSince"* — the barrier
+still absorbed **1125** of Heracles's Noble Phantasm and still charged EMIYA **500** under the
+per-200 clause. The most expensive defensive Noble Phantasm in the corpus protected for free, in
+the one state its own sheet says it may not be used in.
+
+Left **open**. The fix is a design decision — whether the pool should be zeroed when the field of
+use ends, armed only for the Process it was taken in, or gated on a "currently projected" flag —
+and picking one at the end of an audit would be guessing at intent. What the evidence settles is
+that *being refused* and *not protecting* are currently different things.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -695,7 +764,7 @@ per-Servant record of what each audit left untested.
 | **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
 | **Penthesilea** | ✅ | ✅ **complete** | 3 (2 hers, 1 general) | §46.10; closes §46.4-C; §46.4-N |
 | **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
-| **EMIYA** | ✅ | ✅ (Rho Aias open) | 5 (2 his, 3 general) | §46.12; §46.4-P, Q, R |
+| **EMIYA** | ✅ | ✅ **complete** | 8 (2 his, 6 general) | §46.12; §46.4-P, Q, R, S, T, U |
 | Hassan of Serenity | — | — | — | |
 | Semiramis | — | — | — | |
 | Scáthach | — | — | — | |
@@ -1242,8 +1311,14 @@ Range 4 to Heracles's 2 so the range bands half his kit turns on could be reache
 
 *Found while pressing:* §46.4-P and §46.4-Q, and §46.4-R which is left **open**.
 
-*Still untested:* **Rho Aias**, which needs an incoming Noble Phantasm to intercept and a 1400-Health
-shield to damage; **Overedge** as a resolution; and Independent Action's **third** passive, the
+- **Rho Aias**, against Heracles's Nine Lives. Offered on the reaction ladder by its
+  `whenAllyAttacked, againstKind: np, radius: 3` window, taken, and resolved: shield **1400 → 0**,
+  `timesUsed: 1`, cooldown **24** (8◈), and EMIYA losing exactly **745** — **700** from the per-200
+  clause plus the **45** that got through once the pool was spent. Its recovery clause then refused
+  every later use, correctly: *"Health must have been restored back to above half its maximum value
+  since the last usage."* Reaching it at all took §46.4-S.
+
+*Still untested:* **Overedge** as a resolution, and Independent Action's **third** passive, the
 contract-resistance rolls.
 
 ### 46.13.2 Fixes that were never pressed

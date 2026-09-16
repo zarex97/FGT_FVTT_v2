@@ -21,7 +21,7 @@
  * deals damage directly, not its Attack.
  */
 
-import { canUseAbility } from "../rules/costs.mjs";
+import { canUseAbility, additionalCostsFor } from "../rules/costs.mjs";
 import { displaceToken } from "./io.mjs";
 import {
   targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
@@ -145,6 +145,12 @@ export async function useSkill({
 
   await applyWorldIntents([
     ...(usage.cost && !applied.channelStarted ? costIntents(usage.cost, self) : []),
+    // The ability's OWN standing costs, which only the attack path used to pay.
+    // Rho Aias is a reaction and Unlimited Blade Works a Skill-path Noble
+    // Phantasm; both state a Master cost their sheets are explicit about, and
+    // both charged nothing (Ch. 46 §46.4-T).
+    ...(applied.channelStarted ? [] : additionalCostsFor({ ability, self, master })
+      .flatMap((cost) => costIntents(cost, self))),
     ...itemCostIntents(ability, actor),
     ...(applied.channelStarted ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
     I.markTurn(actorId, marks),

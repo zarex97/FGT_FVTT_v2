@@ -89,6 +89,72 @@ export function npCostAt({ rank, unit, master }) {
 }
 
 /**
+ * The standing per-use costs an ability declares beyond its Noble Phantasm cost.
+ *
+ * These belong to the ABILITY, not to one of its two use paths. The expansion
+ * lived inside `engine/attack.mjs`, so only abilities resolved through the
+ * attack flow ever paid them — and four declare costs and resolve through
+ * `useSkill` instead: EMIYA's Rho Aias (*"EMIYA's Master loses Health
+ * equivalent to if an EX Rank NP is used"*) and Unlimited Blade Works, Drake's
+ * Golden Hind: Wild Hunt, and Ozymandias's Ramesseum Tentyris. Measured live:
+ * Rho Aias taken as a reaction charged its Master **0** where `npCostAt` at
+ * rank EX returns 100 (Ch. 46 §46.4-T).
+ *
+ * Each entry keeps its own `id` so another cost can name it in `supersedes`.
+ *
+ * @param {object} args
+ * @param {object} args.ability the ability Item
+ * @param {object} args.self the user's snapshot
+ * @param {object|null} args.master the user's Master, if any
+ * @returns {object[]} costs, ready for `resolveCosts`
+ */
+export function additionalCostsFor({ ability, self, master = null }) {
+  /** @type {object[]} */
+  const out = [];
+
+  for (const extra of ability?.system?.additionalCosts ?? []) {
+    // A FRACTION of the Master's maximum rather than a stated number.
+    // *"The Master's Health is reduced by 50% of its maximum value"* -- the
+    // first cost in the corpus whose size is not on the sheet, because it
+    // depends on whose Master it is.
+    if (extra.kind === "masterHealthFractionOfMax") {
+      const max = master?.maxHealth ?? master?.health?.max ?? 0;
+      out.push({
+        kind: "masterHealth",
+        amount: Math.floor(max * (extra.fraction ?? 0)),
+        unitId: master?.id ?? null,
+        id: extra.id,
+        supersedes: extra.supersedes ?? [],
+      });
+      continue;
+    }
+
+    // Charges the Noble Phantasm table at a STATED Rank rather than at the
+    // ability's own, and through the same rule `npCost` uses -- so a Free
+    // Servant pays in Sustainability instead of producing an intent aimed at a
+    // Master who does not exist.
+    if (extra.kind === "masterHealthByNPRank") {
+      out.push({
+        ...npCostAt({ rank: extra.rank, unit: self, master }),
+        id: extra.id,
+        supersedes: extra.supersedes ?? [],
+      });
+      continue;
+    }
+
+    out.push({
+      kind: extra.kind ?? "masterHealth",
+      amount: extra.amount ?? 0,
+      unitId: extra.chargesMaster === false ? self?.id : master?.id ?? null,
+      id: extra.id,
+      supersedes: extra.supersedes ?? [],
+    });
+  }
+
+  return out;
+}
+
+/**
  * Whether an ability can be used right now, and what it will cost.
  *
  * Gates are checked in the order a player can act on them: something they can
