@@ -628,3 +628,34 @@ describe("the protection every summon that has it was missing", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("the cache's fields exist on the type the engine writes them to", () => {
+  // Found on a live board: the Vorpal Blade's cache was created, placed on its
+  // random panel, and carried NOTHING -- because `carriesItemId` was declared
+  // on `SummonData` and the cache is a `structure`.
+  //
+  // `placedById` two fields above it in the same file records the identical
+  // failure in its own comment: "writing to a field this type does not have is
+  // how the first four Bloodmarks placed themselves and then could not be
+  // found again."
+  const source = readFileSync("module/data/actor/simple.mjs", "utf8");
+  const blockOf = (cls) => {
+    const at = source.indexOf(`export class ${cls} extends`);
+    const next = source.indexOf("\nexport class ", at + 1);
+    return source.slice(at, next === -1 ? source.length : next);
+  };
+
+  it("declares carriesItemId on StructureData", () => {
+    expect(blockOf("StructureData")).toContain("carriesItemId");
+    expect(blockOf("StructureData")).toContain("carriesItemBarredFrom");
+  });
+
+  it("and NOT on SummonData, where it did nothing", () => {
+    expect(blockOf("SummonData")).not.toContain("carriesItemId");
+  });
+
+  it("the structure the Jabberwock places is a structure", () => {
+    // If this ever became a summon the fields would silently move type again.
+    expect(structure("vorpal-blade-cache").type).toBe("structure");
+  });
+});
