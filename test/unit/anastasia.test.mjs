@@ -7,7 +7,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { chanceFromDistance } from "../../module/rules/miss.mjs";
+import { chanceFromDistance, missChance } from "../../module/rules/miss.mjs";
+import { parseTick } from "../../module/domain/tick.mjs";
 
 describe("a distance-scaled chance (R3)", () => {
   // *"a 5% chance of inflicting Instakill for each panel between Anastasia and
@@ -247,5 +248,79 @@ describe("Independent Action with Viy EX (I1–I4, R6)", () => {
   it("is a variant document, not a ref override", () => {
     expect(skill.name).toBe("Independent Action with Viy");
     expect(skill.id).toBe("class-independent-action-viy");
+  });
+});
+
+describe("her passive abilities", () => {
+  const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
+  const band = ["self:effect:blind", "attack:range:lte:2"];
+
+  it("W1 — Swimsuit! halves Water damage taken, including NP", () => {
+    const ward = ability("anastasia-swimsuit").passiveRules.find((r) => r.key === "Ward");
+    expect(ward).toMatchObject({ value: 50, npValue: 50 });
+    expect(ward.predicate).toContain("attack:element:water");
+  });
+
+  it("F1/F2 — Fae Contract moves debuff chance in both directions by 5", () => {
+    const rules = ability("anastasia-fae-contract").passiveRules;
+    expect(rules.find((r) => r.direction === "incoming").value).toBe(5);
+    expect(rules.find((r) => r.direction === "outgoing").value).toBe(5);
+  });
+
+  it("K1 — Rock Snowball rides the ranged band only (R8)", () => {
+    const rule = ability("anastasia-rock-snowball").passiveRules[0];
+    expect(rule.chance).toBe(10);
+    expect(rule.effect.id).toBe("bleed");
+    expect(rule.duration).toBe("½◈");
+    // The SAME boundary her Note draws, so the two cannot disagree about where
+    // her stance changes.
+    expect(rule.predicate).toContain("attack:range:gte:3");
+  });
+
+  it("M1–M4 — Watermelon converts Blind into an offensive buff at Range 1–2", () => {
+    const rules = ability("anastasia-watermelon").passiveRules;
+
+    const suppress = rules.find((r) => r.key === "Suppress");
+    expect(suppress.scope).toBe("miss");
+    expect(suppress.predicate).toEqual(band);
+
+    const props = rules.filter((r) => r.key === "AttackProperty").map((r) => r.property);
+    expect(props).toContain("pierce");
+    expect(props).toContain("ignoreDef");
+
+    const evade = rules.find((r) => r.key === "CheckModifier");
+    expect(evade).toMatchObject({ check: "evade", direction: "imposed", value: 4 });
+    expect(evade.predicate).toEqual(band);
+  });
+
+  it("M1 — and the suppression really does silence the Miss check", () => {
+    // End to end against the engine, not just against the YAML: the same
+    // predicate the file authors, run through missChance.
+    const rules = ability("anastasia-watermelon").passiveRules;
+    const unit = {
+      id: "anastasia", kind: "servant", effects: ["blind"],
+      suppressions: rules.filter((r) => r.key === "Suppress")
+        .map((r) => ({ scope: r.scope, predicate: r.predicate })),
+    };
+    expect(missChance(unit, new Set(["self:effect:blind", "attack:range:lte:2"]))).toBe(0);
+    expect(missChance(unit, new Set(["self:effect:blind", "attack:range:gte:3"]))).toBe(80);
+  });
+
+  it("R4 — she keeps Blind's OTHER clauses; only the miss is exempted", () => {
+    // *"it does not have a chance of Missing"* is singular and specific. Her own
+    // Evade rolls stay at +3, through a window the defender may Counter in.
+    const rules = ability("anastasia-watermelon").passiveRules;
+    const scopes = rules.filter((r) => r.key === "Suppress").map((r) => r.scope);
+    expect(scopes).toEqual(["miss"]);
+  });
+
+  it("M5 — the Active blinds her until the Combat Process ends", () => {
+    const phase = ability("anastasia-watermelon").phases[0];
+    expect(phase.target).toBe("self");
+    expect(phase.effects[0]).toMatchObject({ id: "blind", duration: "until combatProcessEnd" });
+  });
+
+  it("M5 — and that duration parses", () => {
+    expect(parseTick("until combatProcessEnd")).toMatchObject({ kind: "untilEvent" });
   });
 });
