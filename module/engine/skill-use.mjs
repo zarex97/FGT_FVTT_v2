@@ -2297,8 +2297,22 @@ function zoneRadius(spec) {
   return typeof size === "number" ? Math.floor(size / 2) : null;
 }
 
-const CASTER_PHASES = new Set([
-  "resource", "statChange", "setMode", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
+export const CASTER_PHASES = new Set([
+  // NOT `cooldown`. It was here AND in `engine/attack.mjs`'s post-damage loop,
+  // so an ability's own cooldown change ran twice on the attack path -- once at
+  // declaration and once as the Process advanced. The loop's handling is the
+  // richer one: `splitCooldownRider` separates changes aimed at the DEFENDER
+  // (once per Process) from the caster's own (once per Combat Phase, gated on
+  // `isFirstOfGroup`), a distinction declaration cannot make because no
+  // defender exists yet. The comment beside that loop already records the same
+  // bug being fixed for `summon`, which double-conjured Bašmu.
+  //
+  // Measured on Semiramis's Familiar Doves: two enemies carrying the Dove
+  // effect, so X = 2, and her Noble Phantasm's cooldown fell by 2 at
+  // declaration and 2 more on the first advance -- no Turn boundary, no fan.
+  // Through `useSkill`, which runs every phase once, it fell by exactly 2
+  // (Ch. 46 §46.4-X).
+  "resource", "statChange", "setMode", "removeEffect", "summon", "createField", "choose", "heal",
   "summonPlatform",
   // Opening a pocket dimension is something the caster does once, from where
   // he is standing, exactly as raising a platform is.
