@@ -192,7 +192,14 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    correctly the whole time, which is what made it findable — the same ability behaved differently
    depending on whether it was used from the sheet or resolved as an attack. Ch. 46 §46.4-M.
 
-   **Three Servants are now finished by §46.1's standard**: Heracles, Asterios and Karna.
+   **Penthesilea made the same point a fifth time.** `CheckModifier` accepts a rolled magnitude
+   the way `DamageModifier` does — except that the element dropped the spec, `checkPlan` discarded
+   the resulting zero, `rollModifierDice` never walked the check bucket, and the defender's own
+   plan was built with no rolls at all. Four independent gaps in one path, and the only content in
+   the corpus that authors such a clause is the content that found them. Ch. 46 §46.4-N.
+
+   **Four Servants are now finished by §46.1's standard**: Heracles, Asterios, Karna and
+   Penthesilea. Every one of them cost at least one general defect that a paper trace had cleared.
 
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
