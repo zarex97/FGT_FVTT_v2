@@ -124,6 +124,11 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // SchemaField, and `{id: ""}` must not read as membership.
       linkedGroup: new fields.SchemaField({
         id: new fields.StringField({ required: false, blank: true, initial: "" }),
+        // CONTENT ids, authored. Distinct from `memberIds` below, which holds
+        // ACTOR ids and is resolved at summon -- the same translation
+        // `masterId` gets, and for the same reason: content cannot know the
+        // id of an actor that does not exist yet.
+        partners: new fields.ArrayField(new fields.StringField({ blank: false })),
         memberIds: new fields.SetField(new fields.DocumentIdField()),
         // Maximum Chebyshev distance between members. `null` = unleashed.
         leash: new fields.NumberField({

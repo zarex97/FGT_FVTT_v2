@@ -1800,6 +1800,7 @@ function linkedGroupOf(sys) {
   if (!g?.id) return null;
   return {
     id: g.id,
+    partners: [...(g.partners ?? [])],
     memberIds: [...(g.memberIds ?? [])],
     leash: g.leash ?? null,
     linkedDeath: g.linkedDeath ?? "",
