@@ -528,7 +528,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // ONE OF the following effects OF YOUR CHOICE" -- the choice is the
           // rule, so it cannot be resolved by picking one and calling it a
           // default.
-          applied.push(...await runChoice(phase, ability, actor, snapshot));
+          applied.push(...await runChoice(phase, ability, actor, snapshot, board));
           break;
         }
 
@@ -1558,9 +1558,10 @@ function applyFloor(delta, floor, current) {
  * @param {object} ability
  * @param {object} actor
  * @param {object} snapshot the target's snapshot
+ * @param {object|null} [board] needed when an option branches into phases
  * @returns {Promise<object[]>}
  */
-async function runChoice(phase, ability, actor, snapshot) {
+async function runChoice(phase, ability, actor, snapshot, board = null) {
   const options = phase.options ?? [];
   if (options.length === 0) return [];
 
@@ -1586,6 +1587,21 @@ async function runChoice(phase, ability, actor, snapshot) {
   const out = [];
   for (const id of picked) {
     const spec = options.find((o) => o.id === id) ?? { id };
+    // An option may branch into PHASES rather than name an effect. Mana Burst's
+    // *"either restore 2 Agility and 2 Luck to Castor; or restore 1 Agility and
+    // 1 Luck to both"* is two stat changes on different targets, which no
+    // effect id can say. Ch. 34 §34.10 proposed a separate `kind: choice` for
+    // this; `choose` is the decision phase this game already has, and a second
+    // one beside it would be two grammars for one question.
+    if (spec.phases) {
+      // A synthetic ability carrying only the branch's phases, so the branch
+      // runs through the SAME dispatcher every other phase does rather than a
+      // second, narrower one. The name and id are the real ability's, because
+      // that is what the log and any cooldown change should name.
+      const branch = { ...ability, system: { ...(ability.system ?? {}), phases: spec.phases } };
+      out.push(...await runPhases(branch, actor, [{ unitId: actor.id }], board));
+      continue;
+    }
     out.push(...await applyPhaseEffects({ effects: [spec] }, ability, actor, snapshot));
   }
   return out;

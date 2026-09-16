@@ -4048,7 +4048,28 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
 
   // Through `effectivePhases`, because a copy (§15.7) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
-  for (const phase of effectivePhases(ability.system ?? {}, resolveAbilitySource)) {
+  // Resolve a player's `choose` into the branch they picked, before the loop.
+  //
+  //   *"First, either restore 2 Agility and 2 Luck to Castor; or restore 1
+  //    Agility and 1 Luck to both Castor and Pollux."*
+  //
+  // One ability, two outcomes, chosen at use. Ch. 34 §34.10 asks for a new
+  // `kind: choice` phase for this; the engine already had `choose`, authored
+  // by EMIYA's Trace On (*"apply ONE OF the following effects OF YOUR
+  // CHOICE"*). An option gains an optional `phases:` list rather than a fifth
+  // spelling of "the player picks" -- a `choice` kind beside `choose` would be
+  // two grammars for one decision.
+  //
+  // Spliced in PLACE rather than dispatched inside the loop, so the chosen
+  // branch's phases run in the position the choice occupied and are read by
+  // the same `when` and `predicate` handling every other phase is. A branch
+  // cannot see an earlier phase's result, which is true of every phase here.
+  const phases = await resolveChoosePhases(
+    effectivePhases(ability.system ?? {}, resolveAbilitySource),
+    attackerDoc,
+  );
+
+  for (const phase of phases) {
     // WHEN this phase runs relative to the damage. Unstated means after, which
     // is what every phase written before this window existed meant.
     if ((phase.when ?? "afterDamage") !== when) continue;
@@ -5246,6 +5267,61 @@ async function offerAttackerWindow(state, window, message) {
 
   void message;
   return { ...state, windowAbilities: carried };
+}
+
+/**
+ * Replace a branching `kind: "choose"` phase with the branch its user picked.
+ *
+ * `choose` has picked from a list of EFFECTS since EMIYA's *Trace On* was
+ * authored. An option may now carry `phases:` instead, which is what a choice
+ * BETWEEN OUTCOMES needs -- Mana Burst's *"either restore 2 Agility and 2 Luck
+ * to Castor; or restore 1 Agility and 1 Luck to both"* is two stat changes on
+ * different targets, not two effects.
+ *
+ * Only phases whose options actually branch come through here; an ordinary
+ * effect-picking `choose` is left for the runner that already handles it.
+ *
+ * The USER chooses, not the target: it is the attacker's ability and the
+ * attacker's resources. {@link askOwner} routes the question to whoever owns
+ * the Servant rather than to whoever is arbitrating.
+ *
+ * A timeout or a closed dialog answers `null`, which runs **no branch at all**.
+ * That is deliberate and is not an error: a player who declined chose neither
+ * option, and applying one for them would be inventing the decision.
+ *
+ * @param {object[]} phases
+ * @param {object} attackerDoc
+ * @returns {Promise<object[]>}
+ */
+async function resolveChoosePhases(phases, attackerDoc) {
+  if (!phases.some((p) => p.kind === "choose" && (p.options ?? []).some((o) => o.phases))) {
+    return phases;
+  }
+
+  /** @type {object[]} */
+  const out = [];
+  for (const phase of phases) {
+    if (phase.kind !== "choose" || !(phase.options ?? []).some((o) => o.phases)) {
+      out.push(phase);
+      continue;
+    }
+    const options = phase.options ?? [];
+    const picked = await askOwner(attackerDoc, {
+      kind: "choose",
+      title: game.i18n.localize(phase.prompt ?? "FGT.Authoring.Phase.choose"),
+      hint: game.i18n.localize(phase.hint ?? phase.prompt ?? "FGT.Authoring.Phase.chooseHint"),
+      min: 0,
+      count: 1,
+      options: options.map((o, i) => ({
+        id: String(i),
+        name: game.i18n.localize(o.label ?? o.id ?? String(i)),
+      })),
+    });
+    const index = Number((picked ?? [])[0]);
+    const branch = Number.isInteger(index) ? options[index] : null;
+    if (branch) out.push(...(branch.phases ?? []));
+  }
+  return out;
 }
 
 /**
