@@ -115,6 +115,36 @@ export function canToggleMode(
 }
 
 /**
+ * Is this mode currently held ON — by either source?
+ *
+ * *"While the Skill does not meet the condition to be deactivated"* is the
+ * clause that needs it, and it appears on the two Mad Enhancement sheets whose
+ * skill is held on positionally: Penthesilea's by *Hatred of Achilles* (a Greek
+ * Male within 4 panels) and Raikou's by her Master's proximity. Their Master's
+ * Health floor applies **only while the mode cannot be switched off**, which is
+ * neither "is it on" nor "does she have it" — the two questions `skillActive`
+ * and `skill` already answer.
+ *
+ * Takes a SLUG rather than an item, because the caller is
+ * `rules/options.mjs`, which is looking at a snapshot's ability projection
+ * rather than at a document. Both halves are the existing predicates, so a
+ * third source of "held on" cannot drift from the refusal `canToggleMode` gives.
+ *
+ * Deliberately NOT `toggleLock` or `cannotDeactivate`: the lockout says *not
+ * yet* and is carried by every bearer of the skill including the three whose
+ * sheets grant no floor at all, and `cannotDeactivate` says *never* and belongs
+ * to Heracles, whose floor is unconditional and needs no predicate.
+ *
+ * @param {string} slug
+ * @param {object} unit the owner's snapshot
+ * @returns {boolean}
+ */
+export function heldOn(slug, unit) {
+  const item = { system: { slug } };
+  return compelledOn(item, unit) || forcedOn(item, unit);
+}
+
+/**
  * Is a compulsion currently holding this mode on?
  *
  * Matched on the ability's slug, because that is what a compulsion names and a
@@ -191,6 +221,8 @@ export function forcedOn(item, unit) {
   const rules = (unit?.forcedModeRules ?? []).filter((r) => r.mode === slug);
   if (rules.length === 0) return false;
 
-  const options = rollOptionsFor({ attacker: unit, defender: null });
+  // `withoutModeHeld`: this call is INSIDE the answer to "is a mode held",
+  // and asking for that option here would re-enter this function for ever.
+  const options = rollOptionsFor({ attacker: unit, defender: null, withoutModeHeld: true });
   return rules.some((r) => testPredicate(r.when, { options }));
 }

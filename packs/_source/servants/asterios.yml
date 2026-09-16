@@ -35,7 +35,7 @@ abilities:
   # Health is 20 or less, ME is forcibly deactivated"*, with nothing said about
   # a minimum. Heracles's sheet prints the mirror image and the shared template
   # used to give both to everyone (Ch. 46 §46.4-C).
-  - { ref: class-mad-enhancement, rank: B, drainFloor: null, forcedDeactivation: true }
+  - { ref: class-mad-enhancement, rank: B, drainFloor: null, drainFloorWhen: null, forcedDeactivation: true }
   - { ref: asterios-monstrous-strength }
   - { ref: asterios-natural-monster }
   - { ref: asterios-avyssos-of-labrys }

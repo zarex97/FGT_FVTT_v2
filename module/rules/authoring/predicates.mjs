@@ -39,6 +39,12 @@ export const PREDICATE_FIELDS = Object.freeze([
   "targetPredicate",
   "requiresRecipient",
   "chanceWhen",
+  // Whether a `StatDelta`'s FLOOR applies at all, as against how large it is.
+  // Penthesilea and Raikou print Mad Enhancement's Master-health floor as
+  // *"while the Skill does not meet the condition to be deactivated"*, and the
+  // other four bearers of the same skill either have it unconditionally or do
+  // not have it (Ch. 46 §46.4-C).
+  "floorPredicate",
 ]);
 
 /**

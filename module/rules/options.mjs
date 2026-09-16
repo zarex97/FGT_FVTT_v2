@@ -27,6 +27,7 @@ import { chebyshev } from "../domain/geometry.mjs";
 import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
 import { referencedOptions } from "./predicate.mjs";
 import { stanceOf } from "./stance.mjs";
+import { heldOn } from "./modes.mjs";
 
 /**
  * Every option describing this attacker, this defender and this attack.
@@ -37,12 +38,12 @@ import { stanceOf } from "./stance.mjs";
  * @param {object} [args.attack] `{kind, isAoE, component, range, aim, pierce}`
  * @returns {Set<string>}
  */
-export function rollOptionsFor({ attacker, defender, attack = {} }) {
+export function rollOptionsFor({ attacker, defender, attack = {}, withoutModeHeld = false }) {
   /** @type {Set<string>} */
   const options = new Set();
 
-  add(options, "self", attacker);
-  add(options, "target", defender);
+  add(options, "self", attacker, withoutModeHeld);
+  add(options, "target", defender, withoutModeHeld);
   compareParameters(options, attacker, defender);
 
   options.add(`attack:kind:${attack.kind ?? "normal"}`);
@@ -228,9 +229,10 @@ function parseRank(raw) {
  * @param {Set<string>} options
  * @param {"self"|"target"} side
  * @param {object} unit
+ * @param {boolean} [withoutModeHeld] see `rollOptionsFor`
  * @returns {void}
  */
-function add(options, side, unit) {
+function add(options, side, unit, withoutModeHeld = false) {
   if (!unit) return;
 
   if (unit.kind) options.add(`${side}:type:${unit.kind}`);
@@ -472,6 +474,23 @@ function add(options, side, unit) {
     // "negated and cannot be used when Mad Enhancement is activated" — an
     // ability disabled by its owner's other ability, which needs the second.
     if (ability.active) options.add(`${side}:skillActive:${slug}`);
+    // ...and *held* on is a third question again: switched on AND unable to be
+    // switched off, which is what Penthesilea's and Raikou's Master-health
+    // floors are conditioned on (Ch. 46 §46.4-C).
+    //
+    // `withoutModeHeld` breaks a real cycle rather than guarding a theoretical
+    // one: `heldOn` asks `forcedOn`, which tests a `ForceMode` rule's `when`
+    // against a fresh option set, which would arrive back here and ask again.
+    // Measured: `RangeError: Maximum call stack size exceeded` for any unit
+    // carrying a `ForceMode` rule on a mode that is on -- which is Raikou,
+    // every Turn her Master stands beside her.
+    //
+    // Skipping it costs nothing: a `ForceMode`'s condition is about the board
+    // (*"when Raikou's Master is within a 2 panel area"*), never about whether
+    // the mode it governs is already held.
+    if (!withoutModeHeld && ability.active && heldOn(slug, unit)) {
+      options.add(`${side}:modeHeld:${slug}`);
+    }
   }
 }
 

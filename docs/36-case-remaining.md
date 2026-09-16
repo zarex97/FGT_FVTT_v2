@@ -37,6 +37,18 @@ patterns are now established.
 
 ## 36.1 Karna — layered Noble Phantasms and permanent activation
 
+> **Re-audited 2026-09-16** (Ch. 46 §46.9). Thirteen abilities held against the sheet clause by
+> clause and pressed on a live board. One defect: `Kavacha and Kundala`'s upkeep was authored on
+> `actedTurnEnd` where the sheet says *"every Turn that Karna is **involved in a Combat Phase**"*,
+> so a Karna who was attacked and did not act cost his Master nothing. It is
+> `involvedTurnEnd` now, and `turnState.inCombatPhase` is the state it reads.
+>
+> Everything else held, including the two clauses most likely to compound wrongly: Vasavi Shakti's
+> *"Base Attack (STR) is increased by 25, STR Rank is increased from B to A"* lands on **150 and
+> rank A** rather than double-counting to 175 — the sheet states one change twice — and Magic
+> Resistance's Instakill/Death carve-out leaves **Erase completely unaffected**, because Erase
+> carries its own severity and neither chance rule matches it.
+
 > **Implemented, and `modes:` was not built.** All thirteen abilities resolve end to end in a
 > live world, verified individually. Four were authored before this pass and the four included
 > neither of the two that define him.

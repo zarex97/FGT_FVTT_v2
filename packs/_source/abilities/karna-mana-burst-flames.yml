@@ -19,7 +19,16 @@ description: |
   Fire Damage (half). Cooldown: 3◈ Turns. Cannot be used on the same Turn as Flash of the
   Sun God.
 targeting:
-  anchor: { kind: targetUnit, range: 2 }
+  # NO `range:`. *"This Skill is used when performing a Normal Attack"*, so its
+  # reach IS the Normal Attack's, which is the unit's own Range. Karna's is 2 and
+  # the frozen number agreed with it, which is exactly why this one was invisible
+  # -- nothing in his kit moves his Range, so the two coincide until something
+  # does. Ch. 46 §46.10; the same shape as Penthesilea's Outrage Amazon, where
+  # the gate guarantees the disagreement.
+  #
+  # Contrast his own Discernment of the Poor, whose sheet prints *"Range=2"* and
+  # which therefore keeps an absolute number.
+  anchor: { kind: targetUnit }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: chosen, count: 1 }
 damage:

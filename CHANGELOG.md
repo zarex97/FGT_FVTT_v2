@@ -34,6 +34,103 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Penthesilea, and the last shape of Mad Enhancement's clause 1 (2026-09-16)
+
+Fourth pass of the roster re-audit ([Ch. 46](docs/46-roster-re-audit.md) §46.10). Hers is the sheet
+that prints clause 1 **in full** — the forced deactivation *and* a floor, with the floor conditional
+— so her audit is what closes §46.4-C for all six bearers.
+
+#### Added
+
+- **`self:modeHeld:<slug>`** — *switched on AND unable to be switched off*, which is neither of the
+  two questions `self:skill:` and `self:skillActive:` answer. `rules/modes.mjs#heldOn` builds it
+  from the two refusals `canToggleMode` already gives, so a third reading of "held" cannot drift
+  from them. It excludes `toggleLock` (which says *not yet*, and every bearer carries it) and
+  `cannotDeactivate` (which says *never*, and belongs to Heracles, whose floor has no condition).
+
+  `rollOptionsFor` gained a `withoutModeHeld` flag to break a real cycle, not a theoretical one:
+  `heldOn` asks `forcedOn`, which tests a `ForceMode`'s condition against a fresh option set, which
+  arrives back at `heldOn`. Measured: `RangeError: Maximum call stack size exceeded` for any unit
+  with a `ForceMode` rule on a mode that is on — Raikou, every Turn her Master stands beside her.
+
+- **`floorPredicate` on a `StatDelta`.** The floor's *value* is resolved at collection, where the
+  owning ability's rank still exists; its *condition* is gated at dispatch, where the board does.
+  `annotateCompulsions` does not run until every unit exists, which is strictly after contributions
+  are collected — so a predicate evaluated at collection asks a question whose answer is always no.
+  Measured with the first spelling: Achilles two panels away, the mode forced on, the option
+  correctly emitted, and her Master still went 40 → 10. `ctx.bearer` now travels with every
+  dispatch, because an action's subject may be somebody else while its conditions are about the
+  Unit that owns the clause.
+
+#### Corrected
+
+- **§46.4-C is closed in full.** All six Mad Enhancement bearers now carry exactly the clause 1
+  their own sheet prints. Measured live: Heracles floors at 20 either way; Asterios, Castor and
+  Kingprotea have no floor either way; **Penthesilea and Raikou floor at 30 while the mode is held
+  and not at all when it is free** — 40 → 30 with a Greek Male two panels from her, 40 → 10 with
+  none on the board.
+
+- **`Outrage Amazon` was frozen at Penthesilea's base Range.** Her sheet gives the Noble Phantasm no
+  reach of its own, and it *"can only be used when Mad Enhancement is activated"* — whose clause 4
+  is *"Range is increased by 1"*. The one state in which she may fire it is the one state in which
+  the authored `range: 2` was wrong. It reads **3** now.
+
+- **Karna's `Mana Burst (Flames)` carried the same frozen number**, found while fixing hers. His
+  sheet says only *"used when performing a Normal Attack"*, so its reach is his Range — which is 2,
+  so the two agreed and the defect was invisible. His `Discernment of the Poor` keeps its absolute
+  number, because that sheet prints *"Range=2"*.
+
+- **Penthesilea's file described `Goddess of War`'s Divinity rank shift as unbuilt.** It is built —
+  `RankShift` grew an `ability:` branch for it — and hers is still the only sheet that needs one.
+
+
+### Karna re-audited: the armour's upkeep was hung on the wrong scale (2026-09-16)
+
+Third pass of the roster re-audit ([Ch. 46](docs/46-roster-re-audit.md) §46.9). Thirteen abilities
+and four Noble Phantasms — the most of the original twelve, and the Servant Ch. 45 names beside
+Asterios as having been "fully authored" while nine of his abilities did not exist. One defect.
+
+#### Corrected
+
+- **`Kavacha and Kundala` charged its Master on the wrong boundary.** The sheet is *"20 Health at
+  the end of every Turn that Karna is **involved in a Combat Phase**"*; it was authored on
+  `actedTurnEnd`, which fires for a unit that **Acted**. Being attacked is involvement and is not
+  acting — a defender who answers nothing has done nothing — so the upkeep skipped every Turn Karna
+  only defended, which is most of them for a Servant whose entire design is to be attacked.
+
+  `turnState` recorded `acted`, `moved` and `attacked` and none of the three is the question, so
+  the clause had nothing to gate on. It is now `turnState.inCombatPhase`, stamped by
+  `engine/attack.mjs` on the same set `combatPhaseEnd` already fires for — attacker, defender, and
+  every sibling Process's defender — with a matching `involvedTurnEnd` boundary event.
+
+  `docs/E-event-reference.md` draws this exact distinction and cites Karna as the reason
+  `combatProcessEnd` exists separately from `combatPhaseEnd`; his *other* upkeep, Vasavi Shakti's
+  per-**Process** charge, was correct all along. **Measured live**: attacked and did not act,
+  250 → **230** (was 250 → 250); acted with no Combat Phase, **250** untouched; both, billed
+  **once**.
+
+#### Added
+
+- **`fgt.involvedTurnEnd`** and **`turnState.inCombatPhase`**. Attacking is itself involvement, so
+  the two turn-end passes do not double-bill a Unit that acted and fought.
+
+#### Verified, and recorded because these are the clauses most likely to be wrong
+
+- Vasavi Shakti's *"Base Attack (STR) is increased by 25, STR Rank is increased from B to A"* lands
+  on **150 and rank A**. The sheet states one change twice and the code applies it once.
+- Brahmastra's fork: **2×** against a defender who beats him on any Parameter, **4×** against one
+  who beats him on none, with exactly one branch matching either way.
+- Magic Resistance's Instakill/Death carve-out reaches those two severities only, and **Erase is
+  completely unaffected** — it carries its own severity and neither chance rule matches it.
+- Mana Burst's *"Burn at 50% instead of 25%"* is a predicate on the 25% passive, not a second roll.
+
+#### Not a defect
+
+- A stated *"all damage received reduced by 90%"* let 184 through from a Mad Enhancement attacker.
+  Stage 4 puts `atkUp +60` and `defUp −90` in the same additive bucket — −30% → ×0.70 — which is
+  Ch. 13 §13.4's composition rule and the arithmetic `mad-enhancement.yml` defends explicitly.
+
+
 ### Asterios closed out: a sealed boundary, an honest preview, an honest label (2026-09-16)
 
 The three findings the Asterios audit left open ([Ch. 46](docs/46-roster-re-audit.md) §46.4-I,

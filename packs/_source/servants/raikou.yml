@@ -73,6 +73,10 @@ abilities:
     # deactivated"* -- which for Raikou is her Master standing within 2 panels.
     # Authored unconditionally here; Ch. 46 §46.4-C.
     drainFloor: madEnhancementDrain
+    # *"...while the Skill does not meet the condition to be deactivated"* --
+    # for her, while her Master stands within 2 panels and the `ForceMode` rule
+    # below is holding it on. Ch. 46 §46.4-C.
+    drainFloorWhen: ["self:modeHeld:madEnhancement"]
     forcedDeactivation: true
     passiveRules:
       # "(Passive) When Raikou's Master is within a 2 panel area of herself, her

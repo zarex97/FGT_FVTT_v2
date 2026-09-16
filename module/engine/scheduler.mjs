@@ -72,6 +72,21 @@ export function endTurn(board, ctx) {
   //    Acts", which is why this pass is not scoped to the active player.
   intents.push(...fireEvent("actedTurnEnd", units.filter((u) => u.acted), ctx));
 
+  // 2b. Turn-end handlers for every unit that was IN a Combat Phase this Turn,
+  //     on either side of it. Not the same set as the pass above: being
+  //     attacked is involvement and is not acting, and Karna states both scales
+  //     himself -- `Kavacha and Kundala` charges his Master *"at the end of
+  //     every Turn that Karna is involved in a Combat Phase"* where
+  //     `Vasavi Shakti` charges *"at the end of every Combat Process"*. Authored
+  //     on `actedTurnEnd`, the armour's upkeep skipped every Turn he only
+  //     defended -- which is most of them, for a Servant whose whole design is
+  //     to be attacked (Ch. 46 §46.9).
+  //
+  //     Attacking IS involvement, so this fires once for a Unit that both acted
+  //     and was attacked; the two passes are separate events and no clause
+  //     subscribes to both.
+  intents.push(...fireEvent("involvedTurnEnd", units.filter((u) => u.inCombatPhase), ctx));
+
   // 3. ...and for every unit, whoever is acting. §7.4's table calls this one
   //    `turnEnd` -- *"every turn, any player's"* -- and calls the pass above it
   //    `unitTurnEnd`; the handler vocabulary grew the other way round, and the
@@ -504,7 +519,10 @@ export function dispatch(action, unit, handler, ctx) {
     });
   }
 
-  return run(action, subject, handler, ctx);
+  // `bearer` on EVERY dispatch, not only the fanned ones above. An action's
+  // subject may be somebody else -- Mad Enhancement's drain lands on the Master
+  // -- while its conditions are about the Unit that owns the clause.
+  return run(action, subject, handler, { ...ctx, bearer: unit });
 }
 
 /**
@@ -835,7 +853,20 @@ const ACTIONS = Object.freeze({
     // `alsoCurrent` on a `.max` write pulls the current value down with the
     // ceiling -- *"reduce its Max Health by 25"* must not leave a Unit standing
     // above its own maximum, and must not heal a wounded one either.
-    if (typeof a.floor !== "number") {
+    // The floor, and whether it applies at all.
+    //
+    // Penthesilea and Raikou print Mad Enhancement's Master-health floor as
+    // *"while the Skill does not meet the condition to be deactivated"* -- so it
+    // holds exactly while the mode is held ON, which is positional and is
+    // answered against the BEARER rather than against the Master the deduction
+    // lands on. Evaluated here rather than at collection because the compulsion
+    // that holds the mode is a board annotation, and the board does not exist
+    // when contributions are collected (Ch. 46 §46.4-C).
+    const floored = typeof a.floor === "number" && (!a.floorPredicate || testPredicate(
+      a.floorPredicate,
+      { options: rollOptionsFor({ attacker: c?.bearer ?? u, defender: null }) },
+    ));
+    if (!floored) {
       return [I.statDelta(u.id, a.stat, raw, a.clamp !== false, a.alsoCurrent === true)];
     }
 

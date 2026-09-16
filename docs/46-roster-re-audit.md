@@ -55,6 +55,7 @@ that was reported before being retracted**. Check them before trusting a number.
 | **Pack staleness** | Content edits do not reach a running world | `node tools/fgt-world.mjs rebuild`, then re-import the actor |
 | **Reading a Combat Process before it finishes** | An attack looks as though it applied nothing | Check `message.flags.fgt.process.state` and its `history`. A Process can be waiting on the **attacker's own** damage-step prompt while the pending panel advertises only the *defender's* reaction, and that dialog can take seconds to render. `advanceProcess` awaits it, so calling the socket directly looks like a hang. This produced a retracted "clause 2 applies nothing" against Asterios |
 | **The first `nextTurn` after `startCombat`** | The turn-end sequence does not fire | Discard the first trial; measure from the second |
+| **Moving a token to change a positional condition** | Two runs compare identical boards | A long hop is refused by movement legality and the token stays put, silently. Delete the token or move it within its MOV (§46.10) |
 
 **The general rule this produces:** when a measurement disagrees with a sheet, isolate the *pure*
 layer first. Call the rules function directly with a hand-built board. If the pure layer is right
@@ -116,7 +117,7 @@ HOW LONG YOU WAIT, so a forcible deactivation still beats the lockout and does n
 A Command Spell is unaffected — it spends itself through `suspendSkill`, a different write, which
 is what makes the sheets that sell a suspension for one Command Spell work at all. Ch. 15 §15.6.
 
-### C. The Mad Enhancement template over-granted clause 1 — **fixed 2026-09-16, one residue open**
+### C. The Mad Enhancement template over-granted clause 1 — **fixed 2026-09-16, closed in full**
 
 **Reached: Asterios, Castor, Kingprotea** (and, less exactly, Penthesilea and Raikou).
 
@@ -151,11 +152,42 @@ happened to be commonest, and that is the whole finding.
 **Measured live** — Asterios: Master at 30 goes to **10**, and Mad Enhancement forcibly off.
 Heracles on the same board: Master at 30 goes to **20**, and the mode holds.
 
-**The residue.** Penthesilea's and Raikou's floor is *conditional* — *"while the Skill does not meet
-the condition to be deactivated"* — and is still authored as an unconditional one, because the
-predicate it needs ("this mode is currently held on") has no vocabulary: `rules/options.mjs` emits
-`self:skillActive:<slug>` and nothing about being compelled or forced. Settle it with their audits,
-where their whole kit is in view.
+**The residue is closed too**, with Penthesilea's audit (§46.10). Her floor and Raikou's are
+*conditional* — *"while the Skill does not meet the condition to be deactivated"* — and needed a
+predicate the vocabulary did not have. `self:modeHeld:<slug>` is it: **switched on AND unable to be
+switched off**, which is neither of the two questions `self:skill:` and `self:skillActive:` already
+answer. It is `heldOn` in `rules/modes.mjs`, built from the two existing refusals (`compelledOn`,
+`forcedOn`) so a third reading of "held" cannot drift from the one `canToggleMode` gives. It
+deliberately excludes `toggleLock` — which says *not yet* and is carried by all six bearers,
+including the three whose sheets grant no floor — and `cannotDeactivate`, which says *never* and
+belongs to Heracles, whose floor is unconditional anyway.
+
+Two things that emerged only from building it:
+
+- **It closes a real cycle.** `heldOn` asks `forcedOn`, which tests a `ForceMode`'s condition
+  against a fresh option set, which arrives back at `heldOn`. Measured: `RangeError: Maximum call
+  stack size exceeded` for any unit with a `ForceMode` rule on a mode that is on — which is Raikou,
+  every Turn her Master stands beside her. `rollOptionsFor` takes a `withoutModeHeld` flag, and the
+  recursive call passes it; a `ForceMode`'s condition is about the board and never about whether
+  the mode it governs is already held.
+
+- **The gate belongs at dispatch, not at collection.** The floor's *value* needs the owning
+  ability's rank, which is gone by the time an action runs; its *condition* needs the compulsion,
+  which `annotateCompulsions` does not write until every unit on the board exists — strictly after
+  contributions are collected. Evaluating the predicate at collection asks a question whose answer
+  is always no. Measured on a live board with the first spelling: Achilles two panels away, Mad
+  Enhancement forced on, `self:modeHeld:madEnhancement` correctly emitted, and her Master still
+  went 40 → 10. The value is resolved at collection and the gate applied in `scheduler.mjs`, where
+  `ctx.bearer` now travels with every dispatch — an action's subject may be somebody else while
+  its conditions are about the Unit that owns the clause.
+
+**Measured live, all six bearers** — a Master at 30 for the first four, at 40 for the last two:
+
+| | held on | free |
+|---|---|---|
+| Heracles | floors at 20 | floors at 20 |
+| Asterios, Castor, Kingprotea | no floor | no floor |
+| Penthesilea, Raikou | floors at 30 | **no floor** |
 
 ### D. `isScheduler()` elects a GM *user*, not a connection — **open**
 
@@ -342,8 +374,8 @@ Recorded so they are not filed again.
 |---|---|---|---|---|
 | **Heracles** | ✅ | ✅ | 4 (1 his, 3 general) | Ch. 31 §31.7a; §46.4-A, B, G |
 | **Asterios** | ✅ | ✅ | 4, all closed | §46.8; §46.4-H, I |
-| Karna | — | — | — | |
-| Penthesilea | — | — | — | carries §46.4-C (the conditional floor) |
+| **Karna** | ✅ | ✅ | 1, closed | §46.9 |
+| **Penthesilea** | ✅ | ✅ | 2, closed | §46.10; closes §46.4-C |
 | Medea | — | — | — | |
 | EMIYA | — | — | — | |
 | Hassan of Serenity | — | — | — | |
@@ -351,7 +383,7 @@ Recorded so they are not filed again.
 | Scáthach | — | — | — | |
 | Kingprotea | — | — | — | |
 | Castor / Pollux | — | — | — | |
-| Raikou | — | — | — | carries §46.4-C (the conditional floor) |
+| Raikou | — | — | — | §46.4-C's conditional floor now built for her |
 | Anastasia & Viy | — | — | — | |
 | Achilles | — | — | — | |
 | Mannanán mac Lir | — | — | — | carries §46.4-B |
@@ -403,3 +435,90 @@ now fixed:
   It now names the window: **"Active — offered at: Start of the Damage Step"**. The wrong label was
   wrong in the direction that matters — a player reading *"always in effect"* does not go looking
   for the prompt, and does not know a Cooldown is being spent when they answer it.
+
+---
+
+## 46.9 Karna — one clause, and the scale it was hung on
+
+Audited 2026-09-16. Thirteen abilities and four Noble Phantasms, the most of the original twelve,
+and Ch. 45 names him beside Asterios as a Servant who was on the "fully authored" list while nine
+of his abilities did not exist. They exist now, and all but one clause holds.
+
+**What held**, listed because several of these are the clauses most likely to be wrong and were
+not: Vasavi Shakti's *"Base Attack (STR) is increased by 25, STR Rank is increased from B to A"*
+lands on **150 and rank A** — the sheet states one change twice and the code applies it once;
+Brahmastra's fork takes **2×** against a defender who beats him on any Parameter and **4×** against
+one who beats him on none; Vasavi's three Divinity tiers resolve 3.0 / 2.0 / 2.5 against B–EX, E–C
+and Divine-without-Divinity; Magic Resistance's Instakill/Death carve-out applies to those two
+severities only and leaves **Erase completely unaffected**, because Erase carries its own severity
+and neither chance rule matches it; Mana Burst's *"Burn at 50% **instead of** 25%"* is a predicate
+on the 25% passive rather than a second roll; and `Fated Rivals` is inert with no Arjuna on the
+board, as designed.
+
+**The defect.** `Kavacha and Kundala` charges *"20 Health at the end of every Turn that Karna is
+**involved in a Combat Phase**"*, authored as `event: actedTurnEnd` — which fires for a unit that
+**Acted**. Being attacked is involvement and is not acting: a defender who answers nothing has done
+nothing. `turnState` recorded `acted`, `moved` and `attacked`, and none of the three is the
+question, so the clause had nothing to gate on.
+
+`docs/E-event-reference.md` draws this exact distinction and cites Karna as the reason
+`combatProcessEnd` exists separately — his *other* upkeep, Vasavi Shakti's, is per **Process** and
+was correct. The Phase-scaled half landed on a third thing.
+
+Closed by `turnState.inCombatPhase`, stamped by `engine/attack.mjs` on the same set
+`combatPhaseEnd` already fires for, and a matching `involvedTurnEnd` boundary event.
+
+**Measured live**, all three branches:
+
+| Karna's Turn | Master | |
+|---|---|---|
+| Attacked for 143, did not act | 250 → **230** | was 250 → 250 |
+| Acted, no Combat Phase | 250 → **250** | correct, and not over-charged |
+| Both acted and was attacked | 250 → **230** | billed once, not twice |
+
+**Not a defect, recorded because it surprises.** Heracles hit Karna through a stated *"all damage
+received reduced by 90%"* for 184. Stage 4 of the pipeline puts `atkUp +60` (Mad Enhancement) and
+`defUp −90` in the **same additive bucket** — −30% → ×0.70 — which is Ch. 13 §13.4's composition
+rule and the arithmetic `class-skills/mad-enhancement.yml` defends against the multiplicative
+alternative. Karna's armour erodes against a large enough attacker bonus rather than flatly
+dividing by ten.
+
+---
+
+## 46.10 Penthesilea — the last of the three clause-1 shapes
+
+Audited 2026-09-16, and the reason §46.4-C could be closed: hers is the sheet that prints Mad
+Enhancement's clause 1 **in full**, the forced deactivation *and* a floor, with the floor
+conditional on the skill being held on. The predicate that says so is §46.4-C's residue, and
+building it took her audit to motivate.
+
+**What held.** The statblock (she reads **1350** now, not the 1250 her sheet prints — §46.6's END
+override); Divinity B → +40; *Hatred of Achilles* as a `Compulsion` that forces both her target and
+her mode, lifting the instant the Greek Male leaves; *Charisma* as an aura over **other** allies
+with `self` dropped from the default relations, negated by Mad Enhancement, by her own Atk Up
+(Charisma) and by Skill Seal; *Howl of the War God*'s two magnitudes; *Golden Rule (Beauty)*;
+and all four clauses of *Goddess of War*, including *"Divinity Rank is increased from B to A"* —
+an **ability's** rank rather than a parameter, which `RankShift` grew an `ability:` branch for and
+which her file's notes still described as unbuilt.
+
+**Two fixes.**
+
+- **The conditional floor**, §46.4-C. Measured live with Achilles two panels away and then off the
+  board entirely: Master at 40 → **30** while the mode is held, → **10** when it is free.
+
+- **`Outrage Amazon` was frozen at her base Range.** Her sheet gives the Noble Phantasm no reach of
+  its own, so it swings at whatever her Range is — and it *"can only be used when Mad Enhancement
+  is activated"*, whose clause 4 is *"Range is increased by 1"*. So the one state in which she may
+  fire it is the one state in which the authored `range: 2` was wrong. It reads **3** now. The same
+  shape as Heracles's Nine Lives (§46.3, "absolute where the sheet is silent"), on a Servant where
+  the gate guarantees the disagreement rather than merely allowing it.
+
+  **Found in passing and fixed with it:** Karna's *Mana Burst (Flames)* carried the same frozen
+  `range: 2`. His sheet says only *"used when performing a Normal Attack"*, so its reach is his
+  Range — which is 2, so the two agreed and the defect was invisible. It is inherited now. His
+  *Discernment of the Poor* keeps its absolute number, because that sheet prints *"Range=2"*.
+
+**A harness note for §46.2.** Moving a token by fourteen panels to get a unit out of a compulsion's
+radius does nothing: the movement gate refuses it and the token stays put, silently, exactly as it
+refuses a Labyrinth exit. The first run of this measurement compared two identical boards and read
+as "the floor applies either way". Delete the token, or move it within its MOV.

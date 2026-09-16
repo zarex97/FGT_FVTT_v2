@@ -60,6 +60,7 @@ the L2 purity boundary and makes triggered effects testable.
 | `fgt.turnStart` | Start of every turn, for **all** units | `{combatantId, userId}` | Before any action |
 | `fgt.turnEnd` | End of every turn, for the active player's units | `{combatantId}` | Scheduler step 1 |
 | `fgt.actedTurnEnd` | End of every turn, for **every unit that Acted**, any faction | `{actedUnitIds}` | Scheduler step 2 |
+| `fgt.involvedTurnEnd` | End of every turn, for **every unit that was in a Combat Phase**, on either side | `{}` | Scheduler step 2b |
 | `fgt.unitTurnEnd` | End of the **owner's** turn only | `{unitId}` | With step 1 |
 
 > **Dispatched (Ch. 45).** Listed here since this reference was written and raised by nothing.
@@ -76,6 +77,20 @@ the L2 purity boundary and makes triggered effects testable.
 countered, made a Luck Check) during an *opponent's* turn has Acted, so `actedTurnEnd` fires for
 it on that opponent's turn. Mad Enhancement's Master drain, Sap/Bleed, Crystallize's fixed
 damage, and Kingprotea's GAO decay all depend on this.
+
+**And `involved` is wider than `acted`.** A defender who is hit and answers *nothing* — no Evade,
+no Block, no Counter — has not Acted and **was** in a Combat Phase, which is a state no other flag
+records: `acted` is what the unit did, `attacked` is what it did to somebody else, and being the
+target is neither. `turnState.inCombatPhase` is stamped by `engine/attack.mjs` at the Phase
+boundary, on the same set `combatPhaseEnd` fires for — the attacker, the defender, and every
+sibling Process's defender — and is stale-by-reading at the next tick like the rest of turn state.
+
+Karna is the clause that needs it and the reason the three scales are separate here at all:
+`Kavacha and Kundala` charges 20 *"at the end of every **Turn** that Karna is involved in a Combat
+Phase"* and `Vasavi Shakti` charges 20 *"at the end of every **Combat Process**"*. The Phase-scaled
+half was authored on `actedTurnEnd`, which is neither of them, so the armour's upkeep skipped every
+Turn he only defended — most of them, for a Servant whose whole design is to be attacked.
+Ch. 46 §46.9. Attacking **is** involvement, so a Unit that both acted and fought is billed once.
 
 Deduplication: when both `unitTurnEnd` and `actedTurnEnd` would fire for the same unit on the
 same turn, each *effect* fires **once**, keyed by `(effectId, globalTurn)`.
