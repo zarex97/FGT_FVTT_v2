@@ -26,6 +26,7 @@ import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { cooldownChanges } from "./skill-use.mjs";
+import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -4128,6 +4129,42 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // reaches this once per Unit, which needs no guard: `io.setMode` returns
     // early when the mode is already in the state asked for, so the second and
     // later calls are no-ops rather than a flicker.
+    // A cooldown clause riding on a damaging ability.
+    //
+    // > *"…and increases the NP Cooldown of all affected Units by 1◈ Turns."*
+    // > — Nursery Rhyme's *A Tale for Somebody's Sake*, over a 3x3 area.
+    // > *"increase the DU's NP Cooldown by 1◈ Turns"* — Kiritsugu's *Chronos
+    // > Rose*, over one Unit.
+    //
+    // This loop skipped every phase kind but `applyEffects`, so a `kind:
+    // cooldown` phase on an attacking ability was DROPPED ENTIRELY -- Chronos
+    // Rose's clause has never run. `runAfterProcessPhases` does not reach it
+    // either: that pass filters on `when: afterProcess`, which neither clause
+    // declares.
+    //
+    // Its unit test passed throughout, because it called `cooldownChanges`
+    // directly with a victim the caller never supplies. The route was proved
+    // and the wiring was not -- the same shape as the Aura `check` field whose
+    // comment a few hundred lines from here says it "asserted the bug into
+    // existence."
+    //
+    // Split by audience: a target-directed change runs in EVERY Process, since
+    // each has its own defender, and a caster-directed one runs in exactly one,
+    // or a four-Unit Noble Phantasm turns its own clock four times.
+    if (phase.kind === "cooldown") {
+      const { perDefender, oncePerPhase } = splitCooldownRider(phase);
+      const cdBoard = boardSnapshot();
+      const intents = [
+        ...(perDefender.length > 0
+          ? cooldownChanges({ ...phase, changes: perDefender }, attackerDoc, cdBoard, ability, defenderDoc)
+          : []),
+        ...(oncePerPhase.length > 0 && isFirstOfGroup(state)
+          ? cooldownChanges({ ...phase, changes: oncePerPhase }, attackerDoc, cdBoard, ability, defenderDoc)
+          : []),
+      ];
+      if (intents.length > 0) await applyBatch(intents, `np:${ability.id}:cooldown`);
+      continue;
+    }
     if (phase.kind === "setMode") {
       await applyBatch(
         [I.setMode(state.attackerId, phase.ability, phase.active === true, `np:${ability.id}`)],

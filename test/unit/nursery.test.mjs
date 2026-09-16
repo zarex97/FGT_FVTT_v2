@@ -12,6 +12,7 @@ import { parse } from "yaml";
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
+import { splitCooldownRider } from "../../module/rules/cooldown-riders.mjs";
 
 const classSkill = (id) => parse(readFileSync(`packs/_source/class-skills/${id}.yml`, "utf8"));
 const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
@@ -107,5 +108,40 @@ describe("Territory Creation, promoted to a shared template (R4)", () => {
     }
     expect(readFileSync("packs/_source/effects/dsc-buff.yml", "utf8"))
       .toMatch(/- key: DamageNegation[\s\S]{0,200}mode: dice/);
+  });
+});
+
+describe("A cooldown rider on a damaging ability (R5, A7)", () => {
+  it("splits a phase's changes by who they land on", () => {
+    // A Noble Phantasm catching four Units fans out into four Combat Processes.
+    // A change aimed at the TARGET must run in each -- it is a different target
+    // each time. A change aimed at the caster must run in exactly one, or a
+    // four-Unit Noble Phantasm turns its own clock four times.
+    const phase = {
+      kind: "cooldown",
+      changes: [
+        { unit: "target", scope: "np", ticks: "1◈", direction: "up" },
+        { scope: "np", ticks: "⅓◈", direction: "down" },
+      ],
+    };
+    const { perDefender, oncePerPhase } = splitCooldownRider(phase);
+    expect(perDefender).toHaveLength(1);
+    expect(perDefender[0].direction).toBe("up");
+    expect(oncePerPhase).toHaveLength(1);
+    expect(oncePerPhase[0].direction).toBe("down");
+  });
+
+  it("treats an unstated `unit` as the caster's own", () => {
+    // Every cooldown clause authored before Chronos Rose is the caster's, and
+    // must stay that way.
+    const { perDefender, oncePerPhase } = splitCooldownRider({
+      changes: [{ scope: "np", ticks: "1◈" }],
+    });
+    expect(perDefender).toEqual([]);
+    expect(oncePerPhase).toHaveLength(1);
+  });
+
+  it("handles a phase with no changes at all", () => {
+    expect(splitCooldownRider({})).toEqual({ perDefender: [], oncePerPhase: [] });
   });
 });
