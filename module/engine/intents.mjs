@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "dismissSummon", "durationDelta", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
+  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // `setStage` decrements a staged effect without deleting it, and `event`
@@ -108,6 +108,9 @@ const ORDER = Object.freeze({
   // and well before the dismissal that reads it, so a stay extended and expired
   // in one batch extends first.
   durationDelta: 2,
+  // Bookkeeping, like the other writes -- and before the damage it changes the
+  // shape of, so an attack that both suppresses and wounds suppresses first.
+  suppressRule: 2,
   prompt: 10,
 });
 
@@ -202,6 +205,22 @@ export const dismissSummon = (unitId, reason = "expired") =>
  */
 export const durationDelta = (unitId, delta) =>
   ({ t: "durationDelta", unitId, delta });
+
+/**
+ * Switch a named rule off on a Unit, permanently.
+ *
+ * > *"…is **permanently removed** from the Jabberwock."*
+ *
+ * The slug of a rule element rather than an effect id: what the Vorpal Blade
+ * takes away is a clause on the monster's own statblock, which no removal
+ * effect can reach.
+ *
+ * @param {string} unitId
+ * @param {string} scope the rule element's `slug`
+ * @returns {object}
+ */
+export const suppressRule = (unitId, scope) =>
+  ({ t: "suppressRule", unitId, scope });
 
 export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });

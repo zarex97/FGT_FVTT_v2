@@ -273,3 +273,89 @@ describe("E3 — an Item lying on a panel", () => {
     expect(itemPickupIntents(b.units[1], b)).toEqual([]);
   });
 });
+
+describe("E2 — a rule switched off permanently, by name", () => {
+  const monster = (suppressed = []) => ({
+    system: { suppressedScopes: suppressed },
+    items: [{
+      id: "jab", name: "Jabberwock", type: "ability",
+      system: {
+        passiveRules: [
+          { key: "OnEvent", slug: "jabberwockLifesteal", event: "damageTaken", automatic: true,
+            then: [{ key: "StatDelta", stat: "health.value", delta: "@amount", factor: 0.75 }] },
+          { key: "Ward", value: 10 },
+        ],
+      },
+    }],
+    effects: [],
+  });
+
+  it("collects the lifesteal while nothing has switched it off", () => {
+    const c = contributionsOf(monster());
+    expect(c.eventHandlers).toHaveLength(1);
+  });
+
+  it("drops it once its slug is suppressed", () => {
+    // "the 'Whenever the Jabberwock receives damage from Servants...' effect is
+    // PERMANENTLY REMOVED from the Jabberwock."
+    //
+    // Not a RemoveEffect: the lifesteal is a passiveRule on its own statblock,
+    // so there is no effect instance to strip, and buff-removal is the wrong
+    // vocabulary besides -- it is not a buff.
+    const c = contributionsOf(monster(["jabberwockLifesteal"]));
+    expect(c.eventHandlers).toEqual([]);
+  });
+
+  it("leaves every OTHER rule on the same statblock alone", () => {
+    // Scoped by slug, not by document. The Blade takes one clause away and the
+    // monster keeps its Knockback, its Attributes and everything else.
+    const c = contributionsOf(monster(["jabberwockLifesteal"]));
+    expect((c.modifiers ?? []).filter((m) => m.key === "ward")).toHaveLength(1);
+  });
+
+  it("ignores a scope that names nothing", () => {
+    const c = contributionsOf(monster(["somethingElse"]));
+    expect(c.eventHandlers).toHaveLength(1);
+  });
+});
+
+describe("R5 — the suppression survives a disappear-and-re-summon", () => {
+  // The subtle half. A suppression that lives on the summon dies with the
+  // summon, and the Jabberwock comes back "with the same Stats as when it
+  // disappeared" -- so without the ride home the Blade's sacrifice is undone by
+  // the next summoning, which is precisely the interaction the sheet spends a
+  // sentence on.
+  const applyRemembered = (data, remembered) => {
+    for (const [stat, value] of Object.entries(remembered ?? {})) {
+      if (stat === "suppressedScopes") continue;
+      if (typeof value?.value !== "number") continue;
+      data.system[stat] = { value: value.value, max: value.max ?? value.value };
+    }
+    if (Array.isArray(remembered?.suppressedScopes)) {
+      data.system.suppressedScopes = [...remembered.suppressedScopes];
+    }
+    return data;
+  };
+
+  it("comes back at the Health it left on AND still suppressed", () => {
+    const data = applyRemembered({ system: {} }, {
+      health: { value: 900, max: 1500 },
+      suppressedScopes: ["jabberwockLifesteal"],
+    });
+    expect(data.system.health).toEqual({ value: 900, max: 1500 });
+    expect(data.system.suppressedScopes).toEqual(["jabberwockLifesteal"]);
+  });
+
+  it("does not treat the scope list as a stat", () => {
+    // It is an array of strings, and the stat loop reads `.value` off a
+    // `{value, max}` pair -- so without the skip it writes garbage.
+    const data = applyRemembered({ system: {} }, { suppressedScopes: ["x"] });
+    expect(data.system.suppressedScopes).toEqual(["x"]);
+    expect(Object.keys(data.system)).toEqual(["suppressedScopes"]);
+  });
+
+  it("comes back clean when nothing was taken", () => {
+    const data = applyRemembered({ system: {} }, { health: { value: 400, max: 1500 } });
+    expect(data.system.suppressedScopes).toBeUndefined();
+  });
+});

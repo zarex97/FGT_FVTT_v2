@@ -509,6 +509,9 @@ async function writeGroup(group, io) {
       break;
     // *"extends its period of existing on the board for 3◈ MORE Turns."*
     // Summed, so two extensions in one batch both count.
+    case "suppressRule":
+      await io.suppressRules(unitId, intents.map((i) => i.scope));
+      break;
     case "durationDelta":
       await io.extendSummonStay(unitId, intents.reduce((n, i) => n + i.delta, 0));
       break;

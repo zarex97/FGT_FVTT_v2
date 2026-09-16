@@ -738,6 +738,15 @@ export function worldIO() {
           [`system.fieldSummonStats.${contentId}`]: {
             health: { value: summon.system.health?.value ?? null, max: summon.system.health?.max ?? null },
             agility: { value: summon.system.agility?.value ?? null, max: summon.system.agility?.max ?? null },
+            // ...and what has been PERMANENTLY taken from it.
+            //
+            // This is the subtle half of the Vorpal Blade. A suppression that
+            // lives on the summon dies with the summon, and the Jabberwock
+            // comes back "with the same Stats as when it disappeared" -- so
+            // without this the Blade's sacrifice is undone by the next
+            // summoning, which is precisely the interaction the sheet spends a
+            // sentence on.
+            suppressedScopes: [...(summon.system?.suppressedScopes ?? [])],
           },
         });
 
@@ -780,6 +789,27 @@ export function worldIO() {
      * @param {string} unitId
      * @param {number} delta turns, signed
      */
+    /**
+     * Switch named rules off on a Unit, permanently.
+     *
+     * > *"…is **permanently removed** from the Jabberwock."*
+     *
+     * A set union rather than an append, so the same clause suppressed twice
+     * does not accumulate.
+     *
+     * @param {string} unitId
+     * @param {string[]} scopes rule-element slugs
+     */
+    async suppressRules(unitId, scopes) {
+      const actor = resolve(unitId);
+      if (!actor || scopes.length === 0) return;
+      const held = new Set(actor.system?.suppressedScopes ?? []);
+      const before = held.size;
+      for (const s of scopes) held.add(s);
+      if (held.size === before) return;
+      await actor.update({ "system.suppressedScopes": [...held] });
+    },
+
     async extendSummonStay(unitId, delta) {
       const actor = resolve(unitId);
       const current = actor?.system?.expiresAt;
