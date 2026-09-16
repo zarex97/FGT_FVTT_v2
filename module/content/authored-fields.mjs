@@ -48,6 +48,9 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "weakPoint", "ridingAttack", "expendsPermanently", "categorizedWhile",
   "npTags", "cooldown", "cooldownWaiver", "targeting", "field", "quantity",
   "transferable", "transferRange", "transfersPerTurn", "consumeEffect",
+  // A refusal that belongs to the ITEM, not to any holder: "[Vorpal Blade]
+  // cannot be obtained by Nursery or her Master."
+  "barredFrom",
   "phases", "copyable", "copiedFrom", "opensDialog", "additionalCosts",
   "npGateRound", "itemCost", "category", "kind", "passive", "countsAsAttack",
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",

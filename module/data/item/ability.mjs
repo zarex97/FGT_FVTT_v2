@@ -647,6 +647,12 @@ export class EquipmentData extends foundry.abstract.TypeDataModel {
       transfersPerTurn: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       consumeEffect: new fields.ArrayField(new fields.ObjectField()),
 
+      // *"Cannot be obtained by Nursery or her Master."* Whom this item refuses
+      // to be held by, as a ROLE PAIR against a content id -- `{ofUnit, roles}`
+      // -- because an actor id is random per world and would not survive the
+      // Servant being placed twice. Read by `rules/items.mjs#acquisitionTarget`.
+      barredFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
       rules: new fields.ArrayField(new fields.ObjectField()),
     };
   }

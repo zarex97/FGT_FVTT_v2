@@ -9,6 +9,7 @@ import { describe, it, expect } from "vitest";
 import { expiredSummonIds } from "../../module/rules/summons.mjs";
 import { dispatch } from "../../module/engine/scheduler.mjs";
 import { contributionsOf } from "../../module/rules/snapshot.mjs";
+import { acquisitionTarget } from "../../module/rules/items.mjs";
 
 
 describe("E5 — a summon that goes away on its own", () => {
@@ -165,5 +166,59 @@ describe("E6 — an Item's rules apply only while it is Equipped", () => {
       system: { passiveRules: [{ key: "Ward", value: 30 }] },
     };
     expect(wards({ system: {}, items: [skill], effects: [] })).toHaveLength(1);
+  });
+});
+
+describe("E4 — an Item may refuse particular holders", () => {
+  // `acquisitionTarget` is the right seam -- its own docstring calls itself
+  // "the one seam every acquisition goes through" and anticipates this exact
+  // day: "the day a drop or a reward is added, it asks this and inherits the
+  // redirect for free." What it could not do is refuse THIS item to THESE
+  // units: its signature was (unit, board), and both its refusals are
+  // properties of the unit. Pale Rider holds nothing at all; Nursery holds
+  // anything except one sword.
+  const blade = { contentId: "vorpal-blade", barredFrom: { ofUnit: "nursery-rhyme", roles: ["self", "master"] } };
+  const board = () => ({ units: [
+    { id: "n", contentId: "nursery-rhyme", kind: "servant", masterId: "m", panel: { i: 0, j: 0 } },
+    { id: "m", kind: "master", servantId: "n", panel: { i: 0, j: 1 } },
+    { id: "e", contentId: "cu-chulainn", kind: "servant", masterId: "em", panel: { i: 5, j: 5 } },
+  ] });
+
+  it("refuses Nursery herself", () => {
+    const b = board();
+    expect(acquisitionTarget(b.units[0], b, blade)).toMatchObject({ ok: false, reason: "barred" });
+  });
+
+  it("refuses her Master", () => {
+    // The clause the Blade exists for. It is designed to be carried by a
+    // MASTER -- "If the Master with this Item Equipped cannot be Underpowered
+    // by Servants" -- so the refusal has to name hers specifically.
+    const b = board();
+    expect(acquisitionTarget(b.units[1], b, blade)).toMatchObject({ ok: false, reason: "barred" });
+  });
+
+  it("allows anybody else", () => {
+    const b = board();
+    expect(acquisitionTarget(b.units[2], b, blade)).toMatchObject({ ok: true, unitId: "e" });
+  });
+
+  it("is unchanged when no item is named", () => {
+    // The existing callers pass two arguments and must not move.
+    const b = board();
+    expect(acquisitionTarget(b.units[0], b)).toMatchObject({ ok: true, unitId: "n" });
+  });
+
+  it("refuses a barred Servant BEFORE redirecting to a Master", () => {
+    // Order matters. A barred Servant who redirects would otherwise hand the
+    // sword straight to the second person the clause names.
+    const b = board();
+    b.units[0].itemHandling = "redirectToMaster";
+    expect(acquisitionTarget(b.units[0], b, blade)).toMatchObject({ ok: false, reason: "barred" });
+  });
+
+  it("allows everybody when the named unit is not on the board", () => {
+    // A bar against a Servant nobody summoned refuses nobody.
+    const b = { units: [{ id: "e", contentId: "cu-chulainn", kind: "servant", panel: { i: 1, j: 1 } }] };
+    expect(acquisitionTarget(b.units[0], b, blade)).toMatchObject({ ok: true });
   });
 });

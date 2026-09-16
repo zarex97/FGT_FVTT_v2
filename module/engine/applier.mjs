@@ -529,7 +529,13 @@ async function writeGroup(group, io) {
       // its own items.
       for (const i of intents) {
         const board = currentBoard();
-        const to = acquisitionTarget(board.units.find((u) => u.id === unitId), board);
+        // The item's own refusals travel with it -- `barredFrom` names roles
+        // rather than ids, so it can be answered from the descriptor's content
+        // id without loading the pack.
+        const to = acquisitionTarget(
+          board.units.find((u) => u.id === unitId), board,
+          { contentId: i.contentId, barredFrom: i.barredFrom ?? null },
+        );
         if (!to.ok) {
           // Loud: an item that lands nowhere is a clause doing less than it
           // says, and silence is how that goes unnoticed for a month.
