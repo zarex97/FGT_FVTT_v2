@@ -551,6 +551,35 @@ only thing a player actually sees, on a refusal whose entire job is to say **why
 Both sentences now name the protector, with a generic fallback for an aura that states no source.
 **Verified live**: *"Medea is protected by a nearby Dragon Tooth Warrior (Blade)."*
 
+### P. An ability taken at its own timing window was billed and never cast — **fixed 2026-09-16**
+
+**Reached: four abilities**, three of which did nothing whatsoever — EMIYA's and Kiritsugu's
+*Thaumaturgy: Reinforcement* and Achilles's *Runner Comet*; Anastasia's *Watermelon* lost its phase
+while its four rules still landed.
+
+`engine/attack.mjs#offerAttackerWindow` offers an attacker its own abilities at the Combat Phase
+Start and at the Damage Step. Its comment names **two** answers for what taking one means, and the
+corpus has **three**:
+
+| | Means | Example |
+|---|---|---|
+| `mode` | The switch **is** the use | Karna's Uncrowned Arms Mastership |
+| `contribute` | Its rules join the attack in progress | Asterios's Monstrous Strength |
+| **`cast`** | **Its effect is its phases, so they must run** | **Reinforcement** |
+
+The third had no implementation. The window charged the Cooldown, recorded the use, announced it in
+chat — and ran nothing. An ability offered at the only window its sheet gives it, taken by a player
+who watched it appear in the log, doing nothing at all.
+
+**Measured live, before and after.** Taking Reinforcement at its own window left EMIYA with no
+`nAtkUp` and a cooldown of 3; the identical Spell through `useSkill` applied `nAtkUp: 30`. After the
+fix the window applies it too — **and Magecraft's `rangeUp: 1` rider with it** — with the cooldown
+charged exactly once, and the pipeline then shows `atkUp: 30, note: "nAtkUp"` at stage 4.
+
+`rules/ability-use.mjs#windowUseKind` is the three answers, and a `cast` is routed through
+`useSkill` whole rather than double-billed. An ability with both phases and rules is cast, because
+the window carries its rules separately regardless.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -617,7 +646,7 @@ per-Servant record of what each audit left untested.
 | **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
 | **Penthesilea** | ✅ | ✅ **complete** | 3 (2 hers, 1 general) | §46.10; closes §46.4-C; §46.4-N |
 | **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
-| **EMIYA** | ✅ | ✅ | 2, closed | §46.12 |
+| **EMIYA** | ✅ | ◐ partial | 3 (2 his, 1 general) | §46.12; §46.4-P |
 | Hassan of Serenity | — | — | — | |
 | Semiramis | — | — | — | |
 | Scáthach | — | — | — | |
@@ -1126,14 +1155,30 @@ gave her the **Home Base** the previous board lacked.
 Move and/or Attack"* and their per-warrior once-per-Turn limit; and High-Speed Divine Words'
 **Silence** clause, both halves.
 
-**EMIYA.** *Pressed:* the statblock; the two Noble Phantasm reaches before and after Range Up.
-*Traced only:* the range bands — read off the projection, never resolved by attacking at Range 3 or
-higher; Magecraft, whose `ofCategory` was read rather than fired (Range Up was injected directly
-rather than earned by using a Thaumaturgy Spell). *Untouched:* Independent Action, Magic
-Resistance, Clairvoyance, Hawkeye, both Eye of the Mind (True) documents and the B→EX swap at 20%
-Health, Reinforcement, Tracing, Trace On with its AC and BC branches, Kanshou & Bakuya, Overedge,
-Rho Aias, Unlimited Blade Works, and the Projection: Unlimited Blade Works copy spell — thirteen of
-his seventeen abilities.
+**EMIYA — partial.** A war built by `commitWar` against Heracles, EMIYA at Range 4 to Heracles's 2
+so the range bands his kit turns on could be reached.
+
+*Pressed (engine):*
+
+- **Hawkeye**, both effects and the range band that gates them. `critUpHawkeye` 50 and
+  `critDmUpHawkeye` 100 applied for 1◈; at **Range 4** the crit contributor read
+  **`"5d10 = 33, ×2.00 crit damage"`** — the +100% doubling the roll, which is the clause stated
+  *"at a Range of 3 or higher"*.
+- **Reinforcement**, through the **Start of the Combat Phase** dialog it is actually offered at —
+  which is where §46.4-P was found. `nAtkUp: 30` for ⅓◈, reaching stage 4 as
+  `atkUp: 30, note: "nAtkUp"`, cooldown 1◈.
+- **Magecraft's Range Up, earned rather than injected.** §46.12 recorded this as read-only —
+  *"Range Up was injected directly rather than earned by using a Thaumaturgy Spell"*. Casting
+  Reinforcement, a Thaumaturgy Spell, granted `rangeUp: 1` on its own.
+- The statblock and the two Noble Phantasm reaches before and after Range Up (earlier pass).
+
+*Found while pressing:* §46.4-P.
+
+*Still untouched:* Independent Action, Magic Resistance, Clairvoyance, both **Eye of the Mind
+(True)** documents and the **B→EX swap at 20% Health**, Tracing, Trace On with its AC and BC
+branches, Kanshou & Bakuya, Overedge, Rho Aias, **Unlimited Blade Works**, and the Projection:
+Unlimited Blade Works copy spell — **eleven of his seventeen abilities**. He is the one Servant of
+the six this audit has not finished.
 
 ### 46.13.2 Fixes that were never pressed
 
