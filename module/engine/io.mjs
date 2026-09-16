@@ -17,6 +17,7 @@ import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
+import { clampToMax } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /**
@@ -221,10 +222,31 @@ export function worldIO() {
      * @param {number} delta
      * @param {boolean} clamp
      */
-    async adjustStat(unitId, stat, delta, clamp = true) {
+    async adjustStat(unitId, stat, delta, clamp = true, alsoCurrent = false) {
       const actor = resolve(unitId);
       if (!actor) return;
       const path = `system.${stat}`;
+
+      // A CEILING that drags its current value down with it.
+      //
+      // > *"For every Nameless Forest Counter on a Unit, reduce its Max Health
+      // > by 25 … and Max Luck by 1."*
+      //
+      // A Unit at full Health whose maximum drops must not end up above its own
+      // ceiling -- and a WOUNDED one must not be healed on the way. So the
+      // current value is clamped to the new maximum rather than moved by the
+      // same delta: 1000/1000 becomes 975/975, and 400/1000 becomes 400/975.
+      //
+      // One `update` with both paths, so a failure cannot strand a current
+      // value above its own max.
+      if (alsoCurrent && path.endsWith(".max")) {
+        const root = path.replace(/\.max$/, "");
+        const pool = foundry.utils.getProperty(actor, root) ?? { value: 0, max: 0 };
+        const next = clampToMax(pool, delta);
+        await actor.update({ [`${root}.max`]: next.max, [`${root}.value`]: next.value });
+        return;
+      }
+
       const current = foundry.utils.getProperty(actor, path) ?? 0;
       const max = foundry.utils.getProperty(actor, `${path.replace(/\.value$/, "")}.max`);
       const next = clamp && typeof max === "number"

@@ -70,3 +70,24 @@ export function maxHealth(unit, fallback = 0) {
 export function isUndamageable(unit) {
   return unit?.health === null;
 }
+
+/**
+ * Lower a resource's ceiling, taking its current value down only if it would
+ * otherwise sit above it.
+ *
+ * > *"For every Nameless Forest Counter on a Unit, reduce its Max Health by
+ * > 25 … and Max Luck by 1."*
+ *
+ * A Unit at full Health must not end up above its own maximum; a WOUNDED one
+ * must not be healed on the way down. So the current value is clamped to the
+ * new ceiling rather than moved by the same delta: 1000/1000 becomes 975/975,
+ * and 400/1000 becomes 400/975.
+ *
+ * @param {{value: number, max: number}} pool
+ * @param {number} delta signed, applied to the ceiling
+ * @returns {{value: number, max: number}}
+ */
+export function clampToMax(pool, delta) {
+  const max = Math.max(0, (pool?.max ?? 0) + delta);
+  return { value: Math.min(pool?.value ?? 0, max), max };
+}
