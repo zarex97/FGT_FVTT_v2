@@ -416,6 +416,29 @@ A closed registry means content cannot execute arbitrary code from a compendium,
 because compendia are shared between users. **DECISION.** No `eval`, no `new Function`, ever.
 A script id that is not registered fails the content build.
 
+> **Built 2026-09-16** (`module/engine/scripts.mjs`), and the first entry in it is Nursery Rhyme's
+> `nurseryRhyme.rewind` (Ch. 43 §43.11, Ch. 44 §44.6).
+>
+> **The registry did not exist until then, and the element had promised it since it was written.**
+> `Script` collected `{event, script, source}` into `eventHandlers` and **nothing read
+> `handler.script`** — and nothing could have matched one anyway, because it pushed a singular
+> `event` where `listensFor` reads `events`. That was consistent rather than surprising: the corpus
+> had zero Scripts, so the hatch had never been opened.
+>
+> The shipped shape differs from the sketch above in two spellings. It is `script:` and `params:`
+> rather than `fn:` and `args:`, matching what the element already collected; and the registry is a
+> frozen module-level object rather than a slot on `CONFIG`, so content cannot reach it at all.
+>
+> An unregistered id **logs and runs nothing** rather than failing the build. A compendium is data
+> other people wrote: refusing to load a whole world because one entry names a script this version
+> does not carry is a worse failure than one clause doing nothing and saying so. The lookup also
+> refuses names inherited from `Object.prototype`, since `SCRIPTS["constructor"]` is a function.
+
+**Actual, as of 2026-09-16: one**, across ~130 authored abilities — well inside the target below,
+and none of the five candidates it names turned out to need one. Every one of them decomposed into
+general mechanisms instead. The one that did not is a rewind over an arbitrary unit set, which
+nothing else in either roster resembles.
+
 **Target:** ≤ 15% of the reference set's abilities need a `Script` element. The candidates are
 Semiramis's HGoB construction and activation, Heracles's God Hand attack-recording, Mannanán's
 Fragarach NP cancellation, Nemo's Zero Sail, and Scáthach's Wisdom of Dún Scáith copy setup.

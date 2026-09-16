@@ -1522,9 +1522,10 @@ additive bucket.
 Sustainability 4◈ · Caster · True Neutral · England ·
 `[Female, Servant, [Man], Humanoid, Fairytale, Non-Hominidae, Child]`
 
-**Scripts: 0 so far.** **Parts 1–3 of 4 authored and verified on a live board** — the core kit, the
-summons and the `[Vorpal Blade]`, and the Nameless Forest. Part 4 (The Queen's Glass Game) is
-specified and planned and not yet built; it would be the corpus's **first `Script`**.
+**Scripts: 1 — the corpus's first.** **All four parts authored and verified on a live board**: the
+core kit, the summons and the `[Vorpal Blade]`, the Nameless Forest, and The Queen's Glass Game.
+Thirteen abilities, and the only Servant in either roster that required the engine to remember the
+past.
 
 **Every combat number is the tables' own.** 500 at END E, 50 at STR E, 200 at MAG A, with no
 authorial override anywhere — the second Servant after Drake of whom that is true.
@@ -1550,6 +1551,12 @@ that have always been indexed across six grades, and the defence clause **had ne
 her, a cooldown reduction on `Child` allies within 2 panels, and `NP DmUp` on `Fairytale` allies
 within 2 — and she carries **both** tags, so both party clauses reach her too. It is the first
 cooldown phase in the corpus to carry a `targeting` of its own.
+
+**The Queen's Glass Game is the only thing in either roster that reads history.** Measured live: a
+rewind restoring Health 300→1000 and an NP cooldown 12→0 while the Unit stood exactly where it was
+and its Nameless Forest Tokens stayed put; a Nursery with a revival available revived with the
+rewind neither fired nor spent; and a Nursery with nothing left rewinding eight Units six Rounds
+back — including herself, and staying defeated. The rewind is a parting shot, not a resurrection.
 
 **`A Tale for Somebody's Sake` is the second clause in the corpus to turn an enemy's clock**, after
 Kiritsugu's *Chronos Rose* — and the first that works. The rider path it needs had never run.
