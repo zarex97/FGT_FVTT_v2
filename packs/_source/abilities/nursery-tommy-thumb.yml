@@ -1,0 +1,73 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# SIX effects reaching THREE different sets: four on herself, one on `Child`
+# allies within 2 panels, one on `Fairytale` allies within 2 panels. Each of the
+# latter two states its own targeting rather than reusing the ability's --
+# defaulting to `reuse` would give every clause the same recipients.
+#
+# She carries BOTH tags herself, so both party clauses reach her too.
+schema: 1
+id: nursery-tommy-thumb
+name: "Tommy Thumb's Secret Picture Book"
+rank: "A+"
+kind: skill
+slug: tommyThumb
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Restores 3 Luck and applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased
+     by 30%; if NP, 20%.
+  2. Applies @effect[defUp]{Def Up} for 1◈ Turns, all damage taken is reduced by 30%; if NP, 15%.
+  3. Applies @effect[dmgCut]{Dmg Cut} for ⅓◈ Turns, all damage taken is reduced by 30 including NP.
+  4. Applies @effect[debuffResUp]{Debuff ResUp} for 1◈ Turns, chance of being inflicted with debuffs
+     is reduced by 40%.
+  5. Reduce the NP Cooldown of all allied Units within a 2 panel area of herself with the 'Child'
+     Attribute by ⅔◈ Turns.
+  6. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns to all allied Units within a 2 panel area of
+     herself with the 'Fairytale' Attribute, NP Damage dealt is increased by 20%.
+  Cooldown: 4◈-⅓◈ Turns.
+phases:
+  # Clause 1's first half. Anastasia's Shvibzik restores 3 Luck the same way.
+  - kind: statChange
+    target: self
+    changes:
+      - { stat: luck, delta: 3, clamp: true }
+  # Clauses 1-4, all on her.
+  - kind: applyEffects
+    target: self
+    effects:
+      # "if NP, 20%" -- an ABSOLUTE NP figure, because the sheet states both
+      # and 20 is not half of 30.
+      - { id: atkUp, duration: "1◈", magnitude: 30, npMagnitude: 20 }
+      - { id: defUp, duration: "1◈", magnitude: 30, npMagnitude: 15 }
+      # "reduced by 30 INCLUDING NP" -- a flat figure with no NP variant, which
+      # is what Dmg Cut is for.
+      - { id: dmgCut, duration: "⅓◈", magnitude: 30 }
+      - { id: debuffResUp, duration: "1◈", magnitude: 40 }
+  # Clause 5 -- the `Child` set. A cooldown phase with its own targeting fans
+  # out per target through `phaseTargets`, and `unit: target` is what makes the
+  # change land on each recipient rather than on her.
+  - kind: cooldown
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection:
+        relations: [ally, self]
+        includeSelf: true
+        chooser: all
+        attributes: ["target:attribute:child"]
+    changes:
+      - { unit: target, scope: np, ticks: "⅔◈", direction: down }
+  # Clause 6 -- the `Fairytale` set, which is not the same set.
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection:
+        relations: [ally, self]
+        includeSelf: true
+        chooser: all
+        attributes: ["target:attribute:fairytale"]
+    effects:
+      - { id: npDmUp, duration: "1◈", magnitude: 20 }

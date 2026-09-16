@@ -1,0 +1,48 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# Her only damaging Noble Phantasm in Part 1, and the one that pays off her
+# Note: BA(MAG) 200 at 3x, against a Normal Attack of 50.
+#
+# The targeting is Medea's Rain of Light exactly -- a 3x3 placed anywhere
+# within Range 4 -- which is what "hits a 3x3 panel area within Range" means.
+schema: 1
+id: nursery-a-tale-for-somebodys-sake
+name: "Nursery Rhyme: A Tale for Somebody's Sake"
+rank: C
+isNP: true
+categorizedAsNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+cooldown: "5◈"
+timing: { window: ownTurn }
+description: |
+  Range=4. Base Attack (MAG) is used. Hits a 3x3 panel area within Range for 3x damage. Then,
+  inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage taken is increased by 20%, and increases
+  the NP Cooldown of all affected Units by 1◈ Turns. Cooldown: 5◈ Turns.
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy], chooser: all }
+damage:
+  component: mag
+  multiplier: 3
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: defDwn, duration: "1◈", magnitude: 20 }
+  # *"…and increases the NP Cooldown of all affected Units by 1◈ Turns."*
+  #
+  # `unit: target` and `direction: up` are Kiritsugu's Chronos Rose exactly --
+  # the same sentence on another sheet. On an AoE the rider runs once per
+  # Combat Process, which is once per affected Unit, which is what "all
+  # affected Units" means.
+  #
+  # `direction: up` is the load-bearing half: a `set` would put an enemy Noble
+  # Phantasm sitting at 4◈ remaining down to 1◈, which is a REDUCTION that
+  # hands them the Noble Phantasm back early.
+  - kind: cooldown
+    changes:
+      - { unit: target, scope: np, ticks: "1◈", direction: up }
