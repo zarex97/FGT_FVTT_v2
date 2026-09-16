@@ -41,3 +41,92 @@ describe("a distance-scaled chance (R3)", () => {
     expect(chanceFromDistance(5, null)).toBe(0);
   });
 });
+
+/* -------------------------------------------------------------------------- */
+
+import { readFileSync } from "node:fs";
+import { parse } from "yaml";
+import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
+import { rollOptionsFor } from "../../module/rules/options.mjs";
+
+const effect = (id) => parse(readFileSync(`packs/_source/effects/${id}.yml`, "utf8"));
+
+const hit = (over = {}) => computeDamage({
+  attacker: { id: "a", baseAttack: { str: 200, mag: 200 }, modifiers: [] },
+  defender: { id: "d", health: 9999, modifiers: [], effects: [] },
+  attack: { kind: "normal", component: "str" },
+  base: { fixedValue: 200 },
+  rolls: { attackMinus: 0 },
+  crit: { isCrit: false },
+  options: rollOptionsFor({ attacker: {}, defender: {}, attack: { kind: "normal" } }),
+  ...over,
+});
+
+const frozen = (over = {}) => hit({
+  defender: { id: "d", health: 9999, modifiers: [], effects: ["freeze"] }, ...over,
+});
+
+describe("Freeze — the pipeline has carried its behaviour unexercised", () => {
+  it("is authored at all", () => {
+    expect(effect("freeze").id).toBe("freeze");
+  });
+
+  it("prevents the bearer acting", () => {
+    // `rules/budget.mjs#preventedBy` reads `freeze` in its blanket list, and
+    // has since it was written.
+    expect(effect("freeze").preventsAction).toBe(true);
+  });
+
+  it("absorbs an attack under 150 entirely", () => {
+    const out = frozen({ base: { fixedValue: 120 } });
+    expect(out.total).toBe(0);
+    expect(out.flags.negatedBy).toBe("Freeze");
+  });
+
+  it("passes the excess of an attack at or over 150, and breaks", () => {
+    const out = frozen({ base: { fixedValue: 200 } });
+    expect(out.total).toBe(200);
+    expect(out.flags.removeFreeze).toBe(true);
+  });
+
+  it("is broken by ANY Fire damage, with no damage and no effects", () => {
+    const out = frozen({
+      attack: { kind: "normal", component: "str", element: "fire" },
+      base: { fixedValue: 500 },
+    });
+    expect(out.total).toBe(0);
+    expect(out.flags.removeFreeze).toBe(true);
+  });
+
+  it("ticks 100 Ice at the end of each Round", () => {
+    const rule = effect("freeze").rules[0];
+    expect(rule.event).toBe("roundEnd");
+    expect(rule.then[0]).toMatchObject({ stat: "health.value", delta: -100 });
+  });
+});
+
+describe("Invuln — likewise", () => {
+  const invulnerable = (over = {}) => hit({
+    defender: { id: "d", health: 9999, modifiers: [], effects: ["invuln"] }, ...over,
+  });
+
+  it("is authored at all", () => {
+    expect(effect("invuln").id).toBe("invuln");
+  });
+
+  it("negates an ordinary attack", () => {
+    expect(invulnerable({ base: { fixedValue: 300 } }).total).toBe(0);
+  });
+
+  it("is ignored by Pierce", () => {
+    const out = invulnerable({
+      attack: { kind: "normal", component: "str", pierce: true },
+      base: { fixedValue: 300 },
+    });
+    expect(out.total).toBeGreaterThan(0);
+  });
+
+  it("forbids the Block rung", () => {
+    expect(effect("invuln").rules[0]).toMatchObject({ key: "ForbidReaction", reactions: ["block"] });
+  });
+});

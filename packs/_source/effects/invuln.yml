@@ -1,0 +1,26 @@
+# Appendix A §A — the second status whose whole damage behaviour was already in
+# the pipeline with no document to arrive by.
+#
+# Stage 16 negates an ordinary attack and honours `Pierce`; stage 15 already
+# halves a Noble Phantasm. None of that is restated here, for the reason
+# `freeze.yml` gives: a second implementation is a second thing to drift.
+#
+# NOT hers either. Invuln is now live for the whole roster.
+schema: 1
+id: invuln
+name: "Invuln"
+description: |
+  No damage is taken. Against a Noble Phantasm, damage is reduced by 50% instead. An effect that
+  would reduce Health to 0 instead halves current Health. The Unit cannot Block. @effect[pierce]{Pierce} ignores it.
+  Does not prevent rider debuffs. A Master with Invuln cannot be Overpowered.
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # "Cannot Block" -- the one clause with no pipeline reader, and the reaction
+  # ladder is where it belongs. `ForbidReaction` is the element Presence
+  # Concealment already uses to take a rung away.
+  - key: ForbidReaction
+    reactions: [block]

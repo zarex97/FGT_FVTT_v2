@@ -256,6 +256,25 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 | `Pigify` | MOV → 2; BA(STR & MAG) → 10%; Range → 1; Evade only with Evade−, cannot Block; damage taken +50% including NP; cannot use Skills/Spells/NP; **passive Skill/NP effects negated**. |
 | `Toad` | MOV → 1; BA → 5%; Range → 1; Evade rolls −3, cannot Block; damage taken +50%; cannot use Skills or NP (**Spells remain usable**); passive effects negated. |
 
+> **`Freeze` and `Invuln` — built 2026-09-16, and the pipeline had been carrying
+> both of them unexercised.**
+>
+> Two of the most load-bearing statuses in this appendix, catalogued since it
+> was written, and until now **no Unit could receive either**. Everything about
+> how they meet damage was already in `rules/damage/pipeline.mjs`: stage 0 halts
+> on *"Freeze broken by Fire"*; stage 16 holds Freeze's `<150` absorption and
+> its excess pass-through, Invuln's negation and its `Pierce` bypass; stage 15
+> already halves Invuln against a Noble Phantasm. `rules/budget.mjs#preventedBy`
+> has carried `freeze` in its blanket list just as long.
+>
+> Neither document restates any of that — a second implementation is a second
+> thing to drift. They carry only what had no reader: Freeze's Round-end 100 Ice
+> and Invuln's *"cannot Block"*.
+>
+> They arrived with Anastasia, whose *Ice Bucket Challenge* sets up the first and
+> whose *Freezing Summertime* applies the second. **They are not hers.** Both are
+> now live for the whole roster.
+
 > **`Blind` — built 2026-09-16, and clause 1 needed a new Combat Process step.**
 >
 > *"80% chance of Missing"* had nowhere to live. An Evade is the **defender's**
