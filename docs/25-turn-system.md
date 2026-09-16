@@ -36,6 +36,16 @@ Only the Combatant and Initiative rows differ, so we override those two and inhe
 
 ---
 
+
+**Exactly one CONNECTION runs a boundary.** `game.users.activeGM` elects one Gamemaster *user* and
+`isSelf` is true for every connection that user holds, so two browser tabs on one Gamemaster each
+ran the whole sequence and every scheduled effect ticked twice — drains, periodics, cooldown
+advances, expiries. `game.users.filter(u => u.active)` shows one either way, because Foundry tracks
+activity per user rather than per connection, which is what kept it hidden until a stated 20-per-Turn
+Master drain measured 40. `scheduler-hooks.mjs#claimBoundary` closes it: both connections write a
+random token to `MatchData.scheduleClaim`, the server serialises them, and after a short settle
+exactly one still sees its own. Ch. 46 §46.4-D.
+
 ## 25.2 `FGTCombat`
 
 ```js

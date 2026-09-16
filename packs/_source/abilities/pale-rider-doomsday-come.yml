@@ -168,10 +168,15 @@ field:
       predicate: [{ or: ["self:highestParameter:agi", "self:stableDie:d6:3"] }]
 
     # 4. MAG highest, first half: chance of being inflicted by debuffs +50%.
+    #
+    # NEGATIVE, because this is a VULNERABILITY and incoming values SUBTRACT
+    # (`base + inflictBonus - resist`). Authored `+50`, which made the plague
+    # protect its victims -- the mirror of the error Bravery, Mental Pollution
+    # and Queen's Poison all made in the other direction (Ch. 46 §46.4-J).
     - key: ApplicationChance
       direction: incoming
       severity: normal
-      value: 50
+      value: -50
       relations: [enemy]
       predicate: [{ or: ["self:highestParameter:mag", "self:stableDie:d6:4"] }]
 

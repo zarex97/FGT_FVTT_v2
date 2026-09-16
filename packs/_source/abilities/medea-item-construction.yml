@@ -28,11 +28,21 @@ passiveRules:
     group: itemConstruction
     elements:
       # Outgoing -- what the Unit inflicts.
-      - { key: ApplicationChance, direction: outgoing, valence: offensive, severity: normal, value: 50 }
+      # NO `valence:`. The sheet says *"debuffs"*, unqualified, and `polarity`
+      # already restricts the contribution to them -- `chanceContribution`
+      # refuses any effect whose `polarity` is not the one named, defaulting to
+      # `debuff`. Narrowing further by valence dropped **eleven of the
+      # thirty-five** authored debuffs, because `valence` is what an effect DOES
+      # and not whether it is a debuff: `Def Dwn` and its three rank variants,
+      # `Slow`, `Freeze`, `Shock`, `Deafen`, `Debuff ResDwn` and both Decoys are
+      # all `valence: defensive`. Measured on a live board: `Stun` took the full
+      # +50 and `Def Dwn` -- the commonest debuff in the game -- took nothing,
+      # in both directions (Ch. 46 §46.11).
+      - { key: ApplicationChance, direction: outgoing, severity: normal, value: 50 }
       - { key: ApplicationChance, direction: outgoing, severity: instakill, value: 25 }
       - { key: ApplicationChance, direction: outgoing, severity: death, value: 10 }
       # Incoming -- what it resists. A resistance is a POSITIVE value inward;
       # the applier subtracts it.
-      - { key: ApplicationChance, direction: incoming, valence: offensive, severity: normal, value: 50 }
+      - { key: ApplicationChance, direction: incoming, severity: normal, value: 50 }
       - { key: ApplicationChance, direction: incoming, severity: instakill, value: 25 }
       - { key: ApplicationChance, direction: incoming, severity: death, value: 10 }

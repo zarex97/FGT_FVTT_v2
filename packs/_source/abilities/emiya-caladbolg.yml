@@ -27,7 +27,15 @@ targeting:
   # Range 4 + 2 for the Combat Process = 6. Stated as the resolved number
   # because `anchor.range` is absolute; the "+2" is the sheet's arithmetic, not
   # a modifier anything else reads.
-  anchor: { kind: targetUnit, range: 6 }
+  # *"Range+2 for the Combat Process"* -- `rangeBonus`, the idiom `anchorRange`'s
+  # docstring names for a reach stated relative to the unit's own Range. It was
+  # an absolute 6, which is his written 4 plus 2 with the addition already done
+  # -- and EMIYA is the one Servant in the corpus whose Range actually MOVES:
+  # Magecraft applies Range Up whenever he uses a Thaumaturgy Spell, and his
+  # sheet says Projection NPs are treated as Thaumaturgy Spells. Measured live
+  # with Range Up in force: his Range read 5 and this still reached 6, where the
+  # sheet grants 7 (Ch. 46 §46.12).
+  anchor: { kind: targetUnit, rangeBonus: 2 }
   shape: { kind: square, size: 3 }
   # The area catches everyone standing in it -- "hits a 3x3 panel area" names no
   # relation -- and EMIYA himself is excluded twice over: from the damage here,

@@ -34,6 +34,117 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### The coverage ledger — what six audits did not test (2026-09-16)
+
+#### Added
+
+- **[Ch. 46 §46.13](docs/46-roster-re-audit.md)**, the honest record of this audit's reach. §46.1
+  says an audit is finished when every clause has been *seen working on a board*; by that standard
+  none of the six Servants is finished, and reporting only the findings would read as a clean bill
+  of health for everything the pass did not touch.
+
+  Three levels, used per clause: **pressed** (exercised live and read off the sheet, card or log),
+  **traced** (followed from sheet text to rule element to reader, and no further) and
+  **untouched**. Recorded per Servant, then for the fixes that were never pressed at all —
+  §46.4-C for four of its six bearers, §46.4-F's Anastasia and §46.11's Van Gogh were each repaired
+  without that Servant ever being placed on a board — then for the subsystems no part of this audit
+  exercised: every Command Spell, the Counter rung, Injury Rolls, Block, Evade and Luck Checks,
+  Master actions, contracting, terrain, the Grail, platforms, summons, the budget, and war setup,
+  since every board here was hand-built.
+
+  The rate it exists to defend: six Servants, fourteen defects, **eight of them not the audited
+  Servant's own**, and three that survived a complete paper trace — God Hand's ledger, the
+  Labyrinth's escape ladder and Item Construction's valence were each traced to a reader that
+  existed and looked right. Pressing finds what tracing does not, and most of the clauses listed
+  have only been traced.
+
+
+### EMIYA — the Servant whose Range moves, and two clauses that did not move with it (2026-09-16)
+
+Sixth pass of the roster re-audit ([Ch. 46](docs/46-roster-re-audit.md) §46.12). Both findings are
+about distance, and they compound.
+
+#### Corrected
+
+- **Magecraft never fired on a Projection.** *"Whenever EMIYA uses a Thaumaturgy Spell, apply Range
+  Up"*, with the sheet's own note that *"'Projection' Skills and NP are treated as Thaumaturgy
+  Spells"*. The handler read `ofCategory: thaumaturgy`; the five Projections carry
+  `category: projection`, which is the right key for them because *Projection Magic*'s Silence gate
+  and *Tracing*'s cooldown reduction both name that group. It is `[thaumaturgy, projection]` now.
+  On `thaumaturgy` alone his Range Up fired for three Spells and never for the five Projections,
+  which is most of what he does.
+
+- **Caladbolg II and Hrunting froze the Range they are stated relative to.** *"Range+2 for the
+  Combat Process"* and *"Range+3"* were authored as absolute 6 and 7 — his written 4 with the
+  addition already performed. Every previous instance of this shape was invisible because the
+  frozen number equalled the unit's Range; his is not, because he is the one Servant whose Range
+  genuinely moves, by the very buff the first finding had switched off. **Measured live**: with
+  Range Up in force his Range read 5 while the two Noble Phantasms still read 6 and 7, where the
+  sheet grants 7 and 8. Hrunting's `minRange: 2` was right throughout — an absolute floor beside a
+  relative reach, and the two fields say so separately.
+
+This is the sixth instance of "absolute where the sheet is silent" across five Servants, and it is
+now recorded in Ch. 46 §46.3 as the most common defect the audit has found.
+
+
+### Medea, and a narrowing that also cost Van Gogh two skills (2026-09-16)
+
+Fifth pass of the roster re-audit ([Ch. 46](docs/46-roster-re-audit.md) §46.11).
+
+#### Corrected
+
+- **`valence: offensive` on a debuff-chance clause excluded eleven of the thirty-five authored
+  debuffs.** Medea's Item Construction is *"the chance of inflicting **debuffs** is increased by
+  50%"*, unqualified — and `valence` is not the buff/debuff axis. `polarity` is, and
+  `chanceContribution` already applies it; `valence` records what an effect *does*, so `Def Dwn`,
+  `Slow`, `Freeze`, `Shock`, `Deafen`, `Debuff ResDwn`, both Decoys and three `Def Dwn` rank
+  variants are `valence: defensive` **and still debuffs**. Measured live: `Stun` took +50 while
+  `Def Dwn` — the commonest debuff in the game, inflicted by four Noble Phantasms in the reference
+  set — took nothing, in both directions.
+
+  The same undocumented narrowing sat on **Van Gogh's Item Construction** (35%) and his **Existence
+  Outside The Domain** (25%); all three sheets say plainly *"debuffs"*. Every other deliberate
+  narrowing in this corpus carries a comment saying why, and these carried none.
+
+- **`Rain of Light` was frozen at an absolute reach.** *"Range+1 for the Combat Process"* is the
+  `rangeBonus` idiom — the exact phrasing §46.4-F fixed on two of Anastasia's Noble Phantasms — and
+  it was authored as 4. Her Range is 3 and 3+1 agreed with it, so the freeze was invisible. Her
+  *Teachings of Circe* and *Rule Breaker* keep their absolute numbers, because those sheets print
+  *"Range=3"* and *"Range=1"*.
+
+#### Verified
+
+Item Construction's non-stacking resolves across the whole group by rank; *High-Speed Divine Words*
+carries no `category: spell` of its own, so resetting all of Medea's Spells does not reset the
+resetter; the Dragon Tooth Warriors' adjacency protection is a `TargetabilityModifier` projected
+onto their summoner, and their cooldown is priced per warrior conjured; *Trofa*'s 50%-against-a-NP
+is a `chanceWhen` read by the attack path; and *Atlas*'s two −25% reductions stack.
+
+
+### One connection runs a turn boundary, not one user (2026-09-16)
+
+#### Corrected
+
+- **Two browser tabs on one Gamemaster each ran the whole scheduler sequence**, so every scheduled
+  effect ticked twice: drains, periodics, cooldown advances, expiries. `game.users.activeGM` elects
+  one GM *user* and `isSelf` is true for every connection that user holds, and
+  `game.users.filter(u => u.active)` shows **one** either way — Foundry tracks activity per user and
+  not per connection, which is exactly what kept it hidden. It was found only because it turned Mad
+  Enhancement's stated 20-per-Turn Master drain into a measured 40, and that was briefly reported as
+  a rules defect against Heracles before the second writer was traced to a socket update arriving
+  from the other tab (Ch. 46 §46.4-D).
+
+  Closed with a claim rather than a lock. Foundry hands a system no server-side compare-and-set and
+  both connections wake from the *same* broadcast, so a plain "has this been run?" check is read by
+  both before either writes. Each writes a random token to `MatchData.scheduleClaim`, the server
+  serialises the two updates, and after a short settle exactly one connection still sees its own
+  token — last write wins, and winning *is* the election. The per-user election stays as the cheap
+  first half, and the claim is taken before the board is built so a losing connection does no work.
+
+  **Measured live with two tabs open on one Gamemaster**, different socket ids and one active user:
+  the drain reads 20 on four consecutive Turns, where the same rig measured 40 before.
+
+
 ### Penthesilea, and the last shape of Mad Enhancement's clause 1 (2026-09-16)
 
 Fourth pass of the roster re-audit ([Ch. 46](docs/46-roster-re-audit.md) §46.10). Hers is the sheet

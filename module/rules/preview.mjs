@@ -27,7 +27,10 @@ import { computeDamage } from "./damage/pipeline.mjs";
 export const DICE_BOUNDS = Object.freeze({
   attackPlus: { min: 5, max: 50 },
   attackMinus: { min: 5, max: 50 },
-  zonPenalty: { min: 1, max: 20 },
+  // `5d10`, the same die `attack+`/`attack-` roll, and the same bounds.
+  // It read `{1, 20}` -- a `1d20`, which is not a die this rule has ever named
+  // (Ch. C, Ch. 16 §16.5). Found while giving the resolution its missing roll.
+  zonPenalty: { min: 5, max: 50 },
   magicResistanceDice: { min: 1, max: 100 },
   battleContinuation: { min: 0, max: 0 },
   territoryCreationAtk: { min: 0, max: 0 },

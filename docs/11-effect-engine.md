@@ -20,6 +20,15 @@
 > reach `applyEffect` through the target's snapshot. It previously read a `ctx.resist` that no
 > caller supplied.
 >
+> **The SIGN of an incoming contribution is arithmetic, not prose.** Step 3 computes
+> `base + inflictBonus - resist`, and an incoming `ApplicationChance` *is* the `resist` term — so a
+> **positive value resists** and a negative one is a vulnerability of the same size. Sheets are
+> written the other way round (*"chance of being inflicted ... is reduced by 50%"*), and reading
+> that sentence as a signed delta inverted five authored clauses at once: four protective skills
+> made their bearers more vulnerable and one plague protected its victims. Heracles's Bravery
+> measured **150%** against Charm where his sheet says 50. Ch. 46 §46.4-J;
+> `test/unit/application-chance-sign.test.mjs` guards both the arithmetic and the corpus.
+>
 > Still open: Transfer (§11.8), and Visibility (§11.10) is collected-only.
 
 Chapter 10 classified effects. This chapter specifies the runtime: how an effect instance is
