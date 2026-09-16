@@ -673,30 +673,29 @@ Rho Aias states it plainly: *"EMIYA's Master loses Health equivalent to if an EX
 
 `rules/costs.mjs#additionalCostsFor` is the one expansion now, and both paths use it.
 
-**Honest limit on the evidence.** This one is unit-tested and the code path is shared, but the
-**live** re-verification did not complete: every subsequent use of Rho Aias was refused by its own
-recovery clause (*"Health must have been restored back to above half its maximum value since the
-last usage"*), so no board measurement of the Master actually paying was obtained. Recorded as
-fixed-and-tested rather than pressed.
+**Verified live.** Satisfying the recovery clause took the long way round — `lastUsedTick` is what
+*"since the last usage"* compares against, and `healthWatermarks` records a **crossing** rather than
+a level, so EMIYA had to be taken below half and healed back **through the engine** for the
+watermark to move (`{0.5: 10}` → `{0.5: 12}` against a `lastUsedTick` of 10). With the clause
+satisfied: `useSkill` returned `ok`, the Master went **209 → 109**, `timesUsed` 0 → 1 and the
+cooldown read **24** (8◈). **Exactly 100**, the EX-rank figure for a rank-C Master, where before the
+fix it was 0.
 
-### U. A shield absorbs whether or not its ability was used — **open**
+### U. ~~A shield absorbs whether or not its ability was used~~ — **retracted, not a defect**
 
-**Reached: EMIYA's Rho Aias**, the only shield in the reference set.
+Reported open, and wrong. `engine/shield.mjs#barrierOn` does **not** find a barrier by scanning for
+any item with a pool: it iterates the defender's **effect instances** for one whose definition
+carries `absorbs`. The barrier exists only while the `rhoAias` effect is held, and that effect is
+applied with `duration: "⅓◈"`.
 
-`engine/shield.mjs#absorb` finds a barrier by looking for any item carrying a `shield` spec with
-`shieldHealth > 0`. Nothing asks whether that ability was **used**. `refreshShield` initialises the
-pool when it is used, and nothing ever disarms it.
+What I measured was a second Noble Phantasm arriving **in the same Turn** as the one Rho Aias had
+been raised against — which the barrier is supposed to cover, since ⅓◈ is the rest of that Turn.
+The refusal beside it was a second *raising* of a barrier already standing, correctly declined by
+the recovery clause. Two right behaviours, read as one wrong one.
 
-**Measured live**: with the pool standing at 1400 and the reaction **refused** — `timesUsed: 0`,
-cooldown 0, the refusal notification reading *"cannot be used: healthRestoredSince"* — the barrier
-still absorbed **1125** of Heracles's Noble Phantasm and still charged EMIYA **500** under the
-per-200 clause. The most expensive defensive Noble Phantasm in the corpus protected for free, in
-the one state its own sheet says it may not be used in.
-
-Left **open**. The fix is a design decision — whether the pool should be zeroed when the field of
-use ends, armed only for the Process it was taken in, or gated on a "currently projected" flag —
-and picking one at the end of an audit would be guessing at intent. What the evidence settles is
-that *being refused* and *not protecting* are currently different things.
+**Settled by letting the clock run**: the effect carried `expiry: 11`, two Turns took the match to
+tick 12, the effect was gone — and a fresh Noble Phantasm then left the pool **untouched at 275**.
+Filed in §46.6.
 
 ## 46.5 The per-Servant checklist
 
@@ -731,6 +730,15 @@ Run all of it. An item that is obviously inapplicable is still an item you looke
 
 Recorded so they are not filed again.
 
+- **Rho Aias keeps absorbing for the rest of the Turn it was raised in.** Reported as §46.4-U and
+  retracted. `shield.mjs#barrierOn` reads the defender's **effect instances** for one whose
+  definition carries `absorbs` — so the barrier exists exactly while the `rhoAias` effect does, and
+  that effect is applied for **⅓◈**. A second Noble Phantasm inside the same Turn meets the same
+  standing barrier, which is what the duration is for; and a second *raising* of it is declined by
+  the recovery clause, which is what that clause is for. Two correct behaviours read as one defect.
+  Settled by letting the clock run: `expiry: 11`, gone by tick 12, and the next Noble Phantasm left
+  the pool untouched at 275.
+
 - **Max Health is derived from END and the table beats the sheet**, as Base Attack's does. This was
   raised by the Asterios audit as an open question — his sheet prints 1500 where END A++ derives
   1700 — and **settled by the game's author: it is overridden.** `domain/health.mjs#maxHealthFor`.
@@ -764,7 +772,7 @@ per-Servant record of what each audit left untested.
 | **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
 | **Penthesilea** | ✅ | ✅ **complete** | 3 (2 hers, 1 general) | §46.10; closes §46.4-C; §46.4-N |
 | **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
-| **EMIYA** | ✅ | ✅ **complete** | 8 (2 his, 6 general) | §46.12; §46.4-P, Q, R, S, T, U |
+| **EMIYA** | ✅ | ✅ **complete** | 7 (2 his, 5 general) | §46.12; §46.4-P, Q, R, S, T |
 | Hassan of Serenity | — | — | — | |
 | Semiramis | — | — | — | |
 | Scáthach | — | — | — | |
@@ -1314,7 +1322,8 @@ Range 4 to Heracles's 2 so the range bands half his kit turns on could be reache
 - **Rho Aias**, against Heracles's Nine Lives. Offered on the reaction ladder by its
   `whenAllyAttacked, againstKind: np, radius: 3` window, taken, and resolved: shield **1400 → 0**,
   `timesUsed: 1`, cooldown **24** (8◈), and EMIYA losing exactly **745** — **700** from the per-200
-  clause plus the **45** that got through once the pool was spent. Its recovery clause then refused
+  clause plus the **45** that got through once the pool was spent. Its **Master cost** too, once
+  §46.4-T was fixed and the recovery clause satisfied: **209 → 109**, the EX-rank figure. Its recovery clause then refused
   every later use, correctly: *"Health must have been restored back to above half its maximum value
   since the last usage."* Reaching it at all took §46.4-S.
 
