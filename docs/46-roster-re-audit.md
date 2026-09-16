@@ -416,6 +416,43 @@ hand-built boards as a hazard since Heracles, and §46.13.2 recorded the Max Hea
 "pressed for Asterios (1700) and Penthesilea (1350)" — both hand-imported, both therefore reading
 the one derivation that was already right.
 
+### L. `oncePerRound` could not reach the one ability that declares it — **fixed 2026-09-16**
+
+**Reached: Karna's Uncrowned Arms Mastership**, which is the only content in the corpus carrying
+the field.
+
+`rules/costs.mjs` has read `oncePerRound` since it was written, and its comment names the ability
+it was written for:
+
+> *"Karna's Uncrowned Arms Mastership is 'can only be used once per Round' with no cooldown, so
+> without this gate it is a free toggle every Turn and the choice between its two effects stops
+> being a choice."*
+
+The gate is on the **ability-use** path. Uncrowned Arms Mastership is a **mode** with no `phases`,
+and the sheet's toggle only calls `useSkill` when a mode has phases to run — so this skill never
+reached `costs.mjs`, and nothing recorded the press either. The one ability the gate exists for was
+the one ability that could not reach it.
+
+Its sheet gives it **no cooldown**, so `oncePerRound` is the *only* thing rationing it. Measured
+live: toggled twice in succession, `{ok: true}` both times, `roundState.abilitiesUsed` still empty
+— Karna could stand in +20% Crit Chance on his own Turn and +40% Crit Damage on the enemy's, every
+Round, for free.
+
+**Two halves, because either alone is inert.** `canToggleMode` now refuses a second switch, and the
+toggle **records** the press — a mode with no phases wrote nothing down, so there was nothing for a
+gate to read. The record is narrowed to modes that declare a limit, so an ordinary free toggle (Mad
+Enhancement, Presence Concealment, Riding) does not start appearing in a list `oncePerTurn` and
+`abilityOffCooldown` also consult.
+
+Both **directions** are gated: the active clause is *"switch the effect of this Skill from 1 to 2,
+**or 2 to 1**"*, so each press is a use and rationing only the switch ON would leave every other
+press free. The Round is compared when the caller supplies one, so a stamp from an earlier Round
+does not bite in this one.
+
+**Measured live after the fix**: first switch of Round 7 accepted → Effect 2, crit chance 50 and
+crit damage +40; second switch in the same Round **refused with `oncePerRound`** and the state
+unchanged; first switch of Round 8 accepted → Effect 1, crit chance 70 and no crit damage.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
