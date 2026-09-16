@@ -4557,3 +4557,53 @@ from `ruler` onward rendered as a raw i18n key in the war-setup UI. Latent since
 entered the enum, and `alterEgo` was already hitting it: Kingprotea and Mannanán have carried that
 container since they were authored. Seven labels added, with a test that walks `SERVANT_CLASSES`
 rather than naming them, so the next class added to the enum without a label fails in the suite.
+
+---
+
+## Semiramis's channel, and a deadlock underneath it — 2026-09-16
+
+Three fixes, all found by pressing the Hanging Gardens of Babylon on a live board. The audit's
+record is Ch. 46 §46.4-Z, §46.4-AA and §46.4-AB.
+
+**§46.4-Z — a channelled Noble Phantasm charged its Master and never channelled.** The sheet is
+explicit that *"Semiramis' Master only loses Health as per NP usage rules only when HGoB
+successfully activates, not at the start"*, and `useSkill` honoured it. `resolveAttack` — which is
+the path the sheet's own button uses — began no channel and billed 100 immediately. The fix is
+`runCasterChannel`, a pass of its own **above** `payAbilityPrice` rather than a new member of
+`CASTER_PHASES` (that pass runs after the damage, which is too late to defer anything), with the
+cost and the cooldown both gated on `channelStarted`.
+
+The half the paper trace did not suggest: `resolveAttack` fires `interruptChannels(targetIds)` at
+declaration, and the Gardens target `{ relations: [self], includeSelf: true }` — so the declaration
+wiped the channel it had just started, a hundred lines after starting it.
+`interruptedByDeclaration` drops the declarer and keeps every other target. Verified end to end:
+Master 250 → 250 at declaration, nine of her own Turns of `elapsedTicks`, then 250 → **150** on
+activation, with the platform actor created at her panel and Semiramis aboard.
+
+**§46.4-AA — a summon variant's `overrides` did not survive a world load.** Not data preparation,
+which is what the first write-up guessed: a write survives `prepareData()` intact. It is the
+content sync, which reconciles every world actor against its pack template on load. The template is
+the *un-varianted* sheet, `summonVariant.variant` is world-owned but the branch's overrides land on
+top-level keys that are the pack's — so a `dsc` Semiramis loaded with `self:variant:dsc` still true
+and Range 2, 2◈ and a `fixed` normal attack instead of 3, 4◈ and `rangeBanded`.
+`applyVariantOverrides` re-applies the branch — read from the pack, so editing a variant is still a
+content update — and the already-corrupted actor healed itself on the next load.
+
+**§46.4-AB — the scheduler could freeze a match permanently, and it was my own §46.4-D that did
+it.** That fix gave each boundary a claim so two tabs on one Gamemaster could not both run the
+turn-end sequence. It keyed the claim on `system.globalTurn` — the counter *the guarded sequence
+itself advances*, a hundred lines below the claim. One throw in between and the claim was written
+while the counter was not, so every later boundary read the same tick, saw it claimed, and refused.
+Nothing ticked again: no drains, no expiries, no cooldown advances, no channel ticks. Measured on
+the live board as `globalTurn: 0` with `scheduleClaim: {turn: 0, token: …, round: 8}` after fourteen
+Turn changes, while `combat.round` had climbed to 9 because the round scale has its own key.
+
+`rules/schedule-claim.mjs` keys a boundary on its own identity instead — `"r3t1"`, `"r3"`, from
+Foundry's `round` and `turn`, which advance before `updateCombat` fires and owe nothing to our
+sequence. The keys are strings so a frozen world thaws on its next boundary with no migration:
+verified live, `globalTurn` **0 → 1** on the next Turn change.
+
+> *A guard must not be keyed on state that only the guarded work produces.*
+
+200 test files, 4901 tests, layer boundaries intact.
+

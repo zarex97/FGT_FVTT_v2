@@ -25,6 +25,7 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import * as fields from "./fields.mjs";
 import { expireTerrain } from "./terrain.mjs";
 import { recordTurn, historyOf, setHistory } from "./state-history.mjs";
+import { boundaryKey, alreadyClaimed } from "../rules/schedule-claim.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -50,7 +51,7 @@ async function onTurnChange(combat, prior, current) {
 
   const tick = combat.system?.globalTurn ?? 0;
   // One CONNECTION, not merely one user (Ch. 46 §46.4-D).
-  if (!await claimBoundary(combat, "turn", tick)) return;
+  if (!await claimBoundary(combat, "turn")) return;
 
   const board = boardFor(combat);
   const activeFactionId = factionOf(combat, prior);
@@ -211,7 +212,7 @@ async function onRoundChange(combat, updateData, options) {
   if (!combat?.started) return;
   // Only fire on a forward round change; rewinding is a GM correction.
   if ((options?.direction ?? 1) < 0) return;
-  if (!await claimBoundary(combat, "round", combat.round ?? 1)) return;
+  if (!await claimBoundary(combat, "round")) return;
 
   const board = boardFor(combat);
   const ctx = {
@@ -380,19 +381,26 @@ function isScheduler() {
  * *boundary* — a player-driven event, not a hot path. The early return above it
  * costs nothing in the ordinary single-client case on a boundary already run.
  *
+ * **Keyed on the boundary's own identity, never on `system.globalTurn`.** That
+ * counter is advanced BY the sequence this guards, a hundred lines below the
+ * claim — so anything throwing in between left the claim written and the
+ * counter where it was, every later boundary read the same tick, found it
+ * already claimed, and refused. The scheduler froze for the life of the world.
+ * See `rules/schedule-claim.mjs` and Ch. 46 §46.4-AB.
+ *
  * @param {object} combat
  * @param {"turn"|"round"} kind
- * @param {number} n the boundary's own number — the global turn, or the round
  * @returns {Promise<boolean>}
  */
-async function claimBoundary(combat, kind, n) {
+async function claimBoundary(combat, kind) {
   const claim = combat.system?.scheduleClaim ?? {};
+  const key = boundaryKey(kind, combat);
   // Already run, by this connection or another. Free, and the common case for
   // the loser of a contested boundary once the winner's write has landed.
-  if ((claim[kind] ?? -1) >= n && claim.token) return false;
+  if (alreadyClaimed(claim, kind, key)) return false;
 
   const token = foundry.utils.randomID();
-  await combat.update({ "system.scheduleClaim": { ...claim, [kind]: n, token } });
+  await combat.update({ "system.scheduleClaim": { ...claim, [kind]: key, token } });
   await new Promise((resolve) => { setTimeout(resolve, SETTLE_MS); });
 
   return (combat.system?.scheduleClaim?.token ?? null) === token;

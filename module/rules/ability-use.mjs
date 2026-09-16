@@ -158,6 +158,51 @@ export function effectSpecsOf(phase) {
   });
 }
 
+/**
+ * Does this ability spend Turns charging before it happens?
+ *
+ * Asked by `engine/attack.mjs` *before* it charges an ability's price, because
+ * a channelled Noble Phantasm has not happened yet and its sheet is explicit
+ * that the bill comes later: the Hanging Gardens of Babylon *"cannot Act for 3◈
+ * Turns... the Master only loses Health as per NP usage rules ONLY WHEN HGoB
+ * SUCCESSFULLY ACTIVATES, not at the start."* `useSkill` has always honoured
+ * that; the attack path charged in full and began no channel (Ch. 46 §46.4-Z).
+ *
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function hasChannelPhase(item) {
+  return (item?.system?.phases ?? []).some((phase) => phase?.kind === "channel");
+}
+
+/**
+ * Whose channel a declaration interrupts — which is never the declarer's own.
+ *
+ * *"If Semiramis is **Attacked** during this period of 3◈ Turns, the period is
+ * interrupted and she has to restart the activation process."* The interrupt is
+ * right and `engine/attack.mjs` fires it at declaration rather than after the
+ * damage, deliberately: *declared against*, not necessarily hit.
+ *
+ * What it did not account for is a Noble Phantasm aimed at its own user. The
+ * Hanging Gardens' targeting is `{ anchor: self, shape: unit, selection:
+ * { relations: [self], includeSelf: true } }`, so Semiramis is always in her own
+ * `targetIds` — and `payAbilityPrice` starts the channel at line 268 while the
+ * interrupt fires at line 375. The channel began and the same declaration
+ * destroyed it, every time, leaving a Noble Phantasm that could be used
+ * endlessly and never did anything (Ch. 46 §46.4-Z).
+ *
+ * Being the subject of your own Noble Phantasm is not being Attacked, so the
+ * declarer comes out of the list. Everyone else stays: an area that catches
+ * three enemies mid-channel still interrupts all three.
+ *
+ * @param {string[]} targetIds
+ * @param {string} attackerId
+ * @returns {string[]}
+ */
+export function interruptedByDeclaration(targetIds, attackerId) {
+  return (targetIds ?? []).filter((id) => id !== attackerId);
+}
+
 export function dealsNoDamage(item) {
   if (!item) return false;
   const sys = item.system ?? {};

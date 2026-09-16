@@ -843,6 +843,36 @@ It routes through the same function `npCost` does, which matters for the branch 
 plain Master cost it produced an intent with no target — and found live, because the Master in
 question had been defeated three tests earlier and the Servant freed itself exactly as it should.
 
+### A cost a channel defers
+
+> *"Semiramis has to be within her Home Base, and cannot Act for 3◈ Turns … Semiramis' Master only
+> loses Health as per NP usage rules **only when HGoB successfully activates, not at the start** of
+> the NP activation process."*
+
+A `channel` phase is an ability that spends Turns before it happens, and the Hanging Gardens of
+Babylon is the corpus's only one. Two things follow for the cost, and both use paths must do them:
+
+- **The price is not paid at declaration.** `startChannel` reports whether a channel actually began,
+  and while one did, the ability's cost *and* its cooldown are skipped;
+  `engine/channel.mjs#completeChannel` charges `npCostAt` three of the bearer's own Turns later, on
+  success. `useSkill` gated both on `applied.channelStarted` from the start. `resolveAttack` did
+  neither — it has no `channel` in `CASTER_PHASES`, so it began no channel at all and billed the
+  Master 100 on the spot (Ch. 46 §46.4-Z).
+- **The channel is started above the price, not with the other caster phases.** `runCasterPhases`
+  runs after the damage has landed; a channel decided there would already have been billed for. It
+  is `runCasterChannel`, called from `payAbilityPrice` when `hasChannelPhase` says there is one.
+
+**Affordability is still checked at declaration**, deliberately, even though the payment is not
+made: *"the Servant cannot use its Noble Phantasm if its Master's Health is equal to or less than
+the amount that would be lost."* The clause above says when Health is *lost*, not when the check is
+made, and dropping the gate too would let a Master be killed three Turns later by a channel they
+could never have paid for.
+
+And a declaration does not interrupt its own caster. *"If Semiramis is **Attacked** during this
+period, it is interrupted"* is fired at declaration against everyone a strike is aimed at — but her
+own Noble Phantasm targets `{ relations: [self], includeSelf: true }`, so it wiped the channel it
+had just begun. `interruptedByDeclaration` drops the declarer and keeps every other target.
+
 ### Three scales of "already used"
 
 | Field | Scope | Case |

@@ -100,6 +100,14 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // server-side compare-and-set, so both connections write and the server
       // serialises them; whichever token survives is the one connection that
       // proceeds. Runtime state, never authored.
+      //
+      // `turn` and `round` hold the BOUNDARY KEYS from
+      // `rules/schedule-claim.mjs` ("r3t1", "r3") and not, as they first did,
+      // the global turn and round numbers. Keying the claim on `globalTurn`
+      // keyed it on a counter the guarded sequence itself advances, so one
+      // throw between the claim and the advance froze the scheduler for the
+      // life of the world (Ch. 46 §46.4-AB). A world holding the old numeric
+      // shape thaws on its next boundary: a number never equals a key.
       scheduleClaim: new fields.ObjectField({ required: false, initial: () => ({}) }),
       phase: new fields.StringField({ initial: "day", choices: ["day", "night", "none"] }),
 

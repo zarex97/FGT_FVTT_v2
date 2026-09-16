@@ -29,7 +29,7 @@ import { cooldownChanges } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
-  effectSpecsOf, windowUseKind, reactionPlacement,
+  effectSpecsOf, windowUseKind, reactionPlacement, hasChannelPhase, interruptedByDeclaration,
 } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -370,9 +370,14 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // The Hanging Gardens' activation: "If Semiramis is Attacked during this
   // period, the period... is interrupted." Declared against, not necessarily
   // hit -- fired here, at declaration, rather than after the damage step.
-  if (targetIds.length > 0) {
+  // ...but never her own, which is what `interruptedByDeclaration` strips: this
+  // fires a hundred lines AFTER `payAbilityPrice` started the channel, and the
+  // Gardens' targeting is `{ relations: [self], includeSelf: true }`. So the
+  // declaration interrupted the channel it had just begun (Ch. 46 §46.4-Z).
+  const interrupted = interruptedByDeclaration(targetIds, attackerId);
+  if (interrupted.length > 0) {
     const { interruptChannels } = await import("./channel.mjs");
-    await interruptChannels(targetIds);
+    await interruptChannels(interrupted);
   }
 
   // "Whenever Jack is Attacked by an enemy Unit, and the AU is within Jack's
@@ -520,7 +525,27 @@ async function payAbilityPrice({ ability, attackerId, attacker, self, master, us
   // that it `supersedes` another -- Karna's NP cost overwrites the 20 Health his
   // Master loses when he Acts, and the Hanging Gardens upkeep overwrites the NP
   // cost the other way -- and charging both would bill more than the rules say.
-  const pending = resume ? [] : pendingCosts({ usage, ability, self, master, board });
+  // ...unless the ability has not happened yet.
+  //
+  // *"Cannot Act for 3◈ Turns... the Master only loses Health as per NP usage
+  // rules ONLY WHEN HGoB SUCCESSFULLY ACTIVATES, not at the start."* Starting
+  // the channel is what defers the price, so it has to be decided HERE, above
+  // the charge — not in `runCasterPhases`, which does not run until the damage
+  // has landed. `useSkill` has always had both halves of this and the attack
+  // path had neither: the Hanging Gardens declared as an attack charged
+  // Semiramis's Master the full 100 on the spot and began no channel at all
+  // (Ch. 46 §46.4-Z).
+  //
+  // `channelStarted` and not `hasChannelPhase` alone, because a unit already
+  // channelling starts nothing — and a declaration that earns no deferral pays
+  // like any other.
+  let channelStarted = false;
+  if (ability && hasChannelPhase(ability)) {
+    const { runCasterChannel } = await import("./skill-use.mjs");
+    channelStarted = await runCasterChannel(ability, attacker, board);
+  }
+
+  const pending = resume || channelStarted ? [] : pendingCosts({ usage, ability, self, master, board });
   const { charged, superseded } = resolveCosts(pending);
 
   for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
@@ -529,7 +554,10 @@ async function payAbilityPrice({ ability, attackerId, attacker, self, master, us
   // ability has been committed. `resolveAttack` never did this, so every Attack
   // Skill and every Noble Phantasm was infinitely reusable -- limited only by
   // the attack budget, which is a different rule.
-  if (ability && !resume) {
+  // `channelStarted` here for the same reason as the cost above: the clock on
+  // an ability that has not gone off yet starts when it does, in
+  // `completeChannel`.
+  if (ability && !resume && !channelStarted) {
     const plan = cooldownFor(ability, attackerId, { unit: self });
     // *"When either Castor or Pollux uses a Skill, the Skill enters Cooldown
     // for both of them."* Spread beside `alsoTriggered` so the shared clocks

@@ -39,8 +39,20 @@ describe("the boundary claim", () => {
   });
 
   it("refuses to proceed on a lost claim rather than merely logging one", () => {
-    expect(source).toMatch(/if \(!await claimBoundary\(combat, "turn", tick\)\) return;/);
-    expect(source).toMatch(/if \(!await claimBoundary\(combat, "round", combat\.round \?\? 1\)\) return;/);
+    expect(source).toMatch(/if \(!await claimBoundary\(combat, "turn"\)\) return;/);
+    expect(source).toMatch(/if \(!await claimBoundary\(combat, "round"\)\) return;/);
+  });
+
+  it("is keyed on the boundary, NOT on the counter its own sequence advances", () => {
+    // Ch. 46 §46.4-AB. `globalTurn` is written at the bottom of the very
+    // sequence the claim guards, so a claim keyed on it and a throw in between
+    // froze the scheduler permanently. Measured live: `globalTurn` 0 and
+    // `scheduleClaim {turn: 0, token: "PP9RrW7AXI5R3qoc", round: 8}` after
+    // fourteen Turn changes, with a channel stuck at `elapsedTicks: 0`.
+    const fn = source.slice(source.indexOf("async function claimBoundary"));
+    const body = fn.slice(0, fn.indexOf("\n}"));
+    expect(body).toMatch(/boundaryKey\(kind, combat\)/);
+    expect(body).not.toMatch(/globalTurn/);
   });
 
   it("decides on a token rather than on a flag", () => {
