@@ -727,6 +727,39 @@ question a requirement asks, plus the Items the filter reads `system` off.
 it restores Agility **15 → 18**, applies `nAtkUp` 30 and `critDmUp` 30 for that Turn, and charges
 its 3◈−⅓◈ cooldown as **8**.
 
+### W. Every effect that speeds a Noble Phantasm's cooldown was inert — **fixed 2026-09-16**
+
+**Reached: six ability files across five Servants** — Drake's *Beyond the Uncharted* and *Blazing
+Golden Rule*, Medusa's *Blood Temple*, Penthesilea's *Golden Rule (Beauty)*, Semiramis's *Double
+Summon*, and Medea's *Teachings of Circe*.
+
+`scheduler.mjs#cooldownRate` decides how fast a cooldown falls. It knew the three effects that
+**slow** a Noble Phantasm — `npLock`, `npDegen`, `npLag` — and neither of the two that **speed it
+up**:
+
+| | Says | Carried as | Read by |
+|---|---|---|---|
+| `npRegen` | *"NP Cooldown is reduced by an extra X per Turn"* | `StatDelta` on `stat: "npRegen"` | nothing |
+| `npCooldownRegen` | *"reduced by 1 Turn at the end of every Turn"* | `periodic: { kind: npCooldown }` | nothing |
+
+The first lands in `unit.statDeltas`, which is **not** projected onto the unit as a field — so there
+was no `unit.npRegen` to read, and nobody read the bucket either. The second declares a periodic
+whose `kind` appears **nowhere in the engine**; `PERIODICS` is damage-over-time only.
+
+**Measured live on Semiramis across four Turn boundaries**: her Noble Phantasm's cooldown fell by
+exactly **1** each Turn, whether `npRegen` was held or not. That is the ordinary tick — the buff
+added nothing.
+
+This one was hiding behind an easy mistake. A cooldown falls by 1 per Turn anyway, so *"it went
+down"* looks like the effect working; only holding the buff and dropping it across two otherwise
+identical Turns separates them. §46.13 had recorded NP Regen's reduction as untested for Medea and
+Penthesilea, and that is exactly why.
+
+Noble Phantasms only — both sheets say *"Noble Phantasm Cooldown"* — and the three effects that slow
+one still win outright, `npLock` and `npDegen` included.
+
+**Verified live, before and after**: no regen → **1**; `npRegen` at magnitude 1 → **2**.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
