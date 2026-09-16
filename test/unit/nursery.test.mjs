@@ -14,6 +14,7 @@ import { Rank } from "../../module/domain/rank.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { splitCooldownRider } from "../../module/rules/cooldown-riders.mjs";
 import { PREVENTS_FOR, ACTION_KINDS } from "../../module/rules/budget.mjs";
+import { parseTick, resolveTicks } from "../../module/domain/tick.mjs";
 
 const classSkill = (id) => parse(readFileSync(`packs/_source/class-skills/${id}.yml`, "utf8"));
 const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
@@ -198,5 +199,189 @@ describe("her three new effects (V3, E2–E4, R1, R6)", () => {
     // damage taken is increased by 60%; if NP, 40%" is what Enigma inflicts,
     // and a second source could inflict a different one.
     expect(effect("enigma").rules[0].then[0]).toMatchObject({ magnitude: 60, npMagnitude: 40 });
+  });
+});
+
+const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
+
+describe("her four Skills (M1–M3, H1, W1–W4, P1–P7)", () => {
+  it("M1/M2 — Self-Modification is a passive AND an active, on two different buckets", () => {
+    const a = ability("nursery-self-modification");
+    expect(a).toMatchObject({ rank: "A", cooldown: "4◈" });
+    // Crit DAMAGE passive, Crit CHANCE active. The sheet states both and they
+    // are not the same number.
+    expect(a.passiveRules[0]).toMatchObject({ key: "CritModifier", aspect: "damage", value: 40 });
+    expect(a.phases[0].effects[0]).toMatchObject({ id: "critUp", magnitude: 60, duration: "1◈" });
+  });
+
+  it("H1 — Shapeshift is a Ward, not a Def Up", () => {
+    // Nothing applies it and nothing can strip it: it is a property of the
+    // Servant, and a Def Up is an effect somebody put there.
+    const rule = ability("nursery-shapeshift").passiveRules[0];
+    expect(rule).toMatchObject({ key: "Ward", value: 30, npValue: 15 });
+  });
+
+  it("W1–W4 — Meanwhile turns her clock, heals a fraction, and cleanses", () => {
+    const a = ability("nursery-meanwhile");
+    expect(a.cooldown).toBe("4◈");
+    const cd = a.phases.find((p) => p.kind === "cooldown");
+    expect(cd.changes[0]).toMatchObject({ scope: "np", ticks: "1◈+⅓◈", direction: "down" });
+    expect(a.phases.find((p) => p.kind === "heal").percentOfMax).toBe(15);
+    expect(a.phases.find((p) => p.kind === "removeEffect").selector).toEqual({ polarity: "debuff" });
+  });
+
+  it("W1 — and that cooldown expression parses to more than one Round", () => {
+    const t = parseTick("1◈+⅓◈");
+    expect(resolveTicks(t, { turnsPerRound: 3 })).toBe(4);
+  });
+
+  it("P7 — Tommy Thumb carries the cooldown her sheet prints", () => {
+    expect(ability("nursery-tommy-thumb")).toMatchObject({ rank: "A+", cooldown: "4◈-⅓◈" });
+  });
+
+  it("P1–P4 — four self effects, with their stated figures", () => {
+    const e = ability("nursery-tommy-thumb").phases.find((p) => p.target === "self" && p.effects).effects;
+    const by = (id) => e.find((x) => x.id === id);
+    // "if NP, 20%" is ABSOLUTE, because the sheet states both and 20 is not
+    // half of 30.
+    expect(by("atkUp")).toMatchObject({ magnitude: 30, npMagnitude: 20, duration: "1◈" });
+    expect(by("defUp")).toMatchObject({ magnitude: 30, npMagnitude: 15, duration: "1◈" });
+    // "reduced by 30 INCLUDING NP" -- flat, with no NP variant.
+    expect(by("dmgCut")).toMatchObject({ magnitude: 30, duration: "⅓◈" });
+    expect(by("dmgCut").npMagnitude).toBeUndefined();
+    expect(by("debuffResUp")).toMatchObject({ magnitude: 40, duration: "1◈" });
+  });
+
+  it("P1 — and restores 3 Luck", () => {
+    const stat = ability("nursery-tommy-thumb").phases.find((p) => p.kind === "statChange");
+    expect(stat.changes[0]).toMatchObject({ stat: "luck", delta: 3, clamp: true });
+  });
+
+  it("P5 — the Child clause reaches allies within 2 with that Attribute", () => {
+    const phase = ability("nursery-tommy-thumb").phases.find((p) => p.kind === "cooldown");
+    expect(phase.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
+    expect(phase.targeting.selection.attributes).toContain("target:attribute:child");
+    // `unit: target` is what makes it land on the recipient rather than on her.
+    expect(phase.changes[0]).toMatchObject({ unit: "target", scope: "np", ticks: "⅔◈", direction: "down" });
+  });
+
+  it("P6 — the Fairytale clause reaches a DIFFERENT set", () => {
+    const phase = ability("nursery-tommy-thumb").phases.find((p) => p.effects?.[0]?.id === "npDmUp");
+    expect(phase.targeting.selection.attributes).toContain("target:attribute:fairytale");
+    expect(phase.effects[0]).toMatchObject({ magnitude: 20, duration: "1◈" });
+  });
+
+  it("P5/P6 — and she carries BOTH tags, so both reach her", () => {
+    const attrs = servant("nursery-rhyme").attributes;
+    expect(attrs).toContain("child");
+    expect(attrs).toContain("fairytale");
+  });
+});
+
+describe("her three Spells (V1–V4, F1–F4, E1–E2, R2)", () => {
+  it("R2 — both damage Spells deal 1x BA(MAG) at a 2◈ cooldown", () => {
+    // "Deals damage" states neither component nor multiplier. Scáthach's Þurs
+    // settles the component in its own comment and states its own multiplier
+    // of 2 explicitly, so the silence here means 1.
+    for (const id of ["nursery-plains-of-winter", "nursery-frenzied-march-hare"]) {
+      const a = ability(id);
+      expect(a.isSpell).toBe(true);
+      expect(a.damage).toMatchObject({ component: "mag", multiplier: 1 });
+      expect(a.cooldown).toBe("2◈");
+      // Her printed Range, which is what a Spell with no Range of its own uses.
+      expect(a.targeting.anchor.range).toBe(2);
+    }
+  });
+
+  it("V3/V4 — Plains of Winter is Ice, with a 50% Disable", () => {
+    const a = ability("nursery-plains-of-winter");
+    expect(a.element).toBe("ice");
+    expect(a.phases.find((p) => p.kind === "applyEffects").effects[0])
+      .toMatchObject({ id: "disable", chance: 50, duration: "1◈" });
+  });
+
+  it("F3/F4 — Frenzied March Hare is Wind, with a 50% Sap", () => {
+    const a = ability("nursery-frenzied-march-hare");
+    expect(a.element).toBe("wind");
+    expect(a.phases.find((p) => p.kind === "applyEffects").effects[0])
+      .toMatchObject({ id: "sap", chance: 50, duration: "1◈" });
+  });
+
+  it("E1/E2 — White Queen's Enigma is a non-damaging Spell that buffs HER", () => {
+    const a = ability("nursery-white-queens-enigma");
+    expect(a).toMatchObject({ isSpell: true, cooldown: "3◈" });
+    // An ability with phases and no `damage` phase deals none.
+    expect(a.phases.some((p) => p.kind === "damage")).toBe(false);
+    expect(a.damage).toBeUndefined();
+    expect(a.phases[0]).toMatchObject({ target: "self" });
+    expect(a.phases[0].effects[0]).toMatchObject({ id: "enigma", duration: "1◈" });
+  });
+});
+
+describe("Nursery Rhyme: A Tale for Somebody's Sake (A1–A8)", () => {
+  const np = () => ability("nursery-a-tale-for-somebodys-sake");
+
+  it("A1/A2/A8 — Rank C, Anti-Unit, Range 4, cooldown 5◈", () => {
+    expect(np()).toMatchObject({ rank: "C", isNP: true, cooldown: "5◈" });
+    expect(np().npTags).toEqual(["antiUnit"]);
+    expect(np().targeting.anchor.range).toBe(4);
+  });
+
+  it("A3/A4/A5 — BA(MAG), a 3x3 area, 3x damage", () => {
+    expect(np().damage).toMatchObject({ component: "mag", multiplier: 3 });
+    expect(np().targeting.shape).toEqual({ kind: "square", size: 3 });
+  });
+
+  it("A6 — inflicts Def Dwn at +20% for 1◈", () => {
+    const e = np().phases.find((p) => p.kind === "applyEffects").effects[0];
+    expect(e).toMatchObject({ id: "defDwn", magnitude: 20, duration: "1◈" });
+  });
+
+  it("A7/R5 — INCREASES the affected Units' NP Cooldown by 1◈", () => {
+    // `direction: up` is the load-bearing half. A `set` would put an enemy
+    // Noble Phantasm at 4◈ remaining down to 1◈ -- a REDUCTION, which hands
+    // them the Noble Phantasm back early. Backwards, not merely wrong.
+    const change = np().phases.find((p) => p.kind === "cooldown").changes[0];
+    expect(change).toMatchObject({ unit: "target", scope: "np", ticks: "1◈", direction: "up" });
+  });
+
+  it("A7 — and it is the per-defender half of the rider split", () => {
+    const phase = np().phases.find((p) => p.kind === "cooldown");
+    const { perDefender, oncePerPhase } = splitCooldownRider(phase);
+    expect(perDefender).toHaveLength(1);
+    expect(oncePerPhase).toEqual([]);
+  });
+});
+
+describe("the Servant document (S1–S12)", () => {
+  const n = () => servant("nursery-rhyme");
+
+  it("S6/S9/S10 — her figures agree with the rank tables", () => {
+    expect(n().baseAttack).toEqual({ str: 50, mag: 200 });
+    expect(n().baseHealth).toBe(500);
+    expect(lookup("baseHealthByEnd", Rank.parse("E"))).toBe(500);
+  });
+
+  it("S12/R3 — the Note: her Normal Attacks use BA(STR)", () => {
+    // The axis her whole kit turns on. 50 against her Noble Phantasm's 200.
+    expect(n().normalAttack).toMatchObject({ mode: "fixed", component: "str" });
+  });
+
+  it("S5 — carries all seven Attributes, including both her own kit reads", () => {
+    expect([...n().attributes].sort()).toEqual(
+      ["child", "fairytale", "female", "humanoid", "man", "nonHominidae", "servant"],
+    );
+  });
+
+  it("S11 — Sustainability 4◈", () => {
+    expect(n().sustainability).toBe("4◈");
+  });
+
+  it("carries exactly the nine abilities Part 1 authors", () => {
+    // One class skill + four Skills + three Spells + one Noble Phantasm.
+    // Parts 2-4 append four more, taking this to 13. This assertion is what
+    // makes that an append rather than a rewrite.
+    expect(n().abilities).toHaveLength(9);
+    expect(n().abilities[0]).toEqual({ ref: "class-territory-creation", rank: "A" });
   });
 });

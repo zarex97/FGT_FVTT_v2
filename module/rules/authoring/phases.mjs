@@ -84,6 +84,15 @@ export const PHASE_DESCRIPTORS = describeTable([
   entry("cooldown", 80, "Changes a cooldown clock — its own, or somebody else's.", [
     { key: "changes", type: "raw" },
     { key: "choose", type: "raw" },
+    // A cooldown phase whose reach differs from the ability's own.
+    //
+    // > *"Reduce the NP Cooldown of all allied Units within a 2 panel area of
+    // > herself **with the 'Child' Attribute**"* — Nursery Rhyme's Tommy
+    // > Thumb, whose next clause reaches a DIFFERENT set on the same use.
+    //
+    // `phaseTargets` has honoured a phase's own targeting since EMIYA needed
+    // it, and this is the first cooldown phase to use one.
+    { key: "targeting", type: "raw" },
   ]),
   entry("resource", 70, "Spends or grants a pool — tokens, counters, Sustainability.", [
     { key: "changes", type: "raw" },

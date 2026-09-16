@@ -1,0 +1,27 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# A NON-DAMAGING Spell: it has phases and no `damage` phase, which is how an
+# ability deals none.
+#
+# The buff it applies is SELF-ONLY. See `packs/_source/effects/enigma.yml` for
+# why Appendix A's row was wrong about that, and why the self reading is the
+# only one that makes her kit coherent.
+schema: 1
+id: nursery-white-queens-enigma
+name: "White Queen's Enigma"
+rank: null
+kind: skill
+slug: whiteQueensEnigma
+isSpell: true
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  Spell. Used during your Turn. Applies the '@effect[enigma]{Enigma}' buff to Nursery for 1◈ Turns.
+  Its effects are as follows- Whenever Alice performs a Normal Attack which deals STR damage, Nursery
+  inflicts the @effect[defDwnMag]{Def Dwn (MAG)} debuff for 1◈ Turns on the DU, all MAG damage taken
+  is increased by 60%; if NP, 40%. Cooldown: 3◈ Turns.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: enigma, duration: "1◈" }

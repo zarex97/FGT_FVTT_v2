@@ -1,0 +1,36 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# "Deals damage" states neither a component nor a multiplier. Scáthach's Þurs
+# settles the component in its own comment -- *"A Caster's Spell draws on Base
+# Attack (MAG)"* -- and the multiplier is 1 because none is stated: Þurs states
+# its own 2 explicitly, so the silence here is meaningful.
+#
+# Range is her printed Range of 2, which is what a Spell with no Range of its
+# own uses.
+schema: 1
+id: nursery-frenzied-march-hare
+name: "Frenzied March Hare"
+rank: null
+kind: skill
+slug: frenziedMarchHare
+isSpell: true
+element: wind
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  Damage Spell. Deals damage with a 50% chance of inflicting @effect[sap]{Sap} for 1◈ Turns.
+  Wind damage. Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 1
+  component: mag
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: sap, duration: "1◈", chance: 50 }
