@@ -123,6 +123,23 @@ export const COOLDOWN_OWNED_BY_WORLD = Object.freeze([
 export const SUMMON_VARIANT_OWNED_BY_WORLD = Object.freeze(["variant"]);
 
 /**
+ * The half of `linkedGroup` a match owns.
+ *
+ * The same shape as `cooldown` and `summonVariant`, and the same reason. The
+ * pack states the **settings** — the leash, the weight, whether death is linked
+ * — and `partners` names the other members by CONTENT id. `memberIds` holds
+ * **actor** ids, resolved by `engine/summon.mjs` at the one moment every actor
+ * exists.
+ *
+ * Without this, a content sync overwrites the resolved ids with the pack's
+ * empty set and **silently unlinks a pair already on the board**: no leash, no
+ * linked death, no shared cooldown, no combined Noble Phantasm. Found on a live
+ * board, after a pack rebuild, with the twins standing next to each other and
+ * bound to nothing.
+ */
+export const LINKED_GROUP_OWNED_BY_WORLD = Object.freeze(["memberIds"]);
+
+/**
  * Authored keys a given actor **type** only seeds, on top of `SEEDED_THEN_OWNED`.
  *
  * A Master's stats are not authored at all: `war-setup.mjs` rolls them through

@@ -172,3 +172,30 @@ describe("fields the engine writes during play", () => {
     expect(out.classContainer).toBe("saber");
   });
 });
+
+describe("linkedGroup is half the pack's and half the world's", () => {
+  it("keeps the memberIds a summon resolved, and takes the settings from the pack", () => {
+    // Found on a live board: adding `linkedGroup` to the authored keys made the
+    // PACK own all of it, so a rebuild overwrote the resolved actor ids with
+    // the pack's empty set -- silently unlinking a pair already standing on the
+    // board. No leash, no linked death, no shared cooldown, no combined NP.
+    const packSide = {
+      linkedGroup: {
+        id: "dioscuri", partners: ["pollux"], memberIds: [],
+        leash: 2, unitWeight: 0.5, linkedDeath: "ignoresRevival",
+      },
+    };
+    const worldSide = {
+      linkedGroup: {
+        id: "dioscuri", partners: ["pollux"], memberIds: ["bM8tTwckqwtj7z24"],
+        leash: 99, unitWeight: 99, linkedDeath: "",
+      },
+    };
+    const merged = reconcileSystem("actor", worldSide, packSide, { type: "servant" });
+    expect(merged.linkedGroup.memberIds).toEqual(["bM8tTwckqwtj7z24"]);
+    // The settings still follow the pack, so a content fix reaches the board.
+    expect(merged.linkedGroup.leash).toBe(2);
+    expect(merged.linkedGroup.unitWeight).toBe(0.5);
+    expect(merged.linkedGroup.linkedDeath).toBe("ignoresRevival");
+  });
+});
