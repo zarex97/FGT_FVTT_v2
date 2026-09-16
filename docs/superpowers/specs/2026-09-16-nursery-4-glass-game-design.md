@@ -89,16 +89,40 @@ after Nursery enters Combat."* Recorded because *"enters Combat"* is a distinct 
 summoned or from the Round counter starting, and reading it as either would fire the rewind at the
 wrong time for the whole game.
 
+**And the engine has no such moment.** (Corrected before planning.) There is no `enterCombat` event,
+no combat-lock flag, and no `inCombat` state anywhere in `module/` — the phrase appears exactly once
+in the whole repository, in Ch. 43 §43.11's own quotation of this sheet.
+
+**DECISION.** *"Enters Combat"* is **the first Turn end at which an enemy Unit stands within her
+3-panel ring**, and the clock runs from there. The derivation is the clause's own second sentence:
+*"At the end of every Round, if there are **no enemy Units within a 3 panel area** of Nursery, the
+duration of time passed for this NP is reset."* The reset is keyed on that predicate, so the start
+must be too — a clock that begins on one condition and resets on another is a clock that can never
+be reasoned about. Reading it as "when the match starts" would also make the reset clause
+meaningless for the first three Rounds of every game.
+
+So there is one predicate, read at one boundary, doing both jobs: enemies in the ring advance the
+clock, and their absence at Round end returns it to zero.
+
 **R4 — The reset is a reset of the clock, not of the buffer.** *"At the end of every Round, if there
 are no enemy Units within a 3 panel area of Nursery, the effect of / duration of time passed for this
 NP is reset."* So the 3◈ countdown returns to zero and starts again the next time an enemy closes.
 The recorded history is untouched — it must be, because effect 2 still needs 6◈ of it.
 
-**R5 — Effect 2 fires on defeat and includes her.** *"Activates when Nursery is defeated… (includes
-herself)."* So it runs on the **`unitDefeated`** rung — the same rung the Dioscuri's linked death
-hangs from, and for the same reason: it must fire after the revival chain has resolved to a defeat,
-not when her Health touches zero. A Nursery who is revived has not been defeated and must not spend
-her once-per-game rewind.
+**R5 — Effect 2 fires on final defeat and includes her.** *"Activates when Nursery is defeated…
+(includes herself)."* It must fire **after the revival chain has resolved to a defeat**, not when her
+Health touches zero: a Nursery who is revived has not been defeated and must not spend her
+once-per-game rewind.
+
+**Corrected before planning: that is NOT the `unitDefeated` rung.** `engine/scheduler.mjs#resolveDefeat`
+fires `unitDefeated` **first**, *before* the revival query — its own comment says why: *"Handlers
+first: `unitDefeated` is where content that is not a revival hangs."* A handler there fires on a
+Nursery whom Guts is about to save.
+
+The right seam is the **tail of `resolveDefeat`**, beside `linkedDeathIntents`, whose docstring
+states this exact distinction for the Dioscuri: *"This is the tail of `resolveDefeat`, reached only
+once the revival chain has resolved TO a defeat."* The spec's instinct — "the same place the
+Dioscuri's linked death hangs" — was right; the rung it named was wrong.
 
 **R6 — Effect 2's rewind restores her too, but does not undo her defeat.** She is *"within a 3 panel
 area"* of herself and the sheet says *"includes herself"*, so her Stats are restored — but nothing in
@@ -120,7 +144,7 @@ drops instances whose source no longer exists, logging each drop."* Adopted verb
 
 ## 4. The engine work
 
-**Four changes.** This is the largest single subsystem in either roster.
+**Five changes**, once the `Script` registry E4 assumed is counted. This is the largest single subsystem in either roster.
 
 ### E1 — The history recorder
 
@@ -159,6 +183,18 @@ nothing else has.
 **DECISION.** `Script` it, and say so in the tally. If a second rewind ever appears, generalise then
 — which is the rule Ch. 44 already applies to `innocentWorld` and `heel`.
 
+**And the registry does not exist.** (Corrected before planning.) `rules/elements.mjs:1834` collects
+a `Script` element into `eventHandlers` as `{event, script, source}`, and **nothing in the engine
+reads `handler.script`** — `grep -rn "\.script" module/engine module/rules` returns that one
+writing line and no reader. The element's own comment promises *"named entries in a closed registry,
+never `eval`"*; there is no registry.
+
+That is consistent rather than surprising: the corpus has zero Scripts, so the hatch has never been
+opened. But it means E4 is **two** pieces of work — the registry and its dispatch, then the one entry
+in it — and the registry is the half that has to be right, because it is the seam every future
+Script inherits. Being closed and name-keyed is the security property: compendia are shared, and
+content must never be able to execute.
+
 ---
 
 ## 5. The clause inventory
@@ -168,13 +204,13 @@ nothing else has.
 | # | Clause | Verdict |
 |---|---|---|
 | G1 | Rank C, NP, `[Anti-Self/Anti-World]`, **(Passive)** | FREE |
-| G2 | Effect 1 fires **at the end of the Turn, 3◈ after Nursery enters Combat** (R3) | **ENGINE — E1, E4** |
+| G2 | Effect 1 fires **at the end of the Turn, 3◈ after Nursery enters Combat** (R3) | **ENGINE — E1, E4**, and "enters Combat" is defined by R3 rather than found |
 | G3 | …only if enemy Units remain within 3 panels at the end of that Turn | CONTENT — a targeting predicate |
 | G4 | Restores Stats, Parameters, Buffs, Debuffs, Cooldowns and other effects of all Units within 3 panels, to **3◈ ago** | **ENGINE — E3, E4** |
 | G5 | Position, facing, turn budget and contract are **not** restored (R1 / Q45) | **ENGINE — E1** (by omission from the buffer) |
 | G6 | Nameless Forest Tokens are **not** restored (R2) | **ENGINE — E3** (a named carve-out) |
 | G7 | At the end of every Round with no enemy within 3 panels, the **clock** resets (R4) | CONTENT |
-| G8 | Effect 2 fires when Nursery is **defeated** (R5) | **ENGINE — E4** |
+| G8 | Effect 2 fires when Nursery is **finally** defeated (R5) | **ENGINE — E4**, in the tail of `resolveDefeat` and **not** on `unitDefeated` |
 | G9 | …rewinding **6◈**, including herself, without undoing her defeat (R6) | **ENGINE — E3, E4** |
 | G10 | Effect 2 is usable **once per game** (R7) | CONTENT — a spent flag on the actor |
 
