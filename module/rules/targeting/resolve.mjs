@@ -381,12 +381,30 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   // the same reason Master protection is read off the DEFENDER's position.
   {
     const before = survivors.length;
-    survivors = survivors.filter(
-      (u) => (u.untargetableBy ?? []).length === 0
-        || relationOf(caster, u, board) !== "enemy"
-        || drop(u, "protected by a nearby Bašmu"),
-    );
-    if (survivors.length < before) warnings.push("A Unit protected by Bašmu was excluded.");
+    /** @type {string[]} */
+    const protectors = [];
+    // NAMED, rather than assumed. Both sentences read "Bašmu" for every
+    // protector in the game, and ten content files author a
+    // `TargetabilityModifier`: Bašmu, the three Dragon Tooth Warriors, Raikou's
+    // four retainers, the Sphinx Queen and Tenmokaikai. The aura entry has
+    // carried the real name on `source` all along. Measured live -- a Medea
+    // ringed by her own Dragon Tooth Warriors was refused with "protected by a
+    // nearby Bašmu", which is a creature belonging to a different Servant in a
+    // different war (Ch. 46 §46.4-O).
+    const nameOf = (u) => (u.untargetableBy ?? []).map((a) => a.source).find(Boolean) ?? null;
+    survivors = survivors.filter((u) => {
+      if ((u.untargetableBy ?? []).length === 0) return true;
+      if (relationOf(caster, u, board) !== "enemy") return true;
+      const who = nameOf(u);
+      if (who) protectors.push(who);
+      return drop(u, who ? `protected by a nearby ${who}` : "protected by a nearby ally");
+    });
+    if (survivors.length < before) {
+      const who = [...new Set(protectors)].join(", ");
+      warnings.push(who
+        ? `A Unit protected by ${who} was excluded.`
+        : "A protected Unit was excluded.");
+    }
   }
 
   // 9. CHOOSER

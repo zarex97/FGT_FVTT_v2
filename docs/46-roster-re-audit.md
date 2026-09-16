@@ -525,6 +525,32 @@ is the content that found them.
 the die is covered by `test/unit/check-modifier-roll.test.mjs` rather than by sampling a d4 on a
 board.
 
+### O. Every protector in the game was called Bašmu — **fixed 2026-09-16**
+
+**Reached: nine of the ten content files** that author a `TargetabilityModifier` — the three Dragon
+Tooth Warriors, Raikou's four retainers, the Sphinx Queen and Tenmokaikai. Only Bašmu itself was
+described correctly.
+
+`rules/targeting/resolve.mjs` refused a protected target with a hardcoded sentence:
+
+```js
+|| drop(u, "protected by a nearby Bašmu"),
+…
+warnings.push("A Unit protected by Bašmu was excluded.");
+```
+
+The aura entry has carried the real name on `source` since it was written, and the filter ignored
+it. Measured live: a Medea ringed by her own **Dragon Tooth Warriors** refused an attack with
+*"Medea is protected by a nearby Bašmu"* — a creature belonging to a different Servant, who was not
+in the war.
+
+Not a rules error — the protection itself is correct, and the Master-protection rule beside it
+correctly gave a different sentence (*"protected by an adjacent Servant"*). It is a defect in the
+only thing a player actually sees, on a refusal whose entire job is to say **why**.
+
+Both sentences now name the protector, with a generic fallback for an aura that states no source.
+**Verified live**: *"Medea is protected by a nearby Dragon Tooth Warrior (Blade)."*
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -590,7 +616,7 @@ per-Servant record of what each audit left untested.
 | **Asterios** | ✅ | ✅ **complete** | 5 (4 his, 1 general) | §46.8; §46.4-H, I, K |
 | **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
 | **Penthesilea** | ✅ | ✅ **complete** | 3 (2 hers, 1 general) | §46.10; closes §46.4-C; §46.4-N |
-| **Medea** | ✅ | ✅ | 2, closed | §46.11 |
+| **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
 | **EMIYA** | ✅ | ✅ | 2, closed | §46.12 |
 | Hassan of Serenity | — | — | — | |
 | Semiramis | — | — | — | |
@@ -1065,13 +1091,40 @@ contract**: a 232-damage Normal Attack killed the Rider Master (max Health 82) a
 is authored and the normal half measured, but no Noble Phantasm was fired at her; and **NP Regen's**
 actual cooldown reduction, which needs a Noble Phantasm on cooldown across a Turn boundary.
 
-**Medea.** *Pressed:* the statblock; Item Construction's chance contributions, before and after.
-*Traced only:* everything else — Territory Creation's two passives (both need a Home Base, which
-the test board did not have); High-Speed Divine Words; Golden Fleece; Teachings of Circe; Aero,
-Argos, Keraino, Trofa and Atlas; the Dragon Tooth Warriors, so the summon roll, the type roll, the
-adjacency protection and the per-warrior cooldown are all unexercised; Rain of Light; and Rule
-Breaker, whose contract cut and Command Spell transfer are the most consequential untested clause
-in this audit. Item Construction's non-stacking was read, not contested with a second instance.
+**Medea — substantially complete.** On a war built by `commitWar` against Heracles, which finally
+gave her the **Home Base** the previous board lacked.
+
+*Pressed (engine):*
+
+- **Territory Creation, both passives** — recorded in §46.13 as blocked purely for want of a Home
+  Base. Passive 1 contributed **`atkUp: 63`** while she stood in hers (a `5d20` at rank A, the
+  contributor noting *"Territory Creation"*); passive 2's aura reached **her and her Master** as a
+  `3d10+20` `DamageNegation`, measured at **−32** when Heracles struck her, with
+  `stacking: "highestOnly"` carrying the non-stacking clause.
+- **Rule Breaker, every clause** — §46.13 called its contract cut *"the most consequential untested
+  clause in this audit"*. Heracles failed his Evade (19 → 26 against 18, the unfavourable table),
+  accepted the hit at `s23_acceptOrEscape`, and took 225. Then: **both his buffs stripped**; his
+  **contract transferred** from the Berserker Master to Medea's; the old Master's Command Spells
+  **3 → 0**; and three granted as `commandSpellsPerServant: { Heracles: 3 }` — namespaced to the
+  Servant she took, which is §16.9's rule and not the general pool. The reciprocal side held too:
+  Medea's Master now lists **both Medea and Heracles**, the Berserker Master none.
+- **Dragon Tooth Warriors**, the corpus's summon subsystem end to end: **5** conjured on the 1d6,
+  a type rolled per warrior on the 1d4 — four Blade and one Daggers, with one die landing on
+  *"your choice"* and opening a real dialog — all placed inside the 5×5 around her. The
+  **adjacency protection** then refused Heracles outright, which is §46.4-O.
+- **Golden Fleece**: Health 400 → **655**, exactly 30% of her 850 **maximum** rather than of her
+  current, and Agility 11 → **14**.
+- **High-Speed Divine Words**: all **seven** Spells from cooldown 7 to **0** in one use.
+- **Aero**: 370 damage with its **Bleed** rider landing — the rider that once went missing when the
+  newer authoring shape had no reader.
+- **Item Construction** (earlier pass), including the aura reaching her Master.
+
+*Found while pressing:* §46.4-O.
+
+*Still untested:* **Teachings of Circe**; **Argos, Keraino, Trofa and Atlas** as resolutions;
+**Rain of Light**; the Dragon Tooth Warriors' *"do not count towards the number of Units that
+Move and/or Attack"* and their per-warrior once-per-Turn limit; and High-Speed Divine Words'
+**Silence** clause, both halves.
 
 **EMIYA.** *Pressed:* the statblock; the two Noble Phantasm reaches before and after Range Up.
 *Traced only:* the range bands — read off the projection, never resolved by attacking at Range 3 or

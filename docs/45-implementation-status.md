@@ -198,8 +198,19 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    plan was built with no rolls at all. Four independent gaps in one path, and the only content in
    the corpus that authors such a clause is the content that found them. Ch. 46 §46.4-N.
 
-   **Four Servants are now finished by §46.1's standard**: Heracles, Asterios, Karna and
-   Penthesilea. Every one of them cost at least one general defect that a paper trace had cleared.
+   **Medea's audit closed the one clause this chapter had flagged as most consequential.** Rule
+   Breaker's contract cut works in full: buffs stripped, the contract transferred, the old Master's
+   Command Spells emptied, and three granted **namespaced to the Servant taken** rather than into
+   the general pool — with `Master.servantIds` staying reciprocal on both sides. Her Territory
+   Creation passives were reachable for the first time too, because a war built through `commitWar`
+   paints the Home Bases they need.
+
+   Her one defect was not a rules error at all: every protected target in the game was refused with
+   *"protected by a nearby Bašmu"*, whoever was actually standing there. Nine of the ten files that
+   author the clause are not Bašmu. Ch. 46 §46.4-O.
+
+   **Five Servants are now finished or substantially so**: Heracles, Asterios, Karna, Penthesilea
+   and Medea. Every one cost at least one general defect that a paper trace had cleared.
 
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
