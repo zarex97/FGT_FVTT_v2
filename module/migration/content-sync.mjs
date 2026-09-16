@@ -13,6 +13,7 @@
 
 import {
   ownedByWorld, COOLDOWN_OWNED_BY_WORLD, SUMMON_VARIANT_OWNED_BY_WORLD,
+  LINKED_GROUP_OWNED_BY_WORLD,
 } from "../content/authored-fields.mjs";
 
 /**
@@ -42,13 +43,16 @@ export function reconcileSystem(kind, worldSystem, packSystem, { type = null } =
   for (const [key, value] of Object.entries(packSystem ?? {})) {
     if (ownedByWorld(kind, key, type)) continue;
 
-    // Two keys are half the pack's and half the world's: the pack states the
+    // THREE keys are half the pack's and half the world's: the pack states the
     // SHAPE and the match states what it has done with it (Ch. 39, spec R2).
-    // `cooldown`'s clock is what the match has spent, and `summonVariant`'s
-    // `variant` is how the coin actually came up.
+    // `cooldown`'s clock is what the match has spent, `summonVariant`'s
+    // `variant` is how the coin actually came up, and `linkedGroup`'s
+    // `memberIds` are the ACTOR ids resolved at summon -- the pack can only
+    // name its partners by content id, because the actors do not exist yet.
     const split = key === "cooldown" ? COOLDOWN_OWNED_BY_WORLD
       : key === "summonVariant" ? SUMMON_VARIANT_OWNED_BY_WORLD
-        : null;
+        : key === "linkedGroup" ? LINKED_GROUP_OWNED_BY_WORLD
+          : null;
     if (split) {
       const world = worldSystem?.[key] ?? {};
       const merged = { ...(value ?? {}) };
