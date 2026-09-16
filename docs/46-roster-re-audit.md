@@ -580,6 +580,55 @@ charged exactly once, and the pipeline then shows `atkUp: 30, note: "nAtkUp"` at
 `useSkill` whole rather than double-billed. An ability with both phases and rules is cast, because
 the window carries its rules separately regardless.
 
+### Q. A shifted Magic Resistance Rank moved only half its clause — **fixed 2026-09-16**
+
+**Reached: EMIYA**, the only Servant whose Magic Resistance Rank is shifted by anything.
+
+Magic Resistance states one Rank and reads it **twice**: *"MAG damage from a MAG Rank of up to
+@rank is **negated**, otherwise MAG damage taken is **reduced by the table value**"*. His *Kanshou
+& Bakuya* raises that Rank by a whole grade while it is up, and his sheet spells the result out —
+*"D to C: MAG damage from a MAG Rank of up to **C** is negated, otherwise MAG damage taken is
+reduced by **30%**"*.
+
+The reduction moved and the negation did not. The executor computes
+
+```js
+const negates = el.negatesUpToRank ? Rank.parseOrNull(el.negatesUpToRank) : rank;
+```
+
+where `rank` is the **shifted** rank. The skill authored `negatesUpToRank: "@rank"`, and `"@rank"`
+substitutes to a **literal** at build time — the built item carried `negatesUpToRank: "D"` — so the
+threshold was frozen at the authored grade while the table lookup correctly used C.
+
+**Measured live**: with `dualWieldGuard` up, the contribution read `{ rank: "D", percent: 30 }`.
+
+The fix is content, not code: the executor's default is already the shifted rank, which is exactly
+what *"up to @rank"* means, so the redundant line is gone. The field stays in the vocabulary for a
+skill that negates up to some rank **other** than its own; nothing in the corpus does yet.
+**Verified live**: `{rank: "D", percent: 20}` → `{rank: "C", percent: 30}`.
+
+### R. `negatedWhile` cannot reach an effect — **open**
+
+**Reached: EMIYA's `dualWieldGuard`**, and potentially any effect whose sheet negates it on a
+condition that is not itself an effect.
+
+His Overedge sheet says *"The effect of '@effect[dualWieldGuard]{Kanshou & Bakuya}' is negated while
+'Overedge' is on Cooldown"*, and `emiya-kanshou-and-bakuya.yml` authors
+`negatedWhile: { abilityOnCooldown: [emiya-overedge] }`. That silences **the ability's** rules — so
+the trigger stops applying the guard — but the Rank shift lives on the **effect instance**, which
+keeps working once applied.
+
+**Measured live**: with Overedge on cooldown 9 and `dualWieldGuard` held, Magic Resistance still
+read **C / 30%**; the sentence says it should read D / 20%.
+
+Left **open** rather than fixed. `negatedWhile` exists only on the ability schema
+(`data/item/ability.mjs`, read by `rules/snapshot.mjs`), no effect in the corpus uses it, and the
+two candidate fixes — teaching effects the field, or moving the `RankShift` onto the ability — are
+design decisions rather than a repair. The effect's own comment explains why the shift lives where
+it does, and Overedge's explains why the negation is filed where it is; both were deliberate. The
+window is also narrow in play: the guard lasts ⅓◈ and Overedge's Cooldown begins when Overedge is
+used. Worth a decision, not a patch at the end of an audit.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -646,7 +695,7 @@ per-Servant record of what each audit left untested.
 | **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
 | **Penthesilea** | ✅ | ✅ **complete** | 3 (2 hers, 1 general) | §46.10; closes §46.4-C; §46.4-N |
 | **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
-| **EMIYA** | ✅ | ◐ partial | 3 (2 his, 1 general) | §46.12; §46.4-P |
+| **EMIYA** | ✅ | ✅ (Rho Aias open) | 5 (2 his, 3 general) | §46.12; §46.4-P, Q, R |
 | Hassan of Serenity | — | — | — | |
 | Semiramis | — | — | — | |
 | Scáthach | — | — | — | |
@@ -1155,30 +1204,47 @@ gave her the **Home Base** the previous board lacked.
 Move and/or Attack"* and their per-warrior once-per-Turn limit; and High-Speed Divine Words'
 **Silence** clause, both halves.
 
-**EMIYA — partial.** A war built by `commitWar` against Heracles, EMIYA at Range 4 to Heracles's 2
-so the range bands his kit turns on could be reached.
+**EMIYA — complete but for Rho Aias.** A war built by `commitWar` against Heracles, EMIYA at
+Range 4 to Heracles's 2 so the range bands half his kit turns on could be reached.
 
 *Pressed (engine):*
 
-- **Hawkeye**, both effects and the range band that gates them. `critUpHawkeye` 50 and
-  `critDmUpHawkeye` 100 applied for 1◈; at **Range 4** the crit contributor read
-  **`"5d10 = 33, ×2.00 crit damage"`** — the +100% doubling the roll, which is the clause stated
-  *"at a Range of 3 or higher"*.
+- **Hawkeye**, and the range band gating it: at **Range 4** the crit contributor read
+  **`"5d10 = 33, ×2.00 crit damage"`** — the +100% doubling the roll, *"at a Range of 3 or higher"*.
+- **Clairvoyance**: three Evades at Range 4, **all three forced onto the unfavourable table** —
+  *"the DU has an 80% chance of using Evade− when Evading"*, imposed by the attacker.
+- **Magic Resistance**, his own, and the *Kanshou & Bakuya* shift: a Normal Attack at Range 1
+  applied `dualWieldGuard` and moved him **D/20% → C/30%**, which is §46.4-Q.
+- **Trace On**, all five clauses. First use cost **no** Health and the second cost exactly **5% of
+  maximum** (1000 → 950); `activatedCircuits` was **replaced by** `blazingCircuits` on the second —
+  *"he cannot hold both"*; Luck **2/2 → 7/7 → 12/12**, max and current; Agility restored 5;
+  `atkUpTrace` 60 / NP 40, whose duration then **extended by ⅓◈** when a Thaumaturgy Spell was cast
+  while it was up (expiry 8 → 9).
+- **Eye of the Mind (True)**, the **B→EX swap**: at 50% Health the EX document refused with
+  `reason: "healthBelow"`; at **15%** it was usable, applying `dodge` (⅓◈), `atkUp` 30/NP 15,
+  `defUp` 30/NP 15 and `sCritUp` 30, cooldown 4◈.
 - **Reinforcement**, through the **Start of the Combat Phase** dialog it is actually offered at —
-  which is where §46.4-P was found. `nAtkUp: 30` for ⅓◈, reaching stage 4 as
-  `atkUp: 30, note: "nAtkUp"`, cooldown 1◈.
-- **Magecraft's Range Up, earned rather than injected.** §46.12 recorded this as read-only —
-  *"Range Up was injected directly rather than earned by using a Thaumaturgy Spell"*. Casting
-  Reinforcement, a Thaumaturgy Spell, granted `rangeUp: 1` on its own.
-- The statblock and the two Noble Phantasm reaches before and after Range Up (earlier pass).
+  where §46.4-P was found — reaching stage 4 as `atkUp: 30, note: "nAtkUp"`.
+- **Magecraft's Range Up, earned rather than injected** (§46.12 recorded it as read-only): casting
+  any Thaumaturgy Spell granted `rangeUp: 1` on its own.
+- **Tracing**: the *"Two Projections by 1◈ / One by 2◈"* choice taken as **one by 2◈** — Caladbolg
+  **9 → 3** while every other Projection stayed at 9 — plus `dmgBoost: 30` and a 3◈ cooldown.
+- **Independent Action**: `independentActionZon` at rank B = **2**, and his ZON reads **4** with
+  `zonBonuses: [{value: 2, source: "Independent Action"}]`.
+- **Unlimited Blade Works**, end to end. Aria accrued **1 per Combat Phase to a maximum of 6**; the
+  activation **consumed all 6**; the Reality Marble opened as a **7×7** anchored where he stood,
+  with **all four membership directions forbidden** — trapped in, locked out; his **BA(STR) 75 →
+  125** inside; and the start-of-Turn toll measured across eight samples at **25, 75 and 100**
+  damage (`25 × 1d4` rolling 1, 3 and 4) with five clean Evades against Heracles's Agility 20.
+- **Projection Magic's Silence clause**, both halves: unsilenced, Overedge asks for a target;
+  **silenced**, Overedge *and* Reinforcement both refuse with `notHasEffect` — the note that
+  Projections are treated as Thaumaturgy Spells, enforced.
 
-*Found while pressing:* §46.4-P.
+*Found while pressing:* §46.4-P and §46.4-Q, and §46.4-R which is left **open**.
 
-*Still untouched:* Independent Action, Magic Resistance, Clairvoyance, both **Eye of the Mind
-(True)** documents and the **B→EX swap at 20% Health**, Tracing, Trace On with its AC and BC
-branches, Kanshou & Bakuya, Overedge, Rho Aias, **Unlimited Blade Works**, and the Projection:
-Unlimited Blade Works copy spell — **eleven of his seventeen abilities**. He is the one Servant of
-the six this audit has not finished.
+*Still untested:* **Rho Aias**, which needs an incoming Noble Phantasm to intercept and a 1400-Health
+shield to damage; **Overedge** as a resolution; and Independent Action's **third** passive, the
+contract-resistance rolls.
 
 ### 46.13.2 Fixes that were never pressed
 
