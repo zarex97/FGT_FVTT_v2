@@ -127,6 +127,23 @@ export function canUseAbility({
   //
   // Defaults to `true`: this layer cannot read `game`, and the seven call
   // sites all spread `engine/board.mjs#gateContext`, which supplies it.
+  // A suppression naming this ability's CATEGORY. Blind's clause 3 is the
+  // first: *"'Mystic Eye' and 'Glam Sight' Skills cannot be used."*
+  //
+  // Keyed on `categorizedAs` rather than on a slug, because the clause names a
+  // FAMILY of skills and not two documents -- the same reading `hasCategory`
+  // takes of *"Skills that are also categorized as 'Instinct'"*. A second
+  // Mystic Eye authored later is covered without touching this.
+  //
+  // Above the cooldown refusals for the reason `expended` is: "on cooldown for
+  // 4 Turns" invites a player to wait, when what has happened is that they
+  // cannot use it at all right now.
+  const suppressedCategory = (ability?.categorizedAs ?? [])
+    .find((tag) => (unit?.suppressions ?? []).some((sup) => sup.scope === tag));
+  if (suppressedCategory) {
+    return { ok: false, reason: "suppressedCategory", detail: { category: suppressedCategory }, cost };
+  }
+
   if (clockRunning === false) {
     return { ok: false, reason: "noMatch", detail: {}, cost };
   }

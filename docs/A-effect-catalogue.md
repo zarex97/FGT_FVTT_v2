@@ -256,6 +256,29 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 | `Pigify` | MOV → 2; BA(STR & MAG) → 10%; Range → 1; Evade only with Evade−, cannot Block; damage taken +50% including NP; cannot use Skills/Spells/NP; **passive Skill/NP effects negated**. |
 | `Toad` | MOV → 1; BA → 5%; Range → 1; Evade rolls −3, cannot Block; damage taken +50%; cannot use Skills or NP (**Spells remain usable**); passive effects negated. |
 
+> **`Blind` — built 2026-09-16, and clause 1 needed a new Combat Process step.**
+>
+> *"80% chance of Missing"* had nowhere to live. An Evade is the **defender's**
+> roll answering a swing that happened, resolved at step 2 with a Luck ladder
+> hanging off it; a Miss is the swing **not happening at all**. No pipeline
+> stage and no check bucket could hold that, which is why this row sat here
+> catalogued and unauthored for as long as it did.
+>
+> **Step 1.5** is where it went (`docs/12-combat-process.md` §12.2), and
+> `module/rules/miss.mjs` is the chance ladder — 80%, 40% with `Clairvoyance`,
+> exempt with `Eye of the Mind` — **ordered, not summed**: clause 5 exempts 1, 2
+> and 4 together, so a Unit carrying both Skills is simply exempt rather than
+> 20%. A miss ends the Process: no reaction, no damage, no Injury Roll, no
+> Counter. The attack budget is still spent, because the swing was declared.
+>
+> Clauses 2 and 3 are on the effect (`packs/_source/effects/blind.yml`). Clause
+> 3 is keyed on an ability's `categorizedAs: [mysticEye]` tag rather than on
+> named slugs, because it names a family of Skills.
+>
+> **`Def Dwn (A)` — built 2026-09-16** (`packs/_source/effects/def-dwn-a.yml`),
+> the mirror of `Def Dwn (C)`, for the Dioscuri's Noble Phantasm, which inflicts
+> both.
+
 > **`Deafen` — built 2026-09-11, and the catalogue and the sheet disagree.**
 >
 > Nemo's *Triton's Conch* is the only source of `Deafen` in either roster, and it defines the
