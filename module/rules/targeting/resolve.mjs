@@ -490,6 +490,30 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   }
 
   // 11. RESULT
+  // 11. THE LINKED PARTNER, ALWAYS.
+  //
+  //   *"all allied Units within a 2 panel area of himself (and Pollux if she is
+  //    out of the Skill's Range)"*
+  //
+  // The partner is in the set whatever the shape caught: never excluded for
+  // standing too far, never counted twice for standing near. Four clauses
+  // across the two twins say it -- both copies of Stars of the Chief God and
+  // both of Guardians of Navigation -- which is what earns it a name rather
+  // than four hand-written target lists.
+  //
+  // AFTER the limits deliberately. `maxTargets` bounds what the shape may
+  // catch; the partner is not something the shape caught, and letting a count
+  // limit cut her would make the clause depend on how many bystanders happened
+  // to be standing nearby.
+  if (spec.selection?.alsoIncludes === "partner") {
+    for (const id of [...(caster?.linkedGroup?.memberIds ?? [])]) {
+      if (chosen.some((t) => t.unitId === id)) continue;
+      const partner = (board.units ?? []).find((u) => u.id === id);
+      if (!partner) continue;
+      chosen = [...chosen, { ...toTargeted(partner, caster, bands), viaPartnerClause: true }];
+    }
+  }
+
   if (chosen.length === 0 && !needsChoice && errors.length === 0) {
     // A warning for zone placement, an error for an attack: an ability whose
     // effect is not target-dependent is legal with nothing in the area.
