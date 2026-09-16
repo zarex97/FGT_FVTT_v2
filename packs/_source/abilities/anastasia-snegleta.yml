@@ -21,8 +21,11 @@ description: |
   ⅓◈ Turns. Cooldown: 6◈ Turns.
 targeting:
   # "Range+1 for the Combat Process" -- `rangeBonus` on the anchor, the field
-  # Kingprotea's Earth Mother's Wail already uses.
-  anchor: { kind: targetUnit, range: 3, rangeBonus: 1 }
+  # Kingprotea's Earth Mother's Wail already uses, and NOT beside an absolute
+  # `range:`: `anchorRange` takes the absolute and discards the bonus, so the
+  # pair reached her written 3 rather than 4 and moved with nothing.
+  # Ch. 46 §46.4-F.
+  anchor: { kind: targetUnit, rangeBonus: 1 }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: chosen, count: 1 }
 damage:

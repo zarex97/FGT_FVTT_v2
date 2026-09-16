@@ -135,6 +135,28 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    live board can settle. Asterios and Karna were both on this list while six of Asterios's
    clauses had no reader and nine of Karna's thirteen abilities did not exist.
 
+   **A clause-by-clause re-audit of that list is now running — [Ch. 46](46-roster-re-audit.md)
+   holds the procedure, the register of findings that belong to the whole roster, and the
+   per-Servant status — and the first Servant on it moved four things.** Heracles was on the "fully authored" list from the beginning; holding every
+   paragraph of his sheet against a reader and then pressing it in a live world found God Hand
+   recording one use per *resolution* rather than per charge, his undeactivatable Mad Enhancement
+   being forcibly deactivated by its own clause 1 (and never re-armed), Nine Lives frozen at his
+   base Range while Mad Enhancement puts him a panel further, and — not his, but found on his
+   sheet — **every Noble Phantasm in the game reporting its Master cost as unpayable**. Ch. 31
+   §31.7a. The lesson is the one this chapter already draws about *Collected*: a clause with a
+   reader can still be a clause whose reader is asked the wrong question.
+
+10. **`isScheduler()` elects one GM *user*, not one connection.**
+   `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
+   one Gamemaster each run the whole turn-end sequence and every scheduled effect — drains,
+   periodics, cooldown advances, expiries — ticks twice. `game.users.filter(u => u.active)` will
+   not show it, because Foundry tracks activity per user rather than per connection. Found while
+   auditing Heracles, where it produced a clean ×2 on Mad Enhancement's Master drain and was
+   briefly mistaken for a rules defect. Not yet fixed; the shape that closes it is a
+   per-connection lock on the combat document rather than a per-user election. It matters here
+   more than it would elsewhere because `tools/fgt-world.mjs join` opens a tab and opening a
+   second is one click.
+
 The system is at the point where **one player can attack another player and the damage is
 correct and fully audited**. It is not yet at the point where a match can be played to a finish.
 

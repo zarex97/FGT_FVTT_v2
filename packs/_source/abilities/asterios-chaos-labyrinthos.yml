@@ -89,7 +89,16 @@ field:
   isolation:
     outsideCanTargetInside: false
     insideCanTargetOutside: false
+    # *"...cannot Attack OR APPLY ANY EFFECTS to Units within the Labyrinth AND
+    # VICE VERSA."* Both halves and both directions. The outward key was missing
+    # and the inward one had no reader at all, so an aura -- which reaches its
+    # recipient without ever being targeted -- crossed a boundary that refuses
+    # every attack. Medea's Territory Creation is `scope: field`, explicitly
+    # unbounded, and reached inside from anywhere on the board (Ch. 46 §46.4-I).
     outsideCanApplyEffectsInside: false
+    insideCanApplyEffectsOutside: false
+    # Nothing on the sheet restricts sight, and the permissive value is the
+    # default -- stated so the axis reads complete beside the four refusals.
     visibilityAcrossBoundary: full
   # Axis 4 -- interior rules.
   interior:

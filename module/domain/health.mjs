@@ -91,3 +91,45 @@ export function clampToMax(pool, delta) {
   const max = Math.max(0, (pool?.max ?? 0) + delta);
   return { value: Math.min(pool?.value ?? 0, max), max };
 }
+
+/**
+ * A Servant's maximum Health, from its END parameter.
+ *
+ * > *"END: E => 500, D => 750, C => 1000, B => 1250, A => 1500, EX => 2000.
+ * > For every + or - added to the Servant's END increase or decrease that
+ * > Servant's corresponding Base Health by 100."*
+ *
+ * **The table beats the sheet**, the same way `baseAttackFor`'s does and for
+ * the same reason: a Servant is played with the figure its END derives, not the
+ * one somebody wrote down. Four of the reference sheets disagree and every one
+ * of them disagrees *downward* — Asterios, Castor and Pollux print 1500 against
+ * A++'s 1700, Penthesilea prints 1250 against B+'s 1350 — so honouring the
+ * authored number meant three of the sturdiest Servants in the game were played
+ * two hundred Health short of what their own END grants.
+ *
+ * The authored figure survives only where there is no parameter to derive
+ * **from**: summons and platforms state Base Health outright and carry no END
+ * rank at all, which is the same escape `baseAttackFor` leaves them.
+ *
+ * `undamageable` is a different question and is answered before this is called:
+ * `null` means *cannot be damaged* (Pale Rider, the Kagome Spirits), not *has
+ * not been given a number*, and deriving one from the table would give him a
+ * Health bar his sheet spells `—`.
+ *
+ * Granted steps fold in by moving the **rank**, which is the operation an
+ * innate step performs and the one `baseAttackFor` applies to the same input.
+ *
+ * @param {object} sheet a Servant's system data
+ * @param {(table: string, rank: object) => unknown} lookup the table reader
+ * @param {object} Rank the rank algebra (injected, so this stays layer 1 pure)
+ * @returns {number}
+ */
+export function maxHealthFor(sheet, lookup, Rank) {
+  const rank = Rank.parseOrNull(sheet?.parameters?.end ?? null);
+  const granted = sheet?.grantedSteps?.end ?? 0;
+  const derived = rank
+    ? lookup("baseHealthByEnd", granted ? Rank.of(rank.grade, rank.steps + granted) : rank)
+    : null;
+  if (typeof derived === "number") return derived;
+  return sheet?.baseHealth ?? 0;
+}

@@ -16,10 +16,20 @@ import { parse } from "yaml";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
-import { classifyAbility } from "../../module/rules/ability-use.mjs";
+import { classifyAbility, dealsNoDamage } from "../../module/rules/ability-use.mjs";
 import { abilitiesAtWindow } from "../../module/rules/reactions.mjs";
 import { regionSizedShape } from "../../module/engine/fields.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+
+/** One authored ability document. */
+const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
+
+/** That document in the `{type, system}` shape `classifyAbility` reads. */
+const asItem = (doc) => ({
+  id: doc.id,
+  type: doc.isNP ? "noblePhantasm" : "ability",
+  system: { ...doc, targeting: doc.targeting ?? null, phases: doc.phases ?? [] },
+});
 
 /** @param {string} dir @returns {string[]} */
 function ymlUnder(dir) {
@@ -411,5 +421,49 @@ describe("attack:element", () => {
       attacker: {}, defender: {}, attack: { kind: "np", element: "fire" },
     });
     expect(options.has("attack:element:fire")).toBe(true);
+  });
+});
+
+/* ── The two the sheet got wrong about itself ─────────────────────────────── */
+
+describe("Chaos Labyrinthos is non-damaging, and says so to the preview too", () => {
+  const np = ability("asterios-chaos-labyrinthos");
+
+  it("declares it the way content does: phases, and no damage phase", () => {
+    // *"(Non-damaging)"* is the first word of the sheet's description, and it
+    // needs no `damage:` block to say so.
+    expect(np.damage).toBeUndefined();
+    expect((np.phases ?? []).length).toBeGreaterThan(0);
+    expect((np.phases ?? []).some((p) => p.kind === "damage")).toBe(false);
+  });
+
+  it("is recognised by the predicate BOTH the resolver and the preview read", () => {
+    // It lived in `engine/attack.mjs`, where the preview could not reach it --
+    // so the resolver dealt 0 and the confirmation dialog promised "192 - 264".
+    // Measured live before the fix (Ch. 46 §46.8).
+    expect(dealsNoDamage(asItem(np))).toBe(true);
+  });
+
+  it("does not call a damaging Noble Phantasm non-damaging", () => {
+    expect(dealsNoDamage(asItem(ability("heracles-nine-lives")))).toBe(false);
+  });
+});
+
+describe("Monstrous Strength is an Active, not a passive", () => {
+  const ms = ability("asterios-monstrous-strength");
+
+  it("is used at a timing window, as his sheet says", () => {
+    // *"(Active) Used at the start of a Damage Step when performing an Attack."*
+    expect(ms.timing.window).toEqual(["damageStep"]);
+    expect(ms.cooldown).toBe("3◈");
+  });
+
+  it("classifies as windowed rather than passive", () => {
+    // The classification was already right; the SHEET rendered every
+    // non-clickable ability as "Passive - always in effect", which told the
+    // player the skill was already working and that no Cooldown was at stake
+    // (Ch. 46 §46.8).
+    expect(classifyAbility(asItem(ms)))
+      .toMatchObject({ kind: "windowed", clickable: false, toggles: false });
   });
 });

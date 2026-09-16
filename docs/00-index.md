@@ -86,7 +86,7 @@ sufficient to implement the system without further reference to the original doc
 | 43 | [Bounded Fields](43-bounded-fields.md) | The third area family: enclosed NP zones with their own membership, permeability and escape rules |
 | 44 | [Case Studies: The Expanded Roster](44-case-expanded-roster.md) | Everything the 17 added Servants demanded, grouped by mechanism |
 | 45 | [Implementation Status and Completion Plan](45-implementation-status.md) | What is built, what is stubbed, what is missing, and the order to finish it in |
-| 45 | [Case Studies: The Expanded Roster](44-implementation-status.md) | Everything the 17 added Servants demanded, grouped by mechanism |
+| 46 | [The Roster Re-Audit](46-roster-re-audit.md) | Holding every Servant's sheet against a live board: the procedure, the measurement hazards, the recurring defect shapes, and the register of findings that belong to the whole roster rather than to one Servant |
 
 ## Appendices
 
@@ -119,6 +119,10 @@ Changes to any of the above are tracked in the [changelog](../CHANGELOG.md).
 **"I'm implementing areas."**
 08 → 09 → 19 → 20 (platforms and levels) → 42 (terrain) → 43 (bounded fields).
 These are three *distinct* area families and Chapter 43 §43.1 explains why they are not unified.
+
+**"I'm auditing a Servant against its sheet."**
+46 (the procedure and the register) → that Servant's case chapter (31–36, 44) → Appendix D → the
+sheet itself in `char_orig_sheets/`. Read 46 §46.2 **before** trusting any number off a live board.
 
 **"I want to know what changed and why."**
 [CHANGELOG](../CHANGELOG.md) → 41 (Open Questions) → 44

@@ -34,6 +34,242 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Asterios closed out: a sealed boundary, an honest preview, an honest label (2026-09-16)
+
+The three findings the Asterios audit left open ([Ch. 46](docs/46-roster-re-audit.md) §46.4-I,
+§46.8).
+
+#### Corrected
+
+- **A field's isolation sealed attacks and not effects.** Clause 10 of Chaos Labyrinthos is *"Units
+  outside the Labyrinth cannot Attack **or apply any effects** to Units within the Labyrinth **and
+  vice versa**"*. `isolationBlocks` implements the Attack half and has exactly one caller — the
+  targeting legality filter — and an aura reaches its recipient *without ever being targeted*, so
+  it asked nobody's permission. `outsideCanApplyEffectsInside` was authored and read by nothing;
+  the outward key was not authored at all. Medea's Territory Creation is `scope: "field"`,
+  explicitly unbounded, so it reached inside a Labyrinth from anywhere on the board — through a
+  wall the same field refuses every attack. `isolationBlocksEffect` is the reader, `collectAuras`
+  asks it, and the two questions stay separate keys because a field may seal one and not the other.
+  **Measured live**: across the boundary blocks, same-side does not, and no aura reaches the trapped
+  unit.
+
+- **The preview promised damage a non-damaging Noble Phantasm does not deal.** Opening the
+  Labyrinth previewed *"192 – 264"* and dealt 0. `dealsNoDamage` lived in `engine/attack.mjs`,
+  where the preview — layer 2 — could not reach it, so the preview fell through to the caster's
+  Normal Attack the way the resolver itself used to. The predicate moved to
+  `rules/ability-use.mjs` beside `classifyAbility`: one definition, two readers. The confirmation
+  dialog now shows the target with no damage figure at all.
+
+- **An ability whose only moment is a timing window read as a passive.** `classifyAbility` has
+  answered `kind: "windowed"` since Monstrous Strength needed it, and the ability card had no
+  branch for that kind — so every non-clickable ability fell through to *"Passive — always in
+  effect"*. For *"(Active) Used at the start of a Damage Step when performing an Attack"* with a 3◈
+  Cooldown that is wrong in the direction that matters: a player told the skill is already working
+  never goes looking for the prompt, and never learns a Cooldown is spent when they answer it. The
+  card now names the window — **"Active — offered at: Start of the Damage Step"**.
+
+
+### The Labyrinth has a way out, and Max Health is derived (2026-09-16)
+
+#### Answered
+
+- **Max Health is derived from END and the table beats the sheet**, as Base Attack's does. Raised
+  by the Asterios audit — his sheet prints 1500 where END A++ derives 1700 — and settled by the
+  game's author. Four sheets disagree with the table and every one disagrees *downward*: Asterios,
+  Castor and Pollux print 1500 against 1700, Penthesilea 1250 against 1350, so honouring the
+  authored figure played three of the sturdiest Servants in the game two hundred Health short. The
+  rule is `domain/health.mjs#maxHealthFor`, pure and injected the way `baseAttackFor` is; the
+  authored number survives only where there is no parameter to derive from, which is summons and
+  platforms. `undamageable` is answered first and is a different question — `null` is *cannot be
+  damaged*, not *has not been given a number*. Ch. 06 §6.1. **Measured live**: Asterios imports at
+  1700/1700.
+
+#### Corrected
+
+- **A bounded field's escape ladder was offered by nobody.** `escapeAttempt` implemented all of
+  Ch. 43 §43.4 — base chance, +5% per failure, border contact, remaining movement, relocation on
+  failure, and clause 9's veteran rule — and its only callers were its own twelve unit tests.
+  `rules/movement.mjs` asked `membershipVerdict` for an exit and read `rollRequired` as a stop,
+  which is the conflation `bounded-fields.mjs` warns against in its own words: *"Conflating the two
+  would turn the Labyrinth from a puzzle into a wall."* It was a wall — Chaos Labyrinthos trapped
+  every enemy permanently, and clauses 5 and 9 could never happen.
+
+  Three seams close it. **`canAttemptEscape`** is split out of `escapeAttempt` so the interface can
+  *offer* the ladder without first resolving it — the only entry point needed a die, and nothing in
+  the interface had a reason to roll one, which is precisely why it had no caller. An **`escape`
+  action** carries the press, billing no ActionKind because the Move it belongs to is already paid
+  for, and it is offered even when the gate refuses so the button can say `notAtBorder`. And
+  **`field.state.mayExit`** is the transient pass a success buys, honoured by `membershipVerdict`:
+  without it a won roll would be refused by the very gate it beat. That pass is spent by being
+  outside and is deliberately *not* the veteran mark, which grants a better roll on re-entry rather
+  than free passage.
+
+  **Measured live, end to end**: 20% rolled 12 → failed and relocated inside, *"Next attempt:
+  25%"*; 25% rolled 14 → failed; 30% rolled 12 → failed; 35% rolled 7 → **escaped**; the token then
+  moved out with no refusal, the pass cleared on the next entry sweep, and a re-entry gate answered
+  `{ok: true, chance: 100, automatic: true, reason: "veteran"}`.
+
+
+### Asterios re-audited; the Mad Enhancement template stops over-granting (2026-09-16)
+
+Second pass of the roster re-audit ([Ch. 46](docs/46-roster-re-audit.md)).
+
+#### Corrected
+
+- **The Mad Enhancement template gave all six bearers all of clause 1, and the six sheets print it
+  three different ways.** Heracles has a Master-health floor and no forced deactivation; Asterios,
+  Castor and Kingprotea have the forced deactivation and no floor; Penthesilea and Raikou have
+  both. Three Servants therefore carried a floor their sheets do not grant, worth 10 Health on the
+  Turn their Master crosses the threshold. Clause 1 is now parameterized — `drainFloor` and
+  `forcedDeactivation`, both **required**, because a default would hand a new bearer whichever
+  shape happened to be commonest and that is the whole finding. **Measured live**: Asterios's
+  Master goes 30 → 10 and the mode switches off; Heracles's goes 30 → 20 and it holds.
+
+- **Two of Anastasia's Noble Phantasms stated both `range:` and `rangeBonus:`**, and `anchorRange`
+  returns the absolute the moment it is a number — so *"Range+3 for the Combat Process"* reached
+  her written 3 rather than 6, with a comment beside it asserting the arithmetic it was not doing,
+  and *"Range+1"* reached 3 rather than 4. Both now state the bonus alone.
+
+#### Added
+
+- **`onlyIf` on a template clause.** A shared template is instantiated per bearer and every bearer
+  got every clause — right for a table-driven skill like Magic Resistance, wrong for one whose
+  *shape* differs between the sheets that carry it. `onlyIf: "@param"` marks a clause only some
+  bearers have, and `prune` drops it at **build** time, so the compiled document says what that
+  Servant has rather than what the template could have given it. Splitting the file would have
+  meant six numbers obliged to stay in step; a `predicate` would be a question about the board,
+  and this is a question about whose sheet it is.
+
+- **The validator refuses an anchor carrying both `range` and `rangeBonus`**, the half that stops
+  the above recurring, and skips unresolved `@param` placeholders when checking table references
+  so a parameterized template validates as authored.
+
+#### Found, not yet fixed — Ch. 46 §46.4
+
+- **A bounded field's escape ladder is offered by nobody.** `escapeAttempt` implements all of
+  Ch. 43 §43.4 — base chance, +5% per failure, border contact, remaining MOV, relocation on
+  failure, the veteran clause — and **its only callers are its own twelve unit tests**.
+  `rules/movement.mjs:364` treats `membershipVerdict`'s `rollRequired` as a refusal, which is the
+  conflation `bounded-fields.mjs` warns against in its own words: *"Conflating the two would turn
+  the Labyrinth from a puzzle into a wall."* It is a wall. Measured live: an enemy on the inner
+  border with 3 MOV, where `escapeAttempt` returns `{ok: true, chance: 20}`, is refused by the
+  interface with *"Step 1 passes through a panel this Unit may not enter."* Clauses 5 and 9 of
+  Chaos Labyrinthos — about half its printed text — are inert.
+
+- **A field's isolation covers targeting but not effect application.** Clause 10 is *"cannot Attack
+  **or apply any effects**"*; `isolationBlocks` is consulted only by the targeting filter, and
+  `rules/auras.mjs` never consults it at all, so an aura crosses the boundary in both directions.
+  `outsideCanApplyEffectsInside` is authored and read by nobody.
+
+- **The preview promises damage a non-damaging Noble Phantasm will not deal.** Chaos Labyrinthos
+  previewed *"192 – 264"* and dealt 0. `dealsNoDamage` is applied in `engine/attack.mjs` and not in
+  `rules/preview.mjs`.
+
+- **Monstrous Strength reads "PASSIVE — ALWAYS IN EFFECT"** on the sheet. It is an Active with a 3◈
+  Cooldown, correctly offered at the Damage Step window; only the classification is wrong, and in
+  the direction where a player never goes looking for the prompt.
+
+
+### Heracles, re-audited against his sheet — four defects, all found on a live board (2026-09-16)
+
+The first pass of a clause-by-clause re-audit of the reference roster: every paragraph of
+`char_orig_sheets/Copia de Heracles.md` traced to a rule element and then to the engine reader
+that consumes it, and then pressed in a running world. Eight abilities, thirty-odd clauses, four
+of them wrong.
+
+### Added
+
+- **[Chapter 46, The Roster Re-Audit](docs/46-roster-re-audit.md)** — because three of Heracles's
+  four defects were **not his**. It holds the two-pass procedure, the measurement hazards that
+  corrupt a live reading (two of which produced a finding that had to be retracted), the recurring
+  defect *shapes* worth hunting rather than waiting to trip over, the register of findings that
+  belong to the whole roster, the per-Servant checklist, and the roster status table. Each audit
+  appends to it.
+
+#### Corrected
+
+- **God Hand spent charges it never recorded.** *"Can only be used 11 times"*, against a first
+  passive that can spend several of those eleven on one attack — *"the excess damage is reduced
+  from his newly restored Health, **and so on**"*. `resolveRevival` has always returned the right
+  `chargesUsed` and `rules/revival.mjs`'s own test asserts a three-charge cascade; `spendRevival`
+  then threw the number away, calling `I.recordUse(unit.id, source.abilityId, null)` where the
+  **effect**-borne branch two lines above it passes `revival.chargesUsed` to `consumeUse`. One
+  resolution, one tick of the ledger, however many charges went into it — so God Hand was eleven
+  *resolutions* rather than eleven uses. `recordUse` now carries a `count`, and `io.recordUse`
+  adds it. The Turn and Round records stay a single entry: they answer *"was this used this
+  Turn"*, which has no quantity. **Measured live**: a 256-damage hit into a Heracles at 1 Health
+  logged `charges: 3` and moved the sheet from *"used 0 of 11"* to *"used 1 of 11"*; it now reads
+  **"used 3 of 11"**.
+
+- **A forced deactivation switched off the one mode that never switches off.** Mad Enhancement's
+  clause 1 forcibly deactivates the mode when the Master reaches the drain figure, and
+  `class-mad-enhancement.yml` authors that for every bearer. Heracles carries
+  `cannotDeactivate: true`, and `rules/modes.mjs:92` has refused a **player's** click on that flag
+  since it was written — but every forced path writes through `io.setMode`, which read
+  `system.active` and nothing else. So his Master reached the floor at 20, Mad Enhancement went
+  off, and nothing brought it back: `reconcileForcedModes` only re-arms a mode held on by a
+  compulsion or a `ForceMode` rule, and he is held on by neither. Clauses 2–6 stopped, MOV
+  dropped 8 → 6, Range 2 → 1, and **Bravery became pressable** — an ability his sheet says he can
+  never use. `io.setMode` now honours the flag. The asymmetry is the one
+  `content/authored-fields.mjs` already draws: `cannotDeactivate` says NEVER and `toggleLock`
+  says HOW LONG YOU WAIT, so a forcible deactivation still beats the lockout and does not beat
+  this; a Command Spell is unaffected, spending itself through `suspendSkill`. **Measured live**:
+  three consecutive Turns with the Master parked on the floor, and the mode holds.
+
+- **Nine Lives could not reach as far as Heracles can.** Authored
+  `anchor: { kind: targetUnit, range: 1 }` — his **base** Range, transcribed and frozen. His sheet
+  gives the Noble Phantasm no reach of its own (*"Base Attack (STR) is used"* and nothing about
+  panels), so it swings at whatever his Range is, and Mad Enhancement's clause 4 puts that at 2
+  for the whole match. `anchorRange` returns an absolute `range` immediately and only falls
+  through to `caster.range` when neither it nor `rangeBonus` is stated — which is the distinction
+  that module's own docstring draws. **Measured live**: his sheet read Range 2 and the targeting
+  step refused an enemy two panels away with *"HT Foe is out of Range (1)"*. It is now legal.
+
+- **Every Noble Phantasm in the game read as unpayable on its owner's sheet.**
+  `present.mjs#abilityCost` read `master?.health?.value ?? 0`, and the Master `context.mjs` hands
+  it is the **board's projection** of that unit, where `snapshotUnit` flattens `health` to a bare
+  number. So `.value` was `undefined`, the `?? 0` made every Master destitute, and the sheet said
+  *"Master cost 40 Health (HT Master has 0) ✗ cannot be paid"* with that Master standing at
+  250/250. This is the fourth site in `domain/health.mjs`'s own list and the one that got away:
+  `cannotPay` in `rules/costs.mjs` was repaired when that module was written and the presenter
+  beside it was missed — so the **gate allowed the press while the sheet denied it**, which is
+  worse than either being wrong alone, because the player believes the sheet. Every fixture in
+  `sheet-present.test.mjs` used the document shape, which is exactly how the code and the tests
+  came to agree with each other and not with the system. It reads through `currentHealth` now.
+
+#### Not a defect, recorded because it was nearly filed as one
+
+- **An authored `baseAttack` is overwritten by the STR/MAG table**, deliberately.
+  `domain/base-attack.mjs` quotes the rulebook doing it: *"If you find a value of Base attack that
+  differs from this calculation choose the value of this table instead of what is on the
+  character sheet."*
+
+#### Found in passing, not yet fixed
+
+- **The shared Mad Enhancement template authors both halves of clause 1 for every bearer**, and
+  the six sheets that carry it print **three** different shapes. Heracles has the floor and *no*
+  forced deactivation; Asterios, Castor and Kingprotea have the forced deactivation and *no*
+  floor; Penthesilea and Raikou have both, with the floor conditional on *"while the Skill does
+  not meet the condition to be deactivated"*. `cannotDeactivate` now makes Heracles correct in
+  outcome, but Asterios, Castor and Kingprotea still receive a floor their sheets do not grant —
+  a 10-Health difference on the Turn their Master crosses the threshold. Belongs with those
+  Servants' own audits.
+
+- **`rules/targeting/resolve.mjs` reads `caster.alignment?.moral`** against a schema field named
+  `morality`, so `limits.forbidCivilians: "ifGoodAligned"` can never fire. Inert today — no
+  content uses it.
+
+- **Anastasia's `ice-block-launcher` and `snegleta` state both `range:` and `rangeBonus:`**, and
+  `anchorRange` returns the absolute and discards the bonus. Belongs with her audit.
+
+- **`isScheduler()` elects one GM *user*, not one connection.** `game.users.activeGM?.isSelf` is
+  true for **every** tab that user has open, so two windows on one Gamemaster each run the whole
+  turn-end sequence and every scheduled effect ticks twice. Found by accident — it produced a
+  perfect ×2 on the Mad Enhancement drain that was reported as a rules defect before the second
+  writer was traced to a socket update from the other tab. `game.users.filter(u => u.active)`
+  will not show it: Foundry tracks activity per user, not per connection.
+
+
 ### Nursery Rhyme, Part 4 of 4 — The Queen's Glass Game (2026-09-16)
 
 **The engine can now remember the past.** Ch. 43 §43.11 opens its design by

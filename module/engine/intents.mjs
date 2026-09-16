@@ -364,13 +364,26 @@ export const setStance = (unitId, stance, source = null) =>
  * Noble Phantasms and Attack Skills, which are the abilities most likely to
  * carry one.
  *
+ * `count` is how much of the whole-match budget this use spends, and it is 1
+ * for every caller but one. God Hand's first passive cascades -- *"if the
+ * damage of the Attack that defeated Heracles exceeds his current Health, the
+ * excess damage is reduced from his newly restored Health, AND SO ON"* -- so a
+ * single resolution can spend several of the eleven times it *"can only be
+ * used"*. The Turn and Round records are still one entry however many charges
+ * went: they answer "was this used this Turn", which has no quantity.
+ *
+ * The effect-borne half of the same rule has always carried the number
+ * (`consumeUse` takes a count, and `Undying` is spent by it); only the
+ * ability-borne half dropped it.
+ *
  * @param {string} unitId
  * @param {string} abilityId the Item id
  * @param {string|null} [contentId] what an exclusion list names
+ * @param {number} [count] charges spent against `maxUses`
  * @returns {Intent}
  */
-export const recordUse = (unitId, abilityId, contentId = null) =>
-  ({ t: "recordUse", unitId, abilityId, contentId });
+export const recordUse = (unitId, abilityId, contentId = null, count = 1) =>
+  ({ t: "recordUse", unitId, abilityId, contentId, count });
 
 /**
  * Move a barrier's own Health pool.

@@ -376,3 +376,40 @@ describe("an aura addressed to named roles", () => {
     expect(b.units.find((u) => u.id === "ally").untargetableBy).toHaveLength(1);
   });
 });
+
+/* ── A boundary that seals effect application seals an aura too ───────────── */
+
+describe("auras and bounded fields", () => {
+  // The aura path never asked a field for permission -- it is computed from
+  // distance and relation, and `isolationBlocks` has one caller, the targeting
+  // legality filter. So an aura crossed a wall that refuses every attack, and
+  // `scope: "field"` (Medea's Territory Creation, explicitly unbounded) crossed
+  // it from anywhere on the board. Ch. 46 §46.4-I.
+  const field = {
+    id: "labyrinth",
+    geometry: { kind: "fixedArea", shape: { kind: "square", size: 5 }, anchor: { i: 5, j: 5 } },
+    isolation: { outsideCanApplyEffectsInside: false, insideCanApplyEffectsOutside: false },
+    membership: {},
+    state: {},
+  };
+  const auraSource = (id, panel) => ({
+    id, panel, faction: "f1",
+    auras: [{ scope: "field", key: "defUp", value: 30, relations: ["ally", "self", "enemy"] }],
+  });
+
+  it("does not reach across the boundary, however unbounded its scope", () => {
+    const source = auraSource("outside", { i: 20, j: 20 });
+    const target = { id: "inside", panel: { i: 5, j: 5 }, faction: "f1" };
+    const board = { units: [source, target], fields: [field], alliances: {} };
+
+    expect(collectAuras(target, board)).toEqual([]);
+  });
+
+  it("still reaches a unit on the same side of it", () => {
+    const source = auraSource("inside-a", { i: 5, j: 5 });
+    const target = { id: "inside-b", panel: { i: 6, j: 6 }, faction: "f1" };
+    const board = { units: [source, target], fields: [field], alliances: {} };
+
+    expect(collectAuras(target, board)).toHaveLength(1);
+  });
+});

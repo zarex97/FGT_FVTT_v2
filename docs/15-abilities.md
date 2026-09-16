@@ -697,6 +697,20 @@ nowhere to live, and there are four in the reference set:
 | Not while | Penthesilea: *"Mad Enhancement cannot be deactivated until there are no Greek Male Units within a 4 panel area"* | a `Compulsion` naming the skill |
 | Held on | Raikou: *"When Raikou's Master is within a 2 panel area of herself, her Mad Enhancement is constantly Active and cannot be deactivated"* | a `ForceMode` element carrying the condition |
 
+**All four bind the engine, not only the button.** `canToggleMode` answers a *player's* click,
+and for a long time that was the only reader — every **forced** path (a scheduler `SetMode`, an
+ability's `setMode` phase, a Noble Phantasm's) wrote straight through `io.setMode`, which
+consulted `system.active` and nothing else. Mad Enhancement's own clause 1 forcibly deactivates
+the mode when the Master reaches the drain figure, so the engine switched off the one Servant
+whose sheet says it never switches off, and `reconcileForcedModes` did not bring it back: that
+pass re-arms a mode held on by a **compulsion** or a **`ForceMode`** rule, and *Never* is neither.
+`io.setMode` now honours `cannotDeactivate`.
+
+The two refusals are **not** interchangeable, and the order matters: `cannotDeactivate` says
+NEVER and `toggleLock` says HOW LONG YOU WAIT, so a forcible deactivation still beats the lockout
+and does not beat the flag. A Command Spell is unaffected either way — it is bought precisely to
+defeat the refusal and spends itself through `suspendSkill`, a different write.
+
 The last two are the interesting ones, because they force the mode **on** as well as refusing to
 let it off — *"her Mad Enhancement is immediately activated regardless of Cooldown or any other
 factors"*. So `rules/modes.mjs` answers two questions: `canToggleMode` for the refusal, and

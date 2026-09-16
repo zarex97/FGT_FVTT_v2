@@ -1428,6 +1428,11 @@ export async function stampFieldEntries(unitIds, fieldIds = null) {
     }
     if (Object.keys(update).length > 0) await behavior.update(update);
   }
+
+  // The other half of the same sweep: a unit that bought an exit with a
+  // successful escape roll spends the pass by actually being outside.
+  const { clearSpentExitPasses } = await import("./escape.mjs");
+  await clearSpentExitPasses(unitIds);
 }
 
 /**

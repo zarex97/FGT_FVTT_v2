@@ -215,6 +215,16 @@ One card per ability, sorted: class skills, personal skills, Noble Phantasms.
 Every disabled button carries a tooltip stating exactly why (Ch. 15 §15.10). Every irreversible
 action carries a warning before the click, not after.
 
+**The affordability line reads through `currentHealth`.** *"(Jinako has 118)"* is the whole point
+of stating affordability rather than implying it — and `abilityCost` read `master.health.value`,
+while the Master `context.mjs` hands it is the **board's projection**, where `snapshotUnit`
+flattens `health` to a bare number. `.value` was `undefined`, the `?? 0` beside it made every
+Master destitute, and every Noble Phantasm in the game reported *"cannot be paid"* on its owner's
+own sheet. `cannotPay` in `rules/costs.mjs` was already correct, which made it worse rather than
+better: the gate allowed the press while the sheet denied it, and the player believes the sheet.
+Any presenter handed a unit from the board reads Health through `domain/health.mjs` — the two
+shapes are both legitimate and only that module knows both.
+
 ### Effects tab
 
 Grouped by polarity, with the source and remaining duration:

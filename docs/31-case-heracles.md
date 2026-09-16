@@ -470,6 +470,47 @@ belong in the catalogue.
 
 ---
 
+## 31.7a Re-audited against the sheet (2026-09-16)
+
+The first pass of the roster re-audit ([Ch. 46](46-roster-re-audit.md)), which this Servant is the
+reason for: three of the four defects below are **not his**, and a per-Servant audit that filed
+them only here would have buried them.
+
+Every paragraph of `char_orig_sheets/Copia de Heracles.md` re-traced to a rule element and then
+to the reader that consumes it, and then pressed on a live board. The statblock, the rank tables,
+the revival priorities, Bravery's `modeInactive` refusal, Eye of the Mind's reaction window and
+God Hand's cascade **arithmetic** all held. Three clauses did not, and one defect underneath them
+belongs to the whole roster.
+
+| Clause | What was wrong | Where it was fixed |
+|---|---|---|
+| God Hand, *"can only be used 11 times"* | `resolveRevival` returned `chargesUsed: 3` for a cascade and `spendRevival` recorded **one** use. The **effect**-borne branch beside it has always passed the count to `consumeUse`; only the ability-borne branch dropped it, so God Hand was eleven *resolutions* | `I.recordUse` carries a `count`; `io.recordUse` adds it |
+| Mad Enhancement, *"cannot be deactivated"* | The forced deactivation in clause 1 wrote through `io.setMode`, which never read `cannotDeactivate` — and nothing re-armed him, because `reconcileForcedModes` only re-arms a compulsion or a `ForceMode` rule. Clauses 2–6 stopped and **Bravery became pressable** | `io.setMode`; Ch. 15 §15.6 |
+| Nine Lives, no stated reach | Authored `range: 1` — his **base** Range, frozen — while Mad Enhancement's clause 4 puts him at 2 for the whole match. An absolute `range:` is the idiom for an ability that prints its own number | the anchor drops `range:` and falls through to `caster.range` |
+
+**A fourth, and it is not his.** `present.mjs#abilityCost` read `master.health.value` against a
+board projection that flattens Health to a number, so *both* his Noble Phantasms reported
+*"Master cost 40 Health (HT Master has 0) ✗ cannot be paid"* with that Master at 250/250 — as did
+every Noble Phantasm on every Servant in the game. Ch. 29 §29.2.
+
+**What the sheet still over-grants.** `class-mad-enhancement.yml` authors both halves of clause 1
+for every bearer, and the six sheets carrying Mad Enhancement print three different shapes:
+Heracles has the floor and no forced deactivation; Asterios, Castor and Kingprotea have the
+forced deactivation and no floor; Penthesilea and Raikou have both, with the floor conditional on
+*"while the Skill does not meet the condition to be deactivated"*. `cannotDeactivate` makes
+Heracles correct in outcome; the other three still receive a floor their sheets do not grant.
+That belongs with their own audits rather than with his.
+
+**A note on the measurement**, recorded in full as Ch. 46 §46.2 because it will recur. The drain
+was first reported as 40 a Turn against a stated 20. It
+is 20. Two browser tabs were open on the same Gamemaster and `isScheduler()` elects one GM
+**user** — `game.users.activeGM?.isSelf` is true for every connection that user holds — so both
+ran the turn-end sequence and every scheduled effect ticked twice. `game.users.filter(u =>
+u.active)` does not reveal it, because Foundry tracks activity per user and not per connection.
+The election is recorded as an open gap in Ch. 45.
+
+---
+
 ## 31.8 What Heracles proved
 
 | Requirement surfaced | Where it landed |

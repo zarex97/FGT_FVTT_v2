@@ -10,7 +10,16 @@ npTags: [antiUnit]
 cooldown: "7◈+⅓◈"
 description: "Base Attack (STR) is used. Deals 4x damage plus 100. Then inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage taken is increased by 30%."
 targeting:
-  anchor: { kind: targetUnit, range: 1 }
+  # NO `range:`. His sheet gives Nine Lives no reach of its own -- "Base Attack
+  # (STR) is used" and nothing about panels -- so it swings at whatever his
+  # Range is, and `anchorRange` falls through to `caster.range` when neither
+  # `range` nor `rangeBonus` is stated. An absolute number is the idiom for an
+  # ability that prints one (EMIYA's Caladbolg II at 6); `rangeBonus` is the
+  # idiom for one that moves with the unit. This carried `range: 1`, his BASE
+  # Range transcribed and frozen -- and Mad Enhancement's clause 4 puts him at
+  # 2 for the whole match, so his own Noble Phantasm could not reach an enemy
+  # his sheet said was in range. Found live: "HT Foe is out of Range (1)".
+  anchor: { kind: targetUnit }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: all, count: 1 }
   limits: { requiresZon: true }

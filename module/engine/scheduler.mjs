@@ -1539,7 +1539,11 @@ function spendRevival(unit, revival, ctx = {}) {
   if (!source.abilityId) return [];
 
   return [
-    I.recordUse(unit.id, source.abilityId, null),
+    // The charges this attempt spent, not the fact that one happened. The
+    // effect-borne branch above has always passed `chargesUsed` to
+    // `consumeUse`; this one dropped it, so God Hand's cascade cost one of its
+    // eleven however many it burned.
+    I.recordUse(unit.id, source.abilityId, null, revival.chargesUsed),
     // Its own cooldown, which is how Battle Continuation's 3 Rounds are
     // enforced -- the clock `advanceCooldowns` already turns, visible on the
     // sheet where a player can see why the revive did not happen.

@@ -9,6 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
+import { resolveRef } from "../../tools/lib/content.mjs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
@@ -360,8 +361,30 @@ describe("Mad Enhancement A+", () => {
     expect(lookup("madEnhancementDefence", Rank.parse("A+"))).toEqual([55, 25]);
   });
 
+  // Instantiated as HER sheet takes it: clause 1 is parameterized, because the
+  // six sheets carrying Mad Enhancement print three different shapes of it
+  // (Ch. 46 §46.4-C). Hers is the forced deactivation with no floor.
+  const forKingprotea = () => {
+    const sv = parse(readFileSync("packs/_source/servants/kingprotea.yml", "utf8"));
+    const ref = sv.abilities.find((a) => a.ref === "class-mad-enhancement");
+    const library = new Map([["class-mad-enhancement",
+      parse(readFileSync("packs/_source/class-skills/mad-enhancement.yml", "utf8"))]]);
+    const problems = [];
+    const built = resolveRef(ref, library, problems, "kingprotea");
+    expect(problems).toEqual([]);
+    return built;
+  };
+
+  it("drains 25 with no floor, and forcibly deactivates at 25", () => {
+    const [drain, setMode] = forKingprotea().activeRules
+      .find((r) => r.key === "OnEvent").then;
+
+    expect(drain.floorTable).toBe(null);
+    expect(setMode.whenValue.lteTable).toBe("madEnhancementDrain");
+  });
+
   it("halves the MAG share to 40, not 42.5", () => {
-    const me = parse(readFileSync("packs/_source/class-skills/mad-enhancement.yml", "utf8"));
+    const me = forKingprotea();
     const mag = me.activeRules.find((r) => r.predicate?.includes?.("attack:component:mag"));
     expect(mag.magnitudeFactor).toBe(0.5);
     expect(mag.magnitudeRoundTo).toBe(5);

@@ -422,7 +422,66 @@ export function resolveRef(entry, library, problems, where) {
     }
   }
 
-  return { ...substitute(template, params), _ref: entry.ref, ...params };
+  const built = prune(substitute(template, params), problems, `${where}: ref "${entry.ref}"`);
+  return { ...built, _ref: entry.ref, ...params };
+}
+
+/**
+ * Drop the clauses this instantiation does not carry.
+ *
+ * A template is instantiated per bearer, and until now every bearer got every
+ * clause. That is right for a table-driven skill -- Magic Resistance is the
+ * same rule at eleven ranks -- and wrong for one whose SHAPE differs between
+ * the sheets that carry it.
+ *
+ * Mad Enhancement is the case. Clause 1 is printed three different ways across
+ * the six sheets that have it: Heracles has a Master-health floor and **no**
+ * forced deactivation, Asterios/Castor/Kingprotea have the forced deactivation
+ * and **no** floor, and Penthesilea/Raikou have both. Authoring all of it for
+ * everybody gave three Servants a floor their sheets do not grant and one a
+ * forced deactivation his sheet replaces with the floor.
+ *
+ * `onlyIf: "@param"` marks a clause that exists only for some bearers.
+ * `substitute` above has already resolved it to a boolean, so this is a pure
+ * structural prune and the built document carries no trace of the field --
+ * which is the point: the compiled pack should say what this Servant HAS, not
+ * what the template could have given it.
+ *
+ * Splitting the template instead would mean one skill with three files and six
+ * numbers obliged to stay in step, which is the failure `substitute` exists to
+ * prevent. A `predicate` would be wrong for a different reason: this is not a
+ * question about the board, it is a question about whose sheet it is, and it
+ * has an answer at build time.
+ *
+ * @param {unknown} node
+ * @param {string[]} problems appended to when `onlyIf` survived unresolved
+ * @param {string} where for error messages
+ * @returns {unknown}
+ */
+export function prune(node, problems = [], where = "") {
+  if (Array.isArray(node)) {
+    return node
+      .filter((n) => !(n && typeof n === "object" && n.onlyIf === false))
+      .map((n) => prune(n, problems, where));
+  }
+  if (!node || typeof node !== "object") return node;
+
+  /** @type {Record<string, unknown>} */
+  const out = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (k === "onlyIf") {
+      // A placeholder that reached here is a parameter the bearer never
+      // supplied. Silently keeping the clause would be the "collected and
+      // never read" failure in reverse -- a clause nobody asked for, shipped.
+      if (v !== true && v !== false) {
+        problems.push(`${where}: "onlyIf" resolved to ${JSON.stringify(v)} rather than a boolean `
+          + `-- the bearer did not supply that parameter`);
+      }
+      continue;
+    }
+    out[k] = prune(v, problems, where);
+  }
+  return out;
 }
 
 /**
@@ -1319,6 +1378,23 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
         + `expected one of ${SHAPE_IDS.join(", ")}`,
       );
     }
+    // An anchor may state an ABSOLUTE reach or a RELATIVE one, and stating
+    // both is always a mistake: `anchorRange` returns `spec.range` the moment
+    // it is a number and never reaches `rangeBonus`, so the second field is
+    // discarded in silence. Two of Anastasia's Noble Phantasms carried both --
+    // *"Range+3 for the Combat Process"* authored as `range: 3, rangeBonus: 3`
+    // -- and each reached her written 3 rather than the 6 and 4 their sheets
+    // grant, with a comment beside one of them asserting the arithmetic it was
+    // not doing. Ch. 46 §46.4-F.
+    if (typeof spec.anchor?.range === "number" && spec.anchor?.rangeBonus !== undefined) {
+      problems.push(
+        `${path}: ${where} states both "range" and "rangeBonus" — `
+        + `anchorRange takes the absolute and discards the bonus. `
+        + `Use "range" for a reach the sheet prints, "rangeBonus" for one stated `
+        + `relative to the unit's own Range ("Range+2 for the Combat Process")`,
+      );
+    }
+
     // The CHOOSER, for the same reason and with the same failure:
     // `resolveTargets` throws a `RangeError` on one it does not know, so an
     // authored typo is a crash the moment somebody uses the ability. Doomsday
@@ -1394,6 +1470,20 @@ function targetSpecs(doc) {
  * @param {object} el a rule element
  * @returns {Array<[string, string]>} `[field, tableId]`
  */
+/**
+ * A real table id, as against an unresolved `@param` placeholder.
+ *
+ * A template is validated as it is authored, before any bearer has supplied its
+ * parameters, so `floorTable: "@drainFloor"` is correct source and not an
+ * unknown table. The same guard the rank and duration checks already apply.
+ *
+ * @param {unknown} v
+ * @returns {boolean}
+ */
+function named(v) {
+  return typeof v === "string" && !v.startsWith("@");
+}
+
 function actionTables(el) {
   /** @type {Array<[string, string]>} */
   const out = [];
@@ -1403,16 +1493,16 @@ function actionTables(el) {
     if (!action || typeof action !== "object") continue;
     const at = `then[${index}]`;
     for (const field of ["table", "cooldownTable", "floorTable"]) {
-      if (typeof action[field] === "string") out.push([`${at}.${field}`, action[field]]);
+      if (named(action[field])) out.push([`${at}.${field}`, action[field]]);
     }
     for (const field of ["lteTable", "gteTable"]) {
       const id = action.whenValue?.[field];
-      if (typeof id === "string") out.push([`${at}.whenValue.${field}`, id]);
+      if (named(id)) out.push([`${at}.whenValue.${field}`, id]);
     }
     // `restore: {table, cooldownTable}` — a `RevivalSource`'s nested pair.
     for (const field of ["table", "cooldownTable"]) {
       const id = action.restore?.[field];
-      if (typeof id === "string") out.push([`${at}.restore.${field}`, id]);
+      if (named(id)) out.push([`${at}.restore.${field}`, id]);
     }
   }
 

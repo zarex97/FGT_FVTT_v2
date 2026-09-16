@@ -30,7 +30,12 @@ sustainability: "2◈"
 abilities:
   # Permanent and undeactivatable for Heracles specifically -- which is what
   # makes Bravery's suppression clause interesting (Ch. 31).
-  - { ref: class-mad-enhancement, rank: B, active: true, cannotDeactivate: true }
+  # Clause 1 is a FLOOR and no forced deactivation: *"its Master's Health cannot
+  # drop below 20 in this way"*. He is the only bearer of that shape, and the
+  # only one for whom the template's forced deactivation would be a clause his
+  # sheet replaces rather than adds (Ch. 46 §46.4-C).
+  - { ref: class-mad-enhancement, rank: B, active: true, cannotDeactivate: true,
+      drainFloor: madEnhancementDrain, forcedDeactivation: false }
   - { ref: divinity, rank: A }
   - { ref: class-battle-continuation, rank: A }
   - { ref: heracles-indomitable }

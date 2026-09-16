@@ -21,8 +21,21 @@
 > | 5 Duration | `extensionFor` |
 > | 6 Vulnerability | `vulnerabilityTriggered`, on the `NP_TAG_SCALE` ordering |
 >
+> **Isolation is two questions, not one.** *"Units outside cannot Attack **or apply any effects**
+> to Units within, and vice versa"* — `isolationBlocks` answers the first and is consulted by the
+> targeting filter; `isolationBlocksEffect` answers the second, because an aura reaches its
+> recipient without ever being targeted and therefore asked nobody's permission. An unbounded
+> `scope: "field"` aura crossed a wall that refuses every attack until it did (Ch. 46 §46.4-I).
+> The two stay separate keys: a field may seal one and not the other.
+>
 > Details worth keeping. `rollRequired` is **not** a refusal — it refuses the *free* move and the
-> caller offers `escapeAttempt`; conflating the two turns a Labyrinth into a wall. Blocking
+> caller offers `escapeAttempt`; conflating the two turns a Labyrinth into a wall. **It did, for as
+> long as bounded fields existed** — `rules/movement.mjs` asked `membershipVerdict` for an exit and
+> read a `false` as a stop, while `escapeAttempt` sat complete, unit-tested and called by nothing
+> but its own tests. Three seams close it (Ch. 46 §46.4-H): `canAttemptEscape` answers the gate
+> without a die so the interface can *offer* the ladder, an `escape` action carries the press, and
+> `state.mayExit` is the transient pass a success buys — because a roll that is won and then
+> refused by the gate it beat is the same wall. Blocking
 > **Command Spells** is its own axis rather than an inference from isolation, because the duel
 > field is the only thing in the game that does it. And `???` never satisfies a tag threshold, so
 > the check surfaces a prompt instead of silently deciding either way.
@@ -62,7 +75,10 @@
 > The two-phase `markDefined` construction (Blood Fort Andromeda's Bloodmarks) **is now built**,
 > along with `Structure` content and the drain-to-heal pool. Still not built: the scheduled
 > detonation of §43.9. The state history of §43.11 exists only as
-> `state.escapeHistory` — enough for the veteran rule, not the general log.
+> `state.escapeHistory` — enough for the veteran rule, not the general log. `state.mayExit` sits
+> beside it and is deliberately **not** the same thing: the history is clause 9's permanent veteran
+> mark (*"Base Success Chance … increased to 100%"* on re-entry — a better roll, not free passage),
+> and `mayExit` is one attempt's winnings, spent by being outside.
 
 The expanded roster added nine abilities that create a **persistent area with its own rules of
 entry, exit, and suppression**. They are not platforms (Ch. 20 — those are about elevation) and
