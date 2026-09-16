@@ -478,7 +478,7 @@ per-Servant record of what each audit left untested.
 | Servant | Paper | Board | Findings | Filed |
 |---|---|---|---|---|
 | **Heracles** | ✅ | ✅ **complete** | 6 (1 his, 5 general) | Ch. 31 §31.7a; §46.4-A, B, G, J; §16.5 |
-| **Asterios** | ✅ | ✅ | 4, all closed | §46.8; §46.4-H, I |
+| **Asterios** | ✅ | ✅ **complete** | 5 (4 his, 1 general) | §46.8; §46.4-H, I, K |
 | **Karna** | ✅ | ✅ | 1, closed | §46.9 |
 | **Penthesilea** | ✅ | ✅ | 2, closed | §46.10; closes §46.4-C |
 | **Medea** | ✅ | ✅ | 2, closed | §46.11 |
@@ -799,30 +799,57 @@ Master-cost line.
 228 → 194) and §46.4-J's **inverted sign** (fixed; five clauses). Both had been traced as correct.
 
 
-**Asterios.** *Pressed (interface):* the statblock; Mad Enhancement clause 1 in his shape; Chaos
-Labyrinthos opening at 81 panels with clauses 1, 2 and 3 and dealing 0 damage; the escape ladder
-end to end; Monstrous Strength offered at the Damage Step, its label, and its **Confirm** — the
-real click on the real dialog, which is what finally let a Process of his complete.
+**Asterios — complete.** Every clause on his sheet has been exercised on a war built by
+`commitWar`, in a match whose Region is **Greece** so his home-ground clause could be reached at
+all. Engine entry points throughout — `resolveAttack`/`advanceAttack`, `attemptEscape`,
+`expireFields` — with the real dialogs answered by real clicks where the system asks a question.
 
-*Pressed (engine), on a war built by `commitWar`:*
+*Pressed (interface):* the statblock; Mad Enhancement clause 1 in his shape; Monstrous Strength
+offered at the Damage Step, its label and its **Confirm**, which every Process of his stops at; the
+**extension prompt** — *"Asterios may pay 200 Health to keep it open for 2◈ longer"* — chosen with
+**Pay and extend**; and the weak-point offer against Achilles, declined.
 
-- **Natural Monster's active**, both effects: `offDebuffResUp` at magnitude **100** and `defUp` at
-  **40**, each expiring at tick 4 — 1◈ from tick 1 at three Turns per Round. The resistance was
-  then contested rather than read: three different **offensive** debuffs all resolved at **0% and
-  resisted**, while a defensive one still landed at 100%, so the −100% is scoped to valence exactly
-  as the sheet says.
-- **Def Up reaching stage 4** of the pipeline on a real attack from Achilles: `defUp: -40`
-  alongside a second contributor noted **"Home Base"** at −10, additive to −50% → ×0.50. The Home
-  Base 10% is a real rule and appears only because the war was built with its bases painted; the
-  NP branch (`npMagnitude: 20`) is still traced, not rolled.
-- **His Max Health at 1800**, which is §46.4-K — 1700 from the END table for A++, plus 100 for the
-  Greece Region grant. He was summoned at 1600 before the fix.
+*Pressed (engine):*
 
-*Traced only:* Avyssos of Labrys; the Labyrinth's paid extension and its side effects (clauses 6
-and 7); the owner-defeat vulnerability (clause 8); the veteran clause's *leading adjacent allies
-out* half — the gate was read live, the lead-out was not; clause 10's **attack** half, where only
-the effect half was pressed; and `regionSizeOverride`, whose 11×11 is now reachable at last —
-`warRegion` reads `"greece"` on the new board — but was not opened in this pass.
+- **Natural Monster**, both effects: `offDebuffResUp` **100** and `defUp` **40**, each 1◈. The
+  resistance was contested rather than read — three different **offensive** debuffs all resolved at
+  **0% and resisted** while a defensive one still landed at 100%, so the −100% is scoped to valence
+  as the sheet says. Def Up then reached **stage 4** on a real attack at `-40`, beside a second
+  contributor noted **"Home Base"** at −10, additive to −50% → ×0.50.
+- **Avyssos of Labrys**: `critUp` 60, `nAtkUp` 40 and `bleedAtk` 10, all 1◈, cooldown **9** (3◈).
+  Crit chance measured at **110%** — §14.6's base 50 plus 60 — so Crit Up has a live reader.
+- **`regionSizeOverride`**, the clause that *"had no reader at all until Asterios was finished"*:
+  the field opened as `shape: {kind: square, size: 11}` where the base is 9, because `warRegion`
+  reads `greece`. Anchored at `{6,6}` where he stood, expiry 18 = tick 6 + 4◈.
+- **Clause 2** on the right side only: Achilles took `atkDwn` 40 and `defDwn` 40 for 2◈ and
+  **Asterios took none** — the `relations: [enemy]` narrowing holding.
+- **Clause 4**, the interior: Asterios's MOV **4 → 8** and Achilles's **7 → 5**, both inside.
+- **Clauses 6 and 7**, the attrition engine: Asterios paid exactly **200** (1704 → 1504), expiry
+  moved **18 → 24** (+2◈), `lastExtendedAt` stamped, and the extension's own riders landed at the
+  *smaller* magnitude — `atkDwn` **20** and `defDwn` **20** for 1◈ — distinct from the activation's
+  40s.
+- **Clause 8**: with Asterios defeated, one Turn later the field was gone — `fields: []`,
+  `regions: []`. And the Noble Phantasm's cooldown then read **24** (8◈), started **at the
+  deactivation**: the field was cast at tick 6 and closed at tick 20, so a clock counted from the
+  cast would long since have run out. `countFrom: deactivation`, observed.
+- **Clause 10's attack half**, both directions, at **Range 1** so distance cannot be the cause:
+  *"No legal targets: Asterios is separated by asterios-chaos-labyrinthos"* outward-in, and the
+  same refusal inward-out.
+- **The escape ladder in full**, earned rather than arranged. Achilles rolled from the border at
+  **20%**, failed, and `randomRelocate` threw him from `{11,6}` to `{2,7}` — after which every
+  attempt answered `notAtBorder`, which is the puzzle the sheet describes. Walked back and retried,
+  his chance climbed **20 → 25 → 30 → 35 → 40 → 45 → 50**, exactly `chanceIncreasePerFailure: 5`,
+  and he escaped on the eighth attempt with seven failures recorded.
+- **The veteran lead-out**, the clause that makes the Labyrinth a puzzle rather than a soft lock.
+  With Achilles (`escaped: true`) adjacent, his Master's escape returned `ok: true, reason:
+  "ledOut", chance: 100, roll: null` — **no die rolled at all**. The same field and the same unit
+  without the adjacent veteran: `chance: 20, automatic: false`.
+
+*Found while pressing:* §46.4-K, his Max Health — **1800**, not the 1600 the summon path gave.
+
+*Seen in passing, and not otherwise tested:* the **first-Round attack ban**, the bar on Noble
+Phantasms **before Round 6**, and the **Home Base** 10% reduction. None had ever appeared on a
+hand-built board.
 
 **Karna.** *Pressed:* the statblock; Vasavi Shakti's activation landing on 150 and rank A; Kavacha
 and Kundala's −90% reaching stage 4 of the pipeline; its upkeep on all three branches. *Traced
@@ -884,6 +911,10 @@ the kind §46.4 collects, and nothing in six Servants' worth of pressing would h
   has now been spent** through `spendCommandSpell` and is recorded under Heracles; it is the only
   one, and it was chosen because a standing claim in §46.4-B depended on it.
 - **The Counter rung.** Offered repeatedly and declined every single time.
+- **Bounded fields** are no longer among these. Asterios's Labyrinth has now been opened twice on a
+  proper board, extended for Health, escaped from the hard way and closed by its owner's defeat —
+  `createField`, `expireFields`, `offerExtension`, `attemptEscape` and `endField` all driven. What
+  remains untested is every *other* field in the corpus.
 - **Injury Rolls, Block, Evade and Luck Checks.** Injury Rolls have since been seen resolving in
   the combat log (*"injury: HP Herc (2)"*) as a side effect of pressing Battle Continuation, and an
   Evade was rolled to force Mad Enhancement's unfavourable table — but neither was tested *as* a
