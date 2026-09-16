@@ -6,16 +6,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { parse } from "yaml";
 import { lookup, HOME_BASE_ESCAPE_MODIFIER } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { resolveCheck } from "../../module/rules/checks.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
-
-const effect = (id) => parse(readFileSync(`packs/_source/effects/${id}.yml`, "utf8"));
-const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
-const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
 
 describe("R3 — the MAG ladder, at all six grades", () => {
   // The sign question decides the whole ability, so every row is pinned. An
