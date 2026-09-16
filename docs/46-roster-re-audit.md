@@ -56,6 +56,7 @@ that was reported before being retracted**. Check them before trusting a number.
 | **Round boundaries** | A drain reads as a heal. Home Base regeneration fires at round end and can exceed the toll | Record `combat.round` before and after every measured Turn; discard trials where it changed |
 | **A hand-built board** | `Combat.create` plus a hand-bumped round skips home bases, the Region, faction turns and the first-Round attack ban — and `servantSetupPlan`, so every Servant's Max Health comes from the other derivation (§46.4-K) | Build it with `commitWar`, the function the wizard's Confirm button calls. It is one call and it is the only way to measure what a table will see |
 | **`token.update({x, y})` is silently refused** | Movement legality rejects an engine-external write and returns without throwing, so the token stays put and every later measurement is taken at the old position — which reads as a mysterious *"out of Range"* | `displaceToken(tokenDocument, {x, y})` from `engine/io.mjs` — the engine's own mover. Note the **document**, not the placeable: `token.move` does not exist on the placeable |
+| **An AoE fans into one Process per target** | `resolveAttack` returns ONE message id; the rest sit at `react` until advanced. Advancing only the returned one leaves the other targets untouched, which looks exactly like an ability that skipped them — Howl of the War God appeared to miss its ally for three attempts | Read `flags.fgt.process.groupId` and advance every message sharing it |
 | **A dialog that `ui.windows` cannot see** | An ApplicationV2 prompt (`askOwner`) is not in `ui.windows`, so a Process legitimately waiting for a click looks exactly like a hung `advanceAttack`. Cost an hour on Asterios, whose Monstrous Strength is offered at every Damage Step | Take a screenshot before concluding anything is stuck. A picture settles in one call what probing settles in ten |
 | **Stale test actors** | A Servant with numbers matching no table — a Heracles at 1600 Health with END A, which the table puts at 1500 | Import fresh from the pack for every audit. Never reuse a previous session's actor |
 | **Hand-built combats** | `Combat.create` + a hand-bumped `round`/`globalTurn` is not what the war-setup flow produces | Acceptable for isolating a clause; say so when reporting, and re-measure through the real flow before calling something a rules defect |
@@ -489,6 +490,41 @@ it merges the siblings down onto the spec with the inner effect winning any name
 **Measured live, before and after**: `expiry: null` on both of Flash's buffs, then `expiry: 11` at
 tick 8 — 1◈ at three Turns per Round.
 
+### N. A `CheckModifier` whose magnitude is rolled had no die, no carrier and no reader — **fixed 2026-09-16**
+
+**Reached: Penthesilea's Goddess of War clause 3**, which is the only content in the corpus that
+authors one.
+
+`DamageModifier` has carried a `roll:` spec since Goddess of War was written — the caller rolls,
+the total arrives keyed by source, and `damage/pipeline.mjs` multiplies it. Her clause 2 works that
+way and measured **−10** on a live board. Clause 3 is the same shape:
+
+```yaml
+- key: CheckModifier
+  check: evade
+  roll: { key: goddessOfWarEvade, formula: "1d4", multiplier: -1 }
+```
+
+It was inert in **four** places, each of which alone is enough:
+
+1. `rules/elements.mjs`'s `CheckModifier` handler read `resolveValue` and **dropped `el.roll`**, so
+   the contribution reached the snapshot with no roll spec and `value: 0`.
+2. `rules/checks.mjs#checkPlan` filtered on `value !== 0` and discarded it for being zero.
+3. `engine/attack.mjs#rollModifierDice` walked `unit.modifiers` and never `unit.checkModifiers` —
+   its own comment names Goddess of War.
+4. `pendingCheckRolls` emitted only **chance** rolls (`1d100` for a probable contribution), never
+   magnitude rolls, and `rollEvade` built the **defender's own plan with no `rolls` at all**.
+
+So the clause was authored, validated, collected, and asked by nobody — the failure shape §46.4
+collects, at its purest: four independent gaps in one path, and the only content that exercises it
+is the content that found them.
+
+**Measured live, before and after**: an Evade roll of 18 against a target of 16 with
+`modifiers: []` and `total === roll`; then the same roll carrying
+`Goddess of War: War God's Military Sash: −1`, with 5 → 4 and 18 → 17. The magnitude's scaling with
+the die is covered by `test/unit/check-modifier-roll.test.mjs` rather than by sampling a d4 on a
+board.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -553,7 +589,7 @@ per-Servant record of what each audit left untested.
 | **Heracles** | ✅ | ✅ **complete** | 6 (1 his, 5 general) | Ch. 31 §31.7a; §46.4-A, B, G, J; §16.5 |
 | **Asterios** | ✅ | ✅ **complete** | 5 (4 his, 1 general) | §46.8; §46.4-H, I, K |
 | **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
-| **Penthesilea** | ✅ | ✅ | 2, closed | §46.10; closes §46.4-C |
+| **Penthesilea** | ✅ | ✅ **complete** | 3 (2 hers, 1 general) | §46.10; closes §46.4-C; §46.4-N |
 | **Medea** | ✅ | ✅ | 2, closed | §46.11 |
 | **EMIYA** | ✅ | ✅ | 2, closed | §46.12 |
 | Hassan of Serenity | — | — | — | |
@@ -980,12 +1016,54 @@ it fired; Vasavi Shakti's own **Burn for 4◈**, indistinguishable on the board 
 Burst had already applied; and the Divinity ladder's **other two branches** (E–C, and the 'Divine'
 attribute without Divinity).
 
-**Penthesilea.** *Pressed:* the statblock at its derived 1350; Hatred of Achilles' compulsion
-forcing the mode on; `self:modeHeld`; the conditional floor in both states; Outrage Amazon's reach.
-*Traced only:* Charisma and its three negations; Golden Rule (Beauty); Howl of the War God;
-Goddess of War's four clauses including the Divinity rank shift; Outrage Amazon as a *resolution*;
-and the compulsion's second half — *"she will constantly Move towards and Attack said Unit"* — which
-was never exercised at all.
+**Penthesilea — complete.** Her kit is a two-state design and both states were driven, with
+*Hatred of Achilles* as the switch: a war built by `commitWar` against **Achilles**, the one Greek
+Male who triggers her compulsion.
+
+*Pressed (engine), calm (Mad Enhancement off):*
+
+- **Goddess of War, all four clauses.** Clause 1 landed as `atkUp: 20` on a Normal Attack — a
+  `1d4×10` rolling 2, correctly gated to `attack:kind:normal`. Clause 2 as `defUp: −10` on damage
+  received, its contributor noting *"Goddess of War: War God's Military Sash"* and **not** the Home
+  Base reduction, which she was outside of. Clause 3 is §46.4-N. Clause 4, the Divinity rank shift,
+  was proved by A/B rather than by reading: **Divinity 50 while calm, 40 while raging, 50 again on
+  return** — rank B alone gives 40 and the shift to A gives 50.
+- **Charisma**, passive and active. The passive put `Charisma: 20` on her Master, an *other* allied
+  Unit within 2 panels; it was **absent while she raged**, which is the negation clause. The active
+  then put `atkUpCharisma` 20 / NP 10 on her and **switched her Master's modifier from the flat
+  `Charisma: 20` to the percentage** — *"Negated while Penthesilea has Atk Up (Charisma)"*, so the
+  two never stack.
+- **Golden Rule (Beauty)**, with its carve-out contested rather than read: an ordinary debuff
+  **blocked** at the immunity step, while **Instakill, Death and Erase all passed it** — and a buff
+  passed too, so the immunity is debuff-scoped.
+- **Howl of the War God**, both clauses: `atkUpStr` 30 / NP 20 on **her Master as well as herself**
+  (clause 1 reaches allies within 2), and `atkUpGreekMale` **100** on her alone — applied **once**
+  for the whole two-target fan, which is the `isFirstOfGroup` guard preventing a 200%.
+
+*Pressed (engine), raging (the compulsion holding Mad Enhancement on):*
+
+- **Hatred of Achilles** fires on a Greek Male at chebyshev 3: Mad Enhancement forced on, the
+  compulsion recorded as `{forcesTarget: true, targetIds: [Achilles]}`, and it **lifted the moment
+  he left** — without switching the mode off, which is what the sheet says.
+- **The compulsion's second half**, recorded in §46.13 as *never exercised at all*. Attacking a
+  perfectly legal adjacent enemy was refused: *"No legal targets: … the attacker is compelled to
+  attack another unit."*
+- **Charisma refused outright** with `modeInactive` — *"cannot be used while Mad Enhancement is
+  active"*.
+- **Mad Enhancement clause 2 at rank EX**: +100% for non-MAG attacks, +50% for MAG.
+- **Outrage Amazon** as a resolution: `multiplier: 3.5`, BA(STR) 170, `defDwn` 30 for 1◈, cooldown
+  **18** (6◈) — and `divinity: 40`, the un-shifted value, confirming Goddess of War is off.
+
+*Found while pressing:* §46.4-N.
+
+*Seen in passing:* **§46.4-K reaching her** — she summoned at **1450**, the END table's 1350 plus a
+granted step, where the old derivation would have given 1350. And a **Master's defeat severing the
+contract**: a 232-damage Normal Attack killed the Rider Master (max Health 82) and Achilles became
+`contract: "free"`, `masterId: null`.
+
+*Still untested:* Goddess of War clause 2's *"if NP, the magnitude is halved"* — the `npMultiplier`
+is authored and the normal half measured, but no Noble Phantasm was fired at her; and **NP Regen's**
+actual cooldown reduction, which needs a Noble Phantasm on cooldown across a Turn boundary.
 
 **Medea.** *Pressed:* the statblock; Item Construction's chance contributions, before and after.
 *Traced only:* everything else — Territory Creation's two passives (both need a Home Base, which

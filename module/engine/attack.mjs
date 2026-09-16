@@ -2525,10 +2525,10 @@ async function runAutomaticStep(state, message) {
  * @param {string} check
  * @returns {Promise<Record<string, number>>}
  */
-async function rollCheckChances(unit, check) {
+async function rollCheckChances(unit, check, direction = "imposed") {
   /** @type {Record<string, number>} */
   const rolls = {};
-  for (const spec of pendingCheckRolls(unit, check, { direction: "imposed" })) {
+  for (const spec of pendingCheckRolls(unit, check, { direction })) {
     rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
   }
   return rolls;
@@ -2563,7 +2563,11 @@ async function rollEvade(state) {
   // his sheet and not on theirs, so it can never come from their own plan.
   const options = rollOptions(attacker, defender, state);
   const plan = mergePlans(
-    checkPlan(defender, "evade", { options }),
+    // The defender's OWN plan needs its dice too. It was built without any, so
+    // a rolled check modifier the defender carries -- Goddess of War's clause 3
+    // is the corpus's only one -- resolved against an empty roll table and
+    // contributed nothing (Ch. 46 §46.4-N).
+    checkPlan(defender, "evade", { options, rolls: await rollCheckChances(defender, "evade", "outgoing") }),
     checkPlan(attacker, "evade", {
       direction: "imposed", options, rolls: await rollCheckChances(attacker, "evade"),
     }),
@@ -3974,7 +3978,11 @@ async function rollModifierDice(units) {
   /** @type {Record<string, number>} */
   const out = {};
   for (const unit of units) {
-    for (const m of unit?.modifiers ?? []) {
+    // `checkModifiers` as well as `modifiers`. This walked only the damage
+    // bucket, so a rolled CHECK modifier had no die rolled for it at all --
+    // and the comment above already named Goddess of War, whose clause 3 is
+    // one (Ch. 46 §46.4-N).
+    for (const m of [...(unit?.modifiers ?? []), ...(unit?.checkModifiers ?? [])]) {
       if (!m.roll?.formula || out[m.roll.key] !== undefined) continue;
       out[m.roll.key] = (await new Roll(m.roll.formula).evaluate()).total;
     }

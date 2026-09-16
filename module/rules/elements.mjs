@@ -1291,6 +1291,13 @@ export const EXECUTORS = Object.freeze({
       check: el.check,
       direction: el.direction ?? "outgoing",
       value: scalar(resolved),
+      // A magnitude that is ROLLED, carried through the way `DamageModifier`
+      // carries its own: the caller rolls, the total arrives keyed by source,
+      // and `checks.mjs#checkPlan` multiplies it. Dropped here, the clause
+      // reached the snapshot as a flat zero and `checkPlan` discarded it for
+      // being zero -- so Penthesilea's *"Evade rolls reduced by 1d4"*, the only
+      // rolled check modifier in the corpus, did nothing (Ch. 46 §46.4-N).
+      ...(el.roll ? { roll: { ...el.roll } } : {}),
       // A clause about the ATTACK rather than about the bearer, carried
       // through to `checkPlan`/`critChance` the same way a damage modifier's
       // is carried to the pipeline. EMIYA's Hawkeye is *"Crit Chance is

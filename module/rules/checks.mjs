@@ -93,8 +93,18 @@ export function checkPlan(unit, check, { direction = "outgoing", options = null,
     .filter((m) => passesChance(m, rolls));
 
   const modifiers = relevant
-    .filter((m) => typeof m.value === "number" && m.value !== 0)
     .filter((m) => (m.direction ?? "outgoing") === direction)
+    // A ROLLED magnitude resolves first, against the totals the caller supplied
+    // -- the same contract `damage/pipeline.mjs` uses for a rolled
+    // `DamageModifier`. An unrolled key contributes nothing, which is distinct
+    // from rolling a zero (Ch. 46 §46.4-N).
+    .map((m) => {
+      if (!m.roll) return m;
+      const rolled = rolls?.[m.roll.key];
+      if (typeof rolled !== "number") return { ...m, value: 0 };
+      return { ...m, value: rolled * (m.roll.multiplier ?? 1) };
+    })
+    .filter((m) => typeof m.value === "number" && m.value !== 0)
     .map((m) => ({ source: m.source, value: m.value }));
 
   // Debuffs win ties, as everywhere else in the effect engine: one source
@@ -163,10 +173,20 @@ export function mergePlans(own, imposed) {
  * @returns {Array<{key: string, formula: string}>}
  */
 export function pendingCheckRolls(unit, check, { direction = "outgoing" } = {}) {
-  return (unit?.checkModifiers ?? [])
-    .filter((m) => (m.check === check || m.check === "any") && (m.direction ?? "outgoing") === direction)
-    .filter((m) => (m.chance ?? 100) < 100)
-    .map((m) => ({ key: m.source, formula: "1d100" }));
+  const mine = (unit?.checkModifiers ?? [])
+    .filter((m) => (m.check === check || m.check === "any") && (m.direction ?? "outgoing") === direction);
+
+  return [
+    // Whether a PROBABLE contribution happens at all, keyed by source.
+    ...mine.filter((m) => (m.chance ?? 100) < 100).map((m) => ({ key: m.source, formula: "1d100" })),
+    // ...and HOW MUCH a rolled one is worth, keyed by the spec's own key. This
+    // half did not exist, so a `CheckModifier` with a `roll:` had no die rolled
+    // for it and `checkPlan` saw an unrolled key -- which is nothing. Goddess
+    // of War's *"Evade rolls reduced by 1d4"* is the only one in the corpus
+    // (Ch. 46 §46.4-N).
+    ...mine.filter((m) => m.roll?.formula && m.roll?.key)
+      .map((m) => ({ key: m.roll.key, formula: m.roll.formula })),
+  ];
 }
 
 /**
