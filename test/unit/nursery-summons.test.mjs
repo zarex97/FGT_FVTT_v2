@@ -88,3 +88,38 @@ describe("R8 — Alice Eater extends the stay, it does not reset it", () => {
     expect(out[0].delta).toBe(6);
   });
 });
+
+describe("E1 — a share of the damage that landed", () => {
+  const run = (action, unit, ctx) =>
+    dispatch(action, unit, { source: "test", abilityId: null }, ctx);
+  const heal = { kind: "StatDelta", stat: "health.value", delta: "@amount", factor: 0.75 };
+
+  it("multiplies the event's payload by the stated factor", () => {
+    const out = run(heal, { id: "jab" }, { event: { amount: 400 } });
+    expect(out[0]).toMatchObject({ t: "statDelta", unitId: "jab", stat: "health.value", delta: 300 });
+  });
+
+  it("reads what LANDED, not what was rolled", () => {
+    // R2. The payload is `result.total` -- after every reduction. A Servant who
+    // swings 1000 into a Def Up that stops 600 heals it by 300, not by 750.
+    const out = run(heal, { id: "jab" }, { event: { amount: 400, rolled: 1000 } });
+    expect(out[0].delta).toBe(300);
+  });
+
+  it("rounds toward zero, so a factor cannot invent a point of Health", () => {
+    const out = run(heal, { id: "jab" }, { event: { amount: 5 } });
+    expect(out[0].delta).toBe(3);
+  });
+
+  it("emits nothing when the event carries no payload", () => {
+    // What every damageTaken handler saw before this task: `fireDamageTaken`
+    // passed no `event` at all, so `@amount` resolved to null.
+    expect(run(heal, { id: "jab" }, {})).toEqual([]);
+  });
+
+  it("leaves a literal delta alone", () => {
+    // Every StatDelta authored before this one states a number.
+    const out = run({ kind: "StatDelta", stat: "luck.value", delta: -1 }, { id: "x" }, {});
+    expect(out[0]).toMatchObject({ delta: -1 });
+  });
+});

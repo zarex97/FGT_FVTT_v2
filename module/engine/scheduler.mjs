@@ -606,14 +606,25 @@ function readStat(unit, path) {
  * @param {object} event
  * @returns {number|null}
  */
-function eventValue(raw, event) {
-  if (typeof raw === "number") return raw;
+function eventValue(raw, event, factor = 1) {
+  if (typeof raw === "number") return raw * factor;
   if (typeof raw !== "string" || !raw.includes("@")) return null;
   const negate = raw.trim().startsWith("-");
   const field = raw.replace("-", "").replace("@", "").trim();
   const value = event?.[field];
   if (typeof value !== "number") return null;
-  return negate ? -Math.abs(value) : value;
+  const signed = negate ? -Math.abs(value) : value;
+  // A SHARE of the payload rather than all of it.
+  //
+  // > *"Whenever the Jabberwock receives damage from Servants, its Health is
+  // > restored by **75% of** the damage received."*
+  //
+  // Van Gogh's Channel Marker Soul is the existing customer for the payload
+  // itself; this is the first clause that wants a fraction of one.
+  //
+  // Truncated TOWARD ZERO, so a factor can never invent a point of Health, and
+  // so a negated payload rounds the same way a positive one does.
+  return Math.trunc(signed * factor);
 }
 
 /**
@@ -734,13 +745,25 @@ const ACTIONS = Object.freeze({
    * this way"* -- a limit on THIS deduction rather than on the pool, so other
    * damage may still take the Master below it.
    */
-  StatDelta: (a, u) => {
+  StatDelta: (a, u, h, c) => {
+    // A magnitude that names the EVENT's own payload, the way `CooldownDelta`
+    // below already reads one -- *"its Health is restored by 75% of the damage
+    // received"*, a number that is neither on the ability nor on the unit.
+    //
+    // Returns nothing when the payload is absent, rather than writing a zero: a
+    // handler that cannot see what landed has not measured zero damage, it has
+    // measured nothing.
+    const fromEvent = typeof a.delta === "string"
+      ? eventValue(a.delta, c?.event, a.factor ?? 1)
+      : null;
+    if (typeof a.delta === "string" && fromEvent === null) return [];
+
     // `amount` arrives from a rank table resolved at collection time and is
     // always POSITIVE there, so `direction` says which way it moves. `delta`
     // stays for a literal signed value.
     const raw = a.amount !== undefined
       ? (a.direction === "down" ? -Math.abs(a.amount) : Math.abs(a.amount))
-      : (a.delta ?? 0);
+      : (fromEvent ?? a.delta ?? 0);
     if (raw === 0) return [];
 
     if (typeof a.floor !== "number") return [I.statDelta(u.id, a.stat, raw)];
@@ -820,7 +843,7 @@ const ACTIONS = Object.freeze({
     // A magnitude that names the event's own payload. Channel Marker Soul's
     // number is the size of the stage change that just happened, which is
     // neither on the ability nor on the unit.
-    const fromEvent = typeof a.delta === "string" ? eventValue(a.delta, c.event) : null;
+    const fromEvent = typeof a.delta === "string" ? eventValue(a.delta, c.event, a.factor ?? 1) : null;
     if (typeof a.delta === "string" && fromEvent === null) return [];
     const amount = a.ticks !== undefined
       ? -resolveTicks(parseTick(a.ticks), c)
