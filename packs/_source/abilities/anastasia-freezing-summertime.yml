@@ -1,0 +1,38 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+schema: 1
+id: anastasia-freezing-summertime
+name: "Freezing Summertime"
+rank: A
+kind: skill
+slug: freezingSummertime
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[invuln]{Invuln} for ⅓◈ Turns.
+  2. Applies @effect[buffRemovalResUp]{BuffRemoval ResUp} for ⅓◈ Turns, the chance of having buffs removed from
+     herself is reduced by 100%.
+  3. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of herself,
+     Crit Chance is increased by 20%.
+  Cooldown: 3◈ Turns.
+phases:
+  # Effects 1 and 2 -- HERS ALONE. The sheet says "Applies Invuln", with no
+  # recipient named, against effect 3's explicit "to all allied Units".
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: invuln, duration: "⅓◈" }
+      - { id: buffRemovalResUp, duration: "⅓◈", magnitude: 100 }
+  # Effect 3 -- a DIFFERENT reach, so it states its own targeting rather than
+  # reusing the ability's. Defaulting to reuse would have put Invuln on her
+  # whole team, which is the hole five authored Noble Phantasms shipped with.
+  #
+  # `includeSelf`, because "all allied Units" includes the speaker unless the
+  # text says otherwise (`rules/relations.mjs#isFriendly`).
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      - { id: sCritUp, duration: "⅓◈", magnitude: 20 }

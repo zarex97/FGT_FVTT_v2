@@ -324,3 +324,106 @@ describe("her passive abilities", () => {
     expect(parseTick("until combatProcessEnd")).toMatchObject({ kind: "untilEvent" });
   });
 });
+
+describe("her three active skills", () => {
+  const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
+
+  it("Shvibzik restores 3 Luck, buffs, and turns the NP clock by 1◈+⅔◈", () => {
+    const a = ability("anastasia-shvibzik");
+    expect(a.cooldown).toBe("4◈-⅓◈");
+    expect(a.phases.find((p) => p.kind === "statChange").changes[0])
+      .toMatchObject({ stat: "luck", delta: 3, clamp: true });
+    expect(a.phases.find((p) => p.effects)?.effects[0])
+      .toMatchObject({ id: "atkUp", magnitude: 30, npMagnitude: 20, duration: "1◈" });
+    expect(a.phases.at(-1).rules[0])
+      .toMatchObject({ key: "CooldownDelta", scope: "np", ticks: "1◈+⅔◈" });
+  });
+
+  it("Shvibzik's cooldown expressions both parse", () => {
+    expect(parseTick("4◈-⅓◈").kind).toBe("rounds");
+    expect(parseTick("1◈+⅔◈").kind).toBe("rounds");
+  });
+
+  it("Freezing Summertime keeps two effects to herself and gives one away", () => {
+    const a = ability("anastasia-freezing-summertime");
+    expect(a.cooldown).toBe("3◈");
+    const mine = a.phases.find((p) => p.target === "self").effects.map((e) => e.id);
+    expect(mine).toEqual(["invuln", "buffRemovalResUp"]);
+    // Defaulting effect 3 to `reuse` would have put Invuln on her whole team.
+    const allies = a.phases.find((p) => p.targeting);
+    expect(allies.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
+    expect(allies.effects[0]).toMatchObject({ id: "sCritUp", magnitude: 20, duration: "⅓◈" });
+  });
+
+  it("Spirit Eyes applies all four of its buffs", () => {
+    const e = ability("anastasia-spirit-eyes").phases[0].effects;
+    expect(ability("anastasia-spirit-eyes").cooldown).toBe("4◈");
+    expect(e.find((x) => x.id === "aim")).toMatchObject({ duration: "1◈" });
+    expect(e.find((x) => x.id === "critUpViy")).toMatchObject({ magnitude: 50, npMagnitude: 20 });
+    expect(e.find((x) => x.id === "critDmUp")).toMatchObject({ magnitude: 30 });
+    expect(e.find((x) => x.id === "npDmUp")).toMatchObject({ magnitude: 20 });
+  });
+});
+
+describe("Ice Bucket Challenge (B1–B10)", () => {
+  const a = parse(readFileSync("packs/_source/abilities/anastasia-ice-bucket-challenge.yml", "utf8"));
+
+  it("B1/B2/B3 — an Attack Skill at Range 2, off BA(MAG), dealing Water", () => {
+    expect(a.isAttackSkill).toBe(true);
+    expect(a.targeting.anchor).toMatchObject({ kind: "targetUnit", range: 2 });
+    expect(a.damage.base.sources).toEqual([{ unit: "self", component: "mag", factor: 1 }]);
+    expect(a.damage.component).toBe("mag");
+    expect(a.damage.element).toBe("water");
+  });
+
+  it("B4/B5 — 20% Slow, and Soaked with no chance at all", () => {
+    const e = a.phases.find((p) => p.kind === "applyEffects").effects;
+    expect(e.find((x) => x.id === "slow")).toMatchObject({ chance: 20, duration: "1◈" });
+    // "Applies the 'Soaked' effect" -- stated flatly, so it lands.
+    expect(e.find((x) => x.id === "soaked").chance).toBeUndefined();
+  });
+
+  it("B10 — carries the cooldown her sheet prints", () => {
+    expect(a.cooldown).toBe("3◈");
+  });
+});
+
+describe("her two Noble Phantasms", () => {
+  const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
+
+  it("Snegleta: BA(MAG), Range+1, 3.5x, and a 6◈ clock", () => {
+    const np = ability("anastasia-snegleta");
+    expect(np).toMatchObject({ rank: "B", isNP: true, cooldown: "6◈" });
+    expect(np.npTags).toEqual(["antiUnit"]);
+    expect(np.targeting.anchor.rangeBonus).toBe(1);
+    expect(np.damage.component).toBe("mag");
+    expect(np.damage.multiplier).toBe(3.5);
+  });
+
+  it("Snegleta: the phase ORDER is the clause", () => {
+    // *"First, inflict Def Dwn (A) ... Then, deals 3.5x damage"* -- and Def Dwn
+    // (A) raises damage taken by 30%, so applying it first is worth 30% of THIS
+    // attack. After the damage it would be worth 30% of the next one.
+    const np = ability("anastasia-snegleta");
+    const kinds = np.phases.map((p) => p.kind);
+    expect(kinds.indexOf("applyEffects")).toBeLessThan(kinds.indexOf("damage"));
+    expect(np.phases[0].effects[0]).toMatchObject({ id: "defDwnA", magnitude: 30, duration: "⅓◈" });
+    expect(np.phases.at(-1).effects[0]).toMatchObject({ id: "skillSeal", duration: "⅓◈" });
+  });
+
+  it("Ice Block Launcher: BA(STR), Range+3, Aim, 3x, Ice", () => {
+    const np = ability("anastasia-ice-block-launcher");
+    expect(np).toMatchObject({ rank: "C", cooldown: "5◈" });
+    expect(np.targeting.anchor.rangeBonus).toBe(3);
+    expect(np.damage).toMatchObject({ component: "str", multiplier: 3, element: "ice", aim: true });
+  });
+
+  it("Ice Block Launcher: the Instakill scales with distance, to 30% (R3)", () => {
+    const rider = ability("anastasia-ice-block-launcher")
+      .phases.find((p) => p.kind === "applyEffects").effects[0];
+    expect(rider).toMatchObject({ id: "instakill", chancePerPanel: 5 });
+    // Range 3 + 3 = 6 panels.
+    expect(chanceFromDistance(rider.chancePerPanel, 6)).toBe(30);
+    expect(chanceFromDistance(rider.chancePerPanel, 1)).toBe(5);
+  });
+});

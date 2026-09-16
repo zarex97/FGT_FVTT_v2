@@ -1,0 +1,48 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+#
+# The only clause in either roster whose chance scales with distance, and the
+# reason `chancePerPanel` exists.
+schema: 1
+id: anastasia-ice-block-launcher
+name: "Ice Block Launcher・Absolute Killer Baseball: Underthrow Freeze Sinker"
+rank: C
+isNP: true
+categorizedAsNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+cooldown: "5◈"
+timing: { window: ownTurn }
+description: |
+  Base Attack (STR) is used. Range+3 for the Combat Process. Has the @effect[aim]{Aim} effect. Deals 3x damage
+  with a 5% chance of inflicting @effect[instakill]{Instakill} for each panel between Anastasia and the DU.
+  Ice damage. Cooldown: 5◈ Turns.
+targeting:
+  # Range 3 + 3 = 6, which is what puts the Instakill ceiling at 30%.
+  anchor: { kind: targetUnit, range: 3, rangeBonus: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+  component: str
+  multiplier: 3
+  element: ice
+  # "Has the Aim effect" -- a property of the attack, read by the evade check.
+  aim: true
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      # *"a 5% chance ... for each panel between Anastasia and the DU."*
+      #
+      # "Panels between" is the DISTANCE, not the gap: the corpus's only other
+      # use of the phrase is the Dioscuri sheet's "the maximum distance between
+      # the two is 2 panels between them", which the leash implements as
+      # Chebyshev 2. So 5% adjacent and 30% at her maximum reach.
+      #
+      # Instakill is severity-gated, and this attack is STR-component and does
+      # not claim to bypass Magic Resistance -- so a defender with it resists.
+      # That is the sheet's silence honoured rather than overridden.
+      - { id: instakill, chancePerPanel: 5 }
