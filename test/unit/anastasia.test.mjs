@@ -50,6 +50,8 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { applicationChance } from "../../module/rules/checks.mjs";
 import { test as testPredicate } from "../../module/rules/predicate.mjs";
+import { lookup } from "../../module/domain/tables.mjs";
+import { Rank } from "../../module/domain/rank.mjs";
 
 const effect = (id) => parse(readFileSync(`packs/_source/effects/${id}.yml`, "utf8"));
 
@@ -190,5 +192,60 @@ describe("Soaked (B6–B9, R2)", () => {
     const r = ruleOf("OnEvent", { event: "roundEnd" });
     expect(testPredicate(r.predicate, { options: new Set(["self:phase:night"]) })).toBe(false);
     expect(testPredicate(r.predicate, { options: new Set(["self:phase:day"]) })).toBe(true);
+  });
+});
+
+describe("her two bespoke buffs", () => {
+  it("BuffRemoval ResUp writes to a bucket that had an executor and no writer", () => {
+    const rule = effect("buff-removal-res-up").rules[0];
+    expect(rule.key).toBe("BuffRemovalResist");
+    expect(rule.value).toBe("@magnitude");
+  });
+
+  it("Crit Up (Viy) raises crit on BA(MAG) attacks only, with its own NP figure", () => {
+    // *"Crit Chance of Attacks which use Base Attack (MAG) is increased by 50%;
+    // if NP, 20%."* Exactly the half of her kit that throws.
+    const rule = effect("crit-up-viy").rules[0];
+    expect(rule).toMatchObject({ key: "CritModifier", aspect: "chance" });
+    expect(rule.value).toBe("@magnitude");
+    expect(rule.npValue).toBe("@npMagnitude");
+    expect(rule.predicate).toContain("attack:component:mag");
+  });
+
+  it("Crit Up (Viy) is its own effect, so a generic Crit Up removal cannot take it", () => {
+    expect(effect("crit-up-viy").id).toBe("critUpViy");
+    expect(effect("crit-up-viy").families).toContain("critUp");
+  });
+});
+
+describe("Independent Action with Viy EX (I1–I4, R6)", () => {
+  const skill = parse(readFileSync("packs/_source/class-skills/independent-action-viy.yml", "utf8"));
+
+  it("keeps the shared slug, so contract.mjs still finds it", () => {
+    // `rollsRequired` matches on the camelCase slug. A variant that renamed it
+    // would make her as easy to steal as a Servant with no class skill at all,
+    // which is the exact defect the shared template's own header records.
+    expect(skill.slug).toBe("independentAction");
+  });
+
+  it("I2 — takes ZON from the table, which gives EX the 3 her sheet prints", () => {
+    expect(skill.passiveRules.some((r) => r.key === "ZonBonus" && r.table === "independentActionZon"))
+      .toBe(true);
+    expect(lookup("independentActionZon", Rank.parse("EX"))).toBe(3);
+  });
+
+  it("I1 — EX has no Sustainability clock at all", () => {
+    expect(lookup("independentActionSustainability", Rank.parse("EX"))).toBeNull();
+  });
+
+  it("I4 — adds the passive that is hers alone", () => {
+    const crit = skill.passiveRules.filter((r) => r.key === "CritModifier");
+    expect(crit.find((r) => r.aspect === "chance").value).toBe(10);
+    expect(crit.find((r) => r.aspect === "damage").value).toBe(10);
+  });
+
+  it("is a variant document, not a ref override", () => {
+    expect(skill.name).toBe("Independent Action with Viy");
+    expect(skill.id).toBe("class-independent-action-viy");
   });
 });

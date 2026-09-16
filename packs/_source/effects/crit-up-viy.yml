@@ -1,0 +1,28 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+#
+# A named Crit Up scoped to ONE COMPONENT: *"Crit Chance of Attacks which use
+# Base Attack (MAG) is increased by 50%; if NP, 20%."* That is exactly the half
+# of her kit that throws -- her ranged Normal Attack and Snegleta both use
+# BA(MAG), and her melee swing does not.
+#
+# Named rather than folded into `crit-up`, for the reason every named variant in
+# this catalogue is: a clause that removes "one Crit Up" must not be able to
+# take this instead.
+schema: 1
+id: critUpViy
+name: "Crit Up (Viy)"
+description: "Crit Chance of Attacks which use Base Attack (MAG) is increased by X%; if NP, a lower figure."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+families: [critUp]
+rules:
+  # `npValue` because the sheet states BOTH numbers and 20 is not half of 50.
+  # `CritModifier` has carried an NP variant since it was written.
+  - key: CritModifier
+    aspect: chance
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+    predicate: ["attack:component:mag"]
