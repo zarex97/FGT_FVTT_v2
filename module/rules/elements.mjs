@@ -1309,6 +1309,26 @@ export const EXECUTORS = Object.freeze({
 
   /* ── Group 4 — targeting ──────────────────────────────────────────────── */
 
+  /**
+   * **Collected and inert, and no content should use this.**
+   *
+   * It pushes `{key: "targeting"}` into `modifiers`, which the damage pipeline
+   * has no entry for and which `rules/targeting/resolve.mjs` never reads --
+   * that file reads `suppressions` with `scope: "targeting"`, which is what
+   * `ForceTarget` produces and this does not.
+   *
+   * Four summons used it, all for the same sentence -- *"Enemy Units cannot
+   * Attack Medea/Nursery or her Master if any … are directly next to them"* --
+   * and the protection had never once applied, for any of them. Found on a live
+   * board while authoring the fourth.
+   *
+   * The element that works is `TargetabilityModifier`, whose `recipientRoles`
+   * already names `summoner` and `summonerMaster` for exactly this clause.
+   * Kept, rather than deleted, so a world holding an old document does not
+   * throw -- and the content validator refuses new uses.
+   *
+   * @deprecated Use `TargetabilityModifier`.
+   */
   TargetingModifier(el, { source, out, deferred = null }) {
     out.modifiers.push({ key: "targeting", spec: el.spec ?? el, value: 0, predicate: deferred, source });
   },

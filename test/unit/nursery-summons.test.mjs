@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { parse } from "yaml";
 import { test as testPredicate } from "../../module/rules/predicate.mjs";
 import { expiredSummonIds } from "../../module/rules/summons.mjs";
@@ -382,11 +382,12 @@ describe("Trump Soldiers (T1–T14, R1)", () => {
   });
 
   it("T13 — protects Nursery and her Master, from the SUMMON's own statblock", () => {
-    // Medea's Dragon Tooth Warriors carry the identical sentence and the
-    // identical rule, and its comment says why it is not a Compulsion: it
-    // removes targets rather than forcing one.
-    const rule = summon("trump-soldier").passiveRules.find((r) => r.key === "TargetingModifier");
-    expect(rule).toMatchObject({ mode: "protectSummoner", radius: 1, protects: ["summoner", "summonerMaster"] });
+    // Medea's Dragon Tooth Warriors carry the identical sentence and, now, the
+    // identical rule: a Decoy-shaped aura that removes targets rather than
+    // forcing one. See the block below for what all four were authored as
+    // first, and why it did nothing.
+    const rule = summon("trump-soldier").passiveRules.find((r) => r.key === "TargetabilityModifier");
+    expect(rule).toMatchObject({ radius: 1, recipientRoles: ["summoner", "summonerMaster"] });
   });
 
   it("R1 — 1d8+4, one die and then plus four", () => {
@@ -573,5 +574,57 @@ describe("[Vorpal Blade] (B1–B8, R4, R5)", () => {
     expect(a).toContainEqual({ ref: "nursery-trump-soldiers" });
     expect(a).toContainEqual({ ref: "nursery-jabberwock" });
     expect(a).toHaveLength(11);
+  });
+});
+
+describe("the protection every summon that has it was missing", () => {
+  // "Enemy Units cannot Attack Nursery or her Master if any Trump Soldiers are
+  // directly next to them" -- and Medea's Dragon Tooth Warriors carry the same
+  // sentence word for word.
+  //
+  // All four authored it as `TargetingModifier`, which pushes into `modifiers`
+  // under a key the damage pipeline has no entry for and the targeting resolver
+  // never reads. Collected, routed nowhere, and the protection had never once
+  // applied -- for any of them, since the Warriors were written. Found on a
+  // live board.
+  const summons = ["trump-soldier", "dragon-tooth-warrior-blade",
+    "dragon-tooth-warrior-bow", "dragon-tooth-warrior-daggers"];
+
+  it.each(summons)("%s shields its summoner through an aura that is read", (id) => {
+    const rule = summon(id).passiveRules.find((r) => r.key === "TargetabilityModifier");
+    expect(rule).toMatchObject({ radius: 1, recipientRoles: ["summoner", "summonerMaster"] });
+  });
+
+  it.each(summons)("%s does not use the inert element", (id) => {
+    expect(summon(id).passiveRules.some((r) => r.key === "TargetingModifier")).toBe(false);
+  });
+
+  it("and the aura actually reaches the `untargetable` bucket", () => {
+    const out = contributionsOf({
+      system: { summonerId: "nursery" },
+      items: [{
+        id: "s", name: "Trump Soldier", type: "ability",
+        system: { passiveRules: [{
+          key: "TargetabilityModifier", radius: 1,
+          relations: ["ally", "self"], recipientRoles: ["summoner", "summonerMaster"],
+        }] },
+      }],
+      effects: [],
+    });
+    expect(out.auras).toEqual([expect.objectContaining({ key: "untargetable", radius: 1 })]);
+  });
+
+  it("NOTHING in the corpus uses TargetingModifier any more", () => {
+    // A guard rather than one assertion per file: the two names differ by three
+    // letters and mean entirely different things.
+    const files = readdirSync("packs/_source/summons")
+      .concat(readdirSync("packs/_source/abilities").map((f) => `abilities/${f}`))
+      .filter((f) => f.endsWith(".yml"));
+    const offenders = files.filter((f) => {
+      const path = f.startsWith("abilities/")
+        ? `packs/_source/${f}` : `packs/_source/summons/${f}`;
+      return readFileSync(path, "utf8").includes("key: TargetingModifier");
+    });
+    expect(offenders).toEqual([]);
   });
 });
