@@ -697,6 +697,36 @@ the recovery clause. Two right behaviours, read as one wrong one.
 tick 12, the effect was gone — and a fresh Noble Phantasm then left the pool **untouched at 275**.
 Filed in §46.6.
 
+### V. A timing window could not read a stance — **fixed 2026-09-16**
+
+**Reached: every ability gated on a stance**, which in the reference set is four of Achilles's
+(*"can only be used when Unmounted"*) and the mirror on Troias Tragōidia.
+
+`abilitiesAtWindow` filters an offer by the ability's own `requirements`, and `stance` is one of
+the kinds a window checks. `engine/attack.mjs#offerAttackerWindow` hand-built the subject it asked:
+
+```js
+{ items, effects, turnState, roundState }
+```
+
+`rules/stance.mjs#stanceOf` reads `unit.stanceSpec` and returns **null** without it, so the
+comparison was `null === "dismounted"` — false for a dismounted Achilles, false for a mounted one,
+false always. **Runner Comet was never offered at the only window its sheet gives it.**
+
+The two defects stack neatly: §46.4-P had just made an ability of that shape actually *run* when
+taken, and this is what kept it from being offered to take.
+
+**Measured live**: a dismounted Achilles with Runner Comet off cooldown and every other gate
+passing — no window opened at all. `abilitiesAtWindow` given his **snapshot** offered it; given the
+hand-built shape, nothing.
+
+`rules/reactions.mjs#windowSubject` is the subject now — the snapshot, which can answer every
+question a requirement asks, plus the Items the filter reads `system` off.
+
+**Verified live**: the *Start of the Combat Phase* window now offers **Runner Comet**, and taking
+it restores Agility **15 → 18**, applies `nAtkUp` 30 and `critDmUp` 30 for that Turn, and charges
+its 3◈−⅓◈ cooldown as **8**.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
