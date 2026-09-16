@@ -31,6 +31,7 @@ import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
+import { missChance, missSourceOf } from "../rules/miss.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { collectContributions, resolveValue } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
@@ -920,7 +921,21 @@ async function declareProcesses({
     // Attack" -- and because what it forbids (a Block) has to be settled before
     // the defender is shown their rung.
     const aimed = await offerWeakPoint(withReactions, { board });
-    const advanced = process.advance(aimed, "done");
+    // Step 1.5 -- the MISS CHECK (Ch. 12 §12.2). Rolled only when something can
+    // actually cause a miss, so an ordinary attack neither rolls a die nor
+    // writes a log line it would then have to explain.
+    //
+    // A miss ENDS the Process here: the card is still rendered, because a swing
+    // that vanished with no card at all reads as the interface losing the
+    // attack rather than as the rule it is.
+    // The BOARD-derived attacker, not `unitSnapshot(attacker)`: the miss ladder
+    // asks about Skills through roll options, and only the full projection
+    // carries everything those options are built from.
+    const advanced = await runMissCheck(
+      process.advance(aimed, "done"),
+      board.units.find((u) => u.id === attackerId) ?? unitSnapshot(attacker),
+      board,
+    );
     const target = targets.units.find((t) => t.unitId === advanced.defenderId);
     const message = await renderAttackCard({
       state: advanced,
@@ -5267,6 +5282,47 @@ async function offerAttackerWindow(state, window, message) {
 
   void message;
   return { ...state, windowAbilities: carried };
+}
+
+/**
+ * Combat Process step 1.5 — does this swing happen at all?
+ *
+ * Blind is the only source (`rules/miss.mjs`), and the roll is the ATTACKER's:
+ * a Miss is the swing not happening, where an Evade is the defender answering
+ * one that did.
+ *
+ * Short-circuits to `hit` when nothing can cause a miss, which is every attack
+ * in the game but a Blinded one — so the common path rolls no dice and files no
+ * roll record.
+ *
+ * The record is filed through `advance`'s own `detail.rollRecord`, which is the
+ * one place a Process's rolls are appended, so a miss cannot produce a number
+ * the log never hears about (§14.8).
+ *
+ * @param {object} state a Process sitting at `missCheck`
+ * @param {object} attacker the attacker's snapshot
+ * @param {object} board
+ * @returns {Promise<object>} the Process, at `react` or at `missed`
+ */
+async function runMissCheck(state, attacker, board) {
+  const chance = missChance(attacker, rollOptionsFor({ attacker, board }));
+  if (chance <= 0) return process.advance(state, "hit");
+
+  const roll = await new Roll("1d100").evaluate();
+  const missed = roll.total <= chance;
+  const source = missSourceOf(attacker);
+
+  return process.advance(state, missed ? "miss" : "hit", {
+    rollRecord: {
+      check: "miss",
+      label: game.i18n.localize("FGT.Card.MissCheck"),
+      total: roll.total,
+      target: chance,
+      outcome: missed ? "miss" : "hit",
+      source,
+      unitId: attacker.id,
+    },
+  });
 }
 
 /**
