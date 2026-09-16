@@ -256,7 +256,9 @@ describe("summarize — what the HUD draws", () => {
     const rows = summarize(spend(emptyBudget(), [[servant("a"), "move"], [servant("b"), "move"]]));
     const moves = rows.find((r) => r.pool === "servantMove");
     expect(moves.label).toBe("Servant moves");
-    expect(moves.pips).toEqual([true, true, false, false]);
+    // Three states, not two: a linked member spends half a slot, so a boolean
+    // cannot say what a single moved twin looks like (D6).
+    expect(moves.pips).toEqual([1, 1, 0, 0]);
   });
 
   it("omits the unbounded Master attack pool, which has nothing to draw", () => {
@@ -307,5 +309,72 @@ describe("a summon that counts", () => {
     // A platform is equipment its owner operates, not a combatant taking a
     // slot -- there is no clause anywhere that makes one count.
     expect(poolFor({ id: "p", kind: "platform", countsTowardBudget: true }, "move")).toBeNull();
+  });
+});
+
+describe("D6 — a linked member counts as half a Unit", () => {
+  const twin = (id) => servant(id, {
+    linkedGroup: { id: "dioscuri", memberIds: [], leash: 2, unitWeight: 0.5 },
+  });
+
+  it("spends half a servantMove per twin", () => {
+    let b = emptyBudget();
+    b = consume(b, twin("castor"), "move").budget;
+    expect(b.pools.servantMove.used).toBe(0.5);
+    b = consume(b, twin("pollux"), "move").budget;
+    expect(b.pools.servantMove.used).toBe(1);
+  });
+
+  it("stores halves as integers so nothing accumulates float error", () => {
+    let b = emptyBudget();
+    for (const id of ["a", "b", "c", "d", "e", "f", "g"]) {
+      b = consume(b, twin(id), "move").budget;
+    }
+    // Seven halves. `usedHalves` is what the comparison uses and it must be an
+    // integer -- Ch. 34 §34.5 names float accumulation as the risk here.
+    expect(b.pools.servantMove.usedHalves).toBe(7);
+    expect(Number.isInteger(b.pools.servantMove.usedHalves)).toBe(true);
+  });
+
+  it("admits a twin at 3.5/4 and refuses a whole Servant — the boundary case", () => {
+    let b = emptyBudget();
+    for (const id of ["a", "b", "c", "d", "e", "f", "g"]) {
+      b = consume(b, twin(id), "move").budget;
+    }
+    expect(b.pools.servantMove.used).toBe(3.5);
+    // 3.5 + 0.5 = 4.0 <= 4  -> allowed
+    expect(canConsume(b, twin("castor"), "move").ok).toBe(true);
+    // 3.5 + 1   = 4.5 >  4  -> refused
+    expect(canConsume(b, servant("karna"), "move").ok).toBe(false);
+  });
+
+  it("spends half a servantAttack per twin", () => {
+    let b = emptyBudget();
+    b = consume(b, twin("castor"), "attack").budget;
+    b = consume(b, twin("pollux"), "attack").budget;
+    expect(b.pools.servantAttack.used).toBe(1);
+    // Both twins attacking still leaves a full attack for somebody else.
+    expect(canConsume(b, servant("karna"), "attack").ok).toBe(true);
+  });
+
+  it("renders a half-pip", () => {
+    let b = emptyBudget();
+    b = consume(b, twin("castor"), "move").budget;
+    const row = summarize(b).find((r) => r.pool === "servantMove");
+    expect(row.pips).toEqual([0.5, 0, 0, 0]);
+  });
+
+  it("renders a full pip once both twins have moved", () => {
+    let b = emptyBudget();
+    b = consume(b, twin("castor"), "move").budget;
+    b = consume(b, twin("pollux"), "move").budget;
+    expect(summarize(b).find((r) => r.pool === "servantMove").pips).toEqual([1, 0, 0, 0]);
+  });
+
+  it("leaves an ungrouped Servant spending a whole unit", () => {
+    let b = emptyBudget();
+    b = consume(b, servant("karna"), "move").budget;
+    expect(b.pools.servantMove.used).toBe(1);
+    expect(b.pools.servantMove.usedHalves).toBe(2);
   });
 });

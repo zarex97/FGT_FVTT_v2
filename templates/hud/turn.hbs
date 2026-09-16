@@ -11,9 +11,9 @@
     {{#each rows as |row|}}
       <div class="fgt-hud__pool">
         <span class="fgt-hud__pool-label">{{row.label}}</span>
-        <span class="fgt-hud__pips">
-          {{#each row.pips as |spent|}}
-            <span class="fgt-hud__pip{{#if spent}} fgt-hud__pip--spent{{/if}}"></span>
+        <span class="fgt-hud__pips"{{#if row.hint}} data-tooltip="{{row.hint}}"{{/if}}>
+          {{#each row.pips as |state|}}
+            <span class="fgt-hud__pip fgt-hud__pip--{{state}}"></span>
           {{/each}}
         </span>
         <span class="fgt-hud__pool-count">{{row.used}} / {{row.max}}</span>

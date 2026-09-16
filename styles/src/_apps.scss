@@ -452,7 +452,17 @@
     border: 1px solid currentcolor;
     opacity: 0.45;
 
-    &--spent { background: currentcolor; opacity: 1; }
+    &--full { background: currentcolor; opacity: 1; }
+
+    // A linked pair counts as one Unit and each twin spends half a slot
+    // (Ch. 16 §16.8), so a pip has three states rather than two. Filled from
+    // the left, which is what "half spent" looks like at a glance.
+    &--half {
+      opacity: 1;
+      background: linear-gradient(to right, currentcolor 50%, transparent 50%);
+    }
+
+    &--empty { background: none; opacity: 0.45; }
   }
 
   &__units {
