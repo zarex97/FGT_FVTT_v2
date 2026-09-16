@@ -454,3 +454,14 @@
   background: var(--fgt-bg-sunken);
   cursor: pointer;
 }
+
+// Combat Process step 1.5 -- a swing that did not happen (Blind's Miss).
+// Muted rather than alarming: it is an outcome, not an error.
+.fgt-card__missed {
+  padding: 0.35rem 0.5rem;
+  border-left: 3px solid var(--fgt-gold, currentcolor);
+  opacity: 0.85;
+  font-style: italic;
+
+  .fgt-card__miss-roll { font-variant-numeric: tabular-nums; font-style: normal; opacity: 0.75; }
+}

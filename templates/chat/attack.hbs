@@ -12,6 +12,20 @@
         `fillAttackCard` re-renders this template on each client. It used to be
         computed and then never read: the damage and the whole breakdown were
         public to the table regardless of who was involved. --}}
+  {{#if missed}}
+    {{!-- Combat Process step 1.5. The attack did not happen: no reaction, no
+          damage, no Counter. Shown rather than silently omitted, because a
+          swing that vanished with no line reads as a lost attack. --}}
+    <section class="fgt-card__missed">
+      {{localize "FGT.Card.Missed2"}}
+      {{#if missRoll}}
+        <span class="fgt-card__miss-roll">
+          {{missRoll.total}} / {{missRoll.target}}%{{#if missRoll.source}} ({{missRoll.source}}){{/if}}
+        </span>
+      {{/if}}
+    </section>
+  {{/if}}
+
   {{#if result}}
     {{#unless visibility.involved}}
       <div class="fgt-card__hidden">{{localize "FGT.Chat.HiddenDamage"}}</div>

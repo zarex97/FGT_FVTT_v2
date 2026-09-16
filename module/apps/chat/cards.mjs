@@ -108,6 +108,12 @@ async function cardContext({
     complete: isComplete(state),
     hit: didHit(state),
 
+    // Combat Process step 1.5. A swing that vanished with no line on the card
+    // reads as the interface losing the attack rather than as the rule it is,
+    // so the miss states its roll, its chance and the effect that caused it.
+    missed: state.state === "missed" || state.history.some((h) => h.state === "missed"),
+    missRoll: (state.rolls ?? []).find((r) => r.check === "miss") ?? null,
+
     // Which side is being asked, and for what. The prompt is rendered as
     // buttons on the card itself rather than as a popup dialog, so a player who
     // tabs away can still find it.
