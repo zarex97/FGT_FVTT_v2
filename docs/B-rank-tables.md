@@ -226,6 +226,22 @@ Scaled; cooldown perStep ∓⅓◈.
 
 Stacking: `highestOnly`, compared by **rank**.
 
+> **Both tables are read by content as of 2026-09-16, and neither was before.**
+>
+> `packs/_source/class-skills/territory-creation.yml` is the shared template every
+> ordinary bearer now refs, parameterized by rank. Medea's file — the one it
+> replaced — wrote the **A row** of both tables out as literals, `5d20` and
+> `3d10+20`, which was right for her and wrong at every rank below; the tables had
+> been indexed across all six grades since they were transcribed, with nothing
+> reading them. Semiramis (the EX/C split) and Kingprotea keep their own files and
+> read the tables too.
+>
+> **Passive 2 had never rolled at all**, on any of the five files that carry it.
+> `DamageNegation` does not read an `el.roll`, and its `mode` defaults to `flat`,
+> so the consumer computed `Number(null) || 0` and skipped it — and an aura's
+> nested element was routed to `modifiers`, where nothing looks for a negation.
+> Both halves are fixed; the clause is `mode: dice` with a `table:` now.
+
 ### Item Construction
 
 Aura, radius 2, allies. Scaled, perStep ±5. Values in brackets are the Instakill / Death ladder.
