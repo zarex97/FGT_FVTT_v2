@@ -56,6 +56,42 @@ import { test as testPredicate } from "./predicate.mjs";
  * @param {object} item an `FGTItem`, or any `{type, system}` shape
  * @returns {boolean}
  */
+/**
+ * An `applyEffects` phase's rules, flattened to the specs the appliers read.
+ *
+ * Two authoring shapes are live at once and both ship. A **bare spec** states
+ * everything about itself:
+ *
+ *     { id: "defUp", magnitude: 40, duration: "1◈" }
+ *
+ * A **wrapper** puts the effect in `effect:` and leaves the duration -- and any
+ * `chance`, `predicate` or `times` -- BESIDE it, because those are the phase
+ * talking about the application rather than about the effect:
+ *
+ *     { effect: { id: "atkUp", magnitude: 40 }, duration: "1◈" }
+ *
+ * `engine/attack.mjs` flattened the second with `r.effect ?? r`, which returns
+ * the inner object and discards every sibling. `applyDeclaredEffects` then read
+ * `spec.duration` as `undefined`, and an unstated duration is INFINITE
+ * (`engine/effect-applier.mjs`) -- so the buff never expired. Karna's *Flash of
+ * the Sun God* granted Atk Up and NP DmUp **permanently** where its sheet says
+ * one Turn, and the Skill path, which reads `rule.duration` separately, was
+ * correct the whole time (Ch. 46 §46.4-M).
+ *
+ * The inner effect wins where both name a field: it is the effect's own
+ * description of itself.
+ *
+ * @param {object} phase an `applyEffects`/`applyEffect` phase
+ * @returns {object[]} flat specs, each safe to hand to an applier
+ */
+export function effectSpecsOf(phase) {
+  return (phase?.rules ?? phase?.effects ?? []).map((rule) => {
+    if (!rule?.effect) return rule;
+    const { effect, ...beside } = rule;
+    return { ...beside, ...effect };
+  });
+}
+
 export function dealsNoDamage(item) {
   if (!item) return false;
   const sys = item.system ?? {};

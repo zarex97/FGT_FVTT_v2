@@ -453,6 +453,42 @@ does not bite in this one.
 crit damage +40; second switch in the same Round **refused with `oncePerRound`** and the state
 unchanged; first switch of Round 8 accepted → Effect 1, crit chance 70 and no crit damage.
 
+### M. The attack path flattened an effect rule and dropped everything beside it — **fixed 2026-09-16**
+
+**Reached: eleven phases across eight files** — Karna's *Flash of the Sun God* and *End of Charity*,
+Medusa's *Bellerophon*, *Blood Temple* and *Monstrous Snake Metamorphosis*, Semiramis's *Double
+Summon*, and the *Riding* variants carried by Drake, Medusa and Pollux.
+
+Two authoring shapes are live at once and both ship. A **bare spec** states everything about
+itself; a **wrapper** puts the effect in `effect:` and leaves the duration — and any `chance`,
+`predicate`, `times` or `magnitude` — *beside* it, because those describe the application rather
+than the effect:
+
+```yaml
+- { effect: { id: atkUp, magnitude: 40, npMagnitude: 30 }, duration: "1◈" }
+```
+
+`engine/attack.mjs` flattened that with `r.effect ?? r`, which returns the inner object and
+**discards every sibling**. `applyDeclaredEffects` then read `spec.duration` as `undefined`, and an
+unstated duration is INFINITE — so the buff never expired.
+
+**The Skill path was correct the whole time.** `skill-use.mjs#applyPhaseEffects` reads
+`rule.duration ?? spec.duration ?? def.defaultDuration`, so the same ability behaved differently
+depending on whether it was used from the sheet or resolved as an attack. That is what made it
+findable: Karna's Flash of the Sun God granted **permanent** Atk Up and NP DmUp through
+`resolveAttack` and correct 1◈ ones through `useSkill`, on the same board, one minute apart.
+
+The three `Riding` variants lost **`magnitude` as well**, which is worse than a wrong duration:
+`{ effect: { id: ridingActive }, duration: "this turn", magnitude: 5 }` applied `ridingActive` at
+the definition's default of 0, permanently, instead of 5 for one Turn. A buff that grants nothing
+and never leaves.
+
+`rules/ability-use.mjs#effectSpecsOf` is now the one flattener, used by both attack-path sites, and
+it merges the siblings down onto the spec with the inner effect winning any name it also states.
+
+**Measured live, before and after**: `expiry: null` on both of Flash's buffs, then `expiry: 11` at
+tick 8 — 1◈ at three Turns per Round.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.

@@ -29,6 +29,7 @@ import { cooldownChanges } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
+  effectSpecsOf,
 } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -4261,7 +4262,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
       if (!isFirstOfGroup(state)) continue;
       const attackerUnit2 = unitSnapshot(attackerDoc);
       applied.push(...await applyDeclaredEffects(
-        (phase.rules ?? phase.effects ?? []).map((r) => r.effect ?? r),
+        effectSpecsOf(phase),
         ability,
         { ...state, defenderId: state.attackerId },
         attackerUnit2,
@@ -4424,7 +4425,7 @@ async function applyTargetedRider(phase, ability, state, attackerDoc) {
     const doc = game.actors.get(target.unitId);
     if (!doc) continue;
     out.push(...await applyDeclaredEffects(
-      (phase.rules ?? phase.effects ?? []).map((r) => r.effect ?? r),
+      effectSpecsOf(phase),
       ability,
       { ...state, defenderId: target.unitId },
       board.units.find((u) => u.id === target.unitId) ?? unitSnapshot(doc),
