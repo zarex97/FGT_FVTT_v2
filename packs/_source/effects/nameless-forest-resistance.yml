@@ -1,0 +1,33 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# > *"Every time a Unit successfully removes Nameless Forest Tokens from itself,
+# > the chance of it gaining Nameless Forest Tokens again is reduced by 10%
+# > (base chance=100%); this effect can stack."*
+#
+# A property of the UNIT rather than of the marker it escaped, which is why it
+# is its own effect: it survives losing every token and being caught again, and
+# a Unit that has walked out three times gains a token only 70% of the time
+# thereafter.
+#
+# PERMANENT and unremovable. Nothing on the sheet takes it away, and a
+# resistance a Cleanse could strip would let Nursery re-catch a Unit that had
+# already earned its way out three times.
+schema: 1
+id: namelessForestResistance
+name: "Nameless Forest Resistance"
+description: |
+  The chance of gaining a @effect[namelessForest]{Nameless Forest} Token is reduced by 10% per stack.
+polarity: status
+volatility: nonVolatile
+stacking: magnitudeStacks
+baseChance: 100
+unremovable: true
+rules:
+  # `direction: incoming` and a POSITIVE value: `rules/checks.mjs#applicationChance`
+  # computes `base + inflictBonus - resist`, so resistance is what subtracts.
+  # Scoped to the one effect by id, because this Unit has learned to walk out of
+  # a forest and not to shrug off everything.
+  - key: ApplicationChance
+    direction: incoming
+    effect: namelessForest
+    value: "@magnitude"

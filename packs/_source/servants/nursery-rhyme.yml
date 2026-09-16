@@ -1,0 +1,49 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# COMPLETE. All four parts: the core kit, the summons and the [Vorpal Blade],
+# the Nameless Forest, and The Queen's Glass Game -- the corpus's first Script.
+schema: 1
+id: nursery-rhyme
+name: "Nursery Rhyme"
+type: servant
+trueName: "Nursery Rhyme, Alice"
+servantClasses: [caster]
+classContainer: caster
+region: [england, europe]
+alignment: { order: true, morality: neutral }
+# `fairytale` and `child` are new tags and need no schema change -- `attributes`
+# is an open set. Both are read by her OWN Tommy Thumb clauses 5 and 6, so a
+# typo in either makes two of her clauses reach nobody, herself included.
+attributes: [female, servant, man, humanoid, fairytale, nonHominidae, child]
+parameters: { str: E, end: E, agi: C, mag: A, luc: B }
+# Every figure agrees with the rank tables: END E -> 500, STR E -> 50,
+# MAG A -> 200. `validate:content` should report NO deviation for her.
+baseHealth: 500
+mov: 4
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 50, mag: 200 }
+sustainability: "4◈"
+
+# THE NOTE, and the axis her whole kit turns on. *"Nursery's Normal Attacks use
+# Base Attack (STR)."* 50, against the 200 her Noble Phantasm swings. Van Gogh
+# is the mirror case, forced onto MAG. `Enigma` exists to make this swing worth
+# taking -- the Def Dwn (MAG) it plants raises MAG damage taken by 60%.
+normalAttack: { mode: fixed, component: str }
+
+abilities:
+  - { ref: class-territory-creation, rank: A }
+  - { ref: nursery-self-modification }
+  - { ref: nursery-shapeshift }
+  - { ref: nursery-tommy-thumb }
+  - { ref: nursery-meanwhile }
+  - { ref: nursery-plains-of-winter }
+  - { ref: nursery-frenzied-march-hare }
+  - { ref: nursery-white-queens-enigma }
+  - { ref: nursery-a-tale-for-somebodys-sake }
+  # Part 2. Two more arrive with Parts 3 and 4.
+  - { ref: nursery-trump-soldiers }
+  - { ref: nursery-jabberwock }
+  # Part 3.
+  - { ref: nursery-nameless-forest }
+  # Part 4, and the last.
+  - { ref: nursery-queens-glass-game }

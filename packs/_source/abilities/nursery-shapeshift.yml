@@ -1,0 +1,23 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+schema: 1
+id: nursery-shapeshift
+name: "Shapeshift"
+rank: "A+"
+kind: skill
+slug: shapeshift
+passive: true
+description: |
+  (Passive) All damage taken is reduced by 30%; if NP, 15%.
+passiveRules:
+  # A `Ward`, not a `Def Up`. A Def Up is an EFFECT somebody applied and
+  # somebody else can strip; this is a property of the Servant that nothing
+  # applied and nothing can remove. Both land in the same stage-4 bucket, which
+  # keeps them additive the way §13.4 requires.
+  #
+  # `npValue` stated rather than defaulted: most percentage defences in
+  # Appendix A are reduced against Noble Phantasms, and 15 happens to be half
+  # of 30 -- so writing it out is how a reader knows it was the sheet's figure
+  # and not an inference.
+  - key: Ward
+    value: 30
+    npValue: 15

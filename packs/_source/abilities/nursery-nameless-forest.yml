@@ -1,0 +1,96 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# A Noble Phantasm that is PASSIVE, CONTINUOUS, and kills by accumulation. The
+# only ability in either roster that wins by waiting, and the only thing that
+# can remove a Unit with no attack, no roll to hit and no counter-play beyond a
+# Luck Check.
+#
+# Its gates -- the 2-panel ring, the 3-token threshold, the Home Base exemption
+# and this NP Seal clause -- are the whole of its balance, and every one of them
+# is a separate clause that has to actually fire.
+#
+# THE FIGURES ARE THE ERRATA'D ONES. The sheet strikes through 50 and 20 in
+# favour of 25 and 10; superseded text is not an alternative reading.
+schema: 1
+id: nursery-nameless-forest
+name: "Nursery Rhyme: Nameless Forest"
+rank: C
+isNP: true
+categorizedAsNP: true
+isPassive: true
+npTags: [antiUnit]
+kind: noblePhantasm
+description: |
+  (Passive) At the end of every Round, this NP affects all enemy Units within a 2 panel area of
+  Nursery. Each time a Unit is affected, it gains one @effect[namelessForest]{Nameless Forest} Token;
+  this does not occur if Nursery is inflicted with @effect[npSeal]{NP Seal}. For every Token on a
+  Unit, reduce its Max Health by 25, Base Attack (both) by 10, and Max Luck by 1.
+passiveRules:
+  # "At the end of every ROUND" -- one token per Round per qualifying enemy.
+  # Fired at `turnEnd` instead, a three-Turn Round would triple the rate and
+  # kill a Unit in a third of the time.
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    # "this effect does not occur if Nursery is inflicted with NP Seal" -- on
+    # HER, not on the target, which is why it is a `self:` predicate on a rule
+    # whose actions reach somebody else.
+    predicate: [{ not: "self:effect:npSeal" }]
+    then:
+      # The marker FIRST, so the ladder and the death roll are in place before
+      # the token that makes them matter. Reversed, a Unit's first token would
+      # sit on a Unit with no way out and no die.
+      - key: ApplyEffect
+        target: nearby
+        radius: 2
+        relations: [enemy]
+        effect: { id: namelessForest }
+        duration: permanent
+
+      # THE TOKEN, and the three permanent reductions, as ONE action list.
+      #
+      # Not a `MaxDelta` scaled by the held count: "(Health and Luck that are
+      # lost from the effects of this NP are not restored)". A contribution
+      # would spring back the instant the tokens left, which is precisely what
+      # that parenthesis forbids -- and it would look correct.
+      - key: ResourceDelta
+        target: nearby
+        radius: 2
+        relations: [enemy]
+        resource: namelessForestTokens
+        delta: 1
+
+      # `alsoCurrent` clamps the current value to the new ceiling rather than
+      # moving it by the same delta, so a Unit at full Health does not sit above
+      # its own maximum and a wounded one is not healed on the way down.
+      - key: StatDelta
+        target: nearby
+        radius: 2
+        relations: [enemy]
+        stat: "health.max"
+        delta: -25
+        alsoCurrent: true
+
+      # Base Attack is DERIVED on every prepare, so it cannot be written to. The
+      # penalty is what `domain/base-attack.mjs` subtracts, and it is the only
+      # shape that is both permanent and stable under recomputation.
+      - key: StatDelta
+        target: nearby
+        radius: 2
+        relations: [enemy]
+        stat: "baseAttackPenalty.str"
+        delta: 10
+      - key: StatDelta
+        target: nearby
+        radius: 2
+        relations: [enemy]
+        stat: "baseAttackPenalty.mag"
+        delta: 10
+
+      - key: StatDelta
+        target: nearby
+        radius: 2
+        relations: [enemy]
+        stat: "luck.max"
+        delta: -1
+        alsoCurrent: true

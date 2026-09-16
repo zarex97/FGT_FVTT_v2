@@ -1971,9 +1971,32 @@ async function createStructure(phase, ability, actor, board) {
   const self = board.units.find((u) => u.id === actor.id);
   if (!self?.panel || !scene) return null;
 
+  // *"When the Jabberwock is summoned FOR THE FIRST TIME, the [Vorpal Blade]
+  // Item appears…"* -- once per match, not once per summoning. A second Blade
+  // every 5◈ is a different game, and so is replacing the one that broke.
+  //
+  // Recorded on the ABILITY, which is where a per-match fact about a use
+  // belongs and which survives the structure being destroyed or taken.
+  if (phase.once && (ability.system?.placedStructures ?? []).includes(phase.structureId)) {
+    return null;
+  }
+
   const source = await actorFromPacks(phase.structureId);
   if (!source) {
     console.error(`FGT | ${ability.name} places unknown structure "${phase.structureId}".`);
+    return null;
+  }
+
+  // WHERE it lands. `caster` is every structure authored until now -- Medusa's
+  // Bloodmarks and the Piedra Del Sol are placed at the feet of whoever made
+  // them. A dropped item is not: *"the [Vorpal Blade] Item appears on a RANDOM
+  // PANEL on the game board"*, which is the point of it, since the whole design
+  // is that she cannot control who finds her monster's counter.
+  const panel = phase.at === "randomPanel"
+    ? randomFreePanel(board, scene)
+    : { i: self.panel.i, j: self.panel.j };
+  if (!panel) {
+    ui.notifications?.warn(game.i18n.format("FGT.Structure.NoPanel", { name: source.name }));
     return null;
   }
 
@@ -1982,20 +2005,82 @@ async function createStructure(phase, ability, actor, board) {
     ...data.system,
     placedById: actor.id,
     factionId: actor.system?.factionId ?? null,
+    // The item this object is holding for whoever walks onto it, and the item's
+    // own refusals copied along with it so the pure pickup pass can read them.
+    ...(phase.carriesItemId
+      ? {
+        carriesItemId: phase.carriesItemId,
+        carriesItemBarredFrom: (await itemFromPacks(phase.carriesItemId))?.system?.barredFrom ?? null,
+      }
+      : {}),
     // Where it stands, WRITTEN rather than derived: the object never moves, and
     // the token index lags its own creation -- the lag `placeMark` records
     // having landed a Bloodmark one panel behind Medusa.
-    panel: { i: self.panel.i, j: self.panel.j },
+    panel: { i: panel.i, j: panel.j },
     fieldId: ability.system?.contentId ?? ability.id,
   };
   const [structure] = await Actor.createDocuments([data]);
 
   const size = scene.grid.size;
   const token = (await structure.getTokenDocument()).toObject();
-  token.x = self.panel.j * size;
-  token.y = self.panel.i * size;
+  token.x = panel.j * size;
+  token.y = panel.i * size;
   await scene.createEmbeddedDocuments("Token", [token]);
+
+  if (phase.once) {
+    await ability.update({
+      "system.placedStructures": [
+        ...(ability.system?.placedStructures ?? []), phase.structureId,
+      ],
+    });
+  }
   return structure;
+}
+
+/**
+ * A panel nobody is standing on, chosen uniformly from the whole board.
+ *
+ * > *"…appears on a random panel on the game board."*
+ *
+ * Uniform over free panels rather than over all panels, because a Blade that
+ * spawns inside a Servant is a Blade nobody can walk onto.
+ *
+ * @param {object} board
+ * @param {object} scene
+ * @returns {{i: number, j: number}|null}
+ */
+function randomFreePanel(board, scene) {
+  const g = scene.grid.size;
+  const rows = Math.floor(scene.height / g);
+  const cols = Math.floor(scene.width / g);
+  const taken = new Set((board.units ?? []).flatMap(
+    (u) => (u.panels ?? (u.panel ? [u.panel] : [])).map((p) => `${p.i},${p.j}`),
+  ));
+
+  /** @type {Array<{i: number, j: number}>} */
+  const free = [];
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) if (!taken.has(`${i},${j}`)) free.push({ i, j });
+  }
+  return free.length > 0 ? free[Math.floor(Math.random() * free.length)] : null;
+}
+
+/**
+ * An ITEM document from the packs, by content id.
+ *
+ * `actorFromPacks` above answers the same question for actors; an item lives in
+ * a different pack type and cannot be found by it.
+ *
+ * @param {string} contentId
+ * @returns {Promise<object|null>}
+ */
+async function itemFromPacks(contentId) {
+  for (const pack of game.packs.filter((p) => p.metadata.type === "Item")) {
+    const index = await pack.getIndex({ fields: ["system.contentId"] });
+    const entry = index.find((e) => e.system?.contentId === contentId);
+    if (entry) return pack.getDocument(entry._id);
+  }
+  return null;
 }
 
 /**

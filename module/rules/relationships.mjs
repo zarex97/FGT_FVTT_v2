@@ -98,6 +98,19 @@ export function underpowerCheck(attacker, defender) {
     return { applies: false, chance: 0, reason: "wrongDirection" };
   }
 
+  // A Master who cannot be Underpowered at all.
+  //
+  // > *"If the Master with this Item Equipped cannot be Underpowered by
+  // > Servants."* — `[Vorpal Blade]`
+  //
+  // A suppression rather than a modifier, because the clause refuses the whole
+  // roll rather than improving it: `atkUp` and `npDmUp` above shift the chance,
+  // and this removes it. The same shape `bypassesMasterProtection` reads off
+  // the same bucket.
+  if ((attacker.suppressions ?? []).some((s) => s.scope === "underpower")) {
+    return { applies: false, chance: 0, reason: "immune" };
+  }
+
   const held = attacker.effects ?? [];
   let chance = BASE_FLIP;
   if (held.includes("atkUp") || held.includes("npDmUp")) chance -= 10;

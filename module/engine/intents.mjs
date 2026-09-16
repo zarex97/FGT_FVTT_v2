@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
+  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "markGlassGameSpent", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // `setStage` decrements a staged effect without deleting it, and `event`
@@ -98,6 +98,27 @@ const ORDER = Object.freeze({
   setFacing: 7,
   spendCS: 8,
   defeat: 9,
+  // Beside `defeat`, and for the same reason: a summon leaving the board is the
+  // last thing that happens to it, after every write aimed at it has landed.
+  //
+  // It is NOT a defeat. *"It disappears"* -- so no revival chain, no
+  // `unitDefeated`, and nothing that counts a kill.
+  // A rewind REPLACES a Unit's state wholesale, so it must land before any
+  // write that is meant to survive it and after every write it is meant to
+  // undo. Beside `defeat`, which is the other thing that acts on the whole
+  // Unit at once.
+  rewind: 8,
+  // After the rewind it records, so a failure part-way leaves the clause
+  // unspent rather than spent-and-not-applied.
+  markGlassGameSpent: 9,
+  dismissSummon: 9,
+  // Bookkeeping on the summon's own clock, alongside the other stat writes --
+  // and well before the dismissal that reads it, so a stay extended and expired
+  // in one batch extends first.
+  durationDelta: 2,
+  // Bookkeeping, like the other writes -- and before the damage it changes the
+  // shape of, so an attack that both suppresses and wounds suppresses first.
+  suppressRule: 2,
   prompt: 10,
 });
 
@@ -127,8 +148,8 @@ export const heal = (unitId, amount, source, revival = false, meta = {}) =>
  * uses this rather than `damage`, because it must not trigger damage-keyed
  * effects like `Dmged NP Regen` or an Injury Roll.
  */
-export const statDelta = (unitId, stat, delta, clamp = true) =>
-  ({ t: "statDelta", unitId, stat, delta, clamp });
+export const statDelta = (unitId, stat, delta, clamp = true, alsoCurrent = false) =>
+  ({ t: "statDelta", unitId, stat, delta, clamp, alsoCurrent });
 
 export const applyEffect = (unitId, effect, sourceId) =>
   ({ t: "applyEffect", unitId, effect, sourceId });
@@ -159,6 +180,93 @@ export const setFacing = (unitId, facing) =>
 
 export const defeat = (unitId, cause) =>
   ({ t: "defeat", unitId, cause });
+
+/**
+ * Take a summon off the board because its stay has run out.
+ *
+ * > *"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
+ *
+ * Distinct from `defeat`, which runs the revival chain, fires `unitDefeated`
+ * and counts as a kill. Disappearing is none of those: the applier writes the
+ * summon's stats home to its summoner (so *"its Stats will be the same as when
+ * it disappeared"* inherits the path Ozymandias's Sphinxes already use), starts
+ * a `countFrom: "destroyed"` cooldown on whatever summoned it, and deletes it.
+ *
+ * @param {string} unitId
+ * @param {string} [reason]
+ * @returns {object}
+ */
+export const dismissSummon = (unitId, reason = "expired") =>
+  ({ t: "dismissSummon", unitId, reason });
+
+/**
+ * Move a summon's departure tick.
+ *
+ * > *"…extends its period of existing on the board for 3◈ **more** Turns."*
+ *
+ * A DELTA, not a new expiry: the sheet says *more*, and a summon with four
+ * Turns left must end with seven rather than three.
+ *
+ * @param {string} unitId
+ * @param {number} delta turns, signed
+ * @returns {object}
+ */
+export const durationDelta = (unitId, delta) =>
+  ({ t: "durationDelta", unitId, delta });
+
+/**
+ * Switch a named rule off on a Unit, permanently.
+ *
+ * > *"…is **permanently removed** from the Jabberwock."*
+ *
+ * The slug of a rule element rather than an effect id: what the Vorpal Blade
+ * takes away is a clause on the monster's own statblock, which no removal
+ * effect can reach.
+ *
+ * @param {string} unitId
+ * @param {string} scope the rule element's `slug`
+ * @returns {object}
+ */
+export const suppressRule = (unitId, scope) =>
+  ({ t: "suppressRule", unitId, scope });
+
+/**
+ * Return a Unit to a state it held earlier in the match.
+ *
+ * > *"…the Stats, Parameters, Buffs, Debuffs, Cooldowns, and other existing
+ * > effects of all Units within a 3 panel area of Nursery are returned to what
+ * > they were 3◈ Turns ago."*
+ *
+ * The state travels WITH the intent rather than being looked up by the applier,
+ * because the buffer is on the Combat document and the decision of which tick
+ * to restore belongs to the clause, not to the writer.
+ *
+ * `clearsDefeat` is false for the one Unit that can be defeated when this
+ * fires: *"a rewind that restores health undoes a kill — though not a defeat."*
+ *
+ * @param {string} unitId
+ * @param {object} state a `UnitStateSnapshot`
+ * @param {object} [options]
+ * @param {boolean} [options.clearsDefeat]
+ * @returns {object}
+ */
+export const rewind = (unitId, state, { clearsDefeat = false } = {}) =>
+  ({ t: "rewind", unitId, state, clearsDefeat });
+
+/**
+ * Spend The Queen's Glass Game's once-per-game rewind.
+ *
+ * > *"Can only be used once during the entire game."*
+ *
+ * On the ACTOR rather than on an effect instance, because *"the entire game"*
+ * spans her defeat and any revival: a Nursery brought back by a Command Spell
+ * and defeated again gets nothing.
+ *
+ * @param {string} unitId
+ * @returns {object}
+ */
+export const markGlassGameSpent = (unitId) =>
+  ({ t: "markGlassGameSpent", unitId });
 
 export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });
@@ -505,6 +613,7 @@ export function validate(intents) {
 /** @type {Readonly<Record<string, string[]>>} */
 const NUMERIC_FIELDS = Object.freeze({
   damage: ["amount"],
+  durationDelta: ["delta"],
   heal: ["amount"],
   statDelta: ["delta"],
   resource: ["delta"],

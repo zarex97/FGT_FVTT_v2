@@ -279,11 +279,63 @@ async function onMove(document, movement, operation) {
     await runDiscoverChecks(actor.id);
   }
 
+  // An ITEM lying where this Unit just stopped.
+  //
+  // > *"…the [Vorpal Blade] Item appears on a random panel on the game board,
+  // > this Item can be picked up by a Unit walking onto its panel."*
+  //
+  // The first item in this system that is not handed to somebody. Read off a
+  // FRESH board for the same reason the knockback above is: the pickup is about
+  // where the Unit now stands, not where it was.
+  //
+  // The refusal for Nursery and her Master is NOT here -- it lives in
+  // `rules/items.mjs#acquisitionTarget`, which every acquisition route passes
+  // through, so a future trade or reward inherits it. Refused, the pass returns
+  // nothing and the sword stays where it lies.
+  await pickUpItemHere(actor.id, combat);
+
   // Familiar: Doves (Ch. 32): "whenever Semiramis sees a Unit for the first
   // time" is not about concealment at all, so it runs unconditionally on
   // every move rather than gated behind `unit.concealed` above.
   const { checkSightings } = await import("./vision.mjs");
   await checkSightings({ board: boardSnapshot(combat) });
+}
+
+/**
+ * Hand a Unit the item lying on the panel it just stopped on.
+ *
+ * @param {string} unitId
+ * @param {object} combat
+ * @returns {Promise<void>}
+ */
+async function pickUpItemHere(unitId, combat) {
+  const board = boardSnapshot(combat);
+  const unit = board.units.find((u) => u.id === unitId);
+  if (!unit) return;
+
+  const { itemPickupIntents } = await import("../rules/items.mjs");
+  const descriptors = itemPickupIntents(unit, board);
+  if (descriptors.length === 0) return;
+
+  const { toIntents } = await import("./items.mjs");
+  const { applyWorldIntents } = await import("./applier.mjs");
+  // The grant and the log go through the shared converter; the cache itself is
+  // deleted here, the way `engine/fields.mjs` removes the objects a field
+  // anchored. A one-caller intent type for "delete this structure" would be
+  // more surface than the thing it carries.
+  await applyWorldIntents(
+    toIntents(descriptors.filter((d) => d.kind !== "dismiss"), {
+      tick: board.tick, turnsPerRound: board.turnsPerRound,
+    }),
+    "item:pickup",
+  );
+
+  for (const d of descriptors.filter((d) => d.kind === "dismiss")) {
+    const cache = game.actors.get(d.unitId);
+    if (!cache) continue;
+    for (const token of cache.getActiveTokens?.() ?? []) await token.document.delete();
+    await cache.delete();
+  }
 }
 
 /**

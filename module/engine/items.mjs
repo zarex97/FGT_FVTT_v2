@@ -43,7 +43,10 @@ export async function giveItem({ fromId, toId, itemId, count = 1 }) {
   // acquisition site there is -- but the question is asked through the shared
   // seam rather than answered here, because the clause is about OBTAINING and
   // a later drop or reward has to inherit the same answer.
-  const destination = acquisitionTarget(named, board);
+  // The ITEM travels with the question now: a refusal may belong to the item
+  // rather than to the holder. `[Vorpal Blade]` *"cannot be obtained by Nursery
+  // or her Master"*, which is not a property of either of them.
+  const destination = acquisitionTarget(named, board, item);
   if (!destination.ok) return { ok: false, reason: destination.reason };
   const to = destination.redirected
     ? board.units.find((u) => u.id === destination.unitId)

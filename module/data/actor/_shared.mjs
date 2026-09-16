@@ -236,6 +236,26 @@ export function combatantCommon() {
       mag: new fields.NumberField({ required: true, integer: true, initial: 0 }),
       luc: new fields.NumberField({ required: true, integer: true, initial: 0 }),
     }),
+    // A PERMANENT flat reduction to Base Attack, subtracted by
+    // `domain/base-attack.mjs#baseAttackFor`.
+    //
+    // > *"For every Nameless Forest Counter on a Unit, reduce its Max Health by
+    // > 25, **Base Attack (both) by 10**, and Max Luck by 1."*
+    // > *"(Health and Luck that are lost from the effects of this NP are not
+    // > restored.)"*
+    //
+    // Not a contribution, because those spring back when their source leaves
+    // and this must not. Not a write to `baseAttack` either, because that is
+    // derived on every `prepareDerivedData` and would recompute the write away.
+    // A stored penalty is the only shape that is both permanent and stable
+    // under recomputation.
+    //
+    // Distinct from `grantedSteps` above: that moves a PARAMETER and this is a
+    // flat number the sheet states directly.
+    baseAttackPenalty: new fields.SchemaField({
+      str: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+      mag: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+    }),
     // The ◈ this Unit's setup rolls were made on (§37.6). The rolls lock once
     // the match starts, and this is what lets anyone check afterwards that they
     // were made before it did.

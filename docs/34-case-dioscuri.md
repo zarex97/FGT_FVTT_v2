@@ -414,7 +414,7 @@ it too (`"Your choice of any of the above effect(s)"`).
 | Partner-always-included target shorthand | `alliesWithin2OrPartner` |
 | Player choice mid-ability | `kind: choice` phase |
 
-**Script elements: zero.**
+**Script elements: zero.** *(Still true of this roster. The corpus's first — and, so far, only — `Script` is Nursery Rhyme's `nurseryRhyme.rewind`, built 2026-09-16; see Ch. 44 §44.6 and Ch. 43 §43.11. The sentence this figure supports is unchanged: everything here decomposes into small, general mechanisms.)*
 
 The Dioscuri look exotic but decompose into ten small, general mechanisms. That is the strongest
 evidence the architecture is right: the weirdest-shaped content in the set needed no bespoke

@@ -158,6 +158,7 @@ whole attack.
 | `Def Dwn (A)` | D | nv | D | mag | 4 | As `Def Dwn`, plus **Luck −1** at the end of the Damage Step whenever **successfully Attacked** (not "damaged"). |
 | `Def Dwn (B)` | D | nv | D | mag | 4 | As `Def Dwn`, with NP damage taken further increased. |
 | `Def Dwn (C)` | D | nv | D | mag | 4 | As `Def Dwn`, plus **Agility −1** on the same trigger as (A). |
+| `Def Dwn (MAG)` | D | nv | D | mag | 4 | As `Def Dwn`, but **only against MAG-component damage**. A distinct effect rather than a stronger one: the parenthesis names what is scoped, and content that strips "one Def Dwn" must be able to take this without taking an unscoped one instead. **Built 2026-09-16** (`packs/_source/effects/def-dwn-mag.yml`) for `Enigma`, which is the only thing that inflicts it. |
 | `Def Crk` | D | nv | D | mag | 16 | Damage taken +X **flat**, including NP. Categorized as `defDwn`. **Its addition does not count toward the Injury Roll threshold.** |
 | `Dmg Loss` | D | nv | O | mag | 7 | Damage dealt −X flat. **Not** categorized as `atkDwn`. |
 | `Crit Dwn` | D | nv | O | mag | — | Crit chance −X%. |
@@ -233,7 +234,7 @@ All `nnr`. Members of the `bind` family are marked ✦.
 | `Petrify` ✦ | Cannot Act. **Buffs, debuffs and other effects have no effect.** >200 damage in one attack ⇒ immediate defeat. Cured only by `[Gold Needle]` or a removal effect of equal-or-higher Rank (Rank A+ if the source was unranked). |
 | `Slow` ✦ | MOV halved (round down). Evade rolls +2. |
 | `Immobilize` ✦ | Cannot Move. **All** Agility Checks +4. |
-| `Disable` ✦ | Can only use the Move action. |
+| `Disable` ✦ | Can only use the Move action. **Built 2026-09-16** (`packs/_source/effects/disable.yml`) for *Plains of Winter*. `rules/budget.mjs`'s own table had listed only attack/skill/np, so a Disabled Unit could still cast a Spell, make a Riding Attack, Gather and Mark; it is now the complement of Move over the whole action vocabulary, which is what this row says. |
 | `Seal` ✦ | Cannot: perform BA(STR) Normal Attacks; use Skills or Attack Skills; use NP. **Spells remain usable.** |
 | `Shock` ✦ | Max **and current** Agility −3. At the start of every turn, roll d6; on 3 or 4 the unit cannot act. On removal, current Agility +1 when max is restored. |
 | `Webbed` ✦ | Cannot Act. `Struggle` at each turn end: 10% base (20% if STR ≥ B in Advanced), +5% per failure. Removed by damage from an attack. Reapplication resets the escape chance and **extends** the duration (`ext`). |
@@ -320,6 +321,25 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 > **`Def Dwn (A)` — built 2026-09-16** (`packs/_source/effects/def-dwn-a.yml`),
 > the mirror of `Def Dwn (C)`, for the Dioscuri's Noble Phantasm, which inflicts
 > both.
+
+> **`Enigma` — built 2026-09-16, and this row was wrong about whose attack it
+> reads.**
+>
+> It said *"when the bearer's **ally** performs a STR-component Normal Attack"*.
+> Nursery Rhyme's sheet says: *"Applies the 'Enigma' buff to Nursery… Whenever
+> **Alice** performs a Normal Attack which deals STR damage, **Nursery** inflicts
+> the Def Dwn (MAG) debuff for 1◈ Turns on the DU."*
+>
+> Alice **is** Nursery. Her True Name is "Nursery Rhyme, Alice"; the sheet labels
+> her Skills `(Alice)` and her last Noble Phantasm `(Nursery)`, and the two names
+> alternate throughout. Reading the second name as a second person is what turned
+> a self-buff into an ally-buff in this table.
+>
+> The self reading is also the only one that makes her coherent. Her Note pins
+> her Normal Attacks to BA(STR) **50** while her Noble Phantasm swings BA(MAG)
+> **200**, and `Enigma` is what makes the feeble swing worth taking — the
+> `Def Dwn (MAG)` it plants raises MAG damage taken by 60%. Aimed at an ally it
+> would buff somebody else's kit and do nothing for hers.
 
 > **`Deafen` — built 2026-09-11, and the catalogue and the sheet disagree.**
 >
@@ -419,7 +439,7 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Raikou` (id `raikouBuff`) | B | O | cnt | — | Count-limited (**3 uses, no duration** — R1): Normal Attacks deal **+40 Lightning**, roll 40% `Shock` for ⅔◈, and reduce **both** NP cooldowns by ⅓◈. One handler pays out both halves and spends the charge, so an attack that rolls badly for `Shock` still costs a use and still moves the clocks. The +40 is the first flat bonus in the corpus made of a damage type the attack itself is not, and stage 7 routes it through that element's own share (Ch. 13). The id is `raikouBuff` because content ids are one namespace and `raikou` names the Servant. | Raikou |
 | `Atk Up (MS)` | B | O | mag | — | All damage dealt to `[Earth]` / `[Sky]` Units +X% including NP. Carries Mystery Slayer's Demi-/Pseudo-Servant exclusion with its one named exception (Sitonai, by content id). | Raikou |
 | `Atk Up (Demonic)` | B | O | mag | — | All damage dealt to `Demonic` Units +X% including NP. Carries the **same** exclusion, though the sheet's note names only `Atk Up (MS)` — R2 reads the note as naming the skill, and a Demi-Servant who is also Demonic would otherwise be a hole in it. | Raikou |
-| `Enigma` | B | O | nr | — | When the bearer's ally performs a **STR-component** Normal Attack, the DU gains `Def Dwn (MAG)`. Gated on which base attack the attack used. | Nursery Rhyme |
+| `Enigma` | B | O | nr | — | When **the bearer itself** performs a **STR-component** Normal Attack, the DU gains `Def Dwn (MAG)` at +60% / NP +40%. Gated on which base attack the attack used. **Built 2026-09-16** (`packs/_source/effects/enigma.yml`); this row said *"the bearer's ally"* until then — see the note below. | Nursery Rhyme |
 | `Espionage` | B | — | nr | — | Raises the bearer's own `Presence Concealment` rank. A `RankShift` delivered as a buff. | Yan Qing |
 | `Sol` | B | — | nr | — | The 5×5 around the bearer counts as **Day** regardless of the Round's phase (Ch. 42 §42.6). **Built**, and the document carries `rules: []` — which is the finished state, not an unfinished one. Terrain is not an effect (§42.1), so every mechanical consequence of `Sol` is `phaseAt` reading the ground its ability painted; the buff is the marker whose expiry erases that ground. The first content to set `followsSource`. | Quetzalcoatl |
 | `Charity`-style named `Atk Up` variants | B | O | mag | 4 | `Atk Up (Trace)`, `Atk Up (MS)`, `Atk Up (Demonic)`, `Atk Up (Charisma)` — all `atkUp` family members with predicates. | several |

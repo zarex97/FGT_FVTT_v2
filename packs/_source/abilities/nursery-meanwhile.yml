@@ -1,0 +1,34 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+schema: 1
+id: nursery-meanwhile
+name: "Meanwhile…"
+rank: A
+kind: skill
+slug: meanwhile
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Reduces NP Cooldown by 1◈+⅓◈ Turns.
+  2. Restores Nursery's Health by 15% of its maximum value.
+  3. Remove all debuffs from Nursery.
+  Cooldown: 4◈ Turns.
+phases:
+  # `ticks`, not `delta`: "1◈+⅓◈" is a ◈ expression, and reading it as a turn
+  # count would make this a third as strong in a three-turn Round.
+  #
+  # `scope: np` names no ability on purpose -- she has four Noble Phantasms by
+  # the end, and the sheet says "NP Cooldown" rather than picking one.
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, ticks: "1◈+⅓◈", direction: down }
+  - kind: heal
+    target: self
+    percentOfMax: 15
+  # "Remove ALL debuffs" -- selected by polarity rather than named one by one,
+  # so a debuff authored later is covered without touching this file. The same
+  # shape Kingprotea's Self-Suggestion uses.
+  - kind: removeEffect
+    target: self
+    selector: { polarity: debuff }

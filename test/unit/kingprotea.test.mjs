@@ -419,7 +419,14 @@ describe("her sheet", () => {
   it("gives Territory Creation EX both halves at 6d20 and 3d10+30", () => {
     const tc = ability("kingprotea-territory-creation");
     expect(tc.passiveRules[0].roll.formula).toBe("6d20");
-    expect(tc.passiveRules[1].elements[0].roll.formula).toBe("3d10+30");
+    // `mode: dice` + a rank table, not `roll:`. `DamageNegation` never read
+    // `el.roll`, so authored that way the clause reduced nothing at all; EX is
+    // the 3d10+30 row of `territoryCreationDefence`, which the aura's rank
+    // resolves to.
+    expect(tc.passiveRules[1].elements[0]).toMatchObject({
+      mode: "dice", table: "territoryCreationDefence",
+    });
+    expect(lookup("territoryCreationDefence", Rank.parse("EX"))).toBe("3d10+30");
     expect(tc.passiveRules[1].stacking).toBe("highestOnly");
   });
 });

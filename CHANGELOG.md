@@ -34,6 +34,229 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Nursery Rhyme, Part 4 of 4 — The Queen's Glass Game (2026-09-16)
+
+**The engine can now remember the past.** Ch. 43 §43.11 opens its design by
+saying it could not: *"This is a time rewind over an arbitrary set of units, and
+it is by a wide margin the most demanding mechanic in either roster. Nothing
+else requires the engine to remember the past."*
+
+**And the corpus has its first `Script`.** Ch. 34 and Ch. 36 both close their
+tallies with *"Script elements: zero"*, and Ch. 44 §44.6 budgets four across
+~130 abilities; this is the only one built. Every other ability in the corpus is
+data because its behaviour is a *composition* of named mechanisms. This one
+walks a unit set, resolves a historical index, diffs two states and emits a
+heterogeneous batch — and it has exactly one customer.
+
+**The registry the `Script` element has promised since it was written did not
+exist.** Nothing read `handler.script`, and nothing could have matched one
+anyway: the element pushed a singular `event` where `listensFor` reads `events`.
+Closed and name-keyed is the security property — a compendium is data other
+people wrote — so an unknown name runs nothing and logs it rather than throwing,
+and the lookup refuses names inherited from `Object.prototype`.
+
+**Two rulings the sheet forced.**
+
+- ***"Enters Combat" is a moment this engine does not have*** — no event, no
+  flag, no state, and the phrase occurs once in the whole repository, in
+  Ch. 43's own quotation of this sheet. It is **defined** as the first Turn end
+  at which an enemy stands within her 3-panel ring, derived from the clause's
+  next sentence: the **reset** is keyed on that predicate, so the **start** must
+  be too. A clock that begins on one condition and resets on another cannot be
+  reasoned about.
+- **Effect 2 hangs in the tail of `resolveDefeat`, not on `unitDefeated`.** That
+  event fires *before* the revival query — *"Handlers first: `unitDefeated` is
+  where content that is not a revival hangs"* — so a handler there would spend
+  her once-per-game rewind on a death Guts was about to undo. The Dioscuri's
+  linked death sits in the same tail for the same reason.
+
+**The gate is the whole performance story**, and it is verified **negatively**:
+eleven Units on a board with no Nursery, and `recordTurn` returns `null`. No
+snapshots, no diffing, no storage. *"A match without Nursery Rhyme pays
+nothing."*
+
+**One defect the live board found.** `requiresHistory` was declared in the
+schema and in **both** content allowlists, compiled correctly, and sat on the
+item — and `historyWanted` still said no, because the unit snapshot's own
+ability projection dropped it. A recorder that never starts means both effects
+do nothing at all, silently. **Three** hops, not two, and the guard now names
+all four places the field has to appear.
+
+**Verified on a live board.** Twelve Units recorded per turn with their effect
+instances and source ids; a rewind restoring Health 300→1000, an NP cooldown
+12→0 and removing a buff applied after the target tick — while the Unit stood
+**exactly where it was** and its Nameless Forest Tokens stayed at **7**, not
+restored; effects whose source had left the board dropped and logged; a Nursery
+with a revival available **revived, with the rewind neither fired nor spent**; a
+Nursery with nothing left rewinding eight Units six Rounds back to the tick's
+exact value, **including herself and staying defeated**; and a second defeat
+after a revival giving **nothing**.
+
+### Nursery Rhyme, Part 3 of 4 — Nameless Forest (2026-09-16)
+
+A Noble Phantasm that is **passive, continuous, and kills by accumulation** —
+the only ability in either roster that wins by waiting, and the only thing that
+can remove a Unit with no attack, no roll to hit and no counter-play beyond a
+Luck Check.
+
+**R2 is the clause the whole part is arranged around.** *"(Health and Luck that
+are lost from the effects of this NP are not restored.)"* Every other stat
+change in this engine is a **contribution** that springs back when its source
+leaves; these must not. A `MaxDelta` scaled by the held token count would look
+correct, pass a casual test, and silently restore everything the instant a Unit
+escaped. Base Attack could not even be a write — `baseAttackFor` recomputes it
+on every `prepareDerivedData` — so it goes through a stored penalty the
+derivation subtracts, which is the only shape that is both permanent and stable
+under recomputation.
+
+**R3 inverts under one careless reading.** A **high** MAG Rank makes escape
+**easier**: `resolveCheck` succeeds on `roll + mods <= target`, so a negative
+modifier helps. That reads backwards until you notice the Home Base term does
+the same thing and that the sheet separately refuses to delete a Unit at home.
+Both point one way. The table is tested at all six grades and the direction is
+proved against `resolveCheck` rather than asserted.
+
+**Two engine changes, and one defect the live board found:**
+
+- **A rank table may now be indexed by the target's own parameter.** Every table
+  in the corpus is read against the OWNING ability's rank; this one is read
+  against the affected Unit's MAG, and that Noble Phantasm is Rank C — so
+  reading it the usual way returns 0 at every grade and does nothing at all.
+- **A permanent stat reduction that survives recomputation**, plus `alsoCurrent`
+  clamping a current value to a lowered ceiling without healing a wounded Unit.
+- **An action aimed at a SET reached the bearer instead.** `ApplyEffect` has
+  read a per-action `target` since Serenity; every other action resolved one
+  subject through `subjectOf`, whose vocabulary has no `nearby`. So the token
+  grant and all three reductions — aimed at *"all enemy Units within a 2 panel
+  area"* — landed on **Nursery**. She poisoned herself once per Round, down to
+  475 Max Health and BA 40/190, while the enemy in her ring took nothing.
+
+**Verified on a live board.** One token per Round to an enemy at exactly 2
+panels; three tokens producing 925 Health, 7 Luck and BA 120/120 from
+1000/10/150; a successful escape (6 vs 20) taking the tokens and the marker and
+**restoring none of it**; nine tokens and a rolled 9 producing a defeat and a
+rolled 12 producing nothing; the same Unit at home rolling a **1** and surviving,
+with the log recording exactly how close that was; and three escapes compounding
+to a 70% chance of being caught again.
+
+### Nursery Rhyme, Part 2 of 4 — the summons (2026-09-16)
+
+Two Noble Phantasms that put units on the board, and an Item that exists mostly
+to kill one of them. **She summons her own counter**: the `[Vorpal Blade]`
+appears on a random panel the first time she calls the Jabberwock, and she and
+her Master are the two Units who cannot pick it up.
+
+**Seven engine changes**, three of them fields that already existed and were
+read by nobody:
+
+- **`expiresAt`** — on the summon schema since it was written, displayed by the
+  actor sheet and read by nothing else. No summon had ever left on a schedule,
+  so *"it disappears after 3◈ Turns"*, *"5◈ Turns **after** it disappears"* and
+  *Alice Eater*'s *"3◈ **more** Turns"* had nothing to attach to.
+- **`equipped`** — on `EquipmentData` since it was written, drawn as a checkbox
+  and gating nothing. An Item's rules applied from the moment it was **held**.
+  `[Semiramis' Poison]` is the only other Item in the corpus and carries no
+  rules at all, so nothing had noticed.
+- **`acquisitionTarget`** — the right seam, whose docstring anticipates this
+  exact day, but with a signature that could not refuse *this* item to *these*
+  units.
+
+And four more found on a live board, after 4,569 tests were green:
+
+- **The summon protection had never once applied, on any summon.** All four
+  — three Dragon Tooth Warriors and the Trump Soldier — authored it as
+  `TargetingModifier`, which lands in `modifiers` under a key nothing reads. The
+  element that works is `TargetabilityModifier`, three letters away.
+- **`damageStepEnd` never said who was hit**, so every victim-directed rider on
+  it emitted nothing: Bašmu's Poison, and Nursery's own `Enigma` from Part 1,
+  whose handler Part 1 confirmed was *collected* and never confirmed *fired*.
+- **`fireDamageTaken` read the world actor** while every engine write goes to
+  the token's — different documents for an unlinked token, which every summon
+  is. The lifesteal fired from a document that had never heard of the Blade.
+- **A re-summoned Unit came back brand new.** The remembered-stats record was
+  written by two paths and read back by only one, so *"its Stats will be the
+  same as when it disappeared"* was inert for every ordinary summoning.
+
+**New content:** two summons, a structure, the Item, and three abilities.
+**Also new:** `DurationDelta`, a `SuppressRule` that switches a rule off by name
+and permanently, an absolute `RangeDelta` (*"Range is reduced **to** 1 panel"*),
+an Underpower waiver, an `ItemDelta` so a sword can break, and `at: randomPanel`
+with `once: true` on `createStructure`.
+
+The spec's `replaces`-at-an-`attributeBonus`-stage was **withdrawn**: there is no
+such stage, and *"3x **instead of** 50% extra"* is two mutually exclusive
+predicates in one bucket. No pipeline change at all.
+
+### Nursery Rhyme, Part 1 of 4 — her core kit (2026-09-16)
+
+A Servant authored in four parts, because her sheet is four different games: a
+core kit, two summons and the Item that kills one of them, a Noble Phantasm that
+wins by waiting, and a time rewind. This is the first.
+
+Her Note is the axis the whole kit turns on. *"Nursery's Normal Attacks use Base
+Attack (STR)"* — **50**, against the **200** her Noble Phantasm swings. `Enigma`
+exists to make that feeble swing worth taking, because the `Def Dwn (MAG)` it
+plants raises MAG damage taken by 60%.
+
+**Four things were already built, and dead.** Every one of them was found by
+reading the code a plan had to argue from, and none would have been caught by a
+passing test.
+
+- **Territory Creation's second clause has never reduced a single point of
+  damage, for any Servant.** `DamageNegation` does not read `el.roll`, and every
+  one of the five files that carry the clause — Medea, Kingprotea, Semiramis
+  twice, the generic Caster and the DSC buff — authored the formula that way. Its
+  `mode` defaults to `flat`, so `rollNegation` computed `Number(null) || 0` and
+  skipped it. And an aura's nested element was routed to `modifiers` by default,
+  where the damage pipeline has no key for it and nothing else looks — the third
+  entry `ROUTES` has gained for exactly this reason.
+
+- **A cooldown rider on a damaging ability never ran at all.** The attack path's
+  rider loop skips every phase kind but `applyEffects`, and `runAfterProcessPhases`
+  filters on a `when: afterProcess` that neither clause declares — so Kiritsugu's
+  *Chronos Rose*, whose sentence is the same as hers, has never turned anybody's
+  clock. Its unit test passed throughout, because it calls `cooldownChanges`
+  directly with a victim the caller never supplies.
+
+- **`Disable` could cast Spells.** `rules/budget.mjs`'s own table listed
+  attack/skill/np, while Appendix A's row says *"can only use the Move action"*.
+  The list is now the complement of Move over the whole action vocabulary.
+
+- **Appendix A's `Enigma` row was wrong about whose attack it reads.** It said
+  *"the bearer's **ally**"*, and the row credits Nursery Rhyme by name. Alice
+  **is** Nursery — her True Name is "Nursery Rhyme, Alice", and the sheet
+  alternates the two labels throughout. Aimed at an ally the buff would improve
+  somebody else's kit and do nothing for hers.
+
+**Promoted rather than copied.** Her Territory Creation repeats Medea's word for
+word, so it became `class-territory-creation`, parameterized by rank — and the
+promotion fixed a second defect on the way past: Medea's file hardcoded `5d20`
+and `3d10+20`, which are the **A row** of two tables that have existed indexed
+across all six grades since the tables were transcribed. Right for her, wrong at
+every rank below. That is the shape `madEnhancementDrain` carried when its floor
+was written out as EX's figure.
+
+**Verified on a live board**, every clause of the inventory. The board found two
+more defects that 4,491 passing tests did not:
+
+- **`White Queen's Enigma` refused with *"Choose a target."*** A non-damaging
+  Spell must declare `countsAsAttack: false`; `isSpell` is one of the three
+  things `classifyAbility` treats as attack-shaped, and an attack-shaped ability
+  with no `targeting:` falls back to `targetUnit`. The failure the codebase had
+  already written down: *"EMIYA took 75 self-damage from casting a buff spell."*
+- **The corpus-wide guard added for it found a second**, on a Servant marked
+  fully authored and live-verified: Semiramis's `Scales of the Sacred Fish` — a
+  shield Spell that spent her Attack for the Turn and opened a Combat Process
+  against the ally it shields.
+
+**New content:** `class-territory-creation`, three effects (`Disable`,
+`Def Dwn (MAG)`, `Enigma`), four Skills, three Spells, one Noble Phantasm and the
+Servant. **New engine:** `rollTable` on a `DamageModifier`, nested aura elements
+resolving their rank table at collection time, a `DamageNegation` route, a
+cooldown rider split by audience, and `targeting` on a cooldown phase — the first
+in the corpus to need one, because *Tommy Thumb's Secret Picture Book* reaches
+three different sets in a single use.
+
 ### Anastasia & Viy (2026-09-16)
 
 A Servant who blinds herself to hit harder, soaks her enemies so the next Ice

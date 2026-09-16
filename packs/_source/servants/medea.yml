@@ -26,7 +26,10 @@ sustainability: "4◈"
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
   - { ref: medea-item-construction }
-  - { ref: medea-territory-creation }
+  # Promoted to the shared class-skill template, which Nursery Rhyme's sheet
+  # repeats word for word. Her own file hardcoded the A row of both dice tables,
+  # and its defence clause had never rolled at all.
+  - { ref: class-territory-creation, rank: A }
   - { ref: medea-high-speed-divine-words }
   - { ref: medea-golden-fleece }
   - { ref: medea-teachings-of-circe }

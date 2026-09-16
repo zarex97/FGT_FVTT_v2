@@ -1516,6 +1516,80 @@ with or without the ship, since the shipless clause exempts only the Range. `4 �
 either way, and the two Galleon bands act on **Total Damage** at stage 15 rather than on stage 4's
 additive bucket.
 
+## D.33c Nursery Rhyme
+
+`STR E / END E / AGI C / MAG A / LUC B` · Health 500 · MOV 4 · Range 2/1 · BA 50 STR, 200 MAG ·
+Sustainability 4◈ · Caster · True Neutral · England ·
+`[Female, Servant, [Man], Humanoid, Fairytale, Non-Hominidae, Child]`
+
+**Scripts: 1 — the corpus's first.** **All four parts authored and verified on a live board**: the
+core kit, the summons and the `[Vorpal Blade]`, the Nameless Forest, and The Queen's Glass Game.
+Thirteen abilities, and the only Servant in either roster that required the engine to remember the
+past.
+
+**Every combat number is the tables' own.** 500 at END E, 50 at STR E, 200 at MAG A, with no
+authorial override anywhere — the second Servant after Drake of whom that is true.
+
+**Her Note is the axis the whole kit turns on.** *"Nursery's Normal Attacks use Base Attack
+(STR)"* — **50**, against the **200** her Noble Phantasm swings. Van Gogh is the mirror case, forced
+the other way onto MAG. The gap is what makes `Enigma` worth casting: the `Def Dwn (MAG)` it plants
+raises MAG damage taken by 60%, so the feeble swing is a setup for the enormous one.
+
+**`Enigma` is self-only, and Appendix A said otherwise.** Her sheet alternates two labels for one
+Servant — *"Whenever **Alice** performs a Normal Attack… **Nursery** inflicts the debuff"* — and the
+catalogue's own row, which credits her by name, read the second as a second person and wrote *"the
+bearer's ally"*. Aimed at an ally the buff would improve somebody else's kit and do nothing for
+hers.
+
+**Her Territory Creation is the reason there is now a template.** Hers repeats Medea's word for
+word, so the skill was promoted to `class-territory-creation`, parameterized by rank. The promotion
+found two defects in the file it replaced: the dice were hardcoded at the **A row** of two tables
+that have always been indexed across six grades, and the defence clause **had never rolled at all**
+— on any of the five files that carry it, for any Servant, since the clause was written.
+
+**`Tommy Thumb's Secret Picture Book` reaches three different sets in one use.** Four effects on
+her, a cooldown reduction on `Child` allies within 2 panels, and `NP DmUp` on `Fairytale` allies
+within 2 — and she carries **both** tags, so both party clauses reach her too. It is the first
+cooldown phase in the corpus to carry a `targeting` of its own.
+
+**The Queen's Glass Game is the only thing in either roster that reads history.** Measured live: a
+rewind restoring Health 300→1000 and an NP cooldown 12→0 while the Unit stood exactly where it was
+and its Nameless Forest Tokens stayed put; a Nursery with a revival available revived with the
+rewind neither fired nor spent; and a Nursery with nothing left rewinding eight Units six Rounds
+back — including herself, and staying defeated. The rewind is a parting shot, not a resurrection.
+
+**`A Tale for Somebody's Sake` is the second clause in the corpus to turn an enemy's clock**, after
+Kiritsugu's *Chronos Rose* — and the first that works. The rider path it needs had never run.
+Measured live: a 3×3 caught two Servants for 1482 and 1876, and both of their Noble Phantasm
+cooldowns went **4 → 7** — increased by exactly 1◈, on them, while hers was untouched.
+
+**She summons her own counter.** The `[Vorpal Blade]` appears on a random panel the first time she
+calls the Jabberwock, and she and her Master are the two Units the Item itself refuses. Measured
+live: an enemy Servant standing on the panel picks it up, she standing on the same panel picks up
+nothing and the sword stays. Its one attack dealt 839, broke, and took the monster's lifesteal away
+for good — which then survived the monster disappearing at 640 and returning at 640, still
+suppressed.
+
+**The Jabberwock is the strongest summon in either roster**, and the only one with a clock. Measured
+live: a Servant's 206 healed it 154 back, exactly 75% of what landed; a Master's 215 healed it
+nothing.
+
+**The Nameless Forest is the only ability in either roster that wins by waiting.** Measured live: an
+enemy at exactly 2 panels gains one Token per Round; three Tokens take it from 1000/10/150 to
+**925 Health, 7 Luck and BA 120/120**; a successful escape removes the Tokens and the marker and
+**restores none of it**; nine Tokens and a rolled 9 is a defeat, a rolled 12 is not, and the same
+Unit standing at home rolls a **1** and survives — the log recording exactly how close that was,
+because the sheet refuses the disappearance and not the die.
+
+**The live pass found six defects the suite did not** — two in Part 1 and four in Part 2, three of
+the latter in machinery that shipped long before she existed. Ch. 45 records them.
+
+**The live pass found two defects the suite did not.** A non-damaging Spell must declare
+`countsAsAttack: false`, or `classifyAbility` calls it an attack and the default targeting asks for
+a victim it does not have; *White Queen's Enigma* shipped without it and refused with *"Choose a
+target."* The corpus-wide guard written for that found a second instance on a Servant already marked
+fully authored — Semiramis's *Scales of the Sacred Fish*.
+
 ## D.34 Aggregate — both rosters
 
 | Metric | Original twelve | Expanded seventeen | Total |

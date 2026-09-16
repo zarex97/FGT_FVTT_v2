@@ -1,0 +1,86 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# *"One, two! One, two! And through and through, the Vorpal Blade went
+# snicker-snack!"*
+#
+# The counter to her own monster, which she puts on the board herself the first
+# time she summons it -- and cannot pick up.
+#
+# The SECOND Item in this corpus and the first that does anything while worn.
+# `[Semiramis' Poison]` is a consumable with a `consumeEffect` and no `rules` at
+# all, which is why `equipped` went unread until now.
+schema: 1
+id: vorpal-blade
+name: "[Vorpal Blade]"
+type: equipment
+quantity: 1
+transferable: false
+# "Cannot be obtained by Nursery or her Master." A role pair against a CONTENT
+# id: a Foundry actor id is random per world and would not survive the Servant
+# being placed twice.
+barredFrom: { ofUnit: nursery-rhyme, roles: [self, master] }
+description: |
+  When Equipped, increase the Unit's Base Attack (STR) by 50, but Range is reduced to 1 panel; and
+  Normal Attack damage dealt to Units with the 'Demonic' Attribute is increased by 50%. The above
+  Stat boosts do not affect NP & Attacks Categorized as NP. Normal Attacks with this Item Equipped
+  use Base Attack (STR). A Master with this Item Equipped cannot be Underpowered by Servants.
+  When the Jabberwock is Attacked by this Equipped Item, it receives 3x damage instead of 50% extra
+  damage due to having the 'Demonic' Attribute, and the lifesteal effect is permanently removed from
+  the Jabberwock; then the Vorpal Blade breaks and can no longer be used.
+  Cannot be obtained by Nursery or her Master.
+rules:
+  # B1. A flat addition to a Normal Attack's damage rather than a change to the
+  # printed Base Attack: `BaseAttackModifier` is a FACTOR, and "increase by 50"
+  # is not one. `npValue: 0` is B4, stated rather than defaulted -- "the above
+  # Stat boosts do not affect NP & Attacks Categorized as NP" is a sentence on
+  # the sheet and deserves to be visible in the file.
+  - key: FlatDamage
+    modifierKey: flatDamage
+    value: 50
+    npValue: 0
+    predicate: ["attack:kind:normal", "attack:component:str"]
+
+  # B2. `set`, not a delta. "Range is reduced TO 1 panel" -- a Servant at Range
+  # 4 and a Servant at Range 2 both end at 1, which no single delta expresses.
+  - { key: RangeDelta, set: 1 }
+
+  # B3. The Demonic bonus -- and NOT against the Jabberwock, which is what
+  # "instead of" means. B7 below puts 3x in this same bucket, and the two are
+  # mutually exclusive by predicate.
+  - key: DamageModifier
+    stage: flat
+    value: 50
+    npValue: 0
+    predicate:
+      - "attack:kind:normal"
+      - "target:attribute:demonic"
+      - { not: "target:contentId:jabberwock" }
+
+  # B7's first consequence. "It receives 3x damage INSTEAD OF 50% extra damage
+  # due to having the 'Demonic' Attribute" -- the sheet compares the two
+  # directly, so they belong in the same combined-percent bucket, where 3x is
+  # +200%.
+  - key: DamageModifier
+    stage: flat
+    value: 200
+    npValue: 0
+    predicate: ["attack:kind:normal", "target:contentId:jabberwock"]
+
+  # B6. "If the Master with this Item Equipped cannot be Underpowered by
+  # Servants" -- §16.5's x0.5, refused outright rather than made less likely.
+  - { key: Suppress, scope: underpower }
+
+  # B7's other two consequences, on the one attack that lands.
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["target:contentId:jabberwock"]
+    then:
+      # "...the lifesteal effect is PERMANENTLY REMOVED from the Jabberwock."
+      # By the rule's own slug, and the removal rides home on the summoner's
+      # fieldSummonStats so it survives the monster disappearing and being
+      # summoned again -- which is precisely the interaction the sheet spends a
+      # sentence on.
+      - { key: SuppressRule, subject: victim, scope: jabberwockLifesteal }
+      # "...then the Vorpal Blade breaks and can no longer be used."
+      - { key: ItemDelta, item: vorpal-blade, delta: -1 }

@@ -301,7 +301,12 @@ describe("aura-delivered contributions reach their readers", () => {
       key: "aura", radius: 2, relations: ["ally", "self"], group: "itemConstruction", rank: "A",
       elements: [
         { key: "ApplicationChance", direction: "outgoing", severity: "normal", value: 50 },
-        { key: "DamageNegation", value: 20 },
+        // A contribution with NO route, which is the point of the pairing: one
+        // element goes to its own bucket and one takes the default. This was
+        // `DamageNegation` until that gained a route of its own -- Territory
+        // Creation's second clause was landing in `modifiers`, where
+        // `rollNegation` never looks.
+        { key: "FlatDamage", value: 20 },
       ],
     }],
   };
@@ -314,7 +319,7 @@ describe("aura-delivered contributions reach their readers", () => {
     annotateAuras(units, { units });
 
     expect(units[0].applicationChances).toHaveLength(1);
-    expect(units[0].modifiers.map((m) => m.key)).toEqual(["DamageNegation"]);
+    expect(units[0].modifiers.map((m) => m.key)).toEqual(["FlatDamage"]);
   });
 
   it("keeps whatever the unit already carried", () => {

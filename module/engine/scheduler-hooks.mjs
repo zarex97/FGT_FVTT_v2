@@ -24,6 +24,7 @@ import {
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as fields from "./fields.mjs";
 import { expireTerrain } from "./terrain.mjs";
+import { recordTurn, historyOf, setHistory } from "./state-history.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -72,6 +73,18 @@ async function onTurnChange(combat, prior, current) {
   };
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
+
+  // What every Unit was like at the end of this Turn.
+  //
+  // > *"…are returned to what they were 3◈ Turns ago."*
+  //
+  // AFTER the sequence, so the snapshot is the Turn as it FINISHED -- a rewind
+  // to a tick is a rewind to the state that tick left behind, not to the one it
+  // started from.
+  //
+  // Gated: `recordTurn` returns `null` when nothing on the board declares
+  // `requiresHistory`, and a match without her writes nothing at all.
+  await recordHistory(combat, board);
 
   // A field's OWN "acted then ended its Turn" rule -- Sikera Ušum clause b.
   // Belongs to the AREA rather than to Semiramis, the same reason
@@ -301,6 +314,26 @@ async function gatherRolls(pairs) {
     }
   }
   return rolls;
+}
+
+/**
+ * Store what every Unit was like at the end of this Turn.
+ *
+ * Ch. 43 §43.11's recorder, and its gate. A single `Combat` write per Turn, and
+ * none at all in a match nobody asked to remember.
+ *
+ * @param {object} combat
+ * @param {object} board
+ * @returns {Promise<void>}
+ */
+async function recordHistory(combat, board) {
+  const next = recordTurn(
+    board,
+    combat?.system?.globalTurn ?? 0,
+    historyOf(combat),
+    game.settings.get("fgt", "turnsPerRound"),
+  );
+  if (next) await setHistory(combat, next);
 }
 
 /**

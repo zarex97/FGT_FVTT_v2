@@ -17,6 +17,7 @@
 
 import { INFINITE } from "../domain/enums.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { expiredSummonIds } from "../rules/summons.mjs";
 import { endOfRoundHomeBase, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
@@ -28,7 +29,9 @@ import { test as testPredicate } from "../rules/predicate.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
-import { resourcePathFor } from "../domain/resources.mjs";
+import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
+import { deathRollOutcome } from "../rules/nameless-forest.mjs";
+import { runScript } from "./scripts.mjs";
 
 /**
  * @typedef {object} SchedulerContext
@@ -173,6 +176,21 @@ export function endRound(board, ctx) {
   // layer's job, the same division the `OnEvent` action table uses.
   intents.push(...homeBaseIntents(endOfRoundHomeBase(units, board)));
   intents.push(...terrainIntents(terrainPeriodics(units, board, "roundEnd"), ctx));
+
+  // Summons whose stay has run out.
+  //
+  // > *"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
+  //
+  // AFTER `roundEnd` fires, so a clause on the Jabberwock's last Round still
+  // runs: it is on the board for that Round and leaves at the end of it.
+  //
+  // `dismissSummon`, not `defeat` -- *"it disappears"* is not a kill, so it
+  // must not run the revival chain, count toward the Grail, or fire
+  // `unitDefeated`.
+  for (const id of expiredSummonIds(board, ctx.tick ?? 0)) {
+    intents.push(I.dismissSummon(id, "expired"));
+  }
+
   intents.push(I.log({ kind: "roundEnd", round: ctx.round }));
   return intents;
 }
@@ -321,6 +339,27 @@ export function fireEvent(event, units, ctx) {
       // them.
       /** @type {Map<string, number>} */
       const pending = new Map();
+      // A SCRIPT rather than an action list.
+      //
+      // `rules/elements.mjs`'s `Script` element has collected these since it was
+      // written and nothing had ever read `handler.script` -- the registry it
+      // promises did not exist, and the corpus had zero Scripts, so the hatch
+      // had never been opened. This is where one runs.
+      //
+      // Closed and name-keyed: `runScript` refuses a name it does not hold and
+      // logs the refusal rather than throwing, because a compendium is data
+      // other people wrote.
+      if (handler.script) {
+        out.push(...runScript(handler.script, {
+          self: u, board: ctx.board, history: ctx.history ?? {},
+          tick: ctx.tick ?? 0, turnsPerRound: ctx.turnsPerRound ?? 3,
+          params: handler.params ?? {},
+          rewindTurns: resolveTicks(parseTick(handler.params?.rewind ?? "0◈"), ctx),
+          includesSelf: handler.params?.includesSelf === true,
+        }));
+        continue;
+      }
+
       for (const action of handler.actions ?? []) {
         const produced = dispatch(action, u, handler, { ...ctx, pending });
         for (const i of produced) {
@@ -430,6 +469,41 @@ export function dispatch(action, unit, handler, ctx) {
   // Drake: *"she has a 15% chance of gaining 1 Galleon Token."*
   if (!chanceGatePasses(action, unit, ctx)) return [];
   if (!valueGatePasses(action, unit, ctx)) return [];
+
+  // An action aimed at a SET rather than at one Unit.
+  //
+  // `ApplyEffect` has read a per-action `target` -- `victim`, `nearby` -- since
+  // Serenity, through `targetsOf`. Every OTHER action resolved a single subject
+  // through `subjectOf`, whose vocabulary is relationships (`master`,
+  // `summoner`, `victim`) and has no `nearby` at all -- so an action aimed at a
+  // radius silently fell through to the handler's own bearer.
+  //
+  // The Nameless Forest is what found it, and the failure was not subtle once
+  // seen: *"this NP affects all enemy Units within a 2 panel area"* grants a
+  // token and takes 25 Max Health, 10 off both Base Attacks and 1 Max Luck --
+  // and all four writes landed on **Nursery**. She poisoned herself once per
+  // Round while the enemy standing in her ring took nothing.
+  //
+  // One vocabulary, so `target:` means the same thing whichever action carries
+  // it. `subjectOf` keeps the relationship hops, which are about a single Unit
+  // and are what `subject:` has always named.
+  if (action.target === "nearby" || action.target === "victim") {
+    const ids = targetsOf(action, unit, ctx);
+    // `bearer` so an action that needs to know WHO IS DOING THIS still can --
+    // `ApplyEffect` stamps `sourceUnitId`, and an effect sourced to its own
+    // recipient is an effect nothing can attribute or clean up after.
+    const fanned = { ...ctx, bearer: unit };
+    return ids.flatMap((id) => {
+      // The board's projection when there is one, because an action may read
+      // the recipient's own state -- the death roll counts its tokens. A bare
+      // id when there is not: `victim` names a Unit the event already resolved,
+      // and refusing to act on it because the snapshot is absent would lose the
+      // rider rather than aim it correctly.
+      const other = (ctx?.board?.units ?? []).find((u) => u.id === id) ?? { id };
+      return run(action, other, handler, fanned);
+    });
+  }
+
   return run(action, subject, handler, ctx);
 }
 
@@ -516,6 +590,14 @@ export function subjectOf(action, unit, ctx) {
     return units.find((u) => u.id === summoner.masterId) ?? null;
   }
 
+  // The Unit an attack just landed on. Every other subject here is a
+  // RELATIONSHIP of the acting unit; this one is the other party to the event
+  // that fired, and it is how the Vorpal Blade reaches the monster it hit.
+  if (subject === "victim") {
+    const id = ctx?.victim?.unitId ?? ctx?.event?.victimId ?? null;
+    return id ? (units.find((u) => u.id === id) ?? null) : null;
+  }
+
   if (subject !== "master") return unit;
   if (!unit?.masterId) return null;
   return units.find((u) => u.id === unit.masterId) ?? null;
@@ -590,14 +672,25 @@ function readStat(unit, path) {
  * @param {object} event
  * @returns {number|null}
  */
-function eventValue(raw, event) {
-  if (typeof raw === "number") return raw;
+function eventValue(raw, event, factor = 1) {
+  if (typeof raw === "number") return raw * factor;
   if (typeof raw !== "string" || !raw.includes("@")) return null;
   const negate = raw.trim().startsWith("-");
   const field = raw.replace("-", "").replace("@", "").trim();
   const value = event?.[field];
   if (typeof value !== "number") return null;
-  return negate ? -Math.abs(value) : value;
+  const signed = negate ? -Math.abs(value) : value;
+  // A SHARE of the payload rather than all of it.
+  //
+  // > *"Whenever the Jabberwock receives damage from Servants, its Health is
+  // > restored by **75% of** the damage received."*
+  //
+  // Van Gogh's Channel Marker Soul is the existing customer for the payload
+  // itself; this is the first clause that wants a fraction of one.
+  //
+  // Truncated TOWARD ZERO, so a factor can never invent a point of Health, and
+  // so a negated payload rounds the same way a positive one does.
+  return Math.trunc(signed * factor);
 }
 
 /**
@@ -718,16 +811,33 @@ const ACTIONS = Object.freeze({
    * this way"* -- a limit on THIS deduction rather than on the pool, so other
    * damage may still take the Master below it.
    */
-  StatDelta: (a, u) => {
+  StatDelta: (a, u, h, c) => {
+    // A magnitude that names the EVENT's own payload, the way `CooldownDelta`
+    // below already reads one -- *"its Health is restored by 75% of the damage
+    // received"*, a number that is neither on the ability nor on the unit.
+    //
+    // Returns nothing when the payload is absent, rather than writing a zero: a
+    // handler that cannot see what landed has not measured zero damage, it has
+    // measured nothing.
+    const fromEvent = typeof a.delta === "string"
+      ? eventValue(a.delta, c?.event, a.factor ?? 1)
+      : null;
+    if (typeof a.delta === "string" && fromEvent === null) return [];
+
     // `amount` arrives from a rank table resolved at collection time and is
     // always POSITIVE there, so `direction` says which way it moves. `delta`
     // stays for a literal signed value.
     const raw = a.amount !== undefined
       ? (a.direction === "down" ? -Math.abs(a.amount) : Math.abs(a.amount))
-      : (a.delta ?? 0);
+      : (fromEvent ?? a.delta ?? 0);
     if (raw === 0) return [];
 
-    if (typeof a.floor !== "number") return [I.statDelta(u.id, a.stat, raw)];
+    // `alsoCurrent` on a `.max` write pulls the current value down with the
+    // ceiling -- *"reduce its Max Health by 25"* must not leave a Unit standing
+    // above its own maximum, and must not heal a wounded one either.
+    if (typeof a.floor !== "number") {
+      return [I.statDelta(u.id, a.stat, raw, a.clamp !== false, a.alsoCurrent === true)];
+    }
 
     const current = a.stat === "health.value" ? currentHealth(u) : readStat(u, a.stat);
     if (typeof current !== "number") return [];
@@ -767,6 +877,92 @@ const ACTIONS = Object.freeze({
   },
 
   /**
+   * The Nameless Forest's death roll.
+   *
+   * > *"At the end of the Unit's Turn, a Unit with at least 3 Nameless Forest
+   * > Tokens rolls a twelve-sided die. If the number rolled is equal to or
+   * > lower than the number of Tokens on the Unit, the Unit disappears (i.e. is
+   * > defeated). However, a Unit cannot disappear due to the effects of this NP
+   * > if it is within its Home Base."*
+   *
+   * The arithmetic is `rules/nameless-forest.mjs` and pure; this supplies the
+   * three things only the engine knows -- what was rolled, how many tokens are
+   * held, and whether the bearer is standing at home.
+   *
+   * *"Disappears (i.e. is defeated)"* -- the sheet glosses its own term, so
+   * `I.defeat` and not `I.dismissSummon`: this IS a defeat and runs the revival
+   * chain like any other. Nothing on the sheet says revival is ignored.
+   *
+   * The roll is LOGGED whether or not it kills, because the Home Base exemption
+   * refuses the outcome rather than the die -- a player who watches a 1 come up
+   * and survives it has been told something true about how close that was.
+   */
+  NamelessForestDeathRoll: (a, u, h, c) => {
+    const roll = c.rolls?.[a.roll?.key ?? "namelessForestDeath"];
+    if (typeof roll !== "number") return [];
+
+    const tokens = resourceValue(u, a.resource ?? "namelessForestTokens");
+    const outcome = deathRollOutcome({ tokens, roll, inHomeBase: Boolean(u.inHomeBase) });
+    if (!outcome.rolls) return [];
+
+    const log = I.log({
+      kind: "namelessForestDeathRoll", unitId: u.id, roll, tokens,
+      deleted: outcome.deleted, reason: outcome.reason, source: h.source,
+    });
+    return outcome.deleted ? [log, I.defeat(u.id, "namelessForest")] : [log];
+  },
+
+  /**
+   * Switch a named rule off on somebody, permanently.
+   *
+   * > *"…and the 'Whenever the Jabberwock receives damage from Servants, its
+   * > Health is restored by 75% of the damage received' effect is **permanently
+   * > removed** from the Jabberwock."*
+   *
+   * Not a `RemoveEffect`: the lifesteal is a `passiveRule` on the monster's own
+   * statblock, so there is no instance to strip.
+   *
+   * `subject: "victim"` reaches the Unit the attack landed on, through the same
+   * `subjectOf` seam every other action uses.
+   */
+  SuppressRule: (a, u) => (a.scope ? [I.suppressRule(u.id, a.scope)] : []),
+
+  /**
+   * Spend or destroy one of an item the acting Unit holds.
+   *
+   * > *"…then the Vorpal Blade **breaks and can no longer be used**."*
+   *
+   * `io.adjustItemQuantity` deletes an item that reaches zero rather than
+   * leaving it on the sheet at zero -- its own comment says why: *"a spent
+   * consumable that stays on the sheet reads as still usable."* A sword that
+   * broke is exactly that.
+   */
+  ItemDelta: (a, u) => (a.item ? [I.itemQuantity(u.id, a.item, a.delta ?? -1)] : []),
+
+  /**
+   * Push a summon's departure further out.
+   *
+   * > *"…and extends its period of existing on the board for 3◈ **more**
+   * > Turns."* — the Jabberwock's *Alice Eater*.
+   *
+   * **More**, so this ADDS. A `set` would shorten the stay of a monster with
+   * more than 3◈ left, which is the opposite of what the button is for.
+   *
+   * It also does NOT negate its tick expression, unlike `CooldownDelta`
+   * immediately below: every cooldown clause in the corpus reduces, so that one
+   * reads `ticks` as a subtraction. Copying the neighbouring line here would
+   * shorten the stay this exists to lengthen.
+   *
+   * Refuses a unit with no clock rather than starting one. A Trump Soldier has
+   * no `expiresAt`, and handing it one would make a permanent summon mortal.
+   */
+  DurationDelta: (a, u, h, c) => {
+    if (typeof u.expiresAt !== "number") return [];
+    const delta = resolveTicks(parseTick(a.ticks), c);
+    return delta === 0 ? [] : [I.durationDelta(u.id, delta)];
+  },
+
+  /**
    * Turn a cooldown clock, by ability or across a whole scope.
    *
    * `scope: "np"` is what Scáthach's Alpi needs: *"NP Cooldown is reduced by
@@ -781,7 +977,7 @@ const ACTIONS = Object.freeze({
     // A magnitude that names the event's own payload. Channel Marker Soul's
     // number is the size of the stage change that just happened, which is
     // neither on the ability nor on the unit.
-    const fromEvent = typeof a.delta === "string" ? eventValue(a.delta, c.event) : null;
+    const fromEvent = typeof a.delta === "string" ? eventValue(a.delta, c.event, a.factor ?? 1) : null;
     if (typeof a.delta === "string" && fromEvent === null) return [];
     const amount = a.ticks !== undefined
       ? -resolveTicks(parseTick(a.ticks), c)
@@ -814,7 +1010,12 @@ const ACTIONS = Object.freeze({
       defId: a.effect?.defId ?? a.effect?.id ?? a.defId,
       magnitude: a.effect?.magnitude ?? a.magnitude ?? 0,
       expiry: ticks === null || ticks === INFINITE ? (a.effect?.expiry ?? null) : (c.tick ?? 0) + ticks,
-      sourceUnitId: u.id,
+      // The HANDLER'S BEARER, not the recipient. `dispatch` fans a
+      // `target: nearby` action over its set and hands each recipient in as
+      // `u`, so the caster arrives separately as `c.bearer` -- and an effect
+      // sourced to the Unit carrying it is one nothing can attribute, expire by
+      // source, or clean up when its source leaves.
+      sourceUnitId: c.bearer?.id ?? u.id,
       // Riders state their own chance -- "25% chance of inflicting Deadly
       // Poison" -- and the flow that applies them reads it off the instance,
       // because an intent has nowhere else to put it.
@@ -846,7 +1047,11 @@ const ACTIONS = Object.freeze({
     // `Queen's Poison`, Serenity's poisoned daggers -- would have inflicted its
     // debuff on the ATTACKER. `target: victim` is the vocabulary Ch. 32 already
     // writes; it just had no reader.
-    return targetsOf(a, u, c).map((id) => I.applyEffect(id, { ...effect }, h.abilityId));
+    // `dispatch` has already resolved the set for a `nearby`/`victim` target and
+    // handed each recipient in as `u`, so this must not expand it a second time
+    // -- doing so would re-centre the radius on each recipient in turn.
+    const recipients = c.bearer ? [u.id] : targetsOf(a, u, c);
+    return recipients.map((id) => I.applyEffect(id, { ...effect }, h.abilityId));
   },
 
   /**
@@ -1185,6 +1390,61 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
     ...(revival.source ? spendRevival(unit, revival, ctx) : []),
     I.defeat(unit.id, cause),
     ...linkedDeathIntents(unit, cause),
+    ...glassGameOnDefeat(unit, ctx),
+  ];
+}
+
+/**
+ * The Queen's Glass Game's second effect, on the Unit's FINAL defeat.
+ *
+ * > *"Activates when Nursery is defeated. …the Stats, Parameters, Buffs,
+ * > Debuffs, Cooldowns, and other existing effects of all Units within a 3
+ * > panel area of Nursery are returned to what they were 6◈ Turns before
+ * > Nursery was defeated (includes herself). … Can only be used once during
+ * > the entire game."*
+ *
+ * **Here, and not on the `unitDefeated` event.** That event fires at the TOP of
+ * `resolveDefeat`, before the revival query — its own comment says why:
+ * *"Handlers first: `unitDefeated` is where content that is not a revival
+ * hangs."* A handler there would spend her once-per-game rewind on a Nursery
+ * whom Guts was about to save.
+ *
+ * This is the tail, reached only once the chain has resolved TO a defeat, which
+ * is the same distinction `linkedDeathIntents` above draws in the same words
+ * for the Dioscuri.
+ *
+ * R7: *"once during the entire game"* means once across her defeat AND any
+ * revival, so the spent flag lives on the ACTOR rather than on an effect
+ * instance — a Nursery revived by a Command Spell and defeated again gets
+ * nothing.
+ *
+ * @param {object} unit the unit that was truly defeated
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+function glassGameOnDefeat(unit, ctx) {
+  if (unit?.glassGameSpent) return [];
+  const handler = (unit?.eventHandlers ?? []).find(
+    (h) => h.script === "nurseryRhyme.rewind" && (h.events ?? []).includes("finalDefeat"),
+  );
+  if (!handler) return [];
+
+  const intents = runScript("nurseryRhyme.rewind", {
+    self: unit,
+    board: ctx.board,
+    history: ctx.history ?? {},
+    tick: ctx.tick ?? 0,
+    rewindTurns: resolveTicks(parseTick(handler.params?.rewind ?? "6◈"), ctx),
+    // *"(includes herself)"* -- and she stays defeated. `rewindIntents` sets
+    // `clearsDefeat: false` on every entry it emits.
+    includesSelf: true,
+  });
+  if (intents.length === 0) return [];
+
+  return [
+    ...intents,
+    I.markGlassGameSpent(unit.id),
+    I.log({ kind: "glassGameRewind", unitId: unit.id, source: handler.source }),
   ];
 }
 
