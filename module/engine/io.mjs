@@ -768,6 +768,25 @@ export function worldIO() {
       await summon.delete();
     },
 
+    /**
+     * Move a summon's departure tick.
+     *
+     * > *"…extends its period of existing on the board for 3◈ **more** Turns."*
+     *
+     * Refuses a unit with no clock, the same refusal `DurationDelta` makes in
+     * the rules layer — both ends, because a summon that is handed an expiry it
+     * never had becomes mortal.
+     *
+     * @param {string} unitId
+     * @param {number} delta turns, signed
+     */
+    async extendSummonStay(unitId, delta) {
+      const actor = resolve(unitId);
+      const current = actor?.system?.expiresAt;
+      if (!actor || typeof current !== "number" || delta === 0) return;
+      await actor.update({ "system.expiresAt": current + delta });
+    },
+
     async defeat(unitId, cause) {
       await countTowardsGrail(unitId, cause);
       await freeContractedServants(unitId);
