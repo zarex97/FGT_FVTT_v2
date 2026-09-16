@@ -292,6 +292,12 @@ export const FACETS = Object.freeze([
     prose: "{subject} is within {panels} panels of its own Master",
   }),
   facet({
+    id: "isCounter",
+    subjects: ["attack"],
+    english: "This attack is a Counter, answering one rather than starting it.",
+    prose: "the attack is a Counter",
+  }),
+  facet({
     id: "withinOfPartner",
     segments: [{ name: "panels", value: number(1, 6) }],
     // The other member of a linked group (Ch. 16 §16.8). Adjacency is `:1`,

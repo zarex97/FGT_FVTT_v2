@@ -47,6 +47,12 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
 
   options.add(`attack:kind:${attack.kind ?? "normal"}`);
   if (attack.isAoE) options.add("attack:isAoE");
+  // Whether this declaration ANSWERS an attack rather than starting one
+  // (§12.8). Avenger's second half is the first clause to ask: *"If Castor
+  // Counters after receiving an Attack, increase the damage dealt when
+  // Countering."* "After receiving an Attack" needs no separate test -- a
+  // Counter is only ever declared at Combat Process step 6.
+  if (attack.isCounter) options.add("attack:isCounter");
 
   // HOW THE DEFENDER REACTED, once the ladder has closed. Emitted on `target`
   // because that is what the defender is called throughout this vocabulary.

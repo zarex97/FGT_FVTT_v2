@@ -813,6 +813,13 @@ async function declareProcesses({
   isCounter = false, requiredTargetId = null, counterDepth = 0, groupId = null,
   perProcess = null,
 }) {
+  // §12.8's flag, folded into the ATTACK rather than only onto the Process
+  // state. `rules/options.mjs` emits `attack:isCounter` from the attack spec,
+  // which is what travels into the damage context, the card and every
+  // predicate -- and Avenger's counter bonus is the first clause to ask.
+  // Carried on the state too, which is where `mayCounterAgain` reads it.
+  const spec = isCounter ? { ...attackSpec, isCounter: true } : attackSpec;
+
   // A resolution that caught no units is still a resolution — a ground-placed
   // non-damaging NP has a shape and no defenders — so it keeps its single
   // null-defender process rather than becoming an empty fan-out.
@@ -827,7 +834,7 @@ async function declareProcesses({
     ? process.beginFanOut({
       attackerId,
       targetIds,
-      attack: attackSpec,
+      attack: spec,
       // DISTINCT defenders, not processes. Overedge's two swings are two
       // processes against one Unit and are not an area attack; deriving it from
       // the process count would have flipped `attack:isAoE` on for them and
@@ -863,7 +870,7 @@ async function declareProcesses({
         };
     })
     : [process.begin({
-      attackerId, defenderId: null, attack: attackSpec,
+      attackerId, defenderId: null, attack: spec,
       isCounter, requiredTargetId, counterDepth,
     })];
 

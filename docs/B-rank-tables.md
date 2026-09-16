@@ -582,3 +582,32 @@ value changes and **one** new table kind.
 ---
 
 **Next:** [C — Dice Registry](C-dice-registry.md)
+
+
+---
+
+## The Avenger class set — single-witness tables
+
+**Castor is the only Avenger in either roster.** Unlike `madEnhancementDefence`,
+which is verified across seven sheets, these four ladders are **inferred from one
+stated value each** and their `perStep` figures are a guess that no sheet has yet
+contradicted. Treated the same way as the `A+` override on
+`madEnhancementDefence`: written down, and labelled as what it is.
+
+| Table | Witness | Stated |
+|---|---|---|
+| `avenger` | Castor, Rank B | **80** — *"All damage taken by Castor is increased by 80 including NP"*, and the counter bonus is the same number |
+| `oblivionCorrection` | Castor, Rank C | **15%** Crit Chance |
+| `selfReplenishmentHealth` | Castor, Rank D | **40** Health |
+| `selfReplenishmentCooldown` | Castor, Rank D | **2 literal Turns** of NP Cooldown — *not* 2◈ |
+
+The last of those is the one an author will get wrong. `CooldownDelta`
+distinguishes a ◈ expression from a raw turn count **by field**: `ticks` is
+resolved against the world's turns per Round, `delta` is the count itself. A
+`table:` on a `CooldownDelta` feeds `delta`.
+
+**Avenger is net-negative in isolation**, which nothing else in §B.3 is. The +80
+is read at **stage 7** on the *defender's* side (`FLAT_TAKEN_KEYS`) rather than as
+a negative flat reduction at stage 12: stage 12 is dropped wholesale by
+`bypassesDefence`, and a vulnerability is not a resistance for a Heel Attack or a
+Pierce to beat.

@@ -1,0 +1,17 @@
+# docs/B-rank-tables.md §B.3 — the Avenger class set (Ch. 15 §15.6).
+schema: 1
+id: class-oblivion-correction
+name: "Oblivion Correction"
+source: class
+slug: oblivionCorrection
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive) Crit Chance is increased.
+passiveRules:
+  - key: CritModifier
+    aspect: chance
+    table: oblivionCorrection

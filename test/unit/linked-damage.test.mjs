@@ -159,3 +159,55 @@ describe("N9/R6 — the joint NP combines both twins' modifiers, double-counting
     expect(named.total).toBe(once.total);
   });
 });
+
+/* ── Avenger: the only class skill that hurts its own bearer ──────────────── */
+
+describe("C6/C7 — Avenger's drawback and its offset", () => {
+  const avenger = (id) => ({
+    id, name: id, baseAttack: { str: 150, mag: 150 }, modifiers: [],
+  });
+  const taken80 = {
+    key: "avenger", modifierKey: "avenger", direction: "taken",
+    value: 80, includesNP: true, source: "Avenger",
+  };
+
+  it("adds 80 to what the bearer takes", () => {
+    const bare = computeDamage(ctx({ defender: { id: "castor", health: 9999, modifiers: [] } }));
+    const hurt = computeDamage(ctx({ defender: { id: "castor", health: 9999, modifiers: [taken80] } }));
+    expect(hurt.total - bare.total).toBe(80);
+  });
+
+  it("adds it to a Noble Phantasm too", () => {
+    const np = { kind: "np", component: "str" };
+    const bare = computeDamage(ctx({ attack: np, defender: { id: "c", health: 9999, modifiers: [] } }));
+    const hurt = computeDamage(ctx({ attack: np, defender: { id: "c", health: 9999, modifiers: [taken80] } }));
+    expect(hurt.total - bare.total).toBe(80);
+  });
+
+  it("is NOT a defence a Heel Attack bypasses", () => {
+    // Authored as a negative `flatReduction` it would have landed at stage 12,
+    // which `bypassesDefence` drops wholesale -- and Avenger is a
+    // vulnerability, not a resistance. A Pierce must not switch off the
+    // drawback its bearer is stuck with.
+    const pierced = computeDamage(ctx({
+      attack: { kind: "np", component: "str", pierce: true },
+      defender: { id: "castor", health: 9999, modifiers: [taken80] },
+    }));
+    const plain = computeDamage(ctx({
+      attack: { kind: "np", component: "str", pierce: true },
+      defender: { id: "castor", health: 9999, modifiers: [] },
+    }));
+    expect(pierced.total - plain.total).toBe(80);
+  });
+
+  it("names itself in the breakdown, on the DEFENDER's side", () => {
+    const out = computeDamage(ctx({ defender: { id: "castor", health: 9999, modifiers: [taken80] } }));
+    const stage7 = out.breakdown.find((b) => b.name === "flatAttackBonuses");
+    // `source` is the modifier KEY and `note` is the human label -- the shape
+    // every other stage's contributors use.
+    const entry = stage7.contributors.find((c) => c.note === "Avenger");
+    expect(entry).toBeDefined();
+    expect(entry.source).toBe("avenger");
+    expect(entry.side).toBe("defender");
+  });
+});

@@ -168,3 +168,18 @@ describe("lookup error handling", () => {
     expect(() => lookupNumber("independentActionContract", R("A+"))).toThrow(TypeError);
   });
 });
+
+describe("the Avenger class set — single-witness tables (Castor)", () => {
+  it("gives Avenger B the 80 his sheet prints", () => {
+    expect(lookup("avenger", Rank.parse("B"))).toBe(80);
+  });
+  it("gives Oblivion Correction C the 15 his sheet prints", () => {
+    expect(lookup("oblivionCorrection", Rank.parse("C"))).toBe(15);
+  });
+  it("gives Self-Replenishment D the 40 Health his sheet prints", () => {
+    expect(lookup("selfReplenishmentHealth", Rank.parse("D"))).toBe(40);
+  });
+  it("gives Self-Replenishment D the 2 LITERAL Turns his sheet prints", () => {
+    expect(lookup("selfReplenishmentCooldown", Rank.parse("D"))).toBe(2);
+  });
+});
