@@ -34,6 +34,64 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Nursery Rhyme, Part 4 of 4 — The Queen's Glass Game (2026-09-16)
+
+**The engine can now remember the past.** Ch. 43 §43.11 opens its design by
+saying it could not: *"This is a time rewind over an arbitrary set of units, and
+it is by a wide margin the most demanding mechanic in either roster. Nothing
+else requires the engine to remember the past."*
+
+**And the corpus has its first `Script`.** Ch. 34 and Ch. 36 both close their
+tallies with *"Script elements: zero"*, and Ch. 44 §44.6 budgets four across
+~130 abilities; this is the only one built. Every other ability in the corpus is
+data because its behaviour is a *composition* of named mechanisms. This one
+walks a unit set, resolves a historical index, diffs two states and emits a
+heterogeneous batch — and it has exactly one customer.
+
+**The registry the `Script` element has promised since it was written did not
+exist.** Nothing read `handler.script`, and nothing could have matched one
+anyway: the element pushed a singular `event` where `listensFor` reads `events`.
+Closed and name-keyed is the security property — a compendium is data other
+people wrote — so an unknown name runs nothing and logs it rather than throwing,
+and the lookup refuses names inherited from `Object.prototype`.
+
+**Two rulings the sheet forced.**
+
+- ***"Enters Combat" is a moment this engine does not have*** — no event, no
+  flag, no state, and the phrase occurs once in the whole repository, in
+  Ch. 43's own quotation of this sheet. It is **defined** as the first Turn end
+  at which an enemy stands within her 3-panel ring, derived from the clause's
+  next sentence: the **reset** is keyed on that predicate, so the **start** must
+  be too. A clock that begins on one condition and resets on another cannot be
+  reasoned about.
+- **Effect 2 hangs in the tail of `resolveDefeat`, not on `unitDefeated`.** That
+  event fires *before* the revival query — *"Handlers first: `unitDefeated` is
+  where content that is not a revival hangs"* — so a handler there would spend
+  her once-per-game rewind on a death Guts was about to undo. The Dioscuri's
+  linked death sits in the same tail for the same reason.
+
+**The gate is the whole performance story**, and it is verified **negatively**:
+eleven Units on a board with no Nursery, and `recordTurn` returns `null`. No
+snapshots, no diffing, no storage. *"A match without Nursery Rhyme pays
+nothing."*
+
+**One defect the live board found.** `requiresHistory` was declared in the
+schema and in **both** content allowlists, compiled correctly, and sat on the
+item — and `historyWanted` still said no, because the unit snapshot's own
+ability projection dropped it. A recorder that never starts means both effects
+do nothing at all, silently. **Three** hops, not two, and the guard now names
+all four places the field has to appear.
+
+**Verified on a live board.** Twelve Units recorded per turn with their effect
+instances and source ids; a rewind restoring Health 300→1000, an NP cooldown
+12→0 and removing a buff applied after the target tick — while the Unit stood
+**exactly where it was** and its Nameless Forest Tokens stayed at **7**, not
+restored; effects whose source had left the board dropped and logged; a Nursery
+with a revival available **revived, with the rewind neither fired nor spent**; a
+Nursery with nothing left rewinding eight Units six Rounds back to the tick's
+exact value, **including herself and staying defeated**; and a second defeat
+after a revival giving **nothing**.
+
 ### Nursery Rhyme, Part 3 of 4 — Nameless Forest (2026-09-16)
 
 A Noble Phantasm that is **passive, continuous, and kills by accumulation** —
