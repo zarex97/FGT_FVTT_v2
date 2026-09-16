@@ -1626,7 +1626,47 @@ export function cooldownRate(unit, ability, ctx) {
   // NP Lag halves the rate — every other turn, keyed on the global tick so it
   // stays consistent across a reconnect.
   if (held.includes("npLag") && ability.isNP && ctx.tick % 2 === 1) return 0;
-  return 1 + (ability.regen ?? 0);
+  return 1 + (ability.regen ?? 0) + npRegenOf(unit, ability, held);
+}
+
+/**
+ * The extra turns per Turn that an acceleration effect grants a Noble Phantasm.
+ *
+ * This function knew the three effects that SLOW a Noble Phantasm down --
+ * `npLock`, `npDegen`, `npLag` -- and neither of the two that speed it up, so
+ * both were collected, valid and inert (Ch. 46 §46.4-W):
+ *
+ * - **`npRegen`** is *"reduced by an extra X per Turn"*, and carries its X as a
+ *   `StatDelta` on `stat: "npRegen"`. That lands in `unit.statDeltas`, which is
+ *   not projected onto the unit as a field, so there was nothing named
+ *   `unit.npRegen` to read and nobody read the bucket either. It is
+ *   `magnitudeStacks`, so two sources add.
+ * - **`npCooldownRegen`** is *"reduced by 1 Turn at the end of every Turn"* and
+ *   declares `periodic: { when: turnEnd, kind: npCooldown, amount: 1 }`.
+ *   `PERIODICS` is damage-over-time only and has no entry for it; `kind:
+ *   npCooldown` appears nowhere in the engine. Its amount is on its own sheet,
+ *   so it is read from the spec's stated 1 rather than invented here.
+ *
+ * Six ability files across five Servants apply one or the other. Measured live
+ * on Semiramis across four Turn boundaries: her Noble Phantasm's cooldown fell
+ * by exactly 1 each Turn whether `npRegen` was held or not.
+ *
+ * Noble Phantasms only: both sheets say "Noble Phantasm Cooldown", and an
+ * ordinary Skill's clock is not what either buys.
+ *
+ * @param {object} unit
+ * @param {object} ability
+ * @param {string[]} held the unit's held effect ids
+ * @returns {number} extra turns removed this Turn
+ */
+function npRegenOf(unit, ability, held) {
+  if (!ability.isNP) return 0;
+
+  const stacked = (unit.statDeltas ?? [])
+    .filter((d) => d.stat === "npRegen")
+    .reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+
+  return stacked + (held.includes("npCooldownRegen") ? 1 : 0);
 }
 
 /**
