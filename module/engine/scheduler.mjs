@@ -17,6 +17,7 @@
 
 import { INFINITE } from "../domain/enums.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { expiredSummonIds } from "../rules/summons.mjs";
 import { endOfRoundHomeBase, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
@@ -173,6 +174,21 @@ export function endRound(board, ctx) {
   // layer's job, the same division the `OnEvent` action table uses.
   intents.push(...homeBaseIntents(endOfRoundHomeBase(units, board)));
   intents.push(...terrainIntents(terrainPeriodics(units, board, "roundEnd"), ctx));
+
+  // Summons whose stay has run out.
+  //
+  // > *"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
+  //
+  // AFTER `roundEnd` fires, so a clause on the Jabberwock's last Round still
+  // runs: it is on the board for that Round and leaves at the end of it.
+  //
+  // `dismissSummon`, not `defeat` -- *"it disappears"* is not a kill, so it
+  // must not run the revival chain, count toward the Grail, or fire
+  // `unitDefeated`.
+  for (const id of expiredSummonIds(board, ctx.tick ?? 0)) {
+    intents.push(I.dismissSummon(id, "expired"));
+  }
+
   intents.push(I.log({ kind: "roundEnd", round: ctx.round }));
   return intents;
 }

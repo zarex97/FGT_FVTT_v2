@@ -17,6 +17,7 @@ import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -702,6 +703,71 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string} cause
      */
+    /**
+     * Take a summon off the board because its stay has run out.
+     *
+     * > *"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
+     * > *"When the Jabberwock is summoned again after disappearing, its Stats
+     * > will be the same as when it disappeared."*
+     * > *"Cooldown: 5◈ Turns after the Jabberwock disappears."*
+     *
+     * Three sentences, one moment, and two of them had nothing to hang on
+     * before this: `expiresAt` was written by nobody and read by nobody, so no
+     * summon had ever disappeared on a schedule.
+     *
+     * NOT a defeat. It does not run the revival chain, does not fire
+     * `unitDefeated`, and does not count toward the Grail — *"it disappears"*
+     * is the sheet's own word, and a monster that times out has not been
+     * killed by anyone.
+     *
+     * @param {string} unitId
+     * @param {string} reason
+     */
+    async dismissSummon(unitId, reason) {
+      const summon = resolve(unitId);
+      if (!summon) return;
+
+      const owner = summon.system?.summonerId ? resolve(summon.system.summonerId) : null;
+      const contentId = summon.system?.contentId ?? null;
+
+      if (owner && contentId) {
+        // The SAME record `engine/fields.mjs` writes when a field closes over
+        // its Sphinxes, and the same one `placeSummons` reads back. Kept on the
+        // owner because it is the only thing that outlives the summon.
+        await owner.update({
+          [`system.fieldSummonStats.${contentId}`]: {
+            health: { value: summon.system.health?.value ?? null, max: summon.system.health?.max ?? null },
+            agility: { value: summon.system.agility?.value ?? null, max: summon.system.agility?.max ?? null },
+          },
+        });
+
+        // *"5◈ Turns AFTER the Jabberwock disappears."* The same `countFrom`
+        // `engine/platforms.mjs#setCooldownOnDestruction` starts for a mount,
+        // and the defect its comment records is the one this prevents: *"the
+        // mount may stand for twenty Turns and the clock has not begun."*
+        const ability = owner.items?.find?.(
+          (i) => (i.system?.phases ?? []).some(
+            (ph) => ph.kind === "summon"
+              && Object.values(ph.spec?.types ?? {}).includes(contentId),
+          ),
+        );
+        const cd = ability?.system?.cooldown ?? null;
+        if (cd?.countFrom === "destroyed" && cd.max) {
+          const ticks = resolveTicks(parseTick(String(cd.max)), {
+            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          });
+          if (ticks > 0) await ability.update({ "system.cooldown.remaining": ticks });
+        }
+      }
+
+      // Recorded before the document goes, because afterwards there is nothing
+      // to name. `reason` distinguishes a timed departure from the field-close
+      // and platform-teardown routes that also remove summons.
+      record({ kind: "summonDismissed", unitId, name: summon.name, reason });
+      for (const token of summon.getActiveTokens?.() ?? []) await token.document.delete();
+      await summon.delete();
+    },
+
     async defeat(unitId, cause) {
       await countTowardsGrail(unitId, cause);
       await freeContractedServants(unitId);
