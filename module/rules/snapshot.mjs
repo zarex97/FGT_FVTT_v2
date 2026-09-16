@@ -19,6 +19,7 @@ import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon } from "./zon.mjs";
+import { annotateLinkedGroups } from "./linked-group.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { EffectRegistry } from "./registry.mjs";
 import { familiesPresent } from "./effects/families.mjs";
@@ -684,6 +685,12 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // ZON is a pairwise property, so it can only be settled once every unit is
   // projected. Done here, once per board, because the damage pipeline, the
   // targeting resolver and the canvas overlay all ask the same question.
+  // Partner facts first, because `zonSatisfaction: "any"` is delivered by
+  // unioning the group's members into `zonPartnerIds` -- which is the field
+  // `annotateZon` reads on the very next line. Running these the other way
+  // round would settle ZON against a partner list that did not exist yet.
+  annotateLinkedGroups(units, board);
+
   annotateZon(units, board, settings.zon ?? {});
 
   // What a Servant's Master's rank gives it. After `annotateZon`, because ZON
