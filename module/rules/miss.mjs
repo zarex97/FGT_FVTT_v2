@@ -102,3 +102,31 @@ export function missSourceOf(attacker) {
   const held = attacker?.effects ?? [];
   return Object.keys(MISS_SOURCES).find((id) => held.includes(id)) ?? null;
 }
+
+/**
+ * A chance stated per panel of separation.
+ *
+ * Anastasia's *Ice Block Launcher* is the only clause of this shape in either
+ * roster: *"a 5% chance of inflicting Instakill for each panel between
+ * Anastasia and the DU."*
+ *
+ * **"Panels between" is the distance, not the gap.** The corpus's only other
+ * use of the phrase is the Dioscuri sheet's *"the maximum distance between the
+ * two is 2 panels between them"*, which means Chebyshev 2 and is implemented as
+ * a Chebyshev 2 leash (`rules/linked-group.mjs`). Reading it as the gap would
+ * make her adjacent shot a 0% Instakill and her longest one 25% rather than 30%.
+ *
+ * An unknown distance answers **zero** rather than guessing — the same reading
+ * `normalAttackAt` takes when it cannot tell which band it is in.
+ *
+ * In this module because it is the one about *whether an attack connects*,
+ * which is the same question a per-panel Instakill asks.
+ *
+ * @param {number} perPanel percentage points per panel
+ * @param {number|null} distance Chebyshev panels between the two units
+ * @returns {number} 0–100
+ */
+export function chanceFromDistance(perPanel, distance) {
+  if (typeof distance !== "number" || !Number.isFinite(distance)) return 0;
+  return Math.min(100, Math.max(0, perPanel * distance));
+}
