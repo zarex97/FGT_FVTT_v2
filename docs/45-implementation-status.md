@@ -183,6 +183,17 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
 
    Three entries in §46.4 now share one sentence: *right, collected, and never asked.*
 
+   **Karna also produced the audit's widest-reaching defect so far.** Two authoring shapes for an
+   `applyEffects` rule ship at once, and the attack path flattened the wrapper with
+   `r.effect ?? r` — which returns the inner object and discards the duration sitting beside it.
+   An unstated duration is INFINITE, so eleven phases across eight files granted **permanent**
+   buffs where their sheets state a span, and the three `Riding` variants lost `magnitude` too:
+   `ridingActive` applied at the default of 0, for ever. The Skill path read the same rules
+   correctly the whole time, which is what made it findable — the same ability behaved differently
+   depending on whether it was used from the sheet or resolved as an attack. Ch. 46 §46.4-M.
+
+   **Three Servants are now finished by §46.1's standard**: Heracles, Asterios and Karna.
+
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
    one Gamemaster each run the whole turn-end sequence and every scheduled effect — drains,

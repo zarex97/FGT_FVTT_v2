@@ -552,7 +552,7 @@ per-Servant record of what each audit left untested.
 |---|---|---|---|---|
 | **Heracles** | ✅ | ✅ **complete** | 6 (1 his, 5 general) | Ch. 31 §31.7a; §46.4-A, B, G, J; §16.5 |
 | **Asterios** | ✅ | ✅ **complete** | 5 (4 his, 1 general) | §46.8; §46.4-H, I, K |
-| **Karna** | ✅ | ✅ | 1, closed | §46.9 |
+| **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
 | **Penthesilea** | ✅ | ✅ | 2, closed | §46.10; closes §46.4-C |
 | **Medea** | ✅ | ✅ | 2, closed | §46.11 |
 | **EMIYA** | ✅ | ✅ | 2, closed | §46.12 |
@@ -924,16 +924,61 @@ offered at the Damage Step, its label and its **Confirm**, which every Process o
 Phantasms **before Round 6**, and the **Home Base** 10% reduction. None had ever appeared on a
 hand-built board.
 
-**Karna.** *Pressed:* the statblock; Vasavi Shakti's activation landing on 150 and rank A; Kavacha
-and Kundala's −90% reaching stage 4 of the pipeline; its upkeep on all three branches. *Traced
-only:* Magic Resistance in full, including the Instakill/Death carve-out and Erase's immunity —
-argued from the severity routing, never rolled; Riding, and therefore Double Move, Riding Attack
-and Passenger Seat; Divinity; Discernment of the Poor; Uncrowned Arms Mastership's toggle and its
-once-per-Round limit; End of Charity, including the Noble-Phantasm cooldown chooser; Mana Burst
-(Flames); Flash of the Sun God; and all four Noble Phantasms as *resolutions* — Brahmastra's fork
-was evaluated against a real board's options but the Noble Phantasm was never fired, and Vasavi
-Shakti's active, Brahmastra Kundala and the four remaining permanent Vasavi clauses (the Divinity
-ladder, the 50% Burn, the per-Process upkeep) were never resolved.
+**Karna — complete.** Thirteen abilities and four Noble Phantasms, on a war built by `commitWar`
+against Medea — a Caster chosen so Magic Resistance had real spells to answer.
+
+*Pressed (engine):*
+
+- **Magic Resistance, both branches of Passive 1.** Medea at MAG **A+** was reduced by exactly
+  **30%** — the rank-C table value, `−5.61` on 18.7. Dropped to an effective **D+**, her damage was
+  **negated outright**: *"negated: MR C ≥ attack D+"*, 16.4 → 0, `negatedBy: "Magic Resistance"`.
+  A first attempt looked like a defect until the contributor's own note read *"MR C < attack C+"* —
+  she carries a granted MAG step, so she had never been at C. The engine was right.
+- **Passive 2's severity ladder, rolled rather than argued**, which is exactly how §46.9 flagged
+  it: an ordinary debuff at **85%**, **Instakill at 85%**, **Death at 85%**, and **Erase at 100%** —
+  *"completely unaffected"*, as the sheet says.
+- **Uncrowned Arms Mastership**, both effects and their exclusivity: state 1 gives crit chance
+  **70%** (50 + 20) and no crit-damage modifier; state 2 gives **50%** and **+40** crit damage.
+  Never both — except under Charity, below. The once-per-Round ration is §46.4-L.
+- **Discernment of the Poor**: `npSeal` and `debuffResDwn` **50**, both ⅓◈, and the Seal genuinely
+  refusing a Noble Phantasm — *"Cannot attack: prevented by npSeal"*. Its `−50` reaches the bucket
+  and was cancelled exactly by Medea's own Item Construction `+50`, which is the additive bucket
+  doing what it says.
+- **Flash of the Sun God**, all three clauses: Agility **14 → 17** (restores 3, clamped to max),
+  `atkUp` 40 with `npMagnitude` 30, `npDmUp` 20, cooldown **12** (4◈). Its durations are §46.4-M.
+- **Mana Burst (Flames)**, active and passive. The active's combined Base Attack came out as
+  `base:str:125` + `base:mag:175` = **300**, which is the sheet's own worked example; Burn landed
+  for 2◈; cooldown **9**. The passive: Burn **blocked (burn Immune)**, and a **50%** fire-damage
+  reduction. Its *"cannot be used on the same Turn as Flash of the Sun God"* refused with
+  `sameTurnExclusive`.
+- **End of Charity**, including the clause that makes it interesting: with `charity` up, Uncrowned
+  Arms Mastership contributes **+20 crit chance AND +40 crit damage at once** — the exclusivity
+  above, correctly suspended. Plus `sCritUp` 40 for ⅓◈ and cooldown 12.
+- **Riding's three passives**: `grantedAbilities: [doubleMove, ridingAttack, passengerSeat]`.
+- **Divinity**, seen as `divinity: 50` in the flat-bonus stage of every attack he made.
+- **All four Noble Phantasms as resolutions.** Brahmastra: `multiplier: 2` + `flatBonus: 100`,
+  cooldown **22** (7◈+⅓◈). Kavacha and Kundala's **−90%** at stage 4. Vasavi Shakti: activation
+  landing on BA(STR) **150** and rank **A** (not double-counted to 175), then the NP at
+  `multiplier: 5`, refused at Range 1 by its stated **minimum Range of 3**, cooldown **24**.
+  Brahmastra Kundala: combined BA **325**, `multiplier: 4` + `flatBonus: 100`, and **Karna
+  unharmed by his own 7×7 blast**, which his sheet exempts him from.
+- **The mutual Noble-Phantasm gates, both ways**: Brahmastra Kundala refused while Vasavi Shakti
+  and Mana Burst were cooling, and Vasavi Shakti refused while Brahmastra Kundala was.
+- **The Master cost, both sides.** Brahmastra Kundala refused at *"its Master needs MORE than 53
+  Health to pay for it"* with the Master on 50; healed, it charged exactly **53** (218 → 165).
+- **Vasavi Shakti's Divinity ladder**: against a Medea actually carrying Divinity at rank **B**,
+  `conditionalMultiplier: 3` appeared beside `multiplier: 5` — the *"Rank B to EX, tripled"* branch.
+  Total 6030 against 1467 without it.
+
+*Found while pressing:* §46.4-L (`oncePerRound` unreachable on the mode path) and §46.4-M (the
+attack path dropping a rule's duration), the second reaching eleven phases across eight files.
+
+*Still untested:* Mana Burst's **25% Burn chance** on ordinary Normal Attacks — the `OnEvent` is
+collected and the active's Burn landed, but the probability was never sampled; End of Charity's
+**clause 3**, the Noble-Phantasm cooldown chooser, because nothing was on cooldown to reduce when
+it fired; Vasavi Shakti's own **Burn for 4◈**, indistinguishable on the board from the Burn Mana
+Burst had already applied; and the Divinity ladder's **other two branches** (E–C, and the 'Divine'
+attribute without Divinity).
 
 **Penthesilea.** *Pressed:* the statblock at its derived 1350; Hatred of Achilles' compulsion
 forcing the mode on; `self:modeHeld`; the conditional floor in both states; Outrage Amazon's reach.
