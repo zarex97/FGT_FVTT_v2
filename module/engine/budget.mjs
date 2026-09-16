@@ -77,10 +77,16 @@ function actingFactionOf(unit) {
  * @param {string} args.action
  * @returns {Promise<{ok: boolean, reason: string|null}>}
  */
-export async function spend({ combat, unit, action }) {
+export async function spend({ combat, unit, action, ability = null, board = null }) {
   // The ACTING faction's pool, not the owning one — see `actingFactionOf`.
   const factionId = actingFactionOf(unit);
-  const result = consume(budgetFor(combat, factionId), unit, action);
+  const result = consume(budgetFor(combat, factionId), unit, action, {
+    // *"Counts as both Castor and Pollux's Attack for the Turn."* Read off the
+    // ability rather than off the unit: it is a property of the joint Noble
+    // Phantasm, not of being a twin, and their other attacks charge one each.
+    alsoCountsAsAttackFor: ability?.system?.alsoCountsAsAttackFor || null,
+    board,
+  });
   if (!result.ok) return { ok: false, reason: result.reason };
 
   await write(combat, factionId, result.budget);

@@ -167,7 +167,7 @@ export function reviseSummon(prepared, { masterId, warRegion, masterGrants }) {
  * @param {object} prepared
  * @returns {Promise<object>} the created actor
  */
-export async function commitSummon(prepared) {
+export async function commitSummon(prepared, { withPartners = true } = {}) {
   // The wizard filters its catalogue by ruleset; a STALE DRAFT is the case a
   // filter alone does not cover -- a GM who rolled fourteen Advanced Servants
   // and then switched the war to Normal has a draft the filter stopped looking
@@ -231,6 +231,45 @@ export async function commitSummon(prepared) {
   data.system.summonedAt = game.combat?.system?.globalTurn ?? 0;
 
   const [actor] = await Actor.createDocuments([data]);
+
+  // *"Castor and Pollux are summoned as two separate Servants as one."*
+  //
+  // The partners are summoned in the same commit rather than left to the GM,
+  // because a half-summoned pair is worse than no pair at all: a leash to
+  // nobody, a linked death with no partner, and a shared cooldown that shares
+  // with nothing. Every one of those reads as working code.
+  //
+  // `memberIds` is cross-linked HERE and nowhere else, because this is the
+  // only moment every actor's id exists. Content names its partners by CONTENT
+  // id (`linkedGroup.partners`); this resolves them to ACTOR ids, which is the
+  // same translation `masterId` gets two dozen lines above.
+  //
+  // `withPartners: false` on the recursive call is the guard: each twin's
+  // sheet names the other, so an unguarded commit would summon them forever.
+  const group = data.system.linkedGroup;
+  if (withPartners && group?.summonTogether && (group.partners ?? []).length > 0) {
+    const created = [actor];
+    for (const contentId of group.partners) {
+      const partnerPrepared = await prepareSummon({
+        contentId,
+        masterId: prepared.master?.id ?? null,
+        region: prepared.warRegion ?? null,
+        masterGrants: prepared.masterGrants ?? {},
+      });
+      created.push(await commitSummon(partnerPrepared, { withPartners: false }));
+    }
+    const ids = created.map((a) => a.id);
+    for (const member of created) {
+      await member.update({
+        // Each member's list is everyone BUT itself.
+        "system.linkedGroup.memberIds": ids.filter((id) => id !== member.id),
+        // `zonPartnerIds` is derived from the group by `annotateLinkedGroups`
+        // on every board snapshot, so it is deliberately NOT written here --
+        // one writer, and a stored copy could go stale against the group.
+      });
+    }
+  }
+
   return actor;
 }
 

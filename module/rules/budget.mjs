@@ -282,18 +282,38 @@ export function canConsume(budget, unit, action) {
  * @param {ActionKind} action
  * @returns {{ok: boolean, reason: string|null, budget: Budget}}
  */
-export function consume(budget, unit, action) {
+export function consume(budget, unit, action, { alsoCountsAsAttackFor = null, board = null } = {}) {
   const verdict = canConsume(budget, unit, action);
   if (!verdict.ok) return { ok: false, reason: verdict.reason, budget };
   if (verdict.free || verdict.pool === null) return { ok: true, reason: null, budget };
 
   const isAttack = ["attack", "np", "spell", "ridingAttack", "mark"].includes(action);
   const p = budget.pools[verdict.pool];
-  const usedHalves = p.usedHalves + Math.round(unitWeight(unit) * 2);
+
+  // *"Counts as both Castor and Pollux's Attack for the Turn."* Both members
+  // are charged and both are recorded as having attacked, so the pair spends
+  // ONE of the faction's two Servant attacks (0.5 + 0.5) and neither twin may
+  // swing again this Turn.
+  //
+  // Read off the ABILITY by the caller, not off the unit: it is a property of
+  // the joint Noble Phantasm, and the twins' other attacks charge one twin each.
+  const partners = alsoCountsAsAttackFor === "partner"
+    ? (board?.units ?? []).filter(
+      (u) => [...(unit.linkedGroup?.memberIds ?? [])].includes(u.id))
+    : [];
+
+  const usedHalves = p.usedHalves
+    + [unit, ...partners].reduce((sum, u) => sum + Math.round(unitWeight(u) * 2), 0);
+  const partnerIds = partners.map((u) => u.id);
+
   const next = {
     pools: { ...budget.pools, [verdict.pool]: { ...p, usedHalves, used: usedHalves / 2 } },
-    countedUnits: isAttack ? [...budget.countedUnits] : [...budget.countedUnits, unit.id],
-    attackedUnits: isAttack ? [...budget.attackedUnits, unit.id] : [...budget.attackedUnits],
+    countedUnits: isAttack
+      ? [...budget.countedUnits]
+      : [...budget.countedUnits, unit.id, ...partnerIds],
+    attackedUnits: isAttack
+      ? [...budget.attackedUnits, unit.id, ...partnerIds]
+      : [...budget.attackedUnits],
   };
   return { ok: true, reason: null, budget: next };
 }

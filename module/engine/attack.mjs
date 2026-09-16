@@ -248,7 +248,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // Attack"* on somebody else's Turn has to survive both, or it silently costs
   // him the swing he had not taken yet.
   if (combat?.started && !resume && !free) {
-    await budget.spend({ combat, unit: self, action: actionKind });
+    await budget.spend({ combat, unit: self, action: actionKind, ability, board });
     const isAttack = actionKind !== "skill";
     await applyBatch(
       [I.markTurn(attackerId, isAttack

@@ -378,3 +378,40 @@ describe("D6 — a linked member counts as half a Unit", () => {
     expect(b.pools.servantMove.usedHalves).toBe(2);
   });
 });
+
+describe("N8 — the joint NP counts as both twins' Attack", () => {
+  const twin = (id, partnerId) => servant(id, {
+    linkedGroup: { id: "dioscuri", memberIds: [partnerId], leash: 2, unitWeight: 0.5 },
+  });
+
+  const castor = twin("castor", "pollux");
+  const pollux = twin("pollux", "castor");
+  const board = { units: [castor, pollux] };
+  const joint = { alsoCountsAsAttackFor: "partner", board };
+
+  it("charges one full servantAttack and marks both twins", () => {
+    // 0.5 + 0.5 = one of the faction's two Servant attacks (R11).
+    const b = consume(emptyBudget(), castor, "np", joint).budget;
+    expect(b.pools.servantAttack.used).toBe(1);
+    expect(b.attackedUnits).toContain("castor");
+    expect(b.attackedUnits).toContain("pollux");
+  });
+
+  it("then refuses Pollux an attack of her own this Turn", () => {
+    const b = consume(emptyBudget(), castor, "np", joint).budget;
+    // `attackedUnits` is the record the caller stamps turnState from.
+    const alreadyAttacked = { ...pollux, turnState: { attacked: b.attackedUnits.includes("pollux") } };
+    expect(canConsume(b, alreadyAttacked, "attack").ok).toBe(false);
+  });
+
+  it("leaves one Servant attack for somebody else", () => {
+    const b = consume(emptyBudget(), castor, "np", joint).budget;
+    expect(canConsume(b, servant("karna"), "attack").ok).toBe(true);
+  });
+
+  it("changes nothing for an ability that does not declare it", () => {
+    const b = consume(emptyBudget(), castor, "np").budget;
+    expect(b.pools.servantAttack.used).toBe(0.5);
+    expect(b.attackedUnits).toEqual(["castor"]);
+  });
+});
