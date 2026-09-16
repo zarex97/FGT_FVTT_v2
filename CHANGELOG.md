@@ -83,6 +83,19 @@ across all six grades since the tables were transcribed. Right for her, wrong at
 every rank below. That is the shape `madEnhancementDrain` carried when its floor
 was written out as EX's figure.
 
+**Verified on a live board**, every clause of the inventory. The board found two
+more defects that 4,491 passing tests did not:
+
+- **`White Queen's Enigma` refused with *"Choose a target."*** A non-damaging
+  Spell must declare `countsAsAttack: false`; `isSpell` is one of the three
+  things `classifyAbility` treats as attack-shaped, and an attack-shaped ability
+  with no `targeting:` falls back to `targetUnit`. The failure the codebase had
+  already written down: *"EMIYA took 75 self-damage from casting a buff spell."*
+- **The corpus-wide guard added for it found a second**, on a Servant marked
+  fully authored and live-verified: Semiramis's `Scales of the Sacred Fish` — a
+  shield Spell that spent her Attack for the Turn and opened a Combat Process
+  against the ally it shields.
+
 **New content:** `class-territory-creation`, three effects (`Disable`,
 `Def Dwn (MAG)`, `Enigma`), four Skills, three Spells, one Noble Phantasm and the
 Servant. **New engine:** `rollTable` on a `DamageModifier`, nested aura elements

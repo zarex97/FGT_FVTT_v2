@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { parse } from "yaml";
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
@@ -383,5 +383,49 @@ describe("the Servant document (S1–S12)", () => {
     // makes that an append rather than a rewrite.
     expect(n().abilities).toHaveLength(9);
     expect(n().abilities[0]).toEqual({ ref: "class-territory-creation", rank: "A" });
+  });
+});
+
+describe("a non-damaging Spell must say it is not an attack", () => {
+  // Found live: White Queen's Enigma refused with "Choose a target."
+  //
+  // `isSpell` is one of the three things `rules/ability-use.mjs#classifyAbility`
+  // treats as attack-shaped, and an attack-shaped ability with no `targeting:`
+  // of its own falls back to `anchor: {kind: targetUnit}` — so a Spell that
+  // buffs its own caster asks the player to pick somebody and then refuses.
+  //
+  // The worse half is the one `classifyAbility`'s own comment records: such an
+  // ability opens a real Combat Process against itself, and `baseSpecFor`
+  // computes NORMAL ATTACK damage for a Spell that authored none. *"EMIYA took
+  // 75 self-damage from casting a buff spell that grants nothing but a Normal
+  // Attack bonus, every time."*
+  //
+  // A corpus-wide guard rather than one assertion on her file, because the next
+  // author of a buff Spell will hit exactly this.
+  const spellFiles = readdirSync("packs/_source/abilities")
+    .filter((f) => f.endsWith(".yml"))
+    .map((f) => [f, parse(readFileSync(`packs/_source/abilities/${f}`, "utf8"))])
+    .filter(([, a]) => a?.isSpell === true);
+
+  it("finds the Spells to check", () => {
+    expect(spellFiles.length).toBeGreaterThan(0);
+  });
+
+  it.each(spellFiles.filter(([, a]) => !(a.phases ?? []).some((p) => p.kind === "damage")))(
+    "%s deals no damage, so it declares countsAsAttack: false and its own targeting",
+    (file, a) => {
+      expect(a.countsAsAttack).toBe(false);
+      expect(a.targeting, `${file} needs a targeting block`).toBeTruthy();
+    },
+  );
+
+  it("and a DAMAGING Spell is left alone", () => {
+    // The two halves of the rule are separable: Plains of Winter and Frenzied
+    // March Hare are attacks and should classify as such.
+    for (const id of ["nursery-plains-of-winter", "nursery-frenzied-march-hare"]) {
+      const a = ability(id);
+      expect(a.countsAsAttack ?? true).not.toBe(false);
+      expect(a.phases.some((p) => p.kind === "damage")).toBe(true);
+    }
   });
 });

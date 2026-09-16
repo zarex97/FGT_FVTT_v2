@@ -13,8 +13,23 @@ rank: null
 kind: skill
 slug: whiteQueensEnigma
 isSpell: true
+# A Spell, but NOT an attack. `isSpell` is one of the three things that make an
+# ability attack-shaped, and left to that this opens a Combat Process against
+# herself, spends her Attack for the Turn, and computes Normal Attack damage for
+# an ability that authors none -- the failure `classifyAbility`'s own comment
+# records: *"EMIYA took 75 self-damage from casting a buff spell."*
+#
+# Found live: without it the Spell refused with "Choose a target."
+countsAsAttack: false
 cooldown: "3◈"
 timing: { window: ownTurn }
+# Stated, for the same reason EMIYA's Reinforcement states it: with no
+# `targeting:` block the default for an attack-shaped ability is `targetUnit`,
+# and a Spell that buffs its own caster has nobody to choose.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
 description: |
   Spell. Used during your Turn. Applies the '@effect[enigma]{Enigma}' buff to Nursery for 1◈ Turns.
   Its effects are as follows- Whenever Alice performs a Normal Attack which deals STR damage, Nursery
