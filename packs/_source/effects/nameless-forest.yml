@@ -1,0 +1,59 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# The marker the tokens hang from. It carries the escape ladder and the death
+# roll; the TOKENS themselves are an ordinary §6.10 resource pool, and the stat
+# reductions are performed by the Noble Phantasm's own grant.
+#
+# `polarity: status`. It is neither a buff nor a debuff in any useful sense, and
+# a Noble Phantasm whose entire counter-play is one Luck Check must not also
+# fall to an ordinary Cleanse -- the sheet gives exactly one way out and spends
+# six lines describing it.
+schema: 1
+id: namelessForest
+name: "Nameless Forest"
+description: |
+  For every @effect[namelessForest]{Nameless Forest} Token on this Unit, its Max Health is reduced by
+  25, both Base Attacks by 10, and its Max Luck by 1 — permanently. Once per Turn during its own Turn
+  it may attempt a Luck Check to remove every Token; Health and Luck already lost are not restored.
+  At the end of its Turn, a Unit with at least 3 Tokens rolls a twelve-sided die and disappears on a
+  roll at or below the count — unless it is within its Home Base.
+polarity: status
+volatility: nonVolatile
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+rules:
+  # THE LADDER. Read against the BEARER's own MAG parameter, not against this
+  # Noble Phantasm's Rank C -- which is what every other table in the corpus
+  # does, and which gives 0 at every grade and silently does nothing.
+  #
+  # Signs as written: a high Rank escapes MORE easily, because `resolveCheck`
+  # succeeds on `roll + mods <= target`. That reads backwards until you notice
+  # the Home Base term below does the same thing and that the sheet separately
+  # refuses to delete a Unit at home.
+  - key: CheckModifier
+    check: luck
+    table: namelessForestEscape
+    rankFrom: "@self.parameters.mag"
+
+  # "(stacks with the MAG Rank modifiers as seen below)" -- a second modifier,
+  # summed rather than replacing. A MAG EX Unit at home rolls at -6.
+  - key: CheckModifier
+    check: luck
+    value: -3
+    predicate: ["self:inHomeBase"]
+
+  # THE DEATH ROLL. `turnEnd` fires for the units of the faction whose Turn is
+  # ending -- "at the end of the UNIT'S Turn", not Nursery's, and not the
+  # Round's. Firing it at `roundEnd` instead would roll once per Round for
+  # everybody at once, which is a different ability.
+  #
+  # The d12 is declared on the ACTION so `pendingRolls` gathers it before the
+  # sequence runs; the arithmetic is `rules/nameless-forest.mjs`.
+  - key: OnEvent
+    event: turnEnd
+    automatic: true
+    then:
+      - key: NamelessForestDeathRoll
+        resource: namelessForestTokens
+        roll: { key: namelessForestDeath, formula: "1d12" }

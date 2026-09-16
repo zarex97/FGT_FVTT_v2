@@ -6,6 +6,9 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { parse } from "yaml";
+import { applicationChance } from "../../module/rules/checks.mjs";
 import { lookup, HOME_BASE_ESCAPE_MODIFIER } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { resolveCheck } from "../../module/rules/checks.mjs";
@@ -258,5 +261,164 @@ describe("R3/R4 — what the escaping Unit's check carries", () => {
 
   it("R3 — a MAG E Unit is PENALISED, which is the direction the sheet gives", () => {
     expect(mods({ parameters: { mag: "E" } })).toEqual([{ source: "MAG E", value: 2 }]);
+  });
+});
+
+const effect = (id) => parse(readFileSync(`packs/_source/effects/${id}.yml`, "utf8"));
+const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
+const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
+
+describe("the Nameless Forest marker (F8–F14)", () => {
+  const f = () => effect("nameless-forest");
+
+  it("is a STATUS, so ordinary buff-removal cannot strip it", () => {
+    // Neither a buff nor a debuff in any useful sense, and a Noble Phantasm
+    // whose entire counter-play is one Luck Check must not also fall to a
+    // Cleanse -- the sheet gives exactly one way out and spends six lines
+    // describing it.
+    expect(f().polarity).toBe("status");
+    expect(f().unremovable).toBe(true);
+  });
+
+  it("F10 — the MAG ladder, read off the BEARER's own parameter", () => {
+    const mag = f().rules.find((r) => r.table === "namelessForestEscape");
+    expect(mag).toMatchObject({ key: "CheckModifier", check: "luck", rankFrom: "@self.parameters.mag" });
+  });
+
+  it("F11/R4 — and the Home Base term, summed with it", () => {
+    const home = f().rules.find((r) => r.key === "CheckModifier" && r.predicate);
+    expect(home).toMatchObject({ check: "luck", value: -3 });
+    expect(home.predicate).toContain("self:inHomeBase");
+  });
+
+  it("F11/R3 — both terms are NEGATIVE, so both help", () => {
+    // The coherence check: the sheet separately refuses to delete a Unit at
+    // home, so safety and magical power point the same way.
+    const home = f().rules.find((r) => r.key === "CheckModifier" && r.predicate);
+    expect(home.value).toBeLessThan(0);
+    expect(lookup("namelessForestEscape", Rank.parse("EX"))).toBeLessThan(0);
+  });
+
+  it("F12/R5 — the death roll fires at turnEnd, not roundEnd", () => {
+    // "at the end of the UNIT'S Turn", not Nursery's and not the Round's.
+    // Fired at roundEnd it would roll once per Round for everybody at once,
+    // which is a different ability.
+    const roll = f().rules.find((r) => r.event === "turnEnd");
+    expect(roll).toBeTruthy();
+    expect(roll.then[0]).toMatchObject({
+      key: "NamelessForestDeathRoll", resource: "namelessForestTokens",
+    });
+  });
+
+  it("F12 — and declares its d12 on the action, so pendingRolls gathers it", () => {
+    // A roll nobody gathered is a roll that never arrives, and the action
+    // correctly emits nothing when it does not -- which would be silent.
+    const roll = f().rules.find((r) => r.event === "turnEnd");
+    expect(roll.then[0].roll).toMatchObject({ formula: "1d12" });
+  });
+});
+
+describe("R7 — the resistance an escape leaves behind", () => {
+  const r = () => effect("nameless-forest-resistance");
+
+  it("subtracts from the chance of being caught again", () => {
+    // `applicationChance` computes `base + inflictBonus - resist`, so
+    // resistance is what subtracts and the value is POSITIVE.
+    const rule = r().rules[0];
+    expect(rule).toMatchObject({ key: "ApplicationChance", direction: "incoming", effect: "namelessForest" });
+    expect(rule.value).toBe("@magnitude");
+  });
+
+  it("stacks, so three escapes compound to 70%", () => {
+    // "this effect can stack" -- and the applier sums magnitudes, so three
+    // applications of 10 make 30 off a base of 100.
+    expect(r().stacking).toBe("magnitudeStacks");
+    expect(applicationChance({ base: 100, resist: 30 }).percent).toBe(70);
+  });
+
+  it("is scoped to the forest and not to everything", () => {
+    // This Unit has learned to walk out of a forest, not to shrug off the
+    // world.
+    expect(r().rules[0].effect).toBe("namelessForest");
+  });
+
+  it("is permanent and unremovable", () => {
+    // It survives losing every token and being caught again -- it is a property
+    // of the UNIT. A resistance a Cleanse could strip would let Nursery
+    // re-catch a Unit that had already earned its way out three times.
+    expect(r().unremovable).toBe(true);
+    expect(r().volatility).toBe("nonVolatile");
+  });
+});
+
+describe("Nursery Rhyme: Nameless Forest (F1–F7)", () => {
+  const a = () => ability("nursery-nameless-forest");
+  const grant = () => a().passiveRules.find((r) => r.event === "roundEnd");
+
+  it("F1 — Rank C, NP, Anti-Unit, and PASSIVE", () => {
+    expect(a()).toMatchObject({ rank: "C", isNP: true, isPassive: true });
+    expect(a().npTags).toEqual(["antiUnit"]);
+  });
+
+  it("F1 — passive, so no cooldown and no timing window", () => {
+    // It is the only ability in either roster that wins by waiting. A cooldown
+    // on it would be a cooldown on nothing.
+    expect(a().cooldown ?? null).toBeNull();
+    expect(a().timing ?? null).toBeNull();
+  });
+
+  it("R8/F2 — at the end of every ROUND, not every Turn", () => {
+    // Fired at turnEnd, a three-Turn Round would triple the rate and kill a
+    // Unit in a third of the time.
+    expect(grant().event).toBe("roundEnd");
+  });
+
+  it("F2 — reaching enemy Units within 2 panels", () => {
+    for (const action of grant().then) {
+      expect(action).toMatchObject({ target: "nearby", radius: 2, relations: ["enemy"] });
+    }
+  });
+
+  it("F4 — and not at all while Nursery carries NP Seal", () => {
+    // On HER, not on the target, which is why it is a `self:` predicate on a
+    // rule whose actions reach somebody else.
+    expect(grant().predicate).toContainEqual({ not: "self:effect:npSeal" });
+  });
+
+  it("F3 — the marker lands BEFORE the token that makes it matter", () => {
+    // Reversed, a Unit's first token would sit on a Unit with no ladder and no
+    // die.
+    const kinds = grant().then.map((x) => x.key);
+    expect(kinds.indexOf("ApplyEffect")).toBeLessThan(kinds.indexOf("ResourceDelta"));
+  });
+
+  it("F5/R1 — Max Health −25 per token, and never the struck-through 50", () => {
+    const hp = grant().then.find((x) => x.stat === "health.max");
+    expect(hp).toMatchObject({ delta: -25, alsoCurrent: true });
+  });
+
+  it("F6/R1 — BOTH Base Attacks −10, through the penalty the derivation reads", () => {
+    // A write to `baseAttack` would be recomputed away on the next prepare.
+    const str = grant().then.find((x) => x.stat === "baseAttackPenalty.str");
+    const mag = grant().then.find((x) => x.stat === "baseAttackPenalty.mag");
+    expect(str.delta).toBe(10);
+    expect(mag.delta).toBe(10);
+  });
+
+  it("F7 — Max Luck −1 per token", () => {
+    expect(grant().then.find((x) => x.stat === "luck.max")).toMatchObject({ delta: -1, alsoCurrent: true });
+  });
+
+  it("R2 — and NOTHING in the grant is a contribution that could spring back", () => {
+    // The clause the whole part is arranged around. Every reduction is a
+    // StatDelta -- a write -- and none is a MaxDelta scaled by the held count,
+    // which would restore everything the instant a Unit escaped.
+    const writes = grant().then.filter((x) => x.key === "StatDelta");
+    expect(writes).toHaveLength(4);
+    expect(grant().then.some((x) => x.key === "MaxDelta")).toBe(false);
+  });
+
+  it("her Servant file gains exactly one ref", () => {
+    expect(servant("nursery-rhyme").abilities).toContainEqual({ ref: "nursery-nameless-forest" });
   });
 });

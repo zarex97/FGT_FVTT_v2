@@ -586,11 +586,12 @@ describe("[Vorpal Blade] (B1–B8, R4, R5)", () => {
     expect(structure("vorpal-blade-cache")).toMatchObject({ type: "structure", destroyableBy: [] });
   });
 
-  it("her Servant file gains exactly two refs, taking it from 9 to 11", () => {
+  it("her Servant file gains exactly the two refs Part 2 authors", () => {
+    // The total lives in `nursery.test.mjs`, which owns her document; this
+    // asserts only what Part 2 is responsible for adding.
     const a = servant("nursery-rhyme").abilities;
     expect(a).toContainEqual({ ref: "nursery-trump-soldiers" });
     expect(a).toContainEqual({ ref: "nursery-jabberwock" });
-    expect(a).toHaveLength(11);
   });
 });
 
