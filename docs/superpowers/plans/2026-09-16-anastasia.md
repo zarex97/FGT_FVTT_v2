@@ -980,7 +980,7 @@ describe("her passive abilities", () => {
   it("M5 — the Active blinds her until the end of the Combat Process", () => {
     const phase = ability("anastasia-watermelon").phases[0];
     expect(phase.target).toBe("self");
-    expect(phase.effects[0]).toMatchObject({ id: "blind", duration: "combatProcess" });
+    expect(phase.effects[0]).toMatchObject({ id: "blind", duration: "until combatProcessEnd" });
   });
 });
 ```
@@ -1130,10 +1130,13 @@ phases:
   - kind: applyEffects
     target: self
     effects:
-      - { id: blind, duration: "combatProcess" }
+      # `until <event>` is the tick vocabulary's form for a duration bounded
+      # by something happening, and `combatProcessEnd` is fired on both
+      # combatants once per Process (`engine/attack.mjs`).
+      - { id: blind, duration: "until combatProcessEnd" }
 ```
 
-If `duration: "combatProcess"` is not a duration the tick parser accepts, check `module/domain/tick.mjs`'s vocabulary for the existing "until the end of this Combat Process" spelling and use that; several abilities in the corpus already scope an effect that way.
+`"until combatProcessEnd"` is the tick vocabulary's `until <event>` form, and `combatProcessEnd` is fired on both combatants once per Process (`engine/attack.mjs:1474`). A bare `"combatProcess"` would throw at parse.
 
 - [ ] **Step 7: Validate, test, commit**
 
@@ -1662,11 +1665,24 @@ describe("the Servant document", () => {
     expect(a().sustainability).toBeNull();
   });
 
-  it("R7 — carries both Noble Phantasms, and Snegleta is the stronger", () => {
+  it("R7 — carries both Noble Phantasms, and neither is stored as the stronger", () => {
     const refs = a().abilities.map((x) => x.ref);
     expect(refs).toContain("anastasia-snegleta");
     expect(refs).toContain("anastasia-ice-block-launcher");
-    expect(a().strongestNP).toBe("anastasia-snegleta");
+    // Ch. 33 §33.4 REJECTED storing the ranking: `rules/np-strength.mjs`
+    // computes it against a synthetic neutral defender, because that "belongs
+    // in rules/np-strength.mjs -- pure, testable -- rather than inside a
+    // registered function content cannot inspect."
+    expect(a().strongestNP).toBeUndefined();
+  });
+
+  it("R7 — and np-strength ranks Snegleta above Ice Block Launcher", () => {
+    const np = (id) => ({ ...parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8")), id });
+    const ranked = rankNoblePhantasms(
+      [np("anastasia-snegleta"), np("anastasia-ice-block-launcher")],
+      { baseAttack: { str: 95, mag: 150 }, modifiers: [] },
+    );
+    expect(ranked[0].id).toBe("anastasia-snegleta");
   });
 
   it("carries the alignment the rulebook does not list", () => {
@@ -1675,7 +1691,8 @@ describe("the Servant document", () => {
 });
 ```
 
-with `import { baseAttackFor } from "../../module/domain/base-attack.mjs";` added.
+with `import { baseAttackFor } from "../../module/domain/base-attack.mjs";` and
+`import { rankNoblePhantasms } from "../../module/rules/np-strength.mjs";` added.
 
 - [ ] **Step 2: Run it and watch it fail**
 
@@ -1739,9 +1756,11 @@ normalAttack:
         - { component: str, factor: 1 }
         - { component: mag, factor: 0.1 }
 
-# Ch. 33 §33.4: the ranking is stored rather than recomputed. 3.5x off BA(MAG)
-# 150 beats 3x off BA(STR) 95 against a neutral defender.
-strongestNP: anastasia-snegleta
+# NO `strongestNP`. Ch. 33 §33.4 rejected storing the ranking outright --
+# `rules/np-strength.mjs#rankNoblePhantasms` computes it against a synthetic
+# neutral defender, "pure, testable, and rankable ... rather than inside a
+# registered function content cannot inspect." 3.5x off BA(MAG) 150 beats 3x
+# off BA(STR) 95, and the engine works that out for itself.
 
 abilities:
   - { ref: class-independent-action-viy, rank: EX }
@@ -1757,7 +1776,7 @@ abilities:
   - { ref: anastasia-ice-block-launcher }
 ```
 
-If `strongestNP` is not an authored key, add it to `actorSystem()` in `tools/lib/content.mjs` **and** to `AUTHORED_ACTOR_KEYS` in `module/content/authored-fields.mjs` — both, per the Global Constraints. If Ch. 33's ranking is stored under a different name, use that name.
+Do **not** add a `strongestNP` key. Ch. 33 §33.4 settled this in favour of computation, and storing it would be a second answer to a question `rules/np-strength.mjs` already answers.
 
 - [ ] **Step 4: Validate, test, build**
 
@@ -1897,7 +1916,7 @@ Claude-Session: https://claude.ai/code/session_01HLKFYmoBW84Wwh567tdpDN"
 
 Checked against the spec:
 
-- **§3 rulings R1–R8** — R1 Task 11; R2 Task 4; R3 Tasks 2/10; R4 Task 7 (she keeps Blind's other clauses, enforced by the suppression being scoped to `miss` alone); R5 Tasks 1/7; R6 Task 6; R7 Task 11; R8 Task 7.
+- **§3 rulings R1–R8** — R1 Task 11; R2 Task 4; R3 Tasks 2/10; R4 Task 7 (she keeps Blind's other clauses, enforced by the suppression being scoped to `miss` alone); R5 Tasks 1/7; R6 Task 6; R7 Task 11 (corrected during review: the ranking is COMPUTED, not stored); R8 Task 7.
 - **§4 inventory** — the ~30 FREE clauses need no task by definition and are verified in Task 13. The ~24 CONTENT clauses land in Tasks 3–11. The 2 surviving ENGINE clauses are Tasks 1–2.
 - **§5 engine work** — E1 Task 1; E6 Task 2. **E2, E3 and E4's carve-out are withdrawn** by the correction block at the head of §5; their clauses are authored as content in Tasks 7 and 4 respectively, and the tests there assert the mechanism they ride on.
 - **§6 content — 17 files** — 5 effects (Tasks 3–5), 1 class skill (Task 6), 10 abilities (Tasks 7–10), 1 Servant (Task 11).
@@ -1906,4 +1925,4 @@ Checked against the spec:
 
 **Type consistency:** `chanceFromDistance(perPanel, distance)` is defined in Task 2 and referenced by name in Tasks 2 and 10. `missChance(attacker, options)` keeps the signature it shipped with. Effect ids `freeze`, `invuln`, `soaked`, `buffRemovalResUp`, `critUpViy` are each defined once and referenced under the same spelling throughout.
 
-**Two things deliberately left to their task, with the criterion stated:** whether `duration: "combatProcess"` is the tick vocabulary's existing spelling for "until the end of this Combat Process" (Task 7, Step 6 — check `domain/tick.mjs` and match what the corpus already uses), and whether `strongestNP` is an authored key or lives under another name (Task 11, Step 3 — check Ch. 33 §33.4 and the allowlists). Both are one grep and must not be deferred.
+**Both deferred decisions were resolved during the pre-execution review**, and the plan above is corrected: the duration is `"until combatProcessEnd"` (the `until <event>` form, fired at `engine/attack.mjs:1474`), and `strongestNP` is **not authored at all**, because Ch. 33 §33.4 chose computation over storage and `rules/np-strength.mjs` is the answer.

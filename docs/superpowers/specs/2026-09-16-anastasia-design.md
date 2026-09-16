@@ -83,10 +83,16 @@ hers alone, and the skill is differently **named**. A variant, the way `riding-m
 not a `ref:` override, because `ref:` replaces a key wholesale and the extra passive would have to
 restate the whole rule list.
 
-**R7 — Her two Noble Phantasms are both hers, always.** `npChoice` is Normal-mode's *"select only
-one before play"* and does not apply. Ch. 33's *"strongest Noble Phantasm"* ranking is stored data;
-Snegleta (3.5× off BA(MAG) 150) outranks Ice Block Launcher (3× off BA(STR) 95) against a neutral
-defender, so Snegleta is recorded as the stronger.
+**R7 — Her two Noble Phantasms are both hers, always, and the ranking is computed.** `npChoice` is
+Normal-mode's *"select only one before play"* and does not apply.
+
+**Corrected during the pre-execution review.** This ruling first said the *"strongest Noble
+Phantasm"* ranking is stored data. It is not: Ch. 33 §33.4 rejected storing it, in as many words —
+*"the genuinely computational part is 'was it their strongest', and that belongs in
+`rules/np-strength.mjs` — pure, testable, and rankable against a synthetic neutral defender —
+rather than inside a registered function content cannot inspect."* Nothing is authored; Snegleta
+(3.5× off BA(MAG) 150) outranks Ice Block Launcher (3× off BA(STR) 95) and the engine works that
+out for itself.
 
 **R8 — Rock Snowball rides the ranged band only.** *"Normal Attacks at a Range of 3 or higher"* —
 the same `attack:range:gte:3` boundary the Note draws, so the two clauses cannot disagree about
