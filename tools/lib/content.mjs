@@ -1899,6 +1899,9 @@ function itemSystem(doc) {
     // `rules/items.mjs#acquisitionTarget`. A role pair against a CONTENT id,
     // because an actor id is random per world.
     barredFrom: doc.barredFrom ?? null,
+    // Ch. 43 §43.11's gate: this ability reads the past, so the match must
+    // record one. Off by default, so a match without it pays nothing.
+    requiresHistory: Boolean(doc.requiresHistory),
     phases: doc.phases ?? [],
     // §15.7. `copyable` defaults to allowed, so an author only writes it to
     // say NO -- and the validator below checks the reason when they do.
