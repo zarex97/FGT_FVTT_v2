@@ -1,0 +1,74 @@
+# docs/B-rank-tables.md §B.3 — the Caster class skill.
+#
+# Promoted from `medea-territory-creation.yml`, which Nursery Rhyme's sheet
+# repeats word for word: same Rank A, same dice, same non-stacking clause. The
+# README's own reasoning applies -- authored once and instantiated at several
+# ranks, so fixing it fixes every Servant that has it.
+#
+# Semiramis and Kingprotea keep their own files. Hers is the EX/C Hanging-Gardens
+# split Appendix D marks with an `S`; his is a different clause set. They stay as
+# variants beside this template, exactly as `riding-medusa.yml` stays beside
+# `class-riding.yml`.
+#
+# TWO DEFECTS ARE FIXED BY THE PROMOTION.
+#
+# 1. Both clauses now read their RANK TABLE. Medea's file hardcoded "5d20" and
+#    "3d10+20", which are the A row of two tables that have existed indexed
+#    across all six grades since the tables were transcribed -- right for her and
+#    wrong at every other rank. That is the same shape `madEnhancementDrain`
+#    carried when its floor was written out as EX's figure.
+#
+# 2. The defence clause now ROLLS. `DamageNegation` does not read `el.roll`, and
+#    its `mode` defaults to "flat" -- so `rollNegation` computed `Number(null)`,
+#    got 0, and skipped it. Every Territory Creation in the corpus was authored
+#    that way. The clause had never reduced a single point of damage, for any
+#    Servant, since it was written.
+schema: 1
+id: class-territory-creation
+name: "Territory Creation"
+source: class
+slug: territoryCreation
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive 1) In its Home Base, all damage dealt by this Unit is increased, including NP.
+  (Passive 2) While this Unit is on the field, damage taken by allied Units in their own Home Base
+  is further reduced, including NP.
+  Note: If there are multiple allied Units with this Skill, only the Territory Creation with the
+  highest Rank takes effect — it does not stack.
+passiveRules:
+  # Clause 1 is about the BEARER, so an ordinary predicate on its own options
+  # works. "including NP" is why there is no `attack:kind` predicate: the default
+  # would have been to exempt Noble Phantasms.
+  #
+  # ROLLED rather than averaged, which is why Medea's file carried dice at all:
+  # 5d20 is 5-100, and flattening it would make a Caster in her own Home Base
+  # predictable in a way the sheet does not intend.
+  - key: DamageModifier
+    stage: flat
+    predicate: ["self:inHomeBase"]
+    rollTable: territoryCreationOffence
+
+  # Clause 2 is about EVERYONE ELSE, so it is an aura -- and one with no radius,
+  # because "while this Unit is on the field" is not a distance. Its condition is
+  # on the RECIPIENT ("allied Units who are in THEIR Home Base"), which a
+  # predicate cannot say: contributions are evaluated against the source.
+  #
+  # `stacking: highestOnly` is the Note, and `rules/auras.mjs` already resolves
+  # it -- it is the default there, and its comment quotes Item Construction's
+  # identical clause.
+  - key: Aura
+    scope: field
+    relations: [ally, self]
+    stacking: highestOnly
+    group: territoryCreation
+    requiresRecipient: { inHomeBase: true }
+    elements:
+      # `mode: dice` is load-bearing and was absent everywhere. Without it this
+      # is a flat negation of `null`, which is zero, which is skipped.
+      - key: DamageNegation
+        mode: dice
+        table: territoryCreationDefence

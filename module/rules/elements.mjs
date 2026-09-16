@@ -693,6 +693,38 @@ function rollSpec(table, rank) {
   return { key: table, formula: typeof v === "string" ? v : null, bonus: 0 };
 }
 
+/**
+ * One element nested inside an `Aura`, with its rank table resolved.
+ *
+ * `rules/auras.mjs` hands a nested element to the recipient as authored --
+ * `{...element, stacking, group, rank}` -- and never runs it through an
+ * executor. That is deliberate and cheap, but it means anything an executor
+ * would have resolved is still raw by the time a reader sees it, and the rank
+ * it would have been resolved against no longer exists.
+ *
+ * So `table:` is resolved at COLLECTION time, where the rank is known: into
+ * `formula` for a dice-mode reader and into `value` for everybody else. The two
+ * go to different fields for the same reason `actionSpec` sends them to
+ * different ones -- *"a table yields either a dice formula or a NUMBER"*.
+ *
+ * `source` is carried too, because the un-executed path never added one and a
+ * contribution with no source shows on the damage card as `undefined`.
+ *
+ * @param {object} el the nested element, as authored
+ * @param {Rank|null} rank the owning ability's rank
+ * @param {object} ctx
+ * @param {string} source
+ * @returns {object}
+ */
+function auraElement(el, rank, ctx, source) {
+  if (!el?.table) return { source, ...el };
+  const v = resolveValue(el, rank, ctx);
+  const { table, ...rest } = el;
+  void table;
+  const field = el.mode === "dice" || typeof v === "string" ? "formula" : "value";
+  return { source, ...rest, [field]: typeof v === "object" && v?.formula ? v.formula : v };
+}
+
 /* -------------------------------------------------------------------------- */
 /*  The catalogue                                                             */
 /* -------------------------------------------------------------------------- */
@@ -748,6 +780,14 @@ export const EXECUTORS = Object.freeze({
       // attack -- Penthesilea's Goddess of War. The pipeline reads the total
       // out of `ctx.rolls`, so the dice stay with the caller like every other
       // roll in the system.
+      //
+      // `rollTable` is the same thing read off a RANK TABLE instead of written
+      // out. Territory Creation is *"increased by 5d20"* on Medea's sheet and
+      // `6d20 / 5d20 / 5d10 / 5d8 / 5d6 / 5d4` in `domain/tables.mjs`, and
+      // authoring the literal is right at exactly one rank -- the same shape
+      // `madEnhancementDrain` carried when its floor was written out as the EX
+      // figure and every rank below it was wrong.
+      ...(el.rollTable ? { roll: rollSpec(el.rollTable, rank) } : {}),
       ...(el.roll ? { roll: { ...el.roll } } : {}),
       value: round(scalar(v) * f),
       ...(np !== null && np !== undefined ? { npValue: round(scalar(np) * f) } : {}),
@@ -1466,7 +1506,21 @@ export const EXECUTORS = Object.freeze({
       // An aura may carry SEVERAL modifiers rather than being one. Medea's Item
       // Construction is six -- a severity ladder in both directions -- and the
       // group and rank are what "does not stack" compares across sources.
-      elements: el.elements ?? null,
+      //
+      // Resolved HERE, because `rules/auras.mjs` delivers a nested element to
+      // the recipient exactly as authored -- it never runs the executors -- and
+      // by then the owning ability's rank is gone. A nested `table:` therefore
+      // arrived at the reader unresolved, as the literal string
+      // "territoryCreationDefence", and every reader that wanted a number or a
+      // dice formula got a table name instead.
+      //
+      // Against the AURA's own rank where it declares one, not the ability's.
+      // Semiramis's Territory Creation is Rank EX and carries a second aura
+      // declaring `rank: C` -- her ground Home Base -- so resolving both
+      // against the ability would hand the C clause EX's dice.
+      elements: el.elements
+        ? el.elements.map((e) => auraElement(e, el.rank ? Rank.parse(el.rank) : rank, ctx, source))
+        : null,
       group: el.group ?? null,
       rank: el.rank ?? (rank ? String(rank) : null),
       scope: el.scope ?? null,

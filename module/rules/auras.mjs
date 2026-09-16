@@ -140,6 +140,17 @@ export function annotateAuras(units, board, index = null) {
  */
 export const ROUTES = Object.freeze({
   ApplicationChance: "applicationChances",
+  // Territory Creation's second clause, and the third entry in this object
+  // added for the same reason as the two below it: collected correctly and
+  // consulted by nobody.
+  //
+  // `engine/attack.mjs#rollNegation` reads `defender.damageNegation`. An aura
+  // carrying a nested `DamageNegation` landed it in `modifiers`, where the
+  // damage pipeline has no key for it and nothing else looks -- so *"damage
+  // taken by allied Units in their own Home Base is further reduced by
+  // (3d10+20)"* had never reduced a single point of damage, for any Servant,
+  // since the clause was written. Five files carried it.
+  DamageNegation: "damageNegation",
   Compulsion: "compulsions",
   // Bašmu's protection (`TargetabilityModifier`, `rules/elements.mjs`) — read
   // by `rules/targeting/resolve.mjs`'s legality filter, not the damage

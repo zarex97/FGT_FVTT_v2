@@ -47,7 +47,16 @@ passiveRules:
     relations: [ally, self]
     stacking: highestOnly
     group: territoryCreation
+    # STATED, because this file declares no ability rank -- a generic Caster
+    # has none. Its own quoted sheet text is "(3d10+20)", which is the A row of
+    # `territoryCreationDefence`, so A is what the table must be read at.
+    rank: A
     requiresRecipient: { inHomeBase: true }
     elements:
+      # `mode: dice` and a rank TABLE. Authored as `roll:`, this was dead twice
+      # over: `DamageNegation` never reads `el.roll`, and an aura's nested
+      # element was routed to `modifiers` where `rollNegation` never looks. The
+      # clause had never reduced a point of damage.
       - key: DamageNegation
-        roll: { key: territoryCreationWard, formula: "3d10+20" }
+        mode: dice
+        table: territoryCreationDefence
