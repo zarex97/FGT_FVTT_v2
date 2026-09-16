@@ -392,8 +392,15 @@ be used at all. This is a **predicate** modifying a rule already in force.
 
 ### E13 — Partner-conditional aura
 
-P7 as `Aura` with `radius: 1, relations: [partner]`. `rules/auras.mjs` expands auras onto units in
-range matching a relation list; `partner` is the new relation.
+P7 as `Aura` with `radius: 1, recipientRoles: [linkedPartner]`.
+
+**Not a new `relations` value.** `rules/relations.mjs#relationOf` returns exactly one of
+`self | ally | enemy | neutral`, and a linked partner is already an `ally`; returning `partner`
+instead would drop Castor out of every ordinary ally-aura on the board, including Pollux's own
+*Guardians of Navigation*. `recipientRoles` is the mechanism that already exists for this — *"a named
+ROLE on the recipient, relative to the aura's source… the Sphinxes shield two units, not every ally
+within a panel of one"* — and `inRecipientRoles` is a three-case list that takes `linkedPartner` as a
+fourth line.
 
 ### E14 — `summonTogether`
 
