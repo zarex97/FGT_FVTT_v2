@@ -58,10 +58,14 @@ export const ITEM_REDIRECT_RANGE = 2;
 /**
  * Who actually ends up holding an item this unit would obtain.
  *
- * **The one seam every acquisition goes through.** The rulebook describes no
- * way to *acquire* an item beyond being handed one — nothing drops an item on a
- * panel, nothing awards one on a kill, and "Items held" is a blank slot on all
- * 29 reference sheets — so there is exactly one caller today, `giveItem`. It is
+ * **The one seam every acquisition goes through.** The rulebook described no
+ * way to *acquire* an item beyond being handed one — nothing dropped an item on
+ * a panel, nothing awarded one on a kill, and "Items held" is a blank slot on
+ * all 29 reference sheets — so there was exactly one caller, `giveItem`.
+ *
+ * `[Vorpal Blade]` is the drop this paragraph anticipated: *"the day a drop or
+ * a reward is added, it asks this and inherits the redirect for free."*
+ * `itemPickupIntents` below is that day, and it does. It is
  * a seam rather than a branch inside that caller because Pale Rider's clause is
  * about **obtaining**, not about being given: the day a drop or a reward is
  * added, it asks this and inherits the redirect for free.
@@ -113,6 +117,53 @@ export function acquisitionTarget(unit, board, item = null) {
 
   if (unit.cannotHoldItems) return { ok: false, reason: "cannotHoldItems" };
   return { ok: true, unitId: unit.id, redirected: false };
+}
+
+/**
+ * The item a unit picks up by standing where it lies.
+ *
+ * > *"…the [Vorpal Blade] Item appears on a random panel on the game board,
+ * > this Item can be picked up by a Unit walking onto its panel."*
+ *
+ * The first item in this system that is not handed to somebody. This file's own
+ * header said so until today: *"nothing drops an item on a panel, nothing
+ * awards one on a kill, and 'Items held' is a blank slot on all 29 reference
+ * sheets."* The Jabberwock's first summoning is what changed that.
+ *
+ * A STRUCTURE carrying an item id, rather than a new kind of thing: structures
+ * are already placed objects with panels, visibility rules and destruction
+ * rules (Medusa's Bloodmarks, Quetzalcoatl's Piedra Del Sol).
+ *
+ * The refusal goes through `acquisitionTarget`, not through an `if` here. A
+ * refusal written into the pickup is one a future trade or reward would not
+ * inherit — which is the whole reason that seam exists. Refused, the sword
+ * stays exactly where it lies, for somebody else to find: no grant, no
+ * dismissal, nothing.
+ *
+ * @param {object} unit the unit that just finished moving
+ * @param {object} board
+ * @returns {object[]} descriptors
+ */
+export function itemPickupIntents(unit, board) {
+  if (!unit?.panel) return [];
+  const cache = (board?.units ?? []).find((u) => (
+    u.kind === "structure" && u.carriesItemId && u.panel
+    && u.panel.i === unit.panel.i && u.panel.j === unit.panel.j
+  ));
+  if (!cache) return [];
+
+  const to = acquisitionTarget(unit, board, cache.carriesItem ?? { contentId: cache.carriesItemId });
+  if (!to.ok) return [];
+
+  return [
+    {
+      kind: "itemGrant", unitId: to.unitId, itemId: cache.carriesItemId,
+      contentId: cache.carriesItemId, delta: 1,
+      barredFrom: cache.carriesItem?.barredFrom ?? null,
+    },
+    { kind: "dismiss", unitId: cache.id, reason: "itemTaken" },
+    { kind: "log", event: "itemPickedUp", itemId: cache.carriesItemId, by: to.unitId },
+  ];
 }
 
 /**

@@ -50,6 +50,21 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // something; this is the one summon in the reference set that displaces
       // rather than being refused.
       movesOntoOccupiedPanels: new fields.BooleanField({ initial: false }),
+
+      // An ITEM lying on this object's panel, waiting to be walked onto.
+      //
+      // > *"the [Vorpal Blade] Item appears on a random panel on the game
+      // > board, this Item can be picked up by a Unit walking onto its panel."*
+      //
+      // Structure-only. The first item in this system that is not handed to
+      // somebody, expressed as a structure carrying one rather than as a new
+      // kind of placed thing -- structures already have panels, visibility and
+      // destruction rules.
+      carriesItemId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+      // The item's own `barredFrom`, copied here at placement so the pure
+      // pickup pass can answer *"cannot be obtained by Nursery or her Master"*
+      // without loading a pack.
+      carriesItemBarredFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     };
   }
 

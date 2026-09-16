@@ -162,7 +162,15 @@ export const PHASE_DESCRIPTORS = describeTable([
   ]),
   entry("createStructure", 20, "Places a destructible object on the board.", [
     { key: "structureId", type: "text" },
+    // `caster` (every structure authored until now) or `randomPanel` -- the
+    // Vorpal Blade *"appears on a random panel on the game board"*, which is
+    // the point of it: she cannot choose who finds her monster's counter.
     { key: "at", type: "text" },
+    // An ITEM the object is holding for whoever walks onto its panel.
+    { key: "carriesItemId", type: "text" },
+    // Once per match rather than once per use -- "when the Jabberwock is
+    // summoned FOR THE FIRST TIME".
+    { key: "once", type: "checkbox" },
   ]),
   entry("enterDimension", 20, "Opens a pocket dimension and moves a manifest of Units into it.", [
     { key: "platformId", type: "text" },

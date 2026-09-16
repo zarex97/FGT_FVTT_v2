@@ -678,6 +678,7 @@
   "FGT.Anchor.sourceOfAttackHint": "Placed on the attacker — for abilities used when Attacked.",
   "FGT.Summon.NoRoom": "No free panel for {count} more — they did not appear.",
   "FGT.Summon.NoPanel": "{name} had nowhere to appear and was not summoned.",
+  "FGT.Structure.NoPanel": "{name} had nowhere to appear — every panel on the board is occupied.",
   "FGT.Summon.ChooseType": "Choose a Dragon Tooth Warrior",
   "FGT.Summon.ChooseTypeHint": "The die came up \"your choice\".",
   "FGT.NP.ContractCut": "{servant}'s Contract was cut and given to {master}.",
