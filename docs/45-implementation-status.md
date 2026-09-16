@@ -4645,3 +4645,15 @@ deferred by seven siblings and performed by the eighth against the sum. Cooldown
 
 201 test files, 4905 tests, layer boundaries intact.
 
+**Semiramis finished.** Nine of her twelve documents pressed; Ch. 46 §46.14 has the table. Item
+Construction's one roll driving both the item count and a region-scaled Construction gain (4 items,
++6 under Ch. 32 §32.2's adjacency rule); Arrogant King's Poison spending exactly 3 of its 4 held
+items and landing Def Dwn at 30/40 for precisely 1◈; Summoning: Bašmu picking the off-platform
+branch's 2◈ and its 1.25×; and a stage-4 bucket showing three Def Dwn +30% instances combining
+additively with Mad Enhancement's −40% and a Home Base's −10% to ×1.40.
+
+One measurement error is written into §46.2 because it cost most of an afternoon: effect instances
+are **ActiveEffects**, not Items, and `createEmbeddedDocuments("Item", [{type: "fgtEffect"}])`
+succeeds silently and creates nothing. Four clauses were briefly believed broken on that basis and
+all four were working.
+
