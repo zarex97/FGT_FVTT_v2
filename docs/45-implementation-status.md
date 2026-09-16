@@ -4607,3 +4607,41 @@ verified live, `globalTurn` **0 → 1** on the next Turn change.
 
 200 test files, 4901 tests, layer boundaries intact.
 
+---
+
+## Semiramis's Throne Room, and a dead event under it — 2026-09-16
+
+Pressing Sikera Ušum found one more, and it was not hers alone. Ch. 46 §46.4-AC.
+
+**§46.4-AC — every field's `actedTurnEnd` interior event was inert.** `onTurnChange` builds a board,
+runs `scheduler.endTurn` against it, then dispatches the field events — and `runFieldEvents` called
+`currentBoard()` again for itself. The sequence has cleared the turn state by then, so the second
+board reports `acted: false` for the whole map and a `requiresActed` filter matches nobody. Mad
+Enhancement's drain on the same event kept working throughout, because it fires from *inside*
+`endTurn` off a list captured before the reset — which is why the event always looked alive.
+
+Two clauses in the corpus, both dead: Sikera Ušum clause b (*"when a Unit other than Semiramis or
+her Master Acts then ends its Turn within the NP area, it is inflicted with Poison"*) and the acted
+half of Jack's Mist. `runFieldEvents` now takes the caller's `board` and the hook passes the one it
+already holds, so the field's view of who acted and the scheduler's are a single view. Measured with
+a probe at the dispatch: `produced 0` with every unit reading `acted=false` before, `produced 1`
+with the Servant in the field reading `a=true` after.
+
+**What else Sikera Ušum showed, all correct.** The `dsc` branch is selected (Throne Room, 3◈,
+sealed) rather than the 5×5-follows-her branch; the field is anchored to the platform's computed
+centre `{4,4}` and not to where she happened to stand; expiry is exactly nine ticks; the cost is 53
+at a B+ rank against a Low Rank Master; the cooldown stays 0 at use because it is
+`countFrom: deactivation`. The membership snapshot is the nicest of them: `trappedUnitIds` holds
+Semiramis alone, and `canPassThrough` refuses her at every panel outside the 5×5 while allowing all
+nine inside — and Heracles, who walked in *after* activation, is refused nothing. A snapshot, not a
+standing wall, which is what the sheet says.
+
+**And the Hanging Gardens themselves, end to end.** *Aerial Garden of Vanity*: BA(MAG) 250, crit,
+the sheet's **2× multiplier** at stage 3 → 528, −50% combined (Mad Enhancement −40%, Home Base
+−10%), −30 Battle Continuation, **234** and an Injury Roll, cooldown 6 ticks. *Dragon Wing
+Warriors*: 1d6+4 → **8** separate Combat Processes, 50 Fixed STR each — the pipeline bypassed
+entirely, so neither the −40% nor the −30 applies — **400** total, and exactly **one** Injury Roll,
+deferred by seven siblings and performed by the eighth against the sum. Cooldown 3 ticks.
+
+201 test files, 4905 tests, layer boundaries intact.
+

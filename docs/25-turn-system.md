@@ -59,6 +59,14 @@ old numeric shape thaws on its next boundary rather than needing a migration. Ch
 
 > *A guard must not be keyed on state that only the guarded work produces.*
 
+**And a boundary's field events are asked about the boundary's own board.** `scheduler.endTurn`
+clears every Unit's turn state, and the field dispatchers run after it — so a dispatcher that called
+`currentBoard()` for itself saw `acted: false` for the whole map and every `actedTurnEnd` interior
+event in the corpus matched nobody. Sikera Ušum clause b and the acted half of Jack's Mist were both
+inert, while Mad Enhancement's drain on the same event went on working because it fires from inside
+`endTurn` off the `actedUnits` list captured before the reset. `runFieldEvents` now takes the
+board, and the hook passes the one it already built. Ch. 46 §46.4-AC.
+
 ## 25.2 `FGTCombat`
 
 ```js
