@@ -51,20 +51,6 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // rather than being refused.
       movesOntoOccupiedPanels: new fields.BooleanField({ initial: false }),
 
-      // An ITEM lying on this object's panel, waiting to be walked onto.
-      //
-      // > *"the [Vorpal Blade] Item appears on a random panel on the game
-      // > board, this Item can be picked up by a Unit walking onto its panel."*
-      //
-      // Structure-only. The first item in this system that is not handed to
-      // somebody, expressed as a structure carrying one rather than as a new
-      // kind of placed thing -- structures already have panels, visibility and
-      // destruction rules.
-      carriesItemId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
-      // The item's own `barredFrom`, copied here at placement so the pure
-      // pickup pass can answer *"cannot be obtained by Nursery or her Master"*
-      // without loading a pack.
-      carriesItemBarredFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // Rule slugs switched off on this Unit, by name and permanently.
       //
@@ -311,6 +297,28 @@ export class StructureData extends foundry.abstract.TypeDataModel {
       // alone -- writing to a field this type does not have is how the first
       // four Bloodmarks placed themselves and then could not be found again.
       placedById: new fields.DocumentIdField({ required: false, nullable: true, initial: null }),
+
+      // An ITEM lying on this object's panel, waiting to be walked onto.
+      //
+      // > *"…the [Vorpal Blade] Item appears on a random panel on the game
+      // > board, this Item can be picked up by a Unit walking onto its panel."*
+      //
+      // The first item in this system that is not handed to somebody,
+      // expressed as a structure carrying one rather than as a new kind of
+      // placed thing -- structures already have panels, visibility and
+      // destruction rules.
+      //
+      // Declared HERE and not on `SummonData`, which is where it went first.
+      // The cache was created, placed on its random panel, and carried nothing
+      // -- exactly the failure `placedById` two fields up records in its own
+      // comment: *"writing to a field this type does not have is how the first
+      // four Bloodmarks placed themselves and then could not be found again."*
+      // Found on a live board, the same way.
+      carriesItemId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+      // The item's own `barredFrom`, copied here at placement so the pure
+      // pickup pass can answer *"cannot be obtained by Nursery or her Master"*
+      // without loading a pack.
+      carriesItemBarredFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // Where it stands, written at placement rather than read back off the
       // token. A Structure never moves, and the token index lags its own
