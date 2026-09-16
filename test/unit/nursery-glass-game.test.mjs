@@ -8,6 +8,9 @@
 
 import { describe, it, expect } from "vitest";
 import { historyWanted, snapshotUnit, diffSnapshots, applyPatch } from "../../module/rules/history.mjs";
+import {
+  recordTurn, stateAt, rewindIntents, RETENTION_TURNS, REWIND_EXCLUDED_RESOURCES,
+} from "../../module/engine/state-history.mjs";
 
 describe("E2 — the gate, which is the whole performance story", () => {
   it("is OFF for a board with nobody who wants history", () => {
@@ -139,5 +142,152 @@ describe("E1 — the snapshot shape, from §43.11", () => {
     const hurt = unit(); hurt.health.value = 250;
     const patch = diffSnapshots(a, snapshotUnit(hurt, 10));
     expect(Object.keys(patch).sort()).toEqual(["globalTurn", "stats"]);
+  });
+});
+
+describe("E1 — the ring buffer", () => {
+  const declarer = { id: "n", abilities: [{ id: "glass", requiresHistory: true }] };
+  const foe = (hp) => ({
+    id: "foe", health: { value: hp, max: 1000 }, agility: 12, luck: { value: 6, max: 8 },
+    parameters: { mag: "C" }, effectInstances: [], abilities: [], resources: {},
+  });
+
+  /** Ten turns of one Unit losing 50 Health a turn. */
+  const tenTurns = () => {
+    let history = {};
+    for (let t = 0; t < 10; t++) {
+      history = recordTurn({ units: [declarer, foe(1000 - t * 50)] }, t, history, 3);
+    }
+    return history;
+  };
+
+  it("retains 6 Rounds plus two turns", () => {
+    // §43.11's figure. Effect 2 reaches back six Rounds, so anything shorter
+    // makes the once-per-game rewind reach past the end of the buffer.
+    expect(RETENTION_TURNS(3)).toBe(6 * 3 + 2);
+    expect(RETENTION_TURNS(4)).toBe(6 * 4 + 2);
+  });
+
+  it("reconstructs a state ten turns old from its patches", () => {
+    const h = tenTurns();
+    expect(stateAt(h, "foe", 4).stats.health.value).toBe(800);
+    expect(stateAt(h, "foe", 9).stats.health.value).toBe(550);
+  });
+
+  it("returns null for a turn that has fallen off the end", () => {
+    // Not a throw, and not the oldest entry it still holds. A rewind that
+    // silently restored the wrong turn would be worse than one that did
+    // nothing, because it would look like it worked.
+    expect(stateAt(tenTurns(), "foe", -5)).toBeNull();
+  });
+
+  it("returns null for a unit it has never seen", () => {
+    expect(stateAt(tenTurns(), "stranger", 4)).toBeNull();
+  });
+
+  it("writes NOTHING when the gate is closed", () => {
+    // The assertion that matters most in this file.
+    expect(recordTurn({ units: [foe(1000)] }, 1, {}, 3)).toBeNull();
+  });
+
+  it("drops entries past the retention window and re-bases what survives", () => {
+    // A patch whose base has been discarded reconstructs nothing, so the new
+    // oldest entry has to become a full snapshot.
+    let history = {};
+    for (let t = 0; t < 40; t++) {
+      history = recordTurn({ units: [declarer, foe(1000 - t * 10)] }, t, history, 3);
+    }
+    expect(history.foe.entries.length).toBeLessThanOrEqual(RETENTION_TURNS(3) + 1);
+    expect(history.foe.entries[0].full).toBeTruthy();
+    // ...and the oldest turn it still holds reconstructs correctly.
+    const oldest = history.foe.entries[0].globalTurn;
+    expect(stateAt(history, "foe", oldest).stats.health.value).toBe(1000 - oldest * 10);
+  });
+
+  it("stays inside its storage budget at the stated worst case", () => {
+    // §43.11 claims ~280 KB at 28 units x 50 turns. Within an order, because a
+    // buffer that quietly grows unbounded on a long match is the failure mode
+    // the diffing exists to prevent -- and an exact figure would break on any
+    // harmless field addition.
+    let history = {};
+    const units = [declarer];
+    for (let u = 0; u < 28; u++) units.push({ ...foe(1000), id: `u${u}` });
+    for (let t = 0; t < 50; t++) {
+      history = recordTurn({
+        units: units.map((x) => (x.id === "n" ? x : { ...x, health: { value: 1000 - t, max: 1000 } })),
+      }, t, history, 3);
+    }
+    expect(JSON.stringify(history).length).toBeLessThan(2_800_000);
+  });
+});
+
+describe("E3 — the restore", () => {
+  const declarer = { id: "n", abilities: [{ id: "glass", requiresHistory: true }] };
+  const foe = {
+    id: "foe", health: { value: 800, max: 1000 }, agility: 12, luck: { value: 6, max: 8 },
+    parameters: { mag: "C" },
+    effectInstances: [
+      { defId: "atkUp", magnitude: 30, expiry: 14, sourceUnitId: "nursery" },
+      { defId: "burn", magnitude: 50, expiry: 14, sourceUnitId: "ghost" },
+    ],
+    abilities: [{ id: "someNp", isNP: true, cooldownRemaining: 9 }, { id: "mode", isMode: true, active: true }],
+    resources: { namelessForestTokens: { value: 3, max: null }, fragarachTokens: { value: 2, max: 5 } },
+  };
+  const board = { units: [declarer, foe, { id: "nursery" }] };
+  const history = recordTurn(board, 4, {}, 3);
+
+  it("emits one rewind per named unit", () => {
+    const out = rewindIntents(board, history, ["foe"], 4);
+    expect(out.filter((i) => i.kind === "rewind").map((i) => i.unitId)).toEqual(["foe"]);
+  });
+
+  it("restores stats, cooldowns, effects and modes", () => {
+    const i = rewindIntents(board, history, ["foe"], 4).find((x) => x.kind === "rewind");
+    expect(i.state.stats.health).toEqual({ value: 800, max: 1000 });
+    expect(i.state.cooldowns.someNp).toEqual({ remaining: 9 });
+    expect(i.state.modes.mode).toEqual({ active: true });
+  });
+
+  it("R2 — and does NOT restore Nameless Forest Tokens", () => {
+    // Stated twice on the sheet, once per effect. Tokens live in `resources`
+    // and the buffer stores `resources`, so this is a NAMED carve-out rather
+    // than an emergent property -- without it the rewind silently undoes
+    // Part 3.
+    expect(REWIND_EXCLUDED_RESOURCES).toContain("namelessForestTokens");
+    const i = rewindIntents(board, history, ["foe"], 4).find((x) => x.kind === "rewind");
+    expect(i.state.resources.namelessForestTokens).toBeUndefined();
+  });
+
+  it("R2 — but DOES restore every other pool", () => {
+    // The carve-out is one named pool, not "resources are excluded".
+    const i = rewindIntents(board, history, ["foe"], 4).find((x) => x.kind === "rewind");
+    expect(i.state.resources.fragarachTokens).toEqual({ value: 2, max: 5 });
+  });
+
+  it("R8 — drops an effect whose source is gone, and logs each drop", () => {
+    // §43.11's own RISK, verbatim: "What must not happen is the rewind
+    // restoring an effect whose source has since been removed, producing an
+    // orphaned instance."
+    const out = rewindIntents(board, history, ["foe"], 4);
+    const rewind = out.find((i) => i.kind === "rewind");
+    expect(rewind.state.effects.map((e) => e.defId)).toEqual(["atkUp"]);
+    expect(out.some((i) => i.kind === "log" && i.event === "rewindDroppedOrphan")).toBe(true);
+  });
+
+  it("R1 — and writes no position", () => {
+    const i = rewindIntents(board, history, ["foe"], 4).find((x) => x.kind === "rewind");
+    expect(i.state.panel).toBeUndefined();
+  });
+
+  it("emits nothing for a unit with no history that far back", () => {
+    expect(rewindIntents(board, history, ["foe"], -99)).toEqual([]);
+  });
+
+  it("R6 — restoring a defeated Nursery does not undo her defeat", () => {
+    // "a rewind that restores health undoes a kill (though not a defeat)". Her
+    // Stats come back and she stays defeated: the rewind is a parting shot, not
+    // a resurrection.
+    const i = rewindIntents(board, history, ["foe"], 4).find((x) => x.kind === "rewind");
+    expect(i.clearsDefeat).toBe(false);
   });
 });
