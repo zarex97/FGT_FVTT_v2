@@ -234,10 +234,23 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    gated on the `rhoAias` effect and that effect lasts ⅓◈, so a second Noble Phantasm in the same
    Turn meeting the same standing barrier is the duration working, not a leak.
 
-   **All six audited Servants are now finished**: Heracles, Asterios, Karna, Penthesilea, Medea and
-   EMIYA. Every one of them cost at least one general defect that a paper trace had already
-   cleared — **eleven** in this pass, §46.4-J through §46.4-T, with §46.4-U reported and retracted.
-   Two remain open by choice: §46.4-E and §46.4-R.
+   **Achilles was audited next, and for a reason the audit itself supplied**: he was the only
+   unaudited Servant that two of this pass's fixes reached without ever being checked on a board.
+   Both were real for him — Bravery's inverted resist and Runner Comet's silent no-op — and
+   pressing the second found a third defect underneath it. `offerAttackerWindow` hand-built the
+   subject it asked, `stanceOf` needs `stanceSpec` to answer at all, and so every *"can only be
+   used when Unmounted"* ability was refused before it could be offered. §46.4-P had just made such
+   an ability run when taken; §46.4-V is what kept it from being offered to take.
+
+   His sheet also produced the audit's cleanest single result: **Andreias Amarantos, all four
+   Divinity tiers**, measured at 0 / 76 / 86 / 124 against the same attacker with only its Divinity
+   rank changed — and the Heel interlock proved by A/B, the same attack dealing 0 with the Heel
+   intact and 107 once `heelWounded` was held.
+
+   **Seven Servants are now finished**: Heracles, Asterios, Karna, Penthesilea, Medea, EMIYA and
+   Achilles. Every one cost at least one general defect that a paper trace had already cleared —
+   **twelve** in this pass, §46.4-J through §46.4-V, with §46.4-U reported and retracted. Two
+   remain open by choice: §46.4-E and §46.4-R.
 
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on

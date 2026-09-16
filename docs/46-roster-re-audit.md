@@ -810,7 +810,7 @@ per-Servant record of what each audit left untested.
 | Castor / Pollux | — | — | — | |
 | Raikou | — | — | — | §46.4-C's conditional floor now built for her |
 | Anastasia & Viy | — | — | — | |
-| Achilles | — | — | — | |
+| **Achilles** | ✅ | ✅ (2 clauses need another opponent) | 1 general | §46.4-V |
 | Mannanán mac Lir | — | — | — | carries §46.4-B |
 | Medusa | — | — | — | |
 | Nemo | — | — | — | |
@@ -1359,6 +1359,70 @@ Range 4 to Heracles's 2 so the range bands half his kit turns on could be reache
 
 *Still untested:* **Overedge** as a resolution, and Independent Action's **third** passive, the
 contract-resistance rolls.
+
+**Achilles — complete but for two clauses that need a different opponent.** A war built by
+`commitWar` against Medea — a Caster for Magic Resistance, and carrying **no Divinity**, which is
+the top row of the table his signature passive is built on.
+
+*Pressed (interface):* **Achilles's Heel**, through its own dialog, repeatedly. The prompt itemises
+its own ladder, which is how most of it was read: *"15% — from behind +10 · initiated +5"*, then
+*"20% — at Range +5 · initiated +5 · unseen +10"* from three panels away.
+
+*Pressed (engine):*
+
+- **The Heel's modifier ladder, every clause.** Measured across four declarations: base **back
+  +10** and **front 0**; **(a) agility +0** — correctly, Medea's AGI being below his; **(b) at Range
+  +5** from three panels; **(c) initiated +5**; **(e) fogOfWar +10**; **(f) luckCheck +25**. The
+  reaction card offered *Do nothing* and *Evade* and **no Block**, which is *"Achilles cannot Block
+  Heel Attacks"*.
+- **Both Heel outcomes.** A failure — `chance: 15, roll: 93` — resolved `heelResolve:fail →
+  noDamage`, which is *"Achilles successfully Evades the Attack"*: **1600 untouched**. A success —
+  `chance: 55, roll: 26` — resolved `heelResolve:success → damage`, dealt **251**, and applied
+  **`heelWounded`**.
+- **Andreias Amarantos, all four tiers**, with the arithmetic exact each time. Against **no
+  Divinity**: `attackerPropertyTier: 0`, noted *"vs no divinity"* — **total 0**, untouched. Against
+  **E**: ×0.5, 152.7 → **76**. Against **D**: ×0.75, 115.9 → **86**. Against **C**: the stage is
+  **absent** and 124.4 → **124**, full damage.
+- **The interlock between them**, by A/B on the same board and attacker: Heel intact → **0** damage;
+  `heelWounded` held → the `totalDamageModifiers` stage **empty** and the same attack dealing
+  **107**. *"The effect of Andreias Amarantos is lost if Achilles' Heel is damaged."*
+- **Magic Resistance C** at `−57` — *"−30% MAG (MR C < attack A++)"* — and **Battle Continuation A**
+  at `damageNegation: −25`, both on the same card as Andreias.
+- **Bravery**, which is §46.4-J's shared skill: a mental debuff at **35%** (100 − 15 Magic
+  Resistance − 50 Bravery) against a non-mental control at **85%**.
+- **Affections of the Goddess**: `defUp` 50/NP 25, `atkUp` 20/NP 10, `debuffResUp` 50, all 1◈,
+  cooldown 4◈.
+- **Runner Comet** — which took §46.4-V to reach at all. Offered at the *Start of the Combat Phase*,
+  it restored Agility **15 → 18**, applied `nAtkUp` 30 and `critDmUp` 30 for that Turn, and charged
+  **8** (3◈−⅓◈). Offered **only** while Unmounted: the same window offered nothing while mounted.
+- **Dromeus Komētēs**, both clauses and their gate: `doubleMove` granted — **twice**, once by
+  Riding and once by this, which the file records as deliberate so a Skill Seal on either leaves the
+  other's standing — and `checkPlan` folding in **`Dromeus Komētēs: Comet Form: −4`** on Evade. Both
+  vanish when he mounts.
+- **Riding, by mounted/dismounted A/B.** Mounted grants `ridingAttack` and `passengerSeat` and takes
+  MOV **7 → 8**; dismounted grants `ignoresOccupancy` instead and restores the Evade −4.
+- **Troias Tragōidia's passive**, with its three conditions separated: mounted **and** having Acted,
+  at the Turn boundary, his Master went **385 → 360** — exactly **25**. Dismounted and having Acted,
+  on the next Turn: **no drain at all**.
+- **Troias Tragōidia's active**, whose three magnitudes are all derived from the ride. With 8 MOV
+  remaining, **X = 4**: Agility **13 → 17** (restores X), `atkUp` **40** (10 × X) with `npMagnitude`
+  **30** (10 × (X−1)), and `critDmUp` **10** (10 × Y, one Unit hit). Stage 4 took the **NP** figure,
+  30, because it is one. `multiplier: 4`, cooldown **22** (7◈+⅓◈).
+- **Akhilleus Kosmos's passive**: `ignoresOccupancy` granted while dismounted, gone while mounted.
+- **The duel's target predicate**: *"Medea is excluded by this ability's target predicate"* —
+  *"cannot be used on Female Units"*, enforced.
+- **Two gates in the refusing direction**: Akhilleus Kosmos was refused while **mounted** (its
+  `stance` requirement) and refused against a **rank-A Spell** (`againstKind: np` — Medea's Rain of
+  Light resolves as `damageSpell`, not a Noble Phantasm).
+
+*Found while pressing:* §46.4-V.
+
+*Still untested, and why:* **Akhilleus Kosmos's negation** needs an enemy **AoE Noble Phantasm of
+Rank A or above** — Medea has none, her only true NP being single-target Rule Breaker.
+**Diatrekhon Aster Lonkhe's duel field** needs a **male** Servant who is not Hector, Chiron or
+Penthesilea and who does not have three parameters a rank below his — which is a different opponent
+entirely. **Passenger Seat**, **Riding Attack** and **Double Move** are granted and visible on the
+snapshot but were never performed as actions.
 
 ### 46.13.2 Fixes that were never pressed
 
