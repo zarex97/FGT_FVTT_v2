@@ -1,0 +1,43 @@
+# Pollux, char_orig_sheets/Copia de Dioscuri.md
+#
+# Same NAME as Castor's, same rank, same +80 -- and a DIFFERENT Passive 2, which
+# is why these are two documents. Hers is +5% Crit Chance; his is a 5%
+# NP-cooldown chance on a successful Normal Attack.
+#
+# The shared NAME is what would put them on a shared cooldown (the Dioscuri
+# binding matches by name). Neither has one, so that is inert here -- but it is
+# why the two files must keep the same `name` and differ only in their rules.
+schema: 1
+id: dioscuri-twin-gods-divine-core-pollux
+name: "Twin God's Divine Core"
+rank: B
+kind: skill
+slug: twinGodsDivineCore
+passive: true
+# What a clause naming "the Divinity Skill" matches on.
+# `kingprotea-divine-core.yml` is the precedent and carries the identical pair
+# of category tag and granted attribute.
+categorizedAs: [divinity]
+description: |
+  (Passive 1) All damage dealt is increased by 80 including NP.
+  (Passive 2) Pollux's Crit Chance is increased by 5%.
+  This Skill counts as '@ability[divinity]{Divinity}'.
+passiveRules:
+  # `divineCore` at B is 80, and that table's own docstring names "Twin God's
+  # Divine Core" as one of its two customers. Nothing is authored.
+  - key: FlatDamage
+    table: divineCore
+    includesNP: true
+
+  # Passive 2, and the ONLY difference from Castor's copy. Additive with
+  # Oblivion Correction's 15% on his side; she does not carry that Skill.
+  - key: CritModifier
+    aspect: chance
+    value: 5
+
+  # "Counts as Divinity" -- the ATTRIBUTE half. Ten of the thirteen reference
+  # Servants are Divine, which is what makes Karna's Vasavi Shakti and
+  # Scáthach's God Slayer live against this pair.
+  - key: StatDelta
+    stat: attributes
+    add: [divine]

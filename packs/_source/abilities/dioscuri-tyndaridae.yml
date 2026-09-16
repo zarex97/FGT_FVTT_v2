@@ -1,0 +1,77 @@
+# The Dioscuri, char_orig_sheets/Copia de Dioscuri.md
+#
+# The acceptance test for four mechanisms at once: the partner as a Base Attack
+# source, the union of two modifier bags, the "counts as both twins' Attack"
+# budget charge, and the adjacency requirement.
+#
+# ONE document, `ref`d by both twins. Either may fire it and it is one clock --
+# which the shared name gives it for free.
+schema: 1
+id: dioscuri-tyndaridae
+name: "Dioscures Tyndaridae: Hymn of the Divine Twins"
+rank: B
+isNP: true
+categorizedAsNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+cooldown: "6◈"
+timing: { window: ownTurn }
+# *"Counts as both Castor and Pollux's Attack for the Turn."* Charges 0.5 + 0.5
+# -- one of the faction's two Servant attacks -- and marks both, so neither twin
+# swings again this Turn.
+alsoCountsAsAttackFor: partner
+requirements:
+  # *"Can only be used when Castor and Pollux are directly next to each other."*
+  # `counterpartAdjacent` has existed in `rules/items.mjs` since the requirement
+  # vocabulary was written, and its comment says outright that it is for this
+  # Noble Phantasm. It had no writer until now.
+  - { kind: counterpartAdjacent }
+description: |
+  Range=2. Can only be used when Castor and Pollux are directly next to each other. The Base Attack
+  used is half of Castor's Base Attack (STR) and half of Pollux's Base Attack (STR) combined
+  (BA=150). Deals 3.5x damage that has the @effect[pierce]{Pierce} and @effect[ignoreDef]{Ignore Def} effects. Then, inflicts
+  @effect[defDwnA]{Def Dwn (A)} for 1◈ Turns, all damage received is increased by 15% and Luck is reduced by 1 whenever
+  damage is received from an Attack; and also inflicts @effect[defDwnC]{Def Dwn (C)} for 1◈ Turns, all damage
+  received is increased by 15% and Agility is reduced by 1 whenever damage is received from an
+  Attack.
+  Counts as both Castor and Pollux's Attack for the Turn. The effects of all Skills, buffs and
+  debuffs on both Castor and Pollux are combined when calculating damage for this NP.
+  Cooldown: 6◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  # *"half of Castor's BA(STR) and half of Pollux's BA(STR) combined."* 75 + 75.
+  #
+  # The sheet says 175, computed from Pollux's printed BA(STR) of 200 -- which
+  # the rank table overrules at 150 (Ch. 41 Q50). 150 is the figure the game is
+  # played with; the 175 in the parenthesis is stale arithmetic from the same
+  # source error, and the description above prints 150 rather than repeat it.
+  #
+  # `unit: partner` is resolved by `namedUnits` in `engine/attack.mjs`; stage 1
+  # has read `ctx.units[src.unit]` since the pipeline was written.
+  base:
+    sources:
+      - { unit: self, component: str, factor: 0.5 }
+      - { unit: partner, component: str, factor: 0.5 }
+  component: str
+  multiplier: 3.5
+  pierce: true
+  ignoresDefUp: true
+  # *"The effects of all Skills, buffs and debuffs on BOTH Castor and Pollux are
+  # combined."* The double-count is intended and answered by the game's author
+  # (Ch. 41 Q12): one Guardians of Navigation cast that buffed both twins gives
+  # this +30%, not +15%. It is what a 6◈ cooldown buys.
+  modifierSources: [partner]
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      # Both variants, at the same 15%. They are DISTINCT effects rather than
+      # one stronger Def Dwn -- the letter names the extra clause, Luck for (A)
+      # and Agility for (C) -- so content that strips "one Def Dwn" takes one of
+      # them and leaves the other standing.
+      - { id: defDwnA, duration: "1◈", magnitude: 15 }
+      - { id: defDwnC, duration: "1◈", magnitude: 15 }

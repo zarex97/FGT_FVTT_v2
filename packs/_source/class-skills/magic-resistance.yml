@@ -63,3 +63,27 @@ passiveRules:
     attackPredicate:
       - { not: "attack:component:str" }
       - { not: "attack:ignoresMagicResistance" }
+
+  # *"When Castor is directly next to Pollux, Castor also receives the effect of
+  # this Skill."* Pollux is the only Servant in either roster whose Magic
+  # Resistance reaches somebody else.
+  #
+  # On the SHARED template, and inert for the other ten bearers:
+  # `recipientRoles: [linkedPartner]` matches only a member of the bearer's own
+  # linked group, and a Servant without one has no partner for it to find.
+  #
+  # A ROLE rather than a `relations` value. `rules/relations.mjs#relationOf`
+  # returns exactly one of self/ally/enemy/neutral and a linked partner is
+  # already an `ally`, so a `partner` relation would have dropped that partner
+  # out of every ordinary ally-aura on the board.
+  - key: Aura
+    radius: 1
+    relations: [ally]
+    recipientRoles: [linkedPartner]
+    rules:
+      - key: Resistance
+        component: mag
+        mode: rankComparison
+        negatesUpToRank: "@rank"
+        table: magicResistancePercent
+        includesNP: true
