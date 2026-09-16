@@ -46,9 +46,19 @@ passiveRules:
   # `self:` is the ATTACKER here, not the bearer. `rollOptionsFor` names the two
   # sides of an attack `self` and `target` whichever Unit the handler belongs
   # to, so on a `damageTaken` handler -- which fires on the DEFENDER -- `self:`
-  # is still whoever swung. The content validator is what caught the
-  # `attacker:` spelling: an option nothing emits makes a clause permanently
-  # false, and the rule would have silently never fired.
+  # is still whoever swung. The content validator caught the `attacker:`
+  # spelling: an option nothing emits makes a clause permanently false.
+  #
+  # `defer: true` is what makes that reading actually hold, and without it the
+  # rule was DROPPED AT COLLECTION. `self:` means two different things in the
+  # two contexts: at collection it is the element's OWNER, and the Jabberwock is
+  # a summon rather than a Servant -- so the predicate answered false and the
+  # element never reached the handler bucket at all. `collectContributions`
+  # documents the same trap for `target:attribute:divine`, which "answered
+  # false here and dropped the element for ever."
+  #
+  # Found on a live board: the rule was on the document, its slug was right,
+  # nothing was suppressed, and the monster collected zero event handlers.
   #
   # `slug` is what the Blade's suppression names when it removes this
   # permanently. Without one the removal would have only a random document id
@@ -58,6 +68,7 @@ passiveRules:
     event: damageTaken
     automatic: true
     predicate: ["self:type:servant"]
+    defer: true
     then:
       - { key: StatDelta, stat: "health.value", delta: "@amount", factor: 0.75 }
 notes: |

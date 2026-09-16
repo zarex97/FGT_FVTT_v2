@@ -436,9 +436,26 @@ describe("the Jabberwock (J1–J18, R2, R3, R6, R7, R8)", () => {
     const rule = summon("jabberwock").passiveRules.find((r) => r.event === "damageTaken");
     expect(rule.slug).toBe("jabberwockLifesteal");
     expect(rule.predicate).toContain("self:type:servant");
+    // `defer: true`, or the rule is dropped at COLLECTION: `self:` means the
+    // element's owner there and the attacker at event time, and the Jabberwock
+    // is a summon rather than a Servant. Found on a live board -- the rule was
+    // on the document, its slug was right, nothing was suppressed, and the
+    // monster collected zero event handlers.
+    expect(rule.defer).toBe(true);
     expect(rule.then[0]).toMatchObject({
       key: "StatDelta", stat: "health.value", delta: "@amount", factor: 0.75,
     });
+  });
+
+  it("J13 — and it actually reaches the handler bucket", () => {
+    // The assertion the live board needed: a predicate answered at collection
+    // time does not merely mis-gate the rule, it deletes it.
+    const out = contributionsOf({
+      system: { passiveRules: summon("jabberwock").passiveRules },
+      items: [], effects: [],
+    });
+    expect(out.eventHandlers).toHaveLength(1);
+    expect(out.eventHandlers[0].events).toContain("damageTaken");
   });
 
   it("J13/R3 — and NOT from a Master", () => {
