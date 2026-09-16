@@ -1,0 +1,63 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+#
+# A Servant who inflicts a debuff on HERSELF to convert it into an offensive
+# buff. Ch. 44 §44.3 calls the shape "self-harm as a resource", with Van Gogh's
+# Curse economy as the precedent -- and the difference is that Gogh CONSUMES her
+# debuff while Anastasia REINTERPRETS hers.
+#
+# §44.3 also predicted the implementation exactly, down to the predicate string:
+# *"No new machinery: a passive with `predicate: ["self:effect:blind",
+# "attack:range:lte:2"]` that suppresses Blind's miss clause."* It was written
+# when nothing in the engine could make an attack miss at all, so there was
+# nothing to suppress until Combat Process step 1.5 arrived.
+#
+# She KEEPS Blind's other clauses. The sheet exempts *"a chance of Missing"*,
+# singular, so her own Evade rolls stay at +3 for as long as the Blind lasts --
+# and her Active deliberately holds it through the whole Combat Process, which
+# is a window the defender may Counter in. That is the price of the trick.
+schema: 1
+id: anastasia-watermelon
+name: "Watermelon Splitting Master"
+kind: skill
+slug: watermelonSplitting
+cooldown: "2◈"
+timing: { window: combatPhaseStart }
+description: |
+  (Passive) When Anastasia performs a Normal Attack at a Range of 1 to 2 while inflicted with
+  @effect[blind]{Blind}, it does not have a chance of Missing; and instead it gains the @effect[pierce]{Pierce} &
+  @effect[ignoreDef]{Ignore Def} effects, also the DU's @effect[evade]{Evade} roll is increased by 4 if it Evades the Attack.
+  (Active) Used at the start of a Combat Phase when initiating an Attack. Anastasia gains Blind
+  until the end of the Combat Process. Cooldown: 2◈ Turns.
+passiveRules:
+  # M1. The Miss check is Combat Process step 1.5; this switches it off for her,
+  # in this band only. The same `Suppress` element Blind's own clause 3 uses.
+  - key: Suppress
+    scope: miss
+    predicate: ["self:effect:blind", "attack:range:lte:2"]
+
+  # M2 and M3 -- what she gets INSTEAD of the chance to miss.
+  - key: AttackProperty
+    property: pierce
+    predicate: ["self:effect:blind", "attack:range:lte:2"]
+  - key: AttackProperty
+    property: ignoreDef
+    predicate: ["self:effect:blind", "attack:range:lte:2"]
+
+  # M4. `direction: imposed` is the axis `engine/attack.mjs:2517` already merges
+  # into the DEFENDER's evade plan -- EMIYA's Clairvoyance forces the
+  # unfavourable table the same way, and the comment there says why such a
+  # clause can never come from the defender's own plan.
+  - key: CheckModifier
+    check: evade
+    direction: imposed
+    value: 4
+    predicate: ["self:effect:blind", "attack:range:lte:2"]
+phases:
+  # M5. She blinds herself, on purpose, for the length of one Combat Process.
+  # `until <event>` is the tick vocabulary's form for a duration bounded by
+  # something happening, and `combatProcessEnd` is fired on both combatants once
+  # per Process (`engine/attack.mjs`).
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: blind, duration: "until combatProcessEnd" }

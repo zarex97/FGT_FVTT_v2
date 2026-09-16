@@ -1,0 +1,26 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+schema: 1
+id: anastasia-rock-snowball
+name: "Rock Snowball"
+kind: skill
+slug: rockSnowball
+passive: true
+description: |
+  (Passive) Anastasia's Normal Attacks at a Range of 3 or higher have a 10% chance of inflicting
+  @effect[bleed]{Bleed} for ½◈ Turns.
+  *Remember kids, don't throw snowballs with rocks in them!*
+passiveRules:
+  # The SAME boundary her Note draws (`attack:range:gte:3`), so the two clauses
+  # cannot disagree about where her stance changes -- at 3 she stops swinging
+  # and starts throwing, and that is where the rocks go in.
+  #
+  # `damageDealt` fires on the attacker with the victim in `ctx.victim`, which
+  # is the rung every "Normal Attacks inflict X on the DU" clause hangs from.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:range:gte:3"]
+    target: victim
+    effect: { id: bleed }
+    chance: 10
+    duration: "½◈"
