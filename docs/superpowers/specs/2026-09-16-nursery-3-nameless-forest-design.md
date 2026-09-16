@@ -44,7 +44,8 @@ The struck figures are superseded. **25 and 10 are the live values** (R1).
 | *"if the Unit is within its Home Base"* | `self:inHomeBase`, which Medea's Territory Creation already reads. |
 | Rank-indexed modifier ladders | `domain/tables.mjs` — a `scaled` table keyed by grade is exactly the MAG ladder below. |
 | *"does not occur if Nursery is inflicted with NP Seal"* | `npSeal` is an authored effect and `preventedBy` reads it. |
-| `roundEnd` and `unitTurnEnd` | Both fired (Appendix E). |
+| `roundEnd` | Fired, at `engine/scheduler.mjs:169`. |
+| *"at the end of the Unit's Turn"* | **`turnEnd`**, fired at `engine/scheduler.mjs:65` for the units of the faction whose Turn is ending. **(Corrected before planning — this spec first named `unitTurnEnd`, which does not exist. The three that do are `turnEnd`, `actedTurnEnd` and `anyTurnEnd`.)** |
 
 **Most of the parts exist.** What does not is the *shape*: a token whose count drives three separate
 stat penalties, a check whose difficulty is read off a parameter, and a death roll.
@@ -85,7 +86,8 @@ out of. A powerful magus sees through it; so does someone standing on their own 
 the MAG Rank modifiers as seen below)"*. So a MAG EX unit at home rolls at −6.
 
 **R5 — The death roll happens at the end of the affected Unit's own Turn, not Nursery's.** *"At the
-end of the Unit's Turn"* — so `unitTurnEnd` on the bearer, not `roundEnd`.
+end of the Unit's Turn"* — so **`turnEnd`** on the bearer, not `roundEnd`. (Corrected before planning:
+`unitTurnEnd` does not exist.)
 
 **R6 — A Unit in its Home Base cannot be deleted, but still rolls.** *"a Unit cannot disappear due to
 the effects of this NP if it is within its Home Base."* The roll is not skipped; the *consequence* is
@@ -105,7 +107,7 @@ this NP affects all enemy Units within a 2 panel area."* One token per Round per
 
 ## 4. The engine work
 
-**Three changes.**
+**Four changes.**
 
 ### E1 — A token count that drives permanent writes
 
@@ -131,8 +133,14 @@ the **affected unit** — not on Nursery. The Home Base term is a second `CheckM
 `self:inHomeBase`, and the two sum (R4).
 
 The novelty is that the modifier is indexed by the *bearer's own MAG Rank* rather than by the
-ability's rank. Every rank table in the corpus is read against the owning ability's rank; this one is
-read against the target's parameter.
+ability's rank. **Confirmed against the engine:** `rules/elements.mjs#rawValue` reads `el.table`
+through `lookup(el.table, rank)`, and `rank` is `shiftedRank(ability, shifts)` — the **owning
+ability's** rank, every time, for every table in the corpus.
+
+**DECISION.** A `rankFrom` beside `table`, naming a ref path: `{table: "namelessForestEscape",
+rankFrom: "@self.parameters.mag"}`. The path already resolves — `rules/snapshot.mjs#expressionRefs`
+puts `parameters` on `self` — so this is a second index into an existing lookup rather than a second
+lookup. `rank` stays the default, so no authored table moves.
 
 ### E3 — The death roll
 
@@ -145,6 +153,28 @@ count, and emitting a defeat — refused if the unit is in its Home Base (R6).
 *"Disappears (i.e. is defeated)"* — the sheet glosses its own term, so this is an ordinary defeat and
 runs the revival chain like any other. It is **not** `Death` semantics; nothing says revival is
 ignored.
+
+### E4 — An effect that offers its bearer an optional check
+
+*"During an affected Unit's Turn, it can attempt a Luck Check **once per Turn** to remove the effects
+of this NP."*
+
+**Can**, not must. Nothing in the corpus offers a Unit an optional roll on its own Turn.
+
+`grantedAbilities` is the obvious home and is the wrong one: `rules/granted.mjs` states outright that
+it is *"a closed list, because these are the ones something in the engine actually asks about"* —
+capability ids like `doubleMove`, not ability documents that appear on an action bar. Every check in
+the system today is either compulsory (an Evade in the ladder) or attached to using something.
+
+What **does** exist is the affordance. `apps/hud/pending-present.mjs` already carries a `luckCheck`
+prompt kind, already routes a row to the owner of the unit being asked, and §27.5 already fixes what
+happens when nobody answers: *"the default on expiry is the option that spends nothing"*, which here
+is declining the attempt — exactly the right default for an optional escape.
+
+**DECISION.** An `OfferCheck` element on the effect, raising a pending `luckCheck` row for the bearer
+at the start of its own Turn, gated once per Turn, whose decline costs nothing. It is raised **outside
+the Combat Process**, which is the whole of the risk: a prompt inside the ladder is what hung
+`heelResolve`, and this one has no rung to hang.
 
 ---
 
@@ -161,7 +191,7 @@ ignored.
 | F5 | Per token: Max Health −25 (R1), permanently (R2) | **ENGINE — E1** |
 | F6 | Per token: Base Attack **both** −10 (R1), permanently | **ENGINE — E1** |
 | F7 | Per token: Max Luck −1, permanently | **ENGINE — E1** |
-| F8 | Once per Turn, during its own Turn, an affected Unit may attempt a Luck Check to remove **all** tokens | CONTENT |
+| F8 | Once per Turn, during its own Turn, an affected Unit may attempt a Luck Check to remove **all** tokens | **ENGINE — E4** |
 | F9 | Success removes the tokens; lost Health and Luck are **not** restored (R2) | **ENGINE — E1** |
 | F10 | Luck Check dice modified by MAG Rank: EX −3, A −2, B −1, C 0, D +1, E +2 (R3) | **ENGINE — E2** |
 | F11 | −3 more if the Unit is within its own Home Base, stacking (R4) | **ENGINE — E2** |
@@ -170,7 +200,7 @@ ignored.
 | F14 | …unless it is within its Home Base (R6) | **ENGINE — E3** |
 | F15 | Each successful removal reduces its future token chance by 10%, from a base of 100%, stacking (R7) | CONTENT — a negative outgoing `ApplicationChance` on the Unit |
 
-**Tally: 1 FREE, 4 CONTENT, 10 ENGINE.** The most engine-dense part of the four by proportion,
+**Tally: 1 FREE, 3 CONTENT, 11 ENGINE.** The most engine-dense part of the four by proportion,
 because almost every clause is a novel *shape* rather than a novel value.
 
 ---
