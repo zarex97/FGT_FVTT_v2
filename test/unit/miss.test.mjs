@@ -13,6 +13,7 @@ import { missChance, missSourceOf, MISS_SOURCES } from "../../module/rules/miss.
 import {
   begin, advance, isComplete, didHit, pendingPrompt, windowFor, serialize, deserialize, STATES,
 } from "../../module/engine/combat-process.mjs";
+import { canUseAbility } from "../../module/rules/costs.mjs";
 
 const blind = { id: "u", kind: "servant", effects: ["blind"] };
 const sighted = { id: "u", kind: "servant", effects: [] };
@@ -118,5 +119,38 @@ describe("Combat Process step 1.5 (R8)", () => {
       rollRecord: { check: "miss", total: 12, target: 80, outcome: "miss" },
     });
     expect(s.rolls.some((r) => r.check === "miss")).toBe(true);
+  });
+});
+
+describe("Blind clause 3 — Mystic Eye and Glam Sight Skills cannot be used", () => {
+  const suppressed = { id: "medusa", kind: "servant", suppressions: [{ scope: "mysticEye" }] };
+  const clear = { id: "medusa", kind: "servant", suppressions: [] };
+  const eyes = { id: "a", name: "Mystic Eyes", categorizedAs: ["mysticEye"] };
+  const other = { id: "b", name: "Monstrous Strength", categorizedAs: [] };
+
+  it("refuses an ability tagged with the suppressed category", () => {
+    const v = canUseAbility({ ability: eyes, unit: suppressed, clockRunning: true });
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe("suppressedCategory");
+    expect(v.detail.category).toBe("mysticEye");
+  });
+
+  it("leaves the same ability usable when nothing suppresses it", () => {
+    expect(canUseAbility({ ability: eyes, unit: clear, clockRunning: true }).reason)
+      .not.toBe("suppressedCategory");
+  });
+
+  it("does not touch an ability outside the family", () => {
+    expect(canUseAbility({ ability: other, unit: suppressed, clockRunning: true }).reason)
+      .not.toBe("suppressedCategory");
+  });
+
+  it("is NOT lifted by Eye of the Mind", () => {
+    // Clause 5 exempts 1, 2 and 4, and says nothing about 3 -- so a Unit with
+    // Eye of the Mind still cannot use a Mystic Eye while Blind. The gate does
+    // not consult the skill at all, which is what makes that true.
+    const withEye = { ...suppressed, skills: ["eyeOfTheMind"] };
+    expect(canUseAbility({ ability: eyes, unit: withEye, clockRunning: true }).reason)
+      .toBe("suppressedCategory");
   });
 });

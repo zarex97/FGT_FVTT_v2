@@ -721,6 +721,7 @@
   "FGT.Ability.Refused.masterHealthAbove": "The Master's Health is too low.",
   "FGT.Ability.Refused.expended": "Spent for the rest of the game.",
   "FGT.Ability.Refused.noMatch": "No match is running — begin the match before using abilities.",
+  "FGT.Ability.Refused.suppressedCategory": "{name} is a '{category}' Skill and cannot be used right now.",
   "FGT.HUD.NoMatch": "No match running",
   "FGT.HUD.NoMatchHint": "Rounds, Turns and the ◈ tick only advance inside a started match, so cooldowns and durations are not ticking. Begin the match from the combat tracker.",
   "FGT.Ability.Refused.masterHealthFraction": "The Master's Health is below the fraction of its maximum this requires.",
