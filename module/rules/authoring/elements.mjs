@@ -91,6 +91,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "magnitudeRoundTo", type: "number" },
     { key: "component", type: "select", choices: ["str", "mag"] },
     { key: "roll", type: "text" },
+    // The same roll read off a rank table instead of written out. Territory
+    // Creation is the customer, and the reason is that a literal is right at
+    // exactly one rank.
+    { key: "rollTable", type: "text" },
   ]),
   entry("FlatDamage", "A flat addition to damage — Divinity, Dmg Boost, Avenger's counter bonus.", [
     ...SCALED,
