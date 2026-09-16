@@ -377,11 +377,12 @@ describe("the Servant document (S1–S12)", () => {
     expect(n().sustainability).toBe("4◈");
   });
 
-  it("carries exactly the nine abilities Part 1 authors", () => {
-    // One class skill + four Skills + three Spells + one Noble Phantasm.
-    // Parts 2-4 append four more, taking this to 13. This assertion is what
-    // makes that an append rather than a rewrite.
-    expect(n().abilities).toHaveLength(9);
+  it("carries the eleven abilities Parts 1 and 2 author", () => {
+    // Part 1: one class skill + four Skills + three Spells + one Noble
+    // Phantasm. Part 2 appends two more Noble Phantasms, and Parts 3 and 4 one
+    // each -- taking this to 13. This assertion is what makes each of those an
+    // append rather than a rewrite.
+    expect(n().abilities).toHaveLength(11);
     expect(n().abilities[0]).toEqual({ ref: "class-territory-creation", rank: "A" });
   });
 });

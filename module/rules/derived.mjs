@@ -77,7 +77,8 @@ export function applyStatDeltas(system, statDeltas = []) {
 
   // ── 2. Numeric deltas ────────────────────────────────────────────────────
   for (const d of statDeltas) {
-    if (d.rankShift || typeof d.value !== "number" || d.value === 0) continue;
+    if (d.rankShift || typeof d.value !== "number") continue;
+    if (d.value === 0 && d.absolute !== true) continue;
     // `detect` is READ-TIME, not stored. `rules/identity.mjs#detectRangeOf`
     // resolves it from a class table whose Caster entry depends on where the
     // unit is standing, so a Servant's `_source.detect` is null and there is
@@ -94,7 +95,18 @@ export function applyStatDeltas(system, statDeltas = []) {
     if (normalise(d.stat) === "detect") continue;
     const path = normalise(d.stat);
     const before = numberAt(read(path));
-    changes[path] = before + d.value;
+    // An ABSOLUTE, for a clause that names the resulting number rather than a
+    // change.
+    //
+    // > *"…but Range is reduced **to** 1 panel."* — `[Vorpal Blade]`
+    //
+    // Every stat delta authored before this one is a change, and expressing
+    // "reduced to 1" as one would need to know the base: a Servant at Range 4
+    // ends at 1 and a Servant at Range 2 ends at 1 too, and no single delta
+    // does both. `ResourceDelta` already draws this distinction in the same
+    // words -- *"a clause that names the resulting number rather than a
+    // change"*.
+    changes[path] = d.absolute === true ? d.value : before + d.value;
     trace.push({ path, value: changes[path], source: d.source });
 
     // `Max HpUp` restores current Health by the same amount; `Max HpDwn` does

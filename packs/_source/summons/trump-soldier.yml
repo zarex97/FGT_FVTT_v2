@@ -1,0 +1,33 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md -- conjured by
+# Nursery Rhyme: Trump Soldiers.
+#
+# Medea's Dragon Tooth Warriors at different numbers. Every clause on this file
+# is a field that summon already carries, including the protection, whose
+# sentence on both sheets is word for word the same.
+schema: 1
+id: trump-soldier
+name: "Trump Soldier"
+type: summon
+attributes: [summon, humanoid, fairytale]
+baseHealth: 200
+agility: 10
+luck: 6
+mov: 4
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 75, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+# Both clauses as properties of the summon, not as rules the engine would have
+# to special-case for Nursery.
+countsTowardBudget: false
+actsOncePerTurn: true
+passiveRules:
+  # "Enemy Units cannot Attack Nursery or her Master if any Trump Soldiers are
+  # directly next to them." A Decoy-shaped rule rather than a Compulsion: it
+  # removes targets rather than forcing one -- the reasoning Medea's Dragon
+  # Tooth Warrior records in the same words.
+  - key: TargetingModifier
+    mode: protectSummoner
+    radius: 1
+    protects: [summoner, summonerMaster]
+notes: |
+  Conjured 1d8+4 at a time by Nursery Rhyme: Trump Soldiers, within a 2 panel area of Nursery.

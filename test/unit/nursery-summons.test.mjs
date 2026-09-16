@@ -6,6 +6,9 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { parse } from "yaml";
+import { test as testPredicate } from "../../module/rules/predicate.mjs";
 import { expiredSummonIds } from "../../module/rules/summons.mjs";
 import { dispatch } from "../../module/engine/scheduler.mjs";
 import { contributionsOf } from "../../module/rules/snapshot.mjs";
@@ -357,5 +360,218 @@ describe("R5 — the suppression survives a disappear-and-re-summon", () => {
   it("comes back clean when nothing was taken", () => {
     const data = applyRemembered({ system: {} }, { health: { value: 400, max: 1500 } });
     expect(data.system.suppressedScopes).toBeUndefined();
+  });
+});
+
+const summon = (id) => parse(readFileSync(`packs/_source/summons/${id}.yml`, "utf8"));
+const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
+const structure = (id) => parse(readFileSync(`packs/_source/structures/${id}.yml`, "utf8"));
+const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
+
+describe("Trump Soldiers (T1–T14, R1)", () => {
+  it("T5–T10 — the statblock her sheet prints", () => {
+    expect(summon("trump-soldier")).toMatchObject({
+      baseHealth: 200, agility: 10, luck: 6, mov: 4,
+      range: { panels: 2, targets: 1 },
+      baseAttack: { str: 75, mag: 0 },
+    });
+  });
+
+  it("T11/T12 — outside the budget, and once per Turn", () => {
+    expect(summon("trump-soldier")).toMatchObject({ countsTowardBudget: false, actsOncePerTurn: true });
+  });
+
+  it("T13 — protects Nursery and her Master, from the SUMMON's own statblock", () => {
+    // Medea's Dragon Tooth Warriors carry the identical sentence and the
+    // identical rule, and its comment says why it is not a Compulsion: it
+    // removes targets rather than forcing one.
+    const rule = summon("trump-soldier").passiveRules.find((r) => r.key === "TargetingModifier");
+    expect(rule).toMatchObject({ mode: "protectSummoner", radius: 1, protects: ["summoner", "summonerMaster"] });
+  });
+
+  it("R1 — 1d8+4, one die and then plus four", () => {
+    // "4d8" is the other plausible reading of a careless transcription, and it
+    // is a completely different swarm: 4 to 32 rather than 5 to 12.
+    expect(ability("nursery-trump-soldiers").phases[0].spec.countRoll).toBe("1d8+4");
+  });
+
+  it("T4 — placed within a 2 panel area, which is a 5x5 side", () => {
+    // `freePanels` reads `size` as a SIDE and halves it, so a Chebyshev radius
+    // of 2 is `size: 5`. Medea's "within a 5x5 panel area" is the same ring.
+    expect(ability("nursery-trump-soldiers").phases[0].spec.placement)
+      .toMatchObject({ shape: "square", size: 5, anchor: "self" });
+  });
+
+  it("T14 — counts as her Attack, and costs a third of a Round PER soldier", () => {
+    const a = ability("nursery-trump-soldiers");
+    expect(a.countsAsAttack).toBe(true);
+    expect(a.cooldown).toMatchObject({ perUnit: "⅓◈", countFrom: "summonCount" });
+  });
+
+  it("T1 — non-damaging: phases, and no damage phase", () => {
+    const a = ability("nursery-trump-soldiers");
+    expect(a.phases.some((p) => p.kind === "damage")).toBe(false);
+    expect(a.damage).toBeUndefined();
+  });
+});
+
+describe("the Jabberwock (J1–J18, R2, R3, R6, R7, R8)", () => {
+  it("J3–J9 — the statblock, and both Attributes", () => {
+    expect(summon("jabberwock")).toMatchObject({
+      baseHealth: 1500, agility: 6, luck: 6, mov: 3,
+      range: { panels: 2, targets: 1 },
+      baseAttack: { str: 200, mag: 0 },
+    });
+    expect(summon("jabberwock").attributes).toEqual(expect.arrayContaining(["demonic", "giant"]));
+  });
+
+  it("J12 — walks onto occupied panels, which is what knocks the occupants back", () => {
+    // Bašmu's pair of clauses exactly, and one field says both: the one-panel
+    // push is what `knockBackOccupants` does for anything with this flag.
+    expect(summon("jabberwock").movesOntoOccupiedPanels).toBe(true);
+  });
+
+  it("J13/R2/R3 — heals 75% of what LANDED, from Servants only", () => {
+    const rule = summon("jabberwock").passiveRules.find((r) => r.event === "damageTaken");
+    expect(rule.slug).toBe("jabberwockLifesteal");
+    expect(rule.predicate).toContain("self:type:servant");
+    expect(rule.then[0]).toMatchObject({
+      key: "StatDelta", stat: "health.value", delta: "@amount", factor: 0.75,
+    });
+  });
+
+  it("J13/R3 — and NOT from a Master", () => {
+    // Load-bearing: the Vorpal Blade is designed to be carried by a Master, so
+    // a Master hitting the monster must not heal it even before the Blade's
+    // own clause fires.
+    const rule = summon("jabberwock").passiveRules.find((r) => r.event === "damageTaken");
+    expect(testPredicate(rule.predicate, { options: new Set(["self:type:master"]) })).toBe(false);
+    expect(testPredicate(rule.predicate, { options: new Set(["self:type:servant"]) })).toBe(true);
+  });
+
+  it("J10 — a stay of 3◈, on the summoning phase", () => {
+    expect(ability("nursery-jabberwock").phases[0].spec.duration).toBe("3◈");
+  });
+
+  it("J2 — summoned on a panel NEXT to her", () => {
+    expect(ability("nursery-jabberwock").phases[0].spec.placement).toMatchObject({ adjacentTo: "self" });
+  });
+
+  it("J11 — the Blade appears on its FIRST summoning only", () => {
+    const phase = ability("nursery-jabberwock").phases.find((p) => p.kind === "createStructure");
+    expect(phase).toMatchObject({ structureId: "vorpal-blade-cache", at: "randomPanel", once: true });
+    expect(phase.carriesItemId).toBe("vorpal-blade");
+  });
+
+  it("J17/R6 — summoning counts as her Attack; the monster acts outside the budget", () => {
+    // Otherwise this and `countsTowardBudget: false` would contradict.
+    expect(ability("nursery-jabberwock").countsAsAttack).toBe(true);
+    expect(summon("jabberwock").countsTowardBudget).toBe(false);
+  });
+
+  it("J18/R7 — the cooldown starts when it DISAPPEARS", () => {
+    // Quetzalcoatl's mount records the defect this field exists to prevent:
+    // "the mount may stand for twenty Turns and the clock has not begun."
+    expect(ability("nursery-jabberwock").cooldown).toMatchObject({ max: "5◈", countFrom: "destroyed" });
+  });
+
+  it("J14/J15/R8 — Alice Eater buffs it and ADDS to its stay", () => {
+    const a = ability("jabberwock-alice-eater");
+    expect(a.cooldown).toBe("4◈");
+    expect(a.phases[0].effects[0]).toMatchObject({ id: "atkUp", magnitude: 50, npMagnitude: 25, duration: "1◈" });
+    const extend = a.phases.find((p) => p.rules)?.rules[0];
+    expect(extend).toMatchObject({ key: "DurationDelta", ticks: "3◈" });
+  });
+
+  it("and the monster carries Alice Eater itself", () => {
+    expect(summon("jabberwock").abilities).toContainEqual({ ref: "jabberwock-alice-eater" });
+  });
+});
+
+describe("[Vorpal Blade] (B1–B8, R4, R5)", () => {
+  const b = () => ability("vorpal-blade");
+  const rule = (pred) => b().rules.find(pred);
+
+  it("is an Item, spelled the way the corpus spells one", () => {
+    // `type: equipment`, which is what semiramis-poison.yml carries.
+    expect(b().type).toBe("equipment");
+    expect(b().transferable).toBe(false);
+  });
+
+  it("B1 — +50 to a STR Normal Attack, and nothing to a Noble Phantasm", () => {
+    // A flat addition rather than a change to the printed Base Attack:
+    // `BaseAttackModifier` is a FACTOR, and "increase by 50" is not one.
+    const r = rule((x) => x.key === "FlatDamage");
+    expect(r).toMatchObject({ value: 50, npValue: 0 });
+    expect(r.predicate).toEqual(expect.arrayContaining(["attack:kind:normal", "attack:component:str"]));
+  });
+
+  it("B2 — Range reduced TO 1, absolutely", () => {
+    // A Servant at Range 4 and a Servant at Range 2 both end at 1, which no
+    // single delta expresses.
+    const r = rule((x) => x.key === "RangeDelta");
+    expect(r.set).toBe(1);
+    expect(r.value).toBeUndefined();
+  });
+
+  it("B3 — +50% Normal Attack damage to Demonic Units", () => {
+    const r = rule((x) => x.key === "DamageModifier" && x.value === 50);
+    expect(r.predicate).toEqual(expect.arrayContaining(["attack:kind:normal", "target:attribute:demonic"]));
+  });
+
+  it("R4 — and NOT against the Jabberwock, which is what 'instead of' means", () => {
+    const r = rule((x) => x.key === "DamageModifier" && x.value === 50);
+    expect(r.predicate).toContainEqual({ not: "target:contentId:jabberwock" });
+  });
+
+  it("R4 — the Jabberwock clause is 3x in the SAME bucket, so +200%", () => {
+    // "it receives 3x damage INSTEAD OF 50% extra damage due to having the
+    // 'Demonic' Attribute" -- the sheet compares the two directly, so they are
+    // the same slot. 4.5x is the reading that looks right and is wrong.
+    const r = rule((x) => x.key === "DamageModifier" && x.value === 200);
+    expect(r.predicate).toEqual(expect.arrayContaining(["attack:kind:normal", "target:contentId:jabberwock"]));
+  });
+
+  it("B4 — none of the stat clauses reach an NP", () => {
+    for (const r of b().rules.filter((x) => ["FlatDamage", "DamageModifier"].includes(x.key))) {
+      expect(r.npValue).toBe(0);
+    }
+  });
+
+  it("B6 — a Master holding it cannot be Underpowered", () => {
+    expect(rule((x) => x.key === "Suppress" && x.scope === "underpower")).toBeTruthy();
+  });
+
+  it("B8 — barred from Nursery and her Master", () => {
+    expect(b().barredFrom).toMatchObject({ ofUnit: "nursery-rhyme", roles: ["self", "master"] });
+  });
+
+  it("R5/B7 — one attack: the lifesteal goes, and the Blade breaks", () => {
+    const r = rule((x) => x.event === "damageStepEnd");
+    expect(r.predicate).toContain("target:contentId:jabberwock");
+    expect(r.then).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: "SuppressRule", subject: "victim", scope: "jabberwockLifesteal" }),
+      expect.objectContaining({ key: "ItemDelta", item: "vorpal-blade", delta: -1 }),
+    ]));
+  });
+
+  it("R5 — and the slug it suppresses is the one the monster actually carries", () => {
+    // Without this pairing the removal aims at nothing and the monster keeps
+    // healing -- silently, which is the whole shape of defect this part found
+    // four of.
+    const suppressed = rule((x) => x.event === "damageStepEnd")
+      .then.find((a) => a.key === "SuppressRule").scope;
+    expect(summon("jabberwock").passiveRules.some((r) => r.slug === suppressed)).toBe(true);
+  });
+
+  it("J11 — the cache it lies in is a structure nothing can break", () => {
+    expect(structure("vorpal-blade-cache")).toMatchObject({ type: "structure", destroyableBy: [] });
+  });
+
+  it("her Servant file gains exactly two refs, taking it from 9 to 11", () => {
+    const a = servant("nursery-rhyme").abilities;
+    expect(a).toContainEqual({ ref: "nursery-trump-soldiers" });
+    expect(a).toContainEqual({ ref: "nursery-jabberwock" });
+    expect(a).toHaveLength(11);
   });
 });

@@ -1,0 +1,48 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+schema: 1
+id: nursery-jabberwock
+name: "Nursery Rhyme: Jabberwock"
+rank: C
+isNP: true
+categorizedAsNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+timing: { window: ownTurn }
+# "Summoning it counts as Nursery's Attack for the Turn" is about the SUMMONING.
+# The monster then attacks on its own, outside the budget -- otherwise this and
+# the summon's `countsTowardBudget: false` would contradict each other.
+countsAsAttack: true
+# "Cooldown: 5◈ Turns AFTER the Jabberwock disappears." Quetzalcoatl's mount
+# records the defect this field exists to prevent: "the mount may stand for
+# twenty Turns and the clock has not begun."
+cooldown: { max: "5◈", countFrom: destroyed }
+description: |
+  (Non-damaging) When this NP is used, Nursery summons the Jabberwock on a panel next to her. It
+  disappears after 3◈ Turns. When the Jabberwock is summoned for the first time, the [Vorpal Blade]
+  Item appears on a random panel on the game board; it can be picked up by a Unit walking onto its
+  panel. Summoning it counts as Nursery's Attack for the Turn. When the Jabberwock is summoned again
+  after disappearing, its Stats will be the same as when it disappeared.
+  Cooldown: 5◈ Turns after the Jabberwock disappears.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: summon
+    spec:
+      countRoll: "1"
+      types: { 1: jabberwock }
+      # "on a panel next to her" -- radius 1, which is what `adjacentTo` means.
+      placement: { adjacentTo: self }
+      # The first summon in the corpus with a clock.
+      duration: "3◈"
+      countsTowardBudget: false
+      actsOncePerTurn: true
+  # "When the Jabberwock is summoned FOR THE FIRST TIME." `once: true`, so a
+  # second Blade never appears -- and so the Blade that broke is not replaced.
+  - kind: createStructure
+    target: self
+    structureId: vorpal-blade-cache
+    at: randomPanel
+    carriesItemId: vorpal-blade
+    once: true

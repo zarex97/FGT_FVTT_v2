@@ -1,0 +1,30 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# The panel the [Vorpal Blade] lies on until somebody walks onto it.
+#
+# > *"…the [Vorpal Blade] Item appears on a random panel on the game board, this
+# > Item can be picked up by a Unit walking onto its panel."*
+#
+# A structure rather than a new kind of placed thing: structures already have
+# panels, visibility rules and destruction rules, so an item on the floor is a
+# new READER on an existing object. It carries the item and nothing else, and it
+# is removed the moment the item is taken.
+#
+# `carriesItemId` is stamped by `createStructure`, not authored here -- the same
+# division `fieldId` and `placedById` already use.
+schema: 1
+id: vorpal-blade-cache
+name: "[Vorpal Blade]"
+type: structure
+attributes: [structure]
+# It is not a target and not destructible: the sheet gives it no Health and no
+# way to break it, and the only thing that removes it is somebody picking the
+# sword up. One point because a structure needs something to hold.
+baseHealth: 1
+mov: 0
+range: { panels: 0, targets: 0 }
+baseAttack: { str: 0, mag: 0 }
+destroyableBy: []
+notes: |
+  Placed on a random free panel the first time Nursery summons the Jabberwock. Picked up by any Unit
+  that walks onto its panel — except Nursery and her Master, whom the item itself refuses.

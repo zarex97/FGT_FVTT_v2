@@ -144,7 +144,12 @@ export function freePanels(summoner, placement, needed) {
   if (!origin) return [];
 
   // A 5x5 "around" the caster is a Chebyshev radius of 2.
-  const radius = Math.floor((placement.size ?? 5) / 2);
+  //
+  // `adjacentTo` is radius 1 -- *"on a panel directly next to her"*. It was
+  // authored by Ozymandias's three Sphinxes and read by NOBODY: this line took
+  // `size ?? 5` whatever the placement said, so all three could appear two
+  // panels away from him. One more field that was right and inert.
+  const radius = placement.adjacentTo ? 1 : Math.floor((placement.size ?? 5) / 2);
   const level = self.level ?? 0;
   const occupied = new Set(
     board.units
