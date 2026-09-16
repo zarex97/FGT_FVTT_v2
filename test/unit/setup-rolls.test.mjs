@@ -39,8 +39,13 @@ describe("servantSetupPlan", () => {
     expect(line.roll).toBeNull();
   });
 
-  it("prefers a Health stated on the sheet over the table", () => {
-    expect(lineOf(servantSetupPlan({ ...karna, baseHealth: 1500 }), "maxHealth").base).toBe(1500);
+  it("prefers the END TABLE over a Health stated on the sheet", () => {
+    // This assertion read `toBe(1500)` and was named for the opposite rule.
+    // Ch. 46 §46.6 settled that the table wins, `domain/health.mjs#maxHealthFor`
+    // has implemented it since, and this plan kept the inverse -- so a Servant's
+    // Max Health depended on whether it was imported or summoned. Karna's END is
+    // C, so the table says 1000 however loudly the sheet says 1500 (§46.4-K).
+    expect(lineOf(servantSetupPlan({ ...karna, baseHealth: 1500 }), "maxHealth").base).toBe(1000);
   });
 
   it("flips a coin for Agility at an ordinary grade", () => {
