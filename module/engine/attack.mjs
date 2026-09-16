@@ -4490,6 +4490,16 @@ async function fireDamageStepEnd(state) {
     board: currentBoard(),
     options: rollOptions(attacker, defender, state),
     rolls: {},
+    // WHO WAS HIT. This event fires on the ATTACKER, and every rider hung from
+    // it is about the Unit on the other end -- `targetsOf` and `subjectOf` both
+    // read `ctx.victim.unitId`, and both correctly emit nothing when it is
+    // absent, *"a rider with no victim has nobody to ride."*
+    //
+    // It was absent here, so every such rider emitted nothing: Bašmu's *"Normal
+    // Attacks ... have a 50% chance of inflicting Poison"* had never inflicted
+    // any, and neither had Nursery Rhyme's `Enigma`. Found on a live board when
+    // the Vorpal Blade dealt its 846 and took nothing away.
+    victim: { unitId: state.defenderId },
   });
 
   if (intents.length > 0) await applyBatch(intents, "damageStepEnd");

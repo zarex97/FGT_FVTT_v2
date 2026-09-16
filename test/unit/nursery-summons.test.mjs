@@ -676,3 +676,44 @@ describe("the cache's fields exist on the type the engine writes them to", () =>
     expect(structure("vorpal-blade-cache").type).toBe("structure");
   });
 });
+
+describe("damageStepEnd names who was hit", () => {
+  // The event fires on the ATTACKER, and every rider hung from it is about the
+  // Unit on the other end. `targetsOf` and `subjectOf` both read
+  // `ctx.victim.unitId` and both correctly emit nothing when it is absent --
+  // "a rider with no victim has nobody to ride."
+  //
+  // It was absent, so every such rider emitted nothing: Bašmu's "Normal Attacks
+  // have a 50% chance of inflicting Poison" had never inflicted any, and
+  // neither had Nursery Rhyme's Enigma. Found on a live board when the Vorpal
+  // Blade dealt its 846 damage and took nothing away.
+  const run = (action, ctx) =>
+    dispatch(action, { id: "attacker" }, { source: "test", abilityId: null }, ctx);
+
+  it("a victim-directed rider reaches the defender", () => {
+    const out = run({ kind: "ApplyEffect", target: "victim", effect: { id: "poison" } },
+      { victim: { unitId: "defender" }, tick: 0 });
+    expect(out[0]).toMatchObject({ t: "applyEffect", unitId: "defender" });
+  });
+
+  it("and a victim-directed SuppressRule does too", () => {
+    const out = run({ kind: "SuppressRule", subject: "victim", scope: "jabberwockLifesteal" },
+      { victim: { unitId: "defender" }, board: { units: [{ id: "defender" }] } });
+    expect(out[0]).toMatchObject({ t: "suppressRule", unitId: "defender", scope: "jabberwockLifesteal" });
+  });
+
+  it("and emits nothing when the event names nobody", () => {
+    // The state the engine was in: correct refusal, wrong context.
+    expect(run({ kind: "ApplyEffect", target: "victim", effect: { id: "poison" } }, { tick: 0 })).toEqual([]);
+    expect(run({ kind: "SuppressRule", subject: "victim", scope: "x" }, { board: { units: [] } })).toEqual([]);
+  });
+
+  it("the fire site supplies one", () => {
+    // A source scan, because the wiring is what was missing and no pure test
+    // can reach it.
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    const at = src.indexOf('fireEvent("damageStepEnd"');
+    expect(at).toBeGreaterThan(-1);
+    expect(src.slice(at, at + 900)).toContain("victim:");
+  });
+});
