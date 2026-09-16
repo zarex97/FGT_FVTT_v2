@@ -760,6 +760,36 @@ one still win outright, `npLock` and `npDegen` included.
 
 **Verified live, before and after**: no regen → **1**; `npRegen` at magnitude 1 → **2**.
 
+### X. A `cooldown` phase ran twice on the attack path — **fixed 2026-09-16**
+
+**Reached: every ability with a `cooldown` phase resolved through `resolveAttack`.**
+
+`resolveAttack` runs an ability's caster-side phases **once, at declaration** — *"everything the
+ability does to its USER, which the Combat Process has no rung for"* — and the post-damage loop in
+`engine/attack.mjs` then handles what `CASTER_PHASES` deliberately excludes. `cooldown` was in
+**both**.
+
+The loop's handling is the richer one, and the reason it must be the owner: `splitCooldownRider`
+separates changes aimed at the **defender** (once per Process) from the caster's **own** (once per
+Combat Phase, gated on `isFirstOfGroup`). Declaration cannot make that distinction, because no
+defender exists yet — so it ran every change, and the loop then ran the caster's again.
+
+The comment standing beside that loop already records the identical bug being fixed for `summon`:
+*"Adding a second `case "summon"` here double-conjured Bašmu: one from that call, one from this
+loop's own afterDamage pass, found live the moment two appeared from a single cast."*
+
+**Measured live on Semiramis's *Familiar Doves***, whose clause is *"reduce Semiramis' NP Cooldown
+by X Turns, where X = number of enemy Units with the 'Dove' effect (max 1◈)"*. Two enemies carried
+the Dove, so X = 2 — and her Noble Phantasm's cooldown fell by **2 at declaration and 2 more on the
+first advance**, a total of **4**, with no Turn boundary and no fan. The same ability through
+`useSkill`, which runs each phase once, reduced it by exactly **2**.
+
+That 4 is what made it findable: it **exceeds the ability's own stated cap** of 1◈, which is 3. A
+doubled figure inside the cap would have looked like a generous roll.
+
+`CASTER_PHASES` no longer lists `cooldown`; the Skill path is unaffected, because `runPhases` runs
+every kind. **Verified live**: 0 at declaration, **2** in total.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
