@@ -31,7 +31,7 @@ import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { summonPhase } from "./summoning.mjs";
-import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitSnapshot, gateContext } from "./board.mjs";
 import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
@@ -1229,7 +1229,10 @@ function cooldownIntents(ability, actor, summoned = 0, unit = null) {
   const plan = cooldownFor(ability, actor.id, { count: summoned, unit });
 
   return [
-    ...[...plan.cooldowns, ...alsoTriggered(ability, actor)]
+    // `sharedAcrossGroup` takes no board here -- this function is given the
+    // user's snapshot and nothing else -- and falls back to `game.actors`,
+    // which is what it needs: the partner's ability NAMES.
+    ...[...plan.cooldowns, ...sharedAcrossGroup(plan.cooldowns, unit, null), ...alsoTriggered(ability, actor)]
       .map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
     // A waived cooldown is PAID for. Emitting the skipped clock without the
     // token spent would make Scáthach's Rune Spells free for ever.
