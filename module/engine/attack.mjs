@@ -31,7 +31,7 @@ import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
-import { missChance, missSourceOf } from "../rules/miss.mjs";
+import { missChance, missSourceOf, chanceFromDistance } from "../rules/miss.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { collectContributions, resolveValue } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
@@ -4208,7 +4208,17 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
         target: defender,
         chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
         // The ability's own stated chance, overriding the effect's default.
-        chance: spec.chance ?? rule.chance ?? null,
+        //
+        // `chancePerPanel` is the DISTANCE-SCALED form. Anastasia's Ice Block
+        // Launcher is the only clause of the shape in either roster: *"a 5%
+        // chance of inflicting Instakill for each panel between Anastasia and
+        // the DU."* The distance is the one the Combat Process already
+        // measured (`facts.range`, spread onto `state.attack`) -- recomputing
+        // it from panels here could disagree with the range the attack was
+        // declared at, which is the number the whole resolution used.
+        chance: spec.chancePerPanel !== undefined
+          ? chanceFromDistance(spec.chancePerPanel, state.attack?.range ?? null)
+          : (spec.chance ?? rule.chance ?? null),
         // An authored magnitude may be an `@` EXPRESSION rather than a number
         // (`rules/elements.mjs#resolveValue`), resolved against the CASTER at
         // the moment of application. One rule for both use paths: the Skill
