@@ -47,7 +47,7 @@ need is in the schema because of Bašmu, the Sphinxes and the Warriors.
 | *"if it Moves onto an occupied panel, all Units occupying said panels are knocked back by 1 panel"* | `movesOntoOccupiedPanels: true` (Bašmu) plus `Knockback`, both built. |
 | *"its Stats will be the same as when it disappeared"* | **`fieldSummonStats`** — on the *summoner*, because the summon is about to stop existing. Built for Ozymandias's Sphinxes: *"If Ramesseum Tentyris is reactivated, the Sphinxes will respawn with the same Stats as when they disappeared."* |
 | An Item that changes Base Attack and Range while Equipped | `rules/items.mjs`, `BaseAttackModifier`, `RangeDelta`. |
-| *"Cannot be obtained by Nursery or her Master"* | `acquisitionTarget` — the seam Pale Rider's item redirect needed, and *"every route by which a unit comes to hold one passes it first."* |
+| *"Cannot be obtained by Nursery or her Master"* | `acquisitionTarget` is the right **seam** — *"the one seam every acquisition goes through"* — but it takes `(unit, board)` and **no item**, so it can refuse a unit that holds nothing (Pale Rider) and cannot refuse *this* item to *these* units. **(Corrected before planning — this spec first called B8 FREE. It is E4 below.)** |
 
 **Trump Soldiers is therefore almost entirely free.** The Jabberwock is not.
 
@@ -98,7 +98,7 @@ the board for 3◈ **more** Turns."* Additive to whatever remains.
 
 ## 4. The engine work
 
-**Three changes**, and one of them is a single field.
+**Five changes**, and one of them is a single field.
 
 ### E1 — A fraction of an event's payload
 
@@ -146,8 +146,52 @@ picked up by a movement hook when a unit stops on its panel. Structures are alre
 with panels, visibility rules and destruction rules (Bloodmark, Piedra Del Sol), so this is a new
 *reader* on an existing object rather than a new kind of thing.
 
-*"Cannot be obtained by Nursery or her Master"* is `acquisitionTarget`, which every acquisition route
-already passes through — so the pickup hook inherits the refusal rather than restating it.
+### E4 — An item that refuses particular holders
+
+*"this Item cannot be obtained by Nursery or her Master."*
+
+`acquisitionTarget` is the correct seam and its own docstring anticipates this exact day: *"the day a
+drop or a reward is added, it asks this and inherits the redirect for free."* E3 is that day.
+
+What it cannot do is refuse **this item** to **these units**. Its signature is `(unit, board)`, and
+both of its refusals — `cannotHoldItems` and a failed `redirectToMaster` — are properties of the unit.
+Pale Rider holds nothing at all; Nursery holds anything except one sword.
+
+**DECISION.** A third parameter, `acquisitionTarget(unit, board, item)`, and a `barredFrom` list on
+the item read against the candidate's **relationship to a named unit** rather than against unit ids
+— *"Nursery or her Master"* is a role pair, and an id written into a content file would not survive
+the Servant being placed twice. The parameter is optional, so the single existing caller is unchanged.
+
+The refusal must land **at acquisition**, not in the pickup hook: a refusal written into E3's hook
+is a refusal that a future second route — a trade, a reward — would not inherit, which is the whole
+reason the seam exists.
+
+### E5 — A summon that goes away on its own
+
+*"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
+
+`expiresAt` is **already on the summon schema** — `module/data/actor/simple.mjs:37`, a nullable
+integer tick — and the only thing in the codebase that reads it is the actor sheet, which displays
+it. **Nothing writes it and nothing removes a summon when it passes.** That is the exact shape
+Ch. 45 calls **Collected**: a rule that is right and inert, and this project's named dominant defect.
+
+Every summon in the corpus until now leaves for a reason other than time. Bašmu goes when the
+Hanging Gardens does; the Sphinxes and the Kagome Spirits go when their field closes; the Dragon
+Tooth Warriors and Raikou's copies never go at all. The Jabberwock is the first with a **clock**.
+
+**DECISION.** A `duration` on the summon spec, written to `expiresAt` at placement as an absolute
+tick, and a reader in the round-end pass that dismisses every summon whose tick has passed. Absolute
+rather than a countdown for the reason `data/regions.mjs` states twice about its own durations: *"a
+countdown needs a hook that can fail to fire, and an expiry cannot."*
+
+**Two other clauses hang off this one**, which is why it cannot be deferred:
+
+- R7's `countFrom: destroyed` needs a moment the Jabberwock is *destroyed*. `engine/cooldown.mjs:61`
+  already accepts the value and `engine/platforms.mjs#startDestroyedCooldown` already starts such a
+  clock for a platform; the summon path has no equivalent because no summon has ever been destroyed
+  on a schedule.
+- R8's *Alice Eater* *"extends its period of existing on the board for 3◈ more Turns"* is `expiresAt
+  += 3◈`, and there is nothing to add to until something sets it.
 
 ---
 
@@ -179,15 +223,15 @@ already passes through — so the pickup hook inherits the refusal rather than r
 | J2 | Summoned on a panel **next to her** | FREE — `placement` at radius 1 |
 | J3–J8 | Statblock: Health 1500, Agility 6, Luck 6, MOV 3, Range 2/1, BA(STR) 200 | CONTENT |
 | J9 | Attributes: **Demonic**, **Giant** | CONTENT — `Giant ⟹ Large` is an existing implication (Asterios) |
-| J10 | Disappears after 3◈ Turns | CONTENT |
+| J10 | Disappears after 3◈ Turns | **ENGINE — E5** — `expiresAt` exists and nothing reads it |
 | J11 | On its **first** summon, `[Vorpal Blade]` appears on a random panel | **ENGINE — E3** |
 | J12 | May Move to **any** panel; occupants are knocked back 1 | FREE — `movesOntoOccupiedPanels` + `Knockback` |
 | J13 | Heals 75% of damage received **from Servants** (R2, R3) | **ENGINE — E1** |
 | J14 | *Alice Eater*: `Atk Up` 1◈ at +50% / NP +25% | CONTENT |
-| J15 | *Alice Eater*: extends its stay by 3◈ **more** (R8); cooldown 4◈ | CONTENT |
+| J15 | *Alice Eater*: extends its stay by 3◈ **more** (R8); cooldown 4◈ | **ENGINE — E5** |
 | J16 | Does not count towards Units that Move/Attack; once per Turn | FREE |
 | J17 | Enemies cannot Attack Nursery or her Master if it is next to them; summoning counts as her Attack (R6) | FREE — `TargetingModifier {mode: protectSummoner}` |
-| J18 | Re-summoned with the Stats it had when it disappeared; cooldown 5◈ **after it disappears** (R7) | FREE — `fieldSummonStats`, `countFrom: destroyed` |
+| J18 | Re-summoned with the Stats it had when it disappeared; cooldown 5◈ **after it disappears** (R7) | `fieldSummonStats` is built; the **moment** it disappears is **ENGINE — E5** |
 
 ### 5.3 `[Vorpal Blade]` — 8
 
@@ -200,9 +244,9 @@ already passes through — so the pickup hook inherits the refusal rather than r
 | B5 | Normal Attacks with it Equipped use BA(STR) | CONTENT |
 | B6 | A Master holding it cannot be Underpowered by Servants | CONTENT — §16.5's `Underpower` |
 | B7 | Against the Jabberwock: **3× instead of** the ×1.5 (R4); lifesteal **permanently** removed; the Blade breaks (R5) | **ENGINE — E2** |
-| B8 | Cannot be obtained by Nursery or her Master | FREE — `acquisitionTarget` |
+| B8 | Cannot be obtained by Nursery or her Master | **ENGINE — E4** |
 
-**Tally: ~24 FREE, ~13 CONTENT, 3 ENGINE.**
+**Tally: ~21 FREE, ~12 CONTENT, 7 ENGINE.**
 
 ---
 
@@ -225,8 +269,8 @@ already passes through — so the pickup hook inherits the refusal rather than r
 ## 7. Verification
 
 **Unit and golden tests:** `1d8+4` producing 5–12 and never 4 or 13 (R1); a Trump Soldier's
-`RelationshipProxy` making Nursery un-attackable while it stands adjacent, and attackable when it
-does not; the Jabberwock healing **75% of what landed** rather than of what was rolled (R2), and
+`TargetingModifier {mode: protectSummoner}` making Nursery un-attackable while it stands adjacent,
+and attackable when it does not; the Jabberwock healing **75% of what landed** rather than of what was rolled (R2), and
 **not** healing from a Master (R3); the Blade dealing **3×** and not 4.5× (R4); the lifesteal
 suppression surviving a disappear-and-re-summon (R5); and *Alice Eater* adding 3◈ to a stay with 1◈
 left, giving 4◈ rather than 3◈ (R8).
@@ -254,6 +298,12 @@ sheet spends a sentence on.
 **E3 puts a takeable object on the floor for the first time.** Every Item route today ends at a unit.
 The refusal for Nursery and her Master must be enforced at the *pickup*, not merely hidden in the UI,
 or the strongest counter to her own monster becomes hers.
+
+**E5 was nearly missed, and the miss would have been invisible.** `expiresAt` is on the schema, so
+writing `duration: "3◈"` into the summon spec and watching it land on the document would have looked
+like success — and the Jabberwock would have stood on the board forever, its re-summon cooldown never
+starting, *Alice Eater*'s extension adding to a number nobody read. **The verification for J10 is a
+Jabberwock that is gone**, not a field that holds the right figure.
 
 **Part 2 depends on Part 1 and must not assume Parts 3–4.** Her Servant file gains two refs here and
 two more later.
