@@ -1,0 +1,44 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+#
+# The setup half of her kit: Soaked makes the next Ice attack far likelier to
+# Freeze, and her own ranged Normal Attack is Ice.
+schema: 1
+id: anastasia-ice-bucket-challenge
+name: "Ice Bucket Challenge for You"
+kind: skill
+slug: iceBucketChallenge
+# An ATTACK SKILL: it performs an Attack, so it opens a Combat Process and
+# spends her Attack for the Turn (§15.1).
+isAttackSkill: true
+element: water
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  Attack Skill. Range=2. Base Attack (MAG) is used. Deals Water damage. Then, has the following
+  effects-
+  1. Has a 20% chance of inflicting @effect[slow]{Slow} for 1◈ Turns.
+  2. Applies the '@effect[soaked]{Soaked}' effect.
+  Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  base:
+    sources:
+      - { unit: self, component: mag, factor: 1 }
+  component: mag
+  # The WHOLE attack is Water, so no `elementFraction`: her own Swimsuit! clause
+  # and Soaked's Fire clause both read a whole element, and a fraction here
+  # would be inventing one the sheet does not state.
+  element: water
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: slow, duration: "1◈", chance: 20 }
+      # No `chance`. *"Applies the 'Soaked' effect"* is stated flatly, so it
+      # lands -- and Soaked is `polarity: status`, which keeps it clear of every
+      # Debuff Resist in the game besides.
+      - { id: soaked }

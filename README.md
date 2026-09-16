@@ -102,7 +102,7 @@ FGT_FVTT_v2/
 ├── packs/_source/         ← content as YAML; the packs themselves are build artefacts
 ├── assets/                ← artwork, found by id at build time (assets/README.md)
 ├── tools/                 ← pack build, content validator, release stamping
-├── test/                  ← 4,384 unit and golden tests, no Foundry required
+├── test/                  ← 4,448 unit and golden tests, no Foundry required
 ├── templates/  styles/  lang/
 ```
 
@@ -123,7 +123,7 @@ which is what makes the entire rules engine testable in plain Node.
 | L3 engine (orchestration) | **Intents, effect applier, combat process, scheduler, write adapter** — done |
 | Foundry layer | **Manifest, data models, documents, bootstrap, basic sheets** — loads in v14 |
 | Content pipeline | **YAML source, validator, pack build** — done |
-| Content (29 reference Servants) | **11 authored**, most recently the Dioscuri + effects and class skills |
+| Content (29 reference Servants) | **12 authored**, most recently Anastasia & Viy + effects and class skills |
 | GM proxy socket | **Typed operations, request/response, timeouts, authorization** — done |
 | Chat cards and the damage explainer | **Done** — the card is the audit record |
 | Attack flow | **Sheet → target → reaction ladder → damage → card** — wired |
@@ -135,14 +135,14 @@ which is what makes the entire rules engine testable in plain Node.
 | Combat Process steps 4 and 6, AoE fan-out | **Stubbed** — see [Ch. 45](docs/45-implementation-status.md) |
 | Command Spells, auras, environment, platforms | Not started — see [Ch. 45](docs/45-implementation-status.md) |
 
-**4,384 tests passing**, covering everything built so far. They pin behaviour to the
+**4,448 tests passing**, covering everything built so far. They pin behaviour to the
 *documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
 character for character, all six Mad Enhancement sheets are checked against the rank table, and
 both worked examples from Chapter 13 are golden fixtures.
 
 ```
 npm install
-npm test                  # 4,384 unit + golden tests, no Foundry required
+npm test                  # 4,448 unit + golden tests, no Foundry required
 npm run lint              # includes the layer-boundary rule
 npm run validate:content  # every YAML parses, every ref resolves, every id exists
 npm run build             # compile packs and styles

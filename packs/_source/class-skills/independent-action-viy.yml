@@ -1,0 +1,53 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+#
+# A VARIANT of `class-independent-action`, the way `riding-medusa` is a variant
+# of `class-riding`: differently named on the sheet, and carrying a fourth
+# passive the shared template does not have.
+#
+# Not a `ref:` override. A `ref:` entry replaces a key wholesale, so adding one
+# passive through it would mean restating the whole rule list anyway -- and then
+# there would be two copies of the ZON rule to drift apart.
+#
+# The SLUG stays `independentAction`. `rules/contract.mjs#rollsRequired` matches
+# on it, and the shared template's own header records what happened the last
+# time that slug was wrong: the Servant became as easy to steal as one with no
+# class skill at all. At EX it is an absolute prohibition rather than a
+# difficulty (Ch. 44 Q48), which is passive 3 of her sheet.
+schema: 1
+id: class-independent-action-viy
+name: "Independent Action with Viy"
+source: class
+slug: independentAction
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive 1) Sustainability does not apply.
+  (Passive 2) Master's ZON is increased by 3 panels.
+  (Passive 3) Cannot be contracted by enemy Casters and Masters.
+  (Passive 4) Crit Chance is increased by 10%. Crit Damage dealt is increased by 10%.
+passiveRules:
+  # Passive 2, from the table -- EX gives 3, which is her sheet's number.
+  #
+  # `stacks` is false by omission, and that is load-bearing: §6.9 says
+  # Independent Action and the Caster/Assassin class bonus are the same effect
+  # and take the HIGHEST rather than the sum.
+  - key: ZonBonus
+    table: independentActionZon
+
+  # Passive 4, and the only thing this file adds to the shared template.
+  - key: CritModifier
+    aspect: chance
+    value: 10
+  - key: CritModifier
+    aspect: damage
+    value: 10
+
+  # Passive 1 is her sheet's own `sustainability: null`, not a rule here.
+  # `independentActionSustainability` answers null at EX, and authoring a
+  # `SustainabilityGain` would pay out on top of a clock that does not run.
+  #
+  # Passive 3 is `rules/contract.mjs`, which reads this skill's RANK off the
+  # unit rather than taking a contribution.

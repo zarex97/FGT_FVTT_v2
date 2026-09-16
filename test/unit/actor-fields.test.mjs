@@ -18,6 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
 /** Literal `system.<path>` writes in the IO layer. */
 const WRITES = [...readFileSync("module/engine/io.mjs", "utf8").matchAll(/"system\.([A-Za-z0-9_.]+)"/g)]
@@ -66,5 +67,42 @@ describe("the actor schemas", () => {
   it("declare `defeated`, which is what this guard was written for", () => {
     expect(DECLARED.has("defeated")).toBe(true);
     expect(DECLARED.has("defeatCause")).toBe(true);
+  });
+});
+
+describe("a schema's own defaults must satisfy its own validation", () => {
+  /**
+   * Every `StringField` that carries BOTH `choices` and an `initial` must
+   * accept that initial.
+   *
+   * Foundry's `StringField` defaults to `blank: false` when `choices` is
+   * given, so `{initial: "", choices: ["", ...]}` fails its own validation --
+   * and because an invalid field makes the whole `system` invalid, EVERY actor
+   * in the world then fails to initialize. That is what `linkedGroup`'s
+   * `linkedDeath` and `sharedCooldowns` did: shipped, merged, and silently
+   * breaking every Servant that was not half of a linked pair.
+   *
+   * A source scan rather than a schema walk, because the failure is in the
+   * DECLARATION and a walk would need a live Foundry to instantiate.
+   */
+  it("never declares a blank initial with choices and no `blank: true`", () => {
+    const files = readdirSync("module/data/actor").filter((f) => f.endsWith(".mjs"));
+    /** @type {string[]} */
+    const bad = [];
+
+    for (const file of files) {
+      const src = readFileSync(join("module/data/actor", file), "utf8");
+      // One declaration may span several lines, so normalise whitespace and
+      // look at each `new fields.StringField({...})` as a unit.
+      for (const m of src.replace(/\s+/g, " ").matchAll(/new fields\.StringField\(\{([^}]*)\}\)/g)) {
+        const body = m[1];
+        if (!body.includes("choices")) continue;
+        if (!/initial:\s*""/.test(body)) continue;
+        if (/blank:\s*true/.test(body)) continue;
+        bad.push(`module/data/actor/${file}: ${m[0].slice(0, 110)}`);
+      }
+    }
+
+    expect(bad).toEqual([]);
   });
 });

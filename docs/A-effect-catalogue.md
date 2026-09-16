@@ -256,6 +256,48 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 | `Pigify` | MOV → 2; BA(STR & MAG) → 10%; Range → 1; Evade only with Evade−, cannot Block; damage taken +50% including NP; cannot use Skills/Spells/NP; **passive Skill/NP effects negated**. |
 | `Toad` | MOV → 1; BA → 5%; Range → 1; Evade rolls −3, cannot Block; damage taken +50%; cannot use Skills or NP (**Spells remain usable**); passive effects negated. |
 
+> **`Soaked` — built 2026-09-16, and not one of its three clauses needed a new
+> mechanism.**
+>
+> Anastasia's *Ice Bucket Challenge* applies it. The clauses read as though they
+> need bespoke machinery and do not:
+>
+> - *"a 25% chance of being inflicted with Freeze, **this is additive** to any
+>   Freeze chance the Attack might have"* is a **negative** incoming
+>   `ApplicationChance`. `rules/checks.mjs#applicationChance` computes
+>   `base + inflictBonus − resist`, so −25 raises the chance by 25 and lands on
+>   whatever the attack already carried. `chanceContribution` already scoped by
+>   `effectId` and by an attack-time predicate.
+> - *"Total Fire Damage taken is reduced by 50%, then 'Soaked' is removed"* is an
+>   element-scoped `Ward` plus an `OnEvent damageTaken`. And because
+>   `damageTaken` fires once the Damage Step has resolved **including at a total
+>   of zero**, it fires even when stage 0 halted on *"Freeze broken by Fire"* — so
+>   a Unit that is both Soaked and Frozen loses **both** to one Fire attack
+>   without taking a point. That was expected to need a carve-out in stage 0 and
+>   needed nothing.
+> - *"At the end of a Day Round"* is `roundEnd` predicated on `self:phase:day`,
+>   which is emitted **per panel**: a Unit standing in `sunlight` terrain dries
+>   off at night.
+
+> **`Freeze` and `Invuln` — built 2026-09-16, and the pipeline had been carrying
+> both of them unexercised.**
+>
+> Two of the most load-bearing statuses in this appendix, catalogued since it
+> was written, and until now **no Unit could receive either**. Everything about
+> how they meet damage was already in `rules/damage/pipeline.mjs`: stage 0 halts
+> on *"Freeze broken by Fire"*; stage 16 holds Freeze's `<150` absorption and
+> its excess pass-through, Invuln's negation and its `Pierce` bypass; stage 15
+> already halves Invuln against a Noble Phantasm. `rules/budget.mjs#preventedBy`
+> has carried `freeze` in its blanket list just as long.
+>
+> Neither document restates any of that — a second implementation is a second
+> thing to drift. They carry only what had no reader: Freeze's Round-end 100 Ice
+> and Invuln's *"cannot Block"*.
+>
+> They arrived with Anastasia, whose *Ice Bucket Challenge* sets up the first and
+> whose *Freezing Summertime* applies the second. **They are not hers.** Both are
+> now live for the whole roster.
+
 > **`Blind` — built 2026-09-16, and clause 1 needed a new Combat Process step.**
 >
 > *"80% chance of Missing"* had nowhere to live. An Evade is the **defender's**

@@ -154,3 +154,40 @@ describe("Blind clause 3 — Mystic Eye and Glam Sight Skills cannot be used", (
       .toBe("suppressedCategory");
   });
 });
+
+describe("M1 — a suppression may switch the Miss check off", () => {
+  // Anastasia's Watermelon Splitting Master: *"When Anastasia performs a Normal
+  // Attack at a Range of 1 to 2 while inflicted with Blind, it does not have a
+  // chance of Missing."* A Servant who blinds herself on purpose.
+  const suppressed = (predicate) => ({
+    id: "anastasia", kind: "servant", effects: ["blind"],
+    suppressions: [{ scope: "miss", predicate, source: "Watermelon Splitting Master" }],
+  });
+  const band = ["self:effect:blind", "attack:range:lte:2"];
+
+  it("returns zero when the suppression's predicate passes", () => {
+    expect(missChance(suppressed(band), opts("self:effect:blind", "attack:range:lte:2"))).toBe(0);
+  });
+
+  it("still misses at a range the suppression does not cover (R5)", () => {
+    // Her ranged band gains nothing from Watermelon, and her Note has her
+    // swinging a different Base Attack there anyway.
+    expect(missChance(suppressed(band), opts("self:effect:blind", "attack:range:3", "attack:range:gte:3")))
+      .toBe(80);
+  });
+
+  it("ignores a suppression with some other scope", () => {
+    const other = { id: "u", kind: "servant", effects: ["blind"], suppressions: [{ scope: "mysticEye" }] };
+    expect(missChance(other, opts())).toBe(80);
+  });
+
+  it("honours an unconditional suppression", () => {
+    const always = { id: "u", kind: "servant", effects: ["blind"], suppressions: [{ scope: "miss" }] };
+    expect(missChance(always, opts())).toBe(0);
+  });
+
+  it("leaves a Blinded unit with no suppression missing at 80%", () => {
+    expect(missChance({ id: "u", kind: "servant", effects: ["blind"], suppressions: [] }, opts()))
+      .toBe(80);
+  });
+});

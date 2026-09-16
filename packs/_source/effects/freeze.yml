@@ -1,0 +1,37 @@
+# Appendix A §A — a status the pipeline has been able to resolve since it was
+# written, with no way for a Unit to receive it.
+#
+# Everything about how Freeze meets DAMAGE is already in
+# `rules/damage/pipeline.mjs`: stage 0 halts on *"Freeze broken by Fire"*, and
+# stage 16 holds the `<150` absorption and the excess pass-through. This file is
+# the other half -- the document that lets one arrive.
+#
+# `preventsAction` is likewise already read: `rules/budget.mjs#preventedBy`
+# carries `freeze` in its blanket PREVENT_ALL list and has since it was written.
+#
+# NOT hers. Freeze is now live for the whole roster.
+schema: 1
+id: freeze
+name: "Freeze"
+description: |
+  Cannot Act. Attacks dealing less than 150 damage do nothing at all; 150 or more removes Freeze
+  and passes the excess through. Any Fire damage removes Freeze with no damage or effects.
+  100 Ice damage at the end of each Round.
+polarity: debuff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+preventsAction: true
+rules:
+  # "100 Ice damage at Round end." A periodic on the bearer.
+  #
+  # The absorption and the Fire escape are deliberately NOT authored here --
+  # they are pipeline stages, and restating them as rules would be a second
+  # implementation with nothing holding the two together.
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    then:
+      - { key: StatDelta, stat: "health.value", delta: -100 }

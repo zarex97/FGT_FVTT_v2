@@ -1,0 +1,21 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+schema: 1
+id: anastasia-fae-contract
+name: "Fae Contract"
+rank: "B+"
+kind: skill
+slug: faeContract
+passive: true
+description: |
+  (Passive) Debuff Resist is increased by 5%. Chance of inflicting debuffs is increased by 5%.
+passiveRules:
+  # Both directions of one bucket. `ApplicationChance` rather than a
+  # `CheckModifier`, for the reason Magic Resistance's own clause 2 records: the
+  # effect applier reads resistance off `applicationChances`, and a
+  # `CheckModifier` lands somewhere it never consults.
+  - key: ApplicationChance
+    direction: incoming
+    value: 5
+  - key: ApplicationChance
+    direction: outgoing
+    value: 5
