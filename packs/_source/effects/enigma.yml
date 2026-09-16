@@ -1,0 +1,47 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# SELF-ONLY. Her sheet: *"Applies the 'Enigma' buff to Nursery... Whenever
+# Alice performs a Normal Attack which deals STR damage, Nursery inflicts the
+# Def Dwn (MAG) debuff for 1◈ Turns on the DU."*
+#
+# Alice IS Nursery. Her True Name is "Nursery Rhyme, Alice"; the sheet labels
+# her Skills "(Alice)" and her last Noble Phantasm "(Nursery)", and the two
+# names alternate throughout. Appendix A's own `Enigma` row -- which credits
+# her by name -- said *"when the bearer's ALLY performs"*, lost that identity,
+# and is corrected with this file.
+#
+# The self reading is also the one that makes her coherent. Her Note pins her
+# Normal Attacks to BA(STR) 50 while her Noble Phantasm swings BA(MAG) 200 --
+# and this is what makes the feeble swing worth taking, because the Def Dwn
+# (MAG) it plants raises MAG damage taken by 60%.
+schema: 1
+id: enigma
+name: "Enigma"
+description: |
+  Whenever the affected Unit performs a Normal Attack which deals STR damage, it inflicts
+  @effect[defDwnMag]{Def Dwn (MAG)} for 1◈ Turns on the DU.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # `damageStepEnd` fires on the ATTACKER with the victim reachable as
+  # `target: victim` -- the rung Bašmu's own "Normal Attacks have a 50% chance
+  # of inflicting Poison" already hangs from, with the identical predicate
+  # pair.
+  #
+  # The magnitudes are on the APPLICATION rather than on `def-dwn-mag.yml`,
+  # because 60/40 is what THIS clause inflicts and a second source could
+  # inflict a different one.
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:component:str"]
+    then:
+      - key: ApplyEffect
+        target: victim
+        effect: { id: defDwnMag }
+        duration: "1◈"
+        magnitude: 60
+        npMagnitude: 40

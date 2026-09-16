@@ -13,6 +13,7 @@ import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { splitCooldownRider } from "../../module/rules/cooldown-riders.mjs";
+import { PREVENTS_FOR, ACTION_KINDS } from "../../module/rules/budget.mjs";
 
 const classSkill = (id) => parse(readFileSync(`packs/_source/class-skills/${id}.yml`, "utf8"));
 const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
@@ -143,5 +144,59 @@ describe("A cooldown rider on a damaging ability (R5, A7)", () => {
 
   it("handles a phase with no changes at all", () => {
     expect(splitCooldownRider({})).toEqual({ perDefender: [], oncePerPhase: [] });
+  });
+});
+
+describe("her three new effects (V3, E2–E4, R1, R6)", () => {
+  const effect = (id) => parse(readFileSync(`packs/_source/effects/${id}.yml`, "utf8"));
+
+  it("R6 — Disable permits Move and nothing else", () => {
+    // Appendix A: "Can only use the Move action." The complement of
+    // `immobilize`, which prevents ONLY movement.
+    expect(effect("disable")).toMatchObject({ id: "disable", preventsAction: true });
+    expect(effect("disable").families).toContain("bind");
+  });
+
+  it("R6 — and the engine's own table agrees with the row", () => {
+    // `rules/budget.mjs`'s PREVENTS table is what actually refuses an action,
+    // and it listed attack/skill/np -- so a Disabled Unit could still cast a
+    // Spell, which "can only use the Move action" forbids.
+    // Stated as the complement of Move over the whole action vocabulary, so an
+    // action kind added later has to be considered rather than quietly
+    // permitted to a Unit that "can only use the Move action".
+    expect(PREVENTS_FOR("disable").sort()).toEqual(ACTION_KINDS.filter((k) => k !== "move").sort());
+  });
+
+  it("E3/R1 — Enigma fires on HER own STR-component Normal Attack", () => {
+    // Alice IS Nursery. Appendix A's row said "the bearer's ally" and was
+    // wrong; correcting it is part of this task.
+    const rule = effect("enigma").rules[0];
+    expect(rule.key).toBe("OnEvent");
+    expect(rule.event).toBe("damageStepEnd");
+    expect(rule.predicate).toContain("attack:kind:normal");
+    expect(rule.predicate).toContain("attack:component:str");
+    expect(rule.then[0]).toMatchObject({ target: "victim", effect: { id: "defDwnMag" } });
+  });
+
+  it("E4 — Def Dwn (MAG) raises MAG damage taken, and is scoped to MAG", () => {
+    const rule = effect("def-dwn-mag").rules[0];
+    expect(rule.key).toBe("DamageModifier");
+    expect(rule.direction).toBe("taken");
+    expect(rule.value).toBe("@magnitude");
+    expect(rule.npValue).toBe("@npMagnitude");
+    // An unscoped Def Dwn is a different effect and already exists; this is
+    // the (MAG) variant, like (A) and (C).
+    expect(rule.predicate).toContain("attack:component:mag");
+  });
+
+  it("E4 — and is a Def Dwn for anything that strips one", () => {
+    expect(effect("def-dwn-mag").families).toContain("defDwn");
+  });
+
+  it("E4 — 60% and 40% are the SHEET's numbers, carried by the applier", () => {
+    // The magnitudes live on the application, not on the definition: "all MAG
+    // damage taken is increased by 60%; if NP, 40%" is what Enigma inflicts,
+    // and a second source could inflict a different one.
+    expect(effect("enigma").rules[0].then[0]).toMatchObject({ magnitude: 60, npMagnitude: 40 });
   });
 });
