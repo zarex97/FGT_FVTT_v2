@@ -626,6 +626,18 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
     kind: item.type === "noblePhantasm" ? "noblePhantasm" : (item.system.kind ?? "skill"),
     isNP: item.type === "noblePhantasm" || Boolean(item.system.isNP),
     use,
+    // WHICH window, for an ability that has no button because its only moment
+    // is one. `classifyAbility` has answered `kind: "windowed"` since Asterios
+    // needed it, and the card had no branch for it — so *"(Active) Used at the
+    // start of a Damage Step"* rendered as "Passive — always in effect", which
+    // is wrong in the direction that matters: a player told the skill is
+    // already working never goes looking for the prompt, and never learns a
+    // Cooldown is being spent when they answer it (Ch. 46 §46.8).
+    windows: use.kind === "windowed"
+      ? [...(Array.isArray(item.system.timing?.window)
+        ? item.system.timing.window
+        : [item.system.timing?.window])].filter(Boolean)
+      : [],
     active: Boolean(item.system.active),
     // A mode that is on reads as on; `cannotDeactivate` explains a disabled
     // toggle rather than leaving the player clicking a dead control.

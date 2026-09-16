@@ -38,6 +38,38 @@ import { test as testPredicate } from "./predicate.mjs";
  * @param {object} item an `FGTItem`, or any `{type, system}` shape
  * @returns {AbilityUse}
  */
+/**
+ * Does this ability deal no damage at all?
+ *
+ * *"(Non-damaging)"* is the first word of Chaos Labyrinthos's description, and
+ * an ability with phases and no `damage` phase is how content says so — it needs
+ * no `damage:` block to declare the absence of one.
+ *
+ * Here rather than in `engine/attack.mjs`, which is where it lived and where the
+ * **preview** could not reach it. `baseSpecFor` falls back to the caster's
+ * Normal Attack for an ability that authored no damage, which the resolver
+ * stopped doing when this predicate was written and the preview never did — so
+ * opening the Labyrinth was previewed at *"192 - 264"* and dealt 0. The gate and
+ * the display disagreeing is the shape this project keeps finding, and the
+ * player believes the display (Ch. 46 §46.8).
+ *
+ * @param {object} item an `FGTItem`, or any `{type, system}` shape
+ * @returns {boolean}
+ */
+export function dealsNoDamage(item) {
+  if (!item) return false;
+  const sys = item.system ?? {};
+  if (sys.damage) return false;
+  const phases = sys.phases ?? [];
+  return phases.length > 0 && !phases.some((p) => p.kind === "damage");
+}
+
+/**
+ * Classify an ability by how it is used.
+ *
+ * @param {object} item an `FGTItem`, or any `{type, system}` shape
+ * @returns {AbilityUse}
+ */
 export function classifyAbility(item) {
   const sys = item?.system ?? {};
   const isNP = item?.type === "noblePhantasm" || sys.isNP === true;

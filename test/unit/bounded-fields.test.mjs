@@ -10,7 +10,8 @@
 import { describe, it, expect } from "vitest";
 import {
   NP_TAG_SCALE, scaleOf, meetsTagThreshold,
-  panelsOf, contains, membershipVerdict, escapeAttempt,
+  panelsOf, contains, membershipVerdict, escapeAttempt, canAttemptEscape,
+  isolationBlocksEffect,
   isolationBlocks, interiorModifiers, extensionFor, vulnerabilityTriggered,
   annotateFields, selectBranch, randomFreePanelIn,
 } from "../../module/rules/bounded-fields.mjs";
@@ -169,6 +170,115 @@ describe("membership", () => {
 });
 
 /* ── The Labyrinth escape ladder ──────────────────────────────────────────── */
+
+// The ladder was complete, unit-tested and called by NOBODY for as long as
+// bounded fields have existed: the only entry point needed a die, nothing in
+// the interface had a reason to roll one, and `rules/movement.mjs` refused the
+// exit outright — the conflation this module's own docstring warns about.
+// These three describe the seams that make it reachable (Ch. 46 §46.4-H).
+describe("isolationBlocksEffect", () => {
+  // Clause 10 is *"cannot Attack OR APPLY ANY EFFECTS ... and vice versa"*, and
+  // only the Attack half had a reader: `isolationBlocks` is consulted by the
+  // targeting filter, and an aura reaches its recipient without being targeted
+  // at all (Ch. 46 §46.4-I).
+  const sealed = labyrinth({
+    isolation: {
+      outsideCanTargetInside: false, insideCanTargetOutside: false,
+      outsideCanApplyEffectsInside: false, insideCanApplyEffectsOutside: false,
+    },
+  });
+  const board = { units: [], alliances: {} };
+  const within = inside({ id: "in", panel: at(6, 6) });
+  const without = outside({ id: "out", panel: at(20, 20) });
+
+  it("stops an effect reaching in from outside", () => {
+    expect(isolationBlocksEffect(sealed, without, within, board))
+      .toMatchObject({ blocked: true, reason: "outsideCannotApplyEffectsInside" });
+  });
+
+  it("stops one reaching out from inside — the sheet says *and vice versa*", () => {
+    expect(isolationBlocksEffect(sealed, within, without, board))
+      .toMatchObject({ blocked: true, reason: "insideCannotApplyEffectsOutside" });
+  });
+
+  it("does not touch two units on the same side of the boundary", () => {
+    expect(isolationBlocksEffect(sealed, within, inside({ id: "in2", panel: at(7, 7) }), board))
+      .toMatchObject({ blocked: false });
+    expect(isolationBlocksEffect(sealed, without, outside({ id: "o2", panel: at(21, 21) }), board))
+      .toMatchObject({ blocked: false });
+  });
+
+  it("is silent for a boundary that does not seal effects", () => {
+    // Targeting and effect application are separate keys: a field may refuse
+    // attacks across its edge and let an aura through.
+    const attacksOnly = labyrinth({
+      isolation: { outsideCanTargetInside: false, insideCanTargetOutside: false },
+    });
+    expect(isolationBlocksEffect(attacksOnly, without, within, board))
+      .toMatchObject({ blocked: false });
+  });
+});
+
+describe("canAttemptEscape", () => {
+  const field = labyrinth();
+  const border = inside({ panel: at(2, 6) });
+
+  it("answers the gate without needing a roll, which is what the button asks", () => {
+    expect(canAttemptEscape(field, border, { movRemaining: 2 }))
+      .toMatchObject({ ok: true, chance: 20, automatic: false, formula: "1d20" });
+  });
+
+  it("reports each refusal by its own name, so the button can say which", () => {
+    expect(canAttemptEscape(field, inside({ panel: at(6, 6) }), { movRemaining: 2 }))
+      .toMatchObject({ ok: false, reason: "notAtBorder" });
+    expect(canAttemptEscape(field, border, { movRemaining: 0 }))
+      .toMatchObject({ ok: false, reason: "noMovement" });
+  });
+
+  it("carries the accumulated chance, not just the base", () => {
+    const tried = labyrinth({ state: { escapeHistory: { u: { failures: 3, escaped: false } } } });
+    expect(canAttemptEscape(tried, border, { movRemaining: 2 })).toMatchObject({ chance: 35 });
+  });
+
+  it("marks a veteran automatic rather than certain, so no die is rolled", () => {
+    const veteran = labyrinth({ state: { escapeHistory: { u: { failures: 0, escaped: true } } } });
+    expect(canAttemptEscape(veteran, border, { movRemaining: 2 }))
+      .toMatchObject({ ok: true, automatic: true, reason: "veteran", chance: 100 });
+  });
+});
+
+describe("the exit pass a successful escape buys", () => {
+  const border = inside({ panel: at(2, 6) });
+  const board = { units: [], alliances: {} };
+
+  it("is refused before the roll, which is what `rollRequired` means", () => {
+    expect(membershipVerdict(labyrinth(), border, "exit", board))
+      .toMatchObject({ ok: false, reason: "rollRequired" });
+  });
+
+  it("lets the unit out once it has one", () => {
+    // Without this the roll would be won and then refused by the very gate it
+    // beat: "Conflating the two would turn the Labyrinth from a puzzle into a
+    // wall", and a success that does not open the wall is the same wall.
+    const escaped = labyrinth({ state: { mayExit: ["u"] } });
+    expect(membershipVerdict(escaped, border, "exit", board))
+      .toMatchObject({ ok: true, reason: "escaped" });
+  });
+
+  it("is not the veteran mark, which grants a better roll rather than passage", () => {
+    // Clause 9: *"its Base Success Chance of Escaping is increased to 100%"* --
+    // a re-entering veteran still attempts, and still spends the movement.
+    const veteran = labyrinth({ state: { escapeHistory: { u: { failures: 0, escaped: true } } } });
+    expect(membershipVerdict(veteran, border, "exit", board))
+      .toMatchObject({ ok: false, reason: "rollRequired" });
+  });
+
+  it("belongs to the unit that bought it and nobody else", () => {
+    const escaped = labyrinth({ state: { mayExit: ["someone-else"] } });
+    expect(membershipVerdict(escaped, border, "exit", board))
+      .toMatchObject({ ok: false, reason: "rollRequired" });
+  });
+});
 
 describe("escapeAttempt", () => {
   const field = labyrinth();

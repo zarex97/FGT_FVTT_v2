@@ -15,7 +15,12 @@ source: class
 slug: madEnhancement
 kind: classSkill
 copyable: { allowed: false, reason: classSkill }
-parameterized: [rank]
+# `drainFloor` and `forcedDeactivation` are clause 1, which the six sheets
+# carrying this skill print THREE different ways. See the block above
+# `StatDelta` below. They are required parameters rather than defaulted ones on
+# purpose: a default would silently give a new bearer whichever shape happened
+# to be commonest, and the whole finding was that nobody noticed.
+parameterized: [rank, drainFloor, forcedDeactivation]
 rank: "@rank"
 isMode: true
 # "When Mad Enhancement is Activated, it can only be deactivated 2◈ Turns after
@@ -99,7 +104,29 @@ activeRules:
     check: evade
     forceTable: unfavourable
 
-  # Clause 1, as two actions, because it is two rules that share a trigger.
+  # Clause 1, as two actions, because it is two rules that share a trigger --
+  # and because the two are NOT carried by the same sheets. Three shapes:
+  #
+  #   Heracles                     the floor, and NO forced deactivation
+  #                                ("its Master's Health cannot drop below 20
+  #                                in this way")
+  #   Asterios, Castor,            the forced deactivation, and NO floor
+  #   Kingprotea                   ("when its Master's Health is 20 or less,
+  #                                ME is forcibly deactivated")
+  #   Penthesilea, Raikou          both, with the floor conditional on the mode
+  #                                being held on ("while the Skill does not
+  #                                meet the condition to be deactivated")
+  #
+  # Authoring all of it for everybody -- which is what this template did until
+  # 2026-09-16 -- gave three Servants a floor their sheets do not grant, and
+  # gave Heracles a forced deactivation his sheet replaces with the floor. His
+  # own `cannotDeactivate` refuses it now (Ch. 15 §15.6), but refusing a clause
+  # is not the same as not having it, and the pack should say which he has.
+  #
+  # Penthesilea's and Raikou's CONDITIONAL floor is still authored as an
+  # unconditional one: the predicate it needs ("while the Skill does not meet
+  # the condition to be deactivated") has no vocabulary yet, and belongs with
+  # their audits, where their whole kit is in view. Ch. 46 §46.4-C.
   # `madEnhancementDrain` has been in `domain/tables.mjs` since the tables were
   # transcribed with nothing reading it: 30 at EX, 5 at E.
   #
@@ -137,19 +164,27 @@ activeRules:
         # Pollux, Castor's Master would lose 10 while Mad Enhancement kept
         # running until they were under 20.
         tableFactor: { value: 0.5, predicate: ["self:withinOfPartner:1"] }
-        # The SAME table as the drain, not a literal. Clause 1 is one number
-        # said three times -- Asterios's is *"loses 20 Health ... when its
-        # Master's Health is 20 or less"* -- and both of these were authored as
-        # `30`, which is `madEnhancementDrain`'s **EX** value. At every rank
-        # below EX the floor clamped against a number the Servant's own sheet
-        # never mentions.
-        floorTable: madEnhancementDrain
+        # The SAME table as the drain, not a literal, for the bearers who have
+        # a floor at all. Clause 1 is one number said three times -- Heracles's
+        # is *"loses 20 Health ... cannot drop below 20 in this way"* -- and
+        # both of these were authored as `30`, which is `madEnhancementDrain`'s
+        # **EX** value. At every rank below EX the floor clamped against a
+        # number the Servant's own sheet never mentions.
+        #
+        # `null` for a bearer whose sheet prints no floor; `elements.mjs` reads
+        # `if (a.floorTable)` and leaves the deduction unclamped.
+        floorTable: "@drainFloor"
 
       # "When its Master's Health is [the drain] or less, ME is forcibly
       # deactivated." Ordered after the drain, so it tests what the drain left.
       # Note the asymmetry the source draws: this is forcible, and a player's own
-      # click is still refused by the 2◈ lockout above.
+      # click is still refused by the 2◈ lockout above -- and by
+      # `cannotDeactivate`, which it does NOT beat (Ch. 15 §15.6).
+      #
+      # Dropped at build time for a bearer whose sheet does not print it, so the
+      # compiled document says what that Servant has.
       - key: SetMode
+        onlyIf: "@forcedDeactivation"
         ability: madEnhancement
         active: false
         whenValue: { subject: master, stat: health.value, lteTable: madEnhancementDrain }

@@ -191,6 +191,30 @@ describe("abilityCost", () => {
   it("is null for a zero cost, which is not a cost", () => {
     expect(abilityCost({ kind: "masterHealth", amount: 0 }, null)).toBe(null);
   });
+
+  // The shape `context.mjs` actually hands it. The Master it passes is the
+  // BOARD's projection of that unit, and `snapshotUnit` flattens `health` to a
+  // number -- so `master.health.value` is `undefined`, the `?? 0` beside it
+  // makes every Master destitute, and every Noble Phantasm in the game reads
+  // "cannot be paid" on its owner's own sheet.
+  //
+  // This is the fourth site in `domain/health.mjs`'s list and the one that got
+  // away: `cannotPay` in `rules/costs.mjs` was repaired and the presenter next
+  // to it was not, so the gate allowed the press while the sheet denied it.
+  // Every fixture above uses the document shape, which is exactly how the code
+  // and the tests came to agree with each other and not with the system.
+  //
+  // Measured on a live board: "Master cost 40 Health (HT Master has 0)
+  // X cannot be paid", with that Master standing at 250/250.
+  it("reads a Master projected by the board, whose health is a bare number", () => {
+    expect(abilityCost({ kind: "masterHealth", amount: 40 }, { name: "HT Master", health: 250 }))
+      .toMatchObject({ payer: "HT Master", has: 250, affordable: true });
+  });
+
+  it("still refuses a board-projected Master who genuinely cannot pay", () => {
+    expect(abilityCost({ kind: "masterHealth", amount: 40 }, { name: "HT Master", health: 30 }))
+      .toMatchObject({ has: 30, affordable: false });
+  });
 });
 
 describe("groupEffects", () => {

@@ -496,7 +496,7 @@ async function writeGroup(group, io) {
       for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns);
       break;
     case "recordUse":
-      for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId);
+      for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId, i.count);
       break;
     case "defeat":
       await io.defeat(unitId, intents[0].cause);

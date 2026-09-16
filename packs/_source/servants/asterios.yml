@@ -16,9 +16,10 @@ region: [greece, europe]
 attributes: [male, servant, earth, giant, humanoid, demonicBeast, animalistic, antiHero]
 
 # ─── Parameters and stats ──────────────────────────────────────────────
-# END A++ -> 1500 on the sheet. Stated here so the validator can cross-check
-# the rank table against what the sheet actually says.
 parameters: { str: "A++", end: "A++", agi: C, mag: D, luc: E }
+# The sheet's figure, kept for the record and NOT what he is played at:
+# `baseHealthByEnd` steps END A++ to 1700, and the table beats the sheet the
+# same way Base Attack's does (`domain/health.mjs#maxHealthFor`, Ch. 46 §46.6).
 baseHealth: 1500
 mov: 4
 range: { panels: 2, targets: 1 }
@@ -30,7 +31,11 @@ sustainability: "2◈"
 abilities:
   # NOT `cannotDeactivate`, unlike Heracles: Asterios' Mad Enhancement can be
   # switched off, but only 2◈ after it was switched on, and vice versa.
-  - { ref: class-mad-enhancement, rank: B }
+  # Clause 1 is the forced deactivation and NOT a floor: *"when its Master's
+  # Health is 20 or less, ME is forcibly deactivated"*, with nothing said about
+  # a minimum. Heracles's sheet prints the mirror image and the shared template
+  # used to give both to everyone (Ch. 46 §46.4-C).
+  - { ref: class-mad-enhancement, rank: B, drainFloor: null, forcedDeactivation: true }
   - { ref: asterios-monstrous-strength }
   - { ref: asterios-natural-monster }
   - { ref: asterios-avyssos-of-labrys }

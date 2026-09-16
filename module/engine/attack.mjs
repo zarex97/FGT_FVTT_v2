@@ -27,7 +27,9 @@ import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { cooldownChanges } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
-import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
+import {
+  classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
+} from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
@@ -5049,14 +5051,6 @@ function resolvedDamage(ability, options) {
  * @param {object|null} ability
  * @returns {boolean}
  */
-function dealsNoDamage(ability) {
-  if (!ability) return false;
-  const sys = ability.system ?? {};
-  if (sys.damage) return false;
-  const phases = sys.phases ?? [];
-  return phases.length > 0 && !phases.some((p) => p.kind === "damage");
-}
-
 function abilityKind(ability) {
   if (ability.type === "noblePhantasm" || ability.system?.isNP) return "np";
   if (ability.system?.isAttackSkill) return "attackSkill";

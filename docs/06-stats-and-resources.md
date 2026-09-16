@@ -74,6 +74,16 @@ The distinction from `Resource` matters: a Counter has no max to clamp against a
 
 ---
 
+
+**Max Health is DERIVED from END, and the table beats the sheet** — the same rule Base Attack
+follows, settled by the game's author in 2026-09. `domain/health.mjs#maxHealthFor` reads
+`baseHealthByEnd` and an authored `baseHealth` survives only where there is no parameter to derive
+from, which is summons and platforms. Four reference sheets disagree with the table and every one
+disagrees *downward*: Asterios, Castor and Pollux print 1500 against A++'s 1700, and Penthesilea
+1250 against B+'s 1350 — so honouring the authored number played three of the sturdiest Servants in
+the game two hundred Health short. `undamageable` is answered first and is a different question:
+`null` is *cannot be damaged* (Pale Rider's *"Base Health: —"*), not *has not been given a number*.
+
 ## 6.2 Health
 
 ```ts

@@ -414,6 +414,26 @@ export function worldIO() {
       );
       if (!item || Boolean(item.system?.active) === active) return;
 
+      // *"Cannot be deactivated."* `rules/modes.mjs` has refused a player's own
+      // click on this flag since it was written, and every FORCED path came
+      // through here and ignored it -- so Mad Enhancement's own clause 1
+      // ("when its Master's Health is [the drain] or less, ME is forcibly
+      // deactivated") switched off the one Servant whose sheet says it never
+      // does, and nothing brought it back: `reconcileForcedModes` only re-arms
+      // a mode held on by a compulsion or a `ForceMode` rule, and Heracles is
+      // held on by neither.
+      //
+      // The asymmetry is the one `content/authored-fields.mjs` already draws:
+      // `cannotDeactivate` says NEVER and `toggleLock` says HOW LONG YOU WAIT,
+      // so a forcible deactivation still beats the lockout and does not beat
+      // this. A Command Spell is unaffected -- it is bought precisely to defeat
+      // the refusal and spends itself through `suspendSkill` below.
+      //
+      // Found on a live board: his Master hit the floor at 20, the mode went
+      // off for good, and Bravery -- an ability his sheet says he can never
+      // use -- became pressable.
+      if (!active && item.system?.cannotDeactivate) return;
+
       await item.update({
         "system.active": active,
         ...(active ? { "system.toggledAt": game.combat?.system?.globalTurn ?? 0 } : {}),
@@ -665,8 +685,10 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string} abilityId
      * @param {string|null} contentId
+     * @param {number} [count] charges spent against `maxUses`; >1 only for a
+     *   cascading revival, whose Turn and Round records stay a single entry
      */
-    async recordUse(unitId, abilityId, contentId = null) {
+    async recordUse(unitId, abilityId, contentId = null, count = 1) {
       const actor = resolve(unitId);
       if (!actor) return;
 
@@ -695,7 +717,13 @@ export function worldIO() {
       // share.
       if (item) {
         await item.update({
-          "system.timesUsed": (item.system?.timesUsed ?? 0) + 1,
+          // `+ count`, not `+ 1`. A cascading revival spends several charges in
+          // one resolution -- God Hand's *"and so on"* -- and `resolveRevival`
+          // has always returned how many. Recording one per resolution gave
+          // Heracles eleven RESOLUTIONS rather than the eleven times his sheet
+          // allows; measured live, a hit that logged `charges: 3` moved the
+          // sheet from "used 0 of 11" to "used 1 of 11".
+          "system.timesUsed": (item.system?.timesUsed ?? 0) + Math.max(1, count ?? 1),
           // What `healthRestoredSince` compares "since" against.
           "system.lastUsedTick": tick,
           // *"After that, Akhilleus Kosmos is broken; all its effects are lost

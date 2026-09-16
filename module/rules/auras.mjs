@@ -28,6 +28,7 @@ import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { candidatesAt } from "./aura-index.mjs";
 import { relationOf } from "./relations.mjs";
+import { anyBoundaryBlocksEffect } from "./bounded-fields.mjs";
 
 /**
  * Every aura contribution a unit receives, from every source on the board.
@@ -55,6 +56,15 @@ export function collectAuras(unit, board, index = null) {
     // this Unit is on the field", and giving it a radius would have made it an
     // ordinary aura and quietly bounded a rule that is not.
     if (aura.scope !== "field" && distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
+
+    // ...but "unbounded" is not "through a wall". A bounded field that seals
+    // effect application seals THIS too: *"Units outside the Labyrinth cannot
+    // Attack or apply any effects to Units within the Labyrinth and vice
+    // versa."* An aura reaches its recipient without ever being targeted, so
+    // the isolation check the targeting filter performs never ran for one, and
+    // an unbounded aura crossed a boundary that refuses every attack
+    // (Ch. 46 §46.4-I).
+    if (anyBoundaryBlocksEffect(source, unit, board)) continue;
 
     // A condition on the RECIPIENT rather than on the source. Territory
     // Creation reduces damage taken by "allied Units who are in THEIR Home

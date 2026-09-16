@@ -13,6 +13,7 @@
  */
 
 import { periodicDamageFor } from "../../engine/scheduler.mjs";
+import { currentHealth } from "../../domain/health.mjs";
 
 /**
  * The five parameters, in the order every reference sheet prints them.
@@ -249,7 +250,7 @@ export function abilityState(verdict, { turnsPerRound = 3 } = {}) {
  * and the look is where the mistake happens.
  *
  * @param {{kind: string, amount: number}|null} cost from `npCost`
- * @param {{name?: string, health?: {value?: number}}|null} master
+ * @param {{name?: string, health?: {value?: number}|number}|null} master a document OR a board projection
  * @param {{sustainability?: number}|null} [unit] for a Free Servant's own clock
  * @returns {{kind: string, amount: number, payer: string|null, has: number,
  *            affordable: boolean}|null} `null` when nothing is charged
@@ -263,7 +264,18 @@ export function abilityCost(cost, master, unit = null) {
     return { kind: cost.kind, amount: cost.amount, payer: null, has, affordable: has >= cost.amount };
   }
 
-  const has = master?.health?.value ?? 0;
+  // `currentHealth`, not `master.health.value`. The Master handed in is the
+  // BOARD's projection of that unit and `snapshotUnit` flattens `health` to a
+  // bare number, so `.value` was `undefined` and the `?? 0` beside it made
+  // every Master in the game destitute -- "Master cost 40 Health (HT Master
+  // has 0) X cannot be paid", with that Master standing at 250/250.
+  //
+  // This is the site `domain/health.mjs`'s own header is about. `cannotPay` in
+  // `rules/costs.mjs` was repaired when that module was written and the
+  // presenter beside it was missed, so the gate allowed the press while the
+  // sheet denied it -- which is worse than either being wrong alone, because
+  // the player believes the sheet.
+  const has = currentHealth(master);
   return {
     kind: cost.kind,
     amount: cost.amount,

@@ -68,6 +68,12 @@ abilities:
   # either clause.
   - ref: class-mad-enhancement
     rank: EX
+    # BOTH halves of clause 1, like Penthesilea, and her floor is conditional in
+    # the same words: *"while the Skill does not meet the condition to be
+    # deactivated"* -- which for Raikou is her Master standing within 2 panels.
+    # Authored unconditionally here; Ch. 46 §46.4-C.
+    drainFloor: madEnhancementDrain
+    forcedDeactivation: true
     passiveRules:
       # "(Passive) When Raikou's Master is within a 2 panel area of herself, her
       # Mad Enhancement is constantly Active and cannot be deactivated."

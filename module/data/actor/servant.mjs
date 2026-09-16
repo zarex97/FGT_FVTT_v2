@@ -8,6 +8,7 @@ import { RankField } from "../fields.mjs";
 import { lookup } from "../../domain/tables.mjs";
 import { Rank } from "../../domain/rank.mjs";
 import { baseAttackFor } from "../../domain/base-attack.mjs";
+import { maxHealthFor } from "../../domain/health.mjs";
 
 const fields = foundry.data.fields;
 
@@ -204,9 +205,7 @@ export class ServantData extends foundry.abstract.TypeDataModel {
     // Base Attack is DERIVED from STR and MAG, and the table beats the sheet:
     // *"if you find a value of Base attack that differs from this calculation
     // choose the value of this table instead of what is on the character
-    // sheet."* Unconditional, unlike Max Health below, which fills only when
-    // unstated — Health has a stated-figure exception (Medea's 750) and Base
-    // Attack has none.
+    // sheet."* Max Health below now reads the same way — see the note there.
     //
     // Here rather than at summon so a Servant dragged straight onto the board
     // is right too, and because it reads `grantedSteps` — which the summon
@@ -224,9 +223,11 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       return;
     }
     if (this.health.max === null || this.health.max === 0) {
-      const end = Rank.parseOrNull(this.parameters?.end);
-      const derived = end ? lookup("baseHealthByEnd", end) : null;
-      const max = this.baseHealth ?? (typeof derived === "number" ? derived : 0);
+      // The TABLE beats the sheet, the same way Base Attack's does — see
+      // `domain/health.mjs#maxHealthFor`, which holds the rule and the four
+      // sheets that disagree with it. Pure and injected for the same reason
+      // `baseAttackFor` is: a data model may import from `domain` only.
+      const max = maxHealthFor(this, lookup, Rank);
       this.health.max = max;
       // `=== null` and NOT `=== 0`. A stored zero is a Unit that has been
       // emptied; only `null` is one that has never been given Health at all.

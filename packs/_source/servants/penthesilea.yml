@@ -17,6 +17,8 @@ attributes: [female, servant, earth, king, humanoid]
 
 # ─── Parameters and stats ──────────────────────────────────────────────
 parameters: { str: "A+", end: "B+", agi: C, mag: A, luc: D }
+# 1250 on the sheet; END B+ derives 1350 and the table wins
+# (`domain/health.mjs#maxHealthFor`, Ch. 46 §46.6).
 baseHealth: 1250
 mov: 4
 range: { panels: 2, targets: 1 }
@@ -26,7 +28,13 @@ sustainability: "2◈"
 
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
-  - { ref: class-mad-enhancement, rank: EX }
+  # BOTH halves: *"when its Master's Health is 30 or less, ME is forcibly
+  # deactivated; while the Skill does not meet the condition to be deactivated,
+  # its Master's Health cannot drop below 30 in this way"*. The floor is
+  # CONDITIONAL on the skill being held on -- by her own Hatred of Achilles --
+  # and is authored unconditionally here because that predicate has no
+  # vocabulary yet. Ch. 46 §46.4-C; settle it with her audit.
+  - { ref: class-mad-enhancement, rank: EX, drainFloor: madEnhancementDrain, forcedDeactivation: true }
   - { ref: divinity, rank: B }
   - { ref: penthesilea-hatred-of-achilles }
   - { ref: penthesilea-charisma }

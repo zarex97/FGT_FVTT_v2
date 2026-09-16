@@ -18,6 +18,7 @@ import { unitSnapshot, currentTick, clockRunning } from "../../engine/board.mjs"
 import { attackFacts } from "../../engine/attack.mjs";
 import { normalAttackAt } from "../../rules/normal-attack.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
+import { dealsNoDamage } from "../../rules/ability-use.mjs";
 import { buildContext } from "./context.mjs";
 import { editImage } from "../image-edit.mjs";
 import { enrichAbilityCards } from "../enrich.mjs";
@@ -498,6 +499,14 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
       damageFor: (unitId) => {
         const defender = board.units.find((u) => u.id === unitId);
         if (!defender) return null;
+        // *"(Non-damaging)"*. The RESOLVER has known this since `dealsNoDamage`
+        // was written -- it hands stage 1 a `{fixedValue: 0}` base -- and the
+        // preview did not, so it fell through to `baseSpecFor`'s Normal Attack
+        // fallback the way the resolver used to. Chaos Labyrinthos was previewed
+        // at "192 - 264" on a Noble Phantasm that deals nothing, which is the
+        // gate and the display disagreeing with the player believing the
+        // display (Ch. 46 §46.8).
+        if (dealsNoDamage(ability)) return null;
         return preview.damageRange(
           previewContext({ caster, defender, ability, board, isNP }),
           { negation: preview.negationBounds(defender, isNP) },

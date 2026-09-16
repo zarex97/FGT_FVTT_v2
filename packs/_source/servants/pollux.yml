@@ -13,6 +13,8 @@ region: [greece, europe]
 alignment: { order: chaotic, morality: neutral }
 attributes: [female, servant, sky, humanoid]
 parameters: { str: A, end: "A++", agi: B, mag: C, luc: C }
+# 1500 on the sheet; END A++ derives 1700 and the table wins, as it does for her
+# twin (`domain/health.mjs#maxHealthFor`, Ch. 46 §46.6).
 baseHealth: 1500
 mov: 5
 range: { panels: 1, targets: 1 }
