@@ -29,7 +29,7 @@ import { cooldownChanges } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
-  effectSpecsOf, windowUseKind,
+  effectSpecsOf, windowUseKind, reactionPlacement,
 } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -66,7 +66,7 @@ import { terrainConversions } from "../rules/terrain.mjs";
 import { paintTerrain, removeTerrainType } from "./terrain.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { meetsRequirement } from "../rules/items.mjs";
-import { canUseAbility, resolveCosts, npCostAt } from "../rules/costs.mjs";
+import { canUseAbility, resolveCosts, additionalCostsFor } from "../rules/costs.mjs";
 import {
   NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW,
 } from "../rules/windows.mjs";
@@ -1116,10 +1116,13 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
         //
         // Always supplied here: inside a reaction there is exactly one attack
         // in flight, and its attacker is what the anchor names.
-        placement: {
-          sourceUnitId: state.attackerId,
-          ...(owner.id === aimedAt ? {} : { unitId: aimedAt }),
-        },
+        // `unitId` ALWAYS, including when the projector is the unit in peril --
+        // which is the ordinary case for a barrier somebody raises in front of
+        // themselves, and the case Rho Aias could never be used in
+        // (Ch. 46 §46.4-S).
+        placement: reactionPlacement({
+          attackerId: state.attackerId, aimedAt, ownerId: owner.id,
+        }),
       });
       if (!out.ok) ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", { name: used.name, reason: out.reason }));
     }
@@ -2802,40 +2805,10 @@ function pendingCosts({ usage, ability, self, master, board }) {
   if (usage.cost) out.push({ ...usage.cost, id: "npCost" });
 
   // Standing per-use costs the ability declares, each with its own id so
-  // something else can name it in `supersedes`.
-  for (const extra of ability?.system?.additionalCosts ?? []) {
-    // `masterHealthByNPRank` charges the Noble Phantasm table at a STATED Rank
-    // rather than at the ability's own, and through the same rule `npCost`
-    // uses -- so a Free Servant pays in Sustainability instead of producing an
-    // intent aimed at a Master who does not exist.
-    // A FRACTION of the Master's maximum rather than a stated number.
-    // *"The Master's Health is reduced by 50% of its maximum value"* -- the
-    // first cost in the corpus whose size is not on the sheet, because it
-    // depends on whose Master it is.
-    if (extra.kind === "masterHealthFractionOfMax") {
-      const max = master?.maxHealth ?? master?.health?.max ?? 0;
-      out.push({
-        kind: "masterHealth",
-        amount: Math.floor(max * (extra.fraction ?? 0)),
-        unitId: master?.id ?? null,
-        id: extra.id,
-        supersedes: extra.supersedes ?? [],
-      });
-      continue;
-    }
-
-    if (extra.kind === "masterHealthByNPRank") {
-      out.push({ ...npCostAt({ rank: extra.rank, unit: self, master }), id: extra.id, supersedes: extra.supersedes ?? [] });
-      continue;
-    }
-    out.push({
-      kind: extra.kind ?? "masterHealth",
-      amount: extra.amount ?? 0,
-      unitId: extra.chargesMaster === false ? self.id : master?.id ?? null,
-      id: extra.id,
-      supersedes: extra.supersedes ?? [],
-    });
-  }
+  // something else can name it in `supersedes`. Expanded in the RULES layer so
+  // the Skill path pays them too -- it did not, and four abilities across three
+  // Servants declare costs and resolve that way (Ch. 46 §46.4-T).
+  out.push(...additionalCostsFor({ ability, self, master }));
 
   // A platform this Servant owns may replace the NP cost outright (Ch. 20).
   const platform = (board.units ?? []).find(

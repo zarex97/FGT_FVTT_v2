@@ -223,10 +223,19 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    *Kanshou & Bakuya* buff while Overedge is on Cooldown, and the field exists only on the ability
    schema, so the buff keeps working (§46.4-R, left open as a design decision rather than patched).
 
-   **All six audited Servants are now finished or all but**: Heracles, Asterios, Karna,
-   Penthesilea, Medea, and EMIYA with Rho Aias alone outstanding. Every one of them cost at least
-   one general defect that a paper trace had already cleared — nine in this pass, §46.4-J through
-   §46.4-R.
+   **Rho Aias closed the audit and cost three more.** It could never be used at all: the reaction
+   path omitted `unitId` whenever the reaction's owner was the unit in peril, which is the ordinary
+   case for a barrier raised in front of oneself, so the anchor had nothing to resolve and the use
+   was refused with *"Choose a target."* — offered, chosen, recorded as taken, and EMIYA dead at 0
+   with the shield untouched at 1400 (§46.4-S). Its Master cost was never charged either, because
+   `additionalCosts` were expanded only inside the attack path and four abilities across three
+   Servants resolve through the Skill path (§46.4-T). And §46.4-U is left open: the shield absorbs
+   whether or not the ability was used, so *being refused* and *not protecting* are currently
+   different things.
+
+   **All six audited Servants are now finished**: Heracles, Asterios, Karna, Penthesilea, Medea and
+   EMIYA. Every one of them cost at least one general defect that a paper trace had already
+   cleared — twelve in this pass, §46.4-J through §46.4-U, of which two are recorded open.
 
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
