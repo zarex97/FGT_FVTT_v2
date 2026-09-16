@@ -247,10 +247,26 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    rank changed — and the Heel interlock proved by A/B, the same attack dealing 0 with the Heel
    intact and 107 once `heelWounded` was held.
 
-   **Seven Servants are now finished**: Heracles, Asterios, Karna, Penthesilea, Medea, EMIYA and
-   Achilles. Every one cost at least one general defect that a paper trace had already cleared —
-   **twelve** in this pass, §46.4-J through §46.4-V, with §46.4-U reported and retracted. Two
-   remain open by choice: §46.4-E and §46.4-R.
+   **Semiramis was the richest single Servant this audit has run.** Five general defects, three
+   fixed: every effect that *speeds* a Noble Phantasm's cooldown was inert while all three that slow
+   one had readers (§46.4-W); a `cooldown` phase ran twice on the attack path, found because the
+   doubled figure exceeded the ability's own stated cap (§46.4-X); and the resolved summon variant
+   never reached the board, so `self:variant:` was false for everyone and six of her abilities —
+   the spine of her sheet — forked to neither side (§46.4-Y).
+
+   Two more are recorded open, both too broad to fix at the tail of a pass: her channelled Noble
+   Phantasm charges its Master 100 and starts no channel when used from the sheet, while the Skill
+   path does it correctly (§46.4-Z), and the summon variant's `overrides` are rolled back off the
+   document by some later data preparation (§46.4-AA).
+
+   §46.4-Z is the **fourth** member of one family, beside §46.4-M, §46.4-P and §46.4-T: *the two use
+   paths do not do the same thing.* That is now the most productive single question this audit
+   asks of any ability — resolve it both ways and compare.
+
+   **Seven Servants are finished and Semiramis is partial**: Heracles, Asterios, Karna,
+   Penthesilea, Medea, EMIYA and Achilles. Every one cost at least one general defect that a paper
+   trace had already cleared — **fifteen** in this pass, §46.4-J through §46.4-AA, with §46.4-U
+   reported and retracted. Four remain open: §46.4-E, §46.4-R, §46.4-Z and §46.4-AA.
 
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on

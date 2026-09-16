@@ -825,6 +825,63 @@ fire. It did decline, but not for the reason I gave: its gate is `self:variant:n
 **Verified live**: `variant: "dsc"` on the projection, `self:variant:dsc` emitted, and Summoning:
 Bašmu accepted.
 
+### Z. A channelled Noble Phantasm charges its Master and never channels — **open**
+
+**Reached: Semiramis's Hanging Gardens of Babylon**, the only channelled ability in the corpus.
+
+Her sheet is explicit on both halves: *"Semiramis has to be within her Home Base, and cannot Act for
+3◈ Turns … the Hanging Gardens of Babylon is activated at the end of the last Turn in that period.
+Semiramis' Master only loses Health as per NP usage rules **only when HGoB successfully activates,
+not at the start** of the NP activation process."*
+
+`engine/channel.mjs#startChannel` is called from **one** place — `skill-use.mjs`'s phase runner —
+and `channel` is not in `CASTER_PHASES`, so `resolveAttack` never runs the phase. `useSkill` also
+suppresses the ability's cost when a channel starts (`!applied.channelStarted`); `resolveAttack`
+has no equivalent and bills at declaration.
+
+**Measured live, both paths, same ability and same state:**
+
+| | Master | Channel |
+|---|---|---|
+| `useSkill` | **198 → 198**, charged nothing | started: `ticksRequired: 9` (3◈), `onComplete: activateHangingGardens` |
+| `resolveAttack` | **198 → 98**, charged 100 | none |
+
+It is `kind: noblePhantasm`, and the sheet's own button routes every ability through
+`resolveAttack` — so a player clicking her signature Noble Phantasm pays 100 of their Master's
+Health and gets nothing at all.
+
+Left **open**. The fix has two halves — put `channel` in `CASTER_PHASES`, and teach the attack
+path's cost flow the same `channelStarted` suppression the Skill path already has — and the second
+touches how every Noble Phantasm in the game is billed. That is not a change to make at the end of
+a long session; it wants its own pass with the cost tests in front of it. This is the fourth member
+of the family §46.4-M, §46.4-P and §46.4-T belong to: *the two use paths do not do the same thing*.
+
+### AA. A summon variant's `overrides` do not survive on the document — **open**
+
+**Reached: Semiramis**, the only Servant with a `summonVariant` block.
+
+`engine/summon.mjs` merges the chosen branch's `overrides` into the actor at commit
+(`Object.assign(patch, branch?.overrides ?? {})`), and for the `dsc` branch those are a **Range of
+3**, a **range-banded normal attack** (STR at 1–2, MAG at 3+), and **4◈ Sustainability**.
+
+At the moment of summon they were there: `commitWar` reported her with `range: { panels: 3 }`. Some
+later data preparation put the sheet's own values back.
+
+**Measured live, on the same actor:**
+
+| | Branch says | Document holds |
+|---|---|---|
+| Range | 3 | **2** |
+| Normal attack | `rangeBanded`, two bands | **`fixed`**, no bands |
+| Sustainability | `4◈` | **`2◈`** |
+
+`system.variant` still reads `"dsc"`, so the coin flip itself survived — it is only the numbers it
+bought that were rolled back. Distinct from §46.4-Y, which was the *id* not reaching the board;
+this is the *overrides* not staying on the document.
+
+Left **open** alongside §46.4-Z: the cause is in data preparation, which every Servant runs on every
+update, and narrowing it properly deserves its own pass.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -902,7 +959,7 @@ per-Servant record of what each audit left untested.
 | **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
 | **EMIYA** | ✅ | ✅ **complete** | 7 (2 his, 5 general) | §46.12; §46.4-P, Q, R, S, T |
 | Hassan of Serenity | — | — | — | |
-| Semiramis | — | — | — | |
+| **Semiramis** | ✅ | ◐ partial | 5 general (3 fixed, 2 open) | §46.4-W, X, Y, Z, AA |
 | Scáthach | — | — | — | |
 | Kingprotea | — | — | — | |
 | Castor / Pollux | — | — | — | |
@@ -1521,6 +1578,42 @@ Rank A or above** — Medea has none, her only true NP being single-target Rule 
 Penthesilea and who does not have three parameters a rank below his — which is a different opponent
 entirely. **Passenger Seat**, **Riding Attack** and **Double Move** are granted and visible on the
 snapshot but were never performed as actions.
+
+**Semiramis — partial, and the audit's richest single Servant for defects.** A war built by
+`commitWar` against Heracles. Four defects found, three fixed; two more recorded open.
+
+*Pressed (engine):*
+
+- **The summon variant itself.** The coin flip resolved to `dsc`, and `commitWar` reported her with
+  the branch's **Range 3** — which is how the flip was known to have happened at all, and what made
+  §46.4-Y and §46.4-AA separable.
+- **Double Summon**, all three clauses: `npRegen` and the `construction` effect both at 1◈, and
+  clause 3 correctly declining — though §46.4-Y forced a correction on *why*.
+- **`npRegen` and `construction` as behaviours**, not just applications. That is where §46.4-W came
+  from: her Noble Phantasm's cooldown fell by exactly 1 per Turn whether the buff was held or not,
+  and only dropping it across two otherwise identical Turns showed that the buff was doing nothing.
+  `construction` gains **1d6 on her faction's Turn** — checked against `docs/E`, which defines
+  `fgt.turnEnd` as *"for the active player's units"*, so that cadence is correct and is recorded in
+  §46.6.
+- **Familiar Doves**: `debuffResDwn` **30** for ⅓◈, and the cooldown clause whose X is *"the number
+  of enemy Units with the Dove effect"* — 2 dove-holders, **2 Turns**, capped at 1◈. Measuring that
+  X is what found §46.4-X, because the doubled figure **exceeded the ability's own cap**.
+- **Scales of the Sacred Fish**, which corroborates §46.4-S on a second Servant's content: offered
+  on herself at `whenAllyAttacked`, taken without refusal, `scalesShield` applied, and the pool
+  **200 → 0** absorbing its full value with 163 overflowing to her. No owner loss, which is right —
+  unlike Rho Aias, her sheet charges none.
+- **Divinity C** at 30, **Territory Creation** at rank EX with its aura, **Presence Concealment**
+  C+, and her statline.
+
+*Found while pressing:* §46.4-W, §46.4-X, §46.4-Y — all fixed — and §46.4-Z and §46.4-AA, both
+recorded open.
+
+*Still untested:* **Sikera Ušum**, her Noble Phantasm, whose two branches §46.4-Y had made
+unreachable and which §46.4-Z now blocks at the channel; the **Hanging Gardens** past its
+activation, and therefore **Aerial Garden of Vanity** and **Dragon Wing Warriors**; **Summoning:
+Bašmu**, which §46.4-Y unblocked but which needs her standing on the completed platform for its
+summon branch; **Arrogant King's Poison**, which requires three [Semiramis' Poison] to use; and
+**Item Construction**, whose contributions did not appear on her projection.
 
 ### 46.13.2 Fixes that were never pressed
 
