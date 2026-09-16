@@ -24,13 +24,14 @@ import {
 } from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
-import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { cooldownChanges } from "./skill-use.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
+import { missChance, missSourceOf } from "../rules/miss.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { collectContributions, resolveValue } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
@@ -248,7 +249,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // Attack"* on somebody else's Turn has to survive both, or it silently costs
   // him the swing he had not taken yet.
   if (combat?.started && !resume && !free) {
-    await budget.spend({ combat, unit: self, action: actionKind });
+    await budget.spend({ combat, unit: self, action: actionKind, ability, board });
     const isAttack = actionKind !== "skill";
     await applyBatch(
       [I.markTurn(attackerId, isAttack
@@ -527,7 +528,14 @@ async function payAbilityPrice({ ability, attackerId, attacker, self, master, us
   // the attack budget, which is a different rule.
   if (ability && !resume) {
     const plan = cooldownFor(ability, attackerId, { unit: self });
-    const clocks = [...plan.cooldowns, ...alsoTriggered(ability, attacker)];
+    // *"When either Castor or Pollux uses a Skill, the Skill enters Cooldown
+    // for both of them."* Spread beside `alsoTriggered` so the shared clocks
+    // and the triggered ones become the same intents.
+    const clocks = [
+      ...plan.cooldowns,
+      ...sharedAcrossGroup(plan.cooldowns, self, board),
+      ...alsoTriggered(ability, attacker),
+    ];
     const intents = [
       ...clocks.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
       // A waived cooldown is PAID for -- Scáthach's PRS Token. Her damaging
@@ -805,6 +813,13 @@ async function declareProcesses({
   isCounter = false, requiredTargetId = null, counterDepth = 0, groupId = null,
   perProcess = null,
 }) {
+  // §12.8's flag, folded into the ATTACK rather than only onto the Process
+  // state. `rules/options.mjs` emits `attack:isCounter` from the attack spec,
+  // which is what travels into the damage context, the card and every
+  // predicate -- and Avenger's counter bonus is the first clause to ask.
+  // Carried on the state too, which is where `mayCounterAgain` reads it.
+  const spec = isCounter ? { ...attackSpec, isCounter: true } : attackSpec;
+
   // A resolution that caught no units is still a resolution — a ground-placed
   // non-damaging NP has a shape and no defenders — so it keeps its single
   // null-defender process rather than becoming an empty fan-out.
@@ -819,7 +834,7 @@ async function declareProcesses({
     ? process.beginFanOut({
       attackerId,
       targetIds,
-      attack: attackSpec,
+      attack: spec,
       // DISTINCT defenders, not processes. Overedge's two swings are two
       // processes against one Unit and are not an area attack; deriving it from
       // the process count would have flipped `attack:isAoE` on for them and
@@ -855,7 +870,7 @@ async function declareProcesses({
         };
     })
     : [process.begin({
-      attackerId, defenderId: null, attack: attackSpec,
+      attackerId, defenderId: null, attack: spec,
       isCounter, requiredTargetId, counterDepth,
     })];
 
@@ -913,7 +928,21 @@ async function declareProcesses({
     // Attack" -- and because what it forbids (a Block) has to be settled before
     // the defender is shown their rung.
     const aimed = await offerWeakPoint(withReactions, { board });
-    const advanced = process.advance(aimed, "done");
+    // Step 1.5 -- the MISS CHECK (Ch. 12 §12.2). Rolled only when something can
+    // actually cause a miss, so an ordinary attack neither rolls a die nor
+    // writes a log line it would then have to explain.
+    //
+    // A miss ENDS the Process here: the card is still rendered, because a swing
+    // that vanished with no card at all reads as the interface losing the
+    // attack rather than as the rule it is.
+    // The BOARD-derived attacker, not `unitSnapshot(attacker)`: the miss ladder
+    // asks about Skills through roll options, and only the full projection
+    // carries everything those options are built from.
+    const advanced = await runMissCheck(
+      process.advance(aimed, "done"),
+      board.units.find((u) => u.id === attackerId) ?? unitSnapshot(attacker),
+      board,
+    );
     const target = targets.units.find((t) => t.unitId === advanced.defenderId);
     const message = await renderAttackCard({
       state: advanced,
@@ -3429,9 +3458,27 @@ function recordIntents(defender, state) {
  * @param {object} board
  * @returns {Record<string, object>}
  */
-function mountUnits(attacker, board) {
+function namedUnits(attacker, board) {
   const { platform, attacksAsPlatform } = actionSourceFor(attacker, board);
-  return attacksAsPlatform && platform ? { mount: platform } : {};
+  /** @type {Record<string, object>} */
+  const out = {};
+  if (attacksAsPlatform && platform) out.mount = platform;
+
+  // The other member of a linked group. Stage 1 has resolved
+  // `ctx.units[src.unit]` since the pipeline was written and `mount` was its
+  // only entry -- so the Dioscuri NP's *"half of Castor's BA(STR) and half of
+  // Pollux's"* could not be authored at all.
+  //
+  // ONE partner only. Every linked group in the corpus is a pair, and a source
+  // naming "the partner" in a group of three would be ambiguous; a larger
+  // group should name its members explicitly rather than have one silently
+  // chosen here.
+  const partnerIds = [...(attacker?.linkedGroup?.memberIds ?? [])];
+  if (partnerIds.length === 1) {
+    const partner = (board?.units ?? []).find((u) => u.id === partnerIds[0]);
+    if (partner) out.partner = partner;
+  }
+  return out;
 }
 
 
@@ -3533,6 +3580,11 @@ async function applyDamage(state, message) {
       // why Magic Resistance could not be bypassed and Pierce did nothing.
       ...facts,
       abilityId: state.attack?.abilityId ?? null,
+      // Named units whose modifier bags this attack combines with the
+      // attacker's. Authored on the ability as `damage.modifierSources`, and
+      // read by `activeMods` -- the mirror of `excludeModifierSources`, which
+      // lives on this same object for the same reason.
+      modifierSources: resolvedDamage(ability, options)?.modifierSources ?? [],
       rank: Rank.parseOrNull(ability?.system?.rank),
       categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
       // The branch-resolved element first, then the ability's own. Rebuilding it
@@ -3575,7 +3627,7 @@ async function applyDamage(state, message) {
     // since the pipeline was written and nothing has ever supplied the map:
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
     // by her platform's swings the platform's 150 rather than her own 125.
-    units: mountUnits(attacker, board),
+    units: namedUnits(attacker, board),
     // Base Attacks read off a COMPENDIUM document rather than off the board.
     //
     // Drake's broadside: *"The Golden Hind's Base Attack (MAG) is used"*, and
@@ -4018,7 +4070,28 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
 
   // Through `effectivePhases`, because a copy (§15.7) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
-  for (const phase of effectivePhases(ability.system ?? {}, resolveAbilitySource)) {
+  // Resolve a player's `choose` into the branch they picked, before the loop.
+  //
+  //   *"First, either restore 2 Agility and 2 Luck to Castor; or restore 1
+  //    Agility and 1 Luck to both Castor and Pollux."*
+  //
+  // One ability, two outcomes, chosen at use. Ch. 34 §34.10 asks for a new
+  // `kind: choice` phase for this; the engine already had `choose`, authored
+  // by EMIYA's Trace On (*"apply ONE OF the following effects OF YOUR
+  // CHOICE"*). An option gains an optional `phases:` list rather than a fifth
+  // spelling of "the player picks" -- a `choice` kind beside `choose` would be
+  // two grammars for one decision.
+  //
+  // Spliced in PLACE rather than dispatched inside the loop, so the chosen
+  // branch's phases run in the position the choice occupied and are read by
+  // the same `when` and `predicate` handling every other phase is. A branch
+  // cannot see an earlier phase's result, which is true of every phase here.
+  const phases = await resolveChoosePhases(
+    effectivePhases(ability.system ?? {}, resolveAbilitySource),
+    attackerDoc,
+  );
+
+  for (const phase of phases) {
     // WHEN this phase runs relative to the damage. Unstated means after, which
     // is what every phase written before this window existed meant.
     if ((phase.when ?? "afterDamage") !== when) continue;
@@ -5185,10 +5258,12 @@ async function offerAttackerWindow(state, window, message) {
   // the state it is leaving rather than the one it is entering.
   const intents = chosen.flatMap((id) => {
     const item = actor.items.get(id);
-    const plan = cooldownFor(item, actor.id, { unit: unitSnapshot(actor) });
+    const self = unitSnapshot(actor);
+    const plan = cooldownFor(item, actor.id, { unit: self });
     const toggles = classifyAbility(item).toggles;
     return [
-      ...plan.cooldowns.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
+      ...[...plan.cooldowns, ...sharedAcrossGroup(plan.cooldowns, self, null)]
+        .map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
       ...(toggles
         ? [I.setMode(actor.id, item.system?.slug ?? id, !item.system?.active, `window:${window}`)]
         : []),
@@ -5214,6 +5289,102 @@ async function offerAttackerWindow(state, window, message) {
 
   void message;
   return { ...state, windowAbilities: carried };
+}
+
+/**
+ * Combat Process step 1.5 — does this swing happen at all?
+ *
+ * Blind is the only source (`rules/miss.mjs`), and the roll is the ATTACKER's:
+ * a Miss is the swing not happening, where an Evade is the defender answering
+ * one that did.
+ *
+ * Short-circuits to `hit` when nothing can cause a miss, which is every attack
+ * in the game but a Blinded one — so the common path rolls no dice and files no
+ * roll record.
+ *
+ * The record is filed through `advance`'s own `detail.rollRecord`, which is the
+ * one place a Process's rolls are appended, so a miss cannot produce a number
+ * the log never hears about (§14.8).
+ *
+ * @param {object} state a Process sitting at `missCheck`
+ * @param {object} attacker the attacker's snapshot
+ * @param {object} board
+ * @returns {Promise<object>} the Process, at `react` or at `missed`
+ */
+async function runMissCheck(state, attacker, board) {
+  const chance = missChance(attacker, rollOptionsFor({ attacker, board }));
+  if (chance <= 0) return process.advance(state, "hit");
+
+  const roll = await new Roll("1d100").evaluate();
+  const missed = roll.total <= chance;
+  const source = missSourceOf(attacker);
+
+  return process.advance(state, missed ? "miss" : "hit", {
+    rollRecord: {
+      check: "miss",
+      label: game.i18n.localize("FGT.Card.MissCheck"),
+      total: roll.total,
+      target: chance,
+      outcome: missed ? "miss" : "hit",
+      source,
+      unitId: attacker.id,
+    },
+  });
+}
+
+/**
+ * Replace a branching `kind: "choose"` phase with the branch its user picked.
+ *
+ * `choose` has picked from a list of EFFECTS since EMIYA's *Trace On* was
+ * authored. An option may now carry `phases:` instead, which is what a choice
+ * BETWEEN OUTCOMES needs -- Mana Burst's *"either restore 2 Agility and 2 Luck
+ * to Castor; or restore 1 Agility and 1 Luck to both"* is two stat changes on
+ * different targets, not two effects.
+ *
+ * Only phases whose options actually branch come through here; an ordinary
+ * effect-picking `choose` is left for the runner that already handles it.
+ *
+ * The USER chooses, not the target: it is the attacker's ability and the
+ * attacker's resources. {@link askOwner} routes the question to whoever owns
+ * the Servant rather than to whoever is arbitrating.
+ *
+ * A timeout or a closed dialog answers `null`, which runs **no branch at all**.
+ * That is deliberate and is not an error: a player who declined chose neither
+ * option, and applying one for them would be inventing the decision.
+ *
+ * @param {object[]} phases
+ * @param {object} attackerDoc
+ * @returns {Promise<object[]>}
+ */
+async function resolveChoosePhases(phases, attackerDoc) {
+  if (!phases.some((p) => p.kind === "choose" && (p.options ?? []).some((o) => o.phases))) {
+    return phases;
+  }
+
+  /** @type {object[]} */
+  const out = [];
+  for (const phase of phases) {
+    if (phase.kind !== "choose" || !(phase.options ?? []).some((o) => o.phases)) {
+      out.push(phase);
+      continue;
+    }
+    const options = phase.options ?? [];
+    const picked = await askOwner(attackerDoc, {
+      kind: "choose",
+      title: game.i18n.localize(phase.prompt ?? "FGT.Authoring.Phase.choose"),
+      hint: game.i18n.localize(phase.hint ?? phase.prompt ?? "FGT.Authoring.Phase.chooseHint"),
+      min: 0,
+      count: 1,
+      options: options.map((o, i) => ({
+        id: String(i),
+        name: game.i18n.localize(o.label ?? o.id ?? String(i)),
+      })),
+    });
+    const index = Number((picked ?? [])[0]);
+    const branch = Number.isInteger(index) ? options[index] : null;
+    if (branch) out.push(...(branch.phases ?? []));
+  }
+  return out;
 }
 
 /**

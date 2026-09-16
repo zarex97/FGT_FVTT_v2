@@ -15,6 +15,11 @@ kind: skill
 source: personal
 rank: "A+"
 cooldown: "4◈-⅓◈"
+# The FAMILY Blind's clause 3 names: *"'Mystic Eye' and 'Glam Sight' Skills
+# cannot be used."* Tagged rather than named by slug, so a second Mystic Eye
+# authored later is covered without touching the effect
+# (`rules/costs.mjs#canUseAbility` is the reader).
+categorizedAs: [mysticEye]
 description: |
   Used during your Turn. Range 2 panels, on an enemy Unit. Cannot be used if there is an
   obstruction between Medusa and the target, and only if Medusa is facing it.

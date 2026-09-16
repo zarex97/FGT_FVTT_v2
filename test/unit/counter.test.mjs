@@ -118,7 +118,7 @@ describe("beginCounter", () => {
   });
 
   it("starts a fresh ladder rather than inheriting the original's state", () => {
-    const spent = advance(proc(), "done");
+    const spent = advance(advance(proc(), "done"), "hit");
 
     expect(beginCounter(spent)[0].state).toBe("declare");
     expect(beginCounter(spent)[0].history).toEqual([]);

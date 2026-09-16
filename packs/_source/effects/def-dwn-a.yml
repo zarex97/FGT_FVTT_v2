@@ -1,0 +1,36 @@
+# Appendix A §A.9 / docs/10-effects-taxonomy.md §10.4 — the second Def Dwn
+# variant, and the mirror of `def-dwn-c.yml`.
+#
+# "Def Dwn (A) | Luck -1 at end of Damage Step whenever successfully Attacked."
+# A distinct effect and not a stronger Def Dwn: the extra clause is what the
+# letter names, and content that strips "one Def Dwn" must not take this
+# instead. The Dioscuri's Noble Phantasm inflicts BOTH (A) and (C), so the two
+# have to be separable.
+schema: 1
+id: defDwnA
+name: "Def Dwn (A)"
+description: "All damage taken is increased by X%; Luck is reduced by 1 whenever damage is received."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+families: [defDwn]
+rules:
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: "@magnitude"
+    # The Dioscuri NP states "all damage received is increased by 15%" with no
+    # NP clause, so the NP magnitude is the same number rather than the usual
+    # halving -- exactly what `def-dwn-c.yml` records for its own sheet.
+    npValue: "@magnitude"
+
+  # The second clause, and the only thing that distinguishes (A) from (C):
+  # LUCK, where (C) takes Agility. `damageTaken` fires on the Unit that
+  # RECEIVED the damage, which is the rung (C) already hangs from.
+  - key: OnEvent
+    event: damageTaken
+    automatic: true
+    then:
+      - { key: StatDelta, stat: "luck.value", delta: -1 }

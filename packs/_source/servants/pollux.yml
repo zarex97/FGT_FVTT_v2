@@ -1,0 +1,59 @@
+# Pollux, char_orig_sheets/Copia de Dioscuri.md
+schema: 1
+id: pollux
+name: "Pollux"
+type: servant
+trueName: "Pollux"
+# Appendix D marks her class INFERRED: only Castor's sheet states Avenger, and
+# she carries none of the Avenger class skills. `classContainer` is
+# presentational, so nothing mechanical turns on it.
+servantClasses: [avenger]
+classContainer: avenger
+region: [greece, europe]
+alignment: { order: chaotic, morality: neutral }
+attributes: [female, servant, sky, humanoid]
+parameters: { str: A, end: "A++", agi: B, mag: C, luc: C }
+baseHealth: 1500
+mov: 5
+range: { panels: 1, targets: 1 }
+# Her sheet prints BA(STR) 200 and the rank table gives 150 at Rank A. The TABLE
+# WINS (Ch. 41 Q50) and `domain/base-attack.mjs` derives unconditionally, so the
+# 200 is recorded here ONLY to keep the deviation visible -- the same treatment
+# Kiritsugu's 65, Semiramis's 45 and Serenity's 65/100 get, and
+# `validate:content` warns about it.
+#
+# The cascade is recorded in the two files that print a total: her Mana Burst is
+# 300 rather than the sheet's 350, and the joint NP is 150 rather than 175.
+baseAttack: { str: 200, mag: 150 }
+sustainability: "2◈"
+
+linkedGroup:
+  id: dioscuri
+  partners: [castor]
+  leash: 2
+  linkedDeath: ignoresRevival
+  sharedCooldowns: byName
+  unitWeight: 0.5
+  zonSatisfaction: any
+  modifierCombination: union
+  summonTogether: true
+
+abilities:
+  # *"When Castor is directly next to Pollux, Castor also receives the effect of
+  # this Skill."* The partner-conditional half is an `Aura` with
+  # `recipientRoles: [linkedPartner]` at radius 1, authored on the SHARED
+  # template -- inert for the other ten bearers, because a Servant with no
+  # linked group has no partner for the role to find.
+  - { ref: class-magic-resistance, rank: A }
+  - { ref: class-riding-pollux, rank: B, cooldown: "2◈" }
+  - { ref: dioscuri-twin-gods-divine-core-pollux }
+  - { ref: dioscuri-stars-of-the-chief-god }
+  - { ref: dioscuri-guardians-of-navigation }
+  - { ref: dioscuri-mana-burst-pollux }
+  - { ref: dioscuri-tyndaridae }
+
+notes: |
+  Her Riding is a FOURTH variant of the class template (`class-riding-pollux`). Her Active names
+  all three passives — *"'Double Move', 'Riding Attack', and 'Passenger Seat' can be used on this
+  Turn"* — where Medusa's names two and leaves Double Move permanent, and the shared template
+  grants all three unconditionally.

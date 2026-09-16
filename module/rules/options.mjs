@@ -47,6 +47,12 @@ export function rollOptionsFor({ attacker, defender, attack = {} }) {
 
   options.add(`attack:kind:${attack.kind ?? "normal"}`);
   if (attack.isAoE) options.add("attack:isAoE");
+  // Whether this declaration ANSWERS an attack rather than starting one
+  // (§12.8). Avenger's second half is the first clause to ask: *"If Castor
+  // Counters after receiving an Attack, increase the damage dealt when
+  // Countering."* "After receiving an Attack" needs no separate test -- a
+  // Counter is only ever declared at Combat Process step 6.
+  if (attack.isCounter) options.add("attack:isCounter");
 
   // HOW THE DEFENDER REACTED, once the ladder has closed. Emitted on `target`
   // because that is what the defender is called throughout this vocabulary.
@@ -314,6 +320,27 @@ function add(options, side, unit) {
   if (typeof unit.masterDistance === "number") {
     for (let n = Math.max(1, unit.masterDistance); n <= 6; n++) {
       options.add(`${side}:withinOfMaster:${n}`);
+    }
+  }
+
+  // How close this unit stands to the other member of its linked group.
+  //
+  // Two clauses ask, and both are the Dioscuri's: Mad Enhancement's *"If
+  // Castor is directly next to Pollux ... his Master's Health lost ... are
+  // halved"* and Magic Resistance's *"When Castor is directly next to Pollux,
+  // Castor also receives the effect of this Skill."*
+  //
+  // A LADDER, exactly like `withinOfMaster` above, so adjacency is `:1` and
+  // needs no special case of its own. `null` emits nothing at all, which is
+  // the right answer for a twin standing alone: `:1` is false and its negation
+  // is true, and both are correct.
+  //
+  // Distinct from the `counterpartAdjacent` REQUIREMENT kind, which gates
+  // whether an ability may be used at all; this modifies a rule already in
+  // force.
+  if (typeof unit.partnerDistance === "number") {
+    for (let n = Math.max(1, unit.partnerDistance); n <= 6; n++) {
+      options.add(`${side}:withinOfPartner:${n}`);
     }
   }
 

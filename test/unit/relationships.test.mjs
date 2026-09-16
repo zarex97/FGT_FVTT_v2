@@ -225,3 +225,44 @@ describe("mayOrderAnotherServant", () => {
       .toMatchObject({ ok: true });
   });
 });
+
+describe("R2 — the multi-Servant tax counts Units, and twins are half each", () => {
+  const boss = { id: "m", kind: "master", health: { value: 300, max: 300 } };
+  const twin = (id) => ({
+    id, kind: "servant", turnState: { acted: true },
+    linkedGroup: { id: "dioscuri", memberIds: [], leash: 2, unitWeight: 0.5 },
+  });
+  const whole = (id) => ({ id, kind: "servant", turnState: { acted: true } });
+
+  it("charges nothing when only the two twins Acted", () => {
+    // 0.5 + 0.5 = 1.0 Unit, so "more than one Acted" is false.
+    expect(multiServantTax(boss, [twin("castor"), twin("pollux")])).toEqual([]);
+  });
+
+  it("charges the flat 25 when the twins Acted alongside another Servant", () => {
+    const out = multiServantTax(boss, [twin("castor"), twin("pollux"), whole("karna")]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ unitId: "m", stat: "health.value", delta: -25, isLoss: true });
+  });
+
+  it("still charges two ordinary Servants", () => {
+    expect(multiServantTax(boss, [whole("a"), whole("b")])).toHaveLength(1);
+  });
+
+  it("charges nothing when one twin Acted alone", () => {
+    expect(multiServantTax(boss, [twin("castor")])).toEqual([]);
+  });
+
+  it("lets a Master on 25 or less order the second twin", () => {
+    // The prohibition is "cannot order more than one Servant to Act". One twin
+    // having Acted is half a Unit, so the pair is still one order.
+    const poor = { id: "m", kind: "master", health: { value: 25, max: 300 } };
+    expect(mayOrderAnotherServant(poor, [twin("castor")]).ok).toBe(true);
+    expect(mayOrderAnotherServant(poor, [whole("karna")]).ok).toBe(false);
+  });
+
+  it("still refuses a poor Master a third order once the pair has both Acted", () => {
+    const poor = { id: "m", kind: "master", health: { value: 25, max: 300 } };
+    expect(mayOrderAnotherServant(poor, [twin("castor"), twin("pollux")]).ok).toBe(false);
+  });
+});

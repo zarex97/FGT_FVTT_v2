@@ -1,0 +1,40 @@
+# docs/B-rank-tables.md §B.3 — the Avenger class set (Ch. 15 §15.6).
+#
+# A class skill that is NET-NEGATIVE in isolation, which is rare enough that
+# Ch. 34 §34.8 calls it out: +80 to all damage TAKEN, offset only by a counter
+# bonus the Servant has to earn by being attacked first.
+schema: 1
+id: class-avenger
+name: "Avenger"
+source: class
+slug: avenger
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive) All damage taken by this Servant is increased including NP. If this Servant Counters
+  after receiving an Attack, the damage dealt when Countering is increased by the same amount
+  including NP.
+passiveRules:
+  # The drawback. `direction: taken` with a POSITIVE flat value -- the mirror of
+  # a Ward, and the only class skill in the corpus that hurts its own bearer.
+  - key: DamageModifier
+    modifierKey: avenger
+    direction: taken
+    table: avenger
+    mode: flat
+    includesNP: true
+
+  # The offset. `avengerCounter` has been in `rules/damage/pipeline.mjs`'s
+  # FLAT_ATTACK_KEYS since stage 7 was written, with nothing in the corpus ever
+  # contributing to it -- a reader waiting for a writer, and this is the writer.
+  #
+  # Gated on the attack being a COUNTER, which already implies "after receiving
+  # an Attack": a Counter is only ever declared at Combat Process step 6.
+  - key: FlatDamage
+    modifierKey: avengerCounter
+    table: avenger
+    includesNP: true
+    predicate: ["attack:isCounter"]

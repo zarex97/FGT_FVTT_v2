@@ -1,0 +1,36 @@
+# The Dioscuri, char_orig_sheets/Copia de Dioscuri.md
+#
+# ONE file, `ref`d by both twins. Their two sheet entries are identical apart
+# from the pronouns, and the shared NAME is what puts them on one clock -- so
+# authoring two documents would have produced two abilities that share a
+# cooldown and could still drift apart.
+schema: 1
+id: dioscuri-stars-of-the-chief-god
+name: "Stars of the Chief God"
+rank: A
+kind: skill
+slug: starsOfTheChiefGod
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Applies the '@effect[castorBuff]{Castor}' and '@effect[polluxBuff]{Pollux}' buffs on itself and its
+  linked partner for 1◈ Turns. Has the following effects-
+  1. 'Pollux' buff: When the affected Unit performs a Normal Attack that does not Crit, apply
+     @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of itself (and its partner if
+     it is out of the Skill's Range), Crit Chance is increased by 10%.
+  2. 'Castor' buff: When the affected Unit performs a Normal Attack that is a Crit, reduce the
+     Unit's NP Cooldown by 1 Turn.
+  Cooldown: 4◈ Turns.
+targeting:
+  # "on himself and Pollux" -- exactly two Units, and the partner regardless of
+  # where she is standing. A radius of 0 plus the partner clause says that
+  # precisely; a radius of 2 would catch bystanders the sheet does not name.
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 0 }
+  selection: { relations: [self], includeSelf: true, chooser: all, alsoIncludes: partner }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: castorBuff, duration: "1◈" }
+      - { id: polluxBuff, duration: "1◈" }

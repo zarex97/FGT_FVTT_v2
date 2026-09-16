@@ -1,0 +1,54 @@
+# Castor, char_orig_sheets/Copia de Dioscuri.md
+#
+# Same NAME as Pollux's, same rank, same +80 -- and a DIFFERENT Passive 2, which
+# is why these are two documents. His is a 5% NP-cooldown chance on a successful
+# Normal Attack; hers is +5% Crit Chance.
+#
+# The shared NAME is what would put them on a shared cooldown (the Dioscuri
+# binding matches by name). Neither has one, so that is inert here -- but it is
+# why the two files must keep the same `name` and differ only in their rules.
+schema: 1
+id: dioscuri-twin-gods-divine-core-castor
+name: "Twin God's Divine Core"
+rank: B
+kind: skill
+slug: twinGodsDivineCore
+passive: true
+# What a clause naming "the Divinity Skill" matches on.
+# `kingprotea-divine-core.yml` is the precedent and carries the identical pair
+# of category tag and granted attribute.
+categorizedAs: [divinity]
+description: |
+  (Passive 1) All damage dealt is increased by 80 including NP.
+  (Passive 2) Whenever Castor performs a successful Normal Attack, he has a 5% chance of reducing
+  his NP Cooldown by 1 Turn at the end of the Damage Step.
+  This Skill counts as '@ability[divinity]{Divinity}'.
+passiveRules:
+  # `divineCore` at B is 80, and that table's own docstring names "Twin God's
+  # Divine Core" as one of its two customers. Nothing is authored.
+  - key: FlatDamage
+    table: divineCore
+    includesNP: true
+
+  # Passive 2. `damageStepEnd` FIRES ON THE ATTACKER (`engine/attack.mjs`), so
+  # no `self:isAttacker` gate is needed -- and there is no such facet, because
+  # every event in this vocabulary already names whose rung it is.
+  #
+  # "Successful" is what the rung already means: a missed or fully-evaded swing
+  # never reaches the end of a Damage Step.
+  #
+  # `delta: -1`, not `ticks`: *"by 1 Turn"* is a literal turn count.
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    chance: 5
+    then:
+      - { key: CooldownDelta, scope: np, delta: -1 }
+
+  # "Counts as Divinity" -- the ATTRIBUTE half. Ten of the thirteen reference
+  # Servants are Divine, which is what makes Karna's Vasavi Shakti and
+  # Scáthach's God Slayer live against this pair.
+  - key: StatDelta
+    stat: attributes
+    add: [divine]

@@ -1,0 +1,25 @@
+# The Dioscuri, char_orig_sheets/Copia de Dioscuri.md
+#
+# The other half of the pair (`pollux-buff`): this fires on a Normal Attack that
+# IS a Crit. Both twins carry both, so every Normal Attack either of them makes
+# triggers exactly one.
+schema: 1
+id: castorBuff
+name: "Castor"
+description: |
+  When the affected Unit performs a Normal Attack that is a Crit, reduce that Unit's NP Cooldown
+  by 1 Turn.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:crit"]
+    then:
+      # "the Unit's" -- the attacker's own, not the pair's. `delta`, not
+      # `ticks`: *"by 1 Turn"* is a literal turn count.
+      - { key: CooldownDelta, target: self, scope: np, delta: -1 }

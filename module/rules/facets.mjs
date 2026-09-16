@@ -292,6 +292,22 @@ export const FACETS = Object.freeze([
     prose: "{subject} is within {panels} panels of its own Master",
   }),
   facet({
+    id: "isCounter",
+    subjects: ["attack"],
+    english: "This attack is a Counter, answering one rather than starting it.",
+    prose: "the attack is a Counter",
+  }),
+  facet({
+    id: "withinOfPartner",
+    segments: [{ name: "panels", value: number(1, 6) }],
+    // The other member of a linked group (Ch. 16 §16.8). Adjacency is `:1`,
+    // with no special case: the ladder runs from the actual distance up to 6,
+    // exactly as `withinOfMaster` above does, and a unit with no partner on
+    // the board emits nothing at all.
+    english: "Is within a number of panels of the other member of its linked group.",
+    prose: "{subject} is within {panels} panels of its linked partner",
+  }),
+  facet({
     id: "withinOfOwnerMaster",
     segments: [{ name: "panels", value: number(1, 6) }],
     // NOT the unit's own Master -- that is `withinOfMaster` above. This is the

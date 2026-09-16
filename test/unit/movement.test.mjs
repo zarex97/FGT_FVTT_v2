@@ -465,3 +465,52 @@ describe("sharesPanel — co-location without displacement", () => {
     expect(s.sharesPanel).toBe(true);
   });
 });
+
+describe("clause 8 — the linked-group leash (D3)", () => {
+  const leashed = (id, panel, partners) => ({
+    id, name: id, kind: "servant", panel, factionId: "a", level: 0, mov: 6,
+    effects: [], turnState: {},
+    linkedGroup: { id: "dioscuri", memberIds: partners, leash: 2, unitWeight: 0.5 },
+  });
+
+  it("refuses a stop further than the leash from the partner", () => {
+    const c = leashed("castor", at(3, 3), ["pollux"]);
+    const p = leashed("pollux", at(3, 3), ["castor"]);
+    const b = board([c, p]);
+
+    expect(canStopOn(at(5, 3), c, b)).toBe(true);   // 2 — at the leash
+    expect(canStopOn(at(6, 3), c, b)).toBe(false);  // 3 — beyond it
+  });
+
+  it("still allows PASSING THROUGH a panel beyond the leash", () => {
+    // The leash is about where a twin STANDS. A path that steps out to 3 and
+    // back to 1 is legal, and refusing it would forbid walking around a wall.
+    const c = leashed("castor", at(3, 3), ["pollux"]);
+    const p = leashed("pollux", at(3, 3), ["castor"]);
+    expect(canPassThrough(at(6, 3), c, board([c, p]))).toBe(true);
+  });
+
+  it("does not constrain a unit whose partner is not on the board", () => {
+    const c = leashed("castor", at(3, 3), ["pollux"]);
+    expect(canStopOn(at(11, 11), c, board([c]))).toBe(true);
+  });
+
+  it("does not constrain an ungrouped Servant", () => {
+    const k = mover({ id: "karna", panel: at(3, 3) });
+    expect(canStopOn(at(11, 11), k, board([k]))).toBe(true);
+  });
+
+  it("shrinks the reachable set as the partner constrains it", () => {
+    // The reason this lives in `canStopOn` rather than in a cost function: the
+    // highlight a player sees is built from the same predicate, so the rule
+    // teaches itself.
+    const c = leashed("castor", at(6, 6), ["pollux"]);
+    const p = leashed("pollux", at(6, 6), ["castor"]);
+    const reach = planMovement(c, board([c, p])).reachable;
+    const far = [...reach.keys()].filter((k2) => {
+      const [i, j] = k2.split(",").map(Number);
+      return Math.max(Math.abs(i - 6), Math.abs(j - 6)) > 2;
+    });
+    expect(far).toEqual([]);
+  });
+});

@@ -119,6 +119,24 @@ activeRules:
         stat: health.value
         table: madEnhancementDrain
         direction: down
+        # *"If Castor is directly next to Pollux while Mad Enhancement is
+        # Active, his Master's Health lost from the effects of active Mad
+        # Enhancement are halved."*
+        #
+        # On the SHARED template rather than in a Castor-only variant, and it
+        # costs the other six bearers nothing: `self:withinOfPartner:N` is
+        # emitted only for a Servant in a linked group, so for Heracles,
+        # Asterios, Penthesilea, Kingprotea and Raikou the predicate is false
+        # and the factor is 1.
+        #
+        # Scaling the LOOKUP rather than this one reading of it is the point.
+        # `madEnhancementDrain` is deliberately one number said three times --
+        # the drain, the floor below, and `SetMode`'s threshold -- and the
+        # comment under `floorTable` records what splitting them apart cost the
+        # last time. Halving only the drain would split them again: beside
+        # Pollux, Castor's Master would lose 10 while Mad Enhancement kept
+        # running until they were under 20.
+        tableFactor: { value: 0.5, predicate: ["self:withinOfPartner:1"] }
         # The SAME table as the drain, not a literal. Clause 1 is one number
         # said three times -- Asterios's is *"loses 20 Health ... when its
         # Master's Health is 20 or less"* -- and both of these were authored as
@@ -135,6 +153,9 @@ activeRules:
         ability: madEnhancement
         active: false
         whenValue: { subject: master, stat: health.value, lteTable: madEnhancementDrain }
+        # The same halving as the drain above, for the same reason: one number,
+        # three readings, and they must not disagree.
+        tableFactor: { value: 0.5, predicate: ["self:withinOfPartner:1"] }
 
   # Clause 5 is deliberately NOT here. "Sustainability is reduced by 2◈ if its
   # Master is defeated while ME is Active" is a consequence of the Master

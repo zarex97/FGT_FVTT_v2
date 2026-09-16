@@ -1184,7 +1184,53 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
     ...intents,
     ...(revival.source ? spendRevival(unit, revival, ctx) : []),
     I.defeat(unit.id, cause),
+    ...linkedDeathIntents(unit, cause),
   ];
+}
+
+/**
+ * Defeats the linked partners of a unit that has just been truly defeated.
+ *
+ * > *"If either one is defeated, the other one is also defeated as well
+ * > regardless of remaining Health."*
+ *
+ * Two rulings live here, and getting either backwards breaks the pair
+ * (Ch. 41 Q11).
+ *
+ * **The trigger is final defeat, not reaching zero Health.** This is the tail
+ * of `resolveDefeat`, reached only once the revival chain has resolved TO a
+ * defeat — so a twin with Guts or Battle Continuation absorbs the hit for BOTH
+ * of them. The game's author is explicit: *"imagine Pollux's HP is reduced to
+ * 0, her Guts will revive her, so in the moment she is initially reduced to 0
+ * it shouldn't link-kill Castor, as she is not truly dead."* Firing this from
+ * `healthReachedZero` would kill the brother before the sister's Guts had
+ * spoken.
+ *
+ * **The effect ignores the survivor's revival.** An `I.defeat` is emitted for
+ * the partner directly rather than running `resolveDefeat` on them, which is
+ * what skips their chain. `Death` is the precedent — *"the DU is defeated.
+ * Ignores buffs and abilities that revive the Unit after being defeated"* —
+ * and without it a one-sided revival leaves one twin alive with a dead
+ * partner, which the binding forbids.
+ *
+ * Read from the GROUP SETTINGS rather than from an authored rule element: the
+ * binding is a property of being a Dioscuri, not of carrying a Skill, and
+ * authoring it on an ability would let a Skill Seal switch it off.
+ *
+ * `cause` is deliberately NOT propagated. The partner did not die of the
+ * damage; they died of the binding, and the log should say so.
+ *
+ * @param {object} unit the unit that was defeated
+ * @param {string} cause why the first unit died, for the log
+ * @returns {Intent[]}
+ */
+function linkedDeathIntents(unit, cause) {
+  if (unit?.linkedGroup?.linkedDeath !== "ignoresRevival") return [];
+  const partnerIds = [...(unit.linkedGroup.memberIds ?? [])];
+  return partnerIds.flatMap((id) => [
+    I.defeat(id, "linkedDeath"),
+    I.log({ kind: "linkedDeath", unitId: id, withId: unit.id, cause }),
+  ]);
 }
 
 /**

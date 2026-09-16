@@ -330,12 +330,12 @@ const proc = () => begin({ attackerId: "au", defenderId: "du", attack: { kind: "
 describe("the reaction ladder", () => {
   it("goes straight to damage when the defender does nothing or blocks", () => {
     for (const r of ["nothing", "block"]) {
-      expect(advance(advance(proc(), "done"), r).state).toBe("damage");
+      expect(advance(advance(advance(proc(), "done"), "hit"), r).state).toBe("damage");
     }
   });
 
   it("walks the evade-succeeds branch: 2.1 → 2.2 → 2.3", () => {
-    let s = advance(advance(proc(), "done"), "evade");
+    let s = advance(advance(advance(proc(), "done"), "hit"), "evade");
     expect(s.state).toBe("evadeRoll");
     s = advance(s, "success");
     expect(s.state).toBe("s21_luckyHit");
@@ -348,7 +348,7 @@ describe("the reaction ladder", () => {
   });
 
   it("walks the evade-fails branch: 2.4 → 2.5 → 2.3", () => {
-    let s = advance(advance(advance(proc(), "done"), "evade"), "fail");
+    let s = advance(advance(advance(advance(proc(), "done"), "hit"), "evade"), "fail");
     expect(s.state).toBe("s24_luckyEvasion");
     s = advance(s, "success");
     expect(s.state).toBe("s25_auContest");
@@ -357,13 +357,13 @@ describe("the reaction ladder", () => {
   });
 
   it("whiffs the attack when the attacker fails or declines the lucky hit", () => {
-    const s = advance(advance(advance(proc(), "done"), "evade"), "success");
+    const s = advance(advance(advance(advance(proc(), "done"), "hit"), "evade"), "success");
     expect(advance(s, "fail").state).toBe("noDamage");
     expect(advance(s, "declined").state).toBe("noDamage");
   });
 
   it("treats a declined defender contest as a failed one — it reaches 2.3 either way", () => {
-    const s = advance(advance(advance(advance(proc(), "done"), "evade"), "success"), "success");
+    const s = advance(advance(advance(advance(advance(proc(), "done"), "hit"), "evade"), "success"), "success");
     expect(advance(s, "fail").state).toBe("s23_acceptOrEscape");
     expect(advance(s, "declined").state).toBe("s23_acceptOrEscape");
   });
@@ -375,7 +375,7 @@ describe("the reaction ladder", () => {
   });
 
   it("converges both branches on facing, then counter, then done", () => {
-    let s = advance(advance(advance(proc(), "done"), "nothing"), "done");
+    let s = advance(advance(advance(advance(proc(), "done"), "hit"), "nothing"), "done");
     expect(s.state).toBe("injury");
     s = advance(s, "done");
     expect(s.state).toBe("facing");
@@ -389,7 +389,7 @@ describe("the reaction ladder", () => {
   });
 
   it("never mutates the state it is given", () => {
-    const s = advance(proc(), "done");
+    const s = advance(advance(proc(), "done"), "hit");
     const before = JSON.stringify(s);
     advance(s, "evade");
     expect(JSON.stringify(s)).toBe(before);
@@ -398,13 +398,13 @@ describe("the reaction ladder", () => {
 
 describe("didHit reads the history, not the final state", () => {
   it("is true after passing through damage, even once the process has moved on", () => {
-    let s = advance(advance(advance(proc(), "done"), "nothing"), "done");
+    let s = advance(advance(advance(advance(proc(), "done"), "hit"), "nothing"), "done");
     s = advance(advance(s, "done"), "done"); // injury → facing → counter
     expect(didHit(s)).toBe(true);
   });
 
   it("is false on the no-damage path, which converges on the same states", () => {
-    let s = advance(advance(advance(proc(), "done"), "evade"), "success");
+    let s = advance(advance(advance(advance(proc(), "done"), "hit"), "evade"), "success");
     s = advance(advance(s, "fail"), "done"); // noDamage → facing
     expect(didHit(s)).toBe(false);
   });
@@ -412,25 +412,25 @@ describe("didHit reads the history, not the final state", () => {
 
 describe("prompts", () => {
   it("names which side must answer each rung", () => {
-    const s = advance(advance(advance(proc(), "done"), "evade"), "success");
+    const s = advance(advance(advance(advance(proc(), "done"), "hit"), "evade"), "success");
     expect(pendingPrompt(s)).toMatchObject({ side: "attacker", unitId: "au", check: "luckyHit" });
     expect(pendingPrompt(advance(s, "success"))).toMatchObject({ side: "defender", unitId: "du" });
   });
 
   it("returns null in non-prompting states", () => {
-    expect(pendingPrompt(advance(advance(advance(proc(), "done"), "nothing"), "done"))).toBeNull();
+    expect(pendingPrompt(advance(advance(advance(advance(proc(), "done"), "hit"), "nothing"), "done"))).toBeNull();
   });
 });
 
 describe("counters and facing", () => {
   it("allows a counter when the defender evaded or survived and the attacker is in range", () => {
-    const s = advance(advance(advance(proc(), "done"), "evade"), "success");
+    const s = advance(advance(advance(advance(proc(), "done"), "hit"), "evade"), "success");
     expect(canCounter(s, { defenderAlive: false, attackerInRange: true })).toBe(true);
     expect(canCounter(s, { defenderAlive: true, attackerInRange: false })).toBe(false);
   });
 
   it("is forbidden by Accel on the attacker", () => {
-    const s = advance(advance(proc(), "done"), "nothing");
+    const s = advance(advance(advance(proc(), "done"), "hit"), "nothing");
     expect(canCounter(s, { defenderAlive: true, attackerInRange: true, attackerHasAccel: true })).toBe(false);
   });
 
@@ -455,7 +455,7 @@ describe("ladder collapse — the latency mitigation", () => {
 
 describe("serialization between rungs", () => {
   it("round-trips, so the ladder survives a reconnect", () => {
-    const s = advance(advance(advance(proc(), "done"), "evade"), "success");
+    const s = advance(advance(advance(advance(proc(), "done"), "hit"), "evade"), "success");
     expect(deserialize(serialize(s))).toEqual(s);
   });
 
