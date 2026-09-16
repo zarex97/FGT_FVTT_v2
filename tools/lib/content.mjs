@@ -1836,6 +1836,14 @@ function itemSystem(doc) {
     isNP: Boolean(doc.isNP),
     isMode: Boolean(doc.isMode),
     isAttackSkill: Boolean(doc.isAttackSkill),
+    // *"Counts as both Castor and Pollux's Attack for the Turn."* An authored
+    // field this allowlist does not name compiles to its schema default, and
+    // the default here is "" -- so the joint Noble Phantasm would have charged
+    // half a Servant attack and left Pollux free to swing again, silently.
+    //
+    // Found on a live board, which is the fifth time a field has been dropped
+    // here. `authored-fields.mjs` catches the ACTOR side; this is the item one.
+    alsoCountsAsAttackFor: doc.alsoCountsAsAttackFor ?? "",
     // *"Can be used by Ozymandias as his Normal Attack while within Ramesseum
     // Tentyris."* Named here as well as in the schema, because this allowlist
     // silently drops what it does not name -- the way `npGateRound` was lost.

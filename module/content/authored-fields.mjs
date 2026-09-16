@@ -37,7 +37,7 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
 /** Item fields a pack document may state. */
 export const AUTHORED_ITEM_KEYS = Object.freeze([
   "contentId", "contentVersion", "description", "source", "rank", "slug", "isNP", "isMode",
-  "isAttackSkill", "replacesNormalAttack", "isSpell", "isPassive", "active",
+  "isAttackSkill", "alsoCountsAsAttackFor", "replacesNormalAttack", "isSpell", "isPassive", "active",
   // `deactivation` beside its two neighbours, and they answer three different
   // questions: `cannotDeactivate` says NEVER, `toggleLock` says HOW LONG YOU
   // MUST WAIT, and `deactivation` says AT WHICH MOMENTS the offer exists at
