@@ -2056,6 +2056,27 @@ async function fireDamageTaken(state, result) {
     options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
     victim: { unitId: state.attackerId },
     rolls: {},
+    // WHAT LANDED, so a handler can take a share of it.
+    //
+    // > *"Whenever the Jabberwock receives damage from Servants, its Health is
+    // > restored by 75% of the damage received."*
+    //
+    // `result.total` is the figure after every reduction, which is the only
+    // reading of *"the damage received"*: a Servant who swings into a Def Up
+    // heals the monster by what got through, not by what was rolled.
+    //
+    // This event has fired with NO payload at all since it was written, so
+    // `@amount` on a `damageTaken` handler resolved to null and the handler
+    // emitted nothing. `engine/applier.mjs#fireWriteEvent` is the only path
+    // that has ever carried one, and its own comment says why: *"The payload IS
+    // the context for a handler that asks about the change rather than about a
+    // unit."*
+    event: {
+      amount: result?.total ?? 0,
+      attackerId: state.attackerId,
+      isNP: Boolean(result?.flags?.isNP ?? result?.isNP),
+      isCrit: Boolean(result?.flags?.isCrit ?? result?.isCrit),
+    },
   });
   if (intents.length > 0) await applyBatch(intents, "damageTaken");
 }
