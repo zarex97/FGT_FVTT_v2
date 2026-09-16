@@ -509,6 +509,10 @@ async function writeGroup(group, io) {
       break;
     // *"extends its period of existing on the board for 3◈ MORE Turns."*
     // Summed, so two extensions in one batch both count.
+    // ONE update per Unit, so a failure cannot leave a Unit half in the past.
+    case "rewind":
+      await io.rewind(unitId, intents.at(-1).state, intents.at(-1).clearsDefeat);
+      break;
     case "suppressRule":
       await io.suppressRules(unitId, intents.map((i) => i.scope));
       break;

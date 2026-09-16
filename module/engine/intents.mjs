@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
+  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // `setStage` decrements a staged effect without deleting it, and `event`
@@ -103,6 +103,11 @@ const ORDER = Object.freeze({
   //
   // It is NOT a defeat. *"It disappears"* -- so no revival chain, no
   // `unitDefeated`, and nothing that counts a kill.
+  // A rewind REPLACES a Unit's state wholesale, so it must land before any
+  // write that is meant to survive it and after every write it is meant to
+  // undo. Beside `defeat`, which is the other thing that acts on the whole
+  // Unit at once.
+  rewind: 8,
   dismissSummon: 9,
   // Bookkeeping on the summon's own clock, alongside the other stat writes --
   // and well before the dismissal that reads it, so a stay extended and expired
@@ -221,6 +226,29 @@ export const durationDelta = (unitId, delta) =>
  */
 export const suppressRule = (unitId, scope) =>
   ({ t: "suppressRule", unitId, scope });
+
+/**
+ * Return a Unit to a state it held earlier in the match.
+ *
+ * > *"…the Stats, Parameters, Buffs, Debuffs, Cooldowns, and other existing
+ * > effects of all Units within a 3 panel area of Nursery are returned to what
+ * > they were 3◈ Turns ago."*
+ *
+ * The state travels WITH the intent rather than being looked up by the applier,
+ * because the buffer is on the Combat document and the decision of which tick
+ * to restore belongs to the clause, not to the writer.
+ *
+ * `clearsDefeat` is false for the one Unit that can be defeated when this
+ * fires: *"a rewind that restores health undoes a kill — though not a defeat."*
+ *
+ * @param {string} unitId
+ * @param {object} state a `UnitStateSnapshot`
+ * @param {object} [options]
+ * @param {boolean} [options.clearsDefeat]
+ * @returns {object}
+ */
+export const rewind = (unitId, state, { clearsDefeat = false } = {}) =>
+  ({ t: "rewind", unitId, state, clearsDefeat });
 
 export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });

@@ -839,6 +839,75 @@ export function worldIO() {
       await actor.update({ "system.expiresAt": current + delta });
     },
 
+    /**
+     * Return a Unit to a state it held earlier in the match.
+     *
+     * > *"…the Stats, Parameters, Buffs, Debuffs, Cooldowns, and other existing
+     * > effects of all Units within a 3 panel area of Nursery are returned to
+     * > what they were 3◈ Turns ago."*
+     *
+     * ONE `actor.update` for the document's own fields, so a failure cannot
+     * leave a Unit half in the past. Effects are documents of their own and
+     * have to be deleted and re-created, which is the one place this is not
+     * atomic -- recorded here rather than hidden, because a rewind interrupted
+     * between the two leaves a Unit with its old stats and its new buffs.
+     *
+     * POSITION IS NOT HERE, and neither is facing, turn budget or contract. Q45
+     * settled that *"Units are not teleported back"*, and the buffer does not
+     * store them -- so there is nothing to filter and nothing to get wrong.
+     *
+     * @param {string} unitId
+     * @param {object} state a `UnitStateSnapshot`
+     * @param {boolean} clearsDefeat
+     */
+    async rewind(unitId, state, clearsDefeat) {
+      const actor = resolve(unitId);
+      if (!actor || !state) return;
+
+      /** @type {Record<string, unknown>} */
+      const update = {
+        "system.health": state.stats?.health,
+        "system.agility": state.stats?.agility,
+        "system.luck": state.stats?.luck,
+        "system.parameters": state.parameters,
+        "system.grantedSteps": state.grantedSteps,
+        "system.baseAttackPenalty": state.baseAttackPenalty,
+      };
+      // The tokens the sheet carves out are ABSENT from `state.resources`, so
+      // whatever the Unit holds of them now is what it keeps. Merged rather
+      // than replaced for exactly that reason: a wholesale write would blank a
+      // pool the rewind was told not to touch.
+      if (state.resources) {
+        for (const [key, pool] of Object.entries(state.resources)) {
+          update[`system.resources.${key}`] = pool;
+        }
+      }
+      // *"…though not a defeat."*
+      if (clearsDefeat) update["system.defeated"] = false;
+
+      await actor.update(update);
+
+      for (const [abilityId, cooldown] of Object.entries(state.cooldowns ?? {})) {
+        const item = actor.items?.get(abilityId);
+        if (item) await item.update({ "system.cooldown.remaining": cooldown.remaining ?? 0 });
+      }
+      for (const [abilityId, mode] of Object.entries(state.modes ?? {})) {
+        const item = actor.items?.get(abilityId);
+        if (item) await item.update({ "system.active": Boolean(mode.active) });
+      }
+
+      // Effects are replaced wholesale: the snapshot IS the answer to "what was
+      // on this Unit", and reconciling instance by instance would need identity
+      // the buffer does not carry.
+      const held = [...(actor.effects ?? [])].map((e) => e.id);
+      if (held.length > 0) await actor.deleteEmbeddedDocuments("ActiveEffect", held);
+      if ((state.effects ?? []).length > 0) {
+        await actor.createEmbeddedDocuments("ActiveEffect", state.effects.map((e) => ({
+          name: e.defId, type: "fgtEffect", img: "icons/svg/aura.svg", system: { ...e },
+        })));
+      }
+    },
+
     async defeat(unitId, cause) {
       await countTowardsGrail(unitId, cause);
       await freeContractedServants(unitId);
