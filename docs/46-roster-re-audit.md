@@ -978,6 +978,63 @@ nine Turns to completion.
 The general lesson, and the third entry in §46.3's collection: *a guard must not be keyed on state
 that only the guarded work produces.* It is a deadlock with a single writer.
 
+### AC. Every field's `actedTurnEnd` event was dead — **fixed 2026-09-16**
+
+**Reached: Semiramis's Sikera Ušum, clause b.** *"When a Unit other than Semiramis or her Master
+Acts then ends its Turn within the NP area, it is inflicted with Poison."*
+
+It is authored exactly right — an `interiorEvents` entry on `actedTurnEnd` with `requiresActed:
+true`, `relations: [ally, enemy]` and `excludeOwnerMaster: true` — and `runFieldEvent` filters on
+`u.acted`. The dispatcher is the problem.
+
+`onTurnChange` builds a board at the top (line 55), runs `scheduler.endTurn` against it (line 83),
+and dispatches the field events afterwards (line 101) — and `runFieldEvents` called
+`currentBoard()` **again for itself**. By that point the sequence has cleared the turn state, so
+the board it built reported `acted: false` for every Unit on the map and the filter matched nobody.
+
+Mad Enhancement's drain fires on the same event and was never affected, which is exactly why this
+survived: it is dispatched from *inside* `scheduler.endTurn`, off the `actedUnits` list the hook
+captured at line 58 — before the reset. So `actedTurnEnd` looked alive on every board it was ever
+watched on.
+
+**Measured**, with a console probe at the dispatch, a live field and a Servant standing in it whose
+`acted` and `turnState.tick` had been set a moment earlier:
+
+```
+[FGTDBG] actedTurnEnd semiramis-sikera-usum produced 0
+         units …:acted=false:f=0, dKYxPs:acted=false:f=1, …
+```
+
+`dKYxPs` is Heracles — inside the field (`f=1`), acted, and reported to the filter as idle. After
+the fix, the same probe on the same board:
+
+```
+[FGTDBG] actedTurnEnd semiramis-sikera-usum produced 1 passedBoard true
+         units …, dKYxPs:a=true:f=1, …
+```
+
+**Two clauses in the corpus were affected and both were inert**: Sikera Ušum clause b, and the
+acted half of Jack's Mist (*"at the end of its Turn **or at the end of a Turn they Act** while
+still within the Mist"*) — whose plain `turnEnd` half was the subject of its own earlier fix and
+which is dispatched from the same place.
+
+**The fix** is to stop re-deriving the board. `runFieldEvents` takes an optional `board`, and the
+boundary hook passes the one it already holds — the same board `endTurn` itself ran against, and
+the same one `ctx.actedUnits` came from, so the field's view of who acted and the scheduler's are
+now one view instead of two. `currentBoard()` remains the default for the contact path, which is
+mid-move and wants the freshest read it can get.
+
+A near relative of §46.4-AB: not a guard keyed on the work it guards, but a *reader* re-deriving
+state the work had already consumed. Turn state is documented as stale-by-reading; the cost of
+reading it twice is that the second read is of a different Turn.
+
+**What is still unverified** on this Noble Phantasm, and recorded rather than implied: rules a, c, d
+and e resolve nothing yet in evidence. All three interior rules (`ImmunityDowngrade`,
+`VulnerabilityAmplifier`, `PeriodicOverride`) are present and correctly shaped on the live field,
+and clause b now emits its `applyEffect` intent — but no Poison instance was ever seen to land on a
+living Unit, because the only enemy on the test board was being killed by its own Mad Enhancement
+every Turn. §46.13 carries this.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.

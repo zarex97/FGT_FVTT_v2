@@ -828,16 +828,30 @@ function shouldClose(field, tick) {
  * @param {string} event the boundary that fired
  * @returns {Promise<object[]>} the intents produced
  */
-export async function runFieldEvents(event, { unitIds = null, fieldIds = null, assumeInside = false } = {}) {
-  const board = currentBoard();
+export async function runFieldEvents(event, {
+  unitIds = null, fieldIds = null, assumeInside = false, board = null,
+} = {}) {
+  // `board` is not an optimisation. A boundary's dispatcher runs AFTER
+  // `scheduler.endTurn`, which clears every Unit's turn state -- so a board
+  // built here reports `acted: false` for everybody and an `actedTurnEnd`
+  // interior event with `requiresActed` matches nobody, ever. Sikera Ušum
+  // clause b and the acted half of Jack's Mist are the two in the corpus and
+  // both were dead; Mad Enhancement's drain on the same event survived only
+  // because it fires from inside `endTurn`, off a list captured before the
+  // reset (Ch. 46 §46.4-AC).
+  //
+  // So the caller that has the right board passes it. `currentBoard()` stays
+  // the default for the contact path, which is mid-move and wants the freshest
+  // read it can get.
+  const view = board ?? currentBoard();
   /** @type {object[]} */
   const intents = [];
 
-  for (const field of board.fields ?? []) {
+  for (const field of view.fields ?? []) {
     if (fieldIds && !fieldIds.includes(field.id)) continue;
     for (const spec of field.interiorEvents ?? []) {
       if (spec.event !== event) continue;
-      intents.push(...await runFieldEvent(field, spec, board, unitIds, assumeInside));
+      intents.push(...await runFieldEvent(field, spec, view, unitIds, assumeInside));
     }
   }
   return intents;

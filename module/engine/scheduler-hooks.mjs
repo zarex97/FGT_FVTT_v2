@@ -98,13 +98,13 @@ async function onTurnChange(combat, prior, current) {
   // Belongs to the AREA rather than to Semiramis, the same reason
   // Unlimited Blade Works' turnStart toll below is authored on the field:
   // whoever is dragged in is subject to it, not just units she targets.
-  await run(await fields.runFieldEvents("actedTurnEnd"), "field:actedTurnEnd");
+  await run(await fields.runFieldEvents("actedTurnEnd", { board }), "field:actedTurnEnd");
 
   // …and the plain end of a Turn. Jack's Mist charges Poison BOTH ways --
   // "at the end of its Turn OR at the end of a Turn they Act while still
   // within the Mist" -- and only the acted half had a dispatcher, so a field
   // could author a `turnEnd` interior event and never be asked.
-  await run(await fields.runFieldEvents("turnEnd"), "field:turnEnd");
+  await run(await fields.runFieldEvents("turnEnd", { board }), "field:turnEnd");
 
   // A field's OWNER's Turn ending. Contagion trigger 1 is *"at the end of Pale
   // Rider's Turn: affects all enemy Units within the Contagion area"* -- every
@@ -120,7 +120,7 @@ async function onTurnChange(combat, prior, current) {
     .map((f) => f.id);
   if (ownedFields.length > 0) {
     await run(
-      await fields.runFieldEvents("unitTurnEnd", { fieldIds: ownedFields }),
+      await fields.runFieldEvents("unitTurnEnd", { fieldIds: ownedFields, board }),
       "field:unitTurnEnd",
     );
   }
