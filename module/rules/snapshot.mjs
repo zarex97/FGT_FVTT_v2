@@ -148,7 +148,24 @@ export function snapshotUnit(actor, {
     destroyableBy: [...(sys.destroyableBy ?? [])],
     visibleWithin: sys.visibleWithin ?? null,
     placedById: sys.placedById ?? null,
+    // An item lying on this object's panel, waiting to be walked onto.
+    //
+    // > *"the [Vorpal Blade] Item appears on a random panel on the game board,
+    // > this Item can be picked up by a Unit walking onto its panel."*
+    //
+    // `carriesItem` carries the item's own `barredFrom` clause, COPIED onto the
+    // cache when it was placed (`engine/skill-use.mjs#createStructure`) rather
+    // than looked up here: `rules/items.mjs#itemPickupIntents` is pure and
+    // cannot load a pack, and there is no item registry to ask.
+    carriesItemId: sys.carriesItemId ?? null,
+    carriesItem: sys.carriesItemId
+      ? { contentId: sys.carriesItemId, barredFrom: sys.carriesItemBarredFrom ?? null }
+      : null,
     defeated: Boolean(sys.defeated),
+    // The Queen's Glass Game's once-per-game rewind, spent. Projected because
+    // `resolveDefeat` reads it off the snapshot it is handed, and a flag the
+    // board cannot see is a flag that clause would spend twice.
+    glassGameSpent: Boolean(sys.glassGameSpent),
 
     // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and
     // reading them as offsets made two adjacent tokens a hundred panels apart.
@@ -1305,7 +1322,24 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
  */
 export function contributionsOf(actor, { terrain = [] } = {}) {
   const sys = actor.system ?? {};
-  const abilities = [...(actor.items ?? [])].filter((item) => !negated(item, actor)).map((item) => ({
+  const abilities = [...(actor.items ?? [])]
+    .filter((item) => !negated(item, actor))
+    // *"When Equipped, increase the Unit's Base Attack (STR) by 50…"*
+    //
+    // `equipped` has been on `EquipmentData` since it was written and the only
+    // thing that read it was the actor sheet, which draws a checkbox. An Item's
+    // rules were collected from the moment it was HELD.
+    //
+    // Nothing noticed because `[Semiramis' Poison]` is the only Item in the
+    // corpus and carries no `rules` at all -- it is a consumable with a
+    // `consumeEffect`. The Vorpal Blade is the first Item in this system that
+    // does anything while worn, and every one of its five stat clauses opens
+    // with "When Equipped".
+    //
+    // Gated on the item TYPE, not on every item: an ability has no `equipped`
+    // field, and reading one off it would switch off every passive in the game.
+    .filter((item) => item.type !== "equipment" || Boolean(item.system?.equipped))
+    .map((item) => ({
     id: item.id,
     name: item.name,
     // The stable machine name. Without it a cross-ability reference has only
@@ -1441,6 +1475,11 @@ export function contributionsOf(actor, { terrain = [] } = {}) {
   return collectContributions(abilities, {
     options,
     refs: expressionRefs(actor),
+    // Rules this Unit has had switched off BY NAME and permanently -- the
+    // Vorpal Blade taking the Jabberwock's lifesteal away. Written by the
+    // `Suppress` action, carried home on `fieldSummonStats` when the summon
+    // disappears, and applied again when it is re-summoned.
+    suppressedScopes: [...(sys.suppressedScopes ?? [])],
     // How many of each effect the Unit holds, for `perStack` magnitudes
     // (`rules/elements.mjs`). Kingprotea's Proliferation is the reason it
     // exists and her NP DmUp (GAO) is the reason it counts two shapes.
@@ -1568,6 +1607,12 @@ function collectAbilities(actor) {
       // name a content id, a whole category, or a copy's exclusion set --
       // which is all three of the ways her sheet groups abilities.
       contentId: i.system?.contentId ?? null,
+      // Ch. 43 §43.11's gate. `rules/history.mjs#historyWanted` asks the BOARD
+      // whether anything on it reads the past, so a field the projection drops
+      // is a recorder that never starts -- and both of The Queen's Glass
+      // Game's effects then do nothing at all, silently. Found on a live board:
+      // the field compiled, the item carried it, and the board said no.
+      requiresHistory: Boolean(i.system?.requiresHistory),
       // An ability that IS this Unit's Normal Attack while its condition holds
       // (`rules/platforms.mjs#actionSourceFor`). Projected because the
       // substitution is decided from the BOARD -- the condition is *"while

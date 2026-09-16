@@ -55,8 +55,13 @@ passiveRules:
     predicate: ["self:variant:dsc"]
     requiresRecipient: { platformContentId: hanging-gardens-of-babylon }
     elements:
+      # `mode: dice` and a rank TABLE. Authored as `roll:`, this was dead twice
+      # over: `DamageNegation` never reads `el.roll`, and an aura's nested
+      # element was routed to `modifiers` where `rollNegation` never looks. The
+      # clause had never reduced a point of damage.
       - key: DamageNegation
-        roll: { key: territoryCreationWardEX, formula: "3d10+30" }
+        mode: dice
+        table: territoryCreationDefence
 
   # Rank C -- her GROUND Home Base -- only while she has DSC and is NOT
   # aboard the HGoB (the two are mutually exclusive: her sheet's own DECISION
@@ -78,5 +83,10 @@ passiveRules:
     predicate: ["self:variant:dsc"]
     requiresRecipient: { inHomeBase: true }
     elements:
+      # `mode: dice` and a rank TABLE. Authored as `roll:`, this was dead twice
+      # over: `DamageNegation` never reads `el.roll`, and an aura's nested
+      # element was routed to `modifiers` where `rollNegation` never looks. The
+      # clause had never reduced a point of damage.
       - key: DamageNegation
-        roll: { key: territoryCreationWardC, formula: "3d10+10" }
+        mode: dice
+        table: territoryCreationDefence

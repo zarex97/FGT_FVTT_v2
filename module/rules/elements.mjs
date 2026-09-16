@@ -95,6 +95,7 @@ export function empty() {
 export function collectContributions(abilities, ctx = {}) {
   const out = empty();
   const predicateCtx = { options: ctx.options ?? new Set(), refs: ctx.refs ?? {} };
+  const suppressedScopes = ctx.suppressedScopes ?? [];
 
   const shifts = abilityRankShifts(abilities, predicateCtx);
 
@@ -116,6 +117,21 @@ export function collectContributions(abilities, ctx = {}) {
     for (const el of orderElements(elements)) {
       if (!el?.key) continue;
       if (el.suppressed) continue;
+      // A rule switched off BY NAME, permanently, by something else.
+      //
+      // > *"…and the 'Whenever the Jabberwock receives damage from Servants,
+      // > its Health is restored by 75% of the damage received' effect is
+      // > **permanently removed** from the Jabberwock."*
+      //
+      // Not a `RemoveEffect`: the lifesteal is a `passiveRule` on the monster's
+      // own statblock, so there is no instance to strip -- and buff-removal is
+      // the wrong vocabulary besides, since it is not a buff.
+      //
+      // Scoped by the element's `slug`, so the Blade takes one clause and the
+      // monster keeps its Knockback and everything else. The suppression rides
+      // home on `fieldSummonStats` when the summon disappears, which is what
+      // makes *permanently* true across a re-summon.
+      if (el.slug && suppressedScopes.includes(el.slug)) continue;
       // A predicate that fails means the element does not contribute at all —
       // not that it contributes zero. The distinction matters for the
       // "Not applied" section of the explainer.
@@ -374,6 +390,28 @@ function clampMax(value, max) {
  */
 function rawValue(el, rank, ctx, field) {
   if (el.table) {
+    // WHICH rank indexes the table.
+    //
+    // Every table in the corpus until now is read against the OWNING ability's
+    // rank, which is what `rank` is. The Nameless Forest's escape ladder is
+    // read against the AFFECTED UNIT's own MAG parameter: *"the value of the
+    // dice rolled for the affected Unit's Luck Check is modified as follows-
+    // MAG Rank EX: −3…"* -- and that Noble Phantasm is Rank C, so reading it
+    // the usual way returns 0 at every grade and silently does nothing.
+    //
+    // A REF PATH rather than a field name, because `expressionRefs` already
+    // publishes `self.parameters` and a second vocabulary for reaching the same
+    // object would be one more thing to keep in step.
+    //
+    // A path that resolves to no grade returns `null`, which callers must drop
+    // rather than scale to zero: a Master has no `parameters`, and reading
+    // `undefined` as EX would hand every Master the best escape in the game --
+    // while a contribution of 0 is indistinguishable from MAG C.
+    if (el.rankFrom) {
+      const grade = gradeAt(el.rankFrom, ctx);
+      if (!grade) return null;
+      return lookup(el.table, grade) ?? null;
+    }
     const v = lookup(el.table, rank);
     // A dice-formula table with a per-step delta returns `{formula, bonus}`;
     // the caller decides what to do with it.
@@ -384,6 +422,25 @@ function rawValue(el, rank, ctx, field) {
   if (typeof raw === "string" && raw.includes("@")) return resolveExpression(raw, ctx);
   if (raw === undefined || raw === null) return null;
   return raw;
+}
+
+/**
+ * The Rank a `@`-path names, or `null` when it names none.
+ *
+ * Walks the same `refs` tree `resolveExpression` walks, and parses what it
+ * finds as a Rank rather than as a number -- a Parameter is a grade string.
+ *
+ * @param {string} expr an `@a.b.c` path
+ * @param {object} ctx
+ * @returns {Rank|null}
+ */
+function gradeAt(expr, ctx) {
+  let cur = /** @type {any} */ (ctx?.refs ?? {});
+  for (const part of String(expr).replace("@", "").trim().split(".")) {
+    if (cur === null || cur === undefined) return null;
+    cur = cur[part];
+  }
+  return typeof cur === "string" ? Rank.parseOrNull(cur) : (cur instanceof Rank ? cur : null);
 }
 
 /**
@@ -693,6 +750,38 @@ function rollSpec(table, rank) {
   return { key: table, formula: typeof v === "string" ? v : null, bonus: 0 };
 }
 
+/**
+ * One element nested inside an `Aura`, with its rank table resolved.
+ *
+ * `rules/auras.mjs` hands a nested element to the recipient as authored --
+ * `{...element, stacking, group, rank}` -- and never runs it through an
+ * executor. That is deliberate and cheap, but it means anything an executor
+ * would have resolved is still raw by the time a reader sees it, and the rank
+ * it would have been resolved against no longer exists.
+ *
+ * So `table:` is resolved at COLLECTION time, where the rank is known: into
+ * `formula` for a dice-mode reader and into `value` for everybody else. The two
+ * go to different fields for the same reason `actionSpec` sends them to
+ * different ones -- *"a table yields either a dice formula or a NUMBER"*.
+ *
+ * `source` is carried too, because the un-executed path never added one and a
+ * contribution with no source shows on the damage card as `undefined`.
+ *
+ * @param {object} el the nested element, as authored
+ * @param {Rank|null} rank the owning ability's rank
+ * @param {object} ctx
+ * @param {string} source
+ * @returns {object}
+ */
+function auraElement(el, rank, ctx, source) {
+  if (!el?.table) return { source, ...el };
+  const v = resolveValue(el, rank, ctx);
+  const { table, ...rest } = el;
+  void table;
+  const field = el.mode === "dice" || typeof v === "string" ? "formula" : "value";
+  return { source, ...rest, [field]: typeof v === "object" && v?.formula ? v.formula : v };
+}
+
 /* -------------------------------------------------------------------------- */
 /*  The catalogue                                                             */
 /* -------------------------------------------------------------------------- */
@@ -748,6 +837,14 @@ export const EXECUTORS = Object.freeze({
       // attack -- Penthesilea's Goddess of War. The pipeline reads the total
       // out of `ctx.rolls`, so the dice stay with the caller like every other
       // roll in the system.
+      //
+      // `rollTable` is the same thing read off a RANK TABLE instead of written
+      // out. Territory Creation is *"increased by 5d20"* on Medea's sheet and
+      // `6d20 / 5d20 / 5d10 / 5d8 / 5d6 / 5d4` in `domain/tables.mjs`, and
+      // authoring the literal is right at exactly one rank -- the same shape
+      // `madEnhancementDrain` carried when its floor was written out as the EX
+      // figure and every rank below it was wrong.
+      ...(el.rollTable ? { roll: rollSpec(el.rollTable, rank) } : {}),
       ...(el.roll ? { roll: { ...el.roll } } : {}),
       value: round(scalar(v) * f),
       ...(np !== null && np !== undefined ? { npValue: round(scalar(np) * f) } : {}),
@@ -1062,6 +1159,16 @@ export const EXECUTORS = Object.freeze({
   },
 
   RangeDelta(el, { rank, source, out, ctx }) {
+    // `set` names the resulting Range; `value` names a change to it.
+    //
+    // > *"…but Range is reduced **to** 1 panel."* — `[Vorpal Blade]`
+    //
+    // A Servant at Range 4 and a Servant at Range 2 both end at 1, which no
+    // single delta expresses.
+    if (typeof el.set === "number") {
+      out.statDeltas.push({ stat: "range.panels", value: el.set, absolute: true, source });
+      return;
+    }
     out.statDeltas.push({ stat: "range.panels", value: scalar(resolveValue(el, rank, ctx)), source });
   },
 
@@ -1152,10 +1259,18 @@ export const EXECUTORS = Object.freeze({
   /* ── Group 3 — check contributors ─────────────────────────────────────── */
 
   CheckModifier(el, { rank, source, out, ctx, deferred = null }) {
+    const resolved = resolveValue(el, rank, ctx);
+    // A contribution of ZERO and no contribution at all are different answers.
+    //
+    // The Nameless Forest's ladder gives MAG C exactly 0, and a Unit with no
+    // MAG parameter at all -- a Master -- must contribute nothing. `scalar()`
+    // turns `null` into 0, which would make those two indistinguishable and
+    // put a spurious "no change" row on every Master's check card.
+    if (resolved === null && el.rankFrom) return;
     out.checkModifiers.push({
       check: el.check,
       direction: el.direction ?? "outgoing",
-      value: scalar(resolveValue(el, rank, ctx)),
+      value: scalar(resolved),
       // A clause about the ATTACK rather than about the bearer, carried
       // through to `checkPlan`/`critChance` the same way a damage modifier's
       // is carried to the pipeline. EMIYA's Hawkeye is *"Crit Chance is
@@ -1243,6 +1358,26 @@ export const EXECUTORS = Object.freeze({
 
   /* ── Group 4 — targeting ──────────────────────────────────────────────── */
 
+  /**
+   * **Collected and inert, and no content should use this.**
+   *
+   * It pushes `{key: "targeting"}` into `modifiers`, which the damage pipeline
+   * has no entry for and which `rules/targeting/resolve.mjs` never reads --
+   * that file reads `suppressions` with `scope: "targeting"`, which is what
+   * `ForceTarget` produces and this does not.
+   *
+   * Four summons used it, all for the same sentence -- *"Enemy Units cannot
+   * Attack Medea/Nursery or her Master if any … are directly next to them"* --
+   * and the protection had never once applied, for any of them. Found on a live
+   * board while authoring the fourth.
+   *
+   * The element that works is `TargetabilityModifier`, whose `recipientRoles`
+   * already names `summoner` and `summonerMaster` for exactly this clause.
+   * Kept, rather than deleted, so a world holding an old document does not
+   * throw -- and the content validator refuses new uses.
+   *
+   * @deprecated Use `TargetabilityModifier`.
+   */
   TargetingModifier(el, { source, out, deferred = null }) {
     out.modifiers.push({ key: "targeting", spec: el.spec ?? el, value: 0, predicate: deferred, source });
   },
@@ -1466,7 +1601,21 @@ export const EXECUTORS = Object.freeze({
       // An aura may carry SEVERAL modifiers rather than being one. Medea's Item
       // Construction is six -- a severity ladder in both directions -- and the
       // group and rank are what "does not stack" compares across sources.
-      elements: el.elements ?? null,
+      //
+      // Resolved HERE, because `rules/auras.mjs` delivers a nested element to
+      // the recipient exactly as authored -- it never runs the executors -- and
+      // by then the owning ability's rank is gone. A nested `table:` therefore
+      // arrived at the reader unresolved, as the literal string
+      // "territoryCreationDefence", and every reader that wanted a number or a
+      // dice formula got a table name instead.
+      //
+      // Against the AURA's own rank where it declares one, not the ability's.
+      // Semiramis's Territory Creation is Rank EX and carries a second aura
+      // declaring `rank: C` -- her ground Home Base -- so resolving both
+      // against the ability would hand the C clause EX's dice.
+      elements: el.elements
+        ? el.elements.map((e) => auraElement(e, el.rank ? Rank.parse(el.rank) : rank, ctx, source))
+        : null,
       group: el.group ?? null,
       rank: el.rank ?? (rank ? String(rank) : null),
       scope: el.scope ?? null,
@@ -1831,8 +1980,22 @@ export const EXECUTORS = Object.freeze({
    * Scripts are named entries in a closed registry, never `eval`. Compendia are
    * shared, so content must not be able to execute.
    */
-  Script(el, { source, out }) {
-    out.eventHandlers.push({ event: el.event ?? "manual", script: el.script, source });
+  Script(el, { source, ability, out }) {
+    out.eventHandlers.push({
+      // `events`, PLURAL, because that is what `listensFor` reads. Pushed as a
+      // singular `event` since this element was written, so a Script handler
+      // could never have matched an event even once something dispatched one --
+      // which nothing did, because the registry did not exist either.
+      events: Array.isArray(el.event) ? [...el.event] : [el.event ?? "manual"],
+      script: el.script,
+      // Whatever the script needs to know, carried verbatim. A script is the
+      // escape hatch: its parameters are its own business, and inventing a
+      // schema for them here would be inventing the vocabulary the hatch exists
+      // to avoid.
+      params: el.params ?? {},
+      abilityId: ability?.id ?? null,
+      source,
+    });
   },
 });
 

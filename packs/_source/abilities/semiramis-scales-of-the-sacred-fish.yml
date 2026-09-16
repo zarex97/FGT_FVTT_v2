@@ -12,6 +12,14 @@ isSpell: true
 category: spell
 kind: skill
 cooldown: "3◈"
+# A Spell, but NOT an attack. `isSpell` is one of the three things
+# `classifyAbility` treats as attack-shaped, and left to that this spends her
+# Attack for the Turn and opens a Combat Process against the ALLY it shields --
+# whose `baseSpecFor` fallback then computes Normal Attack damage for an ability
+# that authors none. That is the failure EMIYA's Reinforcement records in its
+# own comment, and this file had it too; found by the corpus-wide guard added
+# with Nursery Rhyme.
+countsAsAttack: false
 timing: { window: whenAllyAttacked, radius: 2 }
 description: |
   Spell. Used at the start of a Combat Phase when Semiramis or an allied Unit within a 2 panel

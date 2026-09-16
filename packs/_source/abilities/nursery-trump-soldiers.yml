@@ -1,0 +1,39 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+schema: 1
+id: nursery-trump-soldiers
+name: "Nursery Rhyme: Trump Soldiers"
+rank: C
+isNP: true
+categorizedAsNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+timing: { window: ownTurn }
+# "Counts as Nursery's Attack for the Turn."
+countsAsAttack: true
+# "Cooldown: ⅓◈ Turns for each Trump Soldier summoned" -- not a fixed tick, and
+# not known until the roll has resolved. Medea's own shape.
+cooldown: { perUnit: "⅓◈", countFrom: summonCount }
+description: |
+  (Non-damaging) Used during your Turn. Roll an eight-sided die and add 4 to that number, Nursery
+  summons that number of Trump Soldiers within a 2 panel area of herself. They do not count towards
+  the number of Units that Move and/or Attack during your Turn, and the same Trump Soldier can only
+  Move/Attack once per Turn. Enemy Units cannot Attack Nursery or her Master if any Trump Soldiers
+  are directly next to them. Counts as Nursery's Attack for the Turn.
+  Cooldown: ⅓◈ Turns for each Trump Soldier summoned.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: summon
+    spec:
+      # ONE d8, then +4 -- five to twelve. "4d8" is the other reading of a
+      # careless transcription and is a completely different swarm (4 to 32).
+      countRoll: "1d8+4"
+      types: { 1: trump-soldier }
+      # "within a 2 panel area" is a Chebyshev radius of 2, which is a 5x5
+      # square -- `freePanels` reads `size` as a SIDE and halves it. Medea's
+      # "within a 5x5 panel area" authors the same number for the same ring.
+      placement: { shape: square, size: 5, anchor: self }
+      countsTowardBudget: false
+      actsOncePerTurn: true

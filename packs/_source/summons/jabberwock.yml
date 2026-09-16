@@ -1,0 +1,76 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md -- conjured by
+# Nursery Rhyme: Jabberwock.
+#
+# The strongest single summon in either roster: 1500 Health, BA(STR) 200, and it
+# heals off 75% of everything a Servant does to it. Its counter is an Item
+# Nursery herself puts on the board the first time she summons it, and which she
+# is barred from picking up.
+schema: 1
+id: jabberwock
+name: "Jabberwock"
+type: summon
+# `Giant` implies `Large`, which `closeAttributes` resolves -- the same
+# implication Asterios carries.
+attributes: [summon, demonic, giant, fairytale]
+baseHealth: 1500
+agility: 6
+luck: 6
+mov: 3
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 200, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+countsTowardBudget: false
+actsOncePerTurn: true
+# "The Jabberwock can Move to any panel, if it Moves onto an occupied panel, all
+# Units occupying said panels are knocked back by 1 panel."
+#
+# Bašmu's pair of clauses exactly, and one field says both: `movesOntoOccupied-
+# Panels` is what `engine/movement-hooks.mjs#knockBackOccupants` gates on, and
+# the one-panel push is what that machinery does. No `Knockback` element --
+# that one is Achilles's, and it is about an ATTACK displacing somebody.
+movesOntoOccupiedPanels: true
+abilities:
+  - { ref: jabberwock-alice-eater }
+passiveRules:
+  # "Whenever the Jabberwock receives damage from Servants, its Health is
+  # restored by 75% of the damage received."
+  #
+  # `@amount` is what LANDED -- `result.total`, after every reduction. A Servant
+  # who swings 1000 into a Def Up that stops 600 heals it by 300, not by 750.
+  #
+  # `self:type:servant` and nothing else. Masters, summons, platforms and
+  # structures do not feed it, and the distinction is load-bearing: the Vorpal
+  # Blade is designed to be carried by a MASTER, so a Master hitting the monster
+  # does not heal it even before the Blade's own clause fires.
+  #
+  # `self:` is the ATTACKER here, not the bearer. `rollOptionsFor` names the two
+  # sides of an attack `self` and `target` whichever Unit the handler belongs
+  # to, so on a `damageTaken` handler -- which fires on the DEFENDER -- `self:`
+  # is still whoever swung. The content validator caught the `attacker:`
+  # spelling: an option nothing emits makes a clause permanently false.
+  #
+  # `defer: true` is what makes that reading actually hold, and without it the
+  # rule was DROPPED AT COLLECTION. `self:` means two different things in the
+  # two contexts: at collection it is the element's OWNER, and the Jabberwock is
+  # a summon rather than a Servant -- so the predicate answered false and the
+  # element never reached the handler bucket at all. `collectContributions`
+  # documents the same trap for `target:attribute:divine`, which "answered
+  # false here and dropped the element for ever."
+  #
+  # Found on a live board: the rule was on the document, its slug was right,
+  # nothing was suppressed, and the monster collected zero event handlers.
+  #
+  # `slug` is what the Blade's suppression names when it removes this
+  # permanently. Without one the removal would have only a random document id
+  # to aim at.
+  - key: OnEvent
+    slug: jabberwockLifesteal
+    event: damageTaken
+    automatic: true
+    predicate: ["self:type:servant"]
+    defer: true
+    then:
+      - { key: StatDelta, stat: "health.value", delta: "@amount", factor: 0.75 }
+notes: |
+  Summoned by Nursery Rhyme: Jabberwock on a panel next to Nursery, for 3◈ Turns. Re-summoned with
+  the Stats it had when it disappeared — and with whatever the Vorpal Blade permanently took.

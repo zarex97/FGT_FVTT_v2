@@ -26,6 +26,7 @@ import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { cooldownChanges } from "./skill-use.mjs";
+import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -2044,17 +2045,54 @@ async function fireDamageDealt(state, result) {
  * @returns {Promise<void>}
  */
 async function fireDamageTaken(state, result) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  // Off the BOARD, not off `game.actors`.
+  //
+  // A summon's token is unlinked, so `game.actors.get(id)` and the token's own
+  // actor are two different documents with the same id -- and every write the
+  // engine makes goes to the token's, because `io.mjs#resolve` prefers it
+  // ("the engine read one actor and wrote to another", as its comment says).
+  //
+  // Reading the world actor here meant this event was built from state the
+  // engine had never written to. Measured live: the Vorpal Blade suppressed the
+  // Jabberwock's lifesteal, `contributionsOf` on the board reported zero
+  // handlers, and the monster healed 154 anyway -- because the handler that
+  // fired was the world actor's, which had never heard of the suppression.
+  //
+  // `unitFrom` takes the board's projection when there is one, which is built
+  // from `canvas.tokens.placeables` like everything else.
+  const board = currentBoard();
+  const attacker = unitFrom(board, game.actors.get(state.attackerId));
+  const defender = state.defenderId ? unitFrom(board, game.actors.get(state.defenderId)) : null;
   if (!attacker || !defender) return;
 
   const intents = fireEvent("damageTaken", [defender], {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board: currentBoard(),
+    board,
     options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
     victim: { unitId: state.attackerId },
     rolls: {},
+    // WHAT LANDED, so a handler can take a share of it.
+    //
+    // > *"Whenever the Jabberwock receives damage from Servants, its Health is
+    // > restored by 75% of the damage received."*
+    //
+    // `result.total` is the figure after every reduction, which is the only
+    // reading of *"the damage received"*: a Servant who swings into a Def Up
+    // heals the monster by what got through, not by what was rolled.
+    //
+    // This event has fired with NO payload at all since it was written, so
+    // `@amount` on a `damageTaken` handler resolved to null and the handler
+    // emitted nothing. `engine/applier.mjs#fireWriteEvent` is the only path
+    // that has ever carried one, and its own comment says why: *"The payload IS
+    // the context for a handler that asks about the change rather than about a
+    // unit."*
+    event: {
+      amount: result?.total ?? 0,
+      attackerId: state.attackerId,
+      isNP: Boolean(result?.flags?.isNP ?? result?.isNP),
+      isCrit: Boolean(result?.flags?.isCrit ?? result?.isCrit),
+    },
   });
   if (intents.length > 0) await applyBatch(intents, "damageTaken");
 }
@@ -4128,6 +4166,42 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // reaches this once per Unit, which needs no guard: `io.setMode` returns
     // early when the mode is already in the state asked for, so the second and
     // later calls are no-ops rather than a flicker.
+    // A cooldown clause riding on a damaging ability.
+    //
+    // > *"…and increases the NP Cooldown of all affected Units by 1◈ Turns."*
+    // > — Nursery Rhyme's *A Tale for Somebody's Sake*, over a 3x3 area.
+    // > *"increase the DU's NP Cooldown by 1◈ Turns"* — Kiritsugu's *Chronos
+    // > Rose*, over one Unit.
+    //
+    // This loop skipped every phase kind but `applyEffects`, so a `kind:
+    // cooldown` phase on an attacking ability was DROPPED ENTIRELY -- Chronos
+    // Rose's clause has never run. `runAfterProcessPhases` does not reach it
+    // either: that pass filters on `when: afterProcess`, which neither clause
+    // declares.
+    //
+    // Its unit test passed throughout, because it called `cooldownChanges`
+    // directly with a victim the caller never supplies. The route was proved
+    // and the wiring was not -- the same shape as the Aura `check` field whose
+    // comment a few hundred lines from here says it "asserted the bug into
+    // existence."
+    //
+    // Split by audience: a target-directed change runs in EVERY Process, since
+    // each has its own defender, and a caster-directed one runs in exactly one,
+    // or a four-Unit Noble Phantasm turns its own clock four times.
+    if (phase.kind === "cooldown") {
+      const { perDefender, oncePerPhase } = splitCooldownRider(phase);
+      const cdBoard = boardSnapshot();
+      const intents = [
+        ...(perDefender.length > 0
+          ? cooldownChanges({ ...phase, changes: perDefender }, attackerDoc, cdBoard, ability, defenderDoc)
+          : []),
+        ...(oncePerPhase.length > 0 && isFirstOfGroup(state)
+          ? cooldownChanges({ ...phase, changes: oncePerPhase }, attackerDoc, cdBoard, ability, defenderDoc)
+          : []),
+      ];
+      if (intents.length > 0) await applyBatch(intents, `np:${ability.id}:cooldown`);
+      continue;
+    }
     if (phase.kind === "setMode") {
       await applyBatch(
         [I.setMode(state.attackerId, phase.ability, phase.active === true, `np:${ability.id}`)],
@@ -4432,6 +4506,16 @@ async function fireDamageStepEnd(state) {
     board: currentBoard(),
     options: rollOptions(attacker, defender, state),
     rolls: {},
+    // WHO WAS HIT. This event fires on the ATTACKER, and every rider hung from
+    // it is about the Unit on the other end -- `targetsOf` and `subjectOf` both
+    // read `ctx.victim.unitId`, and both correctly emit nothing when it is
+    // absent, *"a rider with no victim has nobody to ride."*
+    //
+    // It was absent here, so every such rider emitted nothing: Bašmu's *"Normal
+    // Attacks ... have a 50% chance of inflicting Poison"* had never inflicted
+    // any, and neither had Nursery Rhyme's `Enigma`. Found on a live board when
+    // the Vorpal Blade dealt its 846 and took nothing away.
+    victim: { unitId: state.defenderId },
   });
 
   if (intents.length > 0) await applyBatch(intents, "damageStepEnd");

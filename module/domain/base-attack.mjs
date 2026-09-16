@@ -54,9 +54,31 @@ export function baseAttackFor(sheet) {
     const derived = rank
       ? lookup(table, Rank.of(rank.grade, rank.steps + (granted[parameter] ?? 0)))
       : null;
-    out[parameter] = typeof derived === "number"
+    const base = typeof derived === "number"
       ? derived
       : (sheet?.baseAttack?.[parameter] ?? 0);
+
+    // A PERMANENT reduction the derivation subtracts, rather than a write to
+    // `baseAttack` itself.
+    //
+    // > *"For every Nameless Forest Counter on a Unit, reduce its Max Health by
+    // > 25, **Base Attack (both) by 10**, and Max Luck by 1."*
+    // > *"(Health and Luck that are lost from the effects of this NP are not
+    // > restored.)"*
+    //
+    // Not restored, so it cannot be a contribution -- those spring back the
+    // moment their source leaves, which is exactly what the parenthesis
+    // forbids. And it cannot be a write either: this function runs on every
+    // `prepareDerivedData`, so anything written to `baseAttack` is recomputed
+    // away on the next one.
+    //
+    // A stored penalty is the only shape that is both permanent and stable
+    // under recomputation, and it keeps this function the single source of the
+    // number.
+    //
+    // Floored at zero: a Unit with nine tokens has no Base Attack, not a
+    // negative one.
+    out[parameter] = Math.max(0, base - (sheet?.baseAttackPenalty?.[parameter] ?? 0));
   }
   return out;
 }

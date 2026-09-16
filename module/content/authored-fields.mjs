@@ -48,6 +48,16 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "weakPoint", "ridingAttack", "expendsPermanently", "categorizedWhile",
   "npTags", "cooldown", "cooldownWaiver", "targeting", "field", "quantity",
   "transferable", "transferRange", "transfersPerTurn", "consumeEffect",
+  // A refusal that belongs to the ITEM, not to any holder: "[Vorpal Blade]
+  // cannot be obtained by Nursery or her Master."
+  "barredFrom",
+  // Ch. 43 s43.11's gate. Declared in the schema, in `itemSystem()` and here in
+  // the SAME commit: this is exactly the shape of field this project has
+  // silently dropped six times -- present on the schema, absent from an
+  // allowlist, compiled to its default -- and a `requiresHistory` that compiles
+  // to `false` means the recorder never starts and the Noble Phantasm has no
+  // past to read, silently.
+  "requiresHistory",
   "phases", "copyable", "copiedFrom", "opensDialog", "additionalCosts",
   "npGateRound", "itemCost", "category", "kind", "passive", "countsAsAttack",
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",

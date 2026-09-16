@@ -443,7 +443,7 @@ async function writeGroup(group, io) {
       await io.adjustHealth(unitId, sum(intents, "amount"), { intents });
       break;
     case "statDelta":
-      for (const i of intents) await io.adjustStat(unitId, i.stat, i.delta, i.clamp);
+      for (const i of intents) await io.adjustStat(unitId, i.stat, i.delta, i.clamp, i.alsoCurrent);
       break;
     case "resource":
       for (const i of intents) await io.adjustResource(unitId, i.key, i.delta, Boolean(i.absolute));
@@ -501,6 +501,27 @@ async function writeGroup(group, io) {
     case "defeat":
       await io.defeat(unitId, intents[0].cause);
       break;
+    // A summon whose stay ran out. Distinct from `defeat`: no revival chain, no
+    // `unitDefeated`, no kill. It DOES write the summon's stats home and start
+    // its summoner's `countFrom: "destroyed"` clock.
+    case "dismissSummon":
+      await io.dismissSummon(unitId, intents[0].reason);
+      break;
+    // *"extends its period of existing on the board for 3◈ MORE Turns."*
+    // Summed, so two extensions in one batch both count.
+    // ONE update per Unit, so a failure cannot leave a Unit half in the past.
+    case "rewind":
+      await io.rewind(unitId, intents.at(-1).state, intents.at(-1).clearsDefeat);
+      break;
+    case "markGlassGameSpent":
+      await io.markGlassGameSpent(unitId);
+      break;
+    case "suppressRule":
+      await io.suppressRules(unitId, intents.map((i) => i.scope));
+      break;
+    case "durationDelta":
+      await io.extendSummonStay(unitId, intents.reduce((n, i) => n + i.delta, 0));
+      break;
     case "itemQuantity":
       for (const i of intents) await io.adjustItemQuantity(unitId, i.itemId, i.delta);
       break;
@@ -518,7 +539,13 @@ async function writeGroup(group, io) {
       // its own items.
       for (const i of intents) {
         const board = currentBoard();
-        const to = acquisitionTarget(board.units.find((u) => u.id === unitId), board);
+        // The item's own refusals travel with it -- `barredFrom` names roles
+        // rather than ids, so it can be answered from the descriptor's content
+        // id without loading the pack.
+        const to = acquisitionTarget(
+          board.units.find((u) => u.id === unitId), board,
+          { contentId: i.contentId, barredFrom: i.barredFrom ?? null },
+        );
         if (!to.ok) {
           // Loud: an item that lands nowhere is a clause doing less than it
           // says, and silence is how that goes unnoticed for a month.

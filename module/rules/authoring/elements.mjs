@@ -49,6 +49,10 @@ const GATE = Object.freeze([
 const SCALED = Object.freeze([
   { key: "value", type: "text" },
   { key: "table", type: "text" },
+  // WHICH rank indexes `table`, when it is not the owning ability's. A ref
+  // path: the Nameless Forest's escape ladder reads the affected Unit's own
+  // MAG parameter, and that Noble Phantasm is Rank C.
+  { key: "rankFrom", type: "text" },
   { key: "perStack", type: "raw" },
   { key: "max", type: "number" },
 ]);
@@ -91,6 +95,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "magnitudeRoundTo", type: "number" },
     { key: "component", type: "select", choices: ["str", "mag"] },
     { key: "roll", type: "text" },
+    // The same roll read off a rank table instead of written out. Territory
+    // Creation is the customer, and the reason is that a literal is right at
+    // exactly one rank.
+    { key: "rollTable", type: "text" },
   ]),
   entry("FlatDamage", "A flat addition to damage — Divinity, Dmg Boost, Avenger's counter bonus.", [
     ...SCALED,

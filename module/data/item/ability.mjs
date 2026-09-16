@@ -155,6 +155,28 @@ function abilityCommon() {
     // `maxUses` null means unlimited, which is every other ability.
     timesUsed: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     maxUses: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // Structure ids this ability has already placed, for a `once: true`
+    // `createStructure` phase.
+    //
+    // > *"When the Jabberwock is summoned FOR THE FIRST TIME, the [Vorpal
+    // > Blade] Item appears on a random panel."*
+    //
+    // Once per MATCH, not once per summoning, and recorded on the ability
+    // because that is the only thing that outlives both the structure (which
+    // is removed when the item is picked up) and the summon. A second Blade
+    // every 5<> is a different game, and so is replacing the one that broke.
+    placedStructures: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: () => [] }),
+    // This ability reads the PAST, so the match must record one.
+    //
+    // > *"…the Stats, Parameters, Buffs, Debuffs, Cooldowns, and other existing
+    // > effects of all Units within a 3 panel area of Nursery are returned to
+    // > what they were 3◈ Turns ago."*
+    //
+    // Ch. 43 §43.11's load-bearing optimisation: recording is OFF by default
+    // and switched on only when something declaring this enters play, so *"a
+    // match without Nursery Rhyme pays nothing"*. Read by
+    // `rules/history.mjs#historyWanted`.
+    requiresHistory: new fields.BooleanField({ initial: false }),
     // When it was last used, for `healthRestoredSince` -- a gate that has to
     // compare "since" against something.
     lastUsedTick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
@@ -646,6 +668,12 @@ export class EquipmentData extends foundry.abstract.TypeDataModel {
       transferRange: new fields.NumberField({ required: true, integer: true, initial: 1, min: 0 }),
       transfersPerTurn: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       consumeEffect: new fields.ArrayField(new fields.ObjectField()),
+
+      // *"Cannot be obtained by Nursery or her Master."* Whom this item refuses
+      // to be held by, as a ROLE PAIR against a content id -- `{ofUnit, roles}`
+      // -- because an actor id is random per world and would not survive the
+      // Servant being placed twice. Read by `rules/items.mjs#acquisitionTarget`.
+      barredFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       rules: new fields.ArrayField(new fields.ObjectField()),
     };

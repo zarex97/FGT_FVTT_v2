@@ -17,6 +17,8 @@ import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
+import { clampToMax } from "../domain/health.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -220,10 +222,31 @@ export function worldIO() {
      * @param {number} delta
      * @param {boolean} clamp
      */
-    async adjustStat(unitId, stat, delta, clamp = true) {
+    async adjustStat(unitId, stat, delta, clamp = true, alsoCurrent = false) {
       const actor = resolve(unitId);
       if (!actor) return;
       const path = `system.${stat}`;
+
+      // A CEILING that drags its current value down with it.
+      //
+      // > *"For every Nameless Forest Counter on a Unit, reduce its Max Health
+      // > by 25 … and Max Luck by 1."*
+      //
+      // A Unit at full Health whose maximum drops must not end up above its own
+      // ceiling -- and a WOUNDED one must not be healed on the way. So the
+      // current value is clamped to the new maximum rather than moved by the
+      // same delta: 1000/1000 becomes 975/975, and 400/1000 becomes 400/975.
+      //
+      // One `update` with both paths, so a failure cannot strand a current
+      // value above its own max.
+      if (alsoCurrent && path.endsWith(".max")) {
+        const root = path.replace(/\.max$/, "");
+        const pool = foundry.utils.getProperty(actor, root) ?? { value: 0, max: 0 };
+        const next = clampToMax(pool, delta);
+        await actor.update({ [`${root}.max`]: next.max, [`${root}.value`]: next.value });
+        return;
+      }
+
       const current = foundry.utils.getProperty(actor, path) ?? 0;
       const max = foundry.utils.getProperty(actor, `${path.replace(/\.value$/, "")}.max`);
       const next = clamp && typeof max === "number"
@@ -702,6 +725,199 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string} cause
      */
+    /**
+     * Take a summon off the board because its stay has run out.
+     *
+     * > *"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
+     * > *"When the Jabberwock is summoned again after disappearing, its Stats
+     * > will be the same as when it disappeared."*
+     * > *"Cooldown: 5◈ Turns after the Jabberwock disappears."*
+     *
+     * Three sentences, one moment, and two of them had nothing to hang on
+     * before this: `expiresAt` was written by nobody and read by nobody, so no
+     * summon had ever disappeared on a schedule.
+     *
+     * NOT a defeat. It does not run the revival chain, does not fire
+     * `unitDefeated`, and does not count toward the Grail — *"it disappears"*
+     * is the sheet's own word, and a monster that times out has not been
+     * killed by anyone.
+     *
+     * @param {string} unitId
+     * @param {string} reason
+     */
+    async dismissSummon(unitId, reason) {
+      const summon = resolve(unitId);
+      if (!summon) return;
+
+      const owner = summon.system?.summonerId ? resolve(summon.system.summonerId) : null;
+      const contentId = summon.system?.contentId ?? null;
+
+      if (owner && contentId) {
+        // The SAME record `engine/fields.mjs` writes when a field closes over
+        // its Sphinxes, and the same one `placeSummons` reads back. Kept on the
+        // owner because it is the only thing that outlives the summon.
+        await owner.update({
+          [`system.fieldSummonStats.${contentId}`]: {
+            health: { value: summon.system.health?.value ?? null, max: summon.system.health?.max ?? null },
+            agility: { value: summon.system.agility?.value ?? null, max: summon.system.agility?.max ?? null },
+            // ...and what has been PERMANENTLY taken from it.
+            //
+            // This is the subtle half of the Vorpal Blade. A suppression that
+            // lives on the summon dies with the summon, and the Jabberwock
+            // comes back "with the same Stats as when it disappeared" -- so
+            // without this the Blade's sacrifice is undone by the next
+            // summoning, which is precisely the interaction the sheet spends a
+            // sentence on.
+            suppressedScopes: [...(summon.system?.suppressedScopes ?? [])],
+          },
+        });
+
+        // *"5◈ Turns AFTER the Jabberwock disappears."* The same `countFrom`
+        // `engine/platforms.mjs#setCooldownOnDestruction` starts for a mount,
+        // and the defect its comment records is the one this prevents: *"the
+        // mount may stand for twenty Turns and the clock has not begun."*
+        const ability = owner.items?.find?.(
+          (i) => (i.system?.phases ?? []).some(
+            (ph) => ph.kind === "summon"
+              && Object.values(ph.spec?.types ?? {}).includes(contentId),
+          ),
+        );
+        const cd = ability?.system?.cooldown ?? null;
+        if (cd?.countFrom === "destroyed" && cd.max) {
+          const ticks = resolveTicks(parseTick(String(cd.max)), {
+            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          });
+          if (ticks > 0) await ability.update({ "system.cooldown.remaining": ticks });
+        }
+      }
+
+      // Recorded before the document goes, because afterwards there is nothing
+      // to name. `reason` distinguishes a timed departure from the field-close
+      // and platform-teardown routes that also remove summons.
+      record({ kind: "summonDismissed", unitId, name: summon.name, reason });
+      for (const token of summon.getActiveTokens?.() ?? []) await token.document.delete();
+      await summon.delete();
+    },
+
+    /**
+     * Move a summon's departure tick.
+     *
+     * > *"…extends its period of existing on the board for 3◈ **more** Turns."*
+     *
+     * Refuses a unit with no clock, the same refusal `DurationDelta` makes in
+     * the rules layer — both ends, because a summon that is handed an expiry it
+     * never had becomes mortal.
+     *
+     * @param {string} unitId
+     * @param {number} delta turns, signed
+     */
+    /**
+     * Switch named rules off on a Unit, permanently.
+     *
+     * > *"…is **permanently removed** from the Jabberwock."*
+     *
+     * A set union rather than an append, so the same clause suppressed twice
+     * does not accumulate.
+     *
+     * @param {string} unitId
+     * @param {string[]} scopes rule-element slugs
+     */
+    async suppressRules(unitId, scopes) {
+      const actor = resolve(unitId);
+      if (!actor || scopes.length === 0) return;
+      const held = new Set(actor.system?.suppressedScopes ?? []);
+      const before = held.size;
+      for (const s of scopes) held.add(s);
+      if (held.size === before) return;
+      await actor.update({ "system.suppressedScopes": [...held] });
+    },
+
+    async extendSummonStay(unitId, delta) {
+      const actor = resolve(unitId);
+      const current = actor?.system?.expiresAt;
+      if (!actor || typeof current !== "number" || delta === 0) return;
+      await actor.update({ "system.expiresAt": current + delta });
+    },
+
+    /**
+     * Return a Unit to a state it held earlier in the match.
+     *
+     * > *"…the Stats, Parameters, Buffs, Debuffs, Cooldowns, and other existing
+     * > effects of all Units within a 3 panel area of Nursery are returned to
+     * > what they were 3◈ Turns ago."*
+     *
+     * ONE `actor.update` for the document's own fields, so a failure cannot
+     * leave a Unit half in the past. Effects are documents of their own and
+     * have to be deleted and re-created, which is the one place this is not
+     * atomic -- recorded here rather than hidden, because a rewind interrupted
+     * between the two leaves a Unit with its old stats and its new buffs.
+     *
+     * POSITION IS NOT HERE, and neither is facing, turn budget or contract. Q45
+     * settled that *"Units are not teleported back"*, and the buffer does not
+     * store them -- so there is nothing to filter and nothing to get wrong.
+     *
+     * @param {string} unitId
+     * @param {object} state a `UnitStateSnapshot`
+     * @param {boolean} clearsDefeat
+     */
+    async rewind(unitId, state, clearsDefeat) {
+      const actor = resolve(unitId);
+      if (!actor || !state) return;
+
+      /** @type {Record<string, unknown>} */
+      const update = {
+        "system.health": state.stats?.health,
+        "system.agility": state.stats?.agility,
+        "system.luck": state.stats?.luck,
+        "system.parameters": state.parameters,
+        "system.grantedSteps": state.grantedSteps,
+        "system.baseAttackPenalty": state.baseAttackPenalty,
+      };
+      // The tokens the sheet carves out are ABSENT from `state.resources`, so
+      // whatever the Unit holds of them now is what it keeps. Merged rather
+      // than replaced for exactly that reason: a wholesale write would blank a
+      // pool the rewind was told not to touch.
+      if (state.resources) {
+        for (const [key, pool] of Object.entries(state.resources)) {
+          update[`system.resources.${key}`] = pool;
+        }
+      }
+      // *"…though not a defeat."*
+      if (clearsDefeat) update["system.defeated"] = false;
+
+      await actor.update(update);
+
+      for (const [abilityId, cooldown] of Object.entries(state.cooldowns ?? {})) {
+        const item = actor.items?.get(abilityId);
+        if (item) await item.update({ "system.cooldown.remaining": cooldown.remaining ?? 0 });
+      }
+      for (const [abilityId, mode] of Object.entries(state.modes ?? {})) {
+        const item = actor.items?.get(abilityId);
+        if (item) await item.update({ "system.active": Boolean(mode.active) });
+      }
+
+      // Effects are replaced wholesale: the snapshot IS the answer to "what was
+      // on this Unit", and reconciling instance by instance would need identity
+      // the buffer does not carry.
+      const held = [...(actor.effects ?? [])].map((e) => e.id);
+      if (held.length > 0) await actor.deleteEmbeddedDocuments("ActiveEffect", held);
+      if ((state.effects ?? []).length > 0) {
+        await actor.createEmbeddedDocuments("ActiveEffect", state.effects.map((e) => ({
+          name: e.defId, type: "fgtEffect", img: "icons/svg/aura.svg", system: { ...e },
+        })));
+      }
+    },
+
+    /**
+     * Spend The Queen's Glass Game's once-per-game rewind.
+     * @param {string} unitId
+     */
+    async markGlassGameSpent(unitId) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      await actor.update({ "system.glassGameSpent": true });
+    },
+
     async defeat(unitId, cause) {
       await countTowardsGrail(unitId, cause);
       await freeContractedServants(unitId);

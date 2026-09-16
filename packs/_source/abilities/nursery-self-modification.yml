@@ -1,0 +1,28 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# A passive and an active in one Skill, which is the ordinary shape: the
+# passive is always on, the button is the 1◈ spike.
+schema: 1
+id: nursery-self-modification
+name: "Self-Modification"
+rank: A
+kind: skill
+slug: selfModification
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Passive) Crit Damage dealt is increased by 40%.
+  (Active) Used during your Turn. Applies @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is
+  increased by 60%. Cooldown: 4◈ Turns.
+passiveRules:
+  # `aspect: damage`, so it lands in `critDmUp` and acts at stage 2 on the roll
+  # -- the active below raises the CHANCE, which is a different bucket. The
+  # sheet states both and they are not the same number.
+  - key: CritModifier
+    aspect: damage
+    value: 40
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, duration: "1◈", magnitude: 60 }

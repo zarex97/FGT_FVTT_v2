@@ -666,7 +666,7 @@ owner's Turn). Mad Enhancement `A+` needed a table override: her NP column says 
 per-step rule gives 30 — see Appendix B, where the whole column turns out to be the normal value
 halved and floored to 5.
 
-**Script elements: zero.** The stack economy that §36.8 lists as her requirement is a field on
+**Script elements: zero.** *(Still true of this roster. The corpus's first — and, so far, only — `Script` is Nursery Rhyme's `nurseryRhyme.rewind`, built 2026-09-16; see Ch. 44 §44.6 and Ch. 43 §43.11. The sentence this figure supports is unchanged: everything here decomposes into small, general mechanisms.)* The stack economy that §36.8 lists as her requirement is a field on
 `resolveValue`.
 
 ---

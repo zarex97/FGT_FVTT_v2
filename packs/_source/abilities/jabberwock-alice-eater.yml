@@ -1,0 +1,29 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md -- the Jabberwock's
+# own Skill.
+schema: 1
+id: jabberwock-alice-eater
+name: "Alice Eater"
+rank: null
+kind: skill
+slug: aliceEater
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  Used during your Turn. Applies @effect[atkUp]{Atk Up} to itself for 1◈ Turns, all damage dealt is
+  increased by 50%; if NP, 25%; and extends its period of existing on the board for 3◈ more Turns.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, duration: "1◈", magnitude: 50, npMagnitude: 25 }
+  - kind: applyEffects
+    target: self
+    rules:
+      # "3◈ MORE Turns" -- additive to whatever remains. A monster with 1◈ left
+      # ends with 4◈, not 3◈.
+      - { key: DurationDelta, ticks: "3◈" }
