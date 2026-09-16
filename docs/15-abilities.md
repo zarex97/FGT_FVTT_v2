@@ -706,6 +706,15 @@ whose sheet says it never switches off, and `reconcileForcedModes` did not bring
 pass re-arms a mode held on by a **compulsion** or a **`ForceMode`** rule, and *Never* is neither.
 `io.setMode` now honours `cannotDeactivate`.
 
+**Held on is a third question, and content asks it.** *"Has the skill"*, *"has it switched on"* and
+*"has it switched on and cannot switch it off"* are three different states, and the last one is
+what Penthesilea's and Raikou's Master-health floors are conditioned on: *"while the Skill does not
+meet the condition to be deactivated"*. `rules/modes.mjs#heldOn` answers it as
+`self:modeHeld:<slug>`, built from the same `compelledOn` / `forcedOn` the refusal uses so a third
+reading cannot drift from it. It deliberately excludes the two refusals below — `toggleLock` says
+*not yet* and every bearer carries it, `cannotDeactivate` says *never* and belongs to a Servant
+whose floor has no condition at all (Ch. 46 §46.4-C).
+
 The two refusals are **not** interchangeable, and the order matters: `cannotDeactivate` says
 NEVER and `toggleLock` says HOW LONG YOU WAIT, so a forcible deactivation still beats the lockout
 and does not beat the flag. A Command Spell is unaffected either way — it is bought precisely to

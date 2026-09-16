@@ -52,7 +52,7 @@ abilities:
   # all damage taken, 85% of all damage dealt.
   # *"when its Master's Health is 25 or less, ME is forcibly deactivated"* --
   # the forced deactivation, and no floor (Ch. 46 §46.4-C).
-  - { ref: class-mad-enhancement, rank: "A+", drainFloor: null, forcedDeactivation: true }
+  - { ref: class-mad-enhancement, rank: "A+", drainFloor: null, drainFloorWhen: null, forcedDeactivation: true }
   - { ref: kingprotea-territory-creation }
   - { ref: class-independent-action, rank: B }
   - { ref: kingprotea-divine-core }

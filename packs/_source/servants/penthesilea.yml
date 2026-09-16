@@ -32,9 +32,10 @@ abilities:
   # deactivated; while the Skill does not meet the condition to be deactivated,
   # its Master's Health cannot drop below 30 in this way"*. The floor is
   # CONDITIONAL on the skill being held on -- by her own Hatred of Achilles --
-  # and is authored unconditionally here because that predicate has no
-  # vocabulary yet. Ch. 46 §46.4-C; settle it with her audit.
-  - { ref: class-mad-enhancement, rank: EX, drainFloor: madEnhancementDrain, forcedDeactivation: true }
+  # and `self:modeHeld:madEnhancement` is the predicate that says so: switched
+  # on AND unable to be switched off, which is neither of the two questions
+  # `skillActive` and `skill` already answer. Ch. 46 §46.4-C.
+  - { ref: class-mad-enhancement, rank: EX, drainFloor: madEnhancementDrain, drainFloorWhen: ["self:modeHeld:madEnhancement"], forcedDeactivation: true }
   - { ref: divinity, rank: B }
   - { ref: penthesilea-hatred-of-achilles }
   - { ref: penthesilea-charisma }
@@ -65,6 +66,13 @@ notes: |
   - **Rolled modifiers**, for *Goddess of War*: a magnitude rolled per damage event rather than
     fixed before the attack. The dice stay with the caller, like every other roll here.
 
-  One clause remains: Goddess of War's *"Divinity Rank is increased from B to A"*. `RankShift`
-  moves a **parameter**, and this moves another ability's rank -- a different operation, and one
-  no other Servant in the reference set needs yet. Her Divinity is authored at B.
+  Goddess of War's *"Divinity Rank is increased from B to A"* is built. `RankShift` grew an
+  `ability:` branch for it -- moving another ability's rank is a different operation from moving a
+  parameter, and hers is still the only sheet in the reference set that needs it. Her Divinity is
+  authored at B and the shift raises the table lookup while Mad Enhancement is off, which is the
+  same condition the NP's other three clauses carry.
+
+  Re-audited 2026-09-16 (Ch. 46 §46.10). Two fixes: Mad Enhancement's Master-health floor is
+  CONDITIONAL on her sheet -- *"while the Skill does not meet the condition to be deactivated"* --
+  and was authored unconditionally, and `Outrage Amazon` had her base Range frozen into its anchor
+  while the Mad Enhancement it requires raises that Range by one.

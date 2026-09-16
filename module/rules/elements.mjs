@@ -719,7 +719,27 @@ function normalizeAction(a, rank, ctx) {
   // under 30, and clamped the drain against the wrong floor on the way. Every
   // rank below EX was wrong, in the Servant's favour on one clause and against
   // it on the other.
+  // A floor some bearers have and others do not, and which two of them have
+  // only CONDITIONALLY. Mad Enhancement's clause 1 is printed three ways across
+  // the six sheets carrying it (Ch. 46 §46.4-C): Heracles has an unconditional
+  // floor and no forced deactivation, Asterios/Castor/Kingprotea have the
+  // deactivation and no floor, and Penthesilea/Raikou have both -- with the
+  // floor holding only *"while the Skill does not meet the condition to be
+  // deactivated"*, which for them is a positional hold on the mode.
+  //
+  // Resolved here, and GATED at dispatch. The value needs the owning ability's
+  // rank, which is gone by the time an action runs -- but the condition needs
+  // the compulsion, and `annotateCompulsions` does not run until every unit on
+  // the board exists, which is strictly after these contributions are
+  // collected. Evaluating the predicate here asks a question whose answer is
+  // always "no": Penthesilea's own compulsion is not on her snapshot yet.
+  //
+  // Measured on a live board before the split: Achilles standing two panels
+  // away, Mad Enhancement forced on, `self:modeHeld:madEnhancement` correctly
+  // emitted by `rollOptionsFor` -- and her Master still went 40 to 10, because
+  // the floor had been decided one pass too early.
   if (a.floorTable) out.floor = scaled(lookup(a.floorTable, rank));
+  if (a.floorPredicate) out.floorPredicate = [...a.floorPredicate];
   if (a.whenValue?.lteTable || a.whenValue?.gteTable) {
     const { lteTable, gteTable, ...gate } = a.whenValue;
     out.whenValue = {

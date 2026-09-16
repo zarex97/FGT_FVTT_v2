@@ -322,6 +322,20 @@ export function combatantCommon() {
       acted: new fields.BooleanField({ initial: false }),
       moved: new fields.BooleanField({ initial: false }),
       attacked: new fields.BooleanField({ initial: false }),
+      // Was this Unit in a Combat Phase this Turn — on EITHER side of it?
+      //
+      // Distinct from `acted`, which is what the Unit *did*, and from
+      // `attacked`, which is what it *did to somebody else*. Being the defender
+      // is involvement and neither of those records it.
+      //
+      // Karna's `Kavacha and Kundala` is the clause that needs it: *"Karna's
+      // Master loses 20 Health at the end of every Turn that Karna is INVOLVED
+      // IN A COMBAT PHASE"*, against `Vasavi Shakti`'s *"at the end of every
+      // Combat PROCESS Karna is involved in"*. Ch. E draws that distinction and
+      // names him as the reason for it; the Phase-scaled half was authored on
+      // `actedTurnEnd`, which is neither, so a Karna who was attacked and did
+      // not act cost his Master nothing (Ch. 46 §46.9).
+      inCombatPhase: new fields.BooleanField({ initial: false }),
       movedPanels: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       moveSegments: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       usedActiveSkill: new fields.BooleanField({ initial: false }),

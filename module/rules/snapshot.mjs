@@ -534,6 +534,10 @@ export function snapshotUnit(actor, {
       .filter((i) => i.type === "equipment")
       .map((i) => ({ contentId: i.system?.contentId ?? i.id, quantity: i.system?.quantity ?? 0 })),
     acted: turnState.acted,
+    // Hoisted beside `acted` for the same reason `acted` is: `scheduler#endTurn`
+    // filters the whole board on it once per boundary, and reaching into
+    // `turnState` for that is a different shape from every other filter there.
+    inCombatPhase: turnState.inCombatPhase,
     turnState,
     roundState,
   }, warRegion));
@@ -558,7 +562,7 @@ export function snapshotUnit(actor, {
  */
 export function turnStateAt(raw, tick) {
   const blank = {
-    tick, acted: false, moved: false, attacked: false, movedPanels: 0,
+    tick, acted: false, moved: false, attacked: false, inCombatPhase: false, movedPanels: 0,
     moveSegments: 0, usedActiveSkill: false, mayMoveAgain: false, usedRidingAttack: false,
     reshapedField: false,
     // WHICH abilities went. Absent from both branches until now, so every
@@ -574,6 +578,10 @@ export function turnStateAt(raw, tick) {
     acted: Boolean(raw?.acted),
     moved: Boolean(raw?.moved),
     attacked: Boolean(raw?.attacked),
+    // A flag added to the schema and not added HERE is written to the document
+    // and invisible to every rule that reads a snapshot -- the failure this
+    // function's own `reshapedField` comment records.
+    inCombatPhase: Boolean(raw?.inCombatPhase),
     movedPanels: raw?.movedPanels ?? 0,
     moveSegments: raw?.moveSegments ?? 0,
     usedActiveSkill: Boolean(raw?.usedActiveSkill),

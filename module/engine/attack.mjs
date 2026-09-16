@@ -2318,6 +2318,16 @@ async function fireCombatPhaseEnd(state) {
       .filter(Boolean),
   )];
 
+  // Record the involvement before the boundary's own handlers run. The set is
+  // already computed above -- attacker, defender, and every sibling Process's
+  // defender -- which is exactly what *"involved in a Combat Phase"* names, and
+  // it is the only place that knows it. `markTurn` stamps the current tick, so
+  // the flag is stale-by-reading at the next one like the rest of turn state.
+  await applyBatch(
+    units.map((u) => I.markTurn(u.id, { inCombatPhase: true })),
+    "combatPhase:involvement",
+  );
+
   const intents = fireEvent("combatPhaseEnd", units, {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),

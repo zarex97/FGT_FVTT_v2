@@ -53,6 +53,7 @@ async function onTurnChange(combat, prior, current) {
   const activeFactionId = factionOf(combat, prior);
   const activeUnits = board.units.filter((u) => u.factionId === activeFactionId);
   const actedUnits = board.units.filter((u) => u.acted);
+  const involvedUnits = board.units.filter((u) => u.inCombatPhase);
 
   const ctx = {
     tick,
@@ -69,7 +70,10 @@ async function onTurnChange(combat, prior, current) {
     // fires here. A `turnEnd`/`actedTurnEnd` handler with its own `roll:`
     // (Semiramis's `Construction` effect: "HGoB Construction is increased by
     // 1d6 at the end of every Turn") wrote nothing, silently, forever.
-    rolls: await gatherRolls([[activeUnits, "turnEnd"], [actedUnits, "actedTurnEnd"]]),
+    rolls: await gatherRolls([
+      [activeUnits, "turnEnd"], [actedUnits, "actedTurnEnd"],
+      [involvedUnits, "involvedTurnEnd"],
+    ]),
   };
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");

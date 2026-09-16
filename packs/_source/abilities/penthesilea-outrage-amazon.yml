@@ -18,7 +18,18 @@ requirements:
   # other: Goddess of War while calm, Outrage Amazon while raging.
   - { kind: modeActive, mode: madEnhancement }
 targeting:
-  anchor: { kind: targetUnit, range: 2 }
+  # NO `range:`. Her sheet gives this Noble Phantasm no reach of its own -- *"Base
+  # Attack (STR) is used"* and nothing about panels -- so it swings at whatever
+  # her Range is. `anchorRange` falls through to `caster.range` when neither
+  # `range` nor `rangeBonus` is stated; an absolute number is the idiom for a
+  # reach the sheet prints (Karna's Discernment of the Poor is *"Range=2"*).
+  #
+  # It carried `range: 2`, her BASE Range frozen -- and this NP *"can only be
+  # used when Mad Enhancement is activated"*, whose clause 4 is *"Range is
+  # increased by 1"*. So the one state in which she may fire it is the one state
+  # in which the number was wrong: 3, every time. The same defect as Heracles's
+  # Nine Lives, on a Servant where the gate guarantees it (Ch. 46 §46.10).
+  anchor: { kind: targetUnit }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: all, count: 1 }
   limits: { requiresZon: true }
