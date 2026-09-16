@@ -38,12 +38,33 @@ const PREVENT_ALL = Object.freeze([
 /** Effect → what it prevents, for the partial preventions. */
 const PREVENTS = Object.freeze({
   immobilize: ["move"],
-  disable: ["attack", "skill", "np"],
+  // *"Can only use the Move action."* -- Appendix A, and the complement of
+  // `immobilize` directly above, which prevents only movement.
+  //
+  // `spell`, `gather` and `mark` were missing, so a Disabled Unit could still
+  // cast. The row says one action is permitted and names it, which makes every
+  // other kind in ACTION_KINDS a member of this list by construction.
+  disable: ["attack", "skill", "np", "spell", "ridingAttack", "gather", "mark"],
   seal: ["attack", "skill", "np"],
   silence: ["spell"],
   skillSeal: ["skill", "spell"],
   npSeal: ["np"],
 });
+
+/**
+ * Which actions a named effect refuses, for a test or a tooltip.
+ *
+ * Exported because the table is the authority and Appendix A's prose is the
+ * source: a row saying *"can only use the Move action"* and a table that let
+ * the Unit cast a Spell disagreed with each other silently for as long as
+ * nothing could ask.
+ *
+ * @param {string} id an effect id
+ * @returns {string[]} the action kinds it prevents
+ */
+export function PREVENTS_FOR(id) {
+  return [...(PREVENTS[id] ?? [])];
+}
 
 /** Human-readable names, for the refusal messages the HUD prints. */
 const LABELS = Object.freeze({

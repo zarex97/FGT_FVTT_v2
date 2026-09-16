@@ -1,0 +1,30 @@
+# Appendix A §A — catalogued since it was written, authored by nothing until
+# Nursery Rhyme's `Plains of Winter`.
+#
+# The complement of `immobilize`: that one prevents ONLY movement, this one
+# prevents everything EXCEPT movement. `rules/budget.mjs#preventedBy` reads its
+# PREVENTS table by effect id, and `disable` has had a row there all along --
+# so this document is what lets one arrive.
+#
+# That row listed attack/skill/np and nothing else, which let a Disabled Unit
+# cast a Spell, make a Riding Attack, Gather and Mark. Appendix A says "can
+# only use the Move action", so the list is now the complement of Move over the
+# whole action vocabulary.
+schema: 1
+id: disable
+name: "Disable"
+description: "Can only use the Move action."
+polarity: debuff
+volatility: volatile
+valence: offensive
+# A second Disable refreshes the clock rather than stacking: "can only Move"
+# has no magnitude to add to. The same reasoning `stun.yml` records.
+stacking: noneRefresh
+baseChance: 100
+preventsAction: true
+severity: normal
+# Appendix A lists this among `Bind`'s members. Declared here rather than in a
+# central list, so a binding effect authored later counts by saying so about
+# itself.
+families: [bind]
+rules: []

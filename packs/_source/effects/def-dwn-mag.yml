@@ -1,0 +1,28 @@
+# Appendix A §A.9 — referenced by the `Enigma` row and never given a row of its
+# own. The fourth Def Dwn variant, beside (A), (B) and (C).
+#
+# A DISTINCT effect, not a stronger Def Dwn: the parenthesis names what is
+# scoped, and content that strips "one Def Dwn" must be able to take this one
+# without taking an unscoped one instead. That is the same argument
+# `def-dwn-a.yml` makes about its own letter.
+schema: 1
+id: defDwnMag
+name: "Def Dwn (MAG)"
+description: "All MAG damage taken is increased by X%; a reduced magnitude applies to Noble Phantasms."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+families: [defDwn]
+rules:
+  # Scoped to MAG damage by an attack-time predicate -- the same axis Karna's
+  # fire resistance and the Ward `component` field read, said here as a
+  # predicate because the scope is the ATTACK's component rather than a
+  # category of attack.
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+    predicate: ["attack:component:mag"]
