@@ -34,6 +34,54 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Nursery Rhyme, Part 2 of 4 — the summons (2026-09-16)
+
+Two Noble Phantasms that put units on the board, and an Item that exists mostly
+to kill one of them. **She summons her own counter**: the `[Vorpal Blade]`
+appears on a random panel the first time she calls the Jabberwock, and she and
+her Master are the two Units who cannot pick it up.
+
+**Seven engine changes**, three of them fields that already existed and were
+read by nobody:
+
+- **`expiresAt`** — on the summon schema since it was written, displayed by the
+  actor sheet and read by nothing else. No summon had ever left on a schedule,
+  so *"it disappears after 3◈ Turns"*, *"5◈ Turns **after** it disappears"* and
+  *Alice Eater*'s *"3◈ **more** Turns"* had nothing to attach to.
+- **`equipped`** — on `EquipmentData` since it was written, drawn as a checkbox
+  and gating nothing. An Item's rules applied from the moment it was **held**.
+  `[Semiramis' Poison]` is the only other Item in the corpus and carries no
+  rules at all, so nothing had noticed.
+- **`acquisitionTarget`** — the right seam, whose docstring anticipates this
+  exact day, but with a signature that could not refuse *this* item to *these*
+  units.
+
+And four more found on a live board, after 4,569 tests were green:
+
+- **The summon protection had never once applied, on any summon.** All four
+  — three Dragon Tooth Warriors and the Trump Soldier — authored it as
+  `TargetingModifier`, which lands in `modifiers` under a key nothing reads. The
+  element that works is `TargetabilityModifier`, three letters away.
+- **`damageStepEnd` never said who was hit**, so every victim-directed rider on
+  it emitted nothing: Bašmu's Poison, and Nursery's own `Enigma` from Part 1,
+  whose handler Part 1 confirmed was *collected* and never confirmed *fired*.
+- **`fireDamageTaken` read the world actor** while every engine write goes to
+  the token's — different documents for an unlinked token, which every summon
+  is. The lifesteal fired from a document that had never heard of the Blade.
+- **A re-summoned Unit came back brand new.** The remembered-stats record was
+  written by two paths and read back by only one, so *"its Stats will be the
+  same as when it disappeared"* was inert for every ordinary summoning.
+
+**New content:** two summons, a structure, the Item, and three abilities.
+**Also new:** `DurationDelta`, a `SuppressRule` that switches a rule off by name
+and permanently, an absolute `RangeDelta` (*"Range is reduced **to** 1 panel"*),
+an Underpower waiver, an `ItemDelta` so a sword can break, and `at: randomPanel`
+with `once: true` on `createStructure`.
+
+The spec's `replaces`-at-an-`attributeBonus`-stage was **withdrawn**: there is no
+such stage, and *"3x **instead of** 50% extra"* is two mutually exclusive
+predicates in one bucket. No pipeline change at all.
+
 ### Nursery Rhyme, Part 1 of 4 — her core kit (2026-09-16)
 
 A Servant authored in four parts, because her sheet is four different games: a

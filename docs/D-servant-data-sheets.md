@@ -1522,9 +1522,9 @@ additive bucket.
 Sustainability 4◈ · Caster · True Neutral · England ·
 `[Female, Servant, [Man], Humanoid, Fairytale, Non-Hominidae, Child]`
 
-**Scripts: 0 so far.** **Part 1 of 4 authored and verified on a live board** — the core kit. Parts 2 (the summons and the
-`[Vorpal Blade]`), 3 (Nameless Forest) and 4 (The Queen's Glass Game) are specified and planned and
-not yet built. Part 4 would be the corpus's **first `Script`**.
+**Scripts: 0 so far.** **Parts 1 and 2 of 4 authored and verified on a live board** — the core kit,
+the summons and the `[Vorpal Blade]`. Parts 3 (Nameless Forest) and 4 (The Queen's Glass Game) are
+specified and planned and not yet built. Part 4 would be the corpus's **first `Script`**.
 
 **Every combat number is the tables' own.** 500 at END E, 50 at STR E, 200 at MAG A, with no
 authorial override anywhere — the second Servant after Drake of whom that is true.
@@ -1555,6 +1555,20 @@ cooldown phase in the corpus to carry a `targeting` of its own.
 Kiritsugu's *Chronos Rose* — and the first that works. The rider path it needs had never run.
 Measured live: a 3×3 caught two Servants for 1482 and 1876, and both of their Noble Phantasm
 cooldowns went **4 → 7** — increased by exactly 1◈, on them, while hers was untouched.
+
+**She summons her own counter.** The `[Vorpal Blade]` appears on a random panel the first time she
+calls the Jabberwock, and she and her Master are the two Units the Item itself refuses. Measured
+live: an enemy Servant standing on the panel picks it up, she standing on the same panel picks up
+nothing and the sword stays. Its one attack dealt 839, broke, and took the monster's lifesteal away
+for good — which then survived the monster disappearing at 640 and returning at 640, still
+suppressed.
+
+**The Jabberwock is the strongest summon in either roster**, and the only one with a clock. Measured
+live: a Servant's 206 healed it 154 back, exactly 75% of what landed; a Master's 215 healed it
+nothing.
+
+**The live pass found six defects the suite did not** — two in Part 1 and four in Part 2, three of
+the latter in machinery that shipped long before she existed. Ch. 45 records them.
 
 **The live pass found two defects the suite did not.** A non-damaging Spell must declare
 `countsAsAttack: false`, or `classifyAbility` calls it an attack and the default targeting asks for
