@@ -34,6 +34,53 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Nursery Rhyme, Part 3 of 4 — Nameless Forest (2026-09-16)
+
+A Noble Phantasm that is **passive, continuous, and kills by accumulation** —
+the only ability in either roster that wins by waiting, and the only thing that
+can remove a Unit with no attack, no roll to hit and no counter-play beyond a
+Luck Check.
+
+**R2 is the clause the whole part is arranged around.** *"(Health and Luck that
+are lost from the effects of this NP are not restored.)"* Every other stat
+change in this engine is a **contribution** that springs back when its source
+leaves; these must not. A `MaxDelta` scaled by the held token count would look
+correct, pass a casual test, and silently restore everything the instant a Unit
+escaped. Base Attack could not even be a write — `baseAttackFor` recomputes it
+on every `prepareDerivedData` — so it goes through a stored penalty the
+derivation subtracts, which is the only shape that is both permanent and stable
+under recomputation.
+
+**R3 inverts under one careless reading.** A **high** MAG Rank makes escape
+**easier**: `resolveCheck` succeeds on `roll + mods <= target`, so a negative
+modifier helps. That reads backwards until you notice the Home Base term does
+the same thing and that the sheet separately refuses to delete a Unit at home.
+Both point one way. The table is tested at all six grades and the direction is
+proved against `resolveCheck` rather than asserted.
+
+**Two engine changes, and one defect the live board found:**
+
+- **A rank table may now be indexed by the target's own parameter.** Every table
+  in the corpus is read against the OWNING ability's rank; this one is read
+  against the affected Unit's MAG, and that Noble Phantasm is Rank C — so
+  reading it the usual way returns 0 at every grade and does nothing at all.
+- **A permanent stat reduction that survives recomputation**, plus `alsoCurrent`
+  clamping a current value to a lowered ceiling without healing a wounded Unit.
+- **An action aimed at a SET reached the bearer instead.** `ApplyEffect` has
+  read a per-action `target` since Serenity; every other action resolved one
+  subject through `subjectOf`, whose vocabulary has no `nearby`. So the token
+  grant and all three reductions — aimed at *"all enemy Units within a 2 panel
+  area"* — landed on **Nursery**. She poisoned herself once per Round, down to
+  475 Max Health and BA 40/190, while the enemy in her ring took nothing.
+
+**Verified on a live board.** One token per Round to an enemy at exactly 2
+panels; three tokens producing 925 Health, 7 Luck and BA 120/120 from
+1000/10/150; a successful escape (6 vs 20) taking the tokens and the marker and
+**restoring none of it**; nine tokens and a rolled 9 producing a defeat and a
+rolled 12 producing nothing; the same Unit at home rolling a **1** and surviving,
+with the log recording exactly how close that was; and three escapes compounding
+to a 70% chance of being caught again.
+
 ### Nursery Rhyme, Part 2 of 4 — the summons (2026-09-16)
 
 Two Noble Phantasms that put units on the board, and an Item that exists mostly
