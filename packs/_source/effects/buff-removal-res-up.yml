@@ -1,0 +1,15 @@
+# Appendix A §A.9. The first content to write to `buffRemovalResist`, which has
+# been a contribution bucket with an executor (`rules/elements.mjs`) and no
+# writer since rule elements were written.
+schema: 1
+id: buffRemovalResUp
+name: "BuffRemoval ResUp"
+description: "The chance of having buffs removed from this Unit is reduced by X%."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: BuffRemovalResist
+    value: "@magnitude"
