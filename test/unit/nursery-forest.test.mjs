@@ -12,6 +12,10 @@ import { resolveCheck } from "../../module/rules/checks.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { baseAttackFor } from "../../module/domain/base-attack.mjs";
 import { clampToMax } from "../../module/domain/health.mjs";
+import {
+  deathRollOutcome, DEATH_ROLL_FORMULA, DEATH_ROLL_THRESHOLD,
+  mayAttemptEscape, escapeModifiers,
+} from "../../module/rules/nameless-forest.mjs";
 
 describe("R3 — the MAG ladder, at all six grades", () => {
   // The sign question decides the whole ability, so every row is pinned. An
@@ -154,5 +158,105 @@ describe("R2 — the reductions are WRITES, and do not spring back", () => {
 
   it("...and never below zero", () => {
     expect(clampToMax({ value: 10, max: 20 }, -100)).toEqual({ value: 0, max: 0 });
+  });
+});
+
+describe("E3 — the death roll (F12, F13, F14, R5, R6)", () => {
+  it("F12 — does not roll at 2 tokens", () => {
+    expect(deathRollOutcome({ tokens: 2, roll: 1, inHomeBase: false }))
+      .toMatchObject({ rolls: false, deleted: false });
+  });
+
+  it("F12 — rolls at 3", () => {
+    expect(deathRollOutcome({ tokens: 3, roll: 12, inHomeBase: false }))
+      .toMatchObject({ rolls: true, deleted: false });
+  });
+
+  it("F13 — deleted on a roll EQUAL to the count", () => {
+    // "equal to or lower than". The boundary is the clause.
+    expect(deathRollOutcome({ tokens: 3, roll: 3, inHomeBase: false }).deleted).toBe(true);
+  });
+
+  it("F13 — and not on a roll one above it", () => {
+    expect(deathRollOutcome({ tokens: 3, roll: 4, inHomeBase: false }).deleted).toBe(false);
+  });
+
+  it("F13 — the more tokens it carries, the likelier that is", () => {
+    expect(deathRollOutcome({ tokens: 9, roll: 9, inHomeBase: false }).deleted).toBe(true);
+    expect(deathRollOutcome({ tokens: 3, roll: 9, inHomeBase: false }).deleted).toBe(false);
+  });
+
+  it("F14/R6 — a Unit at home STILL ROLLS, and is refused the outcome", () => {
+    // Skipping the roll and refusing the consequence are indistinguishable
+    // today and will not be once anything reads the roll log. The sheet says a
+    // Unit cannot DISAPPEAR at home -- it refuses the disappearance, not the
+    // die.
+    expect(deathRollOutcome({ tokens: 9, roll: 1, inHomeBase: true }))
+      .toMatchObject({ rolls: true, deleted: false, reason: "inHomeBase" });
+  });
+
+  it("F14 — and a Unit at home below the threshold does not roll either", () => {
+    expect(deathRollOutcome({ tokens: 1, roll: 1, inHomeBase: true }).rolls).toBe(false);
+  });
+
+  it("the die is a d12, and the threshold is 3", () => {
+    expect(DEATH_ROLL_FORMULA).toBe("1d12");
+    expect(DEATH_ROLL_THRESHOLD).toBe(3);
+  });
+});
+
+describe("E4/F8 — the escape is OFFERED, once per Turn, on the bearer's own Turn", () => {
+  const caught = (over = {}) => ({
+    id: "foe", factionId: "blue", effects: ["namelessForest"],
+    parameters: { mag: "A" }, turnState: {}, ...over,
+  });
+  const board = { activeFactionId: "blue" };
+
+  it("stands for an affected Unit on its own Turn", () => {
+    expect(mayAttemptEscape(caught(), board)).toMatchObject({ ok: true });
+  });
+
+  it("does not stand for a Unit the forest has not caught", () => {
+    expect(mayAttemptEscape(caught({ effects: [] }), board))
+      .toMatchObject({ ok: false, reason: "notAffected" });
+  });
+
+  it("does not stand on somebody ELSE's Turn", () => {
+    // "During an affected Unit's Turn". Every caught Unit would otherwise be
+    // offered an escape at the top of every Turn in the Round.
+    expect(mayAttemptEscape(caught(), { activeFactionId: "red" }))
+      .toMatchObject({ ok: false, reason: "notItsTurn" });
+  });
+
+  it("F8 — once per Turn, and no more", () => {
+    expect(mayAttemptEscape(caught({ turnState: { namelessForestAttempts: 1 } }), board))
+      .toMatchObject({ ok: false, reason: "alreadyTriedThisTurn" });
+  });
+});
+
+describe("R3/R4 — what the escaping Unit's check carries", () => {
+  const mods = (unit) => escapeModifiers(unit, lookup, (g) => Rank.parseOrNull(g));
+
+  it("the MAG term, read off the UNIT's own parameter", () => {
+    expect(mods({ parameters: { mag: "A" } })).toEqual([{ source: "MAG A", value: -2 }]);
+  });
+
+  it("R4 — and the Home Base term, summed with it", () => {
+    // A MAG EX Unit at home rolls at -6.
+    const out = mods({ parameters: { mag: "EX" }, inHomeBase: true });
+    expect(out.reduce((n, m) => n + m.value, 0)).toBe(-6);
+  });
+
+  it("omits a MAG C term rather than showing a zero", () => {
+    // "C: No change" is not a modifier, and a "+0" row on the card is noise.
+    expect(mods({ parameters: { mag: "C" } })).toEqual([]);
+  });
+
+  it("gives a Unit with no MAG parameter nothing at all", () => {
+    expect(mods({ parameters: {} })).toEqual([]);
+  });
+
+  it("R3 — a MAG E Unit is PENALISED, which is the direction the sheet gives", () => {
+    expect(mods({ parameters: { mag: "E" } })).toEqual([{ source: "MAG E", value: 2 }]);
   });
 });

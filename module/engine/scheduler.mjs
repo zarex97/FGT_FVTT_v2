@@ -29,7 +29,8 @@ import { test as testPredicate } from "../rules/predicate.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
-import { resourcePathFor } from "../domain/resources.mjs";
+import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
+import { deathRollOutcome } from "../rules/nameless-forest.mjs";
 
 /**
  * @typedef {object} SchedulerContext
@@ -816,6 +817,42 @@ const ACTIONS = Object.freeze({
     const amount = a.regionScaled ? regionScale(raw, a.regionScaled, c.board?.warRegion) : raw;
     if (amount === 0) return [];
     return [I.resource(u.id, resourcePathFor(a.resource, u), amount)];
+  },
+
+  /**
+   * The Nameless Forest's death roll.
+   *
+   * > *"At the end of the Unit's Turn, a Unit with at least 3 Nameless Forest
+   * > Tokens rolls a twelve-sided die. If the number rolled is equal to or
+   * > lower than the number of Tokens on the Unit, the Unit disappears (i.e. is
+   * > defeated). However, a Unit cannot disappear due to the effects of this NP
+   * > if it is within its Home Base."*
+   *
+   * The arithmetic is `rules/nameless-forest.mjs` and pure; this supplies the
+   * three things only the engine knows -- what was rolled, how many tokens are
+   * held, and whether the bearer is standing at home.
+   *
+   * *"Disappears (i.e. is defeated)"* -- the sheet glosses its own term, so
+   * `I.defeat` and not `I.dismissSummon`: this IS a defeat and runs the revival
+   * chain like any other. Nothing on the sheet says revival is ignored.
+   *
+   * The roll is LOGGED whether or not it kills, because the Home Base exemption
+   * refuses the outcome rather than the die -- a player who watches a 1 come up
+   * and survives it has been told something true about how close that was.
+   */
+  NamelessForestDeathRoll: (a, u, h, c) => {
+    const roll = c.rolls?.[a.roll?.key ?? "namelessForestDeath"];
+    if (typeof roll !== "number") return [];
+
+    const tokens = resourceValue(u, a.resource ?? "namelessForestTokens");
+    const outcome = deathRollOutcome({ tokens, roll, inHomeBase: Boolean(u.inHomeBase) });
+    if (!outcome.rolls) return [];
+
+    const log = I.log({
+      kind: "namelessForestDeathRoll", unitId: u.id, roll, tokens,
+      deleted: outcome.deleted, reason: outcome.reason, source: h.source,
+    });
+    return outcome.deleted ? [log, I.defeat(u.id, "namelessForest")] : [log];
   },
 
   /**
