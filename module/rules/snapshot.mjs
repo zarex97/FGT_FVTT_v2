@@ -1471,6 +1471,11 @@ export function contributionsOf(actor, { terrain = [] } = {}) {
   return collectContributions(abilities, {
     options,
     refs: expressionRefs(actor),
+    // Rules this Unit has had switched off BY NAME and permanently -- the
+    // Vorpal Blade taking the Jabberwock's lifesteal away. Written by the
+    // `Suppress` action, carried home on `fieldSummonStats` when the summon
+    // disappears, and applied again when it is re-summoned.
+    suppressedScopes: [...(sys.suppressedScopes ?? [])],
     // How many of each effect the Unit holds, for `perStack` magnitudes
     // (`rules/elements.mjs`). Kingprotea's Proliferation is the reason it
     // exists and her NP DmUp (GAO) is the reason it counts two shapes.

@@ -364,8 +364,24 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     // Only the stats that were actually recorded, and only when they hold a
     // number -- a partial record must not blank the rest of the sheet.
     for (const [stat, value] of Object.entries(rememberedStats ?? {})) {
+      if (stat === "suppressedScopes") continue;   // not a stat -- below
       if (typeof value?.value !== "number") continue;
       data.system[stat] = { value: value.value, max: value.max ?? value.value };
+    }
+
+    // ...and what was PERMANENTLY taken from it before it left.
+    //
+    // > *"…the 'Whenever the Jabberwock receives damage from Servants…' effect
+    // > is permanently removed from the Jabberwock."*
+    //
+    // The subtle half of the Vorpal Blade, and the reason the removal is stored
+    // on the SUMMONER rather than on the summon: a suppression that lived on
+    // the monster would die with it, and the monster comes back *"with the same
+    // Stats as when it disappeared"*. Without this line the Blade's sacrifice
+    // is undone by the next summoning, which is exactly the interaction the
+    // sheet spends a sentence on.
+    if (Array.isArray(rememberedStats?.suppressedScopes)) {
+      data.system.suppressedScopes = [...rememberedStats.suppressedScopes];
     }
 
     const actor = await Actor.create(data);

@@ -95,6 +95,7 @@ export function empty() {
 export function collectContributions(abilities, ctx = {}) {
   const out = empty();
   const predicateCtx = { options: ctx.options ?? new Set(), refs: ctx.refs ?? {} };
+  const suppressedScopes = ctx.suppressedScopes ?? [];
 
   const shifts = abilityRankShifts(abilities, predicateCtx);
 
@@ -116,6 +117,21 @@ export function collectContributions(abilities, ctx = {}) {
     for (const el of orderElements(elements)) {
       if (!el?.key) continue;
       if (el.suppressed) continue;
+      // A rule switched off BY NAME, permanently, by something else.
+      //
+      // > *"…and the 'Whenever the Jabberwock receives damage from Servants,
+      // > its Health is restored by 75% of the damage received' effect is
+      // > **permanently removed** from the Jabberwock."*
+      //
+      // Not a `RemoveEffect`: the lifesteal is a `passiveRule` on the monster's
+      // own statblock, so there is no instance to strip -- and buff-removal is
+      // the wrong vocabulary besides, since it is not a buff.
+      //
+      // Scoped by the element's `slug`, so the Blade takes one clause and the
+      // monster keeps its Knockback and everything else. The suppression rides
+      // home on `fieldSummonStats` when the summon disappears, which is what
+      // makes *permanently* true across a re-summon.
+      if (el.slug && suppressedScopes.includes(el.slug)) continue;
       // A predicate that fails means the element does not contribute at all —
       // not that it contributes zero. The distinction matters for the
       // "Not applied" section of the explainer.

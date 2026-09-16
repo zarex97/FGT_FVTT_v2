@@ -532,6 +532,14 @@ export function subjectOf(action, unit, ctx) {
     return units.find((u) => u.id === summoner.masterId) ?? null;
   }
 
+  // The Unit an attack just landed on. Every other subject here is a
+  // RELATIONSHIP of the acting unit; this one is the other party to the event
+  // that fired, and it is how the Vorpal Blade reaches the monster it hit.
+  if (subject === "victim") {
+    const id = ctx?.victim?.unitId ?? ctx?.event?.victimId ?? null;
+    return id ? (units.find((u) => u.id === id) ?? null) : null;
+  }
+
   if (subject !== "master") return unit;
   if (!unit?.masterId) return null;
   return units.find((u) => u.id === unit.masterId) ?? null;
@@ -804,6 +812,21 @@ const ACTIONS = Object.freeze({
     if (amount === 0) return [];
     return [I.resource(u.id, resourcePathFor(a.resource, u), amount)];
   },
+
+  /**
+   * Switch a named rule off on somebody, permanently.
+   *
+   * > *"…and the 'Whenever the Jabberwock receives damage from Servants, its
+   * > Health is restored by 75% of the damage received' effect is **permanently
+   * > removed** from the Jabberwock."*
+   *
+   * Not a `RemoveEffect`: the lifesteal is a `passiveRule` on the monster's own
+   * statblock, so there is no instance to strip.
+   *
+   * `subject: "victim"` reaches the Unit the attack landed on, through the same
+   * `subjectOf` seam every other action uses.
+   */
+  SuppressRule: (a, u) => (a.scope ? [I.suppressRule(u.id, a.scope)] : []),
 
   /**
    * Push a summon's departure further out.

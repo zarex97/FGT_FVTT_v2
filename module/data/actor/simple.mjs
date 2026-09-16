@@ -65,6 +65,18 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // pickup pass can answer *"cannot be obtained by Nursery or her Master"*
       // without loading a pack.
       carriesItemBarredFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+      // Rule slugs switched off on this Unit, by name and permanently.
+      //
+      // > *"…the 'Whenever the Jabberwock receives damage from Servants…'
+      // > effect is **permanently removed** from the Jabberwock."*
+      //
+      // Not an effect, so `RemoveEffect` cannot reach it and buff-removal is
+      // the wrong vocabulary. `rules/elements.mjs#collectContributions` skips
+      // any rule whose `slug` is listed here, and `io.mjs#dismissSummon` carries
+      // the list home to the summoner so the removal survives a re-summon --
+      // which is what *permanently* means for a Unit that comes back.
+      suppressedScopes: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: () => [] }),
     };
   }
 
