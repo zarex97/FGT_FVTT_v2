@@ -138,11 +138,17 @@ export class ServantData extends foundry.abstract.TypeDataModel {
         // Dioscuri's reading (Ch. 41 Q11): the survivor's own revival chain is
         // SKIPPED, because a one-sided revival would leave one twin alive with
         // a dead partner, which the binding forbids.
+        // `blank: true` is REQUIRED, not decorative. A `StringField` carrying
+        // `choices` defaults to `blank: false`, so an `initial: ""` fails its
+        // own validation -- and because that made the whole `system` invalid,
+        // EVERY actor in a world without a linked group failed to initialize.
+        // Found on a live board; the twins hid it, because both carry non-blank
+        // values and the compendium reads fine.
         linkedDeath: new fields.StringField({
-          required: false, initial: "", choices: ["", "ignoresRevival", "ownChain"],
+          required: false, blank: true, initial: "", choices: ["", "ignoresRevival", "ownChain"],
         }),
         sharedCooldowns: new fields.StringField({
-          required: false, initial: "", choices: ["", "byName"],
+          required: false, blank: true, initial: "", choices: ["", "byName"],
         }),
         // What one member counts as wherever the rules count Units: the four
         // turn-budget pools, the multi-Servant tax, and the roster allowance.
