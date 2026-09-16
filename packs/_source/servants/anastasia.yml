@@ -1,0 +1,77 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+schema: 1
+id: anastasia
+name: "Anastasia & Viy"
+type: servant
+trueName: "Anastasia Nikolaevna Romanova"
+# Independent Action is her ONLY class skill, and Independent Action does not
+# identify a class -- Appendix D marks her class with a dash for exactly this
+# reason. `classContainer` is presentational and has to say something, so it
+# says what her opponents would call her.
+servantClasses: [caster]
+classContainer: caster
+region: [russia, europe]
+# *"Chaotic Summer"* -- a value the rulebook does not list. Ch. 44 §44.1 made
+# `alignment.morality` an open string rather than a closed enum for this one
+# sheet, calling it "a one-line schema change that would have been an expensive
+# one to discover after content authoring began."
+alignment: { order: chaotic, morality: summer }
+attributes: [female, servant, man, humanoid]
+parameters: { str: "D++", end: E, agi: B, mag: C, luc: C }
+# Every figure below agrees with the rank tables, which is worth saying because
+# the last Servant authored did not: STR D++ -> 75 + 2x10 = 95, MAG C -> 150,
+# END E -> 500. `validate:content` should report NO deviation for her.
+baseHealth: 500
+mov: 6
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 95, mag: 150 }
+# *"Sustainability: N/A"* -- Independent Action EX, and one of only two Servants
+# in either roster with no upkeep clock at all. `null` is not zero: the
+# scheduler tolerates it and the sheet guards for it.
+sustainability: null
+
+# ─── The banded Normal Attack (the sheet's Note) ───────────────────────
+# *"Normal Attacks at a Range of 1 to 2 use Base Attack (STR). Normal Attacks at
+# a Range of 3 or higher use Base Attack (STR) and 10% of Base Attack (MAG)
+# combined (e.g. BA=110) and deal Ice damage, not affected by Magic
+# Resistance."*
+#
+# EMIYA's clause with 10% where he has 20%, and `rules/normal-attack.mjs` exists
+# for it -- its docstring quotes his. Three things change at the band edge and
+# all three are stated: the sources, what the attack COUNTS AS, and whether
+# Magic Resistance sees it at all.
+#
+# `component: str` inside the band is not decoration. Her ranged shot would
+# otherwise be a MAG attack that a Rank D Magic Resistance negates outright,
+# which is the opposite of what "not affected by Magic Resistance" asks for --
+# and `damage.component` is what Magic Resistance's own exemption reads.
+normalAttack:
+  mode: rangeBanded
+  component: str
+  bands:
+    - from: 3
+      component: str
+      element: ice
+      ignoresMagicResistance: true
+      sources:
+        - { component: str, factor: 1 }
+        - { component: mag, factor: 0.1 }
+
+# NO `strongestNP`. Ch. 33 §33.4 rejected storing the ranking outright --
+# `rules/np-strength.mjs#rankNoblePhantasms` computes it against a synthetic
+# neutral defender, "pure, testable, and rankable ... rather than inside a
+# registered function content cannot inspect." 3.5x off BA(MAG) 150 beats 3x off
+# BA(STR) 95, and the engine works that out for itself.
+
+abilities:
+  - { ref: class-independent-action-viy, rank: EX }
+  - { ref: anastasia-swimsuit }
+  - { ref: anastasia-fae-contract }
+  - { ref: anastasia-shvibzik }
+  - { ref: anastasia-freezing-summertime }
+  - { ref: anastasia-spirit-eyes }
+  - { ref: anastasia-watermelon }
+  - { ref: anastasia-rock-snowball }
+  - { ref: anastasia-ice-bucket-challenge }
+  - { ref: anastasia-snegleta }
+  - { ref: anastasia-ice-block-launcher }

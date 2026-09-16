@@ -9,6 +9,8 @@
 import { describe, it, expect } from "vitest";
 import { chanceFromDistance, missChance } from "../../module/rules/miss.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
+import { baseAttackFor } from "../../module/domain/base-attack.mjs";
+import { normalAttackAt } from "../../module/rules/normal-attack.mjs";
 
 describe("a distance-scaled chance (R3)", () => {
   // *"a 5% chance of inflicting Instakill for each panel between Anastasia and
@@ -425,5 +427,75 @@ describe("her two Noble Phantasms", () => {
     // Range 3 + 3 = 6 panels.
     expect(chanceFromDistance(rider.chancePerPanel, 6)).toBe(30);
     expect(chanceFromDistance(rider.chancePerPanel, 1)).toBe(5);
+  });
+});
+
+describe("the Servant document", () => {
+  const a = parse(readFileSync("packs/_source/servants/anastasia.yml", "utf8"));
+
+  it("R1 — her printed figures all agree with the rank tables", () => {
+    // Unlike Pollux, nothing here is overruled. STR D++ -> 75 + 2x10 = 95;
+    // MAG C -> 150; END E -> 500.
+    expect(baseAttackFor(a)).toEqual({ str: 95, mag: 150 });
+    expect(a.baseHealth).toBe(500);
+    expect(lookup("baseHealthByEnd", Rank.parse("E"))).toBe(500);
+  });
+
+  it("N1–N4 — the banded Normal Attack, EMIYA's idiom at 10%", () => {
+    const na = a.normalAttack;
+    expect(na.mode).toBe("rangeBanded");
+    expect(na.component).toBe("str");
+    const band = na.bands.find((b) => b.from === 3);
+    expect(band.ignoresMagicResistance).toBe(true);
+    expect(band.element).toBe("ice");
+    expect(band.sources).toEqual([
+      { component: "str", factor: 1 },
+      { component: "mag", factor: 0.1 },
+    ]);
+  });
+
+  it("N1 — she swings BA(STR) alone in the melee band", () => {
+    const spec = normalAttackAt({ normalAttack: a.normalAttack }, 2);
+    expect(spec.sources).toEqual([{ unit: "self", component: "str", factor: 1 }]);
+    expect(spec.element).toBeNull();
+    expect(spec.ignoresMagicResistance).toBe(false);
+  });
+
+  it("N2/N3/N4 — and all three things change together at Range 3", () => {
+    const spec = normalAttackAt({ normalAttack: a.normalAttack }, 3);
+    expect(spec.sources).toEqual([
+      { unit: "self", component: "str", factor: 1 },
+      { unit: "self", component: "mag", factor: 0.1 },
+    ]);
+    // It still COUNTS AS str, which is what stops a Rank D Magic Resistance
+    // negating her ranged shot outright.
+    expect(spec.component).toBe("str");
+    expect(spec.element).toBe("ice");
+    expect(spec.ignoresMagicResistance).toBe(true);
+  });
+
+  it("N2 — the ranged band totals the 110 her sheet prints", () => {
+    const ba = baseAttackFor(a);
+    expect(ba.str * 1 + ba.mag * 0.1).toBe(110);
+  });
+
+  it("I1 — has no Sustainability clock at all", () => {
+    expect(a.sustainability).toBeNull();
+  });
+
+  it("R7 — carries both Noble Phantasms, and stores no ranking", () => {
+    const refs = a.abilities.map((x) => x.ref);
+    expect(refs).toContain("anastasia-snegleta");
+    expect(refs).toContain("anastasia-ice-block-launcher");
+    // Ch. 33 §33.4 REJECTED storing it; np-strength computes it.
+    expect(a.strongestNP).toBeUndefined();
+  });
+
+  it("carries the alignment the rulebook does not list", () => {
+    expect(a.alignment.morality).toBe("summer");
+  });
+
+  it("carries all eleven of her abilities", () => {
+    expect(a.abilities).toHaveLength(11);
   });
 });
