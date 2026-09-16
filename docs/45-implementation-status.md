@@ -229,13 +229,15 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    was refused with *"Choose a target."* — offered, chosen, recorded as taken, and EMIYA dead at 0
    with the shield untouched at 1400 (§46.4-S). Its Master cost was never charged either, because
    `additionalCosts` were expanded only inside the attack path and four abilities across three
-   Servants resolve through the Skill path (§46.4-T). And §46.4-U is left open: the shield absorbs
-   whether or not the ability was used, so *being refused* and *not protecting* are currently
-   different things.
+   Servants resolve through the Skill path (§46.4-T) -- now verified live, the Master paying exactly
+   the EX-rank 100 where it had paid 0. A third report, §46.4-U, was **retracted**: the barrier is
+   gated on the `rhoAias` effect and that effect lasts ⅓◈, so a second Noble Phantasm in the same
+   Turn meeting the same standing barrier is the duration working, not a leak.
 
    **All six audited Servants are now finished**: Heracles, Asterios, Karna, Penthesilea, Medea and
    EMIYA. Every one of them cost at least one general defect that a paper trace had already
-   cleared — twelve in this pass, §46.4-J through §46.4-U, of which two are recorded open.
+   cleared — **eleven** in this pass, §46.4-J through §46.4-T, with §46.4-U reported and retracted.
+   Two remain open by choice: §46.4-E and §46.4-R.
 
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
