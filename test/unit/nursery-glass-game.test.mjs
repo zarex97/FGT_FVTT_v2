@@ -496,3 +496,33 @@ describe("The Queen's Glass Game (G1–G10)", () => {
     expect(list).toHaveLength(13);
   });
 });
+
+describe("the gate's field survives every hop between the YAML and the board", () => {
+  // Found on a live board. `requiresHistory` was declared in the schema and in
+  // both content allowlists, compiled correctly, and sat on the item -- and
+  // `historyWanted` still said no, because the unit snapshot's own ability
+  // projection dropped it. A recorder that never starts means both of The
+  // Queen's Glass Game's effects do nothing at all, silently.
+  //
+  // Three hops, each of which has cost this project a Servant's clause at least
+  // once: the compiler's allowlist, the schema, and the board projection.
+  const src = readFileSync("module/rules/snapshot.mjs", "utf8");
+
+  it("the board projection carries it", () => {
+    const at = src.indexOf("function collectAbilities");
+    expect(at).toBeGreaterThan(-1);
+    expect(src.slice(at, at + 2500)).toContain("requiresHistory");
+  });
+
+  it("the compiler carries it", () => {
+    expect(readFileSync("tools/lib/content.mjs", "utf8")).toContain("requiresHistory: Boolean(doc.requiresHistory)");
+  });
+
+  it("the allowlist names it", () => {
+    expect(readFileSync("module/content/authored-fields.mjs", "utf8")).toContain('"requiresHistory"');
+  });
+
+  it("and the schema declares it", () => {
+    expect(readFileSync("module/data/item/ability.mjs", "utf8")).toContain("requiresHistory: new fields.BooleanField");
+  });
+});

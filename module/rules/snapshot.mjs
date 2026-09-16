@@ -1607,6 +1607,12 @@ function collectAbilities(actor) {
       // name a content id, a whole category, or a copy's exclusion set --
       // which is all three of the ways her sheet groups abilities.
       contentId: i.system?.contentId ?? null,
+      // Ch. 43 §43.11's gate. `rules/history.mjs#historyWanted` asks the BOARD
+      // whether anything on it reads the past, so a field the projection drops
+      // is a recorder that never starts -- and both of The Queen's Glass
+      // Game's effects then do nothing at all, silently. Found on a live board:
+      // the field compiled, the item carried it, and the board said no.
+      requiresHistory: Boolean(i.system?.requiresHistory),
       // An ability that IS this Unit's Normal Attack while its condition holds
       // (`rules/platforms.mjs#actionSourceFor`). Projected because the
       // substitution is decided from the BOARD -- the condition is *"while
