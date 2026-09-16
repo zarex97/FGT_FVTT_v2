@@ -49,6 +49,10 @@ const GATE = Object.freeze([
 const SCALED = Object.freeze([
   { key: "value", type: "text" },
   { key: "table", type: "text" },
+  // WHICH rank indexes `table`, when it is not the owning ability's. A ref
+  // path: the Nameless Forest's escape ladder reads the affected Unit's own
+  // MAG parameter, and that Noble Phantasm is Rank C.
+  { key: "rankFrom", type: "text" },
   { key: "perStack", type: "raw" },
   { key: "max", type: "number" },
 ]);

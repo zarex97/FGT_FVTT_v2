@@ -253,6 +253,32 @@ export const TABLES = Object.freeze({
     perStep: 2,
   },
 
+  /**
+   * How a Unit's own MAG Rank modifies its escape from the Nameless Forest.
+   *
+   * > *"…the value of the dice rolled for the affected Unit's Luck Check is
+   * > modified as follows- MAG Rank EX: −3, A: −2, B: −1, C: No change, D: +1,
+   * > E: +2"*
+   *
+   * **SIGNS AS WRITTEN, and a high Rank escapes MORE easily.**
+   * `rules/checks.mjs#resolveCheck` computes `total = roll + modifiers` and
+   * succeeds on `total <= target`, so a negative modifier helps.
+   *
+   * That reads backwards until you notice the Home Base term does the same
+   * thing and that the sheet separately refuses to delete a Unit standing at
+   * home. Both point one way: safety and magical power each make the forest
+   * easier to walk out of. A powerful magus sees through it; so does somebody
+   * standing on their own ground.
+   *
+   * `perStep: 0` because the sheet names GRADES and not the dense ladder -- an
+   * A+ magus escapes exactly as an A one.
+   */
+  namelessForestEscape: {
+    kind: "scaled",
+    byGrade: { EX: -3, A: -2, B: -1, C: 0, D: 1, E: 2 },
+    perStep: 0,
+  },
+
   /** `[general, instakill, death, erase]` percentages. Verified: B− → 35/15/5. */
   itemConstruction: {
     kind: "scaled",
@@ -417,6 +443,15 @@ export const TABLES = Object.freeze({
  *   table has no fallback
  * @throws {RangeError} for an unknown table id
  */
+/**
+ * *"If the Unit is within its Home Base: −3 (stacks with the MAG Rank modifiers
+ * as seen below)"* — so a MAG EX Unit at home rolls at −6.
+ *
+ * Negative for the same reason the table above is: it makes the check EASIER,
+ * and the two terms sum.
+ */
+export const HOME_BASE_ESCAPE_MODIFIER = -3;
+
 export function lookup(id, rank) {
   const table = TABLES[id];
   if (!table) throw new RangeError(`FGT | Unknown table "${id}".`);

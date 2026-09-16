@@ -390,6 +390,28 @@ function clampMax(value, max) {
  */
 function rawValue(el, rank, ctx, field) {
   if (el.table) {
+    // WHICH rank indexes the table.
+    //
+    // Every table in the corpus until now is read against the OWNING ability's
+    // rank, which is what `rank` is. The Nameless Forest's escape ladder is
+    // read against the AFFECTED UNIT's own MAG parameter: *"the value of the
+    // dice rolled for the affected Unit's Luck Check is modified as follows-
+    // MAG Rank EX: −3…"* -- and that Noble Phantasm is Rank C, so reading it
+    // the usual way returns 0 at every grade and silently does nothing.
+    //
+    // A REF PATH rather than a field name, because `expressionRefs` already
+    // publishes `self.parameters` and a second vocabulary for reaching the same
+    // object would be one more thing to keep in step.
+    //
+    // A path that resolves to no grade returns `null`, which callers must drop
+    // rather than scale to zero: a Master has no `parameters`, and reading
+    // `undefined` as EX would hand every Master the best escape in the game --
+    // while a contribution of 0 is indistinguishable from MAG C.
+    if (el.rankFrom) {
+      const grade = gradeAt(el.rankFrom, ctx);
+      if (!grade) return null;
+      return lookup(el.table, grade) ?? null;
+    }
     const v = lookup(el.table, rank);
     // A dice-formula table with a per-step delta returns `{formula, bonus}`;
     // the caller decides what to do with it.
@@ -400,6 +422,25 @@ function rawValue(el, rank, ctx, field) {
   if (typeof raw === "string" && raw.includes("@")) return resolveExpression(raw, ctx);
   if (raw === undefined || raw === null) return null;
   return raw;
+}
+
+/**
+ * The Rank a `@`-path names, or `null` when it names none.
+ *
+ * Walks the same `refs` tree `resolveExpression` walks, and parses what it
+ * finds as a Rank rather than as a number -- a Parameter is a grade string.
+ *
+ * @param {string} expr an `@a.b.c` path
+ * @param {object} ctx
+ * @returns {Rank|null}
+ */
+function gradeAt(expr, ctx) {
+  let cur = /** @type {any} */ (ctx?.refs ?? {});
+  for (const part of String(expr).replace("@", "").trim().split(".")) {
+    if (cur === null || cur === undefined) return null;
+    cur = cur[part];
+  }
+  return typeof cur === "string" ? Rank.parseOrNull(cur) : (cur instanceof Rank ? cur : null);
 }
 
 /**
@@ -1218,10 +1259,18 @@ export const EXECUTORS = Object.freeze({
   /* ── Group 3 — check contributors ─────────────────────────────────────── */
 
   CheckModifier(el, { rank, source, out, ctx, deferred = null }) {
+    const resolved = resolveValue(el, rank, ctx);
+    // A contribution of ZERO and no contribution at all are different answers.
+    //
+    // The Nameless Forest's ladder gives MAG C exactly 0, and a Unit with no
+    // MAG parameter at all -- a Master -- must contribute nothing. `scalar()`
+    // turns `null` into 0, which would make those two indistinguishable and
+    // put a spurious "no change" row on every Master's check card.
+    if (resolved === null && el.rankFrom) return;
     out.checkModifiers.push({
       check: el.check,
       direction: el.direction ?? "outgoing",
-      value: scalar(resolveValue(el, rank, ctx)),
+      value: scalar(resolved),
       // A clause about the ATTACK rather than about the bearer, carried
       // through to `checkPlan`/`critChance` the same way a damage modifier's
       // is carried to the pipeline. EMIYA's Hawkeye is *"Crit Chance is
