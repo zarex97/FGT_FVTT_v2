@@ -166,6 +166,17 @@ function abilityCommon() {
     // is removed when the item is picked up) and the summon. A second Blade
     // every 5<> is a different game, and so is replacing the one that broke.
     placedStructures: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: () => [] }),
+    // This ability reads the PAST, so the match must record one.
+    //
+    // > *"…the Stats, Parameters, Buffs, Debuffs, Cooldowns, and other existing
+    // > effects of all Units within a 3 panel area of Nursery are returned to
+    // > what they were 3◈ Turns ago."*
+    //
+    // Ch. 43 §43.11's load-bearing optimisation: recording is OFF by default
+    // and switched on only when something declaring this enters play, so *"a
+    // match without Nursery Rhyme pays nothing"*. Read by
+    // `rules/history.mjs#historyWanted`.
+    requiresHistory: new fields.BooleanField({ initial: false }),
     // When it was last used, for `healthRestoredSince` -- a gate that has to
     // compare "since" against something.
     lastUsedTick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
