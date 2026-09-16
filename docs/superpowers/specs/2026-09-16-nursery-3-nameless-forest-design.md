@@ -18,8 +18,8 @@ A Noble Phantasm that is **passive, continuous, and kills by accumulation**.
 Every Round, every enemy within 2 panels of Nursery gains a **Nameless Forest Token**. Each token
 permanently shaves their Max Health, both Base Attacks and their Max Luck. From three tokens up, a
 d12 at the end of their own Turn may simply **delete them** — and the more tokens they carry, the
-likelier that is. They may attempt a Luck Check to shed the whole stack, but the check gets *harder*
-the better their MAG Rank is, and easier the worse it is.
+likelier that is. They may attempt a Luck Check to shed the whole stack, and the check is *easier*
+the better their MAG Rank is — and easier again on their own ground.
 
 It is the only ability in either roster that wins by waiting.
 
@@ -64,10 +64,9 @@ damage done.
 This makes the reductions **writes**, not modifiers. A `MaxDelta` contribution scaled by a held token
 count would spring back the instant the tokens left, which is precisely what the parenthesis forbids.
 
-**R3 — The Luck Check modifier is applied to the roll, and lower is better.** The ladder reads
-*"MAG Rank EX: −3 … MAG Rank E: +2"*, and a high MAG Rank is supposed to make escape *harder*. A
-Luck Check in this system is rolled **under** a target, so a **−3 on the die** makes the roll more
-likely to succeed — which would help EX and hurt E, backwards from the intent.
+**R3 — The MAG ladder makes escape EASIER for a high Rank, not harder.** The sheet gives
+*"MAG Rank EX: −3, A: −2, B: −1, C: no change, D: +1, E: +2"* as modifiers to *"the value of the dice
+rolled"*, and the sign question decides the whole ability.
 
 **Confirmed against the engine.** `rules/checks.mjs#resolveCheck` computes
 `total = roll + modifiers` and succeeds on `total <= target`, so a **negative modifier makes success
