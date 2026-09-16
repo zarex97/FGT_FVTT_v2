@@ -72,6 +72,36 @@ the more likely of the two.
 
 ---
 
+**Effects are ActiveEffects, not Items.** `CONFIG.ActiveEffect.dataModels.fgtEffect` is where an
+effect instance lives. `actor.items.filter(i => i.type === "fgtEffect")` returns `[]` for a Unit
+carrying a dozen, and — worse — `createEmbeddedDocuments("Item", [{type: "fgtEffect"}])` **resolves
+without error and creates nothing**, because `fgtEffect` is not a registered Item subtype. Four
+clauses were briefly believed broken on that basis in one afternoon and all four were working. Read
+`actor.effects`.
+
+**`runFieldEvents` returns intents; it does not apply them.** Calling it from the console and then
+reading the board shows nothing happening, which is indistinguishable from the event being dead.
+The scheduler wraps it in `run(...)`; a probe must too, or must read the returned array.
+
+**Turn state is stale-by-reading, and `acted` is the field that bites.** Writing
+`system.turnState.acted = true` does nothing observable unless `turnState.tick` is also the current
+`globalTurn` — every reader treats a mismatched tick as an expired Turn. A probe that sets `acted`
+and then calls `nextTurn()` has already invalidated it, because the boundary advances the tick.
+
+**`canPassThrough(panel, unit, board)` takes the panel first.** Reversing the first two arguments
+returns `true` for everything, which reads as "no movement restriction exists" rather than as a
+call-shape error. Panels are `{i, j, k}` — row, column, elevation — and `chebyshev` reads `i`/`j`
+only.
+
+**A `SetField` prints as `{}`.** `JSON.stringify` of `attributes`, `servantIds` or any other
+`SetField` shows an empty object whatever it holds. Spread it: `[...unit.attributes]`. This one has
+now caused a false report twice in this audit.
+
+**`classifyAbility` decides which use path an ability takes.** Driving an ability down the other one
+by hand measures a path the sheet's own button never uses. Arrogant King's Poison charges its
+3-item cost through `useSkill` (`isAttack: false`) and would not have through `resolveAttack` — a
+fact about the probe, not about the ability.
+
 ## 46.3 Recurring defect shapes
 
 Not a list of bugs; a list of *kinds*. Each has been seen at least once, and each is worth
@@ -1029,11 +1059,19 @@ state the work had already consumed. Turn state is documented as stale-by-readin
 reading it twice is that the second read is of a different Turn.
 
 **What is still unverified** on this Noble Phantasm, and recorded rather than implied: rules a, c, d
-and e resolve nothing yet in evidence. All three interior rules (`ImmunityDowngrade`,
-`VulnerabilityAmplifier`, `PeriodicOverride`) are present and correctly shaped on the live field,
-and clause b now emits its `applyEffect` intent — but no Poison instance was ever seen to land on a
-living Unit, because the only enemy on the test board was being killed by its own Mad Enhancement
-every Turn. §46.13 carries this.
+and e. All three interior rules (`ImmunityDowngrade`, `VulnerabilityAmplifier`,
+`PeriodicOverride`) are present and correctly shaped on the live field and clause b emits its
+`applyEffect` intent — but none of the three was ever *observed changing a number*, which is the
+only standard §46.1 accepts. §46.13 carries it.
+
+**A measurement error worth keeping**, because it cost most of an afternoon and would cost it again:
+effect instances are **ActiveEffects** (`CONFIG.ActiveEffect.dataModels.fgtEffect`), not embedded
+Items. Reading `actor.items.filter(i => i.type === "fgtEffect")` returns `[]` for a Unit carrying a
+dozen of them, and `createEmbeddedDocuments("Item", [{type: "fgtEffect"}])` **succeeds silently and
+creates nothing**, because `fgtEffect` is not a registered Item subtype. Four separate clauses were
+briefly believed broken on that basis — Sikera Ušum's rule b, Arrogant King's Poison's two effects,
+and the Hanging Gardens' owner buff — and all four were working the whole time. Read
+`actor.effects`. §46.2 has it now.
 
 ## 46.5 The per-Servant checklist
 
@@ -1112,7 +1150,7 @@ per-Servant record of what each audit left untested.
 | **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
 | **EMIYA** | ✅ | ✅ **complete** | 7 (2 his, 5 general) | §46.12; §46.4-P, Q, R, S, T |
 | Hassan of Serenity | — | — | — | |
-| **Semiramis** | ✅ | ◐ partial | 5 general (3 fixed, 2 open) | §46.4-W, X, Y, Z, AA |
+| **Semiramis** | ✅ | ✅ | 7 general (all fixed) | §46.4-W, X, Y, Z, AA, AB, AC |
 | Scáthach | — | — | — | |
 | Kingprotea | — | — | — | |
 | Castor / Pollux | — | — | — | |
@@ -1349,6 +1387,57 @@ copy spell were read but not individually re-pressed; Ch. 45 records them as ver
 was authored, and this pass did not contradict that.
 
 ---
+
+## 46.14 Semiramis — the Servant who is two Servants
+
+Nine of her twelve documents were pressed on a live board. She found **seven** general defects, more
+than any other Servant in this audit, and only two of them were hers: the rest were the engine
+standing underneath her.
+
+**Why she finds so much.** Almost every clause she owns is the *only* instance of its mechanism in
+the corpus — the only `summonVariant`, the only `channel`, the only `itemCost`, the only
+`trappedAtActivation`, the only `fixedArea` anchored to a platform centre, the only
+`alsoGrantsResource`, the only `singleInjuryRoll`. A mechanism with one user is a mechanism whose
+bugs have never been reported.
+
+### 46.14.1 What held
+
+| Clause | Measured |
+|---|---|
+| **Item Construction** | `1d4` → **4**, granted as one `[Semiramis' Poison]` stack of quantity 4, and HGoB Construction **+6** — the *same* roll, plus Ch. 32 §32.2's adjacency bonus, because the war Region is Greece and Greece is next to the Middle East. Cooldown 6 ticks |
+| **Arrogant King's Poison** | Gate and spend both honoured: 4 → **1**, exactly 3. `Def Dwn` lands at **magnitude 30, npMagnitude 40, expiry 38** against a tick of 35 — precisely 1◈. Cooldown **11** ticks = `4◈-⅓◈` |
+| **Summoning: Bašmu**, clause 1 | The off-platform branch selected: cooldown **2◈**, not the on-platform 4◈. BA(MAG) 250, the sheet's **1.25×** at stage 3, and Poison inflicted (stage 11 → 12) |
+| **Hanging Gardens**, activation | Channel of 9 ticks, Master billed **only on success** (250 → 150), platform built at her panel at elevation 20 with Semiramis aboard and carrying `hgob-owner-buff` |
+| **Aerial Garden of Vanity** | BA(MAG) 250 → crit → **2×** at stage 3 → 528, −50% combined, −30, **234** and an Injury Roll. Cooldown 2◈ |
+| **Dragon Wing Warriors** | `1d6+4` → **8** separate Combat Processes, 50 Fixed STR each, the pipeline bypassed entirely (neither the −40% nor the −30 applies), **400** total — and exactly **one** Injury Roll, deferred by seven siblings and performed by the eighth against the sum |
+| **Sikera Ušum**, structure | The `dsc` branch chosen (Throne Room, 3◈, sealed) over the 5×5-follows-her branch; anchored to the platform's computed centre `{4,4}` rather than to where she stood; expiry exactly 9 ticks; cost 53 at B+ against a Low Rank Master; cooldown 0 at use, because it is `countFrom: deactivation` |
+| **Sikera Ušum**, the seal | `trappedUnitIds` holds **Semiramis alone**. `canPassThrough` allows her every panel inside the 5×5 and refuses her every panel outside it — while Heracles, who walked in *after* activation, is refused nothing. A membership snapshot, not a standing wall, which is what the sheet says |
+
+The stage-4 bucket deserves its own line. Bašmu's card showed `Def Dwn +30%` **three times**, from
+three separate applications of Arrogant King's Poison, combining additively with Mad Enhancement's
+−40% and a Home Base's −10% to a net **+40% → ×1.40**. Three instances of one debuff stacking, and
+an attacker's buff and a defender's Def Up settling in the same additive pass.
+
+### 46.14.2 What she cost the engine
+
+Two of her seven were her own (§46.4-X's double cooldown, §46.4-Y's unprojected variant). The other
+five were general, and three of those were found *underneath* her rather than in her:
+
+- **§46.4-Z**, the channelled Noble Phantasm — the fourth member of *the two use paths do not do
+  the same thing*, plus a half nothing had suggested: the declaration interrupting the channel it
+  had just begun.
+- **§46.4-AA**, the content sync reverting a summon variant's overrides on every world load.
+- **§46.4-AB**, a scheduler claim that could freeze a match permanently — found only because her
+  channel needed nine Turns to tick and they would not tick.
+- **§46.4-AC**, every field's `actedTurnEnd` interior event, dead for want of the right board.
+
+### 46.14.3 Not pressed
+
+*Sikera Ušum's* rules a, c, d and e; *Summoning: Bašmu* clause 2 (the summon branch, which needs the
+platform standing); *Scales of the Sacred Fish*, which was **offered** on a reaction ladder and never
+taken; *Double Summon* and *Double Summon: Caster* beyond the `dsc` variant they produce;
+*Territory Creation*, *Presence Concealment* and *Divinity* — though Divinity's +30 was seen landing
+at stage 7 of Bašmu's own card.
 
 ## 46.13 What this audit did **not** test
 
