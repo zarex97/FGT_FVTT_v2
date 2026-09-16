@@ -17,6 +17,7 @@ import { hasGranted, GRANTS } from "./granted.mjs";
 import { contains, membershipVerdict } from "./bounded-fields.mjs";
 import { guardsOf, relationOf } from "./relations.mjs";
 import { actionSourceFor } from "./platforms.mjs";
+import { partnersOf } from "./linked-group.mjs";
 
 /** Effects that let a unit ignore occupancy and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
@@ -375,6 +376,28 @@ function blockedByFieldExit(panel, unit, board) {
  */
 export function canStopOn(panel, unit, board) {
   if (!canPassThrough(panel, unit, board)) return false;
+
+  // Clause 8 — the linked-group leash (Ch. 16 §16.8). *"the maximum distance
+  // between the two is 2 panels."* A hard constraint on where a member may
+  // STAND, not a penalty, and not a constraint on the path: stepping out to 3
+  // and back to 1 is legal, which is what lets a twin walk around a wall.
+  //
+  // Here rather than in a cost function, because `canStopOn` is what the
+  // reachable-set search already consults -- so the highlight shrinks as the
+  // partner moves and the rule teaches itself.
+  //
+  // A partner not on the board constrains nothing (`partnersOf` drops units
+  // with no panel); a leash that refused every panel would freeze the survivor
+  // solid. Forced displacement may still break it -- Ch. 34 §34.3 takes that
+  // DECISION, because dragging the partner along would produce a knockback
+  // that pulls a unit toward its attacker.
+  const leash = unit?.linkedGroup?.leash;
+  if (leash !== null && leash !== undefined) {
+    for (const partner of partnersOf(unit, board)) {
+      if (geo.chebyshev(panel, partner.panel) > leash) return false;
+    }
+  }
+
   const here = occupantsAt(panel, board, unit.level).filter((u) => u.id !== unit.id);
   if (here.length === 0) return true;
 
