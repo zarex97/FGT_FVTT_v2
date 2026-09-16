@@ -1,4 +1,5 @@
 import { hasGranted, GRANTS } from "./granted.mjs";
+import { unitWeight } from "./linked-group.mjs";
 
 /**
  * @file The turn budget: four pools, per-unit limits, prevention and compulsion.
@@ -86,7 +87,17 @@ export const ACTION_KINDS = Object.freeze([
 export function emptyBudget(maxima = {}) {
   const limits = { ...DEFAULT_MAXIMA, ...maxima };
   return {
-    pools: Object.fromEntries(Object.entries(limits).map(([k, max]) => [k, { used: 0, max }])),
+    // Stored in HALVES, as integers. Ch. 34 §34.5 names floating-point
+    // accumulation as the risk of a 0.5-weight unit; halves remove it rather
+    // than manage it, and `used` below is derived for display only.
+    //
+    // `Infinity * 2` is `Infinity`, so an unlimited pool stays unlimited.
+    pools: Object.fromEntries(Object.entries(limits).map(([k, max]) => [k, {
+      usedHalves: 0,
+      maxHalves: Number.isFinite(max) ? max * 2 : Infinity,
+      used: 0,
+      max,
+    }])),
     countedUnits: [],
     attackedUnits: [],
   };
@@ -247,8 +258,18 @@ export function canConsume(budget, unit, action) {
   }
 
   const p = budget.pools[pool];
-  if (p && p.used >= p.max) {
-    return { ok: false, reason: `${LABELS[pool] ?? pool} exhausted (${p.used}/${p.max})`, pool, free: false };
+  // The weight this action would add, in halves. A linked member is 1 half; an
+  // ordinary unit is 2. Integer throughout, so the boundary case is exact: at
+  // 3.5 of 4 a twin may still move (7 + 1 <= 8) and a whole Servant may not
+  // (7 + 2 > 8). Correct, slightly surprising, and explained in the HUD.
+  const costHalves = Math.round(unitWeight(unit) * 2);
+  if (p && p.usedHalves + costHalves > p.maxHalves) {
+    return {
+      ok: false,
+      reason: `${LABELS[pool] ?? pool} exhausted (${p.usedHalves / 2}/${p.maxHalves / 2})`,
+      pool,
+      free: false,
+    };
   }
   return { ok: true, reason: null, pool, free: false };
 }
@@ -261,16 +282,38 @@ export function canConsume(budget, unit, action) {
  * @param {ActionKind} action
  * @returns {{ok: boolean, reason: string|null, budget: Budget}}
  */
-export function consume(budget, unit, action) {
+export function consume(budget, unit, action, { alsoCountsAsAttackFor = null, board = null } = {}) {
   const verdict = canConsume(budget, unit, action);
   if (!verdict.ok) return { ok: false, reason: verdict.reason, budget };
   if (verdict.free || verdict.pool === null) return { ok: true, reason: null, budget };
 
   const isAttack = ["attack", "np", "spell", "ridingAttack", "mark"].includes(action);
+  const p = budget.pools[verdict.pool];
+
+  // *"Counts as both Castor and Pollux's Attack for the Turn."* Both members
+  // are charged and both are recorded as having attacked, so the pair spends
+  // ONE of the faction's two Servant attacks (0.5 + 0.5) and neither twin may
+  // swing again this Turn.
+  //
+  // Read off the ABILITY by the caller, not off the unit: it is a property of
+  // the joint Noble Phantasm, and the twins' other attacks charge one twin each.
+  const partners = alsoCountsAsAttackFor === "partner"
+    ? (board?.units ?? []).filter(
+      (u) => [...(unit.linkedGroup?.memberIds ?? [])].includes(u.id))
+    : [];
+
+  const usedHalves = p.usedHalves
+    + [unit, ...partners].reduce((sum, u) => sum + Math.round(unitWeight(u) * 2), 0);
+  const partnerIds = partners.map((u) => u.id);
+
   const next = {
-    pools: { ...budget.pools, [verdict.pool]: { ...budget.pools[verdict.pool], used: budget.pools[verdict.pool].used + 1 } },
-    countedUnits: isAttack ? [...budget.countedUnits] : [...budget.countedUnits, unit.id],
-    attackedUnits: isAttack ? [...budget.attackedUnits, unit.id] : [...budget.attackedUnits],
+    pools: { ...budget.pools, [verdict.pool]: { ...p, usedHalves, used: usedHalves / 2 } },
+    countedUnits: isAttack
+      ? [...budget.countedUnits]
+      : [...budget.countedUnits, unit.id, ...partnerIds],
+    attackedUnits: isAttack
+      ? [...budget.attackedUnits, unit.id, ...partnerIds]
+      : [...budget.attackedUnits],
   };
   return { ok: true, reason: null, budget: next };
 }
@@ -375,8 +418,15 @@ export function summarize(budget) {
     .map(([pool, p]) => ({
       pool,
       label: LABELS[pool] ?? pool,
-      used: p.used,
+      used: p.usedHalves / 2,
       max: p.max,
-      pips: Array.from({ length: p.max }, (_, i) => i < p.used),
+      // One entry per WHOLE slot, valued 1, 0.5 or 0. A half-pip is what a
+      // single moved twin looks like, and "2.5 / 4" reads as a bug without it.
+      // Numeric here, because this module is pure and a CSS class name is not
+      // a rule; `engine/budget.mjs#rows` names the three states for the view.
+      pips: Array.from({ length: p.max }, (_, i) => {
+        const remaining = p.usedHalves - i * 2;
+        return remaining >= 2 ? 1 : remaining === 1 ? 0.5 : 0;
+      }),
     }));
 }

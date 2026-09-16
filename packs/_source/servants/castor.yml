@@ -1,0 +1,65 @@
+# Castor, char_orig_sheets/Copia de Dioscuri.md
+#
+# One half of a Servant. Everything that makes him half of one lives in the
+# `linkedGroup` block below; his abilities know nothing about Pollux except
+# where the sheet names her.
+schema: 1
+id: castor
+name: "Castor"
+type: servant
+trueName: "Castor"
+# *"Note: Castor is an Avenger-class Servant."* Stated on the sheet, unlike
+# Pollux's, which Appendix D marks inferred.
+servantClasses: [avenger]
+classContainer: avenger
+region: [greece, europe]
+alignment: { order: chaotic, morality: neutral }
+attributes: [male, servant, sky, humanoid]
+parameters: { str: A, end: "A++", agi: B, mag: C, luc: C }
+# END A++ -> 1500 on the sheet, where `baseHealthByEnd` would step to 1700.
+# Stated so the validator can cross-check, exactly as `asterios.yml` states his
+# at the same rank for the same reason.
+baseHealth: 1500
+mov: 6
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 150, mag: 150 }
+sustainability: "2◈"
+
+# ─── The binding ───────────────────────────────────────────────────────
+# Ch. 16 §16.8, Ch. 34. Six clauses of the sheet's opening paragraph, as data.
+linkedGroup:
+  id: dioscuri
+  partners: [pollux]          # content ids; resolved to actor ids at summon
+  leash: 2                    # "the maximum distance between the two is 2 panels"
+  linkedDeath: ignoresRevival # "regardless of remaining Health" (Ch. 41 Q11)
+  sharedCooldowns: byName     # "the Skill enters Cooldown for both of them"
+  unitWeight: 0.5             # "each one counts as 0.5 Units"
+  zonSatisfaction: any        # "as long as the other counterpart is within their Master's ZON"
+  modifierCombination: union  # read by the joint Noble Phantasm alone
+  summonTogether: true        # "summoned as two separate Servants as one"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: class-avenger, rank: B }
+  - { ref: class-oblivion-correction, rank: C }
+  - { ref: class-self-replenishment-mana, rank: D }
+  # B- gives 35/15 taken, 55 dealt and a 20 Master drain -- the three numbers
+  # his sheet prints. `madEnhancementDefence`'s own comment cites
+  # "B- 35->15 (Castor)" as one of the seven sheets it was verified against, so
+  # this rank was transcribed from him before anyone tried to author him.
+  - { ref: class-mad-enhancement, rank: "B-" }
+  - { ref: dioscuri-twin-gods-divine-core-castor }
+  - { ref: dioscuri-stars-of-the-chief-god }
+  - { ref: dioscuri-guardians-of-navigation }
+  - { ref: dioscuri-mana-burst-castor }
+  - { ref: dioscuri-tyndaridae }
+
+notes: |
+  *"If Castor is directly next to Pollux while Mad Enhancement is Active, his Master's Health lost
+  from the effects of active Mad Enhancement are halved."* Authored as a `tableFactor` on the
+  SHARED `class-mad-enhancement` template rather than as a Castor-only variant: the predicate it
+  hangs on, `self:withinOfPartner:1`, is emitted only for a Servant in a linked group, so it is
+  inert for the other six bearers and there is no second copy of the template to drift.
+
+  The halving reaches all three readings of `madEnhancementDrain` — the drain, the floor, and the
+  forcible-deactivation threshold — because that table is deliberately one number said three times.

@@ -1,0 +1,66 @@
+# Appendix A §A — five clauses, and clause 1 is why this file did not exist.
+#
+# *"80% chance of Missing on attacks and enemy-affecting abilities"* needed a
+# step the Combat Process did not have: an Evade is the DEFENDER's roll
+# answering a swing that happened, and a Miss is the swing not happening at all.
+# Step 1.5 is that step (`docs/12-combat-process.md` §12.2), and the chance
+# ladder lives in `module/rules/miss.mjs` rather than here — a Miss is a
+# property of the swing rather than a modifier on it, and there is no pipeline
+# stage or check bucket that could have held it.
+#
+# This file carries clauses 2 and 3. Clauses 4 and 5 are read by `missChance`
+# off the attacker's own Skills, and both of their readers are already authored:
+# EMIYA has Clairvoyance and Eye of the Mind (True), Heracles has (False).
+schema: 1
+id: blind
+name: "Blind"
+description: |
+  (1) 80% chance of Missing on attacks and enemy-affecting abilities.
+  (2) @effect[evade]{Evade} rolls are increased by 3.
+  (3) 'Mystic Eye' and 'Glam Sight' Skills cannot be used.
+  (4) With '@ability[emiya-clairvoyance]{Clairvoyance}': 40% Miss chance, and Evade rolls are increased by 2 instead.
+  (5) Effects 1, 2 and 4 do not apply to a Unit with 'Eye of the Mind' active.
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # Clause 2. A HIGHER Evade roll is worse -- the roll is one the Unit must get
+  # under -- so +3 is a penalty, which is why this is a check modifier and not
+  # a Def Up.
+  #
+  # Clause 5's exemption is a predicate rather than a second effect: a Unit with
+  # Eye of the Mind active still CARRIES Blind and is simply unaffected by it,
+  # which is what the catalogue's wording says.
+  - key: CheckModifier
+    check: evade
+    value: 3
+    predicate:
+      - { not: "self:skillActive:eyeOfTheMind" }
+      - { not: "self:skillActive:eyeOfTheMindFalse" }
+      - { not: "self:skill:clairvoyance" }
+
+  # Clause 4's second half -- *"Evade rolls +2"* rather than +3. Exactly one of
+  # these two ever applies, because the predicates are complements. The same
+  # idiom Mad Enhancement's STR/MAG offence pair uses, and for the same reason:
+  # one bucket cannot hold two magnitudes for one modifier.
+  - key: CheckModifier
+    check: evade
+    value: 2
+    predicate:
+      - "self:skill:clairvoyance"
+      - { not: "self:skillActive:eyeOfTheMind" }
+      - { not: "self:skillActive:eyeOfTheMindFalse" }
+
+  # Clause 3. NOT gated on Eye of the Mind: clause 5 exempts 1, 2 and 4, and
+  # says nothing about 3 -- so a Unit with Eye of the Mind still cannot use a
+  # Mystic Eye while Blind.
+  #
+  # Keyed on the ability's `categorizedAs` tag rather than on two slugs, because
+  # the clause names a FAMILY of Skills. `rules/costs.mjs#canUseAbility` is the
+  # reader.
+  - key: Suppress
+    scope: mysticEye
+  - key: Suppress
+    scope: glamSight

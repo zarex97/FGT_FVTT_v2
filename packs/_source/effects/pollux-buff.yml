@@ -1,0 +1,35 @@
+# The Dioscuri, char_orig_sheets/Copia de Dioscuri.md
+#
+# Half of a COMPLEMENTARY PAIR: this one fires on a Normal Attack that does NOT
+# Crit, `castor-buff` fires on one that does, and both twins carry both. Every
+# Normal Attack therefore triggers exactly one of them -- a tidy piece of design
+# in the source that needs no new mechanism at all.
+#
+# Named for Pollux and carried by BOTH twins: the sheet names the buffs after
+# the twins rather than after their bearers.
+schema: 1
+id: polluxBuff
+name: "Pollux"
+description: |
+  When the affected Unit performs a Normal Attack that does not Crit, applies @effect[sCritUp]{S.Crit Up} for
+  ⅓◈ Turns to all allied Units within a 2 panel area of itself (and its linked partner wherever
+  it stands), Crit Chance is increased by 10%.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal", { not: "attack:crit" }]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      # `alsoIncludes: partner` is the *"(and Pollux if she is out of the
+      # Skill's Range)"* clause -- the partner is always in the set, never
+      # excluded for distance and never counted twice for proximity.
+      selection: { relations: [ally, self], includeSelf: true, chooser: all, alsoIncludes: partner }
+    then:
+      - { key: ApplyEffect, effect: { id: sCritUp }, duration: "⅓◈", magnitude: 10 }

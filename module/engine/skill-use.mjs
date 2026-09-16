@@ -31,7 +31,7 @@ import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { summonPhase } from "./summoning.mjs";
-import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitSnapshot, gateContext } from "./board.mjs";
 import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
@@ -528,7 +528,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // ONE OF the following effects OF YOUR CHOICE" -- the choice is the
           // rule, so it cannot be resolved by picking one and calling it a
           // default.
-          applied.push(...await runChoice(phase, ability, actor, snapshot));
+          applied.push(...await runChoice(phase, ability, actor, snapshot, board));
           break;
         }
 
@@ -1229,7 +1229,10 @@ function cooldownIntents(ability, actor, summoned = 0, unit = null) {
   const plan = cooldownFor(ability, actor.id, { count: summoned, unit });
 
   return [
-    ...[...plan.cooldowns, ...alsoTriggered(ability, actor)]
+    // `sharedAcrossGroup` takes no board here -- this function is given the
+    // user's snapshot and nothing else -- and falls back to `game.actors`,
+    // which is what it needs: the partner's ability NAMES.
+    ...[...plan.cooldowns, ...sharedAcrossGroup(plan.cooldowns, unit, null), ...alsoTriggered(ability, actor)]
       .map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
     // A waived cooldown is PAID for. Emitting the skipped clock without the
     // token spent would make Scáthach's Rune Spells free for ever.
@@ -1555,9 +1558,10 @@ function applyFloor(delta, floor, current) {
  * @param {object} ability
  * @param {object} actor
  * @param {object} snapshot the target's snapshot
+ * @param {object|null} [board] needed when an option branches into phases
  * @returns {Promise<object[]>}
  */
-async function runChoice(phase, ability, actor, snapshot) {
+async function runChoice(phase, ability, actor, snapshot, board = null) {
   const options = phase.options ?? [];
   if (options.length === 0) return [];
 
@@ -1583,6 +1587,21 @@ async function runChoice(phase, ability, actor, snapshot) {
   const out = [];
   for (const id of picked) {
     const spec = options.find((o) => o.id === id) ?? { id };
+    // An option may branch into PHASES rather than name an effect. Mana Burst's
+    // *"either restore 2 Agility and 2 Luck to Castor; or restore 1 Agility and
+    // 1 Luck to both"* is two stat changes on different targets, which no
+    // effect id can say. Ch. 34 §34.10 proposed a separate `kind: choice` for
+    // this; `choose` is the decision phase this game already has, and a second
+    // one beside it would be two grammars for one question.
+    if (spec.phases) {
+      // A synthetic ability carrying only the branch's phases, so the branch
+      // runs through the SAME dispatcher every other phase does rather than a
+      // second, narrower one. The name and id are the real ability's, because
+      // that is what the log and any cooldown change should name.
+      const branch = { ...ability, system: { ...(ability.system ?? {}), phases: spec.phases } };
+      out.push(...await runPhases(branch, actor, [{ unitId: actor.id }], board));
+      continue;
+    }
     out.push(...await applyPhaseEffects({ effects: [spec] }, ability, actor, snapshot));
   }
   return out;

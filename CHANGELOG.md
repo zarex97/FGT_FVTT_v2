@@ -34,6 +34,80 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### The Dioscuri — Castor and Pollux (2026-09-16)
+
+Two tokens that are one Servant, and the acceptance test for `LinkedUnitGroup`.
+85 numbered clauses off their sheet: 39 the engine already did, 28 content-only,
+18 needing new code.
+
+**Four of the ten mechanisms Ch. 34 §34.11 tallies were already built**, three of
+them carrying comments that name the Dioscuri while doing it — `rules/zon.mjs`
+quoting their ZON clause verbatim, `rules/items.mjs` saying outright that
+`counterpartAdjacent` exists for their Noble Phantasm, and `madEnhancementDefence`
+citing **"B− 35→15 (Castor)"** as one of the seven sheets it was verified against.
+His entire Mad Enhancement is free because somebody transcribed his numbers into
+the rank tables before anyone tried to author him. Two more were settled
+elsewhere: §34.10's `kind: choice` is `choose` (EMIYA's *Trace On*), extended
+with a `phases:` branch rather than duplicated; and `unit: turns` was never
+needed, because `CooldownDelta` splits a ◈ expression from a literal turn count
+by field. **Script elements: still zero.**
+
+**Added**
+
+- `LinkedUnitGroup` (Ch. 16 §16.8 / D16.7) — `rules/linked-group.mjs` and nine
+  readers: the movement leash, the turn budget and multi-Servant tax by weight,
+  shared cooldowns by ability name, the partner as a Base Attack source, the
+  union of two modifier bags, linked death, partner-inclusive targeting, the
+  `linkedPartner` aura role, and `summonTogether`.
+- **Combat Process step 1.5 — the Miss check**, and `Blind` with it. Nothing in
+  the engine could make an attack miss: an Evade is the defender answering a
+  swing that happened. A miss is terminal and the budget is still spent.
+- `Def Dwn (A)`, the mirror of `(C)`; both are inflicted by the joint NP.
+- `self:withinOfPartner:N` and `attack:isCounter` predicate facets.
+- `tableFactor`, a predicated scale on a rank-table **lookup**.
+- A defender-side flat increase at damage stage 7 (`FLAT_TAKEN_KEYS`), for
+  Avenger — the only class skill in the corpus that hurts its own bearer.
+- Four Avenger-set rank tables, each with **one witness**; Appendix B says so.
+
+**Changed**
+
+- Turn-budget pools store **integer halves**. A pip has three states.
+- `consume` and `budget.spend` take an ability, for `alsoCountsAsAttackFor`.
+- `canUseAbility` refuses an ability whose `categorizedAs` family is suppressed.
+
+**Found on the live board, and by nothing else**
+
+Two defects that a green suite could not see, both of the shape this project
+keeps meeting — a field that is right, authored, and silently dropped:
+
+- **`alsoCountsAsAttackFor` never compiled.** It is in the ability schema and in
+  the YAML, and `itemSystem()` did not name it — so the joint Noble Phantasm
+  charged half a Servant attack and left Pollux free to swing again. The fifth
+  time one of these allowlists has dropped a field; the item vocabulary now
+  names it, so the same guard covers both sides.
+- **A content sync was unlinking a pair already on the board.** Adding
+  `linkedGroup` to the authored keys made the pack own *all* of it, so a rebuild
+  overwrote `memberIds` — resolved at summon, when the actor ids first exist —
+  with the pack's empty set. Every binding went quiet at once: no leash, no
+  linked death, no shared cooldown, no combined NP. `linkedGroup` is now the
+  third half-pack, half-world key, beside `cooldown`'s clock and
+  `summonVariant`'s coin.
+
+**Rulings**
+
+- **Pollux's BA(STR) is 150, not the 200 her sheet prints** (Ch. 41 Q50). Her
+  Mana Burst is 300 and the joint NP 150 — the sheet's 350 and 175 are stale
+  arithmetic from the same error. She joins Jack, Kiritsugu, Semiramis and
+  Serenity in the deviation list.
+- **"each one counts as 0.5 Units" scopes to every rule that counts Units**, so
+  both twins Acting is one Servant having Acted and a Master whose only Servant
+  is the pair pays no §16.7 tax.
+- **Mad Enhancement's adjacency clause halves the table lookup wholesale** —
+  drain, floor and deactivation threshold together, because that table is
+  deliberately one number read three times.
+
+
+
 > **Van Gogh is complete.** Eleven entries, two Noble Phantasms, and a Servant whose own debuff is
 > her fuel. **Script count: 0.**
 >

@@ -147,6 +147,53 @@ export const TABLES = Object.freeze({
     perStep: 10,
   },
 
+  /* ------------------------------------------------- the Avenger class set */
+
+  /**
+   * **One witness each.** Castor is the only Avenger in either roster, so
+   * unlike `madEnhancementDefence` — verified across seven sheets — these four
+   * ladders are inferred from a single stated value and their `perStep` figures
+   * are a guess no sheet has contradicted yet. Appendix B §B.3 says so.
+   *
+   * Avenger B = 80: *"All damage taken by Castor is increased by 80 including
+   * NP"*, and the counter bonus is the same number said twice.
+   */
+  avenger: {
+    kind: "scaled",
+    byGrade: { EX: 120, A: 100, B: 80, C: 60, D: 40, E: 20 },
+    perStep: 10,
+  },
+
+  /** Oblivion Correction C = 15: *"Crit Chance is increased by 15%"*. */
+  oblivionCorrection: {
+    kind: "scaled",
+    byGrade: { EX: 35, A: 25, B: 20, C: 15, D: 10, E: 5 },
+    perStep: 5,
+  },
+
+  /** Self-Replenishment (Mana) D = 40 Health, at each qualifying turn end. */
+  selfReplenishmentHealth: {
+    kind: "scaled",
+    byGrade: { EX: 100, A: 80, B: 60, C: 50, D: 40, E: 30 },
+    perStep: 5,
+  },
+
+  /**
+   * Self-Replenishment (Mana) D = 2. **LITERAL TURNS, not ◈.**
+   *
+   * The sheet says *"NP Cooldown is reduced by 2 Turns"*, and
+   * `engine/scheduler.mjs`'s `CooldownDelta` distinguishes the two by FIELD:
+   * `ticks` is a ◈ expression resolved against the world's turns per Round,
+   * `delta` is a raw turn count. This table feeds `delta`. Ch. 34 §34.8
+   * proposes a `unit: turns` marker for exactly this; the distinction already
+   * existed as two fields.
+   */
+  selfReplenishmentCooldown: {
+    kind: "scaled",
+    byGrade: { EX: 4, A: 4, B: 3, C: 3, D: 2, E: 1 },
+    perStep: 0,
+  },
+
   /** `null` = the Sustainability clock does not exist for this unit. */
   independentActionSustainability: {
     kind: "banded",

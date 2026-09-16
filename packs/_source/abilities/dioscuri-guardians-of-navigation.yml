@@ -1,0 +1,36 @@
+# The Dioscuri, char_orig_sheets/Copia de Dioscuri.md
+#
+# One file, `ref`d by both twins, for the reason Stars of the Chief God is one:
+# the shared name is the shared clock.
+schema: 1
+id: dioscuri-guardians-of-navigation
+name: "Guardians of Navigation"
+rank: B
+kind: skill
+slug: guardiansOfNavigation
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel area of itself (and its
+  linked partner if it is out of the Skill's Range). Has the following effects-
+  1. Applies @effect[npDmUp]{NP DmUp} for ⅓◈ Turns, NP damage dealt is increased by 15%.
+  2. Applies @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage dealt is increased by 15%; if NP, 5%.
+  3. Applies @effect[debuffImmune]{Debuff Immune} for 1◈ Turns, 1 time, the next debuff inflicted on the affected Unit
+     is negated, does not affect @effect[instakill]{Instakill}, @effect[death]{Death}, and @effect[erase]{Erase}.
+  Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all, alsoIncludes: partner }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: npDmUp, duration: "⅓◈", magnitude: 15 }
+      # "increased by 15%; if NP, 5%" -- an ABSOLUTE NP figure rather than a
+      # factor, because the sheet states both numbers and 5 is not half of 15.
+      - { id: atkUp, duration: "⅓◈", magnitude: 15, npMagnitude: 5 }
+      # "1 time" is `applications`. The Instakill/Death/Erase exemption is the
+      # effect's own (`debuff-immune.yml`) rather than restated here -- one
+      # place to fix if the catalogue is ever corrected.
+      - { id: debuffImmune, duration: "1◈", applications: 1 }

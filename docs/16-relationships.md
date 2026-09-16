@@ -626,6 +626,23 @@ A general mechanism rather than a Dioscuri special case, because the shape recur
 with a permanent summon, a Master-Servant pair moving as one under Passenger Seat). Chapter 34
 walks through the Dioscuri in full.
 
+> **Implemented 2026-09-16.** `module/rules/linked-group.mjs` holds the pairwise
+> geometry — `partnersOf`, `partnerDistance`, `leashBroken`, `unitWeight` — and
+> `annotateLinkedGroups` settles it once per board snapshot, in the pass that
+> already runs `annotateZon` and the aura expansion, and **before** ZON, because
+> `zonSatisfaction: "any"` is delivered by unioning the group's members into
+> `zonPartnerIds` rather than by changing the reader that already asks about it.
+>
+> Nine readers: the movement clause (`canStopOn`), the turn budget and the
+> multi-Servant tax (both by weight), `cooldownFor`, the damage pipeline's base
+> sources and its modifier bag, `resolveDefeat`, `resolveTargets`, `collectAuras`
+> and `commitSummon`.
+>
+> **`unitWeight` scopes to every rule that counts Units**, not only the budget:
+> *"each one counts as 0.5 Units"* qualifies none of them, so both twins Acting
+> is **one** Servant having Acted and a Master whose only Servant is the pair
+> pays no §16.7 tax.
+
 ---
 
 > **Implemented.** `module/rules/cs-namespacing.mjs`, and it was a real gap rather than a

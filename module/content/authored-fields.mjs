@@ -28,13 +28,16 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "classContainer", "concealedIdentity", "identityRevealed", "detect",
   "defaultImage", "alignment", "region", "attributes", "parameters",
   "baseHealth", "mov", "range", "baseAttack", "normalAttack", "sustainability",
+  // The linked-group binding (Ch. 16 §16.8). Settings only: `memberIds` is
+  // resolved at summon and is never authored.
+  "linkedGroup",
   "summonVariant", "stanceSpec", "stance", "resources", "notes",
 ]);
 
 /** Item fields a pack document may state. */
 export const AUTHORED_ITEM_KEYS = Object.freeze([
   "contentId", "contentVersion", "description", "source", "rank", "slug", "isNP", "isMode",
-  "isAttackSkill", "replacesNormalAttack", "isSpell", "isPassive", "active",
+  "isAttackSkill", "alsoCountsAsAttackFor", "replacesNormalAttack", "isSpell", "isPassive", "active",
   // `deactivation` beside its two neighbours, and they answer three different
   // questions: `cannotDeactivate` says NEVER, `toggleLock` says HOW LONG YOU
   // MUST WAIT, and `deactivation` says AT WHICH MOMENTS the offer exists at
@@ -118,6 +121,23 @@ export const COOLDOWN_OWNED_BY_WORLD = Object.freeze([
  * content update re-flipping a summon already on the board is not an update.
  */
 export const SUMMON_VARIANT_OWNED_BY_WORLD = Object.freeze(["variant"]);
+
+/**
+ * The half of `linkedGroup` a match owns.
+ *
+ * The same shape as `cooldown` and `summonVariant`, and the same reason. The
+ * pack states the **settings** — the leash, the weight, whether death is linked
+ * — and `partners` names the other members by CONTENT id. `memberIds` holds
+ * **actor** ids, resolved by `engine/summon.mjs` at the one moment every actor
+ * exists.
+ *
+ * Without this, a content sync overwrites the resolved ids with the pack's
+ * empty set and **silently unlinks a pair already on the board**: no leash, no
+ * linked death, no shared cooldown, no combined Noble Phantasm. Found on a live
+ * board, after a pack rebuild, with the twins standing next to each other and
+ * bound to nothing.
+ */
+export const LINKED_GROUP_OWNED_BY_WORLD = Object.freeze(["memberIds"]);
 
 /**
  * Authored keys a given actor **type** only seeds, on top of `SEEDED_THEN_OWNED`.

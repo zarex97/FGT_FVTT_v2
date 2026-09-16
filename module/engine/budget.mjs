@@ -77,10 +77,16 @@ function actingFactionOf(unit) {
  * @param {string} args.action
  * @returns {Promise<{ok: boolean, reason: string|null}>}
  */
-export async function spend({ combat, unit, action }) {
+export async function spend({ combat, unit, action, ability = null, board = null }) {
   // The ACTING faction's pool, not the owning one — see `actingFactionOf`.
   const factionId = actingFactionOf(unit);
-  const result = consume(budgetFor(combat, factionId), unit, action);
+  const result = consume(budgetFor(combat, factionId), unit, action, {
+    // *"Counts as both Castor and Pollux's Attack for the Turn."* Read off the
+    // ability rather than off the unit: it is a property of the joint Noble
+    // Phantasm, not of being a twin, and their other attacks charge one each.
+    alsoCountsAsAttackFor: ability?.system?.alsoCountsAsAttackFor || null,
+    board,
+  });
   if (!result.ok) return { ok: false, reason: result.reason };
 
   await write(combat, factionId, result.budget);
@@ -126,8 +132,22 @@ export function endTurnVerdict(combat, factionId, units) {
  * @returns {object[]}
  */
 export function rows(combat, factionId) {
-  return summarize(budgetFor(combat, factionId));
+  return summarize(budgetFor(combat, factionId)).map((row) => ({
+    ...row,
+    // `summarize` is pure and returns 1 / 0.5 / 0; a CSS class name is not a
+    // rule, so the view vocabulary is named here. Handlebars cannot compare
+    // numbers without a helper, and `{{#if spent}}` reads 0.5 as "full".
+    pips: row.pips.map((v) => (v === 1 ? "full" : v === 0.5 ? "half" : "empty")),
+    // Ch. 34 §34.5 asks for this in as many words: the boundary case is
+    // correct and surprising, so the HUD explains it rather than looking broken.
+    hint: HALF_POOLS.has(row.pool)
+      ? "A linked pair counts as one Unit -- each twin spends half a slot."
+      : null,
+  }));
 }
+
+/** Pools a half-unit can draw from, and therefore render a half-pip in. */
+const HALF_POOLS = new Set(["servantMove", "servantAttack"]);
 
 /* -------------------------------------------------------------------------- */
 

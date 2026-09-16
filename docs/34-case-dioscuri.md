@@ -1,5 +1,39 @@
 # 34 — Case Study: The Dioscuri
 
+> **Built 2026-09-16 — and four of the ten mechanisms tallied in §34.11 were
+> already built when this chapter was read against the code.**
+>
+> - **`zonSatisfaction: any`** was live in `rules/zon.mjs`, its comment quoting
+>   this chapter's own ZON clause verbatim, and `data/actor/servant.mjs` named
+>   the Dioscuri in the field's docstring. The rule was right and had no writer.
+> - **The Noble Phantasm's adjacency gate** was live in `rules/items.mjs` as the
+>   `counterpartAdjacent` requirement kind, its comment saying outright that it
+>   is for *the Dioscuri's Noble Phantasm*. It is not in the §34.11 tally at all.
+> - **`modifierSources`** was half built: stage 1 had resolved
+>   `ctx.units[src.unit]` since the pipeline was written, with `mountUnits` as
+>   its only supplier.
+> - **`unit: turns` was never needed.** `CooldownDelta` distinguishes a ◈
+>   expression from a literal turn count **by field** — `ticks` against `delta` —
+>   which is a settled distinction this chapter proposed a third spelling for.
+>
+> Two more turned out to be settled elsewhere. §34.10's **`kind: choice`** phase
+> is `choose`, which EMIYA's *Trace On* has used since it was authored
+> (*"apply ONE OF the following effects OF YOUR CHOICE"*); an option gained a
+> `phases:` list rather than the engine gaining a second grammar for one
+> question. And **`alliesWithin2OrPartner`** landed as
+> `selection: { alsoIncludes: partner }`, a property of the selection rather
+> than a named shape, because the partner is added to whatever the shape caught
+> rather than changing what it catches.
+>
+> What the chapter got exactly right is the decomposition — ten small general
+> mechanisms, none of them a Dioscuri special case — and its last line:
+> **script elements: zero.** It is still zero.
+>
+> The one mechanism it did not anticipate is the largest: `Blind`, which both
+> twins' *Mana Burst* inflicts, needed a **Miss check at Combat Process step
+> 1.5** (`docs/12-combat-process.md` §12.2). Nothing in the engine could make an
+> attack miss.
+
 Castor and Pollux are one Servant occupying two tokens. They break the assumption that a unit is
 a unit — every subsystem that counts units, checks distance, applies cooldowns, or resolves
 death has to handle a pair. This is the acceptance test for `LinkedUnitGroup`.

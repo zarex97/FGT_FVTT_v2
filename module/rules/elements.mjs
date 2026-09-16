@@ -611,6 +611,25 @@ function normalizeAction(a, rank, ctx) {
   /** @type {Record<string, unknown>} */
   const out = { kind: key, ...rest };
 
+  // A predicated scale on every reading of the rank table below.
+  //
+  //   *"If Castor is directly next to Pollux while Mad Enhancement is Active,
+  //    his Master's Health lost from the effects of active Mad Enhancement are
+  //    halved."*
+  //
+  // Applied to the LOOKUP rather than to one use of it, because
+  // `madEnhancementDrain` is deliberately one number read three times -- the
+  // amount drained, the "cannot drop below this in this way" floor, and
+  // `SetMode`'s forcible-deactivation threshold. The comment below records
+  // what splitting them apart cost the last time, and halving only the drain
+  // would split them again: adjacent to Pollux, Castor's Master would lose 10
+  // and Mad Enhancement would keep running until they were under 20.
+  const factor = a.tableFactor && testPredicate(a.tableFactor.predicate, ctx)
+    ? (a.tableFactor.value ?? 1)
+    : 1;
+  /** @param {unknown} v @returns {unknown} */
+  const scaled = (v) => (typeof v === "number" ? v * factor : v);
+
   // `table:` is resolved HERE, where the owning ability's rank is known --
   // by the time an action is dispatched the rank is gone.
   //
@@ -621,7 +640,7 @@ function normalizeAction(a, rank, ctx) {
   // `madEnhancementDrain` would have done -- it has been in `domain/tables.mjs`
   // since the tables were transcribed with nothing reading it.
   if (a.table) {
-    const value = lookup(a.table, rank);
+    const value = scaled(lookup(a.table, rank));
     if (typeof value === "number") {
       out.amount = value;
       out.table = undefined;
@@ -643,13 +662,13 @@ function normalizeAction(a, rank, ctx) {
   // under 30, and clamped the drain against the wrong floor on the way. Every
   // rank below EX was wrong, in the Servant's favour on one clause and against
   // it on the other.
-  if (a.floorTable) out.floor = lookup(a.floorTable, rank);
+  if (a.floorTable) out.floor = scaled(lookup(a.floorTable, rank));
   if (a.whenValue?.lteTable || a.whenValue?.gteTable) {
     const { lteTable, gteTable, ...gate } = a.whenValue;
     out.whenValue = {
       ...gate,
-      ...(lteTable ? { lte: lookup(lteTable, rank) } : {}),
-      ...(gteTable ? { gte: lookup(gteTable, rank) } : {}),
+      ...(lteTable ? { lte: scaled(lookup(lteTable, rank)) } : {}),
+      ...(gteTable ? { gte: scaled(lookup(gteTable, rank)) } : {}),
     };
   }
   return out;

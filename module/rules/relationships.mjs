@@ -12,6 +12,7 @@
 import { Rank } from "../domain/rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { lookup } from "../domain/tables.mjs";
+import { unitWeight } from "./linked-group.mjs";
 
 /** Base chance for both coin flips. */
 const BASE_FLIP = 50;
@@ -222,7 +223,14 @@ export function sustainabilityCostOf(servant, npRank) {
 export function multiServantTax(master, servants, settings = {}) {
   if (settings.grandOrder) return [];
 
-  const acted = (servants ?? []).filter((s) => s.turnState?.acted).length;
+  // UNITS, not actors. *"each one counts as 0.5 Units"* scopes to every rule
+  // that counts Units and qualifies none of them, and this is one: both
+  // Dioscuri Acting is ONE Servant having Acted, so a Master whose only
+  // Servant is the pair pays nothing -- and a Master with the pair AND another
+  // Servant pays the flat 25.
+  const acted = (servants ?? [])
+    .filter((s) => s.turnState?.acted)
+    .reduce((sum, s) => sum + unitWeight(s), 0);
   if (acted <= 1) return [];
 
   return [{
@@ -247,7 +255,11 @@ export function mayOrderAnotherServant(master, servants, settings = {}) {
   if (settings.grandOrder) return { ok: true };
   if (currentHealth(master) > MULTI_SERVANT_COST) return { ok: true };
 
-  const acted = (servants ?? []).filter((s) => s.turnState?.acted).length;
+  // The same weight sum as the tax, and for the same reason: one twin having
+  // Acted is half a Unit, so ordering the other is still one order.
+  const acted = (servants ?? [])
+    .filter((s) => s.turnState?.acted)
+    .reduce((sum, s) => sum + unitWeight(s), 0);
   return acted >= 1
     ? { ok: false, reason: "multiServantTaxUnaffordable" }
     : { ok: true };

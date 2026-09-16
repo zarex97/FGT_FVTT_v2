@@ -32,6 +32,16 @@ function abilityCommon() {
     // attack and `system.active` was always undefined.
     isMode: new fields.BooleanField({ initial: false }),
     isAttackSkill: new fields.BooleanField({ initial: false }),
+    // *"Counts as both Castor and Pollux's Attack for the Turn."* Using this
+    // ability marks the named relation's units as having attacked and charges
+    // their weight too, so the pair spends ONE of the faction's two Servant
+    // attacks (0.5 + 0.5) and neither twin may swing again.
+    //
+    // On the ABILITY rather than on the unit: it is a property of the joint
+    // Noble Phantasm, and the twins' other attacks charge one twin each.
+    alsoCountsAsAttackFor: new fields.StringField({
+      required: false, blank: true, initial: "", choices: ["", "partner"],
+    }),
     isSpell: new fields.BooleanField({ initial: false }),
 
     /** A mode's current state. Meaningless unless `isMode`. */

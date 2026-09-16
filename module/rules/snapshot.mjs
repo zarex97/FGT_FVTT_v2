@@ -19,6 +19,7 @@ import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon } from "./zon.mjs";
+import { annotateLinkedGroups } from "./linked-group.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { EffectRegistry } from "./registry.mjs";
 import { familiesPresent } from "./effects/families.mjs";
@@ -408,6 +409,9 @@ export function snapshotUnit(actor, {
     zonBonuses: contributions.zonBonuses ?? [],
     zonExempt: Boolean(sys.zonExempt),
     zonPartnerIds: [...(sys.zonPartnerIds ?? [])],
+    // The linked group, flattened. `memberIds` becomes an array because every
+    // reader iterates it and a `Set` does not survive the socket.
+    linkedGroup: linkedGroupOf(sys),
     zon: sys.zon ?? null,
     zonDistance: sys.zonDistance ?? null,
     outsideZon: Boolean(sys.outsideZon),
@@ -681,6 +685,12 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // ZON is a pairwise property, so it can only be settled once every unit is
   // projected. Done here, once per board, because the damage pipeline, the
   // targeting resolver and the canvas overlay all ask the same question.
+  // Partner facts first, because `zonSatisfaction: "any"` is delivered by
+  // unioning the group's members into `zonPartnerIds` -- which is the field
+  // `annotateZon` reads on the very next line. Running these the other way
+  // round would settle ZON against a partner list that did not exist yet.
+  annotateLinkedGroups(units, board);
+
   annotateZon(units, board, settings.zon ?? {});
 
   // What a Servant's Master's rank gives it. After `annotateZon`, because ZON
@@ -1769,4 +1779,35 @@ export function annotateLastOfSummonGroup(units) {
       && alive.get(u.summonerId) === 1;
   }
   return units;
+}
+
+/**
+ * A Servant's linked group, or `null`.
+ *
+ * An empty `id` is not a group. `data/actor/servant.mjs` gives every Servant the
+ * SchemaField whether or not its content authored one, so the object always
+ * exists and the id is what says whether it means anything.
+ *
+ * `null` rather than an empty object for an ungrouped Servant: every reader
+ * branches on presence, and `{unitWeight: 1}` would make each of them
+ * re-derive "is this actually a group?" from a field that is not the answer.
+ *
+ * @param {object} sys a Servant document's system data
+ * @returns {object|null}
+ */
+function linkedGroupOf(sys) {
+  const g = sys?.linkedGroup;
+  if (!g?.id) return null;
+  return {
+    id: g.id,
+    partners: [...(g.partners ?? [])],
+    memberIds: [...(g.memberIds ?? [])],
+    leash: g.leash ?? null,
+    linkedDeath: g.linkedDeath ?? "",
+    sharedCooldowns: g.sharedCooldowns ?? "",
+    unitWeight: g.unitWeight ?? 1,
+    zonSatisfaction: g.zonSatisfaction ?? "all",
+    modifierCombination: g.modifierCombination ?? "separate",
+    summonTogether: Boolean(g.summonTogether),
+  };
 }
