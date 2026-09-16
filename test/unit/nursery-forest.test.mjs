@@ -9,6 +9,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { applicationChance } from "../../module/rules/checks.mjs";
+import { dispatch } from "../../module/engine/scheduler.mjs";
 import { lookup, HOME_BASE_ESCAPE_MODIFIER } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { resolveCheck } from "../../module/rules/checks.mjs";
@@ -420,5 +421,85 @@ describe("Nursery Rhyme: Nameless Forest (F1–F7)", () => {
 
   it("her Servant file gains exactly one ref", () => {
     expect(servant("nursery-rhyme").abilities).toContainEqual({ ref: "nursery-nameless-forest" });
+  });
+});
+
+describe("an action aimed at a SET reaches the set, not the bearer", () => {
+  // Found on a live board. `ApplyEffect` has read a per-action `target` --
+  // `victim`, `nearby` -- since Serenity, through `targetsOf`. Every OTHER
+  // action resolved a single subject through `subjectOf`, whose vocabulary is
+  // relationships (`master`, `summoner`, `victim`) and has no `nearby` at all,
+  // so an action aimed at a radius silently fell through to the bearer.
+  //
+  // The failure was not subtle once seen: the Nameless Forest grants a token
+  // and takes 25 Max Health, 10 off both Base Attacks and 1 Max Luck from
+  // "all enemy Units within a 2 panel area" -- and all four writes landed on
+  // NURSERY. She poisoned herself once per Round while the enemy standing in
+  // her ring took nothing.
+  const board = {
+    units: [
+      { id: "nursery", factionId: "red", panel: { i: 2, j: 3 } },
+      { id: "foe", factionId: "blue", panel: { i: 2, j: 5 } },
+      { id: "far", factionId: "blue", panel: { i: 9, j: 9 } },
+      { id: "ally", factionId: "red", panel: { i: 2, j: 4 } },
+    ],
+  };
+  const bearer = board.units[0];
+  const run = (action) =>
+    dispatch(action, bearer, { source: "Nameless Forest", abilityId: null },
+      { board, tick: 0, turnsPerRound: 3, rolls: {} });
+
+  it("a StatDelta at a radius writes to the enemies, not to her", () => {
+    const out = run({
+      kind: "StatDelta", target: "nearby", radius: 2, relations: ["enemy"],
+      stat: "health.max", delta: -25, alsoCurrent: true,
+    });
+    expect(out.map((i) => i.unitId)).toEqual(["foe"]);
+    expect(out[0]).toMatchObject({ stat: "health.max", delta: -25, alsoCurrent: true });
+  });
+
+  it("a ResourceDelta at a radius does too", () => {
+    const out = run({
+      kind: "ResourceDelta", target: "nearby", radius: 2, relations: ["enemy"],
+      resource: "namelessForestTokens", delta: 1,
+    });
+    expect(out.map((i) => i.unitId)).toEqual(["foe"]);
+  });
+
+  it("and reaches nobody outside the ring, and no ally inside it", () => {
+    const out = run({
+      kind: "StatDelta", target: "nearby", radius: 2, relations: ["enemy"],
+      stat: "luck.max", delta: -1,
+    });
+    expect(out.map((i) => i.unitId)).not.toContain("far");
+    expect(out.map((i) => i.unitId)).not.toContain("ally");
+    expect(out.map((i) => i.unitId)).not.toContain("nursery");
+  });
+
+  it("an ApplyEffect is not fanned TWICE by the two paths", () => {
+    // `dispatch` resolves the set and hands each recipient in; `ApplyEffect`
+    // must not then re-centre the radius on each of them in turn.
+    const out = run({
+      kind: "ApplyEffect", target: "nearby", radius: 2, relations: ["enemy"],
+      effect: { id: "namelessForest" },
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].unitId).toBe("foe");
+  });
+
+  it("...and it is sourced to HER, not to the Unit it lands on", () => {
+    // An effect sourced to its own recipient is one nothing can attribute,
+    // expire by source, or clean up when its source leaves.
+    const out = run({
+      kind: "ApplyEffect", target: "nearby", radius: 2, relations: ["enemy"],
+      effect: { id: "namelessForest" },
+    });
+    expect(out[0].effect.sourceUnitId).toBe("nursery");
+  });
+
+  it("an action with no `target` still acts on its bearer", () => {
+    // Every clause authored before this one, and they must not move.
+    const out = run({ kind: "StatDelta", stat: "luck.value", delta: -1 });
+    expect(out.map((i) => i.unitId)).toEqual(["nursery"]);
   });
 });

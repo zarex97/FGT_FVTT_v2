@@ -447,6 +447,41 @@ export function dispatch(action, unit, handler, ctx) {
   // Drake: *"she has a 15% chance of gaining 1 Galleon Token."*
   if (!chanceGatePasses(action, unit, ctx)) return [];
   if (!valueGatePasses(action, unit, ctx)) return [];
+
+  // An action aimed at a SET rather than at one Unit.
+  //
+  // `ApplyEffect` has read a per-action `target` -- `victim`, `nearby` -- since
+  // Serenity, through `targetsOf`. Every OTHER action resolved a single subject
+  // through `subjectOf`, whose vocabulary is relationships (`master`,
+  // `summoner`, `victim`) and has no `nearby` at all -- so an action aimed at a
+  // radius silently fell through to the handler's own bearer.
+  //
+  // The Nameless Forest is what found it, and the failure was not subtle once
+  // seen: *"this NP affects all enemy Units within a 2 panel area"* grants a
+  // token and takes 25 Max Health, 10 off both Base Attacks and 1 Max Luck --
+  // and all four writes landed on **Nursery**. She poisoned herself once per
+  // Round while the enemy standing in her ring took nothing.
+  //
+  // One vocabulary, so `target:` means the same thing whichever action carries
+  // it. `subjectOf` keeps the relationship hops, which are about a single Unit
+  // and are what `subject:` has always named.
+  if (action.target === "nearby" || action.target === "victim") {
+    const ids = targetsOf(action, unit, ctx);
+    // `bearer` so an action that needs to know WHO IS DOING THIS still can --
+    // `ApplyEffect` stamps `sourceUnitId`, and an effect sourced to its own
+    // recipient is an effect nothing can attribute or clean up after.
+    const fanned = { ...ctx, bearer: unit };
+    return ids.flatMap((id) => {
+      // The board's projection when there is one, because an action may read
+      // the recipient's own state -- the death roll counts its tokens. A bare
+      // id when there is not: `victim` names a Unit the event already resolved,
+      // and refusing to act on it because the snapshot is absent would lose the
+      // rider rather than aim it correctly.
+      const other = (ctx?.board?.units ?? []).find((u) => u.id === id) ?? { id };
+      return run(action, other, handler, fanned);
+    });
+  }
+
   return run(action, subject, handler, ctx);
 }
 
@@ -953,7 +988,12 @@ const ACTIONS = Object.freeze({
       defId: a.effect?.defId ?? a.effect?.id ?? a.defId,
       magnitude: a.effect?.magnitude ?? a.magnitude ?? 0,
       expiry: ticks === null || ticks === INFINITE ? (a.effect?.expiry ?? null) : (c.tick ?? 0) + ticks,
-      sourceUnitId: u.id,
+      // The HANDLER'S BEARER, not the recipient. `dispatch` fans a
+      // `target: nearby` action over its set and hands each recipient in as
+      // `u`, so the caster arrives separately as `c.bearer` -- and an effect
+      // sourced to the Unit carrying it is one nothing can attribute, expire by
+      // source, or clean up when its source leaves.
+      sourceUnitId: c.bearer?.id ?? u.id,
       // Riders state their own chance -- "25% chance of inflicting Deadly
       // Poison" -- and the flow that applies them reads it off the instance,
       // because an intent has nowhere else to put it.
@@ -985,7 +1025,11 @@ const ACTIONS = Object.freeze({
     // `Queen's Poison`, Serenity's poisoned daggers -- would have inflicted its
     // debuff on the ATTACKER. `target: victim` is the vocabulary Ch. 32 already
     // writes; it just had no reader.
-    return targetsOf(a, u, c).map((id) => I.applyEffect(id, { ...effect }, h.abilityId));
+    // `dispatch` has already resolved the set for a `nearby`/`victim` target and
+    // handed each recipient in as `u`, so this must not expand it a second time
+    // -- doing so would re-centre the radius on each recipient in turn.
+    const recipients = c.bearer ? [u.id] : targetsOf(a, u, c);
+    return recipients.map((id) => I.applyEffect(id, { ...effect }, h.abilityId));
   },
 
   /**
