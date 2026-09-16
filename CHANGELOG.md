@@ -34,6 +34,63 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Nursery Rhyme, Part 1 of 4 — her core kit (2026-09-16)
+
+A Servant authored in four parts, because her sheet is four different games: a
+core kit, two summons and the Item that kills one of them, a Noble Phantasm that
+wins by waiting, and a time rewind. This is the first.
+
+Her Note is the axis the whole kit turns on. *"Nursery's Normal Attacks use Base
+Attack (STR)"* — **50**, against the **200** her Noble Phantasm swings. `Enigma`
+exists to make that feeble swing worth taking, because the `Def Dwn (MAG)` it
+plants raises MAG damage taken by 60%.
+
+**Four things were already built, and dead.** Every one of them was found by
+reading the code a plan had to argue from, and none would have been caught by a
+passing test.
+
+- **Territory Creation's second clause has never reduced a single point of
+  damage, for any Servant.** `DamageNegation` does not read `el.roll`, and every
+  one of the five files that carry the clause — Medea, Kingprotea, Semiramis
+  twice, the generic Caster and the DSC buff — authored the formula that way. Its
+  `mode` defaults to `flat`, so `rollNegation` computed `Number(null) || 0` and
+  skipped it. And an aura's nested element was routed to `modifiers` by default,
+  where the damage pipeline has no key for it and nothing else looks — the third
+  entry `ROUTES` has gained for exactly this reason.
+
+- **A cooldown rider on a damaging ability never ran at all.** The attack path's
+  rider loop skips every phase kind but `applyEffects`, and `runAfterProcessPhases`
+  filters on a `when: afterProcess` that neither clause declares — so Kiritsugu's
+  *Chronos Rose*, whose sentence is the same as hers, has never turned anybody's
+  clock. Its unit test passed throughout, because it calls `cooldownChanges`
+  directly with a victim the caller never supplies.
+
+- **`Disable` could cast Spells.** `rules/budget.mjs`'s own table listed
+  attack/skill/np, while Appendix A's row says *"can only use the Move action"*.
+  The list is now the complement of Move over the whole action vocabulary.
+
+- **Appendix A's `Enigma` row was wrong about whose attack it reads.** It said
+  *"the bearer's **ally**"*, and the row credits Nursery Rhyme by name. Alice
+  **is** Nursery — her True Name is "Nursery Rhyme, Alice", and the sheet
+  alternates the two labels throughout. Aimed at an ally the buff would improve
+  somebody else's kit and do nothing for hers.
+
+**Promoted rather than copied.** Her Territory Creation repeats Medea's word for
+word, so it became `class-territory-creation`, parameterized by rank — and the
+promotion fixed a second defect on the way past: Medea's file hardcoded `5d20`
+and `3d10+20`, which are the **A row** of two tables that have existed indexed
+across all six grades since the tables were transcribed. Right for her, wrong at
+every rank below. That is the shape `madEnhancementDrain` carried when its floor
+was written out as EX's figure.
+
+**New content:** `class-territory-creation`, three effects (`Disable`,
+`Def Dwn (MAG)`, `Enigma`), four Skills, three Spells, one Noble Phantasm and the
+Servant. **New engine:** `rollTable` on a `DamageModifier`, nested aura elements
+resolving their rank table at collection time, a `DamageNegation` route, a
+cooldown rider split by audience, and `targeting` on a cooldown phase — the first
+in the corpus to need one, because *Tommy Thumb's Secret Picture Book* reaches
+three different sets in a single use.
+
 ### Anastasia & Viy (2026-09-16)
 
 A Servant who blinds herself to hit harder, soaks her enemies so the next Ice

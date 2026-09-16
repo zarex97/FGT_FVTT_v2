@@ -1516,6 +1516,44 @@ with or without the ship, since the shipless clause exempts only the Range. `4 �
 either way, and the two Galleon bands act on **Total Damage** at stage 15 rather than on stage 4's
 additive bucket.
 
+## D.33c Nursery Rhyme
+
+`STR E / END E / AGI C / MAG A / LUC B` · Health 500 · MOV 4 · Range 2/1 · BA 50 STR, 200 MAG ·
+Sustainability 4◈ · Caster · True Neutral · England ·
+`[Female, Servant, [Man], Humanoid, Fairytale, Non-Hominidae, Child]`
+
+**Scripts: 0 so far.** **Part 1 of 4 authored** — the core kit. Parts 2 (the summons and the
+`[Vorpal Blade]`), 3 (Nameless Forest) and 4 (The Queen's Glass Game) are specified and planned and
+not yet built. Part 4 would be the corpus's **first `Script`**.
+
+**Every combat number is the tables' own.** 500 at END E, 50 at STR E, 200 at MAG A, with no
+authorial override anywhere — the second Servant after Drake of whom that is true.
+
+**Her Note is the axis the whole kit turns on.** *"Nursery's Normal Attacks use Base Attack
+(STR)"* — **50**, against the **200** her Noble Phantasm swings. Van Gogh is the mirror case, forced
+the other way onto MAG. The gap is what makes `Enigma` worth casting: the `Def Dwn (MAG)` it plants
+raises MAG damage taken by 60%, so the feeble swing is a setup for the enormous one.
+
+**`Enigma` is self-only, and Appendix A said otherwise.** Her sheet alternates two labels for one
+Servant — *"Whenever **Alice** performs a Normal Attack… **Nursery** inflicts the debuff"* — and the
+catalogue's own row, which credits her by name, read the second as a second person and wrote *"the
+bearer's ally"*. Aimed at an ally the buff would improve somebody else's kit and do nothing for
+hers.
+
+**Her Territory Creation is the reason there is now a template.** Hers repeats Medea's word for
+word, so the skill was promoted to `class-territory-creation`, parameterized by rank. The promotion
+found two defects in the file it replaced: the dice were hardcoded at the **A row** of two tables
+that have always been indexed across six grades, and the defence clause **had never rolled at all**
+— on any of the five files that carry it, for any Servant, since the clause was written.
+
+**`Tommy Thumb's Secret Picture Book` reaches three different sets in one use.** Four effects on
+her, a cooldown reduction on `Child` allies within 2 panels, and `NP DmUp` on `Fairytale` allies
+within 2 — and she carries **both** tags, so both party clauses reach her too. It is the first
+cooldown phase in the corpus to carry a `targeting` of its own.
+
+**`A Tale for Somebody's Sake` is the second clause in the corpus to turn an enemy's clock**, after
+Kiritsugu's *Chronos Rose* — and the first that works. The rider path it needs had never run.
+
 ## D.34 Aggregate — both rosters
 
 | Metric | Original twelve | Expanded seventeen | Total |
