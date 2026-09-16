@@ -220,6 +220,28 @@ by ability name, `zonSatisfaction: any`.
 combination, partner-conditional auras, mid-ability choice.
 **Scripts: 0.**
 
+> **Built and tested 2026-09-16.**
+>
+> **Pollux's Base Attack (STR) plays at 150, not the 200 her sheet prints.** Her
+> STR is Rank A and Ch. 41 Q50 makes the table authoritative, so she joins Jack
+> the Ripper, Kiritsugu, Semiramis and Serenity in the deviation list
+> `validate:content` reports. The cascade is recorded where it shows: her *Mana
+> Burst* is **BA 300**, not the 350 her sheet computes, and the joint Noble
+> Phantasm is **BA 150**, not 175. Both parentheses are stale arithmetic from
+> the same source error, and both descriptions print the figure the engine uses.
+>
+> **Two clauses went onto the SHARED class-skill templates** rather than into
+> Castor- and Pollux-only variants, because a `ref:` override replaces a key
+> wholesale and a variant would be a second copy to drift. Both are inert for
+> every other bearer by construction: Mad Enhancement's halved Master drain
+> hangs on `self:withinOfPartner:1`, which is emitted only for a Servant in a
+> linked group, and Magic Resistance's partner aura uses
+> `recipientRoles: [linkedPartner]`, which finds nobody without one.
+>
+> **Her Riding is a fourth variant** (`class-riding-pollux`): her Active names
+> all three passives, where Medusa's names two and the shared template grants
+> all three unconditionally.
+
 ---
 
 ## D.6 Semiramis

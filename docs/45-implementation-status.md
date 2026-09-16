@@ -104,7 +104,28 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    **done (C3, C4)**. Platforms still lack the Scene Level operations (create, delete, scatter),
    which are logged by name rather than performed; bounded fields still lack the paint tool
    `freeform` needs and the two-phase `markDefined` construction.
-8. **Only 9 of 29 reference Servants are authored** — and "authored" is a claim only a
+8a. ~~**`LinkedUnitGroup` is specified and implemented nowhere.**~~ — **done
+   2026-09-16.** Ch. 16 D16.7 had specified it as a general mechanism since it
+   was written and `grep -ri linkedgroup module/` returned nothing. It is now
+   `module/rules/linked-group.mjs` plus nine readers, and the Dioscuri are its
+   acceptance test. Four of the ten mechanisms Ch. 34 §34.11 tallies were
+   already built when the chapter was read against the code, three of them
+   carrying comments that name the Dioscuri — `rules/zon.mjs` quoting their ZON
+   clause, `rules/items.mjs` saying `counterpartAdjacent` is for their Noble
+   Phantasm, and `madEnhancementDefence` citing **"B− 35→15 (Castor)"** as one of
+   the seven sheets it was verified against.
+
+   Two more were settled elsewhere: §34.10's `kind: choice` is `choose`
+   (extended with a `phases:` branch rather than duplicated), and `unit: turns`
+   was never needed because `CooldownDelta` splits ◈ from literal turns by field.
+
+8b. **`Blind` is built, and the Combat Process has a step 1.5.** Catalogued in
+   Appendix A since it was written and authored nowhere, because *"80% chance of
+   Missing"* had no home: an Evade is the defender answering a swing that
+   happened, and a Miss is the swing not happening. Clause 3 got a reader too —
+   `canUseAbility` refuses an ability whose `categorizedAs` family is suppressed.
+
+9. **Only 11 of 29 reference Servants are authored** — and "authored" is a claim only a
    live board can settle. Asterios and Karna were both on this list while six of Asterios's
    clauses had no reader and nine of Karna's thirteen abilities did not exist.
 

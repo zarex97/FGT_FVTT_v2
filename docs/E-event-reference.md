@@ -484,3 +484,24 @@ gated on it. Her Turn ends once, so the Master is charged once.
 `subject: summonerMaster` stays, because the resolution is right and the next clause of this
 shape will want it; it simply is not what this one needed.
 
+
+
+---
+
+## `unitDefeated` has a second reader
+
+Linked death hangs from the **tail of `resolveDefeat`**, reached only once the revival chain has
+resolved *to* a defeat — and that placement is the whole of Ch. 41 Q11:
+
+> *"imagine Pollux's HP is reduced to 0, her Guts will revive her, so in the moment she is initially
+> reduced to 0 it shouldn't link-kill Castor, as she is not truly dead."*
+
+Hanging it from `healthReachedZero` would kill the brother before the sister's Guts had spoken. The
+ordering guarantee in §E.9 — `healthReachedZero` fires **before** the revival chain, `unitDefeated`
+**after** it — is what makes this a placement rather than a special case.
+
+The partner receives an `I.defeat` **directly** rather than a `resolveDefeat` of their own, which is
+what skips *their* chain. `Death` is the precedent (*"ignores buffs and abilities that revive the
+Unit after being defeated"*), and without it a one-sided revival leaves one twin alive with a dead
+partner, which the binding forbids. The partner's logged cause is `linkedDeath`, not the damage:
+they did not die of the hit.
