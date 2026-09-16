@@ -447,6 +447,30 @@ resource — but it works by *reinterpreting* an existing debuff rather than by 
 No new machinery: a passive with `predicate: ["self:effect:blind", "attack:range:lte:2"]` that
 suppresses Blind's miss clause and adds the effects.
 
+> **Built 2026-09-16 — and this section predicted the implementation exactly,
+> down to the predicate string.** `anastasia-watermelon.yml` carries
+> `predicate: ["self:effect:blind", "attack:range:lte:2"]` on all four of its
+> passive rules, and both options were already in the vocabulary.
+>
+> The one thing "no new machinery" did not allow for is that **this section was
+> written when nothing in the engine could make an attack miss at all.** Blind's
+> first clause was catalogued and unbuilt, so there was no miss clause to
+> suppress until the Miss check arrived as Combat Process step 1.5. What was
+> added is one gate: `rules/miss.mjs#missChance` now reads a
+> `Suppress { scope: "miss" }` off the attacker, evaluating its predicate at the
+> check rather than at collection — because it asks about the ATTACK's range,
+> which contributions cannot know.
+>
+> Her other three clauses cost nothing at all. `Pierce` and `Ignore Def` are
+> `AttackProperty` elements, and *"the DU's Evade roll is increased by 4"* is a
+> `CheckModifier` with `direction: "imposed"` — the axis `engine/attack.mjs`
+> already merges into the defender's plan for EMIYA's *Clairvoyance*.
+>
+> **She keeps Blind's other clauses.** The sheet exempts *"a chance of Missing"*,
+> singular, so her own Evade rolls stay at +3 for as long as the Blind lasts —
+> and her Active deliberately holds it through the whole Combat Process, a
+> window the defender may Counter in. That is the price of the trick.
+
 ---
 
 ## 44.4 Identity and information mechanisms
