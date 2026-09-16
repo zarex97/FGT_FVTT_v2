@@ -48,6 +48,8 @@ import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
+import { applicationChance } from "../../module/rules/checks.mjs";
+import { test as testPredicate } from "../../module/rules/predicate.mjs";
 
 const effect = (id) => parse(readFileSync(`packs/_source/effects/${id}.yml`, "utf8"));
 
@@ -128,5 +130,65 @@ describe("Invuln — likewise", () => {
 
   it("forbids the Block rung", () => {
     expect(effect("invuln").rules[0]).toMatchObject({ key: "ForbidReaction", reactions: ["block"] });
+  });
+});
+
+describe("Soaked (B6–B9, R2)", () => {
+  const soaked = () => effect("soaked");
+  const ruleOf = (key, over = {}) => soaked().rules.find(
+    (r) => r.key === key && Object.entries(over).every(([k, v]) => r[k] === v),
+  );
+
+  it("B9 — is neither a buff nor a debuff, and is Unremovable", () => {
+    expect(soaked().polarity).toBe("status");
+    expect(soaked().unremovable).toBe(true);
+  });
+
+  it("B6 — raises the Freeze chance of an Ice attack by 25, additively", () => {
+    // `applicationChance` computes `base + inflictBonus - resist`, so a
+    // NEGATIVE incoming contribution is a vulnerability. Scoped to `freeze` by
+    // `effectId` and to Ice by an attack-time predicate.
+    const r = ruleOf("ApplicationChance");
+    expect(r.direction).toBe("incoming");
+    expect(r.effectId).toBe("freeze");
+    expect(r.value).toBe(-25);
+    expect(r.predicate).toContain("attack:element:ice");
+  });
+
+  it("B6 — and the arithmetic really does add, not replace", () => {
+    // A 20% Freeze rider on an Ice attack meets a Soaked defender at 45%.
+    expect(applicationChance({ base: 20, resist: -25 }).percent).toBe(45);
+  });
+
+  it("B7 — halves Total Fire Damage taken, including NP", () => {
+    const w = ruleOf("Ward");
+    expect(w.value).toBe(50);
+    expect(w.npValue).toBe(50);
+    expect(w.predicate).toContain("attack:element:fire");
+  });
+
+  it("B7/R2 — removes itself on ANY Fire attack, even one Freeze negated", () => {
+    // `fireDamageTaken` fires `damageTaken` once the Damage Step has resolved,
+    // INCLUDING at a total of zero -- so it fires even when stage 0 halted on
+    // "Freeze broken by Fire". A Unit that is both Soaked and Frozen loses both
+    // to one Fire attack without taking a point, which is the user's ruling,
+    // and it needs no carve-out at all.
+    const r = ruleOf("OnEvent", { event: "damageTaken" });
+    expect(r.predicate).toContain("attack:element:fire");
+    expect(r.then[0]).toMatchObject({ key: "RemoveEffect", effect: "soaked" });
+  });
+
+  it("B8 — is removed at the end of a Day Round", () => {
+    const r = ruleOf("OnEvent", { event: "roundEnd" });
+    expect(r.predicate).toContain("self:phase:day");
+    expect(r.then[0]).toMatchObject({ key: "RemoveEffect", effect: "soaked" });
+  });
+
+  it("B8 — and NOT at the end of a Night one", () => {
+    // The predicate is what makes the difference, and it is positional: a Unit
+    // standing in `sunlight` terrain reads `day` at night, and dries off.
+    const r = ruleOf("OnEvent", { event: "roundEnd" });
+    expect(testPredicate(r.predicate, { options: new Set(["self:phase:night"]) })).toBe(false);
+    expect(testPredicate(r.predicate, { options: new Set(["self:phase:day"]) })).toBe(true);
   });
 });

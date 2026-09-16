@@ -1,0 +1,69 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+#
+# Applied by Ice Bucket Challenge. Three clauses, and not one of them needed a
+# new mechanism -- which was not obvious until the seams were read.
+schema: 1
+id: soaked
+name: "Soaked"
+description: |
+  (a) When this Unit receives Ice damage, it has a 25% chance of being inflicted with @effect[freeze]{Freeze};
+  this is additive to any Freeze chance the Attack might have.
+  (b) When this Unit receives Fire damage, Total Fire Damage taken is reduced by 50%, then 'Soaked'
+  is removed from the Unit.
+  (c) At the end of a Day Round, 'Soaked' is removed from all affected Units.
+  (d) This effect is neither a buff nor a debuff and is Unremovable.
+# Clause (d). `status` is the third polarity, and it is what keeps this clear of
+# every Debuff Resist and every buff-removal effect in the game at once.
+polarity: status
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+rules:
+  # Clause (a). A NEGATIVE incoming ApplicationChance is a VULNERABILITY:
+  # `rules/checks.mjs#applicationChance` computes `base + inflictBonus - resist`,
+  # so -25 raises the chance by 25 -- and it lands on the total the attack
+  # already carried, which is exactly what *"additive to any Freeze chance the
+  # Attack might have"* asks for.
+  #
+  # Scoped by `effectId` so it raises nothing but Freeze, and by an attack-time
+  # predicate so it is the ICE that does it. `chanceContribution` honours both,
+  # and has since Magic Resistance needed the second.
+  - key: ApplicationChance
+    direction: incoming
+    effectId: freeze
+    value: -25
+    predicate: ["attack:element:ice"]
+
+  # Clause (b), first half. An element-scoped Ward -- the same shape Karna's
+  # fire resistance uses. `npValue` matches `value` because the sheet says
+  # "Total Fire Damage" with no NP carve-out.
+  - key: Ward
+    value: 50
+    npValue: 50
+    predicate: ["attack:element:fire"]
+
+  # Clause (b), second half -- and the user's ruling on Freeze.
+  #
+  # `damageTaken` fires once the Damage Step has RESOLVED, *including at a total
+  # of zero* (Appendix E). So it fires even when stage 0 halted on "Freeze
+  # broken by Fire" -- and a Unit that is both Soaked and Frozen therefore loses
+  # BOTH to one Fire attack without taking a point of damage. No carve-out
+  # anywhere, which is what makes the riskiest edit in this Servant unnecessary.
+  - key: OnEvent
+    event: damageTaken
+    automatic: true
+    predicate: ["attack:element:fire"]
+    then:
+      - { key: RemoveEffect, effect: soaked, cause: fire }
+
+  # Clause (c). `self:phase:day` is emitted PER PANEL rather than per Round,
+  # because `rules/environment.mjs#phaseAt` is positional -- a Unit standing in
+  # `sunlight` terrain reads `day` at night, and dries off.
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    predicate: ["self:phase:day"]
+    then:
+      - { key: RemoveEffect, effect: soaked, cause: dayEnd }
