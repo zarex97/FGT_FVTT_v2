@@ -1522,9 +1522,9 @@ additive bucket.
 Sustainability 4◈ · Caster · True Neutral · England ·
 `[Female, Servant, [Man], Humanoid, Fairytale, Non-Hominidae, Child]`
 
-**Scripts: 0 so far.** **Parts 1 and 2 of 4 authored and verified on a live board** — the core kit,
-the summons and the `[Vorpal Blade]`. Parts 3 (Nameless Forest) and 4 (The Queen's Glass Game) are
-specified and planned and not yet built. Part 4 would be the corpus's **first `Script`**.
+**Scripts: 0 so far.** **Parts 1–3 of 4 authored and verified on a live board** — the core kit, the
+summons and the `[Vorpal Blade]`, and the Nameless Forest. Part 4 (The Queen's Glass Game) is
+specified and planned and not yet built; it would be the corpus's **first `Script`**.
 
 **Every combat number is the tables' own.** 500 at END E, 50 at STR E, 200 at MAG A, with no
 authorial override anywhere — the second Servant after Drake of whom that is true.
@@ -1566,6 +1566,13 @@ suppressed.
 **The Jabberwock is the strongest summon in either roster**, and the only one with a clock. Measured
 live: a Servant's 206 healed it 154 back, exactly 75% of what landed; a Master's 215 healed it
 nothing.
+
+**The Nameless Forest is the only ability in either roster that wins by waiting.** Measured live: an
+enemy at exactly 2 panels gains one Token per Round; three Tokens take it from 1000/10/150 to
+**925 Health, 7 Luck and BA 120/120**; a successful escape removes the Tokens and the marker and
+**restores none of it**; nine Tokens and a rolled 9 is a defeat, a rolled 12 is not, and the same
+Unit standing at home rolls a **1** and survives — the log recording exactly how close that was,
+because the sheet refuses the disappearance and not the die.
 
 **The live pass found six defects the suite did not** — two in Part 1 and four in Part 2, three of
 the latter in machinery that shipped long before she existed. Ch. 45 records them.
