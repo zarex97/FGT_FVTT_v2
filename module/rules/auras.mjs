@@ -208,6 +208,15 @@ function inRecipientRoles(roles, source, recipient, board) {
     // a summon has no contract of its own, and `masterId` is the link the ZON
     // rules already use.
     if (role === "summonerMaster" && summoner?.masterId && recipient.id === summoner.masterId) return true;
+    // The other member of the source's linked group. *"When Castor is directly
+    // next to Pollux, Castor also receives the effect of this Skill."*
+    //
+    // A ROLE rather than a `relations` value: `relationOf` returns exactly one
+    // of self/ally/enemy/neutral, and a linked partner is already an `ally` --
+    // so returning `partner` instead would drop Castor out of every ordinary
+    // ally-aura on the board, Pollux's own Guardians of Navigation included.
+    if (role === "linkedPartner"
+      && [...(source?.linkedGroup?.memberIds ?? [])].includes(recipient.id)) return true;
   }
   return false;
 }

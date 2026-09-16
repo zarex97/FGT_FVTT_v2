@@ -17,6 +17,8 @@ import { annotateZon } from "../../module/rules/zon.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
+import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
+import { collectAuras } from "../../module/rules/auras.mjs";
 
 const at = (i, j) => ({ i, j });
 
@@ -267,5 +269,66 @@ describe("R5 — Mad Enhancement's drain halves beside Pollux, and so do its flo
   it("does not halve for a Castor with no partner on the board", () => {
     const [drain] = actionsAt(null);
     expect(drain.amount).toBe(20);
+  });
+});
+
+describe("R7 — `(and Pollux if she is out of the Skill's Range)`", () => {
+  const spec = {
+    anchor: { kind: "self" },
+    shape: { kind: "chebyshevRadius", r: 2 },
+    selection: {
+      relations: ["ally", "self"], includeSelf: true, chooser: "all",
+      alsoIncludes: "partner",
+    },
+  };
+
+  const pair = (castorPanel, polluxPanel) => {
+    const c = linked("castor", castorPanel, ["pollux"]);
+    const p = linked("pollux", polluxPanel, ["castor"]);
+    return { c, p, board: boardOf([c, p]) };
+  };
+
+  it("includes the partner standing outside the shape", () => {
+    const { c, board } = pair(at(3, 3), at(9, 9));
+    expect(resolveTargets(spec, c, board).units.map((u) => u.unitId)).toContain("pollux");
+  });
+
+  it("does not include the partner twice when already inside the shape", () => {
+    const { c, board } = pair(at(3, 3), at(4, 3));
+    const ids = resolveTargets(spec, c, board).units.map((u) => u.unitId);
+    expect(ids.filter((id) => id === "pollux")).toHaveLength(1);
+  });
+
+  it("changes nothing for a spec that does not ask", () => {
+    const plain = { ...spec, selection: { ...spec.selection, alsoIncludes: undefined } };
+    const { c, board } = pair(at(3, 3), at(9, 9));
+    expect(resolveTargets(plain, c, board).units.map((u) => u.unitId)).not.toContain("pollux");
+  });
+});
+
+describe("P7 — Magic Resistance reaches Castor when he stands beside Pollux", () => {
+  const mr = {
+    key: "resistance", component: "mag", radius: 1,
+    relations: ["ally"], recipientRoles: ["linkedPartner"],
+  };
+
+  const withAura = (id, panel, partners) => linked(id, panel, partners, { auras: [mr] });
+
+  it("reaches the linked partner within the radius", () => {
+    const p = withAura("pollux", at(3, 3), ["castor"]);
+    const c = linked("castor", at(4, 3), ["pollux"]);
+    expect(collectAuras(c, boardOf([p, c]))).toHaveLength(1);
+  });
+
+  it("does not reach an ordinary ally standing just as close", () => {
+    const p = withAura("pollux", at(3, 3), ["castor"]);
+    const karna = { id: "karna", kind: "servant", faction: "red", panel: at(4, 3), auras: [] };
+    expect(collectAuras(karna, boardOf([p, karna]))).toHaveLength(0);
+  });
+
+  it("does not reach the partner standing two panels away", () => {
+    const p = withAura("pollux", at(3, 3), ["castor"]);
+    const c = linked("castor", at(5, 3), ["pollux"]);
+    expect(collectAuras(c, boardOf([p, c]))).toHaveLength(0);
   });
 });
