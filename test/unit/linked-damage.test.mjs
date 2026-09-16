@@ -163,9 +163,6 @@ describe("N9/R6 — the joint NP combines both twins' modifiers, double-counting
 /* ── Avenger: the only class skill that hurts its own bearer ──────────────── */
 
 describe("C6/C7 — Avenger's drawback and its offset", () => {
-  const avenger = (id) => ({
-    id, name: id, baseAttack: { str: 150, mag: 150 }, modifiers: [],
-  });
   const taken80 = {
     key: "avenger", modifierKey: "avenger", direction: "taken",
     value: 80, includesNP: true, source: "Avenger",
