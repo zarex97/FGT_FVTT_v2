@@ -160,6 +160,20 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    it, so content and test were wrong together and neither could ever fail. *Authored* and
    *Tested* are not the same claim as *Correct* when the test only reads back what was written.
 
+   **Asterios then produced the sharpest one yet, and it took building the war properly to see
+   it.** Every board in this audit had been hand-built with `Combat.create`; building one through
+   `commitWar` — the function the setup wizard's Confirm button calls — showed that the system
+   carried **two Max Health derivations that disagreed**. §46.6 settled that the END table beats a
+   sheet's stated `baseHealth` and `domain/health.mjs#maxHealthFor` implements it, but
+   `rules/setup-rolls.mjs` kept the inverse, so which figure a Servant was played at depended on
+   whether it was imported or summoned. Four sheets can tell the difference — Asterios, Castor and
+   Pollux at 1700 and Penthesilea at 1350 — and they are precisely the four §46.6 was written
+   about. Asterios summoned at 1600 where he should be 1800. Ch. 46 §46.4-K.
+
+   The reason it survived six audits is recorded in §46.13.2: the §46.6 override was verified on
+   **hand-imported** actors, which exercise the one derivation that was already correct. A fix
+   tested only on the path it was written for is a fix tested on half the system.
+
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
    one Gamemaster each run the whole turn-end sequence and every scheduled effect — drains,

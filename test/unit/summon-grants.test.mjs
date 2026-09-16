@@ -65,10 +65,15 @@ describe("§37.6 — summoning Karna into an Indian war", () => {
     // Medea states `baseHealth: 750`. Re-reading the table at the shifted rank
     // returned the stated figure unchanged, so her Region grant did nothing to
     // her Health -- and §14.9 says "± 100 per END step" outright.
+    //
+    // The BASE is now the table's rather than the sheet's (§46.4-K), so Karna's
+    // END C gives 1000 and the granted step lands on top of it. What this test
+    // guards is unchanged and still worth guarding: the step must ADD 100, not
+    // re-look-up a rank whose value it already has.
     const stated = { ...karna, baseHealth: 750 };
     const lines = resolveSetupPlan(servantSetupPlan(stated), { maxAgility: 2, maxLuck: 3 });
 
-    expect(valueOf(applyGrants(lines, stated, { end: 1 }), "maxHealth")).toBe(850);
+    expect(valueOf(applyGrants(lines, stated, { end: 1 }), "maxHealth")).toBe(1100);
   });
 
   it("adds 10 to each Base Attack component for its granted step", () => {

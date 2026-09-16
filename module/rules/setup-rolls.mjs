@@ -22,6 +22,7 @@
 import { Rank } from "../domain/rank.mjs";
 import { normalServantSetupPlan, normalMasterSetupPlan } from "./setup-rolls-normal.mjs";
 import { lookup } from "../domain/tables.mjs";
+import { maxHealthFor } from "../domain/health.mjs";
 // Re-exported so the summon machinery and its tests keep one import site, while
 // the definition lives in `domain/` -- `data/actor/servant.mjs` derives Base
 // Attack in `prepareBaseData` and a data model may import from `domain` only.
@@ -97,7 +98,6 @@ export function plansFor(ruleset) {
  */
 export function servantSetupPlan(sheet) {
   const p = sheet?.parameters ?? {};
-  const end = Rank.parseOrNull(p.end);
   const agi = Rank.parseOrNull(p.agi);
   const luc = Rank.parseOrNull(p.luc);
 
@@ -134,8 +134,26 @@ export function servantSetupPlan(sheet) {
       {
         id: "maxHealth",
         label: "Max Health",
-        // Stated on the sheet where it disagrees with the table.
-        base: sheet?.baseHealth ?? Number(lookup("baseHealthByEnd", end) ?? 0),
+        // The TABLE, with the sheet's stated figure only as a fallback -- and
+        // `maxHealthFor` itself rather than a second spelling of it, because
+        // two derivations that agree today are two derivations that can drift.
+        //
+        // This read `sheet?.baseHealth ?? table`, the exact inverse of what
+        // Ch. 46 §46.6 settled ("the table beats the sheet, the same way Base
+        // Attack's does") and of what `domain/health.mjs#maxHealthFor` has
+        // done since. Both rules were live at once, and which one a Servant
+        // was played at depended on how it reached the board: imported from
+        // the pack and prepared by `ServantData#prepareBaseData` it got the
+        // table, summoned through the war-setup wizard it got the sheet.
+        //
+        // Exactly four sheets can tell the difference, and they are the four
+        // §46.6 was written about -- Asterios, Castor and Pollux (END A++,
+        // stated 1500, table 1700) and Penthesilea (END B+, stated 1250, table
+        // 1350). Measured by building a war through `commitWar` rather than by
+        // hand: Asterios arrived at 1600 where he should be 1800, his Greece
+        // END grant included. Every audit before it hand-imported its actors,
+        // which is the hazard §46.2 lists (Ch. 46 §46.4-K).
+        base: maxHealthFor(sheet, lookup, Rank),
         roll: null,
         note: "no roll — Health(S) is not used for a Servant",
       },

@@ -54,6 +54,9 @@ that was reported before being retracted**. Check them before trusting a number.
 |---|---|---|
 | **Two GM connections** | Every scheduled effect ticks **twice** — drains, periodics, cooldowns, expiries. A stated 20 measures as 40 | **Fixed (§46.4-D)**, and the hazard is retired: a boundary is now claimed per connection. Counting `/game` *pages* rather than users is still the way to see the situation, because `game.users.filter(u => u.active)` shows **one** either way |
 | **Round boundaries** | A drain reads as a heal. Home Base regeneration fires at round end and can exceed the toll | Record `combat.round` before and after every measured Turn; discard trials where it changed |
+| **A hand-built board** | `Combat.create` plus a hand-bumped round skips home bases, the Region, faction turns and the first-Round attack ban — and `servantSetupPlan`, so every Servant's Max Health comes from the other derivation (§46.4-K) | Build it with `commitWar`, the function the wizard's Confirm button calls. It is one call and it is the only way to measure what a table will see |
+| **`token.update({x, y})` is silently refused** | Movement legality rejects an engine-external write and returns without throwing, so the token stays put and every later measurement is taken at the old position — which reads as a mysterious *"out of Range"* | `displaceToken(tokenDocument, {x, y})` from `engine/io.mjs` — the engine's own mover. Note the **document**, not the placeable: `token.move` does not exist on the placeable |
+| **A dialog that `ui.windows` cannot see** | An ApplicationV2 prompt (`askOwner`) is not in `ui.windows`, so a Process legitimately waiting for a click looks exactly like a hung `advanceAttack`. Cost an hour on Asterios, whose Monstrous Strength is offered at every Damage Step | Take a screenshot before concluding anything is stuck. A picture settles in one call what probing settles in ten |
 | **Stale test actors** | A Servant with numbers matching no table — a Heracles at 1600 Health with END A, which the table puts at 1500 | Import fresh from the pack for every audit. Never reuse a previous session's actor |
 | **Hand-built combats** | `Combat.create` + a hand-bumped `round`/`globalTurn` is not what the war-setup flow produces | Acceptable for isolating a clause; say so when reporting, and re-measure through the real flow before calling something a rules defect |
 | **Pack staleness** | Content edits do not reach a running world | `node tools/fgt-world.mjs rebuild`, then re-import the actor |
@@ -370,6 +373,48 @@ existed. Nothing anywhere asked the applier what percentage came out.
 `test/unit/application-chance-sign.test.mjs` asks exactly that, and adds a corpus scan: any clause
 whose prose says *"being inflicted ... reduced by"* and whose incoming value is negative fails the
 build. It found Queen's Poison, which no reading of the six Servants would have reached.
+
+### K. Two Max Health derivations, disagreeing — **fixed 2026-09-16**
+
+**Reached: Asterios, Castor, Pollux and Penthesilea** — and only through the war-setup wizard,
+which is why six audits missed it.
+
+§46.6 settled that **the END table beats a sheet's stated `baseHealth`**, the same way Base
+Attack's table does, and `domain/health.mjs#maxHealthFor` implements it. `rules/setup-rolls.mjs`
+kept the opposite rule, stated in its own comment:
+
+```js
+// Stated on the sheet where it disagrees with the table.
+base: sheet?.baseHealth ?? Number(lookup("baseHealthByEnd", end) ?? 0),
+```
+
+Both rules were live at once, and **which Max Health a Servant was played at depended on how it
+reached the board**: imported from the pack and prepared by `ServantData#prepareBaseData` it got
+the table; summoned through `commitWar` — the path the wizard's Confirm button takes, and the only
+one a real table uses — it got the sheet.
+
+Exactly four sheets can tell the difference, and they are the four §46.6 was written about:
+
+| Servant | END | sheet says | table says | summoned as |
+|---|---|---|---|---|
+| Asterios, Castor, Pollux | A++ | 1500 | **1700** | 1500 |
+| Penthesilea | B+ | 1250 | **1350** | 1250 |
+
+Asterios's own YAML says the quiet part outright — *"the sheet's figure, kept for the record and
+**NOT what he is played at**"* — and the summon path played him at exactly that figure.
+
+**Measured by building a war through `commitWar` instead of by hand.** Asterios arrived at
+**1600** (1500 + 100 for his Greece END grant) where he should be **1800**. Achilles, on the same
+board, was correct at 1600 by coincidence — his sheet's 1500 and the table's A both agree, which is
+true of the other twenty-one Servants and is why nothing ever looked wrong.
+
+The fix is `maxHealthFor` itself rather than a second spelling of it: two derivations that agree
+today are two derivations that can drift, which is the whole of what this entry is about.
+
+**This is the first defect found *because* the board was built properly.** §46.2 has listed
+hand-built boards as a hazard since Heracles, and §46.13.2 recorded the Max Health override as
+"pressed for Asterios (1700) and Penthesilea (1350)" — both hand-imported, both therefore reading
+the one derivation that was already right.
 
 ## 46.5 The per-Servant checklist
 
@@ -754,14 +799,30 @@ Master-cost line.
 228 → 194) and §46.4-J's **inverted sign** (fixed; five clauses). Both had been traced as correct.
 
 
-**Asterios.** *Pressed:* the statblock; Mad Enhancement clause 1 in his shape; Chaos Labyrinthos
-opening at 81 panels with clauses 1, 2 and 3 and dealing 0 damage; the escape ladder end to end;
-Monstrous Strength offered at the Damage Step, and its label. *Traced only:* Natural Monster;
-Avyssos of Labrys; the Labyrinth's paid extension and its side effects (clauses 6 and 7); the
-owner-defeat vulnerability (clause 8); the veteran clause's *leading adjacent allies out* half —
-the gate was read live, the lead-out was not; clause 10's **attack** half, where only the effect
-half was pressed; and `regionSizeOverride`, because the match was not in Greece, so the 11×11 was
-never seen. Monstrous Strength's own +100%/+50% was offered and declined every time.
+**Asterios.** *Pressed (interface):* the statblock; Mad Enhancement clause 1 in his shape; Chaos
+Labyrinthos opening at 81 panels with clauses 1, 2 and 3 and dealing 0 damage; the escape ladder
+end to end; Monstrous Strength offered at the Damage Step, its label, and its **Confirm** — the
+real click on the real dialog, which is what finally let a Process of his complete.
+
+*Pressed (engine), on a war built by `commitWar`:*
+
+- **Natural Monster's active**, both effects: `offDebuffResUp` at magnitude **100** and `defUp` at
+  **40**, each expiring at tick 4 — 1◈ from tick 1 at three Turns per Round. The resistance was
+  then contested rather than read: three different **offensive** debuffs all resolved at **0% and
+  resisted**, while a defensive one still landed at 100%, so the −100% is scoped to valence exactly
+  as the sheet says.
+- **Def Up reaching stage 4** of the pipeline on a real attack from Achilles: `defUp: -40`
+  alongside a second contributor noted **"Home Base"** at −10, additive to −50% → ×0.50. The Home
+  Base 10% is a real rule and appears only because the war was built with its bases painted; the
+  NP branch (`npMagnitude: 20`) is still traced, not rolled.
+- **His Max Health at 1800**, which is §46.4-K — 1700 from the END table for A++, plus 100 for the
+  Greece Region grant. He was summoned at 1600 before the fix.
+
+*Traced only:* Avyssos of Labrys; the Labyrinth's paid extension and its side effects (clauses 6
+and 7); the owner-defeat vulnerability (clause 8); the veteran clause's *leading adjacent allies
+out* half — the gate was read live, the lead-out was not; clause 10's **attack** half, where only
+the effect half was pressed; and `regionSizeOverride`, whose 11×11 is now reachable at last —
+`warRegion` reads `"greece"` on the new board — but was not opened in this pass.
 
 **Karna.** *Pressed:* the statblock; Vasavi Shakti's activation landing on 150 and rank A; Kavacha
 and Kundala's −90% reaching stage 4 of the pipeline; its upkeep on all three branches. *Traced
@@ -804,12 +865,13 @@ A fix verified only by a unit test is a fix verified the way §46.1 warns agains
 
 | Fix | Verified by |
 |---|---|
+| **§46.4-K**, the Max Health split | Unit tests, and **live through `commitWar`** — Asterios 1600 → 1800. Castor, Pollux and Penthesilea are still source-only, and Penthesilea's 1350 was only ever pressed on the *other* derivation |
 | **§46.4-C** for Castor, Pollux, Kingprotea and Raikou | Build-time instantiation and unit tests. **Never on a board** — only Heracles, Asterios and Penthesilea were placed |
 | **§46.4-F**, Anastasia's two anchors | Unit tests and the validator. **Anastasia was never placed on a board** |
 | **§46.11** for Van Gogh's Item Construction and Existence Outside The Domain | Source assertions. **Van Gogh was never placed on a board** |
 | Karna's *Mana Burst (Flames)* reach | Source only; his Range does not move, so there is nothing to observe without a buff he does not have |
 | Medea's *Rain of Light* reach | Source only, for the same reason |
-| The **Max Health override** (§46.6) | Pressed for Asterios (1700) and Penthesilea (1350). Castor and Pollux were never placed |
+| The **Max Health override** (§46.6) | Pressed for Asterios and Penthesilea — but **on hand-imported actors**, i.e. on the one derivation that was already right. §46.4-K is what that missed |
 | `withoutModeHeld`, the recursion break | Unit test, plus every live board since. Never deliberately re-provoked after the fix |
 | `involvedTurnEnd` | Pressed for Karna. **No check that other content on `actedTurnEnd` did not regress** — Mad Enhancement's drain is the only other user and it was re-measured, but not as a deliberate regression test |
 
@@ -831,9 +893,11 @@ the kind §46.4 collects, and nothing in six Servants' worth of pressing would h
   noise contaminating a drain measurement, never tested on purpose.
 - **Platforms and Scene Levels**, and summons generally.
 - **The turn HUD and the action budget**, beyond pressing End Turn.
-- **War setup.** Every board in this audit was hand-built with `Combat.create` and a hand-bumped
-  round, which §46.2 lists as a hazard and which no measurement here has been re-run through the
-  real flow.
+- **War setup** — *no longer untouched.* A war has now been built through `commitWar`: scene,
+  activated global Combat, factions, painted home bases, Masters, summons, reciprocal contracts and
+  token deployment. It found §46.4-K immediately, and three rules no hand-built board had ever
+  shown: the **first-Round attack ban**, the **Home Base 10% reduction**, and the Region reaching
+  `warRegion`. Everything measured *before* Asterios still rests on hand-built boards.
 
 ### 46.13.4 The rest of the roster
 
