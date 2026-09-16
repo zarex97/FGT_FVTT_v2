@@ -209,8 +209,16 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    *"protected by a nearby Bašmu"*, whoever was actually standing there. Nine of the ten files that
    author the clause are not Bašmu. Ch. 46 §46.4-O.
 
+   **EMIYA found the seventh of the same kind.** `offerAttackerWindow` offers an attacker its own
+   abilities at the Combat Phase Start and the Damage Step, and its comment names two answers for
+   what taking one means — a mode's switch, or rules contributed to the attack. The corpus has a
+   third: an ability whose effect is its *phases*. That answer had no implementation, so
+   Reinforcement (both copies) and Runner Comet paid a Cooldown, recorded a use, announced
+   themselves in chat and did **nothing**. Ch. 46 §46.4-P.
+
    **Five Servants are now finished or substantially so**: Heracles, Asterios, Karna, Penthesilea
-   and Medea. Every one cost at least one general defect that a paper trace had cleared.
+   and Medea. EMIYA is partial — eleven of his seventeen abilities remain untouched. Every audited
+   Servant has cost at least one general defect that a paper trace had cleared.
 
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on

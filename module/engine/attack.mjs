@@ -29,7 +29,7 @@ import { cooldownChanges } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
-  effectSpecsOf,
+  effectSpecsOf, windowUseKind,
 } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -5376,7 +5376,18 @@ async function offerAttackerWindow(state, window, message) {
   // MODE, and using it is the switch itself -- *"switch the effect of this Skill
   // from 1 to 2, or 2 to 1"*. Folding a mode's rules into one attack would apply
   // the state it is leaving rather than the one it is entering.
-  const intents = chosen.flatMap((id) => {
+  // An ability whose whole effect is its PHASES has to be CAST, not merely
+  // billed. `windowUseKind` is the three answers this window needs; it had two,
+  // so Reinforcement (both copies) and Runner Comet paid a Cooldown, recorded a
+  // use, announced themselves in chat and did nothing at all, and Watermelon
+  // lost its phase while its rules landed (Ch. 46 §46.4-P).
+  //
+  // `useSkill` charges the Cooldown and records the use itself, so a cast is
+  // routed there WHOLE rather than double-billed here.
+  const cast = chosen.filter((id) => windowUseKind(actor.items.get(id)) === "cast");
+  const billed = chosen.filter((id) => !cast.includes(id));
+
+  const intents = billed.flatMap((id) => {
     const item = actor.items.get(id);
     const self = unitSnapshot(actor);
     const plan = cooldownFor(item, actor.id, { unit: self });
@@ -5394,7 +5405,17 @@ async function offerAttackerWindow(state, window, message) {
       }),
     ];
   });
-  await applyBatch(intents, `window:${window}`);
+  if (intents.length > 0) await applyBatch(intents, `window:${window}`);
+
+  for (const id of cast) {
+    const { useSkill } = await import("./skill-use.mjs");
+    const out = await useSkill({ actorId: actor.id, abilityId: id });
+    if (!out.ok) {
+      ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", {
+        name: actor.items.get(id)?.name ?? id, reason: out.reason,
+      }));
+    }
+  }
 
   // A mode's switch is its whole effect, so it is not carried forward as a
   // contribution: `contributionsOf` will read the new state off the document on

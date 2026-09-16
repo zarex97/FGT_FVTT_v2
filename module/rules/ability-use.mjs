@@ -84,6 +84,40 @@ import { test as testPredicate } from "./predicate.mjs";
  * @param {object} phase an `applyEffects`/`applyEffect` phase
  * @returns {object[]} flat specs, each safe to hand to an applier
  */
+/**
+ * What "using it" means when an attacker takes one of its own abilities at a
+ * timing window — the Combat Phase Start, or the Damage Step.
+ *
+ * `engine/attack.mjs#offerAttackerWindow` had two answers and the corpus has
+ * three:
+ *
+ * - `"mode"` — the switch IS the use. Karna's Uncrowned Arms Mastership:
+ *   *"switch the effect of this Skill from 1 to 2, or 2 to 1"*. Folding a
+ *   mode's rules into the attack in progress would apply the state it is
+ *   leaving rather than the one it is entering.
+ * - `"cast"` — the ability's effect is its PHASES, so they have to run.
+ *   EMIYA's and Kiritsugu's *Thaumaturgy: Reinforcement*, Achilles's *Runner
+ *   Comet*, Anastasia's *Watermelon*. This answer did not exist: the window
+ *   charged the Cooldown, recorded the use, announced it in chat and ran
+ *   nothing, so three of those four did **nothing at all** when taken at the
+ *   only window their sheets offer them (Ch. 46 §46.4-P).
+ * - `"contribute"` — the ability carries rules and no phases, and those rules
+ *   join the attack in progress. Asterios's Monstrous Strength, which is the
+ *   case the window was written for.
+ *
+ * An ability with BOTH phases and rules is `"cast"`: the window carries its
+ * rules separately, so running the phases costs it nothing.
+ *
+ * @param {object} item an ability Item
+ * @returns {"mode"|"cast"|"contribute"}
+ */
+export function windowUseKind(item) {
+  const sys = item?.system ?? {};
+  if (sys.isMode) return "mode";
+  if ((sys.phases ?? []).length > 0) return "cast";
+  return "contribute";
+}
+
 export function effectSpecsOf(phase) {
   return (phase?.rules ?? phase?.effects ?? []).map((rule) => {
     if (!rule?.effect) return rule;
