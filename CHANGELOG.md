@@ -75,6 +75,24 @@ by field. **Script elements: still zero.**
 - `consume` and `budget.spend` take an ability, for `alsoCountsAsAttackFor`.
 - `canUseAbility` refuses an ability whose `categorizedAs` family is suppressed.
 
+**Found on the live board, and by nothing else**
+
+Two defects that a green suite could not see, both of the shape this project
+keeps meeting — a field that is right, authored, and silently dropped:
+
+- **`alsoCountsAsAttackFor` never compiled.** It is in the ability schema and in
+  the YAML, and `itemSystem()` did not name it — so the joint Noble Phantasm
+  charged half a Servant attack and left Pollux free to swing again. The fifth
+  time one of these allowlists has dropped a field; the item vocabulary now
+  names it, so the same guard covers both sides.
+- **A content sync was unlinking a pair already on the board.** Adding
+  `linkedGroup` to the authored keys made the pack own *all* of it, so a rebuild
+  overwrote `memberIds` — resolved at summon, when the actor ids first exist —
+  with the pack's empty set. Every binding went quiet at once: no leash, no
+  linked death, no shared cooldown, no combined NP. `linkedGroup` is now the
+  third half-pack, half-world key, beside `cooldown`'s clock and
+  `summonVariant`'s coin.
+
 **Rulings**
 
 - **Pollux's BA(STR) is 150, not the 200 her sheet prints** (Ch. 41 Q50). Her
