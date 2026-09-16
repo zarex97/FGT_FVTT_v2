@@ -507,6 +507,11 @@ async function writeGroup(group, io) {
     case "dismissSummon":
       await io.dismissSummon(unitId, intents[0].reason);
       break;
+    // *"extends its period of existing on the board for 3◈ MORE Turns."*
+    // Summed, so two extensions in one batch both count.
+    case "durationDelta":
+      await io.extendSummonStay(unitId, intents.reduce((n, i) => n + i.delta, 0));
+      break;
     case "itemQuantity":
       for (const i of intents) await io.adjustItemQuantity(unitId, i.itemId, i.delta);
       break;

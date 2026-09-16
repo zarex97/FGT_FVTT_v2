@@ -783,6 +783,29 @@ const ACTIONS = Object.freeze({
   },
 
   /**
+   * Push a summon's departure further out.
+   *
+   * > *"…and extends its period of existing on the board for 3◈ **more**
+   * > Turns."* — the Jabberwock's *Alice Eater*.
+   *
+   * **More**, so this ADDS. A `set` would shorten the stay of a monster with
+   * more than 3◈ left, which is the opposite of what the button is for.
+   *
+   * It also does NOT negate its tick expression, unlike `CooldownDelta`
+   * immediately below: every cooldown clause in the corpus reduces, so that one
+   * reads `ticks` as a subtraction. Copying the neighbouring line here would
+   * shorten the stay this exists to lengthen.
+   *
+   * Refuses a unit with no clock rather than starting one. A Trump Soldier has
+   * no `expiresAt`, and handing it one would make a permanent summon mortal.
+   */
+  DurationDelta: (a, u, h, c) => {
+    if (typeof u.expiresAt !== "number") return [];
+    const delta = resolveTicks(parseTick(a.ticks), c);
+    return delta === 0 ? [] : [I.durationDelta(u.id, delta)];
+  },
+
+  /**
    * Turn a cooldown clock, by ability or across a whole scope.
    *
    * `scope: "np"` is what Scáthach's Alpi needs: *"NP Cooldown is reduced by

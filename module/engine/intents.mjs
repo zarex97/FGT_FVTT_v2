@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "dismissSummon", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
+  "setFacing", "defeat", "dismissSummon", "durationDelta", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // `setStage` decrements a staged effect without deleting it, and `event`
@@ -104,6 +104,10 @@ const ORDER = Object.freeze({
   // It is NOT a defeat. *"It disappears"* -- so no revival chain, no
   // `unitDefeated`, and nothing that counts a kill.
   dismissSummon: 9,
+  // Bookkeeping on the summon's own clock, alongside the other stat writes --
+  // and well before the dismissal that reads it, so a stay extended and expired
+  // in one batch extends first.
+  durationDelta: 2,
   prompt: 10,
 });
 
@@ -183,6 +187,21 @@ export const defeat = (unitId, cause) =>
  */
 export const dismissSummon = (unitId, reason = "expired") =>
   ({ t: "dismissSummon", unitId, reason });
+
+/**
+ * Move a summon's departure tick.
+ *
+ * > *"…extends its period of existing on the board for 3◈ **more** Turns."*
+ *
+ * A DELTA, not a new expiry: the sheet says *more*, and a summon with four
+ * Turns left must end with seven rather than three.
+ *
+ * @param {string} unitId
+ * @param {number} delta turns, signed
+ * @returns {object}
+ */
+export const durationDelta = (unitId, delta) =>
+  ({ t: "durationDelta", unitId, delta });
 
 export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });
@@ -529,6 +548,7 @@ export function validate(intents) {
 /** @type {Readonly<Record<string, string[]>>} */
 const NUMERIC_FIELDS = Object.freeze({
   damage: ["amount"],
+  durationDelta: ["delta"],
   heal: ["amount"],
   statDelta: ["delta"],
   resource: ["delta"],
