@@ -790,6 +790,41 @@ doubled figure inside the cap would have looked like a generous roll.
 `CASTER_PHASES` no longer lists `cooldown`; the Skill path is unaffected, because `runPhases` runs
 every kind. **Verified live**: 0 at declaration, **2** in total.
 
+### Y. The resolved summon variant never reached the board — **fixed 2026-09-16**
+
+**Reached: the whole of Semiramis's sheet.** She is the only Servant in the corpus authored with a
+`summonVariant` block, and six of her abilities fork on which branch she was summoned as.
+
+Three places agree on where the answer lives:
+
+| | Says |
+|---|---|
+| the schema | `system.variant` — *"the RESOLVED result of `summonVariant`, once and for ever from summon"*, *"read as a roll option (`self:variant:<id>`)"* |
+| the writer | `engine/summon.mjs` sets `patch.variant = variantId` at commit |
+| `rules/options.mjs` | `if (unit.variant) options.add(…)` |
+
+`rules/snapshot.mjs` read **`sys.summonVariant?.variant`** — the *authored* block, `{ heads, tails }`,
+which has no `variant` key. So the projection was `null` for everyone and **`self:variant:` was
+never true for anybody**.
+
+The comment above that line already named the blast radius, having found the bug once before and
+moved the read to the wrong side of it: *"the Hanging Gardens' own requirement, both Sikera Ušum
+branches, Summoning: Bašmu, Territory Creation's EX-versus-C rank, and Double Summon's clause 3.
+With every branch false her signature Noble Phantasm refused itself."*
+
+**Measured live.** A Semiramis summoned onto the `dsc` branch — `system.variant` reading `"dsc"`,
+her **Range correctly overridden to 3** by that same branch's `overrides`, so the coin flip plainly
+resolved — whose projection carried `variant: null`, emitted **no** `self:variant:` option, and
+refused *Summoning: Bašmu* with `reason: "predicate"`.
+
+**A correction this forces.** Earlier in her audit I recorded Double Summon's clause 3 — *"if
+Semiramis does **not** have the DSC Skill, she gains the DSC buff"* — as correctly declining to
+fire. It did decline, but not for the reason I gave: its gate is `self:variant:noDsc`, and **every**
+`self:variant:` test was false. The right answer by accident.
+
+**Verified live**: `variant: "dsc"` on the projection, `self:variant:dsc` emitted, and Summoning:
+Bašmu accepted.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
