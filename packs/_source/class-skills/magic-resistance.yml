@@ -23,12 +23,25 @@ description: |
   Also affects @effect[instakill]{Instakill} and @effect[death]{Death} UNLESS the source deals STR damage or is otherwise
   unaffected by Magic Resistance. @effect[erase]{Erase} is completely unaffected.
 passiveRules:
-  # The negated rank is the skill's own rank, extended by each +, which is why
-  # Magic Resistance A+ negates up to A+ and not up to A.
+  # NO `negatesUpToRank`. The executor defaults it to the skill's own rank --
+  # extended by each +, which is why Magic Resistance A+ negates up to A+ and
+  # not up to A -- and that default is the SHIFTED rank, which an authored
+  # `"@rank"` is not.
+  #
+  # `"@rank"` substitutes to a literal at build time, so the built item carried
+  # `negatesUpToRank: "D"` for EMIYA and the threshold could never move. His
+  # *Kanshou & Bakuya* raises Magic Resistance by a whole grade and his sheet
+  # spells the result out -- *"D to C: MAG damage from a MAG Rank of up to C is
+  # negated, otherwise MAG damage taken is reduced by 30%"*. The reduction moved
+  # (the table is looked up at the shifted rank) and the negation did not, so the
+  # clause did half its job: measured live as `{ rank: "D", percent: 30 }`
+  # (Ch. 46 §46.4-Q).
+  #
+  # The field stays in the vocabulary for a skill that negates up to some rank
+  # OTHER than its own. Nothing in the corpus does yet.
   - key: Resistance
     component: mag
     mode: rankComparison
-    negatesUpToRank: "@rank"
     table: magicResistancePercent
     includesNP: true
 

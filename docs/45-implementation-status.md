@@ -216,9 +216,17 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    Reinforcement (both copies) and Runner Comet paid a Cooldown, recorded a use, announced
    themselves in chat and did **nothing**. Ch. 46 §46.4-P.
 
-   **Five Servants are now finished or substantially so**: Heracles, Asterios, Karna, Penthesilea
-   and Medea. EMIYA is partial — eleven of his seventeen abilities remain untouched. Every audited
-   Servant has cost at least one general defect that a paper trace had cleared.
+   **EMIYA produced two more and one open question.** A shifted Magic Resistance Rank moved only
+   half its clause — the table lookup used the shifted grade while `negatesUpToRank: "@rank"`,
+   substituted to a literal at build time, froze the negation threshold at the authored one
+   (§46.4-Q). And `negatedWhile` cannot reach an **effect**: his sheet negates the applied
+   *Kanshou & Bakuya* buff while Overedge is on Cooldown, and the field exists only on the ability
+   schema, so the buff keeps working (§46.4-R, left open as a design decision rather than patched).
+
+   **All six audited Servants are now finished or all but**: Heracles, Asterios, Karna,
+   Penthesilea, Medea, and EMIYA with Rho Aias alone outstanding. Every one of them cost at least
+   one general defect that a paper trace had already cleared — nine in this pass, §46.4-J through
+   §46.4-R.
 
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
