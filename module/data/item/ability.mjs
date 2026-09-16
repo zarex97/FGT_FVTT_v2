@@ -155,6 +155,17 @@ function abilityCommon() {
     // `maxUses` null means unlimited, which is every other ability.
     timesUsed: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     maxUses: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // Structure ids this ability has already placed, for a `once: true`
+    // `createStructure` phase.
+    //
+    // > *"When the Jabberwock is summoned FOR THE FIRST TIME, the [Vorpal
+    // > Blade] Item appears on a random panel."*
+    //
+    // Once per MATCH, not once per summoning, and recorded on the ability
+    // because that is the only thing that outlives both the structure (which
+    // is removed when the item is picked up) and the summon. A second Blade
+    // every 5<> is a different game, and so is replacing the one that broke.
+    placedStructures: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: () => [] }),
     // When it was last used, for `healthRestoredSince` -- a gate that has to
     // compare "since" against something.
     lastUsedTick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),

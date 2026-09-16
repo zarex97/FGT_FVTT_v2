@@ -148,6 +148,19 @@ export function snapshotUnit(actor, {
     destroyableBy: [...(sys.destroyableBy ?? [])],
     visibleWithin: sys.visibleWithin ?? null,
     placedById: sys.placedById ?? null,
+    // An item lying on this object's panel, waiting to be walked onto.
+    //
+    // > *"the [Vorpal Blade] Item appears on a random panel on the game board,
+    // > this Item can be picked up by a Unit walking onto its panel."*
+    //
+    // `carriesItem` carries the item's own `barredFrom` clause, COPIED onto the
+    // cache when it was placed (`engine/skill-use.mjs#createStructure`) rather
+    // than looked up here: `rules/items.mjs#itemPickupIntents` is pure and
+    // cannot load a pack, and there is no item registry to ask.
+    carriesItemId: sys.carriesItemId ?? null,
+    carriesItem: sys.carriesItemId
+      ? { contentId: sys.carriesItemId, barredFrom: sys.carriesItemBarredFrom ?? null }
+      : null,
     defeated: Boolean(sys.defeated),
 
     // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and

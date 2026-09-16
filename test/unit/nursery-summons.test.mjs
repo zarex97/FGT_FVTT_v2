@@ -9,7 +9,7 @@ import { describe, it, expect } from "vitest";
 import { expiredSummonIds } from "../../module/rules/summons.mjs";
 import { dispatch } from "../../module/engine/scheduler.mjs";
 import { contributionsOf } from "../../module/rules/snapshot.mjs";
-import { acquisitionTarget } from "../../module/rules/items.mjs";
+import { acquisitionTarget, itemPickupIntents } from "../../module/rules/items.mjs";
 
 
 describe("E5 — a summon that goes away on its own", () => {
@@ -220,5 +220,56 @@ describe("E4 — an Item may refuse particular holders", () => {
     // A bar against a Servant nobody summoned refuses nobody.
     const b = { units: [{ id: "e", contentId: "cu-chulainn", kind: "servant", panel: { i: 1, j: 1 } }] };
     expect(acquisitionTarget(b.units[0], b, blade)).toMatchObject({ ok: true });
+  });
+});
+
+describe("E3 — an Item lying on a panel", () => {
+  const barred = { ofUnit: "nursery-rhyme", roles: ["self", "master"] };
+  const board = () => ({ units: [
+    { id: "cache", kind: "structure", panel: { i: 3, j: 3 },
+      carriesItemId: "vorpal-blade",
+      carriesItem: { contentId: "vorpal-blade", barredFrom: barred } },
+    { id: "e", contentId: "cu-chulainn", kind: "servant", panel: { i: 3, j: 3 } },
+    { id: "n", contentId: "nursery-rhyme", kind: "servant", masterId: "m", panel: { i: 9, j: 9 } },
+    { id: "m", kind: "master", servantId: "n", panel: { i: 9, j: 8 } },
+  ] });
+
+  it("hands it to a unit standing on its panel", () => {
+    const b = board();
+    expect(itemPickupIntents(b.units[1], b)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "itemGrant", unitId: "e", contentId: "vorpal-blade" }),
+    ]));
+  });
+
+  it("removes the cache, so it cannot be picked up twice", () => {
+    const b = board();
+    expect(itemPickupIntents(b.units[1], b).some((i) => i.kind === "dismiss" && i.unitId === "cache")).toBe(true);
+  });
+
+  it("hands it to nobody standing elsewhere", () => {
+    const b = board();
+    expect(itemPickupIntents(b.units[2], b)).toEqual([]);
+  });
+
+  it("REFUSES Nursery standing on it, and leaves the cache there", () => {
+    // Enforced at ACQUISITION rather than in the hook -- a refusal written into
+    // the pickup is one a future trade or reward would not inherit.
+    const b = board();
+    b.units[2].panel = { i: 3, j: 3 };
+    expect(itemPickupIntents(b.units[2], b)).toEqual([]);
+  });
+
+  it("REFUSES her Master too, and still leaves it there", () => {
+    const b = board();
+    b.units[3].panel = { i: 3, j: 3 };
+    expect(itemPickupIntents(b.units[3], b)).toEqual([]);
+  });
+
+  it("ignores a structure that carries nothing", () => {
+    const b = { units: [
+      { id: "stone", kind: "structure", panel: { i: 1, j: 1 } },
+      { id: "e", kind: "servant", panel: { i: 1, j: 1 } },
+    ] };
+    expect(itemPickupIntents(b.units[1], b)).toEqual([]);
   });
 });
