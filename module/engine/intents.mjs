@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
+  "setFacing", "defeat", "dismissSummon", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // `setStage` decrements a staged effect without deleting it, and `event`
@@ -98,6 +98,12 @@ const ORDER = Object.freeze({
   setFacing: 7,
   spendCS: 8,
   defeat: 9,
+  // Beside `defeat`, and for the same reason: a summon leaving the board is the
+  // last thing that happens to it, after every write aimed at it has landed.
+  //
+  // It is NOT a defeat. *"It disappears"* -- so no revival chain, no
+  // `unitDefeated`, and nothing that counts a kill.
+  dismissSummon: 9,
   prompt: 10,
 });
 
@@ -159,6 +165,24 @@ export const setFacing = (unitId, facing) =>
 
 export const defeat = (unitId, cause) =>
   ({ t: "defeat", unitId, cause });
+
+/**
+ * Take a summon off the board because its stay has run out.
+ *
+ * > *"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
+ *
+ * Distinct from `defeat`, which runs the revival chain, fires `unitDefeated`
+ * and counts as a kill. Disappearing is none of those: the applier writes the
+ * summon's stats home to its summoner (so *"its Stats will be the same as when
+ * it disappeared"* inherits the path Ozymandias's Sphinxes already use), starts
+ * a `countFrom: "destroyed"` cooldown on whatever summoned it, and deletes it.
+ *
+ * @param {string} unitId
+ * @param {string} [reason]
+ * @returns {object}
+ */
+export const dismissSummon = (unitId, reason = "expired") =>
+  ({ t: "dismissSummon", unitId, reason });
 
 export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });

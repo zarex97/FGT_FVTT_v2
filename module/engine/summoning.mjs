@@ -19,6 +19,7 @@
 
 import { chebyshevDisc } from "../domain/geometry.mjs";
 import { currentBoard } from "./board.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { orthogonalPanels, SHEET_ORDER } from "../rules/targeting/orthogonal.mjs";
 
 /**
@@ -338,6 +339,22 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     // document ids, so they can only be written here and never authored.
     const { rememberedStats, ...plain } = stamps;
     Object.assign(data.system, plain);
+
+    // *"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
+    //
+    // Resolved to an ABSOLUTE tick here, at the one moment both halves are
+    // known: the world's clock, and the stay the spec states. A countdown would
+    // need a hook that can fail to fire, which is the reason `data/regions.mjs`
+    // gives twice for storing its own durations the same way.
+    //
+    // `expiresAt` has been on this schema since it was written with nothing
+    // writing it; `rules/summons.mjs#expiredSummonIds` is the reader, added in
+    // the same commit.
+    if (spec.duration) {
+      const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+      const now = game.combat?.system?.globalTurn ?? 0;
+      data.system.expiresAt = now + resolveTicks(parseTick(spec.duration), { turnsPerRound });
+    }
 
     // *"…but with the same Stats as when they disappeared."* Applied AFTER the
     // `inherit` pass above, because a remembered figure is what the Unit had
