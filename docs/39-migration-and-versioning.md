@@ -218,6 +218,15 @@ judgement, and `module/migration/content-sync.mjs` applies it:
   keyed on document type.
 - `cooldown` and `summonVariant` are split key by key. The pack states the shape; the match states
   what it has done with it — the clock it has spent, the side the coin came up.
+- **A resolved variant's `overrides` are re-applied after the pack's keys are taken.** Keeping
+  `summonVariant.variant` is only half of keeping the flip: `engine/summon.mjs#sheetPatch` merges
+  the winning branch's overrides onto **top-level** keys, and every one of those is the pack's. So
+  Semiramis summoned as `dsc` with Range 3, Sustainability 4◈ and a range-banded normal attack, and
+  one world load later held the un-varianted 2, 2◈ and `fixed` while still answering
+  `self:variant:dsc` to every predicate that asked — a Servant claiming a variant and carrying none
+  of it (Ch. 46 §46.4-AA). `applyVariantOverrides` reads the branch from the **pack**, so editing
+  what a variant *does* is still a content update that reaches a summon already on a board, and
+  touches only the keys that branch names.
 - An item is removed **only if its `contentId` is in no pack at all.** If the ability still exists
   as content, its presence on this actor is something play did: Wisdom of Dún Scáith copies a Noble
   Phantasm, Semiramis *makes* `semiramis-poison` with Item Construction and it is on no template.

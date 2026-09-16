@@ -1938,6 +1938,31 @@ function applyBatchOfEffects(specs, actor, ride) {
  * @param {object} board
  * @returns {Promise<object[]>}
  */
+/**
+ * Start a channelled ability's channel, and say whether one began.
+ *
+ * A pass of its own, and it exists because of WHERE it has to run.
+ * {@link runCasterPhases} happens after the damage has landed; a channel has to
+ * be decided **before** `payAbilityPrice` charges anything, because starting one
+ * is exactly what defers the price. So `channel` stays out of
+ * {@link CASTER_PHASES} — putting it there would run it at the wrong end of the
+ * Process, after a cost it was supposed to have suppressed — and the attack path
+ * calls this instead (Ch. 46 §46.4-Z).
+ *
+ * Returns false when the unit is already channelling, which is `startChannel`'s
+ * own refusal: a second declaration neither restarts the clock nor earns the
+ * deferral, and must pay like anything else.
+ *
+ * @param {object} ability
+ * @param {object} actor
+ * @param {object} board
+ * @returns {Promise<boolean>} whether a channel actually began
+ */
+export async function runCasterChannel(ability, actor, board) {
+  const applied = await runPhases(ability, actor, [{ unitId: actor.id }], board, (p) => p.kind === "channel");
+  return Boolean(applied.channelStarted);
+}
+
 export async function runCasterPhases(ability, actor, board, extras = {}) {
   // The caster IS the resolved target list here. Passing an empty one made
   // every phase that had not written `target: self` resolve to `reuse` and then
@@ -2312,6 +2337,11 @@ export const CASTER_PHASES = new Set([
   // declaration and 2 more on the first advance -- no Turn boundary, no fan.
   // Through `useSkill`, which runs every phase once, it fell by exactly 2
   // (Ch. 46 §46.4-X).
+  // NOT `channel` either, and for a sharper version of the same reason: this
+  // pass runs AFTER the damage and after `payAbilityPrice`, and a channel's
+  // whole effect on the cost flow is to defer it. Run here it would start a
+  // channel that had already been billed for. `runCasterChannel` above owns it,
+  // from before the price (Ch. 46 §46.4-Z).
   "resource", "statChange", "setMode", "removeEffect", "summon", "createField", "choose", "heal",
   "summonPlatform",
   // Opening a pocket dimension is something the caster does once, from where

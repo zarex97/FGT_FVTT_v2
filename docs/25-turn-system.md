@@ -46,6 +46,19 @@ Master drain measured 40. `scheduler-hooks.mjs#claimBoundary` closes it: both co
 random token to `MatchData.scheduleClaim`, the server serialises them, and after a short settle
 exactly one still sees its own. Ch. 46 §46.4-D.
 
+**And a boundary is claimed under its own name, never under `globalTurn`.** The claim was first
+keyed on the global tick — which is advanced *by the sequence the claim guards*, at the bottom of
+`onTurnChange`, a hundred lines below the claim itself. Anything throwing in between left the claim
+written and the counter where it was, so every later boundary read the same tick, found it already
+claimed, and refused: **the match froze for the life of the world**, with no drains, no expiries, no
+cooldown advances and no channel ticks, while `combat.round` went on climbing because the round
+scale has its own key. `rules/schedule-claim.mjs#boundaryKey` names a Turn `"r3t1"` and a Round
+`"r3"` from Foundry's own `round` and `turn`, which it advances before firing `updateCombat` and
+which owe nothing to our sequence succeeding. The keys are strings so that a world frozen under the
+old numeric shape thaws on its next boundary rather than needing a migration. Ch. 46 §46.4-AB.
+
+> *A guard must not be keyed on state that only the guarded work produces.*
+
 ## 25.2 `FGTCombat`
 
 ```js

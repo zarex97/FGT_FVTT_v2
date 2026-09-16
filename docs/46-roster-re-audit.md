@@ -825,7 +825,7 @@ fire. It did decline, but not for the reason I gave: its gate is `self:variant:n
 **Verified live**: `variant: "dsc"` on the projection, `self:variant:dsc` emitted, and Summoning:
 Bašmu accepted.
 
-### Z. A channelled Noble Phantasm charges its Master and never channels — **open**
+### Z. A channelled Noble Phantasm charges its Master and never channels — **fixed 2026-09-16**
 
 **Reached: Semiramis's Hanging Gardens of Babylon**, the only channelled ability in the corpus.
 
@@ -834,10 +834,10 @@ Her sheet is explicit on both halves: *"Semiramis has to be within her Home Base
 Semiramis' Master only loses Health as per NP usage rules **only when HGoB successfully activates,
 not at the start** of the NP activation process."*
 
-`engine/channel.mjs#startChannel` is called from **one** place — `skill-use.mjs`'s phase runner —
-and `channel` is not in `CASTER_PHASES`, so `resolveAttack` never runs the phase. `useSkill` also
+`engine/channel.mjs#startChannel` was called from **one** place — `skill-use.mjs`'s phase runner —
+and `channel` is not in `CASTER_PHASES`, so `resolveAttack` never ran the phase. `useSkill` also
 suppresses the ability's cost when a channel starts (`!applied.channelStarted`); `resolveAttack`
-has no equivalent and bills at declaration.
+had no equivalent and billed at declaration.
 
 **Measured live, both paths, same ability and same state:**
 
@@ -847,40 +847,136 @@ has no equivalent and bills at declaration.
 | `resolveAttack` | **198 → 98**, charged 100 | none |
 
 It is `kind: noblePhantasm`, and the sheet's own button routes every ability through
-`resolveAttack` — so a player clicking her signature Noble Phantasm pays 100 of their Master's
-Health and gets nothing at all.
+`resolveAttack` — so a player clicking her signature Noble Phantasm paid 100 of their Master's
+Health and got nothing at all. The fourth member of the family §46.4-M, §46.4-P and §46.4-T belong
+to: *the two use paths do not do the same thing*.
 
-Left **open**. The fix has two halves — put `channel` in `CASTER_PHASES`, and teach the attack
-path's cost flow the same `channelStarted` suppression the Skill path already has — and the second
-touches how every Noble Phantasm in the game is billed. That is not a change to make at the end of
-a long session; it wants its own pass with the cost tests in front of it. This is the fourth member
-of the family §46.4-M, §46.4-P and §46.4-T belong to: *the two use paths do not do the same thing*.
+**Three halves, not two.** The plan recorded here when it was filed — put `channel` in
+`CASTER_PHASES`, then teach the cost flow the `channelStarted` suppression — was wrong on the first
+and incomplete on the second.
 
-### AA. A summon variant's `overrides` do not survive on the document — **open**
+1. **`channel` must NOT join `CASTER_PHASES`.** That pass runs *after* the damage and after
+   `payAbilityPrice`, and a channel's entire effect on the cost flow is to defer it — so run there
+   it would start a channel that had already been billed for. It needs its own pass **above** the
+   price: `runCasterChannel` in `skill-use.mjs`, called from `payAbilityPrice` when
+   `hasChannelPhase` says there is one. The suppression then gates both the cost and the cooldown,
+   on `channelStarted` rather than on `hasChannelPhase`, because a unit already channelling starts
+   nothing and a declaration that earns no deferral pays like any other.
+
+2. **And the declaration interrupted the channel it had just started.** This is the half nothing in
+   the paper trace suggested, and it would have made the first fix look like it had failed. The
+   Gardens' targeting is `{ anchor: self, shape: unit, selection: { relations: [self],
+   includeSelf: true } }` — Semiramis is always in her own `targetIds`. `resolveAttack` fires
+   `interruptChannels(targetIds)` at line 375 for *"if Semiramis is **Attacked** during this
+   period"*, and `payAbilityPrice` runs at line **268**. So the channel started, and a hundred lines
+   later the same declaration wiped it. Measured: cost correctly suppressed, `system.channel` null.
+   Being the subject of your own Noble Phantasm is not being Attacked, so
+   `interruptedByDeclaration` drops the declarer and keeps everybody else — an area that catches
+   three enemies mid-channel still interrupts all three.
+
+**Verified live, end to end, through `resolveAttack`:**
+
+| | |
+|---|---|
+| At declaration | channel started, `ticksRequired: 9`, `onComplete: activateHangingGardens`; Master **250 → 250**; no cooldown |
+| Her Turns 1–8 | `elapsedTicks` climbs 1 per Turn — her faction's own Turn-ends, not the global tick |
+| At Turn 9 | channel completes; Master **250 → 150**, exactly the 100 the rank-EX cost says, paid only on success |
+| `onComplete` | the `Hanging Gardens of Babylon` platform actor created at her panel, elevation 20, with Semiramis aboard |
+
+**One thing deliberately left as it is.** `canUseAbility` still refuses the declaration when the
+Master cannot afford the cost — *"the Servant cannot use its Noble Phantasm if its Master's Health
+is equal to or less than the amount that would be lost"* — even though the payment is deferred.
+Dropping that gate too would let a Master be killed three Turns later by a channel they could never
+have paid for, which is worse than the refusal and is not what the sheet asks for: its clause is
+about *when Health is lost*, not about when affordability is checked. Noticed because the rolled
+Master in the test war had a maximum of 80 against a rank-EX cost of 100 and could never have fired
+her signature Noble Phantasm at all — which is a weak Master, not a defect.
+
+### AA. A summon variant's `overrides` do not survive a world load — **fixed 2026-09-16**
 
 **Reached: Semiramis**, the only Servant with a `summonVariant` block.
 
-`engine/summon.mjs` merges the chosen branch's `overrides` into the actor at commit
+`engine/summon.mjs#sheetPatch` merges the chosen branch's `overrides` into the actor at commit
 (`Object.assign(patch, branch?.overrides ?? {})`), and for the `dsc` branch those are a **Range of
 3**, a **range-banded normal attack** (STR at 1–2, MAG at 3+), and **4◈ Sustainability**.
 
-At the moment of summon they were there: `commitWar` reported her with `range: { panels: 3 }`. Some
-later data preparation put the sheet's own values back.
+**The cause is not data preparation**, which is what this entry claimed when it was filed. Two
+measurements settled that, and they are worth keeping because the first one is the trap:
 
-**Measured live, on the same actor:**
+- Writing `range.panels: 3` and `sustainability: 4◈` onto the live actor and calling
+  `prepareData()` — the values **stayed**, prepared and persisted. Nothing reverts them
+  continuously.
+- Building a **fresh** Semiramis through `commitWar` — `variant: "dsc"`, Range **3**,
+  Sustainability **4◈**, `normalAttack: rangeBanded`, all three correct *and* present in
+  `toObject()`. Reloading the page — Range **2**, **2◈**, `fixed`, persisted.
 
-| | Branch says | Document holds |
+It is the **content sync**. `migration/runner.mjs` reconciles every world actor against its pack
+template on every world load, and the template is Semiramis's un-varianted sheet. `reconcileSystem`
+already keeps `summonVariant.variant` through that — `SUMMON_VARIANT_OWNED_BY_WORLD` — but the
+branch's overrides land on **top-level** keys (`range`, `sustainability`, `normalAttack`), and every
+one of those is the pack's. So the flip survived and its entire consequence did not.
+
+| | Branch says | Document held after one reload |
 |---|---|---|
 | Range | 3 | **2** |
 | Normal attack | `rangeBanded`, two bands | **`fixed`**, no bands |
 | Sustainability | `4◈` | **`2◈`** |
 
-`system.variant` still reads `"dsc"`, so the coin flip itself survived — it is only the numbers it
-bought that were rolled back. Distinct from §46.4-Y, which was the *id* not reaching the board;
-this is the *overrides* not staying on the document.
+A Servant claiming a variant while carrying none of it is worse than either honest state, and it was
+invisible because the two sheets differ by three fields nobody re-reads after summon. Distinct from
+§46.4-Y, which was the *id* not reaching the snapshot; this is the *overrides* not surviving a load.
 
-Left **open** alongside §46.4-Z: the cause is in data preparation, which every Servant runs on every
-update, and narrowing it properly deserves its own pass.
+**The fix** is `applyVariantOverrides` in `migration/content-sync.mjs`: after the pack's keys are
+taken, a world actor with a resolved `variant` has that branch's overrides re-applied over them. The
+branch spec is read from the **pack**, never from the world's baked copy, so editing what a variant
+*does* is still a content update and reaches a summon already standing on a board; only the keys the
+branch actually names are touched.
+
+**Verified live.** The already-corrupted Semiramis **healed herself on the next load** — Range 3,
+4◈, `rangeBanded`, all persisted — and stayed that way across two further reloads.
+
+### AB. The scheduler's boundary claim could freeze the match permanently — **fixed 2026-09-16**
+
+**A regression introduced by §46.4-D's own fix**, found while waiting for Semiramis's channel to
+tick and worth more than the clause that exposed it.
+
+§46.4-D gave each scheduler boundary a claim, because `game.users.activeGM?.isSelf` elects a *user*
+and is true for every connection that user holds — two tabs on one Gamemaster both ran the whole
+turn-end sequence. That is real, and it was measured as Mad Enhancement draining 40 where the sheet
+says 20. The claim was keyed on `system.globalTurn`.
+
+**`globalTurn` is advanced by the very sequence the claim guards**, at `scheduler-hooks.mjs` line
+162, a hundred lines below the claim at line 53. So anything throwing in between — and the endTurn
+sequence is the most failure-prone path in the system — left the claim written and the counter
+where it was. Every later boundary then read the same tick, found `claim.turn >= tick`, and refused.
+**Nothing in the match ever ticked again**: no drains, no periodics, no expiries, no cooldown
+advances, no channel ticks, no Turn budget reset.
+
+**Measured live**, after fourteen Turn changes on the Semiramis board:
+
+```
+globalTurn:    0
+scheduleClaim: { turn: 0, token: "PP9RrW7AXI5R3qoc", round: 8 }
+channel:       { ticksRequired: 9, elapsedTicks: 0 }
+```
+
+— with `combat.round` at **9**, because the round scale has its own key and was still advancing. A
+match that looks like it is running and is not.
+
+**The fix** is to stop keying the claim on our own derived counter. `rules/schedule-claim.mjs`
+names a boundary by its own identity — `boundaryKey` gives `"r3t1"` for a Turn and `"r3"` for a
+Round — from Foundry's `round` and `turn`, which it advances *before* firing `updateCombat` and
+which do not depend on our sequence succeeding. The election is unchanged: both connections still
+write a token, the server still serialises them, and whichever token survives proceeds.
+
+**No migration is needed**, and this is why the key is a string: `alreadyClaimed` compares with
+`===`, a number is never equal to a key, so a world frozen by the old shape thaws on its next
+boundary. **Verified live on the frozen world above** — one Turn change and `globalTurn` went
+**0 → 1** with the claim rewritten to `{ turn: "r10t0", round: "r9" }`, then the channel ran its
+nine Turns to completion.
+
+The general lesson, and the third entry in §46.3's collection: *a guard must not be keyed on state
+that only the guarded work produces.* It is a deadlock with a single writer.
 
 ## 46.5 The per-Servant checklist
 
