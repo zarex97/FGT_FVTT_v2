@@ -1305,7 +1305,24 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
  */
 export function contributionsOf(actor, { terrain = [] } = {}) {
   const sys = actor.system ?? {};
-  const abilities = [...(actor.items ?? [])].filter((item) => !negated(item, actor)).map((item) => ({
+  const abilities = [...(actor.items ?? [])]
+    .filter((item) => !negated(item, actor))
+    // *"When Equipped, increase the Unit's Base Attack (STR) by 50…"*
+    //
+    // `equipped` has been on `EquipmentData` since it was written and the only
+    // thing that read it was the actor sheet, which draws a checkbox. An Item's
+    // rules were collected from the moment it was HELD.
+    //
+    // Nothing noticed because `[Semiramis' Poison]` is the only Item in the
+    // corpus and carries no `rules` at all -- it is a consumable with a
+    // `consumeEffect`. The Vorpal Blade is the first Item in this system that
+    // does anything while worn, and every one of its five stat clauses opens
+    // with "When Equipped".
+    //
+    // Gated on the item TYPE, not on every item: an ability has no `equipped`
+    // field, and reading one off it would switch off every passive in the game.
+    .filter((item) => item.type !== "equipment" || Boolean(item.system?.equipped))
+    .map((item) => ({
     id: item.id,
     name: item.name,
     // The stable machine name. Without it a cross-ability reference has only

@@ -8,6 +8,7 @@
 import { describe, it, expect } from "vitest";
 import { expiredSummonIds } from "../../module/rules/summons.mjs";
 import { dispatch } from "../../module/engine/scheduler.mjs";
+import { contributionsOf } from "../../module/rules/snapshot.mjs";
 
 
 describe("E5 — a summon that goes away on its own", () => {
@@ -121,5 +122,48 @@ describe("E1 — a share of the damage that landed", () => {
     // Every StatDelta authored before this one states a number.
     const out = run({ kind: "StatDelta", stat: "luck.value", delta: -1 }, { id: "x" }, {});
     expect(out[0]).toMatchObject({ delta: -1 });
+  });
+});
+
+describe("E6 — an Item's rules apply only while it is Equipped", () => {
+  // `EquipmentData` has carried `equipped` since it was written and the only
+  // thing that read it was the actor sheet's context builder, which draws a
+  // checkbox. `contributionsOf` collected an Item's `rules` from the moment it
+  // was HELD.
+  //
+  // Nothing noticed because [Semiramis' Poison] is the only Item in the corpus
+  // and it carries no `rules` at all -- it is a consumable with a
+  // `consumeEffect`. The Vorpal Blade is the first Item that does anything
+  // while worn, and every one of its five stat clauses opens with "When
+  // Equipped".
+  const blade = (equipped) => ({
+    id: "blade", name: "[Vorpal Blade]", type: "equipment",
+    system: { contentId: "vorpal-blade", equipped, rules: [{ key: "Ward", value: 30 }] },
+  });
+  const wards = (actor) => (contributionsOf(actor).modifiers ?? []).filter((m) => m.key === "ward");
+
+  it("collects them when it is worn", () => {
+    expect(wards({ system: {}, items: [blade(true)], effects: [] })).toHaveLength(1);
+  });
+
+  it("does NOT collect them when it is merely held", () => {
+    // This is what the engine did in BOTH cases before this task.
+    expect(wards({ system: {}, items: [blade(false)], effects: [] })).toEqual([]);
+  });
+
+  it("treats an unset `equipped` as not worn", () => {
+    const held = blade(true);
+    delete held.system.equipped;
+    expect(wards({ system: {}, items: [held], effects: [] })).toEqual([]);
+  });
+
+  it("leaves an ordinary ABILITY item alone", () => {
+    // The gate is on the item TYPE. An ability has no `equipped` field, and
+    // reading one off it would switch off every passive in the game.
+    const skill = {
+      id: "s", name: "Shapeshift", type: "ability",
+      system: { passiveRules: [{ key: "Ward", value: 30 }] },
+    };
+    expect(wards({ system: {}, items: [skill], effects: [] })).toHaveLength(1);
   });
 });
