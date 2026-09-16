@@ -345,6 +345,28 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     const { rememberedStats, ...plain } = stamps;
     Object.assign(data.system, plain);
 
+    // What this summon was like when it last left.
+    //
+    // > *"When the Jabberwock is summoned again after disappearing, its Stats
+    // > will be the same as when it disappeared."*
+    //
+    // The record is kept on the SUMMONER, keyed by content id, and written by
+    // `io.mjs#dismissSummon` and by `engine/fields.mjs` when a field closes.
+    // Only the field path ever read it back -- it passes `rememberedStats` in
+    // `stamps` -- so an ordinary summoning came back brand new: full Health,
+    // and with whatever had been permanently taken from it restored.
+    //
+    // Measured live: the Jabberwock left at 640 with its lifesteal suppressed,
+    // the record on Nursery said exactly that, and the monster returned at
+    // 1500 with the lifesteal back.
+    //
+    // Read per CONTENT ID rather than once per call, because one `summon` phase
+    // may place several types and each has its own record -- which is how
+    // Ozymandias's three Sphinxes are kept apart.
+    const remembered = rememberedStats
+      ?? summoner.system?.fieldSummonStats?.[contentId]
+      ?? null;
+
     // *"When the Jabberwock is summoned, it disappears after 3◈ Turns."*
     //
     // Resolved to an ABSOLUTE tick here, at the one moment both halves are
@@ -368,7 +390,7 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     //
     // Only the stats that were actually recorded, and only when they hold a
     // number -- a partial record must not blank the rest of the sheet.
-    for (const [stat, value] of Object.entries(rememberedStats ?? {})) {
+    for (const [stat, value] of Object.entries(remembered ?? {})) {
       if (stat === "suppressedScopes") continue;   // not a stat -- below
       if (typeof value?.value !== "number") continue;
       data.system[stat] = { value: value.value, max: value.max ?? value.value };
@@ -385,8 +407,8 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     // Stats as when it disappeared"*. Without this line the Blade's sacrifice
     // is undone by the next summoning, which is exactly the interaction the
     // sheet spends a sentence on.
-    if (Array.isArray(rememberedStats?.suppressedScopes)) {
-      data.system.suppressedScopes = [...rememberedStats.suppressedScopes];
+    if (Array.isArray(remembered?.suppressedScopes)) {
+      data.system.suppressedScopes = [...remembered.suppressedScopes];
     }
 
     const actor = await Actor.create(data);
