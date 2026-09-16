@@ -337,7 +337,8 @@ describe("Bašmu's protection (Ch. 32, TargetabilityModifier)", () => {
     ]);
     const r = resolveTargets(spec, caster, board);
     expect(r.units.map((u) => u.unitId)).toEqual(["exposed"]);
-    expect(r.warnings).toContain("A Unit protected by Bašmu was excluded.");
+    // Names the protector rather than assuming Bašmu (§46.4-O).
+    expect(r.warnings).toContain("A Unit protected by basmu was excluded.");
   });
 
   it("does not exclude it for an ALLY caster — the sheet says 'enemy Units'", () => {
@@ -348,6 +349,38 @@ describe("Bašmu's protection (Ch. 32, TargetabilityModifier)", () => {
     ], { alliances: { a: ["a"], b: ["b"] } });
     const allySpec = { ...spec, selection: { relations: ["ally"], chooser: "all", includeSelf: false } };
     expect(resolveTargets(allySpec, ally, board).units.map((u) => u.unitId)).toEqual(["protected"]);
+  });
+
+  it("names the protector that is actually standing there", () => {
+    // The refusal and the warning both read "Bašmu" for every protector in the
+    // game. TEN content files author a `TargetabilityModifier` -- Bašmu, the
+    // three Dragon Tooth Warriors, Raikou's four retainers, the Sphinx Queen
+    // and Tenmokaikai -- and the aura entry carries the real name on `source`.
+    // Measured live: a Medea ringed by her own Dragon Tooth Warriors refused an
+    // attack with "protected by a nearby Bašmu" (Ch. 46 §46.4-O).
+    const board = boardWith([
+      caster,
+      unit("protected", 6, 8, { untargetableBy: [{ source: "Dragon Tooth Warrior (Blade)" }] }),
+    ]);
+    const r = resolveTargets(spec, caster, board);
+
+    expect(r.warnings.join(" ")).toContain("Dragon Tooth Warrior (Blade)");
+    expect(r.warnings.join(" ")).not.toContain("Bašmu");
+  });
+
+  it("still names Bašmu when Bašmu is the one protecting", () => {
+    const board = boardWith([
+      caster,
+      unit("protected", 6, 8, { untargetableBy: [{ source: "Bašmu" }] }),
+    ]);
+    expect(resolveTargets(spec, caster, board).warnings.join(" ")).toContain("Bašmu");
+  });
+
+  it("falls back to a generic sentence when the aura names no source", () => {
+    const board = boardWith([caster, unit("protected", 6, 8, { untargetableBy: [{}] })]);
+    const r = resolveTargets(spec, caster, board);
+    expect(r.units).toEqual([]);
+    expect(r.warnings.length).toBe(1);
   });
 
   it("allows it once no untargetable aura reaches", () => {
