@@ -98,7 +98,7 @@ the board for 3◈ **more** Turns."* Additive to whatever remains.
 
 ## 4. The engine work
 
-**Five changes**, and one of them is a single field.
+**Six changes**, and one of them is a single field.
 
 ### E1 — A fraction of an event's payload
 
@@ -119,6 +119,21 @@ function eventValue(raw, event) {
 A `factor` beside the existing negation, so `{key: StatDelta, stat: "health.value", delta: "@amount",
 factor: 0.75}` says it. Van Gogh's *Channel Marker Soul* is the existing customer for the payload
 itself; this is the first that wants a share of one.
+
+**And there is a second half, found reading the seam.** `eventValue` reads its field off `ctx.event`,
+and **`damageTaken` fires with no `ctx.event` at all** — `engine/attack.mjs#fireDamageTaken` passes
+`tick`, `turnsPerRound`, `board`, `options`, `victim` and `rolls`, and no payload. The only event in
+the system that carries one is the write-event path in `engine/applier.mjs#fireWriteEvent`, whose own
+comment says why: *"The payload IS the context for a handler that asks about the change rather than
+about a unit."*
+
+So `@amount` on `damageTaken` resolves to `null` today and the handler emits nothing. **E1 is
+therefore: the payload on `damageTaken`** (the damage that landed, which is `result.total`), **and a
+`factor` on `eventValue`.** A `factor` alone would multiply a number that is not there.
+
+R3's *"from Servants"* needs neither: `fireDamageTaken` already passes
+`options: rollOptions(attacker, defender, state, ...)`, and `rules/options.mjs:236` emits
+`attacker:type:servant`. An ordinary predicate says it.
 
 ### E2 — A permanent, targeted rule removal
 
@@ -193,6 +208,31 @@ countdown needs a hook that can fail to fire, and an expiry cannot."*
 - R8's *Alice Eater* *"extends its period of existing on the board for 3◈ more Turns"* is `expiresAt
   += 3◈`, and there is nothing to add to until something sets it.
 
+### E6 — "When Equipped"
+
+Every one of the Vorpal Blade's five stat clauses opens with *"When Equipped"*, and B7's opens with
+*"by this Equipped Item"*.
+
+`EquipmentData` carries **`equipped: new fields.BooleanField({ initial: false })`**
+(`module/data/item/ability.mjs:638`), and the only thing in the codebase that reads it is the actor
+sheet's context builder, which shows a checkbox. `contributionsOf` collects an equipment item's
+`rules` array alongside every ability's, **with no gate on `equipped` at all** — so an item's rules
+would apply from the moment it is held.
+
+That has never mattered, because `[Semiramis' Poison]` is the only Item in the corpus and it carries
+no `rules`: it is a consumable with a `consumeEffect`. **The Vorpal Blade is the first Item in this
+system that does anything while worn.**
+
+The third Collected field this spec has found, after `expiresAt` (E5) and the missing item parameter
+on `acquisitionTarget` (E4). All three look present on the schema and are read by nobody.
+
+**DECISION.** `contributionsOf` skips an `equipment` item's contributions unless `system.equipped` is
+true, and the sheet's checkbox becomes the switch it already looks like. An ability item is
+unaffected — the gate is on the item type, not on every contribution.
+
+This makes B1–B5 a matter of authoring `rules` on the Blade rather than of new elements:
+`BaseAttackModifier`, an absolute `RangeDelta`, and a predicated `DamageModifier` all exist.
+
 ---
 
 ## 5. The clause inventory
@@ -237,7 +277,7 @@ countdown needs a hook that can fail to fire, and an expiry cannot."*
 
 | # | Clause | Verdict |
 |---|---|---|
-| B1 | When Equipped, BA(STR) +50 | CONTENT |
+| B1 | When Equipped, BA(STR) +50 | CONTENT — but *"when Equipped"* is **ENGINE — E6** |
 | B2 | …but Range is reduced **to** 1 panel | CONTENT — an absolute, not a delta |
 | B3 | Normal Attack damage to `Demonic` Units +50% | CONTENT |
 | B4 | The above do **not** affect NP or Attacks *Categorized as NP* | CONTENT |
@@ -246,7 +286,7 @@ countdown needs a hook that can fail to fire, and an expiry cannot."*
 | B7 | Against the Jabberwock: **3× instead of** the ×1.5 (R4); lifesteal **permanently** removed; the Blade breaks (R5) | **ENGINE — E2** |
 | B8 | Cannot be obtained by Nursery or her Master | **ENGINE — E4** |
 
-**Tally: ~21 FREE, ~12 CONTENT, 7 ENGINE.**
+**Tally: ~21 FREE, ~12 CONTENT, 7 ENGINE**, and E6 sits underneath five of the CONTENT ones.
 
 ---
 
@@ -260,7 +300,8 @@ countdown needs a hook that can fail to fire, and an expiry cannot."*
 - `packs/_source/abilities/nursery-trump-soldiers.yml`
 - `packs/_source/abilities/nursery-jabberwock.yml`
 - `packs/_source/abilities/vorpal-blade.yml` — Items live in `abilities/` and are distinguished by
-  `kind: item`, not by directory. `semiramis-poison.yml` is the precedent.
+  **`type: equipment`**, not by directory. `semiramis-poison.yml` is the precedent, and its spelling
+  is the one to copy. (Corrected before planning — this spec first said `kind: item`.)
 
 **Modified** — `nursery-rhyme.yml` gains two ability refs.
 
