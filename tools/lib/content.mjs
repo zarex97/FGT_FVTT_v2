@@ -1795,6 +1795,14 @@ function actorSystem(doc) {
     baseAttack: doc.baseAttack ?? { str: 0, mag: 0 },
     normalAttack: doc.normalAttack ?? { mode: "fixed", component: "str" },
     sustainability: doc.sustainability ?? null,
+    // The linked-group binding (Ch. 16 §16.8). Authored SETTINGS only --
+    // `memberIds` is resolved at summon and is never in the YAML -- but the
+    // settings are what make a Servant half of a pair, and an authored field
+    // this allowlist does not name compiles to its schema default. That is the
+    // fifth time it would have happened; the four recorded above are why
+    // `unitKeyCoverage` exists, and the Dioscuri would have arrived as two
+    // ordinary Servants with no leash, no linked death and no shared clock.
+    linkedGroup: doc.linkedGroup ?? undefined,
     // A summon-time variant (`rules/summon-variant.mjs`) -- Semiramis's coin
     // flip. `variant` is never authored; it is written at commit, once
     // resolved, and is undefined here so a compiled Servant does not ship

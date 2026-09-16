@@ -114,6 +114,47 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       zonExempt: new fields.BooleanField({ initial: false }),
       zonPartnerIds: new fields.SetField(new fields.DocumentIdField()),
 
+      // Ch. 16 §16.8's `LinkedUnitGroup` (D16.7) — a general mechanism, not a
+      // Dioscuri special case: the shape recurs for a Servant with a permanent
+      // summon, and for a Master-Servant pair moving under Passenger Seat.
+      //
+      // The SETTINGS are authored in YAML; `memberIds` is resolved at summon,
+      // the way `masterId` and `zonPartnerIds` are. An empty `id` means no
+      // group at all — a Servant document that never authored one still gets a
+      // SchemaField, and `{id: ""}` must not read as membership.
+      linkedGroup: new fields.SchemaField({
+        id: new fields.StringField({ required: false, blank: true, initial: "" }),
+        memberIds: new fields.SetField(new fields.DocumentIdField()),
+        // Maximum Chebyshev distance between members. `null` = unleashed.
+        leash: new fields.NumberField({
+          required: false, nullable: true, initial: null, integer: true, min: 0,
+        }),
+        // "" = a member's death is its own business. `ignoresRevival` is the
+        // Dioscuri's reading (Ch. 41 Q11): the survivor's own revival chain is
+        // SKIPPED, because a one-sided revival would leave one twin alive with
+        // a dead partner, which the binding forbids.
+        linkedDeath: new fields.StringField({
+          required: false, initial: "", choices: ["", "ignoresRevival", "ownChain"],
+        }),
+        sharedCooldowns: new fields.StringField({
+          required: false, initial: "", choices: ["", "byName"],
+        }),
+        // What one member counts as wherever the rules count Units: the four
+        // turn-budget pools, the multi-Servant tax, and the roster allowance.
+        // *"each one counts as 0.5 Units"* qualifies none of them.
+        unitWeight: new fields.NumberField({ initial: 1, min: 0 }),
+        zonSatisfaction: new fields.StringField({
+          required: false, initial: "all", choices: ["all", "any"],
+        }),
+        // `union` makes a damage resolution read BOTH members' modifier bags.
+        // Only the joint Noble Phantasm asks for it, and it double-counts by
+        // design (Ch. 41 Q12).
+        modifierCombination: new fields.StringField({
+          required: false, initial: "separate", choices: ["separate", "union"],
+        }),
+        summonTogether: new fields.BooleanField({ initial: false }),
+      }),
+
       // "Before play, select only one Noble Phantasm, either (a) or (b). The
       // unselected Noble Phantasm is unusable." Normal's Archer, Caster and
       // Berserker each offer two; the setup wizard writes the GM's pick and
