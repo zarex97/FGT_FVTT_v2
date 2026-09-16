@@ -126,8 +126,22 @@ export function endTurnVerdict(combat, factionId, units) {
  * @returns {object[]}
  */
 export function rows(combat, factionId) {
-  return summarize(budgetFor(combat, factionId));
+  return summarize(budgetFor(combat, factionId)).map((row) => ({
+    ...row,
+    // `summarize` is pure and returns 1 / 0.5 / 0; a CSS class name is not a
+    // rule, so the view vocabulary is named here. Handlebars cannot compare
+    // numbers without a helper, and `{{#if spent}}` reads 0.5 as "full".
+    pips: row.pips.map((v) => (v === 1 ? "full" : v === 0.5 ? "half" : "empty")),
+    // Ch. 34 §34.5 asks for this in as many words: the boundary case is
+    // correct and surprising, so the HUD explains it rather than looking broken.
+    hint: HALF_POOLS.has(row.pool)
+      ? "A linked pair counts as one Unit -- each twin spends half a slot."
+      : null,
+  }));
 }
+
+/** Pools a half-unit can draw from, and therefore render a half-pip in. */
+const HALF_POOLS = new Set(["servantMove", "servantAttack"]);
 
 /* -------------------------------------------------------------------------- */
 
