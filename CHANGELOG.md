@@ -34,6 +34,47 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Anastasia & Viy (2026-09-16)
+
+A Servant who blinds herself to hit harder, soaks her enemies so the next Ice
+attack freezes them, and whose Normal Attack is two different attacks depending
+on how far away she is standing. ~60 clauses, and **five of her mechanisms were
+already built** — three of them found while writing the plan rather than the spec.
+
+**Already there, with no writer:**
+
+- **`rangeBanded`** — `rules/normal-attack.mjs` exists for her Note, and was
+  written for EMIYA's version of the same sentence.
+- **`Freeze` and `Invuln`** — their entire damage behaviour has been in the
+  pipeline since it was written, with no document to arrive by.
+- **The attacker-imposed evade modifier** — `direction: "imposed"` already merges
+  into the defender's plan, for EMIYA's *Clairvoyance*.
+- **A negative `ApplicationChance` is a vulnerability** — `base + inflictBonus −
+  resist` means −25 raises a chance by 25, additively, which is Soaked's clause (a).
+- **`damageTaken` fires at a total of zero**, so Soaked is consumed by a Fire
+  attack that Freeze negated. The riskiest planned edit — a carve-out in the
+  pipeline's stage-0 halt — turned out to be unnecessary.
+
+**Added**
+
+- `Suppress { scope: "miss" }`, honoured by `missChance`, with its predicate
+  evaluated at the check because it asks about the attack's range.
+- `chancePerPanel`, a rider chance stated per panel of separation.
+- Five effects: `freeze`, `invuln`, `soaked`, `buffRemovalResUp`, `critUpViy`.
+  The first two are **not hers** and are live for the whole roster.
+
+**Rulings**
+
+- **Soaked is consumed when Fire breaks Freeze** — one Fire attack strips both
+  layers without dealing a point. *(User ruling.)*
+- ***"panels between" is the Chebyshev distance, not the gap***, because the
+  Dioscuri sheet uses the phrase that way and the leash implements it so. Her
+  Instakill caps at 30%, not 25%.
+- **Watermelon suppresses Blind's *miss* clause alone.** She keeps the +3 on her
+  own Evade rolls, through a window the defender may Counter in.
+
+
+
 ### The Dioscuri — Castor and Pollux (2026-09-16)
 
 Two tokens that are one Servant, and the acceptance test for `LinkedUnitGroup`.

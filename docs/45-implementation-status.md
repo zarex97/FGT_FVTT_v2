@@ -125,7 +125,13 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    happened, and a Miss is the swing not happening. Clause 3 got a reader too —
    `canUseAbility` refuses an ability whose `categorizedAs` family is suppressed.
 
-9. **Only 11 of 29 reference Servants are authored** — and "authored" is a claim only a
+8c. **`Freeze` and `Invuln` are live.** Both were catalogued in Appendix A
+   since it was written, both had their entire damage behaviour in the pipeline
+   — stage 0's Fire escape, stage 16's `<150` absorption, the `Pierce` bypass,
+   stage 15's NP halving — and **no Unit could receive either**. Anastasia
+   brought them; they belong to the whole roster.
+
+9. **Only 12 of 29 reference Servants are authored** — and "authored" is a claim only a
    live board can settle. Asterios and Karna were both on this list while six of Asterios's
    clauses had no reader and nine of Karna's thirteen abilities did not exist.
 
