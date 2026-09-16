@@ -7,10 +7,15 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { parse } from "yaml";
 import { historyWanted, snapshotUnit, diffSnapshots, applyPatch } from "../../module/rules/history.mjs";
 import {
   recordTurn, stateAt, rewindIntents, RETENTION_TURNS, REWIND_EXCLUDED_RESOURCES,
 } from "../../module/engine/state-history.mjs";
+import { SCRIPTS, runScript } from "../../module/engine/scripts.mjs";
+import { glassGameClock, glassGameTargets } from "../../module/rules/glass-game.mjs";
+import { collectContributions } from "../../module/rules/elements.mjs";
 
 describe("E2 — the gate, which is the whole performance story", () => {
   it("is OFF for a board with nobody who wants history", () => {
@@ -289,5 +294,205 @@ describe("E3 — the restore", () => {
     // a resurrection.
     const i = rewindIntents(board, history, ["foe"], 4).find((x) => x.kind === "rewind");
     expect(i.clearsDefeat).toBe(false);
+  });
+});
+
+describe("E4 — the Script registry the element has always promised", () => {
+  // `rules/elements.mjs`'s Script element has collected {event, script, source}
+  // since it was written, and NOTHING read handler.script. Its own comment
+  // promises "named entries in a closed registry, never eval. Compendia are
+  // shared, so content must not be able to execute" -- and there was no
+  // registry. Consistent rather than surprising: the corpus has zero Scripts,
+  // so the hatch had never been opened.
+
+  it("is CLOSED — an unknown name runs nothing and does not throw", () => {
+    // A compendium is data other people wrote. A name outside the registry runs
+    // nothing and says so in the log; it does not throw, because one bad entry
+    // must not stop a turn, and it certainly does not eval.
+    expect(runScript("whateverTheyTyped", {})).toEqual([]);
+  });
+
+  it("refuses a name inherited from Object.prototype", () => {
+    // `SCRIPTS["constructor"]` is a function, and a bare lookup would call it.
+    expect(runScript("constructor", {})).toEqual([]);
+    expect(runScript("toString", {})).toEqual([]);
+  });
+
+  it("is frozen, so nothing can add an entry at runtime", () => {
+    expect(Object.isFrozen(SCRIPTS)).toBe(true);
+  });
+
+  it("holds exactly the entries the corpus actually has", () => {
+    // Ch. 44 §44.6 budgets four across ~130 abilities and the tally has stood
+    // at zero. This is the first. If this list grows past what Ch. 44 budgets,
+    // that is a design conversation and not a merge.
+    expect(Object.keys(SCRIPTS)).toEqual(["nurseryRhyme.rewind"]);
+  });
+
+  it("the Script element emits `events`, plural, which is what listensFor reads", () => {
+    // Pushed as a singular `event` since the element was written, so a Script
+    // handler could never have matched an event even once something dispatched
+    // one -- which nothing did.
+    const out = collectContributions(
+      [{ id: "g", name: "Glass Game", rank: "C",
+         passiveRules: [{ key: "Script", script: "nurseryRhyme.rewind", event: "turnEnd" }] }],
+      { options: new Set(), refs: {} },
+    );
+    expect(out.eventHandlers[0].events).toEqual(["turnEnd"]);
+    expect(out.eventHandlers[0].script).toBe("nurseryRhyme.rewind");
+  });
+
+  it("and carries the script's own parameters verbatim", () => {
+    // A script is the escape hatch: its parameters are its own business, and
+    // inventing a schema for them would be inventing the vocabulary the hatch
+    // exists to avoid.
+    const out = collectContributions(
+      [{ id: "g", rank: "C", passiveRules: [{
+        key: "Script", script: "nurseryRhyme.rewind", event: "finalDefeat",
+        params: { rewind: "6◈", includesSelf: true },
+      }] }],
+      { options: new Set(), refs: {} },
+    );
+    expect(out.eventHandlers[0].params).toEqual({ rewind: "6◈", includesSelf: true });
+  });
+});
+
+describe("R3 — effect 1's clock", () => {
+  const ring = (n) => Array.from({ length: n }, (_, i) => ({ id: `e${i}`, relation: "enemy" }));
+
+  it("advances at a Turn end with an enemy inside her 3-panel ring", () => {
+    expect(glassGameClock({ ticks: 0 }, ring(1))).toMatchObject({ ticks: 1, fires: false });
+  });
+
+  it("fires at 3 Rounds, and not before", () => {
+    expect(glassGameClock({ ticks: 7 }, ring(1), { turnsPerRound: 3 }).fires).toBe(false);
+    expect(glassGameClock({ ticks: 8 }, ring(1), { turnsPerRound: 3 }))
+      .toMatchObject({ ticks: 9, fires: true });
+  });
+
+  it("G3 — does not fire if the ring is empty at that Turn's end", () => {
+    // "if there are STILL enemy Units within a 3 panel area at the end of that
+    // Turn". The clock reaching three is necessary and not sufficient.
+    expect(glassGameClock({ ticks: 9 }, [], { turnsPerRound: 3 }).fires).toBe(false);
+  });
+
+  it("does not advance while nobody is there to be caught", () => {
+    expect(glassGameClock({ ticks: 5 }, []).ticks).toBe(5);
+  });
+
+  it("R4 — an empty ring at ROUND end resets the clock to zero", () => {
+    expect(glassGameClock({ ticks: 8 }, [], { roundEnd: true }).ticks).toBe(0);
+  });
+
+  it("R4 — ...but a ring with an enemy in it at Round end does not", () => {
+    expect(glassGameClock({ ticks: 8 }, ring(1), { roundEnd: true }).ticks).toBe(8);
+  });
+
+  it("R4 — and the reset NEVER touches the buffer", () => {
+    // "the effect of / duration of time passed for this NP is reset" -- the
+    // CLOCK. The recorded history must survive, because effect 2 still needs
+    // six Rounds of it.
+    expect(glassGameClock({ ticks: 8 }, [], { roundEnd: true }).clearsHistory).toBe(false);
+  });
+
+  it("counts only ENEMIES in the ring", () => {
+    // The gate names enemies; the clause that says who is AFFECTED does not.
+    expect(glassGameClock({ ticks: 0 }, [{ id: "a", relation: "ally" }]).ticks).toBe(0);
+  });
+});
+
+describe("G4/G9 — who the rewind reaches", () => {
+  const self = { id: "n", panel: { i: 5, j: 5 } };
+  const units = [
+    self,
+    { id: "near", panel: { i: 5, j: 8 } },
+    { id: "alsoNear", panel: { i: 2, j: 5 } },
+    { id: "far", panel: { i: 5, j: 9 } },
+  ];
+
+  it("everyone within 3 panels, whatever side they are on", () => {
+    // "all Units within a 3 panel area of Nursery" -- not "enemy Units". The
+    // clause that gates the FIRING names enemies; this one does not.
+    expect(glassGameTargets(self, units, false).sort()).toEqual(["alsoNear", "near"]);
+  });
+
+  it("G9 — and herself, when the clause says so", () => {
+    expect(glassGameTargets(self, units, true)).toContain("n");
+  });
+
+  it("and not herself when it does not", () => {
+    expect(glassGameTargets(self, units, false)).not.toContain("n");
+  });
+
+  it("reaches nobody when she is not on the board", () => {
+    expect(glassGameTargets({ id: "n" }, units, true)).toEqual([]);
+  });
+});
+
+describe("The Queen's Glass Game (G1–G10)", () => {
+  const a = () => parse(readFileSync("packs/_source/abilities/nursery-queens-glass-game.yml", "utf8"));
+  const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
+  const one = () => a().passiveRules.find((r) => r.event === "turnEnd");
+  const two = () => a().passiveRules.find((r) => r.event === "finalDefeat");
+
+  it("G1 — Rank C, NP, Anti-Self/Anti-World, PASSIVE", () => {
+    expect(a()).toMatchObject({ rank: "C", isNP: true, isPassive: true });
+    expect([...a().npTags].sort()).toEqual(["antiSelf", "antiWorld"]);
+  });
+
+  it("E2 — declares that it needs history", () => {
+    // The field the whole subsystem is gated on, and exactly the shape this
+    // project has silently dropped six times. One that compiles to `false`
+    // means the recorder never starts and both effects do nothing.
+    expect(a().requiresHistory).toBe(true);
+  });
+
+  it("both effects are Scripts, and both name the same one", () => {
+    expect(one().key).toBe("Script");
+    expect(two().key).toBe("Script");
+    expect(one().script).toBe("nurseryRhyme.rewind");
+    expect(two().script).toBe("nurseryRhyme.rewind");
+  });
+
+  it("and that script is in the registry", () => {
+    // A `script:` naming nothing runs nothing, silently but for a log line.
+    expect(Object.keys(SCRIPTS)).toContain(one().script);
+  });
+
+  it("G2 — effect 1 reaches back 3◈ and fires at the Turn end", () => {
+    expect(one().params).toMatchObject({ rewind: "3◈", afterTicks: "3◈" });
+  });
+
+  it("G7/R4 — and resets when the ring empties", () => {
+    expect(one().params.resetWhenRingEmpty).toBe(true);
+  });
+
+  it("G8/G9 — effect 2 reaches back 6◈ and includes her", () => {
+    expect(two().params).toMatchObject({ rewind: "6◈", includesSelf: true });
+  });
+
+  it("G8/R5 — on finalDefeat, NOT on unitDefeated", () => {
+    // unitDefeated fires at the TOP of resolveDefeat, before the revival query
+    // -- "Handlers first: unitDefeated is where content that is not a revival
+    // hangs." A handler there would spend her once-per-game rewind on a Nursery
+    // whom Guts was about to save.
+    expect(two().event).toBe("finalDefeat");
+    expect(a().passiveRules.some((r) => r.event === "unitDefeated")).toBe(false);
+  });
+
+  it("G10/R7 — and is once per game", () => {
+    expect(two().params.oncePerGame).toBe(true);
+  });
+
+  it("effect 1 does NOT include her, and effect 2 does", () => {
+    // Effect 2 adds "(includes herself)" precisely because effect 1 does not.
+    expect(one().params.includesSelf).toBe(false);
+    expect(two().params.includesSelf).toBe(true);
+  });
+
+  it("her ability list is now complete, at thirteen", () => {
+    const list = servant("nursery-rhyme").abilities;
+    expect(list).toContainEqual({ ref: "nursery-queens-glass-game" });
+    expect(list).toHaveLength(13);
   });
 });

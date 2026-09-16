@@ -162,6 +162,10 @@ export function snapshotUnit(actor, {
       ? { contentId: sys.carriesItemId, barredFrom: sys.carriesItemBarredFrom ?? null }
       : null,
     defeated: Boolean(sys.defeated),
+    // The Queen's Glass Game's once-per-game rewind, spent. Projected because
+    // `resolveDefeat` reads it off the snapshot it is handed, and a flag the
+    // board cannot see is a flag that clause would spend twice.
+    glassGameSpent: Boolean(sys.glassGameSpent),
 
     // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and
     // reading them as offsets made two adjacent tokens a hundred panels apart.
