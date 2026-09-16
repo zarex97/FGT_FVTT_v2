@@ -443,7 +443,7 @@ async function writeGroup(group, io) {
       await io.adjustHealth(unitId, sum(intents, "amount"), { intents });
       break;
     case "statDelta":
-      for (const i of intents) await io.adjustStat(unitId, i.stat, i.delta, i.clamp);
+      for (const i of intents) await io.adjustStat(unitId, i.stat, i.delta, i.clamp, i.alsoCurrent);
       break;
     case "resource":
       for (const i of intents) await io.adjustResource(unitId, i.key, i.delta, Boolean(i.absolute));

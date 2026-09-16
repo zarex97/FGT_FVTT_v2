@@ -774,7 +774,12 @@ const ACTIONS = Object.freeze({
       : (fromEvent ?? a.delta ?? 0);
     if (raw === 0) return [];
 
-    if (typeof a.floor !== "number") return [I.statDelta(u.id, a.stat, raw)];
+    // `alsoCurrent` on a `.max` write pulls the current value down with the
+    // ceiling -- *"reduce its Max Health by 25"* must not leave a Unit standing
+    // above its own maximum, and must not heal a wounded one either.
+    if (typeof a.floor !== "number") {
+      return [I.statDelta(u.id, a.stat, raw, a.clamp !== false, a.alsoCurrent === true)];
+    }
 
     const current = a.stat === "health.value" ? currentHealth(u) : readStat(u, a.stat);
     if (typeof current !== "number") return [];

@@ -140,8 +140,8 @@ export const heal = (unitId, amount, source, revival = false, meta = {}) =>
  * uses this rather than `damage`, because it must not trigger damage-keyed
  * effects like `Dmged NP Regen` or an Injury Roll.
  */
-export const statDelta = (unitId, stat, delta, clamp = true) =>
-  ({ t: "statDelta", unitId, stat, delta, clamp });
+export const statDelta = (unitId, stat, delta, clamp = true, alsoCurrent = false) =>
+  ({ t: "statDelta", unitId, stat, delta, clamp, alsoCurrent });
 
 export const applyEffect = (unitId, effect, sourceId) =>
   ({ t: "applyEffect", unitId, effect, sourceId });
