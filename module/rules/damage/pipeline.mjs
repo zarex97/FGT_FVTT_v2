@@ -654,6 +654,31 @@ function stage7FlatAttackBonuses(s) {
       s.note("elementFlat", `${element} +${value} → ${scaled.toFixed(1)} (${pct >= 0 ? "+" : ""}${pct}%)`);
     }
   }
+  // The DEFENDER's own flat INCREASE to what it takes. Avenger is the only one
+  // in either roster and it is the only class skill in the corpus that hurts
+  // its bearer: *"All damage taken by Castor is increased by 80 including NP."*
+  //
+  // Here rather than at stage 12, which SUBTRACTS -- authoring this as a
+  // negative `flatReduction` would have worked arithmetically and been wrong
+  // twice over: `bypassesDefence` drops stage 12 entirely, and Avenger is not a
+  // defence for a Heel Attack to bypass, while Pierce and Invuln read that set
+  // as things they beat. A vulnerability is not a negative resistance.
+  //
+  // Read at stage 7 because that is where flat terms land, and the drawback
+  // should sit beside the counter bonus that offsets it -- the two halves of
+  // one Skill, in one stage of the breakdown.
+  let taken = 0;
+  for (const m of activeMods(s, s.ctx.defender, FLAT_TAKEN_KEYS)) {
+    if (s.bypass?.defender) {
+      s.contribute(m.key, 0, `${m.source} (bypassed by this attack)`, "defender");
+      continue;
+    }
+    const value = magnitudeOf(m, s.isNP, s.ctx);
+    taken += value;
+    s.contribute(m.key, value, m.source, "defender");
+  }
+  if (taken !== 0) s.addProportional(taken);
+
   s.end(7);
 }
 
@@ -1050,6 +1075,16 @@ const FLAT_ATTACK_KEYS = new Set(["divinity", "dmgBoost", "avengerCounter", "fla
 const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
 
 /**
+ * Flat INCREASES to what the defender takes, read at stage 7.
+ *
+ * `avenger` is the only member: *"All damage taken by Castor is increased by
+ * 80 including NP."* Distinct from `FLAT_REDUCTION_KEYS` because a
+ * vulnerability is not a negative resistance -- stage 12 is dropped wholesale
+ * by `bypassesDefence`, and Avenger is not a defence.
+ */
+const FLAT_TAKEN_KEYS = new Set(["avenger"]);
+
+/**
  * Element-scoped percentage keys, read only when the attack carries that
  * element and applied only to the share of it that does.
  *
@@ -1080,7 +1115,7 @@ const ELEMENT_NEGATIVE_KEYS = new Set(["elementAtkDwn", "elementDefUp"]);
  */
 export const MODIFIER_KEYS = Object.freeze([
   ...ATTACKER_BUCKET_KEYS, ...DEFENDER_BUCKET_KEYS,
-  ...FLAT_ATTACK_KEYS, ...FLAT_REDUCTION_KEYS,
+  ...FLAT_ATTACK_KEYS, ...FLAT_REDUCTION_KEYS, ...FLAT_TAKEN_KEYS,
   ...ELEMENT_ATTACK_KEYS, ...ELEMENT_DEFENCE_KEYS,
   // Read by their own single-key lookups rather than through a bucket.
   "critDmUp", "critDmDwn", "critResUp", "critResDwn", "blockUp", "defCrk",
