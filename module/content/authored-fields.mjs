@@ -28,6 +28,9 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "classContainer", "concealedIdentity", "identityRevealed", "detect",
   "defaultImage", "alignment", "region", "attributes", "parameters",
   "baseHealth", "mov", "range", "baseAttack", "normalAttack", "sustainability",
+  // The linked-group binding (Ch. 16 §16.8). Settings only: `memberIds` is
+  // resolved at summon and is never authored.
+  "linkedGroup",
   "summonVariant", "stanceSpec", "stance", "resources", "notes",
 ]);
 
