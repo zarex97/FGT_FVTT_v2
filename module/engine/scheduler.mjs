@@ -829,6 +829,18 @@ const ACTIONS = Object.freeze({
   SuppressRule: (a, u) => (a.scope ? [I.suppressRule(u.id, a.scope)] : []),
 
   /**
+   * Spend or destroy one of an item the acting Unit holds.
+   *
+   * > *"…then the Vorpal Blade **breaks and can no longer be used**."*
+   *
+   * `io.adjustItemQuantity` deletes an item that reaches zero rather than
+   * leaving it on the sheet at zero -- its own comment says why: *"a spent
+   * consumable that stays on the sheet reads as still usable."* A sword that
+   * broke is exactly that.
+   */
+  ItemDelta: (a, u) => (a.item ? [I.itemQuantity(u.id, a.item, a.delta ?? -1)] : []),
+
+  /**
    * Push a summon's departure further out.
    *
    * > *"…and extends its period of existing on the board for 3◈ **more**

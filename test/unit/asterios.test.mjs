@@ -283,7 +283,7 @@ describe("a non-damaging Noble Phantasm", () => {
       && (doc.phases ?? []).length > 0
       && !(doc.phases ?? []).some((p) => p.kind === "damage"));
 
-    // If an eighth is authored it lands here, which is the point: the
+    // If another is authored it lands here, which is the point: the
     // engine rule keys on exactly this shape.
     expect(nonDamaging.map(({ doc }) => doc.id).sort()).toEqual([
       // Akhilleus Kosmos, the twelfth. Its one phase negates an incoming Noble
@@ -319,6 +319,15 @@ describe("a non-damaging Noble Phantasm", () => {
       // "(Non-damaging)". Its three effects are what make attacking her
       // expensive; it never swings.
       "mannanan-fragarach-enbarr",
+      // Nursery Rhyme: Jabberwock, the eighteenth. "(Non-damaging)" is the
+      // first word of its entry: its phases put a 1500-Health monster on the
+      // board and drop the [Vorpal Blade] on a random panel, and every number
+      // that follows is the SUMMON's.
+      "nursery-jabberwock",
+      // Nursery Rhyme: Trump Soldiers, the nineteenth, and "(Non-damaging)"
+      // again. One phase, conjuring 1d8+4 bodies whose whole job is to stand
+      // next to her so nothing may attack her.
+      "nursery-trump-soldiers",
       // Ramesseum Tentyris, the sixteenth. It opens the Complex and does
       // nothing else itself: every clause on its sheet -- the halved damage,
       // the curse, the NP seal, the second Home Base -- is the field's.

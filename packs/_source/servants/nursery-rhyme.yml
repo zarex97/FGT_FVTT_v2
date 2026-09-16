@@ -1,8 +1,8 @@
 # Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
 #
-# PART 1 OF 4. Four more ability refs arrive with the summons (Trump Soldiers,
-# Jabberwock), the token economy (Nameless Forest) and the rewind (The Queen's
-# Glass Game). The list below is written so those are an append.
+# PARTS 1 AND 2 OF 4. Two more ability refs arrive with the token economy
+# (Nameless Forest) and the rewind (The Queen's Glass Game). The list below is
+# written so those are an append.
 schema: 1
 id: nursery-rhyme
 name: "Nursery Rhyme"
@@ -41,3 +41,6 @@ abilities:
   - { ref: nursery-frenzied-march-hare }
   - { ref: nursery-white-queens-enigma }
   - { ref: nursery-a-tale-for-somebodys-sake }
+  # Part 2. Two more arrive with Parts 3 and 4.
+  - { ref: nursery-trump-soldiers }
+  - { ref: nursery-jabberwock }

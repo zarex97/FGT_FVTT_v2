@@ -1118,6 +1118,16 @@ export const EXECUTORS = Object.freeze({
   },
 
   RangeDelta(el, { rank, source, out, ctx }) {
+    // `set` names the resulting Range; `value` names a change to it.
+    //
+    // > *"…but Range is reduced **to** 1 panel."* — `[Vorpal Blade]`
+    //
+    // A Servant at Range 4 and a Servant at Range 2 both end at 1, which no
+    // single delta expresses.
+    if (typeof el.set === "number") {
+      out.statDeltas.push({ stat: "range.panels", value: el.set, absolute: true, source });
+      return;
+    }
     out.statDeltas.push({ stat: "range.panels", value: scalar(resolveValue(el, rank, ctx)), source });
   },
 
