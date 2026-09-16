@@ -146,6 +146,20 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    §31.7a. The lesson is the one this chapter already draws about *Collected*: a clause with a
    reader can still be a clause whose reader is asked the wrong question.
 
+   **Heracles is now finished by §46.1's standard** — every clause on his sheet exercised on a
+   live board, the later ones driven through the engine's own entry points (`resolveAttack` /
+   `advanceAttack`, `spendCommandSpell`, `applyEffect`: the same functions the buttons call).
+   Finishing him cost two more general defects, both of which a complete paper trace had already
+   declared correct: §16.5's **ZON penalty** was computed by the preview and never by the
+   resolution, and an incoming `ApplicationChance`'s **sign** was authored as prose in five
+   clauses, so four protective skills made their bearers *more* vulnerable and one plague
+   protected its victims. Ch. 46 §46.4-J.
+
+   That second one is the sharper warning for this chapter. Two unit tests covered Bravery and
+   both asserted the wrong value **from the source** — they restated the defect and agreed with
+   it, so content and test were wrong together and neither could ever fail. *Authored* and
+   *Tested* are not the same claim as *Correct* when the test only reads back what was written.
+
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
    one Gamemaster each run the whole turn-end sequence and every scheduled effect — drains,

@@ -28,7 +28,11 @@ passiveRules:
   # Clause 2. `volatility: mental` is Appendix A's own classification rather
   # than a list of ids, so this covers a mental debuff written after Jack was.
   # Bravery is the only other content that uses it and it uses it identically.
+  # POSITIVE resists (`base + inflictBonus - resist`); a negative would be a
+  # vulnerability of the same size. Authored `-60` alongside Bravery's `-50`,
+  # and wrong for the same reason -- Kingprotea's Self-Suggestion states the
+  # identical clause at `+60` and was the counterexample (Ch. 46 §46.4-J).
   - key: ApplicationChance
     direction: incoming
     volatility: mental
-    value: -60
+    value: 60

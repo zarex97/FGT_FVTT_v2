@@ -48,8 +48,11 @@ async function onTurnChange(combat, prior, current) {
   if (!isScheduler()) return;
   if (!combat?.started) return;
 
-  const board = boardFor(combat);
   const tick = combat.system?.globalTurn ?? 0;
+  // One CONNECTION, not merely one user (Ch. 46 §46.4-D).
+  if (!await claimBoundary(combat, "turn", tick)) return;
+
+  const board = boardFor(combat);
   const activeFactionId = factionOf(combat, prior);
   const activeUnits = board.units.filter((u) => u.factionId === activeFactionId);
   const actedUnits = board.units.filter((u) => u.acted);
@@ -208,6 +211,7 @@ async function onRoundChange(combat, updateData, options) {
   if (!combat?.started) return;
   // Only fire on a forward round change; rewinding is a GM correction.
   if ((options?.direction ?? 1) < 0) return;
+  if (!await claimBoundary(combat, "round", combat.round ?? 1)) return;
 
   const board = boardFor(combat);
   const ctx = {
@@ -341,12 +345,66 @@ async function recordHistory(combat, board) {
 }
 
 /**
- * Exactly one client runs the sequences.
+ * Exactly one USER runs the sequences.
+ *
+ * The first half of the election, and the cheap one. `activeGM` picks a single
+ * Gamemaster out of however many are connected — but `isSelf` is true for
+ * *every connection that user holds*, so this alone does not pick a single
+ * client. {@link claimBoundary} is the half that does.
+ *
  * @returns {boolean}
  */
 function isScheduler() {
   return Boolean(game.users.activeGM?.isSelf);
 }
+
+/**
+ * Claim one boundary for this CONNECTION, and say whether we won it.
+ *
+ * `isScheduler` above elects a user and two tabs on one Gamemaster both pass
+ * it, so both ran every turn-end sequence and every scheduled effect ticked
+ * twice. Found while auditing Heracles, where it turned Mad Enhancement's
+ * stated 20-per-Turn Master drain into a measured 40 and was briefly reported
+ * as a rules defect; `game.users.filter(u => u.active)` shows one user either
+ * way (Ch. 46 §46.4-D).
+ *
+ * **Why a token and a settle, rather than a flag.** Foundry hands a system no
+ * server-side compare-and-set, and both connections wake from the *same*
+ * broadcast — so a plain "has this boundary been run?" check is read by both
+ * before either writes, and both proceed. Instead both write a random token,
+ * the server serialises the two updates, and after a short settle exactly one
+ * connection still sees its own token. Last write wins, and "wins" is the
+ * whole election.
+ *
+ * The settle is the price of not having an atomic, and it is charged once per
+ * *boundary* — a player-driven event, not a hot path. The early return above it
+ * costs nothing in the ordinary single-client case on a boundary already run.
+ *
+ * @param {object} combat
+ * @param {"turn"|"round"} kind
+ * @param {number} n the boundary's own number — the global turn, or the round
+ * @returns {Promise<boolean>}
+ */
+async function claimBoundary(combat, kind, n) {
+  const claim = combat.system?.scheduleClaim ?? {};
+  // Already run, by this connection or another. Free, and the common case for
+  // the loser of a contested boundary once the winner's write has landed.
+  if ((claim[kind] ?? -1) >= n && claim.token) return false;
+
+  const token = foundry.utils.randomID();
+  await combat.update({ "system.scheduleClaim": { ...claim, [kind]: n, token } });
+  await new Promise((resolve) => { setTimeout(resolve, SETTLE_MS); });
+
+  return (combat.system?.scheduleClaim?.token ?? null) === token;
+}
+
+/**
+ * How long to let two connections' claims land before reading the winner.
+ *
+ * Both are on the same machine talking to a local server, so this is generous;
+ * it buys determinism on a once-per-boundary path and nothing is waiting on it.
+ */
+const SETTLE_MS = 120;
 
 /**
  * @param {object} combat

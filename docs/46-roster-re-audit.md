@@ -39,6 +39,10 @@ log, not the return value.
 An audit is finished when every clause has been *seen working on a board*, and the findings are
 filed: Servant-specific ones in that Servant's case chapter, general ones in §46.4 here.
 
+**By that standard no Servant here is finished yet.** §46.13 records, per Servant and per fix, what
+was pressed, what was only traced, and what was not looked at — because an audit that reports only
+its findings reads as a clean bill of health for everything it did not reach.
+
 ---
 
 ## 46.2 Measurement hazards
@@ -48,7 +52,7 @@ that was reported before being retracted**. Check them before trusting a number.
 
 | Hazard | What it looks like | Guard |
 |---|---|---|
-| **Two GM connections** | Every scheduled effect ticks **twice** — drains, periodics, cooldowns, expiries. A stated 20 measures as 40 | Count `/game` *pages*, not users. `game.users.filter(u => u.active)` shows **one**, because Foundry tracks activity per user and not per connection (§46.4-D) |
+| **Two GM connections** | Every scheduled effect ticks **twice** — drains, periodics, cooldowns, expiries. A stated 20 measures as 40 | **Fixed (§46.4-D)**, and the hazard is retired: a boundary is now claimed per connection. Counting `/game` *pages* rather than users is still the way to see the situation, because `game.users.filter(u => u.active)` shows **one** either way |
 | **Round boundaries** | A drain reads as a heal. Home Base regeneration fires at round end and can exceed the toll | Record `combat.round` before and after every measured Turn; discard trials where it changed |
 | **Stale test actors** | A Servant with numbers matching no table — a Heracles at 1600 Health with END A, which the table puts at 1500 | Import fresh from the pack for every audit. Never reuse a previous session's actor |
 | **Hand-built combats** | `Combat.create` + a hand-bumped `round`/`globalTurn` is not what the war-setup flow produces | Acceptable for isolating a clause; say so when reporting, and re-measure through the real flow before calling something a rules defect |
@@ -75,7 +79,7 @@ actively looking for rather than waiting to trip over.
 | **Two shapes of the same value** | Does this read `x.health.value` against a **snapshot**, where `health` is a bare number? `domain/health.mjs` exists for this and lists its own casualties |
 | **The gate and the display disagree** | Does the rules layer answer this question in one place and the presenter in another? Two readers of one rule always drift, and the player believes the sheet |
 | **A shared template that over-grants** | Does every bearer of this class skill actually carry every clause the template authors? Six Mad Enhancement sheets print three different shapes (§46.4-C) |
-| **Absolute where the sheet is silent** | Does the sheet state a reach/duration/count for this ability, or is it inheriting the unit's? An authored `range: 1` freezes a number a buff was meant to move |
+| **Absolute where the sheet is silent** | Does the sheet state a reach/duration/count for this ability, or is it inheriting the unit's? An authored `range: 1` freezes a number a buff was meant to move. **The most common defect this audit has found** — six instances across five Servants, and the tell is a sheet that says *"Range+N for the Combat Process"* or says nothing at all while the file states a number. Several were invisible because the frozen value happened to equal the unit's Range at the time of writing |
 | **Per-resolution vs. per-unit** | Does this counter tick once per *event* where the rule counts *things*? God Hand spent three charges and recorded one use |
 | **Name drift across a boundary** | Does the reader spell the field the way the schema does? `alignment.moral` vs `morality`; a kebab-case slug against a camelCase predicate |
 | **Two fields, one winner** | Does this element state two settings where the first silently discards the second? `range:` beats `rangeBonus:` in `anchorRange`, with no warning |
@@ -189,7 +193,7 @@ Two things that emerged only from building it:
 | Asterios, Castor, Kingprotea | no floor | no floor |
 | Penthesilea, Raikou | floors at 30 | **no floor** |
 
-### D. `isScheduler()` elects a GM *user*, not a connection — **open**
+### D. `isScheduler()` elected a GM *user*, not a connection — **fixed 2026-09-16**
 
 **Reached: every scheduled effect, in any session with two tabs open on one Gamemaster.**
 
@@ -203,8 +207,23 @@ opening a second is one click — which is exactly how it was found, and it prod
 Mad Enhancement's Master drain that was reported as a rules defect before the second writer was
 traced to a socket update arriving from the other tab.
 
-**It is a measurement hazard before it is a gameplay bug** (§46.2). The shape that closes it is a
-per-connection lock on the combat document rather than a per-user election.
+**It is a measurement hazard before it is a gameplay bug** (§46.2), which is why it was worth
+closing before the remaining audits rather than after.
+
+**Closed with a claim rather than a lock.** Foundry hands a system no server-side compare-and-set,
+and both connections wake from the *same* broadcast — so a plain *"has this boundary been run?"*
+check is read by both before either writes, and both proceed. Instead each writes a random token to
+`MatchData.scheduleClaim`, the server serialises the two updates, and after a short settle exactly
+one connection still sees its own token. Last write wins, and winning *is* the election. The
+per-user election stays as the cheap first half; the claim is taken before the board is built, so a
+losing connection does no work.
+
+The settle is the price of not having an atomic, and it is charged once per **boundary** — a
+player-driven event, not a hot path.
+
+**Measured live with two tabs open on one Gamemaster**, different socket ids and
+`game.users.filter(u => u.active).length === 1`: Mad Enhancement's drain reads **20** on four
+consecutive Turns. The same rig measured **40** before.
 
 ### E. `forbidCivilians: "ifGoodAligned"` can never fire — **open, inert**
 
@@ -314,6 +333,44 @@ away; the **effect**-borne branch beside it had always passed the count to `cons
 
 ---
 
+### J. An incoming `ApplicationChance`'s SIGN was read as prose, not as arithmetic — **fixed 2026-09-16**
+
+**Reached: five clauses, on four sheets and one effect, in BOTH directions.**
+
+`rules/checks.mjs#applicationChance` computes `base + inflictBonus - resist`, and an **incoming**
+contribution is the `resist` term. So a positive incoming value RESISTS and a negative one is a
+VULNERABILITY of the same size. `effects/soaked.yml` states that outright — *"a NEGATIVE incoming
+ApplicationChance is a VULNERABILITY"* — and `effects/nameless-forest-resistance.yml` restates it.
+
+Five authored clauses still landed on the wrong side of it, because the sheets are written in
+prose and the prose reads as a signed delta:
+
+| Clause | Sheet says | Authored | Did |
+|---|---|---|---|
+| Bravery (class) | *"Chance of being inflicted with Mental Debuffs is reduced by 50%"* | `-50` | **+50% more likely** |
+| Heracles's Bravery | the same words | `-50` | the same |
+| Jack's Mental Pollution 2 | *"...reduced by 60%"* | `-60` | **+60% more likely** |
+| Queen's Poison 2 | *"...being inflicted by volatile debuffs is reduced by 15%"* | `-15` | **+15% more likely** |
+| Doomsday Come, MAG branch | its own comment: *"chance of being inflicted by debuffs +50%"* | `+50` | **resisted by 50** |
+
+Four skills that exist to protect their bearer made it *more* vulnerable, and the one plague that
+exists to make victims vulnerable protected them. Measured on a live board: **Charm resolved at
+150% against Heracles**, where his sheet says 50 — twice as likely as carrying no skill at all.
+
+**Kingprotea's Self-Suggestion is the counterexample that settles it.** Its sheet prints the
+identical clause — *"chance of being inflicted by non-volatile debuffs is further reduced by 60%"* —
+and it is authored `+60`. The same sentence exists in the corpus authored both ways.
+
+**Why every guard missed it.** `effects/debuff-res-up.yml` and `debuff-res-dwn.yml` carry the
+convention correctly, so the applier was never wrong and no engine test could fail. The two tests
+that *did* cover Bravery asserted `value: -50` **from the source** — they restated the defect and
+agreed with it, so content and test were wrong together and both passed for as long as the files
+existed. Nothing anywhere asked the applier what percentage came out.
+
+`test/unit/application-chance-sign.test.mjs` asks exactly that, and adds a corpus scan: any clause
+whose prose says *"being inflicted ... reduced by"* and whose incoming value is negative fails the
+build. It found Queen's Poison, which no reading of the six Servants would have reached.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -370,14 +427,17 @@ Recorded so they are not filed again.
 
 ## 46.7 Roster status
 
+A ✅ in **Board** means *the findings below were pressed*, not that every clause was. §46.13 is the
+per-Servant record of what each audit left untested.
+
 | Servant | Paper | Board | Findings | Filed |
 |---|---|---|---|---|
-| **Heracles** | ✅ | ✅ | 4 (1 his, 3 general) | Ch. 31 §31.7a; §46.4-A, B, G |
+| **Heracles** | ✅ | ✅ **complete** | 6 (1 his, 5 general) | Ch. 31 §31.7a; §46.4-A, B, G, J; §16.5 |
 | **Asterios** | ✅ | ✅ | 4, all closed | §46.8; §46.4-H, I |
 | **Karna** | ✅ | ✅ | 1, closed | §46.9 |
 | **Penthesilea** | ✅ | ✅ | 2, closed | §46.10; closes §46.4-C |
-| Medea | — | — | — | |
-| EMIYA | — | — | — | |
+| **Medea** | ✅ | ✅ | 2, closed | §46.11 |
+| **EMIYA** | ✅ | ✅ | 2, closed | §46.12 |
 | Hassan of Serenity | — | — | — | |
 | Semiramis | — | — | — | |
 | Scáthach | — | — | — | |
@@ -394,7 +454,7 @@ Recorded so they are not filed again.
 | Ozymandias | — | — | — | |
 | Pale Rider | — | — | — | |
 | Quetzalcoatl | — | — | — | |
-| Van Gogh | — | — | — | |
+| Van Gogh | — | — | — | two class skills repaired by §46.11 |
 | Jack the Ripper | — | — | — | |
 | Nursery Rhyme | — | — | — | |
 
@@ -522,3 +582,283 @@ which her file's notes still described as unbuilt.
 radius does nothing: the movement gate refuses it and the token stays put, silently, exactly as it
 refuses a Labyrinth exit. The first run of this measurement compared two identical boards and read
 as "the floor applies either way". Delete the token, or move it within its MOV.
+
+---
+
+## 46.11 Medea — a narrowing nobody wrote down
+
+Audited 2026-09-16. Thirteen abilities, seven of them Spells, and a Noble Phantasm that rewrites
+the relationship graph. Her sheet is the densest yet converted and almost all of it holds — but
+the one thing that did not is not hers alone.
+
+**`valence: offensive` on a debuff-chance clause excluded a third of the debuff catalogue.** Item
+Construction is *"the chance of inflicting **debuffs** is increased by 50%"* and *"the chance of
+being inflicted by debuffs is reduced by 50%"* — unqualified, both directions. It was authored with
+`valence: offensive` on the normal-severity tiers, and `chanceContribution` skips any contribution
+whose valence does not match the effect's.
+
+`valence` is not the buff/debuff axis. `polarity` is, and the same filter already applies it. What
+`valence` records is what an effect **does** — so `Def Dwn`, `Slow`, `Freeze`, `Shock`, `Deafen`,
+`Debuff ResDwn`, both Decoys and three more `Def Dwn` rank variants are all `valence: defensive`
+**and still debuffs**: eleven of the thirty-five authored, and the group includes the commonest
+debuff in the game — four Noble Phantasms in the reference set inflict `Def Dwn`.
+
+Measured on a live board with her aura expanded: `Stun` took the full +50 and `Def Dwn` and `Slow`
+took **0**, skipped on *"valence offensive vs defensive"*, in both directions. They take 50 now.
+
+**It reaches Van Gogh too.** The same undocumented narrowing sits on his *Item Construction* (35%)
+and his *Existence Outside The Domain* (25%), and all three sheets say plainly *"debuffs"*. Every
+other deliberate narrowing in this corpus carries a comment saying why; these carried none, which
+is what marked them.
+
+**A third instance of "absolute where the sheet is silent" (§46.3).** *Rain of Light* is *"Range+1
+for the Combat Process"* — the exact phrasing §46.4-F fixed on two of Anastasia's — and was
+authored as an absolute 4. Her Range is 3 and 3+1 agreed with it, so the freeze was invisible. It
+is `rangeBonus: 1` now. Her *Teachings of Circe* and *Rule Breaker* keep their absolute numbers,
+because those sheets print *"Range=3"* and *"Range=1"*.
+
+**What held**, and several of these are the clauses most likely not to: Item Construction's
+non-stacking resolves across the whole group by rank, so a C-rank instance cannot win one severity
+tier and lose another; *High-Speed Divine Words* carries no `category: spell` of its own, so
+resetting *"all of Medea's Spells"* does not reset the resetter; the Dragon Tooth Warriors' *"enemy
+Units cannot Attack Medea or her Master"* is a `TargetabilityModifier` projected onto the summoner
+from the warrior, with a past `TargetingModifier` confusion recorded in its own comment; their
+cooldown is priced per warrior conjured; *Trofa*'s *"50% chance against a Noble Phantasm"* is a
+`chanceWhen` on the effect and is read by `chanceFor` in the attack path; and *Atlas*'s two −25%
+reductions are two modifiers, so they stack as the sheet says they do.
+
+---
+
+## 46.12 EMIYA — the Servant whose Range moves
+
+Audited 2026-09-16. Seventeen abilities, and Ch. 45 describes him as *"the Servant whose sheet is
+written almost entirely in terms of distance"*. Both findings are about distance, and they
+compound.
+
+**What held**, including his signature clause: `normalAttack.mode: rangeBanded` with a `from: 3`
+band combining `str × 1` and `mag × 0.2` and carrying `ignoresMagicResistance` — his sheet's
+*"75+35=110; not affected by Magic Resistance"*, exactly. The statblock, the 7◈ Sustainability, and
+every Projection's Silence gate, which is authored per-ability rather than on the documentary
+*Projection Magic* passive that names the rule.
+
+**Two findings.**
+
+- **Magecraft never fired on a Projection.** *"Whenever EMIYA uses a Thaumaturgy Spell, apply Range
+  Up"*, with the sheet's own note that *"'Projection' Skills and NP are treated as Thaumaturgy
+  Spells"*. The handler read `ofCategory: thaumaturgy` and the five Projections carry
+  `category: projection` — which is the right key for them, because *Projection Magic*'s Silence
+  gate and *Tracing*'s cooldown reduction both name that group. It is `[thaumaturgy, projection]`
+  now; `ofCategory` has always been a list. On `thaumaturgy` alone the buff fired for three Spells
+  and never for the five Projections, which is most of what he does.
+
+- **Caladbolg II and Hrunting froze the Range they are stated relative to.** *"Range+2 for the
+  Combat Process"* and *"Range+3"* were authored as absolute 6 and 7 — his written 4 with the
+  addition already performed. Every previous instance of this shape (§46.3) was invisible because
+  the frozen number happened to equal the unit's Range; **his is not**, because he is the one
+  Servant in the corpus whose Range genuinely moves, and it moves by the very buff the first
+  finding had switched off.
+
+  **Measured live**: at Range 4 both read 6 and 7 correctly; with Range Up in force his Range read
+  **5** and they still read 6 and 7, where the sheet grants 7 and 8. They read 7 and 8 now.
+  Hrunting's `minRange: 2` was right throughout — *"cannot be used on a Unit directly next to
+  EMIYA"* is an absolute floor beside a relative reach, and the two fields say so separately.
+
+**One reading left open.** *Overedge* is authored `range: 3`, taken from *"the effects of 'Kanshou
+& Bakuya' extend to Normal Attacks at a Range of 3 or lower"*. But that sentence conditions where
+**K&B's effects** apply, not where Overedge may be aimed — and Overedge is *"2 Normal Attacks"*,
+whose reach is his Range. Left as authored, because the two readings differ by one panel and the
+sentence genuinely supports both; worth putting to the game's author.
+
+**Coverage.** The statblock, the range bands, every anchor, Magecraft, Projection Magic and the
+Silence gates were traced and pressed. *Rho Aias*, *Unlimited Blade Works*, *Trace, On* with its
+AC/BC branches, *Eye of the Mind (True)*'s B→EX swap and the *Projection: Unlimited Blade Works*
+copy spell were read but not individually re-pressed; Ch. 45 records them as verified live when he
+was authored, and this pass did not contradict that.
+
+---
+
+## 46.13 What this audit did **not** test
+
+§46.1 says an audit is finished when every clause has been *seen working on a board*. By that
+standard **none of the six Servants below is finished**, and this section is the honest record of
+the gap. It exists because the audit's own finding rate argues for it: every defect in §46.4 was
+found by pressing something, and three of them survived a complete paper trace that declared them
+correct. An untested clause here is not a clause believed good — it is a clause not yet asked.
+
+Four levels are used throughout, and the first two are **both** live — they differ only in where the
+push came from:
+
+| | Means |
+|---|---|
+| **Pressed (interface)** | A real click on the real control, and the result read from the sheet, the chat card or the audit log. The strongest evidence: it exercises the interface as well as the rule |
+| **Pressed (engine)** | Driven on a live board through the **same function the button calls** — `performAction`, `attemptEscape`, `endTurn`, `resolveDefeat`, `dispatch` — with the result read from the same places. One layer below the mouse |
+| **Traced** | Followed from sheet text to rule element to the engine reader that consumes it, and no further |
+| **Untouched** | Not examined in this pass at all |
+
+**Why the second level exists, stated plainly.** Confirming an attack through the interface takes two
+canvas clicks and a dialog button, and scripted click sequences drop that handshake often enough
+that a single lethal attack cost roughly fifteen attempts without landing. Every clause below marked
+*pressed (engine)* was verified on a live board with live documents and a live combat — what it does
+**not** prove is that the control a player would use reaches that function. Where the interface
+itself is the thing under test — a refusal message, a label, whether a button is offered at all —
+*pressed (interface)* is used and nothing else counts.
+
+The distinction is recorded per clause rather than averaged away, because "we drove it from the
+console" and "a player can do this" are different claims and this chapter exists to keep such
+claims apart.
+
+### 46.13.1 Per Servant
+
+**Heracles — complete.** Every clause on his sheet has now been exercised, and the ones added in
+the second pass were driven through the engine's own entry points: `resolveAttack` / `advanceAttack`
+(what the attack dialog calls), `spendCommandSpell` (what the Command Spell button calls) and
+`applyEffect` (what the damage pipeline calls at the Damage Step).
+
+*Pressed (interface):* the statblock; Mad Enhancement clauses 1 and 4; Bravery's refusal while the
+mode is on; Eye of the Mind offered on the reaction ladder; Nine Lives' range refusal; the
+Master-cost line.
+
+*Pressed (engine):*
+
+- **Mad Enhancement 2, 3, 5, 6, 7** — the two damage branches at 1000 → 600 normal and 1000 → 800
+  NP; STR +60 / MAG +30; `resource:sustainability:-2` present only while the mode is on;
+  `forceTable: "unfavourable"` reached on an Evade; and clause 7 leaving no effect instance behind.
+- **Battle Continuation Passive 1**, both branches. A normal attack negated **29** and a Noble
+  Phantasm negated **48** — decisive, because rank A's table is `2d10+20` and **48 is outside its
+  ceiling of 40**, so only the doubled `4d10+20` can produce it. The first pair of samples (24 and
+  35) sat in the overlap and proved nothing; the clause needed a number above 40 to be settled.
+- **The four-way revival priority**, with all three available sources armed at once. Undying fired
+  first at priority 300 for 223 (375 restored, 152 overkill), leaving `godHandUsed: 0` and
+  `bcCooldown: 0` — God Hand and Battle Continuation untouched, which is the ordering his sheet
+  prints. Indomitable's `unitRevived` payout landed at magnitude **30**. God Hand Passive 2 then
+  survived at 1 on a later attack, with the breakdown stage naming itself *"God Hand: Twelve
+  Labors: survives at 1"* and the ledger recording two distinct identities
+  (`normal:…` and `ability:…`) for the two attacks.
+- **Battle Continuation's revival spent for nothing**, which is the §46.6 reading observed rather
+  than argued: against 424 overkill its `5d20` cannot reach, so the cooldown was charged (9 turns,
+  3◈ at rank A), no Health was restored, **no fallback ran**, and Heracles was defeated with eleven
+  God Hand charges unused. Documented behaviour, and considerably sharper seen than read.
+- **Nine Lives** end to end — base 160 → crit 187 → ×4+100 = 848 → 898 with Divinity, the Def Dwn
+  rider landing and the Master charged 53.
+- **Indomitable**, both buffs, cooldown 12.
+- **Bravery's mental-debuff resistance**, which is where §46.4-J was found. Now **50%** with Mad
+  Enhancement off and **100%** with it on — the second half being his own *"has no effects when Mad
+  Enhancement is Active"* — while a non-mental control stays at 100% in both.
+- **The Suspend Skill Command Spell**, §46.8's finding 3, never previously run. `active: true →
+  false` while `cannotDeactivate` stayed **true** throughout, `suspendedUntil` stamped at tick 18 +
+  3, Master charged 3 → 2. This is the first evidence for §46.4-B's standing claim that a Command
+  Spell *"spends itself through `suspendSkill`, a different write"* and so beats the flag that
+  refuses every click and every forced deactivation.
+
+*Found while pressing:* §16.5's **ZON penalty** never applied (fixed; verified live at −34,
+228 → 194) and §46.4-J's **inverted sign** (fixed; five clauses). Both had been traced as correct.
+
+
+**Asterios.** *Pressed:* the statblock; Mad Enhancement clause 1 in his shape; Chaos Labyrinthos
+opening at 81 panels with clauses 1, 2 and 3 and dealing 0 damage; the escape ladder end to end;
+Monstrous Strength offered at the Damage Step, and its label. *Traced only:* Natural Monster;
+Avyssos of Labrys; the Labyrinth's paid extension and its side effects (clauses 6 and 7); the
+owner-defeat vulnerability (clause 8); the veteran clause's *leading adjacent allies out* half —
+the gate was read live, the lead-out was not; clause 10's **attack** half, where only the effect
+half was pressed; and `regionSizeOverride`, because the match was not in Greece, so the 11×11 was
+never seen. Monstrous Strength's own +100%/+50% was offered and declined every time.
+
+**Karna.** *Pressed:* the statblock; Vasavi Shakti's activation landing on 150 and rank A; Kavacha
+and Kundala's −90% reaching stage 4 of the pipeline; its upkeep on all three branches. *Traced
+only:* Magic Resistance in full, including the Instakill/Death carve-out and Erase's immunity —
+argued from the severity routing, never rolled; Riding, and therefore Double Move, Riding Attack
+and Passenger Seat; Divinity; Discernment of the Poor; Uncrowned Arms Mastership's toggle and its
+once-per-Round limit; End of Charity, including the Noble-Phantasm cooldown chooser; Mana Burst
+(Flames); Flash of the Sun God; and all four Noble Phantasms as *resolutions* — Brahmastra's fork
+was evaluated against a real board's options but the Noble Phantasm was never fired, and Vasavi
+Shakti's active, Brahmastra Kundala and the four remaining permanent Vasavi clauses (the Divinity
+ladder, the 50% Burn, the per-Process upkeep) were never resolved.
+
+**Penthesilea.** *Pressed:* the statblock at its derived 1350; Hatred of Achilles' compulsion
+forcing the mode on; `self:modeHeld`; the conditional floor in both states; Outrage Amazon's reach.
+*Traced only:* Charisma and its three negations; Golden Rule (Beauty); Howl of the War God;
+Goddess of War's four clauses including the Divinity rank shift; Outrage Amazon as a *resolution*;
+and the compulsion's second half — *"she will constantly Move towards and Attack said Unit"* — which
+was never exercised at all.
+
+**Medea.** *Pressed:* the statblock; Item Construction's chance contributions, before and after.
+*Traced only:* everything else — Territory Creation's two passives (both need a Home Base, which
+the test board did not have); High-Speed Divine Words; Golden Fleece; Teachings of Circe; Aero,
+Argos, Keraino, Trofa and Atlas; the Dragon Tooth Warriors, so the summon roll, the type roll, the
+adjacency protection and the per-warrior cooldown are all unexercised; Rain of Light; and Rule
+Breaker, whose contract cut and Command Spell transfer are the most consequential untested clause
+in this audit. Item Construction's non-stacking was read, not contested with a second instance.
+
+**EMIYA.** *Pressed:* the statblock; the two Noble Phantasm reaches before and after Range Up.
+*Traced only:* the range bands — read off the projection, never resolved by attacking at Range 3 or
+higher; Magecraft, whose `ofCategory` was read rather than fired (Range Up was injected directly
+rather than earned by using a Thaumaturgy Spell). *Untouched:* Independent Action, Magic
+Resistance, Clairvoyance, Hawkeye, both Eye of the Mind (True) documents and the B→EX swap at 20%
+Health, Reinforcement, Tracing, Trace On with its AC and BC branches, Kanshou & Bakuya, Overedge,
+Rho Aias, Unlimited Blade Works, and the Projection: Unlimited Blade Works copy spell — thirteen of
+his seventeen abilities.
+
+### 46.13.2 Fixes that were never pressed
+
+A fix verified only by a unit test is a fix verified the way §46.1 warns against.
+
+| Fix | Verified by |
+|---|---|
+| **§46.4-C** for Castor, Pollux, Kingprotea and Raikou | Build-time instantiation and unit tests. **Never on a board** — only Heracles, Asterios and Penthesilea were placed |
+| **§46.4-F**, Anastasia's two anchors | Unit tests and the validator. **Anastasia was never placed on a board** |
+| **§46.11** for Van Gogh's Item Construction and Existence Outside The Domain | Source assertions. **Van Gogh was never placed on a board** |
+| Karna's *Mana Burst (Flames)* reach | Source only; his Range does not move, so there is nothing to observe without a buff he does not have |
+| Medea's *Rain of Light* reach | Source only, for the same reason |
+| The **Max Health override** (§46.6) | Pressed for Asterios (1700) and Penthesilea (1350). Castor and Pollux were never placed |
+| `withoutModeHeld`, the recursion break | Unit test, plus every live board since. Never deliberately re-provoked after the fix |
+| `involvedTurnEnd` | Pressed for Karna. **No check that other content on `actedTurnEnd` did not regress** — Mad Enhancement's drain is the only other user and it was re-measured, but not as a deliberate regression test |
+
+### 46.13.3 Subsystems this audit never exercised
+
+Not gaps in the system — gaps in *this pass*. Anything here could be carrying a defect of exactly
+the kind §46.4 collects, and nothing in six Servants' worth of pressing would have found it:
+
+- **Command Spells.** Fifteen of the seventeen, and the §12.11 interrupt protocol. **Suspend Skill
+  has now been spent** through `spendCommandSpell` and is recorded under Heracles; it is the only
+  one, and it was chosen because a standing claim in §46.4-B depended on it.
+- **The Counter rung.** Offered repeatedly and declined every single time.
+- **Injury Rolls, Block, Evade and Luck Checks.** Injury Rolls have since been seen resolving in
+  the combat log (*"injury: HP Herc (2)"*) as a side effect of pressing Battle Continuation, and an
+  Evade was rolled to force Mad Enhancement's unfavourable table — but neither was tested *as* a
+  subsystem, and Block and Luck Checks remain untouched.
+- **Master actions**, contracting, conquest and the multi-Servant tax.
+- **Terrain, the Grail, victory, day/night, Home Base** — Home Base regeneration was seen only as
+  noise contaminating a drain measurement, never tested on purpose.
+- **Platforms and Scene Levels**, and summons generally.
+- **The turn HUD and the action budget**, beyond pressing End Turn.
+- **War setup.** Every board in this audit was hand-built with `Combat.create` and a hand-bumped
+  round, which §46.2 lists as a hazard and which no measurement here has been re-run through the
+  real flow.
+
+### 46.13.4 The rest of the roster
+
+**Nineteen of the twenty-five authored Servants are untouched by this audit**: Serenity, Semiramis,
+Scáthach, Kingprotea, Castor and Pollux, Raikou, Anastasia & Viy, Achilles, Mannanán mac Lir,
+Medusa, Nemo, Kiritsugu, Francis Drake, Ozymandias, Pale Rider, Quetzalcoatl, Van Gogh, Jack the
+Ripper and Nursery Rhyme. Four of them have had a clause repaired *by* this audit without ever
+being audited themselves, which §46.13.2 records.
+
+**Four sheets have no implementation at all** and were not examined beyond noticing that: Hassan of
+the Hundred Faces, Katō Danzō, Proto Gil and Yan Qing.
+
+### 46.13.5 The rate this section exists to defend
+
+Six Servants audited, **sixteen defects found**, and **ten of the sixteen were not the audited
+Servant's own** — they were general defects their sheets happened to be standing on. §46.4-J alone
+reached five clauses across four sheets and one effect, only one of which belongs to Heracles.
+
+**Five survived a complete paper trace** that declared them correct: God Hand's ledger, the
+Labyrinth's escape ladder, Item Construction's valence, §16.5's ZON penalty, and Bravery's sign.
+The last is the sharpest of them, because two unit tests covered the clause and both **asserted the
+defect from the source** — they restated the wrong number and agreed with it, so content and test
+were wrong together and neither could fail. Only asking the applier what percentage came out could
+separate them, and nothing did until a live board was made to answer.
+
+The honest reading of that is not that the audited six are now clean — only Heracles is finished by
+§46.1's standard. It is that pressing finds things tracing does not, that a source assertion is not
+a test of behaviour, and that most of the clauses above have only been traced.

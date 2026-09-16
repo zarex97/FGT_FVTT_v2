@@ -222,7 +222,14 @@ describe("Bravery", () => {
 
   it("resists Mental debuffs by classification, not by a list of names", () => {
     const passive = bravery.passiveRules[0];
-    expect(passive).toMatchObject({ key: "ApplicationChance", direction: "incoming", volatility: "mental", value: -50 });
+    // POSITIVE, because an incoming value SUBTRACTS (`base + inflictBonus -
+    // resist`). This assertion read `-50` for as long as the file existed --
+    // it restated the sheet's "reduced by 50%" as a signed delta and agreed
+    // with the content, so both were wrong together and the test passed the
+    // whole time. Charm measured 150% against Heracles on a live board.
+    // `application-chance-sign.test.mjs` asks the applier instead, which is
+    // the only thing that can tell the two signs apart (Ch. 46 §46.4-J).
+    expect(passive).toMatchObject({ key: "ApplicationChance", direction: "incoming", volatility: "mental", value: 50 });
   });
 
   it("buffs STR damage only", () => {

@@ -3736,6 +3736,19 @@ async function applyDamage(state, message) {
     rolls: {
       [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
       negation: await rollNegation(defender, state.attack?.kind === "np"),
+      // §16.5's ZON penalty: *"when a Servant deals damage with an Attack while
+      // outside of its Master's ZON, damage dealt is reduced by 5d10"*.
+      //
+      // Stage 9 has implemented it since the pipeline was written and reads it
+      // from here -- `s.ctx.rolls?.zonPenalty ?? 0` -- and NOTHING in the
+      // resolution ever supplied it, so the rule was collected, correctly
+      // gated, correctly exempted by Ozymandias's waiver, and worth exactly
+      // zero. `rules/preview.mjs` did supply it, so the confirmation dialog
+      // promised a reduction the resolution then declined to apply.
+      //
+      // Rolled only when it can apply, so a Servant standing inside its
+      // Master's ZON does not litter the log with a die nobody reads.
+      zonPenalty: attacker?.outsideZon ? (await new Roll("5d10").evaluate()).total : 0,
       // Modifiers whose magnitude is rolled per damage event. Rolled here,
       // once, for both sides, so the pipeline stays pure and a replay of the
       // same rolls reproduces the same number.

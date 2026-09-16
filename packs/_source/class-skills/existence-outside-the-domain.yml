@@ -40,7 +40,11 @@ passiveRules:
   # Passive 1. Three tiers, three numbers, all three stated by the sheet -- so
   # none is computed. Instakill rides the FIRST tier ("including Instakill"),
   # which is the opposite of Magic Resistance, where Instakill is its own.
-  - { key: ApplicationChance, direction: incoming, valence: offensive, severity: [normal, instakill], value: 25 }
+  # NO `valence:` -- *"Chance of being inflicted by debuffs including Instakill
+  # is reduced by 25%"*, unqualified. See `medea-item-construction.yml`: the
+  # narrowing dropped eleven of thirty-five debuffs, `Def Dwn` among them
+  # (Ch. 46 §46.11).
+  - { key: ApplicationChance, direction: incoming, severity: [normal, instakill], value: 25 }
   - { key: ApplicationChance, direction: incoming, severity: death, value: 10 }
   - { key: ApplicationChance, direction: incoming, severity: erase, value: 5 }
 

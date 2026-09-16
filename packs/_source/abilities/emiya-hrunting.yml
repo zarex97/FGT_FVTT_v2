@@ -22,7 +22,11 @@ targeting:
   # Range 4 + 3 = 7, and a MINIMUM of 2: "cannot be used on a Unit directly
   # next to EMIYA". `minRange` was honoured only by the panel anchor until now,
   # and this picks a Unit.
-  anchor: { kind: targetUnit, range: 7, minRange: 2 }
+  # *"Range+3 for the Combat Process"*, and *"cannot be used on a Unit directly
+  # next to EMIYA"* -- a relative reach with an absolute floor, which is exactly
+  # what the two fields say separately. The reach was frozen at 7 (his written 4
+  # plus 3); `minRange` was right all along (Ch. 46 §46.12).
+  anchor: { kind: targetUnit, rangeBonus: 3, minRange: 2 }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: all, count: 1 }
   limits: { requiresZon: true }

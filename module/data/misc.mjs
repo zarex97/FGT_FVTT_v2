@@ -85,6 +85,22 @@ export class MatchData extends foundry.abstract.TypeDataModel {
     return {
       // Monotonic across the whole match, so absolute expiries never collide.
       globalTurn: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+
+      // Which CONNECTION ran a given boundary's scheduler sequence.
+      //
+      // `game.users.activeGM` elects one GM *user*, and `isSelf` is true for
+      // every connection that user holds — so two browser tabs on one
+      // Gamemaster each ran the whole turn-end sequence and every scheduled
+      // effect ticked twice: drains, periodics, cooldown advances, expiries.
+      // `game.users.filter(u => u.active)` will not show it, because Foundry
+      // tracks activity per user and not per connection (Ch. 46 §46.4-D).
+      //
+      // `{turn, round, token}` rather than a bare "last boundary run": the
+      // token is what makes the election decidable. Foundry gives a system no
+      // server-side compare-and-set, so both connections write and the server
+      // serialises them; whichever token survives is the one connection that
+      // proceeds. Runtime state, never authored.
+      scheduleClaim: new fields.ObjectField({ required: false, initial: () => ({}) }),
       phase: new fields.StringField({ initial: "day", choices: ["day", "night", "none"] }),
 
       // Re-rolled EVERY round, not once at setup (Ch. 41 Q32). Two lists, not

@@ -148,7 +148,9 @@ describe("his shared class skills", () => {
     // 15%" — and Heracles's A+ Bravery prints 25/15. Read as 25.
     expect(buff).toMatchObject({ id: "atkUpStr", magnitude: 25, npMagnitude: 15, duration: "1◈" });
     const mental = bravery.passiveRules.find((r) => r.key === "ApplicationChance");
-    expect(mental).toMatchObject({ volatility: "mental", value: -50, direction: "incoming" });
+    // Positive resists: the applier computes `base + inflictBonus - resist`.
+    // See `application-chance-sign.test.mjs` (Ch. 46 §46.4-J).
+    expect(mental).toMatchObject({ volatility: "mental", value: 50, direction: "incoming" });
   });
 
   it("leaves Heracles's Mad Enhancement clauses out of the shared document", () => {
