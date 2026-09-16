@@ -1,0 +1,75 @@
+# Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
+#
+# THE FIRST `Script` IN THE CORPUS. Ch. 34 and Ch. 36 both close their tallies
+# with "Script elements: zero", and Ch. 44 §44.6 budgets four across ~130
+# abilities; this is one of them, and the only one built.
+#
+# Why this one is not data: every other ability in the corpus is a COMPOSITION
+# of named mechanisms. This one walks a unit set, resolves a historical index,
+# diffs two states and emits a heterogeneous batch -- and it has exactly one
+# customer. Ch. 24: "Scripts are the escape hatch, not the norm." A rule element
+# generalising "rewind" from a single example would be inventing a vocabulary
+# for a shape nothing else has. If a second rewind ever appears, generalise then
+# -- the rule Ch. 44 already applies to `innocentWorld` and `heel`.
+schema: 1
+id: nursery-queens-glass-game
+name: "The Queen's Glass Game: Perpetual Engine - Maiden Empire"
+rank: C
+isNP: true
+categorizedAsNP: true
+isPassive: true
+npTags: [antiSelf, antiWorld]
+kind: noblePhantasm
+# THE GATE. Without this the recorder never switches on, this Noble Phantasm has
+# no past to read, and both of its effects do nothing at all -- silently, which
+# is why it is declared in the schema and in both allowlists.
+requiresHistory: true
+description: |
+  (Passive) Has two different effects, as follows-
+  1. Activates at the end of the Turn, 3◈ Turns after Nursery enters Combat, if there are still enemy
+     Units within a 3 panel area of Nursery at the end of that Turn; the Stats, Parameters, Buffs,
+     Debuffs, Cooldowns and other existing effects of all Units within a 3 panel area of Nursery are
+     returned to what they were 3◈ Turns ago. Does not affect Nameless Forest Tokens.
+     At the end of every Round, if there are no enemy Units within a 3 panel area of Nursery, the
+     duration of time passed for this NP is reset.
+  2. Activates when Nursery is defeated. The same are returned to what they were 6◈ Turns before
+     Nursery was defeated (includes herself). Does not affect Nameless Forest Tokens. Can only be
+     used once during the entire game.
+passiveRules:
+  # EFFECT 1. At the end of the Turn, after all other end-of-turn processing
+  # (Ch. 07 §7.7), so it undoes that Turn's events too.
+  #
+  # "Enters Combat" is a moment this engine does not have -- no event, no flag,
+  # no state, and the phrase occurs once in the whole repository, in ch. 43's
+  # quotation of this same sheet. It is DEFINED as the first Turn end at which
+  # an enemy stands within her 3-panel ring, derived from the clause's own next
+  # sentence: the RESET is keyed on that predicate, so the START must be too.
+  - key: Script
+    script: nurseryRhyme.rewind
+    event: turnEnd
+    params:
+      rewind: "3◈"
+      # "all Units within a 3 panel area" -- she is not excluded by effect 1's
+      # text, but she is not named either; effect 2 adds "(includes herself)"
+      # precisely because effect 1 does not.
+      includesSelf: false
+      requiresEnemyInRing: true
+      afterTicks: "3◈"
+      resetWhenRingEmpty: true
+
+  # EFFECT 2. `finalDefeat`, NOT `unitDefeated` -- that event fires at the TOP of
+  # `resolveDefeat`, before the revival query, and its own comment says so:
+  # "Handlers first: unitDefeated is where content that is not a revival hangs."
+  # A handler there would spend her once-per-game rewind on a Nursery whom Guts
+  # was about to save.
+  #
+  # "(includes herself)" -- and she stays defeated. The rewind is a parting shot,
+  # not a resurrection: ch. 43 draws the same distinction, "a rewind that
+  # restores health undoes a kill, though not a defeat."
+  - key: Script
+    script: nurseryRhyme.rewind
+    event: finalDefeat
+    params:
+      rewind: "6◈"
+      includesSelf: true
+      oncePerGame: true

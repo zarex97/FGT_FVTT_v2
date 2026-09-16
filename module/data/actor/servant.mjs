@@ -107,6 +107,15 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // already sets the precedent for a summon fact that outlives its area.
       // Runtime state, never authored, so it is not in `actorSystem()`.
       fieldSummonStats: new fields.ObjectField({ required: false, initial: () => ({}) }),
+      // The Queen's Glass Game's second effect, spent.
+      //
+      // > *"Can only be used once during the entire game."*
+      //
+      // On the ACTOR rather than on an effect instance, because *"the entire
+      // game"* spans her defeat and any revival: a Nursery brought back by a
+      // Command Spell and defeated again gets nothing. World state, so it is
+      // not an authored key.
+      glassGameSpent: new fields.BooleanField({ initial: false }),
 
       // ZON exceptions, both from the reference set (Ch. 16 §16.3). Semiramis
       // aboard the Hanging Gardens is exempt outright; the Dioscuri satisfy ZON

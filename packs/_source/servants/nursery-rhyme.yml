@@ -1,7 +1,7 @@
 # Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
 #
-# PARTS 1-3 OF 4. One more ability ref arrives with the rewind (The Queen's
-# Glass Game). The list below is written so that is an append.
+# COMPLETE. All four parts: the core kit, the summons and the [Vorpal Blade],
+# the Nameless Forest, and The Queen's Glass Game -- the corpus's first Script.
 schema: 1
 id: nursery-rhyme
 name: "Nursery Rhyme"
@@ -45,3 +45,5 @@ abilities:
   - { ref: nursery-jabberwock }
   # Part 3.
   - { ref: nursery-nameless-forest }
+  # Part 4, and the last.
+  - { ref: nursery-queens-glass-game }

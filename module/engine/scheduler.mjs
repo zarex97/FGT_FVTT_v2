@@ -31,6 +31,7 @@ import * as I from "./intents.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
 import { deathRollOutcome } from "../rules/nameless-forest.mjs";
+import { runScript } from "./scripts.mjs";
 
 /**
  * @typedef {object} SchedulerContext
@@ -338,6 +339,27 @@ export function fireEvent(event, units, ctx) {
       // them.
       /** @type {Map<string, number>} */
       const pending = new Map();
+      // A SCRIPT rather than an action list.
+      //
+      // `rules/elements.mjs`'s `Script` element has collected these since it was
+      // written and nothing had ever read `handler.script` -- the registry it
+      // promises did not exist, and the corpus had zero Scripts, so the hatch
+      // had never been opened. This is where one runs.
+      //
+      // Closed and name-keyed: `runScript` refuses a name it does not hold and
+      // logs the refusal rather than throwing, because a compendium is data
+      // other people wrote.
+      if (handler.script) {
+        out.push(...runScript(handler.script, {
+          self: u, board: ctx.board, history: ctx.history ?? {},
+          tick: ctx.tick ?? 0, turnsPerRound: ctx.turnsPerRound ?? 3,
+          params: handler.params ?? {},
+          rewindTurns: resolveTicks(parseTick(handler.params?.rewind ?? "0◈"), ctx),
+          includesSelf: handler.params?.includesSelf === true,
+        }));
+        continue;
+      }
+
       for (const action of handler.actions ?? []) {
         const produced = dispatch(action, u, handler, { ...ctx, pending });
         for (const i of produced) {
@@ -1368,6 +1390,61 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
     ...(revival.source ? spendRevival(unit, revival, ctx) : []),
     I.defeat(unit.id, cause),
     ...linkedDeathIntents(unit, cause),
+    ...glassGameOnDefeat(unit, ctx),
+  ];
+}
+
+/**
+ * The Queen's Glass Game's second effect, on the Unit's FINAL defeat.
+ *
+ * > *"Activates when Nursery is defeated. …the Stats, Parameters, Buffs,
+ * > Debuffs, Cooldowns, and other existing effects of all Units within a 3
+ * > panel area of Nursery are returned to what they were 6◈ Turns before
+ * > Nursery was defeated (includes herself). … Can only be used once during
+ * > the entire game."*
+ *
+ * **Here, and not on the `unitDefeated` event.** That event fires at the TOP of
+ * `resolveDefeat`, before the revival query — its own comment says why:
+ * *"Handlers first: `unitDefeated` is where content that is not a revival
+ * hangs."* A handler there would spend her once-per-game rewind on a Nursery
+ * whom Guts was about to save.
+ *
+ * This is the tail, reached only once the chain has resolved TO a defeat, which
+ * is the same distinction `linkedDeathIntents` above draws in the same words
+ * for the Dioscuri.
+ *
+ * R7: *"once during the entire game"* means once across her defeat AND any
+ * revival, so the spent flag lives on the ACTOR rather than on an effect
+ * instance — a Nursery revived by a Command Spell and defeated again gets
+ * nothing.
+ *
+ * @param {object} unit the unit that was truly defeated
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+function glassGameOnDefeat(unit, ctx) {
+  if (unit?.glassGameSpent) return [];
+  const handler = (unit?.eventHandlers ?? []).find(
+    (h) => h.script === "nurseryRhyme.rewind" && (h.events ?? []).includes("finalDefeat"),
+  );
+  if (!handler) return [];
+
+  const intents = runScript("nurseryRhyme.rewind", {
+    self: unit,
+    board: ctx.board,
+    history: ctx.history ?? {},
+    tick: ctx.tick ?? 0,
+    rewindTurns: resolveTicks(parseTick(handler.params?.rewind ?? "6◈"), ctx),
+    // *"(includes herself)"* -- and she stays defeated. `rewindIntents` sets
+    // `clearsDefeat: false` on every entry it emits.
+    includesSelf: true,
+  });
+  if (intents.length === 0) return [];
+
+  return [
+    ...intents,
+    I.markGlassGameSpent(unit.id),
+    I.log({ kind: "glassGameRewind", unitId: unit.id, source: handler.source }),
   ];
 }
 

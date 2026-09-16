@@ -513,6 +513,9 @@ async function writeGroup(group, io) {
     case "rewind":
       await io.rewind(unitId, intents.at(-1).state, intents.at(-1).clearsDefeat);
       break;
+    case "markGlassGameSpent":
+      await io.markGlassGameSpent(unitId);
+      break;
     case "suppressRule":
       await io.suppressRules(unitId, intents.map((i) => i.scope));
       break;

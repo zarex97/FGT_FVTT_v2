@@ -1980,8 +1980,22 @@ export const EXECUTORS = Object.freeze({
    * Scripts are named entries in a closed registry, never `eval`. Compendia are
    * shared, so content must not be able to execute.
    */
-  Script(el, { source, out }) {
-    out.eventHandlers.push({ event: el.event ?? "manual", script: el.script, source });
+  Script(el, { source, ability, out }) {
+    out.eventHandlers.push({
+      // `events`, PLURAL, because that is what `listensFor` reads. Pushed as a
+      // singular `event` since this element was written, so a Script handler
+      // could never have matched an event even once something dispatched one --
+      // which nothing did, because the registry did not exist either.
+      events: Array.isArray(el.event) ? [...el.event] : [el.event ?? "manual"],
+      script: el.script,
+      // Whatever the script needs to know, carried verbatim. A script is the
+      // escape hatch: its parameters are its own business, and inventing a
+      // schema for them here would be inventing the vocabulary the hatch exists
+      // to avoid.
+      params: el.params ?? {},
+      abilityId: ability?.id ?? null,
+      source,
+    });
   },
 });
 

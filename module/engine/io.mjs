@@ -908,6 +908,16 @@ export function worldIO() {
       }
     },
 
+    /**
+     * Spend The Queen's Glass Game's once-per-game rewind.
+     * @param {string} unitId
+     */
+    async markGlassGameSpent(unitId) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      await actor.update({ "system.glassGameSpent": true });
+    },
+
     async defeat(unitId, cause) {
       await countTowardsGrail(unitId, cause);
       await freeContractedServants(unitId);

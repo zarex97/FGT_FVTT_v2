@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
+  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "markGlassGameSpent", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // `setStage` decrements a staged effect without deleting it, and `event`
@@ -108,6 +108,9 @@ const ORDER = Object.freeze({
   // undo. Beside `defeat`, which is the other thing that acts on the whole
   // Unit at once.
   rewind: 8,
+  // After the rewind it records, so a failure part-way leaves the clause
+  // unspent rather than spent-and-not-applied.
+  markGlassGameSpent: 9,
   dismissSummon: 9,
   // Bookkeeping on the summon's own clock, alongside the other stat writes --
   // and well before the dismissal that reads it, so a stay extended and expired
@@ -249,6 +252,21 @@ export const suppressRule = (unitId, scope) =>
  */
 export const rewind = (unitId, state, { clearsDefeat = false } = {}) =>
   ({ t: "rewind", unitId, state, clearsDefeat });
+
+/**
+ * Spend The Queen's Glass Game's once-per-game rewind.
+ *
+ * > *"Can only be used once during the entire game."*
+ *
+ * On the ACTOR rather than on an effect instance, because *"the entire game"*
+ * spans her defeat and any revival: a Nursery brought back by a Command Spell
+ * and defeated again gets nothing.
+ *
+ * @param {string} unitId
+ * @returns {object}
+ */
+export const markGlassGameSpent = (unitId) =>
+  ({ t: "markGlassGameSpent", unitId });
 
 export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });
