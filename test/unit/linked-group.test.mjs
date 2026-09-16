@@ -19,6 +19,7 @@ import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 import { collectAuras } from "../../module/rules/auras.mjs";
+import { resolveDefeat } from "../../module/engine/scheduler.mjs";
 
 const at = (i, j) => ({ i, j });
 
@@ -330,5 +331,59 @@ describe("P7 — Magic Resistance reaches Castor when he stands beside Pollux", 
     const p = withAura("pollux", at(3, 3), ["castor"]);
     const c = linked("castor", at(5, 3), ["pollux"]);
     expect(collectAuras(c, boardOf([p, c]))).toHaveLength(0);
+  });
+});
+
+describe("D4 / Q11 — if either twin is truly defeated, so is the other", () => {
+  const twin = (id, partnerId, over = {}) => ({
+    id, name: id, kind: "servant", health: 0, maxHealth: 1500,
+    linkedGroup: {
+      id: "dioscuri", memberIds: [partnerId], leash: 2, unitWeight: 0.5,
+      linkedDeath: "ignoresRevival", sharedCooldowns: "byName",
+    },
+    revivals: [], eventHandlers: [], ...over,
+  });
+
+  const ctx = { tick: 0, turnsPerRound: 3, overkill: 0, rolls: {} };
+
+  it("defeats the partner when a twin is truly defeated", () => {
+    const out = resolveDefeat(twin("castor", "pollux"), ctx);
+    const defeats = out.filter((i) => i.t === "defeat");
+    expect(defeats.map((d) => d.unitId)).toEqual(["castor", "pollux"]);
+  });
+
+  it("names the binding as the partner's cause, not the damage", () => {
+    // The partner did not die of the hit; they died of the binding, and the
+    // log should be able to say which.
+    const out = resolveDefeat(twin("castor", "pollux"), ctx, "damage");
+    expect(out.find((i) => i.t === "defeat" && i.unitId === "pollux").cause).toBe("linkedDeath");
+  });
+
+  it("does NOT fire while the twin's own revival is bringing her back (Q11)", () => {
+    // *"imagine Pollux's HP is reduced to 0, her Guts will revive her, so in
+    // the moment she is initially reduced to 0 it shouldn't link-kill Castor,
+    // as she is not truly dead."* The whole ruling is WHERE this hangs: the
+    // tail of resolveDefeat runs only once the chain resolved TO a defeat.
+    const guts = twin("pollux", "castor", {
+      // `percentOfMax` is a PERCENTAGE: `resolveRevival` divides it by 100.
+      revivals: [{ id: "guts", source: "Guts", priority: 1, percentOfMax: 50, charges: 1 }],
+    });
+    const out = resolveDefeat(guts, ctx);
+    expect(out.some((i) => i.t === "defeat")).toBe(false);
+    expect(out.some((i) => i.t === "heal")).toBe(true);
+  });
+
+  it("does nothing for a group that does not link death", () => {
+    const solo = twin("a", "b", {
+      linkedGroup: { id: "g", memberIds: ["b"], leash: 2, unitWeight: 0.5, linkedDeath: "" },
+    });
+    expect(resolveDefeat(solo, ctx).filter((i) => i.t === "defeat").map((d) => d.unitId))
+      .toEqual(["a"]);
+  });
+
+  it("does nothing for an ungrouped Servant", () => {
+    const karna = { id: "karna", kind: "servant", health: 0, revivals: [], eventHandlers: [] };
+    expect(resolveDefeat(karna, ctx).filter((i) => i.t === "defeat").map((d) => d.unitId))
+      .toEqual(["karna"]);
   });
 });
