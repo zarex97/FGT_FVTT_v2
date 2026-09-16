@@ -174,6 +174,15 @@ the rules to the game, and the interfaces that let a player reach them. Concrete
    **hand-imported** actors, which exercise the one derivation that was already correct. A fix
    tested only on the path it was written for is a fix tested on half the system.
 
+   **Karna then produced the same shape once more, in miniature.** `oncePerRound` is read by
+   `rules/costs.mjs`, whose comment names the single ability it was written for — and that ability
+   is a *mode* with no `phases`, so its toggle never calls `useSkill`, never reaches the gate, and
+   recorded nothing for a gate to read. The only content in the corpus declaring the field was the
+   only content that could not be limited by it, and with no cooldown the field was its sole
+   ration. Ch. 46 §46.4-L.
+
+   Three entries in §46.4 now share one sentence: *right, collected, and never asked.*
+
 10. **`isScheduler()` elects one GM *user*, not one connection.**
    `game.users.activeGM?.isSelf` is true for **every** tab that user has open, so two windows on
    one Gamemaster each run the whole turn-end sequence and every scheduled effect — drains,

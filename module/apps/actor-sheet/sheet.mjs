@@ -140,6 +140,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // A lockout is measured against the match's clock, so it cannot be
       // stamped when there is no match to measure it against.
       clockRunning: clockRunning(),
+      // The Round this press happens in, so a use recorded in an earlier one
+      // does not bite in this one (Ch. 46 §46.4-L).
+      round: game.combats?.active?.round ?? null,
     });
     if (!verdict.ok) {
       ui.notifications.warn(game.i18n.format(`FGT.Mode.${verdict.reason}`, {
@@ -178,6 +181,24 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.active": active,
       ...(active ? { "system.toggledAt": tick } : {}),
     });
+
+    // RECORD the press, for the modes that ration it. `canToggleMode` above can
+    // only refuse a second switch if something wrote the first one down, and
+    // this path wrote nothing: a mode with no `phases` never calls `useSkill`,
+    // which is where every other use in the game is recorded. Narrowed to the
+    // modes that declare a limit so an ordinary free toggle -- Mad Enhancement,
+    // Presence Concealment, Riding -- does not start appearing in a record that
+    // `oncePerTurn` and `abilityOffCooldown` also read (Ch. 46 §46.4-L).
+    if (item.system?.oncePerRound || item.system?.oncePerTurn) {
+      const [{ applyWorldIntents }, I] = await Promise.all([
+        import("../../engine/applier.mjs"),
+        import("../../engine/intents.mjs"),
+      ]);
+      await applyWorldIntents(
+        [I.recordUse(this.document.id, item.id, item.system?.contentId ?? null)],
+        "toggleMode",
+      );
+    }
   }
 
   /**

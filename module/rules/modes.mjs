@@ -57,7 +57,7 @@ import { rollOptionsFor } from "./options.mjs";
  * @returns {ToggleVerdict}
  */
 export function canToggleMode(
-  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true } = {},
+  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true, round = null } = {},
 ) {
   const sys = item?.system ?? {};
 
@@ -99,6 +99,37 @@ export function canToggleMode(
   // Held on by a condition rather than by a neighbour. Positional like a
   // compulsion, and re-answered every time it is asked for the same reason.
   if (!active && !suspended && forcedOn(item, unit)) return { ok: false, reason: "forced" };
+
+  // "Can only be used once per Round", on the path a MODE is switched by.
+  //
+  // `rules/costs.mjs` has read `oncePerRound` since it was written and its
+  // comment names the ability it was written for -- Karna's Uncrowned Arms
+  // Mastership, whose two effects are a choice only because switching between
+  // them is rationed. But that gate is on the ABILITY-USE path, and this skill
+  // is a mode with no `phases`, so the sheet's toggle never calls `useSkill`,
+  // never reaches `costs.mjs`, and never recorded the use. It is also the only
+  // content in the corpus carrying the field: the one ability the gate exists
+  // for was the one ability that could not reach it (Ch. 46 §46.4-L).
+  //
+  // BOTH DIRECTIONS. The active clause is *"switch the effect of this Skill
+  // from 1 to 2, or 2 to 1"* -- each press is a use, so gating only the switch
+  // ON would leave every other press free.
+  //
+  // Matched on item id AND content id because `io.recordUse` stamps whichever
+  // it has, and matching one of the two counts half the uses -- the drift
+  // `costs.mjs` records for `oncePerTurn`. The round is compared only when the
+  // caller supplies one: a record carries the Round it was made in, and a stamp
+  // from an earlier Round must not bite in this one.
+  if (sys.oncePerRound) {
+    const record = unit?.roundState ?? {};
+    const sameRound = round === null || round === undefined
+      || record.round === null || record.round === undefined
+      || record.round === round;
+    const used = (record.abilitiesUsed ?? []).some(
+      (id) => id === item?.id || id === sys.contentId || id === sys.slug,
+    );
+    if (sameRound && used) return { ok: false, reason: "oncePerRound" };
+  }
 
   // The two-way lockout. "And vice versa" in the source: it governs switching
   // on just as much as switching off, so one clock answers both.
