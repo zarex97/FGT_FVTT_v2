@@ -593,6 +593,32 @@ Seventeen Servants added in `0.2.0`.
 ⁵ No Range because it cannot perform Normal Attacks; its reach is the Contagion aura.
 ⁶ Independent Action is her only class skill, and Independent Action does not identify a class.
 ⁷ Independent Action A+/EX: *"Sustainability does not apply."*
+
+> **Anastasia & Viy — built and live-tested 2026-09-16.**
+>
+> **Every figure on her sheet agrees with the rank tables**, which is worth
+> recording because the Servant authored immediately before her did not: STR
+> `D++` → 75 + 2×10 = **95**, MAG `C` → **150**, END `E` → **500**, and the
+> Note's own *"e.g. BA=110"* is 95 + 15. `validate:content` reports no deviation.
+>
+> Her Note is **`rangeBanded`**, which `rules/normal-attack.mjs` was written for
+> — and written for EMIYA, whose clause is the same sentence with 20% in place
+> of her 10%. `component: str` inside the band is load-bearing rather than
+> decorative: her ranged shot would otherwise be a MAG attack that a Rank D
+> Magic Resistance negates outright.
+>
+> **Her class skill is a variant** (`class-independent-action-viy`), differently
+> named on the sheet and carrying a fourth passive the template lacks, but
+> keeping the shared slug so `rules/contract.mjs` still finds it. EX gives her
+> the `null` Sustainability and the ZON 3 her sheet prints, straight off the
+> tables.
+>
+> **Both Noble Phantasms are hers at once**, and no ranking is stored: Ch. 33
+> §33.4 chose computation, and `rules/np-strength.mjs` ranks Snegleta (3.5× off
+> BA(MAG) 150) above Ice Block Launcher (3× off BA(STR) 95) for itself.
+>
+> She brought **`Freeze` and `Invuln`** with her, and they are not hers — both
+> are now live for the whole roster.
 ⁸ Base 5, raised to 6 by `Levitation` — which is negated by `NP Seal`.
 
 ### What the second roster changes about the distribution

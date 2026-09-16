@@ -1,0 +1,29 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+schema: 1
+id: anastasia-spirit-eyes
+name: "Full Acceleration: Spirit Eyes"
+rank: B
+kind: skill
+slug: spiritEyes
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[aim]{Aim} for 1◈ Turns.
+  2. Applies @effect[critUpViy]{Crit Up (Viy)} for 1◈ Turns, Crit Chance of Attacks which use Base Attack (MAG)
+     is increased by 50%; if NP, 20%.
+  3. Applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 30%.
+  4. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns, NP Damage dealt is increased by 20%.
+  Cooldown: 4◈ Turns.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: aim, duration: "1◈" }
+      # Scoped to BA(MAG), which is exactly the half of her kit that throws:
+      # her ranged Normal Attack and Snegleta both use it, her melee swing does
+      # not. So this Skill is worth nothing to a Watermelon turn and everything
+      # to a Snegleta one.
+      - { id: critUpViy, duration: "1◈", magnitude: 50, npMagnitude: 20 }
+      - { id: critDmUp, duration: "1◈", magnitude: 30 }
+      - { id: npDmUp, duration: "1◈", magnitude: 20 }

@@ -1,0 +1,22 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+schema: 1
+id: anastasia-swimsuit
+name: "Swimsuit!"
+kind: skill
+slug: swimsuit
+passive: true
+description: |
+  (Passive) All Total Water Damage taken is reduced by 50% including NP.
+passiveRules:
+  # A `Ward`, not a Def Up: a Ward is the category-predicated reduction (§24.3
+  # Group 2) and lands in the same stage-4 bucket, which keeps it additive
+  # against Atk Up the way §13.4 requires. Karna's fire resistance is the same
+  # rule with a different element, and `attack:element` became a roll option
+  # when he was authored.
+  #
+  # `npValue` equals `value` because the sheet says "including NP" rather than
+  # giving a reduced NP figure.
+  - key: Ward
+    value: 50
+    npValue: 50
+    predicate: ["attack:element:water"]

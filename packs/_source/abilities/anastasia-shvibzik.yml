@@ -1,0 +1,32 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+schema: 1
+id: anastasia-shvibzik
+name: "Shvibzik (Summer)"
+rank: "B+"
+kind: skill
+slug: shvibzik
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Restores 3 Luck.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30%; if NP, 20%.
+  3. NP Cooldown is reduced by 1◈+⅔◈ Turns.
+  Cooldown: 4◈-⅓◈ Turns.
+phases:
+  - kind: statChange
+    target: self
+    changes:
+      - { stat: luck, delta: 3, clamp: true }
+  - kind: applyEffects
+    target: self
+    effects:
+      # "increased by 30%; if NP, 20%" -- an ABSOLUTE NP figure, because the
+      # sheet states both and 20 is not half of 30.
+      - { id: atkUp, duration: "1◈", magnitude: 30, npMagnitude: 20 }
+  - kind: applyEffects
+    target: self
+    rules:
+      # `ticks`, not `delta`: "1◈+⅔◈" is a ◈ expression, and the tick parser
+      # takes the `a◈ ± b/c◈` family natively.
+      - { key: CooldownDelta, scope: np, ticks: "1◈+⅔◈" }

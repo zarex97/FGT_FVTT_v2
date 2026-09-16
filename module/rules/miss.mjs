@@ -17,6 +17,8 @@
  * The step is 1.5, between Declaration and Reaction (`engine/combat-process.mjs`).
  */
 
+import { test as testPredicate } from "./predicate.mjs";
+
 /**
  * Effects that can make an attacker miss, and the chance each carries.
  *
@@ -60,6 +62,28 @@ export function missChance(attacker, options = new Set()) {
   const source = Object.keys(MISS_SOURCES).find((id) => held.includes(id));
   if (!source) return 0;
 
+  // A suppression that switches the check off outright.
+  //
+  // Anastasia's *Watermelon Splitting Master*: *"When Anastasia performs a
+  // Normal Attack at a Range of 1 to 2 while inflicted with Blind, it does not
+  // have a chance of Missing."* A Servant who inflicts Blind on herself to turn
+  // it into an offensive buff -- Ch. 44 §44.3 calls the shape "self-harm as a
+  // resource", with Van Gogh's Curse economy as the precedent. The difference
+  // is that Gogh CONSUMES her debuff and Anastasia REINTERPRETS hers.
+  //
+  // The SAME `Suppress` element Blind's own clause 3 uses, rather than a second
+  // way to switch a rule off. The predicate is evaluated HERE rather than at
+  // collection time because it asks about the ATTACK -- `attack:range:lte:2` --
+  // and the range is not known when contributions are gathered.
+  //
+  // Scoped, deliberately: an unscoped version of this would stop every Blinded
+  // attacker in the game from ever missing.
+  const suppressed = (attacker?.suppressions ?? []).some(
+    (sup) => sup.scope === "miss"
+      && (!sup.predicate || testPredicate(sup.predicate, { options })),
+  );
+  if (suppressed) return 0;
+
   if (EXEMPT_SKILLS.some((slug) => options.has(`self:skillActive:${slug}`))) return 0;
   if (options.has("self:skill:clairvoyance")) return CLAIRVOYANCE_MISS;
   return MISS_SOURCES[source];
@@ -77,4 +101,32 @@ export function missChance(attacker, options = new Set()) {
 export function missSourceOf(attacker) {
   const held = attacker?.effects ?? [];
   return Object.keys(MISS_SOURCES).find((id) => held.includes(id)) ?? null;
+}
+
+/**
+ * A chance stated per panel of separation.
+ *
+ * Anastasia's *Ice Block Launcher* is the only clause of this shape in either
+ * roster: *"a 5% chance of inflicting Instakill for each panel between
+ * Anastasia and the DU."*
+ *
+ * **"Panels between" is the distance, not the gap.** The corpus's only other
+ * use of the phrase is the Dioscuri sheet's *"the maximum distance between the
+ * two is 2 panels between them"*, which means Chebyshev 2 and is implemented as
+ * a Chebyshev 2 leash (`rules/linked-group.mjs`). Reading it as the gap would
+ * make her adjacent shot a 0% Instakill and her longest one 25% rather than 30%.
+ *
+ * An unknown distance answers **zero** rather than guessing — the same reading
+ * `normalAttackAt` takes when it cannot tell which band it is in.
+ *
+ * In this module because it is the one about *whether an attack connects*,
+ * which is the same question a per-panel Instakill asks.
+ *
+ * @param {number} perPanel percentage points per panel
+ * @param {number|null} distance Chebyshev panels between the two units
+ * @returns {number} 0–100
+ */
+export function chanceFromDistance(perPanel, distance) {
+  if (typeof distance !== "number" || !Number.isFinite(distance)) return 0;
+  return Math.min(100, Math.max(0, perPanel * distance));
 }

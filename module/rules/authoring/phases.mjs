@@ -71,6 +71,10 @@ export const PHASE_DESCRIPTORS = describeTable([
         { key: "duration", type: "tickExpr" },
         { key: "magnitude", type: "number" },
         { key: "uses", type: "number" },
+        // A chance stated PER PANEL of separation rather than as a flat figure.
+        // Anastasia's Ice Block Launcher is the only clause of the shape:
+        // *"a 5% chance ... for each panel between Anastasia and the DU."*
+        { key: "chancePerPanel", type: "number" },
       ],
     },
     { key: "rules", type: "raw" },

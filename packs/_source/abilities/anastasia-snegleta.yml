@@ -1,0 +1,47 @@
+# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+#
+# Her stronger Noble Phantasm -- 3.5x off BA(MAG) 150 against 3x off BA(STR) 95.
+# NOT recorded anywhere as such: Ch. 33 §33.4 rejected storing the ranking, and
+# `rules/np-strength.mjs#rankNoblePhantasms` computes it against a synthetic
+# neutral defender instead.
+schema: 1
+id: anastasia-snegleta
+name: "Snegleta・Snegurochka: Summer Snow, Beautiful Drops of Hoarfrost"
+rank: B
+isNP: true
+categorizedAsNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+cooldown: "6◈"
+timing: { window: ownTurn }
+description: |
+  Dreaming Crater・Snow Maiden. Base Attack (MAG) is used. Range+1 for the Combat Process. First,
+  inflict @effect[defDwnA]{Def Dwn (A)} for ⅓◈ Turns, all damage taken is increased by 30%, and Luck is reduced by 1
+  whenever damage is received from an Attack. Then, deals 3.5x damage and inflicts @effect[skillSeal]{Skill Seal} for
+  ⅓◈ Turns. Cooldown: 6◈ Turns.
+targeting:
+  # "Range+1 for the Combat Process" -- `rangeBonus` on the anchor, the field
+  # Kingprotea's Earth Mother's Wail already uses.
+  anchor: { kind: targetUnit, range: 3, rangeBonus: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  base:
+    sources:
+      - { unit: self, component: mag, factor: 1 }
+  component: mag
+  multiplier: 3.5
+phases:
+  # ORDER IS THE CLAUSE. *"First, inflict Def Dwn (A) ... Then, deals 3.5x
+  # damage"* -- and Def Dwn (A) raises damage taken by 30%, so applying it first
+  # is worth 30% of THIS very attack. Authored after the damage it would be
+  # worth 30% of the NEXT one, which is a different Noble Phantasm.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: defDwnA, duration: "⅓◈", magnitude: 30 }
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: skillSeal, duration: "⅓◈" }
