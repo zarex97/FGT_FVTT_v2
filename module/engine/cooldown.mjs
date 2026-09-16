@@ -225,3 +225,86 @@ function fractionOfRound(raw) {
   const n = Number.parseFloat(text);
   return Number.isFinite(n) ? n : 0;
 }
+
+/**
+ * The same clocks, on the other members of this unit's linked group.
+ *
+ * > *"When either Castor or Pollux uses a Skill, the Skill enters Cooldown for
+ * > both of them."*
+ *
+ * Matched by **name**, which is the only thing two separately-authored ability
+ * documents share. Castor's *Mana Burst* reaches Pollux's; his *Mad
+ * Enhancement*, which she does not carry, reaches nothing — and that asymmetry
+ * is the sheet's, not an accident of the matching.
+ *
+ * Returns **additional** entries only, never a copy of the input. Callers
+ * spread it beside {@link alsoTriggered} so the shared clocks and the triggered
+ * ones go through the same intents, and so a caller that forgets it loses the
+ * sharing rather than the cooldown.
+ *
+ * @param {Array<{actorId: string, abilityId: string, ticks: number}>} cooldowns
+ * @param {object} unit the user's snapshot
+ * @param {object} board
+ * @returns {Array<{actorId: string, abilityId: string, ticks: number}>}
+ */
+export function sharedAcrossGroup(cooldowns, unit, board = null) {
+  if (unit?.linkedGroup?.sharedCooldowns !== "byName") return [];
+  // Spread: a caller may hand us a DOCUMENT-shaped unit, where the schema field
+  // is still a SetField and `.includes` on one silently answers undefined.
+  // Named `partnerIds` rather than `memberIds` deliberately -- the guard in
+  // `test/unit/set-fields.test.mjs` is textual and a local shadowing the schema
+  // name reads, correctly, as the unspread access it exists to catch.
+  const partnerIds = [...(unit.linkedGroup.memberIds ?? [])];
+  if (partnerIds.length === 0) return [];
+
+  const members = membersOf(partnerIds, board);
+  if (members.length === 0) return [];
+
+  /** @type {Array<{actorId: string, abilityId: string, ticks: number}>} */
+  const out = [];
+  for (const clock of cooldowns ?? []) {
+    const name = (unit.abilities ?? []).find((a) => a.id === clock.abilityId)?.name;
+    if (!name) continue;
+    for (const member of members) {
+      for (const twin of member.abilities ?? []) {
+        if (twin.name === name) {
+          out.push({ actorId: member.id, abilityId: twin.id, ticks: clock.ticks });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * The group's other members, as `{id, abilities: [{id, name}]}`.
+ *
+ * A board snapshot is preferred and a `game.actors` lookup is the fallback,
+ * because the three callers of {@link cooldownFor} do not all have a board:
+ * `skill-use.mjs#cooldownIntents` takes the user's snapshot and nothing else.
+ * Threading a board through it for this one clause would have meant changing
+ * three signatures to reach a list of names, and the names are on the actors.
+ *
+ * Layer 3, so reaching for `game` is allowed here and would not have been in
+ * `rules/`.
+ *
+ * @param {string[]} partnerIds already spread to an array by the caller
+ * @param {object|null} board
+ * @returns {Array<{id: string, abilities: Array<{id: string, name: string}>}>}
+ */
+function membersOf(partnerIds, board) {
+  const onBoard = (board?.units ?? []).filter((u) => partnerIds.includes(u.id));
+  if (onBoard.length > 0) return onBoard;
+
+  const actors = globalThis.game?.actors;
+  if (!actors) return [];
+  return partnerIds
+    .map((id) => actors.get?.(id))
+    .filter(Boolean)
+    .map((actor) => ({
+      id: actor.id,
+      abilities: [...(actor.items ?? [])]
+        .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
+        .map((i) => ({ id: i.id, name: i.name })),
+    }));
+}

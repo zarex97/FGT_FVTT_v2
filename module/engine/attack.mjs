@@ -24,7 +24,7 @@ import {
 } from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
-import { cooldownFor, alsoTriggered } from "./cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { cooldownChanges } from "./skill-use.mjs";
 import { classifyAbility, targetSpecFor as specForAbility, usageSpecFor } from "../rules/ability-use.mjs";
 import { counterRedirect } from "../rules/counter.mjs";
@@ -527,7 +527,14 @@ async function payAbilityPrice({ ability, attackerId, attacker, self, master, us
   // the attack budget, which is a different rule.
   if (ability && !resume) {
     const plan = cooldownFor(ability, attackerId, { unit: self });
-    const clocks = [...plan.cooldowns, ...alsoTriggered(ability, attacker)];
+    // *"When either Castor or Pollux uses a Skill, the Skill enters Cooldown
+    // for both of them."* Spread beside `alsoTriggered` so the shared clocks
+    // and the triggered ones become the same intents.
+    const clocks = [
+      ...plan.cooldowns,
+      ...sharedAcrossGroup(plan.cooldowns, self, board),
+      ...alsoTriggered(ability, attacker),
+    ];
     const intents = [
       ...clocks.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
       // A waived cooldown is PAID for -- Scáthach's PRS Token. Her damaging
@@ -5185,10 +5192,12 @@ async function offerAttackerWindow(state, window, message) {
   // the state it is leaving rather than the one it is entering.
   const intents = chosen.flatMap((id) => {
     const item = actor.items.get(id);
-    const plan = cooldownFor(item, actor.id, { unit: unitSnapshot(actor) });
+    const self = unitSnapshot(actor);
+    const plan = cooldownFor(item, actor.id, { unit: self });
     const toggles = classifyAbility(item).toggles;
     return [
-      ...plan.cooldowns.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
+      ...[...plan.cooldowns, ...sharedAcrossGroup(plan.cooldowns, self, null)]
+        .map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
       ...(toggles
         ? [I.setMode(actor.id, item.system?.slug ?? id, !item.system?.active, `window:${window}`)]
         : []),

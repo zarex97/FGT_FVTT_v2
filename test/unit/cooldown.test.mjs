@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { cooldownFor, alsoTriggered } from "../../module/engine/cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "../../module/engine/cooldown.mjs";
 import { selectAbilities } from "../../module/engine/skill-use.mjs";
 
 const ability = (system = {}) => ({ id: "abil", name: "Ability", system });
@@ -240,5 +240,57 @@ describe("a clock that does not start at the use", () => {
 
   it("still sets an ordinary cooldown when countFrom is absent", () => {
     expect(cooldownFor(ability({ cooldown: { max: "7◈" } }), "u1").cooldowns[0].ticks).toBe(21);
+  });
+});
+
+describe("D8 — a Skill used by either twin enters Cooldown for both", () => {
+  const abilitiesOf = (names) => names.map((n, i) => ({ id: `${n}-${i}`, name: n }));
+
+  const twin = (id, partnerId, names) => ({
+    id, kind: "servant", name: id, abilities: abilitiesOf(names),
+    linkedGroup: {
+      id: "dioscuri", memberIds: [partnerId], leash: 2,
+      sharedCooldowns: "byName", unitWeight: 0.5,
+    },
+  });
+
+  const castor = twin("castor", "pollux", ["Mana Burst (Light/Ancient)", "Mad Enhancement"]);
+  const pollux = twin("pollux", "castor", ["Mana Burst (Light/Ancient)", "Riding"]);
+  const board = { units: [castor, pollux] };
+
+  it("mirrors a clock onto the partner's same-NAMED ability", () => {
+    const own = [{ actorId: "castor", abilityId: castor.abilities[0].id, ticks: 8 }];
+    expect(sharedAcrossGroup(own, castor, board)).toEqual([
+      { actorId: "pollux", abilityId: pollux.abilities[0].id, ticks: 8 },
+    ]);
+  });
+
+  it("mirrors nothing for an ability the partner does not carry (R3)", () => {
+    // Mad Enhancement is Castor's alone, so "the Skill enters Cooldown for
+    // both" has nothing on Pollux's sheet to reach.
+    const own = [{ actorId: "castor", abilityId: castor.abilities[1].id, ticks: 4 }];
+    expect(sharedAcrossGroup(own, castor, board)).toEqual([]);
+  });
+
+  it("returns additional entries only, never a copy of the input", () => {
+    const own = [{ actorId: "castor", abilityId: castor.abilities[0].id, ticks: 8 }];
+    expect(sharedAcrossGroup(own, castor, board).some((c) => c.actorId === "castor")).toBe(false);
+  });
+
+  it("does nothing for a group that does not share cooldowns", () => {
+    const solo = { ...castor, linkedGroup: { ...castor.linkedGroup, sharedCooldowns: "" } };
+    const own = [{ actorId: "castor", abilityId: castor.abilities[0].id, ticks: 8 }];
+    expect(sharedAcrossGroup(own, solo, board)).toEqual([]);
+  });
+
+  it("does nothing for an ungrouped Servant", () => {
+    const karna = { id: "karna", kind: "servant", abilities: abilitiesOf(["Brahmastra"]) };
+    const own = [{ actorId: "karna", abilityId: karna.abilities[0].id, ticks: 6 }];
+    expect(sharedAcrossGroup(own, karna, { units: [karna] })).toEqual([]);
+  });
+
+  it("does nothing when the partner is not on the board", () => {
+    const own = [{ actorId: "castor", abilityId: castor.abilities[0].id, ticks: 8 }];
+    expect(sharedAcrossGroup(own, castor, { units: [castor] })).toEqual([]);
   });
 });

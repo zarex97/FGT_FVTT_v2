@@ -29,7 +29,10 @@ import * as geo from "../domain/geometry.mjs";
  * @returns {object[]}
  */
 export function partnersOf(unit, board) {
-  const ids = unit?.linkedGroup?.memberIds ?? [];
+  // Spread, for the reason `test/unit/set-fields.test.mjs` enforces: a
+  // document-shaped unit carries a SetField here, and `.includes` on one
+  // returns undefined rather than failing.
+  const ids = [...(unit?.linkedGroup?.memberIds ?? [])];
   if (ids.length === 0) return [];
   return (board?.units ?? []).filter((u) => ids.includes(u.id) && u.panel);
 }
