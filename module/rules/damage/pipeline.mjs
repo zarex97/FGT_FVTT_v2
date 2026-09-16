@@ -1154,7 +1154,45 @@ function activeMods(s, unit, keys) {
     ...(s.ctx.attack?.excludeModifierSources ?? []),
     ...(opponent?.excludesOpponentSources ?? []),
   ];
-  return (unit?.modifiers ?? []).filter(
+  // The MIRROR of the exclusion above: a named unit whose bag is added to this
+  // one rather than dropped from it.
+  //
+  //   *"The effects of all Skills, buffs and debuffs on BOTH Castor and Pollux
+  //    are combined when calculating damage for this NP."*
+  //
+  // Only ever onto the ATTACKER -- it is the attacking ability that says so --
+  // and only from names `ctx.units` already resolves, which is the same map
+  // stage 1 reads a Base Attack source from. A source resolving to the
+  // attacker itself is skipped, because unioning a bag into itself would
+  // double every modifier an ordinary attack already has.
+  //
+  // DOUBLE-COUNTING IS INTENDED (Ch. 41 Q12, answered by the game's author):
+  // one `Guardians of Navigation` cast that buffed both twins gives the joint
+  // Noble Phantasm +30%, not +15%, and deduplicating would need identity
+  // tracking across instances. Each unioned modifier carries its owner so the
+  // breakdown can say whose it was -- a doubled figure reads as a bug without
+  // that line.
+  //
+  // Here rather than at a stage, for the reason the exclusion is here: this is
+  // the one place every stage reads a bag, so one addition covers stages 2, 4,
+  // 4b, 5, 7 and 12 and cannot fall out of step with any of them.
+  const unioned = [];
+  if (unit === s.ctx.attacker) {
+    for (const name of s.ctx.attack?.modifierSources ?? []) {
+      const other = s.ctx.units?.[name];
+      if (!other || other === unit || other.id === unit?.id) continue;
+      for (const m of other.modifiers ?? []) {
+        unioned.push({
+          ...m,
+          sourceUnitId: other.id ?? null,
+          sourceUnitName: other.name ?? other.id ?? name,
+          source: m.source ? `${m.source} (${other.name ?? other.id ?? name})` : (other.name ?? name),
+        });
+      }
+    }
+  }
+
+  return [...(unit?.modifiers ?? []), ...unioned].filter(
     (m) => keys.has(m.key)
       // NAMED SOURCES, dropped from BOTH bags. Raikou's Dohatsu Tenshou:
       // *"These 4 Attacks are not affected by Mad Enhancement."*

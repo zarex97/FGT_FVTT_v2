@@ -3436,9 +3436,27 @@ function recordIntents(defender, state) {
  * @param {object} board
  * @returns {Record<string, object>}
  */
-function mountUnits(attacker, board) {
+function namedUnits(attacker, board) {
   const { platform, attacksAsPlatform } = actionSourceFor(attacker, board);
-  return attacksAsPlatform && platform ? { mount: platform } : {};
+  /** @type {Record<string, object>} */
+  const out = {};
+  if (attacksAsPlatform && platform) out.mount = platform;
+
+  // The other member of a linked group. Stage 1 has resolved
+  // `ctx.units[src.unit]` since the pipeline was written and `mount` was its
+  // only entry -- so the Dioscuri NP's *"half of Castor's BA(STR) and half of
+  // Pollux's"* could not be authored at all.
+  //
+  // ONE partner only. Every linked group in the corpus is a pair, and a source
+  // naming "the partner" in a group of three would be ambiguous; a larger
+  // group should name its members explicitly rather than have one silently
+  // chosen here.
+  const partnerIds = [...(attacker?.linkedGroup?.memberIds ?? [])];
+  if (partnerIds.length === 1) {
+    const partner = (board?.units ?? []).find((u) => u.id === partnerIds[0]);
+    if (partner) out.partner = partner;
+  }
+  return out;
 }
 
 
@@ -3540,6 +3558,11 @@ async function applyDamage(state, message) {
       // why Magic Resistance could not be bypassed and Pierce did nothing.
       ...facts,
       abilityId: state.attack?.abilityId ?? null,
+      // Named units whose modifier bags this attack combines with the
+      // attacker's. Authored on the ability as `damage.modifierSources`, and
+      // read by `activeMods` -- the mirror of `excludeModifierSources`, which
+      // lives on this same object for the same reason.
+      modifierSources: resolvedDamage(ability, options)?.modifierSources ?? [],
       rank: Rank.parseOrNull(ability?.system?.rank),
       categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
       // The branch-resolved element first, then the ability's own. Rebuilding it
@@ -3582,7 +3605,7 @@ async function applyDamage(state, message) {
     // since the pipeline was written and nothing has ever supplied the map:
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
     // by her platform's swings the platform's 150 rather than her own 125.
-    units: mountUnits(attacker, board),
+    units: namedUnits(attacker, board),
     // Base Attacks read off a COMPENDIUM document rather than off the board.
     //
     // Drake's broadside: *"The Golden Hind's Base Attack (MAG) is used"*, and
