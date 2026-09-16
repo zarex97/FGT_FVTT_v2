@@ -61,7 +61,12 @@ export async function attemptForestEscape(unitId) {
   const roll = (await new Roll("1d20").evaluate()).total;
   const result = luckCheck({
     roll,
-    luck: unit.luck?.value ?? 0,
+    // A NUMBER on the board, not a `{value, max}` pair -- `rules/snapshot.mjs`
+    // flattens the pools it projects. Reading `.value` off it gave `undefined`,
+    // which `?? 0` turned into a Luck of zero, which no roll can come in under:
+    // every escape failed, and the card said "3 vs 0" rather than "3 vs 20".
+    // Measured live.
+    luck: typeof unit.luck === "number" ? unit.luck : (unit.luck?.value ?? 0),
     hasBoost: (unit.effects ?? []).includes("luckBoost"),
     hasLoss: (unit.effects ?? []).includes("luckLoss"),
     modifiers,

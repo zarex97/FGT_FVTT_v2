@@ -503,3 +503,23 @@ describe("an action aimed at a SET reaches the set, not the bearer", () => {
     expect(out.map((i) => i.unitId)).toEqual(["nursery"]);
   });
 });
+
+describe("the escape reads the board's own shape", () => {
+  // Found on a live board: `rules/snapshot.mjs` flattens a pool to a NUMBER,
+  // and reading `.value` off it gave undefined -- which `?? 0` turned into a
+  // Luck of zero. No roll comes in under zero, so every escape failed and the
+  // card said "3 vs 0" rather than "3 vs 20".
+  const luckOf = (unit) => (typeof unit.luck === "number" ? unit.luck : (unit.luck?.value ?? 0));
+
+  it("reads a flattened number", () => {
+    expect(luckOf({ luck: 20 })).toBe(20);
+  });
+
+  it("and still reads a pool, for a caller holding a document", () => {
+    expect(luckOf({ luck: { value: 14, max: 16 } })).toBe(14);
+  });
+
+  it("and gives zero only when there is genuinely nothing", () => {
+    expect(luckOf({})).toBe(0);
+  });
+});
