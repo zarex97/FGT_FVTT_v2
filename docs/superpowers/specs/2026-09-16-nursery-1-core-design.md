@@ -115,11 +115,22 @@ ranks, so fixing it fixes every Servant that has it."*
 that Appendix D marks with an `S`; Kingprotea's is a different clause set. They stay as variants
 beside the template, exactly as `riding-medusa.yml` stays beside `class-riding.yml`.
 
-**The two rank tables move with it.** `territoryCreationBonus` (`5d20` at A) and
-`territoryCreationWard` (`3d10+20` at A) are currently literal formulas inside Medea's file. As a
-parameterised template they must be rank-indexed, and **A is the only rank the corpus witnesses** —
-so both tables are single-witness derivations and Appendix B must label them as such, the way it
-labels the Avenger set.
+**The rank tables already exist — and Medea is not using them.**
+
+> **Corrected 2026-09-16, before planning.** `domain/tables.mjs` already carries
+> `territoryCreationOffence` (`EX 6d20, A 5d20, B 5d10, C 5d8, D 5d6, E 5d4`) and
+> `territoryCreationDefence` (`EX 3d10+30, A 3d10+20, … E 3d10`), **both fully indexed across all
+> six grades**. This spec first claimed they would have to be created as single-witness
+> derivations. They are neither new nor single-witness.
+>
+> What is true is that **`medea-territory-creation.yml` hardcodes the literals** — `"5d20"` and
+> `"3d10+20"` — rather than reading the tables. That is the same latent defect
+> `madEnhancementDrain` had, where a literal `30` was EX's value and every rank below it was
+> wrong. Medea is Rank A so her two numbers happen to be right, and the file would be wrong at
+> any other rank.
+>
+> So the promotion **fixes a bug on the way past**: the shared template reads
+> `table: territoryCreationOffence` and `table: territoryCreationDefence`, and no literal survives.
 
 **RISK.** This touches a Servant who is authored, tested and on a live board. Medea's existing tests
 must pass unchanged — if any of them move, the promotion is wrong and gets reverted rather than
