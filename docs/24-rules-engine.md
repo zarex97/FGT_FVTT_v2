@@ -115,7 +115,7 @@ Roughly 30 elements cover the entire reference set. Grouped by contribution poin
 
 | Key | Stage | Purpose |
 |---|---|---|
-| `DamageModifier` | 4 | The additive bucket: Atk Up, Def Up, Atk Dwn, Def Dwn, and every percentage in the game |
+| `DamageModifier` | 4, or **7/12 with `stage: flat`** | The additive bucket: Atk Up, Def Up, Atk Dwn, Def Dwn, and every percentage in the game |
 | `DamageComponentModifier` | 5 | Asymmetric STR/MAG modifiers (Mad Enhancement's halving) |
 | `FlatDamage` | 7 | Divinity, Dmg Boost, Avenger's counter bonus |
 | `FlatReduction` | 12 | Dmg Cut, Battle Continuation, Territory Creation defence |

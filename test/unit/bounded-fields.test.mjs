@@ -573,7 +573,11 @@ describe("annotateFields", () => {
     const u = inside({ faction: "b", modifiers: [] });
     const field = labyrinth({
       ownerFaction: "a",
-      interior: [{ key: "DamageModifier", stage: "flat", value: 10, relations: ["enemy"] }],
+      // No `stage`, matching the Labyrinth's own content: a percentage in the
+      // stage-4 bucket. The fixture used to say `stage: "flat"` while asserting
+      // `atkUp`, which only agreed because `stage` had no reader at all
+      // (Ch. 46 §46.4-AD) -- and no field in the corpus authors it.
+      interior: [{ key: "DamageModifier", value: 10, relations: ["enemy"] }],
     });
 
     annotateFields([u], { units: [u], fields: [field], alliances: {} });

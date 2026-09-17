@@ -851,8 +851,28 @@ export const EXECUTORS = Object.freeze({
     const round = (n) => (typeof el.magnitudeRoundTo === "number" && el.magnitudeRoundTo > 0
       ? Math.floor(n / el.magnitudeRoundTo) * el.magnitudeRoundTo
       : n);
+    // WHICH BUCKET of the pipeline this lands in, and it is the difference
+    // between a number added and a number multiplied by.
+    //
+    // Territory Creation is *"all damage dealt by it is increased by 6d20,
+    // including NP"* -- dice ADDED, which is stage 7, where Divinity's +50
+    // goes. Every Territory Creation in the corpus says so with `stage: flat`,
+    // and `stage` had no reader: the roll was made and then applied as a
+    // PERCENTAGE at stage 4. Measured live at rank C (`5d8`), four Normal
+    // Attacks in a row: `Atk Up Territory Creation +25%, +15%, +17%, +16%`.
+    // At EX that is `6d20` -- up to **+120% damage** where the sheet grants a
+    // flat +120, an error that scales with Base Attack instead of being
+    // constant (Ch. 46 §46.4-AD).
+    //
+    // `flatDamage`/`flatReduction` because those are the generic members of
+    // the pipeline's own `FLAT_ATTACK_KEYS`/`FLAT_REDUCTION_KEYS`; the named
+    // ones (`divinity`, `dmgBoost`, `dmgCut`) belong to the clauses that own
+    // them, and an explicit `modifierKey` still wins over both.
+    const flatStage = el.stage === "flat";
     out.modifiers.push({
-      key: el.modifierKey ?? (el.direction === "taken" ? "defUp" : "atkUp"),
+      key: el.modifierKey ?? (el.direction === "taken"
+        ? (flatStage ? "flatReduction" : "defUp")
+        : (flatStage ? "flatDamage" : "atkUp")),
       // A magnitude rolled per damage event rather than fixed before the
       // attack -- Penthesilea's Goddess of War. The pipeline reads the total
       // out of `ctx.rolls`, so the dice stay with the caller like every other

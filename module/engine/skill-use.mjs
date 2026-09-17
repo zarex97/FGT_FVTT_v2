@@ -22,6 +22,7 @@
  */
 
 import { canUseAbility, additionalCostsFor } from "../rules/costs.mjs";
+import { refreshShield } from "./shield.mjs";
 import { displaceToken } from "./io.mjs";
 import {
   targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
@@ -135,6 +136,20 @@ export async function useSkill({
 
   const targets = resolveSkillTargets(ability, self, board, placement);
   if (targets.errors.length > 0) return { ok: false, reason: targets.errors[0] };
+
+  // A barrier's pool, filled BEFORE the phases hand out the buff that spends it
+  // -- and before `recordUse` below, because `refreshShield` reads `timesUsed`
+  // to tell a first projection from a later one.
+  //
+  // `engine/attack.mjs`'s `payAbilityPrice` has always done this and was the
+  // ONLY caller, so a barrier granted through this path had a pool of zero.
+  // Scales of the Sacred Fish is the case: `countsAsAttack: false` on a
+  // `whenAllyAttacked` window, so it comes here -- and *"the Unit gains the
+  // Shield (200) buff"* granted a Shield of nothing. Measured live, Semiramis
+  // holding her own buff and taking an ordinary Normal Attack: 750 -> 733, with
+  // `shieldHealth: 0` against a declared 200 (Ch. 46 §46.4-AE). `refreshShield`
+  // even carries a default written for this very ability.
+  if (ability?.system?.shield) await refreshShield(ability);
 
   const applied = await runPhases(ability, actor, targets.units, board);
 

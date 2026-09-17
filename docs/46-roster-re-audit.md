@@ -1073,6 +1073,76 @@ briefly believed broken on that basis — Sikera Ušum's rule b, Arrogant King's
 and the Hanging Gardens' owner buff — and all four were working the whole time. Read
 `actor.effects`. §46.2 has it now.
 
+### AD. `stage: flat` had no reader, so Territory Creation multiplied instead of adding — **fixed 2026-09-16**
+
+**Reached: Semiramis's Territory Creation**, and it belongs to every bearer of the Skill.
+
+> *"When this Unit is in its Home Base, all damage dealt by it is increased by 6d20, including NP."*
+
+Dice **added**, which is stage 7 — where Divinity's +50 goes. Every Territory Creation in the corpus
+says exactly that: `DamageModifier` with `stage: flat` and a `rollTable`/`roll` of
+`6d20 / 5d20 / 5d10 / 5d8 / 5d6 / 5d4` by rank.
+
+`DamageModifier`'s executor never read `stage`. It always pushed `atkUp`, which the pipeline reads
+at **stage 4 as a percentage** — so the dice were rolled, and then applied as a percent.
+
+**Measured live**, Semiramis in her own Home Base at rank C (`5d8`), four Normal Attacks:
+
+```
+Atk Up Territory Creation   +25%   +15%   +17%   +16%
+```
+
+A varying 5d8 in the percentage bucket. At EX it is `6d20`, so a Servant in her own Territory dealt
+up to **+120% damage** where her sheet grants a flat +120 — an error that scales with Base Attack
+instead of being constant, and worth roughly double at a 200 Base Attack.
+
+It had never been caught because the clause needs a Home Base, and §46.11 records Medea's two
+Territory Creation passives as untested for precisely that reason.
+
+**The fix** gives `stage` a reader: `stage: flat` routes to `flatDamage` (or `flatReduction` when
+the clause is about damage *taken*), which are the generic members of the pipeline's own
+`FLAT_ATTACK_KEYS`/`FLAT_REDUCTION_KEYS`. An explicit `modifierKey` still wins.
+
+**And one piece of content had to be corrected with it.** `vorpal-blade.yml` carried `stage: flat`
+on two rules whose own comments say *"they belong in the same combined-percent bucket, where 3x is
++200%"* — it had the behaviour it wanted only because the field was inert. Both `stage: flat` lines
+are gone; the rules are unchanged otherwise, and +50%/+200% stay percentages. A test fixture in
+`bounded-fields.test.mjs` had the same shape and was aligned to the Labyrinth's real content, which
+authors no `stage` at all.
+
+**Verified live.** Stage 4 no longer mentions Territory Creation; stage 7 now reads
+`flatDamage Territory Creation +20 / +30 / +21`, a 5d8 added beside Divinity's +30. Her defensive
+half was confirmed on the same board: stage 12 shows `damageNegation Territory Creation −30`, a
+3d10+10 for an ally standing in their own Home Base.
+
+### AE. A Shield of 200 that absorbed nothing — **fixed 2026-09-16**
+
+**Reached: Semiramis's Scales of the Sacred Fish**, and the sixth member of §46.4-M/P/T/Z/AB's
+family: *the two use paths do not do the same thing*.
+
+> *"Used at the start of a Combat Phase when Semiramis or an allied Unit within a 2 panel area of
+> herself is Attacked; the Unit gains the Shield (200) buff for 2◈ Turns."*
+
+Everything about it was right except who called it. `scalesShield` declares
+`absorbs: { poolFrom: sourceAbility }`, the ability declares `shield: { health: 200 }`, `barrierOn`
+finds the item — and `refreshShield` carries a tested default, *"a fresh 200 on every cast"*, whose
+own comment says it was **added for this Servant**.
+
+`refreshShield` had exactly one caller: `engine/attack.mjs`'s `payAbilityPrice`. Scales of the
+Sacred Fish is `countsAsAttack: false` on a `whenAllyAttacked` window — deliberately, because an
+earlier fix routed it off the attack path so it would stop spending her Attack and opening a Combat
+Process against the ally it shields. So it goes through `useSkill`, and the pool was never filled.
+
+**Measured live**: Semiramis cast it on herself, took an ordinary Normal Attack, and went
+**750 → 733** while holding the buff, with `system.shieldHealth: **0**` against a declared 200.
+
+**The fix** is one line in `useSkill`, placed where the attack path puts it — before `recordUse`,
+because `refreshShield` reads `timesUsed` to tell a first projection from a later one.
+
+**Verified live**: the cast fills the pool `0 → 200`, and the next Normal Attack leaves her Health
+at **733 → 726** while the pool goes **200 → 0**. Seven points of overflow past a 207-damage hit,
+and 200 absorbed.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.

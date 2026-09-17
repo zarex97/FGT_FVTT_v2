@@ -4657,3 +4657,40 @@ are **ActiveEffects**, not Items, and `createEmbeddedDocuments("Item", [{type: "
 succeeds silently and creates nothing. Four clauses were briefly believed broken on that basis and
 all four were working.
 
+## Two more from pressing the rest of Semiramis — 2026-09-16
+
+**§46.4-AD — `stage: flat` had no reader.** Territory Creation is *"all damage dealt by it is
+increased by 6d20"* — dice ADDED, stage 7, where Divinity goes. Every Territory Creation in the
+corpus authors `DamageModifier` + `stage: flat` + a roll table, and the executor never read `stage`:
+it always pushed `atkUp`, which the pipeline reads at stage 4 as a **percentage**. So the dice were
+rolled and then applied as a percent. Measured at rank C (`5d8`) over four Normal Attacks:
+`+25%, +15%, +17%, +16%`. At EX (`6d20`) that is up to **+120% damage** where the sheet grants a
+flat +120 — an error that scales with Base Attack instead of being constant. Never caught because
+the clause needs a Home Base, which §46.11 records as why Medea's two passives went untested.
+
+`stage: flat` now routes to `flatDamage`/`flatReduction`. One content correction came with it:
+`vorpal-blade.yml` carried `stage: flat` on two rules whose own comments say *"the same
+combined-percent bucket, where 3x is +200%"* — it had the behaviour it wanted only because the
+field was inert, so both lines are gone and its percentages stay percentages. **Packs need a
+rebuild** for that one file.
+
+**§46.4-AE — a Shield of 200 that absorbed nothing.** `refreshShield` had exactly one caller,
+`engine/attack.mjs`'s `payAbilityPrice`. Scales of the Sacred Fish is `countsAsAttack: false` on a
+reaction window — deliberately, so it does not spend her Attack or open a Combat Process against
+the ally it shields — so it goes through `useSkill`, where nothing filled the pool. Measured:
+Semiramis holding her own Shield (200) took a Normal Attack in full, 750 → 733, with
+`shieldHealth: 0`. `useSkill` refreshes it now, before `recordUse` because `refreshShield` reads
+`timesUsed`. Verified: cast fills 0 → 200, the next hit leaves her at 733 → 726 while the pool goes
+200 → 0.
+
+**Also pressed and correct**: Double Summon (npRegen and an unremovable Construction, both 1◈, with
+the `dscBuff` clause correctly withheld from a Servant who is already `dsc`; NP cooldown 10 → 8 at
+the next Turn end); Double Summon: Caster's range bands live — Range 1 resolves `BA(STR)`, Range 3
+resolves `BA(MAG)` — and her `servantClasses` are `["caster", "assassin"]`; Presence Concealment
+clauses 1, 4, 5 and 8 (*"Semiramis is concealed — it cannot be targeted directly"*, `Atk Up
+presenceConcealment +100%`, deactivation at the end of the Combat Process, and a cooldown that
+stays 0 until then and only starts at 3 once it ends); Territory Creation's defensive aura at stage
+12.
+
+202 test files, 4915 tests, layer boundaries intact.
+
