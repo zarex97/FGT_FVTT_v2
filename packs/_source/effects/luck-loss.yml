@@ -1,0 +1,18 @@
+# Appendix A §A.9
+# "Always uses the unfavourable table (1d20+4), regardless of whose stat is
+# higher."
+#
+# The debuff half of the pair, read on the line below `luckBoost` in all four
+# places. See `luck-boost.yml`.
+schema: 1
+id: luckLoss
+name: "Luck Loss"
+description: |
+  Luck Checks always use the unfavourable table (`1d20+4`), regardless of whose Luck is higher.
+polarity: debuff
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules: []

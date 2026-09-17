@@ -1,0 +1,23 @@
+# Appendix A §A.13
+# "Cannot: perform BA(STR) Normal Attacks; use Skills or Attack Skills; use NP.
+# SPELLS REMAIN USABLE."
+#
+# `rules/budget.mjs` has carried `seal: ["attack", "skill", "np"]` since the
+# prevention table was written -- and the omission of `spell` from that list is
+# the row's last clause, already correct, with no document able to reach it.
+schema: 1
+id: seal
+name: "Seal"
+description: |
+  Cannot perform Normal Attacks, use Skills or Attack Skills, or use Noble Phantasms. Spells
+  remain usable.
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+families: [bind]
+# Partial, so no `preventsAction` -- see `immobilize.yml` for why that flag
+# would be wrong here rather than merely redundant.
+rules: []

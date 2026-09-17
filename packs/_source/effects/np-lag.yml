@@ -1,0 +1,18 @@
+# Appendix A §A.10
+# "Natural NP cooldown reduction is halved in rate (every other turn)."
+#
+# `cooldownRate` skips the reduction when `ctx.tick % 2 === 1` -- keyed on the
+# GLOBAL tick rather than on a counter carried by the instance, so it stays
+# consistent across a reconnect and across two Units acquiring it on different
+# turns. Live in the scheduler since it was written; no document could apply it.
+schema: 1
+id: npLag
+name: "NP Lag"
+description: "Natural Noble Phantasm cooldown reduction happens only every other Turn."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules: []

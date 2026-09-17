@@ -1,0 +1,34 @@
+# Appendix A §A.13
+# "Cannot Move. ALL Agility Checks +4."
+#
+# Two readers, and a third thing that was already trying to inflict it:
+#
+#   - `rules/budget.mjs`'s partial-prevention table has `immobilize: ["move"]`.
+#   - `engine/attack.mjs` pushes `{source: "Immobilize", value: 4}` onto the
+#     Agility Check modifiers for a defender holding it.
+#   - `rules/terrain.mjs` has INFLICTED it since the terrain system was built:
+#     `magnetic` ground is "25% chance of Immobilize for 1◈ -- 100% for units
+#     with the Mechanical attribute", with a resistance bypass written carefully
+#     around a debuff that did not exist. That clause could not land, so
+#     magnetic terrain did nothing at all.
+schema: 1
+id: immobilize
+name: "Immobilize"
+description: "Cannot Move. All Agility Checks are increased by 4."
+polarity: debuff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+families: [bind]
+# No rule elements, and `preventsAction` is deliberately ABSENT rather than
+# merely unset: this Unit can still Attack, use Skills and cast. The partial
+# table is the whole point of the row, and `preventsAction: true` would route it
+# through `PREVENT_ALL` instead and take everything.
+#
+# The +4 is not a `CheckModifier` for a related reason: `attack.mjs` already
+# adds it by name to EVERY Agility Check ("all", per the row), where a
+# CheckModifier would have to name each check kind and would silently miss any
+# kind added later.
+rules: []

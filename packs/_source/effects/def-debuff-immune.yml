@@ -1,0 +1,14 @@
+# Appendix A §A.7
+# "Immune to Defensive debuffs."
+#
+# The `defensive` branch of the valence gate, beside `offDebuffImmune`.
+schema: 1
+id: defDebuffImmune
+name: "Def.Debuff Immune"
+description: "Immune to Defensive debuffs."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules: []

@@ -241,6 +241,16 @@ Also a per-panel entry trigger, and a brutal one — a failed check mid-move end
 | i | A unit using a Lightning attack within 3 panels of a Magnetic area **always hits a unit standing in the Magnetic area** if any exist; if several, the DU is chosen at random, and its Evade roll is +3. |
 | ii | On moving onto a Magnetic panel: 25% chance of `Immobilize` for 1◈ turns — **100% for units with the `Mechanical` attribute**. This is **not** affected by Debuff Immune or any debuff-resist modifier, **except `Style Change`**. |
 
+> **Clause ii could not land until 2026-09-16.** `rules/terrain.mjs` has emitted the descriptor
+> since this system was built — the chance, the `Mechanical` override and the resistance bypass
+> all correct — and `immobilize` **had no effect document**, so the application found no
+> definition and Magnetic ground did nothing at all. The bypass in particular was written with
+> some care around a debuff that did not exist.
+>
+> The effect is authored now (App. A §A.21), and the shape of the miss is worth keeping: every
+> other terrain clause in this chapter was verified by reading the descriptor it produces, which
+> is exactly the check that cannot see a missing effect id on the far side of the applier.
+
 Effect i is a **forced retarget of an attack by terrain** — the only one in the game. It runs in
 the targeting pipeline as a `TargetingRestriction` with a redirect, before selection.
 
