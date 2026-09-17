@@ -1,0 +1,8 @@
+# The plan-era chapters 00-45, superseded and known stale. Kept for history
+# only; never a source of truth. Indexing them would seed the graph with the
+# documents the current chapter set exists to replace.
+docs/plan-archive/
+
+# Build output and vendored graph artifacts.
+graphify-out/
+node_modules/
