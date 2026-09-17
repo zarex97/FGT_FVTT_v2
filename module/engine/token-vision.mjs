@@ -31,6 +31,7 @@
 import { placedTokensOf } from "./token-sync.mjs";
 import { detectRangeOf } from "../rules/identity.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
+import { CONCEALMENT } from "../rules/concealment.mjs";
 
 /**
  * The Actor types that are units on the board. A journal or a stock Foundry
@@ -58,6 +59,18 @@ export const TokenVision = {
       if (!actor || !UNIT_TYPES.has(actor.type)) return;
       syncVision(actor).catch((err) => console.error("FGT | Token vision sync:", err));
     });
+
+    // Presence Concealment hides the token itself from non-allies
+    // (`apps/canvas/token.mjs#_isVisible`, Ch. 46 §46.4-AK). Foundry only
+    // consults that during a visibility pass, and applying an ActiveEffect does
+    // not start one -- so without this the Servant stayed on screen until
+    // somebody happened to move, and reappeared just as late.
+    for (const hook of ["createActiveEffect", "deleteActiveEffect"]) {
+      Hooks.on(hook, (effect) => {
+        if (effect?.system?.defId !== CONCEALMENT) return;
+        canvas?.perception?.update({ refreshVision: true, refreshVisibility: true });
+      });
+    }
 
     console.log("FGT | Token vision sync attached");
   },

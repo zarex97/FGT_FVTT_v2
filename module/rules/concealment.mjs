@@ -27,6 +27,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { alliancesOf, factionForUser } from "./factions.mjs";
 
 /** The effect id that *is* the state. */
 export const CONCEALMENT = "presenceConcealment";
@@ -42,6 +43,49 @@ export const CONCEALMENT_SLUG = "presenceConcealment";
  */
 export function isConcealed(unit) {
   return (unit?.effects ?? []).includes(CONCEALMENT);
+}
+
+/**
+ * Is this Unit's token hidden from the viewer looking at the canvas?
+ *
+ * > *"This Unit cannot be targeted for an Attack or an enemy Unit's Skill."*
+ *
+ * The rule half of that clause has worked since Presence Concealment was
+ * authored -- an adjacent, in-range attacker is refused by name. What nothing
+ * ever did was hide the **token**: a concealed Servant sat on the canvas in
+ * plain sight of every player, who could read its panel, its facing and its
+ * Health bar, and route around a Skill they could see perfectly well was there.
+ * Concealment that the table can see through is a rules footnote rather than a
+ * Skill (Ch. 46 §46.4-AK).
+ *
+ * The reading is the one every tabletop invisibility uses: hidden from
+ * non-allies, and from nobody else.
+ *
+ *  - The **GM** always sees. A token hidden from the one person who has to move
+ *    it is a lost token, and every other system draws the line here.
+ *  - An **owner** always sees. This is how a player finds their own Assassin.
+ *  - The Unit's **own faction and its declared allies** always see. Your side
+ *    knows where it put the thing; what it buys is that the enemy does not.
+ *
+ * Pure, and given its inputs rather than reaching for `game`: the canvas asks
+ * this once per token per visibility pass, and a layer-2 predicate is what lets
+ * it be tested without a world.
+ *
+ * @param {object|null} unit `{factionId, effects}` -- the actor's own system data
+ * @param {{userId: string, isGM: boolean, isOwner: boolean}} viewer
+ * @param {object[]} factions the normalized faction roster
+ * @returns {boolean}
+ */
+export function hiddenFromViewer(unit, viewer, factions) {
+  if (!unit) return false;
+  if (viewer?.isGM || viewer?.isOwner) return false;
+  if (!(unit.effects ?? []).includes(CONCEALMENT)) return false;
+
+  const mine = factionForUser(factions ?? [], viewer?.userId);
+  if (!mine) return true;
+
+  const allied = alliancesOf(factions ?? [])[mine.id] ?? [mine.id];
+  return !allied.includes(unit.factionId);
 }
 
 /**

@@ -102,6 +102,19 @@ by hand measures a path the sheet's own button never uses. Arrogant King's Poiso
 3-item cost through `useSkill` (`isAttack: false`) and would not have through `resolveAttack` — a
 fact about the probe, not about the ability.
 
+**An override is innocent until the base class is asked.** When a Foundry override looks like it is
+over-reaching, get the parent's verdict beside it:
+`Object.getOwnPropertyDescriptor(Token.prototype, "isVisible").get.call(token)`. Presence
+Concealment's invisibility appeared to hide a Servant from her own owner; the base getter said
+`false` too, and the cause was a token still stamped with a **deleted platform's `level`**, which
+made her off-level for everyone. Deleting a platform out from under its passengers leaves that
+field behind.
+
+**And check which member the version actually has.** Foundry 14 has no `Token#_isVisible`:
+`isVisible` is a getter and the ray-casting lives in `CanvasVisibility#testVisibility`. Overriding
+a method the current version does not call installs something inert — a fix that tests green and
+does nothing on a board.
+
 ## 46.3 Recurring defect shapes
 
 Not a list of bugs; a list of *kinds*. Each has been seen at least once, and each is worth
@@ -1285,6 +1298,63 @@ its own is already the first half of the sentence.
 | another faction's Turn, having Acted | **20** |
 | the boundary that also rolls the **Round** | **40** — the round tick *plus* the acted tick, which is exactly what *"in addition to at the end of the Round"* says |
 
+### AK. Presence Concealment hid a Unit from the rules and from nobody else — **fixed 2026-09-16**
+
+> *"This Unit cannot be targeted for an Attack or an enemy Unit's Skill."*
+
+The rules half has worked since the Skill was authored — §46.14.1b records an adjacent, in-range
+attacker refused by name, *"Semiramis is concealed — it cannot be targeted directly"*. What nothing
+ever did was hide the **token**. A concealed Servant sat on the canvas in plain sight of every
+player, who could read its panel, its facing and its Health bar, and simply route around a Skill
+they could see perfectly well was there. Concealment the table can see through is a rules footnote
+rather than a Skill.
+
+Raised by the game's author, with the reading to use: **invisible to non-allies**, the way
+invisibility works in D&D 5e and Pathfinder 2e.
+
+`rules/concealment.mjs#hiddenFromViewer` is the whole decision and is pure — it takes the unit, the
+viewer and the faction roster rather than reaching for `game`, because the canvas asks it once per
+token per visibility pass. Who still sees a concealed Unit:
+
+- the **GM**, always — a token hidden from the one person who has to move it is a lost token;
+- anyone with **OBSERVER** on the actor, which is how a player finds their own Assassin;
+- the Unit's **own faction and its declared allies** — your side knows where it put the thing, and
+  what concealment buys is that the enemy does not.
+
+`apps/canvas/token.mjs` consumes it, and the shape matters: it overrides the **`isVisible` getter**,
+not `_isVisible()`. Foundry 14 has no such method — `isVisible` is a getter on `Token.prototype`
+with the ray-casting behind it in `CanvasVisibility#testVisibility` — so overriding the method older
+versions had installs something nothing ever calls. It was written that way first and the live world
+answered `super._isVisible is not a function`, which is the good failure: a silent one would have
+been a fix that tested green and did nothing on a board.
+
+A perception refresh goes with it (`engine/token-vision.mjs`). Foundry only consults visibility
+during a pass, and applying an ActiveEffect does not start one — so without it the Servant stayed on
+screen until somebody happened to move, and reappeared just as late.
+
+**Verified by logging in as each user in turn**, which is the only way this one can be verified —
+the GM sees everything by definition, so a GM-session check would have proved nothing. Semiramis is
+faction-1 and owned by Player1; Heracles is faction-2 and owned by Player2; no alliances. Both
+Servants adjacent on open ground, Heracles with vision range 2, so she is squarely inside his sight.
+
+| viewer | before concealment | after concealment |
+|---|---|---|
+| **Player2** (enemy) | visible | **hidden** — and Foundry's own base getter still says `true`, so the override is doing it and not the fog |
+| **Player1** (owner, same faction) | visible | **visible** |
+| **Gamemaster** | visible | **visible** |
+
+Heracles stayed visible to Player2 throughout, which is the control that says the scene had not
+simply gone dark. Looked at on the canvas as well as read off the getter: Player2's board draws
+Heracles with the panel beside him — hers — empty and lit.
+
+**One measurement hazard cost a false negative on the way**, and it is in §46.2 now: Player1 first
+reported not seeing her own Servant, which looked like the fix over-reaching. It was the test board.
+Deleting the Hanging Gardens out from under both Servants left Semiramis's token stamped with the
+**deleted platform's `level`**, so she was off-level for everyone and Foundry's own getter — not the
+override — was refusing her. Asking `Object.getOwnPropertyDescriptor(Token.prototype, "isVisible")`
+for the base verdict beside the override's is what separated them, and is the probe to reach for
+whenever an override is suspected.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -1697,7 +1767,8 @@ Short, and specific:
 - **Presence Concealment clauses 2, 3, 6 and 7** — the Block/Counter refusal and its AGI-rank
   exception, attacking Masters and moving freely past them, the discovery roll on entering a
   Servant's Range, and the bar on Active Skills targeting enemies. Clauses 1, 4, 5 and 8 were
-  pressed.
+  pressed, and clause 1 gained the half it never had: the token is now invisible to non-allies
+  (§46.4-AK), verified by logging in as each player.
 - **Sikera Ušum's cooldown actually starting** at the field's closure. `countFrom: deactivation` was
   confirmed as 0 at use; no measurement was taken at the moment the Throne Room expired.
 - **The Hanging Gardens as a Home Base** (`countsAsHomeBase`), its Construction sources 1–3, and its

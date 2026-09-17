@@ -25,7 +25,26 @@
  * simply never scoped *interaction*.
  */
 
+import { hiddenFromViewer } from "../../rules/concealment.mjs";
+import { factions } from "../../engine/board.mjs";
+
 const { Token } = foundry.canvas.placeables;
+
+/**
+ * The effect ids an actor is carrying right now.
+ *
+ * Off the documents rather than off a snapshot: this runs once per token per
+ * visibility pass, and `snapshotUnit` assembles a unit's whole contribution set.
+ *
+ * @param {object} actor
+ * @returns {string[]}
+ */
+function heldEffects(actor) {
+  return [...(actor.effects ?? [])]
+    .filter((e) => !e.disabled)
+    .map((e) => e.system?.defId)
+    .filter(Boolean);
+}
 
 /** The eight compass points clockwise from north, and their screen angles. */
 const HEADINGS = Object.freeze({
@@ -64,6 +83,48 @@ export class FGTToken extends Token {
     // token briefly unclickable for no reason.
     if (!canvas.level) return true;
     return this.document.level === canvas.level.id;
+  }
+
+  /**
+   * A concealed Unit is not on the canvas as far as its enemies are concerned.
+   *
+   * Presence Concealment's clause 1 -- *"this Unit cannot be targeted for an
+   * Attack or an enemy Unit's Skill"* -- was enforced in the rules and nowhere
+   * on the screen: the token sat in plain sight, with its panel, its facing and
+   * its Health bar readable by everyone, so a player simply routed around a
+   * Skill they could see was there. Concealment the table can see through is a
+   * footnote rather than a Skill (Ch. 46 §46.4-AK).
+   *
+   * `rules/concealment.mjs#hiddenFromViewer` is the whole decision; this reads
+   * the three facts it needs off the world and asks. Not gated on
+   * `canvas.level` like the interaction override above: a concealed Unit on
+   * another level is hidden for two independent reasons and Foundry's own
+   * visibility test already answers the second.
+   *
+   * A GETTER, not `_isVisible()`. Foundry 14 has no such method -- `isVisible`
+   * is a getter on `Token.prototype` and the ray-casting lives in
+   * `CanvasVisibility#testVisibility` behind it. Overriding the method that
+   * older versions had installs something nothing ever calls, which is a fix
+   * that tests green and does nothing on the board.
+   *
+   * @returns {boolean}
+   * @override
+   */
+  get isVisible() {
+    if (!super.isVisible) return false;
+
+    const actor = this.actor;
+    if (!actor) return true;
+
+    return !hiddenFromViewer(
+      { factionId: actor.system?.factionId ?? null, effects: heldEffects(actor) },
+      {
+        userId: game.user?.id ?? null,
+        isGM: Boolean(game.user?.isGM),
+        isOwner: actor.testUserPermission(game.user, "OBSERVER"),
+      },
+      factions(),
+    );
   }
 
   /* ------------------------------------------------------------------------ */
