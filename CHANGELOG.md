@@ -34,6 +34,46 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Eleven catalogue readers that no document could reach (2026-09-16)
+
+#### Added
+
+- **Eleven effect definitions** — `substitution`, `endure`, `accel`, `overCrit`, `gCrit`,
+  `noCrit`, `ward`, `defCrk`, `critResUp`, `critResDwn`, `blockUp` — closing a group of
+  Appendix A rows that shared one defect: **the behaviour was already implemented and no Unit
+  could be given the effect that triggers it.** Stage 0's halt, stage 16's Health clamp, stage 2's
+  four-term crit sum, stage 4's `ward` bucket, `critChance`'s two short-circuits, stage 14's
+  `blockUp` sum and `canCounter`'s Accel flag were all live, exercised by their neighbours, and
+  unreachable, because each tests for an effect **by id** and each id belonged to nothing.
+
+  Six carry `rules: []`, which is the finished state: the pipeline recognises them by id, and a
+  rule element beside that would be a second and weaker implementation of a halt that exists.
+  See [App. A §A.21](docs/A-effect-catalogue.md).
+
+#### Fixed
+
+- **`Accel` closed only the Counter rung**, so a defender could still Block and Evade an attack
+  the catalogue says cannot be Reacted to at all. `canCounter` has taken an `attackerHasAccel`
+  flag since the Counter rung was written and `engine/attack.mjs` has always passed it; the other
+  two rungs had nothing. Nothing noticed because no content could apply `accel` — authoring its
+  document is what first put a Unit on the near side of the gap. The refusal now joins
+  `forbiddenReactions`, assembled once at declaration beside concealment's refusals, the AGI
+  comparison and an attack's own `unblockable`, because a rung closed in two places is a rung that
+  can be reopened in one ([Ch. 27](docs/27-reaction-protocol.md)).
+
+- **`npValue: "@magnitude"` resolved to nothing**, in six content files. `resolveRuleValues`
+  substitutes the instance tokens **by field** — `value` against `"@magnitude"`, `npValue` against
+  `"@npMagnitude"` — so the line reached the executor as a literal string, resolved against a ref
+  tree publishing no `magnitude`, and was dropped. The resulting behaviour is the pipeline default
+  (absent `npValue` uses `value`), which is *exactly* what each author wanted, which is why five
+  shipped files carried the dead line unnoticed. `atk-up-demonic`, `atk-up-magus`, `atk-up-ms`,
+  `def-dwn-a`, `def-dwn-c` and `ward` now state it by **omission**, and
+  `tools/lib/content.mjs` refuses the dead spelling in either direction
+  ([Ch. 37 §37.4](docs/37-content-pipeline.md)).
+
+- **Three disagreeing tallies** in Appendix A — a header claiming 70 authored, §A.20 claiming 34,
+  and 126 files on disk. The count is now stated once, in the header, and read off the directory.
+
 ### The coverage ledger — what six audits did not test (2026-09-16)
 
 #### Added
