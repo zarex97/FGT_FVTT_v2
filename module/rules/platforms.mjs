@@ -352,7 +352,7 @@ export function isEdgePanel(panel, platform) {
  * @param {object} platform
  * @returns {{ok: boolean, reason?: string}}
  */
-export function jumpVerdict(unit, platform) {
+export function jumpVerdict(unit, platform, remaining) {
   if (!platform || (unit?.level ?? 0) !== (platform.level ?? 0) || (unit?.level ?? 0) === 0) {
     return { ok: false, reason: "notAboard" };
   }
@@ -366,7 +366,7 @@ export function jumpVerdict(unit, platform) {
 
   // *"land on a Game Board panel within its MOV"* -- a Unit with none left has
   // nowhere to land.
-  if (remainingMov(unit) < 1) return { ok: false, reason: "noMovement" };
+  if (remaining < 1) return { ok: false, reason: "noMovement" };
 
   return { ok: true };
 }
@@ -382,8 +382,8 @@ export function jumpVerdict(unit, platform) {
  * @param {object} board
  * @returns {Array<{i: number, j: number}>}
  */
-export function jumpLandings(unit, platform, board) {
-  const reach = remainingMov(unit);
+export function jumpLandings(unit, platform, board, remaining) {
+  const reach = remaining;
   const bounds = board?.bounds ?? null;
   const taken = (board?.units ?? [])
     .filter((u) => u.id !== unit?.id && (u.level ?? 0) === 0)
@@ -401,20 +401,6 @@ export function jumpLandings(unit, platform, board) {
     }
   }
   return out;
-}
-
-/**
- * How far this unit may still move, without importing the movement module.
- *
- * `rules/movement.mjs` already imports THIS file, so reaching back for
- * `remainingMovement` would close a cycle. The arithmetic is one line and the
- * shape is the projection's own.
- *
- * @param {object} unit
- * @returns {number}
- */
-function remainingMov(unit) {
-  return Math.max(0, (unit?.mov ?? 0) - (unit?.turnState?.movedPanels ?? 0));
 }
 
 /**

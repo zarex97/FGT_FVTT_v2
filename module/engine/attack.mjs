@@ -4450,7 +4450,9 @@ function authoredMagnitude(spec, actor, field = "magnitude", ride = null) {
     // The ride's own facts, when there was one. `@self.remainingMov` is
     // OVERRIDDEN here rather than read off the document, because the ride has
     // already written its movement by the time a rider phase resolves.
-    refs: expressionRefs(actor, ride ? { ride, hitCount: ride.hitCount } : {}),
+    // The tick, so `@self.remainingMov` measures this Turn's walk rather than
+    // whatever the record last held.
+    refs: expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null, ...(ride ? { ride, hitCount: ride.hitCount } : {}) }),
     // `perStack` on an effect spec, so a magnitude may scale with what the
     // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
     // is increased by X%"* where X is her size, and her size is one step per

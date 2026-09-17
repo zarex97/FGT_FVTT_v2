@@ -510,7 +510,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // applier refuses a non-finite delta outright, which is how this
               // was found rather than silently restoring nothing.
               const delta = typeof c.delta === "string"
-                ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, extras) })
+                ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null, ...extras }) })
                 : c.delta;
               // `clampToMax` is the difference between "restores 3 Agility" and
               // "grants 3 Agility": Golden Fleece restores, so it cannot push a
@@ -1049,7 +1049,7 @@ function authoredMagnitude(spec, actor, field = "magnitude") {
   if (typeof raw === "number" && !spec.perStack && spec.max === undefined) return raw;
 
   const value = resolveValue(spec, null, {
-    refs: expressionRefs(actor),
+    refs: expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null }),
     // `perStack` on an effect spec, so a magnitude may scale with what the
     // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
     // is increased by X%"* where X is her size, and her size is one step per
@@ -1905,7 +1905,7 @@ export async function applySelfRiders(ability, actor, { ride = null, when = "bef
  * @returns {import("./intents.mjs").Intent[]}
  */
 function applyBatchOfEffects(specs, actor, ride) {
-  const refs = expressionRefs(actor, ride ? { ride, hitCount: ride.hitCount } : {});
+  const refs = expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null, ...(ride ? { ride, hitCount: ride.hitCount } : {}) });
   const magnitude = (spec, field) => {
     const raw = spec?.[field];
     if (raw === null || raw === undefined) return null;

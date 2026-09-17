@@ -16,6 +16,7 @@
 
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
+import { remainingMovement } from "./movement.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
@@ -1605,12 +1606,15 @@ export function stacksHeld(actor) {
  */
 export function expressionRefs(actor, extras = {}) {
   const sys = actor?.system ?? {};
+  // Held out of the spread below: it parameterises the facade rather than
+  // appearing in it, and `@tick` is not a path any content authors.
+  const { tick = null, ...refs } = extras;
   return {
     // Values that do not exist until the action is under way. Troias Tragōidia
     // is the first to need any: *"X = the amount of remaining MOV Achilles has
     // divided by 2"* and *"Y = number of Units successfully hit by this NP"*
     // are both read AFTER the ride, so neither can come off the document.
-    ...extras,
+    ...refs,
     self: {
       ...(extras.self ?? {}),
       document: actor,
@@ -1626,8 +1630,33 @@ export function expressionRefs(actor, extras = {}) {
       parameters: sys.parameters ?? {},
       // What is left of his allowance this Turn. Read here rather than
       // recomputed by each caller, so "remaining MOV" means the same thing to
-      // a magnitude as it does to the movement planner.
-      remainingMov: Math.max(0, (sys.mov ?? 0) - (sys.turnState?.movedPanels ?? 0)),
+      // a magnitude as it does to the movement planner -- which is what this
+      // comment claimed while the line below it did the opposite twice over. It
+      // subtracted a RAW `movedPanels`, so a Servant who walked seven panels on
+      // tick 3 had no MOV left at tick 9, and it read a RAW `mov`, so Slow did
+      // not halve it. Troias Tragōidia is *"remaining MOV divided by 2"*: both
+      // errors land in an authored damage figure.
+      //
+      // `movement.mjs#remainingMovement` is the planner's own answer and this
+      // is now a call to it. `rules/snapshot.mjs` may import `rules/movement.mjs`
+      // -- nothing in `rules/` imports this file, so there is no cycle here; the
+      // one that exists is `movement -> platforms`, and it never reached this far.
+      //
+      // TERRAIN is the half still missing. `effectiveMov` also reads
+      // `terrainEffects.movDelta`, which `annotateTerrain` writes during
+      // `snapshotBoard` -- so it is a property of where a Unit stands and cannot
+      // be derived from its document. A caller holding a board snapshot should
+      // override `self.remainingMov` through `extras`, the way a ride already does.
+      // `extras.self` FIRST, so a caller holding facts the document cannot
+      // carry can override it. That is how terrain has to arrive, and it is
+      // what `engine/attack.mjs`'s ride comment has always said happens -- it
+      // did not: this key sits below the spread above, so the computed value
+      // won every time and a rider phase read the pre-ride allowance.
+      remainingMov: extras.self?.remainingMov ?? remainingMovement({
+        mov: sys.mov ?? 0,
+        effects: [...(actor?.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
+        turnState: turnStateAt(sys.turnState, tick),
+      }),
     },
   };
 }

@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  emptyBudget, poolFor, preventedBy, canConsume, consume, movementRemaining,
+  emptyBudget, poolFor, preventedBy, canConsume, consume,
   unmetCompulsions, canEndTurn, summarize, DEFAULT_MAXIMA,
 } from "../../module/rules/budget.mjs";
 
@@ -158,10 +158,6 @@ describe("per-unit limits sit on top of the pools", () => {
     expect(canConsume(emptyBudget(), after, "move").reason).toMatch(/Riding Attack ends/);
   });
 
-  it("counts remaining movement across both Riding segments", () => {
-    expect(movementRemaining(servant("a", { mov: 6, turnState: { movedPanels: 4 } }))).toBe(2);
-    expect(movementRemaining(servant("a", { mov: 6, turnState: { movedPanels: 9 } }))).toBe(0);
-  });
 });
 
 describe("prevention costs no budget, because the action never happens", () => {

@@ -340,20 +340,6 @@ export function consume(budget, unit, action, { alsoCountsAsAttackFor = null, bo
 }
 
 /**
- * How many panels this unit may still move.
- *
- * Riding's *"the total number of panels Moved during both times cannot exceed
- * its MOV"* makes this a running total rather than a per-segment allowance.
- *
- * @param {object} unit
- * @returns {number}
- */
-export function movementRemaining(unit) {
-  const used = unit?.turnState?.movedPanels ?? 0;
-  return Math.max(0, (unit?.mov ?? 0) - used);
-}
-
-/**
  * Unmet compulsions, evaluated over the whole turn.
  *
  * Both `Berserk` and `Decoy` carry the qualifier *"if there are multiple Units

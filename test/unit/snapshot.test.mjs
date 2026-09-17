@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  snapshotUnit, snapshotBoard, turnStateAt, turnWrite, roundWrite, contributionsOf,
+  snapshotUnit, snapshotBoard, turnStateAt, turnWrite, roundWrite, contributionsOf, expressionRefs,
 } from "../../module/rules/snapshot.mjs";
 import { remainingMovement, segmentCheck } from "../../module/rules/movement.mjs";
 import { EffectRegistry } from "../../module/rules/registry.mjs";
@@ -508,6 +508,49 @@ describe("roundWrite — the same rule at Round scale", () => {
     // gives `tick: null`.
     const out = roundWrite({ round: null, abilitiesUsed: ["x"] }, null, {});
     expect(out.abilitiesUsed).toEqual(["x"]);
+  });
+});
+
+describe("@self.remainingMov — the expression facade's own arithmetic", () => {
+  // *"X = the amount of remaining MOV Achilles has divided by 2"* (Troias
+  // Tragoidia) is authored against this number, so both of the errors below
+  // landed in a damage figure. The facade's own comment says remaining MOV
+  // must "mean the same thing to a magnitude as it does to the movement
+  // planner"; it is a call to the planner now, rather than a restatement.
+  const walker = (turnState, over = {}) => ({
+    id: "a", system: { mov: 6, turnState, ...(over.system ?? {}) },
+    effects: over.effects ?? [], items: [],
+  });
+  const movOf = (actor, tick) => expressionRefs(actor, { tick }).self.remainingMov;
+
+  it("subtracts what was walked THIS Turn", () => {
+    expect(movOf(walker({ tick: 4, movedPanels: 2 }), 4)).toBe(4);
+  });
+
+  it("ignores a walk recorded in an earlier Turn", () => {
+    // It subtracted a RAW `movedPanels`, so seven panels on tick 3 left a
+    // Servant with no MOV at tick 9 and every magnitude reading this went to 0.
+    expect(movOf(walker({ tick: 3, movedPanels: 6 }), 9)).toBe(6);
+  });
+
+  it("halves MOV under Slow, as the planner does", () => {
+    const slowed = walker({ tick: 4, movedPanels: 1 }, { effects: [{ system: { defId: "slow" } }] });
+    expect(movOf(slowed, 4)).toBe(2);
+  });
+
+  it("never goes below zero", () => {
+    expect(movOf(walker({ tick: 4, movedPanels: 99 }), 4)).toBe(0);
+  });
+
+  it("lets a caller holding a board override it, which is how terrain arrives", () => {
+    // `effectiveMov` also reads `terrainEffects.movDelta`, written by
+    // `annotateTerrain` during `snapshotBoard` -- a property of where a Unit
+    // stands, not of its document -- so a caller with a board has to be able to
+    // say so. This did NOT work: the computed key sat below the `extras.self`
+    // spread and overwrote it every time, which also silently disabled the ride
+    // override `engine/attack.mjs` documents at its call site.
+    const refs = expressionRefs(walker({ tick: 4, movedPanels: 2 }), { tick: 4, self: { remainingMov: 1 } });
+    expect(refs.self.remainingMov).toBe(1);
   });
 });
 

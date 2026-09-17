@@ -43,6 +43,8 @@ The record carried a fourth flag, `mayMoveAgain`, from the day Riding was writte
 
 Movement is measured separately: `segmentCheck` compares the unit's remaining movement allowance against remaining MOV (`module/apps/hud/turn-panel.mjs:68`).
 
+**There is one answer to "how far can it still move", and it is `rules/movement.mjs#remainingMovement`.** There were four. Only that one went through `effectiveMov`, which halves MOV under Slow and then applies the terrain delta; the other three subtracted `movedPanels` from a raw `mov`, so a Slowed Unit was credited with twice the movement it had. `rules/platforms.mjs` carried its own copy with a comment explaining that importing `movement.mjs` would close an import cycle — true of that file, and reproduced at two sites where it was not true of anything. `jumpVerdict` and `jumpLandings` receive the allowance now rather than computing it, so the Jump is measured against the same number that would carry the Unit. `rules/budget.mjs#movementRemaining` was a fourth copy with no caller at all, exercised only by its own test, and is deleted. **Where a module cannot reach the authority, the fix is to accept the value, not to restate the arithmetic** — the cycle was never the obstacle; computing instead of receiving was.
+
 ### Exemptions
 
 Platforms act once per turn free (`module/rules/budget.mjs:243-249`). Summons are exempt from pools entirely unless they opt into counting via `countsTowardBudget: true` (`module/rules/budget.mjs:147`). Units marked `exemptFromBudget` are also free (`module/rules/budget.mjs:139`). All three still obey their per-unit limits where applicable.
