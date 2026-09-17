@@ -23,14 +23,46 @@ against each Servant. Both are living; each audit appends to them.
 Two passes, and the second is not optional.
 
 **Pass 1 — the paper trace.** Every paragraph of `char_orig_sheets/Copia de <name>.md` is a claim.
-Trace each one: *sheet clause → rule element in the YAML → the engine reader that consumes it*.
+Trace each one: *Character Sheet Clause → rule element in the YAML → the engine reader that consumes
+it*. (Elsewhere this chapter says "sheet" where it means the Character Sheet — prose written before
+`CONTEXT.md` separated it from the Foundry actor sheet. Those uses are unchanged here; the method
+section is the one that has to be unambiguous.)
 A clause whose element has no reader is **Collected**, which Ch. 45 defines and which this
 project's dominant defect shape. A clause whose reader is asked the *wrong question* looks
 identical on paper and is not caught here — which is why there is a second pass.
 
 **Pass 2 — the live board.** Import the Servant **fresh from the compiled pack**, put it in a real
-match, and press every ability through the interface. Read the sheet, the chat card and the audit
-log, not the return value.
+match, and take every Clause to evidence. Read the actor sheet, the chat card and the audit log, not
+the return value.
+
+### The five evidence levels
+
+Every Clause carries exactly one. They are ordered: anything below `Observed` is not done.
+
+| Level | What it means |
+|---|---|
+| **`Pressed (interface)`** | A real click on the real control, the result read from the actor sheet, the chat card or the game log. The strongest evidence: it exercises the interface as well as the rule. |
+| **`Pressed (engine)`** | Driven on a live board through the **same function the button calls**. One layer below the mouse. |
+| **`Observed`** | A passive Clause in force, its effect read in a case that would read differently without it. Equal in strength to a press, different in kind, because a passive has no control. |
+| **`Traced`** | Followed from Character Sheet to rule element to the engine reader that consumes it, and no further. |
+| **`Untouched`** | Not examined. |
+
+**Which press a Clause needs.** A Clause a player initiates — a Skill, a Noble Phantasm, an attack, a
+move — needs `Pressed (interface)`. A Clause the scheduler or an event fires is satisfied by
+`Pressed (engine)`.
+[ADR 0004](adr/0004-a-player-initiated-clause-needs-an-interface-press.md) holds the reasoning and
+the condition that would merge the two levels.
+
+**`Observed` requires a differential.** A passive stating that damage taken is reduced by 40% is not
+proved by reading 60 damage; it is proved by reading 100 without it in force and 60 with it. A
+passive has no moment, so a single reading is a number, not a rule. Record both values.
+
+Passives are the ordinary case, not the exception: 228 passive markers against 134 active across the
+Character Sheets.
+
+**An Ability with both a passive and an active part carries two evidence records.** They are separate
+claims and fail independently: Asterios' Natural Monster has a passive that is the source of his STR
+and END and an active that applies two buffs, and either can be inert while the other works.
 
 > Green unit tests are not evidence. Every fixture in `sheet-present.test.mjs` used the document
 > shape of `health`, so the code and the tests agreed with each other and not with the system, and
@@ -39,9 +71,18 @@ log, not the return value.
 An audit is finished when every clause has been *seen working on a board*, and the findings are
 filed: Servant-specific ones in that Servant's case chapter, general ones in §46.4 here.
 
-**By that standard no Servant here is finished yet.** §46.13 records, per Servant and per fix, what
-was pressed, what was only traced, and what was not looked at — because an audit that reports only
-its findings reads as a clean bill of health for everything it did not reach.
+**By that standard no Servant is finished, and the roster now says so.** Two sections of this chapter
+used to record per-Servant progress and they contradicted each other — one marked three Servants
+*complete* that the other said were not — so both were deleted rather than reconciled, and every
+Servant was reset to `Untouched`. Progress lives on the issue tracker now, computed from each
+Servant's clause list rather than maintained by hand. See
+[ADR 0005](adr/0005-the-roster-status-is-the-tracker-not-a-table.md).
+
+An audit that reports only its findings reads as a clean bill of health for everything it did not
+reach. That is why the Clause list is the unit: a Clause nobody asked about is recorded as unasked.
+
+The section numbering below skips **46.7** and **46.13** — the two deleted records. The gaps are left
+rather than closed, for the reason ADR 0005 gives.
 
 ---
 
@@ -455,8 +496,8 @@ The fix is `maxHealthFor` itself rather than a second spelling of it: two deriva
 today are two derivations that can drift, which is the whole of what this entry is about.
 
 **This is the first defect found *because* the board was built properly.** §46.2 has listed
-hand-built boards as a hazard since Heracles, and §46.13.2 recorded the Max Health override as
-"pressed for Asterios (1700) and Penthesilea (1350)" — both hand-imported, both therefore reading
+hand-built boards as a hazard since Heracles, and the Max Health override had been recorded as
+pressed for Asterios (1700) and Penthesilea (1350) — both hand-imported, both therefore reading
 the one derivation that was already right.
 
 ### L. `oncePerRound` could not reach the one ability that declares it — **fixed 2026-09-16**
@@ -794,7 +835,7 @@ added nothing.
 
 This one was hiding behind an easy mistake. A cooldown falls by 1 per Turn anyway, so *"it went
 down"* looks like the effect working; only holding the buff and dropping it across two otherwise
-identical Turns separates them. §46.13 had recorded NP Regen's reduction as untested for Medea and
+identical Turns separates them. NP Regen's reduction had been recorded as untested for Medea and
 Penthesilea, and that is exactly why.
 
 Noble Phantasms only — both sheets say *"Noble Phantasm Cooldown"* — and the three effects that slow
@@ -1074,7 +1115,8 @@ reading it twice is that the second read is of a different Turn.
 and e. All three interior rules (`ImmunityDowngrade`, `VulnerabilityAmplifier`,
 `PeriodicOverride`) are present and correctly shaped on the live field and clause b emits its
 `applyEffect` intent — but none of the three was ever *observed changing a number*, which is the
-only standard §46.1 accepts. §46.13 carries it.
+only standard §46.1 accepts. They remain unverified, and — like every Clause in the roster — are
+`Untouched` until her audit is run.
 
 **A measurement error worth keeping**, because it cost most of an afternoon and would cost it again:
 effect instances are **ActiveEffects** (`CONFIG.ActiveEffect.dataModels.fgtEffect`), not embedded
@@ -1523,45 +1565,6 @@ Recorded so they are not filed again.
 
 ---
 
-## 46.7 Roster status
-
-A ✅ in **Board** means *the findings below were pressed*, not that every clause was. §46.13 is the
-per-Servant record of what each audit left untested.
-
-| Servant | Paper | Board | Findings | Filed |
-|---|---|---|---|---|
-| **Heracles** | ✅ | ✅ **complete** | 6 (1 his, 5 general) | Ch. 45a; §46.4-A, B, G, J; Ch. 32 |
-| **Asterios** | ✅ | ✅ **complete** | 5 (4 his, 1 general) | §46.8; §46.4-H, I, K |
-| **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
-| **Penthesilea** | ✅ | ✅ **complete** | 3 (2 hers, 1 general) | §46.10; closes §46.4-C; §46.4-N |
-| **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
-| **EMIYA** | ✅ | ✅ **complete** | 7 (2 his, 5 general) | §46.12; §46.4-P, Q, R, S, T |
-| Hassan of Serenity | — | — | — | |
-| **Semiramis** | ✅ | ✅ **complete** | 16 (2 hers, 14 general), all fixed | §46.14; §46.4-W…AM |
-| Scáthach | — | — | — | |
-| Kingprotea | — | — | — | |
-| Castor / Pollux | — | — | — | |
-| Raikou | — | — | — | §46.4-C's conditional floor now built for her |
-| Anastasia & Viy | — | — | — | |
-| **Achilles** | ✅ | ✅ (2 clauses need another opponent) | 1 general | §46.4-V |
-| Mannanán mac Lir | — | — | — | carries §46.4-B |
-| Medusa | — | — | — | |
-| Nemo | — | — | — | |
-| Kiritsugu | — | — | — | |
-| Francis Drake | — | — | — | |
-| Ozymandias | — | — | — | |
-| Pale Rider | — | — | — | |
-| Quetzalcoatl | — | — | — | |
-| Van Gogh | — | — | — | two class skills repaired by §46.11 |
-| Jack the Ripper | — | — | — | |
-| Nursery Rhyme | — | — | — | |
-
-**Not authored at all** — no `packs/_source/servants/` file exists: Hassan of the Hundred Faces,
-Katō Danzō, Proto Gil, Yan Qing. Four sheets, no implementation. They are not audit failures; they
-are absent, and Ch. 45's content row should say so.
-
----
-
 ## 46.8 Asterios — what was his own
 
 Audited 2026-09-16. The statblock, all seven clauses of Mad Enhancement, Natural Monster, Avyssos
@@ -1879,555 +1882,3 @@ Verified on a live board: the token places 3×3.
 nothing — the rule it exempts her from was not running for anybody. It was switched on to press the
 clause and switched back afterwards. A clause that exempts you from an optional rule cannot be
 tested while the rule is off, and the refusal looks identical to a working exemption.
-
-## 46.13 What this audit did **not** test
-
-§46.1 says an audit is finished when every clause has been *seen working on a board*. By that
-standard **two of the Servants below are finished — Heracles and Semiramis — and the rest are not**,
-and this section is the honest record of the gap. It exists because the audit's own finding rate argues for it: every defect in §46.4 was
-found by pressing something, and three of them survived a complete paper trace that declared them
-correct. An untested clause here is not a clause believed good — it is a clause not yet asked.
-
-Four levels are used throughout, and the first two are **both** live — they differ only in where the
-push came from:
-
-| | Means |
-|---|---|
-| **Pressed (interface)** | A real click on the real control, and the result read from the sheet, the chat card or the audit log. The strongest evidence: it exercises the interface as well as the rule |
-| **Pressed (engine)** | Driven on a live board through the **same function the button calls** — `performAction`, `attemptEscape`, `endTurn`, `resolveDefeat`, `dispatch` — with the result read from the same places. One layer below the mouse |
-| **Traced** | Followed from sheet text to rule element to the engine reader that consumes it, and no further |
-| **Untouched** | Not examined in this pass at all |
-
-**Why the second level exists, stated plainly.** Confirming an attack through the interface takes two
-canvas clicks and a dialog button, and scripted click sequences drop that handshake often enough
-that a single lethal attack cost roughly fifteen attempts without landing. Every clause below marked
-*pressed (engine)* was verified on a live board with live documents and a live combat — what it does
-**not** prove is that the control a player would use reaches that function. Where the interface
-itself is the thing under test — a refusal message, a label, whether a button is offered at all —
-*pressed (interface)* is used and nothing else counts.
-
-The distinction is recorded per clause rather than averaged away, because "we drove it from the
-console" and "a player can do this" are different claims and this chapter exists to keep such
-claims apart.
-
-### 46.13.1 Per Servant
-
-**Heracles — complete.** Every clause on his sheet has now been exercised, and the ones added in
-the second pass were driven through the engine's own entry points: `resolveAttack` / `advanceAttack`
-(what the attack dialog calls), `spendCommandSpell` (what the Command Spell button calls) and
-`applyEffect` (what the damage pipeline calls at the Damage Step).
-
-*Pressed (interface):* the statblock; Mad Enhancement clauses 1 and 4; Bravery's refusal while the
-mode is on; Eye of the Mind offered on the reaction ladder; Nine Lives' range refusal; the
-Master-cost line.
-
-*Pressed (engine):*
-
-- **Mad Enhancement 2, 3, 5, 6, 7** — the two damage branches at 1000 → 600 normal and 1000 → 800
-  NP; STR +60 / MAG +30; `resource:sustainability:-2` present only while the mode is on;
-  `forceTable: "unfavourable"` reached on an Evade; and clause 7 leaving no effect instance behind.
-- **Battle Continuation Passive 1**, both branches. A normal attack negated **29** and a Noble
-  Phantasm negated **48** — decisive, because rank A's table is `2d10+20` and **48 is outside its
-  ceiling of 40**, so only the doubled `4d10+20` can produce it. The first pair of samples (24 and
-  35) sat in the overlap and proved nothing; the clause needed a number above 40 to be settled.
-- **The four-way revival priority**, with all three available sources armed at once. Undying fired
-  first at priority 300 for 223 (375 restored, 152 overkill), leaving `godHandUsed: 0` and
-  `bcCooldown: 0` — God Hand and Battle Continuation untouched, which is the ordering his sheet
-  prints. Indomitable's `unitRevived` payout landed at magnitude **30**. God Hand Passive 2 then
-  survived at 1 on a later attack, with the breakdown stage naming itself *"God Hand: Twelve
-  Labors: survives at 1"* and the ledger recording two distinct identities
-  (`normal:…` and `ability:…`) for the two attacks.
-- **Battle Continuation's revival spent for nothing**, which is the §46.6 reading observed rather
-  than argued: against 424 overkill its `5d20` cannot reach, so the cooldown was charged (9 turns,
-  3◈ at rank A), no Health was restored, **no fallback ran**, and Heracles was defeated with eleven
-  God Hand charges unused. Documented behaviour, and considerably sharper seen than read.
-- **Nine Lives** end to end — base 160 → crit 187 → ×4+100 = 848 → 898 with Divinity, the Def Dwn
-  rider landing and the Master charged 53.
-- **Indomitable**, both buffs, cooldown 12.
-- **Bravery's mental-debuff resistance**, which is where §46.4-J was found. Now **50%** with Mad
-  Enhancement off and **100%** with it on — the second half being his own *"has no effects when Mad
-  Enhancement is Active"* — while a non-mental control stays at 100% in both.
-- **The Suspend Skill Command Spell**, §46.8's finding 3, never previously run. `active: true →
-  false` while `cannotDeactivate` stayed **true** throughout, `suspendedUntil` stamped at tick 18 +
-  3, Master charged 3 → 2. This is the first evidence for §46.4-B's standing claim that a Command
-  Spell *"spends itself through `suspendSkill`, a different write"* and so beats the flag that
-  refuses every click and every forced deactivation.
-
-*Found while pressing:* Ch. 32's **ZON penalty** never applied (fixed; verified live at −34,
-228 → 194) and §46.4-J's **inverted sign** (fixed; five clauses). Both had been traced as correct.
-
-
-**Asterios — complete.** Every clause on his sheet has been exercised on a war built by
-`commitWar`, in a match whose Region is **Greece** so his home-ground clause could be reached at
-all. Engine entry points throughout — `resolveAttack`/`advanceAttack`, `attemptEscape`,
-`expireFields` — with the real dialogs answered by real clicks where the system asks a question.
-
-*Pressed (interface):* the statblock; Mad Enhancement clause 1 in his shape; Monstrous Strength
-offered at the Damage Step, its label and its **Confirm**, which every Process of his stops at; the
-**extension prompt** — *"Asterios may pay 200 Health to keep it open for 2◈ longer"* — chosen with
-**Pay and extend**; and the weak-point offer against Achilles, declined.
-
-*Pressed (engine):*
-
-- **Natural Monster**, both effects: `offDebuffResUp` **100** and `defUp` **40**, each 1◈. The
-  resistance was contested rather than read — three different **offensive** debuffs all resolved at
-  **0% and resisted** while a defensive one still landed at 100%, so the −100% is scoped to valence
-  as the sheet says. Def Up then reached **stage 4** on a real attack at `-40`, beside a second
-  contributor noted **"Home Base"** at −10, additive to −50% → ×0.50.
-- **Avyssos of Labrys**: `critUp` 60, `nAtkUp` 40 and `bleedAtk` 10, all 1◈, cooldown **9** (3◈).
-  Crit chance measured at **110%** — Ch. 13's base 50 plus 60 — so Crit Up has a live reader.
-- **`regionSizeOverride`**, the clause that *"had no reader at all until Asterios was finished"*:
-  the field opened as `shape: {kind: square, size: 11}` where the base is 9, because `warRegion`
-  reads `greece`. Anchored at `{6,6}` where he stood, expiry 18 = tick 6 + 4◈.
-- **Clause 2** on the right side only: Achilles took `atkDwn` 40 and `defDwn` 40 for 2◈ and
-  **Asterios took none** — the `relations: [enemy]` narrowing holding.
-- **Clause 4**, the interior: Asterios's MOV **4 → 8** and Achilles's **7 → 5**, both inside.
-- **Clauses 6 and 7**, the attrition engine: Asterios paid exactly **200** (1704 → 1504), expiry
-  moved **18 → 24** (+2◈), `lastExtendedAt` stamped, and the extension's own riders landed at the
-  *smaller* magnitude — `atkDwn` **20** and `defDwn` **20** for 1◈ — distinct from the activation's
-  40s.
-- **Clause 8**: with Asterios defeated, one Turn later the field was gone — `fields: []`,
-  `regions: []`. And the Noble Phantasm's cooldown then read **24** (8◈), started **at the
-  deactivation**: the field was cast at tick 6 and closed at tick 20, so a clock counted from the
-  cast would long since have run out. `countFrom: deactivation`, observed.
-- **Clause 10's attack half**, both directions, at **Range 1** so distance cannot be the cause:
-  *"No legal targets: Asterios is separated by asterios-chaos-labyrinthos"* outward-in, and the
-  same refusal inward-out.
-- **The escape ladder in full**, earned rather than arranged. Achilles rolled from the border at
-  **20%**, failed, and `randomRelocate` threw him from `{11,6}` to `{2,7}` — after which every
-  attempt answered `notAtBorder`, which is the puzzle the sheet describes. Walked back and retried,
-  his chance climbed **20 → 25 → 30 → 35 → 40 → 45 → 50**, exactly `chanceIncreasePerFailure: 5`,
-  and he escaped on the eighth attempt with seven failures recorded.
-- **The veteran lead-out**, the clause that makes the Labyrinth a puzzle rather than a soft lock.
-  With Achilles (`escaped: true`) adjacent, his Master's escape returned `ok: true, reason:
-  "ledOut", chance: 100, roll: null` — **no die rolled at all**. The same field and the same unit
-  without the adjacent veteran: `chance: 20, automatic: false`.
-
-*Found while pressing:* §46.4-K, his Max Health — **1800**, not the 1600 the summon path gave.
-
-*Seen in passing, and not otherwise tested:* the **first-Round attack ban**, the bar on Noble
-Phantasms **before Round 6**, and the **Home Base** 10% reduction. None had ever appeared on a
-hand-built board.
-
-**Karna — complete.** Thirteen abilities and four Noble Phantasms, on a war built by `commitWar`
-against Medea — a Caster chosen so Magic Resistance had real spells to answer.
-
-*Pressed (engine):*
-
-- **Magic Resistance, both branches of Passive 1.** Medea at MAG **A+** was reduced by exactly
-  **30%** — the rank-C table value, `−5.61` on 18.7. Dropped to an effective **D+**, her damage was
-  **negated outright**: *"negated: MR C ≥ attack D+"*, 16.4 → 0, `negatedBy: "Magic Resistance"`.
-  A first attempt looked like a defect until the contributor's own note read *"MR C < attack C+"* —
-  she carries a granted MAG step, so she had never been at C. The engine was right.
-- **Passive 2's severity ladder, rolled rather than argued**, which is exactly how §46.9 flagged
-  it: an ordinary debuff at **85%**, **Instakill at 85%**, **Death at 85%**, and **Erase at 100%** —
-  *"completely unaffected"*, as the sheet says.
-- **Uncrowned Arms Mastership**, both effects and their exclusivity: state 1 gives crit chance
-  **70%** (50 + 20) and no crit-damage modifier; state 2 gives **50%** and **+40** crit damage.
-  Never both — except under Charity, below. The once-per-Round ration is §46.4-L.
-- **Discernment of the Poor**: `npSeal` and `debuffResDwn` **50**, both ⅓◈, and the Seal genuinely
-  refusing a Noble Phantasm — *"Cannot attack: prevented by npSeal"*. Its `−50` reaches the bucket
-  and was cancelled exactly by Medea's own Item Construction `+50`, which is the additive bucket
-  doing what it says.
-- **Flash of the Sun God**, all three clauses: Agility **14 → 17** (restores 3, clamped to max),
-  `atkUp` 40 with `npMagnitude` 30, `npDmUp` 20, cooldown **12** (4◈). Its durations are §46.4-M.
-- **Mana Burst (Flames)**, active and passive. The active's combined Base Attack came out as
-  `base:str:125` + `base:mag:175` = **300**, which is the sheet's own worked example; Burn landed
-  for 2◈; cooldown **9**. The passive: Burn **blocked (burn Immune)**, and a **50%** fire-damage
-  reduction. Its *"cannot be used on the same Turn as Flash of the Sun God"* refused with
-  `sameTurnExclusive`.
-- **End of Charity**, including the clause that makes it interesting: with `charity` up, Uncrowned
-  Arms Mastership contributes **+20 crit chance AND +40 crit damage at once** — the exclusivity
-  above, correctly suspended. Plus `sCritUp` 40 for ⅓◈ and cooldown 12.
-- **Riding's three passives**: `grantedAbilities: [doubleMove, ridingAttack, passengerSeat]`.
-- **Divinity**, seen as `divinity: 50` in the flat-bonus stage of every attack he made.
-- **All four Noble Phantasms as resolutions.** Brahmastra: `multiplier: 2` + `flatBonus: 100`,
-  cooldown **22** (7◈+⅓◈). Kavacha and Kundala's **−90%** at stage 4. Vasavi Shakti: activation
-  landing on BA(STR) **150** and rank **A** (not double-counted to 175), then the NP at
-  `multiplier: 5`, refused at Range 1 by its stated **minimum Range of 3**, cooldown **24**.
-  Brahmastra Kundala: combined BA **325**, `multiplier: 4` + `flatBonus: 100`, and **Karna
-  unharmed by his own 7×7 blast**, which his sheet exempts him from.
-- **The mutual Noble-Phantasm gates, both ways**: Brahmastra Kundala refused while Vasavi Shakti
-  and Mana Burst were cooling, and Vasavi Shakti refused while Brahmastra Kundala was.
-- **The Master cost, both sides.** Brahmastra Kundala refused at *"its Master needs MORE than 53
-  Health to pay for it"* with the Master on 50; healed, it charged exactly **53** (218 → 165).
-- **Vasavi Shakti's Divinity ladder**: against a Medea actually carrying Divinity at rank **B**,
-  `conditionalMultiplier: 3` appeared beside `multiplier: 5` — the *"Rank B to EX, tripled"* branch.
-  Total 6030 against 1467 without it.
-
-*Found while pressing:* §46.4-L (`oncePerRound` unreachable on the mode path) and §46.4-M (the
-attack path dropping a rule's duration), the second reaching eleven phases across eight files.
-
-*Still untested:* Mana Burst's **25% Burn chance** on ordinary Normal Attacks — the `OnEvent` is
-collected and the active's Burn landed, but the probability was never sampled; End of Charity's
-**clause 3**, the Noble-Phantasm cooldown chooser, because nothing was on cooldown to reduce when
-it fired; Vasavi Shakti's own **Burn for 4◈**, indistinguishable on the board from the Burn Mana
-Burst had already applied; and the Divinity ladder's **other two branches** (E–C, and the 'Divine'
-attribute without Divinity).
-
-**Penthesilea — complete.** Her kit is a two-state design and both states were driven, with
-*Hatred of Achilles* as the switch: a war built by `commitWar` against **Achilles**, the one Greek
-Male who triggers her compulsion.
-
-*Pressed (engine), calm (Mad Enhancement off):*
-
-- **Goddess of War, all four clauses.** Clause 1 landed as `atkUp: 20` on a Normal Attack — a
-  `1d4×10` rolling 2, correctly gated to `attack:kind:normal`. Clause 2 as `defUp: −10` on damage
-  received, its contributor noting *"Goddess of War: War God's Military Sash"* and **not** the Home
-  Base reduction, which she was outside of. Clause 3 is §46.4-N. Clause 4, the Divinity rank shift,
-  was proved by A/B rather than by reading: **Divinity 50 while calm, 40 while raging, 50 again on
-  return** — rank B alone gives 40 and the shift to A gives 50.
-- **Charisma**, passive and active. The passive put `Charisma: 20` on her Master, an *other* allied
-  Unit within 2 panels; it was **absent while she raged**, which is the negation clause. The active
-  then put `atkUpCharisma` 20 / NP 10 on her and **switched her Master's modifier from the flat
-  `Charisma: 20` to the percentage** — *"Negated while Penthesilea has Atk Up (Charisma)"*, so the
-  two never stack.
-- **Golden Rule (Beauty)**, with its carve-out contested rather than read: an ordinary debuff
-  **blocked** at the immunity step, while **Instakill, Death and Erase all passed it** — and a buff
-  passed too, so the immunity is debuff-scoped.
-- **Howl of the War God**, both clauses: `atkUpStr` 30 / NP 20 on **her Master as well as herself**
-  (clause 1 reaches allies within 2), and `atkUpGreekMale` **100** on her alone — applied **once**
-  for the whole two-target fan, which is the `isFirstOfGroup` guard preventing a 200%.
-
-*Pressed (engine), raging (the compulsion holding Mad Enhancement on):*
-
-- **Hatred of Achilles** fires on a Greek Male at chebyshev 3: Mad Enhancement forced on, the
-  compulsion recorded as `{forcesTarget: true, targetIds: [Achilles]}`, and it **lifted the moment
-  he left** — without switching the mode off, which is what the sheet says.
-- **The compulsion's second half**, recorded in §46.13 as *never exercised at all*. Attacking a
-  perfectly legal adjacent enemy was refused: *"No legal targets: … the attacker is compelled to
-  attack another unit."*
-- **Charisma refused outright** with `modeInactive` — *"cannot be used while Mad Enhancement is
-  active"*.
-- **Mad Enhancement clause 2 at rank EX**: +100% for non-MAG attacks, +50% for MAG.
-- **Outrage Amazon** as a resolution: `multiplier: 3.5`, BA(STR) 170, `defDwn` 30 for 1◈, cooldown
-  **18** (6◈) — and `divinity: 40`, the un-shifted value, confirming Goddess of War is off.
-
-*Found while pressing:* §46.4-N.
-
-*Seen in passing:* **§46.4-K reaching her** — she summoned at **1450**, the END table's 1350 plus a
-granted step, where the old derivation would have given 1350. And a **Master's defeat severing the
-contract**: a 232-damage Normal Attack killed the Rider Master (max Health 82) and Achilles became
-`contract: "free"`, `masterId: null`.
-
-*Still untested:* Goddess of War clause 2's *"if NP, the magnitude is halved"* — the `npMultiplier`
-is authored and the normal half measured, but no Noble Phantasm was fired at her; and **NP Regen's**
-actual cooldown reduction, which needs a Noble Phantasm on cooldown across a Turn boundary.
-
-**Medea — substantially complete.** On a war built by `commitWar` against Heracles, which finally
-gave her the **Home Base** the previous board lacked.
-
-*Pressed (engine):*
-
-- **Territory Creation, both passives** — recorded in §46.13 as blocked purely for want of a Home
-  Base. Passive 1 contributed **`atkUp: 63`** while she stood in hers (a `5d20` at rank A, the
-  contributor noting *"Territory Creation"*); passive 2's aura reached **her and her Master** as a
-  `3d10+20` `DamageNegation`, measured at **−32** when Heracles struck her, with
-  `stacking: "highestOnly"` carrying the non-stacking clause.
-- **Rule Breaker, every clause** — §46.13 called its contract cut *"the most consequential untested
-  clause in this audit"*. Heracles failed his Evade (19 → 26 against 18, the unfavourable table),
-  accepted the hit at `s23_acceptOrEscape`, and took 225. Then: **both his buffs stripped**; his
-  **contract transferred** from the Berserker Master to Medea's; the old Master's Command Spells
-  **3 → 0**; and three granted as `commandSpellsPerServant: { Heracles: 3 }` — namespaced to the
-  Servant she took, which is Ch. 32's rule and not the general pool. The reciprocal side held too:
-  Medea's Master now lists **both Medea and Heracles**, the Berserker Master none.
-- **Dragon Tooth Warriors**, the corpus's summon subsystem end to end: **5** conjured on the 1d6,
-  a type rolled per warrior on the 1d4 — four Blade and one Daggers, with one die landing on
-  *"your choice"* and opening a real dialog — all placed inside the 5×5 around her. The
-  **adjacency protection** then refused Heracles outright, which is §46.4-O.
-- **Golden Fleece**: Health 400 → **655**, exactly 30% of her 850 **maximum** rather than of her
-  current, and Agility 11 → **14**.
-- **High-Speed Divine Words**: all **seven** Spells from cooldown 7 to **0** in one use.
-- **Aero**: 370 damage with its **Bleed** rider landing — the rider that once went missing when the
-  newer authoring shape had no reader.
-- **Item Construction** (earlier pass), including the aura reaching her Master.
-
-*Found while pressing:* §46.4-O.
-
-*Still untested:* **Teachings of Circe**; **Argos, Keraino, Trofa and Atlas** as resolutions;
-**Rain of Light**; the Dragon Tooth Warriors' *"do not count towards the number of Units that
-Move and/or Attack"* and their per-warrior once-per-Turn limit; and High-Speed Divine Words'
-**Silence** clause, both halves.
-
-**EMIYA — complete but for Rho Aias.** A war built by `commitWar` against Heracles, EMIYA at
-Range 4 to Heracles's 2 so the range bands half his kit turns on could be reached.
-
-*Pressed (engine):*
-
-- **Hawkeye**, and the range band gating it: at **Range 4** the crit contributor read
-  **`"5d10 = 33, ×2.00 crit damage"`** — the +100% doubling the roll, *"at a Range of 3 or higher"*.
-- **Clairvoyance**: three Evades at Range 4, **all three forced onto the unfavourable table** —
-  *"the DU has an 80% chance of using Evade− when Evading"*, imposed by the attacker.
-- **Magic Resistance**, his own, and the *Kanshou & Bakuya* shift: a Normal Attack at Range 1
-  applied `dualWieldGuard` and moved him **D/20% → C/30%**, which is §46.4-Q.
-- **Trace On**, all five clauses. First use cost **no** Health and the second cost exactly **5% of
-  maximum** (1000 → 950); `activatedCircuits` was **replaced by** `blazingCircuits` on the second —
-  *"he cannot hold both"*; Luck **2/2 → 7/7 → 12/12**, max and current; Agility restored 5;
-  `atkUpTrace` 60 / NP 40, whose duration then **extended by ⅓◈** when a Thaumaturgy Spell was cast
-  while it was up (expiry 8 → 9).
-- **Eye of the Mind (True)**, the **B→EX swap**: at 50% Health the EX document refused with
-  `reason: "healthBelow"`; at **15%** it was usable, applying `dodge` (⅓◈), `atkUp` 30/NP 15,
-  `defUp` 30/NP 15 and `sCritUp` 30, cooldown 4◈.
-- **Reinforcement**, through the **Start of the Combat Phase** dialog it is actually offered at —
-  where §46.4-P was found — reaching stage 4 as `atkUp: 30, note: "nAtkUp"`.
-- **Magecraft's Range Up, earned rather than injected** (§46.12 recorded it as read-only): casting
-  any Thaumaturgy Spell granted `rangeUp: 1` on its own.
-- **Tracing**: the *"Two Projections by 1◈ / One by 2◈"* choice taken as **one by 2◈** — Caladbolg
-  **9 → 3** while every other Projection stayed at 9 — plus `dmgBoost: 30` and a 3◈ cooldown.
-- **Independent Action**: `independentActionZon` at rank B = **2**, and his ZON reads **4** with
-  `zonBonuses: [{value: 2, source: "Independent Action"}]`.
-- **Unlimited Blade Works**, end to end. Aria accrued **1 per Combat Phase to a maximum of 6**; the
-  activation **consumed all 6**; the Reality Marble opened as a **7×7** anchored where he stood,
-  with **all four membership directions forbidden** — trapped in, locked out; his **BA(STR) 75 →
-  125** inside; and the start-of-Turn toll measured across eight samples at **25, 75 and 100**
-  damage (`25 × 1d4` rolling 1, 3 and 4) with five clean Evades against Heracles's Agility 20.
-- **Projection Magic's Silence clause**, both halves: unsilenced, Overedge asks for a target;
-  **silenced**, Overedge *and* Reinforcement both refuse with `notHasEffect` — the note that
-  Projections are treated as Thaumaturgy Spells, enforced.
-
-*Found while pressing:* §46.4-P and §46.4-Q, and §46.4-R which is left **open**.
-
-- **Rho Aias**, against Heracles's Nine Lives. Offered on the reaction ladder by its
-  `whenAllyAttacked, againstKind: np, radius: 3` window, taken, and resolved: shield **1400 → 0**,
-  `timesUsed: 1`, cooldown **24** (8◈), and EMIYA losing exactly **745** — **700** from the per-200
-  clause plus the **45** that got through once the pool was spent. Its **Master cost** too, once
-  §46.4-T was fixed and the recovery clause satisfied: **209 → 109**, the EX-rank figure. Its recovery clause then refused
-  every later use, correctly: *"Health must have been restored back to above half its maximum value
-  since the last usage."* Reaching it at all took §46.4-S.
-
-*Still untested:* **Overedge** as a resolution, and Independent Action's **third** passive, the
-contract-resistance rolls.
-
-**Achilles — complete but for two clauses that need a different opponent.** A war built by
-`commitWar` against Medea — a Caster for Magic Resistance, and carrying **no Divinity**, which is
-the top row of the table his signature passive is built on.
-
-*Pressed (interface):* **Achilles's Heel**, through its own dialog, repeatedly. The prompt itemises
-its own ladder, which is how most of it was read: *"15% — from behind +10 · initiated +5"*, then
-*"20% — at Range +5 · initiated +5 · unseen +10"* from three panels away.
-
-*Pressed (engine):*
-
-- **The Heel's modifier ladder, every clause.** Measured across four declarations: base **back
-  +10** and **front 0**; **(a) agility +0** — correctly, Medea's AGI being below his; **(b) at Range
-  +5** from three panels; **(c) initiated +5**; **(e) fogOfWar +10**; **(f) luckCheck +25**. The
-  reaction card offered *Do nothing* and *Evade* and **no Block**, which is *"Achilles cannot Block
-  Heel Attacks"*.
-- **Both Heel outcomes.** A failure — `chance: 15, roll: 93` — resolved `heelResolve:fail →
-  noDamage`, which is *"Achilles successfully Evades the Attack"*: **1600 untouched**. A success —
-  `chance: 55, roll: 26` — resolved `heelResolve:success → damage`, dealt **251**, and applied
-  **`heelWounded`**.
-- **Andreias Amarantos, all four tiers**, with the arithmetic exact each time. Against **no
-  Divinity**: `attackerPropertyTier: 0`, noted *"vs no divinity"* — **total 0**, untouched. Against
-  **E**: ×0.5, 152.7 → **76**. Against **D**: ×0.75, 115.9 → **86**. Against **C**: the stage is
-  **absent** and 124.4 → **124**, full damage.
-- **The interlock between them**, by A/B on the same board and attacker: Heel intact → **0** damage;
-  `heelWounded` held → the `totalDamageModifiers` stage **empty** and the same attack dealing
-  **107**. *"The effect of Andreias Amarantos is lost if Achilles' Heel is damaged."*
-- **Magic Resistance C** at `−57` — *"−30% MAG (MR C < attack A++)"* — and **Battle Continuation A**
-  at `damageNegation: −25`, both on the same card as Andreias.
-- **Bravery**, which is §46.4-J's shared skill: a mental debuff at **35%** (100 − 15 Magic
-  Resistance − 50 Bravery) against a non-mental control at **85%**.
-- **Affections of the Goddess**: `defUp` 50/NP 25, `atkUp` 20/NP 10, `debuffResUp` 50, all 1◈,
-  cooldown 4◈.
-- **Runner Comet** — which took §46.4-V to reach at all. Offered at the *Start of the Combat Phase*,
-  it restored Agility **15 → 18**, applied `nAtkUp` 30 and `critDmUp` 30 for that Turn, and charged
-  **8** (3◈−⅓◈). Offered **only** while Unmounted: the same window offered nothing while mounted.
-- **Dromeus Komētēs**, both clauses and their gate: `doubleMove` granted — **twice**, once by
-  Riding and once by this, which the file records as deliberate so a Skill Seal on either leaves the
-  other's standing — and `checkPlan` folding in **`Dromeus Komētēs: Comet Form: −4`** on Evade. Both
-  vanish when he mounts.
-- **Riding, by mounted/dismounted A/B.** Mounted grants `ridingAttack` and `passengerSeat` and takes
-  MOV **7 → 8**; dismounted grants `ignoresOccupancy` instead and restores the Evade −4.
-- **Troias Tragōidia's passive**, with its three conditions separated: mounted **and** having Acted,
-  at the Turn boundary, his Master went **385 → 360** — exactly **25**. Dismounted and having Acted,
-  on the next Turn: **no drain at all**.
-- **Troias Tragōidia's active**, whose three magnitudes are all derived from the ride. With 8 MOV
-  remaining, **X = 4**: Agility **13 → 17** (restores X), `atkUp` **40** (10 × X) with `npMagnitude`
-  **30** (10 × (X−1)), and `critDmUp` **10** (10 × Y, one Unit hit). Stage 4 took the **NP** figure,
-  30, because it is one. `multiplier: 4`, cooldown **22** (7◈+⅓◈).
-- **Akhilleus Kosmos's passive**: `ignoresOccupancy` granted while dismounted, gone while mounted.
-- **The duel's target predicate**: *"Medea is excluded by this ability's target predicate"* —
-  *"cannot be used on Female Units"*, enforced.
-- **Two gates in the refusing direction**: Akhilleus Kosmos was refused while **mounted** (its
-  `stance` requirement) and refused against a **rank-A Spell** (`againstKind: np` — Medea's Rain of
-  Light resolves as `damageSpell`, not a Noble Phantasm).
-
-*Found while pressing:* §46.4-V.
-
-*Still untested, and why:* **Akhilleus Kosmos's negation** needs an enemy **AoE Noble Phantasm of
-Rank A or above** — Medea has none, her only true NP being single-target Rule Breaker.
-**Diatrekhon Aster Lonkhe's duel field** needs a **male** Servant who is not Hector, Chiron or
-Penthesilea and who does not have three parameters a rank below his — which is a different opponent
-entirely. **Passenger Seat**, **Riding Attack** and **Double Move** are granted and visible on the
-snapshot but were never performed as actions.
-
-**Semiramis — COMPLETE, and the audit's richest Servant for defects by a wide margin.** A war
-built by `commitWar` against Heracles. **All twelve of her documents pressed; sixteen defects found,
-all fixed, and only two of them hers.** §46.14 is her full record; what follows is the first pass,
-kept because the second pass overturned part of it.
-
-*Pressed (engine):*
-
-- **The summon variant itself.** The coin flip resolved to `dsc`, and `commitWar` reported her with
-  the branch's **Range 3** — which is how the flip was known to have happened at all, and what made
-  §46.4-Y and §46.4-AA separable.
-- **Double Summon**, all three clauses: `npRegen` and the `construction` effect both at 1◈, and
-  clause 3 correctly declining — though §46.4-Y forced a correction on *why*.
-- **`npRegen` and `construction` as behaviours**, not just applications. That is where §46.4-W came
-  from: her Noble Phantasm's cooldown fell by exactly 1 per Turn whether the buff was held or not,
-  and only dropping it across two otherwise identical Turns showed that the buff was doing nothing.
-  `construction` gains **1d6 on her faction's Turn** — checked against `docs/E`, which defines
-  `fgt.turnEnd` as *"for the active player's units"*, so that cadence is correct and is recorded in
-  §46.6.
-- **Familiar Doves**: `debuffResDwn` **30** for ⅓◈, and the cooldown clause whose X is *"the number
-  of enemy Units with the Dove effect"* — 2 dove-holders, **2 Turns**, capped at 1◈. Measuring that
-  X is what found §46.4-X, because the doubled figure **exceeded the ability's own cap**.
-- **Scales of the Sacred Fish**, which corroborates §46.4-S on a second Servant's content: offered
-  on herself at `whenAllyAttacked`, taken without refusal, `scalesShield` applied, and the pool
-  **200 → 0** absorbing its full value with 163 overflowing to her. No owner loss, which is right —
-  unlike Rho Aias, her sheet charges none.
-- **Divinity C** at 30, **Territory Creation** at rank EX with its aura, **Presence Concealment**
-  C+, and her statline.
-
-*Found while pressing:* §46.4-W, §46.4-X, §46.4-Y — all fixed — and §46.4-Z and §46.4-AA, both
-recorded open.
-
-*Untested after the first pass — and **all of it pressed since**, in §46.14:* Sikera Ušum and
-its four interior rules; the Hanging Gardens past activation, with *Aerial Garden of Vanity* and
-*Dragon Wing Warriors*; *Summoning: Bašmu*'s summon branch; *Arrogant King's Poison*; and *Item
-Construction*. Nothing of hers is untested now. §46.14.3 lists what each measurement was.
-
-*And one thing this first pass got **wrong**, which is why it is kept.* The *Scales of the Sacred
-Fish* bullet above records the pool **200 → 0** absorbing its full value. That reading was taken
-while the ability still resolved through the **attack** path, which fills a barrier's pool on the
-way in. It was later — correctly — moved off that path (`countsAsAttack: false`, so it stops
-spending her Attack and opening a Combat Process against the ally it shields), and `refreshShield`
-had exactly one caller, so the pool silently became **0** and the Shield absorbed nothing. §46.4-AE.
-A measurement is only true of the code that was under it.
-
-### 46.13.2 Fixes that were never pressed
-
-A fix verified only by a unit test is a fix verified the way §46.1 warns against.
-
-| Fix | Verified by |
-|---|---|
-| **§46.4-K**, the Max Health split | Unit tests, and **live through `commitWar`** — Asterios 1600 → 1800. Castor, Pollux and Penthesilea are still source-only, and Penthesilea's 1350 was only ever pressed on the *other* derivation |
-| **§46.4-C** for Castor, Pollux, Kingprotea and Raikou | Build-time instantiation and unit tests. **Never on a board** — only Heracles, Asterios and Penthesilea were placed |
-| **§46.4-F**, Anastasia's two anchors | Unit tests and the validator. **Anastasia was never placed on a board** |
-| **§46.11** for Van Gogh's Item Construction and Existence Outside The Domain | Source assertions. **Van Gogh was never placed on a board** |
-| Karna's *Mana Burst (Flames)* reach | Source only; his Range does not move, so there is nothing to observe without a buff he does not have |
-| Medea's *Rain of Light* reach | Source only, for the same reason |
-| The **Max Health override** (§46.6) | Pressed for Asterios and Penthesilea — but **on hand-imported actors**, i.e. on the one derivation that was already right. §46.4-K is what that missed |
-| `withoutModeHeld`, the recursion break | Unit test, plus every live board since. Never deliberately re-provoked after the fix |
-| `involvedTurnEnd` | Pressed for Karna. **No check that other content on `actedTurnEnd` did not regress** — Mad Enhancement's drain is the only other user and it was re-measured, but not as a deliberate regression test |
-| **§46.4-AH**, Soaked's `effectId:` → `effect:` | A corpus-walking test that fails if any authored `ApplicationChance` uses the wrong key again, plus Anastasia's own assertion corrected. **Soaked has never been on a board**, so the clause it repairs — *"a 25% chance of being inflicted with Freeze"* under an Ice attack — has still never been watched landing on anybody |
-
-**And the sharpest entry is not a row.** Three of this audit's own fixes were later found to be
-defects: §46.4-D's boundary claim produced **§46.4-AB** (a claim keyed on the counter its own work
-advanced, which could freeze a match permanently) and then **§46.4-AL** (two scales sharing one
-election token, which killed every `roundEnd` effect in the game for the rest of the session).
-Both passed their unit tests. Both were caught only because something unrelated was pressed
-afterwards and refused to work — a channel that would not tick, and a Construction counter that
-would not rise.
-
-*A fix is a change, and a change is something to press.* The table above asks whether each fix was
-verified on a board; these two say the question is not optional even when the fix is small, obviously
-correct, and covered by a test that passes.
-
-### 46.13.3 Subsystems this audit never exercised
-
-Not gaps in the system — gaps in *this pass*. Anything here could be carrying a defect of exactly
-the kind §46.4 collects, and nothing in eight Servants' worth of pressing would have found it:
-
-- **Command Spells.** Fifteen of the seventeen, and the Ch. 21 interrupt protocol. **Suspend Skill
-  has now been spent** through `spendCommandSpell` and is recorded under Heracles; it is the only
-  one, and it was chosen because a standing claim in §46.4-B depended on it.
-- **The Counter rung.** Offered repeatedly and declined every single time.
-- **Bounded fields** are no longer among these, and are now the best-pressed subsystem in the
-  audit. Asterios's Labyrinth has been opened twice on a proper board, extended for Health, escaped
-  from the hard way and closed by its owner's defeat. Semiramis's **Throne Room** then drove the
-  half the Labyrinth does not have: branch selection by predicate, a `fixedArea` anchored to a
-  moving platform's computed centre, a `trappedAtActivation` **membership snapshot** (sealing the
-  Unit present at activation and ignoring one who walked in later), three interior rules, and a
-  cooldown that starts at the field's **closure** rather than at its use. `createField`,
-  `expireFields`, `offerExtension`, `attemptEscape`, `endField`, `runFieldEvents`,
-  `membershipVerdict` and `setCooldownOnDeactivation` have all now been driven. What remains
-  untested is every *other* field in the corpus.
-- **Injury Rolls, Block, Evade and Luck Checks.** Injury Rolls are now tested *as* a subsystem:
-  Dragon Wing Warriors fans into eight Combat Processes of 50 Fixed damage each, and the clause
-  *"damaged Units only perform an Injury Roll once regardless of number of hits taken"* was watched
-  doing exactly that — seven siblings deferring with `singleInjuryRollPending` and the eighth
-  summing 400 and rolling once. Evade has been rolled both to force Mad Enhancement's unfavourable
-  table and to read Presence Concealment's rank-table bonus off the card. **Block and Luck Checks
-  remain untouched**, and Block is now conspicuous: §46.4-AE's barrier work says what a Shield
-  absorbs, and nobody has ever pressed the rung that reduces damage by 25%.
-- **Master actions**, contracting, conquest and the multi-Servant tax.
-- **Terrain, the Grail, victory and day/night.** **Home Base has come off this list**: the
-  10% reduction was read off live cards, `self:inHomeBase` gates Territory Creation's rank-C branch
-  on purpose, and the Hanging Gardens' *"counts as a second Home Base for Semiramis' Faction"* was
-  settled on a four-case truth table — aboard outside her ground zone **true**, the same unit on the
-  ground there **false**, inside her zone **true**, an **enemy** aboard **false**. Home Base
-  *regeneration* is still only ever seen as noise.
-- **Platforms and Scene Levels are no longer among these either.** The Hanging Gardens has been
-  built from a channel, boarded by an enemy through `boardPlatform`'s roll, attacked from and
-  attacked across levels, used as a targeting anchor, moved off, and **destroyed** — with all four
-  consequences of its destruction checked (Construction to 0, `zonExempt` withdrawn, the
-  Sustainability bonus reversed, the owner buff stripped). `forbidDirectlyBelow`,
-  `allowDirectlyBelow`, `outboundTargeting` and `actsOncePerTurn` were all read on a live board.
-  **Summons generally** are still thin: Bašmu was conjured and `noAliveSummon` refused a second,
-  but nothing else in the corpus has been summoned.
-- **The turn HUD and the action budget**, beyond pressing End Turn.
-- **War setup** — *no longer untouched.* A war has now been built through `commitWar`: scene,
-  activated global Combat, factions, painted home bases, Masters, summons, reciprocal contracts and
-  token deployment. It found §46.4-K immediately, and three rules no hand-built board had ever
-  shown: the **first-Round attack ban**, the **Home Base 10% reduction**, and the Region reaching
-  `warRegion`. Everything measured *before* Asterios still rests on hand-built boards.
-
-### 46.13.4 The rest of the roster
-
-**Seventeen of the twenty-five authored Servants are untouched by this audit**: Serenity,
-Scáthach, Kingprotea, Castor and Pollux, Raikou, Anastasia & Viy, Mannanán mac Lir, Medusa, Nemo,
-Kiritsugu, Francis Drake, Ozymandias, Pale Rider, Quetzalcoatl, Van Gogh, Jack the Ripper and
-Nursery Rhyme. Four of them have had a clause repaired *by* this audit without ever being audited
-themselves, which §46.13.2 records.
-
-Semiramis and Achilles were on this list and have come off it: she is complete (§46.14) and he was
-pressed to §46.4-V with two clauses still needing a second opponent. Serenity has now stood on a
-board too — as the **target** of Sikera Ušum rule d, because her *"Immune to Poison and Deadly
-Poison"* is the only Poison immunity in the corpus (§46.4-AG) — but none of her own clauses was
-pressed, so she stays here.
-
-**Four sheets have no implementation at all** and were not examined beyond noticing that: Hassan of
-the Hundred Faces, Katō Danzō, Proto Gil and Yan Qing.
-
-### 46.13.5 The rate this section exists to defend
-
-**Eight Servants audited and thirty-seven defects found** — §46.4 runs A to AL, thirty-eight
-entries, of which one (§46.4-U) was reported and then retracted. **The large majority were not the
-audited Servant's own**: they were general defects their sheets happened to be standing on. A
-per-Servant count sums higher than thirty-seven because several defects were reached through more
-than one sheet — §46.4-J alone touched five clauses across four sheets and an effect, only one of
-them Heracles's. Semiramis accounts for sixteen, of which **fourteen are the engine's**.
-
-The ratio is the finding worth keeping. **Auditing a Servant is a way of auditing the engine**, and
-the deeper a Servant's kit reaches into mechanisms nothing else uses, the more it finds: almost
-every clause Semiramis owns is the only instance of its mechanism in the corpus, and a mechanism
-with one user is a mechanism whose bugs have never been reported.
-
-**Five survived a complete paper trace** that declared them correct: God Hand's ledger, the
-Labyrinth's escape ladder, Item Construction's valence, Ch. 32's ZON penalty, and Bravery's sign.
-The last is the sharpest of them, because two unit tests covered the clause and both **asserted the
-defect from the source** — they restated the wrong number and agreed with it, so content and test
-were wrong together and neither could fail. Only asking the applier what percentage came out could
-separate them, and nothing did until a live board was made to answer.
-
-The honest reading of that is not that the audited eight are now clean — only **Heracles and
-Semiramis** are finished by §46.1's standard. It is that pressing finds things tracing does not,
-that a source assertion is not a test of behaviour, and that most of the clauses above have only
-been traced.
-
-**And three of this audit's own fixes were later found to be defects themselves** — §46.4-AB and
-§46.4-AL both came out of §46.4-D's boundary claim, and §46.4-AL had silently killed every
-`roundEnd` effect in the game for the rest of the session. A fix is a change, and a change is
-something to press.

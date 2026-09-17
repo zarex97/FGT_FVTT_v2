@@ -50,6 +50,19 @@ not per Master.
 The war's objective. It materialises once enough Servants have been defeated, and is then
 contested.
 
+## The authored source
+
+**Character Sheet**:
+The document a Unit is designed in — its statblock, its Abilities, and every rule they state, written
+as prose. It is the authority a Unit is built *from*, and the thing an audit checks a Unit *against*.
+The Foundry window that displays a Unit is the **actor sheet**, which is a different thing.
+_Avoid_: sheet (unqualified), statblock (that is one part of it)
+
+**Clause**:
+One statement of a rule inside a Character Sheet — a numbered item, or a sentence that states a rule
+without being numbered. The atom an audit is counted in.
+_Avoid_: line, bullet, rule (that is the authored element, not the prose)
+
 ## The board
 
 **Panel**:

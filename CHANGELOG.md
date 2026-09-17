@@ -34,6 +34,44 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### The roster audit resets to zero, and gets a vocabulary (2026-09-17)
+
+#### Removed
+
+- **Ch. 46's roster-status table (§46.7) and its inverse ledger of what was not tested (§46.13).**
+  They recorded the same fact and disagreed about it: the table marked three Servants *complete* that
+  the ledger's own closing analysis said were not finished. Both are deleted rather than reconciled,
+  and every Servant is reset to `Untouched` — including the two that were genuinely finished. The
+  section numbers are left as gaps, because renumbering would orphan the 253 code comments that cite
+  the surviving sections by letter.
+
+  Reported progress therefore drops from eight Servants audited to none. That number is smaller and
+  true.
+
+- **Appendix D's two per-Servant proof claims.** They asserted a narrower predicate — *all resolve end
+  to end* — on two of twenty-nine Servants, silently. The appendix now says what it means: it records
+  what was **authored**, not what has been **proved**.
+
+#### Added
+
+- **The five evidence levels** in Ch. 46 §46.1 — `Pressed (interface)`, `Pressed (engine)`,
+  `Observed`, `Traced`, `Untouched`. `Observed` is new and is for passive Clauses, which are the
+  ordinary case at 228 markers against 134 active; it requires a **differential** — the value with the
+  Clause in force and the value without — because a passive has no moment and a single reading is a
+  number, not a rule. An Ability with both a passive and an active part carries two records.
+
+- **[ADR 0004](docs/adr/0004-a-player-initiated-clause-needs-an-interface-press.md)** — a Clause a
+  player initiates needs an interface press; one the scheduler fires does not. The two levels are kept
+  apart because *"we drove it from the console"* and *"a player can do this"* are different claims, and
+  scripted clicking has cost fifteen attempts for a single landed attack.
+
+- **[ADR 0005](docs/adr/0005-the-roster-status-is-the-tracker-not-a-table.md)** — why the status
+  records were deleted while the findings register stays.
+
+- **`Character Sheet` and `Clause` in `CONTEXT.md`.** The authored source document a Unit is
+  designed in, and the atom an audit counts. Bare "sheet" is now avoided in prose: the Foundry
+  interface already owns *actor sheet*, and Ch. 46 used the word in both senses four lines apart.
+
 ### A conformance check for the world model (2026-09-17)
 
 #### Added

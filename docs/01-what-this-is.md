@@ -118,10 +118,15 @@ match:
 
 ## Open questions
 
-- **"The rules engine is complete and tested" is not a checkable claim** as stated. Completeness
-  against what? The live status documents are `46-roster-re-audit.md` and, historically,
-  the archived implementation-status chapter. A durable definition of "complete" — probably
-  "every clause in the roster has an engine feature" — belongs in an ADR.
+- **Answered: "complete" now has a checkable definition, and it is stricter than the one guessed at
+  here.** It is not *"every clause in the roster has an engine feature"* — a Clause can have a
+  feature that nothing reaches, which is this project's dominant defect. A Servant is complete when
+  **every Clause of its Character Sheet has been seen working on a board**, graded by the five
+  evidence levels in [Ch. 46 §46.1](46-roster-re-audit.md). Which kind of evidence each Clause needs
+  is [ADR 0004](adr/0004-a-player-initiated-clause-needs-an-interface-press.md). Progress is no
+  longer a document: it lives on the issue tracker, per
+  [ADR 0005](adr/0005-the-roster-status-is-the-tracker-not-a-table.md), and by that standard no
+  Servant is currently complete.
 - **Confirmed live.** Attacks do resolve end to end through the interface. Verified in the
   `fgt2026` world: **169 chat messages carry Combat Process state**, and a rendered card shows the
   full ladder — *"Sikera Ušum: Arrogant King's Alcohol (B+) — Choose a reaction: Do nothing /
