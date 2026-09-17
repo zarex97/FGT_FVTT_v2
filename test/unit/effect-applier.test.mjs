@@ -167,7 +167,9 @@ describe("terminal effects", () => {
       def: death, target: victim(), source: {}, ctx: { roll: 1, currentTick: 0, turnsPerRound: 3 },
     });
 
-    expect(out.intents).toEqual([{ t: "defeat", unitId: "v", cause: "death" }]);
+    // `killerId` is whoever inflicted the terminal effect (#27): Scathach's
+    // Death is somebody killing a Master, and Ch. 32's Conquest claims on it.
+    expect(out.intents).toEqual([{ t: "defeat", unitId: "v", cause: "death", killerId: null }]);
   });
 
   it("is still refused by the chance roll", () => {

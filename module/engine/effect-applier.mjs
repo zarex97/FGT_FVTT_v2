@@ -305,7 +305,7 @@ export function applyEffect({
   // exist before either of them could do anything.
   if (def.terminal) {
     trace.push({ step: "terminal", outcome: def.terminal.kind });
-    return { outcome: "applied", reason: null, intents: terminalIntents(def, target), trace };
+    return { outcome: "applied", reason: null, intents: terminalIntents(def, target, source), trace };
   }
 
   const intents = exclusion.replaces.map((id) => I.removeEffect(target.id, id, "replaced"));
@@ -416,7 +416,10 @@ function extensionCovers(appliesTo, def) {
  * @param {object} target
  * @returns {Intent[]}
  */
-function terminalIntents(def, target) {
+function terminalIntents(def, target, source = null) {
+  // Whoever inflicted it is the killer, for Ch. 32's Conquest (#27). Scathach's
+  // Instakill and Death are both somebody killing a Master.
+  const killerId = source?.unitId ?? null;
   switch (def.terminal.kind) {
     case "reduceToZero":
       return [
@@ -424,7 +427,7 @@ function terminalIntents(def, target) {
         I.log({ kind: "terminal", effect: def.id, unitId: target.id }),
       ];
     case "defeat":
-      return [I.defeat(target.id, def.id)];
+      return [I.defeat(target.id, def.id, killerId)];
     // ERASE is a third tier above Death, and the difference is the Grail.
     // *"A disappeared Servant counts towards the number of Servants needed for
     // the Grail to materialize (but **not** if inflicted with Erase)"* --
@@ -436,7 +439,7 @@ function terminalIntents(def, target) {
     // because two unrelated names coincide is a rule that breaks silently when
     // one is renamed.
     case "erase":
-      return [I.defeat(target.id, "erase")];
+      return [I.defeat(target.id, "erase", killerId)];
     default:
       // Loud rather than silent: an unrecognised terminal kind means the most
       // consequential effect in the game did nothing at all.

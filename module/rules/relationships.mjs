@@ -155,14 +155,32 @@ export function resolveUnderpower({ attacker, defender, roll }) {
  * another Master"* — so an active Mad Enhancement is locked on, which locks in
  * its own −2◈ penalty.
  *
+ * `conquered` is Ch. 32's exception (#27). A Servant the killer's Master claims
+ * never becomes Free, so none of what follows is about it: the Contract is
+ * written by the conquest itself, and the three consequences below are
+ * consequences of BEING Free. Sustainability is the cost of a Servant spending
+ * itself *outside* a Contract -- a Contracted Servant draws it from its
+ * Master's Health -- so a conquered Servant starts no clock, which means one
+ * sitting at zero **survives** a death that would otherwise remove it at once.
+ *
+ * `spares` is the world setting `conquestSparesServants`: `true`, the default,
+ * is the rule as written, and a table may set it `false` to make a conquered
+ * Servant pay anyway. Even then the Free Contract is never emitted -- the
+ * conquest owns that write, and a `free` descriptor here would reintroduce the
+ * observable Free state Ch. 32 forbids.
+ *
  * @param {object} servant
+ * @param {object} [options]
+ * @param {boolean} [options.conquered] the killer's Master claimed this Servant
+ * @param {boolean} [options.spares] whether conquest spares it the consequences
  * @returns {object[]} descriptors
  */
-export function onMasterDefeated(servant) {
+export function onMasterDefeated(servant, { conquered = false, spares = true } = {}) {
   if (servant?.kind !== "servant") return [];
+  if (conquered && spares) return [];
 
   /** @type {object[]} */
-  const out = [{ kind: "setContract", unitId: servant.id, contract: "free" }];
+  const out = conquered ? [] : [{ kind: "setContract", unitId: servant.id, contract: "free" }];
 
   // "It remains in whatever state it was in" — the modes lock rather than
   // resetting, and cannot be changed while Free.

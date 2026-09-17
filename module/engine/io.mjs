@@ -13,6 +13,7 @@
 import { FGTSocket } from "../net/socket.mjs";
 import { registerDefeat } from "../rules/environment.mjs";
 import { onMasterDefeated } from "../rules/relationships.mjs";
+import { conquestContract } from "../rules/contract.mjs";
 import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
@@ -961,9 +962,9 @@ export function worldIO() {
       await actor.update({ "system.glassGameSpent": true });
     },
 
-    async defeat(unitId, cause) {
+    async defeat(unitId, cause, killerId = null) {
       await countTowardsGrail(unitId, cause);
-      await freeContractedServants(unitId);
+      await freeContractedServants(unitId, killerId);
       const actor = resolve(unitId);
       if (!actor) return;
       await actor.update({ "system.defeated": true, "system.defeatCause": cause });
@@ -1229,11 +1230,28 @@ async function countTowardsGrail(unitId, cause) {
  * @param {string} unitId
  * @returns {Promise<void>}
  */
-async function freeContractedServants(unitId) {
+async function freeContractedServants(unitId, killerId = null) {
   const master = game.actors.get(unitId);
   if (master?.type !== "master" || !game.user.isGM) return;
 
-  for (const actor of game.actors.filter((a) => a.system?.masterId === unitId)) {
+  // CONQUEST FIRST, and the ordering is correctness rather than preference
+  // (#27, ADR 0002). `conquestContract` selects the Servants to claim by
+  // `masterId === deadMaster.id`, and the freeing loop below nulls that very
+  // field as it goes -- so a conquest resolved afterwards would find nobody.
+  // Deciding it here also means both outcomes are written by one function,
+  // which is what makes Ch. 32's "no Free state is observable" true by
+  // construction rather than by two engines cooperating.
+  // The bound actors are collected BEFORE the conquest runs, because the
+  // conquest rewrites `masterId` on everyone it claims -- so filtering after it
+  // would drop exactly the Servants whose consequences still have to be
+  // decided. Harmless while `conquestSparesServants` is on (they are owed
+  // nothing), and a silent skip the moment a table turns it off. Measured that
+  // way live.
+  const bound = game.actors.filter((a) => a.system?.masterId === unitId);
+  const conquered = await resolveConquest(unitId, killerId);
+  const spares = game.settings.get("fgt", "conquestSparesServants") !== false;
+
+  for (const actor of bound) {
     const snapshot = {
       id: actor.id, kind: actor.type,
       // The RESOLVED clock. This handed `onMasterDefeated` the authored "2◈"
@@ -1244,7 +1262,7 @@ async function freeContractedServants(unitId) {
       }).sustainability,
       modes: [...(actor.items ?? [])].filter((i) => i.system?.active).map((i) => i.system?.slug),
     };
-    for (const d of onMasterDefeated(snapshot)) {
+    for (const d of onMasterDefeated(snapshot, { conquered: conquered.has(actor.id), spares })) {
       if (d.kind === "setContract") await actor.update({ "system.contract": d.contract, "system.masterId": null });
       else if (d.kind === "defeat") await actor.update({ "system.defeated": true, "system.defeatCause": d.cause });
       else if (d.kind === "resource") {
@@ -1258,6 +1276,76 @@ async function freeContractedServants(unitId) {
       } else if (d.kind === "lockModes") await actor.update({ "system.modesLocked": true });
     }
   }
+}
+
+/**
+ * Hand the dead Master's Servants to whoever claimed the kill (Ch. 32).
+ *
+ * > *"When a Master is killed, its Servants become Free **and** any Servant of
+ * > the killer within 2 panels of its own Master immediately contracts to the
+ * > killer in a single transaction -- ensuring no Free state is observed."*
+ *
+ * Returns the ids it claimed, so the caller knows which Servants must NOT then
+ * be freed. A killer of `null` claims nothing: Conquest needs a claimant, and a
+ * Master killed by a field, a death roll or Sustainability was killed by
+ * nobody.
+ *
+ * The rules layer decides who may claim -- the killer itself when it is a
+ * Master or a Caster, otherwise its own Master within the enemy clearance --
+ * and a refusal is logged rather than silent, because the ABSENCE of a contract
+ * here is a rule and a player will otherwise assume the system missed it.
+ *
+ * @param {string} deadMasterId
+ * @param {string|null} killerId
+ * @returns {Promise<Set<string>>} the Servant ids conquered
+ */
+async function resolveConquest(deadMasterId, killerId) {
+  if (!killerId) return new Set();
+
+  const { currentBoard } = await import("./board.mjs");
+  const board = currentBoard();
+  const killer = board.units.find((u) => u.id === killerId) ?? null;
+  const deadMaster = board.units.find((u) => u.id === deadMasterId) ?? null;
+  if (!killer || !deadMaster) return new Set();
+
+  const out = conquestContract({ killer, deadMaster, board });
+  if (!out.ok) {
+    // `record` takes ONE entry object, not a list: spreading an array into it
+    // loses every key, and the log's own kind validator then rejects
+    // `undefined` -- which is how this was caught, loudly, on the first live run.
+    await record({
+      kind: "contract", event: "conquestDeclined",
+      killerId, deadMasterId, reason: out.reason,
+    });
+    return new Set();
+  }
+
+  const claimed = new Set();
+  for (const d of out.descriptors) {
+    if (d.kind === "setContract") {
+      const servant = resolve(d.unitId);
+      if (!servant) continue;
+      // Straight to the new Contract. Never `free` first, and never through a
+      // separate freeing pass -- that is the whole point of the transaction.
+      await servant.update({ "system.contract": d.contract, "system.masterId": d.masterId });
+      claimed.add(d.unitId);
+    } else if (d.kind === "grantCommandSpells") {
+      const claimant = resolve(d.masterId);
+      if (!claimant || d.count <= 0) continue;
+      const pools = { ...(claimant.system.commandSpellsPerServant ?? {}) };
+      pools[d.servantId] = (pools[d.servantId] ?? 0) + d.count;
+      await claimant.update({ "system.commandSpellsPerServant": pools });
+    } else if (d.kind === "log") {
+      // Mapped onto the log's `contract` kind rather than passed through: the
+      // descriptor's own `kind` is the literal string "log", which is not one
+      // of the kinds the game log accepts.
+      await record({
+        kind: "contract", event: d.event,
+        masterId: d.masterId, servantId: d.servantId, spellsGranted: d.spellsGranted,
+      });
+    }
+  }
+  return claimed;
 }
 
 /**

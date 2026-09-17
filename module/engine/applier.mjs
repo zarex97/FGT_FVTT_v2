@@ -515,7 +515,7 @@ async function writeGroup(group, io) {
       for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId, i.count);
       break;
     case "defeat":
-      await io.defeat(unitId, intents[0].cause);
+      await io.defeat(unitId, intents[0].cause, intents[0].killerId ?? null);
       break;
     // A summon whose stay ran out. Distinct from `defeat`: no revival chain, no
     // `unitDefeated`, no kill. It DOES write the summon's stats home and start

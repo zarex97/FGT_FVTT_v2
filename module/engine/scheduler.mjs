@@ -1434,7 +1434,11 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
   return [
     ...intents,
     ...(revival.source ? spendRevival(unit, revival, ctx) : []),
-    I.defeat(unit.id, cause),
+    // Who killed it, when anything did (#27, ADR 0002). `ctx.killerId` is set
+    // by the attack path and absent from every sweep, which is the right
+    // answer: a Unit that ran out of Sustainability was killed by nobody and
+    // Ch. 32's Conquest needs a claimant.
+    I.defeat(unit.id, cause, ctx.killerId ?? null),
     ...linkedDeathIntents(unit, cause),
     ...glassGameOnDefeat(unit, ctx),
   ];

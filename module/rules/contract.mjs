@@ -180,8 +180,13 @@ export function conquestContract({ killer, deadMaster, board }) {
   const claimant = claimantFor(killer, board);
   if (!claimant.ok) return { ...claimant, descriptors: [] };
 
+  // SERVANTS only (#27). This took everything bound to the dead Master that was
+  // not itself a Master, which sweeps in Summons -- and a Summon belongs to the
+  // Servant that summoned it, so it should follow its summoner rather than be
+  // contracted in its own right. Ch. 32 says "its Servants", and the freeing
+  // half has always refused anything that is not one.
   const theirs = (board?.units ?? []).filter(
-    (u) => u.masterId === deadMaster?.id && u.kind !== "master",
+    (u) => u.masterId === deadMaster?.id && u.kind === "servant",
   );
   const inherited = deadMaster?.commandSpells ?? 0;
 

@@ -159,6 +159,51 @@ describe("onMasterDefeated", () => {
   });
 });
 
+describe("onMasterDefeated — a CONQUERED Servant is spared all of it (#27)", () => {
+  // Ch. 32 defines Sustainability as the cost of a Servant spending itself
+  // *outside* a Contract, and says a Contracted Servant draws it from its
+  // Master's Health instead. A conquered Servant is Contracted from the same
+  // instant, so no clock starts -- and the three consequences of becoming Free
+  // do not apply to a Servant that never became Free.
+  it("emits nothing at all: the conquest writes the Contract itself", () => {
+    expect(onMasterDefeated(servant({ sustainability: 4 }), { conquered: true })).toEqual([]);
+  });
+
+  it("SURVIVES at zero Sustainability, where a freed Servant would vanish", () => {
+    // The most visible consequence in play: conquest saves a Servant that
+    // would otherwise disappear the moment its Master died.
+    expect(onMasterDefeated(servant({ sustainability: 0 }), { conquered: true })).toEqual([]);
+  });
+
+  it("is not mode-locked and is not charged Mad Enhancement's two", () => {
+    const active = servant({
+      sustainability: 4,
+      abilities: [{ id: "me", slug: "madEnhancement", active: true }],
+    });
+    const out = onMasterDefeated(active, { conquered: true });
+
+    expect(out.some((d) => d.kind === "lockModes")).toBe(false);
+    expect(out.some((d) => d.key === "sustainability")).toBe(false);
+  });
+
+  it("takes all three anyway when the table has switched sparing off", () => {
+    // `conquestSparesServants: false` is the harsher reading, offered as a
+    // world setting. The Servant is still conquered; it just pays as well.
+    const out = onMasterDefeated(servant({ sustainability: 0 }), { conquered: true, spares: false });
+
+    expect(out).toContainEqual(expect.objectContaining({ kind: "defeat", cause: "sustainabilityExhausted" }));
+    expect(out).toContainEqual(expect.objectContaining({ kind: "lockModes" }));
+  });
+
+  it("still never emits the Free contract for a conquered Servant, even unspared", () => {
+    // The conquest owns the Contract write. A `free` descriptor here would
+    // reintroduce exactly the observable Free state Ch. 32 forbids.
+    const out = onMasterDefeated(servant({ sustainability: 4 }), { conquered: true, spares: false });
+
+    expect(out.filter((d) => d.kind === "setContract")).toEqual([]);
+  });
+});
+
 describe("sustainabilityCostOf", () => {
   it("charges a Free Servant by its Noble Phantasm's rank", () => {
     expect(sustainabilityCostOf(servant({ contract: "free" }), "A")).toBe(5);

@@ -30,7 +30,11 @@ The **Overpower** mechanic governs when a Servant attacking a Master can instant
 
 A Master or Caster may attempt to contract a Servant by moving adjacent and rolling against it. An ally Servant contracts automatically; an enemy Servant requires 1d6 rolls at difficulty 5+, increased to 4 rolls for Independence Action A, 3 for B, and immune (Infinity) for A+ or EX (`module/rules/contract.mjs:93-138`). A successful contract grants three Command Spells scoped to that Servant and freeing the previous Master's contract chain (`module/rules/contract.mjs:227-235`).
 
-When a Master is killed, its Servants become Free **and** any Servant of the killer within 2 panels of its own Master immediately contracts to the killer in a **single transaction** — ensuring no Free state is observed (`module/engine/contract.mjs:79-82`, `module/rules/contract.mjs:179-195`).
+When a Master is killed, its Servants become Free **and** any Servant of the killer within 2 panels of its own Master immediately contracts to the killer in a **single transaction** — ensuring no Free state is observed (`module/rules/contract.mjs`).
+
+Conquest is decided by the defeat write path **before** anything is freed, and the ordering is correctness rather than preference: the selector claims Servants by `masterId === deadMaster.id`, and the freeing pass nulls that field as it goes, so a conquest resolved afterwards would find nobody. The killer travels on the defeat intent itself (ADR 0002); `null` means nothing killed it — a bounded field, the Nameless Forest's death roll, Sustainability running out, a linked partner's death — and those free as before, because Conquest needs a claimant and a Master who starved was killed by nobody. Only **Servants** are conquered: a Summon belongs to the Servant that summoned it and follows its summoner.
+
+A conquered Servant never becomes Free, so none of the consequences of being Free apply to it — no mode lock, no Mad Enhancement Sustainability charge, and no instant defeat at zero Sustainability. **Conquest therefore saves a Servant that would otherwise vanish with its Master.** The world setting `conquestSparesServants` (default on) carries this; switched off, a conquered Servant pays those costs anyway, and is still never Free.
 
 ### Overpower and Underpower
 
@@ -59,6 +63,22 @@ Two Servants in a `linkedGroup` are one unit for counting purposes. Each carries
 `leashBroken` returns true when a partner is further than the leash allows — a state that only occurs after forced displacement, since voluntary movement refuses such a panel (`module/rules/linked-group.mjs:59-76`). `annotateLinkedGroups` runs in the board snapshot pass and populates `partnerIds`, `partnerDistance`, and `leashBroken` for every unit (`module/rules/linked-group.mjs:106-125`).
 
 When `zonSatisfaction` is `"any"`, one partner satisfying ZON satisfies both — unioned into `zonPartnerIds` so `zonStatus` can read it without change (`module/rules/linked-group.mjs:115-122`, `module/rules/zon.mjs:146-156`).
+
+## Traps and anti-patterns
+
+**A complete, tested rule that no engine path reached.** `conquestContract` was written, documented
+and unit-tested, its engine wrapper existed, and **nothing had ever called either** — so every killed
+Master's Servants were simply freed, which is the *opposite* of what Ch. 32 says. The wrapper's own
+docstring named the call site it was waiting for. Fixed in
+[#27](https://github.com/zarex97/FGT_FVTT_v2/issues/27); same shape as #19, #24 and #28.
+
+**Filtering on a field the step before you just rewrote.** The freeing pass selects the dead Master's
+Servants with `masterId === deadMaster.id`. Conquest must run first — and conquest *writes*
+`masterId` on everyone it claims, so collecting that list after it silently drops exactly the
+Servants whose remaining consequences still had to be decided. Invisible while the default spares
+them (they are owed nothing) and a silent skip the moment a table switches `conquestSparesServants`
+off. Measured live, in the one configuration that shows it. **Collect the set you are iterating
+before any step that mutates what it selects on.**
 
 ## Invariants & edge cases
 

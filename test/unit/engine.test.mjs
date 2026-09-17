@@ -1013,7 +1013,7 @@ describe("resolveDefeat reads the snapshot's health shape", () => {
 
   it("defeats a unit that is actually empty", () => {
     expect(resolveDefeat({ id: "u", health: 0, eventHandlers: [] }, { tick: 0 }))
-      .toEqual([{ t: "defeat", unitId: "u", cause: "damage" }]);
+      .toEqual([{ t: "defeat", unitId: "u", cause: "damage", killerId: null }]);
   });
 
   it("still reads the document shape, for a caller that hands one over", () => {
@@ -1024,6 +1024,6 @@ describe("resolveDefeat reads the snapshot's health shape", () => {
   it("treats an intrinsically undamageable unit as alive, not as empty", () => {
     // `health: null` is Pale Rider, not a corpse.
     expect(resolveDefeat({ id: "u", health: null, eventHandlers: [] }, { tick: 0 }))
-      .toEqual([{ t: "defeat", unitId: "u", cause: "damage" }]);
+      .toEqual([{ t: "defeat", unitId: "u", cause: "damage", killerId: null }]);
   });
 });

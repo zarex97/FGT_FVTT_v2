@@ -225,6 +225,20 @@ describe("conquestContract", () => {
     })).toMatchObject({ ok: true });
   });
 
+  it("conquers SERVANTS only, never a Summon bound to the same Master (#27)", () => {
+    // The selector took everything bound to the dead Master that was not itself
+    // a Master, which sweeps in Summons. A Summon belongs to the Servant that
+    // summoned it and should follow its summoner, not be contracted in its own
+    // right. Ch. 32 says "its Servants".
+    const summon = { id: "basmu", kind: "summon", factionId: "blue", masterId: "kayneth", panel: { i: 4, j: 4 } };
+    const out = conquestContract({
+      killer, deadMaster: dead, board: board([killer, dead, theirs, summon]),
+    });
+
+    expect(out.descriptors.map((d) => d.unitId ?? d.servantId).filter(Boolean)).not.toContain("basmu");
+    expect(out.descriptors.map((d) => d.unitId ?? d.servantId)).toContain("lancer");
+  });
+
   it("frees and contracts in ONE step, so no intermediate state is observable", () => {
     // Ch. 32: killing a Master makes its Servants Free *and* immediately
     // contracts them. A descriptor list that set "free" first would let a
