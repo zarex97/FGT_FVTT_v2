@@ -339,7 +339,13 @@ export function currentBoard(overrides = {}) {
       // shape once something writes one; the setting is the default rather than
       // a replacement.
       // Optional rules the table has switched off (§8.3 clause 4 today).
-      rules: { masterProtection: setting("masterProtection", true) !== false },
+      rules: {
+        masterProtection: setting("masterProtection", true) !== false,
+        // Ch. 46 §46.4-AN. Read here rather than in `rules/identity.mjs`, which
+        // is Layer 2 and has no settings -- the same route `masterProtection`
+        // above takes.
+        discoverAttemptsPerFaction: setting("discoverAttemptsPerFaction", 3),
+      },
       warRegion: currentWarRegion(),
       warType: combat?.system?.warType ?? setting("warType", "greatHolyGrailWar"),
       ruleset: combat?.system?.ruleset ?? setting("ruleset", "advanced"),

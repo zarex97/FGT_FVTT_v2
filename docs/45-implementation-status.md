@@ -4829,3 +4829,33 @@ one, 58% instead of 35% per move.
 
 209 test files, 4947 tests, layer boundaries intact.
 
+## Three rulings from the game's author — 2026-09-16
+
+**Discover is narrowed twice (§46.4-AN).** Presence Concealment clause 6 says *"an enemy
+**Servant's** Range (or Detect)"* and the engine had followed Ch. 8 §8.7's general *"an enemy
+Unit's"*, so a Master rolled too — 58% per move against a sheet offering 35%. Only Servants watch
+now. And a faction gets **three attempts per Turn** against one concealed Unit, spent in the order
+its Servants acquired the target, no Servant twice, each faction's three its own. Without the cap a
+concealed Servant walking past six enemies rolled six times: 92% for one step, so the Skill was
+worth least exactly where it is most wanted.
+
+The record is `system.discoverBudget` on the concealed Unit —
+`{tick, spent: {factionId: [watcherId]}, acquiredAt: {watcherId: tick}}`. `spent` clears with the
+Turn; `acquiredAt` does not, because *"order of arrival"* is a fact across Turns. An attempt is
+charged whether or not it succeeds.
+
+**The cap is a setting**, `discoverAttemptsPerFaction` (default 3, range 0–10), registered in
+`settings.mjs` and carried to Layer 2 on `board.rules` exactly as `masterProtection` is — the rules
+layer cannot read `game.settings`. `??` and not `||`, because **0 is legal** and means concealment
+is absolute. Verified live at 3/5/1/0 → **3/4/1/0** offered against four watchers.
+
+**Bašmu is 3×3.** Its size had never been authored, so it defaulted to one panel — and two of its
+clauses are about the panels it covers: the knockback *"until the space is free for Bašmu to stand
+on"* has to clear nine, and the Attack-denial reach is measured from what it occupies. Verified on a
+board: the token places 3×3 and the unit occupies nine panels.
+
+**The Hanging Gardens' level was investigated and found correct** — see the session notes; the
+platform token carries the new level's id, not the ground's.
+
+211 test files, 4966 tests, layer boundaries intact.
+

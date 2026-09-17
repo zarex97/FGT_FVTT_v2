@@ -18,7 +18,8 @@
  */
 
 import { CONCEALMENT, CONCEALMENT_SLUG, DEACTIVATION_REASONS } from "../rules/concealment.mjs";
-import { discoverAttempts } from "../rules/identity.mjs";
+import { discoverAttempts, detectRangeOf } from "../rules/identity.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -274,13 +275,30 @@ function cooldownTicks(skill) {
 export async function runDiscoverChecks(unitId) {
   if (!game.user?.isGM) return { attempts: 0, discoveredBy: null };
 
+  const actor = game.actors.get(unitId);
   const board = currentBoard();
-  const unit = (board.units ?? []).find((u) => u.id === unitId)
-    ?? unitSnapshot(game.actors.get(unitId));
-  const attempts = discoverAttempts(unit, board);
-  if (attempts.length === 0) return { attempts: 0, discoveredBy: null };
+  const unit = (board.units ?? []).find((u) => u.id === unitId) ?? unitSnapshot(actor);
 
+  // The per-Turn budget, and the arrival order it is spent in. Both are read
+  // before the attempts are computed and written after, because a Discover that
+  // fails still costs the watcher its go for the Turn (Ch. 46 §46.4-AN).
+  const tick = game.combat?.system?.globalTurn ?? 0;
+  const budget = budgetFor(actor, tick);
+  const acquiredAt = { ...(budget.acquiredAt ?? {}) };
+  recordArrivals(unit, board, acquiredAt, tick);
+
+  const attempts = discoverAttempts(unit, board, { spent: budget.spent, acquiredAt });
+  if (attempts.length === 0) {
+    await saveBudget(actor, { ...budget, acquiredAt });
+    return { attempts: 0, discoveredBy: null };
+  }
+
+  const spent = { ...budget.spent };
   for (const attempt of attempts) {
+    // Charged whether or not it succeeds: the faction looked.
+    spent[attempt.faction] = [...(spent[attempt.faction] ?? []), attempt.watcherId];
+    await saveBudget(actor, { tick, spent, acquiredAt });
+
     const roll = await new Roll("1d100").evaluate();
     if (roll.total > attempt.chance) continue;
 
@@ -295,6 +313,61 @@ export async function runDiscoverChecks(unitId) {
     return { attempts: attempts.length, discoveredBy: attempt.watcherId };
   }
   return { attempts: attempts.length, discoveredBy: null };
+}
+
+/**
+ * This Unit's Discover budget, cleared if it belongs to an earlier Turn.
+ *
+ * `acquiredAt` survives the clearing and `spent` does not: *"in order of
+ * arrival"* is about who found this Unit first, which is a fact across Turns,
+ * while *"three per Turn"* obviously is not.
+ *
+ * @param {object|null} actor
+ * @param {number} tick
+ * @returns {{tick: number, spent: Record<string, string[]>, acquiredAt: Record<string, number>}}
+ */
+function budgetFor(actor, tick) {
+  const stored = actor?.system?.discoverBudget ?? {};
+  const acquiredAt = { ...(stored.acquiredAt ?? {}) };
+  if (stored.tick !== tick) return { tick, spent: {}, acquiredAt };
+  return { tick, spent: { ...(stored.spent ?? {}) }, acquiredAt };
+}
+
+/**
+ * Note the first tick at which each current watcher held this Unit in Detect.
+ *
+ * Mutates `acquiredAt`, which is this function's whole job: an entry is written
+ * ONCE and never overwritten, so a Servant that has been watching since Turn 4
+ * keeps its place in the queue when a second arrives on Turn 9.
+ *
+ * Every enemy Servant currently in range is recorded, not merely the ones the
+ * budget can afford — otherwise the fourth watcher of a Turn would be treated
+ * as having arrived later than it did, and would keep losing its place.
+ *
+ * @param {object} unit the concealed unit's snapshot
+ * @param {object} board
+ * @param {Record<string, number>} acquiredAt
+ * @param {number} tick
+ */
+function recordArrivals(unit, board, acquiredAt, tick) {
+  for (const watcher of board?.units ?? []) {
+    if (watcher.id === unit.id) continue;
+    if (watcher.kind !== "servant") continue;
+    if ((watcher.faction ?? watcher.factionId) === (unit.faction ?? unit.factionId)) continue;
+    if (!watcher.panel || !unit.panel) continue;
+    if (chebyshev(watcher.panel, unit.panel) > detectRangeOf(watcher, board)) continue;
+    if (acquiredAt[watcher.id] === undefined) acquiredAt[watcher.id] = tick;
+  }
+}
+
+/**
+ * @param {object|null} actor
+ * @param {object} budget
+ * @returns {Promise<void>}
+ */
+async function saveBudget(actor, budget) {
+  if (!actor) return;
+  await actor.update({ "system.discoverBudget": budget });
 }
 
 /**

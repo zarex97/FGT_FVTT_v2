@@ -648,6 +648,24 @@ probability drawn from the concealed unit's Presence Concealment rank (EX 0%, A 
 C 40%, D 60%, E 80%, ∓5% per step). Van Gogh has no PC; Kiritsugu's A+ gives 5%; Semiramis's
 C+ gives 35%.
 
+**Only enemy SERVANTS watch, and a faction gets three attempts per Turn against one concealed
+Unit.** The source's general rule quoted above says *"an enemy Unit's Range (Detect)"* and Presence
+Concealment's own clause 6 says *"an enemy **Servant's**"*; the author has settled it in favour of
+the Skill — a Master standing beside a concealed Servant rolls nothing. The cap is the other half:
+without it a concealed Unit walking past six enemies rolled six times, and at 35% that is a 92%
+chance of being found for one step, so the Skill was worth least exactly where it is most wanted.
+
+Three per **faction**, not per Servant and not per board: a second faction that has never looked
+still has all three. They are spent in the order that faction's Servants acquired the target, no
+Servant attempts twice in a Turn, and an attempt is charged whether or not it succeeds. The record
+is `system.discoverBudget` on the concealed Unit —
+`{tick, spent: {factionId: [watcherId]}, acquiredAt: {watcherId: tick}}` — because all three facts
+are about a pair, and `acquiredAt` outlives the Turn while `spent` does not.
+
+The number is a **setting** — `discoverAttemptsPerFaction`, default 3, range 0-10 — carried to the
+rules layer on `board.rules` the same way `masterProtection` is. **0 makes Presence Concealment
+absolute**, which is why the fallback is `??` rather than `||`. Ch. 46 §46.4-AN.
+
 Critical UX note from the source:
 
 > *"The Overseer will perform the Discover rolls, since if either Player performs the roll,

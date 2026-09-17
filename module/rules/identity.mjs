@@ -229,10 +229,31 @@ export function discoverChance(concealedUnit) {
 }
 
 /**
+ * How many Discover attempts one faction gets per Turn against one concealed
+ * Unit.
+ *
+ * Three, per the game's author. The cap is what keeps a concealed Servant from
+ * being found simply by being outnumbered: without it, walking past six enemies
+ * rolled six times, and at Semiramis's 35% that is a 92% chance of being seen
+ * for one step.
+ */
+export const DISCOVER_ATTEMPTS_PER_FACTION = 3;
+
+/**
  * Every Discover attempt a concealed unit's position currently offers.
  *
  * One per **watcher**, not one per panel entered: a unit that walks three
  * panels through somebody's Detect radius is noticed once, not three times.
+ *
+ * Bounded twice over, both rulings from the game's author. **Only Servants
+ * watch** — the Skill says *"an enemy Servant's Range (or Detect)"* and a
+ * Master used to roll as well. And **a faction gets three attempts per Turn
+ * against one concealed Unit**, spent in the order its Servants acquired the
+ * target, with none of them attempting twice; each faction's three are its own,
+ * so spending them buys another faction nothing (Ch. 46 §46.4-AN).
+ *
+ * `spent` and `acquiredAt` are the per-Turn record, passed in rather than read:
+ * this is Layer 2 and the record lives on the concealed Unit's actor.
  *
  * Each attempt is marked `gmOnly` and `silentUnlessSucceeded`, and that is not
  * decoration. *"The Overseer will perform the Discover rolls, since if either
@@ -242,26 +263,77 @@ export function discoverChance(concealedUnit) {
  *
  * @param {object} concealedUnit
  * @param {object} board
- * @returns {Array<{watcherId: string, chance: number, gmOnly: true, silentUnlessSucceeded: true}>}
+ * @param {{spent?: Record<string, string[]>, acquiredAt?: Record<string, number>}} [budget]
+ *   `spent` is watcher ids already used this Turn, keyed by faction;
+ *   `acquiredAt` is the tick each watcher first held this target in Detect.
+ * @returns {Array<{watcherId: string, faction: string|null, chance: number,
+ *   gmOnly: true, silentUnlessSucceeded: true}>}
  */
-export function discoverAttempts(concealedUnit, board) {
+export function discoverAttempts(concealedUnit, board, { spent = {}, acquiredAt = {} } = {}) {
   if (!concealedUnit?.concealed) return [];
   const chance = discoverChance(concealedUnit);
 
-  /** @type {object[]} */
-  const out = [];
+  /** @type {Map<string, object[]>} */
+  const byFaction = new Map();
   for (const watcher of board?.units ?? []) {
     if (watcher.id === concealedUnit.id) continue;
+    // "An enemy SERVANT's Range (or Detect)". Ch. 8 §8.7 quotes the source's
+    // general rule as *"an enemy Unit's"*, and this filter used to follow it --
+    // so a Master standing beside a concealed Servant rolled to Discover as
+    // readily as the Servant hunting her. Measured live as two watchers at 35%
+    // each, which is 58% for one step against a sheet that offers 35%. Settled
+    // by the game's author in favour of the Skill's own wording
+    // (Ch. 46 §46.4-AN).
+    if (watcher.kind !== "servant") continue;
     if (!isEnemy(watcher, concealedUnit, board)) continue;
     if (chebyshev(watcher.panel ?? {}, concealedUnit.panel ?? {}) > detectRangeOf(watcher, board)) continue;
 
-    out.push({
-      watcherId: watcher.id,
-      concealedId: concealedUnit.id,
-      chance,
-      gmOnly: true,
-      silentUnlessSucceeded: true,
+    const faction = watcher.faction ?? watcher.factionId ?? null;
+    // "No repeated attempts from the same Unit on the same Turn against the
+    // same concealed Unit."
+    if ((spent[faction] ?? []).includes(watcher.id)) continue;
+
+    if (!byFaction.has(faction)) byFaction.set(faction, []);
+    byFaction.get(faction).push(watcher);
+  }
+
+  /** @type {object[]} */
+  const out = [];
+  for (const [faction, watchers] of byFaction) {
+    // "In order of arrival, depending on which Units had the concealed Unit on
+    // their Detect range [first]." `acquiredAt` is the tick each watcher first
+    // held this target; a watcher with no record sorts last, and ties fall back
+    // to id so the order is stable rather than whatever the board happened to
+    // be built in.
+    const ordered = [...watchers].sort((a, b) => {
+      const at = acquiredAt[a.id] ?? Infinity;
+      const bt = acquiredAt[b.id] ?? Infinity;
+      return at === bt ? String(a.id).localeCompare(String(b.id)) : at - bt;
     });
+
+    // Three per FACTION per Turn against this one concealed Unit -- not three
+    // per Servant, and not three shared across the board. A faction that has
+    // spent all of its own leaves another faction's untouched, which is why the
+    // budget is keyed by faction rather than held on the target alone.
+    //
+    // A TABLE SETTING, carried on `board.rules` exactly as `masterProtection`
+    // is: this is Layer 2 and cannot read `game.settings`, so the optional rule
+    // arrives as data. `??` and not `||`, because **0 is a legal value** and
+    // means "no Discover rolls at all" -- a table that wants concealment
+    // absolute. Absence falls back to the rule as written, since every board
+    // built before the setting existed carries no value for it.
+    const cap = board?.rules?.discoverAttemptsPerFaction ?? DISCOVER_ATTEMPTS_PER_FACTION;
+    const left = cap - (spent[faction] ?? []).length;
+    for (const watcher of ordered.slice(0, Math.max(0, left))) {
+      out.push({
+        watcherId: watcher.id,
+        concealedId: concealedUnit.id,
+        faction,
+        chance,
+        gmOnly: true,
+        silentUnlessSucceeded: true,
+      });
+    }
   }
   return out;
 }

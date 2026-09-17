@@ -119,6 +119,19 @@ export function registerSettings() {
     type: Boolean, default: true,
     onChange: () => guardRuleChange("masterProtection"),
   });
+  // Ch. 46 §46.4-AN. How many Discover attempts ONE faction gets per Turn
+  // against one concealed Unit -- not per Servant, and not shared across the
+  // board. Three is the rule as written; a table may raise it, lower it, or set
+  // **0** to make Presence Concealment absolute.
+  //
+  // A number rather than a toggle because the interesting house rules are the
+  // middle ones: at six a concealed Servant walking a line is found 92% of the
+  // time, and at one the Skill is close to unbreakable.
+  s("discoverAttemptsPerFaction", {
+    name: "FGT.Settings.DiscoverAttempts", hint: "FGT.Settings.DiscoverAttemptsHint",
+    type: Number, default: 3, range: { min: 0, max: 10, step: 1 },
+    onChange: () => guardRuleChange("discoverAttemptsPerFaction"),
+  });
   s("region", { name: "FGT.Settings.Region", type: String, default: "" });
   s("grailThreshold", { name: "FGT.Settings.GrailThreshold", type: Number, default: 9 });
   // Ch. 26 §26.7. ON, a chat card is redacted per viewer: each side reads its
