@@ -252,7 +252,7 @@ async function resolveEffects(intents) {
   // than failing -- the flow is exercised directly by its own tests.
   if (typeof game === "undefined" || !game?.actors) return intents;
 
-  const [{ applyEffect, inflictBonusOf }, { EffectRegistry }, { unitSnapshot }] = await Promise.all([
+  const [{ applyEffect, inflictBonusOf }, { EffectRegistry }, { unitSnapshot, unitFrom }] = await Promise.all([
     import("./effect-applier.mjs"),
     import("../rules/registry.mjs"),
     import("./board.mjs"),
@@ -260,6 +260,19 @@ async function resolveEffects(intents) {
 
   /** @type {Intent[]} */
   const out = [];
+  // Built ONCE for the batch, not per intent: `currentBoard()` assembles every
+  // unit on the map, and this loop runs per effect applied.
+  //
+  // It is needed because the applier asks the target BOARD questions. A field's
+  // `ImmunityDowngrade` writes `suppressions` onto the units standing in it,
+  // and `immunityDowngradeFor` reads them at the immunity gate -- but this path
+  // built its subject with `unitSnapshot`, an actor-only pass that has no
+  // suppressions at all. So Sikera Usum clause d (*"the Poison Immune effect is
+  // reduced to a Poison Resist effect"*) never downgraded anything: measured
+  // with Serenity, who is Immune to Poison, standing in the Throne Room and
+  // taking fourteen poisoning attacks without being poisoned once
+  // (Ch. 46 §46.4-AG).
+  const board = currentBoard();
   for (const intent of mergeStages(intents)) {
     if (intent.t !== "applyEffect" || intent.resolved) {
       out.push(intent);
@@ -287,7 +300,7 @@ async function resolveEffects(intents) {
 
     const result = applyEffect({
       def,
-      target: unitSnapshot(target),
+      target: unitFrom(board, target) ?? unitSnapshot(target),
       magnitude: intent.effect.magnitude ?? 0,
       npMagnitude: intent.effect.npMagnitude ?? null,
       // An ability's stated chance beats the definition's `baseChance`. Carried

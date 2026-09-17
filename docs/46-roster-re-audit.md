@@ -1143,6 +1143,80 @@ because `refreshShield` reads `timesUsed` to tell a first projection from a late
 at **733 → 726** while the pool goes **200 → 0**. Seven points of overflow past a 207-damage hit,
 and 200 absorbed.
 
+### AF. `damageStepEnd` asked the attacker a question only the board could answer — **fixed 2026-09-16**
+
+**Reached: Sikera Ušum rule a.** *"Semiramis' Normal Attacks which use Base Attack (STR) inflict
+Poison."*
+
+It is an `OnEvent` on `damageStepEnd` predicated on
+`["self:inField:semiramis-sikera-usum", "attack:kind:normal", "attack:component:str"]`, and the
+ability's own comment records that `self:inField:` had to be added to `DEFERRED_PREFIXES` because it
+is *"a board annotation, unknowable at `contributionsOf`'s actor-only pass."*
+
+Deferring the predicate was right and not enough. `fireDamageStepEnd` built **both** subjects with
+`unitSnapshot(actor)` — which is exactly the actor-only pass the comment warns about. A snapshot has
+no `fields`, so the deferred predicate was evaluated against an option set that could never contain
+`self:inField:`, and the clause failed on every attack she ever made.
+
+**Measured live**, Semiramis standing in her own Throne Room:
+
+| subject | `fields` | emits |
+|---|---|---|
+| the board's unit | `["semiramis-sikera-usum"]` | `self:inField:semiramis-sikera-usum` |
+| `unitSnapshot(actor)` | **absent** | nothing |
+
+**The fix** builds both subjects with `unitFrom(board, doc) ?? unitSnapshot(doc)`, from a board
+computed once and reused for the event context — the defender too, because the event fires on the
+attacker but half of what a rider asks is about who was hit.
+
+**Verified live**: the same Range-1 `BA(STR)` Normal Attack from inside the Throne Room now leaves
+`poison` at stage 1 on the defender. Before: nothing, ever.
+
+The third of a family — §46.4-V (a hand-assembled subject answering `null` for `stance`), §46.4-AC
+(a rebuilt board that had forgotten the Turn), and this. *A snapshot is not a board, and a board
+question asked of one is answered "no" rather than refused.*
+
+### AG. An immunity that could not be downgraded — **fixed 2026-09-16**
+
+**Reached: Sikera Ušum rule d.** *"When a Unit with Poison Immune effects is in this NP area, the
+Poison Immune effect is reduced to a Poison Resist effect, the chance of being inflicted with Poison
+is reduced by 75%."*
+
+Every piece existed. `ImmunityDowngrade` produces a suppression, `annotateFields` writes it onto the
+units standing in the area, and `effect-applier.mjs`'s `immunityDowngradeFor` reads
+`target.suppressions` at the immunity gate and lets the application through when one matches — with
+a comment naming this very clause as its reference case.
+
+The intent path built its subject with `unitSnapshot(target)`. Suppressions are a **board**
+annotation, a snapshot has none, so the downgrade was never found and the immunity blocked
+absolutely. `resistOf` reads `unit.suppressions` for the clause's other half — *"Units with Poison
+Resist effects that are not Poison Immune in this area have the magnitude of those Poison Resist
+effects halved"* — so both halves were dead for one reason.
+
+**Measured live with real content on both ends.** Hassan of Serenity (*"Serenity is Immune to Poison
+and Deadly Poison"*, authored as `Immunity: [poison, deadlyPoison]`) was summoned into the Throne
+Room and hit repeatedly by Semiramis's `BA(STR)` Normal Attack, which inflicts Poison inside the area
+by rule a:
+
+| | Poison landed |
+|---|---|
+| before the fix | **0 of 14** |
+| after the fix | **3 of 14** (21%) |
+
+The sheet predicts 25%. A run of 0/14 at p=0.25 is a 1.8% outcome, and her board row carried the
+suppression in full the whole time while `immunities` still read `["poison", "deadlyPoison"]`.
+The suppression is present only while she stands inside: `suppressions: 1` in the Throne Room,
+`0` out of it.
+
+**The fix** is the same shape as §46.4-AF, one layer down: `unitFrom(board, target) ?? unitSnapshot(target)`,
+with the board built **once per batch** rather than once per intent — `applyIntents` walks every
+effect in a batch and `currentBoard()` assembles the whole map.
+
+**Rule e has no content to press.** *"Units in the NP area who are weak to Poison receive double
+Poison Damage"* needs a Unit weak to Poison, and nothing in the corpus declares a weakness of any
+kind — `weakTo`/`weakness` appear nowhere in `packs/_source`. `VulnerabilityAmplifier` is correctly
+shaped on the live field and is recorded as unexercised rather than working.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -1220,7 +1294,7 @@ per-Servant record of what each audit left untested.
 | **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
 | **EMIYA** | ✅ | ✅ **complete** | 7 (2 his, 5 general) | §46.12; §46.4-P, Q, R, S, T |
 | Hassan of Serenity | — | — | — | |
-| **Semiramis** | ✅ | ✅ | 7 general (all fixed) | §46.4-W, X, Y, Z, AA, AB, AC |
+| **Semiramis** | ✅ | ✅ | 11 general (all fixed) | §46.4-W, X, Y, Z, AA, AB, AC, AD, AE, AF, AG |
 | Scáthach | — | — | — | |
 | Kingprotea | — | — | — | |
 | Castor / Pollux | — | — | — | |
@@ -1460,9 +1534,9 @@ was authored, and this pass did not contradict that.
 
 ## 46.14 Semiramis — the Servant who is two Servants
 
-Nine of her twelve documents were pressed on a live board. She found **seven** general defects, more
-than any other Servant in this audit, and only two of them were hers: the rest were the engine
-standing underneath her.
+**All twelve of her documents were pressed on a live board.** She found **eleven** general defects,
+more than the rest of the roster put together, and only two of them were hers: the rest were the
+engine standing underneath her.
 
 **Why she finds so much.** Almost every clause she owns is the *only* instance of its mechanism in
 the corpus — the only `summonVariant`, the only `channel`, the only `itemCost`, the only
@@ -1488,10 +1562,24 @@ three separate applications of Arrogant King's Poison, combining additively with
 −40% and a Home Base's −10% to a net **+40% → ×1.40**. Three instances of one debuff stacking, and
 an attacker's buff and a defender's Def Up settling in the same additive pass.
 
+### 46.14.1b The rest of her kit
+
+| Clause | Measured |
+|---|---|
+| **Double Summon** | `npRegen` and an **unremovable** `construction`, both expiring at exactly 1◈; the `dscBuff` clause correctly **withheld** from a Servant already `dsc`. Cooldown 12 ticks. Both resolve: her NP cooldown fell **10 → 8** at the next Turn end (one tick plus npRegen's), and Construction gained a 1d6 |
+| **Double Summon: Caster** | The range bands resolved live, not read off a projection: **Range 1 → `BA(STR)` 50**, **Range 3 → `BA(MAG)` 200**. Range 3 panels / 1 target, and `servantClasses` is `["caster", "assassin"]` |
+| **Presence Concealment** | Clause 1 refused an adjacent, in-range attacker by name — *"Semiramis is concealed — it cannot be targeted directly"*. Clause 4 landed as `Atk Up presenceConcealment +100%` in the stage-4 bucket. Clause 5 deactivated it at the end of the Combat Process she attacked in. Clause 8's `unremovable` is on the instance. Its cooldown is `countFrom: deactivation` and behaved like it: **0 while active, 3 the moment it ended** |
+| **Territory Creation** | Both passives, after §46.4-AD. Offence: `flatDamage Territory Creation` at stage 7 — **5d8 in her ground Home Base**, **6d20 aboard the Gardens**, the branch chosen by `self:onPlatform:`. Defence: `damageNegation Territory Creation −30`, a 3d10+10 for an ally in their own Home Base |
+| **Scales of the Sacred Fish** | Offered on the reaction ladder at the right window; `scalesShield` for exactly 2◈; cooldown 9 ticks. After §46.4-AE the pool fills **0 → 200** on cast and **absorbs**: a 207-damage hit left her Health down only 7 while the pool went **200 → 0** |
+| **Summoning: Bašmu**, clause 2 | The on-platform branch: a **Bašmu** summoned on the panel **directly next to her**, faction-1, cooldown **4◈** against clause 1's 2◈. *"Counts as her Attack for the Turn"* — `acted` and `attacked` both set — and her own Health untouched, because the summon branch overrides damage to a fixed 0. A second cast is refused: `noAliveSummon` |
+| **Sikera Ušum**, rules a and c | Rule a, after §46.4-AF: her Range-1 `BA(STR)` attack from inside the Throne Room inflicts `poison`. Rule c: Poison stage climbs at **every** Turn end inside the area — 1→2→3→4→5 across three different factions' Turns — dealing exactly **20** at stage 1 (§A.12's curve). The control is the proof: moved outside the 5×5, it **stops dead** — 0 damage and the stage frozen for three Turn-ends |
+| **Sikera Ušum**, rule d | Pressed with real content on both ends, after §46.4-AG: Hassan of Serenity, *"Immune to Poison and Deadly Poison"*, standing in the Throne Room. Poison landed **3 of 14** (21%) where the sheet predicts 25%, and **0 of 14** before the fix |
+| **Divinity** | `Divinity +30` at stage 7 of every card she threw |
+
 ### 46.14.2 What she cost the engine
 
-Two of her seven were her own (§46.4-X's double cooldown, §46.4-Y's unprojected variant). The other
-five were general, and three of those were found *underneath* her rather than in her:
+Two of her eleven were her own (§46.4-X's double cooldown, §46.4-Y's unprojected variant). The other
+nine were general:
 
 - **§46.4-Z**, the channelled Noble Phantasm — the fourth member of *the two use paths do not do
   the same thing*, plus a half nothing had suggested: the declaration interrupting the channel it
@@ -1500,14 +1588,34 @@ five were general, and three of those were found *underneath* her rather than in
 - **§46.4-AB**, a scheduler claim that could freeze a match permanently — found only because her
   channel needed nine Turns to tick and they would not tick.
 - **§46.4-AC**, every field's `actedTurnEnd` interior event, dead for want of the right board.
+- **§46.4-AD**, `stage: flat` with no reader — every Territory Creation in the game multiplying
+  where its sheet says add, worth up to +120% instead of +120 at rank EX.
+- **§46.4-AE**, `refreshShield` on one use path only, so a Shield (200) granted by a Skill absorbed
+  nothing.
+- **§46.4-AF** and **§46.4-AG**, two subjects built without the board and asked board questions.
 
-### 46.14.3 Not pressed
+**Three of the nine are one shape**, and it is the shape to watch: §46.4-AC, §46.4-AF and §46.4-AG
+are all a board question asked of something that is not a board — a rebuilt board that had forgotten
+the Turn, and two `unitSnapshot` subjects with no `fields` and no `suppressions`. Each answered
+"no" instead of refusing, which is why none of them ever surfaced as an error. §46.4-V, from
+Achilles, is the same shape a chapter earlier.
 
-*Sikera Ušum's* rules a, c, d and e; *Summoning: Bašmu* clause 2 (the summon branch, which needs the
-platform standing); *Scales of the Sacred Fish*, which was **offered** on a reaction ladder and never
-taken; *Double Summon* and *Double Summon: Caster* beyond the `dsc` variant they produce;
-*Territory Creation*, *Presence Concealment* and *Divinity* — though Divinity's +30 was seen landing
-at stage 7 of Bašmu's own card.
+### 46.14.3 What is still not pressed
+
+Short, and specific:
+
+- **Sikera Ušum rule e** — *"Units in the NP area who are weak to Poison receive double Poison
+  Damage."* There is **no content to press it with**: nothing in `packs/_source` declares a weakness
+  of any kind. `VulnerabilityAmplifier` is correctly shaped on the live field and has never been
+  asked a question.
+- **Presence Concealment clauses 2, 3, 6 and 7** — the Block/Counter refusal and its AGI-rank
+  exception, attacking Masters and moving freely past them, the discovery roll on entering a
+  Servant's Range, and the bar on Active Skills targeting enemies. Clauses 1, 4, 5 and 8 were
+  pressed.
+- **Sikera Ušum's cooldown actually starting** at the field's closure. `countFrom: deactivation` was
+  confirmed as 0 at use; no measurement was taken at the moment the Throne Room expired.
+- **The Hanging Gardens as a Home Base** (`countsAsHomeBase`), its Construction sources 1–3, and its
+  destruction-and-rebuild clause.
 
 ## 46.13 What this audit did **not** test
 
