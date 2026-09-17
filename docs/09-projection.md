@@ -44,6 +44,7 @@ Created by `snapshotBoard` (module/rules/snapshot.mjs:655) in two phases:
 - Indices built here: `auraIndex` (module/rules/snapshot.mjs:828), used only on the board.
 - Two-unit relationships: `zonBonuses`, `masterId` relationship facts — answered by the board, unanswerable from a unit alone.
 - Position assumed already resolved: every unit carries a real `panel`, not the origin.
+- **Whose Turn it is**: `actingFactionId`, supplied by `currentBoard` from the combat document's own getter and `null` outside a match. Added for #28, where `rules/nameless-forest.mjs` gated the Forest escape on `board.activeFactionId` — the **scheduler context's** name for the same idea, which `snapshotBoard` has never produced. The read was `undefined`, the guard short-circuited, and the gate refused nobody. The unit tests supplied the scheduler's name by hand, so code and tests agreed with each other and not with the system.
 
 ### Expression context: a different shape
 

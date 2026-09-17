@@ -214,7 +214,13 @@ describe("E4/F8 — the escape is OFFERED, once per Turn, on the bearer's own Tu
     id: "foe", factionId: "blue", effects: ["namelessForest"],
     parameters: { mag: "A" }, turnState: {}, ...over,
   });
-  const board = { activeFactionId: "blue" };
+  // `actingFactionId`, which is what the board projection actually carries.
+  // This read was `activeFactionId` -- a SCHEDULER CONTEXT field that
+  // `snapshotBoard` has never produced -- so the guard short-circuited on
+  // `undefined` and the Turn gate never fired against a real board. The tests
+  // supplied the scheduler's name by hand, so they agreed with the code and
+  // not with the system (#28).
+  const board = { actingFactionId: "blue" };
 
   it("stands for an affected Unit on its own Turn", () => {
     expect(mayAttemptEscape(caught(), board)).toMatchObject({ ok: true });
@@ -228,7 +234,18 @@ describe("E4/F8 — the escape is OFFERED, once per Turn, on the bearer's own Tu
   it("does not stand on somebody ELSE's Turn", () => {
     // "During an affected Unit's Turn". Every caught Unit would otherwise be
     // offered an escape at the top of every Turn in the Round.
-    expect(mayAttemptEscape(caught(), { activeFactionId: "red" }))
+    expect(mayAttemptEscape(caught(), { actingFactionId: "red" }))
+      .toMatchObject({ ok: false, reason: "notItsTurn" });
+  });
+
+  it("reads the faction the Unit ACTS on, so a Charmed Unit escapes on its charmer's Turn", () => {
+    // `actingFactionId` on the unit is what `rules/control.mjs` stamps for a
+    // Charm; `factionId` is untouched. Ch. 25: a charmed unit appears in the
+    // charmer's currentUnits during their turn and is absent from its owner's.
+    const charmed = caught({ factionId: "blue", actingFactionId: "red" });
+
+    expect(mayAttemptEscape(charmed, { actingFactionId: "red" })).toMatchObject({ ok: true });
+    expect(mayAttemptEscape(charmed, { actingFactionId: "blue" }))
       .toMatchObject({ ok: false, reason: "notItsTurn" });
   });
 

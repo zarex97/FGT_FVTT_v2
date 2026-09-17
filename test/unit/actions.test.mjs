@@ -124,6 +124,41 @@ describe("Board (#24)", () => {
   });
 });
 
+describe("Forest Escape (#28)", () => {
+  const caught = (over = {}) => unit({
+    id: "foe", faction: "blue", factionId: "blue", effects: ["namelessForest"],
+    parameters: { mag: "A" }, turnState: {}, ...over,
+  });
+  const b = (over = {}) => ({ ...board([caught()]), actingFactionId: "blue", ...over });
+
+  it("is offered to a caught Unit on its own Turn, naming no extra context", () => {
+    const found = availableActions(caught(), b()).find((a) => a.id === "forestEscape");
+    expect(found).toBeDefined();
+    expect(found.mode).toBe("immediate");
+    expect(found.context.blocked).toBeNull();
+  });
+
+  it("is withheld entirely from a Unit the forest has not caught", () => {
+    // No button at all: a Unit not in the forest has nothing to escape.
+    expect(idsFor(unit(), b())).not.toContain("forestEscape");
+  });
+
+  it("is still offered on somebody else's Turn, but blocked, so the button can say why", () => {
+    // The `escape` precedent: offered even when the gate refuses, because an
+    // absent button teaches nothing.
+    const found = availableActions(caught(), b({ actingFactionId: "red" }))
+      .find((a) => a.id === "forestEscape");
+    expect(found).toBeDefined();
+    expect(found.context.blocked).toBe("notItsTurn");
+  });
+
+  it("is blocked once the Unit has already tried this Turn", () => {
+    const tried = caught({ turnState: { namelessForestAttempts: 1 } });
+    const found = availableActions(tried, b()).find((a) => a.id === "forestEscape");
+    expect(found.context.blocked).toBe("alreadyTriedThisTurn");
+  });
+});
+
 describe("the registry's shape", () => {
   it("gives every entry an id, kind, icon, label and mode", () => {
     for (const a of UNIT_ACTIONS) {

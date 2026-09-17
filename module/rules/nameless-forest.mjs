@@ -76,7 +76,21 @@ export function mayAttemptEscape(unit, board) {
   // *"During an affected Unit's Turn"* -- not on somebody else's, or every
   // caught Unit would be offered an escape at the top of every Turn in the
   // Round.
-  if (board?.activeFactionId && unit.factionId !== board.activeFactionId) {
+  //
+  // `actingFactionId` on BOTH sides, and neither name is arbitrary (#28). The
+  // board's field was read as `activeFactionId`, which is the SCHEDULER
+  // CONTEXT's name for the same idea -- `snapshotBoard` has never produced it,
+  // so `board?.activeFactionId` was `undefined`, the `&&` short-circuited, and
+  // this gate never once refused against a real board. The unit tests supplied
+  // the scheduler's name by hand, so code and tests agreed with each other and
+  // not with the system.
+  //
+  // The UNIT's side is `actingFactionId ?? factionId`, matching
+  // `engine/movement-hooks.mjs` and `engine/budget.mjs`: a Charmed Unit acts on
+  // its charmer's Turn (Ch. 25) while its own `factionId` is untouched, so
+  // reading `factionId` alone would offer it the escape on a Turn it cannot act.
+  const side = unit.actingFactionId ?? unit.factionId;
+  if (board?.actingFactionId && side !== board.actingFactionId) {
     return { ok: false, reason: "notItsTurn" };
   }
   if ((unit.turnState?.namelessForestAttempts ?? 0) >= 1) {

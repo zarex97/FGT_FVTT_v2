@@ -451,6 +451,19 @@ describe("turnStateAt", () => {
     const stale = turnStateAt({ tick: 3, abilitiesUsed: ["medea-keraino"] }, 7);
     expect(stale.abilitiesUsed).toEqual([]);
   });
+
+  it("projects the Nameless Forest attempt counter, which limits the escape to once a Turn (#28)", () => {
+    // Measured live: `attemptForestEscape` emits
+    // `markTurn(unitId, {namelessForestAttempts: 1})`, the schema did not
+    // declare the field, Foundry dropped the write in silence, and the counter
+    // read 0 immediately after a successful escape -- so `mayAttemptEscape`
+    // never refused a second attempt. The same shape as #19.
+    expect(turnStateAt({ tick: 7, namelessForestAttempts: 1 }, 7).namelessForestAttempts).toBe(1);
+  });
+
+  it("blanks the attempt counter when the record is stale, so a new Turn restores the attempt", () => {
+    expect(turnStateAt({ tick: 3, namelessForestAttempts: 1 }, 7).namelessForestAttempts).toBe(0);
+  });
 });
 
 describe("sustainability", () => {

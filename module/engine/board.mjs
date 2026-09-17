@@ -314,6 +314,9 @@ export function currentBoard(overrides = {}) {
       round: combat?.round ?? 1,
       tick: combat?.system?.globalTurn ?? 0,
       phase: combat?.system?.phase ?? "day",
+      // Whose Turn it is (#28). `null` out of combat, which reads as "no Turn
+      // gate applies" -- the same answer the GM arranging a scene needs.
+      actingFactionId: combat?.actingFactionId ?? null,
       // Seeded on the turn index so a replayed resolution picks the same
       // random targets as the original.
       seed: combat?.system?.globalTurn ?? 0,

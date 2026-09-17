@@ -601,7 +601,7 @@ export function turnStateAt(raw, tick) {
     // snapshot reader of the turn record saw `undefined`: `oncePerTurn` never
     // refused anything, and `reactionAbilities` offered a Skill whose
     // same-Turn partner had already been used.
-    itemTransfers: 0, abilitiesUsed: [],
+    itemTransfers: 0, abilitiesUsed: [], namelessForestAttempts: 0,
   };
   if (tick !== null && (raw?.tick ?? null) !== tick) return blank;
 
@@ -626,6 +626,10 @@ export function turnStateAt(raw, tick) {
     reshapedField: Boolean(raw?.reshapedField),
     itemTransfers: raw?.itemTransfers ?? 0,
     abilitiesUsed: [...(raw?.abilitiesUsed ?? [])],
+    // The Nameless Forest escape's once-per-Turn limit (#28). Added to the
+    // schema AND here together, which is what the two comments above this
+    // function exist to insist on.
+    namelessForestAttempts: raw?.namelessForestAttempts ?? 0,
   };
 }
 
@@ -693,6 +697,16 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     zones: settings.zones ?? {},
     alliances: settings.alliances ?? {},
     roundPhase: settings.phase ?? "day",
+    // Whose Turn it is, as a BOARD fact (#28). The scheduler has carried this
+    // on its own context as `activeFactionId` since it was written, but the
+    // board never had it -- so a rules-layer gate asking "is it this Unit's
+    // Turn" had nothing to read, and `rules/nameless-forest.mjs` asked exactly
+    // that and silently answered yes for everybody.
+    //
+    // Named for the combat document's own `actingFactionId` getter, which is
+    // the term `engine/movement-hooks.mjs`, `engine/budget.mjs` and
+    // `rules/control.mjs` all already use.
+    actingFactionId: settings.actingFactionId ?? null,
     round: settings.round ?? 1,
     turnsPerRound: settings.turnsPerRound ?? 3,
     tick: settings.tick ?? 0,

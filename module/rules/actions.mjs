@@ -24,6 +24,7 @@ import { relationOf } from "./relations.mjs";
 import { contains, membershipVerdict, canAttemptEscape } from "./bounded-fields.mjs";
 import { remainingMovement } from "./movement.mjs";
 import { boardablePlatform } from "./platforms.mjs";
+import { mayAttemptEscape } from "./nameless-forest.mjs";
 
 /**
  * The unit kinds that TAKE actions.
@@ -191,6 +192,32 @@ export const UNIT_ACTIONS = Object.freeze([
         return { fieldId: field.id, chance: gate.chance ?? null, blocked: gate.ok ? null : gate.reason };
       }
       return null;
+    },
+  },
+  {
+    // *"Once per Turn during its own Turn it may attempt a Luck Check to
+    // remove every Token."* Nursery Rhyme's Nameless Forest is the only thing
+    // in the game that kills by accumulation, its marker is authored
+    // `unremovable` so no Cleanse can substitute, and this roll is the whole of
+    // its counter-play -- which had no button, so a caught Unit had none at all
+    // (#28).
+    //
+    // Bills NOTHING, like `escape`: the roll is the cost, and the attempt
+    // counter is what limits it.
+    id: "forestEscape",
+    kind: null,
+    icon: "fa-solid fa-tree",
+    label: "FGT.Action.ForestEscape",
+    mode: "immediate",
+    available: (unit, board) => {
+      if (!acts(unit)) return null;
+      const gate = mayAttemptEscape(unit, board);
+      // A Unit the forest has not caught has nothing to escape, so no button.
+      // Every other refusal still shows one -- the `escape` reasoning exactly:
+      // "already tried this Turn" and "not your Turn" are things a player needs
+      // told, and an absent button teaches nothing.
+      if (!gate.ok && gate.reason === "notAffected") return null;
+      return { blocked: gate.ok ? null : gate.reason };
     },
   },
   {

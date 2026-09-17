@@ -367,6 +367,15 @@ export function combatantCommon() {
       // Which abilities went this Turn, for `sameTurnExclusive` (Medea's
       // Keraino and Trofa). Stale-by-tick like everything else here.
       abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
+      // *"Once per Turn during its own Turn it may attempt a Luck Check."*
+      // Nursery Rhyme's Nameless Forest, and the reason this is a COUNT rather
+      // than a flag is only symmetry with `itemTransfers` -- one is the limit.
+      //
+      // Undeclared until #28, so `markTurn`'s write was dropped in silence and
+      // the counter read 0 immediately after an escape. Measured live: the
+      // once-per-Turn limit did not exist, and a caught Unit could roll until
+      // it got out.
+      namelessForestAttempts: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     }),
 
     /**
