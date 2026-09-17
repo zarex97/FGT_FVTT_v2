@@ -1,5 +1,5 @@
 /**
- * @file The only place in the system that writes documents.
+ * @file The only place in the system that applies an intent.
  * @see docs/02-architecture.md, docs/38-authority.md
  *
  * Layer 3. Split deliberately in two:

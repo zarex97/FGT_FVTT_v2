@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:unit": "vitest run test/unit",
     "test:golden": "vitest run test/golden",
-    "lint": "eslint module tools test && node tools/check-layers.mjs && node tools/check-doc-refs.mjs",
+    "lint": "eslint module tools test && node tools/check-layers.mjs && node tools/check-writes.mjs && node tools/check-doc-refs.mjs",
     "typecheck": "tsc -p jsconfig.json",
     "stage:yaml": "node tools/stage-to-yaml.mjs",
     "validate:content": "node tools/validate-content.mjs",

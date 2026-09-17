@@ -2,12 +2,22 @@
  * @file The concrete write adapter — the `io` the applier calls.
  * @see docs/02-architecture.md, docs/38-authority.md
  *
- * Layer 3. This is the *only* file that calls `document.update()`. Everything
- * above it emits intents; everything below it is pure.
+ * Layer 3. This is the only file that writes **unit state** -- Health, effects,
+ * cooldowns, records, contracts, items: everything the intent vocabulary names.
+ * Everything above it emits intents; everything below it is pure.
+ *
+ * It is NOT the only file that calls `document.update()`, and the header said
+ * so for most of this file's life. `tools/check-writes.mjs` counts them: 192
+ * sites across 41 files. The other three quarters are writes the intent
+ * vocabulary was never meant to carry -- chat card flags, the lifecycle of
+ * Scene-embedded documents, the Combat document, migrations, and a person
+ * editing a document through its own sheet -- plus eleven files of genuine debt
+ * that the checker marks as such. See docs/02-architecture.md.
  *
  * Keeping it behind an interface is not ceremony: `applyIntents` takes `io` by
  * injection, which is what lets the applier's routing and batching be tested
- * against a recording fake with no world at all.
+ * against a recording fake with no world at all. Note what that does NOT buy:
+ * the fake stands in for this file, so nothing in the suite executes it.
  */
 
 import { FGTSocket } from "../net/socket.mjs";

@@ -34,6 +34,31 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### The write choke point was a quarter of the writes (2026-09-17)
+
+#### Corrected
+
+- **Ch. 02 claimed *"no code anywhere in the system calls `actor.update()` directly"*, and
+  `applier.mjs` called itself *"the only place in the system that writes documents"*.** Neither was
+  ever counted. The real number is **192 write sites across 41 files**, of which `io.mjs` is about a
+  quarter. The chapter now states the rule that actually holds — `io.mjs` is the choke point for
+  **unit state**, the things the intent vocabulary names — and tabulates what the other three quarters
+  are: chat card flags, the lifecycle of Scene-embedded documents, the Combat document, migrations, a
+  person editing through a sheet, and eleven files of honest debt.
+
+  The cost of the broad version was not inaccuracy. An architecture review read it, reasoned from it,
+  and designed a refactor on the premise that a seam under `io.mjs` would capture the system's writes;
+  it would have captured a quarter. **A stated invariant is load-bearing whether or not it is true.**
+
+#### Added
+
+- **`tools/check-writes.mjs`**, in `npm run lint`. It gates the **file** rather than the line — a file
+  already permitted to create its own Regions may create one more; a file that has never written a
+  document and starts is the thing worth a conversation. Every exception carries a category and a
+  reason, because an allowlist without the sentence beside it records only that something was there
+  first. An exception that stops being needed fails the build too, so the list shrinks instead of
+  ossifying — the same discipline `check-layers.mjs` applies.
+
 ### A gate that could not see the field it gates on (2026-09-17)
 
 #### Fixed
