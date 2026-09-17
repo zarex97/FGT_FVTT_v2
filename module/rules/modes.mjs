@@ -34,6 +34,7 @@
  */
 
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 
@@ -121,14 +122,14 @@ export function canToggleMode(
   // caller supplies one: a record carries the Round it was made in, and a stamp
   // from an earlier Round must not bite in this one.
   if (sys.oncePerRound) {
-    const record = unit?.roundState ?? {};
-    const sameRound = round === null || round === undefined
-      || record.round === null || record.round === undefined
-      || record.round === round;
-    const used = (record.abilitiesUsed ?? []).some(
+    // Through the Round Record rather than a comparison spelled out here:
+    // callers pass an unprojected record as readily as a projected one, and
+    // this function used to answer "is that stamp current" in its own words.
+    const record = ROUND_RECORD.at(unit?.roundState, round ?? null);
+    const used = record.abilitiesUsed.some(
       (id) => id === item?.id || id === sys.contentId || id === sys.slug,
     );
-    if (sameRound && used) return { ok: false, reason: "oncePerRound" };
+    if (used) return { ok: false, reason: "oncePerRound" };
   }
 
   // The two-way lockout. "And vice versa" in the source: it governs switching

@@ -236,6 +236,26 @@ export function sustainabilityCostOf(servant, npRank) {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * How many UNITS of this Master's Servants have Acted this Turn.
+ *
+ * *"Each one counts as 0.5 Units"* scopes to every rule that counts Units and
+ * qualifies none of them, so both Dioscuri Acting is ONE Servant having Acted:
+ * a Master whose only Servant is the pair pays nothing, and a Master with the
+ * pair AND another Servant pays the flat 25. A count would get both wrong.
+ *
+ * Reads `turnState.acted` off a PROJECTION, so a record stamped with an earlier
+ * Tick contributes nothing.
+ *
+ * @param {object[]} servants the Master's contracted Servants, as snapshots
+ * @returns {number} weighted Units, not a headcount
+ */
+export function actedWeight(servants) {
+  return (servants ?? [])
+    .filter((s) => s.turnState?.acted)
+    .reduce((sum, s) => sum + unitWeight(s), 0);
+}
+
+/**
  * The Health a Master loses at the end of a Turn in which several of its
  * Servants Acted.
  *
@@ -254,15 +274,7 @@ export function sustainabilityCostOf(servant, npRank) {
 export function multiServantTax(master, servants, settings = {}) {
   if (settings.grandOrder) return [];
 
-  // UNITS, not actors. *"each one counts as 0.5 Units"* scopes to every rule
-  // that counts Units and qualifies none of them, and this is one: both
-  // Dioscuri Acting is ONE Servant having Acted, so a Master whose only
-  // Servant is the pair pays nothing -- and a Master with the pair AND another
-  // Servant pays the flat 25.
-  const acted = (servants ?? [])
-    .filter((s) => s.turnState?.acted)
-    .reduce((sum, s) => sum + unitWeight(s), 0);
-  if (acted <= 1) return [];
+  if (actedWeight(servants) <= 1) return [];
 
   return [{
     kind: "statDelta", unitId: master.id, stat: "health.value",
@@ -286,12 +298,9 @@ export function mayOrderAnotherServant(master, servants, settings = {}) {
   if (settings.grandOrder) return { ok: true };
   if (currentHealth(master) > MULTI_SERVANT_COST) return { ok: true };
 
-  // The same weight sum as the tax, and for the same reason: one twin having
-  // Acted is half a Unit, so ordering the other is still one order.
-  const acted = (servants ?? [])
-    .filter((s) => s.turnState?.acted)
-    .reduce((sum, s) => sum + unitWeight(s), 0);
-  return acted >= 1
+  // The same weight as the tax, and for the same reason: one twin having Acted
+  // is half a Unit, so ordering the other is still one order.
+  return actedWeight(servants) >= 1
     ? { ok: false, reason: "multiServantTaxUnaffordable" }
     : { ok: true };
 }

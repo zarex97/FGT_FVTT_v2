@@ -8,7 +8,7 @@
  * island. That is one builder now.
  */
 
-import { snapshotBoard, snapshotUnit } from "../rules/snapshot.mjs";
+import { snapshotBoard, snapshotUnit, turnStateAt, roundStateAt } from "../rules/snapshot.mjs";
 import { normalizeFactions, alliancesOf, factionChoices, factionForUser } from "../rules/factions.mjs";
 
 /** The world setting the roster lives in. */
@@ -182,6 +182,35 @@ export function currentTick() {
   const combat = game.combats?.active ?? null;
   if (!combat?.started) return null;
   return combat.system?.globalTurn ?? 0;
+}
+
+/**
+ * This actor's Turn Record as it reads right now.
+ *
+ * The one place outside `io.mjs` that takes the stored record off a document,
+ * so the document-to-projection step happens once instead of at each caller.
+ * Two callers spelled the staleness comparison out themselves before this
+ * existed, and a third -- `io.recordUse` -- spelled it differently, which was
+ * the surviving half of #32.
+ *
+ * Prefer a board snapshot where one is already in hand; this is for the paths
+ * that hold only the actor.
+ *
+ * @param {object} actor
+ * @returns {object} the projected Turn Record
+ */
+export function turnRecordOf(actor) {
+  return turnStateAt(actor?.system?.turnState, game.combat?.system?.globalTurn ?? 0);
+}
+
+/**
+ * This actor's Round Record as it reads right now. Beside `turnRecordOf`.
+ *
+ * @param {object} actor
+ * @returns {object} the projected Round Record
+ */
+export function roundRecordOf(actor) {
+  return roundStateAt(actor?.system?.roundState, game.combats?.active?.round ?? null);
 }
 
 /**

@@ -34,7 +34,7 @@ import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { currentBoard, unitFrom, unitSnapshot, gateContext } from "./board.mjs";
+import { currentBoard, unitFrom, unitSnapshot, gateContext, turnRecordOf } from "./board.mjs";
 import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
@@ -1804,9 +1804,7 @@ function removals(phase, doc) {
  * @returns {string[]}
  */
 function usedThisTurn(actor) {
-  const state = actor.system?.turnState ?? {};
-  const now = game.combat?.system?.globalTurn ?? 0;
-  return state.tick === now ? [...(state.abilitiesUsed ?? [])] : [];
+  return turnRecordOf(actor).abilitiesUsed;
 }
 
 /**

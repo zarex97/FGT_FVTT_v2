@@ -248,9 +248,6 @@ async function onMove(document, movement, operation) {
       acted: true,
       movedPanels: (state.movedPanels ?? 0) + spent,
       moveSegments: (state.moveSegments ?? 0) + 1,
-      // Riding's second segment opens once the unit has attacked; recomputing
-      // it here keeps the flag honest whichever order the turn happened in.
-      mayMoveAgain: unit.hasRiding && Boolean(state.attacked),
     })],
     { io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "movement" },
   );

@@ -350,8 +350,6 @@ export function combatantCommon() {
       movedPanels: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       moveSegments: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       usedActiveSkill: new fields.BooleanField({ initial: false }),
-      // Riding grants a second segment, but only around an attack.
-      mayMoveAgain: new fields.BooleanField({ initial: false }),
       // Riding Attack is terminal for that unit's turn.
       usedRidingAttack: new fields.BooleanField({ initial: false }),
       // Jack's Mist: *"she can Move the Mist and/or change the shape of the

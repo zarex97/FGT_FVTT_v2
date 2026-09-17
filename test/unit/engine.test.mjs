@@ -772,12 +772,22 @@ describe("Sustainability", () => {
 });
 
 describe("beginTurn", () => {
-  it("resets only the incoming player's units but fires turn-start effects for all", () => {
+  it("marks the boundary once and fires turn-start effects for every unit", () => {
+    // Per-unit `resetTurnState` entries used to sit under this line, one for
+    // each unit of the incoming faction, logging a reset that reset nothing --
+    // the turn record expires by being read. The boundary is the `turnStart`
+    // entry, and there is one of it.
     const mine = { id: "mine", factionId: "a", eventHandlers: [{ event: "turnStart", intents: [] }] };
     const theirs = { id: "theirs", factionId: "b", eventHandlers: [{ event: "turnStart", intents: [] }] };
     const out = beginTurn(board([mine, theirs]), sctx);
-    const resets = out.filter((i) => i.entry?.kind === "resetTurnState").map((i) => i.entry.unitId);
-    expect(resets).toEqual(["mine"]);
+
+    const boundary = out.filter((i) => i.entry?.kind === "turnStart");
+    expect(boundary.length).toBe(1);
+    expect(boundary[0].entry.faction).toBe("a");
+    expect(out.some((i) => i.entry?.kind === "resetTurnState")).toBe(false);
+
+    // Shock's action-loss roll can land on anyone's turn start, so this half
+    // deliberately covers BOTH factions and is the reason the test exists.
     const fired = out.filter((i) => i.entry?.kind === "event").map((i) => i.entry.unitId);
     expect(fired.sort()).toEqual(["mine", "theirs"]);
   });
