@@ -77,6 +77,26 @@ The panel shows 8 rows, and everything beyond is a count `+N more` — a GM in a
 
 **The action bar refused every Noble Phantasm its Master pays for.** `gateContext()` has no unit, so it cannot carry a Master, and `canUseAbility` defaults it to `null` — which reads as a Master with 0 Health and refuses every Master-Health cost. The bar was the one caller that did not resolve the Master from the board. Drake's two Noble Phantasms were greyed "The Master cannot pay the Health cost" while her Master sat at 250 of 250 and the sheet offered them happily. It stayed hidden because Free Servants pay nothing, and most test boards carry them. **The Master must be resolved from the board, using the same path the sheet uses.** Fixed in `module/apps/hud/action-bar.mjs:173-175`, matching `actor-sheet/context.mjs`.
 
+**A gate that reads a field its board never carries refuses nobody.** The Nameless Forest escape is
+offered by an entry in the registry, and its eligibility rule asked `board.activeFactionId` — the
+**scheduler context's** name for "whose Turn is it". `snapshotBoard` produces `actingFactionId` and
+has never produced the other, so the read was `undefined`, the `&&` short-circuited, and the
+"during its own Turn" gate passed for every Unit on every Turn. It went unseen because the unit
+tests built their board by hand and supplied the scheduler's spelling, so the code and its tests
+agreed with each other and not with the projection. Fixed in
+[#28](https://github.com/zarex97/FGT_FVTT_v2/issues/28) by giving the board the field and reading
+the Unit's own `actingFactionId ?? factionId`, which is Charm-aware the way `engine/budget.mjs`
+already is. **A predicate that silently passes is indistinguishable from a rule nobody wrote —
+check the field you are reading is one the projection actually emits.**
+
+**A turn-state flag the schema does not declare is written into a void.** The same escape spends its
+once-per-Turn attempt with `markTurn(unitId, {namelessForestAttempts: 1})`. The field was on no
+schema, so Foundry dropped the write without error and the counter read `0` immediately after a
+successful escape — measured live. The limit did not exist and a caught Unit could roll until it got
+out. `turnStateAt` carries its own two comments warning about precisely this, because it copies a
+FIXED key list. **A new turn-state field is three edits, not one: the schema, the projection, and
+the reader — and the live world is the only place the first of them can be verified.**
+
 ## Open questions
 
 - **Confirmed live.** `pendingRowsFor` sorts on
