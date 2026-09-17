@@ -125,6 +125,24 @@ describe("membership", () => {
     expect(membershipVerdict(field, inside({ faction: "a" }), "exit", board)).toMatchObject({ ok: true });
   });
 
+  it("lets the field's OWNER leave freely, like the ally it is", () => {
+    // `relationTo` answers `self` for the owner — a third relation added so
+    // that `relations: [self]` interior rules could find the Unit they are
+    // written for — and the membership split was still two-way, so `self` fell
+    // to the `enemy` branch. Measured live in Asterios's own Chaos
+    // Labyrinthos: his Master walked out free, EMIYA was held to the 20% roll,
+    // and Asterios was refused outright by the trap he had just built.
+    expect(membershipVerdict(field, inside({ id: "asterios", faction: "a" }), "exit", board))
+      .toMatchObject({ ok: true });
+  });
+
+  it("still holds the enemy to the roll the owner is exempt from", () => {
+    // The pair, so the fix cannot be "let everybody out".
+    expect(membershipVerdict(field, inside({ id: "asterios" }), "exit", board)).toMatchObject({ ok: true });
+    expect(membershipVerdict(field, inside({ id: "u", faction: "b" }), "exit", board))
+      .toMatchObject({ ok: false, reason: "rollRequired" });
+  });
+
   it("forbids entry outright when the field says so", () => {
     // Unlimited Blade Works: forbidden both ways.
     const ubw = labyrinth({ ownerFaction: "a", membership: { enemyEntry: "forbidden", enemyExit: "forbidden" } });

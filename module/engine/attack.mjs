@@ -79,6 +79,7 @@ import {
 } from "../rules/concealment.mjs";
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
+import { regionSizedTargeting } from "./fields.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -4895,11 +4896,17 @@ function targetSpecFor(attacker, ability, options = null) {
   //
   // The attacker still travels through so a bare Normal Attack can carry a
   // shape of its own -- Kagome: Famine's "3x3 panel area".
-  const projected = unitFrom(boardSnapshot(), attacker) ?? unitSnapshot(attacker);
+  const board = boardSnapshot();
+  const projected = unitFrom(board, attacker) ?? unitSnapshot(attacker);
   const range = typeof projected.range === "number"
     ? projected.range
     : (attacker.system.range?.panels ?? 1);
-  return specForAbility(ability, range, options, projected);
+  // ...and the war Region's say over an area that is the ability's own field.
+  // `specForAbility` is pure and shared by every ability in the game; the
+  // Region belongs to the board, which only this layer has.
+  return regionSizedTargeting(
+    specForAbility(ability, range, options, projected), ability, board.warRegion ?? null,
+  );
 }
 
 /**

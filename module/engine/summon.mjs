@@ -281,10 +281,14 @@ export async function commitSummon(prepared, { withPartners = true } = {}) {
  * summon time. GM-only: a player summoning cannot write world settings, and
  * failing loudly here would abort an otherwise valid summon.
  *
- * @param {string} region
+ * Exported for `engine/war-setup.mjs`, which writes the war's Region at the
+ * moment the war is committed. Two spellings of this write is how the setting
+ * and the match came to disagree in the first place.
+ *
+ * @param {string} region `""` for a war fought in no Region at all
  * @returns {Promise<void>}
  */
-async function setWarRegion(region) {
+export async function setWarRegion(region) {
   try {
     if (!game.user?.isGM) return;
     if (game.settings.get("fgt", "region") === region) return;

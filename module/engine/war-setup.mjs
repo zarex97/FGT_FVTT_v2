@@ -15,7 +15,7 @@ import { gridShape } from "../domain/geometry.mjs";
 import { validateRoster } from "../rules/war-setup.mjs";
 import { plansFor, resolveSetupPlan } from "../rules/setup-rolls.mjs";
 import {
-  prepareSummon, commitSummon, servantCatalogue, rollSetupPlan,
+  prepareSummon, commitSummon, servantCatalogue, rollSetupPlan, setWarRegion,
 } from "./summon.mjs";
 import { factions } from "./board.mjs";
 import { worldIO } from "./io.mjs";
@@ -324,6 +324,24 @@ export async function commitWar(draft) {
     "system.difficulty": draft.difficulty,
     "system.grailThreshold": draft.grailThreshold,
   });
+
+  // The war's Region, in BOTH places that hold it, before anything is summoned.
+  //
+  // `currentWarRegion()` is `match || setting`, and the match's value for a war
+  // fought in no Region is `null` -- which is falsy, so it falls straight
+  // through to the setting, and `commitSummon` has made that setting sticky
+  // since it was written. A GM who runs a Greece war and then sets up a neutral
+  // one therefore gets a neutral MATCH played on Greece GROUND: every Servant a
+  // rank up on every parameter, +10 Base Attack per STR/MAG step, and an END
+  // step baked into the rolled Max Health for good. Nothing says so -- the
+  // wizard's own record says the Region is none.
+  //
+  // Writing it here rather than teaching `currentWarRegion` to distinguish
+  // "none" from "unset": `prepareSummon` reads the SETTING too (`region ??
+  // setting`), so a precedence fix alone would leave the summon grants wrong
+  // while making the board right, which is a worse disagreement than the one it
+  // replaces. One writer, at the one moment the war's Region is decided.
+  await setWarRegion(draft.region || "");
 
   await note(combat, `War setup began: ${draft.warType}, ${draft.ruleset} ruleset`, {
     warType: draft.warType, ruleset: draft.ruleset,

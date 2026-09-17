@@ -1523,6 +1523,171 @@ adjacent:
 | Next Turn | **3** offered again; `spent` cleared, `acquiredAt` kept at its original ticks |
 | The setting at 3 / 5 / 1 / 0 | **3 / 4 / 1 / 0** offered — 4 at a cap of 5, because only four enemy Servants were in range |
 
+### AO. A war fought in no Region inherited the previous war's — **fixed 2026-09-17**
+
+**Reached: every war whose draft names no Region**, in any world that has ever run one that did.
+
+`currentWarRegion()` is `game.combat?.system?.region || setting("region")`, and a match that states
+no Region stores `null` — which is falsy, so it falls straight through to the world setting.
+`commitSummon` has written that setting on every summon since it was written, so once any Region war
+has been run the value is sticky, and `commitWar` wrote only the match.
+
+**Measured**: a draft with `region: ""` built a war whose own record said Region *none* and whose
+board played **Greece** — Asterios at STR/END **EX--** instead of A++, Max Health **1800** instead
+of 1700, Achilles 1600 instead of 1500. Nothing said so; the wizard's record said the Region was
+none. Every damage figure measured against a printed sheet number would have been wrong by a rank.
+
+`commitWar` now records the draft's Region through `setWarRegion` **before** anything is summoned,
+so the match, the setting and the board agree. Fixing the precedence instead would have been worse:
+`prepareSummon` reads the setting too (`region ?? setting`), so a board-only fix would have left the
+summon grants wrong while making the Ranks right. One writer, at the one moment the Region is
+decided. **Verified**: the same draft now builds A++/A++, 1700, `setting: ""`, `warRegion: null`;
+and a draft naming Greece builds all three agreeing on `greece`.
+
+### AP. No bounded field's interior rules reached the movement gate — **fixed 2026-09-17**
+
+**Reached: every field with an `interior` MovDelta** — Ch. 28's whole interior axis.
+
+`engine/movement-hooks.mjs#onPreMove` validated against `unitSnapshot(actor, document)`, which runs
+the unit's own contributions and stops. The bounded-field pass belongs to `snapshotBoard`, because
+whether a Unit stands inside a field is a fact about the board rather than about the Unit — so the
+one gate that rations movement could not see a single field's interior rule.
+
+**Measured live in Asterios's own Chaos Labyrinthos, in both directions:**
+
+- *"Asterios' MOV is increased by 4 while within the Labyrinth"* — the board said **8**, his actor
+  sheet said **8**, and a five-panel path was refused: *"This path is 5 panels; 4 remain of MOV 4."*
+- *"The MOV of all enemy Units within the Labyrinth is reduced by 2 (minimum MOV=2)"* — EMIYA, whose
+  board MOV inside was **2**, walked **3** panels and the mover allowed it.
+
+The second is the one that matters: a trap that does not slow anybody is the whole of what the
+clause is for. `movementAllowance`, the HUD's reader, was blind the same way and is fixed with it —
+the gate and the display now answer out of one shape, which §46.3 lists as its own defect class.
+
+### AQ. A bounded field trapped its own owner — **fixed 2026-09-17**
+
+**Reached: every field whose `enemyExit` is stricter than `free`.**
+
+`membershipVerdict` split the relation two ways — `relation === "ally" ? "ally" : "enemy"` — and
+`relationTo` answers **`self`** for the field's owner. That third relation was added so
+`relations: [self]` interior rules could find the one Unit they are written for, and this line was
+never updated, so `self` fell to the `enemy` branch.
+
+**Measured live** with `allyExit: free` and `enemyExit: rollRequired` authored: Asterios's **Master**,
+standing beside him inside the Labyrinth, walked out free; **EMIYA** was held to the 20% roll; and
+**Asterios himself** was refused — `{ok: false, reason: "rollRequired"}`, the step out rejected by
+`blockedByFieldExit`, and the action bar offering him the escape ladder his own Noble Phantasm
+offers his victims. The only way out of the trap he built was to roll against it.
+
+Sikera Ušum's Throne Room is unaffected: `trappedAtActivation` answers by id above this branch,
+which is the whole reason that case is stated separately.
+
+### AR. The veteran clause's MOV exemption had no reader — **fixed 2026-09-17**
+
+**Reached: Chaos Labyrinthos**, the only field authoring `veteranBonus.noMovPenalty`, and the shape
+Ch. 28 defines for any that follow.
+
+Clause 9's third part — *"…and its MOV is also no longer halved within the Labyrinth"*, granted to a
+Unit that has escaped once and to *"all allied Units directly next to"* it — was authored, carried
+through the schema, and read by nobody.
+
+**Measured live**: Achilles, `escapeHistory {escaped: true}`, back inside the Labyrinth, read MOV
+**5** against his own 7 — exactly what a first-time prisoner reads. **After**: Achilles **7**, and
+EMIYA, standing adjacent to him inside, **4** — both at their base MOV, while a non-adjacent ally
+stays slowed and the owner's own `relations: [self]` bonus is untouched.
+
+`veteranStatus` is now the one reading of "veteran", used by the escape ladder and by the interior
+rules, so a second spelling cannot drift from the first.
+
+**This settles the ambiguity the clause list flagged.** Clause 3 says *"reduced by 2 (minimum
+MOV=2)"* and clause 9 says *"no longer halved"*. No halving is stated anywhere in the Noble Phantasm
+and clause 3 is the only MOV penalty it has, so the two sentences are about the same penalty:
+clause 9 switches off whatever clause 3 imposed, however the sheet spells the number.
+
+### AS. Mad Enhancement's clause 5 never charged anybody — **fixed 2026-09-17**
+
+**Reached: all six Mad Enhancement bearers.** Two independent faults on one clause, either enough.
+
+**The rule and its only caller passed each other.** `onMasterDefeated` asks *"was Mad Enhancement
+active when the Master died?"* by walking `servant.abilities` for a `slug`/`active` pair — it was
+moved there because `modes` was a field nothing wrote, and its own comment says so. `engine/io.mjs`
+still built `modes` and never started building `abilities`. **Measured live**, the same Servant side
+by side: called the way io calls it the function returned `setContract` and `lockModes` and nothing
+else; called with `abilities` it returned those and the Sustainability charge.
+
+**And the charge was in the wrong denomination.** `servant.sustainability` is the RESOLVED clock in
+**Turns** — 6 for a 2◈ Servant at three Turns to the Round, and the function's own guards exist to
+insist on that — while the descriptor carried a bare `delta: -2`. The sheet says *"reduced by 2◈
+Turns"*, which is six.
+
+**Measured live, before and after**: before, the Master died with Mad Enhancement active and
+`sustainabilityRemaining` stayed `null` with the clock at **6**; after, the descriptor reads `-6`
+and a 2◈ Servant reduced by 2◈ reaches exactly **0**.
+
+### AT. A mode's lockout only ever started on the way ON — **fixed 2026-09-17**
+
+**Reached: every mode carrying `toggleLock`** — the six Mad Enhancement bearers and Mannanán's
+Holder Mode.
+
+*"…it can only be deactivated 2◈ Turns after it was activated, **and vice versa**"* is two symmetric
+waits off one clock that restarts on every flip. Both writers — the sheet's toggle and `io.setMode`
+— stamped `toggledAt` on activation only, so the second half was not enforced at all.
+
+`rules/modes.mjs#canToggleMode` has read the lockout correctly since it was written and its unit
+tests prove it refuses either direction inside the window. They hand it a `toggledAt` directly,
+which is the one thing the writer was getting wrong — the gate was right and the clock it reads was
+never wound.
+
+**Measured live**: active since tick 10, switched off at tick 40 (permitted, thirty Turns elapsed),
+`toggledAt` still reading **10**, and `canToggleMode` answering `{ok: true}` to switching it straight
+back on in the same Turn. Past its first 2◈ the mode was a free toggle for the rest of the match.
+**After**: the switch-off restamps the clock and the very next click is refused in the interface —
+*"Mad Enhancement was switched too recently — 6 more turn(s)."*
+
+### AU. `@magnitude` was substituted for a value and not for a chance — **fixed 2026-09-17**
+
+**Reached: two shipped effects** — `Bleed Atk` and `Terror` — and any authored the same way.
+
+`rules/snapshot.mjs#resolveRuleValues` resolved `value` and `npValue` against the effect instance and
+nothing else. A magnitude is not always a modifier's size: Appendix A's on-hit riders put it on a
+**chance**. `Bleed Atk` is the one-line `effect: { id: bleed, chance: "@magnitude" }`, and `Terror`
+carries the same reference on the Stun in its `then` list. Both kept the literal string all the way
+to the scheduler, which gates on a number and refuses what it cannot read.
+
+**Measured live** with the chance staged to 100: the `damageDealt` event fired, the handler was
+present with its `attack:kind:normal` predicate satisfied, `pendingRolls` emitted **no die at all**,
+and `fireEvent` returned a log entry and no intent. `engine/attack.mjs#fireDamageDealt` exists
+precisely so that *"every on-hit rider in the catalogue"* works, and it was raising the event for
+handlers that could not act.
+
+**After**: the chance resolves, `pendingRolls` emits `chance:<unit>:ApplyEffect:bleed` as `1d100`,
+the intent is produced, and the Bleed lands on the victim with an expiry exactly 1◈ out. The
+substitution reaches `chance` on a rule, on the effect an action applies, and on each entry of a
+`then` list — named carriers only, because a general deep walk would start rewriting predicates and
+effect ids that merely happen to contain the same text.
+
+### AV. A Region override moved the field and not the area that debuffs it — **fixed 2026-09-17**
+
+**Reached: Chaos Labyrinthos**, the only content with a `regionSizeOverride`, and any ability whose
+targeting and field are meant to name one area.
+
+The Noble Phantasm states its area **twice** — `targeting.shape.size: 9`, for the Units its
+activation debuffs reach, and `field.geometry.shape.size: 9`, for the Labyrinth those Units are
+trapped in — and only the second carried the override. The sheet states it once, and says outright
+that they are the same thing: *"Affects a 9x9 panel area around Asterios when used, **this NP area
+will now be termed as the 'Labyrinth'**; if the Region is Greece, it affects an 11x11 panel area
+instead."*
+
+**Measured through the real control, in a Greece war**: the confirmation dialog read *"1 target(s) ·
+**81 panel(s)**"* and the Labyrinth it opened measured **121**, rows and columns 3–13. **After**: the
+same dialog on the same board reads *"1 target(s) · **121 panel(s)**"*.
+
+`engine/fields.mjs#regionSizedTargeting` applies the field's own override to a targeting block that
+names the field's own area, and refuses to touch one that does not — an ability whose targeting
+differs from its field is stating two areas on purpose. Applied at the two Layer 3 call sites that
+hold the board rather than inside the pure `targetSpecFor`, which has no war Region and whose
+signature every ability in the game shares.
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -1588,14 +1753,55 @@ Recorded so they are not filed again.
 
 ## 46.8 Asterios — what was his own
 
-Audited 2026-09-16. The statblock, all seven clauses of Mad Enhancement, Natural Monster, Avyssos
-of Labrys and eight of Chaos Labyrinthos's ten clauses hold. Measured on a live board: the
-Labyrinth opens at **81 panels**, Asterios's MOV reads **10** inside (4 base, +2 Mad Enhancement,
-+4 interior), the enemy's reads **5** (7 − 2), the activation debuffs land, and the Noble Phantasm
-deals **0** damage as *"(Non-damaging)"* requires.
+**Re-audited 2026-09-17 under the clause scheme**, clause by clause, against the list his tracker
+issue carries: 30 Clauses across five Abilities plus the statblock, every one taken to `Pressed` or
+`Observed`. The first audit of him (2026-09-16, below) predates the evidence levels and found four
+defects; this one found **seven more**, and only one of the seven was his.
 
-Two of his four findings are general and live in §46.4-H and §46.4-I. The two that were his, both
-now fixed:
+That ratio is the programme working. Of the seven, six are general — §46.4-AO, AP, AQ, AR, AS, AT,
+AU and AV — and reach every war, every bounded field, all six Mad Enhancement bearers, every mode
+carrying a lockout, and two shipped effects. Asterios found them because his kit stands on all of
+those at once.
+
+**The board.** Built with `commitWar` on a neutral Region, 15×15, one GM connection, all three
+Servants imported fresh from the compiled pack by the summon path. He arrived at Max Health
+**1700** — his sheet prints 1500 and the END table wins (§46.6) — with Agility and Luck rolled by
+`servantSetupPlan`, and BA(STR) 170 / BA(MAG) 125 exactly as printed. A second war on Greece
+supplied clause `CL.geom`'s other half and, incidentally, the Region defect that opens the register.
+
+**What the clauses cost to press.** The two that fought hardest were the ones with no control of
+their own: `ME.5` needed a Master killed with the mode active, and `CL.8` needed Asterios himself
+defeated with a field standing — both scheduler-fired, both satisfied at `Pressed (engine)` under
+ADR 0004. The escape ladder was the most expensive by wall-clock: one attempt per Turn, because the
+gate wants movement left and only a Turn restores it, which is the clause rather than a workaround.
+It measured **20% → 25% → 30% → 35% → 40%**, +5% per failure exactly, each failure relocating the
+escapee to a different random interior panel.
+
+**Two things this audit could not settle by pressing.** `NM.p` — *"the source of Asterios' inhuman
+STR and END"* — states no mechanic at all; its one mechanical consequence is the `physical` copy
+exclusion, which refuses where Avyssos of Labrys allows on the same Servant. And `AL.3`'s 10% is a
+die: the rider is proved to fire on every landed Normal Attack and, once §46.4-AU let its chance
+resolve, to inflict Bleed for 1◈ on the victim — but the 10% itself did not come up in the attacks
+made here, and was pressed with the chance staged instead.
+
+### The findings that were his
+
+- **A Region override moved his Labyrinth and not the area that debuffs it** (§46.4-AV). The only
+  finding of the seven that belongs to Asterios alone, because his is the only content carrying a
+  `regionSizeOverride` — and it is the clause that gives him his home ground.
+
+### From the first audit, 2026-09-16
+
+The statblock, all seven clauses of Mad Enhancement, Natural Monster, Avyssos of Labrys and eight of
+Chaos Labyrinthos's ten clauses held. Measured on a live board: the Labyrinth opened at **81
+panels**, Asterios's MOV read **10** inside (4 base, +2 Mad Enhancement, +4 interior), the enemy's
+read **5** (7 − 2), the activation debuffs landed, and the Noble Phantasm dealt **0** damage as
+*"(Non-damaging)"* requires. All of that still holds; what the re-audit added was that the MOV
+numbers were **read** correctly and **spent** wrongly (§46.4-AP), which reading them alone could
+never have shown.
+
+Two of his four findings then were general and live in §46.4-H and §46.4-I. The two that were his,
+both fixed at the time:
 
 - **The preview promised damage a non-damaging Noble Phantasm would not deal.** The confirmation
   dialog offered *"AT Foe 192 – 264"*; the resolution dealt 0 and the log agreed. `dealsNoDamage`

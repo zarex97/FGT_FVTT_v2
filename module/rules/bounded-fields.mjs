@@ -302,7 +302,24 @@ export function membershipVerdict(field, unit, direction, board) {
   }
 
   const relation = relationTo(field, unit, board);
-  const key = `${relation === "ally" ? "ally" : "enemy"}${direction === "enter" ? "Entry" : "Exit"}`;
+  // The OWNER counts as an ally of its own field. `relationTo` returns `self`
+  // for it — a third answer added so that `relations: [self]` interior rules
+  // could find the one Unit they are written for — and this line still had the
+  // two-way split, so `self` fell through to the `enemy` branch.
+  //
+  // Measured live in Asterios's own Chaos Labyrinthos, with `allyExit: free`
+  // and `enemyExit: rollRequired` authored: his **Master**, standing beside
+  // him, walked out free; **EMIYA**, an enemy, was held to the 20% roll; and
+  // **Asterios himself** was refused outright — `{ok: false, reason:
+  // "rollRequired"}`, and the step out of the boundary was rejected by
+  // `blockedByFieldExit`. The only way out of the trap he built was the escape
+  // ladder his own Noble Phantasm offers his victims.
+  //
+  // Reaches every field whose `enemyExit` is stricter than `free`. Sikera
+  // Ušum's Throne Room is unaffected: `trappedAtActivation` answers by id
+  // above this, which is the whole reason that branch is stated separately.
+  const side = relation === "enemy" ? "enemy" : "ally";
+  const key = `${side}${direction === "enter" ? "Entry" : "Exit"}`;
   const policy = rules[key] ?? "free";
 
   if (policy === "free") return { ok: true };
@@ -334,7 +351,86 @@ export function membershipVerdict(field, unit, direction, board) {
  * @param {object} field
  * @param {object} unit
  * @param {object} ctx
- * @param {number} ctx.roll the caller rolls
+ * @param {number} ctx.movRemaining
+ * @param {object[]} [ctx.adjacentVeterans]
+ * @returns {{ok: boolean, reason?: string, chance?: number, onFailure?: string}}
+ */
+
+/**
+ * Has this unit earned the field's veteran clause, and how?
+ *
+ * One reading of *"a Unit that has Successfully escaped the Labyrinth at least
+ * once"*, so the ladder and the interior rules cannot drift apart about who is
+ * a veteran. `adjacentVeterans` is passed whole by every caller — adjacency and
+ * the escape history are this function's rule, not theirs.
+ *
+ * @param {object} field
+ * @param {object} unit
+ * @param {object} [ctx]
+ * @param {object[]} [ctx.adjacentVeterans]
+ * @returns {{veteran: boolean, led: boolean}}
+ */
+export function veteranStatus(field, unit, { adjacentVeterans = [] } = {}) {
+  const spec = field?.membership?.escape;
+  const history = field?.state?.escapeHistory ?? {};
+
+  // A veteran led out by proximity does not roll at all, and neither does one
+  // who has escaped before.
+  const veteran = Boolean(history[unit?.id]?.escaped);
+  const led = Boolean(spec?.veteranBonus?.leadsAdjacentAllies
+    && adjacentVeterans.some((v) => chebyshev(v.panel, unit.panel) <= 1
+      && (history[v.id]?.escaped ?? false)));
+  return { veteran, led };
+}
+
+/**
+ * Is this unit excused a MOV-reducing interior rule by the veteran clause?
+ *
+ * Clause 9's third part, and the half nothing read: *"…and its MOV is also no
+ * longer halved within the Labyrinth"*, granted to a Unit that has escaped
+ * once and to *"all allied Units directly next to"* it. `noMovPenalty` was
+ * authored on Chaos Labyrinthos, carried through the schema, and asked by
+ * nobody — so a veteran walked the Labyrinth at exactly the speed a first-time
+ * prisoner does. Measured live: Achilles, `escapeHistory {escaped: true}`,
+ * standing inside, read MOV **5** against his own 7.
+ *
+ * The sheet says *"halved"* where clause 3 says *"reduced by 2 (minimum
+ * MOV=2)"*, and no halving is stated anywhere in the Noble Phantasm. The two
+ * sentences are about the same penalty — clause 3 is the only one the
+ * Labyrinth has — so what clause 9 switches off is whatever clause 3 imposed,
+ * whichever way that number is spelled.
+ *
+ * Only the penalty. A trapped enemy earning its way out is excused the trap's
+ * drag; it does not inherit the owner's own `relations: [self]` bonus, which
+ * would never have matched it anyway.
+ *
+ * @param {object} rule one interior rule
+ * @param {object} field
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+function veteranExempt(rule, field, unit, board) {
+  if (!field?.membership?.escape?.veteranBonus?.noMovPenalty) return false;
+  if (rule?.key !== "MovDelta" || (rule.value ?? 0) >= 0) return false;
+
+  // The same whole-list shape `engine/escape.mjs` and `rules/actions.mjs`
+  // pass: adjacency and history are `veteranStatus`'s rule, not the caller's.
+  const allies = (board?.units ?? []).filter((u) => u.id !== unit?.id && u.panel && (
+    u.faction === unit?.faction
+    || (board?.alliances?.[u.faction] ?? []).includes(unit?.faction)
+  ));
+  const { veteran, led } = veteranStatus(field, unit, { adjacentVeterans: allies });
+  return veteran || led;
+}
+
+/**
+ * May this unit try the escape ladder at all, and at what chance? See the
+ * specification above `veteranStatus`.
+ *
+ * @param {object} field
+ * @param {object} unit
+ * @param {object} ctx
  * @param {number} ctx.movRemaining
  * @param {object[]} [ctx.adjacentVeterans]
  * @returns {{ok: boolean, reason?: string, chance?: number, onFailure?: string}}
@@ -346,12 +442,7 @@ export function canAttemptEscape(field, unit, { movRemaining, adjacentVeterans =
   const history = field.state?.escapeHistory ?? {};
   const mine = history[unit?.id] ?? { failures: 0, escaped: false };
 
-  // A veteran led out by proximity does not roll at all, and neither does one
-  // who has escaped before.
-  const veteranHere = Boolean(mine.escaped);
-  const led = Boolean(spec.veteranBonus?.leadsAdjacentAllies
-    && adjacentVeterans.some((v) => chebyshev(v.panel, unit.panel) <= 1
-      && (history[v.id]?.escaped ?? false)));
+  const { veteran: veteranHere, led } = veteranStatus(field, unit, { adjacentVeterans });
 
   if (spec.requiresBorderContact && !veteranHere && !led && !onInnerBorder(field, unit)) {
     return { ok: false, reason: "notAtBorder" };
@@ -556,6 +647,10 @@ export function interiorModifiers(field, unit, board) {
     // filter the interior rules need and `interiorEvents` already had.
     .filter((rule) => !rule.kinds || rule.kinds.includes(unit?.kind))
     .filter((rule) => !isExempt(rule.exemptIf, unit, board))
+    // Clause 9's third part. `exemptIf` above is authored per rule and asks
+    // about the UNIT's categories; this asks about the field's own memory of
+    // who has beaten it, which is state no rule can carry.
+    .filter((rule) => !veteranExempt(rule, field, unit, board))
     // A predicate about the UNIT is answered here; one about the attack is
     // carried through for the pipeline to answer. Innocent World is six rules
     // on one field, *"depending on which of the Unit's Parameters are

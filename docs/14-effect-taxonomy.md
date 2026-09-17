@@ -91,6 +91,8 @@ A **suppressed** instance does not count: a Stun that is not stunning anybody is
 
 8. **Reciprocal `blockedBy` is a warning, not an error.** A definition can list effects that prevent its application; the validator warns if the other effect does not list this one back, because unreciprocated gates are usually mistakes (`module/rules/registry.mjs:129-134`).
 
+9. **`@magnitude` is not always a modifier's size, and every place it can stand has to be substituted.** A definition's rules name their instance with `"@magnitude"`, resolved by `resolveRuleValues` when the effect's rules are collected. It resolved `value` and `npValue` and nothing else — but Appendix A's on-hit riders put the magnitude on a **chance**: `Bleed Atk` is the one-line `effect: { id: bleed, chance: "@magnitude" }`, and `Terror` carries the same reference on the Stun in its `then` list. Both kept the literal string all the way to the scheduler, which gates on a number and refuses what it cannot read — so both effects were completely inert, and said nothing about it (Ch. 46 §46.4-AU). The substitution now reaches `chance` on a rule, on the effect an action applies, and on each entry of a `then` list. **Named carriers only**: a general deep walk would start rewriting predicates and effect ids that merely happen to contain the same text.
+
 ## Open questions
 
 - **Answered, and it is a live defect — [#23](https://github.com/zarex97/FGT_FVTT_v2/issues/23).**

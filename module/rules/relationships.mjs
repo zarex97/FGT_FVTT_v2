@@ -175,7 +175,7 @@ export function resolveUnderpower({ attacker, defender, roll }) {
  * @param {boolean} [options.spares] whether conquest spares it the consequences
  * @returns {object[]} descriptors
  */
-export function onMasterDefeated(servant, { conquered = false, spares = true } = {}) {
+export function onMasterDefeated(servant, { conquered = false, spares = true, turnsPerRound = 3 } = {}) {
   if (servant?.kind !== "servant") return [];
   if (conquered && spares) return [];
 
@@ -213,7 +213,17 @@ export function onMasterDefeated(servant, { conquered = false, spares = true } =
     (a) => (a.slug === "madEnhancement" || a.id === "madEnhancement") && a.active,
   );
   if (madEnhancement) {
-    out.push({ kind: "resource", unitId: servant.id, key: "sustainability", delta: -2 });
+    // *"…Sustainability is reduced by **2◈ Turns**"*, and `servant.sustainability`
+    // is the clock this function has just insisted is RESOLVED — 6 for a 2◈
+    // Servant at three Turns to the Round. A bare `-2` against it charged two
+    // Turns for a clause that costs two Rounds, so Asterios lost a third of
+    // what his sheet says and survived a Master's death he should not have.
+    // One denomination for the whole descriptor stream: the caller adds no
+    // arithmetic of its own, which is how the two came apart the last time.
+    out.push({
+      kind: "resource", unitId: servant.id, key: "sustainability",
+      delta: -2 * turnsPerRound,
+    });
   }
   return out;
 }
