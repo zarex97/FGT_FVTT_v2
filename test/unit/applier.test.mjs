@@ -1,34 +1,55 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { planApplication, applyIntents } from "../../module/engine/applier.mjs";
+import { worldIO } from "../../module/engine/io.mjs";
 import * as I from "../../module/engine/intents.mjs";
 
 const ownsA = (unitId) => unitId === "a";
 
-/** A recording write adapter, so the async shell is testable without a world. */
+/**
+ * A recording write adapter, so the async shell is testable without a world.
+ *
+ * Its method list is taken from the REAL adapter rather than typed out. It used
+ * to be typed out, and it had drifted to 17 of 35: any test emitting a
+ * `setStance`, `recordUse` or `rewind` intent died on `io.setStance is not a
+ * function`, and nothing said which of the applier's dispatch cases were
+ * uncovered. `worldIO()` constructs without a world -- it reads `game` inside
+ * its methods, never at build time -- so mirroring it costs one call.
+ *
+ * This fake stands in for `engine/io.mjs` itself, which is why none of the
+ * suite executes that file. See docs/44-testing.md.
+ */
 function fakeIo() {
   const calls = [];
   const rec = (name) => (...args) => { calls.push([name, ...args]); return Promise.resolve(); };
-  return {
-    calls,
-    adjustHealth: rec("adjustHealth"),
-    adjustStat: rec("adjustStat"),
-    adjustResource: rec("adjustResource"),
-    createEffects: rec("createEffects"),
-    deleteEffects: rec("deleteEffects"),
-    consumeUse: rec("consumeUse"),
-    setMode: rec("setMode"),
-    setCooldown: rec("setCooldown"),
-    move: rec("move"),
-    setFacing: rec("setFacing"),
-    spendCommandSpells: rec("spendCommandSpells"),
-    defeat: rec("defeat"),
-    markTurn: rec("markTurn"),
-    markRoundState: rec("markRoundState"),
-    log: rec("log"),
-    proxy: rec("proxy"),
-    prompt: rec("prompt"),
-  };
+  const out = { calls };
+  for (const name of Object.keys(worldIO())) out[name] = rec(name);
+  return out;
 }
+
+/** Every `io.<name>(` the applier dispatches to, read out of its source. */
+function dispatched() {
+  const source = readFileSync("module/engine/applier.mjs", "utf8");
+  return new Set([...source.matchAll(/\bio\.([a-zA-Z]+)\(/g)].map((m) => m[1]));
+}
+
+describe("drift: the fake adapter and the real one", () => {
+  it("fakes every method the real adapter offers", () => {
+    const fake = fakeIo();
+    for (const name of Object.keys(worldIO())) expect(typeof fake[name]).toBe("function");
+  });
+
+  it("fakes every method the applier actually calls", () => {
+    // The direction that bites: a new `case` in `writeGroup` reaching a method
+    // the fake lacks fails only when some test happens to emit that intent.
+    const missing = [...dispatched()].filter((name) => typeof fakeIo()[name] !== "function");
+    expect(missing).toEqual([]);
+  });
+
+  it("dispatches to a realistic number of methods, so the guard cannot pass empty", () => {
+    expect(dispatched().size).toBeGreaterThan(20);
+  });
+});
 
 describe("planApplication", () => {
   it("routes intents this client cannot write to the GM proxy", () => {
