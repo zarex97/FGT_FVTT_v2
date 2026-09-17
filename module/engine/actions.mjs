@@ -15,6 +15,7 @@ import { placeMark } from "./marks.mjs";
 import { gather } from "./gather.mjs";
 import { performRidingAttack } from "./riding.mjs";
 import { attemptEscape } from "./escape.mjs";
+import { boardPlatform } from "./platforms.mjs";
 
 /**
  * id → handler. Held against `rules/actions.mjs`'s registry by
@@ -66,6 +67,10 @@ export const ACTION_HANDLERS = Object.freeze({
     await actor.update({ "system.facing": context.facing });
     return { ok: true };
   },
+
+  // `context.platformId` is the platform the registry found this unit
+  // standing on the footprint of (`rules/platforms.mjs#boardablePlatform`).
+  board: async ({ actor, context }) => boardPlatform({ unitId: actor.id, platformId: context.platformId }),
 });
 
 /**

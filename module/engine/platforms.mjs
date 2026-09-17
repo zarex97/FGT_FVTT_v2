@@ -6,7 +6,7 @@
  */
 
 import {
-  boardingTarget, fallOff, destructionSequence, passengersOf,
+  boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
 } from "../rules/platforms.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { currentBoard } from "./board.mjs";
@@ -78,8 +78,9 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
     if (bringMaster && unit.masterId) {
       const master = board.units.find((u) => u.id === unit.masterId);
       // "if the Master was within 2 panels" — checked against where the Master
-      // stood, not where the Servant ended up.
-      if (master) intents.push(I.move(master.id, [platform.panel], true));
+      // stood, not where the Servant ended up. `unit` here is still the
+      // pre-board snapshot, so `unit.panel` is exactly that.
+      if (master && mayBringMaster(unit, master)) intents.push(I.move(master.id, [platform.panel], true));
     }
   }
 

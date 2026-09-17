@@ -12,6 +12,7 @@ import {
   platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
   boardingTarget, canUnboard, upkeepDue, deactivatedBy, fallOff, destructionSequence, aoePassengerFactor,
   platformCentre, withinPlatformCentre, deactivationVerdict, actionSourceFor,
+  boardablePlatform, mayBringMaster,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
 
@@ -237,6 +238,47 @@ describe("crossLevelRulesFor", () => {
 });
 
 /* ── 20.4 Boarding, falling, destruction ──────────────────────────────────── */
+
+describe("boardablePlatform (#24)", () => {
+  it("offers the platform a grounded unit is standing on top of", () => {
+    // `platform()` sits at (5,5) with a 3x3 footprint, so (6,6) is inside it.
+    const standing = { ...grounded(), id: "g", panel: at(6, 6) };
+    expect(boardablePlatform(standing, boardOf([platform(), standing]))).toMatchObject({ id: "hgob" });
+  });
+
+  it("withholds it once the unit is already aboard", () => {
+    // Aboard is `level > 0`, matching `passengersOf`'s own reading of membership.
+    const aboard = { ...grounded(), id: "g", level: 1, panel: at(6, 6) };
+    expect(boardablePlatform(aboard, boardOf([platform(), aboard]))).toBeNull();
+  });
+
+  it("withholds it when the unit is off the platform's footprint", () => {
+    expect(boardablePlatform(grounded(), boardOf([platform(), grounded()]))).toBeNull();
+  });
+
+  it("withholds it when the platform has not been activated", () => {
+    // Level 0 means not yet activated (`passengersOf`'s same guard).
+    const ground = platform({ level: 0 });
+    const standing = { ...grounded(), id: "g", panel: at(6, 6) };
+    expect(boardablePlatform(standing, boardOf([ground, standing]))).toBeNull();
+  });
+});
+
+describe("mayBringMaster (#24)", () => {
+  // "A boarding Servant may bring its Master if the Master was within 2
+  // panels." -- measured against where the Servant stood before boarding.
+  it("allows a Master within 2 panels", () => {
+    const servant = { ...rider(), panel: at(5, 6) };
+    const master = { id: "m", panel: at(5, 8) };
+    expect(mayBringMaster(servant, master)).toBe(true);
+  });
+
+  it("refuses a Master beyond 2 panels", () => {
+    const servant = { ...rider(), panel: at(5, 6) };
+    const master = { id: "m", panel: at(5, 9) };
+    expect(mayBringMaster(servant, master)).toBe(false);
+  });
+});
 
 describe("boardingTarget", () => {
   it("needs a 12 on a d12 with no help", () => {

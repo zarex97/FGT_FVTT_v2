@@ -542,6 +542,7 @@
   "FGT.Action.Mark": "Mark",
   "FGT.Action.Gather": "Gather",
   "FGT.Action.Facing": "Facing",
+  "FGT.Action.Board": "Board",
   "FGT.HUD.Attack": "Attack",
   "FGT.HUD.Move": "Move",
   "FGT.Preempt.Title": "Attack first?",

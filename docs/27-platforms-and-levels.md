@@ -30,6 +30,10 @@ A platform on the ground (level 0) has no passengers — a platform sitting at l
 
 Boarding is a roll against the platform's declared difficulty, modified by the unit's Agility and Luck Ranks. A platform that specifies a `boarding` block states it in full — the Golden Hind rolls a ten-sided die with no relief clause — and every other platform defaults to the Hanging Gardens' rule: 1d12, target 12, reduced by rank relief and special circumstances (`module/rules/platforms.mjs:508-529`). The modifier **reduces the required value**, not the roll (`module/engine/platforms.mjs:21-23`).
 
+A unit becomes eligible to board once it has moved (by ordinary movement) onto an active platform's footprint while still on the ground: `rules/actions.mjs`'s `board` action offers itself under exactly that condition (`module/rules/platforms.mjs#boardablePlatform`), and its handler calls `boardPlatform` (`module/engine/actions.mjs`). A GM may also call `boardPlatform` directly through `game.fgt.api.platforms`.
+
+Bringing the Master along is gated on distance: *"A boarding Servant may bring its Master if the Master was within 2 panels"*, measured against where the Servant stood **before** boarding, never against the platform's own panel (`module/rules/platforms.mjs#mayBringMaster`, `module/engine/platforms.mjs`).
+
 A unit brought aboard stays there when the platform moves (`module/rules/platforms.mjs:100-108`): passengers move **forced**, which keeps boarding off their own movement budget and away from movement-triggered effects. Relative position is preserved so formation survives.
 
 Being knocked off the edge (`module/rules/platforms.mjs:559-574`) runs three checks in order: the unit's Agility Check, then a Servant's rescue check for an adjacent Master, then the fall itself. A successful rescue or Agility Check prevents the fall; both fail and the unit takes `10×2d6` damage and moves one panel down. Masters who fall and land perform an Overpower roll — the only outcome that falls twice (`module/rules/platforms.mjs:559-575`).
@@ -108,6 +112,24 @@ Clicking a token selects it only if that token is on the level being viewed (`mo
 
 **Passengers assigned down but not back up to a platform.** The level and elevation fields are `MOVEMENT_FIELDS`, routed through the movement pipeline. A resize that found the path impossible deleted all movement fields from the update without error, so a token could move down but never back up to a platform. `activatePlatform` was left without access to `platformId`. **Assign levels through `displaceToken` with an explicit `action: "displace"` and `fgtForced: true` flag, bypassing legality** (`module/engine/scene-levels.mjs:369-410`).
 
+**A complete engine facility with no way to reach it.** `boardPlatform` implemented the entire
+boarding sequence — the relation gate, the roll, the level move, bringing the Master — and had no
+caller anywhere in the repository: no entry in `rules/actions.mjs`, no UI string, no `fgt.api`
+handle. Separately, the Master-bringing branch moved the Master to the platform whenever
+`bringMaster` was set, under a comment describing a distance check — *"checked against where the
+Master stood, not where the Servant ended up"* — that was not in the code: no Chebyshev call, no `2`
+anywhere in either platforms module. A Master anywhere on the board would have been teleported onto
+the platform the moment anything ever set `bringMaster: true`; nothing ever did, which is the only
+reason it went unnoticed. Same shape as [#19](https://github.com/zarex97/FGT_FVTT_v2/issues/19) — a
+correct rules-layer facility no engine path reaches. Filed and fixed as
+[#24](https://github.com/zarex97/FGT_FVTT_v2/issues/24): a `board` action now offers itself once a
+unit has moved onto an active platform's footprint (`module/rules/platforms.mjs#boardablePlatform`),
+dispatched by `module/engine/actions.mjs`, and `mayBringMaster` measures Chebyshev distance from the
+Servant's pre-board panel to the Master's, exactly as the comment always said
+(`module/rules/platforms.mjs#mayBringMaster`). **A comment describing a check is not the check —
+grep for the literal (a distance constant, a named function call) before trusting that a rule is
+enforced.**
+
 ## Open questions
 
 - **Confirmed by reading the lookup.** The reuse is explicit and two-keyed:
@@ -118,11 +140,4 @@ Clicking a token selects it only if that token is on the level being viewed (`mo
   *"A previous submersion leaves its actor behind, so an existing one is reused rather than
   duplicated."*
 
-- **Verified, and it is a defect — [#24](https://github.com/zarex97/FGT_FVTT_v2/issues/24).** The
-  Master-bringing branch has **no distance test at all**. `module/engine/platforms.mjs:78-83` moves
-  the Master to the platform whenever `bringMaster` is set, under a comment describing a check —
-  *"checked against where the Master stood, not where the Servant ended up"* — that is not in the
-  code. There is no Chebyshev call and no `2` anywhere in either platforms module. The question of
-  *which* panel is measured is therefore moot: none is. `bringMaster` also defaults to `false` and no
-  call site passes `true`, and `boardPlatform` itself has no caller, no action-registry entry and no
-  UI affordance — so boarding is unreachable in play today.
+- **Resolved: see Traps and anti-patterns, [#24](https://github.com/zarex97/FGT_FVTT_v2/issues/24).**

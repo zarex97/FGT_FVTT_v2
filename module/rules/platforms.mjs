@@ -18,6 +18,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
@@ -203,6 +204,45 @@ function isDirectlyBelow(unit, platform) {
   const di = (unit.panel?.i ?? 0) - (platform.panel?.i ?? 0);
   const dj = (unit.panel?.j ?? 0) - (platform.panel?.j ?? 0);
   return di >= 0 && di < h && dj >= 0 && dj < w;
+}
+
+/**
+ * The platform a grounded unit may board right now, if any (#24).
+ *
+ * "Other allied Units can board and unboard the Golden Hind by Moving onto it
+ * normally" -- a unit becomes eligible to board by moving onto an active
+ * platform's footprint while still on the ground (`level 0`), the same
+ * footprint test `isDirectlyBelow` uses for cross-level targeting. A platform
+ * at level 0 has not been activated (`passengersOf`'s own guard), and a unit
+ * already aboard (`level > 0`) has nothing left to board.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {object|null}
+ */
+export function boardablePlatform(unit, board) {
+  if (!unit?.panel || (unit.level ?? 0) !== 0) return null;
+  return platformsOn(board).find(
+    (p) => (p.level ?? 0) > 0 && isDirectlyBelow(unit, p),
+  ) ?? null;
+}
+
+/**
+ * May a boarding Servant bring its Master along (#24)?
+ *
+ * *"A boarding Servant may bring its Master if the Master was within 2
+ * panels."* Measured against where the Servant stood BEFORE boarding, not
+ * where it lands -- the platform's own panel plays no part in this
+ * comparison at all.
+ *
+ * @param {object} unit the boarding Servant, at its pre-board panel
+ * @param {object} master
+ * @param {number} [radius]
+ * @returns {boolean}
+ */
+export function mayBringMaster(unit, master, radius = 2) {
+  if (!unit?.panel || !master?.panel) return false;
+  return chebyshev(unit.panel, master.panel) <= radius;
 }
 
 /**
