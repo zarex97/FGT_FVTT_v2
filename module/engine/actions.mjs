@@ -15,7 +15,7 @@ import { placeMark } from "./marks.mjs";
 import { gather } from "./gather.mjs";
 import { performRidingAttack } from "./riding.mjs";
 import { attemptEscape } from "./escape.mjs";
-import { boardPlatform } from "./platforms.mjs";
+import { boardPlatform, jumpOff } from "./platforms.mjs";
 import { attemptForestEscape } from "./nameless-forest.mjs";
 import { useItem as consumeHeldItem, giveItem } from "./items.mjs";
 
@@ -155,6 +155,15 @@ export const ACTION_HANDLERS = Object.freeze({
     if (!toId) return { ok: false, reason: "cancelled" };
 
     return giveItem({ fromId: actor.id, toId, itemId: held(contentId).id });
+  },
+
+  // Leaving a Platform on purpose (#31). The registry shows the button while
+  // the gate refuses for the two reasons a player can act on -- step to the
+  // edge, keep some movement back -- so a blocked context is surfaced rather
+  // than jumped anyway.
+  jump: async ({ actor, context }) => {
+    if (context?.blocked) return { ok: false, reason: context.blocked };
+    return jumpOff({ unitId: actor.id, platformId: context.platformId });
   },
 
   forestEscape: async ({ actor, context }) => {
