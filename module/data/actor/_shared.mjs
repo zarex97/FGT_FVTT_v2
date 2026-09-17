@@ -207,6 +207,18 @@ export function unitCommon() {
 
     biography: new fields.HTMLField({ required: false, blank: true }),
     notes: new fields.HTMLField({ required: false, blank: true }),
+
+    // Home Base residency (Ch. 29 E1/E2): how many consecutive Rounds this
+    // Unit has ended standing in its own base. Unlike `turnState`/`roundState`,
+    // this has to survive being read -- it is a STREAK across Rounds, not a
+    // per-cycle flag -- so it cannot use their stale-by-reading trick and is
+    // written explicitly at each round boundary instead
+    // (`rules/environment.mjs#homeBaseResidencyUpdates`). Declared on
+    // `unitCommon` rather than `combatantCommon`: residency is a property of
+    // standing on a panel, which every Unit kind can do.
+    homeBase: new fields.SchemaField({
+      consecutiveRounds: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+    }),
   };
 }
 
@@ -434,6 +446,11 @@ export function combatantCommon() {
     roundState: new fields.SchemaField({
       round: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
+      // Was this Unit in a Combat Phase, inside its own Home Base, at any
+      // point this Round? Stale-by-reading against `round` like the rest of
+      // this SchemaField -- a new Round needs no explicit reset write, unlike
+      // `homeBase.consecutiveRounds` above, which has to survive one.
+      combatInBaseThisRound: new fields.BooleanField({ initial: false }),
     }),
   };
 }

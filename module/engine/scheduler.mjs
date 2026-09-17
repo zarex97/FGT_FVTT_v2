@@ -18,7 +18,7 @@
 import { INFINITE } from "../domain/enums.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { expiredSummonIds } from "../rules/summons.mjs";
-import { endOfRoundHomeBase, regionsAdjacent } from "../rules/environment.mjs";
+import { endOfRoundHomeBase, homeBaseResidencyUpdates, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { transferEffect, transferableFrom, removeStages } from "../rules/effect-flow.mjs";
@@ -189,7 +189,22 @@ export function endRound(board, ctx) {
   // Home Base regeneration and the three-Round debuff cure (Ch. 29 E1,
   // E2). The rules layer returns descriptors; turning them into intents is this
   // layer's job, the same division the `OnEvent` action table uses.
-  intents.push(...homeBaseIntents(endOfRoundHomeBase(units, board)));
+  //
+  // The residency streak is applied to a LOCAL copy of `units` before
+  // `endOfRoundHomeBase` runs, so "three full Rounds" completes on the Round
+  // it reaches three rather than the Round after -- see
+  // `rules/environment.mjs#homeBaseResidencyUpdates`. The persistence write
+  // (`statDelta`) is separate and reaches every unit whose streak changes,
+  // resident or not, since leaving is what resets it.
+  const residencyUpdates = homeBaseResidencyUpdates(units, board);
+  const residencyNextById = new Map(residencyUpdates.map((r) => [r.unitId, r.next]));
+  const unitsForHomeBase = units.map((u) => (residencyNextById.has(u.id)
+    ? { ...u, homeBase: { ...(u.homeBase ?? {}), consecutiveRounds: residencyNextById.get(u.id) } }
+    : u));
+  intents.push(...homeBaseIntents(endOfRoundHomeBase(unitsForHomeBase, board)));
+  intents.push(...residencyUpdates.map(
+    (r) => I.statDelta(r.unitId, "homeBase.consecutiveRounds", r.delta),
+  ));
   intents.push(...terrainIntents(terrainPeriodics(units, board, "roundEnd"), ctx));
 
   // Summons whose stay has run out.

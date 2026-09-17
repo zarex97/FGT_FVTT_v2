@@ -237,6 +237,33 @@ export function homeBaseModifiers(unit, board, ctx = {}) {
  * @param {object} board
  * @returns {object[]} descriptors
  */
+/**
+ * How each Unit's Home Base residency streak changes this Round.
+ *
+ * Separate from {@link endOfRoundHomeBase} because the streak has to be
+ * updated for EVERY Unit -- resident or not, since leaving is what resets it
+ * -- while E1/E2 only concern residents. Callers apply the returned `next`
+ * value to the same `units` array before calling `endOfRoundHomeBase`, so
+ * "three full Rounds" completes on the Round it reaches three rather than the
+ * Round after.
+ *
+ * @param {object[]} units
+ * @param {object} board
+ * @returns {Array<{unitId: string, delta: number, next: number}>}
+ */
+export function homeBaseResidencyUpdates(units, board) {
+  /** @type {Array<{unitId: string, delta: number, next: number}>} */
+  const out = [];
+
+  for (const u of units ?? []) {
+    const prior = u.homeBase?.consecutiveRounds ?? 0;
+    const next = ownBaseOf(u, board) ? prior + 1 : 0;
+    if (next !== prior) out.push({ unitId: u.id, delta: next - prior, next });
+  }
+
+  return out;
+}
+
 export function endOfRoundHomeBase(units, board) {
   /** @type {object[]} */
   const out = [];

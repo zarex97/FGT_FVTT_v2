@@ -72,7 +72,7 @@ import {
 } from "../rules/windows.mjs";
 import {
   reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow, windowSubject } from "../rules/reactions.mjs";
-import { attacksPermitted, mayAttackCivilian, civilianKill } from "../rules/environment.mjs";
+import { attacksPermitted, mayAttackCivilian, civilianKill, inOwnHomeBase } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 import {
   reactionsRefused, reactionRefusedByAgility, aoeOutcome, isConcealed,
@@ -2387,15 +2387,28 @@ async function fireCombatPhaseEnd(state) {
   // defender -- which is exactly what *"involved in a Combat Phase"* names, and
   // it is the only place that knows it. `markTurn` stamps the current tick, so
   // the flag is stale-by-reading at the next one like the rest of turn state.
+  const board = currentBoard();
   await applyBatch(
     units.map((u) => I.markTurn(u.id, { inCombatPhase: true })),
+    "combatPhase:involvement",
+  );
+
+  // Ch. 29 E1's exclusion: "unless it fought here" names combat WITHIN the
+  // base, not combat anywhere. Beside the `inCombatPhase` write, for the same
+  // reason -- this is the one place every involved unit is already known --
+  // but round-stamped rather than tick-stamped, because the Home Base check
+  // reads it at the END of the Round, potentially several ticks later.
+  await applyBatch(
+    units
+      .filter((u) => inOwnHomeBase(u, board))
+      .map((u) => I.markRoundState(u.id, { combatInBaseThisRound: true })),
     "combatPhase:involvement",
   );
 
   const intents = fireEvent("combatPhaseEnd", units, {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board: currentBoard(),
+    board,
     options: new Set(),
     damagedIds,
     rolls: {},

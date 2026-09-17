@@ -564,6 +564,14 @@ export function snapshotUnit(actor, {
     inCombatPhase: turnState.inCombatPhase,
     turnState,
     roundState,
+    // `consecutiveRounds` is persistent (world state, not stale-by-reading);
+    // `combatInBaseThisRound` rides `roundState`'s own staleness, so a new
+    // Round reads it as false without anyone writing a reset
+    // (`rules/environment.mjs#endOfRoundHomeBase`).
+    homeBase: {
+      consecutiveRounds: sys.homeBase?.consecutiveRounds ?? 0,
+      combatInBaseThisRound: roundState.combatInBaseThisRound,
+    },
   }, warRegion));
 }
 
@@ -636,8 +644,14 @@ export function turnStateAt(raw, tick) {
  * @returns {{round: number|null, abilitiesUsed: string[]}}
  */
 export function roundStateAt(raw, round) {
-  if (round !== null && (raw?.round ?? null) !== round) return { round, abilitiesUsed: [] };
-  return { round: raw?.round ?? null, abilitiesUsed: [...(raw?.abilitiesUsed ?? [])] };
+  if (round !== null && (raw?.round ?? null) !== round) {
+    return { round, abilitiesUsed: [], combatInBaseThisRound: false };
+  }
+  return {
+    round: raw?.round ?? null,
+    abilitiesUsed: [...(raw?.abilitiesUsed ?? [])],
+    combatInBaseThisRound: Boolean(raw?.combatInBaseThisRound),
+  };
 }
 
 /**

@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   phase, darkModifiers, homeBaseModifiers, endOfRoundHomeBase, grailState, registerDefeat, grailContest, grailDestructionChance, ownBaseOf, grailPanelCandidates,
+  homeBaseResidencyUpdates,
 } from "../../module/rules/environment.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -156,6 +157,40 @@ describe("end-of-round Home Base recovery", () => {
     });
 
     expect(endOfRoundHomeBase([u], board).some((i) => i.kind === "removeEffect")).toBe(false);
+  });
+});
+
+describe("Home Base residency streak", () => {
+  const board = { zones: { baseA: { faction: "a", panels: [at(0, 0)] } }, units: [] };
+  const resident = (over = {}) => ({ id: "u", faction: "a", panel: at(0, 0), ...over });
+  const away = (over = {}) => ({ id: "u", faction: "a", panel: at(9, 9), ...over });
+
+  it("increments a resident's streak by one", () => {
+    const u = resident({ homeBase: { consecutiveRounds: 1, combatInBaseThisRound: false } });
+
+    expect(homeBaseResidencyUpdates([u], board))
+      .toContainEqual({ unitId: "u", delta: 1, next: 2 });
+  });
+
+  it("starts a streak at one for a Unit with no prior record", () => {
+    const u = resident();
+
+    expect(homeBaseResidencyUpdates([u], board))
+      .toContainEqual({ unitId: "u", delta: 1, next: 1 });
+  });
+
+  it("resets a departed Unit's streak to zero", () => {
+    const u = away({ homeBase: { consecutiveRounds: 2, combatInBaseThisRound: false } });
+
+    expect(homeBaseResidencyUpdates([u], board))
+      .toContainEqual({ unitId: "u", delta: -2, next: 0 });
+  });
+
+  it("emits nothing for a Unit whose streak would not change", () => {
+    // Already away with nothing to reset -- a delta of 0 is not a change.
+    const u = away();
+
+    expect(homeBaseResidencyUpdates([u], board)).toEqual([]);
   });
 });
 

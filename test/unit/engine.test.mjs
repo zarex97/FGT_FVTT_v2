@@ -792,6 +792,45 @@ describe("endRound", () => {
   });
 });
 
+describe("endRound — Home Base residency (issue #19)", () => {
+  const baseBoard = (units) => ({
+    ...board(units),
+    zones: { baseA: { faction: "a", panels: [{ i: 0, j: 0 }] } },
+  });
+
+  it("persists the incremented streak for a resident", () => {
+    const u = { id: "u", faction: "a", panel: { i: 0, j: 0 }, homeBase: { consecutiveRounds: 1 } };
+    const out = endRound(baseBoard([u]), sctx);
+    expect(out).toContainEqual(
+      expect.objectContaining({ t: "statDelta", unitId: "u", stat: "homeBase.consecutiveRounds", delta: 1 }),
+    );
+  });
+
+  it("cures a debuff on the Round the streak REACHES three, not the Round after", () => {
+    const u = {
+      id: "u", faction: "a", panel: { i: 0, j: 0 },
+      homeBase: { consecutiveRounds: 2, combatInBaseThisRound: false },
+      effectInstances: [{ id: "e1", defId: "curse", polarity: "debuff" }],
+    };
+    const out = endRound(baseBoard([u]), sctx);
+    expect(out).toContainEqual(expect.objectContaining({ t: "removeEffect", unitId: "u", effectId: "e1" }));
+  });
+
+  it("resets a departed Unit's streak to zero", () => {
+    const u = { id: "u", faction: "a", panel: { i: 9, j: 9 }, homeBase: { consecutiveRounds: 3 } };
+    const out = endRound(baseBoard([u]), sctx);
+    expect(out).toContainEqual(
+      expect.objectContaining({ t: "statDelta", unitId: "u", stat: "homeBase.consecutiveRounds", delta: -3 }),
+    );
+  });
+
+  it("emits no streak write for a Unit whose count would not change", () => {
+    const u = { id: "u", faction: "a", panel: { i: 9, j: 9 } };
+    const out = endRound(baseBoard([u]), sctx);
+    expect(out.some((i) => i.t === "statDelta" && i.stat === "homeBase.consecutiveRounds")).toBe(false);
+  });
+});
+
 describe("stacking actions actually reach the intents", () => {
   const def = (over = {}) => ({
     id: "npCooldownRegen", name: "NP Cooldown Regen", polarity: "buff",
