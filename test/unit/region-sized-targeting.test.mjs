@@ -83,4 +83,28 @@ describe("regionSizedTargeting", () => {
     const otherKind = targeting({ kind: "line", length: 9 });
     expect(regionSizedTargeting(otherKind, labyrinthos(), "greece")).toBe(otherKind);
   });
+
+  it("measures a rect on both edges, not on a `size` neither of them has", () => {
+    // A `rect` carries `w`/`h` and no `size`, so a guard that compares `size`
+    // alone waves every rect through on `kind` — and `regionSizedShape` would
+    // then rewrite a 3x5 targeting to 11x11 against a 9x9 field.
+    const rectField = () => ({
+      system: {
+        field: {
+          geometry: {
+            kind: "fixedArea",
+            shape: { kind: "rect", w: 9, h: 9 },
+            regionSizeOverride: { greece: 11 },
+          },
+        },
+      },
+    });
+
+    const differs = targeting({ kind: "rect", w: 3, h: 5 });
+    expect(regionSizedTargeting(differs, rectField(), "greece")).toBe(differs);
+
+    // ...and the matching rect still moves.
+    expect(regionSizedTargeting(targeting({ kind: "rect", w: 9, h: 9 }), rectField(), "greece").shape)
+      .toEqual({ kind: "rect", w: 11, h: 11 });
+  });
 });

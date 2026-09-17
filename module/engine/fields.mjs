@@ -98,8 +98,18 @@ export function regionSizedTargeting(spec, ability, warRegion) {
   // Only where the two are the SAME area. An ability whose targeting shape
   // differs from its field's is stating two areas on purpose, and resizing one
   // to match the other would invent a rule.
-  if (shape.kind !== geometry.shape?.kind) return spec;
-  if (shape.size !== undefined && shape.size !== geometry.shape?.size) return spec;
+  //
+  // Compared on the keys that actually size each kind, and refused outright for
+  // a kind that neither `regionSizedShape` nor this can measure. Comparing
+  // `size` alone let a `rect` through on `kind` — a 3x5 targeting against a 9x9
+  // field would have been rewritten to 11x11, which is precisely the case the
+  // guard exists to reject.
+  const theirs = geometry.shape ?? {};
+  if (shape.kind !== theirs.kind) return spec;
+  const sameArea = shape.kind === "square" ? shape.size === theirs.size
+    : shape.kind === "rect" ? shape.w === theirs.w && shape.h === theirs.h
+      : false;
+  if (!sameArea) return spec;
 
   return { ...spec, shape: regionSizedShape({ ...geometry, shape }, warRegion) };
 }
