@@ -1108,6 +1108,15 @@ bypassModifiers: { attacker: boolean; defender: boolean };
 
 ## 13.8a Barriers — a second Health pool
 
+> **Both use paths must fill the pool.** `refreshShield` is what puts a number in
+> `system.shieldHealth`, and it lived only on the attack path — so a barrier granted by a *Skill*
+> had a pool of zero and absorbed nothing. Semiramis's *Scales of the Sacred Fish* is
+> `countsAsAttack: false` on a reaction window precisely so that it does **not** open a Combat
+> Process against the ally it shields, which put it on the one path that never refreshed. Measured
+> live as a Shield (200) that let an ordinary Normal Attack through in full. `useSkill` refreshes it
+> now, before `recordUse` — the order matters, because `refreshShield` reads `timesUsed` to tell a
+> first projection from a later one. Ch. 46 §46.4-AE.
+
 Every other defensive effect in the game is a percentage (`Def Up`), a flat subtraction
 (`Dmg Cut`), a refusal (`Invuln`) or an evasion (`Dodge`). A **barrier** is none of those: it has
 a bar, the bar persists between attacks, several Units stand behind one of them, and it charges

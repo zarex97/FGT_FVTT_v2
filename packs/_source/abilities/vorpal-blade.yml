@@ -47,8 +47,12 @@ rules:
   # B3. The Demonic bonus -- and NOT against the Jabberwock, which is what
   # "instead of" means. B7 below puts 3x in this same bucket, and the two are
   # mutually exclusive by predicate.
+  # NOT `stage: flat`, which this rule carried while its own comment said
+  # "combined-percent bucket". `stage` had no reader when it was written, so
+  # the field was inert and the percentage was what happened; now that
+  # `stage: flat` routes to the pipeline's flat bucket (Ch. 46 §46.4-AD), the
+  # field has to go or +50% silently becomes +50.
   - key: DamageModifier
-    stage: flat
     value: 50
     npValue: 0
     predicate:
@@ -60,8 +64,8 @@ rules:
   # due to having the 'Demonic' Attribute" -- the sheet compares the two
   # directly, so they belong in the same combined-percent bucket, where 3x is
   # +200%.
+  # Same as B6 above: percent, not flat. 3x IS +200% in this bucket.
   - key: DamageModifier
-    stage: flat
     value: 200
     npValue: 0
     predicate: ["attack:kind:normal", "target:contentId:jabberwock"]
