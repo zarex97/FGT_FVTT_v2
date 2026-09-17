@@ -375,6 +375,20 @@ export function snapshotUnit(actor, {
       charges: chargesLeft(actor, r),
     })),
     checkModifiers: contributions.checkModifiers,
+    // Two buckets that were collected and handed to nobody. Both reached a unit
+    // by exactly ONE route -- `rules/bounded-fields.mjs`'s `annotateFields`,
+    // appending them from a FIELD's interior rules -- so they worked perfectly
+    // inside Sikera Usum's Throne Room and did nothing anywhere else. An
+    // ability or an effect contributing either was collected, projected
+    // nowhere, and read by no one (Ch. 46 §46.4-AI).
+    //
+    // Van Gogh's `Channel Marker Soul` is the live casualty: a
+    // `VulnerabilityAmplifier` halving Curse damage, on an ability, which has
+    // never once applied. Found authoring `weakToPoison` for Sikera Usum clause
+    // e -- the new effect's own amplifier was absent from the board unit while
+    // the field's sat beside it.
+    vulnerabilityAmplifiers: contributions.vulnerabilityAmplifiers ?? [],
+    periodicOverrides: contributions.periodicOverrides ?? [],
     // Properties of the ATTACK contributed by the attacker's own buffs, folded
     // into the spec by `engine/attack.mjs#buildAttackSpec`. Projected here
     // because a contribution the snapshot does not carry is one the engine

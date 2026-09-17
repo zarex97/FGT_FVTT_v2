@@ -1217,6 +1217,74 @@ Poison Damage"* needs a Unit weak to Poison, and nothing in the corpus declares 
 kind — `weakTo`/`weakness` appear nowhere in `packs/_source`. `VulnerabilityAmplifier` is correctly
 shaped on the live field and is recorded as unexercised rather than working.
 
+### AH. An `ApplicationChance` scoped to nothing — **fixed 2026-09-16**
+
+**Reached while authoring content for Sikera Ušum rule e**, by making the same mistake in a new
+file and then finding it already in an old one.
+
+`ApplicationChance`'s executor reads `el.effect` — `effectId: el.effect ?? null` — and
+`rules/authoring/elements.mjs` offers the same key. An element authored with `effectId:` therefore
+resolves to a **null** scope, and `chanceContribution`'s test is
+`if (c.effectId && c.effectId !== def.id) continue` — a null scope matches **every** effect rather
+than none.
+
+`soaked.yml` had it. Clause (a) is *"when this Unit receives Ice damage, it has a 25% chance of
+being inflicted with Freeze"*, and unscoped it raised the chance of **every debuff** landing on a
+Soaked Unit under an Ice attack by 25 points. Silent, and generous — the same direction §46.4-J's
+sign errors failed in.
+
+Anastasia's own test asserted `r.effectId === "freeze"` against a file that said `effectId`, so the
+pair agreed with each other and with nothing else. Both are corrected, and the guard is a corpus
+walk rather than one assertion: `application-chance-key.test.mjs` fails if any authored
+`ApplicationChance` anywhere in `packs/_source` uses the wrong key again.
+
+### AI. Two contribution buckets that were collected and handed to nobody — **fixed 2026-09-16**
+
+`collectContributions` fills a bucket per element kind and the snapshot projects them onto the unit
+— `immunities`, `applicationChances`, `checkModifiers` and the rest are all listed explicitly. Two
+were not: **`vulnerabilityAmplifiers`** and **`periodicOverrides`**.
+
+Both reached a unit by exactly one route: `rules/bounded-fields.mjs`'s `annotateFields`, which
+appends them from a **field's** interior rules. So the elements worked perfectly inside Sikera
+Ušum's Throne Room and did nothing at all anywhere else — an ability or an effect contributing
+either one was collected, projected nowhere, and read by no one.
+
+**Van Gogh's *Channel Marker Soul* is the live casualty**:
+`{ key: VulnerabilityAmplifier, effectId: curse, factor: 0.5 }` on an ability — a halving of Curse
+damage that has never once applied.
+
+Found the moment `weakToPoison` was authored: the new effect's own amplifier was collected and
+absent from the board unit, while the field's sat beside it in the same list.
+
+### AJ. A widened periodic ticked twice at a boundary that satisfied both its triggers — **fixed 2026-09-16**
+
+**Reached: Sikera Ušum rule c**, on the second pass over it.
+
+> *"Units inflicted with Poison while within this NP area receive Poison damage **at the end of its
+> Turn and at the end of any Turn it Acts**, in addition to at the end of the Round."*
+
+Three occasions, and two of them coincide constantly — a Unit acting on its own Turn is the
+ordinary case. `endTurn` makes two `tickPeriodics` calls at one boundary,
+`("turnEnd", every unit)` and `("actedTurnEnd", the ones that acted)`, and a widened instance
+answers both. The `turnEnd` branch was already gated on `u.factionId === ctx.activeFactionId`,
+which is *"the end of ITS Turn"* and correct. The acted branch had no matching gate.
+
+So the **common** case took the tick twice and the **rare** one — acting during an enemy's Turn,
+i.e. reacting — took it once, which is the clause upside down. Measured at stage 1: **40** where
+§A.12's curve and `periodicDamageFor` both say 20, with a single instance and a single override on
+the unit.
+
+The cure reads like the sheet: *"any Turn it Acts"* means any Turn that is **not its own**, because
+its own is already the first half of the sentence.
+
+**Verified live**, six boundaries with the same stage-1 Poison inside the Throne Room:
+
+| boundary | damage |
+|---|---|
+| its own faction's Turn, having Acted | **20** (was 40) |
+| another faction's Turn, having Acted | **20** |
+| the boundary that also rolls the **Round** | **40** — the round tick *plus* the acted tick, which is exactly what *"in addition to at the end of the Round"* says |
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -1604,10 +1672,28 @@ Achilles, is the same shape a chapter earlier.
 
 Short, and specific:
 
-- **Sikera Ušum rule e** — *"Units in the NP area who are weak to Poison receive double Poison
-  Damage."* There is **no content to press it with**: nothing in `packs/_source` declares a weakness
-  of any kind. `VulnerabilityAmplifier` is correctly shaped on the live field and has never been
-  asked a question.
+- ~~**Sikera Ušum rule e**~~ — **pressed 2026-09-16.** It had no content to meet it, so two effects
+  were authored against the game author's own definition of *weak to Poison*: **a Unit with an
+  effect or passive that either takes extra damage from Poison, or has an increased chance of being
+  inflicted with Poison.** `engine/scheduler.mjs#isWeakTo` already tested exactly those two
+  branches; only the content was missing.
+
+  `weakToPoison` is the first reading — the marker and the extra damage in one effect, carrying its
+  own `VulnerabilityAmplifier` at 1.5 so that a bearer is distinguishable from one merely standing
+  in the area. `poisonSusceptible` is the second — an incoming `ApplicationChance` of **−25** on
+  Poison and no amplifier at all, so it exercises `isWeakTo`'s other branch.
+
+  Measured against `periodicDamageFor`, the only implementation, at stage 1:
+
+  | bearer | damage |
+  |---|---|
+  | nothing | **20** |
+  | the field's amplifier alone, not weak | **20** — rule e correctly declines to fire |
+  | `weakToPoison`, no field | **30** — its own 1.5× |
+  | `weakToPoison` **in the area** | **60** — 20 × 1.5 × 2, *"in addition to any other effects they might have which increase Poison Damage received"* |
+  | `poisonSusceptible` **in the area** | **40** — weak by the chance branch, doubled, with no self-amplifier |
+
+  Authoring it turned up three engine defects it had been hiding: §46.4-AH, §46.4-AI and §46.4-AJ.
 - **Presence Concealment clauses 2, 3, 6 and 7** — the Block/Counter refusal and its AGI-rank
   exception, attacking Masters and moving freely past them, the discovery roll on entering a
   Servant's Range, and the bar on Active Skills targeting enemies. Clauses 1, 4, 5 and 8 were

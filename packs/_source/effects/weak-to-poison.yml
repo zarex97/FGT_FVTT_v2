@@ -1,0 +1,41 @@
+# The first half of "weak to Poison" (Ch. 46 §46.14.3, the game's author's own
+# definition): *a Unit with an effect or passive that either takes extra damage
+# from Poison, or has an increased chance of being inflicted with Poison.*
+#
+# This file is the FIRST reading; `poison-susceptible.yml` is the second. Both
+# exist because Sikera Usum clause e -- *"Units in the NP area who are weak to
+# Poison receive double Poison Damage"* -- had no content in the corpus to meet
+# it, so `VulnerabilityAmplifier` had been correctly shaped and never once asked
+# a question.
+#
+# The marker and the extra damage are ONE effect rather than two, and that is
+# the point of the shape. `engine/scheduler.mjs#isWeakTo` looks for an effect
+# named exactly `weakTo<Effect>` -- so this file's `id` is load-bearing and the
+# capitalisation is `capitalize(defId)`'s, not a style choice. Carrying its own
+# `VulnerabilityAmplifier` is what makes the name honest: a marker that said
+# "weak to Poison" and did nothing on its own would be a label rather than a
+# weakness.
+#
+# `factor: 1.5` and not 2, so that a bearer standing in Sikera Usum's area is
+# distinguishable from one that is merely weak: the field's own amplifier is
+# x2 and the two multiply to x3, which is what *"double Poison Damage (in
+# addition to any other effects they might have which increase Poison Damage
+# received)"* asks for in so many words.
+schema: 1
+id: weakToPoison
+name: "Poison Weakness"
+description: |
+  This Unit is weak to @effect[poison]{Poison}: Poison Damage it receives is increased by 50%.
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # Gated on `isWeakTo` inside `amplify`, which this effect's own presence
+  # satisfies -- so the clause is self-consistent rather than circular: the
+  # amplifier asks "is the bearer weak to Poison?" and the bearer is weak to
+  # Poison because it holds this.
+  - key: VulnerabilityAmplifier
+    effectId: poison
+    factor: 1.5

@@ -1,0 +1,36 @@
+# The SECOND half of "weak to Poison" (Ch. 46 §46.14.3): *...or has an increased
+# chance of being inflicted with Poison.*
+#
+# Deliberately NOT named `weakToPoison`. `engine/scheduler.mjs#isWeakTo` has two
+# branches and this file exists to exercise the other one: a Unit with no marker
+# at all counts as weak to Poison when it already carries an incoming
+# `ApplicationChance` that RAISES Poison's own infliction chance. A second
+# marker would have tested the first branch twice.
+#
+# The sign is the corpus convention and the reason `soaked.yml` states it
+# outright: `rules/checks.mjs#applicationChance` computes
+# `base + inflictBonus - resist`, so for an INCOMING contribution a positive
+# value resists and a NEGATIVE one is a vulnerability. -25 makes Poison 25
+# percentage points more likely to land. Four authored clauses had this
+# backwards before §46.4-J.
+#
+# No `VulnerabilityAmplifier` of its own: this Unit is not harder to hurt with
+# Poison, it is easier to poison. Sikera Usum's area is what doubles the damage,
+# and it does so because `isWeakTo`'s second branch answers yes.
+schema: 1
+id: poisonSusceptible
+name: "Poison Susceptibility"
+description: |
+  The chance of this Unit being inflicted with @effect[poison]{Poison} is increased by 25%.
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # `effect:`, not `effectId:` -- see `soaked.yml`. Writing it the wrong way
+  # here is what turned up §46.4-AH in the one file that already had it.
+  - key: ApplicationChance
+    direction: incoming
+    effect: poison
+    value: -25
