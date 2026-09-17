@@ -52,7 +52,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
-import { createField } from "./fields.mjs";
+import { createField, regionSizedTargeting } from "./fields.mjs";
 import { paintTerrain } from "./terrain.mjs";
 import { activatePlatform } from "./platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
@@ -252,7 +252,14 @@ function resolveSkillTargets(ability, self, board, placement) {
   // Servant's Range actually was. The same confusion `engine/attack.mjs`
   // records for its pre-emption reach, on a line nobody had looked at since.
   const reach = typeof self.range === "number" ? self.range : (self.range?.panels ?? 1);
-  const spec = targetSpecFor(ability, reach, rollOptionsFor({ attacker: self }));
+  // ...and the war Region's say over an area that is the ability's own field —
+  // see `engine/fields.mjs#regionSizedTargeting`. Applied here rather than in
+  // `targetSpecFor`, which is pure and has no board to read the Region off.
+  const spec = regionSizedTargeting(
+    targetSpecFor(ability, reach, rollOptionsFor({ attacker: self })),
+    ability,
+    board?.warRegion ?? null,
+  );
 
   // A skill that targets only its caster resolves to the caster **without
   // consulting geometry at all**. Running it through the targeting resolver

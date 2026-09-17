@@ -1360,7 +1360,40 @@ function instanceValue(raw, ref, value) {
  * @returns {object}
  */
 export function resolveRuleValues(rule, magnitude, npMagnitude) {
-  const one = (node) => ({
+  const mine = (raw) => instanceValue(raw, "@magnitude", magnitude ?? 0);
+
+  /**
+   * The fields that may name the instance and are NOT `value`, substituted
+   * only where they exist.
+   *
+   * A magnitude is not always a modifier's size. Appendix A's on-hit riders put
+   * it on a CHANCE — `Bleed Atk` is *"Normal Attacks have an X% chance of
+   * inflicting Bleed"*, authored `effect: { id: bleed, chance: "@magnitude" }`
+   * — and `Terror` puts it on the chance of the Stun in its `then` list. Both
+   * kept the literal string `"@magnitude"` all the way to the scheduler, which
+   * gates on a number and refuses what it cannot read. Measured live with the
+   * chance staged to **100**: the `damageDealt` event fired, the handler was
+   * present with its `attack:kind:normal` predicate satisfied, and `fireEvent`
+   * returned a log entry and no intent at all. Both riders were inert, and the
+   * comment on `fireDamageDealt` names the family it was raised for.
+   *
+   * @param {object} node
+   * @returns {object}
+   */
+  const carriers = (node) => {
+    const out = { ...node };
+    if (node.chance !== undefined) out.chance = mine(node.chance);
+    // The effect an action applies states its own chance and magnitude, and
+    // both may name the instance that is applying it.
+    if (node.effect && typeof node.effect === "object") {
+      out.effect = { ...node.effect };
+      if (node.effect.chance !== undefined) out.effect.chance = mine(node.effect.chance);
+      if (node.effect.magnitude !== undefined) out.effect.magnitude = mine(node.effect.magnitude);
+    }
+    return out;
+  };
+
+  const one = (node) => carriers({
     ...node,
     value: instanceValue(node.value, "@magnitude", magnitude ?? 0),
     npValue: instanceValue(node.npValue, "@npMagnitude", npMagnitude),
@@ -1370,6 +1403,10 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
   // Only when there is something to descend into -- `one` would otherwise
   // stamp `value: 0` onto a rule that never carried one.
   if (Array.isArray(rule.elements)) out.elements = rule.elements.map(one);
+  // `then` is an `OnEvent`'s action list, and `carriers` alone rather than
+  // `one`: an action is not a rule element and has no `value` of its own to
+  // stamp a zero onto.
+  if (Array.isArray(rule.then)) out.then = rule.then.map(carriers);
   return out;
 }
 

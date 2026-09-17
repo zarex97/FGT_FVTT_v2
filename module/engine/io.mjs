@@ -461,9 +461,15 @@ export function worldIO() {
       // use -- became pressable.
       if (!active && item.system?.cannotDeactivate) return;
 
+      // Both directions, for the reason `#onToggleMode` gives: *"and vice
+      // versa"* is a second wait after a deactivation, and a clock that only
+      // ever starts on an activation cannot measure it. A forcible switch beats
+      // the lockout — that is `cannotDeactivate`'s asymmetry above — but it
+      // still restarts it, because the wait is a property of the mode rather
+      // than of whose hand moved it.
       await item.update({
         "system.active": active,
-        ...(active ? { "system.toggledAt": game.combat?.system?.globalTurn ?? 0 } : {}),
+        "system.toggledAt": game.combat?.system?.globalTurn ?? 0,
       });
     },
 
@@ -1300,18 +1306,32 @@ async function freeContractedServants(unitId, killerId = null) {
   const conquered = await resolveConquest(unitId, killerId);
   const spares = game.settings.get("fgt", "conquestSparesServants") !== false;
 
+  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+
   for (const actor of bound) {
+    // ONE projection, and `abilities` off it rather than a hand-rolled `modes`.
+    //
+    // `onMasterDefeated` asks *"was Mad Enhancement active when the Master
+    // died?"* by walking `servant.abilities` for a `slug`/`active` pair — it
+    // was moved there precisely because `modes` was a field nothing wrote. This
+    // call site kept building `modes` and never started building `abilities`,
+    // so the rule's own comment about the field being unwritten stayed true by
+    // a different route and clause 5 went on charging nobody. Measured live,
+    // side by side on the same Servant: called with `modes` it returned
+    // setContract and lockModes; called with `abilities` it returned those and
+    // the Sustainability charge.
+    const projected = snapshotUnit(actor, { turnsPerRound });
     const snapshot = {
       id: actor.id, kind: actor.type,
       // The RESOLVED clock. This handed `onMasterDefeated` the authored "2◈"
       // and it did arithmetic on it, so a Free Servant never ran out and Mad
       // Enhancement's -2◈ wrote NaN.
-      sustainability: snapshotUnit(actor, {
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-      }).sustainability,
-      modes: [...(actor.items ?? [])].filter((i) => i.system?.active).map((i) => i.system?.slug),
+      sustainability: projected.sustainability,
+      abilities: projected.abilities,
     };
-    for (const d of onMasterDefeated(snapshot, { conquered: conquered.has(actor.id), spares })) {
+    for (const d of onMasterDefeated(snapshot, {
+      conquered: conquered.has(actor.id), spares, turnsPerRound,
+    })) {
       if (d.kind === "setContract") await actor.update({ "system.contract": d.contract, "system.masterId": null });
       else if (d.kind === "defeat") await actor.update({ "system.defeated": true, "system.defeatCause": d.cause });
       else if (d.kind === "resource") {

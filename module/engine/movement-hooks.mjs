@@ -85,7 +85,29 @@ function onPreMove(document, movement, operation) {
   const actor = document.actor;
   if (!actor) return true;
 
-  const unit = unitSnapshot(actor, document);
+  const board = boardSnapshot(combat);
+
+  // The BOARD's projection of the mover, not a lone snapshot of its actor.
+  //
+  // `unitSnapshot` runs the unit's own contributions and stops there: the
+  // bounded-field pass that applies a field's `interior` rules belongs to
+  // `snapshotBoard`, because whether a Unit is inside a field is a fact about
+  // the board and not about the Unit. So every field MovDelta in the game was
+  // invisible to the one gate that rations movement, in BOTH directions:
+  //
+  //   - Asterios's Chaos Labyrinthos grants him *"MOV +4 while within the
+  //     Labyrinth"*. Measured live, standing in his own Labyrinth: the board
+  //     said MOV 8, his actor sheet said 8, and a five-panel path was refused
+  //     with *"This path is 5 panels; 4 remain of MOV 4."*
+  //   - It cuts the other way harder. *"The MOV of all enemy Units within the
+  //     Labyrinth is reduced by 2 (minimum MOV=2)."* Measured live: EMIYA,
+  //     whose board MOV inside was 2, walked **3** panels and the mover
+  //     allowed it. The trap did not slow the units it exists to slow.
+  //
+  // Ch. 28's whole interior axis reaches movement through this one line. The
+  // `?? unitSnapshot` fallback is for a Unit the board does not hold -- a token
+  // being placed before the match, which the guard above already lets through.
+  const unit = board.units?.find((u) => u.id === actor.id) ?? unitSnapshot(actor, document);
 
   // A unit may only move on its own faction's turn. The GM is exempt: placing
   // and correcting the board is not taking a turn, and a system that fights the
@@ -110,8 +132,6 @@ function onPreMove(document, movement, operation) {
       return false;
     }
   }
-
-  const board = boardSnapshot(combat);
 
   const path = pathOf(movement);
   const verdict = validatePath(path, unit, board, { hasRiding: unit.hasRiding });
@@ -595,7 +615,13 @@ function boardSnapshot(combat) {
  * @returns {{panels: number, blocked: string|null}}
  */
 export function movementAllowance(actor) {
-  const unit = unitSnapshot(actor);
+  // The board's projection, for the reason `onPreMove` gives: a lone
+  // `unitSnapshot` cannot see a bounded field's interior rules, so this
+  // reported MOV 4 for an Asterios standing in his own Labyrinth at 8. The
+  // gate and the display have to answer this out of the same shape or the
+  // player is told one number and refused at another.
+  const board = currentBoard();
+  const unit = board.units?.find((u) => u.id === actor?.id) ?? unitSnapshot(actor);
   return { panels: remainingMovement(unit), blocked: segmentCheck(unit) };
 }
 

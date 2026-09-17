@@ -62,6 +62,64 @@ import { clearTerrain } from "./terrain.mjs";
  * @param {string|null} warRegion
  * @returns {object|undefined}
  */
+
+/**
+ * The same Region sizing, applied to the TARGETING that names the same area.
+ *
+ * Chaos Labyrinthos states its area twice — `targeting.shape.size: 9` for the
+ * Units its activation debuffs reach, and `field.geometry.shape.size: 9` for
+ * the Labyrinth those Units are trapped in — and only the second carried the
+ * override. The sheet states it once: *"Affects a 9x9 panel area around
+ * Asterios when used, **this NP area will now be termed as the 'Labyrinth'**;
+ * if the Region is Greece, it affects an 11x11 panel area instead."* The area
+ * and the Labyrinth are the same thing by the sheet's own sentence.
+ *
+ * **Measured live in a Greece war**: the Labyrinth opened at **121** panels,
+ * rows and columns 3–13, and the targeting still expanded the 9x9. An EMIYA
+ * standing at (3,8) was `contains`-inside the Labyrinth — trapped by it, slowed
+ * by it, isolated by it — and `resolveTargets` returned **no targets at all**;
+ * he was not even in the excluded list, because he fell outside the area the
+ * resolver expanded. On Asterios's own home ground the outer rank of his own
+ * Noble Phantasm took none of its debuffs.
+ *
+ * Applied where the board is in scope rather than inside the pure
+ * `targetSpecFor`, which has no war Region and whose signature is shared by
+ * every ability in the game.
+ *
+ * @param {object} spec the resolved targeting block
+ * @param {object|null} ability the Item it came from
+ * @param {string|null} warRegion
+ * @returns {object} the spec, resized only when it names the field's own area
+ */
+export function regionSizedTargeting(spec, ability, warRegion) {
+  const geometry = ability?.system?.field?.geometry ?? null;
+  const shape = spec?.shape;
+  if (!geometry?.regionSizeOverride || !shape) return spec;
+  // Only where the two are the SAME area. An ability whose targeting shape
+  // differs from its field's is stating two areas on purpose, and resizing one
+  // to match the other would invent a rule.
+  if (shape.kind !== geometry.shape?.kind) return spec;
+  if (shape.size !== undefined && shape.size !== geometry.shape?.size) return spec;
+
+  return { ...spec, shape: regionSizedShape({ ...geometry, shape }, warRegion) };
+}
+
+/**
+ * A field's shape after the war's Region has had its say.
+ *
+ * *"Affects a 9x9 panel area around Asterios when used, this NP area will now
+ * be termed as the 'Labyrinth'; if the Region is Greece, it affects an 11x11
+ * panel area instead."* The war's Region, not the Servant's — Asterios is Greek
+ * wherever he is summoned, and the sheet still only gives him the bigger
+ * Labyrinth in Greece.
+ *
+ * Sizes a `square` by `size` and a `rect` by both edges. A shape with neither is
+ * returned untouched rather than guessed at.
+ *
+ * @param {object|null|undefined} geometry
+ * @param {string|null} warRegion
+ * @returns {object|undefined}
+ */
 export function regionSizedShape(geometry, warRegion) {
   const shape = geometry?.shape;
   const override = geometry?.regionSizeOverride?.[warRegion ?? ""];

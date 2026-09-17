@@ -139,11 +139,26 @@ describe("onMasterDefeated", () => {
     // rule was correct, and against a real board the clause was permanently
     // false. A fixture is only evidence if it is the shape the caller gets.
     const active = servant({
-      sustainability: 4,
+      sustainability: 6,
       abilities: [{ id: "me", slug: "madEnhancement", active: true }],
     });
-    expect(onMasterDefeated(active))
-      .toContainEqual(expect.objectContaining({ key: "sustainability", delta: -2 }));
+    // *"…reduced by **2◈ Turns**"*, and `sustainability` here is the RESOLVED
+    // clock in Turns — 6 for a 2◈ Servant at three Turns to the Round. A bare
+    // `-2` charged two Turns for a clause that costs two Rounds.
+    expect(onMasterDefeated(active, { turnsPerRound: 3 }))
+      .toContainEqual(expect.objectContaining({ key: "sustainability", delta: -6 }));
+  });
+
+  it("charges the 2◈ in the Round length the war is actually using", () => {
+    // A Holy Grail War runs eight Turns to the Round; the same clause costs
+    // sixteen Turns there and six in a Great Holy Grail War. The ◈ is the
+    // constant, not the Turn count.
+    const active = servant({
+      sustainability: 24,
+      abilities: [{ id: "me", slug: "madEnhancement", active: true }],
+    });
+    expect(onMasterDefeated(active, { turnsPerRound: 8 }))
+      .toContainEqual(expect.objectContaining({ key: "sustainability", delta: -16 }));
   });
 
   it("does not charge the two when Mad Enhancement is switched off", () => {

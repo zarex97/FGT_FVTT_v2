@@ -175,12 +175,19 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    // Stamped on the way ON only: the lockout runs from the activation, and
-    // "vice versa" means the same clock is then consulted for switching off.
-    await item.update({
-      "system.active": active,
-      ...(active ? { "system.toggledAt": tick } : {}),
-    });
+    // Stamped on BOTH directions. *"When Mad Enhancement is Activated, it can
+    // only be deactivated 2◈ Turns after it was activated, **and vice
+    // versa**"* — two symmetric waits off one clock that restarts on every
+    // flip, not one clock that only ever starts on an activation.
+    //
+    // Stamping the way ON alone left the second half unenforced entirely.
+    // Measured live: Mad Enhancement on since tick 10, switched off at tick 40
+    // (permitted, 30 Turns elapsed) with `toggledAt` still reading 10 — and
+    // `canToggleMode` then answered `{ok: true}` to switching it straight back
+    // on in the same Turn. Once the first 2◈ had passed the mode was a free
+    // toggle for the rest of the match, which is the state of affairs the
+    // clause exists to prevent.
+    await item.update({ "system.active": active, "system.toggledAt": tick });
 
     // RECORD the press, for the modes that ration it. `canToggleMode` above can
     // only refuse a second switch if something wrote the first one down, and
