@@ -57,6 +57,11 @@ abilities:
 # mechanism reads a unit-level "immune to buffs" or "no reaction ladder" flag
 # today, and building one is out of scope for this platform's own checkpoint.
 # Recorded here rather than left to look implemented.
+# "If a Unit standing on the edge of the HGoB is knocked back which would knock
+# it off the HGoB, it performs an Agility Check." ADR 0001: falling is opt-in
+# per Platform, and the Hanging Gardens is the only Platform in the reference
+# set whose sheet states the ladder. Presence of this block IS the opt-in.
+knockOff: { damage: "10x2d6", component: str }
 crossLevel:
   occupantTargeting: forbidden
   requiresBoarding: true

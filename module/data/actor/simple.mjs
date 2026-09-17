@@ -195,6 +195,11 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // boards by Moving on, which is the Hind's very next sentence. Absent,
       // everyone rolls -- the Hanging Gardens' behaviour, and still the default.
       boarding: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // ADR 0001: falling is opt-in per Platform. Presence of this block is the
+      // opt-in, and it carries its own numbers -- the same convention
+      // `boarding` sets, where a Platform that states its own rule states it
+      // completely. A Platform that says nothing holds its edge (#29).
+      knockOff: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // Roles that may not step off. *"Drake cannot unboard the Golden Hind."*
       // A role list rather than a unit id, because the platform document is

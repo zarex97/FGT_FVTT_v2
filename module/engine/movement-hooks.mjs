@@ -24,7 +24,7 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
-import { movePlatform, actionSourceFor } from "../rules/platforms.mjs";
+import { movePlatform, actionSourceFor, withinFootprint } from "../rules/platforms.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
 import { repaintFollowing } from "./terrain.mjs";
@@ -420,6 +420,22 @@ async function knockBackOccupants(moverId, movement = null) {
       // occupant simply stays: there is nowhere the sheet's own rule can send it.
       if (!landing) continue;
 
+      // Shoved past a Platform's edge (#29). Nothing checked this, so the
+      // occupant was displaced to a panel at Platform elevation with no
+      // Platform under it and the match carried on with a Unit standing on
+      // nothing. The ladder decides what happens instead -- and a Platform that
+      // authors no `knockOff` block holds its edge, so the push simply fails.
+      //
+      // Resolved SERIALLY, inside this loop, because the choice a passed check
+      // earns is "the nearest unoccupied panel", and which panels are free
+      // depends on where the previously-resolved occupant chose to go.
+      const under = platformUnder(occupant, board);
+      if (under && !withinFootprint(landing.panel, under)) {
+        const { knockOff } = await import("./platforms.mjs");
+        await knockOff({ unitId: occupant.id, platformId: under.id });
+        continue;
+      }
+
       const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
       if (!token) continue;
 
@@ -442,6 +458,23 @@ async function knockBackOccupants(moverId, movement = null) {
       }
     }
   }
+}
+
+/**
+ * The Platform this unit is standing on, if it is aboard one.
+ *
+ * Membership is the Scene Level, exactly as `passengersOf` reads it: a Unit on
+ * the ground is aboard nothing, and a Platform is not standing on itself.
+ *
+ * @param {object} unit a unit projection
+ * @param {object} board
+ * @returns {object|null}
+ */
+function platformUnder(unit, board) {
+  if (!unit || unit.kind === "platform" || (unit.level ?? 0) === 0) return null;
+  return (board?.units ?? []).find(
+    (u) => u.kind === "platform" && (u.level ?? 0) === (unit.level ?? 0),
+  ) ?? null;
 }
 
 /**

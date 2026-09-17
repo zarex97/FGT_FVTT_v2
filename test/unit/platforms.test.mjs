@@ -13,6 +13,7 @@ import {
   boardingTarget, canUnboard, upkeepDue, deactivatedBy, fallOff, destructionSequence, aoePassengerFactor,
   platformCentre, withinPlatformCentre, deactivationVerdict, actionSourceFor,
   boardablePlatform, mayBringMaster,
+  canFallFrom, withinFootprint, nearestFreePlatformPanel, rescuerFor,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
 
@@ -239,6 +240,126 @@ describe("crossLevelRulesFor", () => {
 
 /* ── 20.4 Boarding, falling, destruction ──────────────────────────────────── */
 
+describe("the Knocked Off ladder (#29)", () => {
+  const hgob = (over = {}) => platform({ knockOff: { damage: "10x2d6", component: "str" }, ...over });
+  const at2 = (i, j) => ({ i, j });
+
+  describe("canFallFrom", () => {
+    it("is opt-in: a Platform that authors nothing holds its edge (ADR 0001)", () => {
+      expect(canFallFrom(platform())).toBe(false);
+    });
+
+    it("stands for a Platform that states the rule", () => {
+      expect(canFallFrom(hgob())).toBe(true);
+    });
+  });
+
+  describe("withinFootprint", () => {
+    // `platform()` anchors at (5,5) with a 3x3 footprint.
+    it("accepts a panel inside the footprint", () => {
+      expect(withinFootprint(at2(6, 6), platform())).toBe(true);
+    });
+
+    it("refuses one past the edge", () => {
+      expect(withinFootprint(at2(8, 5), platform())).toBe(false);
+    });
+  });
+
+  describe("nearestFreePlatformPanel", () => {
+    it("never offers the panel the Unit was standing on", () => {
+      // "the nearest unoccupied HGoB panel OTHER than the panel it was
+      // previously occupying".
+      const standing = { ...rider(), panel: at2(6, 6) };
+      const found = nearestFreePlatformPanel(standing, hgob(), boardOf([hgob(), standing]));
+
+      expect(found).not.toEqual(at2(6, 6));
+      expect(withinFootprint(found, hgob())).toBe(true);
+    });
+
+    it("skips panels somebody else is standing on", () => {
+      const standing = { ...rider(), id: "a", panel: at2(5, 5) };
+      const crowd = [at2(5, 6), at2(6, 5), at2(6, 6), at2(5, 7), at2(7, 5), at2(6, 7), at2(7, 6)]
+        .map((p, n) => ({ ...rider(), id: `c${n}`, panel: p }));
+      const found = nearestFreePlatformPanel(standing, hgob(), boardOf([hgob(), standing, ...crowd]));
+
+      expect(found).toEqual(at2(7, 7));
+    });
+
+    it("returns null when the Platform is full", () => {
+      const standing = { ...rider(), id: "a", panel: at2(5, 5) };
+      const everywhere = [];
+      for (let i = 5; i < 8; i += 1) {
+        for (let j = 5; j < 8; j += 1) {
+          if (i === 5 && j === 5) continue;
+          everywhere.push({ ...rider(), id: `x${i}${j}`, panel: at2(i, j) });
+        }
+      }
+      expect(nearestFreePlatformPanel(standing, hgob(), boardOf([hgob(), standing, ...everywhere]))).toBeNull();
+    });
+  });
+
+  describe("rescuerFor", () => {
+    const master = (over = {}) => ({ id: "m", kind: "master", factionId: "a", panel: at2(5, 5), ...over });
+    const servant = (over = {}) => ({ id: "s", kind: "servant", factionId: "a", masterId: "m", panel: at2(5, 6), ...over });
+
+    it("finds the Master's OWN Servant standing directly next to it", () => {
+      expect(rescuerFor(master(), boardOf([master(), servant()]))?.id).toBe("s");
+    });
+
+    it("refuses a Servant that is not this Master's, however close", () => {
+      const stranger = servant({ id: "other", masterId: "someone-else" });
+      expect(rescuerFor(master(), boardOf([master(), stranger]))).toBeNull();
+    });
+
+    it("refuses its own Servant standing two panels away", () => {
+      // "directly next to" is 1, deliberately NOT the 2-panel Master carry
+      // that boarding uses (#24).
+      expect(rescuerFor(master(), boardOf([master(), servant({ panel: at2(5, 7) })]))).toBeNull();
+    });
+
+    it("refuses to rescue anything that is not a Master", () => {
+      expect(rescuerFor({ ...master(), kind: "servant" }, boardOf([master(), servant()]))).toBeNull();
+    });
+  });
+
+  describe("fallOff, with the choice a passed check earns", () => {
+    const rider2 = () => ({ ...rider(), panel: at2(6, 6) });
+
+    it("moves a passing Unit to the panel it chose, and hurts it not at all", () => {
+      const out = fallOff(rider2(), hgob(), { passedAgility: true, choice: "stay", landingPanel: at2(7, 7) });
+
+      expect(out).toEqual([{ kind: "move", unitId: "r", to: at2(7, 7), forced: true }]);
+    });
+
+    it("lands a passing Unit that chose the ground, with NO damage", () => {
+      const out = fallOff(rider2(), hgob(), { passedAgility: true, choice: "land" });
+
+      expect(out).toContainEqual(expect.objectContaining({ kind: "move", toLevel: 0 }));
+      expect(out.some((d) => d.kind === "damage")).toBe(false);
+    });
+
+    it("collapses to the damage-free landing when no panel aboard is free", () => {
+      const out = fallOff(rider2(), hgob(), { passedAgility: true, choice: "stay", landingPanel: null });
+
+      expect(out).toContainEqual(expect.objectContaining({ kind: "move", toLevel: 0 }));
+      expect(out.some((d) => d.kind === "damage")).toBe(false);
+    });
+
+    it("still Overpowers a Master who passed and CHOSE to land", () => {
+      // The clause conditions on landing on the Game Board, not on failing.
+      const m = { ...rider2(), id: "m", kind: "master" };
+      const out = fallOff(m, hgob(), { passedAgility: true, choice: "land" });
+
+      expect(out).toContainEqual(expect.objectContaining({ kind: "overpower", unitId: "m" }));
+    });
+
+    it("leaves a rescued Master exactly where it stood", () => {
+      const m = { ...rider2(), id: "m", kind: "master" };
+      expect(fallOff(m, hgob(), { passedAgility: false, servantRescued: true })).toEqual([]);
+    });
+  });
+});
+
 describe("boardablePlatform (#24)", () => {
   it("offers the platform a grounded unit is standing on top of", () => {
     // `platform()` sits at (5,5) with a 3x3 footprint, so (6,6) is inside it.
@@ -313,7 +434,7 @@ describe("fallOff", () => {
     expect(out).toContainEqual(expect.objectContaining({ kind: "damage", formula: "10x2d6" }));
   });
 
-  it("lets a successful check keep the unit aboard", () => {
+  it("hurts nobody who passed the check, whichever way they went", () => {
     const out = fallOff(rider(), platform(), { passedAgility: true });
 
     expect(out.some((d) => d.kind === "damage")).toBe(false);

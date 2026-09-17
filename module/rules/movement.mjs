@@ -16,7 +16,7 @@ import * as geo from "../domain/geometry.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { contains, membershipVerdict } from "./bounded-fields.mjs";
 import { guardsOf, relationOf } from "./relations.mjs";
-import { actionSourceFor } from "./platforms.mjs";
+import { actionSourceFor, withinFootprint } from "./platforms.mjs";
 import { partnersOf } from "./linked-group.mjs";
 
 /** Effects that let a unit ignore occupancy and Master protection. */
@@ -376,6 +376,20 @@ function blockedByFieldExit(panel, unit, board) {
  */
 export function canStopOn(panel, unit, board) {
   if (!canPassThrough(panel, unit, board)) return false;
+
+  // A Platform's edge holds (#29). Nothing constrained a Unit at a Platform's
+  // level to that Platform's footprint, so a passenger could walk off the edge
+  // by ordinary movement and stand at Platform elevation on nothing at all.
+  // Leaving a Platform is a Jump or a Knocked Off; it is never a walk.
+  //
+  // Asked of the Unit's OWN level, so the ground is unconstrained, and never of
+  // a Platform itself -- a Platform is the thing being stood on.
+  if (unit?.kind !== "platform" && (unit?.level ?? 0) > 0) {
+    const under = (board?.units ?? []).find(
+      (u) => u.kind === "platform" && (u.level ?? 0) === (unit.level ?? 0),
+    );
+    if (under && !withinFootprint(panel, under)) return false;
+  }
 
   // Clause 8 — the linked-group leash (Ch. 32). *"the maximum distance
   // between the two is 2 panels."* A hard constraint on where a member may
