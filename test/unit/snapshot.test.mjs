@@ -392,6 +392,31 @@ describe("turn state expires by tick, not by being cleared", () => {
   });
 });
 
+describe("Home Base residency reaches the projection", () => {
+  it("carries the persistent streak from the document", () => {
+    const unit = snapshotUnit(actor({ system: { homeBase: { consecutiveRounds: 2 } } }));
+    expect(unit.homeBase.consecutiveRounds).toBe(2);
+  });
+
+  it("defaults the streak to zero for a Unit with no prior record", () => {
+    expect(snapshotUnit(actor()).homeBase.consecutiveRounds).toBe(0);
+  });
+
+  it("carries combatInBaseThisRound while the Round matches", () => {
+    const raw = { round: 3, combatInBaseThisRound: true };
+    const unit = snapshotUnit(actor({ system: { roundState: raw } }), { round: 3 });
+    expect(unit.homeBase.combatInBaseThisRound).toBe(true);
+  });
+
+  it("reads combatInBaseThisRound as false once the Round has moved on", () => {
+    // Stale by reading, exactly like `roundState.abilitiesUsed` -- a new
+    // Round needs no explicit reset write.
+    const raw = { round: 3, combatInBaseThisRound: true };
+    const unit = snapshotUnit(actor({ system: { roundState: raw } }), { round: 4 });
+    expect(unit.homeBase.combatInBaseThisRound).toBe(false);
+  });
+});
+
 describe("turnStateAt is what movement reads", () => {
   it("restores the full MOV allowance on the next tick", () => {
     const walked = { tick: 2, moved: true, movedPanels: 7 };

@@ -747,6 +747,21 @@ export function worldIO() {
     },
 
     /**
+     * Patch a unit's `roundState`. Beside `markTurn`, stamped with the Round
+     * rather than the tick -- see `engine/intents.mjs#markRoundState`.
+     * @param {string} unitId
+     * @param {object} patch
+     */
+    async markRoundState(unitId, patch) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      const stamped = { round: game.combats?.active?.round ?? null, ...patch };
+      const update = {};
+      for (const [key, value] of Object.entries(stamped)) update[`system.roundState.${key}`] = value;
+      await actor.update(update);
+    },
+
+    /**
      * Defeat is a status marker plus a log entry, never a deletion. Revival
      * effects, Battle Continuation and the Grail counter all need the unit to
      * still exist.

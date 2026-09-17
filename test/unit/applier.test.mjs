@@ -23,6 +23,7 @@ function fakeIo() {
     spendCommandSpells: rec("spendCommandSpells"),
     defeat: rec("defeat"),
     markTurn: rec("markTurn"),
+    markRoundState: rec("markRoundState"),
     log: rec("log"),
     proxy: rec("proxy"),
     prompt: rec("prompt"),
@@ -168,6 +169,35 @@ describe("markTurn — what the budget reads back", () => {
 
   it("rejects a patch that is not an object", () => {
     expect(I.validate([I.markTurn("a", null)])[0]).toMatch(/patch must be a turnState object/);
+  });
+});
+
+describe("markRoundState — what Home Base residency reads back", () => {
+  it("routes to the io adapter", async () => {
+    const io = fakeIo();
+    await applyIntents(
+      [I.markRoundState("a", { combatInBaseThisRound: true })],
+      { io, canWrite: ownsA, isGM: true },
+    );
+    expect(io.calls).toEqual([["markRoundState", "a", { combatInBaseThisRound: true }]]);
+  });
+
+  it("collapses several patches for one unit into a single write", async () => {
+    const io = fakeIo();
+    await applyIntents(
+      [I.markRoundState("a", { combatInBaseThisRound: true }), I.markRoundState("a", { round: 4 })],
+      { io, canWrite: ownsA, isGM: true },
+    );
+    expect(io.calls).toEqual([["markRoundState", "a", { combatInBaseThisRound: true, round: 4 }]]);
+  });
+
+  it("is written before anything that reads it", () => {
+    const ordered = I.order([I.damage("a", 10), I.markRoundState("a", { combatInBaseThisRound: true })]);
+    expect(ordered.map((i) => i.t)).toEqual(["markRoundState", "damage"]);
+  });
+
+  it("rejects a patch that is not an object", () => {
+    expect(I.validate([I.markRoundState("a", null)])[0]).toMatch(/patch must be a roundState object/);
   });
 });
 

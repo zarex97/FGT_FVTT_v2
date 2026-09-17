@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "markGlassGameSpent", "resource", "cooldown", "spendCS", "markTurn", "prompt", "log",
+  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "markGlassGameSpent", "resource", "cooldown", "spendCS", "markTurn", "markRoundState", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // `setStage` decrements a staged effect without deleting it, and `event`
@@ -71,6 +71,8 @@ const ORDER = Object.freeze({
   grantCommandSpells: 2,
   // After the action it records, before anything reads it back.
   markTurn: 2,
+  // Beside `markTurn`, for the same reason.
+  markRoundState: 2,
   recordUse: 2,
   // Before the damage it is deducting from: the pool has to be spent in the
   // same batch that applies what got through it.
@@ -439,6 +441,21 @@ export const markTurn = (unitId, patch) =>
   ({ t: "markTurn", unitId, patch });
 
 /**
+ * Patch a unit's `roundState` (Ch. 29 Home Base residency).
+ *
+ * Beside `markTurn` for the same reason -- one implementation, several
+ * writers -- but stamped with the Round rather than the tick: `roundState` is
+ * stale-by-reading against `round`, not `tick`, so a flag set mid-Round
+ * survives every later Turn in the same Round.
+ *
+ * @param {string} unitId
+ * @param {object} patch
+ * @returns {Intent}
+ */
+export const markRoundState = (unitId, patch) =>
+  ({ t: "markRoundState", unitId, patch });
+
+/**
  * Change how many of an item a unit has.
  * @param {string} unitId @param {string} itemId @param {number} delta
  * @returns {Intent}
@@ -615,6 +632,9 @@ export function validate(intents) {
     }
     if (intent.t === "markTurn" && (!intent.patch || typeof intent.patch !== "object")) {
       problems.push(`${where}: patch must be a turnState object`);
+    }
+    if (intent.t === "markRoundState" && (!intent.patch || typeof intent.patch !== "object")) {
+      problems.push(`${where}: patch must be a roundState object`);
     }
     if (intent.t === "cooldown" && !["set", "reduce", "increase"].includes(intent.mode)) {
       problems.push(`${where}: mode must be "set", "reduce" or "increase"`);
