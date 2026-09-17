@@ -25,7 +25,8 @@
     "check:smoke": "node tools/smoke-world.mjs",
     "check:release": "node tools/check-release.mjs",
     "release:stamp": "node tools/release.mjs",
-    "build": "npm run build:packs && npm run build:styles"
+    "build": "npm run build:packs && npm run build:styles",
+    "check:world": "node tools/check-world.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
