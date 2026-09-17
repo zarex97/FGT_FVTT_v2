@@ -61,7 +61,13 @@ describe("the boundary claim", () => {
     // run?" check is read by both before either writes. Both write a token, the
     // server serialises them, and exactly one still sees its own.
     expect(source).toMatch(/const token = foundry\.utils\.randomID\(\)/);
-    expect(source).toMatch(/scheduleClaim\?\.token \?\? null\) === token/);
+    // Its OWN scale's token. A round change is always also a turn change, so
+    // both hooks claim at once -- and a single shared `token` field meant the
+    // turn's write landed last and the round's comparison found a stranger's,
+    // so the round sequence concluded it had lost and never ran
+    // (Ch. 46 §46.4-AM).
+    expect(source).toMatch(/scheduleClaim\?\.\[field\] \?\? null\) === token/);
+    expect(source).toMatch(/const field = tokenField\(kind\)/);
   });
 
   it("still elects a single user first, which is the cheap half", () => {

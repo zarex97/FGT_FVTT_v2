@@ -4798,3 +4798,34 @@ before believing an override is at fault.
 
 209 test files, 4943 tests, layer boundaries intact.
 
+## The round scheduler was dead, and §46.14.3 is empty — 2026-09-16
+
+**§46.4-AM, mine, and the most consequential defect in this audit.** §46.4-D gave each scheduler
+boundary a claim; §46.4-AB re-keyed it on the boundary's own identity. Both right. Neither noticed
+that the claim stored **one shared `token`** for two scales — and a round change is *always* also a
+turn change, so both hooks claim at the same instant. The turn's write lands last, the round's read
+finds a stranger's token, concludes it lost, and returns false. **`scheduler.endRound` never ran.**
+
+Poison, Burn, Freeze and Scald all name `roundEnd` as their NATIVE trigger, so every periodic but
+the three `turnEnd` ones stopped dealing damage — along with HGoB Construction's per-Round gain,
+Round-scaled field upkeep, and every `OnEvent roundEnd` clause in the corpus. It hid because the
+turn scale kept working and fires three times as often, and because the audit's own Poison work had
+been measuring Sikera Ušum's *widened* Turn-end ticks, which come from the other call.
+
+`turnToken` and `roundToken` are separate now. Verified live: Poison **20** and Construction **+7**
+at the Round boundary, **0** and **0** at the two plain Turns either side, where everything was 0
+before.
+
+**§46.14.3 is now empty.** Presence Concealment clauses 2, 3, 6 and 7 pressed with controls on each;
+Sikera Ušum's cooldown sitting at 0 for nine ticks and jumping to 19 the instant the Throne Room
+closed; the Gardens as a second Home Base on a four-case truth table; all six Construction sources,
+including a fresh Greece war reading **25** = 10 + 15 where 15 is 3×5 (a product — a 2d6 sum cannot
+exceed 12); and destruction reversing every one of its four consequences.
+
+One question left for the author rather than decided here: PC clause 6 says *"an enemy **Servant's**
+Range"* while Ch. 8 §8.7 quotes the source's general rule as *"an enemy **Unit's** Range"*. The
+engine implements the general rule, so a Master also rolls to Discover — two watchers rather than
+one, 58% instead of 35% per move.
+
+209 test files, 4947 tests, layer boundaries intact.
+
