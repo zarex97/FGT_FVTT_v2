@@ -28,6 +28,26 @@ describe("fractionTicks", () => {
     expect(Math.floor(0.5 * 3)).toBe(1);
     expect(fractionTicks(1, 2, 3)).toBe(2);
   });
+
+  it("never rounds a stated fraction away to nothing (#21)", () => {
+    // 1/3◈ at turnsPerRound: 2 is outside the override table and
+    // floor(0.333 × 2) = floor(0.667) = 0 -- a Servant asked for "a third of
+    // a Round" and the duration vanished. `packs/_source/abilities/
+    // semiramis-familiar-doves.yml` authors exactly this fraction.
+    expect(Math.floor((1 / 3) * 2)).toBe(0);
+    expect(fractionTicks(1, 3, 2)).toBe(1);
+    // 1/4◈ at the DEFAULT 3 turns per Round — no content authors it yet, but
+    // the parser accepts it and it is one turnsPerRound choice away from the
+    // same failure.
+    expect(Math.floor((1 / 4) * 3)).toBe(0);
+    expect(fractionTicks(1, 4, 3)).toBe(1);
+  });
+
+  it("still floors normally when the result is already non-zero", () => {
+    // The minimum-of-one floor must not raise an already-correct answer.
+    expect(fractionTicks(1, 3, 6)).toBe(2);
+    expect(fractionTicks(1, 4, 10)).toBe(2);
+  });
 });
 
 describe("parseTick / resolveTicks at 3 turns per round", () => {

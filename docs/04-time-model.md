@@ -78,6 +78,22 @@ The `ticks` wrapper function parses and resolves in one call (`module/domain/tic
 
 7. **The setting is guarded.** Changing `turnsPerRound` mid-match is refused because it would invalidate every stored absolute tick on the board (`module/settings.mjs:26`).
 
+## Traps and anti-patterns
+
+**Leaving a table's gaps to fall through to a generic rule.** `TICK_OVERRIDES` covers only the
+three published rulesets, and `fractionTicks` fell through to plain `Math.floor` for anything else
+— but the table exists specifically because a rounding rule can be *wrong* (its own `3 → "1/2"` cell
+overrides `floor` for exactly that reason), so falling back to the rule the table was written to
+override was backwards. Worse, `turnsPerRound` accepted any integer ≥ 2 with no `choices`, so an
+uncovered value was one GM setting away — measured live, `1/3◈` at `turnsPerRound: 2` resolved to
+**0 turns**, not a short duration but no duration at all
+(`packs/_source/abilities/semiramis-familiar-doves.yml:22` authors exactly that fraction). Filed and
+fixed as [#21](https://github.com/zarex97/FGT_FVTT_v2/issues/21): the setting is now constrained to
+`choices: {3, 8, 15}` (`module/settings.mjs`), and as a second, independent backstop, `fractionTicks`
+floors any stated fraction to a **minimum of one tick**, never zero
+(`module/domain/tick.mjs:65-73`). **A stated duration must never round away to nothing — floor it to
+the smallest real duration instead of to zero.**
+
 ## Open questions
 
 - **Confirmed live.** Absolute expiry is `currentTick + resolveTicks(...)`, stamped once and stored as an
@@ -87,13 +103,5 @@ The `ticks` wrapper function parses and resolves in one call (`module/domain/tic
   (`packs/_source/effects/crit-dwn.yml`), so that clock came from the applying ability and still lands where
   the formula says. Storing the absolute tick is what makes Stop's clock freeze and a mid-match ◈ change safe.
 
-- **Audited — the table covers the corpus, but not the setting's range**, and the gap is filed as
-  [#21](https://github.com/zarex97/FGT_FVTT_v2/issues/21). The corpus authors exactly two fraction forms:
-  `½◈` (ten uses) and `1/3◈` (one, in `packs/_source/abilities/semiramis-familiar-doves.yml:22`), and both are
-  covered for all three published rulesets. But `turnsPerRound` is a `NumberField` with `min: 2` and no
-  `choices` (`module/settings.mjs:25`), so uncovered values are reachable and fall through to
-  `Math.floor` — measured live, `1/3◈` at `turnsPerRound: 2` resolves to **0 turns**, and `¼◈` resolves to 0
-  at the default of 3. The table is not a rounding convention: its `3 → 1/2` cell is `2` where `floor` gives
-  `1`, because the source says so. That is why falling back to `floor` is the wrong default.
 
 - **U+2212 minus sign caught in the wild.** The tick parser accepts only ASCII hyphen (`-`), not U+2212 MINUS SIGN (−). The test `tick-literals.test.mjs` was written specifically to catch this mutation, after an `engine/copy.mjs` cooldown expression written with the Unicode character threw, was caught by `cooldownFor`, and left every copy with no cooldown at all (`test/unit/tick-literals.test.mjs:1-14`).
