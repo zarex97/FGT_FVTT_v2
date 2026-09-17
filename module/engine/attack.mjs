@@ -4530,14 +4530,33 @@ async function applyTerrainConversions(state, result) {
  * @returns {Promise<void>}
  */
 async function fireDamageStepEnd(state) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  // From the BOARD, falling back to a bare snapshot only for a unit the board
+  // has no row for.
+  //
+  // `unitSnapshot` is an actor-only pass: it has no `fields`, no platform, no
+  // Home Base -- none of the annotations a board adds. So a rider predicated on
+  // one of those was evaluated against an option set that could never contain
+  // it, and answered "no" forever rather than refusing. Sikera Usum rule a --
+  // *"Semiramis' Normal Attacks which use Base Attack (STR) inflict Poison"*,
+  // gated on `self:inField:semiramis-sikera-usum` -- never once inflicted any,
+  // and the ability's own comment had already identified `self:inField:` as a
+  // board annotation when it added the prefix to `DEFERRED_PREFIXES`. Deferring
+  // the predicate was right and not enough if the subject cannot answer it
+  // (Ch. 46 §46.4-AF).
+  //
+  // The DEFENDER too, for `target:inField:` and its neighbours: the event fires
+  // on the attacker, but half of what a rider asks is about who was hit.
+  const board = currentBoard();
+  const attackerDoc = game.actors.get(state.attackerId);
+  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  const attacker = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
+  const defender = defenderDoc ? (unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc)) : null;
   if (!defender) return;
 
   const intents = fireEvent("damageStepEnd", [attacker], {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board: currentBoard(),
+    board,
     options: rollOptions(attacker, defender, state),
     rolls: {},
     // WHO WAS HIT. This event fires on the ATTACKER, and every rider hung from

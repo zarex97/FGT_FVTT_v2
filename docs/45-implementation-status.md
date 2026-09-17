@@ -4694,3 +4694,39 @@ stays 0 until then and only starts at 3 once it ends); Territory Creation's defe
 
 202 test files, 4915 tests, layer boundaries intact.
 
+## Semiramis finished — all twelve documents — 2026-09-16
+
+Two more defects fell out of the last three clauses, and they are the same shape as §46.4-AC.
+
+**§46.4-AF — `damageStepEnd` asked the attacker a board question.** Sikera Ušum rule a
+(*"Semiramis' Normal Attacks which use Base Attack (STR) inflict Poison"*) is gated on
+`self:inField:`, which the ability's own comment identifies as a board annotation — it is in
+`DEFERRED_PREFIXES` for that reason. But `fireDamageStepEnd` built both subjects with
+`unitSnapshot`, an actor-only pass with no `fields`, so the deferred predicate was tested against an
+option set that could never contain it. Both subjects now come from the board.
+
+**§46.4-AG — an immunity that could not be downgraded.** Rule d reduces Poison Immune to Poison
+Resist inside the area. `ImmunityDowngrade` produced the suppression, `annotateFields` wrote it onto
+the units standing there, and `immunityDowngradeFor` reads it at the immunity gate — but
+`applier.mjs` built its target with `unitSnapshot`, which has no `suppressions`, so the immunity
+blocked absolutely. Measured with real content on both ends: Hassan of Serenity, *"Immune to Poison
+and Deadly Poison"*, standing in the Throne Room took Poison **0 of 14** times before and **3 of 14**
+(21%) after, against a predicted 25%. The board is now built once per batch and reused.
+
+**Three of Semiramis's eleven defects are one shape** — §46.4-AC, AF and AG — a board question asked
+of something that is not a board, answered "no" rather than refused. §46.4-V was the same shape a
+chapter earlier.
+
+**Everything else pressed and held**: Sikera Ušum rules a and c (Poison ticking every Turn inside the
+area for exactly 20 at stage 1, and **stopping dead** when the victim steps outside — the control is
+the proof); Summoning: Bašmu clause 2 (a Bašmu on the panel next to her, 4◈ against clause 1's 2◈,
+counting as her Attack, dealing her no damage, and `noAliveSummon` refusing a second); Territory
+Creation EX at 6d20 aboard the Gardens against 5d8 on the ground; Scales of the Sacred Fish
+absorbing 200 of a 207-damage hit.
+
+**Rule e is unpressable**: nothing in `packs/_source` declares a weakness of any kind, so
+*"Units weak to Poison receive double Poison Damage"* has no content to meet.
+
+205 test files, 4922 tests, layer boundaries intact. **`packs` still needs a rebuild** for
+`vorpal-blade.yml` (§46.4-AD).
+
