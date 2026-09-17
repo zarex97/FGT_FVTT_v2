@@ -15,6 +15,7 @@
  */
 
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { collectContributions } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
@@ -596,145 +597,61 @@ export function snapshotUnit(actor, {
 }
 
 /**
+ * The four record projections, bound to `domain/stamped-record.mjs`.
+ *
+ * The rule these obey -- a record stamped with an earlier cycle reads as blank,
+ * and a writer must rebuild the whole record rather than re-stamp it -- lives in
+ * that module, along with why, what it cost to learn twice, and the two records'
+ * field declarations. These are the names ~25 call sites already use; they stay
+ * because the names are right, not because the logic is here.
+ *
+ * @see module/domain/stamped-record.mjs
+ */
+
+/**
  * A unit's turn state, or a blank one when it belongs to an earlier tick.
  *
- * The turn state is per-turn by definition, so state written during tick 4 says
- * nothing about tick 5. Deciding that on **read** is what makes the reset
- * reliable: the previous design cleared it by writing a blank state at each
- * turn boundary, and a boundary hook that did not fire left a Unit permanently
- * out of movement with nothing to explain it. A stale stamp cannot fail in that
- * direction — the worst it does is forget something a Unit had already done.
- *
- * `tick: null` on the caller's side means "do not apply the rule" — used when
- * no combat is running and there are no ticks to be stale against.
- *
  * @param {object} raw `system.turnState`
- * @param {number|null} tick the current ◈ tick
+ * @param {number|null} tick the current ◈ tick, or `null` to apply no staleness
  * @returns {object} the projected turn state
  */
 export function turnStateAt(raw, tick) {
-  const blank = {
-    tick, acted: false, moved: false, attacked: false, inCombatPhase: false, movedPanels: 0,
-    moveSegments: 0, usedActiveSkill: false, mayMoveAgain: false, usedRidingAttack: false,
-    reshapedField: false,
-    // WHICH abilities went. Absent from both branches until now, so every
-    // snapshot reader of the turn record saw `undefined`: `oncePerTurn` never
-    // refused anything, and `reactionAbilities` offered a Skill whose
-    // same-Turn partner had already been used.
-    itemTransfers: 0, abilitiesUsed: [], namelessForestAttempts: 0,
-  };
-  if (tick !== null && (raw?.tick ?? null) !== tick) return blank;
-
-  return {
-    tick: raw?.tick ?? null,
-    acted: Boolean(raw?.acted),
-    moved: Boolean(raw?.moved),
-    attacked: Boolean(raw?.attacked),
-    // A flag added to the schema and not added HERE is written to the document
-    // and invisible to every rule that reads a snapshot -- the failure this
-    // function's own `reshapedField` comment records.
-    inCombatPhase: Boolean(raw?.inCombatPhase),
-    movedPanels: raw?.movedPanels ?? 0,
-    moveSegments: raw?.moveSegments ?? 0,
-    usedActiveSkill: Boolean(raw?.usedActiveSkill),
-    mayMoveAgain: Boolean(raw?.mayMoveAgain),
-    usedRidingAttack: Boolean(raw?.usedRidingAttack),
-    // The once-per-Turn field repaint. This projection copies a FIXED key list,
-    // so a flag added to the schema and not added here is written to the
-    // document and invisible to every rule that reads a snapshot -- which is
-    // how `mayReshape` kept saying yes to a Servant who had already redrawn.
-    reshapedField: Boolean(raw?.reshapedField),
-    itemTransfers: raw?.itemTransfers ?? 0,
-    abilitiesUsed: [...(raw?.abilitiesUsed ?? [])],
-    // The Nameless Forest escape's once-per-Turn limit (#28). Added to the
-    // schema AND here together, which is what the two comments above this
-    // function exist to insist on.
-    namelessForestAttempts: raw?.namelessForestAttempts ?? 0,
-  };
+  return TURN_RECORD.at(raw, tick);
 }
 
 /**
- * The full turn record to WRITE when patching one field of it.
- *
- * Turn state is stale-by-reading: a record stamped with an earlier tick reads
- * as blank and nobody has to reset it. Writing is the other half of that rule
- * and it was missing. `markTurn` wrote the new tick plus the patched keys and
- * nothing else, so re-stamping the tick made every OTHER field of a stale
- * record **current again** -- a Unit that passed an item on one Turn still had
- * its allowance spent two Turns later, because something unrelated had marked
- * its turn state in between. Measured live (#32).
- *
- * `recordUse` in `engine/io.mjs` hand-rolled this comparison for `abilitiesUsed`
- * alone -- the same fix applied in one place, which is why that one field
- * escaped the bug and why the twelve beside it did not. #32 was closed with
- * `recordUse` still re-stamping the tick while patching two keys of fourteen,
- * because the fix landed in `markTurn` and `recordUse` is a separate writer
- * fifteen lines further down the same file. Both now come through here.
- *
- * Built on `turnStateAt`, so the write side and the read side cannot disagree
- * about what "stale" means.
+ * The full turn record to WRITE when patching some of its fields.
  *
  * @param {object|null} raw the stored `turnState`
- * @param {number} tick now
- * @param {object} patch the fields being set
+ * @param {number|null} tick now
+ * @param {object} [patch] the fields being set
  * @returns {object} every field to write
  */
 export function turnWrite(raw, tick, patch = {}) {
-  return { ...turnStateAt(raw, tick), ...patch, tick };
+  return TURN_RECORD.write(raw, tick, patch);
 }
 
 /**
  * A unit's round state, or a blank one when it belongs to an earlier Round.
  *
- * The same stale-by-reading rule `turnStateAt` uses, one scale up. A Round
- * boundary that failed to fire cannot leave a Servant permanently unable to
- * project Caladbolg II — the worst a stale stamp does is forget.
- *
- * `round: null` on the caller's side means "do not apply the rule", used when
- * no combat is running.
- *
  * @param {object} raw `system.roundState`
- * @param {number|null} round
- * @returns {{round: number|null, abilitiesUsed: string[]}}
+ * @param {number|null} round the current Round, or `null` to apply no staleness
+ * @returns {{round: number|null, abilitiesUsed: string[], combatInBaseThisRound: boolean}}
  */
 export function roundStateAt(raw, round) {
-  if (round !== null && (raw?.round ?? null) !== round) {
-    return { round, abilitiesUsed: [], combatInBaseThisRound: false };
-  }
-  return {
-    round: raw?.round ?? null,
-    abilitiesUsed: [...(raw?.abilitiesUsed ?? [])],
-    combatInBaseThisRound: Boolean(raw?.combatInBaseThisRound),
-  };
+  return ROUND_RECORD.at(raw, round);
 }
 
 /**
- * The full round record to WRITE when patching one field of it.
- *
- * `turnWrite` one scale up, and for the same reason. `markRoundState` wrote
- * `{round: now, ...patch}` -- the exact shape #32 fixed at Turn scale -- so
- * re-stamping the Round made every other field of a stale record current again.
- * The record has three fields and two writers that patch disjoint halves of it,
- * which means the bug ran in both directions:
- *
- * - `markRoundState` sets `combatInBaseThisRound` and leaves `abilitiesUsed`,
- *   so a Caladbolg II recorded in Round 3 was revived into Round 5 by fighting
- *   in your own base -- and Ch. 32's Hrunting exclusion refused a shot that had
- *   never been taken this Round.
- * - `recordUse` sets `abilitiesUsed` and leaves `combatInBaseThisRound`, so a
- *   `true` from Round 3 was revived into Round 5 by using any ability at all,
- *   and Ch. 29's E1 regeneration was withheld from a Unit that had not fought.
- *
- * Built on `roundStateAt`, so the write side and the read side cannot disagree
- * about what "stale" means.
+ * The full round record to WRITE when patching some of its fields.
  *
  * @param {object|null} raw the stored `roundState`
  * @param {number|null} round now
- * @param {object} patch the fields being set
+ * @param {object} [patch] the fields being set
  * @returns {object} every field to write
  */
 export function roundWrite(raw, round, patch = {}) {
-  return { ...roundStateAt(raw, round), ...patch, round };
+  return ROUND_RECORD.write(raw, round, patch);
 }
 
 /**

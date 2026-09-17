@@ -318,18 +318,17 @@ export function combatantCommon() {
     // running total rather than a per-segment count, because Riding's two moves
     // share one MOV allowance (Ch. 19).
     turnState: new fields.SchemaField({
-      // The ◈ tick this state was written during.
+      // The ◈ tick this state was written during. The rule it makes possible --
+      // a record stamped with an earlier tick reads as blank, so nothing has to
+      // reset it, and a writer must rebuild the whole record rather than
+      // re-stamp it -- belongs to `domain/stamped-record.mjs`, which states it
+      // once for both scales and owns what it cost to learn.
       //
-      // Turn state used to be cleared by *writing* a blank one at each turn
-      // boundary, which meant a single hook that did not fire — for any reason,
-      // on any client — left a Unit with no movement left for the rest of the
-      // match, and nothing on screen said why. Stamping the tick makes the
-      // reset a property of *reading*: state from an earlier tick is stale by
-      // definition, so it cannot fail to expire. The write still happens, to
-      // keep the stored data tidy, but nothing depends on it any more.
-      //
-      // `null` means "written before this field existed", which is stale
-      // against every tick — the safe direction.
+      // This block and that module's `TURN_RECORD` are two spellings of one
+      // field list, held together by a drift test rather than generated from
+      // each other: a `SchemaField` carries validation and the prose below on
+      // why each field exists, and a spec table would lose both (ADR 0003).
+      // Adding a field here means adding it there, and the test says so.
       tick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       acted: new fields.BooleanField({ initial: false }),
       moved: new fields.BooleanField({ initial: false }),
@@ -387,7 +386,8 @@ export function combatantCommon() {
      * same-Turn exclusion would let him fire both in one Round on consecutive
      * Turns — which is exactly what the sheet forbids.
      *
-     * Stamped with the round and stale-by-reading, exactly like `turnState`.
+     * Stamped with the round and stale-by-reading, exactly like `turnState`:
+     * `domain/stamped-record.mjs#ROUND_RECORD`, same rule, same drift test.
      */
     /**
      * The last tick at which Health was at or above a given fraction of its

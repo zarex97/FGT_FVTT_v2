@@ -34,6 +34,30 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### The stale-by-reading rule becomes a module (2026-09-17)
+
+#### Changed
+
+- **The Turn Record and the Round Record are declared in `domain/stamped-record.mjs`**, which owns the
+  rule they obey rather than leaving it a convention each reader and writer applied by hand. A record
+  is declared as its field defaults and nothing else, so the blank record *is* the declaration — it
+  used to be a hand-written literal beside a hand-written projection, and a field added to one and not
+  the other was written to the document and invisible to every rule that read a snapshot.
+  `reshapedField` shipped that way (`mayReshape` kept saying yes to a Servant who had already redrawn
+  Jack's Mist) and so did `abilitiesUsed` (`oncePerTurn` refused nothing). `turnStateAt`, `turnWrite`,
+  `roundStateAt` and `roundWrite` keep their names and signatures and are now bindings onto it.
+  Behaviour is unchanged, in the suite and measured live.
+
+- **The Foundry schema is held against the spec by a drift test**, not generated from it
+  ([ADR 0003](docs/adr/0003-the-record-schema-is-guarded-not-generated.md)). A `SchemaField` carries
+  validation and the prose on why each field exists — Karna's Kavacha, Jack's Mist, the Nameless
+  Forest's escape — and a spec table would lose both. Two text-scraping guards would also go blind to
+  a programmatically built schema. The ADR names the condition that would flip the decision: a third
+  consumer of the field list.
+
+- **`CONTEXT.md` gains `Turn Record` and `Round Record`.** They had no name in the glossary, which is
+  part of how the rule stayed a convention.
+
 ### #32 reached one writer of three (2026-09-17)
 
 #### Fixed

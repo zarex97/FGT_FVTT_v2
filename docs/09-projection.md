@@ -12,7 +12,8 @@ Two snapshots project the document state: **UnitSnapshot**, one actor paired wit
 |---|---|
 | `module/rules/snapshot.mjs` | `snapshotUnit`, `snapshotBoard`, `expressionRefs` — the projection layer |
 | `module/engine/board.mjs` | `unitSnapshot` with position resolved; `currentBoard` — the engine's snapshot builder |
-| Tests | `test/unit/snapshot.test.mjs` — position projection pinned; `test/unit/contribution-projection.test.mjs` — contribution shape |
+| `module/domain/stamped-record.mjs` | The Turn Record and the Round Record — records that expire by being read |
+| Tests | `test/unit/snapshot.test.mjs` — position projection pinned; `test/unit/contribution-projection.test.mjs` — contribution shape; `test/unit/master-data.test.mjs` — the record schema held against the record spec |
 
 ## How it works
 
@@ -53,6 +54,16 @@ Created by `snapshotBoard` (module/rules/snapshot.mjs:655) in two phases:
 **Shape change:** same fields, different nesting. `luck: sys.luck ?? null` (module/rules/snapshot.mjs:1601) — the whole `{value, max}` object — vs. UnitSnapshot's `luck: sys.luck?.value ?? 0`. Same for `health` (module/rules/snapshot.mjs:1595 vs. 181) and `agility` (module/rules/snapshot.mjs:1600 vs. 183).
 
 Why this matters: expressions like `@self.luck.value` read the facade's luck as a whole object, then pull `.value` from it. A rule reading `unit.luck` directly gets the number, not the object, and the same expression computes differently on the two projections.
+
+### The two records that expire by being read
+
+The Turn Record and the Round Record are projected differently from everything else here, because they are the only fields whose *age* decides their value. A record stamped with an earlier Tick — or Round — says nothing about this one, so it reads as blank. `turnStateAt`, `turnWrite`, `roundStateAt` and `roundWrite` (`module/rules/snapshot.mjs:599-654`) are the names call sites use; all four are thin bindings onto `module/domain/stamped-record.mjs`, which owns the rule and both records' field declarations.
+
+The rule lives in `domain/` rather than here for two reasons. It is not a projection concern — the *write* side obeys it too, and must, because a writer that stamps the current cycle and patches only the fields it cares about makes every other field of a stale record current again. And `data/` needs the same field list for the schema, which may import `domain` but not `rules`.
+
+**Write through the record, never around it.** A partial write that refreshes the stamp resurrects everything it did not touch. That cost four defects across two scales before it was a module — see [Ch. 18](18-items.md) for the measurements and [Ch. 45](45-case-studies.md) for why fixing one writer did not fix the rule. `module/engine/io.mjs` is the only place outside `data/` that touches `system.turnState` or `system.roundState` directly, and it does so through `turnWrite`/`roundWrite`.
+
+The schema in `data/actor/_shared.mjs` and the spec in `domain/stamped-record.mjs` are two spellings of one field list, held together by a drift test in `test/unit/master-data.test.mjs` rather than generated one from the other. [ADR 0003](adr/0003-the-record-schema-is-guarded-not-generated.md) records why, and names the condition that would flip it.
 
 ## Invariants & edge cases
 

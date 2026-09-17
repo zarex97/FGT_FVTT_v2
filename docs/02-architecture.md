@@ -32,6 +32,7 @@ below.
 | `module/engine/intents.mjs` | The intent vocabulary, ordering and validation |
 | `module/engine/applier.mjs` | The write choke point |
 | `module/engine/io.mjs` | The concrete write adapter — the `io` the applier calls |
+| `module/domain/stamped-record.mjs` | The Turn and Round Records — a rule both the schema and the write path derive from |
 | `module/net/socket.mjs`, `module/net/operations.mjs` | The GM proxy, for writes a client may not perform |
 
 ## How it works
