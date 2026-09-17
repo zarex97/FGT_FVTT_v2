@@ -89,6 +89,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("DamageModifier", "A percentage change to damage, on the way out or the way in.", [
     ...SCALED,
     { key: "direction", type: "select", choices: ["dealt", "taken"] },
+    // Which pipeline stage this lands in when there is no `modifierKey`:
+    // "flat" routes to `flatReduction`/`flatDamage`, anything else to
+    // `defUp`/`atkUp` (`module/rules/elements.mjs:871`). Engine-read and
+    // corpus-used since the file existed; missing here until #22.
+    { key: "stage", type: "select", choices: ["flat", "percent"] },
     { key: "modifierKey", type: "text" },
     { key: "npValue", type: "text" },
     { key: "magnitudeFactor", type: "number" },

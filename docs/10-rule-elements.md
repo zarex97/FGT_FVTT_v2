@@ -61,6 +61,25 @@ Magnitude factors — `magnitudeFactor` and `magnitudeRoundTo` — are applied h
 
 7. **Scripts never throw.** A malformed script entry logs a warning and returns `[]`; it does not stop the turn (`module/engine/scripts.mjs:56-62`).
 
+## Traps and anti-patterns
+
+**Describing an element's keys without describing its fields.** `stage` on a `DamageModifier` is
+**not** a pipeline stage number — it is a two-valued selector that picks the modifier key, and the
+pipeline stage follows from that key (`module/rules/elements.mjs:871-875`): `direction: "taken"`
+with `stage: "flat"` routes to `flatReduction` and otherwise to `defUp`; dealt damage routes to
+`flatDamage` or `atkUp` the same way. An explicit `modifierKey` overrides both. The distinction is
+load-bearing — a flat +120 and a +120% are different numbers, and
+`packs/_source/abilities/vorpal-blade.yml:50-53` comments on getting it wrong once. Seven authored
+files set `stage: flat`, yet the field was absent from the `DamageModifier` descriptor, so the
+editor could not offer it — and the drift test in Chapter 39 could not see the gap, because it
+compares element **ids**, never element **fields**. Fixed in
+[#22](https://github.com/zarex97/FGT_FVTT_v2/issues/22) by adding
+`{ key: "stage", type: "select", choices: ["flat", "percent"] }` to the descriptor
+(`module/rules/authoring/elements.mjs`). **A drift test over ids alone only catches half the
+vocabulary; an executor's field reads can still diverge from its descriptor's field list** — worth
+a general field-level drift test as a follow-up, since this fix closed the one instance rather than
+the class.
+
 ## Open questions
 
 - **Answered: the count is not fixed, but it cannot drift.** Measured live, `EXECUTORS` holds **62**
@@ -71,15 +90,5 @@ Magnitude factors — `magnitudeFactor` and `magnitudeRoundTo` — are applied h
   and nothing executes it"*. So the table is expected to grow; what it may not do is diverge from the
   vocabulary. (The third assertion compares the two lengths, so it holds at any count — its title said
   "covers all 54" long after the count reached 62, and now says what it actually checks.)
-
-- **Answered, and it exposed a vocabulary gap — [#22](https://github.com/zarex97/FGT_FVTT_v2/issues/22).**
-  `stage` on a `DamageModifier` is **not** a pipeline stage number. It is a two-valued selector that picks
-  the modifier key, and the pipeline stage follows from that key (`module/rules/elements.mjs:871-875`):
-  `direction: "taken"` with `stage: "flat"` routes to `flatReduction` and otherwise to `defUp`; dealt
-  damage routes to `flatDamage` or `atkUp` the same way. An explicit `modifierKey` overrides both. The
-  distinction is load-bearing — a flat +120 and a +120% are different numbers, and
-  `packs/_source/abilities/vorpal-blade.yml:50-53` comments on getting it wrong. Seven authored files set
-  `stage: flat`, yet the field is absent from the `DamageModifier` descriptor, so the editor cannot offer
-  it and the drift tests cannot see it: they compare element **ids**, never element **fields**.
 
 - **Multi-client determinism via source id has never been tested in a live world with changing load order.** The code is correct by reading, but a test of two clients loading documents in reverse order and computing the same contributions would confirm it (`module/rules/ordering.mjs:102-105`).
