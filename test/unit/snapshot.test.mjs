@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { snapshotUnit, snapshotBoard, turnStateAt, contributionsOf } from "../../module/rules/snapshot.mjs";
+import { snapshotUnit, snapshotBoard, turnStateAt, turnWrite, contributionsOf } from "../../module/rules/snapshot.mjs";
 import { remainingMovement, segmentCheck } from "../../module/rules/movement.mjs";
 import { EffectRegistry } from "../../module/rules/registry.mjs";
 
@@ -433,6 +433,37 @@ describe("turnStateAt is what movement reads", () => {
   });
 });
 
+describe("turnWrite — patching a turn record without resurrecting it (#32)", () => {
+  it("clears every other field when the record belongs to an earlier Turn", () => {
+    // `markTurn` wrote only `tick` plus the patched keys, so re-stamping the
+    // tick made every OTHER stale field current again. Measured live:
+    // Semiramis passed an item on tick 3, something unrelated marked her turn
+    // state on tick 5, and her once-per-Turn allowance was still spent in a
+    // Turn where she had passed nothing.
+    const stale = { tick: 3, itemTransfers: 1, namelessForestAttempts: 1, moved: true };
+
+    const out = turnWrite(stale, 5, { acted: true });
+
+    expect(out.tick).toBe(5);
+    expect(out.acted).toBe(true);
+    expect(out.itemTransfers).toBe(0);
+    expect(out.namelessForestAttempts).toBe(0);
+    expect(out.moved).toBe(false);
+  });
+
+  it("keeps the rest of the record when it belongs to THIS Turn", () => {
+    const live = { tick: 5, itemTransfers: 1, moved: true };
+
+    const out = turnWrite(live, 5, { acted: true });
+
+    expect(out).toMatchObject({ tick: 5, acted: true, itemTransfers: 1, moved: true });
+  });
+
+  it("lets the patch win over a live value", () => {
+    expect(turnWrite({ tick: 5, itemTransfers: 1 }, 5, { itemTransfers: 2 }).itemTransfers).toBe(2);
+  });
+});
+
 describe("held items (#30)", () => {
   const holder = (items) => ({ id: "s", name: "S", type: "servant", effects: [], items, system: {} });
 
@@ -445,11 +476,15 @@ describe("held items (#30)", () => {
       id: "abc", name: "[Semiramis' Poison]", type: "equipment",
       system: {
         contentId: "semiramis-poison", quantity: 2,
+        transferable: true, transferRange: 1,
         consumeEffect: [{ kind: "applyEffect", effect: { id: "queensPoison", duration: "3◈" } }],
       },
     }]));
 
-    expect(u.items).toEqual([{ contentId: "semiramis-poison", quantity: 2, consumable: true }]);
+    expect(u.items).toEqual([{
+      contentId: "semiramis-poison", quantity: 2, consumable: true,
+      transferable: true, transferRange: 1,
+    }]);
   });
 
   it("marks one with no consumeEffect as not consumable", () => {
@@ -461,6 +496,18 @@ describe("held items (#30)", () => {
     }]));
 
     expect(u.items[0].consumable).toBe(false);
+  });
+
+  it("carries whether an item may be PASSED, and how far (#32)", () => {
+    // "Items cannot be traded/given/passed to other Units unless stated", so
+    // the default is false and `[Vorpal Blade]` states `transferable: false`
+    // outright. The registry needs both to decide whether a give is on offer.
+    const u = snapshotUnit(holder([{
+      id: "vb", name: "[Vorpal Blade]", type: "equipment",
+      system: { contentId: "vorpal-blade", quantity: 1, transferable: false },
+    }]));
+
+    expect(u.items[0]).toMatchObject({ transferable: false, transferRange: 1 });
   });
 });
 

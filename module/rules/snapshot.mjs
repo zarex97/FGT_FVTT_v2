@@ -565,6 +565,13 @@ export function snapshotUnit(actor, {
         contentId: i.system?.contentId ?? i.id,
         quantity: i.system?.quantity ?? 0,
         consumable: Boolean((i.system?.consumeEffect ?? []).length),
+        // *"Items cannot be traded/given/passed to other Units unless
+        // stated"*, so the default is false and only `[Semiramis' Poison]`
+        // says otherwise in the reference set. The range is the item's own --
+        // her clause is *"directly next to"* -- and the registry needs both to
+        // decide whether a give is on offer (#32).
+        transferable: Boolean(i.system?.transferable),
+        transferRange: i.system?.transferRange ?? 1,
       })),
     acted: turnState.acted,
     // Hoisted beside `acted` for the same reason `acted` is: `scheduler#endTurn`
@@ -640,6 +647,33 @@ export function turnStateAt(raw, tick) {
     // function exist to insist on.
     namelessForestAttempts: raw?.namelessForestAttempts ?? 0,
   };
+}
+
+/**
+ * The full turn record to WRITE when patching one field of it.
+ *
+ * Turn state is stale-by-reading: a record stamped with an earlier tick reads
+ * as blank and nobody has to reset it. Writing is the other half of that rule
+ * and it was missing. `markTurn` wrote the new tick plus the patched keys and
+ * nothing else, so re-stamping the tick made every OTHER field of a stale
+ * record **current again** -- a Unit that passed an item on one Turn still had
+ * its allowance spent two Turns later, because something unrelated had marked
+ * its turn state in between. Measured live (#32).
+ *
+ * `recordUse` in `engine/io.mjs` has always hand-rolled this comparison for
+ * `abilitiesUsed` alone, which is the same fix applied in one place and is why
+ * that one field escaped the bug.
+ *
+ * Built on `turnStateAt`, so the write side and the read side cannot disagree
+ * about what "stale" means.
+ *
+ * @param {object|null} raw the stored `turnState`
+ * @param {number} tick now
+ * @param {object} patch the fields being set
+ * @returns {object} every field to write
+ */
+export function turnWrite(raw, tick, patch = {}) {
+  return { ...turnStateAt(raw, tick), ...patch, tick };
 }
 
 /**

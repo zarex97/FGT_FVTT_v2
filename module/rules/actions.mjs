@@ -24,6 +24,7 @@ import { relationOf } from "./relations.mjs";
 import { contains, membershipVerdict, canAttemptEscape } from "./bounded-fields.mjs";
 import { remainingMovement } from "./movement.mjs";
 import { boardablePlatform } from "./platforms.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 import { mayAttemptEscape } from "./nameless-forest.mjs";
 
 /**
@@ -240,6 +241,44 @@ export const UNIT_ACTIONS = Object.freeze([
         .filter((i) => i.consumable && (i.quantity ?? 0) > 0)
         .map((i) => i.contentId);
       return contentIds.length > 0 ? { contentIds } : null;
+    },
+  },
+  {
+    // *"Whenever Semiramis is standing directly next to an allied Unit, any
+    // number of [Semiramis' Poison] can be passed from Semiramis to that Unit
+    // (once per Turn)."* The whole transfer gate set -- the item's own
+    // permission, the quantity, the range, and the giver's per-Turn allowance
+    // -- was complete and had no way in (#32).
+    //
+    // Bills NOTHING: the allowance IS the limit, and it is tracked on the
+    // giver's turn state rather than on the item, so an item that changes
+    // hands carries no record of how often it was passed.
+    id: "giveItem",
+    kind: null,
+    icon: "fa-solid fa-hand-holding-heart",
+    label: "FGT.Action.GiveItem",
+    mode: "immediate",
+    available: (unit, board) => {
+      if (!acts(unit)) return null;
+      const others = (board?.units ?? []).filter(
+        (u) => u.id !== unit.id && u.panel && relationOf(u, unit, board) !== "enemy",
+      );
+      // Range is the ITEM's, so reachability is asked per item rather than
+      // once for the unit.
+      const contentIds = (unit.items ?? [])
+        .filter((i) => i.transferable && (i.quantity ?? 0) > 0)
+        .filter((i) => others.some(
+          (u) => unit.panel && chebyshev(unit.panel, u.panel) <= (i.transferRange ?? 1),
+        ))
+        .map((i) => i.contentId);
+      if (contentIds.length === 0) return null;
+      // The giver's allowance is per Turn and shared across items, so it gates
+      // the whole button rather than any one of them.
+      const limit = Math.min(...(unit.items ?? [])
+        .filter((i) => contentIds.includes(i.contentId))
+        .map((i) => i.transfersPerTurn ?? 1));
+      if ((unit.turnState?.itemTransfers ?? 0) >= limit) return null;
+      return { contentIds };
     },
   },
   {

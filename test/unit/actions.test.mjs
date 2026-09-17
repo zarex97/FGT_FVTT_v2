@@ -195,6 +195,45 @@ describe("Use Item (#30)", () => {
   });
 });
 
+describe("Give Item (#32)", () => {
+  const poison = { contentId: "semiramis-poison", quantity: 2, consumable: true, transferable: true, transferRange: 1 };
+  const blade = { contentId: "vorpal-blade", quantity: 1, consumable: false, transferable: false, transferRange: 1 };
+  const giver = (items, over = {}) => unit({ id: "semi", faction: "red", panel: { i: 5, j: 5 }, items, ...over });
+  const ally = (over = {}) => unit({ id: "ally", faction: "red", panel: { i: 5, j: 6 }, ...over });
+  const far = () => unit({ id: "far", faction: "red", panel: { i: 9, j: 9 } });
+  const foe = () => unit({ id: "foe", faction: "blue", panel: { i: 5, j: 6 } });
+
+  it("is offered when an ally stands within the item's transfer range", () => {
+    const g = giver([poison]);
+    const found = availableActions(g, board([g, ally()])).find((a) => a.id === "giveItem");
+
+    expect(found).toBeDefined();
+    expect(found.mode).toBe("immediate");
+    expect(found.context.contentIds).toEqual(["semiramis-poison"]);
+  });
+
+  it("is withheld when the only ally is out of the item's range", () => {
+    const g = giver([poison]);
+    expect(idsFor(g, board([g, far()]))).not.toContain("giveItem");
+  });
+
+  it("is withheld when the only unit in range is an enemy", () => {
+    const g = giver([poison]);
+    expect(idsFor(g, board([g, foe()]))).not.toContain("giveItem");
+  });
+
+  it("is withheld for an item that may not be passed at all", () => {
+    // "Items cannot be traded/given/passed to other Units unless stated."
+    const g = giver([blade]);
+    expect(idsFor(g, board([g, ally()]))).not.toContain("giveItem");
+  });
+
+  it("is withheld once the giver has spent its allowance this Turn", () => {
+    const spent = giver([poison], { turnState: { itemTransfers: 1 } });
+    expect(idsFor(spent, board([spent, ally()]))).not.toContain("giveItem");
+  });
+});
+
 describe("the registry's shape", () => {
   it("gives every entry an id, kind, icon, label and mode", () => {
     for (const a of UNIT_ACTIONS) {
