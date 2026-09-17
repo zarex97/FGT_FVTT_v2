@@ -22,7 +22,16 @@ export function registerSettings() {
 
   s("turnsPerRound", {
     name: "FGT.Settings.TurnsPerRound", hint: "FGT.Settings.TurnsPerRoundHint",
-    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 2, initial: 3 }),
+    // `TICK_OVERRIDES` (domain/tick.mjs) only has rows for the three
+    // published rulesets; a `min: 2` NumberField with no `choices` let a GM
+    // pick any of them, and an uncovered value could floor a stated fraction
+    // to zero turns (#21). Closed to exactly the rulesets the table covers.
+    type: Number,
+    choices: {
+      3: "FGT.TurnsPerRound.GreatHolyGrailWar",
+      8: "FGT.TurnsPerRound.HolyGrailWar",
+      15: "FGT.TurnsPerRound.Snowfield",
+    },
     default: 3, requiresReload: false, onChange: () => guardRuleChange("turnsPerRound"),
   });
   // Ch. 04's round-indexed gates. All four numbers have been in

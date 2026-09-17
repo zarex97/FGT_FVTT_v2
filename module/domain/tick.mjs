@@ -65,7 +65,13 @@ const VULGAR = Object.freeze({
 export function fractionTicks(num, den, turnsPerRound) {
   const override = TICK_OVERRIDES[turnsPerRound]?.[`${num}/${den}`];
   if (override !== undefined) return override;
-  return Math.floor((num / den) * turnsPerRound);
+  const floored = Math.floor((num / den) * turnsPerRound);
+  // A stated fraction must never round away to nothing (#21). The override
+  // table above exists because a rounding rule can be WRONG, not because zero
+  // is ever an acceptable answer to "how long": `1/3◈` at `turnsPerRound: 2`
+  // is outside the table and floors to zero, which is not a shorter duration,
+  // it is the duration failing to apply at all.
+  return num > 0 ? Math.max(1, floored) : floored;
 }
 
 /**
