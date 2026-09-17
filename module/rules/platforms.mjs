@@ -300,6 +300,124 @@ export function rescuerFor(master, board) {
 }
 
 /**
+ * The Platform this Unit is standing on, if any.
+ *
+ * Membership is the Scene Level, exactly as `passengersOf` reads it: a Unit on
+ * the ground is aboard nothing, and a Platform is not standing on itself.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {object|null}
+ */
+export function platformUnderUnit(unit, board) {
+  if (!unit || unit.kind === "platform" || (unit.level ?? 0) === 0) return null;
+  return (board?.units ?? []).find(
+    (u) => u.kind === "platform" && (u.level ?? 0) === (unit.level ?? 0),
+  ) ?? null;
+}
+
+/**
+ * The Unit kinds that may Jump.
+ *
+ * *"A non-Civilian or non-Master Unit standing on an edge panel of a HGoB can
+ * Jump off."* So Servants and Summons; a Master leaves by being carried or by
+ * being knocked off, and a Civilian does not leave at all.
+ */
+const JUMPING_KINDS = Object.freeze(["servant", "summon"]);
+
+/**
+ * Is this panel on the boundary of the platform's footprint?
+ *
+ * On the footprint AND orthogonally adjacent to something off it -- the outer
+ * ring. A Unit in the interior has Platform between it and the drop, which is
+ * why the sheet says *"standing on an edge panel"*.
+ *
+ * @param {{i: number, j: number}|null} panel
+ * @param {object} platform
+ * @returns {boolean}
+ */
+export function isEdgePanel(panel, platform) {
+  if (!withinFootprint(panel, platform)) return false;
+  return [{ i: 1, j: 0 }, { i: -1, j: 0 }, { i: 0, j: 1 }, { i: 0, j: -1 }]
+    .some((d) => !withinFootprint({ i: panel.i + d.i, j: panel.j + d.j }, platform));
+}
+
+/**
+ * May this Unit Jump off the Platform it is standing on (#31)?
+ *
+ * Distinct from being Knocked Off in every respect: voluntary, no Agility
+ * Check, no damage, and open only to the kinds the sheet names.
+ *
+ * @param {object} unit
+ * @param {object} platform
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function jumpVerdict(unit, platform) {
+  if (!platform || (unit?.level ?? 0) !== (platform.level ?? 0) || (unit?.level ?? 0) === 0) {
+    return { ok: false, reason: "notAboard" };
+  }
+  if (!JUMPING_KINDS.includes(unit?.kind)) return { ok: false, reason: "wrongKind" };
+  if (!isEdgePanel(unit.panel, platform)) return { ok: false, reason: "notOnEdge" };
+
+  // *"Drake cannot unboard the Golden Hind."* A rider the Platform holds does
+  // not get out by jumping either.
+  const off = canUnboard(unit, platform);
+  if (!off.ok) return off;
+
+  // *"land on a Game Board panel within its MOV"* -- a Unit with none left has
+  // nowhere to land.
+  if (remainingMov(unit) < 1) return { ok: false, reason: "noMovement" };
+
+  return { ok: true };
+}
+
+/**
+ * Every ground panel this Unit could Jump to.
+ *
+ * *"land on a Game Board panel within its MOV"*: off the footprint, on the
+ * ground, unoccupied, on the board, and within the movement it has left.
+ *
+ * @param {object} unit
+ * @param {object} platform
+ * @param {object} board
+ * @returns {Array<{i: number, j: number}>}
+ */
+export function jumpLandings(unit, platform, board) {
+  const reach = remainingMov(unit);
+  const bounds = board?.bounds ?? null;
+  const taken = (board?.units ?? [])
+    .filter((u) => u.id !== unit?.id && (u.level ?? 0) === 0)
+    .flatMap((u) => u.panels ?? (u.panel ? [u.panel] : []));
+
+  const out = [];
+  for (let di = -reach; di <= reach; di += 1) {
+    for (let dj = -reach; dj <= reach; dj += 1) {
+      const panel = { i: unit.panel.i + di, j: unit.panel.j + dj };
+      if (withinFootprint(panel, platform)) continue;
+      if (bounds && (panel.i < 0 || panel.j < 0
+        || panel.i >= (bounds.rows ?? Infinity) || panel.j >= (bounds.cols ?? Infinity))) continue;
+      if (taken.some((p) => p.i === panel.i && p.j === panel.j)) continue;
+      out.push(panel);
+    }
+  }
+  return out;
+}
+
+/**
+ * How far this unit may still move, without importing the movement module.
+ *
+ * `rules/movement.mjs` already imports THIS file, so reaching back for
+ * `remainingMovement` would close a cycle. The arithmetic is one line and the
+ * shape is the projection's own.
+ *
+ * @param {object} unit
+ * @returns {number}
+ */
+function remainingMov(unit) {
+  return Math.max(0, (unit?.mov ?? 0) - (unit?.turnState?.movedPanels ?? 0));
+}
+
+/**
  * The platform a grounded unit may board right now, if any (#24).
  *
  * "Other allied Units can board and unboard the Golden Hind by Moving onto it

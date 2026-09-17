@@ -8,6 +8,7 @@
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
+  jumpVerdict, jumpLandings,
 } from "../rules/platforms.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { currentBoard } from "./board.mjs";
@@ -210,6 +211,135 @@ async function askWhereToGo(unit, platform) {
   // Declining the dialog keeps the Unit aboard, which is the safe direction:
   // a player who closed a window has not chosen to jump off a flying garden.
   return (picked ?? [])[0] === "land" ? "land" : "stay";
+}
+
+/**
+ * Jump off a Platform, on purpose (#31).
+ *
+ * > *"A non-Civilian or non-Master Unit standing on an edge panel of a HGoB can
+ * > Jump off the HGoB and land on a Game Board panel within its MOV; in this
+ * > case, the Unit's MOV is reduced by 1."*
+ * >
+ * > *"If a Servant would Jump off the HGoB with its Master directly next to it,
+ * > the Servant can choose to bring its Master with it, the Master will land
+ * > next to its Servant in the same orientation. This does not count as Moving
+ * > the Master."*
+ *
+ * Nothing like being Knocked Off: no Agility Check, no damage, and the Unit
+ * chooses where it lands.
+ *
+ * @param {object} args
+ * @param {string} args.unitId
+ * @param {string} args.platformId
+ * @param {{i: number, j: number}|null} [args.destination] chosen, or asked for
+ * @param {boolean|null} [args.bringMaster] chosen, or asked for
+ * @returns {Promise<{ok: boolean, reason?: string, to?: object, broughtMaster?: string|null}>}
+ */
+export async function jumpOff({ unitId, platformId, destination = null, bringMaster = null }) {
+  const board = currentBoard();
+  const unit = board.units.find((u) => u.id === unitId);
+  const platform = board.units.find((u) => u.id === platformId && u.kind === "platform");
+  if (!unit || !platform) return { ok: false, reason: "unknownUnitOrPlatform" };
+
+  const verdict = jumpVerdict(unit, platform);
+  if (!verdict.ok) return { ok: false, reason: verdict.reason };
+
+  const landings = jumpLandings(unit, platform, board);
+  if (landings.length === 0) return { ok: false, reason: "nowhereToLand" };
+
+  const to = destination ?? await askWhereToLand(unit, landings);
+  if (!to) return { ok: false, reason: "cancelled" };
+  if (!landings.some((p) => p.i === to.i && p.j === to.j)) {
+    return { ok: false, reason: "illegalLanding" };
+  }
+
+  // *"with its Master directly next to it"* -- ONE panel, deliberately not the
+  // two the boarding carry uses (#24). Its own Master, and only a Servant may
+  // bring one.
+  const master = unit.kind === "servant" && unit.masterId
+    ? board.units.find((u) => u.id === unit.masterId && mayBringMaster(unit, u, 1)) ?? null
+    : null;
+  const carry = master ? (bringMaster ?? await askBringMaster(master)) : false;
+
+  // *"the Unit's MOV is reduced by 1"* -- on top of the panels it travelled, so
+  // the jump costs distance plus one.
+  const travelled = Math.max(
+    Math.abs(to.i - unit.panel.i), Math.abs(to.j - unit.panel.j),
+  );
+  const spent = (unit.turnState?.movedPanels ?? 0) + travelled + 1;
+
+  const intents = [
+    I.move(unitId, [to], true),
+    I.markTurn(unitId, { movedPanels: spent }),
+    I.log({ kind: "platformStep", step: "jumped", unitId, platformId, to, broughtMaster: carry ? master.id : null }),
+  ];
+  if (carry) {
+    // *"the Master will land next to its Servant in the same orientation"* --
+    // the offset it held before the jump, preserved.
+    const offset = { i: master.panel.i - unit.panel.i, j: master.panel.j - unit.panel.j };
+    // FORCED, and that is the whole of *"this does not count as Moving the
+    // Master"*: a carried Unit has not moved, so it spends no budget of its own
+    // and fires nothing that watches movement (Ch. 27).
+    intents.push(I.move(master.id, [{ i: to.i + offset.i, j: to.j + offset.j }], true));
+  }
+
+  await applyWorldIntents(intents, "platform:jump");
+
+  // The LEVEL change, which no move intent can carry -- the same gap the fall
+  // has (#29).
+  await dropToGround(unitId);
+  if (carry) await dropToGround(master.id);
+
+  return { ok: true, to, broughtMaster: carry ? master.id : null };
+}
+
+/**
+ * Where to land, asked of the player.
+ * @param {object} unit
+ * @param {Array<{i: number, j: number}>} landings
+ * @returns {Promise<{i: number, j: number}|null>}
+ */
+async function askWhereToLand(unit, landings) {
+  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+  const picked = await ChoiceDialog.pick({
+    title: game.i18n.localize("FGT.Action.Jump"),
+    hint: game.i18n.localize("FGT.Platform.JumpHint"),
+    count: 1,
+    min: 0,
+    options: landings.map((p) => ({
+      id: `${p.i},${p.j}`,
+      name: game.i18n.format("FGT.Platform.JumpPanel", { i: p.i, j: p.j }),
+      detail: game.i18n.format("FGT.Platform.JumpDistance", {
+        count: Math.max(Math.abs(p.i - unit.panel.i), Math.abs(p.j - unit.panel.j)),
+      }),
+    })),
+  });
+  const choice = (picked ?? [])[0];
+  if (!choice) return null;
+  const [i, j] = choice.split(",").map(Number);
+  return { i, j };
+}
+
+/**
+ * Whether to take the Master along.
+ * @param {object} master
+ * @returns {Promise<boolean>}
+ */
+async function askBringMaster(master) {
+  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+  const picked = await ChoiceDialog.pick({
+    title: game.i18n.localize("FGT.Platform.JumpCarryTitle"),
+    hint: game.i18n.format("FGT.Platform.JumpCarryHint", {
+      name: game.actors.get(master.id)?.name ?? master.id,
+    }),
+    count: 1,
+    min: 0,
+    options: [
+      { id: "yes", name: game.i18n.localize("FGT.Platform.JumpCarryYes") },
+      { id: "no", name: game.i18n.localize("FGT.Platform.JumpCarryNo") },
+    ],
+  });
+  return (picked ?? [])[0] === "yes";
 }
 
 /**

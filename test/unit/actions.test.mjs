@@ -234,6 +234,44 @@ describe("Give Item (#32)", () => {
   });
 });
 
+describe("Jump (#31)", () => {
+  const hgob = { id: "hgob", kind: "platform", level: 1, panel: { i: 5, j: 5 }, footprint: { w: 3, h: 3 } };
+  const aboard = (over = {}) => unit({
+    id: "r", kind: "servant", level: 1, panel: { i: 5, j: 5 }, mov: 4, turnState: {}, ...over,
+  });
+  const b = (u) => board([hgob, u]);
+
+  it("is offered to a Servant on the edge, naming the platform", () => {
+    const u = aboard();
+    const found = availableActions(u, b(u)).find((a) => a.id === "jump");
+
+    expect(found).toBeDefined();
+    expect(found.context).toEqual({ platformId: "hgob", blocked: null });
+  });
+
+  it("is shown but blocked in the interior, so the player learns where to stand", () => {
+    const inner = aboard({ panel: { i: 6, j: 6 } });
+    expect(availableActions(inner, b(inner)).find((a) => a.id === "jump").context.blocked)
+      .toBe("notOnEdge");
+  });
+
+  it("is shown but blocked with no movement left", () => {
+    const spent = aboard({ turnState: { movedPanels: 4 } });
+    expect(availableActions(spent, b(spent)).find((a) => a.id === "jump").context.blocked)
+      .toBe("noMovement");
+  });
+
+  it("is withheld entirely from a Master, who has no Jump to learn about", () => {
+    const m = aboard({ kind: "master" });
+    expect(idsFor(m, b(m))).not.toContain("jump");
+  });
+
+  it("is withheld from a Unit that is not on a platform at all", () => {
+    const ground = aboard({ level: 0 });
+    expect(idsFor(ground, b(ground))).not.toContain("jump");
+  });
+});
+
 describe("the registry's shape", () => {
   it("gives every entry an id, kind, icon, label and mode", () => {
     for (const a of UNIT_ACTIONS) {

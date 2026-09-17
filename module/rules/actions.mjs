@@ -26,6 +26,7 @@ import { remainingMovement } from "./movement.mjs";
 import { boardablePlatform } from "./platforms.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { mayAttemptEscape } from "./nameless-forest.mjs";
+import { jumpVerdict, platformUnderUnit } from "./platforms.mjs";
 
 /**
  * The unit kinds that TAKE actions.
@@ -279,6 +280,31 @@ export const UNIT_ACTIONS = Object.freeze([
         .map((i) => i.transfersPerTurn ?? 1));
       if ((unit.turnState?.itemTransfers ?? 0) >= limit) return null;
       return { contentIds };
+    },
+  },
+  {
+    // *"A non-Civilian or non-Master Unit standing on an edge panel of a HGoB
+    // can Jump off the HGoB and land on a Game Board panel within its MOV; in
+    // this case, the Unit's MOV is reduced by 1."* (#31)
+    //
+    // The voluntary counterpart to being Knocked Off (#29), and nothing like
+    // it: no Agility Check, no damage, and open only to the kinds the sheet
+    // names. Bills no ActionKind -- the MOV reduction is the cost.
+    id: "jump",
+    kind: null,
+    icon: "fa-solid fa-person-falling",
+    label: "FGT.Action.Jump",
+    mode: "immediate",
+    available: (unit, board) => {
+      if (!acts(unit)) return null;
+      const platform = platformUnderUnit(unit, board);
+      if (!platform) return null;
+      const verdict = jumpVerdict(unit, platform);
+      // Withheld outright for a Unit that simply is not eligible -- a Master
+      // has no Jump to learn about. Shown-but-blocked for the two a player can
+      // act on: step to the edge, or keep some movement back.
+      if (!verdict.ok && !["notOnEdge", "noMovement"].includes(verdict.reason)) return null;
+      return { platformId: platform.id, blocked: verdict.ok ? null : verdict.reason };
     },
   },
   {

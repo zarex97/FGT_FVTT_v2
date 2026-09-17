@@ -14,6 +14,7 @@ import {
   platformCentre, withinPlatformCentre, deactivationVerdict, actionSourceFor,
   boardablePlatform, mayBringMaster,
   canFallFrom, withinFootprint, nearestFreePlatformPanel, rescuerFor,
+  isEdgePanel, jumpVerdict, jumpLandings,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
 
@@ -356,6 +357,103 @@ describe("the Knocked Off ladder (#29)", () => {
     it("leaves a rescued Master exactly where it stood", () => {
       const m = { ...rider2(), id: "m", kind: "master" };
       expect(fallOff(m, hgob(), { passedAgility: false, servantRescued: true })).toEqual([]);
+    });
+  });
+});
+
+describe("Jump — leaving a Platform on purpose (#31)", () => {
+  // `platform()` anchors at (5,5) with a 3x3 footprint on level 1, so its edge
+  // ring is every panel of it.
+  const hgob = (over = {}) => platform({ ...over });
+  const rider3 = (over = {}) => ({
+    id: "r", kind: "servant", factionId: "a", level: 1, panel: { i: 5, j: 5 },
+    mov: 4, turnState: {}, ...over,
+  });
+  const b = (units) => ({ units, bounds: { rows: 13, cols: 13 }, alliances: {} });
+
+  describe("isEdgePanel", () => {
+    it("accepts a panel on the boundary", () => {
+      expect(isEdgePanel({ i: 5, j: 5 }, hgob())).toBe(true);
+    });
+
+    it("refuses the middle of a 3x3", () => {
+      expect(isEdgePanel({ i: 6, j: 6 }, hgob())).toBe(false);
+    });
+
+    it("refuses a panel that is not on the Platform at all", () => {
+      expect(isEdgePanel({ i: 9, j: 9 }, hgob())).toBe(false);
+    });
+  });
+
+  describe("jumpVerdict", () => {
+    it("lets a Servant on the edge jump", () => {
+      const u = rider3();
+      expect(jumpVerdict(u, hgob())).toMatchObject({ ok: true });
+    });
+
+    it("refuses a Master, whose sheet does not offer it", () => {
+      // "A non-Civilian or non-Master Unit ... can Jump off."
+      const m = rider3({ kind: "master" });
+      expect(jumpVerdict(m, hgob())).toMatchObject({ ok: false, reason: "wrongKind" });
+    });
+
+    it("refuses a Civilian", () => {
+      const c = rider3({ kind: "civilian" });
+      expect(jumpVerdict(c, hgob())).toMatchObject({ ok: false, reason: "wrongKind" });
+    });
+
+    it("refuses a Unit standing in the interior", () => {
+      const inner = rider3({ panel: { i: 6, j: 6 } });
+      expect(jumpVerdict(inner, hgob())).toMatchObject({ ok: false, reason: "notOnEdge" });
+    });
+
+    it("refuses a Unit that is not aboard at all", () => {
+      const ground = rider3({ level: 0, panel: { i: 0, j: 0 } });
+      expect(jumpVerdict(ground, hgob())).toMatchObject({ ok: false, reason: "notAboard" });
+    });
+
+    it("refuses a rider the Platform will not let off", () => {
+      // "Drake cannot unboard the Golden Hind."
+      const locked = hgob({ lockAboard: ["owner"], ownerId: "r" });
+      const u = rider3();
+      expect(jumpVerdict(u, locked)).toMatchObject({ ok: false, reason: "lockedAboard" });
+    });
+
+    it("refuses a Unit with no movement left", () => {
+      const spent = rider3({ turnState: { movedPanels: 4 } });
+      expect(jumpVerdict(spent, hgob())).toMatchObject({ ok: false, reason: "noMovement" });
+    });
+  });
+
+  describe("jumpLandings", () => {
+    it("offers ground panels off the footprint and within MOV", () => {
+      const u = rider3();
+      const out = jumpLandings(u, hgob(), b([hgob(), u]));
+
+      expect(out.length).toBeGreaterThan(0);
+      expect(out.every((p) => !withinFootprint(p, hgob()))).toBe(true);
+      expect(out.every((p) => Math.max(Math.abs(p.i - 5), Math.abs(p.j - 5)) <= 4)).toBe(true);
+    });
+
+    it("offers nothing beyond the Unit's remaining movement", () => {
+      const tired = rider3({ mov: 4, turnState: { movedPanels: 3 } });
+      const out = jumpLandings(tired, hgob(), b([hgob(), tired]));
+
+      expect(out.every((p) => Math.max(Math.abs(p.i - 5), Math.abs(p.j - 5)) <= 1)).toBe(true);
+    });
+
+    it("skips a panel somebody is already standing on", () => {
+      const u = rider3();
+      const blocker = { id: "x", kind: "servant", level: 0, panel: { i: 4, j: 4 } };
+      const out = jumpLandings(u, hgob(), b([hgob(), u, blocker]));
+
+      expect(out).not.toContainEqual({ i: 4, j: 4 });
+    });
+
+    it("never offers a panel off the board", () => {
+      const corner = rider3({ panel: { i: 5, j: 5 } });
+      const small = { ...b([hgob(), corner]), bounds: { rows: 7, cols: 7 } };
+      expect(jumpLandings(corner, hgob(), small).every((p) => p.i < 7 && p.j < 7 && p.i >= 0 && p.j >= 0)).toBe(true);
     });
   });
 });

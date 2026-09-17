@@ -50,6 +50,16 @@ Several Units knocked off by one move resolve **serially**, because "the nearest
 
 Leaving a Platform is a Jump, a Knocked Off, or an unboarding where the Platform allows it — never an ordinary walk. `canStopOn` refuses a step that leaves the footprint of the Platform a Unit is standing on.
 
+### Jumping off
+
+> *"A non-Civilian or non-Master Unit standing on an edge panel of a HGoB can Jump off the HGoB and land on a Game Board panel within its MOV; in this case, the Unit's MOV is reduced by 1."*
+
+The voluntary counterpart to being Knocked Off, and nothing like it: no Agility Check, no damage, and the Unit chooses where it lands. Open to **Servants and Summons** only — a Master leaves by being carried or by being knocked off, and a Civilian does not leave at all. The Unit must stand on an **edge panel** (on the footprint, orthogonally adjacent to something off it), the Platform must not hold it (`canUnboard`, which is how *"Drake cannot unboard the Golden Hind"* applies here too), and it must have movement left. The cost is the distance travelled **plus one**.
+
+> *"If a Servant would Jump off the HGoB with its Master directly next to it, the Servant can choose to bring its Master with it, the Master will land next to its Servant in the same orientation. This does not count as Moving the Master."*
+
+**Directly next to** is one panel, deliberately not the two the boarding carry uses — two clauses, two distances, kept as separate constants. The Master lands at the offset it held before the jump, and moves **forced**, which is the whole of *"does not count as Moving"*: it spends none of its own budget and fires nothing that watches movement.
+
 ### Cross-level targeting
 
 The platform itself may always be targeted. Occupants are protected by **four independent axes** (`module/rules/platforms.mjs:135-193`), each decided per-platform and authored in the platform's `crossLevel` block. A platform that says nothing is transparent — `OPEN_PLATFORM` allows free targeting in, out, and into AOE passengers (`module/rules/platforms.mjs:31-38`).
