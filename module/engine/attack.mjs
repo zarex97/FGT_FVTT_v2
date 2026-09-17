@@ -5647,13 +5647,19 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
   // -- and the only option on it is nothing. Refused here rather than by
   // giving them no reaction abilities, because an ALLY's Rho Aias is offered
   // at this same rung and is equally unavailable to them.
-  if (hasGranted(unitSnapshot(actor), GRANTS.noReactions)) return [];
+  const snapshot = unitSnapshot(actor);
+  if (hasGranted(snapshot, GRANTS.noReactions)) return [];
 
-  const own = reactionAbilities({
-    items: actor.items,
-    effects: actor.effects.map((e) => e.system?.defId).filter(Boolean),
-    turnState: actor.system?.turnState ?? {},
-  }).map((a) => ({ id: a.id, name: a.name, ownerId: defenderId }));
+  // `windowSubject`, not a hand-built `{items, effects, turnState}`. That shape
+  // carried a RAW turn record -- staleness never applied, so a list of spent
+  // abilities went on suppressing a reaction Turns after the Turn that spent
+  // them -- and it carried no `roundState` at all, so the round-scale half of
+  // the gate read `[]` and could not refuse anything. It is also the shape
+  // Ch. 23 and Ch. 24 condemn by name: a subject assembled from loose fields
+  // answers `null` to every question the snapshot would have answered, which is
+  // how five of Achilles's abilities were never offered at their one window.
+  const own = reactionAbilities(windowSubject(snapshot, actor.items))
+    .map((a) => ({ id: a.id, name: a.name, ownerId: defenderId }));
 
   // Plus anything a nearby ALLY could interpose. EMIYA's Rho Aias is the only
   // one, and it is the only ability in the game whose user is neither the
@@ -6006,10 +6012,15 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
 
     const defender = unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc);
     // Everything that would refuse it is checked BEFORE it is offered (Ch. 33):
-    // the window, the cooldown, the tokens, the Turn record.
-    const held = [...(defenderDoc.effects ?? [])].map((e) => e.system?.defId).filter(Boolean);
+    // the window, the cooldown, the tokens, the Turn record -- and the Round
+    // record, which this could not check at all until it stopped hand-building
+    // its subject. The snapshot is already in hand on the line above and was
+    // thrown away for a `{items, turnState, effects}` literal carrying a raw
+    // turn record and NO `roundState`, so `usedThisRound` read `[]` and the
+    // `oncePerRound`/`sameRoundExclusive` half of this gate had never once
+    // refused anything.
     const usable = abilitiesAtWindow(
-      { items: defenderDoc.items, turnState: defenderDoc.system?.turnState ?? {}, effects: held },
+      windowSubject(defender, defenderDoc.items),
       NP_DECLARATION_WINDOW,
     ).filter((item) => {
       if (!item.system?.cancelsNP) return false;

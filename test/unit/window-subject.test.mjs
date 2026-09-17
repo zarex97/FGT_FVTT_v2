@@ -23,6 +23,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { windowSubject, abilitiesAtWindow } from "../../module/rules/reactions.mjs";
 
 const runnerComet = {
@@ -74,5 +75,35 @@ describe("a dismounted-only ability at a window", () => {
     // visible rather than silent.
     const blind = { items: [runnerComet], effects: [], turnState: {}, roundState: {} };
     expect(abilitiesAtWindow(blind, "combatPhaseStart")).toEqual([]);
+  });
+});
+
+/**
+ * The same defect, twice more, found by the architecture review that followed
+ * the Turn Record work.
+ *
+ * `offerAttackerWindow` was fixed when this file was written; `offeredReactions`
+ * and `offerNPCancellation` went on hand-building their subjects, each throwing
+ * away a snapshot computed on the line above it. Both carried a RAW turn record,
+ * so staleness never applied — and neither passed `roundState` at all, which
+ * meant `abilitiesAtWindow`'s `usedThisRound` read `[]` and the `oncePerRound` /
+ * `sameRoundExclusive` half of the gate had never refused anything, anywhere.
+ *
+ * Read as TEXT, in the house style for holding code against code: these live in
+ * `engine/`, which needs a world to run. The shape is what is asserted, because
+ * the shape is what was wrong.
+ */
+describe("drift: no window subject is hand-built", () => {
+  const source = readFileSync("module/engine/attack.mjs", "utf8");
+
+  it("passes a snapshot to every window query, never a field literal", () => {
+    // `{ items: …, turnState: … }` — the shape Ch. 23 and Ch. 24 both condemn.
+    const handBuilt = [...source.matchAll(/\{[^{}]*\bitems:[^{}]*\bturnState:[^{}]*\}/g)];
+    expect(handBuilt.map((m) => m[0])).toEqual([]);
+  });
+
+  it("still asks its three window questions", () => {
+    // So the test above cannot pass by the call sites having been deleted.
+    expect(source.match(/windowSubject\(/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
   });
 });

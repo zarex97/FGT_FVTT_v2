@@ -90,6 +90,42 @@ export default [
     },
   },
   {
+    // The Turn Record and the Round Record expire by being READ: a record
+    // stamped with an earlier cycle is blank, and applying that is the job of
+    // `domain/stamped-record.mjs`. Reaching `system.turnState` off a document
+    // gets the raw stored object with the rule NOT applied — which is how a
+    // seven-panel walk on tick 3 went on zeroing remaining MOV at tick 9, and
+    // how a spent ability list went on suppressing a reaction two Turns later.
+    //
+    // Five sites did it. Four spelled the comparison out themselves and agreed;
+    // the fifth spelled it differently, and that was the half of #32 that
+    // survived the commit closing #32. A rule every caller restates is a rule
+    // some caller will restate wrongly, and nothing says which.
+    //
+    // Reading `snapshot.turnState` is fine and is what nearly everything does —
+    // that record came through the projection. This is only about going round
+    // it to the document. `engine/board.mjs#turnRecordOf` is the way in for a
+    // caller holding an actor rather than a snapshot.
+    files: ["module/**/*.mjs"],
+    ignores: [
+      // The writers themselves, the projection they are built on, the schema
+      // that declares them, and the one sanctioned document-to-projection step.
+      "module/engine/io.mjs",
+      "module/engine/board.mjs",
+      "module/rules/snapshot.mjs",
+      "module/data/**/*.mjs",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...["turnState", "roundState"].map((name) => ({
+          selector: `MemberExpression[object.property.name="system"][property.name="${name}"]`,
+          message: `Read the ${name === "turnState" ? "Turn" : "Round"} Record through a snapshot, or through engine/board.mjs#${name === "turnState" ? "turnRecordOf" : "roundRecordOf"} — "system.${name}" is the raw stored object, with the stale-by-reading rule NOT applied. See module/domain/stamped-record.mjs.`,
+        })),
+      ],
+    },
+  },
+  {
     // Build tools and the bootstrap log progress; that is their job.
     files: [
       "tools/**/*.mjs", "module/fgt.mjs",

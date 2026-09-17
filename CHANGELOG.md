@@ -34,6 +34,36 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### A gate that could not see the field it gates on (2026-09-17)
+
+#### Fixed
+
+- **The `oncePerRound` and `sameRoundExclusive` gates had never refused anything, at any window.**
+  `offeredReactions` and `offerNPCancellation` hand-built their filter subjects as
+  `{items, effects, turnState}` — each discarding a snapshot computed on the line immediately above —
+  and neither passed `roundState` at all, so `abilitiesAtWindow`'s `usedThisRound` read `[]`. Both also
+  carried a **raw** turn record, so staleness never applied and a spent ability list went on
+  suppressing a reaction Turns after the Turn that spent it. `offerAttackerWindow` was fixed when this
+  shape was first found; these two were not. Both use `windowSubject(snapshot, items)` now.
+
+  Measured live with a once-per-Round ability at `whenAttacked`: the hand-built subject offered it
+  before its use, after its use, and two Rounds later — three identical answers, because it could not
+  see the record that decides. `windowSubject` offers, refuses, then offers again.
+  **A gate that cannot see the field it gates on does not fail; it permits.**
+
+#### Added
+
+- **A lint forbidding `system.turnState` / `system.roundState` outside the writers.** Reading the
+  record off a document gets the raw stored object with the stale-by-reading rule *not* applied. Five
+  sites did it; four restated the comparison and agreed, and the fifth restated it differently — which
+  was the half of #32 that survived the commit closing #32. Reading `snapshot.turnState` is untouched
+  and is what nearly everything does; `engine/board.mjs#turnRecordOf` is the way in for a caller
+  holding an actor. It failed the build for two call sites when written, which is why it lands with the
+  commit that fixes them rather than with an exemption for them.
+
+- **A drift guard holding `engine/attack.mjs` against the hand-built subject shape**, read as text in
+  the house style — these call sites need a world to run, so nothing else can reach them.
+
 ### One answer to how far a Unit can still move (2026-09-17)
 
 #### Fixed
