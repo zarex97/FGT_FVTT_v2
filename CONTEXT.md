@@ -124,6 +124,15 @@ _Avoid_: beat, tick-mark, diamond
 **Phase**:
 Whether the world is in Day or Night. Some abilities read it.
 
+**Turn Record**:
+What a Unit has done so far during a Turn — that it Acted, how many Panels it Moved, which Abilities
+it used. Stamped with the Tick it was written at, and read as blank when that Tick has passed.
+_Avoid_: turn state, action log
+
+**Round Record**:
+The same at Round scale, for exclusions a Turn cannot express.
+_Avoid_: round state
+
 ## Numbers a Unit carries
 
 **Parameter**:
