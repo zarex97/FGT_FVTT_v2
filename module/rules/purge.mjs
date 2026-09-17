@@ -1,6 +1,6 @@
 /**
  * @file Choosing actors and their tokens for deletion.
- * @see docs/29-user-interface.md §29.13
+ * @see docs/34-action-bar.md
  *
  * Layer 2 (rules). Pure — it takes plain shapes and returns a plan, and the
  * dialog in `apps/actor-purge.mjs` performs it.

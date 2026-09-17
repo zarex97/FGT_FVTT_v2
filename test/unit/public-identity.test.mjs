@@ -1,6 +1,6 @@
 /**
  * @file What a chat card is allowed to show.
- * @see module/engine/public-identity.mjs, docs/04-units.md §4.2
+ * @see module/engine/public-identity.mjs, docs/06-units-and-stats.md
  *
  * A chat message is ONE document every viewer reads identically, exactly like a
  * token's texture — Foundry has no per-viewer rendering for either. So a card

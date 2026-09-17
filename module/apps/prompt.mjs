@@ -1,6 +1,6 @@
 /**
  * @file Rendering a question asked of this user.
- * @see docs/27-reaction-protocol.md, docs/26-authority-and-sockets.md §26.2
+ * @see docs/23-reactions.md, docs/38-authority.md
  *
  * Layer 4. `FGTSocket.ask` hands a spec here and waits for what this returns.
  *

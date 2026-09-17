@@ -1,6 +1,6 @@
 /**
  * @file Custom DataFields for the F/GT domain.
- * @see docs/22-data-models.md
+ * @see docs/07-schemas.md
  *
  * Two fields carry domain meaning that a bare StringField would lose: a rank
  * must parse, and a duration must parse. Validating at the schema level means a
@@ -15,7 +15,7 @@ const fields = foundry.data.fields;
 
 /**
  * A rank string. `null` and `""` mean **unranked**, which is a distinct value
- * from any rank and never orders below `E` (Ch. 05 §5.1).
+ * from any rank and never orders below `E` (Ch. 03).
  */
 export class RankField extends fields.StringField {
   /** @inheritdoc */

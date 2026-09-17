@@ -1,5 +1,5 @@
 # packs/_source/servants/heracles.yml
-# Full conversion: docs/31-case-heracles.md · data sheet: docs/D-servant-data-sheets.md §D.13
+# Full conversion: docs/45-case-studies.md · data sheet: docs/D-servant-data-sheets.md §D.13
 schema: 1
 id: heracles
 name: Heracles
@@ -9,7 +9,7 @@ type: servant
 trueName: Heracles
 servantClasses: [berserker]
 # The container it is summoned into, and the name opponents see until its
-# true name is revealed (Ch. 04 §4.2).
+# true name is revealed (Ch. 06).
 classContainer: berserker
 alignment: { order: chaotic, morality: mad }
 region: [greece]
@@ -29,8 +29,13 @@ sustainability: "2◈"
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
   # Permanent and undeactivatable for Heracles specifically -- which is what
-  # makes Bravery's suppression clause interesting (Ch. 31).
-  - { ref: class-mad-enhancement, rank: B, active: true, cannotDeactivate: true }
+  # makes Bravery's suppression clause interesting (Ch. 45).
+  # Clause 1 is a FLOOR and no forced deactivation: *"its Master's Health cannot
+  # drop below 20 in this way"*. He is the only bearer of that shape, and the
+  # only one for whom the template's forced deactivation would be a clause his
+  # sheet replaces rather than adds (Ch. 46 §46.4-C).
+  - { ref: class-mad-enhancement, rank: B, active: true, cannotDeactivate: true,
+      drainFloor: madEnhancementDrain, drainFloorWhen: null, forcedDeactivation: false }
   - { ref: divinity, rank: A }
   - { ref: class-battle-continuation, rank: A }
   - { ref: heracles-indomitable }
@@ -52,13 +57,13 @@ notes: |
   charge while Undying sits unused. Content declares the priority (300 / 200 / 100 / 50) and the
   engine never names him.
 
-  **God Hand is the ability Ch. 31 was written for.** Its first passive CASCADES: "if the damage
+  **God Hand is the ability Ch. 45 was written for.** Its first passive CASCADES: "if the damage
   of the Attack that defeated Heracles exceeds his current Health, the excess damage is reduced
   from his newly restored Health, and so on", so one very large Noble Phantasm can burn several
   of the eleven charges in a single resolution. Its second keeps a ledger of attack identities --
-  a set, not a number, which is the line §6.10 draws while naming this exact ability -- and an
+  a set, not a number, which is the line Ch. 06 draws while naming this exact ability -- and an
   attack in that ledger can never take him below 1 Health again.
 
-  What counts as "that Attack" is a judgement rather than a mechanism (§31.3): the **ability**,
+  What counts as "that Attack" is a judgement rather than a mechanism (Ch. 45): the **ability**,
   with a per-attacker pseudo-id for Normal Attacks. Recording the attacking Unit instead would
   mean one kill locks that Servant out for ever by any means; recording the instance is vacuous.

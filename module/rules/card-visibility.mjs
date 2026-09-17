@@ -1,11 +1,11 @@
 /**
  * @file What each viewer is shown on a chat card.
- * @see docs/26-authority-and-sockets.md §26.7, §26.6
+ * @see docs/38-authority.md, Ch. 38
  *
  * Layer 2 (rules). Pure — takes a result and a viewer, returns the card that
  * viewer should see.
  *
- * This is the part of closed-information play that is worth building. §26.6
+ * This is the part of closed-information play that is worth building. Ch. 38
  * assesses the shadow-actor pattern honestly and **defers** it: hiding part of
  * a document is something Foundry cannot do, and the workaround doubles the
  * document count for a failure mode that leaks the wrong thing. But the
@@ -19,7 +19,7 @@
  */
 
 /**
- * §26.7's two modes.
+ * Ch. 38's two modes.
  *
  * `filtered` is one message that every client renders differently — fast and
  * simple, and the default. `strict` creates a separate whispered message per
@@ -27,7 +27,7 @@
  * the full result to every client that can read the flags.
  *
  * The distinction is documented rather than hidden so a group can choose
- * knowingly, which is the whole of §26.6's argument in one setting.
+ * knowingly, which is the whole of Ch. 38's argument in one setting.
  */
 export const VISIBILITY_MODES = Object.freeze(["filtered", "strict"]);
 
@@ -87,7 +87,7 @@ export function cardFor(result, viewer) {
  * they are the one who applied it, so they already know.
  *
  * `hidden` is a COUNT rather than silence. "2 more" says something happened
- * without saying what, which is the line §26.7 draws everywhere else.
+ * without saying what, which is the line Ch. 38 draws everywhere else.
  *
  * @param {Array<{name: string, controllers?: string[]}>} rows
  * @param {object} viewer

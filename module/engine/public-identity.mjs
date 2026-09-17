@@ -1,6 +1,6 @@
 /**
  * @file What everyone sees: the face and the name a concealed unit shows.
- * @see docs/04-units.md §4.2, docs/26-authority-and-sockets.md §26.6
+ * @see docs/06-units-and-stats.md, docs/38-authority.md
  *
  * Layer 3. One home for the question "what is this unit publicly", because
  * three surfaces need the same answer and each had been deciding it alone: a
@@ -9,7 +9,7 @@
  * The rule those three share is that **none of them can render per viewer.** A
  * token's texture is one field on one document; a chat message is one document
  * every client reads identically. Foundry has no per-viewer rendering for
- * either, and building it is the shadow-actor pattern Ch. 26 §26.6 assesses
+ * either, and building it is the shadow-actor pattern Ch. 38 assesses
  * and defers. So all three show the PUBLIC identity — including to the unit's
  * own owner, whose card is the same card the opponent is reading.
  *

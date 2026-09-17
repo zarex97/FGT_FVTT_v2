@@ -22,7 +22,16 @@ passiveRules:
   - key: OnEvent
     event: abilityUsed
     automatic: true
-    ofCategory: thaumaturgy
+    # BOTH categories. *"Note: 'Projection' Skills and NP are treated as
+    # Thaumaturgy Spells."* They carry `category: projection` -- which is the
+    # right key, because Projection Magic's Silence gate and Tracing's cooldown
+    # reduction both name that group and not this one -- so the note is what
+    # makes Magecraft reach them, and `ofCategory` has always been a list.
+    #
+    # Without it his Range Up fired only on the three actual Thaumaturgy Spells
+    # and never on the five Projections, which is most of what he does
+    # (Ch. 46 §46.12).
+    ofCategory: [thaumaturgy, projection]
     then:
       - key: ApplyEffect
         effect: { id: rangeUp, magnitude: 1 }

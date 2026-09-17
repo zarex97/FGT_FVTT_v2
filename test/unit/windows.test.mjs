@@ -1,6 +1,6 @@
 /**
  * @file The ability timing window vocabulary.
- * @see module/rules/windows.mjs, docs/15-abilities.md §15.3
+ * @see module/rules/windows.mjs, docs/17-abilities.md
  *
  * `timing.window` is authored by 117 of 195 abilities and, until this module,
  * was matched by string comparison at three scattered call sites with no
@@ -56,7 +56,7 @@ describe("the vocabulary", () => {
 describe("isAbilityWindow", () => {
   it("accepts a known window and refuses anything else", () => {
     expect(isAbilityWindow("whenAttacked")).toBe(true);
-    // The documented-but-wrong spelling from docs/15-abilities.md §15.3.
+    // The documented-but-wrong spelling from docs/17-abilities.md.
     expect(isAbilityWindow("damageStepStart")).toBe(false);
     // A command spell window. The two vocabularies stay separate.
     expect(isAbilityWindow("anyTime")).toBe(false);

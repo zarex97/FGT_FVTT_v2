@@ -1,10 +1,10 @@
 /**
  * @file Keeping an actor's Foundry ownership in sync with its faction assignment.
- * @see docs/26-authority-and-sockets.md §26.1, docs/04-units.md §4.10
+ * @see docs/38-authority.md, docs/06-units-and-stats.md
  *
  * Layer 3. `apps/faction-config.mjs` lets a GM assign a controlling player to a
  * faction and fires `fgtFactionsChanged` on the GM's own client — and nothing
- * consumed it. §26.1 states the design plainly: *"A player owns their own
+ * consumed it. Ch. 38 states the design plainly: *"A player owns their own
  * Servants and Master."* Nothing made that true: `game.settings.get("fgt",
  * "factions")` held the assignment correctly, but every actor's `ownership`
  * stayed `{default: 0}` regardless of which faction it belonged to.
@@ -14,7 +14,7 @@
  * could not drag its token — Foundry's own permission check refuses the
  * write, a separate gate from this system's own MOV/budget legality in
  * `movement-hooks.mjs`, which still ran and still looked satisfied — and,
- * once the identity-concealment image swap existed (Ch. 04 §4.2), saw the
+ * once the identity-concealment image swap existed (Ch. 06), saw the
  * standard image on their OWN sheet: `context.mjs`'s "am I exempt from
  * concealment" check reads `actor.isOwner`, which was never true for them.
  *

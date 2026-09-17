@@ -5,7 +5,7 @@
 #
 # PASSIVE 1 is the first REACTION PRE-EMPTION in the corpus: *"Jack can Attack
 # first instead of the opposing Unit."* Not a Counter -- a Counter happens at
-# the end of the Process it answers, after the damage has landed (§12.8's
+# the end of the Process it answers, after the damage has landed (Ch. 21's
 # `counter` rung), and this happens instead, before the attacker's Process
 # exists at all. `AttackFirst` (rules/elements.mjs) declares it and
 # `engine/attack.mjs#offerPreemption` runs it: the attacker's declaration is

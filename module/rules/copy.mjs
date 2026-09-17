@@ -1,10 +1,10 @@
 /**
  * @file Copying an ability — Wisdom of Dún Scáith.
- * @see docs/15-abilities.md §15.7
+ * @see docs/17-abilities.md
  *
  * Layer 2 (rules). Pure.
  *
- * §15.7 calls this the hardest ability in the reference set to model, and the
+ * Ch. 17 calls this the hardest ability in the reference set to model, and the
  * reason is that it is not one rule but two: *which* abilities may be copied,
  * and *what a copy is*. Both are here, because separating them is how a copy
  * ends up with the source's rank or the source's cooldown.

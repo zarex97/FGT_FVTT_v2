@@ -1,6 +1,6 @@
 /**
  * @file The `diceCount` damage formula — damage as a count of dice over a threshold.
- * @see docs/36-case-remaining.md §36.6, docs/13-damage-pipeline.md
+ * @see docs/45-case-studies.md, docs/22-damage-pipeline.md
  *
  * Layer 2 (rules). **Pure** — no `Roll`, no documents. The caller evaluates the
  * dice and hands the faces in, which is the same bargain the damage pipeline

@@ -1,5 +1,5 @@
 # Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
-# Discussed: docs/33-case-mannanan.md §33.5
+# Discussed: docs/45-case-studies.md
 #
 # "(Active) This Skill can only be used when Mannanán's Health is less than 30%
 #  of its maximum value OR when she is defeated, and while she has at least 1
@@ -9,7 +9,7 @@
 # A MODE with an entry price, and the first in the corpus: Mad Enhancement,
 # Presence Concealment and Riding's Active are all free switches, so the toggle
 # was a bare write with no gates and no phases. It is also a FIFTH kind of
-# revival (§31.2 lists four) -- optional, gated on a resource, and transforming
+# revival (Ch. 45 lists four) -- optional, gated on a resource, and transforming
 # its bearer rather than only restoring Health.
 schema: 1
 id: mannanan-gods-holder-possession
@@ -80,7 +80,7 @@ passiveRules:
   # the answer is no.
   #
   # Priority 250: above generic Guts (200) and below Special Guts (300), which
-  # is where §33.5 places it.
+  # is where Ch. 45 places it.
   - key: RevivalSource
     id: holderMode
     revivalPriority: 250

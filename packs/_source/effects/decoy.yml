@@ -1,4 +1,4 @@
-# Appendix A §A.10, docs/10-effects-taxonomy.md §10.4 Group D6.
+# Appendix A §A.10, docs/14-effect-taxonomy.md Group D6.
 #
 # > "That enemy Unit cannot Move away from the Unit with Decoy, and can only
 # > Move in its direction; and can only Attack and use enemy-Unit-affecting
@@ -25,7 +25,7 @@ baseChance: 100
 # "Bypasses resistance when self- or ally-applied." Decoy is used DEFENSIVELY --
 # Mannanán puts it on herself to feed the Fragarach Counter, Kiritsugu's
 # Scapegoat puts it on an ally -- so the debuff machinery that exists to refuse
-# an enemy's debuff must not refuse your own side's (Ch. 10 §10.6).
+# an enemy's debuff must not refuse your own side's (Ch. 14).
 allySelfBypassesResistance: true
 rules:
   # "Within max(3, their Range)" -- the floor is authored and the Range half is

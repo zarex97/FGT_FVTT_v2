@@ -1,6 +1,6 @@
 /**
- * @file The rest of Ch. 19 — Region, Civilians, victory and the setup gates.
- * @see docs/19-environment.md, docs/45-implementation-status.md C2
+ * @file The rest of Ch. 29 — Region, Civilians, victory and the setup gates.
+ * @see docs/29-environment.md, docs/46-roster-re-audit.md C2
  */
 
 import { describe, it, expect } from "vitest";
@@ -200,7 +200,7 @@ describe("Territory Creation amplification", () => {
 describe("egypt", () => {
   it("is in the graph, because Ozymandias is from there", () => {
     // A Servant's `region` is matched against this curated list; a region with
-    // no entry matches no war, so §19.3's parameter grant silently never fires.
+    // no entry matches no war, so Ch. 29's parameter grant silently never fires.
     expect(REGION_ADJACENCY.egypt).toBeDefined();
   });
 
@@ -214,7 +214,7 @@ describe("egypt", () => {
 });
 
 describe("the first-round attack ban reads its Round", () => {
-  // §7.9's fourth gate. The rule was right and its number was hardcoded, so
+  // Ch. 04's fourth gate. The rule was right and its number was hardcoded, so
   // `CONFIG.FGT.gates.noAttackRound` sat beside it unread -- the same shape as
   // the other three, one step further along.
   it("bans attacks through the Round it is given", () => {

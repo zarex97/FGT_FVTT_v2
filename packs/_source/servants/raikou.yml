@@ -26,7 +26,7 @@ trueName: "Minamoto no Yorimitsu"
 # second statline, so it is carried in `notes` rather than in a field.
 servantClasses: [berserker]
 # The container it is summoned into, and the name opponents see until its true
-# name is revealed (Ch. 04 §4.2). The sheet states no Class and lists three
+# name is revealed (Ch. 06). The sheet states no Class and lists three
 # class skills; Mad Enhancement is Berserker's and is the one that decides her
 # (R9). Not cosmetic: the container sets base Detect (`rules/identity.mjs`), her
 # ZON base and which column of `npCostByRank` her Master pays.
@@ -68,6 +68,16 @@ abilities:
   # either clause.
   - ref: class-mad-enhancement
     rank: EX
+    # BOTH halves of clause 1, like Penthesilea, and her floor is conditional in
+    # the same words: *"while the Skill does not meet the condition to be
+    # deactivated"* -- which for Raikou is her Master standing within 2 panels.
+    # Authored unconditionally here; Ch. 46 §46.4-C.
+    drainFloor: madEnhancementDrain
+    # *"...while the Skill does not meet the condition to be deactivated"* --
+    # for her, while her Master stands within 2 panels and the `ForceMode` rule
+    # below is holding it on. Ch. 46 §46.4-C.
+    drainFloorWhen: ["self:modeHeld:madEnhancement"]
+    forcedDeactivation: true
     passiveRules:
       # "(Passive) When Raikou's Master is within a 2 panel area of herself, her
       # Mad Enhancement is constantly Active and cannot be deactivated."

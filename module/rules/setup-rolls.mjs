@@ -1,13 +1,13 @@
 /**
  * @file Setup rolls, and the summon plan they belong to.
- * @see docs/14-checks-and-randomness.md §14.9, docs/37-content-pipeline.md §37.6
+ * @see docs/13-checks-and-randomness.md, docs/40-content-pipeline.md
  *
  * Layer 2 (rules). Pure — it says **what to roll** and how to combine the
  * results, and the caller rolls. That split is what lets the summon dialog show
  * every line for confirmation with a per-line re-roll: a plan is inspectable in
  * a way a sequence of side effects is not.
  *
- * The `granted` versus `base` distinction (Ch. 05 §5.6) is at its most visible
+ * The `granted` versus `base` distinction (Ch. 03) is at its most visible
  * here — though not, any longer, in Base Attack. This file used to hold that a
  * granted parameter step moved Base Attack by ±10 while an innate one did not,
  * *"because the sheet's Base Attack already accounts for it"*. The author has
@@ -22,6 +22,7 @@
 import { Rank } from "../domain/rank.mjs";
 import { normalServantSetupPlan, normalMasterSetupPlan } from "./setup-rolls-normal.mjs";
 import { lookup } from "../domain/tables.mjs";
+import { maxHealthFor } from "../domain/health.mjs";
 // Re-exported so the summon machinery and its tests keep one import site, while
 // the definition lives in `domain/` -- `data/actor/servant.mjs` derives Base
 // Attack in `prepareBaseData` and a data model may import from `domain` only.
@@ -97,14 +98,13 @@ export function plansFor(ruleset) {
  */
 export function servantSetupPlan(sheet) {
   const p = sheet?.parameters ?? {};
-  const end = Rank.parseOrNull(p.end);
   const agi = Rank.parseOrNull(p.agi);
   const luc = Rank.parseOrNull(p.luc);
 
   return {
     kind: "servant",
     lines: [
-      // A summon-time variant (Ch. 05, `rules/summon-variant.mjs`) FIRST — it
+      // A summon-time variant (Ch. 03, `rules/summon-variant.mjs`) FIRST — it
       // changes what the Servant's other lines even mean (Semiramis's
       // Sustainability base differs by branch), so it has to resolve before
       // anything downstream reads her shape. `map` is a two-entry array
@@ -117,7 +117,7 @@ export function servantSetupPlan(sheet) {
         base: null,
         roll: { formula: "1d2", map: [sheet.summonVariant.heads?.id ?? null, sheet.summonVariant.tails?.id ?? null] },
       }] : []),
-      // HGoB Construction source 2 (Ch. 32): "roll 2 six-sided dice. The
+      // HGoB Construction source 2 (Ch. 45): "roll 2 six-sided dice. The
       // Construction is increased by X, where X = the number of both dice
       // multiplied together." Foundry's own Roll grammar already evaluates
       // "1d6*1d6" as two independent dice multiplied, so this needs no
@@ -134,8 +134,26 @@ export function servantSetupPlan(sheet) {
       {
         id: "maxHealth",
         label: "Max Health",
-        // Stated on the sheet where it disagrees with the table.
-        base: sheet?.baseHealth ?? Number(lookup("baseHealthByEnd", end) ?? 0),
+        // The TABLE, with the sheet's stated figure only as a fallback -- and
+        // `maxHealthFor` itself rather than a second spelling of it, because
+        // two derivations that agree today are two derivations that can drift.
+        //
+        // This read `sheet?.baseHealth ?? table`, the exact inverse of what
+        // Ch. 46 §46.6 settled ("the table beats the sheet, the same way Base
+        // Attack's does") and of what `domain/health.mjs#maxHealthFor` has
+        // done since. Both rules were live at once, and which one a Servant
+        // was played at depended on how it reached the board: imported from
+        // the pack and prepared by `ServantData#prepareBaseData` it got the
+        // table, summoned through the war-setup wizard it got the sheet.
+        //
+        // Exactly four sheets can tell the difference, and they are the four
+        // §46.6 was written about -- Asterios, Castor and Pollux (END A++,
+        // stated 1500, table 1700) and Penthesilea (END B+, stated 1250, table
+        // 1350). Measured by building a war through `commitWar` rather than by
+        // hand: Asterios arrived at 1600 where he should be 1800, his Greece
+        // END grant included. Every audit before it hand-imported its actors,
+        // which is the hazard §46.2 lists (Ch. 46 §46.4-K).
+        base: maxHealthFor(sheet, lookup, Rank),
         roll: null,
         note: "no roll — Health(S) is not used for a Servant",
       },
@@ -176,7 +194,7 @@ export function masterSetupPlan(sheet, { mode = "essences" } = {}) {
       { id: "maxHealth", label: "Max Health", base: 250, roll: { formula: "2d100", signCoin: true } },
       { id: "maxAgility", label: "Max Agility", base: 4, roll: { formula: "1d8" } },
       { id: "maxLuck", label: "Max Luck", base: 8, roll: { formula: "1d12" } },
-      // Ch. 14 §14.9: "Heads=High Rank, Tails=Low Rank." Emitted BEFORE the
+      // Ch. 13: "Heads=High Rank, Tails=Low Rank." Emitted BEFORE the
       // Base Attack line, which derives from it -- `resolveSetupPlan` walks
       // the lines in order.
       ...(mode === "coinFlip" ? [rankLine()] : []),
@@ -189,7 +207,7 @@ export function masterSetupPlan(sheet, { mode = "essences" } = {}) {
 /**
  * The Base Attack (MAG) line, which is where a Master's rank actually shows up.
  *
- * §14.9's three modes, which the `masterMode` setting selects:
+ * Ch. 13's three modes, which the `masterMode` setting selects:
  *
  * - `essences` — the rank comes from the Master Essence on the sheet.
  * - `coinFlip` — *"you can still determine High Rank or Low Rank Masters by
@@ -205,7 +223,7 @@ export function masterSetupPlan(sheet, { mode = "essences" } = {}) {
  * The rank a coin decides.
  *
  * *"You can still determine High Rank or Low Rank Masters by Flipping a Coin
- * for each Master; Heads=High Rank, Tails=Low Rank"* (Ch. 14 §14.9). `A` and
+ * for each Master; Heads=High Rank, Tails=Low Rank"* (Ch. 13). `A` and
  * `C` stand for the two tiers -- the rulebook names the tier, not the letter,
  * and any A/B or C/D would serve.
  *
@@ -299,7 +317,7 @@ export function resolveSetupPlan(plan, rolls, signs = {}) {
  * The Base Attack adjustment a set of **granted** steps produces.
  *
  * Only STR and MAG move Base Attack. AGI, END and LUC steps change their own
- * maxima and leave it alone — §37.6's worked example makes the point explicitly
+ * maxima and leave it alone — Ch. 40's worked example makes the point explicitly
  * ("BA adjustment: none (AGI does not affect BA)").
  *
  * @param {Record<string, number>} grantedSteps parameter → steps granted
@@ -316,7 +334,7 @@ export function baseAttackAdjustment(grantedSteps) {
 }
 
 /**
- * The ordered summon sequence (§37.6).
+ * The ordered summon sequence (Ch. 40).
  *
  * Order is load-bearing: the **rolls come first**, then Master grants, then the
  * war Region's grant. A Region step applied before the roll would be rolled

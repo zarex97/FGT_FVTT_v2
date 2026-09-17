@@ -1,0 +1,922 @@
+# 29 — User Interface
+
+> **Implementation note (Ch. 45).** Three applications joined the sheets and the turn HUD: the
+> **summon dialog** (§37.6), the **Wisdom curation dialog** (§36.4) and a generic **choice dialog**
+> the second one asks a player through. All three are `ApplicationV2` with
+> `HandlebarsApplicationMixin`, as §29.1 requires.
+>
+> Two conventions they establish, both from this chapter's argument that the interface exists to
+> prevent mistakes rather than to look good. First: **a control that is unavailable is disabled
+> with its reason on screen**, never hidden — a summon re-roll button that vanished at match start
+> teaches a GM nothing, and one that is greyed out beside "the match has started, so the setup
+> rolls are locked" teaches them the rule. Second: **the arithmetic is shown, not the answer** —
+> "1000" tells a GM nothing about whether to re-roll and "18 + 2 (coin) + 2 granted = 22" tells
+> them everything, which is the same argument the damage explainer (Ch. 30) already won.
+>
+> **The sheet scrolls.** Foundry gives `.window-content` a fixed height and no overflow of its
+> own, so a Servant with thirteen abilities — Medea — simply ran off the bottom. The scroll lives
+> on the **part root**, which is what `scrollable: [""]` names, so ApplicationV2 restores the
+> position after each re-render; scrolling `.window-content` instead would jump back to the top on
+> every edit, because the sheet re-renders on change.
+>
+> §29.3's Master block was a **partial** inside the body rather than a second part, for the same
+> reason: two parts meant two scroll containers on one visible page, and the position ApplicationV2
+> preserves is per part — so a Master editing a stat watched its Command Spell tracker jump. That
+> argument is about two panels visible **at once**. The sheet has tabs now (§29.2), one part each,
+> and only one is on screen at a time — so per-part scroll is the behaviour we want rather than the
+> defect it was, and the Master block is Overview content.
+>
+> `test/unit/i18n.test.mjs` now holds every literal `localize` key in the templates and modules
+> against `lang/en.json`. A missing key does not throw — Foundry renders the key itself, so a
+> button reads `FGT.Summon.Confirm` and the system looks broken in a way nothing else would catch.
+>
+> It also holds a rule that is easy to miss and expensive to hit: **no key may be the prefix of
+> another key.** Foundry expands the flat dotted keys into a tree, and a key that is both a string
+> and a prefix asks that tree to hold a string and an object at one node. `expandObject` throws and
+> the merge of the *whole file* is abandoned, so one bad pair takes down all 591 keys and every
+> string in the system renders as its own name. `FGT.Editor.Kind` was the label on a field whose
+> options were `FGT.Editor.Kind.classSkill` and friends. Nothing failed loudly.
+>
+> Still missing from this chapter: §29.6's dropdown predicate builder, the facing dialog and the
+> remaining §29.8 dialogs.
+
+The UI's job in a game this mechanically dense is not to look good — it is to make the rules
+legible. Every screen in this chapter is justified by a specific class of mistake it prevents.
+
+---
+
+> **The war setup wizard is built** (`apps/setup-wizard.mjs`, six tabs). Ch. 19 §19.7 has listed
+> twelve procedures that happen before a war begins since it was written, and three of them existed;
+> this is the window that runs the rest. Two entry points, for the reason `summon-entry.mjs` gives
+> for having two: a `restricted` settings menu, and a third button in the Actors sidebar header
+> beside Summon and Game Log.
+>
+> Both of this chapter's standing rules are load-bearing here, and both are exercised by the real
+> corpus rather than by a contrived case:
+>
+> - **Disabled with its reason, never hidden.** The reference roster holds **no Saber**, so on every
+>   Advanced war two container rows dim and print *"No Saber exists in this ruleset's compendium.
+>   Choose a Servant for this slot, change its class, or remove it."* Commit stays disabled with the
+>   refusal list beside it until they are resolved.
+> - **The arithmetic is shown, not the answer.** A rolled line reads `14 + 1 (1d2)` above `15`, an
+>   unrolled one says *"no roll — Health(S) is not used for a Servant"* rather than showing a bare
+>   figure, and a summon variant reads `1d2 → dsc`. `describe` moved into a pure
+>   `apps/summon-present.mjs` so the summon dialog and the wizard cannot render the same line
+>   differently.
+>
+> A fixed container is chosen through a **filtering combobox** — prefix matches ranked above
+> substring ones, so typing `EM` surfaces EMIYA first. A `<select>` of a hundred Servants is not a
+> control anyone can use at a table, and the roster only grows.
+>
+> **`.fgt-nav` is the actor sheet's *vertical* rail**, sized by `grid-area: nav` inside that sheet's
+> grid. Reused unchanged in a window with no such grid it rendered as six icons stacked down the
+> middle, swallowing the top third of the wizard — found by looking at it, not by any test. The
+> override lives in `_apps.scss` under `.setup-wizard`, because the sheet's rail is right as it is
+> and only its container differs.
+
+
+## 29.1 ApplicationV2
+
+All UI is `ApplicationV2` with `HandlebarsApplicationMixin`. V1 `Application` and `FormApplication`
+are removed from our surface entirely; v14's V2 API is native DOM, has a proper parts system,
+and handles form submission declaratively.
+
+```js
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+export class ServantSheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheetV2) {
+  static DEFAULT_OPTIONS = {
+    classes: ["fgt", "sheet", "servant"],
+    position: { width: 780, height: 720 },
+    window: { resizable: true, contentClasses: ["fgt-sheet-content"] },
+    actions: {
+      useAbility:   ServantSheet.#onUseAbility,
+      toggleMode:   ServantSheet.#onToggleMode,
+      rollSetup:    ServantSheet.#onRollSetup,
+      removeEffect: ServantSheet.#onRemoveEffect,
+      editAbility:  ServantSheet.#onEditAbility,
+    },
+    form: { submitOnChange: true, closeOnSubmit: false },
+  };
+
+  static PARTS = {
+    header:    { template: "systems/fgt/templates/servant/header.hbs" },
+    tabs:      { template: "systems/fgt/templates/shared/tabs.hbs" },
+    stats:     { template: "systems/fgt/templates/servant/stats.hbs" },
+    abilities: { template: "systems/fgt/templates/servant/abilities.hbs", scrollable: [""] },
+    effects:   { template: "systems/fgt/templates/servant/effects.hbs", scrollable: [""] },
+    bio:       { template: "systems/fgt/templates/servant/bio.hbs" },
+  };
+
+  async _prepareContext(options) { /* … */ }
+}
+```
+
+The `actions` map replaces `activateListeners` — handlers are declared, bound automatically to
+`[data-action]` elements, and there is no jQuery.
+
+---
+
+> **Implemented.** `module/apps/actor-sheet/`, as **four** tabs rather than this section's five —
+> the fifth was a stats tab, and D29.3 wants those values in the header where they are always
+> visible. One `FGTActorSheet` serves all six actor types: the tabs are the same everywhere and
+> only Overview's blocks differ, so six classes would have been six copies of the same eighty
+> percent. Tabs come from `ApplicationV2.TABS` with **one `PART` per tab**, which is what finally
+> makes §29.10's `render({parts: ["effects"]})` possible.
+>
+> Two things the framework needs that are easy to miss. `changeTab` finds the nav with
+> `closest(".tabs")` and the panes with `.tab[data-group]`, so without those two class names it
+> binds the click and then has nothing to toggle. And a tab `PART` must be handed its own entry
+> from `context.tabs` in `_preparePartContext`, or its template has no `data-tab` to render.
+>
+> The split that matters is not the tabs but **`present.mjs`**: every piece of arithmetic the sheet
+> does — bar percentages, granted-step recovery, turns-to-◈, effect grouping, stage damage — lives
+> in a module with no `game`, no documents and no canvas, and is unit-tested with plain objects.
+> `context.mjs` is the impure half: it fetches and hands the results over. A question with an
+> answer belongs in a test rather than inside a template that can only be checked by opening it.
+>
+> **Every state line and every cost is read from the engine's own gate.** A card calls
+> `canUseAbility({ability: usageSpecFor(item), …})` and `npCost(…)` — the same calls
+> `engine/attack.mjs` makes before it resolves anything — so what the card promises and what the
+> click does cannot disagree, and a gate added to `rules/costs.mjs` later appears on the sheet
+> without anyone wiring it. `abilityState`'s default branch is load-bearing: an unrecognised reason
+> falls through to `FGT.Ability.Refused.<reason>`, so the worst case is an untranslated key rather
+> than a disabled button with no explanation, which is the one thing D29.2 forbids.
+
+## 29.2 The Servant sheet
+
+Four tabs — Overview, Abilities, Effects, Details — over an always-visible header. The design
+constraint: a player mid-turn needs to answer *"what can this unit do right now, and what is
+stopping it?"* in under five seconds.
+
+### Header (always visible)
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  ▣  KARNA                     Lancer · Chaotic Good · India        │
+│     ████████████████░░░░  1,243 / 1,512   Health                   │
+│     ████████████░░░░░░░░       14 / 20    Agility                  │
+│     ██████░░░░░░░░░░░░░░        4 / 8     Luck                     │
+│                                                                    │
+│  STR B   END C   AGI A   MAG B   LUC D      MOV 7   Range 2        │
+│  BA(STR) 125   BA(MAG) 175        Sustainability 2◈                │
+│                                                                    │
+│  Master: Jinako  ●●○  ZON 2 · ✓ inside     Contract: Contracted    │
+│  ⚠ Fated Rivals: Arjuna within Range — Karna may only attack Arjuna│
+└────────────────────────────────────────────────────────────────────┘
+```
+
+The header carries every value that gates an action. The ZON indicator and the compulsion
+warning are the two highest-value elements: both prevent mistakes that are otherwise only
+discovered after committing.
+
+The `▣` portrait is a click target, not decoration: it opens Foundry's FilePicker, the same as
+the ability sheet's icon (§29.6). Both used AppV1's `data-edit` markup, which `ActorSheetV2` and
+`ItemSheetV2` do not wire up on their own — `apps/image-edit.mjs` is the small shared handler
+that does, bound as the `editImage` action both sheets declare.
+
+A Servant carries a second image, `system.defaultImage` (the Details tab, GM-only, beside the
+identity fields), for the same reason `classContainer` stands in for `trueName`: while
+`identityRevealed` is unset, anyone but the GM or the Servant's own owner sees this standard image
+in the header instead of the true portrait — the true `img` is never overwritten, so the sheet the
+GM edits and the one everyone else sees stay two different, correct things.
+
+The **placed token** carries the same standard-image-until-revealed behaviour, but not the
+owner exemption: a token's texture is one field every connected client renders identically, with
+no per-viewer branch the way a sheet's own render has, so showing the true portrait to the owner
+there would show it to everyone sharing the canvas, opponents included. `engine/token-image.mjs`
+keeps the placed token and `prototypeToken` in sync with whichever image is currently public —
+revealing a Servant's identity is what puts its true face on the board, for the whole table at
+once.
+
+### Abilities tab
+
+One card per ability, sorted: class skills, personal skills, Noble Phantasms.
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ ⚡ Flash of the Sun God                        Rank EX   [ USE ]   │
+│    Ready · Cooldown 4◈ (12 turns)                                  │
+│    ⚠ Cannot be used on the same Turn as Mana Burst (Flames)        │
+│    Restores 3 Agility · Atk Up 40% (30% NP) 1◈ · NP DmUp 20% 1◈    │
+├────────────────────────────────────────────────────────────────────┤
+│ 🔥 Brahmastra Kundala                    Rank A+ · NP  [ USE ]     │
+│    Ready from Round 6 (2 rounds away)                              │
+│    Range 5 · 7×7 area · 4× + 100 · Burn 3◈ · Def Dwn (B) 1◈        │
+│    Master cost: 53 Health (Jinako has 118)          ✓ affordable    │
+│    Also puts Mana Burst (Flames) on cooldown                       │
+├────────────────────────────────────────────────────────────────────┤
+│ 🌞 Vasavi Shakti                       Rank EX · NP   [ ACTIVATE ] │
+│    Not yet activated                                               │
+│    ⚠ Activating permanently removes Kavacha and Kundala (−90% dmg) │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+Every disabled button carries a tooltip stating exactly why (Ch. 15 §15.10). Every irreversible
+action carries a warning before the click, not after.
+
+**The affordability line reads through `currentHealth`.** *"(Jinako has 118)"* is the whole point
+of stating affordability rather than implying it — and `abilityCost` read `master.health.value`,
+while the Master `context.mjs` hands it is the **board's projection**, where `snapshotUnit`
+flattens `health` to a bare number. `.value` was `undefined`, the `?? 0` beside it made every
+Master destitute, and every Noble Phantasm in the game reported *"cannot be paid"* on its owner's
+own sheet. `cannotPay` in `rules/costs.mjs` was already correct, which made it worse rather than
+better: the gate allowed the press while the sheet denied it, and the player believes the sheet.
+Any presenter handed a unit from the board reads Health through `domain/health.mjs` — the two
+shapes are both legitimate and only that module knows both.
+
+### Effects tab
+
+Grouped by polarity, with the source and remaining duration:
+
+```
+BUFFS
+  Atk Up 40% (30% NP)      Flash of the Sun God      3 turns  [×]
+  NP DmUp 20%              Flash of the Sun God      3 turns  [×]
+
+DEBUFFS
+  Burn                     Enemy Archer's arrow      5 turns
+    −30 BA · 50 damage at end of Round
+  Poison  Stage 3          Semiramis                 ∞
+    80 damage at end of Round · stage increases at Round start
+
+STATUSES  (neither buff nor debuff — unremovable)
+  Mad Enhancement B        class skill               active
+```
+
+The Poison entry showing **Stage 3** and its computed 80 damage is the kind of thing a player
+will otherwise get wrong: `20 × 2^(3−1) = 80` is not obvious from "Stage 3".
+
+> **Implemented**, with three corrections this section needed.
+>
+> The groups are keyed on the definition's **`polarity`** (`buff` / `debuff` / `status`), not on
+> its `valence`. Valence is a separate axis — `offensive` / `defensive` / `neutral` / `neither` —
+> and no effect in the catalogue carries `valence: debuff` at all, so grouping on it filed every
+> debuff in the game under Statuses.
+>
+> The stage damage comes from `engine/scheduler.mjs`'s **`periodicDamageFor`**, extracted for this
+> so there is one implementation. The registry's own `periodic` field is not what ticks — the
+> scheduler's `PERIODICS` table is — and the figure carries `AMPLIFIERS` with it, so a bearer who
+> also holds Deadly Poison reads 160 rather than 80. That is the number that will actually come
+> off, which is the only number worth printing.
+>
+> An instance whose definition is missing from the registry gets its own group with a warning
+> rather than being dropped. It *is* on the Unit, nothing will apply its rules, and "it loads and
+> does nothing" is the failure shape this project keeps finding in its own content.
+>
+> Below the groups: immunities, auras, and a collapsible **modifier table** — `snapshot.modifiers`
+> with each predicate rendered as text. It is the answer to *"why is my attack +50%"*, and a
+> predicate written straight into a template arrives as `[object Object]`, which answers nothing.
+
+---
+
+> **Implemented.** `templates/actor/master.hbs`, added as an extra sheet part for actors of type
+> `master`. Every figure on it is **derived**, the Unbound warning most of all: a stored flag would
+> need updating from spending, granting, inheriting and the Master dying, and the one that got
+> missed would leave a Servant permanently Unbound with a full pool.
+>
+> Building it required implementing Ch. 16 §16.9, which was specified and absent — `commandSpells`
+> was a flat number that could not say *which* Servant its spells reached. It is now
+> `module/rules/cs-namespacing.mjs`, with `commandSpellsPerServant` added **beside** the existing
+> count rather than replacing it: the migration runner (Ch. 39) does not exist yet, and retyping a
+> live field would break every world that already has one.
+
+## 29.3 The Master sheet
+
+Smaller, with three things a Servant sheet does not have:
+
+**Command Spell tracker.**
+
+```
+COMMAND SPELLS
+  Own          ● ● ○        2 of 3
+  For Lancer   ● ● ●        3   (inherited from Kayneth's death, Round 5)
+  For Archer   ○ ○ ○        0   → Archer is UNBOUND
+```
+
+The per-Servant namespacing (Ch. 16 §16.9) made visible, including the derived Unbound warning.
+
+**Contracted Servants**, each with distance, ZON status, and the multi-Servant tax indicator:
+
+```
+CONTRACTED
+  Lancer   3 panels   ✓ in ZON (2+2 Mad Enhancement)
+  Archer   9 panels   ✗ outside ZON — attacks −5d10, NP unusable
+  ⚠ 2 Servants acted last Turn — you lost 25 Health
+```
+
+**Master Essence**, with its granted effect and a warning that it is lost on death.
+
+---
+
+## 29.4 The action bar
+
+One persistent panel for the controlled unit, anchored bottom-centre, replacing both the turn HUD
+and the F/GT column on Foundry's token HUD. `module/apps/hud/action-bar.mjs`.
+
+**Why it replaced the column.** The old HUD appended a single vertical `col` to Foundry's token
+HUD and packed into it a budget pip, Attack, Move, a facing dial, up to six abilities, one toggle
+per mode, two buttons per open bounded field, and effect pips. Foundry sizes that column for
+roughly four 35px controls. Medusa produces twelve, so it overflowed — and no styling fixes a
+list with **no upper bound** inside a fixed height. Rows wrap here, so a Servant with three open
+fields and two modes fits by construction.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ ┌──────┐  PINNED   [ ][ ][ ]                    │  RED FACTION   │
+│ │ art  │  ACTIONS  [⚔][👣][✚ mark][🧭]          │  Round 3 · 2◈  │
+│ └──────┘  SKILLS   [ ][ ][ ][ ][ ][ ]           │  ⚠ Charmed     │
+│ Medusa    NP       [ ][ ]   MODES [ ]  FIELDS [ ]│ ┌───────────┐  │
+│ RIDER     EFFECTS  [▪ 2◈][▪ 1◈]                 │ │ End Turn  │  │
+│ HP ████ 850  AGI 20  LUC 5   ◈ ●●○              │ └───────────┘  │
+└──────────────────────────────────────────────────┴────────────────┘
+```
+
+**Rows are filled from what the unit has**, and a row with nothing in it is omitted rather than
+drawn blank. A Master shows three rows and Medusa seven. The **pinned** row is a per-user
+shortcut, a `game.user` flag rather than actor data — a pin is one player's convenience, and
+storing it on the actor would let one player rearrange another's bar and would need a socket to
+sync it. Pins never hide anything, because the auto rows always show the whole roster.
+
+**A slot says what it is without being hovered.** Cost in the top-left, cooldown as an overlay
+carrying the remaining ticks, a ring for a mode that is on or a Noble Phantasm whose field is
+built, and dimmed with a dashed border when it cannot be used — with the reason in the tooltip
+and raised as a notification on click. `apps/hud/present.mjs` computes all of it and is pure, so
+every state is testable without Foundry, the same split `actor-sheet/present.mjs` uses.
+
+**The turn segment is adjacent, not merged.** Faction, clock, compulsion warnings and the End
+Turn gate sit at the right-hand end the way BG3 places end-turn beside the hotbar. It stays
+**faction-scoped** while everything else on the bar is unit-scoped: the gate is about the
+faction's whole budget, not about whichever token is selected. The compulsion section remains the
+loudest thing in it, because that is the reason the panel exists — compulsions are turn-scoped
+(D18.4), so a player can only discover a violation *after* committing to it.
+
+### Actions are a registry, not buttons
+
+`module/rules/actions.mjs` declares every unit action as data: an id, the `ActionKind` it bills,
+an icon, a label, and an availability predicate over a unit snapshot and the board. Layer 2 and
+pure. `module/engine/actions.mjs` maps each id to the engine that performs it.
+
+| Action | Offered when | Mode |
+|---|---|---|
+| Attack | the unit is not granted `noNormalAttack` (Pale Rider is) | targeted |
+| Move | always | targeted |
+| Riding Attack | `hasGranted(unit, GRANTS.ridingAttack)` | targeted |
+| Mark | the unit owns an NP whose `field.geometry.kind` is `markDefined`, and that field is not open | immediate |
+| Gather | the board holds a non-enemy unit with `hgobConstruction` | immediate |
+| Facing | always; bills no `ActionKind`, because setting facing must not end the turn | dial |
+
+Gather's predicate is **board-dependent rather than unit-intrinsic**: *"Semiramis or any allied
+Unit can perform 'Gather'"*, so the slot appears on an ally's bar because of who else is standing
+on the board. That is why `available` takes the board and not only the unit.
+
+> **The registry exists because three actions had shipped unreachable.** `rules/budget.mjs`
+> defines eight `ActionKind`s, and `mark`, `gather` and `ridingAttack` had **no caller anywhere in
+> the repository** — while all three engines were complete, down to budget checks and chat output.
+> `placeMark` even detects the finished Bloodmark square and opens the field. `riding.mjs`'s own
+> header records that `GRANTS.ridingAttack` *"has been declared since grants were written and no
+> engine ever read it"*.
+>
+> So Blood Fort Andromeda could not be built, Semiramis's Construction could not be fed, and no
+> Servant could ride through a line — for want of a button. A hand-written HUD is where that
+> happens. A table plus a drift test (§37.4, D37.11's sibling) is where it cannot: every
+> `ActionKind` must now have a registry entry or an explicit exemption, or `npm test` fails.
+>
+> **Verified live.** Four Bloodmarks placed from the bar onto the corners of a 5×5, the field
+> opened, and the Mark slot withdrew itself — *"Medusa cannot place new Bloodmarks while
+> Bloodfort Andromeda is Active"*. That had never been possible.
+
+> **Five corrections from the first session of play, and two more they uncovered.**
+>
+> - **A Structure was offered actions.** Selecting one of Medusa's Bloodmarks put Move, Attack,
+>   Gather and a facing dial on the bar. Every predicate asked what a unit *has* and none asked
+>   what it *is*. Bloodmarks are the corpus's first Structures, so nothing had exercised the case.
+>   `ACTING_KINDS` excludes `structure` and keeps `platform`, because the Hanging Gardens acts.
+> - **The bar took about three seconds to follow a new selection**, and it was not render cost:
+>   one render measures 13ms. `controlToken` fires **twice** when a selection moves — once for the
+>   token being released, with nothing controlled at that instant — so the bar closed on the first
+>   event and re-opened on the second, playing a full fade-out and fade-in every time. A 60ms
+>   debounce fixes it and also collapses the `updateActor` and `fgtBudgetChanged` cascade that
+>   rides along. Measured end to end, click to new name on screen: **118ms**.
+> - **The bar holds a width** rather than shrinking to its contents, so it does not jump about as
+>   a unit's row count changes, and the portrait block is wide enough to read at a glance.
+> - **§6.10's pools are on it** — Aria, Construction, PRS Tokens — in the accent colour, because a
+>   pool gates abilities and belongs beside the buttons rather than one tab away on the sheet.
+> - **Ability refusals go through `abilityState`**, the mapping the sheet's ability cards already
+>   use, so the bar and the sheet cannot describe the same refusal differently.
+>
+> That last one exposed a gap far older than the bar: **19 of the 22 `REQUIREMENT_KINDS` had no
+> translation**, on the ability cards as much as here, so a refused ability told the player
+> `withinPlatformCentre`. All 19 are written, and a drift test in `i18n.test.mjs` fails the build
+> if a twenty-third kind arrives without one.
+
+> **Two defects the first live use found, both invisible to inspection.**
+>
+> - The template wrote `data-row="{{../row.id}}"`, which renders **empty** under Handlebars block
+>   params: a block parameter stays in scope inside the nested `each`, and `../` walks past it to
+>   nothing. Every click read a blank row, matched no branch, and returned silently — the exact
+>   dead control this bar exists to stop being. The handler reads the row off the DOM ancestor
+>   now, which cannot be silently empty.
+> - Refusals were localized blindly. The engines do not agree on what `reason` is: `placeMark` and
+>   `gather` return ids that key a translation, while `engine/budget.mjs#affordable` returns a
+>   finished English sentence. The screen read `FGT.Action.Refusal.Servant attacks exhausted
+>   (2/2)`. A reason with no translation is shown as it stands.
+
+---
+
+> **A CSS class collision moved every resource bar to the bottom of the screen (Ch. 45).**
+> `.fgt-bar` had belonged to the actor sheet's Health, Agility and Luck bars since the sheet was
+> built. The action bar took the same name, and its block sets `position: fixed` — so every
+> character sheet's bars were pulled out of their header and pinned to the bottom of the viewport
+> at 1500px wide, showing as two empty boxes and a slash. The action bar is `.fgt-actionbar` now.
+>
+> Nothing caught it: the stylesheet compiled, the template check passed, and every test was
+> green. A collision is invisible to all three. `test/unit/styles.test.mjs` holds the invariant
+> that made the fix safe — **one owning partial per top-level class** — which was already true of
+> every other class in the system.
+
+## 29.5 Enriched descriptions
+
+> **The pending-decisions window (§27.5).** Top-right, clear of the action bar at the bottom
+> and the sidebar at the right. It answers *"what is the game waiting for me to do?"* and
+> **exists only while something is pending** — a player with nothing to answer has no window,
+> rather than an empty panel taking canvas.
+>
+> It lists the viewer's own prompts, every prompt for a GM (who answers for absent players
+> through §27.5's "decide for them"), and any rung the viewer holds a Command Spell for —
+> §17.4's interrupt is the one decision that is yours on somebody else's rung. Sorted by
+> soonest clock. Counter rungs are outlined, because that is the rung that arms the bar.
+>
+> Names and images are **public**, through `publicIdentityOf`. The window is the viewer's own
+> list, but a concealed Servant's true name must not leak into it from a card that is
+> correctly hiding it: a row reads "Lancer", not "Karna".
+>
+> A row **jumps** to its card and flashes it; it does not answer the prompt.
+
+> **Armed for a Counter (§12.8).** On the Counter rung the bar is armed *for* the player
+> rather than waiting to be found: the token is selected, the bar opens, a gold banner
+> reads *"Counter — choose an Attack"*, and every ability that could answer glows and hints
+> *"Available as a Counter"*. Everything else dims — dimmed rather than hidden, because a
+> player needs to see that their buff exists and is simply not an answer to being attacked.
+> The actions row gets its own wording: Riding Attack **is** an Attack, and what disqualifies
+> it is that it is also a Move, so it says *"A Counter is an Attack and nothing else"* rather
+> than something the player can see is false.
+>
+> Aiming refuses under the cursor — *"Refused: This Counter must include Heracles"*, in the
+> illegal tint — rather than after the placement is committed. Cancelling the aim leaves the
+> bar armed; declining is always a deliberate click on the card, and disarms it.
+>
+> The bar is re-armed on load as well as on render (`resumeCounterArming`): the chat renders
+> before `ActionBar.attach()` exists, so a player who reloaded mid-exchange used to find the
+> rung on the card and no armed bar to answer it with.
+
+Every description is passed through Foundry's `TextEditor.enrichHTML` before it is rendered, so
+the `@UUID` links the build wrote (Ch. 37 §37.8) become real anchors a player can click.
+
+> **Nothing in this system had ever called it (Ch. 45).** Searching the whole of `module/` for
+> `enrichHTML` or `TextEditor` returned nothing, and the templates printed descriptions raw. A
+> content link written into a description would have rendered as literal text, which is why no
+> rules term in the game was clickable despite 195 linkable documents already shipping.
+>
+> `apps/enrich.mjs` is the one place that calls it. Two things about where:
+>
+> - It happens in `_prepareContext` and **cannot** happen in a template or a helper, because
+>   `enrichHTML` is async and Handlebars is not.
+> - `rolls: false`. This system resolves every die through the engine, and an inline `[[/r]]` in
+>   a description would open a second path to a roll that no rule agrees with.
+>
+> The ability cards are enriched as a group rather than one array at a time, so a group added to
+> `abilitiesContext` later is covered without a second edit.
+
+---
+
+> **The item sheet was 44 pixels wide (Ch. 45).** Foundry v14 lays `.window-content` out as a
+> TWO-column grid, a narrow tab strip beside the content. A sheet with several parts fills both
+> columns; the item sheet has a single part, so it landed in the **tab strip** and rendered one
+> word per line beside 680 pixels of empty black. `grid-column: 1 / -1` is what a single-part
+> sheet has to say. Reported from play as *"absolutely horrible"*, and it was.
+>
+> Two things came with the repair. The window is `height: "auto"` now, because most of these
+> documents are three lines long and a fixed 620 left a two-sentence effect floating above half a
+> screen of nothing. And an **effect definition shows its own facts** — kind, default duration,
+> stacking and volatility, all of which were already on the document and none of which were
+> displayed. What a player got instead was the rule-element key `CheckModifier`, which is the one
+> thing on that sheet that is not for them; rule elements are GM-only now.
+
+## 29.6 The ability editor
+
+The tool that determines whether success criterion **SC-6** (a GM authors a Karna-complexity
+Servant in under an hour) is met.
+
+A form over the ability schema (Ch. 22 §22.6), with:
+
+- **Name and icon**, both on the Item document rather than in `system`, held as `#pendingName` /
+  `#pendingImg` until Save with the rest of the draft. The icon control was the missing half of
+  that pair: `#pendingImg` and `#onSave` already existed, but nothing in the template ever gave
+  it a value — the editor could set a name and had nowhere to click for the icon beside it.
+- **Type flags** as checkboxes, with the three NP-scoping flags in an "advanced" disclosure
+  that defaults to the derived values.
+- **Phases** as a sortable list, each expanding into a type-specific editor.
+- **Targeting** as a visual picker: choose the anchor from nine illustrated options, the shape
+  from eleven, and see a live preview on a schematic grid.
+- **Effects** chosen from the registry by name, with magnitude and duration fields that validate
+  as you type (`"1◈+⅔◈"` shows "= 5 turns at 3 turns/round").
+- **Predicates** built from dropdowns over the roll-option vocabulary, with a raw-JSON escape
+  hatch.
+- **Live validation** running the same checks as the content build, shown inline.
+
+The targeting picker is the piece that matters most. A GM should never have to know that
+`selfEdgeAdjacent` is the internal name for "a 5×5 area in any non-diagonal direction next to
+the caster" — they should see four little diagrams and click one.
+
+> **Reworked.** The diagrams were `<pre>` blocks of the vocabulary's raw characters inside a
+> `flex-wrap` row with no width constraint, so a wide schematic overflowed its own button and
+> landed on the labels of the row beneath. The picker is a grid of fixed tiles now and the
+> schematics are **inline SVG built from the same rows** — one description of each shape, so the
+> drift test that holds the picker against `expand()` still covers what is drawn. Foundry pins
+> every `<button>` to a 28px `--button-size`, which clipped the first attempt to a strip: a tile
+> holding a diagram above a wrapping label has to say `height: auto`.
+>
+> The editor also **could not set an ability's name**, which made SC-6 unreachable regardless of
+> how good the picker was. It now sets name, image, kind, description, cost, cooldown, uses per
+> match, the Round gate, category and the behaviour flags, and gives each phase a typed editor.
+>
+> **The typed editors merge, never replace.** A phase carries properties this form has no field
+> for — a predicate, an event filter, a target selector — and building a fresh object from the
+> form would drop them silently, which is precisely the defect the editor exists to catch in other
+> people's content. Four kinds (`resource`, `statChange`, `removeEffect`, `cooldown`) carry their
+> payload in a nested `changes` array or a `selector` object, so they get `target` plus the JSON
+> editor rather than invented flat fields; a form that cannot express what the phase does is worse
+> than no form. A blank typed field never stamps a key onto a phase that did not have one.
+>
+> Three bugs found by driving it rather than by reading it, all of the same family — **every input
+> is submitted on every change**:
+>
+> - The raw-JSON textarea, applied in DOM order, ran *after* the typed fields and replaced the
+>   phase with its own stale contents. Typing into a typed field did nothing at all, every time.
+>   It is applied first now, and only where the text differs from the phase's current
+>   serialization — that is what tells an edit from an echo.
+> - Editing anything rewrote `rank: null` to `""`. Null is deliberate on the three Noble Phantasms
+>   whose sheets print a *range* rather than a Rank. A blank input no longer overwrites a value
+>   that was never set; blanking one that has a value still works.
+> - `<option {{#if (eq k ../p.kind)}}selected>` inside two nested `{{#each}}`es marks nothing
+>   selected, so every phase dropdown showed the first kind alphabetically beside the fields of
+>   whatever it really was. The same mistake named the inputs `phase..target`. Block params reach
+>   into nested scopes directly; the `../` was wrong. Both are `selectOptions` now.
+>
+> And one that predates this work: the duration hint §29.6 asks for — *"`1◈+⅔◈` shows `= 5 turns at
+> 3 turns/round`"* — read `tick.rounds` and `tick.turns` off the parse result. A `TickExpr` has
+> neither, so the hint had rendered `NaN turns` for every expression since it was written. It uses
+> `resolveTicks`, which is what the scheduler uses.
+>
+> **Still not built:** the dropdown predicate builder over the roll-option vocabulary. Predicates
+> remain a raw-JSON escape hatch with parse validation, and this section still asks for more.
+
+---
+
+### The authoring vocabulary — **rebuilt 2026-09-10**
+
+The editor exposed **12 of `AbilityData`'s 90 fields**, was registered as **no Item sheet at all**,
+and *validated* rule elements while offering no control that could add one. Measured, not
+estimated: `Items → Create Item → Ability` opened the read sheet, and Achilles's whole passive half
+was unauthorable.
+
+**Every keyword is a table entry, never markup.** `module/rules/authoring/` describes each of the
+54 rule elements, 20 phase kinds, 24 requirement kinds and 6 timing windows the engine implements:
+`{id, label, hint, doc, fields}`. `apps/ability-editor/present.mjs#formRows` turns any descriptor
+plus its current value into rows that **one** Handlebars partial renders. Adding an executor to the
+engine now means adding a table entry, and a drift test fails until someone does.
+
+The pattern is `rules/targeting/vocabulary.mjs`, extended from validation to authoring, and the
+drift tests run in **both directions** for the reason `targeting.test.mjs` gives.
+
+| Table | Held against | Count |
+|---|---|---|
+| `elements.mjs` | `rules/elements.mjs#EXECUTORS` | 54 |
+| `phases.mjs` | `runPhases` **and** the attack pipeline | 20 |
+| `requirements.mjs` | `rules/items.mjs`; command spells keep their own list | 24 + 9 |
+| `timing.mjs` | `rules/windows.mjs` | 6 |
+
+**D5 — every descriptor must carry a hint**, enforced by `descriptorProblems`. The hints are the
+point of the vocabulary; optional ones rot into decoration on the half of the table nobody got to.
+`label` and `hint` are localization keys and the English lives beside the executor as `english`,
+with `authoring-i18n` holding the two together in both directions — so the sentence a maintainer
+reads next to the code is the sentence a GM reads in the tooltip.
+
+**The rail** (D3) lists every section with its state — done, partial, empty — and how much a list
+section holds. Ordered top-to-bottom for a first author working through a sheet; every row is a
+jump, for someone fixing one cooldown on a shipped Servant. The dot differs in **shape** as well as
+colour (D29.7).
+
+**Reach.** `AbilityEditor` is an `ItemSheetV2` and is the default ability sheet.
+`DocumentSheetConfig.registerSheet` refuses anything that is not a `DocumentSheetV2`, which is
+exactly why a bare `ApplicationV2` could never be registered. `makeDefault` is world-wide — Foundry
+has no per-permission default — so the GM/player split happens inside the editor, which hands a
+non-GM straight back to the read sheet. The predicate lives once, in `apps/sheet-choice.mjs`,
+because there are two entry points and they must not disagree.
+
+**Runtime state is never editable.** `timesUsed`, `toggledAt`, `lastUsedTick`, `expended` and
+`active` are written by the engine during a match; a GM typing one is a GM corrupting the match
+record. They appear in no group and get no input, and remain visible in the raw pane — the
+difference between *not offered* and *hidden*.
+
+**The raw pane stays** (D6). A module may add a rule element or a phase kind (§21.4), and an
+ability carrying one still opens: the entry keeps its row and renders as JSON. An editor that
+dropped it on Save would be silently deleting another package's content.
+
+**Not covered.** The predicate grammar gets its own descriptor vocabulary and its own spec; until
+then `predicateList` is validated free text, which is still a large improvement on the JSON blob
+predicates lived in.
+
+---
+
+## 29.7 Chat cards
+
+Specified in Ch. 30. From the UI's perspective: one card per Combat Phase, collapsed by default,
+expandable to the full trace, with per-viewer content.
+
+---
+
+## 29.8 Dialogs
+
+| Dialog | When |
+|---|---|
+| Reaction prompt | Ch. 27 §27.8 — anchored, non-modal, with computed odds |
+| Command Spell offer | Inline strip on the chat card, dismissible |
+| Facing choice | Turn end, all moved units in one grid |
+| Confused resolution | Turn end, showing each random roll |
+| Setup rolls | Summon, showing each rolled stat with a GM re-roll |
+| Servant selection | Draft (deferred past v1) |
+| Wisdom of Dún Scáith | Scáthach's copy selection (Ch. 36) |
+| Grail warning | Hard confirm before a Grail-endangering AoE |
+
+The facing dialog is worth showing because it is a per-turn interaction:
+
+```
+┌─ Choose facing ─────────────────────────────────┐
+│  Three units moved this turn.                    │
+│                                                  │
+│   Lancer      ↖ ↑ ↗       Rider       ↖ ↑ ↗      │
+│               ← ▣ →                    ← ▣ →     │
+│               ↙ ↓ ↘                    ↙ ↓ ↘     │
+│                                                  │
+│   Assassin    ↖ ↑ ↗                              │
+│               ← ▣ →      [ Face nearest enemy ]  │
+│               ↙ ↓ ↘      [ Keep current ]        │
+│                                                  │
+│                              [ Confirm ]         │
+└──────────────────────────────────────────────────┘
+```
+
+The two bulk buttons handle the common cases in one click, which matters when a player moves
+four Servants every turn.
+
+---
+
+## 29.9 Visual language
+
+| Signal | Meaning |
+|---|---|
+| Faction colour | Ownership and alliance |
+| Solid border | Legal |
+| Dashed border | Illegal, with a reason |
+| Red tint | Danger (Grail at risk, irreversible action, lethal damage) |
+| Amber badge | Warning that does not block (out of ZON, compulsion pending) |
+| Dotted ring | ZON |
+| Faint octagon | Threat range |
+| Pip rows | Discrete resources (Command Spells, Fragarach Tokens, budget) |
+| Bars | Continuous resources (Health, Agility, Luck) |
+
+Colour is never the only signal. Every colour-coded state also has a shape, an icon, or text.
+
+### Export to pack source — the way home
+
+Ch. 39 makes the compendium the whole source of truth: a world copy is reconciled to its pack
+document on every load. That would make SC-6 meaningless on its own — an hour authoring a
+Karna-complexity Servant would live in one world until the next pack rebuild silently discarded it.
+So the editor has a second button beside Save.
+
+**Two steps, not one.** Nothing under `module/` imports an npm package — there are zero
+bare-specifier imports and no bundler — so the browser cannot reach the `yaml` library, and
+hand-rolling an emitter for a format this full of edge cases would be a bug generator. The browser
+writes the authored *shape* as JSON to `packs/_staged/`; `npm run stage:yaml` turns it into the
+`.yml` the loader reads, on the side where `yaml` already lives.
+
+```
+edit in the editor → Export → packs/_staged/<id>.export.json
+  → npm run stage:yaml → packs/_source/abilities/<id>.yml
+  → npm run validate:content → node tools/fgt-rebuild.mjs
+  → the sync brings it back to every world copy
+```
+
+It exports the **draft**, not the stored item: a GM who had to save first would be saving into a
+world copy the next sync overwrites. And it is not gated on the validator, because half-finished
+work is exactly what a GM most wants to keep.
+
+What it refuses to write matters as much as what it writes. A cooldown with four Turns left on it
+is not content — authoring it would ship a Servant that starts the game part-way into its own
+clock — so `SEEDED_THEN_OWNED.item` is applied in reverse: what the pack must not overwrite is
+exactly what the export must not write. Provenance goes too; a template claiming to be somebody's
+copy is nonsense. Empty arrays and nulls are dropped, because in YAML they read as a statement
+("this ability has no tags") where absence reads as silence, and the loader treats them alike.
+
+**Two things the round trip does not preserve**, measured on Ozymandias's Imperial Privilege:
+
+- **Comments.** A hand-authored file's header — the conversion source, the table each figure
+  derives from — is not in the data and does not come back.
+- **`@effect[...]` shorthand**, which the loader expands to `@UUID[Compendium...]`. The export
+  writes the expanded form. It is valid and stable, but two link-hint warnings appear where the
+  shorthand used to satisfy them.
+
+So the export is the right tool for an ability *authored in the editor*, and a lossy one for a file
+written by hand. Diff before committing what it produces.
+
+
+### Theme
+
+The system respects Foundry's light/dark themes. All colours are CSS custom properties defined
+for both, with the faction palette chosen for distinguishability under the common forms of
+colour vision deficiency (deuteranopia and protanopia), verified with a simulator.
+
+> **Implemented.** `styles/src/_tokens.scss`. This was previously true of the window frame and
+> false of everything inside it: `#7a7971`, `#b07`, `#3a3`, `#c80`, `#b33` and `#666` were spelled
+> at their use sites, so there was nothing for a theme to redefine. Agility is teal rather than the
+> obvious green, for the deuteranopia reason above.
+>
+> The 974-line flat stylesheet split into partials at the same time — it had the HUD, the chat
+> cards, three dialogs and the sheet interleaved, with `.fgt-hud` declared twice 160 lines apart
+> and `.fgt-preview` likewise. The split was done mechanically and checked by selector count:
+> nothing was lost in the move.
+
+---
+
+## 29.10 Performance
+
+| Concern | Mitigation |
+|---|---|
+| Sheet re-render on every effect tick | Partial re-render of the affected `PART` only, via `render({parts: ["effects"]})` |
+| 28 token HUDs updating per turn | HUD renders on demand, not persistently |
+| Targeting preview at pointer rate | Debounced to 30 Hz; resolution memoized per panel |
+| Chat log growth | Transient messages deleted on phase completion (Ch. 27 §27.7) |
+| Zone overlays redrawing on every move | Dirty-flag per overlay; only the moved unit's overlays redraw |
+
+### A destroyed label wedged the overlay layer permanently
+
+Worth recording because the failure mode is the interesting part, not the bug.
+
+`OverlayLayer#refresh` destroys its text badges by hand — `Graphics.clear()` does not remove
+Text, because Text is not part of the graphics buffer. The badges are children of the **layer**
+(`#label` does `this.addChild`), and `_tearDown` did not clear `#labels`. So after any canvas
+redraw — a level switch, a scene change, `canvas.draw()` — the array still held Text objects that
+Foundry had already destroyed along with the rest of the layer's children.
+
+`PIXI.Text#destroy` nulls `_style` and then reads `_style.off(...)` on a second call, so
+destroying one threw `Cannot read properties of null (reading 'off')` (verified against PIXI
+7.4.3: `destroyed` flips to `true`, `_style` to `null`, and a second `destroy()` throws exactly
+that).
+
+**And the throw happened before `this.#labels = []`**, so the stale array was never cleared.
+That is what turned a one-off into a permanent condition: every subsequent refresh threw again,
+so hovering a token, selecting one, or *any* `fgt.invalidate` produced a fresh console error —
+and the overlays silently stopped drawing, because `refresh` never reached its draw calls.
+
+Two changes, and the second is the one that matters for the next bug of this shape:
+
+1. `_tearDown` clears `#labels`. That is the root cause.
+2. `refresh` takes the list and **replaces it before destroying anything**, and skips a label
+   that reports `destroyed`. Clearing first is what makes the failure self-healing instead of
+   permanent — a single bad element can no longer prevent the bookkeeping that would have
+   recovered from it.
+
+---
+
+## 29.11 Localization
+
+Every string goes through `game.i18n`. Keys follow `FGT.<Area>.<Key>`. The content compendium
+carries English names inline with localization keys alongside, so a translated world shows
+translated ability names without duplicating the compendium.
+
+The content validator checks that every key referenced by content exists in `lang/en.json`, so a
+missing translation is a build failure rather than a `FGT.Ability.Foo.Name` appearing in play.
+
+Spanish is a first-class target (the project's primary user base is Spanish-speaking), which
+means: no string concatenation for grammatical constructions, no assumptions about word order,
+and pluralization through `game.i18n.format` with explicit plural keys.
+
+---
+
+## 29.13 Cleaning up a world
+
+> **Built.** `module/apps/actor-purge.mjs`, `module/rules/purge.mjs`, and a fourth button on the
+> Actors sidebar header beside Summon, Game log and Configure War.
+
+Foundry does not clean up after a deleted Actor. `Actor._onDelete`
+(`client/documents/actor.mjs`) removes the actor's ActiveEffects and **nothing else** — every
+token of that actor stays in its scene, pointing at an id that no longer resolves. The sidebar
+shows none of them, so the only way to find out is to open each scene and look. Clearing a world
+by hand is therefore dozens of deletions across two sidebars with no way to check you are done.
+
+The tool lists every world Actor with **where its tokens stand** — scene names and counts —
+filtered by scene, type, faction and name. One filter value is not a scene: *"placed in no
+scene"*, the actors nothing shows because nothing holds them, which are exactly the ones left over
+from a test or a half-finished setup.
+
+### Two modes, because the scene picker means two things
+
+| Mode | Deletes | The scene picker |
+|---|---|---|
+| **Delete actors** | the selected actors **and every token of theirs, in every scene** | narrows the list only |
+| **Remove tokens from scene** | only those actors' tokens in the chosen scene; the actors survive | **required** |
+
+**DECISION.** The scene filter is a *view*, never a scope on "Delete actors". A token left behind
+in a scene nobody was looking at is precisely the orphan this tool exists to prevent, so narrowing
+the list must not narrow the delete. "Remove tokens" refuses outright without a scene rather than
+reading the empty picker as *every* scene — one keystroke from clearing the board.
+
+**DECISION.** Selection survives a filter change, and the footer says how many of it are hidden.
+Reading the selection off the checkboxes alone would silently drop everything picked before
+narrowing; carrying it silently would let a GM approve a count they cannot see. Both are refused
+by saying it out loud. **Select all** means *all shown* — a button that also picked up rows a
+filter had deliberately hidden would be the most dangerous control in the dialog.
+
+### The plan is the sentence
+
+`rules/purge.mjs#purgePlan` is pure and returns `{actorIds, scenes, counts, refusal}`. The
+confirmation renders that plan, and the delete performs that plan — so what a GM approves and what
+is deleted cannot disagree (the same argument D29.13 makes for `canUseAbility`). It is re-planned
+from the world at the moment the button is pressed, not from the render, so a dialog left open
+while actors changed elsewhere does not delete against a list that no longer exists.
+
+### The tokens no row can reach
+
+A world tidied through Foundry's own sidebar accumulates **orphaned tokens** — the actor gone, the
+token still standing, and no row in the actor list able to select it because there is no actor.
+They get their own banner and their own sweep, above the list, because "delete everything"
+otherwise quietly means *"everything except the mess already made"*. A token with no `actorId` at
+all counts as one: equally unreachable, equally a leftover.
+
+Measured in `fgt2026` the day this shipped: **11 of them** across three scenes — an Achilles, two
+Archers, two Assassins, five Dragon Tooth Warriors and an Ally Dummy, every one pointing at an id
+that no longer resolved.
+
+### Reaching the tool at all
+
+`attachSummonEntries` is called from `ready`, and the sidebar renders **before** it. So
+`renderActorDirectory` fired for every render except the first, and on a freshly loaded world the
+Actors header carried none of these buttons — Summon, the game log and the war setup included,
+since the day that hook was written. They appeared the moment anything re-rendered the directory,
+which is why it read as the buttons being flaky rather than as missing. The hook now also runs
+once against the directory that has already rendered.
+
+### What goes with them
+
+Five fields name an actor by id and none is maintained across a delete: a Servant's `masterId`, a
+Master's `servantIds`, a summon's `summonerId`, a platform's `ownerId`, and the
+`servantId`/`masterId` on every slot of `MatchData.containers` (`engine/war-setup.mjs`).
+`danglingReferences` returns one update per surviving document — never for a document that is
+itself about to be deleted, which is wasted work at best and a failed update at worst.
+
+Order is load-bearing: **tokens, then references, then actors.** Tokens first so no scene renders
+a token whose actor has gone; references before the actors they point at, so there is never a
+moment where a surviving document names a deleted one.
+
+---
+
+## 29.12 Summary of decisions
+
+| # | Decision |
+|---|---|
+| D29.1 | ApplicationV2 with the declarative `actions` map throughout; no V1 Application, no jQuery. |
+| DA.1 | One persistent bar for the controlled unit, bottom-centre. The token keeps Foundry's own controls only. |
+| DA.2 | Unit actions are a pure layer-2 registry, not hardcoded buttons. Availability is a predicate over a snapshot and the board. |
+| DA.3 | A drift test fails the build when an `ActionKind` has no registry entry and no explicit exemption. |
+| DA.4 | Rows fill automatically so nothing can be hidden; a pinned row sits in front as a shortcut. |
+| DA.5 | Pins are a user flag, not actor data: no socket, and no player rearranging another's bar. |
+| DA.6 | Slot appearance is a pure view-model, so every state is testable without Foundry. |
+| DA.7 | A refusal is never a silent no-op; an untranslated reason is shown verbatim rather than as a raw key. |
+| DA.8 | The turn panel is adjacent to the bar, not merged into it: it stays faction-scoped. |
+| D29.2 | Every disabled control states its reason; every irreversible action warns before, not after. |
+| D29.3 | The header carries every value that gates an action — ZON, contract, compulsions, resources. |
+| D29.4 | Derived values that players compute wrong (Poison stage damage, tick durations) are shown computed. |
+| D29.5 | The ability editor's targeting picker is visual, so authors never learn internal shape names. |
+| D29.6 | Facing is one bulk dialog at turn end with two one-click defaults. |
+| D29.7 | Colour is never the only signal. |
+| D29.8 | Sheets re-render by part, not wholesale. |
+| D29.9 | Spanish is a first-class localization target; no concatenated grammar. |
+| D29.10 | One sheet class for all six actor types; only the Overview tab's blocks differ. |
+| D29.11 | Four tabs, one `PART` each, on ApplicationV2's native `TABS`. The header carries what gates an action. |
+| D29.12 | Presentation arithmetic lives in a **pure** module and is unit-tested without a world. |
+| D29.13 | Ability state and cost are read from `canUseAbility` / `npCost` — the engine's own gate — never from a copy. |
+| D29.14 | Derived values render as text; only what a GM legitimately changes is an input. |
+| D29.15 | No localization key may be the prefix of another: one collision silently voids the whole file. |
+| D29.16 | A scene filter narrows what is *shown*; it never narrows a delete. Deleting an actor takes its tokens in every scene. |
+| D29.17 | Selection survives a filter change, and the count of hidden-but-selected rows is stated rather than carried silently. |
+| D29.18 | The confirmation and the deletion read the same pure plan, re-computed at the moment of the press. |
+| D29.19 | Every authoring keyword is a descriptor in a pure Layer-2 table, held against the engine's own dispatcher in both directions. Adding markup per keyword is forbidden. |
+| D29.20 | A descriptor with no hint is a hard error. Hints are localization keys; the English lives beside the executor and a test holds the two together. |
+| D29.21 | Runtime state the engine writes is never rendered as an input. |
+| D29.22 | An unknown keyword keeps its row and renders raw. The editor never drops content it does not understand. |
+
+---
+
+**Next:** [30 — Chat and Audit](30-chat-and-audit.md)

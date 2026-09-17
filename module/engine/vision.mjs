@@ -1,6 +1,6 @@
 /**
  * @file `unitFirstSeen` — the event half of Detect, written.
- * @see module/rules/identity.mjs's `newlySeenBy`, docs/32-case-semiramis.md
+ * @see module/rules/identity.mjs's `newlySeenBy`, docs/45-case-studies.md
  *
  * Layer 3. `rules/identity.mjs` decides who is newly visible; this is the half
  * that records it and fires the event.

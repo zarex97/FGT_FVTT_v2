@@ -6,7 +6,7 @@
 # Every decision `karna-mana-burst-flames.yml` records applies here; read it
 # before changing anything in this file.
 #
-# The combined Base Attack is docs/06-stats-and-resources.md §6.7: 150 + 200 =
+# The combined Base Attack is docs/06-units-and-stats.md: 150 + 200 =
 # 350, and her sheet writes the answer out ("e.g. BA=350") as his does.
 schema: 1
 id: raikou-mana-burst-lightning
@@ -15,7 +15,7 @@ rank: A
 kind: skill
 slug: manaBurstLightning
 # An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat
-# Process and spends her Attack for the Turn (§15.1).
+# Process and spends her Attack for the Turn (Ch. 17).
 isAttackSkill: true
 element: lightning
 cooldown: "3◈"
@@ -103,9 +103,9 @@ passiveRules:
 
   # Passive 2. "All Lightning damage taken is reduced by 50% including NP."
   #
-  # `Ward`, not `defUp`: a Ward is the category-predicated reduction (§24.3
+  # `Ward`, not `defUp`: a Ward is the category-predicated reduction (Ch. 10
   # Group 2) and lands in the same stage-4 bucket, which keeps it additive
-  # against Atk Up the way §13.4 requires. `npValue` equals `value` because the
+  # against Atk Up the way Ch. 22 requires. `npValue` equals `value` because the
   # sheet says "including NP" rather than giving a reduced NP figure.
   - key: Ward
     value: 50

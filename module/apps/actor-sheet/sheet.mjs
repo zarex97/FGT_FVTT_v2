@@ -1,6 +1,6 @@
 /**
  * @file The actor sheet.
- * @see docs/29-user-interface.md §29.2
+ * @see docs/35-sheets-and-editor.md
  *
  * ApplicationV2 with `HandlebarsApplicationMixin`, native DOM, no jQuery
  * (D29.1). One class for all six actor types rather than one class per type:
@@ -18,6 +18,7 @@ import { unitSnapshot, currentTick, clockRunning } from "../../engine/board.mjs"
 import { attackFacts } from "../../engine/attack.mjs";
 import { normalAttackAt } from "../../rules/normal-attack.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
+import { dealsNoDamage } from "../../rules/ability-use.mjs";
 import { buildContext } from "./context.mjs";
 import { editImage } from "../image-edit.mjs";
 import { enrichAbilityCards } from "../enrich.mjs";
@@ -62,9 +63,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * Declare an attack with an ability.
    *
    * Targeting comes from the user's current Foundry targets, which is the
-   * cheapest thing that works until the canvas preview lands (Ch. 28). The
+   * cheapest thing that works until the canvas preview lands (Ch. 20). The
    * resolution itself runs on the GM client, because contested outcomes are
-   * computed where the authoritative snapshot lives (Ch. 26 §26.4, Model B).
+   * computed where the authoritative snapshot lives (Ch. 38, Model B).
    *
    * @this {FGTActorSheet}
    * @param {PointerEvent} _event
@@ -86,7 +87,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * @param {HTMLElement} target
    */
   /**
-   * Declare a stance (Ch. 44 §44.1).
+   * Declare a stance (Ch. 45).
    *
    * Not a mode toggle: switching costs nothing, so there is no price to pay and
    * no cooldown to spend. What there is instead is a window -- his sheet allows
@@ -139,6 +140,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // A lockout is measured against the match's clock, so it cannot be
       // stamped when there is no match to measure it against.
       clockRunning: clockRunning(),
+      // The Round this press happens in, so a use recorded in an earlier one
+      // does not bite in this one (Ch. 46 §46.4-L).
+      round: game.combats?.active?.round ?? null,
     });
     if (!verdict.ok) {
       ui.notifications.warn(game.i18n.format(`FGT.Mode.${verdict.reason}`, {
@@ -177,6 +181,24 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.active": active,
       ...(active ? { "system.toggledAt": tick } : {}),
     });
+
+    // RECORD the press, for the modes that ration it. `canToggleMode` above can
+    // only refuse a second switch if something wrote the first one down, and
+    // this path wrote nothing: a mode with no `phases` never calls `useSkill`,
+    // which is where every other use in the game is recorded. Narrowed to the
+    // modes that declare a limit so an ordinary free toggle -- Mad Enhancement,
+    // Presence Concealment, Riding -- does not start appearing in a record that
+    // `oncePerTurn` and `abilityOffCooldown` also read (Ch. 46 §46.4-L).
+    if (item.system?.oncePerRound || item.system?.oncePerTurn) {
+      const [{ applyWorldIntents }, I] = await Promise.all([
+        import("../../engine/applier.mjs"),
+        import("../../engine/intents.mjs"),
+      ]);
+      await applyWorldIntents(
+        [I.recordUse(this.document.id, item.id, item.system?.contentId ?? null)],
+        "toggleMode",
+      );
+    }
   }
 
   /**
@@ -188,7 +210,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const abilityId = target.closest("[data-item-id]")?.dataset.itemId ?? null;
     const ability = abilityId ? this.document.items.get(abilityId) : null;
 
-    // A Skill is not an Attack (§15.1), and until now both went down the same
+    // A Skill is not an Attack (Ch. 17), and until now both went down the same
     // path: a self-buff opened a targeting session, priced its own caster for
     // damage, offered an "Attack" button and started a Combat Process that
     // asked the target to Evade. `classifyAbility` had said `isAttack: false`
@@ -242,7 +264,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   /**
    * The declaration path, reachable from outside the sheet.
    *
-   * The token HUD (§29.5) offers the same buttons, and a second implementation
+   * The token HUD (Ch. 34) offers the same buttons, and a second implementation
    * of "declare an attack" would be a second place for it to be wrong -- with
    * the copy being the one nobody updates.
    *
@@ -293,7 +315,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   /**
-   * Roll a Master's setup lines (§14.9).
+   * Roll a Master's setup lines (Ch. 13).
    *
    * On the sheet rather than in a dialog of its own: a Master has five lines
    * and no choices to make, so a whole application for it would be ceremony.
@@ -314,7 +336,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   /**
-   * Open the contract dialog (§16.2).
+   * Open the contract dialog (Ch. 32).
    *
    * @this {FGTActorSheet}
    */
@@ -362,7 +384,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = this.document.items.get(id);
     if (!item) return;
 
-    // §29.6's editor for a GM, the plain sheet for everyone else: the editor
+    // Ch. 34's editor for a GM, the plain sheet for everyone else: the editor
     // writes rule elements, and a player who reorders a phase has changed the
     // ability for the whole table.
     if (game.user.isGM) {
@@ -382,7 +404,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     details:   { template: "systems/fgt/templates/actor/details.hbs",   scrollable: [""] },
   };
 
-  // §29.3's Master block used to be a PARTIAL inside one body part, because two
+  // Ch. 34's Master block used to be a PARTIAL inside one body part, because two
   // parts meant two scroll containers on one sheet and the scroll position
   // ApplicationV2 preserves is per part -- so a Master editing anything watched
   // its Command Spell tracker jump while its stats stayed put.
@@ -451,7 +473,7 @@ async function pickPlacement(actor, ability) {
 /**
  * Open a targeting session for an attack, optionally requiring a unit be caught.
  *
- * Exported for §12.8: the action bar arms for a Counter and needs the same
+ * Exported for Ch. 21: the action bar arms for a Counter and needs the same
  * session with one extra limit, `requireUnitId`, so an area that misses the
  * attacker is refused under the cursor rather than after the player commits.
  *
@@ -483,7 +505,7 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
   // where the ability actually summons at her own panel.
   const boardSelf = board.units.find((u) => u.id === actor.id) ?? caster;
   const base = targetSpecForAttack(actor, ability, rollOptionsFor({ attacker: boardSelf }));
-  // §12.8: a Counter must catch the unit that attacked. Merged into the spec so
+  // Ch. 21: a Counter must catch the unit that attacked. Merged into the spec so
   // the refusal is DRAWN, in the illegal tint with its reason, while the player
   // is still aiming.
   const spec = (requireUnitId || excludeUnitIds.length > 0)
@@ -498,6 +520,14 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
       damageFor: (unitId) => {
         const defender = board.units.find((u) => u.id === unitId);
         if (!defender) return null;
+        // *"(Non-damaging)"*. The RESOLVER has known this since `dealsNoDamage`
+        // was written -- it hands stage 1 a `{fixedValue: 0}` base -- and the
+        // preview did not, so it fell through to `baseSpecFor`'s Normal Attack
+        // fallback the way the resolver used to. Chaos Labyrinthos was previewed
+        // at "192 - 264" on a Noble Phantasm that deals nothing, which is the
+        // gate and the display disagreeing with the player believing the
+        // display (Ch. 46 §46.8).
+        if (dealsNoDamage(ability)) return null;
         return preview.damageRange(
           previewContext({ caster, defender, ability, board, isNP }),
           { negation: preview.negationBounds(defender, isNP) },

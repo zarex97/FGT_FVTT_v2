@@ -11,7 +11,7 @@
 #
 # This file is the sheet entry the actor shows, and carries no rules of its
 # own. That is deliberate: a Skill whose text describes another ability's area
-# is exactly the shape Ch. 43 argues should be authored on the area.
+# is exactly the shape Ch. 28 argues should be authored on the area.
 schema: 1
 id: pale-rider-innocent-world
 name: "Innocent World"

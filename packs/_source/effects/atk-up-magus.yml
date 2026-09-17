@@ -20,5 +20,12 @@ rules:
     direction: dealt
     value: "@magnitude"
     # "including NP" -- stated, so the usual reduced NP magnitude does not apply.
-    npValue: "@magnitude"
+    # "Including NP" is stated by OMITTING `npValue`: an absent npValue makes
+    # the pipeline use `value` against a Noble Phantasm too
+    # (`damage/pipeline.mjs`, `isNP && m.npValue !== undefined ? ... : m.value`),
+    # which is the full magnitude this clause wants. Writing `npValue:
+    # "@magnitude"` here reads as the same assertion and is not one -- that
+    # token is only substituted into `value`, so it resolved to nothing and the
+    # field was dropped. The behaviour was right and the line was inert; the
+    # content validator now refuses it.
     predicate: ["target:attribute:magus"]

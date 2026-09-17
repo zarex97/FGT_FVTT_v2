@@ -34,6 +34,13 @@
           {{localize "FGT.Sheet.Use"}}
         {{/if}}
       </button>
+    {{else if windows.length}}
+      {{!-- Not a passive: an Active whose only moment is a timing window, so
+            there is nothing to press HERE and something to answer THERE. Naming
+            the window is the whole point -- "Passive - always in effect" told
+            the player the opposite of the truth. --}}
+      <span class="fgt-card-ability__passive">{{localize "FGT.Use.windowed"}}
+        {{#each windows}}<em>{{localize (concat "FGT.Window." this)}}</em>{{/each}}</span>
     {{else}}
       {{!-- A passive is not a control. It is always on and has nothing to
             press: Penthesilea's Goddess of War is four standing clauses. --}}

@@ -1,6 +1,6 @@
 /**
  * @file The pre-migration backup.
- * @see docs/39-migration-and-versioning.md §39.2, D39.3
+ * @see docs/41-migration.md, D39.3
  *
  * Layer 4.
  *

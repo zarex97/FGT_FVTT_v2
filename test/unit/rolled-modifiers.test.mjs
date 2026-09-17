@@ -1,6 +1,6 @@
 /**
  * @file Modifiers whose magnitude is rolled per damage event.
- * @see docs/45-implementation-status.md D1
+ * @see docs/46-roster-re-audit.md D1
  *
  * Penthesilea's *Goddess of War*: "Whenever Penthesilea deals damage through a
  * Normal Attack, roll a four-sided die. Damage dealt is increased by

@@ -1,0 +1,1179 @@
+# 24 — The Rules Engine
+
+> **Implementation notes (Ch. 45).** Three additions to the vocabulary since this chapter was
+> written, each driven by content that could not otherwise be authored:
+>
+> | Addition | For |
+> |---|---|
+> | **`Compulsion`** (Group 4) | Penthesilea's *Hatred of Achilles* — a positional forced target |
+> | **`ApplicationChance` executor** (Group 6) | *Off.Debuff ResUp*; the key existed, the executor did not |
+> | **`roll:` on `DamageModifier`** | *Goddess of War* — a magnitude rolled per damage event rather than fixed before the attack |
+>
+> The **roll option vocabulary** also grew: `skill:`, `skillActive:` and `region:`. `Appendix B`
+> has predicated on `target:skill:divinity` since the tables were transcribed and **nothing ever
+> emitted a `skill:` option**, so that clause could not fire in either direction. Options are now
+> built in `module/rules/options.mjs`, in the rules layer, where they can be tested without
+> Foundry — which is the only reason the gap lasted as long as it did.
+>
+> One more: `contributionsOf` passed an **empty option set**, so every `self:` predicate in the
+> system was unsatisfiable.
+>
+> **This chapter's key list is maintained twice** — here in prose, and as `RULE_ELEMENT_KEYS` in
+> `tools/lib/content.mjs` against `EXECUTORS` in `module/rules/elements.mjs`. The two code lists
+> are held against each other by `test/unit/elements.test.mjs` in both directions; a key in one
+> and not the other is a defect either way round.
+
+The rule element system: how declarative data becomes behaviour. This is the mechanism that
+makes principle P2 (*declarative first, imperative as escape hatch*) real, and it is the single
+biggest determinant of how expensive Servant #47 will be to author.
+
+---
+
+## 24.1 The idea
+
+A **rule element** is a small, typed, declarative object attached to an ability or an effect
+that describes one modification to the world.
+
+```yaml
+- key: DamageModifier
+  value: 40
+  npValue: 30
+  mode: percent
+  predicate: ["self:attacking"]
+```
+
+That is Karna's *Flash of the Sun God* `Atk Up` in its entirety. No JavaScript.
+
+The design is directly inspired by PF2e's rule elements, which have proven the model at scale —
+thousands of items, authored by non-programmers, with the engine unchanged. The differences are
+domain-specific: our modifiers carry NP variants, our predicates read board geometry, and our
+events are turn-based rather than encounter-based.
+
+---
+
+## 24.2 The base class
+
+```js
+export class RuleElement {
+  static KEY = "";                    // registry key
+  static SCHEMA = {};                 // validated at content build
+
+  constructor(spec, source) {
+    this.spec = spec;
+    this.source = source;             // the Item or ActiveEffect that owns it
+    this.priority = spec.priority ?? this.constructor.DEFAULT_PRIORITY;
+    this.predicate = Predicate.parse(spec.predicate ?? []);
+    this.suppressed = false;
+  }
+
+  /** Does this element apply right now? */
+  test(options) { return this.predicate.test(options); }
+
+  /** Modify the actor during derived-data preparation. Default: no-op. */
+  apply(actor, ctx) {}
+
+  /** Contribute to a damage computation. Default: no-op. */
+  contributeDamage(ctx, bag) {}
+
+  /** Contribute to a check. Default: no-op. */
+  contributeCheck(ctx, bag) {}
+
+  /** Modify targeting resolution. Default: no-op. */
+  contributeTargeting(spec, ctx) {}
+
+  /** Aura declaration, if any. */
+  get aura() { return this.spec.aura ?? null; }
+
+  /** Is this an automatic effect (suppressible by Addle)? */
+  get automatic() { return this.spec.automatic ?? false; }
+}
+```
+
+Five contribution points, because F/GT modifiers genuinely act at five different places. An
+element implements only the ones it needs.
+
+---
+
+## 24.3 The element catalogue
+
+Roughly 30 elements cover the entire reference set. Grouped by contribution point.
+
+### Group 1 — Stat and derived-value modifiers (`apply`)
+
+| Key | Purpose | Example content |
+|---|---|---|
+| `StatModifier` | Modify MOV, Range, Detect, base attack, max health/agility/luck | Mad Enhancement's `MOV +2` |
+| `RankShift` | Shift or set a parameter rank, with explicit reversible stat deltas | Semiramis aboard HGoB |
+| `ResourceMax` | Change a resource's cap | Mannanán Holder Mode: 5 → 7 tokens |
+| `ZonModifier` | Modify the Master's ZON for this Servant | Independent Action |
+| `SustainabilityModifier` | Modify Sustainability | High Rank Master `+1◈` |
+| `GrantAbility` | Add an ability with a lifetime | Semiramis's *Double Summon* granting DSC |
+| `GrantAttribute` | Add an attribute | future content |
+| `NPAvailabilityShift` | Shift the NP round gate | Master essence `Kaleidoscope` |
+
+### Group 2 — Damage contributors (`contributeDamage`)
+
+| Key | Stage | Purpose |
+|---|---|---|
+| `DamageModifier` | 4, or **7/12 with `stage: flat`** | The additive bucket: Atk Up, Def Up, Atk Dwn, Def Dwn, and every percentage in the game |
+| `DamageComponentModifier` | 5 | Asymmetric STR/MAG modifiers (Mad Enhancement's halving) |
+| `FlatDamage` | 7 | Divinity, Dmg Boost, Avenger's counter bonus |
+| `FlatReduction` | 12 | Dmg Cut, Battle Continuation, Territory Creation defence |
+| `Resistance` | 11 | Magic Resistance and its rank comparison |
+| `TotalDamageModifier` | 15 | Anything whose text says "Total Damage" |
+| `DamageNegation` | 0 / 16 | Invuln, Anti-Purge, Substitution, Freeze absorption |
+| `CritModifier` | 3 | Crit chance, crit damage, G.Crit, No Crit, Over Crit |
+| `IgnoreDefense` | 4 | Ignore Def, Pierce |
+| `ElementTag` | 0 | Tag a portion of damage with an element |
+| `Multihit` | — | Declare an attack hits N times |
+
+> **Implementation note (Ch. 45) — `perStack`, and the elements Kingprotea added.** Six of her
+> `Huge Scale` clauses are one sentence with different nouns — *"for each Proliferation stock,
+> X"* — so they are six elements sharing **one field** rather than six readers each counting
+> stocks their own way. `perStack` is a modifier on `resolveValue`, available to every element
+> that has a value at all:
+>
+> ```yaml
+> perStack: { effect: proliferationStock, each: 3, base: 30 }
+> ```
+>
+> `each` steps every N stacks (her size grows every third), `base` is paid once from the first
+> stack (*"35% at one stock, +5% for every additional"* is `value: 5, base: 30`), and at zero
+> stacks the whole thing including the base contributes nothing. It composes with `max`, which is
+> how *"NP damage received reduced by 10% per stock, maximum 80%"* caps **this clause** rather
+> than the pipeline's bucket — two sources of `Def Up` are not one another's ceiling.
+>
+> **The clauses live on the Skill, not on the stock.** An effect's rules are collected once per
+> INSTANCE, so a `perStack` element authored on `proliferationStock` would be collected n times
+> and scaled by n each time: ten stocks would pay a hundredfold.
+>
+> Three new keys arrived with her, and one modifier:
+>
+> | Key | Purpose |
+> |---|---|
+> | `SizeStep` | Contribute deltas to `footprint.w`/`.h`; Ch. 04 §4.12 has the token half |
+> | `BuffRemovalResist` | The magnitude `rules/removal.mjs` rolls against; Ch. 11 §11.7 |
+> | `GrantedAbility: [ignoresOccupancy]` | A grant rather than the summon's own field, so Skill Seal can take it away |
+> | `magnitudeRoundTo` | Round a scaled magnitude to a multiple — Mad Enhancement's MAG half is 42.5 → 40 |
+>
+> §36.7's sketch proposed `alsoRestore`, `cap`, `cumulative`, `every`, `footprintDelta`,
+> `rangeDelta`, `movDelta`, `groupKey` and a `@stackIndex == 1 ? 35 : 5` ternary. None were
+> built: `perStack` plus the vocabulary that already existed says all of it, `stacksHeld` counts
+> by `defId` so no group key is needed, and Range and MOV are their own elements sharing the same
+> `each: 3`.
+
+> **Implementation note (Ch. 45) — the elements Achilles added.** Five, and two of them were
+> already in `EXECUTORS` with no reader:
+>
+> | Key | Purpose |
+> |---|---|
+> | `AttackerPropertyTier` | A defence whose magnitude is the ATTACKER's property — Andreias Amarantos reads their Divinity Rank. **Already written**, named after him in a comment, and read by nothing until stage 15 asked. |
+> | `WeakPoint` | The spec `rules/weak-point.mjs` consumes. **Already written**, likewise unread. |
+> | `Knockback` | How a Unit shoves whoever it walks into: `direction: travel` and a damaging `sidestep` are his, and the default is Kingprotea's outward push. |
+> | `BlockLuckChecks` | A field interior rule that removes the Luck Check OPTION (Ch. 43). |
+> | `SuppressForeignEffects` | A field interior rule that negates effects from outside it (Ch. 43). |
+>
+> And one element the plan budgeted and did **not** need: an `EvadeRollModifier` for *"the value
+> of Evade rolls are reduced by 4"*. `CheckModifier` with `check: evade` already folds a numeric
+> modifier into the roll — it is how Jack's Mist raises everyone else's — and `direction:
+> outgoing` is the roller's own side. A synonym would have been a second way to say one thing.
+
+`DamageModifier` alone covers perhaps 60% of the reference set's content. Its schema:
+
+```yaml
+key: DamageModifier
+value: 40                # magnitude, percent
+npValue: 30              # magnitude when the attack is an NP (optional)
+table: madEnhancementDefence   # …or a rank table, resolved against the owner's rank
+magnitudeFactor: 0.5     # scale whatever the value or table produced
+direction: dealt|taken   # attacker-side or defender-side
+includesNP: true         # if true, npValue is ignored and value applies to NP too
+predicate: [...]
+```
+
+Two of those are worth stating explicitly, because both were silent gaps:
+
+**A `table:` that returns a PAIR is `[normal, vsNP]`.** `madEnhancementDefence` has been that
+shape since the tables were transcribed — Rank B is `[40, 20]`, and its own comment says so — and
+the executor took index 0 and nothing else. Every Mad Enhancement in the game therefore reduced
+Noble Phantasm damage by its full *normal* figure: 40% instead of 20% at B, 75% instead of 30% at
+EX. The second element is now the modifier's `npValue` unless one is stated outright.
+
+**`magnitudeFactor` is for a magnitude stated as a fraction of another clause.** Mad Enhancement
+is one table said twice — *"increased by X%; this effect is **halved** for Attacks which use Base
+Attack (MAG)"* — and the halving is a relationship, not a second ladder. A
+`madEnhancementOffenceMag` table would be six numbers obliged to stay exactly half of six others
+for ever. Deliberately **not** named `factor`: `StatDelta`/`MovDelta` already use that name for a
+multiplicative delta on the *stat* (Slow halves MOV), and one field meaning two things in one
+vocabulary is the defect `revivalPriority` exists to avoid.
+
+`Ward` carries `npValue` for the same reason `DamageModifier` does. Karna's Fire resistance is
+the case where the two are **equal** — *"reduced by 50% **including NP**"* — and stating it is how
+a reader knows that was the author's intent rather than an omission.
+
+### Group 3 — Check contributors (`contributeCheck`)
+
+| Key | Purpose |
+|---|---|
+| `CheckModifier` | Add to or subtract from a named roll (Evade, Luck Check, Block) |
+| `ForceCheckTable` | Force the favourable/unfavourable table (Agility Boost, Mad Enhancement) |
+| `AutoSucceedCheck` | Dodge, Insight's 50% |
+| `ForbidReaction` | Cannot Block (Invuln), cannot Evade (Berserk), cannot React (Accel) |
+| `BlockModifier` | Block Up, doubled-vs-NP |
+
+### Group 4 — Targeting contributors (`contributeTargeting`)
+
+| Key | Purpose |
+|---|---|
+| `RangeModifier` | Range +N, or an absolute override for one Combat Process |
+| `TargetingRestriction` | Decoy's constraint, Berserk's nearest-enemy rule |
+| `TargetabilityModifier` | Presence Concealment's untargetability, Master protection |
+| `ForceTarget` | Karna's *Fated Rivals*, Penthesilea's *Hatred of Achilles* |
+| `Compulsion` | The positional form of the above: forced targets while somebody is standing nearby |
+
+> **Status.** `Compulsion` is **implemented** (`module/rules/compulsion.mjs`) and the targeting
+> resolver reads it at step 4b, narrowing a compelled unit's candidates rather than erroring —
+> the compulsion does not make the attack illegal, it makes the *choice* illegal.
+>
+> The other four keys in this group are still **collected with no reader**: `TargetingModifier`,
+> `ForceTarget`, `Decoy` and `TargetabilityModifier` write keys `resolveTargets` does not
+> consult. `Compulsion` exists because Penthesilea needed the positional case and `ForceTarget`
+> could not express "while a Greek Male is within 4 panels" — an applied effect would need a
+> position-watcher writing on every move.
+>
+> A compulsion's test names the **other** unit, so it is authored as `targetPredicate`, not
+> `predicate`. `predicate` gates whether the element applies at all and is evaluated at
+> collection time against its owner, where no other unit is in scope — writing it there makes the
+> element vanish silently.
+
+### Group 5 — Event handlers (`OnEvent`)
+
+One element, many uses. It is the most powerful and most-used element after `DamageModifier`.
+
+```yaml
+- key: OnEvent
+  event: damageStepEnd
+  predicate: ["self:wasSuccessfullyAttacked"]
+  automatic: true                    # suppressible by Addle
+  then:
+    - { key: StatDelta, stat: agility, delta: -1 }
+```
+
+> **Status.** Implemented. `OnEvent` normalizes at **collection time** into
+> `{events, actions, automatic, abilityId, source}` — `events` always a list, and every
+> rank-dependent table already resolved, because rank is in scope there and nowhere downstream.
+> `scheduler.fireEvent` dispatches the actions. An action the dispatcher does not understand
+> **logs itself by name** rather than resolving silently.
+>
+> A `revive:` shorthand desugars into a `Revive` action; it is authored separately because it
+> carries a cooldown table alongside its roll.
+>
+> Dice keep the "caller rolls" contract: `fireEvent` is pure and reads totals from `ctx.rolls`,
+> and `pendingRolls(unit, event)` tells the impure caller which formulas to roll first — so the
+> attack flow does not have to know what Battle Continuation is.
+
+**Filters on the handler.** Beyond `predicate` (answered at collection time) and
+`targetPredicate` (answered when the event fires), a handler may narrow on what the event is
+*about* — `ofCategory`, `excludeCategory`, `excludeContentId`, `excludeNP` — and on one thing the
+event is **not** about:
+
+```yaml
+unlessUsedThisTurn: { category: karnaNP }
+```
+
+A standing charge the bearer has already paid a **bigger version of** this Turn. Karna's Note 2 is
+the only clause in the set: *"when Karna uses a NP that deals damage, his Master's Health loss
+from him using the NP **overwrites** the 20 Health loss from when Karna would normally
+Act/Attack."*
+
+§15.4's `supersedes` is the right idea in the wrong scope — it resolves a set of costs against
+each other at the moment an ability is used, and this is not a cost of any ability. It is a
+standing upkeep that falls due at the end of a Turn, and what suppresses it happened earlier in
+that same Turn. So the question is asked where the Turn record is: `turnState.abilitiesUsed`,
+matched against the bearer's own abilities to recover the `category` (the record holds ids).
+
+Measured live: no NP used, the Master loses 20; *Brahmastra* used, the charge is suppressed
+entirely; an ordinary Skill used, the 20 still lands.
+
+**A condition about the bearer, not the subject.** `requiresDamagedThisPhase` is the second of
+these, and the shape generalises: the boundary reports what happened and the handler asks
+whether it happened to *its own owner*. Charm is *"removed at the end of the Combat Phase if
+the unit takes damage from an attack"* — `fireCombatPhaseEnd` reports the ids the phase actually
+damaged, read off the sibling messages' results, so an Evade, a Block that absorbed all of it,
+or simply being the attacker leaves the Charm standing. A boundary that measured no damage
+damages nobody, so the clause cannot fire on an event that never looked.
+
+**The event field is `event`, and it may hold an array.**
+
+```yaml
+- key: OnEvent
+  event: [turnEnd, actedTurnEnd, roundEnd]     # not `events:`
+```
+
+`normalizeHandler` reads `el.event` and spreads it when it is a list. Written as `events:` — the
+plural reads naturally, and Regen was the first multi-event handler anyone authored — the
+element compiles, validates, loads, and subscribes to `undefined`: it listens for nothing, for
+ever, in silence. The content validator now refuses an `OnEvent` that names no event, and says
+so by name when it finds an `events:` beside it.
+
+**Three option families for one Skill.** Innocent World needed all three, and none of them is
+Pale-Rider-shaped:
+
+```
+self:highestParameter:<p>     one per Parameter TIED for highest
+self:npAboveAllParameters     any NP ranked strictly above every Parameter
+self:stableDie:d6:<1-6>       a Unit with NO Parameters, same face every time
+```
+
+The tie is why the first is a set rather than a single answer: *"if the Unit has two or more
+Parameters of the same Rank, it is affected by all related effects."* An **unranked** Parameter
+is skipped rather than counted as lowest — a Unit that has no MAG has not got a low MAG, and the
+question does not apply to it. `npAboveAllParameters` is *higher*, not equal: an A-rank NP on a
+Servant with an A-rank Parameter does not qualify.
+
+`stableDie` is a **hash** of the Unit's id folded to 1–6, not a roll that is stored. *"That Unit
+will receive the same effect every time it is affected by Innocent World"* then costs nothing:
+identical on every read, survives a reload, agreed on by every client without anybody
+persisting it. It satisfies the clause's intent rather than its letter — no die is ever rolled,
+so a GM cannot reroll one — and the spec records the alternative.
+
+**An effect's handler carries that effect's expiry.** Ch. 11 §11.9's *"does not fire on the turn
+it ends"* held for `periodic:` effects and for nothing else, because the effect pseudo-ability
+passed `defId` and `uses` and not `expiry`. It travels now, and `fireEvent` skips a handler on
+the tick its effect runs out. An ability's own handler carries `null`: an ability has no clock.
+
+**A `table:` inside an action.** `StatDelta` resolves `table`, `floorTable` and
+`whenValue.lteTable` / `whenValue.gteTable` against the owning ability's rank, because rank is in
+scope at collection time and gone by dispatch. Mad Enhancement clause 1 is one number said three
+times — *"loses 20 Health … when its Master's Health is 20 or less"* is `madEnhancementDrain` at
+Rank B — and the floor and the threshold had both been authored as the literal `30`, the table's
+**EX** value. Every rank below EX clamped and deactivated against a number the Servant's own
+sheet never mentions.
+
+Supported events: every hook in Appendix E. The `then` array is a list of **actions**, which are
+a different (smaller) vocabulary from rule elements:
+
+| Action | Purpose |
+|---|---|
+| `StatDelta` | Change a stat |
+| `ApplyEffect` | Apply an effect |
+| `RemoveEffect` | Remove effects by selector |
+| `ResourceDelta` | Change a resource |
+| `CooldownDelta` | Change a cooldown |
+| `Damage` | Deal damage (fixed or formula) |
+| `Heal` | Restore health |
+| `Move` | Forced movement |
+| `Attack` | Trigger an attack (counters, Kiritsugu's suppression fire) |
+| `Summon` | Create a summon |
+| `Message` | Post to chat |
+| `Script` | The escape hatch |
+
+### Group 6 — Suppression and meta
+
+| Key | Purpose |
+|---|---|
+| `Suppress` | Petrify, Pigify, Toad, Addle (Ch. 11 §11.4) |
+| `Immunity` | Debuff Immune and its variants, named-effect immunity |
+| `ApplicationChance` | Debuff ChUp/ResUp, Item Construction, Magic Resistance's clause 2 |
+
+> **Status.** `ApplicationChance` is **implemented** as of the Penthesilea conversion. It had
+> been named in this table and accepted by the content validator since the tables were
+> transcribed, with **no executor** — and `effect-applier` read a `ctx.resist` that **no caller
+> ever supplied**, so the resistance path was dead at both ends. Contributions now fill an
+> `applicationChances` bucket, the snapshot carries it, and `applyEffect` reads it off the target.
+>
+> `Suppress` is **read for one scope**: `masterProtection`, which the targeting resolver has
+> consulted since Master protection was written (`caster.bypassesMasterProtection`) with nothing
+> ever setting it — so Presence Concealment's *"able to Attack Masters … regardless of the enemy
+> Master-Servant positions"* could not be authored at all. Its other scopes, `StackingOverride`
+> and `ImmunityDowngrade`, remain collected-only.
+>
+> `ApplicationChance` gained two filters for Serenity. A contribution now applies only to
+> **debuffs** unless it names one effect outright — every clause of this shape in the corpus is
+> *"chance of inflicting debuffs"* or *"chance of being inflicted by debuffs"*, and nothing
+> anywhere modifies how likely a **buff** is to land; without the filter her *Silent Dance* raised
+> the application chance of her own self-buffs. And `severity` accepts a **list**, so
+> *"chance of inflicting Instakill and Death is increased by 10%"* is one contribution rather than
+> two claims that the rank table was consulted twice.
+| `StackingOverride` | Rare per-content stacking changes |
+| `Aura` | Wraps another element with a radius and relation filter |
+
+### Group 7 — The escape hatch
+
+```yaml
+- key: Script
+  fn: "semiramis.hgobActivation"
+  args: { constructionRequired: 100 }
+```
+
+Scripts are registered functions, not `eval`'d strings:
+
+```js
+CONFIG.FGT.scripts["semiramis.hgobActivation"] = async (ctx, args) => { /* … */ };
+```
+
+A closed registry means content cannot execute arbitrary code from a compendium, which matters
+because compendia are shared between users. **DECISION.** No `eval`, no `new Function`, ever.
+A script id that is not registered fails the content build.
+
+> **Built 2026-09-16** (`module/engine/scripts.mjs`), and the first entry in it is Nursery Rhyme's
+> `nurseryRhyme.rewind` (Ch. 43 §43.11, Ch. 44 §44.6).
+>
+> **The registry did not exist until then, and the element had promised it since it was written.**
+> `Script` collected `{event, script, source}` into `eventHandlers` and **nothing read
+> `handler.script`** — and nothing could have matched one anyway, because it pushed a singular
+> `event` where `listensFor` reads `events`. That was consistent rather than surprising: the corpus
+> had zero Scripts, so the hatch had never been opened.
+>
+> The shipped shape differs from the sketch above in two spellings. It is `script:` and `params:`
+> rather than `fn:` and `args:`, matching what the element already collected; and the registry is a
+> frozen module-level object rather than a slot on `CONFIG`, so content cannot reach it at all.
+>
+> An unregistered id **logs and runs nothing** rather than failing the build. A compendium is data
+> other people wrote: refusing to load a whole world because one entry names a script this version
+> does not carry is a worse failure than one clause doing nothing and saying so. The lookup also
+> refuses names inherited from `Object.prototype`, since `SCRIPTS["constructor"]` is a function.
+
+**Actual, as of 2026-09-16: one**, across ~130 authored abilities — well inside the target below,
+and none of the five candidates it names turned out to need one. Every one of them decomposed into
+general mechanisms instead. The one that did not is a rewind over an arbitrary unit set, which
+nothing else in either roster resembles.
+
+**Target:** ≤ 15% of the reference set's abilities need a `Script` element. The candidates are
+Semiramis's HGoB construction and activation, Heracles's God Hand attack-recording, Mannanán's
+Fragarach NP cancellation, Nemo's Zero Sail, and Scáthach's Wisdom of Dún Scáith copy setup.
+Five out of roughly seventy abilities — about 7%.
+
+---
+
+## 24.4 Predicates
+
+A predicate is a boolean expression over **roll options** — a flat set of strings describing the
+current context.
+
+### Roll options
+
+```
+self:type:servant
+self:class:caster
+self:attribute:divine
+self:attribute:large
+self:effect:madEnhancement
+self:mode:presenceConcealment
+self:inOwnHomeBase
+self:inZon
+self:acted
+self:health:below:30
+self:resource:fragarachTokens:gte:3
+self:skill:divinity
+self:skill:divinity:rank:a
+
+target:type:master
+target:attribute:divine
+target:relation:enemy
+target:effect:burn
+target:parameter:mag:gte:b
+target:distance:1
+
+attack:kind:np
+attack:kind:normal
+attack:element:fire
+attack:isAoE
+attack:rank:a+
+attack:component:mag
+attack:ignoresMagicResistance
+attack:aim
+attack:pierce
+attack:thrownWeapon
+attack:range:3
+attack:range:gte:3
+attack:range:lte:2
+
+board:phase:night
+board:round:gte:6
+board:region:middleEast
+
+self:inField:emiyaUnlimitedBladeWorks
+target:inField:emiyaUnlimitedBladeWorks
+
+check:kind:evade
+check:vsNP
+```
+
+### Distance
+
+`attack:range:*` is emitted as a **ladder in both directions**, exactly like the rank comparison
+above and for the same reason: a predicate can only test set membership, so "3 or higher" has to
+already be a member. An attack at Range 3 emits `attack:range:3`, `attack:range:gte:1..3` and
+`attack:range:lte:3..12`.
+
+The cap is 12 rather than the board's width, because `lte` has to be emitted upwards and a full
+board would put several hundred strings into a set that is rebuilt for every damage event. The
+longest range any sheet in the reference set names is 3.
+
+**An unknown distance emits nothing at all.** A snapshot taken off the board has no panel, and
+reading that as range 0 would satisfy every `lte` clause in the game — so the whole family is
+absent rather than wrong. EMIYA is written almost entirely in these terms: his Normal Attack
+changes what it is made of at 3, *Clairvoyance* and *Hawkeye* switch on at 3, *Kanshou & Bakuya*
+applies at 2 or lower and *Hrunting* refuses at 1. None of it could be written before, because
+nothing emitted a distance.
+
+### Whether it crit
+
+`attack:crit` is in the option set **only** for an attack that has already resolved — it is added
+by the `damageDealt` firing and by nothing earlier. That is correct rather than incomplete: a
+clause that asks whether the attack crit is by definition asking about a resolved one, and
+emitting it at declaration would mean guessing.
+
+Serenity's `Macabre` is the first content to use it — *"Serenity's Normal Attack **Crits** inflict
+an additional Stage of Poison on the DU"* — and it needed the flag put on the damage **result**
+rather than only on the chat card, which is where the crit had been recorded since the pipeline
+was written.
+
+### The vocabulary has to be closed at both ends
+
+An option nobody emits is a clause that is **false for ever** — it authors cleanly, validates,
+compiles, loads, and never fires. Three shipped effects were written that way and none of them
+did anything:
+
+| Effect | Written against | Emitted |
+|---|---|---|
+| `N.Atk Up` | `self:attack:normal` | `attack:kind:normal` |
+| `Bleed Atk` | `self:attack:normal` | `attack:kind:normal` |
+| `NP Seal` | `self:ability:isNP` | nothing — and no reader for the suppression either |
+
+`rules/options.mjs` now exports `isEmittableOption`, a list of patterns covering everything
+`rollOptionsFor` can produce, and `test/unit/options.test.mjs` holds every predicate in the
+shipped content against it. That is the same guard `skill-references.test.mjs` applies to slugs,
+for the same failure.
+
+### The other end: a clause nobody can write
+
+The guard above catches an option nobody emits. It cannot catch the opposite — a **rule the
+sheets state that the vocabulary has no way to express at all**. Those do not fail validation,
+because they are never authored; they are silently converted into something weaker or left out.
+Karna and Asterios needed four:
+
+| Option | The clause that had no way to be written |
+|---|---|
+| `target:paramVsSelf:<p>:<gt\|eq\|lt>` | Karna, *Brahmastra*: *"if **all** of the DU's Parameters are equal or lower than Karna's"* |
+| `attack:element:<x>` | Karna, *Mana Burst (Flames)*: *"All Total **Fire** Damage taken is reduced by 50%"* |
+| `(self\|target):contentId:<id>` | Karna, *Fated Rivals*: *"if **Arjuna** is on the opposing Faction"* |
+| `attack:component:mag` (already emitted; **unused**) | Mad Enhancement: *"halved for Attacks which use Base Attack (MAG)"* — see Ch. 13 stage 5 |
+
+The first is the one worth dwelling on, because it looks expressible and is not. `rollOptionsFor`
+already emits an absolute rank ladder — `target:rank:str:gte:B` for every grade a Unit clears —
+and *"equal or lower than Karna's STR B"* reads like `not:target:rank:str:gte:A`. But the ladder
+is **grade-coarse**: `gradesClearedBy` gives a `B+` Unit the grades `E…B` and not `A`, so that
+clause is *true* for a Unit whose STR is above B.
+
+Against Karna's own `B/C/A/B/D` that hands the **4× branch** to defenders who should be getting
+2×, and 4× versus 2× on an A+ Noble Phantasm is the largest single damage swing any predicate in
+this game decides. Measured live against the authored roster, the `+` step decides three of six
+matchups — Semiramis's `END C+` against Karna's `C` is the clearest: one step, one grade letter,
+and the difference between 2× and 4×.
+
+**DECISION.** A comparison between two Units is made where both are in scope, with
+`Rank.compare`, and emitted as its **answer** rather than as a ladder either side has to be
+read off. `gt` is the one the clause names; `eq` and `lt` are emitted too, because the same
+three-way answer is what any future "higher/equal/lower Parameter" clause wants and leaving them
+out would make the next one add a fourth comparison mechanism. An unranked Parameter on either
+side emits nothing for that Parameter rather than guessing.
+
+`contentId:` is §36.1's *"cross-Servant references resolve by a stable slug"*, which had been a
+DECISION with nothing emitting one. The **content id**, not the display name and not the true
+name: a player may rename an actor, and `identityRevealed` deliberately hides the true name from
+opponents — the compulsion is a fact about who the Servant *is*, and it holds whether or not the
+table has worked that out yet.
+
+### Negation
+
+A bare option string may be prefixed with `not:`:
+
+```yaml
+predicate: ["not:self:skillActive:madEnhancement", "attack:kind:normal"]
+```
+
+It is exactly equivalent to the object form `{not: "..."}` and is used because it reads as one
+clause rather than as a nested structure.
+
+**It was never implemented.** A string statement is a set-membership test, so
+`"not:self:skillActive:madEnhancement"` was looked up as one literal option — which is never in
+the set — and the clause answered **false for ever**. The content validator's own
+`looksLikeRollOption` accepts the prefixed form as well-formed, so nothing anywhere objected.
+
+Three rules were dead because of it: Penthesilea's *Charisma* in both its passive and its active
+form, all four clauses of her *Goddess of War*, and Karna's Vasavi Shakti divinity override in
+`domain/tables.mjs`. `referencedOptions` reports the **bare** option, so both readers that consult
+it — the typo check and the deferral pass below — see whose state the clause is about.
+
+### When a predicate can be answered
+
+Contributions are collected **per unit**, and at that moment only that unit's own options exist:
+there is no target and no attack yet. A predicate naming `target:` or `attack:` therefore cannot
+be answered at collection time, and testing it there answers **false** — which drops the element
+for ever rather than deferring it.
+
+That is what happened, for the whole life of the project. Penthesilea's *Goddess of War* is gated
+on `attack:kind:normal` and never fired on a Normal Attack; `NP DmUp` is gated on `attack:kind:np`
+and raised no Noble Phantasm's damage; Scáthach's *God Slayer* is gated on the target's Attributes
+and added nothing against a Divine Unit. Three shipped abilities, one line. The JSDoc on
+`contributionsOf` had claimed the deferral happened since it was written.
+
+A predicate is now classified at collection: one that names only the owner is **answered** and the
+modifier carries `predicate: null`; one that names anybody else is **deferred**, travelling on the
+modifier for the damage pipeline to answer with the full option set. Deferral is all-or-nothing —
+a predicate is an implicit AND, so deferring the whole clause is equivalent to splitting it (the
+pipeline has the owner's options too) and splitting would need the two halves kept in step through
+every executor.
+
+The rule of thumb for an author: **anything about somebody else is free**; the engine works out
+when to ask.
+
+### Every executor has to carry the deferral, or it is not deferred
+
+Classification is only half of it: the executor receives the deferred clause and has to put it
+somewhere a reader will look. Three did not.
+
+- **`OnEvent`** dropped it entirely, so a handler gated on the attack fired **unconditionally**.
+  EMIYA's *Kanshou & Bakuya* is *"used when EMIYA performs a Normal Attack at a Range of 2 or
+  lower"* and it projected the swords at every distance — twice, once per range clause. Found
+  live. A handler now merges the deferred clause into its `targetPredicate`, which `fireEvent`
+  tests against the option set the event carries; the two are an implicit AND, so concatenation
+  is conjunction and the result stays a plain array.
+- **`CheckModifier` and `TableOverride`** did not carry one at all, so a check contribution could
+  not be conditional on the attack. EMIYA's *Hawkeye* is *"Crit Chance is increased by 50% **at a
+  Range of 3 or higher**"* — the distance does not exist when the buff is applied, so answering it
+  at application time answers it wrong. `checkPlan` and `critChance` now take the option set and
+  filter on it.
+
+`TableOverride` gained two more fields in the same pass, both for EMIYA's *Clairvoyance*, which is
+the only clause in the reference set that forces a table on **somebody else's** roll:
+
+```yaml
+- key: TableOverride
+  check: evade
+  forceTable: unfavourable
+  direction: imposed      # applies to the Unit checking AGAINST this one
+  chance: 80              # ...and only most of the time
+  predicate: ["attack:kind:normal", "attack:range:gte:3"]
+```
+
+`direction: imposed` is what keeps it off its own bearer's Evade, and `chance` makes it the only
+**probabilistic** forced table in the game. The `1d100` is rolled by the caller and keyed on the
+contribution's source, like every other roll in the system, so a recorded roll replays to the same
+answer — and a plan with no die refuses rather than treating 80% as certain.
+
+Two options were added for Magic Resistance's terminal ladder, both properties of the incoming
+attack rather than of the bearer: `attack:component:str|mag`, and `attack:ignoresMagicResistance`.
+Neither was emitted before, so *"unless … from an Attack/Attack Skill/Spell/NP that deals STR
+damage or that is not affected by Magic Resistance"* could not be written at all.
+
+Options are built once per operation by `OptionBuilder` and passed to every predicate
+evaluation. Building them is O(effects + abilities + attributes) per unit, ~1 ms, and cached
+with the snapshot.
+
+### The grammar
+
+```ts
+type Predicate = Array<Statement>;      // implicit AND
+
+type Statement =
+  | string                                        // option must be present
+  | { not: Statement }
+  | { and: Statement[] }
+  | { or:  Statement[] }
+  | { nand: Statement[] } | { nor: Statement[] }
+  | { gte: [ValueRef, ValueRef] }                 // numeric comparison
+  | { gt:  [ValueRef, ValueRef] }
+  | { lte: [ValueRef, ValueRef] }
+  | { lt:  [ValueRef, ValueRef] }
+  | { eq:  [ValueRef, ValueRef] }
+  | { rankGte: [RankRef, RankRef] }               // rank-aware comparison
+  | { rankEq:  [RankRef, RankRef] }
+  | { anyOf: string[] };                          // at least one option present
+
+type ValueRef = number | string;                  // "@self.health.value", "@target.mov"
+```
+
+Examples from the reference set:
+
+```yaml
+# Nemo's Great Ram Nautilus: +150% vs Large
+predicate: ["target:attribute:large"]
+
+# Scáthach's God Slayer: vs Undead or Divine
+predicate: [{ anyOf: ["target:attribute:undead", "target:attribute:divine"] }]
+
+# Karna's Brahmastra: 4x if NO target parameter exceeds Karna's
+predicate:
+  - { nor: [
+      { rankGte: ["@target.parameters.str", "@self.parameters.str+1"] },
+      { rankGte: ["@target.parameters.end", "@self.parameters.end+1"] },
+      { rankGte: ["@target.parameters.agi", "@self.parameters.agi+1"] },
+      { rankGte: ["@target.parameters.mag", "@self.parameters.mag+1"] },
+      { rankGte: ["@target.parameters.luc", "@self.parameters.luc+1"] }] }
+
+# Van Gogh's Existence Outside The Domain, clause 2
+predicate: ["target:skill:madEnhancement"]
+
+# Nemo's Poseidon's Protection, passive 2
+predicate: [{ anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] }]
+
+# Penthesilea's Howl of the War God, effect 2
+predicate: ["target:attribute:male", "target:region:greece"]
+```
+
+The Karna one is the most complex predicate in the reference set, and it fits. That is the
+evidence that the grammar is sufficient.
+
+### Why a data grammar rather than functions
+
+Three reasons, in order of importance:
+
+1. **Content is data.** A predicate expressed as a function cannot live in a compendium, be
+   edited in a sheet, be validated at build time, or be serialized into an audit trail.
+2. **Explainability.** A failed predicate can be rendered as *"requires: target has the Large
+   attribute (target does not)"*. A function can only say "false".
+3. **Safety.** Compendia are shared. Data cannot execute.
+
+---
+
+### The facet vocabulary — **built 2026-09-10**
+
+A predicate option is not a string. It is `subject : facet : value`, and
+`module/rules/facets.mjs` describes each of the **40 facets** the engine can emit: its subjects,
+its segments, where each value comes from, and one sentence of prose.
+
+**The table is the authority; `options.mjs#EMITTABLE` is generated from it.** That is a departure
+from the four authoring vocabularies in Ch. 29 §29.6, which are held against a *dispatcher* by a
+drift test because a dispatcher is code. `EMITTABLE` was 37 regexes describing a string shape —
+which is exactly what a descriptor with typed segments is — so keeping both would have been two
+spellings of one fact, tested to agree.
+
+The swap was proved behaviour-neutral before anything was built on it: the 37 regexes were captured
+to a fixture *first*, and `test/unit/facets.test.mjs` holds the generated set against that fixture
+and against every option the shipped corpus names. The whole suite then passed with **no test
+edited**.
+
+#### The three value kinds, and why they are not treated alike
+
+| Kind | Example | Build |
+|---|---|---|
+| `closed` | `phase:(day\|night\|none)`, `rank:…:gte:(E…EX)` | **errors** |
+| `registry` | effect ids, ability slugs, content ids | **warns** |
+| `open` | field ids, regions, variants, attributes | shape only, **and says so** |
+
+The asymmetry is load-bearing. `outsider` and `undead` are named by six authored clauses and
+granted by no unit — they are forward references to Servants not yet built — so a registry that
+errored would fail the build on legitimate content. An enum in `domain/enums.mjs`, by contrast,
+does not gain a member because somebody mistyped, so `closed` can be strict.
+
+**Five facets were tightened**, having had an enum available and not used it:
+`highestParameter`, `rank`'s parameter, `paramVsSelf`'s parameter, `attack:element` and
+`attack:npScale`. `self:highestParameter:strength` passed validation for the whole life of the
+field and could never match, because the parameter is `str`.
+
+#### `terrain:` — a registry the build checks anyway — **added 2026-09-11**
+
+`self:terrain:<type>` / `target:terrain:<type>` (Ch. 42) is the 37th facet, and it was added for
+Nemo, four of whose thirteen clauses read *"when Nemo is within a 'Waterside' or 'Imaginary
+Numbers Space' area"*. Until it existed that sentence was **unsayable** in the whole vocabulary.
+
+Nothing new computes the answer. `rules/terrain.mjs#annotateTerrain` has written `u.terrain` onto
+every unit in the snapshot since terrain shipped, and **nothing had ever read it** — the facet is
+pure exposure.
+
+It is declared `registry` rather than `closed`, because `TERRAIN` lives in `rules/terrain.mjs`
+and not in `domain/enums.mjs`, which is where `closed` reads from. But the asymmetry above does
+**not** apply to it: terrain types are not forward references to content that might arrive later,
+they are a closed table in code, and a type the table lacks can never appear. So
+`tools/lib/content.mjs` carries a **targeted error** for this one facet — `terrainTypesExist`,
+beside `predicateOptionsExist` — and `self:terrain:watersyde` fails the build instead of
+emitting nothing, matching nothing, and silently making its clause permanently false.
+
+#### `self:withinOfMaster:<n>` — the 40th facet, and the neighbour it was mistaken for
+
+Raikou's Mad Enhancement is *"constantly Active while her Master is within a 2 panel area of
+herself"*, and the vocabulary appeared to have that already: `withinOfOwnerMaster:<n>` had been
+there since Pale Rider's Contagion, and both its hint and its `lang/en.json` string read *"is
+within a number of panels of its own Master."*
+
+**It does not mean that.** It measures to the Master of whoever **owns the bounded field the
+unit is standing in** — `annotateFields` stamps `ownerMasterPanel`, so the option is absent
+entirely on open ground. Contagion asks it of an enemy standing *inside* Doomsday Come: *"if the
+enemy Unit is within a 3 panel area of Pale Rider's Master."* A Servant's distance to her own
+Master was unsayable, and the facet that looked like it said so was mis-described in two places.
+
+Both are now named for what they do, and the two English sentences no longer collide.
+
+`withinOfMaster` is annotated in `rules/zon.mjs#annotateZon` — which already resolves the pair
+through `masterOf` — rather than read off the `zonDistance` it stamps beside it. The three cases
+where the two disagree are exactly the ones that matter: `zonStatus` returns nothing for a Free
+Servant, for a Servant whose Master is off the board, and for a `zonExempt` one (Semiramis
+aboard the Hanging Gardens), and in that last case the distance still exists. A ladder capped at
+6, for the reason every ladder in this vocabulary is one: a predicate can only test set
+membership, so "within 3" has to already be a member for a Master standing 2 away.
+
+#### `anyOf` is not a synonym for `or`, and the build now says so
+
+`rules/predicate.mjs` gives `anyOf` a different contract from its neighbours. `and`, `or`,
+`nand` and `nor` take **statements** and recurse; `anyOf` is the shorthand for set membership and
+tests `ctx.options.has(o)` directly. Put a statement object inside one and the engine asks
+whether a `Set<string>` contains an object, gets `false`, and the clause is **permanently
+unsatisfiable** — authored cleanly, validated, compiled, loaded, and doing nothing for ever.
+
+The two keys read as synonyms, which is exactly what makes the mistake invisible at review. It
+was made writing Raikou's Mystery Slayer, whose Demi-/Pseudo-Servant exclusion is a `{nor}`
+beside a bare option: spelled `anyOf`, all four clauses of the skill were false against
+everybody, and only a test that exercised the predicate caught it.
+
+`tools/lib/content.mjs#anyOfHoldsOnlyOptions` now errors on it, and runs **before** the option
+walk — a malformed `anyOf` makes `referencedOptions` throw `o.startsWith is not a function`,
+which is a stack trace with no file name in place of a diagnosis.
+
+#### The guard, and where it used to stop
+
+`tools/lib/content.mjs` now **errors** through `isEmittableOption`, reading every predicate site via
+`rules/authoring/predicates.mjs#predicateSitesIn`. The check it replaces was
+`^[a-z]+:[a-zA-Z]+(:[\w+-]+)*$` — pure shape, and only a warning. That regex is how the `not:`
+prefix survived unimplemented long enough to cost Penthesilea her signature aura and Karna his
+divinity override.
+
+Coverage went from **147 references to 239**. The 92 that were never checked sit on
+`requirements[].predicate`, `phases[].predicate`, and `targeting.selection.attributes` — the last
+being a predicate despite its name (`rules/targeting/resolve.mjs`), which Achilles uses for
+*"cannot be used on Female Units"*.
+
+**Two fields named like predicates are not**, and are excluded with stated reasons:
+`chanceWhen[].predicate`, matched by a bespoke string compare in `engine/attack.mjs`; and
+`blockedWhen`, which is `{state, condition}` matched by its own one-case switch.
+
+#### Prose
+
+`explain()` reads the same table. A failed `target:attribute:large` now reads *"target has the
+large attribute"* rather than *"target attribute = large"* — which is the half of this section's
+own argument that had been half-delivered since it was written, and had no test at all.
+
+---
+
+## 24.5 The expression language
+
+Rule element values may be expressions rather than literals:
+
+```yaml
+value: "@self.range + 2"
+amount: "@self.resources.proliferation.value"
+magnitude: "5 * @self.resources.fragarachTokens.value"
+duration: "1◈"
+```
+
+A tiny, total expression evaluator: arithmetic (`+ - * / %`), comparison, `min`/`max`/
+`floor`/`ceil`/`clamp`, and `@`-prefixed path references into the snapshot. No function calls,
+no property assignment, no loops.
+
+```js
+// Mannanán: "Crit Damage dealt is increased by 5% for every Fragarach Token"
+- key: CritModifier
+  aspect: damage
+  value: "5 * @self.resources.fragarachTokens.value"
+```
+
+Parsed at content-build time into an AST, evaluated against the snapshot. Parse errors fail the
+build. Evaluation errors (a missing path) throw with the element's source document named —
+principle P4.
+
+---
+
+> **Implemented.** `@intentional` is enforced by `tools/lib/content.mjs`: an element with an
+> explicit `priority` and no marker is a **build error**, and one with a marker is a **warning**
+> naming the band the override lands in. The marker must be **prose** — `@intentional: true`
+> states nothing, and a reviewer reading it a year later learns nothing either. The override
+> itself only warns, because it is a supported feature that fewer than five elements need.
+
+## 24.6 Priority and ordering
+
+Elements apply in priority bands (Ch. 06 §6.11), with a stable secondary sort by source document
+id so ordering is deterministic across clients.
+
+| Band | Priority | Contains |
+|---|---|---|
+| 10 | Base | `RankShift`, permanent base changes |
+| 20 | Additive | `StatModifier` add, `DamageModifier` |
+| 30 | Aura collection | `Aura`-wrapped elements are gathered |
+| 35 | Aura consumers | `Clarity` and anything reading aura magnitudes |
+| 40 | Multiplicative | `StatModifier` multiply |
+| 50 | Application chance | `ApplicationChance` |
+| 60 | Absolute set | `StatModifier` set (Pigify, Toad, Holder Mode) |
+| 70 | Immunity | `Immunity`, `DamageNegation` |
+| 80 | Bounds | min/max clamps |
+| 90 | Suppression | `Suppress` — runs last so it sees everything |
+
+Content may override with an explicit `priority`, but doing so requires an `@intentional` marker
+and the validator warns. In practice fewer than five elements in the reference set need it.
+
+---
+
+## 24.7 Worked example — Van Gogh's *Existence Outside The Domain*
+
+The reference set's densest passive: five numbered clauses, three of which reference other
+skills.
+
+```yaml
+id: van-gogh-existence-outside-the-domain
+name: "Existence Outside The Domain"
+rank: A
+source: class
+hasPassive: true
+hasActive: false
+countsAs: [existenceOutsideTheDomain]
+passiveRules:
+
+  # 1. Debuff resistance with the terminal ladder
+  - key: ApplicationChance
+    direction: incoming
+    value: -25
+    terminalLadder: { instakill: -25, death: -10, erase: -5 }
+
+  # 2a. Damage taken from Mad Enhancement units −40%
+  - key: DamageModifier
+    direction: taken
+    value: -40
+    includesNP: true
+    predicate: ["attacker:skill:madEnhancement"]
+
+  # 2b. Damage dealt to Mad Enhancement units +40%
+  - key: DamageModifier
+    direction: dealt
+    value: 40
+    includesNP: true
+    predicate: ["target:skill:madEnhancement"]
+
+  # 3. Damage taken from Outsiders +40%
+  - key: DamageModifier
+    direction: taken
+    value: 40
+    includesNP: true
+    predicate:
+      - { anyOf: ["attacker:skill:existenceOutsideTheDomain", "attacker:attribute:outsider"] }
+
+  # 4. Crit chance +15%
+  - key: CritModifier
+    aspect: chance
+    value: 15
+
+  # 5. Negate Mad Enhancement's damage boost when attacked by such a unit,
+  #    and its damage reduction when attacking one.
+  - key: SuppressForeign
+    target: attacker
+    suppresses: { sourceSkill: madEnhancement, elementKeys: [DamageModifier], direction: dealt }
+    predicate: ["attacker:skill:madEnhancement"]
+  - key: SuppressForeign
+    target: target
+    suppresses: { sourceSkill: madEnhancement, elementKeys: [DamageModifier], direction: taken }
+    predicate: ["target:skill:madEnhancement"]
+```
+
+Zero JavaScript. Clause 5 needed one new element (`SuppressForeign` — suppress an element on the
+*other* unit for this exchange only), which is general enough to be worth having: it is how
+"negate the enemy's X" is expressed, and several unique skills will want it.
+
+Note clauses 2 and 5 interact: clause 2 gives −40% from Mad Enhancement units, and clause 5
+negates Mad Enhancement's own bonus. Both apply — Van Gogh takes 40% less *and* the attacker
+loses their boost. That is a large swing and it is what "Existence Outside The Domain" is meant
+to be.
+
+---
+
+## 24.8 Worked example — Mannanán's `Fragarach` status
+
+The reference set's most mechanically unusual effect, and the one that justifies `OnEvent`.
+
+```yaml
+id: fragarach
+name: "Fragarach"
+polarity: status
+removability: { unremovable: true }
+rules:
+  # 1. Cannot perform a normal counter
+  - key: ForbidReaction
+    reactions: [counter]
+
+  # 2. Automatic Fragarach Counter on being attacked OR debuffed
+  - key: OnEvent
+    event: [combatProcessEnd, effectApplied]
+    automatic: true
+    predicate:
+      - { or: ["self:wasAttackedThisProcess", "self:wasDebuffedThisProcess"] }
+    then:
+      - key: Attack
+        target: sourceOfAttack
+        formula:
+          base: [{ unit: self, component: str, factor: 1.0 }]
+          multiplier: 2.5
+          damageScope: np              # "deal NP Damage"
+          unblockable: true
+          evadableOnlyBy: [dodge]
+          ignoresNPSeal: true          # explicit exception (Ch. 15 §15.5)
+        then:
+          - { key: ApplyEffect, target: victim,
+              effect: { id: defDwnC, duration: "1◈", magnitude: 10 } }
+          - { key: ApplyEffect, target: alliesWithin2,
+              effect: { id: sCritUp, duration: "⅓◈", magnitude: 10 } }
+          - { key: CooldownDelta, target: self, ability: fragarachEnbarr, delta: "-⅓◈" }
+          - { key: ResourceDelta, target: self, resource: fragarachTokens, delta: 1 }
+```
+
+Also fully declarative, at the cost of the `Attack` action supporting a nested `then`. That
+nesting is worth it — chained on-hit effects are extremely common.
+
+**Built**, with two changes. `ForbidReaction` and the automatic counter are two elements rather
+than a nested `Attack` action: §12.8's ruling is that a Counter is a **full declaration** — its
+own reaction ladder, its own damage pipeline, its own riders — so `AutoCounter` names an ability
+and `engine/auto-counter.mjs` queues the provocation for `engine/attack.mjs#flushAutoCounters` to
+declare. Describing the attack inline would have been a second, weaker damage path that no ladder
+reaches. And the two provocations are a **set on one element** rather than two subscriptions, so
+an attack that also lands a debuff owes one counter and not two.
+
+Her *Fragarach* NP was expected to stay scripted — it **cancels an incoming Noble Phantasm** and
+either instakills its user or reflects its damage, with the branch depending on whether the
+cancelled NP was that Servant's strongest. It did not need a script either. The genuinely
+computational part is *"was it their strongest"*, and that is `rules/np-strength.mjs`: pure,
+testable, and ranked against a synthetic neutral defender so the answer does not depend on who is
+standing in front of it. What is left is two branches of data on the ability
+(`cancelsNP: {againstStrongest, otherwise}`). **The reference set's script count is zero.**
+
+---
+
+## 24.9 Explainability
+
+Every applied element records its contribution:
+
+```ts
+interface Contribution {
+  elementKey: string;
+  sourceName: string;              // "Flash of the Sun God"
+  sourceType: "ability" | "effect" | "environment" | "essence";
+  value: number | string;
+  stage: number | string;
+  predicateResult: PredicateTrace | null;
+}
+```
+
+`PredicateTrace` records *which clause* passed or failed, so the UI can render:
+
+```
+Not applied: Dmg Up (Gods)
+  requires: target has [Undead] or [Divine]
+  target Heracles has: [Male] [Servant] [Earth] [Humanoid]
+  → clause failed
+```
+
+This is the single most valuable debugging tool in a data-driven system, and it costs one object
+per evaluated element. In production it is retained only for the current operation; in dev mode
+it is kept for the whole session.
+
+---
+
+## 24.10 Content validation
+
+`tools/validate-content.mjs` checks, per rule element:
+
+1. `key` is registered in `CONFIG.FGT.ruleElements`.
+2. The spec validates against the element's `SCHEMA`.
+3. Every `predicate` parses, and every referenced roll option is in the known vocabulary
+   (unknown options are a **warning**, since content may legitimately introduce new ones —
+   but they must be declared in the ability's `providesOptions`).
+4. Every expression parses and every `@path` resolves against the snapshot type.
+5. Every effect id referenced exists in the effect registry.
+6. Every ability id referenced (`blockedBy`, `alsoTriggers`, `sameTurnExclusive`) exists.
+7. Every `Script` fn is registered.
+8. Every duration parses.
+9. Every localization key exists.
+10. Priority overrides carry `@intentional`.
+
+Validation runs in CI, at pack build, and at world setup in dev mode. A failure names the
+document, the ability, the element index, and the field path.
+
+---
+
+## 24.11 Extension
+
+A module adds a rule element:
+
+```js
+Hooks.once("init", () => {
+  class MyElement extends fgt.api.RuleElement {
+    static KEY = "MyElement";
+    static SCHEMA = { magnitude: { type: "number", required: true } };
+    contributeDamage(ctx, bag) { bag.stage(4).add(this.spec.magnitude, this.source.name); }
+  }
+  CONFIG.FGT.ruleElements.MyElement = MyElement;
+});
+```
+
+Content then uses `key: MyElement`. Same mechanism the system itself uses; no privileged path.
+
+---
+
+## 24.12 Summary of decisions
+
+| # | Decision |
+|---|---|
+| D24.1 | ~30 rule elements with five contribution points cover the entire reference set. |
+| D24.2 | Predicates are a data grammar over roll options, never functions — for compendium safety, explainability, and build-time validation. |
+| D24.3 | Scripts are entries in a closed registry; no `eval`, no `new Function`. |
+**`ForceMode`** (Group 4) holds a mode switched on while a condition holds and refuses it off —
+Raikou's Mad Enhancement, *"constantly Active while her Master is within a 2 panel area"*. Its
+condition is carried as **`when`** rather than as the `predicate` every element may take, because
+`collectContributions` tests `predicate` at collection time and a positional answer frozen there
+is wrong the moment anybody moves. `rules/modes.mjs#forcedOn` re-tests it every time.
+
+**`EffectMagnitudeScale`** (Group 2) scales the magnitude of a named effect landing on its bearer
+— Raikou's Genji-clan Discipline, *"the magnitude of all Atk Dwn effects on Raikou is halved"*.
+Distinct from its three neighbours, which each do something else to an incoming effect:
+`ApplicationChance` changes how likely it is to land, `DurationExtension` how long it lasts, and
+`Immunity` refuses it outright. Nothing made a landed debuff smaller.
+
+| D24.4 | `OnEvent` is the general trigger mechanism, with a small action vocabulary and nested `then` chaining. |
+| D24.5 | Values may be expressions in a tiny total language with `@`-path references. |
+| D24.6 | Priority bands with a stable secondary sort guarantee cross-client determinism. |
+| D24.7 | `SuppressForeign` expresses "negate the enemy's X for this exchange". |
+| D24.8 | Every element records a `Contribution` with a predicate trace, for the explainer. |
+| D24.9 | Target: ≤15% of abilities need a `Script`. Measured at ~7% on the reference set. |
+
+---
+
+**Next:** [25 — The Turn System](25-turn-system.md)
+
+### Three elements Kiritsugu added, and one he did not need
+
+| Key | Group | What it says |
+|---|---|---|
+| `AttackProperty` | 2, damage contributors | A property of the ATTACK, contributed by a buff on the attacker — `pierce`, `ignoresDefUp`, and the fractional `invulnFactor`. Until it existed, `Pierce` was in Appendix A, read by the pipeline in three places, and had no effect document, because only an ability's own `damage:` block could produce one. |
+| `BaseAttackModifier` | 1, stat modifiers | A multiplier on Base Attack, per component. Applied in the **projection** rather than the pipeline, because it names *both* components and an attack only ever reads one (Ch. 13). |
+| `CategoryUseLimit` | 6, suppression and meta | A per-Turn cap on a whole category, declared by the skill that states the rule and bypassable per use (Ch. 15). |
+
+
+A fourth, `TriggeredAttack`, was planned for the out-of-turn shot and **never written**. The
+ally window plus the `sourceOfAttack` anchor plus `freeAction` covered it with machinery that
+already existed; what it actually needed was two `timing` fields. Recorded because the instinct
+to reach for a new element was wrong, and reading the existing dispatcher was right.
+
+**On adding a key at all.** Three authorities have to agree — `EXECUTORS`,
+`rules/authoring/elements.mjs`, and `RULE_ELEMENT_KEYS` — and `test/unit/elements.test.mjs`
+holds them in both directions. There are two more the drift tests also cover and that are easy
+to miss: `lang/en.json` needs a label and a hint per element (`authoring-i18n`), and any new
+`timing` field needs an entry in `rules/authoring/timing.mjs` (`authoring-timing`). Both caught
+real omissions during this pass.
+
+**And a field a reader consults must be DECLARED.** `bypassesCategoryLimit`,
+`refusesReactionsUnlessFaster` and `offersSpellCategory` were each read by code and absent from
+the ability schema, so on a real document all three were `undefined` for ever. The pack compiler
+builds an explicit object; a field it does not name is dropped silently.
+
+**Interior `then:` actions are validated against no vocabulary at all**, and they are renamed:
+`normalizeActions` writes the authored `key` as `kind`. A reader that checks `action.key` finds
+`undefined` on every action and does nothing, with no error anywhere. Both facts cost a defect
+apiece on this pass.
+

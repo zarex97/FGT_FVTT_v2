@@ -1,6 +1,6 @@
 /**
  * @file The authoring vocabulary's public surface.
- * @see docs/29-user-interface.md §29.6
+ * @see docs/35-sheets-and-editor.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -44,7 +44,7 @@ const FAMILIES = Object.freeze({
  * One descriptor, by family and id.
  *
  * `null` for anything unknown rather than a throw: a module may add a rule
- * element (§21.4) and an ability carrying one must still open in the editor —
+ * element (Ch. 02) and an ability carrying one must still open in the editor —
  * it renders in the raw pane instead of taking the window down.
  *
  * @param {"element"|"phase"|"requirement"|"csRequirement"|"timing"|"field"} family

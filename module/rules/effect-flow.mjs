@@ -1,6 +1,6 @@
 /**
  * @file Transfer, effect visibility, Confuse's selector, and Undo eligibility.
- * @see docs/11-effect-engine.md §11.8, §11.10, docs/18-action-economy.md §18.5, §18.7
+ * @see docs/15-effect-application.md, Ch. 15, docs/19-action-economy.md, Ch. 19
  *
  * Layer 2 (rules). Pure.
  *
@@ -11,7 +11,7 @@
 import { test as testPredicate } from "./predicate.mjs";
 
 /* -------------------------------------------------------------------------- */
-/*  §11.8 Transfer                                                            */
+/*  Ch. 15 Transfer                                                            */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -19,7 +19,7 @@ import { test as testPredicate } from "./predicate.mjs";
  *
  * *"The buff is removed from the DU and applied to the AU instead, **with the
  * duration being maintained**."* Because durations are stored as **absolute
- * expiry ticks** (Ch. 07 D7.3), transfer is a move rather than a re-application
+ * expiry ticks** (Ch. 04 D7.3), transfer is a move rather than a re-application
  * — which is what "maintained" means and what restarting the clock would break.
  *
  * The one adjustment is `pausedTicks`: if one of the two has been **Stopped**,
@@ -76,7 +76,7 @@ export function transferableFrom(units, spec = {}) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  §11.10 Visibility                                                         */
+/*  Ch. 15 Visibility                                                         */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -119,7 +119,7 @@ export function canSeeEffect(instance, bearer, viewer) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  §18.5 Confuse                                                             */
+/*  Ch. 19 Confuse                                                             */
 /* -------------------------------------------------------------------------- */
 
 /** The four action classes a Confused unit may roll. */
@@ -173,7 +173,7 @@ export function confusedAction(unit, legalTargets, rolls) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  §18.7 Undo                                                                */
+/*  Ch. 19 Undo                                                                */
 /* -------------------------------------------------------------------------- */
 
 /**

@@ -1,6 +1,6 @@
 /**
  * @file Branch selection for a check phase.
- * @see module/rules/checks/branches.mjs, docs/14-checks-and-randomness.md
+ * @see module/rules/checks/branches.mjs, docs/13-checks-and-randomness.md
  *
  * Medusa's Mystic Eyes is three outcomes chosen by what the target **is**, one
  * of which rolls a second time on failure. A check phase used to be one Luck

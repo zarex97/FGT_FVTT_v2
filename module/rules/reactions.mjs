@@ -1,6 +1,6 @@
 /**
  * @file Abilities usable "when Attacked".
- * @see docs/15-abilities.md §15.3, docs/27-reaction-protocol.md §27.2
+ * @see docs/17-abilities.md, docs/23-reactions.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -12,7 +12,7 @@
  * beside Block and Evade.
  *
  * Everything that would refuse the ability is checked *before* it is offered,
- * for §17.6's reason: an option that refuses when pressed teaches nothing that
+ * for Ch. 33's reason: an option that refuses when pressed teaches nothing that
  * a missing option does not teach faster.
  */
 
@@ -91,7 +91,7 @@ export function reactionAbilities(unit) {
  * One implementation for both sides of the exchange. `reactionAbilities` was
  * this function with `"whenAttacked"` inlined, and the attacker-side windows
  * need exactly the same gate list — an ability offered at a moment it is on
- * cooldown for is the refusal-when-pressed §17.6 forbids, whichever side of the
+ * cooldown for is the refusal-when-pressed Ch. 33 forbids, whichever side of the
  * attack its owner is standing on.
  *
  * `oncePerTurn` and the **round**-scale exclusion are checked here and are not
@@ -103,6 +103,33 @@ export function reactionAbilities(unit) {
  * @param {string} window
  * @returns {object[]}
  */
+/**
+ * The subject an attacker's timing window asks its questions of.
+ *
+ * `abilitiesAtWindow` filters on everything the Unit can answer alone, and
+ * `stance` is one of those questions — four of Achilles's abilities are *"can
+ * only be used when Unmounted"*. `rules/stance.mjs#stanceOf` reads
+ * `unit.stanceSpec` and returns **null** without it, so a subject assembled
+ * from loose fields answers `null === "dismounted"` and the requirement can
+ * never pass.
+ *
+ * `engine/attack.mjs` built exactly such a subject — `{ items, effects,
+ * turnState, roundState }` — so **Runner Comet was never offered at the only
+ * window its sheet gives it**. §46.4-P had just made an ability of that shape
+ * runnable when taken; this is what kept it from being offered at all
+ * (Ch. 46 §46.4-V).
+ *
+ * The snapshot is the answer to every such question, and the Items are what the
+ * filter reads `system` off, so the subject is both.
+ *
+ * @param {object} snapshot the unit's projection
+ * @param {Iterable<object>} items the actor's ability Items
+ * @returns {object} a unit the window's filters can interrogate
+ */
+export function windowSubject(snapshot, items) {
+  return { ...(snapshot ?? {}), items: [...(items ?? [])] };
+}
+
 export function abilitiesAtWindow(unit, window) {
   const used = unit?.turnState?.abilitiesUsed ?? [];
   const usedThisRound = unit?.roundState?.abilitiesUsed ?? [];
@@ -133,7 +160,7 @@ export function abilitiesAtWindow(unit, window) {
     // ...and everything the ability's own `requirements` say. Offered without
     // them, a window put Achilles's Runner Comet in front of him while he was
     // MOUNTED -- and his sheet says "can only be used when Unmounted". That is
-    // the refusal-when-pressed §17.6 forbids, and the same argument this
+    // the refusal-when-pressed Ch. 33 forbids, and the same argument this
     // function's own docstring makes about cooldowns. Found live.
     //
     // Only the requirements answerable from the Unit alone: a `targetHasEffect`
@@ -188,7 +215,7 @@ export function abilityFromOption(event) {
  * Abilities a **third party** may use because this defender is about to be hit.
  *
  * Returned with their owner, because the ability does not belong to the Unit
- * whose Combat Process it interrupts — which is the whole difficulty. Ch. 27's
+ * whose Combat Process it interrupts — which is the whole difficulty. Ch. 23's
  * ladder prompts one side per rung, so the offer is appended to the defender's
  * rung and carries the projector's name; the GM or the projector's player is
  * the one who answers.

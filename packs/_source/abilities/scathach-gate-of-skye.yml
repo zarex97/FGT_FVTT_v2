@@ -28,7 +28,7 @@ description: |
 requirements:
   # "Cannot be used if Primordial Rune, Wisdom of Dún Scáith, and/or Gáe Bolg
   # Alternative are on Cooldown." Note the asymmetry the time model draws
-  # attention to (§7.6): it is BLOCKED BY three and TRIGGERS two.
+  # attention to (Ch. 04): it is BLOCKED BY three and TRIGGERS two.
   - kind: abilityOffCooldown
     abilityIds:
       - scathach-primordial-rune

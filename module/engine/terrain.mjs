@@ -1,6 +1,6 @@
 /**
  * @file Creating, finding, moving and removing terrain areas.
- * @see docs/42-terrain.md §42.7
+ * @see docs/26-terrain.md
  *
  * Layer 3.
  *
@@ -130,7 +130,7 @@ export async function paintTerrain({
       system: {
         types, duration, sourceUnitId, followsSource, radius, tag,
         createdOnTurn: tick,
-        // An expiry rather than a countdown, for the reason §7.5 gives.
+        // An expiry rather than a countdown, for the reason Ch. 04 gives.
         expiry: duration
           ? tick + resolveTicks(parseTick(duration), {
             turnsPerRound: game.settings.get("fgt", "turnsPerRound"),

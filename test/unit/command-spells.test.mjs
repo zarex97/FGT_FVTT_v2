@@ -1,6 +1,6 @@
 /**
  * @file Command Spells — offering, validating and resolving.
- * @see docs/17-command-spells.md, docs/45-implementation-status.md B1
+ * @see docs/33-command-spells.md, docs/46-roster-re-audit.md B1
  *
  * The schema, the `spendCS` intent and `io.spendCommandSpells` all existed and
  * were reachable end to end. What did not exist was anything that decided
@@ -184,7 +184,7 @@ describe("the authored catalogue", () => {
     .map((f) => parse(readFileSync(`${dir}/${f}`, "utf8")));
 
   /**
-   * §17.2's reference list, by id. The catalogue is explicitly OPEN -- *"if
+   * Ch. 33's reference list, by id. The catalogue is explicitly OPEN -- *"if
    * you can think of any other use for Command Spells, feel free to mention it
    * and use it if the GM/majority of players approve"* -- so this is asserted
    * as a SUBSET rather than as the whole directory. A bare length was the
@@ -201,7 +201,7 @@ describe("the authored catalogue", () => {
   ];
 
   it("ships the whole reference set", () => {
-    // §17.2: nine at cost 1, seven at cost 2, one at cost 3.
+    // Ch. 33: nine at cost 1, seven at cost 2, one at cost 3.
     const ids = new Set(commands.map((c) => c.id));
     for (const id of REFERENCE_SET) expect(ids).toContain(id);
     expect(REFERENCE_SET).toHaveLength(16);

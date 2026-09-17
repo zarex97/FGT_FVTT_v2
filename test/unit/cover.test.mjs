@@ -1,6 +1,6 @@
 /**
  * @file Cover — a Servant taking a Noble Phantasm for its Master.
- * @see docs/16-relationships.md §16.4 rule 4, module/rules/cover.mjs
+ * @see docs/32-relationships.md rule 4, module/rules/cover.mjs
  *
  * The last of the four Master-protection rules to be built, and the only one
  * that spans two Combat Processes: an AoE Noble Phantasm fans out into one

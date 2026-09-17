@@ -1,6 +1,6 @@
 /**
  * @file What using an ability puts on cooldown, and what buys its way out.
- * @see module/engine/cooldown.mjs, docs/07-time-model.md §7.5, §7.6
+ * @see module/engine/cooldown.mjs, docs/04-time-model.md, Ch. 04
  */
 
 import { describe, it, expect, beforeAll } from "vitest";

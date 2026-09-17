@@ -1,9 +1,9 @@
 /**
  * @file Heracles's kit, held against his sheet.
- * @see char_orig_sheets/Copia de Heracles.md, docs/31-case-heracles.md
+ * @see char_orig_sheets/Copia de Heracles.md, docs/45-case-studies.md
  *
  * He shipped with four of his eight abilities. The four that were missing are
- * the four Ch. 31 was written about: the revival chain, God Hand's two
+ * the four Ch. 45 was written about: the revival chain, God Hand's two
  * passives, the Skill his own Mad Enhancement switches off for the whole match,
  * and the third `evadeSucceeded` clause in the reference set.
  */
@@ -12,6 +12,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { REVIVAL_PRIORITY } from "../../module/rules/revival.mjs";
+import { collectContributions } from "../../module/rules/elements.mjs";
+import { resolveDefeat } from "../../module/engine/scheduler.mjs";
 import { REQUIREMENT_KINDS } from "../../module/rules/items.mjs";
 import { classifyAbility, needsTargeting, countsAsAttack } from "../../module/rules/ability-use.mjs";
 import { lookup } from "../../module/domain/tables.mjs";
@@ -90,8 +92,8 @@ describe("the revival chain", () => {
   });
 
   it("does not name `priority`, which means something else on a rule element", () => {
-    // `priority` reorders an element within its ordering band (§24.6) and
-    // `orderElements` sorts on it — so §31.2's `priority: 300` would have moved
+    // `priority` reorders an element within its ordering band (Ch. 10) and
+    // `orderElements` sorts on it — so Ch. 45's `priority: 300` would have moved
     // the element itself into a band it does not belong to, silently.
     for (const rules of [effect("undying").rules, ability("heracles-god-hand").passiveRules]) {
       expect(rules.find((r) => r.key === "RevivalSource").priority).toBeUndefined();
@@ -149,6 +151,60 @@ describe("God Hand", () => {
   it("cannot be copied", () => {
     expect(gh.copyable).toEqual({ allowed: false, reason: "unique" });
   });
+
+  // *"Can only be used 11 times"*, against a first passive that can spend
+  // several of those eleven on ONE attack: *"if the damage of the Attack that
+  // defeated Heracles exceeds his current Health, the excess damage is reduced
+  // from his newly restored Health, AND SO ON"*.
+  //
+  // `resolveRevival` has always returned the right `chargesUsed`; the ledger
+  // is written by `spendRevival`, which recorded one use per RESOLUTION rather
+  // than one per charge. Measured on a live board: a 275-damage hit into a
+  // Heracles at 1 Health logged `charges: 3` and moved the sheet from
+  // "used 0 of 11" to "used 1 of 11".
+  describe("the ledger counts charges, not resolutions", () => {
+    const unitAtZero = () => ({
+      id: "herc",
+      health: 0,
+      maxHealth: 1500,
+      abilities: [{ id: "godHand", slug: "godHand", cooldownRemaining: 0 }],
+      revivals: collectContributions([{
+        id: "godHand", name: "God Hand: Twelve Labors", rank: "B",
+        passiveRules: gh.passiveRules,
+      }]).revivals.map((r) => ({ ...r, abilityId: "godHand" })),
+      eventHandlers: [],
+    });
+
+    // 274 of overkill against three 100s: two charges are swallowed whole and
+    // the third leaves 26 Health standing.
+    const ctx = {
+      tick: 0,
+      overkill: 274,
+      rolls: { "revival:godHand:0": 100, "revival:godHand:1": 100, "revival:godHand:2": 100 },
+    };
+
+    it("revives him, and spends three charges doing it", () => {
+      const intents = resolveDefeat(unitAtZero(), ctx);
+
+      expect(intents).toContainEqual(expect.objectContaining({ t: "heal", unitId: "herc", amount: 26 }));
+      expect(intents).toContainEqual(expect.objectContaining({
+        t: "log", entry: expect.objectContaining({ kind: "revive", charges: 3 }),
+      }));
+    });
+
+    it("records three against the whole-match budget, not one", () => {
+      const recorded = resolveDefeat(unitAtZero(), ctx).filter((i) => i.t === "recordUse");
+
+      expect(recorded).toHaveLength(1);
+      expect(recorded[0]).toMatchObject({ unitId: "herc", abilityId: "godHand", count: 3 });
+    });
+
+    it("still records one for a revival that spends a single charge", () => {
+      const single = resolveDefeat(unitAtZero(), { tick: 0, overkill: 0, rolls: { "revival:godHand:0": 100 } });
+
+      expect(single.filter((i) => i.t === "recordUse")[0]).toMatchObject({ count: 1 });
+    });
+  });
 });
 
 describe("Bravery", () => {
@@ -166,7 +222,14 @@ describe("Bravery", () => {
 
   it("resists Mental debuffs by classification, not by a list of names", () => {
     const passive = bravery.passiveRules[0];
-    expect(passive).toMatchObject({ key: "ApplicationChance", direction: "incoming", volatility: "mental", value: -50 });
+    // POSITIVE, because an incoming value SUBTRACTS (`base + inflictBonus -
+    // resist`). This assertion read `-50` for as long as the file existed --
+    // it restated the sheet's "reduced by 50%" as a signed delta and agreed
+    // with the content, so both were wrong together and the test passed the
+    // whole time. Charm measured 150% against Heracles on a live board.
+    // `application-chance-sign.test.mjs` asks the applier instead, which is
+    // the only thing that can tell the two signs apart (Ch. 46 §46.4-J).
+    expect(passive).toMatchObject({ key: "ApplicationChance", direction: "incoming", volatility: "mental", value: 50 });
   });
 
   it("buffs STR damage only", () => {
@@ -216,6 +279,23 @@ describe("Indomitable", () => {
 });
 
 describe("Nine Lives", () => {
+  // His sheet gives Nine Lives no reach of its own -- *"Base Attack (STR) is
+  // used"* and nothing about panels -- so it swings at whatever his Range
+  // happens to be, and Mad Enhancement's clause 4 puts that at 2 for the whole
+  // match. An absolute `range:` is the corpus's idiom for an ability that
+  // states its own number (EMIYA's Caladbolg II at 6); `rangeBonus` is the
+  // idiom for one that moves with the unit, and the absence of both means
+  // `anchorRange` falls through to `caster.range`.
+  //
+  // Measured on a live board: his sheet read Range 2 and the targeting step
+  // refused an enemy two panels away with *"HT Foe is out of Range (1)"*.
+  it("reaches as far as he does, rather than freezing his base Range", () => {
+    const anchor = ability("heracles-nine-lives").targeting.anchor;
+
+    expect(anchor.kind).toBe("targetUnit");
+    expect(anchor.range).toBeUndefined();
+  });
+
   it("carries the cooldown the sheet prints", () => {
     // `7◈`, not `7◈+⅓◈`. A third of a Round is one Turn here and five in a
     // Holy Grail War, so the difference is not rounding.

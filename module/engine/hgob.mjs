@@ -42,7 +42,7 @@ async function onChannelComplete({ actorId, onComplete }) {
 }
 
 /**
- * §32.9's "place the HGoB token... Move her to the middle panel... all
+ * Ch. 45's "place the HGoB token... Move her to the middle panel... all
  * Parameters increased by one Rank... ZON does not apply... Sustainability
  * increased by 2◈."
  *

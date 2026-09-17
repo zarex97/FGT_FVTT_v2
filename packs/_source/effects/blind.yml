@@ -3,7 +3,7 @@
 # *"80% chance of Missing on attacks and enemy-affecting abilities"* needed a
 # step the Combat Process did not have: an Evade is the DEFENDER's roll
 # answering a swing that happened, and a Miss is the swing not happening at all.
-# Step 1.5 is that step (`docs/12-combat-process.md` §12.2), and the chance
+# Step 1.5 is that step (`docs/21-combat-process.md` Ch. 21), and the chance
 # ladder lives in `module/rules/miss.mjs` rather than here — a Miss is a
 # property of the swing rather than a modifier on it, and there is no pipeline
 # stage or check bucket that could have held it.

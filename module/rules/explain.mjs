@@ -1,6 +1,6 @@
 /**
  * @file Rendering the damage breakdown into displayable rows.
- * @see docs/30-chat-and-audit.md §30.3
+ * @see docs/37-chat-and-log.md
  *
  * Layer 2 (rules). **Pure** — it turns a `DamageResult` into plain row objects.
  * The HTML lives in a template; this decides *what* to say.

@@ -1,10 +1,10 @@
 /**
  * @file An ability's own **Total Damage** modifiers — stage 15.
- * @see module/rules/damage/pipeline.mjs, module/engine/attack.mjs, docs/13-damage-pipeline.md §13.4
+ * @see module/rules/damage/pipeline.mjs, module/engine/attack.mjs, docs/22-damage-pipeline.md
  *
  * Stage 15 has read `ctx.totalDamageModifiers` since the pipeline was written,
  * and until Drake it had exactly ONE producer in the whole codebase —
- * `coverModifiersFor`, for §16.4's Cover rule. A sheet that says *"**Total**
+ * `coverModifiersFor`, for Ch. 32's Cover rule. A sheet that says *"**Total**
  * damage dealt is increased"* had no way into it at all.
  *
  * **Why the ability's `damage:` block and not a rule element.** The first

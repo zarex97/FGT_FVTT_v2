@@ -1,6 +1,6 @@
 /**
  * @file Conjuring summons — the `summon` phase.
- * @see docs/15-abilities.md §15.2, docs/36-case-remaining.md
+ * @see docs/17-abilities.md, docs/45-case-studies.md
  *
  * Layer 3. Medea's Dragon Tooth Warriors is the reference case and the most
  * structurally demanding summon in the set: **two nested rolls**, one deciding

@@ -1,7 +1,7 @@
 /**
  * Golden tests for the damage pipeline.
  *
- * The two worked examples in docs/13-damage-pipeline.md §13.5 and §13.6 are the
+ * The two worked examples in docs/22-damage-pipeline.md and Ch. 22 are the
  * acceptance fixtures: if these two numbers change, either the documentation or
  * the implementation is wrong and the diff says which.
  */
@@ -45,7 +45,7 @@ function baseCtx(overrides = {}) {
 /* ========================================================================== */
 
 describe("worked example 1 — Penthesilea normal-attacks Heracles", () => {
-  // docs/13-damage-pipeline.md §13.5. Expected: 409.
+  // docs/22-damage-pipeline.md. Expected: 409.
   const ctx = baseCtx({
     attacker: unit({
       baseAttack: { str: 160, mag: 0 },
@@ -89,7 +89,7 @@ describe("worked example 1 — Penthesilea normal-attacks Heracles", () => {
 });
 
 describe("worked example 2 — Karna's Brahmastra Kundala into a home base", () => {
-  // docs/13-damage-pipeline.md §13.6. Expected: 1076.
+  // docs/22-damage-pipeline.md. Expected: 1076.
   const ctx = baseCtx({
     attacker: unit({
       baseAttack: { str: 125, mag: 175 },
@@ -169,7 +169,7 @@ describe("stage 2 — the Q39 correction", () => {
     });
 
   it("scales the 5d10 roll only, not the attack", () => {
-    // docs/13-damage-pipeline.md §13.3 stage 2 micro-example.
+    // docs/22-damage-pipeline.md stage 2 micro-example.
     expect(computeDamage(karna(0)).total).toBe(624);  // (125 + 31) × 4
     expect(computeDamage(karna(40)).total).toBe(673); // (125 + 31×1.40) × 4
   });
@@ -574,7 +574,7 @@ describe("the breakdown", () => {
     });
     const s4 = computeDamage(ctx).breakdown.find((s) => s.index === 4);
     // The side travels with the contributor: it is what lets a card show a
-    // viewer their own modifiers and withhold the opponent's (Ch. 26 26.7).
+    // viewer their own modifiers and withhold the opponent's (Ch. 38 26.7).
     expect(s4.contributors).toContainEqual({
       source: "atkUp", value: 30, note: "Howl of the War God", side: "attacker",
     });

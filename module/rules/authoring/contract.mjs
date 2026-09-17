@@ -1,6 +1,6 @@
 /**
  * @file The shape every authoring descriptor must have, and the drift helper.
- * @see docs/29-user-interface.md §29.6
+ * @see docs/35-sheets-and-editor.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -34,7 +34,7 @@ export function descriptorProblems(entry) {
   if (!entry?.label) problems.push(`${id}: needs a label`);
   // D5. The hints are the point of the vocabulary; optional hints rot into
   // decoration on the half of the table nobody got to.
-  if (!entry?.hint) problems.push(`${id}: needs a hint — §29.6 D5`);
+  if (!entry?.hint) problems.push(`${id}: needs a hint — Ch. 34 D5`);
 
   for (const [i, field] of (entry?.fields ?? []).entries()) {
     const at = `${id}.fields[${i}]`;

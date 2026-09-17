@@ -1,6 +1,6 @@
 /**
  * @file What each tab of the actor sheet renders.
- * @see docs/29-user-interface.md §29.2
+ * @see docs/35-sheets-and-editor.md
  *
  * The impure half of the sheet: this reaches for documents, the board, the
  * combat and the settings, and hands the results to `present.mjs`, which does
@@ -49,10 +49,10 @@ function describe(item) {
 
 
 /**
- * The Master-only half of the sheet (§29.3).
+ * The Master-only half of the sheet (Ch. 34).
  *
  * Every figure here is derived. The Command Spell tracker shows `own` and the
- * per-Servant grants apart because §16.9 makes them different resources, and
+ * per-Servant grants apart because Ch. 32 makes them different resources, and
  * the **Unbound** warning falls out of the total being zero rather than being
  * stored -- a stored flag would need updating from spending, granting,
  * inheriting and the Master dying, and the one that got missed would leave a
@@ -78,7 +78,7 @@ function masterContext(master) {
     // "a warning that it is lost on death" -- the Essence is the one thing on
     // this sheet whose loss is permanent.
     essences: [...(master.system.essences ?? [])],
-    // §16.7: at 25 Health or less a Master cannot order more than one Servant
+    // Ch. 32: at 25 Health or less a Master cannot order more than one Servant
     // to Act, and the tax has already been charged by the time anyone looks.
     taxWarning: (master.system.health?.value ?? 0) <= 25,
     multiServantTax: master.system.turnState?.servantsActed ?? 0,
@@ -107,7 +107,7 @@ function stanceContext(snapshot) {
 }
 
 /**
- * One contracted Servant, as §29.3 shows it: distance, ZON, and what being
+ * One contracted Servant, as Ch. 34 shows it: distance, ZON, and what being
  * outside costs.
  *
  * @param {string} id
@@ -176,9 +176,9 @@ export function buildContext(actor, sheet) {
     hasFactions: Object.keys(board.choices()).length > 0,
     hasFaction: Boolean(system.factionId),
 
-    // §14.9's setup rolls, offered on a Master that has not had them yet. A GM
+    // Ch. 13's setup rolls, offered on a Master that has not had them yet. A GM
     // may re-roll before the match starts; afterwards the rolls lock. Only a
-    // Master or a Caster may contract (§16.2), so only they get the button -- a
+    // Master or a Caster may contract (Ch. 32), so only they get the button -- a
     // control that always refuses is worse than none.
     //
     // Spread first: `servantClasses` is a SetField, so it arrives as a `Set`,
@@ -202,7 +202,7 @@ export function buildContext(actor, sheet) {
 }
 
 /**
- * The always-visible header (§29.2).
+ * The always-visible header (Ch. 34).
  *
  * D29.3: *"the header carries every value that gates an action"*. So the three
  * depleting resources, the public identity line, and the three stored states
@@ -221,7 +221,7 @@ function headerContext(actor, snapshot) {
   const faction = system.factionId ? board.faction(system.factionId) : null;
 
   // A GM sees the truth regardless of `identityRevealed` — they are the one
-  // who has to run the concealment (§26.6) — and so does the Servant's own
+  // who has to run the concealment (Ch. 38) — and so does the Servant's own
   // controller, the same exemption `rules/identity.mjs#publicNameOf` already
   // states (`viewer.isOwner`): the concealment is from OPPONENTS, not from the
   // player running the unit. Only a Servant has an identity to conceal at all.
@@ -254,7 +254,7 @@ function headerContext(actor, snapshot) {
 /**
  * The public identity line: what this unit is, not who.
  *
- * A Servant is not "Heracles" to its opponents, it is "Berserker" (§4.2), so
+ * A Servant is not "Heracles" to its opponents, it is "Berserker" (Ch. 06), so
  * the container leads. Alignment and Region follow because both are things
  * content predicates match on and neither appeared anywhere on the old sheet.
  *
@@ -308,7 +308,7 @@ function badgesFor(system, snapshot) {
       hint: "FGT.Sheet.ConcealedHint",
     });
   }
-  // §16.6: a Servant whose Master has died "remains in whatever state it was
+  // Ch. 32: a Servant whose Master has died "remains in whatever state it was
   // in", so a Berserker with Mad Enhancement on cannot switch it off.
   if (system.modesLocked) {
     badges.push({
@@ -364,7 +364,7 @@ function overviewContext(actor, snapshot) {
       mov: snapshot.mov,
       rangePanels: snapshot.range,
       maxTargets: snapshot.maxTargets,
-      // Ch. 08 §8.7. `snapshot.detect` is the AUTHORED override and is `null`
+      // Ch. 05 `snapshot.detect` is the AUTHORED override and is `null`
       // on almost every unit -- the derivation lives in `detectRangeOf`, which
       // needs the board for a Caster's Home Base check. Reading the raw field
       // printed an empty Detect on every sheet that had not overridden it,
@@ -404,12 +404,12 @@ function overviewContext(actor, snapshot) {
         amount: rankAmount(d),
       })),
 
-    // The stance and its two buttons (Ch. 44 §44.1). `null` for every Unit but
+    // The stance and its two buttons (Ch. 45). `null` for every Unit but
     // Achilles, which is what the template's `{{#if}}` reads.
     stance: stanceContext(snapshot),
 
     status: {
-      // The SNAPSHOT's, not `system`'s: §16.2 derives this state, and the
+      // The SNAPSHOT's, not `system`'s: Ch. 32 derives this state, and the
       // stored field's `"contracted"` default is wrong for a Servant that has
       // no Master. Same convention as every other field here that differs.
       contract: snapshot.contract ?? system.contract ?? null,
@@ -428,7 +428,7 @@ function overviewContext(actor, snapshot) {
         : null,
     },
 
-    // A warning that does not block (§29.9's amber badge). Shown because the
+    // A warning that does not block (Ch. 34's amber badge). Shown because the
     // alternative is discovering it after committing an attack.
     compulsions: (snapshot.compulsionRules ?? []).map((rule) => ({
       text: rule.text ?? rule.reason ?? JSON.stringify(rule),
@@ -436,7 +436,7 @@ function overviewContext(actor, snapshot) {
 
     budget: budgetRow(snapshot),
 
-    // §6.10's per-unit pools -- PRS Tokens, Fragarach Tokens, Construction --
+    // Ch. 06's per-unit pools -- PRS Tokens, Fragarach Tokens, Construction --
     // which gate abilities and appeared nowhere on the old sheet.
     pools: Object.entries(snapshot.resources ?? {}).map(([key, pool]) => ({
       // The player's name for the pool, not the write path's. `FGT.Pool.<key>`
@@ -523,7 +523,7 @@ function budgetRow(snapshot) {
 }
 
 /**
- * Platform-only Overview blocks (Ch. 20).
+ * Platform-only Overview blocks (Ch. 27).
  * @param {object} system
  * @returns {object}
  */
@@ -534,7 +534,7 @@ function platformBlock(system) {
     level: system.level ?? 0,
     owner: system.ownerId ? (game.actors.get(system.ownerId)?.name ?? system.ownerId) : null,
     upkeep: system.upkeep ?? null,
-    // §20.7: cross-level protection is decided per platform, not globally, so
+    // Ch. 27: cross-level protection is decided per platform, not globally, so
     // the four axes are shown rather than summarised into a single word.
     crossLevel: Object.entries(system.crossLevel ?? {}).map(([key, value]) => ({ key, value: String(value) })),
   };
@@ -603,7 +603,7 @@ function abilitiesContext(actor, snapshot, turnsPerRound) {
  * The state line comes from `canUseAbility` — the **same call**
  * `engine/attack.mjs` makes before it resolves anything — rather than from a
  * second reading of the cooldown fields. A card that computed its own answer
- * would be a second implementation of §15.10, and the copy is the one nobody
+ * would be a second implementation of Ch. 17, and the copy is the one nobody
  * updates. That is the argument `engine/cooldown.mjs` was written to settle.
  *
  * @param {object} item an ability Item
@@ -613,7 +613,7 @@ function abilitiesContext(actor, snapshot, turnsPerRound) {
 function abilityCard(item, { actor, unit, master, round, turnsPerRound, board }) {
   const use = classifyAbility(item);
   const spec = usageSpecFor(item);
-  // `gateContext()` carries §7.9's Round gate: without it the sheet would show
+  // `gateContext()` carries Ch. 04's Round gate: without it the sheet would show
   // a Noble Phantasm as usable that the declaration path then refuses, which is
   // worse than showing it locked.
   const verdict = canUseAbility({ ability: spec, unit, master, round, board, ...gateContext() });
@@ -626,6 +626,18 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
     kind: item.type === "noblePhantasm" ? "noblePhantasm" : (item.system.kind ?? "skill"),
     isNP: item.type === "noblePhantasm" || Boolean(item.system.isNP),
     use,
+    // WHICH window, for an ability that has no button because its only moment
+    // is one. `classifyAbility` has answered `kind: "windowed"` since Asterios
+    // needed it, and the card had no branch for it — so *"(Active) Used at the
+    // start of a Damage Step"* rendered as "Passive — always in effect", which
+    // is wrong in the direction that matters: a player told the skill is
+    // already working never goes looking for the prompt, and never learns a
+    // Cooldown is being spent when they answer it (Ch. 46 §46.8).
+    windows: use.kind === "windowed"
+      ? [...(Array.isArray(item.system.timing?.window)
+        ? item.system.timing.window
+        : [item.system.timing?.window])].filter(Boolean)
+      : [],
     active: Boolean(item.system.active),
     // A mode that is on reads as on; `cannotDeactivate` explains a disabled
     // toggle rather than leaving the player clicking a dead control.

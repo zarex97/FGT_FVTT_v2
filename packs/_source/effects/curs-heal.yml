@@ -1,0 +1,25 @@
+# Appendix A §A.5
+# "Curse damage becomes healing."
+#
+# Read in **two** places, both of which have been live since they were written
+# and neither of which could be reached:
+#
+#   - `rules/damage/pipeline.mjs` stage 0 converts an incoming attack whose
+#     element is `curse` before anything reduces the number -- the conversion has
+#     to happen first, or a Ward would shrink the healing.
+#   - `engine/scheduler.mjs`'s `PERIODICS` table names it as `Curse`'s
+#     `healConversion`, which is what turns the periodic TICK around.
+#
+# Two readers and one id, which is why this is presence-based: a magnitude would
+# have to mean the same thing to a damage pipeline and to a periodic, and it
+# does not -- the row says the damage *becomes* healing, not that it is scaled.
+schema: 1
+id: cursHeal
+name: "CursHeal"
+description: "Curse damage is restored as Health instead of being taken."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules: []

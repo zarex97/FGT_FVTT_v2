@@ -1,14 +1,15 @@
 /**
  * @file Kingprotea — the pure halves of her kit.
- * @see docs/36-case-remaining.md §36.7, char_orig_sheets/Copia de Kingprotea.md
+ * @see docs/45-case-studies.md, char_orig_sheets/Copia de Kingprotea.md
  *
  * Everything here is layer 1 or 2, so it runs without a world. The parts that
  * need documents — the growth writing a token's size, the knockback cascade,
- * the stock-gain handler — are live-tested in `fgt2026` and recorded in Ch. 45.
+ * the stock-gain handler — are live-tested in `fgt2026` and recorded in Ch. 46.
  */
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
+import { resolveRef } from "../../tools/lib/content.mjs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
@@ -68,7 +69,7 @@ describe("Kingprotea's statline", () => {
 });
 
 /* ========================================================================== */
-/*  perStack — the mechanism §36.7 is about                                    */
+/*  perStack — the mechanism Ch. 45 is about                                    */
 /* ========================================================================== */
 
 describe("perStack", () => {
@@ -360,8 +361,30 @@ describe("Mad Enhancement A+", () => {
     expect(lookup("madEnhancementDefence", Rank.parse("A+"))).toEqual([55, 25]);
   });
 
+  // Instantiated as HER sheet takes it: clause 1 is parameterized, because the
+  // six sheets carrying Mad Enhancement print three different shapes of it
+  // (Ch. 46 §46.4-C). Hers is the forced deactivation with no floor.
+  const forKingprotea = () => {
+    const sv = parse(readFileSync("packs/_source/servants/kingprotea.yml", "utf8"));
+    const ref = sv.abilities.find((a) => a.ref === "class-mad-enhancement");
+    const library = new Map([["class-mad-enhancement",
+      parse(readFileSync("packs/_source/class-skills/mad-enhancement.yml", "utf8"))]]);
+    const problems = [];
+    const built = resolveRef(ref, library, problems, "kingprotea");
+    expect(problems).toEqual([]);
+    return built;
+  };
+
+  it("drains 25 with no floor, and forcibly deactivates at 25", () => {
+    const [drain, setMode] = forKingprotea().activeRules
+      .find((r) => r.key === "OnEvent").then;
+
+    expect(drain.floorTable).toBe(null);
+    expect(setMode.whenValue.lteTable).toBe("madEnhancementDrain");
+  });
+
   it("halves the MAG share to 40, not 42.5", () => {
-    const me = parse(readFileSync("packs/_source/class-skills/mad-enhancement.yml", "utf8"));
+    const me = forKingprotea();
     const mag = me.activeRules.find((r) => r.predicate?.includes?.("attack:component:mag"));
     expect(mag.magnitudeFactor).toBe(0.5);
     expect(mag.magnitudeRoundTo).toBe(5);

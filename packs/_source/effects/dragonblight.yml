@@ -1,0 +1,33 @@
+# Appendix A §A.14
+# "(1) All Elemental damage dealt reduced to 0. (2) Cannot inflict volatile
+# debuffs."
+#
+# Clause 1 is stage 0 of `rules/damage/pipeline.mjs`, which halts on an attacker
+# holding `dragonblight` whenever the attack carries an element -- live since
+# the pipeline was written, and unreachable.
+schema: 1
+id: dragonblight
+name: "Dragonblight"
+description: |
+  All Elemental damage this Unit deals is reduced to 0, and it cannot inflict volatile debuffs.
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules:
+  # Clause 2, which had no reader at all. An OUTGOING `ApplicationChance` of
+  # -100 scoped to volatile debuffs: `rules/checks.mjs#applicationChance`
+  # computes `base + inflictBonus - resist`, so a contribution of -100 on the
+  # inflicting side takes any chance to zero regardless of what the ability
+  # stated.
+  #
+  # Scoped by VOLATILITY, which is this appendix's own classification, so no
+  # list of debuff ids has to be kept here and a volatile debuff authored later
+  # is covered by saying what it is.
+  - key: ApplicationChance
+    direction: outgoing
+    polarity: debuff
+    volatility: volatile
+    value: -100

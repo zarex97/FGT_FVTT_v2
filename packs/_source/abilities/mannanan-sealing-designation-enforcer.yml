@@ -8,7 +8,7 @@ slug: sealingDesignationEnforcer
 cooldown: "4◈"
 timing: { window: ownTurn }
 # A Skill that restores Agility and buffs its user deals no damage, so it is not
-# an Attack Skill and must not spend her Attack for the Turn (§15.1).
+# an Attack Skill and must not spend her Attack for the Turn (Ch. 17).
 countsAsAttack: false
 description: |
   (Active) Used during your Turn. Has the following effects-

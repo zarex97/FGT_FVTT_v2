@@ -119,7 +119,7 @@ describe("snapshotBoard", () => {
   });
 });
 
-describe("parameter grants reach the Rank (Ch. 05 §5.6)", () => {
+describe("parameter grants reach the Rank (Ch. 03)", () => {
   const withParams = (over = {}) => actor({
     ...over,
     system: {
@@ -199,7 +199,7 @@ describe("parameter grants reach the Rank (Ch. 05 §5.6)", () => {
   });
 });
 
-describe("unit-authored passiveRules (Ch. 32, Bašmu's Normal Attack rider)", () => {
+describe("unit-authored passiveRules (Ch. 45, Bašmu's Normal Attack rider)", () => {
   // A summon has no separate ability item to carry a standing rule -- Bašmu's
   // Normal Attack rider and its Targetability protection are authored
   // directly on the SUMMON, not on an Item, and `contributionsOf` used to
@@ -235,7 +235,7 @@ describe("unit-authored passiveRules (Ch. 32, Bašmu's Normal Attack rider)", ()
   });
 });
 
-describe("VariantOverride (Ch. 32, Semiramis's Double Summon buff)", () => {
+describe("VariantOverride (Ch. 45, Semiramis's Double Summon buff)", () => {
   // The DSC buff grants Semiramis her OWN 'heads' branch shape for 1◈ Turn --
   // the same `summonVariant.heads.overrides` block `engine/summon.mjs`
   // applies permanently on a real Heads result, read live instead of copied.
@@ -293,7 +293,7 @@ describe("VariantOverride (Ch. 32, Semiramis's Double Summon buff)", () => {
   });
 });
 
-describe("platformContentId (Ch. 20, Semiramis's Territory Creation)", () => {
+describe("platformContentId (Ch. 27, Semiramis's Territory Creation)", () => {
   // `annotatePlatforms` matches a unit to a platform by ELEVATION, not by the
   // platform's own `system.level` field -- both are projected through the
   // same generic `level: footprint[0].k ?? doc?.elevation ?? 0`, so the token
@@ -468,7 +468,7 @@ describe("sustainability", () => {
 });
 
 describe("canAct reads the effects, not only the channelling flag", () => {
-  // §16.4: "While a Servant is affected by Charm, Confuse, Berserk, Stun,
+  // Ch. 32: "While a Servant is affected by Charm, Confuse, Berserk, Stun,
   // Stop, Petrify, Freeze, Sleep, or any other effect that prevents a Servant
   // from Acting, the effects in the above paragraphs are negated."
   //
@@ -551,7 +551,7 @@ describe("the war Region's bonus is applied exactly once", () => {
   });
 });
 
-describe("contract state for a Servant with no Master (Ch. 16 §16.2)", () => {
+describe("contract state for a Servant with no Master (Ch. 32)", () => {
   const servant = (system = {}) => ({
     id: "m", uuid: "Actor.m", name: "Medusa", type: "servant",
     system: { factionId: "red", range: { panels: 1, targets: 1 }, ...system },
@@ -559,7 +559,7 @@ describe("contract state for a Servant with no Master (Ch. 16 §16.2)", () => {
   });
 
   it("is free, not the schema's 'contracted' default", () => {
-    // §16.2: "State is derived, not stored" -- `if (!m) return 'free'`. The
+    // Ch. 32: "State is derived, not stored" -- `if (!m) return 'free'`. The
     // stored field initialises to "contracted", and a Servant summoned without
     // a Master had nothing to overwrite it, so a Free Servant's sheet claimed
     // a contract it never had.

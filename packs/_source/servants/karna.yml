@@ -1,6 +1,6 @@
 # packs/_source/servants/karna.yml
 # Conversion source: char_orig_sheets/Copia de Karna.md
-# Discussed: docs/36-case-remaining.md §36.1 · data sheet: docs/D-servant-data-sheets.md §D.8
+# Discussed: docs/45-case-studies.md · data sheet: docs/D-servant-data-sheets.md §D.8
 #
 # Karna is the practical benchmark for SC-6 ("author a Servant in under an hour"):
 # thirteen abilities and four Noble Phantasms, the most of the original twelve.
@@ -12,7 +12,7 @@ type: servant
 trueName: Karna
 servantClasses: [lancer]
 # The container it is summoned into, and the name opponents see until its
-# true name is revealed (Ch. 04 §4.2).
+# true name is revealed (Ch. 06).
 classContainer: lancer
 # CHAOTIC Good, as the sheet says. It shipped `lawful`, which is not a
 # transcription slip anybody would notice reading the file and is not cosmetic:
@@ -61,20 +61,20 @@ notes: |
   (the one-way activation that trades it away). What shipped was Magic Resistance, Riding,
   Divinity and one of his four Noble Phantasms.
 
-  **Vasavi Shakti is two documents, not §36.1's proposed `modes:` block.** The sheet is explicit
+  **Vasavi Shakti is two documents, not Ch. 45's proposed `modes:` block.** The sheet is explicit
   that *"'Activating' Vasavi Shakti is different from using the Active effect below … also it
   does not cost Master Health to 'Activate' it"*, so the activation is a free Skill
   (`karna-vasavi-shakti-activation`) and the Noble Phantasm is gated on the status it applies.
-  §36.1 proposed a new `modes:` schema for this; the branch machinery that arrived later for
+  Ch. 45 proposed a new `modes:` schema for this; the branch machinery that arrived later for
   Semiramis's Summoning: Bašmu — `targeting.branches`, `damage.branches`, `cooldown.branches`,
   per-phase `predicate:` — already covers every case `modes:` was invented for, and two documents
   also gives the player two buttons, which is the honest presentation of a one-way decision that
   permanently deletes his best defensive clause.
 
   `Fated Rivals of the Mahabharata` is authored and **inert by design**: Arjuna is not in the
-  reference set. §36.1's DECISION is that a cross-Servant reference resolves by slug and warns
+  reference set. Ch. 45's DECISION is that a cross-Servant reference resolves by slug and warns
   rather than erroring, because a match legitimately may not include the Servant named.
 
   Note 2 on the sheet — *"when Karna uses a NP that deals damage, his Master's Health loss from
   him using the NP overwrites the 20 Health loss from when Karna would normally Act/Attack"* — is
-  §15.4's `supersedes`, and the 20 it overwrites is Kavacha and Kundala's own upkeep.
+  Ch. 17's `supersedes`, and the 20 it overwrites is Kavacha and Kundala's own upkeep.

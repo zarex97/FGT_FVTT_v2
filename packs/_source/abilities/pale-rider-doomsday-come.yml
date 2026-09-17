@@ -1,7 +1,7 @@
 # Pale Rider -- Doomsday Come: Come to Me, Realm of the Dead, Come to Me.
 # Rank EX (NP) [Anti-World]. Non-damaging.
 # Conversion source: char_orig_sheets/Copia de Pale Rider.md
-# Data sheet: docs/D-servant-data-sheets.md §D.26 · bounded field: Ch. 43
+# Data sheet: docs/D-servant-data-sheets.md §D.26 · bounded field: Ch. 28
 #
 # The six axes are all here; three of its clauses arrive in later commits and
 # are named where they belong:
@@ -58,7 +58,7 @@ field:
   # Axis 1 -- geometry. Around the MASTER, not the caster, and it moves with
   # them: the field is a mobile prison and that is the whole design. The
   # Region is attached to the Master's token, so Foundry moves the drawn area
-  # itself (§43.3).
+  # itself (Ch. 28).
   #
   # "X panel area" is radius X, by the corpus's convention -- so 2+1d4 gives a
   # 7x7 through a 13x13, rolled once at cast and stored.
@@ -168,10 +168,15 @@ field:
       predicate: [{ or: ["self:highestParameter:agi", "self:stableDie:d6:3"] }]
 
     # 4. MAG highest, first half: chance of being inflicted by debuffs +50%.
+    #
+    # NEGATIVE, because this is a VULNERABILITY and incoming values SUBTRACT
+    # (`base + inflictBonus - resist`). Authored `+50`, which made the plague
+    # protect its victims -- the mirror of the error Bravery, Mental Pollution
+    # and Queen's Poison all made in the other direction (Ch. 46 §46.4-J).
     - key: ApplicationChance
       direction: incoming
       severity: normal
-      value: 50
+      value: -50
       relations: [enemy]
       predicate: [{ or: ["self:highestParameter:mag", "self:stableDie:d6:4"] }]
 

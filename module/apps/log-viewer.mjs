@@ -1,6 +1,6 @@
 /**
  * @file The game log viewer.
- * @see docs/30-chat-and-audit.md §30.8, §30.9, §30.10
+ * @see docs/37-chat-and-log.md, Ch. 37, Ch. 37
  *
  * Layer 4. Filters by turn, actor and kind, with a search box — and its
  * most-used function in practice will be *"show me everything that happened to
@@ -8,10 +8,10 @@
  * participant rather than the entry's subject.
  *
  * Two things this shows that chat cannot. A GM override appears as its own
- * entry **beside** the one it changed, with the original struck through — §30.10
+ * entry **beside** the one it changed, with the original struck through — Ch. 37
  * requires the record to show that the GM changed something, and a log that
  * silently carried the new value would satisfy P6 while defeating the reason
- * P6 is written down. And the export button produces §30.9's self-contained
+ * P6 is written down. And the export button produces Ch. 37's self-contained
  * JSON, which is the thing a bug report attaches.
  */
 
@@ -94,7 +94,7 @@ export class LogViewer extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Export the log as §30.9's JSON.
+   * Export the log as Ch. 37's JSON.
    *
    * Written to the world's data directory rather than offered as a download:
    * a `<a download>` is inert inside some Foundry frames, and a file the GM can
@@ -115,7 +115,7 @@ export class LogViewer extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Record a GM override against an entry (§30.10).
+   * Record a GM override against an entry (Ch. 37).
    *
    * The reason is required and the dialog will not submit without one. That is
    * not ceremony: an unexplained override is indistinguishable from a bug in
@@ -167,7 +167,7 @@ function present(e, bySeq) {
   return {
     ...e,
     isOverride: isOverride(e),
-    // An overridden entry is struck through and keeps its place. §30.10: the
+    // An overridden entry is struck through and keeps its place. Ch. 37: the
     // original remains in the record.
     superseded: Boolean(e.overriddenBy),
     // An override names what it changed, so the two read as a pair rather than

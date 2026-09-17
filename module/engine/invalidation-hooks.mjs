@@ -1,20 +1,20 @@
 /**
  * @file Turning document changes into invalidations, and acting on them.
- * @see docs/23-documents-and-derived-data.md §23.9, docs/25-turn-system.md §25.10
+ * @see docs/08-documents-and-derived.md, docs/25-turn-order-and-scheduler.md
  *
  * Layer 3. `rules/invalidation.mjs` holds the table; this reads the Foundry
  * hooks and applies it.
  *
- * **What there is to invalidate, honestly.** §23.9's table names a snapshot
+ * **What there is to invalidate, honestly.** Ch. 08's table names a snapshot
  * cache, and this system does not have one: `snapshotBoard` runs per
  * resolution, from the documents, every time. That is a deliberate design and
- * the reason most of the staleness §23.9 anticipates cannot occur here — you
+ * the reason most of the staleness Ch. 08 anticipates cannot occur here — you
  * cannot serve a stale snapshot you never stored. What *is* long-lived, and so
  * what this actually drives:
  *
  *   - the **canvas aura index**, rebuilt on movement and aura-rule changes;
  *   - the **overlays**, which read positions and Master protection;
- *   - the **desync checksum** at each round boundary (§25.10).
+ *   - the **desync checksum** at each round boundary (Ch. 25).
  *
  * The table is still worth having for all three, because the alternative — a
  * hand-maintained hook list per consumer, which is what the overlays had — goes
@@ -34,7 +34,7 @@ let auraIndex = null;
  * The current aura index, rebuilt if it was invalidated.
  *
  * The **resolution** path does not use this — `snapshotBoard` builds its own,
- * synchronously, because §23.3 requires a resolution to see a current index and
+ * synchronously, because Ch. 08 requires a resolution to see a current index and
  * a one-frame-stale one is only acceptable for display.
  *
  * @returns {object}
@@ -73,7 +73,7 @@ export function attachInvalidation() {
       invalidate(invalidationsFor("effectChanged", {
         actorId: effect.parent?.id ?? null,
         grantsAura: grantsAura(effect),
-        // §23.9's easily-missed row: anything that changes `canAct` invalidates
+        // Ch. 08's easily-missed row: anything that changes `canAct` invalidates
         // Master protection for Masters within 2 panels. A mode toggle does not
         // move anyone, and it still changes whether the Servant is protecting.
         affectsCanAct: affectsCanAct(defId),
@@ -92,7 +92,7 @@ export function attachInvalidation() {
 
   Hooks.on("updateItem", (item, changes) => {
     // A mode toggle is an item update on `system.active`, and it is the row
-    // §23.9 singles out.
+    // Ch. 08 singles out.
     if (changes?.system?.active === undefined) return;
     invalidate(invalidationsFor("modeToggled", {
       actorId: item.parent?.id ?? null,
@@ -118,7 +118,7 @@ export function attachInvalidation() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  §25.10 — the desync detector                                              */
+/*  Ch. 25 — the desync detector                                              */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -161,7 +161,7 @@ function attachDesyncDetector() {
 /**
  * Does this document carry an aura?
  *
- * Checked rather than assumed, because §23.9 is explicit that the index is
+ * Checked rather than assumed, because Ch. 08 is explicit that the index is
  * invalidated **only** when the change grants one. Rebuilding on every effect
  * would rebuild on every burn tick, which is the cost the index exists to
  * avoid.

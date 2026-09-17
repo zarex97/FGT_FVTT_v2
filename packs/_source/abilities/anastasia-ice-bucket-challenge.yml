@@ -8,7 +8,7 @@ name: "Ice Bucket Challenge for You"
 kind: skill
 slug: iceBucketChallenge
 # An ATTACK SKILL: it performs an Attack, so it opens a Combat Process and
-# spends her Attack for the Turn (§15.1).
+# spends her Attack for the Turn (Ch. 17).
 isAttackSkill: true
 element: water
 cooldown: "3◈"

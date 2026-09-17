@@ -1,6 +1,6 @@
 /**
  * @file Enriching description prose.
- * @see module/apps/enrich.mjs, docs/29-user-interface.md §29.2
+ * @see module/apps/enrich.mjs, docs/34-action-bar.md
  *
  * Nothing in this system called `enrichHTML` before this, so a `@UUID` link in
  * a description rendered as literal text. The functions here are the one place

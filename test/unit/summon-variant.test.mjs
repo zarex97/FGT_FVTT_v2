@@ -1,6 +1,6 @@
 /**
  * @file Summon-time variants.
- * @see docs/05-ranks-and-parameters.md, module/rules/summon-variant.mjs
+ * @see docs/03-ranks-and-tables.md, module/rules/summon-variant.mjs
  */
 
 import { describe, it, expect } from "vitest";

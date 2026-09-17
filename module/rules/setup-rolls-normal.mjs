@@ -1,6 +1,6 @@
 /**
  * @file The Normal ruleset's setup rolls.
- * @see docs/14-checks-and-randomness.md §14.9
+ * @see docs/13-checks-and-randomness.md
  * @see char_orig_sheets/extra docs/Normal Great Holy Grail War.md
  *
  * Layer 2 (rules). Pure — it says what to roll and how to combine the results,

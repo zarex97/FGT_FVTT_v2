@@ -100,7 +100,7 @@ describe("describe()", () => {
   });
 
   it("returns null for an unknown id rather than throwing", () => {
-    // §21.4: a module may add a rule element. An ability carrying one must
+    // Ch. 02: a module may add a rule element. An ability carrying one must
     // still OPEN in the editor -- it goes to the raw pane rather than taking
     // the window down.
     expect(describeOne("element", "SomeModuleElement")).toBe(null);

@@ -63,7 +63,7 @@ describe("bypassChanceModifiers (Queen's Poison's extra Stage)", () => {
   });
 });
 
-describe("Immunity Downgrade (Ch. 32, Sikera Ušum clause d)", () => {
+describe("Immunity Downgrade (Ch. 45, Sikera Ušum clause d)", () => {
   const poison = { id: "poison", name: "Poison", polarity: "debuff", volatility: "volatile", baseChance: 100 };
   const immune = (over = {}) => ({
     id: "v", health: 800, effects: ["immune:poison"], effectInstances: [],
@@ -247,7 +247,7 @@ describe("buff chance", () => {
   });
 
   it("keeps the applier's outgoing bonus on a FRIENDLY application", () => {
-    // `friendly` skips the TARGET's resistance, which is what §11.2 is about.
+    // `friendly` skips the TARGET's resistance, which is what Ch. 15 is about.
     // Zeroing the applier's own bonus too made Buff ChUp inert in the only
     // case it exists for: a buff, put on an ally, by an ally.
     const out = applyEffect({

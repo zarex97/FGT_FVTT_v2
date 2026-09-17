@@ -1,6 +1,6 @@
 /**
  * @file Overpower, Underpower, Sustainability and the multi-Servant tax.
- * @see docs/16-relationships.md §16.5, §16.6, §16.7
+ * @see docs/32-relationships.md, Ch. 32, Ch. 32
  */
 
 import { describe, it, expect } from "vitest";
@@ -12,7 +12,7 @@ import {
 const servant = (over = {}) => ({ id: "s", kind: "servant", effects: [], contract: "contracted", ...over });
 const master = (over = {}) => ({ id: "m", kind: "master", effects: [], health: { value: 500 }, ...over });
 
-/* ── §16.5 Overpower ──────────────────────────────────────────────────────── */
+/* ── Ch. 32 Overpower ──────────────────────────────────────────────────────── */
 
 describe("overpowerCheck", () => {
   it("is a coin flip by default", () => {
@@ -75,7 +75,7 @@ describe("resolveOverpower", () => {
   });
 });
 
-/* ── §16.5 Underpower ─────────────────────────────────────────────────────── */
+/* ── Ch. 32 Underpower ─────────────────────────────────────────────────────── */
 
 describe("underpower", () => {
   it("halves a Master's damage on a failed flip", () => {
@@ -104,7 +104,7 @@ describe("underpower", () => {
   });
 });
 
-/* ── §16.6 Sustainability ─────────────────────────────────────────────────── */
+/* ── Ch. 32 Sustainability ─────────────────────────────────────────────────── */
 
 describe("onMasterDefeated", () => {
   it("frees the Servant", () => {
@@ -166,12 +166,12 @@ describe("sustainabilityCostOf", () => {
   });
 
   it("charges a contracted Servant nothing", () => {
-    // It pays its Master's Health instead (Ch. 15 §15.4).
+    // It pays its Master's Health instead (Ch. 17).
     expect(sustainabilityCostOf(servant(), "A")).toBe(0);
   });
 });
 
-/* ── §16.7 The multi-Servant tax ──────────────────────────────────────────── */
+/* ── Ch. 32 The multi-Servant tax ──────────────────────────────────────────── */
 
 describe("multiServantTax", () => {
   const acted = (id) => servant({ id, turnState: { acted: true } });

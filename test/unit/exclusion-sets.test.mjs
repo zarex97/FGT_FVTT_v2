@@ -1,6 +1,6 @@
 /**
  * @file A mutual-exclusion set is only a rule if both sides spell it the same.
- * @see module/engine/copy.mjs, docs/15-abilities.md §15.7
+ * @see module/engine/copy.mjs, docs/17-abilities.md
  *
  * Scáthach's three Wisdom of Dún Scáith slots gate on each other: two are
  * filled by the grant and the third, *Clairvoyance*, ships with fixed content.

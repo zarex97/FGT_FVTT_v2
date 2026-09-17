@@ -249,7 +249,7 @@ describe("Master protection", () => {
   const chosen = { ...spec, selection: { ...spec.selection, chooser: "chosen", count: 1 } };
 
   it("excludes a Master standing next to its own Servant from a CHOSEN attack", () => {
-    // §16.4 rule 1: "Masters cannot be TARGETED for an Attack when their
+    // Ch. 32 rule 1: "Masters cannot be TARGETED for an Attack when their
     // Servant is within 2 panels of their Master."
     const board = boardWith([
       caster,
@@ -322,7 +322,7 @@ describe("Master protection", () => {
   });
 });
 
-describe("Bašmu's protection (Ch. 32, TargetabilityModifier)", () => {
+describe("Bašmu's protection (Ch. 45, TargetabilityModifier)", () => {
   const spec = {
     anchor: { kind: "self" },
     shape: { kind: "chebyshevRadius", r: 3 },
@@ -337,7 +337,8 @@ describe("Bašmu's protection (Ch. 32, TargetabilityModifier)", () => {
     ]);
     const r = resolveTargets(spec, caster, board);
     expect(r.units.map((u) => u.unitId)).toEqual(["exposed"]);
-    expect(r.warnings).toContain("A Unit protected by Bašmu was excluded.");
+    // Names the protector rather than assuming Bašmu (§46.4-O).
+    expect(r.warnings).toContain("A Unit protected by basmu was excluded.");
   });
 
   it("does not exclude it for an ALLY caster — the sheet says 'enemy Units'", () => {
@@ -348,6 +349,38 @@ describe("Bašmu's protection (Ch. 32, TargetabilityModifier)", () => {
     ], { alliances: { a: ["a"], b: ["b"] } });
     const allySpec = { ...spec, selection: { relations: ["ally"], chooser: "all", includeSelf: false } };
     expect(resolveTargets(allySpec, ally, board).units.map((u) => u.unitId)).toEqual(["protected"]);
+  });
+
+  it("names the protector that is actually standing there", () => {
+    // The refusal and the warning both read "Bašmu" for every protector in the
+    // game. TEN content files author a `TargetabilityModifier` -- Bašmu, the
+    // three Dragon Tooth Warriors, Raikou's four retainers, the Sphinx Queen
+    // and Tenmokaikai -- and the aura entry carries the real name on `source`.
+    // Measured live: a Medea ringed by her own Dragon Tooth Warriors refused an
+    // attack with "protected by a nearby Bašmu" (Ch. 46 §46.4-O).
+    const board = boardWith([
+      caster,
+      unit("protected", 6, 8, { untargetableBy: [{ source: "Dragon Tooth Warrior (Blade)" }] }),
+    ]);
+    const r = resolveTargets(spec, caster, board);
+
+    expect(r.warnings.join(" ")).toContain("Dragon Tooth Warrior (Blade)");
+    expect(r.warnings.join(" ")).not.toContain("Bašmu");
+  });
+
+  it("still names Bašmu when Bašmu is the one protecting", () => {
+    const board = boardWith([
+      caster,
+      unit("protected", 6, 8, { untargetableBy: [{ source: "Bašmu" }] }),
+    ]);
+    expect(resolveTargets(spec, caster, board).warnings.join(" ")).toContain("Bašmu");
+  });
+
+  it("falls back to a generic sentence when the aura names no source", () => {
+    const board = boardWith([caster, unit("protected", 6, 8, { untargetableBy: [{}] })]);
+    const r = resolveTargets(spec, caster, board);
+    expect(r.units).toEqual([]);
+    expect(r.warnings.length).toBe(1);
   });
 
   it("allows it once no untargetable aura reaches", () => {
@@ -594,7 +627,7 @@ describe("legalPlacements — one function, four targeting modes", () => {
   });
 });
 
-describe("the picker vocabulary against the resolver (§29.6)", () => {
+describe("the picker vocabulary against the resolver (Ch. 34)", () => {
   it("offers only shapes `expand` can actually expand", () => {
     // The same drift guard the rule elements carry, for the same reason: a
     // shape offered in the editor that the resolver cannot expand produces an
@@ -655,7 +688,7 @@ describe("the picker vocabulary against the resolver (§29.6)", () => {
   });
 
   it("gives every entry a schematic the picker can draw", () => {
-    // §29.6: "they should see four little diagrams and click one". An entry
+    // Ch. 34: "they should see four little diagrams and click one". An entry
     // with no diagram is one a GM has to know the internal name of.
     for (const entry of [...TARGET_SHAPES, ...TARGET_ANCHORS]) {
       expect(entry.schematic.length, entry.id).toBe(5);
@@ -674,9 +707,9 @@ describe("the picker vocabulary against the resolver (§29.6)", () => {
 
 describe("limits.requireUnitId", () => {
   // A Counter may be aimed anywhere as long as it catches the unit that
-  // attacked you (§12.8). Expressed as a targeting LIMIT rather than a check
+  // attacked you (Ch. 21). Expressed as a targeting LIMIT rather than a check
   // after the fact, so the refusal is drawn under the cursor while the player
-  // is still aiming — §28.8's rule for every other legality clause.
+  // is still aiming — Ch. 20's rule for every other legality clause.
   const board = boardWith([caster, unit("attacker", 6, 8), unit("bystander", 6, 9)]);
   const spec = (limits) => ({
     anchor: { kind: "targetUnit", range: 3 },
@@ -702,7 +735,7 @@ describe("limits.requireUnitId", () => {
 });
 
 describe("limits.excludeUnitIds", () => {
-  // §12.8's redirect has two halves. `requireUnitId` is the half that says who
+  // Ch. 21's redirect has two halves. `requireUnitId` is the half that says who
   // must be caught; this is the half that says who must NOT be, so a Master
   // whose Servant shields it takes nothing even from an area that covers it.
   const board = boardWith([caster, unit("master", 6, 7, { kind: "master" }), unit("guard", 6, 8)]);
@@ -749,7 +782,7 @@ describe("limits.excludeUnitIds", () => {
 
 /* -------------------------------------------------------------------------- */
 
-describe("Range from a multi-panel unit (§8.2)", () => {
+describe("Range from a multi-panel unit (Ch. 05)", () => {
   // The Hanging Gardens: a 9x9 platform anchored at (2,2), so its deck runs
   // (2,2)..(10,10). Its own Dragon Wing Warriors is Range 4.
   const deck = [];
@@ -799,7 +832,7 @@ describe("Range from a multi-panel unit (§8.2)", () => {
 
 /* -------------------------------------------------------------------------- */
 
-describe("cross-level protection in the target ladder (§20.7)", () => {
+describe("cross-level protection in the target ladder (Ch. 27)", () => {
   // A 3x3 platform at level 2 anchored at (5,5), forbidding attacks straight
   // down — the Hanging Gardens' own configuration, in miniature.
   const deck = [at(5, 5), at(5, 6), at(5, 7), at(6, 5), at(6, 6), at(6, 7), at(7, 5), at(7, 6), at(7, 7)];

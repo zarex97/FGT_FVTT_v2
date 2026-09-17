@@ -1,6 +1,6 @@
 /**
  * @file Command Spell namespacing — per-relationship, not per-Master.
- * @see docs/16-relationships.md §16.9
+ * @see docs/32-relationships.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -70,7 +70,7 @@ describe("isUnbound", () => {
     expect(isUnbound(master({ commandSpells: 1 }), "lancer")).toBe(false);
   });
 
-  it("produces the split state §16.9 calls genuinely interesting", () => {
+  it("produces the split state Ch. 32 calls genuinely interesting", () => {
     // Zero own spells, three borrowed for Servant B: A is Unbound and B is not.
     const m = master({ commandSpells: 0, commandSpellsPerServant: { b: 3 }, servantIds: ["a", "b"] });
 

@@ -1,11 +1,11 @@
 /**
  * @file Putting a unit's Detect radius onto its token as Foundry vision.
- * @see docs/08-board-and-geometry.md §8.7, docs/04-units.md §4.2
+ * @see docs/05-board-geometry.md, docs/06-units-and-stats.md
  *
- * Layer 3. Ch. 8.7 settled this a long time ago — *"Fog of war is Foundry's,
+ * Layer 3. Ch. 05.7 settled this a long time ago — *"Fog of war is Foundry's,
  * driven by `TokenDocument.sight` … we map it to Foundry-native vision so the
  * canvas does the work"* — and `data/actor/_shared.mjs` says the number in as
- * many words: **"Vision range and Detect are the same number (Ch. 08 §8.7)."**
+ * many words: **"Vision range and Detect are the same number (Ch. 05)."**
  *
  * The number existed. `rules/identity.mjs#detectRangeOf` computed it, the class
  * table behind it was authored and tested, and **nothing ever wrote it to a
@@ -31,6 +31,7 @@
 import { placedTokensOf } from "./token-sync.mjs";
 import { detectRangeOf } from "../rules/identity.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
+import { CONCEALMENT } from "../rules/concealment.mjs";
 
 /**
  * The Actor types that are units on the board. A journal or a stock Foundry
@@ -58,6 +59,18 @@ export const TokenVision = {
       if (!actor || !UNIT_TYPES.has(actor.type)) return;
       syncVision(actor).catch((err) => console.error("FGT | Token vision sync:", err));
     });
+
+    // Presence Concealment hides the token itself from non-allies
+    // (`apps/canvas/token.mjs#_isVisible`, Ch. 46 §46.4-AK). Foundry only
+    // consults that during a visibility pass, and applying an ActiveEffect does
+    // not start one -- so without this the Servant stayed on screen until
+    // somebody happened to move, and reappeared just as late.
+    for (const hook of ["createActiveEffect", "deleteActiveEffect"]) {
+      Hooks.on(hook, (effect) => {
+        if (effect?.system?.defId !== CONCEALMENT) return;
+        canvas?.perception?.update({ refreshVision: true, refreshVisibility: true });
+      });
+    }
 
     console.log("FGT | Token vision sync attached");
   },

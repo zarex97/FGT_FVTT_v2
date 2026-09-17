@@ -1,0 +1,17 @@
+# Appendix A §A.7
+# "Immune to Mental debuffs."
+#
+# The `mental` row of the same `scoped` table. All five mental debuffs
+# (§A.11) carry `volatility: mental`, which is what makes this cover Charm
+# without either document naming the other -- the same mechanism by which
+# Heracles' Bravery and Jack's Mental Pollution already resist Charm.
+schema: 1
+id: menDebuffImmune
+name: "Men.Debuff Immune"
+description: "Immune to Mental debuffs."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules: []

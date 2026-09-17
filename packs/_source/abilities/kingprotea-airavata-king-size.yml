@@ -1,5 +1,5 @@
 # Kingprotea, char_orig_sheets/Copia de Kingprotea.md
-# Targeting shape T8 in docs/09-targeting.md §9.13.
+# Targeting shape T8 in docs/20-targeting.md
 #
 # Rank E and an [Anti-Unit] scale, which is the joke: the cheapest Noble
 # Phantasm in the corpus on the largest Servant in it. What makes it hurt is
@@ -29,7 +29,7 @@ description: |
 targeting:
   # "In any non-diagonal direction NEXT TO herself" -- the four cardinal
   # placements of a block adjacent to the caster, which is what
-  # `selfEdgeAdjacent` offers and what §9.13's shape T8 names.
+  # `selfEdgeAdjacent` offers and what Ch. 20's shape T8 names.
   anchor: { kind: selfEdgeAdjacent }
   shape: { kind: square, size: 3 }
   selection: { relations: [enemy], chooser: all }

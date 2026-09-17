@@ -1,6 +1,6 @@
 /**
  * @file Reconciling a world document against its pack document.
- * @see module/migration/content-sync.mjs, docs/39-migration-and-versioning.md
+ * @see module/migration/content-sync.mjs, docs/41-migration.md
  *
  * The compendium is the whole source of truth (spec R1) -- but a world copy
  * holds what the match has written to it, and a sync that overwrites that is a
@@ -136,6 +136,50 @@ describe("the summonVariant split", () => {
     const out = reconcileSystem("actor", world, pack).summonVariant;
     expect(out.heads).toEqual({ id: "dsc" });   // the pack's shape
     expect(out.variant).toBe("dsc");            // the match's flip
+  });
+
+  it("re-applies the flipped branch's overrides over the pack's sheet", () => {
+    // Ch. 46 §46.4-AA. Keeping `variant` is only half of keeping the flip:
+    // `engine/summon.mjs#sheetPatch` merges the branch's `overrides` onto
+    // TOP-LEVEL keys, and those keys are the pack's. So the flip survived every
+    // reload and its whole consequence did not -- a `dsc` Semiramis loaded with
+    // `self:variant:dsc` still true and the un-varianted Range, Sustainability
+    // and normal attack of the sheet she is not.
+    const world = {
+      contentId: "sm", variant: "dsc",
+      range: { panels: 3, targets: 1 }, sustainability: "4◈",
+      summonVariant: { variant: "dsc" },
+    };
+    const pack = {
+      contentId: "sm",
+      range: { panels: 2, targets: 1 }, sustainability: "2◈", mov: 6,
+      summonVariant: {
+        heads: { id: "dsc", overrides: { range: { panels: 3, targets: 1 }, sustainability: "4◈" } },
+        tails: { id: "noDsc" },
+      },
+    };
+    const out = reconcileSystem("actor", world, pack);
+    expect(out.range).toEqual({ panels: 3, targets: 1 });
+    expect(out.sustainability).toBe("4◈");
+    // ...and everything the branch does NOT override still comes from the pack.
+    expect(out.mov).toBe(6);
+  });
+
+  it("takes an EDITED override from the pack, not the world's baked copy", () => {
+    // The branch spec is read from the PACK, so that editing what a variant
+    // does is still a content update that reaches a summon already on a board.
+    const world = { contentId: "sm", variant: "dsc", range: { panels: 3 }, summonVariant: { variant: "dsc" } };
+    const pack = {
+      contentId: "sm", range: { panels: 2 },
+      summonVariant: { heads: { id: "dsc", overrides: { range: { panels: 4 } } }, tails: { id: "noDsc" } },
+    };
+    expect(reconcileSystem("actor", world, pack).range).toEqual({ panels: 4 });
+  });
+
+  it("leaves a Servant who never flipped entirely to the pack", () => {
+    const world = { contentId: "heracles", range: { panels: 3 } };
+    const pack = { contentId: "heracles", range: { panels: 1 } };
+    expect(reconcileSystem("actor", world, pack).range).toEqual({ panels: 1 });
   });
 });
 

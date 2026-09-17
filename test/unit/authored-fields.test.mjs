@@ -1,6 +1,6 @@
 /**
  * @file The one vocabulary: which fields the pack owns, which play owns.
- * @see module/content/authored-fields.mjs, docs/39-migration-and-versioning.md
+ * @see module/content/authored-fields.mjs, docs/41-migration.md
  *
  * `actorSystem`/`itemSystem` in the content pipeline decide what enters a pack.
  * The content sync needs the same answer, so the list lives in one place and
@@ -140,7 +140,7 @@ describe("fields the engine writes during play", () => {
   });
 
   it("keeps a Servant revealed once she has been revealed", () => {
-    // §4.2. Medusa had been revealed in the live world and the sync would have
+    // Ch. 06. Medusa had been revealed in the live world and the sync would have
     // put her mask back on.
     expect(ownedByWorld("actor", "identityRevealed")).toBe(true);
   });

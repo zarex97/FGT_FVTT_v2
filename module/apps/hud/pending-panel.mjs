@@ -1,6 +1,6 @@
 /**
  * @file One place that answers "what is the game waiting for me to do?"
- * @see docs/27-reaction-protocol.md §27.5, docs/29-user-interface.md
+ * @see docs/23-reactions.md, docs/34-action-bar.md
  *
  * Layer 4. Thin by construction: it scans the chat log, reads flags, and hands
  * plain entries to `pending-present.mjs`. It decides no rules and answers no

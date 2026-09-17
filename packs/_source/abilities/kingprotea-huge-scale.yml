@@ -1,7 +1,7 @@
 # Kingprotea, char_orig_sheets/Copia de Kingprotea.md
-# Discussed: docs/36-case-remaining.md §36.7
+# Discussed: docs/45-case-studies.md
 #
-# The Skill §36.7 calls "a unit whose physical size changes mid-match", and the
+# The Skill Ch. 45 calls "a unit whose physical size changes mid-match", and the
 # reason `perStack` exists. Six of her clauses are one sentence with different
 # nouns -- "for each Proliferation stock, X" -- so they are six elements sharing
 # one field rather than six readers each counting stocks their own way.
@@ -14,7 +14,7 @@
 # The sheet says "Endless Proliferation stock" in Passives 2 and 3 and
 # "Proliferation stock" everywhere else. They are the same thing --
 # `Endless Proliferation` is the buff that PRODUCES them and is never itself
-# stacked -- and `proliferationStock` is canonical, the same call Ch. 33 §33.6
+# stacked -- and `proliferationStock` is canonical, the same call Ch. 45
 # made for Mannanán's Tokens and Counters.
 schema: 1
 id: kingprotea-huge-scale
@@ -25,7 +25,7 @@ slug: hugeScale
 cooldown: "6◈"
 timing: { window: ownTurn }
 # Applying a buff to herself and turning a cooldown deals no damage, so this is
-# not an Attack Skill and must not spend her Attack for the Turn (§15.1).
+# not an Attack Skill and must not spend her Attack for the Turn (Ch. 17).
 countsAsAttack: false
 description: |
   (Passive 1) With the 'Giant' Attribute, Kingprotea can Move to any panel regardless of whether

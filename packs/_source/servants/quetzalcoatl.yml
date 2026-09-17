@@ -1,6 +1,6 @@
 # packs/_source/servants/quetzalcoatl.yml
 # Conversion source: char_orig_sheets/Copia de Quetzalcoatl.md
-# Discussed: docs/D-servant-data-sheets.md §D.28, docs/44-case-expanded-roster.md §44.2
+# Discussed: docs/D-servant-data-sheets.md §D.28, docs/45-case-studies.md
 #
 # The reference set's acceptance test for THE FIELD. Karna is the benchmark for
 # the predicate machinery, Kingprotea for stack economies and Achilles for
@@ -67,7 +67,7 @@ notes: |
   whole action set, three-tier AoE protection, and a field anchored to an object above the board.
 
   **Three routes to one outcome.** `Sol`, Xiuhcoatl's Burning conversion and Piedra Del Sol all
-  change what terrain a panel has, by three different mechanisms. Ch. 42's overlap matrix is what
+  change what terrain a panel has, by three different mechanisms. Ch. 26's overlap matrix is what
   keeps them from contradicting one another when two of them cover the same panel.
 
   **Her Master is a resource she spends.** Both standing Noble Phantasms charge him — 25 per 1◈

@@ -1,6 +1,6 @@
 /**
  * @file ZON — the Effective Servant Zone.
- * @see docs/06-stats-and-resources.md §6.9, docs/16-relationships.md §16.3
+ * @see docs/06-units-and-stats.md, docs/32-relationships.md
  *
  * Layer 2 (rules). Pure — takes the board, returns distances.
  *
@@ -9,7 +9,7 @@
  * class, so one Master with three Servants of different classes has three
  * different radii around the same panel.
  *
- * Being outside it costs exactly two things (§16.3) — 5d10 off attack damage
+ * Being outside it costs exactly two things (Ch. 32) — 5d10 off attack damage
  * (pipeline stage 9) and no Noble Phantasms at all. Skills, spells, movement
  * and defence are untouched. Both consumers already existed and read
  * `unit.outsideZon`; nothing computed it, so neither rule had ever fired.
@@ -28,7 +28,7 @@ import { isHighRank } from "./master-rank.mjs";
  *
  * Assassin's stated default is 4 and Caster's 5, which are 2+2 and 3+2 — the
  * "+2 for Casters and Assassins" clause is *the reason for* those numbers, not
- * an extra on top of them (§6.9). So the base here is the pre-bonus half, and
+ * an extra on top of them (Ch. 06). So the base here is the pre-bonus half, and
  * the bonus arrives through the max-not-sum channel below.
  *
  * @type {Readonly<Record<string, number>>}
@@ -67,7 +67,7 @@ export function zonRadius(servant, master, config = {}) {
   const base = config.base ?? ZON_BASE;
   const classBonus = config.classBonus ?? ZON_CLASS_BONUS;
 
-  // A Servant may hold more than one class (Ch. 04); the widest zone applies,
+  // A Servant may hold more than one class (Ch. 06); the widest zone applies,
   // because a rule that reaches further is not cancelled by one that does not.
   const classes = [...(servant.servantClasses ?? [])];
   const radius = Math.max(
@@ -99,7 +99,7 @@ export function zonRadius(servant, master, config = {}) {
 
   // The Master's own ZON stat is the floor: a Master sheet that states a number
   // is stating it, and the derivation is what fills in a sheet that does not.
-  // "High Rank Masters additionally grant ZON +1" (Ch. 04 §4.5). A STACKING
+  // "High Rank Masters additionally grant ZON +1" (Ch. 06). A STACKING
   // bonus, exactly as this file's own formula comment says -- and it has never
   // been applied: `zonRadius` had no rank term at all, so the line reading
   // `+ highRankMaster // stacks` documented a rule nothing implemented.
@@ -125,7 +125,7 @@ export function zonRadius(servant, master, config = {}) {
  *
  * A Servant with no Master cannot be outside a zone that does not exist — the
  * penalty is inapplicable to Free Servants rather than permanently applied
- * (§16.3, inferred in Ch. 41). Same for a Master who is not on the board.
+ * (Ch. 32, inferred in Ch. 41). Same for a Master who is not on the board.
  *
  * @param {object} servant the Servant's snapshot
  * @param {object} board the board snapshot
@@ -145,7 +145,7 @@ export function zonStatus(servant, board, config = {}) {
   const distance = geo.chebyshev(servant.panel, master.panel);
 
   // "as long as the other counterpart is within their Master's ZON, damage
-  // dealt is not reduced" — the Dioscuri test is `any`, not `all` (§6.9).
+  // dealt is not reduced" — the Dioscuri test is `any`, not `all` (Ch. 06).
   const partners = (servant.zonPartnerIds ?? [])
     .map((id) => (board.units ?? []).find((u) => u.id === id))
     .filter((u) => u?.panel);

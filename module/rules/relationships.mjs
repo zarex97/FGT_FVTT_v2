@@ -1,6 +1,6 @@
 /**
  * @file Overpower, Underpower, Sustainability and the multi-Servant tax.
- * @see docs/16-relationships.md §16.5, §16.6, §16.7
+ * @see docs/32-relationships.md, Ch. 32, Ch. 32
  *
  * Layer 2 (rules). Pure.
  *
@@ -21,7 +21,7 @@ const BASE_FLIP = 50;
 const MULTI_SERVANT_COST = 25;
 
 /* -------------------------------------------------------------------------- */
-/*  §16.5 Overpower and Underpower                                            */
+/*  Ch. 32 Overpower and Underpower                                            */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -63,7 +63,7 @@ export function overpowerCheck(attacker, defender) {
  * The Luck Check covers **both** the flip and the subsequent lethal-damage
  * case in one success, which makes it disproportionately valuable — a Master
  * who passes is neither instantly defeated nor killed by the damage that
- * follows. §16.5 asks for that to be surfaced clearly, so the result says
+ * follows. Ch. 32 asks for that to be surfaced clearly, so the result says
  * `survivesLethal` rather than leaving the caller to infer it.
  *
  * @param {object} args
@@ -139,7 +139,7 @@ export function resolveUnderpower({ attacker, defender, roll }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  §16.6 Sustainability                                                      */
+/*  Ch. 32 Sustainability                                                      */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -214,7 +214,7 @@ export function sustainabilityCostOf(servant, npRank) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  §16.7 The multi-Servant tax                                               */
+/*  Ch. 32 The multi-Servant tax                                               */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -224,7 +224,7 @@ export function sustainabilityCostOf(servant, npRank) {
  * **Flat, not per-Servant**: acting with two costs 25 and acting with five
  * also costs 25. The rule checks "more than one Acted", not how many.
  *
- * A `loss`, not damage (Ch. 06 §6.2), so it bypasses every reduction effect —
+ * A `loss`, not damage (Ch. 06), so it bypasses every reduction effect —
  * which is why this returns a descriptor rather than a damage figure.
  *
  * @param {object} master
@@ -255,7 +255,7 @@ export function multiServantTax(master, servants, settings = {}) {
 /**
  * May this Master order another of its Servants to Act?
  *
- * The prohibition half of §16.7: *"If a Master has 25 Health or less, it cannot
+ * The prohibition half of Ch. 32: *"If a Master has 25 Health or less, it cannot
  * order more than one of its Servants to Act during its Turn."* Enforced at
  * declaration, where it composes with the ordinary budget.
  *

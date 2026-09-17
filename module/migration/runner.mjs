@@ -1,6 +1,6 @@
 /**
  * @file Applying migrations and content sync to a live world.
- * @see docs/39-migration-and-versioning.md, docs/superpowers/specs/2026-09-09-migration-design.md
+ * @see docs/41-migration.md, docs/superpowers/specs/2026-09-09-migration-design.md
  *
  * Layer 4. The impure half: this walks the world and writes. Every judgement it
  * makes comes from `migrations.mjs` and `content-sync.mjs`, which are pure and
@@ -18,7 +18,7 @@ import { reconcileSystem, reconcileItems } from "./content-sync.mjs";
 /**
  * Where the schema version lives.
  *
- * §39.1 said `world.flags.fgt.schemaVersion`. There is no such place: `game.world`
+ * Ch. 41 said `world.flags.fgt.schemaVersion`. There is no such place: `game.world`
  * is a `World` **package**, not a Document -- it has no `flags` and no
  * `setFlag`, and Foundry ships no `systemMigrationVersion` of its own either.
  * A world-scoped setting is the only durable per-world store the API offers,

@@ -1,22 +1,22 @@
 /**
  * @file Scene Level operations — creating, deleting and scattering.
- * @see docs/20-platforms-and-levels.md §20.2, §20.9
+ * @see docs/27-platforms-and-levels.md, Ch. 27
  *
  * Layer 3. `rules/platforms.mjs` decides *what* happens to a platform and its
  * passengers; this performs the Foundry side of it.
  *
- * Each active platform gets its own **Scene Level** (§20.2's decision), which
+ * Each active platform gets its own **Scene Level** (Ch. 27's decision), which
  * buys separate occupancy, targeting separation, native visual separation and
  * fog, and boarding as a movement operation — none of which a large token with
  * a flag can provide.
  *
- * **One hard constraint from the v14 schema, and it makes §20.9's step order
+ * **One hard constraint from the v14 schema, and it makes Ch. 27's step order
  * load-bearing rather than merely tidy.** `TokenDocument#level` is a
  * `DocumentIdField` that is `required` and **non-nullable**, and deleting a
  * `Level` does *not* re-parent the tokens standing on it — `Level._onDeleteOperation`
  * fixes the *view* and nothing else. So a level deleted while passengers are
  * still assigned to it leaves every one of them pointing at an id that no
- * longer resolves. Scatter (§20.9 step 4) must therefore complete **before**
+ * longer resolves. Scatter (Ch. 27 step 4) must therefore complete **before**
  * the delete (step 8), and `destroyLevel` refuses rather than trusting the
  * caller to have done it.
  */
@@ -74,7 +74,7 @@ export function groundLevel(scene = canvas.scene) {
 }
 
 /**
- * Create the Scene Level for a platform (§20.9, create).
+ * Create the Scene Level for a platform (Ch. 27, create).
  *
  * The elevation band is stacked above the ground rather than chosen by the
  * content, because two platforms that picked the same band would have their
@@ -210,7 +210,7 @@ export async function moveToLevel(unitIds, platform, scene = canvas.scene) {
 }
 
 /**
- * Scatter passengers down to the ground (§20.9 step 4).
+ * Scatter passengers down to the ground (Ch. 27 step 4).
  *
  * Returns the ids it actually moved, so the caller can assert that the level is
  * clear before deleting it. Scattering to a **panel** is the rules layer's job
@@ -234,7 +234,7 @@ export async function scatterToGround(platform, scene = canvas.scene) {
 }
 
 /**
- * Delete a platform's Scene Level (§20.9 step 8).
+ * Delete a platform's Scene Level (Ch. 27 step 8).
  *
  * **Refuses while anything is still standing on it.** `TokenDocument#level` is
  * required and non-nullable and Foundry does not re-parent on delete, so a
@@ -271,7 +271,7 @@ export async function destroyLevel(platform, scene = canvas.scene) {
 }
 
 /**
- * The whole teardown, in §20.9's order.
+ * The whole teardown, in Ch. 27's order.
  *
  * Sequenced here rather than left to the caller because the order is the rule:
  * scatter before delete (the schema requires it), and reverse the owner's
@@ -293,7 +293,7 @@ export async function teardown(platform, scene = canvas.scene) {
 /**
  * Take the platform itself off the board.
  *
- * §20.9's written sequence stops at "delete the Scene Level" and says nothing
+ * Ch. 27's written sequence stops at "delete the Scene Level" and says nothing
  * about the platform, so nothing removed it: `scatterToGround` moves EVERY
  * token on the level to the ground, the platform's own included, and a
  * destroyed Hanging Gardens was therefore left lying on the board as a 9x9
@@ -322,10 +322,10 @@ async function removePlatform(platform, scene = canvas.scene) {
 }
 
 /**
- * Remove the effects a platform granted its owner (§20.9 step 5).
+ * Remove the effects a platform granted its owner (Ch. 27 step 5).
  *
- * This is why rank-shift effects declare **explicit stat deltas** (Ch. 05
- * §5.6): the reversal has to be subtractable without re-rolling, and a rank
+ * This is why rank-shift effects declare **explicit stat deltas** (Ch. 03
+ * Ch. 03): the reversal has to be subtractable without re-rolling, and a rank
  * shift stored as "one step up" cannot be undone once the underlying rank has
  * changed for another reason.
  *

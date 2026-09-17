@@ -1,12 +1,12 @@
 /**
  * @file Achilles — the pure halves of his kit.
- * @see docs/44-case-expanded-roster.md §44.1–44.3, char_orig_sheets/Copia de Achilles.md
+ * @see docs/45-case-studies.md–44.3, char_orig_sheets/Copia de Achilles.md
  *
  * He is the acceptance test for GATING, so most of what is checked here is not
  * a magnitude but a condition: which clauses are collected in which stance, and
  * which are refused outright. The parts that need documents — the ladder rung,
  * the duel field, the token — are live-tested in `fgt2026` and recorded in
- * Ch. 45.
+ * Ch. 46.
  */
 
 import { describe, it, expect } from "vitest";
@@ -148,7 +148,9 @@ describe("his shared class skills", () => {
     // 15%" — and Heracles's A+ Bravery prints 25/15. Read as 25.
     expect(buff).toMatchObject({ id: "atkUpStr", magnitude: 25, npMagnitude: 15, duration: "1◈" });
     const mental = bravery.passiveRules.find((r) => r.key === "ApplicationChance");
-    expect(mental).toMatchObject({ volatility: "mental", value: -50, direction: "incoming" });
+    // Positive resists: the applier computes `base + inflictBonus - resist`.
+    // See `application-chance-sign.test.mjs` (Ch. 46 §46.4-J).
+    expect(mental).toMatchObject({ volatility: "mental", value: 50, direction: "incoming" });
   });
 
   it("leaves Heracles's Mad Enhancement clauses out of the shared document", () => {
@@ -732,7 +734,7 @@ describe("the duel field", () => {
 describe("a timing window honours the ability's own requirements", () => {
   // Found live: the Combat-Phase-start window offered Runner Comet while he was
   // MOUNTED, and his sheet says "can only be used when Unmounted". A window
-  // that offers what the ability will refuse is the refusal-when-pressed §17.6
+  // that offers what the ability will refuse is the refusal-when-pressed Ch. 33
   // forbids — the same argument `abilitiesAtWindow` already makes for cooldowns.
   const comet = ability("achilles-runner-comet");
   const item = { id: "rc", name: "Runner Comet", system: { ...comet, cooldown: {} } };

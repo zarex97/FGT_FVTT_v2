@@ -526,7 +526,7 @@ describe("endTurn ordering", () => {
     const tickIndex = out.findIndex((i) => i.t === "damage");
     const expireIndex = out.findIndex((i) => i.t === "removeEffect");
     expect(expireIndex).toBeGreaterThan(-1);
-    // Curse expiring exactly now does NOT tick (Ch. 11 §11.9), but the ordering
+    // Curse expiring exactly now does NOT tick (Ch. 15), but the ordering
     // must still put expiry after the tick pass.
     expect(tickIndex === -1 || tickIndex < expireIndex).toBe(true);
   });
@@ -563,7 +563,7 @@ describe("endTurn ordering", () => {
   });
 
   it("fires `anyTurnEnd` for every unit, whoever is acting", () => {
-    // §7.4's `turnEnd` -- *"every turn, any player's"*. The handler vocabulary
+    // Ch. 04's `turnEnd` -- *"every turn, any player's"*. The handler vocabulary
     // spends that name on the owner's Turn, so the pass that matches the
     // documented meaning is a second one. Kingprotea's Proliferation is what
     // needs it: ten Turns of Endless Proliferation, ten stocks.
@@ -583,7 +583,7 @@ describe("endTurn ordering", () => {
     expect(hit).toEqual(["mine"]);
   });
 
-  it("threads ctx.board through to a fired handler (Ch. 32, HGoB Construction's Region multiplier)", () => {
+  it("threads ctx.board through to a fired handler (Ch. 45, HGoB Construction's Region multiplier)", () => {
     // `endTurn`/`beginTurn`/`endRound`/`beginRound` receive `board` as their
     // own parameter, separate from `ctx` -- and never merged it in, so
     // anything a handler's action reads off `ctx.board` (a Region multiplier,
@@ -604,7 +604,7 @@ describe("endTurn ordering", () => {
   });
 });
 
-describe("fireEvent's excludeCategory/excludeContentId (Ch. 32, HGoB Construction source 5)", () => {
+describe("fireEvent's excludeCategory/excludeContentId (Ch. 45, HGoB Construction source 5)", () => {
   const handler = (over = {}) => ({
     events: ["abilityUsed"],
     actions: [{ kind: "ResourceDelta", resource: "hgobConstruction", delta: 2 }],

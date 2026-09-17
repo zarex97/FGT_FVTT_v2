@@ -22,7 +22,7 @@ rank: "A+"
 kind: skill
 slug: manaBurst
 # An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat
-# Process and spends Castor's Attack for the Turn (§15.1).
+# Process and spends Castor's Attack for the Turn (Ch. 17).
 isAttackSkill: true
 element: light
 cooldown: "3◈-⅓◈"

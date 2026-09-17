@@ -1,12 +1,12 @@
 /**
  * @file Terrain — a property of panels, evaluated for whoever stands on them.
- * @see docs/42-terrain.md, docs/45-implementation-status.md C1
+ * @see docs/26-terrain.md, docs/46-roster-re-audit.md C1
  *
  * The snapshot has carried a `terrain` field since it was written and nothing
  * has ever populated or read it.
  *
  * Terrain is mechanically *a positional aura whose source is a region rather
- * than a unit* (§42.1), so it reuses the pass A5 built: collected for the panel
+ * than a unit* (Ch. 26), so it reuses the pass A5 built: collected for the panel
  * a unit occupies, applied while it stays, gone the instant it leaves — with no
  * removal step, because a unit never carried the terrain in the first place.
  */
@@ -168,11 +168,11 @@ describe("the catalogue itself", () => {
 });
 
 /* ========================================================================== */
-/*  §42.6 — the per-panel day/night override                                  */
+/*  Ch. 26 — the per-panel day/night override                                  */
 /* ========================================================================== */
 
 /**
- * Ch. 19 §19.2 treated the phase as a global property of the Round. §42.6 makes
+ * Ch. 29 treated the phase as a global property of the Round. Ch. 26 makes
  * it a property of the PANEL, and names Quetzalcoatl's `Sol` as the reason:
  * *"the 5x5 panel area around Quetz is 'Day', even if it is during a Night
  * Round."*
@@ -231,7 +231,7 @@ describe("phaseAt", () => {
  *
  * `terrainAreasOf` computes the areas into `settings.terrain`; this line read
  * `scene.terrain`, a property no Scene document has, so `board.terrain` was
- * always `{}` in a live world and the whole of Ch. 42 answered for empty
+ * always `{}` in a live world and the whole of Ch. 26 answered for empty
  * ground. The identical bug had already been found and fixed for `zones` in the
  * same object. Found live, painting Quetzalcoatl's `Sol`.
  */
@@ -259,10 +259,10 @@ describe("snapshotBoard wires the terrain projection", () => {
 });
 
 /* ========================================================================== */
-/*  Imaginary Numbers Space — Nemo's Storm Border (Ch. 20 §20.6)              */
+/*  Imaginary Numbers Space — Nemo's Storm Border (Ch. 27)              */
 /* ========================================================================== */
 
-describe("Imaginary Numbers Space (Nemo, Ch. 20 §20.6)", () => {
+describe("Imaginary Numbers Space (Nemo, Ch. 27)", () => {
   it("is in the catalogue", () => {
     expect(TERRAIN.imaginaryNumbers).toBeDefined();
     expect(TERRAIN.imaginaryNumbers.name).toBe("Imaginary Numbers Space");

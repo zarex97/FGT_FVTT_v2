@@ -1,6 +1,6 @@
 /**
  * @file The combat tracker — a match is a list of factions, not of tokens.
- * @see docs/25-turn-system.md §25.1
+ * @see docs/25-turn-order-and-scheduler.md
  *
  * Layer 4.
  *

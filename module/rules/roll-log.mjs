@@ -1,6 +1,6 @@
 /**
  * @file The roll log — every roll, what moved it, and what replaced it.
- * @see docs/14-checks-and-randomness.md §14.8, docs/30-chat-and-audit.md
+ * @see docs/13-checks-and-randomness.md, docs/37-chat-and-log.md
  *
  * Layer 2 (rules). Pure, and deliberately so: records accumulate on the
  * `CombatProcess` state, which is serialized and passed between clients, so
@@ -84,7 +84,7 @@ export function append(log, entry) {
 /**
  * Replace a roll, keeping the original.
  *
- * Principle P6 permits a GM re-roll; §14.8 requires the log to show **both**.
+ * Principle P6 permits a GM re-roll; Ch. 13 requires the log to show **both**.
  * A replacement that erased its predecessor would let a re-roll pass unnoticed,
  * which is precisely what the record exists to prevent.
  *
@@ -128,7 +128,7 @@ export function chainOf(log, id) {
  * The records one viewer may see.
  *
  * Hidden rolls are hidden for a reason — a Discover roll a player can read
- * gives away the Assassin's panel without anyone rolling anything (§26.6) — so
+ * gives away the Assassin's panel without anyone rolling anything (Ch. 38) — so
  * this filters rather than dimming.
  *
  * @param {object[]} log
@@ -147,7 +147,7 @@ export function visibleTo(log, { isGM = false, ownedActorIds = [] } = {}) {
 }
 
 /**
- * A roll as the lines §14.8 shows.
+ * A roll as the lines Ch. 13 shows.
  *
  * A **zero-delta** modifier prints without a sign. Those entries explain rather
  * than add — "Mad Enhancement B: Evade- forced" changed which table was used,

@@ -1,6 +1,6 @@
 /**
  * @file Riding Attack — a Move that is also an Attack.
- * @see docs/08-board-and-geometry.md, module/rules/movement.mjs
+ * @see docs/05-board-geometry.md, module/rules/movement.mjs
  *
  * Layer 3. `rules/movement.mjs#ridingAttackPath` decides whether the line is
  * legal and who is on it; this moves the token and opens the Combat Phase.

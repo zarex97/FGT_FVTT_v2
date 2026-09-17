@@ -1,17 +1,17 @@
 /**
- * @file §37.6's worked summon, as a golden fixture.
- * @see docs/37-content-pipeline.md §37.6, docs/14-checks-and-randomness.md §14.9
+ * @file Ch. 40's worked summon, as a golden fixture.
+ * @see docs/40-content-pipeline.md, docs/13-checks-and-randomness.md
  *
  * The grant arithmetic is the part of the summon that has no Foundry in it, so
  * it is pinned here rather than left to the dialog. Every number below is read
- * off §37.6's Karna walkthrough.
+ * off Ch. 40's Karna walkthrough.
  *
  * **One deliberate divergence, and it is a contradiction in the specification.**
- * §37.6's example rolls a Servant's Max Health (`1000 ± Health(S) → 913`);
- * §14.9's procedure block says `maxHealth = endTable[END.grade]  NO ROLL —
- * Health(S) is not used`. The code follows §14.9: an explicit "NO ROLL"
+ * Ch. 40's example rolls a Servant's Max Health (`1000 ± Health(S) → 913`);
+ * Ch. 13's procedure block says `maxHealth = endTable[END.grade]  NO ROLL —
+ * Health(S) is not used`. The code follows Ch. 13: an explicit "NO ROLL"
  * instruction in the normative procedure beats an illustrative walkthrough. The
- * Health figures here are therefore the unrolled ones, and §37.6 now carries a
+ * Health figures here are therefore the unrolled ones, and Ch. 40 now carries a
  * note saying so.
  */
 
@@ -21,19 +21,19 @@ import {
   servantSetupPlan, resolveSetupPlan, summonPlan, baseAttackFor,
 } from "../../module/rules/setup-rolls.mjs";
 
-/** Karna, as §37.6 has him. */
+/** Karna, as Ch. 40 has him. */
 const karna = {
   parameters: { str: "B", end: "C", agi: "A", mag: "B", luc: "D" },
   region: ["india"],
   baseAttack: { str: 125, mag: 175 },
 };
 
-/** The plan resolved against §37.6's dice: AGI coin heads (2), LUC 1d4 = 3. */
+/** The plan resolved against Ch. 40's dice: AGI coin heads (2), LUC 1d4 = 3. */
 const resolved = () => resolveSetupPlan(servantSetupPlan(karna), { maxAgility: 2, maxLuck: 3 });
 
 const valueOf = (lines, id) => lines.find((l) => l.id === id).value;
 
-describe("§37.6 — summoning Karna into an Indian war", () => {
+describe("Ch. 40 — summoning Karna into an Indian war", () => {
   const steps = summonPlan({ sheet: karna, warRegion: "india", masterGrants: { agi: 1 } });
   const granted = mergeGrants(steps);
 
@@ -64,11 +64,16 @@ describe("§37.6 — summoning Karna into an Indian war", () => {
   it("still moves Health by 100 when the sheet states its own baseHealth", () => {
     // Medea states `baseHealth: 750`. Re-reading the table at the shifted rank
     // returned the stated figure unchanged, so her Region grant did nothing to
-    // her Health -- and §14.9 says "± 100 per END step" outright.
+    // her Health -- and Ch. 13 says "± 100 per END step" outright.
+    //
+    // The BASE is now the table's rather than the sheet's (§46.4-K), so Karna's
+    // END C gives 1000 and the granted step lands on top of it. What this test
+    // guards is unchanged and still worth guarding: the step must ADD 100, not
+    // re-look-up a rank whose value it already has.
     const stated = { ...karna, baseHealth: 750 };
     const lines = resolveSetupPlan(servantSetupPlan(stated), { maxAgility: 2, maxLuck: 3 });
 
-    expect(valueOf(applyGrants(lines, stated, { end: 1 }), "maxHealth")).toBe(850);
+    expect(valueOf(applyGrants(lines, stated, { end: 1 }), "maxHealth")).toBe(1100);
   });
 
   it("adds 10 to each Base Attack component for its granted step", () => {
@@ -85,7 +90,7 @@ describe("§37.6 — summoning Karna into an Indian war", () => {
   });
 
   it("leaves Base Attack alone for the AGI grant", () => {
-    // §37.6 says it outright: "BA adjustment: none (AGI does not affect BA)".
+    // Ch. 40 says it outright: "BA adjustment: none (AGI does not affect BA)".
     const agiOnly = mergeGrants(summonPlan({ sheet: karna, warRegion: null, masterGrants: { agi: 1 } }));
 
     expect(baseAttackFor({ ...karna, grantedSteps: agiOnly })).toEqual({ str: 125, mag: 175 });
@@ -150,7 +155,7 @@ describe("sheetPatch applies a resolved summon variant", () => {
   });
 });
 
-/* ── HGoB Construction's summon-time value (Ch. 32 §32.2, sources 1-2) ───── */
+/* ── HGoB Construction's summon-time value (Ch. 45, sources 1-2) ───── */
 
 describe("sheetPatch computes HGoB Construction's starting value", () => {
   const semiramis = { ...karna, resources: { hgobConstruction: { value: 0, max: 100 } } };
@@ -183,7 +188,7 @@ describe("sheetPatch computes HGoB Construction's starting value", () => {
   });
 });
 
-describe("what the summon BAKES, and what it leaves live (Ch. 05 §5.6, Ch. 19 §19.3)", () => {
+describe("what the summon BAKES, and what it leaves live (Ch. 03, Ch. 29)", () => {
   const steps = summonPlan({ sheet: karna, warRegion: "india", masterGrants: { agi: 1 } });
 
   it("merges every source when asked for the total, for the rolled maxima", () => {

@@ -1,6 +1,6 @@
 /**
  * @file Turning authored prose into rendered prose.
- * @see docs/29-user-interface.md §29.2, docs/37-content-pipeline.md §37.8
+ * @see docs/34-action-bar.md, docs/40-content-pipeline.md
  *
  * Layer 4. The ONE place this system calls `enrichHTML`, which until now it
  * never did anywhere — so a `@UUID` link written into a description rendered

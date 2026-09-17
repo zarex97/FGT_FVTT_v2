@@ -1,0 +1,18 @@
+# Appendix A §A.7
+# "Immune to Offensive debuffs."
+#
+# Scoped by VALENCE rather than by volatility, which is a separate branch of the
+# same gate: `def.valence === "offensive" && held.includes("offDebuffImmune")`.
+# Its resist-tier twin `offDebuffResUp` was authored with Asterios and this, the
+# absolute version, was not -- so the family had a partial member and no whole
+# one.
+schema: 1
+id: offDebuffImmune
+name: "Off.Debuff Immune"
+description: "Immune to Offensive debuffs."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules: []

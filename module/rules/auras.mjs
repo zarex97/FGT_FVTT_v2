@@ -1,6 +1,6 @@
 /**
  * @file Auras — expanding a source's contribution onto the units around it.
- * @see docs/11-effect-engine.md §11.6, docs/23-documents-and-derived-data.md §23.3
+ * @see docs/15-effect-application.md, docs/08-documents-and-derived.md
  *
  * Layer 2 (rules). Pure — takes the board, returns modifiers.
  *
@@ -28,11 +28,12 @@ import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { candidatesAt } from "./aura-index.mjs";
 import { relationOf } from "./relations.mjs";
+import { anyBoundaryBlocksEffect } from "./bounded-fields.mjs";
 
 /**
  * Every aura contribution a unit receives, from every source on the board.
  *
- * An optional `index` (§23.9) narrows which sources are worth asking about, by
+ * An optional `index` (Ch. 08) narrows which sources are worth asking about, by
  * position. It changes **nothing** about the answer: the relation test and the
  * stacking below are the same either way, and `test/unit/aura-index.test.mjs`
  * holds the two paths against each other. The index is spatial and this
@@ -55,6 +56,15 @@ export function collectAuras(unit, board, index = null) {
     // this Unit is on the field", and giving it a radius would have made it an
     // ordinary aura and quietly bounded a rule that is not.
     if (aura.scope !== "field" && distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
+
+    // ...but "unbounded" is not "through a wall". A bounded field that seals
+    // effect application seals THIS too: *"Units outside the Labyrinth cannot
+    // Attack or apply any effects to Units within the Labyrinth and vice
+    // versa."* An aura reaches its recipient without ever being targeted, so
+    // the isolation check the targeting filter performs never ran for one, and
+    // an unbounded aura crossed a boundary that refuses every attack
+    // (Ch. 46 §46.4-I).
+    if (anyBoundaryBlocksEffect(source, unit, board)) continue;
 
     // A condition on the RECIPIENT rather than on the source. Territory
     // Creation reduces damage taken by "allied Units who are in THEIR Home
@@ -104,7 +114,7 @@ function candidateAuras(unit, board, index) {
 /**
  * Give every unit on the board the auras it stands in.
  *
- * Two passes, and the reason is §23.3's cycle: unit A's derived data depends on
+ * Two passes, and the reason is Ch. 08's cycle: unit A's derived data depends on
  * unit B's position and rules, and vice versa. Collecting for **all** units
  * against the untouched board before writing any of it back means no unit can
  * observe another unit's freshly-received auras — an aura cannot feed an aura,
@@ -112,7 +122,7 @@ function candidateAuras(unit, board, index) {
  *
  * @param {object[]} units
  * @param {object} board
- * @param {object} [index] a spatial index (§23.9); an optimisation only
+ * @param {object} [index] a spatial index (Ch. 08); an optimisation only
  * @returns {void} mutates the recipient's contribution buckets
  */
 export function annotateAuras(units, board, index = null) {

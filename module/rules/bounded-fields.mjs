@@ -1,12 +1,12 @@
 /**
  * @file Bounded fields — the six-axis model.
- * @see docs/43-bounded-fields.md
+ * @see docs/28-bounded-fields.md
  *
  * Layer 2 (rules). Pure.
  *
  * Ten fields across nine Servants, more than a third of the expanded roster.
  * They need a shared model or the engine grows ten special cases — which is the
- * whole argument of Ch. 43, and the reason this is one module rather than one
+ * whole argument of Ch. 28, and the reason this is one module rather than one
  * per Noble Phantasm.
  *
  * A field is a point in six axes: geometry, membership, isolation, interior
@@ -287,6 +287,20 @@ export function membershipVerdict(field, unit, direction, board) {
       : { ok: true };
   }
 
+  // A pass bought with a successful escape roll. `rollRequired` refuses the
+  // FREE move out and `escapeAttempt` is what buys the exit; without somewhere
+  // to record "this unit has just rolled its way out", a success would be
+  // congratulated and then refused by the very gate it beat.
+  //
+  // Transient, and distinct from `escapeHistory[id].escaped`, which is the
+  // PERMANENT veteran mark clause 9 grants: *"If a Unit that has Successfully
+  // escaped the Labyrinth at least once reenters, its Base Success Chance of
+  // Escaping is increased to 100%"* -- a better roll on re-entry, not free
+  // passage. Spent by `engine/fields.mjs` the moment the unit is outside.
+  if (direction === "exit" && (field.state?.mayExit ?? []).includes(unit?.id)) {
+    return { ok: true, reason: "escaped" };
+  }
+
   const relation = relationTo(field, unit, board);
   const key = `${relation === "ally" ? "ally" : "enemy"}${direction === "enter" ? "Entry" : "Exit"}`;
   const policy = rules[key] ?? "free";
@@ -297,7 +311,13 @@ export function membershipVerdict(field, unit, direction, board) {
 }
 
 /**
- * One attempt at the escape ladder.
+ * May this unit try the escape ladder at all, and at what chance?
+ *
+ * Split from {@link escapeAttempt} so the ACTION BAR can ask without rolling.
+ * That split is the whole reason the ladder was unreachable: the only entry
+ * point needed a die, and nothing in the interface had a reason to roll one, so
+ * `escapeAttempt` sat complete and unit-tested with no caller for as long as
+ * bounded fields have existed (Ch. 46 §46.4-H).
  *
  * The order is the specification's, and each rung refuses for its own reason so
  * a player is told which one stopped them:
@@ -319,19 +339,19 @@ export function membershipVerdict(field, unit, direction, board) {
  * @param {object[]} [ctx.adjacentVeterans]
  * @returns {{ok: boolean, reason?: string, chance?: number, onFailure?: string}}
  */
-export function escapeAttempt(field, unit, { roll, movRemaining, adjacentVeterans = [] }) {
+export function canAttemptEscape(field, unit, { movRemaining, adjacentVeterans = [] } = {}) {
   const spec = field.membership?.escape;
   if (!spec) return { ok: false, reason: "noEscapeRule" };
 
   const history = field.state?.escapeHistory ?? {};
-  const mine = history[unit.id] ?? { failures: 0, escaped: false };
+  const mine = history[unit?.id] ?? { failures: 0, escaped: false };
 
   // A veteran led out by proximity does not roll at all, and neither does one
   // who has escaped before.
-  const veteranHere = mine.escaped;
-  const led = spec.veteranBonus?.leadsAdjacentAllies
+  const veteranHere = Boolean(mine.escaped);
+  const led = Boolean(spec.veteranBonus?.leadsAdjacentAllies
     && adjacentVeterans.some((v) => chebyshev(v.panel, unit.panel) <= 1
-      && (history[v.id]?.escaped ?? false));
+      && (history[v.id]?.escaped ?? false)));
 
   if (spec.requiresBorderContact && !veteranHere && !led && !onInnerBorder(field, unit)) {
     return { ok: false, reason: "notAtBorder" };
@@ -340,18 +360,105 @@ export function escapeAttempt(field, unit, { roll, movRemaining, adjacentVeteran
     return { ok: false, reason: "noMovement" };
   }
 
-  if (veteranHere) return { ok: true, reason: "veteran", chance: 100 };
-  if (led) return { ok: true, reason: "ledOut", chance: 100 };
+  // *"Every time a Unit fails an Escape, the success chance is increased by 5%
+  // for the next Escape attempt."*
+  const chance = veteranHere || led
+    ? (spec.veteranBonus?.baseChance ?? 100)
+    : (spec.baseChance ?? 0) + (spec.chanceIncreasePerFailure ?? 0) * mine.failures;
+
+  return {
+    ok: true,
+    chance,
+    // Whether a die is needed at all. A veteran and a led ally are OUT, not
+    // rolling at 100% -- the difference is visible in the log and in whether a
+    // failure can be recorded against them.
+    automatic: veteranHere || led,
+    reason: veteranHere ? "veteran" : (led ? "ledOut" : undefined),
+    formula: spec.formula ?? "1d20",
+  };
+}
+
+/**
+ * One attempt at the escape ladder, with the die already rolled.
+ *
+ * @param {object} field
+ * @param {object} unit
+ * @param {object} ctx
+ * @param {number} ctx.roll the caller rolls
+ * @param {number} ctx.movRemaining
+ * @param {object[]} [ctx.adjacentVeterans]
+ * @returns {{ok: boolean, reason?: string, chance?: number, onFailure?: string}}
+ */
+export function escapeAttempt(field, unit, { roll, movRemaining, adjacentVeterans = [] }) {
+  const gate = canAttemptEscape(field, unit, { movRemaining, adjacentVeterans });
+  if (!gate.ok) return gate;
+  if (gate.automatic) return { ok: true, reason: gate.reason, chance: gate.chance };
 
   // 1d20 at 20% means a roll of 4 or less; the chance is a percentage and the
   // die is whatever the field names, so the comparison is done in percent.
-  const chance = (spec.baseChance ?? 0) + (spec.chanceIncreasePerFailure ?? 0) * mine.failures;
-  const faces = Number(String(spec.formula ?? "1d20").split("d")[1] ?? 20);
-  const succeeded = roll <= Math.round((chance / 100) * faces);
+  const faces = Number(String(gate.formula).split("d")[1] ?? 20);
+  const succeeded = roll <= Math.round((gate.chance / 100) * faces);
 
   return succeeded
-    ? { ok: true, chance }
-    : { ok: false, reason: "failed", chance, onFailure: spec.onFailure ?? "stayPut" };
+    ? { ok: true, chance: gate.chance }
+    : {
+      ok: false, reason: "failed", chance: gate.chance,
+      onFailure: field.membership?.escape?.onFailure ?? "stayPut",
+    };
+}
+
+/**
+ * Does a boundary stop this source APPLYING an effect to this target?
+ *
+ * Clause 10 of Chaos Labyrinthos is *"Units outside the Labyrinth cannot
+ * **Attack or apply any effects** to Units within the Labyrinth and vice
+ * versa"*, and only the first half had a reader. {@link isolationBlocks} is
+ * consulted by one caller — the targeting legality filter — so an effect that
+ * reaches its recipient **without being targeted** crossed the boundary freely:
+ * an aura is computed from distance and relation and asks no permission at all.
+ *
+ * Medea's Territory Creation is the proof that it matters. It is
+ * `scope: "field"`, explicitly unbounded, so it reached inside a Labyrinth from
+ * anywhere on the board — through a wall the same field refuses every attack.
+ *
+ * Both directions, because the sheet says *"and vice versa"*, and each is its
+ * own key: a field may seal one way and not the other, and `outsideCanTargetInside`
+ * beside `insideCanTargetOutside` already sets that precedent.
+ *
+ * @param {object} field
+ * @param {object} source the unit the effect comes from
+ * @param {object} target the unit it would land on
+ * @param {object} board
+ * @returns {{blocked: boolean, reason?: string}}
+ */
+export function isolationBlocksEffect(field, source, target, board) {
+  const sourceIn = contains(field, source?.panel, board);
+  const targetIn = contains(field, target?.panel, board);
+  if (sourceIn === targetIn) return { blocked: false };
+
+  const rules = field.isolation ?? {};
+
+  if (!sourceIn && targetIn && rules.outsideCanApplyEffectsInside === false) {
+    return { blocked: true, reason: "outsideCannotApplyEffectsInside" };
+  }
+  if (sourceIn && !targetIn && rules.insideCanApplyEffectsOutside === false) {
+    return { blocked: true, reason: "insideCannotApplyEffectsOutside" };
+  }
+  return { blocked: false };
+}
+
+/**
+ * Does any boundary on this board stop it?
+ *
+ * @param {object} source
+ * @param {object} target
+ * @param {object} board
+ * @returns {boolean}
+ */
+export function anyBoundaryBlocksEffect(source, target, board) {
+  return (board?.fields ?? []).some(
+    (f) => isolationBlocksEffect(f, source, target, board).blocked,
+  );
 }
 
 /**

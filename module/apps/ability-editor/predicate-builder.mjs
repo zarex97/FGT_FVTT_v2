@@ -1,6 +1,6 @@
 /**
  * @file Building a predicate from dropdowns instead of typing it.
- * @see docs/29-user-interface.md §29.6, docs/24-rules-engine.md §24.4
+ * @see docs/35-sheets-and-editor.md, docs/11-predicates.md
  *
  * Layer 4, but **pure**: no `game`, no `canvas`, no `ui`. D29.12.
  *

@@ -1,6 +1,6 @@
 # Nemo, char_orig_sheets/Copia de Nemo.md
-# Discussed: docs/36-case-remaining.md §36.6 ("Banded AoE with per-band effect
-# chances"), docs/09-targeting.md §9.4
+# Discussed: docs/45-case-studies.md ("Banded AoE with per-band effect
+# chances"), docs/20-targeting.md
 #
 # The ability stage 6 of the damage pipeline was NAMED AFTER, arriving some
 # months after the stage did. It read `ctx.bandMultiplier` the whole time and

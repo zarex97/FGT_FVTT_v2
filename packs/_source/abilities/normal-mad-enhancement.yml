@@ -10,7 +10,7 @@
 # > 5. Berserker can only Evade with Evade-."
 #
 # The Advanced Skill's shape with fixed values in place of its rank tables.
-# Clause 4 is a ZonBonus that STACKS: Ch. 16's own formula comment lists
+# Clause 4 is a ZonBonus that STACKS: Ch. 32's own formula comment lists
 # madEnhancement as additive rather than in the max-not-sum channel.
 schema: 1
 id: normal-mad-enhancement

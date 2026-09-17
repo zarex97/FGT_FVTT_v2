@@ -1,6 +1,6 @@
 /**
  * @file Whether a buff a Unit is carrying actually comes off.
- * @see docs/11-effect-engine.md §11.7, docs/36-case-remaining.md §36.7
+ * @see docs/15-effect-application.md, docs/45-case-studies.md
  *
  * Layer 2 (rules). Pure — the caller rolls and passes the totals in, the same
  * contract every other check in this layer uses.
@@ -16,7 +16,7 @@
  *
  * **The bypass.** Her *Infantile Regression* then removes those very stocks and
  * *"ignores effects that prevent buffs from being removed"* — dispelling **her
- * own** buffs, through the protection they themselves granted. §36.7 calls it a
+ * own** buffs, through the protection they themselves granted. Ch. 45 calls it a
  * self-targeting bypass and it is the reason the flag is on the *removal* and
  * not on the effect: the same buffs resist one remover and not another.
  *

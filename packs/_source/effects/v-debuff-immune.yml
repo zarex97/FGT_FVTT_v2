@@ -1,0 +1,15 @@
+# Appendix A §A.7
+# "Immune to volatile debuffs."
+#
+# The `volatile` row of the same `scoped` table `nvDebuffImmune` reads. See
+# `nv-debuff-immune.yml`.
+schema: 1
+id: vDebuffImmune
+name: "vDebuff Immune"
+description: "Immune to volatile debuffs."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules: []

@@ -1,7 +1,7 @@
 # Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 55-66.
-# The bounded-field model is Ch. 43; this is a point in its six axes.
+# The bounded-field model is Ch. 28; this is a point in its six axes.
 #
-# Ch. 43 listed The Mist's `freeform` geometry as NOT BUILT. It is now: a
+# Ch. 28 listed The Mist's `freeform` geometry as NOT BUILT. It is now: a
 # freeform field opens on its authored `shape` -- for Jack, a 5x5 centred on
 # her, which is exactly the 25 panels the sheet caps her at and every one of
 # them inside the 4-panel leash -- and stores its panels rather than
@@ -77,7 +77,7 @@ field:
     maxPanels: 25
     maxDistance: 4
     anchorRef: owner
-  # Axis 2 -- membership. Open in both directions: Ch. 43 §43.6 files this as
+  # Axis 2 -- membership. Open in both directions: Ch. 28 files this as
   # "a debuff field, not a prison", and nothing in the sheet stops anyone
   # walking out of fog.
   membership: { allyEntry: free, allyExit: free, enemyEntry: free, enemyExit: free }
@@ -196,10 +196,10 @@ phases:
 # does nothing.
 #
 # There is no Fog of War subsystem to be exempt from. `engine/vision.mjs` is
-# Detect and first-sighting (Ch. 08 §8.7), which is a different question:
+# Detect and first-sighting (Ch. 05), which is a different question:
 # Detect decides whether a Presence-Concealed unit may be Discovered, not what
 # any player can see on the canvas. Foundry's own token vision is off for this
-# system, and closed-information play is what Ch. 26 §26.6 defers to Ch. 40.
+# system, and closed-information play is what Ch. 38 defers to Ch. 40.
 #
 # When that arrives, this clause is one `Suppress` element and a reader.
 

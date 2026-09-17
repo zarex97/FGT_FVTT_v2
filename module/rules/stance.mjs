@@ -1,12 +1,12 @@
 /**
  * @file A stance — a per-action declaration, free but window-constrained.
- * @see docs/44-case-expanded-roster.md §44.1
+ * @see docs/45-case-studies.md
  *
  * Layer 2. Pure: every question here is answered from a Unit projection and a
  * named moment, and nothing writes.
  *
- * **Why this is not a mode.** Ch. 44 §44.1 makes the argument and it is worth
- * keeping next to the code: a mode (Ch. 15 §15.6) carries a duration, a
+ * **Why this is not a mode.** Ch. 45 makes the argument and it is worth
+ * keeping next to the code: a mode (Ch. 17) carries a duration, a
  * cooldown and a toggle lock, and a compulsion may force one on. A stance has
  * none of those — switching is free — and what it has instead is a set of
  * moments at which switching is allowed at all, plus a default it is dragged

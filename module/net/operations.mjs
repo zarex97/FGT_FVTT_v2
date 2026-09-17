@@ -1,6 +1,6 @@
 /**
  * @file Typed socket operations.
- * @see docs/26-authority-and-sockets.md §26.3
+ * @see docs/38-authority.md
  *
  * Every operation is a **declared, validated, authorized** unit of work rather
  * than a switch over free-form payloads. The authorizer is the load-bearing
@@ -16,7 +16,7 @@ import { validate as validateIntents } from "../engine/intents.mjs";
  * A user may write to units they own. They may **not** hand the GM a batch that
  * damages someone else's Servant and have it applied unchecked — that is the
  * entire attack surface of a socket proxy, and the reason Model B (the GM
- * computes contested outcomes) exists in §26.4.
+ * computes contested outcomes) exists in Ch. 38.
  *
  * Intents produced by a GM-computed resolution carry `trusted: true` and skip
  * this, because the GM produced them.
@@ -95,7 +95,7 @@ export const OPERATIONS = Object.freeze({
   /**
    * Resolve a contested attack. Computed on the GM client because the GM's
    * snapshot is authoritative and the extra round trip is invisible next to
-   * human decision time in the reaction ladder (§26.4, Model B).
+   * human decision time in the reaction ladder (Ch. 38, Model B).
    */
   /**
    * Spend a Command Spell. Executed on the GM client for the same reason
@@ -156,7 +156,7 @@ export const OPERATIONS = Object.freeze({
   },
 
   /**
-   * Declare a §12.8 Counter with a chosen ability.
+   * Declare a Ch. 21 Counter with a chosen ability.
    *
    * Separate from `advanceProcess` because it carries a placement, and because
    * its authorizer needs a second clause: the parent Process must actually be
@@ -326,7 +326,7 @@ export const OPERATIONS = Object.freeze({
 
   /**
    * The Discover roll, which must happen on the GM client because the mere
-   * *existence* of the roll leaks that a concealed unit is nearby (§26.5).
+   * *existence* of the roll leaks that a concealed unit is nearby (Ch. 38).
    */
   /**
    * Ask a player a question, from wherever the resolution happens to be.

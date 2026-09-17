@@ -1,6 +1,6 @@
 /**
  * @file A multi-Turn ability activation.
- * @see docs/32-case-semiramis.md
+ * @see docs/45-case-studies.md
  *
  * Layer 3. Semiramis's Hanging Gardens of Babylon is the only clause in the
  * reference set that needs this: *"Semiramis has to be within her Home Base,

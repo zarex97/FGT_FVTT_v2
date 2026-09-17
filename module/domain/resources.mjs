@@ -1,10 +1,10 @@
 /**
- * @file Ability-specific pools — the `Resource` mechanism of §6.10.
- * @see docs/06-stats-and-resources.md §6.10
+ * @file Ability-specific pools — the `Resource` mechanism of Ch. 06.
+ * @see docs/06-units-and-stats.md
  *
  * Layer 1 (domain). Pure.
  *
- * §6.10 counted eight pools across the reference set and drew the conclusion
+ * Ch. 06 counted eight pools across the reference set and drew the conclusion
  * that they deserve *"a general mechanism rather than bespoke fields"*. It also
  * drew the line that keeps this file small: a pool that an enemy can **dispel**
  * is not a resource, it is a stack of effects (Kingprotea's Proliferation), and
@@ -89,7 +89,7 @@ export function resourcePath(key) {
  * The write path for a pool named by content, whichever kind it is.
  *
  * Content names a pool by its bare name -- `resource: aria`, `resource: luck`
- * -- and two different things answer to that. §6.10's pools live under
+ * -- and two different things answer to that. Ch. 06's pools live under
  * `system.resources`; Agility and Luck are stats with the same `{value, max}`
  * shape and live at the top level. EMIYA's Activated Circuits restores Luck and
  * his Unlimited Blade Works grants Aria, from the same action key.

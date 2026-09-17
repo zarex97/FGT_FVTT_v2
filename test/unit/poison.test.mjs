@@ -1,10 +1,10 @@
 /**
  * @file The poison family, and the four mechanisms it needed.
- * @see docs/A-effect-catalogue.md §A.12, docs/11-effect-engine.md §11.5
+ * @see docs/A-effect-catalogue.md §A.12, docs/15-effect-application.md
  *
  * Poison is the first staged effect authored, and building it exposed a
  * mechanism at each layer that had a name and no reader: the `effect:` shorthand
- * every rider in Appendix A is written in, the `target: victim` Ch. 32 already
+ * every rider in Appendix A is written in, the `target: victim` Ch. 45 already
  * writes, the per-instance `visibility`/`attributionHidden` pair `0.2.0` put on
  * the schema, and an unstated duration meaning "expires this instant".
  */
@@ -44,7 +44,7 @@ describe("the tick", () => {
   });
 });
 
-describe("PeriodicOverride (Ch. 32, Sikera Ušum clause c)", () => {
+describe("PeriodicOverride (Ch. 45, Sikera Ušum clause c)", () => {
   // "Units inflicted with Poison while within this NP area receive Poison
   // damage at the end of its Turn and at the end of any Turn it Acts, IN
   // ADDITION TO at the end of the Round." A field's `PeriodicOverride`
@@ -72,8 +72,21 @@ describe("PeriodicOverride (Ch. 32, Sikera Ušum clause c)", () => {
     expect(tickPeriodics([unit], "turnEnd", { ...ctx, activeFactionId: "f2" })).toEqual([]);
   });
 
-  it("also ticks at actedTurnEnd, regardless of faction", () => {
-    expect(tickPeriodics([widened()], "actedTurnEnd", ctx)[0]?.amount).toBe(20);
+  it("also ticks at actedTurnEnd, for a Turn that is not its own", () => {
+    // "Any Turn it Acts" -- the clause's SECOND occasion, which is a Turn
+    // belonging to somebody else. Acting during an enemy's Turn is a reaction.
+    const unit = widened({ factionId: "f1" });
+    expect(tickPeriodics([unit], "actedTurnEnd", { ...ctx, activeFactionId: "f2" })[0]?.amount).toBe(20);
+  });
+
+  it("does NOT tick a second time when the acted Turn IS its own", () => {
+    // `endTurn` makes both calls at one boundary, and the `turnEnd` half above
+    // has already ticked this unit. This assertion used to read "regardless of
+    // faction", which is what let the ordinary case -- a Unit acting on its own
+    // Turn -- take the tick twice: 40 at stage 1 where the curve says 20
+    // (Ch. 46 §46.4-AJ).
+    const unit = widened({ factionId: "f1" });
+    expect(tickPeriodics([unit], "actedTurnEnd", { ...ctx, activeFactionId: "f1" })).toEqual([]);
   });
 
   it("an ordinary poison instance with no override still does not tick at either boundary", () => {

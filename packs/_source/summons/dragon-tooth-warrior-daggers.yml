@@ -15,7 +15,7 @@ range: { panels: 1, targets: 1 }
 baseAttack: { str: 75, mag: 0 }
 normalAttack: { mode: fixed, component: str }
 # Stated per type on the sheet rather than derived from range, which is why
-# `detect` is an explicit override (Ch. 08 §8.7).
+# `detect` is an explicit override (Ch. 05).
 detect: 2
 # Neither clause is Medea-specific machinery: both are properties of the summon.
 countsTowardBudget: false

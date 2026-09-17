@@ -1,6 +1,6 @@
 /**
  * @file The closed set of input kinds a descriptor may ask for.
- * @see module/rules/authoring/fields.mjs, docs/29-user-interface.md §29.6
+ * @see module/rules/authoring/fields.mjs, docs/34-action-bar.md
  *
  * Closed on purpose: the editor has one renderer per type, so a descriptor
  * asking for a type that does not exist would render nothing and lose the

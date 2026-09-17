@@ -1,0 +1,24 @@
+# Appendix A §A.1
+# "While crit chance > 100%, crit damage +(chance - 100)%."
+#
+# `overCritBonus` in `rules/damage/pipeline.mjs` has computed exactly this since
+# stage 2 was written -- `max(0, chanceUsed - 100)` off the attacker's held
+# effects -- and no document could give an attacker the id it tests for. The
+# excess crit chance that every `Crit Up` stack past 100 was throwing away had a
+# reader the whole time.
+schema: 1
+id: overCrit
+name: "Over Crit"
+description: |
+  While this Unit's Crit Chance exceeds 100%, its Crit Damage is increased by the excess.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+# `noneRefresh`: the magnitude is read off the crit chance, not off this
+# effect, so there is nothing for a second application to add to.
+stacking: noneRefresh
+baseChance: 100
+# No rule elements. The bonus is derived from a number the pipeline already
+# has at stage 2; an element carrying `@magnitude` would invite an author to
+# state a figure that is not consulted.
+rules: []

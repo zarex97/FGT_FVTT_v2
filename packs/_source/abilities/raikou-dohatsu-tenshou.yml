@@ -4,7 +4,7 @@
 # Data sheet: docs/D-servant-data-sheets.md §D.32
 #
 # §D.32 calls this "the hardest single ability in either roster to log legibly",
-# and says Ch. 30's audit format was designed around it: five damage instances,
+# and says Ch. 37's audit format was designed around it: five damage instances,
 # four of which can be independently Blocked or Evaded, and NONE of which uses
 # the mode that is definitionally active while the ability is usable.
 schema: 1
@@ -148,10 +148,10 @@ phases:
     active: false
     predicate: ["attack:kind:np", "self:skillActive:tenmokaikai"]
 notes: |
-  **Five cards under one parent id** (Ch. 30). Four Normal Attacks, each showing Mad Enhancement
+  **Five cards under one parent id** (Ch. 37). Four Normal Attacks, each showing Mad Enhancement
   excluded BY NAME in its breakdown while Divinity is still listed, and one Noble Phantasm
   showing Mad Enhancement's halved BA(MAG) figure present. That is the only way the exemption
-  can be checked on a live board, which is why §13.7a names the source rather than silently
+  can be checked on a live board, which is why Ch. 22a names the source rather than silently
   dropping it.
 
   The cooldown interaction and the mode requirement are about different things and are easy to

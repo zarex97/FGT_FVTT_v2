@@ -5,7 +5,7 @@
 # carry and the straight-line attack, `turnState.mayMoveAgain` and
 # `turnState.usedRidingAttack` hold the mutual exclusion, and `movedPanels` is a
 # running total precisely because Riding's two moves share one MOV allowance
-# (Ch. 18 §18.4). What this document does is turn them on for a Servant with no
+# (Ch. 19). What this document does is turn them on for a Servant with no
 # Riding rank -- Normal's Riding has no rank, and no Active.
 schema: 1
 id: normal-riding

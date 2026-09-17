@@ -1,6 +1,6 @@
 /**
  * @file Spends a Unit is OFFERED at a timing window, rather than charged.
- * @see docs/24-rules-engine.md §24.3, docs/33-case-mannanan.md §33.2
+ * @see docs/11-predicates.md, docs/45-case-studies.md
  *
  * Layer 3 (orchestration).
  *
@@ -33,8 +33,8 @@ import * as I from "./intents.mjs";
 /**
  * Guards against re-entry.
  *
- * `declareProcesses` is shared by the declaration path and the §12.8 Counter
- * path, and a Counter is part of the same Combat Phase (§12.1) — so without
+ * `declareProcesses` is shared by the declaration path and the Ch. 21 Counter
+ * path, and a Counter is part of the same Combat Phase (Ch. 21) — so without
  * this the offer would be made a second time inside the exchange it was already
  * answered for, and a Servant with five tokens could be asked five times.
  *
@@ -115,7 +115,7 @@ function poolName(key) {
 /**
  * Does this Unit hold what the spend asks for?
  *
- * Checked before the prompt rather than after it, for §17.6's reason: an option
+ * Checked before the prompt rather than after it, for Ch. 33's reason: an option
  * that refuses when pressed teaches nothing a missing option does not teach
  * faster.
  *

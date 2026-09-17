@@ -4,7 +4,7 @@ import { INFINITE } from "../../module/domain/enums.mjs";
 
 describe("fractionTicks", () => {
   it("reproduces the source's published table exactly", () => {
-    // docs/07-time-model.md §7.2
+    // docs/04-time-model.md
     const table = {
       3: { "1/3": 1, "2/3": 2, "1/2": 2 },
       8: { "1/3": 2, "2/3": 5, "1/2": 4 },
@@ -34,7 +34,7 @@ describe("parseTick / resolveTicks at 3 turns per round", () => {
   const ctx = { turnsPerRound: 3 };
 
   it("matches the worked example table", () => {
-    // docs/07-time-model.md §7.3
+    // docs/04-time-model.md
     expect(ticks("1◈", ctx)).toBe(3);
     expect(ticks("⅓◈", ctx)).toBe(1);
     expect(ticks("1◈+⅔◈", ctx)).toBe(5);

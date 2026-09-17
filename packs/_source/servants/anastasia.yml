@@ -11,7 +11,7 @@ trueName: "Anastasia Nikolaevna Romanova"
 servantClasses: [caster]
 classContainer: caster
 region: [russia, europe]
-# *"Chaotic Summer"* -- a value the rulebook does not list. Ch. 44 §44.1 made
+# *"Chaotic Summer"* -- a value the rulebook does not list. Ch. 45 made
 # `alignment.morality` an open string rather than a closed enum for this one
 # sheet, calling it "a one-line schema change that would have been an expensive
 # one to discover after content authoring began."
@@ -57,7 +57,7 @@ normalAttack:
         - { component: str, factor: 1 }
         - { component: mag, factor: 0.1 }
 
-# NO `strongestNP`. Ch. 33 §33.4 rejected storing the ranking outright --
+# NO `strongestNP`. Ch. 45 rejected storing the ranking outright --
 # `rules/np-strength.mjs#rankNoblePhantasms` computes it against a synthetic
 # neutral defender, "pure, testable, and rankable ... rather than inside a
 # registered function content cannot inspect." 3.5x off BA(MAG) 150 beats 3x off

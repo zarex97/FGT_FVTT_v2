@@ -31,7 +31,7 @@ rules:
     then:
       - { key: Heal, percentOfMax: 10 }
 notes: |
-  "Does not fire on the turn it ends" (Appendix A, and Ch. 11 §11.9 generally) is enforced by
+  "Does not fire on the turn it ends" (Appendix A, and Ch. 15 generally) is enforced by
   the engine, not by this file: a handler contributed by an effect carries that effect's
   expiry, and `fireEvent` skips it on the tick it runs out. The rule already held for
   `periodic:` effects and had never held for handlers, which is the shape Regen uses.

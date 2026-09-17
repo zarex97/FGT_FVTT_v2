@@ -547,7 +547,7 @@ describe("an event handler gated on the attack", () => {
     expect(collectContributions([{ id: "u", name: "UBW", rank: null, active: true, passiveRules: [el] }]).eventHandlers).toHaveLength(1);
   });
 
-  it("carries excludeCategory/excludeContentId through (Ch. 32, HGoB Construction source 5)", () => {
+  it("carries excludeCategory/excludeContentId through (Ch. 45, HGoB Construction source 5)", () => {
     // "A non-Spell Skill used, EXCLUDING Item Construction" -- two exclusions
     // `ofCategory`'s include-list cannot express together.
     const el = {

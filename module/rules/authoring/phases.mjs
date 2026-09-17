@@ -1,6 +1,6 @@
 /**
  * @file Every phase kind the engine dispatches, in the words a GM uses.
- * @see docs/15-abilities.md §15.2, docs/29-user-interface.md §29.6
+ * @see docs/17-abilities.md, docs/35-sheets-and-editor.md
  *
  * Layer 2 (rules). Pure data.
  *
@@ -56,7 +56,7 @@ const entry = (id, order, english, fields = []) => ({
   label: `FGT.Authoring.Phase.${id}`,
   hint: `FGT.Authoring.Phase.${id}Hint`,
   english,
-  doc: "15-abilities.md",
+  doc: "17-abilities.md",
   order,
   fields: [...fields, ...COMMON],
 });

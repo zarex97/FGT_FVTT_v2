@@ -1,6 +1,6 @@
 /**
  * @file Ranking a Unit's Noble Phantasms by how hard they hit.
- * @see docs/33-case-mannanan.md §33.4, docs/13-damage-pipeline.md §13.1
+ * @see docs/45-case-studies.md, docs/22-damage-pipeline.md
  *
  * Layer 2 (rules). **Pure.**
  *
@@ -27,7 +27,7 @@
  * branch of any conditional. Deterministic across clients, which is what
  * matters when the answer decides an Instakill.
  *
- * RISK and DECISION are recorded in Ch. 41 and Ch. 33 §33.4.
+ * RISK and DECISION are recorded in Ch. 41 and Ch. 45
  */
 
 import { computeDamage } from "./damage/pipeline.mjs";
@@ -76,7 +76,7 @@ export function neutralDefender() {
  * What one damaging ability would deal to a Unit with no defences.
  *
  * `branches` are resolved by taking the **best** of them, which is the DECISION
- * §33.4 records: a conditional Noble Phantasm is ranked at its ceiling, because
+ * Ch. 45 records: a conditional Noble Phantasm is ranked at its ceiling, because
  * that is what "strongest" means about a weapon rather than about a matchup.
  *
  * @param {object} ability an ability item, or any `{system}` shape
@@ -112,7 +112,7 @@ export function expectedDamage(ability, attacker) {
       // fired. Same reasoning as `branches`: the ceiling is the weapon.
       conditionalMultipliers: (spec.conditionalMultipliers ?? []).map((c) => ({ ...c, predicate: null })),
       // A crit is not assumed. The crit coin is 50/50 for a Noble Phantasm
-      // (§12.5) and assuming it would scale every entry by the same factor
+      // (Ch. 21) and assuming it would scale every entry by the same factor
       // anyway — but it would also let a crit-damage buff on the OWNER change
       // the ranking, which is a fact about the moment rather than about the
       // Noble Phantasm.

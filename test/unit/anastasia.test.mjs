@@ -155,7 +155,12 @@ describe("Soaked (B6–B9, R2)", () => {
     // `effectId` and to Ice by an attack-time predicate.
     const r = ruleOf("ApplicationChance");
     expect(r.direction).toBe("incoming");
-    expect(r.effectId).toBe("freeze");
+    // `effect`, which is the key the executor reads (`effectId: el.effect`) and
+    // the one the authoring descriptor offers. This assertion said `effectId`
+    // and passed against a file that said `effectId`, so the pair agreed with
+    // each other and with nothing else: the clause resolved to a NULL scope and
+    // raised every debuff's chance rather than Freeze's (Ch. 46 §46.4-AH).
+    expect(r.effect).toBe("freeze");
     expect(r.value).toBe(-25);
     expect(r.predicate).toContain("attack:element:ice");
   });
@@ -487,7 +492,7 @@ describe("the Servant document", () => {
     const refs = a.abilities.map((x) => x.ref);
     expect(refs).toContain("anastasia-snegleta");
     expect(refs).toContain("anastasia-ice-block-launcher");
-    // Ch. 33 §33.4 REJECTED storing it; np-strength computes it.
+    // Ch. 45 REJECTED storing it; np-strength computes it.
     expect(a.strongestNP).toBeUndefined();
   });
 

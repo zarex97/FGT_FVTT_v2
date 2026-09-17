@@ -1,6 +1,6 @@
 /**
  * @file Enforcing movement legality and spending the move budget.
- * @see docs/08-board-and-geometry.md §8.3, docs/18-action-economy.md
+ * @see docs/05-board-geometry.md, docs/19-action-economy.md
  *
  * Layer 3. Foundry's own drag-and-drop is the movement interface; this makes it
  * obey the rules.
@@ -12,7 +12,7 @@
  *
  * The cost function on `TokenDocument.move` would be the more elegant hook, but
  * it can be bypassed by a direct `update()`; `preMoveToken` cannot, so the
- * authoritative check lives here (Ch. 08 §8.3).
+ * authoritative check lives here (Ch. 05).
  */
 
 import {
@@ -57,7 +57,7 @@ function onPreMove(document, movement, operation) {
   if (movement?.method === "undo" || movement?.method === "reset") return true;
   // Forced movement -- knockback, Gather, a platform carrying its passengers --
   // is displacement, not movement, and is not subject to the mover's own
-  // legality or budget (Ch. 08 §8.3).
+  // legality or budget (Ch. 05).
   //
   // `operation`, not `movement.options`. Foundry calls this hook as
   // `Hooks.call("preMoveToken", document, move, options)` (`TokenDocument`
@@ -97,7 +97,7 @@ function onPreMove(document, movement, operation) {
   if (!game.user.isGM) {
     const acting = combat.actingFactionId ?? null;
     // The faction whose Turn this unit acts on, which is its own unless a
-    // Charm has moved it: §25.7's *"a charmed unit appears in the charmer's
+    // Charm has moved it: Ch. 25's *"a charmed unit appears in the charmer's
     // currentUnits during their turn and is absent from its owner's"*. Its own
     // `factionId` is untouched, so the token keeps its colour and every
     // relation still reads it as the enemy it was.
@@ -197,7 +197,7 @@ async function onMove(document, movement, operation) {
   const actor = document.actor;
   if (!actor) return;
 
-  // A platform carries everyone aboard it (§20.8). Done before the mover's own
+  // A platform carries everyone aboard it (Ch. 27). Done before the mover's own
   // bookkeeping, so a passenger is already where it belongs by the time
   // anything reads the board.
   // Whether the mount was dragged along by its driver, which already carried
@@ -271,7 +271,7 @@ async function onMove(document, movement, operation) {
   // discovered."* Asked after the move has been recorded, so the roll is made
   // against where the Unit now stands.
   //
-  // `discoverAttempts` has existed since Ch. 04 was implemented with no caller
+  // `discoverAttempts` has existed since Ch. 06 was implemented with no caller
   // at all -- and could not have found anything if it had one, because nothing
   // ever made a Unit concealed.
   if (unit.concealed) {
@@ -294,7 +294,7 @@ async function onMove(document, movement, operation) {
   // nothing and the sword stays where it lies.
   await pickUpItemHere(actor.id, combat);
 
-  // Familiar: Doves (Ch. 32): "whenever Semiramis sees a Unit for the first
+  // Familiar: Doves (Ch. 45): "whenever Semiramis sees a Unit for the first
   // time" is not about concealment at all, so it runs unconditionally on
   // every move rather than gated behind `unit.concealed` above.
   const { checkSightings } = await import("./vision.mjs");
@@ -366,7 +366,7 @@ function ignoresOccupancy(unit) {
  * **Every panel of the mover's footprint**, not just its origin. Bašmu is 1×1
  * and the two readings are the same for it; a grown Kingprotea is 3×3, and
  * clearing one of nine panels leaves her standing on eight Units — which is the
- * cascade Ch. 08 §8.3 describes and the single-panel version silently was not.
+ * cascade Ch. 05 describes and the single-panel version silently was not.
  *
  * @param {string} moverId the unit that just arrived (never knocks itself back)
  * @returns {Promise<void>}
@@ -573,7 +573,7 @@ export function movementAllowance(actor) {
  * Move a platform's passengers with it.
  *
  * `forced: true`, which is what keeps the carry off their own movement budget
- * and away from movement-triggered effects (Ch. 08 §8.3): a passenger has not
+ * and away from movement-triggered effects (Ch. 05): a passenger has not
  * moved, it has been carried, and every rule watching movement cares about the
  * difference. The `fgtForced` option is what makes this hook ignore the moves
  * it is itself making, so a platform cannot recurse into its own passengers.
@@ -662,7 +662,7 @@ async function carryPassengers(actor, document, movement) {
   // read from a board snapshot taken inside this hook. At `moveToken` the
   // document has not caught up: it still reports the origin. So the subtraction
   // was origin − origin, the delta was always `{0, 0}`, and this function
-  // returned before moving anybody. **§20.8's movement linkage had never once
+  // returned before moving anybody. **Ch. 27's movement linkage had never once
   // carried a passenger** — measured live, with two passengers aboard the
   // Hanging Gardens and the platform moved two panels: both stayed where they
   // were.
@@ -716,7 +716,7 @@ async function shiftPlatform(platform, delta, board, skip = []) {
  * > is replaced with Quetzalcoatlus'."*
  *
  * The mirror of {@link carryPassengers}, and the half that was missing.
- * §20.8's linkage was written for a platform that moves *itself* and carries
+ * Ch. 27's linkage was written for a platform that moves *itself* and carries
  * its passengers along; `replacesRiderAction` inverts that — the passenger is
  * the one being dragged, and the platform under her has to follow, or she flies
  * off her own mount and leaves it behind with her Master still on it.
@@ -756,7 +756,7 @@ function offsetDelta(from, to) {
 /**
  * Run every bounded field's `contact` rules for the units named.
  *
- * The entry half of Ch. 43's axis 4. `runFieldEvents` fires from the Turn
+ * The entry half of Ch. 28's axis 4. `runFieldEvents` fires from the Turn
  * boundaries the scheduler owns (`turnStart`, `turnEnd`, `actedTurnEnd`), and
  * a clause that happens *on walking in* has no Turn boundary to wait for —
  * Jack's Mist kills a Normal Human "if they are caught in" it and Poisons an

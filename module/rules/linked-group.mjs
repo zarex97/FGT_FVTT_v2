@@ -1,6 +1,6 @@
 /**
  * @file The linked unit group — two tokens that are one Servant.
- * @see docs/16-relationships.md §16.8, docs/34-case-dioscuri.md
+ * @see docs/32-relationships.md, docs/45-case-studies.md
  *
  * Layer 2 (rules). **Pure.**
  *
@@ -9,7 +9,7 @@
  * gets the same answer: settle it once in `snapshotBoard`, after every unit is
  * projected, and let the readers ask a plain field.
  *
- * Ch. 16 D16.7 is emphatic that this is **a general mechanism, not a Dioscuri
+ * Ch. 32 D16.7 is emphatic that this is **a general mechanism, not a Dioscuri
  * special case**: the shape recurs for a Servant with a permanent summon, and
  * for a Master-Servant pair moving under Passenger Seat. Nothing in this file
  * names a twin.
@@ -59,7 +59,7 @@ export function partnerDistance(unit, board) {
  * Is this unit further from a partner than the leash allows?
  *
  * Only ever true after a FORCED displacement: voluntary movement cannot reach
- * such a panel, because `rules/movement.mjs#canStopOn` refuses it. Ch. 34 §34.3
+ * such a panel, because `rules/movement.mjs#canStopOn` refuses it. Ch. 45
  * takes the DECISION that a knockback may break the leash — dragging the
  * partner along would produce a knockback that pulls a unit *toward* its
  * attacker, which is absurd.
@@ -79,7 +79,7 @@ export function leashBroken(unit, board) {
  * What this unit counts as wherever the rules count Units.
  *
  * *"each one counts as 0.5 Units"* scopes to every such rule and qualifies
- * none of them: the four turn-budget pools, the multi-Servant tax (§16.7) and
+ * none of them: the four turn-budget pools, the multi-Servant tax (Ch. 32) and
  * the roster allowance all read this.
  *
  * @param {object} unit

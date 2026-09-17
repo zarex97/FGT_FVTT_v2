@@ -2,7 +2,7 @@
 schema: 1
 id: karna-uncrowned-arms-mastership
 name: "Uncrowned Arms Mastership"
-# "Rank: -" is not a rank, and not a blank one either: docs/05 §5.7 lists this
+# "Rank: -" is not a rank, and not a blank one either: docs/05 Ch. 03 lists this
 # Skill by name as one of the unranked ones. `null` is what `Rank.parseOrNull`
 # returns for the unranked marker, and every table lookup keyed on it falls
 # back rather than guessing at E.

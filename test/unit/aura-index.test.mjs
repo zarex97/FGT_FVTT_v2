@@ -1,6 +1,6 @@
 /**
  * @file The spatial aura index, and the cache-invalidation table.
- * @see docs/23-documents-and-derived-data.md §23.9
+ * @see docs/08-documents-and-derived.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -206,7 +206,7 @@ describe("affectsCanAct", () => {
     expect(affectsCanAct("atkDown")).toBe(false);
   });
 
-  it("lists the §23.9 set exactly", () => {
+  it("lists the Ch. 08 set exactly", () => {
     expect([...CAN_ACT_INVALIDATORS].sort()).toEqual([
       "stun", "stop", "freeze", "petrify", "sleep", "nightmare", "coma",
       "webbed", "crystalfreeze", "charm", "confuse", "berserk",

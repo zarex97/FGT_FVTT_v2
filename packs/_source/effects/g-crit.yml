@@ -1,0 +1,19 @@
+# Appendix A §A.4
+# "Attacks always crit. Not NP unless stated."
+#
+# `rules/checks.mjs#critChance` returns `{percent: 100, automatic: true}` on the
+# line below the one `noCrit` short-circuits at. Both have been live since crits
+# were written; neither could be applied.
+schema: 1
+id: gCrit
+name: "G.Crit"
+description: "This Unit's Attacks always Crit."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+# No rule elements, for the mirror of `noCrit`'s reason: the short-circuit is
+# what makes "always" absolute. `automatic: true` on the returned chance is also
+# what tells the roll log a crit was not rolled for.
+rules: []

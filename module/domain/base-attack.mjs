@@ -1,6 +1,6 @@
 /**
  * @file Base Attack, derived from STR and MAG.
- * @see docs/06-stats-and-resources.md §6.4, docs/B-rank-tables.md, Ch. 41 Q50
+ * @see docs/06-units-and-stats.md, docs/B-rank-tables.md, Ch. 41 Q50
  *
  * Layer 1 (domain). Pure, and here rather than in `rules/` because
  * `data/actor/servant.mjs` derives it in `prepareBaseData` and a data model may

@@ -1,6 +1,6 @@
 /**
  * @file The targeting canvas layer — it draws, and never decides.
- * @see docs/28-targeting-implementation.md §28.5
+ * @see docs/20-targeting.md
  *
  * Layer 4. Every panel it fills and every token it outlines came from
  * `legalPlacements`, which is pure and lives in L2. Nothing here knows what a
@@ -63,9 +63,9 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   /**
    * Mode E — paint a freeform footprint.
    *
-   * The fifth interaction, and the first outside Ch. 09's targeting grammar:
+   * The fifth interaction, and the first outside Ch. 20's targeting grammar:
    * there is no anchor to place and no shape to resolve, only a set of panels a
-   * player draws. Ch. 43 has called it "targeting mode E" since it was written
+   * player draws. Ch. 28 has called it "targeting mode E" since it was written
    * and listed it as not built.
    *
    * Legality is **drawn, not enforced afterwards** — a panel outside the leash
@@ -382,7 +382,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       onPointerMove: (panel) => {
         if (current?.placement.panel.i === panel.i && current?.placement.panel.j === panel.j) return;
         const v = validate(spec, caster, board, { panel });
-        // §28.8: the refusal is rendered WHILE the player is still choosing,
+        // Ch. 20: the refusal is rendered WHILE the player is still choosing,
         // with the numbers in it. "Anchor is 7 panels away; Range is 4" is a
         // refusal they fix by moving the cursor; "illegal target" is one they
         // fix by guessing.
@@ -391,7 +391,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
           placement: { panel }, legal: v.ok, reasons: v.reasons, resolved: v.resolved,
           presented,
           // A Grail in the area is LEGAL and catastrophic, so it takes a second
-          // deliberate click rather than being refused (§19.4).
+          // deliberate click rather than being refused (Ch. 29).
           needsConfirm: needsHardConfirm(presented),
           confirmed: false,
         };
@@ -471,7 +471,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     const size = canvas.grid.size;
     this.#graphics.beginFill(colour, alpha);
     // A solid border on a legal panel and a dashed feel on an illegal one:
-    // colour is never the only signal (§28.10).
+    // colour is never the only signal (Ch. 20).
     this.#graphics.lineStyle(2, colour, Math.min(1, alpha + 0.4));
     for (const panel of panels) {
       const { x, y } = canvas.grid.getTopLeftPoint({ i: panel.i, j: panel.j });
@@ -607,7 +607,7 @@ function reportNothingLegal(options, board) {
     return;
   }
 
-  // Presented through §28.8's table, so the message carries its numbers and its
+  // Presented through Ch. 20's table, so the message carries its numbers and its
   // kind rather than being whatever string the resolver happened to build.
   const presented = presentVerdict(
     options.flatMap((o) => o.errors ?? (o.reasons ?? []).map((r) => ({ reason: r }))),

@@ -1,4 +1,4 @@
-# The Gather Action (Ch. 32). Any allied Unit may perform it, which is why it
+# The Gather Action (Ch. 45). Any allied Unit may perform it, which is why it
 # appears on a bar because of who ELSE is on the board.
 schema: 1
 id: gather

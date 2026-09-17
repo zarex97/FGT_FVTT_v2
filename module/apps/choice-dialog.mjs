@@ -1,6 +1,6 @@
 /**
  * @file Picking a fixed number of things from a curated list.
- * @see docs/15-abilities.md §15.7, docs/36-case-remaining.md §36.4
+ * @see docs/17-abilities.md, docs/45-case-studies.md
  *
  * Layer 4. Scáthach's player picking two of the abilities the GM offered is the
  * case this was written for, but nothing here knows that: it takes a list and a

@@ -1,6 +1,6 @@
 /**
  * @file The roll log.
- * @see docs/14-checks-and-randomness.md §14.8
+ * @see docs/13-checks-and-randomness.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -95,7 +95,7 @@ describe("visibleTo", () => {
   });
 
   it("hides a GM roll from a player", () => {
-    // Presence Concealment's Discover roll is hidden by design (§26.6); a
+    // Presence Concealment's Discover roll is hidden by design (Ch. 38); a
     // player who sees it learns where the Assassin is from the log alone.
     expect(visibleTo([evade({ visibility: "gm" })], { isGM: false, ownedActorIds: ["heracles"] }))
       .toHaveLength(0);

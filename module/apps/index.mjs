@@ -1,6 +1,6 @@
 /**
  * @file Sheet registration.
- * @see docs/29-user-interface.md
+ * @see docs/34-action-bar.md
  *
  * Registration only. The actor sheet moved to `actor-sheet/`, which is where
  * it grew a header, a nav rail and four tabs; leaving it here would have made
@@ -80,7 +80,7 @@ export function registerSheets() {
     makeDefault: true, label: "FGT.Sheet.Ability",
   });
 
-  // §29.6's editor as the default for a GM. Without this, Items -> Create Item
+  // Ch. 34's editor as the default for a GM. Without this, Items -> Create Item
   // -> Ability opened the display sheet and there was no route from a new Item
   // to the editor at all: an ability had to be OWNED by a Servant before it
   // could be authored.

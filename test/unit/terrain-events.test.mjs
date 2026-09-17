@@ -1,6 +1,6 @@
 /**
  * @file Terrain's periodic and on-entry clauses.
- * @see docs/42-terrain.md §42.2, docs/45-implementation-status.md C1
+ * @see docs/26-terrain.md, docs/46-roster-re-audit.md C1
  *
  * C1 shipped the *standing* modifiers — what terrain does to a unit while it
  * stands there. This is the other half: what terrain does to it at a boundary,

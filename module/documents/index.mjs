@@ -1,10 +1,10 @@
 /**
  * @file Document subclasses.
- * @see docs/23-documents-and-derived-data.md
+ * @see docs/08-documents-and-derived.md
  *
  * Deliberately thin. Everything interesting lives in `rules/` and `engine/`;
  * these classes exist to project documents into snapshots and to route writes,
- * not to hold logic. No `Actor.prototype` patching anywhere (Ch. 21 §21.10).
+ * not to hold logic. No `Actor.prototype` patching anywhere (Ch. 02).
  */
 
 import { snapshotUnit, contributionsOf } from "../rules/snapshot.mjs";

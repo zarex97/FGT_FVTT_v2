@@ -1,6 +1,6 @@
 /**
  * @file Dispatching a unit action to the engine that performs it.
- * @see module/rules/actions.mjs, docs/29-user-interface.md §29.5
+ * @see module/rules/actions.mjs, docs/34-action-bar.md
  *
  * Layer 3. One table, no rules. It exists so the bar never imports
  * `marks.mjs`, `gather.mjs` and `riding.mjs` directly, and so adding Servant
@@ -14,6 +14,7 @@
 import { placeMark } from "./marks.mjs";
 import { gather } from "./gather.mjs";
 import { performRidingAttack } from "./riding.mjs";
+import { attemptEscape } from "./escape.mjs";
 
 /**
  * id → handler. Held against `rules/actions.mjs`'s registry by
@@ -55,6 +56,11 @@ export const ACTION_HANDLERS = Object.freeze({
     ));
     return { ok: true };
   },
+
+  // The roll that buys a way out of a bounded field. `context.fieldId` is the
+  // field the registry found this unit standing in; the ladder decides the
+  // rest (Ch. 46 §46.4-H).
+  escape: async ({ actor, context }) => attemptEscape({ unitId: actor.id, fieldId: context.fieldId }),
 
   facing: async ({ actor, context }) => {
     await actor.update({ "system.facing": context.facing });
