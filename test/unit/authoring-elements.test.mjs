@@ -72,6 +72,14 @@ describe("every descriptor is well formed", () => {
       expect(new Set(keys).size, `${id} repeats a field key`).toBe(keys.length);
     }
   });
+
+  it("offers `stage` on DamageModifier, which the engine reads to route flat vs percent (#22)", () => {
+    // `module/rules/elements.mjs:871` reads `el.stage === "flat"` to pick
+    // `flatReduction`/`flatDamage` over `defUp`/`atkUp`. Seven authored
+    // effects set `stage: flat`, and the editor could not offer it.
+    const keys = ELEMENT_DESCRIPTORS.DamageModifier.fields.map((f) => f.key);
+    expect(keys).toContain("stage");
+  });
 });
 
 describe("elementsForBucket", () => {
