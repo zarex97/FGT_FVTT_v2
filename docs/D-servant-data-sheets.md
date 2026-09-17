@@ -3,6 +3,10 @@
 The **twenty-nine** reference Servants as system data. This is the acceptance content for
 **SC-7**: if all of them are playable with full automation, the system is done.
 
+> **This appendix records what was *authored*, not what has been *proved*.** Whether a Servant's
+> Clauses have been seen working on a board is the audit's question, not this file's — see
+> [ADR 0005](adr/0005-the-roster-status-is-the-tracker-not-a-table.md).
+
 The appendix is in two halves. **D.1–D.14** cover the original twelve (the acceptance set the
 architecture was designed against). **D.15–D.33** cover the eighteen added in `0.2.0`, whose
 bounded fields are specified in Chapter 43, whose terrain interactions are in Chapter 42, and
@@ -345,7 +349,7 @@ toggleable passives, cost superseding, the most complex predicate in the set.
 **Note:** Karna has the most abilities of any reference Servant (13) and the most Noble
 Phantasms (4). He is the practical benchmark for SC-6's "author a Servant in under an hour".
 
-> **Status: complete.** All thirteen resolve end to end in a live world, verified individually.
+> **All thirteen are authored.**
 > Six clauses could not be written at all before this pass and each was closed with a general
 > mechanism (Ch. 45, "Asterios and Karna"). One known simplification: *Mana Burst (Flames)*'s
 > `Fire Damage (half)` is Fire *entirely*, because `ctx.attack.element` is a single value
@@ -1352,7 +1356,7 @@ largest *rules* surface per ability. Chaos Labyrinthos alone has ten numbered cl
 count is not a proxy for conversion cost, which is why Chapter 37's content-pipeline estimates
 are per-clause rather than per-ability.
 
-> **Status: complete.** All five resolve end to end in a live world, verified individually.
+> **All five are authored.**
 >
 > He is the sharpest illustration in the project that *authored* and *working* are different
 > states. All five abilities were on disk, validating and compiling, while **six of their clauses
