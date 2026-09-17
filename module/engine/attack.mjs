@@ -3384,6 +3384,10 @@ async function resolveDefeatOf(defender, damage, state = {}) {
     // reduced from his newly restored Health, and so on" -- so a very large
     // Noble Phantasm can burn several charges in one resolution.
     overkill: Math.max(0, -remaining),
+    // The attacker IS the killer here, which is what Ch. 32's Conquest claims
+    // on (#27). Every other `resolveDefeat` caller is a sweep and supplies
+    // none.
+    killerId: state.attackerId ?? null,
     rolls: {},
   };
   for (const spec of pendingRolls(defender, "unitDefeated")) {
@@ -3935,14 +3939,16 @@ async function applyDamage(state, message) {
     [
       ...barrier.intents,
       I.damage(state.defenderId, result.total, result.breakdown),
-      ...(result.flags.defeatedOutright ? [I.defeat(state.defenderId, "petrify")] : []),
+      ...(result.flags.defeatedOutright ? [I.defeat(state.defenderId, "petrify", state.attackerId ?? null)] : []),
       I.log({ kind: "damage", attackerId: state.attackerId, defenderId: state.defenderId, total: result.total }),
       // Damage that empties a Health bar is where `unitDefeated` fires, and
       // until now nothing fired it — so Battle Continuation, which is authored
       // entirely as an `OnEvent: unitDefeated`, could never trigger. The revive
       // is decided *here*, before the defeat is written, because a unit that
       // comes back was never defeated.
-      ...(overpower.defeated ? [I.defeat(state.defenderId, "overpowered")] : []),
+      // Overpower is a Servant instant-killing a Master, which is the single most
+      // likely route into Ch. 32's Conquest -- so the attacker travels with it.
+      ...(overpower.defeated ? [I.defeat(state.defenderId, "overpowered", state.attackerId ?? null)] : []),
       ...(result.flags.defeatedOutright || overpower.defeated
         ? [] : await resolveDefeatOf(defender, result.total, state)),
     ],

@@ -544,6 +544,8 @@
   "FGT.Action.Facing": "Facing",
   "FGT.Action.Board": "Board",
   "FGT.Action.ForestEscape": "Escape the Forest",
+  "FGT.Settings.ConquestSparesServants": "Conquest spares claimed Servants",
+  "FGT.Settings.ConquestSparesServantsHint": "A Servant claimed by the killer's Master never becomes Free, so it is not mode-locked, is not charged Mad Enhancement's Sustainability, and survives even at zero Sustainability. Switch off to make a conquered Servant pay those costs anyway.",
   "FGT.Action.Refusal.notAffected": "This unit is not caught in the Nameless Forest.",
   "FGT.Action.Refusal.notItsTurn": "The escape may only be attempted on this unit's own Turn.",
   "FGT.Action.Refusal.alreadyTriedThisTurn": "This unit has already attempted the escape this Turn.",

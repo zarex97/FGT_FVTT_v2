@@ -180,8 +180,17 @@ export const move = (unitId, path, forced = false) =>
 export const setFacing = (unitId, facing) =>
   ({ t: "setFacing", unitId, facing });
 
-export const defeat = (unitId, cause) =>
-  ({ t: "defeat", unitId, cause });
+/**
+ * Take a unit off the board.
+ *
+ * `killerId` is who caused the death, `null` where nothing did -- a bounded
+ * field's action, the Nameless Forest's death roll, Sustainability running out,
+ * a linked partner dying. Ch. 32's Conquest needs a claimant and a Master who
+ * starved to death was killed by nobody, so the absence is meaningful rather
+ * than missing (ADR 0002).
+ */
+export const defeat = (unitId, cause, killerId = null) =>
+  ({ t: "defeat", unitId, cause, killerId });
 
 /**
  * Take a summon off the board because its stay has run out.

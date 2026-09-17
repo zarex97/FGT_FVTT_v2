@@ -70,6 +70,22 @@ export function registerSettings() {
   });
   // A Grand Order war switches off two rules that assume rival Masters: the
   // multi-Servant tax (Ch. 32) and Hatred of Achilles against allies (Ch. 45).
+  // Ch. 32's Conquest spares the Servants it claims (#27). A conquered Servant
+  // never becomes Free, so it takes none of the consequences of being Free:
+  // no mode lock, no Mad Enhancement Sustainability charge, and -- the visible
+  // one -- no instant defeat for a Servant already at zero, which means
+  // conquest SAVES a Servant that would otherwise vanish with its Master.
+  //
+  // Default TRUE because it is the rule as written: Sustainability is the cost
+  // of spending outside a Contract, and a conquered Servant is Contracted from
+  // the same instant. A table preferring the harsher reading sets it off.
+  //
+  // NOT in RULE_SETTINGS: that guard is for settings whose change invalidates
+  // stored state, and this one only decides how the next death resolves.
+  s("conquestSparesServants", {
+    name: "FGT.Settings.ConquestSparesServants", hint: "FGT.Settings.ConquestSparesServantsHint",
+    type: Boolean, default: true, requiresReload: false,
+  });
   s("grandOrder", {
     name: "FGT.Settings.GrandOrder", hint: "FGT.Settings.GrandOrderHint",
     type: Boolean, default: false, requiresReload: false,
