@@ -480,6 +480,13 @@ selections by enemies, but *included* in `chooser: "all"` AoE resolutions with a
 `concealedAoE: true` marker that triggers the coin flip during resolution. The player placing
 the AoE is never told the concealed unit is there — the marker is resolved GM-side.
 
+**And the token is hidden too.** *"The player placing the AoE is never told"* is worth nothing if
+they can see the Servant standing there: for a long time the rules refused the target and the canvas
+drew it anyway, so an enemy simply routed around a Skill they could see. `rules/concealment.mjs`'s
+`hiddenFromViewer` is the predicate and `apps/canvas/token.mjs` the consumer — invisible to
+non-allies, the D&D 5e / PF2e reading, with the GM, the owner, and the Unit's own faction and its
+declared allies still seeing it. Ch. 46 §46.4-AK.
+
 **RISK.** This leaks information through timing (a suspiciously long resolution). Mitigated by
 resolving all AoE coin flips GM-side in one batch. Full mitigation is impossible client-side;
 see Ch. 26.

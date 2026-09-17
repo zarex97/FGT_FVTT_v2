@@ -4766,3 +4766,35 @@ boundary that also rolls the Round, which the sheet stacks explicitly.
 
 208 test files, 4935 tests, layer boundaries intact.
 
+## Presence Concealment finally hides the token — 2026-09-16
+
+§46.4-AK, raised by the game's author. *"This Unit cannot be targeted for an Attack or an enemy
+Unit's Skill"* was enforced in the rules and nowhere on the screen: a concealed Servant sat on the
+canvas in plain sight, panel and facing and Health bar readable by everyone, so an enemy routed
+around a Skill they could see was there.
+
+`rules/concealment.mjs#hiddenFromViewer` is the decision, pure and given its inputs; the GM, anyone
+with OBSERVER, and the Unit's own faction and declared allies still see it. `apps/canvas/token.mjs`
+overrides the **`isVisible` getter** — Foundry 14 has no `_isVisible`, so overriding the method
+older versions had installs something nothing calls. A perception refresh in
+`engine/token-vision.mjs` goes with it, because applying an ActiveEffect does not start a
+visibility pass.
+
+**Verified by logging in as each user**, which is the only honest way — a GM sees everything by
+definition. Semiramis (faction-1, Player1) and Heracles (faction-2, Player2) adjacent on open
+ground, no alliances:
+
+| viewer | before | after |
+|---|---|---|
+| Player2 (enemy) | visible | **hidden**, while Foundry's own base getter still says visible |
+| Player1 (owner) | visible | visible |
+| Gamemaster | visible | visible |
+
+One false negative on the way, now a §46.2 hazard: Player1 first appeared not to see her own
+Servant, which looked like the fix over-reaching. Deleting the Hanging Gardens out from under both
+Servants had left her token stamped with the **deleted platform's `level`**, so she was off-level
+for everyone — and the base getter said so too. Ask the parent's verdict beside the override's
+before believing an override is at fault.
+
+209 test files, 4943 tests, layer boundaries intact.
+
