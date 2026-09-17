@@ -156,6 +156,27 @@ field behind.
 a method the current version does not call installs something inert — a fix that tests green and
 does nothing on a board.
 
+**A Servant imported fresh from the pack has no Agility and no Luck, and cannot be given any while a
+match is running.** This one bites §46.1's own instruction. Neither stat is authored: both are
+**rolled at war setup** — `rules/setup-rolls.mjs#servantSetupPlan` gives a Servant Agility from a base
+plus `1d2` and Luck from a base plus `1d4` — and the sheet reports `setupLocked: true` once a match
+has started, which is a real rule and not a bug. So "import the Servant fresh from the compiled pack"
+and drop it into a live match, and you have a Servant at **Agility 0, Luck 0** who cannot Evade and
+cannot pass a Luck Check.
+
+Every clause touching either then measures zero and reads as a defect. Found on Asterios: the
+pack-fresh import arrived at `0/0` while twenty-four of the twenty-eight Servants already in the world
+carried non-zero values, which is what made it visible at all. Resolve the plan and apply it by hand
+before pressing anything, and say in the record that you did — a Servant whose Agility you chose is
+not evidence about a Servant whose Agility was rolled.
+
+**Ranks and Base Attack move with the war's Region, and the sheet says so quietly.** A Servant whose
+`region` matches the war's gets **+1 rank on every parameter** and +10 Base Attack per STR/MAG step —
+Asterios reads `STR A++ → EX--` and `BA(STR) 170 → 180` in a Greece war. The actor sheet itemises it,
+but a probe reading `system.parameters` sees the authored rank and a probe reading a snapshot sees the
+shifted one. Any damage figure measured against a sheet's printed number is wrong by that shift unless
+the war Region is neutral.
+
 ## 46.3 Recurring defect shapes
 
 Not a list of bugs; a list of *kinds*. Each has been seen at least once, and each is worth
