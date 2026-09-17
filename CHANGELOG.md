@@ -34,6 +34,38 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### One answer to how far a Unit can still move (2026-09-17)
+
+#### Fixed
+
+- **A Slowed Unit was credited with twice the movement it had, in three places.** `remainingMovement`
+  goes through `effectiveMov`, which halves MOV under Slow and then applies the terrain delta. Three
+  other implementations subtracted `movedPanels` from a raw `mov`. `rules/platforms.mjs` carried one
+  with a comment noting that importing `rules/movement.mjs` would close an import cycle — true of that
+  file, and reproduced at two sites where nothing of the kind was true. Measured live: a Slowed Servant
+  with MOV 4 who had walked 2 had nothing left, and `jumpVerdict` returned `{ok: true}`; on a MOV 8
+  Servant the landing set was 56 panels where the planner allowed 12. `jumpVerdict` and `jumpLandings`
+  take the allowance as a parameter now. **Where a module cannot reach the authority, accept the value
+  rather than restating the arithmetic.**
+
+- **`@self.remainingMov` subtracted a stale walk and ignored Slow.** Troias Tragōidia is
+  *"remaining MOV divided by 2"*, so both errors landed in an authored damage figure. The facade's own
+  comment said the number must *"mean the same thing to a magnitude as it does to the movement
+  planner"* while the line under it did neither; it calls the planner now. Measured live: MOV 5, walked
+  2 reads 3, and the same record three Ticks stale reads 5 rather than 3.
+
+- **The `extras.self` override never worked.** `engine/attack.mjs` documents at its call site that
+  `@self.remainingMov` "is OVERRIDDEN here rather than read off the document, because the ride has
+  already written its movement" — but the computed key sat *below* the `extras.self` spread and won
+  every time, so a rider phase read the pre-ride allowance. It is a fallback now, which is also how
+  terrain reaches the facade: `effectiveMov` reads `terrainEffects.movDelta`, written during
+  `snapshotBoard`, so only a caller holding a board can supply it.
+
+#### Removed
+
+- **`rules/budget.mjs#movementRemaining`**, a fourth implementation with no caller anywhere in
+  `module/` — reached only by its own test, which is the shape that makes a wrong duplicate survive.
+
 ### Three readers, two vestigial resets and a dead flag (2026-09-17)
 
 #### Fixed

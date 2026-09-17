@@ -299,7 +299,7 @@ export const UNIT_ACTIONS = Object.freeze([
       if (!acts(unit)) return null;
       const platform = platformUnderUnit(unit, board);
       if (!platform) return null;
-      const verdict = jumpVerdict(unit, platform);
+      const verdict = jumpVerdict(unit, platform, remainingMovement(unit));
       // Withheld outright for a Unit that simply is not eligible -- a Master
       // has no Jump to learn about. Shown-but-blocked for the two a player can
       // act on: step to the edge, or keep some movement back.

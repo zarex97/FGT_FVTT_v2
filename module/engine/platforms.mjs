@@ -11,6 +11,7 @@ import {
   jumpVerdict, jumpLandings,
 } from "../rules/platforms.mjs";
 import { relationOf } from "../rules/relations.mjs";
+import { remainingMovement } from "../rules/movement.mjs";
 import { currentBoard } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -241,10 +242,16 @@ export async function jumpOff({ unitId, platformId, destination = null, bringMas
   const platform = board.units.find((u) => u.id === platformId && u.kind === "platform");
   if (!unit || !platform) return { ok: false, reason: "unknownUnitOrPlatform" };
 
-  const verdict = jumpVerdict(unit, platform);
+  // The planner's own answer, passed in rather than recomputed: `platforms.mjs`
+  // used to do the arithmetic itself to avoid importing `movement.mjs`, and got
+  // a different number for a Slowed Unit than the thing that would actually
+  // move it.
+  const remaining = remainingMovement(unit);
+
+  const verdict = jumpVerdict(unit, platform, remaining);
   if (!verdict.ok) return { ok: false, reason: verdict.reason };
 
-  const landings = jumpLandings(unit, platform, board);
+  const landings = jumpLandings(unit, platform, board, remaining);
   if (landings.length === 0) return { ok: false, reason: "nowhereToLand" };
 
   const to = destination ?? await askWhereToLand(unit, landings);

@@ -17,6 +17,7 @@ import {
   isEdgePanel, jumpVerdict, jumpLandings,
 } from "../../module/rules/platforms.mjs";
 import { nextBand } from "../../module/engine/scene-levels.mjs";
+import { remainingMovement } from "../../module/rules/movement.mjs";
 
 const at = (i, j) => ({ i, j });
 
@@ -370,6 +371,11 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
     mov: 4, turnState: {}, ...over,
   });
   const b = (units) => ({ units, bounds: { rows: 13, cols: 13 }, alliances: {} });
+  // What the Jump is measured against, computed the way `engine/platforms.mjs`
+  // computes it. Passed in rather than derived inside `jumpVerdict`, which used
+  // to do its own raw `mov - movedPanels` and so disagreed with the planner
+  // about a Slowed Unit.
+  const left = (u) => remainingMovement(u);
 
   describe("isEdgePanel", () => {
     it("accepts a panel on the boundary", () => {
@@ -388,47 +394,63 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
   describe("jumpVerdict", () => {
     it("lets a Servant on the edge jump", () => {
       const u = rider3();
-      expect(jumpVerdict(u, hgob())).toMatchObject({ ok: true });
+      expect(jumpVerdict(u, hgob(), left(u))).toMatchObject({ ok: true });
     });
 
     it("refuses a Master, whose sheet does not offer it", () => {
       // "A non-Civilian or non-Master Unit ... can Jump off."
       const m = rider3({ kind: "master" });
-      expect(jumpVerdict(m, hgob())).toMatchObject({ ok: false, reason: "wrongKind" });
+      expect(jumpVerdict(m, hgob(), left(m))).toMatchObject({ ok: false, reason: "wrongKind" });
     });
 
     it("refuses a Civilian", () => {
       const c = rider3({ kind: "civilian" });
-      expect(jumpVerdict(c, hgob())).toMatchObject({ ok: false, reason: "wrongKind" });
+      expect(jumpVerdict(c, hgob(), left(c))).toMatchObject({ ok: false, reason: "wrongKind" });
     });
 
     it("refuses a Unit standing in the interior", () => {
       const inner = rider3({ panel: { i: 6, j: 6 } });
-      expect(jumpVerdict(inner, hgob())).toMatchObject({ ok: false, reason: "notOnEdge" });
+      expect(jumpVerdict(inner, hgob(), left(inner))).toMatchObject({ ok: false, reason: "notOnEdge" });
     });
 
     it("refuses a Unit that is not aboard at all", () => {
       const ground = rider3({ level: 0, panel: { i: 0, j: 0 } });
-      expect(jumpVerdict(ground, hgob())).toMatchObject({ ok: false, reason: "notAboard" });
+      expect(jumpVerdict(ground, hgob(), left(ground))).toMatchObject({ ok: false, reason: "notAboard" });
     });
 
     it("refuses a rider the Platform will not let off", () => {
       // "Drake cannot unboard the Golden Hind."
       const locked = hgob({ lockAboard: ["owner"], ownerId: "r" });
       const u = rider3();
-      expect(jumpVerdict(u, locked)).toMatchObject({ ok: false, reason: "lockedAboard" });
+      expect(jumpVerdict(u, locked, left(u))).toMatchObject({ ok: false, reason: "lockedAboard" });
     });
 
     it("refuses a Unit with no movement left", () => {
       const spent = rider3({ turnState: { movedPanels: 4 } });
-      expect(jumpVerdict(spent, hgob())).toMatchObject({ ok: false, reason: "noMovement" });
+      expect(jumpVerdict(spent, hgob(), left(spent))).toMatchObject({ ok: false, reason: "noMovement" });
+    });
+
+    it("refuses a SLOWED Unit that has walked half its MOV", () => {
+      // Slow halves MOV, so a MOV 4 Servant who has walked 2 has nothing left
+      // -- and `jumpVerdict` used to compute 4 - 2 = 2 and let her jump, while
+      // the planner that would have carried her said 0. The allowance is the
+      // planner's now, so the two cannot disagree.
+      const slowed = rider3({ effects: ["slow"], turnState: { movedPanels: 2 } });
+      expect(left(slowed)).toBe(0);
+      expect(jumpVerdict(slowed, hgob(), left(slowed))).toMatchObject({ ok: false, reason: "noMovement" });
+    });
+
+    it("lets that Unit jump before it has spent the halved allowance", () => {
+      const slowed = rider3({ effects: ["slow"], turnState: { movedPanels: 1 } });
+      expect(left(slowed)).toBe(1);
+      expect(jumpVerdict(slowed, hgob(), left(slowed))).toMatchObject({ ok: true });
     });
   });
 
   describe("jumpLandings", () => {
     it("offers ground panels off the footprint and within MOV", () => {
       const u = rider3();
-      const out = jumpLandings(u, hgob(), b([hgob(), u]));
+      const out = jumpLandings(u, hgob(), b([hgob(), u]), left(u));
 
       expect(out.length).toBeGreaterThan(0);
       expect(out.every((p) => !withinFootprint(p, hgob()))).toBe(true);
@@ -437,7 +459,7 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
 
     it("offers nothing beyond the Unit's remaining movement", () => {
       const tired = rider3({ mov: 4, turnState: { movedPanels: 3 } });
-      const out = jumpLandings(tired, hgob(), b([hgob(), tired]));
+      const out = jumpLandings(tired, hgob(), b([hgob(), tired]), left(tired));
 
       expect(out.every((p) => Math.max(Math.abs(p.i - 5), Math.abs(p.j - 5)) <= 1)).toBe(true);
     });
@@ -445,7 +467,7 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
     it("skips a panel somebody is already standing on", () => {
       const u = rider3();
       const blocker = { id: "x", kind: "servant", level: 0, panel: { i: 4, j: 4 } };
-      const out = jumpLandings(u, hgob(), b([hgob(), u, blocker]));
+      const out = jumpLandings(u, hgob(), b([hgob(), u, blocker]), left(u));
 
       expect(out).not.toContainEqual({ i: 4, j: 4 });
     });

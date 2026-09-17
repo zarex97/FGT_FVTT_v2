@@ -15,7 +15,7 @@
  * what keeps a Move-that-is-an-Attack from needing a Combat Process of its own.
  */
 
-import { ridingAttackPath, effectiveMov } from "../rules/movement.mjs";
+import { ridingAttackPath, remainingMovement } from "../rules/movement.mjs";
 import { displaceToken } from "./io.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { currentBoard } from "./board.mjs";
@@ -61,7 +61,7 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   // distance is 13 and his MOV is 8 at best, so measuring afterwards would make
   // X zero every time and the clause dead. What the sheet is asking is how much
   // of his Turn's movement he had left when he used it.
-  const remainingMov = Math.max(0, effectiveMov(unit) - (unit.turnState?.movedPanels ?? 0));
+  const remainingMov = remainingMovement(unit);
 
   // The MOVE, first and completely. `{fgtForced: true}` because the legality
   // was decided by `ridingAttackPath` rather than by the ordinary movement

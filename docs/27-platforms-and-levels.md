@@ -54,6 +54,8 @@ Leaving a Platform is a Jump, a Knocked Off, or an unboarding where the Platform
 
 > *"A non-Civilian or non-Master Unit standing on an edge panel of a HGoB can Jump off the HGoB and land on a Game Board panel within its MOV; in this case, the Unit's MOV is reduced by 1."*
 
+*"Within its MOV"* is the allowance the movement planner would spend, and `jumpVerdict`/`jumpLandings` take it as a parameter rather than computing it ([Ch. 19](19-action-economy.md)). They used to do their own `mov - movedPanels`, which read a **raw** MOV: measured live, a Slowed Servant with MOV 4 who had walked 2 had nothing left, and the Jump offered it 2 panels of reach and returned `{ok: true}`. It is refused `noMovement` now. The overstatement scaled with MOV — on a MOV 8 Servant the landing set was 56 panels where the planner allowed 12.
+
 The voluntary counterpart to being Knocked Off, and nothing like it: no Agility Check, no damage, and the Unit chooses where it lands. Open to **Servants and Summons** only — a Master leaves by being carried or by being knocked off, and a Civilian does not leave at all. The Unit must stand on an **edge panel** (on the footprint, orthogonally adjacent to something off it), the Platform must not hold it (`canUnboard`, which is how *"Drake cannot unboard the Golden Hind"* applies here too), and it must have movement left. The cost is the distance travelled **plus one**.
 
 > *"If a Servant would Jump off the HGoB with its Master directly next to it, the Servant can choose to bring its Master with it, the Master will land next to its Servant in the same orientation. This does not count as Moving the Master."*
