@@ -3,13 +3,18 @@
 A ground-up Foundry VTT **system** implementing *F/GT: Fate Grail Tactics*, a grid-based
 tactical wargame originally played in Tabletop Simulator, with **full rules automation**.
 
-This repository contains the **design documentation** and the **system implementation**. The
-rules engine is complete and tested, and attacks resolve end to end through the interface; the
-canvas targeting preview and the turn HUD are the next phase.
+This repository contains the **system implementation** and its **documentation**. The rules
+engine, the interface and the content pipeline are all built; attacks resolve end to end through
+the UI.
 
-**Current documentation version: `0.2.1`.** See [`CHANGELOG.md`](CHANGELOG.md) for what changed
-and why — including corrections in `0.2.0` and `0.2.1` that invalidate anything built against an
-earlier version's Range geometry, Block rule, or crit-damage placement.
+**System version: `0.3.5`** (`system.json`). See [`CHANGELOG.md`](CHANGELOG.md) for what changed
+and why — including rule corrections that invalidate anything built against an earlier version's
+Range geometry, Block rule, or crit-damage placement.
+
+> **The documentation was rebuilt from the codebase in September 2026.** The previous 46 chapters
+> were written as a *plan*, before the implementation existed, and had gone stale. Every chapter
+> is now derived from current source and cites it by `file:line`. The superseded set is kept in
+> [`docs/plan-archive/`](docs/plan-archive/README.md) with a mapping of where each subject went.
 
 ---
 
@@ -17,15 +22,14 @@ earlier version's Range geometry, Block rule, or crit-damage placement.
 
 | If you want to… | Read |
 |---|---|
-| Understand what we are building and why | [`docs/01-vision-and-goals.md`](docs/01-vision-and-goals.md) |
-| Look up a term used anywhere in these docs | [`docs/02-glossary.md`](docs/02-glossary.md) |
-| Understand the game as a formal model | [Part I — Domain Model](docs/00-index.md#part-i--the-domain-model) |
-| Understand how combat/damage actually resolve | [Part II — Resolution Systems](docs/00-index.md#part-ii--resolution-systems) |
-| Understand the Foundry code architecture | [Part III — Foundry Architecture](docs/00-index.md#part-iii--foundry-architecture) |
-| See how a specific Servant gets automated | [Part IV — Case Studies](docs/00-index.md#part-iv--case-studies-and-reference) |
+| Understand what this is and what it implements | [`docs/01-what-this-is.md`](docs/01-what-this-is.md) |
+| Look up a term used anywhere | [`CONTEXT.md`](CONTEXT.md) — the glossary |
+| Understand the code architecture | [`docs/02-architecture.md`](docs/02-architecture.md) |
+| Understand how combat and damage resolve | [Ch. 21](docs/21-combat-process.md), [Ch. 22](docs/22-damage-pipeline.md) |
+| See how a Servant's clauses become engine features | [`docs/45-case-studies.md`](docs/45-case-studies.md) |
+| Run or drive a live world | [`docs/43-tooling.md`](docs/43-tooling.md) |
 | Know what changed since the last version | [`CHANGELOG.md`](CHANGELOG.md) |
-| See exactly what is built and what is not | [`docs/45-implementation-status.md`](docs/45-implementation-status.md) |
-| Just see the whole table of contents | [`docs/00-index.md`](docs/00-index.md) |
+| See the whole table of contents | [`docs/00-index.md`](docs/00-index.md) |
 
 ---
 
@@ -50,26 +54,26 @@ means building a **rules engine**, not a character sheet.
 1. **Automated targeting is a first-class subsystem.** Every ability declares its target
    geometry declaratively (`{shape: "orthogonalRect", w: 5, h: 5, anchor: "edge-adjacent"}`)
    and the engine resolves, previews, validates, and applies it. No manual token clicking.
-   See [Chapter 09](docs/09-targeting.md).
+   See [Ch. 20](docs/20-targeting.md).
 2. **Data, not code, describes content.** A Servant is a compendium document, not a script.
    Effects are declarative rule elements with predicates. Scripts are the escape hatch, not
-   the norm. See [Chapters 11](docs/11-effect-engine.md) and [24](docs/24-rules-engine.md).
+   the norm. See [Ch. 15](docs/15-effect-application.md) and [Ch. 10](docs/10-rule-elements.md).
 3. **The rules are a state machine, and the state machine is explicit.** The Combat Process
    has named steps (1, 2, 2.1 … 2.5, 3, 4, 5, 6) straight from the rulebook, and the engine
-   implements exactly those steps. See [Chapter 12](docs/12-combat-process.md).
+   implements exactly those steps. See [Ch. 21](docs/21-combat-process.md).
 4. **Every number is auditable.** Any damage figure can be expanded into the ordered list of
-   modifiers that produced it. See [Chapter 30](docs/30-chat-and-audit.md).
+   modifiers that produced it. See [Ch. 37](docs/37-chat-and-log.md).
 5. **Turns belong to players.** The Combat document is player-based, and the action economy
    (4 moves / 3 master moves / 2 servant attacks) is tracked per player per turn.
-   See [Chapter 25](docs/25-turn-system.md).
+   See [Ch. 25](docs/25-turn-order-and-scheduler.md).
 6. **The GM is an authority, not a bottleneck.** A socket proxy lets players drive their own
    units against actors they do not own, without handing out permissions.
-   See [Chapter 26](docs/26-authority-and-sockets.md).
+   See [Ch. 38](docs/38-authority.md).
 7. **The board is not flat, and areas are not one thing.** A panel has terrain; the space
    above it has platforms and levels; and Noble Phantasms carve out enclosed *bounded fields*
    with their own membership, permeability and escape rules. These are three separate models
-   on purpose. See [Chapters 20](docs/20-platforms-and-levels.md),
-   [42](docs/42-terrain.md) and [43](docs/43-bounded-fields.md).
+   on purpose. See [Ch. 27](docs/27-platforms-and-levels.md),
+   [Ch. 26](docs/26-terrain.md) and [Ch. 28](docs/28-bounded-fields.md).
 
 ---
 
@@ -87,7 +91,8 @@ means building a **rules engine**, not a character sheet.
 
 ```
 FGT_FVTT_v2/
-├── docs/                  ← the design specification, 44 chapters + 5 appendices
+├── docs/                  ← 46 chapters + 5 appendices, written from the code
+│   └── plan-archive/      ← the superseded plan-era chapters, kept for history
 ├── CHANGELOG.md           ← every change to docs and code, with superseded readings
 ├── system.json            ← manifest
 ├── module/
@@ -101,60 +106,65 @@ FGT_FVTT_v2/
 │   └── apps/              ← sheets, chat cards, the turn HUD, the targeting canvas layer
 ├── packs/_source/         ← content as YAML; the packs themselves are build artefacts
 ├── assets/                ← artwork, found by id at build time (assets/README.md)
-├── tools/                 ← pack build, content validator, release stamping
-├── test/                  ← 4,718 unit and golden tests, no Foundry required
+├── tools/                 ← pack build, content validator, release stamping,
+│                          layer check, and the live-world drivers
+├── test/                  ← 5,021 unit and golden tests, no Foundry required
 ├── templates/  styles/  lang/
 ```
 
-The `domain → rules → engine → apps` dependency direction is enforced by ESLint, and
-`module/domain` and `module/rules` are forbidden from referencing Foundry globals at all —
-which is what makes the entire rules engine testable in plain Node.
+The `domain → rules → engine → apps` dependency direction is enforced by
+[`tools/check-layers.mjs`](tools/check-layers.mjs), which runs as part of `npm run lint` — not by
+ESLint itself, which would need `eslint-plugin-import`. `module/domain` and `module/rules` are
+forbidden from referencing Foundry globals at all, which is what makes the entire rules engine
+testable in plain Node. Three violations are recorded in an allowlist, each with the reason it
+exists and what would remove it; a *stale* entry fails the check too, so the list cannot outlive
+the debt. See [Ch. 02](docs/02-architecture.md).
 
 ---
 
 ## Status
 
-| Phase | State |
-|---|---|
-| Design documentation | **`0.2.1`** — 44 chapters + 5 appendices, see `docs/` |
-| System skeleton | **`system.json`, tooling, CI config** — done |
-| L1 domain (pure) | **Done** — ranks, ◈ ticks, geometry, rank tables |
-| L2 rules (pure) | **Damage pipeline, targeting, checks, predicates, snapshots** — done |
-| L3 engine (orchestration) | **Intents, effect applier, combat process, scheduler, write adapter** — done |
-| Foundry layer | **Manifest, data models, documents, bootstrap, basic sheets** — loads in v14 |
-| Content pipeline | **YAML source, validator, pack build** — done |
-| Content (29 reference Servants) | **12 authored**, most recently Anastasia & Viy + effects and class skills |
-| GM proxy socket | **Typed operations, request/response, timeouts, authorization** — done |
-| Chat cards and the damage explainer | **Done** — the card is the audit record |
-| Attack flow | **Sheet → target → reaction ladder → damage → card** — wired |
-| Canvas targeting preview | **Done** — four modes, speculative damage range |
-| Turn HUD and action budgets | **Done** — pools, per-unit state, the compulsion gate |
-| Delay | **Done** — declared through the proxy, derived from the rolled order |
-| ZON and the board overlays | **Done** — derived, enforced, and drawn |
-| Movement legality and the move budget | **Done** — the seven clauses, Riding's two segments |
-| Combat Process steps 4 and 6, AoE fan-out | **Stubbed** — see [Ch. 45](docs/45-implementation-status.md) |
-| Command Spells, auras, environment, platforms | Not started — see [Ch. 45](docs/45-implementation-status.md) |
+| Area | State | Chapter |
+|---|---|---|
+| Documentation | 46 chapters, written from the code, `file:line` cited | [00](docs/00-index.md) |
+| L1 domain (pure) | Ranks, ◈ ticks, geometry, tables, health, resources | [03](docs/03-ranks-and-tables.md)–[06](docs/06-units-and-stats.md) |
+| L2 rules (pure) | Damage pipeline, targeting, checks, predicates, projection | [09](docs/09-projection.md)–[13](docs/13-checks-and-randomness.md) |
+| L3 engine | Intents, effect applier, combat process, scheduler, write adapter | [02](docs/02-architecture.md), [15](docs/15-effect-application.md), [21](docs/21-combat-process.md), [25](docs/25-turn-order-and-scheduler.md) |
+| Foundry layer | Manifest, data models, documents, sheets, ability editor | [07](docs/07-schemas.md), [08](docs/08-documents-and-derived.md), [35](docs/35-sheets-and-editor.md) |
+| Attack flow | Declaration → reaction ladder → damage → card, end to end | [21](docs/21-combat-process.md), [22](docs/22-damage-pipeline.md), [23](docs/23-reactions.md) |
+| Canvas targeting | Preview, review, overlays, level-aware token clicks | [20](docs/20-targeting.md), [36](docs/36-canvas-layers.md) |
+| Turn HUD | Budget pools, per-unit state, the compulsion gate | [19](docs/19-action-economy.md), [34](docs/34-action-bar.md) |
+| Effects | Registry, families, seven-step application, removal/transfer | [14](docs/14-effect-taxonomy.md)–[16](docs/16-effect-flow.md) |
+| Auras and invalidation | Spatially-bucketed index, closed invalidation table | [12](docs/12-invalidation-and-auras.md) |
+| Board systems | Terrain, platforms and levels, bounded fields, environment | [26](docs/26-terrain.md)–[29](docs/29-environment.md) |
+| Concealment and identity | Presence Concealment, public identity, Detect, Discover | [30](docs/30-concealment-and-identity.md) |
+| War setup | Factions, alliances, summoning, setup rolls, contracts | [31](docs/31-war-setup-and-summoning.md) |
+| Relationships | Overpower, Sustainability, multi-Servant tax, linked groups | [32](docs/32-relationships.md) |
+| Command Spells | Catalogue, per-relationship namespacing, spending | [33](docs/33-command-spells.md) |
+| GM proxy socket | Typed operations, request/response, timeouts, authorization | [38](docs/38-authority.md) |
+| Content pipeline | YAML source, validator, pack build, export, content sync | [39](docs/39-authoring-vocabulary.md), [40](docs/40-content-pipeline.md) |
+| History and rewind | Per-unit ring buffer, desync detector | [42](docs/42-history-and-rewind.md) |
+| Content authored | 26 Servants + 7 Normal-ruleset, 236 abilities, 157 effects, 21 class skills, 17 Command Spells | [45](docs/45-case-studies.md) |
 
-**4,718 tests passing**, covering everything built so far. They pin behaviour to the
-*documentation* rather than to the implementation: the R=4 attack-range diagram is asserted
-character for character, all six Mad Enhancement sheets are checked against the rank table, and
-both worked examples from Chapter 13 are golden fixtures.
+**Known open defects** are tracked as [GitHub issues](https://github.com/zarex97/FGT_FVTT_v2/issues).
+Each chapter's *Open questions* section lists claims tagged `[unverified]` — true by reading, not
+yet confirmed in a running world.
+
+**5,021 tests passing** across 213 files. Golden tests pin worked examples end to end; the R=4
+attack-range diagram is asserted character for character and all six Mad Enhancement sheets are
+checked against the rank table. See [Ch. 44](docs/44-testing.md) — including the one failure mode
+these tests cannot see, where a rules function is fully tested and fed by nothing.
 
 ```
 npm install
-npm test                  # 4,718 unit + golden tests, no Foundry required
-npm run lint              # includes the layer-boundary rule
+npm test                  # 5,021 unit + golden tests, no Foundry required
+npm run lint              # includes tools/check-layers.mjs, the layer-boundary rule
 npm run validate:content  # every YAML parses, every ref resolves, every id exists
 npm run build             # compile packs and styles
 ```
 
-The `domain/` → `rules/` → `engine/` → `apps/` dependency direction is enforced by ESLint, and
-`module/domain` and `module/rules` are forbidden from touching Foundry globals at all. That is
-what makes the whole rules engine testable in plain Node.
-
-Open design questions are tracked in
-[`docs/41-open-questions.md`](docs/41-open-questions.md): **Q1–Q40 answered** by the game's
-author, **Q41–Q49 open**.
+Open questions are no longer a single chapter: each chapter carries its own **Open questions**
+section, and anything not yet confirmed against a running world is tagged `[unverified]` there.
 
 ## Installing
 
@@ -190,8 +200,10 @@ In Foundry: **Configuration and Setup → Game Systems → Install System**, pas
 > move budget is spent when it lands. Riding's two segments share one MOV allowance and the
 > second only opens once the unit has attacked.
 >
-> Not yet built: undo, and the persistent zone overlays (ZON rings, threat ranges). Everything is
-> also reachable from the console via `fgt.api`.
+> The persistent overlays (ZON rings, threat ranges, Master protection) are drawn by the overlay
+> layer, and Undo eligibility is decided by the effect-flow rules. Everything is also reachable
+> from the console via `fgt.api`, and a live world can be driven from the command line — see
+> [Ch. 43](docs/43-tooling.md).
 
 ## Releasing
 
@@ -268,7 +280,7 @@ The design is derived from these primary documents:
 - *Important — ◈ notation* (rounds and turns)
 - *General Notes*
 - *Terrain Effects* — the 21 terrain types and their overlap rules (added in `0.2.0`)
-- *41-open-questions.md, annotated* — the author's answers to Q1–Q38 (added in `0.2.0`)
+- *Open questions, annotated* — the author's answers, now recorded per chapter
 - **29 reference character sheets:**
   - The original twelve: Van Gogh, Mannanán mac Lir, Kingprotea, the Dioscuri, Semiramis,
     Scáthach, Karna, Kiritsugu, Francis Drake, Penthesilea, Nemo, Heracles.
@@ -277,7 +289,6 @@ The design is derived from these primary documents:
     Anastasia & Viy, Quetzalcoatl, EMIYA, Proto Gil, Asterios, Raikou.
 
 Where the source documents are ambiguous or self-contradictory, the resolution is recorded
-explicitly in [`docs/41-open-questions.md`](docs/41-open-questions.md) rather than silently
-decided. Where a resolution later turned out to be **wrong**, the correction is recorded in
+explicitly in the relevant chapter's *Open questions* section rather than silently decided. Where a resolution later turned out to be **wrong**, the correction is recorded in
 [`CHANGELOG.md`](CHANGELOG.md) alongside the superseded reading — see the Range formula in
 `0.2.0`, which fit every piece of evidence available and was still incorrect.
