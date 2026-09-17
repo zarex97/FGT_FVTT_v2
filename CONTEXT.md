@@ -32,6 +32,16 @@ load-bearing everywhere.
 **Contract**:
 The binding between a Master and a Servant. A Servant is Contracted, Free, or Unbound.
 
+**Conquest**:
+The Contract a Master gains over every Servant of a Master its side has just killed. The Servants
+pass straight from one Contract to the other, never becoming Free on the way.
+_Avoid_: capture, claim, steal, inherit
+
+**Sustainability**:
+The clock a Free Servant spends to use a Noble Phantasm, having no Master to draw the cost from.
+A Contracted Servant has no clock running.
+_Avoid_: upkeep, stamina, lifespan
+
 **Command Spell**:
 A single-use authority a Master spends to compel or empower a Servant. Tracked per relationship,
 not per Master.
