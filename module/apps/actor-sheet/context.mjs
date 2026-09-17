@@ -22,6 +22,7 @@ import { canUseAbility } from "../../rules/costs.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf } from "../../rules/identity.mjs";
 import { tierOf } from "../../rules/master-rank.mjs";
+import { actedWeight } from "../../rules/relationships.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import {
   resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost,
@@ -81,7 +82,17 @@ function masterContext(master) {
     // Ch. 32: at 25 Health or less a Master cannot order more than one Servant
     // to Act, and the tax has already been charged by the time anyone looks.
     taxWarning: (master.system.health?.value ?? 0) <= 25,
-    multiServantTax: master.system.turnState?.servantsActed ?? 0,
+    // The weighted count the tax itself uses, off the board. This read
+    // `master.system.turnState.servantsActed` -- a field no schema declares and
+    // nothing writes -- so the badge was permanently 0 and the one warning a
+    // Master gets about the Ch. 32 tax never appeared. Weighted rather than
+    // counted, because both Dioscuri Acting is one Servant having Acted.
+    //
+    // Selected by `masterId`, which is how `scheduler.mjs:2097` gathers the
+    // Servants it charges. NOT by `servantIds` -- that is the set `contracted`
+    // above reads, it is empty on every Master in the live world, and a badge
+    // built on it would read 0 for a different reason than before.
+    multiServantTax: actedWeight(board.units.filter((u) => u.masterId === master.id)),
   };
 }
 

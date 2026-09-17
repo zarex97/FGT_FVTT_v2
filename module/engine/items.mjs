@@ -11,7 +11,7 @@
  */
 
 import { canTransferItem, transferItem, consumeItem, acquisitionTarget } from "../rules/items.mjs";
-import { currentBoard, unitFrom } from "./board.mjs";
+import { currentBoard, unitFrom, turnRecordOf } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -127,11 +127,9 @@ function itemSpec(item) {
  * @returns {number}
  */
 function transfersThisTurn(actor) {
-  // `markTurn` writes to `system.turnState` and stamps the tick, so a count
-  // from a previous turn is stale rather than binding.
-  const state = actor.system?.turnState ?? {};
-  const now = game.combat?.system?.globalTurn ?? 0;
-  return state.tick === now ? (state.itemTransfers ?? 0) : 0;
+  // A count from a previous Turn is stale rather than binding, and the record
+  // says so without this function having to.
+  return turnRecordOf(actor).itemTransfers;
 }
 
 /**

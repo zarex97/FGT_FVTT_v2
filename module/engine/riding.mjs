@@ -81,10 +81,6 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
     moved: true, acted: true, usedRidingAttack: true,
     movedPanels: (unit.turnState?.movedPanels ?? 0) + plan.distance,
     moveSegments: (unit.turnState?.moveSegments ?? 0) + 1,
-    // *"Cannot Attack or Move after it has stopped."* Riding's Double Move
-    // does not reopen after a Riding Attack, which is the one place the two
-    // passives would otherwise disagree.
-    mayMoveAgain: false,
   })], "ridingAttack:move");
 
   // ONE fan-out, as a Normal Attack. Every unit on the line is a defender of

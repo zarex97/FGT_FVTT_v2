@@ -137,7 +137,6 @@ export const TURN_RECORD = stampedRecord({
     movedPanels: 0,
     moveSegments: 0,
     usedActiveSkill: false,
-    mayMoveAgain: false,
     usedRidingAttack: false,
     reshapedField: false,
     itemTransfers: 0,

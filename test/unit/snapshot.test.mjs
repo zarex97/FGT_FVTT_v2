@@ -389,7 +389,7 @@ describe("turn state expires by tick, not by being cleared", () => {
     const unit = snapshotUnit(actor({ system: { turnState: spent } }), { tick: 99 });
     expect(unit.turnState).toMatchObject({
       acted: false, moved: false, attacked: false, movedPanels: 0,
-      moveSegments: 0, usedActiveSkill: false, mayMoveAgain: false, usedRidingAttack: false,
+      moveSegments: 0, usedActiveSkill: false, usedRidingAttack: false,
     });
   });
 });

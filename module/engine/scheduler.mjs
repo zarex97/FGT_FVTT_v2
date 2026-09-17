@@ -149,12 +149,13 @@ export function endTurn(board, ctx) {
 export function beginTurn(board, ctx) {
   ctx = { ...ctx, board };
   const units = board.units ?? [];
-  const mine = units.filter((u) => u.factionId === ctx.activeFactionId);
   /** @type {Intent[]} */
   const intents = [I.log({ kind: "turnStart", faction: ctx.activeFactionId, tick: ctx.tick })];
 
-  // Per-unit turn state resets for the incoming player only.
-  for (const u of mine) intents.push(resetTurnState(u));
+  // No per-unit reset entries. They logged a `resetTurnState` line per unit
+  // for an operation that reset nothing even before `clearTurnState` was
+  // deleted -- the turn record expires by being read -- under the `turnStart`
+  // line above, which is the one that actually marks the boundary.
 
   // Turn-start effects: Disorder's Skill Seal roll, Shock's action-loss roll.
   // These fire for EVERY unit, because a unit under Shock rolls at the start of
@@ -1991,14 +1992,6 @@ export function checkRemovals(units, ctx) {
     }
   }
   return out;
-}
-
-/**
- * @param {object} unit
- * @returns {Intent}
- */
-function resetTurnState(unit) {
-  return I.log({ kind: "resetTurnState", unitId: unit.id });
 }
 
 /**

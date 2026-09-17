@@ -46,7 +46,9 @@ Effect expiry runs **after** the final periodic tick so an effect ending this tu
 
 ### The begin-of-turn sequence
 
-`beginTurn` resets per-turn state for the incoming faction's units and fires `turnStart` for every unit in the match (Shock can roll on anyone's turn start, not just its owner's) (`module/engine/scheduler.mjs:149-167`). It also fires `turnStart` for terrain.
+`beginTurn` logs the boundary once and fires `turnStart` for every unit in the match (Shock can roll on anyone's turn start, not just its owner's) (`module/engine/scheduler.mjs:149-167`). It also fires `turnStart` for terrain.
+
+It resets nothing, and neither does the turn boundary above it. The Turn Record expires by being **read**: advancing `system.globalTurn` is the whole reset ([Ch. 09](09-projection.md)). Two pieces of machinery used to pretend otherwise and both are gone. `clearTurnState` wrote a blank record to every actor of the incoming faction, once per turn, for no read-side effect — the schema said as much in its own comment — and it created a real hazard doing it: a board re-derived after the clear saw `acted: false` on every unit, which killed every `actedTurnEnd` field dispatch (`test/unit/field-acted-turn-end.test.mjs`). `beginTurn` then logged a `resetTurnState` entry per unit, naming an operation that reset nothing even before `clearTurnState` was deleted. **The `turnStart` entry is the boundary, and there is one of it.**
 
 Between the two sequences, the global turn counter advances and the budget is reset for the incoming faction (`module/engine/scheduler-hooks.mjs:160-170`).
 

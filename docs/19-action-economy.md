@@ -37,7 +37,9 @@ An action routes to its pool by action kind and unit type (`module/rules/budget.
 
 ### Per-unit limits
 
-Each unit's `turnState` carries `moved`, `attacked`, and `usedRidingAttack` flags (`module/rules/budget.mjs:244-265`). A unit that has attacked cannot move again, except under Riding's grant or `doubleMove` (`module/rules/budget.mjs:258-259`). Riding Attack is terminal: once used, the unit's turn ends (`module/rules/budget.mjs:263-265`).
+Each unit's Turn Record carries `moved`, `attacked`, and `usedRidingAttack` flags (`module/rules/budget.mjs:244-265`). A unit that has attacked cannot move again, except under Riding's grant or `doubleMove` (`module/rules/budget.mjs:258-259`). Riding Attack is terminal: once used, the unit's turn ends (`module/rules/budget.mjs:263-265`).
+
+The record carried a fourth flag, `mayMoveAgain`, from the day Riding was written. Three sites wrote it — the movement hook recomputed it after every move, the Riding Attack path cleared it, the turn boundary blanked it — and **nothing ever read it**. Riding's second segment is decided by `GRANTS.doubleMove` and `hasRiding` in `module/rules/movement.mjs:63,94` and by the gate at `module/rules/budget.mjs:258`, none of which consult the flag. It has been deleted. **A per-Turn flag with writers and no readers is indistinguishable from a working feature**, which is the same shape as a reader with no writer ([Ch. 44](44-testing.md)) seen from the other end, and neither the schema nor the projection can tell you which you have.
 
 Movement is measured separately: `segmentCheck` compares the unit's remaining movement allowance against remaining MOV (`module/apps/hud/turn-panel.mjs:68`).
 

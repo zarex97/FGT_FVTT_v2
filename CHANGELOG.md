@@ -34,6 +34,43 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Three readers, two vestigial resets and a dead flag (2026-09-17)
+
+#### Fixed
+
+- **The Master sheet's multi-Servant-tax badge was permanently `0`.** It read
+  `turnState.servantsActed`, a field no schema declares and nothing writes, so the one warning a Master
+  gets about the Ch. 32 tax never appeared. It now shows the same weighted count the tax itself charges
+  — weighted, because *"each one counts as 0.5 Units"* means both Dioscuri Acting is one Servant having
+  Acted — selected by `masterId`, which is how `scheduler.mjs` gathers the Servants it bills. That
+  weighted sum was written out twice in `rules/relationships.mjs`; it is `actedWeight` once now.
+
+#### Removed
+
+- **`turnState.mayMoveAgain`**, which had three writers and no readers since Riding was written. The
+  movement hook recomputed it after every move, the Riding Attack path cleared it, the turn boundary
+  blanked it, and Riding's second segment was decided the whole time by `GRANTS.doubleMove` and
+  `hasRiding` in `rules/movement.mjs`. **A per-Turn flag with writers and no readers reads as a working
+  feature** — the mirror of the reader-with-no-writer trap in [Ch. 44](docs/44-testing.md), and neither
+  the schema nor the projection can tell you which you have.
+
+- **`clearTurnState`**, which wrote a blank record to every actor of the incoming faction once per turn
+  for no read-side effect — the schema said as much itself — while creating a real hazard: a board
+  re-derived after the clear saw `acted: false` on every unit and killed every `actedTurnEnd` field
+  dispatch. **`resetTurnState`**, which logged an entry per unit naming an operation that reset nothing
+  even before that. Advancing `system.globalTurn` is the whole reset. Measured live: three Units spent
+  a Turn, the clock advanced by one with no clearing write, all three read blank, and the stored
+  documents still held the spent values — put the clock back and they read spent again.
+
+#### Changed
+
+- **Three readers that spelled the staleness comparison out themselves** now go through the record:
+  `engine/items.mjs`, `engine/skill-use.mjs` and `rules/modes.mjs`. The first two share a new
+  `turnRecordOf`/`roundRecordOf` in `engine/board.mjs` — the one place outside `io.mjs` that takes a
+  stored record off a document, so the document-to-projection step happens once instead of at each
+  caller. They all agreed with each other; `io.recordUse` was the one that did not, and that is the
+  point.
+
 ### The stale-by-reading rule becomes a module (2026-09-17)
 
 #### Changed

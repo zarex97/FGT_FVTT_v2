@@ -118,17 +118,26 @@ But `combatInBaseThisRound` is never written anywhere in the engine layer. Not i
 
 **Why it is still live:** The problem is not laziness — it is architectural. The engine should track when a unit fights in its base (perhaps in the attack flow, or in the applier when damage is applied), and set the flag in an intent or IO call. But this tracking does not exist. Meanwhile, the test passes, and a developer might reasonably assume the rule is implemented.
 
+**The mirror image: a field with writers and no readers.** The same blindness runs the other way, and it is harder to spot because everything about it looks like it works. `turnState.mayMoveAgain` was declared on the schema, projected by `turnStateAt`, recomputed by the movement hook after every move, cleared by the Riding Attack path and blanked at the turn boundary — three writers, all correct, all live. Nothing read it, ever. Riding's second segment was decided elsewhere the whole time (`module/rules/movement.mjs:63,94`). A reader with no writer silently does nothing; a writer with no reader silently costs a document write and reads as a feature. Neither the schema, the projection nor coverage can tell you which you have; only asking the question can. `turnState.servantsActed` was a third variant — a **read** of a field no schema declared and nothing wrote, so the Master sheet's multi-Servant-tax badge was permanently `0` and the one warning a Master gets about the Ch. 32 tax never appeared.
+
 **The antidote:** Coverage tools measure lines executed, not contracts satisfied. If a rules function reads a field, integration tests or smoke tests that exercise the real world are the only gate that can catch the fact that nothing is supplying it. Unit tests that inject the value by hand prove correctness *given the input*, not that the input ever arrives. *Domain layer tests should be dense with edge cases. Engine layer tests should be sparse, but focused on wiring—does this intent get created where it should?*
 
 ## Open questions
 
-- **Done, and exhaustive: nothing writes those fields.** Searching `module/`, `tools/`, `packs/` and
-  `test/` for `combatInBaseThisRound` and `consecutiveRounds` returns hits in exactly **two files** --
-  `module/rules/environment.mjs` (four occurrences, every one a read) and
-  `test/unit/environment.test.mjs` (six, all fixture construction). A search for any assignment to
-  either name anywhere in the repository returns **nothing**. Issue
-  [#19](https://github.com/zarex97/FGT_FVTT_v2/issues/19) stands on a complete symbol search, not a
-  sample.
+- **Closed, in two stages, and the second stage is the interesting one.**
+  [#19](https://github.com/zarex97/FGT_FVTT_v2/issues/19) stood on a complete symbol search: nothing
+  anywhere wrote `combatInBaseThisRound`, so Ch. 29's E1 regeneration fired unconditionally while the
+  test asserting the exclusion passed on a hand-built fixture. It has a writer now —
+  `module/engine/attack.mjs:2404` marks every unit that fought inside its own base, round-stamped
+  rather than tick-stamped because the check reads it at the END of the Round.
+
+  That was not the end of it. The field was then **revived** out of stale records for as long as it had
+  a writer, because `io.recordUse` re-stamped the Round while writing only `abilitiesUsed`, so a `true`
+  from Round 3 read as current in Round 5 the moment the Unit used any ability at all. E1 went from
+  never being withheld to being withheld from Units that had not fought. Both halves are fixed and both
+  were measured live ([Ch. 18](18-items.md)). **The lesson is that "the field now has a writer" is not
+  the same as "the rule now works"** — it is the point at which the field becomes capable of being
+  wrong, and the first time anything downstream of it can be tested at all.
 
 - **Why are only two golden tests documented?** The damage pipeline has worked examples in Ch. 22 and Ch. 22 that are validated by tests. Other chapters with worked examples are not similarly pinned. The scope of golden testing is underdefined.
 
