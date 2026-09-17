@@ -151,7 +151,7 @@ Worse than a display bug on its own: `cannotPay` in `rules/costs.mjs` was alread
 
 This is the fourth site in `domain/health.mjs`'s own header list and the one that got away — that
 module was written *because of* this bug class, and repaired `cannotPay` while missing the
-presenter beside it. Ch. 29 §29.2.
+presenter beside it. Ch. 34.
 
 ### B. `cannotDeactivate` was bypassed by every forced path — **fixed 2026-09-16**
 
@@ -166,7 +166,7 @@ a **compulsion** or a **`ForceMode`** rule, and *"cannot be deactivated"* is nei
 The asymmetry to preserve when touching this: `cannotDeactivate` says NEVER and `toggleLock` says
 HOW LONG YOU WAIT, so a forcible deactivation still beats the lockout and does not beat the flag.
 A Command Spell is unaffected — it spends itself through `suspendSkill`, a different write, which
-is what makes the sheets that sell a suspension for one Command Spell work at all. Ch. 15 §15.6.
+is what makes the sheets that sell a suspension for one Command Spell work at all. Ch. 17.
 
 ### C. The Mad Enhancement template over-granted clause 1 — **fixed 2026-09-16, closed in full**
 
@@ -302,7 +302,7 @@ Range.
 ### H. A bounded field's escape ladder was offered by nobody — **fixed 2026-09-16**
 
 **Reached: every field with `enemyExit: rollRequired`** — Asterios's Chaos Labyrinthos today, and
-the shape Ch. 43 §43.4 defines for all of them.
+the shape Ch. 28 defines for all of them.
 
 `rules/bounded-fields.mjs#escapeAttempt` implements the whole ladder — base chance, `+N` per
 failure, border contact, remaining MOV, relocation on failure, and the veteran clause that lets an
@@ -375,8 +375,7 @@ sheet restricts sight across a boundary.
 **Reached: any ability-borne `RevivalSource` with `charges` and `cascading`.** Only God Hand today,
 but the shape is general — the ledger is the same `timesUsed` counter every whole-match limit
 spends. `resolveRevival` returned the right `chargesUsed` throughout and `spendRevival` threw it
-away; the **effect**-borne branch beside it had always passed the count to `consumeUse`. Ch. 31
-§31.7a.
+away; the **effect**-borne branch beside it had always passed the count to `consumeUse`. Ch. 45a.
 
 ---
 
@@ -1413,7 +1412,7 @@ Two rulings from the game's author, both narrowing what the engine did. §46.14.
 as an open question and the second had not been noticed at all.
 
 **Only Servants watch.** Presence Concealment clause 6 says *"an enemy **Servant's** Range (or
-Detect)"*; Ch. 8 §8.7 quotes the source's general rule as *"an enemy **Unit's**"*, and
+Detect)"*; Ch. 05 quotes the source's general rule as *"an enemy **Unit's**"*, and
 `discoverAttempts` had followed the general one — it filtered on enemy-ness and distance and nothing
 else. So a **Master** standing beside a concealed Servant rolled as readily as the Servant hunting
 her. Measured live: two watchers at 35% each against a sheet that offers 35%, which is **58%** for
@@ -1515,7 +1514,7 @@ Recorded so they are not filed again.
   differs from this calculation choose the value of this table instead of what is on the character
   sheet."* Three of the eleven authored sheets disagree with the table; the table wins.
 - **The revival chain tries only the best available source.** If Undying fires, fails and is spent,
-  God Hand's eleven charges are not consulted. That matches §31.2's own pseudocode exactly. It is a
+  God Hand's eleven charges are not consulted. That matches Ch. 45's own pseudocode exactly. It is a
   reading of the sheet's priority list, not an oversight — but it is a *reading*, and it is the
   kind of thing to put to the game's author rather than to re-derive per Servant.
 - **Overkill is subtracted from every revival source.** Only God Hand's text carries the excess
@@ -1531,7 +1530,7 @@ per-Servant record of what each audit left untested.
 
 | Servant | Paper | Board | Findings | Filed |
 |---|---|---|---|---|
-| **Heracles** | ✅ | ✅ **complete** | 6 (1 his, 5 general) | Ch. 31 §31.7a; §46.4-A, B, G, J; §16.5 |
+| **Heracles** | ✅ | ✅ **complete** | 6 (1 his, 5 general) | Ch. 45a; §46.4-A, B, G, J; Ch. 32 |
 | **Asterios** | ✅ | ✅ **complete** | 5 (4 his, 1 general) | §46.8; §46.4-H, I, K |
 | **Karna** | ✅ | ✅ **complete** | 3 (1 his, 2 general) | §46.9; §46.4-L, M |
 | **Penthesilea** | ✅ | ✅ **complete** | 3 (2 hers, 1 general) | §46.10; closes §46.4-C; §46.4-N |
@@ -1637,7 +1636,7 @@ Closed by `turnState.inCombatPhase`, stamped by `engine/attack.mjs` on the same 
 
 **Not a defect, recorded because it surprises.** Heracles hit Karna through a stated *"all damage
 received reduced by 90%"* for 184. Stage 4 of the pipeline puts `atkUp +60` (Mad Enhancement) and
-`defUp −90` in the **same additive bucket** — −30% → ×0.70 — which is Ch. 13 §13.4's composition
+`defUp −90` in the **same additive bucket** — −30% → ×0.70 — which is Ch. 22's composition
 rule and the arithmetic `class-skills/mad-enhancement.yml` defends against the multiplicative
 alternative. Karna's armour erodes against a large enough attacker bonus rather than flatly
 dividing by ten.
@@ -1792,7 +1791,7 @@ bugs have never been reported.
 
 | Clause | Measured |
 |---|---|
-| **Item Construction** | `1d4` → **4**, granted as one `[Semiramis' Poison]` stack of quantity 4, and HGoB Construction **+6** — the *same* roll, plus Ch. 32 §32.2's adjacency bonus, because the war Region is Greece and Greece is next to the Middle East. Cooldown 6 ticks |
+| **Item Construction** | `1d4` → **4**, granted as one `[Semiramis' Poison]` stack of quantity 4, and HGoB Construction **+6** — the *same* roll, plus Ch. 45's adjacency bonus, because the war Region is Greece and Greece is next to the Middle East. Cooldown 6 ticks |
 | **Arrogant King's Poison** | Gate and spend both honoured: 4 → **1**, exactly 3. `Def Dwn` lands at **magnitude 30, npMagnitude 40, expiry 38** against a tick of 35 — precisely 1◈. Cooldown **11** ticks = `4◈-⅓◈` |
 | **Summoning: Bašmu**, clause 1 | The off-platform branch selected: cooldown **2◈**, not the on-platform 4◈. BA(MAG) 250, the sheet's **1.25×** at stage 3, and Poison inflicted (stage 11 → 12) |
 | **Hanging Gardens**, activation | Channel of 9 ticks, Master billed **only on success** (250 → 150), platform built at her panel at elevation 20 with Semiramis aboard and carrying `hgob-owner-buff` |
@@ -1852,7 +1851,7 @@ The list this section used to hold is empty. What closed it:
 |---|---|
 | **PC clause 2** | Her AGI **D** against Heracles's **A+** refuses nothing — the sheet's own escape. Against a defender at **E** the card offers *Do nothing, Evade* and neither **Block** nor **Counter**. The evade half reads `Presence Concealment C+ **+3**` on the roll card, from the rank table rather than the hardcoded 4 |
 | **PC clause 3** | Both halves, each with a control. Targeting: concealed, she lands a Normal Attack on a guarded enemy Master; the same attack unconcealed is refused — *"protected by an adjacent Servant and cannot be targeted"*. Movement: `canPassThrough` a protected panel is **true** concealed and **false** not |
-| **PC clause 6** | Two Discover attempts per move at **35%**, which is what Ch. 8 §8.7 says C+ gives. Second move: *"Discovered. Master of Berserker of Faction 2 found **Caster** (rolled 11 vs 35%)"* — concealment deactivated, and she is named by her **public** name, so a position reveal leaks no identity |
+| **PC clause 6** | Two Discover attempts per move at **35%**, which is what Ch. 05 says C+ gives. Second move: *"Discovered. Master of Berserker of Faction 2 found **Caster** (rolled 11 vs 35%)"* — concealment deactivated, and she is named by her **public** name, so a position reveal leaks no identity |
 | **PC clause 7** | *Arrogant King's Poison* (enemy-targeting, no damage) refused with reason `presenceConcealment`; *Double Summon* and *Item Construction* (self) allowed; *Summoning: Bašmu* stopped by a **different** gate, which is the *"does not include Attack Skills and Spells that deal damage"* carve-out working |
 | **Sikera Ušum's cooldown** | **0** for all nine ticks the Throne Room stood, then **19** (`6◈+⅓◈`) the instant it closed. `countFrom: deactivation`, exactly |
 | **HGoB as a second Home Base** | A four-case truth table: aboard at row 7 (outside her ground base) **true**; the same unit on the ground there **false**; on the ground inside her zone **true**; an **enemy** aboard **false** |
@@ -1863,7 +1862,7 @@ Pressing them cost three more engine defects: §46.4-AK, and — from Constructi
 fire — **§46.4-AL**, the one that mattered most.
 
 **That question is now answered.** Presence Concealment clause 6 says *"an enemy **Servant's**
-Range (or Detect)"* while Ch. 8 §8.7 quotes the source's general rule as *"an enemy **Unit's**"*,
+Range (or Detect)"* while Ch. 05 quotes the source's general rule as *"an enemy **Unit's**"*,
 and the engine had followed the general one — so a Master rolled too, 58% per move against a sheet
 offering 35%. The author has settled it in favour of the Skill's wording, and added a cap with it:
 **three attempts per faction per Turn** against one concealed Unit. §46.4-AN.
@@ -1954,7 +1953,7 @@ Master-cost line.
   Spell *"spends itself through `suspendSkill`, a different write"* and so beats the flag that
   refuses every click and every forced deactivation.
 
-*Found while pressing:* §16.5's **ZON penalty** never applied (fixed; verified live at −34,
+*Found while pressing:* Ch. 32's **ZON penalty** never applied (fixed; verified live at −34,
 228 → 194) and §46.4-J's **inverted sign** (fixed; five clauses). Both had been traced as correct.
 
 
@@ -1976,7 +1975,7 @@ offered at the Damage Step, its label and its **Confirm**, which every Process o
   as the sheet says. Def Up then reached **stage 4** on a real attack at `-40`, beside a second
   contributor noted **"Home Base"** at −10, additive to −50% → ×0.50.
 - **Avyssos of Labrys**: `critUp` 60, `nAtkUp` 40 and `bleedAtk` 10, all 1◈, cooldown **9** (3◈).
-  Crit chance measured at **110%** — §14.6's base 50 plus 60 — so Crit Up has a live reader.
+  Crit chance measured at **110%** — Ch. 13's base 50 plus 60 — so Crit Up has a live reader.
 - **`regionSizeOverride`**, the clause that *"had no reader at all until Asterios was finished"*:
   the field opened as `shape: {kind: square, size: 11}` where the base is 9, because `warRegion`
   reads `greece`. Anchored at `{6,6}` where he stood, expiry 18 = tick 6 + 4◈.
@@ -2130,7 +2129,7 @@ gave her the **Home Base** the previous board lacked.
   accepted the hit at `s23_acceptOrEscape`, and took 225. Then: **both his buffs stripped**; his
   **contract transferred** from the Berserker Master to Medea's; the old Master's Command Spells
   **3 → 0**; and three granted as `commandSpellsPerServant: { Heracles: 3 }` — namespaced to the
-  Servant she took, which is §16.9's rule and not the general pool. The reciprocal side held too:
+  Servant she took, which is Ch. 32's rule and not the general pool. The reciprocal side held too:
   Medea's Master now lists **both Medea and Heracles**, the Berserker Master none.
 - **Dragon Tooth Warriors**, the corpus's summon subsystem end to end: **5** conjured on the 1d6,
   a type rolled per warrior on the 1d4 — four Blade and one Daggers, with one die landing on
@@ -2341,7 +2340,7 @@ correct, and covered by a test that passes.
 Not gaps in the system — gaps in *this pass*. Anything here could be carrying a defect of exactly
 the kind §46.4 collects, and nothing in eight Servants' worth of pressing would have found it:
 
-- **Command Spells.** Fifteen of the seventeen, and the §12.11 interrupt protocol. **Suspend Skill
+- **Command Spells.** Fifteen of the seventeen, and the Ch. 21 interrupt protocol. **Suspend Skill
   has now been spent** through `spendCommandSpell` and is recorded under Heracles; it is the only
   one, and it was chosen because a standing claim in §46.4-B depended on it.
 - **The Counter rung.** Offered repeatedly and declined every single time.
@@ -2417,7 +2416,7 @@ every clause Semiramis owns is the only instance of its mechanism in the corpus,
 with one user is a mechanism whose bugs have never been reported.
 
 **Five survived a complete paper trace** that declared them correct: God Hand's ledger, the
-Labyrinth's escape ladder, Item Construction's valence, §16.5's ZON penalty, and Bravery's sign.
+Labyrinth's escape ladder, Item Construction's valence, Ch. 32's ZON penalty, and Bravery's sign.
 The last is the sharpest of them, because two unit tests covered the clause and both **asserted the
 defect from the source** — they restated the wrong number and agreed with it, so content and test
 were wrong together and neither could fail. Only asking the applier what percentage came out could
