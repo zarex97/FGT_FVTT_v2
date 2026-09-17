@@ -64,6 +64,17 @@ Items are matched by `contentId`, which is the stable name a pack document carri
 
 **Assuming a granted item is always on the template.** Semiramis crafts `semiramis-poison` with Item Construction — it is on no actor template and carries neither `copiedFrom` nor `grantedBy`. A naive sync that checked only provenance would sweep every Poison she had crafted. The fix is to check whether the `contentId` is in ANY pack before removing it (`module/migration/content-sync.mjs:121-127`, `module/migration/runner.mjs:177-188`).
 
+**"Any pack" implemented as "any `fgt` pack."** `loadKnownItemIds` is `reconcileItems`'s last line of
+defence: an item whose `contentId` is on no actor template and not in this set is **removed**. Its
+own parameter doc calls the set *"every contentId any pack defines"*, but the loop filtered on
+`pack.metadata.packageName !== "fgt"` — so a contentId defined only by a third-party module's Item
+pack satisfied neither the template check nor this one, and would have been silently deleted on every
+sync. No such module ships in this repo today, which is the only reason it went unnoticed; filed
+speculatively and fixed as [#25](https://github.com/zarex97/FGT_FVTT_v2/issues/25) by dropping the
+`packageName` filter, matching the doc's actual stated contract
+(`module/migration/runner.mjs:177-188`). **A parameter's doc comment is the contract; when the
+implementation is narrower, the doc was right and the code was the bug.**
+
 ## Open questions
 
 - **Still a policy question, though the first migration has now shipped.** `SCHEMA_VERSION` is `2`
@@ -77,12 +88,4 @@ Items are matched by `contentId`, which is the stable name a pack document carri
 
 - **How do worlds created before versioning existed know their version?** A world with no recorded version is assigned SCHEMA_VERSION on first load, assuming it is current. This works when a world is created before the versioning machinery ships, but the logic is fragile: if a world is very old and created before a migration that should have run, the assumption is wrong.
 
-- **Confirmed, and filed as [#25](https://github.com/zarex97/FGT_FVTT_v2/issues/25).** The set is
-  built only from packs whose `packageName` is `"fgt"` (`module/migration/runner.mjs:179-181`), and
-  it is the last line of defence before deletion: an item whose `contentId` is on no template and not
-  in the set is **removed** (`module/migration/content-sync.mjs:156-161`). Two earlier branches keep
-  the common cases safe -- an item with no `contentId` is a GM's own and is kept, and anything
-  carrying a provenance key was granted in play and is kept -- so the exposure is narrow: pack content
-  from a non-fgt package, which is exactly what a content module would ship. The set's own parameter
-  doc describes it as *"every contentId any pack knows"*, so the implementation is narrower than its
-  stated contract.
+- **Resolved: see Traps and anti-patterns, [#25](https://github.com/zarex97/FGT_FVTT_v2/issues/25).**

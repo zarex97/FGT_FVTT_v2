@@ -174,10 +174,12 @@ export async function syncContent({ dryRun = false } = {}) {
  *
  * @returns {Promise<Set<string>>}
  */
-async function loadKnownItemIds() {
+export async function loadKnownItemIds() {
   const out = new Set();
   for (const pack of game.packs) {
-    if (pack.metadata.packageName !== "fgt") continue;
+    // Every Item pack this world has loaded, not just fgt's own (#25): a
+    // third-party module's Item pack satisfied neither the template check nor
+    // this filter, so its items were silently deleted on every sync.
     if (pack.documentName !== "Item") continue;
     const index = await pack.getIndex({ fields: ["system.contentId"] });
     for (const entry of index) {
