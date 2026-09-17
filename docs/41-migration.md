@@ -66,14 +66,14 @@ Items are matched by `contentId`, which is the stable name a pack document carri
 
 ## Open questions
 
-- **Open, and it is a policy question rather than a fact.** `SCHEMA_VERSION` is `1` and `MIGRATIONS`
-  is empty (`module/migration/migrations.mjs:22`, `module/migration/migrations.mjs:45`), so the
-  question has never had to be answered in practice. The two kinds of change genuinely differ: a
-  schema change makes old documents unreadable, while a rule correction leaves them readable and
-  *wrong* -- as `CHANGELOG.md` records for the Range geometry and the Block rule. A schema migration
-  can fix the first automatically; nothing can fix the second without re-authoring content. Worth an
-  ADR before the first real migration, because the answer decides whether a rule-only release may
-  leave `SCHEMA_VERSION` untouched.
+- **Still a policy question, though the first migration has now shipped.** `SCHEMA_VERSION` is `2`
+  (`module/migration/migrations.mjs:22`), with one entry: a data-repair backfill for Masters stranded
+  at `baseAttack: {str: 0, mag: 0}` by the schema defect #20 fixed. That is neither a schema change
+  nor a rule correction — it is a third kind, repairing data a past defect corrupted — so it does not
+  settle the original question. A genuine rule correction still leaves old documents readable and
+  *wrong*, as `CHANGELOG.md` records for the Range geometry and the Block rule, and a schema migration
+  still cannot fix that without re-authoring content. Worth an ADR before the first rule-only release,
+  because the answer decides whether such a release may leave `SCHEMA_VERSION` untouched.
 
 - **How do worlds created before versioning existed know their version?** A world with no recorded version is assigned SCHEMA_VERSION on first load, assuming it is current. This works when a world is created before the versioning machinery ships, but the logic is fragile: if a world is very old and created before a migration that should have run, the assumption is wrong.
 
