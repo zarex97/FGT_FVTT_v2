@@ -207,6 +207,99 @@ function isDirectlyBelow(unit, platform) {
 }
 
 /**
+ * May a Unit be knocked off this Platform at all (ADR 0001)?
+ *
+ * Opt-in per Platform. The rulebook states the ladder only for Semiramis'
+ * Hanging Gardens, and "the edge" is not a coherent idea for the Storm Border,
+ * which is a pocket dimension with no ground footprint. A Platform that authors
+ * no `knockOff` block holds its edge: the knockback simply finds no landing
+ * there and the Unit stays put.
+ *
+ * @param {object} platform
+ * @returns {boolean}
+ */
+export function canFallFrom(platform) {
+  return Boolean(platform?.knockOff);
+}
+
+/**
+ * Is this panel part of the platform's own footprint?
+ *
+ * The panel-addressed half of {@link isDirectlyBelow}, which asks the same
+ * question about a Unit. Being ON a Platform and being directly UNDER one are
+ * the same arithmetic on the same grid; only the level differs.
+ *
+ * @param {{i: number, j: number}|null} panel
+ * @param {object} platform
+ * @returns {boolean}
+ */
+export function withinFootprint(panel, platform) {
+  if (!panel || !platform?.panel) return false;
+  const { w = 1, h = 1 } = platform.footprint ?? {};
+  const di = panel.i - platform.panel.i;
+  const dj = panel.j - platform.panel.j;
+  return di >= 0 && di < h && dj >= 0 && dj < w;
+}
+
+/**
+ * The nearest unoccupied panel of the Platform, never the one it was on.
+ *
+ * > *"it has a choice of Moving to the nearest unoccupied HGoB panel **other
+ * > than the panel it was previously occupying**"*
+ *
+ * `null` when the Platform is full, which is not a refusal: the choice then
+ * collapses to the damage-free landing, because passing the check earned the
+ * Unit BOTH not being hurt and not being where it was.
+ *
+ * @param {object} unit
+ * @param {object} platform
+ * @param {object} board
+ * @returns {{i: number, j: number}|null}
+ */
+export function nearestFreePlatformPanel(unit, platform, board) {
+  const { w = 1, h = 1 } = platform?.footprint ?? {};
+  const taken = (board?.units ?? [])
+    .filter((u) => u.id !== platform?.id && (u.level ?? 0) === (platform?.level ?? 0))
+    .flatMap((u) => u.panels ?? (u.panel ? [u.panel] : []));
+
+  let best = null;
+  let bestDistance = Infinity;
+  for (let di = 0; di < h; di += 1) {
+    for (let dj = 0; dj < w; dj += 1) {
+      const panel = { i: platform.panel.i + di, j: platform.panel.j + dj };
+      if (unit?.panel && panel.i === unit.panel.i && panel.j === unit.panel.j) continue;
+      if (taken.some((p) => p.i === panel.i && p.j === panel.j)) continue;
+      const distance = unit?.panel ? chebyshev(unit.panel, panel) : 0;
+      if (distance < bestDistance) { best = panel; bestDistance = distance; }
+    }
+  }
+  return best;
+}
+
+/**
+ * The Servant that may catch this Master, if one is standing there.
+ *
+ * > *"If a Master who is directly next to **its Servant** fails its Agility
+ * > Check, its Servant can perform an Agility Check too; if successful, its
+ * > Master is not knocked off."*
+ *
+ * Its OWN contracted Servant, and **directly next to** is one panel -- which is
+ * deliberately not the two-panel reach the Master carry uses when boarding
+ * (#24). Two different clauses, two different distances.
+ *
+ * @param {object} master
+ * @param {object} board
+ * @returns {object|null}
+ */
+export function rescuerFor(master, board) {
+  if (master?.kind !== "master" || !master.panel) return null;
+  return (board?.units ?? []).find(
+    (u) => u.kind === "servant" && u.masterId === master.id
+      && u.panel && chebyshev(u.panel, master.panel) <= 1,
+  ) ?? null;
+}
+
+/**
  * The platform a grounded unit may board right now, if any (#24).
  *
  * "Other allied Units can board and unboard the Golden Hind by Moving onto it
@@ -596,22 +689,44 @@ function rankRelief(raw) {
  * @param {boolean} [outcome.servantRescued]
  * @returns {object[]} descriptors
  */
-export function fallOff(unit, platform, { passedAgility, servantRescued = false }) {
-  if (passedAgility || servantRescued) return [];
+export function fallOff(unit, platform, {
+  passedAgility, servantRescued = false, choice = "land", landingPanel = null,
+} = {}) {
+  // Caught by its own Servant: *"its Master is not knocked off"*. Not moved and
+  // not hurt -- and note the wording differs from the passed-check case, which
+  // explicitly puts the Unit somewhere else. The difference is read as real.
+  if (servantRescued) return [];
 
-  const below = { ...unit.panel };
-  const out = [
-    { kind: "move", unitId: unit.id, to: below, toLevel: 0, forced: true },
-    { kind: "damage", unitId: unit.id, formula: "10x2d6", component: "str", fixed: true,
-      source: `Fell from ${platform.id}` },
+  // *"it has to perform an Overpower roll IF IT LANDS ON THE GAME BOARD"* --
+  // conditioned on landing, not on failing, so a Master who passed its check
+  // and chose to drop still rolls one.
+  const landing = () => [
+    { kind: "move", unitId: unit.id, to: { ...unit.panel }, toLevel: 0, forced: true },
+    ...(unit.kind === "master" ? [{ kind: "overpower", unitId: unit.id, reason: "fell" }] : []),
   ];
 
-  // "If the Unit knocked off was a Master, it has to perform an Overpower roll
-  // if it lands on the Game Board -- EVEN IF it had already performed one from
-  // the initial Attack."
-  if (unit.kind === "master") out.push({ kind: "overpower", unitId: unit.id, reason: "fell" });
+  if (passedAgility) {
+    // The choice a passed check earns: somewhere else aboard, or the ground
+    // unhurt. With nowhere aboard free, `landingPanel` is null and the choice
+    // collapses to the landing -- staying put is not on offer, because the
+    // clause excludes the panel it was occupying.
+    if (choice === "stay" && landingPanel) {
+      return [{ kind: "move", unitId: unit.id, to: landingPanel, forced: true }];
+    }
+    return landing();
+  }
 
-  return out;
+  const [move, ...rest] = landing();
+  return [
+    move,
+    {
+      kind: "damage", unitId: unit.id,
+      formula: platform?.knockOff?.damage ?? "10x2d6",
+      component: platform?.knockOff?.component ?? "str",
+      fixed: true, source: `Fell from ${platform.id}`,
+    },
+    ...rest,
+  ];
 }
 
 /**

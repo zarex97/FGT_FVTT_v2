@@ -36,7 +36,19 @@ Bringing the Master along is gated on distance: *"A boarding Servant may bring i
 
 A unit brought aboard stays there when the platform moves (`module/rules/platforms.mjs:100-108`): passengers move **forced**, which keeps boarding off their own movement budget and away from movement-triggered effects. Relative position is preserved so formation survives.
 
-Being knocked off the edge (`module/rules/platforms.mjs:559-574`) runs three checks in order: the unit's Agility Check, then a Servant's rescue check for an adjacent Master, then the fall itself. A successful rescue or Agility Check prevents the fall; both fail and the unit takes `10×2d6` damage and moves one panel down. Masters who fall and land perform an Overpower roll — the only outcome that falls twice (`module/rules/platforms.mjs:559-575`).
+**Knocked Off** is opt-in per Platform (ADR 0001): a Platform authors a `knockOff` block carrying its own numbers, and one that says nothing holds its edge — the knockback simply finds no landing there. The Hanging Gardens is the only Platform in the reference set whose sheet states the ladder.
+
+The trigger is a **knockback whose computed landing falls outside the Platform's footprint**, not a Unit merely standing on an edge panel: on a 9×9 a Unit in the middle cannot be pushed off in one step anyway, and measuring the landing handles a multi-panel shove and any Platform that is not 9×9.
+
+The ladder, in order:
+
+1. **The Unit's Agility Check.** On a **success** it chooses — move to the nearest unoccupied panel of the Platform **other than the one it was occupying**, or land on the Board panel directly below **taking no damage**. With no free panel aboard the choice collapses to the damage-free landing. On a **failure** it lands below and takes the Platform's authored damage.
+2. **The Servant's rescue**, only for a Master that failed and stands **directly next to (1 panel)** its own contracted Servant. That Servant makes its own Agility Check; on success the Master is **not** knocked off and **stays exactly where it stood** — unlike the passed-check case, which explicitly puts the Unit somewhere else.
+3. **The Master's Overpower roll**, whenever it *lands on the Board* — including when it passed its check and chose to land, and including when it has already rolled one from the initial attack.
+
+Several Units knocked off by one move resolve **serially**, because "the nearest unoccupied panel" depends on where the previously-resolved Unit chose to go.
+
+Leaving a Platform is a Jump, a Knocked Off, or an unboarding where the Platform allows it — never an ordinary walk. `canStopOn` refuses a step that leaves the footprint of the Platform a Unit is standing on.
 
 ### Cross-level targeting
 
@@ -129,6 +141,20 @@ Servant's pre-board panel to the Master's, exactly as the comment always said
 (`module/rules/platforms.mjs#mayBringMaster`). **A comment describing a check is not the check —
 grep for the literal (a distance constant, a named function call) before trusting that a rule is
 enforced.**
+
+**A Platform with edges that nothing measured.** Neither the movement validator nor the knockback
+resolver knew a Platform had a boundary: `validatePath` had no footprint awareness at all, and
+`knockbackPanel` looked for a free panel by scene bounds and same-level occupancy. So a passenger
+could **walk** off the edge, or be **shoved** off it, and in both cases ended up at Platform
+elevation standing on nothing while the match carried on. #29 was filed as "a facility with no
+caller"; the facility was the smaller half.
+
+**A descriptor field that no intent could carry.** The fall descriptor has always said
+`toLevel: 0` and the descriptor-to-intent step dropped it, because `I.move` takes a path and a
+forced flag and nothing else. A Unit that "fell" therefore moved horizontally and stayed at Platform
+elevation. Fixed with `dropToGround`, a per-token level change beside the whole-platform
+`scatterToGround`. **A descriptor is not a contract — check the step that turns it into an intent
+reads every field you wrote.**
 
 ## Open questions
 

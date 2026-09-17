@@ -234,6 +234,34 @@ export async function scatterToGround(platform, scene = canvas.scene) {
 }
 
 /**
+ * Bring ONE unit down to the ground level (#29).
+ *
+ * `scatterToGround` is the whole-platform version, for destruction. A Knocked
+ * Off Unit leaves alone and the Platform stays where it is, so the level change
+ * is per-token.
+ *
+ * Needed because a `move` intent carries no level -- the fall descriptor has
+ * always said `toLevel: 0` and the descriptor-to-intent step dropped it, so a
+ * Unit that "fell" moved horizontally and stayed at Platform elevation.
+ *
+ * @param {string} unitId
+ * @param {object} [scene]
+ * @returns {Promise<boolean>} whether the token changed level
+ */
+export async function dropToGround(unitId, scene = canvas.scene) {
+  const ground = groundLevel(scene);
+  if (!ground) return false;
+
+  const tokens = (scene?.tokens?.contents ?? []).filter(
+    (t) => t.actorId === unitId && t.level !== ground.id,
+  );
+  if (tokens.length === 0) return false;
+
+  await assignLevel(tokens.map((t) => t.id), ground, scene);
+  return true;
+}
+
+/**
  * Delete a platform's Scene Level (Ch. 27 step 8).
  *
  * **Refuses while anything is still standing on it.** `TokenDocument#level` is

@@ -1849,6 +1849,9 @@ function actorSystem(doc) {
     // it will not let off (`#canUnboard`), and effects on its OWNER that
     // switch it off (`#deactivatedBy`).
     boarding: doc.boarding ?? null,
+    // ADR 0001 / #29: whether a Unit can be knocked off this Platform's edge,
+    // and what the fall costs. Absent means the edge holds.
+    knockOff: doc.knockOff ?? null,
     lockAboard: doc.lockAboard ?? [],
     deactivateOn: doc.deactivateOn ?? [],
     // Pale Rider and the Kagome Spirits: "Base Health: -", "cannot be

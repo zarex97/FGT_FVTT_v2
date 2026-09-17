@@ -478,6 +478,10 @@ export function snapshotUnit(actor, {
     // board, however carefully it is authored -- which is how the Hanging
     // Gardens' own `upkeep` sat inert until it was added two lines above.
     boarding: sys.boarding ?? null,
+    // ADR 0001 / #29. Without this the rules layer never sees the opt-in and
+    // every Platform holds its edge -- the exact "authored and unread" failure
+    // this projection keeps producing.
+    knockOff: sys.knockOff ?? null,
     lockAboard: sys.lockAboard ?? [],
     deactivateOn: sys.deactivateOn ?? [],
     replacesRiderAction: sys.replacesRiderAction ?? null,

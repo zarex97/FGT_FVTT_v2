@@ -321,6 +321,40 @@ describe("occupantsAt", () => {
   });
 });
 
+describe("a Platform's edge holds (#29)", () => {
+  // `platform` anchors at (5,5) with a 3x3 footprint on level 1.
+  const hgob = {
+    id: "hgob", kind: "platform", level: 1, panel: { i: 5, j: 5 },
+    footprint: { w: 3, h: 3 }, knockOff: { damage: "10x2d6", component: "str" },
+  };
+  const aboard = (panel) => ({
+    id: "r", kind: "servant", factionId: "a", level: 1, panel, mov: 5, turnState: {},
+  });
+  const b = (units) => ({ units, bounds: { rows: 13, cols: 13 }, alliances: {} });
+
+  it("refuses a step off the footprint by ordinary movement", () => {
+    // Nothing constrained a Unit at a Platform's level to that Platform, so a
+    // passenger could simply walk off the edge and stand at Platform elevation
+    // on nothing at all. Leaving is a Jump (#31) or a Knocked Off, never a walk.
+    const unit = aboard({ i: 5, j: 7 });
+    expect(canStopOn({ i: 5, j: 8 }, unit, b([hgob, unit]))).toBe(false);
+  });
+
+  it("allows a step that stays on the footprint", () => {
+    const unit = aboard({ i: 5, j: 5 });
+    expect(canStopOn({ i: 6, j: 6 }, unit, b([hgob, unit]))).toBe(true);
+  });
+
+  it("does not constrain a Unit on the ground", () => {
+    const walker = { ...aboard({ i: 0, j: 0 }), level: 0 };
+    expect(canStopOn({ i: 0, j: 1 }, walker, b([hgob, walker]))).toBe(true);
+  });
+
+  it("does not constrain the Platform itself, which is not standing on anything", () => {
+    expect(canStopOn({ i: 9, j: 9 }, hgob, b([hgob]))).toBe(true);
+  });
+});
+
 describe("knockbackPanel — Akhilleus Kosmos's directional push", () => {
   const at2 = (i, j) => ({ i, j });
   const mover = at2(6, 6);

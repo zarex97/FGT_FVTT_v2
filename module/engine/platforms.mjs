@@ -7,12 +7,13 @@
 
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
+  canFallFrom, nearestFreePlatformPanel, rescuerFor,
 } from "../rules/platforms.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { currentBoard } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
-import { createLevel, moveToLevel, teardown } from "./scene-levels.mjs";
+import { createLevel, moveToLevel, teardown, dropToGround } from "./scene-levels.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /**
@@ -98,14 +99,117 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
  * @param {boolean} [args.servantRescued]
  * @returns {Promise<void>}
  */
-export async function knockOff({ unitId, platformId, passedAgility, servantRescued = false }) {
+export async function knockOff({ unitId, platformId, passedAgility = null, servantRescued = null }) {
   const board = currentBoard();
   const unit = board.units.find((u) => u.id === unitId);
   const platform = board.units.find((u) => u.id === platformId);
-  if (!unit || !platform) return;
+  if (!unit || !platform) return { ok: false, reason: "unknownUnitOrPlatform" };
+  if (!canFallFrom(platform)) return { ok: false, reason: "edgeHolds" };
 
-  const descriptors = fallOff(unit, platform, { passedAgility, servantRescued });
-  await applyWorldIntents(await toIntents(descriptors), "platform:fall");
+  // The Unit's own Agility Check, unless the caller already rolled one.
+  const passed = passedAgility ?? await agilityCheckPasses(unit);
+
+  // *"If a Master who is directly next to its Servant fails its Agility Check,
+  // its Servant can perform an Agility Check too."* Its OWN Servant, one panel
+  // away, and only ever for a Master.
+  let rescued = servantRescued ?? false;
+  if (!passed && servantRescued === null) {
+    const rescuer = rescuerFor(unit, board);
+    if (rescuer) rescued = await agilityCheckPasses(rescuer);
+  }
+
+  // The choice a passed check earns. Asked of the controlling player, because
+  // dropping to the Board voluntarily may be the better move -- a garden full
+  // of enemies is not a safe place to stay.
+  let choice = "land";
+  let landingPanel = null;
+  if (passed && !rescued) {
+    landingPanel = nearestFreePlatformPanel(unit, platform, board);
+    choice = landingPanel ? await askWhereToGo(unit, platform) : "land";
+  }
+
+  const descriptors = fallOff(unit, platform, {
+    passedAgility: passed, servantRescued: rescued, choice, landingPanel,
+  });
+  await applyWorldIntents(
+    [
+      ...(await toIntents(descriptors)),
+      I.log({
+        kind: "platformStep", step: "knockedOff", unitId, platformId,
+        passed, rescued, choice: passed && !rescued ? choice : null,
+      }),
+    ],
+    "platform:fall",
+  );
+
+  // The LEVEL change, which no intent can carry: `I.move` takes a path and a
+  // forced flag and nothing else, so the `toLevel: 0` the fall descriptor has
+  // always stated was dropped on the way to an intent. Without this a Unit
+  // that fell moved horizontally and stayed at Platform elevation.
+  const landed = descriptors.some((d) => d.kind === "move" && d.toLevel === 0);
+  if (landed) await dropToGround(unitId);
+
+  return { ok: true, passed, rescued, choice, landed };
+}
+
+/**
+ * One Agility Check, rolled the way every other check in the system is.
+ * @param {object} unit a unit projection
+ * @returns {Promise<boolean>}
+ */
+async function agilityCheckPasses(unit) {
+  const { checkPlan, resolveCheck } = await import("../rules/checks.mjs");
+  // The same shape `engine/attack.mjs` uses for Penthesilea's shove: an AGILITY
+  // Check has its own name in the plan vocabulary, so an Evade-specific bonus
+  // cannot help somebody keep their footing.
+  const plan = checkPlan(unit, "agility");
+  const roll = (await new Roll("1d20").evaluate()).total;
+  return resolveCheck({
+    roll,
+    // A NUMBER on the board: the projection flattens the pools it carries, and
+    // reading `.value` off one gives `undefined` (Ch. 09).
+    target: typeof unit.agility === "number" ? unit.agility : (unit.agility?.value ?? 0),
+    table: plan.forceTable === "unfavourable" ? "unfavourable" : "favourable",
+    modifiers: plan.modifiers,
+  }).success;
+}
+
+/**
+ * *"a choice of Moving to the nearest unoccupied panel other than the one it
+ * was previously occupying, or landing on the Game Board panel directly under
+ * it."*
+ *
+ * @param {object} unit
+ * @param {object} platform
+ * @returns {Promise<"stay"|"land">}
+ */
+async function askWhereToGo(unit, platform) {
+  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+  const picked = await ChoiceDialog.pick({
+    title: game.i18n.format("FGT.Platform.KnockedOffTitle", {
+      name: game.actors.get(unit.id)?.name ?? unit.id,
+    }),
+    hint: game.i18n.localize("FGT.Platform.KnockedOffHint"),
+    count: 1,
+    min: 0,
+    options: [
+      {
+        id: "stay",
+        name: game.i18n.localize("FGT.Platform.KnockedOffStay"),
+        detail: game.i18n.format("FGT.Platform.KnockedOffStayHint", {
+          name: game.actors.get(platform.id)?.name ?? platform.id,
+        }),
+      },
+      {
+        id: "land",
+        name: game.i18n.localize("FGT.Platform.KnockedOffLand"),
+        detail: game.i18n.localize("FGT.Platform.KnockedOffLandHint"),
+      },
+    ],
+  });
+  // Declining the dialog keeps the Unit aboard, which is the safe direction:
+  // a player who closed a window has not chosen to jump off a flying garden.
+  return (picked ?? [])[0] === "land" ? "land" : "stay";
 }
 
 /**
