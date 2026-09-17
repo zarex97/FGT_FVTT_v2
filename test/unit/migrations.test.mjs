@@ -85,6 +85,27 @@ describe("applyMigration", () => {
     expect(applyMigration(entry, "item", source, {})).toBe(source);
   });
 
+  it("backfills a stranded Master's baseAttack (#20)", () => {
+    const entry = MIGRATIONS.find((m) => m.to === 2);
+    const source = { type: "master", system: { baseAttack: { str: 0, mag: 0 } } };
+    const out = applyMigration(entry, "actor", source, {});
+    expect(out.system.baseAttack).toEqual({ str: 50, mag: 100 });
+  });
+
+  it("leaves a Master with a non-zero baseAttack untouched", () => {
+    const entry = MIGRATIONS.find((m) => m.to === 2);
+    const source = { type: "master", system: { baseAttack: { str: 50, mag: 175 } } };
+    expect(applyMigration(entry, "actor", source, {})).toBe(source);
+  });
+
+  it("leaves a Structure's deliberate {0, 0} baseAttack alone", () => {
+    // `packs/_source/structures/*.yml` author this on purpose -- Bloodmark,
+    // Piedra del Sol, the Vorpal Blade cache. Only `type: "master"` is stranded.
+    const entry = MIGRATIONS.find((m) => m.to === 2);
+    const source = { type: "structure", system: { baseAttack: { str: 0, mag: 0 } } };
+    expect(applyMigration(entry, "actor", source, {})).toBe(source);
+  });
+
   it("is idempotent for every shipped migration", () => {
     // Applied twice must equal applied once. A runner that fails partway
     // through will be re-run against data some of which is already migrated.

@@ -19,7 +19,7 @@
  * Bump this beside each new entry in `MIGRATIONS`, and never separately: the
  * two are one fact written twice, and a test holds them together.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * The ordered migrations, each declaring handlers per document type.
@@ -42,7 +42,37 @@ export const SCHEMA_VERSION = 1;
  *
  * @type {ReadonlyArray<object>}
  */
-export const MIGRATIONS = Object.freeze([]);
+export const MIGRATIONS = Object.freeze([
+  {
+    to: 2,
+    description: "Backfill baseAttack on Masters stranded at {str: 0, mag: 0} from before the field was declared (#20)",
+    /**
+     * `baseAttack` was written to Masters by `engine/summon.mjs` for as long
+     * as that writer has existed, but the field was not declared on the
+     * schema until recently -- Foundry drops a write to an undeclared path
+     * without complaint, so a Master summoned before the fix reads the
+     * schema's own `initial: 0` on both components forever, with nothing to
+     * distinguish it from an authored zero.
+     *
+     * `str` is safe to restore exactly: both rulesets author the same flat 50
+     * and nothing ever rolls it (`packs/_source/masters/master-advanced.yml`,
+     * `master-normal.yml`). `mag` is rolled once at summon and that roll is
+     * gone, so this restores the PRE-roll pack default (100) rather than the
+     * Master's true historical value -- the best available outcome once the
+     * write that should have carried it silently dropped.
+     *
+     * Gated on `type === "master"`: `{str: 0, mag: 0}` is also the DELIBERATE
+     * value several Structures author (Bloodmark, Piedra del Sol, the Vorpal
+     * Blade cache) and must not be touched.
+     */
+    actor(source) {
+      if (source.type !== "master") return source;
+      const ba = source.system?.baseAttack;
+      if (!ba || ba.str !== 0 || ba.mag !== 0) return source;
+      return { ...source, system: { ...source.system, baseAttack: { str: 50, mag: 100 } } };
+    },
+  },
+]);
 
 /**
  * The migrations a world at this version still needs, in order.
