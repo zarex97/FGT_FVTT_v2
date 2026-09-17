@@ -25,7 +25,7 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import * as fields from "./fields.mjs";
 import { expireTerrain } from "./terrain.mjs";
 import { recordTurn, historyOf, setHistory } from "./state-history.mjs";
-import { boundaryKey, alreadyClaimed } from "../rules/schedule-claim.mjs";
+import { boundaryKey, alreadyClaimed, tokenField } from "../rules/schedule-claim.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -399,11 +399,17 @@ async function claimBoundary(combat, kind) {
   // the loser of a contested boundary once the winner's write has landed.
   if (alreadyClaimed(claim, kind, key)) return false;
 
+  // A token PER SCALE. A round change is always also a turn change, so both
+  // hooks run `claimBoundary` at the same instant -- and with one shared field
+  // the turn's token landed last, the round's comparison found a stranger's,
+  // and the round sequence concluded it had lost and never ran at all
+  // (Ch. 46 §46.4-AM).
+  const field = tokenField(kind);
   const token = foundry.utils.randomID();
-  await combat.update({ "system.scheduleClaim": { ...claim, [kind]: key, token } });
+  await combat.update({ "system.scheduleClaim": { ...claim, [kind]: key, [field]: token } });
   await new Promise((resolve) => { setTimeout(resolve, SETTLE_MS); });
 
-  return (combat.system?.scheduleClaim?.token ?? null) === token;
+  return (combat.system?.scheduleClaim?.[field] ?? null) === token;
 }
 
 /**

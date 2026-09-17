@@ -54,11 +54,11 @@ describe("boundaryKey", () => {
 
 describe("alreadyClaimed", () => {
   it("refuses the same boundary twice — the second tab", () => {
-    expect(alreadyClaimed({ turn: "r3t1", token: "abc" }, "turn", "r3t1")).toBe(true);
+    expect(alreadyClaimed({ turn: "r3t1", turnToken: "abc" }, "turn", "r3t1")).toBe(true);
   });
 
   it("lets the NEXT boundary through even though the last one was claimed", () => {
-    expect(alreadyClaimed({ turn: "r3t1", token: "abc" }, "turn", "r3t2")).toBe(false);
+    expect(alreadyClaimed({ turn: "r3t1", turnToken: "abc" }, "turn", "r3t2")).toBe(false);
   });
 
   it("is not fooled by a claim with no token", () => {
@@ -74,12 +74,49 @@ describe("alreadyClaimed", () => {
     // The old shape stored `{turn: 0, token, round: 8}`. A number is never a
     // key, so a frozen world thaws on the next boundary rather than needing a
     // migration.
-    expect(alreadyClaimed({ turn: 0, token: "abc", round: 8 }, "turn", "r9t0")).toBe(false);
+    expect(alreadyClaimed({ turn: 0, turnToken: "abc", round: 8 }, "turn", "r9t0")).toBe(false);
   });
 
   it("keeps the two scales independent", () => {
-    const claim = { turn: "r3t1", round: "r3", token: "abc" };
+    const claim = { turn: "r3t1", turnToken: "abc", round: "r3", roundToken: "def" };
     expect(alreadyClaimed(claim, "round", "r4")).toBe(false);
     expect(alreadyClaimed(claim, "round", "r3")).toBe(true);
   });
 });
+
+describe("the two scales do not share a token", () => {
+  // A round change is ALWAYS also a turn change, so `onTurnChange` and
+  // `onRoundChange` both claim at the same instant. §46.4-D gave them one
+  // shared `token` field: the turn claim's token landed last, the round claim
+  // compared and found a foreign token, concluded it had lost, and returned
+  // false -- so the whole `roundEnd` sequence never ran. Measured live:
+  //
+  //   [FGTDBG-ROUND] ENTER round= 42 sched= true started= true dir= 1
+  //   [FGTDBG-ROUND] claim won= false
+  //
+  // with Poison (whose native trigger IS roundEnd) dealing 0 and HGoB
+  // Construction gaining 0 across every round boundary (Ch. 46 §46.4-AM).
+  it("reads the token belonging to its own scale", () => {
+    const claim = { turn: "r3t1", turnToken: "aaa", round: "r3", roundToken: "bbb" };
+    expect(alreadyClaimed(claim, "round", "r3")).toBe(true);
+    expect(alreadyClaimed(claim, "turn", "r3t1")).toBe(true);
+  });
+
+  it("is not satisfied by the OTHER scale's token", () => {
+    // The round has been claimed; the turn has not. A shared field made this
+    // indistinguishable.
+    const claim = { round: "r3", roundToken: "bbb" };
+    expect(alreadyClaimed(claim, "turn", "r3t1")).toBe(false);
+  });
+
+  it("still ignores a claim whose own token is missing", () => {
+    expect(alreadyClaimed({ round: "r3" }, "round", "r3")).toBe(false);
+  });
+
+  it("ignores §46.4-D's single shared `token` field", () => {
+    // An existing world holds `{turn, round, token}`. Neither scale has its own
+    // token, so both proceed once and write the new shape.
+    expect(alreadyClaimed({ turn: "r3t1", round: "r3", token: "old" }, "round", "r3")).toBe(false);
+  });
+});
+

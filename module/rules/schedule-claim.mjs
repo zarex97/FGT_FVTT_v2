@@ -49,11 +49,31 @@ export function boundaryKey(kind, combat) {
  * §46.4-AB thaws without a migration: the old shape stored a NUMBER, and a
  * number is never equal to a key, so the next boundary simply proceeds.
  *
+ * **Each scale reads its OWN token.** §46.4-D gave the two a single shared
+ * `token` field, and a round change is *always* also a turn change -- so both
+ * hooks claimed at the same instant, the turn's token landed last, and the
+ * round's claim compared, found a foreign token, and concluded it had lost.
+ * The entire `roundEnd` sequence therefore never ran: Poison, Burn, Freeze and
+ * Scald all tick on `roundEnd` as their NATIVE trigger, and so does HGoB
+ * Construction's per-Round gain (Ch. 46 §46.4-AM). A world holding the old
+ * single-`token` shape has no per-scale token at all, so both scales proceed
+ * once and write the new one.
+ *
  * @param {object|null} claim `combat.system.scheduleClaim`
  * @param {"turn"|"round"} kind
  * @param {string} key from {@link boundaryKey}
  * @returns {boolean}
  */
 export function alreadyClaimed(claim, kind, key) {
-  return Boolean(claim?.token) && claim?.[kind] === key;
+  return Boolean(claim?.[tokenField(kind)]) && claim?.[kind] === key;
+}
+
+/**
+ * The field a scale's own election token lives in.
+ *
+ * @param {"turn"|"round"} kind
+ * @returns {string}
+ */
+export function tokenField(kind) {
+  return `${kind}Token`;
 }

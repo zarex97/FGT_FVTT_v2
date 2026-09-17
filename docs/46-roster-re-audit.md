@@ -1355,6 +1355,58 @@ override — was refusing her. Asking `Object.getOwnPropertyDescriptor(Token.pro
 for the base verdict beside the override's is what separated them, and is the probe to reach for
 whenever an override is suspected.
 
+### AM. The whole `roundEnd` scheduler was dead — **fixed 2026-09-16**
+
+**Mine, from §46.4-D, and the most consequential defect in this audit.**
+
+§46.4-D gave each scheduler boundary a claim so two tabs on one Gamemaster could not both run a
+sequence, and §46.4-AB re-keyed it on the boundary's own identity. Both were right. What neither
+noticed is that the claim stored **one shared `token`** for two scales — and **a round change is
+always also a turn change**, so `onTurnChange` and `onRoundChange` both run `claimBoundary` at the
+same instant.
+
+`claimBoundary` writes its token, settles, and reads back to see whether its own survived. The
+turn's write lands last. The round's read therefore finds a stranger's token, concludes it lost the
+election, and returns false — **so the round sequence never ran at all.**
+
+Measured with a probe at the top of the hook:
+
+```
+[FGTDBG-ROUND] ENTER round= 42 sched= true started= true dir= 1 update= {"round":43,"turn":0}
+[FGTDBG-ROUND] claim won= false
+```
+
+Everything downstream of `scheduler.endRound` was silently inert. That is not a corner: **Poison,
+Burn, Freeze and Scald all name `roundEnd` as their own native trigger** (`PERIODICS`), so every
+periodic in the game except the three `turnEnd` ones stopped dealing damage. So did HGoB
+Construction's per-Round gain, the Round-scaled field upkeep, and every `OnEvent roundEnd` clause in
+the corpus.
+
+**How it hid.** The turn scale kept working perfectly, and it is the one that fires three times as
+often — drains, cooldowns, expiries, turn budget. A board looks alive. And the audit's own Poison
+work had been measuring Sikera Ušum's *widened* Turn-end ticks (§46.4-AJ), which come from the
+`turnEnd` call and were never affected; the native Round tick was never separately asked until
+Construction source 3 refused to fire.
+
+**The fix** is a token per scale — `turnToken` and `roundToken` — so the two elections cannot
+collide. A world holding the old single-`token` shape has neither, so both scales proceed once and
+write the new one; no migration.
+
+**Verified live** at a round boundary, with a control on either side of it:
+
+| boundary | Poison (stage 1) | HGoB Construction |
+|---|---|---|
+| a plain Turn | 0 | 0 |
+| a plain Turn | 0 | 0 |
+| the Turn that **rolls the Round** | **20** | **+7** |
+
+20 is §A.12's stage-1 figure and 7 is source 3's `1d4+2` plus Greece's adjacency bonus. Both were
+**0** at every boundary before the fix.
+
+*The lesson is the one §46.4-AB already stated and this is the second half of: an election needs an
+identity per thing being elected. Two scales sharing one token is two elections sharing one ballot
+box.*
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -1738,41 +1790,36 @@ the Turn, and two `unitSnapshot` subjects with no `fields` and no `suppressions`
 "no" instead of refusing, which is why none of them ever surfaced as an error. §46.4-V, from
 Achilles, is the same shape a chapter earlier.
 
-### 46.14.3 What is still not pressed
+### 46.14.3 Everything pressed
 
-Short, and specific:
+The list this section used to hold is empty. What closed it:
 
-- ~~**Sikera Ušum rule e**~~ — **pressed 2026-09-16.** It had no content to meet it, so two effects
-  were authored against the game author's own definition of *weak to Poison*: **a Unit with an
-  effect or passive that either takes extra damage from Poison, or has an increased chance of being
-  inflicted with Poison.** `engine/scheduler.mjs#isWeakTo` already tested exactly those two
-  branches; only the content was missing.
+| Clause | Measured |
+|---|---|
+| **PC clause 2** | Her AGI **D** against Heracles's **A+** refuses nothing — the sheet's own escape. Against a defender at **E** the card offers *Do nothing, Evade* and neither **Block** nor **Counter**. The evade half reads `Presence Concealment C+ **+3**` on the roll card, from the rank table rather than the hardcoded 4 |
+| **PC clause 3** | Both halves, each with a control. Targeting: concealed, she lands a Normal Attack on a guarded enemy Master; the same attack unconcealed is refused — *"protected by an adjacent Servant and cannot be targeted"*. Movement: `canPassThrough` a protected panel is **true** concealed and **false** not |
+| **PC clause 6** | Two Discover attempts per move at **35%**, which is what Ch. 8 §8.7 says C+ gives. Second move: *"Discovered. Master of Berserker of Faction 2 found **Caster** (rolled 11 vs 35%)"* — concealment deactivated, and she is named by her **public** name, so a position reveal leaks no identity |
+| **PC clause 7** | *Arrogant King's Poison* (enemy-targeting, no damage) refused with reason `presenceConcealment`; *Double Summon* and *Item Construction* (self) allowed; *Summoning: Bašmu* stopped by a **different** gate, which is the *"does not include Attack Skills and Spells that deal damage"* carve-out working |
+| **Sikera Ušum's cooldown** | **0** for all nine ticks the Throne Room stood, then **19** (`6◈+⅓◈`) the instant it closed. `countFrom: deactivation`, exactly |
+| **HGoB as a second Home Base** | A four-case truth table: aboard at row 7 (outside her ground base) **true**; the same unit on the ground there **false**; on the ground inside her zone **true**; an **enemy** aboard **false** |
+| **Construction, all six sources** | 1+2 from a fresh Greece war: **25** = start **10** (adjacent, not the Middle East's 25) plus **15**, which is 3×5 — a *product*, since a 2d6 sum cannot exceed 12. 3: **+7** at a Round boundary (`1d4+2` plus adjacency). 4: **+6** (§46.14.1b). 5: **+4** for a non-Spell Skill. 6: Gather — Semiramis **7**, her Master **6** |
+| **Destruction and rebuild** | Construction **88 → 0**, `zonExempt` **true → false**, Sustainability **30 → 24** (the +2◈ reversed), the platform actor gone and `hgob-owner-buff` stripped |
 
-  `weakToPoison` is the first reading — the marker and the extra damage in one effect, carrying its
-  own `VulnerabilityAmplifier` at 1.5 so that a bearer is distinguishable from one merely standing
-  in the area. `poisonSusceptible` is the second — an incoming `ApplicationChance` of **−25** on
-  Poison and no amplifier at all, so it exercises `isWeakTo`'s other branch.
+Pressing them cost three more engine defects: §46.4-AK, and — from Construction source 3 refusing to
+fire — **§46.4-AM**, the one that mattered most.
 
-  Measured against `periodicDamageFor`, the only implementation, at stage 1:
+**One question for the game's author, not a defect.** Presence Concealment clause 6 says *"an enemy
+**Servant's** Range (or Detect)"*, and Ch. 8 §8.7 quotes the source's general rule as *"an enemy
+**Unit's** Range (Detect)"*. The engine implements the general rule, so an enemy **Master** also
+gets a Discover roll — two watchers instead of one, which raises the per-move chance of being spotted
+from 35% to 58%. Both readings are in the source; only the author can say which governs.
 
-  | bearer | damage |
-  |---|---|
-  | nothing | **20** |
-  | the field's amplifier alone, not weak | **20** — rule e correctly declines to fire |
-  | `weakToPoison`, no field | **30** — its own 1.5× |
-  | `weakToPoison` **in the area** | **60** — 20 × 1.5 × 2, *"in addition to any other effects they might have which increase Poison Damage received"* |
-  | `poisonSusceptible` **in the area** | **40** — weak by the chance branch, doubled, with no self-amplifier |
+### 46.14.4 A note on the board this was pressed on
 
-  Authoring it turned up three engine defects it had been hiding: §46.4-AH, §46.4-AI and §46.4-AJ.
-- **Presence Concealment clauses 2, 3, 6 and 7** — the Block/Counter refusal and its AGI-rank
-  exception, attacking Masters and moving freely past them, the discovery roll on entering a
-  Servant's Range, and the bar on Active Skills targeting enemies. Clauses 1, 4, 5 and 8 were
-  pressed, and clause 1 gained the half it never had: the token is now invisible to non-allies
-  (§46.4-AK), verified by logging in as each player.
-- **Sikera Ušum's cooldown actually starting** at the field's closure. `countFrom: deactivation` was
-  confirmed as 0 at use; no measurement was taken at the moment the Throne Room expired.
-- **The Hanging Gardens as a Home Base** (`countsAsHomeBase`), its Construction sources 1–3, and its
-  destruction-and-rebuild clause.
+`masterProtection` was **off** on the test board, which is why PC clause 3 first appeared to do
+nothing — the rule it exempts her from was not running for anybody. It was switched on to press the
+clause and switched back afterwards. A clause that exempts you from an optional rule cannot be
+tested while the rule is off, and the refusal looks identical to a working exemption.
 
 ## 46.13 What this audit did **not** test
 

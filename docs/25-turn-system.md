@@ -59,6 +59,19 @@ old numeric shape thaws on its next boundary rather than needing a migration. Ch
 
 > *A guard must not be keyed on state that only the guarded work produces.*
 
+**And each scale claims with its own token.** A round change is *always* also a turn change, so
+`onTurnChange` and `onRoundChange` both claim at the same instant. With one shared `token` field the
+turn's write landed last, the round's read found a stranger's token, and the round concluded it had
+lost the election — so **`scheduler.endRound` never ran at all**. Poison, Burn, Freeze and Scald all
+name `roundEnd` as their native trigger, so every periodic but the three `turnEnd` ones stopped
+dealing damage, along with every `OnEvent roundEnd` clause in the corpus. It hid because the turn
+scale kept working and fires three times as often. `turnToken` and `roundToken` are separate now;
+a world holding the old single-`token` shape has neither, so both scales proceed once and write the
+new one. Ch. 46 §46.4-AM.
+
+> *An election needs an identity per thing being elected. Two scales sharing one token is two
+> elections sharing one ballot box.*
+
 **And a boundary's field events are asked about the boundary's own board.** `scheduler.endTurn`
 clears every Unit's turn state, and the field dispatchers run after it — so a dispatcher that called
 `currentBoard()` for itself saw `acted: false` for the whole map and every `actedTurnEnd` interior
