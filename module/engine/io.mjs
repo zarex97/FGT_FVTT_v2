@@ -16,7 +16,9 @@ import { onMasterDefeated } from "../rules/relationships.mjs";
 import { conquestContract } from "../rules/contract.mjs";
 import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
-import { snapshotUnit, turnWrite } from "../rules/snapshot.mjs";
+import {
+  snapshotUnit, turnStateAt, turnWrite, roundStateAt, roundWrite,
+} from "../rules/snapshot.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
 import { clampToMax } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -69,6 +71,20 @@ function masterSnapshotOf(actor) {
   const id = actor?.system?.masterId ?? null;
   const master = id ? game.actors.get(id) : null;
   return master ? snapshotUnit(master) : null;
+}
+
+/**
+ * A rebuilt record as the `system.x.y` paths an `actor.update()` takes.
+ *
+ * The three record writers each wrote this loop out; `recordUse` writes both
+ * scales at once and would have written it twice.
+ *
+ * @param {string} prefix `"system.turnState"` or `"system.roundState"`
+ * @param {object} record every field of the rebuilt record
+ * @returns {object} update paths
+ */
+function flatten(prefix, record) {
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [`${prefix}.${key}`, value]));
 }
 
 function watermarks(actor, value) {
@@ -701,17 +717,26 @@ export function worldIO() {
 
       const tick = game.combat?.system?.globalTurn ?? 0;
       const round = game.combats?.active?.round ?? null;
-      const turn = actor.system?.turnState ?? {};
-      const byRound = actor.system?.roundState ?? {};
-      const turnUsed = turn.tick === tick ? [...(turn.abilitiesUsed ?? [])] : [];
-      const roundUsed = byRound.round === round ? [...(byRound.abilitiesUsed ?? [])] : [];
 
-      await actor.update({
-        "system.turnState.tick": tick,
-        "system.turnState.abilitiesUsed": [...new Set([...turnUsed, name])],
-        "system.roundState.round": round,
-        "system.roundState.abilitiesUsed": [...new Set([...roundUsed, name])],
-      });
+      // Through `turnWrite`/`roundWrite` rather than the comparison this
+      // function used to hand-roll. It compared the stamps itself and then
+      // wrote the new stamp plus `abilitiesUsed` alone, which re-stamped the
+      // record and made every OTHER field of a stale one current again -- #32,
+      // at both scales, surviving the commit that closed it because that fix
+      // landed in `markTurn`. Rebuilding the whole record also makes the order
+      // of this write against `markTurn`'s stop mattering: both read the
+      // document fresh, and `skill-use.mjs` emits them in one batch.
+      const turn = turnStateAt(actor.system?.turnState, tick);
+      const byRound = roundStateAt(actor.system?.roundState, round);
+      const stamped = {
+        ...flatten("system.turnState", turnWrite(actor.system?.turnState, tick, {
+          abilitiesUsed: [...new Set([...turn.abilitiesUsed, name])],
+        })),
+        ...flatten("system.roundState", roundWrite(actor.system?.roundState, round, {
+          abilitiesUsed: [...new Set([...byRound.abilitiesUsed, name])],
+        })),
+      };
+      await actor.update(stamped);
 
       // The whole-match counter lives on the Item, because that is what
       // `maxUses` is declared on and what a copy of the ability would not
@@ -745,25 +770,28 @@ export function worldIO() {
       // earlier Turn. Writing only the tick and the patch left every other
       // stale field looking current (#32).
       const now = game.combat?.system?.globalTurn ?? 0;
-      const stamped = turnWrite(actor.system?.turnState, now, patch);
-      const update = {};
-      for (const [key, value] of Object.entries(stamped)) update[`system.turnState.${key}`] = value;
-      await actor.update(update);
+      await actor.update(flatten("system.turnState", turnWrite(actor.system?.turnState, now, patch)));
     },
 
     /**
      * Patch a unit's `roundState`. Beside `markTurn`, stamped with the Round
      * rather than the tick -- see `engine/intents.mjs#markRoundState`.
+     *
+     * Through `roundWrite` for the reason `markTurn` goes through `turnWrite`:
+     * this wrote `{round: now, ...patch}`, so stamping the Round revived every
+     * field of a stale record that the patch did not name. Its one caller sets
+     * `combatInBaseThisRound`, which left `abilitiesUsed` two Rounds old
+     * looking current, and Ch. 32's Caladbolg II/Hrunting exclusion refused a
+     * shot that had never been taken this Round.
+     *
      * @param {string} unitId
      * @param {object} patch
      */
     async markRoundState(unitId, patch) {
       const actor = resolve(unitId);
       if (!actor) return;
-      const stamped = { round: game.combats?.active?.round ?? null, ...patch };
-      const update = {};
-      for (const [key, value] of Object.entries(stamped)) update[`system.roundState.${key}`] = value;
-      await actor.update(update);
+      const now = game.combats?.active?.round ?? null;
+      await actor.update(flatten("system.roundState", roundWrite(actor.system?.roundState, now, patch)));
     },
 
     /**

@@ -34,6 +34,32 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### #32 reached one writer of three (2026-09-17)
+
+#### Fixed
+
+- **`recordUse` re-stamped the turn record while writing two fields of fourteen.** The stale-by-reading
+  rule says a record stamped with an earlier tick reads as blank; [#32](https://github.com/zarex97/FGT_FVTT_v2/issues/32)
+  built `turnWrite` so the write side could not disagree with it, applied it to `markTurn`, and closed.
+  `recordUse` is a separate writer fifteen lines below in the same file and went on stamping the tick
+  beside `abilitiesUsed` alone — so **every ability use in the game** revived every other field of a
+  stale record. Measured live at tick 6 against a record stamped tick 3: `itemTransfers` 1, `movedPanels`
+  5, `acted`, `namelessForestAttempts` 1 and `reshapedField` all came back, on a Turn where the Unit had
+  done none of it. Now rebuilt through `turnWrite`; measured again, all five read blank and the same
+  ability use in a live Turn still preserves the record.
+
+- **The round record had no stale-aware writer at all.** `markRoundState` was literally
+  `{round: now, ...patch}` — the pre-#32 shape, one scale up — and `roundState`'s two writers patch
+  disjoint halves of it, so the revival ran both ways. `markRoundState` sets `combatInBaseThisRound` and
+  revived a stale `abilitiesUsed`, so Ch. 32's Caladbolg II/Hrunting exclusion refused a shot never taken
+  this Round; `recordUse` sets `abilitiesUsed` and revived a stale `combatInBaseThisRound`, so Ch. 29's
+  E1 regeneration was withheld from a Unit that had not fought. `roundWrite` now sits beside `turnWrite`
+  and both writers go through it. Measured live in both directions.
+
+**A stale-by-reading record needs a stale-aware writer at every writer.** Closing the issue is not the
+same as reaching them; a fix to one function in a file of writers is a fix to one writer
+([Ch. 18](docs/18-items.md), [Ch. 45](docs/45-case-studies.md)).
+
 ### Twenty more catalogue readers, and a terrain type that did nothing (2026-09-16)
 
 #### Added
