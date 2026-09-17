@@ -1,4 +1,4 @@
-# 02 — Architecture: Five Layers, and the One Place That Writes
+# 02 — Architecture: Five Layers, and the One Place That Writes Unit State
 
 ## What it is
 
@@ -9,16 +9,40 @@ import only from layers below it, and the direction is enforced by a script that
 `npm run lint`. The purpose is testability — the pure layers hold the game's rules and must run
 without Foundry present.
 
-The second is a **single write choke point**: no code anywhere in the system calls
-`actor.update()` directly. Deciding what should happen and actually writing it are separated by
-a data type — an *intent* — and every write in the game funnels through one function that
-validates, orders, batches, and dispatches them. `module/engine/applier.mjs` describes itself in
-its own header as *"the only place in the system that writes documents"*
-(`module/engine/applier.mjs:2`).
+The second is a **single write choke point for unit state**: deciding what should happen to a Unit
+and actually writing it are separated by a data type — an *intent* — and every such write funnels
+through one function that validates, orders, batches, and dispatches them
+(`module/engine/applier.mjs`), onto one adapter (`module/engine/io.mjs`).
+
+**That rule used to be stated far more broadly here, and the broad version was false.** This chapter
+claimed that *"no code anywhere in the system calls `actor.update()` directly"*, and
+`applier.mjs`'s own header called itself *"the only place in the system that writes documents"*.
+Nothing had ever counted. `tools/check-writes.mjs` now does: **192 write sites across 41 files**, of
+which `io.mjs` accounts for about a quarter. The rest fall into categories the intent vocabulary was
+never meant to carry, and one that is honest debt:
+
+| Category | What it is | Why it is not an intent |
+|---|---|---|
+| `message-flag` | The Combat Process state machine on its chat card | Presentation and coordination state, not a Unit's |
+| `scene-lifecycle` | Regions, RegionBehaviors, Levels, Tokens | Created and destroyed, not patched; an intent names a Unit and a field, and these have neither |
+| `combat-document` | The ◈ clock, turn order, budgets, the log | Not about a Unit at all |
+| `ui-edit` | A person editing a document through its own sheet | A rule is not resolving; a human is typing |
+| `migration` | Rewriting stored documents wholesale | That is what a migration *is* |
+| `socket` | The GM's side of a player's request | Its `applyIntents` op still goes through `io` |
+| `debt` | Eleven files writing unit state with no intent for it | Nothing — these should be intents |
 
 Both rules are mechanical rather than aspirational: each is enforced by code that fails the build,
-not by review. That distinction is the subject of the first entry under *Traps and anti-patterns*
-below.
+not by review. The layer rule is enforced by `tools/check-layers.mjs`; the write rule by
+`tools/check-writes.mjs`, which gates the **file** rather than the line — a file already permitted to
+create its own Regions may create one more, and a file that has never written a document and starts
+is the thing worth a conversation. Each entry carries the category and a reason, because an allowlist
+without the sentence next to it records only that something was there first. An exception that stops
+being needed fails the build too, so the list shrinks instead of ossifying.
+
+**The narrow rule is worth more than the broad one was.** A stated invariant that overstates itself
+is worse than a smaller one that holds: somebody trusts it, reasons from it, and is wrong — which is
+exactly what happened to the architecture review that produced this correction. That distinction is
+the subject of the first entry under *Traps and anti-patterns* below.
 
 ## Where it lives
 
@@ -26,6 +50,7 @@ below.
 |---|---|
 | `eslint.config.mjs` | Declares `LAYERS` and the `ALLOWED` table — the single source of truth |
 | `tools/check-layers.mjs` | Enforces `ALLOWED`; runs as part of `npm run lint` |
+| `tools/check-writes.mjs` | Enforces the write allowlist, by file and category; runs as part of `npm run lint` |
 | `module/fgt.mjs` | System entry point — the init/setup/ready sequence |
 | `module/config.mjs` | `CONFIG.FGT` — the public configuration surface |
 | `module/settings.mjs` | Game settings registration |
@@ -135,8 +160,15 @@ engine and the apps layer (`module/engine/applier.mjs:214-225`). It imports `io.
 `applier → io → socket → operations → applier` would otherwise be a static import cycle
 (`module/engine/applier.mjs:215-218`).
 
-`worldIO()` is the concrete adapter, and it is where `actor.update()` is finally called
-(`module/engine/io.mjs:196`).
+`worldIO()` is the concrete adapter, and it is where a unit-state `actor.update()` is finally
+called. It is **not** the only place `actor.update()` is called — see the table above, and
+`tools/check-writes.mjs` for the full accounting.
+
+`worldIO()` is also the seam the applier's tests inject a fake at, which has a consequence worth
+stating plainly: the fake stands in for `io.mjs` itself, so **`io.mjs` is executed by none of the
+suite's 214 test files.** `test/unit/actor-fields.test.mjs` reaches it by reading the file as *text*
+and regexing out `"system.x"` literals, because that is the only way in. Ch. 44 covers what is being
+done about that.
 
 ## Invariants & edge cases
 
@@ -162,6 +194,16 @@ engine and the apps layer (`module/engine/applier.mjs:214-225`). It imports `io.
    its entry fails the check (`tools/check-layers.mjs:95-96`).
 
 ## Traps and anti-patterns
+
+**Stating an invariant more broadly than it holds.** This chapter opened by claiming *"no code
+anywhere in the system calls `actor.update()` directly"*, and `applier.mjs` called itself *"the only
+place in the system that writes documents"*. Both were written in good faith about the intent
+vocabulary and neither was ever counted; the real number is 192 sites across 41 files. The cost is
+not the inaccuracy — it is that an architecture review read the claim, reasoned from it, and designed
+a refactor on the premise that putting a seam under `io.mjs` would capture the system's writes. It
+would have captured a quarter of them. **A stated invariant is load-bearing whether or not it is
+true**, so state the narrow one that holds and enforce it (`tools/check-writes.mjs`) rather than the
+broad one that reads better.
 
 **Documenting a rule without enforcing it.** The layer boundary was written down, and
 `eslint.config.mjs` *computed* the `zones` table from `ALLOWED` — but nothing consumed it, because
