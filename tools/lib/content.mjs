@@ -1164,6 +1164,37 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
       problems.push(`${path}: ${where} is a Script element with no "script" id`);
     }
 
+    // `npValue: "@magnitude"` is a DANGLING EXPRESSION, and it looks exactly
+    // like the thing it is not.
+    //
+    // `rules/snapshot.mjs#resolveRuleValues` substitutes the two instance
+    // tokens by FIELD: `value` is matched against `"@magnitude"` and `npValue`
+    // against `"@npMagnitude"`. A `npValue` holding `"@magnitude"` therefore
+    // matches nothing, survives as a literal string into the executor, resolves
+    // against the `@` ref tree -- which publishes no `magnitude` -- and comes
+    // back `null`, so every executor drops the field.
+    //
+    // The behaviour that results is the pipeline default (an absent `npValue`
+    // uses `value`, i.e. FULL magnitude against a Noble Phantasm), which is
+    // what an author writing this line wanted. That is exactly why it went
+    // unnoticed in six content files: right answer, no reader. Say it by
+    // OMITTING `npValue`, which is the assertion, or state the reduced figure
+    // with `"@npMagnitude"` or a literal.
+    for (const field of ["npValue", "value"]) {
+      const token = field === "value" ? "@npMagnitude" : "@magnitude";
+      const raw = el[field];
+      if (typeof raw === "string" && raw.replace("-", "").trim() === token) {
+        problems.push(
+          `${path}: ${where} has ${field}: "${raw}", which resolves to nothing — `
+          + `"${token}" is only substituted into `
+          + `${field === "value" ? "npValue" : "value"}. `
+          + (field === "npValue"
+            ? "Omit npValue to mean \"including NP at full magnitude\", or use \"@npMagnitude\"."
+            : "Use \"@magnitude\"."),
+        );
+      }
+    }
+
     // §24.6: content may override the priority band, but must say why.
     //
     // An override reorders the element against every other one in its band, and

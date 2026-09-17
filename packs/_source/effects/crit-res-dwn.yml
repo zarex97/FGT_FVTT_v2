@@ -1,0 +1,19 @@
+# Appendix A §A.9
+# "Crit damage taken +X%. Not NP."
+#
+# The debuff half of the pair stage 2 already sums. See `crit-res-up.yml`.
+schema: 1
+id: critResDwn
+name: "Crit ResDwn"
+description: "Crit Damage taken by this Unit is increased by X%."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+severity: normal
+rules:
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critResDwn
+    value: "@magnitude"

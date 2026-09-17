@@ -1,0 +1,29 @@
+# Appendix A §A.3
+# "Cannot be hit by anything, including NP and Fixed, even against Aim. Beats Dodge."
+#
+# The top rung of the Dodge/Aim/Substitution ladder, and the last one with no
+# document. `rules/damage/pipeline.mjs` has halted at stage 0 on a defender
+# holding `substitution` since the pipeline was written -- before the attack is
+# measured, so a Fixed-damage attack and a Noble Phantasm are refused on the
+# same line -- and nothing could put it there.
+#
+# `aim.yml` records the consequence from the other side: it withheld its
+# `blockedBy: [substitution]` because the id resolved to nothing and the build
+# refuses a dangling link. That line can now be written, which is the point of
+# authoring this one first.
+schema: 1
+id: substitution
+name: "Substitution"
+description: |
+  Cannot be hit by anything, including Noble Phantasms and Fixed damage, even against
+  @effect[aim]{Aim}. Beats @effect[dodge]{Dodge}.
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+# NO RULE ELEMENTS, and that is the finished state -- the same call `anti-purge`
+# and `aim` both make. Stage 0 recognises this by id; a `DamageNegation` beside
+# it would be a second, weaker implementation of a halt that already exists, and
+# a weaker one specifically: negation runs at stage 16, after the riders.
+rules: []

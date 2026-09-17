@@ -1,0 +1,23 @@
+# Appendix A §A.3
+# "Opponents cannot React to this unit's attacks."
+#
+# `engine/attack.mjs` reads `attackerHasAccel` off the attacker's held effects
+# when it builds the reaction offer, and has since the Reaction protocol was
+# written. Nothing could set it, so the branch that suppresses the offer was
+# unreachable.
+#
+# "React", not "Evade": this closes Block, Evade and the Counter together
+# (Ch. 27), which is why it sits on the attack rather than on a check.
+schema: 1
+id: accel
+name: "Accel"
+description: "Opponents cannot React to this Unit's Attacks."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+# No rule elements. `ForbidReaction` exists and is deliberately not used: that
+# element forbids the BEARER's own reactions (Mannanán trades hers away for
+# Fragarach), and this forbids the OPPONENT's. Same word, opposite subject.
+rules: []

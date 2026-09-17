@@ -1,0 +1,21 @@
+# Appendix A §A.2
+# "Block roll +X."
+#
+# `rules/elements.mjs#BlockModifier` exists solely to produce this key, stage 14
+# of the pipeline sums it off the defender, and `rules/explain.mjs` names it in
+# the breakdown -- an element, a reader and a log entry for an effect with no
+# document. Every Block Up in the corpus was inline on an ability.
+schema: 1
+id: blockUp
+name: "Block Up"
+description: "This Unit's Block roll is increased by X."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # Percentage POINTS onto the flat 25%, which is what `BlockModifier` means by
+  # its magnitude -- not a percentage OF the block.
+  - key: BlockModifier
+    value: "@magnitude"

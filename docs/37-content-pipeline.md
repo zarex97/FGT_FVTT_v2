@@ -336,6 +336,7 @@ mode.
 | Every requirement **kind** is one its reader implements | a gate that refuses for ever |
 | Every requirement **selector field** is one its reader reads | a gate that **passes** for ever |
 | Every rank table an event action names exists | `floorTable`/`lteTable` resolving to nothing |
+| No instance token sits in the field the other one is substituted into | `npValue: "@magnitude"`, which resolves to nothing |
 
 Four of those were added by authoring Asterios and Karna, and each was added because something
 had already gone wrong in a way nothing announced:
@@ -347,6 +348,15 @@ had already gone wrong in a way nothing announced:
   loud. A misnamed *field* on a known kind matches nothing, and `abilityOffCooldown`'s empty match
   set is a deliberate **pass** (§15.4) — so Karna's two cross-NP gates, authored `abilityId` where
   the reader takes `abilityIds`, passed unconditionally in a live world.
+- **An instance token in the wrong field** is the quietest of the set, because the behaviour it
+  produces is usually the one the author wanted. `rules/snapshot.mjs#resolveRuleValues` substitutes
+  the two tokens **by field** — `value` against `"@magnitude"`, `npValue` against
+  `"@npMagnitude"` — so `npValue: "@magnitude"` matches nothing, reaches the executor as a literal
+  string, resolves against a ref tree that publishes no `magnitude`, and is dropped. The pipeline
+  then falls back to `value`, which is *exactly* what "including NP" means. Five shipped content
+  files carried the dead line with correct behaviour before the sixth (`ward`) was written and the
+  check added: right answer, no reader, which is the failure mode this whole chapter exists for.
+  The assertion is the **omission**.
 - **Tables inside an event action** were unreachable by `ruleElements`, which walks the element
   lists and stops. Every `table:`, `cooldownTable:`, `floorTable:` and `whenValue.lteTable:` under
   a `then:` was unchecked, and an unknown table id is not an error at runtime — it is `lookup`

@@ -1,0 +1,31 @@
+# Appendix A §A.2
+# "Lethal damage leaves the unit at 1 Health, if it had >1."
+#
+# Stage 16 of `rules/damage/pipeline.mjs` has carried this arithmetic since the
+# pipeline was written -- and carried it TWICE, because Gogh's "cannot be
+# defeated due to Curse" is the same subtraction with a source attached, and was
+# authored as its own branch directly beneath an `endure` test that nothing
+# could satisfy.
+#
+# Note the guard the pipeline states and this file must not restate:
+# `d.health > 1`. A Unit already at 1 Health is not saved -- Endure prevents the
+# drop TO zero, it does not prevent a defeat from zero.
+schema: 1
+id: endure
+name: "Endure"
+description: |
+  Lethal damage leaves this Unit at 1 Health, provided it had more than 1 Health when the damage
+  landed.
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+# No rule elements: stage 16 recognises the id. It is deliberately NOT a
+# `DamageNegation` -- a negation reduces a number, and this one clamps it to a
+# value read off the defender's current Health, which no negation can express.
+#
+# Nor is it `Guts`: Guts is a REVIVAL and fires after defeat, Endure prevents
+# the defeat. Appendix A §A.7 gives the priority for the revival tier and Endure
+# is not in it, because it never gets that far.
+rules: []

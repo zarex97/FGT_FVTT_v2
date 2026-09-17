@@ -1,0 +1,42 @@
+# Appendix A §A.2
+# "Damage from a matching category -X%, including NP. Predicated."
+#
+# The defensive twin of `Dmg Up`, and the generic member of a family whose
+# SPECIALISATIONS were authored first: `rules/elements.mjs#Ward` has existed
+# since the damage contributors were written, `ward` is one of stage 4's three
+# `DEFENDER_BUCKET_KEYS`, and `rules/explain.mjs` lists it among the keys the
+# breakdown names -- but every Ward in the corpus arrived inline on an ability,
+# so there was no effect a Unit could be said to be carrying.
+#
+# "Including NP" with no reduced magnitude is the whole difference from
+# `Def Up`, and it is why `npValue` is stated rather than left out: the Ward
+# executor treats an ABSENT `npValue` as "the author did not say", and a Ward
+# that silently took the reduced treatment would be a `Def Up` with a predicate.
+schema: 1
+id: ward
+name: "Ward"
+description: |
+  Damage taken from a matching category is reduced by X%, including from Noble Phantasms.
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: Ward
+    value: "@magnitude"
+    # Equal against a Noble Phantasm, which is the clause "including NP" states
+    # and Karna's fire resistance is the reference case for.
+    # "Including NP" is stated by OMITTING `npValue`: an absent npValue makes
+    # the pipeline use `value` against a Noble Phantasm too
+    # (`damage/pipeline.mjs`, `isNP && m.npValue !== undefined ? ... : m.value`),
+    # which is the full magnitude this clause wants. Writing `npValue:
+    # "@magnitude"` here reads as the same assertion and is not one -- that
+    # token is only substituted into `value`, so it resolved to nothing and the
+    # field was dropped. The behaviour was right and the line was inert; the
+    # content validator now refuses it.
+notes: |
+  The CATEGORY is not stated here, because the category is what distinguishes one Ward from
+  another: an ability applying this one carries the predicate (an element, an attribute, an
+  attacking class). An unpredicated Ward is a `Def Up` that does not take the NP reduction, and
+  content wanting that should say `Def Up`.

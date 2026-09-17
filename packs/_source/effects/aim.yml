@@ -20,14 +20,19 @@ volatility: nonVolatile
 valence: offensive
 stacking: noneRefresh
 baseChance: 100
-# `blockedBy: [substitution]` is DELIBERATELY ABSENT. Appendix A's ladder puts
-# Substitution above Aim -- "cannot be hit by anything, including NP and Fixed,
-# EVEN AGAINST Aim" -- but `substitution` is not an authored effect, and a
-# reference to an id no document provides is a dangling link the build refuses
-# (correctly: it would read as implemented and match nothing).
+# `blockedBy: [substitution]` is DELIBERATELY ABSENT, and now for a better
+# reason than the one first recorded here.
 #
-# The relationship is already enforced anyway, and not by this file: stage 0 of
-# the damage pipeline halts on a defender holding `substitution` before
-# anything about the attack is consulted. When Substitution is authored, this
-# line becomes a record of an existing rule rather than a new one.
+# The original note said the id was unauthored and a dangling link would be
+# refused by the build. `substitution` is authored now, and the field is still
+# wrong -- `blockedBy` gates APPLICATION against what its own target already
+# holds (`effect-applier.mjs`, the exclusivity gate), and these two effects are
+# never on the same Unit: Aim rides the attacker, Substitution the defender.
+# Writing it would declare that a Unit cannot be given Aim while some other Unit
+# is untouchable, which is not the ladder Appendix A describes.
+#
+# The relationship is enforced where it belongs and not by this file: stage 0 of
+# the damage pipeline halts on a defender holding `substitution` before anything
+# about the attack -- Aim included -- is consulted. That is exactly what "cannot
+# be hit by anything, even against Aim" means.
 rules: []

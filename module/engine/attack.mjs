@@ -951,6 +951,22 @@ async function declareProcesses({
           // `rules/concealment.mjs` rather than one being reimplemented here.
           ...agilityRefusals(ability, attackerId, state.defenderId),
           ...(state.attack?.unblockable ? ["block"] : []),
+          // Appendix A §A.3 `Accel`: *"Opponents cannot React to this unit's
+          // attacks."*
+          //
+          // REACT, not "counter". `combat-process.mjs#canCounter` has taken an
+          // `attackerHasAccel` flag since the Counter rung was written, and
+          // `engine/attack.mjs` has passed it -- so the third rung was closed
+          // and the first two were not, which made Accel a strictly weaker
+          // effect than the catalogue describes. Nothing noticed because no
+          // content could apply it: `accel` had no effect document until now,
+          // and authoring one is what put a Unit on the near side of the gap.
+          //
+          // Here rather than beside the counter flag because THIS is where the
+          // ladder is narrowed for every other reason -- concealment, an AGI
+          // comparison, an unblockable attack -- and a rung closed in two
+          // places is a rung that can be reopened in one.
+          ...(accelRefusals(attackerId) ),
         ])],
       }
       : state;
@@ -1993,6 +2009,23 @@ async function offerPreAttackSpell(owner, category) {
 
   const { useSkill } = await import("./skill-use.mjs");
   await useSkill({ actorId: owner.id, abilityId: chosen, bypassesCategoryLimit: true });
+}
+
+/**
+ * Rungs `Accel` takes off the ladder.
+ *
+ * Block and Evade only: the Counter is refused by `canCounter`, which reads the
+ * same effect off the same attacker at the moment it decides whether to offer
+ * the rung at all. Listing "counter" here as well would be harmless today and
+ * would make the two answers separable tomorrow.
+ *
+ * @param {string} attackerId
+ * @returns {string[]}
+ */
+function accelRefusals(attackerId) {
+  const attacker = game.actors.get(attackerId);
+  if (!attacker) return [];
+  return (unitSnapshot(attacker).effects ?? []).includes("accel") ? ["block", "evade"] : [];
 }
 
 /**

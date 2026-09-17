@@ -344,6 +344,28 @@ the transition outright. The card is a client; the transition is the boundary. A
 macro, or a second player's window must not be able to declare a reaction the Process has already
 taken away.
 
+### Everything that narrows the ladder narrows it here
+
+`forbiddenReactions` is assembled **once, at declaration**, and by now four separate rules write
+into it: Presence Concealment's refusals, an ability that narrows by an AGI comparison
+(Kiritsugu's Lethal Gunfire Suppression), an attack that is itself `unblockable` (a Fragarach
+Counter), and — since 2026-09-16 — Appendix A's `Accel`.
+
+`Accel` is *"opponents cannot **React** to this unit's attacks"*, and it is worth recording how it
+was found. `combat-process.mjs#canCounter` has taken an `attackerHasAccel` flag since the Counter
+rung was written, and `engine/attack.mjs` has always passed it — so the **third** rung was closed
+and the first two were not. Against an Accel attack a defender could still Block and still Evade,
+which is a strictly weaker effect than the catalogue describes.
+
+Nothing had noticed because **no content could apply `accel`**: the effect had no document until
+the catalogue's unreached readers were authored (App. A §A.21), and authoring one is what first
+put a Unit on the near side of the gap.
+
+The refusal went here rather than beside the counter flag for the reason this section already
+gives about the card and the transition: **a rung closed in two places is a rung that can be
+reopened in one.** The Counter stays with `canCounter`, which decides whether to *offer* the rung
+at all; Block and Evade join the list every other narrowing rule writes to.
+
 Presence Concealment writes the same field, for a different rule (Ch. 12, *Reactions the Process
 refuses*), which is why it is a list rather than a boolean.
 

@@ -24,7 +24,14 @@ rules:
     # The Dioscuri NP states "all damage received is increased by 15%" with no
     # NP clause, so the NP magnitude is the same number rather than the usual
     # halving -- exactly what `def-dwn-c.yml` records for its own sheet.
-    npValue: "@magnitude"
+    # "Including NP" is stated by OMITTING `npValue`: an absent npValue makes
+    # the pipeline use `value` against a Noble Phantasm too
+    # (`damage/pipeline.mjs`, `isNP && m.npValue !== undefined ? ... : m.value`),
+    # which is the full magnitude this clause wants. Writing `npValue:
+    # "@magnitude"` here reads as the same assertion and is not one -- that
+    # token is only substituted into `value`, so it resolved to nothing and the
+    # field was dropped. The behaviour was right and the line was inert; the
+    # content validator now refuses it.
 
   # The second clause, and the only thing that distinguishes (A) from (C):
   # LUCK, where (C) takes Agility. `damageTaken` fires on the Unit that
