@@ -21,6 +21,7 @@ import { EXECUTORS, empty, deferredPredicate } from "./elements.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { categoryRankOf } from "./items.mjs";
+import { relationOf } from "./relations.mjs";
 // The NP scale lives in its own module so `options.mjs` can read it without
 // importing this one, which imports `options.mjs` in turn. Re-exported here
 // because every existing caller and test asks this file for it.
@@ -412,14 +413,26 @@ export function veteranStatus(field, unit, { adjacentVeterans = [] } = {}) {
  */
 function veteranExempt(rule, field, unit, board) {
   if (!field?.membership?.escape?.veteranBonus?.noMovPenalty) return false;
-  if (rule?.key !== "MovDelta" || (rule.value ?? 0) >= 0) return false;
+  if (rule?.key !== "MovDelta") return false;
 
-  // The same whole-list shape `engine/escape.mjs` and `rules/actions.mjs`
-  // pass: adjacency and history are `veteranStatus`'s rule, not the caller's.
-  const allies = (board?.units ?? []).filter((u) => u.id !== unit?.id && u.panel && (
-    u.faction === unit?.faction
-    || (board?.alliances?.[u.faction] ?? []).includes(unit?.faction)
-  ));
+  // A penalty by either arithmetic `applyInteriorStat` honours. Chaos
+  // Labyrinthos states its own as `value: -2`, but Jack's Mist halves instead
+  // -- *"The Move of all enemy Units within the Mist is halved"* -- and the
+  // clause being switched off here says *"no longer **halved**"* in those very
+  // words, so reading only the subtraction would miss the shape it names.
+  const reduces = (rule.value ?? 0) < 0
+    || (typeof rule.factor === "number" && rule.factor < 1);
+  if (!reduces) return false;
+
+  // The same whole-list shape `engine/escape.mjs` and `rules/actions.mjs` pass,
+  // built with the same `relationOf` they use: adjacency and the escape history
+  // are `veteranStatus`'s rule, not the caller's, and a third hand-rolled
+  // spelling of "ally" is the drift this function was factored out to prevent.
+  // It differs in a real case -- a null-faction Unit is `neutral` to
+  // `relationOf` and would have been excluded by a bare faction comparison.
+  const allies = (board?.units ?? []).filter(
+    (u) => u.id !== unit?.id && u.panel && relationOf(u, unit, board) !== "enemy",
+  );
   const { veteran, led } = veteranStatus(field, unit, { adjacentVeterans: allies });
   return veteran || led;
 }

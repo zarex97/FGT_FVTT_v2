@@ -130,6 +130,52 @@ describe("a field's interior MovDelta reaches the movement gate", () => {
     expect(owner.mov).toBe(8);
   });
 
+  it("excuses a penalty authored as a halving, which is what the clause says", () => {
+    // *"…its MOV is also no longer **halved**"*. Chaos Labyrinthos states its
+    // own penalty as `value: -2`, but `applyInteriorStat` honours `factor` too
+    // — Jack's Mist halves — and a veteran clause that could only switch off a
+    // subtraction would miss the shape its own sentence names.
+    const owner = unit();
+    const veteran = unit({ id: "vet", faction: "b", factionId: "b", panel: at(5, 5), mov: 7 });
+    const prisoner = unit({ id: "them", faction: "b", factionId: "b", panel: at(9, 9), mov: 7 });
+
+    annotated([owner, veteran, prisoner], [labyrinth({
+      interior: [{ key: "MovDelta", factor: 0.5, relations: ["enemy"] }],
+      membership: {
+        enemyExit: "rollRequired",
+        escape: { baseChance: 20, veteranBonus: { baseChance: 100, noMovPenalty: true } },
+      },
+      state: { escapeHistory: { vet: { escaped: true, failures: 0 } } },
+    })]);
+
+    expect(veteran.mov).toBe(7);
+    expect(prisoner.mov).toBe(3);
+  });
+
+  it("counts a null-faction unit as an ally the way every other caller does", () => {
+    // `veteranExempt` builds its ally list with `relationOf`, as the escape
+    // ladder and the action bar do. A Unit with no faction is `neutral`, not
+    // `enemy` — a bare faction comparison would have dropped it and quietly
+    // given one of the three readings of "ally" a different answer.
+    const owner = unit();
+    const veteran = unit({ id: "vet", faction: null, factionId: null, panel: at(5, 5), mov: 7 });
+    const beside = unit({ id: "led", faction: null, factionId: null, panel: at(5, 6), mov: 7 });
+
+    annotated([owner, veteran, beside], [labyrinth({
+      state: { escapeHistory: { vet: { escaped: true, failures: 0 } } },
+      membership: {
+        enemyExit: "rollRequired",
+        escape: {
+          baseChance: 20,
+          veteranBonus: { baseChance: 100, noMovPenalty: true, leadsAdjacentAllies: true },
+        },
+      },
+    })]);
+
+    expect(veteran.mov).toBe(7);
+    expect(beside.mov).toBe(7);
+  });
+
   it("gives the MOV back the moment the unit is outside", () => {
     // Measured live: Achilles escaped to a panel beyond the border and his MOV
     // read 7 again on the step that took him out.
