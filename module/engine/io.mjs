@@ -1253,11 +1253,18 @@ async function countTowardsGrail(unitId, cause) {
   );
   if (next.defeatedCount === (combat.system?.grailCounter ?? 0)) return;
 
+  // BEFORE the write, because the write is what makes it true. This was read
+  // after the `await` -- `!combat.system?.grailMaterialized` on the line below
+  // a write that had just set it -- so the guard was `next.materialized &&
+  // false` every time and the hook has never fired. A document's `system` is
+  // current the moment `update()` resolves; measured live rather than assumed.
+  const wasMaterialized = Boolean(combat.system?.grailMaterialized);
+
   await combat.update({
     "system.grailCounter": next.defeatedCount,
     "system.grailMaterialized": next.materialized,
   });
-  if (next.materialized && !combat.system?.grailMaterialized) {
+  if (next.materialized && !wasMaterialized) {
     Hooks.callAll("fgtGrailMaterialized", next);
   }
 }
