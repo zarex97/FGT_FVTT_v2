@@ -100,10 +100,24 @@ export class FGTSocket {
    *
    * `request` routes everything to the active GM, which is right for anything
    * that writes -- but a prompt is the opposite case: the whole point is that a
-   * *particular* player answers it. `io.prompt` has emitted
-   * `request("prompt", ...)` since intents were written, and `OPERATIONS` has
-   * never had a `prompt` key, so every prevention Luck Check threw `UNKNOWN_OP`
-   * where a player should have been asked a question.
+   * *particular* player answers it.
+   *
+   * `io.prompt` emitted `request("prompt", ...)` before `OPERATIONS` had a
+   * `prompt` key, and every prevention Luck Check threw `UNKNOWN_OP` where a
+   * player should have been asked a question. **That was fixed**: `OPERATIONS
+   * .prompt` (`net/operations.mjs`) runs on the GM and forwards here, so the
+   * route is request-to-GM, then GM-asks-the-player. This paragraph said
+   * otherwise in the present tense for long enough to mislead a review into
+   * re-fixing it -- a stale comment about a defect is itself a defect, and a
+   * more expensive one than the silence it replaced.
+   *
+   * One live constraint the fix carries: `OPERATIONS.prompt.authorize` refuses
+   * a non-GM requester, so a prompt intent applied on a PLAYER's client is
+   * refused rather than forwarded. That path is currently unreachable -- a
+   * player's attack is proxied whole to the GM (`OPERATIONS.resolveAttack`),
+   * and prevention only fires on a debuff to a Unit the player does not own,
+   * which `planApplication` routes remote. It stops being unreachable the day
+   * something emits a prompt for a Unit its own client may write.
    *
    * The timeout is long by default: a human is reading it, and the failure mode
    * of a short one is a decision made for a player who was still deciding.
