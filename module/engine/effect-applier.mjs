@@ -252,7 +252,15 @@ export function applyEffect({
   // ticks (Ch. 04), so an extension anywhere later would be arithmetic on
   // a clock that has already started. An effect with no clock is not given one.
   const ticks = base === INFINITE ? base : base + durationBonus(def, target, ctx);
-  const expiry = ticks === INFINITE ? null : (ctx.currentTick ?? 0) + ticks;
+  // `extend` (#23) adds to the instance already running rather than restamping
+  // from now -- "does not stack, but duration is extended if reapplied" means
+  // the clock the bearer already has, plus this one, not a fresh one.
+  const priorExpiry = existing[0]?.expiry;
+  const expiry = ticks === INFINITE
+    ? null
+    : stack.action === "extend" && priorExpiry != null
+      ? priorExpiry + ticks
+      : (ctx.currentTick ?? 0) + ticks;
 
   const effect = {
     defId: def.id,

@@ -259,3 +259,43 @@ describe("buff chance", () => {
     expect(out.outcome).toBe("applied");
   });
 });
+
+/* -------------------------------------------------------------------------- */
+/*  noneExtend -- reapplying must push the expiry out, not just restamp it      */
+/* -------------------------------------------------------------------------- */
+
+describe("noneExtend stacking (#23)", () => {
+  // range-up.yml: "Does not stack, but duration is extended if reapplied --
+  // which is exactly what `noneExtend` means."
+  const rangeUp = {
+    id: "rangeUp", name: "Range Up", polarity: "buff", volatility: "nonVolatile",
+    stacking: "noneExtend", baseChance: 100,
+  };
+
+  it("extends the existing instance's expiry by the new duration, rather than restamping from now", () => {
+    // 2◈ at turnsPerRound 3 resolves to 6 ticks. An existing instance expiring
+    // at tick 6 is reapplied at tick 2: a REFRESH would land on 2+6=8, but an
+    // EXTEND must land on 6+6=12 -- the whole point of "does not stack, but the
+    // duration is extended".
+    const existing = { id: "e1", defId: "rangeUp", magnitude: 0, stage: 0, uses: 0, expiry: 6, appliedTick: 0 };
+    const out = applyEffect({
+      def: rangeUp, duration: "2◈",
+      target: { id: "t", effects: ["rangeUp"], effectInstances: [existing] },
+      source: {}, ctx: { roll: 1, currentTick: 2, turnsPerRound: 3 },
+    });
+
+    const applied = out.intents.find((i) => i.t === "applyEffect");
+    expect(applied.effect.expiry).toBe(12);
+  });
+
+  it("still stamps now + duration on the first application, with no existing instance", () => {
+    const out = applyEffect({
+      def: rangeUp, duration: "2◈",
+      target: { id: "t", effects: [], effectInstances: [] },
+      source: {}, ctx: { roll: 1, currentTick: 2, turnsPerRound: 3 },
+    });
+
+    const applied = out.intents.find((i) => i.t === "applyEffect");
+    expect(applied.effect.expiry).toBe(8);
+  });
+});
