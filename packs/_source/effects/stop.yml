@@ -1,0 +1,35 @@
+# Appendix A §A.13
+# "Cannot Act. ALL DURATIONS ON THE UNIT FREEZE, including newly applied ones.
+# Cooldowns freeze in both directions. Regen has no effect."
+#
+# Three readers, all live, none reachable:
+#
+#   - `rules/budget.mjs`'s `PREVENT_ALL` list has carried `stop` since it was
+#     written, which is the "cannot Act" half.
+#   - `engine/scheduler.mjs` skips a Unit holding `stop` in TWO separate sweeps
+#     -- the duration sweep and the cooldown sweep -- which is the clause about
+#     clocks, and the reason it is two `continue`s rather than one: they are
+#     different passes over different lists.
+#   - `rules/invalidation.mjs` lists it among the effects that invalidate a
+#     Unit's cached "can act" answer.
+#
+# "Regen has no effect" needs nothing of its own, and it is worth saying why:
+# Regen is an `OnEvent` fired by the scheduler, and a Unit the scheduler skips
+# never reaches the tick that would fire it.
+schema: 1
+id: stop
+name: "Stop"
+description: |
+  Cannot Act. All durations on this Unit freeze, including newly applied ones, and cooldowns
+  freeze in both directions.
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+preventsAction: true
+# NOT a member of `bind`. Appendix A §A.19 lists Bind's members and Stop is
+# deliberately absent from that list -- Stun is in it and Stop is not, which is
+# the distinction Medusa's `Dmg Up (Bind)` reads.
+rules: []

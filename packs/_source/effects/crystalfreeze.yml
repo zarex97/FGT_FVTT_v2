@@ -1,0 +1,37 @@
+# Appendix A §A.13
+# "As Freeze, but NO FIRE CLAUSE. 100 Fixed damage at Round end."
+#
+# Stage 16 of `rules/damage/pipeline.mjs` iterates
+# `[["freeze", "Freeze"], ["crystalfreeze", "Crystalfreeze"]]` -- one loop, two
+# statuses, and only one of them had a document. `rules/budget.mjs`'s
+# `PREVENT_ALL` has likewise carried both since it was written.
+#
+# The absence of the Fire clause is what stage 0 already expresses by NOT naming
+# `crystalfreeze` beside `freeze` in its "broken by Fire" branch. This file
+# restates none of that: a second implementation is a second thing to drift,
+# which is the call `freeze.yml` and `invuln.yml` both made.
+schema: 1
+id: crystalfreeze
+name: "Crystalfreeze"
+description: |
+  Cannot Act. Attacks dealing less than 150 damage do nothing at all; 150 or more removes
+  Crystalfreeze and passes the excess through. Fire does not remove it. 100 Fixed damage at the
+  end of each Round.
+polarity: debuff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+preventsAction: true
+families: [bind]
+rules:
+  # The one clause with no reader, exactly as `freeze.yml` carries its Ice tick
+  # and nothing else. FIXED rather than Ice -- which is the other half of what
+  # separates the two rows, and the reason this is not authored by copying
+  # Freeze's line.
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    then:
+      - { key: StatDelta, stat: "health.value", delta: -100 }

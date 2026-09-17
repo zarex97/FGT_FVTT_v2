@@ -1,0 +1,26 @@
+# Appendix A §A.10
+# "Natural NP cooldown reduction stops. NOT NP Seal -- the NP is still usable."
+#
+# `engine/scheduler.mjs#cooldownRate` has returned 0 for a Noble Phantasm on a
+# bearer holding `npLock` since the scheduler was written. The distinction the
+# row insists on is structural rather than stated: this touches the CLOCK, and
+# `npSeal` is in `rules/budget.mjs`'s prevention table, which is consulted at
+# declaration. A Unit under NP Lock may fire a Noble Phantasm that is already
+# off cooldown; one under NP Seal may not.
+schema: 1
+id: npLock
+name: "NP Lock"
+description: |
+  Natural Noble Phantasm cooldown reduction stops. Noble Phantasms already off cooldown remain
+  usable.
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+# No rule elements: `cooldownRate` reads the id. A `StatDelta` on `npRegen`
+# could not express this -- that field is an acceleration summed into the rate,
+# and this is a short-circuit that discards the rate entirely, including any
+# `NP Regen` the bearer is also carrying.
+rules: []

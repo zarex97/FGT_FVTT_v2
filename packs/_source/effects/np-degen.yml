@@ -1,0 +1,26 @@
+# Appendix A §A.10
+# "NP cooldown +X per interval, and natural reduction stops."
+#
+# `cooldownRate` returns **-1** for a Noble Phantasm on a bearer holding
+# `npDegen`: a negative rate is cooldown ADDED, and returning before the `1 +
+# regen + npRegen` line is what stops the natural reduction. Both halves of the
+# row in one short-circuit, and it has been there since the scheduler was
+# written with nothing able to apply it.
+schema: 1
+id: npDegen
+name: "NP Degen"
+description: |
+  Noble Phantasm cooldown is increased by 1 per interval, and natural cooldown reduction stops.
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules: []
+notes: |
+  The row reads "+X" and the reader's X is **fixed at 1**. Stated rather than papered over: no
+  content in the corpus inflicts NP Degen at any other size, and authoring a `@magnitude` the
+  scheduler does not consult would be a magnitude that reads as load-bearing and is not — the
+  exact defect §A.21 records. If a Servant ever states a different figure, `cooldownRate` is the
+  one place to teach, and this note is the pointer to it.

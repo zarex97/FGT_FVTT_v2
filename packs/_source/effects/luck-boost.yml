@@ -1,0 +1,25 @@
+# Appendix A §A.3
+# "Always uses the favourable Luck table (1d20 rather than 1d20+4), regardless
+# of whose Luck is higher. Worth a flat 4 on every Luck Check."
+#
+# Read by id in four places -- the attack flow's three Luck ladders and the
+# Nameless Forest's escape roll -- each of them as
+# `held.includes("luckBoost") || plan.forceTable === "favourable"`. So the
+# TableOverride element and the effect id are two routes to one answer, and only
+# the element had a way in.
+schema: 1
+id: luckBoost
+name: "Luck Boost"
+description: |
+  Luck Checks always use the favourable table (`1d20` rather than `1d20+4`), regardless of whose
+  Luck is higher.
+polarity: buff
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+# No rule elements. A `TableOverride` here would work and would be the SECOND
+# route to the same fact for a Unit that also holds the id -- and the readers
+# take the disjunction of the two, so it could never disagree loudly enough to
+# be noticed.
+rules: []

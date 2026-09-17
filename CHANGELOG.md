@@ -34,6 +34,40 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Twenty more catalogue readers, and a terrain type that did nothing (2026-09-16)
+
+#### Added
+
+- **Twenty effect definitions**, the second group of Appendix A rows whose engine reader outlived
+  its document: the scoped immunity family (`nvDebuffImmune`, `vDebuffImmune`, `menDebuffImmune`,
+  `offDebuffImmune`, `defDebuffImmune`), `noBuff`, the NP-cooldown trio (`npLock`, `npDegen`,
+  `npLag`), the three element-to-heal conversions (`poisHeal`, `cursHeal`, `flamHeal`),
+  `luckBoost` / `luckLoss`, five action denials (`stop`, `crystalfreeze`, `immobilize`, `seal`,
+  `webbed`) and `dragonblight`. See [App. A §A.21](docs/A-effect-catalogue.md).
+
+#### Fixed
+
+- **Magnetic terrain did nothing at all.** `rules/terrain.mjs` has emitted its `Immobilize`
+  descriptor since the terrain system was built — the 25% chance, the `Mechanical` override and
+  the debuff-resistance bypass all correct — and `immobilize` had no effect document, so the
+  application found no definition. The first case in this appendix where a missing document
+  silently disabled a **shipped feature** rather than only a catalogue row
+  ([Ch. 42 §Magnetic](docs/42-terrain.md)).
+
+- **`Dragonblight` clause 2 had no reader**, only clause 1. *"Cannot inflict volatile debuffs"* is
+  now an outgoing `ApplicationChance` of −100 scoped by `volatility`, so a volatile debuff
+  authored later is covered by saying what it is.
+
+`Immobilize` and `Seal` deliberately omit `preventsAction`: that flag routes an effect through
+`PREVENT_ALL`, which takes every action, and both rows are partial — Immobilize spares the Attack,
+Seal spares the Spell. The tests assert the **permitted** action as well as the refused ones,
+because a denial test that checks only refusals passes just as happily when an effect denies too
+much.
+
+`Levitating` was deliberately **not** authored: §A.17.2 calls it an attribute, and
+`rules/platforms.mjs` and `rules/terrain.mjs` both read it off `unit.attributes`. An effect with
+that id would be a second, divergent answer to one question.
+
 ### Eleven catalogue readers that no document could reach (2026-09-16)
 
 #### Added

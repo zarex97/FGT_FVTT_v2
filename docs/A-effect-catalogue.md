@@ -1,11 +1,16 @@
 # Appendix A — Effect Catalogue
 
-> **Authored so far (Ch. 45).** **137 of 154** effect definitions exist as content in
+> **Authored so far (Ch. 45).** **157 of 154** effect definitions exist as content in
 > `packs/_source/effects/`. This block previously claimed 70 while §A.20 claimed 34 and the
 > directory held 126 — three tallies that disagreed with each other and with the disk, which is
 > why the count is now stated once, here, and derived from `ls packs/_source/effects/`.
 >
-> The most recent eleven are a group rather than a Servant's kit, and they share a defect:
+> The count exceeds the catalogue's own 154 because several rows are families whose members are
+> separate documents — `Atk Up` alone has eight, and the per-Servant variants (`kiritsuguMark`,
+> `raikouBuff`, `castorBuff`) are ids in the same namespace. §A.20's 154 counts **named rows**;
+> this counts **files**.
+>
+> The most recent **thirty-one** are a group rather than a Servant's kit, and they share a defect:
 > **`substitution`, `endure`, `accel`, `overCrit`, `gCrit`, `noCrit`, `ward`, `defCrk`,
 > `critResUp`, `critResDwn` and `blockUp` each had a working engine reader and no document able
 > to reach it.** Stage 0's halt, stage 16's Health clamp, stage 2's four-term crit sum, stage 4's
@@ -592,7 +597,7 @@ Health.
 
 Each becomes one YAML file under `packs/_source/effects/` (Ch. 37 §37.1).
 
-**Authored so far: 137 of 154** — the count lives in this appendix's header block and is read
+**Authored so far: 157 files against 154 named rows** — the count lives in this appendix's header block and is read
 off the directory rather than incremented by hand, because three hand-kept tallies had already
 drifted apart. Scáthach brought fifteen at once, which is more than any other
 Servant and not a coincidence: her *Primordial Rune* is a sixteen-row table of ordinary buffs and
@@ -609,10 +614,10 @@ which half of Appendix A is likely to keep growing.
 
 ---
 
-## A.21 The eleven readers with no document — built 2026-09-16
+## A.21 The thirty-one readers with no document — built 2026-09-16
 
-Eleven rows of this catalogue shared one defect, and it is this project's dominant one stated as
-plainly as it ever gets: **the behaviour was implemented and no Unit could be given the effect
+Thirty-one rows of this catalogue shared one defect, and it is this project's dominant one stated
+as plainly as it ever gets: **the behaviour was implemented and no Unit could be given the effect
 that triggers it.** Each reader tests for an effect **by id**, and each id belonged to no
 document.
 
@@ -633,6 +638,48 @@ finished state and not an unfinished one, because the pipeline recognises them b
 element beside that would be a second, weaker implementation of a halt that already exists.
 
 Two needed more.
+
+### The second twenty
+
+| Effect | The reader that was already there |
+|---|---|
+| `nvDebuff Immune` / `vDebuff Immune` / `Men.Debuff Immune` | the `scoped` table in `effect-applier.mjs`, keyed on the incoming effect's own **volatility** |
+| `Off.Debuff Immune` / `Def.Debuff Immune` | the same gate's two **valence** branches |
+| `No Buff` | that gate's one buff branch — `polarity === "buff"`, the single line in the function that asks about a buff |
+| `NP Lock` / `NP Degen` / `NP Lag` | three short-circuits at the top of `scheduler.cooldownRate` |
+| `PoisHeal` / `CursHeal` / `FlamHeal` | **two** readers each: stage 0's element conversion *and* `PERIODICS[…].healConversion` |
+| `Luck Boost` / `Luck Loss` | four call sites, each `held.includes(id) \|\| plan.forceTable === …` |
+| `Stop` | `PREVENT_ALL`, plus **two** scheduler sweeps — durations and cooldowns are different passes |
+| `Crystalfreeze` | stage 16 iterates `[["freeze", …], ["crystalfreeze", …]]`; only one had a document |
+| `Immobilize` | the partial-prevention table, an Agility `+4` in `attack.mjs` — **and terrain inflicting it** |
+| `Seal` | `seal: ["attack", "skill", "np"]`, whose omission of `spell` *is* the row's last clause |
+| `Webbed` | `PREVENT_ALL` and `invalidation.mjs` |
+| `Dragonblight` | stage 0's halt on an elemental attack (clause 1 only) |
+
+Three of these are worth singling out.
+
+**`Immobilize` was worse than inert.** `rules/terrain.mjs` has *inflicted* it since the terrain
+system was built — `magnetic` ground is *"25% chance of Immobilize for 1◈ — 100% for units with
+the Mechanical attribute"*, carrying a resistance bypass written carefully around a debuff that
+did not exist. The clause could not land, so magnetic terrain did nothing at all. This is the
+first entry in this appendix where the missing document silently disabled a **shipped feature**
+rather than only a catalogue row.
+
+**The partial preventions are the half that can go wrong quietly.** `Immobilize` and `Seal` must
+**not** carry `preventsAction: true`: that flag routes an effect through `PREVENT_ALL`, which
+takes everything. Immobilize would then stop an Attack it is not supposed to stop, and Seal would
+stop the Spells its row explicitly spares. Both documents omit the flag deliberately, and the
+tests assert the permitted action rather than only the refused ones — a denial test that checks
+only refusals passes just as happily when the effect denies too much.
+
+**`Dragonblight` clause 2 had no reader at all.** *"Cannot inflict volatile debuffs"* is an
+**outgoing** `ApplicationChance` of −100 scoped by `volatility` — the same field Heracles's
+Bravery uses — so a volatile debuff authored later is covered by saying what it is, and no list
+of ids has to be kept in this file.
+
+`Levitating` is **not** in the table above and is deliberately not a document: §A.17.2 calls it
+an *attribute*, and `rules/platforms.mjs` and `rules/terrain.mjs` both read it off
+`unit.attributes`. An effect of the same id would be a second, divergent answer to one question.
 
 ### `Accel` was a strictly weaker effect than this catalogue describes
 

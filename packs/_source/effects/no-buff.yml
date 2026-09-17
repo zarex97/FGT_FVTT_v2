@@ -1,0 +1,26 @@
+# Appendix A §A.10
+# "Cannot receive buffs. A single effect applying multiple buffs fails
+# ENTIRELY."
+#
+# The immunity gate's buff branch -- `if (def.polarity === "buff") return
+# held.includes("noBuff") ? "No Buff" : null` -- which is the one line in that
+# function that asks about a BUFF, and it had no document to find.
+#
+# The all-or-nothing clause is `applyBatch`'s, not this file's: a bundle is
+# applied as a unit, so a refusal of any member is a refusal of the bundle.
+# Restating it here would be a second rule that could disagree.
+schema: 1
+id: noBuff
+name: "No Buff"
+description: |
+  Cannot receive buffs. An effect which applies several buffs at once fails entirely.
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules: []
+notes: |
+  Statuses are unaffected (§A.16): they are neither buff nor debuff, so the gate's `polarity ===
+  "buff"` test never sees them. Riding's Active MOV Up says so explicitly for the same reason.
