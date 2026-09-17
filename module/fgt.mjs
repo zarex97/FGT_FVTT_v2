@@ -34,6 +34,7 @@ import * as copy from "./engine/copy.mjs";
 import * as gameLog from "./engine/game-log.mjs";
 import * as contract from "./engine/contract.mjs";
 import * as sceneLevels from "./engine/scene-levels.mjs";
+import * as platforms from "./engine/platforms.mjs";
 import * as legality from "./rules/legality.mjs";
 import * as control from "./rules/control.mjs";
 import * as cardVisibility from "./rules/card-visibility.mjs";
@@ -392,6 +393,10 @@ function buildPublicAPI() {
     // is content, not engine.
     summon, items, copy,
     gameLog, control, cardVisibility, contract, sceneLevels, legality,
+    // `boardPlatform` had a complete engine and no way to reach it -- no
+    // action-registry entry, no action-bar button, no console handle -- so a
+    // GM driving boarding by hand had nothing to call. Fixed as #24.
+    platforms,
     // The forced half of a compulsion (Penthesilea). Exposed because a GM who
     // has hand-placed tokens may want to reconcile without waiting for a move.
     forcedModes: reconcileForcedModes,

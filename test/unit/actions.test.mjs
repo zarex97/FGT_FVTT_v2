@@ -101,6 +101,29 @@ describe("Riding Attack", () => {
   });
 });
 
+describe("Board (#24)", () => {
+  const grounded = () => unit({ id: "g", level: 0, panel: { i: 6, j: 6 } });
+  const hgob = () => ({
+    id: "hgob", kind: "platform", level: 1, panel: { i: 5, j: 5 }, footprint: { w: 3, h: 3 },
+  });
+
+  it("is offered once the unit has moved onto an active platform's footprint", () => {
+    const found = availableActions(grounded(), board([grounded(), hgob()])).find((a) => a.id === "board");
+    expect(found).toBeDefined();
+    expect(found.context).toEqual({ platformId: "hgob" });
+    expect(found.mode).toBe("immediate");
+  });
+
+  it("is withheld when the unit is off the platform's footprint", () => {
+    expect(idsFor(unit(), board([unit(), hgob()]))).not.toContain("board");
+  });
+
+  it("is withheld once the unit is already aboard", () => {
+    const aboard = { ...grounded(), level: 1 };
+    expect(idsFor(aboard, board([aboard, hgob()]))).not.toContain("board");
+  });
+});
+
 describe("the registry's shape", () => {
   it("gives every entry an id, kind, icon, label and mode", () => {
     for (const a of UNIT_ACTIONS) {

@@ -23,6 +23,7 @@ import { hasGranted, GRANTS } from "./granted.mjs";
 import { relationOf } from "./relations.mjs";
 import { contains, membershipVerdict, canAttemptEscape } from "./bounded-fields.mjs";
 import { remainingMovement } from "./movement.mjs";
+import { boardablePlatform } from "./platforms.mjs";
 
 /**
  * The unit kinds that TAKE actions.
@@ -201,6 +202,26 @@ export const UNIT_ACTIONS = Object.freeze([
     // Ch. 34 is explicit that setting facing must not end the turn, so it bills
     // no ActionKind at all.
     available: (unit) => (acts(unit) ? {} : null),
+  },
+  {
+    // Bills nothing here, the same way `escape` does: the Move that put this
+    // unit on the platform's footprint already paid for itself, and the roll
+    // decides whether that Move succeeded in getting it aboard.
+    //
+    // `boardPlatform` (`engine/platforms.mjs`) implemented the whole sequence
+    // -- the relation gate, the roll, the level move, bringing the Master --
+    // and had no caller anywhere: no registry entry, no action bar button, no
+    // `fgt.api` handle. Fixed as #24.
+    id: "board",
+    kind: null,
+    icon: "fa-solid fa-ship",
+    label: "FGT.Action.Board",
+    mode: "immediate",
+    available: (unit, board) => {
+      if (!acts(unit)) return null;
+      const platform = boardablePlatform(unit, board);
+      return platform ? { platformId: platform.id } : null;
+    },
   },
 ]);
 
