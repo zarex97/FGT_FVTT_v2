@@ -104,6 +104,8 @@ Builds the effect instance document (`module/engine/effect-applier.mjs:234-286`)
 
 Duration bonuses — e.g., Mannanán's *Tradition Carrier* (*"duration of buffs extended by ⅓◈ extra Turns"*) — are added to the tick count, not to an already-started clock. An effect with no clock is not given one (`module/engine/effect-applier.mjs:249-254`).
 
+When step 5 resolved to `extend` (a `noneExtend` effect reapplied onto an existing instance), the new expiry is the **existing instance's expiry plus** the newly resolved duration, not `currentTick + duration` — a reapplication extends the clock already running rather than restamping it from now (`module/engine/effect-applier.mjs:245-253`).
+
 **Terminal effects:** A `terminal` effect (Instakill, Death, Erase) emits intents rather than creating an instance. It is a consequence, not a carried state — a Health loss for Instakill (which allows Guts and Endure to react), a `defeat` intent for Death (which *"ignores all revival effects"*), or `defeat` with cause `"erase"` for Erase (which excludes the Servant from the Grail counter) (`module/engine/effect-applier.mjs:290-437`).
 
 Outcome: always `applied` (or `noop` if stacking ruled it out earlier). The instance carries: magnitude, NP magnitude, stage, uses, expiry, applied tick, source unit/ability/field ids, polarity, volatility, unremovable flag, visibility, and attribution-hidden flag.
@@ -131,6 +133,23 @@ Outcome: `applied`. The `intents` array carries every intent this application em
 7. **A stage-change event fires only when stage actually changes.** The event carries the prior stage and the delta (`module/engine/effect-applier.mjs:336-344`).
 
 8. **Resolved intents are not re-expanded.** An intent marked `resolved: true` is passed through by `resolveEffects`; it skips the entire pipeline (`module/engine/applier.mjs:277-278`).
+
+## Traps and anti-patterns
+
+**Deciding the stacking action without letting it change what follows.** Step 5 correctly resolved
+`noneExtend` reapplication to `action: "extend"`, but step 6's expiry math read only the authored
+duration and the current tick — `(ctx.currentTick ?? 0) + ticks` — the same formula used for
+`refresh`. The two are not the same clause: `range-up.yml:11-14` reads *"does not stack, but
+duration is extended if reapplied"*, and extending means adding to the clock already running, not
+restamping from now. A `noneExtend` effect reapplied partway through its life lost whatever time it
+had left — measured, a 6-tick instance reapplied at tick 2 landed on tick 8 (refresh's answer)
+instead of tick 12 (extend's). `atk-up-trace.yml`, `suppression.yml`, and `webbed.yml` share the same
+`stacking: noneExtend` and were exposed the same way. Filed and fixed as
+[#23](https://github.com/zarex97/FGT_FVTT_v2/issues/23): step 6 now branches on `stack.action`,
+adding the new duration to the existing instance's `expiry` when it is `"extend"`, and only falling
+back to `now + duration` for a first application or any other action
+(`module/engine/effect-applier.mjs:245-253`). **A stacking action decided in step 5 is a value other
+steps must read, not just a label attached to the outcome.**
 
 ## Open questions
 
